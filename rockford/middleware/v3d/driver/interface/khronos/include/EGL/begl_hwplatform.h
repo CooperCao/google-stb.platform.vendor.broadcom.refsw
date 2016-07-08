@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2010 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2010 Broadcom.
 All rights reserved.
 
 Project  :  EGL driver
@@ -34,14 +34,15 @@ typedef struct BEGL_HWInfo
 
 typedef enum
 {
-   BEGL_HW_OP_END    = 0,  /* Args none                        */
+   BEGL_HW_OP_END = 0,     /* Args none                        */
    BEGL_HW_OP_BIN,         /* Args bin_start    and bin_end    */
    BEGL_HW_OP_RENDER,      /* Args render_start and render_end */
    BEGL_HW_OP_USER,        /* Args user_start                  */
    BEGL_HW_OP_WAIT,        /* Args flags                       */
    BEGL_HW_OP_SYNC,        /* Args none                        */
    BEGL_HW_OP_NOTIFY,      /* Args flags                       */
-   BEGL_HW_OP_FENCE        /* Args fd for the fence            */
+   BEGL_HW_OP_FENCE,       /* Args fd for the fence            */
+   BEGL_HW_OP_SECURE       /* Args is the job secure           */
 } BEGL_HWOperation;
 
 typedef enum
@@ -76,6 +77,7 @@ typedef struct BEGL_HWJob
    BEGL_HWInstruction   program[BEGL_HW_JOB_MAX_INSTRUCTIONS];
 
    uint32_t          binMemory;         /* Pointer to initial bin memory for tasks in this program  */
+   bool              binMemorySecure;   /* Bin memory came from secure pool, so it can be attached  */
    uint32_t          userVPM;           /* Settings for the V3D VPM for this job                    */
    bool              collectTimeline;   /* Requests time-line data for the job                      */
    uint64_t          jobSequence;       /* Unique sequence value                                    */
@@ -108,7 +110,7 @@ typedef struct BEGL_HWNotification
 
 typedef struct BEGL_HWBinMemorySettings
 {
-   uint32_t    dummy;
+   bool        secure;
 } BEGL_HWBinMemorySettings;
 
 typedef struct BEGL_HWBinMemory

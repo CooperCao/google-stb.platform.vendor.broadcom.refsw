@@ -1,23 +1,43 @@
-/***************************************************************************
- *     Copyright (c) 2003-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * [File Description:]
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
  *
- * Revision History:
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- *
- ***************************************************************************/
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 
 #ifndef BMUXLIB_TS_PRIV_H_
 #define BMUXLIB_TS_PRIV_H_
@@ -64,6 +84,10 @@ extern "C" {
 /* accessors for sys data completed count */
 #define BMUXLIB_TS_P_GET_SYS_DATA_COMP_CNT(handle)          ((handle)->status.uiSystemDataCompletedCount)
 #define BMUXLIB_TS_P_SET_SYS_DATA_COMP_CNT(handle, count)   ((handle)->status.uiSystemDataCompletedCount = (count))
+
+/* accessor macros for ESCR */
+#define BMUXLIB_TS_P_INPUT_DESCRIPTOR_IS_ESCR_VALID(_inputDesc, _useDts) ( (_useDts) ? BMUXLIB_INPUT_DESCRIPTOR_IS_DTS_VALID(_inputDesc) : BMUXLIB_INPUT_DESCRIPTOR_IS_ESCR_VALID(_inputDesc) )
+#define BMUXLIB_TS_P_INPUT_DESCRIPTOR_ESCR(_inputDesc, _useDts) ( (_useDts) ? ((uint32_t)(BMUXLIB_INPUT_DESCRIPTOR_DTS(_inputDesc) * 300)): BMUXLIB_INPUT_DESCRIPTOR_ESCR(_inputDesc) )
 
 /**************/
 /* Signatures */
@@ -291,6 +315,7 @@ typedef struct BMUXlib_TS_P_TransportDescriptorMetaData
       uint32_t uiSourceDescriptorCount; /* Set to one if the corresponding source descriptor should be freed when this transport descriptor is done */
 
       BMUXlib_TS_P_SourceType eSourceType;
+      uint64_t uiTimestamp;
       /* The following are only valid for audio/video/userdata source types */
       unsigned uiInputIndex;
       uint32_t uiSequenceID;     /* SW7425-3250: Sequence ID for Userdata Release Q */
@@ -313,6 +338,7 @@ typedef struct BMUXlib_TS_P_PCRInfo
       uint16_t uiExtension;
       uint64_t uiESCR;
       uint64_t uiNextESCR;
+      uint32_t uiIntervalIn27Mhz;
 #ifdef BMUXLIB_TS_P_DUMP_PCR
       FILE *hPCRFile;
 #endif
@@ -340,6 +366,7 @@ typedef struct BMUXlib_TS_P_InputMetaData
    unsigned uiTransportChannelIndex;   /* Which transport channel interface to use for this PID */
    uint16_t uiPID;                     /* The PID associated with this input data */
    uint8_t uiPESStreamID;
+   unsigned uiPIDIndex;
 
    /* State */
    bool bEOSSeen; /* true if EOS descriptor has been seen */
@@ -501,7 +528,6 @@ typedef struct BMUXlib_TS_P_Context
       /* Create */
       BMUXlib_TS_CreateSettings stCreateSettings;
       BMUXlib_TS_P_MemoryBuffers stMemoryBuffers;
-      BKNI_MutexHandle hMutex;
 
       BMUXlib_TS_TransportDescriptor *astTransportDescriptor;
       BMUXlib_TS_TransportDescriptor *astTransportDescriptorTemp;
@@ -651,6 +677,8 @@ typedef struct BMUXlib_TS_P_Context
          } stInput;
 
          BMUXlib_TS_P_Output_Info stOutput;
+
+         BMUXlib_TS_Status stStatus;
       } status;
 
 } BMUXlib_TS_P_Context;

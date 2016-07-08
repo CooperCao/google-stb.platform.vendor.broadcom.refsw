@@ -1,43 +1,39 @@
 /******************************************************************************
- * (c) 2016 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 #include "bip_player_impl.h"
 #include <strings.h>
@@ -68,7 +64,7 @@ static void playerPrintNexusStatus(
         nrc = NEXUS_Playback_GetStatus( hPlayer->hPlayback, &pbStatus );
         BIP_CHECK_GOTO((nrc==NEXUS_SUCCESS), ( "NEXUS_Playback_GetStatus() failed" ), error_play, nrc, nrc );
 
-        BDBG_WRN(( "PB: state=%s fifo=%u/%u played=%lld dataErrors=%d indexErrors=%d posFirst=%d posLast=%d posRead=%d posCurrent=%d",
+        BDBG_WRN(( "PB: state=%s fifo=%u/%u played=%"PRIu64 " dataErrors=%d indexErrors=%d posFirst=%lu posLast=%lu posRead=%lu posCurrent=%lu",
                     pbStatus.state == NEXUS_PlaybackState_eStopped ? "Stopped":
                     pbStatus.state == NEXUS_PlaybackState_ePlaying ? "Playing":
                     pbStatus.state == NEXUS_PlaybackState_ePaused ? "Paused":
@@ -95,7 +91,7 @@ error_play:
         nrc = NEXUS_Playpump_GetStatus( hPlayer->hPlaypump, &ppStatus );
         BIP_CHECK_GOTO((nrc==NEXUS_SUCCESS), ( "NEXUS_Playpump_GetStatus() failed" ), error_pp, nrc, nrc );
 
-        BDBG_WRN(( "PP1: state=%s FIFO depth/size=%u/%u bytesPlayed=%llu syncErrors=%u pacingTsRangeError=%u streamErrors=%d",
+        BDBG_WRN(( "PP1: state=%s FIFO depth/size=%zu/%zu bytesPlayed=%"PRIu64 " syncErrors=%u pacingTsRangeError=%u streamErrors=%d",
                     ppStatus.started?"Started":"Stopped", ppStatus.fifoDepth, ppStatus.fifoSize, ppStatus.bytesPlayed,
                     ppStatus.syncErrors, ppStatus.pacingTsRangeError, ppStatus.streamErrors));
 error_pp:
@@ -108,7 +104,7 @@ error_pp:
         nrc = NEXUS_Playpump_GetStatus( hPlayer->hPlaypump2, &ppStatus );
         BIP_CHECK_GOTO((nrc==NEXUS_SUCCESS), ( "NEXUS_Playpump_GetStatus() failed" ), error_pp2, nrc, nrc );
 
-        BDBG_WRN(( "PP2: state=%s FIFO depth/size=%u/%u bytesPlayed=%llu syncErrors=%u pacingTsRangeError=%u streamErrors=%d",
+        BDBG_WRN(( "PP2: state=%s FIFO depth/size=%zu/%zu bytesPlayed=%"PRIu64 " syncErrors=%u pacingTsRangeError=%u streamErrors=%d",
                     ppStatus.started?"Started":"Stopped", ppStatus.fifoDepth, ppStatus.fifoSize, ppStatus.bytesPlayed,
                     ppStatus.syncErrors, ppStatus.pacingTsRangeError, ppStatus.streamErrors));
 error_pp2:
@@ -119,43 +115,49 @@ error_pp2:
     if (hPlayer->hStcChannel)
     {
         NEXUS_StcChannelSettings settings;
+        unsigned currentStc;
+
+        NEXUS_StcChannel_GetStc(hPlayer->hStcChannel, &currentStc);
 
         NEXUS_StcChannel_GetSettings(hPlayer->hStcChannel, &settings);
         if (settings.mode == NEXUS_StcChannelMode_eAuto)
         {
-            BDBG_WRN(( "Stc: mode=%s behavior=%s transportType=%s offsetThreshold=%u",
-                        "Auto", BIP_ToStr_NEXUS_StcChannelAutoModeBehavior(settings.modeSettings.Auto.behavior),
+            BDBG_WRN(( "Stc: stc=0x%x mode=%s behavior=%s transportType=%s offsetThreshold=%u",
+                        currentStc, "Auto", BIP_ToStr_NEXUS_StcChannelAutoModeBehavior(settings.modeSettings.Auto.behavior),
                         BIP_ToStr_NEXUS_TransportType(settings.modeSettings.Auto.transportType), settings.modeSettings.Auto.offsetThreshold));
         }
         if (settings.mode == NEXUS_StcChannelMode_ePcr)
         {
-            BDBG_WRN(( "Stc: mode=%s hPidChannel=%p maxPcrError=%u disableJitterAdjustment=%s disableTimestampCorrection=%s offsetThreshold=%u",
-                        "Pcr", settings.modeSettings.pcr.pidChannel, settings.modeSettings.pcr.maxPcrError, settings.modeSettings.pcr.disableJitterAdjustment?"Y":"N",
+            BDBG_WRN(( "Stc: stc=0x%x mode=%s hPidChannel=%p maxPcrError=%u disableJitterAdjustment=%s disableTimestampCorrection=%s offsetThreshold=%u",
+                        currentStc, "Pcr", (void *)settings.modeSettings.pcr.pidChannel, settings.modeSettings.pcr.maxPcrError, settings.modeSettings.pcr.disableJitterAdjustment?"Y":"N",
                         settings.modeSettings.pcr.disableTimestampCorrection?"Y":"N", settings.modeSettings.Auto.offsetThreshold));
         }
     }
     if (hPlayer->hSimpleStcChannel)
     {
+        unsigned currentStc;
         NEXUS_SimpleStcChannelSettings settings;
+
+        NEXUS_SimpleStcChannel_GetStc(hPlayer->hSimpleStcChannel, &currentStc);
 
         NEXUS_SimpleStcChannel_GetSettings( hPlayer->hSimpleStcChannel, &settings );
         if (settings.mode == NEXUS_StcChannelMode_eAuto)
         {
-            BDBG_WRN(( "Stc: mode=%s behavior=%s transportType=%s offsetThreshold=%u",
-                        "Auto", BIP_ToStr_NEXUS_StcChannelAutoModeBehavior(settings.modeSettings.Auto.behavior),
+            BDBG_WRN(( "Stc: stc=0x%x mode=%s behavior=%s transportType=%s offsetThreshold=%u",
+                        currentStc, "Auto", BIP_ToStr_NEXUS_StcChannelAutoModeBehavior(settings.modeSettings.Auto.behavior),
                         BIP_ToStr_NEXUS_TransportType(settings.modeSettings.Auto.transportType), settings.modeSettings.Auto.offsetThreshold));
         }
         if (settings.mode == NEXUS_StcChannelMode_ePcr)
         {
-            BDBG_WRN(( "Stc: mode=%s hPidChannel=%p maxPcrError=%u disableJitterAdjustment=%s disableTimestampCorrection=%s offsetThreshold=%u",
-                        "Pcr", settings.modeSettings.pcr.pidChannel, settings.modeSettings.pcr.maxPcrError, settings.modeSettings.pcr.disableJitterAdjustment?"Y":"N",
+            BDBG_WRN(( "Stc: stc=0x%x mode=%s hPidChannel=%p maxPcrError=%u disableJitterAdjustment=%s disableTimestampCorrection=%s offsetThreshold=%u",
+                        currentStc, "Pcr", (void *)settings.modeSettings.pcr.pidChannel, settings.modeSettings.pcr.maxPcrError, settings.modeSettings.pcr.disableJitterAdjustment?"Y":"N",
                         settings.modeSettings.pcr.disableTimestampCorrection?"Y":"N", settings.modeSettings.Auto.offsetThreshold));
         }
         if (settings.modeSettings.highJitter.mode != NEXUS_SimpleStcChannelHighJitterMode_eNone)
         {
-            BDBG_WRN(( "Stc: mode=%s threshold=%u",
-                        (settings.modeSettings.highJitter.mode == NEXUS_SimpleStcChannelHighJitterMode_eDirect ? "Direct" :
-                         settings.modeSettings.highJitter.mode == NEXUS_SimpleStcChannelHighJitterMode_eTtsPacing ? "TtsPacing" : "PcrPacing"),
+            BDBG_WRN(( "Stc: stc=0x%x mode=%s threshold=%u",
+                        currentStc, (settings.modeSettings.highJitter.mode == NEXUS_SimpleStcChannelHighJitterMode_eDirect ? "Direct" :
+                        settings.modeSettings.highJitter.mode == NEXUS_SimpleStcChannelHighJitterMode_eTtsPacing ? "TtsPacing" : "PcrPacing"),
                         settings.modeSettings.highJitter.threshold ));
         }
     }
@@ -164,48 +166,51 @@ error_pp2:
     if (hPlayer->hVideoPidChannel)
     {
         NEXUS_PidChannelStatus pidStatus;
-        {
-            nrc = NEXUS_PidChannel_GetStatus( hPlayer->hVideoPidChannel, &pidStatus);
-            BIP_CHECK_GOTO((nrc==NEXUS_SUCCESS), ( "NEXUS_PidChannel_GetStatus() failed" ), error_pid, nrc, nrc );
+        nrc = NEXUS_PidChannel_GetStatus( hPlayer->hVideoPidChannel, &pidStatus);
+        BIP_CHECK_GOTO((nrc==NEXUS_SUCCESS), ( "NEXUS_PidChannel_GetStatus() failed" ), error_pid_video, nrc, nrc );
 
-            BDBG_WRN(("VPidCh: pid=0x%x hwIndex=%u transportType=%u enabled=%s playback=%s pbIdx=%u parserBandIdx=%u ccErrs=%u",
-                        pidStatus.pid, pidStatus.pidChannelIndex,
-                        pidStatus.transportType, pidStatus.enabled?"Y":"N",
-                        pidStatus.playback?"Y":"N", pidStatus.playbackIndex,
-                        pidStatus.continuityCountErrors
-                        ));
-            BDBG_WRN(("VPidChRave: ccErrs=%u cdbOverflowErrors=%u itbOverflowErrors=%u emulationByteRemovalErrors=%u teiErrors=%u pusiErrors=%u xcBufOverflowErrors=%u",
-                        pidStatus.raveStatus.continuityCountErrors,
-                        pidStatus.raveStatus.cdbOverflowErrors,
-                        pidStatus.raveStatus.itbOverflowErrors,
-                        pidStatus.raveStatus.emulationByteRemovalErrors,
-                        pidStatus.raveStatus.teiErrors,
-                        pidStatus.raveStatus.pusiErrors,
-                        pidStatus.xcBufferStatus.overflowErrors
-                     ));
-        }
-        if (hPlayer->hPrimaryAudioPidChannel)
-        {
-            nrc = NEXUS_PidChannel_GetStatus( hPlayer->hPrimaryAudioPidChannel, &pidStatus);
-            BIP_CHECK_GOTO((nrc==NEXUS_SUCCESS), ( "NEXUS_PidChannel_GetStatus() failed" ), error_pid, nrc, nrc );
+        BDBG_WRN(("VPidCh: pid=0x%x hwIndex=%u transportType=%s enabled=%s playback=%s pbIdx=%u parserBandIdx=%u ccErrs=%u",
+                    (unsigned)pidStatus.pid, pidStatus.pidChannelIndex,
+                    BIP_ToStr_NEXUS_TransportType(pidStatus.transportType), pidStatus.enabled?"Y":"N",
+                    pidStatus.playback?"Y":"N", pidStatus.playbackIndex,
+                    pidStatus.parserBand,
+                    pidStatus.continuityCountErrors
+                 ));
+        BDBG_WRN(("VPidChRave: ccErrs=%u cdbOverflowErrors=%u itbOverflowErrors=%u emulationByteRemovalErrors=%u teiErrors=%u pusiErrors=%u xcBufOverflowErrors=%u",
+                    pidStatus.raveStatus.continuityCountErrors,
+                    pidStatus.raveStatus.cdbOverflowErrors,
+                    pidStatus.raveStatus.itbOverflowErrors,
+                    pidStatus.raveStatus.emulationByteRemovalErrors,
+                    pidStatus.raveStatus.teiErrors,
+                    pidStatus.raveStatus.pusiErrors,
+                    pidStatus.xcBufferStatus.overflowErrors
+                 ));
+error_pid_video:
+        ; /* empty statement for label */
+    }
+    if (hPlayer->hPrimaryAudioPidChannel)
+    {
+        NEXUS_PidChannelStatus pidStatus;
 
-            BDBG_WRN(("APidCh: pid=0x%x hwIndex=%u transportType=%u enabled=%s playback=%s pbIdx=%u parserBandIdx=%u ccErrs=%u",
-                        pidStatus.pid, pidStatus.pidChannelIndex,
-                        pidStatus.transportType, pidStatus.enabled?"Y":"N",
-                        pidStatus.playback?"Y":"N", pidStatus.playbackIndex,
-                        pidStatus.continuityCountErrors
-                        ));
-            BDBG_WRN(("APidChRave: ccErrs=%u cdbOverflowErrors=%u itbOverflowErrors=%u emulationByteRemovalErrors=%u teiErrors=%u pusiErrors=%u xcBufOverflowErrors=%u",
-                        pidStatus.raveStatus.continuityCountErrors,
-                        pidStatus.raveStatus.cdbOverflowErrors,
-                        pidStatus.raveStatus.itbOverflowErrors,
-                        pidStatus.raveStatus.emulationByteRemovalErrors,
-                        pidStatus.raveStatus.teiErrors,
-                        pidStatus.raveStatus.pusiErrors,
-                        pidStatus.xcBufferStatus.overflowErrors
-                     ));
-        }
-error_pid:
+        nrc = NEXUS_PidChannel_GetStatus( hPlayer->hPrimaryAudioPidChannel, &pidStatus);
+        BIP_CHECK_GOTO((nrc==NEXUS_SUCCESS), ( "NEXUS_PidChannel_GetStatus() failed" ), error_pid_audio, nrc, nrc );
+
+        BDBG_WRN(("APidCh: pid=0x%x hwIndex=%u transportType=%s enabled=%s playback=%s pbIdx=%u parserBandIdx=%u ccErrs=%u",
+                    (unsigned)pidStatus.pid, pidStatus.pidChannelIndex,
+                    BIP_ToStr_NEXUS_TransportType(pidStatus.transportType), pidStatus.enabled?"Y":"N",
+                    pidStatus.playback?"Y":"N", pidStatus.playbackIndex,
+                    pidStatus.parserBand, pidStatus.continuityCountErrors
+                 ));
+        BDBG_WRN(("APidChRave: ccErrs=%u cdbOverflowErrors=%u itbOverflowErrors=%u emulationByteRemovalErrors=%u teiErrors=%u pusiErrors=%u xcBufOverflowErrors=%u",
+                    pidStatus.raveStatus.continuityCountErrors,
+                    pidStatus.raveStatus.cdbOverflowErrors,
+                    pidStatus.raveStatus.itbOverflowErrors,
+                    pidStatus.raveStatus.emulationByteRemovalErrors,
+                    pidStatus.raveStatus.teiErrors,
+                    pidStatus.raveStatus.pusiErrors,
+                    pidStatus.xcBufferStatus.overflowErrors
+                 ));
+error_pid_audio:
         ; /* empty statement for label */
     }
 
@@ -229,8 +234,9 @@ error_pid:
                         videoStats.frameRate, videoStats.interlaced?"Y":"N",
                         videoStats.tsm?"Y":"N", videoStats.firstPtsPassed?"Y":"N"
                         ));
-            BDBG_WRN(("Vdec: cdbFifo=%u/%u qDepth=%u decoded=%u displayed=%u picRcvd=%u iFrDisplayed=%u decoderErrs=%u decoderOverflows=%u decoderDrops=%u displayErrs=%u displayDrops=%u displayUnderflows=%u ptsErrs=%u watchdogs=%u bytesDecoded=%lld",
+            BDBG_WRN(("Vdec: cdbFifo=%u/%u qDepth=%u decoded bytes=%"PRIu64 " frames=%u displyd=%u picRcvd=%u iFrDisplyd=%u errs=%u overflows=%u decDrops=%u displyErrs=%u displyDrops=%u displyUndflows=%u ptsErrs=%u watchdogs=%u ",
                         videoStats.fifoDepth, videoStats.fifoSize, videoStats.queueDepth,
+                        videoStats.numBytesDecoded,
                         videoStats.numDecoded, videoStats.numDisplayed,
                         videoStats.numPicturesReceived,
                         videoStats.numIFramesDisplayed,
@@ -242,8 +248,7 @@ error_pid:
                         videoStats.numDisplayDrops,
                         videoStats.numDisplayUnderflows,
                         videoStats.ptsErrorCount,
-                        videoStats.numWatchdogs,
-                        videoStats.numBytesDecoded
+                        videoStats.numWatchdogs
                         ));
         }
 error_vstats:
@@ -263,13 +268,14 @@ error_vstats:
             }
             if (hPlayer->hSimplePrimaryAudioDecoder || hPlayer->hPrimaryAudioDecoder)
             {
-                BDBG_WRN(("Adec: started=%s tsm=%s locked=%s cdbFifoSz=%u/%u sampleRate=%d frDecoded=%u frErrs=%u fifoOverflows=%u fifoUnderflows=%u bytesDecoded=%lld watchdogs=%u",
+                BDBG_WRN(("Adec: started=%s tsm=%s locked=%s cdbFifoSz=%u/%u bytesDecoded=%"PRIu64 " sampleRate=%d frDecoded=%u frQueued=%u frDummy=%u frErrs=%u fifoOverflows=%u ptsErrs=%u fifoUnderflows=%u watchdogs=%u",
                             audioStats.started?"Y":"N",
                             audioStats.tsm?"Y":"N", audioStats.locked?"Y":"N",
-                            audioStats.fifoDepth, audioStats.fifoSize,
+                            audioStats.fifoDepth, audioStats.fifoSize, audioStats.numBytesDecoded,
                             audioStats.sampleRate, audioStats.framesDecoded,
-                            audioStats.frameErrors, audioStats.numFifoOverflows,
-                            audioStats.numFifoUnderflows, audioStats.numBytesDecoded, audioStats.numWatchdogs
+                            audioStats.queuedFrames, audioStats.dummyFrames,
+                            audioStats.frameErrors, audioStats.numFifoOverflows, audioStats.ptsErrorCount,
+                            audioStats.numFifoUnderflows, audioStats.numWatchdogs
                          ));
             }
         }
@@ -282,13 +288,28 @@ static void playerPrintStatus(
     BIP_PlayerHandle hPlayer
     )
 {
-    BDBG_WRN(("Player: state=%s subState=%s playRate=%d dataAvailabilityModel=%s clockRecoveryMode=%s playerMode=%s",
+    B_PlaybackIpError brc;
+    NEXUS_PlaybackPosition currentPositionInMs;
+    B_PlaybackIpStatus pbipStatus;
+
+    brc = B_PlaybackIp_GetStatus(hPlayer->pbipState.hPlaybackIp, &pbipStatus);
+    if (brc == B_ERROR_SUCCESS)
+    {
+        currentPositionInMs = pbipStatus.position;
+    }
+    else
+    {
+        currentPositionInMs = hPlayer->getStatusApi.pStatus->currentPositionInMs;
+    }
+    BDBG_WRN(("Player: state=%s subState=%s curPos=%lu playRate=%d dataAvailabilityModel=%s clockRecoveryMode=%s playerMode=%s bytesRcvd=%"PRId64,
                 BIP_ToStr_BIP_PlayerState(hPlayer->state),
                 BIP_ToStr_BIP_PlayerSubState(hPlayer->subState),
+                currentPositionInMs,
                 hPlayer->playRate,
                 BIP_ToStr_BIP_PlayerDataAvailabilityModel(hPlayer->dataAvailabilityModel),
                 BIP_ToStr_BIP_PlayerClockRecoveryMode(hPlayer->clockRecoveryMode),
-                BIP_ToStr_BIP_PlayerMode(hPlayer->mode)
+                BIP_ToStr_BIP_PlayerMode(hPlayer->mode),
+                pbipStatus.totalConsumed
              ));
     playerPrintNexusStatus(hPlayer);
 }
@@ -318,19 +339,19 @@ static void closePidChannel(
     NEXUS_PidChannelHandle  hPidChannel
     )
 {
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: closing hPidChannel=%p" BIP_MSG_PRE_ARG, hPlayer, hPidChannel));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: closing hPidChannel=%p" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPidChannel));
     if (hPlayer->useNexusPlaypump)
     {
         if (NEXUS_Playpump_ClosePidChannel(hPlayer->hPlaypump, hPidChannel) != NEXUS_SUCCESS)
         {
-            BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer %p: NEXUS_Playpump_ClosePidChannel Failed for hPidChannel=%p" BIP_MSG_PRE_ARG, hPlayer, hPidChannel));
+            BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer %p: NEXUS_Playpump_ClosePidChannel Failed for hPidChannel=%p" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPidChannel));
         }
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: Playpump hPidChannel=%p Closed" BIP_MSG_PRE_ARG, hPlayer, hPidChannel));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: Playpump hPidChannel=%p Closed" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPidChannel));
     }
     else
     {
         NEXUS_Playback_ClosePidChannel(hPlayer->hPlayback, hPidChannel);
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: Playback hPidChannel=%p Closed" BIP_MSG_PRE_ARG, hPlayer, hPidChannel));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: Playback hPidChannel=%p Closed" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPidChannel));
     }
 }
 
@@ -349,7 +370,7 @@ static void closeAndRemoveAllPidChannelsFromTrackList(
     {
         BLST_Q_REMOVE( &hPlayer->trackListHead, hTrackEntry, trackListNext );
         BDBG_ASSERT( hTrackEntry->hPidChannel );
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: closing hPidChannel=%p" BIP_MSG_PRE_ARG, hPlayer, hTrackEntry->hPidChannel));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: closing hPidChannel=%p" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hTrackEntry->hPidChannel));
         closePidChannel(hPlayer, hTrackEntry->hPidChannel);
         B_Os_Free(hTrackEntry);
     }
@@ -371,7 +392,7 @@ static BIP_Status closeAndRemovePidChannelFromTrackList(
     {
         closePidChannel(hPlayer, hPidChannel);
 
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: closed hPidChannel=%p, remove remove & destroy hTrackEntry=%p" BIP_MSG_PRE_ARG, hPlayer, hPidChannel, hTrackEntry));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: closed hPidChannel=%p, remove remove & destroy hTrackEntry=%p" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPidChannel, (void *)hTrackEntry));
         BLST_Q_REMOVE( &hPlayer->trackListHead, hTrackEntry, trackListNext );
         B_Os_Free(hTrackEntry);
         return (BIP_SUCCESS);
@@ -389,7 +410,7 @@ static BIP_Status openAndAddPidChannelToTrackList(
     BIP_Status bipStatus = BIP_ERR_INTERNAL;
     BIP_PlayerTrackListEntryHandle hTrackEntry;
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: trackId 0x%x" BIP_MSG_PRE_ARG, hPlayer, trackId));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: trackId 0x%x" BIP_MSG_PRE_ARG, (void *)hPlayer, trackId));
     /* Check if new track matches either both Id & type or just one of them of an existing track and take the correct action. */
     for (
          hTrackEntry = BLST_Q_FIRST( &hPlayer->trackListHead);
@@ -399,7 +420,7 @@ static BIP_Status openAndAddPidChannelToTrackList(
     {
         /* Duplicate track, return its pidChannel. */
         *phPidChannel = hTrackEntry->hPidChannel;
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: Duplicate entry: (trackId 0x%x), returning existing hPidChannel=%p" BIP_MSG_PRE_ARG, hPlayer, trackId, *phPidChannel));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: Duplicate entry: (trackId 0x%x), returning existing hPidChannel=%p" BIP_MSG_PRE_ARG, (void *)hPlayer, trackId, (void *)*phPidChannel));
         bipStatus = BIP_SUCCESS;
         return (bipStatus);
     }
@@ -409,7 +430,7 @@ static BIP_Status openAndAddPidChannelToTrackList(
         NEXUS_Error nrc;
 
         hTrackEntry = B_Os_Calloc( 1, sizeof(BIP_PlayerTrackListEntry));
-        BIP_CHECK_GOTO( (hTrackEntry), ( "Failed to allocate memory (%d bytes) for TrackEntry Object", sizeof(BIP_PlayerTrackListEntry) ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, bipStatus );
+        BIP_CHECK_GOTO( (hTrackEntry), ( "Failed to allocate memory (%zu bytes) for TrackEntry Object", sizeof(BIP_PlayerTrackListEntry) ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, bipStatus );
 
         /* If caller wants to open an allPass channel, get the hw index associated w/ the all pass channel. */
         if ( hPlayer->playerSettings.playbackSettings.playpumpSettings.allPass )
@@ -433,7 +454,7 @@ static BIP_Status openAndAddPidChannelToTrackList(
         hTrackEntry->settings = *pSettings;
         *phPidChannel = hTrackEntry->hPidChannel;
         BLST_Q_INSERT_TAIL( &hPlayer->trackListHead, hTrackEntry, trackListNext );
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: Added track entry=%p: (trackId 0x%x), returning hPidChannel=%p" BIP_MSG_PRE_ARG, hPlayer, hTrackEntry, trackId, *phPidChannel));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: Added track entry=%p: (trackId 0x%x), returning hPidChannel=%p" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hTrackEntry, trackId, (void *)*phPidChannel));
         bipStatus = BIP_SUCCESS;
     }
 
@@ -449,7 +470,7 @@ static void unPrepare(
     BIP_PlayerHandle hPlayer
     )
 {
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Un-preparing .." BIP_MSG_PRE_ARG, hPlayer));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Un-preparing .." BIP_MSG_PRE_ARG, (void *)hPlayer));
 
     if (hPlayer->hVideoPidChannel && hPlayer->hVideoDecoder)
     {
@@ -460,7 +481,7 @@ static void unPrepare(
         videoDecoderSettings.ptsOffset = 0;
         if ( NEXUS_VideoDecoder_SetSettings(hPlayer->hVideoDecoder, &videoDecoderSettings) != NEXUS_SUCCESS)
         {
-            BDBG_WRN((BIP_MSG_PRE_FMT "hPlayer=%p: NEXUS_VideoDecoder_SetSettings Failed to Reset the Video Decoder PTS value" BIP_MSG_PRE_ARG, hPlayer));
+            BDBG_WRN((BIP_MSG_PRE_FMT "hPlayer=%p: NEXUS_VideoDecoder_SetSettings Failed to Reset the Video Decoder PTS value" BIP_MSG_PRE_ARG, (void *)hPlayer));
         }
     }
 
@@ -473,7 +494,7 @@ static void unPrepare(
         audioDecoderSettings.ptsOffset = 0;
         if (NEXUS_AudioDecoder_SetSettings(hPlayer->hPrimaryAudioDecoder, &audioDecoderSettings) != NEXUS_SUCCESS)
         {
-            BDBG_WRN((BIP_MSG_PRE_FMT "hPlayer=%p: NEXUS_AudioDecoder_SetSettings Failed to Reset the Audio Decoder PTS value" BIP_MSG_PRE_ARG, hPlayer));
+            BDBG_WRN((BIP_MSG_PRE_FMT "hPlayer=%p: NEXUS_AudioDecoder_SetSettings Failed to Reset the Audio Decoder PTS value" BIP_MSG_PRE_ARG, (void *)hPlayer));
         }
     }
 
@@ -511,16 +532,16 @@ static void unPrepare(
     if (!hPlayer->prepareSettings.hPlaypump && hPlayer->hPlaypump)
     {
         NEXUS_Playpump_Close(hPlayer->hPlaypump);
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: hPlaypump=%p Closed!" BIP_MSG_PRE_ARG, hPlayer, hPlayer->hPlaypump));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: hPlaypump=%p Closed!" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->hPlaypump));
         hPlayer->hPlaypump = NULL;
     }
     if (!hPlayer->prepareSettings.hPlaypump2 && hPlayer->hPlaypump2)
     {
         NEXUS_Playpump_Close(hPlayer->hPlaypump2);
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: hPlaypump2=%p Closed!" BIP_MSG_PRE_ARG, hPlayer, hPlayer->hPlaypump2));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: hPlaypump2=%p Closed!" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->hPlaypump2));
         hPlayer->hPlaypump2 = NULL;
     }
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: unPrepare done!" BIP_MSG_PRE_ARG, hPlayer));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: unPrepare done!" BIP_MSG_PRE_ARG, (void *)hPlayer));
 } /* unPrepare */
 
 static void disconnectPlayer(
@@ -560,6 +581,11 @@ static void disconnectPlayer(
         NEXUS_Dma_Close(hPlayer->hDma);
         hPlayer->hDma = NULL;
     }
+    if (hPlayer->hMediaInfoForApp && hPlayer->hMediaInfoForApp != hPlayer->hMediaInfo)
+    {
+        BIP_MediaInfo_Destroy(hPlayer->hMediaInfoForApp);
+    }
+    hPlayer->hMediaInfoForApp = NULL;
     if (hPlayer->hMediaInfo)
     {
         BIP_MediaInfo_Destroy(hPlayer->hMediaInfo);
@@ -602,8 +628,18 @@ static void disconnectPlayer(
     hPlayer->mediaProbeComplete = false;
     hPlayer->dtcpIpEnabled = false;
     hPlayer->sslEnabled = false;
+    hPlayer->newProgramFound = false;
+    hPlayer->useNexusPlaypump = false;
+    hPlayer->usePlaypump2ForAudio = false;
+    hPlayer->useLiveIpMode = false;
+    hPlayer->reachedEndOfStream = false;
+    hPlayer->reachedBeginningOfStream = false;
+    hPlayer->receivedNetworkError = false;
+    hPlayer->seekCompleted = false;
     BKNI_Memset(&hPlayer->dlnaFlags, 0, sizeof(hPlayer->dlnaFlags));
 
+    BKNI_Memset(&hPlayer->getStatusFromServerState.serverStatus, 0, sizeof(hPlayer->getStatusFromServerState.serverStatus));
+    BKNI_Memset(&hPlayer->prepareSettings, 0, sizeof(hPlayer->prepareSettings));
     BDBG_MSG(( BIP_MSG_PRE_FMT BIP_PLAYER_STATE_PRINTF_FMT "Done!" BIP_MSG_PRE_ARG, BIP_PLAYER_STATE_PRINTF_ARG(hPlayer) ));
 }
 
@@ -676,7 +712,7 @@ static void pbipCallbackViaArbTimer(
     BDBG_ASSERT(hPlayer);
     BDBG_OBJECT_ASSERT( hPlayer, BIP_Player );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer: %p, eventId=%d" BIP_MSG_PRE_ARG, hPlayer, eventId ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer: %p, eventId=%d" BIP_MSG_PRE_ARG, (void *)hPlayer, eventId ));
 
     B_Mutex_Lock(hPlayer->hStateMutex);
 
@@ -697,6 +733,10 @@ static void pbipCallbackViaArbTimer(
     {
         hPlayer->seekCompleted = true;
     }
+    else if (eventId == B_PlaybackIpEvent_eNewProgram)
+    {
+        hPlayer->newProgramFound = true;
+    }
     processPlayerState_locked( (BIP_PlayerHandle) hPlayer, BIP_Arb_ThreadOrigin_eTimer);
     B_Mutex_Unlock( hPlayer->hStateMutex );
 
@@ -716,7 +756,7 @@ static void playbackCallbackViaArbTimer(
     BDBG_ASSERT(hPlayer);
     BDBG_OBJECT_ASSERT( hPlayer, BIP_Player );
 
-    BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer: %p" BIP_MSG_PRE_ARG, hPlayer ));
+    BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer: %p" BIP_MSG_PRE_ARG, (void *)hPlayer ));
     B_Mutex_Lock(hPlayer->hStateMutex);
 
     /* Update player's sub-state for end of stream & error callback cases. */
@@ -748,7 +788,7 @@ static void pbipCallback(
 
     BDBG_ASSERT( hPlayer );
     BDBG_OBJECT_ASSERT( hPlayer, BIP_Player );
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: Received eventId=%d from PBIP, state=%s" BIP_MSG_PRE_ARG, hPlayer, eventId, BIP_PLAYER_STATE(hPlayer->state) ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: Received eventId=%d from PBIP, state=%s" BIP_MSG_PRE_ARG, (void *)hPlayer, eventId, BIP_PLAYER_STATE(hPlayer->state) ));
     /* Note: we got callback from PBIP. We dont run Player's state in this callback context. */
     /* This is done because player's state machine may call destroy PBIP context and we can't do that in the PBIP callback itself. */
     /* Instead, we queue up a function with ARB logic that will be run thru ARB's timer context. */
@@ -776,7 +816,7 @@ static void errorCallbackFromPlayback(
     BSTD_UNUSED(param);
     BDBG_ASSERT( hPlayer );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: Received error Callback from Nexus Playback" BIP_MSG_PRE_ARG, hPlayer ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: Received error Callback from Nexus Playback" BIP_MSG_PRE_ARG, (void *)hPlayer ));
 
     /* Note: we got callback from Playback. We dont run Player's state in this callback context. This is done because player's state machine may */
     /* destroy Playback context and we can't do that in the Playback callback itself. */
@@ -805,7 +845,7 @@ static void endOfStreamCallbackFromPlayback(
     BSTD_UNUSED(param);
     BDBG_ASSERT( hPlayer );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: Received endOfStream Callback from Nexus Playback" BIP_MSG_PRE_ARG, hPlayer));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: Received endOfStream Callback from Nexus Playback" BIP_MSG_PRE_ARG, (void *)hPlayer));
 
     /* Note: we got callback from Playback. We dont run Player's state in this callback context. This is done because player's state machine may */
     /* destroy Playback context and we can't do that in the Playback callback itself. */
@@ -831,9 +871,9 @@ static void asyncApiCallbackFromDtcpIpClient(
 
     BSTD_UNUSED(param);
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hPlayer %p --------------------> "  BIP_MSG_PRE_ARG, hPlayer ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hPlayer %p --------------------> "  BIP_MSG_PRE_ARG, (void *)hPlayer ));
     processPlayerState( hPlayer, 0, BIP_Arb_ThreadOrigin_eTimer);
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hPlayer %p: <-------------------- " BIP_MSG_PRE_ARG, hPlayer ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hPlayer %p: <-------------------- " BIP_MSG_PRE_ARG, (void *)hPlayer ));
 
 } /* asyncApiCallbackFromDtcpIpClient */
 
@@ -842,18 +882,18 @@ static void processPlayerStateFromApiTimerCallback(
     )
 {
     BIP_PlayerHandle    hPlayer = (BIP_PlayerHandle) pContext;
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hPlayer %p --------------------> "  BIP_MSG_PRE_ARG, hPlayer ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hPlayer %p --------------------> "  BIP_MSG_PRE_ARG, (void *)hPlayer ));
 
     B_Mutex_Lock(hPlayer->hStateMutex);
     if (hPlayer->hApiTimer)
     {
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Got BIP_Timer callback, marking timer as self-destructed" BIP_MSG_PRE_ARG, hPlayer ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Got BIP_Timer callback, marking timer as self-destructed" BIP_MSG_PRE_ARG, (void *)hPlayer ));
         hPlayer->hApiTimer = NULL;   /* Indicate timer not active. */
     }
     B_Mutex_Unlock(hPlayer->hStateMutex);
 
     processPlayerState( hPlayer, 0, BIP_Arb_ThreadOrigin_eTimer);
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hPlayer %p: <-------------------- " BIP_MSG_PRE_ARG, hPlayer ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hPlayer %p: <-------------------- " BIP_MSG_PRE_ARG, (void *)hPlayer ));
 } /* processPlayerStateFromApiTimerCallback */
 
 static void processPlayerStateFromPauseTimerCallback(
@@ -861,19 +901,19 @@ static void processPlayerStateFromPauseTimerCallback(
     )
 {
     BIP_PlayerHandle    hPlayer = (BIP_PlayerHandle) pContext;
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hPlayer %p --------------------> "  BIP_MSG_PRE_ARG, hPlayer ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hPlayer %p --------------------> "  BIP_MSG_PRE_ARG, (void *)hPlayer ));
 
     B_Mutex_Lock(hPlayer->hStateMutex);
     if (hPlayer->pauseState.hPauseTimer )
     {
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Got BIP_Timer callback, marking timer as self-destructed" BIP_MSG_PRE_ARG, hPlayer ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Got BIP_Timer callback, marking timer as self-destructed" BIP_MSG_PRE_ARG, (void *)hPlayer ));
         hPlayer->pauseState.hPauseTimer = NULL;   /* Indicate timer not active. */
     }
     processPlayerState_locked(hPlayer, BIP_Arb_ThreadOrigin_eTimer);
 
     B_Mutex_Unlock(hPlayer->hStateMutex);
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hPlayer %p: <-------------------- " BIP_MSG_PRE_ARG, hPlayer ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hPlayer %p: <-------------------- " BIP_MSG_PRE_ARG, (void *)hPlayer ));
 } /* processPlayerStateFromPauseTimerCallback */
 
 static BIP_Status processDisconnectedState_locked(
@@ -914,7 +954,7 @@ static BIP_Status parseDtcpIpContentTypeHeader(
      */
     if ( strcasestr(pRespHeaders, DLNA_DTCP_IP_CONTENT_TYPE_HEADER) == NULL)
     {
-        BDBG_ERR(( BIP_MSG_PRE_FMT "hPlayer=%p: %s Header is not present in the response even tthough DLNA.ORG_FLAGS sets the link protection flag!" BIP_MSG_PRE_ARG, hPlayer ));
+        BDBG_ERR(( BIP_MSG_PRE_FMT "hPlayer=%p: %s Header is not present in the response even tthough DLNA.ORG_FLAGS sets the link protection flag!" BIP_MSG_PRE_ARG, (void *)hPlayer, DLNA_DTCP_IP_CONTENT_TYPE_HEADER ));
         return (BIP_ERR_PLAYER_MISSING_CONTENT_TYPE);
     }
     if ( (pHost = strcasestr(pRespHeaders, DLNA_DTCP_IP_HOST_NAME)) != NULL)
@@ -935,7 +975,7 @@ static BIP_Status parseDtcpIpContentTypeHeader(
         BIP_CHECK_GOTO(( hPlayer->dlnaFlags.hDtcpIpPort ), ( "BIP_String_CreateFromCharN() Failed"), error, BIP_ERR_PLAYER_MISSING_CONTENT_TYPE, completionStatus );
     }
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: DTCP/IP Host=%s Port=%s" BIP_MSG_PRE_ARG, hPlayer,
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: DTCP/IP Host=%s Port=%s" BIP_MSG_PRE_ARG, (void *)hPlayer,
                 BIP_String_GetString(hPlayer->dlnaFlags.hDtcpIpHostIp), BIP_String_GetString(hPlayer->dlnaFlags.hDtcpIpPort)));
 error:
     return (completionStatus);
@@ -948,12 +988,15 @@ static BIP_Status parseContentFeatureHeader(
 {
     BIP_Status completionStatus = BIP_SUCCESS;
     char *pTmp;
+    unsigned dlnaOrgFlags = 0;
 
     if (pRespHeaders == NULL) return (BIP_SUCCESS); /* Nothing to parse */
 
+    BKNI_Memset(&hPlayer->dlnaFlags, 0, sizeof(hPlayer->dlnaFlags));
+
     if ( strcasestr(pRespHeaders, DLNA_CONTENT_FEATURES_HEADER_NAME) == NULL )
     {
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: ContentFeatures.dlna.org Header is not present in the response!" BIP_MSG_PRE_ARG, hPlayer ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: ContentFeatures.dlna.org Header is not present in the response!" BIP_MSG_PRE_ARG, (void *)hPlayer ));
         return (BIP_SUCCESS);
     }
     /* Search for DLNA.ORG_OP sub-element. */
@@ -969,7 +1012,6 @@ static BIP_Status parseContentFeatureHeader(
     if ( (pTmp = strcasestr(pRespHeaders, DLNA_ORG_FLAGS_ELEMENT)) != NULL)
     {
         char dlnaOrgFlagsString[16];
-        unsigned dlnaOrgFlags;
 
         pTmp += strlen(DLNA_ORG_FLAGS_ELEMENT);
         /* Per DLNA Spec, only first 8 char are currently valid. */
@@ -980,15 +1022,23 @@ static BIP_Status parseContentFeatureHeader(
         if (dlnaOrgFlags & DLNA_ORG_FLAGS_LINK_PROTECTED_CONTENT) hPlayer->dlnaFlags.linkProtectionSupported = true;
         if (dlnaOrgFlags & DLNA_ORG_FLAGS_So_INCREASING) hPlayer->dlnaFlags.s0Increasing = true;
         if (dlnaOrgFlags & DLNA_ORG_FLAGS_Sn_INCREASING) hPlayer->dlnaFlags.sNIncreasing = true;
-        if (dlnaOrgFlags & DLNA_ORG_FLAGS_LIMITED_OPERATIONS_TIME_SEEK) hPlayer->dlnaFlags.timeBasedSeekSupported = true;
-        if (dlnaOrgFlags & DLNA_ORG_FLAGS_LIMITED_OPERATIONS_BYTE_SEEK) hPlayer->dlnaFlags.byteBasedSeekSupported = true;
+        if (dlnaOrgFlags & DLNA_ORG_FLAGS_LIMITED_OPERATIONS_TIME_SEEK)
+        {
+            hPlayer->dlnaFlags.timeBasedSeekSupported = true;
+            hPlayer->dlnaFlags.limitedOpFlagsSupported = true;
+        }
+        if (dlnaOrgFlags & DLNA_ORG_FLAGS_LIMITED_OPERATIONS_BYTE_SEEK)
+        {
+            hPlayer->dlnaFlags.byteBasedSeekSupported = true;
+            hPlayer->dlnaFlags.limitedOpFlagsSupported = true;
+        }
 
         if (hPlayer->dlnaFlags.linkProtectionSupported) { hPlayer->dtcpIpEnabled = true; }
         {
             if (getenv("disableDtcpIp") != NULL)
             {
                 hPlayer->dtcpIpEnabled = false;
-                BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer=%p: DtcpIp Support is disabled as dtcpIpEnabled environment variable is set!" BIP_MSG_PRE_ARG, hPlayer ));
+                BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer=%p: DtcpIp Support is disabled as dtcpIpEnabled environment variable is set!" BIP_MSG_PRE_ARG, (void *)hPlayer ));
             }
         }
     }
@@ -998,8 +1048,8 @@ static BIP_Status parseContentFeatureHeader(
     {
         hPlayer->dlnaFlags.playSpeedSupported = true;
     }
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: ContentFeatures.dlna.org Flags: timeSeek=%s byteSeek=%s senderPacing=%s dtcpIp=%s s0Increasing=%s sNIncreasing=%s!" BIP_MSG_PRE_ARG, hPlayer,
-                hPlayer->dlnaFlags.timeBasedSeekSupported?"Y":"N",
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: ContentFeatures.dlna.org Flags: flags=0x%x, timeSeek=%s byteSeek=%s senderPacing=%s dtcpIp=%s s0Increasing=%s sNIncreasing=%s!" BIP_MSG_PRE_ARG, (void *)hPlayer,
+                dlnaOrgFlags, hPlayer->dlnaFlags.timeBasedSeekSupported?"Y":"N",
                 hPlayer->dlnaFlags.byteBasedSeekSupported?"Y":"N",
                 hPlayer->dlnaFlags.senderPacingSupported?"Y":"N",
                 hPlayer->dlnaFlags.linkProtectionSupported ?"Y":"N",
@@ -1057,7 +1107,7 @@ static BIP_Status BIP_HttpRequest_ParseNptTime(
         uint32_t decimalFactor = 100;
 
         BDBG_MSG(( BIP_MSG_PRE_FMT "Found '.', npt format is \"<seconds>[.<fraction>]\"" BIP_MSG_PRE_ARG));
-        BDBG_MSG(( BIP_MSG_PRE_FMT "idx=%u pCh[idx]=%c" BIP_MSG_PRE_ARG, idx, pCh[idx]));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "idx=%zu pCh[idx]=%c" BIP_MSG_PRE_ARG, idx, pCh[idx]));
 
         secondsValue = parsedValue;    /* parsedValue is seconds. */
 
@@ -1180,7 +1230,7 @@ static BIP_Status BIP_HttpRequest_ParseNptTime(
     msecondsValue = (secondsValue * 1000) + msecondsValue;
 
     BDBG_MSG(( BIP_MSG_PRE_FMT "Final answer. NPT time in milliseconds: %"PRIu64".%03u"
-               BIP_MSG_PRE_ARG, msecondsValue/1000, msecondsValue%1000));
+               BIP_MSG_PRE_ARG, msecondsValue/1000, (unsigned)msecondsValue%1000));
 
     if (msecondsValue == BIP_U64_MAX) {
         BDBG_ERR((BIP_MSG_PRE_FMT  "Result: %"PRIu64" exceeds allowed maximum of %"PRIu64""
@@ -1197,8 +1247,8 @@ overflow:
 
 parseError:
 
-    BDBG_ERR((BIP_MSG_PRE_FMT "Error parsing NPT time: %*s" BIP_MSG_PRE_ARG, lenCh, pCh));
-    BDBG_ERR((BIP_MSG_PRE_FMT "Parse failed here:      %*s" BIP_MSG_PRE_ARG, 1 + idx, "^"));
+    BDBG_ERR((BIP_MSG_PRE_FMT "Error parsing NPT time: %*s" BIP_MSG_PRE_ARG, (int)lenCh, pCh));
+    BDBG_ERR((BIP_MSG_PRE_FMT "Parse failed here:      %*s" BIP_MSG_PRE_ARG, (int)(1 + idx), "^"));
     *pIdx = idx;
     return(BIP_ERR_HTTP_MESSAGE_INVALID);
 }
@@ -1217,7 +1267,7 @@ static BIP_Status parseAvailableSeekRangeHeader(
     /* Example header: availableSeekRange.dlna.org:1 npt=0:0:0.000-0:59:8.021 */
     if ( strcasestr(pRespHeaders, DLNA_AVAILABLE_SEEK_RANGE_HEADER_NAME) == NULL )
     {
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: AvailableSeekRange.dlna.org Header is not present in the response!" BIP_MSG_PRE_ARG, hPlayer ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: AvailableSeekRange.dlna.org Header is not present in the response!" BIP_MSG_PRE_ARG, (void *)hPlayer ));
         completionStatus = BIP_INF_NOT_AVAILABLE;
     }
     else
@@ -1237,7 +1287,7 @@ static BIP_Status parseAvailableSeekRangeHeader(
             if (completionStatus == BIP_SUCCESS)
             {
                 pServerStatus->availableSeekRange.firstPositionInMs = (NEXUS_PlaybackPosition)positionInMs;
-                BDBG_MSG(( ">>>>>> firstIndex=%u firstPositionInMs=%u %s" , firstIdx, pServerStatus->availableSeekRange.firstPositionInMs, pNpt));
+                BDBG_MSG(( ">>>>>> firstIndex=%zu firstPositionInMs=%lu %s" , firstIdx, pServerStatus->availableSeekRange.firstPositionInMs, pNpt));
                 if ( (pLast = strstr(pNpt, "-")))
                 {
                     lastIdx = pLast - pNpt + 1;
@@ -1249,7 +1299,7 @@ static BIP_Status parseAvailableSeekRangeHeader(
                         pServerStatus->availableSeekRange.durationInMs  = pServerStatus->availableSeekRange.lastPositionInMs > pServerStatus->availableSeekRange.firstPositionInMs ?
                             pServerStatus->availableSeekRange.lastPositionInMs - pServerStatus->availableSeekRange.firstPositionInMs:
                             pServerStatus->availableSeekRange.firstPositionInMs - pServerStatus->availableSeekRange.lastPositionInMs;
-                        BDBG_MSG(( ">>>>>> lastIdx=%u lastPositionInMs=%u durationInMs=%u", lastIdx,
+                        BDBG_MSG(( ">>>>>> lastIdx=%zu lastPositionInMs=%lu durationInMs=%lu", lastIdx,
                                     pServerStatus->availableSeekRange.lastPositionInMs,
                                     pServerStatus->availableSeekRange.durationInMs ));
                         hPlayer->dlnaFlags.availableSeekRangeSupported = true;
@@ -1279,7 +1329,7 @@ static BIP_Status startApiTimer(
             BIP_TimerCreateSettings timerCreateSettings;
 
             /* setup a timer callback only for +ve timeout value */
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: Starting timer for %ld ms" BIP_MSG_PRE_ARG, hPlayer, timeoutInMs ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: Starting timer for %d ms" BIP_MSG_PRE_ARG, (void *)hPlayer, timeoutInMs ));
             timerCreateSettings.input.callback    = processPlayerStateFromApiTimerCallback;
             timerCreateSettings.input.pContext    = hPlayer;
             timerCreateSettings.input.timeoutInMs = timeoutInMs;
@@ -1375,7 +1425,7 @@ static BIP_Status createHttpResponseObjectFromResponseHeaders(
         /* The following two prints will set the printEnabled flag if the BDBG module is enabled. */
         BIP_MSG_SUM(( BIP_MSG_PRE_FMT "HTTP Response:" BIP_MSG_PRE_ARG));
         BIP_MSG_SUM(( BIP_MSG_PRE_FMT "Printing HTTP Response: %p %s"
-                    BIP_MSG_PRE_ARG, hHttpResponse, (true?(printEnabled=true,""):"") ));
+                    BIP_MSG_PRE_ARG, (void *)hHttpResponse, (true?(printEnabled=true,""):"") ));
         if (printEnabled)
         {
             brc = BIP_HttpResponse_Print(hHttpResponse, NULL, NULL);
@@ -1413,7 +1463,7 @@ static BIP_Status processConnectingState_locked(
         BDBG_MSG(( BIP_MSG_PRE_FMT BIP_PLAYER_STATE_PRINTF_FMT "Accepted _Connect Arb: Start connect processing: url=%s"
                    BIP_MSG_PRE_ARG, BIP_PLAYER_STATE_PRINTF_ARG(hPlayer), hPlayer->connectApi.pUrl ));
         BDBG_MSG(( BIP_MSG_PRE_FMT "ConnectSettings: pUserAgent=%s addHdr=%s netJitterInMs=%u hHeap=%p hDma=%p dtcpIp=%s netIf=%s"
-                   BIP_MSG_PRE_ARG, pSettings->pUserAgent, pSettings->pAdditionalHeaders, pSettings->maxIpNetworkJitterInMs, pSettings->hHeap, pSettings->hDma, pSettings->enableDtcpIp?"Y":"N", pSettings->pNetworkInterfaceName ));
+                   BIP_MSG_PRE_ARG, pSettings->pUserAgent, pSettings->pAdditionalHeaders, pSettings->maxIpNetworkJitterInMs, (void *)pSettings->hHeap, (void *)pSettings->hDma, pSettings->enableDtcpIp?"Y":"N", pSettings->pNetworkInterfaceName ));
 
         /* Create a URL object */
         {
@@ -1475,7 +1525,7 @@ static BIP_Status processConnectingState_locked(
                 else
                 {
                     completionStatus = BIP_ERR_INVALID_PARAMETER;
-                    BDBG_ERR(( BIP_MSG_PRE_FMT "hPlayer=%p Can't determine default port for this URL scheme=%s" BIP_MSG_PRE_ARG, hPlayer, hPlayer->hUrl->scheme));
+                    BDBG_ERR(( BIP_MSG_PRE_FMT "hPlayer=%p Can't determine default port for this URL scheme=%s" BIP_MSG_PRE_ARG, (void *)hPlayer, hPlayer->hUrl->scheme));
                     goto error;
                 }
             }
@@ -1492,7 +1542,7 @@ static BIP_Status processConnectingState_locked(
                     hPlayer->pbipState.ipSessionOpenSettings.socketOpenSettings.protocol = B_PlaybackIpProtocol_eHttp;
                     hPlayer->sslEnabled = true;
                     hPlayer->pbipState.ipSessionOpenSettings.security.initialSecurityContext = status.pPbipSslCtx;
-                    BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: SSL enabled!" BIP_MSG_PRE_ARG, hPlayer ));
+                    BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: SSL enabled!" BIP_MSG_PRE_ARG, (void *)hPlayer ));
                 }
                 else
                 {
@@ -1540,7 +1590,7 @@ static BIP_Status processConnectingState_locked(
                 if (hPlayer->hAdditionalHeaders)
                 {
                     hPlayer->pbipState.ipSessionOpenSettings.u.http.additionalHeaders = (char *)BIP_String_GetString(hPlayer->hAdditionalHeaders);
-                    BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: additionalHeaders=%s" BIP_MSG_PRE_ARG, hPlayer, BIP_String_GetString(hPlayer->hAdditionalHeaders) ));
+                    BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: additionalHeaders=%s" BIP_MSG_PRE_ARG, (void *)hPlayer, BIP_String_GetString(hPlayer->hAdditionalHeaders) ));
                 }
                 else
                 {
@@ -1564,7 +1614,7 @@ static BIP_Status processConnectingState_locked(
             /* TODO: need to align PBIP timer w/ the timeout value from the connect settings */
             hPlayer->pbipState.ipSessionOpenSettings.networkTimeout = NETWORK_TIMEOUT_IN_SEC;  /* timeout during network outage events */
 
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p server=%s port=%u proto=%d secProto=%d url=%s" BIP_MSG_PRE_ARG, hPlayer,
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p server=%s port=%u proto=%d secProto=%d url=%s" BIP_MSG_PRE_ARG, (void *)hPlayer,
                         hPlayer->pbipState.ipSessionOpenSettings.socketOpenSettings.ipAddr,
                         hPlayer->pbipState.ipSessionOpenSettings.socketOpenSettings.port,
                         hPlayer->pbipState.ipSessionOpenSettings.socketOpenSettings.protocol,
@@ -1665,12 +1715,12 @@ static BIP_Status processConnectingState_locked(
                         {
                             B_Time_Get(&hPlayer->getStatusFromServerState.lastUpdateTime);
                             hPlayer->getStatusFromServerState.lastUpdateTimeSet = true;
-                            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Successfully parsed availableSeekRange & set the update time!" BIP_MSG_PRE_ARG, hPlayer ));
+                            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Successfully parsed availableSeekRange & set the update time!" BIP_MSG_PRE_ARG, (void *)hPlayer ));
                         }
                         else if (completionStatus == BIP_INF_NOT_AVAILABLE &&
                                  hPlayer->connectSettings.dataAvailabilityModel == BIP_PlayerDataAvailabilityModel_eLimitedRandomAccess )
                         {
-                            BIP_CHECK_GOTO(( 0 ), ( "hPlayer=%p: Server didn't respond with availableSeekRange header even when App has explicitly asked for it!", hPlayer), error, completionStatus, completionStatus );
+                            BIP_CHECK_GOTO(( 0 ), ( "hPlayer=%p: Server didn't respond with availableSeekRange header even when App has explicitly asked for it!", (void *)hPlayer), error, completionStatus, completionStatus );
                         }
                     }
                 }
@@ -2070,9 +2120,12 @@ static bool getTrackOfLanguage(
     bool                    trackGroupPresent = false;
     BIP_MediaInfoTrack      *pMediaInfoTrack;
 
+    BDBG_MSG((BIP_MSG_PRE_FMT "pLanguage=%s" BIP_MSG_PRE_ARG, pLanguage?pLanguage:""));
+
     pMediaInfoStream = BIP_MediaInfo_GetStream(hMediaInfo);
     BDBG_ASSERT(pMediaInfoStream);
     if (!pMediaInfoStream) return false;
+    if (!pLanguage) return false;
 
     if (pMediaInfoStream->numberOfTrackGroups != 0)
     {
@@ -2090,11 +2143,13 @@ static bool getTrackOfLanguage(
 
     while (pMediaInfoTrack)
     {
-        BDBG_MSG((BIP_MSG_PRE_FMT "trackId=0x%x lang=%s user lang=%s" BIP_MSG_PRE_ARG, pMediaInfoTrack->trackId, pMediaInfoTrack->info.audio.pLanguage, pLanguage));
-        if (pMediaInfoTrack->trackType == BIP_MediaInfoTrackType_eAudio && pMediaInfoTrack->info.audio.pLanguage && strcmp(pMediaInfoTrack->info.audio.pLanguage, pLanguage) == 0)
+        BDBG_MSG(( BIP_MSG_PRE_FMT "trackId=0x%x language=%s with type=%s" BIP_MSG_PRE_ARG,
+                    pMediaInfoTrack->trackId, pMediaInfoTrack->info.audio.pLanguage, BIP_ToStr_BIP_MediaInfoTrackType(pMediaInfoTrack->trackType) ));
+        if (pMediaInfoTrack->trackType == BIP_MediaInfoTrackType_eAudio &&
+                pMediaInfoTrack->info.audio.pLanguage && strcmp(pMediaInfoTrack->info.audio.pLanguage, pLanguage) == 0)
         {
-            BDBG_MSG(( BIP_MSG_PRE_FMT "Found track of language =%s with type=%s trackId=0x%x" BIP_MSG_PRE_ARG,
-                        pLanguage, BIP_ToStr_BIP_MediaInfoTrackType(pMediaInfoTrack->trackType), pMediaInfoTrack->trackId));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "Found trackId=0x%x language=%s with type=%s" BIP_MSG_PRE_ARG,
+                        pMediaInfoTrack->trackId, pMediaInfoTrack->info.audio.pLanguage, BIP_ToStr_BIP_MediaInfoTrackType(pMediaInfoTrack->trackType) ));
             *pMediaInfoTrackOut = *pMediaInfoTrack;
             trackFound = true;
             break;
@@ -2144,9 +2199,12 @@ static bool getTrackOfType(
 
     while (pMediaInfoTrack)
     {
+        BDBG_MSG(( BIP_MSG_PRE_FMT "trackId=0x%x type=%s" BIP_MSG_PRE_ARG,
+                    pMediaInfoTrack->trackId, BIP_ToStr_BIP_MediaInfoTrackType(pMediaInfoTrack->trackType) ));
         if (pMediaInfoTrack->trackType == trackType)
         {
-            BDBG_MSG(( BIP_MSG_PRE_FMT "Found trackType=%s with trackId=0x%x" BIP_MSG_PRE_ARG, BIP_ToStr_BIP_MediaInfoTrackType(trackType), pMediaInfoTrack->trackId));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "Found trackId=0x%x type=%s" BIP_MSG_PRE_ARG,
+                        pMediaInfoTrack->trackId, BIP_ToStr_BIP_MediaInfoTrackType(pMediaInfoTrack->trackType) ));
             *pMediaInfoTrackOut = *pMediaInfoTrack;
             trackFound = true;
             break;
@@ -2163,6 +2221,132 @@ static bool getTrackOfType(
     }
     return (trackFound);
 } /* getTrackOfType */
+
+static bool getTrackOfAc3Descriptor(
+    BIP_MediaInfoHandle             hMediaInfo,
+    BIP_MediaInfoAudioAc3Descriptor ac3Descriptor,
+    BIP_MediaInfoTrack              *pMediaInfoTrackOut
+    )
+{
+    bool                    trackFound = false;
+    BIP_MediaInfoStream     *pMediaInfoStream;
+    BIP_MediaInfoTrackGroup *pMediaInfoTrackGroup = NULL;
+    bool                    trackGroupPresent = false;
+    BIP_MediaInfoTrack      *pMediaInfoTrack;
+
+    BDBG_MSG((BIP_MSG_PRE_FMT "ac3Descriptor valid=%d bsmod=%d" BIP_MSG_PRE_ARG, ac3Descriptor.bsmodValid, ac3Descriptor.bsmod));
+
+    pMediaInfoStream = BIP_MediaInfo_GetStream(hMediaInfo);
+    BDBG_ASSERT(pMediaInfoStream);
+    if (!pMediaInfoStream) return false;
+
+    if (ac3Descriptor.bsmodValid == false) return false;
+
+    if (pMediaInfoStream->numberOfTrackGroups != 0)
+    {
+        pMediaInfoTrackGroup = pMediaInfoStream->pFirstTrackGroupInfo;
+        pMediaInfoTrack = pMediaInfoTrackGroup->pFirstTrackForTrackGroup;
+        trackGroupPresent = true;
+    }
+    else
+    {
+        /* None of the track belongs to any trackGroup, in this case stream out all tracks from mediaInfoStream.*/
+        pMediaInfoTrack = pMediaInfoStream->pFirstTrackInfoForStream;
+    }
+
+    if (!pMediaInfoTrack) return false;
+
+    while (pMediaInfoTrack)
+    {
+        BDBG_MSG(( BIP_MSG_PRE_FMT "trackId=0x%x bsmod=%d with type=%s" BIP_MSG_PRE_ARG,
+                    pMediaInfoTrack->trackId, pMediaInfoTrack->info.audio.descriptor.ac3.bsmod, BIP_ToStr_BIP_MediaInfoTrackType(pMediaInfoTrack->trackType) ));
+        if (pMediaInfoTrack->trackType == BIP_MediaInfoTrackType_eAudio &&
+                ac3Descriptor.bsmod == pMediaInfoTrack->info.audio.descriptor.ac3.bsmod)
+        {
+            BDBG_MSG(( BIP_MSG_PRE_FMT "Found trackId=0x%x bsmod=%d with type=%s" BIP_MSG_PRE_ARG,
+                        pMediaInfoTrack->trackId, pMediaInfoTrack->info.audio.descriptor.ac3.bsmod, BIP_ToStr_BIP_MediaInfoTrackType(pMediaInfoTrack->trackType) ));
+            *pMediaInfoTrackOut = *pMediaInfoTrack;
+            trackFound = true;
+            break;
+        }
+
+        if (true == trackGroupPresent)
+        {
+            pMediaInfoTrack = pMediaInfoTrack->pNextTrackForTrackGroup;
+        }
+        else
+        {
+            pMediaInfoTrack = pMediaInfoTrack->pNextTrackForStream;
+        }
+    }
+    return (trackFound);
+} /* getTrackOfAc3Descriptor */
+
+static bool getTrackOfLanguageAndAc3Descriptor(
+    BIP_MediaInfoHandle             hMediaInfo,
+    const char                      *pLanguage,
+    BIP_MediaInfoAudioAc3Descriptor ac3Descriptor,
+    BIP_MediaInfoTrack              *pMediaInfoTrackOut
+    )
+{
+    bool                    trackFound = false;
+    BIP_MediaInfoStream     *pMediaInfoStream;
+    BIP_MediaInfoTrackGroup *pMediaInfoTrackGroup = NULL;
+    bool                    trackGroupPresent = false;
+    BIP_MediaInfoTrack      *pMediaInfoTrack;
+
+    BDBG_MSG((BIP_MSG_PRE_FMT "ac3Descriptor: valid=%d bsmod=%d pLanguage=%s" BIP_MSG_PRE_ARG, ac3Descriptor.bsmodValid, ac3Descriptor.bsmod, pLanguage));
+
+    pMediaInfoStream = BIP_MediaInfo_GetStream(hMediaInfo);
+    BDBG_ASSERT(pMediaInfoStream);
+    if (!pMediaInfoStream) return false;
+    if (ac3Descriptor.bsmodValid == false) return false;
+    if (!pLanguage) return false;
+
+    if (pMediaInfoStream->numberOfTrackGroups != 0)
+    {
+        pMediaInfoTrackGroup = pMediaInfoStream->pFirstTrackGroupInfo;
+        pMediaInfoTrack = pMediaInfoTrackGroup->pFirstTrackForTrackGroup;
+        trackGroupPresent = true;
+    }
+    else
+    {
+        /* None of the track belongs to any trackGroup, in this case stream out all tracks from mediaInfoStream.*/
+        pMediaInfoTrack = pMediaInfoStream->pFirstTrackInfoForStream;
+    }
+
+    if (!pMediaInfoTrack) return false;
+
+    /* Search for explicit track first: one that matches both language & descriptor preference. */
+    while (pMediaInfoTrack)
+    {
+        BDBG_MSG(( BIP_MSG_PRE_FMT "trackId=0x%x bsmod=%d language=%s with type=%s" BIP_MSG_PRE_ARG,
+                    pMediaInfoTrack->trackId, pMediaInfoTrack->info.audio.descriptor.ac3.bsmod, pMediaInfoTrack->info.audio.pLanguage, BIP_ToStr_BIP_MediaInfoTrackType(pMediaInfoTrack->trackType) ));
+
+        if (pMediaInfoTrack->trackType == BIP_MediaInfoTrackType_eAudio &&
+                pMediaInfoTrack->info.audio.descriptor.ac3.bsmodValid && ac3Descriptor.bsmod == pMediaInfoTrack->info.audio.descriptor.ac3.bsmod &&
+                pMediaInfoTrack->info.audio.pLanguage && strcmp(pMediaInfoTrack->info.audio.pLanguage, pLanguage) == 0)
+        {
+            BDBG_MSG(( BIP_MSG_PRE_FMT "Found trackId=0x%x bsmod=%d language=%s with type=%s" BIP_MSG_PRE_ARG,
+                        pMediaInfoTrack->trackId, pMediaInfoTrack->info.audio.descriptor.ac3.bsmod, pMediaInfoTrack->info.audio.pLanguage, BIP_ToStr_BIP_MediaInfoTrackType(pMediaInfoTrack->trackType) ));
+            *pMediaInfoTrackOut = *pMediaInfoTrack;
+            trackFound = true;
+            break;
+        }
+
+        if (true == trackGroupPresent)
+        {
+            pMediaInfoTrack = pMediaInfoTrack->pNextTrackForTrackGroup;
+        }
+        else
+        {
+            pMediaInfoTrack = pMediaInfoTrack->pNextTrackForStream;
+        }
+    }
+    if (trackFound) return (trackFound);
+
+    return (trackFound);
+} /* getTrackOfLanguageAndAc3Descriptor */
 
 static void getProbedStreamInfo(
     BIP_PlayerHandle        hPlayer,
@@ -2241,7 +2425,7 @@ static BIP_Status determineDataAvailabilityModel(
         else if (hPlayer->playerProtocol == BIP_PlayerProtocol_eSimpleHttp && hPlayer->streamInfo.containerType == BIP_PlayerContainerType_eNexusTransportType)
         {
             /* For non-adaptive containers, we decide based on the DLNA flags. */
-            if (hPlayer->dlnaFlags.sNIncreasing)
+            if (hPlayer->dlnaFlags.sNIncreasing || hPlayer->dlnaFlags.limitedOpFlagsSupported)
             {
                 /* Note: we ignore to include the s0Increasing flag in this check & treat this progress recording case as Limited Data Availability (sN inceasing) as well. */
                 /* Only difference in this case would be that starting position will not change, but since ending will, we will need to fetch the range from the server. */
@@ -2277,27 +2461,27 @@ static BIP_Status determineDataAvailabilityModel(
             else
             {
                 hPlayer->dataAvailabilityModel = BIP_PlayerDataAvailabilityModel_eNoRandomAccess;
-                BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer %p: Failed to get B_PlaybackIp_GetStatus, using NoRandomAccess model: brc =%d " BIP_MSG_PRE_ARG, hPlayer, brc));
+                BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer %p: Failed to get B_PlaybackIp_GetStatus, using NoRandomAccess model: brc =%d " BIP_MSG_PRE_ARG, (void *)hPlayer, brc));
             }
         }
         else if (hPlayer->playerProtocol == BIP_PlayerProtocol_eSimpleHttp && hPlayer->streamInfo.containerType == BIP_PlayerContainerType_eMpegDash)
         {
             hPlayer->dataAvailabilityModel = BIP_PlayerDataAvailabilityModel_eNoRandomAccess;
-            BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer %p: Trickmodes are not yet supported for MpegDash containerType, using NoRandomAccess model" BIP_MSG_PRE_ARG, hPlayer));
+            BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer %p: Trickmodes are not yet supported for MpegDash containerType, using NoRandomAccess model" BIP_MSG_PRE_ARG, (void *)hPlayer));
         }
         else if (hPlayer->playerProtocol == BIP_PlayerProtocol_eRtsp)
         {
             hPlayer->dataAvailabilityModel = BIP_PlayerDataAvailabilityModel_eNoRandomAccess;
-            BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer %p: Trickmodes are not yet supported for RTSP protocol, using NoRandomAccess model" BIP_MSG_PRE_ARG, hPlayer));
+            BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer %p: Trickmodes are not yet supported for RTSP protocol, using NoRandomAccess model" BIP_MSG_PRE_ARG, (void *)hPlayer));
         }
         else
         {
             hPlayer->dataAvailabilityModel = BIP_PlayerDataAvailabilityModel_eNoRandomAccess;
-            BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer %p: Using NoRandomAccess model for playerPtocol=%d container=%s" BIP_MSG_PRE_ARG, hPlayer,
+            BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer %p: Using NoRandomAccess model for playerPtocol=%d container=%s" BIP_MSG_PRE_ARG, (void *)hPlayer,
                         hPlayer->playerProtocol, BIP_ToStr_BIP_PlayerContainerType(hPlayer->streamInfo.containerType)));
         }
 
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: app provided dataModel=%s player selected dataModel=%s, playerProtocol=%d containerType=%s " BIP_MSG_PRE_ARG, hPlayer,
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: app provided dataModel=%s player selected dataModel=%s, playerProtocol=%d containerType=%s " BIP_MSG_PRE_ARG, (void *)hPlayer,
                         BIP_ToStr_BIP_PlayerDataAvailabilityModel(hPlayer->connectSettings.dataAvailabilityModel),
                         BIP_ToStr_BIP_PlayerDataAvailabilityModel(hPlayer->dataAvailabilityModel),
                         hPlayer->playerProtocol,
@@ -2307,7 +2491,7 @@ static BIP_Status determineDataAvailabilityModel(
     }
     if (hPlayer->connectSettings.dataAvailabilityModel != BIP_PlayerDataAvailabilityModel_eAuto && hPlayer->dataAvailabilityModel != hPlayer->connectSettings.dataAvailabilityModel)
     {
-        BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer %p: app provided dataModel=%s doesn't match the player determined dataModel=%s" BIP_MSG_PRE_ARG, hPlayer,
+        BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer %p: app provided dataModel=%s doesn't match the player determined dataModel=%s" BIP_MSG_PRE_ARG, (void *)hPlayer,
                     BIP_ToStr_BIP_PlayerDataAvailabilityModel(hPlayer->connectSettings.dataAvailabilityModel ),
                     BIP_ToStr_BIP_PlayerDataAvailabilityModel(hPlayer->dataAvailabilityModel )
                     ));
@@ -2372,8 +2556,8 @@ static BIP_Status processProbingState_locked(
                         (hPlayer->dlnaFlags.senderPacingSupported) )
                 {
                     /* Server didn't sent content length header & app hasn't provided it to us either or sender is pacing the content, we limit the probe time. */
-                    hPlayer->pbipState.ipSessionSetupSettings.u.http.psiParsingTimeLimit = 500; /* TODO: should this be tied to the Probe() timeout ? */
-                    BDBG_MSG(( BIP_MSG_PRE_FMT BIP_PLAYER_STATE_PRINTF_FMT "ContentLength is not known or sending pacing set, limiting the probe time to %dmsec"
+                    hPlayer->pbipState.ipSessionSetupSettings.u.http.psiParsingTimeLimit = 3000; /* TODO: should this be tied to the Probe() timeout ? */
+                    BDBG_MSG(( BIP_MSG_PRE_FMT BIP_PLAYER_STATE_PRINTF_FMT "ContentLength is not known or sending pacing set, limiting the probe time to %ld msec"
                                BIP_MSG_PRE_ARG, BIP_PLAYER_STATE_PRINTF_ARG(hPlayer), hPlayer->pbipState.ipSessionSetupSettings.u.http.psiParsingTimeLimit ));
                 }
                 if (hPlayer->dlnaFlags.senderPacingSupported)
@@ -2466,11 +2650,13 @@ static BIP_Status processProbingState_locked(
             {
                 hPlayer->hMediaInfo = BIP_MediaInfo_CreateFromBMediaStream_priv( pBmediaStream, hPlayer->pbipState.psi.duration, hPlayer->pbipState.psi.contentLength, hPlayer->pbipState.psi.liveChannel , NULL);
                 BIP_CHECK_GOTO(( hPlayer->hMediaInfo ), ( "BIP_MediaInfo_CreateFromBMediaStream_priv Failed"), error, BIP_ERR_PLAYER_PROBE, completionStatus );
+                BDBG_MSG(( BIP_MSG_PRE_FMT BIP_PLAYER_STATE_PRINTF_FMT "Created MediaInfo object=%p from bMedia Stream object!" BIP_MSG_PRE_ARG, BIP_PLAYER_STATE_PRINTF_ARG(hPlayer), (void *)hPlayer->hMediaInfo ));
             }
             else
             {
                 hPlayer->hMediaInfo = BIP_MediaInfo_CreateFromPbipPsi_priv((const B_PlaybackIpPsiInfo *)&hPlayer->pbipState.ipSessionSetupStatus.u.http.psi, NULL);
-                BIP_CHECK_GOTO(( hPlayer->hMediaInfo ), ( "BIP_MediaInfo_CreateFromBMediaStream_priv Failed"), error, BIP_ERR_PLAYER_PROBE, completionStatus );
+                BIP_CHECK_GOTO(( hPlayer->hMediaInfo ), ( "BIP_MediaInfo_CreateFromPbipPsi_priv Failed"), error, BIP_ERR_PLAYER_PROBE, completionStatus );
+                BDBG_MSG(( BIP_MSG_PRE_FMT BIP_PLAYER_STATE_PRINTF_FMT "Created MediaInfo object=%p from PBIP PSI object!" BIP_MSG_PRE_ARG, BIP_PLAYER_STATE_PRINTF_ARG(hPlayer), (void *)hPlayer->hMediaInfo ));
             }
             if (hPlayer->probeMediaInfoApi.phMediaInfo) *hPlayer->probeMediaInfoApi.phMediaInfo = hPlayer->hMediaInfo;
             pMediaInfoStream = BIP_MediaInfo_GetStream(hPlayer->hMediaInfo);
@@ -2483,7 +2669,7 @@ static BIP_Status processProbingState_locked(
             completionStatus = BIP_SUCCESS;
             hPlayer->subState = BIP_PlayerSubState_eProbingDone;
 
-            BDBG_MSG(( BIP_MSG_PRE_FMT BIP_PLAYER_STATE_PRINTF_FMT "BIP_Player_ProbeMediaInfo successful: transportType=%s contentLength=%lld, streamDuration=%u liveChannel=%d usePP2=%s"
+            BDBG_MSG(( BIP_MSG_PRE_FMT BIP_PLAYER_STATE_PRINTF_FMT "BIP_Player_ProbeMediaInfo successful: transportType=%s contentLength=%"PRId64 ", streamDuration=%u liveChannel=%d usePP2=%s"
                        BIP_MSG_PRE_ARG, BIP_PLAYER_STATE_PRINTF_ARG(hPlayer), BIP_ToStr_NEXUS_TransportType(pMediaInfoStream->transportType),
                        pMediaInfoStream->contentLength, pMediaInfoStream->durationInMs, pMediaInfoStream->liveChannel, hPlayer->usePlaypump2ForAudio?"Y":"N" ));
         }
@@ -2538,7 +2724,7 @@ error:
             hPlayer->streamInfo.usePlayback = hPlayer->useNexusPlaypump?false:true;
 
             BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p useLiveIpMode=%s clockRecoveryMode=%s usePlayback=%s usePlaypump=%s transportType=%s playerContainerType=%s" BIP_MSG_PRE_ARG,
-                        hPlayer, hPlayer->useLiveIpMode?"Y":"N", BIP_ToStr_BIP_PlayerClockRecoveryMode(hPlayer->clockRecoveryMode),
+                        (void *)hPlayer, hPlayer->useLiveIpMode?"Y":"N", BIP_ToStr_BIP_PlayerClockRecoveryMode(hPlayer->clockRecoveryMode),
                         hPlayer->streamInfo.usePlayback?"Y":"N", hPlayer->streamInfo.usePlaypump?"Y":"N",
                         BIP_ToStr_NEXUS_TransportType(hPlayer->streamInfo.transportType), BIP_ToStr_BIP_PlayerContainerType(hPlayer->streamInfo.containerType) ));
 
@@ -2607,9 +2793,8 @@ static NEXUS_PidChannelHandle openPidChannel(
 {
     BIP_Status bipStatus = BIP_ERR_INTERNAL;
     NEXUS_PidChannelHandle hPidChannel = NULL;
-    NEXUS_Error nrc;
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p trackId=0x%x useNexusPlaypump=%s usePlaypump2ForAudio=%s" BIP_MSG_PRE_ARG, hPlayer, pid,
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p trackId=0x%x useNexusPlaypump=%s usePlaypump2ForAudio=%s" BIP_MSG_PRE_ARG, (void *)hPlayer, pid,
                 hPlayer->useNexusPlaypump ? "Y": "N", hPlayer->usePlaypump2ForAudio ? "Y": "N" ));
     if (hPlayer->useNexusPlaypump)
     {
@@ -2625,34 +2810,43 @@ static NEXUS_PidChannelHandle openPidChannel(
         }
         hPidChannel = NEXUS_Playpump_OpenPidChannel(hPlaypump, pid, &pSettings->pidSettings);
         BIP_CHECK_GOTO(( hPidChannel ), ( "NEXUS_Playpump_OpenPidChannel Failed"), error, BIP_INF_NEXUS_RESOURCE_NOT_AVAILABLE, bipStatus );
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p NEXUS_Playpump_OpenPidChannel opened hPidChannel=%p for trackId=0x%x" BIP_MSG_PRE_ARG, hPlayer, hPidChannel, pid ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p NEXUS_Playpump_OpenPidChannel opened hPidChannel=%p for trackId=0x%x" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPidChannel, pid ));
     }
     else
     {
-        if (!hPlayer->hPlayback)
-        {
-            NEXUS_PlaybackSettings settings;
-
-            hPlayer->hPlayback = NEXUS_Playback_Create();
-            BIP_CHECK_GOTO(( hPlayer->hPlayback ), ( "NEXUS_Playback_Create Failed"), error, BIP_INF_NEXUS_RESOURCE_NOT_AVAILABLE, bipStatus );
-            NEXUS_Playback_GetSettings(hPlayer->hPlayback, &settings);
-            /* Use the App provided playbackSettings (which is initialized via BIP_Player_GetDefaultPrepareSettings */
-            settings = hPlayer->playerSettings.playbackSettings;
-            settings.playpump = hPlayer->hPlaypump;
-            settings.playpumpSettings.transportType = hPlayer->streamInfo.transportType;
-            nrc = NEXUS_Playback_SetSettings(hPlayer->hPlayback, &settings);
-            BIP_CHECK_GOTO(( nrc == NEXUS_SUCCESS ), ( "NEXUS_Playback_SetSettings Failed"), error, BIP_INF_NEXUS_RESOURCE_NOT_AVAILABLE, bipStatus );
-        }
-
         hPidChannel = NEXUS_Playback_OpenPidChannel(hPlayer->hPlayback, pid, pSettings);
         BIP_CHECK_GOTO(( hPidChannel ), ( "NEXUS_Playback_OpenPidChannel Failed"), error, BIP_INF_NEXUS_RESOURCE_NOT_AVAILABLE, bipStatus );
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p NEXUS_Playback_OpenPidChannel opened hPidChannel=%p trackId=0x%x" BIP_MSG_PRE_ARG, hPlayer, hPidChannel, pid ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p NEXUS_Playback_OpenPidChannel opened hPidChannel=%p trackId=0x%x" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPidChannel, pid ));
     }
 
 error:
     return hPidChannel;
 } /* openPidChannel */
 
+/*
+ * Video Discard threshold default:
+ * -Video doesn't distinguish values between Push vs Pull modes.
+ * -is 90K (2sec) for MPEG2 video & 450000 (10sec) for H264
+ *
+ * Audio Discard threshold default:
+ * -Audio does distinguish values between Push vs Pull modes.
+ * -For Push modes, threshold is 3sec,
+ * -For Pull modes, largest +ve int value.
+ *
+ * When a stream has timeshifting enabled, we choose STC in auto mode. However, its behavior is dependent on:
+ * -AudioMaster: if we are playing music channel, or
+ * -First Available: if we are starting from the live point of timeshift buffer, or
+ * -VideoMaster: if we are playing a DVR file or from non-live point of a timeshift buffer.
+ *
+ * For music type channels, Video threshold is increased from default 2sec to 6sec.
+ * For channels where STC will get using Audio (AudioMaster (music channels) or First Available cases (Push w/ timeshift)), audio threshold is lowered to 6sec.
+ * This allows us to still cache audio frames whose PTS is upto 6sec in future (i.e. frames early by 6sec) and thus play them. However, if frames are earlier than
+ * this 6sec threshold, they will get dropped.
+ * So, for live timeshifted channels, the valus dont match. Video is 2 sec (MPEG2) & Audio is 3 sec.
+ * In case of lossy stream, increasing audio discard threshold to 6sec helps.
+ */
+#define BIP_AUDIO_DISCARD_THRESHHOLD_FOR_LIVE 6000
+#define BIP_VIDEO_DISCARD_THRESHHOLD_FOR_LIVE_MUSIC_CH (6000 * 45000) /* sec in 45Khz units */
 static BIP_Status prepareForPullMode(
     BIP_PlayerHandle hPlayer
     )
@@ -2676,19 +2870,74 @@ static BIP_Status prepareForPullMode(
             settings.modeSettings.Auto.transportType = hPlayer->streamInfo.transportType;
         }
 
-        if (hPlayer->dataAvailabilityModel == BIP_PlayerDataAvailabilityModel_eLimitedRandomAccess && BIP_Arb_IsBusy(hPlayer->prepareApi.hArb) && hPlayer->streamInfo.containerType == BIP_PlayerContainerType_eNexusTransportType)
+        if (hPlayer->audioTrackId != UINT_MAX && hPlayer->audioTrackId == hPlayer->streamInfo.mpeg2Ts.pcrPid)
+        {
+            /*
+             * We use audio master mode if a audioTrackId matches the PCR Pid.
+             * This is typically the case for Music Channels w/ Video Stills where we would want to stay in Audio Master mode in all cases.
+             */
+            BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: AudioTrackId(0x%x) matches the PcrTrackId(0x%x), using STC Channel in audioMasterAutoMode"
+                      BIP_MSG_PRE_ARG, (void *)hPlayer, hPlayer->audioTrackId, hPlayer->streamInfo.mpeg2Ts.pcrPid ));
+            settings.modeSettings.Auto.behavior = NEXUS_StcChannelAutoModeBehavior_eAudioMaster;
+            /*
+             * Also, for Music Channels w/ Video Stills, we need to increase the video PTS discard threshold (by default it is 2 sec for video).
+             * This is because pictures are quite sparse and sometimes they can come way early. To prevent TSM logic from dropping such
+             * early pictures, we will increase the discard threshold to 6 sec.
+             */
+            {
+                NEXUS_VideoDecoderSettings  videoDecoderSettings;
+
+                NEXUS_SimpleVideoDecoder_GetSettings(hPlayer->hSimpleVideoDecoder, &videoDecoderSettings);
+                videoDecoderSettings.discardThreshold = BIP_VIDEO_DISCARD_THRESHHOLD_FOR_LIVE_MUSIC_CH;
+                nrc = NEXUS_SimpleVideoDecoder_SetSettings(hPlayer->hSimpleVideoDecoder, &videoDecoderSettings);
+                BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_SimpleVideoDecoder_SetSettings Failed"), error, BIP_ERR_NEXUS, bipStatus );
+
+                BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: SimpleVideoDecoder discard threshold %u msec" BIP_MSG_PRE_ARG, (void *)hPlayer, videoDecoderSettings.discardThreshold));
+            }
+        }
+        else if (hPlayer->dataAvailabilityModel == BIP_PlayerDataAvailabilityModel_eLimitedRandomAccess &&
+                BIP_Arb_IsBusy(hPlayer->prepareApi.hArb) && hPlayer->usePlaypump2ForAudio)
+        {
+            /*
+             * We also use audio master mode if we have limited access to the AV data & are using separate Playpump for audioTrack.
+             * This is typically the case for HLS Playback where audio track comes via separate URL.
+             */
+            BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: 2nd Playpump is being used for AudioTrackId(0x%x), using STC Channel in audioMasterAutoMode"
+                      BIP_MSG_PRE_ARG, (void *)hPlayer, hPlayer->audioTrackId));
+            settings.modeSettings.Auto.behavior = NEXUS_StcChannelAutoModeBehavior_eAudioMaster;
+        }
+        else if (hPlayer->dataAvailabilityModel == BIP_PlayerDataAvailabilityModel_eLimitedRandomAccess && BIP_Arb_IsBusy(hPlayer->prepareApi.hArb))
         {
             /* By default, we use audio master auto mode when starting to play a stream w/ limited random access data model at 1x. */
-            settings.modeSettings.Auto.behavior = NEXUS_StcChannelAutoModeBehavior_eAudioMaster;
+            /* This happens via the eFirstAvailable mode setting as audio will have lower PTS than video & it will thus seed the STC first. */
+            settings.modeSettings.Auto.behavior = NEXUS_StcChannelAutoModeBehavior_eFirstAvailable;
         }
         else
         {
+            /* For non-timeshifted type pull mode cases, we explicitly use videoMaster mode. */
             settings.modeSettings.Auto.behavior = NEXUS_StcChannelAutoModeBehavior_eVideoMaster;
         }
         nrc = NEXUS_SimpleStcChannel_SetSettings( hPlayer->hSimpleStcChannel, &settings );
         BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_SimpleStcChannel_SetSettings Failed"), error, BIP_ERR_NEXUS, bipStatus );
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Nexus stcChannel=%p is setup for pull mode of streaming, stc behavior=%s" BIP_MSG_PRE_ARG, hPlayer,
-                    hPlayer->hSimpleStcChannel, BIP_ToStr_NEXUS_StcChannelAutoModeBehavior(settings.modeSettings.Auto.behavior) ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Nexus stcChannel=%p is setup for pull mode of streaming, stc behavior=%s" BIP_MSG_PRE_ARG, (void *)hPlayer,
+                    (void *)hPlayer->hSimpleStcChannel, BIP_ToStr_NEXUS_StcChannelAutoModeBehavior(settings.modeSettings.Auto.behavior) ));
+
+        /* Lower the discard threshold to live point so that stc channel can promptly detect the PTS Errors & reseed STC. */
+        if (settings.modeSettings.Auto.behavior == NEXUS_StcChannelAutoModeBehavior_eAudioMaster || settings.modeSettings.Auto.behavior == NEXUS_StcChannelAutoModeBehavior_eFirstAvailable)
+        {
+            NEXUS_SimpleAudioDecoderSettings *pAudioDecoderSettings;
+
+            pAudioDecoderSettings = B_Os_Calloc( 1, sizeof(NEXUS_SimpleAudioDecoderSettings));
+            BIP_CHECK_GOTO( (pAudioDecoderSettings), ( "Failed to allocate memory (%zu bytes) for audioDecoder Settings", sizeof(NEXUS_SimpleAudioDecoderSettings) ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, bipStatus );
+            NEXUS_SimpleAudioDecoder_GetSettings(hPlayer->hSimplePrimaryAudioDecoder, pAudioDecoderSettings);
+            pAudioDecoderSettings->primary.discardThreshold = BIP_AUDIO_DISCARD_THRESHHOLD_FOR_LIVE;
+            pAudioDecoderSettings->secondary.discardThreshold = BIP_AUDIO_DISCARD_THRESHHOLD_FOR_LIVE;
+            pAudioDecoderSettings->description.discardThreshold = BIP_AUDIO_DISCARD_THRESHHOLD_FOR_LIVE;
+            nrc = NEXUS_SimpleAudioDecoder_SetSettings(hPlayer->hSimplePrimaryAudioDecoder, pAudioDecoderSettings);
+            B_Os_Free(pAudioDecoderSettings);
+            BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_SimpleAudioDecoder_SetSettings Failed"), error, BIP_ERR_NEXUS, bipStatus );
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Lowered audio discard threshold to=%u sec" BIP_MSG_PRE_ARG, (void *)hPlayer, BIP_AUDIO_DISCARD_THRESHHOLD_FOR_LIVE));
+        }
     }
     else /* non-simple stcChannel case. */
     {
@@ -2710,20 +2959,72 @@ static BIP_Status prepareForPullMode(
         {
             settings.modeSettings.Auto.transportType = hPlayer->streamInfo.transportType;
         }
-        if (hPlayer->dataAvailabilityModel == BIP_PlayerDataAvailabilityModel_eLimitedRandomAccess && BIP_Arb_IsBusy(hPlayer->prepareApi.hArb) && hPlayer->streamInfo.containerType == BIP_PlayerContainerType_eNexusTransportType)
+
+        if (hPlayer->audioTrackId != UINT_MAX && hPlayer->audioTrackId == hPlayer->streamInfo.mpeg2Ts.pcrPid)
+        {
+            /*
+             * We use audio master mode if a audioTrackId matches the PCR Pid.
+             * This is typically the case for Music Channels w/ Video Stills where we would want to stay in Audio Master mode in all cases.
+             */
+            BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: AudioTrackId(0x%x) matches the PcrTrackId(0x%x), using STC Channel in audioMasterAutoMode"
+                      BIP_MSG_PRE_ARG, (void *)hPlayer, hPlayer->audioTrackId, hPlayer->streamInfo.mpeg2Ts.pcrPid ));
+            settings.modeSettings.Auto.behavior = NEXUS_StcChannelAutoModeBehavior_eAudioMaster;
+            /*
+             * Also, for Music Channels w/ Video Stills, we need to increase the PTS discard threshold (by default it is 2 sec for video).
+             * This is because pictures are quite sparse and sometimes they can come way early. To prevent TSM logic from dropping such
+             * early pictures, we will increase the discard threshold to 6 sec.
+             */
+            {
+                NEXUS_VideoDecoderSettings  videoDecoderSettings;
+
+                NEXUS_VideoDecoder_GetSettings(hPlayer->hVideoDecoder, &videoDecoderSettings);
+                videoDecoderSettings.discardThreshold = BIP_VIDEO_DISCARD_THRESHHOLD_FOR_LIVE_MUSIC_CH;
+                nrc = NEXUS_VideoDecoder_SetSettings(hPlayer->hVideoDecoder, &videoDecoderSettings);
+                BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_VideoDecoder_SetSettings Failed"), error, BIP_ERR_NEXUS, bipStatus );
+
+                BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer=%p: VideoDecoder discard threshold %u msec" BIP_MSG_PRE_ARG, (void *)hPlayer, videoDecoderSettings.discardThreshold));
+            }
+        }
+        else if (hPlayer->dataAvailabilityModel == BIP_PlayerDataAvailabilityModel_eLimitedRandomAccess &&
+                BIP_Arb_IsBusy(hPlayer->prepareApi.hArb) && hPlayer->usePlaypump2ForAudio)
+        {
+            /*
+             * We also use audio master mode if we have limited access to the AV data & are using separate Playpump for audioTrack.
+             * This is typically the case for HLS Playback where audio track comes via separate URL.
+             */
+            BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: 2nd Playpump is being used for AudioTrackId(0x%x), using STC Channel in audioMasterAutoMode"
+                      BIP_MSG_PRE_ARG, (void *)hPlayer, hPlayer->audioTrackId ));
+            settings.modeSettings.Auto.behavior = NEXUS_StcChannelAutoModeBehavior_eAudioMaster;
+        }
+        else if (hPlayer->dataAvailabilityModel == BIP_PlayerDataAvailabilityModel_eLimitedRandomAccess && BIP_Arb_IsBusy(hPlayer->prepareApi.hArb) )
         {
             /* Use audio master auto mode when starting to play a stream w/ limited random access data model at 1x */
-            settings.modeSettings.Auto.behavior = NEXUS_StcChannelAutoModeBehavior_eAudioMaster;
+            /* This happens via the eFirstAvailable mode setting as audio will have lower PTS than video & it will thus seed the STC first. */
+            settings.modeSettings.Auto.behavior = NEXUS_StcChannelAutoModeBehavior_eFirstAvailable;
         }
         else
         {
+            /* For non-timeshifted type pull mode cases, we explicitly use videoMaster mode. */
             settings.modeSettings.Auto.behavior = NEXUS_StcChannelAutoModeBehavior_eVideoMaster;
         }
 
         nrc = NEXUS_StcChannel_SetSettings( hPlayer->hStcChannel, &settings );
         BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_StcChannel_SetSettings Failed"), error, BIP_ERR_NEXUS, bipStatus );
         BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Nexus stcChannel=%p is setup for pull mode of streaming, stc behavior=%s" BIP_MSG_PRE_ARG,
-                    hPlayer , hPlayer->hStcChannel, BIP_ToStr_NEXUS_StcChannelAutoModeBehavior(settings.modeSettings.Auto.behavior) ));
+                    (void *)hPlayer , (void *)hPlayer->hStcChannel, BIP_ToStr_NEXUS_StcChannelAutoModeBehavior(settings.modeSettings.Auto.behavior) ));
+
+        /* Lower the discard threshold to live point so that stc channel can promptly detect the PTS Errors & reseed STC. */
+        if (settings.modeSettings.Auto.behavior == NEXUS_StcChannelAutoModeBehavior_eAudioMaster || settings.modeSettings.Auto.behavior == NEXUS_StcChannelAutoModeBehavior_eFirstAvailable)
+        {
+            NEXUS_AudioDecoderSettings audioDecoderSettings;
+
+            /* Reset the Audio PtsOffset that may have been set due to high jitter settings. */
+            NEXUS_AudioDecoder_GetSettings(hPlayer->hPrimaryAudioDecoder, &audioDecoderSettings);
+            audioDecoderSettings.discardThreshold = BIP_AUDIO_DISCARD_THRESHHOLD_FOR_LIVE;
+            nrc = NEXUS_AudioDecoder_SetSettings(hPlayer->hPrimaryAudioDecoder, &audioDecoderSettings);
+            BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_AudioDecoder_SetSettings Failed"), error, BIP_ERR_NEXUS, bipStatus );
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Lowered audio discard threshold to=%u sec" BIP_MSG_PRE_ARG, (void *)hPlayer, BIP_AUDIO_DISCARD_THRESHHOLD_FOR_LIVE));
+        }
     }
 
     if (hPlayer->useNexusPlaypump)
@@ -2735,17 +3036,14 @@ static BIP_Status prepareForPullMode(
         nrc = NEXUS_Playpump_SetSettings(hPlayer->hPlaypump, &settings);
         BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_Playpump_SetSettings Failed"), error, BIP_ERR_NEXUS, bipStatus );
 
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Nexus playpump=%p is setup for pull mode of streaming!" BIP_MSG_PRE_ARG, hPlayer, hPlayer->hPlaypump ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Nexus playpump=%p is setup for pull mode of streaming!" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->hPlaypump ));
     }
     else
     {
         NEXUS_PlaybackSettings settings;
 
         NEXUS_Playback_GetSettings(hPlayer->hPlayback, &settings);
-        /* Use the App provided playbackSettings (which is initialized via BIP_Player_GetDefaultPrepareSettings */
-        settings = hPlayer->playerSettings.playbackSettings;
         if (hPlayer->streamInfo.mpeg2Ts.transportTimeStampEnabled) settings.playpumpSettings.timestamp.type = NEXUS_TransportTimestampType_eMod300;
-        settings.playpumpSettings.transportType = hPlayer->streamInfo.transportType;
         settings.playpump = hPlayer->hPlaypump;
         settings.stcChannel = hPlayer->hStcChannel;
         settings.simpleStcChannel = hPlayer->hSimpleStcChannel;
@@ -2761,11 +3059,10 @@ static BIP_Status prepareForPullMode(
         }
         settings.errorCallback.callback = errorCallbackFromPlayback;
         settings.errorCallback.context = hPlayer;
-        settings.enableStreamProcessing = hPlayer->playerSettings.lpcm.convertLpcmToWave? true: false;
         nrc = NEXUS_Playback_SetSettings(hPlayer->hPlayback, &settings);
         BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_Playback_SetSettings Failed"), error, BIP_ERR_NEXUS, bipStatus );
         BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Nexus playback=%p is setup for pull mode of streaming: loop on EOS=%s startPaused=%s" BIP_MSG_PRE_ARG,
-                    hPlayer, hPlayer->hPlayback, settings.endOfStreamAction == NEXUS_PlaybackLoopMode_eLoop?"Y":"N",
+                    (void *)hPlayer, (void *)hPlayer->hPlayback, settings.endOfStreamAction == NEXUS_PlaybackLoopMode_eLoop?"Y":"N",
                     settings.startPaused?"Y":"N"));
     }
 
@@ -2788,7 +3085,7 @@ static BIP_Status prepareForPullMode(
         BIP_CHECK_GOTO(( rc == B_ERROR_SUCCESS), ( "B_PlaybackIp_SetSettings Failed"), error, BIP_ERR_INTERNAL, bipStatus );
 
         BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: PBIP=%p is setup w/ PullMode using Nexus %s: loop on EOS=%s!" BIP_MSG_PRE_ARG,
-                    hPlayer, hPlayer->pbipState.hPlaybackIp, hPlayer->useNexusPlaypump?"Playpump":"Playback",
+                    (void *)hPlayer, (void *)hPlayer->pbipState.hPlaybackIp, hPlayer->useNexusPlaypump?"Playpump":"Playback",
                     hPlayer->playerSettings.playbackSettings.endOfStreamAction == NEXUS_PlaybackLoopMode_eLoop?"Y":"N" ));
     }
     bipStatus = BIP_SUCCESS;
@@ -2824,7 +3121,7 @@ static BIP_Status prepareForPushWithPcrSyncSlipMode(
             pcrPidChannel = hPlayer->hPcrPidChannel = NEXUS_Playpump_OpenPidChannel(hPlayer->hPlaypump, hPlayer->streamInfo.mpeg2Ts.pcrPid, &settings);
             BIP_CHECK_GOTO(( hPlayer->hPcrPidChannel ), ( "NEXUS_Playpump_OpenPidChannel Failed"), error, BIP_INF_NEXUS_RESOURCE_NOT_AVAILABLE, bipStatus );
 
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p NEXUS_Playpump_OpenPidChannel opened PCR hPidChannel=%p" BIP_MSG_PRE_ARG, hPlayer, hPlayer->hPcrPidChannel ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p NEXUS_Playpump_OpenPidChannel opened PCR hPidChannel=%p" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->hPcrPidChannel ));
         }
         else
         {
@@ -2832,17 +3129,17 @@ static BIP_Status prepareForPushWithPcrSyncSlipMode(
             if (hPlayer->streamInfo.mpeg2Ts.pcrPid != UINT_MAX && hPlayer->streamInfo.mpeg2Ts.pcrPid == hPlayer->audioTrackId)
             {
                 pcrPidChannel = hPlayer->hPrimaryAudioPidChannel;
-                BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p PCR Pid == Audio Pid (%d), using AudioPidChannel for hPidChannel=%p" BIP_MSG_PRE_ARG, hPlayer, hPlayer->audioTrackId, pcrPidChannel ));
+                BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p PCR Pid == Audio Pid (0x%x), using AudioPidChannel for hPidChannel=%p" BIP_MSG_PRE_ARG, (void *)hPlayer, hPlayer->audioTrackId, (void *)pcrPidChannel ));
             }
             else if (hPlayer->streamInfo.mpeg2Ts.pcrPid != UINT_MAX && hPlayer->streamInfo.mpeg2Ts.pcrPid == hPlayer->videoTrackId)
             {
                 pcrPidChannel = hPlayer->hVideoPidChannel;
-                BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p PCR Pid == Video Pid (%d), using VideoPidChannel for hPidChannel=%p" BIP_MSG_PRE_ARG, hPlayer, hPlayer->videoTrackId, pcrPidChannel ));
+                BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p PCR Pid == Video Pid (0x%x), using VideoPidChannel for hPidChannel=%p" BIP_MSG_PRE_ARG, (void *)hPlayer, hPlayer->videoTrackId, (void *)pcrPidChannel ));
             }
             else
             {
                 BIP_CHECK_GOTO(( false ),
-                        ( "PCR Pid is neither found nor specified by the App, Can't configure live clock recovery w/o it: pcrPid=%d vPid=%u aPid=%u",
+                        ( "PCR Pid is neither found nor specified by the App, Can't configure live clock recovery w/o it: pcrPid=0x%x vPid=0x%xu aPid=0x%x",
                           hPlayer->streamInfo.mpeg2Ts.pcrPid, hPlayer->videoTrackId, hPlayer->audioTrackId),
                         error, BIP_ERR_INVALID_PARAMETER, bipStatus );
             }
@@ -2867,7 +3164,7 @@ static BIP_Status prepareForPushWithPcrSyncSlipMode(
         nrc = NEXUS_SimpleStcChannel_SetSettings(hPlayer->hSimpleStcChannel, &stcChannelSettings);
         BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_SimpleStcChannel_SetSettings Failed"), error, BIP_ERR_NEXUS, bipStatus );
         BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Nexus stcChannel=%p settings: mode=PCR offsetThreshold=%u maxPcrError=%u disableJitterAdjustment=%s disableTimestampCorrection=%s" BIP_MSG_PRE_ARG,
-                    hPlayer, hPlayer->hSimpleStcChannel,
+                    (void *)hPlayer, (void *)hPlayer->hSimpleStcChannel,
                     stcChannelSettings.modeSettings.pcr.offsetThreshold,
                     stcChannelSettings.modeSettings.pcr.maxPcrError,
                     stcChannelSettings.modeSettings.pcr.disableJitterAdjustment?"Y":"N",
@@ -2895,8 +3192,8 @@ static BIP_Status prepareForPushWithPcrSyncSlipMode(
             nrc = NEXUS_Timebase_SetSettings(hPlayer->lockedTimebase, &lockedTimebaseSettings);
             BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_Timebase_SetSettings Failed"), error, BIP_ERR_NEXUS, bipStatus );
 
-            BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p lockedTimebase settings: timebase=%d maxIpNetworkJitterInMs=%u sourceType=%d freeze=%d maxPcrError=%u trackRange=%u jitterCorrection=%u" BIP_MSG_PRE_ARG,
-                        hPlayer, hPlayer->lockedTimebase, hPlayer->connectSettings.maxIpNetworkJitterInMs,
+            BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p lockedTimebase settings: timebase=%lu maxIpNetworkJitterInMs=%u sourceType=%d freeze=%d maxPcrError=%u trackRange=%u jitterCorrection=%u" BIP_MSG_PRE_ARG,
+                        (void *)hPlayer, hPlayer->lockedTimebase, hPlayer->connectSettings.maxIpNetworkJitterInMs,
                         lockedTimebaseSettings.sourceType,
                         lockedTimebaseSettings.freeze,
                         lockedTimebaseSettings.sourceSettings.pcr.maxPcrError,
@@ -2918,8 +3215,8 @@ static BIP_Status prepareForPushWithPcrSyncSlipMode(
             nrc = NEXUS_Timebase_SetSettings(hPlayer->freeRunTimebase, &freeRunTimebaseSettings);
             BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_Timebase_SetSettings Failed"), error, BIP_ERR_NEXUS, bipStatus );
 
-            BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p freeRunTimebase settings: timebase=%d sourceType=%d freeze=%d trackRange=%u" BIP_MSG_PRE_ARG,
-                        hPlayer, hPlayer->freeRunTimebase,
+            BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p freeRunTimebase settings: timebase=%lu sourceType=%d freeze=%d trackRange=%u" BIP_MSG_PRE_ARG,
+                        (void *)hPlayer, hPlayer->freeRunTimebase,
                         freeRunTimebaseSettings.sourceType,
                         freeRunTimebaseSettings.freeze,
                         freeRunTimebaseSettings.sourceSettings.pcr.trackRange));
@@ -2947,8 +3244,9 @@ static BIP_Status prepareForPushWithPcrSyncSlipMode(
             nrc = NEXUS_StcChannel_SetSettings( hPlayer->hStcChannel, &stcChannelSettings );
             BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_StcChannel_SetSettings Failed"), error, BIP_ERR_NEXUS, bipStatus );
 
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Nexus stcChannel=%p settings: timebase=%d mode=PCR offsetThreshold=%u maxPcrError=%u disableJitterAdjustment=%s disableTimestampCorrection=%s autoConfigTimebase=%s" BIP_MSG_PRE_ARG,
-                        hPlayer, hPlayer->hStcChannel,
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Nexus stcChannel=%p settings: timebase=%lu mode=PCR offsetThreshold=%u maxPcrError=%u disableJitterAdjustment=%s disableTimestampCorrection=%s autoConfigTimebase=%s" BIP_MSG_PRE_ARG,
+                        (void *)hPlayer, (void *)hPlayer->hStcChannel,
+                        stcChannelSettings.timebase,
                         stcChannelSettings.modeSettings.pcr.offsetThreshold,
                         stcChannelSettings.modeSettings.pcr.maxPcrError,
                         stcChannelSettings.modeSettings.pcr.disableJitterAdjustment?"Y":"N",
@@ -2960,31 +3258,38 @@ static BIP_Status prepareForPushWithPcrSyncSlipMode(
         {
             NEXUS_AudioOutput output;
             NEXUS_AudioOutputSettings audioOutputSettings;
-            NEXUS_PlatformConfiguration platformConfig;
+            NEXUS_PlatformConfiguration *pPlatformConfig;
 
-            NEXUS_Platform_GetConfiguration(&platformConfig);
+            pPlatformConfig = B_Os_Calloc( 1, sizeof(NEXUS_PlatformConfiguration));
+            BIP_CHECK_GOTO( (pPlatformConfig), ( "Failed to allocate memory (%zu bytes) for NEXUS_PlatformConfiguration ", sizeof(NEXUS_PlatformConfiguration) ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, bipStatus );
+
+            NEXUS_Platform_GetConfiguration(pPlatformConfig);
 
 #if NEXUS_NUM_AUDIO_DACS
-            output = NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]);
+            output = NEXUS_AudioDac_GetConnector(pPlatformConfig->outputs.audioDacs[0]);
             NEXUS_AudioOutput_GetSettings(output, &audioOutputSettings);
             audioOutputSettings.timebase = hPlayer->freeRunTimebase;
             nrc = NEXUS_AudioOutput_SetSettings(output, &audioOutputSettings);
+            if (nrc != NEXUS_SUCCESS) B_Os_Free(pPlatformConfig);
             BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_AudioOutput_SetSettings Failed"), error, BIP_ERR_NEXUS, bipStatus );
 #endif
 #if NEXUS_NUM_SPDIF_OUTPUTS
-            output = NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]);
+            output = NEXUS_SpdifOutput_GetConnector(pPlatformConfig->outputs.spdif[0]);
             NEXUS_AudioOutput_GetSettings(output, &audioOutputSettings);
             audioOutputSettings.timebase = hPlayer->freeRunTimebase;
             nrc = NEXUS_AudioOutput_SetSettings(output, &audioOutputSettings);
+            if (nrc != NEXUS_SUCCESS) B_Os_Free(pPlatformConfig);
             BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_AudioOutput_SetSettings Failed"), error, BIP_ERR_NEXUS, bipStatus );
 #endif
 #if NEXUS_NUM_HDMI_OUTPUTS
-            output = NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0] );
+            output = NEXUS_HdmiOutput_GetAudioConnector(pPlatformConfig->outputs.hdmi[0] );
             NEXUS_AudioOutput_GetSettings(output, &audioOutputSettings);
             audioOutputSettings.timebase = hPlayer->freeRunTimebase;
             nrc = NEXUS_AudioOutput_SetSettings(output, &audioOutputSettings);
+            if (nrc != NEXUS_SUCCESS) B_Os_Free(pPlatformConfig);
             BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_AudioOutput_SetSettings Failed"), error, BIP_ERR_NEXUS, bipStatus );
 #endif
+            B_Os_Free(pPlatformConfig);
             /* TODO: Modify timebase of other audio outputs as well (e.g. i2s, etc) */
 
             /* Decouple the Display from input timebase and run it on free running timebase */
@@ -3007,7 +3312,7 @@ static BIP_Status prepareForPushWithPcrSyncSlipMode(
             nrc = NEXUS_VideoDecoder_SetSettings(hPlayer->hVideoDecoder, &videoDecoderSettings);
             BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_VideoDecoder_SetSettings Failed"), error, BIP_ERR_NEXUS, bipStatus );
 
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: VideoDecoder ptsOffset=%d updated by jitter of %u msec" BIP_MSG_PRE_ARG, hPlayer, videoDecoderSettings.ptsOffset, hPlayer->connectSettings.maxIpNetworkJitterInMs ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: VideoDecoder ptsOffset=%d updated by jitter of %u msec" BIP_MSG_PRE_ARG, (void *)hPlayer, videoDecoderSettings.ptsOffset, hPlayer->connectSettings.maxIpNetworkJitterInMs ));
         }
 
         if (hPlayer->hPrimaryAudioPidChannel && hPlayer->hPrimaryAudioDecoder)
@@ -3019,7 +3324,7 @@ static BIP_Status prepareForPushWithPcrSyncSlipMode(
             nrc = NEXUS_AudioDecoder_SetSettings(hPlayer->hPrimaryAudioDecoder, &audioDecoderSettings);
             BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_AudioDecoder_SetSettings Failed"), error, BIP_ERR_NEXUS, bipStatus );
 
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: AudioDecoder ptsOffset=%d updated by jitter of %u msec" BIP_MSG_PRE_ARG, hPlayer, audioDecoderSettings.ptsOffset, hPlayer->connectSettings.maxIpNetworkJitterInMs ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: AudioDecoder ptsOffset=%d updated by jitter of %u msec" BIP_MSG_PRE_ARG, (void *)hPlayer, audioDecoderSettings.ptsOffset, hPlayer->connectSettings.maxIpNetworkJitterInMs ));
         }
     } /* non-simple stcChannel else case. */
 
@@ -3032,7 +3337,7 @@ static BIP_Status prepareForPushWithPcrSyncSlipMode(
         nrc = NEXUS_Playpump_SetSettings(hPlayer->hPlaypump, &settings);
         BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_Playpump_SetSettings Failed"), error, BIP_ERR_NEXUS, bipStatus );
 
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Nexus playpump=%p is setup for live mode of streaming!" BIP_MSG_PRE_ARG, hPlayer, hPlayer->hPlaypump ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Nexus playpump=%p is setup for live mode of streaming!" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->hPlaypump ));
     }
 
     /* Let PBIP know about using Playpump & Clock Recovery Modes. */
@@ -3052,7 +3357,7 @@ static BIP_Status prepareForPushWithPcrSyncSlipMode(
         }
         rc = B_PlaybackIp_SetSettings(hPlayer->pbipState.hPlaybackIp, &hPlayer->pbipState.settings);
         BIP_CHECK_GOTO(( rc == B_ERROR_SUCCESS), ( "B_PlaybackIp_SetSettings Failed"), error, BIP_ERR_INTERNAL, bipStatus );
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: PBIP=%p is setup w/ PushWithPcrSyncSlip Clock-recovery mode using Nexus Playpump!" BIP_MSG_PRE_ARG, hPlayer, hPlayer->pbipState.hPlaybackIp ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: PBIP=%p is setup w/ PushWithPcrSyncSlip Clock-recovery mode using Nexus Playpump!" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->pbipState.hPlaybackIp ));
     }
 
     bipStatus = BIP_SUCCESS;
@@ -3096,7 +3401,7 @@ static BIP_Status prepareForPushWithTtsOrPcrNoSyncSlipMode(
             pcrPidChannel = hPlayer->hPcrPidChannel = NEXUS_Playpump_OpenPidChannel(hPlayer->hPlaypump, hPlayer->streamInfo.mpeg2Ts.pcrPid, &settings);
             BIP_CHECK_GOTO(( hPlayer->hPcrPidChannel ), ( "NEXUS_Playpump_OpenPidChannel Failed"), error, BIP_INF_NEXUS_RESOURCE_NOT_AVAILABLE, bipStatus );
 
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p NEXUS_Playpump_OpenPidChannel opened PCR hPidChannel=%p" BIP_MSG_PRE_ARG, hPlayer, hPlayer->hPcrPidChannel ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p NEXUS_Playpump_OpenPidChannel opened PCR hPidChannel=%p" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->hPcrPidChannel ));
         }
         else
         {
@@ -3104,17 +3409,17 @@ static BIP_Status prepareForPushWithTtsOrPcrNoSyncSlipMode(
             if (hPlayer->streamInfo.mpeg2Ts.pcrPid != UINT_MAX && hPlayer->streamInfo.mpeg2Ts.pcrPid == hPlayer->audioTrackId)
             {
                 pcrPidChannel = hPlayer->hPrimaryAudioPidChannel;
-                BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p PCR Pid == Audio Pid (%d), using AudioPidChannel for hPidChannel=%p" BIP_MSG_PRE_ARG, hPlayer, pcrPidChannel ));
+                BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p PCR Pid == Audio Pid (0x%x), using AudioPidChannel for hPidChannel=%p" BIP_MSG_PRE_ARG, (void *)hPlayer, hPlayer->audioTrackId, (void *)pcrPidChannel ));
             }
             else if (hPlayer->streamInfo.mpeg2Ts.pcrPid != UINT_MAX && hPlayer->streamInfo.mpeg2Ts.pcrPid == hPlayer->videoTrackId)
             {
                 pcrPidChannel = hPlayer->hVideoPidChannel;
-                BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p PCR Pid == Video Pid (%d), using VideoPidChannel for hPidChannel=%p" BIP_MSG_PRE_ARG, hPlayer, pcrPidChannel ));
+                BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p PCR Pid == Video Pid (0x%x), using VideoPidChannel for hPidChannel=%p" BIP_MSG_PRE_ARG, (void *)hPlayer, hPlayer->videoTrackId, (void *)pcrPidChannel ));
             }
             else
             {
                 BIP_CHECK_GOTO(( false ),
-                        ( "PCR Pid is neither found nor specified by the App, Can't configure live clock recovery w/o it: pcrPid=%d vPid=%u aPid=%u",
+                        ( "PCR Pid is neither found nor specified by the App, Can't configure live clock recovery w/o it: pcrPid=0x%x vPid=0x%x aPid=0x%x",
                           hPlayer->streamInfo.mpeg2Ts.pcrPid, hPlayer->videoTrackId, hPlayer->audioTrackId),
                         error, BIP_ERR_INVALID_PARAMETER, bipStatus );
             }
@@ -3133,8 +3438,8 @@ static BIP_Status prepareForPushWithTtsOrPcrNoSyncSlipMode(
         stcChannelSettings.modeSettings.highJitter.mode = NEXUS_SimpleStcChannelHighJitterMode_eTtsPacing;
         nrc = NEXUS_SimpleStcChannel_SetSettings(hPlayer->hSimpleStcChannel, &stcChannelSettings);
         BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_SimpleStcChannel_SetSettings Failed"), error, BIP_ERR_NEXUS, bipStatus );
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Nexus stcChannel=%p settings: timebase=%d mode=PCR offsetThreshold=%u maxPcrError=%u disableJitterAdjustment=%s disableTimestampCorrection=%s" BIP_MSG_PRE_ARG,
-                    hPlayer, hPlayer->hSimpleStcChannel,
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Nexus stcChannel=%p settings: mode=PCR offsetThreshold=%u maxPcrError=%u disableJitterAdjustment=%s disableTimestampCorrection=%s" BIP_MSG_PRE_ARG,
+                    (void *)hPlayer, (void *)hPlayer->hSimpleStcChannel,
                     stcChannelSettings.modeSettings.pcr.offsetThreshold,
                     stcChannelSettings.modeSettings.pcr.maxPcrError,
                     stcChannelSettings.modeSettings.pcr.disableJitterAdjustment?"Y":"N",
@@ -3159,8 +3464,8 @@ static BIP_Status prepareForPushWithTtsOrPcrNoSyncSlipMode(
             nrc = NEXUS_Timebase_SetSettings(hPlayer->lockedTimebase, &lockedTimebaseSettings);
             BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_Timebase_SetSettings Failed"), error, BIP_ERR_NEXUS, bipStatus );
 
-            BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p lockedTimebase settings: timebase=%d maxIpNetworkJitterInMs=%u sourceType=%d freeze=%d maxPcrError=%u trackRange=%u jitterCorrection=%u" BIP_MSG_PRE_ARG,
-                        hPlayer, hPlayer->lockedTimebase, hPlayer->connectSettings.maxIpNetworkJitterInMs,
+            BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p lockedTimebase=%p settings: maxIpNetworkJitterInMs=%u sourceType=%d freeze=%d maxPcrError=%u trackRange=%u jitterCorrection=%u" BIP_MSG_PRE_ARG,
+                        (void *)hPlayer, (void *)hPlayer->lockedTimebase, hPlayer->connectSettings.maxIpNetworkJitterInMs,
                         lockedTimebaseSettings.sourceType,
                         lockedTimebaseSettings.freeze,
                         lockedTimebaseSettings.sourceSettings.pcr.maxPcrError,
@@ -3190,8 +3495,8 @@ static BIP_Status prepareForPushWithTtsOrPcrNoSyncSlipMode(
             BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_StcChannel_SetSettings Failed"), error, BIP_ERR_NEXUS, bipStatus );
 
             BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Nexus stcChannel=%p settings: timebase=%p mode=PCR offsetThreshold=%u maxPcrError=%u disableJitterAdjustment=%s disableTimestampCorrection=%s autoConfigTimebase=%s" BIP_MSG_PRE_ARG,
-                        hPlayer, hPlayer->hStcChannel,
-                        hPlayer->lockedTimebase,
+                        (void *)hPlayer, (void *)hPlayer->hStcChannel,
+                        (void *)hPlayer->lockedTimebase,
                         stcChannelSettings.modeSettings.pcr.offsetThreshold,
                         stcChannelSettings.modeSettings.pcr.maxPcrError,
                         stcChannelSettings.modeSettings.pcr.disableJitterAdjustment?"Y":"N",
@@ -3203,29 +3508,35 @@ static BIP_Status prepareForPushWithTtsOrPcrNoSyncSlipMode(
         {
             NEXUS_AudioOutput output;
             NEXUS_AudioOutputSettings audioOutputSettings;
-            NEXUS_PlatformConfiguration platformConfig;
+            NEXUS_PlatformConfiguration *pPlatformConfig;
 
-            NEXUS_Platform_GetConfiguration(&platformConfig);
+            pPlatformConfig = B_Os_Calloc( 1, sizeof(NEXUS_PlatformConfiguration));
+            BIP_CHECK_GOTO( (pPlatformConfig), ( "Failed to allocate memory (%zu bytes) for NEXUS_PlatformConfiguration ", sizeof(NEXUS_PlatformConfiguration) ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, bipStatus );
+
+            NEXUS_Platform_GetConfiguration(pPlatformConfig);
 
 #if NEXUS_NUM_AUDIO_DACS
-            output = NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]);
+            output = NEXUS_AudioDac_GetConnector(pPlatformConfig->outputs.audioDacs[0]);
             NEXUS_AudioOutput_GetSettings(output, &audioOutputSettings);
             audioOutputSettings.timebase = hPlayer->lockedTimebase;
             nrc = NEXUS_AudioOutput_SetSettings(output, &audioOutputSettings);
+            if (nrc != NEXUS_SUCCESS) B_Os_Free(pPlatformConfig);
             BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_AudioOutput_SetSettings Failed"), error, BIP_ERR_NEXUS, bipStatus );
 #endif
 #if NEXUS_NUM_SPDIF_OUTPUTS
-            output = NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]);
+            output = NEXUS_SpdifOutput_GetConnector(pPlatformConfig->outputs.spdif[0]);
             NEXUS_AudioOutput_GetSettings(output, &audioOutputSettings);
             audioOutputSettings.timebase = hPlayer->lockedTimebase;
             nrc = NEXUS_AudioOutput_SetSettings(output, &audioOutputSettings);
+            if (nrc != NEXUS_SUCCESS) B_Os_Free(pPlatformConfig);
             BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_AudioOutput_SetSettings Failed"), error, BIP_ERR_NEXUS, bipStatus );
 #endif
 #if NEXUS_NUM_HDMI_OUTPUTS
-            output = NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0] );
+            output = NEXUS_HdmiOutput_GetAudioConnector(pPlatformConfig->outputs.hdmi[0] );
             NEXUS_AudioOutput_GetSettings(output, &audioOutputSettings);
             audioOutputSettings.timebase = hPlayer->lockedTimebase;
             nrc = NEXUS_AudioOutput_SetSettings(output, &audioOutputSettings);
+            if (nrc != NEXUS_SUCCESS) B_Os_Free(pPlatformConfig);
             BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_AudioOutput_SetSettings Failed"), error, BIP_ERR_NEXUS, bipStatus );
 #endif
             /* Configure the Display so that it uses the lockTimebase. */
@@ -3237,6 +3548,7 @@ static BIP_Status prepareForPushWithTtsOrPcrNoSyncSlipMode(
                 nrc = NEXUS_Display_SetSettings(hPlayer->hDisplay, &displaySettings);
                 BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_Display_SetSettings Failed"), error, BIP_ERR_NEXUS, bipStatus );
             }
+            B_Os_Free(pPlatformConfig);
         }
     }
 
@@ -3259,8 +3571,8 @@ static BIP_Status prepareForPushWithTtsOrPcrNoSyncSlipMode(
             nrc = NEXUS_Timebase_SetSettings(hPlayer->freeRunTimebase, &freeRunTimebaseSettings);
             BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_Timebase_SetSettings Failed"), error, BIP_ERR_NEXUS, bipStatus );
 
-            BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p freeRunTimebase settings: timebase=%d sourceType=%d freeze=%d trackRange=%u" BIP_MSG_PRE_ARG,
-                        hPlayer, hPlayer->freeRunTimebase,
+            BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p freeRunTimebase settings: timebase=%lu sourceType=%d freeze=%d trackRange=%u" BIP_MSG_PRE_ARG,
+                        (void *)hPlayer, hPlayer->freeRunTimebase,
                         freeRunTimebaseSettings.sourceType,
                         freeRunTimebaseSettings.freeze,
                         freeRunTimebaseSettings.sourceSettings.pcr.trackRange));
@@ -3290,8 +3602,8 @@ static BIP_Status prepareForPushWithTtsOrPcrNoSyncSlipMode(
         BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_Playpump_SetSettings Failed"), error, BIP_ERR_NEXUS, bipStatus );
 
         NEXUS_Playpump_GetSettings(hPlayer->hPlaypump, &settings1);
-        BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer=%p: playpump=%p: timestamp attributes: type=%d pacing=%s pacingMaxError=%u pacingOffsetAdjustDisable=%s resetPacing=%s timebase=%u"
-                    BIP_MSG_PRE_ARG, hPlayer, hPlayer->hPlaypump,
+        BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer=%p: playpump=%p: timestamp attributes: type=%d pacing=%s pacingMaxError=%u pacingOffsetAdjustDisable=%s resetPacing=%s timebase=%lu"
+                    BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->hPlaypump,
                     settings1.timestamp.type,
                     settings1.timestamp.pacing?"Y":"N",
                     settings1.timestamp.pacingMaxError,
@@ -3299,7 +3611,7 @@ static BIP_Status prepareForPushWithTtsOrPcrNoSyncSlipMode(
                     settings1.timestamp.resetPacing?"Y":"N",
                     settings1.timestamp.timebase
                     ));
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Nexus playpump=%p is setup!" BIP_MSG_PRE_ARG, hPlayer, hPlayer->hPlaypump ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Nexus playpump=%p is setup!" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->hPlaypump ));
     }
 
     /* Let PBIP know about the TTS Pacing & its settings. */
@@ -3337,7 +3649,7 @@ static BIP_Status prepareForPushWithTtsOrPcrNoSyncSlipMode(
         rc = B_PlaybackIp_SetSettings(hPlayer->pbipState.hPlaybackIp, &hPlayer->pbipState.settings);
         BIP_CHECK_GOTO(( rc == B_ERROR_SUCCESS), ( "B_PlaybackIp_SetSettings Failed"), error, BIP_ERR_INTERNAL, bipStatus );
 
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: PBIP=%p is setup w/ TTS Pacing Mode!" BIP_MSG_PRE_ARG, hPlayer, hPlayer->pbipState.hPlaybackIp ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: PBIP=%p is setup w/ TTS Pacing Mode!" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->pbipState.hPlaybackIp ));
     }
 
     bipStatus = BIP_SUCCESS;
@@ -3362,22 +3674,22 @@ static BIP_PlayerMode determinePlayerMode(
        )
     {
         playerMode = BIP_PlayerMode_eAudioVideoDecode;
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: mode=AudioVideoDecode as both AV decoder handles are set!" BIP_MSG_PRE_ARG, hPlayer ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: mode=AudioVideoDecode as both AV decoder handles are set!" BIP_MSG_PRE_ARG, (void *)hPlayer ));
     }
     else if ( pPlayerSettings->videoTrackSettings.pidTypeSettings.video.decoder || pPlayerSettings->videoTrackSettings.pidTypeSettings.video.simpleDecoder )
     {
         playerMode = BIP_PlayerMode_eVideoOnlyDecode;
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: mode=VideoOnlyDecode as Video decoder handle is set!" BIP_MSG_PRE_ARG, hPlayer ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: mode=VideoOnlyDecode as Video decoder handle is set!" BIP_MSG_PRE_ARG, (void *)hPlayer ));
     }
     else if ( pPlayerSettings->audioTrackSettings.pidTypeSettings.audio.primary || pPlayerSettings->audioTrackSettings.pidTypeSettings.audio.simpleDecoder )
     {
         playerMode = BIP_PlayerMode_eAudioOnlyDecode;
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: mode=AudioOnlyDecode as Audio decoder handle is set!" BIP_MSG_PRE_ARG, hPlayer ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: mode=AudioOnlyDecode as Audio decoder handle is set!" BIP_MSG_PRE_ARG, (void *)hPlayer ));
     }
     else
     {
         playerMode = BIP_PlayerMode_eRecord;
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: mode=Record as AV handles are NOT set!" BIP_MSG_PRE_ARG, hPlayer ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: mode=Record as AV handles are NOT set!" BIP_MSG_PRE_ARG, (void *)hPlayer ));
     }
     return (playerMode);
 } /* determinePlayerMode */
@@ -3397,9 +3709,9 @@ static BIP_Status selectAudioTrackAndCodec(
     BIP_Status          bipStatus;
     bool                trackFound = false;
 
-    BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p playerMode=%s trackId=0x%x, pPreferredAudioLanguage=%s"
-                BIP_MSG_PRE_ARG, hPlayer, BIP_ToStr_BIP_PlayerMode(playerMode), pPlayerSettings->audioTrackId,
-                pPlayerSettings->pPreferredAudioLanguage ? pPlayerSettings->pPreferredAudioLanguage: "" ));
+    BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p playerMode=%s trackId=0x%x, pPreferredAudioLanguage=%s ac3Descriptor: valid=%s bsmod=%d"
+                BIP_MSG_PRE_ARG, (void *)hPlayer, BIP_ToStr_BIP_PlayerMode(playerMode), pPlayerSettings->audioTrackId,
+                pPlayerSettings->pPreferredAudioLanguage ? pPlayerSettings->pPreferredAudioLanguage: "", pPlayerSettings->ac3Descriptor.bsmodValid? "Y":"N", pPlayerSettings->ac3Descriptor.bsmod));
     /*
      * Select audio track in the following order:
      *      -Prefer explicit trackId if set, Or
@@ -3411,6 +3723,7 @@ static BIP_Status selectAudioTrackAndCodec(
     *pUsePlaypump2ForAudio = false;
     *pTransportTypeForPlaypump2 = hPlayer->streamInfo.transportType;
     if (pAudioTrackIdChanged) *pAudioTrackIdChanged = false;
+    *pAudioTrackId = UINT_MAX;
 
     /* Use explicit trackId if it is provided. */
     if (pPlayerSettings->audioTrackId != UINT_MAX)
@@ -3421,7 +3734,7 @@ static BIP_Status selectAudioTrackAndCodec(
         if (hPlayer->streamInfo.containerType == BIP_PlayerContainerType_eHls)
         {
             trackFound = getTrackOfTrackId(hPlayer->hMediaInfo, pPlayerSettings->audioTrackId, &trackInfo);
-            BIP_CHECK_GOTO(( trackFound == true ), ( "hPlayer=%p: Failed to lookup trackInfo using explicit trackId=0x%x for HLS Container type" , hPlayer, *pAudioTrackId )
+            BIP_CHECK_GOTO(( trackFound == true ), ( "hPlayer=%p: Failed to lookup trackInfo using explicit trackId=0x%x for HLS Container type" , (void *)hPlayer, *pAudioTrackId )
                     , error, BIP_ERR_INVALID_PARAMETER, bipStatus );
 
             *pAudioTrackId = trackInfo.info.audio.containerSpecificInfo.hls.hlsAudioPid ? trackInfo.info.audio.containerSpecificInfo.hls.hlsAudioPid : pPlayerSettings->audioTrackId;
@@ -3429,7 +3742,7 @@ static BIP_Status selectAudioTrackAndCodec(
             *pAudioCodec = trackInfo.info.audio.codec;
             *pTransportTypeForPlaypump2 = trackInfo.info.audio.containerSpecificInfo.hls.hlsExtraAudioSpecificContainerType;
             BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: HLS Explicit trackId=0x%x, pid=0x%x, codec=%s usePlaypump2ForAudio=%s language=%s transportType=%s"
-                        BIP_MSG_PRE_ARG, hPlayer, pPlayerSettings->audioTrackId, *pAudioTrackId, BIP_ToStr_NEXUS_AudioCodec(*pAudioCodec),
+                        BIP_MSG_PRE_ARG, (void *)hPlayer, pPlayerSettings->audioTrackId, *pAudioTrackId, BIP_ToStr_NEXUS_AudioCodec(*pAudioCodec),
                         *pUsePlaypump2ForAudio? "Y":"N", trackInfo.info.audio.pLanguage, BIP_ToStr_NEXUS_TransportType(*pTransportTypeForPlaypump2) ));
         }
         else
@@ -3441,65 +3754,85 @@ static BIP_Status selectAudioTrackAndCodec(
             if ( pPlayerSettings->audioTrackSettings.pidSettings.pidTypeSettings.audio.codec != NEXUS_AudioCodec_eUnknown )
             {
                 *pAudioCodec = pPlayerSettings->audioTrackSettings.pidSettings.pidTypeSettings.audio.codec;
-                BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: App provided explicit audioCodec=%s trackId=0x%x" BIP_MSG_PRE_ARG, hPlayer, BIP_ToStr_NEXUS_AudioCodec(*pAudioCodec), *pAudioTrackId ));
+                BKNI_Memset(&trackInfo, 0, sizeof(trackInfo));
+                trackInfo.trackType = BIP_MediaInfoTrackType_eAudio;
+                trackInfo.trackId = *pAudioTrackId;
+                trackInfo.info.audio.codec = *pAudioCodec;
+                trackFound = true;
+                BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: App provided explicit audioCodec=%s trackId=0x%x" BIP_MSG_PRE_ARG, (void *)hPlayer, BIP_ToStr_NEXUS_AudioCodec(*pAudioCodec), *pAudioTrackId ));
             }
             else
             {
                 /* App didn't provide the audio codec, so select the one for the selected trackId. */
                 trackFound = getTrackOfTrackId(hPlayer->hMediaInfo, *pAudioTrackId, &trackInfo);
-                BIP_CHECK_GOTO(( trackFound == true ), ( "hPlayer=%p: Failed to lookup trackInfo using explicit trackId=0x%x for HLS Container type" , hPlayer, *pAudioTrackId )
+                BIP_CHECK_GOTO(( trackFound == true ), ( "hPlayer=%p: Failed to lookup trackInfo using explicit trackId=0x%x for HLS Container type" , (void *)hPlayer, *pAudioTrackId )
                         , error, BIP_ERR_INVALID_PARAMETER, bipStatus );
                 *pAudioCodec = trackInfo.info.audio.codec;
-                BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: App didn't provide explicit audioCodec, so select one for the trackId=0x%x audioCodec=%s" BIP_MSG_PRE_ARG, hPlayer, *pAudioTrackId, BIP_ToStr_NEXUS_AudioCodec(*pAudioCodec) ));
+                BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: App didn't provide explicit audioCodec, so select one for the trackId=0x%x audioCodec=%s" BIP_MSG_PRE_ARG, (void *)hPlayer, *pAudioTrackId, BIP_ToStr_NEXUS_AudioCodec(*pAudioCodec) ));
             }
         }
-    }
-    else if (pPlayerSettings->pPreferredAudioLanguage)
-    {
-        trackFound = getTrackOfLanguage(hPlayer->hMediaInfo, pPlayerSettings->pPreferredAudioLanguage, &trackInfo);
-        BIP_CHECK_GOTO(( trackFound == true ), ( "hPlayer=%p: Failed to lookup trackInfo using pPreferredAudioLanguage=%s" , hPlayer, pPlayerSettings->pPreferredAudioLanguage )
-                , error, BIP_ERR_INVALID_PARAMETER, bipStatus );
-        if (hPlayer->streamInfo.containerType == BIP_PlayerContainerType_eHls)
-        {
-            *pAudioTrackId = trackInfo.info.audio.containerSpecificInfo.hls.hlsAudioPid ? trackInfo.info.audio.containerSpecificInfo.hls.hlsAudioPid : pPlayerSettings->audioTrackId;
-            *pTransportTypeForPlaypump2 = trackInfo.info.audio.containerSpecificInfo.hls.hlsExtraAudioSpecificContainerType;
-            *pUsePlaypump2ForAudio = trackInfo.info.audio.containerSpecificInfo.hls.requiresSecondPlaypumForAudio;
-        }
-        else
-        {
-            *pAudioTrackId = trackInfo.trackId;
-        }
-        *pAudioCodec = trackInfo.info.audio.codec;
-        BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: App didn't provide explicit audioTrackId but preferredLanguage=%s, matching trackId=0x%x audioCodec=%s transportType=%s usePlaypump2ForAudio=%s"
-                    BIP_MSG_PRE_ARG, hPlayer, pPlayerSettings->pPreferredAudioLanguage, *pAudioTrackId, BIP_ToStr_NEXUS_AudioCodec(*pAudioCodec), BIP_ToStr_NEXUS_TransportType(*pTransportTypeForPlaypump2), *pUsePlaypump2ForAudio?"Y":"N" ));
     }
     else
     {
-        /* App neither provided audio trackId nor the preferred language. */
-        /* If player is in decode mode, select first audio track if it is available in the MediaInfo Stream. */
-        if ( (playerMode == BIP_PlayerMode_eAudioOnlyDecode || playerMode == BIP_PlayerMode_eAudioVideoDecode) &&
-                    (trackFound = getTrackOfType(hPlayer->hMediaInfo, BIP_MediaInfoTrackType_eAudio, &trackInfo)) == true )
+        /*
+         * We we aren't given explicit trackId, so lets try to find a matching track using preferences (if given or otherwise just the 1st audio track).
+         *  if both language & ac3Service descriptor is set, we try to find track matching these two values.
+         *  if track is still not found, then we try to find track w/ matching language.
+         *  if track is still not found, then we try to find track w/ matching ac3Service descriptor.
+         *  if track is still not found, then we try to find 1st audio track & use that if available.
+         *
+         */
         {
-            if (hPlayer->streamInfo.containerType == BIP_PlayerContainerType_eHls)
+            if (pPlayerSettings->pPreferredAudioLanguage && pPlayerSettings->ac3Descriptor.bsmodValid)
             {
-                *pAudioTrackId = trackInfo.info.audio.containerSpecificInfo.hls.hlsAudioPid ? trackInfo.info.audio.containerSpecificInfo.hls.hlsAudioPid : pPlayerSettings->audioTrackId;
-                *pTransportTypeForPlaypump2 = trackInfo.info.audio.containerSpecificInfo.hls.hlsExtraAudioSpecificContainerType;
+                trackFound = getTrackOfLanguageAndAc3Descriptor(hPlayer->hMediaInfo, pPlayerSettings->pPreferredAudioLanguage, pPlayerSettings->ac3Descriptor, &trackInfo);
+            }
+            if (!trackFound && pPlayerSettings->pPreferredAudioLanguage)
+            {
+                trackFound = getTrackOfLanguage(hPlayer->hMediaInfo, pPlayerSettings->pPreferredAudioLanguage, &trackInfo);
+            }
+            if (!trackFound && pPlayerSettings->ac3Descriptor.bsmodValid)
+            {
+                trackFound = getTrackOfAc3Descriptor(hPlayer->hMediaInfo, pPlayerSettings->ac3Descriptor, &trackInfo);
+            }
+            if (!trackFound && (playerMode == BIP_PlayerMode_eAudioOnlyDecode || playerMode == BIP_PlayerMode_eAudioVideoDecode))
+            {
+                /* We didn't find track using preferences (if specified). So we only select 1st Audio track */
+                /* if the Player is in the Decoding Mode, otherwise, audioTrack doesn't apply in Recording mode. */
+                trackFound = getTrackOfType(hPlayer->hMediaInfo, BIP_MediaInfoTrackType_eAudio, &trackInfo);
+            }
+
+            if (trackFound)
+            {
+                if (hPlayer->streamInfo.containerType == BIP_PlayerContainerType_eHls)
+                {
+                    *pAudioTrackId = trackInfo.info.audio.containerSpecificInfo.hls.hlsAudioPid ? trackInfo.info.audio.containerSpecificInfo.hls.hlsAudioPid : trackInfo.trackId;
+                    *pTransportTypeForPlaypump2 = trackInfo.info.audio.containerSpecificInfo.hls.hlsExtraAudioSpecificContainerType;
+                    *pUsePlaypump2ForAudio = trackInfo.info.audio.containerSpecificInfo.hls.requiresSecondPlaypumForAudio;
+                }
+                else
+                {
+                    *pAudioTrackId = trackInfo.trackId;
+                }
+                *pAudioCodec = trackInfo.info.audio.codec;
+                BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: preferredLanguage=%s, matching trackId=0x%x audioCodec=%s transportType=%s usePlaypump2ForAudio=%s"
+                            BIP_MSG_PRE_ARG, (void *)hPlayer, pPlayerSettings->pPreferredAudioLanguage, *pAudioTrackId, BIP_ToStr_NEXUS_AudioCodec(*pAudioCodec), BIP_ToStr_NEXUS_TransportType(*pTransportTypeForPlaypump2), *pUsePlaypump2ForAudio?"Y":"N" ));
+            }
+            else if (playerMode == BIP_PlayerMode_eAudioOnlyDecode || playerMode == BIP_PlayerMode_eAudioVideoDecode)
+            {
+                BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: App didn't provide explicit trackId/language preference & we didn't find any audio track, so not selecting audio trackId" BIP_MSG_PRE_ARG, (void *)hPlayer));
+                *pAudioTrackId = UINT_MAX;
+                *pAudioCodec = NEXUS_AudioCodec_eUnknown;
             }
             else
             {
-                *pAudioTrackId = trackInfo.trackId;
+                BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: App didn't provide explicit trackId/language preference & audio decoder handle is not set, so not selecting audio trackId" BIP_MSG_PRE_ARG, (void *)hPlayer));
+                *pAudioTrackId = UINT_MAX;
+                *pAudioCodec = NEXUS_AudioCodec_eUnknown;
             }
-            *pAudioCodec = trackInfo.info.audio.codec;
-            BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: App didn't provide explicit trackId or language preference, so auto selected 1st audio trackId=0x%x, codec=%s transportType=%s"
-                        BIP_MSG_PRE_ARG, hPlayer, *pAudioTrackId, BIP_ToStr_NEXUS_AudioCodec(*pAudioCodec), BIP_ToStr_NEXUS_TransportType(*pTransportTypeForPlaypump2) ));
-        }
-        else
-        {
-            BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: App didn't provide explicit trackId/language preference & audio decoder handle is not set or didn't find audio track, so not selecting audio trackId" BIP_MSG_PRE_ARG, hPlayer));
-            *pAudioTrackId = UINT_MAX;
-            *pAudioCodec = NEXUS_AudioCodec_eUnknown;
         }
     }
+
     if (pAudioTrackIdChanged && *pAudioTrackId != UINT_MAX)
     {
         /* Caller has given us the pointer to a variable to check if current & newly selected tracks are different. */
@@ -3509,12 +3842,12 @@ static BIP_Status selectAudioTrackAndCodec(
             if ( hPlayer->audioTrackInfo.trackId != trackInfo.trackId )
             {
                 *pAudioTrackIdChanged = true;
-                BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: audioTrackId changed: cur=0x%x, new=0x%x" BIP_MSG_PRE_ARG, hPlayer, hPlayer->audioTrackInfo.trackId, trackInfo.trackId ));
+                BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: audioTrackId changed: cur=0x%x, new=0x%x" BIP_MSG_PRE_ARG, (void *)hPlayer, hPlayer->audioTrackInfo.trackId, trackInfo.trackId ));
             }
             else
             {
                 *pAudioTrackIdChanged = false;
-                BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: audioTrackId didn't change: cur=0x%x, new=0x%x" BIP_MSG_PRE_ARG, hPlayer, hPlayer->audioTrackInfo.trackId, trackInfo.trackId ));
+                BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: audioTrackId didn't change: cur=0x%x, new=0x%x" BIP_MSG_PRE_ARG, (void *)hPlayer, hPlayer->audioTrackInfo.trackId, trackInfo.trackId ));
             }
         }
         else
@@ -3522,12 +3855,12 @@ static BIP_Status selectAudioTrackAndCodec(
             if ( hPlayer->audioTrackId != *pAudioTrackId)
             {
                 *pAudioTrackIdChanged = true;
-                BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: audioTrackId changed: cur=0x%x, new=0x%x" BIP_MSG_PRE_ARG, hPlayer, hPlayer->audioTrackId, *pAudioTrackId ));
+                BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: audioTrackId changed: cur=0x%x, new=0x%x" BIP_MSG_PRE_ARG, (void *)hPlayer, hPlayer->audioTrackId, *pAudioTrackId ));
             }
             else
             {
                 *pAudioTrackIdChanged = false;
-                BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: audioTrackId didn't change: cur=0x%x, new=0x%x" BIP_MSG_PRE_ARG, hPlayer, hPlayer->audioTrackId, *pAudioTrackId ));
+                BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: audioTrackId didn't change: cur=0x%x, new=0x%x" BIP_MSG_PRE_ARG, (void *)hPlayer, hPlayer->audioTrackId, *pAudioTrackId ));
             }
         }
     }
@@ -3549,7 +3882,7 @@ static void selectVideoTrackAndCodec(
     )
 {
     BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p playerMode=%s trackId=0x%x"
-                BIP_MSG_PRE_ARG, hPlayer, BIP_ToStr_BIP_PlayerMode(playerMode), pPlayerSettings->videoTrackId ));
+                BIP_MSG_PRE_ARG, (void *)hPlayer, BIP_ToStr_BIP_PlayerMode(playerMode), pPlayerSettings->videoTrackId ));
     /*
      * Select video track in the following order:
      *      -Prefer explicit trackId if set, Or
@@ -3560,11 +3893,11 @@ static void selectVideoTrackAndCodec(
     if ( pPlayerSettings->videoTrackId != UINT_MAX )
     {
         *pVideoTrackId = pPlayerSettings->videoTrackId;
-        BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: App provided explicit trackId=0x%x" BIP_MSG_PRE_ARG, hPlayer, *pVideoTrackId));
+        BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: App provided explicit trackId=0x%x" BIP_MSG_PRE_ARG, (void *)hPlayer, *pVideoTrackId));
     }
     else if (pPlayerSettings->pPreferredVideoName)
     {
-        BDBG_ERR((BIP_MSG_PRE_FMT "hPlayer=%p: TODO: Need to add logic to select videoTrackId using pPreferredVideoName=%s" BIP_MSG_PRE_ARG, hPlayer, pPlayerSettings->pPreferredVideoName));
+        BDBG_ERR((BIP_MSG_PRE_FMT "hPlayer=%p: TODO: Need to add logic to select videoTrackId using pPreferredVideoName=%s" BIP_MSG_PRE_ARG, (void *)hPlayer, pPlayerSettings->pPreferredVideoName));
         BDBG_ASSERT(NULL);
     }
     else
@@ -3575,11 +3908,11 @@ static void selectVideoTrackAndCodec(
                     getTrackOfType(hPlayer->hMediaInfo, BIP_MediaInfoTrackType_eVideo, &trackInfo) == true )
         {
             *pVideoTrackId = trackInfo.trackId;
-            BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: App didn't provide explicit trackId, so auto selected 1st video trackId=0x%x" BIP_MSG_PRE_ARG, hPlayer, *pVideoTrackId));
+            BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: App didn't provide explicit trackId, so auto selected 1st video trackId=0x%x" BIP_MSG_PRE_ARG, (void *)hPlayer, *pVideoTrackId));
         }
         else
         {
-            BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: App didn't provide explicit trackId & video decoder handle is not set or didn't find videoTrack, so not selecting video trackId" BIP_MSG_PRE_ARG, hPlayer));
+            BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: App didn't provide explicit trackId & video decoder handle is not set or didn't find videoTrack, so not selecting video trackId" BIP_MSG_PRE_ARG, (void *)hPlayer));
             *pVideoTrackId = UINT_MAX;
         }
     }
@@ -3588,12 +3921,12 @@ static void selectVideoTrackAndCodec(
     if (*pVideoTrackId == UINT_MAX)
     {
         *pVideoCodec = NEXUS_VideoCodec_eNone;
-        BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: We didn't choose a videoTrackId above, so not auto-selecting video codec" BIP_MSG_PRE_ARG, hPlayer));
+        BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: We didn't choose a videoTrackId above, so not auto-selecting video codec" BIP_MSG_PRE_ARG, (void *)hPlayer));
     }
     else if ( pPlayerSettings->videoTrackSettings.pidTypeSettings.video.codec != NEXUS_VideoCodec_eUnknown )
     {
         *pVideoCodec = pPlayerSettings->videoTrackSettings.pidTypeSettings.video.codec;
-        BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: App provided explicit videoCodec=%s" BIP_MSG_PRE_ARG, hPlayer, BIP_ToStr_NEXUS_VideoCodec(*pVideoCodec) ));
+        BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: App provided explicit videoCodec=%s" BIP_MSG_PRE_ARG, (void *)hPlayer, BIP_ToStr_NEXUS_VideoCodec(*pVideoCodec) ));
     }
     else
     {
@@ -3604,12 +3937,12 @@ static void selectVideoTrackAndCodec(
                     getTrackOfType(hPlayer->hMediaInfo, BIP_MediaInfoTrackType_eVideo, &trackInfo) == true )
         {
             *pVideoCodec = trackInfo.info.video.codec;
-            BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: App didn't provide explicit videoCodec, so auto-selecting 1st videoCodec=%s" BIP_MSG_PRE_ARG, hPlayer, BIP_ToStr_NEXUS_VideoCodec(*pVideoCodec) ));
+            BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: App didn't provide explicit videoCodec, so auto-selecting 1st videoCodec=%s" BIP_MSG_PRE_ARG, (void *)hPlayer, BIP_ToStr_NEXUS_VideoCodec(*pVideoCodec) ));
         }
         else
         {
             *pVideoCodec = NEXUS_VideoCodec_eNone;
-            BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: App didn't provide explicit video codec & video decoder handle is not set, so not auto-selecting video codec" BIP_MSG_PRE_ARG, hPlayer));
+            BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: App didn't provide explicit video codec & video decoder handle is not set, so not auto-selecting video codec" BIP_MSG_PRE_ARG, (void *)hPlayer));
         }
     }
     if (pVideoTrackIdChanged && hPlayer->videoTrackId != *pVideoTrackId )
@@ -3652,12 +3985,12 @@ static void stopVideoDecoder(
     if (hPlayer->hVideoDecoder)
     {
         NEXUS_VideoDecoder_Stop(hPlayer->hVideoDecoder);
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: non-simple VideoDecoder=%p is stopped" BIP_MSG_PRE_ARG, hPlayer, hPlayer->hVideoDecoder ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: non-simple VideoDecoder=%p is stopped" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->hVideoDecoder ));
     }
     else if (hPlayer->hSimpleVideoDecoder)
     {
         NEXUS_SimpleVideoDecoder_Stop(hPlayer->hSimpleVideoDecoder);
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: simple VideoDecoder=%p is stopped" BIP_MSG_PRE_ARG, hPlayer, hPlayer->hSimpleVideoDecoder ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: simple VideoDecoder=%p is stopped" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->hSimpleVideoDecoder ));
     }
 } /* stopVideoDecoder */
 
@@ -3676,7 +4009,7 @@ static BIP_Status startVideoDecoder(
         hPlayer->startSettings.videoStartSettings.codec = newVideoCodec;
         nrc = NEXUS_VideoDecoder_Start( hPlayer->hVideoDecoder, &hPlayer->startSettings.videoStartSettings );
         BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_VideoDecoder_Start() Failed during Video Track Change"), error, BIP_ERR_NEXUS, completionStatus );
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: non-simple VideoDecoder=%p is re-started" BIP_MSG_PRE_ARG, hPlayer, hPlayer->hVideoDecoder ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: non-simple VideoDecoder=%p is re-started" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->hVideoDecoder ));
     }
     else if (hPlayer->hSimpleVideoDecoder)
     {
@@ -3684,7 +4017,7 @@ static BIP_Status startVideoDecoder(
         hPlayer->startSettings.simpleVideoStartSettings.settings.codec = newVideoCodec;
         nrc = NEXUS_SimpleVideoDecoder_Start( hPlayer->hSimpleVideoDecoder, &hPlayer->startSettings.simpleVideoStartSettings );
         BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_SimpleVideoDecoder_Start() Failed during Video Track Change"), error, BIP_ERR_NEXUS, completionStatus );
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: simple VideoDecoder=%p is re-started" BIP_MSG_PRE_ARG, hPlayer, hPlayer->hSimpleVideoDecoder ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: simple VideoDecoder=%p is re-started" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->hSimpleVideoDecoder ));
     }
     completionStatus = BIP_SUCCESS;
 
@@ -3699,12 +4032,12 @@ static void stopAudioDecoder(
     if (hPlayer->hPrimaryAudioDecoder)
     {
         NEXUS_AudioDecoder_Stop(hPlayer->hPrimaryAudioDecoder);
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: non-simple AudioDecoder=%p is stopped" BIP_MSG_PRE_ARG, hPlayer, hPlayer->hPrimaryAudioDecoder ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: non-simple AudioDecoder=%p is stopped" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->hPrimaryAudioDecoder ));
     }
     else if (hPlayer->hSimplePrimaryAudioDecoder)
     {
         NEXUS_SimpleAudioDecoder_Stop(hPlayer->hSimplePrimaryAudioDecoder);
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: simple AudioDecoder=%p is stopped" BIP_MSG_PRE_ARG, hPlayer, hPlayer->hSimplePrimaryAudioDecoder ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: simple AudioDecoder=%p is stopped" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->hSimplePrimaryAudioDecoder ));
     }
 } /* stopAudioDecoder */
 
@@ -3723,7 +4056,7 @@ static BIP_Status startAudioDecoder(
         hPlayer->startSettings.audioStartSettings.codec = newAudioCodec;
         nrc = NEXUS_AudioDecoder_Start( hPlayer->hPrimaryAudioDecoder, &hPlayer->startSettings.audioStartSettings );
         BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_AudioDecoder_Start() Failed during Audio Track Change"), error, BIP_ERR_NEXUS, completionStatus );
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: non-simple AudioDecoder=%p is re-started" BIP_MSG_PRE_ARG, hPlayer, hPlayer->hPrimaryAudioDecoder ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: non-simple AudioDecoder=%p is re-started" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->hPrimaryAudioDecoder ));
     }
     else if (hPlayer->hSimplePrimaryAudioDecoder)
     {
@@ -3731,7 +4064,7 @@ static BIP_Status startAudioDecoder(
         hPlayer->startSettings.simpleAudioStartSettings.primary.codec = newAudioCodec;
         nrc = NEXUS_SimpleAudioDecoder_Start( hPlayer->hSimplePrimaryAudioDecoder, &hPlayer->startSettings.simpleAudioStartSettings );
         BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_SimpleAudioDecoder_Start() Failed during Audio Track Change"), error, BIP_ERR_NEXUS, completionStatus );
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: simple AudioDecoder=%p is re-started" BIP_MSG_PRE_ARG, hPlayer, hPlayer->hSimplePrimaryAudioDecoder ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: simple AudioDecoder=%p is re-started" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->hSimplePrimaryAudioDecoder ));
     }
     completionStatus = BIP_SUCCESS;
 
@@ -3772,7 +4105,7 @@ static BIP_Status determineAndReConfigureClockRecovery(
     if (newClockRecoveryMode != hPlayer->clockRecoveryMode)
     {
         BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: clock recovery mode changing from=%s to=%s, setup done!"
-                  BIP_MSG_PRE_ARG, hPlayer, BIP_ToStr_BIP_PlayerClockRecoveryMode(hPlayer->clockRecoveryMode), BIP_ToStr_BIP_PlayerClockRecoveryMode(newClockRecoveryMode) ));
+                  BIP_MSG_PRE_ARG, (void *)hPlayer, BIP_ToStr_BIP_PlayerClockRecoveryMode(hPlayer->clockRecoveryMode), BIP_ToStr_BIP_PlayerClockRecoveryMode(newClockRecoveryMode) ));
         hPlayer->clockRecoveryMode = newClockRecoveryMode;
         if (newClockRecoveryMode == BIP_PlayerClockRecoveryMode_ePull)
         {
@@ -3792,13 +4125,13 @@ static BIP_Status determineAndReConfigureClockRecovery(
             completionStatus = startAudioDecoder( hPlayer, hPlayer->hPrimaryAudioPidChannel, hPlayer->startSettings.audioStartSettings.codec );
             BIP_CHECK_GOTO(( completionStatus == BIP_SUCCESS ), ( "startAudioDecoder Failed"), error, completionStatus, completionStatus );
 
-            BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: Stopped & Re-started AV Decoders" BIP_MSG_PRE_ARG, hPlayer));
+            BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: Stopped & Re-started AV Decoders" BIP_MSG_PRE_ARG, (void *)hPlayer));
         }
     }
     else
     {
         BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: clock recovery mode didn't change from=%s"
-                  BIP_MSG_PRE_ARG, hPlayer, BIP_ToStr_BIP_PlayerClockRecoveryMode(hPlayer->clockRecoveryMode) ));
+                  BIP_MSG_PRE_ARG, (void *)hPlayer, BIP_ToStr_BIP_PlayerClockRecoveryMode(hPlayer->clockRecoveryMode) ));
     }
 
     /* Now fine tune the STC Channel behavior (Audio vs Video Master Mode) based on the timeshift buffer depth. */
@@ -3810,29 +4143,40 @@ static BIP_Status determineAndReConfigureClockRecovery(
 
 #define MIN_BUFFERING_DURATION_FOR_VIDEO_MASTER_STC_BEHAVIOR_IN_MS 3000
         timeShiftBufferDepthFromCurrentPositionInMs = currentTimeshiftBufferLastPositionInMs - currentPlayPositionInMs;
-        BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: clockRecoveryMode=Pull lastPositionInMs=%u currentPlayPositionInMs=%u timeShiftBufferDepthFromCurrentPositionInMs=%u"
-                  BIP_MSG_PRE_ARG, hPlayer, currentTimeshiftBufferLastPositionInMs, currentPlayPositionInMs, timeShiftBufferDepthFromCurrentPositionInMs ));
+        BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: clockRecoveryMode=Pull lastPositionInMs=%lu currentPlayPositionInMs=%lu timeShiftBufferDepthFromCurrentPositionInMs=%lu"
+                  BIP_MSG_PRE_ARG, (void *)hPlayer, currentTimeshiftBufferLastPositionInMs, currentPlayPositionInMs, timeShiftBufferDepthFromCurrentPositionInMs ));
         if ( playRate != NEXUS_NORMAL_PLAY_SPEED )
         {
             BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: we are either doing a trickplay or are paused, so choose video master mode"
-                      BIP_MSG_PRE_ARG, hPlayer));
+                      BIP_MSG_PRE_ARG, (void *)hPlayer));
             stcChannelAutoBehavior = NEXUS_StcChannelAutoModeBehavior_eVideoMaster;
+        }
+        else if (hPlayer->audioTrackId != UINT_MAX && hPlayer->audioTrackId == hPlayer->streamInfo.mpeg2Ts.pcrPid &&
+                  hPlayer->streamInfo.containerType == BIP_PlayerContainerType_eNexusTransportType)
+        {
+            /*
+             * We use audio master mode if a audioTrackId matches the PCR Pid.
+             * This is typically the case for Music Channels w/ Video Stills where we would want to stay in Audio Master mode in all cases.
+             */
+            BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: AudioTrackId(0x%x) matches the PcrTrackId(0x%x), using STC Channel in audioMasterAutoMode"
+                      BIP_MSG_PRE_ARG, (void *)hPlayer, hPlayer->audioTrackId, hPlayer->streamInfo.mpeg2Ts.pcrPid ));
+            stcChannelAutoBehavior = NEXUS_StcChannelAutoModeBehavior_eAudioMaster;
         }
         else if ( timeShiftBufferDepthFromCurrentPositionInMs <= MIN_BUFFERING_DURATION_FOR_VIDEO_MASTER_STC_BEHAVIOR_IN_MS &&
                   hPlayer->streamInfo.containerType == BIP_PlayerContainerType_eNexusTransportType)
         {
             /*
-             * We use audio master mode (for basic Nexus container formats) when current position is really close to the live point of the timeshift buffer.
+             * We also use audio master mode (for basic Nexus container formats) when current position is really close to the live point of the timeshift buffer.
              * Otherwise in video master mode, we may not get the audio sync as it may always be late.
              */
             BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: current play position depth is <= MIN_BUFFERING_DURATION_FOR_VIDEO_MASTER_STC_BEHAVIOR_IN_MS=%u, using STC Channel in audioMasterAutoMode"
-                      BIP_MSG_PRE_ARG, hPlayer, MIN_BUFFERING_DURATION_FOR_VIDEO_MASTER_STC_BEHAVIOR_IN_MS ));
+                      BIP_MSG_PRE_ARG, (void *)hPlayer, MIN_BUFFERING_DURATION_FOR_VIDEO_MASTER_STC_BEHAVIOR_IN_MS ));
             stcChannelAutoBehavior = NEXUS_StcChannelAutoModeBehavior_eAudioMaster;
         }
         else
         {
             BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: current play position depth is > MIN_BUFFERING_DURATION_FOR_VIDEO_MASTER_STC_BEHAVIOR_IN_MS=%u, using STC Channel in videoMasterAutoMode"
-                      BIP_MSG_PRE_ARG, hPlayer, MIN_BUFFERING_DURATION_FOR_VIDEO_MASTER_STC_BEHAVIOR_IN_MS ));
+                      BIP_MSG_PRE_ARG, (void *)hPlayer, MIN_BUFFERING_DURATION_FOR_VIDEO_MASTER_STC_BEHAVIOR_IN_MS ));
             stcChannelAutoBehavior = NEXUS_StcChannelAutoModeBehavior_eVideoMaster;
         }
 
@@ -3856,7 +4200,7 @@ static BIP_Status determineAndReConfigureClockRecovery(
             BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_StcChannel_SetSettings Failed"), error, BIP_ERR_NEXUS, completionStatus );
         }
         BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: StcChannel is re-configured in mode=%s"
-                  BIP_MSG_PRE_ARG, hPlayer, BIP_ToStr_NEXUS_StcChannelAutoModeBehavior(stcChannelAutoBehavior) ));
+                  BIP_MSG_PRE_ARG, (void *)hPlayer, BIP_ToStr_NEXUS_StcChannelAutoModeBehavior(stcChannelAutoBehavior) ));
     }
 error:
     return (completionStatus);
@@ -3879,7 +4223,7 @@ static BIP_Status playerReconfigureAudioTrack(
     /* If we are playing alternate audio using PBIP, tell it to stop doing so. */
     if ( hPlayer->streamInfo.containerType == BIP_PlayerContainerType_eHls && hPlayer->usePlaypump2ForAudio )
     {
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Notify PBIP to stop Playing Current Alternate Audio track" BIP_MSG_PRE_ARG, hPlayer));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Notify PBIP to stop Playing Current Alternate Audio track" BIP_MSG_PRE_ARG, (void *)hPlayer));
         B_PlaybackIp_GetSettings(hPlayer->pbipState.hPlaybackIp, &hPlayer->pbipState.settings);
         hPlayer->pbipState.settings.stopAlternateAudio = true;
         rc = B_PlaybackIp_SetSettings(hPlayer->pbipState.hPlaybackIp, &hPlayer->pbipState.settings);
@@ -3891,7 +4235,7 @@ static BIP_Status playerReconfigureAudioTrack(
 
         /* Set a flag to indicate that we need to close PP2 if it is no longer needed. */
         closePlaypump2 = true;
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p PBIP notified & hPlaypump2=%p Stopped" BIP_MSG_PRE_ARG, hPlayer, hPlayer->hPlaypump ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p PBIP notified & hPlaypump2=%p Stopped" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->hPlaypump ));
     }
 
     /* If Player is currently in one of the Audio Decode modes, Stop Audio Decoder & Close current pid channel */
@@ -3902,7 +4246,7 @@ static BIP_Status playerReconfigureAudioTrack(
         /* May need to pause the playpump if we have to stop the audio decoder. */
         NEXUS_Playpump_SetPause(hPlayer->hPlaypump, true);
 #endif
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Stop Audio Decoder!" BIP_MSG_PRE_ARG, hPlayer ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Stop Audio Decoder!" BIP_MSG_PRE_ARG, (void *)hPlayer ));
         stopAudioDecoder(hPlayer);
         closePidChannel(hPlayer, hPlayer->hPrimaryAudioPidChannel);
         hPlayer->hPrimaryAudioPidChannel = NULL;
@@ -3914,7 +4258,7 @@ static BIP_Status playerReconfigureAudioTrack(
         NEXUS_Playpump_Close(hPlayer->hPlaypump2);
         hPlayer->hPlaypump2 = NULL;
         hPlayer->usePlaypump2ForAudio = false;
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p hPlaypump2=%p Closed as it is no longer needed for the next audio track" BIP_MSG_PRE_ARG, hPlayer, hPlayer->hPlaypump ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p hPlaypump2=%p Closed as it is no longer needed for the next audio track" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->hPlaypump ));
     }
 
     /* Open Playpump2 if it is not already opened & is needed. */
@@ -3929,7 +4273,7 @@ static BIP_Status playerReconfigureAudioTrack(
             playpumpOpenSettings.numDescriptors = 200;
             hPlayer->hPlaypump2 = NEXUS_Playpump_Open(NEXUS_ANY_ID, &playpumpOpenSettings);
             BIP_CHECK_GOTO(( hPlayer->hPlaypump ), ( "NEXUS_Playpump_Open Failed"), error, BIP_INF_NEXUS_RESOURCE_NOT_AVAILABLE, completionStatus );
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Nexus playpump2=%p is opened!" BIP_MSG_PRE_ARG, hPlayer, hPlayer->hPlaypump ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Nexus playpump2=%p is opened!" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->hPlaypump ));
         }
 
         /* Now configure the PP2 */
@@ -3942,7 +4286,7 @@ static BIP_Status playerReconfigureAudioTrack(
             nrc = NEXUS_Playpump_SetSettings(hPlayer->hPlaypump2, &settings);
             BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_Playpump_SetSettings Failed"), error, BIP_ERR_NEXUS, completionStatus );
 
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Nexus playpump2=%p is setup: transportTypeForPlaypump2=%s" BIP_MSG_PRE_ARG, hPlayer, hPlayer->hPlaypump, BIP_ToStr_NEXUS_TransportType(transportTypeForPlaypump2) ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Nexus playpump2=%p is setup: transportTypeForPlaypump2=%s" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->hPlaypump, BIP_ToStr_NEXUS_TransportType(transportTypeForPlaypump2) ));
             hPlayer->usePlaypump2ForAudio = true;
             hPlayer->transportTypeForPlaypump2 = transportTypeForPlaypump2;
         }
@@ -3974,7 +4318,7 @@ static BIP_Status playerReconfigureAudioTrack(
         /* Start the Playpump first. */
         nrc = NEXUS_Playpump_Start(hPlayer->hPlaypump2);
         BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_Playpump_Start Failed"), error, BIP_ERR_NEXUS, completionStatus );
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: hPlaypump2=%p is started!" BIP_MSG_PRE_ARG, hPlayer, hPlayer->hPlaypump2 ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: hPlaypump2=%p is started!" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->hPlaypump2 ));
 
         B_PlaybackIp_GetSettings(hPlayer->pbipState.hPlaybackIp, &hPlayer->pbipState.settings);
         hPlayer->pbipState.settings.startAlternateAudio = true;
@@ -3987,11 +4331,11 @@ static BIP_Status playerReconfigureAudioTrack(
         rc = B_PlaybackIp_SetSettings(hPlayer->pbipState.hPlaybackIp, &hPlayer->pbipState.settings);
         BIP_CHECK_GOTO(( rc==B_ERROR_SUCCESS ), ( "B_PlaybackIp_SetSettings Failed"), error, BIP_ERR_PLAYER_PBIP, completionStatus );
 
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Alternate Rendition Playback is started in HLS Player!" BIP_MSG_PRE_ARG, hPlayer ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Alternate Rendition Playback is started in HLS Player!" BIP_MSG_PRE_ARG, (void *)hPlayer ));
     }
     completionStatus = BIP_SUCCESS;
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Complete!" BIP_MSG_PRE_ARG, hPlayer ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Complete!" BIP_MSG_PRE_ARG, (void *)hPlayer ));
 error:
     return (completionStatus);
 } /* playerReconfigureAudioTrack */
@@ -4016,7 +4360,7 @@ static BIP_Status setSettings(
                 "Settings: videoTrackId=0x%x, videoCodec=%s, audioTrackId=0x%x, audioCodec=%s" BIP_MSG_PRE_ARG, BIP_PLAYER_STATE_PRINTF_ARG(hPlayer),
                 pNewPlayerSettings->videoTrackId, BIP_ToStr_NEXUS_VideoCodec(pNewPlayerSettings->videoTrackSettings.pidTypeSettings.video.codec),
                 pNewPlayerSettings->audioTrackId, BIP_ToStr_NEXUS_AudioCodec(pNewPlayerSettings->audioTrackSettings.pidSettings.pidTypeSettings.audio.codec) ));
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: current playerMode=%s language=%s" BIP_MSG_PRE_ARG, hPlayer, BIP_ToStr_BIP_PlayerMode(hPlayer->mode), pNewPlayerSettings->pPreferredAudioLanguage? pNewPlayerSettings->pPreferredAudioLanguage:""));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: current playerMode=%s language=%s" BIP_MSG_PRE_ARG, (void *)hPlayer, BIP_ToStr_BIP_PlayerMode(hPlayer->mode), pNewPlayerSettings->pPreferredAudioLanguage? pNewPlayerSettings->pPreferredAudioLanguage:""));
 
     /* If Player hasn't been prepared yet, then we will just cache the app provided settings and use them during Prepare. */
     if (hPlayer->state < BIP_PlayerState_ePreparing)
@@ -4027,7 +4371,7 @@ static BIP_Status setSettings(
     }
     else if (hPlayer->state == BIP_PlayerState_ePreparing)
     {
-        BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer=%p: Can't change settings while BIP_Player_Prepare() is in progress!" BIP_MSG_PRE_ARG, hPlayer ));
+        BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer=%p: Can't change settings while BIP_Player_Prepare() is in progress!" BIP_MSG_PRE_ARG, (void *)hPlayer ));
         return (BIP_ERR_INVALID_API_SEQUENCE);
     }
 
@@ -4048,7 +4392,7 @@ static BIP_Status setSettings(
     /* Validate settings that can be changed during runtime. */
     if ( playerModeChanged && newPlayerMode == BIP_PlayerMode_eRecord && (videoTrackIdChanged || audioTrackIdChanged) )
     {
-        BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer=%p: Can't change trackId when Player is being switched to recording mode: modes cur=%s new=%s " BIP_MSG_PRE_ARG, hPlayer, BIP_ToStr_BIP_PlayerMode(hPlayer->mode), BIP_ToStr_BIP_PlayerMode(newPlayerMode) ));
+        BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer=%p: Can't change trackId when Player is being switched to recording mode: modes cur=%s new=%s " BIP_MSG_PRE_ARG, (void *)hPlayer, BIP_ToStr_BIP_PlayerMode(hPlayer->mode), BIP_ToStr_BIP_PlayerMode(newPlayerMode) ));
         return (BIP_ERR_INVALID_PARAMETER);
     }
     /* TODO: add more PlayerSettings validation here. */
@@ -4059,14 +4403,14 @@ static BIP_Status setSettings(
     if ( videoTrackIdChanged  && hPlayer->videoTrackId != newVideoTrackId )
     {
         BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: video trackId has changed: cur=0x%x new0x%x modes cur=%s new=%s " BIP_MSG_PRE_ARG,
-                    hPlayer, hPlayer->videoTrackId, newVideoTrackId, BIP_ToStr_BIP_PlayerMode(hPlayer->mode), BIP_ToStr_BIP_PlayerMode(newPlayerMode) ));
+                    (void *)hPlayer, hPlayer->videoTrackId, newVideoTrackId, BIP_ToStr_BIP_PlayerMode(hPlayer->mode), BIP_ToStr_BIP_PlayerMode(newPlayerMode) ));
         /* TODO: add this logic later as it is not a primary usage case right now. */
         BDBG_ASSERT(NULL);
     }
 
     if ( audioTrackIdChanged )
     {
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: audio trackId has changed: ReConfigure to play different audio track" BIP_MSG_PRE_ARG, hPlayer));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: audio trackId has changed: ReConfigure to play different audio track" BIP_MSG_PRE_ARG, (void *)hPlayer));
         hPlayer->hPrimaryAudioDecoder = pNewPlayerSettings->audioTrackSettings.pidTypeSettings.audio.primary;
         hPlayer->hSimplePrimaryAudioDecoder = pNewPlayerSettings->audioTrackSettings.pidTypeSettings.audio.simpleDecoder;
         completionStatus = playerReconfigureAudioTrack(hPlayer, newAudioTrackId, newAudioCodec, usePlaypump2ForAudio, transportTypeForPlaypump2, &pNewPlayerSettings->audioTrackSettings );
@@ -4078,7 +4422,7 @@ static BIP_Status setSettings(
 
     if ( playerModeChanged && newPlayerMode == BIP_PlayerMode_eRecord )
     {
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: going to recording mode: modes cur=%s new=%s " BIP_MSG_PRE_ARG, hPlayer, BIP_ToStr_BIP_PlayerMode(hPlayer->mode), BIP_ToStr_BIP_PlayerMode(newPlayerMode) ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: going to recording mode: modes cur=%s new=%s " BIP_MSG_PRE_ARG, (void *)hPlayer, BIP_ToStr_BIP_PlayerMode(hPlayer->mode), BIP_ToStr_BIP_PlayerMode(newPlayerMode) ));
         /* tell PBIP to not use handles & reconfigure clock. */
 #if 0
         /* TODO: defer this setting as PBIP has to be changed to remove any callbacks from the Decoders & it's not really needed for now. */
@@ -4089,16 +4433,234 @@ static BIP_Status setSettings(
     }
     else if ( playerModeChanged && newPlayerMode != BIP_PlayerMode_eRecord )
     {
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: going to decoding mode: modes cur=%s new=%s " BIP_MSG_PRE_ARG, hPlayer, BIP_ToStr_BIP_PlayerMode(hPlayer->mode), BIP_ToStr_BIP_PlayerMode(newPlayerMode) ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: going to decoding mode: modes cur=%s new=%s " BIP_MSG_PRE_ARG, (void *)hPlayer, BIP_ToStr_BIP_PlayerMode(hPlayer->mode), BIP_ToStr_BIP_PlayerMode(newPlayerMode) ));
 
         completionStatus = setupClockRecoveryForPlayer(hPlayer);
         BIP_CHECK_GOTO(( completionStatus == BIP_SUCCESS ), ( "setupClockRecoveryForPlayer Failed"), error, BIP_ERR_NEXUS, completionStatus );
         hPlayer->mode = newPlayerMode;
     }
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Complete!" BIP_MSG_PRE_ARG, hPlayer ));
+    hPlayer->playerSettings = *pNewPlayerSettings;
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Complete!" BIP_MSG_PRE_ARG, (void *)hPlayer ));
 error:
     return (completionStatus);
 } /* setSettings */
+
+static BIP_Status selectTracksAndReconfigDecoders(
+    BIP_PlayerHandle hPlayer
+    )
+{
+    BIP_Status              completionStatus = BIP_SUCCESS;
+    BIP_MediaInfoHandle     hNewMediaInfo;
+    unsigned                newVideoTrackId = UINT_MAX, newAudioTrackId = UINT_MAX;
+    NEXUS_VideoCodec        newVideoCodec = NEXUS_VideoCodec_eUnknown;
+    NEXUS_AudioCodec        newAudioCodec = NEXUS_AudioCodec_eUnknown;
+    bool                    usePlaypump2ForAudio = false;
+    NEXUS_TransportType     transportTypeForPlaypump2 = NEXUS_TransportType_eUnknown;
+    B_Error                 brc;
+    B_PlaybackIpStatus      pbipStatus;
+    BIP_MediaInfoStream     *pMediaInfoStream;
+
+    /*
+     * PBIP has detected a new program, we need to reconfigure the AV pipe so that we can play this part of the stream.
+     */
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: PBIP found a new program, re-configure AV pipe!" BIP_MSG_PRE_ARG, (void *)hPlayer ));
+
+    /* Get the bmedia stream object corresponding to this new program and use it to create a new MediaInfo object. */
+    {
+        brc = B_PlaybackIp_GetStatus(hPlayer->pbipState.hPlaybackIp, &pbipStatus);
+        BIP_CHECK_GOTO(( brc == B_ERROR_SUCCESS ), ( "B_PlaybackIp_GetStatus Failed: can't re-configure AV PIDs for the next program!"), error, BIP_ERR_PLAYER_PBIP, completionStatus );
+        BDBG_ASSERT(pbipStatus.stream);
+        BIP_CHECK_GOTO(( pbipStatus.stream ), ( "PBIP Returned NULL bmedia stream object corresponding to the new program!"), error, BIP_ERR_PLAYER_PBIP, completionStatus );
+
+        /* TODO: duration & contentLength are not valid in this case, try them as 0 values. */
+        hNewMediaInfo = BIP_MediaInfo_CreateFromBMediaStream_priv( pbipStatus.stream, 0 /*hPlayer->pbipState.psi.duration*/, 0 /*hPlayer->pbipState.psi.contentLength*/, hPlayer->pbipState.psi.liveChannel , NULL);
+        BIP_CHECK_GOTO(( hPlayer->hMediaInfo ), ( "BIP_MediaInfo_CreateFromBMediaStream_priv Failed"), error, BIP_ERR_PLAYER_PROBE, completionStatus );
+
+        /* Freeup the current object only if we haven't provided this object to App. Otherwise, it gets freed up when App requests for the next MediaInfo object. */
+        if (hPlayer->hMediaInfoForApp != hPlayer->hMediaInfo)
+        {
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: App has its own copy of hMediaInfoForApp=%p, Freeing up current hMediaInfo=%p!" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->hMediaInfoForApp, (void *)hPlayer->hMediaInfo ));
+            BIP_MediaInfo_Destroy(hPlayer->hMediaInfo);
+        }
+        else
+        {
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: Current MediaInfo has been given to App, so not freeing up current one, hMediaInfoForApp=%p hMediaInfo=%p!" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->hMediaInfoForApp, (void *)hPlayer->hMediaInfo ));
+        }
+        /* And make this new object as the current media info object. */
+        hPlayer->hMediaInfo = hNewMediaInfo;
+        pMediaInfoStream = BIP_MediaInfo_GetStream(hPlayer->hMediaInfo);
+        BDBG_MSG(( BIP_MSG_PRE_FMT BIP_PLAYER_STATE_PRINTF_FMT "Media info corresponding to new program: transportType=%s contentLength=%"PRId64 ", streamDuration=%u liveChannel=%d"
+                    BIP_MSG_PRE_ARG, BIP_PLAYER_STATE_PRINTF_ARG(hPlayer), BIP_ToStr_NEXUS_TransportType(pMediaInfoStream->transportType),
+                    pMediaInfoStream->contentLength, pMediaInfoStream->durationInMs, pMediaInfoStream->liveChannel ));
+
+        /* If app wants to know about this new mediaInfo object, then queue up that callback. */
+        if (hPlayer->playerSettings.newMediaInfoCallback.callback)
+        {
+            BIP_Arb_AddDeferredCallback(hPlayer->startApi.hArb, &hPlayer->playerSettings.newMediaInfoCallback);
+            BDBG_MSG(( BIP_MSG_PRE_FMT  BIP_PLAYER_STATE_PRINTF_FMT "Stream contains a new program, newMediaInfo callback is queued!" BIP_MSG_PRE_ARG, BIP_PLAYER_STATE_PRINTF_ARG(hPlayer) ));
+        }
+    }
+
+    /* If app wants to select the tracks, then it must be defined the trackSelectionCallback. We issue that and let it modify TrackIds. */
+    if (hPlayer->playerSettings.trackSelectionCallback.callback)
+    {
+        BIP_Arb_AddDeferredCallback( hPlayer->startApi.hArb, &hPlayer->playerSettings.trackSelectionCallback);
+        BDBG_MSG(( BIP_MSG_PRE_FMT  BIP_PLAYER_STATE_PRINTF_FMT "Stream contains a new program, trackSelectionCallback callback is queued!" BIP_MSG_PRE_ARG, BIP_PLAYER_STATE_PRINTF_ARG(hPlayer) ));
+        /* No more processing is needed as App would do the remaining work via the BIP_Player_SetSetting. */
+    }
+    else
+    {
+        /* Track selection callback is not set, so we auto-select the tracks based on the current perferences indicated via the last PlayerSettings. */
+
+        /* For selecting Video Track, currently there is no special criteria other than choosing the 1st video track from the stream. */
+        {
+            BIP_MediaInfoTrack trackInfo;
+            /* App didn't provide video trackId & player is in decode mode, select first video track if it is available in the MediaInfo Stream. */
+            if ( (hPlayer->mode == BIP_PlayerMode_eVideoOnlyDecode || hPlayer->mode == BIP_PlayerMode_eAudioVideoDecode) &&
+                    getTrackOfType(hPlayer->hMediaInfo, BIP_MediaInfoTrackType_eVideo, &trackInfo) == true )
+            {
+                newVideoTrackId = trackInfo.trackId;
+                newVideoCodec = trackInfo.info.video.codec;
+                BDBG_WRN((BIP_MSG_PRE_FMT "hPlayer=%p: auto selected 1st video trackId=0x%x codec=%s" BIP_MSG_PRE_ARG, (void *)hPlayer, newVideoTrackId, BIP_ToStr_NEXUS_VideoCodec(newVideoCodec) ));
+            }
+            else
+            {
+                BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: didn't find videoTrack, so not selecting video trackId" BIP_MSG_PRE_ARG, (void *)hPlayer));
+                newVideoTrackId = UINT_MAX;
+            }
+        }
+
+        /*
+         * For auto-selecting Audio Track, we use following logic:
+         *  if both language & ac3Service descriptor is set, we try to find track matching these two values.
+         *  if track is still not found, then we try to find track w/ matching language.
+         *  if track is still not found, then we try to find track w/ matching ac3Service descriptor.
+         *  if track is still not found, then we try to find 1st audio track & use that if available.
+         */
+        if ( hPlayer->mode == BIP_PlayerMode_eAudioOnlyDecode || hPlayer->mode == BIP_PlayerMode_eAudioVideoDecode )
+        {
+            BIP_MediaInfoTrack trackInfo;
+            bool trackFound = false;
+
+            if (BIP_String_GetString(hPlayer->hPreferredAudioLanguage) && hPlayer->playerSettings.ac3Descriptor.bsmodValid)
+            {
+                trackFound = getTrackOfLanguageAndAc3Descriptor(hPlayer->hMediaInfo, BIP_String_GetString(hPlayer->hPreferredAudioLanguage), hPlayer->playerSettings.ac3Descriptor, &trackInfo);
+            }
+            if (!trackFound && BIP_String_GetString(hPlayer->hPreferredAudioLanguage))
+            {
+                trackFound = getTrackOfLanguage(hPlayer->hMediaInfo, BIP_String_GetString(hPlayer->hPreferredAudioLanguage), &trackInfo);
+            }
+            if (!trackFound && hPlayer->playerSettings.ac3Descriptor.bsmodValid)
+            {
+                trackFound = getTrackOfAc3Descriptor(hPlayer->hMediaInfo, hPlayer->playerSettings.ac3Descriptor, &trackInfo);
+            }
+            if (!trackFound)
+            {
+                (trackFound = getTrackOfType(hPlayer->hMediaInfo, BIP_MediaInfoTrackType_eAudio, &trackInfo));
+            }
+
+            if (trackFound)
+            {
+                if (hPlayer->streamInfo.containerType == BIP_PlayerContainerType_eHls)
+                {
+                    newAudioTrackId = trackInfo.info.audio.containerSpecificInfo.hls.hlsAudioPid ? trackInfo.info.audio.containerSpecificInfo.hls.hlsAudioPid : trackInfo.trackId;
+                    transportTypeForPlaypump2 = trackInfo.info.audio.containerSpecificInfo.hls.hlsExtraAudioSpecificContainerType;
+                    usePlaypump2ForAudio = trackInfo.info.audio.containerSpecificInfo.hls.requiresSecondPlaypumForAudio;
+                }
+                else
+                {
+                    newAudioTrackId = trackInfo.trackId;
+                }
+                newAudioCodec = trackInfo.info.audio.codec;
+                BDBG_WRN((BIP_MSG_PRE_FMT "hPlayer=%p: preferredLanguage=%s, matching trackId=0x%x audioCodec=%s transportType=%s usePlaypump2ForAudio=%s"
+                            BIP_MSG_PRE_ARG, (void *)hPlayer, BIP_String_GetString(hPlayer->hPreferredAudioLanguage), newAudioTrackId, BIP_ToStr_NEXUS_AudioCodec(newAudioCodec), BIP_ToStr_NEXUS_TransportType(transportTypeForPlaypump2), usePlaypump2ForAudio?"Y":"N" ));
+            }
+            else
+            {
+                BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: new program doesn't contain any audio track, so not selecting audio trackId" BIP_MSG_PRE_ARG, (void *)hPlayer));
+                newAudioTrackId = UINT_MAX;
+                newAudioCodec = NEXUS_AudioCodec_eUnknown;
+            }
+        }
+
+        /*
+         * We have auto selected the tracks above. Now Reconfigure the AV Decode pipe with the new trackIds.
+         */
+
+        /* Stop AV Decoders. */
+        {
+            if (newAudioTrackId != UINT_MAX && hPlayer->hPrimaryAudioPidChannel)
+            {
+                BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Stop Audio Decoder!" BIP_MSG_PRE_ARG, (void *)hPlayer ));
+                stopAudioDecoder(hPlayer);
+            }
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Stop Video Decoder!" BIP_MSG_PRE_ARG, (void *)hPlayer ));
+            stopVideoDecoder(hPlayer);
+        }
+
+        /* Change Tracks. */
+        {
+            if (newVideoTrackId != UINT_MAX && hPlayer->hVideoPidChannel)
+            {
+                NEXUS_Error nrc;
+                nrc = NEXUS_PidChannel_ChangePid(hPlayer->hVideoPidChannel, newVideoTrackId);
+                if (nrc == NEXUS_SUCCESS)
+                {
+                    BDBG_WRN((BIP_MSG_PRE_FMT "hPlayer=%p: Changed to newVideoTrackId=0x%x, codec=%s" BIP_MSG_PRE_ARG, (void *)hPlayer, newVideoTrackId, BIP_ToStr_NEXUS_VideoCodec(newVideoCodec) ));
+                }
+                else
+                {
+                    BDBG_WRN((BIP_MSG_PRE_FMT "hPlayer=%p: NEXUS_PidChannel_ChangePid Failed to change to newVideoTrackId=0x%x, codec=%s" BIP_MSG_PRE_ARG, (void *)hPlayer, newVideoTrackId, BIP_ToStr_NEXUS_VideoCodec(newVideoCodec) ));
+                }
+            }
+            if (newAudioTrackId != UINT_MAX && hPlayer->hPrimaryAudioPidChannel)
+            {
+                NEXUS_Error nrc;
+                nrc = NEXUS_PidChannel_ChangePid(hPlayer->hPrimaryAudioPidChannel, newAudioTrackId);
+                if (nrc == NEXUS_SUCCESS)
+                {
+                    BDBG_WRN((BIP_MSG_PRE_FMT "hPlayer=%p: Changed to newAudioTrackId=0x%x, codec=%s" BIP_MSG_PRE_ARG, (void *)hPlayer, newAudioTrackId, BIP_ToStr_NEXUS_AudioCodec(newAudioCodec) ));
+                }
+                else
+                {
+                    BDBG_WRN((BIP_MSG_PRE_FMT "hPlayer=%p: NEXUS_PidChannel_ChangePid Failed to change to newAudioTrackId=0x%x, codec=%s" BIP_MSG_PRE_ARG, (void *)hPlayer, newAudioTrackId, BIP_ToStr_NEXUS_AudioCodec(newAudioCodec) ));
+                }
+            }
+        }
+
+        /* Re-start AV Decoders. */
+        {
+            if (newVideoTrackId != UINT_MAX && hPlayer->hVideoPidChannel)
+            {
+                BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: Re-start Video Decoder" BIP_MSG_PRE_ARG, (void *)hPlayer));
+                completionStatus = startVideoDecoder( hPlayer, hPlayer->hVideoPidChannel, newVideoCodec );
+                if ( completionStatus != BIP_SUCCESS ) BDBG_WRN(( BIP_MSG_PRE_FMT "%p: startVideoDecoder Failed" BIP_MSG_PRE_ARG, (void *)hPlayer));
+            }
+
+            if (newAudioTrackId != UINT_MAX && hPlayer->hPrimaryAudioPidChannel)
+            {
+                BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: Re-start Audio Decoder" BIP_MSG_PRE_ARG, (void *)hPlayer));
+                completionStatus = startAudioDecoder( hPlayer, hPlayer->hPrimaryAudioPidChannel, newAudioCodec );
+                if ( completionStatus != BIP_SUCCESS ) BDBG_WRN(( BIP_MSG_PRE_FMT "%p: startAudioDecoder Failed" BIP_MSG_PRE_ARG, (void *)hPlayer));
+            }
+        }
+
+        /* Resume PSI Parsing in PBIP */
+        {
+            B_Error rc;
+            B_PlaybackIp_GetSettings(hPlayer->pbipState.hPlaybackIp, &hPlayer->pbipState.settings);
+            hPlayer->pbipState.settings.resumePsiMonitoring = true;
+            rc = B_PlaybackIp_SetSettings(hPlayer->pbipState.hPlaybackIp, &hPlayer->pbipState.settings);
+            BIP_CHECK_GOTO(( rc==B_ERROR_SUCCESS ), ( "B_PlaybackIp_SetSettings Failed for resuming of PSI Parsing"), error, BIP_ERR_PLAYER_PBIP, completionStatus );
+        }
+    }
+
+    completionStatus = BIP_SUCCESS;
+    BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer=%p: Complete!" BIP_MSG_PRE_ARG, (void *)hPlayer ));
+
+error:
+    return (completionStatus);
+} /* selectTracksAndReconfigDecoders */
 
 static BIP_Status processPreparingState_locked(
     BIP_PlayerHandle        hPlayer,
@@ -4329,12 +4891,12 @@ static BIP_Status processPreparingState_locked(
             }
             else
             {
-                BDBG_MSG(( BIP_MSG_PRE_FMT "App explicitly set the flag to use %s for feeding-in the stream!" BIP_MSG_PRE_ARG, hPlayer->useNexusPlaypump ? "Nexus Playpump":"Nexus Playback" ));
+                BDBG_MSG(( BIP_MSG_PRE_FMT "App explicitly set the flag to use %s for feeding-in the stream!" BIP_MSG_PRE_ARG, (void *)hPlayer->useNexusPlaypump ? "Nexus Playpump":"Nexus Playback" ));
             }
         }
 
         BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p playerMode=%s useLiveIpMode=%s clockRecoveryMode=%s usePlayback=%s usePlaypump=%s transportType=%s playerContainerType=%s" BIP_MSG_PRE_ARG,
-                    hPlayer, hPlayer->mode == BIP_PlayerMode_eRecord? "Record":"Decode", hPlayer->useLiveIpMode?"Y":"N", BIP_ToStr_BIP_PlayerClockRecoveryMode(hPlayer->clockRecoveryMode),
+                    (void *)hPlayer, hPlayer->mode == BIP_PlayerMode_eRecord? "Record":"Decode", hPlayer->useLiveIpMode?"Y":"N", BIP_ToStr_BIP_PlayerClockRecoveryMode(hPlayer->clockRecoveryMode),
                     hPlayer->streamInfo.usePlayback?"Y":"N", hPlayer->streamInfo.usePlaypump?"Y":"N",
                     BIP_ToStr_NEXUS_TransportType(hPlayer->streamInfo.transportType), BIP_ToStr_BIP_PlayerContainerType(hPlayer->streamInfo.containerType) ));
 
@@ -4365,12 +4927,12 @@ static BIP_Status processPreparingState_locked(
                 playpumpOpenSettings.numDescriptors = 200;
                 hPlayer->hPlaypump = NEXUS_Playpump_Open(NEXUS_ANY_ID, &playpumpOpenSettings);
                 BIP_CHECK_GOTO(( hPlayer->hPlaypump ), ( "NEXUS_Playpump_Open Failed"), error, BIP_INF_NEXUS_RESOURCE_NOT_AVAILABLE, completionStatus );
-                BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Nexus playpump=%p is opened!" BIP_MSG_PRE_ARG, hPlayer, hPlayer->hPlaypump ));
+                BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Nexus playpump=%p is opened!" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->hPlaypump ));
             }
             else
             {
                 hPlayer->hPlaypump = pPrepareSettings->hPlaypump;
-                BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Using app provided playpump=%p!" BIP_MSG_PRE_ARG, hPlayer, hPlayer->hPlaypump ));
+                BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Using app provided playpump=%p!" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->hPlaypump ));
             }
 
             {
@@ -4383,7 +4945,7 @@ static BIP_Status processPreparingState_locked(
                 nrc = NEXUS_Playpump_SetSettings(hPlayer->hPlaypump, &settings);
                 BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_Playpump_SetSettings Failed"), error, BIP_ERR_NEXUS, completionStatus );
 
-                BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Nexus playpump=%p is setup!" BIP_MSG_PRE_ARG, hPlayer, hPlayer->hPlaypump ));
+                BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Nexus playpump=%p is setup!" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->hPlaypump ));
             }
 
             if (!pPrepareSettings->hPlaypump2 && hPlayer->usePlaypump2ForAudio)
@@ -4396,12 +4958,12 @@ static BIP_Status processPreparingState_locked(
                 playpumpOpenSettings.numDescriptors = 200;
                 hPlayer->hPlaypump2 = NEXUS_Playpump_Open(NEXUS_ANY_ID, &playpumpOpenSettings);
                 BIP_CHECK_GOTO(( hPlayer->hPlaypump ), ( "NEXUS_Playpump_Open Failed"), error, BIP_INF_NEXUS_RESOURCE_NOT_AVAILABLE, completionStatus );
-                BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Nexus playpump2=%p is opened!" BIP_MSG_PRE_ARG, hPlayer, hPlayer->hPlaypump2 ));
+                BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Nexus playpump2=%p is opened!" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->hPlaypump2 ));
             }
             else
             {
                 hPlayer->hPlaypump2 = pPrepareSettings->hPlaypump2;
-                BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: App provided playpump2=%p!" BIP_MSG_PRE_ARG, hPlayer, hPlayer->hPlaypump ));
+                BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: App provided playpump2=%p!" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->hPlaypump ));
             }
 
             if (hPlayer->hPlaypump2)
@@ -4415,8 +4977,30 @@ static BIP_Status processPreparingState_locked(
                 nrc = NEXUS_Playpump_SetSettings(hPlayer->hPlaypump2, &settings);
                 BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_Playpump_SetSettings Failed"), error, BIP_ERR_NEXUS, completionStatus );
 
-                BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Nexus playpump2=%p is setup!" BIP_MSG_PRE_ARG, hPlayer, hPlayer->hPlaypump2 ));
+                BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Nexus playpump2=%p is setup!" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->hPlaypump2 ));
             }
+
+            if (!hPlayer->hPlayback && !hPlayer->useNexusPlaypump)
+            {
+                NEXUS_PlaybackSettings settings;
+
+                hPlayer->hPlayback = NEXUS_Playback_Create();
+                BIP_CHECK_GOTO(( hPlayer->hPlayback ), ( "NEXUS_Playback_Create Failed"), error, BIP_INF_NEXUS_RESOURCE_NOT_AVAILABLE, completionStatus );
+
+                NEXUS_Playback_GetSettings(hPlayer->hPlayback, &settings);
+                /* Use the App provided playbackSettings (which is initialized via BIP_Player_GetDefaultPrepareSettings */
+                settings = pPlayerSettings->playbackSettings;
+                settings.playpump = hPlayer->hPlaypump;
+                settings.playpumpSettings.transportType = hPlayer->streamInfo.transportType;
+                if (pPlayerSettings->lpcm.convertLpcmToWave || hPlayer->audioTrackInfo.info.audio.codec == NEXUS_AudioCodec_eMp3)
+                {
+                    settings.enableStreamProcessing = true;
+                    BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: set enableStreamProcessing, playpump2=%p" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->hPlaypump2 ));
+                }
+                nrc = NEXUS_Playback_SetSettings(hPlayer->hPlayback, &settings);
+                BIP_CHECK_GOTO(( nrc == NEXUS_SUCCESS ), ( "NEXUS_Playback_SetSettings Failed"), error, BIP_INF_NEXUS_RESOURCE_NOT_AVAILABLE, completionStatus );
+            }
+
         }
 
         /* AV Tracks have been selected, Plapumps have been opened & setup, so now create the PidChannels associated w/ the AV Tracks. */
@@ -4475,8 +5059,8 @@ static BIP_Status processPreparingState_locked(
                 hPlayer->hWindow = pPlayerSettings->hWindow;
                 hPlayer->hStcChannel = pPlayerSettings->playbackSettings.stcChannel;
                 hPlayer->hSimpleStcChannel  = pPlayerSettings->playbackSettings.simpleStcChannel;
-                BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p prepareSettings: hStc=%p hSimpleStc=%p hDisplay=%p hPlaypum=%p " BIP_MSG_PRE_ARG, hPlayer,
-                            pPlayerSettings->playbackSettings.stcChannel, pPlayerSettings->playbackSettings.simpleStcChannel, pPlayerSettings->hDisplay, pPrepareSettings->hPlaypump));
+                BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p prepareSettings: hStc=%p hSimpleStc=%p hDisplay=%p hPlaypum=%p " BIP_MSG_PRE_ARG, (void *)hPlayer,
+                            (void *)pPlayerSettings->playbackSettings.stcChannel, (void *)pPlayerSettings->playbackSettings.simpleStcChannel, (void *)pPlayerSettings->hDisplay, (void *)pPrepareSettings->hPlaypump));
 
                 BDBG_ASSERT(pPrepareStatus);
 
@@ -4485,11 +5069,11 @@ static BIP_Status processPreparingState_locked(
                 pPrepareStatus->hAudioPidChannel = hPlayer->hPrimaryAudioPidChannel;
                 pPrepareStatus->hVideoPidChannel = hPlayer->hVideoPidChannel;
 
-                BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: audioCodec=%s audioPidCh=%p videoCodec=%s videoPidCh=%p" BIP_MSG_PRE_ARG, hPlayer,
-                            BIP_ToStr_NEXUS_AudioCodec(pPrepareStatus->audioCodec), pPrepareStatus->hAudioPidChannel,
-                            BIP_ToStr_NEXUS_VideoCodec(pPrepareStatus->videoCodec), pPrepareStatus->hVideoPidChannel));
+                BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: audioCodec=%s audioPidCh=%p videoCodec=%s videoPidCh=%p" BIP_MSG_PRE_ARG, (void *)hPlayer,
+                            BIP_ToStr_NEXUS_AudioCodec(pPrepareStatus->audioCodec), (void *)pPrepareStatus->hAudioPidChannel,
+                            BIP_ToStr_NEXUS_VideoCodec(pPrepareStatus->videoCodec), (void *)pPrepareStatus->hVideoPidChannel));
                 BIP_MSG_SUM(( BIP_MSG_PRE_FMT "hPlayer=%p: Current Settings: videoTrackId=0x%x, videoCodec=%s, audioTrackId=0x%x, audioCodec=%s, pcrPid=0x%x, transportType=%s" BIP_MSG_PRE_ARG,
-                            hPlayer, playerSettings.videoTrackId, BIP_ToStr_NEXUS_VideoCodec(playerSettings.videoTrackSettings.pidTypeSettings.video.codec),
+                            (void *)hPlayer, playerSettings.videoTrackId, BIP_ToStr_NEXUS_VideoCodec(playerSettings.videoTrackSettings.pidTypeSettings.video.codec),
                             playerSettings.audioTrackId, BIP_ToStr_NEXUS_AudioCodec(playerSettings.audioTrackSettings.pidSettings.pidTypeSettings.audio.codec), hPlayer->streamInfo.mpeg2Ts.pcrPid,
                             BIP_ToStr_NEXUS_TransportType(hPlayer->streamInfo.transportType) ));
                 /* TODO: extra videoPidChannel ? */
@@ -4497,11 +5081,16 @@ static BIP_Status processPreparingState_locked(
             else
             {
                 completionStatus = BIP_SUCCESS;
-                BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Neither Video nor Audio codecs & trackIds are provided, so didn't need to open pid channels." BIP_MSG_PRE_ARG, hPlayer ));
+                BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Neither Video nor Audio codecs & trackIds are provided, so didn't need to open pid channels." BIP_MSG_PRE_ARG, (void *)hPlayer ));
             }
 
             /* All well regarding the PlayerSettings, so cache them. */
             hPlayer->playerSettings = playerSettings;
+            if (playerSettings.pPreferredAudioLanguage)
+            {
+                completionStatus = BIP_String_StrcpyChar(hPlayer->hPreferredAudioLanguage, playerSettings.pPreferredAudioLanguage);
+                BIP_CHECK_GOTO(( completionStatus == BIP_SUCCESS ), ( "BIP_String_StrcatPrintf Failed"), error, completionStatus, completionStatus );
+            }
         }
 
         /* So far, so good. We have the pid channels, so do the clock recovery setup if Player is in Decode mode. */
@@ -4556,13 +5145,13 @@ static BIP_Status processPreparingState_locked(
                 nrc = NEXUS_VideoWindow_SetMadSettings(hPlayer->hWindow, &madSettings);
                 BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_VideoWindow_SetMadSettings Failed"), error, BIP_ERR_NEXUS, completionStatus );
             }
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Updated VideoWindow settings for smooth transitions during stream parameter changes in HLS/MPEG DASH Adaptive Playback " BIP_MSG_PRE_ARG, hPlayer));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Updated VideoWindow settings for smooth transitions during stream parameter changes in HLS/MPEG DASH Adaptive Playback " BIP_MSG_PRE_ARG, (void *)hPlayer));
         }
 
         /* Prepare is successful, move to Done state. */
         completionStatus = BIP_SUCCESS;
         hPlayer->subState = BIP_PlayerSubState_ePreparingDone;
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Successful!" BIP_MSG_PRE_ARG, hPlayer));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Successful!" BIP_MSG_PRE_ARG, (void *)hPlayer));
     } /* subState = ePreparingMediaInfoAvailable */
 
 error:
@@ -4649,27 +5238,28 @@ static BIP_Status processStartingState_locked(
         {
             nrc = NEXUS_Playpump_Start(hPlayer->hPlaypump);
             BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_Playpump_Start Failed"), error, BIP_ERR_NEXUS, completionStatus );
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Nexus playpump=%p is started!" BIP_MSG_PRE_ARG, hPlayer, hPlayer->hPlaypump ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Nexus playpump=%p is started!" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->hPlaypump ));
 
             if (hPlayer->usePlaypump2ForAudio)
             {
                 nrc = NEXUS_Playpump_Start(hPlayer->hPlaypump2);
                 BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_Playpump_Start Failed"), error, BIP_ERR_NEXUS, completionStatus );
-                BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Nexus playpump2=%p is started!" BIP_MSG_PRE_ARG, hPlayer, hPlayer->hPlaypump2 ));
+                BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Nexus playpump2=%p is started!" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->hPlaypump2 ));
             }
 
-            if (hPlayer->playerSettings.playbackSettings.startPaused)
             {
+                bool unFreezeStc = hPlayer->playerSettings.playbackSettings.startPaused ? 0 : 1;
                 if (hPlayer->hSimpleStcChannel)
                 {
-                    nrc = NEXUS_SimpleStcChannel_SetRate(hPlayer->hSimpleStcChannel, 0, 0 );
+                    nrc = NEXUS_SimpleStcChannel_SetRate(hPlayer->hSimpleStcChannel, unFreezeStc, 0 );
                     BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_SimpleStcChannel_SetRate Failed"), error, BIP_ERR_NEXUS, completionStatus );
                 }
                 else if (hPlayer->hStcChannel)
                 {
-                    nrc = NEXUS_StcChannel_SetRate(hPlayer->hStcChannel, 0, 0 );
+                    nrc = NEXUS_StcChannel_SetRate(hPlayer->hStcChannel, unFreezeStc, 0 );
                     BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_StcChannel_SetRate Failed"), error, BIP_ERR_NEXUS, completionStatus );
                 }
+                BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: unFreezeStc=%s" BIP_MSG_PRE_ARG, (void *)hPlayer, unFreezeStc? "Y":"N"));
             }
         }
 
@@ -4685,7 +5275,7 @@ static BIP_Status processStartingState_locked(
                 hPlayer->pbipState.ipStartSettings.nexusHandles.videoPidChannel = hPlayer->hVideoPidChannel;
                 hPlayer->pbipState.ipStartSettings.nexusHandles.videoStartSettings = hPlayer->startApi.pSettings->videoStartSettings;
                 hPlayer->pbipState.ipStartSettings.nexusHandles.simpleVideoStartSettings = hPlayer->startApi.pSettings->simpleVideoStartSettings;
-                BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Providing video decoder handles to PBIP" BIP_MSG_PRE_ARG, hPlayer ));
+                BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Providing video decoder handles to PBIP" BIP_MSG_PRE_ARG, (void *)hPlayer ));
             }
             if (hPlayer->playerSettings.audioTrackId != UINT_MAX)
             {
@@ -4694,7 +5284,12 @@ static BIP_Status processStartingState_locked(
                 hPlayer->pbipState.ipStartSettings.nexusHandles.audioPidChannel = hPlayer->hPrimaryAudioPidChannel;
                 hPlayer->pbipState.ipStartSettings.nexusHandles.audioStartSettings = hPlayer->startApi.pSettings->audioStartSettings;
                 hPlayer->pbipState.ipStartSettings.nexusHandles.simpleAudioStartSettings = hPlayer->startApi.pSettings->simpleAudioStartSettings;
-                BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Providing audio decoder handles to PBIP" BIP_MSG_PRE_ARG, hPlayer ));
+                if ( hPlayer->streamInfo.containerType == BIP_PlayerContainerType_eNexusTransportType)
+                {
+                    hPlayer->pbipState.ipStartSettings.musicChannelWithVideoStills = (hPlayer->playerSettings.audioTrackId == hPlayer->streamInfo.mpeg2Ts.pcrPid) ? true : false;
+                }
+
+                BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Providing audio decoder handles to PBIP" BIP_MSG_PRE_ARG, (void *)hPlayer ));
             }
             hPlayer->pbipState.ipStartSettings.nexusHandles.stcChannel  = hPlayer->hStcChannel;
             hPlayer->pbipState.ipStartSettings.nexusHandles.simpleStcChannel  = hPlayer->hSimpleStcChannel;
@@ -4706,7 +5301,7 @@ static BIP_Status processStartingState_locked(
             if (hPlayer->dlnaFlags.s0Increasing && hPlayer->dlnaFlags.sNIncreasing && hPlayer->startApi.pSettings->timePositionInMs == 0 )
             {
                 hPlayer->pbipState.ipStartSettings.u.http.initialPlayPositionOffsetInMs = hPlayer->getStatusFromServerState.serverStatus.availableSeekRange.lastPositionInMs;
-                BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Providing the initialPlayPositionOffsetInMs=%u to PBIP" BIP_MSG_PRE_ARG, hPlayer, hPlayer->pbipState.ipStartSettings.u.http.initialPlayPositionOffsetInMs ));
+                BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Providing the initialPlayPositionOffsetInMs=%lu to PBIP" BIP_MSG_PRE_ARG, (void *)hPlayer, hPlayer->pbipState.ipStartSettings.u.http.initialPlayPositionOffsetInMs ));
             }
             else
             {
@@ -4731,6 +5326,8 @@ static BIP_Status processStartingState_locked(
                 hPlayer->pbipState.ipStartSettings.alternateAudio.containerType = hPlayer->audioTrackInfo.info.audio.containerSpecificInfo.hls.hlsExtraAudioSpecificContainerType;
                 hPlayer->pbipState.ipStartSettings.alternateAudio.language = hPlayer->audioTrackInfo.info.audio.containerSpecificInfo.hls.pHlsLanguageCode;
             }
+            hPlayer->pbipState.ipStartSettings.monitorPsi = hPlayer->playerSettings.enableDynamicTrackSelection;
+            if (getenv("monitorPsi")) hPlayer->pbipState.ipStartSettings.monitorPsi = true;
             hPlayer->pbipState.status = B_PlaybackIp_SessionStart(hPlayer->pbipState.hPlaybackIp, &hPlayer->pbipState.ipStartSettings, &hPlayer->pbipState.ipStartStatus);
             hPlayer->subState = BIP_PlayerSubState_eStartingWaitForPbipStart;
             completionStatus = BIP_INF_IN_PROGRESS;
@@ -4769,10 +5366,10 @@ static BIP_Status processStartingState_locked(
                 if (hPlayer->streamInfo.transportType == NEXUS_TransportType_eTs) { startSettings.mpeg2TsIndexType = NEXUS_PlaybackMpeg2TsIndexType_eSelf; }
                 nrc = NEXUS_Playback_Start(hPlayer->hPlayback, hPlayer->hFile, &startSettings);
                 BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_Playback_Start Failed"), error, BIP_ERR_NEXUS, completionStatus );
-                BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Nexus playback=%p is started!" BIP_MSG_PRE_ARG, hPlayer, hPlayer->hPlayback ));
+                BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Nexus playback=%p is started!" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->hPlayback ));
             }
 
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Playpump/Playback & PBIP Start is successful: startPositionInMs=%d" BIP_MSG_PRE_ARG, hPlayer, hPlayer->startApi.pSettings->timePositionInMs ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Playpump/Playback & PBIP Start is successful: startPositionInMs=%d" BIP_MSG_PRE_ARG, (void *)hPlayer, hPlayer->startApi.pSettings->timePositionInMs ));
             completionStatus = BIP_SUCCESS;
 
             /* Playpump/Playback & PBIP starts are successful. Check if app asked us to start from a non-zero time position. */
@@ -4786,13 +5383,13 @@ static BIP_Status processStartingState_locked(
                 ipTrickModeSettings.nonBlockingMode = false; /* TODO: make this non-blocking & add additional state here. */
                 rc = B_PlaybackIp_Seek(hPlayer->pbipState.hPlaybackIp, &ipTrickModeSettings);
                 BIP_CHECK_GOTO(( rc==B_ERROR_SUCCESS ), ( "B_PlaybackIp_Seek Failed"), error, BIP_ERR_PLAYER_PBIP, completionStatus );
-                BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: B_PlaybacIp_Seek to startPosition=%d ms is Successful!" BIP_MSG_PRE_ARG, hPlayer, hPlayer->startApi.pSettings->timePositionInMs ));
+                BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: B_PlaybacIp_Seek to startPosition=%d ms is Successful!" BIP_MSG_PRE_ARG, (void *)hPlayer, hPlayer->startApi.pSettings->timePositionInMs ));
 
                 /* Check if we need to reconfigure the clock recovery mode based on the data model & its seek position wrt to end of timeshift buffer. */
                 if ( hPlayer->dataAvailabilityModel == BIP_PlayerDataAvailabilityModel_eLimitedRandomAccess )
                 {
                     BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: app's startingPosition=%u is different than default of live point for LimitedRandonAccess data model (timeshifted content)"
-                              BIP_MSG_PRE_ARG, hPlayer, hPlayer->startApi.pSettings->timePositionInMs));
+                              BIP_MSG_PRE_ARG, (void *)hPlayer, hPlayer->startApi.pSettings->timePositionInMs));
                     completionStatus = determineAndReConfigureClockRecovery(hPlayer, NEXUS_NORMAL_PLAY_SPEED, hPlayer->startApi.pSettings->timePositionInMs, hPlayer->getStatusFromServerState.serverStatus.availableSeekRange.lastPositionInMs);
                     BIP_CHECK_GOTO(( completionStatus == BIP_SUCCESS ), ( "determineAndReConfigureClockRecovery Failed"), error, completionStatus, completionStatus );
                 }
@@ -4800,18 +5397,18 @@ static BIP_Status processStartingState_locked(
                 /* We have seeked to the initial position, so start Playing. */
                 rc = B_PlaybackIp_Play(hPlayer->pbipState.hPlaybackIp);
                 BIP_CHECK_GOTO(( rc==B_ERROR_SUCCESS ), ( "B_PlaybackIp_Play Failed"), error, BIP_ERR_PLAYER_PBIP, completionStatus );
-                BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: B_PlaybacIp_Play is Successful to start from an initial start offset!" BIP_MSG_PRE_ARG, hPlayer));
+                BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: B_PlaybacIp_Play is Successful to start from an initial start offset!" BIP_MSG_PRE_ARG, (void *)hPlayer));
 
                 /* Clear this flag so that we can switch to the playing state. */
                 hPlayer->playerSettings.playbackSettings.startPaused = false;
                 completionStatus = BIP_SUCCESS;
             }
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Player Start is completed, do the state transition!" BIP_MSG_PRE_ARG, hPlayer ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Player Start is completed, do the state transition!" BIP_MSG_PRE_ARG, (void *)hPlayer ));
         }
         else
         {
             completionStatus = BIP_ERR_PLAYER_PBIP;
-            BDBG_ERR(( BIP_MSG_PRE_FMT "hPlayer=%p: B_PlaybacIp_SessionStart failed w/ pbipStatus = %d!" BIP_MSG_PRE_ARG, hPlayer, hPlayer->pbipState.status ));
+            BDBG_ERR(( BIP_MSG_PRE_FMT "hPlayer=%p: B_PlaybacIp_SessionStart failed w/ pbipStatus = %d!" BIP_MSG_PRE_ARG, (void *)hPlayer, hPlayer->pbipState.status ));
         }
     } /* subState == BIP_PlayerSubState_eStartingWaitForPbipStart */
 
@@ -4820,7 +5417,7 @@ error:
     {
         /* We are done with the Starting state. */
         hPlayer->subState = BIP_PlayerSubState_eStartingDone;
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Player Start is done: completionStatus=%s" BIP_MSG_PRE_ARG, hPlayer, BIP_StatusGetText(completionStatus) ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Player Start is done: completionStatus=%s" BIP_MSG_PRE_ARG, (void *)hPlayer, BIP_StatusGetText(completionStatus) ));
     }
 
     if (hPlayer->subState == BIP_PlayerSubState_eStartingDone)
@@ -4994,11 +5591,11 @@ static BIP_Status processGetServerStatusApiState_locked(
                     BIP_CHECK_GOTO(( hPlayer->getStatusFromServerState.hAdditionalHeaders ), ( "BIP_String_CreateFromPrintf Failed to create Additional Header String"), error, BIP_ERR_PLAYER_CONNECT, hPlayer->getStatusFromServerState.completionStatus );
                 }
                 hPlayer->getStatusFromServerState.ipSessionOpenSettings.u.http.additionalHeaders = (char *)BIP_String_GetString(hPlayer->getStatusFromServerState.hAdditionalHeaders);
-                BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: additionalHeaders=%s" BIP_MSG_PRE_ARG, hPlayer, BIP_String_GetString(hPlayer->getStatusFromServerState.hAdditionalHeaders) ));
+                BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: additionalHeaders=%s" BIP_MSG_PRE_ARG, (void *)hPlayer, BIP_String_GetString(hPlayer->getStatusFromServerState.hAdditionalHeaders) ));
 
                 memset( &hPlayer->getStatusFromServerState.ipSessionOpenStatus, 0, sizeof(hPlayer->getStatusFromServerState.ipSessionOpenStatus) );
 
-                BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p server=%s port=%u proto=%d secProto=%d url=%s" BIP_MSG_PRE_ARG, hPlayer,
+                BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p server=%s port=%u proto=%d secProto=%d url=%s" BIP_MSG_PRE_ARG, (void *)hPlayer,
                             hPlayer->getStatusFromServerState.ipSessionOpenSettings.socketOpenSettings.ipAddr,
                             hPlayer->getStatusFromServerState.ipSessionOpenSettings.socketOpenSettings.port,
                             hPlayer->getStatusFromServerState.ipSessionOpenSettings.socketOpenSettings.protocol,
@@ -5086,10 +5683,21 @@ static BIP_Status processGetServerStatusApiState_locked(
             if (hPlayer->getStatusFromServerState.completionStatus == BIP_SUCCESS)
             {
                 /* Parse the DLNA ContentFeatures Header. */
-                hPlayer->getStatusFromServerState.completionStatus = parseContentFeatureHeader(hPlayer, hPlayer->pbipState.ipSessionOpenStatus.u.http.responseHeaders);
+                hPlayer->getStatusFromServerState.completionStatus = parseContentFeatureHeader(hPlayer, hPlayer->getStatusFromServerState.ipSessionOpenStatus.u.http.responseHeaders);
                 if (hPlayer->getStatusFromServerState.completionStatus == BIP_SUCCESS)
                 {
-                    BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: parseAvailableSeekRangeHeader & parseContentFeatureHeader successfull!" BIP_MSG_PRE_ARG, hPlayer ));
+                    BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: parseAvailableSeekRangeHeader & parseContentFeatureHeader successfull!" BIP_MSG_PRE_ARG, (void *)hPlayer ));
+                    /* Re-calculate the dataAvailabilityModel: in timeshifting playback case, the recording may now be complete */
+                    /* & server may no longer set the sNIncreasing bit. This will make us change our dataAvailability model to eFullRandomAcces. */
+                    /* And will enable app to determine the correct action when it gets the endOfStreaming callback from us. */
+                    {
+                        BIP_Status completionStatus;
+                        completionStatus = determineDataAvailabilityModel(hPlayer);
+                        if (completionStatus != BIP_SUCCESS)
+                        {
+                            BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer=%p: determineDataAvailabilityModel Failed" BIP_MSG_PRE_ARG, (void *)hPlayer));
+                        }
+                    }
                     if (BIP_Arb_IsBusy(hPlayer->getStatusFromServerApi.hArb))
                     {
                         *hPlayer->getStatusFromServerApi.pServerStatus = hPlayer->getStatusFromServerState.serverStatus;
@@ -5097,12 +5705,12 @@ static BIP_Status processGetServerStatusApiState_locked(
                 }
                 else
                 {
-                    BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer=%p: parseContentFeatureHeader Failed" BIP_MSG_PRE_ARG, hPlayer ));
+                    BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer=%p: parseContentFeatureHeader Failed" BIP_MSG_PRE_ARG, (void *)hPlayer ));
                 }
             }
             else
             {
-                BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer=%p: parseAvailableSeekRangeHeader Failed" BIP_MSG_PRE_ARG, hPlayer ));
+                BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer=%p: parseAvailableSeekRangeHeader Failed" BIP_MSG_PRE_ARG, (void *)hPlayer ));
             }
             free(hPlayer->getStatusFromServerState.ipSessionOpenStatus.u.http.responseHeaders);
             hPlayer->getStatusFromServerState.apiState = BIP_PlayerApiState_eDone;
@@ -5155,7 +5763,7 @@ error:
             hPlayer->getStatusFromServerState.hPlaybackIp = NULL;
         }
 
-        BDBG_MSG(( BIP_MSG_PRE_FMT BIP_PLAYER_STATE_PRINTF_FMT "Returning: first=%u last=%u duration=%u position=%u completionStatus=%s" BIP_MSG_PRE_ARG, BIP_PLAYER_STATE_PRINTF_ARG(hPlayer),
+        BDBG_MSG(( BIP_MSG_PRE_FMT BIP_PLAYER_STATE_PRINTF_FMT "Returning: first=%lu last=%lu duration=%lu position=%lu completionStatus=%s" BIP_MSG_PRE_ARG, BIP_PLAYER_STATE_PRINTF_ARG(hPlayer),
                     hPlayer->getStatusFromServerState.serverStatus.availableSeekRange.firstPositionInMs,
                     hPlayer->getStatusFromServerState.serverStatus.availableSeekRange.lastPositionInMs,
                     hPlayer->getStatusFromServerState.serverStatus.availableSeekRange.durationInMs,
@@ -5193,10 +5801,10 @@ static void truncateAndUpdatePosition(
         else
         {
             currentPosition = origCurrentPosition = status.position;
-            BDBG_MSG(( BIP_MSG_PRE_FMT  BIP_PLAYER_STATE_PRINTF_FMT "currentPosition=%u from PBIP" BIP_MSG_PRE_ARG, BIP_PLAYER_STATE_PRINTF_ARG(hPlayer), currentPosition ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT  BIP_PLAYER_STATE_PRINTF_FMT "currentPosition=%lu from PBIP" BIP_MSG_PRE_ARG, BIP_PLAYER_STATE_PRINTF_ARG(hPlayer), currentPosition ));
             if (currentPosition == 0)
             {
-                BDBG_MSG(( BIP_MSG_PRE_FMT  BIP_PLAYER_STATE_PRINTF_FMT "updated currentPosition=%u to 2msec" BIP_MSG_PRE_ARG, BIP_PLAYER_STATE_PRINTF_ARG(hPlayer), currentPosition ));
+                BDBG_MSG(( BIP_MSG_PRE_FMT  BIP_PLAYER_STATE_PRINTF_FMT "updated currentPosition=%lu to 2msec" BIP_MSG_PRE_ARG, BIP_PLAYER_STATE_PRINTF_ARG(hPlayer), currentPosition ));
                 currentPosition = 2; /* we go back few msec as PBIP wont include timeSeekRange if it is 0. */
                 currentPositionUpdated = true;
             }
@@ -5209,7 +5817,7 @@ static void truncateAndUpdatePosition(
 
     if (currentPosition < hPlayer->getStatusFromServerState.serverStatus.availableSeekRange.firstPositionInMs)
     {
-        BDBG_MSG(( BIP_MSG_PRE_FMT  BIP_PLAYER_STATE_PRINTF_FMT "dataModel=%s: curPos=%u is < firstPos=%u in ms, setting it to first (seek.begin) "
+        BDBG_MSG(( BIP_MSG_PRE_FMT  BIP_PLAYER_STATE_PRINTF_FMT "dataModel=%s: curPos=%lu is < firstPos=%lu in ms, setting it to first (seek.begin) "
                     BIP_MSG_PRE_ARG, BIP_PLAYER_STATE_PRINTF_ARG(hPlayer), BIP_ToStr_BIP_PlayerDataAvailabilityModel(hPlayer->dataAvailabilityModel),
                     currentPosition, hPlayer->getStatusFromServerState.serverStatus.availableSeekRange.firstPositionInMs));
         currentPosition = hPlayer->getStatusFromServerState.serverStatus.availableSeekRange.firstPositionInMs;
@@ -5217,7 +5825,7 @@ static void truncateAndUpdatePosition(
     }
     else if (currentPosition > hPlayer->getStatusFromServerState.serverStatus.availableSeekRange.lastPositionInMs)
     {
-        BDBG_MSG(( BIP_MSG_PRE_FMT  BIP_PLAYER_STATE_PRINTF_FMT "dataModel=%s cur=%u is outside last=%u, setting it to last (seek.end) "
+        BDBG_MSG(( BIP_MSG_PRE_FMT  BIP_PLAYER_STATE_PRINTF_FMT "dataModel=%s cur=%lu is outside last=%lu, setting it to last (seek.end) "
                     BIP_MSG_PRE_ARG, BIP_PLAYER_STATE_PRINTF_ARG(hPlayer), BIP_ToStr_BIP_PlayerDataAvailabilityModel(hPlayer->dataAvailabilityModel),
                     currentPosition, hPlayer->getStatusFromServerState.serverStatus.availableSeekRange.lastPositionInMs));
         currentPosition = hPlayer->getStatusFromServerState.serverStatus.availableSeekRange.lastPositionInMs;
@@ -5225,7 +5833,7 @@ static void truncateAndUpdatePosition(
     }
     else
     {
-        BDBG_MSG(( BIP_MSG_PRE_FMT  BIP_PLAYER_STATE_PRINTF_FMT "dataAvailabilityModel=%s: cur=%u is within first=%u & last=%u in ms"
+        BDBG_MSG(( BIP_MSG_PRE_FMT  BIP_PLAYER_STATE_PRINTF_FMT "dataAvailabilityModel=%s: cur=%lu is within first=%lu & last=%lu in ms"
                     BIP_MSG_PRE_ARG, BIP_PLAYER_STATE_PRINTF_ARG(hPlayer), BIP_ToStr_BIP_PlayerDataAvailabilityModel(hPlayer->dataAvailabilityModel), currentPosition,
                     hPlayer->getStatusFromServerState.serverStatus.availableSeekRange.firstPositionInMs,
                     hPlayer->getStatusFromServerState.serverStatus.availableSeekRange.lastPositionInMs
@@ -5233,7 +5841,7 @@ static void truncateAndUpdatePosition(
     }
     if (currentPosition == origCurrentPosition)
     {
-        BDBG_MSG(( BIP_MSG_PRE_FMT  BIP_PLAYER_STATE_PRINTF_FMT "cur=%u & originalCurrentPosition=%u are the same, so not updating the position"
+        BDBG_MSG(( BIP_MSG_PRE_FMT  BIP_PLAYER_STATE_PRINTF_FMT "cur=%lu & originalCurrentPosition=%lu are the same, so not updating the position"
                     BIP_MSG_PRE_ARG, BIP_PLAYER_STATE_PRINTF_ARG(hPlayer), currentPosition, origCurrentPosition ));
         currentPositionUpdated = false;
     }
@@ -5247,12 +5855,12 @@ static void truncateAndUpdatePosition(
         rc = B_PlaybackIp_SetSettings(hPlayer->pbipState.hPlaybackIp, &hPlayer->pbipState.settings);
         if (rc != B_ERROR_SUCCESS)
         {
-            BDBG_WRN(( BIP_MSG_PRE_FMT  BIP_PLAYER_STATE_PRINTF_FMT "PBIP B_PlaybackIp_SetSettings() Failed with PBIP errorStatus=%d, continuing Play w/ currentPositionInMs=%u"
+            BDBG_WRN(( BIP_MSG_PRE_FMT  BIP_PLAYER_STATE_PRINTF_FMT "PBIP B_PlaybackIp_SetSettings() Failed with PBIP errorStatus=%d, continuing Play w/ currentPositionInMs=%lu"
                         BIP_MSG_PRE_ARG, BIP_PLAYER_STATE_PRINTF_ARG(hPlayer), rc, currentPosition ));
         }
         else
         {
-            BDBG_MSG(( BIP_MSG_PRE_FMT  BIP_PLAYER_STATE_PRINTF_FMT "PBIP B_PlaybackIp_SetSettings() succeeded to update to currentPositionInMs=%u"
+            BDBG_MSG(( BIP_MSG_PRE_FMT  BIP_PLAYER_STATE_PRINTF_FMT "PBIP B_PlaybackIp_SetSettings() succeeded to update to currentPositionInMs=%lu"
                         BIP_MSG_PRE_ARG, BIP_PLAYER_STATE_PRINTF_ARG(hPlayer), currentPosition ));
             hPlayer->getStatusFromServerState.serverStatus.currentPositionInMs = currentPosition;
         }
@@ -5276,8 +5884,8 @@ static BIP_Status determinePauseTimeoutAndStartTimer(
             hPlayer->getStatusFromServerState.serverStatus.currentPositionInMs -
             hPlayer->getStatusFromServerState.serverStatus.availableSeekRange.lastPositionInMs;
 
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: Pause timeout=%d ms, tsBufMaxDurationInMs=%u curPosInMs=%u lastPosInMs=%u" BIP_MSG_PRE_ARG,
-                    hPlayer, hPlayer->pauseState.pauseTimeoutInMs, hPlayer->prepareSettings.timeshiftBufferMaxDurationInMs,
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: Pause timeout=%d ms, tsBufMaxDurationInMs=%u curPosInMs=%lu lastPosInMs=%lu" BIP_MSG_PRE_ARG,
+                    (void *)hPlayer, hPlayer->pauseState.pauseTimeoutInMs, hPlayer->prepareSettings.timeshiftBufferMaxDurationInMs,
                     hPlayer->getStatusFromServerState.serverStatus.currentPositionInMs,
                     hPlayer->getStatusFromServerState.serverStatus.availableSeekRange.lastPositionInMs));
 
@@ -5294,14 +5902,14 @@ static BIP_Status determinePauseTimeoutAndStartTimer(
             BIP_CHECK_GOTO(( hPlayer->pauseState.hPauseTimer ), ( "BIP_Timer_Create Failed"), error, BIP_ERR_INTERNAL, bipStatus );
 
             hPlayer->pauseState.pauseTimerActive = true;
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: Pause Timeout timer=%u started." BIP_MSG_PRE_ARG, hPlayer, hPlayer->pauseState.pauseTimeoutInMs));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: Pause Timeout timer=%u started." BIP_MSG_PRE_ARG, (void *)hPlayer, hPlayer->pauseState.pauseTimeoutInMs));
         }
         else
         {
             /* PauseTimeout happened to be <= 0, meaning the current position is at the oldest position (seek.begin) in the timeshift buffer */
             /* which will anyway expire, so there is no point in pausing. */
             *dontPause = true;
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: setting dontPause=true as Pause Timeout timer=%d will expire now!" BIP_MSG_PRE_ARG, hPlayer, hPlayer->pauseState.pauseTimeoutInMs));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: setting dontPause=true as Pause Timeout timer=%d will expire now!" BIP_MSG_PRE_ARG, (void *)hPlayer, hPlayer->pauseState.pauseTimeoutInMs));
         }
         bipStatus = BIP_SUCCESS;
     }
@@ -5434,7 +6042,7 @@ static BIP_Status processPauseApiState_locked(
                 else
                 {
                     hPlayer->pauseState.completionStatus = BIP_INF_PLAYER_CANT_PAUSE;
-                    BDBG_MSG(( BIP_MSG_PRE_FMT  BIP_PLAYER_STATE_PRINTF_FMT "Can't pause for dataAvailabilityModel=%s at cur=%u first=%u & last=%u in ms"
+                    BDBG_MSG(( BIP_MSG_PRE_FMT  BIP_PLAYER_STATE_PRINTF_FMT "Can't pause for dataAvailabilityModel=%s at cur=%lu first=%lu & last=%lu in ms"
                                 BIP_MSG_PRE_ARG, BIP_PLAYER_STATE_PRINTF_ARG(hPlayer), BIP_ToStr_BIP_PlayerDataAvailabilityModel(hPlayer->dataAvailabilityModel),
                                 hPlayer->getStatusFromServerState.serverStatus.currentPositionInMs,
                                 hPlayer->getStatusFromServerState.serverStatus.availableSeekRange.firstPositionInMs,
@@ -5515,7 +6123,7 @@ static BIP_Status processPlayApiState_locked(
             /* Check if we need to reconfigure the clock recovery mode based on the data model & its current position wrt to end of timeshift buffer. */
             if ( hPlayer->dataAvailabilityModel == BIP_PlayerDataAvailabilityModel_eLimitedRandomAccess )
             {
-                BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: reconfigure clock recovery if needed!" BIP_MSG_PRE_ARG, hPlayer ));
+                BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: reconfigure clock recovery if needed!" BIP_MSG_PRE_ARG, (void *)hPlayer ));
                 hPlayer->playState.completionStatus = determineAndReConfigureClockRecovery(hPlayer, NEXUS_NORMAL_PLAY_SPEED,
                         hPlayer->getStatusFromServerState.serverStatus.currentPositionInMs,
                         hPlayer->getStatusFromServerState.serverStatus.availableSeekRange.lastPositionInMs);
@@ -5530,7 +6138,7 @@ static BIP_Status processPlayApiState_locked(
             }
             else
             {
-                BDBG_WRN((BIP_MSG_PRE_FMT "hPlayer=%p: determineAndReConfigureClockRecovery Failed" BIP_MSG_PRE_ARG, hPlayer ));
+                BDBG_WRN((BIP_MSG_PRE_FMT "hPlayer=%p: determineAndReConfigureClockRecovery Failed" BIP_MSG_PRE_ARG, (void *)hPlayer ));
             }
 
             /* update the local state. */
@@ -5637,7 +6245,7 @@ static BIP_Status processSeekApiSubState_locked(
             /* Check if we need to reconfigure the clock recovery mode based on the data model & its current position wrt to end of timeshift buffer. */
             if ( hPlayer->dataAvailabilityModel == BIP_PlayerDataAvailabilityModel_eLimitedRandomAccess )
             {
-                BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: reconfigure clock recovery if needed!" BIP_MSG_PRE_ARG, hPlayer ));
+                BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: reconfigure clock recovery if needed!" BIP_MSG_PRE_ARG, (void *)hPlayer ));
                 hPlayer->seekState.completionStatus = determineAndReConfigureClockRecovery(hPlayer, hPlayer->state == BIP_PlayerState_ePaused ? 0:NEXUS_NORMAL_PLAY_SPEED,
                         hPlayer->seekApi.seekPositionInMs,
                         hPlayer->getStatusFromServerState.serverStatus.availableSeekRange.lastPositionInMs);
@@ -5660,7 +6268,7 @@ static BIP_Status processSeekApiSubState_locked(
             }
             else
             {
-                BDBG_WRN((BIP_MSG_PRE_FMT "hPlayer=%p: determineAndReConfigureClockRecovery Failed" BIP_MSG_PRE_ARG, hPlayer ));
+                BDBG_WRN((BIP_MSG_PRE_FMT "hPlayer=%p: determineAndReConfigureClockRecovery Failed" BIP_MSG_PRE_ARG, (void *)hPlayer ));
             }
 
             /* update the local state. */
@@ -5688,14 +6296,14 @@ static BIP_Status processSeekApiSubState_locked(
             /* TODO: Check for Seek API timeout. */
 
             hPlayer->seekState.completionStatus = BIP_INF_IN_PROGRESS;
-            BDBG_MSG(( BIP_MSG_PRE_FMT  BIP_PLAYER_STATE_PRINTF_FMT "Initiated PBIP Seek to %d ms position!" BIP_MSG_PRE_ARG, BIP_PLAYER_STATE_PRINTF_ARG(hPlayer), hPlayer->seekApi.seekPositionInMs ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT  BIP_PLAYER_STATE_PRINTF_FMT "Initiated PBIP Seek to %lu ms position!" BIP_MSG_PRE_ARG, BIP_PLAYER_STATE_PRINTF_ARG(hPlayer), hPlayer->seekApi.seekPositionInMs ));
         }
         else if (hPlayer->seekState.pbipStatus == B_ERROR_SUCCESS)
         {
             /* Seek is successful. */
             hPlayer->seekState.apiState = BIP_PlayerApiState_eDone;
             hPlayer->seekState.completionStatus = BIP_SUCCESS;
-            BDBG_MSG(( BIP_MSG_PRE_FMT  BIP_PLAYER_STATE_PRINTF_FMT "PBIP Seek to %d ms position is successful!" BIP_MSG_PRE_ARG, BIP_PLAYER_STATE_PRINTF_ARG(hPlayer), hPlayer->seekApi.seekPositionInMs ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT  BIP_PLAYER_STATE_PRINTF_FMT "PBIP Seek to %lu ms position is successful!" BIP_MSG_PRE_ARG, BIP_PLAYER_STATE_PRINTF_ARG(hPlayer), hPlayer->seekApi.seekPositionInMs ));
 
             if (hPlayer->state == BIP_PlayerState_ePaused)
             {
@@ -5713,7 +6321,7 @@ static BIP_Status processSeekApiSubState_locked(
             /* Seek Failed. */
             hPlayer->seekState.completionStatus = BIP_ERR_PLAYER_SEEK;
             hPlayer->seekState.apiState = BIP_PlayerApiState_eDone;
-            BDBG_WRN(( BIP_MSG_PRE_FMT  BIP_PLAYER_STATE_PRINTF_FMT "PBIP Seek to %d ms position failed w/ pbipStatus=%d" BIP_MSG_PRE_ARG, BIP_PLAYER_STATE_PRINTF_ARG(hPlayer), hPlayer->seekApi.seekPositionInMs, hPlayer->seekState.pbipStatus ));
+            BDBG_WRN(( BIP_MSG_PRE_FMT  BIP_PLAYER_STATE_PRINTF_FMT "PBIP Seek to %lu ms position failed w/ pbipStatus=%d" BIP_MSG_PRE_ARG, BIP_PLAYER_STATE_PRINTF_ARG(hPlayer), hPlayer->seekApi.seekPositionInMs, hPlayer->seekState.pbipStatus ));
         }
     }
 
@@ -5797,7 +6405,7 @@ static BIP_Status processPlayAtRateApiSubState_locked(
 
             if ( hPlayer->dataAvailabilityModel == BIP_PlayerDataAvailabilityModel_eLimitedRandomAccess )
             {
-                BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: reconfigure clock recovery if needed!" BIP_MSG_PRE_ARG, hPlayer ));
+                BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: reconfigure clock recovery if needed!" BIP_MSG_PRE_ARG, (void *)hPlayer ));
                 hPlayer->playState.completionStatus = determineAndReConfigureClockRecovery(hPlayer, hPlayer->newPlayRate,
                         hPlayer->getStatusFromServerState.serverStatus.currentPositionInMs,
                         hPlayer->getStatusFromServerState.serverStatus.availableSeekRange.lastPositionInMs);
@@ -6056,21 +6664,20 @@ static BIP_Status processStopApiState_locked(
         if (!hPlayer->useNexusPlaypump && hPlayer->hPlayback)
         {
             /* Using Playback, so stop it first. */
-            NEXUS_StopCallbacks(hPlayer->hPlayback);
             NEXUS_Playback_Stop(hPlayer->hPlayback);
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p Nexus Playback hPlayback=%p Stopped!" BIP_MSG_PRE_ARG, hPlayer, hPlayer->hPlayback ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p Nexus Playback hPlayback=%p Stopped!" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->hPlayback ));
         }
 
         /* Now Stop PBIP */
         rc = B_PlaybackIp_SessionStop(hPlayer->pbipState.hPlaybackIp);
         if (rc == B_ERROR_SUCCESS)
         {
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: B_PlaybackIp_SessionStop() Success" BIP_MSG_PRE_ARG, hPlayer ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: B_PlaybackIp_SessionStop() Success" BIP_MSG_PRE_ARG, (void *)hPlayer ));
         }
         else
         {
             /* SessionStop failed.. */
-            BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer=%p: B_PlaybackIp_SessionStop() Failed: rc=%d" BIP_MSG_PRE_ARG, hPlayer, rc ));
+            BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer=%p: B_PlaybackIp_SessionStop() Failed: rc=%d" BIP_MSG_PRE_ARG, (void *)hPlayer, rc ));
         }
         /* Note: we are ignore the completionStatus from PBIP SessionStop API above as BIP Player's Stop doesn't really care about it. */
 
@@ -6079,7 +6686,7 @@ static BIP_Status processStopApiState_locked(
             /* Using Nexus Playpump, so Stop it. */
             NEXUS_Playpump_Stop(hPlayer->hPlaypump);
             if (hPlayer->usePlaypump2ForAudio && hPlayer->hPlaypump2) NEXUS_Playpump_Stop(hPlayer->hPlaypump2);
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p hPlaypump=%p Stopped!" BIP_MSG_PRE_ARG, hPlayer, hPlayer->hPlaypump ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p hPlaypump=%p Stopped!" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->hPlaypump ));
         }
 
         hPlayer->stopState.apiState = BIP_PlayerApiState_eIdle;
@@ -6141,6 +6748,13 @@ static BIP_Status processStartedPausedOrAbortedState_locked(
                 hPlayer->subState == BIP_PlayerSubState_eAborted
            )
         {
+            /* Check if PBIP has notified us about the newProgram in the stream and if so, process that state. */
+            if (hPlayer->newProgramFound)
+            {
+                hPlayer->newProgramFound = false;
+                selectTracksAndReconfigDecoders(hPlayer);
+            }
+
             /* Note: we check for endOfStream or networkError events from PBIP only in these completed states & not while another API is currently in progress. */
             /* The subState logic below re-runs this state machine to catch these events if they had come while state machine was in the middle of procesing an API. */
             if (hPlayer->reachedEndOfStream == true || hPlayer->receivedNetworkError == true)
@@ -6615,7 +7229,7 @@ void processPlayerState(
     {
         if (hPlayer->state != BIP_PlayerState_eDisconnected)
         {
-            BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer %p: BIP_Player_Connect() is not allowed in this state=%s" BIP_MSG_PRE_ARG, hPlayer, BIP_PLAYER_STATE(hPlayer->state) ));
+            BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer %p: BIP_Player_Connect() is not allowed in this state=%s" BIP_MSG_PRE_ARG, (void *)hPlayer, BIP_PLAYER_STATE(hPlayer->state) ));
             completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, completionStatus);
         }
@@ -6632,7 +7246,7 @@ void processPlayerState(
     {
         if (hPlayer->state != BIP_PlayerState_eConnected)
         {
-            BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer %p: BIP_Player_ProbeMediaInfo() is not allowed in this state=%s" BIP_MSG_PRE_ARG, hPlayer, BIP_PLAYER_STATE(hPlayer->state) ));
+            BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer %p: BIP_Player_ProbeMediaInfo() is not allowed in this state=%s" BIP_MSG_PRE_ARG, (void *)hPlayer, BIP_PLAYER_STATE(hPlayer->state) ));
             completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, completionStatus);
         }
@@ -6647,16 +7261,10 @@ void processPlayerState(
     }
     else if (BIP_Arb_IsNew(hArb = hPlayer->getProbedStreamInfo.hArb))
     {
-        if (hPlayer->state != BIP_PlayerState_eConnected)
-        {
-            BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer %p: BIP_Player_GetProbedStreamInfo() is not allowed in this state=%s" BIP_MSG_PRE_ARG, hPlayer, BIP_PLAYER_STATE(hPlayer->state) ));
-            completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
-            BIP_Arb_RejectRequest(hArb, completionStatus);
-        }
-        else if (hPlayer->mediaProbeComplete == false)
+        if (hPlayer->mediaProbeComplete == false)
         {
             BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer %p: StreamInfo is not yet available: either call BIP_Player_ProbeStreamInfo() or BIP_Player_Prepare() before calling this API, currentState=%s"
-                       BIP_MSG_PRE_ARG, hPlayer, BIP_PLAYER_STATE(hPlayer->state) ));
+                       BIP_MSG_PRE_ARG, (void *)hPlayer, BIP_PLAYER_STATE(hPlayer->state) ));
             completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, completionStatus);
         }
@@ -6672,7 +7280,7 @@ void processPlayerState(
     {
         if (hPlayer->state != BIP_PlayerState_eConnected)
         {
-            BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer %p: BIP_Player_Prepare() is not allowed in this state=%s" BIP_MSG_PRE_ARG, hPlayer, BIP_PLAYER_STATE(hPlayer->state) ));
+            BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer %p: BIP_Player_Prepare() is not allowed in this state=%s" BIP_MSG_PRE_ARG, (void *)hPlayer, BIP_PLAYER_STATE(hPlayer->state) ));
             completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, completionStatus);
         }
@@ -6689,7 +7297,7 @@ void processPlayerState(
     {
         if (hPlayer->state < BIP_PlayerState_ePrepared)
         {
-            BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer %p: BIP_Player_OpenPidChannel() is not allowed in this state=%s" BIP_MSG_PRE_ARG, hPlayer, BIP_PLAYER_STATE(hPlayer->state) ));
+            BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer %p: BIP_Player_OpenPidChannel() is not allowed in this state=%s" BIP_MSG_PRE_ARG, (void *)hPlayer, BIP_PLAYER_STATE(hPlayer->state) ));
             completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, completionStatus);
         }
@@ -6717,7 +7325,7 @@ void processPlayerState(
     {
         if (hPlayer->state != BIP_PlayerState_ePrepared)
         {
-            BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer %p: BIP_Player_Start() is not allowed in this state=%s" BIP_MSG_PRE_ARG, hPlayer, BIP_PLAYER_STATE(hPlayer->state) ));
+            BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer %p: BIP_Player_Start() is not allowed in this state=%s" BIP_MSG_PRE_ARG, (void *)hPlayer, BIP_PLAYER_STATE(hPlayer->state) ));
             completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, completionStatus);
         }
@@ -6735,13 +7343,13 @@ void processPlayerState(
         if (hPlayer->state == BIP_PlayerState_ePaused)
         {
             BIP_Arb_AcceptRequest(hArb);
-            BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer %p: Ignoring BIP_Player_Pause(): current player state=%s" BIP_MSG_PRE_ARG, hPlayer, BIP_PLAYER_STATE(hPlayer->state) ));
+            BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer %p: Ignoring BIP_Player_Pause(): current player state=%s" BIP_MSG_PRE_ARG, (void *)hPlayer, BIP_PLAYER_STATE(hPlayer->state) ));
             completionStatus = BIP_SUCCESS;
             BIP_Arb_CompleteRequest(hArb, completionStatus);
         }
         else if (hPlayer->state != BIP_PlayerState_eStarted)
         {
-            BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer %p: BIP_Player_Pause() is only allowed after BIP_Player_Start(), current state=%s" BIP_MSG_PRE_ARG, hPlayer, BIP_PLAYER_STATE(hPlayer->state) ));
+            BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer %p: BIP_Player_Pause() is only allowed after BIP_Player_Start(), current state=%s" BIP_MSG_PRE_ARG, (void *)hPlayer, BIP_PLAYER_STATE(hPlayer->state) ));
             completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, completionStatus);
         }
@@ -6754,7 +7362,7 @@ void processPlayerState(
         }
         else if (hPlayer->mode == BIP_PlayerMode_eRecord)
         {
-            BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer %p: BIP_Player_Pause() is not allowed in the Recording Mode: current state=%s" BIP_MSG_PRE_ARG, hPlayer, BIP_PLAYER_STATE(hPlayer->state) ));
+            BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer %p: BIP_Player_Pause() is not allowed in the Recording Mode: current state=%s" BIP_MSG_PRE_ARG, (void *)hPlayer, BIP_PLAYER_STATE(hPlayer->state) ));
             completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, completionStatus);
         }
@@ -6769,13 +7377,13 @@ void processPlayerState(
         if (hPlayer->state == BIP_PlayerState_eStarted && hPlayer->subState == BIP_PlayerSubState_eStartedPlayingNormal)
         {
             BIP_Arb_AcceptRequest(hArb);
-            BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer %p: Ignoring BIP_Player_Play() in Normal Playing state!" BIP_MSG_PRE_ARG, hPlayer ));
+            BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer %p: Ignoring BIP_Player_Play() in Normal Playing state!" BIP_MSG_PRE_ARG, (void *)hPlayer ));
             completionStatus = BIP_SUCCESS;
             BIP_Arb_CompleteRequest(hArb, completionStatus);
         }
         else if (hPlayer->state != BIP_PlayerState_eStarted && hPlayer->state != BIP_PlayerState_ePaused)
         {
-            BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer %p: BIP_Player_Play() is not allowed in the current state=%s" BIP_MSG_PRE_ARG, hPlayer, BIP_PLAYER_STATE(hPlayer->state) ));
+            BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer %p: BIP_Player_Play() is not allowed in the current state=%s" BIP_MSG_PRE_ARG, (void *)hPlayer, BIP_PLAYER_STATE(hPlayer->state) ));
             completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, completionStatus);
         }
@@ -6788,7 +7396,7 @@ void processPlayerState(
         }
         else if (hPlayer->mode == BIP_PlayerMode_eRecord)
         {
-            BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer %p: BIP_Player_Play() is not allowed in the Recording Mode: current state=%s" BIP_MSG_PRE_ARG, hPlayer, BIP_PLAYER_STATE(hPlayer->state) ));
+            BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer %p: BIP_Player_Play() is not allowed in the Recording Mode: current state=%s" BIP_MSG_PRE_ARG, (void *)hPlayer, BIP_PLAYER_STATE(hPlayer->state) ));
             completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, completionStatus);
         }
@@ -6802,7 +7410,7 @@ void processPlayerState(
     {
         if (hPlayer->state != BIP_PlayerState_eStarted && hPlayer->state != BIP_PlayerState_ePaused)
         {
-            BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer %p: BIP_Player_PlayAtRate() is not allowed in the current state=%s" BIP_MSG_PRE_ARG, hPlayer, BIP_PLAYER_STATE(hPlayer->state) ));
+            BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer %p: BIP_Player_PlayAtRate() is not allowed in the current state=%s" BIP_MSG_PRE_ARG, (void *)hPlayer, BIP_PLAYER_STATE(hPlayer->state) ));
             completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, completionStatus);
         }
@@ -6829,7 +7437,7 @@ void processPlayerState(
         }
         else if (hPlayer->mode == BIP_PlayerMode_eRecord)
         {
-            BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer %p: BIP_Player_PlayAtRate() is not allowed in the Recording Mode: current state=%s" BIP_MSG_PRE_ARG, hPlayer, BIP_PLAYER_STATE(hPlayer->state) ));
+            BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer %p: BIP_Player_PlayAtRate() is not allowed in the Recording Mode: current state=%s" BIP_MSG_PRE_ARG, (void *)hPlayer, BIP_PLAYER_STATE(hPlayer->state) ));
             completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, completionStatus);
         }
@@ -6844,7 +7452,7 @@ void processPlayerState(
         if (hPlayer->state != BIP_PlayerState_ePaused)
         {
             BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer %p: BIP_Player_PlayAtRate() is not allowed in the current state=%s, App must call BIP_Player_Pause() to Pause Player before calling this API!"
-                       BIP_MSG_PRE_ARG, hPlayer, BIP_PLAYER_STATE(hPlayer->state) ));
+                       BIP_MSG_PRE_ARG, (void *)hPlayer, BIP_PLAYER_STATE(hPlayer->state) ));
             completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, completionStatus);
         }
@@ -6857,7 +7465,7 @@ void processPlayerState(
         }
         else if (hPlayer->mode == BIP_PlayerMode_eRecord)
         {
-            BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer %p: BIP_Player_PlayByFrame() is not allowed in the Recording Mode: current state=%s" BIP_MSG_PRE_ARG, hPlayer, BIP_PLAYER_STATE(hPlayer->state) ));
+            BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer %p: BIP_Player_PlayByFrame() is not allowed in the Recording Mode: current state=%s" BIP_MSG_PRE_ARG, (void *)hPlayer, BIP_PLAYER_STATE(hPlayer->state) ));
             completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, completionStatus);
         }
@@ -6871,7 +7479,7 @@ void processPlayerState(
     {
         if (hPlayer->state != BIP_PlayerState_eStarted && hPlayer->state != BIP_PlayerState_ePaused)
         {
-            BDBG_ERR(( BIP_MSG_PRE_FMT "hPlayer %p: Can't call BIP_Player_Seek() unless Player is in Started or Paused states, current player state=%s" BIP_MSG_PRE_ARG, hPlayer, BIP_PLAYER_STATE(hPlayer->state) ));
+            BDBG_ERR(( BIP_MSG_PRE_FMT "hPlayer %p: Can't call BIP_Player_Seek() unless Player is in Started or Paused states, current player state=%s" BIP_MSG_PRE_ARG, (void *)hPlayer, BIP_PLAYER_STATE(hPlayer->state) ));
             completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, completionStatus);
         }
@@ -6884,7 +7492,7 @@ void processPlayerState(
         }
         else if (hPlayer->mode == BIP_PlayerMode_eRecord)
         {
-            BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer %p: BIP_Player_Seek() is not allowed in the Recording Mode: current state=%s" BIP_MSG_PRE_ARG, hPlayer, BIP_PLAYER_STATE(hPlayer->state) ));
+            BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer %p: BIP_Player_Seek() is not allowed in the Recording Mode: current state=%s" BIP_MSG_PRE_ARG, (void *)hPlayer, BIP_PLAYER_STATE(hPlayer->state) ));
             completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, completionStatus);
         }
@@ -6897,7 +7505,7 @@ void processPlayerState(
     {
         if (hPlayer->state != BIP_PlayerState_eStarted && hPlayer->state != BIP_PlayerState_ePaused && hPlayer->state != BIP_PlayerState_eAborted)
         {
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: Player is neither started, paused, not aborted, ignoring BIP_Player_Stop(), Player state=%s" BIP_MSG_PRE_ARG, hPlayer, BIP_PLAYER_STATE(hPlayer->state) ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: Player is neither started, paused, not aborted, ignoring BIP_Player_Stop(), Player state=%s" BIP_MSG_PRE_ARG, (void *)hPlayer, BIP_PLAYER_STATE(hPlayer->state) ));
             BIP_Arb_AcceptRequest(hArb);
             completionStatus = BIP_SUCCESS;
             BIP_Arb_CompleteRequest(hArb, completionStatus);
@@ -6918,7 +7526,7 @@ void processPlayerState(
 
         if (hPlayer->state == BIP_PlayerState_eDisconnected)
         {
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: Ignoring BIP_Player_Disconnect() in state=%s" BIP_MSG_PRE_ARG, hPlayer, BIP_PLAYER_STATE(hPlayer->state) ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: Ignoring BIP_Player_Disconnect() in state=%s" BIP_MSG_PRE_ARG, (void *)hPlayer, BIP_PLAYER_STATE(hPlayer->state) ));
             completionStatus = BIP_SUCCESS;
             BIP_Arb_CompleteRequest(hArb, completionStatus);
         }
@@ -6934,7 +7542,7 @@ void processPlayerState(
         BIP_Arb_AcceptRequest(hArb);
         completionStatus = BIP_INF_IN_PROGRESS;
 
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: Accepted _Destroy Arb: state %s!" BIP_MSG_PRE_ARG, hPlayer, BIP_PLAYER_STATE(hPlayer->state) ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: Accepted _Destroy Arb: state %s!" BIP_MSG_PRE_ARG, (void *)hPlayer, BIP_PLAYER_STATE(hPlayer->state) ));
 
         /* Stop & Disconnect if needed. */
         if (hPlayer->state == BIP_PlayerState_eDisconnected)
@@ -6967,7 +7575,7 @@ void processPlayerState(
 
         /* We are done this API Arb, so set its completion status. */
         completionStatus = BIP_SUCCESS;
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: GetSettings Arb request is complete: state %s!" BIP_MSG_PRE_ARG, hPlayer, BIP_PLAYER_STATE(hPlayer->state) ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: GetSettings Arb request is complete: state %s!" BIP_MSG_PRE_ARG, (void *)hPlayer, BIP_PLAYER_STATE(hPlayer->state) ));
         BIP_Arb_CompleteRequest( hArb, completionStatus);
     }
     else if (BIP_Arb_IsNew(hArb = hPlayer->getStatusApi.hArb))
@@ -7007,6 +7615,16 @@ void processPlayerState(
                     hPlayer->getStatusApi.pStatus->firstPositionInMs = 0;
                     hPlayer->getStatusApi.pStatus->lastPositionInMs = pbipStatus.last;
                 }
+                if  (hPlayer->streamInfo.containerType == BIP_PlayerContainerType_eHls)
+                {
+                    hPlayer->getStatusApi.pStatus->stats.hlsStats.lastSegmentSequence = pbipStatus.hlsStats.lastSegmentSequence;
+                    hPlayer->getStatusApi.pStatus->stats.hlsStats.lastSegmentDownloadTime = pbipStatus.hlsStats.lastSegmentDownloadTime;
+                    hPlayer->getStatusApi.pStatus->stats.hlsStats.lastSegmentBitrate = pbipStatus.hlsStats.lastSegmentBitrate;
+                    hPlayer->getStatusApi.pStatus->stats.hlsStats.lastSegmentUrl = pbipStatus.hlsStats.lastSegmentUrl;
+                    hPlayer->getStatusApi.pStatus->stats.hlsStats.bounded = pbipStatus.hlsStats.bounded;
+                    hPlayer->getStatusApi.pStatus->stats.hlsStats.lastSegmentDuration = pbipStatus.hlsStats.lastSegmentDuration;
+                }
+                hPlayer->getStatusApi.pStatus->stats.totalConsumed = pbipStatus.totalConsumed;
                 completionStatus = BIP_SUCCESS;
             }
             else
@@ -7021,8 +7639,25 @@ void processPlayerState(
             hPlayer->getStatusApi.pStatus->lastPositionInMs = 0;
             completionStatus = BIP_SUCCESS;
         }
-        BIP_MSG_TRC(( BIP_MSG_PRE_FMT "hPlayer %p: GetStatus Arb request is complete: state=%s clockRecoveryMode=%s pos=%d status=%s"
-                    BIP_MSG_PRE_ARG, hPlayer, BIP_PLAYER_STATE(hPlayer->state), BIP_ToStr_BIP_PlayerClockRecoveryMode(hPlayer->clockRecoveryMode),
+        if (hPlayer->hMediaInfoForApp == NULL)
+        {
+            hPlayer->getStatusApi.pStatus->hMediaInfo = hPlayer->hMediaInfoForApp = hPlayer->hMediaInfo;
+        }
+        else
+        {
+            if (hPlayer->hMediaInfoForApp != hPlayer->hMediaInfo)
+            {
+                BIP_MSG_TRC(( BIP_MSG_PRE_FMT "hPlayer %p: Freeing up previous hMediaInfoForApp=%p!" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->hMediaInfoForApp ));
+                BIP_MediaInfo_Destroy(hPlayer->hMediaInfoForApp);
+                hPlayer->getStatusApi.pStatus->hMediaInfo = hPlayer->hMediaInfoForApp = hPlayer->hMediaInfo;
+            }
+            else
+            {
+                hPlayer->getStatusApi.pStatus->hMediaInfo = hPlayer->hMediaInfoForApp;
+            }
+        }
+        BIP_MSG_TRC(( BIP_MSG_PRE_FMT "hPlayer %p: GetStatus Arb request is complete: state=%s clockRecoveryMode=%s pos=%lu status=%s"
+                    BIP_MSG_PRE_ARG, (void *)hPlayer, BIP_PLAYER_STATE(hPlayer->state), BIP_ToStr_BIP_PlayerClockRecoveryMode(hPlayer->clockRecoveryMode),
                     hPlayer->getStatusApi.pStatus->currentPositionInMs, BIP_StatusGetText(completionStatus) ));
         BIP_Arb_CompleteRequest( hArb, completionStatus);
     }
@@ -7032,14 +7667,14 @@ void processPlayerState(
         BIP_Arb_AcceptRequest(hArb);
         playerPrintStatus(hPlayer);
         completionStatus = BIP_SUCCESS;
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: PrintStatus Arb request is complete: state %s!" BIP_MSG_PRE_ARG, hPlayer, BIP_PLAYER_STATE(hPlayer->state) ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: PrintStatus Arb request is complete: state %s!" BIP_MSG_PRE_ARG, (void *)hPlayer, BIP_PLAYER_STATE(hPlayer->state) ));
         BIP_Arb_CompleteRequest( hArb, completionStatus);
     }
     else if (BIP_Arb_IsNew(hArb = hPlayer->getStatusFromServerApi.hArb))
     {
         if (hPlayer->state != BIP_PlayerState_eStarted && hPlayer->state != BIP_PlayerState_ePaused && hPlayer->state != BIP_PlayerState_eAborted)
         {
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: Player is neither started, paused, not aborted, can't call BIP_Player_GetStatusFromServer(), Player state=%s" BIP_MSG_PRE_ARG, hPlayer, BIP_PLAYER_STATE(hPlayer->state) ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: Player is neither started, paused, not aborted, can't call BIP_Player_GetStatusFromServer(), Player state=%s" BIP_MSG_PRE_ARG, (void *)hPlayer, BIP_PLAYER_STATE(hPlayer->state) ));
             BIP_Arb_AcceptRequest(hArb);
             completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_CompleteRequest(hArb, completionStatus);
@@ -7060,6 +7695,8 @@ void processPlayerState(
     /* If completion status is still in progress, then process various Player States. */
     if (completionStatus == BIP_INF_IN_PROGRESS)
     {
+        /* coverity[stack_use_local_overflow] */
+        /* coverity[stack_use_overflow] */
         completionStatus = processPlayerState_locked(hPlayer, threadOrigin);
     }
 

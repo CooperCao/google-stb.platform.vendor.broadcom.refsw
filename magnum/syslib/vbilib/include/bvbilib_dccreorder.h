@@ -1,22 +1,42 @@
 /***************************************************************************
- *     Copyright (c) 2007-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description:
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ***************************************************************************/
 
 /*= Module Overview *********************************************************
@@ -67,7 +87,7 @@ reordering. For example:
     uint8_t datumL;
     uint8_t datumH;
     BAVC_Polarity polarity;
-    while (BVBIlib_DCCReorder_Get (handle, &datumL, &datumH, &polarity) == 
+    while (BVBIlib_DCCReorder_Get (handle, &datumL, &datumH, &polarity) ==
         BERR_SUCCESS)
     {
         BVBI_Field_Handle hField;
@@ -103,7 +123,7 @@ so it is better to NOT define new global symbols instead.
   See Also:
     BVBIlib_DCCReorder_Open, BVBIlib_DCCReorder_Close
 *****************************************************************************/
-typedef struct BVBIlib_P_DCCReorder_Handle* 
+typedef struct BVBIlib_P_DCCReorder_Handle*
     BVBIlib_DCCReorder_Handle; /* Opaque */
 
 
@@ -116,8 +136,8 @@ typedef struct BVBIlib_P_DCCReorder_Handle*
     Initializes and configures state for BVBIlib_DCCReorder module.
 
   Description:
-    This function initializes the BVBIlib_DCCReorder queueing/reordering 
-    module. The user indicates the amount of memory to be used, and the 
+    This function initializes the BVBIlib_DCCReorder queueing/reordering
+    module. The user indicates the amount of memory to be used, and the
     function returns a handle, which is used for all subsequent calls into
     the BVBIlib_DCCReorder module.
 
@@ -130,18 +150,18 @@ typedef struct BVBIlib_P_DCCReorder_Handle*
 *****************************************************************************/
 BERR_Code BVBIlib_DCCReorder_Open (
     BVBIlib_DCCReorder_Handle* pHandle, /* [out] Initialized module handle. */
-    unsigned int histSize,              /*  [in] Maximum number of top 
-                                                 field closed caption data 
-						                         and bottom field closed 
-						                         caption data that the 
-						                         module will remember. THIS 
-						                         MUST BE A POWER OF 2!      */
-    unsigned int threshold              /*  [in] Affects how aggressive 
-                                                 BVBIlib_DCCReorder_Get 
-						                         will be about returning CC
-						                         data with "bad" polarity. 
-						                         See the description of 
-						                         that function for details. */
+    unsigned int histSize,              /*  [in] Maximum number of top
+                                                 field closed caption data
+                                                 and bottom field closed
+                                                 caption data that the
+                                                 module will remember. THIS
+                                                 MUST BE A POWER OF 2!      */
+    unsigned int threshold              /*  [in] Affects how aggressive
+                                                 BVBIlib_DCCReorder_Get
+                                                 will be about returning CC
+                                                 data with "bad" polarity.
+                                                 See the description of
+                                                 that function for details. */
 );
 
 /*****************************************************************************
@@ -149,7 +169,7 @@ BERR_Code BVBIlib_DCCReorder_Open (
     Destroys module handle and frees storage space.
 
   Description:
-    This function destroys the BVBIlib_DCCReorder queueing/reordering 
+    This function destroys the BVBIlib_DCCReorder queueing/reordering
     module and frees resources (memory) used by the module. Any stored
     closed caption data is lost.
 
@@ -165,7 +185,7 @@ void BVBIlib_DCCReorder_Close (
     Stores one piece of closed caption data in module.
 
   Description:
-    This function accepts one piece of closed caption data into the 
+    This function accepts one piece of closed caption data into the
     BVBIlib_DCCReorder module, as long as there is room for it.
 
   Returns:
@@ -178,12 +198,12 @@ void BVBIlib_DCCReorder_Close (
 *****************************************************************************/
 BERR_Code BVBIlib_DCCReorder_Put (
     BVBIlib_DCCReorder_Handle handle, /* [in] Initialized module handle.    */
-    uint8_t pDatumL,                  /* [in] Closed caption data, low 
+    uint8_t pDatumL,                  /* [in] Closed caption data, low
                                               byte.                         */
-    uint8_t pDatumH,                  /* [in] Closed caption data, high 
+    uint8_t pDatumH,                  /* [in] Closed caption data, high
                                               byte.                         */
     BAVC_Polarity pPolarity           /* [in] Field polarity required for
-                                              the above closed caption 
+                                              the above closed caption
                                               data.                         */
 );
 
@@ -195,8 +215,8 @@ BERR_Code BVBIlib_DCCReorder_Put (
     This function retrieves one piece of reordered, closed
     caption data from the BVBIlib_DCCReorder module.
 
-    This function "tries" to return alternating top and bottom field closed 
-    caption data in repeated calls to it. The details of this algorithm depend 
+    This function "tries" to return alternating top and bottom field closed
+    caption data in repeated calls to it. The details of this algorithm depend
     on the threshold argument passed in to BVBIlib_DCCReorder_Open and are as
     follows:
 
@@ -212,7 +232,7 @@ BERR_Code BVBIlib_DCCReorder_Put (
   Returns:
     BERR_SUCCESS              - Success.
     BERR_INVALID_PARAMETER    - Invalid handle detected.
-    BERR_OUT_OF_SYSTEM_MEMORY - No stored data in module to return, according 
+    BERR_OUT_OF_SYSTEM_MEMORY - No stored data in module to return, according
                                 to the rules above.
 
   See Also:
@@ -220,12 +240,12 @@ BERR_Code BVBIlib_DCCReorder_Put (
 *****************************************************************************/
 BERR_Code BVBIlib_DCCReorder_Get (
     BVBIlib_DCCReorder_Handle handle,  /*  [in] Initialized module handle.  */
-    uint8_t* datumL,                   /* [out] Returned closed caption 
+    uint8_t* datumL,                   /* [out] Returned closed caption
                                                 data, low byte.             */
-    uint8_t* datumH,                   /* [out] Returned closed caption 
+    uint8_t* datumH,                   /* [out] Returned closed caption
                                                 data, high byte.            */
     BAVC_Polarity* polarity            /* [out] Field polarity required for
-                                                the above closed caption 
+                                                the above closed caption
                                                 data.                       */
 );
 
@@ -244,7 +264,7 @@ BERR_Code BVBIlib_DCCReorder_Get (
 
 *****************************************************************************/
 BERR_Code BVBIlib_DCCReorder_Count (
-    BVBIlib_DCCReorder_Handle* handle, /*  [in] Initialized module handle.  */
+    BVBIlib_DCCReorder_Handle handle,  /*  [in] Initialized module handle.  */
     unsigned int* count                /* [out] Maximum queue length, as
                                                 defined above.              */
 );

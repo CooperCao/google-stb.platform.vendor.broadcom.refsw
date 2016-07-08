@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2014 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  .  Except as set forth in an Authorized License, Broadcom grants
@@ -34,16 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #include "nexus_video_decoder_module.h"
@@ -91,11 +81,11 @@ NEXUS_VideoDecoderHandle NEXUS_VideoDecoder_Open( unsigned index, const NEXUS_Vi
     return NEXUS_VideoDecoder_P_OpenDispatch(index, pOpenSettings);
 }
 
-NEXUS_ModuleHandle NEXUS_VideoDecoderModule_Init(const NEXUS_VideoDecoderModuleSettings *pSettings)
+NEXUS_ModuleHandle NEXUS_VideoDecoderModule_Init( const NEXUS_VideoDecoderModuleInternalSettings *pModuleSettings, const NEXUS_VideoDecoderModuleSettings *pSettings)
 {
     NEXUS_Error rc;
 #if NEXUS_NUM_DSP_VIDEO_DECODERS
-    rc = NEXUS_VideoDecoderModule_P_Init_Dsp(pSettings);
+    rc = NEXUS_VideoDecoderModule_P_Init_Dsp(pModuleSettings);
     if(rc!=NEXUS_SUCCESS) {
         (void)BERR_TRACE(rc);
         return NULL;
@@ -103,14 +93,14 @@ NEXUS_ModuleHandle NEXUS_VideoDecoderModule_Init(const NEXUS_VideoDecoderModuleS
 #endif
 
 #if NEXUS_NUM_SID_VIDEO_DECODERS
-    rc = NEXUS_VideoDecoderModule_P_Init_Sid(pSettings);
+    rc = NEXUS_VideoDecoderModule_P_Init_Sid(pModuleSettings);
     if(rc!=NEXUS_SUCCESS) {
         (void)BERR_TRACE(rc);
         return NULL;
     }
 #endif
 
-    return NEXUS_VideoDecoderModule_P_Init_Avd(pSettings);
+    return NEXUS_VideoDecoderModule_P_Init_Avd(pModuleSettings, pSettings);
 }
 
 void NEXUS_VideoDecoderModule_Uninit(void)

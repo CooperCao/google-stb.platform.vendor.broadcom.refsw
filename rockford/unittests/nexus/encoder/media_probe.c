@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2010-2013 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2010-2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -186,12 +186,7 @@ int probe_media_request(const struct probe_request *request, struct probe_result
                     results->video[results->num_video].codec = b_videocodec2nexus(track->info.video.codec);
                     results->video[results->num_video].width = track->info.video.width;
                     results->video[results->num_video].height = track->info.video.height;
-                    if (track->info.video.codec == bvideo_codec_h265) {
-                        results->video[results->num_video].colorDepth = ((bmedia_probe_h265_video*)&track->info.video.codec_specific)->sps.bit_depth_luma;
-                    }
-                    else {
-                        results->video[results->num_video].colorDepth = 8;
-                    }
+                    results->video[results->num_video].colorDepth  = bmedia_probe_get_video_color_depth(track);
 #if B_HAS_ASF
                     if (stream->type == bstream_mpeg_type_asf) {
                         basf_probe_track *asf_track = (basf_probe_track *)track;

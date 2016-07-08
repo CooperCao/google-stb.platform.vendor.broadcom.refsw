@@ -1,7 +1,7 @@
 #############################################################################
-#    (c)2014 Broadcom Corporation
+#    Broadcom Proprietary and Confidential. (c)2014 Broadcom.  All rights reserved.
 #
-# This program is the proprietary software of Broadcom Corporation and/or its licensors,
+# This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
 # conditions of a separate, written license agreement executed between you and Broadcom
 # (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -47,7 +47,6 @@ CPP_PLATFORM_FILES += \
 
 H_PLATFORM_FILES += \
 	bsg_platform_nexus.h \
-	bsg_platform_nexus_quad.h \
 	bsg_media_prober_nexus.h
 
 INC_FILES += \

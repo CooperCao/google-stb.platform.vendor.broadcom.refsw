@@ -1,67 +1,59 @@
 /***************************************************************************
-*     (c)2004-2014 Broadcom Corporation
-*
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
-*  and may only be used, duplicated, modified or distributed pursuant to the terms and
-*  conditions of a separate, written license agreement executed between you and Broadcom
-*  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-*  no license (express or implied), right to use, or waiver of any kind with respect to the
-*  Software, and Broadcom expressly reserves all rights in and to the Software and all
-*  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-*  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-*  Except as expressly set forth in the Authorized License,
-*
-*  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-*  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-*  and to use this information only in connection with your use of Broadcom integrated circuit products.
-*
-*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-*  USE OR PERFORMANCE OF THE SOFTWARE.
-*
-*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-*  ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* Module Description:
-*   Frontend OFDM scan
-* 
-*   This sample app demonstrates how to use ofdm scan feature.
-*   1. Frequencies.txt file populated with the frequencies intended to scan must be copied into nexus/bin folder.
-*   2. Frequencies.txt file should have one frequency(in Hz) per line.
-*   3. NEXUS_Frontend_TuneOfdm() frontend api is used to scan one frequency at a time each for dvbt2 and dvbt, starting with dvbt2.
-*   4. NEXUS_FrontendOfdmSettings structure is used to define all the required scan parameters.
-*   5. Every frequency tuned/scanned, generates atleast one lock change callback. Time to wait for the lockchange callback can be varied using SCAN_TIMEOUT.
-*   6. Upon which NEXUS_Frontend_GetFastStatus() is called to determine(using acquireInProgress in the fast status) if the acquire/scan is completed.
-*   7. If completed, the lockstatus within the fast status tells the outcome of the acquire/scan. 
-*   8. If not completed, wait again, as there is atleast one more lock change callback is expected from the frontend.
-*   9. If completed and the lock status returns unlocked/no_signal, continue to try to acquire/scan the dvbt signal.
-* 10. If completed and if the lockstatus return "locked" satus, the application proceeds to scan for the next frequency.
-* 11. The results are printed in results.txt file in nexus/bin folder and also displayed on screen.
-* 12. ENABLE_DVBT2 and ENABLE_DVBT can be used to enable/disable the respective modes to scan.
-* 13. MAX_ITERATION can be used to scan the complete set of frequencies in frequency.txt file MAX_ITERATION times.
-*
-* Revision History:
-*
-* $brcm_Log: $
-*
-***************************************************************************/
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ *
+ * Module Description:
+ *   Frontend OFDM scan
+ *
+ *   This sample app demonstrates how to use ofdm scan feature.
+ *   1. Frequencies.txt file populated with the frequencies intended to scan must be copied into nexus/bin folder.
+ *   2. Frequencies.txt file should have one frequency(in Hz) per line.
+ *   3. NEXUS_Frontend_TuneOfdm() frontend api is used to scan one frequency at a time each for dvbt2 and dvbt, starting with dvbt2.
+ *   4. NEXUS_FrontendOfdmSettings structure is used to define all the required scan parameters.
+ *   5. Every frequency tuned/scanned, generates atleast one lock change callback. Time to wait for the lockchange callback can be varied using SCAN_TIMEOUT.
+ *   6. Upon which NEXUS_Frontend_GetFastStatus() is called to determine(using acquireInProgress in the fast status) if the acquire/scan is completed.
+ *   7. If completed, the lockstatus within the fast status tells the outcome of the acquire/scan.
+ *   8. If not completed, wait again, as there is atleast one more lock change callback is expected from the frontend.
+ *   9. If completed and the lock status returns unlocked/no_signal, continue to try to acquire/scan the dvbt signal.
+ * 10. If completed and if the lockstatus return "locked" satus, the application proceeds to scan for the next frequency.
+ * 11. The results are printed in results.txt file in nexus/bin folder and also displayed on screen.
+ * 12. ENABLE_DVBT2 and ENABLE_DVBT can be used to enable/disable the respective modes to scan.
+ * 13. MAX_ITERATION can be used to scan the complete set of frequencies in frequency.txt file MAX_ITERATION times.
+ *
+ ***************************************************************************/
 #if NEXUS_HAS_FRONTEND
 #include "nexus_frontend.h"
 #include "nexus_platform.h"
@@ -76,7 +68,7 @@ BDBG_MODULE(scan_ofdm);
 #define ENABLE_DVBT 1
 #define ENABLE_ISDBT 0
 
-#ifdef ENABLE_DVBT2 
+#ifdef ENABLE_DVBT2
 #include "nexus_frontend_dvb_t2.h"
 #endif
 #define MAX_ITERATION 1
@@ -108,20 +100,25 @@ static unsigned gettime(void)
     return tv.tv_sec*1000 + tv.tv_usec/1000;
 }
 
+typedef struct callback_data_t {
+    NEXUS_FrontendHandle frontend;
+    BKNI_EventHandle event;
+} callback_data_t;
+
 static void lock_callback(void *context, int param)
 {
-    BKNI_EventHandle statusEvent = (BKNI_EventHandle)param;
-    BSTD_UNUSED(context);
+    callback_data_t *callbackData = (callback_data_t *)context;
+    BSTD_UNUSED(param);
 
-    BKNI_SetEvent((BKNI_EventHandle)statusEvent);
+    BKNI_SetEvent(callbackData->event);
 }
 
 static void async_status_ready_callback(void *context, int param)
-{ 
-    BKNI_EventHandle statusEvent = (BKNI_EventHandle)param;
-    BSTD_UNUSED(context);
+{
+    callback_data_t *callbackData = (callback_data_t *)context;
+    BSTD_UNUSED(param);
 
-    BKNI_SetEvent((BKNI_EventHandle)statusEvent);
+    BKNI_SetEvent(callbackData->event);
 }
 
 int main(int argc, char **argv)
@@ -142,33 +139,35 @@ int main(int argc, char **argv)
     NEXUS_FrontendDvbt2StatusReady statusReady;
     unsigned currentPlpIndex;
 #endif
+    callback_data_t lockCallbackData;
+    callback_data_t statusCallbackData;
     BSTD_UNUSED(argc);
     BSTD_UNUSED(argv);
-    
+
     rc = NEXUS_Platform_Init(NULL);
     if(rc){rc = BERR_TRACE(rc); goto done;}
-    
+
     NEXUS_Platform_GetConfiguration(&platformConfig);
     rc = BKNI_CreateEvent(&statusEvent);
     if(rc){rc = BERR_TRACE(rc); goto done;}
 
     rc = BKNI_CreateEvent(&asyncStatusEvent);
     if(rc){rc = BERR_TRACE(rc); goto done;}
-    
+
     pFileFreq = fopen("frequencies.txt", "r");
     if ( NULL == pFileFreq )
     {
         BDBG_ERR(("frequencies.txt file not found. Copy this file into nexus/bin folder."));
         return 0;
     }
-  
+
     pFileResults = fopen("results.txt", "w");
     if ( NULL == pFileResults )
     {
         BDBG_ERR(("results.txt file not found."));
         return 0;
     }
-    
+
     NEXUS_Frontend_GetDefaultAcquireSettings(&settings);
     settings.capabilities.ofdm = true;
     frontend = NEXUS_Frontend_Acquire(&settings);
@@ -176,25 +175,30 @@ int main(int argc, char **argv)
         BDBG_ERR(("Unable to find OFDM-capable frontend"));
         return -1;
     }
-    
+
     NEXUS_Frontend_GetDefaultOfdmSettings(&ofdmSettings);
     ofdmSettings.acquisitionMode = NEXUS_FrontendOfdmAcquisitionMode_eAuto;
     ofdmSettings.terrestrial = true;
     ofdmSettings.spectrum = NEXUS_FrontendOfdmSpectrum_eAuto;
     ofdmSettings.lockCallback.callback = lock_callback;
-    ofdmSettings.lockCallback.context = frontend;
-    ofdmSettings.lockCallback.param = (int)statusEvent;
+    lockCallbackData.frontend = frontend;
+    lockCallbackData.event = statusEvent;
+    ofdmSettings.lockCallback.context = &lockCallbackData;
+    ofdmSettings.lockCallback.param = 0;
+    statusCallbackData.frontend = frontend;
+    statusCallbackData.event = asyncStatusEvent;
     ofdmSettings.asyncStatusReadyCallback.callback = async_status_ready_callback;
-    ofdmSettings.asyncStatusReadyCallback.param = (int)asyncStatusEvent;
+    ofdmSettings.asyncStatusReadyCallback.context = &statusCallbackData;
+    ofdmSettings.asyncStatusReadyCallback.param = 0;
 
-iterate:    
+iterate:
     BDBG_WRN(("Start Channel Scan for %d times.", iterate_count));
-    start = (uint32_t) gettime();   
+    start = (uint32_t) gettime();
     while ( fgets(freqBuf, LINE_BUF_SIZE, pFileFreq) )
     {
-        frequencyCount++;     
+        frequencyCount++;
         ofdmSettings.frequency  = atoi(freqBuf);
-    
+
 #if ENABLE_DVBT2
         BDBG_WRN(("Tuning frequency %d for Dvbt2", ofdmSettings.frequency));
 
@@ -207,18 +211,18 @@ iterate:
 iterate_plps:
         if (currentPlpIndex < NEXUS_MAX_DVBT2_PLP_STATUS){
             if(currentPlpIndex == dvbt2Status.status.l1Plp.numPlp )
-                continue;           
+                continue;
             if(dvbt2Status.status.l1Plp.plp[currentPlpIndex].plpType == NEXUS_FrontendDvbt2PlpType_eCommon){
                 currentPlpIndex++;
-                goto iterate_plps;              
+                goto iterate_plps;
             }
             else
-                ofdmSettings.dvbt2Settings.plpId = dvbt2Status.status.l1Plp.plp[currentPlpIndex].plpId;                 
+                ofdmSettings.dvbt2Settings.plpId = dvbt2Status.status.l1Plp.plp[currentPlpIndex].plpId;
         }
 
         rc = BKNI_WaitForEvent(statusEvent, 0);
 
-        rc = NEXUS_Frontend_TuneOfdm(frontend, &ofdmSettings); 
+        rc = NEXUS_Frontend_TuneOfdm(frontend, &ofdmSettings);
         if(rc){rc = BERR_TRACE(rc); goto done;}
 
         while(1) {
@@ -236,7 +240,7 @@ iterate_plps:
 
             rc = NEXUS_Frontend_GetFastStatus(frontend, &fastStatus);
             if(rc){rc = BERR_TRACE(rc); goto done;}
-            
+
             BDBG_MSG(("fastStatus.lockStatus = %d, fastStatus.acquireInProgress = %d", fastStatus.lockStatus, fastStatus.acquireInProgress));
 
             if((!fastStatus.acquireInProgress) && (fastStatus.lockStatus != NEXUS_FrontendLockStatus_eUnlocked))break;
@@ -265,19 +269,19 @@ iterate_plps:
                     rc = NEXUS_Frontend_GetDvbt2AsyncStatus(frontend, NEXUS_FrontendDvbt2StatusType_eL1Plp, &dvbt2Status);
                     if(rc) {rc = BERR_TRACE(rc); goto done;}
                 }
-                
+
                 if(dvbt2Status.status.l1Plp.numPlp > 1) {
                     currentPlpIndex = 0;
                     ofdmSettings.dvbt2Settings.plpMode = false; /* Manual plpId */
                     goto iterate_plps;
                 }
-                else {                  
+                else {
                     lockCount++;
                     fprintf(pFileResults, "Frequency  %dHz Locked for Dvbt2\n",ofdmSettings.frequency);
                     continue;
                 }
             }
-            else if(fastStatus.lockStatus == NEXUS_FrontendLockStatus_eNoSignal){                
+            else if(fastStatus.lockStatus == NEXUS_FrontendLockStatus_eNoSignal){
                 isDvbt2NoSignal = true; /* No Dvbt2 signal, so try Dvbt or Isdbt */
             }
             else if(fastStatus.lockStatus == NEXUS_FrontendLockStatus_eUnlocked){
@@ -298,7 +302,7 @@ iterate_plps:
                 isDvbt2UnLocked = true;
             }
             else {
-                BDBG_ERR(("Unknown lock status for Dvbt2.")); 
+                BDBG_ERR(("Unknown lock status for Dvbt2."));
                 continue;
             }
             ++currentPlpIndex;
@@ -314,7 +318,7 @@ iterate_plps:
         ofdmSettings.bandwidth = 8000000;
         isDvbtNoSignal = false;
         isDvbtUnLocked = false;
-        rc = NEXUS_Frontend_TuneOfdm(frontend, &ofdmSettings); 
+        rc = NEXUS_Frontend_TuneOfdm(frontend, &ofdmSettings);
         if(rc){rc = BERR_TRACE(rc); goto done;}
 
         while(1) {
@@ -332,7 +336,7 @@ iterate_plps:
 
             rc = NEXUS_Frontend_GetFastStatus(frontend, &fastStatus);
             if(rc){rc = BERR_TRACE(rc); goto done;}
-            
+
             BDBG_MSG(("fastStatus.lockStatus = %d, fastStatus.acquireInProgress = %d", fastStatus.lockStatus, fastStatus.acquireInProgress));
 
             if((!fastStatus.acquireInProgress) && (fastStatus.lockStatus != NEXUS_FrontendLockStatus_eUnlocked))break;
@@ -362,7 +366,7 @@ iterate_plps:
         ofdmSettings.bandwidth = 6000000;
         isIsdbtNoSignal = false;
         isIsdbtUnLocked = false;
-        rc = NEXUS_Frontend_TuneOfdm(frontend, &ofdmSettings); 
+        rc = NEXUS_Frontend_TuneOfdm(frontend, &ofdmSettings);
         if(rc){rc = BERR_TRACE(rc); goto done;}
 
         while(1) {
@@ -380,7 +384,7 @@ iterate_plps:
 
             rc = NEXUS_Frontend_GetFastStatus(frontend, &fastStatus);
             if(rc){rc = BERR_TRACE(rc); goto done;}
-            
+
             BDBG_MSG(("fastStatus.lockStatus = %d, fastStatus.acquireInProgress = %d", fastStatus.lockStatus, fastStatus.acquireInProgress));
 
             if((!fastStatus.acquireInProgress) && (fastStatus.lockStatus != NEXUS_FrontendLockStatus_eUnlocked))break;
@@ -391,7 +395,7 @@ iterate_plps:
             fprintf(pFileResults, "Frequency  %dHz, Locked for Isdbt\n",ofdmSettings.frequency);
             continue;
         }
-        else if(fastStatus.lockStatus == NEXUS_FrontendLockStatus_eNoSignal){                
+        else if(fastStatus.lockStatus == NEXUS_FrontendLockStatus_eNoSignal){
             isIsdbtNoSignal = true;
         }
         else if(fastStatus.lockStatus == NEXUS_FrontendLockStatus_eUnlocked){

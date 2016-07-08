@@ -105,7 +105,7 @@ dvr_crypto_t dvr_crypto_create(const struct dvr_crypto_settings *psettings)
     NEXUS_Security_GetDefaultKeySlotSettings(&keySlotSettings);
     keySlotSettings.keySlotEngine = psettings->encrypt?NEXUS_SecurityEngine_eCaCp:NEXUS_SecurityEngine_eCa;
     handle->keyslot = NEXUS_Security_AllocateKeySlot(&keySlotSettings);
-    BDBG_MSG(("keyslot %p %s", handle->keyslot, psettings->encrypt?"encrypt":"decrypt"));
+    BDBG_MSG(("keyslot %p %s", (void*)handle->keyslot, psettings->encrypt?"encrypt":"decrypt"));
 
 
     /* Config AV algorithms */

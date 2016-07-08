@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2010 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2010 Broadcom.
 All rights reserved.
 
 Project  :  Default Nexus platform API for EGL driver
@@ -33,11 +33,13 @@ void NXPL_RegisterNexusDisplayPlatform(NXPL_PlatformHandle *handle, NEXUS_DISPLA
    NXPL_InternalPlatformHandle *platform = (NXPL_InternalPlatformHandle*)malloc(sizeof(NXPL_InternalPlatformHandle));
    memset(platform, 0, sizeof(NXPL_InternalPlatformHandle));
 
+   NXPL_DisplayContext *ctx = (NXPL_DisplayContext *)malloc(sizeof(*ctx));
+
    if (platform != NULL)
    {
       platform->memoryInterface = CreateMemoryInterface();
       platform->schedInterface  = CreateSchedInterface(platform->memoryInterface);
-      platform->displayInterface = CreateDisplayInterface(display, platform->schedInterface);
+      platform->displayInterface = CreateDisplayInterface(display, ctx, platform->schedInterface);
 
       *handle = (NXPL_PlatformHandle)platform;
 

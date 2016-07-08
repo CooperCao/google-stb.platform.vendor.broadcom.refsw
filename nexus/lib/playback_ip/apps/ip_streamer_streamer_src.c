@@ -1,14 +1,14 @@
 /******************************************************************************
- *    (c)2008-2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
  * no license (express or implied), right to use, or waiver of any kind with respect to the
  * Software, and Broadcom expressly reserves all rights in and to the Software and all
  * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELYn
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
@@ -35,16 +35,8 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
  *  stream out from streamer src
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ******************************************************************************/
 #include <stdio.h>
@@ -146,7 +138,7 @@ initNexusStreamerSrcList(
             BDBG_ERR(("BKNI_CreateMutex failed at %d", __LINE__));
             return -1;
         }
-        BDBG_MSG(("%s: streamerSrc %p, lock %p", __FUNCTION__, streamerSrc, streamerSrc->lock));
+        BDBG_MSG(("%s: streamerSrc %p, lock %p", __FUNCTION__, (void *)streamerSrc, (void *)streamerSrc->lock));
             /* successfully setup a streamer src */
     }
 
@@ -214,7 +206,7 @@ openNexusStreamerSrc(
 #ifdef NEXUS_HAS_VIDEO_ENCODER
                 BKNI_ReleaseMutex(ipStreamerCtx->globalCtx->transcoderDstMutex);
 #endif
-                BDBG_MSG(("CTX %p: Another thread is acquiring the PSI info, waiting for its completion...", ipStreamerCtx));
+                BDBG_MSG(("CTX %p: Another thread is acquiring the PSI info, waiting for its completion...", (void *)ipStreamerCtx));
                 if (BKNI_WaitForEvent(streamerSrcList[i].psiAcquiredEvent, 30000)) {
                     BDBG_ERR(("%s: timeout while waiting for PSI acquisition by another thread", __FUNCTION__));
                     return -1;
@@ -280,7 +272,7 @@ openNexusStreamerSrc(
             }
         }
         BKNI_ReleaseMutex(streamerSrc->lock);
-        BDBG_MSG(("CTX %p: Found a free index %d, sat src %p, refCount %d", ipStreamerCtx, parserBandIndex, streamerSrc, streamerSrc->refCount));
+        BDBG_MSG(("CTX %p: Found a free index %d, sat src %p, refCount %d", (void *)ipStreamerCtx, parserBandIndex, (void *)streamerSrc, streamerSrc->refCount));
     }
     BKNI_ReleaseMutex(ipStreamerCtx->globalCtx->streamerSrcMutex);
     if (!streamerSrc) {
@@ -310,13 +302,13 @@ openNexusStreamerSrc(
         parserBandSettings.transportType = NEXUS_TransportType_eTs;
         rc = NEXUS_ParserBand_SetSettings(parserBandPtr->parserBand, &parserBandSettings);
         if (rc) {
-            BDBG_ERR(("Failed to set the Nexus Parser band settings for band # %d", parserBandPtr->parserBand));
+            BDBG_ERR(("Failed to set the Nexus Parser band settings for band # %d", (int)parserBandPtr->parserBand));
             BKNI_ReleaseMutex(parserBandPtr->lock);
             goto error;
         }
     }
     else {
-        BDBG_MSG(("Nexus Parser band band # %d is already setup (ref cnt %d)", parserBandPtr->parserBand, parserBandPtr->refCount));
+        BDBG_MSG(("Nexus Parser band band # %d is already setup (ref cnt %d)", (int)parserBandPtr->parserBand, parserBandPtr->refCount));
     }
     parserBandPtr->refCount++;
     BKNI_ReleaseMutex(parserBandPtr->lock);
@@ -336,6 +328,8 @@ openNexusStreamerSrc(
 
         }
         else {
+            /* coverity[stack_use_local_overflow] */
+            /* coverity[stack_use_overflow] */
             if ((parserBandPtr->transcoderDst = openNexusTranscoderPipe(ipStreamerCfg, ipStreamerCtx)) == NULL) {
                 BDBG_ERR(("%s: Failed to open the transcoder pipe", __FUNCTION__));
                 goto error;
@@ -356,7 +350,7 @@ openNexusStreamerSrc(
     }
 
     BDBG_MSG(("CTX %p: streamer Src %p (ref count %d), Parser Band %d (ref count %d) are opened",
-                ipStreamerCtx, streamerSrc, streamerSrc->refCount, ipStreamerCtx->parserBandPtr->parserBand, ipStreamerCtx->parserBandPtr->refCount));
+                (void *)ipStreamerCtx, (void *)streamerSrc, streamerSrc->refCount, (int)ipStreamerCtx->parserBandPtr->parserBand, ipStreamerCtx->parserBandPtr->refCount));
     return 0;
 
 error:
@@ -400,7 +394,7 @@ closeNexusStreamerSrc(
         BKNI_AcquireMutex(ipStreamerCtx->parserBandPtr->lock);
         ipStreamerCtx->parserBandPtr->refCount--;
         BKNI_ReleaseMutex(ipStreamerCtx->parserBandPtr->lock);
-        BDBG_MSG(("CTX %p: Closed a parser band src %p, refCount %d", ipStreamerCtx, ipStreamerCtx->parserBandPtr, ipStreamerCtx->parserBandPtr->refCount));
+        BDBG_MSG(("CTX %p: Closed a parser band src %p, refCount %d", (void *)ipStreamerCtx, (void *)ipStreamerCtx->parserBandPtr, ipStreamerCtx->parserBandPtr->refCount));
     }
 
     ipStreamerCtx->streamerSrc = NULL;
@@ -409,7 +403,7 @@ closeNexusStreamerSrc(
     if (streamerSrc->psiAcquiredEvent)
         BKNI_ResetEvent(streamerSrc->psiAcquiredEvent);
     BKNI_ReleaseMutex(streamerSrc->lock);
-    BDBG_MSG(("CTX %p: Closed a streamer src %p, refCount %d", ipStreamerCtx, streamerSrc, streamerSrc->refCount));
+    BDBG_MSG(("CTX %p: Closed a streamer src %p, refCount %d", (void *)ipStreamerCtx, (void *)streamerSrc, streamerSrc->refCount));
 }
 
 int
@@ -432,13 +426,13 @@ setupAndAcquirePsiInfoStreamerSrc(
 
     if (streamerSrc->numProgramsFound == 0) {
         /* PSI hasn't yet been acquired */
-        BDBG_MSG(("CTX %p: Acquire Psi Info..., PB band %d", ipStreamerCtx, collectionData.parserBand));
+        BDBG_MSG(("CTX %p: Acquire Psi Info..., PB band %d", (void *)ipStreamerCtx, (int)collectionData.parserBand));
 
         /* get the PSI, this can take several seconds ... */
         acquirePsiInfo(&collectionData, &streamerSrc->psi[0], &streamerSrc->numProgramsFound);
 
         /* tell any other waiting thread that we are done acquiring PSI */
-        BDBG_MSG(("%s: streamerSrc %p, lock %p", __FUNCTION__, streamerSrc, streamerSrc->lock));
+        BDBG_MSG(("%s: streamerSrc %p, lock %p", __FUNCTION__, (void *)streamerSrc, (void *)streamerSrc->lock));
         BKNI_AcquireMutex(streamerSrc->lock);
         streamerSrc->psiAcquiring = false;
         BKNI_SetEvent(streamerSrc->psiAcquiredEvent);
@@ -449,7 +443,7 @@ setupAndAcquirePsiInfoStreamerSrc(
         }
     }
     else {
-        BDBG_MSG(("CTX %p: Psi Info is already acquired...", ipStreamerCtx));
+        BDBG_MSG(("CTX %p: Psi Info is already acquired...", (void *)ipStreamerCtx));
     }
 
     if (ipStreamerCfg->subChannel > streamerSrc->numProgramsFound) {
@@ -457,7 +451,7 @@ setupAndAcquirePsiInfoStreamerSrc(
         i = 0;
     }
     else {
-        BDBG_MSG(("CTX %p: Requested sub-channel # (%d) is found in the total channels (%d) ", ipStreamerCtx, ipStreamerCfg->subChannel, streamerSrc->numProgramsFound));
+        BDBG_MSG(("CTX %p: Requested sub-channel # (%d) is found in the total channels (%d) ", (void *)ipStreamerCtx, ipStreamerCfg->subChannel, streamerSrc->numProgramsFound));
         i = ipStreamerCfg->subChannel - 1; /* sub-channels start from 1, where as psi table starts from 0 */
         if (i < 0) i = 0;
     }

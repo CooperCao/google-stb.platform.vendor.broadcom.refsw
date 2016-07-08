@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -11,7 +11,7 @@
  * Software and all intellectual property rights therein.  IF YOU HAVE NO
  * AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
  * AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
- * SOFTWARE.  
+ * SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
@@ -46,7 +46,7 @@
 namespace bsg
 {
 
-SemanticData::SemanticData() : 
+SemanticData::SemanticData() :
    m_mvDirty(true),
    m_vpDirty(true),
    m_mvpDirty(true),
@@ -82,10 +82,6 @@ const Vec4 &SemanticData::GetVec4(EffectSemantics::eSemantic semantic) const
       return GetScreenSize();
       break;
 
-   case EffectSemantics::eVECTOR4_QUAD_OFFSET:
-      return GetQuadOffset();
-      break;
-
    default:
       BSG_THROW("Invalid semantic");
       break;
@@ -100,10 +96,10 @@ const Mat4 &SemanticData::GetMat4(EffectSemantics::eSemantic semantic) const
 
    switch (semantic)
    {
-   case EffectSemantics::eMATRIX4_MODEL : 
+   case EffectSemantics::eMATRIX4_MODEL :
       return m_modelMx;
       break;
-   case EffectSemantics::eMATRIX4_VIEW : 
+   case EffectSemantics::eMATRIX4_VIEW :
       return m_viewMx;
       break;
    case EffectSemantics::eMATRIX4_PROJECTION :
@@ -159,16 +155,6 @@ const Vec4 &SemanticData::GetScreenSize() const
    m_screenSize = Vec4(width, height, 1.0f / width, 1.0f / height);
 
    return m_screenSize;
-}
-
-const Vec4 &SemanticData::GetQuadOffset() const
-{
-   const Application &app = *Application::Instance();
-
-   m_quadOffset = !app.IsQuad() ? Vec4(1.0f, 1.0f, 0.0f, 0.0f)    :
-                                  app.GetQuadRender().GetOffset();
-
-   return m_quadOffset;
 }
 
 void SemanticData::SetModelMatrix(const Mat4 &mx)

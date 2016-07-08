@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2012 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2012 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -16,7 +16,7 @@ Server-side implementation of EGL_BRCM_image_update_control.
 #include "interface/khronos/common/khrn_api_interposer.h"
 #include "middleware/khronos/common/2708/khrn_tfconvert_4.h"
 
-#ifdef EGL_BRCM_image_update_control
+#if EGL_BRCM_image_update_control
 
 #define PIXELS_PER_TILE 64
 

@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2010-2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,11 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  *****************************************************************************/
 #ifndef MEDIA_PLAYER_H__
 #define MEDIA_PLAYER_H__
@@ -85,6 +80,28 @@ enum media_player_audio_primers
 
 /**
 Summary:
+Player Settings that can be changed before or after starting the
+player.
+**/
+
+typedef struct media_player_settings
+{
+    struct{
+        char     *language;             /* This is to select a language specific audio track.
+                                           Specifies 3-byte language code defining language of the audio service in ISO 639-2code.
+                                           Eg: eng for english, por for portugal.Default this will be set to NULL */
+        unsigned ac3_service_type;      /* This is to select a ac3(only) service type specific audio track.
+                                           For more details please see ATSC A/52:2012 Digital Audio Compression Standard spec section 5.4.2.2.
+                                           Defult this will be set to UINT_MAX */
+    }audio;
+    bool enableDynamicTrackSelection;    /*If true, Player will detect if a track changes in the middle of the stream & re-select tracks based
+                                           on the Track Preferences defined above unless App has defined trackSelectionCallback.
+                                           Then, Player will only invoke this callback & wait for App to re-select the tracks.
+                                           For more details please look into bip_player.h. */
+}media_player_settings;
+
+/**
+Summary:
 settings for media_player_start
 **/
 typedef struct media_player_start_settings
@@ -101,6 +118,7 @@ typedef struct media_player_start_settings
     bool startPaused;
     bool stcTrick;
     unsigned dqtFrameReverse;
+    bool pacing;
     enum {
         source3d_none, /* 2D or force 2D for MVC */
         source3d_lr,
@@ -126,29 +144,14 @@ typedef struct media_player_start_settings
 
     bool quiet; /* don't print status */
     NxClient_HdcpLevel hdcp;
+    NxClient_HdcpVersion hdcp_version;
     enum media_player_audio_primers audio_primers;
     NEXUS_SimpleStcChannelSyncMode sync; /* sync mode for simple stc channel */
     const char  *additional_headers;/* Additional HTTP headers that app wants to include in the outgoing Get Request. Terminate each header with "\0xd\0xa". */
     NEXUS_PlaybackSettings playbackSettings;
+    media_player_settings  mediaPlayerSettings;
 } media_player_start_settings;
 
-/**
-Summary:
-Player Settings that can be changed before or after starting the
-player.
-**/
-
-typedef struct media_player_settings
-{
-    struct{
-        char     *language;             /* This is to select a language specific audio track.
-                                           Specifies 3-byte language code defining language of the audio service in ISO 639-2code.
-                                           Eg: eng for english, por for portugal.Default this will be set to NULL */
-        unsigned ac3_service_type;      /* This is to select a ac3(only) service type specific audio track.
-                                           For more details please see ATSC A/52:2012 Digital Audio Compression Standard spec section 5.4.2.2.
-                                           Defult this will be set to UINT_MAX */
-    }audio;
-}media_player_settings;
 
 typedef struct media_player *media_player_t;
 
@@ -174,6 +177,12 @@ void media_player_get_default_start_settings(
     );
 
 /**
+Summary:
+**/
+void media_player_get_default_settings(
+    media_player_settings *psettings
+    );
+/**
 Start playback
 **/
 int media_player_start(
@@ -196,6 +205,11 @@ int media_player_set_settings(
     media_player_t player,
     const media_player_settings *psettings
     );
+
+/**
+Summary:
+**/
+int media_player_ac4_status( media_player_t handle, int action );
 
 /**
 Summary:

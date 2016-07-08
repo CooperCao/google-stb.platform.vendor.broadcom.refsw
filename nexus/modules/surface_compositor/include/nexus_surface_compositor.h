@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2011-2012 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,17 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  **************************************************************************/
 #ifndef NEXUS_SURFACE_COMPOSITOR_H__
 #define NEXUS_SURFACE_COMPOSITOR_H__
@@ -59,6 +48,11 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/**
+This API is semi-private. It is called by nxserver, not client applications, and
+so is subject to non-backward compatible API changes.
+**/
 
 /**
 Summary:
@@ -223,10 +217,6 @@ typedef struct NEXUS_SurfaceCompositorStatus
                     if enabled is true or if the inactiveCallback has not fired, active is true and display
                     settings cannot be changed. */
     unsigned numAcquiredTunneledSurfaces;
-    struct {
-        NEXUS_SurfaceHandle framebuffer[3];
-        unsigned currentFramebuffer; /* index to framebuffer[] that is currently displayed */
-    } display[1]; /* only for main display now */
 } NEXUS_SurfaceCompositorStatus;
 
 NEXUS_Error NEXUS_SurfaceCompositor_GetStatus(
@@ -234,6 +224,13 @@ NEXUS_Error NEXUS_SurfaceCompositor_GetStatus(
     NEXUS_SurfaceCompositorStatus *pStatus /* [out] */
     );
     
+/* Used for graphics screenshots. Must be copied immediately to avoid tearing.
+NEXUS_SurfaceHandle may become invalid after NEXUS_SurfaceCompositor_SetSettings is called. */
+NEXUS_Error NEXUS_SurfaceCompositor_GetCurrentFramebuffer(
+    NEXUS_SurfaceCompositorHandle handle,
+    NEXUS_SurfaceHandle *pSurface
+    );
+
 #ifdef __cplusplus
 }
 #endif

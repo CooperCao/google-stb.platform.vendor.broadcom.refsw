@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2010 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,6 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  *****************************************************************************/
 #include <stdio.h>
 #include <stdlib.h>
@@ -54,29 +44,41 @@
 
 BDBG_MODULE(watchdog);
 
+static enum {
+    state_stopped,
+    state_started,
+    state_started_midpoint_pet,
+    state_max
+} g_state;
+static const char *g_stateStr[state_max] = {"stopped","started","started_midpoint_pet"};
+
 static void midpoint_callback(void *context, int param)
 {
     BSTD_UNUSED(context);
     BSTD_UNUSED(param);
     BDBG_WRN(("watchdog midpoint callback"));
+    if (g_state == state_started_midpoint_pet) {
+        int rc = NEXUS_Watchdog_StartTimer();
+        BDBG_ASSERT(!rc);
+    }
 }
 
 int main(void)
 {
     unsigned timeout = 30;
     bool status;
-    bool started = false;
     NEXUS_Error rc;
     bool done = false;
-    NEXUS_WatchdogSettings settings;
+    NEXUS_WatchdogCallbackSettings settings;
+    NEXUS_WatchdogCallbackHandle callback;
 
     rc = NEXUS_Platform_Init(NULL);
     if (rc) return rc;
 
-    NEXUS_Watchdog_GetSettings(&settings);
+    NEXUS_WatchdogCallback_GetDefaultSettings(&settings);
     settings.midpointCallback.callback = midpoint_callback;
-    rc = NEXUS_Watchdog_SetSettings(&settings);
-    BDBG_ASSERT(!rc);
+    callback = NEXUS_WatchdogCallback_Create(&settings);
+    BDBG_ASSERT(callback);
 
     rc = NEXUS_Watchdog_SetTimeout(timeout);
     BDBG_ASSERT(!rc);
@@ -87,16 +89,14 @@ int main(void)
     while (!done) {
         char buf[64];
 
-        BDBG_WRN(("Watchdog %s, %d second timeout",
-            started?"started":"not started",
-            timeout
-            ));
+        BDBG_WRN(("%s, %d second timeout", g_stateStr[g_state], timeout));
         printf(
             "Actions:\n"
             "1) set watchdog timeout value\n"
-            "2) start or refresh watchdog\n"
-            "3) stop watchdog\n"
-            "4) exit (note that ctrl-c will not stop watchdog)\n"
+            "2) start or pet watchdog (without midpoint pet)\n"
+            "3) start or pet watchdog (with midpoint pet)\n"
+            "4) stop watchdog\n"
+            "5) exit (does not stop watchdog)\n"
             );
         fgets(buf, sizeof(buf), stdin);
 
@@ -111,19 +111,25 @@ int main(void)
         case 2:
             rc = NEXUS_Watchdog_StartTimer();
             BDBG_ASSERT(!rc);
-            started = true;
+            g_state = state_started;
             break;
         case 3:
-            rc = NEXUS_Watchdog_StopTimer();
+            rc = NEXUS_Watchdog_StartTimer();
             BDBG_ASSERT(!rc);
-            started = false;
+            g_state = state_started_midpoint_pet;
             break;
         case 4:
+            rc = NEXUS_Watchdog_StopTimer();
+            BDBG_ASSERT(!rc);
+            g_state = state_stopped;
+            break;
+        case 5:
             done = true;
             break;
         }
     }
 
+    NEXUS_WatchdogCallback_Destroy(callback);
     NEXUS_Platform_Uninit();
     return 0;
 }

@@ -616,7 +616,7 @@ static bool NEXUS_P_MemcTestPermutation(const NEXUS_PlatformHeapSettings *heap, 
         if(map->map[memc][i]<0) {
             continue;
         }
-        BDBG_MSG(("MEMC%u.%u left %u MBytes maxAlignment %u MBytes", memc, i, free[i]/(1024*1024), maxAlignment[i]/(1024*1024) ));
+        BDBG_MSG(("MEMC%u.%u left %u MBytes maxAlignment %u MBytes", memc, i, (unsigned)(free[i]/(1024*1024)), (unsigned)(maxAlignment[i]/(1024*1024)) ));
     }
 #endif
     return true;
@@ -884,10 +884,10 @@ err_alloc_region:
 err_index:
     if(!allocateFromCma) {
         BDBG_LOG((" "));
-        BDBG_LOG((" "));
+        BDBG_LOG((" ")); /* second line */
         NEXUS_Platform_P_SuggestBootParams(state, heap, pMemory, "required");
         BDBG_LOG((" "));
-        BDBG_LOG((" "));
+        BDBG_LOG((" ")); /* second line */
     }
     BKNI_Free(state);
 err_alloc:
@@ -995,7 +995,7 @@ NEXUS_Error NEXUS_Platform_P_SetCoreCmaSettings(const NEXUS_PlatformSettings *pS
         BKNI_Free(info);
         info = NULL;
     }
-    rc = NEXUS_Platform_P_SetCoreCmaSettings_Verify(info, pSettings, pCoreSettings, pMemory);
+    rc = NEXUS_Platform_P_SetCoreCmaSettings_Verify(info, pSettings->heap, pCoreSettings, pMemory);
     if(info) {
         BKNI_Free(info);
     }

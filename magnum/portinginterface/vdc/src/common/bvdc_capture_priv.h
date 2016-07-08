@@ -1,23 +1,40 @@
-/***************************************************************************
- *     Copyright (c) 2003-2014, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * Module Description:
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * Revision History:
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- * 
- ***************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ ******************************************************************************/
 #ifndef BVDC_CAPTURE_PRIV_H__
 #define BVDC_CAPTURE_PRIV_H__
 
@@ -74,70 +91,66 @@ extern "C" {
  */
 #define BVDC_P_CAP_VER_8                      (8)
 
-/* New pitch setting for mosaic */
-#define BVDC_P_CAP_SUPPORT_LPDDR4_MEMORY_PITCH           \
-	(BVDC_P_SUPPORT_CAP_VER >= BVDC_P_CAP_VER_8)
-
 /***************************************************************************
  * Private register cracking macros
  ***************************************************************************/
 #define BVDC_P_CAP_GET_REG_IDX(reg) \
-	((BCHP##_##reg - BCHP_CAP_0_REG_START) / sizeof(uint32_t))
+    ((BCHP##_##reg - BCHP_CAP_0_REG_START) / sizeof(uint32_t))
 
 /* Get/Set reg data */
 #define BVDC_P_CAP_GET_REG_DATA(reg) \
-	(hCapture->aulRegs[BVDC_P_CAP_GET_REG_IDX(reg)])
+    (hCapture->aulRegs[BVDC_P_CAP_GET_REG_IDX(reg)])
 #define BVDC_P_CAP_SET_REG_DATA(reg, data) \
-	(BVDC_P_CAP_GET_REG_DATA(reg) = (uint32_t)(data))
+    (BVDC_P_CAP_GET_REG_DATA(reg) = (uint32_t)(data))
 
 #define BVDC_P_CAP_GET_REG_DATA_I(idx, reg) \
-	(hCapture->aulRegs[BVDC_P_CAP_GET_REG_IDX(reg) + (idx)])
+    (hCapture->aulRegs[BVDC_P_CAP_GET_REG_IDX(reg) + (idx)])
 
 /* Get field */
 #define BVDC_P_CAP_GET_FIELD_NAME(reg, field) \
-	(BVDC_P_GET_FIELD(BVDC_P_CAP_GET_REG_DATA(reg), reg, field))
+    (BVDC_P_GET_FIELD(BVDC_P_CAP_GET_REG_DATA(reg), reg, field))
 
 /* Compare field */
 #define BVDC_P_CAP_COMPARE_FIELD_DATA(reg, field, data) \
-	(BVDC_P_COMPARE_FIELD_DATA(BVDC_P_CAP_GET_REG_DATA(reg), reg, field, (data)))
+    (BVDC_P_COMPARE_FIELD_DATA(BVDC_P_CAP_GET_REG_DATA(reg), reg, field, (data)))
 #define BVDC_P_CAP_COMPARE_FIELD_NAME(reg, field, name) \
-	(BVDC_P_COMPARE_FIELD_NAME(BVDC_P_CAP_GET_REG_DATA(reg), reg, field, name))
+    (BVDC_P_COMPARE_FIELD_NAME(BVDC_P_CAP_GET_REG_DATA(reg), reg, field, name))
 
 /* This macro does a write into RUL (write, addr, data). 3 dwords. */
 #define BVDC_P_CAP_WRITE_TO_RUL(reg, addr_ptr) \
 { \
-	*addr_ptr++ = BRDC_OP_IMM_TO_REG(); \
-	*addr_ptr++ = BRDC_REGISTER(BCHP##_##reg + hCapture->ulRegOffset); \
-	*addr_ptr++ = BVDC_P_CAP_GET_REG_DATA(reg); \
+    *addr_ptr++ = BRDC_OP_IMM_TO_REG(); \
+    *addr_ptr++ = BRDC_REGISTER(BCHP##_##reg + hCapture->ulRegOffset); \
+    *addr_ptr++ = BVDC_P_CAP_GET_REG_DATA(reg); \
 }
 
 /* This macro does a block write into RUL */
 #define BVDC_P_CAP_BLOCK_WRITE_TO_RUL(from, to, pulCurrent) \
 do { \
-	uint32_t ulBlockSize = \
-		BVDC_P_REGS_ENTRIES(from, to);\
-	*pulCurrent++ = BRDC_OP_IMMS_TO_REGS( ulBlockSize ); \
-	*pulCurrent++ = BRDC_REGISTER(BCHP##_##from + hCapture->ulRegOffset); \
-	BKNI_Memcpy((void*)pulCurrent, \
-		(void*)&(hCapture->aulRegs[BVDC_P_CAP_GET_REG_IDX(from)]), \
-		ulBlockSize * sizeof(uint32_t)); \
-	pulCurrent += ulBlockSize; \
+    uint32_t ulBlockSize = \
+        BVDC_P_REGS_ENTRIES(from, to);\
+    *pulCurrent++ = BRDC_OP_IMMS_TO_REGS( ulBlockSize ); \
+    *pulCurrent++ = BRDC_REGISTER(BCHP##_##from + hCapture->ulRegOffset); \
+    BKNI_Memcpy((void*)pulCurrent, \
+        (void*)&(hCapture->aulRegs[BVDC_P_CAP_GET_REG_IDX(from)]), \
+        ulBlockSize * sizeof(uint32_t)); \
+    pulCurrent += ulBlockSize; \
 } while(0)
 
 /* This macro does a block write into RUL */
 #define BVDC_P_CAP_RECT_BLOCK_WRITE_TO_RUL(from, cnt, pulCurrent) \
 do { \
-	*pulCurrent++ = BRDC_OP_IMMS_TO_REGS( cnt ); \
-	*pulCurrent++ = BRDC_REGISTER(BCHP##_##from + hCapture->ulRegOffset); \
-	BKNI_Memcpy((void*)pulCurrent, \
-		(void*)&(hCapture->aulRegs[BVDC_P_CAP_GET_REG_IDX(from)]), \
-		(cnt) * sizeof(uint32_t)); \
-	pulCurrent += cnt; \
+    *pulCurrent++ = BRDC_OP_IMMS_TO_REGS( cnt ); \
+    *pulCurrent++ = BRDC_REGISTER(BCHP##_##from + hCapture->ulRegOffset); \
+    BKNI_Memcpy((void*)pulCurrent, \
+        (void*)&(hCapture->aulRegs[BVDC_P_CAP_GET_REG_IDX(from)]), \
+        (cnt) * sizeof(uint32_t)); \
+    pulCurrent += cnt; \
 } while(0)
 
 /* number of registers in one block. */
 #define BVDC_P_CAP_REGS_COUNT      \
-	BVDC_P_REGS_ENTRIES(CAP_0_REG_START, CAP_0_REG_END)
+    BVDC_P_REGS_ENTRIES(CAP_0_REG_START, CAP_0_REG_END)
 
 #define BVDC_P_Capture_MuxAddr(hCap)   (BCHP_VNET_B_CAP_0_SRC + (hCap)->eId * sizeof(uint32_t))
 #define BVDC_P_Capture_SetVnet_isr(hCap, ulSrcMuxValue, eVnetPatchMode) \
@@ -150,65 +163,65 @@ do { \
  ***************************************************************************/
 typedef enum BVDC_P_Capture_Trigger
 {
-	BVDC_P_Capture_Trigger_eDisabled = 0,
-	BVDC_P_Capture_Trigger_eBvb,
-	BVDC_P_Capture_Trigger_eLineCmp = 2
+    BVDC_P_Capture_Trigger_eDisabled = 0,
+    BVDC_P_Capture_Trigger_eBvb,
+    BVDC_P_Capture_Trigger_eLineCmp = 2
 } BVDC_P_Capture_Trigger;
 
 /* BVN path capture data mode */
 typedef enum BVDC_P_Capture_DataMode
 {
-	BVDC_P_Capture_DataMode_e8Bit422 = 0,
-	BVDC_P_Capture_DataMode_e10Bit422,
-	BVDC_P_Capture_DataMode_e10Bit444,
+    BVDC_P_Capture_DataMode_e8Bit422 = 0,
+    BVDC_P_Capture_DataMode_e10Bit422,
+    BVDC_P_Capture_DataMode_e10Bit444,
 
-	BVDC_P_Capture_DataMode_eMaxCount
+    BVDC_P_Capture_DataMode_eMaxCount
 
 } BVDC_P_Capture_DataMode;
 
 
 typedef struct BVDC_P_CaptureContext
 {
-	BDBG_OBJECT(BVDC_CAP)
+    BDBG_OBJECT(BVDC_CAP)
 
-	/* Window associated with this capture.
-	 * note: one capture can not be shared by more than one window */
-	BVDC_Window_Handle             hWindow;
+    /* Window associated with this capture.
+     * note: one capture can not be shared by more than one window */
+    BVDC_Window_Handle             hWindow;
 
-	/* flag initial state, requires reset; */
-	bool                           bInitial;
-	uint32_t                       ulResetRegAddr;
-	uint32_t                       ulResetMask;
+    /* flag initial state, requires reset; */
+    bool                           bInitial;
+    uint32_t                       ulResetRegAddr;
+    uint32_t                       ulResetMask;
 
-	/* private fields. */
-	BVDC_P_CaptureId               eId;
-	BRDC_Trigger                   eTrig;
-	uint32_t                       ulRegOffset; /* CAP_0, CAP_1, and etc. */
-	uint32_t                       aulRegs[BVDC_P_CAP_REGS_COUNT];
+    /* private fields. */
+    BVDC_P_CaptureId               eId;
+    BRDC_Trigger                   eTrig;
+    uint32_t                       ulRegOffset; /* CAP_0, CAP_1, and etc. */
+    uint32_t                       aulRegs[BVDC_P_CAP_REGS_COUNT];
 
-	/* A register handle.  Triggers need to be enable by host writes.
-	 * A memory handle to do address/offset converting. */
-	BREG_Handle                    hRegister;
-	BRDC_Handle 				   hRdc;
+    /* A register handle.  Triggers need to be enable by host writes.
+     * A memory handle to do address/offset converting. */
+    BREG_Handle                    hRegister;
+    BRDC_Handle                    hRdc;
 
-	/* Keeps track of when ISR executed */
-	uint32_t                       ulTimestamp;
+    /* Keeps track of when ISR executed */
+    uint32_t                       ulTimestamp;
 
 #if (!BVDC_P_USE_RDC_TIMESTAMP)
-	BTMR_TimerHandle               hTimer;
-	BTMR_TimerRegisters            stTimerReg;
-	/* a capture block's scratch register */
-	uint32_t                       ulTimestampRegAddr;
+    BTMR_TimerHandle               hTimer;
+    BTMR_TimerRegisters            stTimerReg;
+    /* a capture block's scratch register */
+    uint32_t                       ulTimestampRegAddr;
 #endif
 
-	/* sub-struct to manage vnet and rul build opreations */
-	BVDC_P_SubRulContext           SubRul;
+    /* sub-struct to manage vnet and rul build opreations */
+    BVDC_P_SubRulContext           SubRul;
 
-	BVDC_444To422DnSampler         stDnSampler;
+    BVDC_444To422DnSampler         stDnSampler;
 
-	/* Data mode */
-	BVDC_P_Capture_DataMode        eCapDataMode;
-	bool                           bEnableDcxm;
+    /* Data mode */
+    BVDC_P_Capture_DataMode        eCapDataMode;
+    bool                           bEnableDcxm;
 
 } BVDC_P_CaptureContext;
 
@@ -217,44 +230,44 @@ typedef struct BVDC_P_CaptureContext
  * Capture private functions
  ***************************************************************************/
 BERR_Code BVDC_P_Capture_Create
-	( BVDC_P_Capture_Handle           *phCapture,
-	  BRDC_Handle					   hRdc,
-	  BREG_Handle                      hRegister,
-	  BVDC_P_CaptureId                 eCaptureId,
+    ( BVDC_P_Capture_Handle           *phCapture,
+      BRDC_Handle                      hRdc,
+      BREG_Handle                      hRegister,
+      BVDC_P_CaptureId                 eCaptureId,
 #if (!BVDC_P_USE_RDC_TIMESTAMP)
-	  BTMR_TimerHandle                 hTimer,
+      BTMR_TimerHandle                 hTimer,
 #endif
-	  BVDC_P_Resource_Handle           hResource );
+      BVDC_P_Resource_Handle           hResource );
 
 void BVDC_P_Capture_Destroy
-	( BVDC_P_Capture_Handle            hCapture );
+    ( BVDC_P_Capture_Handle            hCapture );
 
 void BVDC_P_Capture_Init
-	( BVDC_P_Capture_Handle            hCapture,
-	  BVDC_Window_Handle               hWindow );
+    ( BVDC_P_Capture_Handle            hCapture,
+      BVDC_Window_Handle               hWindow );
 
 void BVDC_P_Capture_BuildRul_isr
-	( const BVDC_P_Capture_Handle      hCapture,
-	  BVDC_P_ListInfo                 *pList,
-	  BVDC_P_State                     eVnetState,
-	  const BVDC_P_PictureNodePtr      pPicture);
+    ( const BVDC_P_Capture_Handle      hCapture,
+      BVDC_P_ListInfo                 *pList,
+      BVDC_P_State                     eVnetState,
+      const BVDC_P_PictureNodePtr      pPicture);
 
 BERR_Code BVDC_P_Capture_SetBuffer_isr
-	( BVDC_P_Capture_Handle            hCapture,
-	  uint32_t                         ulDeviceAddr,
-	  uint32_t                         ulDeviceAddr_R,
-	  uint32_t                         ulPitch );
+    ( BVDC_P_Capture_Handle            hCapture,
+      uint32_t                         ulDeviceAddr,
+      uint32_t                         ulDeviceAddr_R,
+      uint32_t                         ulPitch );
 
 BERR_Code BVDC_P_Capture_SetEnable_isr
-	( BVDC_P_Capture_Handle            hCapture,
-	  bool                             bEnable );
+    ( BVDC_P_Capture_Handle            hCapture,
+      bool                             bEnable );
 
 BERR_Code BVDC_P_Capture_SetInfo_isr
-	( BVDC_P_Capture_Handle            hCapture,
-	  BVDC_Window_Handle               hWindow,
-	  const BVDC_P_PictureNodePtr      pPicture,
-	  uint32_t                         ulPictureIdx,
-	  bool                             bLastPic );
+    ( BVDC_P_Capture_Handle            hCapture,
+      BVDC_Window_Handle               hWindow,
+      const BVDC_P_PictureNodePtr      pPicture,
+      uint32_t                         ulPictureIdx,
+      bool                             bLastPic );
 
 #ifdef __cplusplus
 }

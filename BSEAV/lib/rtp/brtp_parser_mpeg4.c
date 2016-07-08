@@ -1,43 +1,39 @@
 /******************************************************************************
- * (c) 2006-2014 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 
 #include "bstd.h"
@@ -187,7 +183,7 @@ b_rtp_parser_mpeg4_packet(brtp_parser_t parser_, brtp_packet_t pkt, const void *
 
     BDBG_OBJECT_ASSERT(parser, brtp_parser_mpeg4_t);
     BDBG_ASSERT(parser->parent.stream.mux);
-    BDBG_MSG(("b_rtp_parser_mpeg4_packet: %#lx %lx:%u %s %u", (unsigned long)parser, (unsigned long)pkt, len, B_RTP_PKT_MARKER(pkt)?"M":"", B_RTP_PKT_TIMESTAMP(pkt)));
+    BDBG_MSG(("b_rtp_parser_mpeg4_packet: %#lx %lx:%zu %s %u", (unsigned long)parser, (unsigned long)pkt, len, B_RTP_PKT_MARKER(pkt)?"M":"", B_RTP_PKT_TIMESTAMP(pkt)));
     if (parser->stream_cfg.headerlength) {
         /* read AU header */
         header_len = B_RTP_LOAD16(data,0);
@@ -250,7 +246,6 @@ b_rtp_parser_mpeg4_start(brtp_parser_t parser_, brtp_parser_mux_t mux, const brt
     bio_bitstream bs;
     bio_cursor cursor;
     bio_array array;
-    unsigned stream_type;
     unsigned sampling_frequency_index;
     unsigned channel_configuration;
     unsigned profile;
@@ -271,7 +266,6 @@ b_rtp_parser_mpeg4_start(brtp_parser_t parser_, brtp_parser_mux_t mux, const brt
         bio_cursor_from_range(&cursor, &array, mpeg4_cfg->config, mpeg4_cfg->config_len);
         bio_bitstream_init(&bs, &cursor);
         /*  ISO/IEC 14496-3: 6.2.1 */
-        stream_type = bio_bitstream_bits(&bs, 5);
         sampling_frequency_index = bio_bitstream_bits(&bs, 4);
         if (sampling_frequency_index==0xF) {
             BDBG_WRN(("brtp_parser_mpeg4_start: %#lx unsupported sampling_frequency_index  %u", (unsigned long)parser, sampling_frequency_index));
@@ -338,8 +332,7 @@ b_rtp_parser_mpeg4_start(brtp_parser_t parser_, brtp_parser_mux_t mux, const brt
 
         parser->parent.stream.header_len = sizeof(parser->codec.g711.wav_header);
         parser->parent.stream.header = (void *) &(parser->codec.g711.wav_header);
-        // bFeedRtpPayloadToPlaypump of b_playback_ip_rtsp_es.c
-        // uses parser type to decide whether to do PCMU to PCM conversion
+        /* bFeedRtpPayloadToPlaypump of b_playback_ip_rtsp_es.c uses parser type to decide whether to do PCMU to PCM conversion */
         parser->parent.type = brtp_parser_g711;
         break;
 

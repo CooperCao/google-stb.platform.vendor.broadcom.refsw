@@ -1,7 +1,7 @@
 /******************************************************************************
- * (c) 2003-2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -37,7 +37,6 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 
 #include "bstd.h"
@@ -407,14 +406,14 @@ static const BINT_P_IntMap bint_7250[] =
     BINT_MAP_STD(2, XPT_MSG, XPT_MSG_BUF_DAT_RDY_INTR_192_223_L2_W6_CPU ),
     BINT_MAP_STD(2, XPT_MSG, XPT_MSG_BUF_DAT_RDY_INTR_224_255_L2_W7_CPU ),
 
-    BINT_MAP_STD(2, XPT_MSG, XPT_MSG_BUF_OVFL_INTR_00_31_L2_W8_CPU ),
-    BINT_MAP_STD(2, XPT_MSG, XPT_MSG_BUF_OVFL_INTR_32_63_L2_W9_CPU ),
-    BINT_MAP_STD(2, XPT_MSG, XPT_MSG_BUF_OVFL_INTR_64_95_L2_W10_CPU ),
-    BINT_MAP_STD(2, XPT_MSG, XPT_MSG_BUF_OVFL_INTR_96_127_L2_W11_CPU ),
-    BINT_MAP_STD(2, XPT_MSG, XPT_MSG_BUF_OVFL_INTR_128_159_L2_W12_CPU ),
-    BINT_MAP_STD(2, XPT_MSG, XPT_MSG_BUF_OVFL_INTR_160_191_L2_W13_CPU ),
-    BINT_MAP_STD(2, XPT_MSG, XPT_MSG_BUF_OVFL_INTR_192_223_L2_W14_CPU ),
-    BINT_MAP_STD(2, XPT_MSG, XPT_MSG_BUF_OVFL_INTR_224_255_L2_W15_CPU ),
+    BINT_MAP_STD(2, XPT_OVFL, XPT_MSG_BUF_OVFL_INTR_00_31_L2_W8_CPU ),
+    BINT_MAP_STD(2, XPT_OVFL, XPT_MSG_BUF_OVFL_INTR_32_63_L2_W9_CPU ),
+    BINT_MAP_STD(2, XPT_OVFL, XPT_MSG_BUF_OVFL_INTR_64_95_L2_W10_CPU ),
+    BINT_MAP_STD(2, XPT_OVFL, XPT_MSG_BUF_OVFL_INTR_96_127_L2_W11_CPU ),
+    BINT_MAP_STD(2, XPT_OVFL, XPT_MSG_BUF_OVFL_INTR_128_159_L2_W12_CPU ),
+    BINT_MAP_STD(2, XPT_OVFL, XPT_MSG_BUF_OVFL_INTR_160_191_L2_W13_CPU ),
+    BINT_MAP_STD(2, XPT_OVFL, XPT_MSG_BUF_OVFL_INTR_192_223_L2_W14_CPU ),
+    BINT_MAP_STD(2, XPT_OVFL, XPT_MSG_BUF_OVFL_INTR_224_255_L2_W15_CPU ),
 
     BINT_MAP(2, XPT_FE, "_STATUS0", XPT_FE_INTR_STATUS0_REG, REGULAR, ALL, 0),
     BINT_MAP(2, XPT_FE, "_STATUS1", XPT_FE_INTR_STATUS1_REG, REGULAR, ALL, 0),

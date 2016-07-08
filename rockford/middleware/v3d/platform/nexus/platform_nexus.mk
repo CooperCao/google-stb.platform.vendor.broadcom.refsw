@@ -9,6 +9,19 @@ endif
 NEXUS_TOP ?= ../../../../../nexus
 include $(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
 
+ifndef B_REFSW_ARCH
+B_REFSW_ARCH = mipsel-linux
+endif
+
+ifndef B_REFSW_CROSS_COMPILE
+B_REFSW_CROSS_COMPILE = $(B_REFSW_ARCH)-
+endif
+
+CC = $(B_REFSW_CROSS_COMPILE)gcc
+C++ = $(B_REFSW_CROSS_COMPILE)g++
+
+GCCGTEQ_40800 := $(shell expr `$(CC) -dumpversion | awk 'BEGIN { FS = "." }; { printf("%d%02d%02d", $$1, $$2, $$3) }'` \>= 40800)
+
 V3D_DIR ?= $(NEXUS_TOP)/../rockford/middleware/v3d/driver
 
 CFLAGS += \
@@ -17,16 +30,22 @@ CFLAGS += \
 	-I$(V3D_DIR)/interface/khronos/include \
 	-I$(NEXUS_TOP)/../BSEAV/lib/zlib \
 	-I$(NEXUS_TOP)/../BSEAV/lib/libpng \
-	-DBCHP_CHIP=$(BCHP_CHIP)
+	-DBCHP_CHIP=$(BCHP_CHIP) \
+	-Wunused-parameter \
+	-Wsign-compare \
+	-Wclobbered \
+	-Wmissing-braces \
+	-Wparentheses
+
+ifeq ("$(GCCGTEQ_40800)", "1")
+CFLAGS += \
+	-Wmaybe-uninitialized
+endif
 
 CFLAGS += -c $(foreach dir,$(NEXUS_APP_INCLUDE_PATHS),-I$(dir)) $(foreach def,$(NEXUS_APP_DEFINES),-D"$(def)")
 
 include ../platform_common.inc
 CFLAGS += $(COMMON_PLATFORM_CFLAGS)
-
-ifndef B_REFSW_ARCH
-B_REFSW_ARCH = mipsel-linux
-endif
 
 LDFLAGS = -lpthread
 
@@ -35,9 +54,6 @@ CFLAGS += -DBSTD_CPU_ENDIAN=BSTD_ENDIAN_BIG
 else
 CFLAGS += -DBSTD_CPU_ENDIAN=BSTD_ENDIAN_LITTLE
 endif
-
-CC = $(B_REFSW_CROSS_COMPILE)gcc
-C++ = $(B_REFSW_CROSS_COMPILE)g++
 
 ifeq ($(V3D_DEBUG),y)
 CFLAGS += -O0 -g

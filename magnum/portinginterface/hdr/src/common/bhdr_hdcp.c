@@ -1,23 +1,42 @@
-/***************************************************************************
- *     Copyright (c) 2003-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ *  Except as expressly set forth in the Authorized License,
  *
- * Module Description:
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * Revision History:
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- *
- ***************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+
+ ******************************************************************************/
+
 #include "bchp_dvp_hr_key_ram.h"
 #include "bhdr_hdcp.h"
 #include "bhdr_priv.h"
@@ -311,5 +330,83 @@ BERR_Code BHDR_HDCP_EnableSerialKeyRam(
 	BDBG_LEAVE(BHDR_HDCP_EnableSerialKeyRam);
 	return BERR_SUCCESS;
 
+}
+
+
+BERR_Code BHDR_HDCP_GetHdcp2xEncryptionStatus(
+	const BHDR_Handle hHDR,
+	bool *bEncrypted
+)
+{
+	uint32_t Register, ulOffset;
+	BREG_Handle hRegister;
+
+	BDBG_ENTER(BHDR_HDCP_GetHdcp2xEncryptionStatus);
+	BDBG_OBJECT_ASSERT(hHDR, BHDR_P_Handle);
+
+	hRegister = hHDR->hRegister;
+	ulOffset = hHDR->ulOffset;
+
+	Register = BREG_Read32(hRegister, BCHP_HDCP2_RX_0_STATUS_0 + ulOffset);
+	*bEncrypted = (bool) BCHP_GET_FIELD_DATA(Register, HDCP2_RX_0_STATUS_0, ENCRYPTION_ENABLED) ;
+
+	BDBG_LEAVE(BHDR_HDCP_GetHdcp2xEncryptionStatus);
+	return BERR_SUCCESS;
+}
+
+
+BERR_Code BHDR_HDCP_InstallDisconnectNotifyCallback(
+	const BHDR_Handle hHDR,
+	const BHDR_CallbackFunc pfCallback_isr, /* [in] cb for notification */
+	void *pvParm1,  /* [in] the first argument (void *) passed to the callback function */
+	int iParm2      /* [in] the second argument(int) passed to the callback function */
+)
+{
+	BERR_Code rc = BERR_SUCCESS ;
+	BDBG_ENTER(BHDR_HDCP_InstallDisconnectNotifyCallback);
+	BDBG_OBJECT_ASSERT(hHDR, BHDR_P_Handle);
+
+	if (hHDR->pfHdcpDisconnectNotifyCallback_isr)
+	{
+		BDBG_ERR(("Callback handler already installed for DisconnectNotify...overriding")) ;
+	}
+
+	BKNI_EnterCriticalSection() ;
+		hHDR->pfHdcpDisconnectNotifyCallback_isr = pfCallback_isr ;
+		hHDR->pvHdcpDisconnectNotifyParm1 = pvParm1 ;
+		hHDR->iHdcpDisconnectNotifyParm2 = iParm2 ;
+	BKNI_LeaveCriticalSection() ;
+
+	BDBG_LEAVE(BHDR_HDCP_InstallDisconnectNotifyCallback) ;
+	return rc ;
+}
+
+
+BERR_Code BHDR_HDCP_UnInstallDisconnectNotifyCallback(
+	const BHDR_Handle hHDR,
+	const BHDR_CallbackFunc pfCallback_isr /* [in] cb for notification  */
+)
+{
+	BERR_Code rc = BERR_SUCCESS ;
+	BDBG_ENTER(BHDR_HDCP_UnInstallDisconnectNotifyCallback);
+	BDBG_OBJECT_ASSERT(hHDR, BHDR_P_Handle);
+
+	BSTD_UNUSED(pfCallback_isr) ;
+
+	if (hHDR->pfHdcpDisconnectNotifyCallback_isr == (BHDR_CallbackFunc) NULL)
+	{
+		BDBG_WRN(("No callback handler to uninstall for DisconnectNotify callback")) ;
+		goto done ;
+	}
+
+	BKNI_EnterCriticalSection() ;
+		hHDR->pfHdcpDisconnectNotifyCallback_isr = (BHDR_CallbackFunc) NULL ;
+		hHDR->pvHdcpDisconnectNotifyParm1 = (void *) NULL  ;
+		hHDR->iHdcpDisconnectNotifyParm2 = 0  ;
+	BKNI_LeaveCriticalSection() ;
+
+done :
+	BDBG_LEAVE(BHDR_HDCP_UnInstallDisconnectNotifyCallback) ;
+	return rc ;
 }
 #endif

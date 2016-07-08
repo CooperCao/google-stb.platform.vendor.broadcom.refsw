@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2008 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2008 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -1279,7 +1279,7 @@ void glLinkProgram_impl_20 (GLuint p)
       /* wait to make sure noone is using the buffer */
       khrn_hw_common_wait();
 
-      gl20_program_link(state, program);
+      gl20_program_link(program);
 
 #define TEST_SCHED_AT_LINK_TIME
 #ifdef TEST_SCHED_AT_LINK_TIME

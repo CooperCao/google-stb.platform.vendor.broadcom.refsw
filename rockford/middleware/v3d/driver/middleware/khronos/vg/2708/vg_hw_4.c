@@ -1,7 +1,7 @@
 //#define VG_BE_DUMP_UNIFS
 
 /*=============================================================================
-Copyright (c) 2008 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2008 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -22,6 +22,7 @@ Platform-specific implementation.
 #include "middleware/khronos/vg/vg_scissor.h"
 #include "interface/khronos/common/khrn_int_color.h"
 #include "interface/khronos/common/khrn_int_math.h"
+#include "interface/khronos/common/abstract/khrn_client_platform_abstract.h"
 #include "middleware/khronos/common/2708/khrn_copy_buffer_4.h"
 #include "middleware/khronos/common/2708/khrn_fmem_4.h"
 #include "middleware/khronos/common/2708/khrn_prod_4.h"
@@ -100,7 +101,11 @@ static uint32_t get_fd_unifs_n(VG_SHADER_FD_KEY_T key)
 static uint32_t convert_format_tu(KHRN_IMAGE_FORMAT_T format)
 {
    vcos_assert((khrn_image_is_tformat(format) || khrn_image_is_lineartile(format)) && khrn_image_is_color(format));
-   switch (format & ~(IMAGE_FORMAT_MEM_LAYOUT_MASK | IMAGE_FORMAT_PRE | IMAGE_FORMAT_LIN | IMAGE_FORMAT_OVG)) {
+
+   format = khrn_image_no_layout_format(format);
+   format = khrn_image_no_colorspace_format(format);
+
+   switch (format) {
    case ABGR_8888: return 0;
    case XBGR_8888: return 1;
    case RGBA_4444: return 2;
@@ -366,9 +371,9 @@ static bool add_unifs_paint(VG_BE_RENDER_STATE_T *render_state,
          key->paint_pattern_child = child;
          key->paint_pattern_rgbl = !!(format & (IMAGE_FORMAT_RGB | IMAGE_FORMAT_L));
          key->paint_pattern_pre = !key->paint_pattern_rgbl || /* we replicate alpha in shader */
-            !(format & IMAGE_FORMAT_A) || (format & IMAGE_FORMAT_PRE); /* avoid pre in shader for unpre images without alpha */
+            !(format & IMAGE_FORMAT_A) || khrn_image_is_premultiplied(format); /* avoid pre in shader for unpre images without alpha */
          if ((key->draw_type == VG_SHADER_FD_DRAW_TYPE_PAINT) || (key->draw_type == VG_SHADER_FD_DRAW_TYPE_STENCIL)) {
-            key->colorspace_convert = !!(format & IMAGE_FORMAT_LIN);
+            key->colorspace_convert = khrn_image_is_linear(format);
          }
          *((*unifs)++) = float_to_bits(a.m[0][2]);
          *((*unifs)++) = float_to_bits(a.m[0][0]);
@@ -411,9 +416,9 @@ static bool add_unifs_image_fd(VG_BE_RENDER_STATE_T *render_state,
    key->image_child = child;
    key->image_rgbl = !!(format & (IMAGE_FORMAT_RGB | IMAGE_FORMAT_L));
    key->image_pre = !key->image_rgbl || /* we replicate alpha in shader */
-      !(format & IMAGE_FORMAT_A) || (format & IMAGE_FORMAT_PRE); /* avoid pre in shader for unpre images without alpha */
+      !(format & IMAGE_FORMAT_A) || khrn_image_is_premultiplied(format); /* avoid pre in shader for unpre images without alpha */
    if ((key->draw_type == VG_SHADER_FD_DRAW_TYPE_IMAGE) || (key->draw_type == VG_SHADER_FD_DRAW_TYPE_MULTIPLY)) {
-      key->colorspace_convert = !!(format & IMAGE_FORMAT_LIN);
+      key->colorspace_convert = khrn_image_is_linear(format);
    }
    a = *surface_to_image;
    vg_mat3x3_postmul_translate(&a, 0.5f, 0.5f); /* pixel samples at (x + 0.5, y + 0.5) */
@@ -476,8 +481,8 @@ static void add_unifs_color_transform(uint32_t **unifs,
 static void ltify(void *dst, const void *src)
 {
    KHRN_IMAGE_WRAP_T dst_wrap, src_wrap;
-   khrn_image_interlock_wrap(&dst_wrap, L_8_LT, 256, 1, 256, 0, dst, NULL);
-   khrn_image_interlock_wrap(&src_wrap, L_8_RSO, 256, 1, 256, 0, (void *)src, NULL); /* casting away const, but we won't actually modify */
+   khrn_image_interlock_wrap(&dst_wrap, L_8_LT, 256, 1, 256, 0, false, dst, NULL);
+   khrn_image_interlock_wrap(&src_wrap, L_8_RSO, 256, 1, 256, 0, false, (void *)src, NULL); /* casting away const, but we won't actually modify */
    khrn_image_wrap_copy_region(&dst_wrap, 0, 0, 256, 1, &src_wrap, 0, 0, IMAGE_CONV_GL);
 }
 
@@ -625,6 +630,7 @@ static bool set_shader(VG_BE_RENDER_STATE_T *render_state,
    MEM_HANDLE_T shader_handle, const uint64_t *shader, uint32_t *unifs, uint32_t unifs_n)
 {
    uint8_t *p;
+   UNUSED(unifs_n);
 
    /* todo: make this work for pointers as well as handles? */
    if ((shader_handle != MEM_INVALID_HANDLE) &&
@@ -749,7 +755,7 @@ static bool set_fd_shader(VG_BE_RENDER_STATE_T *render_state,
       VG_SHADER_FD_BLEND_SRC : convert_blend_mode(blend_mode);
    key.coverage = coverage;
    key.masking = masking;
-   key.pre = !!(render_state->frame_format & IMAGE_FORMAT_PRE);
+   key.pre = khrn_image_is_premultiplied(render_state->frame_format);
    key.no_alpha = !(render_state->frame_format & IMAGE_FORMAT_A);
 
    /*
@@ -796,7 +802,7 @@ static bool set_fd_shader(VG_BE_RENDER_STATE_T *render_state,
       return false;
    }
 
-   key.colorspace_convert ^= !!(render_state->frame_format & IMAGE_FORMAT_LIN);
+   key.colorspace_convert ^= khrn_image_is_linear(render_state->frame_format);
 
    if (solid_paint && (key.draw_type == VG_SHADER_FD_DRAW_TYPE_MULTIPLY)) {
       *(unifs++) = key.image_pre ? khrn_color_rgba_pre(rgba) : rgba;
@@ -817,7 +823,7 @@ static bool set_fd_shader(VG_BE_RENDER_STATE_T *render_state,
          rgba = khrn_color_rgba_s_to_lin(rgba);
          key.colorspace_convert = false;
       } else {
-         add_unifs_colorspace_convert(&unifs, !!(render_state->frame_format & IMAGE_FORMAT_LIN));
+         add_unifs_colorspace_convert(&unifs, khrn_image_is_linear(render_state->frame_format));
       }
    }
 
@@ -1249,6 +1255,8 @@ static bool start(void)
             */
             if (locked)
             {
+               bool secure;
+
                vcos_atomic_increment(&frame->alreadyLocked);
 
                /* after the lock the bufferSettings are updated with the correct address */
@@ -1278,25 +1286,19 @@ static bool start(void)
                   break;
                }
 
-               switch (bufferSettings.colorFormat)
+               if (bufferSettings.openvg)
                {
-               case BEGL_ColorFormat_eLinear:  format |= IMAGE_FORMAT_LIN;                            break;
-               case BEGL_ColorFormat_eSRGB:  /* nothing */                                            break;
-               case BEGL_ColorFormat_eLinear_Pre: format |= (IMAGE_FORMAT_LIN | IMAGE_FORMAT_PRE);    break;
-               case BEGL_ColorFormat_eSRGB_Pre: format |= IMAGE_FORMAT_PRE;                           break;
-               default:
-                  UNREACHABLE();
-                  break;
+                  format = abstract_colorformat_to_format(format, bufferSettings.colorFormat);
+                  format = khrn_image_to_openvg_format(format);
                }
 
-               if (bufferSettings.openvg)
-                  format |= IMAGE_FORMAT_OVG;
-
-               khrn_image_platform_fudge(&format, &padded_width, &padded_height, &align, (KHRN_IMAGE_CREATE_FLAG_T)(
+               KHRN_IMAGE_CREATE_FLAG_T image_create_flags =
                   ((frame->flags & IMAGE_FLAG_TEXTURE) ? IMAGE_CREATE_FLAG_TEXTURE : 0) |
                   ((frame->flags & IMAGE_FLAG_RSO_TEXTURE) ? IMAGE_CREATE_FLAG_RSO_TEXTURE : 0) |
                   ((frame->flags & IMAGE_FLAG_RENDER_TARGET) ? IMAGE_CREATE_FLAG_RENDER_TARGET : 0) |
-                  ((frame->flags & IMAGE_FLAG_DISPLAY) ? IMAGE_CREATE_FLAG_DISPLAY : 0)));
+                  ((frame->flags & IMAGE_FLAG_DISPLAY) ? IMAGE_CREATE_FLAG_DISPLAY : 0);
+
+               khrn_image_platform_fudge(&format, &padded_width, &padded_height, &align, image_create_flags);
 
                frame->width = bufferSettings.width;
                frame->height = bufferSettings.height;
@@ -1306,23 +1308,21 @@ static bool start(void)
                /* the underlying OS may have changed the color format to one not supported by v3d.  All bets are off */
                vcos_assert(platform_supported_format(frame->format) != false);
 
+               secure = !!(bufferSettings.secure);
+
                /* Re-wrap the frame handle */
                MEM_ASSIGN(frame->mh_storage, MEM_HANDLE_INVALID);
-               frame->mh_storage = mem_wrap((void *)bufferSettings.cachedAddr,
+               frame->mh_storage = mem_wrap(secure ? NULL : bufferSettings.cachedAddr,
                                             bufferSettings.physOffset,
                                             bufferSettings.pitchBytes * bufferSettings.height,
-                                            bufferSettings.alignment, MEM_FLAG_DIRECT, "wrapped pixmap");
+                                            bufferSettings.alignment, MEM_FLAG_DIRECT | (secure ? MEM_FLAG_SECURE : 0),
+                                            "wrapped pixmap");
 
                /* VGResizeFix start*/
                /* Tell the VG code that the buffer has changed size. The tessellator needs to know. */
                if (resize)
                   vg_buffers_changed(frame_handle, vg_get_swapchainc(), vg_get_mask());
                /* VGResizeFix end*/
-
-               if (frame->mh_aux != MEM_HANDLE_INVALID)
-               {
-                  /* TODO - resize ? */
-               }
 
                mask_handle = vg_get_mask();
                if (mask_handle != MEM_INVALID_HANDLE)
@@ -1559,7 +1559,11 @@ static void convert_format_frame(KHRN_IMAGE_FORMAT_T format,
    case IMAGE_FORMAT_LT:  *mem_format = 2; break;
    default:               UNREACHABLE();
    }
-   switch (format & ~(IMAGE_FORMAT_MEM_LAYOUT_MASK | IMAGE_FORMAT_PRE | IMAGE_FORMAT_LIN | IMAGE_FORMAT_OVG)) {
+
+   format = khrn_image_no_layout_format(format);
+   format = khrn_image_no_colorspace_format(format);
+
+   switch (format) {
    case ABGR_8888:                           /* blend works differently for xbgr */
    case XBGR_8888: *pixel_format = 1; break; /* other than that, there's no difference */
    case RGB_565:   *pixel_format = 2; break; /* non-dithered. todo: dither? */
@@ -1652,8 +1656,10 @@ void vg_be_render_state_flush(VG_BE_RENDER_STATE_T *render_state)
    /* set clear colors */
    if (render_state->frame_clear) {
       clear_rgba = render_state->frame_clear_rgba;
-      if (render_state->frame_format & IMAGE_FORMAT_LIN) { clear_rgba = khrn_color_rgba_s_to_lin(clear_rgba); }
-      if (render_state->frame_format & IMAGE_FORMAT_PRE) { clear_rgba = khrn_color_rgba_pre(clear_rgba); }
+      if (khrn_image_is_linear(render_state->frame_format))
+         clear_rgba = khrn_color_rgba_s_to_lin(clear_rgba);
+      if (khrn_image_is_premultiplied(render_state->frame_format))
+         clear_rgba = khrn_color_rgba_pre(clear_rgba);
    } else {
       clear_rgba = 0; /* don't care what the clear color is */
    }
@@ -1684,8 +1690,7 @@ void vg_be_render_state_flush(VG_BE_RENDER_STATE_T *render_state)
       mem_unlock(render_state->frame);
 
       if (!khrn_fmem_add_fix_image(render_state->fmem,
-         &p, khrn_render_state_get_index_from_data(render_state),
-         render_state->frame, offset)) { goto error_1; }
+         &p, render_state->frame, offset)) { goto error_1; }
    } else {
       /* we're just rendering to the mask buffer. we still need the rendering
        * mode instruction to set up the frame width/height and such, but we're
@@ -1799,8 +1804,7 @@ void vg_be_render_state_flush(VG_BE_RENDER_STATE_T *render_state)
                );
 
             if (!khrn_fmem_add_fix_image(render_state->fmem,
-               &p, khrn_render_state_get_index_from_data(render_state),
-               render_state->frame_src, offset)) { goto error_1; }
+               &p, render_state->frame_src, offset)) { goto error_1; }
 
             if (load_mask) {
                ADD_BYTE(p, KHRN_HW_INSTR_STATE_TILE_COORDS);
@@ -1827,8 +1831,7 @@ void vg_be_render_state_flush(VG_BE_RENDER_STATE_T *render_state)
                (0 << 4))); /* raster order */
             ADD_BYTE(p, 0); /* unused */
             if (!khrn_fmem_add_fix_image(render_state->fmem,
-               &p, khrn_render_state_get_index_from_data(render_state),
-               render_state->mask, 0)) { goto error_1; }
+               &p, render_state->mask, 0)) { goto error_1; }
          }
 
          ADD_BYTE(p, KHRN_HW_INSTR_STATE_TILE_COORDS);
@@ -1857,8 +1860,7 @@ void vg_be_render_state_flush(VG_BE_RENDER_STATE_T *render_state)
                (0 << 6) | /* clear z/stencil */
                (!render_state->mask_clear << 7)))); /* clear mask */
             if (!khrn_fmem_add_fix_image(render_state->fmem,
-               &p, khrn_render_state_get_index_from_data(render_state),
-               render_state->mask,
+               &p, render_state->mask,
                (eof && !store_frame) << 3)) { goto error_1; }
 
             if (store_frame) {
@@ -2102,7 +2104,7 @@ bool vg_be_mask(
 
    clear = ((mask_handle == MEM_INVALID_HANDLE) || (operation == VG_SET_MASK)) &&
       (dst_x == 0) && (dst_y == 0) &&
-      (width == current_render_state->frame_width) && (height == current_render_state->frame_height) &&
+      (width == (int32_t)current_render_state->frame_width) && (height == (int32_t)current_render_state->frame_height) &&
       !(current_render_state->buffers_acquired & BA_MASK_RW);
 
    acquire_buffers(current_render_state, BA_MASK_RW);
@@ -2158,12 +2160,11 @@ bool vg_be_render_to_mask(VG_SERVER_STATE_T *state,
    float t;
    bool clear;
    bool scissor_unretained = false;
-   VG_PATH_T *path;
+   VG_PATH_T *path = NULL;
    uint32_t clip_rect[4];
    MEM_HANDLE_T scissor_handle = MEM_INVALID_HANDLE;
    float clip[4];
    float scale_max = 0.0f;
-
 
    if (!start())
       return false;
@@ -2177,7 +2178,7 @@ bool vg_be_render_to_mask(VG_SERVER_STATE_T *state,
       if (path->flags & VG_PATH_FLAG_EMPTY) {
          paint_modes = 0;
       } else {
-         if (!vg_computer_rendertomask_clip(state, &paint_modes, path, handle, operation, clip_rect, &scissor_handle, clip, &scale_max))
+         if (!vg_computer_rendertomask_clip(state, &paint_modes, path, operation, clip_rect, &scissor_handle, clip, &scale_max))
          {
             mem_unlock(handle);
             return false;
@@ -2359,10 +2360,10 @@ bool vg_be_clear(VG_SERVER_STATE_T *state,
    khrn_clip_rect(&x, &y, &width, &height, 0, 0, current_render_state->frame_width, current_render_state->frame_height);
 
    if ((x == 0) && (y == 0) &&
-      (width == current_render_state->frame_width) && (height == current_render_state->frame_height) &&
+      (width == (int32_t)current_render_state->frame_width) && (height == (int32_t)current_render_state->frame_height) &&
       (!state->scissoring || ((state->scissor.rects_count == 4) &&
       (state->scissor.rects[0] == 0) && (state->scissor.rects[1] == 0) &&
-      (state->scissor.rects[2] >= (int32_t)width) && (state->scissor.rects[3] >= (int32_t)height))) &&
+      (state->scissor.rects[2] >= width) && (state->scissor.rects[3] >= height))) &&
       !(current_render_state->buffers_acquired & BA_FRAME_RW)) {
       acquire_buffers(current_render_state, BA_FRAME_RW);
 
@@ -2378,8 +2379,10 @@ bool vg_be_clear(VG_SERVER_STATE_T *state,
    if (!unifs) { goto error; }
    unifs_begin = unifs;
    rgba = state->clear_rgba;
-   if (current_render_state->frame_format & IMAGE_FORMAT_LIN) { rgba = khrn_color_rgba_s_to_lin(rgba); }
-   if (current_render_state->frame_format & IMAGE_FORMAT_PRE) { rgba = khrn_color_rgba_pre(rgba); }
+   if (khrn_image_is_linear(current_render_state->frame_format))
+      rgba = khrn_color_rgba_s_to_lin(rgba);
+   if (khrn_image_is_premultiplied(current_render_state->frame_format))
+      rgba = khrn_color_rgba_pre(rgba);
    *(unifs++) = rgba;
 //   vcos_assert(khrn_fmem_is_here(current_render_state->fmem, unifs));
    if (!set_shader(current_render_state, MEM_INVALID_HANDLE, fd_clear_shader, unifs_begin, 1)) { goto error; }
@@ -2415,7 +2418,7 @@ bool vg_be_draw_path(VG_SERVER_STATE_T *state,
    MEM_HANDLE_T handle, VG_PATH_T *path, /* should unlock handle */
    uint32_t paint_modes,
    const uint32_t *clip_rect, MEM_HANDLE_T scissor_handle, /* should unretain scissor_handle if not MEM_INVALID_HANDLE */
-   const float *clip, float scale_max, const float *stroke_clip)
+   const float *clip, float scale_max)
 {
    MEM_HANDLE_T chunks_a_handle, chunks_b_handle;
    float t;
@@ -2697,8 +2700,8 @@ error:
    return false;
 }
 
-static bool glyph_fill_tess (VG_SERVER_STATE_T *state, VG_PATH_T *path, float tr_x, float tr_y,
-   MEM_HANDLE_T scissor_handle, const float *clip, MEM_HANDLE_T *chunks_handle, bool masking)
+static bool glyph_fill_tess(VG_SERVER_STATE_T *state, VG_PATH_T *path, float tr_x, float tr_y,
+   const float *clip, MEM_HANDLE_T *chunks_handle)
 {
    bool aa;
    int32_t offset_x, offset_y;
@@ -2740,9 +2743,10 @@ error:
    return false;
 }
 
-static bool glyph_stroke_tess (VG_SERVER_STATE_T *state, VG_PATH_T *path, float tr_x, float tr_y,
-   MEM_HANDLE_T scissor_handle, const float *clip, float scale_max,
-   MEM_HANDLE_T *chunks_handle, bool masking)
+static bool glyph_stroke_tess(VG_SERVER_STATE_T *state, VG_PATH_T *path,
+   float tr_x, float tr_y,
+   const float *clip, float scale_max,
+   MEM_HANDLE_T *chunks_handle)
 {
    bool aa;
    int32_t offset_x, offset_y;
@@ -2820,7 +2824,7 @@ static bool vg_be_draw_glyph_path_monolithic(VG_SERVER_STATE_T *state,
    if (paint_modes & (VG_FILL_PATH)) {
       if (!set_glyph_fill_shader(state, scissor_handle, masking)) { goto error; }
       if (!set_clip(current_render_state, clip_rect)) { goto error; }
-      if (!glyph_fill_tess(state, path, tr_x, tr_y, scissor_handle, clip, &chunks_handle_a, masking)) {
+      if (!glyph_fill_tess(state, path, tr_x, tr_y, clip, &chunks_handle_a)) {
          goto error;
       }
       if (khrn_workarounds.HW2116)
@@ -2829,7 +2833,7 @@ static bool vg_be_draw_glyph_path_monolithic(VG_SERVER_STATE_T *state,
    if (paint_modes & (VG_STROKE_PATH)) {
       if (!set_glyph_stroke_shader(state, scissor_handle, masking)) { goto error; }
       if (!set_clip(current_render_state, clip_rect)) { goto error; }
-      if (!glyph_stroke_tess(state, path, tr_x, tr_y, scissor_handle, clip, scale_max, &chunks_handle_b, masking)) {
+      if (!glyph_stroke_tess(state, path, tr_x, tr_y, clip, scale_max, &chunks_handle_b)) {
          goto error;
       }
       if (khrn_workarounds.HW2116)
@@ -2908,12 +2912,12 @@ bool vg_be_draw_glyph_path(VG_SERVER_STATE_T *state,
    vg_mat3x3_affine_transform_t(&state->glyph_user_to_surface, &tr_x, &tr_y); /* convert translation to surface-space */
 
    if (paint_modes & VG_FILL_PATH) {
-      if (!glyph_fill_tess(state, path, tr_x, tr_y, scissor_handle, clip, &chunks_handle, false)) {
+      if (!glyph_fill_tess(state, path, tr_x, tr_y, clip, &chunks_handle)) {
          goto error;
       }
    } else {
       /* VG_STROKE_PATH */
-      if (!glyph_stroke_tess(state, path, tr_x, tr_y, scissor_handle, clip, scale_max, &chunks_handle, false)) {
+      if (!glyph_stroke_tess(state, path, tr_x, tr_y, clip, scale_max, &chunks_handle)) {
          goto error;
       }
    }

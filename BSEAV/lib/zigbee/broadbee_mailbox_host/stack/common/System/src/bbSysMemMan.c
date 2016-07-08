@@ -1,43 +1,43 @@
 /******************************************************************************
-* (c) 2014 Broadcom Corporation
-*
-* This program is the proprietary software of Broadcom Corporation and/or its
-* licensors, and may only be used, duplicated, modified or distributed pursuant
-* to the terms and conditions of a separate, written license agreement executed
-* between you and Broadcom (an "Authorized License").  Except as set forth in
-* an Authorized License, Broadcom grants no license (express or implied), right
-* to use, or waiver of any kind with respect to the Software, and Broadcom
-* expressly reserves all rights in and to the Software and all intellectual
-* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1. This program, including its structure, sequence and organization,
-*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-*    reasonable efforts to protect the confidentiality thereof, and to use
-*    this information only in connection with your use of Broadcom integrated
-*    circuit products.
-*
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-******************************************************************************/
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
+ *
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************
 /*****************************************************************************
  *
  * FILENAME: $Workfile: trunk/stack/common/System/src/bbSysMemMan.c $
@@ -96,63 +96,12 @@
 # endif
 #endif
 
-/************************* VALIDATIONS ********************************************************************************/
-/* Validate definition of the single dynamic memory block size, in bytes.
- */
-#if (MM_BLOCK_SIZE != 16)
-# error The single dynamic memory block size given with MM_BLOCK_SIZE must be equal to 16 and must not be redefined.
-# undef  MM_BLOCK_SIZE
-# define MM_BLOCK_SIZE    (16)
-#endif
-
-/* Validate definition of the dynamic memory pool size, in bytes.
- */
-#if !defined(_MEMORY_MANAGER_)
-# define MM_POOL_SIZE   (MM_BLOCK_SIZE)
-#endif
-#if !defined(MM_POOL_SIZE)
-# error Missed definition of the dynamic memory pool size. Define it with MM_POOL_SIZE in the project configuration.
-# define MM_POOL_SIZE   (MM_BLOCK_SIZE)
-#elif DEFINED_EMPTY(MM_POOL_SIZE)
-# error The MM_POOL_SIZE must be assigned with a numeric value giving the dynamic memory pool size, in bytes.
-# undef  MM_POOL_SIZE
-# define MM_POOL_SIZE   (MM_BLOCK_SIZE)
-#elif ((MM_POOL_SIZE) / (MM_BLOCK_SIZE) < 1)
-# error The dynamic memory pool size given with MM_POOL_SIZE, in bytes, must be at least one block size (16 bytes).
-# undef  MM_POOL_SIZE
-# define MM_POOL_SIZE   (MM_BLOCK_SIZE)
-#elif ((MM_POOL_SIZE) > (MM_BLOCK_SIZE) * (UINT16_MAX))
-# warning The dynamic memory pool size given with MM_POOL_SIZE, in bytes, was limited to 1048560 bytes.
-#elif ((MM_POOL_SIZE) != (MM_POOL_SIZE) / (MM_BLOCK_SIZE) * (MM_BLOCK_SIZE))
-# warning The dynamic memory pool size given with MM_POOL_SIZE, in bytes, was reduced to the nearest multiple of 16.
-#endif
-
 /************************* DEFINITIONS ********************************************************************************/
 /**//**
  * \brief   Data type representing the memory array used for a single dynamic memory block.
  * \details A single dynamic memory block is defined as the continuous array of 16 bytes.
  */
 typedef uint8_t  MmBlock_t[MM_BLOCK_SIZE];
-
-/**//**
- * \brief   Macro defining the total number of memory blocks in the dynamic memory pool and the maximum value for the
- *  identifier of a dynamic memory block.
- * \details Dynamic memory blocks are enumerated in the range from 1 to MM_MAX_BLOCK_ID. Zero value is used for Null
- *  Block that is not used for storing data.
- * \details For all cases the MM_MAX_BLOCK_ID is limited at least to 65535.
- */
-#define MM_MAX_BLOCK_ID    (MIN(((MM_POOL_SIZE) / (MM_BLOCK_SIZE)), UINT16_MAX))
-
-/**//**
- * \brief   Data type representing the packed value of the identifier of a dynamic memory block.
- * \details This data type is used by Memory Manager for linking blocks sequentially into chunks of arbitrary size.
- * \details The last block in a chain points to the Null Block.
- */
-#if ((MM_MAX_BLOCK_ID) <= (UINT8_MAX))
-typedef uint8_t   MmLink_t;
-#else /* if ((MM_MAX_BLOCK_ID) <= (UINT16_MAX)) */
-typedef uint16_t  MmLink_t;
-#endif
 
 /**//**
  * \brief   Macro validating the identifier of a dynamic memory block.
@@ -257,7 +206,7 @@ typedef uint8_t  MmSize_t;
 #if !DF()
 SYS_STATIC size_t mmGetNextBlock(const size_t  blockId);
 #else
-# define mmGetNextBlock(blockId)    ((const MmLink_t)(mmLinks[blockId]))
+# define mmGetNextBlock(blockId)    ((const MM_Link_t)(mmLinks[blockId]))
 #endif
 
 /**//**
@@ -435,7 +384,7 @@ SYS_MEMDEF MmBlock_t  mmBlocksArray[MM_MAX_BLOCK_ID];
  *  in the pool must point to the Null Block; it means the end of the chain of free blocks (the same as for chains of
  *  busy blocks). If there are no free blocks in the pool, the link #0 is assigned with zero.
  */
-SYS_MEMDEF MmLink_t  mmLinksArray[1 + MM_MAX_BLOCK_ID];
+SYS_MEMDEF MM_Link_t    mmLinksArray[1 + MM_MAX_BLOCK_ID];
 
 /**//**
  * \brief   Static array of Size & Status fields of blocks.
@@ -470,7 +419,7 @@ SYS_STATIC MmBlock_t *const  mmBlocks = (((MmBlock_t*)mmBlocksArray) - 1);
  * jkglgbkkdkv;. ;.nlbkvkvkcnjcjmvsssssssssssssaaaasaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
  * aaaaaaaaaaaaaaaaadi5kgt[xllllllxxxxxxxxxxxoz4o4ssssssssss!!!1папаh//lhki/.kllitrT
  */
-SYS_STATIC MmLink_t *const  mmLinks = (mmLinksArray);
+SYS_STATIC MM_Link_t *const     mmLinks = (mmLinksArray);
 
 /**//*
  * \brief   Entry point to the array of blocks Size & Status fields.
@@ -534,6 +483,21 @@ SYS_PUBLIC MM_ChunkId_t SYS_MemoryManagerAlloc(const MM_Size_t  size)
         SYS_DbgAssertLog(DW(), WARN_SYS_MemoryManagerAlloc_NotEnoughMemory);
         return MM_BAD_BLOCK_ID;
     }
+}
+
+/* ---------------------------------------------------------------------------------------------------------------------
+ * Get number of available free memory blocks
+ */
+SYS_PUBLIC uint32_t SYS_MemoryManagerAvailableBlocks(void)
+{
+    MM_ChunkId_t freeBlockId = MM_BAD_BLOCK_ID;
+    uint32_t cnt = 0;
+
+    do
+        freeBlockId = mmGetNextBlock(freeBlockId);
+    while (MM_BAD_BLOCK_ID != freeBlockId && ++cnt);
+
+    return cnt;
 }
 
 /* ---------------------------------------------------------------------------------------------------------------------

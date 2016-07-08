@@ -1,24 +1,44 @@
-/***************************************************************************
- *     Copyright (c) 2003-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c) 2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * Module Description:
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
  *
- * Revision History:
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- * 
- ***************************************************************************/
-
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ *
+ *****************************************************************************/
 #include "bstd.h"
 #include "bpcrlib.h"
 #include "blst_list.h"
@@ -774,7 +794,7 @@ BPCRlib_TestAudioStc_isr(BPCRlib_Channel chn, uint32_t new_stc, uint32_t pts)
     if (
         (delta >= 0 && delta < (2*chn->cfg.audio_pts_offset + (3003 * 5)/(2*2))) ||
         (delta < 0 && delta > -(2*chn->cfg.audio_pts_offset + (3003 * 60 )/(2*2)))
-    ) /* video STC could be  0.15 sec ahead or 1.0 sec behind of PTS */
+    ) /* video STC could be  0.15 sec ahead or 2.0 sec behind of PTS */
     {
         BDBG_MSG(("TestAudioStc: STC %#x PTS %#x delta %d (%s)", (unsigned)new_stc, (unsigned)pts, (int)delta, "good"));
         return true;
@@ -865,7 +885,7 @@ BPCRlib_TestVideoStc_isr(BPCRlib_Channel chn, uint32_t new_stc, uint32_t pts)
     if (
         (delta >= 0 && delta < (chn->cfg.video_pts_offset + (3003 * 5)/(2*2))) ||
         (delta < 0 && delta > -(chn->cfg.video_pts_offset + (3003 * 60)/(2*2)))
-    ) /* audio STC could be  0.15 sec ahead or 1.0 sec behind of PTS */
+    ) /* audio STC could be  0.15 sec ahead or 2.0 sec behind of PTS */
     {
         BDBG_MSG(("TestVideoStc: STC %#x PTS %#x delta %d (%s)", (unsigned)new_stc, (unsigned)pts, (int)delta, "good"));
         return true;
@@ -1202,6 +1222,9 @@ set_stc:
     return rc;
 }
 
+/* delta is in 22.5 KHz domain */
+#define BPCRLIB_DELTA_TO_MILLISECONDS(X) (((X) * 2) / 45)
+#define BPCRLIB_MILLISECONDS_TO_DELTA(X) (((X) * 45) / 2)
 
 BERR_Code
 BPCRlib_Channel_VideoRequestStc_isr(BPCRlib_Handle handle, void *video, const BAVC_PTSInfo *video_pts)
@@ -1283,9 +1306,12 @@ BPCRlib_Channel_VideoRequestStc_isr(BPCRlib_Handle handle, void *video, const BA
                     int32_t delta;
 
                     delta = BPCRlib_StcDiff_isrsafe(dss, new_stc, video_pts->ui32CurrentPTS);
-                    /* TODO: 3003 is an MPEG number, needs dssification? */
-                    /* if audio is more 2 seconds behind video, use video PTS */
-                    if (delta< (3003 * 2)/(2))
+                    /* if audio is more 2 seconds behind video, use video PTS
+                     * delta = STC - vPTS to match decoder TSM numbers
+                     * audio behind video above means:
+                     * vPTS - STC > 2 s, which is -delta > 2 s, or delta < -2 s
+                     */
+                    if (delta < -(BPCRLIB_MILLISECONDS_TO_DELTA(2000)))
                     {
                         goto set_video_stc;
                     }

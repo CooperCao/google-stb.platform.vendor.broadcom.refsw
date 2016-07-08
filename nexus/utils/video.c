@@ -44,7 +44,7 @@
  * Revision History:
  *
  * $brcm_Log: $
- * 
+ *
 ******************************************************************************/
 
 #include "nexus_platform.h"
@@ -84,9 +84,7 @@ int main(void)
 
 BDBG_MODULE(video);
 
-#if NEXUS_NUM_HDMI_OUTPUTS
-static void hotplug_callback(void *pParam, int iParam);
-#endif
+#include "hotplug.c"
 
 int main(int argc, const char *argv[])
 {
@@ -117,6 +115,9 @@ int main(int argc, const char *argv[])
 #endif
 #endif
     NEXUS_VideoFormatInfo displayFormatInfo;
+#if NEXUS_HAS_HDMI_OUTPUT
+    struct hotplug_context hotplug_context;
+#endif
 
     if (cmdline_parse(argc, argv, &opts)) {
         return 0;
@@ -189,22 +190,25 @@ int main(int argc, const char *argv[])
     hdmi1 = NEXUS_HdmiInput_Open(1, NULL);
 #endif
 #endif
-#if NEXUS_NUM_HDMI_OUTPUTS
+#if NEXUS_HAS_HDMI_OUTPUT
     if (opts.common.useHdmiOutput) {
         NEXUS_HdmiOutputSettings hdmiSettings;
 
         rc = NEXUS_Display_AddOutput(display, NEXUS_HdmiOutput_GetVideoConnector(platformConfig.outputs.hdmi[0]));
         BDBG_ASSERT(!rc);
 
+        hotplug_context.hdmi = platformConfig.outputs.hdmi[0];
+        hotplug_context.display = display;
+        hotplug_context.ignore_edid = opts.common.ignore_edid;
+
         /* Install hotplug callback -- video only for now */
         NEXUS_HdmiOutput_GetSettings(platformConfig.outputs.hdmi[0], &hdmiSettings);
         hdmiSettings.hotplugCallback.callback = hotplug_callback;
-        hdmiSettings.hotplugCallback.context = platformConfig.outputs.hdmi[0];
-        hdmiSettings.hotplugCallback.param = (int)display;
+        hdmiSettings.hotplugCallback.context = &hotplug_context;
         NEXUS_HdmiOutput_SetSettings(platformConfig.outputs.hdmi[0], &hdmiSettings);
 
        /* Force a hotplug to switch to preferred format */
-       hotplug_callback(platformConfig.outputs.hdmi[0], (int)display);
+        hotplug_callback(&hotplug_context,0);
     }
 #endif
 
@@ -425,35 +429,6 @@ int main(int argc, const char *argv[])
     return 0;
 }
 
-#if NEXUS_NUM_HDMI_OUTPUTS
-/* registered HDMI hotplug handler -- changes the format (to monitor's default) if monitor doesn't support current format */
-static void hotplug_callback(void *pParam, int iParam)
-{
-    NEXUS_HdmiOutputStatus hdmiStatus;
-    NEXUS_HdmiOutputHandle hdmi = pParam;
-    NEXUS_DisplayHandle display = (NEXUS_DisplayHandle)iParam;
-    NEXUS_Error rc;
-
-    rc = NEXUS_HdmiOutput_GetStatus(hdmi, &hdmiStatus);
-    /*fprintf(stderr, "HDMI event: %s\n", hdmiStatus.connected?"connected":"not connected");*/
-
-    /* the app can choose to switch to the preferred format, but it's not required. */
-    if ( !rc && hdmiStatus.connected )
-    {
-        NEXUS_DisplaySettings displaySettings;
-        NEXUS_Display_GetSettings(display, &displaySettings);
-        if ( !hdmiStatus.videoFormatSupported[displaySettings.format] )
-        {
-            fprintf(stderr, "Current format not supported by attached monitor -- switching to preferred format %d\n", hdmiStatus.preferredVideoFormat);
-            if (hdmiStatus.preferredVideoFormat >= NEXUS_VideoFormat_e480p) 
-                fprintf(stderr, "Warning: This format may disable composite output!\n");
-            displaySettings.format = hdmiStatus.preferredVideoFormat;
-            NEXUS_Display_SetSettings(display, &displaySettings);
-        }
-    }
-}
-#endif
-
 #endif /* !NEXUS_HAS_VIDEO_DECODER  */
 
 /*
@@ -462,7 +437,7 @@ static void hotplug_callback(void *pParam, int iParam)
 examples / test cases
 
 # basic decode of external input
-nexus video 
+nexus video
 
 ************************************************
 */

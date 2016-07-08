@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -11,7 +11,7 @@
  * Software and all intellectual property rights therein.  IF YOU HAVE NO
  * AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
  * AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
- * SOFTWARE.  
+ * SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
@@ -66,21 +66,24 @@ string ParseUtils::StripWhite(const string &str)
 
 string ParseUtils::RemoveDelims(const string &str, const string &delims)
 {
-   string   result = str;
+   string   ret = str;
 
-   for (auto &ch : result)
+   for (string::iterator sPtr = ret.begin(); sPtr != ret.end(); ++sPtr)
    {
-      if (delims.find(ch) != string::npos)
-         ch = ' ';
+      for (string::const_iterator dPtr = delims.begin(); dPtr != delims.end(); ++dPtr)
+      {
+         if (*sPtr == *dPtr)
+            *sPtr = ' ';
+      }
    }
 
-   return result;
+   return ret;
 }
 
 string ParseUtils::ToLower(const string &str)
 {
    string   res = str;
-   
+
    transform(res.begin(), res.end(), res.begin(), ::tolower);
 
    return res;
@@ -89,7 +92,7 @@ string ParseUtils::ToLower(const string &str)
 string ParseUtils::ToUpper(const string &str)
 {
    string   res = str;
-   
+
    transform(res.begin(), res.end(), res.begin(), ::toupper);
 
    return res;
@@ -104,7 +107,7 @@ bool ParseUtils::IsDirectory(const std::string &str)
 {
    struct stat buffer;
    int         status;
-   
+
    status = stat(str.c_str(), &buffer);
    if (status == 0)
       return (buffer.st_mode & S_IFDIR) != 0;

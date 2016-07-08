@@ -3,7 +3,7 @@
 //#define VG_SHADER_FD_DQASM "python /cygdrive/c/path/dqasm.py -c -tb0"
 
 /*=============================================================================
-Copyright (c) 2008 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2008 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -1452,7 +1452,7 @@ static uint32_t *vg_shader_fd_gen(uint32_t *p, VG_SHADER_FD_KEY_T key)
 0x159e7900, 0xc0020867 /* mov  r1, r4          ; nop                ; loadam */ \
 , 0x609e700c, 0x100049e1 /* nop                  ; v8muld  r1, r1, r4 */ \
 );
-                  APPEND_I(p, !pre_before_blend | (src << 1), \
+                  APPEND_I(p, (!pre_before_blend) | (src << 1), \
 1, \
 { \
 0x779c1fc1, 0x10024860 /* not  r1, r_a_dst          ; v8muld  r0, r0, r1 */ \
@@ -1795,7 +1795,7 @@ static uint32_t *vg_shader_fd_gen(uint32_t *p, VG_SHADER_FD_KEY_T key)
 } \
 );
             tlbc_in_mul = true;
-         } else { APPEND_I(p, !pre_before_blend | (src << 1), \
+         } else { APPEND_I(p, (!pre_before_blend) | (src << 1), \
 1, \
 { \
 0x779c1fc2, 0x100248a0 /* not  r2, r_a_dst          ; v8muld  r0, r0, r2 */ \
@@ -1888,7 +1888,7 @@ static uint32_t *vg_shader_fd_gen(uint32_t *p, VG_SHADER_FD_KEY_T key)
 0x7e027534, 0x160248a1 /* v8adds  r2, r2, r4   ; v8muld  r1, ra0.8dr, r4 */ \
 } \
 );     /* r2: (1 - a_dst) + dst, r1: dst * c_a */
-            APPEND_I(p, !pre_before_blend | (src << 1), \
+            APPEND_I(p, (!pre_before_blend) | (src << 1), \
 1, \
 { \
 0x7f9c0e42, 0x10024860 /* v8subs  r1, r_dst, r1   ; v8muld  r0, r0, r2 */ \
@@ -2044,7 +2044,7 @@ static uint32_t *vg_shader_fd_gen(uint32_t *p, VG_SHADER_FD_KEY_T key)
 0x75027934, 0x860248a1 /* mov  r2, r4        ; v8muld  r1, ra0.8dr, r4 ; loadc */ \
 } \
 ); }                                          /* r1: c_a * cvg, r2: cvg */
-         APPEND_I(p, !pre_before_blend | (src << 1), \
+         APPEND_I(p, (!pre_before_blend) | (src << 1), \
 1, \
 { \
 0x779c1fc2, 0x100248a0 /* not  r2, r_a_dst        ; v8muld  r0, r0, r2 */ \

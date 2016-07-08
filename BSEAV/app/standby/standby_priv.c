@@ -1,51 +1,40 @@
 /******************************************************************************
- *    (c)2008-2014 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
- *****************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ ******************************************************************************/
 
 #include "standby.h"
 #include "util.h"
@@ -1025,7 +1014,7 @@ void keypadCallback(void *pParam, int iParam)
 }
 #endif
 
-#if NEXUS_HAS_CEC
+#if NEXUS_HAS_CEC && NEXUS_HAS_HDMI_OUTPUT
 void cecDeviceReady_callback(void *context, int param)
 {
     NEXUS_CecStatus status;
@@ -2028,9 +2017,9 @@ int encode_start(unsigned id)
 
     NEXUS_VideoEncoder_GetSettings(g_StandbyNexusHandles.videoEncoder, &videoEncoderConfig);
     videoEncoderConfig.variableFrameRate = true; /* encoder can detect film content and follow CET */
-    videoEncoderConfig.frameRate = NEXUS_VideoFrameRate_e30;
+    videoEncoderConfig.frameRate = NEXUS_VideoFrameRate_e23_976;
     videoEncoderConfig.bitrateMax = 6*1000*1000;
-    videoEncoderConfig.streamStructure.framesP = 29;
+    videoEncoderConfig.streamStructure.framesP = 23;
     videoEncoderConfig.streamStructure.framesB = 0;
 
     NEXUS_VideoEncoder_GetDefaultStartSettings(&videoEncoderStartConfig);
@@ -2294,6 +2283,7 @@ void display_open(unsigned id)
     switch(id) {
         case 0:
             if(!g_StandbyNexusHandles.displayHD ) {
+#if NEXUS_HAS_HDMI_OUTPUT
                 NEXUS_HdmiOutputStatus status;
                 NEXUS_DisplayCapabilities displayCap;
                 NEXUS_HdmiOutput_GetStatus(g_StandbyNexusHandles.platformConfig.outputs.hdmi[0], &status);
@@ -2301,6 +2291,9 @@ void display_open(unsigned id)
                 if (status.connected && displayCap.displayFormatSupported[status.preferredVideoFormat]) {
                     displaySettings.format = status.preferredVideoFormat;
                 }
+#else
+                displaySettings.format = NEXUS_VideoFormat_e1080i;
+#endif
                 g_StandbyNexusHandles.displayHD = NEXUS_Display_Open(id, &displaySettings);
                 BDBG_ASSERT(g_StandbyNexusHandles.displayHD);
             }
@@ -3148,6 +3141,7 @@ void encoder_open(unsigned id)
     NEXUS_StcChannelSettings stcSettings;
     NEXUS_DisplaySettings displaySettings;
     NEXUS_AudioEncoderSettings encoderSettings;
+    NEXUS_VideoEncoderCapabilities videoEncoderCap;
     NEXUS_StreamMuxCreateSettings muxCreateSettings;
     NEXUS_PlaypumpOpenSettings playpumpConfig;
     NEXUS_RecordSettings recordSettings;
@@ -3184,12 +3178,13 @@ void encoder_open(unsigned id)
 
     g_StandbyNexusHandles.videoEncoder = NEXUS_VideoEncoder_Open(0, NULL);
     BDBG_ASSERT(g_StandbyNexusHandles.videoEncoder);
+    NEXUS_GetVideoEncoderCapabilities(&videoEncoderCap);
 
     NEXUS_Display_GetDefaultSettings(&displaySettings);
     displaySettings.displayType = NEXUS_DisplayType_eAuto;
     displaySettings.timingGenerator = NEXUS_DisplayTimingGenerator_eEncoder;
-    displaySettings.format = NEXUS_VideoFormat_e1080p30hz;
-    g_StandbyNexusHandles.displayTranscode = NEXUS_Display_Open(NEXUS_ENCODER_DISPLAY_IDX, &displaySettings);/* cmp3 for transcoder */
+    displaySettings.format = NEXUS_VideoFormat_e720p;
+    g_StandbyNexusHandles.displayTranscode = NEXUS_Display_Open(videoEncoderCap.videoEncoder[0].displayIndex, &displaySettings);/* cmp3 for transcoder */
     BDBG_ASSERT(g_StandbyNexusHandles.displayTranscode);
 
     g_StandbyNexusHandles.windowTranscode = NEXUS_VideoWindow_Open(g_StandbyNexusHandles.displayTranscode, 0);
@@ -3617,7 +3612,7 @@ int start_app(void)
 
     ir_open();
     uhf_open();
-    /* keypad_open(); */ /*  Disabled for now till we resolve issue with spurious interrupt*/
+    /*keypad_open();*/
 
     NEXUS_GetDisplayCapabilities(&displayCap);
     if(displayCap.display[0].numVideoWindows)
@@ -3645,7 +3640,7 @@ int start_app(void)
         g_StandbyNexusHandles.parserBand[i] = (i==0)?NEXUS_ParserBand_e0:NEXUS_ParserBand_e1;
     }
 
-#if NEXUS_HAS_CEC
+#if NEXUS_HAS_CEC && NEXUS_HAS_HDMI_OUTPUT
     cec_setup();
 #endif
 
@@ -3689,7 +3684,7 @@ void stop_app(void)
     display_close(0);
     display_close(1);
 
-    /* keypad_close(); */ /*  Disabled for now till we resolve issue with spurious interrupt*/
+    /*keypad_close();*/
     uhf_close();
     ir_close();
 

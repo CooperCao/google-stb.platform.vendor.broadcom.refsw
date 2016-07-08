@@ -1,41 +1,40 @@
-/***************************************************************************
- *     (c)2012-2013 Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- *  Except as expressly set forth in the Authorized License,
+ * Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
- *
- **************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
 #include "bv3d.h"
 #include "bv3d_priv.h"
 #include "bv3d_worker_priv.h"
@@ -97,7 +96,7 @@ static void BV3D_P_ResetBinner(BV3D_Handle hV3d)
    BREG_Write32(hV3d->hReg, BCHP_V3D_CLE_BFC,   1);            /* Clear binning mode flush count to clear BMACTIVE in PCS */
 
    /* Give the PTB some bogus memory to chew on to clear OOM */
-   BREG_Write32(hV3d->hReg, BCHP_V3D_PTB_BPOA, BV3D_P_BinMemGetOverspill(hV3d->hBinMemManager));
+   BREG_Write32(hV3d->hReg, BCHP_V3D_PTB_BPOA, BV3D_P_BinMemGetOverspill(hV3d->bSecure ? hV3d->hBinMemManagerSecure : hV3d->hBinMemManager));
    BREG_Write32(hV3d->hReg, BCHP_V3D_PTB_BPOS, 8192);
    BREG_Write32(hV3d->hReg, BCHP_V3D_PTB_BPOS, 0);
 
@@ -127,44 +126,47 @@ static void BV3D_P_DebugDumpJob(BV3D_Handle hV3d, BV3D_Job *job)
       BV3D_P_CallbackMapGet(hV3d->hCallbackQ, job->uiClientId, &uiClientPID, &pContext, &pCallback);
 
       BKNI_Printf("    Client         = %d (PID = %d)\n", job->uiClientId, uiClientPID);
-      BKNI_Printf("    CurrentInstr   = %d\n", job->uiCurrentInstr);
-      BKNI_Printf("    InstrsLeft     = %d\n", job->uiInstrCount);
-      BKNI_Printf("    BinMemory      = %p\n", job->uiBinMemory);
-      BKNI_Printf("    UserVPM        = %d\n", job->uiUserVPM);
-      BKNI_Printf("    Abandon        = %d\n", job->uiAbandon);
-      BKNI_Printf("    OutOfMemory    = %d\n", job->uiOutOfMemory);
-      BKNI_Printf("    Overspill      = %d\n", job->uiOverspill);
-      BKNI_Printf("    CollectTime    = %d\n", job->bCollectTimeline ? 1 : 0);
-      BKNI_Printf("    CallbackParam  = %d\n", job->uiNotifyCallbackParam);
-      BKNI_Printf("    CallbackSeqNum = %d\n", job->uiNotifySequenceNum);
+      BKNI_Printf("    CurrentInstr   = %d\n",     job->uiCurrentInstr);
+      BKNI_Printf("    InstrsLeft     = %d\n",     job->uiInstrCount);
+      BKNI_Printf("    BinMemory      = 0x%x\n",   job->uiBinMemory);
+      BKNI_Printf("    UserVPM        = %d\n",     job->uiUserVPM);
+      BKNI_Printf("    Abandon        = %d\n",     job->uiAbandon);
+      BKNI_Printf("    OutOfMemory    = %d\n",     job->uiOutOfMemory);
+      BKNI_Printf("    Overspill      = %d\n",     job->uiOverspill);
+      BKNI_Printf("    CollectTime    = %d\n",     job->bCollectTimeline ? 1 : 0);
+      BKNI_Printf("    CallbackParam  = %d\n",     job->uiNotifyCallbackParam);
+      BKNI_Printf("    CallbackSeqNum = "  BDBG_UINT64_FMT "\n",     BDBG_UINT64_ARG(job->uiNotifySequenceNum));
    }
 }
 
 /***************************************************************************/
 static void BV3D_P_DebugDump(BV3D_Handle hV3d)
 {
+   bool bSecure = hV3d->bSecure;
    BKNI_Printf("\n***********************************************************\n");
    BKNI_Printf("GPU Recovery Dump:\n\n");
 
-   BKNI_Printf("InterruptReason   = %d\n", hV3d->interruptReason);
-   BKNI_Printf("PowerOnCount      = %d\n", hV3d->powerOnCount);
-   BKNI_Printf("ReallyPoweredOn   = %d\n", hV3d->reallyPoweredOn ? 1 : 0);
-   BKNI_Printf("isStandby         = %d\n", hV3d->isStandby ? 1 : 0);
-   BKNI_Printf("QuiescentTimeMs   = %d\n", hV3d->quiescentTimeMs);
-   BKNI_Printf("TimeoutCount      = %d\n", hV3d->timeoutCount);
-   BKNI_Printf("PrevBinAddress    = %p\n", hV3d->prevBinAddress);
-   BKNI_Printf("PrevRenderAddress = %p\n", hV3d->prevRenderAddress);
-   BKNI_Printf("WaitQSize         = %d\n", BV3D_P_WaitQSize(hV3d->hWaitQ));
-   BKNI_Printf("UserVPM           = %d\n", hV3d->uiUserVPM);
-   BKNI_Printf("NextClientId      = %d\n", hV3d->uiNextClientId);
-   BKNI_Printf("ScheduleFirst     = %d\n", hV3d->uiScheduleFirst);
-   BKNI_Printf("PerfMonitoring    = %d\n", hV3d->bPerfMonitorActive ? 1 : 0);
-   BKNI_Printf("PerfMonHwBank     = %d\n", hV3d->uiPerfMonitorHwBank);
-   BKNI_Printf("PerfMonMemBank    = %d\n", hV3d->uiPerfMonitorMemBank);
+   BKNI_Printf("InterruptReason   = %d\n",   hV3d->interruptReason);
+   BKNI_Printf("PowerOnCount      = %d\n",   hV3d->powerOnCount);
+   BKNI_Printf("ReallyPoweredOn   = %d\n",   hV3d->reallyPoweredOn ? 1 : 0);
+   BKNI_Printf("isStandby         = %d\n",   hV3d->isStandby ? 1 : 0);
+   BKNI_Printf("QuiescentTimeMs   = %d\n",   hV3d->quiescentTimeMs);
+   BKNI_Printf("TimeoutCount      = %d\n",   hV3d->timeoutCount);
+   BKNI_Printf("PrevBinAddress    = 0x%x\n", hV3d->prevBinAddress);
+   BKNI_Printf("PrevRenderAddress = 0x%x\n", hV3d->prevRenderAddress);
+   BKNI_Printf("WaitQSize         = %d\n",   BV3D_P_WaitQSize(hV3d->hWaitQ));
+   BKNI_Printf("UserVPM           = %d\n",   hV3d->uiUserVPM);
+   BKNI_Printf("NextClientId      = %d\n",   hV3d->uiNextClientId);
+   BKNI_Printf("ScheduleFirst     = %d\n",   hV3d->uiScheduleFirst);
+   BKNI_Printf("PerfMonitoring    = %d\n",   hV3d->bPerfMonitorActive ? 1 : 0);
+   BKNI_Printf("PerfMonHwBank     = %d\n",   hV3d->uiPerfMonitorHwBank);
+   BKNI_Printf("PerfMonMemBank    = %d\n",   hV3d->uiPerfMonitorMemBank);
+   BKNI_Printf("Secure            = %d\n",   bSecure);
 
    BKNI_Printf("\n");
 
-   BV3D_P_BinMemDebugDump(hV3d->hBinMemManager);
+   if (!hV3d->bSecure)
+      BV3D_P_BinMemDebugDump(hV3d->hBinMemManager);
 
    BKNI_Printf("\n");
 
@@ -223,13 +225,13 @@ static void BV3D_P_DebugDump(BV3D_Handle hV3d)
       "FDBGR     %08X,  FDBGS    %08X,  BXCF   %08X\n\n",
       BREG_Read32(hV3d->hReg, BCHP_V3D_VPM_VPMBASE),  BREG_Read32(hV3d->hReg, BCHP_V3D_VPM_VPACNTL),
       BREG_Read32(hV3d->hReg, BCHP_V3D_CTL_L2CACTL),  BREG_Read32(hV3d->hReg, BCHP_V3D_CTL_SLCACTL),
-      BREG_Read32(hV3d->hReg, BCHP_V3D_DBG_DBQITC),   BREG_Read32(hV3d->hReg, BCHP_V3D_DBG_DBQITE),
+      (!bSecure) ? BREG_Read32(hV3d->hReg, BCHP_V3D_DBG_DBQITC) : ~0u,   (!bSecure) ? BREG_Read32(hV3d->hReg, BCHP_V3D_DBG_DBQITE) : ~0u,
       BREG_Read32(hV3d->hReg, BCHP_V3D_CTL_SCRATCH),  BREG_Read32(hV3d->hReg, BCHP_V3D_CTL_IDENT0),
       BREG_Read32(hV3d->hReg, BCHP_V3D_CTL_IDENT1),   BREG_Read32(hV3d->hReg, BCHP_V3D_CTL_IDENT2),
-      BREG_Read32(hV3d->hReg, BCHP_V3D_CTL_IDENT3),   BREG_Read32(hV3d->hReg, BCHP_V3D_DBG_ERRSTAT),
-      BREG_Read32(hV3d->hReg, BCHP_V3D_DBG_DBGE),     BREG_Read32(hV3d->hReg, BCHP_V3D_DBG_FDBG0),
-      BREG_Read32(hV3d->hReg, BCHP_V3D_DBG_FDBGB),    BREG_Read32(hV3d->hReg, BCHP_V3D_DBG_FDBGR),
-      BREG_Read32(hV3d->hReg, BCHP_V3D_DBG_FDBGS),    BREG_Read32(hV3d->hReg, BCHP_V3D_PTB_BXCF)
+      BREG_Read32(hV3d->hReg, BCHP_V3D_CTL_IDENT3),   (!bSecure) ? BREG_Read32(hV3d->hReg, BCHP_V3D_DBG_ERRSTAT) : ~0u,
+      (!bSecure) ? BREG_Read32(hV3d->hReg, BCHP_V3D_DBG_DBGE) : ~0u,     (!bSecure) ? BREG_Read32(hV3d->hReg, BCHP_V3D_DBG_FDBG0) : ~0u,
+      (!bSecure) ? BREG_Read32(hV3d->hReg, BCHP_V3D_DBG_FDBGB) : ~0u,    (!bSecure) ? BREG_Read32(hV3d->hReg, BCHP_V3D_DBG_FDBGR) : ~0u,
+      (!bSecure) ? BREG_Read32(hV3d->hReg, BCHP_V3D_DBG_FDBGS) : ~0u,    BREG_Read32(hV3d->hReg, BCHP_V3D_PTB_BXCF)
       );
 }
 
@@ -314,7 +316,7 @@ void BV3D_P_SupplyBinner(
 
    /* Program binner overspill registers */
    BREG_Write32(hV3d->hReg, BCHP_V3D_PTB_BPOA, uiAddr);
-   BREG_Write32(hV3d->hReg, BCHP_V3D_PTB_BPOS, BV3D_P_BinMemGetChunkSize(hV3d->hBinMemManager));
+   BREG_Write32(hV3d->hReg, BCHP_V3D_PTB_BPOS, BV3D_P_BinMemGetChunkSize(hV3d->bSecure ? hV3d->hBinMemManagerSecure : hV3d->hBinMemManager));
 
    /* the BPOS write doesn't take effect immediately: wait for the oom bit to go low... */
    while (BREG_Read32(hV3d->hReg, BCHP_V3D_CLE_PCS) & (1 << 8))
@@ -527,10 +529,14 @@ void BV3D_P_ResetCore(
 
    /* clear interrupts */
    BREG_Write32(hV3d->hReg, BCHP_V3D_CTL_INTCTL, ~0);
-   BREG_Write32(hV3d->hReg, BCHP_V3D_DBG_DBQITC, ~0); /* clear them just incase */
-   BREG_Write32(hV3d->hReg, BCHP_V3D_DBG_DBQITE, ~0); /* make sure qpu interrupts are enabled */
-   /* enable DBG block or user shader IRQs don't work */
-   BREG_Write32(hV3d->hReg, BCHP_V3D_DBG_DBCFG, 1);
+   if (!hV3d->bSecure)
+   {
+      /* user mode interrupts are GISB blocked in secure mode.  Don't touch these */
+      BREG_Write32(hV3d->hReg, BCHP_V3D_DBG_DBQITC, ~0); /* clear them just incase */
+      BREG_Write32(hV3d->hReg, BCHP_V3D_DBG_DBQITE, ~0); /* make sure qpu interrupts are enabled */
+      /* enable DBG block or user shader IRQs don't work */
+      BREG_Write32(hV3d->hReg, BCHP_V3D_DBG_DBCFG, 1);
+   }
 
    BV3D_P_ClearV3dCaches(hV3d);
 
@@ -545,6 +551,8 @@ void BV3D_P_ResetCore(
     * overwritten if OOM is triggered.
     */
    BV3D_P_BinMemReset(hV3d->hBinMemManager);
+   if (hV3d->hBinMemManagerSecure != NULL)
+      BV3D_P_BinMemReset(hV3d->hBinMemManagerSecure);
    BV3D_P_ResetBinner(hV3d);
    BV3D_P_ResetRender(hV3d);
 
@@ -568,9 +576,10 @@ void BV3D_P_ResetCore(
 #if (BCHP_CHIP == 7445)
    if (hV3d->uiMdiv != 0)
    {
-      uint32_t mask = BCHP_CLKGEN_PLL_MOCA_PLL_CHANNEL_CTRL_CH_3_MDIV_CH3_MASK;
-      uint32_t value = BCHP_FIELD_DATA(CLKGEN_PLL_MOCA_PLL_CHANNEL_CTRL_CH_3, MDIV_CH3, hV3d->uiMdiv);
-      BREG_AtomicUpdate32(hV3d->hReg, BCHP_CLKGEN_PLL_MOCA_PLL_CHANNEL_CTRL_CH_3, mask, value);
+      uint32_t Reg;
+      Reg = BREG_Read32(hV3d->hReg, BCHP_CLKGEN_PLL_MOCA_PLL_CHANNEL_CTRL_CH_3);
+      Reg |= BCHP_FIELD_DATA(CLKGEN_PLL_MOCA_PLL_CHANNEL_CTRL_CH_3, MDIV_CH3, hV3d->uiMdiv);
+      BREG_Write32(hV3d->hReg, BCHP_CLKGEN_PLL_MOCA_PLL_CHANNEL_CTRL_CH_3, Reg);
       hV3d->uiMdiv = 0; /* only program once, which could allow it to be changed by BBS */
    }
 #endif
@@ -733,7 +742,7 @@ void BV3D_P_InstructionDone(
    if (psJob->uiInstrCount == 0)
    {
       /* Release bin memory attached to this job */
-      BV3D_P_BinMemReleaseByJob(hV3d->hBinMemManager, psJob);
+      BV3D_P_BinMemReleaseByJob(hV3d->bSecure ? hV3d->hBinMemManagerSecure : hV3d->hBinMemManager, psJob);
 
       /* Free up the job */
       BKNI_Free(psJob);
@@ -856,7 +865,8 @@ void BV3D_P_OutOfBinMemory(
    BV3D_Job    *psJob
 )
 {
-   BV3D_BinMemManagerHandle   hBinMemManager = hV3d->hBinMemManager;
+   bool bSecure = hV3d->bSecure;
+   BV3D_BinMemManagerHandle   hBinMemManager = bSecure ? hV3d->hBinMemManagerSecure : hV3d->hBinMemManager;
    uint32_t                   uiOverspill    = BV3D_P_BinMemGetOverspill(hBinMemManager);
 
    BDBG_ENTER(BV3D_P_OutOfBinMemory);
@@ -929,22 +939,24 @@ void BV3D_P_IssueBin(
       /* Kick the binner off */
       BV3D_P_ClearV3dCaches(hV3d);
 
-      BDBG_MSG(("Issuing BIN job %p for client %d", psInstruction->psJob, psInstruction->psJob->uiClientId));
+      BDBG_MSG(("Issuing BIN job %p for client %d", (void *)psInstruction->psJob, psInstruction->psJob->uiClientId));
 
       BV3D_P_GetTime_isrsafe(&hV3d->uiBinStartTimeUs);
 
       if (psInstruction->psJob->bCollectTimeline && psInstruction->psJob->sTimelineData.sBinStart.uiSecs == 0)
          BV3D_P_GetTimeNow(&psInstruction->psJob->sTimelineData.sBinStart);
 
-      BDBG_MSG(("Binner start = %p, end = %p", psInstruction->uiArg1, psInstruction->uiArg2));
-      BDBG_MSG(("BPCA = %p, BPCS = %p\n", BREG_Read32(hV3d->hReg, BCHP_V3D_PTB_BPCA), BREG_Read32(hV3d->hReg, BCHP_V3D_PTB_BPCS)));
+      BDBG_MSG(("Binner start = 0x%x, end = 0x%x", psInstruction->uiArg1, psInstruction->uiArg2));
+      BDBG_MSG(("BPCA = 0x%x, BPCS = 0x%x\n",
+         BREG_Read32(hV3d->hReg, BCHP_V3D_PTB_BPCA), BREG_Read32(hV3d->hReg, BCHP_V3D_PTB_BPCS)));
 
       /* If the binner has used EXACTLY the amount of bytes in the overspill buffer, we can get here with
          BPCS==0. If we start another bin job like this we will fail somewhere later, so ensure we give some more
          bin memory now */
       if (BREG_Read32(hV3d->hReg, BCHP_V3D_PTB_BPCS) == 0)
       {
-         uint32_t uiOverspill = BV3D_P_BinMemGetOverspill(hV3d->hBinMemManager);
+         BV3D_BinMemManagerHandle hBinMemManager = hV3d->bSecure ? hV3d->hBinMemManagerSecure : hV3d->hBinMemManager;
+         uint32_t uiOverspill = BV3D_P_BinMemGetOverspill(hBinMemManager);
          BDBG_ASSERT(uiOverspill);
 
          BV3D_P_SupplyBinner(hV3d, uiOverspill);
@@ -952,8 +964,8 @@ void BV3D_P_IssueBin(
          psInstruction->psJob->uiOverspill = uiOverspill;
 
          /* Attach overspill to job and allocate new overspill */
-         BV3D_P_BinMemOverspillUsed(hV3d->hBinMemManager, psInstruction->psJob);
-         BV3D_P_BinMemAllocOverspill(hV3d->hBinMemManager);
+         BV3D_P_BinMemOverspillUsed(hBinMemManager, psInstruction->psJob);
+         BV3D_P_BinMemAllocOverspill(hBinMemManager);
       }
 
       /* Point binner instruction counters at control list */
@@ -981,7 +993,7 @@ void BV3D_P_IssueRender(
       /* Kick the renderer off */
       BV3D_P_ClearV3dCaches(hV3d);
 
-      BDBG_MSG(("Issuing RENDER job %p for client %d", psInstruction->psJob, psInstruction->psJob->uiClientId));
+      BDBG_MSG(("Issuing RENDER job %p for client %d", (void *)psInstruction->psJob, psInstruction->psJob->uiClientId));
 
       BV3D_P_GetTime_isrsafe(&hV3d->uiRenderStartTimeUs);
 
@@ -989,7 +1001,7 @@ void BV3D_P_IssueRender(
            psInstruction->psJob->sTimelineData.sRenderStart.uiSecs == 0)
          BV3D_P_GetTimeNow(&psInstruction->psJob->sTimelineData.sRenderStart);
 
-      BDBG_MSG(("Render start = %p, end = %p", psInstruction->uiArg1, psInstruction->uiArg2));
+      BDBG_MSG(("Render start = 0x%x, end = 0x%x", psInstruction->uiArg1, psInstruction->uiArg2));
 
       BREG_Write32(hV3d->hReg, BCHP_V3D_CLE_CT1CA, psInstruction->uiArg1);
       BREG_Write32(hV3d->hReg, BCHP_V3D_CLE_CT1EA, psInstruction->uiArg2);
@@ -1014,7 +1026,7 @@ void BV3D_P_IssueUser(
    {
       BV3D_P_ClearV3dCaches(hV3d);
 
-      BDBG_MSG(("Issuing USER SHADER job %p for client %d", psInstruction->psJob, psInstruction->psJob->uiClientId));
+      BDBG_MSG(("Issuing USER SHADER job %p for client %d", (void *)psInstruction->psJob, psInstruction->psJob->uiClientId));
 
       if (psInstruction->psJob->bCollectTimeline && psInstruction->psJob->sTimelineData.sUserStart.uiSecs == 0)
          BV3D_P_GetTimeNow(&psInstruction->psJob->sTimelineData.sUserStart);
@@ -1053,6 +1065,40 @@ static bool BV3D_P_NoPendingRenderOrWait(
       }
    }
 
+   return true;
+}
+
+static bool BV3D_P_SwitchMode(
+   BV3D_Handle hV3d,
+   bool bSecure)
+{
+   if (hV3d->bSecure != bSecure)
+   {
+      /* cant change until all the units are idle */
+      if (!BV3D_P_AllUnitsIdle(hV3d))
+         return false;
+
+      BV3D_P_PowerOn(hV3d);
+
+      /* Critical section makes sure we aren't processing an IRQ whilst transitioning to secure */
+      BKNI_EnterCriticalSection();
+      /* stops IRQs from doing anything whilst scrubbing */
+      hV3d->bScrubbing = true;
+      BKNI_LeaveCriticalSection();
+
+      /* callback up to nexus to make the transitional switch */
+      if (hV3d->pfnSecureToggle)
+         hV3d->pfnSecureToggle(bSecure);
+      /* delay setting the state till after the transition, so a spurious IRQ can't read GISB range */
+      hV3d->bSecure = bSecure;
+
+      hV3d->bScrubbing = false;
+
+      BV3D_P_PowerOff(hV3d);
+
+      /* reset the core state */
+      BV3D_P_ResetCore(hV3d, hV3d->uiUserVPM);
+   }
    return true;
 }
 
@@ -1106,40 +1152,73 @@ void BV3D_P_IssueInstr(
 
             switch (psInstruction->eOperation)
             {
+               case BV3D_Operation_eSecureInstr:
+                  /* log the mode change into the queue */
+                  if (BV3D_P_IQGetSecure(hIQ) != !!(psInstruction->uiArg1))
+                  {
+                     BDBG_MSG(("Issuing secure transition on client %d\n", psInstruction->psJob->uiClientId));
+
+                     BV3D_P_IQSetSecure(hIQ, !!(psInstruction->uiArg1));
+                  }
+                  BV3D_P_InstructionDone(hV3d, psInstruction->psJob);
+                  break;
+
                case BV3D_Operation_eBinInstr:
                   if (BV3D_P_InstructionIsClear(&hV3d->sBin))
                   {
-                     /* Need a reasonable number of blocks before we should launch a bin job */
-                     /* Even if there aren't, if there aren't any pending renders then we should launch the bin cos nothing is
-                      * going to free up memory.  We might fail later.
-                      */
-                     /* At start of job make sure we have at least one overspill block */
-                     if (BV3D_P_BinMemGetOverspill(hV3d->hBinMemManager) == 0)
-                        BV3D_P_BinMemAllocOverspill(hV3d->hBinMemManager);
-
-                     if (BV3D_P_BinMemGetOverspill(hV3d->hBinMemManager) &&
-                         (BV3D_P_BinMemEnoughFreeBlocks(hV3d->hBinMemManager) ||
-                          BV3D_P_NoPendingRenderOrWait(hV3d, uiClientCount, uiClients)))
+                     if (BV3D_P_SwitchMode(hV3d, BV3D_P_IQGetSecure(hIQ)))
                      {
-                        BV3D_P_IssueBin(hV3d, psInstruction);
+                        BV3D_BinMemManagerHandle hBinMemManager = hV3d->bSecure ? hV3d->hBinMemManagerSecure : hV3d->hBinMemManager;
+                        /* Need a reasonable number of blocks before we should launch a bin job */
+                        /* Even if there aren't, if there aren't any pending renders then we should launch the bin cos nothing is
+                         * going to free up memory.  We might fail later.
+                         */
+                        /* At start of job make sure we have at least one overspill block */
+                        if (BV3D_P_BinMemGetOverspill(hBinMemManager) == 0)
+                           BV3D_P_BinMemAllocOverspill(hBinMemManager);
+
+                        if (BV3D_P_BinMemGetOverspill(hBinMemManager) &&
+                            (BV3D_P_BinMemEnoughFreeBlocks(hBinMemManager) ||
+                             BV3D_P_NoPendingRenderOrWait(hV3d, uiClientCount, uiClients)))
+                        {
+                           BV3D_P_IssueBin(hV3d, psInstruction);
+                        }
+                        else
+                           bAdvance = false;
                      }
                      else
                         bAdvance = false;
-                  } 
+                  }
                   else
                      bAdvance = false;
                   break;
 
                case BV3D_Operation_eRenderInstr:
                   if (BV3D_P_InstructionIsClear(&hV3d->sRender))
-                     BV3D_P_IssueRender(hV3d, psInstruction);
+                  {
+                     if (BV3D_P_SwitchMode(hV3d, BV3D_P_IQGetSecure(hIQ)))
+                        BV3D_P_IssueRender(hV3d, psInstruction);
+                     else
+                        bAdvance = false;
+                  }
                   else
                      bAdvance = false;
                   break;
 
                case BV3D_Operation_eUserInstr:
                   if (BV3D_P_InstructionIsClear(&hV3d->sUser))
-                     BV3D_P_IssueUser(hV3d, psInstruction);
+                  {
+                     if (BV3D_P_SwitchMode(hV3d, BV3D_P_IQGetSecure(hIQ)))
+                     {
+                        /* due to the GISB blockout, we can't run user mode jobs in secure mode */
+                        if (!hV3d->bSecure)
+                           BV3D_P_IssueUser(hV3d, psInstruction);
+                        else
+                           BV3D_P_InstructionDone(hV3d, psInstruction->psJob);
+                     }
+                     else
+                        bAdvance = false;
+                  }
                   else
                      bAdvance = false;
                   break;
@@ -1173,7 +1252,8 @@ void BV3D_P_IssueInstr(
                         /* if (psInstruction->uiArg1 == (BV3D_Signaller_eBinSig | BV3D_Signaller_eRenderSig | BV3D_Signaller_eUserSig))
                         {
                            BKNI_Printf("??? %x\n", psInstruction->uiArg1);
-                           BV3D_P_BinMemDebugDump(hV3d->hBinMemManager);
+                           if (!hV3d->bSecure)
+                              BV3D_P_BinMemDebugDump(hV3d->hBinMemManager);
                         }*/
 
                         BDBG_MSG(("Issuing WAIT CALLBACK(p=%d) to client %d", psInstruction->uiCallbackParam, psInstruction->psJob->uiClientId));
@@ -1255,12 +1335,14 @@ void BV3D_P_IssueInstr(
                bool bCandidateFound = false;
                void *pNext;
                BV3D_IQHandle hIQOtherQueues = BV3D_P_IQMapFirst(hV3d->hIQMap, &pNext);
+
                while (hIQOtherQueues)
                {
                   if (BV3D_P_IQGetSize(hIQOtherQueues) > 0)
                   {
-                     BV3D_Instruction *psInstruction = BV3D_P_IQTop(hIQOtherQueues);
-                     if (psInstruction->eOperation == BV3D_Operation_eBinInstr)
+                     /* only look at queues with the same secure status */
+                     if ((psInstruction->eOperation == BV3D_Operation_eBinInstr) &&
+                         (BV3D_P_IQGetSecure(hIQOtherQueues) == hV3d->bSecure))
                      {
                         bCandidateFound = true;
                         break;
@@ -1273,10 +1355,11 @@ void BV3D_P_IssueInstr(
                {
                   /* can't advance, so check for another potential bin / waitbin and move it to top of queue */
                   if (BV3D_P_InstructionIsClear(&hV3d->sBin) &&
-                     BV3D_P_BinMemEnoughFreeBlocks(hV3d->hBinMemManager))
+                      (hV3d->bSecure == BV3D_P_IQGetSecure(hIQ)) &&
+                     BV3D_P_BinMemEnoughFreeBlocks(hV3d->bSecure ? hV3d->hBinMemManagerSecure : hV3d->hBinMemManager))
                   {
                      /* if found, set advance and try again */
-                     bAdvance = BV3D_P_JobQFindBinOrWaitBinAndMoveToTop(hIQ);
+                     bAdvance = BV3D_P_JobQFindBinOrWaitBinAndMoveToTop(hIQ, hV3d->bSecure);
                   }
                }
             }
@@ -1359,7 +1442,7 @@ void BV3D_P_AbandonJob(
          BKNI_LeaveCriticalSection();
 
          /* Free up the memory here as this job is abandoned */
-         BV3D_P_BinMemReleaseByJob(hV3d->hBinMemManager, psJob);
+         BV3D_P_BinMemReleaseByJob(hV3d->bSecure ? hV3d->hBinMemManagerSecure : hV3d->hBinMemManager, psJob);
       }
    }
 
@@ -1396,7 +1479,7 @@ void BV3D_P_ProcessInterrupt(
     */
    if ((capturedReason & BCHP_V3D_CTL_INTCTL_EOF_MASK) != 0)
    {
-      BDBG_MSG(("RENDER job %p completed", hV3d->sRender.psJob));
+      BDBG_MSG(("RENDER job %p completed", (void *)hV3d->sRender.psJob));
       BV3D_P_HardwareDone(hV3d, &hV3d->sRender);
    }
 
@@ -1409,7 +1492,7 @@ void BV3D_P_ProcessInterrupt(
 
    if ((capturedReason & BCHP_V3D_CTL_INTCTL_EOB_MASK) != 0)
    {
-      BDBG_MSG(("BIN job %p completed", binJob));
+      BDBG_MSG(("BIN job %p completed", (void *)binJob));
       BV3D_P_HardwareDone(hV3d, &hV3d->sBin);
    }
 
@@ -1422,7 +1505,7 @@ void BV3D_P_ProcessInterrupt(
    /* High 16-bits are for user shaders             */
    if ((capturedReason & 0xFFFF0000) != 0)
    {
-      BDBG_MSG(("USER SHADER job %p completed", hV3d->sUser.psJob));
+      BDBG_MSG(("USER SHADER job %p completed", (void *)hV3d->sUser.psJob));
       BV3D_P_HardwareDone(hV3d, &hV3d->sUser);
    }
 
@@ -1481,10 +1564,12 @@ static void BV3D_P_WatchdogTimeout(
             if (binnerStall || renderStall)
             {
                if (binnerStall)
-                  BDBG_WRN(("Binner job (%p) lockupaddr %x prev %x end %x", hV3d->sBin.psJob, binAddr, hV3d->prevBinAddress, binEnd));
+                  BDBG_WRN(("Binner job %p lockupaddr 0x%x prev 0x%x end 0x%x",
+                     (void *)hV3d->sBin.psJob, binAddr, hV3d->prevBinAddress, binEnd));
 
                if (renderStall)
-                  BDBG_WRN(("Render job (%p) lockup addr %x prev %x end %x", hV3d->sRender.psJob, renderAddr, hV3d->prevRenderAddress, renderEnd));
+                  BDBG_WRN(("Render job %p lockup addr 0x%x prev 0x%x end 0x%x",
+                     (void *)hV3d->sRender.psJob, renderAddr, hV3d->prevRenderAddress, renderEnd));
 
                BV3D_P_DebugDump(hV3d);
 

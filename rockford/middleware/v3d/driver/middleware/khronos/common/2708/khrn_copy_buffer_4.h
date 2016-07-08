@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2010 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2010 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -34,6 +34,5 @@ typedef struct {
 
 extern bool khrn_delayed_copy_buffer(MEM_HANDLE_T dst_handle, MEM_HANDLE_T src_handle);
 extern void khrn_do_copy_buffer(MEM_HANDLE_T dst_handle, MEM_HANDLE_T src_handle);
-extern void khrn_copy_buffer_render_state_flush(KHRN_COPY_BUFFER_RENDER_STATE_T *render_state);
 
 #endif

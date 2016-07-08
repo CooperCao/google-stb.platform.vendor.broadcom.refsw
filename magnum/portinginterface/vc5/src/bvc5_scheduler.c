@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2014 Broadcom Corporation
+ *     Broadcom Proprietary and Confidential. (c)2014 Broadcom.  All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -55,9 +55,10 @@ static void BVC5_P_ProcessInterrupt(
    BVC5_Handle hVC5
 )
 {
-   uint32_t          uiCoreIndex = 0; /* TODO: multi-core */
-   uint32_t          uiCapturedReason;
-   uint32_t          uiTFUCapturedReason;
+   uint32_t             uiCoreIndex = 0; /* TODO: multi-core */
+   uint32_t             uiCapturedReason;
+   uint32_t             uiTFUCapturedReason;
+   BVC5_P_InternalJob  *pJob = NULL;
 
    uiCapturedReason         = __sync_fetch_and_and(&hVC5->uiInterruptReason, 0);
    uiTFUCapturedReason      = __sync_fetch_and_and(&hVC5->uiTFUInterruptReason, 0);
@@ -73,14 +74,16 @@ static void BVC5_P_ProcessInterrupt(
       {
          do
          {
-            BVC5_ClientHandle     hClient = NULL;
-            BVC5_P_InternalJob   *pJob    = pState->psJob[BVC5_P_HW_QUEUE_RUNNING];
+            BVC5_ClientHandle hClient = NULL;
 
+            pJob = pState->psJob[BVC5_P_HW_QUEUE_RUNNING];
             if (pJob != NULL)
             {
+#if INCLUDE_LEGACY_EVENT_TRACKS
                BVC5_P_AddCoreJobEvent(hVC5, uiCoreIndex, BVC5_P_EVENT_MONITOR_CORE_RENDER_TRACK,
                                       BVC5_P_EVENT_MONITOR_RENDERING, BVC5_EventEnd,
-                                      pJob);
+                                      pJob, BVC5_P_GetEventTimestamp(hVC5, uiCoreIndex));
+#endif
 
                BVC5_P_SchedPerfCounterAdd_isr(hVC5, BVC5_P_PERF_RENDER_JOBS_COMPLETED, 1);
 
@@ -90,8 +93,8 @@ static void BVC5_P_ProcessInterrupt(
                /* Probably - could be writing to a texture */
 
                /* This job is done, so add to completed queue and remove from job state map */
-               BVC5_P_BinMemArrayDestroy(&pJob->jobData.sRender.sBinMemArray, hVC5->hBinPool);
-               BVC5_P_ClientJobRunningToCompleted(hClient, pJob);
+               BVC5_P_BinMemArrayDestroy(&pJob->jobData.sRender.sBinMemArray);
+               BVC5_P_ClientJobRunningToCompleted(hVC5, hClient, pJob);
                BVC5_P_HardwareJobDone(hVC5, uiCoreIndex, BVC5_P_HardwareUnit_eRenderer);
             }
          } while (__sync_sub_and_fetch(&pState->uiCapturedRFC, 1) != 0);
@@ -102,20 +105,22 @@ static void BVC5_P_ProcessInterrupt(
    if (BCHP_GET_FIELD_DATA(uiCapturedReason, V3D_CTL_INT_STS_INT, FLDONE))
    {
       BVC5_P_BinnerState  *pState  = BVC5_P_HardwareGetBinnerState(hVC5, uiCoreIndex);
-      BVC5_ClientHandle     hClient = NULL;
-      BVC5_P_InternalJob   *pJob    = pState->psJob;
+      BVC5_ClientHandle    hClient = NULL;
 
+      pJob = pState->psJob;
       if (pJob != NULL)
       {
+#if INCLUDE_LEGACY_EVENT_TRACKS
          BVC5_P_AddCoreJobEvent(hVC5, uiCoreIndex, BVC5_P_EVENT_MONITOR_CORE_BIN_TRACK, BVC5_P_EVENT_MONITOR_BINNING,
-                                 BVC5_EventEnd, pJob);
+                                 BVC5_EventEnd, pJob, BVC5_P_GetEventTimestamp(hVC5, uiCoreIndex));
+#endif
 
          BVC5_P_SchedPerfCounterAdd_isr(hVC5, BVC5_P_PERF_BIN_JOBS_COMPLETED, 1);
 
          hClient = BVC5_P_ClientMapGet(hVC5, hVC5->hClientMap, pJob->uiClientId);
 
          /* This job is done, so add to completed queue and remove from job state map */
-         BVC5_P_ClientJobRunningToCompleted(hClient, pJob);
+         BVC5_P_ClientJobRunningToCompleted(hVC5, hClient, pJob);
 
          /* Render job's dependency is resolved */
          pJob->jobData.sBin.psInternalRenderJob->jobData.sRender.uiBinJobId = 0;
@@ -127,7 +132,8 @@ static void BVC5_P_ProcessInterrupt(
    if (BCHP_GET_FIELD_DATA(uiCapturedReason, V3D_CTL_INT_STS_INT, OUTOMEM))
    {
       BVC5_P_BinnerState  *pState     = BVC5_P_HardwareGetBinnerState(hVC5, uiCoreIndex);
-      BVC5_P_InternalJob  *pJob       = pState->psJob;
+
+      pJob = pState->psJob;
 
       /* Note: if a bin-done and OOM condition happen simultaneously, which they can, the bin done
        * code above will run first, which will cause pJob here to become NULL. That will prevent us
@@ -141,12 +147,15 @@ static void BVC5_P_ProcessInterrupt(
 
          /* TODO -- bin only jobs won't currently work as they require somewhere to store memory           */
          /* One way to work around this would be to issue a dummy associated render job with no work in it */
+#if INCLUDE_LEGACY_EVENT_TRACKS
          BVC5_P_AddCoreEvent(hVC5, uiCoreIndex, BVC5_P_EVENT_MONITOR_CORE_BIN_TRACK, pJob->uiJobId,
-                             BVC5_P_EVENT_MONITOR_BOOM, BVC5_EventOneshot);
+                             BVC5_P_EVENT_MONITOR_BOOM, BVC5_EventOneshot,
+                             BVC5_P_GetEventTimestamp(hVC5, uiCoreIndex));
+#endif
 
          BVC5_P_SchedPerfCounterAdd_isr(hVC5, BVC5_P_PERF_BIN_OOMS, 1);
 
-         pBlock = BVC5_P_BinMemArrayAdd(&pRenderJob->jobData.sRender.sBinMemArray, hVC5->hBinPool, 0, &uiPhysOffset);
+         pBlock = BVC5_P_BinMemArrayAdd(&pRenderJob->jobData.sRender.sBinMemArray, 0, &uiPhysOffset);
 
          if (pBlock == NULL)
          {
@@ -167,7 +176,7 @@ static void BVC5_P_ProcessInterrupt(
          BVC5_P_HardwareSupplyBinner(hVC5, uiCoreIndex, uiPhysOffset, pBlock->uiNumBytes);
 
          /* Now the hardware is happy, prepare some more memory for next time */
-         BVC5_P_BinPoolReplenish(hVC5->hBinPool);
+         BVC5_P_BinMemArrayReplenishPool(&pRenderJob->jobData.sRender.sBinMemArray);
       }
    }
 
@@ -176,21 +185,27 @@ static void BVC5_P_ProcessInterrupt(
    {
       BVC5_ClientHandle    hClient = NULL;
       BVC5_P_TFUState     *pState  = &hVC5->sTFUState;
-      BVC5_P_InternalJob  *pJob    = pState->psJob;
 
+      pJob = pState->psJob;
       if (pJob != NULL)
       {
-         BVC5_P_AddTFUJobEvent(hVC5, BVC5_EventEnd, pJob);
+         BVC5_P_AddTFUJobEvent(hVC5, BVC5_EventEnd, pJob,
+                               BVC5_P_GetEventTimestamp(hVC5, uiCoreIndex));
 
          BVC5_P_SchedPerfCounterAdd_isr(hVC5, BVC5_P_PERF_TFU_JOBS_COMPLETED, 1);
 
          hClient = BVC5_P_ClientMapGet(hVC5, hVC5->hClientMap, pJob->uiClientId);
 
-         BVC5_P_ClientJobRunningToCompleted(hClient, pJob);
+         BVC5_P_ClientJobRunningToCompleted(hVC5, hClient, pJob);
 
          BVC5_P_HardwareJobDone(hVC5, 0, BVC5_P_HardwareUnit_eTFU);
       }
    }
+
+#if V3D_VER_AT_LEAST(3,3,0,0)
+   /* Read the event counter fifos and log the events */
+   BVC5_P_HardwareReadEventFifos(hVC5, uiCoreIndex);
+#endif
 }
 
 /* BVC5_P_WatchdogTimeout
@@ -234,19 +249,22 @@ static void BVC5_P_WatchdogTimeout(
             {
                BVC5_P_AddCoreEventCJ(hVC5, uiCoreIndex, BVC5_P_EVENT_MONITOR_SCHED_TRACK,
                                      BVC5_P_EVENT_MONITOR_BIN_LOCKUP, BVC5_EventOneshot,
-                                     psCoreState->sBinnerState.psJob);
+                                     psCoreState->sBinnerState.psJob,
+                                     BVC5_P_GetEventTimestamp(hVC5, uiCoreIndex));
             }
             if (uiStalled & BVC5_P_HardwareUnit_eRenderer)
             {
                BVC5_P_AddCoreEventCJ(hVC5, uiCoreIndex, BVC5_P_EVENT_MONITOR_SCHED_TRACK,
                                      BVC5_P_EVENT_MONITOR_RENDER_LOCKUP, BVC5_EventOneshot,
-                                     psCoreState->sRenderState.psJob[0/* SAH TODO */]);
+                                     psCoreState->sRenderState.psJob[0/* SAH TODO */],
+                                     BVC5_P_GetEventTimestamp(hVC5, uiCoreIndex));
             }
             if (uiStalled & BVC5_P_HardwareUnit_eTFU)
             {
                /*
                BVC5_P_AddEvent(hVC5, BVC5_P_EVENT_MONITOR_SCHED_TRACK, 0,
-                                 BVC5_P_EVENT_MONITOR_TFU_LOCKUP, BVC5_EventOneshot);
+                                 BVC5_P_EVENT_MONITOR_TFU_LOCKUP, BVC5_EventOneshot,
+                                 BVC5_P_GetEventTimestamp(hVC5, uiCoreIndex));
                */
             }
 
@@ -256,10 +274,11 @@ static void BVC5_P_WatchdogTimeout(
 
                if (hVC5->sOpenParams.bResetOnStall)
                {
-                  BVC5_P_HardwareAbandonJobs(hVC5, uiCoreIndex);
-
                   /* Reset the core - sledgehammer time */
                   BVC5_P_HardwareResetCoreAndState(hVC5, uiCoreIndex);
+
+                  /* Mark jobs as abandoned -- MUST be done after reset as the reset clears the interrupt reasons */
+                  BVC5_P_HardwareAbandonJobs(hVC5, uiCoreIndex);
 
                   /* Make sure we report subsequent lockups */
                   hVC5->bLockupReported = false;
@@ -330,15 +349,8 @@ static bool BVC5_P_ScheduleSoftJobs(
 
    while (pJob != NULL)
    {
-      /* Signal jobs need to do something */
-      if (pJob->pBase->eType == BVC5_JobType_eFenceSignal)
-      {
-         BVC5_P_FenceSignalAndCleanup(hVC5->hFences, pJob->jobData.sSignal.signalData);
-         pJob->jobData.sSignal.signalData = NULL;
-      }
-
       /* Add to completed queue (for this client) and remove from map */
-      BVC5_P_ClientJobRunningToCompleted(hClient, pJob);
+      BVC5_P_ClientJobRunningToCompleted(hVC5, hClient, pJob);
 
       bIssued = true;
 
@@ -396,10 +408,9 @@ static bool BVC5_P_ScheduleRenderJob(
       if (!pJob->bFlushedV3D && BVC5_P_HardwareCacheClearBlocked(hVC5, 0))
          return false;
 
-      BVC5_P_JobQPop(hRenderQ);
-
-      BVC5_P_HardwareIssueRenderJob(hVC5, 0, pJob);
-      issued = true;
+      issued = BVC5_P_HardwareIssueRenderJob(hVC5, 0, pJob);
+      if (issued)
+         BVC5_P_JobQPop(hRenderQ);
    }
 
    return issued;
@@ -415,14 +426,15 @@ static bool BVC5_P_ScheduleTFUJob(
    BVC5_ClientHandle hClient
 )
 {
-   BVC5_JobQHandle   hTFUQ  = hClient->hRunnableTFUQ;
-   bool              issued = false;
+   BVC5_JobQHandle      hTFUQ  = hClient->hRunnableTFUQ;
+   bool                 issued = false;
+   BVC5_P_InternalJob  *pJob   = BVC5_P_JobQTop(hTFUQ);
 
-   if (BVC5_P_JobQSize(hTFUQ) != 0)
+   if (pJob != NULL)
    {
-      BVC5_P_InternalJob   *pJob = BVC5_P_JobQPop(hTFUQ);
-      BVC5_P_HardwareIssueTFUJob(hVC5, pJob);
-      issued = true;
+      issued = BVC5_P_HardwareIssueTFUJob(hVC5, pJob);
+      if (issued)
+         BVC5_P_JobQPop(hTFUQ);
    }
 
    return issued;
@@ -475,7 +487,7 @@ static void BVC5_P_ScheduleRunnableJobs(
    /* Sets the psState->phClientHandles which is a list of all the clients */
    BVC5_P_GatherClients(hVC5);
 
-   /* If we are going in to standby then don't issue any more non-local (h/w or usermode) tasks */
+   /* If we are going into standby then don't issue any more non-local (h/w or usermode) tasks */
    if (!hVC5->bEnterStandby)
    {
       /* Hardware availability */
@@ -508,7 +520,7 @@ static void BVC5_P_ScheduleRunnableJobs(
          BVC5_ClientHandle hClient = psState->phClientHandles[uiClient];
 
          /* Schedule a bin job if there is memory available */
-         if (BVC5_P_BinPoolReplenish(hVC5->hBinPool) &&
+         if (BVC5_P_BinPoolReplenish(BVC5_P_GetBinPool(hVC5)) &&
              BVC5_P_ScheduleBinnerJob(hVC5, hClient))
          {
             binnerFree    = false;  /* Only use one binner slot */
@@ -731,24 +743,28 @@ static bool BVC5_P_IsRunnable(
       a render job is waiting for its bin job
       wait job's fence is not signalled
 
+      the job is secure and we are running unsecure or vice versa
+
  */
 static bool BVC5_P_ProcessWaitQJob(
    BVC5_Handle          hVC5,
+   BVC5_ClientHandle    hClient,
    BVC5_P_InternalJob  *psJob
 )
 {
-   bool                runnable = false;
-   BVC5_ClientHandle   hClient  = BVC5_P_ClientMapGet(hVC5, hVC5->hClientMap, psJob->uiClientId);
+   bool  runnable = false;
 
    BDBG_ASSERT(hClient != NULL);
 
    if (BVC5_P_AreDepsResolved(hClient, psJob) &&
        BVC5_P_IsRunnable(hVC5, hClient, psJob))
    {
-      BDBG_MSG(("BVC5_P_ProcessWaitQJob jobID=%lld clientID=%d", psJob->uiJobId, psJob->uiClientId));
+      BDBG_MSG(("BVC5_P_ProcessWaitQJob jobID="BDBG_UINT64_FMT" clientID=%d", BDBG_UINT64_ARG(psJob->uiJobId), psJob->uiClientId));
 
       runnable = true;
-      BVC5_P_ClientJobWaitingToRunnable(hVC5, hClient, psJob);
+
+      /* Secure jobs cannot run in unsecure mode and vv. */
+      BVC5_P_ClientJobWaitingToRunnable(hClient, psJob);
    }
 
    return runnable;
@@ -785,7 +801,7 @@ void BVC5_P_PumpClient(
       {
          bool  wasRunnable;
 
-         wasRunnable = BVC5_P_ProcessWaitQJob(hVC5, pJob);
+         wasRunnable = BVC5_P_ProcessWaitQJob(hVC5, hClient, pJob);
 
          if (isBin && !wasRunnable)
             aBinWasNotRunnable = true;
@@ -889,15 +905,16 @@ void BVC5_Scheduler(
 
       BVC5_P_PumpAllClients(hVC5);
 
-      BKNI_ReleaseMutex(hVC5->hModuleMutex);
-
       /* When enough events have happened try to reduce the bin memory footprint */
       hVC5->uiPurgeCounter++;
       if (hVC5->uiPurgeCounter >= BVC5_PURGE_LIMIT)
       {
          hVC5->uiPurgeCounter = 0;
          BVC5_P_BinPoolPurge(hVC5->hBinPool);
+         BVC5_P_BinPoolPurge(hVC5->hSecureBinPool);
       }
+
+      BKNI_ReleaseMutex(hVC5->hModuleMutex);
    }
 
    BKNI_DestroyEvent(hVC5->hSchedulerWakeEvent);

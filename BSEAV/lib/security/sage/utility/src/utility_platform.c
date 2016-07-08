@@ -1,42 +1,40 @@
 /******************************************************************************
- * (c) 2014 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+
  ******************************************************************************/
 
 #include <errno.h>
@@ -48,6 +46,8 @@
 #include "bdbg.h"
 #include "bkni.h"
 #include "bkni_multi.h"
+
+#include "nexus_otpmsp.h"
 
 #include "drm_metadata_tl.h"
 
@@ -73,6 +73,11 @@ static SRAI_PlatformHandle platformHandle = NULL;
 
 static uint32_t Utility_P_CheckDrmBinFileSize(void);
 static BERR_Code Utility_P_GetFileSize(const char * filename, uint32_t *filesize);
+BERR_Code Utility_P_TA_Install(char * ta_bin_filename);
+ChipType_e Utility_P_GetChipType(void);
+
+#define UTILITY_TA_NAME_PRODUCTION  "./sage_ta_utility.bin"
+#define UTILITY_TA_NAME_DEVELOPMENT "./sage_ta_utility_dev.bin"
 
 
 BERR_Code
@@ -89,6 +94,7 @@ Utility_ModuleInit(Utility_ModuleId_e module_id,
     uint32_t write_size = 0;
     BERR_Code sage_rc = BERR_SUCCESS;
     SRAI_ModuleHandle tmpModuleHandle = NULL;
+    char * ta_bin_filename;
 
     BDBG_ENTER(Utility_ModuleInit);
 
@@ -114,32 +120,46 @@ Utility_ModuleInit(Utility_ModuleId_e module_id,
 
     if(platformHandle == NULL)
     {
+
+        if(Utility_P_GetChipType() == ChipType_eZS)
+            ta_bin_filename = UTILITY_TA_NAME_DEVELOPMENT;
+        else
+            ta_bin_filename = UTILITY_TA_NAME_PRODUCTION;
+
+        sage_rc = Utility_P_TA_Install(ta_bin_filename);
+
+        if (sage_rc != BERR_SUCCESS)
+        {
+            BDBG_WRN(("%s - Could not Install TA %s: Make sure you have the TA binary", __FUNCTION__, ta_bin_filename));
+            rc = sage_rc;
+        }
+
         BSAGElib_State platform_status;
         sage_rc = SRAI_Platform_Open(BSAGE_PLATFORM_ID_UTILITY, &platform_status, &platformHandle);
         if (sage_rc != BERR_SUCCESS)
         {
             platformHandle = NULL; /* sanity reset */
             BDBG_ERR(("%s - Error calling platform_open", __FUNCTION__));
-	        rc = sage_rc;
-	        goto ErrorExit;
-	    }
+            rc = sage_rc;
+            goto ErrorExit;
+        }
 
-        BDBG_MSG(("%s - SRAI_Platform_Open(%u, %p, %p) returned %p", __FUNCTION__, BSAGE_PLATFORM_ID_UTILITY, &platform_status, &platformHandle, platformHandle));
+        BDBG_MSG(("%s - SRAI_Platform_Open(%u, %p, %p) returned %p", __FUNCTION__, BSAGE_PLATFORM_ID_UTILITY, (void *)&platform_status, (void *)&platformHandle, (void *)platformHandle));
 
-		if(platform_status == BSAGElib_State_eUninit)
-		{
-	        BDBG_WRN(("%s - platform_status == BSAGElib_State_eUninit ************************* (platformHandle = 0x%08x)", __FUNCTION__, platformHandle));
-		    sage_rc = SRAI_Platform_Init(platformHandle, NULL);
-	        if (sage_rc != BERR_SUCCESS)
-	        {
-	            BDBG_ERR(("%s - Error calling platform init", __FUNCTION__));
-	            rc = sage_rc;
-	            goto ErrorExit;
-	        }
-	    }
-	    else{
-	        BDBG_WRN(("%s - Platform already initialized *************************", __FUNCTION__));
-	    }
+        if(platform_status == BSAGElib_State_eUninit)
+        {
+            BDBG_WRN(("%s - platform_status == BSAGElib_State_eUninit ************************* (platformHandle = 0x%08x)", __FUNCTION__, (uint32_t)platformHandle));
+            sage_rc = SRAI_Platform_Init(platformHandle, NULL);
+            if (sage_rc != BERR_SUCCESS)
+            {
+                BDBG_ERR(("%s - Error calling platform init", __FUNCTION__));
+                rc = sage_rc;
+                goto ErrorExit;
+            }
+        }
+        else{
+            BDBG_WRN(("%s - Platform already initialized *************************", __FUNCTION__));
+        }
     }
 
     Utility_ModuleCounter++;
@@ -238,7 +258,7 @@ Utility_ModuleInit(Utility_ModuleId_e module_id,
     }
 
     /* All modules will call SRAI_Module_Init */
-    BDBG_MSG(("%s - ************************* (platformHandle = 0x%08x)", __FUNCTION__, platformHandle));
+    BDBG_MSG(("%s - ************************* (platformHandle = 0x%08x)", __FUNCTION__, (uint32_t)platformHandle));
     sage_rc = SRAI_Module_Init(platformHandle, module_id, container, &tmpModuleHandle);
     if(sage_rc != BERR_SUCCESS)
     {
@@ -247,7 +267,7 @@ Utility_ModuleInit(Utility_ModuleId_e module_id,
         goto ErrorExit;
     }
     BDBG_MSG(("%s - SRAI_Module_Init(%p, %u, %p, %p) returned %p",
-              __FUNCTION__, platformHandle, module_id, container, &tmpModuleHandle, moduleHandle));
+              __FUNCTION__, (void *)platformHandle, module_id, (void *)container, (void *)&tmpModuleHandle, (void *)moduleHandle));
 
     /* Extract DRM bin file manager response from basic[0].  Free memory if failed */
     sage_rc = container->basicOut[0];
@@ -337,7 +357,7 @@ Utility_ModuleUninit(SRAI_ModuleHandle moduleHandle)
     }
 
     if(moduleHandle != NULL){
-        BDBG_MSG(("%s - SRAI_Module_Uninit(%p)", __FUNCTION__, moduleHandle));
+        BDBG_MSG(("%s - SRAI_Module_Uninit(%p)", __FUNCTION__, (void *)moduleHandle));
         SRAI_Module_Uninit(moduleHandle);
     }
 
@@ -350,13 +370,15 @@ Utility_ModuleUninit(SRAI_ModuleHandle moduleHandle)
         BDBG_MSG(("%s - Cleaning up Utility TL only parameters ***************************", __FUNCTION__));
         if (platformHandle)
         {
-            BDBG_MSG(("%s - SRAI_Platform_Close(%p)", __FUNCTION__, platformHandle));
+            BDBG_MSG(("%s - SRAI_Platform_Close(%p)", __FUNCTION__, (void *)platformHandle));
             SRAI_Platform_Close(platformHandle);
             platformHandle = NULL;
         }
 
+        SRAI_Platform_UnInstall(BSAGE_PLATFORM_ID_UTILITY);
+
         BKNI_ReleaseMutex(utilityMutex);
-        BDBG_MSG(("%s - BKNI_DestroyMutex(%p)", __FUNCTION__, utilityMutex));
+        BDBG_MSG(("%s - BKNI_DestroyMutex(%p)", __FUNCTION__, (void *)utilityMutex));
         BKNI_DestroyMutex(utilityMutex);
         utilityMutex = NULL;
     }
@@ -371,7 +393,7 @@ Utility_ModuleUninit(SRAI_ModuleHandle moduleHandle)
     if (utilityMutex != NULL)
     {
         BKNI_ReleaseMutex(utilityMutex);
-        BDBG_MSG(("%s - BKNI_ReleaseMutex(%p)", __FUNCTION__, utilityMutex));
+        BDBG_MSG(("%s - BKNI_ReleaseMutex(%p)", __FUNCTION__, (void *)utilityMutex));
     }
 
     BDBG_LEAVE(Utility_ModuleUninit);
@@ -460,4 +482,103 @@ ErrorExit:
     BDBG_MSG(("%s - Exiting function (%u bytes)", __FUNCTION__, (*filesize)));
 
     return rc;
+}
+
+BERR_Code Utility_P_TA_Install(char * ta_bin_filename)
+{
+    BERR_Code rc = BERR_SUCCESS;
+    FILE * fptr = NULL;
+    uint32_t file_size = 0;
+    uint32_t read_size = 0;
+    uint8_t *ta_bin_file_buff = NULL;
+    BERR_Code sage_rc = BERR_SUCCESS;
+
+    BDBG_MSG(("%s - TA bin filename '%s'", __FUNCTION__, ta_bin_filename));
+
+    rc = Utility_P_GetFileSize(ta_bin_filename, &file_size);
+    if(rc != BERR_SUCCESS)
+    {
+        BDBG_LOG(("%s - Error determine file size of TA bin file", __FUNCTION__));
+        goto ErrorExit;
+    }
+
+    ta_bin_file_buff = SRAI_Memory_Allocate(file_size, SRAI_MemoryType_Shared);
+    if(ta_bin_file_buff == NULL)
+    {
+        BDBG_ERR(("%s - Error allocating '%u' bytes for loading TA bin file", __FUNCTION__, file_size));
+        rc = BERR_OUT_OF_SYSTEM_MEMORY;
+        goto ErrorExit;
+    }
+
+    fptr = fopen(ta_bin_filename, "rb");
+    if(fptr == NULL)
+    {
+        BDBG_ERR(("%s - Error opening TA bin file (%s)", __FUNCTION__, ta_bin_filename));
+        rc = BERR_OS_ERROR;
+        goto ErrorExit;
+    }
+
+    read_size = fread(ta_bin_file_buff, 1, file_size, fptr);
+    if(read_size != file_size)
+    {
+        BDBG_ERR(("%s - Error reading TA bin file size (%u != %u)", __FUNCTION__, read_size, file_size));
+        rc = BERR_OS_ERROR;
+        goto ErrorExit;
+    }
+
+    /* close file and set to NULL */
+    if(fclose(fptr) != 0)
+    {
+        BDBG_ERR(("%s - Error closing TA bin file '%s'.  (%s)", __FUNCTION__, ta_bin_filename, strerror(errno)));
+        rc = BERR_OS_ERROR;
+        goto ErrorExit;
+    }
+    fptr = NULL;
+
+    BDBG_MSG(("%s - TA 0x%x Install file %s", __FUNCTION__,BSAGE_PLATFORM_ID_UTILITY,ta_bin_filename));
+
+    sage_rc = SRAI_Platform_Install(BSAGE_PLATFORM_ID_UTILITY, ta_bin_file_buff, file_size);
+    if(sage_rc != BERR_SUCCESS)
+    {
+        BDBG_ERR(("%s - Error calling SRAI_Platform_Install Error 0x%x", __FUNCTION__, sage_rc ));
+        rc = sage_rc;
+        goto ErrorExit;
+    }
+
+ErrorExit:
+
+    if(ta_bin_file_buff != NULL){
+        SRAI_Memory_Free(ta_bin_file_buff);
+        ta_bin_file_buff = NULL;
+    }
+
+    if(fptr != NULL){
+        fclose(fptr);
+        fptr = NULL;
+    }
+
+    return rc;
+}
+
+ChipType_e Utility_P_GetChipType()
+{
+
+    NEXUS_ReadMspParms     readMspParms;
+    NEXUS_ReadMspIO        readMsp0;
+    NEXUS_ReadMspIO        readMsp1;
+    NEXUS_Error rc =  NEXUS_SUCCESS;
+
+    readMspParms.readMspEnum = NEXUS_OtpCmdMsp_eReserved233;
+    rc = NEXUS_Security_ReadMSP(&readMspParms,&readMsp0);
+
+    readMspParms.readMspEnum = NEXUS_OtpCmdMsp_eReserved234;
+    rc = NEXUS_Security_ReadMSP(&readMspParms,&readMsp1);
+
+    BDBG_MSG(("OTP MSP0 %d %d %d %d OTP MSP0 %d %d %d %d",readMsp0.mspDataBuf[0], readMsp0.mspDataBuf[1], readMsp0.mspDataBuf[2], readMsp0.mspDataBuf[3],
+                                                          readMsp1.mspDataBuf[0], readMsp1.mspDataBuf[1], readMsp1.mspDataBuf[2], readMsp1.mspDataBuf[3]));
+
+    if((readMsp0.mspDataBuf[3] == OTP_MSP0_VALUE_ZS) && (readMsp1.mspDataBuf[3] == OTP_MSP1_VALUE_ZS)){
+        return ChipType_eZS;
+    }
+    return ChipType_eZB;
 }

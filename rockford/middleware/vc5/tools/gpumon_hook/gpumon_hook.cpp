@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2014 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2014 Broadcom.
 All rights reserved.
 
 Project  :  GPUMonitor intercept hook
@@ -25,6 +25,8 @@ Provides entry points to match the VC5 driver
 #include "platform.h"
 #include <map>
 #include <set>
+#include <string>
+#include <array>
 
 #include "packet.h"
 #include "remote.h"
@@ -47,7 +49,7 @@ Provides entry points to match the VC5 driver
 // The version of the SpyHook API (SpyHook<->SpyTool)
 // Update this when the interface between the SpyHook & SpyTool changes
 #define SPYHOOK_MAJOR_VER 2
-#define SPYHOOK_MINOR_VER 0
+#define SPYHOOK_MINOR_VER 1
 
 // The version of the binary capture format
 // Update this when the capture data changes
@@ -588,7 +590,7 @@ static SavedContextState SaveAndChangeContext(uint32_t newContext)
    scs.m_drawSurf = Real(eglGetCurrentSurface)(EGL_DRAW);
    scs.m_readSurf = Real(eglGetCurrentSurface)(EGL_READ);
 
-   Real(eglMakeCurrent)(disp, EGL_NO_SURFACE, EGL_NO_SURFACE, (EGLContext)newContext);
+   Real(eglMakeCurrent)(disp, EGL_NO_SURFACE, EGL_NO_SURFACE, (EGLContext)(uintptr_t)newContext);
    return scs;
 }
 
@@ -596,6 +598,176 @@ static void RestoreContext(const SavedContextState &scs)
 {
    EGLDisplay disp = Real(eglGetDisplay)(EGL_DEFAULT_DISPLAY);
    Real(eglMakeCurrent)(disp, scs.m_drawSurf, scs.m_readSurf, scs.m_context);
+}
+
+static void GetFramebufferInfo(const Packet &packet)
+{
+   uint32_t fb = packet.Item(1).GetUInt32();
+   uint32_t context = packet.Item(2).GetUInt32();
+   EGLSurface drawSurf = (EGLSurface)(uintptr_t)packet.Item(3).GetUInt32();
+
+   Packet dataPacket(eFRAMEBUFFER_INFO);
+   dataPacket.AddItem(PacketItem(1));     // v1
+   dataPacket.AddItem(PacketItem(context));
+   dataPacket.AddItem(PacketItem(fb));
+
+   // Switch context
+   SavedContextState scs = SaveAndChangeContext(context);
+   Real(eglMakeCurrent)(Real(eglGetDisplay)(EGL_DEFAULT_DISPLAY), drawSurf, drawSurf, (EGLContext)(uintptr_t)context);
+
+   // Switch current FB
+   GLint curFB = 0;
+   Real(glGetIntegerv)(GL_FRAMEBUFFER_BINDING, &curFB);
+   if (curFB != (GLint)fb)
+      Real(glBindFramebuffer)(GL_FRAMEBUFFER, fb);
+
+   bool isFramebuffer = fb == 0 || Real(glIsFramebuffer(fb));
+   dataPacket.AddItem(PacketItem(isFramebuffer ? 1 : 0));
+
+   if (isFramebuffer)
+   {
+      GLint val = 0;
+
+      GLint numColAtts = 1;
+      Real(glGetIntegerv)(GL_MAX_COLOR_ATTACHMENTS, &numColAtts);
+      dataPacket.AddItem(PacketItem(numColAtts));
+
+      if (fb != 0)
+      {
+         GLenum status = Real(glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER));
+         dataPacket.AddItem(PacketItem(GL_FRAMEBUFFER_COMPLETE));
+         dataPacket.AddItem(PacketItem(status));
+      }
+
+      GLenum pnames[] =
+      {
+         GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
+         GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE,
+         GL_FRAMEBUFFER_ATTACHMENT_COLOR_ENCODING,
+         GL_FRAMEBUFFER_ATTACHMENT_COMPONENT_TYPE,
+         GL_FRAMEBUFFER_ATTACHMENT_RED_SIZE,
+         GL_FRAMEBUFFER_ATTACHMENT_GREEN_SIZE,
+         GL_FRAMEBUFFER_ATTACHMENT_BLUE_SIZE,
+         GL_FRAMEBUFFER_ATTACHMENT_ALPHA_SIZE,
+         GL_FRAMEBUFFER_ATTACHMENT_DEPTH_SIZE,
+         GL_FRAMEBUFFER_ATTACHMENT_STENCIL_SIZE,
+         GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LAYER,
+         GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL,
+         GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE
+      };
+
+      if (fb == 0)
+      {
+         GLenum attachments[] = { GL_BACK, GL_DEPTH, GL_STENCIL };
+
+         dataPacket.AddItem(PacketItem(sizeof(attachments) / sizeof(GLenum)));
+
+         for (GLenum a : attachments)
+         {
+            dataPacket.AddItem(PacketItem(sizeof(pnames) / sizeof(GLenum)));
+
+            for (GLenum p : pnames)
+            {
+               val = 0;
+               Real(glGetFramebufferAttachmentParameteriv(GL_DRAW_FRAMEBUFFER, a, p, &val));
+               dataPacket.AddItem(PacketItem(p));
+               dataPacket.AddItem(PacketItem(val));
+            }
+         }
+      }
+      else
+      {
+         GLenum attachments[] = { GL_DEPTH_ATTACHMENT, GL_STENCIL_ATTACHMENT, GL_DEPTH_STENCIL_ATTACHMENT };
+         GLint numColAtts;
+
+         Real(glGetIntegerv)(GL_MAX_COLOR_ATTACHMENTS, &numColAtts);
+
+         dataPacket.AddItem(PacketItem(numColAtts + sizeof(attachments) / sizeof(GLenum)));
+
+         for (GLint i = 0; i < numColAtts; i++)
+         {
+            dataPacket.AddItem(PacketItem(sizeof(pnames) / sizeof(GLenum)));
+
+            for (GLenum p : pnames)
+            {
+               val = 0;
+               Real(glGetFramebufferAttachmentParameteriv(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, p, &val));
+               dataPacket.AddItem(PacketItem(p));
+               dataPacket.AddItem(PacketItem(val));
+            }
+         }
+
+         for (GLenum a : attachments)
+         {
+            dataPacket.AddItem(PacketItem(sizeof(pnames) / sizeof(GLenum)));
+
+            for (GLenum p : pnames)
+            {
+               val = 0;
+               Real(glGetFramebufferAttachmentParameteriv(GL_DRAW_FRAMEBUFFER, a, p, &val));
+               dataPacket.AddItem(PacketItem(p));
+               dataPacket.AddItem(PacketItem(val));
+            }
+         }
+
+      }
+   }
+
+   Real(glGetError)();  // Clear any errors we may have tripped
+
+   RestoreContext(scs);
+
+   if (remote)
+      dataPacket.Send(remote);
+}
+
+static void GetRenderbufferInfo(const Packet &packet)
+{
+   uint32_t rb = packet.Item(1).GetUInt32();
+   uint32_t context = packet.Item(2).GetUInt32();
+
+   Packet dataPacket(eRENDERBUFFER_INFO);
+   dataPacket.AddItem(PacketItem(1));     // v1
+   dataPacket.AddItem(PacketItem(context));
+   dataPacket.AddItem(PacketItem(rb));
+
+   // Switch context
+   SavedContextState scs = SaveAndChangeContext(context);
+
+   bool isRenderbuffer = Real(glIsRenderbuffer(rb));
+   dataPacket.AddItem(PacketItem(isRenderbuffer ? 1 : 0));
+
+   if (isRenderbuffer)
+   {
+      GLint val;
+      GLenum pnames[] =
+      {
+         GL_RENDERBUFFER_WIDTH,
+         GL_RENDERBUFFER_HEIGHT,
+         GL_RENDERBUFFER_INTERNAL_FORMAT,
+         GL_RENDERBUFFER_SAMPLES,
+         GL_RENDERBUFFER_RED_SIZE,
+         GL_RENDERBUFFER_GREEN_SIZE,
+         GL_RENDERBUFFER_BLUE_SIZE,
+         GL_RENDERBUFFER_ALPHA_SIZE,
+         GL_RENDERBUFFER_DEPTH_SIZE,
+         GL_RENDERBUFFER_STENCIL_SIZE
+      };
+
+      dataPacket.AddItem(PacketItem(sizeof(pnames) / sizeof(GLenum)));
+
+      for (GLenum p : pnames)
+      {
+         Real(glGetRenderbufferParameteriv(GL_RENDERBUFFER, p, &val));
+         dataPacket.AddItem(PacketItem(p));
+         dataPacket.AddItem(PacketItem(val));
+      }
+   }
+
+   RestoreContext(scs);
+
+   if (remote)
+      dataPacket.Send(remote);
 }
 
 static void GetGLBuffer(const Packet &packet)
@@ -620,10 +792,10 @@ static void GetGLBuffer(const Packet &packet)
 
    if (packet.NumItems() > 2)
    {
-      context = (EGLContext)packet.Item(2).GetUInt32();
+      context = (EGLContext)(uintptr_t)packet.Item(2).GetUInt32();
       v[2] = packet.Item(3).GetUInt32();
       v[3] = packet.Item(4).GetUInt32();
-      EGLSurface drawSurf = (EGLSurface)packet.Item(5).GetUInt32();
+      EGLSurface drawSurf = (EGLSurface)(uintptr_t)packet.Item(5).GetUInt32();
 
       // Change context
       Real(eglMakeCurrent)(disp, drawSurf, drawSurf, context);
@@ -1191,7 +1363,7 @@ static void GetEventData(const Packet &packet)
 static void GetUniforms(const Packet &packet)
 {
    uint32_t progId = packet.Item(1).GetUInt32();
-   uint32_t context = (uint32_t)Real(eglGetCurrentContext());
+   uint32_t context = (uint32_t)(uintptr_t)Real(eglGetCurrentContext());
 
    if (packet.NumItems() > 2)
       context = packet.Item(2).GetUInt32();
@@ -1712,6 +1884,82 @@ static void GetProgramPipelineData(const Packet &packet)
       delete [] infoLog;
 }
 
+static void AddInfoStr(std::vector<std::string> &strs, const char *s)
+{
+   if (s != NULL)
+      strs.push_back(std::string(s));
+   else
+      strs.push_back(std::string(""));
+}
+
+static void GetInfoData(const Packet &packet)
+{
+   uint32_t context = packet.Item(1).GetUInt32();
+
+   Packet dataPacket(eINFO_DATA);
+   dataPacket.AddItem(PacketItem(1));     // v1
+   dataPacket.AddItem(PacketItem(context));
+
+   SavedContextState scs = SaveAndChangeContext(context);
+
+   std::vector<std::string> strs;
+
+   // Add the GL version
+   GLint major = 0, minor = 0;
+   Real(glGetIntegerv)(GL_MAJOR_VERSION, &major);
+   Real(glGetIntegerv)(GL_MINOR_VERSION, &minor);
+
+   dataPacket.AddItem(PacketItem(major));
+   dataPacket.AddItem(PacketItem(minor));
+
+   // Add the gl strings
+   AddInfoStr(strs, (const char *)Real(glGetString)(GL_VENDOR));
+   dataPacket.AddItem(PacketItem(strs.back().c_str()));
+
+   AddInfoStr(strs, (const char *)Real(glGetString)(GL_RENDERER));
+   dataPacket.AddItem(PacketItem(strs.back().c_str()));
+
+   AddInfoStr(strs, (const char *)Real(glGetString)(GL_VERSION));
+   dataPacket.AddItem(PacketItem(strs.back().c_str()));
+
+   AddInfoStr(strs, (const char *)Real(glGetString)(GL_SHADING_LANGUAGE_VERSION));
+   dataPacket.AddItem(PacketItem(strs.back().c_str()));
+
+   // Add the GL extensions
+   GLint numExts = 0;
+   Real(glGetIntegerv)(GL_NUM_EXTENSIONS, &numExts);
+   dataPacket.AddItem(PacketItem(numExts));
+   for (GLint i = 0; i < numExts; i++)
+   {
+      AddInfoStr(strs, (const char *)Real(glGetStringi)(GL_EXTENSIONS, i));
+      dataPacket.AddItem(PacketItem(strs.back().c_str()));
+   }
+
+   // Add the EGL strings
+   EGLDisplay disp = Real(eglGetDisplay(EGL_DEFAULT_DISPLAY));
+
+   AddInfoStr(strs, (const char *)Real(eglQueryString(disp, EGL_VENDOR)));
+   dataPacket.AddItem(PacketItem(strs.back().c_str()));
+
+   AddInfoStr(strs, (const char *)Real(eglQueryString(disp, EGL_VERSION)));
+   dataPacket.AddItem(PacketItem(strs.back().c_str()));
+
+   AddInfoStr(strs, (const char *)Real(eglQueryString(disp, EGL_CLIENT_APIS)));
+   dataPacket.AddItem(PacketItem(strs.back().c_str()));
+
+   // And EGL display extensions
+   AddInfoStr(strs, (const char *)Real(eglQueryString(disp, EGL_EXTENSIONS)));
+   dataPacket.AddItem(PacketItem(strs.back().c_str()));
+
+   // And EGL client extensions
+   AddInfoStr(strs, (const char *)Real(eglQueryString(EGL_NO_DISPLAY, EGL_EXTENSIONS)));
+   dataPacket.AddItem(PacketItem(strs.back().c_str()));
+
+   RestoreContext(scs);
+
+   if (remote)
+      dataPacket.Send(remote);
+}
 
 static void GetQueryObjData(const Packet &packet)
 {
@@ -2157,7 +2405,7 @@ static void ChangeShader(const Packet &packet)
       GLboolean  isShader = Real(glIsShader(shaderID));
       GLboolean  isProgram = Real(glIsProgram(progID));
 
-      if (context == (uint32_t)curCtx && isShader && isProgram)
+      if ((EGLContext)(uintptr_t)context == curCtx && isShader && isProgram)
       {
          GLint linkedOK = 0;
          Real(glShaderSource(shaderID, 1, &shaderSrc, NULL));
@@ -2472,6 +2720,9 @@ static bool PostPacketize(Packet *p)
          case Control::eGetQueryObjData       : GetQueryObjData(retPacket); break;
          case Control::eGetVertexArrayObjData : GetVertexArrayObjData(retPacket); break;
          case Control::eGetProgramPipelineData: GetProgramPipelineData(retPacket); break;
+         case Control::eGetInfoData           : GetInfoData(retPacket); break;
+         case Control::eGetFramebufferInfo    : GetFramebufferInfo(retPacket); break;
+         case Control::eGetRenderbufferInfo   : GetRenderbufferInfo(retPacket); break;
          }
       }
    }
@@ -3620,7 +3871,7 @@ DLLEXPORT void DLLEXPORTENTRY specialized_glBufferData (GLenum target, GLsizeipt
                }
             }
 
-            Buffer *buffer = &sContexts[(GLuint)curCtx].m_buffers[elementBind];
+            Buffer *buffer = &sContexts[(uintptr_t)curCtx].m_buffers[elementBind];
             buffer->m_maxByteIndx = maxByteIndx;
             buffer->m_maxShortIndx = maxShortIndx;
             buffer->m_maxIntIndx = maxIntIndx;
@@ -3699,7 +3950,7 @@ DLLEXPORT void DLLEXPORTENTRY specialized_glBufferSubData (GLenum target, GLintp
                }
             }
 
-            Buffer *buffer = &sContexts[(GLuint)curCtx].m_buffers[elementBind];
+            Buffer *buffer = &sContexts[(uintptr_t)curCtx].m_buffers[elementBind];
             if (maxByteIndx > buffer->m_maxByteIndx)
             {
                buffer->m_maxByteIndx = maxByteIndx;
@@ -4059,7 +4310,7 @@ static uint32_t FindMaxIndex(GLsizei count, GLenum type, const GLvoid* indices)
       // Need to use the VBO index buffer
       EGLContext curCtx = Real(eglGetCurrentContext)();
 
-      Buffer *buffer = &sContexts[(GLuint)curCtx].m_buffers[elementBind];
+      Buffer *buffer = &sContexts[(uintptr_t)curCtx].m_buffers[elementBind];
 
       switch (type)
       {
@@ -4467,149 +4718,375 @@ DLLEXPORT void DLLEXPORTENTRY specialized_glShaderBinary (GLsizei n, const GLuin
       RealApiEvent(glShaderBinary, (n, shaders, binaryformat, binary, length));
 }
 
+static bool GetOutTypeAndName(const GLchar *s, std::string *type, std::string *name)
+{
+   // Read tokens and a ; - [prec] type name
+   uint32_t    state = 0;
+   std::string token[3];
+   uint32_t    t = 0;
+
+   while (*s != '\0')
+   {
+      GLchar ch = *s;
+      if (state == 0)   // Skip whitespace
+      {
+         if (!isspace(ch))
+            state = 1;
+         else
+            s++;
+      }
+      else if (state == 1) // Get token
+      {
+         if (ch == ';')
+            break;
+         else if (ch == ')' || ch == ',' || ch == '(' || ch == '{' || ch == '}')
+            return false;
+         else if (!isspace(ch))
+         {
+            if (t >= 3)
+               return false;
+
+            token[t] += ch;
+            s++;
+         }
+         else
+         {
+            t++;
+            state = 0;
+         }
+      }
+   }
+
+   if (token[0] == "highp" || token[0] == "lowp" || token[0] == "mediump")
+   {
+      token[0] = token[1];
+      token[1] = token[2];
+   }
+
+   if (token[1] == "highp" || token[1] == "lowp" || token[1] == "mediump")
+      token[1] = token[2];
+
+   if (token[0] == "" || token[1] == "")
+      return false;
+
+   *type = token[0];
+   *name = token[1];
+
+   return true;
+}
+
+static bool IsSeparator(char c)
+{
+   return c == ';' || isspace(c);
+}
+
+static std::string PreProcessShader(const std::string &str)
+{
+   uint32_t    state = 0;
+   std::string ret;
+
+   for (uint32_t c = 0; c < str.length(); c++)
+   {
+      const GLchar *s = str.c_str() + c;
+      GLchar ch = *s;
+
+      switch (state)
+      {
+         case 0 :
+         {
+            if (!strncmp(s, "/*", 2))
+               state = 1;  // In block comment
+            else if (!strncmp(s, "//", 2))
+               state = 2;  // In line comment
+            else
+               ret += ch;
+            break;
+         }
+         case 1 : // In block comment - wait for */
+         {
+            if (!strncmp(s, "*/", 2))
+            {
+               c++;
+               state = 0;
+            }
+            break;
+         }
+         case 2: // In line comment - wait for \n
+         {
+            if (ch == '\n')
+            {
+               state = 0;
+               ret += ch;
+            }
+            break;
+         }
+      }
+   }
+
+   return ret;
+}
+
+static std::string GetOutputOverride(const std::string &name, const std::string &type, uint32_t mode, float f)
+{
+   std::string                 params;
+   std::array<std::string, 4>  fvals;
+   std::array<std::string, 4>  ivals;
+   std::array<std::string, 4>  bvals;
+
+   bvals = { "false", "false", "false", "true" };
+
+   if (mode == Control::eOverdraw)
+   {
+      fvals = { "0.0", "0.1", "0.0", "1.0" };
+      ivals = { "0",   "0",   "0",   "255" };
+   }
+   else if (mode == Control::eMinimalFragShader)
+   {
+      char str[64];
+      snprintf(str, 64, "%f", f);
+      fvals = { str, "0.5", "0.5", "1.0" };
+      snprintf(str, 64, "%d", (int)(f * 255.0f));
+      ivals = { str, "0", "0", "255" };
+   }
+   else
+      assert(0);
+
+   char last  = type.length() > 0 ? type[type.length() - 1] : '\0';
+   char first = type.length() > 0 ? type[0] : '\0';
+
+   std::array<std::string, 4> *vals;
+
+   if (first == 'i' || first == 'u')
+      vals = &ivals;
+   else if (first == 'b')
+      vals = &bvals;
+   else
+      vals = &fvals;
+
+   switch (last)
+   {
+   case '4':  params = (*vals)[0] + "," + (*vals)[1] + "," + (*vals)[2] + "," + (*vals)[3]; break;
+   case '3':  params = (*vals)[0] + "," + (*vals)[1] + "," + (*vals)[2]; break;
+   case '2':  params = (*vals)[0] + "," + (*vals)[1]; break;
+   default:   params = (*vals)[0]; break;
+   }
+
+   return name + " = " + type + "(" + params + ");\n";
+}
+
 static void ReplaceFragmentShader(GLuint shader, GLsizei count, const GLchar* const* string, const GLint* length)
 {
    int32_t  i;
    uint32_t c;
    uint32_t state = 0;  /* Awaiting # */
-   uint32_t totLen = 0;
    GLchar   *buf = 0;
    GLchar   *ptr = 0;
-   bool     hasVersion = false;
-   bool     replaceOut = false;
-   bool     outReplaced = false;
+   uint32_t braces = 0;
+
+   std::vector<std::string>   outTypes;
+   std::vector<std::string>   outNames;
+
+   std::string shaderStr;
 
    for (i = 0; i < count; i++)
    {
       if (string[i])
-         totLen += ((length && length[i]) ? length[i] : (int)strlen(string[i]));
+      {
+         if (length && length[i])
+            shaderStr += std::string(string[i], length[i]);
+         else
+            shaderStr += std::string(string[i]);
+      }
    }
 
-   buf = (GLchar*)malloc(totLen + 1024);
+   shaderStr = PreProcessShader(shaderStr);
+
+   buf = (GLchar*)malloc(shaderStr.length() + 1024);
    ptr = buf;
 
-   memset(buf, 0, totLen + 1024);
+   memset(buf, 0, shaderStr.length() + 1024);
 
    /* Minimize the shader */
-   for (i = 0; i < count; i++)
+   GLchar *d = ptr;
+   for (c = 0; c < shaderStr.length(); c++)
    {
-      uint32_t len;
+      const GLchar *s = shaderStr.c_str() + c;
+      GLchar ch = *s;
 
-      if (string[i] == NULL)
-         continue;
-
-      len = ((length && length[i]) ? length[i] : (int)strlen(string[i]));
-
-      GLchar *d = ptr;
-      for (c = 0; c < len; c++)
+      switch (state)
       {
-         const GLchar *s = (string[i] + c);
-         GLchar ch = *(string[i] + c);
-
-         if (state == 0) /* Awaiting # (if present) */
+      case 0: // Awaiting # (if present)
+      {
+         if (!isspace(ch) && ch != '#')
+            state = 2;
+         else if (ch == '#')
+            state = 1;
+         *d++ = ch;
+         break;
+      }
+      case 1: // Awaiting version
+      {
+         if (!strncmp(s, "version", 7))
          {
-            if (!isspace(ch) && ch != '#')
-            {
-               hasVersion = false;
-               state = 2;
-            }
-            else if (ch == '#')
-               state++;
+            c += 6;
+            state = 2;
+            memcpy(d, s, 7);
+            d += 7;
+         }
+         else if (!isspace(ch))
+         {
+            state = 2;
             *d++ = ch;
          }
-         else if (state == 1) /* Awaiting version */
+         else
+            *d++ = ch;
+         break;
+      }
+      case 2: /* Awaiting main or layout or out */
+      {
+         if (!strncmp(s, "layout", 6) && IsSeparator(*(s-1)))
          {
-            if (!strncmp(s, "version", 7))
-            {
-               hasVersion = true;
-               c += 6;
-               state++;
-               memcpy(d, s, 7);
-               d += 7;
-            }
-            else if (!isspace(ch))
-            {
-               hasVersion = false;
-               state++;
-               *d++ = ch;
-            }
-            else
-               *d++ = ch;
+            c += 5;
+            memcpy(d, s, 6);
+            d += 6;
          }
-         else if (state == 2) /* Awaiting main or out or layout */
+         else if (!strncmp(s, "out", 3) && IsSeparator(*(s-1)))
          {
-            if (!strncmp(s, "out", 3))
+            c += 2;
+            memcpy(d, s, 3);
+            d += 3;
+            s += 3;
+
+            if (isspace(*s))
             {
-               state = 3;
-               if (!outReplaced)
-                  replaceOut = true;
-            }
-            else if (!strncmp(s, "layout", 6))
-            {
-               state = 3;
-            }
-            else if (!strncmp(s, "main", 4))
-            {
-               state = 4;
-               c += 3;
-               memcpy(d, s, 4);
-               d += 4;
-            }
-            else
-               *d++ = ch;
-         }
-         else if (state == 3) /* Skip until ; */
-         {
-            if (ch == ';')
-            {
-               if (replaceOut)
+               // We have an 'out' token
+               std::string type, name;
+               if (GetOutTypeAndName(s, &type, &name))
                {
-                  memcpy(d, "out vec4 replacement_frag_output;", 33);
-                  d += 33;
-                  replaceOut = false;
-                  outReplaced = true;
+                  outTypes.push_back(type);
+                  outNames.push_back(name);
                }
-               state = 2;
             }
          }
-         else if (state == 4) /* Check ( */
+         else if (!strncmp(s, "main", 4) && IsSeparator(*(s-1)))
          {
-            if (!isspace(ch) && ch != '(')
-               state--;
-            else if (!isspace(ch) && ch == '(')
-               state++;
+            state = 4;
+            c += 3;
+            memcpy(d, s, 4);
+            d += 4;
+         }
+         else
+            *d++ = ch;
+         break;
+      }
+      case 4:  // Check (
+      {
+         if (!isspace(ch) && ch != '(')
+            state = 2;
+         else if (!isspace(ch) && ch == '(')
+            state = 5;
+         *d++ = ch;
+         break;
+      }
+      case 5: // ...)
+      {
+         if (ch == ')')
+            state = 6;
+         *d++ = ch;
+         break;
+      }
+      case 6: // We have now seen main()
+      {
+         // Now we need to look for the final '}'
+         if (ch == '{')
+         {
+            braces++;
             *d++ = ch;
          }
-         else if (state == 5) /* ...) */
+         else if (ch == '}')
          {
-            if (ch == ')')
-               state++;
+            braces--;
+            if (braces == 0)
+               state = 7;
+            else
+               *d++ = ch;
+         }
+         else
             *d++ = ch;
-         }
-         else if (state == 6) /*  Drop our main in now */
+         break;
+      }
+      case 7:  // Add final output overrides and finish
+      {
+         assert(outTypes.size() == outNames.size());
+
+         if (outTypes.size() == 0)
          {
-            char outName[512] = "gl_FragColor";
-
-            if (hasVersion)
-               strcpy(outName, "replacement_frag_output");
-
-            if (sBottleneckMode == Control::eOverdraw)
+            if (shaderStr.find("gl_FragColor") != std::string::npos)
             {
-               Real(glEnable)(GL_BLEND);
-               Real(glBlendFunc)(GL_ONE, GL_ONE);
-               Real(glBlendEquation)(GL_FUNC_ADD);
-               snprintf(d, 512, "{ %s = vec4(0.0, 0.1, 0.0, 1.0); }\n\n", outName);
+               outTypes.push_back("vec4");
+               outNames.push_back("gl_FragColor");
             }
-            else if (sBottleneckMode == Control::eMinimalFragShader)
+            else if (shaderStr.find("gl_FragData") != std::string::npos)
             {
-               snprintf(d, 512, "{ %s = vec4(0.5, 0.5, %f, 1.0); }\n\n", outName, (float)(shader % 255) / 255.0f);
+               outTypes.push_back("vec4");
+               outNames.push_back("gl_FragData[0]");
             }
-            state++;
          }
+
+         *d = '\0';
+
+         if (sBottleneckMode == Control::eOverdraw)
+         {
+            Real(glEnable)(GL_BLEND);
+            Real(glBlendFunc)(GL_ONE, GL_ONE);
+            Real(glBlendEquation)(GL_FUNC_ADD);
+            for (uint32_t i = 0; i < outTypes.size(); i++)
+            {
+               strcat(d, GetOutputOverride(outNames[i].c_str(), outTypes[i].c_str(), sBottleneckMode, 0.0f).c_str());
+            }
+            strcat(d, "}\n");
+         }
+         else if (sBottleneckMode == Control::eMinimalFragShader)
+         {
+            for (uint32_t i = 0; i < outTypes.size(); i++)
+            {
+               strcat(d, GetOutputOverride(outNames[i].c_str(), outTypes[i].c_str(), sBottleneckMode,
+                      (float)(shader % 255) / 255.0f).c_str());
+            }
+            strcat(d, "}\n");
+         }
+
+         d = buf + strlen(buf);
+
+         state = 8;
+         break;
+      }
+      case 8:  // All done - just copy everything after main
+      {
+         *d++ = ch;
+         break;
+      }
+      default:
+         assert(0);
       }
    }
 
    Real(glShaderSource)(shader, 1, (const GLchar **)&buf, NULL);
+   Real(glCompileShader)(shader);
+
+   GLint status;
+   Real(glGetShaderiv)(shader, GL_COMPILE_STATUS, &status);
+
+   if (status == GL_FALSE) // Put the original shader back if we failed to compile
+   {
+      GLchar log[2048];
+      Real(glGetShaderInfoLog)(shader, 2048, NULL, log);
+      Real(glShaderSource)(shader, count, string, length);
+
+      //printf("\n\n================= FAILED\nORIG\n%s\n==============\nNEW\n%s\n===========%s\n\n",
+      //       (char*)*string, buf, log);
+   }
+
    free(buf);
 }
 
@@ -4672,7 +5149,9 @@ DLLEXPORT void DLLEXPORTENTRY specialized_glShaderSource (GLuint shader, GLsizei
          RealApiEvent(glShaderSource, (shader, count, (const GLchar **)string, length));
    }
    else
+   {
       RealApiEvent(glShaderSource, (shader, count, (const GLchar **)string, length));
+   }
 }
 DLLEXPORT void DLLEXPORTENTRY specialized_glTexCoordPointer (GLint size, GLenum type, GLsizei stride, const GLvoid *pointer)
 {
@@ -4961,6 +5440,8 @@ DLLEXPORT void DLLEXPORTENTRY specialized_glLinkProgram(GLuint program)
       bool ret = PostPacketize(&__p);
       if (ret)
       {
+         std::vector<std::string> names;
+
          TIMESTAMP __start, __end;
          plGetTime(&__start);
          Real(glLinkProgram)(program);
@@ -4985,6 +5466,36 @@ DLLEXPORT void DLLEXPORTENTRY specialized_glLinkProgram(GLuint program)
          p.AddItem(valid);
          p.AddItem(val);
          p.AddItem(PacketItem(buf));
+
+         if (sCaptureStream)
+         {
+            // Query program interface data and store in the capture
+            GLint activeBlocks, maxBlockLen;
+            Real(glGetProgramiv)(program, GL_ACTIVE_UNIFORM_BLOCKS, &activeBlocks);
+            Real(glGetProgramiv)(program, GL_ACTIVE_UNIFORM_BLOCK_MAX_NAME_LENGTH, &maxBlockLen);
+
+            GLsizei bufSize = maxBlockLen + 1;
+            GLchar *name = new GLchar[bufSize];
+            name[bufSize - 1] = '\0';
+
+            uint32_t version = 1;
+            p.AddItem(version);
+            p.AddItem(activeBlocks);
+            p.AddItem(bufSize);
+
+            // Query each uniform block
+            for (GLint i = 0; i < activeBlocks; i++)
+            {
+               GLsizei len;
+
+               Real(glGetActiveUniformBlockName)(program, i, bufSize, &len, name);
+
+               names.push_back(name);
+               p.AddItem(names.back().c_str());
+            }
+
+            delete[] name;
+         }
 
          p.AddItem(plTimeDiffNano(&__start, &__end));
 

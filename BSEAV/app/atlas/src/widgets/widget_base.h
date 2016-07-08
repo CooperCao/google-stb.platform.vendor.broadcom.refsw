@@ -1,7 +1,7 @@
-/***************************************************************************
- * (c) 2002-2015 Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -37,7 +37,6 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 
 #ifndef ATLAS_WIDGET_BASE_H__
@@ -152,8 +151,8 @@ public:
     void             setParent(CWidgetBase * parent) { _pParent = parent; }  /* note: does not change bwidget parent! */
     bwin_t           getParentWin();
     void             setParentWin(bwin_t parentWin); /* note: does not change the CWidgetBase parent! */
-    int              getValue(void)      { return(_value); }
-    void             setValue(int value) { _value = value; }
+    long             getValue(void)       { return(_value); }
+    void             setValue(long value) { _value = value; }
     uint32_t         colorConvert(uint32_t color1, uint32_t color2, uint8_t percent);
     CPoint           getBezierPoint(CPoint * points, uint8_t numPoints, float t);
     void             generateCornerPoints(CPoint * pointsCurve, uint32_t numPointsCurve, CPoint * pointsBezier, uint32_t numPointsBezier);
@@ -162,7 +161,7 @@ protected:
     bwidget_engine_t     _engine;
     CWidgetBase *        _pParent;
     bwidget_t            _widget;
-    int                  _value;
+    unsigned long        _value;
     backgroundFillMode_t _backgroundFillMode;
     uint32_t             _gradientTop;
     uint32_t             _gradientMiddle;

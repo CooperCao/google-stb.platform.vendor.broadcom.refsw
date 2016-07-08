@@ -1,7 +1,7 @@
-/***************************************************************************
- *     (c)2007-2014 Broadcom Corporation
+/******************************************************************************
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,18 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
- **************************************************************************/
+ ******************************************************************************/
 #include "nexus_transport_module.h"
 #include "nexus_base.h"
 #include "blst_squeue.h"
@@ -188,6 +177,7 @@ NEXUS_DmaHandle NEXUS_Dma_Open(
     NEXUS_DmaHandle dma;
     NEXUS_DmaSettings settings;
 
+#if BXPT_DMA_HAS_MEMDMA_MCPB
     if (index == NEXUS_ANY_ID) {
         unsigned i;
         /* search for unused HW channels */
@@ -203,6 +193,43 @@ NEXUS_DmaHandle NEXUS_Dma_Open(
             index = DEFAULT_VIRTUAL_CHANNEL;
         }
     }
+#else
+    /* MCPB channels are shared between playpump and DMA. for DMA, count back from MAX */
+    if (index == NEXUS_ANY_ID) {
+        int i;
+        unsigned firstInUse = NEXUS_NUM_DMA_CHANNELS;
+        for (i=NEXUS_NUM_DMA_CHANNELS-1; i>=0; i--) {
+            if (pTransport->dmaChannel[i].dma==NULL && pTransport->playpump[i].playpump==NULL) {
+                index = i;
+                break;
+            }
+            else if (firstInUse==NEXUS_NUM_DMA_CHANNELS && pTransport->dmaChannel[i].dma) {
+                firstInUse = i;
+            }
+        }
+        if (i<0) {
+            if (firstInUse<NEXUS_NUM_DMA_CHANNELS) {
+                BDBG_WRN(("All DMA channels in use. Virtualizing on channel %u", firstInUse));
+                index = firstInUse;
+            }
+            else {
+                BDBG_ERR(("No DMA channels available"));
+                rc = BERR_TRACE(NEXUS_UNKNOWN);
+                return NULL;
+            }
+        }
+    }
+    else if (index<NEXUS_NUM_DMA_CHANNELS) {
+        unsigned newIndex = NEXUS_NUM_DMA_CHANNELS - 1 - index;
+        if (pTransport->playpump[newIndex].playpump) {
+            BDBG_ERR(("DMA channel %u's MCPB channel is already used by playback", index));
+            rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+            return NULL;
+        }
+        BDBG_MSG(("Using DMA index %u -> %u", index, newIndex));
+        index = newIndex;
+    }
+#endif
 
     if (index>=NEXUS_NUM_DMA_CHANNELS) {
         BDBG_ERR(("DMA channel %d is not supported on this chipset", index));
@@ -557,28 +584,6 @@ void NEXUS_DmaJob_GetDefaultBlockOffsetSettings(
     BDBG_ASSERT(NULL != pSettings);
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
     return;
-}
-
-NEXUS_Error NEXUS_DmaJob_SetBlockSettings(
-    NEXUS_DmaJobHandle handle,
-    unsigned blockIndex,
-    const NEXUS_DmaJobBlockSettings *pSettings
-    )
-{
-    /* DEPRECATED: use NEXUS_DmaJob_ProcessBlocks() instead */
-    BSTD_UNUSED(handle);
-    BSTD_UNUSED(blockIndex);
-    BSTD_UNUSED(pSettings);
-    return BERR_TRACE(NEXUS_NOT_SUPPORTED);
-}
-
-NEXUS_Error NEXUS_DmaJob_Start(
-    NEXUS_DmaJobHandle handle
-    )
-{
-    /* DEPRECATED: use NEXUS_DmaJob_ProcessBlocks() instead */
-    BSTD_UNUSED(handle);
-    return BERR_TRACE(NEXUS_NOT_SUPPORTED);
 }
 
 NEXUS_Error NEXUS_DmaJob_GetStatus(

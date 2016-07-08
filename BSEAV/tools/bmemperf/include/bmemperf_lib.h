@@ -1,52 +1,43 @@
 /******************************************************************************
- *    (c)2013-2015 Broadcom Corporation
- *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELYn
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
- *
- * Except as expressly set forth in the Authorized License,
- *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
- *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
- *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
- ******************************************************************************/
+* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*
+* This program is the proprietary software of Broadcom and/or its
+* licensors, and may only be used, duplicated, modified or distributed pursuant
+* to the terms and conditions of a separate, written license agreement executed
+* between you and Broadcom (an "Authorized License").  Except as set forth in
+* an Authorized License, Broadcom grants no license (express or implied), right
+* to use, or waiver of any kind with respect to the Software, and Broadcom
+* expressly reserves all rights in and to the Software and all intellectual
+* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*
+* Except as expressly set forth in the Authorized License,
+*
+* 1. This program, including its structure, sequence and organization,
+*    constitutes the valuable trade secrets of Broadcom, and you shall use all
+*    reasonable efforts to protect the confidentiality thereof, and to use
+*    this information only in connection with your use of Broadcom integrated
+*    circuit products.
+*
+* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+*
+* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+******************************************************************************/
 #ifndef __BMEMPERF_LIB_H__
 #define __BMEMPERF_LIB_H__
 
@@ -54,9 +45,11 @@
 #define BSYSPERF_SERVER_PORT  6001
 #define BMEMPERF_MAX_NUM_CPUS          8
 #define BMEMPERF_IRQ_NAME_LENGTH  64
-#define BMEMPERF_IRQ_MAX_TYPES    100 /* number of different interrupts listed in /proc/interrupts */
+#define BMEMPERF_IRQ_MAX_TYPES    120 /* number of different interrupts listed in /proc/interrupts */
 #define BMEMPERF_IRQ_VALUE_LENGTH 10  /* each interrupt count is 10 digits long in /proc/interrupts */
 #define BMEMPERF_CPU_VALUE_LENGTH 10  /* each CPU count is 10 digits long in /proc/stats */
+#define BMEMPERF_DDR_VALUE_LENGTH 10  /* each DDR frequency is 10 digits long in /sys/devices/.../frequency */
+#define BMEMPERF_SCB_VALUE_LENGTH 9   /* each SCB frequency is 9 digits long in /sys/kernel/debug/clk/clk_summary */
 #define PROC_INTERRUPTS_FILE         "/proc/interrupts"
 #define TEMP_INTERRUPTS_FILE         "interrupts"
 #define PROC_STAT_FILE               "/proc/stat"
@@ -96,6 +89,28 @@ typedef struct
     unsigned long int    irqTotal;
     bmemperf_irq_details irqDetails[BMEMPERF_IRQ_MAX_TYPES];
 } bmemperf_irq_data;
+
+typedef enum /* MEMC_DDR_0_CNTRLR_CONFIG -> DRAM_DEVICE_TYPE ... can be 0, 1, 2, or 5 */
+{
+    MEMC_DRAM_TYPE_DDR2=0,
+    MEMC_DRAM_TYPE_DDR3=1,
+    MEMC_DRAM_TYPE_DDR4=2,
+    MEMC_DRAM_TYPE_LPDDR4=5
+} MEMC_DRAM_TYPE;
+
+typedef enum /* MEMC_DDR_0_CNTRLR_CONFIG -> DRAM_TOTAL_WIDTH ... can be 1, 2, or 3 */
+{
+    MEMC_DRAM_WIDTH_16=1,
+    MEMC_DRAM_WIDTH_32=2,
+    MEMC_DRAM_WIDTH_64=3
+} MEMC_DRAM_WIDTH;
+
+typedef struct
+{
+    unsigned int interface_bit_width; /* 16 or 32 */
+    unsigned int burst_length; /* (8 for ddr3/4; 16 lpddr4) */
+    char         ddr_type[8];
+} BMEMPERF_BUS_BURST_INFO;
 
 const char *noprintf( const char *format, ... );
 char *getPlatformVersion(
@@ -151,8 +166,20 @@ int set_cpu_utilization( void );
 int get_cpu_utilization( bmemperf_cpu_percent *pcpuData );
 int bmemperf_getCpuUtilization( bmemperf_cpu_percent *pCpuData );
 int P_getCpuUtilization( void );
+char * bmemperf_get_boa_error_log( const char * appname );
+unsigned int bmemperf_get_boa_error_log_line_count( const char * errorLogContents );
+unsigned int bmemperf_readReg32( unsigned int offset );
+
 #ifdef BMEMCONFIG_READ32_SUPPORTED
 char * getProductIdStr( void );
 #endif /* BMEMCONFIG_READ32_SUPPORTED */
+int bmemperfOpenDriver( void );
+void *bmemperfMmap( int g_memFd );
+unsigned int bmemperf_bus_width( unsigned int memc_index, volatile unsigned int *g_pMem );
+unsigned int bmemperf_burst_length( unsigned int memc_index, volatile unsigned int *g_pMem );
+char        *bmemperf_get_ddrType( unsigned int memc_index, volatile unsigned int *g_pMem );
+int          bmemperf_cas_to_cycle( unsigned int memc_index, volatile unsigned int *g_pMem );
+volatile unsigned int *bmemperf_openDriver_and_mmap( void );
+unsigned int convert_from_msec( unsigned int msec_value, unsigned int g_interval );
 
 #endif /* __BMEMPERF_LIB_H__ */

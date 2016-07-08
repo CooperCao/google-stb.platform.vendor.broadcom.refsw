@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2010-2014 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #ifndef NEXUS_VIDEO_ENCODER_H__
@@ -198,6 +190,7 @@ typedef struct NEXUS_VideoEncoderStartSettings
     bool nonRealTime;
     bool lowDelayPipeline; /* If set, enableFieldPairing cannot be true, and encoder type must be eSingle. */
     bool encodeUserData; /* To enable closed caption ES layer user data encode feature */
+    bool encodeBarUserData; /* To enable bar data encode; by default is true; */
     bool adaptiveLowDelayMode;    /* If set  encoder will drop all incoming frames until the first decoded frame is seen.
                                      The first frame will be encoded with a low delay.  Then delay
                                      will automatically ramp to the value specified in NEXUS_VideoEncoderSettings.encoderDelay
@@ -223,6 +216,9 @@ typedef struct NEXUS_VideoEncoderStartSettings
     NEXUS_EntropyCoding entropyCoding;
     NEXUS_CallbackDesc dataReady;
 
+    struct {
+       bool disableFrameDrop; /* This flag only applies to HRD mode rate control. When set, encoder will not drop pictures due to HRD model buffer underflow. */
+    } hrdModeRateControl;
     struct {
        bool enable;
        unsigned duration; /* duration of the segment (in ms) */

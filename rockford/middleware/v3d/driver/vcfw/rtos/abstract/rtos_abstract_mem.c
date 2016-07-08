@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2008 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2008 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -388,8 +388,8 @@ static void remove_allocation(MEM_HEADER_T *hdr)
 }
 
 #else
-static void record_allocation(MEM_HEADER_T *hdr) {}
-static void remove_allocation(MEM_HEADER_T *hdr) {}
+static void record_allocation(MEM_HEADER_T *hdr) { UNUSED(hdr); }
+static void remove_allocation(MEM_HEADER_T *hdr) { UNUSED(hdr); }
 #endif
 
 #ifdef BCG_VC4_DEFRAG
@@ -607,15 +607,17 @@ static void *allocate_direct(MEM_HEADER_T *h)
 
    if (g_mgr.memInterface != NULL && g_mgr.memInterface->Alloc != NULL)
    {
+      bool secure = !!(h->flags & MEM_FLAG_SECURE);
+
       /* Always try to allocate */
-      ptr = g_mgr.memInterface->Alloc(g_mgr.memInterface->context, h->allocedSize, h->align);
+      ptr = g_mgr.memInterface->Alloc(g_mgr.memInterface->context, h->allocedSize, h->align, secure);
 
       /* If the allocation failed, then defrag and try again */
       if (ptr == NULL)
       {
          if (mem_defrag())
          {
-            ptr = g_mgr.memInterface->Alloc(g_mgr.memInterface->context, h->allocedSize, h->align);
+            ptr = g_mgr.memInterface->Alloc(g_mgr.memInterface->context, h->allocedSize, h->align, secure);
          }
       }
    }
@@ -665,20 +667,14 @@ static void init_header(MEM_HEADER_T *h, uint32_t size, uint32_t align, MEM_FLAG
 
          if (h->ptr)
          {
-            void * p = mem_lock((MEM_HANDLE_T)h, NULL);
             /* initializ(s)e the memory */
             if ((flags & MEM_FLAG_NO_INIT) == 0)
-               memset(p, (flags & MEM_FLAG_ZERO) ? 0 : MEM_HANDLE_INVALID, h->allocedSize);
-            else
             {
-               /*  in a debug build, set uninitialised memory to rubbish */
-#if !defined(NDEBUG)
-               /*  don't do this for large allocations (eg frame buffers) */
-               if (h->size < (64 * 1024))
-                  memset(p, 0xdddddddd, h->size);
-#endif
+               void * p = mem_lock((MEM_HANDLE_T)h, NULL);
+               vcos_demand(p != NULL);
+               memset(p, (flags & MEM_FLAG_ZERO) ? 0 : MEM_HANDLE_INVALID, h->allocedSize);
+               mem_unlock((MEM_HANDLE_T)h);
             }
-            mem_unlock((MEM_HANDLE_T)h);
 
             /* Record this allocation for defrag purposes */
             record_allocation(h);
@@ -760,7 +756,6 @@ MEM_HANDLE_T mem_alloc_ex(
    UNUSED(mode);
 
    assert(is_power_of_2(align));
-   assert(!(flags & ~MEM_FLAG_ALL));
    assert((flags & MEM_FLAG_RESIZEABLE) || !(flags & MEM_FLAG_HINT_GROW));
 
 #ifdef DETECT_LEAKS
@@ -793,7 +788,6 @@ MEM_HANDLE_T mem_wrap(void *p, uint32_t offset, uint32_t size, uint32_t align, M
    MEM_HEADER_T *h;
 
    assert(is_power_of_2(align));
-   assert(!(flags & ~MEM_FLAG_ALL));
    assert(!(flags & MEM_FLAG_RESIZEABLE));
 
    h = (MEM_HEADER_T *)malloc(sizeof(MEM_HEADER_T));
@@ -1115,6 +1109,9 @@ int mem_resize_ex(
 #endif
    assert(h->flags & MEM_FLAG_RESIZEABLE);
 
+   /* dont allow resize of secure blocks */
+   vcos_demand(!(h->flags & MEM_FLAG_SECURE));
+
    if (h->flags & MEM_FLAG_DIRECT)
    {
       /* needs to be max of CPU cache line and the GCACHE on the v3d */
@@ -1145,7 +1142,7 @@ int mem_resize_ex(
 
          dst = mem_lock((MEM_HANDLE_T)&new, NULL);
 
-         if (dst != NULL)
+         if (dst != NULL )
          {
             void * src;
             MEM_HEADER_T old = *h;
@@ -1256,6 +1253,47 @@ void mem_unlock(MEM_HANDLE_T handle)
 #endif
 }
 
+
+uintptr_t mem_lock_offset(MEM_HANDLE_T handle)
+{
+   MEM_HEADER_T *h = (MEM_HEADER_T *)handle;
+   uint32_t res;
+
+   assert(handle != MEM_HANDLE_INVALID);
+   assert(h->magic == MAGIC);
+
+   if (h->size == 0)
+      return 0;
+
+#ifdef BCG_VC4_DEFRAG
+   vcos_atomic_increment(&h->lock_count);
+#endif
+
+   if (h->flags & MEM_FLAG_DIRECT)
+   {
+      if (g_mgr.memInterface != NULL && g_mgr.memInterface->MemLockOffset != NULL)
+      {
+         /* populate the block cache if required */
+         if (h->blockOffset == 0)
+            h->blockOffset = g_mgr.memInterface->MemLockOffset(g_mgr.memInterface->context, h->ptr);
+
+         res = h->blockOffset;
+      }
+      else
+         /* MemLock is mandatory */
+         UNREACHABLE();
+   }
+   else
+   {
+      /* illegal to get an offset of linux memory */
+      UNREACHABLE();
+   }
+
+   return res;
+}
+
+
+
 /*
 A MEM_HANDLE_T with a lock count greater than 0 is considered to be locked
 and may not be moved by the memory manager.
@@ -1297,9 +1335,18 @@ void * mem_lock(MEM_HANDLE_T handle, MEM_LOCK_T *lbh)
    {
       if (g_mgr.memInterface != NULL && g_mgr.memInterface->MemLock != NULL)
       {
-         /* populate the block cache if required */
-         if (h->blockOffset == 0 || h->blockPtr == NULL)
-            h->blockPtr = g_mgr.memInterface->MemLock(g_mgr.memInterface->context, h->ptr, &h->blockOffset);
+         bool secure = !!(h->flags & MEM_FLAG_SECURE);
+
+         /* populate the block cache if required, wrapped already filled out */
+         if (!(h->flags & MEM_FLAG_WRAPPED))
+         {
+            /* don't map secure buffers */
+            if (!secure && h->blockPtr == NULL)
+               h->blockPtr = g_mgr.memInterface->MemLock(g_mgr.memInterface->context, h->ptr);
+
+            if (h->blockOffset == 0)
+               h->blockOffset = g_mgr.memInterface->MemLockOffset(g_mgr.memInterface->context, h->ptr);
+         }
 
          if (lbh)
          {
@@ -1313,7 +1360,7 @@ void * mem_lock(MEM_HANDLE_T handle, MEM_LOCK_T *lbh)
       }
       else
          /* MemLock is mandatory */
-         vcos_assert(0);
+         UNREACHABLE();
    }
    else
    {
@@ -1323,22 +1370,6 @@ void * mem_lock(MEM_HANDLE_T handle, MEM_LOCK_T *lbh)
 
    return res;
 }
-
-void mem_lock_multiple(
-   void **pointers,
-   MEM_LOCK_T *lbh,
-   MEM_HANDLE_OFFSET_T *handles,
-   uint32_t n)
-{
-   uint32_t i;
-
-   for (i = 0; i < n; i++)
-   {
-      void * p = (handles[i].mh_handle != MEM_HANDLE_INVALID) ? mem_lock(handles[i].mh_handle, &lbh[i]) : NULL;
-      pointers[i] = (void *)((uintptr_t)p + handles[i].offset);
-   }
-}
-
 
 /*
 A discardable MEM_HANDLE_T with a retain count greater than 0 is
@@ -1383,26 +1414,6 @@ void mem_unretain(
    MEM_HANDLE_T handle)
 {
    UNUSED(handle);
-}
-
-void mem_unlock_unretain_release_multiple(
-   MEM_HANDLE_OFFSET_T *handles,
-   unsigned int n)
-{
-   unsigned int i;
-
-   for (i = 0; i < n; i++)
-   {
-      MEM_HEADER_T *h = (MEM_HEADER_T *)handles[i].mh_handle;
-
-      if (handles[i].mh_handle == MEM_HANDLE_INVALID) { continue; }
-
-      assert(h->magic == MAGIC);
-
-      /* release */
-      mem_unlock(handles[i].mh_handle);
-      mem_release(handles[i].mh_handle);
-   }
 }
 
 void mem_copy2d(KHRN_IMAGE_FORMAT_T format, MEM_HANDLE_T hDst, MEM_HANDLE_T hSrc,

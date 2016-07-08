@@ -82,7 +82,7 @@ static const BXDM_PPJRC_P_Settings s_stJrcDefaultSettings =
 {
  120, /* Samples */
  1,  /* Lower Threshold */
- 45  /* Upper Threshold */
+ 90  /* Upper Threshold CDSTRMANA-1092, bump from 1 ms to 2 ms. */
 };
 
 BERR_Code BXDM_PPJRC_P_GetDefaultSettings(

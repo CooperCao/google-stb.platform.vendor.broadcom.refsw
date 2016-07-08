@@ -1,7 +1,7 @@
 ###############################################################################
 # Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 #
-# This program is the proprietary software of Broadcom and/or its
+# This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
 # conditions of a separate, written license agreement executed between you and Broadcom
 # (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -51,6 +51,7 @@ INC_PATHS += $(PRJ_PATH)/rpc/include
 INC_PATHS += $(PRJ_PATH)/rf4ce_registration/include
 INC_PATHS += $(STACK_PATH)/common/include
 INC_PATHS += $(STACK_PATH)/common/System/include
+INC_PATHS += $(STACK_PATH)/common/External/include
 INC_PATHS += $(STACK_PATH)/common/HAL/i386-utest/include
 INC_PATHS += $(STACK_PATH)/RF4CE/Profiles/MSO/include
 INC_PATHS += $(STACK_PATH)/common/Mailbox/include
@@ -78,8 +79,10 @@ ATLAS_INCLUDE_DIRS += -I$(BSEAV)/lib/zigbee/broadbee_mailbox_host/projects/
 ATLAS_INCLUDE_DIRS += -I$(BSEAV)/lib/zigbee/broadbee_mailbox_host/stack/common/Mailbox/include
 ATLAS_INCLUDE_DIRS += -I$(BSEAV)/lib/zigbee/broadbee_mailbox_host/stack/common/RPC/include
 ATLAS_INCLUDE_DIRS += -I$(BSEAV)/lib/zigbee/broadbee_mailbox_host/stack/common/System/include
+ATLAS_INCLUDE_DIRS += -I$(BSEAV)/lib/zigbee/broadbee_mailbox_host/stack/common/External/include
 ATLAS_INCLUDE_DIRS += -I$(BSEAV)/lib/zigbee/broadbee_mailbox_host/stack/common/HAL/include
 ATLAS_INCLUDE_DIRS += -I$(BSEAV)/lib/zigbee/broadbee_mailbox_host/stack/common/HAL/i386-utest/include
+ATLAS_INCLUDE_DIRS += -I$(BSEAV)/lib/zigbee/broadbee_mailbox_host/stack/common/HAL/arc601-ml507/include
 ATLAS_INCLUDE_DIRS += -I$(BSEAV)/lib/zigbee/broadbee_mailbox_host/stack/RF4CE/Profiles/MSO/include
 ATLAS_INCLUDE_DIRS += -I$(BSEAV)/lib/zigbee/broadbee_mailbox_host/stack/common/Security/include
 ATLAS_INCLUDE_DIRS += -I$(BSEAV)/lib/zigbee/broadbee_mailbox_host/stack/IEEE/MAC/include
@@ -138,6 +141,9 @@ PRJ_FLAGS += _MAC_BAN_TABLE_SIZE_=1
 PRJ_FLAGS += USE_RF4CE_PROFILE_ZRC1
 PRJ_FLAGS += USE_RF4CE_PROFILE_GDP=1
 PRJ_FLAGS += USE_RF4CE_PROFILE_ZRC2
+PRJ_FLAGS += _ZHA_PROFILE_CIE_DEVICE_IMPLEMENTATION_
+PRJ_FLAGS += _PHY_TEST_HOST_INTERFACE_
+PRJ_FLAGS += _DEBUG_IGNORE_STATIC_ASSERTS_
 
 CFLAGS += $(addprefix -D, $(PRJ_FLAGS))
 CFLAGS += $(addprefix -I, $(INC_PATHS))
@@ -149,8 +155,7 @@ VPATH += $(BSEAV)/lib/zigbee/broadbee_mailbox_host/projects/SoC_mailboxHostSide/
 LDFLAGS += -std=gnu99 -Xlinker --no-enum-size-warning
 
 APP_OBJECTS += \
-    bbMailClientTable.o \
-    bbMailServerTable.o \
+    bbMailService.o \
     zigbee_rpc.o \
     zigbee_api.o \
     zigbee_rpc_client.o \
@@ -162,6 +167,26 @@ RF4CE_STACK_C_FLAGS := -std=gnu99 -fpack-struct=4 -fshort-enums
 $(ATLAS_ODIR)/bbMailClientTable.o:$(BSEAV)/lib/zigbee/broadbee_mailbox_host/stack/common/Mailbox/src/bbMailClientTable.c
 #	@cp $(BSEAV)/lib/zigbee/broadbee_mailbox_host/stack/common/Mailbox/src/bbMailClientTable.c ./
 	@echo [Compile... bbMailClientTable.o]
+	$(Q_)$(CC) -c -o $@ $< $(filter-out -pedantic,$(CFLAGS)) $(RF4CE_STACK_C_FLAGS)
+$(ATLAS_ODIR)/bbMailService.o:$(BSEAV)/lib/zigbee/broadbee_mailbox_host/stack/common/Mailbox/src/bbMailService.c
+	@echo [Compile... bbMailService.o]
+	@sed 's/\.function[ ].*= (MailPublicFunction_t)function_name/\.function      = 0/g' $(BSEAV)/lib/zigbee/broadbee_mailbox_host/stack/common/Mailbox/src/bbMailService.c > ./bbMailService.c
+	@echo "" >> ./bbMailService.c
+	@echo "void mailClientInit() {}" >> ./bbMailService.c
+	@echo "void mailServerInit() {}" >> ./bbMailService.c
+	@echo "void mailAdapterInit() {}" >> ./bbMailService.c
+	@echo "void Mail_TestEngineSendHello() {}" >> ./bbMailService.c
+	@echo "void mailClientSerialize(const uint16_t fId, uint8_t *const req) {}" >> ./bbMailService.c
+	@echo "MailPendingAPICall_t *mailClientFindEmptyPendingTableEntry(void) { return NULL; }" >> ./bbMailService.c
+	$(Q_)$(CC) -c -o $@ ./bbMailService.c $(filter-out -pedantic,$(CFLAGS)) $(RF4CE_STACK_C_FLAGS)
+	@sed 's|bbMailService\.c|$(BSEAV)\/lib\/zigbee\/broadbee_mailbox_host\/stack\/common\/Mailbox\/src\/bbMailService\.c|' $(ATLAS_ODIR)/bbMailService.d > $(ATLAS_ODIR)/bbMailService.d.tmp
+	@mv $(ATLAS_ODIR)/bbMailService.d.tmp $(ATLAS_ODIR)/bbMailService.d
+	@rm -rf ./bbMailService.c
+$(ATLAS_ODIR)/bbMailClient.o:$(BSEAV)/lib/zigbee/broadbee_mailbox_host/stack/common/Mailbox/src/bbMailClient.c
+	@echo [Compile... bbMailClient.o]
+	$(Q_)$(CC) -c -o $@ $< $(filter-out -pedantic,$(CFLAGS)) $(RF4CE_STACK_C_FLAGS)
+$(ATLAS_ODIR)/bbMailServer.o:$(BSEAV)/lib/zigbee/broadbee_mailbox_host/stack/common/Mailbox/src/bbMailServer.c
+	@echo [Compile... bbMailServer.o]
 	$(Q_)$(CC) -c -o $@ $< $(filter-out -pedantic,$(CFLAGS)) $(RF4CE_STACK_C_FLAGS)
 $(ATLAS_ODIR)/bbMailServerTable.o:$(BSEAV)/lib/zigbee/broadbee_mailbox_host/stack/common/Mailbox/src/bbMailServerTable.c
 	@echo [Compile... bbMailServerTable.o]

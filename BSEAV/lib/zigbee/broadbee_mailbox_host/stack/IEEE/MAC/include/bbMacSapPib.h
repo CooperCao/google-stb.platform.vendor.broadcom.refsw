@@ -1,75 +1,81 @@
 /******************************************************************************
-* (c) 2014 Broadcom Corporation
-*
-* This program is the proprietary software of Broadcom Corporation and/or its
-* licensors, and may only be used, duplicated, modified or distributed pursuant
-* to the terms and conditions of a separate, written license agreement executed
-* between you and Broadcom (an "Authorized License").  Except as set forth in
-* an Authorized License, Broadcom grants no license (express or implied), right
-* to use, or waiver of any kind with respect to the Software, and Broadcom
-* expressly reserves all rights in and to the Software and all intellectual
-* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1. This program, including its structure, sequence and organization,
-*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-*    reasonable efforts to protect the confidentiality thereof, and to use
-*    this information only in connection with your use of Broadcom integrated
-*    circuit products.
-*
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-******************************************************************************/
-/*****************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
+ *
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************
 *
 * FILENAME: $Workfile: trunk/stack/IEEE/MAC/include/bbMacSapPib.h $
 *
 * DESCRIPTION:
 *   MAC-PIB for MAC-SAP definitions.
 *
-* $Revision: 3536 $
-* $Date: 2014-09-11 07:21:52Z $
+* $Revision: 10537 $
+* $Date: 2016-03-18 12:15:44Z $
 *
 *****************************************************************************************/
-
 
 #ifndef _BB_MAC_SAP_PIB_H
 #define _BB_MAC_SAP_PIB_H
 
+/************************* INCLUDES ***********************************************************************************/
+#include "bbMacSapDefs.h"
+#include "bbMacSapAddress.h"
+#include "bbMacSapSecurity.h"
+#include "bbMacSapService.h"
+#include "bbHalRandom.h"
 
-/************************* INCLUDES *****************************************************/
-#include "bbMacSapDefs.h"           /* MAC-SAP common definitions. */
-#include "bbMacSapAddress.h"        /* MAC-SAP addressing definitions. */
-#include "bbMacSapService.h"        /* MAC-SAP service data types. */
-#include "bbHalRandom.h"            /* Random Number Generator Hardware interface. */
-
-
-/************************* DEFINITIONS **************************************************/
+/************************* DEFINITIONS ********************************************************************************/
 /**//**
  * \brief   Enumeration of identifiers of private MAC-PIB attributes.
  * \par     Documentation
- *  See IEEE 802.15.4-2006, subclause 7.4.2, and table 86.
+ *  See IEEE 802.15.4-2006, subclauses 7.4.2, 7.6.1, tables 86, 88.
  */
-typedef enum _MacPibAttributeId_t
-{
+typedef enum _MacPibAttributeId_t {
+
+#if defined(_HAL_USE_PRNG_)
+    MAC_ATTRIBUTES_ID_BEGIN             = 0x3B,     /*!< First ID of MAC-PIB attributes. PRNG is used. */
+#else
+    MAC_ATTRIBUTES_ID_BEGIN             = 0x3D,     /*!< First ID of MAC-PIB attributes. TRNG is used. */
+#endif
+
+
+    /* Additional MAC-PIB attributes for Pseudo-Random Number Generator (PRNG). */
+
     MAC_PRNG_SEED                       = 0x3B,     /*!< Seed value of the PRNG. Read to obtain the value with which the
                                                         PRNG was initialized. Write to assign new seed value an
                                                         initialize the PRNG. Write the same value to just reinitialize
@@ -79,13 +85,10 @@ typedef enum _MacPibAttributeId_t
                                                         the PRNG Counter. Write to forward or rewind the PRNG to the
                                                         specified Counter value. Write zero to reinitialize the PRNG
                                                         with its Seed value. */
-#if defined(_HAL_USE_PRNG_)
-    MAC_ATTRIBUTES_ID_BEGIN             = 0x3B,     /*!< First ID of MAC-PIB attributes. */
-#else
-    MAC_ATTRIBUTES_ID_BEGIN             = 0x3D,     /*!< First ID of MAC-PIB attributes. */
-#endif
+
 
     /* Additional MAC-PIB attributes for dual context runtime switching on/off. */
+
     MAC_CONTEXT_ENABLED                 = 0x3D,     /*!< Indicates if the specified MAC context is enabled. The default
                                                         value is FALSE. The only allowed value in MLME-SET.request is
                                                         TRUE (i.e., the context may be enabled after the hardware reset,
@@ -93,7 +96,9 @@ typedef enum _MacPibAttributeId_t
                                                         default value during MLME-RESET.request (i.e., the context may
                                                         not be disabled other then to reset the hardware). */
 
+
     /* Additional MAC-PIB attributes for address filtering hardware support. */
+
     MAC_PAN_COORDINATOR                 = 0x3E,     /*!< Indicates if the MAC sublayer belongs to the PAN coordinator
                                                         NWK device and shall accept valid frames without destination
                                                         address in the MHR (i.e., the address mode equals to 0). If this
@@ -115,9 +120,10 @@ typedef enum _MacPibAttributeId_t
                                                         allowed to be equal. This attribute value is accessible also as
                                                         the MAC constant \e aExtendedAddress.*/
 
-    /* Standard MAC-PIB attributes according to IEEE 802.15.4-2006
-     * except MAC security attributes which are not implemented. */
-    MAC_ACK_WAIT_DURATION               = 0x40,     /*!< The maximum number of symbols to wait for an acknowledgement
+
+    /* Standard MAC-PIB attributes according to IEEE 802.15.4-2006 except MAC Security attributes. */
+
+    MAC_ACK_WAIT_DURATION               = 0x40,     /*!< The maximum number of symbols to wait for an acknowledgment
                                                         frame to arrive following a transmitted data frame. */
 
     MAC_ASSOCIATION_PERMIT              = 0x41,     /*!< Indication of whether a coordinator is currently allowing
@@ -220,7 +226,73 @@ typedef enum _MacPibAttributeId_t
                                                         It has been defined by Broadcom on technical support request.
                                                         https://support.broadcom.com/IMS/Main.aspx?IssueID=718250 */
 
-    MAC_ATTRIBUTES_ID_END               = MAC_MIN_SIFS_PERIOD,      /*!< Last ID of MAC-PIB private attributes. */
+    MAC_ATTRIBUTES_ID_END               = 0x5F,     /*!< Last ID of MAC-PIB private attributes, excluding security. */
+
+
+#if defined(_MAC_CONTEXT_ZBPRO_)
+
+    /* Additional MAC-PIB attributes for need of Thread mode. */
+
+    MAC_SECURITY_ATTRIBUTES_ID_BEGIN    = 0x70,     /*!< First ID of MAC-PIB Security attributes. */
+
+    MAC_THREAD_MODE                     = 0x70,     /*!< Mode of MAC beaconing. If TRUE, Thread mode of beaconing is
+                                                        turned on, MAC emits beacon from the extended source address
+                                                        irrespectively of the directive to use the short address (i.e.,
+                                                        even if its short address is in the range 0x0000..0xFFFD). If
+                                                        FALSE, ZigBee (standard) mode of beaconing is selected, MAC
+                                                        behaves according to the standard. */
+
+
+    /* Standard MAC-PIB Security attributes according to IEEE 802.15.4-2006. */
+
+    MAC_KEY_TABLE                       = 0x71,     /*!< A table of KeyDescriptor entries, each containing keys and
+                                                        related information required for secured communications. */
+
+    MAC_KEY_TABLE_ENTRIES               = 0x72,     /*!< The number of entries in macKeyTable. */
+
+    MAC_DEVICE_TABLE                    = 0x73,     /*!< A table of DeviceDescriptor entries, each indicating a remote
+                                                        device with which this device securely communicates. */
+
+    MAC_DEVICE_TABLE_ENTRIES            = 0x74,     /*!< The number of entries in macDeviceTable. */
+
+    MAC_SECURITY_LEVEL_TABLE            = 0x75,     /*!< A table of SecurityLevelDescriptor entries, each with
+                                                        information about the minimum security level expected depending
+                                                        on incoming frame type and subtype. */
+
+    MAC_SECURITY_LEVEL_TABLE_ENTRIES    = 0x76,     /*!< The number of entries in macSecurityLevelTable. */
+
+    MAC_FRAME_COUNTER                   = 0x77,     /*!< The outgoing frame counter for this device. */
+
+    MAC_AUTO_REQUEST_SECURITY_LEVEL     = 0x78,     /*!< The security level used for automatic data requests. */
+
+    MAC_AUTO_REQUEST_KEY_ID_MODE        = 0x79,     /*!< The key identifier mode used for automatic data requests. This
+                                                        attribute is invalid if the macAutoRequestSecurityLevel
+                                                        attribute is set to 0x00. */
+
+    MAC_AUTO_REQUEST_KEY_SOURCE         = 0x7A,     /*!< The originator of the key used for automatic data requests.
+                                                        This attribute is invalid if the macAutoRequestKeyIdMode element
+                                                        is invalid or set to 0x00. */
+
+    MAC_AUTO_REQUEST_KEY_INDEX          = 0x7B,     /*!< The index of the key used for automatic data requests. This
+                                                        attribute is invalid if the macAutoRequestKeyIdMode attribute is
+                                                        invalid or set to 0x00. */
+
+    MAC_DEFAULT_KEY_SOURCE              = 0x7C,     /*!< The originator of the default key used for key identifier mode
+                                                        0x01. */
+
+    MAC_PAN_COORD_EXTENDED_ADDRESS      = 0x7D,     /*!< The 64-bit address of the PAN coordinator. */
+
+    MAC_PAN_COORD_SHORT_ADDRESS         = 0x7E,     /*!< The 16-bit short address assigned to the PAN coordinator. A
+                                                        value of 0xFFFE indicates that the PAN coordinator is only using
+                                                        its 64-bit extended address. A value of 0xFFFF indicates that
+                                                        this value is unknown. */
+
+    MAC_SECURITY_ATTRIBUTES_ID_END      = 0x7E,     /*!< Last ID of MAC-PIB Security attributes. */
+
+#endif /* _MAC_CONTEXT_ZBPRO_ */
+
+
+    /* Mirrored PHY attributes for needs of dual-context MAC. */
 
     MAC_CURRENT_CHANNEL                 = PHY_CURRENT_CHANNEL,      /*!< The RF channel to use for all following
                                                                         transmissions and receptions. */
@@ -229,170 +301,184 @@ typedef enum _MacPibAttributeId_t
 
 } MacPibAttributeId_t;
 
-
 /**//**
  * \brief   Enumeration of identifiers of public MAC-PIB attributes.
- * \details MAC-PIB public attributes set includes MAC-PIB private attributes subset and
- *  PHY-PIB public attributes set. MAC private and PHY public attributes identifiers
- *  ranges do not intersect with each other.
- * \note Enumeration \c PHY_PibAttributeId_t has the same data size (8-bit) as
- *  \c MacPibAttributeId_t and consequently \c MAC_PibAttributeId_t.
+ * \details MAC-PIB public attributes set includes MAC-PIB private attributes subset and PHY-PIB public attributes set.
+ *  MAC private and PHY public attributes identifiers ranges do not intersect with each other.
+ * \note Enumeration \c PHY_PibAttributeId_t has the same data size (8-bit) as \c MacPibAttributeId_t and consequently
+ *  \c MAC_PibAttributeId_t.
+ * \par     Documentation
+ *  See IEEE 802.15.4-2006, subclauses 7.4.2, 7.6.1, tables 86, 88.
  */
 typedef MacPibAttributeId_t  MAC_PibAttributeId_t;
+SYS_DbgAssertStatic(sizeof(MAC_PibAttributeId_t) == sizeof(PHY_PibAttributeId_t));
 
-
-/*
- * Data types for private MAC-PIB attributes.
+/**//**
+ * \name    Additional data types for private MAC-PIB attributes.
  */
+/**@{*/
 #if defined(_HAL_USE_PRNG_)
-typedef HAL_PrngSeed_t         MAC_PrngSeed_t;                      /*!< Data type for macPrngSeed. */
-typedef HAL_PrngCounter_t      MAC_PrngCounter_t;                   /*!< Data type for macPrngCounter. */
+typedef HAL_PrngSeed_t          MAC_PrngSeed_t;                     /*!< Data type for macPrngSeed. */
+typedef HAL_PrngCounter_t       MAC_PrngCounter_t;                  /*!< Data type for macPrngCounter. */
 #endif
-typedef Bool8_t                MAC_ContextEnabled_t;                /*!< Data type for macContextEnabled. */
-typedef Bool8_t                MAC_PanCoordinator_t;                /*!< Data type for macPanCoordinator. */
-typedef MAC_Addr64bit_t        MAC_ExtendedAddress_t;               /*!< Data type for macExtendedAddress. */
-typedef uint8_t                MAC_AckWaitDuration_t;               /*!< Data type for macAckWaitDuration. */
-typedef Bool8_t                MAC_AssociationPermit_t;             /*!< Data type for macAssociationPermit. */
-typedef Bool8_t                MAC_AutoRequest_t;                   /*!< Data type for macAutoRequest. */
-typedef Bool8_t                MAC_BattLifeExt_t;                   /*!< Data type for macBattLifeExt. */
-typedef uint8_t                MAC_BattLifeExtPeriods_t;            /*!< Data type for macBattLifeExtPeriods. */
-typedef SYS_DataPointer_t      MAC_BeaconPayload_t;                 /*!< Data type for macBeaconPayload. */
-typedef uint8_t                MAC_BeaconPayloadLength_t;           /*!< Data type for macBeaconPayloadLength. */
-typedef uint8_t                MAC_BeaconOrder_t;                   /*!< Data type for macBeaconOrder. */
-typedef HAL_SymbolTimestamp_t  MAC_BeaconTxTime_t;                  /*!< Data type for macBeaconTxTime. */
-/* See bbMacSapService.h       MAC_Bsn_t;                              < Data type for macBsn. */
-typedef MAC_Addr64bit_t        MAC_CoordExtendedAddress_t;          /*!< Data type for macCoordExtendedAddress. */
-typedef MAC_Addr16bit_t        MAC_CoordShortAddress_t;             /*!< Data type for macCoordShortAddress. */
-/* See bbMacSapService.h       MAC_Dsn_t;                              < Data type for macDsn. */
-typedef Bool8_t                MAC_GtsPermit_t;                     /*!< Data type for macGtsPermit. */
-typedef uint8_t                MAC_MaxCsmaBackoffs_t;               /*!< Data type for macMaxCsmaBackoffs. */
-typedef uint8_t                MAC_MinBe_t;                         /*!< Data type for macMinBe. */
-/* See bbMacSapAddress.h       MAC_PanId_t;                            < Data type for macPanId. */
-typedef Bool8_t                MAC_PromiscuousMode_t;               /*!< Data type for macPromiscuousMode. */
-typedef Bool8_t                MAC_RxOnWhenIdle_t;                  /*!< Data type for macRxOnWhenIdle. */
-typedef MAC_Addr16bit_t        MAC_ShortAddress_t;                  /*!< Data type for macShortAddress. */
-typedef uint8_t                MAC_SuperframeOrder_t;               /*!< Data type for macSuperframeOrder. */
-typedef uint16_t               MAC_TransactionPersistenceTime_t;    /*!< Data type for macTransactionPersistenceTime. */
-typedef Bool8_t                MAC_AssociatedPanCoord_t;            /*!< Data type for macAssociatedPanCoord. */
-typedef uint8_t                MAC_MaxBe_t;                         /*!< Data type for macMaxBe. */
-typedef uint16_t               MAC_MaxFrameTotalWaitTime_t;         /*!< Data type for macMaxFrameTotalWaitTime. */
-typedef uint8_t                MAC_MaxFrameRetries_t;               /*!< Data type for macMaxFrameRetries. */
-typedef uint8_t                MAC_ResponseWaitTime_t;              /*!< Data type for macResponseWaitTime. */
-typedef uint16_t               MAC_SyncSymbolOffset_t;              /*!< Data type for macSyncSymbolOffset. */
-typedef Bool8_t                MAC_TimestampSupported_t;            /*!< Data type for macTimestampSupported. */
-typedef Bool8_t                MAC_SecurityEnabled_t;               /*!< Data type for macSecurityEnabled. */
-typedef uint8_t                MAC_MinLifsPeriod_t;                 /*!< Data type for macMinLifsPeriod. */
-typedef uint8_t                MAC_MinSifsPeriod_t;                 /*!< Data type for macMinSifsPeriod. */
+typedef Bool8_t                 MAC_ContextEnabled_t;               /*!< Data type for macContextEnabled. */
+typedef Bool8_t                 MAC_PanCoordinator_t;               /*!< Data type for macPanCoordinator. */
+typedef MAC_Addr64bit_t         MAC_ExtendedAddress_t;              /*!< Data type for macExtendedAddress. */
+typedef uint8_t                 MAC_AckWaitDuration_t;              /*!< Data type for macAckWaitDuration. */
+typedef Bool8_t                 MAC_AssociationPermit_t;            /*!< Data type for macAssociationPermit. */
+typedef Bool8_t                 MAC_AutoRequest_t;                  /*!< Data type for macAutoRequest. */
+typedef Bool8_t                 MAC_BattLifeExt_t;                  /*!< Data type for macBattLifeExt. */
+typedef uint8_t                 MAC_BattLifeExtPeriods_t;           /*!< Data type for macBattLifeExtPeriods. */
+typedef SYS_DataPointer_t       MAC_BeaconPayload_t;                /*!< Data type for macBeaconPayload. */
+typedef uint8_t                 MAC_BeaconPayloadLength_t;          /*!< Data type for macBeaconPayloadLength. */
+typedef uint8_t                 MAC_BeaconOrder_t;                  /*!< Data type for macBeaconOrder. */
+typedef HAL_Symbol__Tstamp_t    MAC_BeaconTxTime_t;                 /*!< Data type for macBeaconTxTime. */
+/* See bbMacSapService.h        MAC_Bsn_t;                             < Data type for macBSN. */
+typedef MAC_Addr64bit_t         MAC_CoordExtendedAddress_t;         /*!< Data type for macCoordExtendedAddress. */
+typedef MAC_Addr16bit_t         MAC_CoordShortAddress_t;            /*!< Data type for macCoordShortAddress. */
+/* See bbMacSapService.h        MAC_Dsn_t;                             < Data type for macDSN. */
+typedef Bool8_t                 MAC_GTSPermit_t;                    /*!< Data type for macGTSPermit. */
+typedef uint8_t                 MAC_MaxCSMABackoffs_t;              /*!< Data type for macMaxCSMABackoffs. */
+typedef uint8_t                 MAC_MinBE_t;                        /*!< Data type for macMinBE. */
+/* See bbMacSapAddress.h        MAC_PanId_t;                           < Data type for macPANId. */
+typedef Bool8_t                 MAC_PromiscuousMode_t;              /*!< Data type for macPromiscuousMode. */
+typedef Bool8_t                 MAC_RxOnWhenIdle_t;                 /*!< Data type for macRxOnWhenIdle. */
+typedef MAC_Addr16bit_t         MAC_ShortAddress_t;                 /*!< Data type for macShortAddress. */
+typedef uint8_t                 MAC_SuperframeOrder_t;              /*!< Data type for macSuperframeOrder. */
+typedef uint16_t                MAC_TransactionPersistenceTime_t;   /*!< Data type for macTransactionPersistenceTime. */
+typedef Bool8_t                 MAC_AssociatedPANCoord_t;           /*!< Data type for macAssociatedPANCoord. */
+typedef uint8_t                 MAC_MaxBE_t;                        /*!< Data type for macMaxBE. */
+typedef uint16_t                MAC_MaxFrameTotalWaitTime_t;        /*!< Data type for macMaxFrameTotalWaitTime. */
+typedef uint8_t                 MAC_MaxFrameRetries_t;              /*!< Data type for macMaxFrameRetries. */
+typedef uint8_t                 MAC_ResponseWaitTime_t;             /*!< Data type for macResponseWaitTime. */
+typedef uint16_t                MAC_SyncSymbolOffset_t;             /*!< Data type for macSyncSymbolOffset. */
+typedef Bool8_t                 MAC_TimestampSupported_t;           /*!< Data type for macTimestampSupported. */
+typedef Bool8_t                 MAC_SecurityEnabled_t;              /*!< Data type for macSecurityEnabled. */
+typedef uint8_t                 MAC_MinLIFSPeriod_t;                /*!< Data type for macMinLIFSPeriod. */
+typedef uint8_t                 MAC_MinSIFSPeriod_t;                /*!< Data type for macMinSIFSPeriod. */
+typedef Bool8_t                 MAC_ThreadMode_t;                   /*!< Data type for macThreadMode. */
+/**@}*/
 
+/**//**
+ * \brief   Conventional MAC-PIB attributes.
+ * \note    Attribute macBeaconPayload is not included into the union because it is transferred as payload but not by
+ *  value.
+ */
+#define MAC_PIB_ATTRIBUTES\
+        MAC_ContextEnabled_t                macContextEnabled;\
+        MAC_PanCoordinator_t                macPanCoordinator;\
+        MAC_ExtendedAddress_t               macExtendedAddress;\
+        MAC_AckWaitDuration_t               macAckWaitDuration;\
+        MAC_AssociationPermit_t             macAssociationPermit;\
+        MAC_AutoRequest_t                   macAutoRequest;\
+        MAC_BattLifeExt_t                   macBattLifeExt;\
+        MAC_BattLifeExtPeriods_t            macBattLifeExtPeriods;\
+        MAC_BeaconPayloadLength_t           macBeaconPayloadLength;\
+        MAC_BeaconOrder_t                   macBeaconOrder;\
+        MAC_BeaconTxTime_t                  macBeaconTxTime;\
+        MAC_Bsn_t                           macBSN;\
+        MAC_CoordExtendedAddress_t          macCoordExtendedAddress;\
+        MAC_CoordShortAddress_t             macCoordShortAddress;\
+        MAC_Dsn_t                           macDSN;\
+        MAC_GTSPermit_t                     macGTSPermit;\
+        MAC_MaxCSMABackoffs_t               macMaxCSMABackoffs;\
+        MAC_MinBE_t                         macMinBE;\
+        MAC_PanId_t                         macPANId;\
+        MAC_PromiscuousMode_t               macPromiscuousMode;\
+        MAC_RxOnWhenIdle_t                  macRxOnWhenIdle;\
+        MAC_ShortAddress_t                  macShortAddress;\
+        MAC_SuperframeOrder_t               macSuperframeOrder;\
+        MAC_TransactionPersistenceTime_t    macTransactionPersistenceTime;\
+        MAC_AssociatedPANCoord_t            macAssociatedPANCoord;\
+        MAC_MaxBE_t                         macMaxBE;\
+        MAC_MaxFrameTotalWaitTime_t         macMaxFrameTotalWaitTime;\
+        MAC_MaxFrameRetries_t               macMaxFrameRetries;\
+        MAC_ResponseWaitTime_t              macResponseWaitTime;\
+        MAC_SyncSymbolOffset_t              macSyncSymbolOffset;\
+        MAC_TimestampSupported_t            macTimestampSupported;\
+        MAC_SecurityEnabled_t               macSecurityEnabled;\
+        MAC_MinLIFSPeriod_t                 macMinLIFSPeriod;\
+        MAC_MinSIFSPeriod_t                 macMinSIFSPeriod;\
+        PHY_Channel_t                       macCurrentChannel;\
+        PHY_Page_t                          macCurrentPage;
 
 /**//**
  * \brief   Additional private MAC-PIB attributes for PRNG support.
  */
 #if defined(_HAL_USE_PRNG_)
 # define MAC_PIB_PRNG_ATTRIBUTES\
-        MAC_PrngSeed_t                    macPrngSeed;\
-        MAC_PrngCounter_t                 macPrngCounter;
+        MAC_PrngSeed_t                      macPrngSeed;\
+        MAC_PrngCounter_t                   macPrngCounter;
 #else
 # define MAC_PIB_PRNG_ATTRIBUTES
 #endif
 
+/**//**
+ * \brief   Additional private MAC-PIB security attributes.
+ * \note    Attributes macKeyTable, macDeviceTable, macSecurityLevelTable are not included into the union because they
+ *  are transferred as payload but not by value.
+ */
+#if defined(_MAC_CONTEXT_ZBPRO_)
+# define MAC_PIB_SECURITY_ATTRIBUTES\
+        MAC_ThreadMode_t                    macThreadMode;\
+        MAC_KeyTableEntries_t               macKeyTableEntries;\
+        MAC_DeviceTableEntries_t            macDeviceTableEntries;\
+        MAC_SecurityLevelTableEntries_t     macSecurityLevelTableEntries;\
+        MAC_FrameCounter_t                  macFrameCounter;\
+        MAC_SecurityLevel_t                 macAutoRequestSecurityLevel;\
+        MAC_KeyIdMode_t                     macAutoRequestKeyIdMode;\
+        MAC_KeySource_t                     macAutoRequestKeySource;\
+        MAC_KeyIndex_t                      macAutoRequestKeyIndex;\
+        MAC_KeySource_t                     macDefaultKeySource;\
+        MAC_ExtendedAddress_t               macPANCoordExtendedAddress;\
+        MAC_ShortAddress_t                  macPANCoordShortAddress;
+#else
+# define MAC_PIB_SECURITY_ATTRIBUTES
+#endif
 
 /**//**
  * \brief   Union of all private MAC-PIB attributes.
- * \note    Attribute macBeaconPayload is not included into the union because it is
- *  transferred as a payload but not by its value.
  */
 #define MAC_PIB_PRIVATE_VARIANT\
-    union\
-    {\
+    union {\
+        MAC_PIB_ATTRIBUTES\
         MAC_PIB_PRNG_ATTRIBUTES\
-        MAC_ContextEnabled_t              macContextEnabled;\
-        MAC_PanCoordinator_t              macPanCoordinator;\
-        MAC_ExtendedAddress_t             macExtendedAddress;\
-        MAC_AckWaitDuration_t             macAckWaitDuration;\
-        MAC_AssociationPermit_t           macAssociationPermit;\
-        MAC_AutoRequest_t                 macAutoRequest;\
-        MAC_BattLifeExt_t                 macBattLifeExt;\
-        MAC_BattLifeExtPeriods_t          macBattLifeExtPeriods;\
-        MAC_BeaconPayloadLength_t         macBeaconPayloadLength;\
-        MAC_BeaconOrder_t                 macBeaconOrder;\
-        MAC_BeaconTxTime_t                macBeaconTxTime;\
-        MAC_Bsn_t                         macBsn;\
-        MAC_CoordExtendedAddress_t        macCoordExtendedAddress;\
-        MAC_CoordShortAddress_t           macCoordShortAddress;\
-        MAC_Dsn_t                         macDsn;\
-        MAC_GtsPermit_t                   macGtsPermit;\
-        MAC_MaxCsmaBackoffs_t             macMaxCsmaBackoffs;\
-        MAC_MinBe_t                       macMinBe;\
-        MAC_PanId_t                       macPanId;\
-        MAC_PromiscuousMode_t             macPromiscuousMode;\
-        MAC_RxOnWhenIdle_t                macRxOnWhenIdle;\
-        MAC_ShortAddress_t                macShortAddress;\
-        MAC_SuperframeOrder_t             macSuperframeOrder;\
-        MAC_TransactionPersistenceTime_t  macTransactionPersistenceTime;\
-        MAC_AssociatedPanCoord_t          macAssociatedPanCoord;\
-        MAC_MaxBe_t                       macMaxBe;\
-        MAC_MaxFrameTotalWaitTime_t       macMaxFrameTotalWaitTime;\
-        MAC_MaxFrameRetries_t             macMaxFrameRetries;\
-        MAC_ResponseWaitTime_t            macResponseWaitTime;\
-        MAC_SyncSymbolOffset_t            macSyncSymbolOffset;\
-        MAC_TimestampSupported_t          macTimestampSupported;\
-        MAC_SecurityEnabled_t             macSecurityEnabled;\
-        MAC_MinLifsPeriod_t               macMinLifsPeriod;\
-        MAC_MinSifsPeriod_t               macMinSifsPeriod;\
-        PHY_CurrentChannel_t              macCurrentChannel;\
-        PHY_CurrentPage_t                 macCurrentPage;\
+        MAC_PIB_SECURITY_ATTRIBUTES\
+        uint64_t                            macDummyFieldToComeWith64bitWidth;\
     }
-
 
 /**//**
  * \brief   Variant data type for private MAC-PIB attributes.
+ * \details This data type may be projected on the 64-bit integer.
  */
 typedef MAC_PIB_PRIVATE_VARIANT  MacPibAttributeValue_t;
-
+SYS_DbgAssertStatic(sizeof(MacPibAttributeValue_t) == sizeof(uint64_t));
 
 /**//**
  * \brief   Union of all public MAC-PIB attributes.
- * \details MAC-PIB public attributes set includes MAC-PIB private attributes subset and
- *  PHY-PIB public attributes set.
+ * \details MAC-PIB public attributes set includes MAC-PIB private attributes subset and PHY-PIB public attributes set.
  * \details Use this macro to define one-step-higher-layer public variant data type.
  * \par     Example of usage
  * \code
  *  #define ZBPRO_NWK_NIB_PUBLIC_VARIANT\
- *      union\
- *      {\
+ *      union {\
  *          MAC_PIB_PUBLIC_VARIANT;\
  *          ZBPRO_NWK_NIB_PRIVATE_VARIANT;\
  *      }
  * \endcode
  */
 #define MAC_PIB_PUBLIC_VARIANT\
-    union\
-    {\
+    union {\
         PHY_PIB_PUBLIC_VARIANT;\
         MAC_PIB_PRIVATE_VARIANT;\
     }
 
-
 /**//**
  * \brief   Variant data type for public MAC-PIB attributes.
- * \details MAC-PIB public attributes set includes MAC-PIB private attributes subset and
- *  PHY-PIB public attributes set.
+ * \details MAC-PIB public attributes set includes MAC-PIB private attributes subset and PHY-PIB public attributes set.
+ * \details This data type may be projected on the 64-bit integer.
  */
 typedef MAC_PIB_PUBLIC_VARIANT  MAC_PibAttributeValue_t;
-
-
-/**//**
- * \brief   Enumeration for the PIBAttributeIndex parameter of MLME-GET/SET primitives.
- * \note    Parameter PIBAttributeIndex is ignored by this implementation of the MAC.
- * \par     Documentation
- *  See IEEE 802.15.4-2006, subclause 7.6.1, table 88.
- */
-typedef enum _MAC_PibAttributeIndex_t
-{
-    MAC_PIB_ATTRIBUTE_INDEX_NONE = 0x00,    /*!< PIBAttributeIndex parameter is not used. */
-
-} MAC_PibAttributeIndex_t;
-
+SYS_DbgAssertStatic(sizeof(MAC_PibAttributeValue_t) == sizeof(uint64_t));
 
 #endif /* _BB_MAC_SAP_PIB_H */

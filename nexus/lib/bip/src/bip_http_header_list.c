@@ -1,43 +1,39 @@
 /******************************************************************************
- * (c) 2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 
 #include <ctype.h>
@@ -52,8 +48,8 @@ BDBG_OBJECT_ID( BIP_HttpHeaderList );
 
 #define BIP_HTTP_HEADER_PRINTF_FMT "[hHandle=%p hList=%p Name=\"%s\" Value=\"%s\"]"
 #define BIP_HTTP_HEADER_PRINTF_ARG( h )                           \
-    ( h ) ? ( h ) : 0,                                            \
-    ( h ) ? ( h )->hList : 0,                                     \
+    (void*)(( h ) ? ( h ) : 0),                                \
+    (void *)(( h ) ? ( h )->hList : 0),                                     \
     ( h ) ?  BIP_String_GetString(( h )->hName ) : "NULL handle", \
     ( h ) ?  BIP_String_GetString(( h )->hValue ) : ""
 
@@ -378,7 +374,7 @@ static BIP_Status BIP_HttpHeader_Destroy_locked(
 
     BDBG_OBJECT_ASSERT( hHeader, BIP_HttpHeader );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hHeader %p: Entry..." BIP_MSG_PRE_ARG, hHeader ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hHeader %p: Entry..." BIP_MSG_PRE_ARG, (void *)hHeader ));
 
     hList = hHeader->hList;
     BDBG_ASSERT( hList );
@@ -401,7 +397,7 @@ static BIP_Status BIP_HttpHeader_Destroy_locked(
 
     BDBG_OBJECT_DESTROY( hHeader, BIP_HttpHeader );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hHeader %p: Freeing object memory" BIP_MSG_PRE_ARG, hHeader ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hHeader %p: Freeing object memory" BIP_MSG_PRE_ARG, (void *)hHeader ));
     B_Os_Free( hHeader );
 
     return( rc );
@@ -419,7 +415,7 @@ BIP_Status BIP_HttpHeaderList_DestroyHeader(
 
     BDBG_OBJECT_ASSERT( hHeader, BIP_HttpHeader );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hHeader %p: Entry..." BIP_MSG_PRE_ARG, hHeader ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hHeader %p: Entry..." BIP_MSG_PRE_ARG, (void *)hHeader ));
 
     hList = hHeader->hList;
     BDBG_ASSERT( hList );
@@ -462,7 +458,7 @@ static BIP_HttpHeaderHandle BIP_HttpHeader_Create_locked(
     BIP_CHECK_GOTO(( hHeader !=NULL ), ( "Memory Allocation Failed" ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
 
     BDBG_OBJECT_SET( hHeader, BIP_HttpHeader );
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hHeader %p: Allocated " BIP_MSG_PRE_ARG, hHeader ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hHeader %p: Allocated " BIP_MSG_PRE_ARG, (void *)hHeader ));
 
     hHeader->hList = hList;
     hHeader->hName = BIP_String_CreateFromChar( pName );
@@ -475,12 +471,12 @@ static BIP_HttpHeaderHandle BIP_HttpHeader_Create_locked(
     {
         BDBG_OBJECT_ASSERT( hAddBeforeThisHeader, BIP_HttpHeader );
 
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hHeader %p: Inserting before hHeader: %p " BIP_MSG_PRE_ARG, hHeader, hAddBeforeThisHeader ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hHeader %p: Inserting before hHeader: %p " BIP_MSG_PRE_ARG, (void *)hHeader, (void *)hAddBeforeThisHeader ));
         BLST_Q_INSERT_BEFORE( &hList->headerListHead, hAddBeforeThisHeader, hHeader, headerListNext );
     }
     else
     {
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hHeader %p: Inserting at end of list" BIP_MSG_PRE_ARG, hHeader ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hHeader %p: Inserting at end of list" BIP_MSG_PRE_ARG, (void *)hHeader ));
         BLST_Q_INSERT_TAIL( &hList->headerListHead, hHeader, headerListNext );
     }
     return( hHeader );
@@ -551,7 +547,7 @@ static void BIP_HttpHeaderList_Clear_locked(
     while (hHeader != NULL) {
         BIP_HttpHeaderHandle hNext = BLST_Q_NEXT( hHeader, headerListNext );
 
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hList %p: Removing hHeader=%p" BIP_MSG_PRE_ARG, hList, hHeader ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hList %p: Removing hHeader=%p" BIP_MSG_PRE_ARG, (void *)hList, (void *)hHeader ));
         BIP_HttpHeader_Destroy_locked( hHeader );
         hHeader = hNext;
     }
@@ -577,7 +573,7 @@ void BIP_HttpHeaderList_Clear(
 {
     BDBG_OBJECT_ASSERT( hList, BIP_HttpHeaderList );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hList %p: Entry..." BIP_MSG_PRE_ARG, hList ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hList %p: Entry..." BIP_MSG_PRE_ARG, (void *)hList ));
 
     B_Mutex_Lock( hList->hMutex );
 
@@ -597,12 +593,12 @@ void BIP_HttpHeaderList_Destroy(
 {
     BDBG_OBJECT_ASSERT( hList, BIP_HttpHeaderList );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hList %p: Entry..." BIP_MSG_PRE_ARG, hList ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hList %p: Entry..." BIP_MSG_PRE_ARG, (void *)hList ));
 
     if (ownerContext != hList->ownerContext)
     {
         BDBG_WRN(( BIP_MSG_PRE_FMT "hList %p: Mismatched ownerContext: got %p, expected %p.  Ignoring Destroy request!"
-                   BIP_MSG_PRE_ARG, hList, ownerContext, hList->ownerContext ));
+                   BIP_MSG_PRE_ARG, (void *)hList, (void *)ownerContext, (void *)hList->ownerContext ));
     }
 
     BIP_HttpHeaderList_Clear( hList );                     /* Delete any Headers from the HeaderList. */
@@ -616,7 +612,7 @@ void BIP_HttpHeaderList_Destroy(
 
     BDBG_OBJECT_DESTROY( hList, BIP_HttpHeaderList );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hList %p: Freeing object memory" BIP_MSG_PRE_ARG, hList ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hList %p: Freeing object memory" BIP_MSG_PRE_ARG, (void *)hList ));
     B_Os_Free( hList );
 
     return;
@@ -639,7 +635,7 @@ BIP_HttpHeaderListHandle BIP_HttpHeaderList_Create(
     BIP_CHECK_GOTO(( hList ),            ( "Memory Allocation Failed" ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
 
     BDBG_OBJECT_SET( hList, BIP_HttpHeaderList );
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hList %p: Allocated " BIP_MSG_PRE_ARG, hList ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hList %p: Allocated " BIP_MSG_PRE_ARG, (void *)hList ));
 
     hList->ownerContext = ownerContext;
 
@@ -759,8 +755,8 @@ BIP_Status BIP_HttpHeaderList_DeserializeFromAtom(
         for (relook = true; relook==true; ) {
             relook = false;
 
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hList %p: deserializeState=0x%x \"%s\"  byteIndex=%d"
-                       BIP_MSG_PRE_ARG, hList, hList->deserializeState, toStr_deserializeState( hList->deserializeState ), hList->byteIndex ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hList %p: deserializeState=0x%x \"%s\"  byteIndex=%zu"
+                       BIP_MSG_PRE_ARG, (void *)hList, hList->deserializeState, toStr_deserializeState( hList->deserializeState ), hList->byteIndex ));
 
             switch (hList->deserializeState) {
                 /* State: Idle
@@ -816,7 +812,7 @@ BIP_Status BIP_HttpHeaderList_DeserializeFromAtom(
                         size_t length = BIP_String_GetLength( hList->hName );
                         BIP_CHECK_GOTO(( length>0 ), ( "Deserialize error: zero-length header name." ), error, BIP_ERR_INVALID_PARAMETER, rc );
 
-                        BDBG_MSG(( BIP_MSG_PRE_FMT "hList %p: Got header name=%s" BIP_MSG_PRE_ARG, hList, BIP_String_GetString( hList->hName )));
+                        BDBG_MSG(( BIP_MSG_PRE_FMT "hList %p: Got header name=%s" BIP_MSG_PRE_ARG, (void *)hList, BIP_String_GetString( hList->hName )));
 
                         hList->deserializeState = deserializeState_ePreFieldOws;
                     }
@@ -920,7 +916,7 @@ BIP_Status BIP_HttpHeaderList_DeserializeFromAtom(
                         }
 
                         BDBG_MSG(( BIP_MSG_PRE_FMT "hList %p: Adding header: name=\"%s\" value=\"%s\""
-                                   BIP_MSG_PRE_ARG, hList, BIP_String_GetString( hList->hName ), BIP_String_GetString( hList->hValue )));
+                                   BIP_MSG_PRE_ARG, (void *)hList, BIP_String_GetString( hList->hName ), BIP_String_GetString( hList->hValue )));
                         {
                             BIP_HttpHeaderHandle hMyHandle;
                             hMyHandle = BIP_HttpHeader_Create_locked( hList,
@@ -966,7 +962,7 @@ BIP_Status BIP_HttpHeaderList_DeserializeFromAtom(
                     {
                         BIP_Atom_CursorDump( &cursorSave, "Cursor Dump" );
 
-                        BIP_CHECK_GOTO(( false ), ( "Deserialize error: At offset 0x%x: Invalid character (\"%c\"=0x%02x) in header list terminator.",
+                        BIP_CHECK_GOTO(( false ), ( "Deserialize error: At offset 0x%zx: Invalid character (\"%c\"=0x%02x) in header list terminator.",
                                                     batom_cursor_pos( pCursor ) - batom_cursor_pos( &cursorSave ), ch, ch ),
                             error, BIP_ERR_INVALID_PARAMETER, rc );
                     }
@@ -987,7 +983,7 @@ BIP_Status BIP_HttpHeaderList_DeserializeFromAtom(
                  * This should never happen. */
                 default:
                 {
-                    BIP_CHECK_GOTO(( false ), ( "hList %p: Unhandled state=%s (%d)", hList, toStr_deserializeState( hList->deserializeState ), hList->deserializeState ),
+                    BIP_CHECK_GOTO(( false ), ( "hList %p: Unhandled state=%s (%d)", (void *)hList, toStr_deserializeState( hList->deserializeState ), hList->deserializeState ),
                         error, BIP_ERR_INTERNAL, rc );
 
                     break;
@@ -1092,8 +1088,8 @@ static BIP_Status BIP_HttpHeader_SerializeChars(
         {
             if (pDstBfr)
             {
-                BDBG_MSG(( BIP_MSG_PRE_FMT "Copying \"%.*s\" to destIdx=%d"
-                           BIP_MSG_PRE_ARG, bytesToMove, pSrcBfr + *pCurSrcIdx, *pCurDstIdx ));
+                BDBG_MSG(( BIP_MSG_PRE_FMT "Copying \"%.*s\" to destIdx=%zu"
+                           BIP_MSG_PRE_ARG, (int)bytesToMove, pSrcBfr + *pCurSrcIdx, *pCurDstIdx ));
 
                 BKNI_Memcpy( pDstBfr + *pCurDstIdx, pSrcBfr+ *pCurSrcIdx, bytesToMove );
             }
@@ -1106,8 +1102,8 @@ static BIP_Status BIP_HttpHeader_SerializeChars(
             {
                 if (pDstBfr)
                 {
-                    BDBG_MSG(( BIP_MSG_PRE_FMT "Copying \"%.*s\" to destIdx=%d"
-                               BIP_MSG_PRE_ARG, spaceLeft, pSrcBfr + *pCurSrcIdx, *pCurDstIdx ));
+                    BDBG_MSG(( BIP_MSG_PRE_FMT "Copying \"%.*s\" to destIdx=%zu"
+                               BIP_MSG_PRE_ARG, (int)spaceLeft, pSrcBfr + *pCurSrcIdx, *pCurDstIdx ));
                     BKNI_Memcpy( pDstBfr + *pCurDstIdx, pSrcBfr + *pCurSrcIdx, spaceLeft );
                 }
                 *pCurDstIdx += spaceLeft;
@@ -1166,8 +1162,8 @@ static BIP_Status BIP_HttpHeader_SerializeToBuffer_locked(
     for (relook = true; relook==true; ) {
         relook = false;
 
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hList %p: serializeState=0x%x \"%s\"  byteIndex=%d"
-                   BIP_MSG_PRE_ARG, hList, hList->serializeState, toStr_serializeState( hList->serializeState ), hList->byteIndex ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hList %p: serializeState=0x%x \"%s\"  byteIndex=%zu"
+                   BIP_MSG_PRE_ARG, (void *)hList, hList->serializeState, toStr_serializeState( hList->serializeState ), hList->byteIndex ));
 
         switch (hList->serializeState) {
             /* State: Idle
@@ -1316,7 +1312,7 @@ static BIP_Status BIP_HttpHeader_SerializeToBuffer_locked(
              * This should never happen. */
             default:
             {
-                BIP_CHECK_GOTO(( false ), ( "hList %p: Unhandled state=%s (%d)", hList, toStr_serializeState( hList->serializeState ), hList->serializeState ),
+                BIP_CHECK_GOTO(( false ), ( "hList %p: Unhandled state=%s (%d)", (void *)hList, toStr_serializeState( hList->serializeState ), hList->serializeState ),
                     error, BIP_ERR_INTERNAL, rc );
 
                 break;
@@ -1326,8 +1322,8 @@ static BIP_Status BIP_HttpHeader_SerializeToBuffer_locked(
 
     if (pSerializedBytes) {*pSerializedBytes = destIndex; }
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hList %p: returning *pSerializeComplete=%s *pSerializedBytes=%d"
-               BIP_MSG_PRE_ARG, hList,
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hList %p: returning *pSerializeComplete=%s *pSerializedBytes=%zu"
+               BIP_MSG_PRE_ARG, (void *)hList,
                ( pSerializeComplete==NULL ) ? "N/A" : ( *pSerializeComplete ) ? "TRUE" : "FALSE",
                pSerializedBytes ? *pSerializedBytes : 0 ));
 
@@ -1338,8 +1334,8 @@ error:
 
     hList->serializeState = serializeState_eIdle;
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hList %p: Error: returning *pRenderComplete=%s *pSerializedBytes=%d"
-               BIP_MSG_PRE_ARG, hList,
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hList %p: Error: returning *pRenderComplete=%s *pSerializedBytes=%zu"
+               BIP_MSG_PRE_ARG, (void *)hList,
                ( pSerializeComplete==NULL ) ? "N/A" : ( *pSerializeComplete ) ? "TRUE" : "FALSE",
                pSerializedBytes ? *pSerializedBytes : 0 ));
 
@@ -1429,7 +1425,7 @@ BIP_Status BIP_HttpHeaderList_SerializeToAtom(
      *  Malloc some memory, then create an atom out of it.
      *************************************************************************/
     pBuffer = B_Os_Malloc( serializeLen );
-    BIP_CHECK_GOTO(( pBuffer ), ( "B_Os_Malloc (%d bytes) failed.", serializeLen ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
+    BIP_CHECK_GOTO(( pBuffer ), ( "B_Os_Malloc (%zu bytes) failed.", serializeLen ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
 
     myAtom = BIP_Atom_AtomFromBOsMallocRange( factory, pBuffer, serializeLen );
 

@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2014 Broadcom Corporation
+ *     Broadcom Proprietary and Confidential. (c)2014 Broadcom.  All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -46,13 +46,30 @@
 #include "bchp_pwr.h"
 #endif
 
-#ifdef BVC5_HARDWARE_REAL
-#include "bchp_v3d_ctl.h"
-#endif
-
 BDBG_MODULE(BVC5);
 
 static void BVC5_P_UnregisterAllClients(BVC5_Handle hVC5);
+
+BVC5_BinPoolHandle BVC5_P_GetBinPool(
+   BVC5_Handle hVC5
+)
+{
+   return (hVC5->bSecure && hVC5->hSecureBinPool) ? hVC5->hSecureBinPool : hVC5->hBinPool;
+}
+
+BMEM_Heap_Handle BVC5_P_GetHeap(
+   BVC5_Handle hVC5
+)
+{
+   return (hVC5->bSecure && hVC5->hSecureHeap) ? hVC5->hSecureHeap : hVC5->hHeap;
+}
+
+BMMA_Heap_Handle BVC5_P_GetMMAHeap(
+   BVC5_Handle hVC5
+)
+{
+   return (hVC5->bSecure && hVC5->hSecureMMAHeap) ? hVC5->hSecureMMAHeap : hVC5->hMMAHeap;
+}
 
 /***************************************************************************/
 
@@ -76,6 +93,8 @@ void BVC5_GetDefaultOpenParameters(
 
       openParams->bResetOnStall = true;
       openParams->bMemDumpOnStall = false;
+
+      openParams->bNoBurstSplitting = false;
    }
 }
 
@@ -86,6 +105,8 @@ BERR_Code BVC5_Open(
    BREG_Handle          hReg,
    BMEM_Heap_Handle     hHeap,
    BMMA_Heap_Handle     hMMAHeap,
+   BMEM_Heap_Handle     hSecureHeap,
+   BMMA_Heap_Handle     hSecureMMAHeap,
    BINT_Handle          hInt,
    BVC5_OpenParameters *sOpenParams,
    BVC5_Callbacks      *sCallbacks
@@ -109,9 +130,18 @@ BERR_Code BVC5_Open(
    hVC5->hReg  = hReg;
    hVC5->hInt  = hInt;
 
+   /* Must both be set or both be unset */
+   if ((hSecureHeap != NULL) ^ (hSecureMMAHeap != NULL))
+   {
+      err = BERR_INVALID_PARAMETER;
+      goto exit;
+   }
+
    /* Heaps */
-   hVC5->hHeap    = hHeap;
-   hVC5->hMMAHeap = hMMAHeap;
+   hVC5->hHeap          = hHeap;
+   hVC5->hMMAHeap       = hMMAHeap;
+   hVC5->hSecureHeap    = hSecureHeap;
+   hVC5->hSecureMMAHeap = hSecureMMAHeap;
 
    /* Parameters */
    hVC5->sOpenParams = *sOpenParams;
@@ -120,19 +150,31 @@ BERR_Code BVC5_Open(
    /* NexusMMA API usage is always on now - so override whatever is sent in */
    hVC5->sOpenParams.bUseNexusMMA = true;
 
+   /* Keep track of whether the security scrubbing code is being run */
+   hVC5->bToggling      = false;
+
 #ifndef V3D_HAS_BPCM
    /* Don't allow an override if it's not supported */
    hVC5->sOpenParams.bUsePowerGating = false;
 #endif
 
-   BDBG_MSG(("VC5 options:\n Power gating = %s\n Clock gating = %s\n Stall Detection = %s\nGPUMon dependencies = %s\nReset on stall = %s\nDump on stall = %s\n",
-         hVC5->sOpenParams.bUsePowerGating ? "on" : "off",
-         hVC5->sOpenParams.bUseClockGating ? "on" : "off",
-         hVC5->sOpenParams.bUseStallDetection ? "on" : "off",
-         hVC5->sOpenParams.bGPUMonDeps ? "on" : "off",
-         hVC5->sOpenParams.bResetOnStall ? "on" : "off",
-         hVC5->sOpenParams.bMemDumpOnStall ? "on" : "off"
-         ));
+   BDBG_MSG((
+      "VC5 options:\n"
+      " Power gating = %s\n"
+      " Clock gating = %s\n"
+      " Stall Detection = %s\n"
+      " GPUMon dependencies = %s\n"
+      " Reset on stall = %s\n"
+      " Dump on stall = %s\n"
+      " No burst splitting = %s\n",
+      hVC5->sOpenParams.bUsePowerGating ? "on" : "off",
+      hVC5->sOpenParams.bUseClockGating ? "on" : "off",
+      hVC5->sOpenParams.bUseStallDetection ? "on" : "off",
+      hVC5->sOpenParams.bGPUMonDeps ? "on" : "off",
+      hVC5->sOpenParams.bResetOnStall ? "on" : "off",
+      hVC5->sOpenParams.bMemDumpOnStall ? "on" : "off",
+      hVC5->sOpenParams.bNoBurstSplitting ? "on" : "off"
+      ));
 
    err = BKNI_CreateMutex(&hVC5->hModuleMutex);
    if (err != BERR_SUCCESS)
@@ -154,9 +196,16 @@ BERR_Code BVC5_Open(
    if (err != BERR_SUCCESS)
       goto exit;
 
-   err = BVC5_P_BinPoolCreate(hVC5, &hVC5->hBinPool);
+   err = BVC5_P_BinPoolCreate(hMMAHeap, &hVC5->hBinPool);
    if (err != BERR_SUCCESS)
       goto exit;
+
+   if (hSecureMMAHeap)
+   {
+      err = BVC5_P_BinPoolCreate(hSecureMMAHeap, &hVC5->hSecureBinPool);
+      if (err != BERR_SUCCESS)
+         goto exit;
+   }
 
    /* "Create" the hardware */
 #if defined(BVC5_HARDWARE_SIMPENROSE)
@@ -243,6 +292,10 @@ BERR_Code BVC5_Close(
       BKNI_WaitForEvent(hVC5->hSchedulerSyncEvent, BKNI_INFINITE);
    }
 
+   /* Make sure that we leave SAGE with secure mode off */
+   if (hVC5->bSecure && hVC5->sCallbacks.fpSecureToggleHandler)
+      hVC5->sCallbacks.fpSecureToggleHandler(false);
+
 #if defined(BVC5_HARDWARE_SIMPENROSE)
    BVC5_P_SimpenroseTerm(hVC5, hVC5->hSimpenrose);
 #endif
@@ -256,6 +309,7 @@ BERR_Code BVC5_Close(
    BVC5_P_SchedulerStateDestruct(&hVC5->sSchedulerState);
 
    BVC5_P_BinPoolDestroy(hVC5->hBinPool);
+   BVC5_P_BinPoolDestroy(hVC5->hSecureBinPool);
 
    if (hVC5->hGMPTable)
       BMMA_Free(hVC5->hGMPTable);
@@ -636,55 +690,6 @@ exit:
    return err;
 }
 
-BERR_Code BVC5_FenceSignalJob(
-   BVC5_Handle                 hVC5,
-   uint32_t                    uiClientId,
-   const BVC5_JobFenceSignal  *pJob,
-   int                        *pFence
-)
-{
-   BERR_Code             err;
-   BVC5_P_InternalJob   *pFenceJob = NULL;
-   BVC5_ClientHandle     hClient;
-
-   BDBG_ENTER(BVC5_FenceSignalJob);
-
-   if (pJob == NULL || pFence == NULL)
-      return BERR_INVALID_PARAMETER;
-
-   BKNI_AcquireMutex(hVC5->hModuleMutex);
-
-   hClient = BVC5_P_ClientMapGet(hVC5, hVC5->hClientMap, uiClientId);
-   if (hClient == NULL || !BVC5_P_ClientSetMaxJobId(hClient, pJob->sBase.uiJobId))
-   {
-      err = BERR_INVALID_PARAMETER;
-      goto exit;
-   }
-
-   *pFence = -1;
-
-
-   /* Take a copy of the job */
-   pFenceJob = BVC5_P_JobCreateFenceSignal(hVC5, uiClientId, pJob, pFence);
-   if (pFenceJob == NULL)
-   {
-      err = BERR_OUT_OF_SYSTEM_MEMORY;
-      goto exit;
-   }
-
-   BVC5_P_AddJob(hVC5, hClient, pFenceJob);
-   BVC5_P_PumpClient(hVC5, hClient);
-
-   err = BERR_SUCCESS;
-
-exit:
-   BKNI_ReleaseMutex(hVC5->hModuleMutex);
-
-   BDBG_LEAVE(BVC5_FenceSignalJob);
-
-   return err;
-}
-
 BERR_Code BVC5_TestJob(
    BVC5_Handle                 hVC5,
    uint32_t                    uiClientId,
@@ -907,6 +912,56 @@ exit:
    return err;
 }
 
+BERR_Code BVC5_MakeFenceForJobs(
+   BVC5_Handle                   hVC5,
+   uint32_t                      uiClientId,
+   const BVC5_SchedDependencies *pCompletedDeps,
+   const BVC5_SchedDependencies *pFinalizedDeps,
+   bool                          bForceCreate,
+   int                          *piFence
+)
+{
+   BVC5_ClientHandle hClient;
+   BERR_Code berr;
+
+   BKNI_AcquireMutex(hVC5->hModuleMutex);
+
+   hClient = BVC5_P_ClientMapGet(hVC5, hVC5->hClientMap, uiClientId);
+
+   if (hClient == NULL)
+      berr = BERR_INVALID_PARAMETER;
+   else
+      berr = BVC5_P_ClientMakeFenceForJobs(hVC5, hClient,
+         pCompletedDeps, pFinalizedDeps, bForceCreate, piFence);
+
+   BKNI_ReleaseMutex(hVC5->hModuleMutex);
+
+   return berr;
+}
+
+BERR_Code BVC5_MakeFenceForAnyNonFinalizedJob(
+   BVC5_Handle hVC5,
+   uint32_t    uiClientId,
+   int        *piFence
+)
+{
+   BVC5_ClientHandle hClient;
+   BERR_Code berr;
+
+   BKNI_AcquireMutex(hVC5->hModuleMutex);
+
+   hClient = BVC5_P_ClientMapGet(hVC5, hVC5->hClientMap, uiClientId);
+
+   if (hClient == NULL)
+      berr = BERR_INVALID_PARAMETER;
+   else
+      berr = BVC5_P_ClientMakeFenceForAnyNonFinalizedJob(hVC5, hClient, piFence);
+
+   BKNI_ReleaseMutex(hVC5->hModuleMutex);
+
+   return berr;
+}
+
 BERR_Code BVC5_FenceRegisterWaitCallback(
    BVC5_Handle    hVC5,
    int            iFence,
@@ -1024,7 +1079,7 @@ BERR_Code BVC5_GetUsermode(
       {
          BVC5_ClientHandle    hClient = BVC5_P_ClientMapGet(hVC5, hVC5->hClientMap, psJob->uiClientId);
 
-         BVC5_P_ClientJobRunningToCompleted(hClient, psJob);
+         BVC5_P_ClientJobRunningToCompleted(hVC5, hClient, psJob);
 
          usermodeState->psRunningJob = NULL;
 
@@ -1111,7 +1166,7 @@ BERR_Code BVC5_GetCompletions(
    }
 
    /* If there are no more completed jobs, we still need to know the onfid */
-   psCompletionInfo->uiOldestNotFinalized = BVC5_P_ClientGetOldestNotFinalized(hClient);
+   psCompletionInfo->uiOldestNotFinalized = BVC5_P_ClientGetOldestNotFinalizedId(hClient);
 
 exit:
    BKNI_ReleaseMutex(hVC5->hModuleMutex);

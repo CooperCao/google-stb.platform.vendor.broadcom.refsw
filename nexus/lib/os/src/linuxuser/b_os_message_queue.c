@@ -101,14 +101,14 @@ B_MessageQueueHandle B_MessageQueue_Create(
 
     if ( pSettings->maxMessageSize <= 0 )
     {
-        BDBG_ERR(("Invalid message size %u", pSettings->maxMessageSize));
+        BDBG_ERR(("Invalid message size %u", (unsigned)pSettings->maxMessageSize));
         errCode = BERR_TRACE(B_ERROR_INVALID_PARAMETER);
         return NULL;
     }
 
     if ( pSettings->maxMessages <= 0 )
     {
-        BDBG_ERR(("Invalid max message value %u", pSettings->maxMessages));
+        BDBG_ERR(("Invalid max message value %u", (unsigned)pSettings->maxMessages));
         errCode = BERR_TRACE(B_ERROR_INVALID_PARAMETER);
         return NULL;
     }
@@ -364,7 +364,7 @@ B_Error B_MessageQueue_Wait(
                 rc = pthread_cond_timedwait(&handle->condition, &handle->mutex, &target);
                 if ( rc == ETIMEDOUT )
                 {
-                    BDBG_MSG(("B_MessageQueue_Receive(%#x): timeout", handle));
+                    BDBG_MSG(("B_MessageQueue_Receive(%p): timeout", (void*)handle));
                     errCode = B_ERROR_TIMEOUT;
                     break;
                 }

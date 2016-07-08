@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2013 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,6 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
  **************************************************************************/
 #ifndef NEXUS_DISPLAY_INIT_H__
 #define NEXUS_DISPLAY_INIT_H__
@@ -72,136 +62,25 @@ typedef struct NEXUS_DisplayModuleDependencies
     NEXUS_ModuleHandle transport;
 } NEXUS_DisplayModuleDependencies;
 
-typedef enum NEXUS_VideoDacDetection
-{
-    NEXUS_VideoDacDetection_eAuto,
-    NEXUS_VideoDacDetection_eOff,
-    NEXUS_VideoDacDetection_eOn,
-    NEXUS_VideoDacDetection_eMax
-} NEXUS_VideoDacDetection;
-
-typedef enum NEXUS_ComponentOutputSyncType
-{
-    /* consistent with CEA-770_3, clause 8.1.2 */
-    NEXUS_ComponentOutputSyncType_eOnlyY,
-    /* consistent with SMPTE 296M-1997, clause 12.7 */
-    NEXUS_ComponentOutputSyncType_eAllChannels,
-    NEXUS_ComponentOutputSyncType_eMax
-} NEXUS_ComponentOutputSyncType;
-
-/**
-Summary:
-Input from user for deinterlacer mode
-**/
-typedef enum NEXUS_DeinterlacerMode
-{
-    NEXUS_DeinterlacerMode_eNone, /* no deinterlacing, no memory */
-    NEXUS_DeinterlacerMode_eBestQuality, /* requires more memory, has more latency */
-    NEXUS_DeinterlacerMode_eLowestLatency, /* minimal latency and memory, but some deinterlacing */
-    NEXUS_DeinterlacerMode_eMax
-} NEXUS_DeinterlacerMode;
-
-/**
-Init time memory per display.
-Can be set with NEXUS_MemoryConfigurationSettings at init time.
-**/
-typedef struct NEXUS_DisplayMemConfig
- {
-    NEXUS_VideoFormat maxFormat; /* max display format for this display. if display is unused, leave it as eNone */
-    struct {
-        bool used;
-        NEXUS_DeinterlacerMode deinterlacer;
-        bool support3d; /* support duplicating to L/R eye in 3D mode */
-        bool capture;
-        bool convertAnyFrameRate; /* conversion between 50Hz and 60Hz inputs/outputs requires extra memory. */
-        bool precisionLipSync; /* required if using SyncChannel */
-        bool smoothScaling; /* deprecated. equivalent to 'capture' and defaults on where RTS allows. */
-        unsigned userCaptureBufferCount; /* extra capture buffers for NEXUS_VideoWindowSettings.userCaptureBufferCount. */
-        bool mtg; /* Allocate window memory for MPEG feeder timing generator sources.
-                     An MTG MFD is driven at source rate, independent of display, which allows for better deinterlacing.
-                     If a box mode supports any MTG MFD, every window has this 'mtg' boolean defaulted on which may allocate more capture buffer memory.
-                     If you connect an MTG MFD to an MTG window, you get MTG. Otherwise, MTG is off. */
-        NEXUS_SecureVideo secure; /* allocate picture buffer memory for unsecure, secure or both */
-    } window[NEXUS_MAX_VIDEO_WINDOWS];
-} NEXUS_DisplayMemConfig
-;
 
 /**
 Summary:
 Settings used in NEXUS_DisplayModule_Init
 **/
-typedef struct NEXUS_DisplayModuleSettings
+typedef struct NEXUS_DisplayModuleInternalSettings
 {
     NEXUS_DisplayModuleDependencies modules;
-
-    /* These global buffer counts are deprecated. Use NEXUS_DisplayModuleSettings.displayHeapSettings[] instead. */
-    NEXUS_DisplayBufferTypeSettings fullHdBuffers;
-    NEXUS_DisplayBufferTypeSettings hdBuffers;
-    NEXUS_DisplayBufferTypeSettings sdBuffers;
-    struct {
-        /* deprecated method for getting runtime limits into system without per-window heaps */
-        unsigned numDisplays, numWindowsPerDisplay;
-    } legacy;
-
-    /* displayHeapSettings[] will default to all zero.
-    If the platform code detects this is all zero, it will set its defaults.
-    If the display module code detects this is all zero, it will use the legacy settings. */
-    NEXUS_DisplayHeapSettings displayHeapSettings[NEXUS_MAX_HEAPS];
-    unsigned videoWindowHeapIndex[NEXUS_MAX_DISPLAYS][NEXUS_MAX_VIDEO_WINDOWS]; /* Set the heap index per video window. If >= NEXUS_MAX_HEAPS, then unused. */
-    unsigned deinterlacerHeapIndex[NEXUS_MAX_DISPLAYS][NEXUS_MAX_VIDEO_WINDOWS]; /* same as above, but for deinterlacer. */
-    struct {
-        unsigned videoWindowHeapIndex[NEXUS_MAX_DISPLAYS][NEXUS_MAX_VIDEO_WINDOWS]; /* Set the heap index per video window. If >= NEXUS_MAX_HEAPS, then unused. */
-        unsigned deinterlacerHeapIndex[NEXUS_MAX_DISPLAYS][NEXUS_MAX_VIDEO_WINDOWS]; /* same as above, but for deinterlacer. */
-    } secure;
-    unsigned primaryDisplayHeapIndex;    /* The heap given to BVDC_Open for general use.
-                                            This is usually the heap index for videoWindowHeapIndex[0][0] i.e HD Main Video window */
-    unsigned rdcHeapIndex;               /* The heap used by RDC for RUL's */
-    bool dropFrame;                      /* Deprecated. See NEXUS_DisplaySettings.dropFrame. */
-
-    uint32_t dacBandGapAdjust[NEXUS_MAX_VIDEO_DACS];  /*Adjustment to the video TDAC and QDAC bandgap setting.
-                                            The default value is correct for most chipsets. However, there are
-                                            some production runs that require an adjustment for correct amplitude,
-                                            depends on the particular fab line that manufactured the chip. */
-    NEXUS_VideoDacDetection dacDetection;
-
-    struct {
-        bool allowTeletext;              /* allocate extra memory for teletext VBI */
-        bool allowVps;                   /* allocate extra memory for vps VBI */
-        bool allowGemStar;               /* allocate extra memory for gemstar VBI */
-        bool allowCgmsB;                 /* allocate extra memory for CGMS-B VBI */
-        bool allowAmol;                  /* allocate extra memory for AMOL VBI */
-        bool tteShiftDirMsb2Lsb;         /* If true, teletext encoder shift direction will be set to MSBToLSB. Otherwise, it
-                                            will be set to LSBToMSB. The default value is FALSE. */
-        unsigned ccir656InputBufferSize; /* Size of 656 VBI buffer in bytes. The default value is 0. */
-    } vbi;
-
-    bool vecSwap;                       /* Default = true.  If you require more than three SD outputs with concurrent HD output, you may need to set this to false.
-                                           This is used only if NEXUS_DisplaySettings.vecIndex is -1. */
-    bool handleDynamicRts;              /* unused */
-    unsigned configurationId;           /* same as NEXUS_Core_Settings.boxMode */
-    bool disableFrc;                    /* Default = false. Set to true to disable loading and running of FRC. */
-    int encoderTgMapping[NEXUS_MAX_VIDEO_ENCODERS]; /* deprecated/unused */
-#if NEXUS_NUM_VIDEO_DECODERS
-    struct {
-        struct {
-            unsigned memcIndex;
-            unsigned secondaryMemcIndex; /* for split Y/C buffer */
-        } mfd, vfd;
-    } videoImageInput[NEXUS_NUM_VIDEO_DECODERS];
-#endif
-
-    NEXUS_DisplayMemConfig  memConfig[NEXUS_MAX_DISPLAYS];
-    struct {
-        bool mosaic;
-        bool hdDvi;
-        bool ccir656;
-    } memconfig;
-
-    NEXUS_ComponentOutputSyncType componentOutputSyncType;
-
-} NEXUS_DisplayModuleSettings;
+} NEXUS_DisplayModuleInternalSettings;
 
 struct NEXUS_Core_PreInitState;
+
+/**
+Summary:
+Get defaults before calling NEXUS_DisplayModule_Init
+**/
+void NEXUS_DisplayModule_GetDefaultInternalSettings(
+    NEXUS_DisplayModuleInternalSettings *pSettings /* [out] */
+    );
 
 /**
 Summary:
@@ -227,6 +106,7 @@ through NEXUS_PlatformSettings as follows:
 
 **/
 NEXUS_ModuleHandle NEXUS_DisplayModule_Init(
+    const NEXUS_DisplayModuleInternalSettings *pModuleSettings,
     const NEXUS_DisplayModuleSettings *pSettings
     );
 

@@ -1,43 +1,39 @@
 /******************************************************************************
- * (c) 2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 
 #include "b_os_lib.h"
@@ -50,6 +46,8 @@
 
 BDBG_MODULE( bip_http_streamer );
 BDBG_OBJECT_ID_DECLARE( BIP_HttpStreamer );
+
+BIP_CLASS_DECLARE(BIP_HttpStreamer);
 
 struct BIP_HttpStreamerHlsStateNames
 {
@@ -96,7 +94,7 @@ static void httpStreamerPrintStatus(
         B_PlaybackIpFileStreamingStatus status;
 
         B_PlaybackIp_FileStreamingGetStatus( hHttpStreamer->playbackIpState.hFileStreamer, &status );
-        BDBG_WRN(("PBIP FileStreaming: state=%s bytesStreamed=%lld ",
+        BDBG_WRN(("PBIP FileStreaming: state=%s bytesStreamed=%"PRId64 ,
                     status.connectionState == B_PlaybackIpConnectionState_eActive  ? "Streaming":
                     status.connectionState == B_PlaybackIpConnectionState_eTimeout ? "Timedout":
                     status.connectionState == B_PlaybackIpConnectionState_eError   ? "Error":
@@ -110,7 +108,7 @@ static void httpStreamerPrintStatus(
         B_PlaybackIpLiveStreamingStatus status;
 
         B_PlaybackIp_LiveStreamingGetStatus( hHttpStreamer->playbackIpState.hLiveStreamer, &status );
-        BDBG_WRN(("PBIP LiveStreaming: state=%s bytesStreamed=%lld ",
+        BDBG_WRN(("PBIP LiveStreaming: state=%s bytesStreamed=%"PRId64 ,
                     status.connectionState == B_PlaybackIpConnectionState_eActive  ? "Streaming":
                     status.connectionState == B_PlaybackIpConnectionState_eTimeout ? "Timedout":
                     status.connectionState == B_PlaybackIpConnectionState_eError   ? "Error":
@@ -159,7 +157,7 @@ static void resetHttpStreamerResponseState(
     BIP_HttpResponse_Clear( hHttpStreamer->response.hHttpResponse, NULL);
     hHttpStreamer->response.state = BIP_HttpStreamerResponseHeadersState_eNotSet;
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer %p: Done" BIP_MSG_PRE_ARG, hHttpStreamer ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer %p: Done" BIP_MSG_PRE_ARG, (void *)hHttpStreamer ));
 } /* resetHttpStreamerResponseState */
 
 static void stopPBipStreamer(
@@ -170,13 +168,13 @@ static void stopPBipStreamer(
     {
         B_PlaybackIp_LiveStreamingStop(hHttpStreamer->playbackIpState.hLiveStreamer);
         BIP_MSG_SUM(( BIP_MSG_PRE_FMT "hHttpStreamer %p: state %s: PBIP based live streamer is stopped"
-                    BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state) ));
+                    BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state) ));
     }
     else if (hHttpStreamer->playbackIpState.hFileStreamer)
     {
         B_PlaybackIp_FileStreamingStop(hHttpStreamer->playbackIpState.hFileStreamer);
         BIP_MSG_SUM(( BIP_MSG_PRE_FMT "hHttpStreamer %p: state %s: PBIP based file streamer is stopped"
-                    BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state) ));
+                    BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state) ));
     }
 } /* stopPBipStreamer */
 
@@ -189,14 +187,14 @@ static void destroyPBipStreamer(
         B_PlaybackIp_LiveStreamingClose(hHttpStreamer->playbackIpState.hLiveStreamer);
         hHttpStreamer->playbackIpState.hLiveStreamer = NULL;
         BIP_MSG_SUM(( BIP_MSG_PRE_FMT "hHttpStreamer %p: state %s: PBIP based live streamer is Destroyed!"
-                    BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state) ));
+                    BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state) ));
     }
     else if (hHttpStreamer->playbackIpState.hFileStreamer)
     {
         B_PlaybackIp_FileStreamingClose(hHttpStreamer->playbackIpState.hFileStreamer);
         hHttpStreamer->playbackIpState.hFileStreamer = NULL;
         BIP_MSG_SUM(( BIP_MSG_PRE_FMT "hHttpStreamer %p: state %s: PBIP based file streamer is Destroyed!"
-                    BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state) ));
+                    BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state) ));
     }
 } /* destroyPBipStreamer */
 
@@ -214,13 +212,23 @@ static void playbackIpStreamerCallbackViaArbTimer(
     int   param
     )
 {
+    BIP_Status             bipStatus;
     BIP_HttpStreamerHandle hHttpStreamer = appCtx;
+
+    bipStatus = BIP_CLASS_LOCK_AND_CHECK_INSTANCE(BIP_HttpStreamer, hHttpStreamer);
+    if(bipStatus != BIP_SUCCESS)
+    {
+        return;
+    }
 
     BDBG_ASSERT(hHttpStreamer);
     BDBG_OBJECT_ASSERT( hHttpStreamer, BIP_HttpStreamer );
     BSTD_UNUSED(param);
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer: %p" BIP_MSG_PRE_ARG, hHttpStreamer ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer: %p" BIP_MSG_PRE_ARG, (void *)hHttpStreamer ));
+
+    BIP_CLASS_UNLOCK(BIP_HttpStreamer, hHttpStreamer);
+
     processHttpStreamerState( (BIP_HttpStreamerHandle) hHttpStreamer, 0, BIP_Arb_ThreadOrigin_eTimer);
 } /* playbackIpStreamerCallbackViaArbTimer */
 
@@ -232,28 +240,33 @@ static void playbackIpStreamerCallback(
     BIP_Status brc;
     BIP_HttpStreamerHandle hHttpStreamer = appCtx;
 
+    brc = BIP_CLASS_LOCK_AND_CHECK_INSTANCE(BIP_HttpStreamer, hHttpStreamer);
+    if(brc != BIP_SUCCESS)
+    {
+        return;
+    }
+
     BDBG_ASSERT(hHttpStreamer);
     BDBG_OBJECT_ASSERT( hHttpStreamer, BIP_HttpStreamer);
     BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer:state %p: %s, got eventId %d from PBIP: Defer the callback"
-                BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state), eventId ));
-    if (hHttpStreamer)
+                BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state), eventId ));
+    B_Mutex_Lock( hHttpStreamer->hStateMutex );
+    /* Change state to streaming done only if we are in streaming state. */
+    if ( hHttpStreamer->state == BIP_HttpStreamerState_eStreaming )
     {
-        B_Mutex_Lock( hHttpStreamer->hStateMutex );
-        /* Change state to streaming done only if we are in streaming state. */
-        if ( hHttpStreamer->state == BIP_HttpStreamerState_eStreaming )
-        {
-            hHttpStreamer->state = BIP_HttpStreamerState_eStreamingDone;
-            ++hHttpStreamer->hls.numSegmentsStreamed;
-        }
-
-        hHttpStreamer->playbackIpState.pbipEndOfStreamingCallback.callback = &playbackIpStreamerCallbackViaArbTimer;
-        hHttpStreamer->playbackIpState.pbipEndOfStreamingCallback.context = hHttpStreamer;
-        BIP_Arb_AddDeferredCallback( hHttpStreamer->startApi.hArb, &hHttpStreamer->playbackIpState.pbipEndOfStreamingCallback );
-        B_Mutex_Unlock( hHttpStreamer->hStateMutex );
-
-        brc = BIP_Arb_DoDeferred( hHttpStreamer->startApi.hArb, BIP_Arb_ThreadOrigin_eUnknown);
-        BDBG_ASSERT( brc == BIP_SUCCESS );
+        hHttpStreamer->state = BIP_HttpStreamerState_eStreamingDone;
+        ++hHttpStreamer->hls.numSegmentsStreamed;
     }
+
+    hHttpStreamer->playbackIpState.pbipEndOfStreamingCallback.callback = &playbackIpStreamerCallbackViaArbTimer;
+    hHttpStreamer->playbackIpState.pbipEndOfStreamingCallback.context = hHttpStreamer;
+    BIP_Arb_AddDeferredCallback( hHttpStreamer->startApi.hArb, &hHttpStreamer->playbackIpState.pbipEndOfStreamingCallback );
+    B_Mutex_Unlock( hHttpStreamer->hStateMutex );
+
+    BIP_CLASS_UNLOCK(BIP_HttpStreamer, hHttpStreamer);
+    brc = BIP_Arb_DoDeferred( hHttpStreamer->startApi.hArb, BIP_Arb_ThreadOrigin_eUnknown);
+    BDBG_ASSERT( brc == BIP_SUCCESS );
+
 } /* playbackIpStreamerCallback */
 
 static NEXUS_HeapHandle getStreamerHeapHandle(
@@ -299,7 +312,7 @@ static BIP_Status resumePBipLiveStreamer(
     B_Error rc;
 
     BDBG_MSG(( BIP_MSG_PRE_FMT "ENTRY ---> hHttpStreamer %p: state %s"
-                BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state) ));
+                BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state) ));
 
     /* Setup a PBIP LiveStreaming Session */
     {
@@ -319,7 +332,7 @@ static BIP_Status resumePBipLiveStreamer(
 
 error:
     BDBG_MSG(( BIP_MSG_PRE_FMT "EXIT <--- hHttpStreamer %p: state %s, bipStatus 0x%x"
-                BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state), bipStatus));
+                BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state), bipStatus));
 
     return bipStatus;
 } /* resumePBipLiveStreamer */
@@ -358,7 +371,7 @@ static BIP_Status startPBipLiveStreamer(
     B_Error rc;
 
     BDBG_MSG(( BIP_MSG_PRE_FMT "ENTRY ---> hHttpStreamer %p: state %s"
-                BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state) ));
+                BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state) ));
 
     /* Setup a PBIP LiveStreaming Session */
     {
@@ -430,7 +443,7 @@ error:
         stopAndDestroyPBipStreamer( hHttpStreamer );
     }
     BDBG_MSG(( BIP_MSG_PRE_FMT "EXIT <--- hHttpStreamer=%p: state=%s socketFd=%d bipStatus=%s"
-                BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state), socketFd, BIP_StatusGetText(bipStatus) ));
+                BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state), socketFd, BIP_StatusGetText(bipStatus) ));
 
     return bipStatus;
 } /* startPBipLiveStreamer */
@@ -444,13 +457,13 @@ static BIP_Status startPBipFileStreamer(
     B_PlaybackIpError playbackIpError;
 
     BDBG_MSG(( BIP_MSG_PRE_FMT "ENTRY ---> hHttpStreamer %p: state %s"
-                BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state) ));
+                BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state) ));
 
     /* Open PBIP FileStreaming Context. */
     {
         B_PlaybackIpFileStreamingOpenSettings fileStreamingOpenSettings;
 
-        BDBG_MSG(( BIP_MSG_PRE_FMT "FileInputSettings: Stream %s, streamingFd %d, PlaySpeed %d, Time Offsets: %u - %u, ByteOffsets: %llu - %llu" BIP_MSG_PRE_ARG,
+        BDBG_MSG(( BIP_MSG_PRE_FMT "FileInputSettings: Stream %s, streamingFd %d, PlaySpeed %d, Time Offsets: %u - %u, ByteOffsets: %"PRIu64 " - %"PRIu64 BIP_MSG_PRE_ARG,
                     BIP_String_GetString( hHttpStreamer->pStreamer->file.hMediaFileAbsolutePathName ), socketFd,
                     convertPlaySpeedToInt(BIP_String_GetString(hHttpStreamer->pStreamer->file.hPlaySpeed)),
                     hHttpStreamer->pStreamer->file.inputSettings.beginTimeOffsetInMs, hHttpStreamer->pStreamer->file.inputSettings.endTimeOffsetInMs,
@@ -526,7 +539,7 @@ static BIP_Status startPBipFileStreamer(
         {
             hHttpStreamer->playbackIpState.hFileStreamer = B_PlaybackIp_FileStreamingOpen(&fileStreamingOpenSettings);
             BIP_CHECK_GOTO(( hHttpStreamer->playbackIpState.hFileStreamer ), ( "hHttpStreamer %p, state %s: B_PlaybackIp_FileStreamingOpen() Failed",
-                        hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state) ), error, BIP_ERR_INTERNAL, bipStatus );
+                        (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state) ), error, BIP_ERR_INTERNAL, bipStatus );
         }
     }
 
@@ -545,7 +558,7 @@ static BIP_Status startPBipFileStreamer(
             B_PlaybackIpPsiInfo psiInfo;
 
             navFile = BIP_String_GetString( hTrackEntry->hMediaNavFileAbsolutePathName );
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer %p: nag file: %s" BIP_MSG_PRE_ARG, hHttpStreamer, navFile ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer %p: nag file: %s" BIP_MSG_PRE_ARG, (void *)hHttpStreamer, navFile ));
 
             /* Now open the indexer */
             memset(&psiInfo, 0, sizeof(B_PlaybackIpPsiInfo));
@@ -554,11 +567,11 @@ static BIP_Status startPBipFileStreamer(
             psiInfo.videoCodec = hTrackEntry->streamerTrackInfo.info.video.codec;
             psiInfo.videoPid = hTrackEntry->streamerTrackInfo.trackId;
 
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer %p: Using NAV File %s" BIP_MSG_PRE_ARG, hHttpStreamer, navFile ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer %p: Using NAV File %s" BIP_MSG_PRE_ARG, (void *)hHttpStreamer, navFile ));
 
             rc =  openMediaIndexer(hHttpStreamer->playbackIpState.hFileStreamer, navFile, &psiInfo);
             BIP_CHECK_GOTO(( rc == true ), ( "hHttpStreamer %p, state %s: PBIP openMediaIndex() Failed",
-                        hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state) ), error, BIP_ERR_INTERNAL, bipStatus );
+                        (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state) ), error, BIP_ERR_INTERNAL, bipStatus );
         }
     }
 
@@ -566,11 +579,11 @@ static BIP_Status startPBipFileStreamer(
     {
         playbackIpError = B_PlaybackIp_FileStreamingStart(hHttpStreamer->playbackIpState.hFileStreamer);
         BIP_CHECK_GOTO(( playbackIpError == B_ERROR_SUCCESS ), ( "hHttpStreamer %p, state %s: B_PlaybackIp_FileStreamingStart() Failed",
-                    hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state) ), error, BIP_ERR_INTERNAL, bipStatus );
+                    (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state) ), error, BIP_ERR_INTERNAL, bipStatus );
 
         bipStatus = BIP_SUCCESS;
         BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer %p: Streaming from File Src is successfully setup using PBIP (socketFd %d)"
-                    BIP_MSG_PRE_ARG, hHttpStreamer, socketFd));
+                    BIP_MSG_PRE_ARG, (void *)hHttpStreamer, socketFd));
     }
 
 error:
@@ -579,7 +592,7 @@ error:
         stopAndDestroyPBipStreamer( hHttpStreamer );
     }
     BDBG_MSG(( BIP_MSG_PRE_FMT "EXIT <--- hHttpStreamer %p: state %s, bipStatus 0x%x"
-                BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state), bipStatus));
+                BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state), bipStatus));
 
     return bipStatus;
 } /* startPBipFileStreamer */
@@ -629,7 +642,7 @@ static BIP_Status addContentTypeHeader(
 
     if ( transportType == NEXUS_TransportType_eUnknown )
     {
-        BDBG_WRN(( BIP_MSG_PRE_FMT "hHttpStreamer=%p: Media Container type is Unknown, so not adding Content-Type Header" BIP_MSG_PRE_ARG, hHttpStreamer ));
+        BDBG_WRN(( BIP_MSG_PRE_FMT "hHttpStreamer=%p: Media Container type is Unknown, so not adding Content-Type Header" BIP_MSG_PRE_ARG, (void *)hHttpStreamer ));
         return ( BIP_SUCCESS );
     }
 
@@ -927,7 +940,7 @@ static BIP_Status addContentFeaturesHeader(
                     bipStatus = BIP_String_StrcatPrintf(hContentFeatures, "%x", 0);
                 }
             }
-            BDBG_MSG((BIP_MSG_PRE_FMT "hHttpStreamer=%p: dlnaOrgFlags=%s" BIP_MSG_PRE_ARG, hHttpStreamer, BIP_String_GetString(hContentFeatures) ));
+            BDBG_MSG((BIP_MSG_PRE_FMT "hHttpStreamer=%p: dlnaOrgFlags=%s" BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_String_GetString(hContentFeatures) ));
         }
     } /* DLNA.ORG_FLAGS */
 
@@ -943,7 +956,7 @@ static BIP_Status addContentFeaturesHeader(
             /* App can Get this header and overwrite it if apps wants to use different play speed values. */
             bipStatus = BIP_String_StrcatPrintf(hContentFeatures, ";DLNA.ORG_PS=-48,-36,-18,-12,-6,6,12,18,36,48");
             BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "BIP_String_StrcatPrintf() Failed" ), error, bipStatus, bipStatus );
-            BDBG_MSG((BIP_MSG_PRE_FMT "hHttpStreamer=%p: DLNA.ORG_PS=%s" BIP_MSG_PRE_ARG, hHttpStreamer, BIP_String_GetString(hContentFeatures) ));
+            BDBG_MSG((BIP_MSG_PRE_FMT "hHttpStreamer=%p: DLNA.ORG_PS=%s" BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_String_GetString(hContentFeatures) ));
         }
     }
 
@@ -1124,7 +1137,7 @@ static BIP_Status prepareCommonResponseHeaders(
 
         /* TODO: Add Date Header. */
     }
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer %p: Response headers prepared!" BIP_MSG_PRE_ARG, hHttpStreamer));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer %p: Response headers prepared!" BIP_MSG_PRE_ARG, (void *)hHttpStreamer));
 #if 0 /* TODO: Shall we remove this ?*/
     /* Unit test code. */
     bipStatus = BIP_ERR_INVALID_PARAMETER;
@@ -1171,19 +1184,29 @@ static void inactivityTimerCallback(
     void *pContext
     )
 {
+    BIP_Status bipStatus;
     BIP_HttpStreamerHandle    hHttpStreamer = (BIP_HttpStreamerHandle) pContext;
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpStreamer %p --------------------> "  BIP_MSG_PRE_ARG, hHttpStreamer ));
+
+    bipStatus = BIP_CLASS_LOCK_AND_CHECK_INSTANCE(BIP_HttpStreamer, hHttpStreamer);
+    if(bipStatus != BIP_SUCCESS)
+    {
+        return;
+    }
+
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpStreamer %p --------------------> "  BIP_MSG_PRE_ARG, (void *)hHttpStreamer ));
 
     B_Mutex_Lock( hHttpStreamer->hStateMutex );
     if ( hHttpStreamer->hInactivityTimer )
     {
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer %p: Got BIP_Timer callback, marking timer as self-destructed" BIP_MSG_PRE_ARG, hHttpStreamer ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer %p: Got BIP_Timer callback, marking timer as self-destructed" BIP_MSG_PRE_ARG, (void *)hHttpStreamer ));
         hHttpStreamer->hInactivityTimer = NULL;   /* Indicate timer not active. */
     }
     B_Mutex_Unlock( hHttpStreamer->hStateMutex );
 
+    BIP_CLASS_UNLOCK(BIP_HttpStreamer, hHttpStreamer);
+
     processHttpStreamerState( hHttpStreamer, 0, BIP_Arb_ThreadOrigin_eTimer);
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpStreamer %p: <-------------------- " BIP_MSG_PRE_ARG, hHttpStreamer ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpStreamer %p: <-------------------- " BIP_MSG_PRE_ARG, (void *)hHttpStreamer ));
 } /* inactivityTimerCallback */
 
 static void destroyInactivityTimer(
@@ -1191,7 +1214,7 @@ static void destroyInactivityTimer(
     )
 {
     BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer %p: Cancelling inactivityTimer: hTimer=%p timerActive=%s" BIP_MSG_PRE_ARG,
-                hHttpStreamer, hHttpStreamer->hInactivityTimer, hHttpStreamer->inactivityTimerActive?"Y":"N" ));
+                (void *)hHttpStreamer, (void *)hHttpStreamer->hInactivityTimer, hHttpStreamer->inactivityTimerActive?"Y":"N" ));
 
     if ( hHttpStreamer->hInactivityTimer ) BIP_Timer_Destroy( hHttpStreamer->hInactivityTimer );
     hHttpStreamer->hInactivityTimer = NULL;
@@ -1209,7 +1232,7 @@ static BIP_Status createInactivityTimer(
     if ( hHttpStreamer->hInactivityTimer ) BIP_Timer_Destroy( hHttpStreamer->hInactivityTimer );
 
     BIP_Timer_GetDefaultCreateSettings( &timerCreateSettings );
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer %p: Starting streamer inactivity polling timer for %ld ms" BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_INACTIVITY_TIMER_POLL_INTERVAL_IN_MSEC ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer %p: Starting streamer inactivity polling timer for %d ms" BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_INACTIVITY_TIMER_POLL_INTERVAL_IN_MSEC ));
     timerCreateSettings.input.callback    = inactivityTimerCallback;
     timerCreateSettings.input.pContext    = hHttpStreamer;
     timerCreateSettings.input.timeoutInMs = BIP_HTTP_STREAMER_INACTIVITY_TIMER_POLL_INTERVAL_IN_MSEC;
@@ -1242,7 +1265,7 @@ static void initiateEndOfStreamingCallback(
     /* Cancel the inactivity timer. */
     destroyInactivityTimer( hHttpStreamer );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer=%p state=%s: initiateEndOfStreamingCallback" BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE( hHttpStreamer->state ) ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer=%p state=%s: initiateEndOfStreamingCallback" BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE( hHttpStreamer->state ) ));
 } /* initiateEndOfStreamingCallback */
 
 #ifdef NEXUS_HAS_VIDEO_ENCODER
@@ -1340,6 +1363,27 @@ error:
     return bipStatus;
 }
 
+static BIP_Status getSocketFdFromHttpSocket(
+    BIP_HttpSocketHandle    hHttpSocket,
+    int                     *pSocketFd
+    )
+{
+    BIP_Status bipStatus;
+    BIP_HttpSocketStatus httpSocketStatus;
+
+    BDBG_ASSERT( hHttpSocket );
+    if ( !hHttpSocket ) return (BIP_ERR_INVALID_PARAMETER);
+
+    /* Get raw socketFd using the HttpSocket object's status that PBIP would use for streaming. */
+    bipStatus = BIP_HttpSocket_GetStatus( hHttpSocket, &httpSocketStatus );
+
+    if ( bipStatus == BIP_SUCCESS )
+    {
+        *pSocketFd = httpSocketStatus.socketFd;
+    }
+    return ( bipStatus );
+} /* getSocketFdFromHttpSocket */
+
 static BIP_Status finalizeHeadersAndSendResponse(
     BIP_HttpStreamerHandle hHttpStreamer,
     BIP_TranscodeProfile *pTranscodeProfile,
@@ -1409,6 +1453,21 @@ static BIP_Status finalizeHeadersAndSendResponse(
         }
     }
 
+    {
+        /* Set the DSCP Value for the outgoing Response & AV TCP Segments. */
+#define DSCP_CLASS_SELECTOR_VIDEO 0xa0
+        int dscpTcValue = DSCP_CLASS_SELECTOR_VIDEO;
+        int socketFd;
+
+        bipStatus = getSocketFdFromHttpSocket( hHttpStreamer->processRequest.hHttpSocket, &socketFd );
+        if (bipStatus == BIP_SUCCESS)
+        {
+            if (setsockopt(socketFd, IPPROTO_IP, IP_TOS, &dscpTcValue, sizeof(dscpTcValue)) < 0)
+            {
+                BDBG_WRN(( BIP_MSG_PRE_FMT "hHttpStreamer=%p: Can't set DSCP value, socketFd=%d errno=%d" BIP_MSG_PRE_ARG, (void *)hHttpStreamer, socketFd, errno));
+            }
+        }
+    }
     /*
      * Send the Response.
      * Note: All HTTP Resvd headers such as Content-Length, Transfer-Encoding, Connection, etc. will be added in the HttpSocket_SendResponse().
@@ -1523,7 +1582,7 @@ static void playlistAtomUserFree(
     char *playlistBuffer = *(char **)user;
 
     BSTD_UNUSED(atom);
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Freeing up playlist buffer %p" BIP_MSG_PRE_ARG, playlistBuffer ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Freeing up playlist buffer %p" BIP_MSG_PRE_ARG, (void *)playlistBuffer ));
 
     if ( playlistBuffer ) B_Os_Free( playlistBuffer );
 }
@@ -1550,7 +1609,7 @@ static BIP_Status createAndPushAtom(
     /* Push it in the pipe to be processed later. */
     batom_pipe_push( pAtomPipe, pAtom );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "pAtom=%p created from range=%p size=%u" BIP_MSG_PRE_ARG, pAtom, pBuffer, bufferSize ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "pAtom=%p created from range=%p size=%u" BIP_MSG_PRE_ARG, (void *)pAtom, (void *)pBuffer, bufferSize ));
     bipStatus = BIP_SUCCESS;
 
 error:
@@ -1596,7 +1655,7 @@ static BIP_Status buildMediaPlaylist(
         addEndTag = 0;
         currentMediaSegmentSeq = hHttpStreamer->hls.numSegmentsStreamed;
     }
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer=%p: segDurationInMs=%d #Segments=%d" BIP_MSG_PRE_ARG, hHttpStreamer, mediaSegmentDurationInMs, numMediaSegments ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer=%p: segDurationInMs=%d #Segments=%d" BIP_MSG_PRE_ARG, (void *)hHttpStreamer, mediaSegmentDurationInMs, numMediaSegments ));
     /* Add media playlist entry for each media segment. */
     for ( i=0; i<numMediaSegments+addEndTag; i++ )
     {
@@ -1622,7 +1681,7 @@ static BIP_Status buildMediaPlaylist(
                         "#EXT-X-MEDIA-SEQUENCE:%d\n"
                         ,
                         BIP_HLS_SERVER_VERSION, (mediaSegmentDurationInMs/1000 + 1), currentMediaSegmentSeq);
-                BDBG_MSG(( BIP_MSG_PRE_FMT "[%d] pBuffer=%p bytesCopied=%u bytesLeft=%u bytesNeeded=%u" BIP_MSG_PRE_ARG, i, pPlaylistBuffer, bytesCopied, bytesLeft, bytesNeeded ));
+                BDBG_MSG(( BIP_MSG_PRE_FMT "[%d] pBuffer=%p bytesCopied=%u bytesLeft=%u bytesNeeded=%u" BIP_MSG_PRE_ARG, i, (void *)pPlaylistBuffer, bytesCopied, bytesLeft, bytesNeeded ));
                 if ( bytesNeeded < bytesLeft )
                 {
                     bytesCopied += snprintf( pPlaylistBuffer, bytesLeft,
@@ -1671,7 +1730,7 @@ static BIP_Status buildMediaPlaylist(
                         (mediaSegmentDurationInMs/1000), (mediaSegmentDurationInMs%1000),
                         pUrl+1, BIP_SEGMENT_URL_PREFIX, i+currentMediaSegmentSeq, BIP_SEGMENT_URL_SUFFIX       /* Skip one byte as URLs seem to start w/ / */
                         );
-                BDBG_MSG(( BIP_MSG_PRE_FMT "[%d] pBuffer=%p bytesCopied=%u bytesLeft=%u bytesNeeded=%u" BIP_MSG_PRE_ARG, i, pPlaylistBuffer, bytesCopied, bytesLeft, bytesNeeded ));
+                BDBG_MSG(( BIP_MSG_PRE_FMT "[%d] pBuffer=%p bytesCopied=%u bytesLeft=%u bytesNeeded=%u" BIP_MSG_PRE_ARG, i, (void *)pPlaylistBuffer, bytesCopied, bytesLeft, bytesNeeded ));
                 if ( bytesNeeded < bytesLeft )
                 {
                     bytesCopied += snprintf( pPlaylistBuffer+bytesCopied, bytesLeft,
@@ -1703,7 +1762,7 @@ static BIP_Status buildMediaPlaylist(
                 BDBG_ASSERT( addEndTag );
                 BDBG_ASSERT( i==numMediaSegments );
                 bytesNeeded = snprintf( pPlaylistBuffer+bytesCopied, 1, "#EXT-X-ENDLIST\n");
-                BDBG_MSG(( BIP_MSG_PRE_FMT "[%d] pBuffer=%p bytesCopied=%u bytesLeft=%u bytesNeeded=%u" BIP_MSG_PRE_ARG, i, pPlaylistBuffer, bytesCopied, bytesLeft, bytesNeeded ));
+                BDBG_MSG(( BIP_MSG_PRE_FMT "[%d] pBuffer=%p bytesCopied=%u bytesLeft=%u bytesNeeded=%u" BIP_MSG_PRE_ARG, i, (void *)pPlaylistBuffer, bytesCopied, bytesLeft, bytesNeeded ));
                 if ( bytesNeeded < bytesLeft )
                 {
                     bytesCopied += snprintf( pPlaylistBuffer+bytesCopied, bytesLeft,"#EXT-X-ENDLIST\n");
@@ -1725,14 +1784,14 @@ static BIP_Status buildMediaPlaylist(
         }
     }
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "[%d] pBuffer=%p bytesCopied=%u bytesLeft=%u bytesNeeded=%u" BIP_MSG_PRE_ARG, i, pPlaylistBuffer, bytesCopied, bytesLeft, bytesNeeded ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "[%d] pBuffer=%p bytesCopied=%u bytesLeft=%u bytesNeeded=%u" BIP_MSG_PRE_ARG, i, (void *)pPlaylistBuffer, bytesCopied, bytesLeft, bytesNeeded ));
     if ( pPlaylistBuffer )
     {
         bipStatus = createAndPushAtom( pAtomFactory, pAtomPipe, (const void *)pPlaylistBuffer, bytesCopied );
         BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "createAndPushAtom() Failed" ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, bipStatus );
         *pPlaylistLength += bytesCopied;
-        BIP_MSG_SUM(( BIP_MSG_PRE_FMT "hHttpStreamer %p: playlistLength=%u" BIP_MSG_PRE_ARG, hHttpStreamer, *pPlaylistLength ));
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer %p: playlistLength=%u, MediaPlaylist \n%s" BIP_MSG_PRE_ARG, hHttpStreamer, *pPlaylistLength, pPlaylistBuffer ));
+        BIP_MSG_SUM(( BIP_MSG_PRE_FMT "hHttpStreamer %p: playlistLength=%u" BIP_MSG_PRE_ARG, (void *)hHttpStreamer, *pPlaylistLength ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer %p: playlistLength=%u, MediaPlaylist \n%s" BIP_MSG_PRE_ARG, (void *)hHttpStreamer, *pPlaylistLength, pPlaylistBuffer ));
         pPlaylistBuffer = NULL;
         bytesCopied = 0;
     }
@@ -1789,7 +1848,7 @@ static BIP_Status prepareMediaPlaylist(
     else
     {
         bipStatus = BIP_ERR_INTERNAL;
-        BDBG_ERR(( BIP_MSG_PRE_FMT "hHttpStreamer=%p hlsState=%s: Didn't find transcode profile entry for profileIndex=%u" BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_HLS_STATE( hHttpStreamer->hls.state ), profileIndex ));
+        BDBG_ERR(( BIP_MSG_PRE_FMT "hHttpStreamer=%p hlsState=%s: Didn't find transcode profile entry for profileIndex=%u" BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_HLS_STATE( hHttpStreamer->hls.state ), profileIndex ));
     }
 
     return ( bipStatus );
@@ -1919,8 +1978,8 @@ static BIP_Status prepareMasterPlaylist(
         bipStatus = createAndPushAtom( pAtomFactory, pAtomPipe, (const void *)pPlaylistBuffer, bytesCopied );
         BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "createAndPushAtom() Failed" ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, bipStatus );
         *pPlaylistLength += bytesCopied;
-        BIP_MSG_SUM(( BIP_MSG_PRE_FMT "hHttpStreamer %p: MasterPlaylistLength=%u" BIP_MSG_PRE_ARG, hHttpStreamer, *pPlaylistLength ));
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer %p: MasterPlaylist \n%s" BIP_MSG_PRE_ARG, hHttpStreamer, pPlaylistBuffer ));
+        BIP_MSG_SUM(( BIP_MSG_PRE_FMT "hHttpStreamer %p: MasterPlaylistLength=%u" BIP_MSG_PRE_ARG, (void *)hHttpStreamer, *pPlaylistLength ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer %p: MasterPlaylist \n%s" BIP_MSG_PRE_ARG, (void *)hHttpStreamer, pPlaylistBuffer ));
         pPlaylistBuffer = NULL;
     }
     bipStatus = BIP_SUCCESS;
@@ -1957,7 +2016,7 @@ static BIP_Status sendHttpPayloadUsingAtom(
             pAtomVector = batom_get_vectors( pAtom, &numVectors );
             for( i=0; i<numVectors; i++ )
             {
-                BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpSocket=%p pAtom=%p, Sending vector[%d]=%u Size" BIP_MSG_PRE_ARG, hHttpSocket, pAtom, i, pAtomVector[i].len ));
+                BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpSocket=%p pAtom=%p, Sending vector[%d]=%u Size" BIP_MSG_PRE_ARG, (void *)hHttpSocket, (void *)pAtom, i, pAtomVector[i].len ));
                 bipStatus = BIP_HttpSocket_SendPayload( hHttpSocket, (uint8_t *)pAtomVector[i].base, pAtomVector[i].len, &sendPayloadSettings);
                 BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "BIP_HttpSocket_SendPayload() Failed" ), error, bipStatus, bipStatus );
             }
@@ -2030,7 +2089,7 @@ static BIP_Status prepareStreamerForTranscode(
     BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "BIP_Streamer_Prepare Failed!" ), error, bipStatus, bipStatus );
 
     BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer=%p state=%s hlsState=%s: BIP_Streamer_Prepare is successful!"
-                BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state), BIP_HTTP_STREAMER_HLS_STATE(hHttpStreamer->hls.state) ));
+                BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state), BIP_HTTP_STREAMER_HLS_STATE(hHttpStreamer->hls.state) ));
 error:
     return ( bipStatus );
 } /* prepareStreamerForTranscode */
@@ -2054,10 +2113,10 @@ static BIP_Status checkAndUpdateStreamerSettings(
     {
         /* Requested PlaylistProfile doesn't match the current PlaylistProfile, so we need to get the associated transcode settings w/ this profile and set them. */
         streamerSettings.pTranscodeProfile = findStreamerTranscodeProfile( hHttpStreamer, requestedProfileIndex );
-        BIP_CHECK_GOTO( (streamerSettings.pTranscodeProfile ), ( "hHttpStreamer=%p hlsState=%s: Didn't find transcode profile entry for profileIndex=%u", hHttpStreamer, BIP_HTTP_STREAMER_HLS_STATE( hHttpStreamer->hls.state ), requestedProfileIndex ), error, BIP_ERR_INVALID_REQUEST_TARGET, bipStatus );
+        BIP_CHECK_GOTO( (streamerSettings.pTranscodeProfile ), ( "hHttpStreamer=%p hlsState=%s: Didn't find transcode profile entry for profileIndex=%u", (void *)hHttpStreamer, BIP_HTTP_STREAMER_HLS_STATE( hHttpStreamer->hls.state ), requestedProfileIndex ), error, BIP_ERR_INVALID_REQUEST_TARGET, bipStatus );
         hHttpStreamer->hls.currentProfileIndex = requestedProfileIndex;
         BIP_MSG_SUM(( BIP_MSG_PRE_FMT "hHttpStreamer=%p state=%s: Next Media Segment requested from different profileIndex: cur=%u new=%u videoBitrate=%u " BIP_MSG_PRE_ARG,
-                    hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state), currentProfileIndex, requestedProfileIndex, streamerSettings.pTranscodeProfile->video.settings.bitrateMax ));
+                    (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state), currentProfileIndex, requestedProfileIndex, streamerSettings.pTranscodeProfile->video.settings.bitrateMax ));
     }
 
     if ( requestedSegmentSequenceNum != expectedSegmentSequenceNum )
@@ -2072,13 +2131,13 @@ static BIP_Status checkAndUpdateStreamerSettings(
                     ( "Requeste Segment# (%u) points to an invalid duration=%u", requestedSegmentSequenceNum,  hHttpStreamer->hStreamer->streamerStreamInfo.durationInMs )
                     , error, BIP_ERR_INVALID_REQUEST_TARGET, bipStatus );
             BIP_MSG_SUM(( BIP_MSG_PRE_FMT "hHttpStreamer=%p state=%s: Next Media Segment requested from position index: cur=%u new=%u " BIP_MSG_PRE_ARG,
-                        hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state), expectedSegmentSequenceNum, requestedSegmentSequenceNum ));
+                        (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state), expectedSegmentSequenceNum, requestedSegmentSequenceNum ));
         }
         hHttpStreamer->hls.resetStreaming = true;
     }
 
     BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer=%p hlsState=%s: profileIndex cur=%u req=%u, segSeq cur=%u req=%u, seekPositionInMs=%u" BIP_MSG_PRE_ARG,
-                hHttpStreamer, BIP_HTTP_STREAMER_HLS_STATE( hHttpStreamer->hls.state ),
+                (void *)hHttpStreamer, BIP_HTTP_STREAMER_HLS_STATE( hHttpStreamer->hls.state ),
                 currentProfileIndex, requestedProfileIndex,
                 hHttpStreamer->hls.currentSegmentSequenceNumber, requestedSegmentSequenceNum,
                 streamerSettings.seekPositionInMs ));
@@ -2089,27 +2148,6 @@ static BIP_Status checkAndUpdateStreamerSettings(
 error:
     return ( bipStatus );
 } /* checkAndUpdateStreamerSettings */
-
-static BIP_Status getSocketFdFromHttpSocket(
-    BIP_HttpSocketHandle    hHttpSocket,
-    int                     *pSocketFd
-    )
-{
-    BIP_Status bipStatus;
-    BIP_HttpSocketStatus httpSocketStatus;
-
-    BDBG_ASSERT( hHttpSocket );
-    if ( !hHttpSocket ) return (BIP_ERR_INVALID_PARAMETER);
-
-    /* Get raw socketFd using the HttpSocket object's status that PBIP would use for streaming. */
-    bipStatus = BIP_HttpSocket_GetStatus( hHttpSocket, &httpSocketStatus );
-
-    if ( bipStatus == BIP_SUCCESS )
-    {
-        *pSocketFd = httpSocketStatus.socketFd;
-    }
-    return ( bipStatus );
-} /* getSocketFdFromHttpSocket */
 
 static BIP_Status getHttpSocketAndRequestInfo (
     BIP_HttpSocketHandle        hHttpSocket,
@@ -2138,7 +2176,7 @@ static BIP_Status getHttpSocketAndRequestInfo (
     }
 
     BDBG_MSG(( BIP_MSG_PRE_FMT "bipStatus=%s hHttpSocket=%p hHttpRequest=%p socketFd=%d sendPayload=%s RequestTarget=%s"
-                BIP_MSG_PRE_ARG, BIP_StatusGetText( bipStatus ), hHttpSocket, hHttpRequest, *pSocketFd, *pSendPayload?"Y":"N", *ppRequestTarget ));
+                BIP_MSG_PRE_ARG, BIP_StatusGetText( bipStatus ), (void *)hHttpSocket, (void *)hHttpRequest, *pSocketFd, *pSendPayload?"Y":"N", *ppRequestTarget ));
     return ( bipStatus );
 } /* getHttpSocketAndRequestInfo */
 
@@ -2317,7 +2355,7 @@ static BIP_Status processRequestForMediaSegment(
         /* Note: we mark this ProcessRequest complete as it is an async call and we will issue the callback later.  */
         bipStatus = BIP_SUCCESS;
         BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer=%p, state=%s hlsState=%s: We are still streaming, so queued this request for processing after finishing current one. RequestTarget=%s"
-                    BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state), BIP_HTTP_STREAMER_HLS_STATE(hHttpStreamer->hls.state), pRequestTarget ));
+                    BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state), BIP_HTTP_STREAMER_HLS_STATE(hHttpStreamer->hls.state), pRequestTarget ));
     }
     else if ( hHttpStreamer->hls.state == BIP_HttpStreamerHlsState_eWaitingFor1stMediaSegmentReq ||
               hHttpStreamer->hls.state == BIP_HttpStreamerHlsState_eWaitingForNextMediaSegmentReq ||
@@ -2400,7 +2438,7 @@ static BIP_Status processRequestForMediaSegment(
     {
         bipStatus = BIP_ERR_INVALID_PARAMETER;
         BDBG_ERR(( BIP_MSG_PRE_FMT "hHttpStreamer=%p, state=%s hlsState=%s: MediaSegment Request is not allowed in this state: RequestTarget=%s"
-                    BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state), BIP_HTTP_STREAMER_HLS_STATE(hHttpStreamer->hls.state), pRequestTarget ));
+                    BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state), BIP_HTTP_STREAMER_HLS_STATE(hHttpStreamer->hls.state), pRequestTarget ));
     }
 
 error:
@@ -2417,7 +2455,7 @@ static void stopStreamer(
     /* Then stop the streamer so that it stops/releases the resources associated w/ streaming pipe. */
     if ( BIP_Streamer_Stop( hHttpStreamer->hStreamer ) != BIP_SUCCESS )
     {
-        BDBG_WRN(( BIP_MSG_PRE_FMT "hHttpStreamer %p, state %s: Stop Streamer Failed" BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state) ));
+        BDBG_WRN(( BIP_MSG_PRE_FMT "hHttpStreamer %p, state %s: Stop Streamer Failed" BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state) ));
         /* continue w/ stopping rest of the streamer related resources! */
     }
 
@@ -2430,7 +2468,7 @@ static void stopStreamer(
             hHttpStreamer->processRequest.requestProcessedCallback.callback )
     {
         /* Add a deferred callback to let HttpServerSocket know that we are done processing the Request. */
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer=%p: Added requestProcessedCallback" BIP_MSG_PRE_ARG, hHttpStreamer ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer=%p: Added requestProcessedCallback" BIP_MSG_PRE_ARG, (void *)hHttpStreamer ));
         BIP_Arb_AddDeferredCallback( hHttpStreamer->processRequestApi.hArb, &hHttpStreamer->processRequest.requestProcessedCallback );
     }
 
@@ -2469,7 +2507,7 @@ static void processHttpHlsStreamerState(
     }
 
     BDBG_MSG(( BIP_MSG_PRE_FMT "ENTRY ---> hHttpStreamer=%p state=%s hlsState=%s"
-                BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state), BIP_HTTP_STREAMER_HLS_STATE(hHttpStreamer->hls.state) ));
+                BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state), BIP_HTTP_STREAMER_HLS_STATE(hHttpStreamer->hls.state) ));
 
     /*
      * This state machine can be run by following events:
@@ -2504,7 +2542,7 @@ static void processHttpHlsStreamerState(
                  * If an app already has a pre-segmented HLS ready media stream available, then it can just use the direct streaming
                  * protocol to send out individual segments.
                  */
-                BDBG_ERR(( BIP_MSG_PRE_FMT "hHttpStreamer %p: App must provide atleast 1 transcode profile via the BIP_HttpStreamer_AddTranscodeProfile()" BIP_MSG_PRE_ARG, hHttpStreamer ));
+                BDBG_ERR(( BIP_MSG_PRE_FMT "hHttpStreamer %p: App must provide atleast 1 transcode profile via the BIP_HttpStreamer_AddTranscodeProfile()" BIP_MSG_PRE_ARG, (void *)hHttpStreamer ));
                 hHttpStreamer->completionStatus = BIP_ERR_INVALID_PARAMETER;
             }
 
@@ -2536,7 +2574,7 @@ static void processHttpHlsStreamerState(
             BIP_CHECK_GOTO(( hHttpStreamer->completionStatus == BIP_SUCCESS ), ( "getHttpSocketAndRequestInfo Failed!" ), errorInProcessRequest, hHttpStreamer->completionStatus, hHttpStreamer->completionStatus );
 
             BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer=%p hlsState=%s: ProcessRequest: requestTarget=%s"
-                        BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_HLS_STATE( hHttpStreamer->hls.state ), pRequestTarget ));
+                        BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_HLS_STATE( hHttpStreamer->hls.state ), pRequestTarget ));
             if ( isRequestForMasterPlaylist( hHttpStreamer, pRequestTarget ) == true )
             {
                 BDBG_ASSERT( hHttpStreamer->hls.state == BIP_HttpStreamerHlsState_eWaitingForMasterPlaylistReq );
@@ -2585,7 +2623,7 @@ static void processHttpHlsStreamerState(
             {
                 /* Request is invalid: neither its for a MediaPlaylist nor for a MediaSegment. */
                 BDBG_ERR(( BIP_MSG_PRE_FMT "hHttpStreamer=%p hlsState=%s: Invalid Request: requestTarget=%s"
-                            BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_HLS_STATE( hHttpStreamer->hls.state ), pRequestTarget ));
+                            BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_HLS_STATE( hHttpStreamer->hls.state ), pRequestTarget ));
                 hHttpStreamer->completionStatus = BIP_ERR_INVALID_PARAMETER;
                 goto errorInProcessRequest;
             }
@@ -2614,7 +2652,7 @@ static void processHttpHlsStreamerState(
                     /* Tell app that this request is done (not streaming is involved!). */
                     initiateEndOfStreamingCallback( hHttpStreamer ); /* function changes the state to eWaitingForStopApi */
                     BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer=%p, state=%s hlsState=%s: No Payload to send for HEAD request, done w/ this request."
-                                BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state), BIP_HTTP_STREAMER_HLS_STATE(hHttpStreamer->hls.state) ));
+                                BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state), BIP_HTTP_STREAMER_HLS_STATE(hHttpStreamer->hls.state) ));
                 }
             }
             else if ( hHttpStreamer->completionStatus == BIP_SUCCESS && hHttpStreamer->hls.state == BIP_HttpStreamerHlsState_eWaitingForMediaPlaylistReq )
@@ -2639,7 +2677,7 @@ static void processHttpHlsStreamerState(
                     /* We had sent the HTTP Response but didn't need to send the payload as it must be a HEAD request. */
                     /* Client will send the GET Request for MediaPlaylist again. So we stay in the same state. */
                     BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer=%p, state=%s hlsState=%s: No Payload to send for HEAD request, Waiting for Get Request!"
-                                BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state), BIP_HTTP_STREAMER_HLS_STATE(hHttpStreamer->hls.state) ));
+                                BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state), BIP_HTTP_STREAMER_HLS_STATE(hHttpStreamer->hls.state) ));
                 }
             }
             else if ( hHttpStreamer->completionStatus == BIP_SUCCESS &&
@@ -2664,7 +2702,7 @@ static void processHttpHlsStreamerState(
                     /* Either we didn't need to send the payload (HEAD request for Media Segment or Playlist) or it was GET Request for Media Playlist. */
                     /* Client will send the GET Request for MediaSegment again. So we stay in the current state. */
                     BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer=%p, state=%s hlsState=%s: %s"
-                                BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state), BIP_HTTP_STREAMER_HLS_STATE(hHttpStreamer->hls.state),
+                                BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state), BIP_HTTP_STREAMER_HLS_STATE(hHttpStreamer->hls.state),
                                 !sendPayload && !requestForMediaSegment ? "No Payload to send for MediaPlaylist HEAD Request":
                                 !requestForMediaSegment ? "Sent MediaPlaylist Payload" : "No Payload to send for MediaSegment HEAD Request"
                              ));
@@ -2690,7 +2728,7 @@ static void processHttpHlsStreamerState(
                     /* Client will send the GET Request for MediaSegment again. So we stay in the current state. */
 
                     BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer=%p, state=%s hlsState=%s: Sent Response for Playlist"
-                                BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state), BIP_HTTP_STREAMER_HLS_STATE(hHttpStreamer->hls.state)));
+                                BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state), BIP_HTTP_STREAMER_HLS_STATE(hHttpStreamer->hls.state)));
                 }
             }
             else
@@ -2704,7 +2742,7 @@ static void processHttpHlsStreamerState(
                 /* Add a deferred callback to let HttpServerSocket know that we are done processing the Request & HttpSocket. */
                 if ( hHttpStreamer->processRequestApi.pRequestProcessedCallback->callback )
                 {
-                    BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer=%p: Added requestProcessedCallback" BIP_MSG_PRE_ARG, hHttpStreamer ));
+                    BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer=%p: Added requestProcessedCallback" BIP_MSG_PRE_ARG, (void *)hHttpStreamer ));
                     BIP_Arb_AddDeferredCallback( hHttpStreamer->processRequestApi.hArb, hHttpStreamer->processRequestApi.pRequestProcessedCallback );
                 }
             }
@@ -2729,7 +2767,7 @@ errorInProcessRequest:
                         /* We ran into an error after we have already sent a succesful response, so can't fail this ProcessRequest. */
                         /* Instead, we return a success here and issue an endOfStreaming callback to the app. This way app can simply Stop the streamer. */
                         BDBG_WRN(( BIP_MSG_PRE_FMT "hHttpStreamer %p, state %s: BIP_HttpStreamer_ProcessRequest Failed to send Master Playlist, completionStatus=%s, queued up endOfStreamingCallback"
-                                    BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state), BIP_StatusGetText(hHttpStreamer->completionStatus) ));
+                                    BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state), BIP_StatusGetText(hHttpStreamer->completionStatus) ));
                         hHttpStreamer->completionStatus = BIP_SUCCESS;
                         initiateEndOfStreamingCallback( hHttpStreamer ); /* function changes the state to eWaitingForStopApi */
                     }
@@ -2740,7 +2778,7 @@ errorInProcessRequest:
                         hHttpStreamer->state = BIP_HttpStreamerState_eIdle;
                         hHttpStreamer->hls.state = BIP_HttpStreamerHlsState_eUninitialized;
                         BDBG_ERR(( BIP_MSG_PRE_FMT "hHttpStreamer %p, state %s: BIP_HttpStreamer_ProcessRequest Failed to send Master Playlist, completionStatus=%s"
-                                    BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state), BIP_StatusGetText(hHttpStreamer->completionStatus) ));
+                                    BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state), BIP_StatusGetText(hHttpStreamer->completionStatus) ));
                     }
                 }
                 else
@@ -2759,14 +2797,14 @@ errorInProcessRequest:
                     if ( hHttpStreamer->completionStatus == BIP_ERR_OS_ERRNO && BIP_StatusToErrno( hHttpStreamer->completionStatus ) == EPIPE )
                     {
                         BDBG_WRN(( BIP_MSG_PRE_FMT "hHttpStreamer %p, state %s: Failed to send HTTP Response for Media Segment Request due to client aborting connection (may be seek), remain in same state!"
-                                    BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state) ));
+                                    BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state) ));
                     }
                     else
                     {
                         initiateEndOfStreamingCallback( hHttpStreamer ); /* function changes the state to eWaitingForStopApi */
 
                         BDBG_ERR(( BIP_MSG_PRE_FMT "hHttpStreamer=%p hlsState=%s: Got an error=%s while ProcessingRequest URL=%s, Waiting for App to Stop HttpStreamer!"
-                                    BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_HLS_STATE(hHttpStreamer->hls.state), BIP_StatusGetText( hHttpStreamer->completionStatus ), pRequestTarget ));
+                                    BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_HLS_STATE(hHttpStreamer->hls.state), BIP_StatusGetText( hHttpStreamer->completionStatus ), pRequestTarget ));
                     }
                 }
             } /* Error handling case. */
@@ -2780,12 +2818,12 @@ errorInProcessRequest:
             /* Note: [Streaming] --PBIP CB--> [StreamingDone] --BIP ARB Timer--> here... */
 
             BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer=%p hlsState=%s: Finished Streaming Segment[%u]: requestTarget=%s"
-                        BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_HLS_STATE( hHttpStreamer->hls.state ), hHttpStreamer->hls.currentSegmentSequenceNumber, pRequestTarget ));
+                        BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_HLS_STATE( hHttpStreamer->hls.state ), hHttpStreamer->hls.currentSegmentSequenceNumber, pRequestTarget ));
             /* Add a deferred callback to let HttpServerSocket know that we are done processing the Request. */
             if ( hHttpStreamer->processRequest.requestProcessedCallback.callback )
             {
                 BIP_Arb_AddDeferredCallback( hHttpStreamer->processRequestApi.hArb, &hHttpStreamer->processRequest.requestProcessedCallback );
-                BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer=%p: Added requestProcessedCallback for hHttpSocket=%p" BIP_MSG_PRE_ARG, hHttpStreamer, hHttpStreamer->processRequest.hHttpSocket ));
+                BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer=%p: Added requestProcessedCallback for hHttpSocket=%p" BIP_MSG_PRE_ARG, (void *)hHttpStreamer, (void *)hHttpStreamer->processRequest.hHttpSocket ));
             }
 
             resetHttpStreamerResponseState( hHttpStreamer );
@@ -2793,7 +2831,7 @@ errorInProcessRequest:
             hHttpStreamer->hls.state = BIP_HttpStreamerHlsState_eWaitingForNextMediaSegmentReq;
             hHttpStreamer->state = BIP_HttpStreamerState_eWaitingForProcessRequestApi;
             BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer=%p state=%s hlsState=%s: Waiting for next segment request or timeout. "
-                        BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state), BIP_HTTP_STREAMER_HLS_STATE( hHttpStreamer->hls.state) ));
+                        BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state), BIP_HTTP_STREAMER_HLS_STATE( hHttpStreamer->hls.state) ));
         } /* StreamingDone state processing when hlsState is still streaming. */
         else if ( hHttpStreamer->state == BIP_HttpStreamerState_eStreamingDone && hHttpStreamer->hls.state == BIP_HttpStreamerHlsState_eWaitingForEndOfSegmentCallback )
         {
@@ -2807,13 +2845,13 @@ errorInProcessRequest:
              */
 
             BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer=%p hlsState=%s: Finished Streaming Segment[%u]: requestTarget=%s"
-                        BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_HLS_STATE( hHttpStreamer->hls.state ), hHttpStreamer->hls.currentSegmentSequenceNumber, pRequestTarget ));
+                        BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_HLS_STATE( hHttpStreamer->hls.state ), hHttpStreamer->hls.currentSegmentSequenceNumber, pRequestTarget ));
 
             /* First, we complete the request for which we finished streaming the current segment. */
             if ( hHttpStreamer->processRequest.requestProcessedCallback.callback )
             {
                 BIP_Arb_AddDeferredCallback( hHttpStreamer->processRequestApi.hArb, &hHttpStreamer->processRequest.requestProcessedCallback );
-                BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer=%p: Added requestProcessedCallback for hHttpSocket=%p" BIP_MSG_PRE_ARG, hHttpStreamer, hHttpStreamer->processRequest.hHttpSocket ));
+                BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer=%p: Added requestProcessedCallback for hHttpSocket=%p" BIP_MSG_PRE_ARG, (void *)hHttpStreamer, (void *)hHttpStreamer->processRequest.hHttpSocket ));
             }
 
             /* And we change our state to reflect as if we were waiting for next segment. */
@@ -2840,7 +2878,7 @@ errorInProcessRequest:
                     hHttpStreamer->hls.state = BIP_HttpStreamerHlsState_eStreaming;
                     hHttpStreamer->state = BIP_HttpStreamerState_eStreaming;
                     BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer=%p, state=%s, hlsState=%s: Resumed Streaming using the pending Request"
-                                BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state), BIP_HTTP_STREAMER_HLS_STATE( hHttpStreamer->hls.state) ));
+                                BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state), BIP_HTTP_STREAMER_HLS_STATE( hHttpStreamer->hls.state) ));
                 }
                 else
                 {
@@ -2854,7 +2892,7 @@ errorInWaitingForEndOfSegment:
                     if ( hHttpStreamer->completionStatus == BIP_ERR_OS_ERRNO && BIP_StatusToErrno( hHttpStreamer->completionStatus ) == EPIPE )
                     {
                         BDBG_WRN(( BIP_MSG_PRE_FMT "hHttpStreamer %p, state %s: Failed to send HTTP Response for Media Segment Request due to client aborting connection (may be seek), remain in same state!"
-                                    BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state) ));
+                                    BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state) ));
                     }
                     else
                     {
@@ -2867,7 +2905,7 @@ errorInWaitingForEndOfSegment:
                             BIP_Arb_AddDeferredCallback( hHttpStreamer->processRequestApi.hArb, &hHttpStreamer->processRequest.requestProcessedCallback );
                         }
                         BDBG_ERR(( BIP_MSG_PRE_FMT "hHttpStreamer %p, state %s: Error during resuming to stream using the pending Request, so moving to WaitingForStop state!"
-                                    BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state) ));
+                                    BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state) ));
                     }
                 }
             }
@@ -2876,7 +2914,7 @@ errorInWaitingForEndOfSegment:
         else if ( BIP_Arb_IsBusy(hHttpStreamer->stopApi.hArb) == true || BIP_Arb_IsBusy(hHttpStreamer->destroyApi.hArb) == true )
         {
             BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer=%p hlsState=%s: Starting %s Sequence"
-                        BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_HLS_STATE( hHttpStreamer->hls.state ), BIP_Arb_IsBusy( hHttpStreamer->stopApi.hArb)?"Stop":"Destroy" ));
+                        BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_HLS_STATE( hHttpStreamer->hls.state ), BIP_Arb_IsBusy( hHttpStreamer->stopApi.hArb)?"Stop":"Destroy" ));
             if ( hHttpStreamer->state == BIP_HttpStreamerState_eIdle )
             {
                 /* has to be for _Destroy(), just reset the state incase, we had failed to start & app is just destroying us. */
@@ -2894,26 +2932,26 @@ errorInWaitingForEndOfSegment:
                 hHttpStreamer->hls.state = BIP_HttpStreamerHlsState_eUninitialized;
 
                 BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer %p, state %s: BIP_HttpStreamer Stopped!"
-                            BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state)));
+                            BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state)));
 
                 hHttpStreamer->completionStatus = BIP_SUCCESS;
             }
             if ( BIP_Arb_IsBusy(hHttpStreamer->stopApi.hArb) == true )
             {
                 BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer %p, state %s: BIP_HttpStreamer_Stop is done!"
-                            BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state)));
+                            BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state)));
                 BIP_Arb_CompleteRequest( hHttpStreamer->stopApi.hArb, hHttpStreamer->completionStatus);
             }
             else if ( BIP_Arb_IsBusy(hHttpStreamer->destroyApi.hArb) == true )
             {
                 BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer %p, state %s: BIP_HttpStreamer Destorying is almost done!"
-                            BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state)));
+                            BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state)));
                 BIP_Arb_CompleteRequest( hHttpStreamer->destroyApi.hArb, hHttpStreamer->completionStatus);
             }
         } /* stop or destroy ARB handling. */
 
         BDBG_MSG(( BIP_MSG_PRE_FMT "EXIT <--- hHttpStreamer %p: state=%s hlsState=%s"
-                    BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state), BIP_HTTP_STREAMER_HLS_STATE(hHttpStreamer->hls.state) ));
+                    BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state), BIP_HTTP_STREAMER_HLS_STATE(hHttpStreamer->hls.state) ));
     }
 } /* processHttpHlsStreamerState */
 #else /* NEXUS_HAS_VIDEO_ENCODER */
@@ -2951,7 +2989,7 @@ static void processHttpDirectStreamerState(
     }
 
     BDBG_MSG(( BIP_MSG_PRE_FMT "ENTRY ---> hHttpStreamer %p: state %s"
-                BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state) ));
+                BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state) ));
 
     reRunProcessState = true;
     while (reRunProcessState)
@@ -2994,7 +3032,7 @@ static void processHttpDirectStreamerState(
             if (hHttpStreamer->state != BIP_HttpStreamerState_eWaitingForProcessRequestApi)
             {
                 BDBG_ERR(( BIP_MSG_PRE_FMT "hHttpStreamer %p: BIP_HttpStreamer_ProcessRequest() is only allowed in WaitingForProcessRequestApi state, current state: %s"
-                            BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state)));
+                            BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state)));
                 hHttpStreamer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
                 BIP_Arb_RejectRequest( hHttpStreamer->processRequestApi.hArb, hHttpStreamer->completionStatus );
             }
@@ -3057,7 +3095,7 @@ static void processHttpDirectStreamerState(
                         {
                             /* We have successfully prepared the default Http Response, update state. */
                             hHttpStreamer->response.state = BIP_HttpStreamerResponseHeadersState_eSet;
-                            BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer %p: Response headers prepared!" BIP_MSG_PRE_ARG, hHttpStreamer));
+                            BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer %p: Response headers prepared!" BIP_MSG_PRE_ARG, (void *)hHttpStreamer));
                         }
                         /* Note: error cases are handled in one go below. */
                     }
@@ -3112,7 +3150,7 @@ static void processHttpDirectStreamerState(
                         hHttpStreamer->state = BIP_HttpStreamerState_eStreamingDone;
                         reRunProcessState = true;
                         BIP_MSG_SUM(( BIP_MSG_PRE_FMT "hHttpStreamer %p, state %s: No Payload to send, switched to StreamingDone state!"
-                                    BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state)));
+                                    BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state)));
                     }
                 }
                 else
@@ -3135,7 +3173,7 @@ static void processHttpDirectStreamerState(
                     resetHttpStreamerResponseState( hHttpStreamer );
                     hHttpStreamer->state = BIP_HttpStreamerState_eIdle;
                     BDBG_ERR(( BIP_MSG_PRE_FMT "hHttpStreamer %p, state %s: BIP_HttpStreamer_ProcessRequest Failed, completionStatus %s"
-                                BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state), BIP_StatusGetText(hHttpStreamer->completionStatus) ));
+                                BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state), BIP_StatusGetText(hHttpStreamer->completionStatus) ));
                 }
             } /* _eWaitingForProcessRequestApi state processsing. */
             else
@@ -3181,7 +3219,7 @@ static void processHttpDirectStreamerState(
                 if ( hHttpStreamer->completionStatus != BIP_SUCCESS )
                 {
                     BDBG_ERR(( BIP_MSG_PRE_FMT "hHttpStreamer %p, state %s: Stop Streamer Failed"
-                                BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state) ));
+                                BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state) ));
                     /* continue w/ stopping rest of the streamer related resources! */
                 }
 
@@ -3196,7 +3234,7 @@ static void processHttpDirectStreamerState(
                 hHttpStreamer->state = BIP_HttpStreamerState_eIdle;
 
                 BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer %p, state %s: BIP_HttpStreamer Stopped!"
-                            BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state)));
+                            BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state)));
 
                 hHttpStreamer->completionStatus = BIP_SUCCESS;
             }
@@ -3212,7 +3250,7 @@ static void processHttpDirectStreamerState(
             else if ( BIP_Arb_IsBusy(hHttpStreamer->destroyApi.hArb) == true )
             {
                 BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer %p, state %s: BIP_HttpStreamer Destorying is almost done!"
-                            BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state)));
+                            BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state)));
                 BIP_Arb_CompleteRequest( hHttpStreamer->destroyApi.hArb, hHttpStreamer->completionStatus);
             }
         }
@@ -3234,10 +3272,10 @@ static void processHttpDirectStreamerState(
             initiateEndOfStreamingCallback( hHttpStreamer ); /* function changes the state to eWaitingForStopApi */
 
             BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer %p, state %s: Done from StreamingDone state and moving to WaitingForStop state!"
-                        BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state)));
+                        BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state)));
         }
         BDBG_MSG(( BIP_MSG_PRE_FMT "EXIT <--- hHttpStreamer %p: state %s"
-                    BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state)));
+                    BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state)));
     }
 } /* processHttpDirectStreamerState */
 
@@ -3253,6 +3291,9 @@ void processHttpStreamerState(
     BIP_Status              completionStatus = BIP_ERR_INTERNAL;
 
     BSTD_UNUSED(value);
+
+    brc = BIP_CLASS_LOCK_AND_CHECK_INSTANCE(BIP_HttpStreamer, hHttpStreamer);
+    if (brc != BIP_SUCCESS) { return; }
 
     BDBG_ASSERT(hHttpStreamer);
     BDBG_OBJECT_ASSERT( hHttpStreamer, BIP_HttpStreamer);
@@ -3272,7 +3313,7 @@ void processHttpStreamerState(
 
     B_Mutex_Lock( hHttpStreamer->hStateMutex );
     BDBG_MSG(( BIP_MSG_PRE_FMT "ENTRY ---> hHttpStreamer %p: state %s"
-                BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state) ));
+                BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state) ));
 
     if (BIP_Arb_IsNew(hArb = hHttpStreamer->getSettingsApi.hArb))
     {
@@ -3285,7 +3326,7 @@ void processHttpStreamerState(
         /* We are done this API Arb, so set its completion status. */
         hHttpStreamer->completionStatus = BIP_SUCCESS;
         BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer %p: GetSettings Arb request is complete: state %s!"
-                    BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state) ));
+                    BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state) ));
         BIP_Arb_CompleteRequest( hArb, hHttpStreamer->completionStatus);
     }
     else if (BIP_Arb_IsNew(hArb = hHttpStreamer->getStatusApi.hArb))
@@ -3304,7 +3345,7 @@ void processHttpStreamerState(
         }
         hHttpStreamer->completionStatus = BIP_SUCCESS;
         BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer %p: GetStatus Arb request is complete: state %s!"
-                    BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state) ));
+                    BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state) ));
         BIP_Arb_CompleteRequest( hArb, hHttpStreamer->completionStatus);
     }
     else if (BIP_Arb_IsNew(hArb = hHttpStreamer->printStatusApi.hArb))
@@ -3317,7 +3358,7 @@ void processHttpStreamerState(
 
         hHttpStreamer->completionStatus = BIP_SUCCESS;
         BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer %p: GetStatus Arb request is complete: state %s!"
-                    BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state) ));
+                    BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state) ));
         BIP_Arb_CompleteRequest( hArb, hHttpStreamer->completionStatus);
     }
     else if (BIP_Arb_IsNew(hArb = hHttpStreamer->setSettingsApi.hArb))
@@ -3326,7 +3367,7 @@ void processHttpStreamerState(
         hHttpStreamer->settings = *hHttpStreamer->setSettingsApi.pSettings;
 
         BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer %p: SetSettings Arb request is complete : state %s!"
-                    BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state) ));
+                    BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state) ));
         hHttpStreamer->completionStatus = BIP_SUCCESS;
         BIP_Arb_CompleteRequest( hArb, hHttpStreamer->completionStatus);
     }
@@ -3337,7 +3378,7 @@ void processHttpStreamerState(
         if (hHttpStreamer->state != BIP_HttpStreamerState_eIdle)
         {
             BDBG_ERR(( BIP_MSG_PRE_FMT "hHttpStreamer %p: Calling BIP_Arb_RejectRequest(): BIP_HttpStreamer_SetFileInputSettings not allowed in this state: %s, Streamer must be in the Idle state"
-                        BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state)));
+                        BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state)));
 
             hHttpStreamer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, hHttpStreamer->completionStatus);
@@ -3361,7 +3402,7 @@ void processHttpStreamerState(
         if (hHttpStreamer->state != BIP_HttpStreamerState_eIdle)
         {
             BDBG_ERR(( BIP_MSG_PRE_FMT "hHttpStreamer %p: Calling BIP_Arb_RejectRequest(): BIP_HttpStreamer_SetTunerInputSettings not allowed in this state: %s, Streamer must be in the Idle state"
-                        BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state)));
+                        BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state)));
             hHttpStreamer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, hHttpStreamer->completionStatus);
         }
@@ -3384,7 +3425,7 @@ void processHttpStreamerState(
         if (hHttpStreamer->state != BIP_HttpStreamerState_eIdle)
         {
             BDBG_ERR(( BIP_MSG_PRE_FMT "hHttpStreamer %p: Calling BIP_Arb_RejectRequest(): BIP_HttpStreamer_SetIpInputSettings not allowed in this state: %s, Streamer must be in the Idle state"
-                        BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state)));
+                        BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state)));
             hHttpStreamer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, hHttpStreamer->completionStatus);
         }
@@ -3407,7 +3448,7 @@ void processHttpStreamerState(
         if (hHttpStreamer->state != BIP_HttpStreamerState_eIdle)
         {
             BDBG_ERR(( BIP_MSG_PRE_FMT "hHttpStreamer %p: Calling BIP_Arb_RejectRequest(): BIP_HttpStreamer_SetRecpumpInputSettings not allowed in this state: %s, Streamer must be in the Idle state"
-                        BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state)));
+                        BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state)));
             hHttpStreamer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, hHttpStreamer->completionStatus);
         }
@@ -3434,14 +3475,14 @@ void processHttpStreamerState(
         if (hHttpStreamer->state != BIP_HttpStreamerState_eIdle)
         {
             BDBG_ERR(( BIP_MSG_PRE_FMT "hHttpStreamer %p: BIP_HttpStreamer_SetOutputSettings not allowed in this state: %s"
-                        BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state)));
+                        BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state)));
             hHttpStreamer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, hHttpStreamer->completionStatus);
         }
         else if ( hHttpStreamer->outputSettingsApi.pOutputSettings->appInitialPayload.valid || hHttpStreamer->outputSettingsApi.pOutputSettings->enableHwOffload )
         {
             BDBG_ERR(( BIP_MSG_PRE_FMT "hHttpStreamer %p: BIP_HttpStreamer_SetOutputSettings: enableHwOffload, appInitialPayload, output.settings are not yet supported!"
-                        BIP_MSG_PRE_ARG, hHttpStreamer ));
+                        BIP_MSG_PRE_ARG, (void *)hHttpStreamer ));
             hHttpStreamer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, hHttpStreamer->completionStatus);
         }
@@ -3460,7 +3501,7 @@ void processHttpStreamerState(
             {
                 hHttpStreamer->output.state = BIP_HttpStreamerOutputState_eSet;
                 BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer %p: output.settings are cached: timestamp=%s, protocol=%d"
-                            BIP_MSG_PRE_ARG, hHttpStreamer, hHttpStreamer->output.settings.streamerSettings.mpeg2Ts.enableTransportTimestamp?"Y":"N",
+                            BIP_MSG_PRE_ARG, (void *)hHttpStreamer, hHttpStreamer->output.settings.streamerSettings.mpeg2Ts.enableTransportTimestamp?"Y":"N",
                             hHttpStreamer->output.streamerProtocol
                          ));
             }
@@ -3472,7 +3513,7 @@ void processHttpStreamerState(
         if (hHttpStreamer->state != BIP_HttpStreamerState_eIdle)
         {
             BDBG_ERR(( BIP_MSG_PRE_FMT "hHttpStreamer %p: BIP_HttpStreamer_AddTrack() is only allowed in Idle state, current state: %s"
-                        BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state)));
+                        BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state)));
             hHttpStreamer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, hHttpStreamer->completionStatus);
         }
@@ -3490,7 +3531,7 @@ void processHttpStreamerState(
         if (hHttpStreamer->state != BIP_HttpStreamerState_eIdle)
         {
             BDBG_ERR(( BIP_MSG_PRE_FMT "hHttpStreamer %p: BIP_HttpStreamer_AddTranscodeProfile() is only allowed in Idle state, current state: %s"
-                        BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state)));
+                        BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state)));
             hHttpStreamer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, hHttpStreamer->completionStatus);
         }
@@ -3507,7 +3548,7 @@ void processHttpStreamerState(
         if (hHttpStreamer->state != BIP_HttpStreamerState_eIdle)
         {
             BDBG_ERR(( BIP_MSG_PRE_FMT "hHttpStreamer %p: BIP_HttpStreamer_SetTranscodeProfile() is only allowed in Idle state, current state: %s"
-                        BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state)));
+                        BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state)));
             hHttpStreamer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, hHttpStreamer->completionStatus);
         }
@@ -3525,7 +3566,7 @@ void processHttpStreamerState(
         if (hHttpStreamer->state != BIP_HttpStreamerState_eIdle)
         {
             BDBG_ERR(( BIP_MSG_PRE_FMT "hHttpStreamer %p: BIP_HttpStreamer_SetResponseHeader() is only allowed in Idle state, current state: %s"
-                        BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state)));
+                        BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state)));
             hHttpStreamer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, hHttpStreamer->completionStatus);
         }
@@ -3536,7 +3577,7 @@ void processHttpStreamerState(
                  hHttpStreamer->output.state == BIP_HttpStreamerOutputState_eNotSet
                 )
         {
-            BDBG_ERR(( BIP_MSG_PRE_FMT "hHttpStreamer %p: BIP_HttpStreamer_SetResponseHeader() is not allowed when Input or Output are not set!." BIP_MSG_PRE_ARG, hHttpStreamer ));
+            BDBG_ERR(( BIP_MSG_PRE_FMT "hHttpStreamer %p: BIP_HttpStreamer_SetResponseHeader() is not allowed when Input or Output are not set!." BIP_MSG_PRE_ARG, (void *)hHttpStreamer ));
             hHttpStreamer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, hHttpStreamer->completionStatus);
         }
@@ -3554,7 +3595,7 @@ void processHttpStreamerState(
                 {
                     /* We have successfully prepared the default Http Response, update ResponseHeader state. */
                     hHttpStreamer->response.state = BIP_HttpStreamerResponseHeadersState_eSet;
-                    BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer %p: Response headers prepared!" BIP_MSG_PRE_ARG, hHttpStreamer));
+                    BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer %p: Response headers prepared!" BIP_MSG_PRE_ARG, (void *)hHttpStreamer));
                 }
             }
             if (hHttpStreamer->completionStatus == BIP_SUCCESS)
@@ -3578,7 +3619,7 @@ void processHttpStreamerState(
             if ( hHttpStreamer->completionStatus == BIP_SUCCESS )
             {
                 BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer %p: BIP_HttpStreamer_SetResponseHeader success: header name: %s, value: %s" BIP_MSG_PRE_ARG,
-                            hHttpStreamer,
+                            (void *)hHttpStreamer,
                             hHttpStreamer->setResponseHeaderApi.pHeaderName,
                             hHttpStreamer->setResponseHeaderApi.pHeaderValue
                          ));
@@ -3586,7 +3627,7 @@ void processHttpStreamerState(
             else
             {
                 BDBG_ERR(( BIP_MSG_PRE_FMT "hHttpStreamer %p: Failed to %s: header name: %s, value: %s" BIP_MSG_PRE_ARG,
-                            hHttpStreamer,
+                            (void *)hHttpStreamer,
                             hHttpStreamer->response.state == BIP_HttpStreamerResponseHeadersState_eSet ? "Add HTTP Header" : "Prepare Base Headers",
                             hHttpStreamer->setResponseHeaderApi.pHeaderName,
                             hHttpStreamer->setResponseHeaderApi.pHeaderValue
@@ -3601,7 +3642,7 @@ void processHttpStreamerState(
         if (hHttpStreamer->state != BIP_HttpStreamerState_eIdle)
         {
             BDBG_ERR(( BIP_MSG_PRE_FMT "hHttpStreamer %p: BIP_HttpStreamer_GetResponseHeader() is only allowed in Idle state, current state: %s"
-                        BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state)));
+                        BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state)));
             hHttpStreamer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, hHttpStreamer->completionStatus);
         }
@@ -3612,7 +3653,7 @@ void processHttpStreamerState(
                  hHttpStreamer->output.state == BIP_HttpStreamerOutputState_eNotSet
                 )
         {
-            BDBG_ERR(( BIP_MSG_PRE_FMT "hHttpStreamer %p: BIP_HttpStreamer_GetResponseHeader() is not allowed when Input or Output are not set!." BIP_MSG_PRE_ARG, hHttpStreamer ));
+            BDBG_ERR(( BIP_MSG_PRE_FMT "hHttpStreamer %p: BIP_HttpStreamer_GetResponseHeader() is not allowed when Input or Output are not set!." BIP_MSG_PRE_ARG, (void *)hHttpStreamer ));
             hHttpStreamer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, hHttpStreamer->completionStatus);
         }
@@ -3622,7 +3663,7 @@ void processHttpStreamerState(
 
             /* TODO: Not supporting this API until HttpResponse object supports the GetHeader(). */
             hHttpStreamer->completionStatus = BIP_ERR_NOT_AVAILABLE;
-            BDBG_ERR(( BIP_MSG_PRE_FMT "hHttpStreamer %p: Failed to Prepare the HTTP Response Headers!" BIP_MSG_PRE_ARG, hHttpStreamer ));
+            BDBG_ERR(( BIP_MSG_PRE_FMT "hHttpStreamer %p: Failed to Prepare the HTTP Response Headers!" BIP_MSG_PRE_ARG, (void *)hHttpStreamer ));
             BIP_Arb_RejectRequest(hArb, hHttpStreamer->completionStatus);
         }
     }
@@ -3632,7 +3673,7 @@ void processHttpStreamerState(
         if (hHttpStreamer->state != BIP_HttpStreamerState_eIdle)
         {
             BDBG_ERR(( BIP_MSG_PRE_FMT "hHttpStreamer %p: BIP_HttpStreamer_Start() is only allowed in Idle state, current state: %s"
-                        BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state)));
+                        BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state)));
             hHttpStreamer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, hHttpStreamer->completionStatus);
         }
@@ -3643,25 +3684,25 @@ void processHttpStreamerState(
                  hHttpStreamer->output.state == BIP_HttpStreamerOutputState_eNotSet
                 )
         {
-            BDBG_ERR(( BIP_MSG_PRE_FMT "hHttpStreamer %p: BIP_HttpStreamer_Start() is not allowed when Input or Output are not set!." BIP_MSG_PRE_ARG, hHttpStreamer ));
+            BDBG_ERR(( BIP_MSG_PRE_FMT "hHttpStreamer %p: BIP_HttpStreamer_Start() is not allowed when Input or Output are not set!." BIP_MSG_PRE_ARG, (void *)hHttpStreamer ));
             hHttpStreamer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, hHttpStreamer->completionStatus);
         }
         else if ( hHttpStreamer->pStreamer->recpump.inputState == BIP_StreamerInputState_eSet && hHttpStreamer->output.streamerProtocol != BIP_HttpStreamerProtocol_eDirect )
         {
-            BDBG_ERR(( BIP_MSG_PRE_FMT "hHttpStreamer %p: BIP_HttpStreamer_Start() is not allowed when Output StreamerProtocol is not set to eDirect for Recpump input!." BIP_MSG_PRE_ARG, hHttpStreamer ));
+            BDBG_ERR(( BIP_MSG_PRE_FMT "hHttpStreamer %p: BIP_HttpStreamer_Start() is not allowed when Output StreamerProtocol is not set to eDirect for Recpump input!." BIP_MSG_PRE_ARG, (void *)hHttpStreamer ));
             hHttpStreamer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, hHttpStreamer->completionStatus);
         }
         else if ( hHttpStreamer->pStreamer->file.inputState == BIP_StreamerInputState_eSet && hHttpStreamer->output.streamerProtocol == BIP_HttpStreamerProtocol_eHls && hHttpStreamer->pStreamer->streamerStreamInfo.durationInMs == 0 )
         {
-            BDBG_ERR(( BIP_MSG_PRE_FMT "hHttpStreamer %p: BIP_HttpStreamer_Start() Failed as for Adaptive Streaming of File Input, streamerStreamInfo duration is required to be NON-Zero!." BIP_MSG_PRE_ARG, hHttpStreamer ));
+            BDBG_ERR(( BIP_MSG_PRE_FMT "hHttpStreamer %p: BIP_HttpStreamer_Start() Failed as for Adaptive Streaming of File Input, streamerStreamInfo duration is required to be NON-Zero!." BIP_MSG_PRE_ARG, (void *)hHttpStreamer ));
             hHttpStreamer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, hHttpStreamer->completionStatus);
         }
         else if ( hHttpStreamer->output.settings.enableDtcpIp && hHttpStreamer->startApi.pSettings->hInitDtcpIp == NULL )
         {
-            BDBG_ERR(( BIP_MSG_PRE_FMT "hHttpStreamer %p: BIP_HttpStreamer_Start() Failed as App has enabled DTCP/IP streamer option but hasn't enabled DTCP/IP Server during HttpServer Start. " BIP_MSG_PRE_ARG, hHttpStreamer ));
+            BDBG_ERR(( BIP_MSG_PRE_FMT "hHttpStreamer %p: BIP_HttpStreamer_Start() Failed as App has enabled DTCP/IP streamer option but hasn't enabled DTCP/IP Server during HttpServer Start. " BIP_MSG_PRE_ARG, (void *)hHttpStreamer ));
             hHttpStreamer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, hHttpStreamer->completionStatus);
         }
@@ -3684,8 +3725,8 @@ void processHttpStreamerState(
             }
             else
             {
-                BDBG_ERR(( BIP_MSG_PRE_FMT "hHttpStreamer %p: BIP_HttpStreamer_Start() Failed due to createInactivityTimer() failure to create a timer! " BIP_MSG_PRE_ARG, hHttpStreamer ));
-                BIP_Arb_RejectRequest(hArb, hHttpStreamer->completionStatus);
+                BDBG_ERR(( BIP_MSG_PRE_FMT "hHttpStreamer %p: BIP_HttpStreamer_Start() Failed due to createInactivityTimer() failure to create a timer! " BIP_MSG_PRE_ARG, (void *)hHttpStreamer ));
+                BIP_Arb_RejectRequest((void *)hArb, hHttpStreamer->completionStatus);
             }
         }
     }
@@ -3694,7 +3735,7 @@ void processHttpStreamerState(
         if (hHttpStreamer->state == BIP_HttpStreamerState_eIdle || hHttpStreamer->state == BIP_HttpStreamerState_eWaitingForStopApi)
         {
             BDBG_ERR(( BIP_MSG_PRE_FMT "hHttpStreamer %p: Can't process new request in state=%s (either streamer is already stopped or has run into an internal error & waiting for app to Stop it."
-                        BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state)));
+                        BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state)));
             sendErrorResponse( hHttpStreamer, hHttpStreamer->processRequestApi.hHttpSocket, hHttpStreamer->processRequestApi.pSettings->hHttpRequest ); /* Note we ignore the status of sendErrorResponse as we want to return the previous error. */
             hHttpStreamer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, hHttpStreamer->completionStatus);
@@ -3706,7 +3747,7 @@ void processHttpStreamerState(
             hHttpStreamer->completionStatus = BIP_INF_IN_PROGRESS;
 
             BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer %p: Accepted _ProcessRequest Arb: state %s!"
-                        BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state) ));
+                        BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state) ));
         }
         /* NOTE: The remaining ProcessRequest processing happens in the per streaming protocol state logic below. */
     }
@@ -3719,7 +3760,7 @@ void processHttpStreamerState(
            )
         {
             BDBG_WRN(( BIP_MSG_PRE_FMT "hHttpStreamer %p: BIP_HttpStreamer_Stop not allowed in this state: %s"
-                        BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state)));
+                        BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state)));
             hHttpStreamer->completionStatus = BIP_SUCCESS;
             /* Cancel the current inactivity timer. */
             destroyInactivityTimer( hHttpStreamer );
@@ -3731,7 +3772,7 @@ void processHttpStreamerState(
             hHttpStreamer->completionStatus = BIP_INF_IN_PROGRESS;
 
             BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer %p: Accepted _Stop Arb: state %s!"
-                        BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state) ));
+                        BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state) ));
 
             /* Cancel the current inactivity timer. */
             destroyInactivityTimer( hHttpStreamer );
@@ -3745,7 +3786,7 @@ void processHttpStreamerState(
         hHttpStreamer->completionStatus = BIP_INF_IN_PROGRESS;
 
         BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer %p: Accepted _Destroy Arb: state %s!"
-                    BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state) ));
+                    BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state) ));
 
         /* Cancel the current inactivity timer. */
         destroyInactivityTimer( hHttpStreamer );
@@ -3821,7 +3862,7 @@ void processHttpStreamerState(
                         if ( hHttpStreamer->processRequest.requestProcessedCallback.callback &&
                                 ( hHttpStreamer->state == BIP_HttpStreamerState_eStreaming || hHttpStreamer->state == BIP_HttpStreamerState_eStreamingDone ) )
                         {
-                            BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer=%p state=%s: Added requestProcessedCallback" BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE( hHttpStreamer->state ) ));
+                            BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer=%p state=%s: Added requestProcessedCallback" BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE( hHttpStreamer->state ) ));
                             BIP_Arb_AddDeferredCallback( hHttpStreamer->processRequestApi.hArb, &hHttpStreamer->processRequest.requestProcessedCallback );
                         }
 
@@ -3840,12 +3881,12 @@ void processHttpStreamerState(
                 {
                     initiateEndOfStreamingCallback( hHttpStreamer ); /* function changes the state to eWaitingForStopApi */
                     BDBG_ERR(( BIP_MSG_PRE_FMT "hHttpStreamer %p, state %s: Failed to restart inactivity timer, issued endOfStreaming Callback to App!"
-                                BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state) ));
+                                BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state) ));
                 }
                 else timerRestarted = true;
             }
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer=%p: state=%s inactivityTimerRestarted=%s inactivityTimeoutCallbackIssued=%s endOfStreamingCallbackIssued=%s totalBytesStreamed=%lld inactivityTimeout=%d"
-                        BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state),
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer=%p: state=%s inactivityTimerRestarted=%s inactivityTimeoutCallbackIssued=%s endOfStreamingCallbackIssued=%s totalBytesStreamed=%"PRId64 "inactivityTimeout=%d"
+                        BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state),
                         timerRestarted?"Y":"N", inactivityTimeoutCallbackIssued?"Y":"N", endOfStreamingCallbackIssued?"Y":"N", hHttpStreamer->totalBytesStreamed, hHttpStreamer->startSettings.inactivityTimeoutInMs  ));
         } /* inactivity poll timer expired. */
     } /* inactivityTimer is active. */
@@ -3856,7 +3897,9 @@ void processHttpStreamerState(
     B_Mutex_Unlock( hHttpStreamer->hStateMutex );
 
     BDBG_MSG(( BIP_MSG_PRE_FMT "Finished Processing HTTP State for hHttpStreamer %p: state %s, before issuing the callbacks with completionStatus 0x%x"
-                BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state), completionStatus ));
+                BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state), completionStatus ));
+
+    BIP_CLASS_UNLOCK(BIP_HttpStreamer, hHttpStreamer);
 
     /* Tell ARB to do any deferred work. */
     brc = BIP_Arb_DoDeferred( hHttpStreamer->startApi.hArb, threadOrigin );
@@ -3864,6 +3907,6 @@ void processHttpStreamerState(
 
 
     BDBG_MSG(( BIP_MSG_PRE_FMT "EXIT <--- hHttpStreamer %p: state %s"
-                BIP_MSG_PRE_ARG, hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state)));
+                BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_HTTP_STREAMER_STATE(hHttpStreamer->state)));
     return;
 } /* processHttpStreamerState */

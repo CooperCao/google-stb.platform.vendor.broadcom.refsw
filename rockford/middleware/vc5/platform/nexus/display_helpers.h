@@ -1,12 +1,12 @@
 /*=============================================================================
-Copyright (c) 2015 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2015 Broadcom.
 All rights reserved.
 =============================================================================*/
 
 #ifndef __DISPLAY_HELPERS__H__
 #define __DISPLAY_HELPERS__H__
 
-#include "egl_platform_abstract.h"
+#include <EGL/begl_displayplatform.h>
 #include "nexus_surface.h"
 
 bool NexusToBeglFormat(BEGL_BufferFormat *result, NEXUS_PixelFormat format);

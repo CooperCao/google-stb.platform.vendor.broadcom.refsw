@@ -13,7 +13,12 @@ export CROSS_COMPILE=$CROSSDEV_ROOT/bin/mipsel-linux
 fi
 
 curr_dir=`pwd`
+if [[ ! -z $B_REFSW_OBJ_DIR ]]; then
+echo "B_REFSW_OBJ_DIR is predefined $B_REFSW_OBJ_DIR"
+B_REFSW_OBJ_DIR=$B_REFSW_OBJ_DIR
+else
 B_REFSW_OBJ_DIR=obj.${NEXUS_PLATFORM}
+fi
 cd ../../../../../../..
 REFSW_TOP=`pwd`
 cd $curr_dir

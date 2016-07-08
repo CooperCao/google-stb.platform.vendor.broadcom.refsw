@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2004-2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,8 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   Private routines internal to the audio module
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 #include "nexus_audio_module.h"
@@ -1534,7 +1526,7 @@ NEXUS_Error NEXUS_AudioOutput_P_ApplySettings(
                 NEXUS_Vcxo_GetSettings(pllSettings.modeSettings.vcxo.vcxo, &vcxoSettings);
                 errCode = NEXUS_Timebase_GetIndex(pSettings->timebase, &timebaseIndex);
                 if (errCode) return BERR_TRACE(errCode);
-                if ( vcxoSettings.timebase != (int)timebaseIndex )
+                if ( vcxoSettings.timebase != timebaseIndex )
                 {
                     BDBG_WRN(("Changing VCXO-PLL %u timebase from %u to %u", pllSettings.modeSettings.vcxo.vcxo, vcxoSettings.timebase, timebaseIndex));
                     vcxoSettings.timebase = timebaseIndex;

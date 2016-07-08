@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2013 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2013 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -15,6 +15,7 @@ FILE DESCRIPTION
 
 static void Destroy(void *me)
 {
+   UNUSED(me);
 }
 
 static void Accept(void *me, DFlowNode *node)
@@ -161,7 +162,7 @@ static void Accept(void *me, DFlowNode *node)
 
    if (NodeList_size(children) == 2)
    {
-      DFlowNode               *child[2];
+      DFlowNode               *child[2] = { NULL };
       uint32_t                 ix = 0;
       NodeList_const_iterator  iter;
 

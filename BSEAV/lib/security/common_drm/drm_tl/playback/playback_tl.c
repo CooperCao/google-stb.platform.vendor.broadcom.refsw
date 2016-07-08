@@ -1,7 +1,7 @@
-/***************************************************************************
- *     (c)2015 Broadcom Corporation
+/******************************************************************************
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,14 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- *
- *
- * Module Description: Thin layer Playback implementation
- *
- * Revision History:
- *
- **************************************************************************/
+ ******************************************************************************/
 
 #include "bstd.h"
 #include "bdbg.h"
@@ -147,7 +140,7 @@ DrmRC DRM_Playback_Stop(DrmPlaybackHandle_t pHandle)
     NEXUS_SecurityKeySlotInfo  keyslotInfo;
     NEXUS_KeySlotHandle scrubbingKeyHandle = 0;
     uint8_t *pDmaMemoryPool = NULL;
-    unsigned size = 1024;
+    unsigned size = 4*1024;
 
     if(pCtx == NULL){
         rc = Drm_Err;
@@ -175,7 +168,7 @@ DrmRC DRM_Playback_Stop(DrmPlaybackHandle_t pHandle)
 
     NEXUS_Security_GetKeySlotInfo(scrubbingKeyHandle, &keyslotInfo);
     container->basicIn[0] = (int32_t)keyslotInfo.keySlotNumber;
-    BDBG_ERR(("%s - keyslotInfo.keySlotNumber %d\n", __FUNCTION__, keyslotInfo.keySlotNumber));
+    BDBG_MSG(("%s - keyslotInfo.keySlotNumber %d\n", __FUNCTION__, keyslotInfo.keySlotNumber));
 
     /* Allocate enough memory for DMA descriptors */
     pDmaMemoryPool = SRAI_Memory_Allocate(size, SRAI_MemoryType_SagePrivate);

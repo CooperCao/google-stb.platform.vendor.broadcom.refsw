@@ -1,7 +1,7 @@
-/***************************************************************************
- *     (c)2007-2014 Broadcom Corporation
+/******************************************************************************
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,18 +34,8 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
- **************************************************************************/
+
+ ******************************************************************************/
 
 /* This is basically a stub module */
 
@@ -121,15 +111,6 @@ Example:
     B_GET_BITS(0xDE,3,0)=0x0E
 */
 #define B_GET_BITS(w,e,b)  (((w)>>(b))&(((unsigned)(-1))>>((sizeof(unsigned))*8-(e+1-b))))
-
-static BERR_Code
-NEXUS_Display_P_SetSettings(NEXUS_DisplayHandle display, const NEXUS_DisplaySettings *pSettings, bool force)
-{
-    BSTD_UNUSED(display);
-    BSTD_UNUSED(pSettings);
-    BSTD_UNUSED(force);
-    return BERR_SUCCESS;
-}
 
 #if NEXUS_HAS_VIDEO_ENCODER && NEXUS_NUM_DSP_VIDEO_ENCODERS
 #if NEXUS_DSP_ENCODER_ACCELERATOR_SUPPORT
@@ -351,306 +332,11 @@ static void NEXUS_Display_ReturnCaptureBuffer_isr(NEXUS_DisplayHandle display)
 #endif /* NEXUS_DSP_ENCODER_ACCELERATOR_SUPPORT */
 #endif /* HAS_DSP_ENCODE */
 
-static void NEXUS_DisplayCb_isr(void *pParam, int iParam, void *pCbData)
-{
-    NEXUS_DisplayHandle display;
-    BAVC_VdcDisplay_Info *pVdcRateInfo;
-    BVDC_Display_CallbackData *pCallbackData = pCbData;
-    BDBG_ASSERT(NULL != pParam);
-    BDBG_ASSERT(NULL != pCbData);
-    BSTD_UNUSED(iParam);
-
-    display = pParam;
-    NEXUS_OBJECT_ASSERT(NEXUS_Display, display);
-
-    pVdcRateInfo = &(pCallbackData->sDisplayInfo);
-
-#if NEXUS_HAS_VIDEO_ENCODER && NEXUS_NUM_DSP_VIDEO_ENCODERS && !NEXUS_DSP_ENCODER_ACCELERATOR_SUPPORT
-    /* for DSP w/o VIP, do not rely on actual stg picture id change */
-    pCallbackData->stMask.bStgPictureId = false;
-
-    if (pCallbackData->stMask.bPerVsync && display->encoder.callbackEnabled) {
-        unsigned encPicId = -1;
-        unsigned decPicId = -1;
-        BAVC_Polarity polarity = BAVC_Polarity_eFrame;
-        unsigned sourceRate = 0;
-
-        NEXUS_Display_GetCaptureBuffer_isr(display, &encPicId, &decPicId, &polarity, &sourceRate);
-        NEXUS_Display_ReturnCaptureBuffer_isr(display);
-
-        if ((signed)encPicId != -1)
-        {
-            pCallbackData->ulStgPictureId = encPicId;
-            pCallbackData->ulDecodePictureId = decPicId;
-            pCallbackData->ePolarity = polarity;
-            pCallbackData->sDisplayInfo.ulVertRefreshRate = sourceRate;
-            pCallbackData->stMask.bStgPictureId = true;
-        }
-    }
-#endif
-
-#if NEXUS_HAS_VIDEO_ENCODER
-    if (display->encodeUserData && pCallbackData->stMask.bStgPictureId)
-    {
-        BXUDlib_DisplayInterruptHandler_isr(display->hXud, pCallbackData);
-    }
-#endif
-
-    if (pCallbackData->stMask.bRateChange) {
-#if NEXUS_NUM_HDMI_OUTPUTS
-        display->hdmi.rateInfo = *pVdcRateInfo;
-        display->hdmi.rateInfoValid = true;
-
-        if ( NULL != display->hdmi.rateChangeCb_isr )
-        {
-            BDBG_MSG(("Propagating rate change to HDMI"));
-            display->hdmi.rateChangeCb_isr(display, display->hdmi.pCbParam);
-        }
-#endif
-#if NEXUS_NUM_HDMI_DVO
-        display->hdmiDvo.rateInfo = *pVdcRateInfo;
-        display->hdmiDvo.rateInfoValid = true;
-
-        if ( NULL != display->hdmiDvo.rateChangeCb_isr )
-        {
-            BDBG_MSG(("Propagating rate change to HDMI DVO"));
-            display->hdmiDvo.rateChangeCb_isr(display, display->hdmiDvo.pCbParam);
-        }
-#endif
-        display->status.refreshRate = B_REFRESH_RATE_10_TO_1000(pVdcRateInfo->ulVertRefreshRate);
-
-        BDBG_MODULE_MSG(nexus_flow_display, ("display %d refresh rate %d.%02dhz", display->index,
-            display->status.refreshRate/1000, display->status.refreshRate%1000));
-        BKNI_SetEvent(display->refreshRate.event);
-    }
-
-    if (pCallbackData->stMask.bCrc && display->crc.queue) {
-        NEXUS_DisplayCrcData *pData = &display->crc.queue[display->crc.wptr];
-        pData->cmp.luma = pCallbackData->ulCrcLuma;
-        pData->cmp.cb = pCallbackData->ulCrcCb;
-        pData->cmp.cr = pCallbackData->ulCrcCr;
-        if (++display->crc.wptr == display->crc.size) {
-            display->crc.wptr = 0;
-        }
-        if (display->crc.wptr == display->crc.rptr) {
-            BDBG_WRN(("Display%d CMP CRC overflow", display->index));
-        }
-    }
-
-    if (pCallbackData->stMask.bCableDetect) {
-        uint32_t i;
-        for(i=0; i<BVDC_MAX_DACS; i++) {
-            display->dacStatus[i] = pCallbackData->aeDacConnectionState[i];
-        }
-    }
-
-#if NEXUS_HAS_VIDEO_ENCODER && NEXUS_NUM_DSP_VIDEO_ENCODERS && NEXUS_DSP_ENCODER_ACCELERATOR_SUPPORT
-    if (pCallbackData->stMask.bPerVsync && display->encoder.callbackEnabled) {
-        NEXUS_Display_GetCaptureBuffer_isr(display);
-        NEXUS_Display_ReturnCaptureBuffer_isr(display);
-    }
-#endif
-
-    if (pCallbackData->stMask.bPerVsync) {
-        BTMR_ReadTimer_isr(pVideo->tmr, &display->lastVsyncTime);
-    }
-}
 
 unsigned NEXUS_Display_GetLastVsyncTime_isr(NEXUS_DisplayHandle display)
 {
     return display->lastVsyncTime;
 }
-
-/* nexus_p_install_display_cb is called on Open and SetSettings.
-it is not evenly paired with nexus_p_uninstall_display_cb */
-static BERR_Code nexus_p_install_display_cb(NEXUS_DisplayHandle display)
-{
-    BSTD_UNUSED(display);
-    return 0;
-}
-
-static void nexus_p_uninstall_display_cb(NEXUS_DisplayHandle display)
-{
-   BSTD_UNUSED(display);
-}
-
-static BERR_Code
-NEXUS_Display_P_Open(NEXUS_DisplayHandle display, unsigned displayIndex, const NEXUS_DisplaySettings *pSettings)
-{
-    BERR_Code rc=BERR_SUCCESS;
-    BVDC_DisplayId vdcDisplayId;
-    bool bModifiedSync = (g_NEXUS_DisplayModule_State.moduleSettings.componentOutputSyncType == NEXUS_ComponentOutputSyncType_eAllChannels);
-    BDBG_MODULE_MSG(nexus_flow_display, ("open %p, index %d, type %d",
-        (void *)display, displayIndex, pSettings->displayType));
-
-    if (pSettings->displayType == NEXUS_DisplayType_eDvo || pSettings->displayType == NEXUS_DisplayType_eLvds) {
-        BVDC_Display_Settings vdcDisplayCfg;
-
-        if (displayIndex != 0) {
-            BDBG_ERR(("invalid dvo display"));
-            goto err_compositor;
-        }
-        rc = BVDC_Compositor_Create(pVideo->vdc, &display->compositor, BVDC_CompositorId_eCompositor0, NULL);
-        if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);goto err_compositor;}
-        vdcDisplayId = BVDC_DisplayId_eDisplay0;
-        BVDC_Display_GetDefaultSettings(vdcDisplayId, &vdcDisplayCfg);
-        display->timingGenerator = vdcDisplayCfg.eMasterTg = BVDC_DisplayTg_eDviDtg;
-        vdcDisplayCfg.bModifiedSync = bModifiedSync;
-        rc = BVDC_Display_Create(display->compositor, &display->displayVdc, vdcDisplayId, &vdcDisplayCfg);
-        if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);goto err_display;}
-    }
-    else if (pSettings->displayType == NEXUS_DisplayType_eBypass) {
-        BVDC_Display_Settings vdcDisplayCfg;
-
-        rc = BVDC_Compositor_Create(pVideo->vdc, &display->compositor, BVDC_CompositorId_eCompositor0 + displayIndex, NULL);
-        if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);goto err_compositor;}
-
-        BVDC_Display_GetDefaultSettings(BVDC_DisplayId_eDisplay2, &vdcDisplayCfg);
-        display->timingGenerator = vdcDisplayCfg.eMasterTg = BVDC_DisplayTg_ePrimIt;
-        vdcDisplayCfg.bModifiedSync = bModifiedSync;
-        rc = BVDC_Display_Create(display->compositor, &display->displayVdc, BVDC_DisplayId_eDisplay0, &vdcDisplayCfg);
-        if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);goto err_display;}
-    }
-    else {
-        BVDC_Display_Settings vdcDisplayCfg;
-        NEXUS_DisplayTimingGenerator timingGenerator = pSettings->timingGenerator;
-
-        unsigned vecIndex;
-        NEXUS_VideoFormatInfo formatInfo;
-        if (pSettings->vecIndex == -1) {
-            if (displayIndex < 2 && g_NEXUS_DisplayModule_State.moduleSettings.vecSwap) {
-                vecIndex = 1-displayIndex;
-            }
-            else {
-                vecIndex = displayIndex;
-            }
-        }
-        else {
-            vecIndex = (unsigned)pSettings->vecIndex;
-        }
-        rc = BVDC_Compositor_Create(pVideo->vdc, &display->compositor, BVDC_CompositorId_eCompositor0+displayIndex, NULL);
-        if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);goto err_compositor;}
-
-        BVDC_Display_GetDefaultSettings(BVDC_DisplayId_eDisplay0+vecIndex, &vdcDisplayCfg);
-        if (timingGenerator < NEXUS_DisplayTimingGenerator_eAuto) {
-            BDBG_CASSERT(NEXUS_DisplayTimingGenerator_eEncoder == (NEXUS_DisplayTimingGenerator)BVDC_DisplayTg_eStg);
-            vdcDisplayCfg.eMasterTg = (BVDC_DisplayTg)timingGenerator;
-        }
-
-#if !NEXUS_NUM_DSP_VIDEO_ENCODERS
-        /* encoder timing generator override */
-        if (timingGenerator == NEXUS_DisplayTimingGenerator_eAuto || timingGenerator == NEXUS_DisplayTimingGenerator_eEncoder) {
-#if BCHP_CHIP == 7425
-/* no BBOX */
-            if (display->index == 2 || display->index == 3) {
-                display->stgIndex = 3 - display->index;
-                vdcDisplayCfg.eMasterTg = BVDC_DisplayTg_eStg0 + display->stgIndex;
-            }
-#elif BCHP_CHIP == 7145 && BCHP_VER == BCHP_VER_A0
-/* no BBOX */
-            if (display->index == 2 || display->index == 3 || display->index == 4 || display->index == 5) {
-                display->stgIndex = 5 - display->index;
-                vdcDisplayCfg.eMasterTg = BVDC_DisplayTg_eStg0 + display->stgIndex;
-            }
-#elif (BCHP_CHIP == 7439  && BCHP_VER == BCHP_VER_A0) || \
-      (BCHP_CHIP == 74371 && BCHP_VER == BCHP_VER_A0)
-/* no BBOX */
-            if (display->index == 2) {
-                display->stgIndex = 2 - display->index;
-                vdcDisplayCfg.eMasterTg = BVDC_DisplayTg_eStg0 + display->stgIndex;
-            }
-#else
-            if (g_pCoreHandles->boxConfig->stVdc.astDisplay[display->index].stStgEnc.bAvailable) {
-                display->stgIndex = g_pCoreHandles->boxConfig->stVdc.astDisplay[display->index].stStgEnc.ulStgId;
-                vdcDisplayCfg.eMasterTg = BVDC_DisplayTg_eStg0 + display->stgIndex;
-                timingGenerator = NEXUS_DisplayTimingGenerator_eEncoder;
-            }
-#endif
-        }
-
-        if(timingGenerator == NEXUS_DisplayTimingGenerator_eAuto)
-        {
-            if(pVideo->vdcCapabilities.ulNumCmp < pVideo->vdcCapabilities.ulNumStg + pVideo->vdcCapabilities.ulNumAtg)
-            {
-                /* there is overlap usage between analog and stg TG */
-                if(vecIndex < pVideo->vdcCapabilities.ulNumAtg)
-                {
-                    vdcDisplayCfg.eMasterTg = vecIndex % NEXUS_DisplayTimingGenerator_eTertiaryInput;
-                }
-            }
-            else if(vecIndex < pVideo->vdcCapabilities.ulNumCmp - pVideo->vdcCapabilities.ulNumStg)
-            {
-                /* only touch non-STG displays */
-                if(pVideo->vdcCapabilities.ulNumCmp - pVideo->vdcCapabilities.ulNumStg == pVideo->vdcCapabilities.ulNumAtg)
-                {
-                    /* enough IT => default analog master */
-                    vdcDisplayCfg.eMasterTg = vecIndex % NEXUS_DisplayTimingGenerator_eTertiaryInput;
-                }
-                else if(pVideo->vdcCapabilities.ulNumAtg + pVideo->vdcCapabilities.ulNum656Output >= pVideo->vdcCapabilities.ulNumCmp - pVideo->vdcCapabilities.ulNumStg)
-                {
-                    /* The last display gets 656 master otherwise analog master */
-                    if(vecIndex >= pVideo->vdcCapabilities.ulNumAtg)
-                        vdcDisplayCfg.eMasterTg = NEXUS_DisplayTimingGenerator_e656Output;
-                    else
-                        vdcDisplayCfg.eMasterTg = vecIndex % NEXUS_DisplayTimingGenerator_eTertiaryInput;
-                }
-                else
-                {
-                    /* the first display gets HDMI master */
-                    if(vecIndex < pVideo->vdcCapabilities.ulNumCmp - pVideo->vdcCapabilities.ulNumStg - pVideo->vdcCapabilities.ulNumAtg - pVideo->vdcCapabilities.ulNum656Output)
-                        vdcDisplayCfg.eMasterTg = NEXUS_DisplayTimingGenerator_eHdmiDvo;
-                    else if(vecIndex >= pVideo->vdcCapabilities.ulNumAtg + pVideo->vdcCapabilities.ulNumHdmiOutput)
-                        vdcDisplayCfg.eMasterTg = NEXUS_DisplayTimingGenerator_e656Output;
-                    else
-                        vdcDisplayCfg.eMasterTg = vecIndex % NEXUS_DisplayTimingGenerator_eTertiaryInput;
-                }
-            }
-        }
-
-        if( vdcDisplayCfg.eMasterTg >=BVDC_DisplayTg_eStg0 && vdcDisplayCfg.eMasterTg <=BVDC_DisplayTg_eStg5)
-            display->timingGenerator = NEXUS_DisplayTimingGenerator_eEncoder;
-        else
-            display->timingGenerator = vdcDisplayCfg.eMasterTg;
-#else /* DSPs with VIP */
-        /* encoder timing generator override */
-        if (timingGenerator == NEXUS_DisplayTimingGenerator_eAuto || timingGenerator == NEXUS_DisplayTimingGenerator_eEncoder) {
-            if (g_pCoreHandles->boxConfig->stVdc.astDisplay[display->index].stStgEnc.bAvailable) {
-                display->stgIndex = g_pCoreHandles->boxConfig->stVdc.astDisplay[display->index].stStgEnc.ulStgId;
-                vdcDisplayCfg.eMasterTg = BVDC_DisplayTg_eStg0 + display->stgIndex;
-            }
-        }
-
-        if( vdcDisplayCfg.eMasterTg >=BVDC_DisplayTg_eStg0 && vdcDisplayCfg.eMasterTg <=BVDC_DisplayTg_eStg5)
-            display->timingGenerator = NEXUS_DisplayTimingGenerator_eEncoder;
-        else
-            display->timingGenerator = vdcDisplayCfg.eMasterTg;
-
-        BDBG_MSG(("display->stgIndex = %d; display->timingGenerator = %u", display->stgIndex, display->timingGenerator));
-#endif
-        NEXUS_VideoFormat_GetInfo(pSettings->format, &formatInfo);
-        if (formatInfo.isFullRes3d && timingGenerator!=NEXUS_DisplayTimingGenerator_eHdmiDvo) {
-            BDBG_WRN(("3D output display format selected without HDMI master mode (NEXUS_DisplayTimingGenerator_eHdmiDvo)"));
-        }
-        vdcDisplayCfg.bModifiedSync = bModifiedSync;
-        rc = BVDC_Display_Create(display->compositor, &display->displayVdc, BVDC_DisplayId_eDisplay0+vecIndex, &vdcDisplayCfg);
-        if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);goto err_display;}
-    }
-
-    /* eAuto is a nexus construct. It must be resolved before being passed to VDC. Then, any nexus code must test the resolved value. */
-    BDBG_ASSERT(display->timingGenerator < NEXUS_DisplayTimingGenerator_eAuto);
-
-    return rc;
-
-err_display:
-    BVDC_Compositor_Destroy(display->compositor);
-err_compositor:
-    {
-        BERR_Code erc = BVDC_AbortChanges(pVideo->vdc);
-        if (erc!=BERR_SUCCESS) {rc=BERR_TRACE(erc);}
-    }
-    return rc;
-}
-
 
 NEXUS_DisplayHandle
 NEXUS_Display_Open(unsigned displayIndex,const NEXUS_DisplaySettings *pSettings)

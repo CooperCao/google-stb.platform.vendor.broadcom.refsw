@@ -1,7 +1,7 @@
 ############################################################
-#     (c)2003-2014 Broadcom Corporation
+#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 #
-#  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+#  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
 #  conditions of a separate, written license agreement executed between you and Broadcom
 #  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,7 +34,6 @@
 #  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
-#
 ############################################################
 
 #
@@ -174,10 +173,20 @@ NEXUS_PLATFORM_PRIVATE_INCLUDES += $(MAGNUM)/../BSEAV/linux/driver/wakeup
 endif
 endif
 
-ifeq ($(NEXUS_TEE_SUPPORT),y)
+ifeq ($(NEXUS_ARM_AUDIO_SUPPORT),y)
+NEXUS_ASTRA_SUPPORT ?= y
+BDSP_ARM_AUDIO_SUPPORT ?= y
+NEXUS_CFLAGS += -DNEXUS_ARM_AUDIO_SUPPORT=1
+endif
+
+ifeq ($(NEXUS_ASTRA_SUPPORT),y)
+ifeq ($(B_REFSW_OS),linuxkernel)
+NEXUS_PLATFORM_PRIVATE_INCLUDES += $(BSEAV)/../astra/linux/bcm_astra
+else
+NEXUS_PLATFORM_PRIVATE_INCLUDES += $(BSEAV)/../astra/linux/libbcm_astra
+endif
 NEXUS_PLATFORM_DEFINES += NEXUS_TEE_SUPPORT=1
 NEXUS_PLATFORM_SOURCES += $(NEXUS_PLATFORM_COMMON_DIR)/src/nexus_platform_tee.c
-# TODO: Add in astra includes, etc.
 endif
 
 ifeq ($(B_REFSW_OS),linuxkernel)
@@ -294,7 +303,9 @@ endif
 
 ifeq ($(filter $(B_REFSW_OS),ucos ucos_iii), $(B_REFSW_OS))
 NEXUS_PLATFORM_PRIVATE_INCLUDES += $(NEXUS_TOP)/modules/core/$(BCHP_CHIP)/src \
-                                   $(NEXUS_TOP)/../rockford/bsp/common/
+                                   $(NEXUS_TOP)/../rockford/bsp/common/ \
+                                   $(MAGNUM)/../BSEAV/linux/driver/usermode
+
 NEXUS_PLATFORM_SOURCES += \
     $(NEXUS_PLATFORM_COMMON_DIR)/src/$(B_REFSW_OS)/nexus_driver_callbacks.c \
     $(NEXUS_PLATFORM_COMMON_DIR)/src/$(B_REFSW_OS)/nexus_interrupt_map.c \
@@ -319,7 +330,8 @@ NEXUS_PLATFORM_PROXY_SOURCES += \
     $(NEXUS_PLATFORM_COMMON_DIR)/src/$(B_REFSW_OS).$(NEXUS_MODE)/nexus_platform_image.c
 ifeq ($(SAGE_SUPPORT),y)
 NEXUS_PLATFORM_PROXY_SOURCES += \
-    $(NEXUS_TOP)/modules/sage/src/linuxuser/nexus_sage_image.c
+    $(NEXUS_TOP)/modules/sage/src/linuxuser/nexus_sage_image.c \
+    $(NEXUS_TOP)/modules/hdmi_output/src/linuxuser/nexus_hdmi_output_image.c
 endif
 ifeq ($(SCM_SUPPORT),y)
 NEXUS_PLATFORM_PROXY_SOURCES += \

@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2008 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2008 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -36,7 +36,6 @@ Functions common to OpenGL ES 1.1 and OpenGL ES 2.0
 #include "middleware/khronos/gl11/2708/gl11_support_4.h"
 #include "middleware/khronos/gl11/2708/gl11_shader_4.h"
 #include "middleware/khronos/ext/egl_khr_image.h"
-#include "helpers/vc_image/vc_image.h"           // For debugging
 
 #include "interface/khronos/common/khrn_client_platform.h"
 #include "middleware/khronos/egl/egl_platform.h"
@@ -76,7 +75,8 @@ static bool install_uniforms(
    uint32_t * num_vpm_rows,
    GLXX_ATTRIB_T *attrib,
    bool egl_output,
-   unsigned int fb_height);
+   unsigned int fb_height,
+   bool secure);
 
 static bool get_shaders(
     GL20_PROGRAM_T *program,
@@ -105,7 +105,8 @@ bool do_vcd_setup(
    uint32_t *attr_count
    );
 
-static bool glxx_install_tex_param(GLXX_SERVER_STATE_T *state, uint32_t *location, uint32_t u0, uint32_t u1);
+static bool glxx_install_tex_param(GLXX_SERVER_STATE_T *state, uint32_t *location,
+   uint32_t u0, uint32_t u1, bool secure);
 
 
 static uint32_t convert_primitive_type(GLenum mode);
@@ -325,16 +326,19 @@ GLXX_HW_RENDER_STATE_T *glxx_install_framebuffer(GLXX_SERVER_STATE_T *state, GLX
                         (bufferSettings.format == BEGL_BufferFormat_eR5G6B5_TFormat))
                   format = RGB_565;
 
-               khrn_image_platform_fudge(&format, &padded_width, &padded_height, &align, (KHRN_IMAGE_CREATE_FLAG_T)(
+               KHRN_IMAGE_CREATE_FLAG_T image_create_flags =
                   ((color->flags & IMAGE_FLAG_TEXTURE) ? IMAGE_CREATE_FLAG_TEXTURE : 0) |
                   ((color->flags & IMAGE_FLAG_RSO_TEXTURE) ? IMAGE_CREATE_FLAG_RSO_TEXTURE : 0) |
                   ((color->flags & IMAGE_FLAG_RENDER_TARGET) ? IMAGE_CREATE_FLAG_RENDER_TARGET : 0) |
-                  ((color->flags & IMAGE_FLAG_DISPLAY) ? IMAGE_CREATE_FLAG_DISPLAY : 0)));
+                  ((color->flags & IMAGE_FLAG_DISPLAY) ? IMAGE_CREATE_FLAG_DISPLAY : 0);
+
+               khrn_image_platform_fudge(&format, &padded_width, &padded_height, &align, image_create_flags);
 
                color->width = bufferSettings.width;
                color->height = bufferSettings.height;
                color->format = format;
                color->stride = khrn_image_get_stride(format, padded_width);
+               color->secure = bufferSettings.secure;
 
                /* the underlying OS may have changed the color format to one not supported by v3d.  All bets are off */
                vcos_assert(platform_supported_format(color->format) != false);
@@ -342,10 +346,10 @@ GLXX_HW_RENDER_STATE_T *glxx_install_framebuffer(GLXX_SERVER_STATE_T *state, GLX
                /* Re-wrap the back buffer handle - this is where we render NEXT */
                MEM_ASSIGN(color->mh_storage, MEM_HANDLE_INVALID);
 
-               color->mh_storage = mem_wrap(bufferSettings.cachedAddr,
+               color->mh_storage = mem_wrap(bufferSettings.secure ? NULL : bufferSettings.cachedAddr,
                                             bufferSettings.physOffset,
                                             bufferSettings.pitchBytes * bufferSettings.height,
-                                            bufferSettings.alignment, MEM_FLAG_DIRECT,
+                                            bufferSettings.alignment, MEM_FLAG_DIRECT | (bufferSettings.secure ? MEM_FLAG_SECURE : 0),
                                             "wrapped pixmap");
 
                /* resize the depth and stencil if its changed */
@@ -1015,7 +1019,7 @@ static void calculate_and_hide(GLXX_SERVER_STATE_T *state, GLXX_HW_FRAMEBUFFER_T
    }
 }
 
-bool glxx_hw_get_attr_live(GLXX_SERVER_STATE_T *state, GLenum primitive_mode, GLXX_ATTRIB_T *attrib)
+bool glxx_hw_get_attr_live(GLXX_SERVER_STATE_T *state, GLXX_ATTRIB_T *attrib)
 {
    /* TODO: This function ignores it's parameter 'mode' */
    if (IS_GL_11(state))
@@ -1239,7 +1243,8 @@ bool glxx_hw_draw_triangles(
    MEM_HANDLE_T *attrib_handles,
    uint32_t max_index,
    MEM_HANDLE_OFFSET_T *interlocks,
-   uint32_t interlock_count)
+   uint32_t interlock_count,
+   bool secure)
 {
    uint32_t i, j;
    GLXX_HW_FRAMEBUFFER_T fb;
@@ -1293,6 +1298,13 @@ bool glxx_hw_draw_triangles(
          vcos_assert(rs->batch_count == 0);
       }
       rs->batch_count++;
+   }
+
+   if (khrn_workarounds.LNLOOP)
+   {
+      /* line loop doesnt complete with two verticies */
+      if ((count == 2) && (state->batch.primitive_mode == GL_LINE_LOOP))
+         state->batch.primitive_mode = GL_LINES;
    }
 
    if(!glxx_lock_fixer_stuff(rs))
@@ -1416,8 +1428,8 @@ bool glxx_hw_draw_triangles(
          num_vpm_rows_c,
          attrib,/*TODO for GL 2.0 NULL is passed instead of attrib - does this matter? */
          state->shader.common.egl_output,
-         fb.height
-         ))
+         fb.height,
+         secure))
       {
          goto fail;
       }
@@ -1432,7 +1444,8 @@ bool glxx_hw_draw_triangles(
       num_vpm_rows_v,
       attrib,
       state->shader.common.egl_output,
-      fb.height
+      fb.height,
+      secure
       ))
    {
       goto fail;
@@ -1447,7 +1460,8 @@ bool glxx_hw_draw_triangles(
       0,
       attrib,
       state->shader.common.egl_output,
-      fb.height
+      fb.height,
+      secure
       ))
    {
       goto fail;
@@ -1700,9 +1714,15 @@ static void save_shader_tool_file(GL20_PROGRAM_T *program, GLXX_SERVER_STATE_T *
       fp = fopen(buf, "r");
       if (fp != NULL)
       {
+         char *s;
          buf[0] = '\0';
-         fgets(buf, 4096, fp);
+         s = fgets(buf, 4096, fp);
          fclose(fp);
+         if (s == NULL)
+         {
+             fprintf(stderr, "Warning : unable to get the command line\n");
+             return;
+         }
 
          if (buf[strlen(buf) - 1] == '\n')
             buf[strlen(buf) - 1] = '\0';
@@ -1853,7 +1873,8 @@ static bool install_uniform(uint32_t *ptr, uint32_t u0, uint32_t u1,
    uint32_t * num_vpm_rows,
    GLXX_ATTRIB_T *attrib,
    bool egl_output,
-   unsigned int fb_height)
+   unsigned int fb_height,
+   bool secure)
 {
    switch (u0)
    {
@@ -1875,7 +1896,7 @@ static bool install_uniform(uint32_t *ptr, uint32_t u0, uint32_t u1,
          case BACKEND_UNIFORM_VPM_READ_SETUP:
             {
                uint8_t data_start = 0;
-               int i;
+               uint32_t i;
                vcos_assert(j <= 3 && num_vpm_rows[j] <= 15);
                for (i = 0; i < j; i++)
                   data_start += num_vpm_rows[i];
@@ -2148,7 +2169,7 @@ static bool install_uniform(uint32_t *ptr, uint32_t u0, uint32_t u1,
       if(IS_GL_11(state)) {
          *ptr = 0;
       } else {
-         if(!glxx_install_tex_param(state, ptr, u0, u1))
+         if(!glxx_install_tex_param(state, ptr, u0, u1, secure))
             goto fail;
       }
       break;
@@ -2157,7 +2178,7 @@ static bool install_uniform(uint32_t *ptr, uint32_t u0, uint32_t u1,
       break;
    case BACKEND_UNIFORM_TEX_PARAM0:
    case BACKEND_UNIFORM_TEX_PARAM1:
-      if(!glxx_install_tex_param(state, ptr, u0, u1))
+      if(!glxx_install_tex_param(state, ptr, u0, u1, secure))
          goto fail;
       break;
    case BACKEND_UNIFORM_ADDRESS:
@@ -2187,7 +2208,8 @@ static bool install_uniforms(
    uint32_t * num_vpm_rows,
    GLXX_ATTRIB_T *attrib,
    bool egl_output,
-   unsigned int fb_height)
+   unsigned int fb_height,
+   bool secure)
 {
    //debugging
    //uint32_t count_platform_specific = 0;
@@ -2233,7 +2255,7 @@ static bool install_uniforms(
       }
       else
       {
-         if (!install_uniform(ptr, u0, u1, state, iu, num_vpm_rows, attrib, egl_output, fb_height))
+         if (!install_uniform(ptr, u0, u1, state, iu, num_vpm_rows, attrib, egl_output, fb_height, secure))
             goto fail;
       }
    }
@@ -2342,7 +2364,8 @@ static bool use_dummy(uint32_t *location, uint32_t u0)
 }
 
 vcos_static_assert(GL11_CONFIG_MAX_TEXTURE_UNITS <= GL20_CONFIG_MAX_COMBINED_TEXTURE_UNITS);
-static bool glxx_install_tex_param(GLXX_SERVER_STATE_T *state, uint32_t *location, uint32_t u0, uint32_t u1)
+static bool glxx_install_tex_param(GLXX_SERVER_STATE_T *state, uint32_t *location,
+   uint32_t u0, uint32_t u1, bool secure)
 {
    MEM_HANDLE_T thandle;
    MEM_HANDLE_T tfHandle = MEM_INVALID_HANDLE;
@@ -2393,7 +2416,7 @@ static bool glxx_install_tex_param(GLXX_SERVER_STATE_T *state, uint32_t *locatio
       {
          uint32_t mipmap_count = 0;
          uint32_t type = 0;
-         uint32_t offset;
+         uint32_t offset = 0;
          int buf_index;
 
          /* BCG_EGLIMAGE_CONVERTER : queue the t-format conversion now */
@@ -2404,11 +2427,16 @@ static bool glxx_install_tex_param(GLXX_SERVER_STATE_T *state, uint32_t *locatio
             {
                KHRN_IMAGE_T * src = (KHRN_IMAGE_T *)mem_lock(eglImage->mh_image, NULL);
 
+               /* if the context is secure, promote to secure target */
+               bool image_secure = src->secure || secure;
+
                /* Create the tformat variant */
                if (src->format == YV12_RSO)
-                  tfHandle = khrn_image_create(ABGR_8888_TF, src->width, src->height, IMAGE_CREATE_FLAG_TEXTURE);
+                  tfHandle = khrn_image_create(ABGR_8888_TF, src->width, src->height,
+                                               IMAGE_CREATE_FLAG_TEXTURE, image_secure);
                else
-                  tfHandle = khrn_image_create(khrn_image_to_tf_format(src->format), src->width, src->height, IMAGE_CREATE_FLAG_TEXTURE);
+                  tfHandle = khrn_image_create(khrn_image_to_tf_format(src->format), src->width, src->height,
+                                               IMAGE_CREATE_FLAG_TEXTURE, image_secure);
 
                /* if a new image is created, it cannot be skipped, so clean the state */
                vcos_mutex_lock(&eglImage->dirtyBitsMutex);
@@ -2422,18 +2450,24 @@ static bool glxx_install_tex_param(GLXX_SERVER_STATE_T *state, uint32_t *locatio
                {
                   if (khrn_options.shadow_egl_images || src->format == YV12_RSO)
                   {
+                     /* if the context is secure, promote to secure target */
+                     bool image_secure = src->secure || secure;
+
                      /* Create a RSO scratch to travel down the pipeline */
                      if (src->format == YV12_RSO)
-                        tfHandle_RSO = khrn_image_create(ABGR_8888_RSO, src->width, src->height, IMAGE_CREATE_FLAG_RENDER_TARGET | IMAGE_CREATE_FLAG_DISPLAY);
+                        tfHandle_RSO = khrn_image_create(ABGR_8888_RSO, src->width, src->height,
+                                                         IMAGE_CREATE_FLAG_RENDER_TARGET | IMAGE_CREATE_FLAG_DISPLAY, image_secure);
                      else
-                        tfHandle_RSO = khrn_image_create(src->format, src->width, src->height, IMAGE_CREATE_FLAG_RENDER_TARGET | IMAGE_CREATE_FLAG_DISPLAY);
+                        tfHandle_RSO = khrn_image_create(src->format, src->width, src->height,
+                                                         IMAGE_CREATE_FLAG_RENDER_TARGET | IMAGE_CREATE_FLAG_DISPLAY, image_secure);
 
                      if (tfHandle_RSO != MEM_HANDLE_INVALID)
                      {
                         KHRN_IMAGE_T *tfImage;
                         KHRN_IMAGE_T * dst = mem_lock(tfHandle_RSO, NULL);
                         void *dp = mem_lock(dst->mh_storage, NULL);
-                        khrn_hw_flush_dcache_range(dp, dst->height * dst->stride);
+                        if (!image_secure)
+                           khrn_hw_flush_dcache_range(dp, dst->height * dst->stride);
                         mem_unlock(dst->mh_storage);
                         mem_copy2d(src->format, dst->mh_storage, src->mh_storage, src->width, src->height, src->stride);
                         mem_unlock(tfHandle_RSO);
@@ -2445,7 +2479,7 @@ static bool glxx_install_tex_param(GLXX_SERVER_STATE_T *state, uint32_t *locatio
                         vcos_mutex_unlock(&eglImage->dirtyBitsMutex);
 
                         tfImage = (KHRN_IMAGE_T*)mem_lock(tfHandle, NULL);
-                        type = tu_image_format_to_type(tfImage->format);
+                        type = tu_image_format_to_type(khrn_image_to_tf_format(tfImage->format));
                         handle = tfImage->mh_storage;
                         offset = tfImage->offset;
                         mem_unlock(tfHandle);
@@ -2467,7 +2501,7 @@ static bool glxx_install_tex_param(GLXX_SERVER_STATE_T *state, uint32_t *locatio
                         MEM_ASSIGN(eglImage->mh_shadow_image, tfHandle);
 
                      tfImage = (KHRN_IMAGE_T*)mem_lock(tfHandle, NULL);
-                     type = tu_image_format_to_type(tfImage->format);
+                     type = tu_image_format_to_type(khrn_image_to_tf_format(tfImage->format));
                      handle = tfImage->mh_storage;
                      offset = tfImage->offset;
                      mem_unlock(tfHandle);
@@ -2486,7 +2520,7 @@ static bool glxx_install_tex_param(GLXX_SERVER_STATE_T *state, uint32_t *locatio
                }
 
                tfImage = (KHRN_IMAGE_T*)mem_lock(eglImage->mh_shadow_image, NULL);
-               type = tu_image_format_to_type(tfImage->format);
+               type = tu_image_format_to_type(khrn_image_to_tf_format(tfImage->format));
                handle = tfImage->mh_storage;
                offset = tfImage->offset;
                mem_unlock(eglImage->mh_shadow_image);
@@ -2751,7 +2785,7 @@ static void draw_tex_log(GLXX_SERVER_STATE_T *state, GLXX_HW_FRAMEBUFFER_T *fb, 
 }
 #endif
 
-bool glxx_hw_draw_tex(GLXX_SERVER_STATE_T *state, float Xs, float Ys, float Zw, float Ws, float Hs)
+bool glxx_hw_draw_tex(GLXX_SERVER_STATE_T *state, float Xs, float Ys, float Zw, float Ws, float Hs, bool secure)
 {
    uint32_t i;
    GLXX_HW_FRAMEBUFFER_T fb;
@@ -2809,7 +2843,7 @@ bool glxx_hw_draw_tex(GLXX_SERVER_STATE_T *state, float Xs, float Ys, float Zw, 
       num_vpm_rows_v[i] = 0;
    }
 
-   glxx_hw_get_attr_live(state, 0, attrib);
+   glxx_hw_get_attr_live(state, attrib);
 
    attrib[GL11_IX_VERTEX].enabled = 1;
    attrib[GL11_IX_VERTEX].size = 3;
@@ -2962,7 +2996,8 @@ bool glxx_hw_draw_tex(GLXX_SERVER_STATE_T *state, float Xs, float Ys, float Zw, 
          num_vpm_rows_c,
          attrib,/*TODO for GL 2.0 NULL is passed instead of attrib - does this matter? */
          state->shader.common.egl_output,
-         fb.height
+         fb.height,
+         secure
          ))
       {
          goto fail;
@@ -2978,7 +3013,8 @@ bool glxx_hw_draw_tex(GLXX_SERVER_STATE_T *state, float Xs, float Ys, float Zw, 
       num_vpm_rows_v,
       attrib,
       state->shader.common.egl_output,
-      fb.height
+      fb.height,
+      secure
       ))
    {
       goto fail;
@@ -2993,7 +3029,8 @@ bool glxx_hw_draw_tex(GLXX_SERVER_STATE_T *state, float Xs, float Ys, float Zw, 
       0,
       attrib,
       state->shader.common.egl_output,
-      fb.height
+      fb.height,
+      secure
       ))
    {
       goto fail;

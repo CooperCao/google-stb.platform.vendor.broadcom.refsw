@@ -1,21 +1,41 @@
 /***************************************************************************
- *     Copyright (c) 2003-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * [File Description:]
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ***************************************************************************/
 
@@ -221,12 +241,16 @@ typedef struct BXDM_PPFRD_P_DeltaPtsToFrameRateMap
 static const BXDM_PPFRD_P_DeltaPtsToFrameRateMap sFrameRateLUT[] =
 {
    { { 6051, 1 }, BAVC_FrameRateCode_eUnknown },   /* 6051 = (45000/7.493)    + 45     */
-   { { 5961, 1 }, BAVC_FrameRateCode_e7_493 },     /* 5961 = (45000/7.493)    - 45     */
+   { { 6005, 1 }, BAVC_FrameRateCode_e7_493 },     /* 6005 = (45000/(7500/1001) - 1    */
+   { { 5955, 1 }, BAVC_FrameRateCode_e7_5, },      /* 5955 = (45000/7.5)      - 45     */ /*SWSTB-1401:*/
+   { { 4503, 1 }, BAVC_FrameRateCode_e9_99, },     /* 4503 = (45000/9.99)     - 1      */ /*SWSTB-1401:*/
    { { 4455, 1 }, BAVC_FrameRateCode_e10 },        /* 4455 = (45000/10)       - 45     */
+   { { 3755, 1 }, BAVC_FrameRateCode_e11_988 },    /* 3755 = (45000/11.98     - 1      */ /*SWSTB-1401:*/
+   { { 3705, 1 }, BAVC_FrameRateCode_e12 },        /* 3705 = (45000/12)       - 45     */ /*SWSTB-1401:*/
    { { 3555, 1 }, BAVC_FrameRateCode_e12_5 },      /* 3555 = (45000/12.5)     - 45     */ /*SW7584-331:*/
    { { 3002, 1 }, BAVC_FrameRateCode_e14_985 },    /* 3002 = (45000/14.958)   - 1      */
    { { 2955, 1 }, BAVC_FrameRateCode_e15 },        /* 2955 = (45000/15)       - 45     */
-   { { 2325, 1 }, BAVC_FrameRateCode_e19_98 },     /* 2325 = (45000/19.98)    - 45     */ /*SWSTB-378:*/
+   { { 2251, 1 }, BAVC_FrameRateCode_e19_98 },     /* 2325 = (45000/19.98)    - 1      */ /*SWSTB-378:*/
    { { 2205, 1 }, BAVC_FrameRateCode_e20 },        /* 2205 = (45000/20)       - 45     */
    { { 1875, 1 }, BAVC_FrameRateCode_e23_976 },    /* 1875 = (45000/23.976)   - ~2     */
    { { 1830, 1 }, BAVC_FrameRateCode_e24 },        /* 1830 = (45000/24)       - 45     */
@@ -262,7 +286,11 @@ static const uint32_t sFrameRateStabiltyLUT[BXDM_PictureProvider_P_MAX_FRAMERATE
   100, /* BAVC_FrameRateCode_e100 */
   120, /* BAVC_FrameRateCode_e119.88 */
   120, /* BAVC_FrameRateCode_e120 */
-   20  /* SWSTB-378: add support for BAVC_FrameRateCode_e19_98 */
+   20, /* SWSTB-378: add support for BAVC_FrameRateCode_e19_98 */
+    8, /* SWSTB-1401: add support for BAVC_FrameRateCode_e7_5 */
+   12, /* SWSTB-1401: add support for BAVC_FrameRateCode_e12 */
+   12, /* SWSTB-1401: add support for BAVC_FrameRateCode_e11_988 */
+   10, /* SWSTB-1401: add support for BAVC_FrameRateCode_e9_99 */
 };
 
 BERR_Code BXDM_PPFRD_P_GetFrameRate_isr(

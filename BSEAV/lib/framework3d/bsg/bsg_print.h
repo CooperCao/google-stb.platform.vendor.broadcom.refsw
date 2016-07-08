@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -11,7 +11,7 @@
  * Software and all intellectual property rights therein.  IF YOU HAVE NO
  * AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
  * AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
- * SOFTWARE.  
+ * SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
@@ -202,7 +202,7 @@ public:
    {
       static PrintCharInfo   Zero;
 
-      auto it = m_charInfo.find(ch);
+      std::map<uint32_t, PrintCharInfo>::const_iterator  it = m_charInfo.find(ch);
 
       if (it == m_charInfo.end())
          return Zero;
@@ -457,7 +457,7 @@ private:
    float                   m_limit;
 };
 
-//! @addtogroup scenegraph 
+//! @addtogroup scenegraph
 //! @{
 
 //! Print objects are a kind of Geometry and so can be placed into the scene-graph.
@@ -483,7 +483,7 @@ public:
    //! Sets the formatter callback -- used to format text prior to conversion to geometry e.g. to perform justification
    void SetFormatter(PrintFormatter *newFomatter);
 
-   //! Gets the formatter (or nullptr if none set)
+   //! Gets the formatter (or NULL if none set)
    PrintFormatter *GetFormatter() { return m_formatter; }
 
    //! Specifies the text string and initial position.

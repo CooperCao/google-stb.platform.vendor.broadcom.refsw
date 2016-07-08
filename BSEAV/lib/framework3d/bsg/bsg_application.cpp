@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -11,7 +11,7 @@
  * Software and all intellectual property rights therein.  IF YOU HAVE NO
  * AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
  * AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
- * SOFTWARE.  
+ * SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
@@ -59,13 +59,83 @@
 namespace bsg
 {
 
-Application    *Application::m_instance = nullptr;
+Application    *Application::m_instance = NULL;
 CameraHandle    Application::m_nullCamera;
+
+namespace prv
+{
+   struct SortPriorityCompare
+   {
+      bool operator()(const DrawPacket &p1, const DrawPacket &p2)
+      {
+         int32_t sp1 = p1.GetSortPriority();
+         int32_t sp2 = p2.GetSortPriority();
+
+         if (sp1 == sp2)
+            return p1.GetMaterial() < p2.GetMaterial();
+
+         return sp1 < sp2;
+      }
+   };
+
+   struct DepthCompare
+   {
+      static float GetDepth(const DrawPacket &p)
+      {
+         float          depth;
+         EffectHandle   effect = p.GetMaterial()->GetEffect();
+
+         if (effect->OverrideDepth())
+            depth = effect->GetDepth();
+         else
+            depth = p.GetBound().GetCenter().Z();
+
+         return depth;
+      }
+   };
+
+   struct DepthCompareFTB : public DepthCompare
+   {
+      bool operator()(const DrawPacket &p1, const DrawPacket &p2)
+      {
+         float z1 = GetDepth(p1);
+         float z2 = GetDepth(p2);
+
+         if (z1 > z2)
+            return true;
+
+         if (z1 < z2)
+            return false;
+
+         return SortPriorityCompare()(p1, p2);
+      }
+   };
+
+   struct DepthCompareBTF : public DepthCompare
+   {
+      bool operator()(const DrawPacket &p1, const DrawPacket &p2)
+      {
+         float z1 = GetDepth(p1);
+         float z2 = GetDepth(p2);
+
+         if (z1 < z2)
+            return true;
+
+         if (z1 > z2)
+            return false;
+
+         return SortPriorityCompare()(p1, p2);
+      }
+   };
+
+}
 
 static void RenderPackets(DrawPackets &drawPackets, ShadowState &glState, const ViewVolume &frustum, const RenderOptions &options)
 {
-   for (auto &packet : drawPackets)
+   for (DrawPackets::iterator i = drawPackets.begin(); i != drawPackets.end(); ++i)
    {
+      DrawPacket& packet = *i;
+
       if (packet.GetRender())
       {
          bool cull = false;
@@ -119,8 +189,8 @@ static void RenderPackets(DrawPackets &drawPackets, ShadowState &glState, const 
 
 static void CalculateRenderData(DrawPackets &packets, const Mat4 &view, const Mat4 &proj)
 {
-   for (auto &packet : packets)
-      packet.SetRenderData(view, proj);
+   for (DrawPackets::iterator i = packets.begin(); i != packets.end(); ++i)
+      (*i).SetRenderData(view, proj);
 }
 
 static void CalculateAllRenderData(GatherVisitor &gather, const Mat4 &view, const Mat4 &proj)
@@ -130,68 +200,11 @@ static void CalculateAllRenderData(GatherVisitor &gather, const Mat4 &view, cons
    CalculateRenderData(gather.GetNoSortPackets(),      view, proj);
 }
 
-static void SortPacket(DrawPackets &packets, bool (*compare)(const DrawPacket &, const DrawPacket &))
-{
-   std::sort(packets.begin(), packets.end(), compare);
-}
-
 static void SortAllPackets(GatherVisitor &gather)
 {
-   static auto SortPriorityCompare = [](const DrawPacket &p1, const DrawPacket &p2)
-   {
-      int32_t sp1 = p1.GetSortPriority();
-      int32_t sp2 = p2.GetSortPriority();
-
-      if (sp1 == sp2)
-         return p1.GetMaterial() < p2.GetMaterial();
-
-      return sp1 < sp2;
-   };
-
-   static auto GetDepth = [](const DrawPacket &p)
-   {
-      float          depth;
-      EffectHandle   effect = p.GetMaterial()->GetEffect();
-
-      if (effect->OverrideDepth())
-         depth = effect->GetDepth();
-      else
-         depth = p.GetBound().GetCenter().Z();
-
-      return depth;
-   };
-
-   static auto DepthCompareFTB = [](const DrawPacket &p1, const DrawPacket &p2)
-   {
-      float z1 = GetDepth(p1);
-      float z2 = GetDepth(p2);
-
-      if (z1 > z2)
-         return true;
-
-      if (z1 < z2)
-         return false;
-
-      return SortPriorityCompare(p1, p2);
-   };
-
-   static auto DepthCompareBTF = [](const DrawPacket &p1, const DrawPacket &p2)
-   {
-      float z1 = GetDepth(p1);
-      float z2 = GetDepth(p2);
-
-      if (z1 < z2)
-         return true;
-
-      if (z1 > z2)
-         return false;
-
-      return SortPriorityCompare(p1, p2);
-   };
-
-   SortPacket(gather.GetFrontToBackPackets(), DepthCompareFTB);
-   SortPacket(gather.GetNoSortPackets(),      SortPriorityCompare);
-   SortPacket(gather.GetBackToFrontPackets(), DepthCompareBTF);
+   std::sort(gather.GetFrontToBackPackets().begin(), gather.GetFrontToBackPackets().end(), prv::DepthCompareFTB());
+   std::sort(gather.GetNoSortPackets().begin(), gather.GetNoSortPackets().end(), prv::SortPriorityCompare());
+   std::sort(gather.GetBackToFrontPackets().begin(), gather.GetBackToFrontPackets().end(), prv::DepthCompareBTF());
 }
 
 static void RenderAllPackets(GatherVisitor &gather, const ViewVolume &frustum, const RenderOptions &options)
@@ -212,9 +225,9 @@ static uint32_t FindCameraPacket(const CameraPackets &packets, const CameraHandl
    uint32_t index = 0;
    Camera   *ptr = camera.GetPtr();
 
-   for (const auto &packet : packets)
+   for (CameraPackets::const_iterator i = packets.begin(); i != packets.end(); ++i, ++index)
    {
-      if (ptr == packet.m_camera)
+      if (ptr == (*i).m_camera)
          return index;
    }
 
@@ -237,10 +250,9 @@ Application::Application(Platform &platform) :
    m_devHud(0),
    m_fpsHud(0),
    m_bigEndian(IsItBigEndian()),
-   m_renderTarget(0),
-   m_quad(nullptr)
+   m_renderTarget(0)
 {
-   if (m_instance != nullptr)
+   if (m_instance != NULL)
       BSG_THROW("Only one application can be created\n");
 
    m_instance = this;
@@ -251,8 +263,6 @@ Application::Application(Platform &platform) :
    m_fpsHud = new FpsHud;
 
    m_platform.Install(this);
-
-   m_quad = std::unique_ptr<QuadRender>(new QuadRender(platform.GetQuadSize()));
 }
 
 Application::~Application()
@@ -303,11 +313,6 @@ void Application::SetupCamera(Mat4 *view, Mat4 *proj, ViewVolume *frustum, Gathe
          cam->MakeLeftEyeProjectionMatrix(proj);
       else if (m_platform.CurrentEye() == Platform::eRIGHT)
          cam->MakeRightEyeProjectionMatrix(proj);
-   }
-   else if (m_platform.IsQuad() && m_renderTarget == 0)
-   {
-      /* Use the quad matrix only if quad mode and default framebuffer */
-      m_quad->MakeProjectionMatrix(proj, cam);
    }
    else
    {
@@ -367,7 +372,7 @@ void Application::RenderSceneGraph(const SceneNodeHandle &rootNode, const Render
 
 #ifndef BSG_STAND_ALONE
 
-void Application::DrawTextStringAbs(const std::string &str, float xpos, float ypos, 
+void Application::DrawTextStringAbs(const std::string &str, float xpos, float ypos,
    FontHandle font, const Vec4 &color) const
 {
    font->DrawTextString(str, xpos, ypos, color);
@@ -405,12 +410,10 @@ void Application::glViewport(GLint x, GLint y, GLsizei width, GLsizei height) co
       else if (m_platform.CurrentEye() == Platform::eRIGHT)
          ::glViewport((GetWindowWidth() + x) / 2, y, width / 2, height);
    }
-   else if (m_platform.IsQuad())
-   {
-      m_quad->Viewport(x, y, width, height);
-   }
    else
+   {
       ::glViewport(x, y, width, height);
+   }
 }
 
 bool Application::IsLeftFrame() const
@@ -426,9 +429,6 @@ bool Application::IsBeginFrame() const
    if (m_platform.IsStereo())
       return m_platform.CurrentEye() == Platform::eLEFT;
 
-   if (m_platform.IsQuad())
-      return GetQuadRender().IsFirst();
-
    return true;
 }
 
@@ -436,9 +436,6 @@ bool Application::IsEndFrame() const
 {
    if (m_platform.IsStereo())
       return m_platform.CurrentEye() == Platform::eLEFT;
-
-   if (m_platform.IsQuad())
-      return GetQuadRender().IsLast();
 
    return true;
 }

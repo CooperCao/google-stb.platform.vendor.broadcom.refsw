@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2008 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2008 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -66,6 +66,7 @@ static INLINE void forward_normal(const void **chunk, uint32_t *i)
 static INLINE void forward_cubic(const void **chunk, uint32_t *i)
 {
    const VG_TESS_CHUNK_CUBIC_T *c = (const VG_TESS_CHUNK_CUBIC_T *)*chunk;
+   UNUSED(i);
    vcos_assert(c->n == 0);
    vcos_assert(*i == 0);
    *chunk = c + 1;

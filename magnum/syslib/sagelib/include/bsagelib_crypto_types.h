@@ -342,26 +342,15 @@ typedef enum BSAGElib_Crypto_RootKeySrc_e
 Summary:
 This enum defines the permission flags for a key slot.
 **/
-typedef enum BSAGElib_Crypto_KeySlotPermission_e
+typedef enum BSAGElib_Crypto_Region_e
 {
-    BSAGElib_Crypto_KeySlotPermission_eNone    = 0x0,
+    BSAGElib_Crypto_Region_eNone    = 0x0,
+    BSAGElib_Crypto_Region_eGLR     = 0x1, /* global memory region     */
+    BSAGElib_Crypto_Region_eCRR     = 0x2, /* restricted memory region */
+    BSAGElib_Crypto_Region_eXRR     = 0x4, /* restricted memory region */
 
-    /* Allow DMA transfers: */
-    BSAGElib_Crypto_KeySlotPermission_eAllowGG = 0x1, /* from global to global memory regions         */
-    BSAGElib_Crypto_KeySlotPermission_eAllowGR = 0x2, /* from global to restricted memory regions     */
-    BSAGElib_Crypto_KeySlotPermission_eAllowRG = 0x4, /* from restricted to global memory regions     */
-    BSAGElib_Crypto_KeySlotPermission_eAllowRR = 0x8, /* from restricted to restricted memory regions */
+}   BSAGElib_Crypto_Region_e;
 
-    /* Only allow DMA transfers into restricted memory regions.                                   */
-    BSAGElib_Crypto_KeySlotPermission_eRestricted = (BSAGElib_Crypto_KeySlotPermission_eAllowGR |
-                                                 BSAGElib_Crypto_KeySlotPermission_eAllowRR),
-
-    /* Allow DMA transfers from/to global and restricted memory regions.                          */
-    BSAGElib_Crypto_KeySlotPermission_eFull = (BSAGElib_Crypto_KeySlotPermission_eAllowGG |
-                                           BSAGElib_Crypto_KeySlotPermission_eAllowGR |
-                                           BSAGElib_Crypto_KeySlotPermission_eAllowRG |
-                                           BSAGElib_Crypto_KeySlotPermission_eAllowRR)
-}   BSAGElib_Crypto_KeySlotPermission_e;
 
 /**
 Summary:

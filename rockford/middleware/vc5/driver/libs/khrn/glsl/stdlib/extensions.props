@@ -1,0 +1,129 @@
+GL_OES_EGL_image_external:
+   vec4 texture2D    (samplerExternalOES sampler, vec2 coord, float bias);
+   vec4 texture2D    (samplerExternalOES sampler, vec2 coord);
+   vec4 texture2DProj(samplerExternalOES sampler, vec3 coord, float bias);
+   vec4 texture2DProj(samplerExternalOES sampler, vec3 coord);
+   vec4 texture2DProj(samplerExternalOES sampler, vec4 coord, float bias);
+   vec4 texture2DProj(samplerExternalOES sampler, vec4 coord);
+
+
+GL_BRCM_texture_1D:
+    vec4 texture( sampler1D sampler, float coord);
+   uvec4 texture(usampler1D sampler, float coord);
+    vec4 texture( sampler1DArray sampler, vec2 coord);
+   uvec4 texture(usampler1DArray sampler, vec2 coord);
+
+    vec4 textureLod(sampler1D sampler, float coord, float lod);
+
+
+GL_BRCM_sampler_fetch:
+   vec4 texelFetchBRCM      (sampler2D sampler, ivec2 coord, int lod);
+   vec4 texelFetchOffsetBRCM(sampler2D sampler, ivec2 coord, int lod, ivec2 offset);
+
+
+GL_EXT_shader_texture_lod:
+   vec4 texture2DLodEXT    (sampler2D sampler,   vec2 coord, float lod);
+   vec4 texture2DProjLodEXT(sampler2D sampler,   vec3 coord, float lod);
+   vec4 texture2DProjLodEXT(sampler2D sampler,   vec4 coord, float lod);
+   vec4 textureCubeLodEXT  (samplerCube sampler, vec3 coord, float lod);
+
+
+GL_OES_standard_derivatives:
+   float dFdx(float p);
+   vec2  dFdx(vec2  p);
+   vec3  dFdx(vec3  p);
+   vec4  dFdx(vec4  p);
+   float dFdy(float p);
+   vec2  dFdy(vec2  p);
+   vec3  dFdy(vec3  p);
+   vec4  dFdy(vec4  p);
+   float fwidth(float p);
+   vec2  fwidth(vec2  p);
+   vec3  fwidth(vec3  p);
+   vec4  fwidth(vec4  p);
+
+
+GL_EXT_shader_integer_mix:
+   int   mix(int   x, int   y, bool  a);
+   ivec2 mix(ivec2 x, ivec2 y, bvec2 a);
+   ivec3 mix(ivec3 x, ivec3 y, bvec3 a);
+   ivec4 mix(ivec4 x, ivec4 y, bvec4 a);
+
+   uint  mix(uint  x, uint  y, bool  a);
+   uvec2 mix(uvec2 x, uvec2 y, bvec2 a);
+   uvec3 mix(uvec3 x, uvec3 y, bvec3 a);
+   uvec4 mix(uvec4 x, uvec4 y, bvec4 a);
+
+   bool  mix(bool  x, bool  y, bool  a);
+   bvec2 mix(bvec2 x, bvec2 y, bvec2 a);
+   bvec3 mix(bvec3 x, bvec3 y, bvec3 a);
+   bvec4 mix(bvec4 x, bvec4 y, bvec4 a);
+
+
+GL_OES_texture_cube_map_array:
+   highp ivec3 textureSize( samplerCubeArray sampler, int lod);
+   highp ivec3 textureSize(isamplerCubeArray sampler, int lod);
+   highp ivec3 textureSize(usamplerCubeArray sampler, int lod);
+   highp ivec3 textureSize(samplerCubeArrayShadow sampler, int lod);
+
+    vec4 textureGather(samplerCubeArray  sampler, vec4 coord);
+    vec4 textureGather(samplerCubeArray  sampler, vec4 coord, int comp);
+   ivec4 textureGather(isamplerCubeArray sampler, vec4 coord);
+   ivec4 textureGather(isamplerCubeArray sampler, vec4 coord, int comp);
+   uvec4 textureGather(usamplerCubeArray sampler, vec4 coord);
+   uvec4 textureGather(usamplerCubeArray sampler, vec4 coord, int comp);
+    vec4 textureGather(samplerCubeArrayShadow sampler, vec4 coord, float refZ);
+
+   highp ivec3 imageSize(readonly writeonly  imageCubeArray image);
+   highp ivec3 imageSize(readonly writeonly iimageCubeArray image);
+   highp ivec3 imageSize(readonly writeonly uimageCubeArray image);
+
+   highp  vec4 imageLoad(readonly  imageCubeArray image, ivec3 coord);
+   highp ivec4 imageLoad(readonly iimageCubeArray image, ivec3 coord);
+   highp uvec4 imageLoad(readonly uimageCubeArray image, ivec3 coord);
+
+   highp void imageStore(writeonly  imageCubeArray image, ivec3 coord,  vec4 data);
+   highp void imageStore(writeonly iimageCubeArray image, ivec3 coord, ivec4 data);
+   highp void imageStore(writeonly uimageCubeArray image, ivec3 coord, uvec4 data);
+
+
+GL_OES_texture_storage_multisample_2d_array:
+   highp ivec3 textureSize( sampler2DMSArray sampler);
+   highp ivec3 textureSize(isampler2DMSArray sampler);
+   highp ivec3 textureSize(usampler2DMSArray sampler);
+
+    vec4 texelFetch ( sampler2DMSArray sampler, ivec3 P, int s);
+   ivec4 texelFetch (isampler2DMSArray sampler, ivec3 P, int s);
+   uvec4 texelFetch (usampler2DMSArray sampler, ivec3 P, int s);
+
+
+GL_OES_tessellation_shader:
+   in highp int gl_PatchVerticesIn;
+   in highp int gl_PrimitiveID;
+   in highp int gl_InvocationID;
+
+   patch out highp float gl_TessLevelOuter[4];
+   patch out highp float gl_TessLevelInner[2];
+
+         in highp vec3  gl_TessCoord;
+   patch in highp float gl_TessLevelOuter[4];
+   patch in highp float gl_TessLevelInner[2];
+
+   const mediump int gl_MaxTessControlInputComponents;
+   const mediump int gl_MaxTessControlOutputComponents;
+   const mediump int gl_MaxTessControlTextureImageUnits;
+   const mediump int gl_MaxTessControlUniformComponents;
+   const mediump int gl_MaxTessControlTotalOutputComponents;
+   const mediump int gl_MaxTessControlImageUniforms;
+   const mediump int gl_MaxTessEvaluationImageUniforms;
+   const mediump int gl_MaxTessControlAtomicCounters;
+   const mediump int gl_MaxTessEvaluationAtomicCounters;
+   const mediump int gl_MaxTessControlAtomicCounterBuffers;
+   const mediump int gl_MaxTessEvaluationAtomicCounterBuffers;
+   const mediump int gl_MaxTessEvaluationInputComponents;
+   const mediump int gl_MaxTessEvaluationOutputComponents;
+   const mediump int gl_MaxTessEvaluationTextureImageUnits;
+   const mediump int gl_MaxTessEvaluationUniformComponents;
+   const mediump int gl_MaxTessPatchComponents;
+   const mediump int gl_MaxPatchVertices;
+   const mediump int gl_MaxTessGenLevel;

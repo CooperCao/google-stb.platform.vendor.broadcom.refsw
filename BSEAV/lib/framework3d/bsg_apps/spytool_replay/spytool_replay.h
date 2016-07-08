@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -136,6 +136,9 @@ public:
 
    void AddProgramPipelineMapping(uint32_t handle, GLuint real);
    GLuint MapProgramPipeline(uint32_t handle);
+
+   void AddUniformBlockIndexMapping(uint32_t handle, GLuint real, uint32_t program);
+   GLuint MapUniformBlockIndex(uint32_t handle, uint32_t program);
 #endif
 
    void AddProgramMapping(uint32_t handle, GLuint real);
@@ -202,28 +205,32 @@ public:
 
    void AddTiming(eGLCommand cmd, int64_t fromSOF, int64_t cmdCost)
    {
-      m_timeprobes.push_back({ cmd, fromSOF, cmdCost });
+      timeprobe t;
+      t.cmd = cmd;
+      t.fromSOF = fromSOF;
+      t.cmdCost = cmdCost;
+      m_timeprobes.push_back(t);
    }
 
 private:
-   bsg::Platform  &m_platform;
-   uint8_t        *m_scratchMemPtr;
-   uint8_t        *m_data;
-   uint32_t       m_dataSize;
+   bsg::Platform     &m_platform;
+   uint8_t           *m_scratchMemPtr;
+   uint8_t           *m_data;
+   uint32_t          m_dataSize;
    //EGLSurface        m_curDrawSurface;
-   bool           m_hasWindow;
-   FrameFunc      m_curFrameFunc;
+   bool              m_hasWindow;
+   FrameFunc         m_curFrameFunc;
 
-   Loader         *m_loader;
-   uint32_t       m_loadedSwapCount;
-   uint32_t       m_framesSinceLastFPS;
-   bsg::Time      m_timerStart;
-   bsg::Time      m_fpsPause;
+   Loader            *m_loader;
+   uint32_t          m_loadedSwapCount;
+   uint32_t          m_framesSinceLastFPS;
+   bsg::Time         m_timerStart;
+   bsg::Time         m_fpsPause;
    bsg::HighResTime  m_frameStart;
 
-   uint32_t       m_displaySurfaceIndex;
-   uint32_t       m_curSurfaceIndex;
-   uint32_t       m_curDrawCall;
+   uint32_t          m_displaySurfaceIndex;
+   uint32_t          m_curSurfaceIndex;
+   uint32_t          m_curDrawCall;
    bool              m_okToWait;
 
    std::map<uint32_t, EGLDisplay>       m_displayMap;
@@ -248,6 +255,7 @@ private:
 
    std::map<std::pair<uint32_t, uint32_t>, GLuint> m_uniformMap;
    std::map<std::pair<uint32_t, uint32_t>, GLuint> m_locationMap;
+   std::map<std::pair<uint32_t, uint32_t>, GLuint> m_uniformBlockMap;
 
    std::map<uint32_t, bsg::NativePixmap *>         m_pixmaps;
 

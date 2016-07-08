@@ -1,43 +1,39 @@
 /******************************************************************************
- * (c) 2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 
 /**
@@ -164,7 +160,7 @@ static void httpServerDestroy(
     )
 {
     if (!hHttpServer) return;
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Destroying hHttpServer %p" BIP_MSG_PRE_ARG, hHttpServer ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Destroying hHttpServer %p" BIP_MSG_PRE_ARG, (void *)hHttpServer ));
 
     /* Remove this httpServer instance from it's class. */
     BIP_CLASS_REMOVE_INSTANCE(BIP_HttpServer, hHttpServer);
@@ -185,7 +181,7 @@ static void httpServerDestroy(
 
     if (hHttpServer->listener.hListener) BIP_Listener_Destroy( hHttpServer->listener.hListener );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpServer %p: Destroyed" BIP_MSG_PRE_ARG, hHttpServer ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpServer %p: Destroyed" BIP_MSG_PRE_ARG, (void *)hHttpServer ));
     BDBG_OBJECT_DESTROY( hHttpServer, BIP_HttpServer );
     B_Os_Free( hHttpServer );
 
@@ -204,7 +200,7 @@ BIP_HttpServerHandle BIP_HttpServer_Create(
 
     /* Create the httpServer object */
     hHttpServer = B_Os_Calloc( 1, sizeof( BIP_HttpServer ));
-    BIP_CHECK_GOTO(( hHttpServer != NULL ), ( "Failed to allocate memory (%d bytes) for HttpServer Object", sizeof(BIP_HttpServer) ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, brc );
+    BIP_CHECK_GOTO(( hHttpServer != NULL ), ( "Failed to allocate memory (%zu bytes) for HttpServer Object", sizeof(BIP_HttpServer) ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, brc );
 
     BDBG_OBJECT_SET( hHttpServer, BIP_HttpServer );
 
@@ -258,7 +254,7 @@ BIP_HttpServerHandle BIP_HttpServer_Create(
     hHttpServer->stopStreamerApi.hArb = BIP_Arb_Create(NULL, NULL);
     BIP_CHECK_GOTO(( hHttpServer->stopStreamerApi.hArb ), ( "BIP_Arb_Create Failed " ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, brc );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpServer %p: Created ARBs" BIP_MSG_PRE_ARG, hHttpServer));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpServer %p: Created ARBs" BIP_MSG_PRE_ARG, (void *)hHttpServer));
 
     /* Now Create the Listener Object */
     BIP_Listener_GetDefaultCreateSettings( &listenerCreateSettings );
@@ -331,7 +327,7 @@ void BIP_HttpServer_GetSettings(
 
     BDBG_OBJECT_ASSERT( hHttpServer, BIP_HttpServer );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpServer %p: --------------------->" BIP_MSG_PRE_ARG, hHttpServer));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpServer %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hHttpServer));
 
     BIP_CHECK_GOTO(( hHttpServer ), ( "hHttpServer pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, brc );
     BIP_CHECK_GOTO(( pSettings ), ( "pSettings can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, brc );
@@ -357,7 +353,7 @@ void BIP_HttpServer_GetSettings(
     BIP_SETTINGS_SET(pSettings,BIP_HttpServerSettings);
 
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpServer %p: completionStatus %s <--------------------- " BIP_MSG_PRE_ARG, hHttpServer, BIP_StatusGetText(brc) ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpServer %p: completionStatus %s <--------------------- " BIP_MSG_PRE_ARG, (void *)hHttpServer, BIP_StatusGetText(brc) ));
 
     return;
 }
@@ -375,7 +371,7 @@ BIP_Status BIP_HttpServer_SetSettings(
     BDBG_ASSERT( pSettings );
     BIP_SETTINGS_ASSERT(pSettings, BIP_HttpServerSettings);
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpServer %p: --------------------->" BIP_MSG_PRE_ARG, hHttpServer));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpServer %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hHttpServer));
 
     BIP_CHECK_GOTO(( hHttpServer ), ( "hHttpServer pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, brc );
     BIP_CHECK_GOTO(( pSettings ), ( "pSettings can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, brc );
@@ -399,7 +395,7 @@ BIP_Status BIP_HttpServer_SetSettings(
     BIP_CHECK_GOTO((brc == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_HttpServer_SetSettings" ), error, brc, brc );
 
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpServer %p: completionStatus %s  <--------------------- " BIP_MSG_PRE_ARG, hHttpServer, BIP_StatusGetText(brc) ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpServer %p: completionStatus %s  <--------------------- " BIP_MSG_PRE_ARG, (void *)hHttpServer, BIP_StatusGetText(brc) ));
 
     return ( brc );
 } /* BIP_HttpServer_SetSettings */
@@ -417,7 +413,7 @@ BIP_Status BIP_HttpServer_Start(
     BDBG_OBJECT_ASSERT( hHttpServer, BIP_HttpServer );
     BIP_SETTINGS_ASSERT(pSettings, BIP_HttpServerStartSettings);
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpServer %p: --------------------->" BIP_MSG_PRE_ARG, hHttpServer));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpServer %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hHttpServer));
 
     BIP_CHECK_GOTO(( hHttpServer ), ( "hHttpServer pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, brc );
 
@@ -456,7 +452,7 @@ BIP_Status BIP_HttpServer_Start(
     BIP_CHECK_GOTO((brc == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_HttpServer_Start" ), error, brc, brc );
 
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpServer %p: completionStatus %s  <--------------------- " BIP_MSG_PRE_ARG, hHttpServer, BIP_StatusGetText(brc) ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpServer %p: completionStatus %s  <--------------------- " BIP_MSG_PRE_ARG, (void *)hHttpServer, BIP_StatusGetText(brc) ));
 
     return ( brc );
 } /* BIP_HttpServer_Start */
@@ -494,7 +490,7 @@ BIP_Status BIP_HttpServer_Stop(
     BIP_CHECK_GOTO((brc == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_HttpServer_Stop" ), error, brc, brc );
 
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpServer %p: completionStatus %s  <--------------------- " BIP_MSG_PRE_ARG, hHttpServer, BIP_StatusGetText(brc) ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpServer %p: completionStatus %s  <--------------------- " BIP_MSG_PRE_ARG, (void *)hHttpServer, BIP_StatusGetText(brc) ));
 
     return( brc );
 } /* BIP_HttpServer_Stop */
@@ -513,7 +509,7 @@ BIP_Status BIP_HttpServer_RecvRequest(
     BDBG_OBJECT_ASSERT( hHttpServer, BIP_HttpServer );
     BIP_SETTINGS_ASSERT(pSettings, BIP_HttpServerRecvRequestSettings);
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpServer %p: --------------------->" BIP_MSG_PRE_ARG, hHttpServer));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpServer %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hHttpServer));
 
     BIP_CHECK_GOTO(( hHttpServer ), ( "hHttpServer pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, brc );
     BIP_CHECK_GOTO(( phHttpRequest ), ( "phHttpRequest can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, brc );
@@ -542,7 +538,7 @@ BIP_Status BIP_HttpServer_RecvRequest(
     BIP_CHECK_GOTO((brc == BIP_SUCCESS || brc == BIP_INF_TIMEOUT), ( "BIP_Arb_SubmitRequest() Failed for BIP_HttpServer_RecvRequest" ), error, brc, brc );
 
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpServer %p: completionStatus %s  <--------------------- " BIP_MSG_PRE_ARG, hHttpServer, BIP_StatusGetText(brc) ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpServer %p: completionStatus %s  <--------------------- " BIP_MSG_PRE_ARG, (void *)hHttpServer, BIP_StatusGetText(brc) ));
 
     return( brc );
 }
@@ -575,7 +571,7 @@ BIP_Status BIP_HttpServer_RejectRequest(
         BIP_CHECK_GOTO(( pSettings->httpStatus != BIP_HttpResponseStatus_e200_OK ), ( "pSettings->httpStatus %d can't be BIP_HttpResponseStatus_e200_OK", pSettings->httpStatus ), error, BIP_ERR_INVALID_PARAMETER, brc );
     }
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpServer %p, hHttpRequest %p: --------------------->" BIP_MSG_PRE_ARG, hHttpServer, hHttpRequest ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpServer %p, hHttpRequest %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hHttpServer, (void *)hHttpRequest ));
 
     /* Serialize access to SednResponse state among another thread calling the same API. */
     hArb = hHttpServer->rejectRequestApi.hArb;
@@ -598,7 +594,7 @@ BIP_Status BIP_HttpServer_RejectRequest(
                    ( "BIP_Arb_SubmitRequest() Failed for BIP_HttpServer_RejectRequest" ), error, brc, brc );
 
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpServer %p: completionStatus %s  <--------------------- " BIP_MSG_PRE_ARG, hHttpServer, BIP_StatusGetText(brc) ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpServer %p: completionStatus %s  <--------------------- " BIP_MSG_PRE_ARG, (void *)hHttpServer, BIP_StatusGetText(brc) ));
 
     return( brc );
 }
@@ -632,7 +628,7 @@ BIP_HttpStreamerHandle BIP_HttpServer_CreateStreamer(
     BDBG_OBJECT_ASSERT( hHttpServer, BIP_HttpServer );
     BIP_SETTINGS_ASSERT(pSettings, BIP_HttpServerCreateStreamerSettings);
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpServer %p: --------------------->" BIP_MSG_PRE_ARG, hHttpServer));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpServer %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hHttpServer));
 
     BIP_CHECK_GOTO(( hHttpServer ), ( "hHttpServer pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, brc );
 
@@ -660,7 +656,7 @@ BIP_HttpStreamerHandle BIP_HttpServer_CreateStreamer(
     BIP_CHECK_GOTO((brc == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() BIP_HttpServer_CreateStreamer" ), error, brc, brc );
 
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpServer %p: hHttpStreamer %p: completionStatus %s  <--------------------- " BIP_MSG_PRE_ARG, hHttpServer, hHttpStreamer, BIP_StatusGetText(brc) ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpServer %p: hHttpStreamer %p: completionStatus %s  <--------------------- " BIP_MSG_PRE_ARG, (void *)hHttpServer, (void *)hHttpStreamer, BIP_StatusGetText(brc) ));
 
     return ( hHttpStreamer );
 } /* BIP_HttpServer_CreateStreamer */
@@ -680,7 +676,7 @@ BIP_Status BIP_HttpServer_StartStreamer(
     BDBG_OBJECT_ASSERT( hHttpServer, BIP_HttpServer );
     BIP_SETTINGS_ASSERT(pSettings, BIP_HttpServerStartStreamerSettings);
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpServer %p: --------------------->" BIP_MSG_PRE_ARG, hHttpServer));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpServer %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hHttpServer));
 
     BIP_CHECK_GOTO(( hHttpServer ), ( "hHttpServer pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, brc );
     BIP_CHECK_GOTO(( hHttpStreamer ), ( "hHttpStreamer pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, brc );
@@ -712,7 +708,7 @@ BIP_Status BIP_HttpServer_StartStreamer(
     BIP_CHECK_GOTO((brc == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_HttpServer_StartStreamer" ), error, brc, brc );
 
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpServer %p: hHttpStreamer %p: completionStatus %s  <--------------------- " BIP_MSG_PRE_ARG, hHttpServer, hHttpStreamer, BIP_StatusGetText(brc) ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpServer %p: hHttpStreamer %p: completionStatus %s  <--------------------- " BIP_MSG_PRE_ARG, (void *)hHttpServer, (void *)hHttpStreamer, BIP_StatusGetText(brc) ));
 
     return ( brc );
 } /* BIP_HttpServer_StartStreamer */
@@ -728,7 +724,7 @@ BIP_Status BIP_HttpServer_StopStreamer(
 
     BDBG_OBJECT_ASSERT( hHttpServer, BIP_HttpServer );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpServer %p: --------------------->" BIP_MSG_PRE_ARG, hHttpServer));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpServer %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hHttpServer));
 
     BIP_CHECK_GOTO(( hHttpServer ), ( "hHttpServer pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, brc );
     BIP_CHECK_GOTO(( hHttpStreamer ), ( "hHttpStreamer pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, brc );
@@ -751,7 +747,7 @@ BIP_Status BIP_HttpServer_StopStreamer(
     BIP_CHECK_GOTO((brc == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_HttpServer_StopStreamer" ), error, brc, brc );
 
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpServer %p: completionStatus %s  <--------------------- " BIP_MSG_PRE_ARG, hHttpServer, BIP_StatusGetText(brc) ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpServer %p: completionStatus %s  <--------------------- " BIP_MSG_PRE_ARG, (void *)hHttpServer, BIP_StatusGetText(brc) ));
 
     return( brc );
 } /* BIP_HttpServer_StopStreamer */
@@ -767,7 +763,7 @@ void BIP_HttpServer_DestroyStreamer(
 
     BDBG_OBJECT_ASSERT( hHttpServer, BIP_HttpServer );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpServer %p: --------------------->" BIP_MSG_PRE_ARG, hHttpServer));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpServer %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hHttpServer));
 
     BIP_CHECK_GOTO(( hHttpServer ), ( "hHttpServer pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, brc );
     BIP_CHECK_GOTO(( hHttpStreamer ), ( "hHttpStreamer pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, brc );
@@ -790,7 +786,7 @@ void BIP_HttpServer_DestroyStreamer(
     BIP_CHECK_GOTO((brc == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_HttpServer_DestroyStreamer" ), error, brc, brc );
 
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpServer %p: completionStatus %s  <--------------------- " BIP_MSG_PRE_ARG, hHttpServer, BIP_StatusGetText(brc) ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpServer %p: completionStatus %s  <--------------------- " BIP_MSG_PRE_ARG, (void *)hHttpServer, BIP_StatusGetText(brc) ));
 
     return;
 } /* BIP_HttpServer_StopStreamer */

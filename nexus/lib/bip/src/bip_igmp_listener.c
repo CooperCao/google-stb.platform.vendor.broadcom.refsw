@@ -1,43 +1,39 @@
 /******************************************************************************
- * (c) 2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 #include <stdio.h>
 #include <stdlib.h>
@@ -381,7 +377,7 @@ static int findMulitcastAddressSessionList(
         PRINTMSG_LIST(( " %d Session's Mutlicast Address %d  compared to packet's multicast Address %d\n", i, pSession->multicast_address, multicast_address ));
         if (pSession->multicast_address == multicast_address)
         {
-           PRINTMSG_LIST(( "Valid Mulitcast Address FOUND from Report  %p\n",  pSession ));
+           PRINTMSG_LIST(( "Valid Mulitcast Address FOUND from Report  %p\n", (void *)pSession ));
            *pSessionPtr = pSession;
            BDBG_LEAVE( findMulitcastAddressSessionList );
            return( 1 );
@@ -389,7 +385,7 @@ static int findMulitcastAddressSessionList(
 
         pSession = BLST_S_NEXT( pSession, node );
     }
-    PRINTMSG_LIST(( "Valid Group Mulitcast Address  NOT FOUND from Report  %p\n",  pSession ));
+    PRINTMSG_LIST(( "Valid Group Mulitcast Address  NOT FOUND from Report  %p\n",  (void *)pSession ));
 
     BDBG_LEAVE( findMulitcastAddressSessionList );
     return( 0 );
@@ -652,7 +648,7 @@ static BIP_Status removeMulticastSessionFromList(
                 PRINTMSG_LIST(( BIP_MSG_PRE_FMT "Cancel timer for Verify Group Specific address" BIP_MSG_PRE_ARG));
                 setGroupSpecificResponseTimer(hIgmpListener, elem, false);
 
-                PRINTMSG_LIST(( BIP_MSG_PRE_FMT "Removing RTSPMulitcastSession  : 0x%08x with field %d\n" BIP_MSG_PRE_ARG, elem, multicast_address ));
+                PRINTMSG_LIST(( BIP_MSG_PRE_FMT "Removing RTSPMulitcastSession  : %p with field %d\n" BIP_MSG_PRE_ARG, (void *)elem, multicast_address ));
                 BLST_S_REMOVE( &( hIgmpListener->MulticastSession_list ), elem, B_RTSP_MulticastSession, node );
                 B_Mutex_Unlock( hIgmpListener->mutexIGMPdata );
 
@@ -687,7 +683,7 @@ static BIP_Status cleanMulticastSessionList(
         while (iter) {
             elem = iter;
             iter = BLST_S_NEXT( iter, node );
-            PRINTMSG_LIST(( BIP_MSG_PRE_FMT "Removing RTSPMulitcastSession from List: 0x%08x\n" BIP_MSG_PRE_ARG, elem ));
+            PRINTMSG_LIST(( BIP_MSG_PRE_FMT "Removing RTSPMulitcastSession from List: %p\n" BIP_MSG_PRE_ARG, (void *)elem ));
             BLST_S_REMOVE( &( hIgmpListener->MulticastSession_list ), elem, B_RTSP_MulticastSession, node );
             destroyMulticastSession( hIgmpListener, elem );
         }
@@ -850,7 +846,7 @@ static BIP_Status cleanMembershipReportNotificationList(
         while (iter) {
             elem = iter;
             iter = BLST_S_NEXT( iter, node );
-            PRINTMSG_LIST(( BIP_MSG_PRE_FMT "Removing MembershipReport from List: 0x%08x\n" BIP_MSG_PRE_ARG, elem ));
+            PRINTMSG_LIST(( BIP_MSG_PRE_FMT "Removing MembershipReport from List: %p\n" BIP_MSG_PRE_ARG, (void *)elem ));
             removeMembershipReportNotificationFromList( hIgmpListener, elem );
             destroyMembershipReportNotification( hIgmpListener, elem );
         }
@@ -878,11 +874,11 @@ static BIP_Status cleanMembershipReportNotificationListForMulticastAddress(
         while (iter != NULL) {
             elem = iter;
             iter = BLST_S_NEXT( iter, node );
-            PRINTMSG_LIST(( BIP_MSG_PRE_FMT "iterator: 0x%08x\n" BIP_MSG_PRE_ARG, iter ));
+            PRINTMSG_LIST(( BIP_MSG_PRE_FMT "iterator: %p\n" BIP_MSG_PRE_ARG, (void *)iter ));
 
             if ( elem->multicast_address == multicast_address )
             {
-                PRINTMSG_LIST(( BIP_MSG_PRE_FMT "Removing MembershipReport from List: 0x%08x\n" BIP_MSG_PRE_ARG, elem ));
+                PRINTMSG_LIST(( BIP_MSG_PRE_FMT "Removing MembershipReport from List: %p\n" BIP_MSG_PRE_ARG, (void *)elem ));
                 removeMembershipReportNotificationFromList( hIgmpListener, elem );
                 destroyMembershipReportNotification( hIgmpListener, elem );
             }
@@ -1072,8 +1068,8 @@ BIP_Status BIP_IgmpListener_GetMembershipReportStatus(
 
         temp = htonl( pStatus->multicast_address );
 
-        BDBG_MSG(( BIP_MSG_PRE_FMT "Removing MembershipReport from List: 0x%08x, multicast_address "BIP_INET_ADDR_FMT" membershipReport Type %d\n" BIP_MSG_PRE_ARG,
-                    elem, BIP_INET_ADDR_ARG(temp), elem->memRepType ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "Removing MembershipReport from List: %p, multicast_address "BIP_INET_ADDR_FMT" membershipReport Type %d\n" BIP_MSG_PRE_ARG,
+                    (void *)elem, BIP_INET_ADDR_ARG(temp), elem->memRepType ));
         removeMembershipReportNotificationFromList( hIgmpListener, elem );
         destroyMembershipReportNotification( hIgmpListener, elem );
 
@@ -1603,7 +1599,7 @@ static void setHeardFromElectedQuerierTimer(
     BDBG_ENTER( setHeardFromElectedQuerierTimer );
     if (activate ==false)
     {
-        BDBG_MSG(( BIP_MSG_PRE_FMT "Stop Querier Timer(%s ms)" BIP_MSG_PRE_ARG, hIgmpListener->createSettings.querier_interval ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "Stop Querier Timer(%d ms)" BIP_MSG_PRE_ARG, hIgmpListener->createSettings.querier_interval ));
         hIgmpListener->querierTimerIsStarted = false;
         if (NULL != hIgmpListener->querierTimer)
         {
@@ -1613,7 +1609,7 @@ static void setHeardFromElectedQuerierTimer(
     }
     else
     {
-        BDBG_MSG(( BIP_MSG_PRE_FMT "Start Querier Timer(%s ms)" BIP_MSG_PRE_ARG, hIgmpListener->createSettings.querier_interval ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "Start Querier Timer(%d ms)" BIP_MSG_PRE_ARG, hIgmpListener->createSettings.querier_interval ));
 
         hIgmpListener->querierTimer = B_Scheduler_StartTimer(
                 hIgmpListener->schedulerIGMPdata, hIgmpListener->mutexIGMPdata, hIgmpListener->createSettings.querier_interval, enableGeneralQuery, hIgmpListener );
@@ -1898,8 +1894,8 @@ static BIP_Status processIGMPPacket(
     }
 
     PRINTMSG_PACKET(( "--Finished Processing Packet--\n" ));
-    PRINTMSG_PACKET(( "" ));
-    PRINTMSG_PACKET(( "" ));
+    PRINTMSG_PACKET(( " " ));
+    PRINTMSG_PACKET(( " " )); /* second print */
 
     BDBG_LEAVE( processIGMPPacket );
     return( BIP_SUCCESS );

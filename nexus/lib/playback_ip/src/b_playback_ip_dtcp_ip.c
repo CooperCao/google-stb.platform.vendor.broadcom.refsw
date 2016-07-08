@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2003-2016 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * Description: DTCP-IP module
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 #if defined(LINUX) || defined(__vxworks)
@@ -417,7 +409,7 @@ int  B_PlaybackIp_DtcpIpDecryptionDisable(
     B_PlaybackIpDtcpIpCtx *securityCtx = (B_PlaybackIpDtcpIpCtx *)securityHandle;
 
     if (!securityCtx) {
-        BDBG_ERR(("%s: invalid securityCtx %p", __FUNCTION__, securityCtx));
+        BDBG_ERR(("%s: invalid securityCtx %p", __FUNCTION__, (void *)securityCtx));
         return -1;
     }
     /* set flag to disable decryption */
@@ -435,7 +427,7 @@ int B_PlaybackIp_DtcpIpDecryptionEnable(
     B_PlaybackIpDtcpIpCtx *securityCtx = (B_PlaybackIpDtcpIpCtx *)securityHandle;
 
     if (!securityCtx || (initialPayloadLength && !initialPayload)) {
-        BDBG_ERR(("%s: invalid securityCtx %p or initial paylaod params (length %d, payload ptr %p)\n", __FUNCTION__, securityCtx, initialPayloadLength, initialPayload));
+        BDBG_ERR(("%s: invalid securityCtx %p or initial paylaod params (length %d, payload ptr %p)\n", __FUNCTION__, (void *)securityCtx, initialPayloadLength, initialPayload));
         return -1;
     }
     /* set flag to enable decryption */
@@ -473,7 +465,7 @@ int B_PlaybackIp_DtcpIpSessionOpen(
     securityOpenOutputParams->byteRangeOffset = 0;
 
     if (openSettings == NULL) {
-        BDBG_ERR(("%s: Invalid parameters, Open Settings %p\n", __FUNCTION__, openSettings));
+        BDBG_ERR(("%s: Invalid parameters, Open Settings %p\n", __FUNCTION__, (void *)openSettings));
         goto error;
     }
     securityOpenSettings = &openSettings->security;
@@ -511,7 +503,7 @@ int B_PlaybackIp_DtcpIpSessionOpen(
     securityCtx->encryptBufSize = DTCP_IP_ENCRYPT_BUF_SIZE;
     if((securityCtx->streamHandle = DtcpAppLib_OpenSinkStream(securityCtx->akeHandle, B_StreamTransport_eHttp)) == NULL)
     {
-        BDBG_ERR(("%S: Failed to open DTCP-IP sink stream\n", __FUNCTION__));
+        BDBG_ERR(("%s: Failed to open DTCP-IP sink stream\n", __FUNCTION__));
         rc = B_ERROR_SOCKET_ERROR;
         goto error;
     }
@@ -559,7 +551,7 @@ int B_PlaybackIp_DtcpIpCloneSessionOpen(
     securityCtx->encryptBufSize = DTCP_IP_ENCRYPT_BUF_SIZE;
     if((securityCtx->streamHandle = DtcpAppLib_OpenSinkStream(securityCtx->akeHandle, B_StreamTransport_eHttp)) == NULL)
     {
-        BDBG_ERR(("%S: Failed to open DTCP-IP sink stream\n", __FUNCTION__));
+        BDBG_ERR(("%s: Failed to open DTCP-IP sink stream\n", __FUNCTION__));
         goto error;
     }
     securityCtx->openSettings.security.enableDecryption = false;

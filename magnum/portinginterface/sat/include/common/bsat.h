@@ -1,7 +1,7 @@
 /******************************************************************************
-*    (c)2011-2014 Broadcom Corporation
+* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-* This program is the proprietary software of Broadcom Corporation and/or its licensors,
+* This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
 * conditions of a separate, written license agreement executed between you and Broadcom
 * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
 * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 * ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * Module Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 *****************************************************************************/
 
@@ -69,7 +61,7 @@ extern "C" {
 #include "berr_ids.h"
 
 
-#define BSAT_API_VERSION 8
+#define BSAT_API_VERSION 10
 
 
 /******************************************************************************
@@ -643,6 +635,7 @@ typedef struct BSAT_ExtAcqSettings
    uint32_t filtctlOverride;  /* value to set FILTCTL when bOverrideFiltctl=true */
    uint32_t maxReacqs;        /* maximum number of reacqs to attempt, 0=no reacquisition limit (default) */
    uint8_t  blindScanModes;   /* BSAT_Modes searched in blind scan acquisition: bitwise OR of BSAT_BLIND_SCAN_MODE_* */
+   uint8_t  snrEstMethod;     /* SNR estimation method: 0=auto(default), 1=snre, 2=snore */
 } BSAT_ExtAcqSettings;
 
 
@@ -881,6 +874,10 @@ typedef struct BSAT_StreamStatus
    uint32_t  iterationCount; /* iteration count */
    uint32_t  ldpcFrameCount; /* number of LDPC frames that got sent to LDPC decoder */
    uint32_t  ldpcErrorCount; /* number of LDPC frames that failed */
+   uint32_t  totalBlocks;    /* number of BCH blocks decoded */
+   uint32_t  corrBlocks;     /* number of corrected BCH blocks */
+   uint32_t  badBlocks;      /* number of bad BCH blocks */
+   uint32_t  corrBits;       /* number of corrected bits */
    uint8_t   matype;         /* MATYPE-1 for the stream */
    uint8_t   pls;            /* PLS code for the stream */
    uint8_t   streamId;       /* stream ID */
@@ -1023,6 +1020,41 @@ typedef struct BSAT_TraceInfo
    uint32_t eventTime[BSAT_TraceEvent_eMax]; /* in microseconds relative to start of acquisition */
 } BSAT_TraceInfo;
 
+typedef enum BSAT_FastStatusId {
+   BSAT_FastStatusId_eNone = 0,
+   BSAT_FastStatusId_eSymRateError,
+   BSAT_FastStatusId_eCarrierError,
+   BSAT_FastStatusId_eMpegCount,
+   BSAT_FastStatusId_eMpegErrors,
+   BSAT_FastStatusId_eSnr,
+   BSAT_FastStatusId_eReacqCount,
+   BSAT_FastStatusId_eAgc0,
+   BSAT_FastStatusId_eAgc1,
+   BSAT_FastStatusId_eTotalBlocks,
+   BSAT_FastStatusId_ePreVitErrCount = BSAT_FastStatusId_eTotalBlocks,
+   BSAT_FastStatusId_eCorrBlocks,
+   BSAT_FastStatusId_eRsCorrCount = BSAT_FastStatusId_eCorrBlocks,
+   BSAT_FastStatusId_eBadBlocks,
+   BSAT_FastStatusId_eRsUncorrCount = BSAT_FastStatusId_eBadBlocks,
+   BSAT_FastStatusId_max
+} BSAT_FastStatusId;
+
+typedef struct BSAT_FastStatusItem {
+   BSAT_FastStatusId id;
+   bool              bValid;
+   union
+   {
+      uint32_t uint32;
+      int32_t  int32;
+   } value;
+} BSAT_FastStatusItem;
+
+typedef struct BSAT_FastChannelStatus {
+   bool                bDemodLocked; /* true={demod/FEC are locked} */
+   BSAT_FastStatusItem item[7];
+   uint8_t             nItems;
+} BSAT_FastChannelStatus;
+
 
 struct BSAT_Settings;
 struct BSAT_ChannelSettings;
@@ -1107,6 +1139,7 @@ typedef struct BSAT_ApiFunctTable
    BERR_Code (*GetAcmSettings)(BSAT_ChannelHandle, BSAT_AcmSettings*);
    BERR_Code (*GetStreamList)(BSAT_ChannelHandle, int, int *, uint8_t *);
    BERR_Code (*GetStreamStatus)(BSAT_ChannelHandle, uint8_t, BSAT_StreamStatus*);
+   BERR_Code (*GetFastChannelStatus)(BSAT_ChannelHandle, BSAT_FastStatusId *, uint8_t, BSAT_FastChannelStatus *);
 } BSAT_ApiFunctTable;
 
 
@@ -2226,6 +2259,30 @@ BERR_Code BSAT_GetStreamStatus(
    BSAT_ChannelHandle h,        /* [in] BSAT channel handle */
    uint8_t            streamId, /* [in] stream ID */
    BSAT_StreamStatus  *pStatus  /* [out] stream status information */
+);
+
+
+/******************************************************************************
+Summary:
+   Used to quickly get a user-defined subset of channel status.
+Description:
+   This function is useful only on PHY chips where the host controls the
+   frontend using a relatively slow interface such as I2C.  The purpose of this
+   function is to get channel status as quickly as possible using I2C, as
+   compared to the time taken with BSAT_GetChannelStatus().  This function does
+   not use the HAB interface.  Instead, it directs the LEAP firmware to
+   continuously dump a user-specified set of status (up to 7 status
+   items) to spare registers on the PHY chip.  The LEAP updates the status every
+   millisecond.  Once the stream of status has started, the host can directly
+   read registers to pick up the status.
+Returns:
+   BERR_Code
+******************************************************************************/
+BERR_Code BSAT_GetFastChannelStatus(
+   BSAT_ChannelHandle h,            /* [in] BSAT channel handle */
+   BSAT_FastStatusId *pStatusIds,   /* [in] ID of the status items */
+   uint8_t numItems,                /* [in] number of status items (0 to 7) */
+   BSAT_FastChannelStatus *pStatus  /* [out] returned status */
 );
 
 #ifdef __cplusplus

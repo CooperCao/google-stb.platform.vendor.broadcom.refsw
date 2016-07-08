@@ -1,59 +1,52 @@
-/***************************************************************************
-*     (c)2004-2014 Broadcom Corporation
-*
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
-*  and may only be used, duplicated, modified or distributed pursuant to the terms and
-*  conditions of a separate, written license agreement executed between you and Broadcom
-*  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-*  no license (express or implied), right to use, or waiver of any kind with respect to the
-*  Software, and Broadcom expressly reserves all rights in and to the Software and all
-*  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-*  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-*  Except as expressly set forth in the Authorized License,
-*
-*  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-*  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-*  and to use this information only in connection with your use of Broadcom integrated circuit products.
-*
-*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-*  USE OR PERFORMANCE OF THE SOFTWARE.
-*
-*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-*  ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* API Description:
-*   API name: Platform linuxuser
-*    linuxkernel OS routines
-*
-* Revision History:
-*
-* $brcm_Log: $
-*
-***************************************************************************/
-
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
+ *
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 #include "nexus_platform_priv.h"
 #include "bkni.h"
 #include "bdbg_log.h"
 #include "nexus_interrupt_map.h"
 #include "nexus_generic_driver_impl.h"
+#include "nexus_platform_virtual_irq.h"
+#if NEXUS_HAS_GPIO
+#include "nexus_platform_shared_gpio.h"
+#endif
 #include <linux/version.h>
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,1)
 #include <linux/kconfig.h>
@@ -114,12 +107,32 @@
 #undef NEXUS_VERSION_MINOR
 #endif
 
+#define BDBG_TRACE_L2(x) /*BDBG_MSG(x)*/
+
 BDBG_MODULE(nexus_platform_os);
 
 
 /* TODO: need a Linux macro to detect 2631-3.2 or greater */
 #if BMIPS4380_40NM || BMIPS5000_40NM || BMIPS_ZEPHYR_40NM 
 #define LINUX_2631_3_2_OR_GREATER 1
+#endif
+
+#undef PDEBUG
+#undef PWARN
+#undef PERR
+#undef PINFO
+
+#define DEBUG
+#ifdef DEBUG
+    #define PERR(fmt, args...) printk( KERN_ERR "nexus.ko: " fmt, ## args)
+    #define PWARN(fmt, args...) printk( KERN_WARNING "nexus.ko: " fmt, ## args)
+    #define PINFO(fmt, args...) printk( KERN_INFO "nexus.ko: " fmt, ## args)
+    #define PDEBUG(fmt, args...) printk( KERN_DEBUG "nexus.ko: " fmt, ## args)
+#else
+    #define PERR(fmt, args...)
+    #define PWARN(fmt, args...)
+    #define PINFO(fmt, args...)
+    #define PDEBUG(fmt, args...)
 #endif
 
 #if NEXUS_CPU_ARM
@@ -158,6 +171,7 @@ struct b_bare_interrupt_entry {
     
     unsigned count;
     bool print;
+    bool virtual;
 };
 
 static struct b_bare_interrupt_state {
@@ -180,6 +194,14 @@ static struct b_bare_interrupt_state {
 static void NEXUS_Platform_P_Isr(unsigned long data);
 static DECLARE_TASKLET(NEXUS_Platform_P_IsrTasklet, NEXUS_Platform_P_Isr, 0);
 
+static void NEXUS_Platform_P_InitSubmodules(void)
+{
+    NEXUS_Platform_P_InitVirtualIrqSubmodule();
+#if NEXUS_HAS_GPIO
+    NEXUS_Platform_P_InitSharedGpioSubmodule();
+#endif
+}
+
 NEXUS_Error
 NEXUS_Platform_P_InitOS(void)
 {
@@ -198,6 +220,8 @@ NEXUS_Platform_P_InitOS(void)
     /* use g_platformMemory to pass OS value to NEXUS_Platform_P_SetCoreModuleSettings */
     g_platformMemory.max_dcache_line_size = nexus_driver_state.settings.max_dcache_line_size;
 
+    NEXUS_Platform_P_InitSubmodules();
+
     rc = BKNI_LinuxKernel_SetIsrTasklet(&NEXUS_Platform_P_IsrTasklet);
     if ( rc!=BERR_SUCCESS ) { rc = BERR_TRACE(rc); goto err_tasklet;}
 
@@ -209,6 +233,14 @@ NEXUS_Platform_P_InitOS(void)
 err_driver:
 err_tasklet:
     return rc;
+}
+
+static void NEXUS_Platform_P_UninitSubmodules(void)
+{
+#if NEXUS_HAS_GPIO
+    NEXUS_Platform_P_UninitSharedGpioSubmodule();
+#endif
+    NEXUS_Platform_P_UninitVirtualIrqSubmodule();
 }
 
 NEXUS_Error
@@ -227,6 +259,9 @@ NEXUS_Platform_P_UninitOS(void)
             NEXUS_Platform_P_DisconnectInterrupt(i);
         }
     }
+
+    NEXUS_Platform_P_UninitSubmodules();
+
     return NEXUS_SUCCESS;
 }
 
@@ -535,7 +570,7 @@ NEXUS_Platform_P_Isr(unsigned long data)
                             state->table[irq].print = true; /* only print once to maximize chance that system keeps running */
                         }
                     }
-                    
+
                     state->table[irq].handler(state->table[irq].context_ptr, state->table[irq].context_int);
                 }
             }
@@ -553,7 +588,7 @@ NEXUS_Platform_P_Isr(unsigned long data)
                 if (status & (1<<i))
                 {
                     BDBG_MSG_IRQ(("BH enable[irq] %d", LINUX_IRQ(i+bit)));
-                    if (!state->table[i+bit].special_handler)
+                    if (!state->table[i+bit].special_handler && !state->table[i+bit].virtual)
                     {
                         if (state->table[i+bit].enabled && !state->table[i+bit].taskletEnabled) {
                             state->table[i+bit].taskletEnabled = true;
@@ -568,6 +603,18 @@ NEXUS_Platform_P_Isr(unsigned long data)
 
 done:
     return;
+}
+
+static void NEXUS_Platform_P_SetL1Status(unsigned l1)
+{
+    struct b_bare_interrupt_state *state = &b_bare_interrupt_state;
+    unsigned i;
+    for(i=0;i<NEXUS_NUM_L1_REGISTERS;i++,l1-=32) {
+        if(l1<32) {
+            state->pending[i].IntrStatus |= 1<<l1;
+            break;
+        }
+    }
 }
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,30)
@@ -682,7 +729,8 @@ NEXUS_Error NEXUS_Platform_P_ConnectInterrupt(unsigned irqNum,
     entry->context_ptr = context_ptr;
     entry->context_int = context_int;
     entry->special_handler = special_handler;
-    entry->shared = shared;
+    entry->shared = shared;\
+    entry->virtual = NEXUS_Platform_P_IsVirtualIrq(name);
     BDBG_ASSERT(!entry->enabled);
     BDBG_ASSERT(!entry->taskletEnabled);
     BDBG_ASSERT(!entry->requested);
@@ -710,6 +758,20 @@ void NEXUS_Platform_P_MonitorOS(void)
     }
     BKNI_LeaveCriticalSection();
 }
+
+static void NEXUS_Platform_P_SetmaskL1(unsigned l1, unsigned disable)
+{
+    struct b_bare_interrupt_state *state = &b_bare_interrupt_state;
+    unsigned reg = l1/32;
+    if (disable)
+    {
+        state->processing[reg].IntrMaskStatus |= 1 << (l1%32);
+    }
+    else
+    {
+        state->processing[reg].IntrMaskStatus &= ~(1 << (l1%32));
+    }
+}
     
 NEXUS_Error NEXUS_Platform_P_EnableInterrupt_isr( unsigned irqNum)
 {
@@ -728,6 +790,16 @@ NEXUS_Error NEXUS_Platform_P_EnableInterrupt_isr( unsigned irqNum)
     
     spin_lock_irqsave(&state->lock, flags);
     state->processing[reg].IntrMaskStatus &= ~(1 << (irqNum%32));
+
+    if (entry->virtual)
+    {
+        BDBG_MSG(("connect virtual interrupt %s (%d, %p)", entry->name, entry->shared, entry->special_handler));
+        entry->taskletEnabled = false;
+        entry->enabled = true;
+        spin_unlock_irqrestore(&state->lock, flags);
+        return 0;
+    }
+
     if (!entry->requested) {
         int irqflags;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,30)
@@ -793,6 +865,16 @@ void NEXUS_Platform_P_DisableInterrupt_isr( unsigned irqNum)
         return;
     }
     
+    if (entry->virtual)
+    {
+        BDBG_MSG(("disable virtual interrupt %d", LINUX_IRQ(irqNum)));
+        spin_lock_irqsave(&state->lock, flags);
+        state->processing[reg].IntrMaskStatus |= (1 << (irqNum%32));
+        entry->enabled = false;
+        spin_unlock_irqrestore(&state->lock, flags);
+        return;
+    }
+
     if (entry->enabled) {
         BDBG_ASSERT(entry->requested);
         BDBG_MSG(("disable interrupt %d", LINUX_IRQ(irqNum)));
@@ -873,10 +955,27 @@ void NEXUS_Platform_P_Os_SystemUpdate32_isrsafe(const NEXUS_Core_PreInitState *p
 {
     unsigned long flags;
 
-    /* this spinlock synchronizes with any kernel use of a set of shared registers. */
-    spin_lock_irqsave(&brcm_magnum_spinlock, flags);
-    preInitState->privateState.regSettings.systemUpdate32_isrsafe(preInitState->hReg, reg, mask, value, false);
-    spin_unlock_irqrestore(&brcm_magnum_spinlock, flags);
+#if defined(CONFIG_BRCMSTB_NEXUS_API) && BRCMSTB_H_VERSION >= 5
+    int retValue;
+    BSTD_UNUSED(flags);
+
+    if (systemRegister)
+    {
+        retValue = brcmstb_update32(reg, mask, value);
+        if (retValue)
+        {
+            printk("brcmstb_update32(%#x,%#x,%#x) failed with %d\n",
+                reg, mask, value, retValue);
+        }
+    }
+    else
+#endif
+    {
+        /* this spinlock synchronizes with any kernel use of a set of shared registers. */
+        spin_lock_irqsave(&brcm_magnum_spinlock, flags);
+        preInitState->privateState.regSettings.systemUpdate32_isrsafe(preInitState->hReg, reg, mask, value, false);
+        spin_unlock_irqrestore(&brcm_magnum_spinlock, flags);
+    }
     return;
 }
 
@@ -1149,3 +1248,57 @@ void NEXUS_Platform_P_UninitializeThermalMonitor(void)
 {
     return;
 }
+
+#include "b_virtual_irq.h"
+
+#if NEXUS_HAS_GPIO
+#include "b_shared_gpio.h"
+
+static void NEXUS_Platform_P_FireGpioL2(int aon)
+{
+    if (NEXUS_Platform_P_VirtualIrqSupported())
+    {
+        b_virtual_irq_software_l2_isr(aon ? b_virtual_irq_line_gio_aon : b_virtual_irq_line_gio);
+    }
+    else
+    {
+        /* TODO */
+    }
+}
+
+static void NEXUS_Platform_P_GetSharedGpioSubmoduleInitSettings(b_shared_gpio_module_init_settings * gio_settings)
+{
+    if (NEXUS_Platform_P_VirtualIrqSupported())
+    {
+        gio_settings->gio_linux_irq = b_virtual_irq_get_linux_irq(b_virtual_irq_line_gio);
+        gio_settings->gio_aon_linux_irq = b_virtual_irq_get_linux_irq(b_virtual_irq_line_gio_aon);
+    }
+    else
+    {
+        gio_settings->gio_linux_irq = 0;
+        gio_settings->gio_aon_linux_irq = 0;
+    }
+}
+
+#define NEXUS_PLATFORM_P_SHARED_GPIO_SUPPORTED() (NEXUS_Platform_P_SharedGpioSupported())
+#else
+#define NEXUS_PLATFORM_P_SHARED_GPIO_SUPPORTED() (false)
+#endif
+#include "nexus_platform_virtual_irq.inc"
+#define B_VIRTUAL_IRQ_SPIN_LOCK(flags) spin_lock_irqsave(&b_bare_interrupt_state.lock, flags)
+#define B_VIRTUAL_IRQ_SPIN_UNLOCK(flags) spin_unlock_irqrestore(&b_bare_interrupt_state.lock, flags)
+#define B_VIRTUAL_IRQ_GET_L1_WORD_COUNT() (NEXUS_NUM_L1_REGISTERS)
+#define B_VIRTUAL_IRQ_MASK_L1(L1) NEXUS_Platform_P_SetmaskL1(L1, 1)
+#define B_VIRTUAL_IRQ_UNMASK_L1(L1) NEXUS_Platform_P_SetmaskL1(L1, 0)
+#define B_VIRTUAL_IRQ_SET_L1_STATUS(L1) NEXUS_Platform_P_SetL1Status(L1)
+#define B_VIRTUAL_IRQ_INC_L1(L1)
+#define B_VIRTUAL_IRQ_WAKE_L1_LISTENERS() tasklet_hi_schedule(&NEXUS_Platform_P_IsrTasklet)
+#include "b_virtual_irq.inc"
+
+#if NEXUS_HAS_GPIO
+#include "nexus_platform_shared_gpio.inc"
+#define B_SHARED_GPIO_FIRE_GPIO_L2(AON) NEXUS_Platform_P_FireGpioL2(AON)
+#define B_SHARED_GPIO_SPIN_LOCK(flags) spin_lock_irqsave(&b_bare_interrupt_state.lock, flags)
+#define B_SHARED_GPIO_SPIN_UNLOCK(flags) spin_unlock_irqrestore(&b_bare_interrupt_state.lock, flags)
+#include "b_shared_gpio.inc"
+#endif

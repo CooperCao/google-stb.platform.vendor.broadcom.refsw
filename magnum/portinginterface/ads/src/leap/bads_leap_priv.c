@@ -1,23 +1,40 @@
-/***************************************************************************
- *     Copyright (c) 2005-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ *  Except as expressly set forth in the Authorized License,
  *
- * Module Description:
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * Revision History:
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- *
- ***************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ ******************************************************************************/
 #include "bstd.h"
 #include "bads.h"
 #include "bhab.h"
@@ -37,7 +54,8 @@ static const BADS_InbandParam defInbandParams =
     false,
     150000,
     BADS_AcquireType_eAuto,
-    false
+    false,
+    765000000
 };
 
 /*******************************************************************************
@@ -181,6 +199,7 @@ BERR_Code BADS_Leap_Open(
         if(!capabilities.channelCapabilities){
             retCode = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto done;
         }
+        BKNI_Memset(capabilities.channelCapabilities, 0, capabilities.totalTunerChannels*sizeof(BHAB_ChannelCapability));
 
         retCode =  BHAB_GetCapabilities(hImplDev->hHab, &capabilities);
         if(retCode){retCode = BERR_TRACE(retCode); goto done;}
@@ -190,6 +209,10 @@ BERR_Code BADS_Leap_Open(
                 maxAdsChannels++;
         }
         hImplDev->mxChnNo = maxAdsChannels;
+        if (hImplDev->mxChnNo == 0) {
+            BDBG_WRN((">>>>> No ADS Channels, defaulting to 16 <<<<<"));
+            hImplDev->mxChnNo = 16;
+        }
     }
 
     for( chnIdx = 0; chnIdx < MX_ADS_CHANNELS; chnIdx++ )
@@ -652,7 +675,9 @@ BERR_Code BADS_Leap_SetAcquireParams(
             buf[6] = (ibParams->frequencyOffset/256 >> 8);  /* Carrier Range [15:8] */
             buf[7] = ibParams->frequencyOffset/256;  /* Carrier Range [7:0] */
 
-            if(ibParams->modType <= BADS_ModulationType_eAnnexAQam4096)
+    /*        if(ibParams->modType <= BADS_ModulationType_eAnnexAQam4096)*/
+			if(1)
+
             {
                 /* set AnnexA SymbolRate */
                 buf[8] = ibParams->symbolRate >> 24;
@@ -780,8 +805,11 @@ BERR_Code BADS_Leap_Acquire(
 {
     BERR_Code retCode = BERR_SUCCESS;
     BADS_Leap_ChannelHandle hImplChnDev;
+#if BADS_CHIP==3158
+	uint8_t buf[13] = HAB_MSG_HDR(BADS_eAcquire, 0x8, BADS_CORE_TYPE);
+#else
     uint8_t buf[5] = HAB_MSG_HDR(BADS_eAcquire, 0, BADS_CORE_TYPE);
-
+#endif
     BDBG_ENTER(BADS_Leap_Acquire);
     BDBG_ASSERT( hChn );
     BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
@@ -804,8 +832,17 @@ BERR_Code BADS_Leap_Acquire(
     {
         /* Acquire */
         buf[3] = hImplChnDev->chnNo;
+#if BADS_CHIP==3158
+	buf[8] = ibParam->frequency >> 24;
+	buf[9] = ibParam->frequency >> 16;
+	buf[10] = ibParam->frequency >> 8;
+	buf[11] = ibParam->frequency;
 
-        CHK_RETCODE(retCode, BHAB_SendHabCommand(hImplChnDev->hHab, buf, 5, buf, 0, false, true, 5 ));
+	CHK_RETCODE(retCode, BHAB_SendHabCommand(hImplChnDev->hHab, buf, 13, buf, 0, false, true, 13 ));
+#else
+
+	CHK_RETCODE(retCode, BHAB_SendHabCommand(hImplChnDev->hHab, buf, 5, buf, 0, false, true, 5 ));
+#endif
         CHK_RETCODE(retCode, BHAB_EnableLockInterrupt(hImplChnDev->hHab, hImplChnDev->devId, true));
     }
 
@@ -869,8 +906,11 @@ BERR_Code BADS_Leap_GetAsyncStatus(
     BERR_Code retCode = BERR_SUCCESS;
     BADS_Leap_ChannelHandle hImplChnDev;
     uint8_t val = 0;
+#if BADS_CHIP==3158
+    uint8_t buf[133] = HAB_MSG_HDR(BADS_eGetAsyncStatus, 0, BADS_CORE_TYPE);
+#else
     uint8_t buf[112] = HAB_MSG_HDR(BADS_eGetAsyncStatus, 0, BADS_CORE_TYPE);
-
+#endif
     BDBG_ENTER(BADS_Leap_GetAsyncStatus);
     BDBG_ASSERT( hChn );
     BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
@@ -887,7 +927,11 @@ BERR_Code BADS_Leap_GetAsyncStatus(
     else
     {
         buf[3] = hImplChnDev->chnNo;
+#if BADS_CHIP==3158
+        CHK_RETCODE(retCode, BHAB_SendHabCommand(hImplChnDev->hHab, buf, 5, buf, 133, false, true, 133));
+#else
         CHK_RETCODE(retCode, BHAB_SendHabCommand(hImplChnDev->hHab, buf, 5, buf, 112, false, true, 112));
+#endif
 
         pStatus->isPowerSaverEnabled = false;
 
@@ -1468,7 +1512,7 @@ BERR_Code BADS_Leap_RequestSpectrumAnalyzerData(
 {
     BERR_Code retCode = BERR_SUCCESS;
     BADS_Leap_ChannelHandle hImplChnDev;
-    uint8_t buf[21] = HAB_MSG_HDR(BADS_eReqSpectrumAnalyzerData, 0x10, BADS_CORE_TYPE);
+    uint8_t buf[21] = HAB_MSG_HDR(BADS_eReqSpectrumAnalyzerData, 0x10, BADS_SPECA_CORE_TYPE);
 
     BDBG_ENTER(BADS_Leap_RequestSpectrumAnalyzerData);
     BDBG_ASSERT( hChn );
@@ -1486,7 +1530,7 @@ BERR_Code BADS_Leap_RequestSpectrumAnalyzerData(
     }
     else
     {
-        buf[3] = hImplChnDev->chnNo;
+        buf[3] = BADS_SPECA_CORE_ID;
         buf[4] = pSettings->startFreq >> 24;
         buf[5] = pSettings->startFreq >> 16;
         buf[6] = pSettings->startFreq >> 8;
@@ -1516,7 +1560,7 @@ BERR_Code BADS_Leap_GetSpectrumAnalyzerData(
 {
     BERR_Code retCode = BERR_SUCCESS;
     BADS_Leap_ChannelHandle hImplChnDev;
-    uint8_t buf[512] = HAB_MSG_HDR(BADS_eGetSpectrumAnalyzerData, 0x8, BADS_CORE_TYPE);
+    uint8_t buf[1024] = HAB_MSG_HDR(BADS_eGetSpectrumAnalyzerData, 0x8, BADS_SPECA_CORE_TYPE);
     uint16_t i;
 
     BDBG_ENTER(BADS_Leap_GetSpectrumAnalyzerData);
@@ -1534,8 +1578,8 @@ BERR_Code BADS_Leap_GetSpectrumAnalyzerData(
     }
     else
     {
-        buf[3] = hImplChnDev->chnNo;
-        CHK_RETCODE(retCode, BHAB_SendHabCommand(hImplChnDev->hHab, buf, 13, buf, 512, false, true, 512));
+        buf[3] = BADS_SPECA_CORE_ID;
+        CHK_RETCODE(retCode, BHAB_SendHabCommand(hImplChnDev->hHab, buf, 13, buf, 1024, false, true, 1024));
 
         pSpectrumData->datalength = ((((buf[1] & 0x3F) << 4) | (buf[2] >> 4) ) - 8)/4;
         pSpectrumData->moreData = (buf[4] >> 7) & 0x1;

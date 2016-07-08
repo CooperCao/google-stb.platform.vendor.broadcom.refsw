@@ -1,43 +1,41 @@
 /******************************************************************************
-* (c) 2004-2015 Broadcom Corporation
-*
-* This program is the proprietary software of Broadcom Corporation and/or its
-* licensors, and may only be used, duplicated, modified or distributed pursuant
-* to the terms and conditions of a separate, written license agreement executed
-* between you and Broadcom (an "Authorized License").  Except as set forth in
-* an Authorized License, Broadcom grants no license (express or implied), right
-* to use, or waiver of any kind with respect to the Software, and Broadcom
-* expressly reserves all rights in and to the Software and all intellectual
-* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1. This program, including its structure, sequence and organization,
-*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-*    reasonable efforts to protect the confidentiality thereof, and to use
-*    this information only in connection with your use of Broadcom integrated
-*    circuit products.
-*
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-******************************************************************************/
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ *
+ ******************************************************************************/
 
 #include "bstd.h"
 #include "bdbg.h"
@@ -432,7 +430,7 @@ static BERR_Code CheckParams(
             break;
     } /* end: switch operation */
 
-    return BERR_TRACE(BERR_SUCCESS);
+    return BERR_SUCCESS;
 }
 
 
@@ -670,19 +668,18 @@ void BSID_Close(
     {
        /* This will put the core to sleep */
        BSID_P_Standby(hSid); /* NOTE: Open() does the equivalent of Resume() */
+       /* NOTE: even if this fails, it should still release the memory etc.,
+          so this just 'falls-through' */
     }
     /* else, core is already suspended, so we do nothing */
     /* ... so now we just take care of host-side resources ... */
 
-    /* wait for the idle state of the device before close it */
-    /* FIXME: This doesn't seem to do anything! */
-    do {
-      BKNI_Sleep(10);
-    } while (hSid->sFwHwConfig.eSidArcStatus != BSID_ResourceStatus_eIdle);
-
     /* destroy sid interrupt callback */
     if (NULL != hSid->hServiceIsr)
        BINT_DestroyCallback(hSid->hServiceIsr);
+
+    if (NULL != hSid->hWatchdogIsr)
+       BINT_DestroyCallback(hSid->hWatchdogIsr);
 
     /* destroy mailbox event */
     if (NULL != hSid->sMailbox.hMailboxEvent)
@@ -745,6 +742,7 @@ BERR_Code BSID_OpenChannel(
 )
 {
     BERR_Code           retCode = BERR_SUCCESS;
+    BERR_Code           failCode = BERR_SUCCESS;
     BSID_ChannelHandle  hSidChannel = NULL;
     uint32_t            ui32_IdleChannel;
 
@@ -764,7 +762,7 @@ BERR_Code BSID_OpenChannel(
     {
         BDBG_ERR(("SID is Suspended!"));
         BDBG_LEAVE( BSID_OpenChannel );
-        return BERR_TRACE(BERR_INVALID_PARAMETER);
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
 
     /* Verify channel type is valid */
@@ -877,20 +875,16 @@ BERR_Code BSID_OpenChannel(
     hSidChannel->ui32_ChannelNum     = ui32_IdleChannel;
     hSidChannel->hSid                = hSid;
     hSidChannel->ui32_ChannelID      = ui32_ChannelId;
-    hSidChannel->ui32_SequenceNumber = 0x0;
-    hSidChannel->b_FlushPending      = false;
     hSidChannel->e_ChannelType       = hSidChannel->sChSettings.e_ChannelType;
-    /* NOTE: This doesn't need to be critical sectioned - is safe until the channel assignment is made below */
-    hSidChannel->e_ChannelState      = BSID_ChannelState_eClose;
     hSidChannel->e_ChannelChangeOutputMode = BSID_ChannelChangeOutputMode_eLastFramePreviousChannel;
-
-    /* register channel to device handle */
-    hSid->ahChannel[hSidChannel->ui32_ChannelNum] = hSidChannel;
 
     /* configure channel-specific state */
     switch(hSidChannel->e_ChannelType)
     {
        case BSID_ChannelType_eStill:
+           /* since the "queue" is a circular buffer with read/write pointers, actual usable space in the
+              "queue" is one less than the size of the queue, so we make the size of the queue one more
+              than the requested depth */
            hSidChannel->ui32_QueueTrueDepth = (1 + hSidChannel->sChSettings.u_ChannelSpecific.still.ui32_QueueDepth);
            break;
        case BSID_ChannelType_eMotion:
@@ -902,6 +896,12 @@ BERR_Code BSID_OpenChannel(
            /* Shouldn't happen if all cases accounted for */
            break;
     }
+
+    /* Reset the channel settings that can change */
+    BSID_P_ResetChannel(hSidChannel);
+
+    /* register channel to device handle */
+    hSid->ahChannel[hSidChannel->ui32_ChannelNum] = hSidChannel;
 
     /* Clear the DMA info to avoid "sticky" abort status */
     /* FIXME: Something weird about this shared memory - it is shared for
@@ -953,33 +953,35 @@ BERR_Code BSID_OpenChannel(
     retCode = BSID_P_ResumeChannel(hSidChannel);
     if (BERR_SUCCESS != retCode)
     {
+        BDBG_ERR(("OpenChannel: Unable to resume channel (error code 0x%x)", retCode));
         BSID_P_DestroyChannel(hSidChannel);
-        /* FIXME: Release clock?? */
-        BDBG_LEAVE( BSID_OpenChannel );
-        return BERR_TRACE(retCode);
+        failCode = retCode;
+        /* NOTE: This falls through so it can release the clock */
     }
 
-
 #ifdef BSID_P_CLOCK_CONTROL
-    /* NOTE: We can do this since SendCmdOpenChannel is blocking */
+    /* NOTE: We can do this since SendCmdOpenChannel (in ResumeChannel) is blocking */
     retCode = BSID_P_Power_ReleaseResource(hSid, BSID_P_ResourceType_eClock);
     if (retCode != BERR_SUCCESS)
     {
         BDBG_ERR(("OpenChannel failed to release clock with error 0x%x", retCode));
-        BSID_P_DestroyChannel(hSidChannel);
-        BDBG_LEAVE( BSID_OpenChannel );
-        return BERR_TRACE(retCode);
+        if (BERR_SUCCESS != failCode)
+        {
+            BSID_P_DestroyChannel(hSidChannel);
+            failCode = retCode;
+        }
     }
-    /* NOTE: clock is re-aquired when a decode is started (still or motion)
+    /* NOTE: clock is re-acquired when a decode is started (still or motion)
        This ensures that the SID remains idle until actually used regardless
        of whether a channel is opened */
 #endif
 
-    /* return device handle */
-    *phSidChannel = hSidChannel;
+    if (BERR_SUCCESS == failCode)
+       /* return device handle */
+       *phSidChannel = hSidChannel;
 
     BDBG_LEAVE(BSID_OpenChannel);
-    return BERR_TRACE(retCode);
+    return BERR_TRACE(failCode);
 
 }
 
@@ -1005,39 +1007,48 @@ void BSID_CloseChannel(BSID_ChannelHandle hSidChannel)
         return;
     }
 
+    /* Check the status of the channel and if necessary perform the
+       basic equivalent of Stop() to cleanup - it is not guaranteed that
+       the caller will stop() before closing, especially upon failure,
+       or upon watchdog - this is necessary to avoid resource leaks */
+    if ((hSidChannel->e_ChannelState != BSID_ChannelState_eStop)
+         && (hSidChannel->e_ChannelState != BSID_ChannelState_eReady))
+    {
+        BSID_StopDecodeSettings stStopDecodeSettings;
+        BDBG_WRN(("Channel Not stopped - Stopping Decode!"));
+        BSID_GetDefaultStopSettings(&stStopDecodeSettings);
+        BSID_StopDecode(hSidChannel, &stStopDecodeSettings);
+    }
+
 #ifdef BSID_P_CLOCK_CONTROL
     retCode = BSID_P_Power_AcquireResource(hSid, BSID_P_ResourceType_eClock);
-    if (retCode != BERR_SUCCESS)
-    {
-        BDBG_ERR(("CloseChannel failed to acquire clock with error code 0x%x", retCode));
-        BDBG_LEAVE( BSID_CloseChannel );
-        return;
-    }
 #endif
-    /* FIXME: Should this be doing a sync before close? Does sync when closing for standby, so why not here */
-    /* FIXME: Release clock upon failure of an call? */
-
-    /* send close channel command to sid arc */
-    retCode = BSID_P_SendCmdCloseChannel(hSidChannel);
-    if (retCode != BERR_SUCCESS)
+    if (BERR_SUCCESS == retCode)
     {
-        BDBG_ERR(("BSID_P_SendCmdCloseChannel failed with error 0x%x", retCode));
-        BDBG_LEAVE( BSID_CloseChannel );
-        return;
-    }
+       /* FIXME: Should this be doing a sync before close? Does sync when closing for standby, so why not here */
+
+       /* send close channel command to SID ARC */
+       retCode = BSID_P_SendCmdCloseChannel(hSidChannel);
+       if (retCode != BERR_SUCCESS)
+       {
+          BDBG_ERR(("BSID_P_SendCmdCloseChannel failed with error 0x%x", retCode));
+       }
 
 #ifdef BSID_P_CLOCK_CONTROL
-    /* NOTE: We can do this here since SendCmdCloseChannel is blocking, and
-             subsequent actions are all host-side functionality
-             If all channels are closed, this will release the resource */
-    retCode = BSID_P_Power_ReleaseResource(hSid, BSID_P_ResourceType_eClock);
-    if (retCode != BERR_SUCCESS)
-    {
-        BDBG_ERR(("CloseChannel failed to release clock with error code 0x%x", retCode));
-        BDBG_LEAVE( BSID_CloseChannel );
-        return;
-    }
+       /* NOTE: We can do this here since SendCmdCloseChannel is blocking, and
+                subsequent actions are all host-side functionality
+                If all channels are closed, this will release the resource */
+       retCode = BSID_P_Power_ReleaseResource(hSid, BSID_P_ResourceType_eClock);
+       if (retCode != BERR_SUCCESS)
+       {
+          BDBG_ERR(("CloseChannel failed to release clock with error code 0x%x", retCode));
+       }
 #endif
+    }
+    else
+    {
+        BDBG_ERR(("CloseChannel failed to acquire clock with error code 0x%x", retCode));
+    }
 
     BSID_P_DestroyChannel(hSidChannel);
 
@@ -1159,8 +1170,6 @@ BERR_Code BSID_SetChannelSettings(
     const BSID_ChannelSettings *ps_ChannelSettings
     )
 {
-    BERR_Code retCode = BERR_SUCCESS;
-
     BDBG_ENTER( BSID_SetChannelSettings );
 
     BDBG_ASSERT(hSidChannel);
@@ -1196,7 +1205,7 @@ BERR_Code BSID_SetChannelSettings(
 
     BDBG_LEAVE( BSID_SetChannelSettings );
 
-    return BERR_TRACE(retCode);
+    return BERR_SUCCESS;
 }
 #endif
 
@@ -1307,13 +1316,19 @@ BERR_Code BSID_SetDmaChunkInfo(
     BDBG_ASSERT(ps_DmaChunkInfo);
 
     BDBG_ENTER(BSID_SetDmaChunkInfo);
-    /* FIXME: This must be called only while a decode is in progress */
+
+    if (hSidChannel->e_ChannelState != BSID_ChannelState_eDecode)
+    {
+        BDBG_WRN(("Attempt to Set DMA Chunk Info when not decoding!"));
+        BDBG_LEAVE( BSID_SetDmaChunkInfo_isr );
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
+    }
 
     if (hSidChannel->hSid->bStandby)
     {
         BDBG_ERR(("SID is Suspended!"));
         BDBG_LEAVE( BSID_SetDmaChunkInfo_isr );
-        return BERR_TRACE(BERR_INVALID_PARAMETER);
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
 
     /* sanity check */
@@ -1377,26 +1392,28 @@ BERR_Code BSID_DisableForFlush(
 
     BDBG_ASSERT(hSidChannel);
 
+    if (hSidChannel->e_ChannelState != BSID_ChannelState_eDecode)
+    {
+        BDBG_WRN(("Attempt to Disable for flush when not decoding!"));
+        BDBG_LEAVE( BSID_DisableForFlush );
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
+    }
+
     if (hSidChannel->hSid->bStandby)
     {
         BDBG_ERR(("SID is Suspended!"));
         BDBG_LEAVE( BSID_DisableForFlush );
-        return BERR_TRACE(BERR_INVALID_PARAMETER);
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
 
-    /* FIXME: This must be called only while a decode is in progress */
     retCode = BSID_P_DisableForFlush(hSidChannel);
     if (retCode != BERR_SUCCESS)
     {
-        /* un-lock status of sid arc: sid arc status is idle */
-        BDBG_LEAVE( BSID_DisableForFlush );
-        return BERR_TRACE(retCode);
+        BDBG_ERR(("Unable to Disable for Flush"));
     }
 
-    BDBG_LEAVE( BSID_DisableForFlush );
-
     /* NOTE: This does not release the clock - clock is released only upon Stop() */
-
+    BDBG_LEAVE( BSID_DisableForFlush );
     return BERR_TRACE(retCode);
 }
 
@@ -1434,17 +1451,23 @@ BERR_Code BSID_FlushChannel(
 {
     BERR_Code retCode = BERR_SUCCESS;
 
-    /* FIXME: This must be called only while a decode is in progress */
     BDBG_ENTER( BSID_FlushChannel );
     BDBG_ASSERT(hSidChannel);
     BDBG_ASSERT(ps_FlushSettings);
     BDBG_ASSERT(ps_FlushSettings->uiSignature == BSID_P_SIGNATURE_FLUSHSETTINGS);
 
+    if (hSidChannel->e_ChannelState != BSID_ChannelState_eDecode)
+    {
+        BDBG_WRN(("Attempt to flush channel when not decoding!"));
+        BDBG_LEAVE( BSID_FlushChannel );
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
+    }
+
     if (hSidChannel->hSid->bStandby)
     {
         BDBG_ERR(("SID is Suspended!"));
         BDBG_LEAVE( BSID_FlushChannel );
-        return BERR_TRACE(BERR_INVALID_PARAMETER);
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
 
     /* sanity check */
@@ -1470,14 +1493,14 @@ BERR_Code BSID_FlushChannel(
        retCode = BSID_P_SendCmdFlushChannel(hSidChannel);
        if (!hSidChannel->b_FlushPending)
        {
-           /* wait for data request occurred during flush,
-              so initiate an abort (this is a blocking call) */
+           /* wait for data request occurred during flush, so initiate an abort
+              NOTE: this is a blocking call and will not return
+              until aborted or the equivalent of a watchdog is invoked */
            BSID_P_AbortDecode(hSidChannel);
        }
        hSidChannel->b_FlushPending = false;
        if (retCode != BERR_SUCCESS)
        {
-          /* un-lock status of sid arc: sid arc status is idle */
           BDBG_LEAVE( BSID_FlushChannel );
           return BERR_TRACE(retCode);
        }
@@ -1559,7 +1582,7 @@ BERR_Code BSID_StartDecode(
     {
         BDBG_ERR(("StartDecode:: SID is Suspended!"));
         BDBG_LEAVE( BSID_StartDecode );
-        return BERR_TRACE(BERR_INVALID_PARAMETER);
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
 
     /* sanity check */
@@ -1571,7 +1594,6 @@ BERR_Code BSID_StartDecode(
         return BERR_TRACE(retCode);
     }
     BDBG_MSG(("StartDecode:: Mode: %d", ps_StartDecodeSettings->eDecodeMode));
-    hSidChannel->eDecodeMode = ps_StartDecodeSettings->eDecodeMode;
 
 #ifdef BSID_P_CLOCK_CONTROL
     retCode = BSID_P_Power_AcquireResource(hSidChannel->hSid, BSID_P_ResourceType_eClock);
@@ -1583,6 +1605,7 @@ BERR_Code BSID_StartDecode(
     }
 #endif
 
+    hSidChannel->eDecodeMode = ps_StartDecodeSettings->eDecodeMode;
     hSidChannel->bAbortInitiated = false;
 
     /* Check settings to determine desired operation */
@@ -1594,7 +1617,7 @@ BERR_Code BSID_StartDecode(
             {
                 BDBG_ERR(("StartDecode:: Operation can't be executed. Still decode operations in progress!"));
                 BDBG_LEAVE( BSID_StartDecode );
-                return BERR_TRACE(BERR_UNKNOWN);
+                return BERR_TRACE(BERR_NOT_SUPPORTED);
             }
 
             retCode = BSID_P_MotionDecode(hSidChannel, &ps_StartDecodeSettings->uDecodeSettings.stMotion);
@@ -1608,15 +1631,11 @@ BERR_Code BSID_StartDecode(
             {
                BDBG_ERR(("StartDecode:: Operation can't be executed. Motion decode channel is opened!"));
                BDBG_LEAVE( BSID_StartDecode );
-               return BERR_TRACE(BERR_UNKNOWN);
+               return BERR_TRACE(BERR_NOT_SUPPORTED);
             }
 
-            BKNI_EnterCriticalSection();
-            hSidChannel->e_ChannelState = BSID_ChannelState_eDecode;
-            BKNI_LeaveCriticalSection();
-
             /* is the sid ready to accept this request? */
-            if (BSID_P_GetChannelQueueStatus(hSidChannel) == BSID_ChannelQueueStatus_NotFull)
+            if (!BSID_P_IsChannelQueueFull(hSidChannel))
             {
                /* post request to channel queue */
                retCode = BSID_P_SendCmdGetStreamInfo(hSidChannel, &ps_StartDecodeSettings->uDecodeSettings.stStreamInfo);
@@ -1636,15 +1655,11 @@ BERR_Code BSID_StartDecode(
             {
                BDBG_ERR(("StartDecode:: Operation can't be executed. Motion decode channel is opened!"));
                BDBG_LEAVE( BSID_StartDecode );
-               return BERR_TRACE(BERR_UNKNOWN);
+               return BERR_TRACE(BERR_NOT_SUPPORTED);
             }
 
-            BKNI_EnterCriticalSection();
-            hSidChannel->e_ChannelState = BSID_ChannelState_eDecode;
-            BKNI_LeaveCriticalSection();
-
             /* is the sid ready to accept this request? */
-            if (BSID_P_GetChannelQueueStatus(hSidChannel) == BSID_ChannelQueueStatus_NotFull)
+            if (!BSID_P_IsChannelQueueFull(hSidChannel))
             {
                /* prepare decode command and send it to sid arc */
                retCode = BSID_P_SendCmdDecodeStillImage(hSidChannel, &ps_StartDecodeSettings->uDecodeSettings.stImage);
@@ -1665,15 +1680,11 @@ BERR_Code BSID_StartDecode(
             {
                BDBG_ERR(("StartDecode:: Operation can't be executed. Motion decode channel is opened!"));
                BDBG_LEAVE( BSID_StartDecode );
-               return BERR_TRACE(BERR_UNKNOWN);
+               return BERR_TRACE(BERR_NOT_SUPPORTED);
             }
 
-            BKNI_EnterCriticalSection();
-            hSidChannel->e_ChannelState = BSID_ChannelState_eDecode;
-            BKNI_LeaveCriticalSection();
-
             /* is the sid ready to accept this request? */
-            if (BSID_P_GetChannelQueueStatus(hSidChannel) == BSID_ChannelQueueStatus_NotFull)
+            if (!BSID_P_IsChannelQueueFull(hSidChannel))
             {
                /* prepare decode command and send it to sid arc */
                retCode = BSID_P_SendCmdDecodeSegment(hSidChannel, &ps_StartDecodeSettings->uDecodeSettings.stSegment);
@@ -1689,6 +1700,10 @@ BERR_Code BSID_StartDecode(
             retCode = BERR_INVALID_PARAMETER;
     }
 
+    if (BERR_SUCCESS == retCode)
+    {
+       BSID_SET_CH_STATE(hSidChannel, Decode);
+    }
     BDBG_LEAVE( BSID_StartDecode );
     return BERR_TRACE(retCode);
 }
@@ -1777,13 +1792,10 @@ void BSID_StopDecode(
             retCode = BSID_P_DisableForFlush(hSidChannel);
             if (retCode != BERR_SUCCESS)
             {
-                /* un-lock status of sid arc: sid arc status is idle */
                 BDBG_ERR(("BSID_P_DisableForFlush failed retCode 0x%x", retCode));
-                return;
+                /* NOTE: This falls thru - regardless of success of DisableForFlush
+                   this will subsequently attempt to stop the decode */
             }
-            /* FIXME: This function MUST succeed in whatever way necessary - it cannot return an error */
-            /* For motion we need to ensure channel state is "ready"
-               For still we need to force abort and wait for response, and then set "ready" channel state. */
 
             /* NOTE: This is unlocking Rave blocks, so we could make this the generic API for stop() */
             /* NOTE: For motion decode, this currently cannot fail (always succeeds) */
@@ -1794,10 +1806,7 @@ void BSID_StopDecode(
                 return;
             }
         }
-        /* FIXME: function or macro for this: SetChannelState(x) */
-        BKNI_EnterCriticalSection();
-        hSidChannel->e_ChannelState = BSID_ChannelState_eStop;
-        BKNI_LeaveCriticalSection();
+        BSID_SET_CH_STATE(hSidChannel, Stop);
 
         /* SID has stopped, so we can release clocks now ...*/
 #ifdef BSID_P_CLOCK_CONTROL
@@ -1910,6 +1919,7 @@ BERR_Code BSID_Resume(BSID_Handle hSid)
 BERR_Code BSID_ProcessWatchdog(BSID_Handle hSid)
 {
    BERR_Code rc = BERR_SUCCESS;
+   BERR_Code failCode = BERR_SUCCESS;
 
    BDBG_ENTER(BSID_ProcessWatchdog);
 
@@ -1921,13 +1931,14 @@ BERR_Code BSID_ProcessWatchdog(BSID_Handle hSid)
    }
    else
    {
-      /* callback must be disabled and re-enabled */
+      /* NOTE: this will attempt to resume the firmware even if any
+         prior steps fail to occur correctly */
       rc = BINT_DisableCallback(hSid->hServiceIsr);
       if (rc != BERR_SUCCESS)
       {
          BDBG_ERR(("BSID_ProcessWatchdog:: BINT_DisableCallback returned with error 0x%x", rc));
-         BDBG_LEAVE(BSID_ProcessWatchdog);
-         return BERR_TRACE(rc);
+         if (BERR_SUCCESS == failCode)
+            failCode = rc;
       }
 
       /* Standby to shutdown/reset core */
@@ -1935,24 +1946,28 @@ BERR_Code BSID_ProcessWatchdog(BSID_Handle hSid)
       if (BERR_SUCCESS != rc)
       {
          BDBG_ERR(("BSID_ProcessWatchdog:: Unable to standby SID"));
-         BDBG_LEAVE(BSID_ProcessWatchdog);
-         return BERR_TRACE(rc);
+         if (BERR_SUCCESS == failCode)
+            failCode = rc;
       }
 
-      hSid->bWatchdogOccurred = false;
+      hSid->bWatchdogOccurred = false;  /* only used by Standby() */
 
       /* Resume to reboot core and reopen channels */
+      /* NOTE: we must force the firmware loader to reload everything
+         (i.e. as if its a cold boot) - we cannot rely upon any firmware state
+         even the code! */
+      hSid->bArcReLoad = false;
       rc = BSID_P_Resume(hSid);
       if (BERR_SUCCESS != rc)
       {
          BDBG_ERR(("BSID_ProcessWatchdog:: Unable to resume to restore SID functionality"));
-         BDBG_LEAVE(BSID_ProcessWatchdog);
-         return BERR_TRACE(rc);
+         if (BERR_SUCCESS == failCode)
+            failCode = rc;
       }
    }
 
    BDBG_LEAVE(BSID_ProcessWatchdog);
-   return rc;
+   return BERR_TRACE(failCode);
 }
 
 /*******************

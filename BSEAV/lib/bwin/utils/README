@@ -11,9 +11,9 @@ Do this on the build server:
 	make clean
 
 	# this will build the buildfont utility
-	make -f Makefile.buildfont
+	make
 
-	# copy it to a location where refsw binaries are run (i.e. where brutus is run)
+	# copy it to a location where refsw binaries are run (i.e. where atlas is run)
 	cp buildfont $DESTDIR
 
 Do this on the settop:
@@ -23,9 +23,3 @@ Do this on the settop:
 
 	# here's a sample
 	nexus buildfont /mnt/nfs/font.ttf 10 1 fonts/test.bwin_font
-
-	# edit brutus.cfg to use the font and add the following option
-	NORMAL_FONT=fonts/test.bwin_font;-1
-
-Now run brutus. You should see the new font in use.
-

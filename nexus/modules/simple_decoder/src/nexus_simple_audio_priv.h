@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2010-2013 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #ifndef NEXUS_SIMPLE_AUDIO_PRIV_H__
@@ -76,9 +68,19 @@ enum nexus_simpleaudiodecoder_state {
     state_max
 };
 
+struct NEXUS_SimpleAudioDecoderServer
+{
+    NEXUS_OBJECT(NEXUS_SimpleAudioDecoderServer);
+    BLST_S_HEAD(NEXUS_SimpleAudioPlayback_P_List, NEXUS_SimpleAudioPlayback) playbacks;
+    BLST_S_HEAD(NEXUS_SimpleAudioDecoder_P_List, NEXUS_SimpleAudioDecoder) decoders;
+};
+
+extern NEXUS_SimpleAudioDecoderServerHandle g_NEXUS_SimpleAudioDecoderServer;
+
 struct NEXUS_SimpleAudioDecoder
 {
     NEXUS_OBJECT(NEXUS_SimpleAudioDecoder);
+    NEXUS_SimpleAudioDecoderServerHandle server;
     BLST_S_ENTRY(NEXUS_SimpleAudioDecoder) link;
     unsigned index;
     bool acquired;
@@ -95,9 +97,10 @@ struct NEXUS_SimpleAudioDecoder
     struct NEXUS_SimpleAudioDecoder_P_CodecSettingsDecoder codecSettings;
     NEXUS_SimpleAudioDecoderStartSettings startSettings;
     NEXUS_AudioDecoderTrickState trickState;
-    NEXUS_AudioInput currentSpdifInput, currentHdmiInput;
+    NEXUS_AudioInput currentSpdifInput, currentHdmiInput, currentCaptureInput;
     bool currentSpdifInputCompressed, currentHdmiInputCompressed;
     NEXUS_SimpleStcChannelHandle stcChannel;
+    int stcIndex;
 
     struct {
         NEXUS_SimpleEncoderHandle handle;
@@ -119,7 +122,6 @@ struct NEXUS_SimpleAudioDecoder
 #endif
     } hdmiInput;
     struct {
-        NEXUS_AudioMixerHandle stereo, multichannel;
         bool suspended;
     } mixers;
 };
@@ -128,8 +130,8 @@ BDBG_OBJECT_ID_DECLARE(NEXUS_SimpleAudioPlayback);
 struct NEXUS_SimpleAudioPlayback
 {
     NEXUS_OBJECT(NEXUS_SimpleAudioPlayback);
-    BLST_S_ENTRY(NEXUS_SimpleAudioPlayback) link; /* global list */
-    BLST_S_ENTRY(NEXUS_SimpleAudioPlayback) decoderLink; /* per decoder list */
+    BLST_S_ENTRY(NEXUS_SimpleAudioPlayback) link;
+    NEXUS_SimpleAudioDecoderServerHandle server;
     unsigned index;
     bool acquired;
     bool started;
@@ -139,9 +141,6 @@ struct NEXUS_SimpleAudioPlayback
     NEXUS_SimpleAudioPlaybackSettings settings;
     NEXUS_SimpleAudioPlaybackStartSettings startSettings;
 };
-
-void nexus_simpleaudiodecoder_p_add_playback(NEXUS_SimpleAudioPlaybackHandle audioPlayback);
-void nexus_simpleaudiodecoder_p_remove_playback(NEXUS_SimpleAudioPlaybackHandle audioPlayback);
 
 NEXUS_Error nexus_simpleaudioplayback_p_internal_start(NEXUS_SimpleAudioPlaybackHandle handle);
 void nexus_simpleaudioplayback_p_internal_stop(NEXUS_SimpleAudioPlaybackHandle handle);
@@ -153,5 +152,11 @@ NEXUS_Error nexus_simpleaudiodecoder_p_add_encoder(NEXUS_SimpleAudioDecoderHandl
     NEXUS_SimpleEncoderHandle encoder, NEXUS_AudioMixerHandle audioMixer,
     bool displayEncode);
 void nexus_simpleaudiodecoder_p_remove_encoder(NEXUS_SimpleAudioDecoderHandle handle);
+
+void nexus_simpleaudiodecoder_p_encoder_get_codec_settings(NEXUS_SimpleAudioDecoderHandle handle,
+    NEXUS_AudioCodec codec, NEXUS_AudioEncoderCodecSettings *pSettings);
+
+NEXUS_Error nexus_simpleaudiodecoder_p_encoder_set_codec_settings(NEXUS_SimpleAudioDecoderHandle handle,
+    const NEXUS_AudioEncoderCodecSettings *pSettings);
 
 #endif

@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2014 Broadcom Corporation
+ *     Broadcom Proprietary and Confidential. (c)2014 Broadcom.  All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -51,9 +51,12 @@
 /*****************************************************************************/
 
 BERR_Code BVC5_P_BinMemArrayCreate(
+   BVC5_BinPoolHandle   hBinPool,
    BVC5_P_BinMemArray  *psArray
 )
 {
+   BDBG_ASSERT(hBinPool != NULL);
+
    psArray->pvBinMemoryBlocks = (BVC5_BinBlockHandle*)BKNI_Malloc(sizeof(BVC5_BinBlockHandle) * BVC5_P_INITIAL_BIN_ARRAY_LENGTH);
    if (psArray->pvBinMemoryBlocks != NULL)
       psArray->uiTotalBinBlocks = BVC5_P_INITIAL_BIN_ARRAY_LENGTH;
@@ -61,13 +64,13 @@ BERR_Code BVC5_P_BinMemArrayCreate(
       psArray->uiTotalBinBlocks = 0;
 
    psArray->uiNumBinBlocks = 0;
+   psArray->hBinPool       = hBinPool;
 
    return psArray->pvBinMemoryBlocks == NULL ? BERR_OUT_OF_SYSTEM_MEMORY : BERR_SUCCESS;
 }
 
 void BVC5_P_BinMemArrayDestroy(
-   BVC5_P_BinMemArray  *psArray,
-   BVC5_BinPoolHandle   hBinPool
+   BVC5_P_BinMemArray  *psArray
 )
 {
    uint32_t i;
@@ -75,14 +78,12 @@ void BVC5_P_BinMemArrayDestroy(
    if (psArray->pvBinMemoryBlocks == NULL)
       return;
 
-   BDBG_ASSERT(hBinPool != NULL || psArray->uiNumBinBlocks == 0);
-
    /* Free any left over bin blocks */
    for (i = 0; i < psArray->uiNumBinBlocks; i++)
    {
       BDBG_ASSERT(psArray->pvBinMemoryBlocks[i] != NULL);
 
-      BVC5_P_BinPoolRecycle(hBinPool, psArray->pvBinMemoryBlocks[i]);
+      BVC5_P_BinPoolRecycle(psArray->hBinPool, psArray->pvBinMemoryBlocks[i]);
       psArray->pvBinMemoryBlocks[i] = NULL;
    }
 
@@ -90,11 +91,11 @@ void BVC5_P_BinMemArrayDestroy(
    psArray->pvBinMemoryBlocks = NULL;
    psArray->uiNumBinBlocks    = 0;
    psArray->uiTotalBinBlocks  = 0;
+   psArray->hBinPool          = NULL;
 }
 
 BVC5_BinBlockHandle BVC5_P_BinMemArrayAdd(
    BVC5_P_BinMemArray  *psArray,
-   BVC5_BinPoolHandle   hBinPool,
    uint32_t             uiMinBlockSizeBytes,
    uint32_t            *uiPhysOffset
 )
@@ -118,7 +119,7 @@ BVC5_BinBlockHandle BVC5_P_BinMemArrayAdd(
       psArray->uiTotalBinBlocks  = uiNewSize;
    }
 
-   pBlock = BVC5_P_BinPoolAllocAtLeast(hBinPool, uiMinBlockSizeBytes, uiPhysOffset);
+   pBlock = BVC5_P_BinPoolAllocAtLeast(psArray->hBinPool, uiMinBlockSizeBytes, uiPhysOffset);
 
    if (pBlock != NULL)
    {
@@ -138,4 +139,12 @@ BVC5_BinBlockHandle BVC5_P_BinMemArrayGetBlock(
       return psArray->pvBinMemoryBlocks[uiIndex];
 
    return NULL;
+}
+
+void BVC5_P_BinMemArrayReplenishPool(
+   BVC5_P_BinMemArray *psArray
+)
+{
+   if (psArray != NULL)
+      BVC5_P_BinPoolReplenish(psArray->hBinPool);
 }

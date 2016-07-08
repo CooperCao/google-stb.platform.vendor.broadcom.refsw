@@ -638,6 +638,10 @@ b_mp4_probe_sampletable(bmp4_parser_handler *handler, uint32_t type, batom_t box
                             visual = &sample->codec.hevc.visual;
                             track->media.info.video.codec = bvideo_codec_h265;
                             break;
+                        case bmp4_sample_type_mp3:
+                            track->media.info.audio.codec = baudio_format_mp3;
+                            audio = &sample->codec.ac3.audio;
+                            break;
                         case bmp4_sample_type_unknown:
                             track->media.type = bmedia_track_type_other;
                             break;

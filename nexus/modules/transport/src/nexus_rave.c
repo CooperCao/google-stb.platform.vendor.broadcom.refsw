@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2014 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #include "nexus_transport_module.h"
@@ -277,14 +269,14 @@ static bool NEXUS_Rave_P_RequiresSwRave(NEXUS_TransportType transportType, NEXUS
 NEXUS_Error NEXUS_Rave_P_UseSecureHeap(NEXUS_HeapHandle heap, bool useSecureHeap, bool *pUseSecureHeap)
 {
     /* validate use of CRR (secure heap) */
-    if (heap && heap == pTransport->settings.secureHeap) {
+    if (heap && heap == pTransport->moduleSettings.secureHeap) {
         /* the primary method is the user selecting the CRR explicitly */
         *pUseSecureHeap = true;
     }
-    else if (useSecureHeap && pTransport->settings.secureHeap) {
+    else if (useSecureHeap && pTransport->moduleSettings.secureHeap) {
         /* for backward compat, we allow a boolean as long as CRR is enabled and there's no mismatch */
-        if (heap && heap != pTransport->settings.secureHeap) {
-            BDBG_ERR(("secure heap misconfiguration: %p %p", (void *)pTransport->settings.secureHeap, (void *)heap));
+        if (heap && heap != pTransport->moduleSettings.secureHeap) {
+            BDBG_ERR(("secure heap misconfiguration: %p %p", (void *)pTransport->moduleSettings.secureHeap, (void *)heap));
             return BERR_TRACE(NEXUS_INVALID_PARAMETER);
         }
         *pUseSecureHeap = true;
@@ -340,7 +332,7 @@ NEXUS_RaveHandle NEXUS_Rave_Open_priv(const NEXUS_RaveOpenSettings *pSettings)
         rave->cdb.heap = NEXUS_Heap_GetMmaHandle(pSettings->heap);
     }
     else if (useSecureHeap) {
-        rave->cdb.heap = pTransport->settings.secureHeap ? NEXUS_Heap_GetMmaHandle(pTransport->settings.secureHeap) : NULL;
+        rave->cdb.heap = pTransport->moduleSettings.secureHeap ? NEXUS_Heap_GetMmaHandle(pTransport->moduleSettings.secureHeap) : NULL;
     }
     else {
         rave->cdb.heap = rave->itb.heap;
@@ -355,6 +347,11 @@ NEXUS_RaveHandle NEXUS_Rave_Open_priv(const NEXUS_RaveOpenSettings *pSettings)
     allocSettings.BufferCfg = pSettings->config;
     allocSettings.BufferCfg.Cdb.Alignment = 8; /* non-configurable 256 byte alignment */
     allocSettings.BufferCfg.Itb.Alignment = 7; /* non-configurable 128 byte alignment */
+    if (pSettings->config.Itb.Length % 128) {
+        BDBG_ERR(("Itb.Length %#x is not a multiple of 128 bytes", (unsigned)pSettings->config.Itb.Length));
+        BERR_TRACE(BERR_INVALID_PARAMETER);
+        return NULL;
+    }
     rave->cdb.block = allocSettings.CdbBlock = BMMA_Alloc(rave->cdb.heap, pSettings->config.Cdb.Length, 1 << allocSettings.BufferCfg.Cdb.Alignment, NULL);
     if (!rave->cdb.block) {rc = BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY); goto error;}
     rave->cdb.ptr = BMMA_Lock(rave->cdb.block);
@@ -725,7 +722,11 @@ NEXUS_Error NEXUS_Rave_ConfigureVideo_priv(NEXUS_RaveHandle rave,
         AvCtxCfg.StreamIdLo = 0xE0;
         AvCtxCfg.EsRanges[0].RangeHi = 0xAF; /* MPEG slices */
         AvCtxCfg.EsRanges[0].RangeLo = 0x01;
+#if BCHP_CHIP == 7271 || BCHP_CHIP == 7268
+        AvCtxCfg.EsRanges[0].RangeIsASlice = false;
+#else
         AvCtxCfg.EsRanges[0].RangeIsASlice = true;
+#endif
         AvCtxCfg.EsRanges[0].Enable = true;
         AvCtxCfg.EsRanges[1].RangeHi = 0xBF; /* start of frame */
         AvCtxCfg.EsRanges[1].RangeLo = 0xB0;
@@ -1034,17 +1035,8 @@ NEXUS_Error NEXUS_Rave_ConfigureAudio_priv(
         AvCtxCfg.ItbFormat = BAVC_ItbEsType_eAmr;
         break;
     case NEXUS_AudioCodec_eAc3:
-        if ( pSettings->audioDescriptor )
-        {
-            /* Currently there is no other way to specify this in RAVE */
-            AvCtxCfg.ItbFormat = BAVC_ItbEsType_eAudioDescriptor;
-        }
-        else
-        {
-            AvCtxCfg.ItbFormat = BAVC_ItbEsType_eAc3Plus; /* Use AC3+ ITB type for AC3 */
-        }
-        break;
     case NEXUS_AudioCodec_eAc3Plus:
+    case NEXUS_AudioCodec_eAc4:
         if ( pSettings->audioDescriptor )
         {
             /* Currently there is no other way to specify this in RAVE */
@@ -1052,7 +1044,7 @@ NEXUS_Error NEXUS_Rave_ConfigureAudio_priv(
         }
         else
         {
-        AvCtxCfg.ItbFormat = BAVC_ItbEsType_eAc3Plus;
+            AvCtxCfg.ItbFormat = BAVC_ItbEsType_eAc3Plus;
         }
         break;
     case NEXUS_AudioCodec_eLpcmDvd :
@@ -1376,9 +1368,9 @@ NEXUS_Error NEXUS_Rave_GetStatus_priv(NEXUS_RaveHandle rave, NEXUS_RaveStatus *p
 
     /* to match the allocation logic */
     if(rave->useSecureHeap) {
-        pStatus->heap = pTransport->settings.secureHeap;
+        pStatus->heap = pTransport->moduleSettings.secureHeap;
     } else {
-        pStatus->heap = rave->openSettings.heap ? rave->openSettings.heap : g_pCoreHandles->heap[pTransport->settings.mainHeapIndex].nexus;
+        pStatus->heap = rave->openSettings.heap ? rave->openSettings.heap : g_pCoreHandles->heap[pTransport->moduleSettings.mainHeapIndex].nexus;
     }
     return NEXUS_SUCCESS;
 }
@@ -1659,13 +1651,91 @@ bool NEXUS_Rave_FindVideoStartCode_priv(NEXUS_RaveHandle rave, uint8_t startCode
     return false;
 }
 
+/*
+ * This code assumes: a decodable element requires a PTS and 2 start codes
+ */
+typedef enum NEXUS_Rave_P_ConsumableVideoElementDetectorState
+{
+    NEXUS_Rave_P_ConsumableVideoElementDetectorState_eScan,
+    NEXUS_Rave_P_ConsumableVideoElementDetectorState_ePts,
+    NEXUS_Rave_P_ConsumableVideoElementDetectorState_eStartCode,
+    NEXUS_Rave_P_ConsumableVideoElementDetectorState_eConsumableElement,
+    NEXUS_Rave_P_ConsumableVideoElementDetectorState_eMax
+} NEXUS_Rave_P_ConsumableVideoElementDetectorState;
+
+struct NEXUS_Rave_P_ConsumableVideoElementDetector
+{
+    NEXUS_Rave_P_ConsumableVideoElementDetectorState state;
+};
+
+static bool NEXUS_Rave_P_DetectConsumableVideoElement(void * ctx, const NEXUS_Rave_P_ItbEntry * entry)
+{
+    struct NEXUS_Rave_P_ConsumableVideoElementDetector * pDetector = ctx;
+    unsigned type = B_GET_BITS(entry->word[0], 31, 24);
+
+    BDBG_CASSERT(brave_itb_video_start_code ==     (unsigned)NEXUS_Rave_P_ItbType_eExtractedData);
+    BDBG_CASSERT(brave_itb_base_address ==         (unsigned)NEXUS_Rave_P_ItbType_eBaseAddress);
+    BDBG_CASSERT(brave_itb_pts_dts ==              (unsigned)NEXUS_Rave_P_ItbType_ePtsDts);
+    BDBG_CASSERT(brave_itb_pcr_offset ==           (unsigned)NEXUS_Rave_P_ItbType_ePcrOffset);
+    BDBG_CASSERT(brave_itb_btp ==                  (unsigned)NEXUS_Rave_P_ItbType_eBtp);
+    BDBG_CASSERT(brave_itb_private_hdr ==          (unsigned)NEXUS_Rave_P_ItbType_ePrivateHdr);
+    BDBG_CASSERT(brave_itb_rts ==                  (unsigned)NEXUS_Rave_P_ItbType_eRts);
+    BDBG_CASSERT(brave_itb_pcr ==                  (unsigned)NEXUS_Rave_P_ItbType_ePcr);
+    BDBG_CASSERT(brave_itb_ip_stream_out ==        (unsigned)NEXUS_Rave_P_ItbType_eIpStreamOut);
+    BDBG_CASSERT(brave_itb_termination ==          (unsigned)NEXUS_Rave_P_ItbType_eTermination);
+
+    switch (type)
+    {
+        case NEXUS_Rave_P_ItbType_ePtsDts:
+            pDetector->state = NEXUS_Rave_P_ConsumableVideoElementDetectorState_ePts;
+            break;
+        case NEXUS_Rave_P_ItbType_eExtractedData:
+            switch (pDetector->state)
+            {
+                case NEXUS_Rave_P_ConsumableVideoElementDetectorState_ePts:
+                    pDetector->state = NEXUS_Rave_P_ConsumableVideoElementDetectorState_eStartCode;
+                    break;
+                case NEXUS_Rave_P_ConsumableVideoElementDetectorState_eStartCode:
+                    pDetector->state = NEXUS_Rave_P_ConsumableVideoElementDetectorState_eConsumableElement;
+                    break;
+                default:
+                    break;
+            }
+            break;
+    }
+
+    if (pDetector->state == NEXUS_Rave_P_ConsumableVideoElementDetectorState_eConsumableElement)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+bool NEXUS_Rave_IsConsumableVideoElementAvailable_priv(NEXUS_RaveHandle rave)
+{
+    NEXUS_Error rc = NEXUS_SUCCESS;
+    struct NEXUS_Rave_P_ConsumableVideoElementDetector detector;
+    bool consumableElement = false;
+
+    detector.state = NEXUS_Rave_P_ConsumableVideoElementDetectorState_eScan;
+    rc = NEXUS_Rave_ScanItb_priv(rave, NEXUS_Rave_P_DetectConsumableVideoElement, (void *)&detector);
+    if (!rc)
+    {
+        consumableElement = true;
+    }
+    return consumableElement;
+}
+
+#if NEXUS_VIDEO_DECODER_GARBAGE_FIFO_WATCHDOG_SUPPORT
 struct NEXUS_Rave_P_VideoStartCodeCountThresholdDetector
 {
     unsigned count;
     unsigned threshold;
 };
 
-#if NEXUS_VIDEO_DECODER_GARBAGE_FIFO_WATCHDOG_SUPPORT
 static bool NEXUS_Rave_P_CompareVideoStartCodeCount(void * ctx, const NEXUS_Rave_P_ItbEntry * entry)
 {
     struct NEXUS_Rave_P_VideoStartCodeCountThresholdDetector * pDetector = ctx;
@@ -1742,21 +1812,8 @@ NEXUS_Error NEXUS_Rave_SetCdbThreshold_priv(
     BDBG_OBJECT_ASSERT(rave, NEXUS_Rave);
     NEXUS_ASSERT_MODULE();
 
-    errCode = BXPT_Rave_GetDefaultThresholds(rave->raveHandle, &thresholds);
-    if ( errCode )
-    {
-        return BERR_TRACE(errCode);
-    }
-
-    if ( cdbDepth > 0 )
-    {
-        size_t cdbUpper = (cdbDepth + 255)/256; /* Specified in units of 256 bytes */
-        /* Only permit values less than default */
-        if ( cdbUpper < thresholds.CdbUpper )
-        {
-            thresholds.CdbUpper = cdbUpper;
-        }
-    }
+    errCode = BXPT_Rave_ComputeThresholds(rave->raveHandle, cdbDepth, 0, &thresholds);
+    if (errCode) { return BERR_TRACE(errCode); }
 
     errCode = BXPT_Rave_SetThresholds(rave->raveHandle, &thresholds);
     if ( errCode )

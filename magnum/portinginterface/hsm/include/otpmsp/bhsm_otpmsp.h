@@ -1,41 +1,43 @@
 /******************************************************************************
- *    (c)2007-2015 Broadcom Corporation
- *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
- *
- * Except as expressly set forth in the Authorized License,
- *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
- *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
- *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *
- *****************************************************************************/
+* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*
+* This program is the proprietary software of Broadcom and/or its
+* licensors, and may only be used, duplicated, modified or distributed pursuant
+* to the terms and conditions of a separate, written license agreement executed
+* between you and Broadcom (an "Authorized License").  Except as set forth in
+* an Authorized License, Broadcom grants no license (express or implied), right
+* to use, or waiver of any kind with respect to the Software, and Broadcom
+* expressly reserves all rights in and to the Software and all intellectual
+* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*
+* Except as expressly set forth in the Authorized License,
+*
+* 1. This program, including its structure, sequence and organization,
+*    constitutes the valuable trade secrets of Broadcom, and you shall use all
+*    reasonable efforts to protect the confidentiality thereof, and to use
+*    this information only in connection with your use of Broadcom integrated
+*    circuit products.
+*
+* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+*
+* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. , WHICHEVER
+*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+******************************************************************************/
 
 
 #ifndef BHSM_OTPMSP_H__
@@ -453,15 +455,15 @@ BERR_Code BHSM_ProgramDataSect (
         BHSM_ProgramDataSectIO_t     *inoutp_progDataSectIO
 );
 
-#if HSM_IS_ASKM_28NM_ZEUS_4_1
+#if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,1)
 
-#if HSM_IS_ASKM_28NM_ZEUS_4_2
-#define BHSM_MAX_MSP32_GROUP 71
-#define BHSM_MAX_MSP32_RANGE 40
+#if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,2)
+  #define BHSM_MAX_MSP32_GROUP 71
+  #define BHSM_MAX_MSP32_RANGE 40
 #else
-#define BHSM_MAX_MSP32_GROUP 78
-#define BHSM_MAX_MSP32_RANGE 40
-#endif  /* HSM_IS_ASKM_28NM_ZEUS_4_2 */
+  #define BHSM_MAX_MSP32_GROUP 78
+  #define BHSM_MAX_MSP32_RANGE 40
+#endif
 
 
 /**************************************************************************************************
@@ -523,105 +525,8 @@ BERR_Code      BHSM_ReadMSP32 (
         BHSM_ReadMsp32IO_t    *inoutp_readMSP32IO
 );
 
-#endif /* HSM_IS_ASKM_28NM_ZEUS_4_1 */
+#endif /* #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,1) */
 
-/**************************************************************************************************
-Summary:
-
-Description:
-
-See Also:
-**************************************************************************************************/
-typedef struct BHSM_AntiRollOverCounter
-{
-
-#if HSM_IS_ASKM_28NM_ZEUS_4_1
-   BPI_Otp_RolloverCounterPartition_e partition;   /* Select the OTP partition  */
-   BPI_Otp_RolloverCounterFlag_e flags;            /* Identifies host of customer specific partition. */
-#else
-   unsigned unused;
-#endif
-}BHSM_AntiRollOverCounter_t;
-
-
-
-/**************************************************************************************************
-Summary:
-
-Description:
-
-See Also:
-**************************************************************************************************/
-typedef struct BHSM_AntiRollOverCounterValue
-{
-   uint32_t count;                                 /* the counter value.  */
-
-}BHSM_AntiRollOverCounterValue_t;
-
-
-/*****************************************************************************
-Summary:
-
-This function read the count on a RolloverCounter. Only available on Zeus 4.1+
-
-Description:
-
-
-Calling Context:
-This function can be called anytime after HSM is initialized.
-
-
-Performance and Timing:
-This is a synchronous/blocking function that will not return until it is done or has failed.
-
-Input:
-hHsm      - BHSM_Handle, Host Secure module handle.
-pCounter       - Identifies that counter to read
-
-Output:
-pCounterValue  - The returned Counter value
-
-
-See Also:
-BHSM_AntiIncrementRollOverCounter
-*****************************************************************************/
-BERR_Code BHSM_ReadAntiRollOverCounter(
-      BHSM_Handle                      hHsm,
-      BHSM_AntiRollOverCounter_t      *pCounter,      /* IN */
-      BHSM_AntiRollOverCounterValue_t *pCounterValue  /* OUT */
-);
-
-/*****************************************************************************
-Summary:
-
-This function increments the Rollover Counter. Only available on Zeus 4.1+
-
-Description:
-
-Calling Context:
-
-This function can be called anytime after HSM is initialized.
-
-
-Performance and Timing:
-This is a synchronous/blocking function that will not return until it is done or has failed.
-
-Input:
-hHsm      - BHSM_Handle, Host Secure module handle.
-pCounter       - Identifies the counter to increment
-
-Output:
--
-
-See Also:
-BHSM_AntiReadRollOverCounter
-*****************************************************************************/
-BERR_Code BHSM_IncrementAntiRollOverCounter(
-      BHSM_Handle                  hHsm,
-      BHSM_AntiRollOverCounter_t  *pCounter        /* IN */
-);
-
-/* End of Module Specific Functions */
 
 #ifdef __cplusplus
 }

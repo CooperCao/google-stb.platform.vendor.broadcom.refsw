@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2007-2013 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,14 +34,6 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 #ifndef NEXUS_BASE_H
@@ -1152,22 +1144,17 @@ NEXUS_ThreadHandle NEXUS_P_Thread_Create(const char *pThreadName, void (*pThread
 
 #include "nexus_platform_features.h"
 
-/**
-NEXUS_KERNEL_MODE_VIRTUAL_ADDRESS_BASE is the virtual address split between
-kernel and user modes. Allow chip-specific override in nexus_platform_features.h.
-**/
-#ifndef NEXUS_KERNEL_MODE_VIRTUAL_ADDRESS_BASE
-#if NEXUS_CPU_ARM
-#define NEXUS_KERNEL_MODE_VIRTUAL_ADDRESS_BASE 0xC0000000
-#else
-#define NEXUS_KERNEL_MODE_VIRTUAL_ADDRESS_BASE 0x80000000
-#endif
-#endif
-
 /* returns true if address is CPU accessible in this execution context (not fake) */
 bool NEXUS_P_CpuAccessibleAddress(
     const void *address /* cached or uncached address */
     );
+
+typedef struct NEXUS_P_Base_MemoryRange {
+    void *start;
+    size_t length;
+} NEXUS_P_Base_MemoryRange;
+
+extern NEXUS_P_Base_MemoryRange g_NEXUS_P_CpuNotAccessibleRange;
 
 /* returns number 'v' aligned by 'alignment' */
 size_t NEXUS_P_SizeAlign(

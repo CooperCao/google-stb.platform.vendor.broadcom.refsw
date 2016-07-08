@@ -39,6 +39,16 @@
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ***************************************************************************/
 
+#if defined(CONFIG_64BIT)
+static unsigned vmalloc_size(
+    unsigned required_vmalloc, /* vmalloc space required by Nexus to map physical memory  and registers */
+    uint64_t highest_installed_dram, /* (highest address of address-contiguous installed DRAM) + 1 */
+    unsigned lowest_bmem_addr /* lowest address of all bmem regions */
+   )
+{
+    return 0;
+}
+#else
 static unsigned vmalloc_align(unsigned v, unsigned alignment)
 {
     unsigned r;
@@ -68,8 +78,13 @@ static unsigned vmalloc_size(
 #elif defined(CONFIG_VMSPLIT_1G)
     addrspace_lim = 0xC0000000u;
 #else
+#if defined(CONFIG_CPU_BMIPS)
+    /* assume 2G/2G split */
+    addrspace_lim = 0x80000000u;
+#else
     /* invalid vmsplit */
     return 0;
+#endif
 #endif
     required_vmalloc += fudge;
     required_vmalloc += vmalloc_offset;
@@ -93,3 +108,4 @@ static unsigned vmalloc_size(
 error:
     return 0;
 }
+#endif /* CONFIG_64BIT */

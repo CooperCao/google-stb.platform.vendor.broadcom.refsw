@@ -56,6 +56,7 @@
 #include "bchp_leap_ctrl.h"
 #include "bhab.h"
 #include "bhab_4538.h"
+#include "bhab_4538_fw.h"
 #include "bhab_4538_priv.h"
 #include "bfec.h"
 #include "bwfe.h"
@@ -218,6 +219,7 @@ BERR_Code SATFE_94538_Open(SATFE_Chip *pChip, void *pParam)
 #endif
    SATFE_BWFE_Handles *hWfeDev;
    void *pReg;
+   static void *context[2];
 
    pConfig = (SATFE_Diags_Config*)pParam;
 
@@ -243,6 +245,8 @@ BERR_Code SATFE_94538_Open(SATFE_Chip *pChip, void *pParam)
       habSettings.isSpi = false;
       pReg = pConfig->hRegI2c;
    }
+   habSettings.pImgInterface = &BHAB_SATFE_IMG_Interface;
+   habSettings.pImgContext = (void*)BHAB_4538_IMG_Context;
    retCode = BHAB_Open((BHAB_Handle*)&(pChip->pHab), (void*)pReg, &habSettings);
    if (retCode != BERR_SUCCESS)
    {

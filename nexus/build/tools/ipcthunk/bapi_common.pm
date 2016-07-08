@@ -1,7 +1,7 @@
 #!/usr/bin/perl
-#     (c)2003-2013 Broadcom Corporation
+#  Broadcom Proprietary and Confidential. (c)2003-2016 Broadcom. All rights reserved.
 #
-#  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+#  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
 #  conditions of a separate, written license agreement executed between you and Broadcom
 #  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,16 +34,6 @@
 #  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
-#
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
-# File Description:
-#
-# Revision History:
-#
-# $brcm_Log: $
 #
 #############################################################################
 use strict;
@@ -139,7 +129,7 @@ sub process_function_param {
             elsif($attr eq 'memory' && $value eq 'cached' ) {
                 if ($param->{INPARAM}) {
                     push @ipc_inparams, "NEXUS_Ipc_DeviceAddress $param->{NAME};";
-                    $driver_arg = "NEXUS_OffsetToCachedAddr((uint32_t)$driver_in_arg.$name)";
+                    $driver_arg = "NEXUS_OffsetToCachedAddr((unsigned long)$driver_in_arg.$name)";
                 }
                 else {
                     push @ipc_outparams, "$param->{BASETYPE} $param->{NAME};";
@@ -301,7 +291,7 @@ sub process_function_attributes {
                         # use enum type + enum value as psuedo handle
                         # hardcoded for a max of 128 enum values per type
                         # value<<2+1 to use non-4 byte aligned value to ensure no conflict with actual handle
-                        $handle = "(($id<<9) + ($driver_in_arg.$$params[0]->{NAME}<<2) + 1)";
+                        $handle = "(unsigned long)(($id<<9) + ($driver_in_arg.$$params[0]->{NAME}<<2) + 1)";
                     }
                     if (defined $handle && $param->{ISREF}) {
                         if ($param->{INPARAM}) {
@@ -330,20 +320,22 @@ sub process_function_attributes {
                     while (($attr, $value) = each %{$field->{ATTR}} ) {
                         my $field_proxy = "$name->$field->{NAME}";
                         my $field_copy = "$driver_in_arg.$name.$field->{NAME}";
-                        if($attr eq 'memory') {
+                        if($attr eq 'kind' && $value eq 'null_ptr' ) {
+                            next;
+                        } elsif($attr eq 'memory') {
                             if($value eq 'cached') {
                                 if ($param->{ISREF}) {
                                     if ($param->{INPARAM}) {
                                         next if (exists $param->{ATTR}->{'nelem'});
                                         push @pre_update_proxy, "/* convert address to the device offset */";
-                                        push @pre_update_proxy, "if ($field_copy) {$field_copy = (void *)(unsigned) NEXUS_AddrToOffset($field_copy); if (!$field_copy) __rc=BERR_TRACE(NEXUS_INVALID_PARAMETER);}";
+                                        push @pre_update_proxy, "if ($field_copy) {$field_copy = (void *)(unsigned long) NEXUS_AddrToOffset($field_copy); if (!$field_copy) __rc=BERR_TRACE(NEXUS_INVALID_PARAMETER);}";
 
                                         push @pre_update_driver, "/* convert offset (substituted by the proxy ) to the cached address */";
                                         push @pre_update_driver, "NEXUS_DRIVER_RECV_ADDR($field_driver_in,cached);";
                                         next;
                                     } else {
                                         push @post_update_proxy, "/* convert offset (substituted by the driver) to the cached address */";
-                                        push @post_update_proxy, "$field_proxy = $field_proxy ? NEXUS_OffsetToCachedAddr((uint32_t)$field_proxy) : $field_proxy ;";
+                                        push @post_update_proxy, "$field_proxy = $field_proxy ? NEXUS_OffsetToCachedAddr((unsigned long)$field_proxy) : $field_proxy ;";
 
                                         push @post_update_driver, "/* convert offset (substituted by the proxy) to the cached address */";
                                         push @post_update_driver, "NEXUS_DRIVER_SEND_ADDR($field_driver_out,cached);";
@@ -422,7 +414,7 @@ sub process_function_attributes {
                                             my $field_copy = "dest[i].$field->{NAME}";
 
                                             push @proxy_update_structure, "    /* convert address to the device offset */";
-                                            push @proxy_update_structure, "    if ($field_copy) {$field_copy = (void *)(unsigned) NEXUS_AddrToOffset($field_copy); if (!$field_copy) __rc=BERR_TRACE(NEXUS_INVALID_PARAMETER);}";
+                                            push @proxy_update_structure, "    if ($field_copy) {$field_copy = (void *)(unsigned long) NEXUS_AddrToOffset($field_copy); if (!$field_copy) __rc=BERR_TRACE(NEXUS_INVALID_PARAMETER);}";
 
                                             push @driver_update_structure, "    /* convert offset (substituted by the client) to the cached address */";
                                             push @driver_update_structure, "    NEXUS_DRIVER_RECV_ADDR($field_copy,cached);";
@@ -479,13 +471,13 @@ sub process_function_attributes {
                 elsif($attr eq 'memory' && $value eq 'cached' ) {
                     if ($param->{INPARAM}) {
                         push @proxy_pre_call, "/* convert offset (substituted by the driver) to the cached address */";
-                        push @proxy_pre_call, "if ($name) {$driver_in_arg.$name = (void *)(unsigned) NEXUS_AddrToOffset((void *)$name); if (!$driver_in_arg.$name) __rc=BERR_TRACE(NEXUS_INVALID_PARAMETER);}";
+                        push @proxy_pre_call, "if ($name) {$driver_in_arg.$name = (void *)(unsigned long) NEXUS_AddrToOffset((void *)$name); if (!$driver_in_arg.$name) __rc=BERR_TRACE(NEXUS_INVALID_PARAMETER);}";
                         # driver_pre_call NEXUS_OffsetToCachedAddr handled in process_function_param
                     }
                     else {
                         # handle return value. if client passes NULL outparam, only the client crashes
                         push @proxy_post_success, "/* convert offset (substituted by the driver) to the cached address */";
-                        push @proxy_post_success, "*$name = $driver_out_arg.$name ? NEXUS_OffsetToCachedAddr((uint32_t)$driver_out_arg.$name) : NULL;";
+                        push @proxy_post_success, "*$name = $driver_out_arg.$name ? NEXUS_OffsetToCachedAddr((unsigned long)$driver_out_arg.$name) : NULL;";
                         push @driver_post_success, "/* convert address to the device offset */";
                         push @driver_post_success, "NEXUS_DRIVER_SEND_ADDR($driver_out_arg.$name, cached);";
                     }

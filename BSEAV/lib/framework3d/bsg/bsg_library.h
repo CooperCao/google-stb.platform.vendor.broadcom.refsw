@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -437,7 +437,7 @@ void Handle<T>::Delete()
       {
          Base  *ptr = GetPtr();
 
-         if (ptr != nullptr)
+         if (ptr != NULL)
          {
             while (ptr != 0 && ptr->DecRefCount() > 0)
                continue;
@@ -715,7 +715,7 @@ void Library<T>::DestroyLibrary()
 template <class T>
 uint32_t Library<T>::FindIndex(const std::string &name)
 {
-   auto iter = m_nameToIndex.find(name);
+   std::map<std::string, uint32_t>::iterator iter = m_nameToIndex.find(name);
 
    if (iter == m_nameToIndex.end())
       return Handle<T>::BAD_INDEX;

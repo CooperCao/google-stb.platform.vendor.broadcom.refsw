@@ -1,41 +1,43 @@
 /******************************************************************************
- *    (c)2007-2015 Broadcom Corporation
- *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
- *
- * Except as expressly set forth in the Authorized License,
- *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
- *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
- *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *
- *****************************************************************************/
+* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*
+* This program is the proprietary software of Broadcom and/or its
+* licensors, and may only be used, duplicated, modified or distributed pursuant
+* to the terms and conditions of a separate, written license agreement executed
+* between you and Broadcom (an "Authorized License").  Except as set forth in
+* an Authorized License, Broadcom grants no license (express or implied), right
+* to use, or waiver of any kind with respect to the Software, and Broadcom
+* expressly reserves all rights in and to the Software and all intellectual
+* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*
+* Except as expressly set forth in the Authorized License,
+*
+* 1. This program, including its structure, sequence and organization,
+*    constitutes the valuable trade secrets of Broadcom, and you shall use all
+*    reasonable efforts to protect the confidentiality thereof, and to use
+*    this information only in connection with your use of Broadcom integrated
+*    circuit products.
+*
+* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+*
+* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. , WHICHEVER
+*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+******************************************************************************/
 
 
 #ifndef BHSM_KEYLADDER_ENC_H__
@@ -199,20 +201,23 @@ typedef struct BHSM_GenerateRouteKeyIO {
     /* In: Key2 Generation Version: BSP_ASKM_KDF_VERSION for ASKM Global key         */
     int                             globalKeyVersion;
 
-    /* In: Enables configuration of SAGE ASKM parameters.  */
-    bool                            sageAskmConfigurationEnable;
+    struct{
+        bool                        configurationEnable;    /* In: If true,  the following askm paramters are active.
+                                                                   if false, the GRK function will look to the associated keyslot for these parameters. */
+        BCMD_ASKM_MaskKeySel_e      maskKeySelect;          /* In: ASKM mask selector                                       */
+        BCMD_ModuleID_e             moduleId;               /* In: Module ID                                                */
+        BCMD_STBOwnerID_e           stbOwnerId;             /* In: STB Owner ID                                             */
+        uint32_t                    caVendorId;             /* In: CA Vendor ID (16 bit)                                    */
+       #if BHSM_BUILD_HSM_FOR_SAGE /* if  we're on SAGE */
+        uint8_t                     caVendorIdExtension;    /* In: CA Vendor ID Extension. Only interpreted from a SAGE context. */
+       #endif
+    }askm;
 
-    /* ASKM Key2 generation parameter. Valid when sageAskmConfigurationEnable is true. */
-    BCMD_ASKM_MaskKeySel_e          sageMaskKeySelect;
-
-    /* In: Module ID        -- Valid when sageAskmConfigurationEnable is true. */
-    BCMD_ModuleID_e                 sageModuleID;
-
-    /* In: STB Owner ID  -- Valid when sageAskmConfigurationEnable is true.  */
-    BCMD_STBOwnerID_e               sageSTBOwnerID;
-
-    /* In: CA Vendor ID  -- Valid when sageAskmConfigurationEnable is true.  */
-    uint32_t                        sageCAVendorID;
+    bool                            sageAskmConfigurationEnable;  /* DEPRECATED, use askm.configurationEnable */
+    BCMD_ASKM_MaskKeySel_e          sageMaskKeySelect;            /* DEPRECATED, use askm.maskKeySelect       */
+    BCMD_ModuleID_e                 sageModuleID;                 /* DEPRECATED, use askm.moduleId            */
+    BCMD_STBOwnerID_e               sageSTBOwnerID;               /* DEPRECATED, use askm.stbOwnerId          */
+    uint32_t                        sageCAVendorID;               /* DEPRECATED, use askm.caVendorId          */
 
     /* In: Virtual Key Ladder ID */
     BCMD_VKLID_e                    virtualKeyLadderID;

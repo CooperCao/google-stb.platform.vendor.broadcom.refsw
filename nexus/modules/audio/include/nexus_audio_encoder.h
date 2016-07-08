@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,15 +34,6 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* Revision History:
-*
-* $brcm_Log: $
-* 
 ***************************************************************************/
 
 #ifndef NEXUS_AUDIO_ENCODER_H__
@@ -337,6 +328,15 @@ typedef struct NEXUS_AudioEncoderCodecSettings
 
 /***************************************************************************
 Summary:
+    Get Default Codec-Specific Settings for an Audio Encoder stage
+***************************************************************************/
+void NEXUS_AudioEncoder_GetDefaultCodecSettings(
+    NEXUS_AudioCodec codec, /* the codec for which you are retrieving settings. */
+    NEXUS_AudioEncoderCodecSettings *pSettings    /* [out] Settings */
+    );
+
+/***************************************************************************
+Summary:
     Get Codec-Specific Settings for an Audio Encoder stage
 ***************************************************************************/
 void NEXUS_AudioEncoder_GetCodecSettings(
@@ -405,4 +405,3 @@ NEXUS_Error NEXUS_AudioEncoder_RemoveAllInputs(
 #endif
 
 #endif /* #ifndef NEXUS_AUDIO_ENCODER_H__ */
-

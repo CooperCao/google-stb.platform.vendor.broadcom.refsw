@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2012 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  .  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,6 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  **************************************************************************/
 #ifndef NEXUS_VIDEO_DECODER_MODULE_ZSP_H__
 #define NEXUS_VIDEO_DECODER_MODULE_ZSP_H__
@@ -54,7 +44,7 @@
 
 
 NEXUS_VideoDecoderHandle NEXUS_VideoDecoder_P_Open_Zsp( unsigned index, const NEXUS_VideoDecoderOpenSettings *pOpenSettings);
-NEXUS_Error NEXUS_VideoDecoderModule_P_Init_Zsp(const NEXUS_VideoDecoderModuleSettings *pSettings);
+NEXUS_Error NEXUS_VideoDecoderModule_P_Init_Zsp(const NEXUS_VideoDecoderModuleInternalSettings *pSettings);
 void NEXUS_VideoDecoderModule_P_Uninit_Zsp(void);
 
 BDBG_OBJECT_ID_DECLARE(NEXUS_VideoDecoder_Zsp);

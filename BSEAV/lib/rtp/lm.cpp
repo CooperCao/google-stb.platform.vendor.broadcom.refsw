@@ -1,43 +1,39 @@
 /******************************************************************************
- * (c) 2014 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 
 #ifdef SPF_SUPPORT
@@ -140,7 +136,7 @@ public:
 
         while ((stats = iter.next(True)) != NULL) {
 
-            BDBG_MSG(("stats: %p", stats));
+            BDBG_MSG(("stats: %p", (void *)stats));
 
             const struct timeval &fTotalInterPacketGaps =  stats->totalInterPacketGaps();
             /* hack to access private fSyncTimestamp */
@@ -152,7 +148,7 @@ public:
                 continue;
             }
 
-            BDBG_MSG(("NTP:%p %08x:%08x TS: %08x (%#x)", source->stream_cfg.stream_cntx, ntp_msw, ntp_lsw, *fSyncTimestamp, (unsigned long)fSyncTimestamp));
+            BDBG_MSG(("NTP:%p %08x:%08x TS: %08x (%#lx)", source->stream_cfg.stream_cntx, ntp_msw, ntp_lsw, *fSyncTimestamp, (unsigned long)fSyncTimestamp));
 
             source->stream_cfg.rtcp_sr(source->stream_cfg.stream_cntx, ntp_msw, ntp_lsw, *fSyncTimestamp);
         }
@@ -213,7 +209,7 @@ static char * sendDescribeCmd ( RTSPClient* rtspClient, const char * url )
     rtspClient->fDescribeStatusCode = 0; // BRCM: CAD 2013-10-21
 
     rtspClient->setBaseURL( url );
-    BDBG_MSG(("%s: calling sendDescribeCommand(); RTSPClient (%p); url (%s) ", __FUNCTION__, rtspClient, rtspClient->url() ));
+    BDBG_MSG(("%s: calling sendDescribeCommand(); RTSPClient (%p); url (%s) ", __FUNCTION__, (void *)rtspClient, rtspClient->url() ));
     rtspClient->sendDescribeCommand(sendRequestCallback, NULL );
 
     UsageEnvironment& env = rtspClient->envir();
@@ -223,7 +219,7 @@ static char * sendDescribeCmd ( RTSPClient* rtspClient, const char * url )
 
     if ( rtspClient->fResultCode == 0) return rtspClient->fResultString; // success
     if ( rtspClient->fDescribeStatusCode == 0) rtspClient->fDescribeStatusCode = 2 /* stream unavailable*/; // BRCM: CAD 2013-10-21
-    BDBG_MSG(("%s: Ctx (%p), returning (%s) ", __FUNCTION__, rtspClient, rtspClient->fResultString ));
+    BDBG_MSG(("%s: Ctx (%p), returning (%s) ", __FUNCTION__, (void *)rtspClient, rtspClient->fResultString ));
     delete[] rtspClient->fResultString;
     return NULL;
 }
@@ -233,7 +229,7 @@ static int sendSetupCmd ( RTSPClient* rtspClient, MediaSubsession& subsession,
                   Authenticator* authenticator)
 {
     BDBG_MSG(("%s: calling sendSetupCommand(session %p, Outgoing %u, UsingTCP %u, forceMulti %u, authenticator %p); ",
-               __FUNCTION__, &subsession, streamOutgoing, streamUsingTCP, forceMulticastOnUnspecified, authenticator ));
+               __FUNCTION__, (void *)&subsession, streamOutgoing, streamUsingTCP, forceMulticastOnUnspecified, (void *)authenticator ));
     rtspClient->sendSetupCommand(subsession, sendRequestCallback,  streamOutgoing, streamUsingTCP, forceMulticastOnUnspecified, authenticator);
 
     UsageEnvironment& env = rtspClient->envir();
@@ -241,7 +237,7 @@ static int sendSetupCmd ( RTSPClient* rtspClient, MediaSubsession& subsession,
     rtspClient->fWatchVariableForSyncInterface=0;
     env.taskScheduler().doEventLoop(&rtspClient->fWatchVariableForSyncInterface );
 
-    BDBG_MSG(("%s: Ctx (%p), returning (%s) ", __FUNCTION__, rtspClient, rtspClient->fResultString ));
+    BDBG_MSG(("%s: Ctx (%p), returning (%s) ", __FUNCTION__, (void *)rtspClient, rtspClient->fResultString ));
     delete[] rtspClient->fResultString;
     return rtspClient->fResultCode == 0;
 }
@@ -249,7 +245,7 @@ static int sendSetupCmd ( RTSPClient* rtspClient, MediaSubsession& subsession,
 static int sendPlayCmd ( RTSPClient* rtspClient, MediaSession& session,
         double start, double end, float scale, Authenticator* authenticator )
 {
-    BDBG_MSG(("%s: calling sendPlayCommand(); RTSPClient (%p) ", __FUNCTION__, rtspClient ));
+    BDBG_MSG(("%s: calling sendPlayCommand(); RTSPClient (%p) ", __FUNCTION__, (void *)rtspClient ));
     rtspClient->sendPlayCommand(session, sendRequestCallback, start, end, scale, authenticator );
 
     UsageEnvironment& env = rtspClient->envir();
@@ -258,13 +254,13 @@ static int sendPlayCmd ( RTSPClient* rtspClient, MediaSession& session,
     env.taskScheduler().doEventLoop(&rtspClient->fWatchVariableForSyncInterface );
     delete[] rtspClient->fResultString;
 
-    BDBG_MSG(("%s: Ctx (%p), returning (%s) ", __FUNCTION__, rtspClient, rtspClient->fResponseBuffer ));
+    BDBG_MSG(("%s: Ctx (%p), returning (%s) ", __FUNCTION__, (void *)rtspClient, rtspClient->fResponseBuffer ));
     return rtspClient->fResultCode==0;
 }
 
 static bool sendTeardownCmd ( RTSPClient* rtspClient, MediaSession& session )
 {
-    BDBG_MSG(("%s: calling sendTeardownCommand(); RTSPClient (%p) ", __FUNCTION__, rtspClient ));
+    BDBG_MSG(("%s: calling sendTeardownCommand(); RTSPClient (%p) ", __FUNCTION__, (void *)rtspClient ));
     rtspClient->sendTeardownCommand(session, sendRequestCallback );
 
     UsageEnvironment& env = rtspClient->envir();
@@ -272,7 +268,7 @@ static bool sendTeardownCmd ( RTSPClient* rtspClient, MediaSession& session )
     rtspClient->fWatchVariableForSyncInterface=0;
     env.taskScheduler().doEventLoop(&rtspClient->fWatchVariableForSyncInterface );
 
-    BDBG_MSG(("%s: Ctx (%p), returning (%s) ", __FUNCTION__, rtspClient, rtspClient->fResponseBuffer ));
+    BDBG_MSG(("%s: Ctx (%p), returning (%s) ", __FUNCTION__, (void *)rtspClient, rtspClient->fResponseBuffer ));
     return true;
 }
 
@@ -324,7 +320,7 @@ static bool sendGetParameterCmd ( RTSPClient* rtspClient, MediaSession* rtspMedi
     if( rtspClient->fResultString ) parameterValue = strdup( rtspClient->fResultString );
 
     rc = rtspClient->fResultCode == 0;
-    BDBG_MSG(("%s: Ctx (%p), returning (%s) ", __FUNCTION__, rtspClient, rc ));
+    BDBG_MSG(("%s: Ctx (%p), returning (%d) ", __FUNCTION__, (void *)rtspClient, rc ));
     return rtspClient->fResultCode==0;
 }
 
@@ -715,7 +711,7 @@ lm_session_sendKeepAlive(void *ctx)
 
     success = sendGetParameterCmd( session->client,  session->session, NULL, paramValue);
     if (!success) {
-        BDBG_WRN(("lm_session %p: Failed to send the sendGetParameterCmd", session));
+        BDBG_WRN(("lm_session %p: Failed to send the sendGetParameterCmd", (void *)session));
     }
     {
         int64_t timeoutMicroSeconds = 20 * 1000000;

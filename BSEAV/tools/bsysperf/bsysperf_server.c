@@ -1,46 +1,44 @@
 /******************************************************************************
- * (c) 2014 Broadcom Corporation
- *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
- *
- * Except as expressly set forth in the Authorized License,
- *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
- *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
- *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
- *****************************************************************************/
-
-#include <sys/types.h>
+* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*
+* This program is the proprietary software of Broadcom and/or its
+* licensors, and may only be used, duplicated, modified or distributed pursuant
+* to the terms and conditions of a separate, written license agreement executed
+* between you and Broadcom (an "Authorized License").  Except as set forth in
+* an Authorized License, Broadcom grants no license (express or implied), right
+* to use, or waiver of any kind with respect to the Software, and Broadcom
+* expressly reserves all rights in and to the Software and all intellectual
+* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*
+* Except as expressly set forth in the Authorized License,
+*
+* 1. This program, including its structure, sequence and organization,
+*    constitutes the valuable trade secrets of Broadcom, and you shall use all
+*    reasonable efforts to protect the confidentiality thereof, and to use
+*    this information only in connection with your use of Broadcom integrated
+*    circuit products.
+*
+* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+*
+* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+******************************************************************************/
+#include "bmemperf_types64.h"
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -51,6 +49,7 @@
 #include <strings.h>
 #include <unistd.h>
 #include <sys/time.h>
+#include <sys/stat.h>
 #include <errno.h>
 #include <signal.h>
 #include <assert.h>
@@ -72,6 +71,7 @@ static unsigned int         g_interval = 1000;             /**g_interval is in m
 static bmemperf_cpu_percent g_cpuData;
 static pthread_mutex_t      g_mutex_lock;
 static void reusePort( int sock );
+static pthread_t            g_perfFlameThreadId = 0;
 
 static unsigned char Quit = 0;
 
@@ -416,8 +416,6 @@ static void *bmemperf_perf_record_thread(
 
     system( line );
 
-    printf( "%s: complete.\n", __FUNCTION__ );
-
     pthread_exit( 0 );
 }                                                          /* bmemperf_perf_record_thread */
 
@@ -441,7 +439,131 @@ static int bmemperf_start_perf_record(
     }
 
     return( 0 );
-}                                                          /* bmemperf_start_perf_record */
+}   /* bmemperf_start_perf_record */
+
+/**
+ *  Function: This function will use the perf.data recording file to generate an SVG flame graph file called
+ *  perf.svg.
+ **/
+static int Bsysperf_perf_flame_generate_svg( void )
+{
+    return 0;
+}   /* Bsysperf_perf_flame_generate_svg */
+
+typedef enum
+{
+    BSYSPERF_PERF_FLAME_STOP,
+    BSYSPERF_PERF_FLAME_PID_COUNT
+} Bsysperf_perf_flame_action;
+
+/**
+ *  Function: This function will use the 'ps' utility to find the PIDs associated with the 'perf record' command
+ *  that should be running. There are three PIDs in this situation:
+ *  1) sh -c /bin/perf record -a -g -F 999 -o /tmp/perf.data -- <user application>
+ *  2) /bin/perf record -a -g -F 999 -o /tmp/perf.data -- <user application>
+ *  3) <user application>
+ *  If we search for the PIDs using the file perf.data, we will get a list of the first two PIDs. The third PID
+ *  is typically one greater than the last PID found in the list.
+ **/
+static int Bsysperf_perf_flame_iterate(
+    Bsysperf_perf_flame_action action
+    )
+{
+    FILE *cmd = NULL;
+    int   pid = 0;
+    int   pidCount = 0;
+    char  line[MAX_LENGTH_CPU_STATUS];
+
+    snprintf( line, sizeof ( line ) - 1, "ps -eaf | grep %s | grep -v grep | awk '{print $2;}'", PERF_FLAME_OUTPUT_FILE );
+    PRINTF( "pidCount %d: issuing cmd (%s)\n", pidCount, line );
+    cmd = popen( line, "r" );
+
+    /* the above command should return to us the two PIDs using the file perf.data, but not the third PID */
+    do
+    {
+        memset( line, 0, sizeof( line ));
+
+        fgets( line, MAX_LENGTH_CPU_STATUS, cmd );
+
+        if (strlen( line ))
+        {
+            pidCount++;
+
+            if (action == BSYSPERF_PERF_FLAME_STOP )
+            {
+                /* if this is the parent PID of the three PIDs of interest */
+                if (pidCount == 1)
+                {
+                    pid = atoi(line);
+                    snprintf( line, sizeof ( line ) - 1, "kill $(ps -o pid= --ppid %d)", pid );
+
+                    printf( "pidCount %d: issuing cmd (%s)\n", pidCount, line );
+                    system( line );
+
+                    memset( line, 0, sizeof( line )); /* zero out the line string to force the end of the loop */
+                }
+            }
+            else if (action == BSYSPERF_PERF_FLAME_PID_COUNT )
+            {
+            }
+        }
+    } while (strlen( line ));
+
+    pclose( cmd );
+
+    /*printf( "%s: pidCount %d \n", __FUNCTION__, pidCount );*/
+    return ( pidCount );
+}   /* Bsysperf_perf_flame_iterate */
+
+/**
+ *  Function: This function will perform a perf record for flame graphs. It will run as a separate thread until
+ *  the perf record operation is complete.
+ **/
+static void *bsysperf_perf_flame_thread(
+    void *data
+    )
+{
+    char               line[MAX_LINE_LENGTH];
+    char               perfFilename[PERF_FILE_FULL_PATH_LEN];
+
+    PrependTempDirectory( perfFilename, sizeof( perfFilename ), PERF_FLAME_OUTPUT_FILE );
+
+    if (data == NULL)
+    {
+        printf( "%s: arg1 cannot be NULL\n", __FUNCTION__ );
+        exit( EXIT_FAILURE );
+    }
+
+    sprintf( line, "%s/perf record -a -g -F 999 -o %s -- %s 2>&1", BIN_DIR, perfFilename, (char*) data );
+    printf( "%s: issuing system(%s)\n", __FUNCTION__, line );
+
+    system( line );
+
+    printf( "%s: complete.\n", __FUNCTION__ );
+
+    pthread_exit( 0 );
+}   /* bsysperf_perf_flame_thread */
+
+/**
+ *  Function: This function will start a new thread that will run until the perf record operation for flame
+ *  graphs is complete.
+ **/
+static pthread_t Bsysperf_start_perf_flame(
+    const char * cmdLine
+    )
+{
+    pthread_t                perfRecordThreadId = 0;
+    void                    *(*threadFunc)( void * );
+
+    threadFunc   = bsysperf_perf_flame_thread;
+
+    if (pthread_create( &perfRecordThreadId, NULL, threadFunc, (void *)cmdLine ))
+    {
+        printf( "%s: could not create thread for perf record; %s\n", __FUNCTION__, strerror( errno ));
+    }
+
+    return( perfRecordThreadId );
+}   /* Bsysperf_start_perf_flame */
 
 /**
  *  Function: This function will perform a 10-second perf stat. It will run as a separate thread until the perf
@@ -475,7 +597,7 @@ static void *bmemperf_perf_stat_thread(
     printf( "%s: complete.\n", __FUNCTION__ );
 
     pthread_exit( 0 );
-}                                                          /* get_perfreport_data */
+}   /* bmemperf_perf_stat_thread */
 
 static int bmemperf_sata_usb_array_update(
     bmemperf_device_data *lSataUsbDataNow,
@@ -501,7 +623,7 @@ static int bmemperf_sata_usb_array_update(
 
     printf( "Could not find deviceName (%s) in gSataUsbDeviceNames.\n", lDeviceName );
     return( 0 );
-}                                                          /* bmemperf_sata_usb_array_update */
+}   /* bmemperf_sata_usb_array_update */
 
 static bool bmemperf_linux_top_stop = false; /* set to true when CMD_STOP_LINUX_TOP is detected */
 /**
@@ -992,6 +1114,30 @@ static int bmemperf_start_linux_top(
     return( 0 );
 }                                                          /* bmemperf_start_linux_top */
 
+static int Bsysperf_return_perf_flame_stats(
+    bmemperf_response *pResponse
+    )
+{
+    struct stat statbuf;
+    char        strPerfFlameOutputFilename[32];
+
+    PrependTempDirectory( strPerfFlameOutputFilename, sizeof( strPerfFlameOutputFilename ), PERF_FLAME_OUTPUT_FILE );
+
+    if (lstat( strPerfFlameOutputFilename, &statbuf ) == -1)
+    {
+        /* could not find file */
+        pResponse->response.overallStats.fileSize = 99999999;
+        printf("%s: could not open file (%s) ... %lu\n", __FUNCTION__, strPerfFlameOutputFilename, (unsigned long int) pResponse->response.overallStats.fileSize );
+    }
+    else
+    {
+        pResponse->response.overallStats.fileSize = statbuf.st_size;
+        pResponse->response.overallStats.pidCount = Bsysperf_perf_flame_iterate( BSYSPERF_PERF_FLAME_PID_COUNT );
+        /*PRINTF("%s: size of file (%s) ... %lu\n", __FUNCTION__, strPerfFlameOutputFilename, (unsigned long int) pResponse->response.overallStats.fileSize );*/
+    }
+    return 0;
+}
+
 /**
  *  Function: This function will read the user's request coming in from the browser
  **/
@@ -1077,6 +1223,25 @@ static int Bmemperf_ReadRequest(
                 else if (( pRequest->cmdSecondary == BMEMPERF_CMD_START_LINUX_TOP ) || ( pRequest->cmdSecondary == BMEMPERF_CMD_STOP_LINUX_TOP ))
                 {
                     bmemperf_start_linux_top( pRequest->cmdSecondaryOption );
+                }
+                else if ( pRequest->cmdSecondary == BMEMPERF_CMD_START_PERF_FLAME )
+                {
+                    PRINTF("PERF_FLAME_START: (%s)\n", pRequest->request.strCmdLine );
+                    /* stop any old flame threads that may be running */
+                    Bsysperf_perf_flame_iterate( BSYSPERF_PERF_FLAME_STOP );
+
+                    /* start new perf record thread */
+                    g_perfFlameThreadId = Bsysperf_start_perf_flame( pRequest->request.strCmdLine );
+                }
+                else if ( pRequest->cmdSecondary == BMEMPERF_CMD_STATUS_PERF_FLAME )
+                {
+                    Bsysperf_return_perf_flame_stats( pResponse );
+                }
+                else if ( pRequest->cmdSecondary == BMEMPERF_CMD_STOP_PERF_FLAME )
+                {
+                    PRINTF("PERF_FLAME_STOP\n");
+                    Bsysperf_perf_flame_iterate( BSYSPERF_PERF_FLAME_STOP );
+                    Bsysperf_perf_flame_generate_svg();
                 }
 
                 pResponse->response.overallStats.contextSwitches = g_ContextSwitchesDelta;
@@ -1177,7 +1342,7 @@ int main(
 
     Bmemperf_Server_InitMutex( &gSataUsbMutex );
 
-    printf( "%s: bmemperf_response size %d\n", __FUNCTION__, sizeof( bmemperf_response ));
+    printf( "%s: bmemperf_response size %ld\n", __FUNCTION__, (long int) sizeof( bmemperf_response ));
     threadFunc = dataFetchThread;
     if (pthread_create( &dataGatheringThreadId, NULL, threadFunc, (void *)NULL ))
     {

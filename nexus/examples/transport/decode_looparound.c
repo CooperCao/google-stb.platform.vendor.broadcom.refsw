@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2014 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,7 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
 ******************************************************************************/
 
 #include "nexus_platform.h"
@@ -218,7 +217,7 @@ static void *b_pump_data(void *context)
         const void *rec_buffer;
         NEXUS_PlaypumpScatterGatherDescriptor desc;
         size_t rec_size;
-        unsigned num;
+        size_t num;
         NEXUS_Error rc;
 
         rc = NEXUS_Recpump_GetDataBuffer(pid_channels->recplay.recpump, &rec_buffer, &rec_size);

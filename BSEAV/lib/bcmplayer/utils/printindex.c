@@ -1,23 +1,40 @@
-/***************************************************************************
- *     Copyright (c) 2002-2014, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ *  Except as expressly set forth in the Authorized License,
  *
- * Module Description:
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * Revision History:
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- * 
- ***********************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ ******************************************************************************/
 #include "bstd.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -40,7 +57,7 @@ void printHeader(void) {
     );
 }
 
-#define DEFAULT_OPTIONSTRING "index,lo,size,rfo,type,pts"
+#define DEFAULT_OPTIONSTRING "index,offset,size,rfo,type,pts"
 
 void printUsage(void) {
     printHeader();
@@ -71,8 +88,7 @@ void printUsage(void) {
     "  -o OPTIONS      Specify bcmindex fields. Fields include:\n"
     "                    index     index number of each index entry\n"
     "                    seqhdr    seqhdr offset and size\n"
-    "                    hi        hi 32 bits of frame offset\n"
-    "                    lo        lo 32 bits of frame offset\n"
+    "                    offset    64 bit frame offset (only 32 bits with -d)\n"
     "                    pts       presentation time stamp\n"
     );
     printf(
@@ -115,15 +131,15 @@ void print_naventry(int i, const BNAV_Entry *entry)
         printf("%d: ", i);
 
     if (FIND("Seqhdr")) { /* use capital S and get absolute offset, 32 bit addresses only */
-        printf("seqhdr %#08lx(%#x) ",
-            BNAV_get_frameOffsetLo(entry) - BNAV_get_seqHdrStartOffset(entry), BNAV_get_seqHdrSize(entry));
+        printf("seqhdr " BDBG_UINT64_FMT "(%#x) ",
+            BDBG_UINT64_ARG(BNAV_get_frameOffset(entry) - BNAV_get_seqHdrStartOffset(entry)), BNAV_get_seqHdrSize(entry));
         if (indextype == b_indextype_avcbcm) {
-            printf("sps %#08lx(%#lx) ",
-                BNAV_get_frameOffsetLo(entry) - BNAV_get_SPS_Offset((const BNAV_AVC_Entry*)entry), BNAV_get_SPS_Size((const BNAV_AVC_Entry*)entry));
+            printf("sps " BDBG_UINT64_FMT "(%#lx) ",
+                BDBG_UINT64_ARG(BNAV_get_frameOffset(entry) - BNAV_get_SPS_Offset((const BNAV_AVC_Entry*)entry)), BNAV_get_SPS_Size((const BNAV_AVC_Entry*)entry));
         }
         else if (indextype == b_indextype_vc1bcm) {
-            printf("EP %#08lx(%#lx) ",
-                BNAV_get_frameOffsetLo(entry) - BNAV_get_SPS_Offset((const BNAV_AVC_Entry*)entry), BNAV_get_SPS_Size((const BNAV_AVC_Entry*)entry));
+            printf("EP " BDBG_UINT64_FMT "(%#lx) ",
+                BDBG_UINT64_ARG(BNAV_get_frameOffset(entry) - BNAV_get_SPS_Offset((const BNAV_AVC_Entry*)entry)), BNAV_get_SPS_Size((const BNAV_AVC_Entry*)entry));
         }
     }
 
@@ -139,17 +155,11 @@ void print_naventry(int i, const BNAV_Entry *entry)
                 BNAV_get_SPS_Offset((const BNAV_AVC_Entry*)entry), BNAV_get_SPS_Size((const BNAV_AVC_Entry*)entry));
         }
     }
-    if (FIND("hi")) {
+    if (FIND("offset")) {
         if (decimal)
-            printf("hi=%-8ld ", (unsigned long)entry->words[2]);
+            printf("offset=%-8lu ", (unsigned long)BNAV_get_frameOffset(entry));
         else
-            printf("hi=0x%08x ", entry->words[2]);
-    }
-    if (FIND("lo")) {
-        if (decimal)
-            printf("lo=%-8ld ", (unsigned long)entry->words[3]);
-        else
-            printf("lo=0x%08x ", entry->words[3]);
+            printf("offset=" BDBG_UINT64_FMT " ", BDBG_UINT64_ARG(BNAV_get_frameOffset(entry)));
     }
     if (FIND("pts"))
         printf("pts=0x%08x ", entry->words[4]);
@@ -188,11 +198,11 @@ static void print_svcentry(int i, const BNAV_SVC_Entry *entry)
     else
         printf("pid=%#x ", entry->header.pid);
     
-    if (FIND("hi") || FIND("lo")) {
+    if (FIND("offset")) {
        if (decimal)
-            printf("offset=%-8u) ", (unsigned)(entry->common.offset));
+            printf("offset=%-8lu) ", (unsigned long)(entry->common.offset));
         else
-            printf("offset=0x%08x ", (unsigned)(entry->common.offset));
+            printf("offset=" BDBG_UINT64_FMT " ", BDBG_UINT64_ARG(entry->common.offset));
     }
 
     if (FIND("size")) {

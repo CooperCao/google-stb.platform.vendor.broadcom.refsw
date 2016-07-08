@@ -1,7 +1,7 @@
 #!/usr/bin/perl
-#     (c)2007-2014 Broadcom Corporation
+#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 #
-#  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+#  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
 #  conditions of a separate, written license agreement executed between you and Broadcom
 #  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,16 +34,6 @@
 #  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
-#
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
-# File Description:
-#
-# Revision History:
-#
-# $brcm_Log: $
 #
 #############################################################################
 use strict;
@@ -118,7 +108,12 @@ sub build_thunks
     print FILE "#include \"b_objdb.h\"\n";
     print FILE "#include \"nexus_base_statistics.h\"\n";
     print FILE "BDBG_MODULE(nexus_${module}_thunks);\n";
-    print FILE "#define BDBG_MSG_TRACE(x) \n";
+    print FILE "BDBG_FILE_MODULE(nexus_trace_${module});\n";
+    print FILE "#if NEXUS_P_SYNC_TRACE\n";
+    print FILE "#define NEXUS_P_TRACE_MSG(x) BDBG_MODULE_MSG(nexus_trace_${module}, x)\n";
+    print FILE "#else\n";
+    print FILE "#define NEXUS_P_TRACE_MSG(x) \n";
+    print FILE "#endif\n";
     print FILE "#if BDBG_DEBUG_BUILD\n";
     print FILE "#define NEXUS_THUNKS_TRACE(x) BERR_TRACE(x)\n";
     print FILE "#else\n";
@@ -169,7 +164,7 @@ sub build_thunks
 
         print FILE "    NEXUS_P_API_STATS_START(); /* this statistics count all API call overhead (including synchronization overhead) */\n";
         # enter MSG
-        print FILE "  BDBG_MSG_TRACE((\">%s\(";
+        print FILE "  NEXUS_P_TRACE_MSG((\">%s\(";
         for $param (@$params) {
             print FILE "%#lx";
             if ($param != $params->[-1]) { print FILE ", "; }
@@ -210,7 +205,7 @@ sub build_thunks
         # leave MSG and return value
         if ($func->{RETTYPE} eq "void") {
             print FILE "  module_unlock();\n";
-            print FILE "  BDBG_MSG_TRACE((\"<%s\", \"$func->{FUNCNAME}\"));\n";
+            print FILE "  NEXUS_P_TRACE_MSG((\"<%s\", \"$func->{FUNCNAME}\"));\n";
             print FILE "  NEXUS_P_API_STATS_STOP(\"$func->{FUNCNAME}\",NEXUS_MODULE_SELF); /* this statistics count all API call overhead */\n";
             print FILE "  return;\n";
         }
@@ -227,7 +222,7 @@ sub build_thunks
                 print FILE "  }\n";
             }
             print FILE "  module_unlock();\n";
-            print FILE "  BDBG_MSG_TRACE((\"<%s\=%#lx\", \"$func->{FUNCNAME}\", (unsigned long)result));\n";
+            print FILE "  NEXUS_P_TRACE_MSG((\"<%s\=%#lx\", \"$func->{FUNCNAME}\", (unsigned long)result));\n";
             print FILE "  NEXUS_P_API_STATS_STOP(\"$func->{FUNCNAME}\", NEXUS_MODULE_SELF); /* this statistics count all API call overhead */\n";
             print FILE "  return result;\n";
         }

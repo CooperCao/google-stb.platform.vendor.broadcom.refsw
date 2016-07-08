@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2008 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2008 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -360,7 +360,7 @@ bool client_thread_attach(PLATFORM_TLS_T tls)
 
    client_thread_state_init(state);
 
-   ANDROID_LOGD("%s %d : TLS %p STATE %p\n", __FUNCTION__, __LINE__, tls, state);
+   ANDROID_LOGD("%s %d : TLS %p STATE %p\n", __FUNCTION__, __LINE__, (void *)tls, state);
 
    platform_tls_set(tls, state);
 

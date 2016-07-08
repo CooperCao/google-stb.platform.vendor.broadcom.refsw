@@ -1,7 +1,7 @@
 /***************************************************************************
  *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom and/or its
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -39,6 +39,7 @@
  *
  **************************************************************************/
 #include "nexus_transport_module.h"
+#include "nexus_recpump_impl.h"
 #include "priv/nexus_core.h"
 #include "priv/nexus_tsmf_priv.h"
 #if !BXPT_HAS_MESG_BUFFERS && !NEXUS_USE_SW_FILTER
@@ -101,6 +102,7 @@ static void dpcr_integrator_workaround_thread_entry(void *arg)
             }
             rc = do_dpcr_integrator_workaround();
             if(rc!=BERR_SUCCESS) {
+                NEXUS_UnlockModule();
                 break;
             }
         }
@@ -304,6 +306,11 @@ static void NEXUS_Transport_P_PacketFound_isr(void *context, int param)
     NEXUS_IsrCallback_Fire_isr(pTransport->wakeup.wakeupCallback);
 }
 #endif
+void NEXUS_TransportModule_GetDefaultInternalSettings(NEXUS_TransportModuleInternalSettings *pSettings)
+{
+    BKNI_Memset(pSettings, 0, sizeof(*pSettings));
+    return;
+}
 
 void NEXUS_TransportModule_GetDefaultSettings(NEXUS_TransportModuleSettings *pSettings)
 {
@@ -516,20 +523,25 @@ static void NEXUS_TransportModule_P_Print(void)
         if (p) {
             NEXUS_PlaypumpStatus status;
             if (NEXUS_Playpump_GetStatus(p, &status)) continue;
-            BDBG_LOG(("playpump %d: %s, fifo %d/%d(%d%%)", status.index,
+            BDBG_LOG(("playpump %d: %s, fifo %u/%u(%u%%)", status.index,
                 status.started?"started":"stopped",
-                status.fifoDepth, status.fifoSize, status.fifoSize?status.fifoDepth*100/status.fifoSize:0));
+                (unsigned)status.fifoDepth, (unsigned)status.fifoSize, status.fifoSize?(unsigned)(status.fifoDepth*100/status.fifoSize):0));
         }
     }
     #endif
     for (i=0;i<BXPT_NUM_RAVE_CONTEXTS;i++) {
         if (pTransport->recpump[i]) {
             NEXUS_RecpumpStatus status;
+            NEXUS_Recpump_P_PidChannel *pid;
             if (NEXUS_Recpump_GetStatus(pTransport->recpump[i], &status)) continue;
-            BDBG_LOG(("recpump %d: %s, RAVE %u, CDB fifo %d/%d(%d%%), ITB fifo %d/%d(%d%%)", status.rave.index,
+            BDBG_LOG(("recpump %d: %s, RAVE %u, CDB fifo %u/%u(%u%%), ITB fifo %u/%u(%u%%)", status.rave.index,
                 status.started?"started":"stopped", status.rave.index,
-                status.data.fifoDepth, status.data.fifoSize, status.data.fifoSize?status.data.fifoDepth*100/status.data.fifoSize:0,
-                status.index.fifoDepth, status.index.fifoSize, status.index.fifoSize?status.index.fifoDepth*100/status.index.fifoSize:0));
+                (unsigned)status.data.fifoDepth, (unsigned)status.data.fifoSize, status.data.fifoSize?(unsigned)(status.data.fifoDepth*100/status.data.fifoSize):0,
+                (unsigned)status.index.fifoDepth, (unsigned)status.index.fifoSize, status.index.fifoSize?(unsigned)(status.index.fifoDepth*100/status.index.fifoSize):0));
+
+            for (pid=BLST_S_FIRST(&pTransport->recpump[i]->pid_list); pid; pid=BLST_S_NEXT(pid, link)) {
+                BDBG_LOG(("  added_pidchannel %u", pid->pidChn->hwPidChannel->status.pidChannelIndex));
+            }
         }
     }
 
@@ -605,11 +617,11 @@ static void NEXUS_TransportModule_P_Print(void)
 #endif
 }
 
-NEXUS_ModuleHandle NEXUS_TransportModule_PreInit(const NEXUS_TransportModuleSettings *pSettings)
+NEXUS_ModuleHandle NEXUS_TransportModule_PreInit( const NEXUS_TransportModuleInternalSettings *pModuleSettings, const NEXUS_TransportModuleSettings  *pSettings)
 {
     NEXUS_ModuleSettings moduleSettings;
 
-    if(!pSettings) {
+    if(!pSettings || !pModuleSettings) {
         BERR_TRACE(NEXUS_INVALID_PARAMETER);
         return NULL;
     }
@@ -630,8 +642,9 @@ NEXUS_ModuleHandle NEXUS_TransportModule_PreInit(const NEXUS_TransportModuleSett
           return NULL;
     }
     pTransport->settings = *pSettings;
+    pTransport->moduleSettings = *pModuleSettings;
 
-    if (!pSettings->postInitCalledBySecurity) {
+    if (!pModuleSettings->postInitCalledBySecurity) {
         int rc;
         NEXUS_LockModule();
         rc = NEXUS_TransportModule_PostInit_priv(NULL);
@@ -663,10 +676,10 @@ NEXUS_Error NEXUS_TransportModule_PostInit_priv(RaveChannelOpenCB rave_regver)
 
     BXPT_GetDefaultSettings(pXptSettings, g_pCoreHandles->chp);
 
-    pXptSettings->memHeap = g_pCoreHandles->heap[pTransport->settings.mainHeapIndex].mem;
-    if (pSettings->secureHeap) {
-        pXptSettings->mmaRHeap = NEXUS_Heap_GetMmaHandle(pSettings->secureHeap);
-        pXptSettings->memRHeap = NEXUS_Heap_GetMemHandle(pSettings->secureHeap);
+    pXptSettings->memHeap = g_pCoreHandles->heap[pTransport->moduleSettings.mainHeapIndex].mem;
+    if (pTransport->moduleSettings.secureHeap) {
+        pXptSettings->mmaRHeap = NEXUS_Heap_GetMmaHandle(pTransport->moduleSettings.secureHeap);
+        pXptSettings->memRHeap = NEXUS_Heap_GetMemHandle(pTransport->moduleSettings.secureHeap);
     }
 
     /* verify API macros aren't below nexus_platform_features.h */
@@ -768,7 +781,7 @@ NEXUS_Error NEXUS_TransportModule_PostInit_priv(RaveChannelOpenCB rave_regver)
     pXptSettings->syncInCount = pSettings->syncInCount;
     pXptSettings->syncOutCount = pSettings->syncOutCount;
 
-    rc = BXPT_Open(&xpt, g_pCoreHandles->chp, g_pCoreHandles->reg, g_pCoreHandles->heap[pTransport->settings.mainHeapIndex].mma, g_pCoreHandles->bint, pXptSettings);
+    rc = BXPT_Open(&xpt, g_pCoreHandles->chp, g_pCoreHandles->reg, g_pCoreHandles->heap[pTransport->moduleSettings.mainHeapIndex].mma, g_pCoreHandles->bint, pXptSettings);
     if (rc) {rc=BERR_TRACE(rc); goto done;}
 
     pTransport->xpt = xpt;
@@ -794,7 +807,7 @@ NEXUS_Error NEXUS_TransportModule_PostInit_priv(RaveChannelOpenCB rave_regver)
 
         rave_channel_settings.chanOpenCB = rave_regver;
         rave_channel_settings.ThresholdGranularityInBytes = NEXUS_RAVE_THRESHOLD_UNITS;
-        /* for nexus naming, I kept the NEXUS_TransportModuleSettings and NEXUS_RecpumpSettings names in sync. this means the naming
+        /* for nexus naming, I kept the NEXUS_TransportModuleInternalSettings and NEXUS_RecpumpSettings names in sync. this means the naming
         doesn't match magnum exactly. */
         rave_channel_settings.TpitEventTimeout = pSettings->tpit.idleEventTimeout;
         rave_channel_settings.TpitPacketTimeout = pSettings->tpit.recordEventTimeout;
@@ -1195,7 +1208,7 @@ NEXUS_Error NEXUS_TransportModule_Standby_priv(bool enabled, const NEXUS_Standby
     }
     else
     {
-        if (!pTransport->settings.postInitCalledBySecurity) {
+        if (!pTransport->moduleSettings.postInitCalledBySecurity) {
             rc = NEXUS_TransportModule_PostResume_priv();
         }
         else {

@@ -1,43 +1,39 @@
-/***************************************************************************
- * (c) 2002-2016 Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 
 #ifdef PLAYBACK_IP_SUPPORT
@@ -70,7 +66,7 @@ static void playbackCallbackERRORFromBIP(
             pWidgetEngine->syncCallback(pChannel, CALLBACK_TUNER_LOCK_STATUS_BIP);
         }
     }
-    BDBG_MSG(("%s: Got EventId from IP library, Channel Ip %p", __FUNCTION__, pChannel));
+    BDBG_MSG(("%s: Got EventId from IP library, Channel Ip %p", __FUNCTION__, (void *)pChannel));
 } /* playbackCallbackERRORFromBIP */
 
 static void playbackCallbackFromBIP(
@@ -91,7 +87,7 @@ static void playbackCallbackFromBIP(
             pWidgetEngine->syncCallback(pChannel, CALLBACK_TUNER_LOCK_STATUS_BIP);
         }
     }
-    BDBG_MSG(("%s: Got EventId from IP library, Channel Ip %p", __FUNCTION__, pChannel));
+    BDBG_MSG(("%s: Got EventId from IP library, Channel Ip %p", __FUNCTION__, (void *)pChannel));
 } /* playbackCallbackFromBIP */
 
 static void asyncCallbackFromBIP(
@@ -110,7 +106,7 @@ static void asyncCallbackFromBIP(
             pWidgetEngine->syncCallback(pChannel, CALLBACK_TUNER_LOCK_STATUS_BIP);
         }
     }
-    BDBG_MSG(("%s: Got EventId from IP library, Channel Ip %p", __FUNCTION__, pChannel));
+    BDBG_MSG(("%s: Got EventId from IP library, Channel Ip %p", __FUNCTION__, (void *)pChannel));
 }
 
 static void bwinTunerLockStatusCallback(
@@ -137,10 +133,11 @@ static void bwinTunerLockStatusCallback(
 BIP_Status CChannelBip::restartDecode(void)
 {
     BIP_PlayerSettings playerSettings;
-    BIP_Status status = BIP_SUCCESS;
+    BIP_Status         status = BIP_SUCCESS;
 
-    if (_pPlayer) {
-        BIP_Player_GetSettings(_pPlayer,&playerSettings);
+    if (_pPlayer)
+    {
+        BIP_Player_GetSettings(_pPlayer, &playerSettings);
         if (_pAudioDecode)
         {
             playerSettings.audioTrackSettings.pidTypeSettings.audio.simpleDecoder = _pAudioDecode->getSimpleDecoder();
@@ -153,7 +150,7 @@ BIP_Status CChannelBip::restartDecode(void)
         {
             playerSettings.playbackSettings.simpleStcChannel = _pStc->getSimpleStcChannel();
         }
-        status = BIP_Player_SetSettings(_pPlayer,&playerSettings);
+        status = BIP_Player_SetSettings(_pPlayer, &playerSettings);
         if (status != BIP_SUCCESS)
         {
             BDBG_ERR((" restart has Failed"));
@@ -162,50 +159,53 @@ BIP_Status CChannelBip::restartDecode(void)
     }
 error:
     BDBG_WRN((" Out of Function"));
-    return status;
-
+    return(status);
 } /* restartDecode */
 
 unsigned int CChannelBip::getLastPosition(void)
 {
-    BIP_Status       bipStatus = BIP_SUCCESS;
-    BIP_PlayerStatus playerStatus;
+    unsigned int position=0;
 
     if (getState() != BMediaPlayerState_eDisconnected)
     {
+        BIP_Status       bipStatus;
+        BIP_PlayerStatus playerStatus;
+
         bipStatus = BIP_Player_GetStatus(_pPlayer, &playerStatus);
+        if (bipStatus != BIP_SUCCESS)
+        {
+            BDBG_WRN((" cannot get Player status"));
+        }
+        else
+        {
+            position = playerStatus.lastPositionInMs;
+        }
     }
 
-    if (bipStatus != BIP_SUCCESS)
-    {
-        BDBG_WRN((" cannot get Player status"));
-        return(0);
-    }
-    else
-    {
-        return(playerStatus.lastPositionInMs);
-    }
+    return(position);
 } /* getLastPosition */
 
 unsigned int CChannelBip::getCurrentPosition(void)
 {
-    BIP_Status       bipStatus = BIP_SUCCESS;
-    BIP_PlayerStatus playerStatus;
+    unsigned int position=0;
 
     if (getState() != BMediaPlayerState_eDisconnected)
     {
+        BIP_Status       bipStatus;
+        BIP_PlayerStatus playerStatus;
+
         bipStatus = BIP_Player_GetStatus(_pPlayer, &playerStatus);
+        if (bipStatus != BIP_SUCCESS)
+        {
+            BDBG_WRN((" cannot get Player status"));
+        }
+        else
+        {
+            position = playerStatus.currentPositionInMs;
+        }
     }
 
-    if (bipStatus != BIP_SUCCESS)
-    {
-        BDBG_WRN((" cannot get Player status"));
-        return(0);
-    }
-    else
-    {
-        return(playerStatus.currentPositionInMs);
-    }
+    return(position);
 } /* getCurrentPosition */
 
 eRet CChannelBip::setState(BMediaPlayerState state)
@@ -242,8 +242,6 @@ BIP_Status CChannelBip::mediaStateMachine(BMediaPlayerAction playerAction)
     if (playerAction == BMediaPlayerAction_eUnTune)
     {
         BDBG_MSG(("Player action to untune"));
-        setState(BMediaPlayerState_eDisconnected);
-        close();
         goto error;
     }
 
@@ -260,9 +258,9 @@ BIP_Status CChannelBip::mediaStateMachine(BMediaPlayerAction playerAction)
 
         BDBG_MSG(("In Disconnected state, start Connect processing on URL=%s", BIP_String_GetString(_pUrl)));
         BIP_Player_GetDefaultConnectSettings(&settings);
-        settings.pUserAgent        = "Atlas BIP Player";
-        _asyncApiCompletionStatus  = BIP_INF_IN_PROGRESS;
-        bipStatus                  = BIP_Player_ConnectAsync(_pPlayer, BIP_String_GetString(_pUrl), &settings, &_asyncCallbackDesc, &_asyncApiCompletionStatus);
+        settings.pUserAgent       = "Atlas BIP Player";
+        _asyncApiCompletionStatus = BIP_INF_IN_PROGRESS;
+        bipStatus                 = BIP_Player_ConnectAsync(_pPlayer, BIP_String_GetString(_pUrl), &settings, &_asyncCallbackDesc, &_asyncApiCompletionStatus);
         if ((bipStatus != BIP_INF_IN_PROGRESS) && (bipStatus != BIP_SUCCESS))
         {
             BDBG_ERR(("BIP_Player_ProbeAsync Failed!"));
@@ -357,7 +355,7 @@ BIP_Status CChannelBip::mediaStateMachine(BMediaPlayerAction playerAction)
             playerSettings.playbackSettings.errorCallback.callback       = playbackCallbackERRORFromBIP;
             playerSettings.playbackSettings.errorCallback.context        = this;
 
-            bipStatus = BIP_Player_Prepare(_pPlayer, &prepareSettings, &playerSettings, NULL /*&probeSettings*/, NULL /*&streamInfo*/, &prepareStatus);
+            bipStatus = BIP_Player_Prepare(_pPlayer, &prepareSettings, &playerSettings, NULL /*&probeSettings*/, &playerStreamInfo, &prepareStatus);
             if (bipStatus != BIP_SUCCESS)
             {
                 BDBG_ERR(("BIP_Player_Prepare Failed: URL=%s", BIP_String_GetString(_pUrl)));
@@ -385,7 +383,7 @@ BIP_Status CChannelBip::mediaStateMachine(BMediaPlayerAction playerAction)
             }
 
             setState(BMediaPlayerState_eWaitingForStart);
-            BDBG_MSG(("Player state is now BMediaPlayerState_eWaitingForStart", __FUNCTION__));
+            BDBG_MSG(("Player state is now BMediaPlayerState_eWaitingForStart (%s)", __FUNCTION__));
         }
         break;
     }
@@ -403,8 +401,10 @@ BIP_Status CChannelBip::mediaStateMachine(BMediaPlayerAction playerAction)
             BDBG_MSG(("In Started state, Playing Media Stream. "));
             setState(BMediaPlayerState_eStarted);
 
-            /* TTTTTTTTT ret = notifyObservers(eNotify_ChannelStateChanged, this); */
-            /* CHECK_ERROR_GOTO("error notifying observers", ret, error); */
+            /*
+             * ret = notifyObservers(eNotify_ChannelStateChanged, this);
+             * CHECK_ERROR_GOTO("error notifying observers", ret, error);
+             */
         }
         else
         {
@@ -418,9 +418,10 @@ BIP_Status CChannelBip::mediaStateMachine(BMediaPlayerAction playerAction)
     {
         if (_pPlayer)
         {
-           if (BMediaPlayerAction_eRestart != playerAction) {
-               bipStatus = BIP_Player_GetStatus(_pPlayer, &playerStatus);
-           }
+            if (BMediaPlayerAction_eRestart != playerAction)
+            {
+                bipStatus = BIP_Player_GetStatus(_pPlayer, &playerStatus);
+            }
             BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ("BIP_Player_GetStatus Failed"), error, bipStatus, bipStatus);
 
             BDBG_MSG(("Player is Started, wait for endOfStream/error Callback or user quit: position cur/last: %0.3f/%0.3f sec ", playerStatus.currentPositionInMs/1000., playerStatus.lastPositionInMs/1000.));
@@ -483,8 +484,9 @@ BIP_Status CChannelBip::mediaStateMachine(BMediaPlayerAction playerAction)
     return(bipStatus);
 
 error:
-    /* Stop the Player. */
+    _tuned = false;
     setState(BMediaPlayerState_eDisconnected);
+    close();
     return(bipStatus);
 } /* processMediaPlayerState */
 
@@ -499,12 +501,17 @@ CChannelBip::CChannelBip(
     _playerCallbackAction(BMediaPlayerAction_eMax),
     _pPlayer(NULL),
     _playerState(BMediaPlayerState_eDisconnected),
+    _asyncApiCompletionStatus(BIP_SUCCESS),
+    _pMediaInfo(NULL),
     _programNumberValid(false),
     _programNumber(0),
+    _seekRate(0),
     _pVideoDecode(NULL),
     _pAudioDecode(NULL)
 {
     BIP_Status bipStatus = BIP_SUCCESS;
+
+    memset(&_asyncCallbackDesc, 0, sizeof(_asyncCallbackDesc));
 
     setTunerRequired(false);
     _pInterfaceName = BIP_String_Create();
@@ -521,12 +528,17 @@ CChannelBip::CChannelBip(void) :
     _playerCallbackAction(BMediaPlayerAction_eMax),
     _pPlayer(NULL),
     _playerState(BMediaPlayerState_eDisconnected),
+    _asyncApiCompletionStatus(BIP_SUCCESS),
+    _pMediaInfo(NULL),
     _programNumberValid(false),
     _programNumber(0),
+    _seekRate(0),
     _pVideoDecode(NULL),
     _pAudioDecode(NULL)
 {
     BIP_Status bipStatus = BIP_SUCCESS;
+
+    memset(&_asyncCallbackDesc, 0, sizeof(_asyncCallbackDesc));
 
     setTunerRequired(false);
     _pInterfaceName = BIP_String_Create();
@@ -545,12 +557,17 @@ CChannelBip::CChannelBip(CConfiguration * pCfg) :
     _playerCallbackAction(BMediaPlayerAction_eMax),
     _pPlayer(NULL),
     _playerState(BMediaPlayerState_eDisconnected),
+    _asyncApiCompletionStatus(BIP_SUCCESS),
+    _pMediaInfo(NULL),
     _programNumberValid(false),
     _programNumber(0),
+    _seekRate(0),
     _pVideoDecode(NULL),
     _pAudioDecode(NULL)
 {
     BIP_Status bipStatus = BIP_SUCCESS;
+
+    memset(&_asyncCallbackDesc, 0, sizeof(_asyncCallbackDesc));
 
     setTunerRequired(false);
     _pInterfaceName = BIP_String_Create();
@@ -570,12 +587,17 @@ CChannelBip::CChannelBip(const CChannelBip & bipCh) :
     _playerCallbackAction(BMediaPlayerAction_eMax),
     _pPlayer(NULL),
     _playerState(BMediaPlayerState_eDisconnected),
+    _asyncApiCompletionStatus(BIP_SUCCESS),
+    _pMediaInfo(NULL),
     _programNumberValid(false),
     _programNumber(0),
+    _seekRate(0),
     _pVideoDecode(NULL),
     _pAudioDecode(NULL)
 {
     BIP_Status bipStatus = BIP_SUCCESS;
+
+    memset(&_asyncCallbackDesc, 0, sizeof(_asyncCallbackDesc));
 
     setTunerRequired(false);
     _pInterfaceName = BIP_String_Create();
@@ -693,30 +715,32 @@ CChannelBip::~CChannelBip()
 
 void CChannelBip::close()
 {
+    _tuned = false;
+
     if (_pPlayer)
     {
         BDBG_MSG((" BIP Player is valid, close"));
         BIP_Player_Stop(_pPlayer);
         BIP_Player_Disconnect(_pPlayer);
         BIP_Player_Destroy(_pPlayer);
+        _pPlayer = NULL;
     }
     _pAudioDecode = NULL;
     _pVideoDecode = NULL;
-
-    _pPlayer = NULL;
 } /* close */
 
 void CChannelBip::gotoBackGroundRecord(void)
 {
     BIP_PlayerSettings playerSettings;
-    BIP_Status status = BIP_SUCCESS;
+    BIP_Status         status = BIP_SUCCESS;
 
-    if (_pPlayer) {
-        BIP_Player_GetSettings(_pPlayer,&playerSettings);
+    if (_pPlayer)
+    {
+        BIP_Player_GetSettings(_pPlayer, &playerSettings);
         playerSettings.audioTrackSettings.pidTypeSettings.audio.simpleDecoder = NULL;
         playerSettings.videoTrackSettings.pidTypeSettings.video.simpleDecoder = NULL;
-        playerSettings.playbackSettings.simpleStcChannel = NULL;
-        status = BIP_Player_SetSettings(_pPlayer,&playerSettings);
+        playerSettings.playbackSettings.simpleStcChannel                      = NULL;
+        status = BIP_Player_SetSettings(_pPlayer, &playerSettings);
         if (status != BIP_SUCCESS)
         {
             BDBG_ERR((" GotoBackGroundRecord has Failed"));
@@ -725,14 +749,11 @@ void CChannelBip::gotoBackGroundRecord(void)
 
         _pVideoDecode = NULL;
         _pAudioDecode = NULL;
-        _pStc = NULL;
-
+        _pStc         = NULL;
     }
 error:
     BDBG_WRN((" Out of Function Ending"));
-
-}
-
+} /* gotoBackGroundRecord */
 
 /* get PSI channel info for current tuned channel */
 eRet CChannelBip::getChannelInfo(
@@ -756,7 +777,7 @@ eRet CChannelBip::getChannelInfo(
     pMediaInfoStream = BIP_MediaInfo_GetStream(_pMediaInfo);
     CHECK_PTR_ERROR_GOTO("pMediaInfoStream is NULL", pMediaInfoStream, ret, eRet_ExternalError, error);
 
-    BDBG_WRN(("streamInfo: transportType=%s contentLength=%lld", BIP_ToStr_NEXUS_TransportType(pMediaInfoStream->transportType), pMediaInfoStream->contentLength));
+    BDBG_WRN(("streamInfo: transportType=%s contentLength=%s", BIP_ToStr_NEXUS_TransportType(pMediaInfoStream->transportType), MString(pMediaInfoStream->contentLength).s()));
 
     /* Check the tracks*/
     if (pMediaInfoStream->numberOfTrackGroups > 1)
@@ -1030,10 +1051,13 @@ eRet CChannelBip::openPids(
     }
 
     /* Check we might not be waiting to Prepare, because we re-entered */
-    if (getState() == BMediaPlayerState_eStarted) {
+    if (getState() == BMediaPlayerState_eStarted)
+    {
         BDBG_MSG(("Player is Started, continue we may need to restart"));
         playerAction = BMediaPlayerAction_eRestart;
-    } else if (getState() != BMediaPlayerState_eWaitingForPrepare )
+    }
+    else
+    if (getState() != BMediaPlayerState_eWaitingForPrepare)
     {
         BDBG_MSG(("_playerStatus is not ready to Prepare"));
         goto error;
@@ -1052,6 +1076,11 @@ error:
     return(ret);
 } /* openPids */
 
+eRet CChannelBip::closePids()
+{
+    return(eRet_Ok);
+}
+
 eRet CChannelBip::start(
         CSimpleAudioDecode * pAudioDecode,
         CSimpleVideoDecode * pVideoDecode
@@ -1064,7 +1093,8 @@ eRet CChannelBip::start(
     BSTD_UNUSED(pAudioDecode);
     BSTD_UNUSED(pVideoDecode);
 
-    if (getState() == BMediaPlayerState_eStarted) {
+    if (getState() == BMediaPlayerState_eStarted)
+    {
         playerAction = BMediaPlayerAction_eRestart;
     }
     bipStatus = mediaStateMachine(playerAction);
@@ -1383,7 +1413,14 @@ eRet CChannelBip::stop(void)
 
     if (_pPlayer)
     {
-        BDBG_ERR((" Player cannot stop on Live IP Channel Decode. Tune Channel Away!!"));
+        if (true == isStopAllowed())
+        {
+            ret = unTune(NULL);
+        }
+        else
+        {
+            BDBG_ERR((" Player cannot stop on Live IP Channel Decode. Tune Channel Away!!"));
+        }
     }
     return(ret);
 }
@@ -1405,7 +1442,7 @@ eRet CChannelBip::seek(
         {
             bipStatus = BIP_Player_GetStatus(_pPlayer, &playerStatus);
             BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ("BIP_Player_GetStatus Failed"), error, bipStatus, bipStatus);
-            BDBG_MSG(("seekRate %d, current position", _seekRate, playerStatus.currentPositionInMs));
+            BDBG_MSG(("seekRate %d, current position:%lu", _seekRate, playerStatus.currentPositionInMs));
             _seekRate = playerStatus.currentPositionInMs + _seekRate;
         }
 

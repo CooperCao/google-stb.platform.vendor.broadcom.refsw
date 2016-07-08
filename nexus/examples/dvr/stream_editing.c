@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2010-2012 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,8 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  *****************************************************************************/
 /* Nexus example app: playback and decode */
 #include "nexus_platform.h"
@@ -182,8 +174,9 @@ int main(void)
     /* allocate and align buffer */
     buf = BKNI_Malloc(buf_size+BIO_BLOCK_SIZE);
     BDBG_ASSERT(buf);
-    buf_alligned = (void *)((unsigned)buf + (BIO_BLOCK_SIZE-1));
-    buf_alligned = (void *)((unsigned)buf_alligned - (unsigned)buf_alligned%BIO_BLOCK_SIZE);
+    buf_alligned = (uint8_t*)buf + BIO_BLOCK_SIZE-1;
+    buf_alligned = (uint8_t*)buf_alligned - ((unsigned long)buf_alligned%BIO_BLOCK_SIZE);
+
     /* copy index */
     copy_file(start.indexOffset, end.indexOffset, buf_alligned, buf_size, file->file.index, file_write->index);
     /* and data */

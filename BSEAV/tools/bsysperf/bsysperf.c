@@ -1,46 +1,44 @@
 /******************************************************************************
- * (c) 2014 Broadcom Corporation
- *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
- *
- * Except as expressly set forth in the Authorized License,
- *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
- *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
- *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
- *****************************************************************************/
-
-#include <sys/types.h>
+* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*
+* This program is the proprietary software of Broadcom and/or its
+* licensors, and may only be used, duplicated, modified or distributed pursuant
+* to the terms and conditions of a separate, written license agreement executed
+* between you and Broadcom (an "Authorized License").  Except as set forth in
+* an Authorized License, Broadcom grants no license (express or implied), right
+* to use, or waiver of any kind with respect to the Software, and Broadcom
+* expressly reserves all rights in and to the Software and all intellectual
+* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*
+* Except as expressly set forth in the Authorized License,
+*
+* 1. This program, including its structure, sequence and organization,
+*    constitutes the valuable trade secrets of Broadcom, and you shall use all
+*    reasonable efforts to protect the confidentiality thereof, and to use
+*    this information only in connection with your use of Broadcom integrated
+*    circuit products.
+*
+* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+*
+* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+******************************************************************************/
+#include "bmemperf_types64.h"
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -67,6 +65,7 @@
 
 #define MAXHOSTNAME       80
 #define CONTENT_TYPE_HTML "Content-type: text/html\n\n"
+#define MYUUID_LEN 16
 
 char         *g_client_name[BMEMPERF_MAX_NUM_CLIENT];
 int           g_MegaBytes           = 0;                   /* set to 1 when user wants data displayed in megabytes instead of megabits (default) */
@@ -92,6 +91,19 @@ bsysperf_netStatistics g_netStats[NET_STATS_MAX];
 int                    g_netStatsIdx = -1;                 /* index to entries added to g_netStats array */
 
 char outString[32];
+
+typedef enum {
+    PERF_FLAME_UNINITED=0,
+    PERF_FLAME_INIT,
+    PERF_FLAME_IDLE,
+    PERF_FLAME_START,
+    PERF_FLAME_RECORDING,
+    PERF_FLAME_STOP,
+    PERF_FLAME_CREATE_SCRIPT_OUT,
+    PERF_FLAME_GET_SVG,
+    PERF_FLAME_DELETE_OUT_FILE,
+    PERF_FLAME_MAX
+} Bsysperf_PerfFlame_State;
 
 /**
  *  Function: This function will format an integer to output an indicator for kilo, mega, or giga.
@@ -546,6 +558,83 @@ int sort_on_irq0(
 }                                                          /* sort_on_irq0 */
 
 /**
+ *  Function: This function will convert the specified character to it's integer hexidecimal value.
+ **/
+static long int atoix( char c )
+{
+    char lchar[2];
+    lchar[0] = c;
+    lchar[1] = 0;
+    return strtol(lchar, NULL, 16);
+}
+/**
+ *  Function: This function will convert the specified string from the encoded version that comes from the
+ *  browser to a decoded version that is a standard C string. For example "%20" gets changed to a space " "; the
+ *  value "%2F" gets changed to "/".
+ **/
+static int decodeURL ( char * URL )
+{
+    char c, *s=NULL, *d=NULL;
+
+    for (d = s = URL; *s; s++, d++)
+    {
+        c = *s;
+        if (c == '%')
+        {
+            c = *++s;
+            if (c == '%') c = '%';
+            else {
+                c = atoix(c) << 4 | atoix(*++s);
+            }
+            *d = c;
+        }
+        else
+        {
+            *d = c;
+        }
+    }
+    *d = '\0';
+
+    return 0;
+}
+
+int create_uuid( char * strUuid )
+{
+    unsigned int  idx;
+    unsigned long int myUuid[4];
+    unsigned char     *uuid = (unsigned char *)myUuid;
+    unsigned long int temp = 0;
+    struct timespec time1;
+    char   two_digits[3];
+
+    memset ( myUuid, 0, MYUUID_LEN );
+    memset ( &time1, 0, sizeof(time1) );
+
+    clock_gettime( CLOCK_REALTIME, &time1 );
+
+    srandom ( (unsigned int) time1.tv_nsec/1000 );
+
+    /*printf("~DEBUG~uuid %p~\n", uuid );*/
+    for (idx=0; idx<4; idx++)
+    {
+        myUuid[idx] = temp = random();
+        /*printf("~DEBUG~random(%u) returned %08lx; uuid %p~\n", idx, temp, myUuid[idx] );*/
+    }
+
+    /*printf("~DEBUG~%s: myUuid: ", __FUNCTION__ );*/
+    for (idx=0; idx<MYUUID_LEN; idx++)
+    {
+        /*printf( "%02x ", uuid[idx] );*/
+        snprintf( two_digits, sizeof(two_digits), "%02x", uuid[idx] );
+        strcat( strUuid, two_digits);
+    }
+    /*printf("~\n");*/
+    /*printf("strUuid:(%s)\n", strUuid );*/
+
+    return 0;
+}
+
+/**
  *  Function: This function is the main entry point for the BSYSPERF client app.
  **/
 int main(
@@ -571,9 +660,6 @@ int main(
     char                  irqTotalStr[64];
 
     char *queryString      = NULL;
-    char *contentType      = NULL;
-    char *contentLength    = NULL;
-    char *remoteAddress    = NULL;
     int   epochSeconds     = 0;
     int   tzOffset         = 0;
     int   cpuInfo          = 0;
@@ -588,6 +674,10 @@ int main(
     int   PerfDeepResults  = 0;
     int   PerfCache        = 0;
     int   PerfCacheResults = 0;
+    int   PerfFlame        = 0;
+    char  PerfFlameCmdLine[128];
+    int   PerfFlameSvgCount= 1;
+    char  strUuid[MYUUID_LEN*2+1];
     int   ChangeCpuState   = 0;
     int   LinuxTop         = 0;
     int   ContextSwitches  = 0;
@@ -598,10 +688,9 @@ int main(
     memset( &versionInfo, 0, sizeof( versionInfo ));
     memset( &response, 0, sizeof( response ));
     memset( &irqTotalStr, 0, sizeof( irqTotalStr ));
+    memset( &PerfFlameCmdLine, 0, sizeof( PerfFlameCmdLine ));
+    memset( strUuid, 0, sizeof(strUuid) );
 
-    contentType   = getenv( "CONTENT_TYPE" );
-    contentLength = getenv( "CONTENT_LENGTH" );
-    remoteAddress = getenv( "REMOTE_ADDR" );
     queryString   = getenv( "QUERY_STRING" );
 
     if (queryString && strlen( queryString ))
@@ -620,6 +709,9 @@ int main(
         scanForInt( queryString, "PerfCacheResults=", &PerfCacheResults );
         scanForInt( queryString, "PerfDeep=", &PerfDeep );
         scanForInt( queryString, "PerfDeepResults=", &PerfDeepResults );
+        scanForInt( queryString, "PerfFlame=", &PerfFlame );
+        scanForStr( queryString, "PerfFlameCmdLine=", sizeof( PerfFlameCmdLine ), PerfFlameCmdLine );
+        scanForInt( queryString, "PerfFlameSvgCount=", &PerfFlameSvgCount );
         scanForInt( queryString, "ChangeCpuState=", &ChangeCpuState );
         scanForInt( queryString, "LinuxTop=", &LinuxTop );
         scanForInt( queryString, "ContextSwitch=", &ContextSwitches );
@@ -633,7 +725,7 @@ int main(
 
     printf( CONTENT_TYPE_HTML );
 
-    printf( "QUERY_STRING len %u; (%s)", strlen( queryString ), queryString );
+    printf( "QUERY_STRING len %u; (%s)", (unsigned int) strlen( queryString ), queryString );
 
     /* if the checkbox for Memory is checked, determine if kernel has been compiled with perf tools */
     /*if (memory || profiling)*/
@@ -719,12 +811,8 @@ int main(
                 for (tickidx = 1; tickidx<10; tickidx++)
                 {
                     penoff = ( 1-tickidx%2 ) * 5;          /* dashed line for 20,40,60,80; solid line for 10,30,50,70,90 */
-#if 0
-                    printf( "<line x1=0 y1=%d x2=500 y2=%d style=\"stroke:lightgray;stroke-width:1;stroke-dasharray=5,5; \" />", tickidx*10, tickidx*10 );
-#else
                     /* for dasharray: how many pixels will the pen be on ... how many pixels will the pen be off. 5 on 5 off is a dash; 5 on 0 off is solid */
                     printf( "<path d=\"M0 %d L500 %d\" stroke=lightgray stroke-width=1 stroke-dasharray=\"5,%d\" />", tickidx*10, tickidx*10, penoff );
-#endif
                     if (( tickidx%2 ) == 1)                                                           /* output text for 10, 30, 50, 70, 90 */
                     {
                         printf( "<text x=2 y=%d>%d</text>\n", tickidx*10+3, ( 100 - ( tickidx*10 ))); /* offset 3 pixels to drop the number into the middle of the tickmark */
@@ -748,7 +836,7 @@ int main(
     printf( "~STBTIME~%s~", DayMonDateYear( 0 ));
 
     /* if the checkbox for CPU Utilization OR Network Stats OR IRQ Counts is checked (any one of these needs to request data from bmemperf_server) */
-    if (cpuInfo || netStats || irqInfo || PerfDeep || PerfCache || sataUsb || LinuxTop || ContextSwitches)
+    if (cpuInfo || netStats || irqInfo || PerfDeep || PerfCache || sataUsb || LinuxTop || ContextSwitches || PerfFlame )
     {
         strncpy( ThisHost, "localhost", sizeof( ThisHost ));
         getservbyname( "echo", "tcp" );
@@ -800,6 +888,80 @@ int main(
             }
         }
 
+        if (PerfFlame)
+        {
+            if ( gPerfError == true)
+            {
+                printf( "~FATAL~kernel is not PERF kernel.~" );
+            }
+            else
+            {
+                if (PerfFlame == PERF_FLAME_INIT) /* Init */
+                {
+                    printf( "~PerfFlameInit~" );
+                    printf("<h2>Flame&nbsp;Graph</h2>");
+                    printf("<table cols=10 border=0 style=\"border-collapse:collapse;\" width=\"100%%\" >\n");
+                    printf("<tr><td width=100 >CmdLine:</td><td colspan=9 width=800 ><input type=text id=PerfFlameCmdLine size=120 ></td></tr>\n");
+                    printf("<tr><td>&nbsp;</td><td style=\"width:70px;\" ><input type=button value=\"Start\" onclick=\"MyClick(event);\" id=PerfFlameStartStop ></td>\n");
+                    printf("<td width=70 align=right id=PerfFlameDurationText onclick=\"MyClick(event);\" >Duration:</td><td width=70 align=left id=PerfFlameDuration >&nbsp;</td>\n");
+                    printf("<td width=70 align=right >File&nbsp;Size:</td><td width=70 align=left id=PerfFlameSize >&nbsp;</td>\n");
+                    printf("<td width=70 align=right >State:</td><td width=70 align=left id=PerfFlameState >&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>\n");
+                    printf(" <tr><td colspan=10 id=PerfFlameSvg ></td></tr>\n");
+                    printf("</table>\n");
+                    printf("~");
+                    /*printf("<div id=PerfFlameSvg >&nbsp;</div>\n~");*/
+                    request.cmdSecondary       = BMEMPERF_CMD_STOP_PERF_FLAME;
+                    request.cmdSecondaryOption = 0;
+                } else if (PerfFlame == PERF_FLAME_START /* start recording */ ) {
+                    printf( "~PERF_FLAME start; cmdLine (%s)~", PerfFlameCmdLine );
+                    request.cmdSecondary       = BMEMPERF_CMD_START_PERF_FLAME;
+                    request.cmdSecondaryOption = 0;
+                    strncpy ( (char*) &request.request.strCmdLine, PerfFlameCmdLine, sizeof(request.request.strCmdLine) - 1 );
+                    decodeURL( request.request.strCmdLine );
+
+                    create_uuid( strUuid );
+                    printf("~PERFRECORDUUID~%s~", strUuid );
+                } else if (PerfFlame == PERF_FLAME_RECORDING /* get status of recording */ ) {
+                    PRINTF( "~PERF_FLAME status~" );
+                    request.cmdSecondary       = BMEMPERF_CMD_STATUS_PERF_FLAME;
+                } else if (PerfFlame == PERF_FLAME_STOP /* stop record and create svg file */ ) {
+                    PRINTF( "~PERF_FLAME stop~" );
+                    request.cmdSecondary       = BMEMPERF_CMD_STOP_PERF_FLAME;
+                } else if (PerfFlame == PERF_FLAME_CREATE_SCRIPT_OUT /* run perf script command */ ) {
+                    char         line[MAX_LINE_LENGTH];
+                    char         tempPath[MAX_LINE_LENGTH];
+
+                    scanForStr( queryString, "perf_out=", sizeof( strUuid ), strUuid );
+                    printf( "~DEBUG~PERF_FLAME create_script_out ... strUuid (%s)~", strUuid );
+                    PrependTempDirectory( tempPath, sizeof( tempPath ), "" );
+                    snprintf( line, sizeof(line)-1, "(cd %s && perf script > %s.out 2>/dev/null)", tempPath, strUuid );
+                    printf( "~DEBUG~issuing system(%s)~", line );
+                    system( line );
+                    snprintf( line, sizeof(line)-1, "(cp %s%s.out . && rm %s%s.out)", tempPath, strUuid, tempPath, strUuid );
+                    printf( "~DEBUG~issuing system(%s)~", line );
+                    system( line );
+                    printf( "~PERFSCRIPTDONE~" );
+                } else if (PerfFlame == PERF_FLAME_DELETE_OUT_FILE ) {
+                    char  svgFilename[TEMP_FILE_FULL_PATH_LEN];
+                    char *pos = NULL;
+
+                    scanForStr( queryString, "perf_out=", sizeof( strUuid ), strUuid );
+                    snprintf( svgFilename, sizeof(svgFilename), "%s.svg", strUuid );
+
+                    /* remove the .out files */
+                    pos = strstr(svgFilename, ".svg");
+                    if (pos)
+                    {
+                        strncpy ( pos, ".out", 4 );
+                        remove( svgFilename );
+                        printf( "~PERFFLAME_DELETEOUTFILE_DONE~%s~", svgFilename );
+                    }
+                } else {
+                    PRINTF( "~PERF_FLAME unknown~" );
+                }
+            }
+        }
+
         if (sataUsb)
         {
             if (sataUsb == 1)                              /* user requested we start data collection */
@@ -842,11 +1004,17 @@ int main(
 
         if (PerfDeep)
         {
-            printf( "~PERFDEEPSTARTED~SUCCESS~" );
+            PRINTF( "~PERFDEEPSTARTED~SUCCESS~" );
         }
         else if (PerfCache)
         {
-            printf( "~PERFCACHESTARTED~SUCCESS~" );
+            PRINTF( "~PERFCACHESTARTED~SUCCESS~" );
+        }
+        else if (PerfFlame)
+        {
+            printf( "~PERFFLAMESTATUS~%lu~", (unsigned long int) response.response.overallStats.fileSize );
+            printf( "~PERFFLAMEPIDCOUNT~%lu~", response.response.overallStats.pidCount );
+            PRINTF( "PERFFLAMESIZE %lu; PIDCOUNT %lu~", (unsigned long int) response.response.overallStats.fileSize, (unsigned long int) response.response.overallStats.pidCount );
         }
     }
 
@@ -1114,17 +1282,7 @@ int main(
     if (ContextSwitches)
     {
         printf( "~CONTEXTSWITCH~" );
-        #if 0
-        printf( "<tr><td>" );
-        printf( "<table id=contextswitchtable cols=2 border=0 style=\"border-collapse:collapse;\" cellpadding=5 >" );
-        printf( "<th class=allborders50 style=\"background-color:lightgray;font-size:12pt;\" width=200 >Context&nbsp;Switches</th>" );
-        printf( "<td class=allborders50 style=\"background-color:white;font-size:12pt;\" width=100 >%lu</td>", response.response.overallStats.contextSwitches );
-        printf( "</tr>" );
-        printf( "</table>" );
-        printf( "</td></tr>" );
-        #else
         printf( "%lu", response.response.overallStats.contextSwitches );
-        #endif
         printf( "~" );
     }
 

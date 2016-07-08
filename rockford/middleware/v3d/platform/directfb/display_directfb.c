@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2010-11 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2010-11 Broadcom.
 All rights reserved.
 
 Project  :  Default DirectFB platform API for EGL driver
@@ -40,6 +40,11 @@ typedef struct
    pthread_cond_t          cond;
    bool                    inUse;
 } DBPL_WindowState;
+
+enum
+{
+   PIXMAP_INFO_MAGIC = 0x15EEB1A5
+};
 
 /*****************************************************************************
  * Display driver interface
@@ -430,7 +435,7 @@ DBPL_DestroyDisplayInterface(BEGL_DisplayInterface * disp)
 }
 
 bool DBPL_BufferGetRequirements(DBPL_PlatformHandle handle,
-                                BEGL_PixmapInfo *bufferRequirements,
+                                BEGL_PixmapInfoEXT *bufferRequirements,
                                 BEGL_BufferSettings * bufferConstrainedRequirements)
 {
    BEGL_DriverInterfaces *data = (BEGL_DriverInterfaces*)handle;
@@ -444,9 +449,23 @@ bool DBPL_BufferGetRequirements(DBPL_PlatformHandle handle,
    return false;
 }
 
-bool DBPL_CreateCompatiblePixmap(DBPL_PlatformHandle handle, void **pixmapHandle, IDirectFBSurface **surface, BEGL_PixmapInfo *info)
+void DBPL_GetDefaultPixmapInfoEXT(BEGL_PixmapInfoEXT *info)
+{
+   if (info != NULL)
+   {
+      memset(info, 0, sizeof(BEGL_PixmapInfoEXT));
+
+      info->format = BEGL_BufferFormat_INVALID;
+      info->magic = PIXMAP_INFO_MAGIC;
+   }
+}
+
+bool DBPL_CreateCompatiblePixmapEXT(DBPL_PlatformHandle handle, void **pixmapHandle, IDirectFBSurface **surface,
+   BEGL_PixmapInfoEXT *info)
 {
    BEGL_DriverInterfaces *data = (BEGL_DriverInterfaces*)handle;
+
+   assert(info->magic == PIXMAP_INFO_MAGIC);
 
    if (data != NULL && data->displayCallbacks.PixmapCreateCompatiblePixmap != NULL)
    {
@@ -460,6 +479,20 @@ bool DBPL_CreateCompatiblePixmap(DBPL_PlatformHandle handle, void **pixmapHandle
    }
 
    return false;
+}
+
+bool DBPL_CreateCompatiblePixmap(DBPL_PlatformHandle handle, void **pixmapHandle, IDirectFBSurface **surface,
+   BEGL_PixmapInfo *info)
+{
+   BEGL_PixmapInfoEXT   infoEXT;
+
+   DBPL_GetDefaultPixmapInfoEXT(&infoEXT);
+
+   infoEXT.width = info->width;
+   infoEXT.height = info->height;
+   infoEXT.format = info->format;
+
+   return DBPL_CreateCompatiblePixmapEXT(handle, pixmapHandle, surface, &infoEXT);
 }
 
 void DBPL_DestroyCompatiblePixmap(DBPL_PlatformHandle handle, void *pixmapHandle)

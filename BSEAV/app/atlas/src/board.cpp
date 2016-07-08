@@ -1,43 +1,39 @@
-/***************************************************************************
- * (c) 2002-2015 Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 
 #include "board.h"
@@ -204,8 +200,7 @@ void CBoardFeatures::clear()
 
 void CBoardFeatures::dump()
 {
-    BDBG_MSG((""));
-    BDBG_MSG(("BOARD FEATURES"));
+    BDBG_MSG(("\nBOARD FEATURES"));
     /*
      * BDBG_MSG(("videoHd:        %d", _videoHd));
      * BDBG_MSG(("displayHd:      %d", _displayHd));
@@ -1267,7 +1262,8 @@ eRet CBoardResources::unregisterObserver(
 CResource * CBoardResources::checkoutResource(
         void *         id,
         eBoardResource resource,
-        uint16_t       index
+        uint16_t       index,
+        uint32_t       number
         )
 {
     eRet        ret                 = eRet_Ok;
@@ -1290,15 +1286,18 @@ CResource * CBoardResources::checkoutResource(
             if ((pResource->getType() == resource))
             {
                 /* found matching resource type OR we are checking out a frontend. */
-                if ((true == pResource->isAvailForCheckout()) && (true == pResource->validReservation(id)))
+                if ((ANY_NUMBER == number) || (pResource->getNumber() == number))
                 {
-                    /* the found resource is not checked out and is not reserved for someone else
-                     * so check it out */
-                    pCheckedOutResource = pResource;
-                    ret                 = pCheckedOutResource->setCheckedOut(true, id);
-                    CHECK_ERROR_GOTO("unable to checkout resource", ret, error);
+                    if ((true == pResource->isAvailForCheckout()) && (true == pResource->validReservation(id)))
+                    {
+                        /* the found resource is not checked out and is not reserved for someone else
+                         * so check it out */
+                        pCheckedOutResource = pResource;
+                        ret                 = pCheckedOutResource->setCheckedOut(true, id);
+                        CHECK_ERROR_GOTO("unable to checkout resource", ret, error);
 
-                    break;
+                        break;
+                    }
                 }
             }
         }
@@ -1311,13 +1310,16 @@ CResource * CBoardResources::checkoutResource(
         if (pResource->getType() == resource)
         {
             /* resource type matches*/
-            if ((true == pResource->isAvailForCheckout()) && (true == pResource->validReservation(id)))
+            if ((ANY_NUMBER == number) || (pResource->getNumber() == number))
             {
-                /* found resource is not checked out and is not reserved for someone else
-                 * so check it out */
-                pCheckedOutResource = pResource;
-                ret                 = pCheckedOutResource->setCheckedOut(true, id);
-                CHECK_ERROR_GOTO("unable to checkout resource", ret, error);
+                if ((true == pResource->isAvailForCheckout()) && (true == pResource->validReservation(id)))
+                {
+                    /* found resource is not checked out and is not reserved for someone else
+                     * so check it out */
+                    pCheckedOutResource = pResource;
+                    ret                 = pCheckedOutResource->setCheckedOut(true, id);
+                    CHECK_ERROR_GOTO("unable to checkout resource", ret, error);
+                }
             }
         }
     }
@@ -1368,7 +1370,12 @@ eRet CBoardResources::checkinResource(CResource * pResource)
     CResource * pCheckedInResource = NULL;
 
     BDBG_ASSERT(NULL != pResource);
-    BDBG_ASSERT(true == pResource->isCheckedOut());
+
+    if (false == pResource->isCheckedOut())
+    {
+        /* already checked in */
+        return(ret);
+    }
 
     ret = pResource->setCheckedOut(false);
     CHECK_ERROR_GOTO("unable to checkin resource", ret, error);
@@ -1429,8 +1436,7 @@ void CBoardResources::dumpList(MList <CResource> * pList)
 
 void CBoardResources::dump()
 {
-    BDBG_MSG((""));
-    BDBG_MSG(("RESOURCES"));
+    BDBG_MSG(("\nRESOURCES"));
     BDBG_MSG(("========="));
     BDBG_MSG(("displays:                    %d", _displayList.total()));
     dumpList((MList <CResource> *)&_displayList);

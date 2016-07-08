@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2014 Broadcom Corporation
+ *     Broadcom Proprietary and Confidential. (c)2014 Broadcom.  All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -64,9 +64,6 @@ static void BVC5_P_DumpJobType(BVC5_JobType etype)
       case BVC5_JobType_eFenceWait:
          BKNI_Printf("BVC5_JobType_eFenceWait\n");
          break;
-      case BVC5_JobType_eFenceSignal:
-         BKNI_Printf("BVC5_JobType_eFenceSignal\n");
-         break;
       case BVC5_JobType_eTest:
          BKNI_Printf("BVC5_JobType_eTest\n");
          break;
@@ -110,9 +107,9 @@ static void BVC5_P_DumpInternalJob(BVC5_P_InternalJob *psJob)
          case BVC5_JobType_eBin:
          {
             BVC5_JobBin *pJobBin = (BVC5_JobBin *)pJobBase;
-            BKNI_Printf("Num Sub Jobs\t=\t%d, Offset = %p\n", pJobBin->uiNumSubJobs, pJobBin->uiOffset);
+            BKNI_Printf("Num Sub Jobs\t=\t%d, Offset = %#x\n", pJobBin->uiNumSubJobs, pJobBin->uiOffset);
             for (uiIndex=0; uiIndex < pJobBin->uiNumSubJobs; ++uiIndex)
-               BKNI_Printf("\tStart = %p, End = %p\n", pJobBin->uiStart[uiIndex], pJobBin->uiEnd[uiIndex]);
+               BKNI_Printf("\tStart = %#x, End = %#x\n", pJobBin->uiStart[uiIndex], pJobBin->uiEnd[uiIndex]);
          }
          break;
          case BVC5_JobType_eRender:
@@ -121,12 +118,7 @@ static void BVC5_P_DumpInternalJob(BVC5_P_InternalJob *psJob)
             BKNI_Printf("Bin JobId\t=\t" BDBG_UINT64_FMT "\n", BDBG_UINT64_ARG(psJob->jobData.sRender.uiBinJobId));
             BKNI_Printf("Num Sub Jobs\t=\t%d\n", pJobRender->uiNumSubJobs);
             for (uiIndex=0; uiIndex < pJobRender->uiNumSubJobs; ++uiIndex)
-               BKNI_Printf("\tStart = %p, End = %p\n", pJobRender->uiStart[uiIndex], pJobRender->uiEnd[uiIndex]);
-         }
-         break;
-         case BVC5_JobType_eFenceSignal:
-         {
-            BKNI_Printf("signalData\t\t=\t%p\n", psJob->jobData.sSignal.signalData);
+               BKNI_Printf("\tStart = %#x, End = %#x\n", pJobRender->uiStart[uiIndex], pJobRender->uiEnd[uiIndex]);
          }
          break;
          case BVC5_JobType_eFenceWait:
@@ -140,7 +132,7 @@ static void BVC5_P_DumpInternalJob(BVC5_P_InternalJob *psJob)
             BVC5_JobUser *pJobUser = (BVC5_JobUser *)pJobBase;
             BKNI_Printf("Num Sub Jobs\t=\t%d\n", pJobUser->uiNumSubJobs);
             for (uiIndex=0; uiIndex < pJobUser->uiNumSubJobs; ++uiIndex)
-               BKNI_Printf("\tuiPC = %p, uiUnif = %p\n", pJobUser->uiPC[uiIndex], pJobUser->uiUnif[uiIndex]);
+               BKNI_Printf("\tuiPC = %#x, uiUnif = %#x\n", pJobUser->uiPC[uiIndex], pJobUser->uiUnif[uiIndex]);
          }
          break;
          default:
@@ -165,7 +157,7 @@ static void BVC5_P_PrintBinJobDumpRunInfo(
       BKNI_Printf("Active bin job\n");
 
       for (uiIndex = 0; uiIndex < pJobBin->uiNumSubJobs; ++uiIndex)
-         BKNI_Printf("  bin start = %p  end = %p\n", pJobBin->uiStart[uiIndex], pJobBin->uiEnd[uiIndex]);
+         BKNI_Printf("  bin start = %#x  end = %#x\n", pJobBin->uiStart[uiIndex], pJobBin->uiEnd[uiIndex]);
 
       if (psRenderJob != NULL)
       {
@@ -174,7 +166,7 @@ static void BVC5_P_PrintBinJobDumpRunInfo(
          if (psBinMemArray && psBinMemArray->uiNumBinBlocks > 0)
          {
             BMEM_HeapInfo hi;
-            BMEM_Heap_GetInfo(hVC5->hHeap, &hi);
+            BMEM_Heap_GetInfo(BVC5_P_GetHeap(hVC5), &hi);
 
             BKNI_Printf("  tile_alloc_addr = 0x%08X, size = %d\n\n",
                         psBinMemArray->pvBinMemoryBlocks[0]->uiPhysOffset,
@@ -205,12 +197,12 @@ static void BVC5_P_PrintRenderJobDumpRunInfo(
       BKNI_Printf("Active render job\n");
 
       for (uiIndex = 0; uiIndex < pJobRender->uiNumSubJobs; ++uiIndex)
-         BKNI_Printf("  Rdr start = %p  end = %p\n", pJobRender->uiStart[uiIndex], pJobRender->uiEnd[uiIndex]);
+         BKNI_Printf("  Rdr start = %#x  end = %#x\n", pJobRender->uiStart[uiIndex], pJobRender->uiEnd[uiIndex]);
 
       if (psBinMemArray && psBinMemArray->uiNumBinBlocks > 0)
       {
          BMEM_HeapInfo hi;
-         BMEM_Heap_GetInfo(hVC5->hHeap, &hi);
+         BMEM_Heap_GetInfo(BVC5_P_GetHeap(hVC5), &hi);
 
          BKNI_Printf("  render job tile_alloc_addr = 0x%08X, size = %d\n\n",
                      psBinMemArray->pvBinMemoryBlocks[0]->uiPhysOffset,
@@ -242,8 +234,8 @@ void BVC5_P_DebugDump(
     BKNI_Printf("PoweredOn         = %d\n", hVC5->psCoreStates[uiCoreIndex].bPowered ? 1 : 0);
     BKNI_Printf("isStandby         = %d\n", hVC5->bInStandby ? 1 : 0);
     BKNI_Printf("TimeoutCount      = %d\n", hVC5->psCoreStates[uiCoreIndex].uiTimeoutCount);
-    BKNI_Printf("Binner PrevAddr   = %p\n", hVC5->psCoreStates[uiCoreIndex].sBinnerState.uiPrevAddr);
-    BKNI_Printf("Render PrevAddr   = %p\n", hVC5->psCoreStates[uiCoreIndex].sRenderState.uiPrevAddr);
+    BKNI_Printf("Binner PrevAddr   = %#x\n",hVC5->psCoreStates[uiCoreIndex].sBinnerState.uiPrevAddr);
+    BKNI_Printf("Render PrevAddr   = %#x\n",hVC5->psCoreStates[uiCoreIndex].sRenderState.uiPrevAddr);
     BKNI_Printf("NextClientId      = %d\n", hVC5->uiNextClientId);
     BKNI_Printf("ClientOffset      = %d\n", hVC5->sSchedulerState.uiClientOffset);
     BKNI_Printf("PerfMonitoring    = %d\n", hVC5->sPerfCounters.bCountersActive ? 1 : 0);
@@ -382,7 +374,7 @@ void BVC5_P_DebugDump(
 
     BKNI_Printf("\n***********************************************************\n");
 
-    if (hVC5->sOpenParams.bMemDumpOnStall)
+    if (hVC5->sOpenParams.bMemDumpOnStall && !hVC5->bSecure)
     {
        /* If there is a bin job active - print its info so it can be debugged via dump_run */
        if (hVC5->psCoreStates[uiCoreIndex].sBinnerState.psJob)
@@ -393,6 +385,7 @@ void BVC5_P_DebugDump(
           BVC5_P_PrintRenderJobDumpRunInfo(hVC5, hVC5->psCoreStates[uiCoreIndex].sRenderState.psJob[BVC5_P_HW_QUEUE_RUNNING]);
 
        /* Drop the entire heap into a file */
+       /* Can't dump the secure heap */
        BVC5_P_DebugDumpHeapContents(hVC5->hHeap, uiCoreIndex);
     }
 }

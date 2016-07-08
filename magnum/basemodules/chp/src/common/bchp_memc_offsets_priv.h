@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2013 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,8 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  *****************************************************************************/
 #ifndef BCHP_MEMC_OFFSETS_PRIV_H__
 #define BCHP_MEMC_OFFSETS_PRIV_H__
@@ -54,7 +46,7 @@
 /* All SOCs have the same MEMC_0 offset. */
 #define BCHP_P_MEMC_0_OFFSET               0x00000000
 
-#if BCHP_CHIP == 7405 || BCHP_CHIP == 7325 || BCHP_CHIP == 7335 || BCHP_CHIP == 7336 || BCHP_CHIP == 7340 || \
+#if BCHP_CHIP == 7340 || \
     BCHP_CHIP == 7342 || BCHP_CHIP == 7420
 #define BCHP_P_MEMC_1_OFFSET               0x60000000
 #endif

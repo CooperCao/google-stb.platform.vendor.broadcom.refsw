@@ -1,23 +1,43 @@
-/***************************************************************************
- *     Copyright (c) 2003-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * Module Description:
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
  *
- * Revision History:
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- * 
- ***************************************************************************/
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 
 /*= Module Overview ********************************************************
 This module provides a standard abstraction API for accessing SPI registers.
@@ -73,11 +93,11 @@ This is an opaque handle that is used for SPI read and write functions.
 */
 typedef struct BREG_SPI_Impl *BREG_SPI_Handle;
 
-void BREG_SPI_SetContinueAfterCommand(
-    BREG_SPI_Handle spiHandle,      /* Device channel handle */
-    bool bEnable                    /* Enable or disable continue after command flag. This also enables continue after last transfer in the command ram.
-                                                                    Using this allows us to hold the chip select line low to do multiple spi transfers. */
-);
+typedef struct BREG_SPI_Data
+{
+    const void *data;
+    unsigned length;
+} BREG_SPI_Data;
 
 /*
 Summary:
@@ -100,13 +120,37 @@ BERR_Code BREG_SPI_Write(
 
 /*
 Summary:
-This function writes all the data in an iterative fashion using the programmable number of SPI registers.
+This function writes data of size length, where length is generally greater than MAX_SPI_XFER, in an iterative fashion.
 */
 BERR_Code BREG_SPI_WriteAll(
                     BREG_SPI_Handle spiHandle,      /* Device channel handle */
                     const uint8_t *pWriteData,      /* pointer to write memory location */
                     size_t length                   /* size of *pWriteData  buffers (number of bytes to write ) */
                     );
+
+/*
+Summary:
+This function iteratively writes data pointed to by multiple buffers.
+
+Example:
+If you need to write buf0 and buf1 of lengths len1 and len2, do the following:
+
+BREG_SPI_Data writeData[2];
+
+writeData[0].data = buf1;
+writeData[0].length = len1;
+writeData[1].data = buf2;
+writeData[1].length = len2;
+
+BREG_SPI_Multiple_Write(spiHandle, &writeData, 2)
+*/
+
+BERR_Code BREG_SPI_Multiple_Write(
+                    BREG_SPI_Handle spiHandle,       /* Device channel handle */
+                    const BREG_SPI_Data *pWriteData, /* Pointer to array of BREG_SPI_Data structs */
+                    size_t count                     /* BREG_SPI_Data struct count */
+                    );
+
 /*
 Summary:
 This function reads a programmable number of SPI registers.

@@ -1,7 +1,7 @@
 /******************************************************************************
- * (c) 2006-2016 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -37,7 +37,6 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 
 #include "bdsp_raaga.h"
@@ -51,51 +50,6 @@
 BDBG_MODULE(bdsp_raaga_mm);
 
 /*#define FWDWNLD_DBG 1*/
-
-/***************************************************************************************************
-Summary:
-#Use BDSP_MEM_P_AllocateAlignedMemory to assign memory which will be accessed by Raaga;It may be the location that only Raaga reads or writes
-#into or both Host and Raaga access it. System allocates cache memory pointer whenever you allocate using BDSP_MEM_P_AllocateAlignedMemory.
-#So any write into that address needs to be flushed for it to be seen by Raaga as it is a different processor. Unless the BDSP code does a flush
-#one can't guarantee  that Raaga will see the values written by BDSP code into that location. So always flush after a write to the memory which
-#will be read by Raaga.
-
-#Cache address needs to be converted to Virtual offset address for DSP to be abe to read from it.
-#BDSP needs address to be Cached address for it to Read or write into.
-
-#In BDSP: Write and Read requires cached address
-#In Raaga: Write or Read into DRAM requries virtual offset.
-
---Usage of BDSP_MEM_P_AllocateAlignedMemory function
-#define BDSP_MEM_P_AllocateAlignedMemory(memHandle, size, align, boundary) \
-                 BDSP_P_ConvertAllocToCache(memHandle, BMEM_AllocAligned(memHandle,size,align, boundary) )
-
-Do Not use BDSP_P_ConvertAllocToCache independently in BDSP code. It will be called inside the
-BDSP_MEM_P_AllocateAlignedMemory only for now. Check other definition in BDSP_MEM_P* function calls
-in the file bdsp_raaga_mm_priv.h to choose the functions required for bmem access.
-
-***************************************************************************************************/
-
-
-void * BDSP_P_ConvertAllocToCache(BMEM_Handle memHandle, void * ptr)
-{
-        void * pCache = NULL;
-        BERR_Code err;
-
-        if(ptr == NULL){
-                goto exit;
-        }
-
-        err = BMEM_ConvertAddressToCached(memHandle, ptr, &pCache);
-        if(err != BERR_SUCCESS){
-                pCache = NULL;
-                BDBG_ERR((" %s: Issue with ptr=%p being tried to convert to cache", __FUNCTION__, ptr));
-        }
-
-exit:
-        return pCache;
-
-}
 
 /***************************************************************************************
 Summary:
@@ -774,9 +728,9 @@ BERR_Code BDSP_MM_P_CalcStageMemPoolReq(void *pStageHandle)
         }
     }
 
-    pRaagaStage->stageMemInfo.sInterframeBufReqd = ui32AlgoIf + ui32FsIf;
-    pRaagaStage->stageMemInfo.sUserConfigReqd = ui32AlgoCfgBuf + ui32FsCfgBuf;
-    pRaagaStage->stageMemInfo.sStatusBufReqd = ui32AlgoStatusBuf + ui32FsStatusBuf;
+    pRaagaStage->stageMemInfo.ui32InterframeBufReqd = ui32AlgoIf + ui32FsIf;
+    pRaagaStage->stageMemInfo.ui32UserConfigReqd = ui32AlgoCfgBuf + ui32FsCfgBuf;
+    pRaagaStage->stageMemInfo.ui32StatusBufReqd = ui32AlgoStatusBuf + ui32FsStatusBuf;
 
     pRaagaStage->sFrameSyncOffset.ui32IfOffset = ui32AlgoIf;
     pRaagaStage->sFrameSyncOffset.ui32UserCfgOffset = ui32AlgoCfgBuf;
@@ -958,7 +912,7 @@ BERR_Code BDSP_MM_P_CalcandAllocScratchISbufferReq(void *pDeviceHandle)
     uint32_t ui32TempScratch = 0, ui32TempIs = 0, ui32TempIsIf = 0;
     uint32_t ui32NumCh=0;
     void  *pBaseAddr = 0;
-    raaga_dramaddr  raagaOffsetAddr = 0;
+    dramaddr_t  raagaOffsetAddr = 0;
     unsigned int k=0;
     int32_t i32DspIndex =0, i32TaskIndex = 0;
     void *pAddress = NULL;
@@ -1271,6 +1225,8 @@ BERR_Code BDSP_Raaga_P_FreeTaskMemory(
         BKNI_Free((void *)pRaagaTask->taskMemGrants.sTaskQueue.sAsyncMsgBufmem.pBaseAddr);
         pRaagaTask->taskMemGrants.sTaskQueue.sAsyncMsgBufmem.pBaseAddr = 0;
     }
+
+    BDSP_MEM_P_FreeMemory(pDevice->memHandle,pRaagaTask->taskMemGrants.sTaskGateOpenBufInfo.pBaseAddr);
     BDSP_MEM_P_FreeMemory(pDevice->memHandle,pRaagaTask->taskMemGrants.sStackSwapBuff.pBaseAddr);
     BDSP_MEM_P_FreeMemory(pDevice->memHandle,pRaagaTask->taskMemGrants.sTaskCfgBufInfo.pBaseAddr);
     BDSP_MEM_P_FreeMemory(pDevice->memHandle,pRaagaTask->taskMemGrants.sTaskInfo.pBaseAddr);
@@ -1418,7 +1374,7 @@ BERR_Code BDSP_Raaga_P_AllocateStageMemory(
     )
 {
     BERR_Code err = BERR_SUCCESS;
-    raaga_dramaddr raagaOffsetAddr = 0, i;
+    dramaddr_t raagaOffsetAddr = 0, i;
     void *pBaseAddr = 0;
 
     BDSP_RaagaStage *pRaagaStage = (BDSP_RaagaStage *)pStageHandle;
@@ -1442,9 +1398,9 @@ BERR_Code BDSP_Raaga_P_AllocateStageMemory(
     pRaagaStage->sDramInterFrameBuffer.ui32DramBufferAddress= 0;
     pRaagaStage->sDramInterFrameBuffer.ui32BufferSizeInBytes= 0;;
 
-    if( pRaagaStage->stageMemInfo.sInterframeBufReqd )
+    if( pRaagaStage->stageMemInfo.ui32InterframeBufReqd )
     {
-        pBaseAddr = BDSP_MEM_P_AllocateAlignedMemory(pDevice->memHandle, pRaagaStage->stageMemInfo.sInterframeBufReqd,2, 0);  /* 32 bit aligned*/
+        pBaseAddr = BDSP_MEM_P_AllocateAlignedMemory(pDevice->memHandle, pRaagaStage->stageMemInfo.ui32InterframeBufReqd,2, 0);  /* 32 bit aligned*/
 
         if(NULL == pBaseAddr)
         {
@@ -1462,16 +1418,16 @@ BERR_Code BDSP_Raaga_P_AllocateStageMemory(
             /* ui32BaseAddr = raagaOffsetAddr; */
 
             pRaagaStage->sDramInterFrameBuffer.ui32DramBufferAddress= raagaOffsetAddr;
-            pRaagaStage->sDramInterFrameBuffer.ui32BufferSizeInBytes= pRaagaStage->stageMemInfo.sInterframeBufReqd;
+            pRaagaStage->sDramInterFrameBuffer.ui32BufferSizeInBytes= pRaagaStage->stageMemInfo.ui32InterframeBufReqd;
         }
     }
 
     pRaagaStage->sDramUserConfigBuffer.ui32DramBufferAddress = 0;
     pRaagaStage->sDramUserConfigBuffer.ui32BufferSizeInBytes = 0;
 
-    if( pRaagaStage->stageMemInfo.sUserConfigReqd )
+    if( pRaagaStage->stageMemInfo.ui32UserConfigReqd )
     {
-        pBaseAddr = BDSP_MEM_P_AllocateAlignedMemory(pDevice->memHandle, pRaagaStage->stageMemInfo.sUserConfigReqd, 2, 0);  /* 32 bit aligned*/
+        pBaseAddr = BDSP_MEM_P_AllocateAlignedMemory(pDevice->memHandle, pRaagaStage->stageMemInfo.ui32UserConfigReqd, 2, 0);  /* 32 bit aligned*/
         pRaagaStage->sDramUserConfigBuffer.pDramBufferAddress = pBaseAddr;
 
         if(NULL == pBaseAddr)
@@ -1490,7 +1446,7 @@ BERR_Code BDSP_Raaga_P_AllocateStageMemory(
 
 
             pRaagaStage->sDramUserConfigBuffer.ui32DramBufferAddress = raagaOffsetAddr;
-            pRaagaStage->sDramUserConfigBuffer.ui32BufferSizeInBytes = pRaagaStage->stageMemInfo.sUserConfigReqd;
+            pRaagaStage->sDramUserConfigBuffer.ui32BufferSizeInBytes = pRaagaStage->stageMemInfo.ui32UserConfigReqd;
         }
     }
 
@@ -1498,9 +1454,9 @@ BERR_Code BDSP_Raaga_P_AllocateStageMemory(
     pRaagaStage->sDramUserConfigSpareBuffer.ui32DramBufferAddress = 0;
     pRaagaStage->sDramUserConfigSpareBuffer.ui32BufferSizeInBytes = 0;
 
-    if(pRaagaStage->stageMemInfo.sUserConfigReqd)
+    if(pRaagaStage->stageMemInfo.ui32UserConfigReqd)
     {
-        pBaseAddr = BDSP_MEM_P_AllocateAlignedMemory(pDevice->memHandle, pRaagaStage->stageMemInfo.sUserConfigReqd, 2, 0);  /* 32 bit aligned*/
+        pBaseAddr = BDSP_MEM_P_AllocateAlignedMemory(pDevice->memHandle, pRaagaStage->stageMemInfo.ui32UserConfigReqd, 2, 0);  /* 32 bit aligned*/
         pRaagaStage->sDramUserConfigSpareBuffer.pDramBufferAddress = pBaseAddr;
 
         if(NULL == pBaseAddr)
@@ -1524,7 +1480,7 @@ BERR_Code BDSP_Raaga_P_AllocateStageMemory(
                                          );
 
             pRaagaStage->sDramUserConfigSpareBuffer.ui32DramBufferAddress = raagaOffsetAddr;
-            pRaagaStage->sDramUserConfigSpareBuffer.ui32BufferSizeInBytes = pRaagaStage->stageMemInfo.sUserConfigReqd;
+            pRaagaStage->sDramUserConfigSpareBuffer.ui32BufferSizeInBytes = pRaagaStage->stageMemInfo.ui32UserConfigReqd;
         }
     }
 
@@ -1532,9 +1488,9 @@ BERR_Code BDSP_Raaga_P_AllocateStageMemory(
     pRaagaStage->sDramStatusBuffer.ui32DramBufferAddress= 0;
     pRaagaStage->sDramStatusBuffer.ui32BufferSizeInBytes= 0;
 
-    if(pRaagaStage->stageMemInfo.sStatusBufReqd)
+    if(pRaagaStage->stageMemInfo.ui32StatusBufReqd)
     {
-        pBaseAddr = BDSP_MEM_P_AllocateAlignedMemory(pDevice->memHandle, pRaagaStage->stageMemInfo.sStatusBufReqd,2, 0);  /* 32 bit aligned*/
+        pBaseAddr = BDSP_MEM_P_AllocateAlignedMemory(pDevice->memHandle, pRaagaStage->stageMemInfo.ui32StatusBufReqd,2, 0);  /* 32 bit aligned*/
         pRaagaStage->sDramStatusBuffer.pDramBufferAddress = pBaseAddr;
 
         if(NULL == pBaseAddr)
@@ -1552,7 +1508,7 @@ BERR_Code BDSP_Raaga_P_AllocateStageMemory(
                                          );
 
             pRaagaStage->sDramStatusBuffer.ui32DramBufferAddress= raagaOffsetAddr;
-            pRaagaStage->sDramStatusBuffer.ui32BufferSizeInBytes= pRaagaStage->stageMemInfo.sStatusBufReqd;
+            pRaagaStage->sDramStatusBuffer.ui32BufferSizeInBytes= pRaagaStage->stageMemInfo.ui32StatusBufReqd;
         }
     }
     /*Configuration structure allocations for a stage*/
@@ -1653,8 +1609,11 @@ BERR_Code BDSP_Raaga_P_CalculateTaskMemory(
     /*Memory for Task Swapping */
     *pMemoryReq += BDSP_CIT_P_TASK_SWAP_BUFFER_SIZE_INBYTES;
 
+    /*Memory for Task  Gate Open Buffer Configuration Swapping */
+    *pMemoryReq += (BDSP_AF_P_MAX_OP_FORKS * SIZEOF(BDSP_AF_P_sIO_BUFFER));
+
     /*Memory for Task Parameters */
-    *pMemoryReq += sizeof(BDSP_Raaga_P_TaskParamInfo);
+    *pMemoryReq += sizeof(BDSP_P_TaskParamInfo);
 
     /* Memory for CIT structure */
     *pMemoryReq += sizeof(BDSP_AF_P_sTASK_CONFIG);
@@ -1765,6 +1724,17 @@ BERR_Code BDSP_Raaga_P_AllocateTaskMemory(
     }
     pRaagaTask->taskMemGrants.sStackSwapBuff.pBaseAddr = pBaseAddr;
     pRaagaTask->taskMemGrants.sStackSwapBuff.ui32Size = BDSP_CIT_P_TASK_SWAP_BUFFER_SIZE_INBYTES;
+
+    /*Gate Open Buffer configuration memory */
+    pBaseAddr = BDSP_MEM_P_AllocateAlignedMemory(pDevice->memHandle,(BDSP_AF_P_MAX_OP_FORKS * SIZEOF(BDSP_AF_P_sIO_BUFFER)), 2, 0);
+    if(NULL == pBaseAddr)
+    {
+        BDBG_ERR(("BDSP_Raaga_P_AllocateTaskMemory: Unable to Allocate memory for task Gate Open Configuration!"));
+        err = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+        goto end;
+    }
+    pRaagaTask->taskMemGrants.sTaskGateOpenBufInfo.pBaseAddr = pBaseAddr;
+    pRaagaTask->taskMemGrants.sTaskGateOpenBufInfo.ui32Size = (BDSP_AF_P_MAX_OP_FORKS * SIZEOF(BDSP_AF_P_sIO_BUFFER));
 
     if(pRaagaContext->settings.contextType == BDSP_ContextType_eVideo)
     {
@@ -1922,7 +1892,7 @@ BERR_Code BDSP_Raaga_P_AllocateTaskMemory(
     }
 
     /* Start Task memory */
-   pBaseAddr = BDSP_MEM_P_AllocateAlignedMemory(pDevice->memHandle, sizeof(BDSP_Raaga_P_TaskParamInfo),2, 0);
+   pBaseAddr = BDSP_MEM_P_AllocateAlignedMemory(pDevice->memHandle, sizeof(BDSP_P_TaskParamInfo),2, 0);
     if(NULL == pBaseAddr)
     {
         BDBG_ERR(("BDSP_Raaga_P_AllocateTaskMemory: Unable to Allocate memory for start task params!"));
@@ -1930,7 +1900,7 @@ BERR_Code BDSP_Raaga_P_AllocateTaskMemory(
         goto end;
     }
     pRaagaTask->taskMemGrants.sTaskInfo.pBaseAddr = pBaseAddr;
-    pRaagaTask->taskMemGrants.sTaskInfo.ui32Size = sizeof(BDSP_Raaga_P_TaskParamInfo);
+    pRaagaTask->taskMemGrants.sTaskInfo.ui32Size = sizeof(BDSP_P_TaskParamInfo);
 
     if(pRaagaContext->settings.contextType == BDSP_ContextType_eAudio)
     {
@@ -1986,7 +1956,7 @@ BERR_Code BDSP_Raaga_P_AllocateTaskMemory(
     pRaagaTask->hCCDQueue = NULL;
 
     /*Create the Feedback Buffer required for the master task*/
-    if(pSettings->masterTask==eTRUE)
+    if(pSettings->masterTask == true)
     {
         pRaagaTask->pFeedbackBuffer = BDSP_MEM_P_AllocateAlignedMemory(pDevice->memHandle, (BDSP_AF_P_INTERTASK_FEEDBACK_BUFFER_SIZE + 4) ,5, 0);    /* 32 bit aligned*/
         if ( NULL == pRaagaTask->pFeedbackBuffer )

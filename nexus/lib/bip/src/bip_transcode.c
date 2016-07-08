@@ -1,43 +1,39 @@
 /******************************************************************************
- * (c) 2016 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 
 #include "b_os_lib.h"
@@ -93,7 +89,7 @@ static void printTranscodeStatus(
                         videoStats.frameRate, videoStats.interlaced?"Y":"N",
                         videoStats.tsm?"Y":"N", videoStats.firstPtsPassed?"Y":"N"
                         ));
-            BDBG_WRN(("Vdec: fifo=%u/%u qDepth=%u decoded=%u displayed=%u picRcvd=%u iFrDisplayed=%u decoderErrs=%u decoderOverflows=%u decoderDrops=%u displayErrs=%u displayDrops=%u displayUnderflows=%u ptsErrs=%u watchdogs=%u bytesDecoded=%lld",
+            BDBG_WRN(("Vdec: fifo depth/size=%u/%u decoded=%u displayed=%u picRcvd=%u iFrDisplayed=%u decoderErrs=%u decoderOverflows=%u decoderDrops=%u displayErrs=%u displayDrops=%u displayUnderflows=%u ptsErrs=%u watchdogs=%u bytesDecoded=%llu",
                         videoStats.fifoDepth, videoStats.fifoSize,
                         videoStats.numDecoded, videoStats.numDisplayed,
                         videoStats.numPicturesReceived,
@@ -136,7 +132,7 @@ static void printTranscodeStatus(
                         encoderStatus.video.picturesPerSecond,
                         encoderStatus.video.data.fifoDepth,
                         encoderStatus.video.data.fifoSize,
-                        encoderStatus.video.version
+                        encoderStatus.video.version.firmware
                      ));
         }
     }
@@ -147,7 +143,7 @@ ptsErrorCallback(void *context, int param)
 {
     BIP_TranscodeHandle hTranscode = context;
     BSTD_UNUSED( param );
-    BDBG_WRN(( BIP_MSG_PRE_FMT "pTranscode=%p" BIP_MSG_PRE_ARG, hTranscode ));
+    BDBG_WRN(( BIP_MSG_PRE_FMT "pTranscode=%p" BIP_MSG_PRE_ARG, (void *)hTranscode ));
 }
 
 static void
@@ -155,7 +151,7 @@ videoFirstPtsCallback(void *context, int param)
 {
     BIP_TranscodeHandle hTranscode = context;
     BSTD_UNUSED( param );
-    BDBG_WRN(( BIP_MSG_PRE_FMT "pTranscode=%p" BIP_MSG_PRE_ARG, hTranscode ));
+    BDBG_WRN(( BIP_MSG_PRE_FMT "pTranscode=%p" BIP_MSG_PRE_ARG, (void *)hTranscode ));
 }
 
 static void
@@ -163,7 +159,7 @@ videoFirstPtsPassedCallback(void *context, int param)
 {
     BIP_TranscodeHandle hTranscode = context;
     BSTD_UNUSED( param );
-    BDBG_WRN(( BIP_MSG_PRE_FMT "pTranscode=%p" BIP_MSG_PRE_ARG, hTranscode ));
+    BDBG_WRN(( BIP_MSG_PRE_FMT "pTranscode=%p" BIP_MSG_PRE_ARG, (void *)hTranscode ));
 }
 
 static BIP_Status prepareTranscodePath(
@@ -174,7 +170,7 @@ static BIP_Status prepareTranscodePath(
     NEXUS_Error nrc = NEXUS_UNKNOWN;
 
     BDBG_WRN(( "hTranscode=%p type=%s video=%s vTrackId=%u size=%ux%u codec=%s profile=%s level=%s refreshRate=%u bps=%u frameRate=%s lowDelayPipeline=%s adaptiveLowDelayMode=%s nonRealTime=%s rateBufferDelay=%u gopDuration=%u adaptiveDuration=%s, #framesP=%u #framesB=%u",
-                hTranscode,
+                (void *)hTranscode,
                 BIP_ToStr_NEXUS_TransportType( hTranscode->transcodeProfile.containerType ),
                 hTranscode->transcodeProfile.disableVideo? "N":"Y",
                 hTranscode->transcodeProfile.video.trackId,
@@ -212,7 +208,7 @@ static BIP_Status prepareTranscodePath(
         }
         nrc = NEXUS_SimpleStcChannel_SetSettings( hTranscode->nexusHandles.simple.hStcChannel, &stcSettings );
         BIP_CHECK_GOTO(( nrc == NEXUS_SUCCESS ), ( "NEXUS_SimpleStcChannel_SetSettings Failed!" ), error, BIP_ERR_NEXUS, bipStatus );
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hStcChannel=%p mode=%d" BIP_MSG_PRE_ARG, hTranscode->nexusHandles.simple.hStcChannel, stcSettings.mode ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hStcChannel=%p mode=%d" BIP_MSG_PRE_ARG, (void *)hTranscode->nexusHandles.simple.hStcChannel, stcSettings.mode ));
     }
 
     /* Setup Nexus Playback w/ Stc Channel. */
@@ -246,7 +242,7 @@ static BIP_Status prepareTranscodePath(
         {
             nrc = NEXUS_SimpleVideoDecoder_SetStcChannel( hTranscode->nexusHandles.simple.hVideo, hTranscode->nexusHandles.simple.hStcChannel );
             BIP_CHECK_GOTO(( nrc == NEXUS_SUCCESS ), ( "NEXUS_SimpleVideoDecoder_SetStcChannel Failed!" ), error, BIP_ERR_NEXUS, bipStatus );
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hVideoDecoder=%p hStcChannel=%p linked" BIP_MSG_PRE_ARG, hTranscode->nexusHandles.simple.hVideo, hTranscode->nexusHandles.simple.hStcChannel));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hVideoDecoder=%p hStcChannel=%p linked" BIP_MSG_PRE_ARG, (void *)hTranscode->nexusHandles.simple.hVideo, (void *)hTranscode->nexusHandles.simple.hStcChannel));
 
             NEXUS_SimpleVideoDecoder_GetDefaultStartSettings( &hTranscode->videoProgram );
             hTranscode->videoProgram.settings.pidChannel = hTranscode->prepareApi.settings.hVideoPidChannel;
@@ -254,8 +250,8 @@ static BIP_Status prepareTranscodePath(
             hTranscode->videoProgram.maxWidth = hTranscode->prepareApi.settings.videoTrack.info.video.width;
             hTranscode->videoProgram.maxHeight = hTranscode->prepareApi.settings.videoTrack.info.video.height;
             BIP_MSG_SUM(( BIP_MSG_PRE_FMT "hVideoDecoder=%p codec=%d maxWidth=%d maxHeight=%d pidChannel=%p" BIP_MSG_PRE_ARG,
-                        hTranscode->nexusHandles.simple.hVideo, hTranscode->videoProgram.settings.codec,
-                        hTranscode->videoProgram.maxWidth, hTranscode->videoProgram.maxHeight, hTranscode->prepareApi.settings.hVideoPidChannel ));
+                        (void *)hTranscode->nexusHandles.simple.hVideo, hTranscode->videoProgram.settings.codec,
+                        hTranscode->videoProgram.maxWidth, hTranscode->videoProgram.maxHeight, (void *)hTranscode->prepareApi.settings.hVideoPidChannel ));
 
             NEXUS_SimpleVideoDecoder_GetSettings( hTranscode->nexusHandles.simple.hVideo, &settings );
             if ( hTranscode->prepareApi.settings.videoTrack.info.video.colorDepth > 8 )
@@ -291,7 +287,7 @@ static BIP_Status prepareTranscodePath(
             nrc = NEXUS_SimpleAudioDecoder_SetStcChannel( hTranscode->nexusHandles.simple.hAudio, hTranscode->nexusHandles.simple.hStcChannel );
             BIP_CHECK_GOTO(( nrc == NEXUS_SUCCESS ), ( "NEXUS_SimpleAudioDecoder_SetStcChannel Failed!" ), error, BIP_ERR_NEXUS, bipStatus );
 
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hAudioDecoder=%p codec=%d" BIP_MSG_PRE_ARG, hTranscode->nexusHandles.simple.hAudio, hTranscode->audioProgram.primary.codec ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hAudioDecoder=%p codec=%d" BIP_MSG_PRE_ARG, (void *)hTranscode->nexusHandles.simple.hAudio, hTranscode->audioProgram.primary.codec ));
         }
         else
         {
@@ -301,7 +297,7 @@ static BIP_Status prepareTranscodePath(
 
         if ( videoDisabled && audioDisabled )
         {
-            BDBG_ERR(( BIP_MSG_PRE_FMT "hTranscodeCtx=%p: Neither Audio nor Video Tracks are present in the stream!" BIP_MSG_PRE_ARG, hTranscode));
+            BDBG_ERR(( BIP_MSG_PRE_FMT "hTranscodeCtx=%p: Neither Audio nor Video Tracks are present in the stream!" BIP_MSG_PRE_ARG, (void *)hTranscode));
             bipStatus = BIP_ERR_INVALID_PARAMETER;
             goto error;
         }
@@ -335,7 +331,7 @@ static BIP_Status prepareTranscodePath(
             nrc = NEXUS_UNKNOWN;
 #endif
             BIP_CHECK_GOTO(( nrc == NEXUS_SUCCESS ), ( "NEXUS_SimpleEncoder_SetSettings Failed!" ), error, BIP_ERR_NEXUS, bipStatus );
-            BIP_MSG_SUM(( BIP_MSG_PRE_FMT "hTranscode=%p width=%d height=%d interlaced=%d refreshRate=%d, GOP duration=%u adaptiveDuration=%s" BIP_MSG_PRE_ARG, hTranscode->nexusHandles.simple.hEncoder,
+            BIP_MSG_SUM(( BIP_MSG_PRE_FMT "hTranscode=%p width=%d height=%d interlaced=%d refreshRate=%d, GOP duration=%u adaptiveDuration=%s" BIP_MSG_PRE_ARG, (void *)hTranscode->nexusHandles.simple.hEncoder,
                         encoderSettings.video.width, encoderSettings.video.height,
                         encoderSettings.video.interlaced, encoderSettings.video.refreshRate,
                         encoderSettings.videoEncoder.streamStructure.duration, encoderSettings.videoEncoder.streamStructure.adaptiveDuration?"Y":"N"
@@ -394,7 +390,7 @@ static BIP_Status prepareTranscodePath(
             }
 
             BIP_MSG_SUM(( BIP_MSG_PRE_FMT "hVideo=%p hAudio=%p hRecpump=%p" BIP_MSG_PRE_ARG,
-                        startSettings.input.video, startSettings.input.audio, startSettings.recpump
+                        (void *)startSettings.input.video, (void *)startSettings.input.audio, (void *)startSettings.recpump
                      ));
             BIP_MSG_SUM(( BIP_MSG_PRE_FMT "vCodec=%d level=%d profile=%d interlaced=%s rateBufferDel=%u NRT=%s adaptiveLowDelay=%s lowDelay=%s"
                         BIP_MSG_PRE_ARG,
@@ -430,7 +426,7 @@ static void stopTranscodePath(
     if ( hTranscode->encoderStarted )
     {
         NEXUS_SimpleEncoder_Stop( hTranscode->nexusHandles.simple.hEncoder );
-        BDBG_MSG(( BIP_MSG_PRE_FMT "Transcode (%p) Stopped" BIP_MSG_PRE_ARG, hTranscode->nexusHandles.simple.hEncoder ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "Transcode (%p) Stopped" BIP_MSG_PRE_ARG, (void *)hTranscode->nexusHandles.simple.hEncoder ));
         hTranscode->encoderStarted = false;
     }
 
@@ -438,7 +434,7 @@ static void stopTranscodePath(
     if ( hTranscode->videoDecoderStarted )
     {
         NEXUS_SimpleVideoDecoder_Stop( hTranscode->nexusHandles.simple.hVideo );
-        BDBG_MSG(( BIP_MSG_PRE_FMT "Video Decoder (%p) Stopped" BIP_MSG_PRE_ARG, hTranscode->nexusHandles.simple.hVideo ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "Video Decoder (%p) Stopped" BIP_MSG_PRE_ARG, (void *)hTranscode->nexusHandles.simple.hVideo ));
         hTranscode->videoDecoderStarted = false;
     }
 
@@ -446,7 +442,7 @@ static void stopTranscodePath(
     if ( hTranscode->audioDecoderStarted )
     {
         NEXUS_SimpleAudioDecoder_Stop( hTranscode->nexusHandles.simple.hAudio );
-        BDBG_MSG(( BIP_MSG_PRE_FMT "Audio Decoder (%p) Stopped" BIP_MSG_PRE_ARG, hTranscode->nexusHandles.simple.hAudio ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "Audio Decoder (%p) Stopped" BIP_MSG_PRE_ARG, (void *)hTranscode->nexusHandles.simple.hAudio ));
         hTranscode->audioDecoderStarted = false;
     }
 
@@ -469,7 +465,7 @@ static BIP_Status startTranscodePath(
     nrc = NEXUS_SimpleEncoder_Start( hTranscode->nexusHandles.simple.hEncoder, &hTranscode->encoderStartSettings );
     BIP_CHECK_GOTO(( nrc == NEXUS_SUCCESS ), ( "NEXUS_SimpleEncoder_Start Failed!" ), error, BIP_ERR_NEXUS, bipStatus );
     hTranscode->encoderStarted = true;
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Transcode (%p) Started" BIP_MSG_PRE_ARG, hTranscode->nexusHandles.simple.hEncoder ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Transcode (%p) Started" BIP_MSG_PRE_ARG, (void *)hTranscode->nexusHandles.simple.hEncoder ));
 
     /* Start Video Decoder. */
     if ( !hTranscode->transcodeProfile.disableVideo )
@@ -477,7 +473,7 @@ static BIP_Status startTranscodePath(
         nrc = NEXUS_SimpleVideoDecoder_Start( hTranscode->nexusHandles.simple.hVideo, &hTranscode->videoProgram );
         BIP_CHECK_GOTO(( nrc == NEXUS_SUCCESS ), ( "NEXUS_SimpleVideoDecoder_Start Failed!" ), error, BIP_ERR_NEXUS, bipStatus );
         hTranscode->videoDecoderStarted = true;
-        BDBG_MSG(( BIP_MSG_PRE_FMT "Video Decoder (%p) Started" BIP_MSG_PRE_ARG, hTranscode->nexusHandles.simple.hVideo ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "Video Decoder (%p) Started" BIP_MSG_PRE_ARG, (void *)hTranscode->nexusHandles.simple.hVideo ));
     }
 
     /* Start Audio Decoder. */
@@ -486,7 +482,7 @@ static BIP_Status startTranscodePath(
         nrc = NEXUS_SimpleAudioDecoder_Start( hTranscode->nexusHandles.simple.hAudio, &hTranscode->audioProgram );
         BIP_CHECK_GOTO(( nrc == NEXUS_SUCCESS ), ( "NEXUS_SimpleAudioDecoder_Start Failed!" ), error, BIP_ERR_NEXUS, bipStatus );
         hTranscode->audioDecoderStarted = true;
-        BDBG_MSG(( BIP_MSG_PRE_FMT "Audio Decoder (%p) Started" BIP_MSG_PRE_ARG, hTranscode->nexusHandles.simple.hAudio ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "Audio Decoder (%p) Started" BIP_MSG_PRE_ARG, (void *)hTranscode->nexusHandles.simple.hAudio ));
     }
     bipStatus = BIP_SUCCESS;
 error:
@@ -505,10 +501,10 @@ static void releaseTranscodeHandles(
     if ( !hTranscode->openedNexusHandles ) return;
 
     BDBG_MSG(( BIP_MSG_PRE_FMT " Release Xcode related handles: hVideo=%p hAudio=%p hEncoder=%p hStcChannel=%p" BIP_MSG_PRE_ARG,
-                hTranscode->nexusHandles.simple.hVideo,
-                hTranscode->nexusHandles.simple.hAudio,
-                hTranscode->nexusHandles.simple.hEncoder,
-                hTranscode->nexusHandles.simple.hStcChannel
+                (void *)hTranscode->nexusHandles.simple.hVideo,
+                (void *)hTranscode->nexusHandles.simple.hAudio,
+                (void *)hTranscode->nexusHandles.simple.hEncoder,
+                (void *)hTranscode->nexusHandles.simple.hStcChannel
              ));
 
     if ( hTranscode->nexusHandles.simple.hEncoder )
@@ -551,7 +547,7 @@ static BIP_Status acquireTranscodeHandles(
         /* Caller already provided the Nexus Handles, so we cache them!. */
         hTranscode->nexusHandles = *hTranscode->prepareApi.settings.pNexusHandles;
         hTranscode->openedNexusHandles = false; /* since we didn't open the handles, we wont need to close them!. */
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hTranscode %p: Using App provided NexusHandles" BIP_MSG_PRE_ARG, hTranscode ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hTranscode %p: Using App provided NexusHandles" BIP_MSG_PRE_ARG, (void *)hTranscode ));
         return ( BIP_SUCCESS );
     }
 
@@ -610,10 +606,10 @@ static BIP_Status acquireTranscodeHandles(
 
     bipStatus = BIP_SUCCESS;
     BDBG_MSG(( BIP_MSG_PRE_FMT " Successfully Acquired Xcode related handles: hVideo=%p hAudio=%p hEncoder=%p hStcChannel=%p" BIP_MSG_PRE_ARG,
-                hTranscode->nexusHandles.simple.hVideo,
-                hTranscode->nexusHandles.simple.hAudio,
-                hTranscode->nexusHandles.simple.hEncoder,
-                hTranscode->nexusHandles.simple.hStcChannel
+                (void *)hTranscode->nexusHandles.simple.hVideo,
+                (void *)hTranscode->nexusHandles.simple.hAudio,
+                (void *)hTranscode->nexusHandles.simple.hEncoder,
+                (void *)hTranscode->nexusHandles.simple.hStcChannel
                 ));
 
 error:
@@ -645,7 +641,7 @@ BIP_Status updateTranscodeSettings(
 
     if ( pSettings->flush )
     {
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hTranscode=%p: flush started" BIP_MSG_PRE_ARG, hTranscode ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hTranscode=%p: flush started" BIP_MSG_PRE_ARG, (void *)hTranscode ));
 
         /* We need to stop & start the xcode pipe. */
         stopTranscodePath( hTranscode );
@@ -658,7 +654,7 @@ BIP_Status updateTranscodeSettings(
         bipStatus = startTranscodePath( hTranscode );
         BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "startTranscodePath Failed" ), error, bipStatus, bipStatus );
 
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hTranscode=%p: flush completed!" BIP_MSG_PRE_ARG, hTranscode ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hTranscode=%p: flush completed!" BIP_MSG_PRE_ARG, (void *)hTranscode ));
     }
     else
     {
@@ -674,7 +670,7 @@ BIP_Status updateTranscodeSettings(
         BIP_CHECK_GOTO(( nrc == NEXUS_SUCCESS ), ( "NEXUS_SimpleEncoder_SetSettings Failed to update the runtime transcode profile!" ), error, BIP_ERR_NEXUS, bipStatus );
         bipStatus = BIP_SUCCESS;
         BDBG_MSG(( BIP_MSG_PRE_FMT "hTranscode=%p: Successfully updated the runtime transcode settings: bitrate=%u wxh=%ux%u!" BIP_MSG_PRE_ARG,
-                    hTranscode, encoderSettings.videoEncoder.bitrateMax, encoderSettings.video.width, encoderSettings.video.height ));
+                    (void *)hTranscode, encoderSettings.videoEncoder.bitrateMax, encoderSettings.video.width, encoderSettings.video.height ));
     }
 
 error:
@@ -712,7 +708,7 @@ void processTranscodeState(
 
     B_Mutex_Lock( hTranscode->hStateMutex );
     BDBG_MSG(( BIP_MSG_PRE_FMT "ENTRY ---> hTranscode %p: state %s"
-                BIP_MSG_PRE_ARG, hTranscode, BIP_TRANSCODE_STATE(hTranscode->state) ));
+                BIP_MSG_PRE_ARG, (void *)hTranscode, BIP_TRANSCODE_STATE(hTranscode->state) ));
 
     if (BIP_Arb_IsNew(hArb = hTranscode->getSettingsApi.hArb))
     {
@@ -727,7 +723,7 @@ void processTranscodeState(
         /* We are done this API Arb, so set its completion status. */
         hTranscode->completionStatus = BIP_SUCCESS;
         BDBG_MSG(( BIP_MSG_PRE_FMT "hTranscode %p: GetSettings Arb request is complete: state %s!"
-                    BIP_MSG_PRE_ARG, hTranscode, BIP_TRANSCODE_STATE(hTranscode->state) ));
+                    BIP_MSG_PRE_ARG, (void *)hTranscode, BIP_TRANSCODE_STATE(hTranscode->state) ));
         BIP_Arb_CompleteRequest( hArb, hTranscode->completionStatus);
     }
     else if (BIP_Arb_IsNew(hArb = hTranscode->getStatusApi.hArb))
@@ -744,7 +740,7 @@ void processTranscodeState(
 #endif
         hTranscode->completionStatus = BIP_SUCCESS;
         BDBG_MSG(( BIP_MSG_PRE_FMT "hTranscode %p: GetStatus Arb request is complete: state %s!"
-                    BIP_MSG_PRE_ARG, hTranscode, BIP_TRANSCODE_STATE(hTranscode->state) ));
+                    BIP_MSG_PRE_ARG, (void *)hTranscode, BIP_TRANSCODE_STATE(hTranscode->state) ));
         BIP_Arb_CompleteRequest( hArb, hTranscode->completionStatus);
     }
     else if (BIP_Arb_IsNew(hArb = hTranscode->printStatusApi.hArb))
@@ -757,7 +753,7 @@ void processTranscodeState(
         /* We are done this API Arb, so set its completion status. */
         hTranscode->completionStatus = BIP_SUCCESS;
         BDBG_MSG(( BIP_MSG_PRE_FMT "hTranscode %p: printStatus Arb request is complete: state %s!"
-                    BIP_MSG_PRE_ARG, hTranscode, BIP_TRANSCODE_STATE(hTranscode->state) ));
+                    BIP_MSG_PRE_ARG, (void *)hTranscode, BIP_TRANSCODE_STATE(hTranscode->state) ));
         BIP_Arb_CompleteRequest( hArb, hTranscode->completionStatus);
     }
     else if (BIP_Arb_IsNew(hArb = hTranscode->setSettingsApi.hArb))
@@ -767,7 +763,7 @@ void processTranscodeState(
         hTranscode->completionStatus = updateTranscodeSettings( hTranscode, hTranscode->setSettingsApi.pSettings );
 
         BDBG_MSG(( BIP_MSG_PRE_FMT "hTranscode %p: SetSettings Arb request is complete : state %s, status=%s"
-                    BIP_MSG_PRE_ARG, hTranscode, BIP_TRANSCODE_STATE(hTranscode->state), BIP_StatusGetText( hTranscode->completionStatus) ));
+                    BIP_MSG_PRE_ARG, (void *)hTranscode, BIP_TRANSCODE_STATE(hTranscode->state), BIP_StatusGetText( hTranscode->completionStatus) ));
         BIP_Arb_CompleteRequest( hArb, hTranscode->completionStatus);
     }
     else if (BIP_Arb_IsNew(hArb = hTranscode->prepareApi.hArb))
@@ -776,7 +772,7 @@ void processTranscodeState(
         if (hTranscode->state != BIP_TranscodeState_eIdle)
         {
             BDBG_ERR(( BIP_MSG_PRE_FMT "hTranscode %p: BIP_Transcode_Start() is only allowed in Idle state, current state: %s"
-                        BIP_MSG_PRE_ARG, hTranscode, BIP_TRANSCODE_STATE(hTranscode->state)));
+                        BIP_MSG_PRE_ARG, (void *)hTranscode, BIP_TRANSCODE_STATE(hTranscode->state)));
             hTranscode->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, hTranscode->completionStatus);
         }
@@ -790,16 +786,16 @@ void processTranscodeState(
             if ( hTranscode->completionStatus == BIP_SUCCESS )
             {
                 hTranscode->completionStatus = prepareTranscodePath( hTranscode );
-                BDBG_MSG(( BIP_MSG_PRE_FMT "hTranscode %p: BIP_Transcode_Prepare successful: state %s!" BIP_MSG_PRE_ARG, hTranscode, BIP_TRANSCODE_STATE(hTranscode->state) ));
+                BDBG_MSG(( BIP_MSG_PRE_FMT "hTranscode %p: BIP_Transcode_Prepare successful: state %s!" BIP_MSG_PRE_ARG, (void *)hTranscode, BIP_TRANSCODE_STATE(hTranscode->state) ));
             }
             if ( hTranscode->completionStatus == BIP_SUCCESS )
             {
                 hTranscode->state = BIP_TranscodeState_ePrepared;
-                BDBG_MSG(( BIP_MSG_PRE_FMT "hTranscode %p: BIP_Transcode_Prepare successful: state %s!" BIP_MSG_PRE_ARG, hTranscode, BIP_TRANSCODE_STATE(hTranscode->state) ));
+                BDBG_MSG(( BIP_MSG_PRE_FMT "hTranscode %p: BIP_Transcode_Prepare successful: state %s!" BIP_MSG_PRE_ARG, (void *)hTranscode, BIP_TRANSCODE_STATE(hTranscode->state) ));
             }
             else
             {
-                BDBG_ERR(( BIP_MSG_PRE_FMT "hTranscode %p: BIP_Transcode_Prepare() Failed: current state: %s" BIP_MSG_PRE_ARG, hTranscode, BIP_TRANSCODE_STATE(hTranscode->state)));
+                BDBG_ERR(( BIP_MSG_PRE_FMT "hTranscode %p: BIP_Transcode_Prepare() Failed: current state: %s" BIP_MSG_PRE_ARG, (void *)hTranscode, BIP_TRANSCODE_STATE(hTranscode->state)));
                 releaseTranscodeHandles( hTranscode );
             }
             BIP_Arb_CompleteRequest(hArb, hTranscode->completionStatus);
@@ -810,7 +806,7 @@ void processTranscodeState(
         /* Caller is starting transcode, we must be in the Prepared state. */
         if (hTranscode->state != BIP_TranscodeState_ePrepared)
         {
-            BDBG_ERR(( BIP_MSG_PRE_FMT "hTranscode %p: BIP_Transcode_Start() is only allowed in Prepared state, current state: %s" BIP_MSG_PRE_ARG, hTranscode, BIP_TRANSCODE_STATE(hTranscode->state)));
+            BDBG_ERR(( BIP_MSG_PRE_FMT "hTranscode %p: BIP_Transcode_Start() is only allowed in Prepared state, current state: %s" BIP_MSG_PRE_ARG, (void *)hTranscode, BIP_TRANSCODE_STATE(hTranscode->state)));
             hTranscode->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, hTranscode->completionStatus);
         }
@@ -834,7 +830,7 @@ void processTranscodeState(
             }
             else
             {
-                BDBG_ERR(( BIP_MSG_PRE_FMT "hTranscode %p: BIP_Transcode_Start() Failed: current state: %s" BIP_MSG_PRE_ARG, hTranscode, BIP_TRANSCODE_STATE(hTranscode->state)));
+                BDBG_ERR(( BIP_MSG_PRE_FMT "hTranscode %p: BIP_Transcode_Start() Failed: current state: %s" BIP_MSG_PRE_ARG, (void *)hTranscode, BIP_TRANSCODE_STATE(hTranscode->state)));
             }
             BIP_Arb_CompleteRequest(hArb, hTranscode->completionStatus);
         }
@@ -853,7 +849,7 @@ void processTranscodeState(
             hTranscode->state = BIP_TranscodeState_eIdle;
             BIP_Arb_CompleteRequest(hArb, hTranscode->completionStatus);
             BDBG_MSG(( BIP_MSG_PRE_FMT "hTranscode %p: BIP_Transcode_Stop complete: state %s!"
-                        BIP_MSG_PRE_ARG, hTranscode, BIP_TRANSCODE_STATE(hTranscode->state) ));
+                        BIP_MSG_PRE_ARG, (void *)hTranscode, BIP_TRANSCODE_STATE(hTranscode->state) ));
 
         }
     }
@@ -863,7 +859,7 @@ void processTranscodeState(
         hTranscode->completionStatus = BIP_INF_IN_PROGRESS;
 
         BDBG_MSG(( BIP_MSG_PRE_FMT "hTranscode %p: Accepted _Destroy Arb: state %s!"
-                    BIP_MSG_PRE_ARG, hTranscode, BIP_TRANSCODE_STATE(hTranscode->state) ));
+                    BIP_MSG_PRE_ARG, (void *)hTranscode, BIP_TRANSCODE_STATE(hTranscode->state) ));
 
         if ( hTranscode->state != BIP_TranscodeState_eIdle )
         {
@@ -880,7 +876,7 @@ void processTranscodeState(
     B_Mutex_Unlock( hTranscode->hStateMutex );
 
     BDBG_MSG(( BIP_MSG_PRE_FMT "Finished Processing  State for hTranscode %p: state %s, before issuing the callbacks with completionStatus 0x%x"
-            BIP_MSG_PRE_ARG, hTranscode, BIP_TRANSCODE_STATE(hTranscode->state), completionStatus ));
+            BIP_MSG_PRE_ARG, (void *)hTranscode, BIP_TRANSCODE_STATE(hTranscode->state), completionStatus ));
 
     /* Tell ARB to do any deferred work. */
     brc = BIP_Arb_DoDeferred( hTranscode->startApi.hArb, threadOrigin );
@@ -888,7 +884,7 @@ void processTranscodeState(
 
 
     BDBG_MSG(( BIP_MSG_PRE_FMT "EXIT <--- hTranscode %p: state %s"
-                BIP_MSG_PRE_ARG, hTranscode, BIP_TRANSCODE_STATE(hTranscode->state)));
+                BIP_MSG_PRE_ARG, (void *)hTranscode, BIP_TRANSCODE_STATE(hTranscode->state)));
     return;
 } /* processTranscodeState */
 
@@ -904,7 +900,7 @@ static void transcodeDestroy(
     )
 {
     if (!hTranscode) return;
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Destroying hTranscode %p" BIP_MSG_PRE_ARG, hTranscode ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Destroying hTranscode %p" BIP_MSG_PRE_ARG, (void *)hTranscode ));
 
     if (hTranscode->getStatusApi.hArb) BIP_Arb_Destroy(hTranscode->getStatusApi.hArb);
     if (hTranscode->printStatusApi.hArb) BIP_Arb_Destroy(hTranscode->printStatusApi.hArb);
@@ -917,7 +913,7 @@ static void transcodeDestroy(
 
     if (hTranscode->hStateMutex) B_Mutex_Destroy( hTranscode->hStateMutex );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hTranscode %p: Destroyed" BIP_MSG_PRE_ARG, hTranscode ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hTranscode %p: Destroyed" BIP_MSG_PRE_ARG, (void *)hTranscode ));
     BDBG_OBJECT_DESTROY( hTranscode, BIP_Transcode );
 
     B_Os_Free( hTranscode );
@@ -1042,7 +1038,7 @@ void BIP_Transcode_GetSettings(
 
     BDBG_OBJECT_ASSERT( hTranscode, BIP_Transcode );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hTranscode %p: --------------------->" BIP_MSG_PRE_ARG, hTranscode));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hTranscode %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hTranscode));
 
     BIP_CHECK_GOTO(( hTranscode ), ( "hTranscode pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
     BIP_CHECK_GOTO(( pSettings ), ( "pSettings can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
@@ -1066,7 +1062,7 @@ void BIP_Transcode_GetSettings(
     BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_Transcode_GetSettings" ), error, bipStatus, bipStatus );
 
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hTranscode %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, hTranscode, bipStatus ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hTranscode %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hTranscode, bipStatus ));
 
     return;
 }
@@ -1083,7 +1079,7 @@ BIP_Status BIP_Transcode_SetSettings(
     BDBG_OBJECT_ASSERT( hTranscode, BIP_Transcode );
     BDBG_ASSERT( pSettings );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hTranscode %p: --------------------->" BIP_MSG_PRE_ARG, hTranscode));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hTranscode %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hTranscode));
 
     BIP_CHECK_GOTO(( hTranscode ), ( "hTranscode pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
     BIP_CHECK_GOTO(( pSettings ), ( "pSettings can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
@@ -1107,7 +1103,7 @@ BIP_Status BIP_Transcode_SetSettings(
     BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_Transcode_SetSettings" ), error, bipStatus, bipStatus );
 
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hTranscode %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, hTranscode, bipStatus ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hTranscode %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hTranscode, bipStatus ));
 
     return( bipStatus );
 } /* BIP_Transcode_SetSettings */
@@ -1130,7 +1126,7 @@ BIP_Status BIP_Transcode_Prepare(
     BDBG_OBJECT_ASSERT( hTranscode, BIP_Transcode );
     BIP_SETTINGS_ASSERT(pSettings, BIP_TranscodePrepareSettings);
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hTranscode %p: --------------------->" BIP_MSG_PRE_ARG, hTranscode));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hTranscode %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hTranscode));
 
     BIP_CHECK_GOTO(( hTranscode ), ( "hTranscode pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
     BIP_CHECK_GOTO(( pTranscodeStreamInfo ), ( "pTranscodeStreamInfo pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
@@ -1140,12 +1136,12 @@ BIP_Status BIP_Transcode_Prepare(
     if ( !pTranscodeProfile->disableVideo )
     {
         BIP_CHECK_GOTO(( pSettings ), ( "pSettings can't be NULL if video is enabled" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
-        BIP_CHECK_GOTO(( pSettings->hVideoPidChannel ), ( "hVideoPidChannel %p && pVideoTrack %p can't be NULL for encoding Video." ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
+        BIP_CHECK_GOTO(( pSettings->hVideoPidChannel ), ( "hVideoPidChannel && pVideoTrack can't be NULL for encoding Video." ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
     }
     if ( !pTranscodeProfile->disableAudio )
     {
         BIP_CHECK_GOTO(( pSettings ), ( "pSettings can't be NULL if audio is enabled" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
-        BIP_CHECK_GOTO(( pSettings->hAudioPidChannel ), ( "hAudioPidChannel %p && pAudioTrack %p can't be NULL for encoding Audio." ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
+        BIP_CHECK_GOTO(( pSettings->hAudioPidChannel ), ( "hAudioPidChannel && pAudioTrack can't be NULL for encoding Audio." ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
     }
     if ( pSettings )
     {
@@ -1186,10 +1182,10 @@ BIP_Status BIP_Transcode_Prepare(
     bipStatus = BIP_Arb_Submit(hArb, &arbSettings, NULL);
     BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_Transcode_Prepare" ), error, bipStatus, bipStatus );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hTranscode %p: Transcode Prepareed: completionStatus: %s" BIP_MSG_PRE_ARG, hTranscode, BIP_StatusGetText(bipStatus) ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hTranscode %p: Transcode Prepareed: completionStatus: %s" BIP_MSG_PRE_ARG, (void *)hTranscode, BIP_StatusGetText(bipStatus) ));
 
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hTranscode %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, hTranscode, bipStatus ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hTranscode %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hTranscode, bipStatus ));
 
     return ( bipStatus );
 } /* BIP_Transcode_Prepare */
@@ -1207,7 +1203,7 @@ BIP_Status BIP_Transcode_Start(
     BDBG_OBJECT_ASSERT( hTranscode, BIP_Transcode );
     BIP_SETTINGS_ASSERT(pSettings, BIP_TranscodeStartSettings);
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hTranscode %p: --------------------->" BIP_MSG_PRE_ARG, hTranscode));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hTranscode %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hTranscode));
 
     BIP_CHECK_GOTO(( hTranscode ), ( "hTranscode pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
 
@@ -1234,10 +1230,10 @@ BIP_Status BIP_Transcode_Start(
     bipStatus = BIP_Arb_Submit(hArb, &arbSettings, NULL);
     BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_Transcode_Start" ), error, bipStatus, bipStatus );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hTranscode %p: Transcode Started: completionStatus: %s" BIP_MSG_PRE_ARG, hTranscode, BIP_StatusGetText(bipStatus) ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hTranscode %p: Transcode Started: completionStatus: %s" BIP_MSG_PRE_ARG, (void *)hTranscode, BIP_StatusGetText(bipStatus) ));
 
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hTranscode %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, hTranscode, bipStatus ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hTranscode %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hTranscode, bipStatus ));
 
     return ( bipStatus );
 } /* BIP_Transcode_Start */
@@ -1275,7 +1271,7 @@ BIP_Status BIP_Transcode_Stop(
     BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_Transcode_Stop" ), error, bipStatus, bipStatus );
 
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hTranscode %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, hTranscode, bipStatus ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hTranscode %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hTranscode, bipStatus ));
 
     return( bipStatus );
 } /* BIP_Transcode_Stop */
@@ -1291,7 +1287,7 @@ BIP_Status  BIP_Transcode_GetStatus(
 
     BDBG_OBJECT_ASSERT( hTranscode, BIP_Transcode );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hTranscode %p: --------------------->" BIP_MSG_PRE_ARG, hTranscode));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hTranscode %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hTranscode));
 
     BIP_CHECK_GOTO(( hTranscode ), ( "hTranscode pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
     BIP_CHECK_GOTO(( pStatus ), ( "pStatus can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
@@ -1315,7 +1311,7 @@ BIP_Status  BIP_Transcode_GetStatus(
     BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_Transcode_GetStatus" ), error, bipStatus, bipStatus );
 
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hTranscode %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, hTranscode, bipStatus ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hTranscode %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hTranscode, bipStatus ));
 
     return ( bipStatus );
 }

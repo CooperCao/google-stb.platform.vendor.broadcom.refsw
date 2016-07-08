@@ -1,7 +1,7 @@
-/***************************************************************************
- *     (c)2007-2013 Broadcom Corporation
+/******************************************************************************
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,21 +34,13 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
- **************************************************************************/
+ ******************************************************************************/
 #include "nexus_base.h"
 #include "nexus_display_module.h"
 #include "priv/nexus_surface_priv.h"
+#if NEXUS_HAS_SAGE
+#include "priv/nexus_sage_priv.h"
+#endif
 
 BDBG_MODULE(nexus_display_graphics);
 
@@ -115,6 +107,15 @@ NEXUS_Display_P_SetGraphicsChromaKey(const struct NEXUS_DisplayGraphics *graphic
     return NEXUS_SUCCESS;
 }
 
+static NEXUS_Error
+NEXUS_Display_P_SetSdrGfxToHdrApproximationAdjust(const struct NEXUS_DisplayGraphics *graphics, const NEXUS_GraphicsSettings *cfg)
+{
+    BERR_Code rc;
+
+    rc = BVDC_Source_SetSdrGfxToHdrApproximationAdjust(graphics->source, (BVDC_Source_SdrGfxToHdrApproximationAdjust *)&cfg->sdrToHdr);
+    if(rc!=BERR_SUCCESS) {return BERR_TRACE(rc);}
+    return NEXUS_SUCCESS;
+}
 
 static BERR_Code
 NEXUS_Display_P_SetGraphicsSettings(NEXUS_DisplayHandle display, const NEXUS_GraphicsSettings *cfg, bool force)
@@ -181,6 +182,13 @@ NEXUS_Display_P_SetGraphicsSettings(NEXUS_DisplayHandle display, const NEXUS_Gra
         if(rc!=NEXUS_SUCCESS) {rc=BERR_TRACE(rc);goto err_source_cfg;}
     }
 
+    if(force || (graphics->cfg.sdrToHdr.y!=cfg->sdrToHdr.y ||
+                 graphics->cfg.sdrToHdr.cb!=cfg->sdrToHdr.cb ||
+                 graphics->cfg.sdrToHdr.cr!=cfg->sdrToHdr.cr)) {
+        rc = NEXUS_Display_P_SetSdrGfxToHdrApproximationAdjust(graphics, cfg);
+        if(rc!=NEXUS_SUCCESS) {rc=BERR_TRACE(rc);goto err_source_cfg;}
+    }
+
     if(force || (graphics->cfg.visible != cfg->visible)) {
         rc = BVDC_Window_SetVisibility(graphics->windowVdc, cfg->visible);
         if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);goto err_window_cfg;}
@@ -237,6 +245,27 @@ NEXUS_Display_P_SetGraphicsSource(NEXUS_DisplayHandle display, const NEXUS_Graph
     return NEXUS_SUCCESS;
 }
 
+static void NEXUS_Display_P_SetSecureGraphics(struct NEXUS_DisplayGraphics *graphics, bool secure)
+{
+    if (graphics->secure != secure) {
+#if NEXUS_HAS_SAGE
+        BAVC_CoreList coreList;
+        BKNI_Memset(&coreList, 0, sizeof(coreList));
+        coreList.aeCores[BAVC_CoreId_eGFD_0] = true;
+        if (secure) {
+            int rc = NEXUS_Sage_AddSecureCores(&coreList);
+            if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);return;}
+        }
+        else {
+            NEXUS_Sage_RemoveSecureCores(&coreList);
+        }
+        graphics->secure = secure;
+#else
+        BERR_TRACE(NEXUS_NOT_SUPPORTED);
+#endif
+    }
+}
+
 static BERR_Code
 NEXUS_Display_P_CreateGraphics(NEXUS_DisplayHandle display, const NEXUS_GraphicsSettings *cfg)
 {
@@ -253,6 +282,9 @@ NEXUS_Display_P_CreateGraphics(NEXUS_DisplayHandle display, const NEXUS_Graphics
     if (display->index >= sizeof(gfx_ids)/sizeof(*gfx_ids)) {
         return BERR_TRACE(NEXUS_INVALID_PARAMETER);
     }
+
+    NEXUS_Display_P_SetSecureGraphics(graphics, cfg->secure);
+
     BDBG_ASSERT(graphics->frameBuffer3D.main);
     NEXUS_Module_Lock(video->modules.surface);
     surface = NEXUS_Surface_GetPixelPlane_priv(graphics->frameBuffer3D.main);
@@ -283,6 +315,7 @@ NEXUS_Display_P_CreateGraphics(NEXUS_DisplayHandle display, const NEXUS_Graphics
     if(video->updateMode != NEXUS_DisplayUpdateMode_eAuto) { rc = BERR_TRACE(NEXUS_NOT_SUPPORTED);}
     rc = BVDC_ApplyChanges(video->vdc);
     if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);goto err_apply_changes;}
+
     BDBG_MSG(("<graphics:%p", (void *)graphics->windowVdc));
 
     return BERR_SUCCESS;
@@ -340,6 +373,7 @@ NEXUS_Display_P_DestroyGraphicsSource(NEXUS_DisplayHandle display)
     if(video->updateMode != NEXUS_DisplayUpdateMode_eAuto) { rc = BERR_TRACE(NEXUS_NOT_SUPPORTED);}
     rc = BVDC_ApplyChanges(video->vdc);
     if(rc!=BERR_SUCCESS) {rc=BERR_TRACE(rc);}
+    NEXUS_Display_P_SetSecureGraphics(graphics, false);
     graphics->source = NULL;
     graphics->windowVdc = NULL;
 

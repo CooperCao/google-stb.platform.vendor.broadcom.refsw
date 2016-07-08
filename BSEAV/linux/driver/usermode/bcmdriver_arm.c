@@ -1,21 +1,39 @@
 /***************************************************************************
- *     Copyright (c) 2002-2014, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2002-2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ *  Except as expressly set forth in the Authorized License,
  *
- * Module Description:
- * This modules needs to be included from the source file
- * Revision History:
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * $brcm_Log: $
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
  *
  ***************************************************************************/
 #include <linux/version.h>
@@ -27,78 +45,29 @@
 #include <asm/cacheflush.h>
 #include "bcmdriver_arm.h"
 
-#if defined(CONFIG_ARM64)
-#define USE_INLINE_ASSEMBLY 0
-
-inline void __cpuc_flush_kern_all(void)
+unsigned __brcm_cache_line_size(void);
+void brcm_get_cache_info(struct brcm_cache_info*info)
 {
-
+    info->max_writeback = __brcm_cache_line_size();
+    info->max_writethrough = info->max_writeback;
+    info->prefetch_enabled = 1;
+    return;
 }
-#else
-#define USE_INLINE_ASSEMBLY 1
-#endif
 
+#if defined(CONFIG_ARM64)
+
+#else /* #if defined(CONFIG_ARM64) */
+
+int __brcm_cpu_dcache_flush(const void *addr, size_t size);
 static int brcm_cpu_dcache_flush_only(const void *addr, size_t size)
 {
-    /* start_addr is inclusive and end_addr is exclusive */
-    int result = 0;
-    uint32_t line_size;
-    uint32_t shift;
-    unsigned long aligned_start_addr;
-    int num_of_lines;
-
-
     /* if range is > 3MB,dumping entire cache is faster
       than line by line flush with inline assembly */
     if( size >= 3*1024*1024) {
         __cpuc_flush_kern_all();
         return 0;
     }
-
-    /* Get the D-cache line size, and it's associated shift value (in words) */
-    dcache_line_size(&line_size, &shift);
-
-    /* Also factor in bytes/words */
-    shift += 2;
-    /* Floor start address */
-    aligned_start_addr = (unsigned long)addr;
-    aligned_start_addr = (aligned_start_addr >> shift) << shift;
-    /* Ceil number of cache lines */
-    num_of_lines = (size + ((unsigned long)addr - aligned_start_addr) + (line_size - 1)) >> shift;
-
-    /* printk("%p:%#lx %u -> %d\n", addr, aligned_start_addr, (unsigned)size, num_of_lines); */
-
-    do {
-#if USE_INLINE_ASSEMBLY
-        /* DCCIMVAC:Invalidate data cache line by VA to PoC */
-        __asm__ __volatile__ (
-            "1: mcr p15, 0, %2, c7, c14, 1\n"
-            "2:\n"
-            "   .pushsection .fixup,\"ax\"\n"
-            "   .align  2\n"
-            "3: mov     %0, %1\n"
-            "   b       2b\n"
-            "   .popsection\n"
-            "   .pushsection __ex_table,\"a\"\n"
-            "   .align  3\n"
-            "   .long   1b, 3b\n"
-            "   .popsection\n"
-            : "+r" (result)
-            : "i" (-EFAULT), "r" (aligned_start_addr)
-        );
-#else
-        result = dcache_clean_inval_line(aligned_start_addr);
-#endif
-        if(result!=0) {
-            break;
-        }
-        aligned_start_addr += line_size;
-        num_of_lines --;
-    } while(num_of_lines > 0);
-#if USE_INLINE_ASSEMBLY
-    __asm__("dsb");
-#endif
-    return result;
+    return __brcm_cpu_dcache_flush(addr, size);
 }
 
 int brcm_cpu_dcache_flush(const void *pvAddr, size_t ulNumBytes)
@@ -111,14 +80,4 @@ int brcm_cpu_dcache_flush(const void *pvAddr, size_t ulNumBytes)
 
     return result;
 }
-
-
-void brcm_get_cache_info(struct brcm_cache_info*info)
-{
-    uint32_t line_size;
-    uint32_t shift;
-    dcache_line_size(&line_size, &shift);
-    info->max_writeback = line_size;
-    info->max_writethrough = line_size;
-    info->prefetch_enabled=1;
-}
+#endif /* #if defined(CONFIG_ARM64) */

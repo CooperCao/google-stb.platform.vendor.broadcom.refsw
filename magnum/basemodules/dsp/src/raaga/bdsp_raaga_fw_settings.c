@@ -1,7 +1,7 @@
 /******************************************************************************
- * (c) 2004-2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -37,9 +37,7 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
- *****************************************************************************/
-
+ ******************************************************************************/
 
 #include "bdsp_raaga_fw_settings.h"
 #include "bdsp_raaga_fwdownload.h"
@@ -57,23 +55,23 @@
 #include "bchp_aud_misc.h"
 #endif
 
-const  BDSP_Raaga_Audio_FrameSyncTsmConfigParams   BDSP_sDefaultFrameSyncTsmSettings =
+const  BDSP_P_Audio_FrameSyncTsmConfigParams   BDSP_sDefaultFrameSyncTsmSettings =
 {
     {                                       /* sFrameSyncConfigParams */
         0,
-        BDSP_Raaga_Audio_AudioInputSource_eExtI2s0,
+        BDSP_Audio_AudioInputSource_eExtI2s0,
         {
             48000
         },
             1,
             {{
-            BDSP_Raaga_Audio_ASFPTSType_eInterpolated,
-                BDSP_Raaga_Audio_WMAIpType_eASF
+            BDSP_Audio_ASFPTSType_eInterpolated,
+                BDSP_Audio_WMAIpType_eASF
             }},
         0                                           /* eForceCompleteFirstFrame */
     },
     {                                       /* sTsmConfigParams */
-        90,                                 /* i32TSMSmoothThreshold */
+            90,                                 /* i32TSMSmoothThreshold */
             0,                                  /* i32TSMSyncLimitThreshold */
             360,                                /* i32TSMGrossThreshold */
             135000,                             /* i32TSMDiscardThreshold */
@@ -86,12 +84,12 @@ const  BDSP_Raaga_Audio_FrameSyncTsmConfigParams   BDSP_sDefaultFrameSyncTsmSett
             0,                                  /* ui32AVOffset */
             0,                                  /* ui32SwSTCOffset */
             5760,                               /* ui32AudioOffset */
-            BDSP_Raaga_eTsmBool_True,           /* eEnableTSMErrorRecovery */
-            BDSP_Raaga_eTsmBool_False,          /* eSTCValid */
-            BDSP_Raaga_eTsmBool_True,           /* ePlayBackOn */
-            BDSP_Raaga_eTsmBool_False,          /* eTsmEnable */
-            BDSP_Raaga_eTsmBool_True,           /* eTsmLogEnable */
-            BDSP_Raaga_eTsmBool_False,           /* eASTMEnable */
+            BDSP_eTsmBool_True,                 /* eEnableTSMErrorRecovery */
+            BDSP_eTsmBool_False,                /* eSTCValid */
+            BDSP_eTsmBool_True,                 /* ePlayBackOn */
+            BDSP_eTsmBool_False,                /* eTsmEnable */
+            BDSP_eTsmBool_True,                 /* eTsmLogEnable */
+            BDSP_eTsmBool_False,                /* eASTMEnable */
     }
 };
 
@@ -202,7 +200,7 @@ const BDSP_Raaga_Audio_DolbyPulseUserConfig BDSP_sDolbyPulseDefaultUserConfig =
             0x00B504F3,                     /* i32GainFactor */
         },
     },
-	0										/* ui32EnforceLoudnessLevelsOnAllPorts */
+    0                                       /* ui32EnforceLoudnessLevelsOnAllPorts */
 };
 
 const BDSP_Raaga_Audio_DDPMultiStreamConfigParams  BDSP_sDDPDefaultUserConfig =
@@ -324,6 +322,8 @@ const BDSP_Raaga_Audio_DtsHdConfigParams  BDSP_sDtsHdDefaultUserConfig =
     { 0, 0, 0, 0, 0, 0},                    /* i32ExtDnmixTab[4] */
     { 0, 0, 0, 0, 0, 0}}                    /* i32ExtDnmixTab[5] */
     } }
+    ,
+    0
 };
 
 const BDSP_Raaga_Audio_DtslbrConfigParams  BDSP_sDtsLbrDefaultUserConfig =
@@ -745,6 +745,73 @@ const BDSP_Raaga_Audio_UdcdecConfigParams BDSP_sUdcdecDefaultUserConfig =
     0,                      /*ui32EnableDynamicUserParams*/
     0                       /*ui32EnableAtmosMetadata*/
 };
+const BDSP_Raaga_Audio_AC4DecConfigParams BDSP_sAC4DecDefaultUserConfig =
+{
+    0,                              /*eDolbyMsUsageMode*/
+    0,                              /*eDecoderType*/
+    1,                              /*i32NumOutPorts*/
+    {
+        {
+            6,                      /*ui32ChannelConfig*/
+            0,                    /*i32MainAssocMixPref*/
+            0,                      /*ui32Phase90Preference*/
+            0,                      /*ui32DialogEnhGainInput*/
+            -31,                    /*i32TargetRefLevel*/
+            0,                      /*ui32DrcEnable*/
+            0,                      /* ui32DrcMode */
+            0,                    /*ui32IeqStrength*/
+            0,                      /*ui32IeqProfile*/
+            { 0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7
+            }
+        },
+        {
+            2,                      /*ui32ChannelConfig*/
+            0,                    /*i32MainAssocMixPref*/
+            0,                      /*ui32Phase90Preference*/
+            0,                      /*ui32DialogEnhGainInput*/
+            -31,                    /*i32TargetRefLevel*/
+            0,                      /*ui32DrcEnable*/
+            0,                      /* ui32DrcMode */
+            0,                    /*ui32IeqStrength*/
+            0,                      /*ui32IeqProfile*/
+            { 0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7
+            }
+        }
+    },
+    3,      /* ui32InputCplxLevel */
+    0,      /* ui32MainAssocDec */
+    1,      /* ui32OutputCplxLevel */
+    1,      /* ui32SingleInstance */
+    0,      /* ui32SamplingRateMode */
+    0,      /* ui32DapEnable */
+    0xFFFFFFFF,      /* ui32PresentationNumber */
+    1,      /* ui32LimiterEnable */
+    1,      /* ui32CertificationMode */
+    90000,  /* ui32TimeScale */
+    {0},  /* ui32PreferredLanguage1[AC4_DEC_ABBREV_PRESENTATION_LANGUAGE_LENGTH] */
+    {0},  /* ui32PreferredLanguage2[AC4_DEC_ABBREV_PRESENTATION_LANGUAGE_LENGTH] */
+    0,      /* ui32PreferredAssociateType */
+    0,      /* ui32PreferredIdentifierType */
+    {0}, /* i32PreferredProgramID[AC4_DEC_PROGRAM_IDENTIFIER_LENGTH] */
+    0,      /* ui32AC4DecodeMode */
+    1,      /* ui32EnableADMixing */
+    1       /* ui32PreferAssociateTypeOverLanguage */
+};
+
 const BDSP_Raaga_Audio_DolbyAacheUserConfig BDSP_sDolbyAacheDefaultUserConfig =
 {
     0,                      /* eDecoderType */
@@ -1087,13 +1154,13 @@ const BDSP_Raaga_Audio_AVLConfigParams BDSP_sDefAVLConfigSettings =
 {
     true,                   /* ui32AVLEnableFlag */
     -20*32768,              /* iTarget */
-	-36*32768,              /* iLowerBound */
-	15*32768,               /* uiFixedBoost */
+    -36*32768,              /* iLowerBound */
+    15*32768,               /* uiFixedBoost */
     2959245,                /* uiRef */
     32736,                  /* uiAlpha */
     32256,                  /* uiBeta */
     9830,                   /* uiThreshold */
-	500,					/* uiDtfPcnt */
+    500,                    /* uiDtfPcnt */
     32767,                  /* uiAlpha2 */
     16384,                  /* uisNsfgr */
     9830,                   /* uiDtf */
@@ -1756,7 +1823,7 @@ const BDSP_Raaga_Audio_Mpeg1L3EncConfigParams   BDSP_sDefMpeg1L3EncConfigSetting
     BDSP_Raaga_Audio_Mp3EncodeBitRate_e128kbps,     /* eMp3EncodeBitRate */
     0,                                          /* ui32AddCRCProtect */
     BDSP_AF_P_eDisable,                             /* ePrivateBit */
-    BDSP_AF_P_eDisable,                             /* eCopyright */
+    BDSP_AF_P_eDisable,                             /* eCpyright */
     BDSP_AF_P_eDisable,                             /* eOriginal */
     BDSP_Raaga_Audio_Mp3EncodeEmphasisType_eNone,   /* eEmphasisType*/
     -23,   /* i32InputVolLevel */
@@ -1869,7 +1936,7 @@ const BDSP_Raaga_Audio_DDPEncConfigParams BDSP_sDefDDPEncConfigSettings =
     0,                  /* Send Audio Production Info Channel 2 */
     105,                /* Audio production mixing level */
     105,                /* Audio production mixing level Channel 2 */
-    1,                  /* Copyright flag */
+    1,                  /* Cpyright flag */
     1,                  /* Original Bitstream flag */
     0,                  /* Bitstream Mode */
     2,                  /* Audio production room type */
@@ -1929,6 +1996,15 @@ const BDSP_Raaga_Audio_MixerConfigParams  BDSP_sDefFwMixerConfigSettings =
         },
     },
     0,                                          /* i32UserMixBalance */
+    0,                                          /* i32CustomEffectsAudioMixingEnable*/
+    {
+        /*L*/   {0x40000000, 0, 0, 0, 0, 0},
+        /*R*/   {0, 0x40000000, 0, 0, 0, 0},
+        /*LS*/  {0, 0, 0x40000000, 0, 0, 0},
+        /*RS*/  {0, 0, 0, 0x40000000, 0, 0},
+        /*C*/   {0, 0, 0, 0, 0x40000000, 0},
+        /*LFE*/ {0, 0, 0, 0, 0, 0x40000000}
+    }
 };
 const BDSP_Raaga_Audio_MixerDapv2ConfigParams  BDSP_sDefMixerDapv2ConfigParams =
 {
@@ -2102,6 +2178,36 @@ const BDSP_Raaga_VideoBX264UserConfig BDSP_sBX264EncodeUserConfigSettings =
     0,
     1 /* 1- 420, 0 - 422 */
 };
+const BDSP_Raaga_VideoBXVP8UserConfig BDSP_sBXVP8EncodeUserConfigSettings =
+{
+    BDSP_Raaga_VideoEncodeMode_eAfap,
+    400000,
+    320,
+    240,
+    30,
+    30,
+    BDSP_Raaga_VideoGopStruct_eIP,
+    true,
+    false,
+    0,
+    {
+        1,
+        {8,8,8},
+        {50,50,50},
+        4,
+        0
+    },
+
+    BDSP_VF_P_EncodeFrameRate_e30,
+    1,
+    0,
+    0,
+    1,
+    0,
+    0,
+    1
+};
+
 
 const BDSP_VF_P_sOutputBuffInfo sOutputBuffInfo[BDSP_AF_P_AlgoId_eEndOfDecodeAlgos - BDSP_VF_P_AlgoId_eVideoAlgoStartIdx] =
 {

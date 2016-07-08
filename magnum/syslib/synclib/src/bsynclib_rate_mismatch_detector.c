@@ -109,9 +109,9 @@ BERR_Code BSYNClib_RateMismatchDetector_Open(
 
 	hDetector->hParent = hParent;
 
-	BDBG_MSG(("chn %p: Acquiring static rate match detection task timer", hParent));
+	BDBG_MSG(("chn %p: Acquiring static rate match detection task timer", (void*)hParent));
 	hDetector->psStaticRateMatchTimer = BSYNClib_ResourcePool_Acquire(hParent->psTimers);
-	BDBG_MSG(("chn %p: Acquiring static rate mismatch detection task timer", hParent));
+	BDBG_MSG(("chn %p: Acquiring static rate mismatch detection task timer", (void*)hParent));
 	hDetector->psStaticRateMismatchTimer = BSYNClib_ResourcePool_Acquire(hParent->psTimers);
 
 	hDetector->sData.hSources = BSYSlib_List_Create();

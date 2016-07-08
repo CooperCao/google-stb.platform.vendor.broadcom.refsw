@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2015 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,18 +34,8 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: drm_adobe_tl.c $
- * $brcm_Revision: SWSECDRM-34/1 $
- * $brcm_Date: 12/5/13 5:39p $
- *
- * Module Description: Thin layer Adobe layer implementation
- *
- * Revision History:
- *
- * $brcm_Log: /BSEAV/lib/security/common_drm/drm_tl/adobe/drm_adobe_tl.c $
- *
- *
+
+
  **************************************************************************/
 #include <string.h>
 #include "bstd.h"
@@ -379,7 +369,7 @@ DrmRC DRM_Adobe_P_PrivateKeyDecrypt( uint32_t index,         /* Input: Index of 
         DRM_MSG_PRINT_BUF("pub exp:",&rsaKey.e.pData[0],rsaKey.e.len);
         DRM_MSG_PRINT_BUF("&pKey->keybuf[173]",&pKey->keybuf[173],128);
 
-        BDBG_MSG(("%s:lenof priv exp is %d",__FUNCTION__,rsaKey.d.len));
+        BDBG_MSG(("%s:lenof priv exp is %lu",__FUNCTION__,rsaKey.d.len));
         DRM_MSG_PRINT_BUF("priv exp:",&rsaKey.d.pData[0],rsaKey.d.len);
 
 
@@ -829,7 +819,7 @@ DrmRC DRM_Adobe_CreateDRMSessionCtx(uint32_t index,                    /* Input:
             DRM_MSG_PRINT_BUF("pSessCtx->drmCommonOpStruct.keyIvSettings.iv", pSessCtx->drmCommonOpStruct.keyIvSettings.iv, pSessCtx->drmCommonOpStruct.keyIvSettings.ivSize);
         }
 
-        BDBG_MSG(("%s - ********************** pSearchEntry = '%p' ***************************", __FUNCTION__, pSearchEntry));
+        BDBG_MSG(("%s - ********************** pSearchEntry = '%p' ***************************", __FUNCTION__, (void *)pSearchEntry));
         if(pSearchEntry != NULL)
         {
             BDBG_MSG(("%s -  pSearchEntry->keybufsz = '%u'", __FUNCTION__, pSearchEntry->keybufsz));
@@ -849,7 +839,7 @@ DrmRC DRM_Adobe_CreateDRMSessionCtx(uint32_t index,                    /* Input:
 
             if(pMeta == NULL)
             {
-                BDBG_MSG(("%s -  metadata is null, setting decrypt operation", __FUNCTION__, index));
+                BDBG_MSG(("%s -  metadata is null, setting decrypt operation", __FUNCTION__));
                 pSessCtx->drmCommonOpStruct.keyConfigSettings.settings.opType =  NEXUS_SecurityOperation_eDecrypt;
             }
             else
@@ -984,7 +974,7 @@ DrmRC DRM_Adobe_CreateDRMSessionCtx(uint32_t index,                    /* Input:
         /* augment the secure_store API by being able to specify custom procIns? */
     }
 
-    BDBG_MSG(("%s - returning session context 0x%x", __FUNCTION__, pSessCtx));
+    BDBG_MSG(("%s - returning session context %p", __FUNCTION__, (void *)pSessCtx));
     *pCTX = pSessCtx;
 
 
@@ -1489,7 +1479,7 @@ DrmRC DRM_Adobe_DecryptFullSampleAndReturn(DrmAdobeSessionContext_t *pCTX,/* Inp
     uint8_t *pOutputNexusMem = NULL;
     DrmCommonOperationStruct_t drmCommonOpStruct;
 
-    BDBG_MSG(("%s - Entered function.  Session context 0x%08x, data length is '%u'", __FUNCTION__, pCTX, *pLength));
+    BDBG_MSG(("%s - Entered function.  Session context %p, data length is '%u'", __FUNCTION__, (void *)pCTX, *pLength));
 
     if(pCTX == NULL)
     {
@@ -1535,7 +1525,7 @@ DrmRC DRM_Adobe_DecryptFullSampleAndReturn(DrmAdobeSessionContext_t *pCTX,/* Inp
         drmCommonOpStruct.num_dma_block = 1;
 
         drmCommonOpStruct.keyConfigSettings.keySlot = pCTX->drmCommonOpStruct.keyConfigSettings.keySlot;
-        BDBG_MSG(("%s - drmCommonOpStruct.keyConfigSettings.keySlot = 0x%08x", __FUNCTION__,drmCommonOpStruct.keyConfigSettings.keySlot));
+        BDBG_MSG(("%s - drmCommonOpStruct.keyConfigSettings.keySlot = %p", __FUNCTION__, (void *)drmCommonOpStruct.keyConfigSettings.keySlot));
 
         /*start M2M transfer*/
         rc = DRM_Common_M2mOperation(&drmCommonOpStruct);
@@ -1772,7 +1762,7 @@ DrmRC DRM_Adobe_PublicKeyOperation( uint32_t index,         /* Input: Index of k
         rsa_params.pbDataIn = pAdobeRsaSettings->operation_struct.verify_op.pDigestAddr;
         //DRM_MSG_PRINT_BUF("input/signature",pAdobeRsaSettings->operation_struct.verify_op.pSignatureAddr, pAdobeRsaSettings->operation_struct.verify_op.signatureSize);
         rsa_params.cbDataIn = pAdobeRsaSettings->operation_struct.verify_op.digestSize;
-        BDBG_MSG((" %s:pSrcAddr=0x%x,size=%d ",__FUNCTION__,pAdobeRsaSettings->operation_struct.verify_op.pDigestAddr,pAdobeRsaSettings->operation_struct.verify_op.digestSize));
+        BDBG_MSG((" %s:pSrcAddr=%p,size=%d ",__FUNCTION__,(void *)pAdobeRsaSettings->operation_struct.verify_op.pDigestAddr,pAdobeRsaSettings->operation_struct.verify_op.digestSize));
         rsa_params.pbDataOut =  pAdobeRsaSettings->operation_struct.verify_op.pSignatureAddr;
         rsa_params.cbDataOut = (unsigned long *)&pAdobeRsaSettings->operation_struct.verify_op.signatureSize;
         switch(pAdobeRsaSettings->operation_struct.verify_op.padType)
@@ -1807,12 +1797,12 @@ DrmRC DRM_Adobe_PublicKeyOperation( uint32_t index,         /* Input: Index of k
 
     BDBG_MSG((" %s: program rsa params 4 ",__FUNCTION__));
 
-    BDBG_MSG(("%s: rsa params output len=%d ",__FUNCTION__, *rsa_params.cbDataOut));
+    BDBG_MSG(("%s: rsa params output len=%lu ",__FUNCTION__, *rsa_params.cbDataOut));
 
     BDBG_MSG(("%s: calling DRM_Common_SwRsa",__FUNCTION__));
 
     rc = DRM_Common_SwRsa(&rsa_params);
-    BDBG_MSG(("%s:cbDataIn=%d, cbDataOut=%d",__FUNCTION__,rsa_params.cbDataIn, rsa_params.cbDataOut));
+    BDBG_MSG(("%s:cbDataIn=%lu, cbDataOut=%p",__FUNCTION__,rsa_params.cbDataIn, (void *)rsa_params.cbDataOut));
 
     if(rc != Drm_Success)
     {
@@ -1962,7 +1952,7 @@ DrmRC DRM_Adobe_PrivateKeyEncrypt(
         //DRM_MSG_PRINT_BUF( "pub exp:",&rsaKey.e.pData[0],rsaKey.e.len);
         //DRM_MSG_PRINT_BUF("&pKey->keybuf[173]",&pKey->keybuf[173],128);
 
-        BDBG_MSG(("%s:lenof priv exp is %d",__FUNCTION__,rsaKey.d.len));
+        BDBG_MSG(("%s:lenof priv exp is %lu",__FUNCTION__,rsaKey.d.len));
         //DRM_MSG_PRINT_BUF("priv exp:",&rsaKey.d.pData[0],rsaKey.d.len);
 
         rsaSwIO.bRSAop      = drmRsasign;
@@ -2401,7 +2391,7 @@ DrmRC DRM_Adobe_EncryptData(DrmAdobeSessionContext_t *pCTX,/* Input: Pointer to 
     uint32_t padded_encrypted_length = 0;
 
 
-    BDBG_MSG(("%s - Entered function.  Session context 0x%08x, data length is '%u', output buffer length = '%u'", __FUNCTION__, pCTX, length, (*pOutLength)));
+    BDBG_MSG(("%s - Entered function.  Session context %p, data length is '%u', output buffer length = '%u'", __FUNCTION__, (void *)pCTX, length, (*pOutLength)));
 
     if(pCTX == NULL)
     {
@@ -2528,7 +2518,7 @@ DrmRC DRM_Adobe_GetRootCertDigest( uint8_t *pCert,       /* Output: Certificate 
 
     BDBG_MSG(("Entered %s that reads form loacl file , ",__FUNCTION__ ));
     BDBG_ASSERT(pSize != NULL);
-    BDBG_MSG(("Entered %s, cert buf pointer:0x%x,cert buf size 0x%x",__FUNCTION__,pCert,*pSize ));
+    BDBG_MSG(("Entered %s, cert buf pointer:%p,cert buf size 0x%x",__FUNCTION__,(void *)pCert,*pSize ));
 
     if(gpRootCertficateDigest == NULL)
     {
@@ -2598,7 +2588,7 @@ DrmRC   DRM_Adobe_GetIndivTransportCert( uint8_t *pCert,     /* Output: Certific
         goto ErrorExit;
     }
 
-    BDBG_MSG(("%s:, cert buf pointer:0x%x,cert buf size 0x%x",__FUNCTION__,pCert,*pSize ));
+    BDBG_MSG(("%s:, cert buf pointer:%p,cert buf size 0x%x",__FUNCTION__,(void *)pCert,*pSize ));
 
     if(gpIndivTransportCert == NULL)
     {

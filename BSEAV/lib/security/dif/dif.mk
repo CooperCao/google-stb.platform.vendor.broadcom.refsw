@@ -1,40 +1,43 @@
-#############################################################################
-# Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
-#
-#  This program is the proprietary software of Broadcom and/or its licensors,
-#  and may only be used, duplicated, modified or distributed pursuant to the terms and
-#  conditions of a separate, written license agreement executed between you and Broadcom
-#  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-#  no license (express or implied), right to use, or waiver of any kind with respect to the
-#  Software, and Broadcom expressly reserves all rights in and to the Software and all
-#  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-#  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-#  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-#
-#  Except as expressly set forth in the Authorized License,
-#
-#  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-#  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-#  and to use this information only in connection with your use of Broadcom integrated circuit products.
-#
-#  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-#  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-#  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-#  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-#  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-#  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-#  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-#  USE OR PERFORMANCE OF THE SOFTWARE.
-#
-#  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-#  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-#  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-#  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-#  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-#  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-#  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-#  ANY LIMITED REMEDY.
-#############################################################################
+#/******************************************************************************
+#* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+#*
+#* This program is the proprietary software of Broadcom and/or its
+#* licensors, and may only be used, duplicated, modified or distributed pursuant
+#* to the terms and conditions of a separate, written license agreement executed
+#* between you and Broadcom (an "Authorized License").  Except as set forth in
+#* an Authorized License, Broadcom grants no license (express or implied), right
+#* to use, or waiver of any kind with respect to the Software, and Broadcom
+#* expressly reserves all rights in and to the Software and all intellectual
+#* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+#* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+#* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+#*
+#* Except as expressly set forth in the Authorized License,
+#*
+#* 1. This program, including its structure, sequence and organization,
+#*    constitutes the valuable trade secrets of Broadcom, and you shall use all
+#*    reasonable efforts to protect the confidentiality thereof, and to use
+#*    this information only in connection with your use of Broadcom integrated
+#*    circuit products.
+#*
+#* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+#*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+#*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+#*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+#*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+#*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+#*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+#*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+#*
+#* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+#*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+#*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+#*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+#*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+#*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+#*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+#*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+#******************************************************************************/
 URSR_TOP ?= ../../../..
 NEXUS_TOP := $(URSR_TOP)/nexus
 BSEAV_TOP := $(URSR_TOP)/BSEAV/
@@ -83,6 +86,7 @@ NEXUS_APP_DEFINES += $(foreach module, $(MAGNUM_MODULES), $($(module)_DEFINES))
 
 SECURITY_TOP := $(BSEAV_TOP)/lib/security
 COMMON_DRM_TOP := $(SECURITY_TOP)/common_drm
+WIDEVINE_CENC_DIR := $(SECURITY_TOP)/third_party/widevine/CENC21/widevine-cdm_v2.1.6-0-824
 
 include $(COMMON_DRM_TOP)/lib/prdy_libdir.inc
 include $(COMMON_DRM_TOP)/common_drm.inc
@@ -90,9 +94,12 @@ include dif_libdir.inc
 
 # Custom include paths
 CFLAGS += -I./include
-CFLAGS += -I$(SECURITY_TOP)/third_party/widevine/CENC21/cdm/include
-CFLAGS += -I$(SECURITY_TOP)/third_party/widevine/CENC21/core/include
-CFLAGS += -I$(SECURITY_TOP)/third_party/widevine/CENC21/oemcrypto/include
+ifeq ($(WIDEVINE_SUPPORT),y)
+CFLAGS += -DENABLE_WIDEVINE
+CFLAGS += -I$(WIDEVINE_CENC_DIR)/cdm/include
+CFLAGS += -I$(WIDEVINE_CENC_DIR)/core/include
+CFLAGS += -I$(WIDEVINE_CENC_DIR)/oemcrypto/include
+endif
 CFLAGS += -I$(SECURITY_TOP)/common_drm/include
 CFLAGS += -I$(SECURITY_TOP)/sage/srai/include
 CFLAGS += -I$(URSR_TOP)/magnum/syslib/sagelib/include
@@ -105,7 +112,6 @@ ifeq ($(USE_CURL),y)
 CFLAGS += $(CURL_CFLAGS)
 CFLAGS += -DUSE_CURL
 CFLAGS += -DSKIP_PEER_VERIFICATION
-CFLAGS += -I$(WIDEVINE_CENC_DIR)/third_party
 ifneq ($(APPLIBS_TARGET_INC_DIR),)
 CFLAGS += -I$(APPLIBS_TARGET_INC_DIR)
 endif
@@ -171,6 +177,10 @@ F_PUBLIC_LIBS += $(addprefix ${DIF_OBJ_ROOT}/,${F_LIB_NAMES})
 D_FOR_LIB_INSTALL := ${DIF_OBJ_ROOT}/${DIF_LIBDIR}
 
 F_SRC_EXCLUDES = android_decryptor_factory.cpp android_wv_decryptor.cpp
+
+ifneq ($(WIDEVINE_SUPPORT),y)
+F_SRC_EXCLUDES += wv_decryptor.cpp
+endif
 
 F_SRCS := $(filter-out ${F_SRC_EXCLUDES}, $(notdir $(wildcard $(addsuffix /*.c*, ${SRC_DIR}))))
 F_OBJS := $(patsubst %.cpp,%.o, ${F_SRCS})

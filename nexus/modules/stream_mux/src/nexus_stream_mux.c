@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2010-2014 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #include "nexus_stream_mux_module.h"
@@ -227,6 +219,7 @@ NEXUS_StreamMux_GetDefaultStartSettings(NEXUS_StreamMuxStartSettings *pSettings)
     pSettings->servicePeriod = muxStartSettings->uiServicePeriod;
     pSettings->muxDelay = muxStartSettings->uiA2PDelay;
     pSettings->supportTts = muxStartSettings->bSupportTTS;
+    pSettings->interleaveMode = muxStartSettings->eInterleaveMode;
     BDBG_ASSERT(g_NEXUS_StreamMux_P_State.functionData.NEXUS_StreamMux_GetDefaultStartSettings.cookie == NEXUS_StreamMux_GetDefaultStartSettings);
     return;
 }
@@ -458,8 +451,10 @@ NEXUS_StreamMux_P_TS_GetUserDataBuffer(void *pvContext, BMMA_Block_Handle *phBlo
 
     NEXUS_Module_Lock(g_NEXUS_StreamMux_P_State.config.core);
     if (*puiLength0) {
-        rc = NEXUS_MemoryBlock_BlockAndOffsetFromRange_priv(pBuffer0, *puiLength0, &block, puiBlockOffset0);
+        unsigned offset;
+        rc = NEXUS_MemoryBlock_BlockAndOffsetFromRange_priv(pBuffer0, *puiLength0, &block, &offset);
         if (!rc) {
+            *puiBlockOffset0 = offset;
             *phBlock = NEXUS_MemoryBlock_GetBlock_priv(block);
         }
     }
@@ -469,10 +464,14 @@ NEXUS_StreamMux_P_TS_GetUserDataBuffer(void *pvContext, BMMA_Block_Handle *phBlo
     }
     if (!rc ) {
         if (*puiLength1) {
+            unsigned offset;
             BDBG_ASSERT(*phBlock); /* we never get length1 unless we got length0 and its phBlock */
-            rc = NEXUS_MemoryBlock_BlockAndOffsetFromRange_priv(pBuffer1, *puiLength1, &block, puiBlockOffset1);
-            if (!rc && *phBlock != NEXUS_MemoryBlock_GetBlock_priv(block)) {
-                rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+            rc = NEXUS_MemoryBlock_BlockAndOffsetFromRange_priv(pBuffer1, *puiLength1, &block, &offset);
+            if (!rc) {
+                *puiBlockOffset1 = offset;
+                if (*phBlock != NEXUS_MemoryBlock_GetBlock_priv(block)) {
+                    rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+                }
             }
         }
         else {
@@ -575,12 +574,12 @@ NEXUS_StreamMux_P_MuxTimer(void *context)
     if(rc!=BERR_SUCCESS) { rc=BERR_TRACE(rc); goto error; }
     mux->completedDuration = muxStatus.uiCompletedDuration;
     nextExecutionTime = muxStatus.uiNextExecutionTime;
-    BDBG_MSG(("MuxTimer:%#x nextExecutionTime:%u state:%u", (unsigned)mux, nextExecutionTime, (unsigned)muxStatus.eState));
+    BDBG_MSG(("MuxTimer:%p nextExecutionTime:%u state:%u", (void*)mux, nextExecutionTime, (unsigned)muxStatus.eState));
     if(muxStatus.eState!=BMUXlib_State_eFinished && muxStatus.eState!=BMUXlib_State_eStopped) {
         mux->muxTimer = NEXUS_ScheduleTimer(nextExecutionTime, NEXUS_StreamMux_P_MuxTimer, mux);
         if(mux->muxTimer==NULL) {rc=BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);goto error; }
     } else if(muxStatus.eState==BMUXlib_State_eFinished) {
-        BDBG_MSG(("MuxTimer:%#x finished", (unsigned)mux));
+        BDBG_MSG(("MuxTimer:%p finished", (void*)mux));
         NEXUS_TaskCallback_Fire(mux->finishedCallback);
     }
 
@@ -696,6 +695,7 @@ NEXUS_StreamMux_Start( NEXUS_StreamMuxHandle mux, const NEXUS_StreamMuxStartSett
     mux->muxStartSettings.uiServicePeriod = pSettings->servicePeriod;
     mux->muxStartSettings.uiA2PDelay = pSettings->muxDelay;
     mux->muxStartSettings.bSupportTTS = pSettings->supportTts;
+    mux->muxStartSettings.eInterleaveMode = pSettings->interleaveMode;
 
     channel=0;
     mux->muxStartSettings.uiNumValidVideoPIDs = 0;
@@ -727,7 +727,7 @@ NEXUS_StreamMux_Start( NEXUS_StreamMuxHandle mux, const NEXUS_StreamMuxStartSett
             }
             if(i>=BMUXLIB_TS_MAX_VIDEO_PIDS) { rc = BERR_TRACE(NEXUS_NOT_SUPPORTED); goto error;}
             mux->muxStartSettings.video[i].uiTransportChannelIndex = channel;
-            BDBG_MSG(("NEXUS_StreamMux_Start:%#x using channel %u for video[%u]=%#x", (unsigned)mux, channel, i, video->pid));
+            BDBG_MSG(("NEXUS_StreamMux_Start:%p using channel %u for video[%u]=%#x", (void*)mux, channel, i, video->pid));
             pidSettings_priv.tsPid = video->pid;
             rc = NEXUS_StreamMux_P_AddPid(&mux->muxStartSettings, video->playpump, &channel, timebase, &pMuxOutput->video[i], video->pesId, video->pidChannelIndex, &pidSettings_priv);
             if(rc!=NEXUS_SUCCESS) {rc=BERR_TRACE(rc);goto error;}
@@ -756,7 +756,7 @@ NEXUS_StreamMux_Start( NEXUS_StreamMuxHandle mux, const NEXUS_StreamMuxStartSett
             }
             if(i>=BMUXLIB_TS_MAX_AUDIO_PIDS) { rc = BERR_TRACE(NEXUS_NOT_SUPPORTED); goto error;}
             mux->muxStartSettings.audio[i].uiTransportChannelIndex = channel;
-            BDBG_MSG(("NEXUS_StreamMux_Start:%#x using channel %u for audio[%u]=%#x", (unsigned)mux, channel, i, audio->pid));
+            BDBG_MSG(("NEXUS_StreamMux_Start:%p using channel %u for audio[%u]=%#x", (void*)mux, channel, i, audio->pid));
             pidSettings_priv.tsPid = audio->pid;
 #if BXPT_SW7425_4528_WORKAROUND
             if(remapping) {
@@ -798,7 +798,7 @@ NEXUS_StreamMux_Start( NEXUS_StreamMuxHandle mux, const NEXUS_StreamMuxStartSett
         NEXUS_PlaypumpSettings settings;
         NEXUS_Playpump_GetSettings(pSettings->pcr.playpump, &settings);
         mux->muxStartSettings.stPCRData.uiTransportChannelIndex = channel;
-        BDBG_MSG(("NEXUS_StreamMux_Start:%#x using channel %u for pcr %#x", (unsigned)mux, channel,  pSettings->pcr.pid));
+        BDBG_MSG(("NEXUS_StreamMux_Start:%p using channel %u for pcr %#x", (void*)mux, channel,  pSettings->pcr.pid));
         pidSettings_priv.tsPid = 0;
         pidSettings_priv.preserveCC = true;
         rc = NEXUS_StreamMux_P_AddPid(&mux->muxStartSettings, pSettings->pcr.playpump, &channel, timebase, (settings.transportType == NEXUS_TransportType_eEs)?&pMuxOutput->pcr:NULL, 0, -1, &pidSettings_priv);
@@ -983,6 +983,7 @@ NEXUS_StreamMux_AddSystemDataBuffer(NEXUS_StreamMuxHandle mux, const NEXUS_Strea
     size_t queuedCount;
     BMUXlib_TS_SystemData astSystemDataBuffer[1];
     NEXUS_MemoryBlockHandle block;
+    unsigned offset;
 
     BDBG_OBJECT_ASSERT(mux, NEXUS_StreamMux);
     BDBG_ASSERT(pSystemDataBuffer);
@@ -992,10 +993,11 @@ NEXUS_StreamMux_AddSystemDataBuffer(NEXUS_StreamMuxHandle mux, const NEXUS_Strea
     astSystemDataBuffer[0].uiSize = pSystemDataBuffer->size;
 
     NEXUS_Module_Lock(g_NEXUS_StreamMux_P_State.config.core);
-    rc = NEXUS_MemoryBlock_BlockAndOffsetFromRange_priv((void*)pSystemDataBuffer->pData, pSystemDataBuffer->size, &block, &astSystemDataBuffer[0].uiBlockOffset);
+    rc = NEXUS_MemoryBlock_BlockAndOffsetFromRange_priv((void*)pSystemDataBuffer->pData, pSystemDataBuffer->size, &block, &offset);
     if (!rc )
     {
-       astSystemDataBuffer[0].hBlock = NEXUS_MemoryBlock_GetBlock_priv(block);
+        astSystemDataBuffer[0].uiBlockOffset = offset;
+        astSystemDataBuffer[0].hBlock = NEXUS_MemoryBlock_GetBlock_priv(block);
     }
     NEXUS_Module_Unlock(g_NEXUS_StreamMux_P_State.config.core);
     if(rc!=BERR_SUCCESS) { rc=BERR_TRACE(rc); goto error; }

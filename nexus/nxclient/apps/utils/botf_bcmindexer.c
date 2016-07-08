@@ -98,7 +98,7 @@ static ssize_t bfile_otf_indexer_read(bfile_io_read_t fd, void *buf, size_t leng
         BDBG_MSG(("tsindex_feed consumed %d", n));
         f->input.rptr += n;
     } while (!f->output.len && total <= MAX_READ);
-    BDBG_MSG(("bfile_otf_indexer_read %d => %d", length, f->output.len));
+    BDBG_MSG(("bfile_otf_indexer_read %d => %d", (unsigned)length, f->output.len));
     return f->output.len;
 }
 
@@ -107,7 +107,7 @@ static unsigned long otf_indexer_recv_sct( const void *ptr, unsigned long numEnt
     struct bfile_otf_indexer *f = (void *)fp;
     BDBG_OBJECT_ASSERT(f, bfile_otf_indexer);
     BSTD_UNUSED(entrySize);
-    BDBG_MSG(("otf_indexer_recv_sct %d %d", numEntries, entrySize));
+    BDBG_MSG(("otf_indexer_recv_sct %ld %ld", numEntries, entrySize));
     return BNAV_Indexer_Feed(f->bcmindexer, (void*)ptr, numEntries);
 }
 
@@ -116,7 +116,7 @@ static size_t otf_indexer_recv_nav(const void *ptr, size_t size, size_t nmemb, v
     struct bfile_otf_indexer *f = (void *)fp;
     BDBG_OBJECT_ASSERT(f, bfile_otf_indexer);
     if (!f->output.len) {
-        BDBG_MSG(("otf_indexer_recv_nav %d %d", size, nmemb));
+        BDBG_MSG(("otf_indexer_recv_nav %d %d", (unsigned)size, (unsigned)nmemb));
         f->output.len = size*nmemb;
         if (f->output.len > f->output.max) {
             f->output.len = f->output.max;

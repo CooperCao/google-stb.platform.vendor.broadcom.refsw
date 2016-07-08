@@ -1,7 +1,7 @@
 ###############################################################################
-# (c) 2010-14 Broadcom Corporation
+# Broadcom Proprietary and Confidential. (c)2010-14 Broadcom.  All rights reserved.
 #
-# This program is the proprietary software of Broadcom Corporation and/or its
+# This program is the proprietary software of Broadcom and/or its
 # licensors, and may only be used, duplicated, modified or distributed pursuant
 # to the terms and conditions of a separate, written license agreement executed
 # between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -108,7 +108,7 @@ endif
 LDFLAGS := -lpthread \
 		-lv3ddriver \
 		-lnxpl \
-		$(NEXUS_TOP)/../BSEAV/lib/freetype-2.1.5/lib/$(FT_AR)/libfreetype.a
+		${NEXUS_BIN_DIR}/../../BSEAV/lib/freetype-2.1.5/libfreetype.a
 
 ifeq ($(NXCLIENT_SUPPORT),y)
 # This builds the nexus api, v3d driver & platform glue

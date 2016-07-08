@@ -68,7 +68,7 @@ typedef struct NEXUS_SpiSettings
     /* the following can only be set at Open time */
     uint32_t      baud;                       /* SPI baud rate */
     uint8_t       bitsPerTransfer;            /* number of bits per transfer */
-    bool          lastByteContinueEnable;     /* If True, the chip select for a channel is continued to be held active after the current transfer. */
+    bool          lastByteContinueEnable;     /* Deprecated. */
     bool          useUserDtlAndDsclk;         /* Use User specified DTL and DSCLK */
     bool          interruptMode;              /* If true (default), transfers will wait for interrupt, if false transfers will poll for completion */
     unsigned      ebiChipSelect;              /* EBI chip select line to use as slave select */ 

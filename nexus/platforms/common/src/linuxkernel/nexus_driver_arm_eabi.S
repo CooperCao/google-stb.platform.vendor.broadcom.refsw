@@ -50,6 +50,7 @@
 #include <linux/init.h>
 #include <asm/assembler.h>
 
+#if !NEXUS_CPU_ARM64
 /* Wrapper around  __aeabi_ldivmod_c to return result in 4 32-bit registers, copied from the 'cc -S' output */
 ENTRY(__aeabi_ldivmod)
     str lr, [sp, #-4]!
@@ -79,3 +80,4 @@ ENTRY(__aeabi_uldivmod)
     add sp, sp, #20
     ldr pc, [sp], #4
 ENDPROC(__aeabi_uldivmod)
+#endif

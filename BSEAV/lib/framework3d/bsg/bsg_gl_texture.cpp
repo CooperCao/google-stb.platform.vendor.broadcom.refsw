@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -46,17 +46,17 @@ namespace bsg
 {
 
 bool                                GLTexture::m_extensionsInited = false;
-PFNGLEGLIMAGETARGETTEXTURE2DOESPROC GLTexture::m_glEGLImageTargetTexture2DOES = nullptr;
-PFNEGLCREATEIMAGEKHRPROC            GLTexture::m_eglCreateImageKHR = nullptr;
-PFNEGLDESTROYIMAGEKHRPROC           GLTexture::m_eglDestroyImageKHR = nullptr;
+PFNGLEGLIMAGETARGETTEXTURE2DOESPROC GLTexture::m_glEGLImageTargetTexture2DOES = NULL;
+PFNEGLCREATEIMAGEKHRPROC            GLTexture::m_eglCreateImageKHR = NULL;
+PFNEGLDESTROYIMAGEKHRPROC           GLTexture::m_eglDestroyImageKHR = NULL;
 
 #ifdef EGL_BRCM_image_update_control
-PFNEGLIMAGEUPDATEPARAMETERIVBRCMPROC GLTexture::m_eglImageUpdateParameterivBRCM = nullptr;
-PFNEGLIMAGEUPDATEPARAMETERIBRCMPROC  GLTexture::m_eglImageUpdateParameteriBRCM = nullptr;
+PFNEGLIMAGEUPDATEPARAMETERIVBRCMPROC GLTexture::m_eglImageUpdateParameterivBRCM = NULL;
+PFNEGLIMAGEUPDATEPARAMETERIBRCMPROC  GLTexture::m_eglImageUpdateParameteriBRCM = NULL;
 #endif
 
 #ifdef GL_EXT_multisampled_render_to_texture
-PFNGLFRAMEBUFFERTEXTURE2DMULTISAMPLEEXTPROC GLTexture::m_glFramebufferTexture2DMultisampleEXT = nullptr;
+PFNGLFRAMEBUFFERTEXTURE2DMULTISAMPLEEXTPROC GLTexture::m_glFramebufferTexture2DMultisampleEXT = NULL;
 #endif
 
 void GLTexture::InitExtensions()
@@ -92,7 +92,7 @@ GLTexture::~GLTexture()
 
 void GLTexture::TexImage2D(NativePixmap *pixmap, eVideoTextureMode mode)
 {
-   if (pixmap == nullptr)
+   if (pixmap == NULL)
       return;
 
    Bind(GL_TEXTURE_2D);
@@ -126,7 +126,7 @@ void GLTexture::TexImage2D(NativePixmap *pixmap, eVideoTextureMode mode)
          }
 #endif
 
-         if (m_eglImage != nullptr && m_glEGLImageTargetTexture2DOES != nullptr)
+         if (m_eglImage != NULL && m_glEGLImageTargetTexture2DOES != NULL)
             m_glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, m_eglImage);
      }
    }
@@ -166,16 +166,16 @@ void GLTexture::TexImage2D(NativePixmap *pixmap, eVideoTextureMode mode)
 
 void GLTexture::ClearEGLImage()
 {
-   if (m_eglImage != nullptr && m_eglDestroyImageKHR)
+   if (m_eglImage != NULL && m_eglDestroyImageKHR)
       m_eglDestroyImageKHR(Application::Instance()->GetContext().GetDisplay(), m_eglImage);
 
-   m_eglImage = nullptr;
+   m_eglImage = NULL;
 }
 
 void GLTexture::SetUpdatedRegion(uint32_t x, uint32_t y, uint32_t width, uint32_t height)
 {
 #ifdef EGL_BRCM_image_update_control
-   if (m_eglImage != nullptr && m_eglImageUpdateParameterivBRCM)
+   if (m_eglImage != NULL && m_eglImageUpdateParameterivBRCM)
    {
       EGLint rect[4] = { (EGLint)x, (EGLint)y, (EGLint)width, (EGLint)height };
       m_eglImageUpdateParameterivBRCM(Application::Instance()->GetContext().GetDisplay(),
@@ -187,7 +187,7 @@ void GLTexture::SetUpdatedRegion(uint32_t x, uint32_t y, uint32_t width, uint32_
 void GLTexture::Lock()
 {
 #ifdef EGL_IMAGE_UPDATE_CONTROL_SET_LOCK_STATE_BRCM
-   if (m_eglImage != nullptr && m_eglImageUpdateParameteriBRCM)
+   if (m_eglImage != NULL && m_eglImageUpdateParameteriBRCM)
    {
       m_eglImageUpdateParameteriBRCM(Application::Instance()->GetContext().GetDisplay(),
                                      m_eglImage, EGL_IMAGE_UPDATE_CONTROL_SET_LOCK_STATE_BRCM,
@@ -199,7 +199,7 @@ void GLTexture::Lock()
 void GLTexture::Unlock()
 {
 #ifdef EGL_IMAGE_UPDATE_CONTROL_SET_LOCK_STATE_BRCM
-   if (m_eglImage != nullptr && m_eglImageUpdateParameteriBRCM)
+   if (m_eglImage != NULL && m_eglImageUpdateParameteriBRCM)
    {
       m_eglImageUpdateParameteriBRCM(Application::Instance()->GetContext().GetDisplay(),
                                      m_eglImage, EGL_IMAGE_UPDATE_CONTROL_SET_LOCK_STATE_BRCM,

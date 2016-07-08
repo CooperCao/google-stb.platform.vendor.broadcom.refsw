@@ -1,23 +1,41 @@
-/***************************************************************************
- *     Copyright (c) 2006-2014, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * Module Description: DSP Utility Functions
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * Revision History:
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- * 
- ***************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
+
 #include "bape.h"
 #include "bape_priv.h"
 #include "bdsp_raaga.h"
@@ -25,6 +43,19 @@
 BDBG_MODULE(bape_dsp_utils);
 
 #define DISABLE_MPEG_DRA_PASSTHRU 0
+
+/* MS10/11 and FP2008 (7358) require legacy DDP decoder. Everything else uses UDC */
+#if BAPE_DSP_LEGACY_DDP_ALGO
+#define BAPE_DSP_AC3_ALGO       BDSP_Algorithm_eAc3Decode
+#define BAPE_DSP_DDP_ALGO       BDSP_Algorithm_eAc3PlusDecode
+#define BAPE_DSP_AC3_PT_ALGO    BDSP_Algorithm_eAc3Passthrough
+#define BAPE_DSP_DDP_PT_ALGO    BDSP_Algorithm_eAc3PlusPassthrough
+#else /* MS12 or Legacy Standalone decode */
+#define BAPE_DSP_AC3_ALGO       BDSP_Algorithm_eUdcDecode
+#define BAPE_DSP_DDP_ALGO       BDSP_Algorithm_eUdcDecode
+#define BAPE_DSP_AC3_PT_ALGO    BDSP_Algorithm_eUdcPassthrough
+#define BAPE_DSP_DDP_PT_ALGO    BDSP_Algorithm_eUdcPassthrough
+#endif
 
 static const BAPE_CodecAttributes g_codecAttributes[] =
 {
@@ -39,26 +70,23 @@ static const BAPE_CodecAttributes g_codecAttributes[] =
     {BAVC_AudioCompressionStd_eMpegL3,      BDSP_Algorithm_eMpegAudioDecode,      BDSP_Algorithm_eMpegAudioPassthrough, BDSP_Algorithm_eMpegAudioEncode,  "MPEG",         BAPE_MultichannelFormat_e2_0, true,  true,  true,          true,   false,   false,   false},
 #endif
 #if BDSP_MS12_SUPPORT
-    {BAVC_AudioCompressionStd_eAc3,         BDSP_Algorithm_eUdcDecode,            BDSP_Algorithm_eUdcPassthrough,       BDSP_Algorithm_eDDPEncode,        "AC3",          BAPE_MultichannelFormat_e5_1, true,  false, false,         true,   false,   false,   false},
-    {BAVC_AudioCompressionStd_eAc3Plus,     BDSP_Algorithm_eUdcDecode,            BDSP_Algorithm_eUdcPassthrough,       BDSP_Algorithm_eDDPEncode,        "AC3+",         BAPE_MultichannelFormat_e7_1, true,  false, false,         true,   false,   true,    false},
-    {BAVC_AudioCompressionStd_eAacAdts,     BDSP_Algorithm_eDolbyAacheAdtsDecode, BDSP_Algorithm_eAacAdtsPassthrough,   BDSP_Algorithm_eAacEncode,        "AAC ADTS",     BAPE_MultichannelFormat_e5_1, true, false, true,           false,  false,   false,   false},
-    {BAVC_AudioCompressionStd_eAacLoas,     BDSP_Algorithm_eDolbyAacheLoasDecode, BDSP_Algorithm_eAacLoasPassthrough,   BDSP_Algorithm_eAacEncode,        "AAC LOAS",     BAPE_MultichannelFormat_e5_1, true, false, true,           false,  false,   false,   false},
-    {BAVC_AudioCompressionStd_eAacPlusAdts, BDSP_Algorithm_eDolbyAacheAdtsDecode, BDSP_Algorithm_eAacAdtsPassthrough,   BDSP_Algorithm_eAacEncode,        "AAC+ ADTS",    BAPE_MultichannelFormat_e5_1, true, false, true,           false,  false,   false,   false},
-    {BAVC_AudioCompressionStd_eAacPlusLoas, BDSP_Algorithm_eDolbyAacheLoasDecode, BDSP_Algorithm_eAacLoasPassthrough,   BDSP_Algorithm_eAacEncode,        "AAC+ LOAS",    BAPE_MultichannelFormat_e5_1, true, false, true,           false,  false,   false,   false},
+    {BAVC_AudioCompressionStd_eAc3,         BAPE_DSP_AC3_ALGO,                    BAPE_DSP_AC3_PT_ALGO,                 BDSP_Algorithm_eDDPEncode,        "AC3",          BAPE_MultichannelFormat_e5_1, true,  false, false,         true,   false,   false,   false},
+    {BAVC_AudioCompressionStd_eAc3Plus,     BAPE_DSP_DDP_ALGO,                    BAPE_DSP_DDP_PT_ALGO,                 BDSP_Algorithm_eDDPEncode,        "AC3+",         BAPE_MultichannelFormat_e7_1, true,  false, false,         true,   false,   true,    false},
+    {BAVC_AudioCompressionStd_eAacAdts,     BDSP_Algorithm_eDolbyAacheAdtsDecode, BDSP_Algorithm_eAacAdtsPassthrough,   BDSP_Algorithm_eAacEncode,        "AAC ADTS",     BAPE_MultichannelFormat_e5_1, true,  false, true,          false,  false,   false,   false},
+    {BAVC_AudioCompressionStd_eAacLoas,     BDSP_Algorithm_eDolbyAacheLoasDecode, BDSP_Algorithm_eAacLoasPassthrough,   BDSP_Algorithm_eAacEncode,        "AAC LOAS",     BAPE_MultichannelFormat_e5_1, true,  false, true,          false,  false,   false,   false},
+    {BAVC_AudioCompressionStd_eAacPlusAdts, BDSP_Algorithm_eDolbyAacheAdtsDecode, BDSP_Algorithm_eAacAdtsPassthrough,   BDSP_Algorithm_eAacEncode,        "AAC+ ADTS",    BAPE_MultichannelFormat_e5_1, true,  false, true,          false,  false,   false,   false},
+    {BAVC_AudioCompressionStd_eAacPlusLoas, BDSP_Algorithm_eDolbyAacheLoasDecode, BDSP_Algorithm_eAacLoasPassthrough,   BDSP_Algorithm_eAacEncode,        "AAC+ LOAS",    BAPE_MultichannelFormat_e5_1, true,  false, true,          false,  false,   false,   false},
+    {BAVC_AudioCompressionStd_eAc4,         BDSP_Algorithm_eAC4Decode,            BDSP_Algorithm_eMax,                  BDSP_Algorithm_eMax,              "AC4",          BAPE_MultichannelFormat_e7_1, true,  false, false,         true,   false,   false,   false},
 #elif BDSP_MS10_SUPPORT
-#if BDSP_DDRE_SUPPORT
-    {BAVC_AudioCompressionStd_eAc3,         BDSP_Algorithm_eAc3Decode,            BDSP_Algorithm_eAc3Passthrough,       BDSP_Algorithm_eMax,              "AC3",          BAPE_MultichannelFormat_e5_1, true,  false, false,         true,   false,   false,   false},
+    {BAVC_AudioCompressionStd_eAc3,         BAPE_DSP_AC3_ALGO,                    BAPE_DSP_AC3_PT_ALGO,                 BDSP_Algorithm_eAc3Encode,        "AC3",          BAPE_MultichannelFormat_e5_1, true,  false, false,         true,   false,   false,   false},
+    {BAVC_AudioCompressionStd_eAc3Plus,     BAPE_DSP_DDP_ALGO,                    BAPE_DSP_DDP_PT_ALGO,                 BDSP_Algorithm_eMax,              "AC3+",         BAPE_MultichannelFormat_e5_1, true,  false, false,         true,   false,   true,    false},
+    {BAVC_AudioCompressionStd_eAacAdts,     BDSP_Algorithm_eDolbyPulseAdtsDecode, BDSP_Algorithm_eAacAdtsPassthrough,   BDSP_Algorithm_eAacEncode,        "AAC ADTS",     BAPE_MultichannelFormat_e5_1, true,  false, true,          false,  false,   false,   false},
+    {BAVC_AudioCompressionStd_eAacLoas,     BDSP_Algorithm_eDolbyPulseLoasDecode, BDSP_Algorithm_eAacLoasPassthrough,   BDSP_Algorithm_eAacEncode,        "AAC LOAS",     BAPE_MultichannelFormat_e5_1, true,  false, true,          false,  false,   false,   false},
+    {BAVC_AudioCompressionStd_eAacPlusAdts, BDSP_Algorithm_eDolbyPulseAdtsDecode, BDSP_Algorithm_eAacAdtsPassthrough,   BDSP_Algorithm_eAacEncode,        "AAC+ ADTS",    BAPE_MultichannelFormat_e5_1, true,  false, true,          false,  false,   false,   false},
+    {BAVC_AudioCompressionStd_eAacPlusLoas, BDSP_Algorithm_eDolbyPulseLoasDecode, BDSP_Algorithm_eAacLoasPassthrough,   BDSP_Algorithm_eAacEncode,        "AAC+ LOAS",    BAPE_MultichannelFormat_e5_1, true,  false, true,          false,  false,   false,   false},
 #else
-    {BAVC_AudioCompressionStd_eAc3,         BDSP_Algorithm_eAc3Decode,            BDSP_Algorithm_eAc3Passthrough,       BDSP_Algorithm_eAc3Encode,        "AC3",          BAPE_MultichannelFormat_e5_1, true,  false, false,         true,   false,   false,   false},
-#endif
-    {BAVC_AudioCompressionStd_eAc3Plus,     BDSP_Algorithm_eAc3PlusDecode,        BDSP_Algorithm_eAc3PlusPassthrough,   BDSP_Algorithm_eMax,              "AC3+",         BAPE_MultichannelFormat_e5_1, true,  false, false,         true,   false,   true,    false},
-    {BAVC_AudioCompressionStd_eAacAdts,     BDSP_Algorithm_eDolbyPulseAdtsDecode, BDSP_Algorithm_eAacAdtsPassthrough,   BDSP_Algorithm_eAacEncode,        "AAC ADTS",     BAPE_MultichannelFormat_e5_1, true, false, true,           false,  false,   false,   false},
-    {BAVC_AudioCompressionStd_eAacLoas,     BDSP_Algorithm_eDolbyPulseLoasDecode, BDSP_Algorithm_eAacLoasPassthrough,   BDSP_Algorithm_eAacEncode,        "AAC LOAS",     BAPE_MultichannelFormat_e5_1, true, false, true,           false,  false,   false,   false},
-    {BAVC_AudioCompressionStd_eAacPlusAdts, BDSP_Algorithm_eDolbyPulseAdtsDecode, BDSP_Algorithm_eAacAdtsPassthrough,   BDSP_Algorithm_eAacEncode,        "AAC+ ADTS",    BAPE_MultichannelFormat_e5_1, true, false, true,           false,  false,   false,   false},
-    {BAVC_AudioCompressionStd_eAacPlusLoas, BDSP_Algorithm_eDolbyPulseLoasDecode, BDSP_Algorithm_eAacLoasPassthrough,   BDSP_Algorithm_eAacEncode,        "AAC+ LOAS",    BAPE_MultichannelFormat_e5_1, true, false, true,           false,  false,   false,   false},
-#else
-    {BAVC_AudioCompressionStd_eAc3,         BDSP_Algorithm_eAc3Decode,            BDSP_Algorithm_eAc3Passthrough,       BDSP_Algorithm_eAc3Encode,        "AC3",          BAPE_MultichannelFormat_e5_1, true,  false, false,         true,   false,   false,   false},
-    {BAVC_AudioCompressionStd_eAc3Plus,     BDSP_Algorithm_eAc3PlusDecode,        BDSP_Algorithm_eAc3PlusPassthrough,   BDSP_Algorithm_eMax,              "AC3+",         BAPE_MultichannelFormat_e5_1, true,  false, false,         true,   false,   true,    false},
+    {BAVC_AudioCompressionStd_eAc3,         BAPE_DSP_AC3_ALGO,                    BAPE_DSP_AC3_PT_ALGO,                 BDSP_Algorithm_eAc3Encode,        "AC3",          BAPE_MultichannelFormat_e5_1, true,  false, false,         true,   false,   false,   false},
+    {BAVC_AudioCompressionStd_eAc3Plus,     BAPE_DSP_DDP_ALGO,                    BAPE_DSP_DDP_PT_ALGO,                 BDSP_Algorithm_eMax,              "AC3+",         BAPE_MultichannelFormat_e5_1, true,  false, false,         true,   false,   true,    false},
     {BAVC_AudioCompressionStd_eAacAdts,     BDSP_Algorithm_eAacAdtsDecode,        BDSP_Algorithm_eAacAdtsPassthrough,   BDSP_Algorithm_eAacEncode,        "AAC ADTS",     BAPE_MultichannelFormat_e5_1, true,  true,  true,          true,   false,   false,   false},
     {BAVC_AudioCompressionStd_eAacLoas,     BDSP_Algorithm_eAacLoasDecode,        BDSP_Algorithm_eAacLoasPassthrough,   BDSP_Algorithm_eAacEncode,        "AAC LOAS",     BAPE_MultichannelFormat_e5_1, true,  true,  true,          true,   false,   false,   false},
     {BAVC_AudioCompressionStd_eAacPlusAdts, BDSP_Algorithm_eAacAdtsDecode,        BDSP_Algorithm_eAacAdtsPassthrough,   BDSP_Algorithm_eAacEncode,        "AAC+ ADTS",    BAPE_MultichannelFormat_e5_1, true,  true,  true,          true,   false,   false,   false},
@@ -93,7 +121,7 @@ static const BAPE_CodecAttributes g_codecAttributes[] =
     {BAVC_AudioCompressionStd_eG723_1,      BDSP_Algorithm_eG723_1Decode,         BDSP_Algorithm_eMax,                  BDSP_Algorithm_eG723_1Encode,     "G.723.1",      BAPE_MultichannelFormat_e2_0, false, false, false,         false,  true,    false,   false},
     {BAVC_AudioCompressionStd_eFlac,        BDSP_Algorithm_eFlacDecode,           BDSP_Algorithm_eMax,                  BDSP_Algorithm_eMax,              "FLAC",         BAPE_MultichannelFormat_e7_1, false, true,  false,         false,  false,   false,   false},
     {BAVC_AudioCompressionStd_eApe,         BDSP_Algorithm_eMacDecode,            BDSP_Algorithm_eMax,                  BDSP_Algorithm_eMax,              "APE Monkey",   BAPE_MultichannelFormat_e2_0, false, true,  false,         false,  false,   false,   false},
-#if 0    
+#if 0
     {BAVC_AudioCompressionStd_eDtsHd,       BDSP_AudioType_eDtshd,                BDSP_AudioEncode_eMax,         "DTS-HD",       BAPE_MultichannelFormat_e7_1, true,  true,  true,          true,   false,   true,    true},
     {BAVC_AudioCompressionStd_eDtsCd,       BDSP_AudioType_eDtsBroadcast,         BDSP_AudioEncode_eMax,         "DTS-CD",       BAPE_MultichannelFormat_e5_1, true,  false, true,          true,   false,   false,   false},
 #endif
@@ -259,9 +287,9 @@ void BAPE_DSP_P_GetChannelMatrix(
     )
 {
     unsigned i=0;
-    static const uint32_t defaultChannelMatrix[BAPE_ChannelMode_eMax][BDSP_AF_P_MAX_CHANNELS] = 
+    static const uint32_t defaultChannelMatrix[BAPE_ChannelMode_eMax][BDSP_AF_P_MAX_CHANNELS] =
     {/*
-     L,R,Ls,       ,Rs        ,C,        ,Lfe,      ,RLs       ,RRs  CHECKPOINT   */ 
+     L,R,Ls,       ,Rs        ,C,        ,Lfe,      ,RLs       ,RRs  CHECKPOINT   */
     {4,4,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF},/*1_0 */
     {0,1,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF},/*1_1 */
     {0,1,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF},/*2_0 */
@@ -284,7 +312,7 @@ void BAPE_DSP_P_GetChannelMatrix(
     {
         pChannelMatrix[i] = defaultChannelMatrix[outputMode][i];
     }
-    
+
     if( outputMode == BAPE_ChannelMode_e3_2 || outputMode == BAPE_ChannelMode_e3_4 )
     {
         if( lfe )
@@ -302,9 +330,9 @@ void BAPE_DSP_P_GetMonoChannelMatrix(uint32_t *pChannelMatrix)
 {
     unsigned i;
 
-    static const uint32_t monoChannelMatrix[BDSP_AF_P_MAX_CHANNELS] = 
+    static const uint32_t monoChannelMatrix[BDSP_AF_P_MAX_CHANNELS] =
         {4,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF};
-    
+
     for(i = 0; i<BDSP_AF_P_MAX_CHANNELS; i++)
     {
         pChannelMatrix[i] = monoChannelMatrix[i];
@@ -324,21 +352,21 @@ uint32_t BAPE_P_FloatToQ131(int32_t floatVar, unsigned int uiRange)
 
     /* Conversion formula for float to Q1.31 is
      * q = float * 2^31,
-     * Since we take float values scaled by uiRange from application, we need 
+     * Since we take float values scaled by uiRange from application, we need
      * to scale it down
      * by uiRange. Hence above formula would become
      * q = float * ( 2^31/uiRange )
-     * However this won't be a precise computation, as reminder of 
+     * However this won't be a precise computation, as reminder of
      * (2^31/uiRange) gets dropped
-     * in this calculation. To compesate for this reminder formula needs to be 
+     * in this calculation. To compesate for this reminder formula needs to be
      * modified as below
      * q = float * ( 2^31/uiRange ) + (float * (2^31 %uiRange))/uiRange
      */
 
-    temp = floatVar * (0x80000000/uiRange) + 
+    temp = floatVar * (0x80000000/uiRange) +
            (floatVar * (0x80000000 % uiRange)) / uiRange;
 
-    return temp; 
+    return temp;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -350,13 +378,13 @@ uint32_t BAPE_P_FloatToQ230(int16_t floatVar)
     /* TODO: conversion for negative values */
     /* Conversion formula for float to Q2.30 is
      * q = float * 2^30,
-     * Since we take float values scaled by 100 from application, we need to 
+     * Since we take float values scaled by 100 from application, we need to
      * scale it down
      * by 100. Hence above formula would become
      * q = float * ( 2^30/100 )
-     * However this won't be a precise computation, as reminder of (2^30/100) 
+     * However this won't be a precise computation, as reminder of (2^30/100)
      * gets dropped
-     * in this calculation. To compesate for this reminder formula needs to be 
+     * in this calculation. To compesate for this reminder formula needs to be
      * modified as below
      * q = float * ( 2^30/100 ) + ( float * ( 2^30 %100))/100
      */
@@ -365,7 +393,7 @@ uint32_t BAPE_P_FloatToQ230(int16_t floatVar)
 
     temp = floatVar * (0x40000000/100) + ( floatVar * (0x40000000 % 100))/100;
 
-    return temp; 
+    return temp;
 }
 
 
@@ -377,33 +405,33 @@ uint32_t BAPE_P_FloatToQ521(uint32_t floatVar, unsigned int uiRange)
     /* TODO: conversion for negative values */
     /* Conversion formula for float to Q5.21 is
      * q = float * 2^26,
-     * Since the entire range of values in PI is mapped to the range of 0 to 
-     * 2^26 in FW, 
+     * Since the entire range of values in PI is mapped to the range of 0 to
+     * 2^26 in FW,
      * a given value in PI gets converted to corresponding Q5.21 value as below,
      * q = float * ( 2^26/uiRange )
-     * However this won't be a precise computation, as remainder of 
+     * However this won't be a precise computation, as remainder of
      * (2^26/uiRange) gets dropped
-     * in this calculation. To compensate for this remainder formula needs to be 
+     * in this calculation. To compensate for this remainder formula needs to be
      * modified as below
      * q = float * ( 2^26/uiRange ) + ( float * ( 2^26 % uiRange))/uiRange
-     * But if the value corresponding to the multiplication of reminder turns 
-     * out to be 
-     * a fractional value then the value gets rounded off to zero but if the 
+     * But if the value corresponding to the multiplication of reminder turns
+     * out to be
+     * a fractional value then the value gets rounded off to zero but if the
      * value is >= uiRange/2
-     * it should be rounded off to 1(as per SRS). Hence forth the formula 
+     * it should be rounded off to 1(as per SRS). Hence forth the formula
      * becomes,
-     * q = float * ( 2^26/uiRange ) + (unsigned int)((float * ( 2^26 % uiRange) 
+     * q = float * ( 2^26/uiRange ) + (unsigned int)((float * ( 2^26 % uiRange)
      * + (uiRange/2))/uiRange)
      */
 
     if (floatVar >= uiRange)
         return(uint32_t)0x03FFFFFF;
 
-    temp = floatVar * (0x03FFFFFF/uiRange) + 
-           (unsigned int)(( floatVar * (0x03FFFFFF % uiRange) + 
+    temp = floatVar * (0x03FFFFFF/uiRange) +
+           (unsigned int)(( floatVar * (0x03FFFFFF % uiRange) +
                             (uiRange/2))/uiRange);
 
-    return temp; 
+    return temp;
 }
 
 
@@ -423,11 +451,11 @@ int32_t BAPE_P_FloatToQ824(int32_t floatVar, unsigned int uiRange)
     if (floatVar <= -(int32_t)(uiRange + (uiRange/127)))
         return(uint32_t)0x80000000;
 
-    temp = floatVar *   (0x7F000000/uiRange) + 
-           (unsigned int)(( floatVar * (0x7F000000 % uiRange) + 
+    temp = floatVar *   (0x7F000000/uiRange) +
+           (unsigned int)(( floatVar * (0x7F000000 % uiRange) +
                             (uiRange/2))/uiRange);
 
-    return temp; 
+    return temp;
 }
 
 
@@ -439,33 +467,33 @@ int32_t BAPE_P_FloatToQ923(uint32_t floatVar, unsigned int uiRange)
     /* TODO: conversion for negative values */
     /* Conversion formula for float to Q9.23 is
      * q = float * 2^23,
-     * Since the entire range of values in PI is mapped to the range of 0 to 
-     * 2^23 in FW, 
+     * Since the entire range of values in PI is mapped to the range of 0 to
+     * 2^23 in FW,
      * a given value in PI gets converted to corresponding Q9.23 value as below,
      * q = float * ( 2^23/uiRange )
-     * However this won't be a precise computation, as remainder of 
+     * However this won't be a precise computation, as remainder of
      * (2^23/uiRange) gets dropped
-     * in this calculation. To compensate for this remainder, formula needs to 
+     * in this calculation. To compensate for this remainder, formula needs to
      * be modified as below
      * q = float * ( 2^23/uiRange ) + ( float * ( 2^23 % uiRange))/uiRange
-     * But if the value corresponding to the multiplication of reminder turns 
-     * out to be 
-     * a fractional value then the value gets rounded off to zero but if the 
+     * But if the value corresponding to the multiplication of reminder turns
+     * out to be
+     * a fractional value then the value gets rounded off to zero but if the
      * value is >= uiRange/2
-     * it should be rounded off to 1(as per SRS). Hence forth the formula 
+     * it should be rounded off to 1(as per SRS). Hence forth the formula
      * becomes,
-     * q = float * ( 2^23/uiRange ) + (unsigned int)((float * ( 2^23 % uiRange) 
+     * q = float * ( 2^23/uiRange ) + (unsigned int)((float * ( 2^23 % uiRange)
      * + (uiRange/2))/uiRange)
      */
 
     if (floatVar >= uiRange)
         return(uint32_t)0x007fffff;
 
-    temp = floatVar *(0x007fffff/uiRange) + 
-           (unsigned int)(((floatVar * (0x7fffff % uiRange)) + 
+    temp = floatVar *(0x007fffff/uiRange) +
+           (unsigned int)(((floatVar * (0x7fffff % uiRange)) +
                            (uiRange/2)) / uiRange);
 
-    return temp; 
+    return temp;
 }
 
 /* Function to convert input floating point value into Q1.15 format
@@ -479,13 +507,13 @@ int32_t BAPE_P_FloatToQ1022(int32_t floatVar, unsigned int uiRange)
     /* TODO: conversion for negative values */
     /* Conversion formula for float to Q10.22 is
      * q = float * 2^22,
-     * Since the entire range of values in PI is mapped to the range of 0 to 2^22 in FW, 
+     * Since the entire range of values in PI is mapped to the range of 0 to 2^22 in FW,
      * a given value in PI gets converted to corresponding Q10.22 value as below,
      * q = float * ( 2^22/uiRange )
      * However this won't be a precise computation, as remainder of (2^22/uiRange) gets dropped
      * in this calculation. To compensate for this remainder formula needs to be modified as below
      * q = float * ( 2^22/uiRange ) + ( float * ( 2^22 % uiRange))/uiRange
-     * But if the value corresponding to the multiplication of reminder turns out to be 
+     * But if the value corresponding to the multiplication of reminder turns out to be
      * a fractional value then the value gets rounded off to zero but if the value is >= uiRange/2
      * it should be rounded off to 1(as per SRS). Hence forth the formula becomes,
      * q = float * ( 2^22/uiRange ) + (unsigned int)((float * ( 2^22 % uiRange) + (uiRange/2))/uiRange)
@@ -494,16 +522,16 @@ int32_t BAPE_P_FloatToQ1022(int32_t floatVar, unsigned int uiRange)
 
     if (floatVar >= 0)
     {
-        temp = floatVar * (0x003FFFFF/uiRange) + 
-               (unsigned int)(( floatVar * (0x003FFFFF % uiRange) + 
+        temp = floatVar * (0x003FFFFF/uiRange) +
+               (unsigned int)(( floatVar * (0x003FFFFF % uiRange) +
                                 (uiRange/2))/uiRange);
     }
     else
     {
         floatVar = (-1)*floatVar;
 
-        temp = floatVar * (0x003FFFFF/uiRange) + 
-               (unsigned int)(( floatVar * (0x003FFFFF % uiRange) + 
+        temp = floatVar * (0x003FFFFF/uiRange) +
+               (unsigned int)(( floatVar * (0x003FFFFF % uiRange) +
                                 (uiRange/2))/uiRange);
         temp = (-1)*temp;
     }
@@ -520,13 +548,13 @@ uint32_t BAPE_P_FloatToQ518(uint32_t floatVar, unsigned int uiRange)
     /* TODO: conversion for negative values */
     /* Conversion formula for float to Q5.18 is
      * q = float * 2^23,
-     * Since the entire range of values in PI is mapped to the range of 0 to 2^23 in FW, 
+     * Since the entire range of values in PI is mapped to the range of 0 to 2^23 in FW,
      * a given value in PI gets converted to corresponding Q5.18 value as below,
      * q = float * ( 2^23/uiRange )
      * However this won't be a precise computation, as remainder of (2^23/uiRange) gets dropped
      * in this calculation. To compensate for this remainder formula needs to be modified as below
      * q = float * ( 2^23/uiRange ) + ( float * ( 2^23 % uiRange))/uiRange
-     * But if the value corresponding to the multiplication of reminder turns out to be 
+     * But if the value corresponding to the multiplication of reminder turns out to be
      * a fractional value then the value gets rounded off to zero but if the value is >= uiRange/2
      * it should be rounded off to 1(as per SRS). Hence forth the formula becomes,
      * q = float * ( 2^23/uiRange ) + (unsigned int)((float * ( 2^23 % uiRange) + (uiRange/2))/uiRange)
@@ -535,11 +563,11 @@ uint32_t BAPE_P_FloatToQ518(uint32_t floatVar, unsigned int uiRange)
     if (floatVar >= uiRange)
         return(uint32_t)0x007FFFFF;
 
-    temp = floatVar * (0x007FFFFF/uiRange) + 
-           (unsigned int)(( floatVar * (0x007FFFFF % uiRange) + 
+    temp = floatVar * (0x007FFFFF/uiRange) +
+           (unsigned int)(( floatVar * (0x007FFFFF % uiRange) +
                             (uiRange/2))/uiRange);
 
-    return temp; 
+    return temp;
 }
 
 /*
@@ -552,13 +580,13 @@ uint32_t BAPE_P_FloatToQ815(uint32_t floatVar, unsigned int uiRange)
     /* TODO: conversion for negative values */
     /* Conversion formula for float to Q8.15 is
      * q = float * 2^23,
-     * Since the entire range of values in PI is mapped to the range of 0 to 2^23 in FW, 
+     * Since the entire range of values in PI is mapped to the range of 0 to 2^23 in FW,
      * a given value in PI gets converted to corresponding Q8.15 value as below,
      * q = float * ( 2^23/uiRange )
      * However this won't be a precise computation, as remainder of (2^23/uiRange) gets dropped
      * in this calculation. To compensate for this remainder formula needs to be modified as below
      * q = float * ( 2^23/uiRange ) + ( float * ( 2^23 % uiRange))/uiRange
-     * But if the value corresponding to the multiplication of reminder turns out to be 
+     * But if the value corresponding to the multiplication of reminder turns out to be
      * a fractional value then the value gets rounded off to zero but if the value is >= uiRange/2
      * it should be rounded off to 1(as per SRS). Hence forth the formula becomes,
      * q = float * ( 2^23/uiRange ) + (unsigned int)((float * ( 2^23 % uiRange) + (uiRange/2))/uiRange)
@@ -567,11 +595,11 @@ uint32_t BAPE_P_FloatToQ815(uint32_t floatVar, unsigned int uiRange)
     if (floatVar >= uiRange)
         return(uint32_t)0x007FFFFF;
 
-    temp = floatVar * (0x007FFFFF/uiRange) + 
-           (unsigned int)(( floatVar * (0x007FFFFF % uiRange) + 
+    temp = floatVar * (0x007FFFFF/uiRange) +
+           (unsigned int)(( floatVar * (0x007FFFFF % uiRange) +
                             (uiRange/2))/uiRange);
 
-    return temp; 
+    return temp;
 }
 
 
@@ -585,13 +613,13 @@ uint32_t BAPE_P_FloatToQ527(uint32_t floatVar, unsigned int uiRange)
     /* TODO: conversion for negative values */
     /* Conversion formula for float to Q5.27 is
      * q = float * 2^27,
-     * Since the entire range of values in PI is mapped to the range of 0 to 2^27 in FW, 
+     * Since the entire range of values in PI is mapped to the range of 0 to 2^27 in FW,
      * a given value in PI gets converted to corresponding Q5.27 value as below,
      * q = float * ( 2^27/uiRange )
      * However this won't be a precise computation, as remainder of (2^27/uiRange) gets dropped
      * in this calculation. To compensate for this remainder formula needs to be modified as below
      * q = float * ( 2^27/uiRange ) + ( float * ( 2^27 % uiRange))/uiRange
-     * But if the value corresponding to the multiplication of reminder turns out to be 
+     * But if the value corresponding to the multiplication of reminder turns out to be
      * a fractional value then the value gets rounded off to zero but if the value is >= uiRange/2
      * it should be rounded off to 1(as per SRS). Hence forth the formula becomes,
      * q = float * ( 2^27/uiRange ) + (unsigned int)((float * ( 2^27 % uiRange) + (uiRange/2))/uiRange)
@@ -599,11 +627,11 @@ uint32_t BAPE_P_FloatToQ527(uint32_t floatVar, unsigned int uiRange)
      * decoder implementation. Either ways of using 2^27 or 0x08000000 doesn't result in much difference.
      */
 
-    temp = floatVar * (0x08000000/uiRange) + 
-           (unsigned int)(( floatVar * (0x08000000 % uiRange) + 
+    temp = floatVar * (0x08000000/uiRange) +
+           (unsigned int)(( floatVar * (0x08000000 % uiRange) +
                             (uiRange/2))/uiRange);
 
-    return temp; 
+    return temp;
 }
 
 /* Function to convert input floating point value into Q3.29 format
@@ -624,10 +652,10 @@ uint32_t BAPE_P_FloatToQ329(uint32_t floatVar, unsigned int uiRange)
      * q = float * ( 2^29/uiRange ) + (float * (2^29 %uiRange))/uiRange
      */
 
-    temp = floatVar * (0x1FFFFFFF/uiRange) + 
+    temp = floatVar * (0x1FFFFFFF/uiRange) +
            ( floatVar * (0x1FFFFFFF % uiRange))/uiRange;
 
-    return temp; 
+    return temp;
 }
 
 /* Function to convert input floating point value into Q4.28 format
@@ -648,12 +676,12 @@ uint32_t BAPE_P_FloatToQ428(uint32_t floatVar, unsigned int uiRange)
      * q = float * ( 2^28/uiRange ) + (float * (2^28 %uiRange))/uiRange
      */
 
-    temp = floatVar * (0x10000000/uiRange) + 
+    temp = floatVar * (0x10000000/uiRange) +
            ( floatVar * (0x10000000 % uiRange))/uiRange;
 
     if (temp >= 0x40000000) return(uint32_t) 0x40000000;
 
-    return temp; 
+    return temp;
 }
 
 /***************************************************************************
@@ -663,7 +691,7 @@ Add FMM Buffer Output to a stage
 BERR_Code BAPE_DSP_P_AddFmmBuffer(
     BAPE_PathConnection *pConnection
                                  )
-{    
+{
     BERR_Code errCode;
     unsigned i, numChannels, numChannelPairs, outputIndex;
     bool pcm;
@@ -737,7 +765,7 @@ Summary:
 Init an FMM buffer descriptor from a DFIFO group
 ***************************************************************************/
 BERR_Code BAPE_DSP_P_InitFmmInputDescriptor(
-    BAPE_DfifoGroupHandle hDfifoGroup, 
+    BAPE_DfifoGroupHandle hDfifoGroup,
     BDSP_FmmBufferDescriptor *pDesc
     )
 {
@@ -760,7 +788,7 @@ BERR_Code BAPE_DSP_P_InitFmmInputDescriptor(
     {
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
-           
+
     numChannels = dfifoSettings.interleaveData ? numChannelPairs : 2*numChannelPairs;
 
     pDesc->numBuffers = numChannels;
@@ -788,7 +816,7 @@ BERR_Code BAPE_DSP_P_InitFmmInputDescriptor(
 
 /***************************************************************************
 Summary:
-Get Connector Data Type 
+Get Connector Data Type
 ***************************************************************************/
 BDSP_DataType BAPE_DSP_P_GetDataTypeFromConnector(
                                                             BAPE_Connector connector
@@ -902,7 +930,7 @@ BERR_Code BAPE_DSP_P_ConfigPathToOutput(
             {
                 unsigned bufferId = 2*i;
                 BAPE_BufferNode *pBuffer;
-                
+
                 if ( pSource->pParent->type == BAPE_PathNodeType_eDecoder )
                 {
                     BAPE_DecoderHandle decoder;
@@ -914,38 +942,38 @@ BERR_Code BAPE_DSP_P_ConfigPathToOutput(
                        the PCM path.  Same can also happen for multichannel data. */
                     decoder = (BAPE_DecoderHandle)pSource->pParent->pHandle;
                     BDBG_OBJECT_ASSERT(decoder, BAPE_Decoder);
-                    
+
                     /* Determine connector format */
                     for ( connectorFormat = BAPE_ConnectorFormat_eStereo; connectorFormat < BAPE_ConnectorFormat_eMax; connectorFormat++ )
                     {
                         if ( pSource == &pSource->pParent->connectors[connectorFormat] )
                         {
-                            break;                            
+                            break;
                         }
-                    }                    
+                    }
                     BDBG_ASSERT(connectorFormat < BAPE_ConnectorFormat_eMax);   /* If this fails something has gone seriously wrong */
-                    
-                    if ( (connectorFormat == BAPE_ConnectorFormat_eMultichannel && decoder->stereoOnMultichannel && 
+
+                    if ( (connectorFormat == BAPE_ConnectorFormat_eMultichannel && decoder->stereoOnMultichannel &&
                           decoder->outputStatus.connectorStatus[BAPE_ConnectorFormat_eStereo].directConnections > 0) ||
                          ((connectorFormat == BAPE_ConnectorFormat_eCompressed ||
                            connectorFormat == BAPE_ConnectorFormat_eCompressed4x ||
-                           connectorFormat == BAPE_ConnectorFormat_eCompressed16x) && decoder->stereoOnCompressed && 
+                           connectorFormat == BAPE_ConnectorFormat_eCompressed16x) && decoder->stereoOnCompressed &&
                           decoder->outputStatus.connectorStatus[BAPE_ConnectorFormat_eStereo].directConnections > 0) )
                     {
-                        BDBG_MSG(("%s path of decoder %u reusing data buffers from stereo path", 
+                        BDBG_MSG(("%s path of decoder %u reusing data buffers from stereo path",
                                  (connectorFormat == BAPE_ConnectorFormat_eMultichannel)?"Multichannel":"Stereo", decoder->index));
                         /* Multichannel or Compressed sending same data as stereo path.  Reuse that. */
                         pBuffer = pSource->pParent->connectors[BAPE_ConnectorFormat_eStereo].pBuffers[i];
                     }
                     else if ( ((connectorFormat == BAPE_ConnectorFormat_eCompressed ||
                                 connectorFormat == BAPE_ConnectorFormat_eCompressed4x ||
-                                connectorFormat == BAPE_ConnectorFormat_eCompressed16x) && 
+                                connectorFormat == BAPE_ConnectorFormat_eCompressed16x) &&
                                decoder->stereoOnMultichannel && decoder->stereoOnCompressed &&
                                decoder->outputStatus.connectorStatus[BAPE_ConnectorFormat_eMultichannel].directConnections > 0) )
                     {
                         BDBG_MSG(("Compressed path of decoder %u reusing data buffers from multichannel path", decoder->index));
                         /* Compressed sending same data as stereo data on multichannel path (no direct stereo consumers).  Reuse that. */
-                        pBuffer = pSource->pParent->connectors[BAPE_ConnectorFormat_eMultichannel].pBuffers[i];                        
+                        pBuffer = pSource->pParent->connectors[BAPE_ConnectorFormat_eMultichannel].pBuffers[i];
                     }
                     else
                     {
@@ -956,8 +984,8 @@ BERR_Code BAPE_DSP_P_ConfigPathToOutput(
                 {
                     pBuffer = pSource->pBuffers[i]; /* Not a decoder, use the connector's buffers */
                 }
-                 
-                if ( !pBuffer ) 
+
+                if ( !pBuffer )
                 {
                     return BERR_TRACE(BERR_NOT_SUPPORTED);
                 }
@@ -1100,7 +1128,7 @@ bool BAPE_DSP_P_AlgorithmSupportedByApe(BAPE_Handle hApe, BDSP_Algorithm algorit
     {
         for ( i=0; i < tableSize; i++ )
         {
-            if ( g_codecAttributes[i].decodeAlgorithm == algorithm || 
+            if ( g_codecAttributes[i].decodeAlgorithm == algorithm ||
                  g_codecAttributes[i].encodeAlgorithm == algorithm ||
                  g_codecAttributes[i].passthroughAlgorithm == algorithm )
             {
@@ -1116,30 +1144,28 @@ BERR_Code BAPE_DSP_P_DeriveTaskStartSettings(
     BAPE_PathNode *pNode,
     BDSP_TaskStartSettings *pStartSettings
     )
-{    
+{
     unsigned numFound;
-    BAPE_PathNode *pDspMixers[2];
     BAPE_PathNode *pMuxOutput;
+    BAPE_MixerHandle hDspMixer = NULL;
+    BERR_Code errCode;
 
     BDBG_OBJECT_ASSERT(pNode, BAPE_PathNode);
 
-    BAPE_PathNode_P_FindConsumersBySubtype(pNode, BAPE_PathNodeType_eMixer, BAPE_MixerType_eDsp, 2, &numFound, pDspMixers);
-    if ( numFound > 1 )
+    errCode = BAPE_PathNode_P_GetDecodersDownstreamDspMixer(pNode, &hDspMixer);
+    if ( errCode != BERR_SUCCESS )
     {
-        BDBG_ERR(("An object can only be connected to a single DSP mixer"));
-        return BERR_TRACE(BERR_NOT_SUPPORTED);
+        return BERR_TRACE(errCode);
     }
-    if ( numFound > 0 )
-    {
-        BAPE_MixerHandle hDspMixer;
 
+    if ( hDspMixer != NULL )
+    {
         /* Setup Master Mode */
-        hDspMixer = pDspMixers[0]->pHandle;
         pStartSettings->masterTask = hDspMixer->hTask;
         pStartSettings->schedulingMode = BDSP_TaskSchedulingMode_eSlave;
 
         /* Check if MuxOutput is after DSP Mixer */
-        BAPE_PathNode_P_FindConsumersByType(pDspMixers[0], BAPE_PathNodeType_eMuxOutput, 1, &numFound, &pMuxOutput);
+        BAPE_PathNode_P_FindConsumersByType(&hDspMixer->pathNode, BAPE_PathNodeType_eMuxOutput, 1, &numFound, &pMuxOutput);
         if ( numFound > 0 )
         {
             /* The settings will affect the mixer task, not this node */
@@ -1155,7 +1181,8 @@ BERR_Code BAPE_DSP_P_DeriveTaskStartSettings(
         /* If configuring for NRT, setup STC increment linkage */
         if ( hMuxOutput->nonRealTimeIncrement.StcIncLo != 0 &&
              hMuxOutput->nonRealTimeIncrement.StcIncHi != 0 &&
-             hMuxOutput->nonRealTimeIncrement.IncTrigger != 0 )
+             hMuxOutput->nonRealTimeIncrement.IncTrigger != 0 &&
+             hMuxOutput->state == BAPE_MuxOutputState_Started)
         {
             pStartSettings->stcIncrementConfig.enableStcTrigger = true;
             pStartSettings->stcIncrementConfig.stcIncHiAddr = hMuxOutput->nonRealTimeIncrement.StcIncHi + BCHP_PHYSICAL_OFFSET;
@@ -1171,4 +1198,3 @@ BERR_Code BAPE_DSP_P_DeriveTaskStartSettings(
 
     return BERR_SUCCESS;
 }
-

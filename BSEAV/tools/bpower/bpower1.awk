@@ -2,10 +2,10 @@ BEGIN {
     total=0;
 }
 {
-    ### printf "got line 1(" $1 ") and (" $2 ")\n";
+    ### printf "/*got line (" $1 ") and (" $2 ")*/\n";
     clkgen1 = index($1,"______CLKGEN");
     clkgen2 = index($2,"______CLKGEN");
-    ### printf "clkgen1 " clkgen1 "\n";
+    ### printf "/*clkgen1 " clkgen1 "*/\n";
     if (clkgen1 > 0)
     {
         clkgen1 += 6;
@@ -14,10 +14,17 @@ BEGIN {
     }
     else if (clkgen2 > 0)
     {
-        ### printf "got line 2(" $2 ") and (" $3 "); clkgen2 (" clkgen2 ")\n";
         clkgen2 += 6;
         newstring = substr($2,clkgen2,199);
-        printf newstring " " $3 "\n";
+        printf newstring;
+
+        mux_select = index(newstring,"MUX_SELECT");
+        clock_select = index(newstring,"CLOCK_SELECT");
+        if ( mux_select || clock_select )
+        {
+            printf ":0";
+        }
+        printf " \n";
     }
     else
     {

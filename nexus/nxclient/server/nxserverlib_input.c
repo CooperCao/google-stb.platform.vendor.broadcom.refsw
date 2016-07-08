@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2011-2013 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,17 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
  *****************************************************************************/
 #include "nxserverlib_impl.h"
 #include "nxserverlib_evdev.h"
@@ -172,7 +161,7 @@ int init_input_devices(struct b_session *session)
     }
 
 #if NEXUS_HAS_KEYPAD
-    if (session->index == 0) {
+    if (server->settings.session[session->index].keypad) {
         NEXUS_KeypadSettings keypadSettings;
         NEXUS_Keypad_GetDefaultSettings(&keypadSettings);
         keypadSettings.dataReady.callback = nxserverlib_p_input_callback;

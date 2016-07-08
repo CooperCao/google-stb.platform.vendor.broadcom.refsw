@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2010 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,8 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
  *     Example application showing decode mixed with PCM data.
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  *****************************************************************************/
 #include "nexus_platform.h"
@@ -124,13 +116,22 @@ static int16_t samples[48] =
 -4277
 };
 
+typedef struct dataCallbackParameters
+{
+    NEXUS_AudioPlaybackHandle playback;
+    BKNI_EventHandle event;
+} dataCallbackParameters;
+
 static void data_callback(void *pParam1, int param2)
 {
+    dataCallbackParameters *dataCBParams;
+
+    dataCBParams = (dataCallbackParameters *)pParam1;
     /*
-    printf("Data callback - channel 0x%08x\n", (unsigned)pParam1);
+    printf("Data callback - channel 0x%08x\n", (unsigned)dataCBParams->playback);
     */
-    pParam1=pParam1;    /*unused*/
-    BKNI_SetEvent((BKNI_EventHandle)param2);
+
+    BKNI_SetEvent(dataCBParams->event);
 }
 
 static void *playback_thread(void *pParam);
@@ -147,7 +148,6 @@ int main(int argc, char **argv)
     NEXUS_AudioPlaybackHandle playback;
     NEXUS_PlatformSettings platformSettings;
     pthread_t playbackThread;
-
 #if NEXUS_HAS_HDMI_OUTPUT
     NEXUS_DisplayHandle display=NULL;
     NEXUS_DisplaySettings displaySettings;
@@ -262,6 +262,7 @@ static void *playback_thread(void *pParam)
     int16_t *pBuffer;
     NEXUS_PlatformConfiguration config;
     NEXUS_AudioOutputSettings outputSettings;
+    dataCallbackParameters dataCBParams;
 
     size_t bytesToPlay = 48000*4*120;    /* 48 kHz, 4 bytes/sample, 120 seconds */
     size_t bytesPlayed=0;
@@ -277,8 +278,9 @@ static void *playback_thread(void *pParam)
     playbackSettings.signedData = true;
     playbackSettings.stereo = true;
     playbackSettings.dataCallback.callback = data_callback;
-    playbackSettings.dataCallback.context = playback;
-    playbackSettings.dataCallback.param = (int)event;
+    dataCBParams.event = event;
+    dataCBParams.playback = playback;
+    playbackSettings.dataCallback.context = &dataCBParams;
 
     /* If we have a wav file, get the sample rate from it */
     if ( pFile )

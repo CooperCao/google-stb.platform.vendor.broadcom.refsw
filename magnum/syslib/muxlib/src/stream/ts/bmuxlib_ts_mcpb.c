@@ -1,23 +1,43 @@
-/***************************************************************************
- *     Copyright (c) 2006-2012, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * Module Description:
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
  *
- * Revision History:
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- *
- ***************************************************************************/
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 
 #include "bmuxlib_ts_mcpb.h"
 #include "bmuxlib_list.h"
@@ -849,7 +869,7 @@ void* BMUXlib_TS_MCPB_P_GetAddress(
    if ( ( uiBufferOffset >= hMuxMCPB->stMuxSharedMemory.uiOffset )
         && ( ( uiBufferOffset < ( hMuxMCPB->stMuxSharedMemory.uiOffset + hMuxMCPB->stSettings.stMuxSharedMemory.uiSize ) ) ) )
    {
-      return (void*) ( ((unsigned) hMuxMCPB->stMuxSharedMemory.pBuffer) + ( (unsigned) ( uiBufferOffset - hMuxMCPB->stMuxSharedMemory.uiOffset ) ) );
+      return (void*) ( ((uint8_t *) hMuxMCPB->stMuxSharedMemory.pBuffer) + ( (unsigned) ( uiBufferOffset - hMuxMCPB->stMuxSharedMemory.uiOffset ) ) );
    }
 
    return NULL;
@@ -1219,7 +1239,7 @@ BMUXlib_TS_MCPB_P_ConsumeDescriptor(
    {
       size_t uiNumEntries;
       BMUXlib_List_GetNumEntries( hMuxMCPB->stProcessEntryInfo.hList, &uiNumEntries );
-      BDBG_MODULE_MSG( BMUXLIB_TS_MCPB_QUEUE, ("[%08x] [%d] baseESCR = %08x, currentESCR = %08x (%5d bytes left) - Done (%3d entries)", hMuxMCPB->stProcessEntryInfo.hList, pstEntry->uiChannelInstance, pstEntry->uiBaseESCR, pstEntry->uiCurrentESCR, pstEntry->uiBytesLeft, uiNumEntries ));
+      BDBG_MODULE_MSG( BMUXLIB_TS_MCPB_QUEUE, ("[%p] [%d] baseESCR = %08x, currentESCR = %08x (%5d bytes left) - Done (%3d entries)", (void *)hMuxMCPB->stProcessEntryInfo.hList, pstEntry->uiChannelInstance, pstEntry->uiBaseESCR, pstEntry->uiCurrentESCR, pstEntry->uiBytesLeft, (int)uiNumEntries ));
    }
 }
 
@@ -1492,7 +1512,7 @@ BMUXlib_TS_MCPB_P_ProcessNextEntry(
                hMuxMCPB->stProcessEntryInfo.hList = hList;
                hMuxMCPB->stProcessEntryInfo.pstEntry = pstEntry;
 
-               BDBG_MODULE_MSG( BMUXLIB_TS_MCPB_QUEUE, ("[%08x] [%d] baseESCR = %08x, currentESCR = %08x (%5d bytes left) - Next (%3d entries)", hMuxMCPB->stProcessEntryInfo.hList, pstEntry->uiChannelInstance, pstEntry->uiBaseESCR, pstEntry->uiCurrentESCR, pstEntry->uiBytesLeft, uiNumEntries ));
+               BDBG_MODULE_MSG( BMUXLIB_TS_MCPB_QUEUE, ("[%p] [%d] baseESCR = %08x, currentESCR = %08x (%5d bytes left) - Next (%3d entries)", (void *)hMuxMCPB->stProcessEntryInfo.hList, pstEntry->uiChannelInstance, pstEntry->uiBaseESCR, pstEntry->uiCurrentESCR, pstEntry->uiBytesLeft, (int)uiNumEntries ));
 
                if ( false == hMuxMCPB->astChannel[hMuxMCPB->stProcessEntryInfo.pstEntry->uiChannelInstance].stSettings.bIsTS )
                {
@@ -1700,7 +1720,7 @@ BMUXlib_TS_MCPB_P_ProcessNextEntry(
             BMUXlib_List_GetNumEntries( hMuxMCPB->stProcessEntryInfo.hList, &uiNumEntries );
             if ( 0 != pstEntry->uiBytesLeft )
             {
-               BDBG_MODULE_MSG( BMUXLIB_TS_MCPB_QUEUE, ("[%08x] [%d] baseESCR = %08x, currentESCR = %08x (%5d bytes left) - Re-Q (%3d entries)", hMuxMCPB->stProcessEntryInfo.hList, pstEntry->uiChannelInstance, pstEntry->uiBaseESCR, pstEntry->uiCurrentESCR, pstEntry->uiBytesLeft, uiNumEntries ));
+               BDBG_MODULE_MSG( BMUXLIB_TS_MCPB_QUEUE, ("[%p] [%d] baseESCR = %08x, currentESCR = %08x (%5d bytes left) - Re-Q (%3d entries)", (void *)hMuxMCPB->stProcessEntryInfo.hList, pstEntry->uiChannelInstance, pstEntry->uiBaseESCR, pstEntry->uiCurrentESCR, pstEntry->uiBytesLeft, (int)uiNumEntries ));
             }
             BMUXlib_TS_MCPB_P_ReconcileFifoQueue( hMuxMCPB );
             hMuxMCPB->stProcessEntryInfo.eState = BMUXlib_TS_MCPB_P_ProcessNextEntry_State_eGetNextDescriptor;
@@ -1830,7 +1850,7 @@ void BMUXLIB_TS_P_FIFO_ADD(
 
       BDBG_ASSERT( uiBytesToCopy <= uiBytesLeft );
 
-      BKNI_Memcpy( (void*) ( ( (unsigned) pstFifo->pBuffer ) + pstFifo->uiWrite ), (void*) ( ( (unsigned) pBuffer ) + uiBytesCopied ), uiBytesToCopy );
+      BKNI_Memcpy( (void*) ( ( (uint8_t *) pstFifo->pBuffer ) + pstFifo->uiWrite ), (void*) ( ( (uint8_t *) pBuffer ) + uiBytesCopied ), uiBytesToCopy );
 
       uiBytesLeft -= uiBytesToCopy;
       uiBytesCopied += uiBytesToCopy;
@@ -1919,13 +1939,13 @@ BMUXlib_TS_MCPB_P_ProcessCompletedTransportDescriptors(
                BDBG_ASSERT( 0 != hMuxMCPB->astChannel[pstMetadata->uiChannelInstance].stState.stTSPacketInfo.stFifo.uiSize );
                BDBG_ASSERT( 0 == ( pstTransportDescriptor->uiBufferLength % 188 ) );
                BMUXLIB_TS_P_FIFO_CONSUME( &hMuxMCPB->astChannel[pstMetadata->uiChannelInstance].stState.stTSPacketInfo.stFifo, pstTransportDescriptor->uiBufferLength );
-               BDBG_MODULE_MSG( BMUXLIB_TS_MCPB_FIFO, ("[read:%6d pktread:%6d write:%6d size:%6d] Finished descriptor %llu %d bytes %d source descriptors",
+               BDBG_MODULE_MSG( BMUXLIB_TS_MCPB_FIFO, ("[read:%6d pktread:%6d write:%6d size:%6d] Finished descriptor "BDBG_UINT64_FMT" %d bytes %d source descriptors",
                   hMuxMCPB->astChannel[pstMetadata->uiChannelInstance].stState.stTSPacketInfo.stFifo.uiRead,
                   hMuxMCPB->astChannel[pstMetadata->uiChannelInstance].stState.stTSPacketInfo.stFifo.uiPacketRead,
                   hMuxMCPB->astChannel[pstMetadata->uiChannelInstance].stState.stTSPacketInfo.stFifo.uiWrite,
-                  hMuxMCPB->astChannel[pstMetadata->uiChannelInstance].stState.stTSPacketInfo.stFifo.uiSize,
-                  pstTransportDescriptor->uiBufferOffset,
-                  pstTransportDescriptor->uiBufferLength,
+                  (int)hMuxMCPB->astChannel[pstMetadata->uiChannelInstance].stState.stTSPacketInfo.stFifo.uiSize,
+                  BDBG_UINT64_ARG(pstTransportDescriptor->uiBufferOffset),
+                  (int)pstTransportDescriptor->uiBufferLength,
                   pstMetadata->uiSourceDescriptorCount
                ));
                break;
@@ -2098,12 +2118,12 @@ BMUXlib_TS_MCPB_P_Channel_AddTransportDescriptorsViaFifo(
    /* Check to make sure there's enough room in the FIFO */
    if ( pstTransportDescriptor->uiBufferLength >= BMUXLIB_TS_P_FIFO_FREE( &hMuxMCPBCh->stState.stTSPacketInfo.stFifo ) )
    {
-      BDBG_MODULE_MSG( BMUXLIB_TS_MCPB_FIFO, ("[read:%6d pktread:%6d write:%6d size:%6d] FIFO is full (need: %d, free: %D)",
+      BDBG_MODULE_MSG( BMUXLIB_TS_MCPB_FIFO, ("[read:%6d pktread:%6d write:%6d size:%6d] FIFO is full (need: %d, free: %d)",
          hMuxMCPBCh->stState.stTSPacketInfo.stFifo.uiRead,
          hMuxMCPBCh->stState.stTSPacketInfo.stFifo.uiPacketRead,
          hMuxMCPBCh->stState.stTSPacketInfo.stFifo.uiWrite,
-         hMuxMCPBCh->stState.stTSPacketInfo.stFifo.uiSize,
-         pstTransportDescriptor->uiBufferLength,
+         (int)hMuxMCPBCh->stState.stTSPacketInfo.stFifo.uiSize,
+         (int)pstTransportDescriptor->uiBufferLength,
          BMUXLIB_TS_P_FIFO_FREE( &hMuxMCPBCh->stState.stTSPacketInfo.stFifo )
          ));
       return false;
@@ -2111,7 +2131,7 @@ BMUXlib_TS_MCPB_P_Channel_AddTransportDescriptorsViaFifo(
 
    /* Check if there are enough entries free (need 2) */
    {
-      unsigned uiNumAvailable;
+      size_t uiNumAvailable;
       BMUXlib_List_GetNumEntries( hMuxMCPBCh->hMuxMCPB->hDescriptorFreeList, &uiNumAvailable );
 
       if ( uiNumAvailable < 2 )
@@ -2120,9 +2140,9 @@ BMUXlib_TS_MCPB_P_Channel_AddTransportDescriptorsViaFifo(
             hMuxMCPBCh->stState.stTSPacketInfo.stFifo.uiRead,
             hMuxMCPBCh->stState.stTSPacketInfo.stFifo.uiPacketRead,
             hMuxMCPBCh->stState.stTSPacketInfo.stFifo.uiWrite,
-            hMuxMCPBCh->stState.stTSPacketInfo.stFifo.uiSize,
+            (int)hMuxMCPBCh->stState.stTSPacketInfo.stFifo.uiSize,
             2,
-            uiNumAvailable
+            (int)uiNumAvailable
          ));
          return false;
       }
@@ -2137,13 +2157,13 @@ BMUXlib_TS_MCPB_P_Channel_AddTransportDescriptorsViaFifo(
 
    /* Copy the data to the FIFO, making sure to handle the FIFO wrap */
    BMUXLIB_TS_P_FIFO_ADD( &hMuxMCPBCh->stState.stTSPacketInfo.stFifo, BMUXlib_TS_MCPB_P_GetAddress( hMuxMCPBCh->hMuxMCPB, pstTransportDescriptor->uiBufferOffset ), pstTransportDescriptor->uiBufferLength );
-   BDBG_MODULE_MSG( BMUXLIB_TS_MCPB_FIFO, ("[read:%6d pktread:%6d write:%6d size:%6d] Adding %llu %d bytes",
+   BDBG_MODULE_MSG( BMUXLIB_TS_MCPB_FIFO, ("[read:%6d pktread:%6d write:%6d size:%6d] Adding "BDBG_UINT64_FMT" %d bytes",
       hMuxMCPBCh->stState.stTSPacketInfo.stFifo.uiRead,
       hMuxMCPBCh->stState.stTSPacketInfo.stFifo.uiPacketRead,
       hMuxMCPBCh->stState.stTSPacketInfo.stFifo.uiWrite,
-      hMuxMCPBCh->stState.stTSPacketInfo.stFifo.uiSize,
-      pstTransportDescriptor->uiBufferOffset,
-      pstTransportDescriptor->uiBufferLength
+      (int)hMuxMCPBCh->stState.stTSPacketInfo.stFifo.uiSize,
+      BDBG_UINT64_ARG(pstTransportDescriptor->uiBufferOffset),
+      (int)pstTransportDescriptor->uiBufferLength
       ));
    /* Bump up the FIFOs source descriptor count */
    hMuxMCPBCh->stState.stTSPacketInfo.uiSourceDescriptorCount++;
@@ -2160,7 +2180,7 @@ BMUXlib_TS_MCPB_P_Channel_AddTransportDescriptorsViaFifo(
          hMuxMCPBCh->stState.stTSPacketInfo.stFifo.uiRead,
          hMuxMCPBCh->stState.stTSPacketInfo.stFifo.uiPacketRead,
          hMuxMCPBCh->stState.stTSPacketInfo.stFifo.uiWrite,
-         hMuxMCPBCh->stState.stTSPacketInfo.stFifo.uiSize,
+         (int)hMuxMCPBCh->stState.stTSPacketInfo.stFifo.uiSize,
          BMUXLIB_TS_P_FIFO_PKTDEPTH( &hMuxMCPBCh->stState.stTSPacketInfo.stFifo )
       ));
       for ( i = 0; (i < 2) && (0 != BMUXLIB_TS_P_FIFO_PKTDEPTH( &hMuxMCPBCh->stState.stTSPacketInfo.stFifo )); i++ )
@@ -2199,16 +2219,16 @@ BMUXlib_TS_MCPB_P_Channel_AddTransportDescriptorsViaFifo(
          }
 
          /* Flush the cache */
-         BMMA_FlushCache( hMuxMCPBCh->stState.stTSPacketInfo.stFifo.hBlock, (void*) ( ( (unsigned) hMuxMCPBCh->stState.stTSPacketInfo.stFifo.pBuffer ) + hMuxMCPBCh->stState.stTSPacketInfo.stFifo.uiPacketRead ), apstEntry[i]->stTransportDescriptor.uiBufferLength );
+         BMMA_FlushCache( hMuxMCPBCh->stState.stTSPacketInfo.stFifo.hBlock, (void*) ( ( (uint8_t *) hMuxMCPBCh->stState.stTSPacketInfo.stFifo.pBuffer ) + hMuxMCPBCh->stState.stTSPacketInfo.stFifo.uiPacketRead ), apstEntry[i]->stTransportDescriptor.uiBufferLength );
 
-         BDBG_MODULE_MSG( BMUXLIB_TS_MCPB_FIFO, ("[read:%6d pktread:%6d write:%6d size:%6d] Sending descriptor[%d] %llu %d bytes for packet %d bytes %d source descriptors",
+         BDBG_MODULE_MSG( BMUXLIB_TS_MCPB_FIFO, ("[read:%6d pktread:%6d write:%6d size:%6d] Sending descriptor[%d] "BDBG_UINT64_FMT" %d bytes for packet %d bytes %d source descriptors",
             hMuxMCPBCh->stState.stTSPacketInfo.stFifo.uiRead,
             hMuxMCPBCh->stState.stTSPacketInfo.stFifo.uiPacketRead,
             hMuxMCPBCh->stState.stTSPacketInfo.stFifo.uiWrite,
-            hMuxMCPBCh->stState.stTSPacketInfo.stFifo.uiSize,
+            (int)hMuxMCPBCh->stState.stTSPacketInfo.stFifo.uiSize,
             i,
-            apstEntry[i]->stTransportDescriptor.uiBufferOffset,
-            apstEntry[i]->stTransportDescriptor.uiBufferLength,
+            BDBG_UINT64_ARG(apstEntry[i]->stTransportDescriptor.uiBufferOffset),
+            (int)apstEntry[i]->stTransportDescriptor.uiBufferLength,
             BMUXLIB_TS_P_FIFO_PKTDEPTH( &hMuxMCPBCh->stState.stTSPacketInfo.stFifo ),
             apstEntry[i]->uiSourceDescriptorCount
          ));
@@ -2218,14 +2238,14 @@ BMUXlib_TS_MCPB_P_Channel_AddTransportDescriptorsViaFifo(
          BMUXLIB_TS_P_FIFO_PKTCONSUME( &hMuxMCPBCh->stState.stTSPacketInfo.stFifo, apstEntry[i]->stTransportDescriptor.uiBufferLength );
          BMUXlib_TS_MCPB_P_UpdateCurrentESCR( hMuxMCPBCh, apstEntry[i] );
 
-         BDBG_MODULE_MSG( BMUXLIB_TS_MCPB_FIFO, ("[read:%6d pktread:%6d write:%6d size:%6d] Sent    descriptor[%d] %llu %d bytes for packet %d bytes %d source descriptors",
+         BDBG_MODULE_MSG( BMUXLIB_TS_MCPB_FIFO, ("[read:%6d pktread:%6d write:%6d size:%6d] Sent    descriptor[%d] "BDBG_UINT64_FMT" %d bytes for packet %d bytes %d source descriptors",
             hMuxMCPBCh->stState.stTSPacketInfo.stFifo.uiRead,
             hMuxMCPBCh->stState.stTSPacketInfo.stFifo.uiPacketRead,
             hMuxMCPBCh->stState.stTSPacketInfo.stFifo.uiWrite,
-            hMuxMCPBCh->stState.stTSPacketInfo.stFifo.uiSize,
+            (int)hMuxMCPBCh->stState.stTSPacketInfo.stFifo.uiSize,
             i,
-            apstEntry[i]->stTransportDescriptor.uiBufferOffset,
-            apstEntry[i]->stTransportDescriptor.uiBufferLength,
+            BDBG_UINT64_ARG(apstEntry[i]->stTransportDescriptor.uiBufferOffset),
+            (int)apstEntry[i]->stTransportDescriptor.uiBufferLength,
             BMUXLIB_TS_P_FIFO_PKTDEPTH( &hMuxMCPBCh->stState.stTSPacketInfo.stFifo ),
             apstEntry[i]->uiSourceDescriptorCount
          ));
@@ -2257,12 +2277,12 @@ BMUXlib_TS_MCPB_Channel_AddTransportDescriptors(
       const BMUXlib_TS_TransportDescriptor *pstTransportDescriptor = &astTransportDescriptors[*puiQueuedCount];
       size_t uiNumFree;
       unsigned i;
-\
+
       BMUXlib_List_GetNumFree( hMuxMCPBCh->hDescriptorFifo, &uiNumFree );
 
       if ( uiNumFree < ( hMuxMCPBCh->stSettings.bIsTS ? 2 : 1 ) )
       {
-         BDBG_WRN(("descriptor fifo is full (%d/%d) queued", *puiQueuedCount, uiCount));
+         BDBG_WRN(("descriptor fifo is full (%d/%d) queued", (int)*puiQueuedCount, (int)uiCount));
          break;
       }
 
@@ -2270,7 +2290,7 @@ BMUXlib_TS_MCPB_Channel_AddTransportDescriptors(
                       ? BMUXlib_TS_MCPB_P_Channel_AddTransportDescriptorsViaFifo( hMuxMCPBCh, pstTransportDescriptor, apstEntry )
                       : BMUXlib_TS_MCPB_P_Channel_AddTransportDescriptorsDirect( hMuxMCPBCh, pstTransportDescriptor, &apstEntry[0] ) ) )
       {
-         BDBG_WRN(("Only (%d/%d) queued", *puiQueuedCount, uiCount));
+         BDBG_WRN(("Only (%d/%d) queued", (int)*puiQueuedCount, (int)uiCount));
          break;
       }
 
@@ -2284,7 +2304,7 @@ BMUXlib_TS_MCPB_Channel_AddTransportDescriptors(
                BDBG_ERR(("Fatal Error: Descriptor Fifo is full"));
                BDBG_ASSERT(0);
             }
-            BDBG_MODULE_MSG( BMUXLIB_TS_MCPB_QUEUE, ("[%08x] Adding baseESCR=%08x (%d bytes)", hMuxMCPBCh->hDescriptorFifo, apstEntry[0]->uiBaseESCR, apstEntry[i]->uiBytesLeft));
+            BDBG_MODULE_MSG( BMUXLIB_TS_MCPB_QUEUE, ("[%p] Adding baseESCR=%08x (%d bytes)", (void *)hMuxMCPBCh->hDescriptorFifo, apstEntry[0]->uiBaseESCR, apstEntry[i]->uiBytesLeft));
          }
       }
 
@@ -2362,7 +2382,7 @@ BMUXlib_TS_MCPB_DoMux(
       unsigned i;
       for( i = 0; i < hMuxMCPB->stSettings.uiMaxNumInputs; i++ )
       {
-         BDBG_MODULE_MSG( BMUXLIB_TS_MCPB_QUEUE, ("[%08x] Queued: %d Pending: %d", hMuxMCPB->astChannel[i].hDescriptorFifo, hMuxMCPB->astChannel[i].stState.uiQueuedCount, hMuxMCPB->astChannel[i].stState.uiPendingCount ));
+         BDBG_MODULE_MSG( BMUXLIB_TS_MCPB_QUEUE, ("[%p] Queued: %d Pending: %d", (void *)hMuxMCPB->astChannel[i].hDescriptorFifo, hMuxMCPB->astChannel[i].stState.uiQueuedCount, hMuxMCPB->astChannel[i].stState.uiPendingCount ));
       }
    }
    BDBG_LEAVE( BMUXlib_TS_MCPB_DoMux );

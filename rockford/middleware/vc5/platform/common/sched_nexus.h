@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2014 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2014 Broadcom.
 All rights reserved.
 =============================================================================*/
 
@@ -9,7 +9,15 @@ All rights reserved.
 #include "sched_abstract.h"
 #include "gmem_abstract.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 BEGL_SchedInterface *CreateSchedInterface(BEGL_MemoryInterface *iface);
 void DestroySchedInterface(BEGL_SchedInterface *iface);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

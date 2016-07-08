@@ -74,7 +74,7 @@ BERR_Code BSYNClib_Channel_P_Create(
 	if (rc) goto error;
 
 	/* start state machine */
-    BDBG_MSG(("chn %p: start", (void *)hChn));
+        BDBG_MSG(("chn %p: start", (void *)hChn));
 	rc = BSYNClib_StateMachine_SendSignal(hChn->hMachine, BSYNClib_StateMachine_Signal_eStart);
 	if (rc) goto error;
 
@@ -97,7 +97,7 @@ BERR_Code BSYNClib_Channel_P_Create(
 
 			BSYNClib_Timer_Init(psTimer);
 
-			BDBG_MSG(("chn %p: Creating timer %p(%d)", hChn, psTimer, i));
+			BDBG_MSG(("chn %p: Creating timer %p(%d)", (void*)hChn, (void*)psTimer, i));
 			rc = hChn->sSettings.cbTimer.pfCreate(pvParm1, iParm2, &psTimer->hTimer);
 			if (rc) 
 			{
@@ -114,7 +114,7 @@ BERR_Code BSYNClib_Channel_P_Create(
 
 		BSYNClib_Timer_Init(hChn->psTaskTimer);
 
-		BDBG_MSG(("chn %p: Creating task context switch timer %p", hChn, hChn->psTaskTimer));
+		BDBG_MSG(("chn %p: Creating task context switch timer %p", (void*)hChn, (void*)hChn->psTaskTimer));
 		rc = hChn->sSettings.cbTimer.pfCreate(pvParm1, iParm2, &hChn->psTaskTimer->hTimer);
 		if (rc) goto error;
 
@@ -124,7 +124,7 @@ BERR_Code BSYNClib_Channel_P_Create(
 
 		BSYNClib_Timer_Init(hChn->psMuteControlTaskTimer);
 
-		BDBG_MSG(("chn %p: Creating mute control task context switch timer %p", hChn, hChn->psMuteControlTaskTimer));
+		BDBG_MSG(("chn %p: Creating mute control task context switch timer %p", (void*)hChn, (void*)hChn->psMuteControlTaskTimer));
 		rc = hChn->sSettings.cbTimer.pfCreate(pvParm1, iParm2, &hChn->psMuteControlTaskTimer->hTimer);
 		if (rc) goto error;
 	}
@@ -146,15 +146,15 @@ BERR_Code BSYNClib_Channel_P_Create(
 	hChn->sAudio.hSinks = BSYSlib_List_Create();
 
 #if BSYNCLIB_JITTER_TOLERANCE_IMPROVEMENT_SUPPORT
-    BDBG_MSG(("chn %p: jitter tolerance improvement supported", hChn));
+        BDBG_MSG(("chn %p: jitter tolerance improvement supported", (void*)hChn));
 #endif
 
 #if BSYNCLIB_UNCONDITIONAL_VIDEO_UNMUTE_SUPPORT
-    BDBG_MSG(("chn %p: unconditional video unmute supported", hChn));
+    BDBG_MSG(("chn %p: unconditional video unmute supported", (void*)hChn));
 #endif
 
 #if BSYNCLIB_UNCONDITIONAL_AUDIO_UNMUTE_SUPPORT
-    BDBG_MSG(("chn %p: unconditional audio unmute supported", hChn));
+    BDBG_MSG(("chn %p: unconditional audio unmute supported", (void*)hChn));
 #endif
 
 	*phChn = hChn;
@@ -220,13 +220,13 @@ void BSYNClib_Channel_P_Destroy(
 		int iParm2 = hChn->sSettings.cbTimer.iParm2;
 
 		/* Timer for mute control task context switch */
-		BDBG_MSG(("chn %p: Destroying mute control task context switch timer %p", hChn, hChn->psMuteControlTaskTimer->hTimer));
+		BDBG_MSG(("chn %p: Destroying mute control task context switch timer %p", (void*)hChn, hChn->psMuteControlTaskTimer->hTimer));
 		hChn->sSettings.cbTimer.pfDestroy(pvParm1, iParm2, hChn->psMuteControlTaskTimer->hTimer);
 		hChn->psMuteControlTaskTimer->hTimer = NULL;
 		BKNI_Free(hChn->psMuteControlTaskTimer);
 
 		/* Timer for task context switch */
-		BDBG_MSG(("chn %p: Destroying task context switch timer %p", hChn, hChn->psTaskTimer->hTimer));
+		BDBG_MSG(("chn %p: Destroying task context switch timer %p", (void*)hChn, hChn->psTaskTimer->hTimer));
 		hChn->sSettings.cbTimer.pfDestroy(pvParm1, iParm2, hChn->psTaskTimer->hTimer);
 		hChn->psTaskTimer->hTimer = NULL;
 		BKNI_Free(hChn->psTaskTimer);
@@ -242,7 +242,7 @@ void BSYNClib_Channel_P_Destroy(
 
 			if (psTimer)
 			{
-				BDBG_MSG(("chn %p: Destroying timer %p", hChn, psTimer->hTimer));
+				BDBG_MSG(("chn %p: Destroying timer %p", (void*)hChn, psTimer->hTimer));
 
 				hChn->sSettings.cbTimer.pfDestroy(pvParm1, iParm2, psTimer->hTimer);
 				psTimer->hTimer = NULL;

@@ -35,6 +35,10 @@
 #include <asm/smplock.h>
 #endif
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,17,0)
+#include <linux/ktime.h>
+#endif
+
 static struct timeval initTimeStamp;
 static spinlock_t g_lock = __SPIN_LOCK_UNLOCKED(bdbg_os_priv.lock);
 static unsigned long g_lockFlags;

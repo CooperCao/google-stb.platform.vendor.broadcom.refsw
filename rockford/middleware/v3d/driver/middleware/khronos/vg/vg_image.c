@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2008 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2008 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -255,7 +255,7 @@ bool vg_image_from_bprint(MEM_HANDLE_T handle)
 
    internal_format = get_internal_format(format, width, height);
    image_handle = khrn_image_create(internal_format, width, height,
-      (KHRN_IMAGE_CREATE_FLAG_T)(IMAGE_CREATE_FLAG_ZERO | IMAGE_CREATE_FLAG_TEXTURE));
+      IMAGE_CREATE_FLAG_ZERO | IMAGE_CREATE_FLAG_TEXTURE, false);
    if (image_handle == MEM_INVALID_HANDLE) {
       return false;
    }

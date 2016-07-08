@@ -42,11 +42,11 @@ LINUX_OUT ?= $(LINUX)
 ifeq ($(filter ${B_REFSW_ARCH}, arm-linux ), ${B_REFSW_ARCH})
 B_REFSW_CROSS_COMPILE ?= arm-linux-
 B_REFSW_LINUX_ARCH=arm
-endif
-
+else
 ifeq ($(filter ${B_REFSW_ARCH}, aarch64-linux ), ${B_REFSW_ARCH})
 B_REFSW_CROSS_COMPILE ?= aarch64-linux-
 B_REFSW_LINUX_ARCH=arm64
+endif
 endif
 
 ifdef B_REFSW_KERNEL_CROSS_COMPILE

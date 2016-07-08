@@ -1,28 +1,45 @@
-/***************************************************************************
- *     Copyright (c) 2005-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ *  Except as expressly set forth in the Authorized License,
  *
- * [File Description:]
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * Revision History:
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- *
- ***************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ ******************************************************************************/
 #include "bhab_3461_priv.h"
-#include "bchp_hsi.h"
-#include "../../b0/bchp_leap_hab_mem.h"
-#include "../../b0/bchp_tm.h"
-#include "../../b0/bchp_leap_l2.h"
+#include "bchp_3461_hsi.h"
+#include "bchp_3461_leap_hab_mem.h"
+#include "bchp_3461_tm.h"
+#include "bchp_3461_leap_l2.h"
 
 #if BSTD_CPU_ENDIAN == BSTD_ENDIAN_LITTLE
 #define BHAB_P_SWAP32(a) (((a&0xFF)<<24)|((a&0xFF00)<<8)|((a&0xFF0000)>>8)|((a&0xFF000000)>>24))
@@ -87,7 +104,7 @@ BERR_Code BHAB_3461_Open(
             for(i=0; i<BHAB_DevId_eMax; i++){
                 h3461Dev->InterruptCallbackInfo[i].func = NULL;
                 h3461Dev->InterruptCallbackInfo[i].pParm1 = NULL;
-                h3461Dev->InterruptCallbackInfo[i].parm2 = (int)NULL;
+                h3461Dev->InterruptCallbackInfo[i].parm2 = 0;
             }
 
             BKNI_Memset( &h3461Dev->nmiSettings, 0x00, sizeof(BHAB_NmiSettings));
@@ -611,10 +628,11 @@ BERR_Code BHAB_3461_WriteMemory(BHAB_Handle handle, uint32_t addr, const uint8_t
 {
     BERR_Code retCode = BERR_SUCCESS;
     BHAB_3461_P_Handle *p3461;
-    uint8_t pad, i=0, k=0, bits_per_transfer=0, spi_write_size=0;
-    uint16_t bytes_left;
-    uint32_t sb, sb1, curr_addr, j=0;
+    uint8_t pad, i=0, k=0;
+    uint16_t bytes_left=0, orig_bytes_left=0;
+    uint32_t sb, sb1, curr_addr;
     uint8_t readbuf[8], writebuf[32];
+    BREG_SPI_Data spiData[2];
 
     BDBG_ASSERT(handle);
 
@@ -642,97 +660,39 @@ BERR_Code BHAB_3461_WriteMemory(BHAB_Handle handle, uint32_t addr, const uint8_t
         BHAB_CHK_RETCODE(BREG_SPI_Write(p3461->hSpiRegister,  writebuf, 6));
         writebuf[1] = CSR_RBUS_DATA0;
 
-        if(1){
+        spiData[0].data = (void *)writebuf;
+        spiData[0].length = 2;
+        spiData[1].data = (void *)buf;
+        spiData[1].length = n;
+        BHAB_CHK_RETCODE(BREG_SPI_Multiple_Write(p3461->hSpiRegister, spiData, 2));
+        orig_bytes_left = (n%4);
 
-            BREG_SPI_SetContinueAfterCommand(p3461->hSpiRegister , true);
-            BHAB_CHK_RETCODE(BREG_SPI_WriteAll(p3461->hSpiRegister, writebuf, 2));
+        if(orig_bytes_left)
+        {
+            bytes_left = 4-orig_bytes_left;
+            writebuf[0] = (handle->settings.chipAddr << 1) | 0x1;
 
-            BHAB_CHK_RETCODE(BREG_SPI_WriteAll(p3461->hSpiRegister, buf, n));
-            BREG_SPI_SetContinueAfterCommand(p3461->hSpiRegister , false);
-
-            /* pad with zeros at the end, so that an RBUS write can be triggered for the last word */
-            bytes_left = (n%4);
-
-            if(bytes_left)
+            switch (orig_bytes_left)
             {
-                bytes_left = 4-bytes_left;
-                writebuf[0] = (handle->settings.chipAddr << 1) | 0x1;
-
-                switch (n%4)
-                {
-                    case 0:
-                    default:
-                        writebuf[1] = CSR_RBUS_DATA0;
-                      break;
-                    case 1:
-                        writebuf[1] = CSR_RBUS_DATA1;
-                        break;
-                    case 2:
-                        writebuf[1] = CSR_RBUS_DATA2;
-                        break;
-                    case 3:
-                        writebuf[1] = CSR_RBUS_DATA3;
-                        break;
-                }
-
-                for(k=0; k<bytes_left; k++)
-                {
-                    writebuf[2+k] = 0;
-                }
-                BHAB_CHK_RETCODE(BREG_SPI_Write(p3461->hSpiRegister,  writebuf, 2+bytes_left));
-            }
-        }
-        else{
-            BREG_SPI_GetBitsPerTransfer(p3461->hSpiRegister, &bits_per_transfer);
-            if(bits_per_transfer==8)
-                spi_write_size = 14;
-            else if(bits_per_transfer==16)
-                spi_write_size = 30;
-            else {
-                BDBG_WRN(("Unsupported bits per transfer for this chip. bits_per_transfer = %d", bits_per_transfer));
-                retCode = BERR_NOT_SUPPORTED; goto done;
+                case 1:
+                    writebuf[1] = CSR_RBUS_DATA1;
+                    break;
+                case 2:
+                    writebuf[1] = CSR_RBUS_DATA2;
+                    break;
+                case 3:
+                    writebuf[1] = CSR_RBUS_DATA3;
+                    break;
+                default:
+                    writebuf[1] = CSR_RBUS_DATA0;
+                  break;
             }
 
-            /* The current max write_size is 14 bytes in 8 bit transfer mode and 30 bytes in 16 bit mode.  */
-            for (j = 0; j < n; j+=spi_write_size) {
-                for (i = 0; i < spi_write_size; i++) {
-                    if(i+j == n)
-                        break;
-                    writebuf[2+i] = (*((uint8_t *)buf+j+i));
-                }
-                switch (j%4)
-                {
-                    case 0:
-                    default:
-                        writebuf[1] = CSR_RBUS_DATA0;
-                      break;
-                    case 1:
-                        writebuf[1] = CSR_RBUS_DATA1;
-                        break;
-                    case 2:
-                        writebuf[1] = CSR_RBUS_DATA2;
-                        break;
-                    case 3:
-                        writebuf[1] = CSR_RBUS_DATA3;
-                        break;
-                }
-
-            BHAB_CHK_RETCODE(BREG_SPI_Write(p3461->hSpiRegister,  writebuf, i+2));
-        }
-
-        /* pad with zeros at the end, so that an RBUS write can be triggered for the last word */
-        bytes_left = (n)%4;
-
-            if(bytes_left)
+            for(k=0; k<bytes_left; k++)
             {
-                writebuf[0] = (handle->settings.chipAddr << 1) | 0x1;
-                writebuf[1] = CSR_RBUS_DATA0+(4-bytes_left);
-                for(k=0; k<bytes_left; k++)
-                {
-                    writebuf[2+k] = 0;
-                }
-                BHAB_CHK_RETCODE(BREG_SPI_Write(p3461->hSpiRegister,  writebuf, 2+bytes_left));
+                writebuf[2+k] = 0;
             }
+            BHAB_CHK_RETCODE(BREG_SPI_Write(p3461->hSpiRegister,  writebuf, 2+bytes_left));
         }
 
         /* check for host transfer error */
@@ -1157,7 +1117,7 @@ BERR_Code BHAB_3461_UnInstallInterruptCallback(
     BKNI_EnterCriticalSection();
     callback->func = NULL;
     callback->pParm1 = NULL;
-    callback->parm2 = (int)NULL;
+    callback->parm2 = 0;
     BKNI_LeaveCriticalSection();
 
     return retCode;

@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2004-2014 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2004-2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,6 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
  ************************************************************/
 #include "bstd.h"
 #include "bkni.h"
@@ -61,6 +51,9 @@ BDBG_OBJECT_ID(b_objdb_module);
 
 #define BDBG_MSG_TRACE(X) 
 
+/* ID's below this are reserved for the legacy 'enum' pseudo objects */
+#define NEXUS_BASEOBJECT_MIN_ID 0x100
+
 static struct b_objdb_client *b_objdb_default_client = NULL;
 /*
 b_objdb is the object database. There is one instance of b_objdb per module.
@@ -70,6 +63,8 @@ struct b_objdb {
     BDBG_OBJECT(b_objdb)
     BLST_S_HEAD(NEXUS_P_ObjDbModuleHead, b_objdb_module) module_list;
     struct NEXUS_P_BaseObjectTree object_tree;
+    struct NEXUS_P_BaseObjectIdTree id_tree;
+    NEXUS_BaseObjectId last_id;  /* last used ID, simplifies allocation */
 };
 
 static int NEXUS_P_BaseObject_Compare(const struct NEXUS_BaseObject* node, const struct NEXUS_BaseObject *key)
@@ -89,6 +84,21 @@ BLST_AA_TREE_GENERATE_REMOVE(NEXUS_P_BaseObjectTree, NEXUS_BaseObject, node)
 BLST_AA_TREE_GENERATE_FIRST(NEXUS_P_BaseObjectTree, NEXUS_BaseObject, node)
 BLST_AA_TREE_GENERATE_NEXT(NEXUS_P_BaseObjectTree, NEXUS_BaseObject, node)
 
+static int NEXUS_P_BaseObject_CompareId(const struct NEXUS_BaseObject* node, NEXUS_BaseObjectId id)
+{
+    if(id > node->id) {
+        return 1;
+    } else if(id ==node->id) {
+        return 0;
+    } else {
+        return -1;
+    }
+}
+
+BLST_AA_TREE_GENERATE_FIND(NEXUS_P_BaseObjectIdTree, NEXUS_BaseObjectId, NEXUS_BaseObject, nodeId, NEXUS_P_BaseObject_CompareId)
+BLST_AA_TREE_GENERATE_INSERT(NEXUS_P_BaseObjectIdTree, NEXUS_BaseObjectId, NEXUS_BaseObject, nodeId, NEXUS_P_BaseObject_CompareId)
+BLST_AA_TREE_GENERATE_REMOVE(NEXUS_P_BaseObjectIdTree, NEXUS_BaseObject, nodeId)
+
 static struct b_objdb s_nexus_objdb;
 
 static NEXUS_Error _b_objdb_init(struct b_objdb *db)
@@ -96,6 +106,8 @@ static NEXUS_Error _b_objdb_init(struct b_objdb *db)
     BKNI_Memset(db, 0, sizeof(*db));
 
     BLST_AA_TREE_INIT(NEXUS_P_BaseObjectTree, &db->object_tree);
+    BLST_AA_TREE_INIT(NEXUS_P_BaseObjectIdTree, &db->id_tree);
+    db->last_id = NEXUS_BASEOBJECT_MIN_ID;
     BDBG_OBJECT_SET(db, b_objdb);
     return NEXUS_SUCCESS;
 }
@@ -157,6 +169,24 @@ void b_objdb_remove_module(struct b_objdb_module *module, NEXUS_ModuleHandle nex
     return;
 }
 
+static NEXUS_BaseObjectId b_objdb_get_unique_id_locked(struct b_objdb *db)
+{
+    NEXUS_BaseObjectId prev_id = db->last_id;
+    for(;;) {
+        const NEXUS_BaseObject *object;
+        NEXUS_BaseObjectId next_id = prev_id + sizeof(unsigned); /* increment by 4 to keep ID's aligned by the 32-bit pointer size */
+        if(next_id < prev_id) { /* overflow */
+            next_id = NEXUS_BASEOBJECT_MIN_ID;
+        }
+        object = BLST_AA_TREE_FIND(NEXUS_P_BaseObjectIdTree, &db->id_tree, next_id);
+        if(object==NULL) { /* Bingo, found unused ID */
+            db->last_id = next_id;
+            return next_id;
+        }
+        prev_id = next_id;
+     }
+}
+
 /* internal destroys may issue duplicate */
 #define IS_INTERNAL_DESTROY_OP(operation) ( \
     (operation) == NEXUS_Object_P_RegisterUnregister_eUnregisterDestroy || \
@@ -198,7 +228,10 @@ static int b_objdb_insert(struct b_objdb_module *db, const NEXUS_BaseClassDescri
                     base_object->state.order = db->order++; /* simplistic order. TODO: add a threshold to do compaction to avoid overflow */
                     base_object->state.insert_operation = operation;
                     BKNI_AcquireMutex(NEXUS_P_Base_State.baseObject.lock);
+                    base_object->id = b_objdb_get_unique_id_locked(db->db);
+                    BDBG_MSG(("Object %s:%p -> Id:%#x", p_class->type_name, (void *)base_object, base_object->id));
                     BLST_AA_TREE_INSERT(NEXUS_P_BaseObjectTree, &db->db->object_tree, base_object, base_object);
+                    BLST_AA_TREE_INSERT(NEXUS_P_BaseObjectIdTree, &db->db->id_tree, base_object->id, base_object);
 #if BDBG_DEBUG_BUILD
                     {
                         NEXUS_BaseObject *object = BLST_AA_TREE_FIND(NEXUS_P_BaseObjectTree, &db->db->object_tree, base_object);
@@ -302,6 +335,7 @@ And because we remove unconditionally, these BDBG_WRN's are only for internal de
             BDBG_OBJECT_ASSERT(db->db, b_objdb);
             BKNI_AcquireMutex(NEXUS_P_Base_State.baseObject.lock);
             BLST_AA_TREE_REMOVE(NEXUS_P_BaseObjectTree, &db->db->object_tree, base_object);
+            BLST_AA_TREE_REMOVE(NEXUS_P_BaseObjectIdTree, &db->db->id_tree, base_object);
             BKNI_ReleaseMutex(NEXUS_P_Base_State.baseObject.lock);
             base_object->state.objdb_class = NULL;
         }
@@ -478,6 +512,7 @@ static void b_objdb_module_uninit_entry_locked(struct b_objdb_module *db, NEXUS_
         BDBG_OBJECT_ASSERT(db->db, b_objdb);
         BKNI_AcquireMutex(NEXUS_P_Base_State.baseObject.lock);
         BLST_AA_TREE_REMOVE(NEXUS_P_BaseObjectTree, &db->db->object_tree, base_object);
+        BLST_AA_TREE_REMOVE(NEXUS_P_BaseObjectIdTree, &db->db->id_tree, base_object);
         BKNI_ReleaseMutex(NEXUS_P_Base_State.baseObject.lock);
         base_object->state.objdb_class = NULL;
         db->cancel_callbacks_locked(db->cancel_callbacks_context, handle, NULL);
@@ -667,4 +702,17 @@ b_objdb_get_object_list_result b_objdb_get_object_list(const struct b_objdb_clie
     }
     BKNI_ReleaseMutex(NEXUS_P_Base_State.baseObject.lock);
     return rc;
+}
+
+NEXUS_BaseObject *NEXUS_BaseObject_FromId(NEXUS_BaseObjectId id)
+{
+    const struct b_objdb *db = &s_nexus_objdb;
+    NEXUS_BaseObject *base_object;
+
+    BDBG_OBJECT_ASSERT(db, b_objdb);
+    BKNI_AcquireMutex(NEXUS_P_Base_State.baseObject.lock);
+    base_object = BLST_AA_TREE_FIND(NEXUS_P_BaseObjectIdTree, &db->id_tree, id);
+    BKNI_ReleaseMutex(NEXUS_P_Base_State.baseObject.lock);
+    BDBG_MSG(("Id %#x -> Object:%p", id, (void *)base_object));
+    return base_object;
 }

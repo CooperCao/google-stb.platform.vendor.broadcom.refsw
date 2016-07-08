@@ -43,7 +43,7 @@
 #include "bkni.h"
 #include "bmuxlib_debug.h"
 
-#if (BMUXLIB_INPUT_P_DUMP_DESC || BMUXLIB_FNRT_P_DUMP_DESC || BMUXLIB_FNRT_P_TEST_MODE)
+#if (BMUXLIB_INPUT_P_DUMP_DESC)
 #include <stdio.h>
 
 typedef struct BMuxlib_Debug_P_CSV_Context

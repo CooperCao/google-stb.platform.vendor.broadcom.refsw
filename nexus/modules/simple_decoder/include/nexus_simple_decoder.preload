@@ -1,7 +1,0 @@
-# list header files from other modules and from separate include files
-# which must be loaded for proper syncthunk autogen
-
-../../audio/include/nexus_audio_decoder_types.h
-../../video_decoder/include/nexus_video_decoder_types.h
-../../transport/include/nexus_stc_channel_types.h
-../../video_encoder/include/nexus_video_encoder.h

@@ -1,22 +1,42 @@
 /***************************************************************************
- *     Copyright (c) 2002-2014, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description: Converts startcode index to bcmplayer index
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ***************************************************************************/
 #ifndef USE_LEGACY_KERNAL_INTERFACE
 /* Magnum debug interface */
@@ -67,6 +87,11 @@ BDBG_MODULE(bcmindexer);
 #include <Windows.h>
 typedef __int64 off_t;
 #endif
+
+/* 64 bit support */
+#define getLo64(X) (unsigned long)((X)&0xFFFFFFFF)
+#define getHi64(X) (unsigned long)((X)>>32)
+#define create64(HI,LO) ((((uint64_t)(HI))<<32)|(unsigned long)(LO))
 
 /* enable this to add start code validation
    debug messages at the compile time */
@@ -120,7 +145,6 @@ typedef __int64 off_t;
 ---------------------------------------------------------------*/
 static unsigned long BNAV_Indexer_returnPts(const BSCT_Entry *p_sct );
 static int BNAV_Indexer_completeFrame( BNAV_Indexer_Handle handle );
-static unsigned BNAV_Indexer_subtractByteCounts( uint32_t largerNum, uint32_t smallerNum );
 static long BNAV_Indexer_FeedAVC(BNAV_Indexer_Handle handle, const void *p_bfr, long numEntries);
 static long BNAV_Indexer_FeedHEVC(BNAV_Indexer_Handle handle, const void *p_bfr, long numEntries);
 static long BNAV_Indexer_FeedAVS(BNAV_Indexer_Handle handle, void *p_bfr, long numEntries);
@@ -186,6 +210,7 @@ int BNAV_Indexer_Open(BNAV_Indexer_Handle *handle, const BNAV_Indexer_Settings *
 int BNAV_Indexer_Reset(BNAV_Indexer_Handle handle, const BNAV_Indexer_Settings *settings)
 {
     int result = 0;
+    uint64_t offset;
 
     if (!settings->writeCallback ||
         !settings->filePointer)
@@ -247,10 +272,9 @@ int BNAV_Indexer_Reset(BNAV_Indexer_Handle handle, const BNAV_Indexer_Settings *
     BNAV_set_frameType(&(handle->curEntry), eSCTypeUnknown);
     BNAV_set_frameType(&(handle->avcEntry), eSCTypeUnknown);
 
-    BNAV_set_frameOffsetLo(&(handle->curEntry), handle->settings.append.offsetLo);
-    BNAV_set_frameOffsetHi(&(handle->curEntry), handle->settings.append.offsetHi);
-    BNAV_set_frameOffsetLo(&(handle->avcEntry), handle->settings.append.offsetLo);
-    BNAV_set_frameOffsetHi(&(handle->avcEntry), handle->settings.append.offsetHi);
+    offset = create64(handle->settings.append.offsetHi, handle->settings.append.offsetLo);
+    BNAV_set_frameOffset(&(handle->curEntry), offset);
+    BNAV_set_frameOffset(&(handle->avcEntry), offset);
 
     handle->isHits = 1;  /* Assume HITS until we're proven wrong */
     handle->avc.current_sps = handle->avc.current_pps = -1;
@@ -294,7 +318,7 @@ long BNAV_Indexer_Feed(BNAV_Indexer_Handle handle, void *p_bfr, long numEntries)
 static int BNAV_Indexer_ProcessMPEG2SCT(BNAV_Indexer_Handle handle, const BSCT_Entry *p_curBfr)
 {
     BNAV_Entry *navEntry = &handle->curEntry;
-    uint32_t offset = 0, offsetHi = 0;
+    uint64_t offset = 0;
     int sc = returnStartCode(p_curBfr->startCodeBytes); /* parse once */
 
     /* detect invalid start code and offsets */
@@ -303,7 +327,7 @@ static int BNAV_Indexer_ProcessMPEG2SCT(BNAV_Indexer_Handle handle, const BSCT_E
     BDBG_MSG_TRACE(("SCT Entry: %02x %08x %08x %08x %08x", sc, p_curBfr->startCodeBytes, p_curBfr->recordByteCount, p_curBfr->recordByteCountHi, p_curBfr->flags));
 
     if (sc != SC_PTS) {
-        BNAV_Indexer_getOffset(handle, p_curBfr, &offsetHi, &offset);
+        offset = BNAV_Indexer_getOffset(handle, p_curBfr);
     }
 
     if (handle->settings.navVersion == BNAV_Version_TimestampOnly) {
@@ -317,7 +341,7 @@ static int BNAV_Indexer_ProcessMPEG2SCT(BNAV_Indexer_Handle handle, const BSCT_E
             the file offset. Without the file offset, the timestamp has no use. */
             {
                 unsigned currenttime = currentTimestamp();
-                unsigned framesize = BNAV_Indexer_subtractByteCounts( offset, handle->picStart);
+                unsigned framesize = offset - handle->picStart;
 
                 /* don't write out NAV's more than 1 per 30 msec or that are too small. */
                 if (currenttime >= handle->lasttime + 30 && framesize > 1000) {
@@ -326,8 +350,7 @@ static int BNAV_Indexer_ProcessMPEG2SCT(BNAV_Indexer_Handle handle, const BSCT_E
 
                     /* record the start of the next frame */
                     BNAV_set_framePts(navEntry, handle->next_pts);
-                    BNAV_set_frameOffsetLo(navEntry, offset);
-                    BNAV_set_frameOffsetHi(navEntry, offsetHi);
+                    BNAV_set_frameOffset(navEntry, offset);
                     handle->picStart = offset;
                 }
             }
@@ -339,7 +362,7 @@ static int BNAV_Indexer_ProcessMPEG2SCT(BNAV_Indexer_Handle handle, const BSCT_E
     if (handle->seqHdrFlag) {
         if (sc != SC_PES && sc != SC_PTS && sc != SC_EXTENSION) {
             handle->seqHdrFlag = 0;
-            handle->seqHdrSize = BNAV_Indexer_subtractByteCounts(offset, handle->seqHdrStartOffset);
+            handle->seqHdrSize = offset - handle->seqHdrStartOffset;
         }
     }
 
@@ -449,8 +472,7 @@ static int BNAV_Indexer_ProcessMPEG2SCT(BNAV_Indexer_Handle handle, const BSCT_E
         /* start a new frame */
         handle->picStart = offset;
 
-        BNAV_set_frameOffsetLo(navEntry, offset);
-        BNAV_set_frameOffsetHi(navEntry, offsetHi);
+        BNAV_set_frameOffset(navEntry, offset);
 
         switch(picture_coding_type)
         {
@@ -483,8 +505,7 @@ static int BNAV_Indexer_ProcessMPEG2SCT(BNAV_Indexer_Handle handle, const BSCT_E
         /* make sequence header offset relative to current frame rather than */
         /* relative to reference frame to allow removal of b-frames */
         BNAV_set_seqHdrSize(navEntry, (unsigned short)handle->seqHdrSize);
-        BNAV_set_seqHdrStartOffset(navEntry,
-                    BNAV_Indexer_subtractByteCounts(handle->picStart, handle->seqHdrStartOffset));
+        BNAV_set_seqHdrStartOffset(navEntry, handle->picStart - handle->seqHdrStartOffset);
 
         /* Sets the refFrameOffset after adding the prev_I_rfo to the rfo.
         prev_I_rfo will be non-zero ONLY for open gop B's, which are B's that come
@@ -596,7 +617,7 @@ long BNAV_Indexer_FeedReverse(BNAV_Indexer_Handle handle, const BSCT_Entry *p_bf
             break;
 
         case SC_SEQUENCE:
-            BNAV_Indexer_getOffset(handle, curSct, NULL, &handle->seqHdrStartOffset);
+            handle->seqHdrStartOffset = BNAV_Indexer_getOffset(handle, curSct);
             handle->seqHdrSize = handle->picEnd - handle->seqHdrStartOffset;
 
             /* Go through every entry and set seqhdr offset if not set already */
@@ -607,9 +628,7 @@ long BNAV_Indexer_FeedReverse(BNAV_Indexer_Handle handle, const BSCT_Entry *p_bf
                     break;
 
                 BNAV_set_seqHdrSize(entry, (unsigned short)handle->seqHdrSize);
-                BNAV_set_seqHdrStartOffset(entry,
-                    BNAV_Indexer_subtractByteCounts(
-                        BNAV_get_frameOffsetLo(entry), handle->seqHdrStartOffset));
+                BNAV_set_seqHdrStartOffset(entry, BNAV_get_frameOffset(entry) - handle->seqHdrStartOffset);
             }
 
             BNAV_Indexer_Flush(handle);
@@ -631,8 +650,8 @@ long BNAV_Indexer_FeedReverse(BNAV_Indexer_Handle handle, const BSCT_Entry *p_bf
             }
             navEntry = &handle->reverse.entry[handle->reverse.total_entries++];
 
-            BNAV_Indexer_getOffset(handle, curSct, NULL, &handle->picStart);
-            frameSize = BNAV_Indexer_subtractByteCounts(handle->picEnd, handle->picStart);
+            handle->picStart = BNAV_Indexer_getOffset(handle, curSct);
+            frameSize = handle->picEnd - handle->picStart;
             if (frameSize > handle->settings.maxFrameSize) {
                 BDBG_WRN(("Giant frame (%d bytes) detected and rejected: %d", frameSize, handle->totalEntriesWritten));
                 handle->parsingErrors++;
@@ -641,9 +660,7 @@ long BNAV_Indexer_FeedReverse(BNAV_Indexer_Handle handle, const BSCT_Entry *p_bf
                 continue;
             }
 
-            BNAV_set_frameOffsetLo(navEntry, handle->picStart);
-            BNAV_set_frameOffsetHi(navEntry, 0); /* BNAV_Indexer_getScByteOffsetHi(handle, curSct)); */
-
+            BNAV_set_frameOffset(navEntry, handle->picStart);
             BNAV_set_frameSize(navEntry, frameSize);
             BNAV_Indexer_StampEntry(handle, navEntry);
 
@@ -734,8 +751,8 @@ long BNAV_Indexer_FeedReverse(BNAV_Indexer_Handle handle, const BSCT_Entry *p_bf
 
         if (sc != SC_PES && sc != SC_PTS && sc != SC_EXTENSION && sc != SC_FIRST_SLICE)
         {
-            BNAV_Indexer_getOffset(handle, curSct, NULL, &handle->picEnd);
-            BDBG_MSG(("Set picEnd %u, %d", (unsigned)handle->picEnd,sc));
+            handle->picEnd = BNAV_Indexer_getOffset(handle, curSct);
+            BDBG_MSG(("Set picEnd " BDBG_UINT64_FMT ", %d", BDBG_UINT64_ARG(handle->picEnd),sc));
         }
     }
 
@@ -849,7 +866,7 @@ void BNAV_Indexer_StampEntry(BNAV_Indexer_Handle handle, BNAV_Entry *entry)
 
         Print a warning every 60 seconds after hitting the threshold. */
         if ((new_timestamp - BNAV_TIMESTAMP_OVERFLOW_WARNING) / 60000 > (handle->actual_lasttime - BNAV_TIMESTAMP_OVERFLOW_WARNING) / 60000) {
-            BDBG_ERR(("%p about to overflow timestamp %#x. App must stop this recording and start another.", handle, new_timestamp));
+            BDBG_ERR(("%p about to overflow timestamp %#x. App must stop this recording and start another.", (void *)handle, new_timestamp));
         }
     }
     handle->actual_lasttime = new_timestamp;
@@ -953,7 +970,7 @@ fail:
 int BNAV_Indexer_completeFrameAux(BNAV_Indexer_Handle handle, void *data, int size)
 {
     BNAV_Entry *navEntry = (BNAV_Entry *)data;
-    unsigned long frameSize = BNAV_Indexer_subtractByteCounts( handle->picEnd, BNAV_get_frameOffsetLo(navEntry));
+    unsigned long frameSize = handle->picEnd - BNAV_get_frameOffset(navEntry);
     int frameType = BNAV_get_frameType(navEntry);
 
     BNAV_set_frameSize(navEntry,frameSize);
@@ -1072,72 +1089,43 @@ unsigned long BNAV_Indexer_returnPts(const BSCT_Entry *p_sct )
 
 /******************************************************************************
 Get 64 bit byte offset from SCT
-
-pHi is optional
 handle overflow of HW's 40 bit offset
 apply optional append amount
 ******************************************************************************/
-void BNAV_Indexer_getOffset(BNAV_Indexer_Handle handle, const BSCT_Entry *p_entry, uint32_t *pHi, uint32_t *pLo)
+uint64_t BNAV_Indexer_getOffset(BNAV_Indexer_Handle handle, const BSCT_Entry *p_entry)
 {
     uint64_t offset;
+    unsigned sc = returnStartCode(p_entry->startCodeBytes);
 
-    if (p_entry->startCodeBytes>>24 == 0xFE) {
-        /* handle->hiOverflow state will go wrong if special PTS entry allowed in */
-        BDBG_ERR(("internal error calling BNAV_Indexer_getScByteOffsetHi"));
+    if (sc == SC_PTS || sc == SC_PES) {
+        /* ByteOffsetHi not needed for PTS or PES entry, and handle->hiOverflow state can go wrong if allowed in
+        because PTS/PES byte offset may be higher than next start code if start code payload does not complete
+        until the next PES packet. */
+        return 0;
     }
 
-    offset = (uint64_t)p_entry->recordByteCount + (p_entry->startCodeBytes & 0xff);
+    offset = create64(p_entry->recordByteCountHi>>24, p_entry->recordByteCount + (p_entry->startCodeBytes & 0xff));
     if (handle->settings.transportTimestampEnabled) {
         offset += 4;
     }
 
-    if (pHi) {
-        /* 40 bit HW SCT may overflow. bcmindexer supports 64 bit. */
-        uint32_t hi = p_entry->recordByteCountHi>>24;
-        if (hi < handle->hiOverflow.last) {
-            handle->hiOverflow.cnt++;
-        }
-        handle->hiOverflow.last = hi;
-        hi += handle->hiOverflow.cnt * 0x100;
-
-        offset += (uint64_t)hi << 32;
+    /* 40 bit HW SCT may overflow. bcmindexer supports 64 bit. */
+    if (offset < handle->hiOverflow.last) {
+        handle->hiOverflow.cnt++;
+        BDBG_WRN(("SCT 40 bit offset overflow. " BDBG_UINT64_FMT " < " BDBG_UINT64_FMT ", handle->hiOverflow.cnt %u",
+            BDBG_UINT64_ARG(offset), BDBG_UINT64_ARG(handle->hiOverflow.last), handle->hiOverflow.cnt));
+    }
+    handle->hiOverflow.last = offset;
+    if (handle->hiOverflow.cnt) {
+        offset += create64(handle->hiOverflow.cnt * 0x100, 0);
     }
 
     if (handle->settings.append.offsetHi || handle->settings.append.offsetLo) {
         /* add the append amount */
-        offset += ((uint64_t)handle->settings.append.offsetHi << 32) + handle->settings.append.offsetLo;
+        offset += create64(handle->settings.append.offsetHi, handle->settings.append.offsetLo);
 
     }
-    if (pHi) {
-        *pHi = offset >> 32;
-    }
-    *pLo = offset & 0xFFFFFFFF;
-}
-
-/******************************************************************************
-* INPUTS:   largerNum - Number to subtract from.
-*           smallerNum - Number to be subtracted.
-* OUTPUTS:  None.
-* RETURNS:  Difference between 2 32-bit numbers.
-* FUNCTION: This function subtracts largerNum from smallerNum.  It assumes that
-*           largerNum is larger and if not, it must have wrapped.
-*           This function is used for calculating the difference between 64-bit
-*           byte counts using only 32-bit numbers and assuming that the
-*           difference between the two number can be contained in a 32-bit
-*           unsigned integer.
-*           This works because it is only used for metadata offsets and picture
-*           sizes which are always localized.
-******************************************************************************/
-static unsigned BNAV_Indexer_subtractByteCounts( uint32_t largerNum, uint32_t smallerNum )
-{
-    if (largerNum >= smallerNum)
-    {
-        return largerNum - smallerNum;
-    }
-    else
-    {
-        return (0 - smallerNum) + largerNum;
-    }
+    return offset;
 }
 
 const char * const BNAV_frameTypeStr[eSCTypeUnknown+1] = {
@@ -1194,6 +1182,7 @@ int BNAV_Indexer_GetPosition(BNAV_Indexer_Handle handle, BNAV_Indexer_Position *
         return -1;
     else {
         BNAV_Entry *p_entry = &handle->lastEntryWritten;
+        uint64_t offset;
         switch(handle->settings.videoFormat) {
         case BNAV_Indexer_VideoFormat_AVC_MVC:
         case BNAV_Indexer_VideoFormat_AVC_SVC:
@@ -1201,8 +1190,9 @@ int BNAV_Indexer_GetPosition(BNAV_Indexer_Handle handle, BNAV_Indexer_Position *
         default:
             position->index = handle->totalEntriesWritten-1;
             position->pts = BNAV_get_framePts(p_entry);
-            position->offsetHi = BNAV_get_frameOffsetHi(p_entry);
-            position->offsetLo = BNAV_get_frameOffsetLo(p_entry);
+            offset = BNAV_get_frameOffset(p_entry);
+            position->offsetHi = getHi64(offset);
+            position->offsetLo = getLo64(offset);
             position->timestamp = BNAV_get_timestamp(p_entry);
             position->vchipState = BNAV_unpack_vchip(BNAV_get_packed_vchip(p_entry));
             return 0;
@@ -1312,8 +1302,8 @@ static long BNAV_Indexer_P_ProcessFullPacket(BNAV_Indexer_Handle handle, long (*
 
         /* set offset */
         sct.startCodeBytes |= offset - 3; /* byte offset from the start of the packet to the start code */
-        sct.recordByteCount = handle->lastPacketOffset.offset; /* lower 32 bits of packet offset */
-        sct.recordByteCountHi |= handle->lastPacketOffset.offsetHi << 24; /* upper 8 bits of packet offset */
+        sct.recordByteCount = getLo64(handle->lastPacketOffset.offset);
+        sct.recordByteCountHi |= getHi64(handle->lastPacketOffset.offset)<<24;
 
         BDBG_MSG_TRACE(("  sending SC SCT"));
         rc = feed(handle, &sct, 1);
@@ -1384,7 +1374,7 @@ BNAV_Indexer_P_FilterFullPacket(BNAV_Indexer_Handle handle, const BSCT_SixWord_E
         if(type==0x80) {
             BDBG_MSG_TRACE(("%u:Full Packet offset %u", (unsigned)i, handle->fullPacketCount));
             if(next!=sct) {
-                BDBG_MSG_TRACE(("%u:sending %u middle entries from %p", (unsigned)i, next-sct, (void *)sct));
+                BDBG_MSG_TRACE(("%u:sending %u middle entries from %p", (unsigned)i, (unsigned)(next-sct), (void *)sct));
                 rc = feed(handle, sct, next-sct);
                 if(rc<0) {return rc;}
                 sct = next;
@@ -1401,9 +1391,7 @@ BNAV_Indexer_P_FilterFullPacket(BNAV_Indexer_Handle handle, const BSCT_SixWord_E
         } else {
             if(type==0x01 && B_GET_BIT(next->startCodeBytes, 22)) {
                 BDBG_MSG_TRACE(("SCT PAYLOAD_TO_FOLLOW"));
-                handle->lastPacketOffset.offset = next->recordByteCount;
-                handle->lastPacketOffset.offsetHi = next->startCodeBytes >> 24;
-
+                handle->lastPacketOffset.offset = create64(next->startCodeBytes>>24,next->recordByteCount);
                 handle->fullPacketCount = 4;
                 handle->fullPacket[0] = 0;
                 handle->fullPacket[1] = 0;
@@ -1418,7 +1406,7 @@ BNAV_Indexer_P_FilterFullPacket(BNAV_Indexer_Handle handle, const BSCT_SixWord_E
         }
     }
     if(next >= sct+1) {
-        BDBG_MSG_TRACE(("sending %u last entries from %#lx", next-sct, (unsigned long)sct));
+        BDBG_MSG_TRACE(("sending %u last entries from %#lx", (unsigned)(next-sct), (unsigned long)sct));
         rc = feed(handle, sct, next-sct);
         if(rc<0) {return rc;}
     }
@@ -1478,7 +1466,7 @@ BNAV_Indexer_FeedAVC(BNAV_Indexer_Handle handle, const void *p_bfr, long numEntr
     for(i=0; i<numEntries; i++, p_curBfr++)
     {
         unsigned char sc = returnStartCode(p_curBfr->startCodeBytes); /* parse once */
-        uint32_t offset, offsetHi;
+        uint64_t offset;
         unsigned nal_unit_type;
         unsigned nal_ref_idc;
 #define TOTAL_PAYLOAD 8
@@ -1519,11 +1507,11 @@ BNAV_Indexer_FeedAVC(BNAV_Indexer_Handle handle, const void *p_bfr, long numEntr
             continue;
         }
 
-        BNAV_Indexer_getOffset(handle, p_curSct4, &offsetHi, &offset);
+        offset = BNAV_Indexer_getOffset(handle, p_curSct4);
 
         VALIDATE_AVC_SC(handle, p_curSct4,sc);
 
-        BDBG_MSG(("sc %02x at %#x", sc, (unsigned)offset));
+        BDBG_MSG(("sc %02x at " BDBG_UINT64_FMT, sc, BDBG_UINT64_ARG(offset)));
         nal_ref_idc = (sc >> 5) & 0x3;
         nal_unit_type = sc & 0x1F;
 
@@ -1544,15 +1532,13 @@ BNAV_Indexer_FeedAVC(BNAV_Indexer_Handle handle, const void *p_bfr, long numEntr
         if (handle->avc.current_pps >= 0) {
             /* complete the PPS */
             int id = handle->avc.current_pps;
-            handle->avc.pps[id].size = BNAV_Indexer_subtractByteCounts(
-                offset, handle->avc.pps[id].offset);
+            handle->avc.pps[id].size = offset - handle->avc.pps[id].offset;
             handle->avc.current_pps = -1;
         }
         else if (handle->avc.current_sps >= 0) {
             /* complete the SPS */
             int id = handle->avc.current_sps;
-            handle->avc.sps[id].size = BNAV_Indexer_subtractByteCounts(
-                offset, handle->avc.sps[id].offset);
+            handle->avc.sps[id].size = offset - handle->avc.sps[id].offset;
             handle->avc.current_sps = -1;
         }
 
@@ -1597,8 +1583,8 @@ BNAV_Indexer_FeedAVC(BNAV_Indexer_Handle handle, const void *p_bfr, long numEntr
                 return -1;
             }
 
-            BDBG_MSG(("%s slice: mb=%-4d type=%-2d pps=%-3d offset=%#x",
-                (nal_unit_type==1)?"non-IDR":"IDR", first_mb_in_slice, slice_type, pic_parameter_set_id, (unsigned)offset));
+            BDBG_MSG(("%s slice: mb=%-4d type=%-2d pps=%-3d offset=" BDBG_UINT64_FMT,
+                (nal_unit_type==1)?"non-IDR":"IDR", first_mb_in_slice, slice_type, pic_parameter_set_id, BDBG_UINT64_ARG(offset)));
 
             if (first_mb_in_slice == 0) {
                 /* we have the beginning of a new frame. first, complete the previous frame. */
@@ -1609,9 +1595,7 @@ BNAV_Indexer_FeedAVC(BNAV_Indexer_Handle handle, const void *p_bfr, long numEntr
 
                 /* start the next frame */
                 handle->picStart = handle->avc.current_sei_valid?handle->avc.current_sei:offset; /* start with preceding SEI's if present */
-
-                BNAV_set_frameOffsetLo(avcEntry, handle->picStart);
-                BNAV_set_frameOffsetHi(avcEntry, offsetHi);
+                BNAV_set_frameOffset(avcEntry, handle->picStart);
 
                 /* default to I frame until P or B slices indicate differently */
                 BNAV_set_frameType(avcEntry, eSCTypeIFrame);
@@ -1619,12 +1603,10 @@ BNAV_Indexer_FeedAVC(BNAV_Indexer_Handle handle, const void *p_bfr, long numEntr
                 handle->avc.is_reference_picture = 0;
 
                 /* Set PPS and SPS */
-                BNAV_set_seqHdrStartOffset(avcEntry,
-                    BNAV_Indexer_subtractByteCounts(handle->picStart, handle->avc.pps[pic_parameter_set_id].offset));
+                BNAV_set_seqHdrStartOffset(avcEntry, handle->picStart - handle->avc.pps[pic_parameter_set_id].offset);
                 BNAV_set_seqHdrSize(avcEntry,
                     handle->avc.pps[pic_parameter_set_id].size);
-                BNAV_set_SPS_Offset(avcEntry,
-                    BNAV_Indexer_subtractByteCounts(handle->picStart, handle->avc.sps[sps_id].offset));
+                BNAV_set_SPS_Offset(avcEntry, handle->picStart - handle->avc.sps[sps_id].offset);
                 BNAV_set_SPS_Size(avcEntry,
                     handle->avc.sps[sps_id].size);
 
@@ -1657,7 +1639,7 @@ BNAV_Indexer_FeedAVC(BNAV_Indexer_Handle handle, const void *p_bfr, long numEntr
                     /* SPS must precede PPS, so only test distance to SPS.
                     spsOffset is byte aligned distance from the byte aligned start of the picture to the start of the SPS.
                     if the SPS is within the packet or the previous packet, mark the RAI */
-                    if (BNAV_get_SPS_Offset(avcEntry) <= packetSize + (BNAV_get_frameOffsetLo(avcEntry) % packetSize)) {
+                    if (BNAV_get_SPS_Offset(avcEntry) <= packetSize + (BNAV_get_frameOffset(avcEntry) % packetSize)) {
                         handle->random_access_indicator = true;
                     }
                 }
@@ -1723,8 +1705,8 @@ BNAV_Indexer_FeedAVC(BNAV_Indexer_Handle handle, const void *p_bfr, long numEntr
             handle->avc.sps[seq_parameter_set_id].offset = handle->avc.current_sei_valid?handle->avc.current_sei:offset; /* start with preceding SEI's if present */
             handle->avc.current_sps = seq_parameter_set_id;
 
-            BDBG_MSG(("SeqParamSet: profile_idc=%u flags=0x%x level_idc=%d SPS=%d offset=%#x",
-                profile_idc, constraint_flags, level_idc, seq_parameter_set_id, (unsigned)offset));
+            BDBG_MSG(("SeqParamSet: profile_idc=%u flags=0x%x level_idc=%d SPS=%d offset=" BDBG_UINT64_FMT,
+                profile_idc, constraint_flags, level_idc, seq_parameter_set_id, BDBG_UINT64_ARG(offset)));
             }
             break;
         case 8: /* picture parameter set */
@@ -1751,8 +1733,8 @@ BNAV_Indexer_FeedAVC(BNAV_Indexer_Handle handle, const void *p_bfr, long numEntr
             handle->avc.pps[pic_parameter_set_id].sps_id = seq_parameter_set_id;
             handle->avc.current_pps = pic_parameter_set_id;
 
-            BDBG_MSG(("PicParamSet: PPS=%d, SPS=%d offset=%#x",
-                pic_parameter_set_id, seq_parameter_set_id, (unsigned)offset));
+            BDBG_MSG(("PicParamSet: PPS=%d, SPS=%d offset=" BDBG_UINT64_FMT,
+                pic_parameter_set_id, seq_parameter_set_id, BDBG_UINT64_ARG(offset)));
             }
             break;
 
@@ -1808,7 +1790,7 @@ BNAV_Indexer_FeedAVS(BNAV_Indexer_Handle handle, void *p_bfr, long numEntries)
     for (i=0; i<numEntries; i++,p_cur6WordBfr++)
     {
         int sc;
-        uint32_t offset = 0, offsetHi = 0;
+        uint64_t offset = 0;
 
         p_curBfr = CONVERT_TO_SCT4(p_cur6WordBfr);
 
@@ -1824,20 +1806,19 @@ BNAV_Indexer_FeedAVS(BNAV_Indexer_Handle handle, void *p_bfr, long numEntries)
 
         sc = returnStartCode(p_curBfr->startCodeBytes); /* parse once */
         if (sc != SC_AVS_PTS) {
-            BNAV_Indexer_getOffset(handle, p_curBfr, &offsetHi, &offset);
+            offset = BNAV_Indexer_getOffset(handle, p_curBfr);
         }
 
         /* detect invalid start code and offsets */
         VALIDATE_AVS_SC(handle, p_curBfr,sc);
 
-        BDBG_MSG(("AVS SCT Entry: %02x 0x%02x%08x", sc,
-                  (p_curBfr->recordByteCountHi>>24) & 0xFF, p_curBfr->recordByteCount));
+        BDBG_MSG(("AVS SCT Entry: %02x " BDBG_UINT64_FMT, sc, BDBG_UINT64_ARG(offset)));
         if (handle->seqHdrFlag)
         {
             if (sc != SC_AVS_PES && sc != SC_AVS_PTS && sc != SC_AVS_EXTENSION && sc != SC_AVS_USER_DATA)
             {
                 handle->seqHdrFlag = 0;
-                handle->seqHdrSize = BNAV_Indexer_subtractByteCounts(offset, handle->seqHdrStartOffset);
+                handle->seqHdrSize = offset - handle->seqHdrStartOffset;
             }
         }
 
@@ -1877,8 +1858,7 @@ BNAV_Indexer_FeedAVS(BNAV_Indexer_Handle handle, void *p_bfr, long numEntries)
             /* start a new frame */
             handle->picStart = offset;
 
-            BNAV_set_frameOffsetLo(navEntry, offset);
-            BNAV_set_frameOffsetHi(navEntry, offsetHi);
+            BNAV_set_frameOffset(navEntry, offset);
 
             if (sc == SC_AVS_PICTURE_I)
             {
@@ -1906,8 +1886,7 @@ BNAV_Indexer_FeedAVS(BNAV_Indexer_Handle handle, void *p_bfr, long numEntries)
             /* make sequence header offset relative to current frame rather than */
             /* relative to reference frame to allow removal of b-frames */
             BNAV_set_seqHdrSize(navEntry, (unsigned short)handle->seqHdrSize);
-            BNAV_set_seqHdrStartOffset(navEntry,
-                                       BNAV_Indexer_subtractByteCounts(handle->picStart, handle->seqHdrStartOffset));
+            BNAV_set_seqHdrStartOffset(navEntry, handle->picStart - handle->seqHdrStartOffset);
 
             /* Sets the refFrameOffset after adding the prev_I_rfo to the rfo.
             prev_I_rfo will be non-zero ONLY for open gop B's, which are B's that come
@@ -1972,7 +1951,7 @@ BNAV_Indexer_FeedHEVC(BNAV_Indexer_Handle handle, const void *p_bfr, long numEnt
         unsigned char payload[TOTAL_PAYLOAD];
         unsigned type = p_curBfr->word0>>24;
         const BSCT_Entry *p_curSct4 = CONVERT_TO_SCT4(p_curBfr);
-        uint32_t offset, offsetHi;
+        uint64_t offset;
         bool forbidden_zero_bit;
         unsigned nal_unit_type;
         size_t payload_len;
@@ -2006,7 +1985,7 @@ BNAV_Indexer_FeedHEVC(BNAV_Indexer_Handle handle, const void *p_bfr, long numEnt
             BDBG_MSG_TRACE(("PTS %08lx", handle->next_pts));
             continue;
         }
-        BNAV_Indexer_getOffset(handle, p_curSct4, &offsetHi, &offset);
+        offset = BNAV_Indexer_getOffset(handle, p_curSct4);
 
         /* extract 8 bytes of payload from BSCT_SixWord_Entry fields. see RDB for documentation on this. */
         payload[0] = (p_curBfr->startCodeBytes >> 16) & 0xFF;
@@ -2018,7 +1997,7 @@ BNAV_Indexer_FeedHEVC(BNAV_Indexer_Handle handle, const void *p_bfr, long numEnt
         payload[6] = (p_curBfr->flags >> 8) & 0xFF;
         payload[7] = p_curBfr->flags & 0xFF;
 
-        BDBG_MSG(("%u:sc %02x payload %02x%02x%02x%02x%02x%02x%02x%02x", (unsigned)offset,
+        BDBG_MSG((BDBG_UINT64_FMT ":sc %02x payload %02x%02x%02x%02x%02x%02x%02x%02x", BDBG_UINT64_ARG(offset),
             sc, payload[0],payload[1],payload[2],payload[3],payload[4],payload[5],payload[6],payload[7]));
 
         /* ITU-T H.265 (04/2013) */
@@ -2036,15 +2015,13 @@ BNAV_Indexer_FeedHEVC(BNAV_Indexer_Handle handle, const void *p_bfr, long numEnt
         if (handle->avc.current_pps >= 0) {
             /* complete the PPS */
             int id = handle->avc.current_pps;
-            handle->avc.pps[id].size = BNAV_Indexer_subtractByteCounts(
-                offset, handle->avc.pps[id].offset);
+            handle->avc.pps[id].size = offset - handle->avc.pps[id].offset;
             handle->avc.current_pps = -1;
         }
         else if (handle->avc.current_sps >= 0) {
             /* complete the SPS */
             int id = handle->avc.current_sps;
-            handle->avc.sps[id].size = BNAV_Indexer_subtractByteCounts(
-                offset, handle->avc.sps[id].offset);
+            handle->avc.sps[id].size = offset - handle->avc.sps[id].offset;
             handle->avc.current_sps = -1;
         }
         if(handle->hevc.newFrame) {
@@ -2056,7 +2033,7 @@ BNAV_Indexer_FeedHEVC(BNAV_Indexer_Handle handle, const void *p_bfr, long numEnt
                 }
                 handle->picStart = handle->hevc.sliceStart;
                 if(handle->hevc.sliceStart != handle->hevc.accessUnitStart) {
-                    unsigned offset = BNAV_Indexer_subtractByteCounts(handle->picStart, handle->hevc.accessUnitStart);
+                    unsigned offset = handle->picStart - handle->hevc.accessUnitStart;
                     /* 'sequence' is everything from start of access unit to the first slice */
                     BNAV_set_seqHdrStartOffset(avcEntry, offset);
                     BNAV_set_seqHdrSize(avcEntry, handle->hevc.sliceStart - handle->hevc.accessUnitStart);
@@ -2064,11 +2041,10 @@ BNAV_Indexer_FeedHEVC(BNAV_Indexer_Handle handle, const void *p_bfr, long numEnt
                     BNAV_set_SPS_Offset(avcEntry, offset);
                     BNAV_set_SPS_Size(avcEntry, 0);
 #if 0
-                    BDBG_LOG(("%u %u", BNAV_Indexer_subtractByteCounts(handle->picStart, handle->hevc.accessUnitStart), handle->hevc.sliceStart - handle->hevc.accessUnitStart));
+                    BDBG_LOG((BDBG_UINT64_FMT " " BDBG_UINT64_FMT, BDBG_UINT64_ARG(handle->picStart - handle->hevc.accessUnitStart), BDBG_UINT64_ARG(handle->hevc.sliceStart - handle->hevc.accessUnitStart)));
 #endif
                 }
-                BNAV_set_frameOffsetLo(avcEntry, handle->hevc.sliceStart);
-                BNAV_set_frameOffsetHi(avcEntry, handle->hevc.sliceStartHi);
+                BNAV_set_frameOffset(avcEntry, handle->hevc.sliceStart);
                 handle->avc.is_reference_picture = BNAV_get_frameType(avcEntry) != eSCTypeBFrame; /* to undo frame type conversion in BNAV_Indexer_completeAVCFrame */
                 BNAV_Indexer_completeAVCFrame( handle );
             }
@@ -2101,7 +2077,7 @@ BNAV_Indexer_FeedHEVC(BNAV_Indexer_Handle handle, const void *p_bfr, long numEnt
 
                 if ( sps_video_parameter_set_id >= sizeof(handle->avc.sps)/sizeof(handle->avc.sps[0]) ) {
                     handle->parsingErrors++;
-                    BDBG_WRN(("Invalid SPS Entry at offset %#x:%#x", (unsigned)offsetHi, (unsigned)offset));
+                    BDBG_WRN(("Invalid SPS Entry at offset " BDBG_UINT64_FMT, BDBG_UINT64_ARG(offset)));
                     break;
                 }
 
@@ -2109,7 +2085,7 @@ BNAV_Indexer_FeedHEVC(BNAV_Indexer_Handle handle, const void *p_bfr, long numEnt
                     handle->avc.sps[sps_video_parameter_set_id].offset = handle->avc.current_sei_valid?handle->avc.current_sei:offset; /* start with preceding SEI's if present */
                     handle->avc.current_sps = sps_video_parameter_set_id;
                 }
-                BDBG_MSG(("SeqParamSet: SPS=%d offset=%#x", sps_video_parameter_set_id, (unsigned)offset));
+                BDBG_MSG(("SeqParamSet: SPS=%d offset=" BDBG_UINT64_FMT, sps_video_parameter_set_id, BDBG_UINT64_ARG(offset)));
             }
             break;
         case 34: /* PPS_NUT */
@@ -2126,7 +2102,7 @@ BNAV_Indexer_FeedHEVC(BNAV_Indexer_Handle handle, const void *p_bfr, long numEnt
                 num_extra_slice_header_bits = batom_bitstream_bits(&bs, 3);
                 if(batom_bitstream_eof(&bs) || pps_pic_parameter_set_id >= sizeof(handle->hevc.pps)/sizeof(handle->hevc.pps[0])) {
                     handle->parsingErrors++;
-                    BDBG_WRN(("Invalid PPS Entry at offset %#x:%#x", (unsigned)offsetHi, (unsigned)offset));
+                    BDBG_WRN(("Invalid PPS Entry at offset" BDBG_UINT64_FMT, BDBG_UINT64_ARG(offset)));
                     break;
                 }
                 handle->hevc.pps[pps_pic_parameter_set_id].valid = true;
@@ -2137,7 +2113,7 @@ BNAV_Indexer_FeedHEVC(BNAV_Indexer_Handle handle, const void *p_bfr, long numEnt
                 handle->avc.pps[pps_pic_parameter_set_id].offset = handle->avc.current_sei_valid?handle->avc.current_sei:offset; /* start with preceding SEI's if present */
                 handle->avc.pps[pps_pic_parameter_set_id].sps_id = pps_seq_parameter_set_id;
                 handle->avc.current_pps = pps_pic_parameter_set_id;
-                BDBG_MSG(("PicParamSet: PPS=%d, SPS=%d offset=%#x", pps_pic_parameter_set_id, pps_seq_parameter_set_id, (unsigned)offset));
+                BDBG_MSG(("PicParamSet: PPS=%d, SPS=%d offset=" BDBG_UINT64_FMT, pps_pic_parameter_set_id, pps_seq_parameter_set_id, BDBG_UINT64_ARG(offset)));
             }
             break;
 
@@ -2170,7 +2146,6 @@ BNAV_Indexer_FeedHEVC(BNAV_Indexer_Handle handle, const void *p_bfr, long numEnt
                     random_access_indicator = false;
                     handle->hevc.sliceStartSet = true;
                     handle->hevc.sliceStart = offset;
-                    handle->hevc.sliceStartHi = offsetHi;
                     if(handle->avc.current_sei_valid) {
                         handle->avc.current_sei_valid = false;
                         handle->hevc.sliceStart = handle->avc.current_sei;
@@ -2206,7 +2181,7 @@ BNAV_Indexer_FeedHEVC(BNAV_Indexer_Handle handle, const void *p_bfr, long numEnt
                 slice_pic_parameter_set_id = batom_bitstream_exp_golomb(&bs);
                 if(batom_bitstream_eof(&bs) || slice_pic_parameter_set_id >= sizeof(handle->hevc.pps)/sizeof(handle->hevc.pps[0])) {
                     handle->parsingErrors++;
-                    BDBG_WRN(("Invalid Slice header: offset %#x:%#x", (unsigned)offsetHi, (unsigned)offset));
+                    BDBG_WRN(("Invalid Slice header: offset " BDBG_UINT64_FMT, BDBG_UINT64_ARG(offset)));
                     break;
                 }
                 if(!handle->hevc.pps[slice_pic_parameter_set_id].valid) {
@@ -2232,7 +2207,7 @@ BNAV_Indexer_FeedHEVC(BNAV_Indexer_Handle handle, const void *p_bfr, long numEnt
                     slice_type = batom_bitstream_exp_golomb(&bs);
                     if(batom_bitstream_eof(&bs)) {
                         handle->parsingErrors++;
-                        BDBG_WRN(("Invalid Slice header: offset %#x:%#x", (unsigned)offsetHi, (unsigned)offset));
+                        BDBG_WRN(("Invalid Slice header: offset " BDBG_UINT64_FMT, BDBG_UINT64_ARG(offset)));
                         break;
                     }
                     /* test every slice to determine frame type */

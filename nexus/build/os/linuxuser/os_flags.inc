@@ -79,7 +79,7 @@ endif
 ifeq ($(NEXUS_C_STD),)
 NEXUS_C_STD=c89
 endif
-NEXUS_CFLAGS += -std=$(NEXUS_C_STD)
+NEXUS_INTERNAL_CFLAGS += -std=$(NEXUS_C_STD)
 
 ifeq ($(NEXUS_C_WARNINGS),)
 NEXUS_C_WARNINGS += -pedantic
@@ -94,7 +94,8 @@ endif
 endif
 endif
 
-NEXUS_CFLAGS += ${NEXUS_C_WARNINGS}
+NEXUS_INTERNAL_CFLAGS += $(NEXUS_C_WARNINGS)
+NEXUS_CFLAGS += $(NEXUS_INTERNAL_CFLAGS)
 
 # NEXUS_EXTRA_CFLAGS  and/or NEXUS_EXTRA_LDFLAGS can be defined by the user to bring in compiler and/or linker flags
 NEXUS_CFLAGS += ${NEXUS_EXTRA_CFLAGS}

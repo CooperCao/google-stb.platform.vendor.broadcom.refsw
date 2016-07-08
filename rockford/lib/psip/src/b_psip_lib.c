@@ -85,7 +85,7 @@ static void B_PSIP_TimeoutAPI(void * param)
     B_PSIP_Job * pJob = B_PSIP_FindJob(si, pRequest->filterHandle);
     if (pJob)
     {
-        BDBG_MSG(("#### API TIMEOUT! eventHandle:0x%04x stateCurrent:%d stateLast:%d",
+        BDBG_MSG(("#### API TIMEOUT! eventHandle:%p stateCurrent:%d stateLast:%d",
                   pJob->eventHandle,
                   pJob->state,
                   pJob->stateLast));
@@ -1272,8 +1272,8 @@ static void B_PSIP_CancelJob(
        B_PSIP_eStateEvent_Cancel propogates thru the state machine */
     STATE_ENGINE(pJob, B_PSIP_eStateEvent_Cancel);
 
-    BDBG_MSG(("!!!!! PSIP Job cancelled (job:%x filterhandle:%x) !!!!!", 
-              pJob, pJob->apiSettings.filterHandle));
+    BDBG_MSG(("!!!!! PSIP Job cancelled (job:%p filterhandle:%p) !!!!!",
+              (void*)pJob, pJob->apiSettings.filterHandle));
 }
 
 /***************************************************************************

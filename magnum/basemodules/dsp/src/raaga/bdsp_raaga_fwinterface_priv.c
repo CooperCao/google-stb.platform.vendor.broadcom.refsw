@@ -1,7 +1,7 @@
 /******************************************************************************
- * (c) 2006-2016 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -37,13 +37,10 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 
 #include "bdsp_raaga_fwinterface_priv.h"
 #include "bdsp_raaga_priv.h"
-
-#include "bdsp_common_mm_priv.h"
 
 
 BDBG_MODULE(bdsp_raaga_fwinterface);
@@ -59,7 +56,7 @@ BERR_Code BDSP_Raaga_P_CreateMsgQueue(
 
     BERR_Code err=BERR_SUCCESS;
 
-    raaga_dramaddr  ui32BaseAddr=0, ui32EndAddr=0;
+    dramaddr_t  ui32BaseAddr=0, ui32EndAddr=0;
     BDSP_Raaga_P_MsgQueueHandle  hHandle = NULL;
     uint32_t    ui32RegOffset = 0;
 
@@ -161,7 +158,7 @@ BERR_Code BDSP_Raaga_P_InitMsgQueue(
 
     BERR_Code err=BERR_SUCCESS;
 
-    raaga_dramaddr          ui32BaseAddr=0, ui32EndAddr=0;
+    dramaddr_t          ui32BaseAddr=0, ui32EndAddr=0;
     BDSP_Raaga_P_MsgQueueHandle  hHandle = NULL;
     uint32_t    ui32RegOffset = 0;
 
@@ -304,7 +301,7 @@ BERR_Code BDSP_Raaga_P_CreateRdbQueue(
 
     BERR_Code err=BERR_SUCCESS;
 
-    raaga_dramaddr ui32BaseAddr=0, ui32EndAddr=0;
+    dramaddr_t ui32BaseAddr=0, ui32EndAddr=0;
     BDSP_Raaga_P_MsgQueueHandle  hHandle = NULL;
     uint32_t    ui32RegOffset = 0;
 
@@ -402,7 +399,7 @@ BERR_Code BDSP_Raaga_P_InitRdbQueue(
 
     BERR_Code err=BERR_SUCCESS;
 
-    raaga_dramaddr ui32BaseAddr=0, ui32EndAddr=0;
+    dramaddr_t ui32BaseAddr=0, ui32EndAddr=0;
     BDSP_Raaga_P_MsgQueueHandle  hHandle = NULL;
     uint32_t    ui32RegOffset = 0;
 
@@ -536,10 +533,10 @@ BERR_Code BDSP_Raaga_P_WriteMsg_isr(
     BERR_Code err = BERR_SUCCESS;
     unsigned int i,uiFreeSpace=0;
     uint32_t ui32chunk1=0,ui32chunk2=0;
-    raaga_dramaddr  ui32dramReadAddr=0;
-    raaga_dramaddr  ui32dramWriteAddr=0;
-    raaga_dramaddr  ui32maskReadAddr=0;
-    raaga_dramaddr  ui32maskWriteAddr=0;
+    dramaddr_t  ui32dramReadAddr=0;
+    dramaddr_t  ui32dramWriteAddr=0;
+    dramaddr_t  ui32maskReadAddr=0;
+    dramaddr_t  ui32maskWriteAddr=0;
     void *pvMsgQueueWriteAddr=NULL;
 
 
@@ -783,7 +780,7 @@ BERR_Code BDSP_Raaga_P_SendCommand_isr(
     BDBG_ASSERT( psCommand );
 
 
-    if ( (psCommand->sCommandHeader.ui32CommandID != BDSP_RAAGA_PING_COMMAND_ID)
+    if ( (psCommand->sCommandHeader.ui32CommandID != BDSP_PING_COMMAND_ID)
         && (psCommand->sCommandHeader.ui32CommandID != BDSP_RAAGA_GET_SYSTEM_SWAP_MEMORY_COMMAND_ID))
     {
         /* When isStopped is true at that instance STOP/START commands can come
@@ -791,7 +788,7 @@ BERR_Code BDSP_Raaga_P_SendCommand_isr(
 
         if( (pRaagaTask->isStopped == true) &&
             (psCommand->sCommandHeader.ui32CommandID != \
-                BDSP_RAAGA_START_TASK_COMMAND_ID)
+                BDSP_START_TASK_COMMAND_ID)
             &&(psCommand->sCommandHeader.ui32CommandID != \
                 BDSP_RAAGA_GET_VOM_TABLE_COMMAND_ID)
           )
@@ -818,7 +815,7 @@ BERR_Code BDSP_Raaga_P_SendCommand_isr(
     }
 
     if(psCommand->sCommandHeader.ui32CommandID == \
-            BDSP_RAAGA_STOP_TASK_COMMAND_ID)
+            BDSP_STOP_TASK_COMMAND_ID)
     {
         pRaagaTask->isStopped = true;
     }
@@ -833,7 +830,7 @@ BERR_Code BDSP_Raaga_P_SendCommand_isr(
 BERR_Code BDSP_Raaga_P_GetMsg(
     BDSP_Raaga_P_MsgQueueHandle    hMsgQueue,  /*[in]*/
     void                        *pMsgBuf,   /*[in]*/
-    BDSP_Raaga_P_MsgType              eMgsType
+    BDSP_P_MsgType              eMgsType
     )
 {
     BERR_Code   rc = BERR_SUCCESS;
@@ -852,15 +849,15 @@ BERR_Code BDSP_Raaga_P_GetMsg(
 BERR_Code BDSP_Raaga_P_GetMsg_isr(
     BDSP_Raaga_P_MsgQueueHandle    hMsgQueue,  /*[in]*/
     void                        *pMsgBuf,/*[in]*/
-    BDSP_Raaga_P_MsgType              eMgsType
+    BDSP_P_MsgType              eMgsType
     )
 {
     BERR_Code err=BERR_SUCCESS;
 
-    raaga_dramaddr  ui32dramReadAddr=0;
-    raaga_dramaddr  ui32dramWriteAddr=0;
-    raaga_dramaddr  ui32maskReadAddr=0;
-    raaga_dramaddr  ui32maskWriteAddr=0;
+    dramaddr_t  ui32dramReadAddr=0;
+    dramaddr_t  ui32dramWriteAddr=0;
+    dramaddr_t  ui32maskReadAddr=0;
+    dramaddr_t  ui32maskWriteAddr=0;
     uint32_t ui32chunk1=0,ui32chunk2=0,i;
     int32_t  i32BytesToBeRead=0;
     uint32_t ui32ResponseSize = 0;
@@ -956,11 +953,11 @@ BERR_Code BDSP_Raaga_P_GetMsg_isr(
         buffer */
 
     /* If no msg is to be read, generate a BDSP_ERR_BUFFER_EMPTY */
-    if(BDSP_Raaga_P_MsgType_eSyn == eMgsType)
+    if(BDSP_P_MsgType_eSyn == eMgsType)
     {
         ui32ResponseSize = BDSP_RAAGA_RESPONSE_SIZE_IN_BYTES;
     }
-    else if(BDSP_Raaga_P_MsgType_eAsyn == eMgsType)
+    else if(BDSP_P_MsgType_eAsyn == eMgsType)
     {
         ui32ResponseSize = BDSP_RAAGA_ASYNC_RESPONSE_SIZE_IN_BYTES;
     }
@@ -1305,10 +1302,10 @@ BERR_Code BDSP_Raaga_P_GetAsyncMsg_isr(
 {
     BERR_Code err=BERR_SUCCESS;
 
-    raaga_dramaddr  ui32dramReadAddr=0;
-    raaga_dramaddr  ui32dramWriteAddr=0;
-    raaga_dramaddr  ui32maskReadAddr=0;
-    raaga_dramaddr  ui32maskWriteAddr=0;
+    dramaddr_t  ui32dramReadAddr=0;
+    dramaddr_t  ui32dramWriteAddr=0;
+    dramaddr_t  ui32maskReadAddr=0;
+    dramaddr_t  ui32maskWriteAddr=0;
     uint32_t ui32chunk1=0,ui32chunk2=0,i = 0;
     int32_t  i32BytesToBeRead=0;
     uint32_t ui32ResponseSize = 0;
@@ -1508,10 +1505,10 @@ BERR_Code BDSP_Raaga_P_GetVideoMsg_isr(BDSP_Raaga_P_MsgQueueHandle  hMsgQueue,/*
 {
     BERR_Code err=BERR_SUCCESS;
 
-    raaga_dramaddr  ui32dramReadAddr=0;
-    raaga_dramaddr  ui32dramWriteAddr=0;
-    raaga_dramaddr  ui32maskReadAddr=0;
-    raaga_dramaddr  ui32maskWriteAddr=0;
+    dramaddr_t  ui32dramReadAddr=0;
+    dramaddr_t  ui32dramWriteAddr=0;
+    dramaddr_t  ui32maskReadAddr=0;
+    dramaddr_t  ui32maskWriteAddr=0;
     int32_t i32BytesToBeRead=0;
     void *pvMsgQueueReadAddr=NULL;
 
@@ -1649,10 +1646,10 @@ BERR_Code BDSP_Raaga_P_WriteVideoMsg_isr(BDSP_Raaga_P_MsgQueueHandle   hMsgQueue
 {
     BERR_Code err=BERR_SUCCESS;
     unsigned int uiFreeSpace=0;
-    raaga_dramaddr  ui32dramReadAddr=0;
-    raaga_dramaddr  ui32dramWriteAddr=0;
-    raaga_dramaddr  ui32maskReadAddr=0;
-    raaga_dramaddr  ui32maskWriteAddr=0;
+    dramaddr_t  ui32dramReadAddr=0;
+    dramaddr_t  ui32dramWriteAddr=0;
+    dramaddr_t  ui32maskReadAddr=0;
+    dramaddr_t  ui32maskWriteAddr=0;
     void *pvMsgQueueWriteAddr=NULL;
 
     BDBG_ASSERT(hMsgQueue);

@@ -1,22 +1,42 @@
 /***************************************************************************
- *     Copyright (c) 2006-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description: Audio PI Device Level Interface
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ***************************************************************************/
 
 #include "bstd.h"
@@ -27,6 +47,7 @@
 
 BDBG_MODULE(bape_dp_priv);
 BDBG_FILE_MODULE(bape_mixer_input_coeffs);
+BDBG_FILE_MODULE(bape_fci);
 
 #define BAPE_PLAYBACK_ID_INVALID (0xffffffff)
 
@@ -276,6 +297,7 @@ BERR_Code BAPE_MixerGroup_P_Create(
         errCode = BERR_TRACE(errCode);
         goto err_alloc_mixer;
     }
+    BDBG_MSG(("Allocating %d mixer pairs, starting with DP Mixer %d", pSettings->numChannelPairs, mixer));
 
     /* Successfully allocated resources.  Initialize Group */
     BKNI_Memset(handle, 0, sizeof(BAPE_MixerGroup));
@@ -486,6 +508,7 @@ BERR_Code BAPE_MixerGroup_P_SetInputSettings(
             BKNI_Memcpy(handle->inputs[inputIndex].settings.coefficients, pSettings->coefficients, sizeof(pSettings->coefficients));
             BAPE_MixerGroup_P_ApplyInputCoefficients(handle, inputIndex);
         }
+        BDBG_MSG(("Mixer group %p, input index %lu: started, only applying new coeffs", (void*)handle, (unsigned long)inputIndex));
         return BERR_SUCCESS;
     }
 
@@ -501,6 +524,7 @@ BERR_Code BAPE_MixerGroup_P_SetInputSettings(
         }
         if ( handle->inputs[inputIndex].linked )
         {
+            BDBG_MSG(("Unlinking Input to Mixer group %p, inputIndex %u, numInputPairs %u", (void*)handle, inputIndex, numInputPairs));
             BAPE_MixerGroup_P_UnlinkInput(handle, inputIndex);
         }
         inputChanged = true;
@@ -515,6 +539,16 @@ BERR_Code BAPE_MixerGroup_P_SetInputSettings(
         handle->inputs[inputIndex].numChannelPairs = numInputPairs;
         if ( numInputPairs > 0 )
         {
+            #if BDBG_DEBUG_BUILD
+            BDBG_MODULE_MSG(bape_fci, ("Link Mixer group %p, inputIndex %u, numInPairs %u", (void*)handle, inputIndex, numInputPairs));
+            {
+                unsigned i;
+                for ( i=0; i<numInputPairs; i++ )
+                {
+                   BDBG_MODULE_MSG(bape_fci, ("  fci[%u]=%x -> DP Mixer %u Input[%u]", i, pSettings->input.ids[i], handle->mixerIds[i], inputIndex));
+                }
+            }
+            #endif
             errCode = BAPE_MixerGroup_P_LinkInput(handle, inputIndex);
             if ( errCode )
             {
@@ -523,6 +557,10 @@ BERR_Code BAPE_MixerGroup_P_SetInputSettings(
                 handle->inputs[inputIndex].numChannelPairs = 0;
                 return BERR_TRACE(errCode);
             }
+        }
+        else
+        {
+            BDBG_MSG(("Mixer group %p No input to link at index %u", (void*)handle, inputIndex));
         }
     }
 
@@ -1748,4 +1786,3 @@ static uint32_t BAPE_DpMixer_P_GetInputConfigAddress(
 #endif
     return regAddr;
 }
-

@@ -1,14 +1,14 @@
 /******************************************************************************
- *    (c)2008-2014 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
  * no license (express or implied), right to use, or waiver of any kind with respect to the
  * Software, and Broadcom expressly reserves all rights in and to the Software and all
  * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELYn
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
@@ -34,19 +34,7 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *  main test app for ip_streamer
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
- ******************************************************************************/
+ *****************************************************************************/
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
@@ -310,12 +298,12 @@ int ReadIpStreamerOptionsFromConfig(FILE *fp, IpStreamerGlobalCfg *ipStreamerGlo
     buffer = (char*) BKNI_Malloc(lSize+1 );
     if( !buffer ) fclose(fp),fputs("memory alloc fails",stderr),exit(1);
 
-	memset(buffer, 0, lSize + 1);
+    memset(buffer, 0, lSize + 1);
     /* copy the file into the buffer */
     if( 1!=fread( buffer , lSize, 1 , fp) )
       fclose(fp),BKNI_Free(buffer),fputs("entire read fails",stderr),exit(1);
 
-	buffer[lSize] = '\0'; /* for coverity */
+    buffer[lSize] = '\0'; /* for coverity */
     /* printing xml string */
     BDBG_MSG(("xml string:\n%s", buffer));
 
@@ -381,7 +369,7 @@ int ReadIpStreamerOptionsFromConfig(FILE *fp, IpStreamerGlobalCfg *ipStreamerGlo
     {
         ipStreamerGlobalCfg->disableFrontend =B_PlaybackIp_XmlElem_ChildDataBoolean(xmlElemGlobalChild,false);
 
-        BDBG_MSG(("disableFrontends",ipStreamerGlobalCfg->disableFrontend));
+        BDBG_MSG(("disableFrontends:%d",ipStreamerGlobalCfg->disableFrontend));
         xmlElemGlobalChild = NULL;
     }
 
@@ -406,7 +394,7 @@ int ReadIpStreamerOptionsFromConfig(FILE *fp, IpStreamerGlobalCfg *ipStreamerGlo
 
         BDBG_MSG(("interfaceName %s",ipStreamerGlobalCfg->interfaceName));
         BDBG_MSG(("port %d",ipStreamerGlobalCfg->listeningPort));
-        BDBG_MSG(("disableFrontends",ipStreamerGlobalCfg->disableFrontend));
+        BDBG_MSG(("disableFrontends: %d",ipStreamerGlobalCfg->disableFrontend));
         BDBG_MSG(("streaming sessions %d",ipStreamerGlobalCfg->numStreamingSessions));
 
         BDBG_MSG(("verbose %d",ipStreamerGlobalCfg->printStats));
@@ -424,7 +412,7 @@ int ReadIpStreamerOptionsFromConfig(FILE *fp, IpStreamerGlobalCfg *ipStreamerGlo
         /*  Now get the first/next child under the parent (if there are any). */
         xmlElemStream = B_PlaybackIp_XmlElem_FindNextChildSameTag(xmlElemUDP, xmlElemStream, XML_TAG_STREAM);
         if ( !xmlElemStream) break;    /* No more children... all done. */
-        BDBG_MSG(("Stream Id:%d", B_PlaybackIp_XmlElem_FindAttrValueInt(xmlElemStream, XML_ATT_ID,1)));
+        BDBG_MSG(("Stream Id:%ld", B_PlaybackIp_XmlElem_FindAttrValueInt(xmlElemStream, XML_ATT_ID,1)));
         xmlElemUri = B_PlaybackIp_XmlElem_FindChild(xmlElemStream , XML_TAG_URI);
         strncpy(buff,B_PlaybackIp_XmlElem_ChildData(xmlElemUri) ,sizeof(buff));
         buff[sizeof(buff)-1] ='\0';
@@ -780,6 +768,8 @@ RTSPServerCallback(
                     openSettings.requestUri = requestUrl;
                     openSettings.mediaProbeOnly = false;
                     openSettings.liveStreamingSession = true; /* used to tell openNexusSrc() to share tuner */
+                    /* coverity[stack_use_local_overflow] */
+                    /* coverity[stack_use_overflow] */
                     ipStreamerCtx = (IpStreamerCtx *)B_IpStreamer_SessionOpen(ipStreamerGlobalCtx, &openSettings);
                     if (!ipStreamerCtx) break;
 
@@ -1134,24 +1124,24 @@ createInfoAndNavFiles(
         BDBG_ERR(("Could not malloc(%u) bytes for fullFilePath ", FULL_FILE_PATH_LEN ));
         goto error;
     }
-    BDBG_MSG(("%s: SUCCESSFULL malloc(%u) bytes for fullFilePath (0x%x)", __FUNCTION__, FULL_FILE_PATH_LEN, fullFilePath ));
+    BDBG_MSG(("%s: SUCCESSFULL malloc(%u) bytes for fullFilePath (%s)", __FUNCTION__, FULL_FILE_PATH_LEN, fullFilePath ));
 
     url = (char*) BKNI_Malloc(URL_LEN);
     if (url==NULL) {
         BDBG_ERR(("Could not malloc(%u) bytes for url ", URL_LEN ));
         goto error;
     }
-    BDBG_MSG(("%s: SUCCESSFULL malloc(%u) bytes for url (0x%x)", __FUNCTION__, URL_LEN, url ));
+    BDBG_MSG(("%s: SUCCESSFULL malloc(%u) bytes for url (%s)", __FUNCTION__, URL_LEN, url ));
 
     psi = (B_PlaybackIpPsiInfo *) BKNI_Malloc( sizeof(*psi) );
     if (psi == NULL) {
         BDBG_ERR(("%s: could not malloc(%u) bytes for psi", __FUNCTION__, sizeof(*psi) ));
         goto error;
     }
-    BDBG_MSG(("%s: SUCCESSFULL malloc(%u) bytes for psi (0x%x)", __FUNCTION__, sizeof(*psi), psi ));
+    BDBG_MSG(("%s: SUCCESSFULL malloc(%u) bytes for psi (%p)", __FUNCTION__, sizeof(*psi), (void *)psi ));
 
     if ( (numDirEntries = scandir(ipStreamerGlobalCfg->rootDir, &namelist, NULL, NULL)) < 0) {
-        BDBG_ERR(("Failed to sacn media directory %s, errno %d", ipStreamerGlobalCfg->rootDir));
+        BDBG_ERR(("Failed to sacn media directory %s", ipStreamerGlobalCfg->rootDir));
         goto error;
     }
 
@@ -1185,6 +1175,8 @@ createInfoAndNavFiles(
         snprintf(url, URL_LEN-1, "/File=%s;", fullFilePath);
         openSettings.requestUri = url;
         openSettings.mediaProbeOnly = true;
+        /* coverity[stack_use_local_overflow] */
+        /* coverity[stack_use_overflow] */
         ipStreamerCtx = (IpStreamerCtx *)B_IpStreamer_SessionOpen(ipStreamerGlobalCtx, &openSettings);
         if (!ipStreamerCtx) {BDBG_ERR(("ERROR: Failed to Open IP Streaming Context")); continue;}
 
@@ -1201,15 +1193,15 @@ error:
     if (channelFileFp) fclose(channelFileFp);
     if (namelist) free(namelist);
     if (psi!= NULL) {
-        BDBG_MSG(("%s: free(%u) bytes for psi (0x%x)", __FUNCTION__, sizeof(*psi), psi ));
+        BDBG_MSG(("%s: free(%u) bytes for psi (%p)", __FUNCTION__, sizeof(*psi), (void *)psi ));
         BKNI_Free ( psi );
     }
     if (url!= NULL) {
-        BDBG_MSG(("%s: free(%u) bytes for url (0x%x)", __FUNCTION__, URL_LEN, url ));
+        BDBG_MSG(("%s: free(%u) bytes for url (%p)", __FUNCTION__, URL_LEN, (void *)url ));
         BKNI_Free ( url );
     }
     if (fullFilePath!= NULL) {
-        BDBG_MSG(("%s: free(%u) bytes for fullFilePath (0x%x)", __FUNCTION__, FULL_FILE_PATH_LEN, fullFilePath ));
+        BDBG_MSG(("%s: free(%u) bytes for fullFilePath (%p)", __FUNCTION__, FULL_FILE_PATH_LEN, (void *)fullFilePath ));
         BKNI_Free ( fullFilePath );
     }
     return true;
@@ -1294,7 +1286,7 @@ ipStreamerEventCallback(void *appCtx, B_PlaybackIpEventIds eventId)
         ipStreamerCtx->hlsNextSegmentNum++;
         ipStreamerCtx->waitingForNextRequest = true;
         BKNI_SetEvent(ipStreamerCtx->statusEvent);
-        BDBG_MSG(("%s: ctx:streamingFd %p: sent event to wakeup hls session thread", __FUNCTION__, ipStreamerCtx));
+        BDBG_MSG(("%s: ctx:streamingFd %p: sent event to wakeup hls session thread", __FUNCTION__, (void *)ipStreamerCtx));
     }
 #else
     /* HTTP Keep-alive enabled */
@@ -2114,6 +2106,8 @@ processIncomingRequest(
             openSettings.mediaProbeOnly = false;
             openSettings.autoRewind = getEnvVariableValue("autoRewind", 1);
             openSettings.eventCallback = ipStreamerEventCallback;
+            /* coverity[stack_use_local_overflow] */
+            /* coverity[stack_use_overflow] */
             ipStreamerCtx = (IpStreamerCtx *)B_IpStreamer_SessionOpen(ipStreamerGlobalCtx, &openSettings);
             if (!ipStreamerCtx) {BDBG_ERR(("ERROR: Failed to Open IP Streaming Context")); goto errorCloseHttp;}
             if (urlPtr)
@@ -2365,7 +2359,7 @@ IpStreamerCtx *ipStreamerLookupHlsSession(unsigned cookie, struct sockaddr_in *c
             ipStreamerCtx;
             ipStreamerCtx = BLST_Q_NEXT(ipStreamerCtx, next))
     {
-    if (ipStreamerCtx) BDBG_MSG(("%s: Entry hls session: ctx:cookie:RemoteIp:Port %p:%d:%s:%d", __FUNCTION__, ipStreamerCtx, ipStreamerCtx->cookie, inet_ntoa(ipStreamerCtx->remoteAddr.sin_addr), htons(ipStreamerCtx->remoteAddr.sin_port)));
+    if (ipStreamerCtx) BDBG_MSG(("%s: Entry hls session: ctx:cookie:RemoteIp:Port %p:%d:%s:%d", __FUNCTION__, (void *)ipStreamerCtx, ipStreamerCtx->cookie, inet_ntoa(ipStreamerCtx->remoteAddr.sin_addr), htons(ipStreamerCtx->remoteAddr.sin_port)));
         if (memcmp(&curRemoteAddr->sin_addr.s_addr, &ipStreamerCtx->remoteAddr.sin_addr.s_addr, sizeof(curRemoteAddr->sin_addr.s_addr)) != 0)
             /* remote IP address doesn't match, try next hlsSession */
             continue;
@@ -2377,7 +2371,7 @@ IpStreamerCtx *ipStreamerLookupHlsSession(unsigned cookie, struct sockaddr_in *c
         break;
     }
     BKNI_ReleaseMutex(ipStreamerCtxQueueMutex);
-    if (ipStreamerCtx) BDBG_MSG(("%s: Found a matching hls session: ctx:cookie:RemoteIp:Port %p:%d:%s:%d", __FUNCTION__, ipStreamerCtx, ipStreamerCtx->cookie, inet_ntoa(ipStreamerCtx->remoteAddr.sin_addr), htons(ipStreamerCtx->remoteAddr.sin_port)));
+    if (ipStreamerCtx) BDBG_MSG(("%s: Found a matching hls session: ctx:cookie:RemoteIp:Port %p:%d:%s:%d", __FUNCTION__, (void *)ipStreamerCtx, ipStreamerCtx->cookie, inet_ntoa(ipStreamerCtx->remoteAddr.sin_addr), htons(ipStreamerCtx->remoteAddr.sin_port)));
     return ipStreamerCtx;
 }
 
@@ -2389,7 +2383,7 @@ void ipStreamerInsertHlsSession(unsigned cookie, struct sockaddr_in *curRemoteAd
     ipStreamerCtx->remoteAddr = *curRemoteAddr;
     BLST_Q_INSERT_TAIL(&ipStreamerCtxQueueHead, ipStreamerCtx, next);
     BKNI_ReleaseMutex(ipStreamerCtxQueueMutex);
-    BDBG_MSG(("%s: ipStreamerCtx %p", __FUNCTION__, ipStreamerCtx));
+    BDBG_MSG(("%s: ipStreamerCtx %p", __FUNCTION__, (void *)ipStreamerCtx));
 }
 
 void ipStreamerRemoveHlsSession(IpStreamerCtx * ipStreamerCtx)
@@ -2467,14 +2461,14 @@ void * ipStreamerHttpStreamingThread(
         BDBG_ERR(("%s: could not malloc(%u) bytes for requestUrl ", __FUNCTION__, REQUEST_URL_LEN ));
         goto error_free_the_mem;
     }
-    BDBG_MSG(("%s: SUCCESSFULL malloc(%u) bytes for requestUrl (0x%x)", __FUNCTION__, REQUEST_URL_LEN, requestUrl ));
+    BDBG_MSG(("%s: SUCCESSFULL malloc(%u) bytes for requestUrl (%p)", __FUNCTION__, REQUEST_URL_LEN, (void *)requestUrl ));
 
     psi = (B_PlaybackIpPsiInfo *) BKNI_Malloc( sizeof(*psi) );
     if (psi == NULL) {
         BDBG_ERR(("%s: could not malloc(%u) bytes for psi", __FUNCTION__, sizeof(*psi) ));
         goto error_free_the_mem;
     }
-    BDBG_MSG(("%s: SUCCESSFULL malloc(%u) bytes for psi (0x%x)", __FUNCTION__, sizeof(*psi), psi ));
+    BDBG_MSG(("%s: SUCCESSFULL malloc(%u) bytes for psi (%p)", __FUNCTION__, sizeof(*psi), (void *)psi ));
 
     while (!gExitThread)
     {
@@ -2584,7 +2578,7 @@ void * ipStreamerHttpStreamingThread(
                     openSettings.requestUri = requestUrl;
                     if ( parseTranscodeOptions( &openSettings, &ipStreamerCtx->cfg) < 0)
                     {
-                        BDBG_ERR(("%s: ctx %p: Failed to parse transcode related parameters", __FUNCTION__, ipStreamerCtx));
+                        BDBG_ERR(("%s: ctx %p: Failed to parse transcode related parameters", __FUNCTION__, (void *)ipStreamerCtx));
                         closeSocket(streamingFd);
                         BKNI_ReleaseMutex(ipStreamerCtx->lock);
                         continue;
@@ -2612,7 +2606,7 @@ void * ipStreamerHttpStreamingThread(
                     /* since waitingForNextRequest flag is set, main hls streaming thread is waiting for the next segment request, we send an event to indicate the new request */
                     /* this will be true for the when we receive the request for very 1st segment or the streaming thread has finished sending the current segment and is waiting for the next request */
                     BKNI_SetEvent(ipStreamerCtx->statusEvent);
-                    BDBG_MSG(("%s: ctx:streamingFd %p:%d: sent event to wakeup hls session thread", __FUNCTION__, ipStreamerCtx, streamingFd));
+                    BDBG_MSG(("%s: ctx:streamingFd %p:%d: sent event to wakeup hls session thread", __FUNCTION__, (void *)ipStreamerCtx, streamingFd));
                 }
                 else {
                     /* main hls thread is still waiting for endOfSegment or errorStreaming callback from ip library. when callback fires, it will wake up the main thread. */
@@ -2623,14 +2617,14 @@ void * ipStreamerHttpStreamingThread(
                     if (ipStreamerCtx->hlsNextSegmentNum+1 != ipStreamerCtx->hlsRequestedSegmentNumber) /* +1 to account for the currentSegment that we would be finishing */
                     {
                         /* setting this abort flag causes the streaming loop to break out on waiting on encoder output and invoke the erroStreaming callback to app. That will triegger to wake up the main thread */
-                        BDBG_MSG(("%s: ctx:streamingFd %p:%d: sent event to ip lib to abort the streaming loop", __FUNCTION__, ipStreamerCtx, streamingFd));
+                        BDBG_MSG(("%s: ctx:streamingFd %p:%d: sent event to ip lib to abort the streaming loop", __FUNCTION__, (void *)ipStreamerCtx, streamingFd));
                         B_PlaybackIpLiveStreamingSettings settings;
                         memset(&settings, 0, sizeof(settings));
                         settings.abortStreaming = true;
                         B_PlaybackIp_LiveStreamingSetSettings(ipStreamerCtx->ipDst->liveStreamingHandle, &settings);
                     }
                     else
-                        BDBG_MSG(("%s: ctx:streamingFd %p:%d: delaying sending wakeup event to hls session thread as it is still not done sending segment", __FUNCTION__, ipStreamerCtx, streamingFd));
+                        BDBG_MSG(("%s: ctx:streamingFd %p:%d: delaying sending wakeup event to hls session thread as it is still not done sending segment", __FUNCTION__, (void *)ipStreamerCtx, streamingFd));
                 }
                 BKNI_ReleaseMutex(ipStreamerCtx->lock);
             }
@@ -2654,7 +2648,7 @@ void * ipStreamerHttpStreamingThread(
             if (ipStreamerCtx)
             {
                 /* since there is an existing context for this client, it must be a channel change event */
-                BDBG_MSG(("%s: ctx %p: ############### switching to another file/channel %s, prev %s", __FUNCTION__, ipStreamerCtx, requestUri, ipStreamerCtx->urlPtr));
+                BDBG_MSG(("%s: ctx %p: ############### switching to another file/channel %s, prev %s", __FUNCTION__, (void *)ipStreamerCtx, requestUri, ipStreamerCtx->urlPtr));
                 ipStreamerCtx->channelChange = true;
                 requestUri = requestUrl; /* TODO: take this out */
                 BKNI_AcquireMutex(ipStreamerCtx->globalCtx->transcoderDstMutex);
@@ -2664,7 +2658,7 @@ void * ipStreamerHttpStreamingThread(
                 BKNI_ReleaseMutex(ipStreamerCtx->globalCtx->transcoderDstMutex);
                 /* signal the thread working on the previous channel/file from client that it needs to cleanup & finish! */
                 BKNI_SetEvent(ipStreamerCtx->statusEvent);
-                BDBG_MSG(("%s: ctx %p: Channel Change Event: notified other thread to tear down this context", __FUNCTION__, ipStreamerCtx));
+                BDBG_MSG(("%s: ctx %p: Channel Change Event: notified other thread to tear down this context", __FUNCTION__, (void *)ipStreamerCtx));
                 /* we will continue below w/ this new HLS session setup */
                 /* NOTE: we do the session setup during the master playlist request */
             }
@@ -2696,6 +2690,8 @@ void * ipStreamerHttpStreamingThread(
         openSettings.mediaProbeOnly = false;
         openSettings.autoRewind = getEnvVariableValue("autoRewind", 0);
         openSettings.eventCallback = ipStreamerEventCallback;
+        /* coverity[stack_use_local_overflow] */
+        /* coverity[stack_use_overflow] */
         ipStreamerCtx = (IpStreamerCtx *)B_IpStreamer_SessionOpen(ipStreamerGlobalCtx, &openSettings);
         if (!ipStreamerCtx) {BDBG_ERR(("ERROR: Failed to Open IP Streaming Context")); goto errorCloseHttp;}
 
@@ -2735,7 +2731,7 @@ void * ipStreamerHttpStreamingThread(
 #endif
         {
             /* send response to client */
-            BDBG_MSG(("CTX %p: streamingFd %d, vpid %d, apid %d", ipStreamerCtx, streamingFd, psi->videoPid, psi->audioPid));
+            BDBG_MSG(("CTX %p: streamingFd %d, vpid %d, apid %d", (void *)ipStreamerCtx, streamingFd, psi->videoPid, psi->audioPid));
             rc = sendHttpResponse(&ipStreamerCtx->cfg, streamingFd, psi);
             if (rc)
             {
@@ -2782,7 +2778,7 @@ void * ipStreamerHttpStreamingThread(
             /* we are here because we either got an event from endOfSegment callback when there is a pendingReq, or endOfSegment callback had aleady come but now we got the next request, or client changed the channel on us! */
             if (ipStreamerCtx->channelChange)
             {
-                BDBG_MSG(("%s: ctx %p: Channel Change Event: close & tear down this context", __FUNCTION__, ipStreamerCtx));
+                BDBG_MSG(("%s: ctx %p: Channel Change Event: close & tear down this context", __FUNCTION__, (void *)ipStreamerCtx));
                 /* we break out of this loop & continue w/ closing this context */
                 break;
             }
@@ -2794,11 +2790,11 @@ void * ipStreamerHttpStreamingThread(
                 ipStreamerCtx->cfg.streamingFd = ipStreamerCtx->nextSegmentStreamingFd;
                 rc = sendHttpResponse(&ipStreamerCtx->cfg, ipStreamerCtx->cfg.streamingFd, psi);
                 if (rc) {
-                    BDBG_ERR(("%s: ctx %p: Failed to send HTTP response (%d)..., contine waiting for next request ", __FUNCTION__, ipStreamerCtx, rc));
+                    BDBG_ERR(("%s: ctx %p: Failed to send HTTP response (%d)..., contine waiting for next request ", __FUNCTION__, (void *)ipStreamerCtx, rc));
                     BKNI_ReleaseMutex(ipStreamerCtx->lock);
                     continue;
                 }
-                BDBG_MSG(("%s: ctx:streamingFd %p:%d: Sent HTTP Response, segCount %d, hlsNextSegmentNum %u, hlsRequestedSegmentNumber %u", __FUNCTION__, ipStreamerCtx, ipStreamerCtx->cfg.streamingFd, ipStreamerCtx->transcoderDst->segmentCount,
+                BDBG_MSG(("%s: ctx:streamingFd %p:%d: Sent HTTP Response, segCount %d, hlsNextSegmentNum %u, hlsRequestedSegmentNumber %u", __FUNCTION__, (void *)ipStreamerCtx, ipStreamerCtx->cfg.streamingFd, ipStreamerCtx->transcoderDst->segmentCount,
                            ipStreamerCtx->hlsNextSegmentNum, ipStreamerCtx->hlsRequestedSegmentNumber));
 
                 /* reset state flags that tell either ipStreamer threads or callback from IP lib thread when to send us an event */
@@ -2812,7 +2808,7 @@ void * ipStreamerHttpStreamingThread(
 
                     /* -2> URL for the same HLS variant but segment number is not the next one, so most likely client had done a seek operation. In some cases, client may re-request the segment if it doesn't like it */
                     ipStreamerCtx->resetTranscodePipe = true;
-                    BDBG_MSG(("%s: ctx %p: Reset Xcode Pipe due to %s: hlsNextSegmentNum %u, hlsRequestedSegmentNumber %u", __FUNCTION__, ipStreamerCtx,
+                    BDBG_MSG(("%s: ctx %p: Reset Xcode Pipe due to %s: hlsNextSegmentNum %u, hlsRequestedSegmentNumber %u", __FUNCTION__, (void *)ipStreamerCtx,
                                 ipStreamerCtx->resetTranscodePipe ? "Streaming Error" : "Client Requested Seek", ipStreamerCtx->hlsNextSegmentNum, ipStreamerCtx->hlsRequestedSegmentNumber));
 
                     /* since our segments are 1 sec long, the requested segment number is our new seek position */
@@ -2825,7 +2821,7 @@ void * ipStreamerHttpStreamingThread(
                     BKNI_AcquireMutex(ipStreamerCtx->globalCtx->transcoderDstMutex);
                     if (seekNexusTranscoderPipeNonRealTime(ipStreamerCtx, ipStreamerCtx->transcoderDst, seekPosition*1000) < 0)
                     {
-                        BDBG_ERR(("%s: ctx %p: seek to position %d FAILED: hlsNextSegmentNum %u, hlsRequestedSegmentNumber %u", __FUNCTION__, ipStreamerCtx, seekPosition, ipStreamerCtx->hlsNextSegmentNum, ipStreamerCtx->hlsRequestedSegmentNumber));
+                        BDBG_ERR(("%s: ctx %p: seek to position %d FAILED: hlsNextSegmentNum %u, hlsRequestedSegmentNumber %u", __FUNCTION__, (void *)ipStreamerCtx, (int)seekPosition, ipStreamerCtx->hlsNextSegmentNum, ipStreamerCtx->hlsRequestedSegmentNumber));
                         ipStreamerSendHttpResponse(streamingFd, 0, 404, HTTP_CONTENT_TYPE_MPEG_SEGMENT);
                         closeSocket(streamingFd);
                         BKNI_ReleaseMutex(ipStreamerCtx->globalCtx->transcoderDstMutex);
@@ -2833,7 +2829,7 @@ void * ipStreamerHttpStreamingThread(
                         continue;
                     }
                     BKNI_ReleaseMutex(ipStreamerCtx->globalCtx->transcoderDstMutex);
-                    BDBG_MSG(("%s: ctx %p: seek done: hlsNextSegmentNum %u, hlsRequestedSegmentNumber %u", __FUNCTION__, ipStreamerCtx, ipStreamerCtx->hlsNextSegmentNum, ipStreamerCtx->hlsRequestedSegmentNumber));
+                    BDBG_MSG(("%s: ctx %p: seek done: hlsNextSegmentNum %u, hlsRequestedSegmentNumber %u", __FUNCTION__, (void *)ipStreamerCtx, ipStreamerCtx->hlsNextSegmentNum, ipStreamerCtx->hlsRequestedSegmentNumber));
 
                     /* reset segment count for ramping up purposes */
                     ipStreamerCtx->transcoderDst->segmentCount = 0;
@@ -2875,14 +2871,14 @@ void * ipStreamerHttpStreamingThread(
                 }
 
                 /* we have started/restarted streaming and now go back to wait for next event */
-                BDBG_MSG(("%s: CTX %p, we have indicated playback_ip to resume streaming, thus go back to wait on the event", __FUNCTION__, ipStreamerCtx));
+                BDBG_MSG(("%s: CTX %p, we have indicated playback_ip to resume streaming, thus go back to wait on the event", __FUNCTION__, (void *)ipStreamerCtx));
                 BKNI_ReleaseMutex(ipStreamerCtx->lock);
                 continue;
             }
             else {
                 /* neither a channel change nor a pendingReqForNextSegment, so we continue waiting for either of these to happen */
-                BDBG_MSG(("%s: event id %d, CTX %p, we are done due to error or eof on streaming, ignore it and continue!", __FUNCTION__, ipStreamerCtx->eventId, ipStreamerCtx));
-                BDBG_MSG(("%s: CTX %p, neither a channel change nor a pendingReqForNextSegment, so we continue waiting for either of these to happen ", __FUNCTION__, ipStreamerCtx));
+                BDBG_MSG(("%s: event id %d, CTX %p, we are done due to error or eof on streaming, ignore it and continue!", __FUNCTION__, ipStreamerCtx->eventId, (void *)ipStreamerCtx));
+                BDBG_MSG(("%s: CTX %p, neither a channel change nor a pendingReqForNextSegment, so we continue waiting for either of these to happen ", __FUNCTION__, (void *)ipStreamerCtx));
                 continue;
             }
         }
@@ -2915,17 +2911,17 @@ errorCloseHttp:
         closeSocket(streamingFd);
         if (gExitThread)
             break;
-        BDBG_WRN(("CTX %p: Current ip streaming / local recording session is closed, go back to listening for new requests", ipStreamerCtx));
+        BDBG_WRN(("CTX %p: Current ip streaming / local recording session is closed, go back to listening for new requests", (void *)ipStreamerCtx));
     } /* while (!gExitThread) */
 
 error_free_the_mem:
     if (psi!= NULL) {
-        BDBG_MSG(("%s: free(%u) bytes for psi (0x%x)", __FUNCTION__, sizeof(*psi), psi ));
+        BDBG_MSG(("%s: free(%u) bytes for psi (%p)", __FUNCTION__, sizeof(*psi), (void *)psi ));
         BKNI_Free ( psi );
     }
 
     if (requestUrl != NULL) {
-        BDBG_MSG(("%s: free(%u) bytes for requestUrl (0x%x)", __FUNCTION__, REQUEST_URL_LEN, requestUrl ));
+        BDBG_MSG(("%s: free(%u) bytes for requestUrl (%p)", __FUNCTION__, REQUEST_URL_LEN, (void *)requestUrl ));
         BKNI_Free ( requestUrl );
     }
 
@@ -2990,14 +2986,14 @@ ipStreamerRtpUdpStreamingThread(
             BDBG_ERR(("%s: could not malloc(%u) bytes for requestUrl ", __FUNCTION__, REQUEST_URL_LEN ));
             goto errorCloseHttp;
         }
-        BDBG_MSG(("%s: SUCCESSFULL malloc(%u) bytes for requestUrl (0x%x)", __FUNCTION__, REQUEST_URL_LEN, requestUrl ));
+        BDBG_MSG(("%s: SUCCESSFULL malloc(%u) bytes for requestUrl (%p)", __FUNCTION__, REQUEST_URL_LEN, (void *)requestUrl ));
 
         psi = (B_PlaybackIpPsiInfo *) BKNI_Malloc( sizeof(*psi) );
         if (psi == NULL) {
             BDBG_ERR(("%s: could not malloc(%u) bytes for psi", __FUNCTION__, sizeof(*psi) ));
             goto errorCloseHttp;
         }
-        BDBG_MSG(("%s: SUCCESSFULL malloc(%u) bytes for psi (0x%x)", __FUNCTION__, sizeof(*psi), requestUrl ));
+        BDBG_MSG(("%s: SUCCESSFULL malloc(%u) bytes for psi (%p)", __FUNCTION__, sizeof(*psi), (void *)requestUrl ));
 
         if (strstr(streamingCfg->url, "LiveChannel;") == NULL) {
             i = snprintf(requestUrl, REQUEST_URL_LEN-1, "/File=%s;Protocol=%s;Address=%s;Port=%d;",
@@ -3011,6 +3007,8 @@ ipStreamerRtpUdpStreamingThread(
         BDBG_MSG(("%s: RTP/UDP source url %s", __FUNCTION__, requestUrl));
 
         openSettings.requestUri = requestUrl;
+        /* coverity[stack_use_local_overflow] */
+        /* coverity[stack_use_overflow] */
         ipStreamerCtx = (IpStreamerCtx *)B_IpStreamer_SessionOpen(ipStreamerGlobalCtx, &openSettings);
         if (!ipStreamerCtx) {BDBG_ERR(("ERROR: Failed to Open IP Streaming Context")); goto errorCloseHttp;}
 
@@ -3019,7 +3017,7 @@ ipStreamerRtpUdpStreamingThread(
         rc = B_IpStreamer_SessionAcquirePsiInfo(ipStreamerCtx, psi);
         if (rc) {BDBG_ERR(("Failed to acquire PSI Info ")); goto errorCloseSrc;}
 
-        BDBG_MSG(("CTX %p: vpid %d, apid %d", ipStreamerCtx, psi->videoPid, psi->audioPid));
+        BDBG_MSG(("CTX %p: vpid %d, apid %d", (void *)ipStreamerCtx, psi->videoPid, psi->audioPid));
 
         /* now start streaming session */
         err = B_IpStreamer_SessionStart((void *)ipStreamerCtx, psi);
@@ -3042,16 +3040,16 @@ errorCloseSrc:
         B_IpStreamer_SessionClose(ipStreamerCtx);
 errorCloseHttp:
         BKNI_ReleaseMutex(hUdpInitMutex);
-        BDBG_WRN(("CTX %p: Current ip streaming / local recording session is done, exiting..", ipStreamerCtx));
+        BDBG_WRN(("CTX %p: Current ip streaming / local recording session is done, exiting..", (void *)ipStreamerCtx));
     } /* if (!gExitThread) */
 
     if (psi!= NULL) {
-        BDBG_MSG(("%s: free(%u) bytes for psi (0x%x)", __FUNCTION__, sizeof(*psi), psi ));
+        BDBG_MSG(("%s: free(%u) bytes for psi (%p)", __FUNCTION__, sizeof(*psi), (void *)psi ));
         BKNI_Free ( psi );
     }
 
     if (requestUrl != NULL) {
-        BDBG_MSG(("%s: free(%u) bytes for requestUrl (0x%x)", __FUNCTION__, REQUEST_URL_LEN, requestUrl ));
+        BDBG_MSG(("%s: free(%u) bytes for requestUrl (%p)", __FUNCTION__, REQUEST_URL_LEN, (void *)requestUrl ));
         BKNI_Free ( requestUrl );
     }
 

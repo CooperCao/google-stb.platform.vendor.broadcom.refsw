@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2014 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  *****************************************************************************/
 /* Nexus example app: show jpeg image */
@@ -165,7 +157,7 @@ int main(int argc, const char *argv[])
         bool started = false;
         
         NEXUS_SurfaceHandle picture = NULL;
-        unsigned cnt;
+        unsigned cnt,j;
         size_t bytesRemain =0;
 
         BDBG_WRN(("decoding %s...", pictureFilename));
@@ -297,6 +289,7 @@ int main(int argc, const char *argv[])
         /* start decoding */
         rc = NEXUS_PictureDecoder_DecodeSegment(pictureDecoder, picture, NULL);
         BDBG_ASSERT(!rc);
+        j = cnt = 0;
         do {
             rc = NEXUS_PictureDecoder_GetStatus(pictureDecoder, &pictureStatus);
             BDBG_ASSERT(!rc);
@@ -318,6 +311,14 @@ int main(int argc, const char *argv[])
                 bytesRemain -= size;
             }
             usleep(1000);
+            cnt++;
+            if (cnt%1000 == 0) { /* 1 second */
+                printf("waiting for DecodeSegment %d\n" , pictureStatus.state);
+                if( ++j>=10 ) { /* increase timeout for (10) some large png files */
+                    BDBG_ERR(("Segment decode taking too long. aborting."));
+                    goto error;
+                }
+            }
         } while(pictureStatus.state!=NEXUS_PictureDecoderState_eSegmentDone);   /* wait for picture to decode */
         
         BDBG_WRN(("picture crc: %08x", pictureStatus.crc));

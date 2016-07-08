@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -307,104 +307,162 @@ static void NexusMemMinimum(NEXUS_MemoryConfigurationSettings *pSettings)
 #endif
 }
 
-static void InitializeNexusSingle()
+static bool InitMaxMemConfig(NEXUS_PlatformSettings *platformSettings, NEXUS_MemoryConfigurationSettings *memConfigSettings)
+{
+   NEXUS_PlatformConfiguration configuration;
+   NEXUS_HeapHandle            heap3D;
+   int                         heap3DIndex = -1;
+   int                         saved = 0;
+   int                         orig3DSize = 0;
+   int                         target3DSize = 430 * 1024 * 1024; /* If we have at least 430 MB, we're good to go */
+
+   NEXUS_Error err = NEXUS_NOT_SUPPORTED;
+
+   /* Bring Nexus up in default config ONLY because we can't find which is the 3D heap without it. */
+   NEXUS_SetEnv("NEXUS_BASE_ONLY_INIT", "y");
+   err = NEXUS_Platform_Init(platformSettings);
+   if (err != NEXUS_SUCCESS)
+   {
+      printf("NEXUS_Platform_Init() failed\n");
+      return false;
+   }
+   NEXUS_SetEnv("NEXUS_BASE_ONLY_INIT", NULL);
+
+   NEXUS_Platform_GetConfiguration(&configuration);
+
+   heap3D = NEXUS_Platform_GetFramebufferHeap(NEXUS_OFFSCREEN_SURFACE);
+
+   if (configuration.heap[NEXUS_MEMC0_GRAPHICS_HEAP] == heap3D)
+   {
+      heap3DIndex = NEXUS_MEMC0_GRAPHICS_HEAP;
+   }
+#ifdef NEXUS_MEMC1_GRAPHICS_HEAP
+   else if (configuration.heap[NEXUS_MEMC1_GRAPHICS_HEAP] == heap3D)
+   {
+      heap3DIndex = NEXUS_MEMC1_GRAPHICS_HEAP;
+   }
+#endif
+   else
+   {
+      printf("Couldn't find 3D heap\n");
+      NEXUS_Platform_Uninit();
+      return false;
+   }
+
+   orig3DSize = platformSettings->heap[heap3DIndex].size;
+
+   /* Do we have enough 3D memory? */
+   if (orig3DSize < target3DSize)
+   {
+      NEXUS_Platform_Uninit();
+
+      /* If we still don't have enough, reduce the main heap - leaving at least 64MB */
+      if (orig3DSize + saved < target3DSize && platformSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size > 64 * 1024 * 1024)
+      {
+         int need = target3DSize - (orig3DSize + saved);
+         int avail = platformSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size - 64 * 1024 * 1024;
+         int newSize;
+
+         if (avail < need)
+            newSize = 64 * 1024 * 1024;
+         else
+            newSize = platformSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size - need;
+
+         saved += platformSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size - newSize;
+         platformSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size = newSize;
+
+         /* The only use is subIndex = 1 for MEMC0 memory above
+            the 256MB register hole or 760MB CMA barrier. Always 0 for MEMC1 and 2.*/
+         if (heap3DIndex == NEXUS_MEMC0_GRAPHICS_HEAP)
+         {
+            // Fit the graphics heap before the main heap
+            platformSettings->heap[NEXUS_MEMC0_MAIN_HEAP].subIndex=1;
+            platformSettings->heap[heap3DIndex].subIndex = 0;
+         }
+      }
+
+      /* Add the savings onto the 3D heap */
+      platformSettings->heap[heap3DIndex].size = orig3DSize + saved;
+
+      /* Minimise video memory usage */
+      NEXUS_GetDefaultMemoryConfigurationSettings(memConfigSettings);
+      NexusMemMinimum(memConfigSettings);
+
+      return true;
+   }
+
+   return false;
+}
+
+static void InitializeNexusSingle(bool secure)
 {
    NEXUS_Error                         err = NEXUS_NOT_SUPPORTED;
    NEXUS_PlatformSettings              platformSettings;
    NEXUS_MemoryConfigurationSettings   memConfigSettings;
 
    char *env = getenv("V3D_USE_MAX_GRAPHICS_MEM");
+   bool maxMem = env != NULL && atoi(env) == 1;
 
    NEXUS_Platform_GetDefaultSettings(&platformSettings);
    platformSettings.openFrontend = false;
 
-   /* Hackery to maximize the amount of device memory we get if the V3D_USE_MAX_GRAPHICS_MEM env var is set */
-   if (env != nullptr && atoi(env) == 1)
-   {
-      NEXUS_PlatformConfiguration configuration;
-      NEXUS_HeapHandle            heap3D;
-      int                         heap3DIndex = -1;
-      int                         saved = 0;
-      int                         orig3DSize = 0;
-      int                         target3DSize = 430 * 1024 * 1024; /* If we have at least 430 MB, we're good to go */
+   NEXUS_GetDefaultMemoryConfigurationSettings(&memConfigSettings);
 
-      /* Bring Nexus up in default config ONLY because we can't find which is the 3D heap
-       * without it. */
-      NEXUS_SetEnv("NEXUS_BASE_ONLY_INIT", "y");
-      err = NEXUS_Platform_Init(&platformSettings);
+   bool initWithMemConfig = false;
+   if (maxMem || secure)
+      initWithMemConfig = true;
+
+#if NEXUS_HAS_SAGE
+   uint32_t secure_graphics_heap;
+
+   if (secure)
+   {
+      uint32_t secure_graphics_memc;
+
+      memConfigSettings.videoDecoder[0].secure = NEXUS_SecureVideo_eBoth;
+      for (int j = 0; j < NEXUS_NUM_VIDEO_WINDOWS; j++)
+         memConfigSettings.display[0].window[j].secure = NEXUS_SecureVideo_eBoth;
+
+#if defined(NEXUS_MEMC2_SECURE_GRAPHICS_HEAP)
+      secure_graphics_heap = NEXUS_MEMC2_SECURE_GRAPHICS_HEAP;
+      secure_graphics_memc = 2;
+#elif defined(NEXUS_MEMC1_SECURE_GRAPHICS_HEAP)
+      secure_graphics_heap = NEXUS_MEMC1_SECURE_GRAPHICS_HEAP;
+      secure_graphics_memc = 1;
+#elif defined(NEXUS_MEMC0_SECURE_GRAPHICS_HEAP)
+      secure_graphics_heap = NEXUS_MEMC0_SECURE_GRAPHICS_HEAP;
+      secure_graphics_memc = 0;
+#elif defined(NEXUS_MEMC0_SECURE_PICTURE_BUFFER_HEAP)
+      secure_graphics_heap = NEXUS_MEMC0_SECURE_PICTURE_BUFFER_HEAP;
+      secure_graphics_memc = 0;
+#endif
+      platformSettings.heap[secure_graphics_heap].size = 64 * 1024 * 1024;
+      platformSettings.heap[secure_graphics_heap].memcIndex = secure_graphics_memc;
+      platformSettings.heap[secure_graphics_heap].heapType = NEXUS_HEAP_TYPE_SECURE_GRAPHICS;
+      platformSettings.heap[secure_graphics_heap].memoryType =
+         NEXUS_MEMORY_TYPE_ONDEMAND_MAPPED |
+         NEXUS_MEMORY_TYPE_MANAGED |
+         NEXUS_MEMORY_TYPE_SECURE;
+   }
+   else
+#endif
+   if (maxMem)
+   {
+      /* Hackery to maximize the amount of device memory we get if the V3D_USE_MAX_GRAPHICS_MEM env var is set */
+      if (!InitMaxMemConfig(&platformSettings, &memConfigSettings))
+      {
+         printf("Couldn't allocate requested max-memory\n");
+         return;
+      }
+   }
+
+   if (initWithMemConfig)
+   {
+      err = NEXUS_Platform_MemConfigInit(&platformSettings, &memConfigSettings);
       if (err != NEXUS_SUCCESS)
       {
-         printf("NEXUS_Platform_Init() failed\n");
+         printf("NEXUS_Platform_MemConfigInit() failed\n");
          return;
-      }
-      NEXUS_SetEnv("NEXUS_BASE_ONLY_INIT", nullptr);
-
-      NEXUS_Platform_GetConfiguration(&configuration);
-
-      heap3D = NEXUS_Platform_GetFramebufferHeap(NEXUS_OFFSCREEN_SURFACE);
-
-      if (configuration.heap[NEXUS_MEMC0_GRAPHICS_HEAP] == heap3D)
-      {
-         heap3DIndex = NEXUS_MEMC0_GRAPHICS_HEAP;
-      }
-#ifdef NEXUS_MEMC1_GRAPHICS_HEAP
-      else if (configuration.heap[NEXUS_MEMC1_GRAPHICS_HEAP] == heap3D)
-      {
-         heap3DIndex = NEXUS_MEMC1_GRAPHICS_HEAP;
-      }
-#endif
-      else
-      {
-         printf("Couldn't find 3D heap\n");
-         NEXUS_Platform_Uninit();
-         return;
-      }
-
-      orig3DSize = platformSettings.heap[heap3DIndex].size;
-
-      /* Do we have enough 3D memory? */
-      if (orig3DSize < target3DSize)
-      {
-         NEXUS_Platform_Uninit();
-
-         /* If we still don't have enough, reduce the main heap - leaving at least 64MB */
-         if (orig3DSize + saved < target3DSize && platformSettings.heap[NEXUS_MEMC0_MAIN_HEAP].size > 64 * 1024 * 1024)
-         {
-            int need = target3DSize - (orig3DSize + saved);
-            int avail = platformSettings.heap[NEXUS_MEMC0_MAIN_HEAP].size - 64 * 1024 * 1024;
-            int newSize;
-
-            if (avail < need)
-               newSize = 64 * 1024 * 1024;
-            else
-               newSize = platformSettings.heap[NEXUS_MEMC0_MAIN_HEAP].size - need;
-
-            saved += platformSettings.heap[NEXUS_MEMC0_MAIN_HEAP].size - newSize;
-            platformSettings.heap[NEXUS_MEMC0_MAIN_HEAP].size = newSize;
-
-            /* The only use is subIndex = 1 for MEMC0 memory above
-               the 256MB register hole or 760MB CMA barrier. Always 0 for MEMC1 and 2.*/
-            if (heap3DIndex == NEXUS_MEMC0_GRAPHICS_HEAP)
-            {
-               // Fit the graphics heap before the main heap
-               platformSettings.heap[NEXUS_MEMC0_MAIN_HEAP].subIndex=1;
-               platformSettings.heap[heap3DIndex].subIndex = 0;
-            }
-         }
-
-         /* Add the savings onto the 3D heap */
-         platformSettings.heap[heap3DIndex].size = orig3DSize + saved;
-
-         /* Minimise video memory usage */
-         NEXUS_GetDefaultMemoryConfigurationSettings(&memConfigSettings);
-         NexusMemMinimum(&memConfigSettings);
-
-         err = NEXUS_Platform_MemConfigInit(&platformSettings, &memConfigSettings);
-         if (err != NEXUS_SUCCESS)
-         {
-            printf("NEXUS_Platform_MemConfigInit() failed\n");
-            return;
-         }
       }
    }
    else
@@ -416,6 +474,27 @@ static void InitializeNexusSingle()
          return;
       }
    }
+
+#if NEXUS_HAS_SAGE
+   if (secure)
+   {
+      NEXUS_PlatformConfiguration platform_config;
+      NEXUS_MemoryStatus memory_status_0, memory_status_1;
+      NEXUS_Platform_GetConfiguration(&platform_config);
+      /* Ensure secure graphics heap is also GFD0 accessible. In a multiprocess system, clients blit to large offscreen secure graphics heap
+         and NSC copies to GFD0/GFD1 secure graphics. For this example, we keep it simple. */
+      err = NEXUS_Heap_GetStatus(NEXUS_Platform_GetFramebufferHeap(NEXUS_OFFSCREEN_SECURE_GRAPHICS_SURFACE), &memory_status_0);
+      BDBG_ASSERT(!err);
+      err = NEXUS_Heap_GetStatus(NEXUS_Platform_GetFramebufferHeap(0), &memory_status_1);
+      BDBG_ASSERT(!err);
+      if (memory_status_0.memcIndex != memory_status_1.memcIndex)
+      {
+         printf("Application does not support multiple secure graphics heaps\n");
+         return;
+      }
+      BDBG_ASSERT(platform_config.heap[secure_graphics_heap] == NEXUS_Platform_GetFramebufferHeap(NEXUS_OFFSCREEN_SECURE_GRAPHICS_SURFACE));
+   }
+#endif
 
    NEXUS_Memory_PrintHeaps();
 }
@@ -451,7 +530,7 @@ void Platform::InitializePlatform()
 
 #else
    // Not multi-process, so we control the display
-   InitializeNexusSingle();
+   InitializeNexusSingle(m_options.GetSecure());
 
    platform_data->m_primaryProcess = true;
 
@@ -494,7 +573,7 @@ void Platform::InitializePlatform()
 static void sSetBandwidth(const ApplicationOptions &options)
 {
    int memFd = 0;
-   uint32_t* addr = nullptr;
+   uint32_t* addr = NULL;
 
    memFd = open("/dev/mem", O_RDWR|O_SYNC);
 
@@ -503,7 +582,7 @@ static void sSetBandwidth(const ApplicationOptions &options)
 
    addr = (uint32_t*)mmap(0, BCHP_REGISTER_END, PROT_READ | PROT_WRITE, MAP_SHARED, memFd, BCHP_PHYSICAL_OFFSET);
 
-   if (addr == nullptr)
+   if (addr == NULL)
       BSG_THROW("Failed to mmap register space");
 
    /* set the bandwidth */
@@ -554,9 +633,9 @@ static void sSetBandwidth(const ApplicationOptions &options)
 
 #ifdef SINGLE_PROCESS
 /* If format == 0, w & h are used to determine requested video format */
-static NEXUS_DisplayHandle OpenNexusDisplay(NEXUS_VideoFormat format, uint32_t w, uint32_t h)
+static NEXUS_DisplayHandle OpenNexusDisplay(NEXUS_VideoFormat format, uint32_t w, uint32_t h, bool secure)
 {
-   NEXUS_DisplayHandle     display = nullptr;
+   NEXUS_DisplayHandle     display = NULL;
    NEXUS_DisplaySettings   display_settings;
    NEXUS_GraphicsSettings  graphics_settings;
 
@@ -576,8 +655,9 @@ static NEXUS_DisplayHandle OpenNexusDisplay(NEXUS_VideoFormat format, uint32_t w
       else if (w <= 1920 && h <= 1080)
          display_settings.format = NEXUS_VideoFormat_e1080p;
       else
-         display_settings.format = NEXUS_VideoFormat_e3840x2160p30hz;
+         display_settings.format = NEXUS_VideoFormat_e3840x2160p24hz;
    }
+   display_settings.displayType = NEXUS_DisplayType_eAuto;
 
    display = NEXUS_Display_Open(0, &display_settings);
    if (!display)
@@ -590,6 +670,8 @@ static NEXUS_DisplayHandle OpenNexusDisplay(NEXUS_VideoFormat format, uint32_t w
    /* Disable blend with video plane */
    graphics_settings.sourceBlendFactor = NEXUS_CompositorBlendFactor_eOne;
    graphics_settings.destBlendFactor = NEXUS_CompositorBlendFactor_eZero;
+
+   graphics_settings.secure = secure;
 
    NEXUS_Display_SetGraphicsSettings(display, &graphics_settings);
 
@@ -698,8 +780,11 @@ void PlatformDataNexus::TermCompositeOutput()
 static void hotplug_callback(void *pParam, int iParam)
 {
    NEXUS_HdmiOutputStatus status;
-   NEXUS_HdmiOutputHandle hdmi    = (NEXUS_HdmiOutputHandle)pParam;
-   NEXUS_DisplayHandle    display = (NEXUS_DisplayHandle)iParam;
+   DisplaySessionHandles *displayHandles = (DisplaySessionHandles*)pParam;
+   NEXUS_HdmiOutputHandle hdmi = displayHandles->hdmi;
+   NEXUS_DisplayHandle    display = displayHandles->display;
+
+   (void)iParam;
 
    NEXUS_HdmiOutput_GetStatus(hdmi, &status);
    printf("HDMI hotplug event: %s\n", status.connected?"connected":"not connected");
@@ -724,7 +809,6 @@ void PlatformDataNexus::InitHDMIOutput(bool forceHDMI)
    m_hdmiOn = false;
 
 #if NEXUS_NUM_HDMI_OUTPUTS
-
    NEXUS_HdmiOutputSettings      hdmiSettings;
    NEXUS_PlatformConfiguration   platform_config;
    NEXUS_Platform_GetConfiguration(&platform_config);
@@ -736,14 +820,17 @@ void PlatformDataNexus::InitHDMIOutput(bool forceHDMI)
       if (!forceHDMI)
       {
          /* Install hotplug callback -- video only for now */
+         m_sessionHandles = new DisplaySessionHandles;
+         m_sessionHandles->hdmi = platform_config.outputs.hdmi[0];
+         m_sessionHandles->display = m_nexusDisplay;
+
          NEXUS_HdmiOutput_GetSettings(platform_config.outputs.hdmi[0], &hdmiSettings);
          hdmiSettings.hotplugCallback.callback = hotplug_callback;
-         hdmiSettings.hotplugCallback.context  = platform_config.outputs.hdmi[0];
-         hdmiSettings.hotplugCallback.param    = (int)m_nexusDisplay;
+         hdmiSettings.hotplugCallback.context  = m_sessionHandles;
          NEXUS_HdmiOutput_SetSettings(platform_config.outputs.hdmi[0], &hdmiSettings);
 
          /* Force a hotplug to switch to a supported format if necessary */
-         hotplug_callback(platform_config.outputs.hdmi[0], (int)m_nexusDisplay);
+         hotplug_callback(m_sessionHandles, 0);
 
          m_hdmiOn = true;
       }
@@ -764,8 +851,8 @@ void PlatformDataNexus::TermHDMIOutput()
    {
       /* Install hotplug callback -- video only for now */
       NEXUS_HdmiOutput_GetSettings(platform_config.outputs.hdmi[0], &hdmiSettings);
-      hdmiSettings.hotplugCallback.callback = nullptr;
-      hdmiSettings.hotplugCallback.context = nullptr;
+      hdmiSettings.hotplugCallback.callback = NULL;
+      hdmiSettings.hotplugCallback.context = NULL;
       hdmiSettings.hotplugCallback.param = 0;
       NEXUS_HdmiOutput_SetSettings(platform_config.outputs.hdmi[0], &hdmiSettings);
 
@@ -774,67 +861,10 @@ void PlatformDataNexus::TermHDMIOutput()
 #endif
 }
 
-static NEXUS_VideoFormat Select16x9DisplayFormat(uint8_t hz, bool interlaced, uint32_t w, uint32_t h)
-{
-   NEXUS_VideoFormat format = NEXUS_VideoFormat_e1080p;
-
-   if (w <= 1280 && h <= 720)
-   {
-      if (hz <= 24)
-         format = NEXUS_VideoFormat_e720p24hz;
-      else if (hz <= 25)
-         format = NEXUS_VideoFormat_e720p25hz;
-      else if (hz <= 30)
-         format = NEXUS_VideoFormat_e720p30hz;
-      else if (hz <= 50)
-         format = NEXUS_VideoFormat_e720p50hz;
-      else
-         format = NEXUS_VideoFormat_e720p;
-   }
-   else if (w <= 1920 && h <= 1080)
-   {
-      if (interlaced)
-      {
-         if (hz <= 50)
-            format = NEXUS_VideoFormat_e1080i50hz;
-         else
-            format = NEXUS_VideoFormat_e1080i;
-      }
-      else
-      {
-         if (hz <= 24)
-            format = NEXUS_VideoFormat_e1080p24hz;
-         else if (hz <= 25)
-            format = NEXUS_VideoFormat_e1080p25hz;
-         else if (hz <= 30)
-            format = NEXUS_VideoFormat_e1080p30hz;
-         else if (hz <= 50)
-            format = NEXUS_VideoFormat_e1080p50hz;
-         else
-            format = NEXUS_VideoFormat_e1080p;
-      }
-   }
-   else
-   {
-      if (hz <= 24)
-         format = NEXUS_VideoFormat_e3840x2160p24hz;
-      else if (hz <= 25)
-         format = NEXUS_VideoFormat_e3840x2160p25hz;
-      else if (hz <= 30)
-         format = NEXUS_VideoFormat_e3840x2160p30hz;
-      else if (hz <= 50)
-         format = NEXUS_VideoFormat_e3840x2160p50hz;
-      else /* if (hz <= 60) */
-         format = NEXUS_VideoFormat_e3840x2160p60hz;
-   }
-
-   return format;
-}
-
 static NEXUS_VideoFormat SelectDisplayFormat(uint8_t hz, bool interlaced, uint32_t w, uint32_t h)
 {
-   NEXUS_VideoFormat format = NEXUS_VideoFormat_e1080p;
-   NEXUS_AspectRatio monitorRatio = NEXUS_AspectRatio_e16x9;
+   int preferred = 0;
+   NEXUS_AspectRatio monitorRatio = NEXUS_AspectRatio_e4x3;
 
 #if NEXUS_NUM_HDMI_OUTPUTS
    NEXUS_PlatformConfiguration   platform_config;
@@ -844,40 +874,63 @@ static NEXUS_VideoFormat SelectDisplayFormat(uint8_t hz, bool interlaced, uint32
    {
       NEXUS_HdmiOutputStatus  hdmiOutputStatus;
 
-      NEXUS_HdmiOutput_GetStatus(platform_config.outputs.hdmi[0], &hdmiOutputStatus);
+      NEXUS_Error rc = NEXUS_HdmiOutput_GetStatus(platform_config.outputs.hdmi[0], &hdmiOutputStatus);
 
-      if (hdmiOutputStatus.connected)
+      if (!rc && hdmiOutputStatus.connected)
       {
-         NEXUS_VideoFormatInfo preferred;
-         NEXUS_VideoFormat_GetInfo(hdmiOutputStatus.preferredVideoFormat, &preferred);
-         monitorRatio = preferred.aspectRatio;
+         for (int i = 0; i < NEXUS_VideoFormat_eMax; i++)
+         {
+            if (hdmiOutputStatus.videoFormatSupported[i])
+            {
+               NEXUS_VideoFormatInfo videoInfo;
+               NEXUS_VideoFormat_GetInfo((NEXUS_VideoFormat)i, &videoInfo);
+               if ((videoInfo.verticalFreq / 10 == hz) && (videoInfo.width == w) && (videoInfo.height == h))
+               {
+                  preferred = i;
+                  monitorRatio = videoInfo.aspectRatio;
+                  break;
+               }
+            }
+         }
+
+         // no exact match found, just look at width and height
+         if (preferred == NEXUS_VideoFormat_eUnknown)
+         {
+            for (int i = 0; i < NEXUS_VideoFormat_eMax; i++)
+            {
+               if (hdmiOutputStatus.videoFormatSupported[i])
+               {
+                  NEXUS_VideoFormatInfo videoInfo;
+                  NEXUS_VideoFormat_GetInfo((NEXUS_VideoFormat)i, &videoInfo);
+                  if ((videoInfo.width == w) && (videoInfo.height == h))
+                  {
+                     preferred = i;
+                     monitorRatio = videoInfo.aspectRatio;
+                     break;
+                  }
+               }
+            }
+         }
       }
    }
 #endif
 
-   if (monitorRatio == NEXUS_AspectRatio_e16x9)
-   {
-      // Only match 16:9 formats to ensure square pixels
-      format = Select16x9DisplayFormat(hz, interlaced, w, h);
-   }
-   else
+   if (monitorRatio != NEXUS_AspectRatio_e16x9)
    {
       if (w <= 720 && h <= 480)
-         format = NEXUS_VideoFormat_eNtsc;
+         preferred = NEXUS_VideoFormat_eNtsc;
       else if (w <= 720 && h <= 576)
-         format = NEXUS_VideoFormat_ePal;
-      else
-         format = Select16x9DisplayFormat(hz, interlaced, w, h);
+         preferred = NEXUS_VideoFormat_ePal;
    }
 
-   return format;
+   return (NEXUS_VideoFormat)preferred;
 }
 #endif // SINGLE_PROCESS
 
 EGLNativeWindowType Platform::NewNativeWindow(uint32_t x, uint32_t y, uint32_t w, uint32_t h)
 {
-   NXPL_NativeWindowInfo winInfo;
-   memset(&winInfo, 0, sizeof(NXPL_NativeWindowInfo));
+   NXPL_NativeWindowInfoEXT winInfo;
+   NXPL_GetDefaultNativeWindowInfoEXT(&winInfo);
 
    if (w == 0)
       w = m_options.GetWidth();
@@ -908,7 +961,7 @@ EGLNativeWindowType Platform::NewNativeWindow(uint32_t x, uint32_t y, uint32_t w
    else
       winInfo.stretch = 0;
 
-   m_nativeWindows.push_back(NXPL_CreateNativeWindow(&winInfo));
+   m_nativeWindows.push_back(NXPL_CreateNativeWindowEXT(&winInfo));
 
 #ifndef SINGLE_PROCESS
    uint32_t clientID = NXPL_GetClientID(m_nativeWindows.front());
@@ -928,7 +981,7 @@ void Platform::InitializePlatformDisplay()
 
    /* bring up display */
    if (m_options.GetHeadless())
-      NXPL_RegisterNexusDisplayPlatform(&platform_data->m_platformHandle, nullptr);
+      NXPL_RegisterNexusDisplayPlatform(&platform_data->m_platformHandle, NULL);
    else
    {
 #ifdef SINGLE_PROCESS
@@ -938,7 +991,7 @@ void Platform::InitializePlatformDisplay()
       NEXUS_VideoFormat format = SelectDisplayFormat(m_options.GetDisplayRefreshRate(), m_options.GetDisplayInterlace(),
                                                      displayWidth, displayHeight);
 
-      platform_data->m_nexusDisplay = OpenNexusDisplay(format, displayWidth, displayHeight);
+      platform_data->m_nexusDisplay = OpenNexusDisplay(format, displayWidth, displayHeight, m_options.GetSecure());
 
       platform_data->InitPanelOutput();
       platform_data->InitCompositeOutput(displayWidth, displayHeight);
@@ -947,7 +1000,7 @@ void Platform::InitializePlatformDisplay()
 
       NXPL_RegisterNexusDisplayPlatform(&platform_data->m_platformHandle, platform_data->m_nexusDisplay);
 #else
-      NXPL_RegisterNexusDisplayPlatform(&platform_data->m_platformHandle, nullptr);
+      NXPL_RegisterNexusDisplayPlatform(&platform_data->m_platformHandle, NULL);
 #endif // SINGLE_PROCESS
    }
 
@@ -1041,13 +1094,14 @@ void Platform::TerminatePlatform()
 #endif
 
    delete m_platform;
-   m_platform = nullptr;
+   m_platform = NULL;
 }
 
 void Platform::TerminatePlatformDisplay()
 {
-   for (auto win : m_nativeWindows)
-      NXPL_DestroyNativeWindow(win);
+   std::list<EGLNativeWindowType>::iterator iter;
+   for (iter = m_nativeWindows.begin(); iter != m_nativeWindows.end(); ++iter)
+      NXPL_DestroyNativeWindow(*iter);
 
    NXPL_UnregisterNexusDisplayPlatform(platform_data->m_platformHandle);
 
@@ -1186,8 +1240,8 @@ void Platform::ConfigureVideoGraphicsBlending(eVideoGraphicsBlend type, float gr
    NEXUS_Display_SetGraphicsSettings(platform_data->m_nexusDisplay, &graphics_settings);
 #else
    // Only uses the primary native window
-   NXPL_NativeWindowInfo &winInfo = platform_data->m_winInfo.front();
-   uint32_t              clientID = winInfo.clientID;
+   NXPL_NativeWindowInfoEXT &winInfo = platform_data->m_winInfo.front();
+   uint32_t                 clientID = winInfo.clientID;
 
    if (clientID)
    {
@@ -1687,12 +1741,12 @@ static void *KeyboardPollThread(void *plat)
    PlatformDataNexus  *pdn = (PlatformDataNexus*)platform->GetPlatformData();
 
    struct sigaction sa;
-   sa.sa_handler = nullptr;
+   sa.sa_handler = NULL;
    sa.sa_sigaction = gotSIGUSR1;
    sa.sa_flags = SA_SIGINFO;
    sigemptyset(&sa.sa_mask);
 
-   if (sigaction(SIGUSR1, &sa, nullptr) < 0) {
+   if (sigaction(SIGUSR1, &sa, NULL) < 0) {
       BSG_THROW("Unable to install signal handler on KeyboardPollThread");
    }
 
@@ -1724,7 +1778,7 @@ static void *KeyboardPollThread(void *plat)
       }
    }
 
-   return nullptr;
+   return NULL;
 }
 
 static void *MousePollThread(void *plat)
@@ -1735,12 +1789,12 @@ static void *MousePollThread(void *plat)
    PlatformDataNexus  *pdn = (PlatformDataNexus*)platform->GetPlatformData();
 
    struct sigaction sa;
-   sa.sa_handler = nullptr;
+   sa.sa_handler = NULL;
    sa.sa_sigaction = gotSIGUSR1;
    sa.sa_flags = SA_SIGINFO;
    sigemptyset(&sa.sa_mask);
 
-   if (sigaction(SIGUSR1, &sa, nullptr) < 0) {
+   if (sigaction(SIGUSR1, &sa, NULL) < 0) {
       BSG_THROW("Unable to install signal handler on KeyboardPollThread");
    }
 
@@ -1788,7 +1842,7 @@ static void *MousePollThread(void *plat)
       }
    }
 
-   return nullptr;
+   return NULL;
 }
 
 #else
@@ -1901,14 +1955,14 @@ void PlatformDataNexus::InitUSBInputs()
 
    if (m_kbdFd != 0)
    {
-      int rc = pthread_create(&m_kbdThread, nullptr, KeyboardPollThread, (void *)m_platform);
+      int rc = pthread_create(&m_kbdThread, NULL, KeyboardPollThread, (void *)m_platform);
       if (rc)
          BSG_THROW("Unable to create USB keyboard handling thread");
    }
 
    if (m_mouseFd != 0)
    {
-      int rc = pthread_create(&m_mouseThread, nullptr, MousePollThread, (void *)m_platform);
+      int rc = pthread_create(&m_mouseThread, NULL, MousePollThread, (void *)m_platform);
       if (rc)
          BSG_THROW("Unable to create USB mouse handling thread");
    }
@@ -1927,13 +1981,13 @@ void PlatformDataNexus::TermUSBInputs()
    if (m_kbdThread)
    {
       pthread_kill(m_kbdThread, SIGUSR1);
-      pthread_join(m_kbdThread, nullptr);
+      pthread_join(m_kbdThread, NULL);
    }
 
    if (m_mouseThread)
    {
       pthread_kill(m_mouseThread, SIGUSR1);
-      pthread_join(m_mouseThread, nullptr);
+      pthread_join(m_mouseThread, NULL);
    }
 
    close(mfd);
@@ -1966,7 +2020,7 @@ void PlatformDataNexus::InitRoutedInputs()
    if (allocResults.inputClient[0].id)
    {
       m_inputRouterClient = NEXUS_InputClient_Acquire(allocResults.inputClient[0].id);
-      if (m_inputRouterClient == nullptr)
+      if (m_inputRouterClient == NULL)
       {
          fprintf(stderr, "WARNING : Unable to acquire the input client\n");
       }
@@ -2027,16 +2081,18 @@ NativePixmap::NativePixmap(uint32_t w, uint32_t h, ePixmapFormat format) :
    m_width(w),
    m_height(h),
    m_format(format),
-   m_eglPixmap(nullptr)
+   m_eglPixmap(NULL)
 {
    m_priv = new NexusPixmapData;
 
-   BEGL_PixmapInfo      pixInfo;
+   BEGL_PixmapInfoEXT   pixInfo;
    EGLNativePixmapType  eglPixmap;
    NEXUS_SurfaceHandle  nexusSurf;
 
-   pixInfo.width = w;
+   NXPL_GetDefaultPixmapInfoEXT(&pixInfo);
+   pixInfo.width  = w;
    pixInfo.height = h;
+   pixInfo.secure = Platform::Instance()->GetOptions().GetSecure();
 
 #ifdef BSG_VC5
 /* Legacy from VC4 */
@@ -2062,31 +2118,33 @@ NativePixmap::NativePixmap(uint32_t w, uint32_t h, ePixmapFormat format) :
    }
 #endif
 
-   if (NXPL_CreateCompatiblePixmap(
+   if (NXPL_CreateCompatiblePixmapEXT(
                   ((PlatformDataNexus*)Platform::Instance()->GetPlatformData())->m_platformHandle,
                   &eglPixmap, &nexusSurf, &pixInfo))
    {
       m_eglPixmap = eglPixmap;
       ((NexusPixmapData*)m_priv)->m_surface = nexusSurf;
 
-      NEXUS_SurfaceCreateSettings settings;
-      NEXUS_Surface_Flush(nexusSurf);
-      NEXUS_Surface_GetCreateSettings(nexusSurf, &settings);
+      NEXUS_SurfaceStatus status;
+      NEXUS_Surface_GetStatus(nexusSurf, &status);
 
-      NEXUS_SurfaceMemory  memory;
-      NEXUS_Surface_GetMemory(nexusSurf, &memory);
+      m_width  = status.width;
+      m_height = status.height;
+      m_stride = status.pitch;
 
-      m_width  = settings.width;
-      m_height = settings.height;
-      m_stride = memory.pitch;
+      if (!pixInfo.secure)
+      {
+         NEXUS_SurfaceMemory  memory;
+         NEXUS_Surface_GetMemory(nexusSurf, &memory);
 
-      memset(memory.buffer, 0, m_stride * m_height);
-      NEXUS_Surface_Flush(nexusSurf);
+         memset(memory.buffer, 0, m_stride * m_height);
+         NEXUS_Surface_Flush(nexusSurf);
+      }
    }
    else
       BSG_THROW("Unable to create native pixmap");
 
-   if (nexusSurf == nullptr)
+   if (nexusSurf == NULL)
       BSG_THROW("Unable to create native pixmap");
 }
 

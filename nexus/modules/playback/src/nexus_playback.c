@@ -835,7 +835,7 @@ NEXUS_Playback_RecordProgress_priv(NEXUS_PlaybackHandle p)
         return;
     }
 
-    BDBG_MSG(("NEXUS_Playback_RecordProgress_priv %d", p->state.read_size));
+    BDBG_MSG(("NEXUS_Playback_RecordProgress_priv %u", (unsigned)p->state.read_size));
     if (p->state.read_size==0) {
         bmedia_player_pos pos;
         bmedia_player_status status;
@@ -1760,7 +1760,7 @@ NEXUS_Playback_Start(NEXUS_PlaybackHandle playback, NEXUS_FilePlayHandle file, c
         }
         {
             char thread_name[32];
-            BKNI_Snprintf(thread_name, sizeof(thread_name), "nx_playback%u", (size_t)playback);
+            BKNI_Snprintf(thread_name, sizeof(thread_name), "nx_playback%p", (void *)playback);
             playback->playpump_thread = NEXUS_Thread_Create(thread_name, NEXUS_Playback_P_PlaypumpThread, playback, &pSettings->indexFileIo.threadSettings);
             if(!playback->playpump_thread) { rc = BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY); goto error_index_mode; }
         }
@@ -1786,8 +1786,8 @@ NEXUS_Playback_Start(NEXUS_PlaybackHandle playback, NEXUS_FilePlayHandle file, c
     if (rc) {rc = BERR_TRACE(rc); goto error_state;}
 
     playback->buf_limit = (uint8_t*)playpump_status.bufferBase + playpump_status.fifoSize - B_IO_BLOCK_LIMIT;
-    BDBG_MSG(("playback buffer %#lx(%d)",
-        (unsigned long)playpump_status.bufferBase, playpump_status.fifoSize));
+    BDBG_MSG(("playback buffer %p(%u)",
+        (void *)playpump_status.bufferBase, (unsigned)playpump_status.fifoSize));
 
     bio_read_attach_priority(playback->file->file.data, NEXUS_P_Playback_GetPriority, playback);
 

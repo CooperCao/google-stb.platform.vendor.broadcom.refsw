@@ -1,14 +1,14 @@
 /******************************************************************************
- *    (c)2008-2012 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
  * no license (express or implied), right to use, or waiver of any kind with respect to the
  * Software, and Broadcom expressly reserves all rights in and to the Software and all
  * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELYn
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
@@ -35,17 +35,9 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description: 
+ * Module Description:
  *  main test app for ip_streamer
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ******************************************************************************/
 #include <stdio.h>
 #include <assert.h>
@@ -71,25 +63,25 @@
 #include "blst_list.h"
 #include "blst_queue.h"
 
-#ifndef DMS_CROSS_PLATFORMS                                                                                              
-#include "nexus_platform.h"                                                                                              
-#if NEXUS_HAS_FRONTEND                                                                                                   
-#include "nexus_frontend.h"                                                                                              
-#endif                                                                                                                   
-#include "nexus_parser_band.h"                                                                                           
-#include "nexus_pid_channel.h"                                                                                           
-#include "nexus_playpump.h"                                                                                              
-#include "nexus_message.h"                                                                                               
-#include "nexus_timebase.h"                                                                                              
-#include "nexus_recpump.h"                                                                                               
-#ifdef NEXUS_HAS_RECORD                                                                                                  
-#include "nexus_record.h"                                                                                                
-#endif                                                                                                                   
-#include "nexus_file_fifo.h"                                                                                             
-#include "b_psip_lib.h"                                                                                                  
-#include "nexus_core_utils.h"                                                                                            
-#endif /* DMS_CROSS_PLATFORMS */                                                                                         
-#include "b_playback_ip_lib.h"                                                                                           
+#ifndef DMS_CROSS_PLATFORMS
+#include "nexus_platform.h"
+#if NEXUS_HAS_FRONTEND
+#include "nexus_frontend.h"
+#endif
+#include "nexus_parser_band.h"
+#include "nexus_pid_channel.h"
+#include "nexus_playpump.h"
+#include "nexus_message.h"
+#include "nexus_timebase.h"
+#include "nexus_recpump.h"
+#ifdef NEXUS_HAS_RECORD
+#include "nexus_record.h"
+#endif
+#include "nexus_file_fifo.h"
+#include "b_psip_lib.h"
+#include "nexus_core_utils.h"
+#endif /* DMS_CROSS_PLATFORMS */
+#include "b_playback_ip_lib.h"
 
 #ifdef B_HAS_DTCP_IP
 #include "b_dtcp_applib.h"
@@ -112,7 +104,7 @@ BDBG_MODULE(ip_streamer);
 #if 0
 #define BDBG_MSG_FLOW(x)  BDBG_WRN( x );
 #else
-#define BDBG_MSG_FLOW(x)  
+#define BDBG_MSG_FLOW(x)
 #endif
 
 int
@@ -209,9 +201,9 @@ openNexusIpSrc(
             }
             else {
                 /* found a match, check if xcode params also match if enabled for this session */
-                if (!ipStreamerCfg->transcodeEnabled 
+                if (!ipStreamerCfg->transcodeEnabled
 #ifdef NEXUS_HAS_VIDEO_ENCODER
-                        || 
+                        ||
                         (ipStreamerCfg->transcodeEnabled && ipSrc->transcodeEnabled &&
                          ipSrc->transcode.outVideoCodec == ipStreamerCfg->transcode.outVideoCodec &&
                          ipSrc->transcode.outAudioCodec == ipStreamerCfg->transcode.outAudioCodec &&
@@ -219,7 +211,7 @@ openNexusIpSrc(
                          ipSrc->transcode.outHeight == ipStreamerCfg->transcode.outHeight
                         )
 #endif
-                        ) 
+                        )
                         {
                     /* we only reuse the ipSrc if this ipSrc already is being used for transcoding session and */
                     /* new session is also a transcoding session on the same parameters */
@@ -240,7 +232,7 @@ openNexusIpSrc(
                     }
 #endif
                     BDBG_MSG(("IP Ctx %p: Found an existing IP Src entry for the requested IP channel: src entry %p, currently shared %s, for ip %s, port %d",
-                                ipStreamerCtx, ipSrc, ipSrc->refCount? "Yes":"No", ipStreamerCfg->srcIpAddress, ipStreamerCfg->srcPort));
+                                (void *)ipStreamerCtx, (void *)ipSrc, ipSrc->refCount? "Yes":"No", ipStreamerCfg->srcIpAddress, ipStreamerCfg->srcPort));
                     return 0;
                 }
                 else {
@@ -258,7 +250,7 @@ openNexusIpSrc(
         BKNI_ReleaseMutex(ipSrcList[i].lock);
     }
     if (ipSrc) {
-        BDBG_MSG(("Found Free IP Src entry %p, shared %s, for ip %s, port %d", ipSrc, ipSrc->refCount? "Yes":"No", ipStreamerCfg->srcIpAddress, ipStreamerCfg->srcPort));
+        BDBG_MSG(("Found Free IP Src entry %p, shared %s, for ip %s, port %d", (void *)ipSrc, ipSrc->refCount? "Yes":"No", ipStreamerCfg->srcIpAddress, ipStreamerCfg->srcPort));
         BKNI_AcquireMutex(ipSrc->lock);
         ipStreamerCtx->ipSrc = ipSrc;
         NEXUS_PlaypumpSettings playpumpSettings;
@@ -278,9 +270,9 @@ openNexusIpSrc(
         /* IP Applib currently uses the FIFO mode to feed data, so app needs to set that mode */
         /* TODO: this can now be done inside IP Applib */
         playpumpSettings.mode = NEXUS_PlaypumpMode_eFifo;
-        
+
         if(ipStreamerCtx->globalCtx->globalCfg.multiProcessEnv)
-        {    
+        {
             NEXUS_Platform_GetClientConfiguration(&clientConfig);
             playpumpOpenSettings.heap = clientConfig.heap[1]; /* playpump requires heap with eFull mapping */
         }
@@ -350,6 +342,8 @@ openNexusIpSrc(
     }
 #ifdef NEXUS_HAS_VIDEO_ENCODER
     if (ipStreamerCfg->transcodeEnabled) {
+        /* coverity[stack_use_local_overflow] */
+        /* coverity[stack_use_overflow] */
         if ((ipSrc->transcoderDst = openNexusTranscoderPipe(ipStreamerCfg, ipStreamerCtx)) == NULL) {
             BDBG_ERR(("%s: Failed to open the transcoder pipe", __FUNCTION__));
             goto error;
@@ -360,7 +354,7 @@ openNexusIpSrc(
         BKNI_ReleaseMutex(ipStreamerCtx->globalCtx->transcoderDstMutex);
     }
 #endif
-    BDBG_MSG(("CTX %p: IP Src %p opened, refCount %d", ipStreamerCtx, ipSrc, ipSrc->refCount));
+    BDBG_MSG(("CTX %p: IP Src %p opened, refCount %d", (void *)ipStreamerCtx, (void *)ipSrc, ipSrc->refCount));
     return 0;
 
 error:
@@ -415,7 +409,7 @@ closeNexusIpSrc(
     /* coverity[missing_lock] */
     ipStreamerCtx->ipSrc = NULL;
 
-    BDBG_MSG(("CTX %p: IP Src %p is closed (ref cnt %d)", ipStreamerCtx, ipSrc, ipSrc->refCount));
+    BDBG_MSG(("CTX %p: IP Src %p is closed (ref cnt %d)", (void *)ipStreamerCtx, (void *)ipSrc, ipSrc->refCount));
 }
 
 int
@@ -441,7 +435,7 @@ setupAndAcquirePsiInfoIpSrc(
     if (!ipStreamerCtx->skipPsiAcquisition) {
         /* since skipPsi flag is *not* set, so this IP src is now being used for a new IP channel, so acquire PSI info */
         /* PSI hasn't yet been acquired, check if any other thread is not in the process of acquiring it */
-        BDBG_MSG(("CTX %p: Acquire Psi Info...", ipStreamerCtx));
+        BDBG_MSG(("CTX %p: Acquire Psi Info...", (void *)ipStreamerCtx));
         /* now get the PSI, this can take several seconds ... */
         acquirePsiInfo(&collectionData, &ipSrc->psi[0], &ipSrc->numProgramsFound);
         BKNI_SetEvent(ipSrc->psiAcquiredEvent);
@@ -449,7 +443,7 @@ setupAndAcquirePsiInfoIpSrc(
     else {
         if (ipSrc->numProgramsFound == 0) {
             /* other thread hasn't yet acquired PSI, so wait for it to acquire it */
-            BDBG_MSG(("CTX %p: Another thread sharing the IP Src (ref count %d) hasn't yet acquired PSI info, wait for its completion...", ipStreamerCtx, ipSrc->refCount));
+            BDBG_MSG(("CTX %p: Another thread sharing the IP Src (ref count %d) hasn't yet acquired PSI info, wait for its completion...", (void *)ipStreamerCtx, ipSrc->refCount));
             if (BKNI_WaitForEvent(ipSrc->psiAcquiredEvent, 60000)) {
                 BDBG_ERR(("%s: timeout while waiting for PSI acquisition by another thread", __FUNCTION__));
                 return -1;
@@ -470,7 +464,7 @@ setupAndAcquirePsiInfoIpSrc(
         i = 0;
     }
     else {
-        BDBG_MSG(("CTX %p: Requested sub-channel # (%d) is found in the total channels (%d) ", ipStreamerCtx, ipStreamerCfg->subChannel, ipSrc->numProgramsFound));
+        BDBG_MSG(("CTX %p: Requested sub-channel # (%d) is found in the total channels (%d) ", (void *)ipStreamerCtx, ipStreamerCfg->subChannel, ipSrc->numProgramsFound));
         i = ipStreamerCfg->subChannel - 1; /* sub-channels start from 1, where as psi table starts from 0 */
         if (i < 0) i = 0;
     }
@@ -584,7 +578,7 @@ startNexusIpSrc(
     BKNI_AcquireMutex(ipSrc->lock);
     if (ipSrc->started) {
         BKNI_ReleaseMutex(ipSrc->lock);
-        BDBG_MSG(("CTX %p: IP Src %p is already started, refCount %d", ipStreamerCtx, ipSrc, ipSrc->refCount));
+        BDBG_MSG(("CTX %p: IP Src %p is already started, refCount %d", (void *)ipStreamerCtx, (void *)ipSrc, ipSrc->refCount));
         return 0;
     }
 
@@ -613,7 +607,7 @@ startNexusIpSrc(
         ipSrc->started = true;
     }
     BKNI_ReleaseMutex(ipSrc->lock);
-    BDBG_MSG(("CTX %p: IP Src %p is started", ipStreamerCtx, ipSrc));
+    BDBG_MSG(("CTX %p: IP Src %p is started", (void *)ipStreamerCtx, (void *)ipSrc));
     return 0;
 }
 
@@ -632,9 +626,9 @@ stopNexusIpSrc(
         B_PlaybackIp_SessionStop(ipSrc->playbackIp);
         NEXUS_Playpump_Stop(ipSrc->playpump);
         ipSrc->started = false;
-        BDBG_MSG(("CTX %p: IP Src %p is stopped", ipStreamerCtx, ipSrc));
+        BDBG_MSG(("CTX %p: IP Src %p is stopped", (void *)ipStreamerCtx, (void *)ipSrc));
     }
     else {
-        BDBG_MSG(("CTX %p: IP Src %p is not stopped, refCount %d", ipStreamerCtx, ipSrc, refCount));
+        BDBG_MSG(("CTX %p: IP Src %p is not stopped, refCount %d", (void *)ipStreamerCtx, (void *)ipSrc, refCount));
     }
 }

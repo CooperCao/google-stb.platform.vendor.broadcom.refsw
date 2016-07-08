@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2014 Broadcom Corporation
+ *     Broadcom Proprietary and Confidential. (c)2014 Broadcom.  All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -54,7 +54,7 @@ static BVC5_P_InternalJob *BVC5_P_CreateInternalJob(
    BVC5_Handle              hVC5,
    uint32_t                 uiClientId,
    BVC5_JobBase            *toJob,
-   BVC5_JobBase            *fromJob
+   const BVC5_JobBase      *fromJob
    )
 {
    BVC5_P_InternalJob   *pJob = NULL;
@@ -146,15 +146,17 @@ BVC5_P_InternalJob *BVC5_P_JobCreateRender(
 
    if (pRenderJob != NULL)
    {
-      pJob = BVC5_P_CreateInternalJob(hVC5, uiClientId, (BVC5_JobBase *)pRenderJob, (BVC5_JobBase *)psJob);
+      pJob = BVC5_P_CreateInternalJob(hVC5, uiClientId, &pRenderJob->sBase, &psJob->sBase);
 
       if (pJob != NULL)
       {
+         BVC5_BinPoolHandle hBinPool = (psJob->sBase.bSecure && hVC5->hSecureBinPool) ? hVC5->hSecureBinPool : hVC5->hBinPool;
+
          BKNI_Memcpy(pRenderJob, psJob, sizeof(BVC5_JobRender));
 
-         if (BVC5_P_BinMemArrayCreate(&pJob->jobData.sRender.sBinMemArray) != BERR_SUCCESS)
+         if (BVC5_P_BinMemArrayCreate(hBinPool, &pJob->jobData.sRender.sBinMemArray) != BERR_SUCCESS)
          {
-            BVC5_P_BinMemArrayDestroy(&pJob->jobData.sRender.sBinMemArray, NULL);
+            BVC5_P_BinMemArrayDestroy(&pJob->jobData.sRender.sBinMemArray);
             BVC5_P_FreeInternalJob(pJob);
             BKNI_Free(pRenderJob);
             pJob = NULL;
@@ -162,39 +164,6 @@ BVC5_P_InternalJob *BVC5_P_JobCreateRender(
       }
       else
          BKNI_Free(pRenderJob);
-   }
-
-   return pJob;
-}
-
-BVC5_P_InternalJob *BVC5_P_JobCreateFenceSignal(
-   BVC5_Handle                hVC5,
-   uint32_t                   uiClientId,
-   const BVC5_JobFenceSignal *psJob,
-   int32_t                    *pFence
-)
-{
-   BVC5_JobFenceSignal  *pFenceJob = (BVC5_JobFenceSignal *)BKNI_Malloc(sizeof(BVC5_JobFenceSignal));
-   BVC5_P_InternalJob   *pJob = NULL;
-   *pFence = -1;
-
-   if (pFenceJob != NULL)
-   {
-      pJob = BVC5_P_CreateInternalJob(hVC5, uiClientId, (BVC5_JobBase *)pFenceJob, (BVC5_JobBase *)psJob);
-
-      if (pJob != NULL)
-      {
-         BKNI_Memcpy(pFenceJob, psJob, sizeof(BVC5_JobFenceSignal));
-         *pFence = BVC5_P_FenceCreate(hVC5->hFences, uiClientId, &pJob->jobData.sSignal.signalData);
-         if (*pFence == -1)
-         {
-            BVC5_P_FreeInternalJob(pJob);
-            BKNI_Free(pFenceJob);
-            pJob = NULL;
-         }
-      }
-      else
-         BKNI_Free(pFenceJob);
    }
 
    return pJob;
@@ -343,11 +312,7 @@ void BVC5_P_JobDestroy(
    {
       case BVC5_JobType_eRender:
       /* Need to free bin memory if still allocated */
-         BVC5_P_BinMemArrayDestroy(&pJob->jobData.sRender.sBinMemArray, hVC5->hBinPool);
-         break;
-      case BVC5_JobType_eFenceSignal:
-         if (pJob->jobData.sSignal.signalData)
-            BVC5_P_FenceSignalAndCleanup(hVC5->hFences, pJob->jobData.sSignal.signalData);
+         BVC5_P_BinMemArrayDestroy(&pJob->jobData.sRender.sBinMemArray);
          break;
       case BVC5_JobType_eFenceWait:
          if (pJob->jobData.sWait.waitData)

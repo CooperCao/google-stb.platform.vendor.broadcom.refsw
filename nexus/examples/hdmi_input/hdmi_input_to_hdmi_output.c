@@ -1,53 +1,43 @@
-/***************************************************************************
-*     (c)2004-2014 Broadcom Corporation
+/******************************************************************************
+* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
-*  and may only be used, duplicated, modified or distributed pursuant to the terms and
-*  conditions of a separate, written license agreement executed between you and Broadcom
-*  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-*  no license (express or implied), right to use, or waiver of any kind with respect to the
-*  Software, and Broadcom expressly reserves all rights in and to the Software and all
-*  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-*  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+* This program is the proprietary software of Broadcom and/or its
+* licensors, and may only be used, duplicated, modified or distributed pursuant
+* to the terms and conditions of a separate, written license agreement executed
+* between you and Broadcom (an "Authorized License").  Except as set forth in
+* an Authorized License, Broadcom grants no license (express or implied), right
+* to use, or waiver of any kind with respect to the Software, and Broadcom
+* expressly reserves all rights in and to the Software and all intellectual
+* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
 *
-*  Except as expressly set forth in the Authorized License,
+* Except as expressly set forth in the Authorized License,
 *
-*  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-*  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-*  and to use this information only in connection with your use of Broadcom integrated circuit products.
+* 1. This program, including its structure, sequence and organization,
+*    constitutes the valuable trade secrets of Broadcom, and you shall use all
+*    reasonable efforts to protect the confidentiality thereof, and to use
+*    this information only in connection with your use of Broadcom integrated
+*    circuit products.
 *
-*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-*  USE OR PERFORMANCE OF THE SOFTWARE.
+* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
 *
-*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-*  ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* API Description:
-*   API name: Platform
-*    Specific APIs to initialze the a board.
-*
-* Revision History:
-*
-* $brcm_Log: $
-*
-***************************************************************************/
+* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+******************************************************************************/
 
 #include "nexus_platform.h"
 #if NEXUS_HAS_HDMI_OUTPUT && NEXUS_HAS_HDMI_INPUT
@@ -124,7 +114,21 @@ static NEXUS_AudioInputCaptureStartSettings inputCaptureStartSettings;
 
     BKNI_EventHandle checkpointEvent, spaceAvailableEvent;
 
-void source_changed(void *context, int param)
+typedef struct hotplugCallbackParameters
+{
+    NEXUS_HdmiOutputHandle hdmiOutput  ;
+    NEXUS_DisplayHandle display ;
+} hotplugCallbackParameters ;
+
+
+typedef struct SourceChangedCallbackParameters
+{
+    NEXUS_HdmiInputHandle hdmiInput  ;
+    NEXUS_DisplayHandle display ;
+} SourceChangedCallbackParameters ;
+
+
+static void source_changed(void *context, int param)
 {
 #if OUTPUT_VIDEO_FORMAT_FOLLOWS_INPUT
     NEXUS_Error errCode ;
@@ -132,9 +136,14 @@ void source_changed(void *context, int param)
     NEXUS_HdmiInputStatus hdmiInputStatus ;
     NEXUS_HdmiOutputSettings hdmiOutputSettings ;
     NEXUS_DisplaySettings displaySettings;
-    NEXUS_DisplayHandle display = (NEXUS_DisplayHandle)param;
+    NEXUS_DisplayHandle display ;
 
-    hdmiInput = (NEXUS_HdmiInputHandle) context ;
+    SourceChangedCallbackParameters *sourceChangeCbParams ;
+
+    sourceChangeCbParams = (SourceChangedCallbackParameters *) context ;
+        hdmiInput = sourceChangeCbParams->hdmiInput ;
+        display = sourceChangeCbParams->display ;
+
     NEXUS_HdmiInput_GetStatus(hdmiInput, &hdmiInputStatus) ;
     if (!hdmiInputStatus.validHdmiStatus) {
         return ;
@@ -348,8 +357,13 @@ static void mute_audio(NEXUS_HdmiOutputHandle hdmiOutput)
 static void hotplug_callback(void *pParam, int iParam)
 {
     NEXUS_HdmiOutputStatus status;
-    NEXUS_HdmiOutputHandle hdmiOutput = pParam;
-    NEXUS_DisplayHandle display = (NEXUS_DisplayHandle)iParam;
+    NEXUS_HdmiOutputHandle hdmiOutput ;
+    NEXUS_DisplayHandle display ;
+    hotplugCallbackParameters *hotPlugCbParams ;
+
+    hotPlugCbParams = (hotplugCallbackParameters *) pParam ;
+    hdmiOutput = hotPlugCbParams->hdmiOutput ;
+    display = hotPlugCbParams->display ;
 
     NEXUS_HdmiOutput_GetStatus(hdmiOutput, &status);
     BDBG_LOG(("hotplug_callback: %s\n", status.connected ?
@@ -730,6 +744,8 @@ int main(int argc, char **argv)
     NEXUS_PlatformSettings platformSettings ;
 
     NEXUS_HdmiOutputStatus hdmiOutputStatus;
+    SourceChangedCallbackParameters sourceChangeCbParams ;
+    hotplugCallbackParameters hotPlugCbParams ;
 
     NEXUS_Error rc;
     bool exitTest = false ;
@@ -895,11 +911,13 @@ int main(int argc, char **argv)
     display = NEXUS_Display_Open(0, &displaySettings);
 
     NEXUS_HdmiInput_GetSettings(hdmiInput, &hdmiInputSettings) ;
-    hdmiInputSettings.avMuteChanged.callback = avmute_changed;
-    hdmiInputSettings.avMuteChanged.context = hdmiInput ;
-    hdmiInputSettings.sourceChanged.callback = source_changed;
-    hdmiInputSettings.sourceChanged.context = hdmiInput ;
-    hdmiInputSettings.sourceChanged.param = (int)display;
+        hdmiInputSettings.avMuteChanged.callback = avmute_changed;
+        hdmiInputSettings.avMuteChanged.context = hdmiInput ;
+
+        hdmiInputSettings.sourceChanged.callback = source_changed;
+            sourceChangeCbParams.hdmiInput = hdmiInput ;
+            sourceChangeCbParams.display = display ;
+        hdmiInputSettings.sourceChanged.context = &sourceChangeCbParams ;
     NEXUS_HdmiInput_SetSettings(hdmiInput, &hdmiInputSettings) ;
 
     {
@@ -963,8 +981,9 @@ int main(int argc, char **argv)
     /* Install hotplug callback -- video only for now */
     NEXUS_HdmiOutput_GetSettings(hdmiOutput, &hdmiOutputSettings);
         hdmiOutputSettings.hotplugCallback.callback = hotplug_callback;
-        hdmiOutputSettings.hotplugCallback.context = hdmiOutput;
-        hdmiOutputSettings.hotplugCallback.param = (int)display;
+            hotPlugCbParams.hdmiOutput = hdmiOutput ;
+            hotPlugCbParams.display = display ;
+        hdmiOutputSettings.hotplugCallback.context = &hotPlugCbParams ;
     NEXUS_HdmiOutput_SetSettings(hdmiOutput, &hdmiOutputSettings);
 
     /* add audio support */
@@ -1231,8 +1250,6 @@ shutdown :
 int main(int argc, char **argv)
 {
     BSTD_UNUSED(argc);
-    printf("%d Platform has %d HDMI Inputs and %d HDMI Outputs; App requires one of each.\n",
-        NEXUS_PLATFORM, NEXUS_NUM_HDMI_INPUTS, NEXUS_NUM_HDMI_OUTPUTS);
 
     printf("%s not supported on the %d platform.\n", argv[0], BCHP_CHIP) ;
     return 0 ;

@@ -1,51 +1,40 @@
 /******************************************************************************
- *    (c)2008-2015 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
- *****************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ ******************************************************************************/
 
 #include "nexus_platform.h"
 #include <stdio.h>
@@ -116,13 +105,14 @@ int main(void)
 
 BDBG_MODULE(playback);
 
-
-static void print_cmp_crc(NEXUS_DisplayHandle display);
-static void print_avd_crc(NEXUS_VideoDecoderHandle videoDecoder);
-static void print_hdmi_crc(NEXUS_HdmiOutputHandle display);
-static void print_mfd_crc(NEXUS_VideoDecoderHandle videoDecoder);
+static void print_cmp_crc(NEXUS_DisplayHandle display, BKNI_EventHandle endOfStreamEvent);
+static void print_avd_crc(NEXUS_VideoDecoderHandle videoDecoder, BKNI_EventHandle endOfStreamEvent);
+static void print_hdmi_crc(NEXUS_HdmiOutputHandle display, BKNI_EventHandle endOfStreamEvent);
+static void print_mfd_crc(NEXUS_VideoDecoderHandle videoDecoder, BKNI_EventHandle endOfStreamEvent);
 
 static struct util_opts_t opts;
+
+#include "hotplug.c"
 
 /* set a counter and max number to retry reseting the Scramble configuration */
 #define HDMI_MAX_SCRAMBLE_RETRY 5
@@ -259,6 +249,16 @@ static void start_audio(const struct util_opts_t *opts, NEXUS_AudioDecoderHandle
                 else {
                     codecSettings.codecSettings.ac3Plus.drcMode = NEXUS_AudioDecoderDolbyDrcMode_eLine;
                     codecSettings.codecSettings.ac3Plus.drcModeDownmix = NEXUS_AudioDecoderDolbyDrcMode_eLine;
+                }
+                break;
+            case NEXUS_AudioCodec_eAc4:
+                if (opts->common.dolbyDrcModeRf) {
+                    codecSettings.codecSettings.ac4.drcMode = NEXUS_AudioDecoderDolbyDrcMode_eRf;
+                    codecSettings.codecSettings.ac4.drcModeDownmix = NEXUS_AudioDecoderDolbyDrcMode_eRf;
+                }
+                else {
+                    codecSettings.codecSettings.ac4.drcMode = NEXUS_AudioDecoderDolbyDrcMode_eLine;
+                    codecSettings.codecSettings.ac4.drcModeDownmix = NEXUS_AudioDecoderDolbyDrcMode_eLine;
                 }
                 break;
             case NEXUS_AudioCodec_eAacAdts:
@@ -527,41 +527,6 @@ static NEXUS_FilePlayHandle Pcm_File_Attach(NEXUS_FilePlayHandle parent, const b
 }
 
 #if NEXUS_NUM_HDMI_OUTPUTS
-/* registered HDMI hotplug handler -- changes the format (to monitor's default) if monitor doesn't support current format */
-static void hotplug_callback(void *pParam, int iParam)
-{
-    NEXUS_HdmiOutputStatus hdmiStatus;
-    NEXUS_HdmiOutputHandle hdmi = pParam;
-    NEXUS_DisplayHandle display = (NEXUS_DisplayHandle)iParam;
-    NEXUS_Error rc;
-
-    rc = NEXUS_HdmiOutput_GetStatus(hdmi, &hdmiStatus);
-    BDBG_MSG(("HDMI hotplug event: %s", hdmiStatus.connected?"connected":"not connected"));
-
-    /* the app can choose to switch to the preferred format, but it's not required. */
-    if ( !rc && hdmiStatus.connected && !opts.common.ignore_edid)
-    {
-        NEXUS_DisplaySettings displaySettings;
-
-        NEXUS_Display_GetSettings(display, &displaySettings);
-
-        if ( !hdmiStatus.videoFormatSupported[displaySettings.format] )
-        {
-            if (NEXUS_GetEnv("hdmiformatoverride") == 0) {
-            BDBG_WRN(("Current format not supported by attached monitor -- switching to preferred format (%d)", hdmiStatus.preferredVideoFormat));
-            if (hdmiStatus.preferredVideoFormat >= NEXUS_VideoFormat_e480p) {
-                BDBG_WRN(("Warning: This format may disable composite output!"));
-            }
-            displaySettings.format = hdmiStatus.preferredVideoFormat;
-                NEXUS_Display_SetSettings(display, &displaySettings);
-            }
-            else {
-                BDBG_WRN(("Current format not supported by attached monitor -- ignoring preferred format (%d)", hdmiStatus.preferredVideoFormat));
-            }
-        }
-    }
-}
-
 static void hdmiRxChangedCallback(void *pParam, int iParam)
 {
     NEXUS_HdmiOutputHandle hdmi = pParam;
@@ -628,15 +593,18 @@ static const HdmiDrmEotfNameValueMapEntry hdmiDrmEotfNameValueMap[]=
 {
     { "SDR", NEXUS_VideoEotf_eSdr },
     { "sdr", NEXUS_VideoEotf_eSdr },
-    { "HDR(Gamma)", NEXUS_VideoEotf_eHdr },
-    { "gmhdr", NEXUS_VideoEotf_eHdr },
-    { "PQ HDR", NEXUS_VideoEotf_eSmpteSt2084 },
-    { "pqhdr", NEXUS_VideoEotf_eSmpteSt2084 },
-    { "smpte2084", NEXUS_VideoEotf_eSmpteSt2084 },
-    { "smpte", NEXUS_VideoEotf_eSmpteSt2084 },
-    { "2084", NEXUS_VideoEotf_eSmpteSt2084 },
-    { "Future", NEXUS_VideoEotf_eFuture },
-    { "future", NEXUS_VideoEotf_eFuture },
+    { "HDR10", NEXUS_VideoEotf_eHdr10 },
+    { "hdr10", NEXUS_VideoEotf_eHdr10 },
+    { "PQHDR", NEXUS_VideoEotf_eHdr10 },
+    { "pqhdr", NEXUS_VideoEotf_eHdr10 },
+    { "smpte2084", NEXUS_VideoEotf_eHdr10 },
+    { "smpte", NEXUS_VideoEotf_eHdr10 },
+    { "2084", NEXUS_VideoEotf_eHdr10 },
+    { "HLG", NEXUS_VideoEotf_eHlg },
+    { "hlg", NEXUS_VideoEotf_eHlg },
+    { "aribb67", NEXUS_VideoEotf_eHlg },
+    { "arib", NEXUS_VideoEotf_eHlg },
+    { "b67", NEXUS_VideoEotf_eHlg },
     { NULL, NEXUS_VideoEotf_eMax }
 };
 
@@ -742,10 +710,14 @@ void hdmi_drm_init_context(HdmiDrmContext * pHdmiDrmContext, NEXUS_VideoDecoderH
 void hdmi_drm_apply_settings(const HdmiDrmContext * pDrmContext)
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
-    NEXUS_HdmiOutputSettings hdmiSettings;
-    NEXUS_HdmiOutput_GetSettings(pDrmContext->hdmiOutput, &hdmiSettings);
-    BKNI_Memcpy(&hdmiSettings.dynamicRangeMasteringInfoFrame, &pDrmContext->infoFrame.output, sizeof(hdmiSettings.dynamicRangeMasteringInfoFrame));
-    rc = NEXUS_HdmiOutput_SetSettings(pDrmContext->hdmiOutput, &hdmiSettings);
+    NEXUS_HdmiOutputExtraSettings hdmiSettings;
+    NEXUS_HdmiOutput_GetExtraSettings(pDrmContext->hdmiOutput, &hdmiSettings);
+    hdmiSettings.overrideDynamicRangeMasteringInfoFrame = (pDrmContext->eotf.source != HdmiDrmEotfSource_eInput);
+    if (pDrmContext->eotf.source != HdmiDrmEotfSource_eInput)
+    {
+        BKNI_Memcpy(&hdmiSettings.dynamicRangeMasteringInfoFrame, &pDrmContext->infoFrame.output, sizeof(hdmiSettings.dynamicRangeMasteringInfoFrame));
+    }
+    rc = NEXUS_HdmiOutput_SetExtraSettings(pDrmContext->hdmiOutput, &hdmiSettings);
     if (rc) { BERR_TRACE(rc); }
 }
 
@@ -767,14 +739,6 @@ void hdmi_drm_video_stream_changed(void * ctx, int param)
     BKNI_Memcpy(&hdc->infoFrame.input.metadata.typeSettings.type1.masteringDisplayColorVolume, &streamInfo.masteringDisplayColorVolume, sizeof(hdc->infoFrame.input.metadata.typeSettings.type1.masteringDisplayColorVolume));
     BKNI_Memcpy(&hdc->infoFrame.input.metadata.typeSettings.type1.contentLightLevel, &streamInfo.contentLightLevel, sizeof(hdc->infoFrame.input.metadata.typeSettings.type1.contentLightLevel));
 
-    /* input override for eotf only */
-    if (hdc->eotf.source == HdmiDrmEotfSource_eInput
-        && hdc->infoFrame.output.eotf != hdc->infoFrame.input.eotf)
-    {
-        hdc->infoFrame.output.eotf = hdc->infoFrame.input.eotf;
-        apply = true;
-    }
-
     /* no input override for metadata yet */
     if (BKNI_Memcmp(&hdc->infoFrame.output.metadata, &hdc->infoFrame.input.metadata, sizeof(hdc->infoFrame.output.metadata)))
     {
@@ -793,9 +757,9 @@ end:
 
 void hdmi_drm_set_eotf_source(HdmiDrmContext * pHdmiDrmContext, HdmiDrmEotfSource source)
 {
-    if (pHdmiDrmContext->eotf.source != source)
+    if ((pHdmiDrmContext->eotf.source != HdmiDrmEotfSource_eInput) ||
+        (source != HdmiDrmEotfSource_eInput))
     {
-        NEXUS_VideoEotf oldEotf = pHdmiDrmContext->infoFrame.output.eotf;
         switch (source)
         {
             case HdmiDrmEotfSource_eInput:
@@ -809,10 +773,7 @@ void hdmi_drm_set_eotf_source(HdmiDrmContext * pHdmiDrmContext, HdmiDrmEotfSourc
                 break;
         }
         pHdmiDrmContext->eotf.source = source;
-        if (pHdmiDrmContext->infoFrame.output.eotf != oldEotf)
-        {
-            hdmi_drm_apply_settings(pHdmiDrmContext);
-        }
+        hdmi_drm_apply_settings(pHdmiDrmContext);
     }
 }
 
@@ -823,7 +784,7 @@ void hdmi_drm_do_toggle(HdmiDrmContext * pHdmiDrmContext)
     NEXUS_VideoEotf toggler[] =
     {
         NEXUS_VideoEotf_eSdr,
-        NEXUS_VideoEotf_eSmpteSt2084
+        NEXUS_VideoEotf_eHdr10
     };
     unsigned toggles = sizeof(toggler) / sizeof(toggler[0]);
 
@@ -863,16 +824,12 @@ void hdmi_drm_do_cmd(HdmiDrmContext * pHdmiDrmContext, const char * buf)
         pHdmiDrmContext->eotf.user = NEXUS_VideoEotf_eSdr;
         hdmi_drm_set_eotf_source(pHdmiDrmContext, HdmiDrmEotfSource_eUser);
     }
-    else if (!strcmp(buf, "hdmi_eotf(gmhdr)")) {
-        pHdmiDrmContext->eotf.user = NEXUS_VideoEotf_eHdr;
+    else if (!strcmp(buf, "hdmi_eotf(hdr10)")) {
+        pHdmiDrmContext->eotf.user = NEXUS_VideoEotf_eHdr10;
         hdmi_drm_set_eotf_source(pHdmiDrmContext, HdmiDrmEotfSource_eUser);
     }
-    else if (!strcmp(buf, "hdmi_eotf(pqhdr)")) {
-        pHdmiDrmContext->eotf.user = NEXUS_VideoEotf_eSmpteSt2084;
-        hdmi_drm_set_eotf_source(pHdmiDrmContext, HdmiDrmEotfSource_eUser);
-    }
-    else if (!strcmp(buf, "hdmi_eotf(future)")) {
-        pHdmiDrmContext->eotf.user = NEXUS_VideoEotf_eFuture;
+    else if (!strcmp(buf, "hdmi_eotf(hlg)")) {
+        pHdmiDrmContext->eotf.user = NEXUS_VideoEotf_eHlg;
         hdmi_drm_set_eotf_source(pHdmiDrmContext, HdmiDrmEotfSource_eUser);
     }
     else if (!strcmp(buf, "hdmi_eotf(toggle)")) {
@@ -984,6 +941,9 @@ int main(int argc, const char *argv[])
     BKNI_EventHandle endOfStreamEvent;
     bool echo = false;
     NEXUS_PlatformCapabilities platformCap;
+#if NEXUS_NUM_HDMI_OUTPUTS
+    struct hotplug_context hotplug_context;
+#endif
 
     if (cmdline_parse(argc, argv, &opts)) {
         return 0;
@@ -1004,6 +964,12 @@ int main(int argc, const char *argv[])
     /* Bring up all modules for a platform in a default configuration for this platform */
     NEXUS_Platform_GetDefaultSettings(&platformSettings);
     platformSettings.openFrontend = false;
+    if(opts.maxPlaybackDataRate) {
+        unsigned i;
+        for(i=0;i<NEXUS_MAX_PLAYPUMPS;i++) {
+            platformSettings.transportModuleSettings.maxDataRate.playback[i] = opts.maxPlaybackDataRate;
+        }
+    }
 #if NEXUS_HAS_AUDIO && NEXUS_AUDIO_MODULE_FAMILY == NEXUS_AUDIO_MODULE_FAMILY_APE_RAAGA
     if ( opts.common.maxAudioRate > 48000 )
     {
@@ -1529,7 +1495,7 @@ int main(int argc, const char *argv[])
         BDBG_ASSERT(!rc);
     }
 #endif
-#if NEXUS_NUM_HDMI_OUTPUTS
+#if NEXUS_HAS_HDMI_OUTPUT
     if (opts.common.useHdmiOutput) {
         NEXUS_HdmiOutputSettings hdmiSettings;
 
@@ -1538,9 +1504,11 @@ int main(int argc, const char *argv[])
 
         /* Install hotplug callback -- video only for now */
         NEXUS_HdmiOutput_GetSettings(platformConfig.outputs.hdmi[0], &hdmiSettings);
+        hotplug_context.hdmi = platformConfig.outputs.hdmi[0];
+        hotplug_context.display = display;
+        hotplug_context.ignore_edid = opts.common.ignore_edid;
         hdmiSettings.hotplugCallback.callback = hotplug_callback;
-        hdmiSettings.hotplugCallback.context = platformConfig.outputs.hdmi[0];
-        hdmiSettings.hotplugCallback.param = (int)display;
+        hdmiSettings.hotplugCallback.context =  &hotplug_context;
         if (opts.hdmi_crc) {
             hdmiSettings.crcQueueSize = 60; /* This enables the CRC capture */
         }
@@ -1548,13 +1516,11 @@ int main(int argc, const char *argv[])
         hdmiSettings.hdmiRxScdcMonitoring = true ;
         hdmiSettings.hdmiRxStatusChanged.callback = hdmiRxChangedCallback ;
         hdmiSettings.hdmiRxStatusChanged.context = platformConfig.outputs.hdmi[0];
-        hdmiSettings.hdmiRxStatusChanged.param = (int)display;
-
 
         NEXUS_HdmiOutput_SetSettings(platformConfig.outputs.hdmi[0], &hdmiSettings);
 
         /* Force a hotplug to switch to preferred format */
-        hotplug_callback(platformConfig.outputs.hdmi[0], (int)display);
+        hotplug_callback(&hotplug_context, 0);
     }
 #endif
 
@@ -1569,16 +1535,41 @@ int main(int argc, const char *argv[])
 
         NEXUS_Surface_GetDefaultCreateSettings(&surfaceCreateSettings);
         surfaceCreateSettings.width = 720;
+/*#define TEST_GFX_SDR_TO_HDR 1*/
+#if TEST_GFX_SDR_TO_HDR
+        surfaceCreateSettings.height = 480;
+#else
         surfaceCreateSettings.height = videoFormatInfo.height;
+#endif
         surfaceCreateSettings.heap = NEXUS_Platform_GetFramebufferHeap(0);
         framebuffer = NEXUS_Surface_Create(&surfaceCreateSettings);
         NEXUS_Surface_GetMemory(framebuffer, &mem);
         for (i=0;i<surfaceCreateSettings.height;i++) {
             for (j=0;j<surfaceCreateSettings.width;j++) {
+#if TEST_GFX_SDR_TO_HDR
+                if (j>=20 && j<700) {
+                    int c = (((j-20) / 68) * 255) / 9;
+                    if (i>=400 && i<410) {
+                        ((uint32_t*)((uint8_t*)mem.buffer + i*mem.pitch))[j] = (0xFF000000 | (c << 16));
+                    } else if (i>=410 && i<420) {
+                        ((uint32_t*)((uint8_t*)mem.buffer + i*mem.pitch))[j] = (0xFF000000 | (c << 8));
+                    } else if (i>=420 && i<430) {
+                        ((uint32_t*)((uint8_t*)mem.buffer + i*mem.pitch))[j] = (0xFF000000 | (c << 0));
+                    } else if (i>=430 && i<440) {
+                        ((uint32_t*)((uint8_t*)mem.buffer + i*mem.pitch))[j] = (0xFF000000 | (c << 0) | (c << 8) | (c << 16));
+                    } else {
+                        ((uint32_t*)((uint8_t*)mem.buffer + i*mem.pitch))[j] = 0;
+                    }
+                } else {
+                    ((uint32_t*)((uint8_t*)mem.buffer + i*mem.pitch))[j] = 0;
+                }
+#else
                 /* create checker board */
                 ((uint32_t*)((uint8_t*)mem.buffer + i*mem.pitch))[j] = (((i/50)%2) ^ ((j/50)%2)) ? 0x00000000 : 0xFFFFFFFF;
+#endif
             }
         }
+
         NEXUS_Surface_Flush(framebuffer);
 
         NEXUS_Display_GetGraphicsSettings(display, &graphicsSettings);
@@ -1747,16 +1738,13 @@ int main(int argc, const char *argv[])
 #endif
 
 #if NEXUS_HAS_HDMI_OUTPUT
-    if (opts.useHdmiDrm)
-    {
-        hdmi_drm_init_context(&hdmiDrmContext, videoDecoder, platformConfig.outputs.hdmi[0]);
-        NEXUS_VideoDecoder_GetSettings(videoDecoder, &videoDecoderSettings);
-        videoDecoderSettings.streamChanged.callback = &hdmi_drm_video_stream_changed;
-        videoDecoderSettings.streamChanged.context = &hdmiDrmContext;
-        videoDecoderSettings.streamChanged.param = 0;
-        rc = NEXUS_VideoDecoder_SetSettings(videoDecoder, &videoDecoderSettings);
-        BDBG_ASSERT(!rc);
-    }
+    hdmi_drm_init_context(&hdmiDrmContext, videoDecoder, platformConfig.outputs.hdmi[0]);
+    NEXUS_VideoDecoder_GetSettings(videoDecoder, &videoDecoderSettings);
+    videoDecoderSettings.streamChanged.callback = &hdmi_drm_video_stream_changed;
+    videoDecoderSettings.streamChanged.context = &hdmiDrmContext;
+    videoDecoderSettings.streamChanged.param = 0;
+    rc = NEXUS_VideoDecoder_SetSettings(videoDecoder, &videoDecoderSettings);
+    BDBG_ASSERT(!rc);
 #endif
 
     NEXUS_Display_GetVbiSettings(displaySD?displaySD:display, &displayVbiSettings);
@@ -1886,16 +1874,20 @@ int main(int argc, const char *argv[])
 #endif
 
     if (opts.avd_crc) {
-        print_avd_crc(videoDecoder);
+        print_avd_crc(videoDecoder, opts.endOfStreamAction != NEXUS_PlaybackLoopMode_eLoop?endOfStreamEvent:NULL);
+        goto uninit;
     }
     if (opts.cmp_crc) {
-        print_cmp_crc(display);
+        print_cmp_crc(display, opts.endOfStreamAction != NEXUS_PlaybackLoopMode_eLoop?endOfStreamEvent:NULL);
+        goto uninit;
     }
     if (opts.hdmi_crc) {
-        print_hdmi_crc(platformConfig.outputs.hdmi[0]);
+        print_hdmi_crc(platformConfig.outputs.hdmi[0], opts.endOfStreamAction != NEXUS_PlaybackLoopMode_eLoop?endOfStreamEvent:NULL);
+        goto uninit;
     }
     if (opts.mfd_crc) {
-        print_mfd_crc(videoDecoder);
+        print_mfd_crc(videoDecoder, opts.endOfStreamAction != NEXUS_PlaybackLoopMode_eLoop?endOfStreamEvent:NULL);
+        goto uninit;
     }
 
 #if BRDC_USE_CAPTURE_BUFFER
@@ -1982,7 +1974,7 @@ int main(int argc, const char *argv[])
                 "    hdmi_matrix(0|2020ncl|2020cl|full-ycc|full-rgb)\n"
                 "    hdmi_rescramble - call NEXUS_HdmiOutput_ResetScrambling\n"
                 "    hdmi_edid - call NEXUS_HdmiOutput_DisplayRxEdid\n"
-                "    hdmi_eotf(input,toggle,sdr,gmhdr,pqhdr,future)\n"
+                "    hdmi_eotf(input,toggle,sdr,hdr10,hlg)\n"
                 );
 /*TODO* figure out what these do and add appropriate explanation*/
 #if 0
@@ -2621,6 +2613,17 @@ int main(int argc, const char *argv[])
                     }
                 NEXUS_HdmiOutput_SetSettings(platformConfig.outputs.hdmi[0], &settings);
             }
+            else if (strstr(buf, "gfx_sdr2hdr(") == buf) {
+                int yScl = 0, cbScl = 0, crScl = 0;
+                NEXUS_GraphicsSettings graphicsSettings;
+                NEXUS_Display_GetGraphicsSettings(display, &graphicsSettings);
+                sscanf(buf+strlen("gfx_sdr2hdr("),"%d,%d,%d", &yScl, &cbScl, &crScl);
+                graphicsSettings.sdrToHdr.y = (int16_t) yScl;
+                graphicsSettings.sdrToHdr.cb = (int16_t) cbScl;
+                graphicsSettings.sdrToHdr.cr = (int16_t) crScl;
+                rc = NEXUS_Display_SetGraphicsSettings(display, &graphicsSettings);
+                BDBG_ASSERT(!rc);
+            }
             else if (strstr(buf, "hdmi_matrix") == buf) {
                 NEXUS_HdmiOutputHandle hdmiOutput ;
                 NEXUS_HdmiOutputSettings hdmiOutputSettings;
@@ -2697,6 +2700,66 @@ int main(int argc, const char *argv[])
                     }
                 }
             }
+#if NEXUS_HAS_AUDIO
+            else if (strstr(buf, "ac4") == buf) {
+                NEXUS_AudioDecoderStatus audStatus;
+                NEXUS_AudioDecoder_GetStatus(audioDecoder, &audStatus);
+
+                BDBG_ERR(("Codec is %lu", (unsigned long)audStatus.codec));
+                if ( audStatus.codec == NEXUS_AudioCodec_eAc4 ) {
+                    unsigned i;
+                    BDBG_ERR(("numPresentations %lu", (unsigned long)audStatus.codecStatus.ac4.numPresentations));
+                    for (i = 0; i<audStatus.codecStatus.ac4.numPresentations; i++) {
+                        NEXUS_AudioDecoderPresentationStatus presentStatus;
+                        NEXUS_AudioDecoder_GetPresentationStatus(audioDecoder, i, &presentStatus);
+                        if ( presentStatus.codec != audStatus.codec ) {
+                            BDBG_ERR(("Something went wrong. Presentation Status Codec doesn't match the current decode codec."));
+                        }
+                        else {
+                            BDBG_ERR(("Presentation %lu id: %lu", (unsigned long)i, (unsigned long)presentStatus.status.ac4.id));
+                            BDBG_ERR(("  Presentation %lu name: %s", (unsigned long)i, presentStatus.status.ac4.name));
+                            BDBG_ERR(("  Presentation %lu language: %s", (unsigned long)i, presentStatus.status.ac4.language));
+                            BDBG_ERR(("  Presentation %lu type: %lu", (unsigned long)i, (unsigned long)presentStatus.status.ac4.type));
+                        }
+                    }
+                    BDBG_ERR(("Dialog Enhancer Max %lu", (unsigned long)audStatus.codecStatus.ac4.dialogEnhanceMax));
+                }
+            }
+            else if (strstr(buf, "apres(") == buf) {
+                NEXUS_AudioDecoderStatus audStatus;
+                NEXUS_AudioDecoderCodecSettings codecSettings;
+                unsigned presentationId;
+
+                sscanf(buf+6, "%u", &presentationId);
+                NEXUS_AudioDecoder_GetStatus(audioDecoder, &audStatus);
+
+                BDBG_ERR(("Codec is %lu", (unsigned long)audStatus.codec));
+                if ( audStatus.codec == NEXUS_AudioCodec_eAc4 )
+                {
+                    BDBG_ERR(("Selecting Presentation id %lu", (unsigned long)presentationId));
+                    NEXUS_AudioDecoder_GetCodecSettings(audioDecoder, audStatus.codec, &codecSettings);
+                    codecSettings.codecSettings.ac4.presentationId = presentationId;
+                    NEXUS_AudioDecoder_SetCodecSettings(audioDecoder, &codecSettings);
+                }
+            }
+            else if (strstr(buf, "ade(") == buf) {
+                NEXUS_AudioDecoderStatus audStatus;
+                NEXUS_AudioDecoderCodecSettings codecSettings;
+                int dialogEnhancerAmount;
+
+                sscanf(buf+4, "%d", &dialogEnhancerAmount);
+                NEXUS_AudioDecoder_GetStatus(audioDecoder, &audStatus);
+
+                BDBG_ERR(("Codec is %lu", (unsigned long)audStatus.codec));
+                if ( audStatus.codec == NEXUS_AudioCodec_eAc4 )
+                {
+                    BDBG_ERR(("Changing dialog enhancement level to %ld", (long int)dialogEnhancerAmount));
+                    NEXUS_AudioDecoder_GetCodecSettings(audioDecoder, audStatus.codec, &codecSettings);
+                    codecSettings.codecSettings.ac4.dialogEnhancerAmount = dialogEnhancerAmount;
+                    NEXUS_AudioDecoder_SetCodecSettings(audioDecoder, &codecSettings);
+                }
+            }
+#endif
             else if (!*buf) {
                 /* allow blank line */
             }
@@ -2712,6 +2775,8 @@ int main(int argc, const char *argv[])
         }
 #endif
     }
+
+uninit:
 
 #if B_HAS_PLAYBACK_MONITOR
     if(stickyFile) {
@@ -2759,9 +2824,8 @@ int main(int argc, const char *argv[])
     return 0;
 }
 
-static void print_cmp_crc(NEXUS_DisplayHandle display)
+static void print_cmp_crc(NEXUS_DisplayHandle display, BKNI_EventHandle endOfStreamEvent)
 {
-    /* loop forever printing CMP CRC's */
     for (;;) {
         NEXUS_DisplayCrcData data[16];
         unsigned num, i;
@@ -2770,6 +2834,7 @@ static void print_cmp_crc(NEXUS_DisplayHandle display)
         rc = NEXUS_Display_GetCrcData(display, data, 16, &num);
         BDBG_ASSERT(!rc);
         if (!num) {
+            if (endOfStreamEvent && !BKNI_WaitForEvent(endOfStreamEvent, 0)) break;
             BKNI_Sleep(10);
             continue;
         }
@@ -2780,9 +2845,8 @@ static void print_cmp_crc(NEXUS_DisplayHandle display)
     }
 }
 
-static void print_avd_crc(NEXUS_VideoDecoderHandle videoDecoder)
+static void print_avd_crc(NEXUS_VideoDecoderHandle videoDecoder, BKNI_EventHandle endOfStreamEvent)
 {
-    /* loop forever printing AVD CRC's */
     for (;;) {
         NEXUS_VideoDecoderCrc data[16];
         unsigned num, i;
@@ -2791,19 +2855,18 @@ static void print_avd_crc(NEXUS_VideoDecoderHandle videoDecoder)
         rc = NEXUS_VideoDecoder_GetCrcData(videoDecoder, data, 16, &num);
         BDBG_ASSERT(!rc);
         if (!num) {
+            if (endOfStreamEvent && !BKNI_WaitForEvent(endOfStreamEvent, 0)) break;
             BKNI_Sleep(10);
             continue;
         }
-
         for (i=0;i<num;i++) {
             printf("AVD CRC %x %x %x; %x %x %x\n", data[i].top.luma, data[i].top.cr, data[i].top.cb, data[i].bottom.luma, data[i].bottom.cr, data[i].bottom.cb);
         }
     }
 }
 
-static void print_hdmi_crc(NEXUS_HdmiOutputHandle hdmiOutput)
+static void print_hdmi_crc(NEXUS_HdmiOutputHandle hdmiOutput, BKNI_EventHandle endOfStreamEvent)
 {
-    /* loop forever printing HDMI Tx CRC's */
     for (;;) {
         NEXUS_HdmiOutputCrcData data[16];
         unsigned num, i;
@@ -2812,6 +2875,7 @@ static void print_hdmi_crc(NEXUS_HdmiOutputHandle hdmiOutput)
         rc = NEXUS_HdmiOutput_GetCrcData(hdmiOutput, data, 16, &num);
         BDBG_ASSERT(!rc);
         if (!num) {
+            if (endOfStreamEvent && !BKNI_WaitForEvent(endOfStreamEvent, 0)) break;
             BKNI_Sleep(10);
             continue;
         }
@@ -2822,9 +2886,8 @@ static void print_hdmi_crc(NEXUS_HdmiOutputHandle hdmiOutput)
     }
 }
 
-static void print_mfd_crc(NEXUS_VideoDecoderHandle videoDecoder)
+static void print_mfd_crc(NEXUS_VideoDecoderHandle videoDecoder, BKNI_EventHandle endOfStreamEvent)
 {
-    /* loop forever printing MFD CRC's */
     for (;;) {
         NEXUS_VideoInputCrcData data[16];
         unsigned num, i;
@@ -2833,6 +2896,7 @@ static void print_mfd_crc(NEXUS_VideoDecoderHandle videoDecoder)
         rc = NEXUS_VideoInput_GetCrcData(NEXUS_VideoDecoder_GetConnector(videoDecoder), data, sizeof(data)/sizeof(data[0]), &num);
         BDBG_ASSERT(!rc);
         if (!num) {
+            if (endOfStreamEvent && !BKNI_WaitForEvent(endOfStreamEvent, 0)) break;
             BKNI_Sleep(10);
             continue;
         }

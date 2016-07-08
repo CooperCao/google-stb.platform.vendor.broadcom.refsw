@@ -1,7 +1,7 @@
 /******************************************************************************
- * (c) 2006-2016 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -37,7 +37,6 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 #ifndef BDSP_COMMON_MM_PRIV_H_
 #define BDSP_COMMON_MM_PRIV_H_
@@ -310,5 +309,13 @@ BERR_Code BDSP_MEM_P_ConvertOffsetToCacheAddress(
             BDSP_MEM_P_ConvertOffsetToCacheAddress(hHeap, ulOffset, ppvAddress)
 
 #endif
+
+/* Memory allocated information for each Stage */
+typedef struct BDSP_P_StageMemoryReqd
+{
+    uint32_t            ui32UserConfigReqd;
+    uint32_t            ui32StatusBufReqd;
+    uint32_t            ui32InterframeBufReqd;
+}BDSP_P_StageMemoryReqd;
 
 #endif /*BDSP_COMMON_MM_PRIV_H_*/

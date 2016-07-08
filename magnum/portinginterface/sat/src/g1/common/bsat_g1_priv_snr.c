@@ -83,14 +83,26 @@ BERR_Code BSAT_g1_P_GetSnr_isr(BSAT_ChannelHandle h, uint32_t *pSnr)
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    BERR_Code retCode;
 
+   if (hChn->miscSettings.snrEstMethod == 1)
+      goto use_snre;
+   else if (hChn->miscSettings.snrEstMethod == 2)
+      goto use_snore;
+
    if ((BSAT_MODE_IS_DVBS2X(hChn->actualMode)) ||
        (hChn->acqSettings.mode == BSAT_Mode_eDvbs2_ACM) ||
        (BSAT_MODE_IS_TURBO(hChn->actualMode)))
+   {
+      use_snore:
       retCode = BSAT_g1_P_GetSnrSnore_isr(h, pSnr);
+   }
    else
+   {
+      use_snre:
       retCode = BSAT_g1_P_GetSnrSnre_isr(h, pSnr);
+   }
    return retCode;
 }
+
 
 /* #ifndef BSAT_USE_SNRE */
 #define BSAT_SNR_POWER_MIN   34    /* (1.061161 * 2^5) */

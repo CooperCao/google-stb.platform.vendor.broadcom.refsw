@@ -58,11 +58,6 @@
 ######################
 NEXUS_MODULES += DVB_CI
 
-##################
-# Module Options #
-##################
-NEXUS_DVB_CI_OPTIONS = 
-
 ###################
 # Module Includes #
 ###################

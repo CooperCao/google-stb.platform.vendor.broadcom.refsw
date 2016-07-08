@@ -179,6 +179,7 @@ typedef enum bmp4_sample_type {
     bmp4_sample_type_dts,  /* variations of DTS audio */
     bmp4_sample_type_hevc, /* HEVC, H.265 video */
     bmp4_sample_type_als,  /* MPEG-4 ALS audio */
+    bmp4_sample_type_mp3,  /* QuickTime MPEG-1 Layer 3 audio */
     bmp4_sample_type_unknown /* unknown sample */
 } bmp4_sample_type;
 
@@ -215,21 +216,10 @@ typedef struct bmp4_sample_mp4v {
 } bmp4_sample_mp4v;
 
 #define BMP4_SAMPLE_S263	BMP4_TYPE('s','2','6','3')
-typedef struct bmp4_h263decspec
-{
-	  uint32_t vendor;
-	  uint8_t decoder_version;
-	  uint8_t h263_level;
-	  uint8_t h263_profile;
-	  struct {
-		    uint32_t avg_bitrate;
-		    uint32_t max_bitrate;
-	  } decbitrate;
-} bmp4_h263decspec;
+#define BMP4_SAMPLE_H263	BMP4_TYPE('h','2','6','3')
 
 typedef struct bmp4_sample_s263 {
-	  bmp4_visualsampleentry visual;
-	  bmp4_h263decspec decspecinfo;
+    bmp4_visualsampleentry visual;
 } bmp4_sample_s263;
 
 #define BMP4_SAMPLE_AC3	BMP4_TYPE('a','c','-','3')
@@ -293,6 +283,12 @@ typedef struct bmp4_sample_dts {
     uint32_t type;
 } bmp4_sample_dts;
 
+#define BMP4_SAMPLE_MP3 BMP4_TYPE('.','m','p','3')
+typedef struct bmp4_sample_mp3 {
+    bmp4_audiosampleentry audio;
+} bmp4_sample_mp3;
+
+
 typedef struct bmp4_sample_codecprivate {
     unsigned offset;
     bmp4_box box;
@@ -319,6 +315,7 @@ typedef struct bmp4_sampleentry {
         bmp4_sample_dts dts;
         bmp4_sample_ima4 ima4;
         bmp4_sample_hevc hevc;
+        bmp4_sample_mp3 mp3;
     } codec; /* must be last entry in the structure */
 } bmp4_sampleentry;
 

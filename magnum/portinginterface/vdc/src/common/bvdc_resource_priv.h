@@ -1,21 +1,41 @@
 /***************************************************************************
- *     Copyright (c) 2004-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ***************************************************************************/
 #ifndef BVDC_RESOURCE_PRIV_H__
@@ -41,43 +61,41 @@ extern "C" {
  */
 typedef enum BVDC_P_ResourceType
 {
-	/* shared resources represented by handle */
-	BVDC_P_ResourceType_eVfd = 0,          /* shared VFD */
-	BVDC_P_ResourceType_eCap,              /* shared CAP */
-	BVDC_P_ResourceType_eMad,              /* shared MAD */
-	BVDC_P_ResourceType_eXsrc,             /* shared XSRC */
-	BVDC_P_ResourceType_eTntd,             /* shared TNTD */
-	BVDC_P_ResourceType_eMcvp,             /* shared Mcvp */
-	BVDC_P_ResourceType_eDnr,              /* shared DNR */
-	BVDC_P_ResourceType_eBoxDetect,        /* shared box detetct */
-	BVDC_P_ResourceType_eScl,              /* shared SCL */
-	BVDC_P_ResourceType_eHist,             /* shared HIST */
-	BVDC_P_ResourceType_eVnetCrc,          /* shared vnet_b crc */
+    /* shared resources represented by handle */
+    BVDC_P_ResourceType_eVfd = 0,          /* shared VFD */
+    BVDC_P_ResourceType_eCap,              /* shared CAP */
+    BVDC_P_ResourceType_eMad,              /* shared MAD */
+    BVDC_P_ResourceType_eXsrc,             /* shared XSRC */
+    BVDC_P_ResourceType_eTntd,             /* shared TNTD */
+    BVDC_P_ResourceType_eMcvp,             /* shared Mcvp */
+    BVDC_P_ResourceType_eDnr,              /* shared DNR */
+    BVDC_P_ResourceType_eBoxDetect,        /* shared box detetct */
+    BVDC_P_ResourceType_eScl,              /* shared SCL */
+    BVDC_P_ResourceType_eHist,             /* shared HIST */
+    BVDC_P_ResourceType_eVnetCrc,          /* shared vnet_b crc */
 
-	/* separator between handle resources and HwId resources */
-	BVDC_P_ResourceType_eHandleCntr,
+    /* separator between handle resources and HwId resources */
+    BVDC_P_ResourceType_eHandleCntr,
 
-	/* shared resources idendified by Hw Id */
-	BVDC_P_ResourceType_eFreeCh,           /* shared free channels */
-	BVDC_P_ResourceType_eLpBck,            /* shared loop back */
-	BVDC_P_ResourceType_eDrainFrn,         /* shared front drains */
-	BVDC_P_ResourceType_eDrainBck,         /* shared back drains */
-#if BVDC_P_ORTHOGONAL_VEC
-	BVDC_P_ResourceType_e656,              /* VEC 656 output */
-	BVDC_P_ResourceType_eDvi,              /* VEC DVI output  */
-	BVDC_P_ResourceType_eStg,              /* VEC STG output  */
-	BVDC_P_ResourceType_eRf,               /* VEC RFM output  */
-	BVDC_P_ResourceType_eIt,               /* VEC IT */
-	BVDC_P_ResourceType_eVf,               /* VEC VF */
-	BVDC_P_ResourceType_eSecam,            /* VEC SECAM */
-	BVDC_P_ResourceType_eSecam_HD,         /* VEC HD pass-thru SECAM */
-	BVDC_P_ResourceType_eSdsrc,            /* VEC SD SRC */
-	BVDC_P_ResourceType_eHdsrc,            /* VEC HD SRC */
-	BVDC_P_ResourceType_eDac,              /* DAC */
-	BVDC_P_ResourceType_eMpaa,             /* MPAA */
-#endif
-	BVDC_P_ResourceType_ePcPll,            /* PLL shared by vdec0/1 */
-	BVDC_P_ResourceType_eInvalid           /* Invalid. Do not use! */
+    /* shared resources idendified by Hw Id */
+    BVDC_P_ResourceType_eFreeCh,           /* shared free channels */
+    BVDC_P_ResourceType_eLpBck,            /* shared loop back */
+    BVDC_P_ResourceType_eDrainFrn,         /* shared front drains */
+    BVDC_P_ResourceType_eDrainBck,         /* shared back drains */
+    BVDC_P_ResourceType_e656,              /* VEC 656 output */
+    BVDC_P_ResourceType_eDvi,              /* VEC DVI output  */
+    BVDC_P_ResourceType_eStg,              /* VEC STG output  */
+    BVDC_P_ResourceType_eRf,               /* VEC RFM output  */
+    BVDC_P_ResourceType_eIt,               /* VEC IT */
+    BVDC_P_ResourceType_eVf,               /* VEC VF */
+    BVDC_P_ResourceType_eSecam,            /* VEC SECAM */
+    BVDC_P_ResourceType_eSecam_HD,         /* VEC HD pass-thru SECAM */
+    BVDC_P_ResourceType_eSdsrc,            /* VEC SD SRC */
+    BVDC_P_ResourceType_eHdsrc,            /* VEC HD SRC */
+    BVDC_P_ResourceType_eDac,              /* DAC */
+    BVDC_P_ResourceType_eMpaa,             /* MPAA */
+    BVDC_P_ResourceType_ePcPll,            /* PLL shared by vdec0/1 */
+    BVDC_P_ResourceType_eInvalid           /* Invalid. Do not use! */
 } BVDC_P_ResourceType;
 
 /***************************************************************************
@@ -85,22 +103,22 @@ typedef enum BVDC_P_ResourceType
  */
 typedef enum
 {
-	BVDC_P_Able_eMem0    =     (1<< 0),      /* able to access mem ctrl 0 */
-	BVDC_P_Able_eMem1    =     (1<< 1),      /* able to access mem ctrl 1 */
-	BVDC_P_Able_eMem2    =     (1<< 2),      /* able to access mem ctrl 2 */
-	BVDC_P_Able_eAllSrc  =     (1<< 3),      /* able to use by all sources */
-	BVDC_P_Able_eHd      =     (1<< 4),      /* able to handle HD size */
-	BVDC_P_Able_eMadr0   =     (1<< 5),      /* able to handle transcode 0*/
-	BVDC_P_Able_eMadr1   =     (1<< 6),      /* able to handle transcode 1*/
-	BVDC_P_Able_eMadr2   =     (1<< 7),      /* able to handle transcode 2*/
-	BVDC_P_Able_eMadr3   =     (1<< 8),      /* able to handle transcode 3*/
-	BVDC_P_Able_eMadr4   =     (1<< 9),      /* able to handle transcode 4*/
-	BVDC_P_Able_eMadr5   =     (1<<10),      /* able to handle transcode 5*/
-	BVDC_P_Able_eHdmi0   =     (1<<11),      /* able to handle HDMI output 0 */
-	BVDC_P_Able_eHdmi1   =     (1<<12),      /* able to handle HDMI output 1 */
-	BVDC_P_Able_e10bits  =     (1<<13),      /* able to handle 10 bits data */
-	BVDC_P_Able_e8bits   =     (1<<14),      /* able to handle 8 bits data  */
-	BVDC_P_Able_eInvalid =     (0xffff)      /* cause acquire to fail */
+    BVDC_P_Able_eMem0    =     (1<< 0),      /* able to access mem ctrl 0 */
+    BVDC_P_Able_eMem1    =     (1<< 1),      /* able to access mem ctrl 1 */
+    BVDC_P_Able_eMem2    =     (1<< 2),      /* able to access mem ctrl 2 */
+    BVDC_P_Able_eAllSrc  =     (1<< 3),      /* able to use by all sources */
+    BVDC_P_Able_eHd      =     (1<< 4),      /* able to handle HD size */
+    BVDC_P_Able_eMadr0   =     (1<< 5),      /* able to handle transcode 0*/
+    BVDC_P_Able_eMadr1   =     (1<< 6),      /* able to handle transcode 1*/
+    BVDC_P_Able_eMadr2   =     (1<< 7),      /* able to handle transcode 2*/
+    BVDC_P_Able_eMadr3   =     (1<< 8),      /* able to handle transcode 3*/
+    BVDC_P_Able_eMadr4   =     (1<< 9),      /* able to handle transcode 4*/
+    BVDC_P_Able_eMadr5   =     (1<<10),      /* able to handle transcode 5*/
+    BVDC_P_Able_eHdmi0   =     (1<<11),      /* able to handle HDMI output 0 */
+    BVDC_P_Able_eHdmi1   =     (1<<12),      /* able to handle HDMI output 1 */
+    BVDC_P_Able_e10bits  =     (1<<13),      /* able to handle 10 bits data */
+    BVDC_P_Able_e8bits   =     (1<<14),      /* able to handle 8 bits data  */
+    BVDC_P_Able_eInvalid =     (0xffff)      /* cause acquire to fail */
 
 } BVDC_P_Able;
 
@@ -112,16 +130,16 @@ typedef enum
 /* the acquiring record for a resource */
 typedef struct BVDC_P_ResourceEntry
 {
-	union
-	{
-		void   *  pvHandle;       /* handle */
-		uint32_t  ulHwId;         /* or HW ID */
-	} Id;
-	BVDC_P_ResourceType  eType;   /* type of resource shared */
-	uint32_t  ulCapabilities;     /* or-ed mem ctrl access and hd capability */
-	uint32_t  ulAcquireId;        /* id of acquirer or user */
-	uint32_t  ulAcquireCntr;      /* aquiring times by this acquiring id */
-	uint32_t  bAcquireLock;       /* lock from acquiring untill release */
+    union
+    {
+        void   *  pvHandle;       /* handle */
+        uint32_t  ulHwId;         /* or HW ID */
+    } Id;
+    BVDC_P_ResourceType  eType;   /* type of resource shared */
+    uint32_t  ulCapabilities;     /* or-ed mem ctrl access and hd capability */
+    uint32_t  ulAcquireId;        /* id of acquirer or user */
+    uint32_t  ulAcquireCntr;      /* aquiring times by this acquiring id */
+    uint32_t  bAcquireLock;       /* lock from acquiring untill release */
 } BVDC_P_ResourceEntry;
 
 /***************************************************************************
@@ -132,14 +150,14 @@ typedef struct BVDC_P_ResourceEntry
  ***************************************************************************/
 typedef struct BVDC_P_ResourceContext
 {
-	BDBG_OBJECT(BVDC_RES)
+    BDBG_OBJECT(BVDC_RES)
 
-	/* ptr to the array for all shared resources */
-	BVDC_P_ResourceEntry *pResourceRecords;
+    /* ptr to the array for all shared resources */
+    BVDC_P_ResourceEntry *pResourceRecords;
 
-	/* ptr to the array of index to the entry of the 1st HW module of
-	 * each resource type */
-	uint32_t  *pulIndex1stEntry;
+    /* ptr to the array of index to the entry of the 1st HW module of
+     * each resource type */
+    uint32_t  *pulIndex1stEntry;
 } BVDC_P_ResourceContext;
 
 
@@ -148,15 +166,15 @@ typedef struct BVDC_P_ResourceContext
  *
  */
 BERR_Code  BVDC_P_Resource_Create
-	( BVDC_P_Resource_Handle           *phResource,
-	  BVDC_Handle                       hVdc );
+    ( BVDC_P_Resource_Handle           *phResource,
+      BVDC_Handle                       hVdc );
 
 /***************************************************************************
  * {private}
  *
  */
 void  BVDC_P_Resource_Destroy
-	( BVDC_P_Resource_Handle            hResource );
+    ( BVDC_P_Resource_Handle            hResource );
 
 
 /***************************************************************************
@@ -179,7 +197,7 @@ void  BVDC_P_Resource_Destroy
  *            use a scaler in reader or writer side, it should use different
  *            acquireId for the reader usage and writer usage, such as WinId
  *            for reader usage and (0x8000 | WinId) for writer usage).
- *		  bQuery - query if the resource is available when this flag is true
+ *        bQuery - query if the resource is available when this flag is true
  *
  * Output: the assigned module handle.
  *
@@ -191,12 +209,12 @@ void  BVDC_P_Resource_Destroy
  * capability requirement will be used.
  */
 BERR_Code  BVDC_P_Resource_AcquireHandle_isr
-	( BVDC_P_Resource_Handle            hResource,
-	  BVDC_P_ResourceType               eType,
-	  uint32_t                          ulCapabilities,
-	  uint32_t                          ulAcquireId,
-	  void                            **ppvResourceHandle,
-	  bool                              bQuery);
+    ( BVDC_P_Resource_Handle            hResource,
+      BVDC_P_ResourceType               eType,
+      uint32_t                          ulCapabilities,
+      uint32_t                          ulAcquireId,
+      void                            **ppvResourceHandle,
+      bool                              bQuery);
 
 /***************************************************************************
  * {private}
@@ -230,12 +248,12 @@ BERR_Code  BVDC_P_Resource_AcquireHandle_isr
  * capability requirement will be used.
  */
 BERR_Code  BVDC_P_Resource_AcquireHwId_isr
-	( BVDC_P_Resource_Handle            hResource,
-	  BVDC_P_ResourceType               eType,
-	  uint32_t                          ulCapabilities,
-	  uint32_t                          ulAcquireId,
-	  uint32_t                         *pulHwId,
-	  bool                              bQuery);
+    ( BVDC_P_Resource_Handle            hResource,
+      BVDC_P_ResourceType               eType,
+      uint32_t                          ulCapabilities,
+      uint32_t                          ulAcquireId,
+      uint32_t                         *pulHwId,
+      bool                              bQuery);
 
 /***************************************************************************
  * {private}
@@ -250,9 +268,9 @@ BERR_Code  BVDC_P_Resource_AcquireHwId_isr
  * released to be acquired with new acquire ID.
  */
 BERR_Code  BVDC_P_Resource_ReleaseHandle_isr
-	( BVDC_P_Resource_Handle            hResource,
-	  BVDC_P_ResourceType               eType,
-	  void                             *pvResourceHandle );
+    ( BVDC_P_Resource_Handle            hResource,
+      BVDC_P_ResourceType               eType,
+      void                             *pvResourceHandle );
 
 /***************************************************************************
  * {private}
@@ -267,9 +285,9 @@ BERR_Code  BVDC_P_Resource_ReleaseHandle_isr
  * released to be acquired with new acquire ID.
  */
 BERR_Code  BVDC_P_Resource_ReleaseHwId_isr
-	( BVDC_P_Resource_Handle            hResource,
-	  BVDC_P_ResourceType               eType,
-	  uint32_t                          ulHwId );
+    ( BVDC_P_Resource_Handle            hResource,
+      BVDC_P_ResourceType               eType,
+      uint32_t                          ulHwId );
 
 /***************************************************************************
  * {private}
@@ -284,9 +302,9 @@ BERR_Code  BVDC_P_Resource_ReleaseHwId_isr
  *
  */
 uint32_t  BVDC_P_Resource_GetHwIdAcquireCntr_isr
-	( BVDC_P_Resource_Handle            hResource,
-	  BVDC_P_ResourceType               eType,
-	  uint32_t                          ulHwId );
+    ( BVDC_P_Resource_Handle            hResource,
+      BVDC_P_ResourceType               eType,
+      uint32_t                          ulHwId );
 
 /***************************************************************************
  * {private}
@@ -298,12 +316,12 @@ uint32_t  BVDC_P_Resource_GetHwIdAcquireCntr_isr
  *
  */
 BERR_Code  BVDC_P_Resource_Reserve_isr
-	( BVDC_P_ResourceEntry             *p1stEntry,
-	  BVDC_P_ResourceType               eType,
-	  uint32_t                          ulResourceIndex,
-	  uint32_t                          ulAcquireId,
-	  void                            **ppvResourceHandle,
-	  uint32_t                         *pulHwId );
+    ( BVDC_P_ResourceEntry             *p1stEntry,
+      BVDC_P_ResourceType               eType,
+      uint32_t                          ulResourceIndex,
+      uint32_t                          ulAcquireId,
+      void                            **ppvResourceHandle,
+      uint32_t                         *pulHwId );
 
 /***************************************************************************
  * {private}
@@ -318,9 +336,9 @@ BERR_Code  BVDC_P_Resource_Reserve_isr
  * s_ulMcvpAbleFlags[0].
  */
 void BVDC_P_Resource_GetResourceId
-	( BVDC_P_ResourceType               eType,
-	  uint32_t                          ulCapabilities,
-	  uint32_t                         *pulResourceId );
+    ( BVDC_P_ResourceType               eType,
+      uint32_t                          ulCapabilities,
+      uint32_t                         *pulResourceId );
 
 #ifdef __cplusplus
 }

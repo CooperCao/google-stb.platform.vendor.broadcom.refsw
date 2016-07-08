@@ -1,47 +1,51 @@
 /******************************************************************************
- *    (c)2008-2015 Broadcom Corporation
- *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
- *
- * Except as expressly set forth in the Authorized License,
- *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
- *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
- *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *
- *****************************************************************************/
+* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*
+* This program is the proprietary software of Broadcom and/or its
+* licensors, and may only be used, duplicated, modified or distributed pursuant
+* to the terms and conditions of a separate, written license agreement executed
+* between you and Broadcom (an "Authorized License").  Except as set forth in
+* an Authorized License, Broadcom grants no license (express or implied), right
+* to use, or waiver of any kind with respect to the Software, and Broadcom
+* expressly reserves all rights in and to the Software and all intellectual
+* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*
+* Except as expressly set forth in the Authorized License,
+*
+* 1. This program, including its structure, sequence and organization,
+*    constitutes the valuable trade secrets of Broadcom, and you shall use all
+*    reasonable efforts to protect the confidentiality thereof, and to use
+*    this information only in connection with your use of Broadcom integrated
+*    circuit products.
+*
+* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+*
+* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+******************************************************************************/
 #include "nexus_platform.h"
 #include "nexus_core_utils.h"
 #include "nexus_surface.h"
 #include "nexus_transport_capabilities.h"
 #include "nexus_video_decoder.h"
+#if NEXUS_HAS_VIDEO_ENCODER
 #include "nexus_video_encoder.h"
+#endif /* NEXUS_HAS_VIDEO_ENCODER */
 #include "boxmodes_defines.h"
 #include "bmedia_types.h"
 #include "bstd.h"
@@ -313,6 +317,48 @@ static int getBoxModeMemc(
     return( numMemc );
 }
 
+static int getBoxModeDdrFreq(
+    int boxmode
+    )
+{
+    unsigned int idx     = 0;
+    int          ddrFreq = 0;
+
+    /* loop through global array to find the specified boxmode */
+    for (idx = 0; idx < ( sizeof( g_bmemconfig_box_info )/sizeof( g_bmemconfig_box_info[0] )); idx++)
+    {
+        if (g_bmemconfig_box_info[idx].boxmode == boxmode)
+        {
+            ddrFreq = g_bmemconfig_box_info[idx].ddrFreq;
+            break;
+        }
+
+    }
+    /* we did not find the specified box mode */
+    return( ddrFreq );
+}
+
+static int getBoxModeScbFreq(
+    int boxmode
+    )
+{
+    unsigned int idx     = 0;
+    int          scbFreq = 0;
+
+    /* loop through global array to find the specified boxmode */
+    for (idx = 0; idx < ( sizeof( g_bmemconfig_box_info )/sizeof( g_bmemconfig_box_info[0] )); idx++)
+    {
+        if (g_bmemconfig_box_info[idx].boxmode == boxmode)
+        {
+            scbFreq = g_bmemconfig_box_info[idx].scbFreq;
+            break;
+        }
+
+    }
+    /* we did not find the specified box mode */
+    return( scbFreq );
+}
+
 static int getProductIdMemc(
     void
     )
@@ -347,7 +393,7 @@ static char *getBoxModeDdrScbString(
         PRINTF( "~DEBUG~%s: g_bmemconfig_box_info[%d].boxmode is %d ... comparing with %d~", __FUNCTION__, idx, g_bmemconfig_box_info[idx].boxmode, boxmode );
         if (g_bmemconfig_box_info[idx].boxmode == boxmode)
         {
-            return( g_bmemconfig_box_info[idx].strDdrScb );
+            return( g_bmemconfig_box_info[idx].strDdrScb ); /* similar to: DDR3@1067MHz SCB@432MHz */
         }
     }
 
@@ -698,12 +744,13 @@ int main(
     Memconfig_AppMemUsage             transOutput;
     Memconfig_BoxMode                 boxModeSettings;
     NEXUS_VideoDecoderCapabilities    lVideoDecoderCapabilities;
+#if NEXUS_HAS_VIDEO_ENCODER
     NEXUS_VideoEncoderCapabilities    lVideoEncoderCapabilities;
+#endif /* NEXUS_HAS_VIDEO_ENCODER */
     NEXUS_DisplayCapabilities         lDisplayCapabilities;
     Bboxreport_SvgPlot                svgPlot;
     bool     main_used = false;
     bool     pip_used  = false;
-    bool     headless  = false;
     int      i;
     int      rc;
     unsigned codec;
@@ -713,15 +760,25 @@ int main(
     int      lNumberMemcs = 1;
     char     boxmodeTableHtml[BOXMODE_TABLE_HTML_SIZE];
     char    *queryString;
-    char    *contentType;
-    char    *contentLength;
     char    *remoteAddress;
     char     boxmodeStr[5];
     char     datetime[20];
     char     strTemp[128];
+    volatile unsigned int *g_pMem = NULL;
 
+    i = argc;
+    i = 0;
 	BKNI_Init();
 	BDBG_Init();
+
+    /* Open driver for memory mapping and mmap() it */
+    g_pMem = bmemperf_openDriver_and_mmap();
+
+    if (g_pMem == NULL)
+    {
+        printf( "Failed to bmemperf_openDriver_and_mmap() ... g_pMem %p \n", (void*) g_pMem );
+        return( -1 );
+    }
 
     BKNI_Memset( &platformSettings, 0, sizeof( platformSettings ));
     BKNI_Memset( &platformStatusPrevious, 0, sizeof( platformStatusPrevious ));
@@ -736,13 +793,13 @@ int main(
     BKNI_Memset( audioDecodeCodecEnabledDefaults, 0, sizeof( audioDecodeCodecEnabledDefaults ));
     BKNI_Memset( audioEncodeCodecEnabledDefaults, 0, sizeof( audioEncodeCodecEnabledDefaults ));
     BKNI_Memset( &lVideoDecoderCapabilities, 0, sizeof( lVideoDecoderCapabilities ));
+#if NEXUS_HAS_VIDEO_ENCODER
     BKNI_Memset( &lVideoEncoderCapabilities, 0, sizeof( lVideoEncoderCapabilities ));
+#endif /* NEXUS_HAS_VIDEO_ENCODER */
     BKNI_Memset( &lDisplayCapabilities, 0, sizeof( lDisplayCapabilities ));
     BKNI_Memset( &svgPlot, 0, sizeof( svgPlot ));
 
     queryString   = getenv( "QUERY_STRING" );
-    contentType   = getenv( "CONTENT_TYPE" );
-    contentLength = getenv( "CONTENT_LENGTH" );
     remoteAddress = getenv( "REMOTE_ADDR" );
 
     if (remoteAddress== NULL)
@@ -754,7 +811,7 @@ int main(
 
     printf( "Content-type: text/html\n\n" );
     fflush( stdout ); fflush( stderr );
-    BDBG_ERR(( "argc %d; NEXUS_PLATFORM %u; NEXUS_MAX_MEMC %d; NEXUS_NUM_MEMC %d ", argc, NEXUS_PLATFORM, NEXUS_MAX_MEMC, NEXUS_NUM_MEMC ));
+    /*printf( "argc %d; NEXUS_PLATFORM %u; NEXUS_MAX_MEMC %d; NEXUS_NUM_MEMC %d \n", argc, NEXUS_PLATFORM, NEXUS_MAX_MEMC, NEXUS_NUM_MEMC );*/
 
     /* determine if any apps are using Nexus at the moment */
     if (getOpenNexusApps( strTemp, sizeof( strTemp )))
@@ -780,7 +837,7 @@ int main(
 
         return( 0 );
     }
-    printf( "~DEBUG~queryString (%s)~", queryString );
+    PRINTF( "~DEBUG~queryString (%s)~", queryString );
     if (queryString == NULL )
     {
         printf( "<h2 class=margin20 >QUERY_STRING has not been set.</h2>\n" );
@@ -809,7 +866,7 @@ int main(
 
         lNumberMemcs = getProductIdMemc();
 
-        printf( "~DEBUG~detected init; NEXUS_NUM_MEMC %u; lNumberMemcs %d ~", NEXUS_NUM_MEMC, lNumberMemcs );
+        PRINTF( "~DEBUG~detected init; NEXUS_NUM_MEMC %u; lNumberMemcs %d ~", NEXUS_NUM_MEMC, lNumberMemcs );
         /* loop through global array to find all boxmodes that will run on this platform */
         for (idx = 0; idx < BMEMCONFIG_MAX_BOXMODES; idx++)
         {
@@ -852,7 +909,7 @@ int main(
     {
         lNumberMemcs = getProductIdMemc();
 
-        printf("~DEBUG~boxmode %d; lNumberMemcs %d; getBoxModeMemc %d ~", boxmode, lNumberMemcs, getBoxModeMemc( boxmode ) );
+        PRINTF("~DEBUG~boxmode %d; lNumberMemcs %d; getBoxModeMemc %d ~", boxmode, lNumberMemcs, getBoxModeMemc( boxmode ) );
         /* do not worry about mismatched MEMCs for boxmode 0 */
         if ( ( boxmode!= 0 ) && ( getBoxModeMemc( boxmode ) != lNumberMemcs ))
         {
@@ -892,6 +949,12 @@ int main(
                     /*printf("~DEBUG~videoDecoder[0].supported[%u:%s]:%u~", idx, get_codec_name(idx), memConfigSettings.videoDecoder[0].supportedCodecs[idx] );*/
                     svgPlot.supportedCodecsSuperset[codec] |= memConfigSettings.videoDecoder[i].supportedCodecs[codec];
                 }
+
+                /* 7439 boxmode 24: is headless and has 4 video decoders ... 2 are for transcode and 2 are for graphics PIP */
+                if (boxModeSettings.videoDecoder[i].property == Memconfig_VideoDecoderProperty_eGraphicsPip)
+                {
+                    svgPlot.num_decoders_graphics_pip++;
+                }
             }
 
             /* save the default audio decoder codecs to help us NOT display codecs that are initially turned off by default */
@@ -911,14 +974,25 @@ int main(
             transfer_settings( &memConfigSettings, &transInput, &transOutput, &boxModeSettings );
 
             rc = NEXUS_Platform_MemConfigInit( &platformSettings, &memConfigSettings );
-            BDBG_LOG(( "~%s: NEXUS_BASE_ONLY_INIT: NEXUS_Platform_MemConfigInit() returned %d; uses baseOnlyInit~", argv[0], rc ));
+            /*printf( "~%s: NEXUS_BASE_ONLY_INIT: NEXUS_Platform_MemConfigInit() returned %d; uses baseOnlyInit~", argv[0], rc );*/
 
             if (rc != 0)
             {
-                printf( "~FATAL~NEXUS_Platform_MemConfigInit() returned error code %d for %s BoxMode %d~", rc, getPlatform(), boxmode );
+                char *errorLogContents = bmemperf_get_boa_error_log( argv[0] );
+                unsigned int errorLogLineCount = bmemperf_get_boa_error_log_line_count( errorLogContents );
+                printf( "~FATALNOALERT~NEXUS_Platform_MemConfigInit() returned error code %d for %s BoxMode %d<br><textarea cols=150 rows=%u >%s</textarea>~",
+                        rc, getPlatform(), boxmode, errorLogLineCount, errorLogContents );
+                if ( errorLogContents )
+                {
+                    free ( errorLogContents );
+                }
             }
             else
             {
+                char strDdrScbFreq[BMEMCONFIG_MAX_DDR_SCB_STRING];
+
+                memset ( strDdrScbFreq, 0, sizeof(strDdrScbFreq) );
+
                 /* if audio decoders are disabled ... disable video encoders */
                 for (i = 0; i<NEXUS_NUM_AUDIO_DECODERS; i++)
                 {
@@ -938,10 +1012,10 @@ int main(
 
 #if NEXUS_HAS_DISPLAY && NEXUS_NUM_VIDEO_WINDOWS
                 NEXUS_GetDisplayCapabilities( &lDisplayCapabilities );
-                printf( "~DEBUG~boxmode:%u NEXUS_NUM_DISPLAYS %u; NEXUS_MAX_DISPLAYS %u~", boxmode, NEXUS_NUM_DISPLAYS, NEXUS_MAX_DISPLAYS );
+                PRINTF( "~DEBUG~boxmode:%u NEXUS_NUM_DISPLAYS %u; NEXUS_MAX_DISPLAYS %u~", boxmode, NEXUS_NUM_DISPLAYS, NEXUS_MAX_DISPLAYS );
                 for (i = 0; i<NEXUS_NUM_DISPLAYS; i++)
                 {
-                    printf( "~DEBUG~boxmode:%u display[%d].numVideoWindows %u gfx.width %-4u height %-4u maxFormat:%u(%s)~", boxmode, i,
+                    PRINTF( "~DEBUG~boxmode:%u display[%d].numVideoWindows %u gfx.width %-4u height %-4u maxFormat:%u(%s)~", boxmode, i,
                         lDisplayCapabilities.display[i].numVideoWindows, lDisplayCapabilities.display[i].graphics.width,
                         lDisplayCapabilities.display[i].graphics.height, memConfigSettings.display[i].maxFormat,
                         get_maxformat_name( memConfigSettings.display[i].maxFormat ));
@@ -958,13 +1032,13 @@ int main(
 
 #if NEXUS_HAS_VIDEO_DECODER
                 NEXUS_GetVideoDecoderCapabilities( &lVideoDecoderCapabilities );
-                printf( "~DEBUG~boxmode:%u numVideoDecoders %u; NEXUS_MAX_VIDEO_DECODERS %u", boxmode, lVideoDecoderCapabilities.numVideoDecoders, NEXUS_MAX_VIDEO_DECODERS );
+                PRINTF( "~DEBUG~boxmode:%u numVideoDecoders %u; NEXUS_MAX_VIDEO_DECODERS %u", boxmode, lVideoDecoderCapabilities.numVideoDecoders, NEXUS_MAX_VIDEO_DECODERS );
                 displayIdx = 0;
                 for (i = 0; i<NEXUS_NUM_VIDEO_DECODERS; i++)
                 {
                     if (transInput.videoDecoder[i].enabled)
                     {
-#if 1
+#if 0
                         printf( "~DEBUG~boxmode:%u videoDecoder[%d].enabled %u; b2160 %u; numMosaic %u; colorDepth %-2u maxFmt %u (%s)~", boxmode, i, transInput.videoDecoder[i].enabled,
                             transInput.videoDecoder[i].b3840x2160, transInput.videoDecoder[i].numMosaic, lVideoDecoderCapabilities.videoDecoder[i].feeder.colorDepth,
                             memConfigSettings.videoDecoder[i].maxFormat,  get_maxformat_name( memConfigSettings.videoDecoder[i].maxFormat ));
@@ -986,7 +1060,7 @@ int main(
                         {
                             sprintf( svgPlot.videoDecoder[displayIdx].str_gfx_resolution, "%ux%u", lDisplayCapabilities.display[displayIdx].graphics.width,
                                 lDisplayCapabilities.display[displayIdx].graphics.height );
-                            printf( "~DEBUG~boxmode:%u videoDecoder[%d].str_gfx_resolution (%s)~", boxmode, i, svgPlot.videoDecoder[displayIdx].str_gfx_resolution );
+                            PRINTF( "~DEBUG~boxmode:%u videoDecoder[%d].str_gfx_resolution (%s)~", boxmode, i, svgPlot.videoDecoder[displayIdx].str_gfx_resolution );
                         }
 
                         /* for 97439 boxmode 9: videoDecoder[1] is skipped; videoDecoder[2] is enabled but need to use displayCapabilities[1] */
@@ -995,12 +1069,12 @@ int main(
                 }
 #endif /* if NEXUS_HAS_VIDEO_DECODER */
 
-#if NEXUS_NUM_VIDEO_ENCODERS
+#if NEXUS_HAS_VIDEO_ENCODER
                 NEXUS_GetVideoEncoderCapabilities( &lVideoEncoderCapabilities );
-                printf( "~DEBUG~boxmode:%u NEXUS_MAX_VIDEO_ENCODERS %u", boxmode, NEXUS_MAX_VIDEO_ENCODERS );
+                PRINTF( "~DEBUG~boxmode:%u NEXUS_MAX_VIDEO_ENCODERS %u", boxmode, NEXUS_MAX_VIDEO_ENCODERS );
                 for (i = 0; i< (int) NEXUS_MAX_VIDEO_ENCODERS; i++)
                 {
-                    printf( "~DEBUG~boxmode:%d NEXUS videoEncoder[%d].supported %u; displayIndex %u; used:%u; interlaced:%d; wid:%u; hgt:%u~",
+                    PRINTF( "~DEBUG~boxmode:%d NEXUS videoEncoder[%d].supported %u; displayIndex %u; used:%u; interlaced:%d; wid:%u; hgt:%u~",
                         boxmode, i, lVideoEncoderCapabilities.videoEncoder[i].supported, lVideoEncoderCapabilities.videoEncoder[i].displayIndex,
                         lVideoEncoderCapabilities.videoEncoder[i].memory.used, lVideoEncoderCapabilities.videoEncoder[i].memory.interlaced,
                         lVideoEncoderCapabilities.videoEncoder[i].memory.maxWidth, lVideoEncoderCapabilities.videoEncoder[i].memory.maxHeight );
@@ -1009,7 +1083,7 @@ int main(
                         sprintf( svgPlot.videoEncoder[i].str_max_resolution, "%ux%u%s",  lVideoEncoderCapabilities.videoEncoder[i].memory.maxWidth,
                             lVideoEncoderCapabilities.videoEncoder[i].memory.maxHeight, ( lVideoEncoderCapabilities.videoEncoder[i].memory.interlaced ) ? "p/i" : "" );
                         svgPlot.videoEncoder[i].displayIndex = lVideoEncoderCapabilities.videoEncoder[i].displayIndex;
-                        printf( "~DEBUG~boxmode:%u videoEecoder[%d].str_max_resolution (%s)~", boxmode, i, svgPlot.videoEncoder[i].str_max_resolution );
+                        PRINTF( "~DEBUG~boxmode:%u videoEecoder[%d].str_max_resolution (%s)~", boxmode, i, svgPlot.videoEncoder[i].str_max_resolution );
                     }
                 }
 
@@ -1021,7 +1095,6 @@ int main(
                     }
                 }
 
-                headless  = ( svgPlot.num_decoders == svgPlot.num_encoders );
                 main_used = (( svgPlot.num_decoders - svgPlot.num_encoders ) >= 1 );
                 pip_used  = (( svgPlot.num_decoders - svgPlot.num_encoders ) >= 2 );
 
@@ -1048,26 +1121,45 @@ int main(
                                 sprintf( svgPlot.encoder_gfx_resolution, "%ux%u", lDisplayCapabilities.display[displayIdx].graphics.width,
                                     lDisplayCapabilities.display[displayIdx].graphics.height );
                                 svgPlot.num_encoders_graphics++;
-                                printf( "~DEBUG~boxmode:%u; encoderGfx[%u]: %ux%u; num_encoders_graphics %u~", boxmode, i, lDisplayCapabilities.display[displayIdx].graphics.width,
+                                PRINTF( "~DEBUG~boxmode:%u; encoderGfx[%u]: %ux%u; num_encoders_graphics %u~", boxmode, i, lDisplayCapabilities.display[displayIdx].graphics.width,
                                     lDisplayCapabilities.display[displayIdx].graphics.height, svgPlot.num_encoders_graphics );
                             }
                         }
                     }
                 }
-#endif /* NEXUS_NUM_VIDEO_ENCODERS */
+#endif /* NEXUS_HAS_VIDEO_ENCODER */
 
-                printf( "~DEBUG~boxmode:%u; NEXUS_NUM_HDMI_INPUTS %u; hdDvi %u~", boxmode, NEXUS_NUM_HDMI_INPUTS, memConfigSettings.videoInputs.hdDvi );
+                PRINTF( "~DEBUG~boxmode:%u; NEXUS_NUM_HDMI_INPUTS %u; hdDvi %u~", boxmode, NEXUS_NUM_HDMI_INPUTS, memConfigSettings.videoInputs.hdDvi );
 
                 strncpy( svgPlot.platform, getPlatform(), sizeof( svgPlot.platform ) - 1 );
                 svgPlot.boxmode = boxmode;
                 strncpy( svgPlot.strDdrScb, getBoxModeDdrScbString( boxmode ), sizeof( svgPlot.strDdrScb ) - 1 );
 
+                /* append the actual frequencies that we get from BOLT */
+                snprintf( strDdrScbFreq, sizeof(strDdrScbFreq) - 1, "%s@%uMHz SCB@%uMHz", bmemperf_get_ddrType( 0, g_pMem ),
+                          bmemperf_get_ddrFreqInMhz( getBoxModeDdrFreq ( boxmode ) ), bmemperf_get_scbFreqInMhz( getBoxModeScbFreq ( boxmode ) ) );
+
+                /* if the actual matches the expected */
+                if (strcmp( strDdrScbFreq, svgPlot.strDdrScb ) == 0 )
+                {
+                    strDdrScbFreq[0] = 0; /* empty out the string so that nothing will display (strings match) */
+                }
+                else /* display the different frequencies in red italic */
+                {
+                    snprintf( strDdrScbFreq, sizeof(strDdrScbFreq) - 1, "<i style=\"color:red;\" ><small> (BOLT %s@%03uMHz SCB@%03uMHz)</small></i>", bmemperf_get_ddrType( 0, g_pMem ),
+                              bmemperf_get_ddrFreqInMhz( getBoxModeDdrFreq (boxmode ) ), bmemperf_get_scbFreqInMhz( getBoxModeScbFreq ( boxmode ) ) );
+                }
+                strncat( svgPlot.strDdrScb, strDdrScbFreq, sizeof( svgPlot.strDdrScb ) - 1 );
+                /* e.g. DDR3@1067MHz SCB@432MHz (BOLT DDR@1067MHz SCB@432MHz) */
+
 #if NEXUS_HAS_HDMI_INPUT
                 svgPlot.num_hdmi_inputs = memConfigSettings.videoInputs.hdDvi;
 #endif
-                printf( "~DEBUG~boxmode:%u main %u; pip %u; decoders %u; encoders %u; gfx_encoders %u; hdmi %u~",
-                    boxmode, main_used, pip_used, svgPlot.num_decoders, svgPlot.num_encoders, svgPlot.num_encoders_graphics,
-                    memConfigSettings.videoInputs.hdDvi );
+                PRINTF( "~DEBUG~boxmode:%u main %u; pip %u; decoders %u; hdmi %u~",
+                    boxmode, main_used, pip_used, svgPlot.num_decoders,  memConfigSettings.videoInputs.hdDvi );
+#if NEXUS_HAS_VIDEO_ENCODER
+                PRINTF( "~DEBUG~boxmode:%u encoders %u; gfx_encoders %u; ~", boxmode, svgPlot.num_encoders, svgPlot.num_encoders_graphics );
+#endif /* NEXUS_HAS_VIDEO_ENCODER */
 
                 Add_BoxmodeTableHtml( &svgPlot, boxmodeTableHtml, &memConfigSettings );
 

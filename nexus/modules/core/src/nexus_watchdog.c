@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,18 +35,6 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* API Description:
-*   API name: Watchdog
-*    Specific APIs related to HW watchdog
-*
-* Revision History:
-*
-* $brcm_Log: $
-* 
 ***************************************************************************/
 #include "nexus_core_module.h"
 #include "bchp_common.h"
@@ -59,18 +47,30 @@ BDBG_MODULE(nexus_watchdog);
 
 #define NEXUS_WATCHDOG_TIMER_FREQ 27000000 /* 27 MHz */
 
+struct NEXUS_WatchdogCallback
+{
+    NEXUS_OBJECT(NEXUS_WatchdogCallback);
+    BINT_CallbackHandle intCallback;
+    BKNI_EventHandle event;
+    NEXUS_EventCallbackHandle eventCallback;
+    NEXUS_TaskCallbackHandle callback;
+    NEXUS_WatchdogCallbackSettings settings;
+    BLST_S_ENTRY(NEXUS_WatchdogCallback) link;
+};
+
 static struct {
     bool started;
     unsigned timeout;
-    NEXUS_WatchdogSettings settings;
-    BINT_CallbackHandle intCallback;
-    NEXUS_IsrCallbackHandle callback;
+    BLST_S_HEAD(watchdog_callback_list, NEXUS_WatchdogCallback) callbacks;
+    uint32_t resetHistory;
 } g_watchdog;
+
+static void NEXUS_Watchdog_P_ReadResetHistory(void);
 
 NEXUS_Error NEXUS_Watchdog_P_Init(void)
 {
     BKNI_Memset(&g_watchdog, 0, sizeof(g_watchdog));
-    g_watchdog.callback = NEXUS_IsrCallback_Create(NULL, NULL);
+    NEXUS_Watchdog_P_ReadResetHistory();
     /* must issue magic stop sequence to get control again */
     NEXUS_Watchdog_StopTimer();
     return 0;
@@ -79,37 +79,34 @@ NEXUS_Error NEXUS_Watchdog_P_Init(void)
 void NEXUS_Watchdog_P_Uninit(void)
 {
     NEXUS_Watchdog_StopTimer();
-    NEXUS_IsrCallback_Destroy(g_watchdog.callback);
     BKNI_Memset(&g_watchdog, 0, sizeof(g_watchdog));
 }
 
 static void nexus_p_watchdog_isr(void *context, int param)
 {
-    BSTD_UNUSED(context);
+    NEXUS_WatchdogCallbackHandle handle = context;
     BSTD_UNUSED(param);
     /* level-triggered, so disable till stop */
-    BINT_DisableCallback_isr(g_watchdog.intCallback);
-    NEXUS_IsrCallback_Fire_isr(g_watchdog.callback);
+    BINT_DisableCallback_isr(handle->intCallback);
+    /* Don't call NEXUS_IsrCallback_Fire_isr here. By requiring the extra hop through the task callback, we ensure more of Nexus is working
+    before firing the midpoint callback, which serves as a heartbeat. */
+    BKNI_SetEvent(handle->event);
 }
-
-static void nexus_watchdog_p_stop_callback(void);
 
 static NEXUS_Error nexus_watchdog_p_start_callback(void)
 {
-    if (!g_watchdog.intCallback) {
-        int rc;
-        rc = BINT_CreateCallback(&g_watchdog.intCallback, g_pCoreHandles->bint, BCHP_INT_ID_WDINT, nexus_p_watchdog_isr, NULL, 0);
-        if (rc) return BERR_TRACE(rc);
+    NEXUS_WatchdogCallbackHandle handle;
+    for (handle = BLST_S_FIRST(&g_watchdog.callbacks); handle; handle = BLST_S_NEXT(handle, link)) {
+        BINT_EnableCallback(handle->intCallback);
     }
-    (void)BINT_EnableCallback(g_watchdog.intCallback);
     return 0;
 }
 
 static void nexus_watchdog_p_stop_callback(void)
 {
-    if (g_watchdog.intCallback) {
-        BINT_DestroyCallback(g_watchdog.intCallback);
-        g_watchdog.intCallback = NULL;
+    NEXUS_WatchdogCallbackHandle handle;
+    for (handle = BLST_S_FIRST(&g_watchdog.callbacks); handle; handle = BLST_S_NEXT(handle, link)) {
+        BINT_DisableCallback(handle->intCallback);
     }
 }
 
@@ -178,49 +175,117 @@ NEXUS_Error NEXUS_Watchdog_StopTimer(void)
 
 #if defined(BCHP_AON_CTRL_REG_START)
 #include "bchp_aon_ctrl.h"
+#endif
+static void NEXUS_Watchdog_P_ReadResetHistory(void)
+{
+    BDBG_ASSERT(g_NexusCore.publicHandles.reg);
+#if defined(BCHP_AON_CTRL_REG_START)
 /* SUN_TOP_CTRL_RESET_HISTORY is NOT USED in chips that have a sys_aon always-on power island module.
    They use the reset history feature in sys_aon. */
+    g_watchdog.resetHistory = BREG_Read32(g_NexusCore.publicHandles.reg, BCHP_AON_CTRL_RESET_HISTORY);
+    if (g_watchdog.resetHistory) {
+        uint32_t ulVal;
+        ulVal = BREG_Read32(g_NexusCore.publicHandles.reg, BCHP_AON_CTRL_RESET_CTRL);
+        BCHP_SET_FIELD_DATA( ulVal, AON_CTRL_RESET_CTRL, clear_reset_history, 1 );
+        BREG_Write32(g_NexusCore.publicHandles.reg, BCHP_AON_CTRL_RESET_CTRL,ulVal); /* clear status */
+    }
+#else
+    g_watchdog.resetHistory = BREG_Read32(g_NexusCore.publicHandles.reg, BCHP_SUN_TOP_CTRL_RESET_HISTORY);
+    if (g_watchdog.resetHistory) {
+        uint32_t ulVal;
+        ulVal = BREG_Read32(g_NexusCore.publicHandles.reg, BCHP_SUN_TOP_CTRL_RESET_CTRL);
+        BCHP_SET_FIELD_DATA( ulVal, SUN_TOP_CTRL_RESET_CTRL, clear_reset_history, 1 );
+        BREG_Write32(g_NexusCore.publicHandles.reg, BCHP_SUN_TOP_CTRL_RESET_CTRL,ulVal); /* clear status */
+    }
+#endif
+}
+
 void NEXUS_Watchdog_GetLastResetStatus(bool *pStatus)
 {
-    uint32_t ulVal;
-    BDBG_ASSERT(g_NexusCore.publicHandles.reg);
-    ulVal = BREG_Read32(g_NexusCore.publicHandles.reg, BCHP_AON_CTRL_RESET_HISTORY);
+#if NEXUS_CPU_ARM
+    BDBG_LOG(("NEXUS_Watchdog_GetLastResetStatus is not supported on ARM platforms."));
+    BDBG_LOG(("Reset status, captured by BOLT, can be retrieved from Device Tree using: cat /proc/device-tree/bolt/reset-list"));
+#endif
+#if defined(BCHP_AON_CTRL_REG_START)
 #ifdef BCHP_AON_CTRL_RESET_HISTORY_host_watchdog_timer_reset_MASK
-    ulVal = BCHP_GET_FIELD_DATA(ulVal, AON_CTRL_RESET_HISTORY,  host_watchdog_timer_reset);
+    *pStatus = BCHP_GET_FIELD_DATA(g_watchdog.resetHistory, AON_CTRL_RESET_HISTORY,  host_watchdog_timer_reset);
 #else
-    ulVal = BCHP_GET_FIELD_DATA(ulVal, AON_CTRL_RESET_HISTORY,  watchdog_timer_reset);
+    *pStatus = BCHP_GET_FIELD_DATA(g_watchdog.resetHistory, AON_CTRL_RESET_HISTORY,  watchdog_timer_reset);
 #endif
-    *pStatus = (ulVal!=0);
-    ulVal = BREG_Read32(g_NexusCore.publicHandles.reg, BCHP_AON_CTRL_RESET_CTRL);
-    BCHP_SET_FIELD_DATA( ulVal, AON_CTRL_RESET_CTRL, clear_reset_history, 1 );
-    BREG_Write32(g_NexusCore.publicHandles.reg, BCHP_AON_CTRL_RESET_CTRL,ulVal); /* clear status */
-
-    return;
-}
 #else
-void NEXUS_Watchdog_GetLastResetStatus(bool *pStatus)
-{
-    uint32_t ulVal;
-    BDBG_ASSERT(g_NexusCore.publicHandles.reg);
-    ulVal = BREG_Read32(g_NexusCore.publicHandles.reg, BCHP_SUN_TOP_CTRL_RESET_HISTORY);
-    ulVal = BCHP_GET_FIELD_DATA(ulVal, SUN_TOP_CTRL_RESET_HISTORY,  watchdog_timer_reset);
-    *pStatus = (ulVal!=0);
-    ulVal = BREG_Read32(g_NexusCore.publicHandles.reg, BCHP_SUN_TOP_CTRL_RESET_CTRL);
-    BCHP_SET_FIELD_DATA( ulVal, SUN_TOP_CTRL_RESET_CTRL, clear_reset_history, 1 );
-    BREG_Write32(g_NexusCore.publicHandles.reg, BCHP_SUN_TOP_CTRL_RESET_CTRL,ulVal); /* clear status */
-
-    return;
-}
+    *pStatus = BCHP_GET_FIELD_DATA(g_watchdog.resetHistory, SUN_TOP_CTRL_RESET_HISTORY,  watchdog_timer_reset);
 #endif
-
-void NEXUS_Watchdog_GetSettings( NEXUS_WatchdogSettings *pSettings )
-{
-    *pSettings = g_watchdog.settings;
 }
 
-NEXUS_Error NEXUS_Watchdog_SetSettings( const NEXUS_WatchdogSettings *pSettings )
+void NEXUS_WatchdogCallback_GetDefaultSettings( NEXUS_WatchdogCallbackSettings *pSettings )
 {
-    NEXUS_IsrCallback_Set(g_watchdog.callback, &pSettings->midpointCallback);
-    g_watchdog.settings = *pSettings;
-    return NEXUS_SUCCESS;
+    BKNI_Memset(pSettings, 0, sizeof(*pSettings));
 }
+
+static void nexus_p_watchdog_event(void *context)
+{
+    NEXUS_WatchdogCallbackHandle handle = context;
+    NEXUS_TaskCallback_Fire(handle->callback);
+}
+
+NEXUS_WatchdogCallbackHandle NEXUS_WatchdogCallback_Create( const NEXUS_WatchdogCallbackSettings *pSettings )
+{
+    NEXUS_WatchdogCallbackHandle handle;
+    int rc;
+    handle = BKNI_Malloc(sizeof(*handle));
+    if (!handle) {
+        BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+        return NULL;
+    }
+    NEXUS_OBJECT_INIT(NEXUS_WatchdogCallback, handle);
+    BLST_S_INSERT_HEAD(&g_watchdog.callbacks, handle, link);
+    handle->settings = *pSettings;
+    handle->callback = NEXUS_TaskCallback_Create(handle, NULL);
+    if (!handle->callback) {
+        BERR_TRACE(NEXUS_UNKNOWN);
+        goto error;
+    }
+    NEXUS_TaskCallback_Set(handle->callback, &pSettings->midpointCallback);
+    rc = BKNI_CreateEvent(&handle->event);
+    if (rc) {
+        BERR_TRACE(rc);
+        goto error;
+    }
+    handle->eventCallback = NEXUS_RegisterEvent(handle->event, nexus_p_watchdog_event, handle);
+    if (!handle->eventCallback) {
+        BERR_TRACE(NEXUS_UNKNOWN);
+        goto error;
+    }
+    rc = BINT_CreateCallback(&handle->intCallback, g_pCoreHandles->bint, BCHP_INT_ID_WDINT, nexus_p_watchdog_isr, handle, 0);
+    if (rc) {
+        BERR_TRACE(rc);
+        goto error;
+    }
+    (void)BINT_EnableCallback(handle->intCallback);
+    return handle;
+
+error:
+    NEXUS_WatchdogCallback_Destroy(handle);
+    return NULL;
+}
+
+static void NEXUS_WatchdogCallback_P_Finalizer( NEXUS_WatchdogCallbackHandle handle )
+{
+    if (handle->intCallback) {
+        BINT_DestroyCallback(handle->intCallback);
+    }
+    if (handle->eventCallback) {
+        NEXUS_UnregisterEvent(handle->eventCallback);
+    }
+    if (handle->event) {
+        BKNI_DestroyEvent(handle->event);
+    }
+    if (handle->callback) {
+        NEXUS_TaskCallback_Destroy(handle->callback);
+    }
+    BLST_S_REMOVE(&g_watchdog.callbacks, handle, NEXUS_WatchdogCallback, link);
+    NEXUS_OBJECT_DESTROY(NEXUS_WatchdogCallback, handle);
+    BKNI_Free(handle);
+}
+
+NEXUS_OBJECT_CLASS_MAKE(NEXUS_WatchdogCallback, NEXUS_WatchdogCallback_Destroy);

@@ -1,43 +1,39 @@
 /******************************************************************************
- * (c) 2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 #include "bip_priv.h"
 
@@ -118,7 +114,7 @@ static void destroyAkeEntry(
     {
         B_Error rc;
 
-        BDBG_MSG(( BIP_MSG_PRE_FMT "Cleanup hAkeEntry=%p: Closing pDtcpIpLibAkeCtx=%p" BIP_MSG_PRE_ARG, hAkeEntry, hAkeEntry->pDtcpIpLibAkeCtx ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "Cleanup hAkeEntry=%p: Closing pDtcpIpLibAkeCtx=%p" BIP_MSG_PRE_ARG, (void *)hAkeEntry, hAkeEntry->pDtcpIpLibAkeCtx ));
         rc = DtcpAppLib_CloseAke(hDtcpIpClientFactory->pDtcpIpLibInitCtx, hAkeEntry->pDtcpIpLibAkeCtx);
         BDBG_ASSERT(rc==B_ERROR_SUCCESS);
     }
@@ -409,7 +405,7 @@ static void doDtcpIpAkeViaArbCallback(
     {
         B_Error rc;
 
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hAkeEntry=%p state=%s: Calling DtcpAppLib_DoAkeOrVerifyExchKey()" BIP_MSG_PRE_ARG, hAkeEntry, BIP_ToStr_BIP_DtcpIpClientFactoryAkeEntryState(hAkeEntry->state) ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hAkeEntry=%p state=%s: Calling DtcpAppLib_DoAkeOrVerifyExchKey()" BIP_MSG_PRE_ARG, (void *)hAkeEntry, BIP_ToStr_BIP_DtcpIpClientFactoryAkeEntryState(hAkeEntry->state) ));
 
         {
             long port;
@@ -433,12 +429,12 @@ static void doDtcpIpAkeViaArbCallback(
         if (rc == B_ERROR_SUCCESS)
         {
             hAkeEntry->dtcpIpAkeCompletionStatus = BIP_SUCCESS;
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hAkeEntry=%p: DtcpAppLib_DoAkeOrVerifyExchKey() Success" BIP_MSG_PRE_ARG, hAkeEntry ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hAkeEntry=%p: DtcpAppLib_DoAkeOrVerifyExchKey() Success" BIP_MSG_PRE_ARG, (void *)hAkeEntry ));
         }
         else
         {
             /* Error case. */
-            BDBG_ERR(( BIP_MSG_PRE_FMT "hAkeEntry=%p: DtcpAppLib_DoAkeOrVerifyExchKey() Failed" BIP_MSG_PRE_ARG, hAkeEntry ));
+            BDBG_ERR(( BIP_MSG_PRE_FMT "hAkeEntry=%p: DtcpAppLib_DoAkeOrVerifyExchKey() Failed" BIP_MSG_PRE_ARG, (void *)hAkeEntry ));
             hAkeEntry->dtcpIpAkeCompletionStatus = BIP_ERR_DTCPIP_CLIENT_AKE;
         }
         processDtcpIpClientFactoryAkeEntryState_locked(hAkeEntry, BIP_Arb_ThreadOrigin_eTimer);
@@ -465,7 +461,7 @@ static BIP_Status processDtcpIpClientFactoryAkeEntryState_locked(
     hDtcpIpClientFactory = hAkeEntry->hDtcpIpClientFactory;
     BDBG_ASSERT(hDtcpIpClientFactory);
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hAkeEntry=%p state=%s" BIP_MSG_PRE_ARG, hAkeEntry, BIP_ToStr_BIP_DtcpIpClientFactoryAkeEntryState(hAkeEntry->state) ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hAkeEntry=%p state=%s" BIP_MSG_PRE_ARG, (void *)hAkeEntry, BIP_ToStr_BIP_DtcpIpClientFactoryAkeEntryState(hAkeEntry->state) ));
 
     if ( hAkeEntry->state == BIP_DtcpIpClientFactoryAkeEntryState_eNewAke )
     {
@@ -486,7 +482,7 @@ static BIP_Status processDtcpIpClientFactoryAkeEntryState_locked(
         hAkeEntry->dtcpIpAkeCompletionStatus = BIP_INF_IN_PROGRESS;
 
         BDBG_MSG(( BIP_MSG_PRE_FMT "hAkeEntry=%p state=%s: Scheduled DoAke processing via BIP Context for serverIp=%s serverPort=%s" BIP_MSG_PRE_ARG,
-                    hAkeEntry, BIP_ToStr_BIP_DtcpIpClientFactoryAkeEntryState(hAkeEntry->state), BIP_String_GetString(hAkeEntry->hServerIp), BIP_String_GetString(hAkeEntry->hServerPort) ));
+                    (void *)hAkeEntry, BIP_ToStr_BIP_DtcpIpClientFactoryAkeEntryState(hAkeEntry->state), BIP_String_GetString(hAkeEntry->hServerIp), BIP_String_GetString(hAkeEntry->hServerPort) ));
     }
 
     if (hAkeEntry->state == BIP_DtcpIpClientFactoryAkeEntryState_eWaitingForAke)
@@ -503,7 +499,7 @@ static BIP_Status processDtcpIpClientFactoryAkeEntryState_locked(
         if (hAkeEntry->dtcpIpAkeCompletionStatus == BIP_SUCCESS)
         {
             BDBG_MSG(( BIP_MSG_PRE_FMT "hAkeEntry=%p: DoAke Successful with ServerIp=%s ServerDtcpIpPort=%s pDtcpIpLibAkeCtx=%p" BIP_MSG_PRE_ARG,
-                        hAkeEntry, BIP_String_GetString(hAkeEntry->hServerIp), BIP_String_GetString(hAkeEntry->hServerPort), hAkeEntry->pDtcpIpLibAkeCtx ));
+                        (void *)hAkeEntry, BIP_String_GetString(hAkeEntry->hServerIp), BIP_String_GetString(hAkeEntry->hServerPort), hAkeEntry->pDtcpIpLibAkeCtx ));
         }
         else
         {
@@ -511,7 +507,7 @@ static BIP_Status processDtcpIpClientFactoryAkeEntryState_locked(
             /* We keep the AkeEntry in the AkeEntry list as caller may re-attempt AKE for the next channel. */
             /* Entries only get removed & freed during DtcpIpClientFactory_Uninit() */
             BDBG_ERR(( BIP_MSG_PRE_FMT "hAkeEntry=%p: DoAke Failed with ServerIp=%s ServerDtcpIpPort=%s" BIP_MSG_PRE_ARG,
-                        hAkeEntry, BIP_String_GetString(hAkeEntry->hServerIp), BIP_String_GetString(hAkeEntry->hServerPort) ));
+                        (void *)hAkeEntry, BIP_String_GetString(hAkeEntry->hServerIp), BIP_String_GetString(hAkeEntry->hServerPort) ));
         }
 
         hAkeEntry->state = BIP_DtcpIpClientFactoryAkeEntryState_eIdle;
@@ -528,7 +524,7 @@ static BIP_Status processDtcpIpClientFactoryAkeEntryState_locked(
         }
     }
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hAkeEntry=%p state=%s completionStatus=%s" BIP_MSG_PRE_ARG, hAkeEntry, BIP_ToStr_BIP_DtcpIpClientFactoryAkeEntryState(hAkeEntry->state), BIP_StatusGetText(completionStatus) ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hAkeEntry=%p state=%s completionStatus=%s" BIP_MSG_PRE_ARG, (void *)hAkeEntry, BIP_ToStr_BIP_DtcpIpClientFactoryAkeEntryState(hAkeEntry->state), BIP_StatusGetText(completionStatus) ));
 
     return (completionStatus);
 } /* processDtcpIpClientFactoryAkeEntryState_locked */
@@ -548,7 +544,7 @@ static void processDtcpIpClientFactoryState(
     BDBG_ASSERT(hDtcpIpClientFactory);
 
     B_Mutex_Lock( hDtcpIpClientFactory->hStateMutex );
-    BDBG_MSG(( BIP_MSG_PRE_FMT  "ENTER --------------------> " BIP_MSG_PRE_ARG, (hDtcpIpClientFactory) ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT  "ENTER --------------------> hDtcpIpClientFactory=%p " BIP_MSG_PRE_ARG, (void *)(hDtcpIpClientFactory) ));
 
     /* Check if we have a new _DoAke() API called from App. */
     if (BIP_Arb_IsNew(hArb = hDtcpIpClientFactory->doAkeApi.hArb))
@@ -578,7 +574,7 @@ static void processDtcpIpClientFactoryState(
                    )
                 {
                     /* Match found, use this entry. */
-                    BDBG_MSG(( BIP_MSG_PRE_FMT "Using existing hAkeEntry=%p for serverIp=%s serverPort=%s" BIP_MSG_PRE_ARG, hAkeEntry, hDtcpIpClientFactory->doAkeApi.pServerIp, hDtcpIpClientFactory->doAkeApi.pServerPort ));
+                    BDBG_MSG(( BIP_MSG_PRE_FMT "Using existing hAkeEntry=%p for serverIp=%s serverPort=%s" BIP_MSG_PRE_ARG, (void *)hAkeEntry, hDtcpIpClientFactory->doAkeApi.pServerIp, hDtcpIpClientFactory->doAkeApi.pServerPort ));
                     break;
                 }
             }
@@ -608,7 +604,7 @@ static void processDtcpIpClientFactoryState(
                 else if (hAkeEntry->hServerIp == NULL || hAkeEntry->hServerPort == NULL || hAkeEntry->hStateMutex == NULL)
                 {
                     BDBG_ERR(( BIP_MSG_PRE_FMT "Failed to Create a AkeEntry element: hAkeEntry=%p hServerIp=%p hServerPort=%p hStateMutex=%p" BIP_MSG_PRE_ARG,
-                                hAkeEntry, hAkeEntry->hServerIp, hAkeEntry->hServerPort, hAkeEntry->hStateMutex ));
+                                (void *)hAkeEntry, (void *)hAkeEntry->hServerIp, (void *)hAkeEntry->hServerPort, (void *)hAkeEntry->hStateMutex ));
                     destroyAkeEntry(hAkeEntry);
                     hAkeEntry = NULL;
 
@@ -618,7 +614,7 @@ static void processDtcpIpClientFactoryState(
                 else
                 {
                     BDBG_MSG(( BIP_MSG_PRE_FMT "Created a New AkeEntry: hAkeEntry=%p for serverIp=%s serverPort=%s" BIP_MSG_PRE_ARG,
-                                hAkeEntry, hDtcpIpClientFactory->doAkeApi.pServerIp, hDtcpIpClientFactory->doAkeApi.pServerPort ));
+                                (void *)hAkeEntry, hDtcpIpClientFactory->doAkeApi.pServerIp, hDtcpIpClientFactory->doAkeApi.pServerPort ));
 
                     /* Now insert it into the AkeEntry list. */
                     BLST_Q_INSERT_TAIL( &hDtcpIpClientFactory->akeEntry_head, hAkeEntry, akeEntry_link);
@@ -654,7 +650,7 @@ static void processDtcpIpClientFactoryState(
             hDtcpIpClientFactory->getAkeEntryStatusApi.pAkeEntryStatus->pServerIp = BIP_String_GetString(hAkeEntry->hServerIp);
             hDtcpIpClientFactory->getAkeEntryStatusApi.pAkeEntryStatus->pServerPort = BIP_String_GetString(hAkeEntry->hServerPort);
             BDBG_MSG(( BIP_MSG_PRE_FMT "hAkeEntry=%p: GetStatus done: ServerIp=%s ServerDtcpIpPort=%s pDtcpIpLibAkeCtx=%p" BIP_MSG_PRE_ARG,
-                        hAkeEntry, BIP_String_GetString(hAkeEntry->hServerIp), BIP_String_GetString(hAkeEntry->hServerPort), hAkeEntry->pDtcpIpLibAkeCtx ));
+                        (void *)hAkeEntry, BIP_String_GetString(hAkeEntry->hServerIp), BIP_String_GetString(hAkeEntry->hServerPort), hAkeEntry->pDtcpIpLibAkeCtx ));
         }
         else
         {

@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2009 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2009 Broadcom.
 All rights reserved.
 
 Project  :  vcfw
@@ -171,19 +171,6 @@ VCOS_INLINE_DECL
 VCOS_UNSIGNED vcos_thread_get_priority(VCOS_THREAD_T *thread);
 
 /**
-  * \brief Return the thread's cpu affinity.
-  */
-VCOS_INLINE_DECL
-VCOS_UNSIGNED vcos_thread_get_affinity(VCOS_THREAD_T *thread);
-
-/**
-  * \brief Set the thread's cpu affinity.
-  */
-
-VCOS_INLINE_DECL
-void vcos_thread_set_affinity(VCOS_THREAD_T *thread, VCOS_UNSIGNED affinity);
-
-/**
   * \brief Query whether we are in an interrupt.
   *
   * @return 1 if in interrupt context.
@@ -217,44 +204,9 @@ uint32_t vcos_getmicrosecs(void);
 VCOS_INLINE_DECL
 VCOS_UNSIGNED vcos_process_id_current(void);
 
-/** Relinquish this time slice. */
-VCOS_INLINE_DECL
-void vcos_thread_relinquish(void);
-
 /** Return the name of the given thread.
   */
 VCOSPRE_ const char * VCOSPOST_ vcos_thread_get_name(const VCOS_THREAD_T *thread);
-
-/** Change preemption. This is almost certainly not what you want, as it won't
-  * work reliably in a multicore system: although you can affect the preemption
-  * on *this* core, you won't affect what's happening on the other core(s).
-  *
-  * It's mainly here to ease migration. If you're using it in new code, you
-  * probably need to think again.
-  *
-  * @param pe New preemption, VCOS_PREEMPT or VCOS_NO_PREEMPT
-  * @return Old value of preemption.
-  */
-VCOS_INLINE_DECL
-VCOS_UNSIGNED vcos_change_preemption(VCOS_UNSIGNED pe);
-
-/** Is a thread still running, or has it exited?
-  *
-  * Note: this exists for some fairly scary code in the video codec tests. Don't
-  * try to use it for anything else, as it may well not do what you expect.
-  *
-  * @param thread   thread to query
-  * @return non-zero if thread is running, or zero if it has exited.
-  */
-VCOS_INLINE_DECL
-int vcos_thread_running(VCOS_THREAD_T *thread);
-
-/** Resume a thread.
-  *
-  * @param thread thread to resume
-  */
-VCOS_INLINE_DECL
-void vcos_thread_resume(VCOS_THREAD_T *thread);
 
 /** Return the number of logical processors in the system
   *

@@ -1,7 +1,7 @@
- /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+/***************************************************************************
+*  Broadcom Proprietary and Confidential. (c)2004-2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,13 +34,7 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
+*
 ***************************************************************************/
 #if ((NEXUS_PLATFORM == 97563) || (NEXUS_PLATFORM == 975635))
 
@@ -106,7 +100,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
 
     NEXUS_Frontend_GetUserParameters(pConfig->frontend[0], &userParams);
     userParams.param1 = NEXUS_InputBand_e0;
-    userParams.pParam2 = NULL;
+    userParams.pParam2 = 0;
     NEXUS_Frontend_SetUserParameters(pConfig->frontend[0], &userParams);
 
     return BERR_SUCCESS;

@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2010-2014 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #include "nexus_video_encoder_module.h"
@@ -789,6 +781,7 @@ NEXUS_VideoEncoder_GetDefaultStartSettings(NEXUS_VideoEncoderStartSettings *pSet
     pSettings->rateBufferDelay = encodeSettings.uiRateBufferDelay;
     pSettings->adaptiveLowDelayMode = encodeSettings.bAdaptiveLowDelayMode;
     pSettings->encodeUserData = false;
+    pSettings->encodeBarUserData = true;
     pSettings->bounds.inputDimension.max.width = encodeSettings.stBounds.stDimensions.stMax.uiWidth;
     pSettings->bounds.inputDimension.max.height = encodeSettings.stBounds.stDimensions.stMax.uiHeight;
     pSettings->bounds.inputDimension.maxInterlaced.width = encodeSettings.stBounds.stDimensions.stMaxInterlaced.uiWidth;
@@ -809,6 +802,7 @@ NEXUS_VideoEncoder_GetDefaultStartSettings(NEXUS_VideoEncoderStartSettings *pSet
     pSettings->entropyCoding = encodeSettings.eForceEntropyCoding;
     NEXUS_CallbackDesc_Init(&pSettings->dataReady);
 
+    pSettings->hrdModeRateControl.disableFrameDrop = encodeSettings.stRateControl.stHrdMode.bDisableFrameDrop;
     pSettings->segmentModeRateControl.enable = encodeSettings.stRateControl.stSegmentMode.bEnable;
     pSettings->segmentModeRateControl.duration = encodeSettings.stRateControl.stSegmentMode.uiDuration;
     pSettings->segmentModeRateControl.upperTolerance = encodeSettings.stRateControl.stSegmentMode.stTargetBitRatePercentage.stUpper.uiTolerance;
@@ -943,10 +937,12 @@ NEXUS_VideoEncoder_Start(NEXUS_VideoEncoderHandle encoder, const NEXUS_VideoEnco
 
     NEXUS_IsrCallback_Set(encoder->dataReadyCallback, &pSettings->dataReady);
 
+    startEncodeSettings.stRateControl.stHrdMode.bDisableFrameDrop = pSettings->hrdModeRateControl.disableFrameDrop;
     startEncodeSettings.stRateControl.stSegmentMode.bEnable = pSettings->segmentModeRateControl.enable;
     startEncodeSettings.stRateControl.stSegmentMode.uiDuration = pSettings->segmentModeRateControl.duration;
     startEncodeSettings.stRateControl.stSegmentMode.stTargetBitRatePercentage.stUpper.uiTolerance = pSettings->segmentModeRateControl.upperTolerance;
     startEncodeSettings.stRateControl.stSegmentMode.stTargetBitRatePercentage.stLower.uiTolerance = pSettings->segmentModeRateControl.lowerTolerance;
+
     startEncodeSettings.stMemoryBandwidthSaving.bSingleRefP = pSettings->memoryBandwidthSaving.singleRefP;
     startEncodeSettings.stMemoryBandwidthSaving.bRequiredPatchesOnly = pSettings->memoryBandwidthSaving.requiredPatchesOnly;
 
@@ -976,6 +972,11 @@ NEXUS_VideoEncoder_Start(NEXUS_VideoEncoderHandle encoder, const NEXUS_VideoEnco
             BERR_TRACE(rc);
             /* fall through unlock */
         }
+    }
+    rc = NEXUS_DisplayModule_SetBarDataEncodeMode_priv(pSettings->input, pSettings->encodeBarUserData);
+    if (rc) {
+        BERR_TRACE(rc);
+        /* fall through unlock */
     }
 unlock:
     NEXUS_Module_Unlock(g_NEXUS_VideoEncoder_P_State.config.display);

@@ -2052,13 +2052,16 @@ b_atom_cursor_dump(batom_cursor *c, const char *func, const char *name)
 			line[i]=b;
 			split[i]= (last_pos==c->pos)?' ':'|';
 		}
+        if(i==0) {
+            break;
+        }
 		for(off=0,j=0;off<sizeof(str)&&j<i;j++) {
 			off+=BKNI_Snprintf(str+off,sizeof(str)-off, "%c%02x", split[j], line[j]);
 			if(j==7 && off<sizeof(str)) {
 				off+=BKNI_Snprintf(str+off,sizeof(str)-off, " .");
 			}
 		}
-		BDBG_WRN(("%s: %s 0x%04x:%s", func, name, addr, str));
+        BDBG_WRN(("%s: %s 0x%04x:%s", func, name, addr, str));
 	}
 #else /* BDBG_DEBUG_BUILD */
 	BSTD_UNUSED(c);

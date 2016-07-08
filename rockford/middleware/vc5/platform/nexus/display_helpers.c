@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2015 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2015 Broadcom.
 All rights reserved.
 =============================================================================*/
 
@@ -54,6 +54,9 @@ bool NexusToBeglFormat(BEGL_BufferFormat *result, NEXUS_PixelFormat format)
       break;
    case NEXUS_PixelFormat_eCr8_Y18_Cb8_Y08:
       *result = BEGL_BufferFormat_eYUV422;
+      break;
+   case NEXUS_PixelFormat_eCompressed_A8_R8_G8_B8:
+      *result = BEGL_BufferFormat_eBSTC;
       break;
 #ifdef YV12_NEXUS_TESTING
    case NEXUS_PixelFormat_eA8_Y8:
@@ -120,6 +123,9 @@ bool BeglToNexusFormat(NEXUS_PixelFormat *result, BEGL_BufferFormat format)
    case BEGL_BufferFormat_eYUV422:
       *result = NEXUS_PixelFormat_eCr8_Y18_Cb8_Y08;
       break;
+   case BEGL_BufferFormat_eBSTC:
+      *result = NEXUS_PixelFormat_eCompressed_A8_R8_G8_B8;
+      break;
 #ifdef YV12_NEXUS_TESTING
    case BEGL_BufferFormat_eYV12:
       // Note: There is no Nexus equivalent for YV12. We will use a 16-bit format that we don't
@@ -153,6 +159,7 @@ int BeglFormatNumBytes(BEGL_BufferFormat format)
    case BEGL_BufferFormat_eX1B5G5R5:
    case BEGL_BufferFormat_eR5G5B5A1:
    case BEGL_BufferFormat_eR5G5B5X1:
+   case BEGL_BufferFormat_eBSTC:
    case BEGL_BufferFormat_eYUV422:
    case BEGL_BufferFormat_eYV12:       // This is really 12bpp, but we use a 16bpp Nexus surface to store it in
       return 2;

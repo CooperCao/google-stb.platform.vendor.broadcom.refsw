@@ -316,7 +316,7 @@ static BERR_Code BCHP_P_ResetMagnumCores
             BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_1_CLEAR, leap_sw_init,   1 ));
 
         BREG_Write32(hRegister, BCHP_SUN_TOP_CTRL_SW_INIT_1_CLEAR,
-            BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_1_SET, sid_sw_init, 1));
+            BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_1_CLEAR, sid_sw_init, 1));
     return BERR_SUCCESS;
 }
 

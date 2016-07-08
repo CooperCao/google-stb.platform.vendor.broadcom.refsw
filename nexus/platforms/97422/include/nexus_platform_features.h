@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,16 +34,8 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
+*
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
 ***************************************************************************/
 #ifndef NEXUS_PLATFORM_FEATURES_H__
@@ -92,9 +84,12 @@ See 7422_Memory_Worksheet.xls to calculate custom numbers */
 
 #define NEXUS_NUM_I2S_INPUTS 1
 #define NEXUS_NUM_I2S_OUTPUTS 2
-#define NEXUS_NUM_AUDIO_CAPTURE_CHANNELS 1
-#define NEXUS_NUM_AUDIO_CAPTURES 1
 #define NEXUS_NUM_AUDIO_PLAYBACKS 3
+
+#ifdef NEXUS_NUM_AUDIO_CRCS
+#undef NEXUS_NUM_AUDIO_CRCS
+#define NEXUS_NUM_AUDIO_CRCS 0
+#endif
 
 /* Display Features */
 #define NEXUS_NUM_656_OUTPUTS 2
@@ -108,26 +103,6 @@ upon the chip usage. See below */
 #define NEXUS_NUM_DISPLAYS 3
 #define NEXUS_NUM_VIDEO_WINDOWS   2
 
-
-/*  - Display buffers required for main memory heap on MEMC1
- *  - The main path, main PIP, secondary path, and secondary PIP path
- *    are allocated from the main VDC heap on MEMC1 */
-#define NEXUS_32MEMC0_32MEMC1_STR  "32+32 bit NonUMA,Display HD+HD,1080p"
-#define NEXUS_DISPLAY_NUM_SD_BUFFERS_MEMC1              0
-#define NEXUS_DISPLAY_NUM_SD_PIP_BUFFERS_MEMC1          5
-#define NEXUS_DISPLAY_NUM_FULL_HD_BUFFERS_MEMC1         8
-#define NEXUS_DISPLAY_NUM_FULL_HD_PIP_BUFFERS_MEMC1     13
-#define NEXUS_DISPLAY_NUM_HD_BUFFERS_MEMC1              12
-#define NEXUS_DISPLAY_NUM_HD_PIP_BUFFERS_MEMC1          0
-
-#define NEXUS_DISPLAY_NUM_SD_BUFFERS_MEMC0              0
-#define NEXUS_DISPLAY_NUM_SD_PIP_BUFFERS_MEMC0          0
-#define NEXUS_DISPLAY_NUM_FULL_HD_BUFFERS_MEMC0         0
-#define NEXUS_DISPLAY_NUM_FULL_HD_PIP_BUFFERS_MEMC0     0
-#define NEXUS_DISPLAY_NUM_HD_BUFFERS_MEMC0              0
-#define NEXUS_DISPLAY_NUM_HD_PIP_BUFFERS_MEMC0          0
-
-
 #if defined(NEXUS_PLATFORM_7422_DBS)
 /* DBS Frontend */
 #define NEXUS_MAX_FRONTENDS 8
@@ -139,7 +114,7 @@ upon the chip usage. See below */
 #define NEXUS_MAX_FRONTENDS 9
 #endif
 
-#if NEXUS_USE_FRONTEND_DAUGHTER_CARD
+#if defined NEXUS_USE_FRONTEND_DAUGHTER_CARD
 #define NEXUS_NUM_FRONTEND_CARD_SLOTS 1
 #endif
 #endif
@@ -150,8 +125,6 @@ upon the chip usage. See below */
 
 /* SPI */
 #define NEXUS_NUM_SPI_CHANNELS 2
-
-
 
 /* I2C Channels */
 #define NEXUS_NUM_I2C_CHANNELS 5
@@ -172,10 +145,6 @@ upon the chip usage. See below */
 #define NEXUS_I2C_CHANNEL_TUNERS_4_5      1  /* BCM3112_4/_5(for SV board) */
 #define NEXUS_I2C_CHANNEL_TUNERS_0_1_2_3  2  /* BCM3112_0/_1/_2/_3(for SV board) */
 #endif
-
-
-
-
 
 /* SMARTCARD CHANNELS */
 #define NEXUS_NUM_SMARTCARD_CHANNELS 2
@@ -198,4 +167,3 @@ upon the chip usage. See below */
 
 
 #endif /* #ifndef NEXUS_PLATFORM_FEATURES_H__ */
-

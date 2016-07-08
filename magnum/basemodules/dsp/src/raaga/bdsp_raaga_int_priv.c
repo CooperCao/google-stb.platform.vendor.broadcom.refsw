@@ -1,7 +1,7 @@
 /******************************************************************************
- * (c) 2006-2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -37,7 +37,6 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 
 
@@ -153,7 +152,7 @@ static const  BINT_Id ui32DSPWatchDogInterruptId[] =
             continue;
         }
 
-        if (pRaagaTask->taskId == BDSP_RAAGA_P_INVALID_TASK_ID)
+        if (pRaagaTask->taskId == BDSP_P_INVALID_TASK_ID)
         {
             continue;
         }
@@ -177,11 +176,11 @@ static const  BINT_Id ui32DSPWatchDogInterruptId[] =
 
              switch(pRaagaTask->lastEventType)
              {
-                 case BDSP_RAAGA_START_TASK_COMMAND_ID:
+                 case BDSP_START_TASK_COMMAND_ID:
                      pRaagaTask->isStopped=false;
                      break;
 
-                 case BDSP_RAAGA_STOP_TASK_COMMAND_ID:
+                 case BDSP_STOP_TASK_COMMAND_ID:
                      pRaagaTask->isStopped=true;
                      break;
 
@@ -707,7 +706,7 @@ static void  BDSP_Raaga_P_UnlicensedAlgo_isr(
             continue;
         }
 
-        if((pRaagaTask->taskId == BDSP_RAAGA_P_INVALID_TASK_ID))
+        if((pRaagaTask->taskId == BDSP_P_INVALID_TASK_ID))
         {
             continue;
         }
@@ -1664,11 +1663,13 @@ BERR_Code BDSP_Raaga_P_SetAudioInterruptHandlers_isr(
     if((pRaagaTask->isStopped == false))
     {
         /*  Prepare message structure for FW to write in message queue */
-        sFwCommand.sCommandHeader.ui32CommandID = BDSP_RAAGA_EVENT_NOTIFICATION_COMMAND_ID;
+        sFwCommand.sCommandHeader.ui32CommandID = BDSP_EVENT_NOTIFICATION_COMMAND_ID;
         sFwCommand.sCommandHeader.ui32CommandSizeInBytes = sizeof(BDSP_Raaga_P_Command);
-        sFwCommand.sCommandHeader.eResponseType = BDSP_Raaga_P_ResponseType_eNone;
+        sFwCommand.sCommandHeader.eResponseType = BDSP_P_ResponseType_eNone;
         sFwCommand.sCommandHeader.ui32TaskID = pRaagaTask->taskId;
         sFwCommand.sCommandHeader.ui32CommandCounter = pRaagaTask->commandCounter++;;
+        sFwCommand.sCommandHeader.ui32CommandTimeStamp =  BREG_Read32(pDevice->regHandle,
+                                                                      BCHP_RAAGA_DSP_TIMERS_TSM_TIMER_VALUE);
         sFwCommand.uCommand.sEnableDisableEvent.ui32EnableEvent =
             pRaagaTask->eventEnabledMask ;
 

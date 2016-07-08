@@ -1,41 +1,43 @@
 /******************************************************************************
- *    (c)2007-2015 Broadcom Corporation
- *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
- *
- * Except as expressly set forth in the Authorized License,
- *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
- *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
- *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *
- *****************************************************************************/
+* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*
+* This program is the proprietary software of Broadcom and/or its
+* licensors, and may only be used, duplicated, modified or distributed pursuant
+* to the terms and conditions of a separate, written license agreement executed
+* between you and Broadcom (an "Authorized License").  Except as set forth in
+* an Authorized License, Broadcom grants no license (express or implied), right
+* to use, or waiver of any kind with respect to the Software, and Broadcom
+* expressly reserves all rights in and to the Software and all intellectual
+* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*
+* Except as expressly set forth in the Authorized License,
+*
+* 1. This program, including its structure, sequence and organization,
+*    constitutes the valuable trade secrets of Broadcom, and you shall use all
+*    reasonable efforts to protect the confidentiality thereof, and to use
+*    this information only in connection with your use of Broadcom integrated
+*    circuit products.
+*
+* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+*
+* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. , WHICHEVER
+*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+******************************************************************************/
 
 #include "bhsm.h"
 #include "bhsm_datatypes.h"
@@ -250,7 +252,6 @@ BERR_Code BHSM_InvalidateVKL( BHSM_Handle hHsm,
     }
 
     BHSM_BspMsg_GetDefaultHeader( &header );
-    header.hChannel = hHsm->channelHandles[BSP_CmdInterface];
     BHSM_BspMsg_Header( hMsg, BCMD_cmdType_INVALIDATE_VKL, &header );
 
     BHSM_BspMsg_Pack8( hMsg, BCMD_InvalidateKey_InCmd_eVKLID, BHSM_RemapVklId(pConfig->virtualKeyLadderID ));
@@ -360,7 +361,6 @@ BERR_Code BHSM_GenerateRouteKey(
     }
 
     BHSM_BspMsg_GetDefaultHeader( &header );
-    header.hChannel = hHsm->channelHandles[BSP_CmdInterface];
     BHSM_BspMsg_Header( hMsg, BCMD_cmdType_eSESSION_GENERATE_ROUTE_KEY, &header );
 
 
@@ -371,80 +371,82 @@ BERR_Code BHSM_GenerateRouteKey(
 #endif
     BHSM_BspMsg_Pack8( hMsg, BCMD_GenKey_InCmd_eKeyLadderType, pGrk->keyLadderType );
 
-
-    /* Get pointer to structure BHSM_P_KeySlotAlgorithm_t and BHSM_P_KeySlotIDData */
-    switch( pGrk->keyDestBlckType )
+    if( !pGrk->askm.configurationEnable && !pGrk->sageAskmConfigurationEnable )
     {
-        case BCMD_KeyDestBlockType_eMem2Mem :
+        /* Get pointer to structure BHSM_P_KeySlotAlgorithm_t and BHSM_P_KeySlotIDData */
+        switch( pGrk->keyDestBlckType )
+        {
+            case BCMD_KeyDestBlockType_eMem2Mem :
 
-            /* Parameter checking on unKeySlotNum */
-           #if BHSM_ZEUS_VERSION < BHSM_ZEUS_VERSION_CALC(4,0)
-            if( unKeySlotNum >= BCMD_MAX_M2M_KEY_SLOT )
-            {
-                errCode = BERR_TRACE( BHSM_STATUS_INPUT_PARM_ERR );
-                goto BHSM_P_DONE_LABEL;
-            }
-
-            pM2MKeySlotAlgorithm = &(hHsm->aunM2MKeySlotInfo[unKeySlotNum].aKeySlotAlgorithm[pGrk->keyDestEntryType]);
-            pAskmData       = &(hHsm->aunM2MKeySlotInfo[unKeySlotNum].askmData[pGrk->keyDestEntryType]);
-
-            if( (pGrk->bIsRouteKeyRequired == true) && (pM2MKeySlotAlgorithm->configured == false) )
-            {
-                errCode = BERR_TRACE( BHSM_STATUS_UNCONFIGURED_KEYSLOT_ERR );
-                goto BHSM_P_DONE_LABEL;
-            }
-            break;
-          #endif
-
-        case BCMD_KeyDestBlockType_eCA :
-        case BCMD_KeyDestBlockType_eCPDescrambler :
-        case BCMD_KeyDestBlockType_eCPScrambler :
-
-            if( ( errCode =  BHSM_P_GetKeySlot( hHsm,
-                                               &pKeyslot,
-                                                pGrk->caKeySlotType,
-                                                pGrk->unKeySlotNum ) ) != BERR_SUCCESS )
-            {
-                errCode = BERR_TRACE( BHSM_STATUS_UNCONFIGURED_KEYSLOT_ERR );
-                goto BHSM_P_DONE_LABEL;
-            }
-
-            pXPTKeySlotAlgorithm = &(pKeyslot->aKeySlotAlgorithm[pGrk->keyDestEntryType]);
-            pAskmData            = &(pKeyslot->askmData[pGrk->keyDestEntryType]);
-
-            BDBG_ASSERT( pKeyslot );
-            BDBG_ASSERT( pXPTKeySlotAlgorithm );
-            BDBG_ASSERT( pAskmData );
-
-            if( pGrk->bIsRouteKeyRequired == true )
-            {
-                BHSM_P_CHECK_ERR_CODE_CONDITION( errCode, BHSM_STATUS_UNCONFIGURED_KEYSLOT_ERR, !(pXPTKeySlotAlgorithm->configured));
-            }
-#if HSM_IS_ASKM_28NM_ZEUS_4_0
-            /* let's modify the keyDestBlockType setting for M2M DMA  -- Zeus 4.0 */
-            if( pGrk->keyDestBlckType == BCMD_KeyDestBlockType_eMem2Mem )
-            {
-                if (pKeyslot->bDescrambling)
+                /* Parameter checking on unKeySlotNum */
+               #if BHSM_ZEUS_VERSION < BHSM_ZEUS_VERSION_CALC(4,0)
+                if( unKeySlotNum >= BCMD_MAX_M2M_KEY_SLOT )
                 {
-                    pGrk->keyDestBlckType = BCMD_KeyDestBlockType_eCPDescrambler;
+                    errCode = BERR_TRACE( BHSM_STATUS_INPUT_PARM_ERR );
+                    goto BHSM_P_DONE_LABEL;
                 }
-                else
+
+                pM2MKeySlotAlgorithm = &(hHsm->aunM2MKeySlotInfo[unKeySlotNum].aKeySlotAlgorithm[pGrk->keyDestEntryType]);
+                pAskmData       = &(hHsm->aunM2MKeySlotInfo[unKeySlotNum].askmData[pGrk->keyDestEntryType]);
+
+                if( (pGrk->bIsRouteKeyRequired == true) && (pM2MKeySlotAlgorithm->configured == false) )
                 {
-                    pGrk->keyDestBlckType = BCMD_KeyDestBlockType_eCPScrambler;
+                    errCode = BERR_TRACE( BHSM_STATUS_UNCONFIGURED_KEYSLOT_ERR );
+                    goto BHSM_P_DONE_LABEL;
                 }
-            }
-#endif
-            break;
+                break;
+              #endif
 
-        default :
-            /* no checking for other types; no key slot associated */
-            break;
-    }
+            case BCMD_KeyDestBlockType_eCA :
+            case BCMD_KeyDestBlockType_eCPDescrambler :
+            case BCMD_KeyDestBlockType_eCPScrambler :
 
-    BDBG_MSG(("GRK keySlot[%d] type[%d] dest[%d] ASKM[%d]", unKeySlotNum \
+                if( ( errCode =  BHSM_P_GetKeySlot( hHsm,
+                                                   &pKeyslot,
+                                                    pGrk->caKeySlotType,
+                                                    pGrk->unKeySlotNum ) ) != BERR_SUCCESS )
+                {
+                    errCode = BERR_TRACE( BHSM_STATUS_UNCONFIGURED_KEYSLOT_ERR );
+                    goto BHSM_P_DONE_LABEL;
+                }
+
+                pXPTKeySlotAlgorithm = &(pKeyslot->aKeySlotAlgorithm[pGrk->keyDestEntryType]);
+                pAskmData            = &(pKeyslot->askmData[pGrk->keyDestEntryType]);
+
+                BDBG_ASSERT( pKeyslot );
+                BDBG_ASSERT( pXPTKeySlotAlgorithm );
+                BDBG_ASSERT( pAskmData );
+
+                if( pGrk->bIsRouteKeyRequired == true )
+                {
+                    BHSM_P_CHECK_ERR_CODE_CONDITION( errCode, BHSM_STATUS_UNCONFIGURED_KEYSLOT_ERR, !(pXPTKeySlotAlgorithm->configured));
+                }
+               #if HSM_IS_ASKM_28NM_ZEUS_4_0
+                /* let's modify the keyDestBlockType setting for M2M DMA  -- Zeus 4.0 */
+                if( pGrk->keyDestBlckType == BCMD_KeyDestBlockType_eMem2Mem )
+                {
+                    if (pKeyslot->bDescrambling)
+                    {
+                        pGrk->keyDestBlckType = BCMD_KeyDestBlockType_eCPDescrambler;
+                    }
+                    else
+                    {
+                        pGrk->keyDestBlckType = BCMD_KeyDestBlockType_eCPScrambler;
+                    }
+                }
+               #endif
+                break;
+
+            default :
+                /* no checking for other types; no key slot associated */
+                break;
+        }
+
+        BDBG_MSG(("GRK keySlot[%d] type[%d] dest[%d] ASKM[%d]", unKeySlotNum \
                                                             , pGrk->keyDestEntryType \
                                                             , pGrk->keyDestBlckType \
                                                             , pGrk->bASKMModeEnabled ));
+    }
 
     BHSM_BspMsg_Pack8( hMsg, BCMD_GenKey_InCmd_eRootKeySrc, pGrk->rootKeySrc );
     BHSM_BspMsg_Pack8( hMsg, BCMD_GenKey_InCmd_eCustomerSel, pGrk->customerSubMode );
@@ -497,11 +499,14 @@ BERR_Code BHSM_GenerateRouteKey(
     #endif
 
     BHSM_BspMsg_Pack8( hMsg, BCMD_GenKey_InCmd_eKeyLayer, pGrk->keyLayer );
-   #if ( ( BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(3,0) ) || BHSM_SECURE_KEY_TWEAK_MK )
+   #if ( ( BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(2,0) ) || BHSM_SECURE_KEY_TWEAK_MK )
+    #if ( ( BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(3,0) ) || BHSM_SECURE_KEY_TWEAK_MK )
     if ( pGrk->customerSubMode == BCMD_CustomerSubMode_eSCTE52_CA_5 ) {
         pGrk->keyTweak = BHSM_KeyTweak_eDSK;
     }
+    #endif
     BHSM_BspMsg_Pack8( hMsg, BCMD_GenKey_InCmd_eKeyTweak, pGrk->keyTweak );
+
    #elif ( BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(1,0) )
     BHSM_BspMsg_Pack8( hMsg, BCMD_GenKey_InCmd_eKeyTweak, pGrk->key3Op ); /* BCMD_GenKey_InCmd_eKey3Operation deprecated from Zeus2,1 */
    #else
@@ -527,12 +532,6 @@ BERR_Code BHSM_GenerateRouteKey(
     BHSM_BspMsg_Pack8( hMsg, BCMD_GenKey_InCmd_eIVType, pGrk->keyDestIVType );
     BHSM_BspMsg_Pack8( hMsg, BCMD_GenKey_InCmd_eKeySlotType, pGrk->caKeySlotType );
 
-
-    /* if dest block is HDMI, do the port emun - HDMI serializer address conversion */
-    if (pGrk->keyDestBlckType == BCMD_KeyDestBlockType_eHdmi)
-    {
-        /* */
-    }
     BHSM_BspMsg_Pack8( hMsg, BCMD_GenKey_InCmd_eKeySlotNumber, pGrk->unKeySlotNum );
 #if HSM_IS_ASKM_40NM_ZEUS_3_0
     BHSM_BspMsg_Pack8( hMsg, BCMD_GenKey_InCmd_eSC01ModeWordMapping, (pGrk->SC01ModeMapping & 0xFF) );
@@ -543,11 +542,12 @@ BERR_Code BHSM_GenerateRouteKey(
 #endif
     BHSM_BspMsg_Pack8( hMsg, BCMD_GenKey_InCmd_eKeyMode, pGrk->keyMode );
 
-    if ((pGrk->keyDestBlckType == BCMD_KeyDestBlockType_eCA)            ||
-        (pGrk->keyDestBlckType == BCMD_KeyDestBlockType_eCPDescrambler) ||
-        (pGrk->keyDestBlckType == BCMD_KeyDestBlockType_eCPScrambler)     )
+    if ( pXPTKeySlotAlgorithm &&
+        ( (pGrk->keyDestBlckType == BCMD_KeyDestBlockType_eCA)            ||
+          (pGrk->keyDestBlckType == BCMD_KeyDestBlockType_eCPDescrambler) ||
+          (pGrk->keyDestBlckType == BCMD_KeyDestBlockType_eCPScrambler)   )  )
     {
-#if HSM_IS_ASKM_28NM_ZEUS_4_1
+       #if HSM_IS_ASKM_28NM_ZEUS_4_1
         BHSM_BspMsg_Pack32( hMsg, BCMD_GenKey_InCmd_eCtrlWord0, pKeyslot->ulGlobalControlWordHi );
         BHSM_BspMsg_Pack32( hMsg, BCMD_GenKey_InCmd_eCtrlWord1, pKeyslot->ulGlobalControlWordLo );
 
@@ -569,18 +569,18 @@ BERR_Code BHSM_GenerateRouteKey(
 
         BHSM_BspMsg_Pack32( hMsg, BCMD_GenKey_InCmd_eCtrlWord2, cntrlWordHi );
         BHSM_BspMsg_Pack32( hMsg, BCMD_GenKey_InCmd_eCtrlWord3, cntrlWordLo );
-#else
+       #else
         BHSM_BspMsg_Pack32( hMsg, BCMD_GenKey_InCmd_eCtrlWord0, pXPTKeySlotAlgorithm->ulCAControlWordHi );
         BHSM_BspMsg_Pack32( hMsg, BCMD_GenKey_InCmd_eCtrlWord1, pXPTKeySlotAlgorithm->ulCAControlWordLo );
         BHSM_BspMsg_Pack32( hMsg, BCMD_GenKey_InCmd_eCtrlWord2, pXPTKeySlotAlgorithm->ulCPSControlWordHi );
         BHSM_BspMsg_Pack32( hMsg, BCMD_GenKey_InCmd_eCtrlWord3, pXPTKeySlotAlgorithm->ulCPSControlWordLo );
         BHSM_BspMsg_Pack32( hMsg, BCMD_GenKey_InCmd_eCtrlWord4, pXPTKeySlotAlgorithm->ulCPDControlWordHi );
         BHSM_BspMsg_Pack32( hMsg, BCMD_GenKey_InCmd_eCtrlWord5, pXPTKeySlotAlgorithm->ulCPDControlWordLo );
-#endif
+       #endif
     }
 
 #if !HSM_IS_ASKM_28NM_ZEUS_4_0
-    else if (pGrk->keyDestBlckType == BCMD_KeyDestBlockType_eMem2Mem)
+    else if ( pM2MKeySlotAlgorithm && pGrk->keyDestBlckType == BCMD_KeyDestBlockType_eMem2Mem )
     {
         BHSM_BspMsg_Pack32( hMsg, BCMD_GenKey_InCmd_eCtrlWord0, pM2MKeySlotAlgorithm->ulM2MControlWordHi );
         BHSM_BspMsg_Pack32( hMsg, BCMD_GenKey_InCmd_eCtrlWord1, pM2MKeySlotAlgorithm->ulM2MControlWordLo );
@@ -596,18 +596,29 @@ BERR_Code BHSM_GenerateRouteKey(
     if (pGrk->bASKMModeEnabled)
 #endif
     {
-        #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(3,0)
-        if( pGrk->sageAskmConfigurationEnable == true )
+        if( pGrk->sageAskmConfigurationEnable || pGrk->askm.configurationEnable )
         {
-            BHSM_BspMsg_Pack8( hMsg, BCMD_GenKey_InCmd_eSTBOwnerIDSel, pGrk->sageSTBOwnerID );
-            BHSM_BspMsg_Pack16( hMsg, BCMD_GenKey_InCmd_eCAVendorID, pGrk->sageCAVendorID );
-            BHSM_BspMsg_Pack8( hMsg, BCMD_GenKey_InCmd_eModuleID, pGrk->sageModuleID );
-            BHSM_BspMsg_Pack8( hMsg, BCMD_GenKey_InCmd_eTestKeySel, pGrk->sageMaskKeySelect );
+            if( pGrk->sageAskmConfigurationEnable ) /*DEPRECATED, to be removed.*/
+            {
+                BHSM_BspMsg_Pack8( hMsg, BCMD_GenKey_InCmd_eSTBOwnerIDSel, pGrk->sageSTBOwnerID );
+                BHSM_BspMsg_Pack16( hMsg, BCMD_GenKey_InCmd_eCAVendorID, pGrk->sageCAVendorID );
+                BHSM_BspMsg_Pack8( hMsg, BCMD_GenKey_InCmd_eModuleID, pGrk->sageModuleID );
+                BHSM_BspMsg_Pack8( hMsg, BCMD_GenKey_InCmd_eTestKeySel, pGrk->sageMaskKeySelect );
+            }
+            else if( pGrk->askm.configurationEnable  )
+            {
+                BHSM_BspMsg_Pack8( hMsg, BCMD_GenKey_InCmd_eSTBOwnerIDSel, pGrk->askm.stbOwnerId );
+                BHSM_BspMsg_Pack16( hMsg, BCMD_GenKey_InCmd_eCAVendorID, pGrk->askm.caVendorId );
+               #if BHSM_BUILD_HSM_FOR_SAGE /* if  we're on SAGE */
+                BHSM_BspMsg_Pack8( hMsg, BCMD_GenKey_InCmd_eCAVendorIDExtension, pGrk->askm.caVendorIdExtension );
+               #endif
+                BHSM_BspMsg_Pack8( hMsg, BCMD_GenKey_InCmd_eModuleID, pGrk->askm.moduleId );
+                BHSM_BspMsg_Pack8( hMsg, BCMD_GenKey_InCmd_eTestKeySel, pGrk->askm.maskKeySelect );
+            }
         }
         else
-        #endif
         {
-            if( pAskmData != NULL )
+            if( pAskmData  )
             {
                 BHSM_BspMsg_Pack8( hMsg, BCMD_GenKey_InCmd_eSTBOwnerIDSel, pAskmData->ulSTBOwnerIDSelect );
                 BHSM_BspMsg_Pack16( hMsg, BCMD_GenKey_InCmd_eCAVendorID, pAskmData->ulCAVendorID );
@@ -631,10 +642,11 @@ BERR_Code BHSM_GenerateRouteKey(
                            BHSM_KL_ACTCODE_LEN );
 
     #if HSM_IS_ASKM_28NM_ZEUS_4_0
-    if ((pGrk->keyDestBlckType == BCMD_KeyDestBlockType_eCA)
-        || (pGrk->keyDestBlckType == BCMD_KeyDestBlockType_eCPDescrambler)
-        || (pGrk->keyDestBlckType == BCMD_KeyDestBlockType_eCPScrambler)
-        || (pGrk->keyDestBlckType == BCMD_KeyDestBlockType_eMem2Mem) )
+    if ( pXPTKeySlotAlgorithm &&
+         ((pGrk->keyDestBlckType == BCMD_KeyDestBlockType_eCA)            ||
+          (pGrk->keyDestBlckType == BCMD_KeyDestBlockType_eCPDescrambler) ||
+          (pGrk->keyDestBlckType == BCMD_KeyDestBlockType_eCPScrambler)   ||
+          (pGrk->keyDestBlckType == BCMD_KeyDestBlockType_eMem2Mem) ) )
     {
         if( pXPTKeySlotAlgorithm->externalKeySlot.valid )    /* Set external Key Slot parameters.  */
         {
@@ -726,7 +738,6 @@ BERR_Code  BHSM_GenerateGlobalKey( BHSM_Handle hHsm, BHSM_GenerateGlobalKey_t *p
     }
 
     BHSM_BspMsg_GetDefaultHeader( &header );
-    header.hChannel = hHsm->channelHandles[BSP_CmdInterface];
     header.commandLength = 208+(4*5);
     BHSM_BspMsg_Header( hMsg, BCMD_cmdType_eSESSION_GENERATE_ROUTE_KEY, &header );
 
@@ -815,7 +826,6 @@ BERR_Code  BHSM_LoadVklOwnershipFromBsp ( BHSM_Handle hHsm )
     }
 
     BHSM_BspMsg_GetDefaultHeader( &header );
-    header.hChannel = hHsm->channelHandles[BSP_CmdInterface];
     BHSM_BspMsg_Header( hMsg, BCMD_cmdType_eSESSION_GENERATE_ROUTE_KEY, &header );
 
     BHSM_BspMsg_Pack8( hMsg, BCMD_GenKey_InCmd_eVKLAssociationQuery, BCMD_VKLAssociationQueryFlag_eQuery );
@@ -932,7 +942,6 @@ BERR_Code BHSM_ProcOutCmd (
     }
 
     BHSM_BspMsg_GetDefaultHeader( &header );
-    header.hChannel = hHsm->channelHandles[BSP_CmdInterface];
     BHSM_BspMsg_Header( hMsg, BCMD_cmdType_eSESSION_PROC_OUT_CMD, &header );
 
     BHSM_BspMsg_Pack8( hMsg, BCMD_ProcOut_InCmd_eVKLID, BHSM_RemapVklId( pProcOutCmd->virtualKeyLadderID ));
@@ -1145,7 +1154,6 @@ BERR_Code BHSM_KladChallenge (
     }
 
     BHSM_BspMsg_GetDefaultHeader(&header);
-    header.hChannel = hHsm->channelHandles[BSP_CmdInterface];
     BHSM_BspMsg_Header(hMsg, BCMD_cmdType_eKLADChallengeCmd, &header);
     header.continualMode = CONT_MODE_ALL_DATA;
 
@@ -1219,7 +1227,6 @@ BERR_Code BHSM_KladResponse (
     }
 
     BHSM_BspMsg_GetDefaultHeader(&header);
-    header.hChannel = hHsm->channelHandles[BSP_CmdInterface];
     BHSM_BspMsg_Header(hMsg, BCMD_cmdType_eKLADResponseCmd, &header);
     header.continualMode = CONT_MODE_ALL_DATA;
 

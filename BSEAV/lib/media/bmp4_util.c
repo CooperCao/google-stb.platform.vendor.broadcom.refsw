@@ -575,40 +575,13 @@ b_mp4_parse_sample_mp4v(batom_cursor *cursor, bmp4_sample_mp4v *mp4v)
 	return false;
 }
 
-static bool 
+static bool
 b_mp4_parse_sample_s263(batom_cursor *cursor, bmp4_sample_s263 *s263)
 {
-	if(bmp4_parse_visualsampleentry(cursor, &s263->visual)) {
-		bmp4_box box;	
-
-		if(!bmp4_parse_box(cursor, &box)) {
-			return false;
-		}
-		if(box.type!=BMP4_TYPE('d','2','6','3')) {
-			return false;
-		}
-
-		s263->decspecinfo.vendor = batom_cursor_uint32_be(cursor);
-		s263->decspecinfo.decoder_version = batom_cursor_byte(cursor);
-		s263->decspecinfo.h263_level = batom_cursor_byte(cursor);
-		s263->decspecinfo.h263_profile = batom_cursor_byte(cursor);
-
-		if(cursor->left) {
-			if(!bmp4_parse_box(cursor, &box)) {
-				return false;
-			}
-			if(box.type!=BMP4_TYPE('b','i','t','r')) {
-				return false;
-			}
-			
-			s263->decspecinfo.decbitrate.avg_bitrate = batom_cursor_uint32_be(cursor);
-			s263->decspecinfo.decbitrate.max_bitrate = batom_cursor_uint32_be(cursor);
-		}
-		
-		return true;
-	}
-
-	return false;
+    if(bmp4_parse_visualsampleentry(cursor, &s263->visual)) {
+        return true;
+    }
+    return false;
 }
 
 static bool 
@@ -902,6 +875,7 @@ bmp4_parse_sample_info(batom_t box, bmp4_sample_info *sample, uint32_t handler_t
                 BDBG_MSG(("bmp4_parse_sample: MPEG4-Part2 video"));
                 type = bmp4_sample_type_mp4v;
                 break;
+            case BMP4_SAMPLE_H263:
             case BMP4_SAMPLE_S263:
                 BDBG_MSG(("bmp4_parse_sample: H.263 video"));
                 type = bmp4_sample_type_s263;
@@ -969,6 +943,10 @@ bmp4_parse_sample_info(batom_t box, bmp4_sample_info *sample, uint32_t handler_t
                case BMP4_SAMPLE_DTSE:
                 BDBG_MSG(("bmp4_parse_sample: DTS audio " B_MP4_TYPE_FORMAT, B_MP4_TYPE_ARG(entry_box.type)));
                 type = bmp4_sample_type_dts;
+                break;
+            case BMP4_SAMPLE_MP3:
+                BDBG_MSG(("bmp4_parse_sample: MP3 audio"));
+                type = bmp4_sample_type_mp3;
                 break;
             default:
                 break;
@@ -1069,6 +1047,11 @@ bmp4_parse_sample_info(batom_t box, bmp4_sample_info *sample, uint32_t handler_t
             break;
         case bmp4_sample_type_hevc:
             if(!b_mp4_parse_sample_hevc(&cursor, &entry->codec.hevc, &entry->codecprivate)) {
+                entry->sample_type = bmp4_sample_type_unknown;
+            }
+            break;
+        case bmp4_sample_type_mp3:
+            if(!bmp4_parse_audiosampleentry(&cursor, &entry->codec.mp3.audio)) {
                 entry->sample_type = bmp4_sample_type_unknown;
             }
             break;

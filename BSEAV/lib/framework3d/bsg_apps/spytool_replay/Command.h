@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2012 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2012 Broadcom.
 All rights reserved.
 
 Project  :  PPP
@@ -21,8 +21,8 @@ DESC
 #include "interface/khronos/common/khrn_api_command_ids.h"
 #endif
 
-#include "GLES2/gl2.h"
-#include "EGL/egl.h"
+#include <GLES2/gl2.h>
+#include <EGL/egl.h>
 
 #include <map>
 #include <string>
@@ -170,6 +170,7 @@ public:
    DECL_SPECIAL(glScissor)
    DECL_SPECIAL(glShaderBinary)
    DECL_SPECIAL(glShaderSource)
+   DECL_SPECIAL(glLinkProgram)
    DECL_SPECIAL(glTexCoordPointer)
    DECL_SPECIAL(glTexImage2D)
    DECL_SPECIAL(glTexSubImage2D)

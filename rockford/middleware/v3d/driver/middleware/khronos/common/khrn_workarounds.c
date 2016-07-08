@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2012 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2012 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -62,6 +62,9 @@ void khrn_init_workarounds(void)
 
 KHAPI void khrn_fake_workarounds(uint32_t techRev, uint32_t rev, uint32_t tusPerSlice)
 {
+   UNUSED(techRev);
+   UNUSED(rev);
+   UNUSED(tusPerSlice);
 #ifdef BCG_SIM_BUILD
    // Only allowed to fake up workarounds on the simulator
    set_workarounds(techRev, rev, tusPerSlice);

@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -11,7 +11,7 @@
  * Software and all intellectual property rights therein.  IF YOU HAVE NO
  * AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
  * AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
- * SOFTWARE.  
+ * SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
@@ -100,10 +100,10 @@ public:
       else
 #ifdef GL_EXT_multisampled_render_to_texture
       {
-         if (s_glRenderbufferStorageMultisampleEXT == nullptr)
+         if (s_glRenderbufferStorageMultisampleEXT == NULL)
             s_glRenderbufferStorageMultisampleEXT = (PFNGLRENDERBUFFERSTORAGEMULTISAMPLEEXTPROC)eglGetProcAddress("glRenderbufferStorageMultisampleEXT");
 
-         if (s_glRenderbufferStorageMultisampleEXT != nullptr)
+         if (s_glRenderbufferStorageMultisampleEXT != NULL)
             s_glRenderbufferStorageMultisampleEXT(GL_RENDERBUFFER, samples, internalFormat, width, height);
          else
             BSG_THROW("Function glRenderbufferStorageMultisampleEXT not found");
@@ -360,10 +360,10 @@ public:
 #ifdef BSG_USE_ES3
       return true;
 #else
-      if (s_discardFrameBuffer == nullptr)
+      if (s_discardFrameBuffer == NULL)
          s_discardFrameBuffer = (PFNGLDISCARDFRAMEBUFFEREXTPROC)eglGetProcAddress("glDiscardFramebufferEXT");
 
-      return s_discardFrameBuffer != nullptr;
+      return s_discardFrameBuffer != NULL;
 #endif
 #else
       return false;

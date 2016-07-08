@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2006-2015 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description: wrapper module for NAV indexer
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  *************************************************************/
 #define _FILE_OFFSET_BITS 64
@@ -342,7 +334,7 @@ int nav_indexer_next(void *context, index_entry_t *index)
     index->type = index2.type;
     /*printf("NAV %lld %lu\n",index->offset,index->size);*/
     if (navEntry.zeroByteCountBegin || navEntry.zeroByteCountEnd)
-        BDBG_MSG(("!!!!! zeroByteCountBegin %ul, zeroByteCountEnd %ul !!!!! ", navEntry.zeroByteCountBegin, navEntry.zeroByteCountEnd));
+        BDBG_MSG(("!!!!! zeroByteCountBegin %ul, zeroByteCountEnd %ul !!!!! ", (unsigned int)navEntry.zeroByteCountBegin, (unsigned int)navEntry.zeroByteCountEnd));
     return 0;
 }
 
@@ -352,7 +344,7 @@ void nav_indexer_setIndexByByteOffset(void *context, uint64_t byteOffset)
     long currentIndex;
 
     currentIndex = BNAV_Player_FindIndexFromOffset(h, (unsigned int)(byteOffset>>32), (unsigned int)(byteOffset));
-    BDBG_MSG(("%s: NAV: byteOffset %llu, current index =%ld \n", __FUNCTION__, byteOffset, currentIndex));
+    BDBG_MSG(("%s: NAV: byteOffset %"PRId64 ", current index =%ld \n", __FUNCTION__, byteOffset, currentIndex));
     BNAV_Player_SetCurrentIndex(h, currentIndex);
 }
 
@@ -520,7 +512,7 @@ int mpegSizeCallback(BNAV_Indexer_Handle handle, unsigned long *hi, unsigned lon
         return -1;
     *hi = o >> 32;
     *lo = o & 0xFFFFFFFF;
-    BDBG_MSG(("%s: offsets: hi %u, lo %u", hi, lo));
+    BDBG_MSG(("%s: offsets: hi %p, lo %p", __FUNCTION__, (void *)hi, (void *)lo));
     return 0;
 }
 
@@ -658,7 +650,7 @@ B_Error updateTargetDurationInHlsMediaPlaylist(FILE *mediaPlaylistFp, unsigned l
 
     playlistBuffer = BKNI_Malloc( playlistBufferSize );
     PBIP_CHECK_GOTO((playlistBuffer), ( "BKNI_Malloc Failed" ), error, B_ERROR_UNKNOWN, rc );
-    BDBG_MSG(("%s: mediaPlaylistFp %p, maxGopDuration %lu, playlistBuffer %p, playlistBufferSize %d", __FUNCTION__, mediaPlaylistFp, maxGopDuration, playlistBuffer, playlistBufferSize));
+    BDBG_MSG(("%s: mediaPlaylistFp %p, maxGopDuration %lu, playlistBuffer %p, playlistBufferSize %d", __FUNCTION__, (void *)mediaPlaylistFp, maxGopDuration, (void *)playlistBuffer, playlistBufferSize));
     fflush(mediaPlaylistFp);
     rewind(mediaPlaylistFp);
     BKNI_Memset(playlistBuffer, 0, playlistBufferSize);
@@ -990,7 +982,7 @@ int generateMpdPlaylist(
 
     rc = stat(mpdMasterPlaylistName, &st);
     if (rc == 0 /* success */ && st.st_size > 0) {
-        BDBG_MSG(("%s: %s exists of size %lld, returning", __FUNCTION__, mpdMasterPlaylistName, st.st_size));
+        BDBG_MSG(("%s: %s exists of size %"PRId64 ", returning", __FUNCTION__, mpdMasterPlaylistName, st.st_size));
         if (mediaFileName) BKNI_Free(mediaFileName);
         if (mpdMasterPlaylistName) BKNI_Free(mpdMasterPlaylistName);
         return B_ERROR_SUCCESS;
@@ -1031,7 +1023,7 @@ int generateHlsPlaylist(
 
     rc = stat(hlsMasterPlaylistName, &st);
     if (rc == 0 /* success */ && st.st_size > 0) {
-        BDBG_MSG(("%s: %s exists of size %lld, returning", __FUNCTION__, hlsMasterPlaylistName, st.st_size));
+        BDBG_MSG(("%s: %s exists of size %"PRId64 ", returning", __FUNCTION__, hlsMasterPlaylistName, st.st_size));
         if (mediaFileName) BKNI_Free(mediaFileName);
         if (hlsMasterPlaylistName) BKNI_Free(hlsMasterPlaylistName);
         return B_ERROR_SUCCESS;
@@ -1119,7 +1111,7 @@ int generateHlsPlaylistUsingBcmPlayer(
     int tmpPlaylistBufferSize;
     struct stat st;
 
-    BDBG_MSG(("%s: hBcmPlayer %p, mediaFileName %s", __FUNCTION__, hBcmPlayer, mediaFileName));
+    BDBG_MSG(("%s: hBcmPlayer %p, mediaFileName %s", __FUNCTION__, (void *)hBcmPlayer, mediaFileName));
     PBIP_CHECK_GOTO((hBcmPlayer), ( "NULL NAV file handle" ), error, B_ERROR_UNKNOWN, rc );
 
     mediaFileName = extractMediaFileName( mediaFileNameFull );
@@ -1130,7 +1122,7 @@ int generateHlsPlaylistUsingBcmPlayer(
 
     rc = stat(hlsMasterPlaylistName, &st);
     if (rc == 0 /* success */ && st.st_size > 0) {
-        BDBG_MSG(("%s: %s exists of size %lld, returning", __FUNCTION__, hlsMasterPlaylistName, st.st_size));
+        BDBG_MSG(("%s: %s exists of size %"PRId64 ", returning", __FUNCTION__, hlsMasterPlaylistName, st.st_size));
         return B_ERROR_SUCCESS;
     }
 
@@ -1191,7 +1183,7 @@ int generateHlsPlaylistUsingBcmPlayer(
             if (gopDuration < HLS_SEGMENT_DURATION)
             {
                 /* this GOP doesn't meet the GOP duration, continue to check the next one! */
-                BDBG_MSG(("%s: gop duration [%lu] msec doesn't yet meet HSL Segment duration %d: start[%ld]@pts=%08x, end[%ld] pts=%08x", __FUNCTION__, gopDuration, HLS_SEGMENT_DURATION*1000, segmentStartRapPosition.index, segmentStartRapPosition.pts, currentRapIndex, segmentEndRapPosition.pts));
+                BDBG_MSG(("%s: gop duration [%lu] msec doesn't yet meet HSL Segment duration %d: start[%ld]@pts=%08x, end[%ld] pts=%08x", __FUNCTION__, gopDuration, HLS_SEGMENT_DURATION*1000, segmentStartRapPosition.index, (unsigned int)segmentStartRapPosition.pts, currentRapIndex, (unsigned int)segmentEndRapPosition.pts));
                 continue;
             }
             else {
@@ -1200,7 +1192,7 @@ int generateHlsPlaylistUsingBcmPlayer(
 #if 1
                 if (gopDuration > HLS_TARGET_DURATION && gopDuration > 5000) /* if GOP is larger than 5 sec, it most likely is a discontinutity. This needs more thinking, for now set it to max of 9sec */
                 {
-                    BDBG_MSG(("%s: !! Discontinuity: hlsSegmentNumber %u, gop duration [%lu] msec, start[%ld]@pts=%08x, end[%ld] pts=%08x", __FUNCTION__, hlsSegmentNumber, gopDuration, segmentStartRapPosition.index, segmentStartRapPosition.pts, currentRapIndex, segmentEndRapPosition.pts));
+                    BDBG_MSG(("%s: !! Discontinuity: hlsSegmentNumber %u, gop duration [%lu] msec, start[%ld]@pts=%08x, end[%ld] pts=%08x", __FUNCTION__, hlsSegmentNumber, gopDuration, segmentStartRapPosition.index, (unsigned int)segmentStartRapPosition.pts, currentRapIndex, (unsigned int)segmentEndRapPosition.pts));
                     gopDuration = 5000;
                 }
 #endif
@@ -1210,7 +1202,7 @@ int generateHlsPlaylistUsingBcmPlayer(
                 }
                 if (gopDuration > maxGopDuration)
                     maxGopDuration = gopDuration;
-                BDBG_MSG(("%s: hlsSegmentNumber %u, gop duration:max %lu:%lu msec, start[%ld]@pts=%08x, end[%ld] pts=%08x", __FUNCTION__, hlsSegmentNumber, gopDuration, maxGopDuration, segmentStartRapPosition.index, segmentStartRapPosition.pts, currentRapIndex, segmentEndRapPosition.pts));
+                BDBG_MSG(("%s: hlsSegmentNumber %u, gop duration:max %lu:%lu msec, start[%ld]@pts=%08x, end[%ld] pts=%08x", __FUNCTION__, hlsSegmentNumber, gopDuration, maxGopDuration, segmentStartRapPosition.index, (unsigned int)segmentStartRapPosition.pts, currentRapIndex, (unsigned int)segmentEndRapPosition.pts));
                 hlsSegmentNumber++;
                 totalGopDuration += gopDuration;
                 segmentStartRapPosition = segmentEndRapPosition;
@@ -1226,7 +1218,7 @@ int generateHlsPlaylistUsingBcmPlayer(
             PBIP_CHECK_GOTO((rc==B_ERROR_SUCCESS), ("BNAV_Player_GetPositionInformation Failed" ), error, B_ERROR_UNKNOWN, rc );
             firstTime = false;
             hlsSegmentNumber = 0;
-            BDBG_MSG(("%s ##### first idx %d, pts %ul, timestamp %ul",  __FUNCTION__, currentRapIndex, segmentStartRapPosition.pts, segmentStartRapPosition.timestamp));
+            BDBG_MSG(("%s ##### first idx %d, pts %ul, timestamp %ul",  __FUNCTION__, (int)currentRapIndex, (unsigned int)segmentStartRapPosition.pts, (unsigned int)segmentStartRapPosition.timestamp));
         }
     } while (true);
 
@@ -1299,7 +1291,7 @@ int nav_indexer_create(
     numBytesToRead = psi->transportTimeStampEnabled ? (192*1024) : (188*1024);
     readBuf = BKNI_Malloc(numBytesToRead);
     if (!readBuf) {
-        BDBG_ERR(("%s: memory allocation failure for %d bytes", __FUNCTION__, numBytesToRead));
+        BDBG_ERR(("%s: memory allocation failure for %d bytes", __FUNCTION__, (int)numBytesToRead));
         goto error;
     }
     BDBG_WRN(("Creating NAV index (%s) for video codec %d, pid %d, container format %d, TTS %d, frame rate %d",

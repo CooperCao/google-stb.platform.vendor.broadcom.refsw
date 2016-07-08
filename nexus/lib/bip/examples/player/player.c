@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2016 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,19 +34,7 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *  Example program to demonstrate receiving live or playback content over IP Channels (UDP/RTP/RTSP/HTTP based)
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
- ******************************************************************************/
+ *****************************************************************************/
 #if NXCLIENT_SUPPORT
 #include "nxclient.h"
 #include "nexus_platform_client.h"
@@ -275,7 +263,11 @@ int main(int argc, char *argv[])
             BIP_Player_GetDefaultConnectSettings(&settings);
             settings.pUserAgent = "BIP Player Example";
             /* Pass-in an additional header to request the seekable range from the server. Some servers use it for indicating duration for both time-shifted & DVR streams. */
+#if 1
             settings.pAdditionalHeaders = "getAvailableSeekRange.dlna.org:1\r\n";
+#else
+            settings.pAdditionalHeaders = "getAvailableSeekRange.dlna.org:1\r\nPlaySpeed.dlna.org: speed=8\r\n";
+#endif
             if (pAppCtx->enableTimeshifting) settings.dataAvailabilityModel = BIP_PlayerDataAvailabilityModel_eLimitedRandomAccess;
             bipStatus = BIP_Player_Connect( hPlayer, BIP_String_GetString(pAppCtx->hUrl), &settings );
             BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "BIP_Player_Connect Failed to Connect to URL=%s", BIP_String_GetString(pAppCtx->hUrl) ), error, bipStatus, bipStatus );
@@ -295,6 +287,8 @@ int main(int argc, char *argv[])
             bipStatus = BIP_Player_GetProbedStreamInfo(pAppCtx->hPlayer, &pAppCtx->playerStreamInfo);
             BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "BIP_Player_GetProbedStreamInfo Failed!"), error, bipStatus, bipStatus );
         }
+
+        BIP_MediaInfo_Print(pAppCtx->hMediaInfo);
 
         /* Prepare the BIP Player. */
         {
@@ -324,32 +318,32 @@ int main(int argc, char *argv[])
                }
 
 
-               if(!pAppCtx->disableAudio)
+               if (!pAppCtx->disableAudio)
                {
                    bool trackFound = false;
 
-                   if( BIP_String_GetLength(pAppCtx->hLanguage)>1 || pAppCtx->ac3ServiceType != UINT_MAX)
+                   if (BIP_String_GetLength(pAppCtx->hLanguage)>1 || pAppCtx->ac3ServiceType != BIP_MediaInfoAudioAc3Bsmod_eMax)
                    {
-                       trackFound = playerGetSpecialAudioTrackType(
-                            pAppCtx->hMediaInfo,
-                            &mediaInfoTrack,
-                            BIP_String_GetLength(pAppCtx->hLanguage)>1?BIP_String_GetString(pAppCtx->hLanguage):NULL,
-                            pAppCtx->ac3ServiceType
-                            );
+                       playerSettings.pPreferredAudioLanguage = BIP_String_GetString(pAppCtx->hLanguage);
+                       if (pAppCtx->ac3ServiceType != BIP_MediaInfoAudioAc3Bsmod_eMax)
+                       {
+                           playerSettings.ac3Descriptor.bsmod = pAppCtx->ac3ServiceType;
+                           playerSettings.ac3Descriptor.bsmodValid = true;
+                       }
                    }
                    else
                    {
                        trackFound = playerGetTrackOfType(pAppCtx->hMediaInfo, BIP_MediaInfoTrackType_eAudio, &mediaInfoTrack);
-                   }
-                   if ( trackFound)
-                   {
-                       playerSettings.audioTrackId = mediaInfoTrack.trackId;
-                       playerSettings.audioTrackSettings.pidSettings.pidTypeSettings.audio.codec = mediaInfoTrack.info.audio.codec;
-                       audioCodec = mediaInfoTrack.info.audio.codec;
-                   }
-                   else
-                   {
-                       BDBG_WRN((BIP_MSG_PRE_FMT "Not able to found any Audio track" BIP_MSG_PRE_ARG));
+                       if ( trackFound)
+                       {
+                           playerSettings.audioTrackId = mediaInfoTrack.trackId;
+                           playerSettings.audioTrackSettings.pidSettings.pidTypeSettings.audio.codec = mediaInfoTrack.info.audio.codec;
+                           audioCodec = mediaInfoTrack.info.audio.codec;
+                       }
+                       else
+                       {
+                           BDBG_WRN((BIP_MSG_PRE_FMT "Not able to found any Audio track" BIP_MSG_PRE_ARG));
+                       }
                    }
                }
 
@@ -388,7 +382,7 @@ int main(int argc, char *argv[])
                         connectSettings.simpleVideoDecoder[0].decoderCapabilities.maxHeight = pAppCtx->maxHeight = 2160;
                     }
                 }
-                if (!pAppCtx->disableAudio && audioCodec != NEXUS_AudioCodec_eUnknown)
+                if (!pAppCtx->disableAudio && (audioCodec != NEXUS_AudioCodec_eUnknown || BIP_String_GetLength(pAppCtx->hLanguage)>1 || pAppCtx->ac3ServiceType != BIP_MediaInfoAudioAc3Bsmod_eMax))
                 {
                     connectSettings.simpleAudioDecoder.id = allocResults.simpleAudioDecoder.id;
                 }
@@ -404,7 +398,7 @@ int main(int argc, char *argv[])
                     BIP_CHECK_GOTO(( hSimpleVideoDecoder ), ( "NEXUS_SimpleVideoDecoder_Acquire Failed" ), error, BIP_INF_NEXUS_RESOURCE_NOT_AVAILABLE, bipStatus );
                 }
 
-                if (!pAppCtx->disableAudio && audioCodec != NEXUS_AudioCodec_eUnknown)
+                if (!pAppCtx->disableAudio && (audioCodec != NEXUS_AudioCodec_eUnknown || BIP_String_GetLength(pAppCtx->hLanguage)>1 || pAppCtx->ac3ServiceType != BIP_MediaInfoAudioAc3Bsmod_eMax))
                 {
 
                     hSimpleAudioDecoder = NEXUS_SimpleAudioDecoder_Acquire(allocResults.simpleAudioDecoder.id);
@@ -424,7 +418,7 @@ int main(int argc, char *argv[])
 
 #else /* NXCLIENT_SUPPORT */
             /* Now set the player setting */
-            if (!pAppCtx->disableAudio && audioCodec != NEXUS_AudioCodec_eUnknown)
+            if (!pAppCtx->disableAudio && (audioCodec != NEXUS_AudioCodec_eUnknown || BIP_String_GetLength(pAppCtx->hLanguage)>1 || pAppCtx->ac3ServiceType != BIP_MediaInfoAudioAc3Bsmod_eMax))
             {
                 playerSettings.audioTrackSettings.pidTypeSettings.audio.primary = pcmDecoder;
             }
@@ -469,7 +463,9 @@ int main(int argc, char *argv[])
             BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "BIP_Player_Prepare Failed: URL=%s", BIP_String_GetString(pAppCtx->hUrl) ), error, bipStatus, bipStatus );
 
             audioPidChannel = prepareStatus.hAudioPidChannel;
+            audioCodec = prepareStatus.audioCodec;
             videoPidChannel = prepareStatus.hVideoPidChannel;
+            videoCodec = prepareStatus.videoCodec;
         }
 
         {
@@ -495,6 +491,7 @@ int main(int argc, char *argv[])
                 rc = NEXUS_SimpleVideoDecoder_Start(hSimpleVideoDecoder, &videoProgram);
                 BIP_CHECK_GOTO(( rc == NEXUS_SUCCESS ), ( "NEXUS_SimpleVideoDecoder_Start Failed" ), error, BIP_ERR_NEXUS, bipStatus );
                 startSettings.simpleVideoStartSettings = videoProgram;
+                BDBG_MSG(("Started Video Decoder..."));
             }
             /* Set up & start audio decoder. */
             if (!pAppCtx->disableAudio && audioPidChannel)
@@ -510,6 +507,7 @@ int main(int argc, char *argv[])
                 rc = NEXUS_SimpleAudioDecoder_Start(hSimpleAudioDecoder, &audioProgram);
                 BIP_CHECK_GOTO(( rc == NEXUS_SUCCESS ), ( "NEXUS_SimpleAudioDecoder_Start Failed" ), error, BIP_ERR_NEXUS, bipStatus );
                 startSettings.simpleAudioStartSettings = audioProgram;
+                BDBG_MSG(("Started Audio Decoder..."));
             }
         }
 #else /* NXCLIENT_SUPPORT */
@@ -589,6 +587,21 @@ int main(int argc, char *argv[])
         }
 #endif /* NXCLIENT_SUPPORT */
 
+#if NXCLIENT_SUPPORT
+        if (0)
+        {
+            NEXUS_VideoDecoderTrickState videoDecoderTrickSettings;
+            NEXUS_SimpleVideoDecoder_GetTrickState(hSimpleVideoDecoder, &videoDecoderTrickSettings);
+            videoDecoderTrickSettings.decodeMode = NEXUS_VideoDecoderDecodeMode_eI;
+            videoDecoderTrickSettings.tsmEnabled = NEXUS_TsmMode_eDisabled;
+            videoDecoderTrickSettings.hostTrickModesEnabled = true;
+            videoDecoderTrickSettings.tsmEnabled = NEXUS_TsmMode_eSimulated;
+            videoDecoderTrickSettings.stcTrickEnabled = false;
+            videoDecoderTrickSettings.rate = (atoi(getenv("speed"))*NEXUS_NORMAL_DECODE_RATE);
+            BDBG_WRN(("rate = %d", videoDecoderTrickSettings.rate));
+            BDBG_ASSERT(NEXUS_SimpleVideoDecoder_SetTrickState(hSimpleVideoDecoder, &videoDecoderTrickSettings) == NEXUS_SUCCESS);
+        }
+#endif
         /* NEXUS Setup is complete, now Prepare & start BIP_Player. */
         {
             startSettings.timePositionInMs = pAppCtx->initialPlaybackPositionInMs;
@@ -602,6 +615,12 @@ int main(int argc, char *argv[])
             BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS || bipStatus == BIP_INF_NOT_AVAILABLE), ( "BIP_Player_Play Failed: URL=%s", BIP_String_GetString(pAppCtx->hUrl) ), error, bipStatus, bipStatus );
             if (bipStatus == BIP_SUCCESS) BDBG_WRN(("Playback Resumed from startPaused!"));
             BIP_Player_PrintStatus(hPlayer);
+        }
+        if (pAppCtx->stressTrickModes)
+        {
+            BDBG_WRN(("Running trickmode stress test"));
+            bipStatus = stressTrickModes(pAppCtx);
+            BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "stressTrickModes Failed: URL=%s", BIP_String_GetString(pAppCtx->hUrl) ), error, bipStatus, bipStatus );
         }
         printf("player>\n");
         do
@@ -625,12 +644,12 @@ int main(int argc, char *argv[])
                 if ( cmdOptions.cmd == PlayerCmd_eRelativeSeekFwd)
                 {
                     cmdOptions.seekPositionInMs = playerStatus.currentPositionInMs + pAppCtx->jumpOffsetInMs;
-                    BDBG_WRN(("Starting Seek forward from currentPositionInMs=%d ms by offset=%d, seekedPosition=%d", playerStatus.currentPositionInMs, pAppCtx->jumpOffsetInMs, cmdOptions.seekPositionInMs));
+                    BDBG_WRN(("Starting Seek forward from currentPositionInMs=%lu ms by offset=%u, seekedPosition=%d", playerStatus.currentPositionInMs, pAppCtx->jumpOffsetInMs, cmdOptions.seekPositionInMs));
                 }
                 else
                 {
                     cmdOptions.seekPositionInMs = playerStatus.currentPositionInMs > pAppCtx->jumpOffsetInMs ?  playerStatus.currentPositionInMs - pAppCtx->jumpOffsetInMs : 0;
-                    BDBG_WRN(("Starting Seek backward from currentPositionInMs=%d ms by offset=%d, seekedPosition=%d", playerStatus.currentPositionInMs, pAppCtx->jumpOffsetInMs, cmdOptions.seekPositionInMs));
+                    BDBG_WRN(("Starting Seek backward from currentPositionInMs=%lu ms by offset=%u, seekedPosition=%d", playerStatus.currentPositionInMs, pAppCtx->jumpOffsetInMs, cmdOptions.seekPositionInMs));
                 }
                 bipStatus = BIP_Player_Seek(hPlayer, cmdOptions.seekPositionInMs);
                 BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS || bipStatus == BIP_INF_NOT_AVAILABLE), ( "BIP_Player_Seek Failed: URL=%s", BIP_String_GetString(pAppCtx->hUrl) ), error, bipStatus, bipStatus );
@@ -654,13 +673,75 @@ int main(int argc, char *argv[])
             }
             else if ( cmdOptions.cmd == PlayerCmd_ePlayAtRate)
             {
+                BIP_PlayerPlayAtRateSettings settings;
+
+                BIP_Player_GetDefaultPlayAtRateSettings(&settings);
                 BDBG_WRN(("Playing at Rate=%s", cmdOptions.playSpeed));
-                bipStatus = BIP_Player_PlayAtRateAsString(hPlayer, cmdOptions.playSpeed, NULL);
+                if (pAppCtx->usePlaypump)
+                {
+                    settings.playRateMethod = BIP_PlayerPlayRateMethod_eUsePlaySpeed; /* Note: this enables PBIP to I-frame based trickmodes, similar to server side trickmodes. */
+                }
+                bipStatus = BIP_Player_PlayAtRateAsString(hPlayer, cmdOptions.playSpeed, &settings);
                 BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS || bipStatus == BIP_INF_NOT_AVAILABLE), ( "BIP_Player_PlayAtRateAsString Failed: URL=%s", BIP_String_GetString(pAppCtx->hUrl) ), error, bipStatus, bipStatus );
                 if (bipStatus == BIP_SUCCESS) BDBG_WRN(("Started Playing at Rate=%s", cmdOptions.playSpeed));
                 BIP_Player_PrintStatus(hPlayer);
             }
-            else if ( pAppCtx->printStatus || cmdOptions.cmd == PlayerCmd_ePrintStatus)
+            else if(cmdOptions.cmd == PlayerCmd_ePlayAtRawRate)
+            {
+                BIP_PlayerPlayAtRateSettings settings;
+
+                BIP_Player_GetDefaultPlayAtRateSettings(&settings);
+                if (pAppCtx->usePlaypump)
+                {
+                    settings.playRateMethod = BIP_PlayerPlayRateMethod_eUsePlaySpeed;
+                }
+                bipStatus = BIP_Player_PlayAtRate(hPlayer, cmdOptions.rate, &settings);
+                BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS || bipStatus == BIP_INF_NOT_AVAILABLE), ( "BIP_Player_PlayAtRate Failed: URL=%s", BIP_String_GetString(pAppCtx->hUrl) ), error, bipStatus, bipStatus );
+                if (bipStatus == BIP_SUCCESS) BDBG_WRN(("Started Playing at Rate=%d", cmdOptions.rate));
+                BIP_Player_PrintStatus(hPlayer);
+            }
+            else if(cmdOptions.cmd == PlayerCmd_ePlayLanguageSpecificTrack)
+            {
+                 BIP_PlayerSettings          playerSettings;
+
+                 BIP_Player_GetSettings( hPlayer, &playerSettings );
+                 playerSettings.audioTrackId = UINT_MAX;
+                 playerSettings.pPreferredAudioLanguage = BIP_String_GetString(pAppCtx->hLanguage);
+                 bipStatus = BIP_Player_SetSettings( hPlayer, &playerSettings );
+                 BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "BIP_Player_SetSettings Failed: for language=%s", BIP_String_GetString(pAppCtx->hLanguage) ), error, bipStatus, bipStatus );
+            }
+            else if(cmdOptions.cmd == PlayerCmd_ePlayBsmodSpecificTrack)
+            {
+                 BIP_PlayerSettings          playerSettings;
+                 BIP_Player_GetSettings( hPlayer, &playerSettings );
+
+                 BDBG_MSG(("New ac3 service type bsmod=%d", pAppCtx->ac3ServiceType));
+                 BIP_Player_GetSettings( hPlayer, &playerSettings );
+                 playerSettings.audioTrackId = UINT_MAX;
+                 playerSettings.ac3Descriptor.bsmod = pAppCtx->ac3ServiceType;
+                 playerSettings.ac3Descriptor.bsmodValid = true;
+                 bipStatus = BIP_Player_SetSettings( hPlayer, &playerSettings );
+                 BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "BIP_Player_SetSettings Failed: for ac3 service type bsmod=%d", pAppCtx->ac3ServiceType ), error, bipStatus, bipStatus );
+            }
+            else if (cmdOptions.cmd == PlayerCmd_ePlayNewUrl)
+            {
+                BDBG_WRN(("Changing channel to %s", BIP_String_GetString(pAppCtx->hUrl)));
+            }
+            else if ( cmdOptions.cmd == PlayerCmd_eFrameAdvance || cmdOptions.cmd == PlayerCmd_eFrameReverse )
+            {
+                BDBG_WRN(("Calling Frame %s", cmdOptions.cmd == PlayerCmd_eFrameAdvance?"Advance":"Reverse" ));
+                bipStatus = BIP_Player_PlayByFrame(hPlayer, cmdOptions.cmd == PlayerCmd_eFrameAdvance? true : false );
+                BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "BIP_Player_PlayByFrame Failed: URL=%s", BIP_String_GetString(pAppCtx->hUrl) ), error, bipStatus, bipStatus );
+                if (bipStatus == BIP_SUCCESS) BDBG_WRN(("Played 1 frame!"));
+                BIP_Player_PrintStatus(hPlayer);
+            }
+            else if (cmdOptions.cmd == PlayerCmd_eStressTrickModes)
+            {
+                BDBG_WRN(("Running trickmode stress test"));
+                bipStatus = stressTrickModes(pAppCtx);
+                BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "stressTrickModes Failed: URL=%s", BIP_String_GetString(pAppCtx->hUrl) ), error, bipStatus, bipStatus );
+            }
+            if ( pAppCtx->printStatus || cmdOptions.cmd == PlayerCmd_ePrintStatus)
             {
                 BIP_PlayerStatus playerStatus;
                 BIP_Player_PrintStatus(hPlayer);
@@ -680,69 +761,6 @@ int main(int argc, char *argv[])
                 BDBG_WRN(("Player position cur/last: %0.3f/%0.3f sec ", serverStatus.currentPositionInMs/1000., serverStatus.availableSeekRange.lastPositionInMs/1000. ));
                 BIP_Player_PrintStatus(hPlayer);
             }
-            else if(cmdOptions.cmd == PlayerCmd_ePlayLanguageSpecificTrack)
-            {
-                 bool trackFound = false;
-                 BIP_PlayerSettings          playerSettings;
-                 BIP_MediaInfoTrack          mediaInfoTrack;
-                 BIP_Player_GetSettings( hPlayer, &playerSettings );
-
-                 trackFound = playerGetSpecialAudioTrackType(
-                                pAppCtx->hMediaInfo,
-                                &mediaInfoTrack,
-                                BIP_String_GetString(pAppCtx->hLanguage),
-                                UINT_MAX
-                                );
-                 if(trackFound == false)
-                 {
-                     BDBG_WRN(("Can't change audio track since |%s| Language specific audio track doesn't exist.", BIP_String_GetString(pAppCtx->hLanguage)));
-                 }
-                 else
-                 {
-                     playerSettings.audioTrackId = mediaInfoTrack.trackId;
-                     bipStatus = BIP_Player_SetSettings( hPlayer, &playerSettings );
-                     BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "BIP_Player_SetSettings Failed: for language=%s", BIP_String_GetString(pAppCtx->hLanguage) ), error, bipStatus, bipStatus );
-                 }
-            }
-            else if(cmdOptions.cmd == PlayerCmd_ePlayBsmodSpecificTrack)
-            {
-                 bool trackFound = false;
-                 BIP_PlayerSettings          playerSettings;
-                 BIP_MediaInfoTrack          mediaInfoTrack;
-                 BIP_Player_GetSettings( hPlayer, &playerSettings );
-
-                 trackFound = playerGetSpecialAudioTrackType(
-                                pAppCtx->hMediaInfo,
-                                &mediaInfoTrack,
-                                NULL,
-                                pAppCtx->ac3ServiceType
-                                );
-                 if(trackFound == false)
-                 {
-                     BDBG_WRN(("Can't change audio track since |%d| bsmod specific audio track doesn't exist.", pAppCtx->ac3ServiceType));
-                 }
-                 else
-                 {
-                     playerSettings.audioTrackId = mediaInfoTrack.trackId;
-
-                     BDBG_MSG(("New bsmod specific trackId is ---------------------------->%d",playerSettings.audioTrackId));
-
-                     bipStatus = BIP_Player_SetSettings( hPlayer, &playerSettings );
-                     BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "BIP_Player_SetSettings Failed: for language=%s", BIP_String_GetString(pAppCtx->hLanguage) ), error, bipStatus, bipStatus );
-                 }
-            }
-            else if (cmdOptions.cmd == PlayerCmd_ePlayNewUrl)
-            {
-                BDBG_WRN(("Changing channel to %s", BIP_String_GetString(pAppCtx->hUrl)));
-            }
-            else if ( cmdOptions.cmd == PlayerCmd_eFrameAdvance || cmdOptions.cmd == PlayerCmd_eFrameReverse )
-            {
-                BDBG_WRN(("Calling Frame %s", cmdOptions.cmd == PlayerCmd_eFrameAdvance?"Advance":"Reverse" ));
-                bipStatus = BIP_Player_PlayByFrame(hPlayer, cmdOptions.cmd == PlayerCmd_eFrameAdvance? true : false );
-                BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "BIP_Player_PlayByFrame Failed: URL=%s", BIP_String_GetString(pAppCtx->hUrl) ), error, bipStatus, bipStatus );
-                if (bipStatus == BIP_SUCCESS) BDBG_WRN(("Played 1 frame!"));
-                BIP_Player_PrintStatus(hPlayer);
-            }
             else
             {
                 if (cmdOptions.cmd != PlayerCmd_eMax) BDBG_WRN(("Not yet handling this cmd=%d", cmdOptions.cmd));
@@ -752,7 +770,7 @@ int main(int argc, char *argv[])
 
         /* Once player started reset the following flags, since runtime one can again select another language or services.*/
         /* New channel if required will set it run time.*/
-        pAppCtx->ac3ServiceType = UINT_MAX;
+        pAppCtx->ac3ServiceType = BIP_MediaInfoAudioAc3Bsmod_eMax;
 
 
 error:

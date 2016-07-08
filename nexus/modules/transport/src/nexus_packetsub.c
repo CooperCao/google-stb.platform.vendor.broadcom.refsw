@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2003-2013 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2003-2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,10 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Module Description:
  *
  * Porting interface code for the packet substitution section of the
  * data transport core.
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ***************************************************************************/
 #include "nexus_transport_module.h"
@@ -205,7 +199,7 @@ NEXUS_PacketSubHandle NEXUS_PacketSub_Open( unsigned index, const NEXUS_PacketSu
     }
 
     heap = NEXUS_P_DefaultHeap(pOpenSettings->heap, NEXUS_DefaultHeapType_eFull);
-    if (!heap) heap = g_pCoreHandles->heap[pTransport->settings.mainHeapIndex].nexus;
+    if (!heap) heap = g_pCoreHandles->heap[pTransport->moduleSettings.mainHeapIndex].nexus;
     packetSub->mmaHeap = NEXUS_Heap_GetMmaHandle(heap);
 
     /* alloc fifo */
@@ -220,7 +214,7 @@ NEXUS_PacketSubHandle NEXUS_PacketSub_Open( unsigned index, const NEXUS_PacketSu
 
     /* alloc descriptors */
     packetSub->desc.size = pOpenSettings->numDescriptors + 1; /* alloc one extra for simple fifo logic */
-    packetSub->desc.mmaHeap = g_pCoreHandles->heap[pTransport->settings.mainHeapIndex].mma;
+    packetSub->desc.mmaHeap = g_pCoreHandles->heap[pTransport->moduleSettings.mainHeapIndex].mma;
     packetSub->desc.mmaBlock = BMMA_Alloc(packetSub->desc.mmaHeap, packetSub->desc.size * sizeof(BXPT_PacketSub_Descriptor), 16, NULL);
     if (!packetSub->desc.mmaBlock) {
         rc = BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY);

@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2015 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2015 Broadcom.
 All rights reserved.
 =============================================================================*/
 
@@ -8,7 +8,9 @@ All rights reserved.
 #include "display_helpers.h"
 
 bool CreateSurface(NXPL_Surface *s,
-   BEGL_BufferFormat format, uint32_t width, uint32_t height,
+   BEGL_BufferFormat format,
+   uint32_t width, uint32_t height,
+   bool secure,
    const char *desc)
 {
    if (s)
@@ -26,8 +28,11 @@ bool CreateSurface(NXPL_Surface *s,
 
       bytes = width * height * BeglFormatNumBytes(format);
 
-      /* always GFD accessible */
-      surfSettings.pixelMemory = NEXUS_MemoryBlock_Allocate(NEXUS_Platform_GetFramebufferHeap(0), bytes, 4096, NULL);
+      /* Framebuffer heap 0 is always GFD accessible */
+      NEXUS_HeapHandle  heap = NEXUS_Platform_GetFramebufferHeap(secure ? NEXUS_OFFSCREEN_SECURE_GRAPHICS_SURFACE : 0);
+
+      surfSettings.pixelMemory = NEXUS_MemoryBlock_Allocate(heap, bytes, 4096, NULL);
+
       surfSettings.pixelMemoryOffset = 0;
 
       if (surfSettings.pixelMemory != NULL)
@@ -38,12 +43,17 @@ bool CreateSurface(NXPL_Surface *s,
             NEXUS_Addr offset;
             NEXUS_MemoryBlock_LockOffset(surfSettings.pixelMemory, &offset);
             s->physicalOffset = (uint32_t)offset;
-            NEXUS_MemoryBlock_Lock(surfSettings.pixelMemory, &s->cachedPtr);
+            // Secure memory can't be mapped as the ARM will try to access it
+            if (!secure)
+               NEXUS_MemoryBlock_Lock(surfSettings.pixelMemory, &s->cachedPtr);
+            else
+               s->cachedPtr = NULL;
          }
       }
 
-      s->fence = -1;
+      s->fence  = -1;
       s->format = format;
+      s->secure = secure;
 
       return true;
    }

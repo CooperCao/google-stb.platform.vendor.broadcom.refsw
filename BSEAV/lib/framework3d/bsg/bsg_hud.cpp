@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -11,7 +11,7 @@
  * Software and all intellectual property rights therein.  IF YOU HAVE NO
  * AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
  * AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
- * SOFTWARE.  
+ * SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
@@ -81,13 +81,10 @@ const char *DevHud::Mark(eIndex item) const
 
 static void PrintInfo(std::stringstream &str, const Application &app)
 {
-   IVec2    dim = app.GetQuadRender().GetDimensions();
-   uint32_t w   = app.GetWindowWidth() * dim.X();
-   uint32_t h   = app.GetWindowHeight() * dim.Y();
+   uint32_t w   = app.GetWindowWidth();
+   uint32_t h   = app.GetWindowHeight();
 
    str << w << "x" << h << "  ";
-   if (app.IsQuad())
-      str << "(" << dim.X() << " x " << dim.Y() << ")" << "  ";
 
    str << app.GetOptions().GetColorBits() << "bpp\n";
    str << app.GetFPS() << " fps\n\n";
@@ -120,13 +117,10 @@ void DevHud::Draw()
 
    str << "Swap interval ("   << m_swapInterval   << ")\n";
    str << "Fps HUD ("         << OnOff(m_fpsHUD)  << ")\n";
-   str << "Stereo 3D ("       << OnOff(m_stereo, app.IsQuad())  << ")\n";
+   str << "Stereo 3D ("       << OnOff(m_stereo)  << ")\n";
    str << "Rate multiplier (" << m_rateMultiplier << ")\n";
 
-   if (!app.IsQuad())
-      str << "Frame-grab now\n";
-   else
-      str << "Frame-grab disabled\n";
+   str << "Frame-grab now\n";
 
    app.DrawTextString(str.str(), 0.1f, 0.9f, m_hudFont, Vec4(0.1f, 1.0f, 0.1f, 1.0f));
 
@@ -135,7 +129,7 @@ void DevHud::Draw()
    for (int32_t i = 0; i < ((int32_t)m_hudSel.Current()); i++)
       s << "\n";
    s << ">";
-   
+
    app.DrawTextString(s.str(), 0.08f, 0.9f, m_hudFont, Vec4(0.1f, 1.0f, 0.1f, 1.0f));
 }
 
@@ -161,7 +155,7 @@ void DevHud::Draw()
 
       str << Mark(eSWAP_INTERVAL)   << "Swap interval ("   << m_swapInterval   << ")\n";
       str << Mark(eFPS_HUD)         << "Fps HUD ("         << "disabled"       << ")\n";
-      str << Mark(eSTEREO)          << "Stereo 3D ("       << OnOff(m_stereo, app.IsQuad())  << ")\n";
+      str << Mark(eSTEREO)          << "Stereo 3D ("       << OnOff(m_stereo)  << ")\n";
       str << Mark(eRATE_MULTIPLIER) << "Rate multiplier (" << m_rateMultiplier << ")\n";
       str << Mark(eFRAME_GRAB)      << "Frame-grab disabled\n";
 
@@ -204,7 +198,7 @@ void DevHud::HandleKey(const KeyEvent &ev)
    {
       switch (ev.Code())
       {
-      case KeyEvent::eKEY_EXIT : 
+      case KeyEvent::eKEY_EXIT :
       case KeyEvent::eKEY_ESC :
       case KeyEvent::eKEY_POWER :
          app.SetShowHUD(false);
@@ -212,13 +206,13 @@ void DevHud::HandleKey(const KeyEvent &ev)
          std::cout << "HUD off\n";
 #endif
          break;
-      case KeyEvent::eKEY_UP : 
+      case KeyEvent::eKEY_UP :
          m_hudSel--;
          break;
-      case KeyEvent::eKEY_DOWN : 
+      case KeyEvent::eKEY_DOWN :
          m_hudSel++;
          break;
-      case KeyEvent::eKEY_LEFT : 
+      case KeyEvent::eKEY_LEFT :
          switch (m_hudSel.Current())
          {
          case eSWAP_INTERVAL :
@@ -233,8 +227,6 @@ void DevHud::HandleKey(const KeyEvent &ev)
             break;
 
          case eSTEREO :
-            if (app.IsQuad())
-               break;
             m_stereo = !m_stereo;
             app.SetStereoscopic(m_stereo);
             break;
@@ -251,13 +243,11 @@ void DevHud::HandleKey(const KeyEvent &ev)
          }
          break;
 
-      case KeyEvent::eKEY_RIGHT : 
+      case KeyEvent::eKEY_RIGHT :
          switch (m_hudSel.Current())
          {
          case eSWAP_INTERVAL :
             m_swapInterval++;
-            if (app.IsQuad())
-               m_swapInterval = std::min(m_swapInterval, 1);
             app.SetSwapInterval(m_swapInterval);
             break;
 
@@ -267,8 +257,6 @@ void DevHud::HandleKey(const KeyEvent &ev)
             break;
 
          case eSTEREO :
-            if (app.IsQuad())
-               break;
             m_stereo = !m_stereo;
             app.SetStereoscopic(m_stereo);
             break;
@@ -283,7 +271,7 @@ void DevHud::HandleKey(const KeyEvent &ev)
          }
          break;
 
-      case KeyEvent::eKEY_OK : 
+      case KeyEvent::eKEY_OK :
       case KeyEvent::eKEY_ENTER :
          if (m_hudSel.Current() == eFRAME_GRAB)
          {
@@ -291,7 +279,7 @@ void DevHud::HandleKey(const KeyEvent &ev)
          }
          break;
 
-      default : 
+      default :
          m_changed = oldChanged;
          break;
       }

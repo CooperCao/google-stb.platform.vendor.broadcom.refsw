@@ -259,7 +259,7 @@ B_Error B_PSIP_GetStringFromMSS(
             /* found string with matching language code */
             if (B_ERROR_SUCCESS != PSIP_MSS_getString(MSS, str_idx, &lsize, (char *)pBufferMSS))
             {
-                BDBG_ERR(("MSS invalid %d"));
+                BDBG_ERR(("MSS invalid"));
                 memset(pBufferMSS, 0, *pLengthMSS);
             }
 

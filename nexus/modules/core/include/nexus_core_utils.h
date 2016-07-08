@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,17 +35,9 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   API name: Core Features
 *       This file sets up chip-specific definitions for the core module
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 #ifndef NEXUS_CORE_UTILS_H__
@@ -164,16 +156,26 @@ Summary:
 Look up Nexus framerate enum
 
 Description:
-frameRateInteger is in units of 1000 FPS. For example:
+frameRateInteger is in units of 1/1000 fps. For example:
     59940 => NEXUS_VideoFrameRate_e59_94
     23976 => NEXUS_VideoFrameRate_e23_976
     60000 => NEXUS_VideoFrameRate_e60
 
 pNexusFrameRate will be NEXUS_VideoFrameRate_eUnknown if there is no match.
+
+If you have 1/100 FPS, just multiply by 10 and it should work. NEXUS_LookupFrameRate will find the closest match within 10%.
 **/
 void NEXUS_LookupFrameRate(
-    unsigned frameRateInteger, /* framerate in units of 1000 fps. */
+    unsigned frameRateInteger, /* framerate in units of 1/1000 fps. */
     NEXUS_VideoFrameRate *pNexusFrameRate /* [out] */
+    );
+
+/**
+Returns 1/1000 fps refresh rate from NEXUS_VideoFrameRate enum
+**/
+NEXUS_Error NEXUS_VideoFrameRate_GetRefreshRate(
+    NEXUS_VideoFrameRate frameRate,
+    unsigned *pRefreshRate
     );
 
 /**

@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2010-2012 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,8 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  **************************************************************************/
 #ifndef NEXUS_SIMPLE_AUDIO_PLAYBACK_H__
 #define NEXUS_SIMPLE_AUDIO_PLAYBACK_H__
@@ -80,7 +72,7 @@ Summary:
 typedef struct NEXUS_SimpleAudioPlaybackStartSettings
 {
     unsigned sampleRate;                /* In Hz.  Pass 0 to use the value in NEXUS_AudioPlaybackSettings.sampleRate instead. */
-    unsigned bitsPerSample;             /* Currently supports 8 and 16. */
+    unsigned bitsPerSample;             /* Currently supports 8, 16, and 24. */
     size_t startThreshold;              /* Starting threshold in bytes.  If set, the hardware will wait until the number of bytes
                                            specified has been buffered before starting to consume the data. */
     bool stereo;                        /* If true, data will be treated as stereo data.  If false, data will be treated as mono. */
@@ -90,6 +82,7 @@ typedef struct NEXUS_SimpleAudioPlaybackStartSettings
     NEXUS_CallbackDesc dataCallback;    /* Callback when space becomes available. User should call NEXUS_AudioPlayback_GetBuffer.
                                            You will not receive another callback until NEXUS_AudioPlayback_GetBuffer is called. */
     NEXUS_Timebase timebase;            /* the DPCR channel that drives the outputs */
+    NEXUS_EndianMode endian;            /* Endian of the pcm data being fed for playback */
 } NEXUS_SimpleAudioPlaybackStartSettings;
 
 /**

@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2010-2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,11 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  *****************************************************************************/
 #if NEXUS_HAS_PLAYBACK && NEXUS_HAS_SIMPLE_DECODER
 #include "media_player.h"
@@ -55,6 +50,13 @@ void media_player_get_default_create_settings( media_player_create_settings *pse
     memset(psettings, 0, sizeof(*psettings));
 }
 
+void media_player_get_default_settings(media_player_settings *psettings)
+{
+    psettings->audio.ac3_service_type = UINT_MAX;
+    psettings->audio.language = NULL;
+    psettings->enableDynamicTrackSelection = false;
+}
+
 void media_player_get_default_start_settings( media_player_start_settings *psettings )
 {
     memset(psettings, 0, sizeof(*psettings));
@@ -63,8 +65,10 @@ void media_player_get_default_start_settings( media_player_start_settings *psett
     psettings->stcTrick = true;
     psettings->video.pid = 0x1fff;
     psettings->audio.pid = 0x1fff;
+    psettings->sync = NEXUS_SimpleStcChannelSyncMode_eDefaultAdjustmentConcealment;
     psettings->transportType = NEXUS_TransportType_eMax; /* no override */
     NEXUS_Playback_GetDefaultSettings(&psettings->playbackSettings);
+    media_player_get_default_settings(&psettings->mediaPlayerSettings);
 }
 
 static void endOfStreamCallback(void *context, int param)
@@ -492,6 +496,7 @@ int media_player_set_settings(media_player_t player, const media_player_settings
                 player->settings.audio.language = BKNI_Malloc((strlen(psettings->audio.language)+1));
             }
             BKNI_Memcpy(player->settings.audio.language, psettings->audio.language, strlen(psettings->audio.language)+1 );
+            player->settings.enableDynamicTrackSelection = psettings->enableDynamicTrackSelection;
         }
     }
     return 0;
@@ -522,8 +527,10 @@ int media_player_start( media_player_t player, const media_player_start_settings
     NEXUS_SimpleAudioDecoder_GetDefaultStartSettings(&player->audioProgram);
 
     NxClient_GetDisplaySettings(&displaySettings);
-    if (displaySettings.hdmiPreferences.hdcp != psettings->hdcp) {
+    if (displaySettings.hdmiPreferences.hdcp != psettings->hdcp ||
+        displaySettings.hdmiPreferences.version != psettings->hdcp_version) {
         displaySettings.hdmiPreferences.hdcp = psettings->hdcp;
+        displaySettings.hdmiPreferences.version = psettings->hdcp_version;
         NxClient_SetDisplaySettings(&displaySettings);
     }
 
@@ -550,6 +557,7 @@ int media_player_start( media_player_t player, const media_player_start_settings
             media_player_bip_get_color_depth(player->bip, &player->colorDepth);
         }
         player->ipActive = true;
+        player->started = true; /* set started true here since we need to unwrap the resources even if rest of the code like videoDecoder/audioDecoder start failed.*/
     }
     else {
         struct dvr_crypto_settings settings;
@@ -680,6 +688,7 @@ int media_player_start( media_player_t player, const media_player_start_settings
         NEXUS_Playback_GetSettings(player->playback, &playbackSettings);
         playbackSettings.playpumpSettings.transportType = probe_results.transportType;
         playbackSettings.playpumpSettings.timestamp.type = probe_results.timestampType;
+        playbackSettings.playpumpSettings.timestamp.pacing = psettings->pacing;
         playbackSettings.endOfStreamAction = psettings->loopMode;
         playbackSettings.timeshifting = (psettings->loopMode == NEXUS_PlaybackLoopMode_ePlay);
         playbackSettings.stcTrick = psettings->stcTrick && player->stcChannel;
@@ -820,6 +829,7 @@ int media_player_start( media_player_t player, const media_player_start_settings
         player->audioProgram.primer.pcm =
         player->audioProgram.primer.compressed = player->start_settings.audio_primers;
         rc = NEXUS_SimpleAudioDecoder_Start(player->audioDecoder, &player->audioProgram);
+
         if (rc) { rc = BERR_TRACE(rc); goto error; }
         /* decode may fail if audio codec not supported */
     }
@@ -845,7 +855,7 @@ int media_player_start( media_player_t player, const media_player_start_settings
                 player->file = NEXUS_FilePlay_OpenPosix(url.path, NULL);
                 if (player->file) {
                     rc = NEXUS_Playback_Start(player->playback, player->file, NULL);
-                }
+               }
             }
             if (rc) {
                 rc = BERR_TRACE(rc);
@@ -853,8 +863,6 @@ int media_player_start( media_player_t player, const media_player_start_settings
             }
         }
     }
-
-    player->started = true;
     return 0;
 
 error:
@@ -887,6 +895,24 @@ void media_player_stop(media_player_t player)
         else {
             media_player_bip_stop(player->bip);
         }
+
+        /* Reset cached data.*/
+        if (player->videoProgram.settings.enhancementPidChannel)
+        {
+            player->videoProgram.settings.enhancementPidChannel = NULL;
+        }
+        if (player->videoProgram.settings.pidChannel)
+        {
+            player->videoProgram.settings.pidChannel = NULL;
+        }
+        if (player->audioProgram.primary.pidChannel)
+        {
+            player->audioProgram.primary.pidChannel = NULL;
+        }
+        if(player->colorDepth)
+        {
+            player->colorDepth = 0;
+        }
         player->ipActive = false;
     }
     else {
@@ -915,6 +941,64 @@ void media_player_stop(media_player_t player)
         }
     }
     player->started = false;
+}
+
+int media_player_ac4_status( media_player_t player, int action )
+{
+    NEXUS_AudioDecoderStatus audStatus;
+    NEXUS_AudioDecoderCodecSettings codecSettings;
+
+    NEXUS_SimpleAudioDecoder_GetStatus(player->audioDecoder, &audStatus);
+    NEXUS_SimpleAudioDecoder_GetCodecSettings(player->audioDecoder, NEXUS_SimpleAudioDecoderSelector_ePrimary, audStatus.codec, &codecSettings);
+
+    if (action == 1) {
+        BDBG_ERR(("Codec is %lu", (unsigned long)audStatus.codec));
+        if ( audStatus.codec == NEXUS_AudioCodec_eAc4 ) {
+            unsigned i;
+            BDBG_ERR(("The current presentation is %lu", (unsigned long)codecSettings.codecSettings.ac4.presentationId));
+            BDBG_ERR(("numPresentations %lu", (unsigned long)audStatus.codecStatus.ac4.numPresentations));
+            for (i = 0; i<audStatus.codecStatus.ac4.numPresentations; i++) {
+                NEXUS_AudioDecoderPresentationStatus presentStatus;
+                NEXUS_SimpleAudioDecoder_GetPresentationStatus(player->audioDecoder, i, &presentStatus);
+                if ( presentStatus.codec != audStatus.codec ) {
+                    BDBG_ERR(("Something went wrong. Presentation Status Codec doesn't match the current decode codec."));
+                }
+                else {
+                    BDBG_ERR(("Presentation %lu id: %lu", (unsigned long)i, (unsigned long)presentStatus.status.ac4.id));
+                    BDBG_ERR(("  Presentation %lu name: %s", (unsigned long)i, presentStatus.status.ac4.name));
+                    BDBG_ERR(("  Presentation %lu language: %s", (unsigned long)i, presentStatus.status.ac4.language));
+                    BDBG_ERR(("  Presentation %lu type: %lu", (unsigned long)i, (unsigned long)presentStatus.status.ac4.type));
+                }
+            }
+            BDBG_ERR(("Dialog Enhancer Max %lu", (unsigned long)audStatus.codecStatus.ac4.dialogEnhanceMax));
+        }
+    }
+    else if (action == 2) {
+        BDBG_ERR(("Codec is %lu", (unsigned long)audStatus.codec));
+        if ( audStatus.codec == NEXUS_AudioCodec_eAc4 ) {
+            BDBG_ERR(("The currentPresentation id is %lu. Incrementing it by 1", (unsigned long)(codecSettings.codecSettings.ac4.presentationId)));
+            codecSettings.codecSettings.ac4.presentationId = codecSettings.codecSettings.ac4.presentationId + 1;
+            NEXUS_SimpleAudioDecoder_SetCodecSettings(player->audioDecoder,NEXUS_SimpleAudioDecoderSelector_ePrimary,&codecSettings);
+        }
+    }
+    else if (action ==3) {
+        BDBG_ERR(("Codec is %lu", (unsigned long)audStatus.codec));
+        if ( audStatus.codec == NEXUS_AudioCodec_eAc4 ) {
+            BDBG_ERR(("The current dialog enhancement level is %lu. Incrementing it by 3", (unsigned long)(codecSettings.codecSettings.ac4.dialogEnhancerAmount)));
+            codecSettings.codecSettings.ac4.dialogEnhancerAmount = codecSettings.codecSettings.ac4.dialogEnhancerAmount + 3;
+            NEXUS_SimpleAudioDecoder_SetCodecSettings(player->audioDecoder,NEXUS_SimpleAudioDecoderSelector_ePrimary, &codecSettings);
+        }
+    }
+    else if (action ==4) {
+        BDBG_ERR(("Codec is %lu", (unsigned long)audStatus.codec));
+        if ( audStatus.codec == NEXUS_AudioCodec_eAc4 ) {
+            BDBG_ERR(("The current dialog enhancement level is %lu. decrementing it by 3", (unsigned long)(codecSettings.codecSettings.ac4.dialogEnhancerAmount)));
+            codecSettings.codecSettings.ac4.dialogEnhancerAmount = codecSettings.codecSettings.ac4.dialogEnhancerAmount - 3;
+            NEXUS_SimpleAudioDecoder_SetCodecSettings(player->audioDecoder,NEXUS_SimpleAudioDecoderSelector_ePrimary, &codecSettings);
+        }
+    }
+
+      return 0;
 }
 
 int media_player_switch_audio(media_player_t player)

@@ -1,43 +1,39 @@
 /******************************************************************************
- * (c) 2016 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 
 #include "bip.h"
@@ -96,6 +92,7 @@ BIP_Status parseOptions(
     BIP_Status bipStatus = BIP_ERR_INTERNAL;
     bool urlIsSet = false;
 
+    pAppCtx->ac3ServiceType = BIP_MediaInfoAudioAc3Bsmod_eMax;
     for (i=1; i<argc; i++)
     {
         if ( !strcmp(argv[i], "-h") || !strcmp(argv[i], "--help") )
@@ -187,6 +184,10 @@ BIP_Status parseOptions(
         {
             pAppCtx->enableAutoPlayAfterStartingPaused = true;
         }
+        else if ( !strcmp(argv[i], "-stressTrick") )
+        {
+            pAppCtx->stressTrickModes = true;
+        }
         else
         {
             printf("Error: incorrect or unsupported option: %s\n", argv[i]);
@@ -240,7 +241,7 @@ AppCtx *initAppCtx( void )
     pAppCtx->hLanguage = BIP_String_Create();
     BIP_CHECK_GOTO( (pAppCtx->hLanguage), ("BIP_String_Create() Failed"), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, bipStatus);
 
-    pAppCtx->ac3ServiceType = UINT_MAX;
+    pAppCtx->ac3ServiceType = BIP_MediaInfoAudioAc3Bsmod_eMax;
 
     pAppCtx->displayFormat = NEXUS_VideoFormat_eNtsc;
 error:
@@ -248,7 +249,10 @@ error:
 } /* initAppCtx */
 
 #define USER_INPUT_BUF_SIZE 256
-BIP_Status runTimeCmdParsing(AppCtx *pAppCtx, CmdOptions *pCmdOptions)
+BIP_Status runTimeCmdParsing(
+    AppCtx *pAppCtx,
+    CmdOptions *pCmdOptions
+    )
 {
     BIP_Status bipStatus = BIP_SUCCESS;
     char    buffer[USER_INPUT_BUF_SIZE];
@@ -259,6 +263,7 @@ BIP_Status runTimeCmdParsing(AppCtx *pAppCtx, CmdOptions *pCmdOptions)
     buffer[bytesRead-1] = '\0';   /* Replace \n w/ Null Char. */
 
     pCmdOptions->cmd = PlayerCmd_eMax;
+    pCmdOptions->rate = 0;
     if (!strcmp(buffer, "?") || !strcmp(buffer, "help"))
     {
         printf(
@@ -269,6 +274,8 @@ BIP_Status runTimeCmdParsing(AppCtx *pAppCtx, CmdOptions *pCmdOptions)
                 "  fa - frame advance\n"
                 "  fr - frame reverse\n"
                 "  rate(rate) - set trick rate (e.g. 6 for 6x, 1/4 for 1/4x, -6 for -6x, etc.\n"
+                "  rrate(rate) - set trick rate in terms of NEXUS_NORMAL_PLAY_SPEED, This will directly invoke BIP_Player_PlayAtRate api."
+                "  stressTrick - run thru various trickmode sequences & quit if there is a failure.\n"
               );
         printf(
                 "  seek(pos) - seek to absolute position (in ms. e.g. 2:10.30 for 2min, 10sec, & 30ms, 2:10 for 2min & 10sec, 120 for 120ms)\n"
@@ -368,6 +375,20 @@ BIP_Status runTimeCmdParsing(AppCtx *pAppCtx, CmdOptions *pCmdOptions)
         strncpy(pCmdOptions->playSpeed, buffer+5, sizeof(pCmdOptions->playSpeed)-1);
         BDBG_WRN(("rate=%s", pCmdOptions->playSpeed));
         pCmdOptions->cmd = PlayerCmd_ePlayAtRate;
+
+    }
+    else if( strstr(buffer, "rrate(") == buffer)
+    {
+        int count;
+        count = sscanf(buffer+6, "%d", &pCmdOptions->rate);
+        BDBG_ASSERT(count == 1);
+        pCmdOptions->cmd = PlayerCmd_ePlayAtRawRate;
+
+        BDBG_WRN((" Raw rate is  ---------------->|%d| ", pCmdOptions->rate));
+    }
+    else if (!strcmp(buffer, "stressTrick"))
+    {
+        pCmdOptions->cmd = PlayerCmd_eStressTrickModes;
     }
     else if (strstr(buffer, "lng(") == buffer)
     {
@@ -509,7 +530,7 @@ bool playerGetSpecialAudioTrackType(
         BIP_MediaInfoHandle             hMediaInfo,
         BIP_MediaInfoTrack              *pMediaInfoTrackOut,
         const char                      *language,
-        unsigned                        ac3ServiceType
+        BIP_MediaInfoAudioAc3Bsmod      ac3ServiceType
         )
 {
     bool                    trackFound = false;
@@ -540,7 +561,7 @@ bool playerGetSpecialAudioTrackType(
     {
         if (pMediaInfoTrack->trackType == BIP_MediaInfoTrackType_eAudio)
         {
-            if(language && ac3ServiceType != UINT_MAX) /* If both are set */
+            if(language && ac3ServiceType != BIP_MediaInfoAudioAc3Bsmod_eMax) /* If both are set */
             {
                 int ret = 0;
 
@@ -567,7 +588,7 @@ bool playerGetSpecialAudioTrackType(
                     break;
                 }
             }
-            else if(ac3ServiceType != UINT_MAX
+            else if(ac3ServiceType != BIP_MediaInfoAudioAc3Bsmod_eMax
                     && (pMediaInfoTrack->info.audio.descriptor.ac3.bsmodValid)
                     && (pMediaInfoTrack->info.audio.descriptor.ac3.bsmod == ac3ServiceType))
             {
@@ -589,3 +610,201 @@ bool playerGetSpecialAudioTrackType(
     }
     return (trackFound);
 } /* playerGetSpecialAudioTrackType */
+
+static BIP_Status seek(
+    AppCtx *pAppCtx,
+    unsigned seekOffSetInMs,
+    bool seekForward
+    )
+{
+    BIP_PlayerHandle hPlayer = pAppCtx->hPlayer;
+    BIP_Status bipStatus = BIP_SUCCESS;
+    unsigned seekPositionInMs;
+
+    BIP_PlayerStatus playerStatus;
+
+    bipStatus = BIP_Player_GetStatus(hPlayer, &playerStatus);
+    BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "BIP_Player_Status Failed: URL=%s", BIP_String_GetString(pAppCtx->hUrl) ), error, bipStatus, bipStatus );
+    if ( seekForward )
+    {
+        seekPositionInMs = playerStatus.currentPositionInMs + seekOffSetInMs;
+        BDBG_WRN(("Starting Seek forward from currentPositionInMs=%lu ms by offset=%d, seekedPosition=%d", playerStatus.currentPositionInMs, seekOffSetInMs, seekPositionInMs));
+    }
+    else
+    {
+        seekPositionInMs = playerStatus.currentPositionInMs > seekOffSetInMs ? playerStatus.currentPositionInMs - seekOffSetInMs : 0;
+        BDBG_WRN(("Starting Seek backward from currentPositionInMs=%lu ms by offset=%d, seekedPosition=%d", playerStatus.currentPositionInMs, seekOffSetInMs, seekPositionInMs));
+    }
+    bipStatus = BIP_Player_Seek(hPlayer, seekPositionInMs);
+    BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS || bipStatus == BIP_INF_NOT_AVAILABLE), ( "BIP_Player_Seek Failed: URL=%s", BIP_String_GetString(pAppCtx->hUrl) ), error, bipStatus, bipStatus );
+    if (bipStatus == BIP_SUCCESS) BDBG_WRN(("Seeked to %d ms", seekPositionInMs));
+    BKNI_Sleep(1000);
+    BIP_Player_PrintStatus(hPlayer);
+error:
+    return (bipStatus);
+}
+
+static BIP_Status pauseStream(
+    AppCtx *pAppCtx
+    )
+{
+    BIP_PlayerHandle hPlayer = pAppCtx->hPlayer;
+    BIP_Status bipStatus = BIP_SUCCESS;
+
+    BDBG_WRN(("Pausing Playback!"));
+    bipStatus = BIP_Player_Pause(hPlayer, NULL);
+    BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS || bipStatus == BIP_INF_NOT_AVAILABLE || bipStatus == BIP_INF_PLAYER_CANT_PAUSE), ( "BIP_Player_Pause Failed: URL=%s", BIP_String_GetString(pAppCtx->hUrl) ), error, bipStatus, bipStatus );
+    if (bipStatus == BIP_SUCCESS) BDBG_WRN(("Paused Playback!"));
+    BKNI_Sleep(2000);
+    BIP_Player_PrintStatus(hPlayer);
+error:
+    return (bipStatus);
+}
+
+static BIP_Status play(
+    AppCtx *pAppCtx
+    )
+{
+    BIP_PlayerHandle hPlayer = pAppCtx->hPlayer;
+    BIP_Status bipStatus = BIP_SUCCESS;
+
+    BDBG_WRN(("Resuming Playback!"));
+    bipStatus = BIP_Player_Play(hPlayer);
+    BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS || bipStatus == BIP_INF_NOT_AVAILABLE), ( "BIP_Player_Play Failed: URL=%s", BIP_String_GetString(pAppCtx->hUrl) ), error, bipStatus, bipStatus );
+    if (bipStatus == BIP_SUCCESS) BDBG_WRN(("Playback Resumed!"));
+    BKNI_Sleep(2000);
+    BIP_Player_PrintStatus(hPlayer);
+error:
+    return (bipStatus);
+}
+
+static BIP_Status trickMode(
+    AppCtx *pAppCtx,
+    char *pPlaySpeed
+    )
+{
+    BIP_PlayerHandle hPlayer = pAppCtx->hPlayer;
+    BIP_Status bipStatus = BIP_SUCCESS;
+
+    BDBG_WRN(("Playing at Rate=%s", pPlaySpeed));
+    bipStatus = BIP_Player_PlayAtRateAsString(hPlayer, pPlaySpeed, NULL);
+    BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS || bipStatus == BIP_INF_NOT_AVAILABLE), ( "BIP_Player_PlayAtRateAsString Failed: URL=%s", BIP_String_GetString(pAppCtx->hUrl) ), error, bipStatus, bipStatus );
+    if (bipStatus == BIP_SUCCESS) BDBG_WRN(("Started Playing at Rate=%s", pPlaySpeed));
+    BKNI_Sleep(1000);
+    BIP_Player_PrintStatus(hPlayer);
+error:
+    return (bipStatus);
+}
+
+static BIP_Status frameAdvance(
+    AppCtx *pAppCtx,
+    bool frameAdvance
+    )
+{
+    BIP_PlayerHandle hPlayer = pAppCtx->hPlayer;
+    BIP_Status bipStatus = BIP_SUCCESS;
+
+    BDBG_WRN(("Calling Frame %s", frameAdvance? "Advance": "Rewind"));
+    bipStatus = BIP_Player_PlayByFrame(hPlayer, frameAdvance);
+    BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "BIP_Player_PlayByFrame Failed: URL=%s", BIP_String_GetString(pAppCtx->hUrl) ), error, bipStatus, bipStatus );
+    if (bipStatus == BIP_SUCCESS) BDBG_WRN(("Played 1 frame!"));
+    BKNI_Sleep(1000);
+    BIP_Player_PrintStatus(hPlayer);
+error:
+    return (bipStatus);
+}
+
+
+BIP_Status stressTrickModes(
+    AppCtx *pAppCtx
+    )
+{
+    int i;
+    BIP_Status bipStatus = BIP_SUCCESS;
+
+    for(i=0; i< 100; i++)
+    {
+        bipStatus = seek(pAppCtx, 5000, 0);
+        BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS || bipStatus == BIP_INF_NOT_AVAILABLE), ( "BIP_Player_Seek Failed: URL=%s", BIP_String_GetString(pAppCtx->hUrl) ), error, bipStatus, bipStatus );
+
+        bipStatus = seek(pAppCtx, 5000, 0);
+        BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS || bipStatus == BIP_INF_NOT_AVAILABLE), ( "BIP_Player_Seek Failed: URL=%s", BIP_String_GetString(pAppCtx->hUrl) ), error, bipStatus, bipStatus );
+
+        bipStatus = pauseStream(pAppCtx);
+        BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS || bipStatus == BIP_INF_NOT_AVAILABLE), ( "BIP_Player_Pause Failed: URL=%s", BIP_String_GetString(pAppCtx->hUrl) ), error, bipStatus, bipStatus );
+
+        bipStatus = play(pAppCtx);
+        BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS || bipStatus == BIP_INF_NOT_AVAILABLE), ( "BIP_Player_Play Failed: URL=%s", BIP_String_GetString(pAppCtx->hUrl) ), error, bipStatus, bipStatus );
+
+        bipStatus = trickMode(pAppCtx, "-2");
+        BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS || bipStatus == BIP_INF_NOT_AVAILABLE), ( "BIP_Player_PlayAtRateAsString Failed: URL=%s", BIP_String_GetString(pAppCtx->hUrl) ), error, bipStatus, bipStatus );
+
+        bipStatus = trickMode(pAppCtx, "-4");
+        BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS || bipStatus == BIP_INF_NOT_AVAILABLE), ( "BIP_Player_PlayAtRateAsString Failed: URL=%s", BIP_String_GetString(pAppCtx->hUrl) ), error, bipStatus, bipStatus );
+
+        bipStatus = play(pAppCtx);
+        BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS || bipStatus == BIP_INF_NOT_AVAILABLE), ( "BIP_Player_Play Failed: URL=%s", BIP_String_GetString(pAppCtx->hUrl) ), error, bipStatus, bipStatus );
+
+        bipStatus = trickMode(pAppCtx, "2");
+        BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS || bipStatus == BIP_INF_NOT_AVAILABLE), ( "BIP_Player_PlayAtRateAsString Failed: URL=%s", BIP_String_GetString(pAppCtx->hUrl) ), error, bipStatus, bipStatus );
+
+        bipStatus = trickMode(pAppCtx, "4");
+        BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS || bipStatus == BIP_INF_NOT_AVAILABLE), ( "BIP_Player_PlayAtRateAsString Failed: URL=%s", BIP_String_GetString(pAppCtx->hUrl) ), error, bipStatus, bipStatus );
+
+        bipStatus = trickMode(pAppCtx, "8");
+        BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS || bipStatus == BIP_INF_NOT_AVAILABLE), ( "BIP_Player_PlayAtRateAsString Failed: URL=%s", BIP_String_GetString(pAppCtx->hUrl) ), error, bipStatus, bipStatus );
+
+        bipStatus = play(pAppCtx);
+        BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS || bipStatus == BIP_INF_NOT_AVAILABLE), ( "BIP_Player_Play Failed: URL=%s", BIP_String_GetString(pAppCtx->hUrl) ), error, bipStatus, bipStatus );
+
+        bipStatus = trickMode(pAppCtx, "1/2");
+        BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS || bipStatus == BIP_INF_NOT_AVAILABLE), ( "BIP_Player_PlayAtRateAsString Failed: URL=%s", BIP_String_GetString(pAppCtx->hUrl) ), error, bipStatus, bipStatus );
+
+        bipStatus = play(pAppCtx);
+        BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS || bipStatus == BIP_INF_NOT_AVAILABLE), ( "BIP_Player_Play Failed: URL=%s", BIP_String_GetString(pAppCtx->hUrl) ), error, bipStatus, bipStatus );
+
+        bipStatus = trickMode(pAppCtx, "-1/2");
+        BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS || bipStatus == BIP_INF_NOT_AVAILABLE), ( "BIP_Player_PlayAtRateAsString Failed: URL=%s", BIP_String_GetString(pAppCtx->hUrl) ), error, bipStatus, bipStatus );
+
+        bipStatus = play(pAppCtx);
+        BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS || bipStatus == BIP_INF_NOT_AVAILABLE), ( "BIP_Player_Play Failed: URL=%s", BIP_String_GetString(pAppCtx->hUrl) ), error, bipStatus, bipStatus );
+
+        bipStatus = seek(pAppCtx, 5000, 1);
+        BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS || bipStatus == BIP_INF_NOT_AVAILABLE), ( "BIP_Player_Seek Failed: URL=%s", BIP_String_GetString(pAppCtx->hUrl) ), error, bipStatus, bipStatus );
+
+        bipStatus = pauseStream(pAppCtx);
+        BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS || bipStatus == BIP_INF_NOT_AVAILABLE), ( "BIP_Player_Pause Failed: URL=%s", BIP_String_GetString(pAppCtx->hUrl) ), error, bipStatus, bipStatus );
+
+        bipStatus = frameAdvance(pAppCtx, true);
+        BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS || bipStatus == BIP_INF_NOT_AVAILABLE), ( "BIP_Player_PlayByFrame Failed: URL=%s", BIP_String_GetString(pAppCtx->hUrl) ), error, bipStatus, bipStatus );
+
+        bipStatus = frameAdvance(pAppCtx, true);
+        BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS || bipStatus == BIP_INF_NOT_AVAILABLE), ( "BIP_Player_PlayByFrame Failed: URL=%s", BIP_String_GetString(pAppCtx->hUrl) ), error, bipStatus, bipStatus );
+
+        bipStatus = frameAdvance(pAppCtx, true);
+        BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS || bipStatus == BIP_INF_NOT_AVAILABLE), ( "BIP_Player_PlayByFrame Failed: URL=%s", BIP_String_GetString(pAppCtx->hUrl) ), error, bipStatus, bipStatus );
+
+        bipStatus = frameAdvance(pAppCtx, false);
+        BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS || bipStatus == BIP_INF_NOT_AVAILABLE), ( "BIP_Player_PlayByFrame Failed: URL=%s", BIP_String_GetString(pAppCtx->hUrl) ), error, bipStatus, bipStatus );
+        bipStatus = frameAdvance(pAppCtx, false);
+        BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS || bipStatus == BIP_INF_NOT_AVAILABLE), ( "BIP_Player_PlayByFrame Failed: URL=%s", BIP_String_GetString(pAppCtx->hUrl) ), error, bipStatus, bipStatus );
+
+        bipStatus = frameAdvance(pAppCtx, false);
+        BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS || bipStatus == BIP_INF_NOT_AVAILABLE), ( "BIP_Player_PlayByFrame Failed: URL=%s", BIP_String_GetString(pAppCtx->hUrl) ), error, bipStatus, bipStatus );
+
+        bipStatus = frameAdvance(pAppCtx, false);
+        BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS || bipStatus == BIP_INF_NOT_AVAILABLE), ( "BIP_Player_PlayByFrame Failed: URL=%s", BIP_String_GetString(pAppCtx->hUrl) ), error, bipStatus, bipStatus );
+
+        bipStatus = frameAdvance(pAppCtx, true);
+        BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS || bipStatus == BIP_INF_NOT_AVAILABLE), ( "BIP_Player_PlayByFrame Failed: URL=%s", BIP_String_GetString(pAppCtx->hUrl) ), error, bipStatus, bipStatus );
+
+        bipStatus = frameAdvance(pAppCtx, true);
+        BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS || bipStatus == BIP_INF_NOT_AVAILABLE), ( "BIP_Player_PlayByFrame Failed: URL=%s", BIP_String_GetString(pAppCtx->hUrl) ), error, bipStatus, bipStatus );
+
+        bipStatus = play(pAppCtx);
+        BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS || bipStatus == BIP_INF_NOT_AVAILABLE), ( "BIP_Player_Play Failed: URL=%s", BIP_String_GetString(pAppCtx->hUrl) ), error, bipStatus, bipStatus );
+    }
+
+error:
+            return (bipStatus);
+}

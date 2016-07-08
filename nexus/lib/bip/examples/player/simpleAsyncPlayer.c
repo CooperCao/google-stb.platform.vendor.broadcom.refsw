@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,8 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
  *  Example program to demonstrate receiving live or playback content over IP Channels (UDP/RTP/RTSP/HTTP based)
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ******************************************************************************/
 #define NXCLIENT_SUPPORT 1
@@ -387,12 +379,12 @@ static BIP_Status processMediaPlayerState(
                     if ( pCmdOptions->cmd == PlayerCmd_eRelativeSeekFwd)
                     {
                         pCmdOptions->seekPositionInMs = playerStatus.currentPositionInMs + pAppCtx->jumpOffsetInMs;
-                        BDBG_WRN(("Starting Seek forward from currentPositionInMs=%d ms by offset=%d, seekedPosition=%d", playerStatus.currentPositionInMs, pAppCtx->jumpOffsetInMs, pCmdOptions->seekPositionInMs));
+                        BDBG_WRN(("Starting Seek forward from currentPositionInMs=%lu ms by offset=%d, seekedPosition=%d", playerStatus.currentPositionInMs, pAppCtx->jumpOffsetInMs, pCmdOptions->seekPositionInMs));
                     }
                     else
                     {
                         pCmdOptions->seekPositionInMs = playerStatus.currentPositionInMs > pAppCtx->jumpOffsetInMs ?  playerStatus.currentPositionInMs - pAppCtx->jumpOffsetInMs : 0;
-                        BDBG_WRN(("Starting Seek backward from currentPositionInMs=%d ms by offset=%d, seekedPosition=%d", playerStatus.currentPositionInMs, pAppCtx->jumpOffsetInMs, pCmdOptions->seekPositionInMs));
+                        BDBG_WRN(("Starting Seek backward from currentPositionInMs=%lu ms by offset=%d, seekedPosition=%d", playerStatus.currentPositionInMs, pAppCtx->jumpOffsetInMs, pCmdOptions->seekPositionInMs));
                     }
                     bipStatus = BIP_Player_SeekAsync(pAppCtx->hPlayer, pCmdOptions->seekPositionInMs, &pAppCtx->asyncCallbackDesc, &pAppCtx->asyncApiCompletionStatus);
                     BIP_CHECK_GOTO(( bipStatus == BIP_INF_IN_PROGRESS ), ( "BIP_Player_SeekAsync Failed: URL=%s", BIP_String_GetString(pAppCtx->hUrl) ), error, bipStatus, bipStatus );

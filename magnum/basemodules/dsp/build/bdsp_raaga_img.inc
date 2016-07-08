@@ -1,45 +1,43 @@
-#############################################################################
-# (c) 2003-2016 Broadcom Corporation
-#
-# This program is the proprietary software of Broadcom Corporation and/or its
-# licensors, and may only be used, duplicated, modified or distributed pursuant
-# to the terms and conditions of a separate, written license agreement executed
-# between you and Broadcom (an "Authorized License").  Except as set forth in
-# an Authorized License, Broadcom grants no license (express or implied), right
-# to use, or waiver of any kind with respect to the Software, and Broadcom
-# expressly reserves all rights in and to the Software and all intellectual
-# property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-# HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-# NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-#
-# Except as expressly set forth in the Authorized License,
-#
-# 1. This program, including its structure, sequence and organization,
-#    constitutes the valuable trade secrets of Broadcom, and you shall use all
-#    reasonable efforts to protect the confidentiality thereof, and to use
-#    this information only in connection with your use of Broadcom integrated
-#    circuit products.
-#
-# 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-#    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-#    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-#    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-#    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-#    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-#    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-#    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-#
-# 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-#    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-#    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-#    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-#    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-#    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-#    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-#    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-#
-#############################################################################
-
+ ###############################################################################
+ # Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ #
+ # This program is the proprietary software of Broadcom and/or its
+ # licensors, and may only be used, duplicated, modified or distributed pursuant
+ # to the terms and conditions of a separate, written license agreement executed
+ # between you and Broadcom (an "Authorized License").  Except as set forth in
+ # an Authorized License, Broadcom grants no license (express or implied), right
+ # to use, or waiver of any kind with respect to the Software, and Broadcom
+ # expressly reserves all rights in and to the Software and all intellectual
+ # property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ # HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ # NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ #
+ # Except as expressly set forth in the Authorized License,
+ #
+ # 1. This program, including its structure, sequence and organization,
+ #    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ #    reasonable efforts to protect the confidentiality thereof, and to use
+ #    this information only in connection with your use of Broadcom integrated
+ #    circuit products.
+ #
+ # 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ #    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ #    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ #    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ #    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ #    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ #    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ #    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ #
+ # 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ #    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ #    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ #    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ #    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ #    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ #    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ #    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ##############################################################################
 
 #
 # Conditional Options for this Makefile
@@ -90,6 +88,87 @@ BDSP_IMG_SOURCES += \
 #################################################################
 #		ADD AUDIO ALGORITHM SUPPORT			#
 #################################################################
+#
+
+# Enabling the passthru if decode is enabled
+ifeq ($(BDSP_MPEG_SUPPORT),y)
+BDSP_MPEG_PASSTHRU_SUPPORT = y
+endif
+ifeq ($(BDSP_DDP_SUPPORT),y)
+BDSP_DDP_PASSTHRU_SUPPORT = y
+endif
+ifeq ($(BDSP_AC3_SUPPORT),y)
+BDSP_AC3_PASSTHRU_SUPPORT = y
+endif
+ifeq ($(BDSP_UDC_SUPPORT),y)
+BDSP_UDC_PASSTHRU_SUPPORT = y
+endif
+ifeq ($(BDSP_AACSBR_SUPPORT),y)
+BDSP_AACSBR_PASSTHRU_SUPPORT = y
+endif
+ifeq ($(BDSP_DTSHD_SUPPORT),y)
+BDSP_DTSHD_PASSTHRU_SUPPORT = y
+endif
+ifeq ($(BDSP_DTSLBR_SUPPORT),y)
+BDSP_DTSLBR_PASSTHRU_SUPPORT = y
+endif
+ifeq ($(BDSP_DTSBROADCAST_SUPPORT),y)
+BDSP_DTSBROADCAST_PASSTHRU_SUPPORT = y
+endif
+ifeq ($(BDSP_DRA_SUPPORT),y)
+BDSP_DRA_PASSTHRU_SUPPORT = y
+endif
+
+
+#MS12 not Support for Raaga Lite Chips
+ifeq ($(BDSP_RAAGA_FP_VER),fp2008)
+BDSP_MS12_SUPPORT = n
+BDSP_DOLBY_DCV_SUPPORT = y
+endif
+
+ifneq ($(filter $(BDSP_MS12_SUPPORT),A B C D Y a b c d y),)
+BDSP_UDC_SUPPORT = y
+BDSP_AC4_SUPPORT = y
+BDSP_DPCMR_SUPPORT = y
+BDSP_DDPENC_SUPPORT = y
+BDSP_MIXERDAPV2_SUPPORT = y
+BDSP_DOLBY_AACHE_SUPPORT = y
+BDSP_MS10_SUPPORT = n
+BDSP_MS11_SUPPORT = n
+BDSP_AACSBR_SUPPORT = n
+BDSP_DDP_SUPPORT = n
+BDSP_AC3_SUPPORT = n
+BDSP_DDRE_SUPPORT = n
+BDSP_AC3ENC_SUPPORT = n
+BDSP_DDP_PASSTHRU_SUPPORT = n
+BDSP_AC3_PASSTHRU_SUPPORT = n
+BDSP_AACSBR_PASSTHRU_SUPPORT ?= y
+BDSP_UDC_PASSTHRU_SUPPORT = y
+
+ifeq ($(BDSP_MS12_SUPPORT),y)
+BDSP_MS12_SUPPORT = B
+endif
+
+ifeq ($(BDSP_MS12_SUPPORT),A)
+	BDSP_DEFINES += BDSP_MS12_SUPPORT=65
+else ifeq ($(BDSP_MS12_SUPPORT),a)
+	BDSP_DEFINES += BDSP_MS12_SUPPORT=65
+else ifeq ($(BDSP_MS12_SUPPORT),B)
+	BDSP_DEFINES += BDSP_MS12_SUPPORT=66
+else ifeq ($(BDSP_MS12_SUPPORT),b)
+	BDSP_DEFINES += BDSP_MS12_SUPPORT=66
+else ifeq ($(BDSP_MS12_SUPPORT),C)
+	BDSP_DEFINES += BDSP_MS12_SUPPORT=67
+else ifeq ($(BDSP_MS12_SUPPORT),c)
+	BDSP_DEFINES += BDSP_MS12_SUPPORT=67
+else ifeq ($(BDSP_MS12_SUPPORT),D)
+	BDSP_DEFINES += BDSP_MS12_SUPPORT=68
+else ifeq ($(BDSP_MS12_SUPPORT),d)
+	BDSP_DEFINES += BDSP_MS12_SUPPORT=68
+else
+	BDSP_DEFINES += BDSP_MS12_SUPPORT=67
+endif
+endif
 
 #
 #DDP Passthrough
@@ -143,55 +222,10 @@ BDSP_DEFINES += BDSP_AACSBR_PASSTHRU_SUPPORT
 BDSP_IMG_SOURCES += $(BDSP_AACSBR_PASSTHRU_SOURCES)
 endif
 
-#
-#MS12 not Support for Raaga Lite Chips
-ifeq ($(BDSP_RAAGA_FP_VER),fp2008)
-BDSP_MS12_SUPPORT = n
-endif
-
-ifneq ($(filter $(BDSP_MS12_SUPPORT),A B C D Y a b c d y),)
-BDSP_UDC_SUPPORT = y
-BDSP_DPCMR_SUPPORT = y
-BDSP_DDPENC_SUPPORT = y
-BDSP_MIXERDAPV2_SUPPORT = y
-BDSP_DOLBY_AACHE_SUPPORT = y
-BDSP_MS10_SUPPORT = n
-BDSP_MS11_SUPPORT = n
-BDSP_AACSBR_SUPPORT = n
-BDSP_DDP_SUPPORT = n
-BDSP_AC3_SUPPORT = n
-BDSP_DDRE_SUPPORT = n
-BDSP_AC3ENC_SUPPORT = n
-BDSP_AACSBR_PASSTHRU_SUPPORT ?= y
-BDSP_UDC_PASSTHRU_SUPPORT ?= y
-
-ifeq ($(BDSP_MS12_SUPPORT),y)
-BDSP_MS12_SUPPORT = B
-endif
-
-ifeq ($(BDSP_MS12_SUPPORT),A)
-	BDSP_DEFINES += BDSP_MS12_SUPPORT=65
-else ifeq ($(BDSP_MS12_SUPPORT),a)
-	BDSP_DEFINES += BDSP_MS12_SUPPORT=65
-else ifeq ($(BDSP_MS12_SUPPORT),B)
-	BDSP_DEFINES += BDSP_MS12_SUPPORT=66
-else ifeq ($(BDSP_MS12_SUPPORT),b)
-	BDSP_DEFINES += BDSP_MS12_SUPPORT=66
-else ifeq ($(BDSP_MS12_SUPPORT),C)
-	BDSP_DEFINES += BDSP_MS12_SUPPORT=67
-else ifeq ($(BDSP_MS12_SUPPORT),c)
-	BDSP_DEFINES += BDSP_MS12_SUPPORT=67
-else ifeq ($(BDSP_MS12_SUPPORT),D)
-	BDSP_DEFINES += BDSP_MS12_SUPPORT=68
-else ifeq ($(BDSP_MS12_SUPPORT),d)
-	BDSP_DEFINES += BDSP_MS12_SUPPORT=68
-else
-	BDSP_DEFINES += BDSP_MS12_SUPPORT=67
-endif
-endif
 
 ifeq ($(BDSP_MS12_SUPPORT),n)
 BDSP_UDC_SUPPORT = n
+BDSP_AC4_SUPPORT = n
 BDSP_DPCMR_SUPPORT = n
 BDSP_DDPENC_SUPPORT = n
 BDSP_DOLBY_AACHE_SUPPORT = n
@@ -258,7 +292,6 @@ endif
 ifeq ($(BDSP_DDP_SUPPORT),y)
 BDSP_DEFINES += BDSP_DDP_SUPPORT
 BDSP_DEFINES += BDSP_AC3_SUPPORT
-BDSP_DEFINES += BDSP_DDP_PASSTHRU_SUPPORT
 BDSP_IMG_SOURCES += $(BDSP_DDP_SOURCES)
 endif
 
@@ -281,7 +314,6 @@ endif
 
 ifeq ($(BDSP_AC3_SUPPORT),y)
 BDSP_DEFINES += BDSP_AC3_SUPPORT
-BDSP_DEFINES += BDSP_AC3_PASSTHRU_SUPPORT
 BDSP_IMG_SOURCES += $(BDSP_AC3_SOURCES)
 endif
 endif
@@ -304,7 +336,6 @@ endif
 
 ifeq ($(BDSP_AACSBR_SUPPORT),y)
 BDSP_DEFINES += BDSP_AACSBR_SUPPORT
-BDSP_DEFINES += BDSP_AACSBR_PASSTHRU_SUPPORT
 BDSP_IMG_SOURCES += $(BDSP_AACSBR_SOURCES)
 endif
 
@@ -344,7 +375,6 @@ endif
 
 ifeq ($(BDSP_MPEG_SUPPORT),y)
 BDSP_DEFINES += BDSP_MPEG_SUPPORT
-BDSP_DEFINES += BDSP_MPEG_PASSTHRU_SUPPORT
 BDSP_IMG_SOURCES += $(BDSP_MPEG_SOURCES)
 endif
 
@@ -438,7 +468,6 @@ endif
 
 ifeq ($(BDSP_DTSHD_SUPPORT),y)
 BDSP_DEFINES += BDSP_DTSHD_SUPPORT
-BDSP_DEFINES += BDSP_DTSHD_PASSTHRU_SUPPORT
 BDSP_IMG_SOURCES += $(BDSP_DTSHD_SOURCES)
 endif
 
@@ -478,7 +507,6 @@ endif
 
 ifeq ($(BDSP_DTSLBR_SUPPORT),y)
 BDSP_DEFINES += BDSP_DTSLBR_SUPPORT
-BDSP_DEFINES += BDSP_DTSLBR_PASSTHRU_SUPPORT
 BDSP_IMG_SOURCES += $(BDSP_DTSLBR_SOURCES)
 endif
 
@@ -515,7 +543,6 @@ endif
 
 ifeq ($(BDSP_DTSBROADCAST_SUPPORT),y)
 BDSP_DEFINES += BDSP_DTSBROADCAST_SUPPORT
-BDSP_DEFINES += BDSP_DTSBROADCAST_PASSTHRU_SUPPORT
 ifneq ($(BDSP_DTSHD_SUPPORT),y)
 BDSP_IMG_SOURCES += $(BDSP_DTSBROADCAST_SOURCES)
 endif
@@ -572,7 +599,6 @@ endif
 
 ifeq ($(BDSP_DRA_SUPPORT),y)
 BDSP_DEFINES += BDSP_DRA_SUPPORT
-BDSP_DEFINES += BDSP_DRA_PASSTHRU_SUPPORT
 BDSP_IMG_SOURCES += $(BDSP_DRA_SOURCES)
 endif
 
@@ -790,18 +816,19 @@ endif
 #
 #ALS DECODE
 #
-ifneq ($(BDSP_ALSDEC_SUPPORT),n)
-BDSP_ALSDEC_SOURCES := \
+ifneq ($(BDSP_ALS_SUPPORT),n)
+BDSP_ALS_SOURCES := \
+	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_aids_als.c \
 	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_adec_als.c
 
-ifneq ($(wildcard $(BDSP_ALSDEC_SOURCES)),)
-BDSP_ALSDEC_SUPPORT ?= $(BDSP_DEFAULT_ALGO_SUPPORT)
+ifneq ($(wildcard $(BDSP_ALS_SOURCES)),)
+BDSP_ALS_SUPPORT ?= $(BDSP_DEFAULT_ALGO_SUPPORT)
 endif
 endif
 
-ifeq ($(BDSP_ALSDEC_SUPPORT),y)
-BDSP_DEFINES += BDSP_ALSDEC_SUPPORT
-BDSP_IMG_SOURCES += $(BDSP_ALSDEC_SOURCES)
+ifeq ($(BDSP_ALS_SUPPORT),y)
+BDSP_DEFINES += BDSP_ALS_SUPPORT
+BDSP_IMG_SOURCES += $(BDSP_ALS_SOURCES)
 endif
 
 #
@@ -934,18 +961,32 @@ BDSP_IMG_SOURCES += $(BDSP_ISAC_SOURCES)
 endif
 
 
+#
+#UDC Passthrough
+#
+ifneq ($(BDSP_UDC_PASSTHRU_SUPPORT),n)
+BDSP_UDC_PASSTHRU_SOURCES := \
+	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_aids_udc.c
+
+ifneq ($(wildcard $(BDSP_UDC_PASSTHRU_SOURCES)),)
+BDSP_UDC_PASSTHRU_SUPPORT ?= $(BDSP_DEFAULT_ALGO_SUPPORT)
+endif
+endif
+
+ifeq ($(BDSP_UDC_PASSTHRU_SUPPORT),y)
+BDSP_DEFINES += BDSP_UDC_PASSTHRU_SUPPORT
+BDSP_IMG_SOURCES += $(BDSP_UDC_PASSTHRU_SOURCES)
+endif
 
 #
 #UDC DECODE
 #
 ifneq ($(BDSP_UDC_SUPPORT),n)
 BDSP_UDC_SOURCES := \
-	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_adec_udc.c \
-	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_aids_udc.c
+	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_adec_udc.c
 endif
 ifeq ($(BDSP_UDC_SUPPORT),y)
 BDSP_DEFINES += BDSP_UDC_SUPPORT
-BDSP_DEFINES += BDSP_UDC_PASSTHRU_SUPPORT
 BDSP_IMG_SOURCES += $(BDSP_UDC_SOURCES)
 endif
 
@@ -962,6 +1003,18 @@ BDSP_DEFINES += BDSP_DOLBY_AACHE_SUPPORT
 BDSP_IMG_SOURCES += $(BDSP_DOLBY_AACHE_SOURCES)
 endif
 
+#
+#AC4 DECODE
+#
+ifneq ($(BDSP_AC4_SUPPORT),n)
+BDSP_AC4_SOURCES := \
+	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_adec_ac4.c \
+	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_aids_ac4.c
+endif
+ifeq ($(BDSP_AC4_SUPPORT),y)
+BDSP_DEFINES += BDSP_AC4_SUPPORT
+BDSP_IMG_SOURCES += $(BDSP_AC4_SOURCES)
+endif
 #################################################################
 #		ADD VIDEO ALGORITHM SUPPORT			#
 #################################################################
@@ -1005,21 +1058,6 @@ BDSP_DEFINES += BDSP_H264_ENCODE_SUPPORT
 BDSP_IMG_SOURCES += $(BDSP_H264_ENCODE_SOURCES)
 endif
 #
-#VP8 ENCODE
-#
-ifneq ($(BDSP_VP8_ENCODE_SUPPORT),n)
-BDSP_VP8_ENCODE_SOURCES := \
-	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_venc_vp8.c
-
-ifneq ($(wildcard $(BDSP_VP8_ENCODE_SOURCES)),)
-BDSP_VP8_ENCODE_SUPPORT ?= n
-endif
-endif
-
-ifeq ($(BDSP_VP8_ENCODE_SUPPORT),y)
-BDSP_DEFINES += BDSP_VP8_ENCODE_SUPPORT
-BDSP_IMG_SOURCES += $(BDSP_VP8_ENCODE_SOURCES)
-endif
 #X264 ENCODE
 #
 ifneq ($(BDSP_X264_ENCODE_SUPPORT),n)
@@ -1033,6 +1071,20 @@ ifeq ($(BDSP_X264_ENCODE_SUPPORT),y)
 BDSP_DEFINES += BDSP_X264_ENCODE_SUPPORT
 BDSP_IMG_SOURCES += $(BDSP_X264_ENCODE_SOURCES)
 endif
+#XVP8 ENCODE
+#
+ifneq ($(BDSP_XVP8_ENCODE_SUPPORT),n)
+BDSP_XVP8_ENCODE_SOURCES := \
+	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_venc_xvp8.c
+ifneq ($(wildcard $(BDSP_XVP8_ENCODE_SOURCES)),)
+BDSP_XVP8_ENCODE_SUPPORT ?= $(BDSP_3RDPARTY_ALGO_SUPPORT)
+endif
+endif
+ifeq ($(BDSP_XVP8_ENCODE_SUPPORT),y)
+BDSP_DEFINES += BDSP_XVP8_ENCODE_SUPPORT
+BDSP_IMG_SOURCES += $(BDSP_XVP8_ENCODE_SOURCES)
+endif
+
 #
 #################################################################
 #		ADD POST PROCESSING SUPPORT			#
@@ -1623,4 +1675,8 @@ endif
 ifneq ($(BDSP_IMG_EXTERNAL),y)
 BDSP_DEFINES += BDSP_IMG_SUPPORT=1
 BDSP_SOURCES += $(BDSP_IMG_SOURCES)
+endif
+
+ifeq ($(BDSP_DOLBY_DCV_SUPPORT),y)
+	BDSP_DEFINES += BDSP_DOLBY_DCV_SUPPORT
 endif

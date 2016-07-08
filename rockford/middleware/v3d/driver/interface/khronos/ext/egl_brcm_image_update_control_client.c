@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2008 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2008 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -20,6 +20,8 @@ Client-side implementation of the EGL_BRCM_image_update_control extension.
 #include "interface/khronos/include/EGL/eglext.h"
 #include "interface/khronos/include/EGL/eglext_brcm.h"
 #include "interface/khronos/include/GLES/gl.h"
+
+#if EGL_BRCM_image_update_control
 
 #ifdef KHRONOS_CLIENT_LOGGING
 #include <stdio.h>
@@ -129,3 +131,5 @@ EGLAPI EGLBoolean EGLAPIENTRY eglImageUpdateParameteriBRCM(EGLDisplay dpy, EGLIm
    KHRONOS_CLIENT_LOG("eglImageUpdateParameteriBRCM image=%d.\n", (int)image);
    return ProcessCall(dpy, image, pname, &param);
 }
+
+#endif

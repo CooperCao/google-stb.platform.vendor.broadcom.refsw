@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * Module Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 #ifndef NEXUS_PLATFORM_FEATURES_H__
@@ -78,11 +70,9 @@
     #define NEXUS_NUM_I2S_INPUTS 1
 #endif
 #define NEXUS_NUM_I2S_OUTPUTS 1
-#define NEXUS_NUM_AUDIO_CAPTURES 1
 #define NEXUS_NUM_AUDIO_PLAYBACKS 2
 #define NEXUS_NUM_AUDIO_RETURN_CHANNEL   1
 #define NEXUS_HAS_AUDIO_MUX_OUTPUT 1
-#define NEXUS_NUM_AUDIO_CRCS 2
 
 /* Display Features */
 #if (NEXUS_PLATFORM == 97428) || (NEXUS_PLATFORM == 974285)
@@ -114,24 +104,24 @@ upon the chip usage. See below */
 #define NEXUS_DVB_CI_MEMORY_LENGTH (1024*1024)
 
 /* Front end options */
-#if NEXUS_FRONTEND_DOCSIS
+#if defined NEXUS_FRONTEND_DOCSIS
     #define NEXUS_MAX_FRONTENDS (16 + 1 + 1)  /* ds+oob+upstream */
-#elif NEXUS_FRONTEND_3383
+#elif defined NEXUS_FRONTEND_3383
     #define NEXUS_MAX_FRONTENDS 9 /* 3383 can support 8 downstream */
     #define NEXUS_MAX_3255_ADSCHN 8
-#elif NEXUS_PLATFORM_7241_T2SFF
+#elif defined NEXUS_PLATFORM_7241_T2SFF
     #define NEXUS_MAX_FRONTENDS 4
     #define NEXUS_SHARED_FRONTEND_INTERRUPT 1
     #ifdef USE_SPI_FRONTEND
         /* SPI Channels */
         #define NEXUS_NUM_SPI_CHANNELS 2
     #endif
-#elif NEXUS_USE_FRONTEND_DAUGHTER_CARD
+#elif defined NEXUS_USE_FRONTEND_DAUGHTER_CARD
     #define NEXUS_MAX_FRONTENDS 9
     #define NEXUS_NUM_FRONTEND_CARD_SLOTS 1
-#elif NEXUS_PLATFORM_7241_DCSFBTSFF
+#elif defined NEXUS_PLATFORM_7241_DCSFBTSFF
     #define NEXUS_MAX_FRONTENDS 8
-#elif NEXUS_FRONTEND_4506
+#elif defined NEXUS_FRONTEND_4506
     #define NEXUS_MAX_FRONTENDS 2
 #else
     #define NEXUS_MAX_FRONTENDS 1 /* 0 can lead to empty arrays */

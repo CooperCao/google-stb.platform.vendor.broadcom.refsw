@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -11,7 +11,7 @@
  * Software and all intellectual property rights therein.  IF YOU HAVE NO
  * AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
  * AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
- * SOFTWARE.  
+ * SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
@@ -64,8 +64,8 @@ static void CompileShader(GLuint shader)
       glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &size);
 
       vector<char> err(size);
-      glGetShaderInfoLog(shader, size, nullptr, &err[0]);
-      
+      glGetShaderInfoLog(shader, size, NULL, &err[0]);
+
       BSG_THROW("Shader compile failed: " << &err[0]);
    }
 }
@@ -85,7 +85,7 @@ static void LinkProgram(GLint program)
       if (size > 0)
       {
          vector<char> err(size);
-         glGetProgramInfoLog(program, size, nullptr, &err[0]);
+         glGetProgramInfoLog(program, size, NULL, &err[0]);
 
          BSG_THROW("Program link failed: " <<  &err[0]);
       }
@@ -96,7 +96,7 @@ static void LinkProgram(GLint program)
 
 static void ShaderSource(GLuint shader, const char *src)
 {
-   glShaderSource(shader, 1, &src, nullptr);
+   glShaderSource(shader, 1, &src, NULL);
 }
 
 
@@ -151,7 +151,7 @@ void GLProgram::SetPrograms(const string &vert, const string &frag, const std::v
    }
 }
 
-GLProgram::~GLProgram() 
+GLProgram::~GLProgram()
 {
    Finish();
 }
@@ -189,7 +189,7 @@ GLint GLProgram::GetUniformLocation(const string &name) const
 {
    GLint loc = -1;
 
-   auto iter = m_uniformLocs.find(name);
+   map<string, GLint>::iterator iter = m_uniformLocs.find(name);
    if (iter != m_uniformLocs.end())
    {
       loc = iter->second;
@@ -207,7 +207,7 @@ GLint GLProgram::GetAttribLocation(const string &name) const
 {
    GLint loc = -1;
 
-   auto iter = m_attribLocs.find(name);
+   map<string, GLint>::iterator iter = m_attribLocs.find(name);
    if (iter != m_attribLocs.end())
    {
       loc = iter->second;

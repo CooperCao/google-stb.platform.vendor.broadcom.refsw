@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2010 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2010 Broadcom.
 All rights reserved.
 
 Project  :  Default Android platform API for EGL driver
@@ -13,7 +13,7 @@ DESC
 #include "private_android.h"
 #include "display_android.h"
 
-#include "memory_nexus.h"
+#include "memory_android.h"
 #include "sched_android.h"
 
 #include <EGL/egl.h>
@@ -34,9 +34,9 @@ void RSOANPL_RegisterAndroidDisplayPlatform(RSOANPL_PlatformHandle *handle, ANat
 
    if (platform != NULL)
    {
-      platform->memoryInterface = CreateMemoryInterface();
+      platform->memoryInterface = CreateAndroidMemoryInterface();
       platform->schedInterface = CreateAndroidSchedInterface(platform->memoryInterface);
-      platform->displayInterface = CreateDisplayInterface(platform->schedInterface);
+      platform->displayInterface = CreateAndroidDisplayInterface(platform->schedInterface);
 
       *handle = (RSOANPL_PlatformHandle)platform;
 
@@ -65,8 +65,8 @@ void RSOANPL_UnregisterAndroidDisplayPlatform(RSOANPL_PlatformHandle handle)
       BEGL_RegisterMemoryInterface(NULL);
       BEGL_RegisterSchedInterface(NULL);
 
-      DestroyDisplayInterface(data->displayInterface);
-      DestroyMemoryInterface(data->memoryInterface);
+      DestroyAndroidDisplayInterface(data->displayInterface);
+      DestroyAndroidMemoryInterface(data->memoryInterface);
       DestroyAndroidSchedInterface(data->schedInterface);
 
       memset(data, 0, sizeof(ANPL_InternalPlatformHandle));

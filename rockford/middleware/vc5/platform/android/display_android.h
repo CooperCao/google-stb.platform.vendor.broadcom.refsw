@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2010 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2010 Broadcom.
 All rights reserved.
 
 Project  :  Default Android platform API for EGL driver
@@ -21,8 +21,8 @@ extern "C" {
 struct BEGL_DisplayInterface;
 struct BEGL_SchedInterface;
 
-struct BEGL_DisplayInterface *CreateDisplayInterface(struct BEGL_SchedInterface *schedIface);
-void DestroyDisplayInterface(struct BEGL_DisplayInterface *disp);
+struct BEGL_DisplayInterface *CreateAndroidDisplayInterface(struct BEGL_SchedInterface *schedIface);
+void DestroyAndroidDisplayInterface(struct BEGL_DisplayInterface *disp);
 
 #ifdef __cplusplus
 }

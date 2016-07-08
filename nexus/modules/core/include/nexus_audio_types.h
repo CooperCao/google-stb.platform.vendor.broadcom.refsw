@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
-*  
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -9,43 +9,35 @@
 *  Software, and Broadcom expressly reserves all rights in and to the Software and all
 *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
 *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.  
-*   
+*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*
 *  Except as expressly set forth in the Authorized License,
-*   
+*
 *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
 *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
 *  and to use this information only in connection with your use of Broadcom integrated circuit products.
-*   
-*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS" 
-*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR 
-*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO 
-*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES 
-*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE, 
-*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION 
-*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF 
+*
+*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
 *  USE OR PERFORMANCE OF THE SOFTWARE.
-*  
-*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS 
-*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR 
-*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR 
-*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF 
-*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT 
-*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE 
-*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF 
+*
+*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
-* 
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
 *
 * API Description:
 *   API name: Base
 *
-* Revision History:
-*
-* $brcm_Log: $
-* 
 ***************************************************************************/
 #ifndef NEXUS_AUDIO_TYPES_H
 #define NEXUS_AUDIO_TYPES_H
@@ -59,7 +51,7 @@ extern "C"
 Summary:
 Audio codecs
 ***************************************************************************/
-typedef enum NEXUS_AudioCodec 
+typedef enum NEXUS_AudioCodec
 {
     NEXUS_AudioCodec_eUnknown = 0,    /* unknown/not supported audio format */
     NEXUS_AudioCodec_eMpeg,           /* MPEG1/2, layer 1/2. This does not support layer 3 (mp3). */
@@ -80,8 +72,8 @@ typedef enum NEXUS_AudioCodec
     NEXUS_AudioCodec_eWmaStd,         /* WMA Standard */
     NEXUS_AudioCodec_eWmaStdTs,       /* WMA Standard with a 24-byte extended header */
     NEXUS_AudioCodec_eWmaPro,         /* WMA Professional */
-    NEXUS_AudioCodec_eAvs,            /* AVS */ 
-    NEXUS_AudioCodec_ePcm,            /* PCM audio - Generally used only with inputs such as SPDIF or HDMI. */ 
+    NEXUS_AudioCodec_eAvs,            /* AVS */
+    NEXUS_AudioCodec_ePcm,            /* PCM audio - Generally used only with inputs such as SPDIF or HDMI. */
     NEXUS_AudioCodec_ePcmWav,         /* PCM audio with Wave header - Used with streams containing PCM audio */
     NEXUS_AudioCodec_eAmrNb,          /* Adaptive Multi-Rate compression (Narrow-Band, typically used w/3GPP) */
     NEXUS_AudioCodec_eAmr=NEXUS_AudioCodec_eAmrNb,
@@ -99,13 +91,14 @@ typedef enum NEXUS_AudioCodec
     NEXUS_AudioCodec_eG723_1,         /* G.723.1 Dual Rate Speech Coder for Multimedia Communications.  Used in H.324 and 3GPP 3G-324M.  This is different from G.723, which was superceded by G.726. */
     NEXUS_AudioCodec_eG726,           /* G.726 ADPCM speech codec.  Supercedes G.723 and G.721. */
     NEXUS_AudioCodec_eG729,           /* G.729 CS-ACELP speech codec.  Often used in VOIP applications. */
-    NEXUS_AudioCodec_eFlac,           /* Free Lossless Audio Codec (see http://flac.sourceforge.net) */ 
+    NEXUS_AudioCodec_eFlac,           /* Free Lossless Audio Codec (see http://flac.sourceforge.net) */
     NEXUS_AudioCodec_eMlp,            /* Meridian Lossless Packing (Used in Dolby TrueHD) */
     NEXUS_AudioCodec_eApe,            /* Monkey's Audio (see http://www.monkeysaudio.com/) */
     NEXUS_AudioCodec_eIlbc,           /* Internet Low Bitrate Codec (see http://www.webrtc.org/ilbc-freeware)*/
     NEXUS_AudioCodec_eIsac,           /* Internet Speech Audio Codec */
     NEXUS_AudioCodec_eOpus,           /* Opus Audio Codec */
     NEXUS_AudioCodec_eAls,            /* MPEG-4 Audio Lossless Codec */
+    NEXUS_AudioCodec_eAc4,            /* AC-4 Audio Codec */
     NEXUS_AudioCodec_eMax
 } NEXUS_AudioCodec;
 
@@ -119,7 +112,7 @@ typedef enum NEXUS_AudioConnectorType
     NEXUS_AudioConnectorType_eMultichannel,     /* Multichannel (5.1/7.1) PCM output */
     NEXUS_AudioConnectorType_eCompressed,       /* Compressed IEC-61937 audio up to 48 kHz for SPDIF/HDMI applications.  */
     NEXUS_AudioConnectorType_eCompressed4x,     /* Compressed IEC-61937 audio for HDMI up to 192kHz.  Typically used for AC3+ and DTS-HD HRA audio formats. */
-    NEXUS_AudioConnectorType_eCompressed16x,    /* Compressed IEC-61937 audio for HDMI HBR packets up to 768kHz.  Typically used for MAT/MLP (Dolby TrueHD) 
+    NEXUS_AudioConnectorType_eCompressed16x,    /* Compressed IEC-61937 audio for HDMI HBR packets up to 768kHz.  Typically used for MAT/MLP (Dolby TrueHD)
                                                    and DTS-HD MA audio formats.  Available in HDMI 1.3 and later. */
     NEXUS_AudioConnectorType_eMono,             /* Mono (1.0) PCM output.  This data type is not commonly used, and is generally only for voice conferencing applications. */
     NEXUS_AudioConnectorType_eMax
@@ -208,11 +201,11 @@ typedef enum NEXUS_AudioMonoChannelMode
 Summary:
     Audio  Mode
 Description:
-    Selects the audio channel mode 
+    Selects the audio channel mode
 ***************************************************************************/
 typedef enum NEXUS_AudioMode
 {
-    NEXUS_AudioMode_eAuto,     
+    NEXUS_AudioMode_eAuto,
     NEXUS_AudioMode_e1_0,
     NEXUS_AudioMode_e1_1,
     NEXUS_AudioMode_e2_0,
@@ -251,19 +244,44 @@ typedef struct NEXUS_AudioRawChannelStatus
 
 /**
 Summary:
-NEXUS_AudioInput is an abstract connector token for routing audio from a source. 
+Audio channel status used in HDMI and SPDIF outputs
+**/
+typedef struct NEXUS_AudioChannelStatusInfo
+{
+    bool           professionalMode;    /* [0:0] The professional mode flag.
+                                            TRUE: Professional mode. Other user
+                                            options will not be considered.
+                                            FALSE: Consumer mode.*/
+    bool           swCopyRight;         /* [2:2] Software CopyRight assert.
+                                            TRUE: CopyRight is asserted
+                                            FALSE: CopyRight is not asserted */
+    uint16_t       categoryCode;        /* [8:15] Category Code */
+    uint16_t       clockAccuracy;       /* [28:29] Clock Accuracy */
+    bool           separateLRChanNum;   /* TRUE:  Left channel num = 0000
+                                                  Right Channel Num = 0000
+                                           FALSE: Left channel num = 1000
+                                                  Right Channel Num = 0100 */
+    uint8_t        cgmsA;               /* CGMS-A copy bits.  Only supported for SPDIF.
+                                           Typical values are
+                                           0=Copy Freely 1=Copy Once
+                                           2=Reserved 3=Copy Never */
+} NEXUS_AudioChannelStatusInfo;
+
+/**
+Summary:
+NEXUS_AudioInput is an abstract connector token for routing audio from a source.
 
 Description:
 See Also:
 NEXUS_AudioDecoder_GetConnector
 NEXUS_HdmiInput_GetAudioConnector
 NEXUS_SpdifInput_GetConnector
-**/ 
+**/
 typedef struct NEXUS_AudioInputObject *NEXUS_AudioInput;
 
 /**
 Summary:
-NEXUS_AudioOutput is an abstract connector token for routing audio to a source. 
+NEXUS_AudioOutput is an abstract connector token for routing audio to a source.
 
 Description:
 See Also:
@@ -306,27 +324,27 @@ typedef enum NEXUS_EchoCancellerAlgorithm
 
 /***************************************************************************
 Summary:
-Audio PLL Selection 
+Audio PLL Selection
 
-Description: 
-Many audio outputs require a PLL to generate their clock.  By default, 
-all outputs will use the PLL0, unless 1) a different "defaultPll" has been 
-specified in the NEXUS_AudioModuleSettings.defaultPll during the call to 
-NEXUS_AudioModule_Init(), or 2) the PLL used by an output has been 
-specifed in the NEXUS_AudioOutputSettings for that output.  You 
-will need to use multiple PLLs if you have outputs that require different 
-sampling rates from one another.  For example, if you have a decoder 
-outputting 48kHz on I2S and another decoder outputting 44.1kHz on SPDIF, 
-you must use separate PLLs for the two outputs.  If both use the same 
-sampling rate, they can share the PLL. There are also cases where sampling 
-rates that are multiples of one another can share a PLL (e.g. Dolby Digital 
-Plus passthrough with simultaneous AC3 conversion). 
- 
-All outputs connected to the same source must share the same PLL.  You can 
-not use multiple PLLs with a single source. 
- 
-Currently, DACs and RFM do not require a PLL.  I2S and SPDIF do 
-require one. HDMI, DummyOutput, and OutputCapture outputs may use either 
+Description:
+Many audio outputs require a PLL to generate their clock.  By default,
+all outputs will use the PLL0, unless 1) a different "defaultPll" has been
+specified in the NEXUS_AudioModuleSettings.defaultPll during the call to
+NEXUS_AudioModule_Init(), or 2) the PLL used by an output has been
+specifed in the NEXUS_AudioOutputSettings for that output.  You
+will need to use multiple PLLs if you have outputs that require different
+sampling rates from one another.  For example, if you have a decoder
+outputting 48kHz on I2S and another decoder outputting 44.1kHz on SPDIF,
+you must use separate PLLs for the two outputs.  If both use the same
+sampling rate, they can share the PLL. There are also cases where sampling
+rates that are multiples of one another can share a PLL (e.g. Dolby Digital
+Plus passthrough with simultaneous AC3 conversion).
+
+All outputs connected to the same source must share the same PLL.  You can
+not use multiple PLLs with a single source.
+
+Currently, DACs and RFM do not require a PLL.  I2S and SPDIF do
+require one. HDMI, DummyOutput, and OutputCapture outputs may use either
 a PLL or an NCO clock source.
 ***************************************************************************/
 typedef enum
@@ -340,23 +358,23 @@ typedef enum
 
 /***************************************************************************
 Summary:
-Audio NCO Selection 
- 
-Description: 
+Audio NCO Selection
+
+Description:
 Some audio outputs (that do not require a PLL) can use an NCO (Mclkgen)
-oscillator to generate their clock.  By default, audio outputs will never 
-use an NCO, but an NCO can be explicitly assigned to one or more outputs. 
-As with PLLs, you will need to use multiple NCOs if you have outputs that 
+oscillator to generate their clock.  By default, audio outputs will never
+use an NCO, but an NCO can be explicitly assigned to one or more outputs.
+As with PLLs, you will need to use multiple NCOs if you have outputs that
 require different sampling rates from one another.
- 
-If any output uses an NCO, then all other outputs connected to the same 
-source must share the same NCO.  You can not use multiple NCOs (or mix NCOs 
-and PLLs) with a single source. 
- 
-Currently, NCOs should only be used for HDMI, DummyOutput, and 
-OutputCapture outputs.  NCO clocks are not adequate for I2S, and SPDIF 
-outputs, which require a PLL clock source. DACs and RFM outputs will 
-always use the DAC's internal rate manager as their clock source. 
+
+If any output uses an NCO, then all other outputs connected to the same
+source must share the same NCO.  You can not use multiple NCOs (or mix NCOs
+and PLLs) with a single source.
+
+Currently, NCOs should only be used for HDMI, DummyOutput, and
+OutputCapture outputs.  NCO clocks are not adequate for I2S, and SPDIF
+outputs, which require a PLL clock source. DACs and RFM outputs will
+always use the DAC's internal rate manager as their clock source.
 
 Note: Not all chips have an NCO (Mclkgen) clock source available.
 ***************************************************************************/
@@ -375,8 +393,8 @@ Summary:
 Burst Settings for SPDIF/HDMI
 
 Description:
-Options to configure Pause, Null or no bursts when HDMI/SPDIF interfaces 
-underflow.  Bursts are designed to keep a downstream receiver engaged 
+Options to configure Pause, Null or no bursts when HDMI/SPDIF interfaces
+underflow.  Bursts are designed to keep a downstream receiver engaged
 so that when audio resumes no content is lost.
 ***************************************************************************/
 typedef enum NEXUS_SpdifOutputBurstType
@@ -443,9 +461,40 @@ typedef enum NEXUS_AudioPostProcessing
     NEXUS_AudioPostProcessing_eMax
 } NEXUS_AudioPostProcessing;
 
+/***************************************************************************
+Summary:
+Audio Loudness Device Mode
+**************************************************************************/
+typedef enum NEXUS_AudioLoudnessDeviceMode
+{
+    NEXUS_AudioLoudnessDeviceMode_eAuto,    /* Depending on the output and possibly EDID device mode may change */
+    NEXUS_AudioLoudnessDeviceMode_eActive,  /* Output will always be treated as an active output */
+    NEXUS_AudioLoudnessDeviceMode_ePassive, /* Output will always be treated as a passive output */
+    NEXUS_AudioLoudnessDeviceMode_eMax
+} NEXUS_AudioLoudnessDeviceMode;
+
+/***************************************************************************
+Summary:
+Audio Volume Settings
+**************************************************************************/
+typedef struct NEXUS_AudioMixerInputSettings
+{
+    int32_t volumeMatrix[NEXUS_AudioChannel_eMax][NEXUS_AudioChannel_eMax]; /* Entries in this table reflect the contribution into an output channel from input
+                                                                               channels.  The first index is the output channel and the second index is the input
+                                                                               channel.  Default is to have NEXUS_AUDIO_VOLUME_LINEAR_NORMAL for each [n][n]
+                                                                               coefficient and NEXUS_AUDIO_VOLUME_LINEAR_MIN for all others.  This maps input
+                                                                               channels to the same output channel with no scaling.  You can achieve effects such
+                                                                               as a mono mix with these coefficients if desired by setting [Left][Left] to
+                                                                               NEXUS_AUDIO_VOLUME_LINEAR_NORMAL/2 and [Left][Right] to NEXUS_AUDIO_VOLUME_LINEAR_NORMAL/2,
+                                                                               etc.  Mixing is only permitted between channels in the same channel pair, so for example
+                                                                               you can blend left and right, but not left and center.  Values are ignored for
+                                                                               compressed inputs. */
+
+    bool muted;     /* Mute if true */
+} NEXUS_AudioMixerInputSettings;
+
 #ifdef __cplusplus
 }
 #endif
 
 #endif /* NEXUS_AUDIO_TYPES_H */
-

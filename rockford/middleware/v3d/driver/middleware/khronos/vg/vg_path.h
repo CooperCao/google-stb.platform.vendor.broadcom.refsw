@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2008 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2008 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -99,7 +99,7 @@ extern bool vg_path_read_immediate(VG_PATH_T *path, VG_PATH_RW_T rw);
 extern bool vg_path_write_immediate(VG_PATH_T *path, VG_PATH_RW_T rw);
 
 extern bool vg_path_are_bounds_valid(VG_PATH_T *path);
-extern bool vg_path_read_tight_bounds_immediate(MEM_HANDLE_T handle, VG_PATH_T *path);
+extern bool vg_path_read_tight_bounds_immediate(VG_PATH_T *path);
 
 extern bool vg_path_clear(VG_PATH_T *path);
 extern VGErrorCode vg_path_interpolate(
@@ -108,8 +108,8 @@ extern VGErrorCode vg_path_interpolate(
    MEM_HANDLE_T end_handle, VG_PATH_T *end,
    float t);
 
-extern bool vg_path_get_length(MEM_HANDLE_T handle, VG_PATH_T *path, float *length, uint32_t segments_i, uint32_t segments_count);
-extern bool vg_path_get_p_t_along(MEM_HANDLE_T handle, VG_PATH_T *path, float *p, float *t, uint32_t segments_i, uint32_t segments_count, float distance);
+extern bool vg_path_get_length(VG_PATH_T *path, float *length, uint32_t segments_i, uint32_t segments_count);
+extern bool vg_path_get_p_t_along(VG_PATH_T *path, float *p, float *t, uint32_t segments_i, uint32_t segments_count, float distance);
 
 typedef enum {
    VG_PATH_ELEMENT_CAPS = 1 << 0,

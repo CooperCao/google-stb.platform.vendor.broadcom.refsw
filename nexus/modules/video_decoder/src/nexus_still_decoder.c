@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2014 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #include "nexus_video_decoder_module.h"
@@ -203,9 +195,9 @@ static NEXUS_Error nexus_stilldecoder_p_outputbuffer(NEXUS_HwStillDecoderHandle 
         if (stillDecoder->refcnt > 1) {
             return BERR_TRACE(NEXUS_NOT_SUPPORTED);
         }
-        NEXUS_Module_Lock(g_NEXUS_videoDecoderModuleSettings.core);
+        NEXUS_Module_Lock(g_NEXUS_videoDecoderModuleInternalSettings.core);
         rc = NEXUS_MemoryBlock_BlockAndOffsetFromRange_priv(pSettings->output.buffer, pSettings->output.size, &stillDecoder->buffer.block, &offset);
-        NEXUS_Module_Unlock(g_NEXUS_videoDecoderModuleSettings.core);
+        NEXUS_Module_Unlock(g_NEXUS_videoDecoderModuleInternalSettings.core);
         if (rc) return BERR_TRACE(rc);
         NEXUS_OBJECT_ACQUIRE(stillDecoder->current, NEXUS_MemoryBlock, stillDecoder->buffer.block);
         stillDecoder->buffer.mem = NEXUS_MemoryBlock_GetBlock_priv(stillDecoder->buffer.block);
@@ -262,8 +254,8 @@ static NEXUS_HwStillDecoderHandle NEXUS_HwStillDecoder_P_Open_Avd(unsigned index
     rc = BXVD_GetBufferConfig(stillDecoder->device->xvd, &raveSettings.config, &pic_buf_length);
     raveSettings.config.Cdb.Length = pSettings->fifoSize;
     raveSettings.config.Itb.Length = pSettings->fifoSize / 10;
-    if (raveSettings.config.Itb.Length % 16) {
-        raveSettings.config.Itb.Length -= raveSettings.config.Itb.Length % 16;
+    if (raveSettings.config.Itb.Length % 128) {
+        raveSettings.config.Itb.Length -= raveSettings.config.Itb.Length % 128;
     }
     BKNI_Memcpy(raveSettings.supportedCodecs, pSettings->supportedCodecs, sizeof(raveSettings.supportedCodecs));
     raveSettings.heap = pSettings->cdbHeap;
@@ -648,15 +640,15 @@ NEXUS_Error NEXUS_StillDecoder_P_GetStripedSurface_Avd( NEXUS_StillDecoderHandle
             BKNI_LeaveCriticalSection();
 
             NEXUS_StripedSurface_GetDefaultCreateSettings(&createSettings);
-            NEXUS_Module_Lock(g_NEXUS_videoDecoderModuleSettings.core);
+            NEXUS_Module_Lock(g_NEXUS_videoDecoderModuleInternalSettings.core);
             createSettings.lumaBuffer = NEXUS_MemoryBlock_FromMma_priv(buffer.hLuminanceFrameBufferBlock);
-            NEXUS_Module_Unlock(g_NEXUS_videoDecoderModuleSettings.core);
+            NEXUS_Module_Unlock(g_NEXUS_videoDecoderModuleInternalSettings.core);
             if(createSettings.lumaBuffer==NULL) {
                 return BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
             }
-            NEXUS_Module_Lock(g_NEXUS_videoDecoderModuleSettings.core);
+            NEXUS_Module_Lock(g_NEXUS_videoDecoderModuleInternalSettings.core);
             createSettings.chromaBuffer = NEXUS_MemoryBlock_FromMma_priv(buffer.hChrominanceFrameBufferBlock);
-            NEXUS_Module_Unlock(g_NEXUS_videoDecoderModuleSettings.core);
+            NEXUS_Module_Unlock(g_NEXUS_videoDecoderModuleInternalSettings.core);
             if(createSettings.chromaBuffer==NULL) {
                 nexus_still_decoder_p_free_block(stillDecoder, createSettings.lumaBuffer);
                 return BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);

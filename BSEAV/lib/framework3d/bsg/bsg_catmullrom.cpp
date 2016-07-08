@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -11,7 +11,7 @@
  * Software and all intellectual property rights therein.  IF YOU HAVE NO
  * AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
  * AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
- * SOFTWARE.  
+ * SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
@@ -45,7 +45,7 @@
 namespace bsg
 {
 
-CatmullRomSpline::CatmullRomSpline(uint32_t estimationIters) : 
+CatmullRomSpline::CatmullRomSpline(uint32_t estimationIters) :
    m_totalLength(0.0f),
    m_endReplicated(false),
    m_startControl(0, 0, 0),
@@ -100,11 +100,11 @@ Vec3 CatmullRomSpline::EvaluateLocal(float t, uint32_t p1)
    float t3 = t2 * t;
 
    // Now evaluate the curve locally
-   Vec3 result = (m_points[p1] * 2.0f) + 
-      (m_points[p2] - m_points[p0]) * t + 
-      (m_points[p0] * 2.0f - m_points[p1] * 5.0f + m_points[p2] * 4.0f - m_points[p3]) * t2 + 
+   Vec3 result = (m_points[p1] * 2.0f) +
+      (m_points[p2] - m_points[p0]) * t +
+      (m_points[p0] * 2.0f - m_points[p1] * 5.0f + m_points[p2] * 4.0f - m_points[p3]) * t2 +
       (m_points[p3] - m_points[p0] + m_points[p1] * 3.0f - m_points[p2] * 3.0f) * t3;
-   
+
    result = result * 0.5f;
 
    return result;
@@ -139,7 +139,7 @@ Vec3 CatmullRomSpline::Evaluate(float t)
       float distALong = t * m_totalLength;
       float distToP1 = 0.0f;
       uint32_t p1;
-      
+
       for (p1 = 0; p1 < numLens; p1++)
       {
          distToP1 += m_lengths[p1];

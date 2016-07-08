@@ -1,0 +1,49 @@
+%{
+   #include <glsl_common.h>
+   #include <glsl_layout.h>
+%}
+
+%struct-type
+%language=ANSI-C
+%define hash-function-name   glsl_layout_hash
+%define lookup-function-name glsl_layout_lookup
+%readonly-tables
+
+struct layout_data;
+%%
+rgba32f,                      LQ_RGBA32F
+rgba16f,                      LQ_RGBA16F
+r32f,                         LQ_R32F
+rgba8,                        LQ_RGBA8
+rgba8_snorm,                  LQ_RGBA8_SNORM
+rgba32i,                      LQ_RGBA32I
+rgba16i,                      LQ_RGBA16I
+rgba8i,                       LQ_RGBA8I
+r32i,                         LQ_R32I
+rgba32ui,                     LQ_RGBA32UI
+rgba16ui,                     LQ_RGBA16UI
+rgba8ui,                      LQ_RGBA8UI
+r32ui,                        LQ_R32UI
+shared,                       LQ_SHARED
+packed,                       LQ_PACKED
+std140,                       LQ_STD140
+std430,                       LQ_STD430
+row_major,                    LQ_ROW_MAJOR
+column_major,                 LQ_COLUMN_MAJOR
+early_fragment_tests,         LQ_EARLY_FRAGMENT_TESTS
+binding,                      LQ_BINDING
+offset,                       LQ_OFFSET
+location,                     LQ_LOCATION
+local_size_x,                 LQ_SIZE_X
+local_size_y,                 LQ_SIZE_Y
+local_size_z,                 LQ_SIZE_Z
+triangles,                    LQ_TRIANGLES
+quads,                        LQ_QUADS
+isolines,                     LQ_ISOLINES
+equal_spacing,                LQ_SPACING_EQUAL
+fractional_even_spacing,      LQ_SPACING_FRACTIONAL_EVEN
+fractional_odd_spacing,       LQ_SPACING_FRACTIONAL_ODD
+cw,                           LQ_CW
+ccw,                          LQ_CCW
+point_mode,                   LQ_POINT_MODE
+vertices,                     LQ_VERTICES

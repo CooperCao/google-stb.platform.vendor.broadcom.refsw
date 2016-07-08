@@ -1,24 +1,40 @@
 /***************************************************************************
- *     Copyright (c) 2007-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ *  Except as expressly set forth in the Authorized License,
  *
- * Module Description:
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * MKV player library
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+
  *******************************************************************************/
 #include "bstd.h"
 #include "bkni.h"
@@ -149,6 +165,7 @@ typedef enum b_mkv_codec_type {
     b_mkv_codec_type_vp8,
     b_mkv_codec_type_vp9,
     b_mkv_codec_type_auxilary,
+    b_mkv_codec_type_opus,
     b_mkv_codec_type_unknown
 } b_mkv_codec_type;
 
@@ -194,6 +211,10 @@ struct b_mkv_player_track {
             uint8_t headerSizes[B_MKV_VORBIS_HEADERS][2]; /* headers are 2 byte */
             batom_vec meta[1+2*B_MKV_VORBIS_HEADERS];  /* one vector for WAV header, and 2 vectors for each of header packets */
         } vorbis;
+        struct {
+            uint8_t waveFormatEx[BMEDIA_WAVEFORMATEX_BASE_SIZE];
+            batom_vec meta[1+1];  /* one vector for WAV header, and 1 vector for Opus header */
+        } opus;
     } codec;
 
     struct {
@@ -1275,7 +1296,6 @@ b_mkv_player_prepare_vorbis_track(bmkv_player_t player, struct b_mkv_player_trac
     bmedia_waveformatex_header wf;
     size_t wf_len;
 
-	BSTD_UNUSED(audio);
 	BSTD_UNUSED(player);
 
     /* http://www.matroska.org/technical/specs/codecid/index.html */
@@ -1334,6 +1354,37 @@ b_mkv_player_prepare_vorbis_track(bmkv_player_t player, struct b_mkv_player_trac
 	return true;
 error:
     return false;
+}
+
+static bool
+b_mkv_player_prepare_opus_track(bmkv_player_t player, struct b_mkv_player_track *track, const bmkv_TrackEntry *mkv_track, const bmkv_TrackEntryAudio *audio)
+{
+    bmedia_waveformatex_header wf;
+    size_t wf_len;
+
+    BSTD_UNUSED(player);
+
+    /* https://wiki.xiph.org/MatroskaOpus */
+    if(! (mkv_track->validate.CodecPrivate && mkv_track->CodecPrivate.data && mkv_track->CodecPrivate.data_len>=1 && mkv_track->CodecPrivate.data_len<65536)) {
+        return false;
+    }
+    bmedia_init_waveformatex(&wf);
+    if(audio->validate.SamplingFrequency) {
+        wf.nSamplesPerSec = audio->SamplingFrequency;
+    }
+    if(audio->validate.Channels) {
+        wf.nChannels = audio->Channels;
+    }
+    if(audio->validate.BitDepth) {
+        wf.wBitsPerSample = audio->BitDepth;
+    }
+    wf.wFormatTag = 0xFFFD;
+    wf.cbSize =  mkv_track->CodecPrivate.data_len;
+    wf_len=bmedia_write_waveformatex(track->codec.vorbis.waveFormatEx, &wf);
+    BDBG_ASSERT(wf_len==sizeof(track->codec.vorbis.waveFormatEx));
+    BATOM_VEC_INIT(track->codec.opus.meta + 1,  mkv_track->CodecPrivate.data,  mkv_track->CodecPrivate.data_len);
+    BATOM_VEC_INIT(track->codec.opus.meta + 0, track->codec.vorbis.waveFormatEx, sizeof(track->codec.vorbis.waveFormatEx));
+    return true;
 }
 
 static const uint8_t b_nal_prefix[]=
@@ -1586,6 +1637,13 @@ b_mkv_player_map_tracks(bmkv_player_t player)
                     continue;
                 }
                 track->codec_type = b_mkv_codec_type_vorbis;
+            } else if(bmkv_IsTrackAudioOpus(mkv_track)) {
+                BDBG_MSG(("%s:%#lx Vorbis audio track %u:(%#lx)", "b_mkv_player_map_tracks", (unsigned long)player, (unsigned)mkv_track->TrackNumber, (unsigned long)track));
+                if(!b_mkv_player_prepare_opus_track(player, track, mkv_track, audio)) {
+                    BDBG_WRN(("%s:%#lx Opus audio track invalid format %u:(%#lx)", "b_mkv_player_map_tracks", (unsigned long)player, (unsigned)mkv_track->TrackNumber, (unsigned long)track));
+                    continue;
+                }
+                track->codec_type = b_mkv_codec_type_opus;
             } else if(bmkv_IsTrackAudioACM(mkv_track)) {
                 batom_vec vec;
                 batom_cursor cursor;
@@ -2037,7 +2095,7 @@ b_mkv_player_next_simpleblock(bmkv_player_t player, bool parse_payload)
 {
     batom_cursor block_data;
 
-	BDBG_MSG_TRACE(("%s:%#lx", "b_mkv_player_next_simpleblock", (unsigned long)player));
+    BDBG_MSG_TRACE(("%s:%p %u", "b_mkv_player_next_simpleblock", (void *)player, (unsigned)parse_payload));
 
     bmkv_BlockGroup_init(&player->cluster.group);
 
@@ -2065,10 +2123,10 @@ b_mkv_player_next_simpleblock_complete(void *p, bfile_segment_async_result async
 {
 	bmkv_player_t player = p;
 
-	BDBG_MSG_TRACE(("b_mkv_player_next_simpleblock_complete:%#lx", (unsigned long)player));
+	BDBG_MSG_TRACE(("b_mkv_player_next_simpleblock_complete:%p %u", (void *)player, (unsigned)async_result));
 	BDBG_OBJECT_ASSERT(player, bmkv_player_t);
 
-	if(async_result!=bfile_segment_async_result_success) {goto err_read;}
+    if(async_result != bfile_segment_async_result_success) { goto err_read; }
 	if(!b_mkv_player_next_simpleblock(player, player->cluster.async.next_block.parse_payload)) {goto err_parse_simpleblock;}
 	player->cluster.async.next_block.block_complete(player, bfile_segment_async_result_success);
 	return;
@@ -2082,7 +2140,7 @@ err_parse_simpleblock:
 static bfile_segment_async_result
 b_mkv_player_next_block_async(bmkv_player_t player, bool parse_payload, void (*block_complete)(bmkv_player_t player, bfile_segment_async_result result))
 {
-	BDBG_MSG_TRACE(("%s:%#lx parsing block data at %u", "b_mkv_player_next_block_async", (unsigned long)player, (unsigned)(player->cluster.cache.segment.start + player->cluster.cache.accum_offset)));
+	BDBG_MSG_TRACE(("%s:%p parsing block data at %u %s %s", "b_mkv_player_next_block_async", (unsigned long)player, (unsigned)(player->cluster.cache.segment.start + player->cluster.cache.accum_offset), player->cluster.mkv_cluster.validate.BlockGroup?"BlockGroup":"",player->cluster.mkv_cluster.validate.SimpleBlock?"SimpleBlock":""));
 	player->cluster.block_valid = false;
 	player->cluster.async.next_block.parse_payload = parse_payload;
 	player->cluster.async.next_block.block_complete = block_complete;
@@ -2583,6 +2641,42 @@ err_payload:
 }
 
 static bool
+b_mkv_player_opus_block(bmkv_player_t player, batom_accum_t src, batom_cursor *cursor, struct b_mkv_player_track *track)
+{
+    batom_accum_t dst = player->accum_dest;
+    unsigned i;
+
+    for(i=0;i<player->cluster.group.data.nframes;i++) {
+        batom_cursor block;
+        size_t payload=player->cluster.group.data.frames[i];
+        uint8_t *hdr  = b_mkv_player_frame_buf_alloc(player, sizeof(uint32_t));
+
+        if(!hdr) {
+            goto err_no_mem;
+        }
+
+        BATOM_CLONE(&block, cursor);
+        if(batom_cursor_skip(cursor, payload) !=  payload) {
+            goto err_payload;
+        }
+        if(track->pes_info.stream_id!=1) { /* not RAW */
+            unsigned j;
+            B_MEDIA_SAVE_UINT32_BE(hdr, payload);
+            batom_accum_add_vec(dst, &bmedia_frame_bcma);
+            batom_accum_add_range(dst, hdr, sizeof(uint32_t));
+            for(j=0;j<sizeof(track->codec.opus.meta)/sizeof(track->codec.opus.meta[0]);j++) {
+                batom_accum_add_vec(dst, track->codec.opus.meta+j);
+            }
+        }
+        batom_accum_append(dst, src, &block, cursor);
+    }
+    return true;
+err_no_mem:
+err_payload:
+    return false;
+}
+
+static bool
 b_mkv_player_vp8_block(bmkv_player_t player, batom_accum_t src, batom_cursor *cursor, struct b_mkv_player_track *track)
 {
 	batom_accum_t dst = player->accum_dest;
@@ -2624,6 +2718,7 @@ b_mkv_player_vp9_block(bmkv_player_t player, batom_accum_t src, batom_cursor *cu
     unsigned i;
     for(i=0;i<player->cluster.group.data.nframes;i++) {
         batom_cursor block;
+        bool subdivide_superframe = false;
         size_t payload=player->cluster.group.data.frames[i];
         const size_t header_len = BMEDIA_FIELD_LEN("size", uint32_t) + BMEDIA_FIELD_LEN("type", uint16_t);
         uint8_t *hdr = b_mkv_player_frame_buf_alloc(player, header_len);
@@ -2634,7 +2729,7 @@ b_mkv_player_vp9_block(bmkv_player_t player, batom_accum_t src, batom_cursor *cu
         }
 
         BATOM_CLONE(&block, cursor);
-        if(payload>0) {
+        if(subdivide_superframe && payload>0) {
             int tail;
             BDBG_MSG(("VP9[%u] %u", i, (unsigned)payload));
             if(batom_cursor_skip(&block, payload-1) !=  payload-1) {
@@ -2696,7 +2791,7 @@ b_mkv_player_vp9_block(bmkv_player_t player, batom_accum_t src, batom_cursor *cu
         }
         if(track->pes_info.stream_id!=1) { /* not RAW */
             B_MEDIA_SAVE_UINT32_BE(hdr, payload+header_len+bmedia_frame_bcmv.len); /* size */
-            B_MEDIA_SAVE_UINT16_BE(hdr+BMEDIA_FIELD_LEN("size",uint32_t), 0); /* type */;
+            B_MEDIA_SAVE_UINT16_BE(hdr+BMEDIA_FIELD_LEN("size",uint32_t), subdivide_superframe ? 0 : 1); /* type */;
             batom_accum_add_vec(dst, &bmedia_frame_bcmv);
             batom_accum_add_range(dst, hdr, header_len);
         }
@@ -3035,6 +3130,9 @@ b_mkv_player_make_frame(bmkv_player_t player, struct b_mkv_player_track *track, 
         case b_mkv_codec_type_vorbis:
             success = b_mkv_player_vorbis_block(player, frame_data, frame_cursor, track);
             break;
+        case b_mkv_codec_type_opus:
+            success = b_mkv_player_opus_block(player, frame_data, frame_cursor, track);
+            break;
         case b_mkv_codec_type_vp8:
             success = b_mkv_player_vp8_block(player, frame_data, frame_cursor, track);
             break;
@@ -3123,6 +3221,20 @@ b_mkv_player_make_frame(bmkv_player_t player, struct b_mkv_player_track *track, 
                 entry->atom = batom_from_accum(player->accum_metaframe, NULL, NULL);
                 batom_accum_clear(player->accum_subframe);
                 batom_accum_clear(player->accum_metaframe);
+            }
+            if(track->codec_type==b_mkv_codec_type_vp9) {
+                void *bpp_buf = b_mkv_player_frame_buf_alloc(player, B_MPEG2PES_BPP_LENGTH);
+                bmedia_bpp_pkt bpp;
+                if(bpp_buf) {
+                    BKNI_Memset(&bpp, 0, sizeof(bpp));
+                    bpp.data[0]=0x85; /* END OF CHUNK */
+                    bmedia_make_bpp_pkt(track->pes_info.stream_id, &bpp, bpp_buf, B_MPEG2PES_BPP_LENGTH);
+                    batom_accum_add_atom(player->accum_metaframe, entry->atom);
+                    batom_release(entry->atom);
+                    batom_accum_add_range(player->accum_metaframe, bpp_buf, B_MPEG2PES_BPP_LENGTH);
+                    entry->atom = batom_from_accum(player->accum_metaframe, NULL, NULL);
+                    batom_accum_clear(player->accum_metaframe);
+                }
             }
         } else {
             entry->atom = batom_from_accum(player->accum_dest, NULL, NULL);

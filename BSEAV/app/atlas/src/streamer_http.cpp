@@ -1,7 +1,7 @@
 /******************************************************************************
- * (c) 2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -37,7 +37,6 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 #include "server_http.h"
 #include "streamer_http.h"
@@ -363,12 +362,12 @@ void CStreamerHttp::stopAndDestroyBipStreamer()
     /* it may happen that error occured while starting the streamer.*/
     if (_streamerStarted)
     {
-        BDBG_MSG((BIP_MSG_PRE_FMT "Stopping Streamer %p" BIP_MSG_PRE_ARG, this));
+        BDBG_MSG((BIP_MSG_PRE_FMT "Stopping Streamer %p" BIP_MSG_PRE_ARG, (void *)this));
         BIP_HttpServer_StopStreamer(_pServerHttp->getBipHttpServer(), _hHttpStreamer);
         _streamerStarted = false;
     }
 
-    BDBG_MSG((BIP_MSG_PRE_FMT " Destroying Streamer %p" BIP_MSG_PRE_ARG, _hHttpStreamer));
+    BDBG_MSG((BIP_MSG_PRE_FMT " Destroying Streamer %p" BIP_MSG_PRE_ARG, (void *)_hHttpStreamer));
     BIP_HttpServer_DestroyStreamer(_pServerHttp->getBipHttpServer(), _hHttpStreamer);
     return;
 } /* stopAndDestroyBipStreamer */
@@ -522,7 +521,7 @@ eRet CStreamerHttp::start(BIP_HttpRequestHandle hHttpRequest)
     eRet                   ret            = eRet_Ok;
     BIP_Status             bipStatus      = BIP_SUCCESS;
     BIP_HttpResponseStatus responseStatus = BIP_HttpResponseStatus_e500_InternalServerError;
-    int i;
+    int                    i;
 
     /* Create HttpStreamer. */
     {
@@ -536,7 +535,7 @@ eRet CStreamerHttp::start(BIP_HttpRequestHandle hHttpRequest)
         _hHttpStreamer = BIP_HttpServer_CreateStreamer(_pServerHttp->getBipHttpServer(), &createStreamerSettings);
         CHECK_PTR_ERROR_GOTO("BIP_HttpServer_CreateStreamer Failed", _hHttpStreamer, ret, eRet_ExternalError, rejectRequest);
 
-        BDBG_MSG((BIP_MSG_PRE_FMT " BIP_HttpStreamer created: %p" BIP_MSG_PRE_ARG, _hHttpStreamer));
+        BDBG_MSG((BIP_MSG_PRE_FMT " BIP_HttpStreamer created: %p" BIP_MSG_PRE_ARG, (void *)_hHttpStreamer));
     }
 
     /* Populate _mediaInfoStream. */
@@ -599,8 +598,8 @@ eRet CStreamerHttp::start(BIP_HttpRequestHandle hHttpRequest)
                     ret = eRet_ExternalError;
                     goto rejectRequest;
                 }
-                BDBG_MSG((BIP_MSG_PRE_FMT "numRangeEntries %d[#0]: Range Start %llu, Length %llu " BIP_MSG_PRE_ARG,
-                          pRangeHeaderParsed->byteRangeCount, _rangeStartOffset, _rangeLength));
+                BDBG_MSG((BIP_MSG_PRE_FMT "numRangeEntries %d[#0]: Range Start %s, Length %s " BIP_MSG_PRE_ARG,
+                          pRangeHeaderParsed->byteRangeCount, MString(_rangeStartOffset).s(), MString(_rangeLength).s()));
 
                 /* Range parsing is complete, so fill-in the values in the input settings. */
                 fileInputSettings.beginByteOffset = _rangeStartOffset;
@@ -613,20 +612,20 @@ eRet CStreamerHttp::start(BIP_HttpRequestHandle hHttpRequest)
         /* If we've already parsed a Range header, we'll use it, but if not, then look for a TimeSeekRange header. */
         if (!_rangeHeaderPresent)
         {
-            bipStatus = BIP_HttpRequest_ParseTimeSeekRangeDlnaOrgHeader(hHttpRequest, _streamerStreamInfo.durationInMs, &_startTimeInMs, &_endTimeInMs );
+            bipStatus      = BIP_HttpRequest_ParseTimeSeekRangeDlnaOrgHeader(hHttpRequest, _streamerStreamInfo.durationInMs, &_startTimeInMs, &_endTimeInMs);
             responseStatus = BIP_HttpResponseStatus_e400_BadRequest;
-            BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS || bipStatus == BIP_INF_NOT_AVAILABLE), ( "BIP_HttpRequest_ParseTimeSeekRangeDlnaOrgHeader Failed" ), rejectRequest, bipStatus, bipStatus );
+            BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS || bipStatus == BIP_INF_NOT_AVAILABLE), ("BIP_HttpRequest_ParseTimeSeekRangeDlnaOrgHeader Failed"), rejectRequest, bipStatus, bipStatus);
 
             if (bipStatus == BIP_SUCCESS)
             {
-                BDBG_MSG(( BIP_MSG_PRE_FMT "TimeSeekRange.dlna.org header: _startTimeInMs=%llu, _endTimeInMs=%llu"
-                           BIP_MSG_PRE_ARG, _startTimeInMs, _endTimeInMs ));
+                BDBG_MSG((BIP_MSG_PRE_FMT "TimeSeekRange.dlna.org header: _startTimeInMs=%s, _endTimeInMs=%s"
+                          BIP_MSG_PRE_ARG, MString(_startTimeInMs).s(), MString(_endTimeInMs).s()));
 
                 fileInputSettings.beginTimeOffsetInMs = _startTimeInMs;
                 fileInputSettings.endTimeOffsetInMs   = (_endTimeInMs > 0) ? _endTimeInMs : 0;
 
-                BDBG_MSG(( BIP_MSG_PRE_FMT "fileInputSettings: beginTimeOffsetInMs=%lu, endTimeOffsetInMs=%lu"
-                           BIP_MSG_PRE_ARG, fileInputSettings.beginTimeOffsetInMs, fileInputSettings.endTimeOffsetInMs));
+                BDBG_MSG((BIP_MSG_PRE_FMT "fileInputSettings: beginTimeOffsetInMs=%u, endTimeOffsetInMs=%u"
+                          BIP_MSG_PRE_ARG, fileInputSettings.beginTimeOffsetInMs, fileInputSettings.endTimeOffsetInMs));
 
                 _dlnaTimeSeekRangePresent = true;
             }
@@ -789,9 +788,11 @@ eRet CStreamerHttp::start(BIP_HttpRequestHandle hHttpRequest)
         CHECK_BIP_ERROR_GOTO("BIP_HttpStreamer_SetResponseHeader Failed", ret, bipStatus, rejectRequest);
         /* App can add more custom headers here using this example above! */
     }
-    /* And as a last step, start the HttpStreamer. */
-    /* Limiting the number of trials to start the streamer to avoid the infinite loop in case of the lack of resources */
-    for(i = 0; i < 20; i++)
+    /*
+     * And as a last step, start the HttpStreamer.
+     * Limiting the number of trials to start the streamer to avoid the infinite loop in case of the lack of resources
+     */
+    for (i = 0; i < 20; i++)
     {
         BIP_HttpServerStartStreamerSettings startSettings;
         BIP_HttpServer_GetDefaultStartStreamerSettings(&startSettings);

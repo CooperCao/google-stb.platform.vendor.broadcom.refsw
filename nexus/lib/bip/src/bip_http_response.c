@@ -1,43 +1,39 @@
 /******************************************************************************
- * (c) 2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 #include <ctype.h>
 #include <limits.h>
@@ -47,7 +43,7 @@
 #include "blst_queue.h"
 #include "bioatom.h"
 
-BDBG_MODULE( bip_http_new_response );
+BDBG_MODULE( bip_http_response );
 BDBG_OBJECT_ID( BIP_HttpResponse );
 
 BIP_SETTINGS_ID( BIP_HttpResponseCreateSettings );
@@ -620,7 +616,7 @@ void BIP_HttpResponse_RemoveHeader(
 
     BDBG_ASSERT( hHeader );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hHeader %p: Entry..." BIP_MSG_PRE_ARG, hResponse ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hHeader %p: Entry..." BIP_MSG_PRE_ARG, (void *)hResponse ));
 
     BIP_HttpHeaderList_DestroyHeader( hHeader );
 
@@ -644,7 +640,7 @@ BIP_Status BIP_HttpResponse_MoveHeader(
 
     BDBG_ASSERT( hHeader );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hHeader %p: Entry..." BIP_MSG_PRE_ARG, hResponse ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hHeader %p: Entry..." BIP_MSG_PRE_ARG, (void *)hResponse ));
 
     rc = BIP_HttpHeaderList_MoveHeader( hHeader, hPutBeforeThisHeader );
 
@@ -726,7 +722,7 @@ static void BIP_HttpResponse_Clear_locked(
 
     BDBG_OBJECT_ASSERT( hResponse, BIP_HttpResponse );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hResponse %p: Entry..." BIP_MSG_PRE_ARG, hResponse ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hResponse %p: Entry..." BIP_MSG_PRE_ARG, (void *)hResponse ));
 
     BIP_SETTINGS_ASSERT( pSettings, BIP_HttpResponseClearSettings );
 
@@ -759,7 +755,7 @@ void BIP_HttpResponse_Clear(
 {
     BDBG_OBJECT_ASSERT( hResponse, BIP_HttpResponse );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hResponse %p: Entry..." BIP_MSG_PRE_ARG, hResponse ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hResponse %p: Entry..." BIP_MSG_PRE_ARG, (void *)hResponse ));
 
     B_Mutex_Lock( hResponse->hMutex );
 
@@ -781,12 +777,12 @@ void BIP_HttpResponse_Destroy(
 {
     BDBG_OBJECT_ASSERT( hResponse, BIP_HttpResponse );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hResponse %p: Entry..." BIP_MSG_PRE_ARG, hResponse ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hResponse %p: Entry..." BIP_MSG_PRE_ARG, (void *)hResponse ));
 
     if (ownerContext != hResponse->ownerContext)
     {
         BDBG_WRN(( BIP_MSG_PRE_FMT "hResponse %p: Mismatched ownerContext: got %p, expected %p.  Ignoring Destroy request!"
-                   BIP_MSG_PRE_ARG, hResponse, ownerContext, hResponse->ownerContext ));
+                   BIP_MSG_PRE_ARG, (void *)hResponse, (void *)ownerContext, (void *)hResponse->ownerContext ));
         return;
     }
 
@@ -806,7 +802,7 @@ void BIP_HttpResponse_Destroy(
 
     BDBG_OBJECT_DESTROY( hResponse, BIP_HttpResponse );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hResponse %p: Freeing object memory" BIP_MSG_PRE_ARG, hResponse ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hResponse %p: Freeing object memory" BIP_MSG_PRE_ARG, (void *)hResponse ));
     B_Os_Free( hResponse );
 
     return;
@@ -832,7 +828,7 @@ BIP_HttpResponseHandle BIP_HttpResponse_Create(
     BIP_CHECK_GOTO(( hResponse != NULL ), ( "Memory Allocation Failed" ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
 
     BDBG_OBJECT_SET( hResponse, BIP_HttpResponse );
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hResponse %p: Allocated " BIP_MSG_PRE_ARG, hResponse ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hResponse %p: Allocated " BIP_MSG_PRE_ARG, (void *)hResponse ));
 
     hResponse->ownerContext = ownerContext;
 
@@ -931,8 +927,8 @@ BIP_Status BIP_HttpResponse_DeserializeFromAtom(
     for (relook = true; relook==true; ) {
         relook = false;
 
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hResponse %p: deserializeState=0x%x \"%s\"  byteIndex=%d"
-                   BIP_MSG_PRE_ARG, hResponse, hResponse->deserializeState, toStr_deserializeState( hResponse->deserializeState ), hResponse->byteIndex ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hResponse %p: deserializeState=0x%x \"%s\"  byteIndex=%zu"
+                   BIP_MSG_PRE_ARG, (void *)hResponse, hResponse->deserializeState, toStr_deserializeState( hResponse->deserializeState ), hResponse->byteIndex ));
 
         switch (hResponse->deserializeState) {
             /* State: Idle
@@ -964,7 +960,7 @@ BIP_Status BIP_HttpResponse_DeserializeFromAtom(
                     ch = byte;                             /* Convert from int to char. */
 
                     /* Make sure our byteIndex is in range. */
-                    BIP_CHECK_GOTO(( byteIndex<sizeof( httpVersionString )), ( "byteIndex=%u is out of range during deserialize!", byteIndex ), error, BIP_ERR_INTERNAL, rc );
+                    BIP_CHECK_GOTO(( byteIndex<sizeof( httpVersionString )), ( "byteIndex=%zu is out of range during deserialize!", byteIndex ), error, BIP_ERR_INTERNAL, rc );
 
                     if (httpVersionString[byteIndex] == 'x')
                     {
@@ -978,7 +974,7 @@ BIP_Status BIP_HttpResponse_DeserializeFromAtom(
                     }
                     else
                     {
-                        BIP_CHECK_GOTO(( ch==httpVersionString[byteIndex] ), ( "Deserialize error: Invalid character (\"%c\"=0x%02x) at index %d of HTTP Version.", ch, ch, byteIndex ), error, BIP_ERR_INVALID_PARAMETER, rc );
+                        BIP_CHECK_GOTO(( ch==httpVersionString[byteIndex] ), ( "Deserialize error: Invalid character (\"%c\"=0x%02x) at index %zu of HTTP Version.", ch, ch, byteIndex ), error, BIP_ERR_INVALID_PARAMETER, rc );
                     }
 
                     byteIndex++;
@@ -987,7 +983,7 @@ BIP_Status BIP_HttpResponse_DeserializeFromAtom(
                     if (byteIndex >= sizeof( httpVersionString ))
                     {
                         BDBG_MSG(( BIP_MSG_PRE_FMT "hResponse %p: Got HTTP Version=" BIP_HTTP_RESPONSE_VERSION_PRINTF_FMT
-                                   BIP_MSG_PRE_ARG, hResponse, BIP_HTTP_RESPONSE_VERSION_PRINTF_ARG( &hResponse->httpVersion )));
+                                   BIP_MSG_PRE_ARG, (void *)hResponse, BIP_HTTP_RESPONSE_VERSION_PRINTF_ARG( &hResponse->httpVersion )));
 
                         hResponse->deserializeState = deserializeState_eStatusCode;
                         hResponse->byteIndex        = 0;
@@ -1024,7 +1020,7 @@ BIP_Status BIP_HttpResponse_DeserializeFromAtom(
                         size_t length = BIP_String_GetLength( hResponse->hStatus );
                         BIP_CHECK_GOTO(( length>0 ), ( "Deserialize error: zero-length HTTP Response status-code." ), error, BIP_ERR_INVALID_PARAMETER, rc );
 
-                        BDBG_MSG(( BIP_MSG_PRE_FMT "hResponse %p: Got status-code=%s" BIP_MSG_PRE_ARG, hResponse, BIP_String_GetString( hResponse->hStatus )));
+                        BDBG_MSG(( BIP_MSG_PRE_FMT "hResponse %p: Got status-code=%s" BIP_MSG_PRE_ARG, (void *)hResponse, BIP_String_GetString( hResponse->hStatus )));
 
                         rc = BIP_String_Clear( hResponse->hReasonPhrase );
                         BIP_CHECK_GOTO(( rc==BIP_SUCCESS ), ( "BIP_String_Clear() failed" ), error, rc, rc );
@@ -1060,7 +1056,7 @@ BIP_Status BIP_HttpResponse_DeserializeFromAtom(
                     /* If ch is the expected terminator (SP) move to next state, even if the reason-phrase is empty. */
                     else if (ch == CR)                     /* Found end of "reason-phrase". */
                     {
-                        BDBG_MSG(( BIP_MSG_PRE_FMT "hResponse %p: Got Reason Phrase=\"%s\"" BIP_MSG_PRE_ARG, hResponse, BIP_String_GetString( hResponse->hReasonPhrase )));
+                        BDBG_MSG(( BIP_MSG_PRE_FMT "hResponse %p: Got Reason Phrase=\"%s\"" BIP_MSG_PRE_ARG, (void *)hResponse, BIP_String_GetString( hResponse->hReasonPhrase )));
                         hResponse->deserializeState = deserializeState_eResponseLineTerm;
                         hResponse->byteIndex        = 0;
                         relook = true;
@@ -1089,9 +1085,9 @@ BIP_Status BIP_HttpResponse_DeserializeFromAtom(
                     ch = byte;                             /* Convert from int to char. */
 
                     /* Make sure our byteIndex is in range. */
-                    BIP_CHECK_GOTO(( byteIndex<sizeof( termChars )), ( "byteIndex=%u is out of range during deserialize!", byteIndex ), error, BIP_ERR_INTERNAL, rc );
+                    BIP_CHECK_GOTO(( byteIndex<sizeof( termChars )), ( "byteIndex=%zu is out of range during deserialize!", byteIndex ), error, BIP_ERR_INTERNAL, rc );
 
-                    BIP_CHECK_GOTO(( ch==termChars[byteIndex] ), ( "Deserialize error: Invalid character (\"%c\"=0x%02x) at index %d of HTTP status-line terminator.", ch, ch, byteIndex ), error, BIP_ERR_INVALID_PARAMETER, rc );
+                    BIP_CHECK_GOTO(( ch==termChars[byteIndex] ), ( "Deserialize error: Invalid character (\"%c\"=0x%02x) at index %zu of HTTP status-line terminator.", ch, ch, byteIndex ), error, BIP_ERR_INVALID_PARAMETER, rc );
 
                     byteIndex++;
                     hResponse->byteIndex = byteIndex;
@@ -1139,7 +1135,7 @@ BIP_Status BIP_HttpResponse_DeserializeFromAtom(
              * This should never happen. */
             default:
             {
-                BIP_CHECK_GOTO(( false ), ( "hResponse %p: Unhandled state=%s (%d)", hResponse, toStr_deserializeState( hResponse->deserializeState ), hResponse->deserializeState ),
+                BIP_CHECK_GOTO(( false ), ( "hResponse %p: Unhandled state=%s (%d)", (void *)hResponse, toStr_deserializeState( hResponse->deserializeState ), hResponse->deserializeState ),
                     error, BIP_ERR_INTERNAL, rc );
 
                 break;
@@ -1248,8 +1244,8 @@ static BIP_Status BIP_HttpResponse_SerializeChars(
         {
             if (pDstBfr)
             {
-                BDBG_MSG(( BIP_MSG_PRE_FMT "Copying \"%.*s\" to destIdx=%d"
-                           BIP_MSG_PRE_ARG, bytesToMove, pSrcBfr + *pCurSrcIdx, *pCurDstIdx ));
+                BDBG_MSG(( BIP_MSG_PRE_FMT "Copying \"%.*s\" to destIdx=%zu"
+                           BIP_MSG_PRE_ARG, (int)bytesToMove, pSrcBfr + *pCurSrcIdx, *pCurDstIdx ));
 
                 BKNI_Memcpy( pDstBfr + *pCurDstIdx, pSrcBfr+ *pCurSrcIdx, bytesToMove );
             }
@@ -1262,8 +1258,8 @@ static BIP_Status BIP_HttpResponse_SerializeChars(
             {
                 if (pDstBfr)
                 {
-                    BDBG_MSG(( BIP_MSG_PRE_FMT "Copying \"%.*s\" to destIdx=%d"
-                               BIP_MSG_PRE_ARG, spaceLeft, pSrcBfr + *pCurSrcIdx, *pCurDstIdx ));
+                    BDBG_MSG(( BIP_MSG_PRE_FMT "Copying \"%.*s\" to destIdx=%zu"
+                               BIP_MSG_PRE_ARG, (int)spaceLeft, pSrcBfr + *pCurSrcIdx, *pCurDstIdx ));
                     BKNI_Memcpy( pDstBfr + *pCurDstIdx, pSrcBfr + *pCurSrcIdx, spaceLeft );
                 }
                 *pCurDstIdx += spaceLeft;
@@ -1323,8 +1319,8 @@ static BIP_Status BIP_HttpResponse_SerializeToBuffer_locked(
     for (relook = true; relook==true; ) {
         relook = false;
 
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hResponse %p: serializeState=0x%x \"%s\"  byteIndex=%d"
-                   BIP_MSG_PRE_ARG, hResponse, hResponse->serializeState, toStr_serializeState( hResponse->serializeState ), hResponse->byteIndex ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hResponse %p: serializeState=0x%x \"%s\"  byteIndex=%zu"
+                   BIP_MSG_PRE_ARG, (void *)hResponse, hResponse->serializeState, toStr_serializeState( hResponse->serializeState ), hResponse->byteIndex ));
 
         switch (hResponse->serializeState) {
             /* State: Idle
@@ -1562,7 +1558,7 @@ static BIP_Status BIP_HttpResponse_SerializeToBuffer_locked(
              * This should never happen. */
             default:
             {
-                BIP_CHECK_GOTO(( false ), ( "hResponse %p: Unhandled state=%s (%d)", hResponse, toStr_serializeState( hResponse->serializeState ), hResponse->serializeState ),
+                BIP_CHECK_GOTO(( false ), ( "hResponse %p: Unhandled state=%s (%d)", (void *)hResponse, toStr_serializeState( hResponse->serializeState ), hResponse->serializeState ),
                     error, BIP_ERR_INTERNAL, rc );
                 break;
             }
@@ -1572,8 +1568,8 @@ static BIP_Status BIP_HttpResponse_SerializeToBuffer_locked(
 error:
     if (pSerializedBytes) {*pSerializedBytes = destIndex; }
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hResponse %p: returning *pSerializeComplete=%s *pSerializedBytes=%d"
-               BIP_MSG_PRE_ARG, hResponse,
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hResponse %p: returning *pSerializeComplete=%s *pSerializedBytes=%zu"
+               BIP_MSG_PRE_ARG, (void *)hResponse,
                ( pSerializeComplete==NULL ) ? "N/A" : ( *pSerializeComplete ) ? "TRUE" : "FALSE",
                pSerializedBytes ? *pSerializedBytes : 0 ));
 
@@ -1669,7 +1665,7 @@ BIP_Status BIP_HttpResponse_SerializeToAtom(
      *  Malloc some memory, then create an atom out of it.
      *************************************************************************/
     pBuffer = B_Os_Malloc( serializeLen );
-    BIP_CHECK_GOTO(( pBuffer ), ( "B_Os_Malloc (%d bytes) failed.", serializeLen ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
+    BIP_CHECK_GOTO(( pBuffer ), ( "B_Os_Malloc (%zu bytes) failed.", serializeLen ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
 
     myAtom = BIP_Atom_AtomFromBOsMallocRange( factory, pBuffer, serializeLen );
 
@@ -1738,7 +1734,7 @@ BIP_Status BIP_HttpResponse_Print(
     serializeLen += 1;                                     /* Allow for NULL-terminator. */
 
     pBuffer = B_Os_Malloc( serializeLen );
-    BIP_CHECK_GOTO(( pBuffer ), ( "B_Os_Malloc (%d bytes) failed.", serializeLen ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
+    BIP_CHECK_GOTO(( pBuffer ), ( "B_Os_Malloc (%zu bytes) failed.", serializeLen ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
 
     /*************************************************************************
      *  Now serialize into the buffer.
@@ -1771,7 +1767,7 @@ BIP_Status BIP_HttpResponse_Print(
             }
             if (len > 0)                                   /* Indicate wrapped lines by appending "...". */
             {
-                BIP_MSG_LOG(( BIP_MSG_PRE_FMT "%s \"%.*s\"%s" BIP_MSG_PRE_ARG, pLineHeading, len, pLineStart, truncated ? "..." : "" ));
+                BIP_MSG_LOG(( BIP_MSG_PRE_FMT "%s \"%.*s\"%s" BIP_MSG_PRE_ARG, pLineHeading, (int)len, pLineStart, truncated ? "..." : "" ));
             }
             pLineStart += len;
             len         = strspn( pLineStart, lineEndChars );                                   /* Find length of line ending. */

@@ -47,9 +47,6 @@
 #include "nexus_surface.h"
 #include "nexus_core_utils.h"
 #include "nexus_graphics2d.h"
-#if NEXUS_HAS_SURFACECMP
-#include "nexus_surfacecmp_client.h"
-#endif
 
 #include <stdio.h>
 #include <unistd.h>
@@ -84,9 +81,6 @@ void printUsage(void)
     "    -timeout SECONDS      Number of seconds to display (default 2). 0 for user input. -1 for immediate exit.\n"
     "    -rect X Y WIDTH HEIGHT specify dimensions\n"
     "    -mode {single|stretch|tile|maximize|maximize_down}\n"
-#if NEXUS_HAS_SURFACECMP
-    "    -client X             Run as nexus client with surfacecmp\n"
-#endif
     "    -render_loops X       Render each image X times (default 1, change for performance testing)\n"
     "    -background X         Background color (0xAARRGGBB)\n"
     );
@@ -113,14 +107,6 @@ struct {
     {"argb1555",NEXUS_PixelFormat_eA1_R5_G5_B5, bwin_pixel_format_a1_r5_g5_b5},
     {"argb8888",NEXUS_PixelFormat_eA8_R8_G8_B8, bwin_pixel_format_a8_r8_g8_b8}
 };
-
-#if NEXUS_HAS_SURFACECMP
-static void complete(void *data, int unused)
-{
-    BSTD_UNUSED(unused);
-    BKNI_SetEvent((BKNI_EventHandle)data);
-}
-#endif
 
 int main(int argc, char **argv)
 {
@@ -155,11 +141,6 @@ int main(int argc, char **argv)
     NEXUS_Error rc;
     NEXUS_VideoFormat displayFormat;
     NEXUS_Graphics2DFillSettings fillSettings;
-    int client_id = -1; /* default to server */
-#if NEXUS_HAS_SURFACECMP
-    NEXUS_SurfaceClientHandle blit_client;
-    BKNI_EventHandle displayedEvent;
-#endif
     unsigned backgroundColor = 0xFF000000;
 
     /* app defaults */
@@ -187,12 +168,6 @@ int main(int argc, char **argv)
                 }
             }
         }
-#if NEXUS_HAS_SURFACECMP
-        else if (!strcmp(argv[curarg],"-client") && curarg+1 < argc) {
-            curarg++;
-            client_id = atoi(argv[curarg]);
-        }
-#endif
         else if (!strcmp(argv[curarg],"-rect") && curarg+4 < argc) {
             destrect.x = atoi(argv[++curarg]);
             destrect.y = atoi(argv[++curarg]);
@@ -232,7 +207,7 @@ int main(int argc, char **argv)
     }
 
     /* Init nexus */
-    if (client_id == -1) {
+    {
         NEXUS_PlatformSettings settings;
         NEXUS_Platform_GetDefaultSettings(&settings);
         settings.openFrontend = false;
@@ -247,27 +222,6 @@ int main(int argc, char **argv)
         NEXUS_Display_AddOutput(display, NEXUS_HdmiOutput_GetVideoConnector(platformConfig.outputs.hdmi[0]));
         NEXUS_VideoFormat_GetInfo(displaySettings.format, &videoFormatInfo);
     }
-#if NEXUS_HAS_SURFACECMP
-    else {
-        NEXUS_SurfaceClientSettings client_settings;
-
-        NEXUS_Platform_Join();
-        blit_client = NEXUS_SurfaceClient_Acquire(client_id);
-        if (!blit_client) {
-            BDBG_ERR(("NEXUS_SurfaceClient_Acquire %d failed, client_id"));
-            return -1;
-        }
-
-        NEXUS_VideoFormat_GetInfo(NEXUS_VideoFormat_eNtsc, &videoFormatInfo);
-        BKNI_CreateEvent(&displayedEvent);
-
-        NEXUS_SurfaceClient_GetSettings(blit_client, &client_settings);
-        client_settings.displayed.callback = complete;
-        client_settings.displayed.context = displayedEvent;
-        rc = NEXUS_SurfaceClient_SetSettings(blit_client, &client_settings);
-        BDBG_ASSERT(!rc);
-    }
-#endif
 
     /* Bring up Nexus graphics */
     gfx = NEXUS_Graphics2D_Open(0, NULL);
@@ -275,6 +229,7 @@ int main(int argc, char **argv)
     surfaceCreateSettings.width = videoFormatInfo.width;
     surfaceCreateSettings.height = videoFormatInfo.height;
     surfaceCreateSettings.pixelFormat = pixelFormat;
+    surfaceCreateSettings.heap = NEXUS_Platform_GetFramebufferHeap(0);
     framebuffer = NEXUS_Surface_Create(&surfaceCreateSettings);
 
     /* fill the entire framebuffer with black */
@@ -285,7 +240,7 @@ int main(int argc, char **argv)
     BDBG_ASSERT(!rc);
     NEXUS_Graphics2D_Checkpoint(gfx, NULL);
 
-    if (client_id == -1) {
+    {
         /* show the framebuffer */
         NEXUS_Display_GetGraphicsSettings(display, &graphicsSettings);
         graphicsSettings.enabled = true;
@@ -295,14 +250,6 @@ int main(int argc, char **argv)
         rc = NEXUS_Display_SetGraphicsFramebuffer(display, framebuffer);
         BDBG_ASSERT(!rc);
     }
-#if NEXUS_HAS_SURFACECMP
-    else {
-        rc = NEXUS_SurfaceClient_SetSurface(blit_client, framebuffer);
-        BDBG_ASSERT(!rc);
-        rc = BKNI_WaitForEvent(displayedEvent, 5000);
-        BDBG_ASSERT(!rc);
-    }
-#endif
 
     /* bring up bwin with a single framebuffer */
     bwin_engine_settings_init(&win_engine_settings);
@@ -397,18 +344,6 @@ int main(int argc, char **argv)
         rc = NEXUS_Graphics2D_Blit(gfx, &blitSettings);
         BDBG_ASSERT(!rc);
         NEXUS_Graphics2D_Checkpoint(gfx, NULL);
-
-        if (client_id == -1) {
-            /* TODO: double buffer and flip */
-        }
-#if NEXUS_HAS_SURFACECMP
-        else {
-            rc = NEXUS_SurfaceClient_UpdateSurface(blit_client, NULL);
-            BDBG_ASSERT(!rc);
-            rc = BKNI_WaitForEvent(displayedEvent, 5000);
-            BDBG_ASSERT(!rc);
-        }
-#endif
 
         if (timeout == 0) {
             printf("press Enter for next\n");

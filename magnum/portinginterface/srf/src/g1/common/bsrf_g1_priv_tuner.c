@@ -1,23 +1,43 @@
-/***************************************************************************
- *     Copyright (c) 2005-2014, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * [File Description:]
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
  *
- * Revision History:
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- *
- ***************************************************************************/
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 #include "bsrf.h"
 #include "bsrf_priv.h"
 #include "bsrf_g1_priv.h"
@@ -56,26 +76,12 @@ static const int16_t qEquCoeff[BSRF_NUM_IQEQ_COEFF_TAPS] =
 BERR_Code BSRF_g1_Tuner_P_Init(BSRF_ChannelHandle h)
 {
    uint32_t val;
-   uint32_t bbAgcThresh = 0;
-   uint8_t bbAgcBandwidth = 0;
+   uint32_t bbAgcThresh = 0xE8000;
+   uint8_t bbAgcBandwidth = 12;
    uint8_t iqImbBandwidth = 6;
    uint8_t dcoBandwidth = 12;
-   uint8_t notchBandwidth = 12;
+   uint8_t notchBandwidth = 15;
    uint8_t i;
-
-   /* override defaults for mxrfga and mpll */
-   BSRF_P_WriteRegister(h, BCHP_SRFE_ANA_WRITER02_MXRFGA, 0x00001C64);  /* ctl_VCM=3, ctl_bias=4 */
-   BSRF_P_WriteRegister(h, BCHP_SRFE_ANA_WRITER10_MPLL, 0xB7880A00);    /* Cp_ctrl=0xE */
-   BSRF_P_WriteRegister(h, BCHP_SRFE_ANA_WRITER11_MPLL, 0xB119C56E);    /*  LODIV_test_port_sel=1, LODIV_div_ratio_sel=3*/
-
-   /* override default freq for mpll */
-   BSRF_P_WriteRegister(h, BCHP_SRFE_ANA_WRITER12_MPLL, 0x0AB1C71C); /* ndiv_int=171, ndiv_fract=116508 */
-   BSRF_P_WriteRegister(h, BCHP_SRFE_ANA_WRITER14_MPLL, 0xB4E83BA0); /* Ibias_VCO_slope=16 */
-
-   /* override default freq for adc pll */
-   BSRF_P_WriteRegister(h, BCHP_SRFE_ANA_WRITER16_APLL, 0x0AC440C0); /* pdiv=1, ndiv_int=64, refclk_sel=1 */
-   BSRF_P_WriteRegister(h, BCHP_SRFE_ANA_WRITER21_APLL, 0x20040000); /* ch3_mdiv=32 for dco clk, ch2_mdiv=4 for agc clk */
-   BSRF_P_WriteRegister(h, BCHP_SRFE_ANA_WRITER22_APLL, 0x00000020); /* ch5_Mdiv=32 for ramp clk */
 
    /* load aci coeffs */
    for (i = 0; i < BSRF_NUM_ACI_COEFF_TAPS; i++)
@@ -89,20 +95,28 @@ BERR_Code BSRF_g1_Tuner_P_Init(BSRF_ChannelHandle h)
    }
 
    /* setup IQ imbalance equ */
-   val = 0x03000000 | ((iqImbBandwidth & 0xF) << 12) | (iqImbBandwidth & 0xF);
-   BSRF_P_WriteRegister(h, BCHP_SRFE_FE_IQ_IMB_CTRL, val);  /* winfrz, cal, bw=6 */
+   val = 0x03040040 | ((iqImbBandwidth & 0xF) << 12) | (iqImbBandwidth & 0xF);
+   BSRF_P_WriteRegister(h, BCHP_SRFE_FE_IQ_IMB_CTRL, val);  /* winfrz=1, cal=1, phs_byp_nrm=1, amp_byp_nrm=1 */
 
    /* setup bbagc */
-   val = 0xA0000000 | (bbAgcBandwidth << 20) | (bbAgcThresh & 0xFFFFF);
-   BSRF_P_WriteRegister(h, BCHP_SRFE_FE_AGC_CTRL, val);  /* TBD bypass and freeze for bring-up */
+   val = 0xB0000000 | (bbAgcBandwidth << 20) | (bbAgcThresh & 0xFFFFF);
+   BSRF_P_WriteRegister(h, BCHP_SRFE_FE_AGC_CTRL, val);  /* frz=1, byp=1, select aci output */
 
    /* setup dco */
-   val = 0x00000300 | dcoBandwidth & 0x1F;   /* TBD bypass and freeze for bring-up */
+   val = 0x00000000 | (dcoBandwidth & 0x1F);    /* winfrz=0 */
    BSRF_P_WriteRegister(h, BCHP_SRFE_FE_DCO_CTRL, val);
 
    /* setup notch */
-   val = 0x00000300 | notchBandwidth & 0x1F; /* TBD bypass and freeze for bring-up */
+   val = 0x00000000 | (notchBandwidth & 0x1F);  /* winfrz=0 */
    BSRF_P_WriteRegister(h, BCHP_SRFE_FE_NOTCH_CTRL, val);
+
+   /* set default center freq */
+#if 1
+   BSRF_g1_P_Tune(h, BSRF_DEFAULT_FC_HZ);
+#else
+   BSRF_g1_Tuner_P_SetNotchFcw(h, BSRF_NOTCH_FREQ_HZ);
+   BSRF_g1_Tuner_P_SetFcw(h, -22500000 - BSRF_NOTCH_FREQ_HZ);
+#endif
 
    return BERR_SUCCESS;
 }
@@ -116,15 +130,41 @@ BERR_Code BSRF_g1_Tuner_P_SetFcw(BSRF_ChannelHandle h, int32_t freqHz)
    BSRF_g1_P_ChannelHandle *hChn = (BSRF_g1_P_ChannelHandle *)h->pImpl;
    uint32_t freq, P_hi, P_lo, Q_hi, Q_lo, fcw = 0x743B8424;
 
-   hChn->tunerFreq = freqHz;
    if (freqHz < 0)
       freq = -freqHz;
    else
       freq = freqHz;
 
-   /* calculate FCW = (2^32)*12Fc/Fs */
-   BMTH_HILO_32TO64_Mul(12 * freq, 4294967295UL, &P_hi, &P_lo);  /* 12Fc*(2^32) */
-   BMTH_HILO_64TO64_Div32(P_hi, P_lo, BSRF_ADC_SAMPLE_FREQ_KHZ, &Q_hi, &Q_lo);   /* div by Fs */
+   /* calculate fcw = (2^32)*12Fc/Fs */
+   BMTH_HILO_32TO64_Mul(freq, 4294967295UL, &P_hi, &P_lo);  /* Fc*(2^32) */
+   BMTH_HILO_64TO64_Div32(P_hi, P_lo, BSRF_FCW_SAMPLE_FREQ_KHZ, &Q_hi, &Q_lo);   /* div by Fs_fcw */
+   BMTH_HILO_64TO64_Div32(Q_hi, Q_lo, 1000, &Q_hi, &Q_lo);
+
+   /* program fcw */
+   if (freqHz < 0) Q_lo = -Q_lo;
+   BSRF_P_WriteRegister(h, BCHP_SRFE_FE_NOTCH_FCW, Q_lo);
+
+   return BERR_SUCCESS;
+}
+
+
+/******************************************************************************
+ BSRF_g1_Tuner_P_SetNotchFcw
+******************************************************************************/
+BERR_Code BSRF_g1_Tuner_P_SetNotchFcw(BSRF_ChannelHandle h, int32_t freqHz)
+{
+   BSRF_g1_P_ChannelHandle *hChn = (BSRF_g1_P_ChannelHandle *)h->pImpl;
+   uint32_t freq, P_hi, P_lo, Q_hi, Q_lo;
+
+   hChn->notchFreq = freqHz;
+   if (freqHz < 0)
+      freq = -freqHz;
+   else
+      freq = freqHz;
+
+   /* calculate fcw = (2^32)*12Fc/Fs */
+   BMTH_HILO_32TO64_Mul(freq, 4294967295UL, &P_hi, &P_lo);  /* Fc*(2^32) */
+   BMTH_HILO_64TO64_Div32(P_hi, P_lo, BSRF_FCW_SAMPLE_FREQ_KHZ, &Q_hi, &Q_lo);   /* div by Fs_fcw */
    BMTH_HILO_64TO64_Div32(Q_hi, Q_lo, 1000, &Q_hi, &Q_lo);
 
    /* program fcw */

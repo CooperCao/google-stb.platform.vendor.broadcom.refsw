@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -56,7 +56,7 @@
 namespace bsg
 {
 
-Platform *Platform::m_instance = nullptr;
+Platform *Platform::m_instance = NULL;
 
 Platform::Platform(const ApplicationOptions &options) :
    m_options(options.CalculateDerived()),
@@ -71,7 +71,7 @@ Platform::Platform(const ApplicationOptions &options) :
    m_lastFPSFrame(0),
    m_lastFPS(0),
    m_frame(0),
-   m_statsFile(nullptr),
+   m_statsFile(NULL),
    m_app(0),
    m_keyEvenHandler(0),
    m_keyEvenHandler2(0),
@@ -82,8 +82,6 @@ Platform::Platform(const ApplicationOptions &options) :
 
    m_swapInterval   = options.GetSwapInterval();
    m_stereo         = options.GetStereo();
-   m_quadSize       = options.GetQuad();
-   m_quad           = m_quadSize.X() > 1 || m_quadSize.Y() > 1;
    m_showHUD        = options.GetShowHUD();
    m_windowWidth    = options.GetWidth();
    m_windowHeight   = options.GetHeight();
@@ -116,10 +114,10 @@ Platform::~Platform()
    TerminateDisplay();
    TerminatePlatform();
 
-   if (m_statsFile != nullptr)
+   if (m_statsFile != NULL)
       fclose(m_statsFile);
 
-   m_instance = nullptr;
+   m_instance = NULL;
 }
 
 const ApplicationOptions &Platform::GetOptions() const
@@ -202,8 +200,9 @@ void Platform::TerminateDisplay()
 {
    m_context.Terminate();
 
-   for (auto np : m_nativePixmaps)
-      delete(np);
+   std::list<NativePixmap*>::iterator iter;
+   for (iter = m_nativePixmaps.begin(); iter != m_nativePixmaps.end(); ++iter)
+      delete(*iter);
 
    TerminatePlatformDisplay();
 }
@@ -307,41 +306,6 @@ void Platform::PostFrame()
    }
 }
 
-void Platform::RenderFrameSequenceQuad()
-{
-   uint32_t width     = GetWindowWidth();
-   uint32_t height    = GetWindowHeight();
-   uint32_t numPanels = m_quadSize.X() * m_quadSize.Y();
-
-   for (uint32_t p = 0; p < numPanels; ++p)
-   {
-      PreFrame();
-
-      m_app->GetQuadRender().SetPanel(p);
-      m_app->glViewport(0, 0, width, height);
-      m_app->RenderFrame();
-
-      PostFrame();
-
-      if (m_showHUD)
-      {
-         m_app->glViewport(0, 0, width, height);
-         m_app->DrawHud();
-      }
-
-      if (m_showFpsHUD)
-      {
-         m_app->glViewport(0, 0, width, height);
-         m_app->DrawFpsHud();
-      }
-
-      if (m_swapIntervalPending && (p == numPanels - 1))
-         m_context.SetSwapInterval(m_swapInterval);
-
-      m_context.SwapBuffers();
-   }
-}
-
 void Platform::RenderFrameSequence()
 {
    int32_t msToNextAnim = 0;
@@ -358,40 +322,33 @@ void Platform::RenderFrameSequence()
 
    m_showedHudLastFrame = m_showHUD;
 
-   if (m_frameGrabPending || m_quad)
+   if (m_frameGrabPending)
       changed = true;
 
    if (changed || m_showHUD)
    {
-      if (m_quad)
+      PreFrame();
+
+      // Call the client application's render frame
+      if (m_stereo)
       {
-         RenderFrameSequenceQuad();
+         SetupEye(eLEFT);
+         m_app->RenderFrame();
+         PostFrame();
+
+         SetupEye(eRIGHT);
+         m_app->RenderFrame();
+         PostFrame();
       }
       else
       {
-         PreFrame();
-
-         // Call the client application's render frame
-         if (m_stereo)
-         {
-            SetupEye(eLEFT);
-            m_app->RenderFrame();
-            PostFrame();
-
-            SetupEye(eRIGHT);
-            m_app->RenderFrame();
-            PostFrame();
-         }
-         else
-         {
-            SetupEye(eMONO);
-            m_app->RenderFrame();
-            PostFrame();
-         }
+         SetupEye(eMONO);
+         m_app->RenderFrame();
+         PostFrame();
       }
    }
 
-   if (m_showHUD && !m_frameGrabPending && !m_quad)
+   if (m_showHUD && !m_frameGrabPending)
    {
       if (m_stereo)
       {
@@ -408,7 +365,7 @@ void Platform::RenderFrameSequence()
       }
    }
 
-   if (m_showFpsHUD && !m_frameGrabPending && !m_quad)
+   if (m_showFpsHUD && !m_frameGrabPending)
    {
       if (m_stereo)
       {
@@ -425,7 +382,7 @@ void Platform::RenderFrameSequence()
       }
    }
 
-   if (m_frameGrabPending && !m_quad)
+   if (m_frameGrabPending)
    {
       DoFrameGrab();
       m_frameGrabPending = false;
@@ -438,11 +395,12 @@ void Platform::RenderFrameSequence()
       // in a different thread
       if (m_swapIntervalPending)
       {
+         m_swapIntervalPending = false;
          m_context.SetSwapInterval(m_swapInterval);
       }
 
       // Swap now
-      if (m_options.AutoSwapBuffer() && !m_quad)
+      if (m_options.AutoSwapBuffer())
       {
          m_context.SwapBuffers();
       }
@@ -504,7 +462,7 @@ void Platform::DoFrameGrab()
 void Platform::DumpMonitorStats()
 {
 #if EGL_BRCM_driver_monitor
-   if (m_eglGetDriverMonitorXMLBRCM != nullptr)
+   if (m_eglGetDriverMonitorXMLBRCM != NULL)
    {
       char *xml = (char *)malloc(4096 * sizeof(char));
       char *s, *e;
@@ -512,9 +470,9 @@ void Platform::DumpMonitorStats()
       char val[128];
       uint64_t ret;
 
-      if (xml != nullptr)
+      if (xml != NULL)
       {
-         m_eglGetDriverMonitorXMLBRCM(GetContext().GetDisplay(), 4096, nullptr, xml);
+         m_eglGetDriverMonitorXMLBRCM(GetContext().GetDisplay(), 4096, NULL, xml);
 
          s = strstr(xml, "<");
          while (s)
@@ -547,23 +505,23 @@ void Platform::DumpMonitorStats()
 void Platform::InitStatsSaving(const std::string &csvFilename)
 {
 #if EGL_BRCM_driver_monitor
-   if (m_statsFile == nullptr)
+   if (m_statsFile == NULL)
    {
       m_statsFile = fopen(csvFilename.c_str(), "w");
-      if (m_statsFile == nullptr)
+      if (m_statsFile == NULL)
          BSG_THROW("Failed to open stats file for writing");
 
       fprintf(m_statsFile, "milliseconds");
-      if (m_eglGetDriverMonitorXMLBRCM != nullptr)
+      if (m_eglGetDriverMonitorXMLBRCM != NULL)
       {
          char *xml = (char *)malloc(4096 * sizeof(char));
          char *s, *e;
          char tag[256];
 
-         if (xml != nullptr)
+         if (xml != NULL)
          {
             m_eglInitDriverMonitorBRCM(GetContext().GetDisplay(), m_options.GetMonitorHw(), m_options.GetMonitorL3c());
-            m_eglGetDriverMonitorXMLBRCM(GetContext().GetDisplay(), 4096, nullptr, xml);
+            m_eglGetDriverMonitorXMLBRCM(GetContext().GetDisplay(), 4096, NULL, xml);
 
             s = strstr(xml, "<");
             while (s)
@@ -595,7 +553,7 @@ void Platform::InitStatsSaving(const std::string &csvFilename)
 void Platform::SaveMonitorStats()
 {
 #if EGL_BRCM_driver_monitor
-   if (m_statsFile != nullptr && m_eglGetDriverMonitorXMLBRCM != nullptr)
+   if (m_statsFile != NULL && m_eglGetDriverMonitorXMLBRCM != NULL)
    {
       char *xml = (char *)malloc(4096 * sizeof(char));
       char *s, *e;
@@ -604,9 +562,9 @@ void Platform::SaveMonitorStats()
 
       fprintf(m_statsFile, "%d", (int32_t)Time::Now().Milliseconds());
 
-      if (xml != nullptr)
+      if (xml != NULL)
       {
-         m_eglGetDriverMonitorXMLBRCM(GetContext().GetDisplay(), 4096, nullptr, xml);
+         m_eglGetDriverMonitorXMLBRCM(GetContext().GetDisplay(), 4096, NULL, xml);
 
          s = strstr(xml, "<");
          while (s)
@@ -668,13 +626,13 @@ int64_t Platform::GetDriverMonitorValue(const char *name, bool resetMonitor)
 #if EGL_BRCM_driver_monitor
    static bool inited = false;
 
-   if (m_eglGetDriverMonitorXMLBRCM != nullptr)
+   if (m_eglGetDriverMonitorXMLBRCM != NULL)
    {
       char *xml = (char *)malloc(4096 * sizeof(char));
       char *s, *e;
       int64_t ret = -1;
 
-      if (xml != nullptr)
+      if (xml != NULL)
       {
          if (!inited)
          {
@@ -682,10 +640,10 @@ int64_t Platform::GetDriverMonitorValue(const char *name, bool resetMonitor)
             inited = true;
          }
 
-         m_eglGetDriverMonitorXMLBRCM(GetContext().GetDisplay(), 4096, nullptr, xml);
+         m_eglGetDriverMonitorXMLBRCM(GetContext().GetDisplay(), 4096, NULL, xml);
 
          s = strstr(xml, name) + strlen(name) + 1;
-         if (s != nullptr)
+         if (s != NULL)
          {
             e = strstr(s, "<");
             *e = '\0';

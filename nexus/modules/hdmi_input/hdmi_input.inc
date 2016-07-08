@@ -1,7 +1,7 @@
 ############################################################
-#     (c)2007-2013 Broadcom Corporation
+#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 #
-#  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+#  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
 #  conditions of a separate, written license agreement executed between you and Broadcom
 #  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,16 +34,6 @@
 #  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
-#
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
-# Module Description:
-#
-# Revision History:
-#
-# $brcm_Log: $
 #
 ############################################################
 
@@ -82,11 +72,7 @@ NEXUS_HDMI_INPUT_SOURCES += $(NEXUS_SYNCTHUNK_DIR)/nexus_hdmi_input_thunks.c
 #######################
 # Module Dependencies #
 #######################
-NEXUS_HDMI_INPUT_DEPENDENCIES := BASE CORE TRANSPORT SECURITY
-
-ifeq ($(findstring SAGE, $(NEXUS_MODULES)),SAGE)
-NEXUS_HDMI_INPUT_DEPENDENCIES += SAGE
-endif
+NEXUS_HDMI_INPUT_DEPENDENCIES := BASE CORE TRANSPORT SECURITY SAGE
 
 ##################
 # Magnum Modules #
@@ -96,8 +82,29 @@ NEXUS_HDMI_INPUT_MAGNUM_MODULES =  \
     $(MAGNUM)/portinginterface/hdr/bhdr.inc \
     $(MAGNUM)/commonutils/acm/bacm.inc
 
+#
+# HDCP (same logic exists in hdmi_output.inc)
+#
+# <default>             ==> enable 1.x and 2.x if HW supports and SAGE available, except for 65nm which can't default on because of HSM source
+# NEXUS_HDCP_SUPPORT=y  ==> enable 1.x and 2.x if HW supports and SAGE available
+# NEXUS_HDCP_SUPPORT=1x ==> enable 1.x only
+# NEXUS_HDCP_SUPPORT=n  ==> no HDCP
+#
+ifeq ($(filter y 1x n,$(NEXUS_HDCP_SUPPORT)),)
+# CHIP_GEOMETRY is defined in security.inc
+ifeq ($(CHIP_GEOMETRY),65nm)
+NEXUS_HDCP_SUPPORT := n
+else
+NEXUS_HDCP_SUPPORT := y
+endif
+endif
+
 ifeq ($(findstring SAGE, $(NEXUS_MODULES)),SAGE)
+ifeq ($(NEXUS_HDCP_SUPPORT),y)
 NEXUS_HDMI_INPUT_MAGNUM_MODULES += \
     $(MAGNUM)/syslib/sagelib/bsagelib.inc \
     $(MAGNUM)/syslib/hdcplib/bhdcplib.inc
+NEXUS_HDMI_INPUT_DEFINES += NEXUS_HAS_HDCP_2X_SUPPORT
+BHDCPLIB_HDR_SUPPORT := y
+endif
 endif

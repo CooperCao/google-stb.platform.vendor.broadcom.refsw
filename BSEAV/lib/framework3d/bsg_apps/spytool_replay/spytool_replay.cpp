@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -68,9 +68,13 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <errno.h>
 
-#include "EGL/egl.h"
+#include <EGL/egl.h>
 
+#ifndef __STDC_FORMAT_MACROS
+#define __STDC_FORMAT_MACROS
+#endif
 #include <inttypes.h>
 
 using namespace bsg;
@@ -486,6 +490,20 @@ GLuint SpyToolReplay::MapUniform(uint32_t handle, uint32_t program)
    return m_uniformMap[std::make_pair(program, handle)];
 }
 
+#if V3D_TECH_VERSION == 3
+void SpyToolReplay::AddUniformBlockIndexMapping(uint32_t handle, GLuint real, uint32_t program)
+{
+   m_uniformBlockMap[std::make_pair(program, handle)] = real;
+}
+
+GLuint SpyToolReplay::MapUniformBlockIndex(uint32_t handle, uint32_t program)
+{
+   if (handle == (uint32_t)-1)
+      return (uint32_t)-1;
+   return m_uniformBlockMap[std::make_pair(program, handle)];
+}
+#endif
+
 void SpyToolReplay::AddLocationMapping(uint32_t handle, GLuint real, uint32_t program)
 {
    //printf("LocMap(p=%d) %d->%d\n", program, handle, real);
@@ -691,6 +709,16 @@ static const char *commandNames[] =
 #include "commandmap.inc"
 };
 
+namespace patch
+{
+   template <typename T>std::string to_string(const T& n)
+   {
+      std::ostringstream stm;
+      stm << n;
+      return stm.str();
+   }
+}
+
 void SpyToolReplay::RenderFrame()
 {
    if (sReplayFile == "")
@@ -745,7 +773,7 @@ void SpyToolReplay::RenderFrame()
                   std::size_t periodFound = baseName.find_last_of(".");
                   baseName = baseName.substr(0, periodFound);
 
-                  csvFile = baseName + "_" + std::to_string(m_loadedSwapCount) + ".csv";
+                  csvFile = baseName + "_" + patch::to_string(m_loadedSwapCount) + ".csv";
                   fp = fopen(csvFile.c_str(), "w");
                   if (fp == NULL)
                   {
@@ -754,11 +782,11 @@ void SpyToolReplay::RenderFrame()
                   }
 
                   // Dump the timeprobes if any
-                  for (auto& probe : m_timeprobes)
+                  for (std::vector<timeprobe>::const_iterator iter = m_timeprobes.begin(); iter != m_timeprobes.end(); ++iter)
                   {
                      fprintf(fp, "%016" PRIi64 ", %08" PRIi64 ", %s\n",
-                        probe.fromSOF, probe.cmdCost,
-                        commandNames[probe.cmd * 4]);
+                        iter->fromSOF, iter->cmdCost,
+                        commandNames[iter->cmd * 4]);
                   }
 
                   fclose(fp);
@@ -766,11 +794,11 @@ void SpyToolReplay::RenderFrame()
                else
                {
                   // Dump the timeprobes if any
-                  for (auto& probe : m_timeprobes)
+                  for (std::vector<timeprobe>::const_iterator iter = m_timeprobes.begin(); iter != m_timeprobes.end(); ++iter)
                   {
                      printf("[%016" PRIi64 "] [%08" PRIi64 "] %s\n",
-                        probe.fromSOF, probe.cmdCost,
-                        commandNames[probe.cmd * 4]);
+                        iter->fromSOF, iter->cmdCost,
+                        commandNames[iter->cmd * 4]);
                   }
                }
             }

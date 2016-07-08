@@ -1,7 +1,7 @@
-/***************************************************************************
- * (c) 2002-2015 Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -37,7 +37,6 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 
 #define MAX_NETWORK_WIFI_PROPS  100
@@ -945,7 +944,11 @@ void CPanelNetworkWifi::processNotification(CNotification & notification)
         if (&_timerUpdate == pTimer)
         {
             updateConnectStatus();
-            scan();
+            /* Let NetApp Scan in the background because if we we set a timeout too short and the background task
+             * is in the process of trying to connect() the scan will be timed out, cancelled and then restarted.
+             *
+             * scan();
+             */
         }
     }
     break;
@@ -972,6 +975,7 @@ void CPanelNetworkWifi::processNotification(CNotification & notification)
         CNetwork * pNetwork = (CNetwork *)notification.getData();
 
         setMenuTitleStatus();
+        setMenuTitleStatus("Scanning...");
         updateNetworkList(pNetwork);
 
         if (true == isVisible())

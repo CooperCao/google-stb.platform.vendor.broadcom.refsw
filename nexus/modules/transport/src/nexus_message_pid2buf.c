@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2013 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #include "nexus_transport_module.h"
@@ -389,9 +381,9 @@ NEXUS_Error NEXUS_Message_Start(NEXUS_MessageHandle msg, const NEXUS_MessageStar
     if (pStartSettings->buffer) {
         NEXUS_MemoryBlockHandle block;
         unsigned blockOffset;
-        NEXUS_Module_Lock(g_NEXUS_Transport_P_State.settings.core);
+        NEXUS_Module_Lock(g_NEXUS_Transport_P_State.moduleSettings.core);
         rc = NEXUS_MemoryBlock_BlockAndOffsetFromRange_priv((void*)pStartSettings->buffer, pStartSettings->bufferSize, &block, &blockOffset);
-        NEXUS_Module_Unlock(g_NEXUS_Transport_P_State.settings.core);
+        NEXUS_Module_Unlock(g_NEXUS_Transport_P_State.moduleSettings.core);
         if (rc) {
             return BERR_TRACE(rc);
         }
@@ -788,7 +780,7 @@ NEXUS_Error NEXUS_Message_GetBuffer(NEXUS_MessageHandle msg, const void **buffer
     }
 
     if (*length) {
-        NEXUS_Memory_FlushCache((void*)*buffer, *length);
+        NEXUS_Memory_FlushCache(*buffer, *length);
     }
 
     /* remember last read from HW */
@@ -857,8 +849,8 @@ NEXUS_Error NEXUS_Message_GetBuffer(NEXUS_MessageHandle msg, const void **buffer
 
         if (!skip) {
             if (length2 + *length < message_length) {
-                BDBG_ERR(("Invalid wrapped message. Message is %d bytes, but two portions are %d and %d bytes.",
-                    message_length, *length, length2));
+                BDBG_ERR(("Invalid wrapped message. Message is %d bytes, but two portions are %u and %u bytes.",
+                    message_length, (unsigned)(*length), (unsigned)length2));
                 skip = true;
                 /* keep going. still need to consume the message from HW. */
             }
@@ -867,14 +859,14 @@ NEXUS_Error NEXUS_Message_GetBuffer(NEXUS_MessageHandle msg, const void **buffer
                 unsigned remainder = message_length - *length;
 
                 if (*length) {
-                    NEXUS_Memory_FlushCache((void*) buffer2, remainder);
+                    NEXUS_Memory_FlushCache(buffer2, remainder);
                 }
 
                 BKNI_Memcpy((uint8_t*)msg->wrappedMessage.buffer + *length, buffer2, remainder);
 
                 msg->wrappedMessage.length = message_length;
                 msg->wrappedMessage.amountConsumed = 0;
-                BDBG_MSG(("%p copied wrapped message: %d = %d + %d", (void *)msg, msg->wrappedMessage.length, *length, remainder));
+                BDBG_MSG(("%p copied wrapped message: %d = %u + %d", (void *)msg, msg->wrappedMessage.length, (unsigned)(*length), remainder));
 
                 /* the user gets a pointer & size to the data in the wrappedMessage buffer */
                 *buffer = msg->wrappedMessage.buffer;
@@ -916,7 +908,7 @@ done:
 #endif
 
     if (*length) {
-        BDBG_MSG(("GetBuffer %p: %p %d", (void *)msg, *buffer, *length));
+        BDBG_MSG(("GetBuffer %p: %p %u", (void *)msg, *buffer, (unsigned)(*length)));
     }
 
     return 0;
@@ -950,12 +942,12 @@ NEXUS_Error NEXUS_Message_GetBufferWithWrap( NEXUS_MessageHandle msg, const void
 
     if (*pBuffer) {
         if (*pLength) {
-            NEXUS_Memory_FlushCache((void*)*pBuffer, *pLength);
+            NEXUS_Memory_FlushCache(*pBuffer, *pLength);
         }
     }
     if (*pBuffer2) {
         if (*pLength2) {
-            NEXUS_Memory_FlushCache((void*)*pBuffer2, *pLength2);
+            NEXUS_Memory_FlushCache(*pBuffer2, *pLength2);
         }
     }
 
@@ -978,7 +970,7 @@ NEXUS_Error NEXUS_Message_GetBufferWithWrap( NEXUS_MessageHandle msg, const void
 #endif
 
     if (msg->lastGetBufferLength) {
-        BDBG_MSG(("GetBufferWithWrap %p: %p %d, %p %d", (void *)msg, *pBuffer, *pLength, *pBuffer2, *pLength2));
+        BDBG_MSG(("GetBufferWithWrap %p: %p %u, %p %u", (void *)msg, *pBuffer, (unsigned)(*pLength), *pBuffer2, (unsigned)(*pLength2)));
     }
 
     return 0;
@@ -996,13 +988,13 @@ NEXUS_Error NEXUS_Message_ReadComplete(NEXUS_MessageHandle msg, size_t amountCon
 
     if (amountConsumed > msg->lastGetBufferLength) {
         /* you can never consume more than you were last given. a ReadComplete call must always be preceded by a GetBuffer call. */
-        BDBG_ERR(("NEXUS_Message_ReadComplete called with %d, but last NEXUS_Message_GetBuffer only returned %d", amountConsumed, msg->lastGetBufferLength));
+        BDBG_ERR(("NEXUS_Message_ReadComplete called with %u, but last NEXUS_Message_GetBuffer only returned %d", (unsigned)amountConsumed, msg->lastGetBufferLength));
         return BERR_TRACE(NEXUS_INVALID_PARAMETER);
     }
 
     if (msg->wrappedMessage.length) {
         msg->wrappedMessage.amountConsumed += amountConsumed;
-        BDBG_MSG(("ReadComplete %p: %d, %d out of %d consumed (wrapped)", (void *)msg, amountConsumed, msg->wrappedMessage.amountConsumed, msg->wrappedMessage.length));
+        BDBG_MSG(("ReadComplete %p: %u, %d out of %d consumed (wrapped)", (void *)msg, (unsigned)amountConsumed, msg->wrappedMessage.amountConsumed, msg->wrappedMessage.length));
         if (msg->wrappedMessage.amountConsumed < msg->wrappedMessage.length) {
             goto done;
         }
@@ -1014,7 +1006,7 @@ NEXUS_Error NEXUS_Message_ReadComplete(NEXUS_MessageHandle msg, size_t amountCon
 
     if (msg->getBufferState.length) {
         msg->getBufferState.amountConsumed += amountConsumed;
-        BDBG_MSG(("ReadComplete %p: %d, %d out of %d consumsed", (void *)msg, amountConsumed, msg->getBufferState.amountConsumed, msg->getBufferState.length));
+        BDBG_MSG(("ReadComplete %p: %u, %d out of %d consumed", (void *)msg, (unsigned)amountConsumed, msg->getBufferState.amountConsumed, msg->getBufferState.length));
 
         if (msg->getBufferState.amountConsumed < msg->getBufferState.length) {
             /* we can't update HW until the full GetBuffer length is consumed. this is required so that we don't have to parse message

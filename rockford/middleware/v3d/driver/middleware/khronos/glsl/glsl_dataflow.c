@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2008 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2008 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -4311,7 +4311,7 @@ static INLINE void expr_calculate_dataflow_texture_lookup(Dataflow** scalar_valu
                else
                   max_flavour_samplers = GL20_CONFIG_MAX_FRAGMENT_TEXTURE_UNITS;
 
-               if (num_samplers[g_ShaderFlavour] > (int)max_flavour_samplers)
+               if (num_samplers[g_ShaderFlavour] > max_flavour_samplers)
                {
                   glsl_compile_error(ERROR_CUSTOM, 26 + g_ShaderFlavour,
                         sampler_scalar_value->line_num, NULL);

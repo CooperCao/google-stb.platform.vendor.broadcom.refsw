@@ -1,7 +1,7 @@
-/***************************************************************************
- *     (c)2014-2015 Broadcom Corporation
+/******************************************************************************
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,15 +34,8 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: sage_manufacturing_tool.c $
- * $brcm_Revision: ursr_integration/1 $
- * $brcm_Date: 4/2/15 4:43p $
- *
- * Module Description: SAGE DRM bin file provisioning tool (host-side)
- *
- *
- **************************************************************************/
+
+ ******************************************************************************/
 
 #include <ftw.h>
 #include <stdio.h>
@@ -69,7 +62,6 @@
 BDBG_MODULE(sage_manufacturing_tool);
 
 
-#define REPLACE_FLAG                 "--replace"
 #define OTP_KEY_FLAG                 "--otp_key:"
 
 static void print_help(void);
@@ -92,7 +84,7 @@ int validationCommand = 0;
 static int SAGE_Provisioning_ProcessBinFile(const char *path, const struct stat *sptr, int type);
 
 /* main
- * This platform can run in a standalone application or
+ * The manufacutring platform can run in a standalone application or
  * be a part of a larger one.
  */
 
@@ -100,18 +92,17 @@ int main(int argc, char* argv[])
 {
     int rc = 0;
     NEXUS_Error rc_nexus;
-    int replaceFlag = 0;
     char * pArgv = NULL;
     int arg_counter = 1;
 
     SAGE_Manufacturing_OTP_Index otp_index = SAGE_Manufacturing_OTP_Index_UNDEFINED;
 
-    BDBG_LOG(("\n\n\n\n\n"));
-    BDBG_LOG(("***************************************************************************************"));
-    BDBG_LOG(("***************************************************************************************"));
-    BDBG_LOG(("\tBroadcom Corporation DRM bin file provisioning utility (Copyright 2015)"));
-    BDBG_LOG(("***************************************************************************************"));
-    BDBG_LOG(("***************************************************************************************\n"));
+    BDBG_LOG(("\n\n\n"));
+    BDBG_LOG(("**************************************************************************"));
+    BDBG_LOG(("**************************************************************************"));
+    BDBG_LOG(("***************     Broadcom Manufacturing Utility     *******************"));
+    BDBG_LOG(("**************************************************************************"));
+    BDBG_LOG(("**************************************************************************\n"));
 
     BKNI_Memset((uint8_t*)&gAppStruct, 0x00, sizeof(combinedAppStruct));
 
@@ -174,11 +165,6 @@ int main(int argc, char* argv[])
                 goto handle_error;
             }
             BDBG_LOG(("OTP index = '%c' OTP key index specified '%s' (otp_index=%d)", otp_index + 'A', pArgv, otp_index));
-        }
-        else if(strncmp(pArgv, REPLACE_FLAG, strlen(REPLACE_FLAG)) == 0)
-        {
-            replaceFlag = 1;
-            BDBG_LOG(("SAGE firmware replace option detected"));
         }
         else
         {
@@ -266,22 +252,9 @@ handle_error:
 #endif
 
     if (rc) {
-        BDBG_ERR(("Failure in SAGE manufacturing tool\n"));
+        BDBG_ERR(("Failure running SAGE manufacturing tool\n"));
     }
-    else
-    {
-        if (replaceFlag)
-        {
-            rc = system("mv -f sage_os_app_main.bin sage_os_app.bin");
-            if(rc == -1) {
-                BDBG_ERR(("Error renaming sage_os_app_main.bin (verify permissions of files/folders)\n"));
-            }
-            rc = system("mv -f sage_os_app_dev_main.bin sage_os_app_dev.bin");
-            if(rc == -1) {
-                BDBG_ERR(("Error renaming sage_os_app_dev_main.bin (verify permissions of files/folders)\n"));
-            }
-        }
-    }
+
     return rc;
 }
 
@@ -425,18 +398,36 @@ handle_error:
 
     if (!prov_status && (drm_binfile_type != DRM_BIN_FILE_TYPE_3))
     {
-        BDBG_LOG(("\t********* SAGE-side binding successfully completed!!! *********"));
-        if(((validationCommand & VALIDATION_COMMAND_ValidateHdcp22) & 0xF) && !validation_status)
+        BDBG_LOG(("\t*** SAGE-side provisioning successfully completed!!! ****"));
+        if(((validationCommand & VALIDATION_COMMAND_ValidateHdcp22) & 0xF))
         {
-            BDBG_LOG(("\t********* SAGE-side HDCP-2.2 validation successfully completed!!! *********"));
+            if(validation_status == 0){
+                BDBG_LOG(("\t********* SAGE-side HDCP-2.2 validation successfully completed!!! *********"));
+            }
+            else{
+                BDBG_ERR(("\tHDCP-2.2 validation FAILED!!!! No file will be provisioned/written to rootfs"));
+                goto end;
+            }
         }
         if(((validationCommand & VALIDATION_COMMAND_ValidateEdrm) & 0xF) && !validation_status)
         {
-            BDBG_LOG(("\t********* SAGE-side EDRM validation successfully completed!!! *********"));
+            if(validation_status == 0){
+                BDBG_LOG(("\t********* SAGE-side EDRM validation successfully completed!!! *********"));
+            }
+            else{
+                BDBG_ERR(("\tEDRM validation FAILED!!!! No file will be provisioned/written to rootfs"));
+                goto end;
+            }
         }
         if(((validationCommand & VALIDATION_COMMAND_ValidateEcc) & 0xF) && !validation_status)
         {
-            BDBG_LOG(("\t********* SAGE-side ECC validation successfully completed!!! *********"));
+            if(validation_status == 0){
+                BDBG_LOG(("\t********* SAGE-side ECC validation successfully completed!!! *********"));
+            }
+            else{
+                BDBG_ERR(("\tEDRM validation FAILED!!!! No file will be provisioned/written to rootfs"));
+                goto end;
+            }
         }
 
         filename = strrchr(gAppStruct.InputFile, '/');
@@ -480,15 +471,33 @@ handle_error:
     {
         if(((validationCommand & VALIDATION_COMMAND_ValidateHdcp22) & 0xF) && !validation_status)
         {
-            BDBG_LOG(("\t********* SAGE-side HDCP-2.2 validation successfully completed!!! *********"));
+            if(validation_status == 0){
+                BDBG_LOG(("\t*** SAGE-side HDCP-2.2 validation successfully completed for type 3 DRM bin file!!! ***"));
+            }
+            else{
+                BDBG_ERR(("\tHDCP-2.2 validation FAILED for Type 3 DRM bin file!!!"));
+                goto end;
+            }
         }
         if(((validationCommand & VALIDATION_COMMAND_ValidateEdrm) & 0xF) && !validation_status)
         {
-            BDBG_LOG(("\t********* SAGE-side EDRM validation successfully completed!!! *********"));
+            if(validation_status == 0){
+                BDBG_LOG(("\t*** SAGE-side EDRM validation successfully completed for type 3 DRM bin file!!! ***"));
+            }
+            else{
+                BDBG_ERR(("\tEDRM validation FAILED for Type 3 DRM bin file!!!"));
+                goto end;
+            }
         }
         if(((validationCommand & VALIDATION_COMMAND_ValidateEcc) & 0xF) && !validation_status)
         {
-            BDBG_LOG(("\t********* SAGE-side ECC validation successfully completed!!! *********"));
+            if(validation_status == 0){
+                BDBG_LOG(("\t*** SAGE-side ECC validation successfully completed for type 3 DRM bin file!!! ***"));
+            }
+            else{
+                BDBG_ERR(("\tECC validation FAILED for Type 3 DRM bin file!!!"));
+                goto end;
+            }
         }
     }
     else
@@ -501,6 +510,8 @@ handle_error:
             BDBG_LOG(("\t%s", error_string));
         }
     }
+
+end:
     memset(gAppStruct.InputFile, 0x00, sizeof(gAppStruct.InputFile));
     memset(gAppStruct.OutputFile, 0x00, sizeof(gAppStruct.OutputFile));
     rc = SAGE_Manufacturing_DeallocBinBuffer();
@@ -523,8 +534,6 @@ static void print_help(void)
     BDBG_LOG(("\tOption 2)    ./nexus brcm_drm_manufacturing_tool\n"));
     BDBG_LOG(("\tIn the case of option 2) the DRM bin file(s) should be placed in the ./Input/ directory\n"));
     BDBG_LOG(("\tFlags:"));
-    BDBG_LOG(("\t  [--replace] replace the manufacturing sage_os_app.bin with the official version"));
-    BDBG_LOG(("\t              once provisioning and/or validation are complete"));
     BDBG_LOG(("\t  [--otp_key:<index>] specify what OTP key index to use for the binding process"));
     BDBG_LOG(("\n\n"));
     return;

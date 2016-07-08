@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -11,7 +11,7 @@
  * Software and all intellectual property rights therein.  IF YOU HAVE NO
  * AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
  * AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
- * SOFTWARE.  
+ * SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
@@ -65,7 +65,7 @@ class TaskData;
 //! @{
 
 //! Mutex provides a simple platform independent interface to mutual-exclusion primitives.
-//! 
+//!
 //! Threads can use the mutex Lock() and Unlock() to protect critical sections.
 class Mutex : public NoCopy
 {
@@ -77,7 +77,7 @@ public:
    void Unlock();
 
 private:
-   std::unique_ptr<MutexData>  m_platform;
+   std::auto_ptr<MutexData>  m_platform;
 };
 
 //! MutexLock
@@ -124,18 +124,18 @@ public:
    void Wait();
 
 private:
-   std::unique_ptr<EventData>   m_platform;
+   std::auto_ptr<EventData>   m_platform;
 };
 
 //! Task
-//! 
+//!
 //! The Task is an abstract base class for jobs of work that need to be
 //! performed on a secondary thread.
 //! The task has two overridable methods:
 //! OnThread() is run in the secondary (worker) thread
 //! OnCallback() is run in the main thread (automatically at finish)
 //!
-//! Typical usage is to perform slow operations such as File I/O  to read texture data in the secondary thread, 
+//! Typical usage is to perform slow operations such as File I/O  to read texture data in the secondary thread,
 //! and to submit the texture data in the main thread on completion.  Note that because the secondary thread will
 //! typically not have a GL context, graphics operations (either direct or via a BSG method) should not be performed
 //! therein.  Note also that, for efficiency, BSG is in general not thread safe.  In particular creation and deletion
@@ -163,7 +163,7 @@ public:
 
 private:
    Tasker                  *m_tasker;
-   std::unique_ptr<TaskData> m_platform;
+   std::auto_ptr<TaskData> m_platform;
 };
 
 // @cond
@@ -535,9 +535,9 @@ private:
    std::list<T>   m_queue;
 };
 
-//! The tasker manages a Task queue and is used by applications to manage threaded tasks.  Applications 
+//! The tasker manages a Task queue and is used by applications to manage threaded tasks.  Applications
 //! launch tasks via Submit() and service callbacks from these threads using DoCallbacks().
-//! 
+//!
 class Tasker : public NoCopy
 {
 public:

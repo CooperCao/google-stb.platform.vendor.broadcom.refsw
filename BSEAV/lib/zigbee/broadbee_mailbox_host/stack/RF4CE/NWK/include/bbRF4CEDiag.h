@@ -37,7 +37,7 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************/
+ ******************************************************************************
 /*****************************************************************************
 *
 * FILENAME: $Workfile: trunk/stack/RF4CE/NWK/include/bbRF4CEDiag.h $
@@ -74,13 +74,6 @@ typedef struct _RF4CE_Diag_Caps_ReqDescr_t{
     void (*callback)(RF4CE_Diag_Caps_ReqDescr_t *, RF4CE_Diag_Caps_ConfParams_t *);
 }RF4CE_Diag_Caps_ReqDescr_t;
 
-
-
-typedef struct _RF4CE_Diag_ReqParams_t{
-    uint32_t constant;
-    uint32_t managed;
-}RF4CE_Diag_ReqParams_t;
-
 typedef struct
 {
     uint8_t logicalChannel;
@@ -109,6 +102,18 @@ typedef struct
     int8_t powerMin;
 } Diag_RF4CECtrlTxPower;
 
+typedef struct _RF4CE_Diag_ReqParams_t{
+    uint32_t constant;
+    uint32_t managed;
+    union
+    {
+        Diag_RF4CECtrlAgility agility;
+        Diag_RF4CECtrlLinkQuality linkQuality;
+        Diag_RF4CECtrlTxPower txPower;
+        Diag_RF4CECtrlTxPower txPowerKeyExchange;
+        uint8_t reserved[64];
+    } u;
+}RF4CE_Diag_ReqParams_t;
 
 typedef struct _RF4CE_Diag_ConfParams_t
 {

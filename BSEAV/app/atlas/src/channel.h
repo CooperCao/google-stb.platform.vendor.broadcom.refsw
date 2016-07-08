@@ -1,43 +1,39 @@
-/***************************************************************************
- * (c) 2002-2016 Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 
 #ifndef CHANNEL_H__
@@ -97,11 +93,13 @@ public:
     CChannelData(const char * strChannel) :
         _strChannel(strChannel),
         _tunerIndex(ANY_INDEX),
-        _pChannel(NULL) {}
+        _pChannel(NULL),
+        _windowType(eWindowType_Max) {}
 public:
-    MString    _strChannel;
-    uint16_t   _tunerIndex;
-    CChannel * _pChannel;
+    MString     _strChannel;
+    uint16_t    _tunerIndex;
+    CChannel *  _pChannel;
+    eWindowType _windowType;
 };
 
 class CChannel : public CMvcModel
@@ -124,6 +122,7 @@ public:
     virtual void            writeXML(MXmlElement * xmlElemChannel);
     virtual void            updateDescription(void);
     virtual eRet            openPids(CSimpleAudioDecode * pAudioDecode = NULL, CSimpleVideoDecode * pVideoDecode = NULL);
+    virtual eRet            closePids(void);
     virtual eRet            getChannelInfo(CHANNEL_INFO_T * pChanInfo, bool bScanning);
     virtual int             addPsiPrograms(CTunerScanCallback addChannelCallback, void * context);
     virtual void            setStc(CStc * pStc)                            { _pStc = pStc; }
@@ -134,8 +133,12 @@ public:
     virtual CWidgetEngine * getWidgetEngine(void)                          { return(_pWidgetEngine); }
     virtual void            setDurationInMsecs(uint64_t durationInMsecs)   { _durationInMsecs = durationInMsecs; }
     virtual uint64_t        getDurationInMsecs(void)                       { return(_durationInMsecs); }
+    virtual void            setStopAllowed(bool bStopAllowed)              { _bStopAllowed = bStopAllowed; }
+    virtual bool            isStopAllowed(void)                            { return(_bStopAllowed); }
+    virtual void            setPipSwapSupported(bool bPipSwapSupported)    { _bPipSwapSupported = bPipSwapSupported; }
+    virtual bool            isPipSwapSupported(void)                       { return(_bPipSwapSupported); }
     virtual eRet            start(CSimpleAudioDecode * pAudioDecode = NULL,
-                                  CSimpleVideoDecode * pVideoDecode = NULL);
+            CSimpleVideoDecode *                       pVideoDecode = NULL);
     virtual CPid * getPid(
             uint16_t index,
             ePidType type
@@ -160,6 +163,8 @@ public:
     virtual unsigned int getLastPosition(void)    { return(0); }
     virtual unsigned int getCurrentPosition(void) { return(0); }
     virtual eRet         getPsiInfo(void)         { return(eRet_NotSupported); }
+    virtual bool         isTunerRequired(void)                 { return(_bTunerRequired); }
+    virtual void         setTunerRequired(bool bTunerRequired) { _bTunerRequired = bTunerRequired; }
     virtual eRet         play(void)               { return(eRet_NotSupported); }
     virtual eRet         pause(void)              { return(eRet_NotSupported); }
     virtual eRet         stop(void)               { return(eRet_NotSupported); }
@@ -167,45 +172,46 @@ public:
             bool,
             long int
             ) { return(eRet_NotSupported); }
-    virtual eRet   applyTrickMode(void)                           { return(eRet_NotSupported); }
-    virtual eRet   trickmode(CPlaybackTrickData * pTrickModeData) { BSTD_UNUSED(pTrickModeData); return(eRet_NotSupported); }
-    virtual int    getTrickModeRate(void)                         { return(_trickModeRate); }
-    virtual eRet   setTrickModeRate(int trickModeRate)            { BSTD_UNUSED(trickModeRate); return(eRet_NotSupported); }
-    virtual eRet   setTrickMode(bool fastFoward)                  { BSTD_UNUSED(fastFoward); return(eRet_NotSupported); }
-    virtual void   setHost(const char * pString)                  { BSTD_UNUSED(pString); }
-    virtual MString getHost(void)                                 { return(""); }
-    eBoardResource getType(void)                                  { return(_type); }
-    void           setType(eBoardResource resourceType)           { _type = resourceType; }
-    void           setMajor(uint16_t major)                       { _major = major; }
-    uint16_t       getMajor(void)                                 { return(_major); }
-    void           setMinor(uint16_t minor)                       { _minor = minor; }
-    uint16_t       getMinor(void)                                 { return(_minor); }
-    MString        getDescription(void)                           { return(_strDescription); }
-    MString        getDescriptionLong(void)                       { return(_strDescriptionLong); }
-    MString        getDescriptionShort(void)                      { return(_strDescriptionShort); }
-    void           setProgramNum(uint16_t programNum)             { _programNum = programNum; }
-    uint16_t       getprogramNum(void)                            { return(_programNum); }
-    MString        getChannelNum(void)                            { return(MString(_major) + MString(".") + MString(_minor)); }
-    void           setInputBand(CInputBand * pInputBand)          { _pInputBand = pInputBand; }
-    CInputBand *   getInputBand()                                 { return(_pInputBand); }
-    bool           isTuned(void)                                  { return(_tuned); }
-    void           setTransportType(NEXUS_TransportType type)     { _transportType = type; }      /* move */
-    void           setParserBand(CParserBand * pParserBand)       { _pParserBand = pParserBand; } /* move */
-    CParserBand *  getParserBand(void)                            { return(_pParserBand); }       /* move */
-    CPidMgr *      getPidMgr(void)                                { return(&_pidMgr); }
-    bool           isEncrypted(void)                              { return(_pidMgr.isEncrypted()); }  /* Encrypted */
-    void           setRecord(CRecord * pRecord)                   { _pRecord = pRecord; }
-    CRecord *      getRecord(void)                                { return(_pRecord); }
-    CPlaypump *    getPlayback(void)                              { return(_pPlaypump); }
-    bool           isRecording(void);
-    bool           isEncoding(void);
-    eRet           mapInputBand(CInputBand * pInputBand); /* used my channels */
-    bool           isTunerRequired(void)                 { return(_bTunerRequired); }
-    void           setTunerRequired(bool bTunerRequired) { _bTunerRequired = bTunerRequired; }
-    int            totalMetadata(void)                   { return(_metadata.total()); }
-    const char *   getMetadataTag(int index);
-    const char *   getMetadataValue(int index);
-    eChannelTrick  getTrickModeState(void) { return(_trickModeState); }
+    virtual eRet    applyTrickMode(void)                           { return(eRet_NotSupported); }
+    virtual eRet    trickmode(CPlaybackTrickData * pTrickModeData) { BSTD_UNUSED(pTrickModeData); return(eRet_NotSupported); }
+    virtual int     getTrickModeRate(void)                         { return(_trickModeRate); }
+    virtual eRet    setTrickModeRate(int trickModeRate)            { BSTD_UNUSED(trickModeRate); return(eRet_NotSupported); }
+    virtual eRet    setTrickMode(bool fastFoward)                  { BSTD_UNUSED(fastFoward); return(eRet_NotSupported); }
+    virtual void    setHost(const char * pString)                  { BSTD_UNUSED(pString); }
+    virtual MString getHost(void)                                  { return(""); }
+    eBoardResource  getType(void)                                  { return(_type); }
+    void            setType(eBoardResource resourceType)           { _type = resourceType; }
+    void            setMajor(uint16_t major)                       { _major = major; }
+    uint16_t        getMajor(void)                                 { return(_major); }
+    void            setMinor(uint16_t minor)                       { _minor = minor; }
+    uint16_t        getMinor(void)                                 { return(_minor); }
+    MString         getDescription(void)                           { return(_strDescription); }
+    MString         getDescriptionLong(void)                       { return(_strDescriptionLong); }
+    MString         getDescriptionShort(void)                      { return(_strDescriptionShort); }
+    void            setProgramNum(uint16_t programNum)             { _programNum = programNum; }
+    uint16_t        getprogramNum(void)                            { return(_programNum); }
+    MString         getChannelNum(void)                            { return(MString(_major) + MString(".") + MString(_minor)); }
+    void            setInputBand(CInputBand * pInputBand)          { _pInputBand = pInputBand; }
+    CInputBand *    getInputBand()                                 { return(_pInputBand); }
+    bool            isTuned(void)                                  { return(_tuned); }
+    void            setTransportType(NEXUS_TransportType type)     { _transportType = type; }      /* move */
+    void            setParserBand(CParserBand * pParserBand)       { _pParserBand = pParserBand; } /* move */
+    CParserBand *   getParserBand(void)                            { return(_pParserBand); }       /* move */
+    CPidMgr *       getPidMgr(void)                                { return(&_pidMgr); }
+    bool            isEncrypted(void)                              { return(_pidMgr.isEncrypted()); }  /* Encrypted */
+    void            setRecord(CRecord * pRecord)                   { _pRecord = pRecord; }
+    CRecord *       getRecord(void)                                { return(_pRecord); }
+    CPlaypump *     getPlayback(void)                              { return(_pPlaypump); }
+    bool            isRecording(void);
+    bool            isEncoding(void);
+    eRet            mapInputBand(CInputBand * pInputBand); /* used my channels */
+    int             totalMetadata(void)                   { return(_metadata.total()); }
+    const char *    getMetadataTag(int index);
+    const char *    getMetadataValue(int index);
+    eChannelTrick   getTrickModeState(void) { return(_trickModeState); }
+    uint32_t        getNumSubChannels(void) { return(_numSubChannels); }
+    CChannel *      getParent(void) { return(_pParent); }
+    void            setParent(CChannel * pParent) { _pParent = pParent; }
 
     void addMetadata(
             const char * strTag,
@@ -272,16 +278,19 @@ protected:
     CRecord *        _pRecord;
     CConfiguration * _pCfg;
     CStc *           _pStc;
-    int             _trickModeRate;
-    int             _seekRate;
-    eChannelTrick   _trickModeState;
-    bool            _bTunerRequired;
-    uint16_t        _width;
-    uint16_t        _height;
-    uint64_t        _durationInMsecs;
-    CModel *        _pModel;
-    CWidgetEngine * _pWidgetEngine;
-    MHash<MString>  _metadata;
+    int              _trickModeRate;
+    eChannelTrick    _trickModeState;
+    bool             _bTunerRequired;
+    uint16_t         _width;
+    uint16_t         _height;
+    uint64_t         _durationInMsecs;
+    bool             _bStopAllowed;
+    bool             _bPipSwapSupported;
+    uint32_t         _numSubChannels;
+    CChannel *       _pParent;
+    CModel *         _pModel;
+    CWidgetEngine *  _pWidgetEngine;
+    MHash<MString>   _metadata;
 };
 
 #ifdef __cplusplus

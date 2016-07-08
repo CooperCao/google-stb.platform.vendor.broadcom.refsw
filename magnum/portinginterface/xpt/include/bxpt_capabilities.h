@@ -1,7 +1,7 @@
 /******************************************************************************
  * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom and/or its
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -41,6 +41,7 @@
 #define BXPT_CAPABILITIES_H__
 
 #include "bchp.h"
+#include "bchp_common.h"
 #include "bxpt_capabilities_deprecated.h"
 
 #ifdef __cplusplus
@@ -127,13 +128,34 @@ extern "C" {
     #define BXPT_NUM_MESSAGE_CAPABLE_PID_CHANNELS 768
 #endif
 #define BXPT_NUM_SAM_PID_CHANNEL              BXPT_NUM_MESG_BUFFERS
-#ifdef BXPT_FILTER_32
-#define BXPT_NUM_FILTER_BANKS                 2
-#else
-#define BXPT_NUM_FILTER_BANKS                 8
+
+/*
+The number of filter banks depends on the size of the coefficient array. Note that the mask and exclusion array are
+the same size as the coef array.
+
+Each entry in the coef array is 1 word or 4 bytes. Each byte can hold bits that the hw can filter a message against.
+These 4 byte / 1 word filters can be cascaded to form a larger filter. In our default configuration, we cascade 4 words
+to create 16-byte filters. So, the number of 16-byte filters is the size of the coefficient array divided by 4, since
+4 array entries are needed to get 16 bytes of filtering.
+
+At this point, it's necessary to note that some customers require larger, 32-byte filters. This is supported by the
+BXPT_FILTER_32 define, which is set in the build system. It just changes the number of 4-byte filters that are cascaded.
+
+Each message filter can support up to 32 filters at one time, and all such filters must come from the same bank. So, the
+number of banks available is the number of 16-byte filters divided by 32.
+
+In the math below, the arrays are 0-based.
+*/
+#ifdef BCHP_XPT_MSG_REG_START
+    #include "bchp_xpt_msg.h"
+    #ifdef BXPT_FILTER_32
+        #define BXPT_NUM_FILTER_BANKS   (((BCHP_XPT_MSG_GEN_FILT_COEF_i_ARRAY_END - BCHP_XPT_MSG_GEN_FILT_COEF_i_ARRAY_START + 1) / 8) / 32)
+    #else
+        #define BXPT_NUM_FILTER_BANKS   (((BCHP_XPT_MSG_GEN_FILT_COEF_i_ARRAY_END - BCHP_XPT_MSG_GEN_FILT_COEF_i_ARRAY_START + 1) / 4) / 32)
+    #endif
+    #define BXPT_NUM_FILTERS_PER_BANK             32
+    #define BXPT_P_FILTER_TABLE_SIZE              BXPT_NUM_FILTERS_PER_BANK
 #endif
-#define BXPT_NUM_FILTERS_PER_BANK             32
-#define BXPT_P_FILTER_TABLE_SIZE              BXPT_NUM_FILTERS_PER_BANK
 
 /* frontend */
 #define BXPT_NUM_REMAPPABLE_FE_PARSERS       16

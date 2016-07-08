@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2013 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -97,16 +97,12 @@ void NEXUS_PwmModule_GetDefaultSettings(NEXUS_PwmModuleSettings *pSettings)
 NEXUS_ModuleHandle NEXUS_PwmModule_Init(const NEXUS_PwmModuleSettings *pSettings)
 {
     NEXUS_ModuleSettings moduleSettings;
-    NEXUS_PwmModuleSettings defaultSettings;
     BERR_Code rc;
     BPWM_Settings pwmSettings;
 
     BDBG_ASSERT(!g_NEXUS_pwmModule);
+    BDBG_ASSERT(pSettings);
 
-     if (!pSettings) {
-	 NEXUS_PwmModule_GetDefaultSettings(&defaultSettings);
-	 pSettings = &defaultSettings;
-     }
 
     /* init global module handle */
     NEXUS_Module_GetDefaultSettings(&moduleSettings);

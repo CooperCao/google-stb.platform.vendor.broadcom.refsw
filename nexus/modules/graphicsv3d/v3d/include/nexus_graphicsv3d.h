@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2012-2013 Broadcom Corporation
+ *     Broadcom Proprietary and Confidential. (c)2012-13 Broadcom.  All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -141,8 +141,7 @@ Bin memory is requested using these settings.
 **/
 typedef struct NEXUS_Graphicsv3dBinMemorySettings
 {
-   /* No settings at present */
-   uint32_t    uiDummy;
+   bool    bSecure;
 } NEXUS_Graphicsv3dBinMemorySettings;
 
 /**
@@ -202,7 +201,8 @@ typedef enum NEXUS_Graphicsv3dOperation
    NEXUS_Graphicsv3dOperation_eUserInstr,      /*                                  */
    NEXUS_Graphicsv3dOperation_eWaitInstr,      /* Args waitFlags                   */
    NEXUS_Graphicsv3dOperation_eSyncInstr,      /* Args none                        */
-   NEXUS_Graphicsv3dOperation_eNotifyInstr     /* Args notifyFlags                 */
+   NEXUS_Graphicsv3dOperation_eNotifyInstr,    /* Args notifyFlags                 */
+   NEXUS_Graphicsv3dOperation_eSecureInstr     /* Args is the job secure           */
 } NEXUS_Graphicsv3dOperation;
 
 /**
@@ -229,11 +229,12 @@ Contains a list of instructions and the necessary data to complete the job.
 **/
 typedef struct NEXUS_Graphicsv3dJob
 {
-   NEXUS_Graphicsv3dInstruction  sProgram[NEXUS_GRAPHICSV3D_JOB_MAX_INSTRUCTIONS];  /* List of instructions  */
-   uint32_t                      uiBinMemory;         /* Pointer to initial bin memory for tasks in this job */
-   uint32_t                      uiUserVPM;           /* Settings for the V3D VPM for this job               */
-   bool                          bCollectTimeline;    /* True if time-line data is wanted                    */
-   uint64_t                      uiJobSequence;       /* Unique sequence id                                  */
+   NEXUS_Graphicsv3dInstruction  sProgram[NEXUS_GRAPHICSV3D_JOB_MAX_INSTRUCTIONS];  /* List of instructions       */
+   uint32_t                      uiBinMemory;         /* Pointer to initial bin memory for tasks in this job      */
+   bool                          bBinMemorySecure;    /* Bin memory came from secure pool, so it can be attached  */
+   uint32_t                      uiUserVPM;           /* Settings for the V3D VPM for this job                    */
+   bool                          bCollectTimeline;    /* True if time-line data is wanted                         */
+   uint64_t                      uiJobSequence;       /* Unique sequence id                                       */
 } NEXUS_Graphicsv3dJob;
 
 /**

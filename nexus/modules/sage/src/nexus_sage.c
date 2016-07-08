@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2013 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
  **************************************************************************/
 
 #include "nexus_sage_module.h"
@@ -82,6 +81,10 @@ static void NEXUS_Sage_P_Finalizer(NEXUS_SageHandle sage);
 static void NEXUS_SageChannel_P_Finalizer(NEXUS_SageChannelHandle channel);
 static void NEXUS_Sage_P_ResponseCallback_isr(
     BSAGElib_RpcRemoteHandle handle, void *async_argument, uint32_t async_id, BERR_Code error);
+static BERR_Code NEXUS_Sage_P_CallbackRequestCallback_isr(
+    BSAGElib_RpcRemoteHandle handle, void *async_argument);
+static void NEXUS_Sage_P_TATerminateCallback_isr(
+    BSAGElib_RpcRemoteHandle handle, void *async_argument, uint32_t reason, uint32_t source);
 
 
 /*
@@ -126,6 +129,62 @@ static void NEXUS_Sage_P_ResponseCallback_isr(
     }
 }
 
+static BERR_Code NEXUS_Sage_P_CallbackRequestCallback_isr(
+    BSAGElib_RpcRemoteHandle handle, void *async_argument)
+{
+    NEXUS_SageChannelHandle channel = (NEXUS_SageChannelHandle)async_argument;
+    BERR_Code rc = BERR_SUCCESS;
+
+    BSTD_UNUSED(handle);
+
+    if (!channel) {
+        BDBG_ERR(("%s: retreived channel is NULL", __FUNCTION__));
+        rc = BSAGE_ERR_INTERNAL;
+        goto end;
+    }
+
+    if (channel->status.pendingCallbackRequest) {
+        BDBG_ERR(("%s: channel is already processing a callback request", __FUNCTION__));
+        rc = BSAGE_ERR_INTERNAL;
+        goto end;
+    }
+
+    if (channel->callbackRequestRecvCallback) {
+        channel->status.pendingCallbackRequest = true;
+        NEXUS_IsrCallback_Fire_isr(channel->callbackRequestRecvCallback);
+    }
+    else {
+        BDBG_ERR(("%s: callback requests are not enabled for channel", __FUNCTION__));
+        rc = BSAGE_ERR_INTERNAL;
+        goto end;
+    }
+
+end:
+    return rc;
+}
+
+static void NEXUS_Sage_P_TATerminateCallback_isr(
+    BSAGElib_RpcRemoteHandle handle, void *async_argument, uint32_t reason, uint32_t source)
+{
+    NEXUS_SageChannelHandle channel = (NEXUS_SageChannelHandle)async_argument;
+
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(reason);
+    BSTD_UNUSED(source);
+
+    if (!channel) {
+        BDBG_ERR(("%s: retreived channel is NULL", __FUNCTION__));
+        goto end;
+    }
+
+    channel->status.lastError = NEXUS_ERROR_SAGE_SIDE;
+    channel->status.lastErrorSage = BSAGE_ERR_TA_TERMINATED;
+
+    NEXUS_IsrCallback_Fire_isr(channel->taTerminateCallback);
+
+end:
+    return;
+}
 
 NEXUS_OBJECT_CLASS_MAKE(NEXUS_Sage, NEXUS_Sage_Close);
 
@@ -196,6 +255,8 @@ NEXUS_SageHandle NEXUS_Sage_Open(
 
         NEXUS_Sage_P_GetSAGElib_ClientSettings(&SAGElibClientSettings);
         SAGElibClientSettings.i_rpc.response_isr = NEXUS_Sage_P_ResponseCallback_isr;
+        SAGElibClientSettings.i_rpc.callbackRequest_isr = NEXUS_Sage_P_CallbackRequestCallback_isr;
+        SAGElibClientSettings.i_rpc.taTerminate_isr = NEXUS_Sage_P_TATerminateCallback_isr;
         SAGElib_rc = BSAGElib_OpenClient(g_NEXUS_sageModule.hSAGElib,
                                          &sage->hSAGElibClient,
                                          &SAGElibClientSettings);
@@ -267,6 +328,8 @@ void NEXUS_SageChannel_GetDefaultSettings(
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
     NEXUS_CallbackDesc_Init(&pSettings->successCallback);
     NEXUS_CallbackDesc_Init(&pSettings->errorCallback);
+    NEXUS_CallbackDesc_Init(&pSettings->callbackRequestRecvCallback);
+    NEXUS_CallbackDesc_Init(&pSettings->taTerminateCallback);
 }
 
 /* Create a channel on a sage instance */
@@ -295,6 +358,11 @@ NEXUS_SageChannelHandle NEXUS_Sage_CreateChannel(
         (void)BERR_TRACE(NEXUS_INVALID_PARAMETER);
         goto end;
     }
+    if (!pSettings->taTerminateCallback.callback) {
+        BDBG_ERR(("taTerminateCallback is a mandatory parameter"));
+        (void)BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        goto end;
+    }
 #if 0 /* UNUSED */
     if (!NEXUS_Sage_P_IsHeapValid(pSettings->heap)) {
         BDBG_ERR(("given heap is not valid"));
@@ -306,7 +374,7 @@ NEXUS_SageChannelHandle NEXUS_Sage_CreateChannel(
     channel = BKNI_Malloc(sizeof(*channel));
     if (channel == NULL) {
         BDBG_ERR(("OOM? Cannot allocate channel instance context (%u bytes).",
-                  sizeof(*channel)));
+                  (unsigned)sizeof(*channel)));
         (void)BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
         goto end;
     }
@@ -321,14 +389,36 @@ NEXUS_SageChannelHandle NEXUS_Sage_CreateChannel(
         (void)BERR_TRACE(NEXUS_OS_ERROR);
         goto end;
     }
+    NEXUS_IsrCallback_Set(channel->successCallback, &pSettings->successCallback);
+
+    NEXUS_Callback_GetDefaultSettings(&callbackSettings);
     channel->errorCallback = NEXUS_IsrCallback_Create(channel, &callbackSettings);
     if (channel->errorCallback == NULL) {
-        BDBG_ERR(("NEXUS_IsrCallback_Create failure for successCallback"));
+        BDBG_ERR(("NEXUS_IsrCallback_Create failure for errorCallback"));
         (void)BERR_TRACE(NEXUS_OS_ERROR);
         goto end;
     }
-    NEXUS_IsrCallback_Set(channel->successCallback, &pSettings->successCallback);
     NEXUS_IsrCallback_Set(channel->errorCallback, &pSettings->errorCallback);
+
+    NEXUS_Callback_GetDefaultSettings(&callbackSettings);
+    channel->taTerminateCallback = NEXUS_IsrCallback_Create(channel, &callbackSettings);
+    if (channel->taTerminateCallback == NULL) {
+        BDBG_ERR(("NEXUS_IsrCallback_Create failure for taTerminateCallback"));
+        (void)BERR_TRACE(NEXUS_OS_ERROR);
+        goto end;
+    }
+    NEXUS_IsrCallback_Set(channel->taTerminateCallback, &pSettings->taTerminateCallback);
+
+    if (pSettings->callbackRequestRecvCallback.callback) {
+        NEXUS_Callback_GetDefaultSettings(&callbackSettings);
+        channel->callbackRequestRecvCallback = NEXUS_IsrCallback_Create(channel, &callbackSettings);
+        if (channel->callbackRequestRecvCallback == NULL) {
+            BDBG_ERR(("NEXUS_IsrCallback_Create failure for callbackRequestRecvCallback"));
+            (void)BERR_TRACE(NEXUS_OS_ERROR);
+            goto end;
+        }
+        NEXUS_IsrCallback_Set(channel->callbackRequestRecvCallback, &pSettings->callbackRequestRecvCallback);
+    }
 
     channel->sage = sage;
     /* Acquire Sage instance will strengthen Channel <- -> Sage dependency:
@@ -384,6 +474,12 @@ static void NEXUS_SageChannel_P_Finalizer(NEXUS_SageChannelHandle channel)
     if (channel->errorCallback) {
         NEXUS_IsrCallback_Destroy(channel->errorCallback);
     }
+    if (channel->taTerminateCallback) {
+        NEXUS_IsrCallback_Destroy(channel->taTerminateCallback);
+    }
+    if (channel->callbackRequestRecvCallback) {
+        NEXUS_IsrCallback_Destroy(channel->callbackRequestRecvCallback);
+    }
 
     /* channel context is zeroed in NEXUS_OBJECT_DESTROY */
     NEXUS_OBJECT_DESTROY(NEXUS_SageChannel, channel);
@@ -424,6 +520,7 @@ NEXUS_Error NEXUS_SageChannel_SendCommand(
     BDBG_ENTER(NEXUS_SageChannel_SendCommand);
 
     NEXUS_OBJECT_ASSERT(NEXUS_SageChannel, channel);
+    BDBG_ASSERT(pCommand);
 
     /* check if SAGE booted : covers the Watchdog event */
     if(!NEXUS_Sage_P_CheckSageBooted()) {
@@ -526,5 +623,60 @@ NEXUS_Error NEXUS_Sage_GetLogBuffer(uint8_t *pBuff, uint32_t bufSize,
 
 end:
     BDBG_LEAVE(NEXUS_Sage_GetLogBuffer);
+    return ret;
+}
+
+/* Send a response (to a callback request) to SAGE-side through a channel
+ * Note: the request came from BSAGElib and was propagated up through NEXUS_SageChannelHandle::callbackRequestRecvCallback */
+NEXUS_Error NEXUS_SageChannel_SendResponse(
+    NEXUS_SageChannelHandle channel,
+    const NEXUS_SageResponse *pResponse)
+{
+    NEXUS_Error ret = NEXUS_SUCCESS;
+    BERR_Code SAGElib_rc;
+
+    BDBG_ENTER(NEXUS_SageChannel_SendResponse);
+
+    NEXUS_OBJECT_ASSERT(NEXUS_SageChannel, channel);
+    BDBG_ASSERT(pResponse);
+
+    /* check if SAGE booted : covers the Watchdog event */
+    if(!NEXUS_Sage_P_CheckSageBooted()) {
+        BDBG_ERR(("SAGE (re)boot failure"));
+        ret = BERR_TRACE(NEXUS_NOT_INITIALIZED);
+        NEXUS_Sage_P_Cleanup();
+        goto end;
+    }
+
+    if (!channel->sagelib_remote) {
+        BDBG_ERR(("Cannot bound channel to SAGElib remote"));
+        ret = BERR_TRACE(NEXUS_NOT_AVAILABLE);
+        goto end;
+    }
+
+    if (!channel->status.pendingCallbackRequest) {
+        BDBG_ERR(("No pending callback request"));
+        ret = BERR_TRACE(NEXUS_NOT_AVAILABLE);
+        goto end;
+    }
+
+    channel->status.pendingCallbackRequest = false;
+
+    SAGElib_rc = BSAGElib_Rpc_SendCallbackResponse(channel->sagelib_remote,
+                                                   pResponse->sequenceId,
+                                                   pResponse->returnCode);
+    if (SAGElib_rc != BERR_SUCCESS) {
+        if (SAGElib_rc == BSAGE_ERR_RESET) {
+            ret = BERR_TRACE(NEXUS_ERROR_SAGE_WATCHDOG);
+        }
+        else {
+            ret = BERR_TRACE(NEXUS_NOT_AVAILABLE);
+        }
+        BDBG_ERR(("BSAGElib_Rpc_SendResponse() failure %d", SAGElib_rc));
+        goto end;
+    }
+
+end:
+    BDBG_LEAVE(NEXUS_SageChannel_SendResponse);
     return ret;
 }

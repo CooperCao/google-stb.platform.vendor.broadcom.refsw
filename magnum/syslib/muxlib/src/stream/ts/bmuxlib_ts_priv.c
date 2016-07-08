@@ -1,23 +1,43 @@
-/***************************************************************************
- *     Copyright (c) 2003-2014, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * [File Description:]
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
  *
- * Revision History:
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- *
- ***************************************************************************/
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 
 /* base modules */
 #include "bstd.h"           /* standard types */
@@ -438,7 +458,8 @@ BMUXlib_TS_P_ProcessCompletedBuffers(
                   }
 
                   case BMUXlib_TS_P_DataType_eUserdataLocal:
-                     /* used to identify use of local buffer for unwrapping split packet */
+                     /* used to identify use of local buffer for unwrapping split packet
+                        (nothing actually needs to be "freed" we just indicate it is no longer in use) */
                      hMuxTS->status.stUserdataInfo[pstCurrentTransportDescriptorMetaData->uiInputIndex].bUnwrapInUse = false;
                      break;
 
@@ -497,15 +518,95 @@ BMUXlib_TS_P_ProcessCompletedBuffers(
 
                   case BMUXlib_TS_P_SourceType_eUserdata:
                      /* SW7425-3250: Sequence ID and desc counts passed back from transport are added to release Q */
-                     BDBG_MODULE_MSG(BMUXLIB_TS_UD_RQ, ("UD[%d]: Returning desc from XPT: %d bytes, Seq: %d, count: %d",  pstCurrentTransportDescriptorMetaData->uiInputIndex, pstCurrentTransportDescriptor->uiBufferLength,
+                     BDBG_MODULE_MSG(BMUXLIB_TS_UD_RQ, ("UD[%d]: Returning desc from XPT: %d bytes, Seq: %d, count: %d",  pstCurrentTransportDescriptorMetaData->uiInputIndex, (int)pstCurrentTransportDescriptor->uiBufferLength,
                         pstCurrentTransportDescriptorMetaData->uiSequenceID, pstCurrentTransportDescriptorMetaData->uiSourceDescriptorCount));
                      BMUXlib_TS_P_Userdata_AddToReleaseQ(hMuxTS, pstCurrentTransportDescriptorMetaData->uiInputIndex, pstCurrentTransportDescriptor->uiBufferLength,
                         pstCurrentTransportDescriptorMetaData->uiSequenceID, pstCurrentTransportDescriptorMetaData->uiSourceDescriptorCount);
+                     /* unlock this offset since we are done with the data */
+                     if (BMUXlib_TS_P_DataType_eCDB == pstCurrentTransportDescriptorMetaData->eDataType)
+                     {
+                        if ((BMUXLIB_TS_P_INVALID_OFFSET != pstCurrentTransportDescriptorMetaData->uiBufferBaseOffset)
+                             && (NULL != pstCurrentTransportDescriptorMetaData->hBufferBaseBlock))
+                        {
+                           BMMA_UnlockOffset(pstCurrentTransportDescriptorMetaData->hBufferBaseBlock, pstCurrentTransportDescriptorMetaData->uiBufferBaseOffset);
+                           pstCurrentTransportDescriptorMetaData->uiBufferBaseOffset = BMUXLIB_TS_P_INVALID_OFFSET;
+                           pstCurrentTransportDescriptorMetaData->hBufferBaseBlock = NULL;
+                        }
+                     }
                      break;
 
                   case BMUXlib_TS_P_SourceType_eUnknown:
                   case BMUXlib_TS_P_SourceType_eMax:
                      /* Unknown Source Type */
+                     break;
+               }
+
+               /* Update uiCurrentESCR in status */
+               if ( true == pstCurrentTransportDescriptor->stTsMuxDescriptorConfig.bNextPacketPacingTimestampValid )
+               {
+                  switch ( pstCurrentTransportDescriptorMetaData->eSourceType )
+                  {
+                     case BMUXlib_TS_P_SourceType_eVideo:
+                        hMuxTS->status.stStatus.stVideo[hMuxTS->status.stInputMetaData[pstCurrentTransportDescriptorMetaData->uiInputIndex].uiPIDIndex].uiCurrentESCR = pstCurrentTransportDescriptor->stTsMuxDescriptorConfig.uiNextPacketPacingTimestamp;
+                        break;
+
+                     case BMUXlib_TS_P_SourceType_eAudio:
+                        hMuxTS->status.stStatus.stAudio[hMuxTS->status.stInputMetaData[pstCurrentTransportDescriptorMetaData->uiInputIndex].uiPIDIndex].uiCurrentESCR = pstCurrentTransportDescriptor->stTsMuxDescriptorConfig.uiNextPacketPacingTimestamp;
+                        break;
+
+                     case BMUXlib_TS_P_SourceType_eSystem:
+                        hMuxTS->status.stStatus.stSystem.uiCurrentESCR = pstCurrentTransportDescriptor->stTsMuxDescriptorConfig.uiNextPacketPacingTimestamp;
+                        break;
+
+                     case BMUXlib_TS_P_SourceType_eUserdata:
+                        hMuxTS->status.stStatus.stUserData[pstCurrentTransportDescriptorMetaData->uiInputIndex].uiCurrentESCR = pstCurrentTransportDescriptor->stTsMuxDescriptorConfig.uiNextPacketPacingTimestamp;
+                        break;
+
+                     default:
+                        break;
+                  }
+               }
+
+               /* Update uiCurrentTimestamp in status */
+               switch ( pstCurrentTransportDescriptorMetaData->eDataType )
+               {
+                  case BMUXlib_TS_P_DataType_ePESHeader:
+                     switch ( pstCurrentTransportDescriptorMetaData->eSourceType )
+                     {
+                        case BMUXlib_TS_P_SourceType_eVideo:
+                           hMuxTS->status.stStatus.stVideo[hMuxTS->status.stInputMetaData[pstCurrentTransportDescriptorMetaData->uiInputIndex].uiPIDIndex].uiCurrentTimestamp = pstCurrentTransportDescriptorMetaData->uiTimestamp;
+                           break;
+
+                        case BMUXlib_TS_P_SourceType_eAudio:
+                           hMuxTS->status.stStatus.stAudio[hMuxTS->status.stInputMetaData[pstCurrentTransportDescriptorMetaData->uiInputIndex].uiPIDIndex].uiCurrentTimestamp = pstCurrentTransportDescriptorMetaData->uiTimestamp;
+                           break;
+
+                        default:
+                           break;
+                     }
+                     break;
+
+                  case BMUXlib_TS_P_DataType_eNULL:
+                     switch ( pstCurrentTransportDescriptorMetaData->eSourceType )
+                     {
+                        case BMUXlib_TS_P_SourceType_eSystem:
+                           hMuxTS->status.stStatus.stSystem.uiCurrentTimestamp = pstCurrentTransportDescriptorMetaData->uiTimestamp;
+                           break;
+
+                        default:
+                           break;
+                     }
+                     break;
+
+                  case BMUXlib_TS_P_DataType_ePCRPacket:
+                     hMuxTS->status.stStatus.stSystem.uiCurrentTimestamp = pstCurrentTransportDescriptorMetaData->uiTimestamp;
+                     break;
+
+                  case BMUXlib_TS_P_DataType_eUserdataPTS:
+                     hMuxTS->status.stStatus.stUserData[pstCurrentTransportDescriptorMetaData->uiInputIndex].uiCurrentTimestamp = pstCurrentTransportDescriptorMetaData->uiTimestamp;
+                     break;
+
+                  default:
                      break;
                }
 
@@ -713,13 +814,13 @@ BMUXlib_TS_P_AddTransportDescriptor(
             pstPreviousTransportDescriptor->uiBufferLength += pstTransportDescriptor->uiBufferLength;
             pstPreviousTransportDescriptorMetaData->uiSourceDescriptorCount += pstTransportDescriptorMetaData->uiSourceDescriptorCount;
 
-            BDBG_MSG(("[%d][%d][%d] Coalescing descriptor w/ length = %d (@%p %d)",
+            BDBG_MSG(("[%d][%d][%d] Coalescing descriptor w/ length = %d (@"BDBG_UINT64_FMT" %d)",
                pstTransportDescriptorMetaData->eDataType,
                pstTransportDescriptorMetaData->eSourceType,
                pstTransportDescriptorMetaData->uiInputIndex,
-               pstTransportDescriptor->uiBufferLength,
-               pstPreviousTransportDescriptor->uiBufferOffset,
-               pstPreviousTransportDescriptor->uiBufferLength
+               (int)pstTransportDescriptor->uiBufferLength,
+               BDBG_UINT64_ARG(pstPreviousTransportDescriptor->uiBufferOffset),
+               (int)pstPreviousTransportDescriptor->uiBufferLength
                ));
 
             if ( ( BMUXLIB_TS_P_INVALID_OFFSET != pstTransportDescriptorMetaData->uiBufferBaseOffset ) && ( NULL != pstTransportDescriptorMetaData->hBufferBaseBlock ) )
@@ -793,7 +894,8 @@ BERR_Code
 BMUXlib_TS_P_PopulatePESInfoFromInputDescriptor(
          const BMUXlib_Input_Descriptor *pstDescriptor,
          BMUXlib_P_PESInfo *pstPESInfo,
-         bool bSupportTTS
+         bool bSupportTTS,
+         bool bUsePtsAsESCR
         )
 {
    BDBG_ASSERT( pstDescriptor );
@@ -809,8 +911,8 @@ BMUXlib_TS_P_PopulatePESInfoFromInputDescriptor(
    pstPESInfo->bPTSValid = BMUXLIB_INPUT_DESCRIPTOR_IS_PTS_VALID( pstDescriptor );
    pstPESInfo->uiPTS = BMUXLIB_INPUT_DESCRIPTOR_PTS ( pstDescriptor );
 
-   pstPESInfo->bESCRValid = BMUXLIB_INPUT_DESCRIPTOR_IS_ESCR_VALID( pstDescriptor );
-   pstPESInfo->uiESCR = BMUXLIB_INPUT_DESCRIPTOR_ESCR( pstDescriptor );
+   pstPESInfo->bESCRValid = BMUXLIB_TS_P_INPUT_DESCRIPTOR_IS_ESCR_VALID( pstDescriptor, bUsePtsAsESCR );
+   pstPESInfo->uiESCR = BMUXLIB_TS_P_INPUT_DESCRIPTOR_ESCR( pstDescriptor, bUsePtsAsESCR );
 
    pstPESInfo->bTicksPerBitValid = BMUXLIB_INPUT_DESCRIPTOR_IS_TICKS_PER_BIT_VALID ( pstDescriptor );
    pstPESInfo->uiTicksPerBit = BMUXLIB_INPUT_DESCRIPTOR_TICKS_PER_BIT( pstDescriptor );
@@ -981,7 +1083,7 @@ BMUXlib_TS_P_InsertBPP(
       /* Set Buffer Info */
       pstCurrentTransportDescriptorMetaData->pBufferAddress = pstBPPInfo->pBuffer;
       pstCurrentTransportDescriptorMetaData->hBufferBaseBlock = hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].hBlock;
-      pstCurrentTransportDescriptor->uiBufferOffset = (unsigned) pstCurrentTransportDescriptorMetaData->pBufferAddress - (unsigned) hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].pBuffer;
+      pstCurrentTransportDescriptor->uiBufferOffset = (uint8_t *) pstCurrentTransportDescriptorMetaData->pBufferAddress - (uint8_t *) hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].pBuffer;
       pstCurrentTransportDescriptor->uiBufferOffset += hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].uiBufferOffset;
       pstCurrentTransportDescriptor->uiBufferLength = pstBPPInfo->uiLength;
 
@@ -1106,7 +1208,7 @@ BMUXlib_TS_P_InsertPESHeader(
          /* Set Buffer Info */
          pstCurrentTransportDescriptorMetaData->pBufferAddress = pstCurrentPESHeader;
          pstCurrentTransportDescriptorMetaData->hBufferBaseBlock = hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].hBlock;
-         pstCurrentTransportDescriptor->uiBufferOffset = (unsigned) pstCurrentTransportDescriptorMetaData->pBufferAddress - (unsigned) hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].pBuffer;
+         pstCurrentTransportDescriptor->uiBufferOffset = (uint8_t *) pstCurrentTransportDescriptorMetaData->pBufferAddress - (uint8_t *) hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].pBuffer;
          pstCurrentTransportDescriptor->uiBufferOffset += hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].uiBufferOffset;
          pstCurrentTransportDescriptor->uiBufferLength = sizeof( BMUXlib_TS_P_PESHeader );
 
@@ -1411,6 +1513,10 @@ BMUXlib_TS_P_InsertPESHeader(
          /* Set Random Access Indicator */
          pstCurrentTransportDescriptor->stTsMuxDescriptorConfig.bRandomAccessIndication = pstPESInfo->bRAI;
 
+         /* Set Timestamp */
+         if ( true == pstPESInfo->bDTSValid ) pstCurrentTransportDescriptorMetaData->uiTimestamp = pstPESInfo->uiDTS;
+         else pstCurrentTransportDescriptorMetaData->uiTimestamp = pstPESInfo->uiPTS;
+
          BERR_TRACE( BMUXlib_TS_P_AddTransportDescriptor(
             hMuxTS,
             pstPESInfo->uiTransportChannelIndex,
@@ -1565,6 +1671,7 @@ BMUXlib_TS_P_InsertNULLTransportDescriptor (
          BMUXlib_TS_Handle hMuxTS,
          unsigned uiTransportChannelIndex,
          uint32_t uiESCR,
+         uint32_t uiPacket2PacketDelta,
          BMUXlib_TS_P_DataType eDataType,
          BMUXlib_TS_P_SourceType eSourceType,
          unsigned uiInputIndex
@@ -1618,21 +1725,21 @@ BMUXlib_TS_P_InsertNULLTransportDescriptor (
    pstCurrentTransportDescriptor->stTsMuxDescriptorConfig.uiNextPacketPacingTimestamp = uiESCR;
 
    pstCurrentTransportDescriptor->stTsMuxDescriptorConfig.bPacket2PacketTimestampDeltaValid = true;
-   pstCurrentTransportDescriptor->stTsMuxDescriptorConfig.uiPacket2PacketTimestampDelta = 0;
+   pstCurrentTransportDescriptor->stTsMuxDescriptorConfig.uiPacket2PacketTimestampDelta = uiPacket2PacketDelta;
 
    if ( uiTransportChannelIndex == hMuxTS->status.stInput.system.uiTransportChannelIndex )
    {
       pstCurrentTransportDescriptorMetaData->pBufferAddress = hMuxTS->status.pNullTSPacketBuffer;
       pstCurrentTransportDescriptorMetaData->hBufferBaseBlock = hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].hBlock;
-      pstCurrentTransportDescriptor->uiBufferOffset = (unsigned) pstCurrentTransportDescriptorMetaData->pBufferAddress - (unsigned) hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].pBuffer;
+      pstCurrentTransportDescriptor->uiBufferOffset = (uint8_t *) pstCurrentTransportDescriptorMetaData->pBufferAddress - (uint8_t *) hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].pBuffer;
       pstCurrentTransportDescriptor->uiBufferOffset += hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].uiBufferOffset;
-      pstCurrentTransportDescriptor->uiBufferLength = sizeof( BMUXlib_TS_P_TSPacket );
+      pstCurrentTransportDescriptor->uiBufferLength = 0;
    }
    else
    {
       pstCurrentTransportDescriptorMetaData->pBufferAddress = hMuxTS->status.pDummyPESBuffer;
       pstCurrentTransportDescriptorMetaData->hBufferBaseBlock = hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].hBlock;
-      pstCurrentTransportDescriptor->uiBufferOffset = (unsigned) pstCurrentTransportDescriptorMetaData->pBufferAddress - (unsigned) hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].pBuffer;
+      pstCurrentTransportDescriptor->uiBufferOffset = (uint8_t *) pstCurrentTransportDescriptorMetaData->pBufferAddress - (uint8_t *) hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].pBuffer;
       pstCurrentTransportDescriptor->uiBufferOffset += hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].uiBufferOffset;
       pstCurrentTransportDescriptor->uiBufferLength = sizeof( BMUXlib_TS_P_BPPData );
    }
@@ -1752,15 +1859,15 @@ BMUXlib_TS_P_ProcessSystemData(
       {
          void *pEntry = NULL;
          /* calculate Next PCR's expected ESCR value for future reference */
-         uint64_t uiNextESCR = hMuxTS->status.stPCRInfo.uiESCR + (BMUXLIB_TS_P_SCALE_MS_TO_27MHZ * hMuxTS->status.stStartSettings.stPCRData.uiInterval);
+         uint64_t uiNextESCR = hMuxTS->status.stPCRInfo.uiESCR + hMuxTS->status.stPCRInfo.uiIntervalIn27Mhz;
 
          if ( true == hMuxTS->status.stStartSettings.bSupportTTS )
          {
             /* SW7425-659: Check for resource availability for MUX_TIMESTAMP_UPDATE BTP */
 
-            unsigned uiNumTransportDescriptorsFree;
-            unsigned uiNumTSPacketsFree;
-            unsigned uiNumPendingFree;
+            size_t uiNumTransportDescriptorsFree;
+            size_t uiNumTSPacketsFree;
+            size_t uiNumPendingFree;
 
             BMUXlib_List_GetNumEntries(
                      hMuxTS->hTransportDescriptorFreeList,
@@ -1787,105 +1894,108 @@ BMUXlib_TS_P_ProcessSystemData(
          /* Handle MOD300 wrap */
          hMuxTS->status.stPCRInfo.uiNextESCR = BMUXLIB_TS_P_MOD300_WRAP(uiNextESCR);
 
-         /* Insert PCR */
-         BERR_TRACE( BMUXlib_List_Remove(
-                  hMuxTS->hTSPacketFreeList,
-                  &pEntry
-                  ) );
+         if ( 0 != hMuxTS->status.stStartSettings.stPCRData.uiInterval )
+         {
+            /* Insert PCR */
+            BERR_TRACE( BMUXlib_List_Remove(
+                     hMuxTS->hTSPacketFreeList,
+                     &pEntry
+                     ) );
 
-         pstPCRPacket = (BMUXlib_TS_P_TSPacket *) pEntry;
+            pstPCRPacket = (BMUXlib_TS_P_TSPacket *) pEntry;
 
 #if 0
-         BDBG_ERR(("PCR --> %08x/%08x "BDBG_UINT64_FMT" ("BDBG_UINT64_FMT") "BDBG_UINT64_FMT" @%p",
-            (unsigned)(hMuxTS->status.stPCRInfo.uiESCR & 0xFFFFFFFF), uiLastPendingESCR,
-            BDBG_UINT64_ARG(hMuxTS->status.stPCRInfo.uiESCR), BDBG_UINT64_ARG(hMuxTS->status.stPCRInfo.uiBase),
-            BDBG_UINT64_ARG(((uint64_t)hMuxTS->status.stPCRInfo.uiBase)*300+hMuxTS->status.stPCRInfo.uiExtension),pstPCRPacket ));
+            BDBG_ERR(("PCR --> %08x/%08x "BDBG_UINT64_FMT" ("BDBG_UINT64_FMT") "BDBG_UINT64_FMT" @%p",
+               (unsigned)(hMuxTS->status.stPCRInfo.uiESCR & 0xFFFFFFFF), uiLastPendingESCR,
+               BDBG_UINT64_ARG(hMuxTS->status.stPCRInfo.uiESCR), BDBG_UINT64_ARG(hMuxTS->status.stPCRInfo.uiBase),
+               BDBG_UINT64_ARG(((uint64_t)hMuxTS->status.stPCRInfo.uiBase)*300+hMuxTS->status.stPCRInfo.uiExtension),pstPCRPacket ));
 #endif
 
-         /* Populate the PCR packet */
-         BKNI_Memcpy(
-                  pstPCRPacket->data,
-                  &s_stDefaultTSPacket,
-                  sizeof( BMUXlib_TS_P_TSPacket )
-                  );
+            /* Populate the PCR packet */
+            BKNI_Memcpy(
+                     pstPCRPacket->data,
+                     &s_stDefaultTSPacket,
+                     sizeof( BMUXlib_TS_P_TSPacket )
+                     );
 
-         BMUXlib_TS_P_TSPacket_SetPID(
-                  pstPCRPacket->data,
-                  hMuxTS->status.stStartSettings.stPCRData.uiPID
-                  );
+            BMUXlib_TS_P_TSPacket_SetPID(
+                     pstPCRPacket->data,
+                     hMuxTS->status.stStartSettings.stPCRData.uiPID
+                     );
 
-         BMUXlib_TS_P_TSPacket_SetAdaptationPresent(
-                  pstPCRPacket->data,
-                  true
-                  );
+            BMUXlib_TS_P_TSPacket_SetAdaptationPresent(
+                     pstPCRPacket->data,
+                     true
+                     );
 
-         BMUXlib_TS_P_TSPacket_SetAdaptationLength(
-                  pstPCRPacket->data,
-                  183 /* Always 183 for TS packets that contain only adaptation and no payload */
-                  );
+            BMUXlib_TS_P_TSPacket_SetAdaptationLength(
+                     pstPCRPacket->data,
+                     183 /* Always 183 for TS packets that contain only adaptation and no payload */
+                     );
 
-         BMUXlib_TS_P_TSPacket_SetPCRPresent(
-                  pstPCRPacket->data,
-                  true
-                  );
+            BMUXlib_TS_P_TSPacket_SetPCRPresent(
+                     pstPCRPacket->data,
+                     true
+                     );
 
-         BMUXlib_TS_P_TSPacket_SetPCRBase(
-                  pstPCRPacket->data,
-                  hMuxTS->status.stPCRInfo.uiBase
-                  );
+            BMUXlib_TS_P_TSPacket_SetPCRBase(
+                     pstPCRPacket->data,
+                     hMuxTS->status.stPCRInfo.uiBase
+                     );
 
-         BMUXlib_TS_P_TSPacket_SetPCRExtension(
-                  pstPCRPacket->data,
-                  hMuxTS->status.stPCRInfo.uiExtension
-                  );
+            BMUXlib_TS_P_TSPacket_SetPCRExtension(
+                     pstPCRPacket->data,
+                     hMuxTS->status.stPCRInfo.uiExtension
+                     );
 
-         BERR_TRACE( BMUXlib_List_Remove(
-                  hMuxTS->hTransportDescriptorMetaDataFreeList,
-                  &pEntry
-                  ) );
+            BERR_TRACE( BMUXlib_List_Remove(
+                     hMuxTS->hTransportDescriptorMetaDataFreeList,
+                     &pEntry
+                     ) );
 
-         pstCurrentTransportDescriptorMetaData = (BMUXlib_TS_P_TransportDescriptorMetaData *) pEntry;
+            pstCurrentTransportDescriptorMetaData = (BMUXlib_TS_P_TransportDescriptorMetaData *) pEntry;
 
-         /* Populate Transport Meta Data */
-         BKNI_Memset(
-                  pstCurrentTransportDescriptorMetaData,
-                  0,
-                  sizeof( BMUXlib_TS_P_TransportDescriptorMetaData )
-                  );
+            /* Populate Transport Meta Data */
+            BKNI_Memset(
+                     pstCurrentTransportDescriptorMetaData,
+                     0,
+                     sizeof( BMUXlib_TS_P_TransportDescriptorMetaData )
+                     );
 
-         pstCurrentTransportDescriptorMetaData->eDataType = BMUXlib_TS_P_DataType_ePCRPacket;
-         pstCurrentTransportDescriptorMetaData->eSourceType = BMUXlib_TS_P_SourceType_eSystem;
+            pstCurrentTransportDescriptorMetaData->eDataType = BMUXlib_TS_P_DataType_ePCRPacket;
+            pstCurrentTransportDescriptorMetaData->eSourceType = BMUXlib_TS_P_SourceType_eSystem;
 
-         BERR_TRACE( BMUXlib_List_Remove(
-                  hMuxTS->hTransportDescriptorFreeList,
-                  &pEntry
-                  ) );
+            BERR_TRACE( BMUXlib_List_Remove(
+                     hMuxTS->hTransportDescriptorFreeList,
+                     &pEntry
+                     ) );
 
-         pstCurrentTransportDescriptor = (BMUXlib_TS_TransportDescriptor *) pEntry;
-         BDBG_ASSERT(pstCurrentTransportDescriptor);
+            pstCurrentTransportDescriptor = (BMUXlib_TS_TransportDescriptor *) pEntry;
+            BDBG_ASSERT(pstCurrentTransportDescriptor);
 
-         /* Populate Transport Descriptor */
-         /* coverity[deref_ptr_in_call] */
-         BKNI_Memset(
-                  pstCurrentTransportDescriptor,
-                  0,
-                  sizeof( BMUXlib_TS_TransportDescriptor )
-                  );
+            /* Populate Transport Descriptor */
+            /* coverity[deref_ptr_in_call] */
+            BKNI_Memset(
+                     pstCurrentTransportDescriptor,
+                     0,
+                     sizeof( BMUXlib_TS_TransportDescriptor )
+                     );
 
-         /* Set ESCR */
-         pstCurrentTransportDescriptor->stTsMuxDescriptorConfig.bNextPacketPacingTimestampValid = true;
-         pstCurrentTransportDescriptor->stTsMuxDescriptorConfig.uiNextPacketPacingTimestamp = hMuxTS->status.stPCRInfo.uiESCR & 0xFFFFFFFF;
+            /* Set ESCR */
+            pstCurrentTransportDescriptor->stTsMuxDescriptorConfig.bNextPacketPacingTimestampValid = true;
+            pstCurrentTransportDescriptor->stTsMuxDescriptorConfig.uiNextPacketPacingTimestamp = hMuxTS->status.stPCRInfo.uiESCR & 0xFFFFFFFF;
 
-         /* Set Packet 2 Packet Timestamp Delta */
-         pstCurrentTransportDescriptor->stTsMuxDescriptorConfig.bPacket2PacketTimestampDeltaValid = true;
-         pstCurrentTransportDescriptor->stTsMuxDescriptorConfig.uiPacket2PacketTimestampDelta = uiPacket2PacketTimestampDelta;
+            /* Set Packet 2 Packet Timestamp Delta */
+            pstCurrentTransportDescriptor->stTsMuxDescriptorConfig.bPacket2PacketTimestampDeltaValid = true;
+            pstCurrentTransportDescriptor->stTsMuxDescriptorConfig.uiPacket2PacketTimestampDelta = uiPacket2PacketTimestampDelta;
 
-         /* Set Buffer Info */
-         pstCurrentTransportDescriptorMetaData->pBufferAddress = (void *) pstPCRPacket;
-         pstCurrentTransportDescriptorMetaData->hBufferBaseBlock = hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].hBlock;
-         pstCurrentTransportDescriptor->uiBufferOffset = (unsigned) pstCurrentTransportDescriptorMetaData->pBufferAddress - (unsigned) hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].pBuffer;
-         pstCurrentTransportDescriptor->uiBufferOffset += hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].uiBufferOffset;
-         pstCurrentTransportDescriptor->uiBufferLength = sizeof( BMUXlib_TS_P_TSPacket );
+            /* Set Buffer Info */
+            pstCurrentTransportDescriptorMetaData->pBufferAddress = (void *) pstPCRPacket;
+            pstCurrentTransportDescriptorMetaData->hBufferBaseBlock = hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].hBlock;
+            pstCurrentTransportDescriptor->uiBufferOffset = (uint8_t *) pstCurrentTransportDescriptorMetaData->pBufferAddress - (uint8_t *) hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].pBuffer;
+            pstCurrentTransportDescriptor->uiBufferOffset += hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].uiBufferOffset;
+            pstCurrentTransportDescriptor->uiBufferLength = sizeof( BMUXlib_TS_P_TSPacket );
+         }
 
          if ( true == hMuxTS->status.stStartSettings.bSupportTTS )
          {
@@ -2005,7 +2115,7 @@ BMUXlib_TS_P_ProcessSystemData(
                   /* Set Buffer Info */
                   pstBTPTransportDescriptorMetaData->pBufferAddress = (void *) pBTPBuffer->data;
                   pstBTPTransportDescriptorMetaData->hBufferBaseBlock = hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].hBlock;
-                  pstBTPTransportDescriptor->uiBufferOffset = (unsigned) pstCurrentTransportDescriptorMetaData->pBufferAddress - (unsigned) hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].pBuffer;
+                  pstBTPTransportDescriptor->uiBufferOffset = (uint8_t *) pstCurrentTransportDescriptorMetaData->pBufferAddress - (uint8_t *) hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].pBuffer;
                   pstBTPTransportDescriptor->uiBufferOffset += hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].uiBufferOffset;
                   pstBTPTransportDescriptor->uiBufferLength = sizeof( BMUXlib_TS_P_TSPacket );
 
@@ -2035,47 +2145,63 @@ BMUXlib_TS_P_ProcessSystemData(
             }
          }
 
-         BERR_TRACE( BMUXlib_TS_P_AddTransportDescriptor(
-            hMuxTS,
-            hMuxTS->status.stInput.system.uiTransportChannelIndex,
-            pstCurrentTransportDescriptor,
-            pstCurrentTransportDescriptorMetaData
-            ) );
+         if ( 0 != hMuxTS->status.stStartSettings.stPCRData.uiInterval )
+         {
+            pstCurrentTransportDescriptorMetaData->uiTimestamp = hMuxTS->status.stPCRInfo.uiBase;
+            BERR_TRACE( BMUXlib_TS_P_AddTransportDescriptor(
+               hMuxTS,
+               hMuxTS->status.stInput.system.uiTransportChannelIndex,
+               pstCurrentTransportDescriptor,
+               pstCurrentTransportDescriptorMetaData
+               ) );
 
 #if BMUXLIB_TS_P_DUMP_PCR
-         if ( NULL == hMuxTS->status.stPCRInfo.hPCRFile )
-         {
-            char fname[256];
-            sprintf(fname, "BMUXlib_OUTPUT_PCR.csv");
-            hMuxTS->status.stPCRInfo.hPCRFile = fopen(fname, "wb");
             if ( NULL == hMuxTS->status.stPCRInfo.hPCRFile )
             {
-               BDBG_ERR(("Error Creating PCR Dump File (%s)", fname));
+               char fname[256];
+               sprintf(fname, "BMUXlib_OUTPUT_PCR.csv");
+               hMuxTS->status.stPCRInfo.hPCRFile = fopen(fname, "wb");
+               if ( NULL == hMuxTS->status.stPCRInfo.hPCRFile )
+               {
+                  BDBG_ERR(("Error Creating PCR Dump File (%s)", fname));
+               }
+               fprintf(
+                  hMuxTS->status.stPCRInfo.hPCRFile,
+                  "escr,pkt2pkt_delta,pcr_base,pcr_ext,desc_addr,buffer_addr,length\n"
+                  );
             }
-            fprintf(
-               hMuxTS->status.stPCRInfo.hPCRFile,
-               "escr,pkt2pkt_delta,pcr_base,pcr_ext,desc_addr,buffer_addr,length\n"
-               );
-         }
 
-         if ( hMuxTS->status.stPCRInfo.hPCRFile )
-         {
-            fprintf(
-               hMuxTS->status.stPCRInfo.hPCRFile,
-               "%u,%u,%llu,%u,%u,%u,%u\n",
-               pstCurrentTransportDescriptor->stTsMuxDescriptorConfig.uiNextPacketPacingTimestamp,
-               pstCurrentTransportDescriptor->stTsMuxDescriptorConfig.uiPacket2PacketTimestampDelta,
-               hMuxTS->status.stPCRInfo.uiBase,
-               hMuxTS->status.stPCRInfo.uiExtension,
-               (unsigned) pstCurrentTransportDescriptor,
-               (unsigned) pstCurrentTransportDescriptorMetaData->pBufferAddress,
-               pstCurrentTransportDescriptor->uiBufferLength
-               );
-         }
+            if ( hMuxTS->status.stPCRInfo.hPCRFile )
+            {
+               fprintf(
+                  hMuxTS->status.stPCRInfo.hPCRFile,
+                  "%u,%u,%llu,%u,%u,%u,%u\n",
+                  pstCurrentTransportDescriptor->stTsMuxDescriptorConfig.uiNextPacketPacingTimestamp,
+                  pstCurrentTransportDescriptor->stTsMuxDescriptorConfig.uiPacket2PacketTimestampDelta,
+                  hMuxTS->status.stPCRInfo.uiBase,
+                  hMuxTS->status.stPCRInfo.uiExtension,
+                  (unsigned) pstCurrentTransportDescriptor,
+                  (unsigned) pstCurrentTransportDescriptorMetaData->pBufferAddress,
+                  pstCurrentTransportDescriptor->uiBufferLength
+                  );
+            }
 #endif
+         }
+         else
+         {
+            BERR_TRACE(BMUXlib_TS_P_InsertNULLTransportDescriptor(
+                     hMuxTS,
+                     hMuxTS->status.stInput.system.uiTransportChannelIndex,
+                     hMuxTS->status.stPCRInfo.uiESCR & 0xFFFFFFFF,
+                     uiPacket2PacketTimestampDelta,
+                     BMUXlib_TS_P_DataType_eNULL,
+                     BMUXlib_TS_P_SourceType_eSystem,
+                     0
+                     ));
+         }
 
          /* system data starting ESCR = ESCR of PCR + delta(PCR) */
-            hMuxTS->status.stSystemDataInfo.uiESCR = ( hMuxTS->status.stPCRInfo.uiESCR & 0xFFFFFFFF );
+         hMuxTS->status.stSystemDataInfo.uiESCR = ( hMuxTS->status.stPCRInfo.uiESCR & 0xFFFFFFFF );
          hMuxTS->status.stSystemDataInfo.uiESCR += uiPacket2PacketTimestampDelta;   /* only one packet sent for PCR */
 
          /* After inserting the PCR, we want to schedule as many userdata and system data buffer packets in between that we can */
@@ -2145,8 +2271,8 @@ BMUXlib_TS_P_ProcessSystemData(
                         up to the next packet boundary) */
                      uint32_t uiPacketsToInsertionPoint = uiTimeToInsertionPoint / uiPacket2PacketTimestampDelta;
 
-                     BDBG_MODULE_MSG(BMUXLIB_TS_SYSDATA, ("Packets to Insertion = %d (packets to PCR = %d), Time to insertion = %x, dP2P = %x",
-                           uiPacketsToInsertionPoint, pSystemDataInfo->uiPacketsUntilNextPCR, uiTimeToInsertionPoint, uiPacket2PacketTimestampDelta));
+                     BDBG_MODULE_MSG(BMUXLIB_TS_SYSDATA, ("Packets to Insertion = %d (packets to PCR = %d), Time to insertion = %x, dP2P = "BDBG_UINT64_FMT,
+                           uiPacketsToInsertionPoint, pSystemDataInfo->uiPacketsUntilNextPCR, uiTimeToInsertionPoint, BDBG_UINT64_ARG(uiPacket2PacketTimestampDelta)));
 
                      if (uiPacketsToInsertionPoint >= pSystemDataInfo->uiPacketsUntilNextPCR)
                      {
@@ -2408,23 +2534,22 @@ BMUXlib_TS_P_ProcessNewBuffers(
           * a valid ESCR *and* PTS is either an Audio or Video descriptor. */
 
          /* We want to initialize the first PCR value and ESCR based on the first A/V buffer we're muxing */
-         if ( BMUXLIB_INPUT_DESCRIPTOR_IS_ESCR_VALID( &stDescriptor ) )
+         if ( BMUXLIB_TS_P_INPUT_DESCRIPTOR_IS_ESCR_VALID( &stDescriptor, ( BMUXlib_TS_InterleaveMode_ePTS == hMuxTS->status.stStartSettings.eInterleaveMode ) ) )
          {
             if ( ( false == hMuxTS->status.stPCRInfo.bInitialized )
                  && ( BMUXLIB_INPUT_DESCRIPTOR_IS_PTS_VALID( &stDescriptor ) )
                )
             {
                /* SW7435-1829: We are using the ESCR/PTS of the first input descriptor to seed the PCR value */
-               uint32_t uiTargetESCR = BMUXLIB_INPUT_DESCRIPTOR_ESCR( &stDescriptor );
+               uint32_t uiTargetESCR = BMUXLIB_TS_P_INPUT_DESCRIPTOR_ESCR( &stDescriptor, ( BMUXlib_TS_InterleaveMode_ePTS == hMuxTS->status.stStartSettings.eInterleaveMode ) );
                uint64_t uiTargetPTSin27Mhz = BMUXLIB_INPUT_DESCRIPTOR_PTS( &stDescriptor ) * 300;
-               uint32_t uiPCRInterval = BMUXLIB_TS_P_SCALE_MS_TO_27MHZ * hMuxTS->status.stStartSettings.stPCRData.uiInterval;
 
                /* determine the desired "pre-offset" prior to the first media
                   set the PCRs to go out 3 PCR intervals prior to the first media, unless this exceeds 1 MSP
                   (we'd run out of storage if we exceed 1 service period)
                   NOTE: This is done to ensure we have at least 2 PCRs *prior* to the media to allow time
                   for decoder lock to PCRs (if this is not the case, the first GOP will likely be lost) */
-               uint32_t uiMaxDiff = 3 * uiPCRInterval;
+               uint32_t uiMaxDiff = 3 * hMuxTS->status.stPCRInfo.uiIntervalIn27Mhz;
                if (uiMaxDiff > (BMUXLIB_TS_P_SCALE_MS_TO_27MHZ * hMuxTS->status.stStartSettings.uiServicePeriod))
                   uiMaxDiff = (BMUXLIB_TS_P_SCALE_MS_TO_27MHZ * hMuxTS->status.stStartSettings.uiServicePeriod);
 
@@ -2439,7 +2564,7 @@ BMUXlib_TS_P_ProcessNewBuffers(
                }
 
                BDBG_MODULE_MSG(BMUXLIB_TS_PCR, ("Using initial ESCR/PTS (%08x/%03x%08x) --> %03x%08x",
-                  BMUXLIB_INPUT_DESCRIPTOR_ESCR( &stDescriptor ),
+                  BMUXLIB_TS_P_INPUT_DESCRIPTOR_ESCR( &stDescriptor, ( BMUXlib_TS_InterleaveMode_ePTS == hMuxTS->status.stStartSettings.eInterleaveMode ) ),
                   (uint32_t) (uiTargetPTSin27Mhz >> 32), (uint32_t) (uiTargetPTSin27Mhz & 0xFFFFFFFF),
                   (uint32_t) (hMuxTS->status.stPCRInfo.uiESCR >> 32), (uint32_t) (hMuxTS->status.stPCRInfo.uiESCR & 0xFFFFFFFF)));
 
@@ -2453,7 +2578,7 @@ BMUXlib_TS_P_ProcessNewBuffers(
             if ( false == hMuxTS->status.bFirstESCRValid )
             {
                /* TODO: We should probably wait for ALL inputs to ensure the smallest ESCR is chosen */
-               hMuxTS->status.uiFirstESCR = BMUXLIB_INPUT_DESCRIPTOR_ESCR( &stDescriptor );
+               hMuxTS->status.uiFirstESCR = BMUXLIB_TS_P_INPUT_DESCRIPTOR_ESCR( &stDescriptor, ( BMUXlib_TS_InterleaveMode_ePTS == hMuxTS->status.stStartSettings.eInterleaveMode ) );
                hMuxTS->status.bFirstESCRValid = true;
             }
          } /* end: if ESCR valid */
@@ -2500,8 +2625,8 @@ BMUXlib_TS_P_ProcessNewBuffers(
             /* Determine if required resources are available to process this input descriptor */
             unsigned uiNumTransportDescriptorsRequired = 0;
             unsigned uiNumBPPRequired = 0;
-            uint32_t uiNumTransportDescriptorsFree;
-            uint32_t uiNumBPPFree = 0;
+            size_t uiNumTransportDescriptorsFree;
+            size_t uiNumBPPFree = 0;
             size_t uiSpaceAvailable;
 
             if ( BMUXLIB_INPUT_DESCRIPTOR_IS_EMPTYFRAME( &stDescriptor ) )
@@ -2639,14 +2764,15 @@ BMUXlib_TS_P_ProcessNewBuffers(
             /* Check to see if we need to insert a PES Header */
             if ( BMUXLIB_INPUT_DESCRIPTOR_IS_EMPTYFRAME( &stDescriptor ) )
             {
-               BDBG_ASSERT( BMUXLIB_INPUT_DESCRIPTOR_IS_ESCR_VALID( &stDescriptor ) );
+               BDBG_ASSERT( BMUXLIB_TS_P_INPUT_DESCRIPTOR_IS_ESCR_VALID( &stDescriptor, ( BMUXlib_TS_InterleaveMode_ePTS == hMuxTS->status.stStartSettings.eInterleaveMode ) ) );
 
                /* Insert NULL */
                /* Queue the null descriptor to flush the output */
                if ( BERR_SUCCESS != BERR_TRACE(BMUXlib_TS_P_InsertNULLTransportDescriptor(
                         hMuxTS,
                         pInputMetadata->uiTransportChannelIndex,
-                        BMUXLIB_INPUT_DESCRIPTOR_ESCR( &stDescriptor ),
+                        BMUXLIB_TS_P_INPUT_DESCRIPTOR_ESCR( &stDescriptor, ( BMUXlib_TS_InterleaveMode_ePTS == hMuxTS->status.stStartSettings.eInterleaveMode ) ),
+                        0,
                         BMUXlib_TS_P_DataType_eCDB,
                         BMUXLIB_TS_P_InputDescriptorTypeLUT[BMUXLIB_INPUT_DESCRIPTOR_TYPE( &stDescriptor )],
                         pInputMetadata->uiInputIndex
@@ -2676,7 +2802,8 @@ BMUXlib_TS_P_ProcessNewBuffers(
                   BMUXlib_TS_P_PopulatePESInfoFromInputDescriptor(
                            &stDescriptor,
                            &stPESInfo,
-                           hMuxTS->status.stStartSettings.bSupportTTS
+                           hMuxTS->status.stStartSettings.bSupportTTS,
+                           ( BMUXlib_TS_InterleaveMode_ePTS == hMuxTS->status.stStartSettings.eInterleaveMode )
                            );
 
                   stPESInfo.uiTransportChannelIndex = pInputMetadata->uiTransportChannelIndex;
@@ -2838,8 +2965,8 @@ BMUXlib_TS_P_ProcessNewBuffers(
                stBPPInfo.uiInputIndex = pInputMetadata->uiInputIndex;
                stBPPInfo.bInputIndexValid = true;
 
-               stBPPInfo.bESCRValid = BMUXLIB_INPUT_DESCRIPTOR_IS_ESCR_VALID( &stDescriptor );
-               stBPPInfo.uiESCR = BMUXLIB_INPUT_DESCRIPTOR_ESCR( &stDescriptor );
+               stBPPInfo.bESCRValid = BMUXLIB_TS_P_INPUT_DESCRIPTOR_IS_ESCR_VALID( &stDescriptor, ( BMUXlib_TS_InterleaveMode_ePTS == hMuxTS->status.stStartSettings.eInterleaveMode ) );
+               stBPPInfo.uiESCR = BMUXLIB_TS_P_INPUT_DESCRIPTOR_ESCR( &stDescriptor, ( BMUXlib_TS_InterleaveMode_ePTS == hMuxTS->status.stStartSettings.eInterleaveMode ) );
 
                stBPPInfo.bPacket2PacketDeltaValid = true;
                stBPPInfo.uiPacket2PacketDelta = 0;
@@ -2955,7 +3082,7 @@ BMUXlib_TS_P_ScheduleProcessedBuffers(
          size_t uiNumTransportDescriptors[2];
          const BMUXlib_TS_P_TransportDescriptorMetaData **astTransportDescriptorsMetaData[2];
          size_t uiNumTransportDescriptorsMetaData[2];
-         uint32_t uiTotalQueued = 0;
+         size_t uiTotalQueued = 0;
          uint32_t i;
 
          BMUXlib_List_GetEntries(
@@ -3158,14 +3285,17 @@ BMUXlib_TS_P_ScheduleProcessedBuffers(
 
                         if ( iDeltaDtsEndESCR < 0 )
                         {
-                           BDBG_MODULE_WRN( BMUXLIB_TS_OUTPUT_DESC_ERROR, ("%08x: TRANSPORT[%d] Late Frame (Underflow) (endESCR=%08x > DTS=%08x) [%d ms] [%d ms]",
-                              (unsigned) hMuxTS,
-                              uiTransportChannelIndex,
-                              uiEndOfTransmission,
-                              hMuxTS->status.stOutput.stTransport[uiTransportChannelIndex].stUnderflowDetection.uiDtsIn27Mhz,
-                              iDeltaDtsEndESCR/27000,
-                              iDeltaESCRPacingCounter/27000
-                           ));
+                           if ( BMUXlib_TS_InterleaveMode_eCompliant == hMuxTS->status.stStartSettings.eInterleaveMode )
+                           {
+                              BDBG_MODULE_WRN( BMUXLIB_TS_OUTPUT_DESC_ERROR, ("%p: TRANSPORT[%d] Late Frame (Underflow) (endESCR=%08x > DTS=%08x) [%d ms] [%d ms]",
+                                 (void *) hMuxTS,
+                                 uiTransportChannelIndex,
+                                 uiEndOfTransmission,
+                                 hMuxTS->status.stOutput.stTransport[uiTransportChannelIndex].stUnderflowDetection.uiDtsIn27Mhz,
+                                 iDeltaDtsEndESCR/27000,
+                                 iDeltaESCRPacingCounter/27000
+                              ));
+                           }
                         }
                      }
                   }
@@ -3183,10 +3313,10 @@ BMUXlib_TS_P_ScheduleProcessedBuffers(
                   hMuxTS->status.stOutput.stTransport[uiTransportChannelIndex].stUnderflowDetection.uiLengthOfFrame += hMuxTS->astTransportDescriptorTemp[i].uiBufferLength;
                }
 
-               BDBG_MODULE_MSG( BMUXLIB_TS_OUTPUT_DESC, ("TRANSPORT[%d] @%08llx (%08x), ts=%08x (%d), delta=%08x (%d), RAI=%d",
+               BDBG_MODULE_MSG( BMUXLIB_TS_OUTPUT_DESC, ("TRANSPORT[%d] @"BDBG_UINT64_FMT" (%08x), ts=%08x (%d), delta=%08x (%d), RAI=%d",
                         uiTransportChannelIndex,
-                        hMuxTS->astTransportDescriptorTemp[i].uiBufferOffset,
-                        hMuxTS->astTransportDescriptorTemp[i].uiBufferLength,
+                        BDBG_UINT64_ARG(hMuxTS->astTransportDescriptorTemp[i].uiBufferOffset),
+                        (int)hMuxTS->astTransportDescriptorTemp[i].uiBufferLength,
                         hMuxTS->astTransportDescriptorTemp[i].stTsMuxDescriptorConfig.uiNextPacketPacingTimestamp,
                         hMuxTS->astTransportDescriptorTemp[i].stTsMuxDescriptorConfig.bNextPacketPacingTimestampValid,
                         hMuxTS->astTransportDescriptorTemp[i].stTsMuxDescriptorConfig.uiPacket2PacketTimestampDelta,
@@ -3267,7 +3397,7 @@ BMUXlib_TS_P_ScheduleProcessedBuffers(
                }
 #endif
             }
-            BDBG_MSG(("TRANSPORT[%d] <-- %d", uiTransportChannelIndex,  uiTotalQueued));
+            BDBG_MSG(("TRANSPORT[%d] <-- %d", uiTransportChannelIndex,  (int)uiTotalQueued));
          }
       }
    }
@@ -3386,6 +3516,7 @@ BMUXlib_TS_P_Flush(
                               hMuxTS,
                               uiTransportChannelIndex,
                               uiLastPendingESCR,
+                              0,
                               BMUXlib_TS_P_DataType_eNULL,
                               BMUXlib_TS_P_SourceType_eUnknown,
                               0

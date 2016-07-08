@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2003-2012 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,19 +35,11 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description: This is the HW independent part of the SW message filter. It
  * accepts data, parsers the packet, and compares it with the filter. It is based on
  * 7003 SW filter file BCM3543\tests\filter\msg_filter.c
  *
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ***************************************************************************/
 #include "nexus_transport_module.h"
 #include "blst_slist.h"
@@ -158,7 +150,7 @@ size_t NEXUS_SwFilter_Msg_P_Feed(uint8_t * buffer, size_t size)
     uint8_t * walker;
     struct ts_pid * pid_state;
 
-    BDBG_MSG(("NEXUS_SwFilter_Msg_P_Feed: Entering: buffer=0x%x, size=%d", buffer, size));
+    BDBG_MSG(("NEXUS_SwFilter_Msg_P_Feed: Entering: buffer=%p size=%u", (void *)buffer, (uint32_t)size));
 
     BKNI_Memset(&packet, 0, sizeof(struct ts_packet_tag));
     consumed = 0;
@@ -277,7 +269,7 @@ void NEXUS_SwFilter_Msg_P_ProcessPacket(ts_packet_t * packet, struct ts_pid * pi
 
     while(bytes_remains > 0){
 
-        BDBG_MSG(("NEXUS_SwFilter_Msg_P_ProcessPacket: bytes_remains=%d", bytes_remains));
+        BDBG_MSG(("NEXUS_SwFilter_Msg_P_ProcessPacket: bytes_remains=%u", (uint32_t)bytes_remains));
         if(bytes_remains >= pid_state->want){
 
             if((NULL == pid_state->matched_filter) && (0 == msg_skip)){
@@ -345,7 +337,7 @@ void NEXUS_SwFilter_Msg_P_ProcessPacket(ts_packet_t * packet, struct ts_pid * pi
                         msg_notify = (0 == bcrc32(pid_state->matched_filter->buffer, msg_length));
                         BDBG_MSG(("msg_process_packet: crc %s",((msg_notify) ? "passed" : "failed")));
                     }
-                    BDBG_MSG(("msg_process_packet: pid %x msg %x len %u not %d sid %x", pid_state->pid, pBuffer[0], msg_length, msg_notify, syntax_indicator));
+                    BDBG_MSG(("msg_process_packet: pid %x msg %x len %u not %d sid %x", pid_state->pid, pBuffer[0], (uint32_t)msg_length, msg_notify, syntax_indicator));
 
                     if((0 != msg_notify) && (NULL != pid_state->matched_filter->callback)){
                         new_buffer = (pid_state->matched_filter->callback)( pid_state->matched_filter->context, msg_length);
@@ -466,7 +458,7 @@ static void NEXUS_SwFilter_Msg_P_MatchFilters(const uint8_t * msg, struct ts_pid
         if(0 != f->enabled){
             if(NEXUS_SwFilter_Msg_P_FilterCompare(msg, f->filt.mask, f->filt.exclusion, f->filt.coefficient, NEXUS_MESSAGE_FILTER_SIZE)){
                 pid_state->matched_filter = f;
-                BDBG_MSG(("NEXUS_SwFilter_Msg_P_MatchFilters: matched filter handle=0x%x, msg=0x%x, pid=0x%x", f, msg, pid_state->pid));
+                BDBG_MSG(("NEXUS_SwFilter_Msg_P_MatchFilters: matched filter handle=%p, msg=%p, pid=0x%x", (void *)f, (void *)msg, pid_state->pid));
                 break;
             }
         }
@@ -479,7 +471,7 @@ static void NEXUS_SwFilter_Msg_P_MatchFilters(const uint8_t * msg, struct ts_pid
 static void NEXUS_SwFilter_Msg_P_ParsePacket(const uint8_t *buf, ts_packet_t * packet)
 {
 
-/*    BDBG_MSG(("NEXUS_SwFilter_Msg_P_ParsePacket: Entering : buffer=0x%x, packet=0x%x", buf, packet));*/
+/*    BDBG_MSG(("NEXUS_SwFilter_Msg_P_ParsePacket: Entering : buffer=%p, packet=%p", (void *)buf, (void *)packet));*/
 
     if(0x47 != buf[0]){
         BDBG_ERR(("%s %d sync error", __FILE__, __LINE__));
@@ -512,7 +504,7 @@ static void NEXUS_SwFilter_Msg_P_ParsePacket(const uint8_t *buf, ts_packet_t * p
         packet->discontinuity = false;
     }
 
-    BDBG_MSG(("NEXUS_SwFilter_Msg_P_ParsePacket: p_data_byte=0x%x, data_size=%d, p_packet=0x%x", packet->p_data_byte, packet->data_size, packet->p_packet));
+    BDBG_MSG(("NEXUS_SwFilter_Msg_P_ParsePacket: p_data_byte=%p, data_size=%d, p_packet=%p", (void *)packet->p_data_byte, packet->data_size, (void *)packet->p_packet));
 }
 
 struct NEXUS_SwFilter_FilterState * NEXUS_SwFilter_Msg_P_SetFilter(NEXUS_SwFilter_MsgParams_t * params)
@@ -575,7 +567,7 @@ void NEXUS_SwFilter_Msg_P_RemoveFilter(struct NEXUS_SwFilter_FilterState *filter
     struct ts_pid * pid_state;
     pid_state = filter->pid_state;
 
-    BDBG_MSG(("NEXUS_SwFilter_Msg_P_RemoveFilter: filter handle 0x%x", filter));
+    BDBG_MSG(("NEXUS_SwFilter_Msg_P_RemoveFilter: filter handle %p", (void *)filter));
 
     filter->enabled = false;
     filter->pid_state = NULL;
@@ -612,7 +604,7 @@ void NEXUS_SwFilter_Msg_P_CapturePacket(ts_packet_t * packet, struct ts_pid * pi
     uint8_t * dst;
     void * new_buffer;
 
-    BDBG_MSG(("NEXUS_SwFilter_Msg_P_CapturePacket: packet=0x%x, pid_state=0x%x", packet, pid_state));
+    BDBG_MSG(("NEXUS_SwFilter_Msg_P_CapturePacket: packet=%p, pid_state=%p", (void *)packet, (void *)pid_state));
 
     if(!pid_state->capture_filter->enabled){
         goto ExitFunc;
@@ -711,8 +703,8 @@ struct NEXUS_SwFilter_FilterState * NEXUS_SwFilter_Msg_P_SetPesFilter(NEXUS_SwFi
         BLST_S_REMOVE(&pst.free_filter, f, NEXUS_SwFilter_FilterState, next);
     }
 
-    BDBG_MSG(("%s: params->pid=%d params->buffer_size=%d params->buffer=%p",
-        __FUNCTION__,params->pid,params->buffer_size,params->buffer));
+    BDBG_MSG(("%s: params->pid=%d params->buffer_size=%u params->buffer=%p",
+        __FUNCTION__,params->pid,(uint32_t)params->buffer_size,params->buffer));
     bdemux_pes_init(&f->pes, 0); /*ignore PES stream id*/
     bdemux_ts_init(&f->pes.ts,params->pid);
     f->data_size = 0;
@@ -846,7 +838,7 @@ NEXUS_SwFilter_Msg_P_NEXUS_SwFilter_Msg_P_bdemux_ts_data(struct NEXUS_SwFilter_F
             pes->state = bdemux_pes_state_sync;
             return ;
         case bdemux_pes_result_more:
-            BDBG_WRN(("NEXUS_SwFilter_Msg_P_bdemux_ts_data:%#lx partial pes header %u", (unsigned long)pes, len));
+            BDBG_WRN(("NEXUS_SwFilter_Msg_P_bdemux_ts_data:%#lx partial pes header %u", (unsigned long)pes, (uint32_t)len));
             break ;
         case bdemux_pes_result_match:
             break;
@@ -967,7 +959,7 @@ adaptation_payload:
     BDBG_ASSERT(len>=left);
     return len-left;
 err_out_of_sync:
-    BDBG_ERR(("out of_sync %02x:%02x:%02x:%02x(%#lx) at %u:%u", data[0], data[1], data[2], data[3], (unsigned long)data, len-left, len));
+    BDBG_ERR(("out of_sync %02x:%02x:%02x:%02x(%#lx) at %u:%u", data[0], data[1], data[2], data[3], (unsigned long)data, (uint32_t)(len-left), (uint32_t)len));
     ts->continuity_counter = ts_continuity_counter;
     if(len==left) {
         return -B_TS_PKT_LEN;

@@ -332,7 +332,7 @@ NEXUS_Error NEXUS_Platform_P_InitServer(void)
         BDBG_ASSERT(channel->header);
         channel->moduleId = i;
         channel->moduleName = g_nexus_server_handlers[i].name;
-        channel->dataSize = 4096; /* max size for single transaction with unix domain sockets */
+        channel->dataSize = 8192; /* max size for single transaction with unix domain sockets */
         rc = BKNI_CreateMutex(&channel->mutex);
         if(rc!=BERR_SUCCESS) {
             rc = BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
@@ -463,7 +463,7 @@ NEXUS_Error NEXUS_Platform_StartServer(const NEXUS_PlatformStartServerSettings *
     }
     server->settings = *pSettings;
 
-    BDBG_MSG(("NEXUS_Platform_StartServer %ld modules", NEXUS_PLATFORM_P_NUM_DRIVERS));
+    BDBG_MSG(("NEXUS_Platform_StartServer %d modules", (unsigned)NEXUS_PLATFORM_P_NUM_DRIVERS));
 
     server->thread = NEXUS_Thread_Create("ipcserver", nexus_server_thread, server, NULL);
     if (!server->thread) {rc = BERR_TRACE(NEXUS_UNKNOWN); goto error;}
@@ -597,7 +597,7 @@ static void nexus_autoclose_client_lock(struct NEXUS_Client *client)
 
     NEXUS_Platform_GetStandbySettings(&standbySettings);
     if(standbySettings.mode != NEXUS_PlatformStandbyMode_eOn) {
-        BDBG_MSG(("Defer client cleanup %x:%u", client, client->pid));
+        BDBG_MSG(("Defer client cleanup %p:%u", (void *)client, (unsigned)client->pid));
         return;
     }
 
@@ -663,7 +663,7 @@ static void nexus_server_write_callback_locked(struct b_server_callback_cxn *cal
         rc = write(callback_cxn->fd, &queue_entry->data, sizeof(queue_entry->data));
         if(rc>0) {
             if((unsigned)rc!=sizeof(queue_entry->data)) {
-                BDBG_ERR(("client %p: partial callback write (%d,%u)", (void *)callback_cxn->client, rc, sizeof(queue_entry->data)));
+                BDBG_ERR(("client %p: partial callback write (%d,%u)", (void *)callback_cxn->client, rc, (unsigned)sizeof(queue_entry->data)));
                 break;
             }
             BLST_Q_REMOVE_HEAD(&callback_cxn->callback_queued, link);
@@ -1172,7 +1172,7 @@ static void nexus_server_channel_thread(void *context)
                                 /* coverity[tainted_data] */
                                 void *new_in_data = BKNI_Malloc(packet_size);
                                 if(new_in_data==NULL) {
-                                    BDBG_MSG(("malloc failed: %u %u", packet_size, channel->dataSize));
+                                    BDBG_MSG(("malloc failed: %u %u", (unsigned)packet_size, channel->dataSize));
                                     close(cxn->fd);
                                     cxn->fd = -1;
                                     goto client_done;
@@ -1183,7 +1183,7 @@ static void nexus_server_channel_thread(void *context)
                             while(received < packet_size) {
                                 rc = b_nexus_read(cxn->fd, (uint8_t *)in_data + received, packet_size - received);
                                 if(rc <=0) {
-                                    BDBG_MSG(("cont - read failed: %u(%u) %d %d", received, packet_size, rc, errno));
+                                    BDBG_MSG(("cont - read failed: %u(%u) %d %d", received, (unsigned)packet_size, rc, errno));
                                     if(in_data != channel->in_data) {
                                         BKNI_Free(in_data);
                                     }
@@ -1682,11 +1682,12 @@ NEXUS_Error NEXUS_Platform_SetClientResources( NEXUS_ClientHandle client, const 
 /* stub the public API */
 NEXUS_Error NEXUS_Platform_P_InitServer(void)
 {
+    NEXUS_Error rc;
 #if NEXUS_AUDIO_DSP_DEBUG
-    NEXUS_Error rc = NEXUS_Platform_P_InitAudioLog();
+    rc = NEXUS_Platform_P_InitAudioLog();
     if ( rc ) { return BERR_TRACE(rc); }
 #endif
-    NEXUS_Error rc = NEXUS_Platform_P_InitSageLog();
+    rc = NEXUS_Platform_P_InitSageLog();
     if ( rc ) { return BERR_TRACE(rc); }
     return 0;
 }
@@ -1774,14 +1775,21 @@ void NEXUS_Platform_GetDefaultClientAuthenticationSettings( NEXUS_ClientAuthenti
 
 void NEXUS_Platform_GetClientConfiguration( NEXUS_ClientConfiguration *pSettings )
 {
-    NEXUS_PlatformConfiguration config;
+    NEXUS_PlatformConfiguration *config;
 
     /* syncthunk skips nexus_platform_client.h, so we manually lock */
     NEXUS_LockModule();
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
 
     /* kernel mode server works like client, so we mimic that in user mode */
-    NEXUS_Platform_GetConfiguration(&config);
-    BKNI_Memcpy(pSettings->heap, config.heap, sizeof(pSettings->heap));
+    config = BKNI_Malloc(sizeof(*config));
+    if (!config) {
+        BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+    }
+    else {
+        NEXUS_Platform_GetConfiguration(config);
+        BKNI_Memcpy(pSettings->heap, config->heap, sizeof(pSettings->heap));
+        BKNI_Free(config);
+    }
     NEXUS_UnlockModule();
 }

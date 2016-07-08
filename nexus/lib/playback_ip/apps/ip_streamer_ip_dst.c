@@ -1,14 +1,14 @@
 /******************************************************************************
- *    (c)2008-2014 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
  * no license (express or implied), right to use, or waiver of any kind with respect to the
  * Software, and Broadcom expressly reserves all rights in and to the Software and all
  * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELYn
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
@@ -35,16 +35,8 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
  *  stream out to network destination
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ******************************************************************************/
 #include <stdio.h>
@@ -233,7 +225,7 @@ errorCallbackDst(
     )
 {
     IpStreamerCtx *ipStreamerCtx = (IpStreamerCtx *)context;
-    BDBG_WRN(("CTX %p: Got error during network streaming/recording: stopping ip/rec dst %d", ipStreamerCtx, param));
+    BDBG_WRN(("CTX %p: Got error during network streaming/recording: stopping ip/rec dst %d", (void *)ipStreamerCtx, param));
     if (ipStreamerCtx->ipDst)
         stopNexusIpDst(ipStreamerCtx);
 }
@@ -277,7 +269,7 @@ overflowCallbackIpDst(
 {
     int rc;
     IpStreamerCtx *ipStreamerCtx = (IpStreamerCtx *)context;
-    BDBG_WRN(("CTX %p: Warning: Overflow during network streaming, param %d", ipStreamerCtx, param));
+    BDBG_WRN(("CTX %p: Warning: Overflow during network streaming, param %d", (void *)ipStreamerCtx, param));
     ipStreamerCtx->overflow = true;
 
     /* stop & restart IP dst */
@@ -287,7 +279,7 @@ overflowCallbackIpDst(
         BDBG_ERR(("Failed to start destinations"));
     }
     ipStreamerCtx->overflow = false;
-    BDBG_MSG(("CTX %p: Restarted Streaming Buffer", ipStreamerCtx));
+    BDBG_MSG(("CTX %p: Restarted Streaming Buffer", (void *)ipStreamerCtx));
 }
 
 int
@@ -323,7 +315,7 @@ openNexusIpDstWithTimeshift(
         if (!ipStreamerCtx->globalCtx->ipDstList[i].inUse) {
             ipDst = &ipStreamerCtx->globalCtx->ipDstList[i];
             ipDst->inUse = true;
-            BDBG_MSG(("Found Free IP Dst entry %p, total IP dst entries %d", ipDst, IP_STREAMER_NUM_RECPUMPS_FOR_STREAMING));
+            BDBG_MSG(("Found Free IP Dst entry %p, total IP dst entries %d", (void *)ipDst, IP_STREAMER_NUM_RECPUMPS_FOR_STREAMING));
             break;
         }
     }
@@ -482,7 +474,7 @@ openNexusIpDstWithTimeshift(
         }
         NEXUS_Recpump_GetSettings(ipDst->recpumpAllpassHandle, &recpumpSettings);
         BDBG_MSG(("CTX %p: recpump (ptr %p, # %d): increased by %d folds, data size %d, threshold %d, atom size %d, index size %d",
-                    ipStreamerCtx, ipDst->recpumpAllpassHandle, i, factor, factor*recpumpOpenSettings.data.bufferSize, recpumpOpenSettings.data.dataReadyThreshold, recpumpOpenSettings.data.atomSize, factor*recpumpOpenSettings.index.bufferSize));
+                    (void *)ipStreamerCtx, (void *)ipDst->recpumpAllpassHandle, i, factor, factor*recpumpOpenSettings.data.bufferSize, recpumpOpenSettings.data.dataReadyThreshold, recpumpOpenSettings.data.atomSize, factor*recpumpOpenSettings.index.bufferSize));
         recpumpSettings.data.dataReady.callback = dataReadyCallbackIpDst;
         recpumpSettings.data.dataReady.context = ipStreamerCtx;
         recpumpSettings.outputTransportType = psi->mpegType;
@@ -527,7 +519,7 @@ openNexusIpDstWithTimeshift(
         liveStreamingSettings.recpumpHandle = ipDst->recpumpHandle;
     liveStreamingSettings.dataReadyEvent = ipDst->dataReadyEvent;
 
-    BDBG_MSG(("event callback %p, appCtx %p", liveStreamingSettings.eventCallback, liveStreamingSettings.appCtx));
+    BDBG_MSG(("event callback appCtx %p", liveStreamingSettings.appCtx));
 #ifdef B_HAS_DTCP_IP
     if (ipStreamerCfg->encryptionEnabled) {
         liveStreamingSettings.securitySettings.securityProtocol = B_PlaybackIpSecurityProtocol_DtcpIp;
@@ -625,7 +617,7 @@ openNexusIpDstWithTimeshift(
     }
 
     ipStreamerCtx->ipDst = ipDst;
-    BDBG_MSG(("CTX %p: IP Dst %p is opened", ipStreamerCtx, ipDst));
+    BDBG_MSG(("CTX %p: IP Dst %p is opened", (void *)ipStreamerCtx, (void *)ipDst));
     return 0;
 }
 
@@ -653,8 +645,8 @@ openNexusIpDstWithoutTimeshift(
     int videoPid;
     int factor = 1; /* TODO: need to check if default rave buffer size is enough for streaming out */
 
-    BDBG_MSG(("%s: ipStreamerCtx %p", __FUNCTION__, ipStreamerCtx ));
-    BDBG_MSG(("%s: freq %lu; pidListCount %u; ip (%s); port (%u); socket (%u)", __FUNCTION__, ipStreamerCtx->cfg.frequency,
+    BDBG_MSG(("%s: ipStreamerCtx %p", __FUNCTION__, (void *)ipStreamerCtx ));
+    BDBG_MSG(("%s: freq %u; pidListCount %u; ip (%s); port (%u); socket (%u)", __FUNCTION__, ipStreamerCtx->cfg.frequency,
               ipStreamerCtx->cfg.pidListCount, ipStreamerCtx->cfg.srcIpAddress, ipStreamerCtx->cfg.srcPort, ipStreamerCtx->cfg.streamingFd ));
     ipStreamerCtx->ipDst = NULL;
     BKNI_AcquireMutex(ipStreamerCtx->globalCtx->ipDstMutex);
@@ -663,7 +655,7 @@ openNexusIpDstWithoutTimeshift(
         if (!ipStreamerCtx->globalCtx->ipDstList[i].inUse) {
             ipDst = &ipStreamerCtx->globalCtx->ipDstList[i];
             ipDst->inUse = true;
-            BDBG_MSG(("Found Free IP Dst entry %p, total IP dst entries %d", ipDst, IP_STREAMER_NUM_RECPUMPS_FOR_STREAMING));
+            BDBG_MSG(("Found Free IP Dst entry %p, total IP dst entries %d", (void *)ipDst, IP_STREAMER_NUM_RECPUMPS_FOR_STREAMING));
             break;
         }
     }
@@ -698,10 +690,10 @@ openNexusIpDstWithoutTimeshift(
     }
     NEXUS_Recpump_GetSettings(ipDst->recpumpHandle, &recpumpSettings);
     BDBG_MSG(("CTX %p: recpump %d: (ptr %p): increased by %d folds, data size %-9d, threshold %-5d, atom size %-4d",
-              ipStreamerCtx, i, ipDst->recpumpHandle, factor, factor*recpumpOpenSettings.data.bufferSize,
+              (void *)ipStreamerCtx, i, (void *)ipDst->recpumpHandle, factor, factor*recpumpOpenSettings.data.bufferSize,
               recpumpOpenSettings.data.dataReadyThreshold, recpumpOpenSettings.data.atomSize ));
     BDBG_MSG(("CTX %p: recpump %d: (ptr %p): increased by %d folds, indx size %-9d, threshold %-5d, atom size %-4d",
-              ipStreamerCtx, i, ipDst->recpumpHandle, factor, factor*recpumpOpenSettings.index.bufferSize,
+              (void *)ipStreamerCtx, i, (void *)ipDst->recpumpHandle, factor, factor*recpumpOpenSettings.index.bufferSize,
               recpumpOpenSettings.index.dataReadyThreshold, recpumpOpenSettings.index.atomSize ));
     NEXUS_Recpump_GetStatus(ipDst->recpumpHandle, &recpumpStatus );
 
@@ -780,7 +772,7 @@ openNexusIpDstWithoutTimeshift(
         memcpy(liveStreamingSettings.appHeader.data, ipStreamerCfg->appHeader.data, ipStreamerCfg->appHeader.length);
     }
 
-    BDBG_MSG(("event callback %p, appCtx %p", liveStreamingSettings.eventCallback, liveStreamingSettings.appCtx));
+    BDBG_MSG(("event callback appCtx %p", liveStreamingSettings.appCtx));
 
     if (psi->psiValid)
     {
@@ -840,8 +832,8 @@ openNexusIpDstWithoutTimeshift(
                 return -1;
             }
             NEXUS_PidChannel_GetStatus( ipStreamerCtx->pidChannelList[i], &pidChannelStatus );
-            BDBG_MSG(("%s: Recpump adding PidChannel (%p); pid (%-3u); parserBand (%u); transportType (%u); contErrors (%lu)",
-                      __FUNCTION__, ipStreamerCtx->pidChannelList[i], pidChannelStatus.pid, pidChannelStatus.parserBand,
+            BDBG_MSG(("%s: Recpump adding PidChannel (%p); pid (%-3u); parserBand (%u); transportType (%u); contErrors (%u)",
+                      __FUNCTION__, (void *)ipStreamerCtx->pidChannelList[i], pidChannelStatus.pid, pidChannelStatus.parserBand,
                       pidChannelStatus.transportType, pidChannelStatus.continuityCountErrors ));
         }
     }
@@ -941,7 +933,7 @@ openNexusIpDstWithoutTimeshift(
     }
 
     ipStreamerCtx->ipDst = ipDst;
-    BDBG_MSG(("CTX %p: IP Dst %p is opened", ipStreamerCtx, ipDst));
+    BDBG_MSG(("CTX %p: IP Dst %p is opened", (void *)ipStreamerCtx, (void *)ipDst));
     return 0;
 }
 
@@ -1017,7 +1009,7 @@ closeNexusIpDstWithTimeshift(
     if (ipStreamerCtx->pvrDecKeyHandle && !ipStreamerCtx->cfg.pvrDecKeyHandle)
         NEXUS_Security_FreeKeySlot(ipStreamerCtx->pvrDecKeyHandle);
 #endif
-    BDBG_MSG(("%s: CTX %p: IP Dst %p is closed", __FUNCTION__, ipStreamerCtx, ipStreamerCtx->ipDst));
+    BDBG_MSG(("%s: CTX %p: IP Dst %p is closed", __FUNCTION__, (void *)ipStreamerCtx, (void *)ipStreamerCtx->ipDst));
 }
 
 void
@@ -1045,7 +1037,7 @@ closeNexusIpDstWithoutTimeshift(
     if (ipStreamerCtx->pvrDecKeyHandle && !ipStreamerCtx->cfg.pvrDecKeyHandle)
         NEXUS_Security_FreeKeySlot(ipStreamerCtx->pvrDecKeyHandle);
 #endif
-    BDBG_MSG(("%s: CTX %p: IP Dst %p is closed", __FUNCTION__, ipStreamerCtx, ipStreamerCtx->ipDst));
+    BDBG_MSG(("%s: CTX %p: IP Dst %p is closed", __FUNCTION__, (void *)ipStreamerCtx, (void *)ipStreamerCtx->ipDst));
 }
 
 int
@@ -1059,7 +1051,7 @@ startNexusIpDst(
     if (ipStreamerCtx->cfg.enableTimeshifting) {
         /* Even for IP Streaming, we record the live channel to Rave and stream it out from Rave buffers */
         if (NEXUS_Record_AddPlayback(ipStreamerCtx->ipDst->recordHandle, ipStreamerCtx->fileSrc->playbackHandle)) {
-            BDBG_ERR(("%s: ERROR: CTX %p: NEXUS_Record_AddPlayback Failed", __FUNCTION__, ipStreamerCtx));
+            BDBG_ERR(("%s: ERROR: CTX %p: NEXUS_Record_AddPlayback Failed", __FUNCTION__, (void *)ipStreamerCtx));
             return -1;
         }
         rc = NEXUS_Record_Start(ipStreamerCtx->ipDst->recordHandle, ipStreamerCtx->ipDst->fileRecordHandle);
@@ -1108,7 +1100,7 @@ startNexusIpDst(
         return -1;
     }
     ipStreamerCtx->ipStreamingInProgress = true;
-    BDBG_MSG(("CTX %p: IP Dst %p is started", ipStreamerCtx, ipStreamerCtx->ipDst));
+    BDBG_MSG(("CTX %p: IP Dst %p is started", (void *)ipStreamerCtx, (void *)ipStreamerCtx->ipDst));
     return 0;
 }
 
@@ -1129,7 +1121,7 @@ stopNexusIpDst(
                 NEXUS_StopCallbacks(ipStreamerCtx->fileSrc->playbackHandle);
                 NEXUS_Playback_Stop(ipStreamerCtx->fileSrc->playbackHandle);
             }
-            BDBG_MSG(("CTX %p: Streaming from a live Src using playback is stopped", ipStreamerCtx));
+            BDBG_MSG(("CTX %p: Streaming from a live Src using playback is stopped", (void *)ipStreamerCtx));
         }
         if (ipStreamerCtx->ipDst->liveStreamingHandle)
             B_PlaybackIp_LiveStreamingStop(ipStreamerCtx->ipDst->liveStreamingHandle);
@@ -1148,5 +1140,5 @@ stopNexusIpDst(
             NEXUS_Recpump_Stop(ipStreamerCtx->ipDst->recpumpHandle);
     }
     ipStreamerCtx->ipStreamingInProgress = false;
-    BDBG_MSG(("CTX %p: IP dst %p is stopped", ipStreamerCtx, ipStreamerCtx->ipDst));
+    BDBG_MSG(("CTX %p: IP dst %p is stopped", (void *)ipStreamerCtx, (void *)ipStreamerCtx->ipDst));
 }

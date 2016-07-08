@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,17 +35,9 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   API name: MuxOutput
 *    Specific APIs related to Audio Transcoder Output (GenCdbItb)
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 
@@ -76,9 +68,9 @@ BDBG_OBJECT_ID(BAPE_MuxOutput);
 #define BAPE_ITB_SHIFT(Entry,Field) BAPE_ITB_##Entry##_##Field##_SHIFT
 
 #define BAPE_ITB_GET_FIELD(Memory,Entry,Field)\
-	((((Memory)->words[BAPE_ITB_WORD(Entry,Field)] & \
+    ((((Memory)->words[BAPE_ITB_WORD(Entry,Field)] & \
        BAPE_ITB_MASK(Entry,Field)) >> \
-	  BAPE_ITB_SHIFT(Entry,Field)))
+      BAPE_ITB_SHIFT(Entry,Field)))
 
 /* General Fields */
 #define BAPE_ITB_GENERIC_ENTRY_TYPE_WORD      (0)
@@ -1209,15 +1201,15 @@ BERR_Code BAPE_MuxOutput_GetBufferDescriptors(
 
     BDBG_MSG(("pSize = %lu",(unsigned long)(*pSize)));
     for ( uiTemp=0;uiTemp < (*pSize);uiTemp++ )
-        BDBG_MSG(("astDescriptors0[%d] = 0x%x (flags %#x, len %u)",uiTemp,&psOutputDescDetails->descriptors.cached[psOutputDescDetails->uiDescriptorReadOffset+uiTemp],
+        BDBG_MSG(("astDescriptors0[%d] = 0x%p (flags %#x, len %lu)",uiTemp,(void*)&psOutputDescDetails->descriptors.cached[psOutputDescDetails->uiDescriptorReadOffset+uiTemp],
                   psOutputDescDetails->descriptors.cached[psOutputDescDetails->uiDescriptorReadOffset+uiTemp].stCommon.uiFlags,
-                  psOutputDescDetails->descriptors.cached[psOutputDescDetails->uiDescriptorReadOffset+uiTemp].stCommon.uiLength));
+                  (unsigned long)psOutputDescDetails->descriptors.cached[psOutputDescDetails->uiDescriptorReadOffset+uiTemp].stCommon.uiLength));
 
     BDBG_MSG(("pSize2 = %lu",(unsigned long)(*pSize2)));
     for ( uiTemp=0;uiTemp < (*pSize2);uiTemp++ )
-        BDBG_MSG(("astDescriptors1[%d] = 0x%x (flags %#x, len %u)",uiTemp,&psOutputDescDetails->descriptors.cached[uiTemp],
+        BDBG_MSG(("astDescriptors1[%d] = 0x%p (flags %#x, len %lu)",uiTemp,(void*)&psOutputDescDetails->descriptors.cached[uiTemp],
                   psOutputDescDetails->descriptors.cached[uiTemp].stCommon.uiFlags,
-                  psOutputDescDetails->descriptors.cached[uiTemp].stCommon.uiLength));
+                  (unsigned long)psOutputDescDetails->descriptors.cached[uiTemp].stCommon.uiLength));
 
     psOutputDescDetails->numOutstandingDescriptors = (*pSize) + (*pSize2);
     BDBG_MSG(("Returning %u descriptors", psOutputDescDetails->numOutstandingDescriptors));
@@ -1477,8 +1469,6 @@ static void BAPE_MuxOutput_P_StopPathFromInput(struct BAPE_PathNode *pNode, stru
     BSTD_UNUSED(pConnection);
     hMuxOutput = pNode->pHandle;
     BDBG_OBJECT_ASSERT(hMuxOutput, BAPE_MuxOutput);
-    BDBG_MSG(("Requesting EOS on Task Stop"));
-    hMuxOutput->sendEos = true;
     BDSP_Stage_RemoveAllInputs(hMuxOutput->hStage);
     BDSP_Stage_RemoveAllOutputs(hMuxOutput->hStage);
 }
@@ -1863,13 +1853,13 @@ static void BAPE_MuxOutput_P_ParseItb(BAPE_MuxOutputHandle hMuxOutput, BAPE_Fram
 Advance both bit and index by one through the byte array
 **/
 #define BADTS_ADVANCE(abit, aindex, asize) \
-	do {if (abit) {(abit)--;} else {(abit)=7;if(++(aindex)>=asize) {goto err_eof;}} } while (0)
+    do {if (abit) {(abit)--;} else {(abit)=7;if(++(aindex)>=asize) {goto err_eof;}} } while (0)
 
 #define BADTS_GET_BITS(stream, val, len, bit, index, size) \
-	do { unsigned i_tmp; (val)=0; for ( i_tmp=0; i_tmp < (len); i_tmp++) { (val) <<= 1; (val) |= ((((uint32_t)stream[(index)])>>(bit))&0x1); BADTS_ADVANCE(bit, index, size);} } while (0)
+    do { unsigned i_tmp; (val)=0; for ( i_tmp=0; i_tmp < (len); i_tmp++) { (val) <<= 1; (val) |= ((((uint32_t)stream[(index)])>>(bit))&0x1); BADTS_ADVANCE(bit, index, size);} } while (0)
 
 #define BADTS_SET_BITS(stream, val, len, bit, index, size) \
-	do { unsigned i_tmp; for ( i_tmp=(len); i_tmp > 0; i_tmp-- ) { (stream[(index)] |= ((((val)>>(i_tmp-1))&0x1)<<(bit))); BADTS_ADVANCE(bit, index, size); } } while (0)
+    do { unsigned i_tmp; for ( i_tmp=(len); i_tmp > 0; i_tmp-- ) { (stream[(index)] |= ((((val)>>(i_tmp-1))&0x1)<<(bit))); BADTS_ADVANCE(bit, index, size); } } while (0)
 
 static BERR_Code BAPE_MuxOutput_P_ParseAdtsMetadata(
     BAPE_MuxOutputHandle hMuxOutput,
@@ -1965,13 +1955,13 @@ err_parse:
 Advance both bit and index by one through the byte array
 **/
 #define BADTS_ADVANCE_WRAP(astream1, astream2, abit, aindex, asize, asize2, awrap) \
-	do {if (abit) {(abit)--;} else {(abit)=7;if(++(aindex)>=asize) {if ( (asize2) > 0 && ((astream2) != NULL) ) { (asize)=(asize2);(astream1)=(astream2);(asize2)=0;(astream2)=NULL; (aindex)=0; (awrap)=true;} else { goto err_eof;}}} } while (0)
+    do {if (abit) {(abit)--;} else {(abit)=7;if(++(aindex)>=asize) {if ( (asize2) > 0 && ((astream2) != NULL) ) { (asize)=(asize2);(astream1)=(astream2);(asize2)=0;(astream2)=NULL; (aindex)=0; (awrap)=true;} else { goto err_eof;}}} } while (0)
 
 #define BADTS_SKIP_BITS_WRAP(stream1, stream2, len, bit, index, size, size2, wrap) \
-	do { unsigned i_tmp; for ( i_tmp=0; i_tmp < (len); i_tmp++) { BADTS_ADVANCE_WRAP(stream1, stream2, bit, index, size, size2, wrap);} } while (0)
+    do { unsigned i_tmp; for ( i_tmp=0; i_tmp < (len); i_tmp++) { BADTS_ADVANCE_WRAP(stream1, stream2, bit, index, size, size2, wrap);} } while (0)
 
 #define BADTS_GET_BITS_WRAP(stream1, stream2, val, len, bit, index, size, size2, wrap) \
-	do { unsigned i_tmp; (val)=0; for ( i_tmp=0; i_tmp < (len); i_tmp++) { (val) <<= 1; (val) |= ((((uint32_t)stream1[(index)])>>(bit))&0x1); BADTS_ADVANCE_WRAP(stream1, stream2, bit, index, size, size2, wrap);} } while (0)
+    do { unsigned i_tmp; (val)=0; for ( i_tmp=0; i_tmp < (len); i_tmp++) { (val) <<= 1; (val) |= ((((uint32_t)stream1[(index)])>>(bit))&0x1); BADTS_ADVANCE_WRAP(stream1, stream2, bit, index, size, size2, wrap);} } while (0)
 
 #define BADTS_HANDLE_HEADER_WRAP() \
 do {\
@@ -2341,4 +2331,3 @@ BERR_Code BAPE_MuxOutput_GetStatus(
 
     return BERR_SUCCESS;
 }
-

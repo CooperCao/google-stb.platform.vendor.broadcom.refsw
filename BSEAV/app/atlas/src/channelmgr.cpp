@@ -1,49 +1,46 @@
-/***************************************************************************
- * (c) 2002-2015 Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 
 #include "channelmgr.h"
 
 #include "mxmlparser.h"
 #include "mxmlelement.h"
+#include "channel.h"
 #include "channel_sat.h"
 #include "channel_qam.h"
 #include "channel_vsb.h"
@@ -51,11 +48,94 @@
 #include "channel_streamer.h"
 #include "channel_bip.h"
 #include "channel_playback.h"
+#include "channel_mosaic.h"
 
 #include <unistd.h> /* file i/o */
 #include <fcntl.h>
 
 BDBG_MODULE(atlas_channelmgr);
+
+CChannel * createChannel(CConfiguration * pCfg, MXmlElement * xmlElemChannel)
+{
+    eRet       ret = eRet_Ok;
+    CChannel * pCh = NULL;
+
+    BDBG_ASSERT(NULL != pCfg);
+    BDBG_ASSERT(NULL != xmlElemChannel);
+
+    if (xmlElemChannel->tag() != XML_TAG_CHANNEL)
+    {
+        BDBG_WRN((" Tag is not Channel it is %s", xmlElemChannel->tag().s()));
+        return(pCh);
+    }
+
+    MString strName = xmlElemChannel->attrValue(XML_ATT_TYPE);
+    BDBG_MSG(("XML_ATT_TYPE : %s", strName.s()));
+
+#if NEXUS_HAS_FRONTEND
+    if (strName == "sds")
+    {
+        pCh = new CChannelSat(pCfg);
+        CHECK_PTR_ERROR_GOTO("Error allocating Sat channel", pCh, ret, eRet_OutOfMemory, error);
+    }
+    else
+    if (strName == "qam")
+    {
+        pCh = new CChannelQam(pCfg);
+        CHECK_PTR_ERROR_GOTO("Error allocating QAM channel", pCh, ret, eRet_OutOfMemory, error);
+    }
+    else
+    if (strName == "vsb")
+    {
+        pCh = new CChannelVsb(pCfg);
+        CHECK_PTR_ERROR_GOTO("Error allocating VSB channel", pCh, ret, eRet_OutOfMemory, error);
+    }
+    else
+    if (strName == "ofdm")
+    {
+        pCh = new CChannelOfdm(pCfg);
+        CHECK_PTR_ERROR_GOTO("Error allocating Ofdm channel", pCh, ret, eRet_OutOfMemory, error);
+    }
+    else
+#endif /* NEXUS_HAS_FRONTEND */
+#ifdef PLAYBACK_IP_SUPPORT
+    if (strName == "ip")
+    {
+        pCh = new CChannelBip(pCfg);
+        CHECK_PTR_ERROR_GOTO("Error allocating BIP channel", pCh, ret, eRet_OutOfMemory, error);
+    }
+    else
+#endif /* ifdef PLAYBACK_IP_SUPPORT */
+    if (strName == "playback")
+    {
+        pCh = new CChannelPlayback(pCfg);
+        CHECK_PTR_ERROR_GOTO("Error allocating Playback channel", pCh, ret, eRet_OutOfMemory, error);
+    }
+    else
+    if (strName == "streamer")
+    {
+        pCh = new CChannelStreamer(pCfg);
+        CHECK_PTR_ERROR_GOTO("Error allocating Streamer channel", pCh, ret, eRet_OutOfMemory, error);
+    }
+    else
+    if (strName == "mosaic")
+    {
+        pCh = new CChannelMosaic(pCfg);
+        CHECK_PTR_ERROR_GOTO("Error allocating Mosaic channel", pCh, ret, eRet_OutOfMemory, error);
+    }
+    else
+
+    {
+        BDBG_WRN(("Unhandled channel type:%s - skipping", strName.s()));
+        /*
+         * Need to fix this all channel false in this else statement
+         * goto error;
+         */
+    }
+
+error:
+    return(pCh);
+}
 
 #ifdef MPOD_SUPPORT
 static BKNI_EventHandle scteEvent;
@@ -247,25 +327,20 @@ eRet CChannelMgr::registerObserver(
 {
     eRet ret = eRet_Ok;
 
-    MListItr <CChannel> itrMain(&_channelListMain);
-    MListItr <CChannel> itrPip(&_channelListPip);
-    CChannel *          ptr = NULL;
+    CChannel * pChannel = NULL;
 
     CMvcModel::registerObserver(observer, notification);
 
     /* serialized access to _channelList */
     CScopedMutex channelListMutex(_mutex);
 
-    for (ptr = itrMain.first(); ptr; ptr = itrMain.next())
+    for (int winType = 0; winType < eWindowType_Max; winType++)
     {
-        /* propogate observer registration to all MAIN channels */
-        ptr->registerObserver(observer, notification);
-    }
-
-    for (ptr = itrPip.first(); ptr; ptr = itrPip.next())
-    {
-        /* propogate observer registration to all PIP channels */
-        ptr->registerObserver(observer, notification);
+        for (pChannel = _channelList[winType].first(); pChannel; pChannel = _channelList[winType].next())
+        {
+            /* propogate observer registration to all channels */
+            pChannel->registerObserver(observer, notification);
+        }
     }
 
     return(ret);
@@ -279,8 +354,10 @@ eRet CChannelMgr::clearChannelList()
     CScopedMutex channelListMutex(_mutex);
 
     /* clear all channels from list (auto deletes data) */
-    _channelListMain.clear();
-    _channelListPip.clear();
+    for (int winType = 0; winType < eWindowType_Max; winType++)
+    {
+        _channelList[winType].clear();
+    }
 
     return(ret);
 }
@@ -327,25 +404,33 @@ uint32_t CChannelMgr::filterChannel(CChannel * pChannel)
  */
 eRet CChannelMgr::addChannel(CChannel * pChannel)
 {
-    CChannel * pChannelMain = pChannel;
-    CChannel * pChannelPip  = NULL;
+    CChannel * pChannelNew = NULL;
 
+    for (int winType = 0; winType < eWindowType_Max; winType++)
     {
-        /* serialized access to _channelListMain/Pip */
-        CScopedMutex channelListMutex(_mutex);
+        if (0 == winType)
+        {
+            BDBG_MSG(("--- ADD NEW CHANNEL TO CH LIST ---"));
+            pChannel->dump();
+            BDBG_MSG(("----------------------------------"));
 
-        BDBG_MSG(("--- ADD NEW CHANNEL TO CH LIST ---"));
-        pChannelMain->dump();
-        BDBG_MSG(("----------------------------------"));
-        _channelListMain.add(pChannelMain);
+            pChannelNew = pChannel;
+        }
+        else
+        {
+            pChannelNew = pChannel->createCopy(pChannel);
+        }
 
-        pChannelPip = pChannelMain->createCopy(pChannelMain);
-        _channelListPip.add(pChannelPip);
+        {
+            /* serialized access to _channelList */
+            CScopedMutex channelListMutex(_mutex);
+
+            _channelList[winType].add(pChannelNew);
+        }
+
+        /* copy channelmgr registered observers to new channel */
+        registerObserverList(pChannelNew);
     }
-
-    /* copy channelmgr registered observers to new channel */
-    registerObserverList(pChannelMain);
-    registerObserverList(pChannelPip);
 
     CChannelMgrListChangedData chListChangedData(pChannel, true);
     notifyObservers(eNotify_ChannelListChanged, &chListChangedData);
@@ -388,7 +473,7 @@ CChannel * CChannelMgr::findChannel(
     }
 
     {
-        /* serialized access to _channelListMain/Pip */
+        /* serialized access to _channelList */
         CScopedMutex channelListMutex(_mutex);
 
         /* search for matching channel in channel list */
@@ -451,31 +536,6 @@ eRet CChannelMgr::addChannelList(
 error:
     return(ret);
 } /* addChannelList */
-
-static int compare(
-        CChannel * ch1,
-        CChannel * ch2
-        )
-{
-    uint16_t majorCh1 = 0;
-    uint16_t majorCh2 = 0;
-    uint8_t  minorCh1 = 0;
-    uint8_t  minorCh2 = 0;
-
-    BDBG_ASSERT(NULL != ch1);
-    BDBG_ASSERT(NULL != ch2);
-
-    majorCh1 = ch1->getMajor();
-    minorCh1 = ch1->getMinor();
-    majorCh2 = ch2->getMajor();
-    minorCh2 = ch2->getMinor();
-    if (majorCh1 == majorCh2)
-    {
-        return(minorCh1 - minorCh2);
-    }
-
-    return(majorCh1 - majorCh2);
-} /* compare */
 
 eRet CChannelMgr::loadChannelList(
         const char * listName,
@@ -582,68 +642,7 @@ eRet CChannelMgr::loadChannelList(
 
             if (xmlElemChannel)
             {
-                if (xmlElemChannel->tag() != XML_TAG_CHANNEL)
-                {
-                    BDBG_WRN((" Tag is not Channel its %s", xmlElemChannel->tag().s()));
-                    continue;
-                }
-
-                MString strName = xmlElemChannel->attrValue(XML_ATT_TYPE);
-                BDBG_MSG(("XML_ATT_TYPE : %s", strName.s()));
-
-#if NEXUS_HAS_FRONTEND
-                if (strName == "sds")
-                {
-                    pCh = new CChannelSat(_pCfg);
-                    CHECK_PTR_ERROR_GOTO("Error allocating Sat channel", pCh, ret, eRet_OutOfMemory, channel_error);
-                }
-                else
-                if (strName == "qam")
-                {
-                    pCh = new CChannelQam(_pCfg);
-                    CHECK_PTR_ERROR_GOTO("Error allocating QAM channel", pCh, ret, eRet_OutOfMemory, channel_error);
-                }
-                else
-                if (strName == "vsb")
-                {
-                    pCh = new CChannelVsb(_pCfg);
-                    CHECK_PTR_ERROR_GOTO("Error allocating VSB channel", pCh, ret, eRet_OutOfMemory, channel_error);
-                }
-                else
-                if (strName == "ofdm")
-                {
-                    pCh = new CChannelOfdm(_pCfg);
-                    CHECK_PTR_ERROR_GOTO("Error allocating Ofdm channel", pCh, ret, eRet_OutOfMemory, channel_error);
-                }
-                else
-#endif /* NEXUS_HAS_FRONTEND */
-#ifdef PLAYBACK_IP_SUPPORT
-                if (strName == "ip")
-                {
-                    pCh = new CChannelBip(_pCfg);
-                    CHECK_PTR_ERROR_GOTO("Error allocating BIP channel", pCh, ret, eRet_OutOfMemory, channel_error);
-                }
-                else
-#endif /* ifdef PLAYBACK_IP_SUPPORT */
-                if (strName == "playback")
-                {
-                    pCh = new CChannelPlayback(_pCfg);
-                    CHECK_PTR_ERROR_GOTO("Error allocating Playback channel", pCh, ret, eRet_OutOfMemory, channel_error);
-                }
-                else
-                if (strName == "streamer")
-                {
-                    pCh = new CChannelStreamer(_pCfg);
-                    CHECK_PTR_ERROR_GOTO("Error allocating Streamer channel", pCh, ret, eRet_OutOfMemory, channel_error);
-                }
-                else
-                {
-                    BDBG_WRN(("Unhandled channel type:%s - skipping", strName.s()));
-                    /*
-                     * Need to fix this all channel false in this else statement
-                     * goto channel_error;
-                     */
-                }
+                pCh = createChannel(_pCfg, xmlElemChannel);
 
                 if (NULL != pCh)
                 {
@@ -678,31 +677,27 @@ channel_error:
             /* newly added channels may have a major channel number of 0
              * so we will update it here */
             {
-                /* serialized access to _channelListMain/Pip */
+                /* serialized access to _channelList */
                 CScopedMutex        channelListMutex(_mutex);
-                MListItr <CChannel> itrMain(&_channelListMain);
-                MListItr <CChannel> itrPip(&_channelListPip);
-                CChannel *          ptrMain = NULL;
-                CChannel *          ptrPip  = NULL;
+                CChannel *          pChannel = NULL;
 
-                for (ptrMain = itrMain.first(), ptrPip = itrPip.first();
-                     ptrMain;
-                     ptrMain = itrMain.next(), ptrPip = itrPip.next())
+                for (int winType = 0; winType < eWindowType_Max; winType++)
                 {
-                    if (0 == ptrMain->getMajor())
+                    for (pChannel = _channelList[winType].first(); pChannel; pChannel = _channelList[winType].next())
                     {
-                        ptrMain->setMajor(major);
-                        ptrPip->setMajor(major);
-                        ptrMain->setMinor(1);
-                        ptrPip->setMinor(1);
-                        major++;
+                        if (0 == pChannel->getMajor())
+                        {
+                            /* found newly added channel */
+                            pChannel->setMajor(major);
+                            pChannel->setMinor(1);
+
+                            major++;
+                        }
                     }
                 }
-
-                /* keep lists sorted by channel number */
-                _channelListMain.sort(compare);
-                _channelListPip.sort(compare);
             }
+
+            sortChannelList();
         }
     }
 
@@ -745,7 +740,7 @@ eRet CChannelMgr::saveChannelList(
     MXmlElement * xmlElemChannel     = NULL;
     FILE *        file               = NULL;
 
-    MListItr <CChannel> itr(&_channelListMain);
+    MListItr <CChannel> itr(&_channelList[eWindowType_Main]);
     eRet                ret = eRet_Ok;
 
     file = fopen(fileName, (append) ? "a" : "w");
@@ -903,7 +898,7 @@ error:
 void CChannelMgr::dumpChannelList(bool bForce)
 {
     /* only dumps main channel list (not pip) */
-    MListItr <CChannel> itr(&_channelListMain);
+    MListItr <CChannel> itr(&_channelList[eWindowType_Main]);
     CChannel *          ptr = NULL;
     BDBG_Level          level;
 
@@ -930,33 +925,25 @@ void CChannelMgr::dumpChannelList(bool bForce)
 /* find any tuned channel */
 CChannel * CChannelMgr::findTunedChannel()
 {
-    MListItr <CChannel> itrMain(&_channelListMain);
-    MListItr <CChannel> itrPip(&_channelListPip);
-    CChannel *          ptrMain = NULL;
-    CChannel *          ptrPip  = NULL;
-    CChannel *          ptr     = NULL;
+    CChannel *          pChannel = NULL;
+    CChannel *          pChannelFound  = NULL;
 
     /* serialized access to _channelListMain/Pip */
     CScopedMutex channelListMutex(_mutex);
 
-    for (ptrMain = itrMain.first(), ptrPip = itrPip.first();
-         ptrMain;
-         ptrMain = itrMain.next(), ptrPip = itrPip.next())
+    for (int winType = 0; winType < eWindowType_Max; winType++)
     {
-        if (true == ptrMain->isTuned())
+        for (pChannel = _channelList[winType].first(); pChannel; pChannel = _channelList[winType].next())
         {
-            ptr = ptrMain;
-            break;
-        }
-        else
-        if (true == ptrPip->isTuned())
-        {
-            ptr = ptrPip;
-            break;
+            if (true == pChannel->isTuned())
+            {
+                pChannelFound = pChannel;
+                break;
+            }
         }
     }
 
-    return(ptr);
+    return(pChannelFound);
 } /* findTunedChannel */
 
 /* find any tuned channel that matches the given tuner type */
@@ -964,33 +951,25 @@ CChannel * CChannelMgr::findTunedChannel()
  *           we could find the tuned channel for say the 2nd tuner only */
 CChannel * CChannelMgr::findTunedChannel(eBoardResource tunerType)
 {
-    MListItr <CChannel> itrMain(&_channelListMain);
-    MListItr <CChannel> itrPip(&_channelListPip);
-    CChannel *          ptrMain = NULL;
-    CChannel *          ptrPip  = NULL;
-    CChannel *          ptr     = NULL;
+    CChannel *          pChannel = NULL;
+    CChannel *          pChannelFound  = NULL;
 
     /* serialized access to _channelListMain/Pip */
     CScopedMutex channelListMutex(_mutex);
 
-    for (ptrMain = itrMain.first(), ptrPip = itrPip.first();
-         ptr;
-         ptrMain = itrMain.next(), ptrPip = itrPip.next())
+    for (int winType = 0; winType < eWindowType_Max; winType++)
     {
-        if ((true == ptrMain->isTuned()) && (tunerType == ptrMain->getType()))
+        for (pChannel = _channelList[winType].first(); pChannel; pChannel = _channelList[winType].next())
         {
-            ptr = ptrMain;
-            break;
-        }
-        else
-        if ((true == ptrPip->isTuned()) && (tunerType == ptrPip->getType()))
-        {
-            ptr = ptrPip;
-            break;
+            if ((true == pChannel->isTuned()) && (tunerType == pChannel->getType()))
+            {
+                pChannelFound = pChannel;
+                break;
+            }
         }
     }
 
-    return(ptr);
+    return(pChannelFound);
 } /* findTunedChannel */
 
 /* note that this method does not alter the _currentChannel */
@@ -1013,36 +992,27 @@ CChannel * CChannelMgr::getNextChannel(
         pCh = getFirstChannel();
     }
 
-    /* serialized access to _channelListMain/Pip */
+    /* serialized access to _channelList */
     CScopedMutex channelListMutex(_mutex);
 
     /* check for wrap in main list */
-    if (_channelListMain.last() == pCh)
+    for (int winType = 0; winType < eWindowType_Max; winType++)
     {
-        if (true == bWrap)
+        if (_channelList[winType].last() == pCh)
         {
-            /* we are at the end of the channel list, wrap to beginning */
-            pChFound = _channelListMain.first();
+            if (true == bWrap)
+            {
+                /* we are at the end of the channel list, wrap to beginning */
+                pChFound = _channelList[winType].first();
+                break;
+            }
         }
-    }
-    else
-    if (_channelListPip.last() == pCh)
-    {
-        if (true == bWrap)
+
+        if (0 <= _channelList[winType].index(pCh))
         {
-            /* we are at the end of the channel list, wrap to beginning */
-            pChFound = _channelListPip.first();
+            pChFound = _channelList[winType].next();
+            break;
         }
-    }
-    else
-    if (0 <= _channelListMain.index(pCh))
-    {
-        pChFound = _channelListMain.next();
-    }
-    else
-    if (0 <= _channelListPip.index(pCh))
-    {
-        pChFound = _channelListPip.next();
     }
 
     return(pChFound);
@@ -1071,32 +1041,24 @@ CChannel * CChannelMgr::getPrevChannel(
     /* serialized access to _channelListMain/Pip */
     CScopedMutex channelListMutex(_mutex);
 
-    if (_channelListMain.first() == pCh)
+    /* check for wrap in main list */
+    for (int winType = 0; winType < eWindowType_Max; winType++)
     {
-        if (true == bWrap)
+        if (_channelList[winType].first() == pCh)
         {
-            /* we are at the beginning of the channel list, wrap to end */
-            pChFound = _channelListMain.last();
+            if (true == bWrap)
+            {
+                /* we are at the beginnig of the channel list, wrap to end */
+                pChFound = _channelList[winType].last();
+                break;
+            }
         }
-    }
-    else
-    if (_channelListPip.first() == pCh)
-    {
-        if (true == bWrap)
+
+        if (0 < _channelList[winType].index(pCh))
         {
-            /* we are at the beginning of the channel list, wrap to end */
-            pChFound = _channelListPip.last();
+            pChFound = _channelList[winType].prev();
+            break;
         }
-    }
-    else
-    if (0 <= _channelListMain.index(pCh))
-    {
-        pChFound = _channelListMain.prev();
-    }
-    else
-    if (0 <= _channelListPip.index(pCh))
-    {
-        pChFound = _channelListPip.prev();
     }
 
     return(pChFound);
@@ -1122,27 +1084,25 @@ CChannel * CChannelMgr::getLastChannel(eWindowType windowType)
  * the pointer point to the same channel object */
 bool CChannelMgr::isDuplicate(CChannel * pChannel)
 {
-    MListItr <CChannel> itrMain(&_channelListMain);
-    MListItr <CChannel> itrPip(&_channelListPip);
-    CChannel *          ptrMain = NULL;
-    CChannel *          ptrPip  = NULL;
-    bool                bDup    = false;
+    CChannel * pCh  = NULL;
+    bool       bDup = false;
 
     /* serialized access to _channelListMain/Pip */
     CScopedMutex channelListMutex(_mutex);
 
-    for (ptrMain = itrMain.first(), ptrPip = itrPip.first();
-         ptrMain;
-         ptrMain = itrMain.next(), ptrPip = itrPip.next())
+    for (int winType = 0; winType < eWindowType_Max; winType++)
     {
-        /* compare channel contents */
-        if ((*ptrMain == *pChannel) || (*ptrPip == *pChannel))
+        for (pCh = _channelList[winType].first(); pCh; pCh = _channelList[winType].next())
         {
-            bDup = true;
-            break;
+            if (*pCh == *pChannel)
+            {
+                bDup = true;
+                goto done;
+            }
         }
     }
 
+done:
     return(bDup);
 } /* isDuplicate */
 
@@ -1180,11 +1140,13 @@ static int compareChannels(
 
 void CChannelMgr::sortChannelList()
 {
-    /* serialized access to _channelListMain/Pip */
+    /* serialized access to _channelList */
     CScopedMutex channelListMutex(_mutex);
 
-    _channelListMain.sort(compareChannels);
-    _channelListPip.sort(compareChannels);
+    for (int winType = 0; winType < eWindowType_Max; winType++)
+    {
+        _channelList[winType].sort(compareChannels);
+    }
 }
 
 CChannelMgr::~CChannelMgr()

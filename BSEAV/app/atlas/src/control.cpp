@@ -1,42 +1,39 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c) 2016 Broadcom. All rights reserved.
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 
 #include "control.h"
@@ -117,6 +114,8 @@ eRet CControl::initialize(
     BDBG_ASSERT(NULL != pWidgetEngine);
     BDBG_ASSERT(NULL != _pModel);
 
+    ATLAS_MEMLEAK_TRACE("BEGIN");
+
     _pConfig       = pConfig;
     _pChannelMgr   = pChannelMgr;
     _pCfg          = pConfig->getCfg();
@@ -138,6 +137,7 @@ eRet CControl::initialize(
     _powerOnTimer.setWidgetEngine(_pWidgetEngine);
     _powerOnTimer.setTimeout(GET_INT(_pCfg, POWER_ON_TIMEOUT));
 
+    ATLAS_MEMLEAK_TRACE("END");
     return(ret);
 } /* initialize */
 
@@ -281,8 +281,8 @@ eRet CControl::processKeyEvent(CRemoteEvent * pRemoteEvent)
 
     case eKey_Stop:
     {
-        CChannel *  pChannel  = _pModel->getCurrentChannel();
-        CPlayback * pPlayback = _pModel->getPlayback();
+        CChannel *  pChannel     = _pModel->getCurrentChannel();
+        CPlayback * pPlayback    = _pModel->getPlayback();
 
         if ((NULL != pPlayback) && (true == pPlayback->isActive()))
         {
@@ -294,9 +294,15 @@ eRet CControl::processKeyEvent(CRemoteEvent * pRemoteEvent)
             recordStop();
         }
         else
-        if ((NULL != pChannel) && (true == pChannel->isTuned()))
+        if ((NULL != pChannel) &&
+            (true == pChannel->isTuned()) &&
+            (true == pChannel->isStopAllowed()))
         {
-            pChannel->stop();
+            /* stop is only allowed for channels that are not a part of the
+               channelmgr's channel lists.  one example of a stoppable channel
+               is an auto-discovered streaming channel */
+            unTuneChannel(pChannel, true);
+            tuneLastChannel();
         }
     }
     break;
@@ -531,7 +537,7 @@ eRet CControl::unTuneAllChannels()
 
     /* untune current channels - these may not be a part of the channelmgr's
      * channel list. they may be streaming channels from a networked http/udp/rtp/rtsp server  */
-    for (int i = eWindowType_Main; i < eWindowType_Max; i++)
+    for (int i = 0; i < eWindowType_Max; i++)
     {
         pChannel = _pModel->getCurrentChannel((eWindowType)i);
         if (NULL != pChannel)
@@ -680,7 +686,7 @@ void CControl::onIdle()
     else
     if (eMode_Live == _pModel->getMode())
     {
-        /* tune atttempt if untuned (every 2 secs) */
+        /* tune attempt if untuned (every 2 secs) */
         if (true == GET_BOOL(_pCfg, ENABLE_IDLE_TUNE))
         {
             CPlayback * pPlayback = _pModel->getPlayback();
@@ -887,7 +893,7 @@ void CControl::processNotification(CNotification & notification)
             if (0 == pChannelData->_strChannel.toInt())
             {
                 pChannel = _pChannelMgr->getFirstChannel();
-                tuneChannel(pChannel, eWindowType_Max, pChannelData->_tunerIndex);
+                tuneChannel(pChannel, pChannelData->_windowType, pChannelData->_tunerIndex);
             }
             else /* if "-1" we'll simply untune */
             if (-1 == pChannelData->_strChannel.toInt())
@@ -897,16 +903,25 @@ void CControl::processNotification(CNotification & notification)
             else
             {
                 pChannel = _pChannelMgr->findChannel(pChannelData->_strChannel);
-                tuneChannel(pChannel, eWindowType_Max, pChannelData->_tunerIndex);
+                tuneChannel(pChannel, pChannelData->_windowType, pChannelData->_tunerIndex);
             }
         }
         else
         {
             pChannel = pChannelData->_pChannel;
-            tuneChannel(pChannel, eWindowType_Max, pChannelData->_tunerIndex);
+
+            if (-1 == pChannelData->_strChannel.toInt())
+            {
+                unTuneChannel(pChannel, false, pChannelData->_windowType);
+            }
+            else
+            {
+                tuneChannel(pChannel, pChannelData->_windowType, pChannelData->_tunerIndex);
+            }
         }
     }
     break;
+
     case eNotify_NonTunerLockStatus:
     {
         CChannel * pChannel = (CChannel *)notification.getData();
@@ -915,16 +930,15 @@ void CControl::processNotification(CNotification & notification)
         {
             CChannel * pChannelTuning = NULL;
             /* tuner locked so start decode */
+            BDBG_MSG(("received Non tuner lock status channel:%s", boardResourceToString(pChannel->getType()).s()));
 
             /* look to see if channel associated with tune lock, maps to a previous tune attempt */
-            for (int i = eWindowType_Main; i < eWindowType_Max; i++)
+            for (int i = 0; i < eWindowType_Max; i++)
             {
                 pChannelTuning = _pModel->getChannelTuneInProgress((eWindowType)i);
 
                 if ((pChannelTuning) && (pChannelTuning == pChannel))
                 {
-                    BDBG_ERR(("tune in progress so start decode!"));
-
                     /* tuner associated with tune lock status change maps to
                      * a channel that is tuning in progress */
                     ret = decodeChannel(pChannelTuning, (eWindowType)i);
@@ -945,14 +959,12 @@ void CControl::processNotification(CNotification & notification)
             /* tuner locked so start decode */
 
             /* look to see if channel associated with tune lock, maps to a previous tune attempt */
-            for (int i = eWindowType_Main; i < eWindowType_Max; i++)
+            for (int i = 0; i < eWindowType_Max; i++)
             {
                 pChannelTuning = _pModel->getChannelTuneInProgress((eWindowType)i);
 
                 if ((pChannelTuning) && (pChannelTuning->getTuner() == pTuner))
                 {
-                    BDBG_MSG(("tune in progress so start decode!"));
-
                     /* tuner associated with tune lock status change maps to
                      * a channel that is tuning in progress */
                     ret = decodeChannel(pChannelTuning, (eWindowType)i);
@@ -1003,7 +1015,15 @@ void CControl::processNotification(CNotification & notification)
             encodeStop();
             totalChannels--;
         }
-        unTuneChannel(NULL, true);
+
+        for (int winType = 0; winType < eWindowType_Max; winType++)
+        {
+            CChannel * pChannel = _pModel->getCurrentChannel((eWindowType)winType);
+            if (NULL != pChannel)
+            {
+                unTuneChannel(pChannel, true);
+            }
+        }
 
         if (eRet_Ok != _pChannelMgr->loadChannelList(pLoadData->_strFileName.s(), pLoadData->_append))
         {
@@ -1236,7 +1256,7 @@ void CControl::processNotification(CNotification & notification)
     case eNotify_PlaybackStart:
     {
         CPlaybackData * pSaveData = (CPlaybackData *)notification.getData();
-        BDBG_MSG(("Playback File (%s/%s) Video Path (%s), Video 0x%p", pSaveData->_strFileName.s(), pSaveData->_strIndexName.s(), pSaveData->_strPath.s(), pSaveData->_video));
+        BDBG_MSG(("Playback File (%s/%s) Video Path (%s), Video 0x%p", pSaveData->_strFileName.s(), pSaveData->_strIndexName.s(), pSaveData->_strPath.s(), (void *)pSaveData->_video));
 
         if (pSaveData->_video)
         {
@@ -1272,7 +1292,7 @@ void CControl::processNotification(CNotification & notification)
         CPlayback *     pPlayback = _pModel->getPlayback();
         CPlaybackData * pSaveData = (CPlaybackData *)notification.getData();
 
-        BDBG_WRN(("Stop Playback File (%s) ", pSaveData->_strFileName.s()));
+        BDBG_MSG(("Stop Playback File (%s) ", pSaveData->_strFileName.s()));
         if (pPlayback && pPlayback->isActive())
         {
             playbackStop(pSaveData->_strFileName, _pModel->getFullScreenWindowType(), pSaveData->_bTuneLastChannel);
@@ -1872,15 +1892,10 @@ eRet CControl::unTuneChannel(
         )
 {
     eRet                 ret          = eRet_Ok;
-    CSimpleVideoDecode * pVideoDecode = _pModel->getSimpleVideoDecode(windowType);
-    CSimpleAudioDecode * pAudioDecode = _pModel->getSimpleAudioDecode(windowType);
 
 #if DVR_LIB_SUPPORT
     CTsb * pTsb = _pModel->getTsb(windowType);
 #endif
-    CPid * pVideoPid = NULL;
-    CPid * pAudioPid = NULL;
-    CPid * pPcrPid   = NULL;
 
 #ifdef MPOD_SUPPORT
     CCablecard * pCablecard = NULL;
@@ -1930,36 +1945,56 @@ eRet CControl::unTuneChannel(
 
     if (_pModel->getCurrentChannel(windowType) == pChannel)
     {
-        stopDecoders(pVideoDecode, pAudioDecode);
-        disconnectDecoders(windowType);
+        CSimpleVideoDecode * pVideoDecode = NULL;
+        CSimpleAudioDecode * pAudioDecode = NULL;
 
-        /* clear current channel */
-        _pModel->setCurrentChannel(NULL, windowType);
+        if (eWindowType_Pip == windowType)
+        {
+            /* if pip stop/disconnect pip decoder */
+            pVideoDecode = _pModel->getSimpleVideoDecode(windowType);
+            pAudioDecode = _pModel->getSimpleAudioDecode(windowType);
+
+            stopDecoders(pVideoDecode, pAudioDecode);
+            disconnectDecoders(windowType);
+
+            /* clear current channel */
+            _pModel->setCurrentChannel(NULL, windowType);
+        }
+        else
+        {
+            /* if non-pip then stop/disconnect all non-pip decoders */
+            for (int winType = 0; winType < eWindowType_Max; winType++)
+            {
+                if (eWindowType_Pip == (eWindowType)winType)
+                {
+                    continue;
+                }
+
+                pVideoDecode = _pModel->getSimpleVideoDecode((eWindowType)winType);
+                pAudioDecode = _pModel->getSimpleAudioDecode((eWindowType)winType);
+
+                stopDecoders(pVideoDecode, pAudioDecode);
+                disconnectDecoders((eWindowType)winType);
+
+                /* clear current channel */
+                _pModel->setCurrentChannel(NULL, (eWindowType)winType);
+            }
+        }
     }
 
     if (false == pChannel->isRecording())
     {
-        BDBG_MSG(("Channel is not recording. Completely untune this Channel/Tuner"));
+        BDBG_MSG(("CControl::unTuneChannel()"));
+        pChannel->closePids();
+
+        BDBG_MSG(("Channel is NOT recording. Completely untune this Channel/Tuner"));
         ret = pChannel->unTune(_pConfig, bFullUnTune);
         CHECK_ERROR_GOTO("unable to unTune!", ret, error);
 
-        pPcrPid   = pChannel->getPid(0, ePidType_Pcr);
-        pAudioPid = pChannel->getPid(0, ePidType_Audio);
-        pVideoPid = pChannel->getPid(0, ePidType_Video);
-
-        /*
-         * Check to see if PCR pid is the same as Video Pid
-         * Untune can also close pids (IP)
-         */
-        if (pPcrPid == pVideoPid)
-        {
-            pPcrPid = NULL;
-        }
-
-        if (NULL != pPcrPid) { pPcrPid->close();   }
-        if (NULL != pAudioPid) { pAudioPid->close(); }
-        if (NULL != pVideoPid) { pVideoPid->close(); }
-    } else {
+        pChannel->dump(true);
+    }
+    else
+    {
         pChannel->gotoBackGroundRecord();
     }
 
@@ -1977,6 +2012,7 @@ eRet CControl::tuneChannel(
     eRet ret = eRet_Ok;
 
     CChannel *  pCurrentChannel = _pModel->getCurrentChannel(windowType);
+    CChannel *  pFirstChannel   = _pChannelMgr->getFirstChannel();
     CPlayback * pPlayback       = _pModel->getPlayback(windowType);
 
     BDBG_ASSERT(NULL != _pModel);
@@ -1990,12 +2026,12 @@ eRet CControl::tuneChannel(
 
     if ((NULL != pPlayback) && (true == pPlayback->isActive()))
     {
-        return(ret);
+        playbackStop(NULL, windowType, false);
     }
 
     if (NULL == pChannel)
     {
-        pChannel = pCurrentChannel;
+        pChannel = (NULL != pCurrentChannel) ? pCurrentChannel : pFirstChannel;
         CHECK_PTR_ERROR_GOTO("Channel list empty - Unable to tune!", pChannel, ret, eRet_NotAvailable, error);
     }
 
@@ -2004,6 +2040,7 @@ eRet CControl::tuneChannel(
     {
         bool bForceUntune = ((true == pCurrentChannel->isTunerRequired()) && (false == pChannel->isTunerRequired()));
 
+         BDBG_MSG(("untune channel because actual tuner FORCED:%d", bForceUntune));
         /* only do full untune when transitioning from a channel with an actual tuner, to one
          * without a tuner (i.e. qam channel to streamer channel).  this will ensure that the
          * new channel will not mistakenly decode the previous input band.  we do not fully
@@ -2017,12 +2054,16 @@ eRet CControl::tuneChannel(
         pChannel->setModel(_pModel);
         pChannel->setWidgetEngine(_pWidgetEngine);
 
+        BDBG_MSG(("tuning channel:%s windowType:%d", pChannel->getName().s(), windowType));
+        pChannel->dump(true);
+
         _pModel->setChannelTuneInProgress(pChannel, windowType);
         ret = pChannel->tune(_id, _pConfig, false /* async tune */, tunerIndex);
         CHECK_WARN_GOTO("tuning failed", ret, error);
     }
     else
     {
+        BDBG_MSG(("channel tune decode immediately!"));
         /* no need to wait for tuner lock so decode now */
         ret = decodeChannel(pChannel, windowType);
         CHECK_ERROR_GOTO("unable to decode channel", ret, error);
@@ -2268,6 +2309,7 @@ eRet CControl::encodeStart(
     pEncode = (CEncode *)pBoardResources->checkoutResource(_id, eBoardResource_encode);
     CHECK_PTR_ERROR_GOTO("unable to checkout Encode", pEncode, ret, eRet_NotAvailable, done);
     pEncode->setBoardResources(pBoardResources);
+    pEncode->setModel(_pModel);
     ret = pEncode->open();
     CHECK_ERROR_GOTO("unable to open Encode", ret, error);
 
@@ -2514,7 +2556,8 @@ eRet CControl::recordStart(CRecordData * pRecordData)
         if (NULL != video)
         {
             pPlaybackList->removeVideo(video);
-            video = NULL;
+            video->closeVideo();
+            DEL(video);
         }
 
 #if NEXUS_HAS_SECURITY
@@ -2615,11 +2658,9 @@ eRet CControl::recordStart(CRecordData * pRecordData)
 
     pCurrentChannel->setRecord(pRecord);
     _recordingChannels.add(pCurrentChannel);
+
     ret = pRecord->start();
-    if (ret != eRet_Ok)
-    {
-        goto error;
-    }
+    CHECK_ERROR_GOTO("unable to start recording.", ret, error);
 
     /*
      * Add to the top of the Playback List. Sort will be done when Atlas  Shuts down
@@ -2668,7 +2709,6 @@ error:
     _recordingChannels.remove(pCurrentChannel);
     pCurrentChannel->setRecord(NULL);
     pRecord->setBand(NULL);
-
 
     /* check in Record now */
     if (pRecord != NULL)
@@ -3459,11 +3499,14 @@ void CControl::dumpPlaybackList(bool bForce)
 void CControl::updatePlaybackList()
 {
     CPlaybackList * pPlaybackList = _pModel->getPlaybackList();
-
 #ifdef PLAYBACK_IP_SUPPORT
     CServerMgr * pServerMgr         = _pModel->getServerMgr();
     bool         bHttpServerStarted = false;
+#endif /* ifdef PLAYBACK_IP_SUPPORT */
 
+    ATLAS_MEMLEAK_TRACE("BEGIN");
+
+#ifdef PLAYBACK_IP_SUPPORT
     if (NULL != pServerMgr)
     {
         bHttpServerStarted = pServerMgr->isHttpServerStarted();
@@ -3471,15 +3514,15 @@ void CControl::updatePlaybackList()
         if (true == bHttpServerStarted)
         {
             /* note that clients may still continue to play after stop since they will buffer
-               content and retry to get new content automatically.  if refresh from
-               disk takes longer than the client's retry timeout, client ip playback
-               will fail.  given that the retry timeout is up to 5000msecs, in most
-               cases client playback will continue uninterrupted
+             * content and retry to get new content automatically.  if refresh from
+             * disk takes longer than the client's retry timeout, client ip playback
+             * will fail.  given that the retry timeout is up to 5000msecs, in most
+             * cases client playback will continue uninterrupted
              */
             pServerMgr->stopHttpServer();
         }
     }
-#endif
+#endif /* ifdef PLAYBACK_IP_SUPPORT */
 
     showPip(false);
     stopAllPlaybacks();
@@ -3495,11 +3538,13 @@ void CControl::updatePlaybackList()
         (false == pServerMgr->isHttpServerStarted()))
     {
         /* restart http server if started when this function
-           was called but not currently running */
+         * was called but not currently running */
         pServerMgr->startHttpServer();
     }
-#endif
-}
+#endif /* ifdef PLAYBACK_IP_SUPPORT */
+
+    ATLAS_MEMLEAK_TRACE("END");
+} /* updatePlaybackList */
 
 #if NEXUS_HAS_FRONTEND
 /* call initialize in one of each tuner type. this is primarily used for tuners to send out
@@ -3508,6 +3553,8 @@ void CControl::initializeTuners()
 {
     CBoardResources * pBoardResources = NULL;
     CTuner *          pTuner          = NULL;
+
+    ATLAS_MEMLEAK_TRACE("BEGIN");
 
     /* checkout tuners and initialize state */
     pBoardResources = _pConfig->getBoardResources();
@@ -3568,6 +3615,8 @@ void CControl::initializeTuners()
         pBoardResources->checkinResource(pTuner);
         pTuner = NULL;
     }
+
+    ATLAS_MEMLEAK_TRACE("END");
 } /* initializeTuners */
 
 #endif /* if NEXUS_HAS_FRONTEND */
@@ -3981,8 +4030,9 @@ eRet CControl::setVideoFormat(NEXUS_VideoFormat videoFormat)
 
     if (NEXUS_VideoFormat_eUnknown == videoFormat)
     {
-        videoFormat = stringToVideoFormat(GET_STR(_pCfg, PREFERRED_FORMAT_HD));
-        BDBG_WRN(("attempting to set unknown video format - default to PREFERRED_FORMAT_HD:%s", GET_STR(_pCfg, PREFERRED_FORMAT_HD)));
+        BDBG_WRN(("attempting to set unknown video format"));
+        ret = eRet_InvalidParameter;
+        goto error;
     }
 
     pDisplayHD = _pModel->getDisplay(0);
@@ -4286,6 +4336,7 @@ eRet CControl::swapPip()
     CStc *               pStc         = NULL;
     eMode                mode         = eMode_Max;
     CPlayback *          pPlayback    = _pModel->getPlayback(_pModel->getFullScreenWindowType());
+    CChannel *           pChannel     = _pModel->getCurrentChannel();
 
 #ifdef DVR_LIB_SUPPORT
     CTsb * pTsb = _pModel->getTsb(_pModel->getFullScreenWindowType());
@@ -4299,6 +4350,12 @@ eRet CControl::swapPip()
     if (false == _pModel->getPipEnabled())
     {
         BDBG_WRN(("PIP is disabled"));
+        goto error;
+    }
+
+    if ((NULL != pChannel) && (false == pChannel->isPipSwapSupported()))
+    {
+        BDBG_WRN(("PIP swap is disabled by channel"));
         goto error;
     }
 
@@ -4538,12 +4595,13 @@ done:
 } /* setPower */
 
 eRet CControl::connectDecoders(
-    CSimpleVideoDecode * pVideoDecode,
-    CSimpleAudioDecode * pAudioDecode,
-    uint32_t             width,
-    uint32_t             height,
-    CPid *               pVideoPid,
-    eWindowType          winType)
+        CSimpleVideoDecode * pVideoDecode,
+        CSimpleAudioDecode * pAudioDecode,
+        uint32_t             width,
+        uint32_t             height,
+        CPid *               pVideoPid,
+        eWindowType          windowType
+        )
 {
     eRet ret = eRet_Ok;
 
@@ -4561,7 +4619,7 @@ eRet CControl::connectDecoders(
         if ((0 == width) &&
             (0 == height) &&
             (NEXUS_VideoCodec_eH265 == videoCodec) &&
-            (eWindowType_Main == winType))
+            (eWindowType_Main == windowType))
         {
             /* assume max size is 4K video resolution if codec is H.265 (HEVC)
              * and width/height is unknown */
@@ -4585,11 +4643,12 @@ void CControl::disconnectDecoders(eWindowType winType)
 } /* disconnectDecoders() */
 
 eRet CControl::startDecoders(
-    CSimpleVideoDecode * pVideoDecode,
-    CPid * pVideoPid,
-    CSimpleAudioDecode * pAudioDecode,
-    CPid * pAudioPid,
-    CStc * pStc)
+        CSimpleVideoDecode * pVideoDecode,
+        CPid *               pVideoPid,
+        CSimpleAudioDecode * pAudioDecode,
+        CPid *               pAudioPid,
+        CStc *               pStc
+        )
 {
     eRet ret = eRet_Ok;
 
@@ -4608,7 +4667,10 @@ eRet CControl::startDecoders(
     return(ret);
 } /* startDecoders */
 
-eRet CControl::stopDecoders(CSimpleVideoDecode * pVideoDecode, CSimpleAudioDecode * pAudioDecode)
+eRet CControl::stopDecoders(
+        CSimpleVideoDecode * pVideoDecode,
+        CSimpleAudioDecode * pAudioDecode
+        )
 {
     eRet ret = eRet_Ok;
 

@@ -1,51 +1,56 @@
 /******************************************************************************
- *    (c)2008-2014 Broadcom Corporation
- *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
- *
- * Except as expressly set forth in the Authorized License,
- *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
- *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
- *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
-******************************************************************************/
+* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*
+* This program is the proprietary software of Broadcom and/or its
+* licensors, and may only be used, duplicated, modified or distributed pursuant
+* to the terms and conditions of a separate, written license agreement executed
+* between you and Broadcom (an "Authorized License").  Except as set forth in
+* an Authorized License, Broadcom grants no license (express or implied), right
+* to use, or waiver of any kind with respect to the Software, and Broadcom
+* expressly reserves all rights in and to the Software and all intellectual
+* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*
+* Except as expressly set forth in the Authorized License,
+*
+* 1. This program, including its structure, sequence and organization,
+*    constitutes the valuable trade secrets of Broadcom, and you shall use all
+*    reasonable efforts to protect the confidentiality thereof, and to use
+*    this information only in connection with your use of Broadcom integrated
+*    circuit products.
+*
+* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+*
+* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+*******************************************************************************
+*
+* $brcm_Workfile: $
+* $brcm_Revision: $
+* $brcm_Date: $
+*
+* API Description:
+*
+* Revision History:
+*
+* $brcm_Log: $
+*
+****************************************************************************/
+
 #include "nexus_platform.h"
 #if !NEXUS_HAS_VIDEO_ENCODER
 #include <stdio.h>
@@ -137,23 +142,23 @@ BDBG_MODULE(encode);
 #if NEXUS_NUM_HDMI_INPUTS
 static uint8_t SampleEDID[] =
 {
-	0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x08, 0x6D, 0x74, 0x22, 0x05, 0x01, 0x11, 0x20,
-	0x00, 0x14, 0x01, 0x03, 0x80, 0x00, 0x00, 0x78, 0x0A, 0xDA, 0xFF, 0xA3, 0x58, 0x4A, 0xA2, 0x29,
-	0x17, 0x49, 0x4B, 0x00, 0x00, 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
-	0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x02, 0x3A, 0x80, 0x18, 0x71, 0x38, 0x2D, 0x40, 0x58, 0x2C,
-	0x45, 0x00, 0xBA, 0x88, 0x21, 0x00, 0x00, 0x1E, 0x01, 0x1D, 0x80, 0x18, 0x71, 0x1C, 0x16, 0x20,
-	0x58, 0x2C, 0x25, 0x00, 0xBA, 0x88, 0x21, 0x00, 0x00, 0x9E, 0x00, 0x00, 0x00, 0xFC, 0x00, 0x42,
-	0x43, 0x4D, 0x37, 0x34, 0x32, 0x32, 0x2F, 0x37, 0x34, 0x32, 0x35, 0x0A, 0x00, 0x00, 0x00, 0xFD,
-	0x00, 0x17, 0x3D, 0x0F, 0x44, 0x0F, 0x00, 0x0A, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x01, 0x89,
+    0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x08, 0x6D, 0x74, 0x22, 0x05, 0x01, 0x11, 0x20,
+    0x00, 0x14, 0x01, 0x03, 0x80, 0x00, 0x00, 0x78, 0x0A, 0xDA, 0xFF, 0xA3, 0x58, 0x4A, 0xA2, 0x29,
+    0x17, 0x49, 0x4B, 0x00, 0x00, 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
+    0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x02, 0x3A, 0x80, 0x18, 0x71, 0x38, 0x2D, 0x40, 0x58, 0x2C,
+    0x45, 0x00, 0xBA, 0x88, 0x21, 0x00, 0x00, 0x1E, 0x01, 0x1D, 0x80, 0x18, 0x71, 0x1C, 0x16, 0x20,
+    0x58, 0x2C, 0x25, 0x00, 0xBA, 0x88, 0x21, 0x00, 0x00, 0x9E, 0x00, 0x00, 0x00, 0xFC, 0x00, 0x42,
+    0x43, 0x4D, 0x37, 0x34, 0x32, 0x32, 0x2F, 0x37, 0x34, 0x32, 0x35, 0x0A, 0x00, 0x00, 0x00, 0xFD,
+    0x00, 0x17, 0x3D, 0x0F, 0x44, 0x0F, 0x00, 0x0A, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x01, 0x89,
 
-	0x02, 0x03, 0x3C, 0x71, 0x7F, 0x03, 0x0C, 0x00, 0x40, 0x00, 0xB8, 0x2D, 0x2F, 0x80, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0xE3, 0x05, 0x1F, 0x01, 0x49, 0x90, 0x05, 0x20, 0x04, 0x03, 0x02, 0x07,
-	0x06, 0x01, 0x29, 0x09, 0x07, 0x01, 0x11, 0x07, 0x00, 0x15, 0x07, 0x00, 0x01, 0x1D, 0x00, 0x72,
-	0x51, 0xD0, 0x1E, 0x20, 0x6E, 0x28, 0x55, 0x00, 0xBA, 0x88, 0x21, 0x00, 0x00, 0x1E, 0x8C, 0x0A,
-	0xD0, 0x8A, 0x20, 0xE0, 0x2D, 0x10, 0x10, 0x3E, 0x96, 0x00, 0xBA, 0x88, 0x21, 0x00, 0x00, 0x18,
-	0x8C, 0x0A, 0xD0, 0x8A, 0x20, 0xE0, 0x2D, 0x10, 0x10, 0x3E, 0x96, 0x00, 0x0B, 0x88, 0x21, 0x00,
-	0x00, 0x18, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x9D
+    0x02, 0x03, 0x3C, 0x71, 0x7F, 0x03, 0x0C, 0x00, 0x40, 0x00, 0xB8, 0x2D, 0x2F, 0x80, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0xE3, 0x05, 0x1F, 0x01, 0x49, 0x90, 0x05, 0x20, 0x04, 0x03, 0x02, 0x07,
+    0x06, 0x01, 0x29, 0x09, 0x07, 0x01, 0x11, 0x07, 0x00, 0x15, 0x07, 0x00, 0x01, 0x1D, 0x00, 0x72,
+    0x51, 0xD0, 0x1E, 0x20, 0x6E, 0x28, 0x55, 0x00, 0xBA, 0x88, 0x21, 0x00, 0x00, 0x1E, 0x8C, 0x0A,
+    0xD0, 0x8A, 0x20, 0xE0, 0x2D, 0x10, 0x10, 0x3E, 0x96, 0x00, 0xBA, 0x88, 0x21, 0x00, 0x00, 0x18,
+    0x8C, 0x0A, 0xD0, 0x8A, 0x20, 0xE0, 0x2D, 0x10, 0x10, 0x3E, 0x96, 0x00, 0x0B, 0x88, 0x21, 0x00,
+    0x00, 0x18, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x9D
 };
 #endif
 
@@ -166,15 +171,15 @@ NEXUS_StreamMuxHandle streamMux;
 
 typedef struct TranscodeContext {
     /* PSI system data */
-	void                     *pat[BTST_PSI_QUEUE_CNT];
-	void                     *pmt[BTST_PSI_QUEUE_CNT];
-	unsigned                  ccValue;
-	NEXUS_StreamMuxSystemData psi[2];
-	B_MutexHandle             mutexSystemdata;
-	B_SchedulerHandle         schedulerSystemdata;
-	B_SchedulerTimerId        systemdataTimer;
-	B_ThreadHandle            schedulerThread;
-	bool                      systemdataTimerIsStarted;
+    void                     *pat[BTST_PSI_QUEUE_CNT];
+    void                     *pmt[BTST_PSI_QUEUE_CNT];
+    unsigned                  ccValue;
+    NEXUS_StreamMuxSystemData psi[2];
+    B_MutexHandle             mutexSystemdata;
+    B_SchedulerHandle         schedulerSystemdata;
+    B_SchedulerTimerId        systemdataTimer;
+    B_ThreadHandle            schedulerThread;
+    bool                      systemdataTimerIsStarted;
 } TranscodeContext;
 
 #define MAX_PROGRAMS_PER_FREQUENCY 24
@@ -381,8 +386,8 @@ NEXUS_PidChannelHandle OpenPidChannel(psiCollectionDataType * pCollectionData, u
         if (NULL == pCollectionData->pid[i].channel) {
             BDBG_MSG(("open pidChannel for pid:0x%04x\n", pid));
             pCollectionData->pid[i].num = pid;
-	    pCollectionData->pid[i].channel =
-		NEXUS_PidChannel_Open(pCollectionData->parserBand, pid, &pidChannelSettings);
+        pCollectionData->pid[i].channel =
+        NEXUS_PidChannel_Open(pCollectionData->parserBand, pid, &pidChannelSettings);
             return pCollectionData->pid[i].channel;
         }
     }
@@ -407,7 +412,7 @@ void ClosePidChannel(psiCollectionDataType * pCollectionData, uint16_t pid)
             ( pCollectionData->pid[i].channel != NULL)) {
             BDBG_MSG(("close pidChannel for pid:0x%04x\n", pid));
 
-	    NEXUS_PidChannel_Close(pCollectionData->pid[i].channel);
+        NEXUS_PidChannel_Close(pCollectionData->pid[i].channel);
             pCollectionData->pid[i].channel = NULL;
             pCollectionData->pid[i].num = 0;
             found = true;
@@ -689,7 +694,7 @@ void acquirePsiInfo(pPsiCollectionDataType pCollectionData, struct opts_t *psi, 
         for (i = 0; i<MAX_PROGRAMS_PER_FREQUENCY && (TS_PAT_getProgram(buf, bufLength, i, &program)==BERR_SUCCESS); i++)
         {
             memset(psi, 0, sizeof(*psi));
-            BDBG_MSG(("program_number: %d, i %d, PID: 0x%04X, psi %p, sizeof psi %d\n", program.program_number, i, program.PID, psi, sizeof(*psi)));
+            BDBG_MSG(("program_number: %d, i %d, PID: 0x%04X, psi %p, sizeof psi %d\n", program.program_number, i, program.PID, (void*)psi, (unsigned)sizeof(*psi)));
             psi->pmtPid = program.PID;
 
             BKNI_ResetEvent((BKNI_EventHandle)settingsApi.dataReadyCallbackParam);
@@ -785,9 +790,9 @@ int probe(struct opts_t *opts, const char *filename, const char **indexname)
 
     fin = fopen64(filename,"rb");
     if (!fin) {
-	printf("can't open media file '%s' for probing\n", filename);
-	rc = -1;
-	goto done;
+    printf("can't open media file '%s' for probing\n", filename);
+    rc = -1;
+    goto done;
     }
 
     fd = bfile_stdio_read_attach(fin);
@@ -803,59 +808,59 @@ int probe(struct opts_t *opts, const char *filename, const char **indexname)
 
     fclose(fin);
     if(!stream) {
-	printf("media probe can't parse stream '%s'\n", filename);
-	rc = -1;
-	goto done;
+    printf("media probe can't parse stream '%s'\n", filename);
+    rc = -1;
+    goto done;
     }
 
     /* if the user has specified the index, don't override */
     if (indexname && !*indexname) {
-	if (stream->index == bmedia_probe_index_available || stream->index == bmedia_probe_index_required) {
-	    *indexname = filename;
-	}
+    if (stream->index == bmedia_probe_index_available || stream->index == bmedia_probe_index_required) {
+        *indexname = filename;
+    }
     }
 
     bmedia_stream_to_string(stream, stream_info, sizeof(stream_info));
     printf(
-	"Media Probe:\n"
-	"%s\n\n",
-	stream_info);
+    "Media Probe:\n"
+    "%s\n\n",
+    stream_info);
 
     opts->transportType = b_mpegtype2nexus(stream->type);
 
 
     for(track=BLST_SQ_FIRST(&stream->tracks);track;track=BLST_SQ_NEXT(track, link)) {
-	switch(track->type) {
-	case bmedia_track_type_audio:
-	    if(track->info.audio.codec != baudio_format_unknown && !foundAudio) {
-		opts->audioPid = track->number;
-		opts->audioCodec = b_audiocodec2nexus(track->info.audio.codec);
-		foundAudio = true;
-	    }
-	    break;
-	case bmedia_track_type_video:
-	    if(track->info.video.codec == bvideo_codec_h264_svc || track->info.video.codec == bvideo_codec_h264_mvc) {
-		break;
-	    } else if (track->info.video.codec != bvideo_codec_unknown && !foundVideo) {
-		opts->videoPid = track->number;
-		opts->videoCodec = b_videocodec2nexus(track->info.video.codec);
-		foundVideo = true;
-	    }
-	    break;
-	case bmedia_track_type_pcr:
-	    opts->pcrPid = track->number;
-	    break;
-	default:
-	    break;
-	}
+    switch(track->type) {
+    case bmedia_track_type_audio:
+        if(track->info.audio.codec != baudio_format_unknown && !foundAudio) {
+        opts->audioPid = track->number;
+        opts->audioCodec = b_audiocodec2nexus(track->info.audio.codec);
+        foundAudio = true;
+        }
+        break;
+    case bmedia_track_type_video:
+        if(track->info.video.codec == bvideo_codec_h264_svc || track->info.video.codec == bvideo_codec_h264_mvc) {
+        break;
+        } else if (track->info.video.codec != bvideo_codec_unknown && !foundVideo) {
+        opts->videoPid = track->number;
+        opts->videoCodec = b_videocodec2nexus(track->info.video.codec);
+        foundVideo = true;
+        }
+        break;
+    case bmedia_track_type_pcr:
+        opts->pcrPid = track->number;
+        break;
+    default:
+        break;
+    }
     }
 
 done:
     if (probe) {
-	if (stream) {
-	    bmedia_probe_stream_free(probe, stream);
-	}
-	bmedia_probe_destroy(probe);
+    if (stream) {
+        bmedia_probe_stream_free(probe, stream);
+    }
+    bmedia_probe_destroy(probe);
     }
 
     return rc;
@@ -935,38 +940,38 @@ void add_pat_pmt(
 
 static void insertSystemDataTimer(void *context)
 {
-	TranscodeContext *pContext = context;
-	uint8_t ccByte;
+    TranscodeContext *pContext = context;
+    uint8_t ccByte;
 
-	++pContext->ccValue;/* increment CC synchronously with PAT/PMT */
-	ccByte = *((uint8_t*)pContext->pat[pContext->ccValue % BTST_PSI_QUEUE_CNT] + 4); /* the 1st byte of pat/pmt arrays is for TSheader builder use */
+    ++pContext->ccValue;/* increment CC synchronously with PAT/PMT */
+    ccByte = *((uint8_t*)pContext->pat[pContext->ccValue % BTST_PSI_QUEUE_CNT] + 4); /* the 1st byte of pat/pmt arrays is for TSheader builder use */
 
-	/* need to increment CC value for PAT/PMT packets */
-	ccByte = (ccByte & 0xf0) | (pContext->ccValue & 0xf);
-	*((uint8_t*)pContext->pat[pContext->ccValue % BTST_PSI_QUEUE_CNT] + 4) = ccByte;
-	/* need to flush the cache before set to TS mux hw */
-	NEXUS_Memory_FlushCache((void*)((uint8_t*)pContext->pat[pContext->ccValue % BTST_PSI_QUEUE_CNT] + 4), 1);
-	/* ping pong PAT pointer */
-	pContext->psi[0].pData = (void*)((uint8_t*)pContext->pat[pContext->ccValue % BTST_PSI_QUEUE_CNT] + 1);
+    /* need to increment CC value for PAT/PMT packets */
+    ccByte = (ccByte & 0xf0) | (pContext->ccValue & 0xf);
+    *((uint8_t*)pContext->pat[pContext->ccValue % BTST_PSI_QUEUE_CNT] + 4) = ccByte;
+    /* need to flush the cache before set to TS mux hw */
+    NEXUS_Memory_FlushCache((void*)((uint8_t*)pContext->pat[pContext->ccValue % BTST_PSI_QUEUE_CNT] + 4), 1);
+    /* ping pong PAT pointer */
+    pContext->psi[0].pData = (void*)((uint8_t*)pContext->pat[pContext->ccValue % BTST_PSI_QUEUE_CNT] + 1);
 
-	ccByte = *((uint8_t*)pContext->pmt[pContext->ccValue % BTST_PSI_QUEUE_CNT] + 4);
-	ccByte = (ccByte & 0xf0) | (pContext->ccValue & 0xf);
-	*((uint8_t*)pContext->pmt[pContext->ccValue % BTST_PSI_QUEUE_CNT] + 4) = ccByte;
-	NEXUS_Memory_FlushCache((void*)((uint8_t*)pContext->pmt[pContext->ccValue % BTST_PSI_QUEUE_CNT] + 4), 1);
-	/* ping pong PMT pointer */
-	pContext->psi[1].pData = (void*)((uint8_t*)pContext->pmt[pContext->ccValue % BTST_PSI_QUEUE_CNT] + 1);
+    ccByte = *((uint8_t*)pContext->pmt[pContext->ccValue % BTST_PSI_QUEUE_CNT] + 4);
+    ccByte = (ccByte & 0xf0) | (pContext->ccValue & 0xf);
+    *((uint8_t*)pContext->pmt[pContext->ccValue % BTST_PSI_QUEUE_CNT] + 4) = ccByte;
+    NEXUS_Memory_FlushCache((void*)((uint8_t*)pContext->pmt[pContext->ccValue % BTST_PSI_QUEUE_CNT] + 4), 1);
+    /* ping pong PMT pointer */
+    pContext->psi[1].pData = (void*)((uint8_t*)pContext->pmt[pContext->ccValue % BTST_PSI_QUEUE_CNT] + 1);
 
-	NEXUS_StreamMux_AddSystemDataBuffer(streamMux, &pContext->psi[0]);
-	NEXUS_StreamMux_AddSystemDataBuffer(streamMux, &pContext->psi[1]);
-	BDBG_MSG(("insert PAT&PMT... ccPAT = %x ccPMT=%x", *((uint8_t*)pContext->pat[pContext->ccValue % BTST_PSI_QUEUE_CNT] + 4) & 0xf,
-		*((uint8_t*)pContext->pmt[pContext->ccValue  % BTST_PSI_QUEUE_CNT] + 4) & 0xf));
-	if(pContext->systemdataTimerIsStarted)
-	{
-		pContext->systemdataTimer = B_Scheduler_StartTimer(
-			pContext->schedulerSystemdata,pContext->mutexSystemdata, 1000, insertSystemDataTimer, pContext);
-		if(pContext->systemdataTimer==NULL) {BDBG_ERR(("schedule timer error %d", NEXUS_OUT_OF_SYSTEM_MEMORY));}
-	}
-	return;
+    NEXUS_StreamMux_AddSystemDataBuffer(streamMux, &pContext->psi[0]);
+    NEXUS_StreamMux_AddSystemDataBuffer(streamMux, &pContext->psi[1]);
+    BDBG_MSG(("insert PAT&PMT... ccPAT = %x ccPMT=%x", *((uint8_t*)pContext->pat[pContext->ccValue % BTST_PSI_QUEUE_CNT] + 4) & 0xf,
+        *((uint8_t*)pContext->pmt[pContext->ccValue  % BTST_PSI_QUEUE_CNT] + 4) & 0xf));
+    if(pContext->systemdataTimerIsStarted)
+    {
+        pContext->systemdataTimer = B_Scheduler_StartTimer(
+            pContext->schedulerSystemdata,pContext->mutexSystemdata, 1000, insertSystemDataTimer, pContext);
+        if(pContext->systemdataTimer==NULL) {BDBG_ERR(("schedule timer error %d", NEXUS_OUT_OF_SYSTEM_MEMORY));}
+    }
+    return;
 }
 
 /*******************************
@@ -974,119 +979,113 @@ static void insertSystemDataTimer(void *context)
  */
 static void xcode_set_systemdata( TranscodeContext  *pContext, NEXUS_VideoCodec encoderVideoCodec, NEXUS_AudioCodec encoderAudioCodec)
 {
-	uint8_t vidStreamType=0, audStreamType=0;
-	unsigned i;
+    uint8_t vidStreamType=0, audStreamType=0;
+    unsigned i;
 
-	for(i=0; i<BTST_PSI_QUEUE_CNT; i++)
-	{
-		NEXUS_Memory_Allocate(BTST_TS_HEADER_BUF_LENGTH, NULL, &pContext->pat[i]);
-		NEXUS_Memory_Allocate(BTST_TS_HEADER_BUF_LENGTH, NULL, &pContext->pmt[i]);
-	}
+    for(i=0; i<BTST_PSI_QUEUE_CNT; i++)
+    {
+        NEXUS_Memory_Allocate(BTST_TS_HEADER_BUF_LENGTH, NULL, &pContext->pat[i]);
+        NEXUS_Memory_Allocate(BTST_TS_HEADER_BUF_LENGTH, NULL, &pContext->pmt[i]);
+    }
 
 #if ENABLE_VIDEO_ENCODE
-	/* decide the stream type to set in PMT */
-	switch(encoderVideoCodec)
-	{
-	    case NEXUS_VideoCodec_eMpeg2:         vidStreamType = 0x2; break;
-	    case NEXUS_VideoCodec_eMpeg4Part2:    vidStreamType = 0x10; break;
-	    case NEXUS_VideoCodec_eH264:          vidStreamType = 0x1b; break;
-	    case NEXUS_VideoCodec_eVc1SimpleMain: vidStreamType = 0xea; break;
-	    default:
-		BDBG_ERR(("Video encoder codec %d is not supported!\n", encoderVideoCodec));
-	}
+    /* decide the stream type to set in PMT */
+    switch(encoderVideoCodec)
+    {
+        case NEXUS_VideoCodec_eMpeg2:         vidStreamType = 0x2; break;
+        case NEXUS_VideoCodec_eMpeg4Part2:    vidStreamType = 0x10; break;
+        case NEXUS_VideoCodec_eH264:          vidStreamType = 0x1b; break;
+        case NEXUS_VideoCodec_eVc1SimpleMain: vidStreamType = 0xea; break;
+        default:
+        BDBG_ERR(("Video encoder codec %d is not supported!\n", encoderVideoCodec));
+    }
 #else
-	BSTD_UNUSED(encoderVideoCodec);
+    BSTD_UNUSED(encoderVideoCodec);
 #endif
 
 #if ENABLE_AUDIO_ENCODE
-	switch(encoderAudioCodec)
-	{
-	    case NEXUS_AudioCodec_eMpeg:         audStreamType = 0x4; break;
-	    case NEXUS_AudioCodec_eMp3:          audStreamType = 0x4; break;
-	    case NEXUS_AudioCodec_eAac    :      audStreamType = 0xf; break; /* ADTS */
-	    case NEXUS_AudioCodec_eAacPlus:      audStreamType = 0x11; break;/* LOAS */
-	    /* MP2TS doesn't allow 14496-3 AAC+ADTS; here is placeholder to test AAC-HE before LOAS encode is supported; */
-	    case NEXUS_AudioCodec_eAacPlusAdts:  audStreamType = 0x11; break;
-	    case NEXUS_AudioCodec_eAc3:          audStreamType = 0x81; break;
-	    default:
-		BDBG_ERR(("Audio encoder codec %d is not supported!\n", encoderAudioCodec));
-	}
+    switch(encoderAudioCodec)
+    {
+        case NEXUS_AudioCodec_eMpeg:         audStreamType = 0x4; break;
+        case NEXUS_AudioCodec_eMp3:          audStreamType = 0x4; break;
+        case NEXUS_AudioCodec_eAac    :      audStreamType = 0xf; break; /* ADTS */
+        case NEXUS_AudioCodec_eAacPlus:      audStreamType = 0x11; break;/* LOAS */
+        /* MP2TS doesn't allow 14496-3 AAC+ADTS; here is placeholder to test AAC-HE before LOAS encode is supported; */
+        case NEXUS_AudioCodec_eAacPlusAdts:  audStreamType = 0x11; break;
+        case NEXUS_AudioCodec_eAc3:          audStreamType = 0x81; break;
+        default:
+        BDBG_ERR(("Audio encoder codec %d is not supported!\n", encoderAudioCodec));
+    }
 #else
-	BSTD_UNUSED(encoderAudioCodec);
+    BSTD_UNUSED(encoderAudioCodec);
 #endif
 
-	add_pat_pmt(pContext, BTST_MUX_PCR_PID, BTST_MUX_VIDEO_PID, BTST_MUX_AUDIO_PID, vidStreamType, audStreamType);
-	for(i=0; i<BTST_PSI_QUEUE_CNT; i++)
-	{
-		if(i > 0)
-		{
-			BKNI_Memcpy(pContext->pat[i], pContext->pat[0], BTST_TS_HEADER_BUF_LENGTH);
-			BKNI_Memcpy(pContext->pmt[i], pContext->pmt[0], BTST_TS_HEADER_BUF_LENGTH);
-		}
-		NEXUS_Memory_FlushCache(pContext->pat[i], BTST_TS_HEADER_BUF_LENGTH);
-		NEXUS_Memory_FlushCache(pContext->pmt[i], BTST_TS_HEADER_BUF_LENGTH);
-	}
-	BKNI_Memset(pContext->psi, 0, sizeof(pContext->psi));
-	pContext->psi[0].size = 188;
-	/* TSHDRBUILDER has one extra byte at the beginning to describe the variable length TS header buffer */
-	pContext->psi[0].pData = (void*)((uint8_t*)pContext->pat[0] + 1);
-	pContext->psi[0].timestampDelta = 0;
-	pContext->psi[1].size = 188;
-	/* TSHDRBUILDER has one extra byte at the beginning to describe the variable length TS header buffer */
-	pContext->psi[1].pData = (void*)((uint8_t*)pContext->pmt[0] + 1);
-	pContext->psi[1].timestampDelta = 0;
-	NEXUS_StreamMux_AddSystemDataBuffer(streamMux, &pContext->psi[0]);
-	NEXUS_StreamMux_AddSystemDataBuffer(streamMux, &pContext->psi[1]);
-	BDBG_MSG(("insert PAT&PMT... ccPAT = %x ccPMT=%x", *((uint8_t*)pContext->pat[0] + 4) & 0xf,
-		*((uint8_t*)pContext->pmt[0] + 4) & 0xf));
+    add_pat_pmt(pContext, BTST_MUX_PCR_PID, BTST_MUX_VIDEO_PID, BTST_MUX_AUDIO_PID, vidStreamType, audStreamType);
+    for(i=0; i<BTST_PSI_QUEUE_CNT; i++)
+    {
+        if(i > 0)
+        {
+            BKNI_Memcpy(pContext->pat[i], pContext->pat[0], BTST_TS_HEADER_BUF_LENGTH);
+            BKNI_Memcpy(pContext->pmt[i], pContext->pmt[0], BTST_TS_HEADER_BUF_LENGTH);
+        }
+        NEXUS_Memory_FlushCache(pContext->pat[i], BTST_TS_HEADER_BUF_LENGTH);
+        NEXUS_Memory_FlushCache(pContext->pmt[i], BTST_TS_HEADER_BUF_LENGTH);
+    }
+    BKNI_Memset(pContext->psi, 0, sizeof(pContext->psi));
+    pContext->psi[0].size = 188;
+    /* TSHDRBUILDER has one extra byte at the beginning to describe the variable length TS header buffer */
+    pContext->psi[0].pData = (void*)((uint8_t*)pContext->pat[0] + 1);
+    pContext->psi[0].timestampDelta = 0;
+    pContext->psi[1].size = 188;
+    /* TSHDRBUILDER has one extra byte at the beginning to describe the variable length TS header buffer */
+    pContext->psi[1].pData = (void*)((uint8_t*)pContext->pmt[0] + 1);
+    pContext->psi[1].timestampDelta = 0;
+    NEXUS_StreamMux_AddSystemDataBuffer(streamMux, &pContext->psi[0]);
+    NEXUS_StreamMux_AddSystemDataBuffer(streamMux, &pContext->psi[1]);
+    BDBG_MSG(("insert PAT&PMT... ccPAT = %x ccPMT=%x", *((uint8_t*)pContext->pat[0] + 4) & 0xf,
+        *((uint8_t*)pContext->pmt[0] + 4) & 0xf));
 
-	/* schedule a periodic timer to insert PAT/PMT */
-	{
-	B_ThreadSettings settingsThread;
-	pContext->mutexSystemdata = B_Mutex_Create(NULL);
-	pContext->schedulerSystemdata = B_Scheduler_Create(NULL);
-	/* create thread to run scheduler */
-	B_Thread_GetDefaultSettings(&settingsThread);
-	pContext->schedulerThread = B_Thread_Create("systemdata_Scheduler",
-		(B_ThreadFunc)B_Scheduler_Run,
-		pContext->schedulerSystemdata,
-		&settingsThread);
+    /* schedule a periodic timer to insert PAT/PMT */
+    {
+    B_ThreadSettings settingsThread;
+    pContext->mutexSystemdata = B_Mutex_Create(NULL);
+    pContext->schedulerSystemdata = B_Scheduler_Create(NULL);
+    /* create thread to run scheduler */
+    B_Thread_GetDefaultSettings(&settingsThread);
+    pContext->schedulerThread = B_Thread_Create("systemdata_Scheduler",
+        (B_ThreadFunc)B_Scheduler_Run,
+        pContext->schedulerSystemdata,
+        &settingsThread);
 
-	if (NULL == pContext->schedulerThread)
-	{
-		BDBG_ERR(("failed to create scheduler thread"));
-	}
-	pContext->systemdataTimer = B_Scheduler_StartTimer(
-		pContext->schedulerSystemdata,pContext->mutexSystemdata, 1000, insertSystemDataTimer, pContext);
-	if(pContext->systemdataTimer==NULL) {BDBG_ERR(("schedule timer error"));}
-	pContext->systemdataTimerIsStarted = true;
-	}
+    if (NULL == pContext->schedulerThread)
+    {
+        BDBG_ERR(("failed to create scheduler thread"));
+    }
+    pContext->systemdataTimer = B_Scheduler_StartTimer(
+        pContext->schedulerSystemdata,pContext->mutexSystemdata, 1000, insertSystemDataTimer, pContext);
+    if(pContext->systemdataTimer==NULL) {BDBG_ERR(("schedule timer error"));}
+    pContext->systemdataTimerIsStarted = true;
+    }
 }
 
 static void xcode_stop_systemdata( TranscodeContext  *pContext )
 {
-	unsigned i;
-	/* cancel system data timer */
-	if(pContext->systemdataTimerIsStarted)
-	{
-		B_Scheduler_CancelTimer(pContext->schedulerSystemdata, pContext->systemdataTimer);
-		B_Scheduler_Stop(pContext->schedulerSystemdata);
-		B_Scheduler_Destroy(pContext->schedulerSystemdata);
-		if (pContext->schedulerThread)
-		{
-			B_Thread_Destroy(pContext->schedulerThread);
-			pContext->schedulerThread = NULL;
-		}
-		B_Mutex_Destroy(pContext->mutexSystemdata);
-		pContext->systemdataTimer = NULL;
-		pContext->systemdataTimerIsStarted = false;
-	}
+    /* cancel system data timer */
+    if(pContext->systemdataTimerIsStarted)
+    {
+        B_Scheduler_CancelTimer(pContext->schedulerSystemdata, pContext->systemdataTimer);
+        B_Scheduler_Stop(pContext->schedulerSystemdata);
+        B_Scheduler_Destroy(pContext->schedulerSystemdata);
+        if (pContext->schedulerThread)
+        {
+            B_Thread_Destroy(pContext->schedulerThread);
+            pContext->schedulerThread = NULL;
+        }
+        B_Mutex_Destroy(pContext->mutexSystemdata);
+        pContext->systemdataTimer = NULL;
+        pContext->systemdataTimerIsStarted = false;
+    }
 
-	for(i=0; i<BTST_PSI_QUEUE_CNT; i++)
-	{
-		NEXUS_Memory_Free(pContext->pat[i]);
-		NEXUS_Memory_Free(pContext->pmt[i]);
-	}
 }
 
 #if  NEXUS_HAS_FRONTEND
@@ -1196,8 +1195,8 @@ int main(int argc, char *argv[])
     NEXUS_PidChannelHandle pidChannelTranscodePat;
     NEXUS_PidChannelHandle pidChannelTranscodePmt;
 #if NEXUS_HAS_SYNC_CHANNEL && ENABLE_AUDIO_ENCODE
-	NEXUS_SyncChannelSettings syncChannelSettings;
-	NEXUS_SyncChannelHandle syncChannel;
+    NEXUS_SyncChannelSettings syncChannelSettings;
+    NEXUS_SyncChannelHandle syncChannel;
 #endif
 
 
@@ -1226,52 +1225,52 @@ int main(int argc, char *argv[])
     while (++curarg < argc) {
         if (!strcmp(argv[curarg], "--help")) {
             printf(
-		"Usage: nexus encoder [-in] [-width] [-height] [-framerate] [-bitrate] [-noDisplay] \n"
-		"\n"
-		);
+        "Usage: nexus encoder [-in] [-width] [-height] [-framerate] [-bitrate] [-noDisplay] \n"
+        "\n"
+        );
             return 0;
         }
         else if (!strcmp(argv[curarg], "-width") && curarg+1 < argc) {
             width = atoi(argv[++curarg]);
-		   BDBG_ERR(( "W:%d H:%d\n", width, height));
+           BDBG_ERR(( "W:%d H:%d\n", width, height));
 
         }
-	else if (!strcmp(argv[curarg], "-height") && curarg+1 < argc) {
+    else if (!strcmp(argv[curarg], "-height") && curarg+1 < argc) {
             height = atoi(argv[++curarg]);
-				BDBG_ERR(( "W:%d H:%d\n", width, height));
+                BDBG_ERR(( "W:%d H:%d\n", width, height));
         }
-	else if (!strcmp(argv[curarg], "-framerate") && curarg+1 < argc) {
+    else if (!strcmp(argv[curarg], "-framerate") && curarg+1 < argc) {
             framerate = atoi(argv[++curarg]);
         }
-	else if (!strcmp(argv[curarg], "-bitrate") && curarg+1 < argc) {
+    else if (!strcmp(argv[curarg], "-bitrate") && curarg+1 < argc) {
             bitrate = atoi(argv[++curarg]);
         }
-	else if (!strcmp(argv[curarg], "-in") && curarg+1 < argc) {
+    else if (!strcmp(argv[curarg], "-in") && curarg+1 < argc) {
             infile = argv[++curarg];
         }
- 	else if (!strcmp(argv[curarg], "-freq") && curarg+1 < argc) {
+    else if (!strcmp(argv[curarg], "-freq") && curarg+1 < argc) {
              freq = atoi(argv[++curarg]);
         }
-	else if (!strcmp(argv[curarg], "-mode") && curarg+1 < argc) {
+    else if (!strcmp(argv[curarg], "-mode") && curarg+1 < argc) {
               qammode = atoi(argv[++curarg]);
         }
-	else if (!strcmp(argv[curarg], "-qam")) {
-	    qam = true;
+    else if (!strcmp(argv[curarg], "-qam")) {
+        qam = true;
         }
-	else if (!strcmp(argv[curarg], "-sat")) {
-	    sat = true;
+    else if (!strcmp(argv[curarg], "-sat")) {
+        sat = true;
         }
-	else if (!strcmp(argv[curarg], "-streamer")) {
-	    streamer = true;
+    else if (!strcmp(argv[curarg], "-streamer")) {
+        streamer = true;
         }
-	else if (!strcmp(argv[curarg], "-hdmi")) {
-	    hdmi = true;
+    else if (!strcmp(argv[curarg], "-hdmi")) {
+        hdmi = true;
         }
-	else if (!strcmp(argv[curarg], "-userdata")) {
-	    encodeUserData = true;
+    else if (!strcmp(argv[curarg], "-userdata")) {
+        encodeUserData = true;
         }
-	else if (!strcmp(argv[curarg], "-mp4")) {
-	    mp4 = true;
+    else if (!strcmp(argv[curarg], "-mp4")) {
+        mp4 = true;
         }
     else if (!strcmp(argv[curarg], "-xsl")) {
         xcodeSyncLock = true;
@@ -1309,20 +1308,20 @@ int main(int argc, char *argv[])
     platformSettings.openFrontend = (qam || sat)?true:false;
     /* Increase buffer size for 720p capture */
     if(b720pEncode) {
-	platformSettings.heap[NEXUS_MEMC0_PICTURE_BUFFER_HEAP].size += 18*1024*1024;
-	platformSettings.displayModuleSettings.displayHeapSettings[NEXUS_MEMC0_PICTURE_BUFFER_HEAP].fullHdBuffers.count += 1;
-	platformSettings.displayModuleSettings.displayHeapSettings[NEXUS_MEMC0_PICTURE_BUFFER_HEAP].hdBuffers.count += 9;
+    platformSettings.heap[NEXUS_MEMC0_PICTURE_BUFFER_HEAP].size += 18*1024*1024;
+    platformSettings.displayModuleSettings.displayHeapSettings[NEXUS_MEMC0_PICTURE_BUFFER_HEAP].fullHdBuffers.count += 1;
+    platformSettings.displayModuleSettings.displayHeapSettings[NEXUS_MEMC0_PICTURE_BUFFER_HEAP].hdBuffers.count += 9;
     }
     if(framerate == 15 || framerate == 30) {
-	platformSettings.displayModuleSettings.dropFrame = false;
+    platformSettings.displayModuleSettings.dropFrame = false;
     }
     NEXUS_Platform_Init(&platformSettings);
     NEXUS_Platform_GetConfiguration(&platformConfig);
 
 #if NEXUS_HAS_SYNC_CHANNEL && ENABLE_AUDIO_ENCODE
-		/* create a sync channel */
-		NEXUS_SyncChannel_GetDefaultSettings(&syncChannelSettings);
-		syncChannel = NEXUS_SyncChannel_Create(&syncChannelSettings);
+        /* create a sync channel */
+        NEXUS_SyncChannel_GetDefaultSettings(&syncChannelSettings);
+        syncChannel = NEXUS_SyncChannel_Create(&syncChannelSettings);
 #endif
 
     playpump = NEXUS_Playpump_Open(0, NULL);
@@ -1332,202 +1331,202 @@ int main(int argc, char *argv[])
 
     if(qam) {
 #if  NEXUS_HAS_FRONTEND
-	printf("Transcoding from Qam Source\n");
+    printf("Transcoding from Qam Source\n");
 
-	BKNI_CreateEvent(&signalLockedEvent);
+    BKNI_CreateEvent(&signalLockedEvent);
 
-	for ( i = 0; i < NEXUS_MAX_FRONTENDS; i++ )
-	{
-	    NEXUS_FrontendCapabilities capabilities;
-	    frontend = platformConfig.frontend[i];
-	    if (frontend) {
-		NEXUS_Frontend_GetCapabilities(frontend, &capabilities);
-		/* Does this frontend support qam? */
-		if ( capabilities.qam )
-		{
-		    break;
-		}
-	    }
-	}
+    for ( i = 0; i < NEXUS_MAX_FRONTENDS; i++ )
+    {
+        NEXUS_FrontendCapabilities capabilities;
+        frontend = platformConfig.frontend[i];
+        if (frontend) {
+        NEXUS_Frontend_GetCapabilities(frontend, &capabilities);
+        /* Does this frontend support qam? */
+        if ( capabilities.qam )
+        {
+            break;
+        }
+        }
+    }
 
-	if (NULL == frontend )
-	{
-	    fprintf(stderr, "Unable to find QAM-capable frontend\n");
-	    return 0;
-	}
-	NEXUS_Frontend_GetDefaultQamSettings(&qamSettings);
-	qamSettings.frequency = freq * 1000000;
-	switch (qammode) {
-	default:
-	case 64: qamSettings.mode = NEXUS_FrontendQamMode_e64; qamSettings.symbolRate = 5056900; break;
-	case 256 : qamSettings.mode = NEXUS_FrontendQamMode_e256; qamSettings.symbolRate = 5360537; break;
-	case 1024: qamSettings.mode = NEXUS_FrontendQamMode_e1024; qamSettings.symbolRate = 0; /* TODO */break;
-	}
-	qamSettings.annex = NEXUS_FrontendQamAnnex_eB;
-	qamSettings.bandwidth = NEXUS_FrontendQamBandwidth_e6Mhz;
-	qamSettings.lockCallback.callback = qam_lock_callback;
-	qamSettings.lockCallback.context = frontend;
-	qamSettings.lockCallback.param = (int)signalLockedEvent;
+    if (NULL == frontend )
+    {
+        fprintf(stderr, "Unable to find QAM-capable frontend\n");
+        return 0;
+    }
+    NEXUS_Frontend_GetDefaultQamSettings(&qamSettings);
+    qamSettings.frequency = freq * 1000000;
+    switch (qammode) {
+    default:
+    case 64: qamSettings.mode = NEXUS_FrontendQamMode_e64; qamSettings.symbolRate = 5056900; break;
+    case 256 : qamSettings.mode = NEXUS_FrontendQamMode_e256; qamSettings.symbolRate = 5360537; break;
+    case 1024: qamSettings.mode = NEXUS_FrontendQamMode_e1024; qamSettings.symbolRate = 0; /* TODO */break;
+    }
+    qamSettings.annex = NEXUS_FrontendQamAnnex_eB;
+    qamSettings.bandwidth = NEXUS_FrontendQamBandwidth_e6Mhz;
+    qamSettings.lockCallback.callback = qam_lock_callback;
+    qamSettings.lockCallback.context = frontend;
+    qamSettings.lockCallback.param = (int)signalLockedEvent;
 
-	NEXUS_Frontend_GetUserParameters(frontend, &userParams);
+    NEXUS_Frontend_GetUserParameters(frontend, &userParams);
 
-	/* Map a parser band to the demod's input band. */
-	parserBand = NEXUS_ParserBand_e0;
-	NEXUS_ParserBand_GetSettings(parserBand, &parserBandSettings);
-	parserBandSettings.sourceType = NEXUS_ParserBandSourceType_eInputBand;
-	parserBandSettings.sourceTypeSettings.inputBand = userParams.param1;  /* Platform initializes this to input band */
-	parserBandSettings.transportType = NEXUS_TransportType_eTs;
-	NEXUS_ParserBand_SetSettings(parserBand, &parserBandSettings);
+    /* Map a parser band to the demod's input band. */
+    parserBand = NEXUS_ParserBand_e0;
+    NEXUS_ParserBand_GetSettings(parserBand, &parserBandSettings);
+    parserBandSettings.sourceType = NEXUS_ParserBandSourceType_eInputBand;
+    parserBandSettings.sourceTypeSettings.inputBand = userParams.param1;  /* Platform initializes this to input band */
+    parserBandSettings.transportType = NEXUS_TransportType_eTs;
+    NEXUS_ParserBand_SetSettings(parserBand, &parserBandSettings);
 #else
-	BDBG_ERR(("QAM Input not supported"));
-	return 0;
+    BDBG_ERR(("QAM Input not supported"));
+    return 0;
 #endif
     } else if (sat) {
 #if  NEXUS_HAS_FRONTEND
-	printf("Transcoding from Sat Source\n");
+    printf("Transcoding from Sat Source\n");
 
-	BKNI_CreateEvent(&signalLockedEvent);
+    BKNI_CreateEvent(&signalLockedEvent);
 
-	for ( i = 0; i < NEXUS_MAX_FRONTENDS; i++ )
-	{
-	    NEXUS_FrontendCapabilities capabilities;
-	    frontend = platformConfig.frontend[i];
-	    if (frontend) {
-		NEXUS_Frontend_GetCapabilities(frontend, &capabilities);
-		/* Does this frontend support satellite? */
-		if ( capabilities.satellite )
-		{
-		    break;
-		}
-	    }
-	}
+    for ( i = 0; i < NEXUS_MAX_FRONTENDS; i++ )
+    {
+        NEXUS_FrontendCapabilities capabilities;
+        frontend = platformConfig.frontend[i];
+        if (frontend) {
+        NEXUS_Frontend_GetCapabilities(frontend, &capabilities);
+        /* Does this frontend support satellite? */
+        if ( capabilities.satellite )
+        {
+            break;
+        }
+        }
+    }
 
-	if (NULL == frontend )
-	{
-	    fprintf(stderr, "Unable to find satellite-capable frontend\n");
-	    return 0;
-	}
+    if (NULL == frontend )
+    {
+        fprintf(stderr, "Unable to find satellite-capable frontend\n");
+        return 0;
+    }
 
-	NEXUS_Frontend_GetDefaultSatelliteSettings(&satSettings);
-	satSettings.frequency = 1119000000;
-	satSettings.mode = NEXUS_FrontendSatelliteMode_eDvb;
-	satSettings.lockCallback.callback = sat_lock_callback;
-	satSettings.lockCallback.context = frontend;
-	satSettings.lockCallback.param = (int)signalLockedEvent;
+    NEXUS_Frontend_GetDefaultSatelliteSettings(&satSettings);
+    satSettings.frequency = 1119000000;
+    satSettings.mode = NEXUS_FrontendSatelliteMode_eDvb;
+    satSettings.lockCallback.callback = sat_lock_callback;
+    satSettings.lockCallback.context = frontend;
+    satSettings.lockCallback.param = (int)signalLockedEvent;
 
-	NEXUS_Frontend_GetUserParameters(frontend, &userParams);
+    NEXUS_Frontend_GetUserParameters(frontend, &userParams);
 
-	/* Map a parser band to the demod's input band. */
-	parserBand = NEXUS_ParserBand_e0;
-	NEXUS_ParserBand_GetSettings(parserBand, &parserBandSettings);
-	parserBandSettings.sourceType = NEXUS_ParserBandSourceType_eInputBand;
-	parserBandSettings.sourceTypeSettings.inputBand = userParams.param1;  /* Platform initializes this to input band */
-	printf("Input Band is %d\n", userParams.param1);
-	parserBandSettings.transportType = NEXUS_TransportType_eTs;
-	NEXUS_ParserBand_SetSettings(parserBand, &parserBandSettings);
+    /* Map a parser band to the demod's input band. */
+    parserBand = NEXUS_ParserBand_e0;
+    NEXUS_ParserBand_GetSettings(parserBand, &parserBandSettings);
+    parserBandSettings.sourceType = NEXUS_ParserBandSourceType_eInputBand;
+    parserBandSettings.sourceTypeSettings.inputBand = userParams.param1;  /* Platform initializes this to input band */
+    printf("Input Band is %d\n", userParams.param1);
+    parserBandSettings.transportType = NEXUS_TransportType_eTs;
+    NEXUS_ParserBand_SetSettings(parserBand, &parserBandSettings);
 
-	NEXUS_Frontend_GetDiseqcSettings(frontend, &diseqcSettings);
-	diseqcSettings.toneEnabled = true;
-	diseqcSettings.voltage = NEXUS_FrontendDiseqcVoltage_e13v;
-	NEXUS_Frontend_SetDiseqcSettings(frontend, &diseqcSettings);
-	printf("Set DiseqcSettings\n");
+    NEXUS_Frontend_GetDiseqcSettings(frontend, &diseqcSettings);
+    diseqcSettings.toneEnabled = true;
+    diseqcSettings.voltage = NEXUS_FrontendDiseqcVoltage_e13v;
+    NEXUS_Frontend_SetDiseqcSettings(frontend, &diseqcSettings);
+    printf("Set DiseqcSettings\n");
 #else
-	BDBG_ERR(("SAT Input not supported"));
-	return 0;
+    BDBG_ERR(("SAT Input not supported"));
+    return 0;
 #endif
     } else if(streamer) {
-	printf("Transcoding from Streamer Source\n");
-	parserBand = NEXUS_ParserBand_e0;
-	NEXUS_ParserBand_GetSettings(parserBand, &parserBandSettings);
-	parserBandSettings.sourceType = NEXUS_ParserBandSourceType_eInputBand;
-	NEXUS_Platform_GetStreamerInputBand(0, &parserBandSettings.sourceTypeSettings.inputBand);
-	parserBandSettings.transportType = NEXUS_TransportType_eTs;
-	NEXUS_ParserBand_SetSettings(parserBand, &parserBandSettings);
+    printf("Transcoding from Streamer Source\n");
+    parserBand = NEXUS_ParserBand_e0;
+    NEXUS_ParserBand_GetSettings(parserBand, &parserBandSettings);
+    parserBandSettings.sourceType = NEXUS_ParserBandSourceType_eInputBand;
+    NEXUS_Platform_GetStreamerInputBand(0, &parserBandSettings.sourceTypeSettings.inputBand);
+    parserBandSettings.transportType = NEXUS_TransportType_eTs;
+    NEXUS_ParserBand_SetSettings(parserBand, &parserBandSettings);
     } else if(hdmi) {
 #if NEXUS_NUM_HDMI_INPUTS
-	NEXUS_TimebaseSettings timebaseSettings;
+    NEXUS_TimebaseSettings timebaseSettings;
 
-	NEXUS_Timebase_GetSettings(NEXUS_Timebase_e0, &timebaseSettings);
-	timebaseSettings.sourceType = NEXUS_TimebaseSourceType_eHdDviIn;
-	NEXUS_Timebase_SetSettings(NEXUS_Timebase_e0, &timebaseSettings);
+    NEXUS_Timebase_GetSettings(NEXUS_Timebase_e0, &timebaseSettings);
+    timebaseSettings.sourceType = NEXUS_TimebaseSourceType_eHdDviIn;
+    NEXUS_Timebase_SetSettings(NEXUS_Timebase_e0, &timebaseSettings);
 
-	NEXUS_HdmiInput_GetDefaultSettings(&hdmiInputSettings);
-	hdmiInputSettings.timebase = NEXUS_Timebase_e0;
-	hdmiInputSettings.useInternalEdid = true ;
-	hdmiInput = NEXUS_HdmiInput_OpenWithEdid(0, &hdmiInputSettings,
-						 &SampleEDID[0], (uint16_t) sizeof(SampleEDID));
-	if(!hdmiInput) {
-	    fprintf(stderr, "Can't get hdmi input\n");
-	    return -1;
-	}
+    NEXUS_HdmiInput_GetDefaultSettings(&hdmiInputSettings);
+    hdmiInputSettings.timebase = NEXUS_Timebase_e0;
+    hdmiInputSettings.useInternalEdid = true ;
+    hdmiInput = NEXUS_HdmiInput_OpenWithEdid(0, &hdmiInputSettings,
+                         &SampleEDID[0], (uint16_t) sizeof(SampleEDID));
+    if(!hdmiInput) {
+        fprintf(stderr, "Can't get hdmi input\n");
+        return -1;
+    }
 #endif
     }
 
 
     /* Acquire PSI info or probe file */
     if(qam || sat || streamer) {
-	psiCollectionDataType collectionData;
-	int numProgramsFound;
-	struct opts_t psi[MAX_PROGRAMS_PER_FREQUENCY];
+    psiCollectionDataType collectionData;
+    int numProgramsFound;
+    struct opts_t psi[MAX_PROGRAMS_PER_FREQUENCY];
 #if  NEXUS_HAS_FRONTEND
-	if(qam) {
-	    NEXUS_Error rc;
+    if(qam) {
+        NEXUS_Error rc;
 
-	    BKNI_ResetEvent(signalLockedEvent);
-	    rc = NEXUS_Frontend_TuneQam(frontend, &qamSettings);
-	    if (rc) {
-		BDBG_WRN(("Unable to lock front end for PSI acquisition"));
-		return -1;
-	    }
-	    if (BKNI_WaitForEvent(signalLockedEvent, 5000)) {
-		BDBG_WRN(("%s: QAM Src failed to lock the signal during PSI acquisition"));
-		return -1;
-	    }
-	} else if (sat) {
-	    NEXUS_Error rc;
+        BKNI_ResetEvent(signalLockedEvent);
+        rc = NEXUS_Frontend_TuneQam(frontend, &qamSettings);
+        if (rc) {
+        BDBG_WRN(("Unable to lock front end for PSI acquisition"));
+        return -1;
+        }
+        if (BKNI_WaitForEvent(signalLockedEvent, 5000)) {
+        BDBG_WRN(("QAM Src failed to lock the signal during PSI acquisition"));
+        return -1;
+        }
+    } else if (sat) {
+        NEXUS_Error rc;
 
-	    BKNI_ResetEvent(signalLockedEvent);
-	    rc = NEXUS_Frontend_TuneSatellite(frontend, &satSettings);
-	    if (rc) {
-		BDBG_WRN(("Unable to lock front end for PSI acquisition"));
-		return -1;
-	    }
-	    if (BKNI_WaitForEvent(signalLockedEvent, 5000)) {
-		BDBG_WRN(("%s: SAT Src failed to lock the signal during PSI acquisition"));
-		return -1;
-	    }
-	}
+        BKNI_ResetEvent(signalLockedEvent);
+        rc = NEXUS_Frontend_TuneSatellite(frontend, &satSettings);
+        if (rc) {
+        BDBG_WRN(("Unable to lock front end for PSI acquisition"));
+        return -1;
+        }
+        if (BKNI_WaitForEvent(signalLockedEvent, 5000)) {
+        BDBG_WRN(("SAT Src failed to lock the signal during PSI acquisition"));
+        return -1;
+        }
+    }
 #endif
-	BKNI_Memset(&collectionData, 0, sizeof(collectionData));
-	collectionData.parserBand = parserBand;
-	acquirePsiInfo(&collectionData, &psi[0], &numProgramsFound);
-	opts = psi[0];
+    BKNI_Memset(&collectionData, 0, sizeof(collectionData));
+    collectionData.parserBand = parserBand;
+    acquirePsiInfo(&collectionData, &psi[0], &numProgramsFound);
+    opts = psi[0];
     } else if (hdmi){
-	/* No pid setup required */
+    /* No pid setup required */
     } else  {
-	probe(&opts, infile, NULL);
+    probe(&opts, infile, NULL);
     }
     /* Done PSI or file probe */
 
     if(infile) {
-	char *navfile=NULL;
-	printf("Transcoding File %s\n", infile);
-	if(opts.transportType == NEXUS_TransportType_eMkv ||
-	   opts.transportType == NEXUS_TransportType_eMp4 ) {
-	    navfile = (char *)infile;
-	}
-	file = NEXUS_FilePlay_OpenPosix(infile, navfile);
-	if (!file) {
-	    fprintf(stderr, "can't open file:%s\n", infile);
-	    return -1;
-	}
+    char *navfile=NULL;
+    printf("Transcoding File %s\n", infile);
+    if(opts.transportType == NEXUS_TransportType_eMkv ||
+       opts.transportType == NEXUS_TransportType_eMp4 ) {
+        navfile = (char *)infile;
+    }
+    file = NEXUS_FilePlay_OpenPosix(infile, navfile);
+    if (!file) {
+        fprintf(stderr, "can't open file:%s\n", infile);
+        return -1;
+    }
     }
 
     /* Open STC channel */
     NEXUS_StcChannel_GetDefaultSettings(0, &stcSettings);
     stcSettings.timebase = NEXUS_Timebase_e0;
     if(hdmi) {
-	stcSettings.autoConfigTimebase = false;
+    stcSettings.autoConfigTimebase = false;
     }
     stcSettings.mode = NEXUS_StcChannelMode_eAuto;
     stcChannel = NEXUS_StcChannel_Open(0, &stcSettings);
@@ -1551,11 +1550,11 @@ int main(int argc, char *argv[])
     /* Open Transcode Display */
     NEXUS_Display_GetDefaultSettings(&displaySettings);
     if(b720pEncode) {
-	displaySettings.format = NEXUS_VideoFormat_eNtsc;
-	display = NEXUS_Display_Open(1, &displaySettings);
+    displaySettings.format = NEXUS_VideoFormat_eNtsc;
+    display = NEXUS_Display_Open(1, &displaySettings);
     } else {
-	displaySettings.format = NEXUS_VideoFormat_e1080i;
-	display = NEXUS_Display_Open(0, &displaySettings);
+    displaySettings.format = NEXUS_VideoFormat_e1080i;
+    display = NEXUS_Display_Open(0, &displaySettings);
     }
     assert(display);
 
@@ -1576,17 +1575,17 @@ int main(int argc, char *argv[])
 
     NEXUS_Display_GetDefaultSettings(&displaySettings);
     if(b720pEncode) {
-	displaySettings.format = NEXUS_VideoFormat_e1080i;
-	displayTranscode = NEXUS_Display_Open(0, &displaySettings);
+    displaySettings.format = NEXUS_VideoFormat_e1080i;
+    displayTranscode = NEXUS_Display_Open(0, &displaySettings);
     } else {
 #if NEXUS_NUM_DSP_VIDEO_ENCODERS && !NEXUS_DSP_ENCODER_ACCELERATOR_SUPPORT
-	displaySettings.format = NEXUS_VideoFormat_eNtsc;
+    displaySettings.format = NEXUS_VideoFormat_eNtsc;
 #else /* new VIP capture format is purely based on the STG display format full-screen */
-	displaySettings.format = NEXUS_VideoFormat_e480p;
-	/* STG display has designated encoder timing generator (STG) */
+    displaySettings.format = NEXUS_VideoFormat_e480p;
+    /* STG display has designated encoder timing generator (STG) */
     displaySettings.timingGenerator = NEXUS_DisplayTimingGenerator_eEncoder;
 #endif
-	displayTranscode = NEXUS_Display_Open(1, &displaySettings);
+    displayTranscode = NEXUS_Display_Open(1, &displaySettings);
     }
     assert(displayTranscode);
 
@@ -1602,7 +1601,7 @@ int main(int argc, char *argv[])
     windowSettings.visible = false;
     /* force the display vsync to 60Hz */
     if(framerate == 15 || framerate == 30) {
-	windowSettings.autoMaster = false;
+    windowSettings.autoMaster = false;
     }
     NEXUS_VideoWindow_SetSettings(windowTranscode, &windowSettings);
 
@@ -1617,18 +1616,18 @@ int main(int argc, char *argv[])
     NEXUS_VideoWindow_GetSettings(windowTranscode, &windowSettings);
     windowSettings.forceCapture = false;
     NEXUS_VideoWindow_SetSettings(windowTranscode, &windowSettings);
-	if(width && height)
-	{/* HZ: you could use custom display format to customize capture format */
-		NEXUS_DisplayCustomFormatSettings customFormatSettings;
-		NEXUS_Display_GetDefaultCustomFormatSettings(&customFormatSettings);
-		customFormatSettings.width = width;
-		customFormatSettings.height = height;
-		customFormatSettings.refreshRate = 59940;
-		customFormatSettings.interlaced = false;
-		customFormatSettings.aspectRatio = 0;
+    if(width && height)
+    {/* HZ: you could use custom display format to customize capture format */
+        NEXUS_DisplayCustomFormatSettings customFormatSettings;
+        NEXUS_Display_GetDefaultCustomFormatSettings(&customFormatSettings);
+        customFormatSettings.width = width;
+        customFormatSettings.height = height;
+        customFormatSettings.refreshRate = 59940;
+        customFormatSettings.interlaced = false;
+        customFormatSettings.aspectRatio = 0;
         customFormatSettings.dropFrameAllowed = true;
-		NEXUS_Display_SetCustomFormatSettings(displayTranscode, NEXUS_VideoFormat_eCustom2, &customFormatSettings);
-	}
+        NEXUS_Display_SetCustomFormatSettings(displayTranscode, NEXUS_VideoFormat_eCustom2, &customFormatSettings);
+    }
 #endif
 
     /* bring up decoder and connect to display */
@@ -1637,16 +1636,16 @@ int main(int argc, char *argv[])
 
     if(hdmi) {
 #if NEXUS_NUM_HDMI_INPUTS
-	if(simulDisplay) {
-		NEXUS_VideoWindow_AddInput(window, NEXUS_HdmiInput_GetVideoConnector(hdmiInput));
-	}
-	NEXUS_VideoWindow_AddInput(windowTranscode, NEXUS_HdmiInput_GetVideoConnector(hdmiInput));
+    if(simulDisplay) {
+        NEXUS_VideoWindow_AddInput(window, NEXUS_HdmiInput_GetVideoConnector(hdmiInput));
+    }
+    NEXUS_VideoWindow_AddInput(windowTranscode, NEXUS_HdmiInput_GetVideoConnector(hdmiInput));
 #endif
     } else {
     if(simulDisplay) {
         NEXUS_VideoWindow_AddInput(window, NEXUS_VideoDecoder_GetConnector(videoDecoder));
     }
-	NEXUS_VideoWindow_AddInput(windowTranscode, NEXUS_VideoDecoder_GetConnector(videoDecoder));
+    NEXUS_VideoWindow_AddInput(windowTranscode, NEXUS_VideoDecoder_GetConnector(videoDecoder));
     }
 
     /* TODO: BUG? must occur after the addInput, otherwise does not take effect */
@@ -1691,46 +1690,46 @@ int main(int argc, char *argv[])
 
     if(qam || sat || streamer) {
 #if ENABLE_VIDEO_ENCODE
-	videoPidChannel = NEXUS_PidChannel_Open(parserBand, opts.videoPid, NULL);
+    videoPidChannel = NEXUS_PidChannel_Open(parserBand, opts.videoPid, NULL);
 #endif
 
 #if ENABLE_AUDIO_ENCODE
         audioPidChannel = NEXUS_PidChannel_Open(parserBand, opts.audioPid, NULL);
 #endif
 
-	NEXUS_StcChannel_GetSettings(stcChannel, &stcSettings);
+    NEXUS_StcChannel_GetSettings(stcChannel, &stcSettings);
         stcSettings.mode = NEXUS_StcChannelMode_ePcr; /* live */
         stcSettings.modeSettings.pcr.pidChannel = videoPidChannel; /* PCR happens to be on video pid */
         NEXUS_StcChannel_SetSettings(stcChannel, &stcSettings);
     } else if (hdmi) {
-	/* No audio/video pid channel for hdmi input */
+    /* No audio/video pid channel for hdmi input */
     } else {
 #if ENABLE_VIDEO_ENCODE
-	/* Open the video pid channel */
-	NEXUS_Playback_GetDefaultPidChannelSettings(&playbackPidSettings);
-	playbackPidSettings.pidSettings.pidType = NEXUS_PidType_eVideo;
-	playbackPidSettings.pidTypeSettings.video.codec = opts.videoCodec;
-	playbackPidSettings.pidTypeSettings.video.index = true;
-	playbackPidSettings.pidTypeSettings.video.decoder = videoDecoder;
-	videoPidChannel = NEXUS_Playback_OpenPidChannel(playback, opts.videoPid, &playbackPidSettings);
+    /* Open the video pid channel */
+    NEXUS_Playback_GetDefaultPidChannelSettings(&playbackPidSettings);
+    playbackPidSettings.pidSettings.pidType = NEXUS_PidType_eVideo;
+    playbackPidSettings.pidTypeSettings.video.codec = opts.videoCodec;
+    playbackPidSettings.pidTypeSettings.video.index = true;
+    playbackPidSettings.pidTypeSettings.video.decoder = videoDecoder;
+    videoPidChannel = NEXUS_Playback_OpenPidChannel(playback, opts.videoPid, &playbackPidSettings);
 #endif
 
 #if ENABLE_AUDIO_ENCODE
-	/* Open the audio pid channel */
-	NEXUS_Playback_GetDefaultPidChannelSettings(&playbackPidSettings);
-	playbackPidSettings.pidSettings.pidType = NEXUS_PidType_eAudio;
-	playbackPidSettings.pidTypeSettings.audio.primary = audioDecoder; /* must be told codec for correct handling */
-	audioPidChannel = NEXUS_Playback_OpenPidChannel(playback, opts.audioPid, &playbackPidSettings);
+    /* Open the audio pid channel */
+    NEXUS_Playback_GetDefaultPidChannelSettings(&playbackPidSettings);
+    playbackPidSettings.pidSettings.pidType = NEXUS_PidType_eAudio;
+    playbackPidSettings.pidTypeSettings.audio.primary = audioDecoder; /* must be told codec for correct handling */
+    audioPidChannel = NEXUS_Playback_OpenPidChannel(playback, opts.audioPid, &playbackPidSettings);
 #endif
     }
 
 #if ENABLE_VIDEO_ENCODE
     if(!hdmi) {
-	/* Set up decoder Start structures now. */
-	NEXUS_VideoDecoder_GetDefaultStartSettings(&videoProgram);
-	videoProgram.codec = opts.videoCodec;
-	videoProgram.pidChannel = videoPidChannel;
-	videoProgram.stcChannel = stcChannel;
+    /* Set up decoder Start structures now. */
+    NEXUS_VideoDecoder_GetDefaultStartSettings(&videoProgram);
+    videoProgram.codec = opts.videoCodec;
+    videoProgram.pidChannel = videoPidChannel;
+    videoProgram.stcChannel = stcChannel;
     }
 #endif
 
@@ -1738,23 +1737,23 @@ int main(int argc, char *argv[])
     NEXUS_AudioDecoder_GetDefaultStartSettings(&audioProgram);
     if(hdmi) {
 #if NEXUS_NUM_HDMI_INPUTS
-	audioProgram.input = NEXUS_HdmiInput_GetAudioConnector(hdmiInput);
-	audioProgram.latencyMode = NEXUS_AudioDecoderLatencyMode_eLow;
+    audioProgram.input = NEXUS_HdmiInput_GetAudioConnector(hdmiInput);
+    audioProgram.latencyMode = NEXUS_AudioDecoderLatencyMode_eLow;
 #endif
     }else {
-	audioProgram.codec = opts.audioCodec;
-	audioProgram.pidChannel = audioPidChannel;
-	audioProgram.stcChannel = stcChannel;
+    audioProgram.codec = opts.audioCodec;
+    audioProgram.pidChannel = audioPidChannel;
+    audioProgram.stcChannel = stcChannel;
     }
 #endif
 
 #if NEXUS_HAS_SYNC_CHANNEL && ENABLE_AUDIO_ENCODE
-		/* connect sync channel */
-		NEXUS_SyncChannel_GetSettings(syncChannel, &syncChannelSettings);
-		syncChannelSettings.videoInput = NEXUS_VideoDecoder_GetConnector(videoDecoder);
-		syncChannelSettings.audioInput[0] = NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo);
-		syncChannelSettings.enablePrecisionLipsync = false;/* to support 60->30 frc transcode */
-		NEXUS_SyncChannel_SetSettings(syncChannel, &syncChannelSettings);
+        /* connect sync channel */
+        NEXUS_SyncChannel_GetSettings(syncChannel, &syncChannelSettings);
+        syncChannelSettings.videoInput = NEXUS_VideoDecoder_GetConnector(videoDecoder);
+        syncChannelSettings.audioInput[0] = NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo);
+        syncChannelSettings.enablePrecisionLipsync = false;/* to support 60->30 frc transcode */
+        NEXUS_SyncChannel_SetSettings(syncChannel, &syncChannelSettings);
 #endif
 
 #if ENABLE_VIDEO_ENCODE
@@ -1762,26 +1761,26 @@ int main(int argc, char *argv[])
     NEXUS_VideoEncoder_GetSettings(videoEncoder, &videoEncoderConfig);
     switch(framerate) {
     case 7493:
-	videoEncoderConfig.frameRate = NEXUS_VideoFrameRate_e7_493;
-	break;
+    videoEncoderConfig.frameRate = NEXUS_VideoFrameRate_e7_493;
+    break;
     case 10:
-	videoEncoderConfig.frameRate = NEXUS_VideoFrameRate_e10;
-	break;
+    videoEncoderConfig.frameRate = NEXUS_VideoFrameRate_e10;
+    break;
     case 1498:
-	videoEncoderConfig.frameRate = NEXUS_VideoFrameRate_e14_985;
-	break;
+    videoEncoderConfig.frameRate = NEXUS_VideoFrameRate_e14_985;
+    break;
     case 15:
-	videoEncoderConfig.frameRate = NEXUS_VideoFrameRate_e15;
-	break;
+    videoEncoderConfig.frameRate = NEXUS_VideoFrameRate_e15;
+    break;
     case 2997:
-	videoEncoderConfig.frameRate = NEXUS_VideoFrameRate_e29_97;
-	break;
+    videoEncoderConfig.frameRate = NEXUS_VideoFrameRate_e29_97;
+    break;
     case 30:
-	videoEncoderConfig.frameRate = NEXUS_VideoFrameRate_e30;
-	break;
+    videoEncoderConfig.frameRate = NEXUS_VideoFrameRate_e30;
+    break;
     default:
-	printf("Unsupported Frame Rate\n");
-	return 0;
+    printf("Unsupported Frame Rate\n");
+    return 0;
     }
     videoEncoderConfig.bitrateMax = bitrate;
 
@@ -1857,187 +1856,187 @@ int main(int argc, char *argv[])
 #endif
 
     if(mp4) {
-	BKNI_CreateEvent(&finishEvent);
-	NEXUS_FileMux_GetDefaultCreateSettings(&fileMuxCreateSettings);
-	fileMuxCreateSettings.finished.callback = transcoderFinishCallback;
-	fileMuxCreateSettings.finished.context = finishEvent;
+    BKNI_CreateEvent(&finishEvent);
+    NEXUS_FileMux_GetDefaultCreateSettings(&fileMuxCreateSettings);
+    fileMuxCreateSettings.finished.callback = transcoderFinishCallback;
+    fileMuxCreateSettings.finished.context = finishEvent;
 
-	fileMux = NEXUS_FileMux_Create(&fileMuxCreateSettings);
-	NEXUS_FileMux_GetDefaultStartSettings(&fileMuxConfig, NEXUS_TransportType_eMp4);
+    fileMux = NEXUS_FileMux_Create(&fileMuxCreateSettings);
+    NEXUS_FileMux_GetDefaultStartSettings(&fileMuxConfig, NEXUS_TransportType_eMp4);
 
 #if ENABLE_VIDEO_ENCODE
-	fileMuxConfig.video[0].track = 1;
-	fileMuxConfig.video[0].codec = videoEncoderStartConfig.codec;
-	fileMuxConfig.video[0].encoder = videoEncoder;
+    fileMuxConfig.video[0].track = 1;
+    fileMuxConfig.video[0].codec = videoEncoderStartConfig.codec;
+    fileMuxConfig.video[0].encoder = videoEncoder;
 #endif
 #if ENABLE_AUDIO_ENCODE
-	fileMuxConfig.audio[0].track = 2;
-	fileMuxConfig.audio[0].codec = encoderSettings.codec;
-	fileMuxConfig.audio[0].muxOutput = audioMuxOutput;
+    fileMuxConfig.audio[0].track = 2;
+    fileMuxConfig.audio[0].codec = encoderSettings.codec;
+    fileMuxConfig.audio[0].muxOutput = audioMuxOutput;
 #endif
-	snprintf(fileMuxConfig.tempDir, sizeof(fileMuxConfig.tempDir), "videos");
-	muxFileOutput = NEXUS_MuxFile_OpenPosix(mp4File);
-	if (!muxFileOutput) {
-	    fprintf(stderr, "can't open file:%s\n", mp4File);
-	    return -1;
-	}
+    snprintf(fileMuxConfig.tempDir, sizeof(fileMuxConfig.tempDir), "videos");
+    muxFileOutput = NEXUS_MuxFile_OpenPosix(mp4File);
+    if (!muxFileOutput) {
+        fprintf(stderr, "can't open file:%s\n", mp4File);
+        return -1;
+    }
 
-	/* start mux */
-	NEXUS_FileMux_Start(fileMux, &fileMuxConfig, muxFileOutput);
+    /* start mux */
+    NEXUS_FileMux_Start(fileMux, &fileMuxConfig, muxFileOutput);
     } else {
 #if ENABLE_VIDEO_ENCODE
-	NEXUS_Playpump_GetDefaultOpenSettings(&playpumpConfig);
-	playpumpConfig.fifoSize = 16384; /* reduce FIFO size allocated for playpump */
-	playpumpConfig.numDescriptors = 64; /* set number of descriptors */
-	playpumpConfig.streamMuxCompatible = true;
-	playpumpTranscodeVideo = NEXUS_Playpump_Open(1, &playpumpConfig);
-	assert(playpumpTranscodeVideo);
+    NEXUS_Playpump_GetDefaultOpenSettings(&playpumpConfig);
+    playpumpConfig.fifoSize = 16384; /* reduce FIFO size allocated for playpump */
+    playpumpConfig.numDescriptors = 64; /* set number of descriptors */
+    playpumpConfig.streamMuxCompatible = true;
+    playpumpTranscodeVideo = NEXUS_Playpump_Open(1, &playpumpConfig);
+    assert(playpumpTranscodeVideo);
 #endif
 
 #if ENABLE_AUDIO_ENCODE
-	NEXUS_Playpump_GetDefaultOpenSettings(&playpumpConfig);
-	playpumpConfig.fifoSize = 16384; /* reduce FIFO size allocated for playpump */
-	playpumpConfig.numDescriptors = 64; /* set number of descriptors */
-	playpumpConfig.streamMuxCompatible = true;
-	playpumpTranscodeAudio = NEXUS_Playpump_Open(2, &playpumpConfig);
-	assert(playpumpTranscodeAudio);
+    NEXUS_Playpump_GetDefaultOpenSettings(&playpumpConfig);
+    playpumpConfig.fifoSize = 16384; /* reduce FIFO size allocated for playpump */
+    playpumpConfig.numDescriptors = 64; /* set number of descriptors */
+    playpumpConfig.streamMuxCompatible = true;
+    playpumpTranscodeAudio = NEXUS_Playpump_Open(2, &playpumpConfig);
+    assert(playpumpTranscodeAudio);
 #endif
 
-	playpumpTranscodePcr = NEXUS_Playpump_Open(3, &playpumpConfig);
-	assert(playpumpTranscodePcr);
+    playpumpTranscodePcr = NEXUS_Playpump_Open(3, &playpumpConfig);
+    assert(playpumpTranscodePcr);
 
-	BKNI_CreateEvent(&finishEvent);
-	NEXUS_StreamMux_GetDefaultCreateSettings(&muxCreateSettings);
-	muxCreateSettings.finished.callback = transcoderFinishCallback;
-	muxCreateSettings.finished.context = finishEvent;
-	streamMux = NEXUS_StreamMux_Create(&muxCreateSettings);
-	NEXUS_StreamMux_GetDefaultStartSettings(&muxConfig);
-	muxConfig.transportType = NEXUS_TransportType_eTs;
-	muxConfig.stcChannel = stcChannelTranscode;
+    BKNI_CreateEvent(&finishEvent);
+    NEXUS_StreamMux_GetDefaultCreateSettings(&muxCreateSettings);
+    muxCreateSettings.finished.callback = transcoderFinishCallback;
+    muxCreateSettings.finished.context = finishEvent;
+    streamMux = NEXUS_StreamMux_Create(&muxCreateSettings);
+    NEXUS_StreamMux_GetDefaultStartSettings(&muxConfig);
+    muxConfig.transportType = NEXUS_TransportType_eTs;
+    muxConfig.stcChannel = stcChannelTranscode;
 
 #if ENABLE_VIDEO_ENCODE
-	muxConfig.video[0].pid = BTST_MUX_VIDEO_PID;
-	muxConfig.video[0].encoder = videoEncoder;
-	muxConfig.video[0].playpump = playpumpTranscodeVideo;
+    muxConfig.video[0].pid = BTST_MUX_VIDEO_PID;
+    muxConfig.video[0].encoder = videoEncoder;
+    muxConfig.video[0].playpump = playpumpTranscodeVideo;
 #endif
 
 #if ENABLE_AUDIO_ENCODE
-	muxConfig.audio[0].pid = BTST_MUX_AUDIO_PID;
-	muxConfig.audio[0].muxOutput = audioMuxOutput;
-	muxConfig.audio[0].playpump = playpumpTranscodeAudio;
+    muxConfig.audio[0].pid = BTST_MUX_AUDIO_PID;
+    muxConfig.audio[0].muxOutput = audioMuxOutput;
+    muxConfig.audio[0].playpump = playpumpTranscodeAudio;
 #endif
 
-	muxConfig.pcr.pid = BTST_MUX_PCR_PID;
-	muxConfig.pcr.playpump = playpumpTranscodePcr;
-	muxConfig.pcr.interval = 50;
+    muxConfig.pcr.pid = BTST_MUX_PCR_PID;
+    muxConfig.pcr.playpump = playpumpTranscodePcr;
+    muxConfig.pcr.interval = 50;
 
 
-	/* Add system data to stream_mux */
-	xcode_set_systemdata(pContext,
+    /* Add system data to stream_mux */
+    xcode_set_systemdata(pContext,
 #if ENABLE_VIDEO_ENCODE
-			     videoEncoderStartConfig.codec,
+                 videoEncoderStartConfig.codec,
 #else
-			     0,
+                 0,
 #endif
 #if ENABLE_AUDIO_ENCODE
-			     encoderSettings.codec
+                 encoderSettings.codec
 #else
-			     0
+                 0
 #endif
-	    );
+        );
 
 
-	/* open PidChannels */
-	pidChannelTranscodePcr = NEXUS_Playpump_OpenPidChannel(playpumpTranscodePcr, muxConfig.pcr.pid, NULL);
-	assert(pidChannelTranscodePcr);
-	pidChannelTranscodePmt = NEXUS_Playpump_OpenPidChannel(playpumpTranscodePcr, BTST_MUX_PMT_PID, NULL);
-	assert(pidChannelTranscodePmt);
-	pidChannelTranscodePat = NEXUS_Playpump_OpenPidChannel(playpumpTranscodePcr, BTST_MUX_PAT_PID, NULL);
-	assert(pidChannelTranscodePat);
+    /* open PidChannels */
+    pidChannelTranscodePcr = NEXUS_Playpump_OpenPidChannel(playpumpTranscodePcr, muxConfig.pcr.pid, NULL);
+    assert(pidChannelTranscodePcr);
+    pidChannelTranscodePmt = NEXUS_Playpump_OpenPidChannel(playpumpTranscodePcr, BTST_MUX_PMT_PID, NULL);
+    assert(pidChannelTranscodePmt);
+    pidChannelTranscodePat = NEXUS_Playpump_OpenPidChannel(playpumpTranscodePcr, BTST_MUX_PAT_PID, NULL);
+    assert(pidChannelTranscodePat);
 
-	/* start mux */
-	NEXUS_StreamMux_Start(streamMux,&muxConfig, &muxOutput);
+    /* start mux */
+    NEXUS_StreamMux_Start(streamMux,&muxConfig, &muxOutput);
 
 #if ENABLE_VIDEO_ENCODE
-	pidChannelTranscodeVideo = muxOutput.video[0];
+    pidChannelTranscodeVideo = muxOutput.video[0];
 #endif
 #if ENABLE_AUDIO_ENCODE
-	pidChannelTranscodeAudio = muxOutput.audio[0];
+    pidChannelTranscodeAudio = muxOutput.audio[0];
 #endif
 
-	recpump = NEXUS_Recpump_Open(0, NULL);
-	assert(recpump);
+    recpump = NEXUS_Recpump_Open(0, NULL);
+    assert(recpump);
 
-	record = NEXUS_Record_Create();
-	assert(record);
+    record = NEXUS_Record_Create();
+    assert(record);
 
-	NEXUS_Record_GetSettings(record, &recordSettings);
-	recordSettings.recpump = recpump;
-	NEXUS_Record_SetSettings(record, &recordSettings);
+    NEXUS_Record_GetSettings(record, &recordSettings);
+    recordSettings.recpump = recpump;
+    NEXUS_Record_SetSettings(record, &recordSettings);
 
 #if ENABLE_VIDEO_ENCODE
-	/* configure the video pid for indexing */
-	NEXUS_Record_GetDefaultPidChannelSettings(&recordPidSettings);
-	recordPidSettings.recpumpSettings.pidType = NEXUS_PidType_eVideo;
-	recordPidSettings.recpumpSettings.pidTypeSettings.video.index = true;
-	recordPidSettings.recpumpSettings.pidTypeSettings.video.codec = NEXUS_VideoCodec_eH264 /* opts.videoCodec */;
+    /* configure the video pid for indexing */
+    NEXUS_Record_GetDefaultPidChannelSettings(&recordPidSettings);
+    recordPidSettings.recpumpSettings.pidType = NEXUS_PidType_eVideo;
+    recordPidSettings.recpumpSettings.pidTypeSettings.video.index = true;
+    recordPidSettings.recpumpSettings.pidTypeSettings.video.codec = NEXUS_VideoCodec_eH264 /* opts.videoCodec */;
 
-	/* add multiplex data to the same record */
-	NEXUS_Record_AddPidChannel(record, pidChannelTranscodeVideo, &recordPidSettings);
+    /* add multiplex data to the same record */
+    NEXUS_Record_AddPidChannel(record, pidChannelTranscodeVideo, &recordPidSettings);
 #endif
 #if ENABLE_AUDIO_ENCODE
-	NEXUS_Record_AddPidChannel(record, pidChannelTranscodeAudio, NULL);
+    NEXUS_Record_AddPidChannel(record, pidChannelTranscodeAudio, NULL);
 #endif
-	NEXUS_Record_AddPidChannel(record, pidChannelTranscodePcr, NULL);
-	NEXUS_Record_AddPidChannel(record, pidChannelTranscodePat, NULL);
-	NEXUS_Record_AddPidChannel(record, pidChannelTranscodePmt, NULL);
+    NEXUS_Record_AddPidChannel(record, pidChannelTranscodePcr, NULL);
+    NEXUS_Record_AddPidChannel(record, pidChannelTranscodePat, NULL);
+    NEXUS_Record_AddPidChannel(record, pidChannelTranscodePmt, NULL);
 
-	fileTranscode = NEXUS_FileRecord_OpenPosix(outfile, outnavfile);
-	assert(fileTranscode);
+    fileTranscode = NEXUS_FileRecord_OpenPosix(outfile, outnavfile);
+    assert(fileTranscode);
 
-	/* Start record of stream mux output */
-	NEXUS_Record_Start(record, fileTranscode);
+    /* Start record of stream mux output */
+    NEXUS_Record_Start(record, fileTranscode);
     }
 
-	/* Start Decoders */
+    /* Start Decoders */
 #if ENABLE_VIDEO_ENCODE
     if(!hdmi) {
-	NEXUS_VideoDecoder_Start(videoDecoder, &videoProgram);
+    NEXUS_VideoDecoder_Start(videoDecoder, &videoProgram);
     }
 #endif
 #if ENABLE_AUDIO_ENCODE
-	NEXUS_AudioDecoder_Start(audioDecoder, &audioProgram);
+    NEXUS_AudioDecoder_Start(audioDecoder, &audioProgram);
 #endif
 
 
     if(qam) {
 #if  NEXUS_HAS_FRONTEND
-	/* Tune Qam */
-	NEXUS_Frontend_TuneQam(frontend, &qamSettings);
+    /* Tune Qam */
+    NEXUS_Frontend_TuneQam(frontend, &qamSettings);
 #endif
     } else if (sat) {
 #if  NEXUS_HAS_FRONTEND
-	/* Tune Sat */
-	NEXUS_Frontend_TuneSatellite(frontend, &satSettings);
+    /* Tune Sat */
+    NEXUS_Frontend_TuneSatellite(frontend, &satSettings);
 #endif
     } else if(streamer) {
-	/* Do nothing */
+    /* Do nothing */
     } else if (hdmi) {
-	/* Nothing to stop */
+    /* Nothing to stop */
     } else {
-	/* Start playback */
-	NEXUS_Playback_Start(playback, file, NULL);
+    /* Start playback */
+    NEXUS_Playback_Start(playback, file, NULL);
     }
 
 
     {
-	NEXUS_DisplayStatus displayStatus;
-	NEXUS_Display_GetStatus(displayTranscode, &displayStatus);
-	printf("\nDISPLAY RATE IS %d Hz", displayStatus.refreshRate);
+    NEXUS_DisplayStatus displayStatus;
+    NEXUS_Display_GetStatus(displayTranscode, &displayStatus);
+    printf("\nDISPLAY RATE IS %d Hz", displayStatus.refreshRate);
     }
 
     printf("\n\nEncoding %s to %s : Width %d Height %d Frame Rate %d Bitrate %d\n\n",
-	   infile?infile:(qam?"QAM":(sat?"SAT":"HDMI")), mp4?mp4File:outfile, width, height, framerate, bitrate);
+       infile?infile:(qam?"QAM":(sat?"SAT":"HDMI")), mp4?mp4File:outfile, width, height, framerate, bitrate);
 
 
     /* Playback state machine is driven from inside Nexus. */
@@ -2047,27 +2046,27 @@ int main(int argc, char *argv[])
     /* BKNI_Sleep(3600000); */
 
     if(!mp4) {
-	/* stop system data scheduler */
-	xcode_stop_systemdata(pContext);
+    /* stop system data scheduler */
+    xcode_stop_systemdata(pContext);
     }
 
 
     /* Bring down system */
     if(qam || sat) {
 #if  NEXUS_HAS_FRONTEND
-	NEXUS_Frontend_Untune(frontend);
+    NEXUS_Frontend_Untune(frontend);
 #endif
     } else if(streamer) {
-	/* Do nothing */
+    /* Do nothing */
     } else if (hdmi) {
-	/* Nothing to stop */
+    /* Nothing to stop */
     } else {
-	NEXUS_Playback_Stop(playback);
+    NEXUS_Playback_Stop(playback);
     }
 
 #if ENABLE_VIDEO_ENCODE
     if(!hdmi) {
-	NEXUS_VideoDecoder_Stop(videoDecoder);
+    NEXUS_VideoDecoder_Stop(videoDecoder);
     }
 #endif
 #if ENABLE_AUDIO_ENCODE
@@ -2079,64 +2078,71 @@ int main(int argc, char *argv[])
 #endif
 
 #if ENABLE_AUDIO_ENCODE && NEXUS_HAS_SYNC_CHANNEL
-	/* disconnect sync channel after decoders stop */
-	NEXUS_SyncChannel_Destroy(syncChannel);
+    /* disconnect sync channel after decoders stop */
+    NEXUS_SyncChannel_Destroy(syncChannel);
 #endif
 
     if(mp4) {
-	NEXUS_FileMux_Finish(fileMux);
-	/* wait for encode buffer to be drained; double delay margin */
-	while(BKNI_WaitForEvent(finishEvent, 3000)!=BERR_SUCCESS) {
-	    fprintf(stderr, "File mux unfinished! Wait for another 3 seconds...\n");
-	}
-	BKNI_DestroyEvent(finishEvent);
-	NEXUS_FileMux_Stop(fileMux);
-	NEXUS_MuxFile_Close(muxFileOutput);
-	NEXUS_FileMux_Destroy(fileMux);
+    NEXUS_FileMux_Finish(fileMux);
+    /* wait for encode buffer to be drained; double delay margin */
+    while(BKNI_WaitForEvent(finishEvent, 3000)!=BERR_SUCCESS) {
+        fprintf(stderr, "File mux unfinished! Wait for another 3 seconds...\n");
+    }
+    BKNI_DestroyEvent(finishEvent);
+    NEXUS_FileMux_Stop(fileMux);
+    NEXUS_MuxFile_Close(muxFileOutput);
+    NEXUS_FileMux_Destroy(fileMux);
     } else {
-	NEXUS_StreamMux_Finish(streamMux);
-	/* For now we just wait for 1 sec. TODO : Configure the encoder delay */
-	if(BKNI_WaitForEvent(finishEvent, 3000)!=BERR_SUCCESS) {
-	    fprintf(stderr, "TIMEOUT\n");
-	}
-	BKNI_DestroyEvent(finishEvent);
-	NEXUS_Record_Stop(record);
+    unsigned jj;
+    NEXUS_StreamMux_Finish(streamMux);
+    /* For now we just wait for 1 sec. TODO : Configure the encoder delay */
+    if(BKNI_WaitForEvent(finishEvent, 3000)!=BERR_SUCCESS) {
+        fprintf(stderr, "TIMEOUT\n");
+    }
+    for(jj=0; jj<BTST_PSI_QUEUE_CNT; jj++)
+    {
+        NEXUS_Memory_Free(pContext->pat[jj]);
+        NEXUS_Memory_Free(pContext->pmt[jj]);
+    }
 
-	/* Note: remove all record PID channels before stream mux stop since streammux would close the A/V PID channels */
-	NEXUS_Record_RemoveAllPidChannels(record);
-	NEXUS_StreamMux_Stop(streamMux);
+    BKNI_DestroyEvent(finishEvent);
+    NEXUS_Record_Stop(record);
 
-	NEXUS_Record_Destroy(record);
-	NEXUS_Recpump_Close(recpump);
-	NEXUS_FileRecord_Close(fileTranscode);
+    /* Note: remove all record PID channels before stream mux stop since streammux would close the A/V PID channels */
+    NEXUS_Record_RemoveAllPidChannels(record);
+    NEXUS_StreamMux_Stop(streamMux);
 
-	NEXUS_Playpump_ClosePidChannel(playpumpTranscodePcr, pidChannelTranscodePcr);
-	NEXUS_Playpump_ClosePidChannel(playpumpTranscodePcr, pidChannelTranscodePat);
-	NEXUS_Playpump_ClosePidChannel(playpumpTranscodePcr, pidChannelTranscodePmt);
+    NEXUS_Record_Destroy(record);
+    NEXUS_Recpump_Close(recpump);
+    NEXUS_FileRecord_Close(fileTranscode);
 
-	NEXUS_StreamMux_Destroy(streamMux);
+    NEXUS_Playpump_ClosePidChannel(playpumpTranscodePcr, pidChannelTranscodePcr);
+    NEXUS_Playpump_ClosePidChannel(playpumpTranscodePcr, pidChannelTranscodePat);
+    NEXUS_Playpump_ClosePidChannel(playpumpTranscodePcr, pidChannelTranscodePmt);
 
-	NEXUS_Playpump_Close(playpumpTranscodePcr);
+    NEXUS_StreamMux_Destroy(streamMux);
+
+    NEXUS_Playpump_Close(playpumpTranscodePcr);
 #if ENABLE_VIDEO_ENCODE
-	NEXUS_Playpump_Close(playpumpTranscodeVideo);
+    NEXUS_Playpump_Close(playpumpTranscodeVideo);
 #endif
 #if ENABLE_AUDIO_ENCODE
-	NEXUS_Playpump_Close(playpumpTranscodeAudio);
+    NEXUS_Playpump_Close(playpumpTranscodeAudio);
 #endif
     }
 
     if(qam || sat || streamer) {
 #if ENABLE_VIDEO_ENCODE
-	NEXUS_PidChannel_Close(videoPidChannel);
+    NEXUS_PidChannel_Close(videoPidChannel);
 #endif
 #if ENABLE_AUDIO_ENCODE
         NEXUS_PidChannel_Close(audioPidChannel);
 #endif
     } else if (hdmi) {
-	/* Nothing to close */
+    /* Nothing to close */
     } else {
-	NEXUS_Playback_CloseAllPidChannels(playback);
-	NEXUS_FilePlay_Close(file);
+    NEXUS_Playback_CloseAllPidChannels(playback);
+    NEXUS_FilePlay_Close(file);
     }
 
 
@@ -2145,24 +2151,24 @@ int main(int argc, char *argv[])
 
     if(hdmi){
 #if NEXUS_NUM_HDMI_INPUTS
-	if(simulDisplay) {
-		NEXUS_VideoWindow_RemoveInput(window, NEXUS_HdmiInput_GetVideoConnector(hdmiInput));
-	}
-	NEXUS_VideoWindow_RemoveInput(windowTranscode, NEXUS_HdmiInput_GetVideoConnector(hdmiInput));
+    if(simulDisplay) {
+        NEXUS_VideoWindow_RemoveInput(window, NEXUS_HdmiInput_GetVideoConnector(hdmiInput));
+    }
+    NEXUS_VideoWindow_RemoveInput(windowTranscode, NEXUS_HdmiInput_GetVideoConnector(hdmiInput));
 #endif
     } else {
-	if(simulDisplay) {
-		NEXUS_VideoWindow_RemoveInput(window, NEXUS_VideoDecoder_GetConnector(videoDecoder));
-	}
-	NEXUS_VideoWindow_RemoveInput(windowTranscode, NEXUS_VideoDecoder_GetConnector(videoDecoder));
+    if(simulDisplay) {
+        NEXUS_VideoWindow_RemoveInput(window, NEXUS_VideoDecoder_GetConnector(videoDecoder));
+    }
+    NEXUS_VideoWindow_RemoveInput(windowTranscode, NEXUS_VideoDecoder_GetConnector(videoDecoder));
     }
 #endif
 
 #if ENABLE_AUDIO_ENCODE
     NEXUS_AudioOutput_RemoveInput(
-	NEXUS_AudioMuxOutput_GetConnector(audioMuxOutput), NEXUS_AudioEncoder_GetConnector(audioEncoder));
+    NEXUS_AudioMuxOutput_GetConnector(audioMuxOutput), NEXUS_AudioEncoder_GetConnector(audioEncoder));
     NEXUS_AudioEncoder_RemoveInput(audioEncoder,
-				   NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+                   NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
     NEXUS_AudioInput_Shutdown(NEXUS_AudioEncoder_GetConnector(audioEncoder));
     NEXUS_AudioEncoder_Close(audioEncoder);
     NEXUS_AudioOutput_Shutdown(NEXUS_AudioMuxOutput_GetConnector(audioMuxOutput));
@@ -2171,7 +2177,7 @@ int main(int argc, char *argv[])
 
 #if NEXUS_NUM_HDMI_INPUTS
     if(hdmi) {
-	NEXUS_HdmiInput_Close(hdmiInput);
+    NEXUS_HdmiInput_Close(hdmiInput);
     }
 #endif
 
@@ -2191,7 +2197,7 @@ int main(int argc, char *argv[])
     NEXUS_Playback_SetSettings(playback, &playbackSettings);
 
 #if ENABLE_VIDEO_ENCODE
-	    NEXUS_VideoWindow_AddInput(window, NEXUS_VideoDecoder_GetConnector(videoDecoder));
+        NEXUS_VideoWindow_AddInput(window, NEXUS_VideoDecoder_GetConnector(videoDecoder));
 #endif
 
 #if ENABLE_VIDEO_ENCODE
@@ -2268,7 +2274,7 @@ int main(int argc, char *argv[])
     NEXUS_StcChannel_Close(stcChannel);
     NEXUS_StcChannel_Close(stcChannelTranscode);
     if(signalLockedEvent)
-	BKNI_DestroyEvent(signalLockedEvent);
+    BKNI_DestroyEvent(signalLockedEvent);
 
     NEXUS_Platform_Uninit();
 

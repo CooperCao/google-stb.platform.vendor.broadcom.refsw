@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -11,7 +11,7 @@
  * Software and all intellectual property rights therein.  IF YOU HAVE NO
  * AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
  * AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
- * SOFTWARE.  
+ * SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
@@ -450,7 +450,7 @@ ObjEffectGenerator::ObjEffectGenerator(const ObjMaterial &material, const ObjMat
       Register("u_imvtMatrix",     EffectSemantics::eMATRIX3_INVT_MODEL_VIEW, EffectGenerator::eVERTEX);
 
       EffectGenerator::eUsage  usage = FragmentLighting() ? EffectGenerator::eFRAGMENT : EffectGenerator::eVERTEX;
-    
+
       Register("u_lightPos",       EffectSemantics::eVECTOR3_USER,            EffectGenerator::eVERTEX);
       Register("u_ambientColor",   EffectSemantics::eVECTOR3_USER,            EffectGenerator::eFRAGMENT);
       Register("u_specularColor",  EffectSemantics::eVECTOR3_USER,            usage);
@@ -608,8 +608,8 @@ ObjMaterialFactory::ObjMaterialFactory(const ObjReader &reader, const ObjMateria
 {
    const ObjReader::MaterialMap  &map = reader.GetMaterials();
 
-   for (const auto &mat : map)
-      MakeMaterial(mat.first, mat.second, options);
+   for (ObjReader::MaterialMap::const_iterator iter = map.begin(); iter != map.end(); ++iter)
+      MakeMaterial(iter->first, iter->second, options);
 }
 
 void ObjMaterialFactory::MakeMaterial(const string &name, const ObjMaterial &objMaterial, const ObjMaterialOptions &options)

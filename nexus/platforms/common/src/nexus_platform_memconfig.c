@@ -1,45 +1,45 @@
-/***************************************************************************
-*     (c)2004-2015 Broadcom Corporation
-*
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
-*  and may only be used, duplicated, modified or distributed pursuant to the terms and
-*  conditions of a separate, written license agreement executed between you and Broadcom
-*  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-*  no license (express or implied), right to use, or waiver of any kind with respect to the
-*  Software, and Broadcom expressly reserves all rights in and to the Software and all
-*  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-*  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-*  Except as expressly set forth in the Authorized License,
-*
-*  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-*  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-*  and to use this information only in connection with your use of Broadcom integrated circuit products.
-*
-*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-*  USE OR PERFORMANCE OF THE SOFTWARE.
-*
-*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-*  ANY LIMITED REMEDY.
-*
-***************************************************************************/
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
+
 #include "nexus_platform_priv.h"
 
-#if BCHP_CHIP==7125 || BCHP_CHIP==7208 || BCHP_CHIP==7241 || BCHP_CHIP==7325 || BCHP_CHIP==7335 || \
-    BCHP_CHIP==7340 || BCHP_CHIP==7400 || BCHP_CHIP==7405 || BCHP_CHIP==7408 || BCHP_CHIP==7410 || \
+#if BCHP_CHIP==7125 || BCHP_CHIP==7208 || BCHP_CHIP==7241 || \
+    BCHP_CHIP==7340 || BCHP_CHIP==7405 || BCHP_CHIP==7408 || BCHP_CHIP==7410 || \
     BCHP_CHIP==7420 || BCHP_CHIP==7468 || BCHP_CHIP==7543
 #define USE_MEMCONFIG 0
 #else
@@ -149,7 +149,7 @@ void NEXUS_GetDefaultMemoryConfigurationSettings_tagged( NEXUS_MemoryConfigurati
     if(size == sizeof(*pSettings)) {
         NEXUS_P_GetDefaultMemoryConfigurationSettings(preInitState, pSettings);
     } else {
-        BDBG_ERR(("NEXUS_GetDefaultMemoryConfigurationSettings: size mismatch %u != %u", sizeof(*pSettings), size));
+        BDBG_ERR(("NEXUS_GetDefaultMemoryConfigurationSettings: size mismatch %u != %u", (unsigned)sizeof(*pSettings), (unsigned)size));
         BKNI_Memset(pSettings, 0, size);
     }
     NEXUS_Platform_P_PreUninit();
@@ -198,6 +198,60 @@ static int nexus_p_encoder_device_and_channel(const NEXUS_Core_PreInitState *pre
 }
 #endif
 
+#if NEXUS_HAS_VIDEO_DECODER
+static int nexus_p_xvd_device_channel(unsigned index, unsigned *device, unsigned *channel)
+{
+    for (*device=0;*device<BBOX_XVD_MAX_DECODERS;(*device)++) {
+        for (*channel=0;*channel<BBOX_XVD_MAX_CHANNELS && *channel<g_pPreInitState->boxConfig.stXvd.stInstance[*device].stDevice.numChannels;(*channel)++) {
+            if (g_pPreInitState->boxConfig.stXvd.stInstance[*device].stDevice.stChannel[*channel].nexusIndex == index) {
+                return 0;
+            }
+        }
+    }
+    return -1;
+}
+
+static NEXUS_VideoFormat nexus_p_get_format(BXVD_DecodeResolution res, unsigned framerate)
+{
+    switch (res) {
+    default:
+    case BXVD_DecodeResolution_eHD:
+        switch (framerate) {
+        case 25:
+        case 30:
+            return NEXUS_VideoFormat_e1080p30hz;
+        case 50:
+        default:
+        case 60:
+            return NEXUS_VideoFormat_e1080p;
+        }
+        break;
+    case BXVD_DecodeResolution_eSD:
+        switch (framerate) {
+        case 25:
+        case 50:
+            return NEXUS_VideoFormat_ePal;
+        case 30:
+        default:
+        case 60:
+            return NEXUS_VideoFormat_eNtsc;
+        }
+        break;
+    case BXVD_DecodeResolution_e4K:
+        switch (framerate) {
+        case 25:
+        case 30:
+            return NEXUS_VideoFormat_e3840x2160p30hz;
+        case 50:
+        default:
+        case 60:
+            return NEXUS_VideoFormat_e3840x2160p60hz;
+        }
+        break;
+    }
+}
+#endif
+
 void NEXUS_P_GetDefaultMemoryConfigurationSettings(const NEXUS_Core_PreInitState *preInitState, NEXUS_MemoryConfigurationSettings *pSettings)
 {
     unsigned i;
@@ -215,25 +269,50 @@ void NEXUS_P_GetDefaultMemoryConfigurationSettings(const NEXUS_Core_PreInitState
     {
     NEXUS_VideoDecoderModule_GetDefaultSettings(&structs->xvd.moduleSettings);
     for (i=0;i<NEXUS_NUM_VIDEO_DECODERS;i++) {
-        pSettings->videoDecoder[i].used = true;
+        unsigned device, channel;
+
+        if (g_pPreInitState->boxMode) {
+            if (nexus_p_xvd_device_channel(i, &device, &channel)) {
+                continue;
+            }
+            pSettings->videoDecoder[i].used = true;
+            pSettings->videoDecoder[i].maxFormat = nexus_p_get_format(
+                g_pPreInitState->boxConfig.stXvd.stInstance[device].stDevice.stChannel[channel].DecoderUsage.maxResolution,
+                g_pPreInitState->boxConfig.stXvd.stInstance[device].stDevice.stChannel[channel].DecoderUsage.framerate);
+            pSettings->videoDecoder[i].colorDepth = g_pPreInitState->boxConfig.stXvd.stInstance[device].stDevice.stChannel[channel].DecoderUsage.bitDepth == BAVC_VideoBitDepth_e10Bit ? 10 : 8;
+        }
+        else {
+            pSettings->videoDecoder[i].used = true;
+            pSettings->videoDecoder[i].maxFormat = NEXUS_VideoFormat_e1080p;
+            pSettings->videoDecoder[i].colorDepth = 8;
+        }
+        /* TODO: get codec support from BBOX_XVD */
         BKNI_Memcpy(pSettings->videoDecoder[i].supportedCodecs, structs->xvd.moduleSettings.supportedCodecs, sizeof(pSettings->videoDecoder[i].supportedCodecs));
-        pSettings->videoDecoder[i].maxFormat = NEXUS_VideoFormat_e1080p;
-        pSettings->videoDecoder[i].colorDepth = 8;
 #if NEXUS_NUM_MOSAIC_DECODES
         if (i == 0) {
-            pSettings->videoDecoder[i].mosaic.maxNumber = NEXUS_NUM_MOSAIC_DECODES;
-            pSettings->videoDecoder[i].mosaic.maxWidth = 352; /* CIF */
-            pSettings->videoDecoder[i].mosaic.maxHeight = 288;
+            NEXUS_VideoFormatInfo info;
+            NEXUS_VideoFormat_GetInfo_isrsafe(pSettings->videoDecoder[i].maxFormat, &info);
+            if (info.height > 1088) {
+                /* a 4K decoder can do 3 HD mosaics */
+                pSettings->videoDecoder[i].mosaic.maxNumber = 3;
+                pSettings->videoDecoder[i].mosaic.maxWidth = 1920;
+                pSettings->videoDecoder[i].mosaic.maxHeight = 1080;
+            }
+            else {
+                pSettings->videoDecoder[i].mosaic.maxNumber = NEXUS_NUM_MOSAIC_DECODES;
+                pSettings->videoDecoder[i].mosaic.maxWidth = 352; /* CIF */
+                pSettings->videoDecoder[i].mosaic.maxHeight = 288;
+            }
             pSettings->videoDecoder[i].mosaic.colorDepth = 8;
         }
 #endif
     }
 #if NEXUS_NUM_STILL_DECODES
-    for (i=0;i<NEXUS_NUM_STILL_DECODES;i++) {
-        pSettings->stillDecoder[i].used = true;
-        BKNI_Memcpy(pSettings->stillDecoder[i].supportedCodecs, structs->xvd.moduleSettings.supportedCodecs, sizeof(pSettings->stillDecoder[i].supportedCodecs));
-        pSettings->stillDecoder[i].maxFormat = NEXUS_VideoFormat_e1080p;
-    }
+    /* default only one based on first decoder */
+    pSettings->stillDecoder[0].used = true;
+    BKNI_Memcpy(pSettings->stillDecoder[0].supportedCodecs, pSettings->videoDecoder[0].supportedCodecs, sizeof(pSettings->stillDecoder[0].supportedCodecs));
+    pSettings->stillDecoder[0].maxFormat = pSettings->videoDecoder[0].maxFormat;
+    pSettings->stillDecoder[0].colorDepth = pSettings->videoDecoder[0].colorDepth;
 #endif
     }
 #endif
@@ -294,7 +373,6 @@ void NEXUS_P_GetDefaultMemoryConfigurationSettings(const NEXUS_Core_PreInitState
                     structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].bSideBySide ||
                     structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].bBoxDetect ||
                     structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].bArbitraryCropping ||
-                    structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].bMosaicMode ||
                     structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].bIndependentCropping;
                 pSettings->display[i].window[j].support3d = i < 2; /* transcode displays have no 3D */
                 pSettings->display[i].window[j].convertAnyFrameRate = true;
@@ -328,10 +406,13 @@ void NEXUS_P_GetDefaultMemoryConfigurationSettings(const NEXUS_Core_PreInitState
                if (rc) continue;
                /* collapse enabled encoder mapping table */
                if (preInitState->boxConfig.stVce.stInstance[device].uiChannels & (1<<channel)) {
+                   NEXUS_VideoFormatInfo info;
+                   NEXUS_VideoFormat_GetInfo_isrsafe(NEXUS_P_VideoFormat_FromMagnum_isrsafe(preInitState->boxConfig.stVce.stInstance[device].eVideoFormat), &info);
                    pSettings->videoEncoder[encoderIdx].used = true;
-                   pSettings->videoEncoder[encoderIdx].maxWidth = preInitState->boxConfig.stVce.stInstance[device].stBounds[preInitState->boxConfig.stVce.stInstance[device].eDefaultInputTypeMemory].uiWidth;
-                   pSettings->videoEncoder[encoderIdx].maxHeight = preInitState->boxConfig.stVce.stInstance[device].stBounds[preInitState->boxConfig.stVce.stInstance[device].eDefaultInputTypeMemory].uiHeight;
-                   pSettings->videoEncoder[encoderIdx].interlaced = (preInitState->boxConfig.stVce.stInstance[device].eDefaultInputTypeMemory == BAVC_ScanType_eInterlaced);
+                   pSettings->videoEncoder[encoderIdx].maxWidth = NEXUS_P_SizeAlign( info.width, preInitState->boxConfig.stVce.stInstance[device].uiPixelAlignment );
+                   pSettings->videoEncoder[encoderIdx].maxHeight = NEXUS_P_SizeAlign( info.height, preInitState->boxConfig.stVce.stInstance[device].uiPixelAlignment );
+                   NEXUS_P_FrameRate_FromRefreshRate_isrsafe(info.verticalFreq * 10, &pSettings->videoEncoder[encoderIdx].maxFrameRate);
+                   pSettings->videoEncoder[encoderIdx].interlaced = ( ( pSettings->videoEncoder[encoderIdx].maxHeight >= 1080 ) && ( pSettings->videoEncoder[encoderIdx].maxHeight <= 1088) ) ? true : false;
                    encoderIdx++;
                }
            }
@@ -342,6 +423,7 @@ void NEXUS_P_GetDefaultMemoryConfigurationSettings(const NEXUS_Core_PreInitState
                pSettings->videoEncoder[i].used = true;
                pSettings->videoEncoder[i].maxWidth = structs->vce.channelSettings.stDimensions.stMax.uiWidth;
                pSettings->videoEncoder[i].maxHeight = structs->vce.channelSettings.stDimensions.stMax.uiHeight;
+               pSettings->videoEncoder[i].maxFrameRate = NEXUS_VideoFrameRate_e60;
                pSettings->videoEncoder[i].interlaced = (structs->vce.channelSettings.eInputType == BAVC_ScanType_eInterlaced);
            }
        }
@@ -364,9 +446,26 @@ void NEXUS_P_GetDefaultMemoryConfigurationSettings(const NEXUS_Core_PreInitState
         (g_platformSpecificOps.modifyDefaultMemoryConfigurationSettings)(pSettings);
     }
 
+#if NEXUS_HAS_VIDEO_DECODER && NEXUS_NUM_STILL_DECODES
+    /* after codecs have been set, update still decoder based on first (highest capability) decoder */
+    BKNI_Memcpy(pSettings->stillDecoder[0].supportedCodecs, pSettings->videoDecoder[0].supportedCodecs, sizeof(pSettings->stillDecoder[0].supportedCodecs));
+    pSettings->stillDecoder[0].supportedCodecs[NEXUS_VideoCodec_eH264_Svc] = false;
+    pSettings->stillDecoder[0].supportedCodecs[NEXUS_VideoCodec_eH264_Mvc] = false;
+#endif
+
     BKNI_Free(structs);
     return;
 }
+
+#if NEXUS_HAS_VIDEO_DECODER
+void NEXUS_P_SupportVideoDecoderCodec( NEXUS_MemoryConfigurationSettings *pSettings, NEXUS_VideoCodec codec )
+{
+    unsigned i;
+    for (i=0; i<NEXUS_NUM_VIDEO_DECODERS; i++) {
+        pSettings->videoDecoder[i].supportedCodecs[codec] = true;
+    }
+}
+#endif
 
 void NEXUS_P_GetDefaultMemoryRtsSettings(NEXUS_MemoryRtsSettings *pRtsSettings)
 {
@@ -377,8 +476,22 @@ void NEXUS_P_GetDefaultMemoryRtsSettings(NEXUS_MemoryRtsSettings *pRtsSettings)
     pRtsSettings->boxMode = g_pPreInitState->boxMode;
 #if NEXUS_HAS_VIDEO_DECODER
     for (i=0;i<NEXUS_NUM_VIDEO_DECODERS;i++) {
-        pRtsSettings->videoDecoder[i].mfdIndex = i;
-        pRtsSettings->videoDecoder[i].avdIndex = i / 2;
+        unsigned device, channel;
+        if (g_pPreInitState->boxMode) {
+            if (!nexus_p_xvd_device_channel(i, &device, &channel)) {
+                pRtsSettings->videoDecoder[i].mfdIndex = g_pPreInitState->boxConfig.stXvd.stInstance[device].stDevice.stChannel[channel].mfdIndex;
+                pRtsSettings->videoDecoder[i].avdIndex = device;
+                pRtsSettings->avd[device].memcIndex = g_pPreInitState->boxConfig.stXvd.stInstance[device].stDevice.memcIndex;
+                if (g_pPreInitState->boxConfig.stXvd.stInstance[device].stDevice.secondaryMemcIndex != BBOX_XVD_UNUSED) {
+                    pRtsSettings->avd[device].secondaryMemcIndex = g_pPreInitState->boxConfig.stXvd.stInstance[device].stDevice.secondaryMemcIndex;
+                    pRtsSettings->avd[device].splitBufferHevc = true;
+                }
+            }
+        }
+        else {
+            pRtsSettings->videoDecoder[i].mfdIndex = i;
+            pRtsSettings->videoDecoder[i].avdIndex = i / 2;
+        }
     }
 #endif
     if (g_platformSpecificOps.modifyDefaultMemoryRtsSettings) {
@@ -467,6 +580,7 @@ static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState 
 #endif
     struct NEXUS_P_GetMemoryConfiguration_structs *structs;
     struct NEXUS_MemoryLayout memoryLayout;
+    unsigned num_mosaic_decoders = 0;
 
     if (0) goto err_getsettings; /* prevent warning */
     BSTD_UNUSED(pRtsSettings);
@@ -506,7 +620,8 @@ static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState 
     }
     for (i=0;i<NEXUS_NUM_VIDEO_DECODERS;i++) {
         NEXUS_VideoFormatInfo info;
-        NEXUS_VideoFormat_GetInfo_priv(pSettings->videoDecoder[i].maxFormat, &info);
+        if (!pSettings->videoDecoder[i].used) continue;
+        NEXUS_VideoFormat_GetInfo_isrsafe(pSettings->videoDecoder[i].maxFormat, &info);
         if (NEXUS_VideoDecoder_GetDecodeResolution_priv(info.width, info.height) == BXVD_DecodeResolution_e4K ||
             (pSettings->videoDecoder[i].mosaic.maxNumber >= 3 && pSettings->videoDecoder[i].mosaic.maxHeight > 720))
         {
@@ -541,6 +656,9 @@ static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState 
                 continue;
             }
             avdIndex = pRtsSettings->videoDecoder[index].avdIndex;
+            if (pSettings->videoDecoder[index].mosaic.maxNumber) {
+                num_mosaic_decoders++;
+            }
         }
 
         (void)BXVD_GetChannelDefaultSettings(NULL, index, &structs->xvd.channelSettings);
@@ -559,7 +677,7 @@ static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState 
 #if NEXUS_NUM_STILL_DECODES
         if (still) {
             BKNI_Memcpy(structs->xvd.supportedCodecs, pSettings->stillDecoder[index].supportedCodecs, sizeof(structs->xvd.supportedCodecs));
-            NEXUS_VideoFormat_GetInfo_priv(pSettings->stillDecoder[index].maxFormat, &info);
+            NEXUS_VideoFormat_GetInfo_isrsafe(pSettings->stillDecoder[index].maxFormat, &info);
             structs->xvd.channelSettings.bAVC51Enable = pSettings->stillDecoder[index].avc51Supported;
             structs->xvd.channelSettings.eChannelMode = BXVD_ChannelMode_eStill;
             structs->xvd.channelSettings.b10BitBuffersEnable = pSettings->stillDecoder[index].colorDepth >= 10;
@@ -568,7 +686,7 @@ static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState 
 #endif
         {
             BKNI_Memcpy(structs->xvd.supportedCodecs, pSettings->videoDecoder[index].supportedCodecs, sizeof(structs->xvd.supportedCodecs));
-            NEXUS_VideoFormat_GetInfo_priv(pSettings->videoDecoder[index].maxFormat, &info);
+            NEXUS_VideoFormat_GetInfo_isrsafe(pSettings->videoDecoder[index].maxFormat, &info);
             structs->xvd.channelSettings.bAVC51Enable = pSettings->videoDecoder[index].avc51Supported;
             structs->xvd.channelSettings.eChannelMode = BXVD_ChannelMode_eVideo;
             structs->xvd.channelSettings.b10BitBuffersEnable = pSettings->videoDecoder[index].colorDepth >= 10;
@@ -669,7 +787,6 @@ static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState 
 
 #if NEXUS_HAS_DISPLAY
     {
-        bool primarySet = false;
         for (i=0;i<NEXUS_MAX_HEAPS;i++) {
             NEXUS_DisplayHeapSettings *pHeapSettings = &pConfig->display.displayHeapSettings[i];
             pHeapSettings->quadHdBuffers.count = 0;
@@ -716,17 +833,7 @@ static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState 
                 if (rc) {rc = BERR_TRACE(rc); goto err_getsettings;}
 
                 memcIndex = g_pPreInitState->boxConfig.stMemConfig.stVdcMemcIndex.astDisplay[i].aulVidWinCapMemcIndex[j];
-                if (memcIndex >= BBOX_MemcIndex_Invalid) return BERR_TRACE(NEXUS_INVALID_PARAMETER);
-
-                if (!primarySet) {
-                    if (nexus_p_usepicbuf(pSettings->display[i].window[j].secure, nexus_memconfig_picbuftype_unsecure)) {
-                        pConfig->display.primaryDisplayHeapIndex = memoryLayout.heapIndex.pictureBuffer[memcIndex][nexus_memconfig_picbuftype_unsecure];
-                    }
-                    else {
-                        pConfig->display.primaryDisplayHeapIndex = memoryLayout.heapIndex.pictureBuffer[memcIndex][nexus_memconfig_picbuftype_secure];
-                    }
-                    primarySet = true;
-                }
+                if (memcIndex >= BBOX_MemcIndex_Invalid || memcIndex >= NEXUS_MAX_MEMC) { rc = BERR_TRACE(NEXUS_INVALID_PARAMETER); goto err_getsettings;}
 
                 structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].ulMemcIndex = memcIndex;
                 memcIndex = g_pPreInitState->boxConfig.stMemConfig.stVdcMemcIndex.astDisplay[i].aulVidWinMadMemcIndex[j];
@@ -743,8 +850,10 @@ static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState 
                 structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].bSideBySide =
                 structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].bBoxDetect =
                 structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].bArbitraryCropping =
-                structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].bMosaicMode =
                 structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].bIndependentCropping = pSettings->display[i].window[j].capture;
+                if (num_mosaic_decoders == 0) {
+                    structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].bMosaicMode = false;
+                }
                 if (pSettings->videoInputs.hdDvi || pSettings->videoInputs.ccir656) {
                     /* Only set true for non-mfd; never set false. VDC may default to true for other reasons. */
                     structs->vdc.memConfigSettings.stDisplay[i].stWindow[j].bSyncSlip = true;
@@ -805,6 +914,7 @@ static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState 
 
 #else
     BSTD_UNUSED(i);
+    BSTD_UNUSED(num_mosaic_decoders);
 #endif
 
 #if NEXUS_HAS_VIDEO_ENCODER
@@ -838,16 +948,7 @@ static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState 
             mainMemcIndex = g_pPreInitState->boxConfig.stVce.stInstance[vceIndex].uiMemcIndex;
             if (mainMemcIndex >= NEXUS_NUM_MEMC) return BERR_TRACE(NEXUS_INVALID_PARAMETER);
             nexus_p_get_driver_heap(0, true, &heap.output);
-#ifdef NEXUS_VIDEO_SECURE_HEAP
-            /* must have compile time definition and run time use */
-            if (pPlatformSettings->heap[NEXUS_VIDEO_SECURE_HEAP].size) {
-                heap.secure = NEXUS_VIDEO_SECURE_HEAP;
-            }
-            else
-#endif
-            {
-                nexus_p_get_driver_heap(0, true, &heap.secure);
-            }
+            nexus_p_get_driver_heap(0, false, &heap.secure);
 
             rc = nexus_p_get_driver_heap(mainMemcIndex, false, &heap.firmware);
             if (rc) return BERR_TRACE(rc);
@@ -949,7 +1050,7 @@ static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState 
         }
     }
 #endif
-#if NEXUS_HAS_VIDEO_DECODER
+#if NEXUS_HAS_VIDEO_DECODER && NEXUS_HAS_DISPLAY
     for (i=0;i<NEXUS_NUM_VIDEO_DECODERS;i++) { /* i is MFD index */
         unsigned j;
         for (j=0;j<NEXUS_NUM_VIDEO_DECODERS;j++) {
@@ -1125,6 +1226,13 @@ NEXUS_Error NEXUS_P_ApplyMemoryConfiguration(const NEXUS_Core_PreInitState *preI
 #endif
 #if NEXUS_HAS_HDMI_INPUT
     pSettings->displayModuleSettings.memconfig.hdDvi = true;
+#endif
+#if NEXUS_HAS_DISPLAY
+    /* if primaryDisplayHeapIndex is not specified for legacy platforms, assume primary display heap index 0
+      to be backward compatible. */
+    if(NEXUS_MAX_HEAPS == pSettings->displayModuleSettings.primaryDisplayHeapIndex){
+       pSettings->displayModuleSettings.primaryDisplayHeapIndex = 0;
+    }
 #endif
     return 0;
 }

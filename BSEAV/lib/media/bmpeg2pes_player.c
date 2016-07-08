@@ -1,24 +1,40 @@
 /***************************************************************************
- *     Copyright (c) 2007-2011, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ *  Except as expressly set forth in the Authorized License,
  *
- * Module Description:
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * Media player for MPEG-2 PES 
- * 
- * Revision History:
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- * 
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ *
  *******************************************************************************/
 #include "bstd.h"
 #include "bkni.h"
@@ -517,10 +533,6 @@ These are the supported values in word[0] of a BPP
 #define TT_MODE_TIMING_MARKER       0x0C
 #define TT_MODE_PICTURE_TAG         0x0D
 
-typedef struct b_mpeg2pes_bpp_pkt{
-    uint32_t data[10]; 
-} b_mpeg2pes_bpp_pkt;
-
 static void 
 b_mpeg2pes_ts_make_filler(uint16_t stream_id, uint8_t *pkt)
 {
@@ -541,40 +553,17 @@ b_mpeg2pes_ts_make_filler(uint16_t stream_id, uint8_t *pkt)
     return;
 }
 
-static void 
-b_mpeg2pes_bpp_make(uint16_t stream_id, uint8_t *pkt, const b_mpeg2pes_bpp_pkt *bpp)
+static void
+b_mpeg2pes_bpp_make(uint16_t stream_id, uint8_t *pkt, const bmedia_bpp_pkt *bpp)
 {
-    unsigned i;
-    BKNI_Memset(pkt, 0, 184);
-    pkt[0] = 0x00;
-    pkt[1] = 0x00;
-    pkt[2] = 0x01;
-    pkt[3] = (uint8_t)stream_id;
-    pkt[4] = 0x00;
-    pkt[5] = 0xB2;
-    pkt[6] = 0x81;
-    pkt[7] = 0x01;
-    pkt[8] = 0x14;
-    pkt[9] = 0x80;
-    pkt[10] = 0x42;
-    pkt[11] = 0x52;
-    pkt[12] = 0x43;
-    pkt[13] = 0x4D;    
-    pkt[26] = pkt[27] = pkt[38] = 0xFF;      
-    for(i=0;i<sizeof(bpp->data)/sizeof(bpp->data[0]);i++) {
-        pkt[30+4*i+0] = B_GET_BITS(bpp->data[i], 31, 24);
-        pkt[31+4*i+1] = B_GET_BITS(bpp->data[i], 23, 16);
-        pkt[32+4*i+2] = B_GET_BITS(bpp->data[i], 15, 8);
-        pkt[33+4*i+3] = B_GET_BITS(bpp->data[i], 7, 0);
-    }
-    BDBG_CASSERT(B_MPEG2PES_BPP_LENGTH>30+sizeof(bpp->data));
+    (void)bmedia_make_bpp_pkt(stream_id, bpp, pkt, B_MPEG2PES_BPP_LENGTH);
     return;
 }
 
 static int
 b_mpeg2pes_player_send_header_fragmented(bmpeg2pes_player_t player, bmedia_player_entry *entry)
 {
-    b_mpeg2pes_bpp_pkt bpp;
+    bmedia_bpp_pkt bpp;
     BKNI_Memset(&bpp, 0, sizeof(bpp));
     bpp.data[0] = TT_MODE_PROCESS;
     bpp.data[7] = 0;
@@ -590,7 +579,7 @@ b_mpeg2pes_player_send_header_fragmented(bmpeg2pes_player_t player, bmedia_playe
 static int
 b_mpeg2pes_player_send_tail_fragmented(bmpeg2pes_player_t player, bmedia_player_entry *entry)
 {
-    b_mpeg2pes_bpp_pkt bpp;
+    bmedia_bpp_pkt bpp;
     BKNI_Memset(&bpp, 0, sizeof(bpp));
     bpp.data[0] = TT_MODE_INLINE_FLUSH;
     b_mpeg2pes_bpp_make(player->stream.master,player->packet_buf, &bpp);

@@ -1,52 +1,51 @@
 /******************************************************************************
-* (c) 2014 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
+ *
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************
 *
-* This program is the proprietary software of Broadcom Corporation and/or its
-* licensors, and may only be used, duplicated, modified or distributed pursuant
-* to the terms and conditions of a separate, written license agreement executed
-* between you and Broadcom (an "Authorized License").  Except as set forth in
-* an Authorized License, Broadcom grants no license (express or implied), right
-* to use, or waiver of any kind with respect to the Software, and Broadcom
-* expressly reserves all rights in and to the Software and all intellectual
-* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1. This program, including its structure, sequence and organization,
-*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-*    reasonable efforts to protect the confidentiality thereof, and to use
-*    this information only in connection with your use of Broadcom integrated
-*    circuit products.
-*
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-******************************************************************************/
-/*****************************************************************************
-*
-* FILENAME: $Workfile$
+* FILENAME: $Workfile: trunk/stack/IEEE/MAC/include/bbMacSapTypesCommStatus.h $
 *
 * DESCRIPTION:
 *   MLME-COMM-STATUS service data types definition.
 *
-* $Revision$
-* $Date$
+* $Revision: 10534 $
+* $Date: 2016-03-18 11:08:03Z $
 *
 *****************************************************************************************/
 
@@ -56,8 +55,9 @@
 
 
 /************************* INCLUDES *****************************************************/
-#include "bbMacSapDefs.h"           /* MAC-SAP common definitions. */
-#include "bbMacSapAddress.h"        /* MAC-SAP addressing definitions. */
+#include "bbMacSapDefs.h"
+#include "bbMacSapAddress.h"
+#include "bbMacSapSecurity.h"
 
 
 /************************* VALIDATIONS **************************************************/
@@ -113,25 +113,29 @@
 typedef struct _MAC_CommStatusIndParams_t
 {
     /* 64-bit data. */
-    MAC_Address_t   dstAddr;            /*!< The individual device address of the device for which the frame was
-                                            intended. */
+    MAC_Address_t        dstAddr;           /*!< The individual device address of the device for which the frame was
+                                                intended. */
 
-    MAC_Address_t   srcAddr;            /*!< The individual device address of the entity from which the frame causing
-                                            the error originated; or this device address in the case of indication on
-                                            just performed MLME-ASSOCIATE.response or MLME-ORPHAN.response. */
+    MAC_Address_t        srcAddr;           /*!< The individual device address of the entity from which the frame
+                                                causing the error originated; or this device address in the case of
+                                                indication on just performed MLME-ASSOCIATE.response or
+                                                MLME-ORPHAN.response. */
     /* 16-bit data. */
-    MAC_PanId_t     panId;              /*!< The 16-bit PAN identifier of the device from which the frame was received
-                                            or to which the frame was being sent. */
+    MAC_PanId_t          panId;             /*!< The 16-bit PAN identifier of the device from which the frame was
+                                                received or to which the frame was being sent. */
     /* 8-bit data. */
-    MAC_AddrMode_t  dstAddrMode;        /*!< The destination addressing mode for this primitive. */
+    MAC_AddrMode_t       dstAddrMode;       /*!< The destination addressing mode for this primitive. */
 
-    MAC_AddrMode_t  srcAddrMode;        /*!< The source addressing mode for this primitive. */
+    MAC_AddrMode_t       srcAddrMode;       /*!< The source addressing mode for this primitive. */
 
     MAC_Status_t         status;            /*!< The communications status. */
 
     /* TODO: This field is redundant. Wrap it with a conditional build key. */
     MAC_SecurityLevel_t  securityLevel;     /*!< The security level to be used; or the security level purportedly used
                                                 by the received frame. */
+
+    MAC_SecurityParams_t securityParams;    /*!< Security parameters. They are ignored if the SecurityLevel is
+                                                 set to zero. */
 } MAC_CommStatusIndParams_t;
 
 

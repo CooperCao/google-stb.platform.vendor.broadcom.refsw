@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2013 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2013 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -97,7 +97,7 @@ QPUResource *QPUResources_FindFreeRegister(QPUResources *self, DFlowRegFile rf, 
       if (banksFreeInInstr != Register_FILE_A && banksFreeInInstr != Register_FILE_EITHER)
          return NULL;   // Needs regFile A, but instruction already uses it
 
-      for (r = Register_RA0; r <= self->m_maxARegister; r++)
+      for (r = Register_RA0; r <= (int32_t)self->m_maxARegister; r++)
       {
          QPUResource *res = &self->m_resources[r];
          if (!QPUResource_IsReferenced(res))
@@ -109,7 +109,7 @@ QPUResource *QPUResources_FindFreeRegister(QPUResources *self, DFlowRegFile rf, 
       if (banksFreeInInstr != Register_FILE_B && banksFreeInInstr != Register_FILE_EITHER)
          return NULL;   // Needs regFile B, but instruction already uses it
 
-      for (r = Register_RB0; r <= self->m_maxBRegister; r++)
+      for (r = Register_RB0; r <= (int32_t)self->m_maxBRegister; r++)
       {
          QPUResource *res = &self->m_resources[r];
          if (!QPUResource_IsReferenced(res))
@@ -120,7 +120,7 @@ QPUResource *QPUResources_FindFreeRegister(QPUResources *self, DFlowRegFile rf, 
    case DFlowRegFile_ANY :
       if (QPUResources_RegistersFree(self, Register_FILE_A) > QPUResources_RegistersFree(self, Register_FILE_B))
       {
-         for (r = Register_RA0; r <= self->m_maxARegister; r++)
+         for (r = Register_RA0; r <= (int32_t)self->m_maxARegister; r++)
          {
             QPUResource *res = &self->m_resources[r];
             if (!QPUResource_IsReferenced(res))
@@ -129,7 +129,7 @@ QPUResource *QPUResources_FindFreeRegister(QPUResources *self, DFlowRegFile rf, 
       }
       else
       {
-         for (r = Register_RB0; r <= self->m_maxBRegister; r++)
+         for (r = Register_RB0; r <= (int32_t)self->m_maxBRegister; r++)
          {
             QPUResource *res = &self->m_resources[r];
             if (!QPUResource_IsReferenced(res))
@@ -254,7 +254,7 @@ uint32_t QPUResources_RegistersFree(const QPUResources *self, Register_File bank
 
    if (bank == Register_FILE_A || bank == Register_FILE_EITHER)
    {
-      for (r = Register_RA0; r <= self->m_maxARegister; r++)
+      for (r = Register_RA0; r <= (int32_t)self->m_maxARegister; r++)
       {
          if (self->m_resources[r].m_refCount == 0)
             freeRegs++;
@@ -263,7 +263,7 @@ uint32_t QPUResources_RegistersFree(const QPUResources *self, Register_File bank
 
    if (bank == Register_FILE_B || bank == Register_FILE_EITHER)
    {
-      for (r = Register_RB0; r <= self->m_maxBRegister; r++)
+      for (r = Register_RB0; r <= (int32_t)self->m_maxBRegister; r++)
       {
          if (self->m_resources[r].m_refCount == 0)
             freeRegs++;

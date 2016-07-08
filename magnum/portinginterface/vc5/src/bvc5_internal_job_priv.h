@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2014 Broadcom Corporation
+ *     Broadcom Proprietary and Confidential. (c)2014 Broadcom.  All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -43,12 +43,25 @@
 #include "bvc5_bin_mem_priv.h"
 #include "blst_queue.h"
 
+struct BVC5_P_JobDependentFence;
+
+typedef struct BVC5_P_JobDependentFence
+{
+   struct BVC5_P_JobDependentFence *psNext;        /* Next pointer for psOnCompleted/FinalizedFenceList in job */
+
+   /* Note that these will *not* include the job this fence is currently listed
+    * on -- that is implicit */
+   BVC5_SchedDependencies           sNotCompleted; /* Completion dependencies not yet done */
+   BVC5_SchedDependencies           sNotFinalized; /* Finalize dependencies not yet finalized */
+
+   void                            *pFenceSignalData;
+} BVC5_P_JobDependentFence;
+
 typedef struct BVC5_P_InternalJob
 {
    BVC5_JobBase            *pBase;                    /* The original job data                        */
    uint64_t                 uiJobId;
    uint32_t                 uiClientId;
-   uint32_t                 uiFlushCpuCacheReq;
    bool                     bAbandon;
    bool                     bFlushedV3D;
 
@@ -59,6 +72,9 @@ typedef struct BVC5_P_InternalJob
    /* These deps must be satisfied for a job to finalize */
    BVC5_SchedDependencies   sFinDep_NotFinalized;     /* Completion dependencies not yet finalized    */
                                                       /* Finalized dependencies already finalized!    */
+
+   BVC5_P_JobDependentFence *psOnCompletedFenceList;
+   BVC5_P_JobDependentFence *psOnFinalizedFenceList;
 
    BVC5_JobStatus           eStatus;                  /* Returned in completion handler               */
 
@@ -76,11 +92,6 @@ typedef struct BVC5_P_InternalJob
          struct BVC5_P_InternalJob  *psInternalRenderJob;
          uint32_t                   uiMinInitialBinBlockSize;
       } sBin;
-
-      struct BVC5_P_InternalSignal
-      {
-         void *signalData;
-      } sSignal;
 
       struct BVC5_P_InternalWait
       {
@@ -122,13 +133,6 @@ BVC5_P_InternalJob *BVC5_P_JobCreateRender(
    BVC5_Handle              hVC5,
    uint32_t                 uiClientId,
    const BVC5_JobRender    *psJob
-);
-
-BVC5_P_InternalJob *BVC5_P_JobCreateFenceSignal(
-   BVC5_Handle                hVC5,
-   uint32_t                   uiClientId,
-   const BVC5_JobFenceSignal *psJob,
-   int32_t                    *pFence
 );
 
 BVC5_P_InternalJob *BVC5_P_JobCreateFenceWait(

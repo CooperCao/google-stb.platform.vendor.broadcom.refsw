@@ -1,24 +1,44 @@
 /***************************************************************************
- *	   Copyright (c) 2007-2013, Broadcom Corporation
- *	   All Rights Reserved
- *	   Confidential Property of Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
  *
- *	THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *	AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *	EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
  *
  * Module Description:
  *
  * SVP Start Code Parser module for the on the fly PVR 
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ***************************************************************************/
 /* Magnum */
 #include "bstd.h"
@@ -124,10 +144,10 @@ botf_scv_parser_feed(botf_scv_parser parser, const void *scv_ptr_, size_t scv_le
 
     BDBG_MSG_PARSE(("%#x:new SCV entries %#x %u(%u)", (unsigned)parser, (unsigned)scv_ptr, (unsigned)scv_len/B_SCV_LEN, (unsigned)scv_len));
     if( (scv_len%B_SCV_LEN)!=0) {
-        BDBG_ERR(("%#x:new SCV entries %#x %u(%u)", (unsigned)parser, (unsigned)scv_ptr, (unsigned)scv_len/B_SCV_LEN, (unsigned)scv_len));
+        BDBG_ERR(("%p:new SCV entries %p %u(%u)", (void *)parser, (void *)scv_ptr, (unsigned)scv_len/B_SCV_LEN, (unsigned)scv_len));
     }
     BDBG_ASSERT((scv_len%B_SCV_LEN)==0);
-    BDBG_ASSERT(((unsigned)scv_ptr%sizeof(uint32_t))==0);
+    BDBG_ASSERT(((unsigned long)scv_ptr%sizeof(uint32_t))==0);
     BDBG_MSG_TRACE(("%#x %#x %#x %#x", parser->IPParserPtrs->ItbStartPtr, scv_ptr,  (const uint8_t *)scv_ptr + scv_len, (parser->IPParserPtrs->ItbEndPtr)+1));
     BDBG_ASSERT(parser->IPParserPtrs->ItbStartPtr <= (const uint8_t *)scv_ptr && (const uint8_t *)scv_ptr + scv_len <= (parser->IPParserPtrs->ItbEndPtr+1));
 
@@ -188,11 +208,11 @@ botf_scv_parser_feed(botf_scv_parser parser, const void *scv_ptr_, size_t scv_le
                 scode_cdb = parser->cdb_base + offset; 
                 if (scode_cdb >= cdb_end) {
                     scode_cdb_wrap = parser->IPParserPtrs->CdbStartPtr  + (scode_cdb - cdb_end); 
-                    BDBG_WRN((">scode: FORWARD 0x000001%02x %d %#x -> %#x", parser->scode.code, offset, (unsigned)scode_cdb, (unsigned)scode_cdb_wrap));
+                    BDBG_WRN((">scode: FORWARD 0x000001%02x %d %p -> %p", parser->scode.code, offset, scode_cdb, scode_cdb_wrap));
                     scode_cdb = scode_cdb_wrap;
                 } else if (scode_cdb < parser->IPParserPtrs->CdbStartPtr) {
                     scode_cdb_wrap = cdb_end - (parser->IPParserPtrs->CdbStartPtr - scode_cdb); 
-                    BDBG_WRN(("<scode: BACKWARD 0x000001%02x %d %#x -> %#x", parser->scode.code, offset, (unsigned)scode_cdb, (unsigned)scode_cdb_wrap));
+                    BDBG_WRN(("<scode: BACKWARD 0x000001%02x %d %p -> %p", parser->scode.code, offset, scode_cdb, scode_cdb_wrap));
                     scode_cdb = scode_cdb_wrap;
                 }                 
                 parser->scode.cdb = scode_cdb;
@@ -225,7 +245,7 @@ botf_scv_parser_feed(botf_scv_parser parser, const void *scv_ptr_, size_t scv_le
             break;
 
         default:           
-            BDBG_WRN(("%#x:unknown SCV entry[%u] %#x(%#x..%#x..%#x %#x:%#x:%#x:%#x)", (unsigned)parser, scv_count/B_SCV_LEN, type, (unsigned)parser->IPParserPtrs->ItbStartPtr, (unsigned)scv_ptr,  (unsigned)parser->IPParserPtrs->ItbEndPtr, scv_ptr[0], scv_ptr[1], scv_ptr[2], scv_ptr[3]));
+            BDBG_WRN(("%p:unknown SCV entry[%u] %#x(%p..%p..%p %#x:%#x:%#x:%#x)", (void *)parser, (unsigned)(scv_count/B_SCV_LEN), type, parser->IPParserPtrs->ItbStartPtr, (void *)scv_ptr,  parser->IPParserPtrs->ItbEndPtr, (unsigned)scv_ptr[0], (unsigned)scv_ptr[1], (unsigned)scv_ptr[2], (unsigned)scv_ptr[3]));
             break;
         }
         scv_ptr = (void *) (B_SCV_LEN + (uint8_t *)scv_ptr);

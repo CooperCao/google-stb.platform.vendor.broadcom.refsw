@@ -1,7 +1,7 @@
-/***************************************************************************
- *     (c)2007-2012 Broadcom Corporation
+/******************************************************************************
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,18 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- * 
- **************************************************************************/
+ ******************************************************************************/
 #include "nexus_input_capture_module.h"
 #include "priv/nexus_core.h"
 #include "bicp.h"
@@ -146,6 +135,8 @@ static void NEXUS_InputCapture_P_DestroySwFifo(void );
 void NEXUS_InputCaptureModule_GetDefaultSettings(NEXUS_InputCaptureModuleSettings *pSettings)
 {
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
+    NEXUS_GetDefaultCommonModuleSettings(&pSettings->common);
+    pSettings->common.enabledDuringActiveStandby = true;
 }
 
 NEXUS_ModuleHandle NEXUS_InputCaptureModule_Init(const NEXUS_InputCaptureModuleSettings *pSettings)
@@ -155,11 +146,11 @@ NEXUS_ModuleHandle NEXUS_InputCaptureModule_Init(const NEXUS_InputCaptureModuleS
     BKNI_EventHandle event;
     BBCP_Settings defSettings;
 #endif
+    NEXUS_ModuleSettings moduleSettings;
     int i;
 
     BDBG_ASSERT(!g_NEXUS_inputCaptureModule);
-    g_NEXUS_inputCaptureModule = NEXUS_Module_Create("input_capture", NULL);
-	NEXUS_LockModule();
+
     if (pSettings) {
         g_NEXUS_inputCapture.settings = *pSettings;
     }
@@ -167,6 +158,14 @@ NEXUS_ModuleHandle NEXUS_InputCaptureModule_Init(const NEXUS_InputCaptureModuleS
         NEXUS_InputCaptureModule_GetDefaultSettings(&g_NEXUS_inputCapture.settings);
     }
 
+    NEXUS_Module_GetDefaultSettings(&moduleSettings);
+    moduleSettings.priority = NEXUS_AdjustModulePriority(NEXUS_ModulePriority_eLow, &g_NEXUS_inputCapture.settings.common);
+    g_NEXUS_inputCaptureModule = NEXUS_Module_Create("input_capture", &moduleSettings);
+    if (!g_NEXUS_inputCaptureModule) {
+        return NULL;
+    }
+
+	NEXUS_LockModule();
     rc = BICP_Open(&g_NEXUS_inputCapture.icp, g_pCoreHandles->chp, g_pCoreHandles->reg, g_pCoreHandles->bint, NULL);
     if (rc) {
         NEXUS_InputCaptureModule_Uninit();
@@ -219,7 +218,7 @@ void NEXUS_InputCaptureModule_Uninit()
 
 #if BBCP_SUPPORT
     if (g_NEXUS_inputCapture.eventHandler) {
-        NEXUS_UnregisterEvent(g_NEXUS_inputCapture.eventHandler);        
+        NEXUS_UnregisterEvent(g_NEXUS_inputCapture.eventHandler);
     }
 #endif
 
@@ -412,8 +411,8 @@ NEXUS_InputCaptureHandle NEXUS_InputCapture_Open(unsigned index, const NEXUS_Inp
 
             case NEXUS_InputCaptureFilterClockSelect_eSystemClock:
                 bcpSettings.filter.clk_sel = 1;
-                break;                
-                
+                break;
+
             default:
                 break;
         }
@@ -509,7 +508,7 @@ static uint32_t NEXUS_InputCapture_P_AddToSwFifo(uint32_t channel, uint32_t data
             BDBG_WRN(("buffer overflow"));
             status = 1;
             goto done;
-        } 
+        }
 
         if ((bicapSwFifo[channel].wptr+1) == bicapSwFifo[channel].rptr)
         {
@@ -517,7 +516,7 @@ static uint32_t NEXUS_InputCapture_P_AddToSwFifo(uint32_t channel, uint32_t data
             status = 2;
             goto done;
         }
-    #endif    
+    #endif
 
     bicapSwFifo[channel].data[bicapSwFifo[channel].wptr] = data;
     bicapSwFifo[channel].wptr++;
@@ -611,14 +610,14 @@ NEXUS_Error NEXUS_InputCapture_ReadData(
     uint32_t data;
     uint32_t channel;
     *pNumRead=0;
-    
+
     if (!numEntries || !pData) {
         return BERR_TRACE(NEXUS_INVALID_PARAMETER);
     }
 
     BDBG_OBJECT_ASSERT(inputCapture, NEXUS_InputCapture);
     channel = inputCapture->channelNumber;
-    
+
     BDBG_MSG(("enter NEXUS_InputCapture_Get_From_Sw_Fifo:  fifo_rptr=%d, fifo_wptr=%d", bicapSwFifo[channel].rptr, bicapSwFifo[channel].wptr));
 
     if (bicapSwFifo[channel].wptr == bicapSwFifo[channel].rptr)
@@ -647,7 +646,7 @@ NEXUS_Error NEXUS_InputCapture_GetEdgeCount(
 {
     BDBG_OBJECT_ASSERT(inputCapture, NEXUS_InputCapture);
     *pNumEdges = inputCapture->edgeCount;
-    
+
     BDBG_MSG(("enter NEXUS_InputCapture_GetEdgeCount:  numEdges=%d", *pNumEdges));
     return NEXUS_SUCCESS;
 }
@@ -659,7 +658,7 @@ void NEXUS_InputCaptureTimeout_GetSettings(NEXUS_InputCaptureTimeoutHandle input
 
     BDBG_OBJECT_ASSERT(inputCaptureTimeout, NEXUS_InputCaptureTimeout);
     if ( inputCaptureTimeout->timeoutIndex > 3 ) return;
-    
+
     BBCP_GetTimeout(g_NEXUS_inputCapture.bcp, inputCaptureTimeout->timeoutIndex, &bbcp_timeout);
     timeout->inputCapture = g_NEXUS_inputCapture.opened[bbcp_timeout.input_sel];
     switch (bbcp_timeout.edge_sel)
@@ -675,7 +674,7 @@ void NEXUS_InputCaptureTimeout_GetSettings(NEXUS_InputCaptureTimeoutHandle input
             break;
         default:
             break;
-    }    
+    }
     timeout->clockSelect = bbcp_timeout.clk_sel;
     timeout->clockCycles = bbcp_timeout.tout;
 #else
@@ -689,7 +688,7 @@ NEXUS_Error NEXUS_InputCaptureTimeout_SetSettings(NEXUS_InputCaptureTimeoutHandl
 {
 #if BBCP_SUPPORT
     BBCP_Timeout_Settings bbcp_timeout;
-    
+
     BDBG_OBJECT_ASSERT(inputCaptureTimeout, NEXUS_InputCaptureTimeout);
     BDBG_OBJECT_ASSERT(timeout->inputCapture, NEXUS_InputCapture);
     bbcp_timeout.input_sel = timeout->inputCapture->channelNumber;
@@ -749,7 +748,7 @@ static BERR_Code NEXUS_InputCapture_SetFifoInactivityTimeout(NEXUS_InputCaptureF
 #endif
 
 void NEXUS_InputCapture_GetSettings(
-    NEXUS_InputCaptureHandle inputCapture, 
+    NEXUS_InputCaptureHandle inputCapture,
     NEXUS_InputCaptureSettings *settings
     )
 {
@@ -777,14 +776,14 @@ void NEXUS_InputCapture_GetSettings(
         case 0:
             settings->filter.clockSelect = NEXUS_InputCaptureFilterClockSelect_eBicapClock;
             break;
-        
+
         case 1:
             settings->filter.clockSelect = NEXUS_InputCaptureFilterClockSelect_eSystemClock;
             break;
-            
+
         default:
             break;
-    }  
+    }
     settings->filter.value = filter.val;
 #else
     BDBG_OBJECT_ASSERT(inputCapture, NEXUS_InputCapture);
@@ -795,7 +794,7 @@ void NEXUS_InputCapture_GetSettings(
 }
 
 NEXUS_Error NEXUS_InputCapture_SetSettings(
-    NEXUS_InputCaptureHandle inputCapture, 
+    NEXUS_InputCaptureHandle inputCapture,
     const NEXUS_InputCaptureSettings *settings
     )
 {
@@ -811,22 +810,22 @@ NEXUS_Error NEXUS_InputCapture_SetSettings(
     switch (settings->edgeSelect)
     {
         case NEXUS_InputCaptureEdgeSelect_eBoth:
-            edge.pedgedet_en = 1;			
+            edge.pedgedet_en = 1;
             edge.nedgedet_en = 1;
             break;
 
         case NEXUS_InputCaptureEdgeSelect_ePositive:
-            edge.pedgedet_en = 1;			
+            edge.pedgedet_en = 1;
             edge.nedgedet_en = 0;
             break;
 
         case NEXUS_InputCaptureEdgeSelect_eNegative:
-            edge.pedgedet_en = 0;			
+            edge.pedgedet_en = 0;
             edge.nedgedet_en = 1;
             break;
 
         default:
-            edge.pedgedet_en = 0;			
+            edge.pedgedet_en = 0;
             edge.nedgedet_en = 0;
             break;
     }
@@ -841,7 +840,7 @@ NEXUS_Error NEXUS_InputCapture_SetSettings(
         default:
             filter.clk_sel = 0;
             break;
-            
+
         case NEXUS_InputCaptureFilterClockSelect_eSystemClock:
             filter.clk_sel = 1;
             break;

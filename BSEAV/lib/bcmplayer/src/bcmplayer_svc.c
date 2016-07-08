@@ -257,7 +257,7 @@ static int BNAV_Player_P_SVC_GetNextPlayEntry_Play(BNAV_Player_SVC_HandleImpl *p
         }
     }
     player->currentIndex = index;
-    BDBG_MSG(("play:%#lx data %lu:%u", (unsigned long)player, (unsigned)player->currentOffset, (unsigned)(targetOffset - player->currentOffset)));
+    BDBG_MSG(("play:%p data %lu:%u", (void *)player, (unsigned long)player->currentOffset, (unsigned)(targetOffset - player->currentOffset)));
     rc = BNAV_Player_AddSimpleData(player->parent, player->currentOffset, targetOffset - player->currentOffset);
     if(rc!=0) {return BNAV_SVC_TRACE(rc);}
     player->currentOffset = targetOffset;
@@ -276,11 +276,11 @@ static int BNAV_Player_P_SVC_PopulateFifo_Frame(BNAV_Player_SVC_HandleImpl *play
         if(rc!=0) {rc=BNAV_SVC_TRACE(rc);goto error;}
     }
 
-    BDBG_MSG(("BNAV_Player_P_SVC_PopulateFifo_Frame:%#lx %#x DONE %ld", (unsigned long)player, target_pid->pid));
+    BDBG_MSG(("BNAV_Player_P_SVC_PopulateFifo_Frame:%p %#x DONE", (void *)player, target_pid->pid));
     return 0;
 
 error:
-    BDBG_MSG(("BNAV_Player_P_SVC_PopulateFifo_Frame:%#lx %#x ERROR %ld", (unsigned long)player, target_pid->pid));
+    BDBG_MSG(("BNAV_Player_P_SVC_PopulateFifo_Frame:%p %#x ERROR", (void *)player, target_pid->pid));
     return rc;
 }
 
@@ -331,7 +331,7 @@ static int BNAV_Player_P_SVC_PopulateFifo_Trick(BNAV_Player_SVC_HandleImpl *play
     base_target = base_state.currentIndex;
     ext_target = ext_state.currentIndex;
     BSTD_UNUSED(ext_target);
-    BDBG_MSG(("BNAV_Player_P_SVC_PopulateFifo_Trick:%#lx base %u ext %u", (unsigned long)player,  base_state.currentIndex, ext_state.currentIndex));
+    BDBG_MSG(("BNAV_Player_P_SVC_PopulateFifo_Trick:%p base %u ext %u", (void *)player,  (unsigned)base_state.currentIndex, (unsigned)ext_state.currentIndex));
 
     player->currentIndex = base_target;
     rc = BNAV_Player_P_SVC_PopulateFifo_Frame(player, entry, base_pid, base_state.currentIndex);
@@ -501,7 +501,7 @@ int BNAV_Player_SVC_GetPositionInformation(BNAV_Player_SVC_HandleImpl *player, l
             break;
         }
     }
-    BDBG_MSG(("BNAV_Player_SVC_GetPositionInformation:%#lx found %ld:%ld %u:%u:%u", (unsigned long)player, index, position->index, (unsigned)position->offsetLo, position->pts, position->timestamp));
+    BDBG_MSG(("BNAV_Player_SVC_GetPositionInformation:%p found %ld:%ld %u:%u:%u", (void *)player, index, position->index, (unsigned)position->offsetLo, (unsigned)position->pts, (unsigned)position->timestamp));
 
     return 0;
 }

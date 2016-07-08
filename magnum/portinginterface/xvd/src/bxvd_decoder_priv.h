@@ -110,6 +110,9 @@ typedef struct BXVD_Decoder_P_PictureContextQueue
    uint32_t uiDeliveryQWriteOffset0Based;
    uint32_t uiDeliveryQReadOffset0Based;
 
+   /* SWSTB-788: calculate the number of pictures on the delivery queue.*/
+   uint32_t uiPictureCountDeliveryQueue;
+
    BXVD_Decoder_P_PictureContext    astPictureContext[ BXVD_P_MAX_ELEMENTS_IN_DISPLAY_QUEUE ];
 
 } BXVD_Decoder_P_PictureContextQueue;
@@ -286,6 +289,22 @@ BERR_Code
 BXVD_Decoder_P_ComputeAspectRatio_isr(
          BXVD_P_PPB * pPPB,
          BXDM_Picture * pstXdmPicture
+         );
+
+/* SWSTB-788: move the calculation of the Delivery Queue depth from BXVD_GetChannelStatus_isr to
+ * the XVD Decoder logic. BXVD_Decoder_P_GetStatus_isr() provides a method of retrieving the depth. */
+
+typedef struct BXVD_Decoder_P_Status
+{
+   uint32_t uiPictureCountUnifiedQueue;   /* The number of pictures on the Unified Picture Queue. */
+   uint32_t uiPictureCountDeliveryQueue;  /* The number of pictures on the Delivery Queue. For multi-picture protocols,
+                                           * this will be the count of pairs of pictures, not the number of PPB's.*/
+} BXVD_Decoder_P_Status;
+
+BERR_Code
+BXVD_Decoder_P_GetStatus_isr(
+         BXVD_ChannelHandle hXvdCh,
+         BXVD_Decoder_P_Status * pstStatus
          );
 
 #ifdef __cplusplus

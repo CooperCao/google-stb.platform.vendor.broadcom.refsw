@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2012 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,15 +34,6 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* Revision History:
-*
-* $brcm_Log: $
-* 
 ***************************************************************************/
 
 #include "nexus_audio_module.h"
@@ -244,6 +235,15 @@ NEXUS_Error NEXUS_AudioEncoder_SetSettings(
     return BERR_SUCCESS;
 }
 
+
+void NEXUS_AudioEncoder_GetDefaultCodecSettings(
+    NEXUS_AudioCodec codec, /* the codec for which you are retrieving settings. */
+    NEXUS_AudioEncoderCodecSettings *pSettings    /* [out] Settings */
+    )
+{
+    BSTD_UNUSED(codec);
+    BSTD_UNUSED(pSettings);
+}
 
 /***************************************************************************
 Summary:
@@ -475,4 +475,3 @@ BRAP_ProcessingStageHandle NEXUS_AudioEncoder_P_GetStageHandle(NEXUS_AudioEncode
         
     return handle->stage;
 }
-

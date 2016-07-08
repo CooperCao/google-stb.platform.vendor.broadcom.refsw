@@ -1,43 +1,39 @@
 /******************************************************************************
- * (c) 2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 
 #include "b_os_lib.h"
@@ -98,15 +94,15 @@ static void printStreamerStatus(
         nrc = NEXUS_Playback_GetStatus( hStreamer->hPlayback, &pbStatus );
         BIP_CHECK_GOTO((nrc==NEXUS_SUCCESS), ( "NEXUS_Playback_GetStatus() failed" ), error_play, nrc, nrc );
 
-        BDBG_WRN(( "PB: state=%s fifo=%u/%u played=%lld dataErrors=%d indexErrors=%d posFirst=%d posLast=%d posRead=%d posCurrent=%d",
+        BDBG_WRN(( "PB: state=%s fifo=%u/%u played=%ju dataErrors=%d indexErrors=%d posFirst=%d posLast=%d posRead=%d posCurrent=%d",
                     pbStatus.state == NEXUS_PlaybackState_eStopped ? "Stopped":
                     pbStatus.state == NEXUS_PlaybackState_ePlaying ? "Playing":
                     pbStatus.state == NEXUS_PlaybackState_ePaused ? "Paused":
                     pbStatus.state == NEXUS_PlaybackState_eTrickMode ? "Trickmode":
                     pbStatus.state == NEXUS_PlaybackState_eAborted ? "Aborted": "Unknown",
                     pbStatus.fifoDepth, pbStatus.fifoSize,
-                    pbStatus.bytesPlayed, pbStatus.dataErrors, pbStatus.indexErrors,
-                    pbStatus.first, pbStatus.last, pbStatus.readPosition, pbStatus.position
+                    (uintmax_t)pbStatus.bytesPlayed, pbStatus.dataErrors, pbStatus.indexErrors,
+                    (int)pbStatus.first, (int)pbStatus.last, (int)pbStatus.readPosition, (int)pbStatus.position
                  ));
         nrc = NEXUS_Playpump_GetStatus( hStreamer->hPlaypump, &ppStatus );
         BIP_CHECK_GOTO((nrc==NEXUS_SUCCESS), ( "NEXUS_Playpump_GetStatus() failed" ), error_play, nrc, nrc );
@@ -125,7 +121,7 @@ error_play:
         nrc = NEXUS_Recpump_GetStatus( hStreamer->hRecpump, &recStatus );
         BIP_CHECK_GOTO((nrc==NEXUS_SUCCESS), ( "NEXUS_Recpump_GetStatus() failed" ), error_rec, nrc, nrc );
 
-        BDBG_WRN(( "RP: state=%s dataFifo=%u/%u indexFifo=%u/%u hasIdx=%s raveIdx=%d",
+        BDBG_WRN(( "RP: state=%s dataFifo=%zu / %zu indexFifo=%zu/%zu hasIdx=%s raveIdx=%d",
                     recStatus.started?"Started":"Stopped",
                     recStatus.data.fifoDepth, recStatus.data.fifoSize,
                     recStatus.index.fifoDepth, recStatus.index.fifoSize,
@@ -154,8 +150,8 @@ error_rec:
             BDBG_ASSERT( nrc == NEXUS_SUCCESS );
             BDBG_WRN(("PidCh: pid=0x%x hwIndex=%u transportType=%u enabled=%s playback=%s pbIdx=%u parserBandIdx=%u ccErrs=%u",
                         pidStatus.pid, pidStatus.pidChannelIndex,
-                        pidStatus.transportType, pidStatus.enabled?"Y":"N",
-                        pidStatus.playback?"Y":"N", pidStatus.playbackIndex,
+                        (unsigned)pidStatus.transportType, pidStatus.enabled?"Y":"N",
+                        pidStatus.playback?"Y":"N", pidStatus.playbackIndex,pidStatus.parserBand,
                         pidStatus.continuityCountErrors
                         ));
             BDBG_WRN(("PidChRave: ccErrs=%u cdbOverflowErrors=%u itbOverflowErrors=%u emulationByteRemovalErrors=%u teiErrors=%u pusiErrors=%u xcBufOverflowErrors=%u",
@@ -223,7 +219,7 @@ static BIP_Status addTrackToList(
             hTrackEntry->streamerTrackInfo = *pStreamerTrackInfo;
             hTrackEntry->hPidChannel = NULL;    /* allocated during Start API. */
             BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer %p: Duplicate entry: (trackId 0x%x, type %d) for inputType %d is replaced!"
-                        BIP_MSG_PRE_ARG, hStreamer, pStreamerTrackInfo->trackId, pStreamerTrackInfo->type, hStreamer->inputType));
+                        BIP_MSG_PRE_ARG, (void *)hStreamer, pStreamerTrackInfo->trackId, pStreamerTrackInfo->type, hStreamer->inputType));
             bipStatus = BIP_SUCCESS;
             break;
         }
@@ -262,7 +258,7 @@ static BIP_Status addTrackToList(
     if ( hTrackEntry == NULL )
     {
         hTrackEntry = B_Os_Calloc( 1, sizeof(BIP_StreamerTrackListEntry));
-        BIP_CHECK_GOTO(( hTrackEntry != NULL ), ( "Failed to allocate memory (%d bytes) for TrackEntry Object", sizeof(BIP_StreamerTrackListEntry) ),
+        BIP_CHECK_GOTO(( hTrackEntry != NULL ), ( "Failed to allocate memory (%zu bytes) for TrackEntry Object", sizeof(BIP_StreamerTrackListEntry) ),
                 error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, bipStatus );
 
         hTrackEntry->trackSettings = *pTrackSettings;
@@ -279,9 +275,9 @@ static BIP_Status addTrackToList(
         hStreamer->stats.numTracksAdded++;
         hStreamer->track.inputState = BIP_StreamerInputState_eSet;
         BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer %p: (trackId 0x%x, type %d) for inputType %d is added, track.inputState %s, duplicateTrack %s, hTrackEntry %p"
-                    BIP_MSG_PRE_ARG, hStreamer, pStreamerTrackInfo->trackId, pStreamerTrackInfo->type, hStreamer->inputType,
+                    BIP_MSG_PRE_ARG, (void *)hStreamer, pStreamerTrackInfo->trackId, pStreamerTrackInfo->type, hStreamer->inputType,
                     hStreamer->track.inputState == BIP_StreamerInputState_eSet ? "Set":"NotSet",
-                    duplicateTrack ? "Y":"N", hTrackEntry
+                    duplicateTrack ? "Y":"N", (void *)hTrackEntry
                     ));
 
         bipStatus = BIP_SUCCESS;
@@ -317,7 +313,7 @@ bool BIP_Streamer_GetTrackEntry_priv(
             break;
         }
     }
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Streamer %p: track type %d is present %s, hTrackEntry %p" BIP_MSG_PRE_ARG, hStreamer, trackType, hTrackEntry?"Y":"N", hTrackEntry ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Streamer %p: track type %d is present %s, hTrackEntry %p" BIP_MSG_PRE_ARG, (void *)hStreamer, trackType, hTrackEntry?"Y":"N", (void *)hTrackEntry ));
     return ( bipStatus );
 } /* BIP_Streamer_GetTrackEntry_priv */
 
@@ -352,7 +348,7 @@ static BIP_Status addTranscodeProfileToList(
     bool before = false;
 
     pTranscodeProfileEntry = B_Os_Calloc( 1, sizeof(BIP_StreamerTranscodeProfileListEntry));
-    BIP_CHECK_GOTO(( pTranscodeProfileEntry != NULL ), ( "Failed to allocate memory (%d bytes) for TranscodeProfileEntry Object", sizeof(BIP_StreamerTranscodeProfileListEntry) ),
+    BIP_CHECK_GOTO(( pTranscodeProfileEntry != NULL ), ( "Failed to allocate memory (%zu bytes) for TranscodeProfileEntry Object", sizeof(BIP_StreamerTranscodeProfileListEntry) ),
             error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, bipStatus );
 
     pTranscodeProfileEntry->transcodeProfile = *pTranscodeProfile;
@@ -382,7 +378,7 @@ static BIP_Status addTranscodeProfileToList(
         BLST_Q_INSERT_TAIL( &hStreamer->transcode.profileListHead, pTranscodeProfileEntry, transcodeProfileListNext );
     }
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer %p: transcodeProfile added %s" BIP_MSG_PRE_ARG, hStreamer, before?"before the current entry":"at the tail of list" ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer %p: transcodeProfile added %s" BIP_MSG_PRE_ARG, (void *)hStreamer, before?"before the current entry":"at the tail of list" ));
 
     bipStatus = BIP_SUCCESS;
     return bipStatus;
@@ -403,7 +399,7 @@ static BIP_Status removeAndClosePidChannels(
     BIP_Status bipStatus = BIP_SUCCESS;
     BIP_StreamerTrackListEntryHandle hTrackEntry;
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer: %p" BIP_MSG_PRE_ARG, hStreamer ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer: %p" BIP_MSG_PRE_ARG, (void *)hStreamer ));
     for (
          hTrackEntry = BLST_Q_FIRST( &hStreamer->track.listHead);
          hTrackEntry;
@@ -454,7 +450,7 @@ static BIP_Status openPidChannels(
                     BIP_Player_GetDefaultOpenPidChannelSettings(&settings);
                     bipStatus = BIP_Player_OpenPidChannel(hStreamer->ip.hPlayer, hTrackEntry->streamerTrackInfo.trackId, &settings, &hPidChannel);
                     BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS && hPidChannel ), ( "hStreamer %p, state %s: BIP_Player_OpenPidChannel() Failed",
-                                hStreamer, BIP_STREAMER_STATE(hStreamer->state) ), error, BIP_ERR_NOT_AVAILABLE, bipStatus );
+                                (void *)hStreamer, BIP_STREAMER_STATE(hStreamer->state) ), error, BIP_ERR_NOT_AVAILABLE, bipStatus );
 
                     break;
                 }
@@ -462,7 +458,7 @@ static BIP_Status openPidChannels(
                 {
                     hPidChannel = NEXUS_PidChannel_Open( hStreamer->tuner.hParserBand, hTrackEntry->streamerTrackInfo.trackId, &hTrackEntry->trackSettings.pidChannelSettings );
                     BIP_CHECK_GOTO(( hPidChannel ), ( "hStreamer %p, state %s: NEXUS_PidChannel_Open() Failed",
-                                hStreamer, BIP_STREAMER_STATE(hStreamer->state) ), error, BIP_ERR_NOT_AVAILABLE, bipStatus );
+                                (void *)hStreamer, BIP_STREAMER_STATE(hStreamer->state) ), error, BIP_ERR_NOT_AVAILABLE, bipStatus );
 
                     break;
                 }
@@ -484,14 +480,14 @@ static BIP_Status openPidChannels(
                     }
                     hPidChannel = NEXUS_Playback_OpenPidChannel(hStreamer->hPlayback, hTrackEntry->streamerTrackInfo.trackId, &playbackPidSettings);
                     BIP_CHECK_GOTO(( hPidChannel ), ( "hStreamer %p, state %s: NEXUS_PlaybackOpen_PidChannel() Failed",
-                                hStreamer, BIP_STREAMER_STATE(hStreamer->state) ), error, BIP_ERR_NOT_AVAILABLE, bipStatus );
+                                (void *)hStreamer, BIP_STREAMER_STATE(hStreamer->state) ), error, BIP_ERR_NOT_AVAILABLE, bipStatus );
                     break;
                 }
             default:
                 {
                     bipStatus = BIP_ERR_NOT_AVAILABLE;
                     BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "hStreamer %p, state %s: PidChannel from inputType %d is not yet supported!",
-                                hStreamer, BIP_STREAMER_STATE(hStreamer->state), hStreamer->inputType ), error, bipStatus, bipStatus );
+                                (void *)hStreamer, BIP_STREAMER_STATE(hStreamer->state), hStreamer->inputType ), error, bipStatus, bipStatus );
                 }
         } /* switch */
 
@@ -499,7 +495,7 @@ static BIP_Status openPidChannels(
         if ( hPidChannel )
         {
             BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer %p: PidChannel=%p Opened: (trackId 0x%x, type %d) for inputType %d!, hTrackEntry=%p"
-                        BIP_MSG_PRE_ARG, hStreamer, hPidChannel, hTrackEntry->streamerTrackInfo.trackId, hTrackEntry->streamerTrackInfo.type, hStreamer->inputType, hTrackEntry ));
+                        BIP_MSG_PRE_ARG, (void *)hStreamer, (void *)hPidChannel, hTrackEntry->streamerTrackInfo.trackId, hTrackEntry->streamerTrackInfo.type, hStreamer->inputType, (void *)hTrackEntry ));
 
             hTrackEntry->hPidChannel = hPidChannel;
             bipStatus = BIP_SUCCESS;
@@ -538,8 +534,8 @@ static BIP_Status openAllpassPidChannel(
         streamerTrackInfo.trackId = 0;
         streamerTrackInfo.type = BIP_MediaInfoTrackType_eOther;
         bipStatus = addTrackToList( hStreamer, &streamerTrackInfo , &trackSettings);
-        BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "hStreamer %p, addTrackToList failed",
-                    hStreamer, BIP_STREAMER_STATE(hStreamer->state) ), error, BIP_ERR_NOT_AVAILABLE, bipStatus );
+        BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "hStreamer %p, addTrackToList failed state=%s",
+                    (void *)hStreamer, BIP_STREAMER_STATE(hStreamer->state) ), error, BIP_ERR_NOT_AVAILABLE, bipStatus );
     }
 
     switch ( hStreamer->inputType )
@@ -551,7 +547,7 @@ static BIP_Status openAllpassPidChannel(
                 BIP_Player_GetDefaultOpenPidChannelSettings(&settings);
                 bipStatus = BIP_Player_OpenPidChannel(hStreamer->ip.hPlayer, 0/* NA for allPass case*/, &settings, &hPidChannel);
                 BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS && hPidChannel ), ( "hStreamer %p, state %s: BIP_Player_OpenPidChannel() Failed",
-                            hStreamer, BIP_STREAMER_STATE(hStreamer->state) ), error, BIP_ERR_NOT_AVAILABLE, bipStatus );
+                            (void *)hStreamer, BIP_STREAMER_STATE(hStreamer->state) ), error, BIP_ERR_NOT_AVAILABLE, bipStatus );
 
                 break;
             }
@@ -591,7 +587,7 @@ static BIP_Status openAllpassPidChannel(
             {
                 bipStatus = BIP_ERR_NOT_AVAILABLE;
                 BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "hStreamer %p, state %s: PidChannel from inputType %d is not yet supported!",
-                            hStreamer, BIP_STREAMER_STATE(hStreamer->state), hStreamer->inputType ), error, bipStatus, bipStatus );
+                            (void *)hStreamer, BIP_STREAMER_STATE(hStreamer->state), hStreamer->inputType ), error, bipStatus, bipStatus );
             }
     } /* switch */
 
@@ -600,7 +596,7 @@ static BIP_Status openAllpassPidChannel(
     {
         hTrackEntry = BLST_Q_FIRST( &hStreamer->track.listHead);
         hTrackEntry->hPidChannel = hPidChannel;
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer %p: AllPass PidChannel=%p Opened for inputType %d!, hTrackEntry=%p" BIP_MSG_PRE_ARG, hStreamer, hPidChannel, hStreamer->inputType, hTrackEntry ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer %p: AllPass PidChannel=%p Opened for inputType %d!, hTrackEntry=%p" BIP_MSG_PRE_ARG, (void *)hStreamer, (void *)hPidChannel, hStreamer->inputType, (void *)hTrackEntry ));
         bipStatus = BIP_SUCCESS;
     }
     return (bipStatus);
@@ -641,11 +637,11 @@ static BIP_Status addPidChannelToRecpump(
         }
         nrc = NEXUS_Recpump_AddPidChannel( hStreamer->hRecpump, hTrackEntry->hPidChannel, &hTrackEntry->trackSettings.recpumpPidChannelSettings );
         BIP_CHECK_GOTO(( nrc == NEXUS_SUCCESS ), ( "hStreamer %p, state %s: NEXUS_Recpump_AddPidChannel() Failed, nrc %d",
-                    hStreamer, BIP_STREAMER_STATE(hStreamer->state), nrc ), error, BIP_ERR_INTERNAL, bipStatus );
+                    (void *)hStreamer, BIP_STREAMER_STATE(hStreamer->state), nrc ), error, BIP_ERR_INTERNAL, bipStatus );
         hTrackEntry->pidChannelAddedToRecpump = true;
 
         BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer %p: PidChannel=%p Added: (trackId 0x%x, type %d) for inputType %d!, hTrackEntry=%p"
-                    BIP_MSG_PRE_ARG, hStreamer, hTrackEntry->hPidChannel, hTrackEntry->streamerTrackInfo.trackId, hTrackEntry->streamerTrackInfo.type, hStreamer->inputType, hTrackEntry ));
+                    BIP_MSG_PRE_ARG, (void *)hStreamer, (void *)hTrackEntry->hPidChannel, hTrackEntry->streamerTrackInfo.trackId, hTrackEntry->streamerTrackInfo.type, hStreamer->inputType, (void *)hTrackEntry ));
 
         bipStatus = BIP_SUCCESS;
     }
@@ -665,7 +661,7 @@ static void closeNexusRecpump(
         hStreamer->openedRecpump = false;
     }
     hStreamer->hRecpump = NULL;
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer %p: Done" BIP_MSG_PRE_ARG, hStreamer ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer %p: Done" BIP_MSG_PRE_ARG, (void *)hStreamer ));
 } /* closeNexusRecpump */
 
 static BIP_Status openNexusRecpump(
@@ -725,7 +721,7 @@ static void closeNexusPlayback(
     if ( hStreamer->hFilePlay ) NEXUS_FilePlay_Close( hStreamer->hFilePlay );
     hStreamer->hFilePlay = NULL;
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer %p: Done" BIP_MSG_PRE_ARG, hStreamer ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer %p: Done" BIP_MSG_PRE_ARG, (void *)hStreamer ));
 } /* closeNexusPlayback */
 
 static BIP_Status openNexusPlayback(
@@ -756,7 +752,7 @@ static BIP_Status openNexusPlayback(
                 hTrackEntry->hMediaNavFileAbsolutePathName )
         {
             navFile = BIP_String_GetString( hTrackEntry->hMediaNavFileAbsolutePathName );
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer %p: nag file: %s" BIP_MSG_PRE_ARG, hStreamer, navFile ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer %p: nag file: %s" BIP_MSG_PRE_ARG, (void *)hStreamer, navFile ));
         }
 
         hStreamer->hPlayback = NEXUS_Playback_Create();
@@ -806,7 +802,7 @@ static BIP_Status openNexusPlayback(
         bipStatus = BIP_SUCCESS;
     }
     BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer %p: Nexus Playpump, Playback are Setup for transportType %d, input file: %s" BIP_MSG_PRE_ARG,
-                hStreamer, hStreamer->streamerStreamInfo.transportType, BIP_String_GetString(hStreamer->file.hMediaFileAbsolutePathName) ));
+                (void *)hStreamer, hStreamer->streamerStreamInfo.transportType, BIP_String_GetString(hStreamer->file.hMediaFileAbsolutePathName) ));
     return bipStatus;
 
 error:
@@ -826,7 +822,7 @@ static BIP_Status openNexusPlaybackAndRecpump(
     bipStatus = openNexusPlayback( hStreamer );
     BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "openNexusPlayback Failed!" ), error, bipStatus, bipStatus );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer %p: Done" BIP_MSG_PRE_ARG, hStreamer ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer %p: Done" BIP_MSG_PRE_ARG, (void *)hStreamer ));
     return BIP_SUCCESS;
 
 error:
@@ -889,7 +885,7 @@ static void resetStreamerState(
 
     resetStreamerFileInputState(hStreamer);
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer %p: Done" BIP_MSG_PRE_ARG, hStreamer ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer %p: Done" BIP_MSG_PRE_ARG, (void *)hStreamer ));
 } /* resetStreamerState */
 
 static void closeNexusResources(
@@ -936,7 +932,7 @@ static BIP_Status stopAndUnPrepare(
 
     bipStatus = BIP_SUCCESS;
 
-    BDBG_MSG((BIP_MSG_PRE_FMT "hStreamer %p: Done!" BIP_MSG_PRE_ARG, hStreamer ));
+    BDBG_MSG((BIP_MSG_PRE_FMT "hStreamer %p: Done!" BIP_MSG_PRE_ARG, (void *)hStreamer ));
     return (bipStatus);
 
 } /* stopAndUnPrepare */
@@ -1009,7 +1005,7 @@ static BIP_Status startNexusRecpump(
     nrc = NEXUS_Recpump_Start( hStreamer->hRecpump);
     BIP_CHECK_GOTO(( !nrc ), ( "NEXUS_Recpump_Start Failed!" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer %p: NEXUS_Recpump is started!" BIP_MSG_PRE_ARG, hStreamer));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer %p: NEXUS_Recpump is started!" BIP_MSG_PRE_ARG, (void *)hStreamer));
     bipStatus = BIP_SUCCESS;
 
 error:
@@ -1051,7 +1047,7 @@ static BIP_Status startNexusPlayback(
         playbackSettings.playpumpSettings.timestamp.parityCheckDisable = true;
         playbackSettings.playpumpSettings.maxDataRate = (16*1024*1024);
 #endif
-        BDBG_MSG((BIP_MSG_PRE_FMT "hStreamer %p: PlaybackSettings: pacingMaxError %d, PCR# %d, PlaySpeed %d" BIP_MSG_PRE_ARG, hStreamer,
+        BDBG_MSG((BIP_MSG_PRE_FMT "hStreamer %p: PlaybackSettings: pacingMaxError %d, PCR# %d, PlaySpeed %d" BIP_MSG_PRE_ARG, (void *)hStreamer,
                     playbackSettings.playpumpSettings.timestamp.pacingMaxError,
                     playbackSettings.playpumpSettings.timestamp.pcrPacingPid, playSpeed));
     }
@@ -1096,7 +1092,7 @@ static BIP_Status startNexusPlayback(
     }
 
     bipStatus = BIP_SUCCESS;
-    BDBG_WRN(( BIP_MSG_PRE_FMT "hStreamer %p: Playback from inputType %d Started: playSpeed=%d seekPositionInMs=%u" BIP_MSG_PRE_ARG, hStreamer, hStreamer->inputType, playSpeed, seekPositionInMs ));
+    BDBG_WRN(( BIP_MSG_PRE_FMT "hStreamer %p: Playback from inputType %d Started: playSpeed=%d seekPositionInMs=%u" BIP_MSG_PRE_ARG, (void *)hStreamer, hStreamer->inputType, playSpeed, seekPositionInMs ));
 
 error:
     return ( bipStatus );
@@ -1176,7 +1172,7 @@ static BIP_Status prepareTranscode(
             }
             else
             {
-                BDBG_ERR(( BIP_MSG_PRE_FMT "hStreamer %p: Video Type Track is not found, its needed transcode profile enables the video output. " BIP_MSG_PRE_ARG, hStreamer ));
+                BDBG_ERR(( BIP_MSG_PRE_FMT "hStreamer %p: Video Type Track is not found, its needed transcode profile enables the video output. " BIP_MSG_PRE_ARG, (void *)hStreamer ));
             }
         }
 
@@ -1196,13 +1192,13 @@ static BIP_Status prepareTranscode(
             {
                 if ( videoEnabled )
                 {
-                    BDBG_WRN(( BIP_MSG_PRE_FMT "hStreamer %p: Audio Track is not found, even thought transcode profile enables audio, ignoring it!! " BIP_MSG_PRE_ARG, hStreamer ));
+                    BDBG_WRN(( BIP_MSG_PRE_FMT "hStreamer %p: Audio Track is not found, even thought transcode profile enables audio, ignoring it!! " BIP_MSG_PRE_ARG, (void *)hStreamer ));
                     pTranscodeProfile->disableAudio = true;
                     bipStatus = BIP_SUCCESS;
                 }
                 else
                 {
-                    BDBG_ERR(( BIP_MSG_PRE_FMT "hStreamer %p: Audio Type Track is not found, its needed transcode profile enables the audio output. " BIP_MSG_PRE_ARG, hStreamer ));
+                    BDBG_ERR(( BIP_MSG_PRE_FMT "hStreamer %p: Audio Type Track is not found, its needed transcode profile enables the audio output. " BIP_MSG_PRE_ARG, (void *)hStreamer ));
                 }
             }
         }
@@ -1233,7 +1229,7 @@ static BIP_Status prepareTranscode(
             }
             else
             {
-                BDBG_ERR(( BIP_MSG_PRE_FMT "hStreamer %p: PCR Type Track is not found, its needed for enabling transcode from Tuner input. " BIP_MSG_PRE_ARG, hStreamer ));
+                BDBG_ERR(( BIP_MSG_PRE_FMT "hStreamer %p: PCR Type Track is not found, its needed for enabling transcode from Tuner input. " BIP_MSG_PRE_ARG, (void *)hStreamer ));
             }
         }
 
@@ -1277,7 +1273,7 @@ static BIP_Status prepareTranscode(
         hStreamer->transcode.hTranscode = NULL;
     }
     BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer %p: state %s: BIP_Transcode_Prepare is completed, transcode.hTranscode=%p bipStatus = %s"
-                BIP_MSG_PRE_ARG, hStreamer, BIP_STREAMER_STATE(hStreamer->state), hStreamer->transcode.hTranscode, BIP_StatusGetText(bipStatus) ));
+                BIP_MSG_PRE_ARG, (void *)hStreamer, BIP_STREAMER_STATE(hStreamer->state), (void *)hStreamer->transcode.hTranscode, BIP_StatusGetText(bipStatus) ));
     return ( bipStatus );
 } /* prepareTranscode */
 
@@ -1291,14 +1287,14 @@ static BIP_Status updateStreamerSettings(
 
     if ( pSettings->pTranscodeProfile )
     {
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer=%p state=%s: videoBitRate from profiles: cur=%u new=%u, cmpSize=%d"
-                    BIP_MSG_PRE_ARG, hStreamer, BIP_STREAMER_STATE(hStreamer->state), hStreamer->transcode.profile.video.settings.bitrateMax, pSettings->pTranscodeProfile->video.settings.bitrateMax, sizeof(BIP_TranscodeProfile) ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer=%p state=%s: videoBitRate from profiles: cur=%u new=%u, cmpSize=%zu"
+                    BIP_MSG_PRE_ARG, (void *)hStreamer, BIP_STREAMER_STATE(hStreamer->state), hStreamer->transcode.profile.video.settings.bitrateMax, pSettings->pTranscodeProfile->video.settings.bitrateMax, sizeof(BIP_TranscodeProfile) ));
         if ( BKNI_Memcmp( pSettings->pTranscodeProfile, &hStreamer->transcode.profile, sizeof(BIP_TranscodeProfile) ) != 0 )
         {
             /* Provided transcode profiles are different, so use this one. */
             hStreamer->transcode.profile = *pSettings->pTranscodeProfile;
             updateTranscodeProfile = true;
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer=%p: transcodeProfile updated!" BIP_MSG_PRE_ARG, hStreamer ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer=%p: transcodeProfile updated!" BIP_MSG_PRE_ARG, (void *)hStreamer ));
         }
     }
 
@@ -1308,7 +1304,7 @@ static BIP_Status updateStreamerSettings(
 
         /* Seek requires us to flush the pipe. We Stop & Start the Playback & Recpump here. */
         /* and then notify the Transcode object to flush the Decoders & Encoder via the SetSettings. */
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer=%p: seekPositionInMs=%u" BIP_MSG_PRE_ARG, hStreamer, pSettings->seekPositionInMs ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer=%p: seekPositionInMs=%u" BIP_MSG_PRE_ARG, (void *)hStreamer, pSettings->seekPositionInMs ));
 
         /* Stop the Producer & Consumer. */
         /* Note: little risk about stopping Recpump before Encoders, so may need to consider moving this to the Transcode object. */
@@ -1319,7 +1315,7 @@ static BIP_Status updateStreamerSettings(
             /* until decoders & encoders are stopped. There may still be some data in the pipe. */
             NEXUS_Recpump_Stop( hStreamer->hRecpump );
 #endif
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer=%p: Playback & Recpump are stopped!" BIP_MSG_PRE_ARG, hStreamer ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer=%p: Playback & Recpump are stopped!" BIP_MSG_PRE_ARG, (void *)hStreamer ));
         }
 
         /* Notify Transcode object to flush its pipe and restart. */
@@ -1356,7 +1352,7 @@ static BIP_Status updateStreamerSettings(
     {
         BIP_TranscodeSettings transcodeSettings;
 
-        BDBG_ERR(( BIP_MSG_PRE_FMT "hStreamer=%p: Update transcodeProfile!" BIP_MSG_PRE_ARG, hStreamer ));
+        BDBG_ERR(( BIP_MSG_PRE_FMT "hStreamer=%p: Update transcodeProfile!" BIP_MSG_PRE_ARG, (void *)hStreamer ));
 
         transcodeSettings.pTranscodeProfile = NULL;
         BIP_Transcode_GetSettings( hStreamer->transcode.hTranscode, &transcodeSettings );
@@ -1373,7 +1369,7 @@ static BIP_Status updateStreamerSettings(
     }
 
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer=%p: StreamerSettings are updated: bipStatus=%s" BIP_MSG_PRE_ARG, hStreamer, BIP_StatusGetText( bipStatus ) ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer=%p: StreamerSettings are updated: bipStatus=%s" BIP_MSG_PRE_ARG, (void *)hStreamer, BIP_StatusGetText( bipStatus ) ));
 
     return ( bipStatus );
 } /* updateStreamerSettings */
@@ -1420,7 +1416,7 @@ static BIP_Status prepareStreamerForRecpumpInput(
     {
         hStreamer->state = BIP_StreamerState_ePrepared;
         BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer %p: state %s: Nexus Resources are successfully prepared. "
-                    BIP_MSG_PRE_ARG, hStreamer, BIP_STREAMER_STATE(hStreamer->state) ));
+                    BIP_MSG_PRE_ARG, (void *)hStreamer, BIP_STREAMER_STATE(hStreamer->state) ));
     }
 
     return ( bipStatus );
@@ -1506,7 +1502,7 @@ static BIP_Status prepareStreamerForTunerInput(
     {
         hStreamer->state = BIP_StreamerState_ePrepared;
         BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer %p: state %s: Nexus Resources are successfully prepared. "
-                    BIP_MSG_PRE_ARG, hStreamer, BIP_STREAMER_STATE(hStreamer->state) ));
+                    BIP_MSG_PRE_ARG, (void *)hStreamer, BIP_STREAMER_STATE(hStreamer->state) ));
     }
     else
     {
@@ -1626,12 +1622,12 @@ static BIP_Status prepareStreamerForIpInput(
     {
         hStreamer->state = BIP_StreamerState_ePrepared;
         BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer %p: state %s: Nexus Resources are successfully prepared. "
-                    BIP_MSG_PRE_ARG, hStreamer, BIP_STREAMER_STATE(hStreamer->state) ));
+                    BIP_MSG_PRE_ARG, (void *)hStreamer, BIP_STREAMER_STATE(hStreamer->state) ));
     }
     else
     {
         BDBG_ERR(( BIP_MSG_PRE_FMT "hStreamer %p: state %s: Failed to prepare BIP & Nexus Resources."
-                    BIP_MSG_PRE_ARG, hStreamer, BIP_STREAMER_STATE(hStreamer->state) ));
+                    BIP_MSG_PRE_ARG, (void *)hStreamer, BIP_STREAMER_STATE(hStreamer->state) ));
         if ( hStreamer->transcode.profileState == BIP_StreamerOutputState_eSet && hStreamer->transcode.hTranscode )
         {
             BIP_Transcode_Stop( hStreamer->transcode.hTranscode );
@@ -1802,7 +1798,7 @@ static BIP_Status prepareStreamerForFileInput(
     {
         hStreamer->state = BIP_StreamerState_ePrepared;
         BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer %p: state %s: Nexus Resources are successfully prepared. "
-                    BIP_MSG_PRE_ARG, hStreamer, BIP_STREAMER_STATE(hStreamer->state) ));
+                    BIP_MSG_PRE_ARG, (void *)hStreamer, BIP_STREAMER_STATE(hStreamer->state) ));
     }
     else
     {
@@ -1851,7 +1847,7 @@ void processStreamerState(
 
     B_Mutex_Lock( hStreamer->hStateMutex );
     BDBG_MSG(( BIP_MSG_PRE_FMT "ENTRY ---> hStreamer %p: state %s"
-                BIP_MSG_PRE_ARG, hStreamer, BIP_STREAMER_STATE(hStreamer->state) ));
+                BIP_MSG_PRE_ARG, (void *)hStreamer, BIP_STREAMER_STATE(hStreamer->state) ));
 
     if (BIP_Arb_IsNew(hArb = hStreamer->getSettingsApi.hArb))
     {
@@ -1866,7 +1862,7 @@ void processStreamerState(
         /* We are done this API Arb, so set its completion status. */
         hStreamer->completionStatus = BIP_SUCCESS;
         BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer %p: GetSettings Arb request is complete: state %s!"
-                    BIP_MSG_PRE_ARG, hStreamer, BIP_STREAMER_STATE(hStreamer->state) ));
+                    BIP_MSG_PRE_ARG, (void *)hStreamer, BIP_STREAMER_STATE(hStreamer->state) ));
         BIP_Arb_CompleteRequest( hArb, hStreamer->completionStatus);
     }
     else if (BIP_Arb_IsNew(hArb = hStreamer->getStatusApi.hArb))
@@ -1880,7 +1876,7 @@ void processStreamerState(
         /* We are done this API Arb, so set its completion status. */
         hStreamer->completionStatus = BIP_SUCCESS;
         BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer %p: GetStatus Arb request is complete: state %s!"
-                    BIP_MSG_PRE_ARG, hStreamer, BIP_STREAMER_STATE(hStreamer->state) ));
+                    BIP_MSG_PRE_ARG, (void *)hStreamer, BIP_STREAMER_STATE(hStreamer->state) ));
         BIP_Arb_CompleteRequest( hArb, hStreamer->completionStatus);
     }
     else if (BIP_Arb_IsNew(hArb = hStreamer->printStatusApi.hArb))
@@ -1894,7 +1890,7 @@ void processStreamerState(
 
         hStreamer->completionStatus = BIP_SUCCESS;
         BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer %p: printStatus Arb request is complete: state %s!"
-                    BIP_MSG_PRE_ARG, hStreamer, BIP_STREAMER_STATE(hStreamer->state) ));
+                    BIP_MSG_PRE_ARG, (void *)hStreamer, BIP_STREAMER_STATE(hStreamer->state) ));
         BIP_Arb_CompleteRequest( hArb, hStreamer->completionStatus);
     }
     else if (BIP_Arb_IsNew(hArb = hStreamer->setSettingsApi.hArb))
@@ -1904,7 +1900,7 @@ void processStreamerState(
         hStreamer->completionStatus = updateStreamerSettings( hStreamer, hStreamer->setSettingsApi.pSettings );
 
         BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer %p: SetSettings Arb request is complete : state %s, status=%s"
-                    BIP_MSG_PRE_ARG, hStreamer, BIP_STREAMER_STATE(hStreamer->state), BIP_StatusGetText( hStreamer->completionStatus ) ));
+                    BIP_MSG_PRE_ARG, (void *)hStreamer, BIP_STREAMER_STATE(hStreamer->state), BIP_StatusGetText( hStreamer->completionStatus ) ));
         BIP_Arb_CompleteRequest( hArb, hStreamer->completionStatus);
     }
     else if (BIP_Arb_IsNew(hArb = hStreamer->fileInputSettingsApi.hArb))
@@ -1915,7 +1911,7 @@ void processStreamerState(
         if (hStreamer->state != BIP_StreamerState_eIdle)
         {
             BDBG_ERR(( BIP_MSG_PRE_FMT "hStreamer %p: Calling BIP_Arb_RejectRequest(): BIP_Streamer_SetFileInputSettings not allowed in this state: %s, Streamer must be in the Idle state"
-                        BIP_MSG_PRE_ARG, hStreamer, BIP_STREAMER_STATE(hStreamer->state)));
+                        BIP_MSG_PRE_ARG, (void *)hStreamer, BIP_STREAMER_STATE(hStreamer->state)));
 
             hStreamer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, hStreamer->completionStatus);
@@ -1923,8 +1919,8 @@ void processStreamerState(
         /* Do detailed fileInputSettings validation. */
         else if ( pSettings->endByteOffset > 0 && pSettings->endByteOffset <= pSettings->beginByteOffset )
         {
-            BDBG_ERR(( BIP_MSG_PRE_FMT "hStreamer %p: Incorrect byte offset values: begin=%lld end=%lld"
-                        BIP_MSG_PRE_ARG, hStreamer, pSettings->beginByteOffset, pSettings->endByteOffset ));
+            BDBG_ERR(( BIP_MSG_PRE_FMT "hStreamer %p: Incorrect byte offset values: begin=%"PRId64 " end=%"PRId64
+                        BIP_MSG_PRE_ARG, (void *)hStreamer, pSettings->beginByteOffset, pSettings->endByteOffset ));
             hStreamer->completionStatus = BIP_ERR_INVALID_PARAMETER;
             BIP_Arb_RejectRequest(hArb, hStreamer->completionStatus);
         }
@@ -1950,7 +1946,7 @@ void processStreamerState(
                 hStreamer->completionStatus = BIP_SUCCESS;
 
                 BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer %p: state %s: FileInputSettings: filePath %s, transportType %d, pacing %s, speed %s"
-                            BIP_MSG_PRE_ARG, hStreamer, BIP_STREAMER_STATE(hStreamer->state),
+                            BIP_MSG_PRE_ARG, (void *)hStreamer, BIP_STREAMER_STATE(hStreamer->state),
                             BIP_String_GetString( hStreamer->file.hMediaFileAbsolutePathName ),
                             hStreamer->streamerStreamInfo.transportType,
                             hStreamer->file.inputSettings.enableHwPacing ? "Y" : "N",
@@ -1962,7 +1958,7 @@ void processStreamerState(
                 /* BIP_String_Create* would have failed above, so set the status to indicate that. */
                 hStreamer->completionStatus = BIP_ERR_OUT_OF_SYSTEM_MEMORY;
                 BDBG_ERR(( BIP_MSG_PRE_FMT "hStreamer %p: state %s: BIP_String_Create Failed for FileInput params"
-                            BIP_MSG_PRE_ARG, hStreamer, BIP_STREAMER_STATE(hStreamer->state)));
+                            BIP_MSG_PRE_ARG, (void *)hStreamer, BIP_STREAMER_STATE(hStreamer->state)));
                 resetStreamerFileInputState( hStreamer );
             }
             BIP_Arb_CompleteRequest( hArb, hStreamer->completionStatus );
@@ -1973,7 +1969,7 @@ void processStreamerState(
         if (hStreamer->state != BIP_StreamerState_eIdle)
         {
             BDBG_ERR(( BIP_MSG_PRE_FMT "hStreamer %p: Calling BIP_Arb_RejectRequest(): BIP_Streamer_SetTunerInputSettings not allowed in this state: %s, Streamer must be in the Idle state"
-                        BIP_MSG_PRE_ARG, hStreamer, BIP_STREAMER_STATE(hStreamer->state)));
+                        BIP_MSG_PRE_ARG, (void *)hStreamer, BIP_STREAMER_STATE(hStreamer->state)));
             hStreamer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, hStreamer->completionStatus);
         }
@@ -1996,7 +1992,7 @@ void processStreamerState(
             hStreamer->completionStatus = BIP_SUCCESS;
 
             BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer %p: state %s: pTunerInputSettings: parserBand %p"
-                        BIP_MSG_PRE_ARG, hStreamer, BIP_STREAMER_STATE(hStreamer->state), hStreamer->tuner.hParserBand
+                        BIP_MSG_PRE_ARG, (void *)hStreamer, BIP_STREAMER_STATE(hStreamer->state), (void *)hStreamer->tuner.hParserBand
                      ));
             BIP_Arb_CompleteRequest( hArb, hStreamer->completionStatus );
         }
@@ -2006,7 +2002,7 @@ void processStreamerState(
         if (hStreamer->state != BIP_StreamerState_eIdle)
         {
             BDBG_ERR(( BIP_MSG_PRE_FMT "hStreamer %p: Calling BIP_Arb_RejectRequest(): BIP_Streamer_SetIpInputSettings not allowed in this state: %s, Streamer must be in the Idle state"
-                        BIP_MSG_PRE_ARG, hStreamer, BIP_STREAMER_STATE(hStreamer->state)));
+                        BIP_MSG_PRE_ARG, (void *)hStreamer, BIP_STREAMER_STATE(hStreamer->state)));
             hStreamer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, hStreamer->completionStatus);
         }
@@ -2029,7 +2025,7 @@ void processStreamerState(
             hStreamer->completionStatus = BIP_SUCCESS;
 
             BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer %p: state %s: pIpInputSettings: hPlayer=%p"
-                        BIP_MSG_PRE_ARG, hStreamer, BIP_STREAMER_STATE(hStreamer->state), hStreamer->ip.hPlayer
+                        BIP_MSG_PRE_ARG, (void *)hStreamer, BIP_STREAMER_STATE(hStreamer->state), (void *)hStreamer->ip.hPlayer
                      ));
             BIP_Arb_CompleteRequest( hArb, hStreamer->completionStatus );
         }
@@ -2039,7 +2035,7 @@ void processStreamerState(
         if (hStreamer->state != BIP_StreamerState_eIdle)
         {
             BDBG_ERR(( BIP_MSG_PRE_FMT "hStreamer %p: Calling BIP_Arb_RejectRequest(): BIP_Streamer_SetRecpumpInputSettings not allowed in this state: %s, Streamer must be in the Idle state"
-                        BIP_MSG_PRE_ARG, hStreamer, BIP_STREAMER_STATE(hStreamer->state)));
+                        BIP_MSG_PRE_ARG, (void *)hStreamer, BIP_STREAMER_STATE(hStreamer->state)));
             hStreamer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, hStreamer->completionStatus);
         }
@@ -2058,7 +2054,7 @@ void processStreamerState(
 
             hStreamer->completionStatus = BIP_SUCCESS;
             BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer %p: SetRecpumpInputSettings Arb request is complete : state %s!"
-                        BIP_MSG_PRE_ARG, hStreamer, BIP_STREAMER_STATE(hStreamer->state) ));
+                        BIP_MSG_PRE_ARG, (void *)hStreamer, BIP_STREAMER_STATE(hStreamer->state) ));
             BIP_Arb_CompleteRequest( hArb, hStreamer->completionStatus );
         }
     }
@@ -2072,7 +2068,7 @@ void processStreamerState(
         if (hStreamer->state != BIP_StreamerState_eIdle)
         {
             BDBG_ERR(( BIP_MSG_PRE_FMT "hStreamer %p: BIP_Streamer_SetOutputSettings not allowed in this state: %s"
-                        BIP_MSG_PRE_ARG, hStreamer, BIP_STREAMER_STATE(hStreamer->state)));
+                        BIP_MSG_PRE_ARG, (void *)hStreamer, BIP_STREAMER_STATE(hStreamer->state)));
             hStreamer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, hStreamer->completionStatus);
         }
@@ -2086,7 +2082,7 @@ void processStreamerState(
             hStreamer->output.state = BIP_StreamerOutputState_eSet;
             hStreamer->completionStatus = BIP_SUCCESS;
             BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer %p: output.settings are cached: timestamp=%s, protocol=%d"
-                        BIP_MSG_PRE_ARG, hStreamer, hStreamer->output.settings.mpeg2Ts.enableTransportTimestamp?"Y":"N",
+                        BIP_MSG_PRE_ARG, (void *)hStreamer, hStreamer->output.settings.mpeg2Ts.enableTransportTimestamp?"Y":"N",
                         hStreamer->output.streamerProtocol
                         ));
             BIP_Arb_CompleteRequest( hArb, hStreamer->completionStatus);
@@ -2097,13 +2093,13 @@ void processStreamerState(
         if (hStreamer->state != BIP_StreamerState_eIdle)
         {
             BDBG_ERR(( BIP_MSG_PRE_FMT "hStreamer %p: BIP_Streamer_AddTrack() is only allowed in Idle state, current state: %s"
-                        BIP_MSG_PRE_ARG, hStreamer, BIP_STREAMER_STATE(hStreamer->state)));
+                        BIP_MSG_PRE_ARG, (void *)hStreamer, BIP_STREAMER_STATE(hStreamer->state)));
             hStreamer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, hStreamer->completionStatus);
         }
         else if ( hStreamer->recpump.inputState == BIP_StreamerInputState_eSet )
         {
-            BDBG_ERR(( BIP_MSG_PRE_FMT "hStreamer %p: BIP_Streamer_AddTrack() is not allowed for RecpumpInput type!." BIP_MSG_PRE_ARG, hStreamer ));
+            BDBG_ERR(( BIP_MSG_PRE_FMT "hStreamer %p: BIP_Streamer_AddTrack() is not allowed for RecpumpInput type!." BIP_MSG_PRE_ARG, (void *)hStreamer ));
             hStreamer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, hStreamer->completionStatus);
         }
@@ -2112,7 +2108,7 @@ void processStreamerState(
                 (hStreamer->inputType == BIP_StreamerInputType_eFile && hStreamer->file.inputSettings.enableAllPass)
                 )
         {
-            BDBG_ERR(( BIP_MSG_PRE_FMT "hStreamer %p: BIP_Streamer_AddTrack() is not allowed if enableAllPass is set!." BIP_MSG_PRE_ARG, hStreamer ));
+            BDBG_ERR(( BIP_MSG_PRE_FMT "hStreamer %p: BIP_Streamer_AddTrack() is not allowed if enableAllPass is set!." BIP_MSG_PRE_ARG, (void *)hStreamer ));
             hStreamer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, hStreamer->completionStatus);
         }
@@ -2125,7 +2121,7 @@ void processStreamerState(
             if ( hStreamer->completionStatus == BIP_SUCCESS )
             {
                 BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer %p: BIP_Streamer_AddTrack(): trackId %d, type %d is successful : state %s!"
-                            BIP_MSG_PRE_ARG, hStreamer,
+                            BIP_MSG_PRE_ARG, (void *)hStreamer,
                             hStreamer->addTrackApi.pStreamerTrackInfo->trackId,
                             hStreamer->addTrackApi.pStreamerTrackInfo->type,
                             BIP_STREAMER_STATE(hStreamer->state)
@@ -2136,7 +2132,7 @@ void processStreamerState(
                 /* Failed to add this track, return error back. Also, remove any tracks that were previously successfully added. */
                 removeAllTracksFromList( hStreamer );
                 BDBG_ERR(( BIP_MSG_PRE_FMT "hStreamer %p: state %s: BIP_Streamer_AddTrack Failed"
-                            BIP_MSG_PRE_ARG, hStreamer, BIP_STREAMER_STATE(hStreamer->state)));
+                            BIP_MSG_PRE_ARG, (void *)hStreamer, BIP_STREAMER_STATE(hStreamer->state)));
             }
             BIP_Arb_CompleteRequest( hArb, hStreamer->completionStatus);
         }
@@ -2148,20 +2144,20 @@ void processStreamerState(
         if (hStreamer->state != BIP_StreamerState_eIdle)
         {
             BDBG_ERR(( BIP_MSG_PRE_FMT "hStreamer %p: BIP_Streamer_AddTranscodeProfile() is only allowed in Idle state, current state: %s"
-                        BIP_MSG_PRE_ARG, hStreamer, BIP_STREAMER_STATE(hStreamer->state)));
+                        BIP_MSG_PRE_ARG, (void *)hStreamer, BIP_STREAMER_STATE(hStreamer->state)));
             hStreamer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, hStreamer->completionStatus);
         }
         else if ( hStreamer->recpump.inputState == BIP_StreamerInputState_eSet )
         {
-            BDBG_ERR(( BIP_MSG_PRE_FMT "hStreamer %p: BIP_Streamer_AddTranscodeProfile() is not allowed for RecpumpInput type!." BIP_MSG_PRE_ARG, hStreamer ));
+            BDBG_ERR(( BIP_MSG_PRE_FMT "hStreamer %p: BIP_Streamer_AddTranscodeProfile() is not allowed for RecpumpInput type!." BIP_MSG_PRE_ARG, (void *)hStreamer ));
             hStreamer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, hStreamer->completionStatus);
         }
         /* Reject if output settings are not set as we need to know streamerProtocol & based on that allow multiple AddTranscodeProfiles call (for HLS & MPEG DASH). */
         else if ( hStreamer->output.state == BIP_StreamerOutputState_eNotSet )
         {
-            BDBG_ERR(( BIP_MSG_PRE_FMT "hStreamer %p: BIP_Streamer_AddTranscodeProfile() is not allowed when output.settings are not set!." BIP_MSG_PRE_ARG, hStreamer ));
+            BDBG_ERR(( BIP_MSG_PRE_FMT "hStreamer %p: BIP_Streamer_AddTranscodeProfile() is not allowed when output.settings are not set!." BIP_MSG_PRE_ARG, (void *)hStreamer ));
             hStreamer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, hStreamer->completionStatus);
         }
@@ -2169,7 +2165,7 @@ void processStreamerState(
         else if ( pTranscodeProfile->containerType != NEXUS_TransportType_eTs )
         {
             BDBG_ERR(( BIP_MSG_PRE_FMT "hStreamer %p: BIP_Streamer_AddTranscodeProfile(): encoding of streaming output is not YET allowed for non MPEG TS container types: %d"
-                        BIP_MSG_PRE_ARG, hStreamer, hStreamer->addTranscodeProfileApi.pTranscodeProfile->containerType ));
+                        BIP_MSG_PRE_ARG, (void *)hStreamer, hStreamer->addTranscodeProfileApi.pTranscodeProfile->containerType ));
             hStreamer->completionStatus = BIP_ERR_INVALID_PARAMETER;
             BIP_Arb_RejectRequest(hArb, hStreamer->completionStatus);
         }
@@ -2182,14 +2178,14 @@ void processStreamerState(
             if ( hStreamer->completionStatus == BIP_SUCCESS )
             {
                 hStreamer->transcode.profileState = BIP_StreamerOutputState_eSet;
-                BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer %p: BIP_Streamer_AddTranscodeProfile() for output containerType %d is successful" BIP_MSG_PRE_ARG, hStreamer ));
+                BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer %p: BIP_Streamer_AddTranscodeProfile() for output containerType %d is successful" BIP_MSG_PRE_ARG, (void *)hStreamer, pTranscodeProfile->containerType ));
             }
             else
             {
                 /* Failed to add transcodeProfile, return error back. Also, remove any transcodeProfiles that were previously successfully added. */
                 removeAllTranscodeProfilesFromList( hStreamer );
                 BDBG_ERR(( BIP_MSG_PRE_FMT "hStreamer %p: state %s: BIP_Streamer_AddTranscodeProfile Failed"
-                            BIP_MSG_PRE_ARG, hStreamer, BIP_STREAMER_STATE(hStreamer->state)));
+                            BIP_MSG_PRE_ARG, (void *)hStreamer, BIP_STREAMER_STATE(hStreamer->state)));
             }
             BIP_Arb_CompleteRequest( hArb, hStreamer->completionStatus);
         }
@@ -2199,7 +2195,7 @@ void processStreamerState(
         if (hStreamer->state != BIP_StreamerState_eIdle)
         {
             BDBG_ERR(( BIP_MSG_PRE_FMT "hStreamer %p: BIP_Streamer_AddTranscodeProfile() is only allowed in Idle state, current state: %s"
-                        BIP_MSG_PRE_ARG, hStreamer, BIP_STREAMER_STATE(hStreamer->state)));
+                        BIP_MSG_PRE_ARG, (void *)hStreamer, BIP_STREAMER_STATE(hStreamer->state)));
             hStreamer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, hStreamer->completionStatus);
         }
@@ -2210,7 +2206,7 @@ void processStreamerState(
             /* We just cache the app provided handles and use them during the Transcode_Prepare call. */
             hStreamer->completionStatus = BIP_SUCCESS;
             hStreamer->transcode.handlesState = BIP_StreamerOutputState_eSet;
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer %p: BIP_Streamer_AddTranscodeProfile() for output containerType %d is successful" BIP_MSG_PRE_ARG, hStreamer ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer %p: BIP_Streamer_AddTranscodeProfile() for output containerType %d is successful" BIP_MSG_PRE_ARG, (void *)hStreamer, hStreamer->transcode.profile.containerType));
             BIP_Arb_CompleteRequest( hArb, hStreamer->completionStatus);
         }
     }
@@ -2220,7 +2216,7 @@ void processStreamerState(
         if (hStreamer->state != BIP_StreamerState_eIdle)
         {
             BDBG_ERR(( BIP_MSG_PRE_FMT "hStreamer %p: BIP_Streamer_Prepare() is only allowed in Idle state, current state: %s"
-                        BIP_MSG_PRE_ARG, hStreamer, BIP_STREAMER_STATE(hStreamer->state)));
+                        BIP_MSG_PRE_ARG, (void *)hStreamer, BIP_STREAMER_STATE(hStreamer->state)));
             hStreamer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, hStreamer->completionStatus);
         }
@@ -2231,7 +2227,7 @@ void processStreamerState(
                  hStreamer->output.state == BIP_StreamerOutputState_eNotSet
                 )
         {
-            BDBG_ERR(( BIP_MSG_PRE_FMT "hStreamer %p: BIP_Streamer_Prepare() is not allowed when Input or Output are not set!." BIP_MSG_PRE_ARG, hStreamer ));
+            BDBG_ERR(( BIP_MSG_PRE_FMT "hStreamer %p: BIP_Streamer_Prepare() is not allowed when Input or Output are not set!." BIP_MSG_PRE_ARG, (void *)hStreamer ));
             hStreamer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, hStreamer->completionStatus);
         }
@@ -2263,11 +2259,11 @@ void processStreamerState(
             if ( hStreamer->completionStatus == BIP_SUCCESS )
             {
                 hStreamer->state = BIP_StreamerState_ePrepared;
-                BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer %p: BIP_Streamer_Prepare successful: state %s!" BIP_MSG_PRE_ARG, hStreamer, BIP_STREAMER_STATE(hStreamer->state) ));
+                BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer %p: BIP_Streamer_Prepare successful: state %s!" BIP_MSG_PRE_ARG, (void *)hStreamer, BIP_STREAMER_STATE(hStreamer->state) ));
             }
             else
             {
-                BDBG_ERR(( BIP_MSG_PRE_FMT "hStreamer %p: BIP_Streamer_Prepare() Failed: streamer input is not supported, current state: %s" BIP_MSG_PRE_ARG, hStreamer, BIP_STREAMER_STATE(hStreamer->state)));
+                BDBG_ERR(( BIP_MSG_PRE_FMT "hStreamer %p: BIP_Streamer_Prepare() Failed: streamer input is not supported, current state: %s" BIP_MSG_PRE_ARG, (void *)hStreamer, BIP_STREAMER_STATE(hStreamer->state)));
             }
             BIP_Arb_CompleteRequest(hArb, hStreamer->completionStatus);
         }
@@ -2277,7 +2273,7 @@ void processStreamerState(
         /* Caller is starting streamer, we must be in the Prepared state. */
         if (hStreamer->state != BIP_StreamerState_ePrepared)
         {
-            BDBG_ERR(( BIP_MSG_PRE_FMT "hStreamer %p: BIP_Streamer_Start() is only allowed in Prepared state, current state: %s" BIP_MSG_PRE_ARG, hStreamer, BIP_STREAMER_STATE(hStreamer->state)));
+            BDBG_ERR(( BIP_MSG_PRE_FMT "hStreamer %p: BIP_Streamer_Start() is only allowed in Prepared state, current state: %s" BIP_MSG_PRE_ARG, (void *)hStreamer, BIP_STREAMER_STATE(hStreamer->state)));
             hStreamer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, hStreamer->completionStatus);
         }
@@ -2299,7 +2295,7 @@ void processStreamerState(
             }
             else
             {
-                BDBG_ERR(( BIP_MSG_PRE_FMT "hStreamer %p: BIP_Streamer_Start() Failed: current state: %s" BIP_MSG_PRE_ARG, hStreamer, BIP_STREAMER_STATE(hStreamer->state)));
+                BDBG_ERR(( BIP_MSG_PRE_FMT "hStreamer %p: BIP_Streamer_Start() Failed: current state: %s" BIP_MSG_PRE_ARG, (void *)hStreamer, BIP_STREAMER_STATE(hStreamer->state)));
             }
             BIP_Arb_CompleteRequest(hArb, hStreamer->completionStatus);
             /* NOTE: we change to a temporary SetupComplete state (w/o completing the ARB) */
@@ -2320,7 +2316,7 @@ void processStreamerState(
             hStreamer->state = BIP_StreamerState_eIdle;
             BIP_Arb_CompleteRequest(hArb, hStreamer->completionStatus);
             BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer %p: BIP_Streamer_Stop complete: state %s!"
-                        BIP_MSG_PRE_ARG, hStreamer, BIP_STREAMER_STATE(hStreamer->state) ));
+                        BIP_MSG_PRE_ARG, (void *)hStreamer, BIP_STREAMER_STATE(hStreamer->state) ));
 
         }
     }
@@ -2330,7 +2326,7 @@ void processStreamerState(
         hStreamer->completionStatus = BIP_INF_IN_PROGRESS;
 
         BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer %p: Accepted _Destroy Arb: state %s!"
-                    BIP_MSG_PRE_ARG, hStreamer, BIP_STREAMER_STATE(hStreamer->state) ));
+                    BIP_MSG_PRE_ARG, (void *)hStreamer, BIP_STREAMER_STATE(hStreamer->state) ));
 
         if ( hStreamer->state != BIP_StreamerState_eIdle )
         {
@@ -2346,7 +2342,7 @@ void processStreamerState(
     B_Mutex_Unlock( hStreamer->hStateMutex );
 
     BDBG_MSG(( BIP_MSG_PRE_FMT "Finished Processing  State for hStreamer %p: state %s, before issuing the callbacks with completionStatus 0x%x"
-            BIP_MSG_PRE_ARG, hStreamer, BIP_STREAMER_STATE(hStreamer->state), completionStatus ));
+            BIP_MSG_PRE_ARG, (void *)hStreamer, BIP_STREAMER_STATE(hStreamer->state), completionStatus ));
 
     /* Tell ARB to do any deferred work. */
     brc = BIP_Arb_DoDeferred( hStreamer->startApi.hArb, threadOrigin );
@@ -2354,7 +2350,7 @@ void processStreamerState(
 
 
     BDBG_MSG(( BIP_MSG_PRE_FMT "EXIT <--- hStreamer %p: state %s"
-                BIP_MSG_PRE_ARG, hStreamer, BIP_STREAMER_STATE(hStreamer->state)));
+                BIP_MSG_PRE_ARG, (void *)hStreamer, BIP_STREAMER_STATE(hStreamer->state)));
     return;
 } /* processStreamerState */
 
@@ -2378,7 +2374,7 @@ static void streamerDestroy(
     )
 {
     if (!hStreamer) return;
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Destroying hStreamer %p" BIP_MSG_PRE_ARG, hStreamer ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Destroying hStreamer %p" BIP_MSG_PRE_ARG, (void *)hStreamer ));
 
     resetStreamerState( hStreamer );
 
@@ -2404,7 +2400,7 @@ static void streamerDestroy(
 
     if (hStreamer->hStateMutex) B_Mutex_Destroy( hStreamer->hStateMutex );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer %p: Destroyed" BIP_MSG_PRE_ARG, hStreamer ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer %p: Destroyed" BIP_MSG_PRE_ARG, (void *)hStreamer ));
     BDBG_OBJECT_DESTROY( hStreamer, BIP_Streamer );
 
     B_Os_Free( hStreamer );
@@ -2480,7 +2476,7 @@ BIP_StreamerHandle BIP_Streamer_Create(
 
     /* Create the streamer object */
     hStreamer = B_Os_Calloc( 1, sizeof( BIP_Streamer ));
-    BIP_CHECK_GOTO(( hStreamer != NULL ), ( "Failed to allocate memory (%d bytes) for Streamer Object", sizeof(BIP_Streamer) ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, bipStatus );
+    BIP_CHECK_GOTO(( hStreamer != NULL ), ( "Failed to allocate memory (%zu bytes) for Streamer Object", sizeof(BIP_Streamer) ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, bipStatus );
 
     BDBG_OBJECT_SET( hStreamer, BIP_Streamer );
 
@@ -2547,7 +2543,7 @@ BIP_StreamerHandle BIP_Streamer_Create(
     BIP_CHECK_GOTO(( hStreamer->destroyApi.hArb ), ( "BIP_Arb_Create Failed " ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, bipStatus );
 
     hStreamer->state = BIP_StreamerState_eIdle;
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Created hStreamer %p: state %d" BIP_MSG_PRE_ARG, hStreamer, hStreamer->state));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Created hStreamer %p: state %d" BIP_MSG_PRE_ARG, (void *)hStreamer, hStreamer->state));
 
     bipStatus = BIP_SUCCESS;
 
@@ -2612,7 +2608,7 @@ void BIP_Streamer_GetSettings(
 
     BDBG_OBJECT_ASSERT( hStreamer, BIP_Streamer );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hStreamer %p: --------------------->" BIP_MSG_PRE_ARG, hStreamer));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hStreamer %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hStreamer));
 
     BIP_CHECK_GOTO(( hStreamer ), ( "hStreamer pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
     BIP_CHECK_GOTO(( pSettings ), ( "pSettings can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
@@ -2636,7 +2632,7 @@ void BIP_Streamer_GetSettings(
     BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_Streamer_GetSettings" ), error, bipStatus, bipStatus );
 
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, hStreamer, bipStatus ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hStreamer, bipStatus ));
 
     return;
 }
@@ -2653,7 +2649,7 @@ BIP_Status BIP_Streamer_SetSettings(
     BDBG_OBJECT_ASSERT( hStreamer, BIP_Streamer );
     BDBG_ASSERT( pSettings );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hStreamer %p: --------------------->" BIP_MSG_PRE_ARG, hStreamer));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hStreamer %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hStreamer));
 
     BIP_CHECK_GOTO(( hStreamer ), ( "hStreamer pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
     BIP_CHECK_GOTO(( pSettings ), ( "pSettings can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
@@ -2677,7 +2673,7 @@ BIP_Status BIP_Streamer_SetSettings(
     BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_Streamer_SetSettings" ), error, bipStatus, bipStatus );
 
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, hStreamer, bipStatus ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hStreamer, bipStatus ));
 
     return( bipStatus );
 } /* BIP_Streamer_SetSettings */
@@ -2698,12 +2694,11 @@ BIP_Status BIP_Streamer_SetFileInputSettings(
     BDBG_OBJECT_ASSERT( hStreamer, BIP_Streamer );
     BIP_SETTINGS_ASSERT(pFileInputSettings, BIP_StreamerFileInputSettings);
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hStreamer %p: --------------------->" BIP_MSG_PRE_ARG, hStreamer));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hStreamer %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hStreamer));
 
     BIP_CHECK_GOTO(( hStreamer ), ( "hStreamer pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
     BIP_CHECK_GOTO(( pMediaFileAbsolutePathName ), ( "pMediaFileAbsolutePathName can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
     BIP_CHECK_GOTO(( pStreamerStreamInfo), ( "pStreamerStreamInfo can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
-    BIP_CHECK_GOTO(( pFileInputSettings && !pFileInputSettings->enableAllPass), ( "enableAllPass settings is not yet supported!" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
     BIP_CHECK_GOTO(( pFileInputSettings && !pFileInputSettings->dropNullPackets), ( "dropNullPackets settings is not yet supported!" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
 
     /* Make sure file to be streamed exists & has non-zero size. */
@@ -2746,7 +2741,7 @@ BIP_Status BIP_Streamer_SetFileInputSettings(
     BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_Streamer_SetFileInputSettings" ), error, bipStatus, bipStatus );
 
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, hStreamer, bipStatus ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hStreamer, bipStatus ));
 
     return( bipStatus );
 } /* BIP_Streamer_SetFileInputSettings */
@@ -2766,7 +2761,7 @@ BIP_Status BIP_Streamer_SetTunerInputSettings(
     BDBG_OBJECT_ASSERT( hStreamer, BIP_Streamer );
     BIP_SETTINGS_ASSERT(pTunerInputSettings, BIP_StreamerTunerInputSettings);
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hStreamer %p: --------------------->" BIP_MSG_PRE_ARG, hStreamer));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hStreamer %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hStreamer));
 
     BIP_CHECK_GOTO(( hStreamer ), ( "hStreamer pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
     BIP_CHECK_GOTO(( pStreamerStreamInfo), ( "pStreamerStreamInfo can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
@@ -2821,7 +2816,7 @@ BIP_Status BIP_Streamer_SetTunerInputSettings(
     BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_Streamer_SetTunerInputSettings" ), error, bipStatus, bipStatus );
 
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, hStreamer, bipStatus ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hStreamer, bipStatus ));
 
     return( bipStatus );
 } /* BIP_Streamer_SetTunerInputSettings */
@@ -2841,7 +2836,7 @@ BIP_Status BIP_Streamer_SetIpInputSettings(
     BDBG_OBJECT_ASSERT( hStreamer, BIP_Streamer );
     BIP_SETTINGS_ASSERT(pIpInputSettings, BIP_StreamerIpInputSettings);
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hStreamer %p: --------------------->" BIP_MSG_PRE_ARG, hStreamer));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hStreamer %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hStreamer));
 
     BIP_CHECK_GOTO(( hStreamer ), ( "hStreamer pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
     BIP_CHECK_GOTO(( hPlayer ), ( "hPlayer pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
@@ -2888,7 +2883,7 @@ BIP_Status BIP_Streamer_SetIpInputSettings(
     BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_Streamer_SetIpInputSettings" ), error, bipStatus, bipStatus );
 
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, hStreamer, bipStatus ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hStreamer, bipStatus ));
 
     return( bipStatus );
 } /* BIP_Streamer_SetIpInputSettings */
@@ -2908,7 +2903,7 @@ BIP_Status BIP_Streamer_SetRecpumpInputSettings(
     BDBG_ASSERT( pRecpumpInputSettings );
     BIP_SETTINGS_ASSERT(pRecpumpInputSettings, BIP_StreamerRecpumpInputSettings);
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hStreamer %p: --------------------->" BIP_MSG_PRE_ARG, hStreamer));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hStreamer %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hStreamer));
 
     BIP_CHECK_GOTO(( hStreamer ), ( "hStreamer pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
     BIP_CHECK_GOTO(( hRecpump ), ( "hRecpump can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
@@ -2920,7 +2915,7 @@ BIP_Status BIP_Streamer_SetRecpumpInputSettings(
 
         nrc = NEXUS_Recpump_GetStatus( hRecpump, &recpumpStatus );
         BIP_CHECK_GOTO(( nrc == NEXUS_SUCCESS ), ( "Failed to Get RecpumpStatus: Invalid handle, nexus error 0x%x ", nrc ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
-        BIP_CHECK_GOTO(( recpumpStatus.started == false ), ( "Recpump handle %p shouldn't be started  by App", hRecpump ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
+        BIP_CHECK_GOTO(( recpumpStatus.started == false ), ( "Recpump handle %p shouldn't be started  by App", (void *)hRecpump ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
     }
 
     /* Serialize access to Settings state among another thread calling the same API. */
@@ -2949,7 +2944,7 @@ BIP_Status BIP_Streamer_SetRecpumpInputSettings(
     BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_Streamer_SetRecpumpInputSettings" ), error, bipStatus, bipStatus );
 
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, hStreamer, bipStatus ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hStreamer, bipStatus ));
 
     return( bipStatus );
 } /* BIP_Streamer_SetRecpumpInputSettings */
@@ -2968,7 +2963,7 @@ BIP_Status BIP_Streamer_AddTrack(
     BDBG_OBJECT_ASSERT( hStreamer, BIP_Streamer );
     BIP_SETTINGS_ASSERT(pTrackSettings, BIP_StreamerTrackSettings);
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hStreamer %p: --------------------->" BIP_MSG_PRE_ARG, hStreamer));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hStreamer %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hStreamer));
 
     BIP_CHECK_GOTO(( hStreamer ), ( "hStreamer pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
     BIP_CHECK_GOTO(( pStreamerTrackInfo ), ( "pStreamerTrackInfo can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
@@ -3012,7 +3007,7 @@ BIP_Status BIP_Streamer_AddTrack(
     BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_Streamer_AddTrack" ), error, bipStatus, bipStatus );
 
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, hStreamer, bipStatus ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hStreamer, bipStatus ));
 
     return( bipStatus );
 }
@@ -3031,7 +3026,7 @@ BIP_Status BIP_Streamer_SetOutputSettings(
     BDBG_OBJECT_ASSERT( hStreamer, BIP_Streamer );
     BIP_SETTINGS_ASSERT(pOutputSettings, BIP_StreamerOutputSettings);
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hStreamer %p: --------------------->" BIP_MSG_PRE_ARG, hStreamer));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hStreamer %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hStreamer));
 
     BIP_CHECK_GOTO(( hStreamer ), ( "hStreamer pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
     BIP_CHECK_GOTO(( streamerProtocol < BIP_StreamerProtocol_eMax ), ( "streamerProtocol %d is not valid", streamerProtocol ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
@@ -3061,7 +3056,7 @@ BIP_Status BIP_Streamer_SetOutputSettings(
     BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_Streamer_SetOutputSettings" ), error, bipStatus, bipStatus );
 
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, hStreamer, bipStatus ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hStreamer, bipStatus ));
 
     return( bipStatus );
 } /* BIP_Streamer_SetOutputSettings */
@@ -3081,7 +3076,7 @@ BIP_Status BIP_Streamer_AddTranscodeProfile(
     BDBG_OBJECT_ASSERT( hStreamer, BIP_Streamer );
     BIP_SETTINGS_ASSERT(pTranscodeProfile, BIP_TranscodeProfile);
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hStreamer %p: --------------------->" BIP_MSG_PRE_ARG, hStreamer));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hStreamer %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hStreamer));
 
     /* Note: Rest of parameter validation happens in the BIP_Streamer class. */
 
@@ -3103,7 +3098,7 @@ BIP_Status BIP_Streamer_AddTranscodeProfile(
     BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_Streamer_AddTranscodeProfile" ), error, bipStatus, bipStatus );
 
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, hStreamer, bipStatus ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hStreamer, bipStatus ));
 
     return( bipStatus );
 }
@@ -3124,7 +3119,7 @@ BIP_Status BIP_Streamer_SetTranscodeHandles(
     BDBG_OBJECT_ASSERT( hStreamer, BIP_Streamer );
     BIP_SETTINGS_ASSERT(pTranscodeNexusHandles, BIP_TranscodeNexusHandles);
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hStreamer %p: --------------------->" BIP_MSG_PRE_ARG, hStreamer));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hStreamer %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hStreamer));
 
     hArb = hStreamer->setTranscodeHandlesApi.hArb;
     bipStatus = BIP_Arb_Acquire(hArb);
@@ -3144,7 +3139,7 @@ BIP_Status BIP_Streamer_SetTranscodeHandles(
     BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_Streamer_AddTranscodeProfile" ), error, bipStatus, bipStatus );
 
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, hStreamer, bipStatus ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hStreamer, bipStatus ));
 
     return( bipStatus );
 }
@@ -3161,7 +3156,7 @@ BIP_Status BIP_Streamer_Prepare(
     BDBG_OBJECT_ASSERT( hStreamer, BIP_Streamer );
     BIP_SETTINGS_ASSERT(pSettings, BIP_StreamerPrepareSettings);
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hStreamer %p: --------------------->" BIP_MSG_PRE_ARG, hStreamer));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hStreamer %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hStreamer));
 
     BIP_CHECK_GOTO(( hStreamer ), ( "hStreamer pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
 
@@ -3189,10 +3184,10 @@ BIP_Status BIP_Streamer_Prepare(
     bipStatus = BIP_Arb_Submit(hArb, &arbSettings, NULL);
     BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_Streamer_Prepare" ), error, bipStatus, bipStatus );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer %p: Streamer Prepareed: completionStatus: %s" BIP_MSG_PRE_ARG, hStreamer, BIP_StatusGetText(bipStatus) ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer %p: Streamer Prepareed: completionStatus: %s" BIP_MSG_PRE_ARG, (void *)hStreamer, BIP_StatusGetText(bipStatus) ));
 
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, hStreamer, bipStatus ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hStreamer, bipStatus ));
 
     return ( bipStatus );
 } /* BIP_Streamer_Prepare */
@@ -3210,7 +3205,7 @@ BIP_Status BIP_Streamer_Start(
     BDBG_OBJECT_ASSERT( hStreamer, BIP_Streamer );
     BIP_SETTINGS_ASSERT(pSettings, BIP_StreamerStartSettings);
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hStreamer %p: --------------------->" BIP_MSG_PRE_ARG, hStreamer));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hStreamer %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hStreamer));
 
     BIP_CHECK_GOTO(( hStreamer ), ( "hStreamer pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
 
@@ -3237,10 +3232,10 @@ BIP_Status BIP_Streamer_Start(
     bipStatus = BIP_Arb_Submit(hArb, &arbSettings, NULL);
     BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_Streamer_Start" ), error, bipStatus, bipStatus );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer %p: Streamer Started: completionStatus: %s" BIP_MSG_PRE_ARG, hStreamer, BIP_StatusGetText(bipStatus) ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hStreamer %p: Streamer Started: completionStatus: %s" BIP_MSG_PRE_ARG, (void *)hStreamer, BIP_StatusGetText(bipStatus) ));
 
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, hStreamer, bipStatus ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hStreamer, bipStatus ));
 
     return ( bipStatus );
 } /* BIP_Streamer_Start */
@@ -3278,7 +3273,7 @@ BIP_Status BIP_Streamer_Stop(
     BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_Streamer_Stop" ), error, bipStatus, bipStatus );
 
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, hStreamer, bipStatus ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hStreamer, bipStatus ));
 
     return( bipStatus );
 } /* BIP_Streamer_Stop */
@@ -3294,7 +3289,7 @@ BIP_Status  BIP_Streamer_GetStatus(
 
     BDBG_OBJECT_ASSERT( hStreamer, BIP_Streamer );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hStreamer %p: --------------------->" BIP_MSG_PRE_ARG, hStreamer));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hStreamer %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hStreamer));
 
     BIP_CHECK_GOTO(( hStreamer ), ( "hStreamer pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
     BIP_CHECK_GOTO(( pStatus ), ( "pStatus can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
@@ -3318,7 +3313,7 @@ BIP_Status  BIP_Streamer_GetStatus(
     BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_Streamer_GetStatus" ), error, bipStatus, bipStatus );
 
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, hStreamer, bipStatus ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hStreamer, bipStatus ));
 
     return ( bipStatus );
 }

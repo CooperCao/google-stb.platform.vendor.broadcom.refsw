@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2013 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #include "nexus_audio_module.h"
@@ -320,7 +312,7 @@ NEXUS_ModuleHandle NEXUS_AudioModule_Init(const NEXUS_AudioModuleSettings *pSett
     }
     #endif
 
-    #if NEXUS_NUM_AUDIO_CAPTURE_CHANNELS
+    #if NEXUS_NUM_AUDIO_CAPTURES
     BDBG_MSG(("Initializing capture channel manager"));
     errCode = NEXUS_AudioCaptureChannel_P_Init();
     if ( errCode )
@@ -346,7 +338,7 @@ NEXUS_ModuleHandle NEXUS_AudioModule_Init(const NEXUS_AudioModuleSettings *pSett
 #if NEXUS_NUM_RF_AUDIO_DECODERS
 err_rf:
 #endif
-#if NEXUS_NUM_SPDIF_OUTPUTS || NEXUS_NUM_AUDIO_CAPTURE_CHANNELS || NEXUS_NUM_HDMI_OUTPUTS || NEXUS_NUM_HDMI_INPUTS
+#if NEXUS_NUM_SPDIF_OUTPUTS || NEXUS_NUM_AUDIO_CAPTURES || NEXUS_NUM_HDMI_OUTPUTS || NEXUS_NUM_HDMI_INPUTS
 err_spdif:
 #endif
 #if NEXUS_NUM_AUDIO_DECODERS
@@ -370,7 +362,7 @@ void NEXUS_AudioModule_Uninit(void)
     #if NEXUS_NUM_AUDIO_DECODERS
     NEXUS_AudioDecoder_P_Uninit();
     #endif
-    #if NEXUS_NUM_AUDIO_CAPTURE_CHANNELS
+    #if NEXUS_NUM_AUDIO_CAPTURES
     NEXUS_AudioCaptureChannel_P_Uninit();
     #endif
     BRAP_Close(g_NEXUS_audioModuleData.hRap);
@@ -872,4 +864,3 @@ NEXUS_Error NEXUS_AudioModule_GetMemoryEstimate(
 
     return BERR_SUCCESS;
 }
-

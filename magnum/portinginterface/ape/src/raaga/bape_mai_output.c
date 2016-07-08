@@ -1,22 +1,42 @@
 /***************************************************************************
- *     Copyright (c) 2006-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description: Audio Decoder Interface
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ***************************************************************************/
 
 #include "bape.h"
@@ -24,6 +44,7 @@
 
 BDBG_MODULE(bape_mai_output);
 BDBG_FILE_MODULE(bape_loudness);
+BDBG_FILE_MODULE(bape_fci);
 
 
 #if BAPE_CHIP_MAX_MAI_OUTPUTS > 0   /* If no MAI outputs, then skip all of this and just put in stub funcs at bottom of file. */
@@ -1065,6 +1086,7 @@ static BERR_Code BAPE_MaiOutput_P_Enable_IopOut(BAPE_OutputPort output)
     }
     hbr = (pFormat->type == BAPE_DataType_eIec61937x16) ? true : false;
 
+    BDBG_MODULE_MSG(bape_fci, ("Linking MAI OUTPUT FCI Source"));
     for ( i = 0; i < numChannelPairs; i++ )
     {
         regAddr = BAPE_MAI_Reg_P_GetArrayAddress(AUD_FMM_IOP_OUT_MAI_0_STREAM_CFG_i, i, handle->index);
@@ -1082,6 +1104,7 @@ static BERR_Code BAPE_MaiOutput_P_Enable_IopOut(BAPE_OutputPort output)
         BAPE_Reg_P_AddToFieldList(&regFieldList, AUD_FMM_IOP_OUT_MAI_0_STREAM_CFG_i, FCI_ID, output->sourceMixerFci.ids[i]);
         BAPE_Reg_P_ApplyFieldList(&regFieldList, regAddr);
         BDBG_MSG(("Mixer %d FCI %d -> MAI pair %d", output->mixer->index, output->sourceMixerFci.ids[i], i));
+        BDBG_MODULE_MSG(bape_fci, ("  fci %x -> MAI %d [%d]", output->sourceMixerFci.ids[i], handle->index, i));
     }
     for ( ; i <= BCHP_AUD_FMM_IOP_OUT_MAI_0_STREAM_CFG_i_ARRAY_END; i++ )
     {
@@ -1217,6 +1240,9 @@ static BERR_Code BAPE_MaiOutput_P_OpenHw_IopOut(BAPE_MaiOutputHandle handle)
 #ifdef BCHP_AUD_FMM_IOP_OUT_MAI_0_SPDIF_CTRL_WAIT_PCM_TO_COMP_MASK
     BAPE_Reg_P_UpdateField(handle->deviceHandle, BAPE_MAI_Reg_P_GetAddress(BCHP_AUD_FMM_IOP_OUT_MAI_0_SPDIF_CTRL, handle->index), AUD_FMM_IOP_OUT_MAI_0_SPDIF_CTRL, WAIT_PCM_TO_COMP, 2);
 #endif
+
+    BAPE_Reg_P_UpdateEnum(handle->deviceHandle, BAPE_MAI_Reg_P_GetAddress(BCHP_AUD_FMM_IOP_OUT_MAI_0_SPDIF_CTRL, handle->index), AUD_FMM_IOP_OUT_MAI_0_SPDIF_CTRL, INSERT_ON_UFLOW , Insert);
+    BAPE_Reg_P_UpdateField(handle->deviceHandle, BAPE_MAI_Reg_P_GetAddress(BCHP_AUD_FMM_IOP_OUT_MAI_0_SPDIF_RAMP_BURST, handle->index), AUD_FMM_IOP_OUT_MAI_0_SPDIF_RAMP_BURST, STEPSIZE, 0);
 
     #if defined BCHP_AUD_FMM_IOP_OUT_MAI_0_LOW_LATENCY_PASSTHROUGH_CFG
     if ( handle->lowLatencyMode )

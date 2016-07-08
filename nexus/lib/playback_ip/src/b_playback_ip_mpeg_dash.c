@@ -1,43 +1,39 @@
 /******************************************************************************
- * (c) 2016 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 
 #include "b_playback_ip_lib.h"
@@ -962,7 +958,7 @@ B_PlaybackIp_IsMpegDashSession (
         contentType += strlen("Content-Type: ");
 
         if (B_PlaybackIp_UtilsStristr(contentType, "application/dash+xml")) {
-            PRINTMSG_SESSION(("%s: MPEG-DASH MPD file URI, contentType %s", __FUNCTION__, mpdUri, contentType));
+            PRINTMSG_SESSION(("%s: MPEG-DASH MPD file URI %s, contentType %s", __FUNCTION__, mpdUri, contentType));
             return true;
         }
     }
@@ -1036,7 +1032,7 @@ B_PlaybackIp_MpegDashSegmentBufferSetup(
         BDBG_ERR(("%s: Failed to create BKNI mutex at %d", __FUNCTION__, __LINE__));
         goto error;
     }
-    PRINTMSG_SESSION(("%s: Using index cache (%u KB) as segment buffer # 0", __FUNCTION__, mpegDashSession->segmentBuffer[0].bufferSize / 1000));
+    PRINTMSG_SESSION(("%s: Using index cache (%u KB) as segment buffer # 0", __FUNCTION__, (unsigned)(mpegDashSession->segmentBuffer[0].bufferSize / 1000)));
 
     mpegDashSession->segmentBuffer[1].allocated = false;
     mpegDashSession->segmentBuffer[1].filled    = false;
@@ -1047,7 +1043,7 @@ B_PlaybackIp_MpegDashSegmentBufferSetup(
         BDBG_ERR(("%s: Failed to create BKNI mutex at %d", __FUNCTION__, __LINE__));
         goto error;
     }
-    PRINTMSG_SESSION(("%s: Using data cache (%u KB) as segment buffer # 1", __FUNCTION__, mpegDashSession->segmentBuffer[1].bufferSize / 1000));
+    PRINTMSG_SESSION(("%s: Using data cache (%u KB) as segment buffer # 1", __FUNCTION__, (unsigned)(mpegDashSession->segmentBuffer[1].bufferSize / 1000)));
 
     return 0;
 error:
@@ -1143,7 +1139,7 @@ B_PlaybackIp_MpegDashFinishFileDownload(B_PlaybackIpHandle playback_ip, int fd, 
         if (playback_ip->contentLength > 0 && *totalBytesRead >= (int)playback_ip->contentLength) {
             /* we have read all the bytes that server had indicated via contentLength, so instead of trying another read and waiting for server to close the connection */
             /* consider this as server closed event and break out of the read loop */
-            PRINTMSG_DOWNLOAD(("%s: breaking out of read loop as we have read %d upto the content length %lld", __FUNCTION__, *totalBytesRead, playback_ip->contentLength));
+            PRINTMSG_DOWNLOAD(("%s: breaking out of read loop as we have read %d upto the content length %lld", __FUNCTION__, *totalBytesRead, (long long)playback_ip->contentLength));
             serverClosed = true;
             break;
         }
@@ -1183,12 +1179,12 @@ B_PlaybackIp_MpegDashFinishFileDownload(B_PlaybackIpHandle playback_ip, int fd, 
         if ((bytesRead = playback_ip_read_socket(playback_ip, playback_ip->securityHandle, fd, buffer+*totalBytesRead, bytesToRead, playback_ip->networkTimeout)) <= 0) {
             if (playback_ip->selectTimeout) {
                 PRINTMSG_DOWNLOAD(("%s: socket error, retry read: size %d, errno :%d, state %d, select timeout %d, server closed %d",
-                    __FUNCTION__, *totalBytesRead+bytesRead, errno, playback_ip->playback_state, playback_ip->selectTimeout, playback_ip->serverClosed));
+                                   __FUNCTION__, (int)(*totalBytesRead+bytesRead), errno, playback_ip->playback_state, playback_ip->selectTimeout, playback_ip->serverClosed));
                 continue;
             }
 #ifdef BDBG_DEBUG_BUILD
             if (playback_ip->ipVerboseLog)
-            BDBG_ERR(("%s: Network Read Error, rc %d, playback ip state %d", __FUNCTION__, bytesRead, playback_ip->playback_state));
+                BDBG_ERR(("%s: Network Read Error, rc %d, playback ip state %d", __FUNCTION__, (int)bytesRead, playback_ip->playback_state));
 #endif
             serverClosed = true;
             break;
@@ -1261,15 +1257,15 @@ B_PlaybackIp_MpegDashMediaSegmentDownloadFinish(
     totalBytesLeftToRead = downloadContext->totalBytesExpected - downloadContext->totalBytesReadSoFar;
 
     if (totalBytesLeftToRead > segmentBuffer->bufferSize - segmentBuffer->bufferDepth) {
-        BDBG_ERR(("%s:%d: Segment Buffer is too small! Downloading %ld bytes but buffer is only %ld bytes",
+        BDBG_ERR(("%s:%d: Segment Buffer is too small! Downloading %d bytes but buffer is only %d bytes",
                   __FUNCTION__, __LINE__,
-                  downloadContext->totalBytesExpected,
-                  segmentBuffer->bufferSize - segmentBuffer->bufferDepth - downloadContext->totalBytesReadSoFar ));
+                  (int)downloadContext->totalBytesExpected,
+                  (int)(segmentBuffer->bufferSize - segmentBuffer->bufferDepth - downloadContext->totalBytesReadSoFar)));
         *serverClosed = true;
         rc = false;
     }
 
-    PRINTMSG_SESSION(("%s: start downloading file: contentLength %lld, uri %s", __FUNCTION__, playback_ip->contentLength, playback_ip->openSettings.socketOpenSettings.url));
+    PRINTMSG_SESSION(("%s: start downloading file: contentLength %lld, uri %s", __FUNCTION__, (long long)playback_ip->contentLength, playback_ip->openSettings.socketOpenSettings.url));
     /* start a timer to note the network b/w */
     B_Time_Get(&beginTime);
     while ( !*serverClosed) {
@@ -1283,7 +1279,7 @@ B_PlaybackIp_MpegDashMediaSegmentDownloadFinish(
              * trying another read and waiting for server to close the
              * connection, consider this as server closed event and break
                out of the read loop */
-            PRINTMSG_SESSION(("%s: breaking out of read loop as we have read %d upto the content length %lld", __FUNCTION__, downloadContext->totalBytesReadSoFar, playback_ip->contentLength));
+            PRINTMSG_SESSION(("%s: breaking out of read loop as we have read %d upto the content length %lld", __FUNCTION__, (int)downloadContext->totalBytesReadSoFar, (long long)playback_ip->contentLength));
             *serverClosed = true;
             break;
         }
@@ -1302,12 +1298,12 @@ B_PlaybackIp_MpegDashMediaSegmentDownloadFinish(
                                                   playback_ip->networkTimeout)) <= 0) {
             if (playback_ip->selectTimeout) {
                 PRINTMSG_SESSION(("%s: socket error, retry read: size %d, errno :%d, state %d, select timeout %d, server closed %d",
-                    __FUNCTION__, downloadContext->totalBytesReadSoFar + bytesRead, errno, playback_ip->playback_state, playback_ip->selectTimeout, playback_ip->serverClosed));
+                                  __FUNCTION__, (int)(downloadContext->totalBytesReadSoFar + bytesRead), errno, playback_ip->playback_state, playback_ip->selectTimeout, playback_ip->serverClosed));
                 continue;
             }
 #ifdef BDBG_DEBUG_BUILD
             if (playback_ip->ipVerboseLog)
-            BDBG_ERR(("%s: Network Read Error, rc %d, playback ip state %d", __FUNCTION__, bytesRead, playback_ip->playback_state));
+                BDBG_ERR(("%s: Network Read Error, rc %d, playback ip state %d", __FUNCTION__, (int)bytesRead, playback_ip->playback_state));
 #endif
             *serverClosed = true;
             break;
@@ -1342,7 +1338,7 @@ B_PlaybackIp_MpegDashMediaSegmentDownloadFinish(
     downloadContext->elapsedTimeInMs = totalDownloadTime;
 
     PRINTMSG_SESSION(("%s: finished downloading (fd %d): errno %d, bytesRead: %d, state %d, select timeout %d, server closed %d",
-            __FUNCTION__, downloadContext->socketFd, errno, downloadContext->totalBytesReadSoFar, playback_ip->playback_state, playback_ip->selectTimeout, playback_ip->serverClosed));
+                      __FUNCTION__, downloadContext->socketFd, errno, (int)downloadContext->totalBytesReadSoFar, playback_ip->playback_state, playback_ip->selectTimeout, playback_ip->serverClosed));
 
     /* downloaded the file into the buffer, now check if we need to decrypt this segment */
 
@@ -1380,7 +1376,7 @@ mpegDash_parse_absolute_url(B_PlaybackIpProtocol *protocol, char **server, unsig
     tmp2 = strstr(tmp1, "/");
     if (tmp2) {
         if ((*server = (char *)BKNI_Malloc(tmp2-tmp1+1)) == NULL) {
-            BDBG_ERR(("%s: ERROR: failed to allocate %d bytes of memory at %d\n", __FUNCTION__, (tmp2-tmp1), __LINE__));
+            BDBG_ERR(("%s: ERROR: failed to allocate %d bytes of memory at %d\n", __FUNCTION__, (int)(tmp2-tmp1), __LINE__));
             return false;
         }
         strncpy(*server, tmp1, tmp2-tmp1);
@@ -1558,8 +1554,8 @@ B_PlaybackIp_MpegDashMediaSegmentDownloadStart(
             goto error;
         }
 
-        PRINTMSG_SESSION(("%s: http_hdr Offset: %d", __FUNCTION__, http_hdr - responseMessage));
-        PRINTMSG_SESSION(("%s: http_payload Offset: %d", __FUNCTION__, http_payload - responseMessage));
+        PRINTMSG_SESSION(("%s: http_hdr Offset: %d", __FUNCTION__, (int)(http_hdr - responseMessage)));
+        PRINTMSG_SESSION(("%s: http_payload Offset: %d", __FUNCTION__, (int)(http_payload - responseMessage)));
         PRINTMSG_SESSION(("%s: initial_data_len: %d", __FUNCTION__, playback_ip->initial_data_len));
 
 
@@ -1607,7 +1603,7 @@ B_PlaybackIp_MpegDashMediaSegmentDownloadStart(
             BDBG_ERR(("%s: ERROR: failed to enable the security decryption", __FUNCTION__));
             goto error;
         }
-        PRINTMSG_SESSION(("%s: security context is enabled for media segment %p, seq # %d, sec protocol %d, initial encrypted bytes %d", __FUNCTION__, mediaFileSegmentInfo, mediaFileSegmentInfo->mediaSequence, openSettings.security.securityProtocol, playback_ip->initial_data_len));
+        PRINTMSG_SESSION(("%s: security context is enabled for media segment %p, seq # %d, sec protocol %d, initial encrypted bytes %d", __FUNCTION__, (void *)mediaFileSegmentInfo, mediaFileSegmentInfo->mediaSequence, openSettings.security.securityProtocol, playback_ip->initial_data_len));
         playback_ip->initial_data_len = 0; /* initial payload is now given to security layer for later decryption during the read call */
     }
 #endif /* B_HAS_HTTP_AES_SUPPORT */
@@ -1664,12 +1660,12 @@ error:
  *****************************************************************************/
 #define MPEGDASH_CREATE_ALLOCATE( destPtr, xmlElem, structType)                                                                             \
     do {                                                                                                                                    \
-        PRINT_XML_DEBUG(("%s: Creating %s Object (%u bytes) for xmlElem: %p", __FUNCTION__, #structType, sizeof (structType), xmlElem), xmlElem ); \
-        PRINTMSG_OBJECTS(("%s: Creating %s Object (%u bytes) for xmlElem: %p", __FUNCTION__, #structType, sizeof (structType), xmlElem));   \
+        PRINT_XML_DEBUG(("%s: Creating %s Object (%u bytes) for xmlElem: %p", __FUNCTION__, #structType, (int)sizeof (structType), (void *)xmlElem), xmlElem ); \
+        PRINTMSG_OBJECTS(("%s: Creating %s Object (%u bytes) for xmlElem: %p", __FUNCTION__, #structType, (int)sizeof (structType), (void *)xmlElem)); \
                                                                                                                                             \
         /* Allocate a new Info structure */                                                                                                 \
         if ((destPtr = (structType *)BKNI_Malloc(sizeof (structType))) == NULL) {                                                           \
-            BDBG_ERR(("%s: Failed to allocate %d bytes of memory for Info structure", __FUNCTION__, sizeof (structType) ));                 \
+            BDBG_ERR(("%s: Failed to allocate %d bytes of memory for Info structure", __FUNCTION__, (int)sizeof (structType) )); \
             return NULL;                                                                                                                    \
         }                                                                                                                                   \
         memset(destPtr, 0, sizeof (structType) );                                                                                           \
@@ -1702,7 +1698,7 @@ error:
             xmlElemChild = B_PlaybackIp_XmlElem_FindNextChildSameTag(xmlElemParent, xmlElemChild, xmlTagChild);                    \
             if ( !xmlElemChild) break;    /* No more children... all done. */                                                      \
                                                                                                                                    \
-            PRINT_XML_DEBUG(("%s: Adding %s: %p", __FUNCTION__, #structTypeChild, xmlElemChild), xmlElemChild );                   \
+            PRINT_XML_DEBUG(("%s: Adding %s: %p", __FUNCTION__, #structTypeChild, (void *)xmlElemChild), (void *)xmlElemChild );                   \
                                                                                                                                    \
             pNewChild = constructorChild(playback_ip, xmlElemChild);                                                               \
             if (!pNewChild)  goto errorLabel;                                                                                      \
@@ -1727,7 +1723,7 @@ error:
         xmlElemChild = B_PlaybackIp_XmlElem_FindChild( xmlElemParent, xmlTagChild);                                       \
         if ( xmlElemChild)                                                                                                \
         {                                                                                                                 \
-            PRINT_XML_DEBUG(("%s: Adding %s: %p", __FUNCTION__, #structTypeChild, xmlElemChild), xmlElemChild );          \
+            PRINT_XML_DEBUG(("%s: Adding %s: %p", __FUNCTION__, #structTypeChild, (void *)xmlElemChild), (void *)xmlElemChild );          \
             destPtr = constructorChild(playback_ip, xmlElemChild);                                                        \
             if (!destPtr) goto errorLabel;                                                                                \
         }                                                                                                                 \
@@ -1762,7 +1758,7 @@ error:
                                                                                                                                     \
         if (myPtr) {                                                                                                                \
             /* Deallocate the object's structure. */                                                                                \
-            PRINTMSG_OBJECTS(("%s: Destroying %s subelement %p, freeing %u bytes", __FUNCTION__, #structType, myPtr, sizeof (structType))); \
+            PRINTMSG_OBJECTS(("%s: Destroying %s subelement %p, freeing %u bytes", __FUNCTION__, #structType, (void *)myPtr, (int)sizeof (structType))); \
             BKNI_Free( myPtr);                                                                                                      \
             myPtr = NULL;                                                                                                           \
         }                                                                                                                           \
@@ -1780,7 +1776,7 @@ error:
         /* Destroy each subelement */                                                                           \
         for(childInfo = BLST_Q_FIRST(&listHead) ; childInfo ; childInfo = BLST_Q_FIRST(&listHead))              \
         {                                                                                                       \
-            PRINTMSG_OBJECTS(("%s: Destroying %s subelement %p", __FUNCTION__, #structTypeChild, childInfo ));  \
+            PRINTMSG_OBJECTS(("%s: Destroying %s subelement %p", __FUNCTION__, #structTypeChild, (void *)childInfo ));  \
             BLST_Q_REMOVE(&listHead, childInfo, linkChild);                                                     \
                                                                                                                 \
             destructorChild(childInfo);                                                                         \
@@ -1797,7 +1793,7 @@ error:
         structTypeChild   * myPtr = destPtr;                                                               \
         /* Destroy the subelement if it exists */                                                          \
         if (myPtr) {                                                                                       \
-            PRINTMSG_OBJECTS(("%s: Destroying %s subelement %p", __FUNCTION__, #structTypeChild, myPtr )); \
+            PRINTMSG_OBJECTS(("%s: Destroying %s subelement %p", __FUNCTION__, #structTypeChild, (void *)myPtr )); \
             destructorChild(myPtr);                                                                        \
             myPtr = NULL;                                                                                  \
         }                                                                                                  \
@@ -3072,7 +3068,7 @@ B_PlaybackIp_MpegDashCreateAbsoluteUrl(B_PlaybackIpHandle playback_ip, MpegDashR
 
                     /* Look for a BaseUrl in the MPD. */
                     baseUrl = BLST_Q_FIRST(&mpdInfo->mpegDashBaseUrlInfoHead);
-                    PRINTMSG_URL(("%s:%d: baseUrl from MPD: 0x%x", __FUNCTION__, __LINE__, baseUrl));
+                    PRINTMSG_URL(("%s:%d: baseUrl from MPD: %p", __FUNCTION__, __LINE__, (void *)baseUrl));
                     if (baseUrl)   PRINTMSG_URL(("%s:%d: Found baseUrl in MPD: %s", __FUNCTION__, __LINE__, baseUrl->childData));
                 }
             }
@@ -3087,7 +3083,7 @@ B_PlaybackIp_MpegDashCreateAbsoluteUrl(B_PlaybackIpHandle playback_ip, MpegDashR
 
             /* build complete url using baseUrl. */
 
-            PRINTMSG_URL(("%s:%d: Found BaseUrl=0x%08x", __FUNCTION__, __LINE__, baseUrl));
+            PRINTMSG_URL(("%s:%d: Found BaseUrl=%p", __FUNCTION__, __LINE__, (void *)baseUrl));
             PRINTMSG_URL(("%s:%d: baseUrl->byteRange=%s", __FUNCTION__, __LINE__, baseUrl->byteRange));
             PRINTMSG_URL(("%s:%d: baseUrl->serviceLocation=%s", __FUNCTION__, __LINE__, baseUrl->serviceLocation));
             PRINTMSG_URL(("%s:%d: baseUrl->childData=%s", __FUNCTION__, __LINE__, baseUrl->childData));
@@ -3308,7 +3304,7 @@ B_PlaybackIp_MpegDashFreeMediaFileSegmentInfo(MediaFileSegmentInfo *mediaFileSeg
         BKNI_Free(mediaFileSegmentInfo->server);
         mediaFileSegmentInfo->server = NULL;
     }
-    PRINTMSG_DOWNLOAD(("%s: freed mediaFileSegmentInfo entry %p", __FUNCTION__, mediaFileSegmentInfo));
+    PRINTMSG_DOWNLOAD(("%s: freed mediaFileSegmentInfo entry %p", __FUNCTION__, (void *)mediaFileSegmentInfo));
     BKNI_Free(mediaFileSegmentInfo);
 }
 
@@ -3330,11 +3326,11 @@ B_PlaybackIp_MpegDashCreateMediaFileSegmentInfoFromSeek(B_PlaybackIpHandle playb
     /* Create a MediaFileSegmentInfo struct using the info from the requestSeekCtx. */
     mediaFileSegmentInfo = (MediaFileSegmentInfo *)BKNI_Malloc(sizeof(MediaFileSegmentInfo));
     if (mediaFileSegmentInfo  == NULL) {
-        BDBG_ERR(("%s: Failed to allocate %d bytes of memory for media segment info structure", __FUNCTION__, sizeof(MediaFileSegmentInfo)));
+        BDBG_ERR(("%s: Failed to allocate %d bytes of memory for media segment info structure", __FUNCTION__, (int)sizeof(MediaFileSegmentInfo)));
         goto error;
     }
 
-    PRINTMSG_SEEK(("%s: allocated %d bytes of memory for media segment info: %p", __FUNCTION__, sizeof(MediaFileSegmentInfo), mediaFileSegmentInfo));
+    PRINTMSG_SEEK(("%s: allocated %d bytes of memory for media segment info: %p", __FUNCTION__, (int)sizeof(MediaFileSegmentInfo), (void *)mediaFileSegmentInfo));
 
     memset(mediaFileSegmentInfo, 0, sizeof(MediaFileSegmentInfo));
 
@@ -3348,7 +3344,7 @@ B_PlaybackIp_MpegDashCreateMediaFileSegmentInfoFromSeek(B_PlaybackIpHandle playb
             /* Convert duration from timescale units to milliseconds. */
             mediaFileSegmentInfo->duration = (representationSeekCtx->durationInTimescaleUnits * 1000) / representationSeekCtx->timescale;
 
-            PRINTMSG_SEEK(("%s:%d: mediaFileSegmentInfo->mediaSequence=%lu", __FUNCTION__, __LINE__, mediaFileSegmentInfo->mediaSequence));
+            PRINTMSG_SEEK(("%s:%d: mediaFileSegmentInfo->mediaSequence=%d", __FUNCTION__, __LINE__, mediaFileSegmentInfo->mediaSequence));
             PRINTMSG_SEEK(("%s:%d: mediaFileSegmentInfo->duration=%lu", __FUNCTION__, __LINE__, mediaFileSegmentInfo->duration));
 
             break;
@@ -3697,8 +3693,8 @@ B_PlaybackIp_MpegDashSegmentBufferCreateAtom(B_PlaybackIpHandle playback_ip, Mpe
      * the segment buffer. */
     if (offset + size > (unsigned)segmentBuffer->bufferDepth)
     {
-       BDBG_ERR(("%s:%d: Box is beyond end of segment!  Segment length:%u  Box start:%u size:%u",
-                  myFuncName, __LINE__, segmentBuffer->bufferDepth, offset, size ));
+       BDBG_ERR(("%s:%d: Box is beyond end of segment!  Segment length:%u  Box start:"BDBG_UINT64_FMT" size:"BDBG_UINT64_FMT,
+                 myFuncName, __LINE__, (unsigned)segmentBuffer->bufferDepth, BDBG_UINT64_ARG(offset), BDBG_UINT64_ARG(size) ));
        return (NULL);
     }
 
@@ -3707,8 +3703,8 @@ B_PlaybackIp_MpegDashSegmentBufferCreateAtom(B_PlaybackIpHandle playback_ip, Mpe
 
     if (!atom )
     {
-        BDBG_ERR(("%s:%d: Failed to create batom from segmentBuffer!  Start addr:%p size:%u",
-                   myFuncName, __LINE__, segmentBuffer->buffer + offset, size ));
+        BDBG_ERR(("%s:%d: Failed to create batom from segmentBuffer!  Start addr:%p size:"BDBG_UINT64_FMT,
+                  myFuncName, __LINE__, (void *)(segmentBuffer->buffer + offset), BDBG_UINT64_ARG(size)));
     }
     return atom;
 }
@@ -4079,7 +4075,7 @@ B_PlaybackIp_MpegDashGetDecoderSpecificInfoForTrackid(
     if (decSpecInfoLen > 0 && *pDecSpecInfoLen == 0) {
         *pDecSpecInfoAddr = BKNI_Malloc(decSpecInfoLen);
         if (!*pDecSpecInfoAddr) {
-            BDBG_ERR(("%s: Failed to allocate %d bytes of memory for Decoder Specific Info", __FUNCTION__, decSpecInfoLen));
+            BDBG_ERR(("%s: Failed to allocate %d bytes of memory for Decoder Specific Info", __FUNCTION__, (int)decSpecInfoLen));
             goto error;
         }
         *pDecSpecInfoLen = decSpecInfoLen;
@@ -4266,8 +4262,8 @@ B_PlaybackIp_MpegDashProbeForRepresentationStreamInfo(B_PlaybackIpHandle playbac
         if (movieheader.duration)
             psi->duration = (movieheader.duration * 1000) / movieheader.timescale;
 
-        PRINTMSG_PROBE(("%s:%d: movieheader.timescale=%lu", myFuncName, __LINE__, movieheader.timescale));
-        PRINTMSG_PROBE(("%s:%d: movieheader.duration=%llu", myFuncName, __LINE__, movieheader.duration));
+        PRINTMSG_PROBE(("%s:%d: movieheader.timescale=%u", myFuncName, __LINE__, movieheader.timescale));
+        PRINTMSG_PROBE(("%s:%d: movieheader.duration="BDBG_UINT64_FMT, myFuncName, __LINE__, BDBG_UINT64_ARG(movieheader.duration)));
         PRINTMSG_PROBE(("%s:%d: psi->duration=%u", myFuncName, __LINE__, psi->duration));
     }
 
@@ -4432,7 +4428,7 @@ B_PlaybackIp_MpegDashProbeForRepresentationStreamInfo(B_PlaybackIpHandle playbac
     PRINTMSG_PROBE(("%s:%d: stream->type=%d", myFuncName, __LINE__, stream->type));
     PRINTMSG_PROBE(("%s:%d: psi->duration=%u", myFuncName, __LINE__, psi->duration));
     PRINTMSG_PROBE(("%s:%d: psi->avgBitRate=%u", myFuncName, __LINE__, psi->avgBitRate));
-    PRINTMSG_PROBE(("%s:%d: psi->maxBufferDuration=%d", myFuncName, __LINE__, psi->maxBufferDuration));
+    PRINTMSG_PROBE(("%s:%d: psi->maxBufferDuration=%lu", myFuncName, __LINE__, psi->maxBufferDuration));
     PRINTMSG_PROBE(("%s:%d: psi->transportTimeStampEnabled=%d", myFuncName, __LINE__, psi->transportTimeStampEnabled));
 
     PRINTMSG_PROBE(("%s:%d: psi->extraVideoPid=%d", myFuncName, __LINE__, psi->extraVideoPid));
@@ -4713,7 +4709,7 @@ B_PlaybackIp_MpegDashSelectAdaptationSets(B_PlaybackIpHandle playback_ip,
         PRINTMSG_SEEK(("SelectAdaptationSet: Checking AdaptationSet id:%s, mimeType:%s startsWithSAP:%u segmentAlignment:%u at %p",
                    adaptationSetInfo->id,   adaptationSetInfo->baseTypeRepresentationBase->mimeType,
                    adaptationSetInfo->baseTypeRepresentationBase->startWithSAP,
-                   adaptationSetInfo->segmentAlignment,     adaptationSetInfo ));
+                   adaptationSetInfo->segmentAlignment,     (void *)adaptationSetInfo ));
 
         /* GARYWASHERE: This will need to be more general... checking contentType and contentComponent.
          * and codecs to insure that we can decode the content in the AdaptationSet.  It will probably
@@ -4725,13 +4721,13 @@ B_PlaybackIp_MpegDashSelectAdaptationSets(B_PlaybackIpHandle playback_ip,
             if (strstr(mimeType, XML_VAL_CONTENT_TYPE_AUDIO) == mimeType) {
                 *audioAdaptationSet = adaptationSetInfo;
                 adaptationSetInfo->hasAudio = true;
-                PRINTMSG_SEEK(("SelectAdaptationSet:  Found audio mimeType for AdaptationSet at %p", adaptationSetInfo));
+                PRINTMSG_SEEK(("SelectAdaptationSet:  Found audio mimeType for AdaptationSet at %p", (void *)adaptationSetInfo));
             }
 
             if (strstr(mimeType, XML_VAL_CONTENT_TYPE_VIDEO) == mimeType) {
                 *videoAdaptationSet = adaptationSetInfo;
                 adaptationSetInfo->hasVideo = true;
-                PRINTMSG_SEEK(("SelectAdaptationSet:  Found video mimeType for AdaptationSet at %p", adaptationSetInfo));
+                PRINTMSG_SEEK(("SelectAdaptationSet:  Found video mimeType for AdaptationSet at %p", (void *)adaptationSetInfo));
             }
         }
         else /* no mimeType in the AdaptationSet... take a look in each of the Representations. */
@@ -4749,13 +4745,13 @@ B_PlaybackIp_MpegDashSelectAdaptationSets(B_PlaybackIpHandle playback_ip,
                     if (strstr(mimeType, XML_VAL_CONTENT_TYPE_AUDIO) == mimeType) {
                         *audioAdaptationSet = adaptationSetInfo;
                         adaptationSetInfo->hasAudio = true;
-                        PRINTMSG_SEEK(("SelectAdaptationSet:   Found audio mimeType in AdaptationSet's Representation at %p", representationInfo));
+                        PRINTMSG_SEEK(("SelectAdaptationSet:   Found audio mimeType in AdaptationSet's Representation at %p", (void *)representationInfo));
                     }
 
                     if (strstr(mimeType, XML_VAL_CONTENT_TYPE_VIDEO) == mimeType) {
                         *videoAdaptationSet = adaptationSetInfo;
                         adaptationSetInfo->hasVideo = true;
-                        PRINTMSG_SEEK(("SelectAdaptationSet:   Found video mimeType in AdaptationSet's Representation at %p", representationInfo));
+                        PRINTMSG_SEEK(("SelectAdaptationSet:   Found video mimeType in AdaptationSet's Representation at %p", (void *)representationInfo));
                     }
                 }
             }
@@ -4772,13 +4768,13 @@ B_PlaybackIp_MpegDashSelectAdaptationSets(B_PlaybackIpHandle playback_ip,
                 if (strcmp(contentType, XML_VAL_CONTENT_TYPE_AUDIO) == 0) {
                     *audioAdaptationSet = adaptationSetInfo;
                     adaptationSetInfo->hasAudio = true;
-                    PRINTMSG_SEEK(("SelectAdaptationSet:   Found audio contentType for AdaptationSet at %p", adaptationSetInfo));
+                    PRINTMSG_SEEK(("SelectAdaptationSet:   Found audio contentType for AdaptationSet at %p", (void *)adaptationSetInfo));
                 }
 
                 if (strcmp(contentType, XML_VAL_CONTENT_TYPE_VIDEO) == 0 ) {
                     *videoAdaptationSet = adaptationSetInfo;
                     adaptationSetInfo->hasVideo = true;
-                    PRINTMSG_SEEK(("SelectAdaptationSet:   Found video contentType for AdaptationSet at %p", adaptationSetInfo));
+                    PRINTMSG_SEEK(("SelectAdaptationSet:   Found video contentType for AdaptationSet at %p", (void *)adaptationSetInfo));
                 }
             } /* End if contentType is present */
         } /* End for each ContentComponent in AdaptationSet */
@@ -4807,7 +4803,7 @@ B_PlaybackIp_MpegDashSelectRepresentation(B_PlaybackIpHandle playback_ip, MpegDa
     for(representationInfo = BLST_Q_FIRST(&adaptationSetInfo->mpegDashRepresentationInfoHead) ; representationInfo ; representationInfo = BLST_Q_NEXT(representationInfo, nextRepresentationInfo))
     {
         PRINTMSG_SEEK(("SelectRepresentation: Checking Representation: id:%s bandwidth:%u at %p",
-                        representationInfo->id, representationInfo->bandwidthNumeric, representationInfo ));
+                        representationInfo->id, representationInfo->bandwidthNumeric, (void *)representationInfo ));
 
         /* First, just keep track of the slowest Representation (the one with
          * the lowest bandwidth requirements.  */
@@ -4834,11 +4830,11 @@ B_PlaybackIp_MpegDashSelectRepresentation(B_PlaybackIpHandle playback_ip, MpegDa
         {
             if (bestRepresentationInfo) {
                 PRINTMSG_SEEK(("SelectRepresentation:  Disregarding previous best Representation: id:%s bandwidth:%u at %p",
-                        bestRepresentationInfo->id, bestRepresentationInfo->bandwidthNumeric, bestRepresentationInfo ));
+                        bestRepresentationInfo->id, bestRepresentationInfo->bandwidthNumeric, (void *)bestRepresentationInfo ));
             }
 
             PRINTMSG_SEEK(("SelectRepresentation:  Best Representation so far is now: id:%s bandwidth:%u at %p",
-                        representationInfo->id, representationInfo->bandwidthNumeric, representationInfo ));
+                        representationInfo->id, representationInfo->bandwidthNumeric, (void *)representationInfo ));
 
             bestRepresentationInfo = representationInfo;
         }
@@ -4848,7 +4844,7 @@ B_PlaybackIp_MpegDashSelectRepresentation(B_PlaybackIpHandle playback_ip, MpegDa
      * bandwidth, then just use the slowest one.  */
     if (!bestRepresentationInfo) {
         PRINTMSG_SEEK(("SelectRepresentation:  No Representation fits available bandwidth:%u, selecting slowest: id:%s bandwidth:%u at %p",
-                        availableNetworkBandwidth,  slowestRepresentationInfo->id, slowestRepresentationInfo->bandwidthNumeric, slowestRepresentationInfo ));
+                        availableNetworkBandwidth,  slowestRepresentationInfo->id, slowestRepresentationInfo->bandwidthNumeric, (void *)slowestRepresentationInfo ));
         bestRepresentationInfo = slowestRepresentationInfo;
     }
 
@@ -4859,7 +4855,7 @@ B_PlaybackIp_MpegDashSelectRepresentation(B_PlaybackIpHandle playback_ip, MpegDa
     else
     {
         PRINTMSG_SEEK(("SelectRepresentation: Final choice for Representation: id:%s bandwidth:%u at %p",
-                        bestRepresentationInfo->id, bestRepresentationInfo->bandwidthNumeric, bestRepresentationInfo ));
+                        bestRepresentationInfo->id, bestRepresentationInfo->bandwidthNumeric, (void *)bestRepresentationInfo ));
     }
 
     return bestRepresentationInfo;
@@ -4980,9 +4976,6 @@ B_PlaybackIp_MpegDashSelectRepresentations( B_PlaybackIpHandle playback_ip,
             availableBandwidthInKbps = 10000;  /* badminton 2560x1440 */
             availableBandwidthInKbps = 22000;  /* badminton 3200x1800 */
             availableBandwidthInKbps = 30000;  /* badminton 3840x2160 */
-
-            availableBandwidthInKbps = 30000;  /* badminton 3840x2160 */
-
             BDBG_ERR(("%s : %d : Overriding BW with %d Kbps ", __FUNCTION__, __LINE__, availableBandwidthInKbps   ));
     }
 
@@ -5102,7 +5095,7 @@ B_PlaybackIp_MpegDashParseMpd(B_PlaybackIpHandle playback_ip, MpegDashMpdInfo **
        need to be freed by calling B_PlaybackIp_Xml_Destroy( xmlElemRoot */
     xmlElemRoot = B_PlaybackIp_Xml_Create(mpegDashSession->mpdParseBuffer);
     mpegDashSession->xmlElemRoot = xmlElemRoot; /* save in SessionState struct */
-    PRINT_XML_DEBUG(("XML Root Node: %p", xmlElemRoot), xmlElemRoot );
+    PRINT_XML_DEBUG(("XML Root Node: %p", (void *)xmlElemRoot), xmlElemRoot );
     if (!xmlElemRoot)
     {
         BDBG_ERR(("%s: XML Parser Failed to parse the MPD file", __FUNCTION__));
@@ -5111,7 +5104,7 @@ B_PlaybackIp_MpegDashParseMpd(B_PlaybackIpHandle playback_ip, MpegDashMpdInfo **
 
     /* Get the pointer to the "MPD" element under the root.*/
     xmlElemMpd = B_PlaybackIp_XmlElem_FindChild(xmlElemRoot , XML_TAG_MPD);
-    PRINT_XML_DEBUG(("MPD Element: %p", xmlElemMpd), xmlElemMpd );
+    PRINT_XML_DEBUG(("MPD Element: %p", (void *)xmlElemMpd), xmlElemMpd );
     if (!xmlElemMpd)
     {
         BDBG_ERR(("%s: Can't find top-level MPD element", __FUNCTION__));
@@ -5272,7 +5265,7 @@ B_PlaybackIp_MpegDashSeekInRepresentationByTimescale(
 
     periodTimeInMs = (periodTimeInTimescaleUnits * 1000 ) / timescale;
     PRINTMSG_SEEK(("%s:%d: timescale=%lu", myFuncName, __LINE__, timescale));
-    PRINTMSG_SEEK(("%s:%d: periodTimeInTimescaleUnits=%llu", myFuncName, __LINE__, periodTimeInTimescaleUnits));
+    PRINTMSG_SEEK(("%s:%d: periodTimeInTimescaleUnits="BDBG_UINT64_FMT, myFuncName, __LINE__, BDBG_UINT64_ARG(periodTimeInTimescaleUnits)));
     PRINTMSG_SEEK(("%s:%d : Seeking to periodTimeInMs=%"PRIu64"", myFuncName, __LINE__  , periodTimeInMs));
 
     mpdInfo = representationInfo->parentObj->parentObj->parentObj;
@@ -5402,18 +5395,18 @@ B_PlaybackIp_MpegDashSeekInRepresentationByTimescale(
         /* Okay, we have the segment number, now find that Segment in
          * the SegmentList. */
 
-        PRINTMSG_SEEK(("%s:%d : Looking in SegmentList for segment number %u", myFuncName, __LINE__, targetSegmentNumber    ));
+        PRINTMSG_SEEK(("%s:%d : Looking in SegmentList for segment number %lu", myFuncName, __LINE__, targetSegmentNumber    ));
 
         for (segmentUrl = BLST_Q_FIRST(&segmentList->mpegDashSegmentUrlInfoHead) , thisSegmentNumber = 0 ;
              segmentUrl && thisSegmentNumber < targetSegmentNumber ;
              segmentUrl = BLST_Q_NEXT(segmentUrl, nextSegmentUrl) , thisSegmentNumber++ )
         {
-            PRINTMSG_SEEK(("%s:%d : num: %u Found segmentUrl: %p  %s ", myFuncName, __LINE__, thisSegmentNumber, segmentUrl, segmentUrl->media  ));
+            PRINTMSG_SEEK(("%s:%d : num: %lu Found segmentUrl: %p  %s ", myFuncName, __LINE__, thisSegmentNumber, (void *)segmentUrl, segmentUrl->media  ));
         }
-        PRINTMSG_SEEK(("%s:%d : Out of loop.  thisSegmentNumber: %u URL: %s ", myFuncName, __LINE__, thisSegmentNumber, segmentUrl?segmentUrl->media:"nil"  ));
+        PRINTMSG_SEEK(("%s:%d : Out of loop.  thisSegmentNumber: %lu URL: %s ", myFuncName, __LINE__, thisSegmentNumber, segmentUrl?segmentUrl->media:"nil"  ));
 
         if(!segmentUrl) {
-            BDBG_ERR(("Can't find segmentNumber %u in SegmentList with only %u segments", targetSegmentNumber, thisSegmentNumber ));
+            BDBG_ERR(("Can't find segmentNumber %lu in SegmentList with only %lu segments", targetSegmentNumber, thisSegmentNumber ));
             errCode = BERR_TRACE(B_ERROR_UNKNOWN);  /* GARYWASHERE: Maybe this should be handled as EOF??? */
             goto seek_failed;
         }
@@ -5426,7 +5419,7 @@ B_PlaybackIp_MpegDashSeekInRepresentationByTimescale(
         representationSeekCtx->segmentTimelineTime          = segmentTimelineTime;
         representationSeekCtx->segmentList                  = segmentList;
 
-        PRINTMSG_SEEK(("%s:%d : SegmentDurationInMs: %llu", myFuncName, __LINE__, ((uint64_t)segmentDurationInTimescaleUnits*1000)/timescale ));
+        PRINTMSG_SEEK(("%s:%d : SegmentDurationInMs: %llu", myFuncName, __LINE__, ((unsigned long long)segmentDurationInTimescaleUnits*1000)/timescale ));
     }
     else if (segmentTemplate) {
         unsigned long startNumber              = representationInfo->inheritedStartNumber;
@@ -5502,7 +5495,7 @@ B_PlaybackIp_MpegDashSeekInRepresentationByTimescale(
         representationSeekCtx->durationInTimescaleUnits     = segmentDurationInTimescaleUnits;
         representationSeekCtx->segmentTimelineTime          = segmentTimelineTime;
 
-        PRINTMSG_SEEK(("%s:%d : SegmentDurationInMs: %llu", myFuncName, __LINE__, ((uint64_t)segmentDurationInTimescaleUnits*1000)/timescale ));
+        PRINTMSG_SEEK(("%s:%d : SegmentDurationInMs: %llu", myFuncName, __LINE__, ((unsigned long long)segmentDurationInTimescaleUnits*1000)/timescale ));
     }
     else
     {
@@ -5631,7 +5624,7 @@ NEXUS_PlaypumpHandle B_PlaybackIp_MpegDashGetPlaypumpHandle(
     }
     else
     {
-        BDBG_ERR(("%s: Invalid pidType:%d Can't determine playpump handle!", __FUNCTION__));
+        BDBG_ERR(("%s: Invalid PidType=%d, Can't determine playpump handle!", __FUNCTION__, pidType));
         return NULL;
     }
 
@@ -5678,7 +5671,7 @@ B_PlaybackIp_MpegDashRemoveSlavePidChannel(B_PlaybackIpHandle playback_ip, NEXUS
 
     PRINTMSG_SEEK(("%s:%d: %s Pid: Removing slave pid %d (handle %p) from %s Master pid %p",
                myFuncName, __LINE__, pidTypeText,
-               slavePidEntry->pid, slavePidEntry->pidChannelHandle, pidTypeText, masterPidChannel));
+               slavePidEntry->pid, (void *)slavePidEntry->pidChannelHandle, pidTypeText, (void *)masterPidChannel));
 
     NEXUS_PidChannel_RemoveSlavePidChannel( masterPidChannel, slavePidEntry->pidChannelHandle);
 
@@ -5745,7 +5738,7 @@ B_PlaybackIp_MpegDashAddSlavePidChannel(B_PlaybackIpHandle playback_ip, NEXUS_Pi
         for(slavePidEntry = BLST_Q_FIRST(slavePidHead) ; slavePidEntry ; slavePidEntry = BLST_Q_NEXT(slavePidEntry, nextSlavePidEntry) )
         {
             if (slavePidEntry->pid == newPid) {
-                PRINTMSG_SEEK(("%s:%d: %s Pid: %u (%p) already exists as a %s Slave pid", myFuncName, __LINE__, pidTypeText,  newPid, slavePidEntry->pidChannelHandle, pidTypeText));
+                PRINTMSG_SEEK(("%s:%d: %s Pid: %u (%p) already exists as a %s Slave pid", myFuncName, __LINE__, pidTypeText,  newPid, (void *)slavePidEntry->pidChannelHandle, pidTypeText));
                 needToAddPid = false;       /* Found the new pid in the list... don't need to add it.*/
                 break;
             }
@@ -5759,7 +5752,7 @@ B_PlaybackIp_MpegDashAddSlavePidChannel(B_PlaybackIpHandle playback_ip, NEXUS_Pi
         MpegDashSlavePidEntry  * slavePidEntry;
         NEXUS_PlaypumpHandle     myPlaypump = B_PlaybackIp_MpegDashGetPlaypumpHandle(playback_ip,pidType);
 
-        PRINTMSG_SEEK(("%s:%d: %s Pid: %u doesn't exist, need to create...", myFuncName, __LINE__, pidTypeText,  newPid, pidTypeText));
+        PRINTMSG_SEEK(("%s:%d: Pid: %u doesn't exist, need to create...", myFuncName, __LINE__, newPid));
 
         /* Open the pid channel */
         NEXUS_Playpump_GetDefaultOpenPidChannelSettings(&pidChannelSettings);
@@ -5774,7 +5767,7 @@ B_PlaybackIp_MpegDashAddSlavePidChannel(B_PlaybackIpHandle playback_ip, NEXUS_Pi
          * either the master pid, or any of the slave pids through to the decoder.  This allows
          * for a clean transition when the stream changes from one pid to the next.  */
 
-        PRINTMSG_SEEK(("%s:%d: %s Pid: Adding pid %u (%p) as slave to %p", myFuncName, __LINE__, pidTypeText,  newPid, slavePidChannel, masterPidChannel));
+        PRINTMSG_SEEK(("%s:%d: %s Pid: Adding pid %u (%p) as slave to %p", myFuncName, __LINE__, pidTypeText,  newPid, (void *)slavePidChannel, (void *)masterPidChannel));
 
         errCode = NEXUS_PidChannel_AddSlavePidChannel(masterPidChannel, slavePidChannel, NULL);
         if (errCode) {
@@ -5971,7 +5964,7 @@ B_PlaybackIp_MpegDashSeekSwitchAdaptationSet(B_PlaybackIpHandle playback_ip, Mpe
 
     PRINTMSG_SEEK(("%s:%d: Entry: Seek is at Repr:%p id:%s timeInTs:%"PRIu64" timeInMs:%"PRIu64" status:%s",
                    myFuncName, __LINE__,
-                   representationSeekCtx->representationInfo,
+                   (void *)representationSeekCtx->representationInfo,
                    representationSeekCtx->representationId,
                    representationSeekCtx->periodTimeInTimescaleUnits,
                    (representationSeekCtx->periodTimeInTimescaleUnits*(uint64_t)1000)/representationSeekCtx->timescale,
@@ -6011,7 +6004,7 @@ B_PlaybackIp_MpegDashSeekSwitchAdaptationSet(B_PlaybackIpHandle playback_ip, Mpe
 
     PRINTMSG_SEEK(("%s:%d: Exit: Seek is at Repr:%p id:%s timeInTs:%"PRIu64" timeInMs:%"PRIu64" status:%s",
                    myFuncName, __LINE__,
-                   representationSeekCtx->representationInfo,
+                   (void *)representationSeekCtx->representationInfo,
                    representationSeekCtx->representationId,
                    representationSeekCtx->periodTimeInTimescaleUnits,
                    (representationSeekCtx->periodTimeInTimescaleUnits*(uint64_t)1000)/representationSeekCtx->timescale,
@@ -6045,7 +6038,7 @@ B_PlaybackIp_MpegDashSeekAdvanceBySegment(B_PlaybackIpHandle playback_ip, MpegDa
 
     PRINTMSG_SEEK(("%s:%d: Entry: Seek is at Repr:%p id:%s timeInTs:%"PRIu64" status:%s",
                    myFuncName, __LINE__,
-                   representationSeekCtx->representationInfo,
+                   (void *)representationSeekCtx->representationInfo,
                    representationSeekCtx->representationId,
                    representationSeekCtx->periodTimeInTimescaleUnits,
                    representationSeekCtx->status == B_PlaybackMpegDashSeekStatus_eInvalid    ? "Invalid"   :
@@ -6057,8 +6050,8 @@ B_PlaybackIp_MpegDashSeekAdvanceBySegment(B_PlaybackIpHandle playback_ip, MpegDa
         /* Advance the (previously) current representation's seek
          * context by the duration of the current segment.*/
         newTimeInTimescaleUnits = representationSeekCtx->periodTimeInTimescaleUnits + representationSeekCtx->durationInTimescaleUnits;
-        PRINTMSG_SEEK(("%s:%d: newTimeInTimescaleUnits=%lu", myFuncName, __LINE__, newTimeInTimescaleUnits));
-        PRINTMSG_SEEK(("%s:%d: representationSeekCtx->periodTimeInTimescaleUnits=%llu", myFuncName, __LINE__, representationSeekCtx->periodTimeInTimescaleUnits));
+        PRINTMSG_SEEK(("%s:%d: newTimeInTimescaleUnits="BDBG_UINT64_FMT, myFuncName, __LINE__, BDBG_UINT64_ARG(newTimeInTimescaleUnits)));
+        PRINTMSG_SEEK(("%s:%d: representationSeekCtx->periodTimeInTimescaleUnits=" BDBG_UINT64_FMT, myFuncName, __LINE__, BDBG_UINT64_ARG(representationSeekCtx->periodTimeInTimescaleUnits)));
 
         errCode = B_PlaybackIp_MpegDashSeekInRepresentationByTimescale(playback_ip, representationInfo , representationSeekCtx, newTimeInTimescaleUnits);
 
@@ -6078,7 +6071,7 @@ B_PlaybackIp_MpegDashSeekAdvanceBySegment(B_PlaybackIpHandle playback_ip, MpegDa
 
     PRINTMSG_SEEK(("%s:%d: Exit: Seek is at Repr:%p id:%s timeInTs:%"PRIu64" status:%s",
                    myFuncName, __LINE__,
-                   representationSeekCtx->representationInfo,
+                   (void *)representationSeekCtx->representationInfo,
                    representationSeekCtx->representationId,
                    representationSeekCtx->periodTimeInTimescaleUnits,
                    representationSeekCtx->status == B_PlaybackMpegDashSeekStatus_eInvalid    ? "Invalid"   :
@@ -6282,14 +6275,14 @@ B_PlaybackIp_MpegDashSeekToMpdTime(B_PlaybackIpHandle playback_ip, MpegDashSeekC
     PRINTMSG_SEEK(("%s:%d: requestSeekCtx->video.periodTime=%"PRIu64, __FUNCTION__, __LINE__, requestSeekCtx->video.periodTimeInMs));
     PRINTMSG_SEEK(("%s:%d: requestSeekCtx->video.byteOffset=%u", __FUNCTION__, __LINE__, requestSeekCtx->video.byteOffset));
     PRINTMSG_SEEK(("%s:%d: requestSeekCtx->video.segmentNumber=%u", __FUNCTION__, __LINE__, requestSeekCtx->video.segmentNumber));
-    PRINTMSG_SEEK(("%s:%d: requestSeekCtx->video.segmmentUrlInfo=0x%x", __FUNCTION__, __LINE__, requestSeekCtx->video.segmentUrlInfo));
+    PRINTMSG_SEEK(("%s:%d: requestSeekCtx->video.segmmentUrlInfo=%p", __FUNCTION__, __LINE__, (void *)requestSeekCtx->video.segmentUrlInfo));
 
     PRINTMSG_SEEK(("%s:%d: requestSeekCtx->audio.representationId=%s", __FUNCTION__, __LINE__, requestSeekCtx->audio.representationId));
     PRINTMSG_SEEK(("%s:%d: requestSeekCtx->audio.periodTime=%"PRIu64, __FUNCTION__, __LINE__, requestSeekCtx->audio.periodTimeInMs));
     PRINTMSG_SEEK(("%s:%d: requestSeekCtx->audio.byteOffset=%u", __FUNCTION__, __LINE__, requestSeekCtx->audio.byteOffset));
     PRINTMSG_SEEK(("%s:%d: requestSeekCtx->audio.segmentNumber=%u", __FUNCTION__, __LINE__, requestSeekCtx->audio.segmentNumber));
-    PRINTMSG_SEEK(("%s:%d: requestSeekCtx->audio.segmmentUrlInfo=0x%x", __FUNCTION__, __LINE__, requestSeekCtx->audio.segmentUrlInfo));
-    PRINTMSG_SEEK(("%s:%d: requestSeekCtx->currentRepresentation=0x%x", __FUNCTION__, __LINE__, requestSeekCtx->currentRepresentationSeekContext));
+    PRINTMSG_SEEK(("%s:%d: requestSeekCtx->audio.segmmentUrlInfo=%p", __FUNCTION__, __LINE__, (void *)requestSeekCtx->audio.segmentUrlInfo));
+    PRINTMSG_SEEK(("%s:%d: requestSeekCtx->currentRepresentation=%p", __FUNCTION__, __LINE__, (void *)requestSeekCtx->currentRepresentationSeekContext));
 
     return B_ERROR_SUCCESS;
 
@@ -6480,7 +6473,7 @@ B_PlaybackIp_MpegDashSessionSetup(B_PlaybackIpHandle playback_ip, char *http_hdr
 
     /* allocate MPEG-DASH session state */
     if ((playback_ip->mpegDashSessionState = (MpegDashSessionState *)BKNI_Malloc(sizeof(MpegDashSessionState))) == NULL) {
-        BDBG_ERR(("%s: failed to allocate %d bytes for MPEG-DASH Session state", __FUNCTION__, sizeof(MpegDashSessionState)));
+        BDBG_ERR(("%s: failed to allocate %d bytes for MPEG-DASH Session state", __FUNCTION__, (int)sizeof(MpegDashSessionState)));
         goto error;
     }
     mpegDashSession = playback_ip->mpegDashSessionState;
@@ -6741,7 +6734,7 @@ B_PlaybackIp_MpegDashSessionStart(
     B_PlaybackIpError        errorCode = B_ERROR_PROTO;
 
     if (!playback_ip || !startSettings || !startStatus) {
-        BDBG_ERR(("%s: invalid params, playback_ip %p, startSettings %p, startStatus %p\n", __FUNCTION__, playback_ip, startSettings, startStatus));
+        BDBG_ERR(("%s: invalid params, playback_ip %p, startSettings %p, startStatus %p\n", __FUNCTION__, (void *)playback_ip, (void *)startSettings, (void *)startStatus));
         errorCode = B_ERROR_INVALID_PARAMETER;
         goto error;
     }
@@ -6971,13 +6964,13 @@ B_PlaybackIp_SeekMpegDash(
     BERR_Code rc;
     int i;
 
-    PRINTMSG_SEEK(("%s: Validating seekPosition: %d", __FUNCTION__, seekPosition));
+    PRINTMSG_SEEK(("%s: Validating seekPosition: %lu", __FUNCTION__, seekPosition));
 
     {
         MpegDashSeekContext   requestSeekCtx;
 
         if (B_PlaybackIp_MpegDashSeekToMpdTime(playback_ip, &requestSeekCtx, seekPosition)) {
-            BDBG_ERR(("%s: Incorrect seekPosition %d", __FUNCTION__, seekPosition));
+            BDBG_ERR(("%s: Incorrect seekPosition %lu", __FUNCTION__, seekPosition));
             return B_ERROR_INVALID_PARAMETER;
         }
     }
@@ -7031,7 +7024,7 @@ B_PlaybackIp_SeekMpegDash(
 
     PRINTMSG_SEEK(("%s:%d : Starting seek in MPD", __FUNCTION__, __LINE__   ));
     if (B_PlaybackIp_MpegDashSeekToMpdTime(playback_ip, &mpegDashSession->requestSeekCtx, seekPosition)) {
-        BDBG_ERR(("%s: Incorrect seekPosition %d", __FUNCTION__, seekPosition));
+        BDBG_ERR(("%s: Incorrect seekPosition %lu", __FUNCTION__, seekPosition));
         return B_ERROR_INVALID_PARAMETER;
     }
 
@@ -7060,7 +7053,7 @@ B_PlaybackIp_SeekMpegDash(
     playback_ip->lastSeekPosition = mpegDashSession->requestSeekCtx.periodSeekTimeInMs;
     /* GARYWASHERE: is this right??? Maybe it needs to use PTS time?  */
 
-    PRINTMSG_SEEK(("%s: B_PlaybackIp_SeekMpegDash successful to %d msec", __FUNCTION__, playback_ip->lastSeekPosition));
+    PRINTMSG_SEEK(("%s: B_PlaybackIp_SeekMpegDash successful to %lu msec", __FUNCTION__, playback_ip->lastSeekPosition));
     return B_ERROR_SUCCESS;
 }
 
@@ -7166,7 +7159,7 @@ B_PlaybackIp_MpegDashAllocateSegmentBoxPrefix( MpegDashSegmentBuffer  * segmentB
         codecSpecificSize = representationInfo->codecSpecificSizeForVideo;
     }
     else {
-        BDBG_ERR(("%s: Unable to determine media type of segment!"));
+        BDBG_ERR(("%s: Unable to determine media type of segment!", __FUNCTION__));
         goto error;
     }
 
@@ -7248,7 +7241,7 @@ B_PlaybackIp_MpegDashBuildSegmentBoxPrefix( MpegDashSegmentBuffer  * segmentBuff
         startTimeInMdhdTimescale =  (requestSeekCtx->currentRepresentationSeekContext->periodTimeInTimescaleUnits * mdhdTimescale ) / requestSeekCtx->currentRepresentationSeekContext->timescale;
     }
     else {
-        BDBG_ERR(("%s: Unable to determine media type of segment!"));
+        BDBG_ERR(("%s: Unable to determine media type of segment!", __FUNCTION__));
         goto error;
     }
 
@@ -7270,12 +7263,12 @@ B_PlaybackIp_MpegDashBuildSegmentBoxPrefix( MpegDashSegmentBuffer  * segmentBuff
 
     mp4_box_offset = start_mp4_box(fout, "bmp4");
 
-    PRINTMSG_DOWNLOAD(("%s:%d: Creating bhed box... timescale: %lu start_time: %lu fourcc: "BMEDIA_FOURCC_FORMAT, __FUNCTION__, __LINE__,
+    PRINTMSG_DOWNLOAD(("%s:%d: Creating bhed box... timescale: %lu start_time: %u fourcc: "BMEDIA_FOURCC_FORMAT, __FUNCTION__, __LINE__,
                              mdhdTimescale, (uint32_t)startTimeInMdhdTimescale, BMEDIA_FOURCC_ARG(fourcc)));
     write_bhed_box(    fout, mdhdTimescale,           startTimeInMdhdTimescale, fourcc);
 
-    PRINTMSG_DOWNLOAD(("%s:%d: Creating bdat box... data: %p data_len: %lu", __FUNCTION__, __LINE__,
-                           codecSpecificAddr, codecSpecificSize ));
+    PRINTMSG_DOWNLOAD(("%s:%d: Creating bdat box... data: %p data_len: %u", __FUNCTION__, __LINE__,
+                       (void *)codecSpecificAddr, (unsigned)codecSpecificSize ));
     write_bdat_box(fout,   codecSpecificAddr, codecSpecificSize);
 
     PRINTMSG_DOWNLOAD(("%s:%d: Creating trex box... track_ID: %lu, default_sample_description_index:%lu  default_sample_duration:%lu  default_sample_size:%lu  default_sample_flags:%lu",
@@ -7723,7 +7716,7 @@ B_PlaybackIp_MpegDashMediaSegmentDownloadThread(void *data)
                  * with the truncated segment.  */
                 if (!serverClosed) {
                     if (segmentBuffer->bufferDepth >= segmentBuffer->bufferSize) {
-                        BDBG_ERR(("%s: Didn't download all bytes of current media segment: bytesDownloaded %d", myFuncName, segmentBuffer->bufferDepth));
+                        BDBG_ERR(("%s: Didn't download all bytes of current media segment: bytesDownloaded %d", myFuncName, (int)segmentBuffer->bufferDepth));
                         BDBG_ERR(("%s:%d: Segment size exceeded maximum! Trying to continue.", myFuncName, __LINE__));
                     }
                 }
@@ -7749,8 +7742,8 @@ B_PlaybackIp_MpegDashMediaSegmentDownloadThread(void *data)
                 }
             }
 
-            PRINTMSG_DOWNLOAD(("%s: Informing MPEG-DASH playback thread that buffer %p: depth %d is filled , current network bandwidth %d Kbps",
-                                myFuncName, segmentBuffer, segmentBuffer->bufferDepth,
+            PRINTMSG_DOWNLOAD(("%s: Informing MPEG-DASH playback thread that buffer %p: depth %d is filled , current network bandwidth %lu Kbps",
+                               myFuncName, (void *)segmentBuffer, (int)segmentBuffer->bufferDepth,
                                B_PlaybackIp_MpegDashGetCurrentBandwidth(&mpegDashSession->bandwidthContext) ));
 
             /* Hand off the segment buffer to the Playback thread. */
@@ -7949,7 +7942,7 @@ int B_PlaybackIp_MpegDashGetPlaypumpBuffer(
             NEXUS_PlaypumpStatus ppStatus;
             /* bplaypump_flush(playback_ip->nexusHandles.playpump); */
             rc = NEXUS_Playpump_GetStatus(playpump, &ppStatus);
-            if (!rc) BDBG_MSG(("Returned 0 buffer size from GetBuffer()!, fifo dep %d, size %d, desc dep %d sz %d", ppStatus.fifoDepth, ppStatus.fifoSize, ppStatus.descFifoDepth, ppStatus.descFifoSize));
+            if (!rc) BDBG_MSG(("Returned 0 buffer size from GetBuffer()!, fifo dep %d, size %d, desc dep %d sz %d", (int)ppStatus.fifoDepth, (int)ppStatus.fifoSize, (int)ppStatus.descFifoDepth, (int)ppStatus.descFifoSize));
             BKNI_Sleep(200);
             continue;
         }
@@ -8072,7 +8065,7 @@ B_PlaybackIp_MpegDashPlaybackThread(void *data)
         if (audioPlaypumpHandle) {
             rc = NEXUS_Playpump_GetStatus(audioPlaypumpHandle, &playpumpStatus);
             if (rc != NEXUS_SUCCESS) {
-                BDBG_ERR(("%s:%d: NEXUS_Playpump_GetStatus failed! rc=%ld", myFuncName, __LINE__, rc));
+                BDBG_ERR(("%s:%d: NEXUS_Playpump_GetStatus failed! rc=%d", myFuncName, __LINE__, (int)rc));
             }
             else {
                 maxAudioFeedSize = playpumpStatus.fifoSize / 16;
@@ -8083,7 +8076,7 @@ B_PlaybackIp_MpegDashPlaybackThread(void *data)
         if (videoPlaypumpHandle) {
             rc = NEXUS_Playpump_GetStatus(videoPlaypumpHandle, &playpumpStatus);
             if (rc != NEXUS_SUCCESS) {
-                BDBG_ERR(("%s:%d: NEXUS_Playpump_GetStatus failed! rc=%ld", myFuncName, __LINE__, rc));
+                BDBG_ERR(("%s:%d: NEXUS_Playpump_GetStatus failed! rc=%d", myFuncName, __LINE__, (int)rc));
             }
             else {
                 maxVideoFeedSize = playpumpStatus.fifoSize / 16;
@@ -8100,7 +8093,7 @@ B_PlaybackIp_MpegDashPlaybackThread(void *data)
         nSettings.dataCallback.callback = B_PlaybackIp_MpegDashPlaypumpCallback;
         nSettings.dataCallback.context = playback_ip;
         if (NEXUS_Playpump_SetSettings(playback_ip->nexusHandles.playpump, &nSettings)) {
-            BDBG_ERR(("%s:%d Nexus Error: %d\n", myFuncName, __LINE__, rc));
+            BDBG_ERR(("%s:%d Nexus Error: %d\n", myFuncName, __LINE__, (int)rc));
             goto error;
         }
     }
@@ -8114,7 +8107,7 @@ B_PlaybackIp_MpegDashPlaybackThread(void *data)
         nSettings.dataCallback.callback = B_PlaybackIp_MpegDashPlaypumpCallback;
         nSettings.dataCallback.context = playback_ip;
         if (NEXUS_Playpump_SetSettings(playback_ip->nexusHandles.playpump2, &nSettings)) {
-            BDBG_ERR(("%s:%d Nexus Error: %d\n", myFuncName, __LINE__, rc));
+            BDBG_ERR(("%s:%d Nexus Error: %d\n", myFuncName, __LINE__, (int)rc));
             goto error;
         }
     }
@@ -8181,7 +8174,7 @@ B_PlaybackIp_MpegDashPlaybackThread(void *data)
             PRINTMSG_PLAYBACK(("%s: Failsafe wakeup, checking current state.", myFuncName));
         }
         else  {
-            BDBG_ERR(("%s: Failed to wait for playbackThreadWakeEvent, rc = %d, giving up.", myFuncName, rc));
+            BDBG_ERR(("%s: Failed to wait for playbackThreadWakeEvent, rc = %d, giving up.", myFuncName, (int)rc));
             rc = BERR_TRACE(rc);
             goto error;
         }
@@ -8258,14 +8251,14 @@ B_PlaybackIp_MpegDashPlaybackThread(void *data)
                 BKNI_AcquireMutex(mpegDashSession->segmentBuffer[i].lock);
                 if (mpegDashSession->segmentBuffer[i].allocated && mpegDashSession->segmentBuffer[i].filled ) {
                     segmentBuffer = &mpegDashSession->segmentBuffer[i];
-                    PRINTMSG_PLAYBACK(("%s: Buffer %p is filled, i:%d", myFuncName, segmentBuffer, i));
+                    PRINTMSG_PLAYBACK(("%s: Buffer %p is filled, i:%d", myFuncName, (void *)segmentBuffer, i));
                 }
                 else {
-                    PRINTMSG_PLAYBACK(("%s: Buffer %p is not filled, i:%d", myFuncName, &mpegDashSession->segmentBuffer[i], i));
+                    PRINTMSG_PLAYBACK(("%s: Buffer %p is not filled, i:%d", myFuncName, (void *)&mpegDashSession->segmentBuffer[i], i));
                 }
                 BKNI_ReleaseMutex(mpegDashSession->segmentBuffer[i].lock);
             }
-            BDBG_NUL(("%s:%d : Looking for segment buffer, got %p ", myFuncName, __LINE__ , segmentBuffer  ));
+            BDBG_NUL(("%s:%d : Looking for segment buffer, got %p ", myFuncName, __LINE__ , (void *)segmentBuffer  ));
 
             if (segmentBuffer) {
                 playbackState = B_PlaybackMpegDashPlaybackState_ePlaypumpBegin;
@@ -8283,7 +8276,7 @@ B_PlaybackIp_MpegDashPlaybackThread(void *data)
                 if (mpegDashSession->mpegDashSegmentDownloadThreadDone) {
                     PRINTMSG_PLAYBACK(("%s: Network Read Error, wait to play out the stream", myFuncName));
                     if (B_PlaybackIp_MpegDashEndOfStream(playback_ip) == true) {
-                        BDBG_WRN(("%s: No more segments to feed to playback & playback is done, total fed %lld", myFuncName, totalBytesFed));
+                        BDBG_WRN(("%s: No more segments to feed to playback & playback is done, total fed %lld", myFuncName, (long long)totalBytesFed));
                         playbackState = B_PlaybackMpegDashPlaybackState_eExit;
                     }
                     else {
@@ -8301,7 +8294,7 @@ B_PlaybackIp_MpegDashPlaybackThread(void *data)
             PRINTMSG_PLAYBACK(("%s:%d : Handling PlaypumpBegin state...", myFuncName, __LINE__ ));
 
             segmentBytesFed = 0;
-            PRINTMSG_PLAYBACK(("%s: Found a segment buffer: %p with %ld bytes of%s%s", myFuncName, segmentBuffer, segmentBuffer->bufferDepth,
+            PRINTMSG_PLAYBACK(("%s: Found a segment buffer: %p with %d bytes of%s%s", myFuncName, (void *)segmentBuffer, (int)segmentBuffer->bufferDepth,
                                segmentBuffer->hasAudio?" Audio":"", segmentBuffer->hasVideo?" Video":""));
             playbackState = B_PlaybackMpegDashPlaybackState_ePlaypumpFeed;
         }
@@ -8350,7 +8343,7 @@ B_PlaybackIp_MpegDashPlaybackThread(void *data)
 
                 memcpy(playpumpBuffer, segmentBuffer->buffer + segmentBytesFed, bytesToCopy);
 
-                PRINTMSG_PLAYBACK(("%s: copied %d bytes from segment buffer into playpump buffer", myFuncName, bytesToCopy));
+                PRINTMSG_PLAYBACK(("%s: copied %d bytes from segment buffer into playpump buffer", myFuncName, (int)bytesToCopy));
 
                 /* write data to file */
                 if (playback_ip->enableRecording && fclear) {
@@ -8359,7 +8352,7 @@ B_PlaybackIp_MpegDashPlaybackThread(void *data)
 
                 PRINTMSG_PLAYBACK(("%s:%d : Calling Playpump_ReadComplete for playpump %p hasAudio:%d hasVideo:%d",
                                    myFuncName, __LINE__,
-                                   myPlaypump, segmentBuffer->hasAudio, segmentBuffer->hasVideo ));
+                                   (void *)myPlaypump, segmentBuffer->hasAudio, segmentBuffer->hasVideo ));
 
                 /* now feed appropriate data it to the playpump */
                 if (NEXUS_Playpump_ReadComplete(myPlaypump, 0, bytesToCopy)) {
@@ -8372,10 +8365,10 @@ B_PlaybackIp_MpegDashPlaybackThread(void *data)
                 segmentBytesFed += bytesToCopy;
                 totalBytesFed += bytesToCopy;
 
-                PRINTMSG_PLAYBACK(("%s:%d : Playpump Buffer sent, bytes sent %ld out of %ld, %ld remaining", myFuncName, __LINE__, bytesToCopy, segmentBuffer->bufferDepth, segmentBuffer->bufferDepth - segmentBytesFed ));
+                PRINTMSG_PLAYBACK(("%s:%d : Playpump Buffer sent, bytes sent %d out of %d, %d remaining", myFuncName, __LINE__, (int)bytesToCopy, (int)segmentBuffer->bufferDepth, (int)(segmentBuffer->bufferDepth - segmentBytesFed )));
 
                 if (segmentBytesFed >= segmentBuffer->bufferDepth) {
-                    PRINTMSG_PLAYBACK(("%s: Finished feeding %s Segment (%d bytes) to Playpump", myFuncName, segmentBuffer->hasAudio?"Audio":"Video", segmentBytesFed));
+                    PRINTMSG_PLAYBACK(("%s: Finished feeding %s Segment (%d bytes) to Playpump", myFuncName, segmentBuffer->hasAudio?"Audio":"Video", (int)segmentBytesFed));
                     playbackState = B_PlaybackMpegDashPlaybackState_eSegBufFree;    /* We're done here, on to next state. */
                     break;
                 }

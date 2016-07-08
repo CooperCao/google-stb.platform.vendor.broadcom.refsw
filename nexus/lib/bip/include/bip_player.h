@@ -1,43 +1,40 @@
-/***************************************************************************
-*     (c)2008-2016 Broadcom Corporation
-*
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
-*  and may only be used, duplicated, modified or distributed pursuant to the terms and
-*  conditions of a separate, written license agreement executed between you and Broadcom
-*  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-*  no license (express or implied), right to use, or waiver of any kind with respect to the
-*  Software, and Broadcom expressly reserves all rights in and to the Software and all
-*  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-*  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-*  Except as expressly set forth in the Authorized License,
-*
-*  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-*  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-*  and to use this information only in connection with your use of Broadcom integrated circuit products.
-*
-*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-*  USE OR PERFORMANCE OF THE SOFTWARE.
-*
-*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-*  ANY LIMITED REMEDY.
-*
-* Description: Broadcom IP (BIP) Player library API definition file
-*
-***************************************************************************/
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
 #ifndef BIP_PLAYER_H
 #define BIP_PLAYER_H
 
@@ -589,6 +586,9 @@ typedef struct BIP_PlayerSettings
                                                                         /*!< For MPEG2-TS: program_number. */
 
     const char                          *pPreferredAudioLanguage;       /*!< Preferred language of audio track. If set & not found, then 1st available audio track is selected. */
+                                                                        /*!< App should also set this preference (if available) if it wants to enableDynamicTrackSelection & doesn't set the trackSelectionCallback. */
+                                                                        /*!< Player will then use this preference to auto-select an Audio track when there is a stream change. */
+
     const char                          *pPreferredVideoName;           /*!< Preferred name of video track (alternate video views.). If set & not found, then 1st available video track is selected. */
     const char                          *pPreferredSubtitleLanguage;    /*!< Preferred language of subtitle track. */
 
@@ -600,6 +600,11 @@ typedef struct BIP_PlayerSettings
                                                                         /*!< Optional: define actions for various conditions such as end/beginning/error cases. Otherwise, current Nexus Playback Defaults are used. */
                                                                         /*!< Optional: define error handling modes for errors during play/seek/trick-mode operations. Otherwise, Nexus Playback defaults are used. */
 
+    BIP_MediaInfoAudioAc3Descriptor     ac3Descriptor;                  /*!< Optional: Describes the audio service type. Eg: main, music and effects, visually impaired etc. */
+                                                                        /*!< App should also set this preference (if available) if it wants to enableDynamicTrackSelection & doesn't set the trackSelectionCallback. */
+                                                                        /*!< Player will then use this preference to auto-select an Audio track when there is a stream change. */
+                                                                        /*!< Note: This preference can be set in addition to the pPreferredAudioLanguage above. */
+
     NEXUS_DisplayHandle                 hDisplay;                       /*!< Required if non-Simple Video decode is used else will be ignored. */
     NEXUS_VideoWindowHandle             hWindow;                        /*!< Required if non-Simple Video decode is used else will be ignored. */
 
@@ -608,6 +613,26 @@ typedef struct BIP_PlayerSettings
 
     unsigned                            maxStreamBitRate;               /*!< Maximum bitrate of the AV Stream Player should select. Defaults to UINT_MAX */
     unsigned                            minStreamBitRate;               /*!< Minimum bitrate of the AV Stream Player should select. Defaults to 0. */
+
+    bool                                enableDynamicTrackSelection;    /*!< If true, Player will detect if a track changes in the middle of the stream & re-select tracks based on the Track Preferences defined above unless */
+                                                                        /*!< App has defined trackSelectionCallback. Then, Player will only invoke this callback & wait for App to re-select the tracks */
+                                                                        /*!< (see comment for trackSelectionCallback below on how to do this). */
+
+                                                                        /*!< NOTE: Player will ignore this flag if App selects initial tracks by providing explicit audio & video trackIds above and */
+                                                                        /*!< DOES NOT set the trackSelectionCallback below. */
+
+                                                                        /*!< NOTE: Player will only enable this logic if App DOES NOT select the initial tracks by providing explicit audio & video trackIds above and */
+                                                                        /*!< instead either it omits trackIds or provides the above defined Track Selection Preferences. */
+
+    BIP_CallbackDesc                    trackSelectionCallback;         /*!< If set, Player will NOT auto-select the Tracks when it detects Track changes mid-stream. Instead, it will invoke this callback and */
+                                                                        /*!< expect App to re-select Tracks by first acquiring the new BIP_MediaInfo object via BIP_Player_GetStatus and */
+                                                                        /*!< selecting them via the BIP_PlayerSettings Track Preferences in the BIP_Player_SetSettings(). */
+
+    BIP_CallbackDesc                    newMediaInfoCallback;           /*!< Callback to indicate the new MediaInfo availablility due to track changes in the stream. */
+                                                                        /*!< App can then get the new BIP_MediaInfo object via BIP_Player_GetStatus. */
+                                                                        /*!< Note: App doesn't need to set both trackSelectionCallback & newMediaInfoCallback. */
+                                                                        /*!< The purpose of this callback is to handle the case where App wants player to auto-select the tracks and */
+                                                                        /*!< just wants to know when player selects the new track due to changes in the stream. */
 
     struct
     {
@@ -1321,9 +1346,20 @@ Status returned by BIP_Player_GetStatus().
 See Also:
 BIP_Player_GetStatus
 **/
+typedef struct BIP_PlayerHlsContainerStats
+{
+    unsigned lastSegmentDownloadTime;           /* time, in msec, taken to download the last segment: spans from HTTP Get Request to full segment download */
+    unsigned lastSegmentBitrate;                /* bit rate, in bips per sec (bps), associated with the segments currently being downloaded & played out. */
+    unsigned lastSegmentDuration;               /* duration, in msec, of the last segment fed to the playback h/w channel */
+    unsigned lastSegmentSequence;               /* sequence number of the last segment fed to the playback h/w channel */
+    const char *lastSegmentUrl;                 /* URL (i.e. playlist name) of the last segment fed to the playback h/w channel */
+    bool     bounded;                           /* set to true if EXT-ENDLIST tag is present, meaning the Playlist represents the bounded content. */
+} BIP_PlayerHlsContainerStats;
+
 typedef struct BIP_PlayerStats
 {
-    off_t  totalConsumed;                       /*!< Total bytes consumed by the Media player */
+    off_t                       totalConsumed;  /*!< Total bytes consumed by the Media player */
+    BIP_PlayerHlsContainerStats hlsStats;       /*!< HLS Container related stats. */
 } BIP_PlayerStats;
 
 typedef enum BIP_PlayerState
@@ -1430,6 +1466,10 @@ typedef struct BIP_PlayerStatus
     BIP_PlayerDataAvailabilityModel dataAvailabilityModel;  /*!< Specifies how the Stream's AV data is accessible. */
     BIP_PlayerPrepareStatus         prepareStatus;          /*!< Status associated w/ the last Prepare work done via the BIP_Player_Prepare() or BIP_Player_SetSettings(). */
     BIP_PlayerMode                  mode;
+    BIP_MediaInfoHandle             hMediaInfo;             /*!< Current MediaInfo Handle associated with the stream. */
+                                                            /*!< This handle can be different from the one returned during initial Probe if App enables Player to detect any PSI changes in the stream & seemlessly play the next trackGroup (program). */
+                                                            /*!< App enables this logic by not explicitly selecting the initial AV Tracks using their trackIds & instead selecting them either using a preference or leaving the trackIds un-initialized. */
+                                                            /*!< Please review the BIP_PlayerSettings for further details. */
 } BIP_PlayerStatus;
 
 /**

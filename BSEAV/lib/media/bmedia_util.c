@@ -1,23 +1,43 @@
 /***************************************************************************
- *     Copyright (c) 2007-2014, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom.  All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description:
  *
  * BMedia library, misc utilities
- * 
- * Revision History:
- *
- * $brcm_Log: $
  * 
  *******************************************************************************/
 #include "bstd.h"
@@ -1093,13 +1113,13 @@ bmedia_is_dts_cd(batom_cursor *cursor)
     return ((found_14_bit_sync_word > 1) || (found_16_bit_sync_word > 1));
 }
 
-size_t
+unsigned
 bmedia_waveformatex_pcm_block_size(const bmedia_waveformatex *wf)
 {
-    size_t pcm_packet_size = 0;
+    unsigned pcm_packet_size = 0;
     if(BMEDIA_WAVFMTEX_AUDIO_PCM(wf) || wf->wFormatTag == BMEDIA_WAVFMTEX_AUDIO_PCM_BE_TAG ) {
         pcm_packet_size = (wf->nSamplesPerSec * 30) / 1000; /* calculate packet size, so it contains 30msec worth of PCM samples */
-        pcm_packet_size *= (wf->nChannels * wf->wBitsPerSample)/8; /* make sure that packet size remains alligned on the channel+sample boundary */
+        pcm_packet_size *= (wf->nChannels * wf->wBitsPerSample)/8; /* make sure that packet size remains aligned on the channel+sample boundary */
     } else if(BMEDIA_WAVFMTEX_AUDIO_MS_ADPCM(wf) || BMEDIA_WAVFMTEX_AUDIO_DVI_ADPCM(wf) || BMEDIA_WAVFMTEX_AUDIO_G711(wf) || wf->wFormatTag==BMEDIA_WAVFMTEX_AUDIO_BCMA_QT_IMA4_TAG  ) {
         pcm_packet_size = (1024 * wf->nSamplesPerSec)/44100;/* calculate packet size, so it contains 23msec worth of samples */
         if(pcm_packet_size<256) { /* but not less than 256 samples */
@@ -1475,3 +1495,36 @@ size_t bmedia_strip_emulation_prevention(batom_cursor *cursor, void *buf, size_t
     return offset;
 }
 
+size_t bmedia_make_bpp_pkt(uint16_t stream_id, const bmedia_bpp_pkt *bpp, void *pkt_, size_t length)
+{
+    unsigned i;
+    uint8_t *pkt  = pkt_;
+    if(length < B_MPEG2PES_BPP_LENGTH) {
+        (void)BERR_TRACE(BERR_INVALID_PARAMETER);
+        return 0;
+    }
+    BKNI_Memset(pkt, 0, B_MPEG2PES_BPP_LENGTH);
+    pkt[0] = 0x00;
+    pkt[1] = 0x00;
+    pkt[2] = 0x01;
+    pkt[3] = (uint8_t)stream_id;
+    pkt[4] = 0x00;
+    pkt[5] = 0xB2;
+    pkt[6] = 0x81;
+    pkt[7] = 0x01;
+    pkt[8] = 0x14;
+    pkt[9] = 0x80;
+    pkt[10] = 0x42;
+    pkt[11] = 0x52;
+    pkt[12] = 0x43;
+    pkt[13] = 0x4D;
+    pkt[26] = pkt[27] = pkt[28] = pkt[29] = 0xFF;
+    for(i=0;i<sizeof(bpp->data)/sizeof(bpp->data[0]);i++) {
+        pkt[30+4*i+0] = B_GET_BITS(bpp->data[i], 31, 24);
+        pkt[30+4*i+1] = B_GET_BITS(bpp->data[i], 23, 16);
+        pkt[30+4*i+2] = B_GET_BITS(bpp->data[i], 15, 8);
+        pkt[30+4*i+3] = B_GET_BITS(bpp->data[i], 7, 0);
+    }
+    BDBG_CASSERT(B_MPEG2PES_BPP_LENGTH>30+sizeof(bpp->data));
+    return B_MPEG2PES_BPP_LENGTH;
+}

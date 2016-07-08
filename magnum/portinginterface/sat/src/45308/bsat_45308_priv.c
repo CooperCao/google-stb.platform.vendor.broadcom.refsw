@@ -1,7 +1,7 @@
 /******************************************************************************
-*    (c)2011-2013 Broadcom Corporation
+* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-* This program is the proprietary software of Broadcom Corporation and/or its licensors,
+* This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
 * conditions of a separate, written license agreement executed between you and Broadcom
 * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
 * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 * ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * Module Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 *****************************************************************************/
 #include "bstd.h"
@@ -103,6 +95,8 @@ BERR_Code BSAT_45308_P_Open(BSAT_Handle *h, BCHP_Handle hChip, void *pReg, BINT_
    BDBG_ASSERT(hDev->pChannels);
    retCode = BKNI_CreateEvent(&(hImplDev->hInitDoneEvent));
    BDBG_ASSERT(retCode == BERR_SUCCESS);
+   hImplDev->lastFastStatusCmd = 0;
+   hImplDev->lastFastStatusCount = 0;
 
    BKNI_Memcpy((void*)(&(hDev->settings)), (void*)pSettings, sizeof(BSAT_Settings));
 
@@ -1556,6 +1550,7 @@ BERR_Code BSAT_45308_P_GetExtAcqSettings(BSAT_ChannelHandle h, BSAT_ExtAcqSettin
    pSettings->blindScanModes = hab[2] & BSAT_BLIND_SCAN_MODE_MASK;
    pSettings->filtctlOverride = hab[3];
    pSettings->maxReacqs = hab[4];
+   pSettings->snrEstMethod = (hab[1] >> 8) & 0x03;
 
    done:
    BDBG_LEAVE(BSAT_45308_P_GetExtAcqSettings);
@@ -1590,6 +1585,7 @@ BERR_Code BSAT_45308_P_SetExtAcqSettings(BSAT_ChannelHandle h, BSAT_ExtAcqSettin
       hab[1] |= 0x40;
    if (pSettings->bOverrideFiltctl)
       hab[1] |= 0x80;
+   hab[1] |= ((pSettings->snrEstMethod & 0x03) << 8);
    hab[2] = (uint32_t)(pSettings->blindScanModes & BSAT_BLIND_SCAN_MODE_MASK);
    hab[3] = pSettings->filtctlOverride;
    hab[4] = pSettings->maxReacqs;
@@ -2184,6 +2180,8 @@ BERR_Code BSAT_45308_P_GetStreamList(BSAT_ChannelHandle h, int bufsize, int *pNu
    uint32_t hab[11];
    int i;
 
+   BSTD_UNUSED(bufsize);
+
    *pNumStreams = 0;
    hab[0] = BHAB_45308_InitHeader(0x3E, h->channel, 0, 0);
    BSAT_45308_CHK_RETCODE(BSAT_45308_P_SendCommand(pDevImpl->hHab, hab, 11));
@@ -2210,11 +2208,11 @@ BERR_Code BSAT_45308_P_GetStreamStatus(BSAT_ChannelHandle h, uint8_t streamId, B
 {
    BSAT_45308_P_Handle *pDevImpl = (BSAT_45308_P_Handle *)(h->pDevice->pImpl);
    BERR_Code retCode = BERR_SUCCESS;
-   uint32_t hab[10];
+   uint32_t hab[14];
 
    hab[0] = BHAB_45308_InitHeader(0x3F, h->channel, 0, 0);
    hab[1] = streamId;
-   BSAT_45308_CHK_RETCODE(BSAT_45308_P_SendCommand(pDevImpl->hHab, hab, 10));
+   BSAT_45308_CHK_RETCODE(BSAT_45308_P_SendCommand(pDevImpl->hHab, hab, 14));
 
    pStatus->mode = (BSAT_Mode)hab[2];
    pStatus->mpegFrameCount = hab[3];
@@ -2222,13 +2220,102 @@ BERR_Code BSAT_45308_P_GetStreamStatus(BSAT_ChannelHandle h, uint8_t streamId, B
    pStatus->iterationCount = hab[5];
    pStatus->ldpcFrameCount = hab[6];
    pStatus->ldpcErrorCount = hab[7];
-   pStatus->bValid = (hab[8] & 0x100) ? false : true;
-   pStatus->matype = (uint8_t)((hab[8] >> 20) & 0xFF);
-   pStatus->pls = (uint8_t)((hab[8] >> 12) & 0xFF);
-   pStatus->streamId = (uint8_t)(hab[8] & 0xFF);
-   pStatus->lock = (hab[8] & 0x80000000) ? 1 : 0;
+   pStatus->totalBlocks = hab[8];
+   pStatus->corrBlocks = hab[9];
+   pStatus->badBlocks = hab[10];
+   pStatus->corrBits = hab[11];
+   pStatus->bValid = (hab[12] & 0x100) ? false : true;
+   pStatus->matype = (uint8_t)((hab[12] >> 20) & 0xFF);
+   pStatus->pls = (uint8_t)((hab[12] >> 12) & 0xFF);
+   pStatus->streamId = (uint8_t)(hab[12] & 0xFF);
+   pStatus->lock = (hab[12] & 0x80000000) ? 1 : 0;
 
    done:
    BDBG_LEAVE(BSAT_45308_P_GetStreamList);
+   return retCode;
+}
+
+
+/******************************************************************************
+ BSAT_45308_P_GetFastChannelStatus()
+******************************************************************************/
+BERR_Code BSAT_45308_P_GetFastChannelStatus(BSAT_ChannelHandle h, BSAT_FastStatusId *pIds, uint8_t n, BSAT_FastChannelStatus *pStatus)
+{
+#define LEAP_GP_STATUS_CMD    BCHP_LEAP_CTRL_GP51
+#define LEAP_GP_STATUS_RESULT BCHP_LEAP_CTRL_GP52
+#define LEAP_GP_STATUS0       BCHP_LEAP_CTRL_GP53
+#define LEAP_GP_STATUS1       BCHP_LEAP_CTRL_GP54
+#define LEAP_GP_STATUS2       BCHP_LEAP_CTRL_GP55
+#define LEAP_GP_STATUS3       BCHP_LEAP_CTRL_GP56
+#define LEAP_GP_STATUS4       BCHP_LEAP_CTRL_GP57
+#define LEAP_GP_STATUS5       BCHP_LEAP_CTRL_GP58
+#define LEAP_GP_STATUS6       BCHP_LEAP_CTRL_GP59
+
+   BSAT_45308_P_Handle *pDevImpl = (BSAT_45308_P_Handle *)(h->pDevice->pImpl);
+   BERR_Code retCode;
+   uint32_t cmd = (h->channel << 28), result, counter, val;
+   uint8_t i, statusID;
+
+   BDBG_ENTER(BSAT_45308_P_GetFastChannelStatus);
+
+   if ((n == 0) || (n > 7) || (pIds == NULL) || (pStatus == NULL))
+      return BERR_INVALID_PARAMETER;
+
+   for (i = 0; i < n; i++)
+   {
+      statusID = (uint8_t)pIds[i];
+      if (statusID >= BSAT_FastStatusId_max)
+         return BERR_INVALID_PARAMETER;
+      pStatus->item[i].bValid = false;
+      cmd |= ((statusID & 0x0F) << (i*4));
+   }
+
+   BSAT_45308_CHK_RETCODE(BHAB_ReadRegister(pDevImpl->hHab, LEAP_GP_STATUS_CMD, &val));
+   if (val != cmd)
+   {
+      write_command:
+      /* BDBG_WRN(("writing cmd 0x%X", cmd)); */
+      BSAT_45308_CHK_RETCODE(BHAB_WriteRegister(pDevImpl->hHab, LEAP_GP_STATUS_CMD, &cmd));
+      pDevImpl->lastFastStatusCmd = cmd;
+      BSAT_45308_CHK_RETCODE(BHAB_ReadRegister(pDevImpl->hHab, LEAP_GP_STATUS_RESULT, &result));
+      pDevImpl->lastFastStatusCount = result >> 8;
+   }
+
+   for (i = 0; i < 3; i++)
+   {
+      BSAT_45308_CHK_RETCODE(BHAB_ReadRegister(pDevImpl->hHab, LEAP_GP_STATUS_RESULT, &result));
+      counter = result >> 8;
+      if (counter != pDevImpl->lastFastStatusCount)
+      {
+         pDevImpl->lastFastStatusCount = counter;
+         break;
+      }
+      BKNI_Sleep(1);
+   }
+   if (i == 3)
+   {
+      BSAT_45308_CHK_RETCODE(BHAB_ReadRegister(pDevImpl->hHab, LEAP_GP_STATUS_CMD, &val));
+      if (val != pDevImpl->lastFastStatusCmd)
+      {
+         /* BDBG_WRN(("BSAT_45308_P_GetFastChannelStatus: cmd changed to 0x%X", val)); */
+         goto write_command;
+      }
+
+      return BSAT_ERR_INVALID_STATE; /* should never happen */
+   }
+
+   pStatus->bDemodLocked = (result & 0x80) ? true : false;
+   for (i = 0; i < n; i++)
+   {
+      if (result & (1<<i))
+      {
+         pStatus->item[i].bValid = true;
+         BSAT_45308_CHK_RETCODE(BHAB_ReadRegister(pDevImpl->hHab, LEAP_GP_STATUS0 + (i*4), &val));
+         pStatus->item[i].value.uint32 = val;
+      }
+   }
+
+   done:
+   BDBG_LEAVE(BSAT_45308_P_GetFastChannelStatus);
    return retCode;
 }

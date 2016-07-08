@@ -7013,7 +7013,7 @@ static void check_wrap(
     uint32_t dest_end = BREG_Read32(DestCtx->hReg, DestCtx->BaseAddr + ITB_END_PTR_OFFSET ) + 1;
 
     /* using BXPT_ITB_SIZE as my wraparound threshold is fine. HW RAVE uses another threshold based on its block size for mem bandwidth */
-    if (*dest_valid >= dest_end - BXPT_ITB_SIZE)
+    if (*dest_valid >= dest_end - 15 * BXPT_ITB_SIZE)
     {
         *dest_wrap = *dest_valid - 1; /* convert to inclusive logic */
         *dest_valid = DestCtx->SoftRave.dest_itb_base; /* this is inclusive */

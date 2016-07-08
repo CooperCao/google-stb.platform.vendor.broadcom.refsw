@@ -49,10 +49,8 @@ extern "C" {
 Summary:
 MHL Basic Return Codes
 *******************************************************************************/
-#if BHDM_CONFIG_MHL_SUPPORT
 #define BHDM_FORCED_MHL_MODE 0 /* Applies to non-sink powered MHL mode */
 #define BHDM_MHL_ERRS  400     /* MHL error codes */
-#endif
 
 
 /******************************************************************************

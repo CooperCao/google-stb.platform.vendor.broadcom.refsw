@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2009 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2009 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -45,6 +45,8 @@ static void graphviz(Dataflow *root)
          fclose(f);
       }
    }
+#else
+   UNUSED(root);
 #endif
 }
 
@@ -349,7 +351,7 @@ static void visit_recursive(Dataflow *dataflow, bool schedule_if_input)
             a dependent of one of the things filling up its regfile)
             */
             visit_recursive(suggestion, true);
-            glsl_allocator_finish_scheduler_node(suggestion);
+            glsl_allocator_finish_scheduler_node();
          }
       }
       /* The suggestion might have caused this node to be scheduled if it depended on it */

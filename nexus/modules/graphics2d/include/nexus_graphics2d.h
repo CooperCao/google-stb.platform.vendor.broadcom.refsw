@@ -1,7 +1,7 @@
-/******************************************
- *     (c)2007-2014 Broadcom Corporation
+/***************************************************************************
+ *  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,17 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
- *****************************************/
+ **************************************************************************/
 #ifndef NEXUS_GRAPHICS2D_H__
 #define NEXUS_GRAPHICS2D_H__
 
@@ -93,6 +83,8 @@ typedef struct NEXUS_Graphics2DOpenSettings
     unsigned maxOperations;
     bool preAllocPacketMemory;  /* deprecated and unused. */
     bool compatibleWithSurfaceCompaction;
+    bool secure; /* if false (default), reads and writes are only allowed to/from unsecure memory.
+                    if true, reads and writes are allowed to/from secure memory and reads are allowed from unsecure memory. */
 } NEXUS_Graphics2DOpenSettings;
 
 /**
@@ -960,10 +952,7 @@ NEXUS_Error NEXUS_Graphics2D_Memset32(
                        must be evenly divisible by 1K. */
     );
 
-/**
-Summary:
-Deprecated. Use packet blit instead.
-**/
+/* deprecated. use packet blit instead. */
 typedef struct NEXUS_Graphics2DBatchBlitSettings
 {
     NEXUS_SurfaceHandle outSurface;   /* output surface (always set) */
@@ -979,28 +968,8 @@ typedef struct NEXUS_Graphics2DBatchBlitSettings
     const uint16_t     *pDstPoints;   /* attr{memory=cached} pointer to destination x and y buffer */
     const NEXUS_Pixel  *pColors;      /* attr{memory=cached} pointer to constant color buffer (32bpp ARGB or AYCbCr)*/
 } NEXUS_Graphics2DBatchBlitSettings;
-
-/**
-Summary:
-Deprecated. Use packet blit instead.
-**/
-void NEXUS_Graphics2D_GetDefaultBatchBlitSettings(
-    NEXUS_Graphics2DBatchBlitSettings *pSettings /* [out] */
-    );
-
-/**
-Summary:
-Deprecated. Use packet blit instead.
-**/
-NEXUS_Error NEXUS_Graphics2D_BatchBlit(
-    NEXUS_Graphics2DHandle handle,
-    size_t count,     /* number of blits in batch */
-    size_t index,     /* index of first blit */
-    size_t *next,     /* [out] index of first blit not submitted due to lack of memory. */
-                      /* All blits are complete when *next=count after returning. */
-    const NEXUS_Graphics2DBatchBlitSettings *pBatchSettings,   /* surfaces and pointers to point, size, and color buffers */
-    const NEXUS_Graphics2DBlitSettings *pBlitSettings          /* blit state */
-    );
+#define NEXUS_Graphics2D_GetDefaultBatchBlitSettings(pSettings)
+#define NEXUS_Graphics2D_BatchBlit(handle,count,index,next,pBatchSettings,pBlitSettings) NEXUS_NOT_SUPPORTED
 
 /**
 Summary:
@@ -1071,6 +1040,27 @@ void NEXUS_Graphics2D_GetCapabilities(
     NEXUS_Graphics2DHandle handle,
     NEXUS_Graphics2DCapabilities *pCapabilities
     );
+
+#define NEXUS_MAX_GRAPHICS2D_CORES 2
+
+/**
+Summary:
+Settings used to configure the Graphics2D module.
+
+Description:
+
+See Also:
+NEXUS_Graphics2DModule_GetDefaultSettings
+NEXUS_Graphics2DModule_Init
+**/
+typedef struct NEXUS_Graphics2DModuleSettings
+{
+    unsigned stripeWidth;       /* Deprecated. This parameter is no longer used. */
+    struct {
+        unsigned hwFifoSize;
+    } core[NEXUS_MAX_GRAPHICS2D_CORES];
+} NEXUS_Graphics2DModuleSettings;
+
 
 #ifdef __cplusplus
 }

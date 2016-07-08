@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2011-2013 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2011-2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -202,7 +202,7 @@ int main(int argc, const char * const argv[])
 
 static void recycle_next(NEXUS_SurfaceClientHandle blit_client)
 {
-    unsigned num;
+    size_t num;
     do {
         NEXUS_SurfaceHandle surface;
         NEXUS_Error rc;

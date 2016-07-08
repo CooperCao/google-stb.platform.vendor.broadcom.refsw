@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -11,7 +11,7 @@
  * Software and all intellectual property rights therein.  IF YOU HAVE NO
  * AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
  * AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
- * SOFTWARE.  
+ * SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
@@ -117,22 +117,22 @@ typedef std::vector<EffectHandle> Effects;
 //! - Fragment shader
 //! - Render state
 //! - Render passes
-//! 
+//!
 //! All of theses things are required to be defined in order to quantify any kind of rendering algorithm
-//! for a material. It makes sense to bring them all together as an 'effect', and to allow the effect to 
+//! for a material. It makes sense to bring them all together as an 'effect', and to allow the effect to
 //! be represented in human-readable text form for easy editing.
-//! 
+//!
 //! A bsg::Material is in instantiation of an Effect, where the variable parameters of the effect are set
 //! by the material. So, for example, we could have a 'plastic' effect, and a 'green shiny plastic' material, or
 //! a 'brick' effect, and a 'red brick' material. The same Effect can be re-used by multiple bsg::Material objects.
-//! 
+//!
 //! A very basic effect file for a plain color shader might look like this:
 //! \code
 //! OPTIONS
 //! {
 //!    SortOrder = BACK_TO_FRONT;
 //! }
-//! 
+//!
 //! PASS 0
 //! {
 //!    SEMANTICS
@@ -142,30 +142,30 @@ typedef std::vector<EffectHandle> Effects;
 //!       u_opacity   = SCALAR_USER;
 //!       u_color     = VECTOR4_USER;
 //!    }
-//! 
+//!
 //!    STATE
 //!    {
 //!       EnableDepthTest = true;
 //!    }
-//! 
+//!
 //!    VERTEX_SHADER
 //!    {
 //!       uniform mat4   u_mvpMatrix;
 //!       attribute vec4 a_position;
-//! 
+//!
 //!       void main()
 //!       {
 //!          vec4 p = u_mvpMatrix * a_position;
 //!          gl_Position = p;
 //!       }
 //!    }
-//! 
+//!
 //!    FRAGMENT_SHADER
 //!    {
-//!       precision mediump float; 
+//!       precision mediump float;
 //!       uniform float u_opacity;
 //!       uniform vec4  u_color;
-//! 
+//!
 //!       void main()
 //!       {
 //!          gl_FragColor = u_color;
@@ -179,13 +179,13 @@ typedef std::vector<EffectHandle> Effects;
 //! - One OPTIONS block
 //! - One or more PASS blocks
 //!
-//! Any line in the effect file that begins "#include" will include and parse another file (whose name is 
+//! Any line in the effect file that begins "#include" will include and parse another file (whose name is
 //! parsed next on the "#include" line). This is useful if you have standard GLSL function declarations for example,
 //! as you can "#include" this into your vertex or fragment shader code.
-//! 
+//!
 //!
 //! <b>OPTIONS</b><br>
-//! - SortOrder = 
+//! - SortOrder =
 //!  - FRONT_TO_BACK (renders front-to-back - best option for opaque objects)
 //!  - BACK_TO_FRONT (renders back-to-front - best option for transparent objects)
 //!  - AUTO          (chooses FRONT_TO_BACK or BACK_TO_FRONT based on the scene node's opacity)
@@ -226,7 +226,6 @@ typedef std::vector<EffectHandle> Effects;
 //! - MATRIX3_USER (an arbitrary user supplied 3x3 matrix uniform)
 //! - MATRIX4_USER (an arbitrary user supplied 4x4 matrix uniform)
 //! - VECTOR4_SCREEN_SIZE (dimensions of screen including reciprocals in z and w)
-//! - VECTOR4_QUAD_OFFSET (takes a point in -1 to 1 space and adjusts for quad mode. xy * quadOffset.xy + quadOffset.zw)
 //! - VATTR_POSITION (the position vertex attribute)
 //! - VATTR_NORMAL (the normal vertex attribute)
 //! - VATTR_TANGENT (the tangent vertex attribute)
@@ -302,7 +301,7 @@ typedef std::vector<EffectHandle> Effects;
 //! This specifies that texture unit zero will be used for u_tex (the name of the sampler uniform to be used
 //! in the fragment of vertex shader) and that it is a 2D texture.  For a cube-map texture use SAMPLER_CUBE instead.
 //! In the fragment shader you will need to declare the corresponding uniform e.g.
-//! \code 
+//! \code
 //! uniform sampler2D u_tex;
 //! \endcode
 //!
@@ -353,7 +352,7 @@ public:
    //! Return the sort order for this effect
    eSortOrder   GetSortOrder() const { return m_options.GetSortOrder(); }
 
-   //! Returns true if the depth for the objects rendered by this effect has been overridden in the effect 
+   //! Returns true if the depth for the objects rendered by this effect has been overridden in the effect
    //! file to a particular value, rather than using the actual calculated depth.
    bool OverrideDepth() const       { return m_options.GetSortDepthOverride(); }
 

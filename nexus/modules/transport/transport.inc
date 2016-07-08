@@ -1,51 +1,44 @@
-############################################################
-#     (c)2007-2015 Broadcom Corporation
+#############################################################################
+# Broadcom Proprietary and Confidential. (c) 2016 Broadcom. All rights reserved.
 #
-#  This program is the proprietary software of Broadcom Corporation and/or its licensors,
-#  and may only be used, duplicated, modified or distributed pursuant to the terms and
-#  conditions of a separate, written license agreement executed between you and Broadcom
-#  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-#  no license (express or implied), right to use, or waiver of any kind with respect to the
-#  Software, and Broadcom expressly reserves all rights in and to the Software and all
-#  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-#  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-#  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+# This program is the proprietary software of Broadcom and/or its
+# licensors, and may only be used, duplicated, modified or distributed pursuant
+# to the terms and conditions of a separate, written license agreement executed
+# between you and Broadcom (an "Authorized License").  Except as set forth in
+# an Authorized License, Broadcom grants no license (express or implied), right
+# to use, or waiver of any kind with respect to the Software, and Broadcom
+# expressly reserves all rights in and to the Software and all intellectual
+# property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+# HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+# NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
 #
-#  Except as expressly set forth in the Authorized License,
+# Except as expressly set forth in the Authorized License,
 #
-#  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-#  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-#  and to use this information only in connection with your use of Broadcom integrated circuit products.
+# 1. This program, including its structure, sequence and organization,
+#    constitutes the valuable trade secrets of Broadcom, and you shall use all
+#    reasonable efforts to protect the confidentiality thereof, and to use
+#    this information only in connection with your use of Broadcom integrated
+#    circuit products.
 #
-#  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-#  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-#  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-#  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-#  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-#  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-#  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-#  USE OR PERFORMANCE OF THE SOFTWARE.
+# 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+#    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+#    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+#    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+#    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+#    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+#    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+#    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
 #
-#  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-#  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-#  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-#  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-#  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-#  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-#  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-#  ANY LIMITED REMEDY.
+# 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+#    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+#    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+#    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+#    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+#    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+#    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+#    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
 #
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
-# Module Description:
-#
-# Revision History:
-#
-# $brcm_Log: $
-#
-############################################################
+#############################################################################
 
 #
 # Conditional Options for this Makefile
@@ -92,7 +85,6 @@ NEXUS_TRANSPORT_SOURCES := \
     $(NEXUS_TOP)/modules/transport/src/nexus_mpod.c   \
     $(NEXUS_TOP)/modules/transport/src/nexus_packetsub.c \
     $(NEXUS_TOP)/modules/transport/src/nexus_remux.c \
-    $(NEXUS_TOP)/modules/transport/src/nexus_tsmf.c \
     $(NEXUS_TOP)/modules/transport/src/nexus_vcxo.c
 
 
@@ -113,10 +105,6 @@ else
 NEXUS_TRANSPORT_SOURCES += $(NEXUS_TOP)/modules/transport/src/nexus_message_pid2buf.c
 endif
 NEXUS_TRANSPORT_SOURCES += $(NEXUS_TOP)/modules/transport/src/nexus_message_sam.c
-
-ifeq ($(findstring $(BCHP_CHIP), 7425 7435 7346 73465 7231 7358 7145 7445 7439 74371), $(BCHP_CHIP))
-NEXUS_TRANSPORT_DEFINES += NEXUS_HAS_TSMF=1
-endif
 
 ifeq ($(BXPT_VCT_SUPPORT),y)
 NEXUS_TRANSPORT_DEFINES += BXPT_VCT_SUPPORT=1
@@ -155,8 +143,11 @@ BPCRLIB_HAS_XVD := n
 BPCRLIB_HAS_MVD := n
 NEXUS_TRANSPORT_MAGNUM_MODULES =  \
     $(MAGNUM)/portinginterface/xpt/bxpt.inc \
+    $(MAGNUM)/portinginterface/xpt/bxpt_auth.inc \
     $(MAGNUM)/syslib/pvrlib/bpvrlib.inc \
     $(MAGNUM)/syslib/pcrlib/bpcrlib.inc
+
+NEXUS_FW_SIGN_MODULES += BXPT
 
 # change XPT PI default behavior so that app has option of starting msg filter with disabled pid channel
 NEXUS_TRANSPORT_DEFINES += BXPT_MESG_DONT_AUTO_ENABLE_PID_CHANNEL
@@ -253,15 +244,11 @@ endif
 
 ifeq ($(MEDIA_AVI_SUPPORT), y)
 ifeq ($(DIVX_DRM_SUPPORT), y)
-ifeq ($(findstring $(NEXUS_PLATFORM), 97400 97456 97403),)
-include $(BSEAV)/lib/divxdrm5/Makefile.drm
-else
 include $(BSEAV)/lib/divxdrm/Makefile.drm
-endif
 NEXUS_TRANSPORT_SOURCES += $(DIVX_DRM_SRCS)
 NEXUS_CFLAGS += $(DIVX_DRM_CFLAGS)
 MAGNUM_PRECOMPILED_OBJECTS += $(DIVX_DRM_OBJS)
-# the divxdrm5 library requires c99
+# the divxdrm library requires c99
 NEXUS_C_STD=c99
 endif
 NEXUS_TRANSPORT_MAGNUM_MODULES +=  \

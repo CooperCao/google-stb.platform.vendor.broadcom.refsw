@@ -1,55 +1,58 @@
 /******************************************************************************
- *    (c)2007-2015 Broadcom Corporation
- *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
- *
- * Except as expressly set forth in the Authorized License,
- *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
- *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
- *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *
- *****************************************************************************/
-
-#include "bchp_bsp_control_intr2.h"
-#include "bchp_bsp_glb_control.h"
-#if BHSM_SAGE_INTF_SUPPORT
-#include "bchp_scpu_globalram.h"
-#endif
+* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*
+* This program is the proprietary software of Broadcom and/or its
+* licensors, and may only be used, duplicated, modified or distributed pursuant
+* to the terms and conditions of a separate, written license agreement executed
+* between you and Broadcom (an "Authorized License").  Except as set forth in
+* an Authorized License, Broadcom grants no license (express or implied), right
+* to use, or waiver of any kind with respect to the Software, and Broadcom
+* expressly reserves all rights in and to the Software and all intellectual
+* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*
+* Except as expressly set forth in the Authorized License,
+*
+* 1. This program, including its structure, sequence and organization,
+*    constitutes the valuable trade secrets of Broadcom, and you shall use all
+*    reasonable efforts to protect the confidentiality thereof, and to use
+*    this information only in connection with your use of Broadcom integrated
+*    circuit products.
+*
+* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+*
+* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. , WHICHEVER
+*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+******************************************************************************/
 
 #include "bhsm.h"
 #include "bhsm_datatypes.h"
 #include "bhsm_private.h"
+#include "bhsm_keyslots.h"
+#include "bhsm_keyslots_private.h"
 #include "bhsm_keyladder.h"
-#include "bhsm_private.h"
 #include "bhsm_bsp_msg.h"
 #include "../keyladder/bhsm_keyladder_enc_private.h"
+#include "bchp_bsp_control_intr2.h"
+#include "bchp_bsp_glb_control.h"
+#if BHSM_HOST_SAGE_SRAM_INTERFACE
+#include "bchp_scpu_globalram.h"
+#endif
+
 
 
 BDBG_MODULE(BHSM);
@@ -60,6 +63,16 @@ BDBG_MODULE(BHSM);
  #define BHSM_BYPASS_KEYSLOT_NUMBER_gr2r ( BHSM_BypassKeySlot_eGR2R)
  #define BHSM_BYPASS_KEYSLOT_BLOCK    ( BCMD_KeyDestBlockType_eCA )
  #define BHSM_BYPASS_KEYSLOT_POLARITY ( BCMD_KeyDestEntryType_eOddKey )
+#endif
+
+#if BHSM_HOST_SAGE_SRAM_INTERFACE
+/* Available range is 0x50-0x5F  */
+#define BHSM_STASH_OFFSET                    (0x50*4)
+#define BHSM_STASH_MAX_SIZE                  (0xF*4)
+#define BHSM_STASH_OFFSET_SIGNATURE          (BHSM_STASH_OFFSET)
+#define BHSM_STASH_OFFSET_M2M_SLOTS          (BHSM_STASH_OFFSET_SIGNATURE         + (BHSM_STASH_DWORDSIZE_SIGNATURE*4))
+#define BHSM_STASH_OFFSET_NUM_KEYSLOT_TYPES  (BHSM_STASH_OFFSET_M2M_SLOTS         + (BHSM_STASH_DWORDSIZE_M2M_SLOTS*4))
+#define BHSM_STASH_OFFSET_KEYSLOT_TYPES      (BHSM_STASH_OFFSET_NUM_KEYSLOT_TYPES + (BHSM_STASH_DWORDSIZE_NUM_KEYSLOT_TYPES*4) )
 #endif
 
 #define BHSM_BSP_FW_VERSION_KEYSLOT_MULTIPLE_PID_CHANNELS (4)
@@ -79,13 +92,13 @@ static BERR_Code InitialisePidChannels( BHSM_Handle hHsm );
 #endif
 
 
-#if BHSM_SAGE_INTF_SUPPORT
 
 #define BHSM_KEYSLOT_WORD_COUNT ((BCMD_XptSecKeySlot_eTypeMax+3)/4)  /* size rounded up */
 
 /* Stash keyslot parameters to SRAM so that the can be retrieved (even from SAGE context.) */
 void BHSM_P_StashKeySlotTableWrite( BHSM_Handle hHsm, BHSM_KeyslotTypes_t *pKeyslots )
 {
+#if BHSM_HOST_SAGE_SRAM_INTERFACE
     unsigned    stashAddress = 0;
     unsigned    stashStartAddress = 0;
     unsigned    i;
@@ -95,6 +108,12 @@ void BHSM_P_StashKeySlotTableWrite( BHSM_Handle hHsm, BHSM_KeyslotTypes_t *pKeys
     uint32_t    numSlots;
 
     BDBG_ENTER( BHSM_P_StashKeySlotTableWrite );
+
+    if( (BHSM_ZEUS_VERSION  > BHSM_ZEUS_VERSION_CALC(4,2)) ||
+       ((BHSM_ZEUS_VERSION == BHSM_ZEUS_VERSION_CALC(4,2)) && isBfwVersion_GreaterOrEqual( hHsm, 4, 1, 0 )) )
+    {
+        return;  /* We are quaranteed to be coupled with SAGE3+. SAGE will refer to BSP for this information. */
+    }
 
     if( pKeyslots->numKeySlotTypes > BCMD_XptSecKeySlot_eTypeMax )
     {
@@ -137,11 +156,18 @@ void BHSM_P_StashKeySlotTableWrite( BHSM_Handle hHsm, BHSM_KeyslotTypes_t *pKeys
     BDBG_LEAVE( BHSM_P_StashKeySlotTableWrite );
 
     return;
+#else
+    BSTD_UNUSED( hHsm );
+    BSTD_UNUSED( pKeyslots );
+    (void)BERR_TRACE( BERR_NOT_SUPPORTED );
+    return;
+#endif /* #if (BHSM_HOST_SAGE_SRAM_INTERFACE ) */
 }
 
 /* Read keyslot parameters from SRAM. */
-void BHSM_P_StashKeySlotTableRead( BHSM_Handle hHsm, BHSM_KeyslotTypes_t *pKeyslots )
+BERR_Code BHSM_P_StashKeySlotTableRead( BHSM_Handle hHsm, BHSM_KeyslotTypes_t *pKeyslots )
 {
+#if BHSM_HOST_SAGE_SRAM_INTERFACE
     unsigned    stashAddress = 0;
     unsigned    i;
     uint32_t    stash[BHSM_KEYSLOT_WORD_COUNT] = {0};
@@ -157,7 +183,7 @@ void BHSM_P_StashKeySlotTableRead( BHSM_Handle hHsm, BHSM_KeyslotTypes_t *pKeysl
     {
         BDBG_ERR(("#[%d]slot types too big [%d][%d]", __LINE__, pKeyslots->numKeySlotTypes, BCMD_XptSecKeySlot_eTypeMax ));
         BKNI_Memset(pKeyslots, 0, sizeof(*pKeyslots));
-        return;
+        return BERR_TRACE( BERR_INVALID_PARAMETER );
     }
 
     stashAddress = BCHP_SCPU_GLOBALRAM_DMEMi_ARRAY_BASE + BHSM_STASH_OFFSET_KEYSLOT_TYPES;
@@ -181,11 +207,128 @@ void BHSM_P_StashKeySlotTableRead( BHSM_Handle hHsm, BHSM_KeyslotTypes_t *pKeysl
     }
 
     BDBG_LEAVE( BHSM_P_StashKeySlotTableRead );
-
-    return;
+    return BERR_SUCCESS;
+#else
+    BSTD_UNUSED( hHsm );
+    BSTD_UNUSED( pKeyslots );
+    return BERR_TRACE (BERR_NOT_SUPPORTED);
+#endif /* #if (BHSM_HOST_SAGE_SRAM_INTERFACE ) */
 }
 
-#endif /* BHSM_SAGE_INTF_SUPPORT  */
+
+BERR_Code BHSM_P_BspKeySlotTableRead ( BHSM_Handle hHsm, BHSM_KeyslotTypes_t * pKeyslotsInfo )
+{
+#if (BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,2))
+    BERR_Code       rc = BERR_SUCCESS;
+    BHSM_KeySlotsStatus_t*  pKeySlotsStatus;
+    BCMD_XptSecKeySlot_e    keySlotType;
+    uint16_t                slotNumOffset = 0;
+
+    BDBG_ENTER ( BHSM_P_BspKeySlotTableRead );
+
+    if ( hHsm == NULL || pKeyslotsInfo == NULL )
+    {
+        return BERR_TRACE ( BHSM_STATUS_INPUT_PARM_ERR );
+    }
+
+    if( (BHSM_ZEUS_VERSION == BHSM_ZEUS_VERSION_CALC(4,2)) && !isBfwVersion_GreaterOrEqual( hHsm, 4,0,1 ) )
+    {
+        return BERR_TRACE (BERR_NOT_SUPPORTED); /* Information is available from the BSP. */
+    }
+
+    pKeySlotsStatus = (BHSM_KeySlotsStatus_t*) BKNI_Malloc( sizeof(BHSM_KeySlotsStatus_t) );
+    if( pKeySlotsStatus == NULL)
+    {
+        BDBG_ERR(( "Failed to allocate memory for KeySlotStatus [%d]", (unsigned)sizeof(pKeySlotsStatus) ));
+        return BERR_OUT_OF_SYSTEM_MEMORY;
+    }
+
+    BKNI_Memset( pKeySlotsStatus, 0, sizeof(BHSM_KeySlotsStatus_t) );
+
+    if ( ( rc = BHSM_QueryKeySlotsStatus ( hHsm, pKeySlotsStatus ) ) != BERR_SUCCESS )
+    {
+        BERR_TRACE ( rc );
+        goto BHSM_P_DONE_LABEL;
+    }
+
+    BKNI_Memset ( pKeyslotsInfo, 0, sizeof ( BHSM_KeyslotTypes_t ) );
+
+    /* The key slot status information is expected as the following byte order. */
+
+    /* |type0 slot0, type0 slot1, type0 slot2 ... | */
+    /* |type1 slot0, type1 slot1, type1 slot2 ... | */
+    /* | ...                                      | */
+    /* |type5 slot0, type5 slot1, type5 slot2 ... | */
+
+    slotNumOffset = 0;
+
+    for ( keySlotType = BCMD_XptSecKeySlot_eType0; keySlotType <= BHSM_KeySlotStatusQuery_eTypeMax; keySlotType++ )
+    {
+        if ( pKeySlotsStatus->slot[slotNumOffset].type == keySlotType )
+        {
+            /* The final value will be returned. */
+
+            pKeyslotsInfo->numKeySlot[keySlotType] = pKeySlotsStatus->slot[slotNumOffset].number;
+
+            if ( pKeyslotsInfo->numKeySlot[keySlotType] )
+            {
+                pKeyslotsInfo->numKeySlotTypes = keySlotType + 1;
+            }
+
+            /* To be updated to real value when BFW has it. */
+            pKeyslotsInfo->numMulti2KeySlots = 0;
+
+            /* offset of the next keyslot type */
+            slotNumOffset += pKeySlotsStatus->slot[slotNumOffset].number;
+        }
+    }
+
+BHSM_P_DONE_LABEL:
+
+    BKNI_Free( pKeySlotsStatus );
+    BDBG_LEAVE ( BHSM_P_BspKeySlotTableRead );
+
+    return rc;
+#else
+    BSTD_UNUSED( hHsm );
+    BSTD_UNUSED( pKeyslotsInfo );
+    return BERR_TRACE (BERR_NOT_SUPPORTED);
+#endif /* #if (BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,2)) */
+}
+
+BERR_Code BHSM_P_KeySlotsTableConfGet( BHSM_Handle hHsm, BHSM_KeyslotTypes_t *pKeyslots )
+{
+    BERR_Code rc = BERR_SUCCESS;
+
+    BDBG_ENTER ( BHSM_P_KeySlotsTableConfGet );
+
+    if( !pKeyslots )
+    {
+        return BERR_TRACE( BERR_INVALID_PARAMETER );
+    }
+
+    BKNI_Memset( pKeyslots, 0, sizeof(*pKeyslots) );
+
+    if( (BHSM_ZEUS_VERSION  > BHSM_ZEUS_VERSION_CALC(4,2)) ||
+       ((BHSM_ZEUS_VERSION == BHSM_ZEUS_VERSION_CALC(4,2)) && isBfwVersion_GreaterOrEqual( hHsm, 4, 0, 1 )) )
+    {
+        if( (rc = BHSM_P_BspKeySlotTableRead( hHsm, pKeyslots )) != BERR_SUCCESS )
+        {
+            return BERR_TRACE( rc );
+        }
+    }
+    else
+    {
+        if( (rc = BHSM_P_StashKeySlotTableRead( hHsm, pKeyslots )) != BERR_SUCCESS )
+        {
+            return BERR_TRACE( rc );
+        }
+    }
+
+    BDBG_LEAVE ( BHSM_P_KeySlotsTableConfGet );
+    return rc;
+}
+
 
 #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,1)
 /*
@@ -236,10 +379,10 @@ BHSM_P_DONE_LABEL:
 
 #endif /* BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,1) */
 
+#if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,1)
 /* Configure both the g2gr and gr2r bypass keyslots. */
 BERR_Code BHSM_InitialiseBypassKeyslots( BHSM_Handle hHsm )
 {
-#if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,1)
     BERR_Code rc = BERR_SUCCESS;
     BHSM_InvalidateKeyIO_t invalidateKeySlot;
 
@@ -278,13 +421,9 @@ BERR_Code BHSM_InitialiseBypassKeyslots( BHSM_Handle hHsm )
 BHSM_P_DONE_LABEL:
 
     BDBG_LEAVE( BHSM_InitialiseBypassKeyslots );
-
     return rc;
-#else
-    BSTD_UNUSED( hHsm ) ;
-    return BERR_SUCCESS;
-#endif
 }
+#endif
 
 
 /* initialise internal keyslot data structure. */
@@ -430,7 +569,6 @@ BERR_Code BHSM_InitKeySlot( BHSM_Handle hHsm, BHSM_InitKeySlotIO_t *pInitKeySlot
     }
 
     BHSM_BspMsg_GetDefaultHeader( &header );
-    header.hChannel = hHsm->channelHandles[BSP_CmdInterface];
     BHSM_BspMsg_Header( hMsg, BCMD_cmdType_eSESSION_INIT_KEYSLOT, &header );
 
     #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,1)
@@ -571,7 +709,7 @@ BERR_Code BHSM_InitKeySlot( BHSM_Handle hHsm, BHSM_InitKeySlotIO_t *pInitKeySlot
         goto BHSM_P_DONE_LABEL;
     }
 
-    #if BHSM_SAGE_INTF_SUPPORT
+    #if( BHSM_HOST_SAGE_SRAM_INTERFACE )
     BHSM_P_StashKeySlotTableWrite( hHsm, &ksType );
     #endif
 
@@ -669,7 +807,6 @@ static BERR_Code ConfigPidKeyPointerTable (
     }
 
     BHSM_BspMsg_GetDefaultHeader( &header );
-    header.hChannel = hHsm->channelHandles[BSP_CmdInterface];
     header.verbose = verbose;
     BHSM_BspMsg_Header( hMsg, BCMD_cmdType_eSESSION_CONFIG_PIDKEYPOINTERTABLE, &header );
 
@@ -990,7 +1127,7 @@ BERR_Code BHSM_FreeCAKeySlot ( /* Zeus 4 */
             /*We do expect the keyslot client to be SAGE */
             if( pKeyslot->client != BHSM_ClientType_eSAGE )
             {
-                BDBG_WRN(( "%s Keyslot has inconsistant client type[%d] num[%d] client", __FUNCTION__, pKeySlotConf->keySlotType, pKeySlotConf->keySlotNum, pKeyslot->client ));
+                BDBG_WRN(( "%s Keyslot has inconsistant client type[%d] num[%d] client[%d]", __FUNCTION__, pKeySlotConf->keySlotType, pKeySlotConf->keySlotNum, pKeyslot->client ));
             }
             pKeyslot->client = BHSM_ClientType_eSAGE;
             break;
@@ -1698,7 +1835,6 @@ BERR_Code BHSM_SetKeySlotOwnership(
     }
 
     BHSM_BspMsg_GetDefaultHeader( &header );
-    header.hChannel = hHsm->channelHandles[BSP_CmdInterface];
     BHSM_BspMsg_Header( hMsg, BCMD_cmdType_eAllocateKeySlot, &header );
 
     BHSM_BspMsg_Pack8 ( hMsg, BCMD_AllocateKeySlot_InCmd_eKeySlotType, pConfig->keySlotType );
@@ -1782,7 +1918,6 @@ BERR_Code BHSM_GetKeySlotOwnership( BHSM_Handle               hHsm,
     }
 
     BHSM_BspMsg_GetDefaultHeader( &header );
-    header.hChannel = hHsm->channelHandles[BSP_CmdInterface];
     BHSM_BspMsg_Header( hMsg, BCMD_cmdType_eAllocateKeySlot, &header );
 
     BHSM_BspMsg_Pack8 ( hMsg, BCMD_AllocateKeySlot_InCmd_eKeySlotType, pConfig->keySlotType );
@@ -1860,7 +1995,6 @@ BERR_Code BHSM_LoadRouteUserKey (
     }
 
     BHSM_BspMsg_GetDefaultHeader( &header );
-    header.hChannel = hHsm->channelHandles[BSP_CmdInterface];
     BHSM_BspMsg_Header( hMsg, BCMD_cmdType_eSESSION_LOAD_ROUTE_USERKEY, &header );
 
     /* Get pointer to structure BHSM_P_KeySlotAlgorithm_t for this keyslot */
@@ -2131,7 +2265,6 @@ BERR_Code BHSM_InvalidateKey (
     }
 
     BHSM_BspMsg_GetDefaultHeader( &header );
-    header.hChannel = hHsm->channelHandles[BSP_CmdInterface];
     BHSM_BspMsg_Header( hMsg, BCMD_cmdType_eSESSION_INVALIDATE_KEY, &header );
 
     BHSM_BspMsg_Pack8( hMsg, BCMD_InvalidateKey_InCmd_eKeyFlag, inoutp_invalidateKeyIO->invalidKeyType );
@@ -2333,7 +2466,7 @@ BERR_Code BHSM_ConfigAlgorithm (
         (pConfig->cryptoAlg.EsModEnable                  << BHSM_CaModeShift_eESDVBCSA2ModEnShift);
     #endif  /* HSM_IS_ASKM_28NM_ZEUS_4_1 */
 
-    BDBG_MSG(("%s keySlot[%d] offset[%d] caKeySlotType[%d] keyDestBlckType[%d] keyDestEntryType[%d] xptCntrlWordLo = 0x%lx, xptCntrlWordHi = 0x%lx"
+    BDBG_MSG(("%s keySlot[%d] offset[%d] caKeySlotType[%d] keyDestBlckType[%d] keyDestEntryType[%d] xptCntrlWordLo = 0x%x, xptCntrlWordHi = 0x%x"
                                             , __FUNCTION__
                                             , pConfig->unKeySlotNum
                                             , offset
@@ -2388,20 +2521,32 @@ BERR_Code BHSM_ConfigAlgorithm (
 
     if( pConfig->cryptoAlg.bUseExtKey || pConfig->cryptoAlg.bUseExtIV )
     {
-        /* allocate an external keyslot */
-        for( x = 0; x < BHSM_EXTERNAL_KEYSLOTS_MAX; x++ )
+
+        if( pKeyslotAlg->externalKeySlot.valid == false )
         {
-            if( hHsm->externalKeySlotTable[x].allocated == false )
+           /* allocate an external keyslot */
+           for( x = 0; x < BHSM_EXTERNAL_KEYSLOTS_MAX; x++ )
+           {
+               if( hHsm->externalKeySlotTable[x].allocated == false )
+               {
+                    hHsm->externalKeySlotTable[x].allocated = true;  /* reserve the ext. key slot.  */
+                    pKeyslotAlg->externalKeySlot.slotNum = x;    /* record the ext. key slot location */
+                    pKeyslotAlg->externalKeySlot.valid = true;
+                   break;
+               }
+           }
+        }
+        if( pKeyslotAlg->externalKeySlot.valid )
+        {
+            unsigned slotNum = pKeyslotAlg->externalKeySlot.slotNum;
+
+            if( pKeyslotAlg->externalKeySlot.slotNum >= BHSM_EXTERNAL_KEYSLOTS_MAX )
             {
-                hHsm->externalKeySlotTable[x].allocated = true;  /* reserve the ext. key slot.  */
-                hHsm->externalKeySlotTable[x].key.valid = pConfig->cryptoAlg.bUseExtKey;
-                hHsm->externalKeySlotTable[x].iv.valid  = pConfig->cryptoAlg.bUseExtIV;
-
-                pKeyslotAlg->externalKeySlot.slotNum = x;    /* record the ext. key slot location */
-                pKeyslotAlg->externalKeySlot.valid = true;
-
-                break;
+                errCode = BERR_TRACE( BHSM_STATUS_INPUT_PARM_ERR );
+                goto BHSM_P_DONE_LABEL;
             }
+            hHsm->externalKeySlotTable[slotNum].key.valid = pConfig->cryptoAlg.bUseExtKey;
+            hHsm->externalKeySlotTable[slotNum].iv.valid  = pConfig->cryptoAlg.bUseExtIV;
         }
 
         BDBG_MSG(("ExternalKey SET ksNum[%d] ksType[%d] blkType[%d] polType[%d] x[%d]" , pConfig->unKeySlotNum
@@ -2500,7 +2645,7 @@ BERR_Code BHSM_GetKeySlotConfigAlgorithm (
             inoutp_KeySlotInfoIO->cryptoAlg.RpipeSCVal          = (xptCntrlWordHi >> BHSM_CaModeShift_eRpipeSCValShift) & 0x03;
             inoutp_KeySlotInfoIO->cryptoAlg.GpipeSCVal          = (xptCntrlWordHi >> BHSM_CaModeShift_eGpipeSCValShift) & 0x03;
 
-            BDBG_MSG(("xptCntrlWordLo = 0x%lx, xptCntrlWordHi = 0x%lx", xptCntrlWordLo, xptCntrlWordHi));
+            BDBG_MSG(("xptCntrlWordLo = 0x%x, xptCntrlWordHi = 0x%x", xptCntrlWordLo, xptCntrlWordHi));
 
             break;
 
@@ -3031,7 +3176,6 @@ BERR_Code BHSM_ConfigMulti2 (
     }
 
     BHSM_BspMsg_GetDefaultHeader( &header );
-    header.hChannel = hHsm->channelHandles[BSP_CmdInterface];
     BHSM_BspMsg_Header( hMsg, BCMD_cmdType_eCONFIG_MULTI2, &header );
 
     BHSM_BspMsg_Pack32( hMsg, BCMD_Multi2_InCmdCfg_eRoundCount, pConfigMulti2->ucMulti2RndCnt );
@@ -3132,7 +3276,6 @@ BERR_Code  BHSM_SetPidChannelBypassKeyslot(
     }
 
     BHSM_BspMsg_GetDefaultHeader( &header );
-    header.hChannel = hHsm->channelHandles[BSP_CmdInterface];
     BHSM_BspMsg_Header( hMsg, BCMD_cmdType_eSESSION_CONFIG_PIDKEYPOINTERTABLE, &header );
 
     BHSM_BspMsg_Pack8( hMsg, BCMD_KeyPointer_InCmdCfg_eSlotType, BHSM_BYPASS_KEYSLOT_TYPE );
@@ -3439,6 +3582,7 @@ BERR_Code BHSM_QueryKeySlotsStatus ( BHSM_Handle hHsm, BHSM_KeySlotsStatus_t * p
     uint16_t        responseLength = 0;
     uint8_t         slotNumOfType = 0;
 	uint32_t        slotNumOffset = 0;
+    uint8_t         owner = 0;
     BCMD_KeySlotStatusQuery_OutCmd_e keySlotQueryOffset;
     BCMD_XptSecKeySlot_e keySlotType;
     unsigned int             keySlotNum;
@@ -3459,7 +3603,6 @@ BERR_Code BHSM_QueryKeySlotsStatus ( BHSM_Handle hHsm, BHSM_KeySlotsStatus_t * p
     }
 
     BHSM_BspMsg_GetDefaultHeader ( &header );
-    header.hChannel = hHsm->channelHandles[BSP_CmdInterface];
     BHSM_BspMsg_Header ( hMsg, BCMD_cmdType_eKEY_SLOT_STATUS_QUERY, &header );
 
     if ( ( rc = BHSM_BspMsg_SubmitCommand ( hMsg ) ) != BERR_SUCCESS )
@@ -3494,7 +3637,7 @@ BERR_Code BHSM_QueryKeySlotsStatus ( BHSM_Handle hHsm, BHSM_KeySlotsStatus_t * p
     /* | ...                                      | */
     /* |type5 slot0, type5 slot1, type5 slot2 ... | */
 
-    for ( keySlotType = BCMD_XptSecKeySlot_eType0; keySlotType <= BCMD_XptSecKeySlot_eType5; keySlotType++ )
+    for ( keySlotType = BCMD_XptSecKeySlot_eType0; keySlotType <= BHSM_KeySlotStatusQuery_eTypeMax; keySlotType++ )
     {
         rc = mapSlotType2StatusQueryOffset ( keySlotType, &keySlotQueryOffset );
         if ( rc != BERR_SUCCESS )
@@ -3512,11 +3655,14 @@ BERR_Code BHSM_QueryKeySlotsStatus ( BHSM_Handle hHsm, BHSM_KeySlotsStatus_t * p
 
             /* Set the key slot type information for the output. */
             pKeySlotsStatus->slot[slotNumOffset].type = keySlotType;
+            pKeySlotsStatus->slot[slotNumOffset].number = slotNumOfType;
 
             /* Query the ownership information of keySlotType. */
             BHSM_BspMsg_Get8 ( hMsg,
                                BCMD_KeySlotStatusQuery_OutCmd_eKeySlotOwnership + slotNumOffset,
-                               ( uint8_t * ) & pKeySlotsStatus->slot[slotNumOffset].owner );
+                               &owner);
+
+            pKeySlotsStatus->slot[slotNumOffset].owner = owner;
         }
 
         pKeySlotsStatus->numKeyslots += slotNumOfType;
@@ -3573,7 +3719,6 @@ BERR_Code  loadBspVersion( BHSM_Handle hHsm )
     }
 
     BHSM_BspMsg_GetDefaultHeader( &header );
-    header.hChannel = hHsm->channelHandles[BSP_CmdInterface];
     BHSM_BspMsg_Header( hMsg, BCMD_cmdType_eSESSION_GENERATE_ROUTE_KEY, &header ); /* need to use some command, selecting GENERATE_ROUTE_KEY, query VKL. */
 
     BHSM_BspMsg_Pack8( hMsg, BCMD_GenKey_InCmd_eVKLAssociationQuery, BCMD_VKLAssociationQueryFlag_eQuery );

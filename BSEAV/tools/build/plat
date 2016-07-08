@@ -94,6 +94,7 @@ unset NEXUS_USE_7439_DR3
 unset NEXUS_USE_7439_DR4
 unset NEXUS_USE_7252S_SAT
 unset NEXUS_USE_7439_SFF
+unset NEXUS_USE_7449S_CWM
 unset NEXUS_USE_7438_SFF
 unset NEXUS_USE_7251_SV
 unset NEXUS_USE_7250_SV
@@ -181,6 +182,9 @@ be|BE)
         ;;
 le|LE)
     case $NEXUS_PLATFORM in
+	97260|97268|97271|97278)
+	continue
+	;;
 	97445|97252|97145|93390|97364|97439|974371|97250|97366|97399|97364|973649|97586)
         export B_REFSW_ARCH=arm-linux
 	;;
@@ -206,7 +210,7 @@ le|LE)
 --help)
         ;;
 
-97271|97268|97278)
+97260|97268|97271|97278)
         export NEXUS_PLATFORM=$cmd
         # force reeval of which kernel/toolchain
         SETPLATFORM=1
@@ -338,7 +342,7 @@ le|LE)
 3.3-1.0|3.3-1.1|3.3-1.2|3.3-1.3|3.3-1.4|3.3-1.5|\
 3.3-2.0|3.3-2.1|3.3-2.2|3.3-2.3|3.3-2.4|3.3-2.5|3.3-2.6|3.3-2.7|\
 3.3-3.0|3.3-3.0a|3.3-3.1|3.3-3.2|3.3-3.3|3.3-3.4|3.3-3.5|3.3-3.6|\
-3.3-3.7|3.3-3.8)
+3.3-3.7|3.3-3.8|3.3-3.9)
     # use the standard method to determine chip/ver linux and toolchain paths
     LINUX_ROOT=/opt/brcm/linux-$cmd
     NEW_TOOLCHAIN_PATH=xxx
@@ -349,7 +353,12 @@ le|LE)
 3.8-2.0|3.8-2.1|3.8-2.2|3.8-2.3|3.8-2.4|3.8-2.5|3.8-2.6|\
 3.8-3.0|3.8-3.1|\
 3.14-0.5|3.14-1.0|3.14-1.1|3.14-1.2|3.14-1.3|3.14-1.4|3.14-1.6|3.14-1.7|\
-3.14-1.8|3.14-1.9|3.14-1.10)
+3.14-1.8|3.14-1.9|3.14-1.10|3.14-1.11|3.14-1.12|3.14-1.13|3.14-1.14)
+    # use the standard method to determine chip/ver linux and toolchain paths
+    LINUX_ROOT=/opt/brcm/linux-$cmd
+    NEW_TOOLCHAIN_PATH=xxx
+    ;;
+4.1-1.0)
     # use the standard method to determine chip/ver linux and toolchain paths
     LINUX_ROOT=/opt/brcm/linux-$cmd
     NEW_TOOLCHAIN_PATH=xxx
@@ -414,6 +423,12 @@ C|c)
     97422)
         export NEXUS_USE_7422_C=y
         ;;
+    esac
+    ;;
+CWM|cwm)
+    case $NEXUS_PLATFORM in
+    97439)
+        export NEXUS_USE_7449S_CWM=y
     esac
     ;;
 SV|sv)
@@ -638,28 +653,28 @@ SFF|sff)
    ;;
 I2SFF|i2sff)
    case $NEXUS_PLATFORM in
-   97346|973465)
+   97346)
         export NEXUS_PLATFORM_VER=I2SFF
         ;;
    esac
    ;;
 HR44|hr44)
    case $NEXUS_PLATFORM in
-   97346|973465)
+   97346)
         export NEXUS_PLATFORM_VER=HR44
         ;;
    esac
    ;;
 SHR44|shr44)
    case $NEXUS_PLATFORM in
-   97346|973465)
+   97346)
         export NEXUS_PLATFORM_VER=SHR44
         ;;
    esac
    ;;
 H43|h43)
    case $NEXUS_PLATFORM in
-   97346|973465)
+   97346)
         export NEXUS_PLATFORM_VER=H43
         ;;
    esac
@@ -750,7 +765,7 @@ DR3|dr3)
 DR4|dr4)
    case $NEXUS_PLATFORM in
    97439)
-	export NEXUS_USE_7439_SV=y
+        export NEXUS_USE_7439_SFF=y
 	export NEXUS_USE_7439_DR4=y
 	;;
    esac
@@ -820,9 +835,9 @@ if [ x"$NEXUS_PLATFORM" == x -a x"$BCHP_VER" != x -o  x"$NEXUS_PLATFORM" != x -a
    echo ' '
 fi
 
-# URSR 16.1 default kernel versions:
-URSR_ARM_LINUX_ROOT=/opt/brcm/linux-3.14-1.12
-URSR_MIPS_LINUX_ROOT=/opt/brcm/linux-3.3-3.8
+# URSR 16.2 default kernel versions:
+URSR_ARM_LINUX_ROOT=/opt/brcm/linux-3.14-1.14
+URSR_MIPS_LINUX_ROOT=/opt/brcm/linux-3.3-3.9
 
 # If NEXUS_PLATFORM was specified and kernel version was not, set a default.
 # We need to make sure this isn't mismatched.
@@ -835,24 +850,14 @@ if [ -z $NEW_TOOLCHAIN_PATH ]; then
         # default LINUX and toolchain
     case $NEXUS_PLATFORM in
 
-    97268)
+    97260|97268|97271|97278)
        case $BCHP_VER in
        A0)
-       # 7268 uses a 7271 kernel image.
-       export LINUX=/opt/brcm/linux-4.1-7271a0
-       NEW_TOOLCHAIN_PATH=/opt/toolchains/stbgcc-4.8-1.4/bin
-       ;;
-       *)
-       CHIP_VER_NOT_VALID=1
-       ;;
-       esac
-       ;;
-    97271)
-       case $BCHP_VER in
-       A0)
-       #LINUX_ROOT=/opt/brcm/linux-4.1-7271a0
-       export LINUX=/opt/brcm/linux-4.1-7271a0
-       NEW_TOOLCHAIN_PATH=/opt/toolchains/stbgcc-4.8-1.4/bin
+       export LINUX=/opt/brcm/linux-4.1-1.1/7271a0
+       if [ $B_REFSW_ARCH = "arm-linux" ] ; then
+       export LINUX=/opt/brcm/linux-4.1-1.1/7271a0-32
+       fi
+       NEW_TOOLCHAIN_PATH=/opt/toolchains/stbgcc-4.8-1.5/bin
        ;;
        *)
        CHIP_VER_NOT_VALID=1
@@ -971,7 +976,7 @@ if [ -z $NEW_TOOLCHAIN_PATH ]; then
         ;;
     97346)
         case $BCHP_VER in
-        A0|B0|B1|B2)
+        B0|B1|B2)
         LINUX_ROOT=$URSR_MIPS_LINUX_ROOT
         ;;
         *)
@@ -1058,6 +1063,11 @@ if [ -z $NEW_TOOLCHAIN_PATH ]; then
 	NEW_TOOLCHAIN_PATH=/opt/toolchains/`cat ${LINUX}/../misc/toolchain`/bin
 	export BCHP_VER=B0
         ;;
+	C0)
+	export LINUX=$URSR_ARM_LINUX_ROOT/7364a0
+	NEW_TOOLCHAIN_PATH=/opt/toolchains/`cat ${LINUX}/../misc/toolchain`/bin
+	export BCHP_VER=C0
+	;;
         *)
         CHIP_VER_NOT_VALID=1
         ;;
@@ -1183,27 +1193,10 @@ if [ -z $NEW_TOOLCHAIN_PATH ]; then
         esac
         ;;
     97439)
-        case $BCHP_VER in
-        A0)
         LINUX_ROOT=$URSR_ARM_LINUX_ROOT
-        ;;
-        B0)
-        LINUX_ROOT=$URSR_ARM_LINUX_ROOT
-        ;;
-        *)
-        CHIP_VER_NOT_VALID=1
-        ;;
-        esac
         ;;
     974371)
-        case $BCHP_VER in
-        A0)
         LINUX_ROOT=$URSR_ARM_LINUX_ROOT
-        ;;
-        *)
-        CHIP_VER_NOT_VALID=1
-        ;;
-        esac
         ;;
     97250)
         case $BCHP_VER in
@@ -1215,24 +1208,13 @@ if [ -z $NEW_TOOLCHAIN_PATH ]; then
         ;;
         esac
         ;;
-    97445|97252)
-        case $BCHP_VER in
-        A0|A1|B0|C0)
-        CHIP_REV_NOT_SUPPORTED=1
-        ;;
-        D0|D1)
-	export NEXUS_PLATFORM=97445
+    97445)
         LINUX_ROOT=$URSR_ARM_LINUX_ROOT
         ;;
-	E0)
-        export LINUX=$URSR_ARM_LINUX_ROOT/7445d0
-	NEW_TOOLCHAIN_PATH=/opt/toolchains/`cat ${LINUX}/../misc/toolchain`/bin
-	;;
-        *)
-        CHIP_VER_NOT_VALID=1
-        ;;
-        esac
-        export B_REFSW_ARCH=arm-linux
+    97252)
+        # override for backward compat
+        export NEXUS_PLATFORM=97445
+        LINUX_ROOT=$URSR_ARM_LINUX_ROOT
         ;;
     97459)
         case $BCHP_VER in
@@ -1329,14 +1311,7 @@ if [ -z $NEW_TOOLCHAIN_PATH ]; then
         esac
         ;;
     97584)
-        case $BCHP_VER in
-        A0|A1)
         LINUX_ROOT=$URSR_MIPS_LINUX_ROOT
-        ;;
-        *)
-        CHIP_VER_NOT_VALID=1
-        ;;
-        esac
         ;;
     975845)
         case $BCHP_VER in
@@ -1518,13 +1493,13 @@ case $NEXUS_PLATFORM in
         echo "NEXUS_USE_74371_XID=$NEXUS_USE_74371_XID"
         ;;
         B0)
-        echo "board_subtype options:  SV DR3 (7449SSV_DR3 use DR3) DR4 (7449SSV_DR4 use DR4) SAT SFF VMS_SFF"
-        echo "NEXUS_USE_7439_SV=$NEXUS_USE_7439_SV "
+        echo "board_subtype options:  DR3 (7449SSV_DR3 SV use DR3) DR4 (7449SSV_DR4 SV use DR4) SAT SFF VMS_SFF CWM (7449SCWM use CWM) "
         echo "NEXUS_USE_7439_DR3=$NEXUS_USE_7439_DR3"
         echo "NEXUS_USE_7439_DR4=$NEXUS_USE_7439_DR4"
-        echo "NEXUS_USE_7439_SFF=$NEXUS_USE_7439_SFF "
+        echo "NEXUS_USE_7439_SFF=$NEXUS_USE_7439_SFF"
         echo "NEXUS_USE_7252S_VMS_SFF=$NEXUS_USE_7252S_VMS_SFF"
         echo "NEXUS_USE_7252S_SAT=$NEXUS_USE_7252S_SAT"
+        echo "NEXUS_USE_7449S_CWM=$NEXUS_USE_7449S_CWM"
         ;;
         *)
         CHIP_VER_NOT_VALID=1
@@ -1642,7 +1617,7 @@ case $NEXUS_PLATFORM in
         echo "board_subtype options:  CSFF EUSFF >CBSV< FBTSFF EUSFF_V20 DCSFBTSFF"
     fi
     ;;
-97346 | 973465)
+97346 )
     if [ "$NEXUS_PLATFORM_VER" == "SFF" ]; then
         echo "board_subtype options:  >SFF< I2SFF SV HR44 SHR44 H43"
         echo "NEXUS_PLATFORM_VER=$NEXUS_PLATFORM_VER"
@@ -1662,6 +1637,18 @@ case $NEXUS_PLATFORM in
         echo "board_subtype options:  SFF I2SFF SV HR44 SHR44 >H43<"
         echo "NEXUS_PLATFORM_VER=$NEXUS_PLATFORM_VER"
     else
+        echo "board_subtype options:  SFF I2SFF >SV< HR44 SHR44"
+    fi
+    ;;
+973465)
+    if [ "$NEXUS_PLATFORM_VER" == "SFF" ]; then
+        echo "board_subtype options:  >SFF<  SV "
+        echo "NEXUS_PLATFORM_VER=$NEXUS_PLATFORM_VER"
+    elif  [ "$NEXUS_PLATFORM_VER" == "SV" ]; then
+        echo "board_subtype options:  SFF I2SFF >SV< HR44 SHR44 H43"
+        echo "NEXUS_PLATFORM_VER=$NEXUS_PLATFORM_VER"
+    else
+        echo "Default board type chosen: "
         echo "board_subtype options:  SFF I2SFF >SV< HR44 SHR44"
     fi
     ;;

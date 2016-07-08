@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2014 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,7 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
+
  **************************************************************************/
 
 /* General purpose Diffie Hellman routines. */
@@ -108,7 +108,7 @@ BCRYPT_STATUS_eCode BCrypt_DH_FromPem(const uint8_t * pem,
     int retLen;
 
     if (!pContext) {
-        BDBG_ERR(("%s - invalid context holder %p", __FUNCTION__, pContext));
+        BDBG_ERR(("%s - invalid context holder %p", __FUNCTION__, (void *)pContext));
         rc = BCRYPT_STATUS_eINVALID_PARAMETER;
         goto end;
     }
@@ -116,7 +116,7 @@ BCRYPT_STATUS_eCode BCrypt_DH_FromPem(const uint8_t * pem,
     *pContext = NULL;
 
     if (!pem) {
-        BDBG_ERR(("%s - invalid pem parameter %p", __FUNCTION__, pem));
+        BDBG_ERR(("%s - invalid pem parameter %p", __FUNCTION__, (void *)pem));
         rc = BCRYPT_STATUS_eINVALID_PARAMETER;
         goto end;
     }

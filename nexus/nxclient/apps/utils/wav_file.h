@@ -73,6 +73,7 @@ struct wave_header
 
     unsigned long  dataSig;      /* 'data' */
     unsigned long  dataLen;      /* length of data */
+    unsigned long  dataStart;    /* start of the data */
 };
 
 int read_wave_header(FILE *file, struct wave_header *wh);

@@ -1,52 +1,51 @@
 /******************************************************************************
-* (c) 2014 Broadcom Corporation
-*
-* This program is the proprietary software of Broadcom Corporation and/or its
-* licensors, and may only be used, duplicated, modified or distributed pursuant
-* to the terms and conditions of a separate, written license agreement executed
-* between you and Broadcom (an "Authorized License").  Except as set forth in
-* an Authorized License, Broadcom grants no license (express or implied), right
-* to use, or waiver of any kind with respect to the Software, and Broadcom
-* expressly reserves all rights in and to the Software and all intellectual
-* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1. This program, including its structure, sequence and organization,
-*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-*    reasonable efforts to protect the confidentiality thereof, and to use
-*    this information only in connection with your use of Broadcom integrated
-*    circuit products.
-*
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-******************************************************************************/
-/*****************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
+ *
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************
 *
 * FILENAME: $Workfile: trunk/stack/IEEE/MAC/include/private/bbMacCfgFsm.h $
 *
 * DESCRIPTION:
 *   MAC layer FSMs integral description.
 *
-* $Revision: 2952 $
-* $Date: 2014-07-16 17:08:40Z $
+* $Revision: 10910 $
+* $Date: 2016-04-06 14:25:51Z $
 *
 *****************************************************************************************/
 
@@ -93,14 +92,14 @@ enum
     S_WAIT_MAC_LE_TX_ASSOC_REQ_CONF,                    /*!< Wait for confirmation from the MAC-LE on request
                                                             to transmit an Association Request MAC Command frame. */
 
-    S_WAIT_MAC_LE_RX_ASSOC_RESP_IND,                    /*!< Wait for confirmation from the MAC-LE on request
-                                                            to transmit an Association Response MAC Command frame. */
-
     S_WAIT_MAC_LE_TX_BEACON_REQ_CONF,                   /*!< Wait for confirmation from the MAC-LE on request
                                                             to transmit a Beacon Request MAC Command frame. */
 
     S_WAIT_MAC_LE_TX_DATA_REQ_CONF,                     /*!< Wait for confirmation from the MAC-LE on request
                                                             to transmit a Data Request MAC Command frame. */
+
+    S_WAIT_MAC_LE_TX_POLL_DATA_IND,                     /*!< Wait for Data indication during the MLME-POLL.request
+                                                             executing. */
 
     /* States relating to channel switching via the MAC-LE. */
 
@@ -134,8 +133,6 @@ enum
 
     S_DELAY_MAC_SCAN_DURATION,                          /*!< Delay MAC-FE for ScanDuration period. */
 
-    S_DELAY_PRETRANSMIT_JITTER,                         /*!< Perform pretransmission jitter delay on MAC. */
-
     /* Transient states. */
 
     S_CONTINUE_MAC_SCAN_ED,                             /*!< Transient state to start or continue the ED scan. */
@@ -143,33 +140,8 @@ enum
     S_CONTINUE_MAC_SCAN_ACTIVE,                         /*!< Transient state to start or continue the Active scan. */
 
     S_CONTINUE_MAC_ISSUE_CONF,                          /*!< Transient state to issue confirmation. */
-};
 
-
-/**//**
- * \brief   MAC-LE sublayer FSM states enumeration.
- */
-enum
-{
-    ST_MLE_TRX_OFF_WHEN_IDLE = 0,   /*!< Staying in the TRX_OFF_WHEN_IDLE mode. Ready to process commands from the MAC-FE: RESET, START_TX, START_ED, SET_CHANNEL, SET_TRX_MODE. */
-    ST_MLE_TRX_ON_WHEN_IDLE,        /*!< Staying in the TRX_ON_WHEN_IDLE mode. Ready to process a PD-DATA.indication, or switch to processing of a command form the MAC-FE. */
-
-    WT_MLE_END_IFS,                 /*!< Waiting for the IFS period to pass. */
-    WT_MLE_END_BACKOFF,             /*!< Waiting for the Backoff period to pass. */
-
-    WT_MLE_PHY_RX_ACK_IND,          /*!< Waiting for the PD-DATA.indication of an ACK frame with valid DSN, or the ACK frame waiting timeout. */
-    WT_MLE_PHY_TRANSMIT_CONF,       /*!< Waiting for the PD-DATA.confirm on the requested transmission. */
-    WT_MLE_PHY_TRANSMIT_ACK_CONF,   /*!< Waiting for the PD-DATA.confirm on the requested ACK frame transmission. */
-    WT_MLE_PHY_CCA_CONF,            /*!< Waiting for the PLME-CCA.confirm on the requested CCA cycle. */
-    WT_MLE_PHY_ED_CONF,             /*!< Waiting for the PLME-ED.confirm on the requested ED measurement. */
-    WT_MLE_PHY_RX_ON_CSMA_CONF,     /*!< Waiting for the PLME-SET-TRX-STATE.confirm on the requested RX_ON state for commencing CSMA-CA. */
-    WT_MLE_PHY_RX_ON_ED_CONF,       /*!< Waiting for the PLME-SET-TRX-STATE.confirm on the requested RX_ON state for commencing ED scanning. */
-    WT_MLE_PHY_TX_ON_CONF,          /*!< Waiting for the PLME-SET-TRX-STATE.confirm on the requested TX_ON state. */
-    WT_MLE_PHY_TX_ON_ACK_CONF,      /*!< Waiting for the PLME-SET-TRX-STATE.confirm on the requested TX_ON state for transmission of the ACK on a received frame with acknowledgment request. */
-    WT_MLE_PHY_SET_CHANNEL_CONF,    /*!< Waiting for the PLME-SET-CHANNEL.confirm on the requested channel switching. */
-
-    WT_MLE_MFE_RECEIVE_RESP,        /*!< Waiting for the MAC-FE to read the received frame and issue MAC-LE-RESEIVE.response to the MAC-LE. */
-    WT_MLE_MFE_READY_TX_RESP,       /*!< Waiting for the MAC-FE to write the frame to be transmitted and issue the MAC-LE-READY-TX.response to the MAC-LE. */
+    S_PROCEED_ISSUE_ASSOC_CONF,                         /*!< Transient state to issue confirmation for Association. */
 };
 
 
@@ -184,26 +156,6 @@ enum
     E_START,        EV_START = E_START,             /*!< Starts the new request/response processing. */
 
     E_PROCEED,      EV_PROCEED = E_PROCEED,         /*!< Proceeds with the transient FSM state. */
-};
-
-
-/**//**
- * \brief   MAC-LE sublayer FSM events enumeration.
- */
-enum
-{
-    EV_MLE_PHY_RECEIVE_IND,         /*!< The PHY indicates reception of a new PPDU calling the PD-DATA.indication. */
-    EV_MLE_PHY_TRANSMIT_CONF,       /*!< The PHY confirms ending of a PPDU transmission calling the PD-DATA.confirm. */
-    EV_MLE_PHY_CCA_CONF,            /*!< The PHY confirms ending of a CCA cycle calling the PLME-CCA.confirm. */
-    EV_MLE_PHY_ED_CONF,             /*!< The PHY confirms ending of an ED measurement calling the PLME-ED.confirm. */
-    EV_MLE_PHY_STATE_CONF,          /*!< The PHY confirms switching to the requested state calling the PLME-SET-TRX-STATE.confirm. */
-    EV_MLE_PHY_CHANNEL_CONF,        /*!< The PHY confirms switching to the requested channel (and channel page) calling the PLME-SET-CHANNEL.confirm. */
-
-    EV_MLE_MFE_COMMAND_REQ,         /*!< The MAC-FE requests one of the following MAC-LE commands: RESET, START_TX, START_ED, SET_CHANNEL, SET_RX_MODE. */
-    EV_MLE_MFE_RECEIVE_RESP,        /*!< The MAC-FE has finished reading-out of the received PPDU calling the MAC-LE-RECEIVE.response. */
-    EV_MLE_MFE_READY_TX_RESP,       /*!< The MAC-FE has finished writing-in of the PPDU to transmit calling the MAC-LE-READY-TX.response. */
-
-    EV_MLE_TIMEOUT,                 /*!< Signals timeout from the Symbol Timer. */
 };
 
 
@@ -270,9 +222,6 @@ enum
 
     MAC_IF_DIRECT_REQUEST,                  /*!< If MCPS-DATA.request is commenced for Direct data transmission. */
 
-    MAC_IF_DIRECT_REQUEST_UCAST,            /*!< If MCPS-DATA.request is commenced for Direct Unicast data
-                                                transmission. */
-
     MAC_IF_NEW_REQUEST,                     /*!< If MCPS-DATA.request being processed is new one, not pending. */
 
     MAC_IF_NEW_RESPONSE,                    /*!< If MLME-ASSOCIATE.response being processed is new one, not pending. */
@@ -292,20 +241,34 @@ enum
     MAC_IF_NO_FRAME_PENDING,                /*!< If ACK frame received on transmitted Data Request MAC Command frame
                                                 has the 'Frame Pending' subfield clear. */
 
+    MAC_IF_POLL_ZERO_LENGTH,                /*!< If Data Frame with zero length payload was recieved. */
+
+    MAC_IF_POLL_INCORRECT_IND,              /*!< If the recieved Data Indication is a correct for the MLME-POLL.request. */
+
     /* Guards relating to MAC-LE indications processing. */
 
     MAC_IF_BEACON_DIFF_CHANNEL,             /*!< If received Beacon frame is from another PHY channel. */
 
     MAC_IF_BEACON_NOT_UNIQUE,               /*!< If received Beacon frame is not unique. */
 
-    MAC_IF_ASSOC_RESP_NOT_COINCIDE,         /*!< If received Association Response MAC Command frame does not coincide
-                                                with expected one for the MLME-ASSOCIATION.request being processed. */
+    MAC_IF_DATA_REQ_NOT_CONFIRMED,          /*!< If Data Request was not confirmed yet. */
+
+    MAC_IF_ASSOC_RESP_NOT_RECEIVED,         /*!< If no Association Response was received yet that coincides with
+                                                MLME-ASSOCIATION.request being processed. */
 
     MAC_IF_ASSOC_PAN_AT_CAPACITY,           /*!< If received Association Response MAC Command frame has
                                                 association status 'PAN at capacity'. */
 
     MAC_IF_ASSOC_PAN_ACCESS_DENIED,         /*!< If received Association Response MAC Command frame has
                                                 association status 'PAN access denied'. */
+
+    MAC_IF_FRAME_TOO_LONG,                  /*!< If the frame is too long for sending. */
+
+    MAC_IF_COUNTER_ERROR,                   /*!< If there is a COUNTER ERROR fail during processing. */
+
+    MAC_IF_UNAVAILABLE_KEY,                 /*!< If the security procedure returned UNAVAILABLE_KEY status. */
+
+    MAC_IF_NO_MEMORY,                       /*!< If it is not enough memory to proceed. */
 };
 
 
@@ -317,6 +280,8 @@ enum
     /* Actions for issuing confirmations with different statuses with codes from 0x00 to 0x02. */
 
     MAC_DO_SAP_CONF_SUCCESS           = MAC_SUCCESS,                    /*!< Issue successful confirmation. */
+
+    MAC_DO_SAP_CONF_NOT_SUCCESS,                                        /*!< Issue confirmation with come fail status. */
 
     MAC_DO_SAP_CONF_PAN_AT_CAPACITY   = MAC_PAN_AT_CAPACITY,            /*!< Issue confirmation with error status
                                                                             'PAN at capacity'. */
@@ -345,17 +310,18 @@ enum
 
     MAC_DO_FE_PURGE_TRANSACTIONS,               /*!< Purge transactions by handle value. */
 
-    MAC_DO_FE_WAIT_FOR_RX_ASSOC_RESP_CMD,       /*!< Perform waiting for Association Response MAC Command frame. */
-
     MAC_DO_FE_DELAY_FOR_RESPONSE_WAIT_TIME,     /*!< Perform delay for macResponseWaitTime symbols. */
+
+    MAC_DO_FE_WAIT_FOR_RX_ASSOC_RESP_CMD,       /*!< Save fact that Data Request was confirmed and start timed waiting
+                                                    for Association Response MAC Command frame. */
+
+    MAC_DO_FE_SAVE_ASSOC_RESP_PARAMS,           /*!< Save parameters of the received Association Response. */
 
     MAC_DO_FE_DELAY_FOR_SCAN_DURATION,          /*!< Perform delay for ScanDuration period. */
 
     MAC_DO_FE_RESET_DISPATCHER_AND_PIB,         /*!< Reset MAC-FE Requests Queues and MAC PIB. */
 
     MAC_DO_FE_RESET_DISPATCHER_ONLY,            /*!< Reset MAC-FE Requests Queues, but preserve MAC PIB. */
-
-    MAC_DO_FE_START_PRETRANSMIT_JITTER,         /*!< Start pretransmission jitter delay. */
 
     /* Actions to be performed by the MAC-LE. */
 
@@ -400,16 +366,16 @@ enum
                                                                                 INVALID_HANDLE (0xE7). */
 
     MAC_DO_SAP_CONF_INVALID_PARAMETER      = MAC_INVALID_PARAMETER,         /*!< Issue confirmation with error status
-                                                                                INVALID_PARAMETER. */
+                                                                                INVALID_PARAMETER (0xE8). */
 
     MAC_DO_SAP_CONF_NO_ACK                 = MAC_NO_ACK,                    /*!< Issue confirmation with error status
-                                                                                NO_ACK. */
+                                                                                NO_ACK (0xE9). */
 
     MAC_DO_SAP_CONF_NO_BEACON              = MAC_NO_BEACON,                 /*!< Issue confirmation with error status
-                                                                                NO_BEACON. */
+                                                                                NO_BEACON (0xEA). */
 
     MAC_DO_SAP_CONF_NO_DATA                = MAC_NO_DATA,                   /*!< Issue confirmation with error status
-                                                                                NO_DATA. */
+                                                                                NO_DATA (0xEB). */
 
     MAC_DO_SAP_CONF_NO_SHORT_ADDRESS       = MAC_NO_SHORT_ADDRESS,          /*!< Issue confirmation with error status
                                                                                 NO_SHORT_ADDRESS (0xEC). */
@@ -421,16 +387,16 @@ enum
                                                                                 TRANSACTION_OVERFLOW (0xF1). */
 
     MAC_DO_SAP_CONF_UNSUPPORTED_ATTRIBUTE  = MAC_UNSUPPORTED_ATTRIBUTE,     /*!< Issue confirmation with error status
-                                                                                UNSUPPORTED_ATTRIBUTE. */
+                                                                                UNSUPPORTED_ATTRIBUTE (0xF4). */
 
     MAC_DO_SAP_CONF_INVALID_ADDRESS        = MAC_INVALID_ADDRESS,           /*!< Issue confirmation with error status
-                                                                                INVALID_ADDRESS. */
+                                                                                INVALID_ADDRESS (0xF5). */
 
     MAC_DO_SAP_CONF_LIMIT_REACHED          = MAC_LIMIT_REACHED,             /*!< Issue confirmation with error status
-                                                                                LIMIT_REACHED. */
+                                                                                LIMIT_REACHED (0xFA). */
 
     MAC_DO_SAP_CONF_READ_ONLY              = MAC_READ_ONLY,                 /*!< Issue confirmation with error status
-                                                                                READ_ONLY. */
+                                                                                READ_ONLY (0xFB). */
 };
 
 

@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -11,7 +11,7 @@
  * Software and all intellectual property rights therein.  IF YOU HAVE NO
  * AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
  * AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
- * SOFTWARE.  
+ * SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
@@ -73,7 +73,7 @@ GatherVisitor::GatherVisitor()
 
 bool GatherVisitor::ConstraintsSatisfied(const SceneNode &node) const
 {
-   return node.Constrain(m_parentStack.back(), m_xformStack.back()); 
+   return node.Constrain(m_parentStack.back(), m_xformStack.back());
 }
 
 void GatherVisitor::VisitNode(const SceneNode &node, const Mat4 &xformIn)
@@ -109,10 +109,10 @@ void GatherVisitor::VisitNode(const SceneNode &node, const Mat4 &xformIn)
          switch (geom->GetMaterial(s)->GetEffect()->GetSortOrder())
          {
          default:
-         case EffectOptions::eAUTO : 
+         case EffectOptions::eAUTO :
             packet.SetAutoSorted(true);
             if (m_opacityStack.back() > 0.999f)
-               m_ftobPackets.push_back(packet); 
+               m_ftobPackets.push_back(packet);
             else
                m_btofPackets.push_back(packet);
             break;
@@ -123,7 +123,7 @@ void GatherVisitor::VisitNode(const SceneNode &node, const Mat4 &xformIn)
       }
    }
 
-   // Deal with our children  
+   // Deal with our children
    for (uint32_t k = 0; k < node.NumChildren(); k++)
    {
       const SceneNodeHandle &child = node.GetChild(k);

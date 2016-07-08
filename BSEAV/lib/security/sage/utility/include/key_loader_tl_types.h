@@ -71,7 +71,9 @@ typedef struct
 {
     BSAGElib_Crypto_Algorithm_e          keyladderAlg;
     BSAGElib_Crypto_KeyLadderLevel_e     keyladderDepth;
+    BSAGElib_Crypto_Engine_e             engine;
     BSAGElib_Crypto_KeyType_e            keyType; /* Odd/Even/OddAndEven/Clear */
+    BSAGElib_Crypto_Operation_e          operation;
     uint8_t                              procInForKey3[16];
     uint8_t                              procInForKey4[16];
     uint8_t                              procInForKey5[16];
@@ -83,6 +85,8 @@ typedef struct
 
 typedef struct
 {
+    BSAGElib_Crypto_Engine_e             engine;
+    BSAGElib_Crypto_Operation_e          operation;
     BSAGElib_Crypto_KeyType_e            keyType;   /* Odd/Even/OddAndEven/Clear */
     uint32_t                             ivLength;  /* IV length in bytes        */
     uint8_t                              iv[16];

@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2013 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,11 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  *****************************************************************************/
 #if NEXUS_HAS_TRANSPORT
 #include "live_source.h"
@@ -59,7 +54,7 @@ static void lock_callback(void *context, int param)
     NEXUS_FrontendFastStatus status;
     BSTD_UNUSED(param);
     NEXUS_Frontend_GetFastStatus(frontend, &status);
-    BDBG_MSG(("frontend %#x %s", (unsigned)frontend, status.lockStatus?"locked":"unlocked"));
+    BDBG_MSG(("frontend %p %s", (void*)frontend, status.lockStatus?"locked":"unlocked"));
 }
 #endif
 
@@ -102,8 +97,8 @@ int tune(NEXUS_ParserBand parserBand, NEXUS_FrontendHandle frontend, const struc
     BSTD_UNUSED(alreadyTuned);
 
     switch (psettings->source) {
-    case channel_source_qam:
 #if NEXUS_HAS_FRONTEND
+    case channel_source_qam:
         {
         NEXUS_FrontendQamSettings qamSettings;
 
@@ -233,6 +228,11 @@ int tune(NEXUS_ParserBand parserBand, NEXUS_FrontendHandle frontend, const struc
         /* TODO: wait for lock. for now, just start scanning and let it lock during scan */
         }
         break;
+#else
+    case channel_source_qam:
+    case channel_source_ofdm:
+    case channel_source_sat:
+        return BERR_TRACE(NEXUS_NOT_SUPPORTED);
 #endif
     case channel_source_streamer:
         {
@@ -240,7 +240,8 @@ int tune(NEXUS_ParserBand parserBand, NEXUS_FrontendHandle frontend, const struc
         NEXUS_InputBand inputBand;
 
         BDBG_MSG(("Scanning streamer %d...", psettings->freq));
-        NEXUS_Platform_GetStreamerInputBand(psettings->freq, &inputBand);
+        rc = NEXUS_Platform_GetStreamerInputBand(psettings->freq, &inputBand);
+        if (rc) return BERR_TRACE(rc);
         NEXUS_ParserBand_GetSettings(parserBand, &parserBandSettings);
         parserBandSettings.sourceType = NEXUS_ParserBandSourceType_eInputBand;
         parserBandSettings.sourceTypeSettings.inputBand = inputBand;

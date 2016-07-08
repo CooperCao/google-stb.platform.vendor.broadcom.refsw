@@ -391,7 +391,7 @@ static void lock_callback(void *context, int param)
     }
     else if(rc == NEXUS_NOT_SUPPORTED){
     NEXUS_Frontend_GetQamStatus(frontend, &qamStatus);
-        fprintf(stderr, "QAM Lock callback, frontend 0x%08x - lock status %d, %d\n", (unsigned)frontend, qamStatus.fecLock, qamStatus.receiverLock);
+        fprintf(stderr, "QAM Lock callback, frontend %p - lock status %d, %d\n", (void*)frontend, qamStatus.fecLock, qamStatus.receiverLock);
     }
     else
          if(rc){rc = BERR_TRACE(rc);}

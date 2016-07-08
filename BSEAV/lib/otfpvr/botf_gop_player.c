@@ -1,24 +1,44 @@
 /***************************************************************************
- *	   Copyright (c) 2007-2013, Broadcom Corporation
- *	   All Rights Reserved
- *	   Confidential Property of Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
  *
- *	THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *	AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *	EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
  *
  * Module Description:
  *
  * GOP player module for the on the fly PVR
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ***************************************************************************/
 
 #include "bstd.h"
@@ -328,7 +348,7 @@ b_pvr_gop_feed_data_(bpvr_gop_player player, const void *buf, unsigned len)
          * it may write multiple ITB entries in one call.
          */
         if (destn > player->OPParserPtrs->ItbEndPtr - 8*B_SCV_LEN) {                       
-            BDBG_MSG(("b_pvr_gop_feed_data: %#x setting wrap %#x %#x", (unsigned)player, (unsigned)destn, (unsigned)player->OPParserPtrs->ItbEndPtr));
+            BDBG_MSG(("b_pvr_gop_feed_data: %p setting wrap %p %p", (void *)player, (void *)destn, player->OPParserPtrs->ItbEndPtr));
             player->OPParserPtrs->ItbWrapAroundPtr = destn - 1;
             BOTF_P_SetOPITBWrapPtr(player->otf_cntx);
             destn = player->OPParserPtrs->ItbStartPtr;
@@ -405,7 +425,7 @@ b_pvr_gop_feed_filler(bpvr_gop_player player, const struct bpvr_gop_entry *gop_e
         segment.end_scode.itbentryptr = (const uint8_t *)segment.end_scode.itbentryptr + B_SCV_LEN;
         b_pvr_gop_feed_segment(player, &segment);
     } else {
-        BDBG_WRN(("b_pvr_gop_feed_filler: %#x invalid filler in gop:%#x", (unsigned)player, (unsigned)gop_entry));
+        BDBG_WRN(("b_pvr_gop_feed_filler: %p invalid filler in gop:%p", (void *)player, (void *)gop_entry));
     }
     return;
 }
@@ -424,8 +444,8 @@ b_pvr_gop_feed_slice1(bpvr_gop_player player, const bpvr_itb_segment *segment)
     BDBG_ASSERT(segment->end_scode.prevbaseentryptr);
     slice1segment.end_scode.itbentryptr = (const uint8_t *)slice1segment.start_scode.itbentryptr + B_SCV_LEN;
     end_scode_cdb = (const uint8_t *)slice1segment.end_scode.cdb + 8;
-    if ((uint32_t)end_scode_cdb > (uint32_t)player->IPParserPtrs->CdbEndPtr) {
-        unsigned end_scode_cdb_offset = 8 - (player->IPParserPtrs->CdbEndPtr - (const uint8_t *)slice1segment.end_scode.cdb);
+    if ((uint8_t *)end_scode_cdb > (uint8_t *)player->IPParserPtrs->CdbEndPtr) {
+        unsigned long end_scode_cdb_offset = 8 - (player->IPParserPtrs->CdbEndPtr - (const uint8_t *)slice1segment.end_scode.cdb);
         end_scode_cdb = player->IPParserPtrs->CdbStartPtr + end_scode_cdb_offset;
     }
     slice1segment.end_scode.cdb = end_scode_cdb;
@@ -673,7 +693,7 @@ b_pvr_build_cross_gop(bpvr_gop_player player, bpvr_gop_desc *gop, bpvr_gop_desc 
 	struct bpvr_gop_play_seq *seq=&player->play_seq;
 	unsigned skip_cnt, disp_cnt;
 
-	BDBG_MSG(("cross_gop %#x:%#x frame (%d:%d:%d,%d:%d)", (unsigned)gop, (unsigned)next, frame, gop->n_frames, gop->chunk_no, next?next->n_frames:0, next?next->chunk_no:0));
+	BDBG_MSG(("cross_gop %p:%p frame (%d:%d:%d,%d:%d)", (void *)gop, (void *)next, frame, gop->n_frames, gop->chunk_no, next?next->n_frames:0, next?next->chunk_no:0));
 	seq->n_frames=0;
 	seq->cur_frame=0;
 	if (next==NULL || !next->flags.complete || gop->flags.discontinuity || next->flags.discontinuity || (player->mode.rewind && gop->chunk_no > next->chunk_no) || (!player->mode.rewind && gop->chunk_no < next->chunk_no)) {
@@ -794,7 +814,7 @@ b_pvr_gop_build_gop_rew_seq(bpvr_gop_desc *gop, struct bpvr_gop_play_seq *gop_pl
 
 	if(0 && !gop->flags.complete) {
 		/* use I frame only */
-		BDBG_MSG(("incomplete GOP %#x, using I frame only", gop));
+		BDBG_MSG(("incomplete GOP %px, using I frame only", (void *)gop));
 	  	for(frame=0;frame<(int)gop->n_frames;frame++) {
 			if (gop->frames[frame].info.pic_type == B_FRAME_I) {
 				gop_play->frames[0].index = frame;
@@ -803,7 +823,7 @@ b_pvr_gop_build_gop_rew_seq(bpvr_gop_desc *gop, struct bpvr_gop_play_seq *gop_pl
 				return;
 			}
 		}
-		BDBG_WRN(("No I frames found in the GOP %#x", gop));
+		BDBG_WRN(("No I frames found in the GOP %p", (void *)gop));
 		gop_play->n_frames=0;
 		return;
 	}
@@ -844,7 +864,7 @@ b_pvr_gop_build_gop_fwd_seq(bpvr_gop_desc *gop, struct bpvr_gop_play_seq *gop_pl
 
 	if(0 && !gop->flags.complete) {
 		/* use I frame only */
-		BDBG_MSG(("Incomplete GOP %#x, using I frame only", gop));
+		BDBG_MSG(("Incomplete GOP %p, using I frame only", (void *)gop));
 	  	for(frame=0;frame<gop->n_frames;frame++) {
 			if (gop->frames[frame].info.pic_type == B_FRAME_I) {
 				gop_play->frames[0].index = frame;
@@ -853,7 +873,7 @@ b_pvr_gop_build_gop_fwd_seq(bpvr_gop_desc *gop, struct bpvr_gop_play_seq *gop_pl
 				return;
 			}
 		}
-		BDBG_WRN(("No I frames found in the GOP %#x", gop));
+		BDBG_WRN(("No I frames found in the GOP %p", (void *)gop));
 		gop_play->n_frames=0;
 		return;
 	}
@@ -927,7 +947,7 @@ b_pvr_gop_filter_seq(bpvr_gop_player player)
 	}
 	gop_play->filtered_nframes = frame;
 	if (frame==0) {
-		BDBG_MSG(("skiping GOP %#x because of frame filter", gop));
+		BDBG_MSG(("skiping GOP %p because of frame filter", (void *)gop));
 		return;
 	}
 	for(i=0;i<gop_play->filtered_nframes;i++) {
@@ -1023,7 +1043,7 @@ b_pvr_gop_filter_seq(bpvr_gop_player player)
     }
     gop_play->n_frames = frame;
     if (frame==0) {
-        BDBG_MSG(("skiping GOP %#x because of rate control", gop));
+        BDBG_MSG(("skiping GOP %p because of rate control", (void *)gop));
         return;
     }
     BDBG_MSG(("disp_count %u frame_count %u frames %d", player->disp_count, player->frame_count, gop_play->n_frames));
@@ -1195,13 +1215,13 @@ b_pvr_gop_recycle(bpvr_gop_player player, struct bpvr_gop_entry *gop_entry)
                             (player->OPParserPtrs->ItbValidPtr - player->OPParserPtrs->ItbStartPtr);        
     }
     cp_entry->cdb_cp = gop_entry->gop->lastcdbptr;
-    BDBG_MSG(("CP Insert itb_cp=%#x cdb_cp=%#x", cp_entry->itb_cp, cp_entry->cdb_cp));
+    BDBG_MSG(("CP Insert itb_cp=%p cdb_cp=%p", cp_entry->itb_cp, cp_entry->cdb_cp));
     BLST_SQ_INSERT_TAIL(&player->cp_complete, cp_entry, queue);
     BLST_SQ_INSERT_TAIL(&player->complete, gop_entry, queue);
     /* For last gop in a chunk insert filler SC */
-    BDBG_MSG(("b_pvr_gop_recycle: %u %#lx", gop_entry->gop->flags.last_gop, BLST_SQ_FIRST(&player->active)));
+    BDBG_MSG(("b_pvr_gop_recycle: %u %p", gop_entry->gop->flags.last_gop, (void *)BLST_SQ_FIRST(&player->active)));
     if (gop_entry->gop->flags.last_gop) {
-        BDBG_MSG(("b_pvr_gop_recycle: %#lx last gop, adding filler", (unsigned)gop_entry));
+        BDBG_MSG(("b_pvr_gop_recycle: %p last gop, adding filler", (void *)gop_entry));
         b_pvr_gop_feed_filler(player, gop_entry);        
        /* XVD updates ITB read pointer in chunks of 128 bytes (8 ITB entries) 
         * Insert another filler, so that OTF can see the ITB
@@ -1222,7 +1242,7 @@ b_pvr_gop_next_gop(bpvr_gop_player player)
 
 	BDBG_ASSERT(gop_entry);
 
-	BDBG_MSG(("done gop %#x", (unsigned)gop_entry->gop));
+	BDBG_MSG(("done gop %p", (void *)gop_entry->gop));
 	BLST_SQ_REMOVE_HEAD(&player->active, queue);
 	if(player->mode.rewind) {
 		b_pvr_gop_recycle(player, gop_entry);
@@ -1248,7 +1268,7 @@ b_pvr_gop_next_frame(bpvr_gop_player player)
 
 	BDBG_ASSERT(BLST_SQ_FIRST(&player->active));
 	if (player->gop_play.cur_frame < player->gop_play.n_frames) {
-		BDBG_MSG(("displaying frame %u:%u out of %u(%u) for GOP %#x(%#x) %u", player->gop_play.cur_frame, BLST_SQ_FIRST(&player->active)->gop->frames[player->gop_play.frames[player->gop_play.cur_frame].index].info.pts, player->gop_play.n_frames, BLST_SQ_FIRST(&player->active)->gop->n_frames, (unsigned)BLST_SQ_FIRST(&player->active), (unsigned)BLST_SQ_FIRST(&player->active)->gop, BLST_SQ_FIRST(&player->active)->gop->frames[0].info.pts));
+		BDBG_MSG(("displaying frame %u:%u out of %u(%u) for GOP %p(%p) %u", player->gop_play.cur_frame, BLST_SQ_FIRST(&player->active)->gop->frames[player->gop_play.frames[player->gop_play.cur_frame].index].info.pts, player->gop_play.n_frames, BLST_SQ_FIRST(&player->active)->gop->n_frames, (void *)BLST_SQ_FIRST(&player->active), (void *)BLST_SQ_FIRST(&player->active)->gop, BLST_SQ_FIRST(&player->active)->gop->frames[0].info.pts));
         B_OTF_WAIT_KEY(("displaying frame[%u] %u:%u(%d) out of %u(%u) for GOP %#x(%#x) %u", player->block_count, player->gop_play.cur_frame, BLST_SQ_FIRST(&player->active)->gop->frames[player->gop_play.frames[player->gop_play.cur_frame].index].info.pts, player->gop_play.frames[player->gop_play.cur_frame].index, player->gop_play.n_frames, BLST_SQ_FIRST(&player->active)->gop->n_frames, (unsigned)BLST_SQ_FIRST(&player->active), (unsigned)BLST_SQ_FIRST(&player->active)->gop, BLST_SQ_FIRST(&player->active)->gop->frames[0].info.pts));
         botf_itb_feeder_checkpoint(player->itb_feeder);
 		player->disp_frames = bpvr_gop_build_play_seq(player, player->gop_play.frames[player->gop_play.cur_frame].index);
@@ -1273,7 +1293,7 @@ b_pvr_gop_next_frame(bpvr_gop_player player)
 				player->disp_frames = b_pvr_build_cross_gop(player, gop_entry->gop, player->prev_gop?player->prev_gop->gop:NULL, player->gop_play.frames[player->gop_play.cur_frame].index);
 			}
 		}
-		BDBG_MSG(("displaying %d frames from %d(%d,pic tag %d) for GOP %#x(%#x)", player->disp_frames, player->gop_play.cur_frame, player->gop_play.frames[player->gop_play.cur_frame].index, BLST_SQ_FIRST(&player->active)?(int)(BLST_SQ_FIRST(&player->active)->gop->frames[player->gop_play.frames[player->gop_play.cur_frame].index].info.pic_tag):-1, (unsigned)BLST_SQ_FIRST(&player->active), (unsigned)BLST_SQ_FIRST(&player->active)->gop));
+		BDBG_MSG(("displaying %d frames from %d(%d,pic tag %d) for GOP %p(%p)", player->disp_frames, player->gop_play.cur_frame, player->gop_play.frames[player->gop_play.cur_frame].index, BLST_SQ_FIRST(&player->active)?(int)(BLST_SQ_FIRST(&player->active)->gop->frames[player->gop_play.frames[player->gop_play.cur_frame].index].info.pic_tag):-1, (void *)BLST_SQ_FIRST(&player->active), (void *)BLST_SQ_FIRST(&player->active)->gop));
 		player->state = bgop_feed_sequence;
 		b_pvr_gop_next_seq(player);
 		return;
@@ -1294,11 +1314,11 @@ b_pvr_gop_meta(bpvr_gop_player player)
     player->past_predictor = -1;
     player->future_predictor = -1;
     BDBG_ASSERT(gop_entry);
-	BDBG_MSG(("trying to feed meta data for GOP %#x", gop_entry));
+	BDBG_MSG(("trying to feed meta data for GOP %p", (void *)gop_entry));
 	player->state = bgop_feed_meta;
 
 	if (b_pvr_reserve_feed(player)) {
-		BDBG_MSG(("feeding meta data for GOP %#x", gop_entry));
+		BDBG_MSG(("feeding meta data for GOP %p", (void *)gop_entry));
 		b_pvr_gop_feed_segment(player, &gop_entry->gop->itb_meta);
 
 		/* Build reference frame, if needed */
@@ -1306,20 +1326,20 @@ b_pvr_gop_meta(bpvr_gop_player player)
 		    (gop_entry->gop->frames[0].info.pic_type == B_FRAME_I)) {			
             struct bpvr_gop_play_seq *seq=&player->play_seq;
 
-            BDBG_MSG(("feeding reference frame(meta) %d for GOP %#x", 0, (unsigned)gop_entry->gop));
+            BDBG_MSG(("feeding reference frame(meta) %d for GOP %p", 0, (void *)gop_entry->gop));
 			/* BDBG_MSG(("buidling reference frame for GOP %#x", gop_entry->gop)); */
             BDBG_MSG_BTP(("BTP: Build Reference"));
             bpvr_make_btp_cmd(seq->BTPStartCmd, B_CMD_BUILD_REFERENCE, 0, 0, 0);
-            BDBG_MSG(("feeding BUD packet(decode) %#x", seq->BTPStartCmd));
+            BDBG_MSG(("feeding BUD packet(decode) %p", (void *)seq->BTPStartCmd));
             b_pvr_gop_feed_one_entry(player, seq->BTPStartCmd);
 #if B_OTF_ENABLE_PICTAG
-			BDBG_MSG(("feeding BUD packet(tag) %#x PTS %#x", seq->BTPPicTagCmd, gop_entry->gop->frames[0].info.pts));
+			BDBG_MSG(("feeding BUD packet(tag) %p PTS %#x", (void *)seq->BTPPicTagCmd, gop_entry->gop->frames[0].info.pts));
             BDBG_MSG_BTP(("BTP: Picture Tag %#x", (unsigned)gop_entry->gop->frames[0].info.pic_tag));
 			bpvr_make_btp_cmd(seq->BTPPicTagCmd, B_CMD_PICTURE_TAG, 0, 0, gop_entry->gop->frames[0].info.pic_tag);
             b_pvr_gop_feed_one_entry(player, seq->BTPPicTagCmd);
 #endif
-			BDBG_MSG(("feeding reference frame(data) %u[%s] for GOP %#x", 0, b_pvr_pic_type(gop_entry->gop->frames[0].info.pic_type), (unsigned)gop_entry->gop));
-			BDBG_MSG_FRAME(("feeding reference frame(data) %u[%s] for GOP %#x", 0, b_pvr_pic_type(gop_entry->gop->frames[0].info.pic_type), (unsigned)gop_entry->gop));
+			BDBG_MSG(("feeding reference frame(data) %u[%s] for GOP %p", 0, b_pvr_pic_type(gop_entry->gop->frames[0].info.pic_type), (void *)gop_entry->gop));
+			BDBG_MSG_FRAME(("feeding reference frame(data) %u[%s] for GOP %p", 0, b_pvr_pic_type(gop_entry->gop->frames[0].info.pic_type), (void *)gop_entry->gop));
             b_pvr_gop_feed_segment(player, &(gop_entry->gop->frames[0].itb_meta));
 			b_pvr_gop_feed_segment(player, &gop_entry->gop->frames[0].itb_slices);
 			player->reference_frame = 0;
@@ -1345,7 +1365,7 @@ b_pvr_gop_start_play(bpvr_gop_player player)
 
         BDBG_ASSERT(gop_entry);	
 
-        BDBG_MSG(("start playing GOP %#x %u:%u:%u", &gop_entry->gop, gop_entry->gop->n_frames, gop_entry->gop->gop_no, gop_entry->gop->chunk_no));
+        BDBG_MSG(("start playing GOP %p %u:%u:%u", (void *)&gop_entry->gop, gop_entry->gop->n_frames, gop_entry->gop->gop_no, gop_entry->gop->chunk_no));
 
         if (player->mode.rewind)
             b_pvr_gop_build_gop_rew_seq(gop_entry->gop, &player->gop_play);
@@ -1376,7 +1396,7 @@ b_pvr_gop_start_play(bpvr_gop_player player)
 static void 
 b_pvr_gop_player_buffer(bpvr_gop_player player)
 {
-    BDBG_MSG(("b_pvr_gop_player_buffer: %#x %u", (unsigned long)player, player->state));
+    BDBG_MSG(("b_pvr_gop_player_buffer: %p %u", (void *)player, player->state));
 	switch(player->state)
 	{
 	default:
@@ -1424,7 +1444,7 @@ bpvr_gop_freecompleted(bpvr_gop_player player)
     itb_read =  player->OPParserPtrs->ItbReadPtr;
     itb_valid = player->OPParserPtrs->ItbValidPtr;
     
-    BDBG_MSG(("freecompleted:  itb_read=%#x itb_valid=%#x",itb_read, itb_valid));
+    BDBG_MSG(("freecompleted:  itb_read=%p itb_valid=%p",itb_read, itb_valid));
     if (cp_entry == NULL)  {
         return;
     }
@@ -1438,12 +1458,12 @@ bpvr_gop_freecompleted(bpvr_gop_player player)
             if ( (cp_entry->itb_cp < itb_read) || cp_entry->itb_cp > itb_valid) {
               itb_cpdone = true;
             }
-            BDBG_MSG(("freecompleted: ITB  READ:%#x CP:%#x VALID:%#x WRAP:%#x %s", (unsigned)itb_read, (unsigned)cp_entry->itb_cp, (unsigned)itb_valid, (unsigned)player->OPParserPtrs->ItbWrapAroundPtr, itb_cpdone?"DONE":""));
+            BDBG_MSG(("freecompleted: ITB  READ:%p CP:%p VALID:%p WRAP:%p %s", itb_read, cp_entry->itb_cp, itb_valid, player->OPParserPtrs->ItbWrapAroundPtr, itb_cpdone?"DONE":""));
         } else {
             if ( (cp_entry->itb_cp < itb_read) && (cp_entry->itb_cp > itb_valid)) {
                 itb_cpdone = true;
             }
-            BDBG_MSG(("freecompleted: ITB VALID:%#x CP:%#x  READ:%#x WRAP:%#x %s", (unsigned)itb_valid, (unsigned)cp_entry->itb_cp, (unsigned)itb_read, (unsigned)player->OPParserPtrs->ItbWrapAroundPtr, itb_cpdone?"DONE":""));
+            BDBG_MSG(("freecompleted: ITB VALID:%p CP:%p READ:%p WRAP:%p %s", itb_valid, cp_entry->itb_cp, itb_read, player->OPParserPtrs->ItbWrapAroundPtr, itb_cpdone?"DONE":""));
         }
         if (1 || itb_cpdone) {    
             const void *cdb_read, *cdb_valid;
@@ -1454,12 +1474,12 @@ bpvr_gop_freecompleted(bpvr_gop_player player)
                 if ( (cp_entry->cdb_cp < cdb_read) || cp_entry->cdb_cp > cdb_valid) {
                     cdb_cpdone = true;
                 } 
-                BDBG_MSG(("freecompleted: CDB  READ:%#x CP:%#x VALID:%#x WRAP:%#x %s", (unsigned)cdb_read, (unsigned)cp_entry->cdb_cp, (unsigned)cdb_valid, (unsigned)player->OPParserPtrs->CdbWrapAroundPtr, cdb_cpdone?"DONE":""));
+                BDBG_MSG(("freecompleted: CDB  READ:%p CP:%p VALID:%p WRAP:%p %s", cdb_read, cp_entry->cdb_cp, cdb_valid, player->OPParserPtrs->CdbWrapAroundPtr, cdb_cpdone?"DONE":""));
             } else {
                 if ( (cp_entry->cdb_cp < cdb_read) && (cp_entry->cdb_cp > cdb_valid)) {
                     cdb_cpdone = true;
                 } 
-                BDBG_MSG(("freecompleted: CDB VALID:%#x CP:%#x  READ:%#x WRAP:%#lx %s", (unsigned)cdb_valid, (unsigned)cp_entry->cdb_cp, (unsigned)cdb_read, (unsigned)player->OPParserPtrs->CdbWrapAroundPtr, cdb_cpdone?"DONE":""));
+                BDBG_MSG(("freecompleted: CDB VALID:%p CP:%p  READ:%p WRAP:%p %s", cdb_valid, cp_entry->cdb_cp, cdb_read, player->OPParserPtrs->CdbWrapAroundPtr, cdb_cpdone?"DONE":""));
             }
         }
 
@@ -1500,7 +1520,7 @@ bpvr_gop_player_feed(
 	struct bpvr_gop_entry *gop_entry;
 
 
-	BDBG_MSG(("new gop %#x(%u,%u) %u frames", (unsigned)gop, gop->chunk_no, gop->gop_no, gop->n_frames));
+	BDBG_MSG(("new gop %p(%u,%u) %u frames", (void *)gop, gop->chunk_no, gop->gop_no, gop->n_frames));
 
     if (player->chunk_no != gop->chunk_no) {
         if (player->chunk_no != B_INVALID_CHUNK_NO ) {

@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2015 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2015 Broadcom.
 All rights reserved.
 =============================================================================*/
 
@@ -31,23 +31,10 @@ typedef struct mq_s
    list_t *send_q;
 } mq_t;
 
-static void addtime(struct timespec *ts, unsigned int t)
-{
-   // round up
-   // convert to milliseconds
-   int64_t mseconds = (ts->tv_sec * 1000LL) + (ts->tv_nsec / 1000000LL) + ((ts->tv_nsec % 1000000LL) != 0);
-   // add timeout
-   mseconds += t;
-   // convert to timespec
-   int64_t remainder = mseconds % 1000LL;
-   ts->tv_sec = (time_t)mseconds / 1000LL;
-   ts->tv_nsec = (long)remainder * 1000000LL;
-}
-
 void *CreateQueue(unsigned int count, size_t element_size)
 {
    /* allocate enough contiguous space for everything */
-   mq_t *q = (mq_t *)malloc(sizeof(mq_t) + (count * (sizeof(list_t) + element_size)));
+   mq_t *q = (mq_t *)calloc(1, sizeof(mq_t) + (count * (sizeof(list_t) + element_size)));
 
    if (q)
    {
@@ -90,7 +77,7 @@ void DeleteQueue(void *q)
    }
 }
 
-void *GetMessage(void *q, unsigned int t)
+void *GetMessage(void *q, bool block)
 {
    mq_t *mq = (mq_t *)q;
    void *m = NULL;
@@ -98,21 +85,9 @@ void *GetMessage(void *q, unsigned int t)
    if (mq)
    {
       int s;
-      struct timespec ts;
 
-      if (t == IMMEDIATE)
-      {
-         /* immediate */
+      if (!block)
          s = sem_trywait(&(mq->send_sem));
-      }
-      else if (t != INFINITE)
-      {
-         clock_gettime(CLOCK_REALTIME, &ts);
-         addtime(&ts, t);
-
-         while ((s = sem_timedwait(&(mq->send_sem), &ts)) == -1 && errno == EINTR)
-            continue;       /* Restart if interrupted by handler */
-      }
       else
          s = sem_wait(&(mq->send_sem));
 
@@ -162,7 +137,7 @@ void SendMessage(void *q, void *m)
    }
 }
 
-void *ReceiveMessage(void *q, unsigned int t)
+void *ReceiveMessage(void *q, bool block)
 {
    mq_t *mq = (mq_t *)q;
    void *m = NULL;
@@ -170,21 +145,9 @@ void *ReceiveMessage(void *q, unsigned int t)
    if (q)
    {
       int s;
-      struct timespec ts;
 
-      if (t == IMMEDIATE)
-      {
-         /* immediate */
+      if (!block)
          s = sem_trywait(&(mq->rec_sem));
-      }
-      else if (t != INFINITE)
-      {
-         clock_gettime(CLOCK_REALTIME, &ts);
-         addtime(&ts, t);
-
-         while ((s = sem_timedwait(&(mq->rec_sem), &ts)) == -1 && errno == EINTR)
-            continue;       /* Restart if interrupted by handler */
-      }
       else
          s = sem_wait(&(mq->rec_sem));
 

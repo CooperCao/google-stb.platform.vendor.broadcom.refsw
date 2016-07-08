@@ -1,7 +1,7 @@
  /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2004-2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,13 +34,6 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
 ***************************************************************************/
 #if NEXUS_PLATFORM == 97231
 
@@ -94,7 +87,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
 
     NEXUS_Frontend_GetUserParameters(pConfig->frontend[0], &userParams);
     userParams.param1 = NEXUS_InputBand_e0;
-    userParams.pParam2 = NULL;
+    userParams.pParam2 = 0;
     NEXUS_Frontend_SetUserParameters(pConfig->frontend[0], &userParams);
 
     /* Open on-board 3517B */
@@ -110,7 +103,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
 
     NEXUS_Frontend_GetUserParameters(pConfig->frontend[1], &userParams);
     userParams.param1 = NEXUS_InputBand_e1;
-    userParams.pParam2 = NULL;
+    userParams.pParam2 = 0;
     NEXUS_Frontend_SetUserParameters(pConfig->frontend[1], &userParams);
 done:
     return rc;
@@ -204,7 +197,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
 
     NEXUS_Frontend_GetUserParameters(pConfig->frontend[0], &userParams);
     userParams.param1 = NEXUS_InputBand_e0;
-    userParams.pParam2 = NULL;
+    userParams.pParam2 = 0;
     NEXUS_Frontend_SetUserParameters(pConfig->frontend[0], &userParams);
 
 #if NEXUS_PLATFORM_97231_3461_USES_SPI
@@ -245,7 +238,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
 
     NEXUS_Frontend_GetUserParameters(pConfig->frontend[1], &userParams);
     userParams.param1 = NEXUS_InputBand_e1;
-    userParams.pParam2 = NULL;
+    userParams.pParam2 = 0;
     NEXUS_Frontend_SetUserParameters(pConfig->frontend[1], &userParams);
 
     NEXUS_FrontendDevice_GetDefaultLinkSettings(&linkSettings);
@@ -353,7 +346,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
 
     NEXUS_Frontend_GetUserParameters(pConfig->frontend[0], &userParams);
     userParams.param1 = NEXUS_InputBand_e0;
-    userParams.pParam2 = NULL;
+    userParams.pParam2 = 0;
     NEXUS_Frontend_SetUserParameters(pConfig->frontend[0], &userParams);
 
     NEXUS_FrontendDevice_GetDefault31xxSettings(&st31xxDeviceSettings);
@@ -394,7 +387,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
 
     NEXUS_Frontend_GetUserParameters(pConfig->frontend[1], &userParams);
     userParams.param1 = NEXUS_InputBand_e1;
-    userParams.pParam2 = NULL;
+    userParams.pParam2 = 0;
     NEXUS_Frontend_SetUserParameters(pConfig->frontend[1], &userParams);
 
 done:
@@ -507,7 +500,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
         NEXUS_Frontend_GetUserParameters(pConfig->frontend[i], &userParams);
         userParams.isMtsif = st3128DeviceOpenSettings.isMtsif;
         userParams.param1 = st3128DeviceOpenSettings.isMtsif ? st3128Settings.channelNumber : NEXUS_InputBand_e0 + i;
-        userParams.pParam2 = NULL;
+        userParams.pParam2 = 0;
         NEXUS_Frontend_SetUserParameters(pConfig->frontend[i], &userParams);
     }
 done:
@@ -600,7 +593,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
             pConfig->frontend[frontend] = NEXUS_FrontendCard_GetChannel(g_frontendCards[card], i);
             NEXUS_Frontend_GetUserParameters(pConfig->frontend[frontend], &userParams);
             userParams.param1 = (i==0)?NEXUS_InputBand_e0:NEXUS_InputBand_e1;
-            userParams.pParam2 = NULL;
+            userParams.pParam2 = 0;
             NEXUS_Frontend_SetUserParameters(pConfig->frontend[frontend], &userParams);
         }
         card++;

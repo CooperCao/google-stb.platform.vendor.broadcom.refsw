@@ -163,7 +163,6 @@ endif
 MAGNUM_DEFINES := $(sort $(foreach module, $(MAGNUM_MODULES), $($(module)_DEFINES)))
 MAGNUM_CFLAGS := $(addprefix -D,$(MAGNUM_DEFINES)) $(addprefix -I,$(MAGNUM_INCLUDES))
 MAGNUM_SOURCE_DIRS := $(foreach module,$(MAGNUM_MODULES),$(dir $($(module)_SOURCES)))
-MAGNUM_OPTIONS := $(sort $(foreach module,$(MAGNUM_MODULES),$($(module)_OPTIONS)))
 MAGNUM_NOPROFILE_SRCS += bdbg.c bdbg_output.c bdbg_os_priv.c bkni.c
 ifeq ($(B_REFSW_OS), linuxemu)
 NEXUS_CFLAGS += $(addprefix -I,$(NEXUS_PLATFORM_PRIVATE_INCLUDES))
@@ -224,33 +223,15 @@ $(NEXUS_BUILD_DIR)/module_rules_${NEXUS_MODE}.inc:${NEXUS_BUILD_DIR}/exists
 -include $(NEXUS_BUILD_DIR)/module_rules_${NEXUS_MODE}.inc
 endif
 
-# Create NEXUS_OPTIONS from list of all options
-NEXUS_OPTIONS := $(sort $(foreach module, $(NEXUS_MODULES),$(NEXUS_$(module)_OPTIONS)))
-
 # Create single list of all nexus objects for convenience
 NEXUS_OBJECTS := $(foreach module,$(NEXUS_MODULES),$(NEXUS_$(module)_OBJECTS) $(NEXUS_$(module)_OS_OBJECTS))
 
 # Include OS-specific rules
 include $(NEXUS_BUILD_OS_DIR)/os_rules.inc
 
-# Debug rule to dump all options specified in NEXUS_OPTIONS
-define OPTION_template
-@echo $(1)=$(if $($(1)),$($(1)),"<value not set>")
-
-endef
-
-NEXUS_OPTIONS += NEXUS_PLATFORM NEXUS_MODE B_REFSW_OS B_REFSW_DEBUG B_REFSW_ARCH B_REFSW_SHAREABLE NEXUS_POWER_MANAGEMENT B_REFSW_FIRMWARE
-
 .PHONY: nexus_print_options
 nexus_print_options:
-ifneq ($(NEXUS_OPTIONS),)
-	@echo "---Nexus Options---"
-	$(foreach option,$(sort $(NEXUS_OPTIONS)),$(call OPTION_template,$(option)))
-endif
-ifneq ($(MAGNUM_OPTIONS),)
-	@echo "---Magnum Options---"
-	$(foreach option,$(sort $(MAGNUM_OPTIONS)),$(call OPTION_template,$(option)))
-endif
+	@echo "See \"Build System Variables\" in nexus/docs/Nexus_Usage.pdf"
 
 # NOTE: It's important that NEXUS_$(module)_PUBLIC_INCLUDES not be rolled up into a single, global include path inside nexus.inc.
 # Having per-module include paths is required for perserving modularity by preventing unmanaged calls from one module to another.

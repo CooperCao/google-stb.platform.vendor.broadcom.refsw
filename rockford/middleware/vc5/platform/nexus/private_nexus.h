@@ -1,12 +1,12 @@
 /*=============================================================================
-Copyright (c) 2014 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2014 Broadcom.
 All rights reserved.
 =============================================================================*/
 
 #ifndef __PRIVATE_NEXUS_H__
 #define __PRIVATE_NEXUS_H__
 
-#include "egl_platform_abstract.h"
+#include <EGL/begl_displayplatform.h>
 
 #include "gmem_abstract.h"
 #include "sched_abstract.h"
@@ -18,53 +18,54 @@ All rights reserved.
 
 typedef struct
 {
-   NEXUS_SurfaceHandle     surface;
-   uint32_t                physicalOffset;
-   void                   *cachedPtr;
-   int                     fence;
-   bool                    poisoned;
-   int                     swapInterval;
+   NEXUS_SurfaceHandle        surface;
+   uint32_t                   physicalOffset;
+   void                      *cachedPtr;
+   int                        fence;
+   bool                       poisoned;
+   int                        swapInterval;
    /* the window info flows through the pipeline with the buffer and is used
       at presentation time */
-   NXPL_NativeWindowInfo   windowInfo;
-   BEGL_BufferFormat       format;
+   NXPL_NativeWindowInfoEXT   windowInfo;
+   BEGL_BufferFormat          format;
+   bool                       secure;
 } NXPL_Surface;
 
 typedef struct
 {
    /* Thread data and mutex */
-   pthread_t               displayThread;
-   pthread_barrier_t       barrier;
+   pthread_t                  displayThread;
+   pthread_barrier_t          barrier;
 #ifdef NXPL_PLATFORM_EXCLUSIVE
-   void                   *bufferOnDisplayEvent;
+   void                      *bufferOnDisplayEvent;
 #endif
-   void                   *vsyncEvent;
-   bool                    terminating;
+   void                      *vsyncEvent;
+   bool                       terminating;
 
-   void                   *displayQueue;
-   void                   *fenceQueue;
+   void                      *displayQueue;
+   void                      *fenceQueue;
 #ifdef NXPL_PLATFORM_EXCLUSIVE
-   int                     lastFence;
+   int                        lastFence;
 #endif
 
    /* data copied through from the owner */
-   BEGL_SchedInterface    *schedIface;
-   NXPL_NativeWindowInfo   windowInfo;
-   BEGL_BufferFormat       format;
-   unsigned int            numSurfaces;
-   NEXUS_DISPLAYHANDLE     display;
-   bool                    vsyncAvailable;
+   BEGL_SchedInterface       *schedIface;
+   NXPL_NativeWindowInfoEXT   windowInfo;
+   BEGL_BufferFormat          format;
+   unsigned int               numSurfaces;
+   NEXUS_DISPLAYHANDLE        display;
+   bool                       vsyncAvailable;
 
-#ifdef NXPL_PLATFORM_NSC
-   uint32_t                clientID;
-   NEXUS_SurfaceClientHandle surfaceClient;
+#ifndef NXPL_PLATFORM_EXCLUSIVE
+   uint32_t                   clientID;
+   NEXUS_SurfaceClientHandle  surfaceClient;
 #endif
 
-   NXPL_DisplayType        displayType;
-   int                    *bound;
+   NXPL_DisplayType           displayType;
+   int                       *bound;
 
    /* opaque, do not access in the thread */
-   void                   *nw;
+   void                      *nw;
 } NXPL_NativeWindow_priv;
 
 typedef struct

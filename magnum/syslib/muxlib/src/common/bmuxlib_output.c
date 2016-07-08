@@ -1,23 +1,43 @@
-/***************************************************************************
- *     Copyright (c) 2003-2012, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * [File Description:]
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
  *
- * Revision History:
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- *
- ***************************************************************************/
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 
 #include "bstd.h" /* also includes berr, bdbg, etc */
 #include "bkni.h"
@@ -181,7 +201,7 @@ BMUXlib_Output_Destroy(
    BDBG_MODULE_MSG(BMUXLIB_OUTPUT_USAGE, ("[%d] Descriptors Used: %d/%d (peak)",
                                           hOutput->stCreateSettings.uiOutputID,
                                           hOutput->uiMaxUsage,
-                                          hOutput->stCreateSettings.uiCount));
+                                          (int)hOutput->stCreateSettings.uiCount));
 
    if ( NULL != hOutput->astInDescriptors )
    {
@@ -257,7 +277,7 @@ BMUXlib_Output_AddNewDescriptor(
          case BMUXlib_Output_OffsetReference_eEnd:
             /* offset to use is relative to end offset ... */
             hOutput->uiEndOffset += pstDescriptor->stStorage.uiOffset;
-            BDBG_MODULE_MSG(BMUXLIB_OUTPUT_OFFSETS, ("[%2.2d]: %d bytes @ offset: %lld (end), ", OUTPUT_ID(hOutput), pstDescriptor->stStorage.uiLength, hOutput->uiEndOffset));
+            BDBG_MODULE_MSG(BMUXLIB_OUTPUT_OFFSETS, ("[%2.2d]: %d bytes @ offset: "BDBG_UINT64_FMT" (end), ", OUTPUT_ID(hOutput), (int)pstDescriptor->stStorage.uiLength, BDBG_UINT64_ARG(hOutput->uiEndOffset)));
             pMetaDesc->uiOffset = hOutput->uiEndOffset;
             /* update end offset */
             hOutput->uiEndOffset += pstDescriptor->stStorage.uiLength;
@@ -266,12 +286,12 @@ BMUXlib_Output_AddNewDescriptor(
          case BMUXlib_Output_OffsetReference_eCurrent:
             /* offset to use is relative to current offset ... */
             hOutput->uiCurrentOffset += pstDescriptor->stStorage.uiOffset;
-            BDBG_MODULE_MSG(BMUXLIB_OUTPUT_OFFSETS, ("[%2.2d]: %d bytes @ offset: %lld (current), ", OUTPUT_ID(hOutput), pstDescriptor->stStorage.uiLength, hOutput->uiCurrentOffset));
+            BDBG_MODULE_MSG(BMUXLIB_OUTPUT_OFFSETS, ("[%2.2d]: %d bytes @ offset: "BDBG_UINT64_FMT" (current), ", OUTPUT_ID(hOutput), (int)pstDescriptor->stStorage.uiLength, BDBG_UINT64_ARG(hOutput->uiCurrentOffset)));
             pMetaDesc->uiOffset = hOutput->uiCurrentOffset;
             hOutput->uiCurrentOffset += pstDescriptor->stStorage.uiLength;
             break;
          case BMUXlib_Output_OffsetReference_eStart:
-            BDBG_MODULE_MSG(BMUXLIB_OUTPUT_OFFSETS, ("[%2.2d]: %d bytes @ offset: %lld (start), ", OUTPUT_ID(hOutput), pstDescriptor->stStorage.uiLength, pstDescriptor->stStorage.uiOffset));
+            BDBG_MODULE_MSG(BMUXLIB_OUTPUT_OFFSETS, ("[%2.2d]: %d bytes @ offset: "BDBG_UINT64_FMT" (start), ", OUTPUT_ID(hOutput), (int)pstDescriptor->stStorage.uiLength, BDBG_UINT64_ARG(pstDescriptor->stStorage.uiOffset)));
             pMetaDesc->uiOffset = pstDescriptor->stStorage.uiOffset;
             hOutput->uiCurrentOffset = pstDescriptor->stStorage.uiOffset + pstDescriptor->stStorage.uiLength;
             break;
@@ -288,7 +308,7 @@ BMUXlib_Output_AddNewDescriptor(
             hOutput->uiEndOffset = hOutput->uiCurrentOffset;
          }
 
-         BDBG_MODULE_MSG(BMUXLIB_OUTPUT_OFFSETS, ("[%2.2d]: Current Offset = %lld, End Offset = %lld", OUTPUT_ID(hOutput), hOutput->uiCurrentOffset, hOutput->uiEndOffset));
+         BDBG_MODULE_MSG(BMUXLIB_OUTPUT_OFFSETS, ("[%2.2d]: Current Offset = "BDBG_UINT64_FMT", End Offset = "BDBG_UINT64_FMT, OUTPUT_ID(hOutput), BDBG_UINT64_ARG(hOutput->uiCurrentOffset), BDBG_UINT64_ARG(hOutput->uiEndOffset)));
 
          if ( NULL != pstCompletedCallbackInfo )
          {
@@ -327,7 +347,7 @@ BMUXlib_Output_ProcessNewDescriptors(
    BMUXlib_Output_Handle hOutput
    )
 {
-   uint32_t uiQueuedCount;
+   size_t uiQueuedCount;
    uint64_t uiExpectedOffset = 0;
    bool bExpectedWriteOperation = false;
    BERR_Code rc = BERR_SUCCESS;
@@ -344,9 +364,7 @@ BMUXlib_Output_ProcessNewDescriptors(
    {
       BDBG_MODULE_MSG(BMUXLIB_OUTPUT_DESC, ("[%2.2d]: Re-Queueing waiting storage descriptor", OUTPUT_ID(hOutput)));
       pSDesc = &hOutput->astOutDescriptors[hOutput->uiQueuedIndex];
-      rc = pstStorage->pfAddDescriptors(
-               pstStorage->pContext,
-               pSDesc, 1, &uiQueuedCount);
+      rc = pstStorage->pfAddDescriptors(pstStorage->pContext, pSDesc, 1, &uiQueuedCount);
       hOutput->bDescWaiting = (uiQueuedCount != 1);
       if (BERR_SUCCESS == rc && !hOutput->bDescWaiting)
       {
@@ -426,15 +444,15 @@ BMUXlib_Output_ProcessNewDescriptors(
          {
             BDBG_ASSERT( NULL != pInDesc->hBlock );
 
-            pSDesc->iov[pSDesc->uiVectorCount].pBufferAddress = (void*) ( (unsigned) BMMA_Lock( pInDesc->hBlock ) + pInDesc->uiBlockOffset );
+            pSDesc->iov[pSDesc->uiVectorCount].pBufferAddress = (void *) ((uint8_t *)BMMA_Lock( pInDesc->hBlock ) + pInDesc->uiBlockOffset );
          }
          pSDesc->iov[pSDesc->uiVectorCount].uiLength = pInDesc->uiLength;
          uiExpectedOffset = pMetaDesc->uiOffset + pInDesc->uiLength;
 
-         BDBG_MODULE_MSG(BMUXLIB_OUTPUT_DESC, ("[%2.2d]: +Desc[%d]: cb: %p (d: %p), %d bytes %s %p @ %lld (%d) [abs:%lld]: sd: %p, vc:%d",
-            OUTPUT_ID(hOutput), uiCurrentIndex, pMetaDesc->stCallbackInfo.pCallback, pMetaDesc->stCallbackInfo.pCallbackData,
-            pInDesc->uiLength, (pInDesc->bWriteOperation)?"from":"to", pInDesc->pBufferAddress,
-            pInDesc->uiOffset, pInDesc->eOffsetFrom, pMetaDesc->uiOffset, pSDesc, pSDesc->uiVectorCount));
+         BDBG_MODULE_MSG(BMUXLIB_OUTPUT_DESC, ("[%2.2d]: +Desc[%d]: cb: %p (d: %p), %d bytes %s %p @ "BDBG_UINT64_FMT" (%d) [abs:"BDBG_UINT64_FMT"]: sd: %p, vc:%d",
+            OUTPUT_ID(hOutput), uiCurrentIndex, (void *)(unsigned long)(pMetaDesc->stCallbackInfo.pCallback), pMetaDesc->stCallbackInfo.pCallbackData,
+            (int)pInDesc->uiLength, (pInDesc->bWriteOperation)?"from":"to", pInDesc->pBufferAddress,
+            BDBG_UINT64_ARG(pInDesc->uiOffset), pInDesc->eOffsetFrom, BDBG_UINT64_ARG(pMetaDesc->uiOffset), (void *)pSDesc, pSDesc->uiVectorCount));
 
          pSDesc->uiVectorCount++;
       } /* end: for each new descriptor */
@@ -479,7 +497,7 @@ BERR_Code BMUXlib_Output_ProcessCompletedDescriptors( BMUXlib_Output_Handle hOut
 
    rc = pstStorage->pfGetCompleteDescriptors( pstStorage->pContext, &uiCompletedCount );
 
-   BDBG_MODULE_MSG(BMUXLIB_OUTPUT_DESC, ("[%2.2d]: %d Descriptors Completed", OUTPUT_ID(hOutput), uiCompletedCount));
+   BDBG_MODULE_MSG(BMUXLIB_OUTPUT_DESC, ("[%2.2d]: %d Descriptors Completed", OUTPUT_ID(hOutput), (int)uiCompletedCount));
 
    if ( BERR_SUCCESS == rc )
    {
@@ -497,14 +515,14 @@ BERR_Code BMUXlib_Output_ProcessCompletedDescriptors( BMUXlib_Output_Handle hOut
             BMUXlib_Output_P_MetaDescriptor *pMetaDesc = &hOutput->astInDescriptors[hOutput->uiReadIndex + i];
             BMUXlib_Output_StorageDescriptor *pInDesc = &pMetaDesc->stDesc.stStorage;
 
-            BDBG_MODULE_MSG(BMUXLIB_OUTPUT_DESC, ("[%2.2d]: -Desc[%d]: cb: %p (d: %p), %d bytes %s %p @ %lld (%d) [abs:%lld]: sd:%p, vc:%d",
-            OUTPUT_ID(hOutput), hOutput->uiReadIndex + i, pMetaDesc->stCallbackInfo.pCallback, pMetaDesc->stCallbackInfo.pCallbackData,
-            pInDesc->uiLength, (pInDesc->bWriteOperation)?"from":"to", pInDesc->pBufferAddress,
-            pInDesc->uiOffset, pInDesc->eOffsetFrom, pMetaDesc->uiOffset, pDesc, i));
+            BDBG_MODULE_MSG(BMUXLIB_OUTPUT_DESC, ("[%2.2d]: -Desc[%d]: cb: %p (d: %p), %d bytes %s %p @ "BDBG_UINT64_FMT" (%d) [abs:"BDBG_UINT64_FMT"]: sd:%p, vc:%d",
+            OUTPUT_ID(hOutput), (int)(hOutput->uiReadIndex + i), (void *)(unsigned long)pMetaDesc->stCallbackInfo.pCallback, pMetaDesc->stCallbackInfo.pCallbackData,
+            (int)pInDesc->uiLength, (pInDesc->bWriteOperation)?"from":"to", pInDesc->pBufferAddress,
+            BDBG_UINT64_ARG(pInDesc->uiOffset), pInDesc->eOffsetFrom, BDBG_UINT64_ARG(pMetaDesc->uiOffset), (void *)pDesc, i));
 
             if ( NULL != pInDesc->hBlock )
             {
-               BMMA_Unlock( pInDesc->hBlock, (void*) ( (unsigned) pDesc->iov[i].pBufferAddress - pInDesc->uiBlockOffset ) );
+               BMMA_Unlock( pInDesc->hBlock, (void *) ( (uint8_t *) pDesc->iov[i].pBufferAddress - pInDesc->uiBlockOffset ) );
             }
 
             if ( NULL != pMetaDesc->stCallbackInfo.pCallback )
@@ -537,7 +555,7 @@ BMUXlib_Output_GetCurrentOffset(
    )
 {
    BDBG_ASSERT(hOutput);
-   BDBG_MODULE_MSG(BMUXLIB_OUTPUT_OFFSETS,("[%2.2d]: GetCurrentOffset: %lld", OUTPUT_ID(hOutput), hOutput->uiCurrentOffset));
+   BDBG_MODULE_MSG(BMUXLIB_OUTPUT_OFFSETS,("[%2.2d]: GetCurrentOffset: "BDBG_UINT64_FMT, OUTPUT_ID(hOutput), BDBG_UINT64_ARG(hOutput->uiCurrentOffset)));
    return hOutput->uiCurrentOffset;
 }
 
@@ -547,7 +565,7 @@ BMUXlib_Output_GetEndOffset(
    )
 {
    BDBG_ASSERT(hOutput);
-   BDBG_MODULE_MSG(BMUXLIB_OUTPUT_OFFSETS,("[%2.2d]: GetEndOffset: %lld", OUTPUT_ID(hOutput), hOutput->uiEndOffset));
+   BDBG_MODULE_MSG(BMUXLIB_OUTPUT_OFFSETS,("[%2.2d]: GetEndOffset: "BDBG_UINT64_FMT, OUTPUT_ID(hOutput), BDBG_UINT64_ARG(hOutput->uiEndOffset)));
    return hOutput->uiEndOffset;
 }
 
@@ -577,7 +595,7 @@ BMUXlib_Output_SetCurrentOffset(
    }
    if (hOutput->uiCurrentOffset > hOutput->uiEndOffset)
       hOutput->uiEndOffset = hOutput->uiCurrentOffset;
-   BDBG_MODULE_MSG(BMUXLIB_OUTPUT_OFFSETS,("[%2.2d]: Setting Offset: %lld", OUTPUT_ID(hOutput), hOutput->uiCurrentOffset));
+   BDBG_MODULE_MSG(BMUXLIB_OUTPUT_OFFSETS,("[%2.2d]: Setting Offset: "BDBG_UINT64_FMT, OUTPUT_ID(hOutput), BDBG_UINT64_ARG(hOutput->uiCurrentOffset)));
    return BERR_SUCCESS;
 }
 

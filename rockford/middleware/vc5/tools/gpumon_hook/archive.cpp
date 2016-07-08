@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2011 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2011 Broadcom.
 All rights reserved.
 
 Project  :  PPP
@@ -17,12 +17,6 @@ DESC
 #include <memory.h>
 #include <sys/types.h>
 #include <assert.h>
-
-#ifndef WIN32
-#define THREADED_IO
-#endif
-
-#define TEST_ZIP
 
 #ifdef ANDROID
 #include <cutils/log.h>
@@ -54,128 +48,138 @@ DESC
 #define TO_LE_W(w)
 #endif
 
-static uint32_t BUFFER_BYTES = 8 * 1024 * 1024;
+#define CHUNK_SIZE (8 * 1024 * 1024)
 
-#ifdef THREADED_IO
+#define USE_MEMCPY 1
 
-static uint8_t *sWrite = 0;
-static uint8_t *sRead = 0;
-static uint32_t sFreeBytes = 0;
-static uint8_t *sBuf = 0;
-static uint8_t *sEnd = 0;
-static bool     sDie = false;
-static MutexHandle sIOMutex;
+// This is all a bit nasty.
+//
+// Since we are buffering capture data in a separate thread, anything that terminates
+// uncleanly (without deleting the archive object) won't write anything if it's data
+// hasn't reach 8MB yet, and in general will lose the end of the capture data.
+// We store the last archive to be made (there should only ever be one) and ensure it
+// cleans up properly and flushes the archive in an onexit handler.
+//
+static Archive *s_archive = NULL;
 
-static uint32_t BytesToWrite(uint8_t **from)
+static void exitHandler()
 {
-   uint32_t bytesToWrite = 0;
+   Archive *deleteMe = s_archive;
+   s_archive = NULL;
 
-   plLockMutex(&sIOMutex);
+   printf("Flushing capture archive on exit\n");
 
-   if (sFreeBytes != BUFFER_BYTES)
+   if (deleteMe != NULL)
    {
-      bytesToWrite = BUFFER_BYTES - sFreeBytes;
-
-      if (sRead + bytesToWrite > sEnd)
-         bytesToWrite = sEnd - sRead;
-
-      *from = sRead;
-   }
-
-   plUnlockMutex(&sIOMutex);
-
-   return bytesToWrite;
-}
-
-static void BufferForWrite(uint8_t *data, uint32_t numBytes)
-{
-   while (numBytes > 0)
-   {
-      plLockMutex(&sIOMutex);
-
-      // Can't buffer anything unless we have some space
-      while (sFreeBytes == 0)
-      {
-         plUnlockMutex(&sIOMutex);
-         usleep(1000);
-         plLockMutex(&sIOMutex);
-      }
-
-      assert(sWrite < sEnd);
-
-      uint32_t bytes = numBytes;
-      if (bytes > sFreeBytes)
-         bytes = sFreeBytes;
-      if (sWrite + bytes > sEnd)
-         bytes = sEnd - sWrite;
-
-      uint8_t *p = sWrite;
-
-      // Unlock the buffer for the saving thread while we copy in our new data
-      plUnlockMutex(&sIOMutex);
-
-      memcpy(p, data, bytes);
-      data += bytes;
-      numBytes -= bytes;
-
-      plLockMutex(&sIOMutex);
-
-      sWrite += bytes;
-      sFreeBytes -= bytes;
-      if (sWrite >= sEnd)
-         sWrite = sBuf;
-
-      plUnlockMutex(&sIOMutex);
+      // Flush the archive and clean up
+      delete deleteMe;
    }
 }
 
-// Separate file i/o thread to attempt to aid capture performance
-static void *ioThreadMain(void *param)
+void Archive::BufferForWrite(uint8_t *data, uint32_t numBytes)
 {
-   Archive *ar = (Archive*)param;
-
-   while (!sDie)
+   while (numBytes)
    {
-      uint8_t *from;
-      uint32_t bytesToWrite = BytesToWrite(&from);
+      uint32_t remaining = m_buffer.capacity() - m_buffer.size();
 
-      while (bytesToWrite > 0)
-      {
-         fwrite(from, bytesToWrite, 1, ar->FilePointer());
+      uint32_t copySize = std::min(numBytes, remaining);
 
-         plLockMutex(&sIOMutex);
-
-         sFreeBytes += bytesToWrite;
-
-         sRead += bytesToWrite;
-         assert(sRead <= sEnd);
-         if (sRead == sEnd)
-            sRead = sBuf;
-
-         plUnlockMutex(&sIOMutex);
-
-         bytesToWrite = BytesToWrite(&from);
-      }
-
-      usleep(1000);
-   }
-
-   return 0;
-}
+#if USE_MEMCPY
+      m_buffer.resize(m_buffer.size() + copySize);
+      memcpy(&m_buffer[m_buffer.size() - copySize], data, copySize);
+#else
+      m_buffer.insert(m_buffer.end(), data, &data[copySize]);
 #endif
+
+      if (m_buffer.capacity() - m_buffer.size() == 0)
+      {
+         // scope for the lock
+         {
+            std::unique_lock<std::mutex> guard(m_mutex);
+            m_queue.push(std::move(m_buffer));
+         }
+         m_condition.notify_one();
+         m_buffer = std::vector<uint8_t>(0);
+         m_buffer.reserve(CHUNK_SIZE);
+      }
+
+      numBytes -= copySize;
+      data += copySize;
+   }
+}
+
+void Archive::worker()
+{
+   bool local_done(false);
+   std::vector<uint8_t> buf;
+   while (!m_queue.empty() || !local_done)
+   {
+      // scope for the lock
+      {
+         std::unique_lock<std::mutex> guard(m_mutex);
+         m_condition.wait(guard,
+            [this](){ return !this->m_queue.empty()
+            || this->m_done; });
+
+         while (m_queue.empty() && !m_done)
+            m_condition.wait(guard);
+
+         if (!m_queue.empty())
+         {
+            buf.swap(m_queue.front());
+            m_queue.pop();
+         }
+         local_done = m_done;
+      }
+
+      if (!buf.empty())
+      {
+         fwrite(buf.data(), buf.size(), 1, m_fp);
+         buf.clear();
+      }
+   }
+
+   // flush prior to close
+   if (!buf.empty())
+   {
+      fwrite(buf.data(), buf.size(), 1, m_fp);
+      buf.clear();
+   }
+
+   fclose(m_fp);
+   m_fp = NULL;
+}
 
 Archive::Archive(const std::string &filename) :
    m_filename(filename),
    m_fp(NULL),
-   m_buffer(NULL),
-   m_curPtr(NULL),
-   m_bytesWritten(0)
+   m_buffer(0),
+   m_bytesWritten(0),
+   m_thread(std::bind(&Archive::worker, this))
 {
+   m_buffer.reserve(CHUNK_SIZE);
+
+   s_archive = this;
+
+   // Ensure this is flushed on program termination
+   atexit(exitHandler);
 }
 
 Archive::~Archive()
 {
+   s_archive = NULL;
+
    Disconnect();
+
+   // scope for the lock
+   {
+      std::unique_lock<std::mutex> guard(m_mutex);
+      if (!m_buffer.empty())
+         m_queue.push(std::move(m_buffer));
+      m_done = true;
+   }
+   m_condition.notify_one();
+   m_thread.join();
 }
 
 bool Archive::Connect()
@@ -189,27 +193,6 @@ bool Archive::Connect()
          return false;
       }
 
-#ifdef THREADED_IO
-      char *env = getenv("GPUMonitorCaptureBuffer");
-      if (env)
-         BUFFER_BYTES = atoi(env);
-
-      // Make the circular i/o buffer
-      plCreateMutex(&sIOMutex);
-      m_buffer = new uint8_t[BUFFER_BYTES];
-      sBuf = sRead = sWrite = m_buffer;
-      sEnd = m_buffer + BUFFER_BYTES;
-      sFreeBytes = BUFFER_BYTES;
-
-      // Start the i/o thread
-      int32_t res = pthread_create(&m_ioThread, NULL, ioThreadMain, this);
-      if (res != 0)
-      {
-         Error1("Could not spawn new thread (code %d)", res);
-         return false;
-      }
-#endif
-
       return true;
    }
 
@@ -219,30 +202,7 @@ bool Archive::Connect()
 void Archive::Disconnect()
 {
    if (m_fp != NULL)
-   {
       Flush();
-#ifdef THREADED_IO
-      bool done = false;
-      while (!done)
-      {
-         plLockMutex(&sIOMutex);
-         done = (sFreeBytes == BUFFER_BYTES);
-         plUnlockMutex(&sIOMutex);
-      }
-
-      sDie = true;
-      pthread_join(m_ioThread, NULL);
-
-      plDestroyMutex(&sIOMutex);
-#endif
-      fclose(m_fp);
-   }
-
-#ifdef THREADED_IO
-   delete [] m_buffer;
-#endif
-
-   m_fp = NULL;
 }
 
 void Archive::Send(uint8_t *srcData, uint32_t size, bool isArray)
@@ -255,15 +215,8 @@ void Archive::Flush()
 {
    if (m_fp != NULL)
    {
-#ifndef THREADED_IO
-      if (m_queuedLen > 0)
-         fwrite(m_queuedData, m_queuedLen, 1, m_fp);
-#else
       BufferForWrite(m_queuedData, m_queuedLen);
-#endif
-
       m_bytesWritten += m_queuedLen;
-
       m_queuedLen = 0;
    }
 }

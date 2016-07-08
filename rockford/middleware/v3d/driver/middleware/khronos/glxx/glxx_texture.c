@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2008 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2008 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -122,6 +122,7 @@ void glxx_texture_init(GLXX_TEXTURE_T *texture, int32_t name, GLenum target)
    for (i = 0; i < GLXX_TEXTURE_POOL_SIZE; i++)
    {
       vcos_assert(texture->blob_pool[i].mh_storage == MEM_INVALID_HANDLE);
+      texture->blob_pool[i].secure = false;
       khrn_interlock_init(&texture->blob_pool[i].interlock);
    }
    vcos_assert(texture->mh_depaletted_blob == MEM_INVALID_HANDLE);
@@ -160,7 +161,10 @@ static void nullify(GLXX_TEXTURE_T *texture)
    texture->explicit_mipmaps = 0;
 
    for (i = 0; i < GLXX_TEXTURE_POOL_SIZE; i++)
+   {
+      texture->blob_pool[i].secure = false;
       MEM_ASSIGN(texture->blob_pool[i].mh_storage, MEM_INVALID_HANDLE);
+   }
 
    MEM_ASSIGN(texture->mh_depaletted_blob, MEM_INVALID_HANDLE);
 
@@ -429,7 +433,8 @@ static uint32_t get_stride(uint32_t l, GLenum format, GLenum type, uint32_t a)
    return k;
 }
 
-static bool check_image(GLXX_TEXTURE_T *texture, uint32_t buffer, uint32_t level, KHRN_IMAGE_FORMAT_T format, int width, int height)
+static bool check_image(GLXX_TEXTURE_T *texture, uint32_t buffer, uint32_t level,
+   KHRN_IMAGE_FORMAT_T format, int width, int height, bool secure)
 {
    MEM_HANDLE_T himage;
 
@@ -473,7 +478,13 @@ static bool check_image(GLXX_TEXTURE_T *texture, uint32_t buffer, uint32_t level
       texture->offset = 0;
       size = texture_get_required_blob_size(texture, false);
       align = 4096;
-      handle = mem_alloc_ex(size, align, MEM_FLAG_DIRECT | MEM_FLAG_DISCARDABLE | MEM_FLAG_RETAINED , "Texture blob", MEM_COMPACT_DISCARD);   // check, no term
+
+      MEM_FLAG_T mem_flag =
+         MEM_FLAG_DIRECT | MEM_FLAG_DISCARDABLE | MEM_FLAG_RETAINED;
+      if (secure)
+         mem_flag |= (MEM_FLAG_SECURE | MEM_FLAG_NO_INIT);
+
+      handle = mem_alloc_ex(size, align, mem_flag, "Texture blob", MEM_COMPACT_DISCARD);   // check, no term
       if (handle == MEM_INVALID_HANDLE) {
          texture->binding_type = TEXTURE_BLOB_NULL;
          return false;
@@ -482,6 +493,7 @@ static bool check_image(GLXX_TEXTURE_T *texture, uint32_t buffer, uint32_t level
       vcos_assert(texture->current_item == 0);
 
       texture->blob_valid[buffer] |= 1<<level;
+      texture->blob_pool[texture->current_item].secure = secure;
       assign_retain(texture_get_storage_handle_ref(texture), handle);
       assign_retain(&handle,MEM_INVALID_HANDLE);
       return true;
@@ -529,7 +541,8 @@ static bool check_image(GLXX_TEXTURE_T *texture, uint32_t buffer, uint32_t level
    if (khrn_image_prefer_lt(format, width, height))
       format = khrn_image_to_lt_format(format);
 
-   himage = khrn_image_create(format, width, height, (KHRN_IMAGE_CREATE_FLAG_T)(IMAGE_CREATE_FLAG_ONE | IMAGE_CREATE_FLAG_TEXTURE)); /* todo: check usage flags */
+   himage = khrn_image_create(format, width, height,
+      IMAGE_CREATE_FLAG_ONE | IMAGE_CREATE_FLAG_TEXTURE, secure); /* todo: check usage flags */
    if (himage == MEM_INVALID_HANDLE)
       return false;
 
@@ -619,6 +632,7 @@ static void mip_lock_wrap(GLXX_TEXTURE_T *texture, uint32_t buffer, uint32_t lev
          _max(texture->height >> level, 1),
          texture_get_mipmap_stride(texture, level, false),
          0,
+         texture->blob_pool[texture->current_item].secure,
          (char *)mem_lock(glxx_texture_get_storage_handle(texture), NULL) + glxx_texture_get_mipmap_offset(texture, buffer, level, false), NULL);
 
       //this assert checks the blob is big enough for a tformat image, but we now also accept linear_tile images
@@ -665,7 +679,9 @@ static void null_image(GLXX_TEXTURE_T *texture, uint32_t buffer, uint32_t level)
    MEM_ASSIGN(texture->mh_ms_image, MEM_INVALID_HANDLE);
 }
 
-bool glxx_texture_image(GLXX_TEXTURE_T *texture, GLenum target, uint32_t level, uint32_t width, uint32_t height, GLenum fmt, GLenum type, uint32_t align, const void *pixels)
+bool glxx_texture_image(GLXX_TEXTURE_T *texture, GLenum target, uint32_t level,
+   uint32_t width, uint32_t height, GLenum fmt,
+   GLenum type, uint32_t align, const void *pixels, bool secure)
 {
    KHRN_IMAGE_FORMAT_T format, srcformat;
    uint32_t buffer;
@@ -689,16 +705,22 @@ bool glxx_texture_image(GLXX_TEXTURE_T *texture, GLenum target, uint32_t level, 
       return true;
    }
 
-   if (!check_image(texture, buffer, level, format, width, height))
+   /* For FBO to work in secure, we need a mechanism to tag them.  Unfortunatly, the API doesn't give us an
+      indication.  If we generate a texture, but with no image data, I'm assuming its an FBO and not a CPU
+      populated image.  We can always re-create in glTexSubImage() to handle the case it was guessed incorrectly */
+   bool guess_secure = (secure && pixels == NULL);
+   if (!check_image(texture, buffer, level, format, width, height, guess_secure))
       return false;
 
    if (pixels) {
       KHRN_IMAGE_WRAP_T dst_wrap, src_wrap;
 
-      khrn_image_interlock_wrap(&src_wrap, srcformat, width, height, get_stride(width, fmt, type, align), 0, (void *)pixels, NULL);
+      khrn_image_interlock_wrap(&src_wrap, srcformat,
+         width, height, get_stride(width, fmt, type, align), 0, false, (void *)pixels, NULL);
 
       mip_lock_wrap(texture, buffer, level, &dst_wrap);
-      khrn_image_wrap_convert(&dst_wrap, &src_wrap, IMAGE_CONV_GL);
+      if (!dst_wrap.secure)
+         khrn_image_wrap_convert(&dst_wrap, &src_wrap, IMAGE_CONV_GL);
       mip_unlock_wrap(texture, buffer, level);
    }
 
@@ -726,7 +748,7 @@ bool glxx_texture_etc1_blank_image(GLXX_TEXTURE_T *texture, GLenum target, uint3
       return true;
    }
 
-   if (!check_image(texture, buffer, level, ETC1_TF, width, height))
+   if (!check_image(texture, buffer, level, ETC1_TF, width, height, false))
       return false;
 
    return update_mipmaps_and_blobs(texture, level, buffer);
@@ -762,7 +784,7 @@ void glxx_texture_etc1_sub_image(GLXX_TEXTURE_T *texture, GLenum target, uint32_
    {
       KHRN_IMAGE_WRAP_T src_wrap;
 
-      khrn_image_interlock_wrap(&src_wrap, ETC1, width, height, width / 2, 0, (void *)data, NULL);
+      khrn_image_interlock_wrap(&src_wrap, ETC1, width, height, width / 2, 0, false, (void *)data, NULL);
       khrn_image_wrap_copy_region(&dst_wrap, dstx, dsty, width, height, &src_wrap, 0, 0, IMAGE_CONV_GL);
    }
    else
@@ -809,7 +831,8 @@ bool glxx_texture_copy_image(GLXX_TEXTURE_T *texture, GLenum target, uint32_t le
       return true;
    }
 
-   if (!check_image(texture, buffer, level, format, width, height))
+   vcos_demand(src->secure == false);
+   if (!check_image(texture, buffer, level, format, width, height, false))
       return false;
 
    mip_lock_wrap(texture, buffer, level, &mipmap_wrap);
@@ -865,7 +888,7 @@ bool glxx_texture_sub_image(GLXX_TEXTURE_T *texture, GLenum target, uint32_t lev
 
    if (pixels) {
       KHRN_IMAGE_WRAP_T src_wrap;
-      khrn_image_interlock_wrap(&src_wrap, srcformat, width, height, get_stride(width, fmt, type, align), 0, (void *)pixels, NULL);
+      khrn_image_interlock_wrap(&src_wrap, srcformat, width, height, get_stride(width, fmt, type, align), 0, false, (void *)pixels, NULL);
       khrn_image_wrap_copy_region(
          &dst_wrap, dstx, dsty,
          width, height,
@@ -949,7 +972,7 @@ bool glxx_texture_paletted_blank_image(GLXX_TEXTURE_T *texture, GLenum target, u
    h = height;
    for (level = 0; level <= levels; level++)
    {
-      if (!check_image(texture, buffer, level, format, w, h))
+      if (!check_image(texture, buffer, level, format, w, h, false))
          return false;
 
       w = _max(w >> 1, 1);
@@ -1034,7 +1057,8 @@ bool glxx_texture_generate_mipmap(GLXX_TEXTURE_T *texture, uint32_t buffer, bool
    if (invalid_operation)
       *invalid_operation = true;
 
-   if (texture->mipmaps_available && has_mipmap(texture, buffer, 0)) {
+   if (texture->mipmaps_available && has_mipmap(texture, buffer, 0))
+   {
       KHRN_IMAGE_WRAP_T wrap0;
       KHRN_IMAGE_FORMAT_T format;
       uint32_t width, height, level;
@@ -1051,10 +1075,14 @@ bool glxx_texture_generate_mipmap(GLXX_TEXTURE_T *texture, uint32_t buffer, bool
 
       mip_unlock_wrap(texture, buffer, 0);
 
-      if (khrn_image_is_color(format)) {    /* Don't attempt to generate mipmaps for ETC1 textures */
-         if (invalid_operation) *invalid_operation = false;
+      /* Don't attempt to generate mipmaps for ETC1 textures */
+      if (khrn_image_is_color(format))
+      {
+         if (invalid_operation)
+            *invalid_operation = false;
 
-         while (width > 0 || height > 0) {
+         while (width > 0 || height > 0)
+         {
             KHRN_IMAGE_WRAP_T src_wrap, dst_wrap;
 
             width = _max(width, 1);
@@ -1062,7 +1090,7 @@ bool glxx_texture_generate_mipmap(GLXX_TEXTURE_T *texture, uint32_t buffer, bool
 
             if (texture->binding_type != TEXTURE_STATE_BOUND_TEXIMAGE)
             {
-               if (!check_image(texture, buffer, level, format, width, height))
+               if (!check_image(texture, buffer, level, format, width, height, false))
                   return false;
             }
 
@@ -1774,9 +1802,10 @@ KHRN_IMAGE_FORMAT_T glxx_texture_incomplete_get_mipmap_format(GLXX_TEXTURE_T *te
 // This returns it converted to t-format
 KHRN_IMAGE_FORMAT_T glxx_texture_get_tformat(GLXX_TEXTURE_T *texture)
 {
-   KHRN_IMAGE_FORMAT_T fmt;
-   fmt = khrn_image_is_rso(texture->format) ? texture->format : khrn_image_to_tf_format(texture->format);
-   return fmt & ~(IMAGE_FORMAT_PRE | IMAGE_FORMAT_LIN | IMAGE_FORMAT_OVG);
+   KHRN_IMAGE_FORMAT_T format;
+   format = khrn_image_is_rso(texture->format) ? texture->format : khrn_image_to_tf_format(texture->format);
+   format = khrn_image_no_colorspace_format(format);
+   return format;
 }
 
 bool glxx_texture_includes(GLXX_TEXTURE_T *texture, GLenum target, int level, int x, int y)
@@ -1929,7 +1958,8 @@ MEM_HANDLE_T glxx_texture_share_mipmap(GLXX_TEXTURE_T *texture, uint32_t buffer,
          MEM_INVALID_HANDLE,
          glxx_texture_get_storage_handle(texture),
          glxx_texture_get_mipmap_offset(texture, buffer, level, false),
-         IMAGE_CREATE_FLAG_TEXTURE); /* todo: check flags */
+         IMAGE_CREATE_FLAG_TEXTURE,
+         texture->blob_pool[texture->current_item].secure); /* todo: check flags */
 
       /* TODO: we have no way of reporting the out-of-memory case here */
       if (image != MEM_INVALID_HANDLE) {
@@ -2037,15 +2067,4 @@ void glxx_texture_set_crop_rect(GLXX_TEXTURE_T *texture, const GLint * params)
    texture->crop_rect.Vcr=params[1];
    texture->crop_rect.Wcr=params[2];
    texture->crop_rect.Hcr=params[3];
-}
-
-/* At this point the external image
-    * a) Contains a preconverted image from mmal OR
-    * b) Is a mmal image that has not been pre-converted OR
-    * c) another type of image
-    *
-    * FIXME: Push some of this code into imageconv and make it generic
-    */
-void glxx_texture_update_from_external(GLXX_TEXTURE_T *tex)
-{
 }

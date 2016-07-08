@@ -1,7 +1,7 @@
-/***************************************************************************
- *     (c)2013-2014 Broadcom Corporation
+/******************************************************************************
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,8 +34,9 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- **************************************************************************/
+
+ ******************************************************************************/
+
 
 #if !defined(NEXUS_MODE_driver)
 
@@ -46,20 +47,26 @@
 
 #include "nexus_base_types.h"
 #include "nexus_base_os.h" /* For NEXUS_GetEnv */
+#include "../nexus_sage_image.h"
 
 BDBG_MODULE(nexus_sage_image);
 
 #include <stdio.h>
 
-#define SAGE_IMAGE_FirmwareID_Max (4)
 #define SAGE_IMG_BUFFER_SIZE      (64*1024)
 
 #define SAGE_DEFAULT_PATH         "."
 
 #define boot_loader_image         "sage_bl.bin"
-#define kernel_image              "sage_os_app.bin"
+#define kernel_image              "sage_framework.bin"
 #define dev_boot_loader_image     "sage_bl_dev.bin"
-#define dev_kernel_image          "sage_os_app_dev.bin"
+#define dev_kernel_image          "sage_framework_dev.bin"
+
+#define dev_ta_svp     "sage_ta_secure_video_dev.bin"
+#define ta_svp          "sage_ta_secure_video.bin"
+
+#define dev_ta_ar     "sage_ta_antirollback_dev.bin"
+#define ta_ar          "sage_ta_antirollback.bin"
 
 #define SAGE_IMAGE_ContextEntry char
 
@@ -69,7 +76,10 @@ static const SAGE_IMAGE_ContextEntry* SAGE_IMAGE_FirmwareImages[SAGE_IMAGE_Firmw
     (char *)dev_kernel_image,      /* SAGE kernel for development (ZS)c hip*/
     (char *)boot_loader_image,     /* SAGE boot loader for production (ZB or customer specific) chip */
     (char *)kernel_image,          /* SAGE kernel for production (ZB or custoemr specific) chip */
-
+    (char *)dev_ta_svp,            /* SAGE SVP TA binary for development (ZS) chip */
+    (char *)ta_svp,                /* SAGE SVP TA binary for production (ZB or customer specific) chip */
+    (char *)dev_ta_ar,             /* SAGE AntiRollback TA binary for development (ZS) chip */
+    (char *)ta_ar,                 /* SAGE AntiRollback TA binary for production (ZB or customer specific) chip */
 };
 
 void *SAGE_IMAGE_Context = (void *) SAGE_IMAGE_FirmwareImages;
@@ -149,7 +159,7 @@ static NEXUS_Error sage_p_open(void *context,
     filepath = BKNI_Malloc(filepath_len);
     if (!filepath)
     {
-        BDBG_ERR(("%s - Cannot allocate buffer for file path (%d bytes)", __FUNCTION__, filepath_len));
+        BDBG_ERR(("%s - Cannot allocate buffer for file path (%d bytes)", __FUNCTION__, (unsigned)filepath_len));
         rc = NEXUS_NOT_AVAILABLE;
         goto err;
     }
@@ -166,7 +176,7 @@ static NEXUS_Error sage_p_open(void *context,
     fd = fopen(filepath, "r");
     if(fd == NULL)
     {
-        BDBG_ERR(("%s - Cannot open file %s", __FUNCTION__, filepath));
+        BDBG_WRN(("%s - Cannot open file %s", __FUNCTION__, filepath));
         rc = NEXUS_NOT_AVAILABLE;
         goto err;
     }
@@ -220,7 +230,7 @@ static NEXUS_Error sage_p_open(void *context,
 
     *image = pImageContainer;
 
-    BDBG_MSG(("%s: File %s opened, file id %p size %d\n", __FUNCTION__, pImageContainer->filename, pImageContainer->fd, pImageContainer->uiImageSize));
+    BDBG_MSG(("%s: File %s opened, file id %p size %d\n", __FUNCTION__, pImageContainer->filename, (void *)pImageContainer->fd, pImageContainer->uiImageSize));
     return NEXUS_SUCCESS;
 err:
 
@@ -286,7 +296,7 @@ static NEXUS_Error sage_p_next(void *image, unsigned chunk, const void **data, u
     else    {
         if(read != length)  {
             /* Error */
-            BDBG_ERR(("%s: Error reading from file %s, read: %d, length: %d\n", __FUNCTION__, pImageContainer->filename, read, length));
+            BDBG_ERR(("%s: Error reading from file %s, read: %d, length: %d\n", __FUNCTION__, pImageContainer->filename, (unsigned)read, length));
             if(feof(pImageContainer->fd))   {
                 BDBG_ERR(("%s: EOF reached\n", __FUNCTION__));
             }

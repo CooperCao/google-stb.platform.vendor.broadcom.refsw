@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,18 +34,9 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   API name: Memory
 *    Specific APIs related to device memory allocation
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 
@@ -207,11 +198,11 @@ Summary:
 Flush the data cache for the specified memory.
 
 Description:
-NEXUS_Memory_FlushCache is equivalent to NEXUS_FlushCache, defined in nexus_base_os.h. 
+NEXUS_Memory_FlushCache is equivalent to NEXUS_FlushCache, defined in nexus_base_os.h.
 Both can be used by the application.
 ***************************************************************************/
 void NEXUS_Memory_FlushCache( /* attr{local=true}  */
-    void *pMemory,      /* attr{memory=cached} */
+    const void *pMemory,/* attr{memory=cached} */
     size_t numBytes     /* Number of bytes to flush */
     );
 
@@ -359,6 +350,27 @@ void NEXUS_Heap_ToString( /* attr{local=true} */
     unsigned bufsize
     );
 
+typedef enum NEXUS_HeapLookupType
+{
+    NEXUS_HeapLookupType_eMain,
+    NEXUS_HeapLookupType_eCompressedRegion, /* With Sage, this is the compresed restricted region (CRR) */
+    NEXUS_HeapLookupType_eExportRegion, /* With Sage, this is the export restricted region (XRR) */
+    NEXUS_HeapLookupType_eMax
+} NEXUS_HeapLookupType;
+
+/**
+Allows for heap lookup in either server or client context.
+The mapping to server index macro and NxClient heap macro is currently as follows:
+
+HeapLookupType    Nexus                   NxClient
+eMain             NEXUS_MEMC0_MAIN_HEAP   NXCLIENT_FULL_HEAP
+eCompressedRegion NEXUS_VIDEO_SECURE_HEAP NXCLIENT_VIDEO_SECURE_HEAP
+eExportRegion     NEXUS_EXPORT_HEAP       NXCLIENT_EXPORT_HEAP
+**/
+NEXUS_HeapHandle NEXUS_Heap_Lookup(
+    NEXUS_HeapLookupType lookupType
+    );
+
 #include "nexus_core_priv.h"
 
 typedef struct NEXUS_HeapRuntimeSettings
@@ -371,4 +383,3 @@ typedef struct NEXUS_HeapRuntimeSettings
 #endif
 
 #endif /* #ifndef NEXUS_MEMORY_H__ */
-

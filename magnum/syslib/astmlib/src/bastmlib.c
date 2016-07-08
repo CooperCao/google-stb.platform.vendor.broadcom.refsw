@@ -510,7 +510,7 @@ BERR_Code BASTMlib_AddPresenter(
 	else
 	{
 		/* already added */
-		BDBG_WRN(("Presenter %p already added to ASTM instance %p", hPresenter, hAstm));
+		BDBG_WRN(("Presenter %p already added to ASTM instance %p", (void *)hPresenter, (void *)hAstm));
 		rc = BERR_INVALID_PARAMETER;
 		goto error;
 	}
@@ -565,7 +565,7 @@ void BASTMlib_RemovePresenter(
 	else
 	{
 		/* already added */
-		BDBG_MSG(("Presenter %p wasn't added to ASTM instance %p, so not removed", hPresenter, hAstm));
+		BDBG_MSG(("Presenter %p wasn't added to ASTM instance %p, so not removed", (void *)hPresenter, (void *)hAstm));
 	}
 
 	BDBG_LEAVE(BASTMlib_RemovePresenter);

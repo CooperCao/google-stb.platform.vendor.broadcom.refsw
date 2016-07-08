@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2014 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
 ******************************************************************************/
 
@@ -97,9 +89,8 @@ struct OSD_Osd
     NEXUS_Graphics2DHandle graphics;
     OSD_ScreenHandle screen;
     /* state icons */
-    OSD_IconHandle arib;
-    OSD_IconHandle smpte;
-    OSD_IconHandle hdr;
+    OSD_IconHandle hlg;
+    OSD_IconHandle hdr10;
     OSD_IconHandle sdr;
     OSD_IconHandle unknown;
     OSD_IconHandle yes;
@@ -108,9 +99,8 @@ struct OSD_Osd
 
 typedef enum OSD_ImageId
 {
-    OSD_ImageId_eArib,
-    OSD_ImageId_eSmpte,
-    OSD_ImageId_eHdr,
+    OSD_ImageId_eHlg,
+    OSD_ImageId_eHdr10,
     OSD_ImageId_eSdr,
     OSD_ImageId_eUnknown,
     OSD_ImageId_eYes,

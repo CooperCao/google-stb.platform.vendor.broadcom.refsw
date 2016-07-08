@@ -1,0 +1,57 @@
+<!DOCTYPE html
+	PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+	 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en-US" xml:lang="en-US">
+<head>
+<title>Bvn View</title>
+<meta http-equiv="content-type" content="text/html;charset=iso-8859-1" />
+<meta http-equiv="content-script-type" content="text/javascript" />
+<link rel="shortcut icon" href="img/favicon.gif" />
+<link rel="stylesheet" type="text/css" href="brbviewer.css" />
+<script src=".plib/js/3party/base64.js?ver=001" type="text/javascript"></script>
+<script src=".plib/js/3party/base64-brcm.js?ver=001" type="text/javascript"></script>
+<script src=".plib/js/3party/saXMLUtils.js" type="text/javascript"></script>
+<script src=".plib/js/bcm/soap.js?ver=001" type="text/javascript"></script>
+<script src=".plib/js/bcm/example-data.js?ver=001" type="text/javascript"></script>
+<script src="brbviewer.js" type="text/javascript"></script>
+<script src=".plib/js/bcm/bvnview2.js" type="text/javascript"></script>
+<script src=".plib/js/bcm/bvnview.js?ver=007" type="text/javascript"></script>
+</head>
+<body onload="MyLoad();" >
+<table border=0 style="border-collapse:collapse;" >
+    <tr><td width=220 ><img src="brcm-logo-white.jpg" width="200" id="brcmlogo" onclick="MyClick(event);" /></td>
+        <td valign=middle style="font-size:28pt;" ><b id=h1brbviewer onclick="MyClick(event);" >Brbviewer - System Viewer</b></td>
+        <td valign=middle style="width:50px;" >&nbsp;</td> <!-- spacer -->
+        <td >Platform: <span id=platform ></span>&nbsp;<span id=platver></span><br><span id=stbtime valign=middle ></span></td>
+        <td id=cgicount valign=middle ></td>
+    </tr>
+</table>
+<hr />
+<table cols=2 border=0 id=overalltable style="border-collapse:collapse;" width="80%" > <!-- this outer table is used to hide big sections when checkbox is not checked -->
+
+<!---------------------------------------------------------------------------------------------------------------------------------------------------------------->
+
+<tr id=row_checkboxes style="visibility:display;" ><th align=left valign=top id=CHECKBOXES colspan=2 >
+    <table border=0 >
+        <tr>
+            <td width=150 ><input type=checkbox id=checkboxbvnview onclick="MyClick(event);" >BVN View</td>
+        </tr>
+    </table>
+</th></tr>
+
+<!---------------------------------------------------------------------------------------------------------------------------------------------------------------->
+
+<tr id=row_bvnview style="visibility:display;" ><th align=left valign=top id=BVNVIEW colspan=2 >
+<center><button onclick="bvn_display();">Refresh</button></center><br/>
+<canvas id="can" height="500" width="1000" style="backgroundcolor:#00f">
+If you are reading this then you need to switch to a browser with HTML5 capability.
+</canvas><center><table border=0><tr><td><div id="bvnview_loading">loading</div></td></tr></table></center><br>
+<!--
+-->
+</th></tr>
+
+<!---------------------------------------------------------------------------------------------------------------------------------------------------------------->
+</table>
+<textarea id=debugoutputbox border=1 rows=20 cols=180 readonly style="visibility:hidden;" ></textarea>
+</body>
+</html>

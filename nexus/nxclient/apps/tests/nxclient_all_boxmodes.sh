@@ -1,5 +1,6 @@
 #!/bin/bash
 
+FULL_LOG=${FULL_LOG:=nxclient_all_boxmodes.log}
 SERVER_ERROR_LOG=${SERVER_ERROR_LOG:=server_error.log}
 TMP_ERROR_LOG=tmp_error.txt
 SUMMARY_LOG=${SUMMARY_LOG:=summary.log}
@@ -14,16 +15,19 @@ PLAYFILE[6]=${PLAYFILE6:=videos/herbie1AvcHD.mpg}
 PLAYFILE[7]=${PLAYFILE7:=videos/big_buck_bunny_1080p_h264.mov}
 PLAYFILE[8]=${PLAYFILE8:=videos/mosaic_6avc_6mp2_cif.ts}
 
-declare -a SATPARM
-SATPARM[1]=${SATPARM1:=-freq 1148 -sat 4 -sym 21500000 -tone on -program 0}
-SATPARM[2]=${SATPARM1:=-freq 1148 -sat 4 -sym 21500000 -tone on -program 1}
-SATPARM[3]=${SATPARM1:=-freq 1119 -sat dvb -program 0}
-SATPARM[4]=${SATPARM1:=-freq 1119 -sat dvb -program 1}
+declare -a RECORDSAT
+RECORDSAT[1]=${RECORDSAT1:=-freq 1148 -sat 4 -sym  21500000 -tone on -program 0 videos/freq1148.mpg -timeout 30}
+RECORDSAT[2]=${RECORDSAT2:=-freq 1236 -sat 4 -sym  21500000 -tone on -program 0 videos/freq1236.mpg -timeout 40}
+#RECORDSAT[3]=${RECORDSAT3:=-freq 1148960000 -sat 4 -sym  21500000 -tone on -program 0 videos/freq1148960000.mpg 50}
 
-declare -a RECORDPARM
-RECORDPARM[1]=${RECORDPARM1:=${SATPARM[1]} videos/freq1148.mpg -timeout 30}
+declare -a RECORDQAM
+RECORDQAM[1]=${RECORDQAM1:=-freq 411 -program 0 videos/freq411.mpg -timeout 30}
+RECORDQAM[2]=${RECORDQAM2:=-freq 435 -program 0 videos/freq435.mpg -timeout 35}
+RECORDQAM[3]=${RECORDQAM3:=-freq 447 -program 0 videos/freq447.mpg -timeout 40}
+RECORDQAM[1]=${RECORDQAM4:=-freq 225 -program 0 videos/freq225.mpg -timeout 45}
+RECORDQAM[2]=${RECORDQAM5:=-freq 381 -program 0 videos/freq381.mpg -timeout 50}
+RECORDQAM[3]=${RECORDQAM6:=-freq 453 -program 0 videos/freq453.mpg -timeout 55}
 
-declare server_pid=999
 declare num_of_video_windows
 declare num_of_video_encoders
 declare num_of_video_decoders
@@ -53,7 +57,8 @@ function print_help()
 		  1              - Query capabilities of server
 		  2              - Launch transcode for all encoders
 		  3              - Launch play for all decoders
-		  4              - Launch transcode/record_sat (simultaneous transcode and record_sat)
+		  4		 - Launch record for all satellite channels
+		  5		 - Launch record for all qam channels
 
 		Examples:
 		  $ $0 -a -t 0
@@ -79,17 +84,14 @@ function print_help()
 function start_server()
 {
 	local box_mode=$1
-	local server_name
 
-	export B_REFSW_BOXMODE=${box_mode}
-	nexus nxserver 2> $SERVER_ERROR_LOG 1>> $SERVER_ERROR_LOG &
-	server_pid=$!
+	rm -f $SERVER_ERROR_LOG
+	config="B_REFSW_BOXMODE=${box_mode};msg_modules=nexus_sage_module" nexus nxserver 2>&1 | tee -a $FULL_LOG > $SERVER_ERROR_LOG &
 	sleep 5
-	server_name="`ps -p $server_pid -o comm=`"
-	if [[ "$server_name" == "" ]] ; then
+	if grep -q 'SAGE BOOTLOADER' $SERVER_ERROR_LOG ; then
 		return 1
 	fi
-	if [[ "$server_name" != "nxserver" ]] ; then
+	if [[ "`ps -C nxserver -o comm=`" != "nxserver" ]] ; then
 		return 1
 	fi
 	if [[ "`ps -C logger -o comm=`" != "logger" ]] ; then
@@ -141,22 +143,29 @@ function stop_server()
 {
 	local nxserver_pid
 	local logger_pid
-
-	if [[ "`ps -p $server_pid -o comm=`" == "nxserver" ]] ; then
-		kill $server_pid
-		wait $server_pid
-	fi
+	local exit_code=0
+	local rc
 
 	nxserver_pid=`ps -C nxserver -o pid=`
 	if [[ "$nxserver_pid" != "" ]] ; then
 		kill $nxserver_pid
 		wait $nxserver_pid
+		rc=$?
+		if [ $rc -ne 0 ]; then
+			exit_code=$rc
+			echo "FAIL: kill/wait nxserver failed, rc=$rc"
+		fi
 	fi
 
 	logger_pid=`ps -C logger -o pid=`
 	if [[ "$logger_pid" != "" ]] ; then
 		kill $logger_pid
 		wait $logger_pid
+		rc=$?
+		if [ $rc -ne 0 ]; then
+			exit_code=$rc
+			echo "FAIL: kill/wait logger failed, rc=$rc"
+		fi
 	fi
 
 	clean_modules
@@ -165,13 +174,15 @@ function stop_server()
 	fi
 
 	if [[ "`ps -C nxserver -o pid=`" != "" ]] ; then
-		return 1
+		exit_code=1
+		echo "FAIL: nxserver process still detected"
 	fi
 	if [[ "`ps -C logger -o pid=`" != "" ]] ; then
-		return 1
+		exit_code=1
+		echo "FAIL: logger process still detected"
 	fi
 
-	return 0
+	return $exit_code
 }
 
 #*******************************************************************************
@@ -179,9 +190,14 @@ function stop_server()
 #*******************************************************************************
 function report_server_errors()
 {
-	egrep '^(!!!Error|BKNI_Fail)' $SERVER_ERROR_LOG > $TMP_ERROR_LOG
+	egrep '^(!!!Error|###)' $SERVER_ERROR_LOG > $TMP_ERROR_LOG
 	cat $TMP_ERROR_LOG
 	if [[ $(cat $TMP_ERROR_LOG | wc -l) -ne 0 ]] ; then
+		return 1
+	fi
+	if grep -q 'SAGE BOOTLOADER' $SERVER_ERROR_LOG ; then
+		echo "ERROR!!! SAGE does not support changing box modes"
+		echo "   Please rebuild with \"SAGE_SUPPORT=n\""
 		return 1
 	fi
 
@@ -268,7 +284,7 @@ function run_transcode_test()
 	for (( i=1 ; i<=$num_of_transcode_tests ; i++ )) ; do
 		test_string="${PLAYFILE[$i]}"
 		echo ">>> transcode ${test_string}"
-		nexus.client transcode ${test_string} &
+		nexus.client transcode -gui off ${test_string}
 		transcode_pid[$i]=$!
 	done
 
@@ -336,14 +352,12 @@ function run_play_test()
 }
 
 #*******************************************************************************
-# Function:	run_transcode_recordsat_test
+# Function:	run_record_sat_test
 #*******************************************************************************
-function run_transcode_recordsat_test()
+function run_record_sat_test()
 {
 	local ret_code
-	local -a transcode_pid
-	local -a record_pid
-	local gui_flag
+	local -a record_sat_pid
 
 	run_cap_test
 	if [ $? -ne 0 ] ; then
@@ -351,39 +365,53 @@ function run_transcode_recordsat_test()
 		return 1
 	fi
 
-	transcode_pid=()
-	record_pid=()
-
-	if [[ $num_of_video_encoders -lt 1 ]] ; then
-		echo "FAIL: no resource for test, num_of_video_encoders=$num_of_video_encoders"
-		return 2
-	fi
-
-	if [[ $num_of_video_decoders -lt 2 ]] ; then
-		echo "FAIL: no resource for test, num_of_video_decoders=$num_of_video_decoders"
-		return 2
-	fi
-
-	gui_flag=""
-	if [[ $num_of_video_windows -lt 1 ]] ; then
-		gui_flag="-gui off"
-	fi
-
-	test_string="$gui_flag ${PLAYFILE[2]}"
-	echo ">>> transcode ${test_string}"
-	nexus.client transcode ${test_string} &
-	transcode_pid[1]=$!
-	test_string="$gui_flag ${RECORDPARM[1]}"
-	echo ">>> record ${test_string}"
-	nexus.client record ${test_string} &
-	record_pid[1]=$!
+	record_sat_pid=()
+	for (( i=1 ; i<=$num_of_video_decoders ; i++ )) ; do
+		echo ">>> record ${RECORDSAT[$i]}"
+		nexus.client record -gui off ${RECORDSAT[$i]} &
+		record_sat_pid[$i]=$!
+	done
 
 	sleep 20
 
-	kill ${record_pid[1]}
-	kill ${transcode_pid[1]}
+	for (( i=1 ; i<=$num_of_video_decoders ; i++ )) ; do
+		kill ${record_sat_pid[$i]}
+	done
+	wait ${record_sat_pid[*]} 2> /dev/null
 
-	wait ${record_pid[*]} ${transcode_pid[*]} 2> /dev/null
+	report_server_errors
+	ret_code=$?
+
+	return $ret_code
+}
+
+#*******************************************************************************
+# Function:	run_record_qam_test
+#*******************************************************************************
+function run_record_qam_test()
+{
+	local ret_code
+	local -a record_qam_pid
+
+	run_cap_test
+	if [ $? -ne 0 ] ; then
+		echo "FAIL: run_cap_test"
+		return 1
+	fi
+
+	record_qam_pid=()
+	for (( i=1 ; i<=$num_of_video_decoders ; i++ )) ; do
+		echo ">>> record ${RECORDQAM[$i]}"
+		nexus.client record ${RECORDQAM[$i]} &
+		record_qam_pid[$i]=$!
+	done
+
+	sleep 20
+
+	for (( i=1 ; i<=$num_of_video_decoders ; i++ )) ; do
+		kill ${record_qam_pid[$i]}
+	done
+	wait ${record_qam_pid[*]} 2> /dev/null
 
 	report_server_errors
 	ret_code=$?
@@ -439,7 +467,10 @@ function run_boxmode_test()
 		run_play_test
 		;;
 	4 )
-		run_transcode_recordsat_test
+		run_record_sat_test
+		;;
+	5 )
+		run_record_qam_test
 		;;
 	* )
 		return 1
@@ -524,9 +555,15 @@ while [[ $# > 0 ]] ; do
 	shift # past argument or value
 done
 
+rm -f $FULL_LOG
 rm -f $SERVER_ERROR_LOG
 rm -f $SUMMARY_LOG
+
 stop_server
+
+touch $FULL_LOG
+tail -f $FULL_LOG &
+tail_pid=$!
 
 for box_mode in ${box_select} ; do
 	run_boxmode_test $box_mode $test_select
@@ -553,12 +590,11 @@ for box_mode in ${box_select} ; do
 		fi
 		;;
 	esac
-done
-if [ "$never_fail" == "1" ] ; then
-	echo ""
-	echo "Test Summary"
-	echo "============"
-	cat $SUMMARY_LOG
-fi
-
-exit 0
+done >> $FULL_LOG
+sleep 5
+echo ""
+echo "Test Summary"
+echo "============"
+cat $SUMMARY_LOG
+sleep 1
+kill $tail_pid

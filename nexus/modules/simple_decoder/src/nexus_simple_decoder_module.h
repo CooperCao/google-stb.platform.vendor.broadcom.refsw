@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2010-2014 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #ifndef NEXUS_SIMPLE_DECODER_MODULE_H__
@@ -77,9 +69,12 @@ extern NEXUS_ModuleHandle g_NEXUS_simpleDecoderModule;
 extern NEXUS_SimpleDecoderModuleSettings g_NEXUS_simpleDecoderModuleSettings;
 
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_SimpleVideoDecoder);
+NEXUS_OBJECT_CLASS_DECLARE(NEXUS_SimpleVideoDecoderServer);
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_SimpleAudioPlayback);
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_SimpleAudioDecoder);
+NEXUS_OBJECT_CLASS_DECLARE(NEXUS_SimpleAudioDecoderServer);
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_SimpleStcChannel);
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_SimpleEncoder);
+NEXUS_OBJECT_CLASS_DECLARE(NEXUS_SimpleEncoderServer);
 
 #endif

@@ -1,0 +1,41 @@
+load_prv_key -in=test_key/brcm_test_fwkey2.pem
+load_pub_key -in=test_key/brcm_test_fwkey2_pub.pem
+#add_param_key -right=0x20 -exp=0x1 -mid=0x0 -mid_mask=0xffffffff -epo_sel=0 -epo=0x0  -epo_mask=0xff -sig_type=0x1 -sig_ver=0x1 -out=brcm_test_avs_memsys_key2.bin
+#add_param_key -right=0x20 -exp=0x1 -mid=0x12345678 -mid_mask=0xffffffff -epo_sel=0 -epo=0x1  -epo_mask=0xff -sig_type=0x1 -sig_ver=0x1 -out=brcm_test_avs_memsys_key2.bin
+#add_param_key -right=0x2  -exp=0x1 -mid=0x12345678 -mid_mask=0xffffffff -epo_sel=0 -epo=0x1  -epo_mask=0xff -sig_type=0x1 -sig_ver=0x1 -out=brcm_test_avd_key2.bin
+#add_param_key -right=0x9 -exp=0x1 -mid=0x0 -mid_mask=0xffffffff -epo_sel=0 -epo=0x0  -epo_mask=0xff -sig_type=0x1 -sig_ver=0x1 -out=brcm_test_fsbl_key1.bin
+add_param_key -right=0x9 -exp=0x1 -mid=0x12345678 -mid_mask=0xffffffff -epo_sel=0 -epo=0x1  -epo_mask=0xff -sig_type=0x1 -sig_ver=0x1 -out=brcm_test_fsbl_key1.bin
+#add_param -right=0x9 -exp=0x1 -mid=0x12345678 -mid_mask=0xffffffff -epo_sel=0 -epo=0xff -epo_mask=0xff -sig_type=0x1 -sig_ver=0x1 -out=brcm_test_fsbl_neg_0010.bin
+#add_param -right=0x9 -exp=0x1 -mid=0x12345678 -mid_mask=0xffffffff -epo_sel=0 -epo=0xff -epo_mask=0xff -sig_type=0x4 -sig_ver=0x1 -out=brcm_test_fsbl_neg_0011.bin
+#add_param -right=0x9 -exp=0x1 -mid=0x12345678 -mid_mask=0xffffffff -epo_sel=0 -epo=0xff -epo_mask=0xff -sig_type=0x1 -sig_ver=0x2 -out=brcm_test_fsbl_neg_0012.bin
+#add_param -right=0x9 -exp=0x1 -mid=0x0        -mid_mask=0xffffffff -epo_sel=0 -epo=0xff -epo_mask=0xff -sig_type=0x1 -sig_ver=0x1 -out=brcm_test_fsbl_neg_0013.bin
+#add_param -right=0x9 -exp=0x1 -mid=0x12345678 -mid_mask=0xffffffff -epo_sel=0 -epo=0x0  -epo_mask=0xff -sig_type=0x1 -sig_ver=0x1 -out=brcm_test_fsbl_neg_0014.bin
+#add_param -right=0x2 -exp=0x1 -mid=0x0        -mid_mask=0xffffffff -epo_sel=0 -epo=0x0  -epo_mask=0xff -sig_type=0x1 -sig_ver=0x1 -out=data_out/brcm_test_avd_key2.bin
+#add_param_bin -in=fw_images/SID_0.bin    -cpu_type=sid   -mid=0x12345678 -mid_mask=0xffffffff -epo_sel=0 -epo=0x1  -epo_mask=0xff -sig_type=0x4 -sig_ver=0x1 -out=sb_data_out/SID_0_Pre.bin
+#add_param_bin -in=fw_images/rap.bin      -cpu_type=raaga -mid=0x12345678 -mid_mask=0xffffffff -epo_sel=0 -epo=0x1  -epo_mask=0xff -sig_type=0x4 -sig_ver=0x1 -out=sb_data_out/rap_Pre.bin
+#add_param_bin -in=fw_images/rave.bin     -cpu_type=rave  -mid=0x12345678 -mid_mask=0xffffffff -epo_sel=0 -epo=0x1  -epo_mask=0xff -sig_type=0x4 -sig_ver=0x1 -out=sb_data_out/rave_Pre.bin
+#add_param_bin -in=fw_images/VICE_0_0.bin -cpu_type=vice  -mid=0x12345678 -mid_mask=0xffffffff -epo_sel=0 -epo=0x1  -epo_mask=0xff -sig_type=0x4 -sig_ver=0x1 -out=sb_data_out/VICE_0_0_Pre.bin
+#add_param_bin -in=fw_images/VICE_0_1.bin -cpu_type=vice  -mid=0x12345678 -mid_mask=0xffffffff -epo_sel=0 -epo=0x1  -epo_mask=0xff -sig_type=0x4 -sig_ver=0x1 -out=sb_data_out/VICE_0_1_Pre.bin
+#add_param_bin -in=fw_images/AVD_0_0.bin  -cpu_type=hvd   -mid=0x12345678 -mid_mask=0xffffffff -epo_sel=0 -epo=0x1  -epo_mask=0xff -sig_type=0x4 -sig_ver=0x1 -out=sb_data_out/AVD_0_0_Pre.bin
+#add_param_bin -in=fw_images/AVD_0_1.bin  -cpu_type=hvd   -mid=0x12345678 -mid_mask=0xffffffff -epo_sel=0 -epo=0x1  -epo_mask=0xff -sig_type=0x4 -sig_ver=0x1 -out=sb_data_out/AVD_0_1_Pre.bin
+#add_param_bin -in=fw_images/AVD_0_2.bin  -cpu_type=hvd   -mid=0x12345678 -mid_mask=0xffffffff -epo_sel=0 -epo=0x1  -epo_mask=0xff -sig_type=0x4 -sig_ver=0x1 -out=sb_data_out/AVD_0_2_Pre.bin
+#add_param_bin -in=fw_images/AVD_1_0.bin  -cpu_type=hvd   -mid=0x12345678 -mid_mask=0xffffffff -epo_sel=0 -epo=0x1  -epo_mask=0xff -sig_type=0x4 -sig_ver=0x1 -out=sb_data_out/AVD_1_0_Pre.bin
+#add_param_bin -in=fw_images/AVD_1_1.bin  -cpu_type=hvd   -mid=0x12345678 -mid_mask=0xffffffff -epo_sel=0 -epo=0x1  -epo_mask=0xff -sig_type=0x4 -sig_ver=0x1 -out=sb_data_out/AVD_1_1_Pre.bin
+sign -keep_openssl_order -in=brcm_test_fsbl_key1.bin   -out_endian=be -out_type=binary -out=brcm_test_fsbl_key1_signature.bin
+sign -in=brcm_test_fsbl_key1.bin   -out_endian=le -out_type=binary -out=brcm_test_fsbl_key1_signature_le.bin
+#sign -in=sb_data_out/SID_0_Pre.bin   -out_endian=le -out_type=binary -out=sb_data_out/SID_signature.bin
+#sign -in=sb_data_out/rap_Pre.bin     -out_endian=le -out_type=binary -out=sb_data_out/rap_signature.bin
+#sign -in=sb_data_out/rave_Pre.bin    -out_endian=le -out_type=binary -out=sb_data_out/rave_signature.bin
+#sign         -in=sb_data_out/VICE_0_0_Pre.bin -out_endian=le -out_type=binary -out=sb_data_out/VICE_signature_all.bin
+#sign -append -in=sb_data_out/VICE_0_1_Pre.bin -out_endian=le -out_type=binary -out=sb_data_out/VICE_signature_all.bin
+#sign         -in=sb_data_out/AVD_0_0_Pre.bin  -out_endian=le -out_type=binary -out=sb_data_out/AVD_signature_all.bin
+#sign -append -in=sb_data_out/AVD_0_1_Pre.bin  -out_endian=le -out_type=binary -out=sb_data_out/AVD_signature_all.bin
+#sign -append -in=sb_data_out/AVD_0_2_Pre.bin  -out_endian=le -out_type=binary -out=sb_data_out/AVD_signature_all.bin
+#sign -append -in=sb_data_out/AVD_1_0_Pre.bin  -out_endian=le -out_type=binary -out=sb_data_out/AVD_signature_all.bin
+#sign -append -in=sb_data_out/AVD_1_1_Pre.bin  -out_endian=le -out_type=binary -out=sb_data_out/AVD_signature_all.bin
+#post_process_sid   -in=sb_data_out/SID_signature.bin      -out=sb_data_out/nexus_sid_firmware_signature.c
+#post_process_audio -in=sb_data_out/rap_signature.bin      -out=sb_data_out/nexus_audio_firmware_signature.c
+#post_process_rave  -in=sb_data_out/rave_signature.bin     -out=sb_data_out/nexus_rave_firmware_signature.c
+#post_process_avd   -in=sb_data_out/AVD_signature_all.bin  -out=sb_data_out/nexus_video_decoder_region_signatures.c
+#post_process_avd   -in=sb_data_out/VICE_signature_all.bin -out=sb_data_out/nexus_video_encoder_region_signatures.c
+test_cmd

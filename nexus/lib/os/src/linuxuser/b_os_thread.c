@@ -1,5 +1,5 @@
 /***************************************************************************
-*     (c)2004-2015 Broadcom Corporation
+*     (c)2004-2016 Broadcom Corporation
 *
 *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -48,6 +48,7 @@
 * $brcm_Log: $
 *
 ***************************************************************************/
+#include "errno.h"
 #include "b_os_lib.h"
 #include "bkni.h"
 #include "bkni_multi.h"
@@ -211,6 +212,7 @@ B_ThreadHandle B_Thread_Create(
         B_Event_Destroy(pThread->hExitEvent);
         free(pThread->pName);
         B_Os_Free(pThread);
+        BDBG_WRN(("%s: pthread_create Failed, rc=%d errno=%d", __FUNCTION__, rc, errno));
         errCode = BERR_TRACE(B_ERROR_OS_ERROR);
         return NULL;
     }
@@ -414,7 +416,7 @@ void B_Thread_P_Uninit(void)
               pThread = pNextThread )
         {
             pNextThread = BLST_Q_NEXT(pThread, node);
-            BDBG_WRN(("Thread %p (%s) was not destroyed.", pThread, pThread->pName?pThread->pName:"unnamed"));
+            BDBG_WRN(("Thread %p (%s) was not destroyed.", (void*)pThread, pThread->pName?pThread->pName:"unnamed"));
             /* Can't actually try and destroy here - would hang if the thread isn't told to quit externally */
         }
     }

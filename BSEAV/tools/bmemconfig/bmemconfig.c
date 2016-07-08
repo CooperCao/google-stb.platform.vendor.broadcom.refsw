@@ -1,51 +1,43 @@
 /******************************************************************************
- *    (c)2008-2014 Broadcom Corporation
- *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
- *
- * Except as expressly set forth in the Authorized License,
- *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
- *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
- *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
- *****************************************************************************/
+* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*
+* This program is the proprietary software of Broadcom and/or its
+* licensors, and may only be used, duplicated, modified or distributed pursuant
+* to the terms and conditions of a separate, written license agreement executed
+* between you and Broadcom (an "Authorized License").  Except as set forth in
+* an Authorized License, Broadcom grants no license (express or implied), right
+* to use, or waiver of any kind with respect to the Software, and Broadcom
+* expressly reserves all rights in and to the Software and all intellectual
+* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*
+* Except as expressly set forth in the Authorized License,
+*
+* 1. This program, including its structure, sequence and organization,
+*    constitutes the valuable trade secrets of Broadcom, and you shall use all
+*    reasonable efforts to protect the confidentiality thereof, and to use
+*    this information only in connection with your use of Broadcom integrated
+*    circuit products.
+*
+* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+*
+* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+******************************************************************************/
 /*
     To add new fields:
  1) add html input type (checkbox, radio, text, dropdown, etc. to page_transport(), page_display(), etc
@@ -111,8 +103,8 @@ This app queries the default heaps per platform, typically one heap per memory c
 #define LOG_FILE_FULL_PATH_LEN   64
 
 #define TITLE_WIDTH_SIZE "width:600px;font-size:22pt;"
-static char *VideoDecoderPropertyStr[Memconfig_VideoDecoderProperty_eMax] = {"ERROR", "Main", "PIP", "Transcode"};
-static char *DisplayPropertyStr[Memconfig_DisplayProperty_eMax] = {"ERROR", "Primary", "Secondary", "Tertiary", "Transcode"};
+static char *VideoDecoderPropertyStr[Memconfig_VideoDecoderProperty_eMax] = {"ERROR", "Main", "PIP", "Transcode", "Graphics PIP" };
+static char *DisplayPropertyStr[Memconfig_DisplayProperty_eMax] = {"ERROR", "Primary", "Secondary", "Tertiary", "Transcode", "Graphics PIP" };
 typedef enum
 {
     MEMCONFIG_AUDIO_USAGE_PRIMARY,
@@ -585,8 +577,8 @@ static void GetNumTranscodes(
 
     if (hReg == NULL)
     {
-        /* Open /dev/mem for memory mapping */
-        memFd = open( "/dev/mem", O_RDWR|O_SYNC );  /*O_SYNC for uncached address */
+        /* Open driver for memory mapping */
+        memFd = bmemperfOpenDriver();
 
         PRINTF( "%s: memFd %d\n", __FUNCTION__, memFd );
         if (memFd == 0)
@@ -597,7 +589,7 @@ static void GetNumTranscodes(
 
         fcntl( memFd, F_SETFD, FD_CLOEXEC );
 
-        pMem = mmap64( 0, ( BCHP_REGISTER_SIZE<<2 ), PROT_READ|PROT_WRITE, MAP_SHARED, memFd, BCHP_PHYSICAL_OFFSET  );
+        pMem = bmemperfMmap( memFd );
 
         PRINTF( "%s: pMem %p\n", __FUNCTION__, (void *) pMem );
         if (!pMem)
@@ -2547,7 +2539,7 @@ static char *HtmlVideoFormats(
         sprintf( oneLine, "<option value=%d %s>%s</option>\n", enumEnums[idx], ( enumEnums[idx] == currentFormat ) ? "selected" : "", enumNames[idx] );
         strncat( htmlBuffer, oneLine, SIZE_HTML_VIDEO_FORMATS-1 );
     }
-    sprintf( oneLine, "<!-- strlen(html for video formats == %d) -->\n", strlen( htmlBuffer ));
+    sprintf( oneLine, "<!-- strlen(html for video formats == %d) -->\n", (int) strlen( htmlBuffer ));
     strncat( htmlBuffer, oneLine, SIZE_HTML_VIDEO_FORMATS-1 );
     return( htmlBuffer );
 } /* HtmlVideoFormats */
@@ -2895,7 +2887,7 @@ static int page_audio_decoder(
     Memconfig_AppUsageSettings        *pInput
     )
 {
-    unsigned int                    i       = 0, transcodeIdx = 0;
+    unsigned int                    i       = 0;
     bool                            enabled = false;
     NEXUS_AudioModuleMemoryEstimate audioMemoryEstimate;
     char                            whichDecoder[14];
@@ -2942,7 +2934,6 @@ static int page_audio_decoder(
         }
         else
         {
-            transcodeIdx = i-1;
 #if NEXUS_HAS_VIDEO_ENCODER
             enabled =  pInput->audioDecoder[i].enabled;
 #else
@@ -4704,6 +4695,7 @@ static int transfer_settings(
     return( 0 );
 } /* transfer_settings */
 
+#if NEXUS_HAS_VIDEO_ENCODER
 static int get_non_video_encoder_count(
     Memconfig_BoxMode *pBoxModeSettings
     )
@@ -4722,6 +4714,7 @@ static int get_non_video_encoder_count(
 
     return( nonEncoderCount );
 }
+#endif /* if NEXUS_HAS_VIDEO_ENCODER */
 
 static int update_audio_decoder_codecs(
     NEXUS_MemoryConfigurationSettings *pSettings,
@@ -6009,7 +6002,7 @@ int main(
         PRINTF( "%s: surfaceSettings[0].teletext %d; surfaceSettings[0].teletext %d\n", argv[0], transInput.surfaceSettings[0].teletext,
             transInput.surfaceSettings[1].teletext );
 
-        printf( "lstat(%s)\n", stateFilenameRestored ); /* CAD CAD CAD */
+        PRINTF( "lstat(%s)\n", stateFilenameRestored );
         /* see if a state file is being restored by the user */
         if (lstat( stateFilenameRestored, &statbuf ) == -1)
         {

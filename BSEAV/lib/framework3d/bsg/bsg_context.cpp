@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -11,7 +11,7 @@
  * Software and all intellectual property rights therein.  IF YOU HAVE NO
  * AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
  * AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
- * SOFTWARE.  
+ * SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
@@ -120,7 +120,7 @@ EGLConfig Context::ChooseConfigForDisplay(EGLDisplay dpy, const ApplicationOptio
       eglGetDisplay and eglGetError before eglInitialize has been
       called.
       If we're not interested in the EGL version number we can just
-      pass nullptr for the second and third parameters.
+      pass NULL for the second and third parameters.
    */
    EGLint     majorVersion;
    EGLint     minorVersion;
@@ -219,7 +219,7 @@ EGLConfig Context::ChooseConfigForDisplay(EGLDisplay dpy, const ApplicationOptio
    */
    int        numConfigs;
 
-   if (!eglGetConfigs(m_display, nullptr, 0, &numConfigs))
+   if (!eglGetConfigs(m_display, NULL, 0, &numConfigs))
       BSG_THROW("eglGetConfigs() failed");
 
    std::vector<EGLConfig> eglConfig(numConfigs);
@@ -259,17 +259,35 @@ EGLConfig Context::ChooseConfigForDisplay(EGLDisplay dpy, const ApplicationOptio
       EGLint alpha_size;
       EGLint depth_size;
       EGLint stencil_size;
+      EGLint conformant;
 
-      eglGetConfigAttrib(m_display, eglConfig[i], EGL_RED_SIZE,      &red_size);
-      eglGetConfigAttrib(m_display, eglConfig[i], EGL_GREEN_SIZE,    &green_size);
-      eglGetConfigAttrib(m_display, eglConfig[i], EGL_BLUE_SIZE,     &blue_size);
-      eglGetConfigAttrib(m_display, eglConfig[i], EGL_ALPHA_SIZE,    &alpha_size);
-      eglGetConfigAttrib(m_display, eglConfig[i], EGL_DEPTH_SIZE,    &depth_size);
-      eglGetConfigAttrib(m_display, eglConfig[i], EGL_STENCIL_SIZE,  &stencil_size);
+      eglGetConfigAttrib(m_display, eglConfig[i], EGL_RED_SIZE,         &red_size);
+      eglGetConfigAttrib(m_display, eglConfig[i], EGL_GREEN_SIZE,       &green_size);
+      eglGetConfigAttrib(m_display, eglConfig[i], EGL_BLUE_SIZE,        &blue_size);
+      eglGetConfigAttrib(m_display, eglConfig[i], EGL_ALPHA_SIZE,       &alpha_size);
+      eglGetConfigAttrib(m_display, eglConfig[i], EGL_DEPTH_SIZE,       &depth_size);
+      eglGetConfigAttrib(m_display, eglConfig[i], EGL_STENCIL_SIZE,     &stencil_size);
+      eglGetConfigAttrib(m_display, eglConfig[i], EGL_CONFORMANT,       &conformant);
 
-      // Does this exactly match the color bits that we requested?
-      if (red_size == (EGLint)r && green_size == (EGLint)g && blue_size == (EGLint)b && alpha_size == (EGLint)a)
+      // Does this exactly match the color bits that we requested and conformance?
+      if (red_size == (EGLint)r &&
+          green_size == (EGLint)g &&
+          blue_size == (EGLint)b &&
+          alpha_size == (EGLint)a &&
+          !!conformant == options.GetConformant())
          break;
+   }
+
+   // non conformant configs may not exactly match, so just take whatever
+   if (i >= numConfigs)
+   {
+      for (i = 0; i < numConfigs; i++)
+      {
+         EGLint conformant;
+         eglGetConfigAttrib(m_display, eglConfig[i], EGL_CONFORMANT, &conformant);
+         if (!!conformant == options.GetConformant())
+            break;
+      }
    }
 
    return eglConfig[i];
@@ -286,7 +304,20 @@ void Context::InitializeFromNativeWindow(const ApplicationOptions &options, EGLC
       Pixmaps and pbuffers are surfaces which only exist in off-screen
       memory.
    */
-   m_surface = eglCreateWindowSurface(m_display, config, nativeWindow, nullptr);
+   std::vector<EGLint>     ctxAttribList;
+   if (options.GetPreserve())
+   {
+      ctxAttribList.push_back(EGL_SWAP_BEHAVIOR);
+      ctxAttribList.push_back(EGL_BUFFER_PRESERVED);
+   }
+   if (options.GetSecure())
+   {
+      ctxAttribList.push_back(EGL_PROTECTED_CONTENT_EXT);
+      ctxAttribList.push_back(EGL_TRUE);
+   }
+   ctxAttribList.push_back(EGL_NONE);
+
+   m_surface = eglCreateWindowSurface(m_display, config, nativeWindow, &ctxAttribList[0]);
 
    if (options.GetPreserve())
       eglSurfaceAttrib(m_display, m_surface, EGL_SWAP_BEHAVIOR, EGL_BUFFER_PRESERVED);
@@ -306,7 +337,7 @@ void Context::InitializeWithPixmap(const ApplicationOptions &options, EGLConfig 
       memory.
    */
 
-   m_surface = eglCreatePixmapSurface(m_display, config, nativePixmap->EGLPixmap(), nullptr);
+   m_surface = eglCreatePixmapSurface(m_display, config, nativePixmap->EGLPixmap(), NULL);
 
    InitializeCreateContext(options, config);
 }
@@ -341,10 +372,19 @@ void Context::InitializeCreateContext(const ApplicationOptions &options, EGLConf
       like textures will only be valid inside this context
       (or shared contexts)
    */
-   EGLint     ctxAttribList[] = {EGL_CONTEXT_CLIENT_VERSION, GetESApiVersion(options), EGL_NONE};
+   std::vector<EGLint>     ctxAttribList;
+
+   if (options.GetSecure())
+   {
+      ctxAttribList.push_back(EGL_PROTECTED_CONTENT_EXT);
+      ctxAttribList.push_back(EGL_TRUE);
+   }
+   ctxAttribList.push_back(EGL_CONTEXT_CLIENT_VERSION);
+   ctxAttribList.push_back(GetESApiVersion(options));
+   ctxAttribList.push_back(EGL_NONE);
 
    m_config = config;
-   m_context = eglCreateContext(m_display, m_config, EGL_NO_CONTEXT, (options.GetApiVersion() == eOPVG_1_1) ? nullptr : ctxAttribList);
+   m_context = eglCreateContext(m_display, m_config, EGL_NO_CONTEXT, (options.GetApiVersion() == eOPVG_1_1) ? NULL : &ctxAttribList[0]);
    if (m_context == EGL_NO_CONTEXT)
       BSG_THROW("eglCreateContext() failed");
 

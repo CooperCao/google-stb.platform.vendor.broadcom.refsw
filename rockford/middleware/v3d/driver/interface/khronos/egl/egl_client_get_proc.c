@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2008 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2008 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -150,7 +150,7 @@ EGLAPI void EGLAPIENTRY (* eglGetProcAddress(const char *procname))(void)
       return (void(*)(void))glQueryMatrixxOES;
 #endif
 
-#ifdef GL_OES_framebuffer_object
+#if GL_OES_framebuffer_object
    if (!strcmp(procname, "glIsRenderbufferOES"))
       return (void(*)(void))glIsRenderbufferOES;
    if (!strcmp(procname, "glBindRenderbufferOES"))
@@ -183,14 +183,14 @@ EGLAPI void EGLAPIENTRY (* eglGetProcAddress(const char *procname))(void)
       return (void(*)(void))glGenerateMipmapOES;
 #endif
 
-#ifdef EGL_BRCM_image_update_control
+#if EGL_BRCM_image_update_control
    if (!strcmp(procname, "eglImageUpdateParameterivBRCM"))
       return (void(*)(void))eglImageUpdateParameterivBRCM;
    if (!strcmp(procname, "eglImageUpdateParameteriBRCM"))
       return (void(*)(void))eglImageUpdateParameteriBRCM;
 #endif
 
-#ifdef GL_EXT_multisampled_render_to_texture
+#if GL_EXT_multisampled_render_to_texture
    if (!strcmp(procname, "glRenderbufferStorageMultisampleEXT"))
          return (void(*)(void))glRenderbufferStorageMultisampleEXT;
    if (!strcmp(procname, "glFramebufferTexture2DMultisampleEXT"))

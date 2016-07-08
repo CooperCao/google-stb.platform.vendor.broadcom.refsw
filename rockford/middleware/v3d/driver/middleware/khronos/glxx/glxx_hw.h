@@ -1,6 +1,6 @@
 //#define DRAW_TEX_LOGGING
 /*=============================================================================
-Copyright (c) 2008 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2008 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -102,11 +102,12 @@ extern bool glxx_hw_draw_triangles(GLsizei count, GLenum type, uint32_t indices_
                                    MEM_HANDLE_T *attrib_handles,
                                    uint32_t max_index,
                                    MEM_HANDLE_OFFSET_T *interlocks,
-                                   uint32_t interlock_count);
+                                   uint32_t interlock_count,
+                                   bool secure);
 extern void glxx_hw_invalidate_frame(GLXX_SERVER_STATE_T *state, bool color, bool depth, bool stencil, bool multisample,
                                      bool preserveBuf, bool main_buffer);
-extern bool glxx_hw_get_attr_live(GLXX_SERVER_STATE_T *state, GLenum primitive_mode, GLXX_ATTRIB_T *attrib);
-extern bool glxx_hw_draw_tex(GLXX_SERVER_STATE_T *state, float Xs, float Ys, float Zw, float Ws, float Hs);
+extern bool glxx_hw_get_attr_live(GLXX_SERVER_STATE_T *state, GLXX_ATTRIB_T *attrib);
+extern bool glxx_hw_draw_tex(GLXX_SERVER_STATE_T *state, float Xs, float Ys, float Zw, float Ws, float Hs, bool secure);
 
 extern bool glxx_schedule_during_link(GLXX_SERVER_STATE_T *state, void *prog);
 

@@ -1,43 +1,39 @@
 /******************************************************************************
- * (c) 2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 #include "bip_player_impl.h"
 #include "nexus_timebase.h"
@@ -88,7 +84,7 @@ static void destroyPlayer(
     if (hPlayer->seekApi.hArb) BIP_Arb_Destroy(hPlayer->seekApi.hArb);
     if (hPlayer->disconnectApi.hArb) BIP_Arb_Destroy(hPlayer->disconnectApi.hArb);
     if (hPlayer->destroyApi.hArb) BIP_Arb_Destroy(hPlayer->destroyApi.hArb);
-
+    if (hPlayer->hPreferredAudioLanguage) BIP_String_Destroy(hPlayer->hPreferredAudioLanguage);
     if (hPlayer->hStateMutex) B_Mutex_Destroy( hPlayer->hStateMutex );
 
     BIP_MSG_TRC(( BIP_MSG_PRE_FMT BIP_PLAYER_STATE_PRINTF_FMT "Destroyed: " BIP_MSG_PRE_ARG, BIP_PLAYER_STATE_PRINTF_ARG(hPlayer)));
@@ -197,6 +193,9 @@ BIP_PlayerHandle BIP_Player_Create(
 
     hPlayer->hStateMutex = B_Mutex_Create(NULL);
     BIP_CHECK_GOTO(( hPlayer->hStateMutex ), ( "B_Mutex_Create Failed" ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, bipStatus );
+
+    hPlayer->hPreferredAudioLanguage = BIP_String_Create( );
+    BIP_CHECK_GOTO(( hPlayer->hPreferredAudioLanguage ), ( "BIP_String_Create() Failed"), error, BIP_ERR_PLAYER_MISSING_CONTENT_TYPE, bipStatus );
 
     hPlayer->state = BIP_PlayerState_eDisconnected;
     hPlayer->subState = BIP_PlayerSubState_eIdle;
@@ -607,38 +606,38 @@ BIP_Status BIP_Player_PrepareAsync_impl(
         if ( pPlayerSettings->videoTrackSettings.pidTypeSettings.video.decoder || pPlayerSettings->audioTrackSettings.pidTypeSettings.audio.primary )
         {
             avDecodeEnabled = true;
-            BIP_CHECK_GOTO(( pPlayerSettings->playbackSettings.stcChannel ),    ( "hPlayer=%p: stcChannel can't be NULL for non-simple AV decoding case!", hPlayer ), error, BIP_ERR_INVALID_PARAMETER , bipStatus);
+            BIP_CHECK_GOTO(( pPlayerSettings->playbackSettings.stcChannel ),    ( "hPlayer=%p: stcChannel can't be NULL for non-simple AV decoding case!", (void *)hPlayer ), error, BIP_ERR_INVALID_PARAMETER , bipStatus);
         }
         if ( pPlayerSettings->videoTrackSettings.pidTypeSettings.video.simpleDecoder || pPlayerSettings->audioTrackSettings.pidTypeSettings.audio.simpleDecoder )
         {
             avDecodeEnabled = true;
-            BIP_CHECK_GOTO(( pPlayerSettings->playbackSettings.simpleStcChannel ),    ( "hPlayer=%p: simpleStcChannel can't be NULL for simple(NxClient) AV decoding case!", hPlayer ), error, BIP_ERR_INVALID_PARAMETER , bipStatus);
+            BIP_CHECK_GOTO(( pPlayerSettings->playbackSettings.simpleStcChannel ),    ( "hPlayer=%p: simpleStcChannel can't be NULL for simple(NxClient) AV decoding case!", (void *)hPlayer ), error, BIP_ERR_INVALID_PARAMETER , bipStatus);
         }
 
         if (pPlayerSettings->videoTrackSettings.pidTypeSettings.video.decoder)
         {
             /* App is using non-simple decoder handle, make sure it also gives us additional required handles. */
             BIP_CHECK_GOTO(((pPlayerSettings->hDisplay && pPlayerSettings->hWindow)),
-                    ( "App must provide hDisplay=%p hWindow=%p handles for non-simple Nexus mode usage!", pPlayerSettings->hDisplay, pPlayerSettings->hWindow), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
+                    ( "App must provide hDisplay=%p hWindow=%p handles for non-simple Nexus mode usage!", (void *)pPlayerSettings->hDisplay, (void *)pPlayerSettings->hWindow), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
         }
         if (avDecodeEnabled || pPlayerSettings->videoTrackId != UINT_MAX || pPlayerSettings->audioTrackId != UINT_MAX || pPlayerSettings->pPreferredAudioLanguage )
         {
-            BIP_CHECK_GOTO(( pPrepareStatus ), ( "hPlayer=%p: pPlayerStatus can't be NULL: AV PidChannels are returned via this structure!", hPlayer ), error, BIP_ERR_INVALID_PARAMETER , bipStatus);
+            BIP_CHECK_GOTO(( pPrepareStatus ), ( "hPlayer=%p: pPlayerStatus can't be NULL: AV PidChannels are returned via this structure!", (void *)hPlayer ), error, BIP_ERR_INVALID_PARAMETER , bipStatus);
         }
     }
 
     if (pStreamInfo)
     {
-        BIP_CHECK_GOTO(( pStreamInfo->transportType != NEXUS_TransportType_eUnknown && pStreamInfo->transportType < NEXUS_TransportType_eMax), ( "hPlayer=%p: invalid StreamInfo: transportType=%d!", hPlayer, pStreamInfo->transportType ), error, BIP_ERR_INVALID_PARAMETER , bipStatus);
+        BIP_CHECK_GOTO(( pStreamInfo->transportType != NEXUS_TransportType_eUnknown && pStreamInfo->transportType < NEXUS_TransportType_eMax), ( "hPlayer=%p: invalid StreamInfo: transportType=%d!", (void *)hPlayer, pStreamInfo->transportType ), error, BIP_ERR_INVALID_PARAMETER , bipStatus);
 
         BIP_CHECK_GOTO(( pStreamInfo->containerType >= BIP_PlayerContainerType_eNexusTransportType && pStreamInfo->containerType < BIP_PlayerContainerType_eMax),
-                ( "hPlayer=%p: invalid StreamInfo: containerType=%d!", hPlayer, pStreamInfo->containerType ), error, BIP_ERR_INVALID_PARAMETER , bipStatus);
+                ( "hPlayer=%p: invalid StreamInfo: containerType=%d!", (void *)hPlayer, pStreamInfo->containerType ), error, BIP_ERR_INVALID_PARAMETER , bipStatus);
     }
 
     if ( pPrepareSettings && pPrepareSettings->pauseTimeoutAction == NEXUS_PlaybackLoopMode_ePlay && pPrepareSettings->timeshiftBufferMaxDurationInMs == 0)
     {
         BIP_CHECK_GOTO(( 0 ), ( "hPlayer=%p: timeshiftBufferMaxDurationInMs=%d can't be <= 0 for pauseAction=NEXUS_PlaybackLoopMode_ePlay",
-                    hPlayer, pPrepareSettings->timeshiftBufferMaxDurationInMs, pPrepareSettings->pauseTimeoutAction ), error, BIP_ERR_INVALID_PARAMETER , bipStatus);
+                    (void *)hPlayer, pPrepareSettings->timeshiftBufferMaxDurationInMs), error, BIP_ERR_INVALID_PARAMETER , bipStatus);
     }
     if (!pProbeSettings)
     {
@@ -799,7 +798,7 @@ error:
     BDBG_MSG(( BIP_MSG_PRE_FMT BIP_PLAYER_STATE_PRINTF_FMT "EXIT <--------------------"
                BIP_MSG_PRE_ARG, BIP_PLAYER_STATE_PRINTF_ARG(hPlayer) ));
     return (bipStatus);
-} /* BIP_Player_OpenPidChannel */
+} /* BIP_Player_ClosePidChannel */
 
 BIP_Status BIP_Player_CloseAllPidChannels(
     BIP_PlayerHandle hPlayer        /*!< [in] Handle of BIP_Player. */
@@ -835,7 +834,7 @@ error:
     BDBG_MSG(( BIP_MSG_PRE_FMT BIP_PLAYER_STATE_PRINTF_FMT "EXIT <--------------------"
                BIP_MSG_PRE_ARG, BIP_PLAYER_STATE_PRINTF_ARG(hPlayer) ));
     return (bipStatus);
-} /* BIP_Player_OpenPidChannel */
+} /* BIP_Player_CloseAllPidChannel */
 
 BIP_Status BIP_Player_OpenPidChannel(
     BIP_PlayerHandle                        hPlayer,        /*!< [in] Handle of BIP_Player. */
@@ -1361,7 +1360,7 @@ BIP_Status  BIP_Player_PlayAtRateAsStringAsync_impl(
 
     BDBG_OBJECT_ASSERT( hPlayer, BIP_Player );
 
-    BIP_CHECK_GOTO(( pRate ),   ( "hPlayer=%p: pRate can't be NULL: must provide Rate String for trickmode operation!", hPlayer ), error, BIP_ERR_INVALID_PARAMETER , bipStatus);
+    BIP_CHECK_GOTO(( pRate ),   ( "hPlayer=%p: pRate can't be NULL: must provide Rate String for trickmode operation!", (void *)hPlayer ), error, BIP_ERR_INVALID_PARAMETER , bipStatus);
     if (!pSettings)
     {
         BIP_Player_GetDefaultPlayAtRateSettings(&defaultPlayAtRateSettings);
@@ -1660,8 +1659,8 @@ BIP_Status  BIP_Player_GetStatusFromServerAsync_impl(
 
     BDBG_OBJECT_ASSERT( hPlayer, BIP_Player );
 
-    BIP_CHECK_GOTO(( pSettings ),       ( "hPlayer=%p: pSettings can't be NULL", hPlayer ), error, BIP_ERR_INVALID_PARAMETER , bipStatus);
-    BIP_CHECK_GOTO(( pServerStatus ),   ( "hPlayer=%p: pServerStatus can't be NULL", hPlayer ), error, BIP_ERR_INVALID_PARAMETER , bipStatus);
+    BIP_CHECK_GOTO(( pSettings ),       ( "hPlayer=%p: pSettings can't be NULL", (void *)hPlayer ), error, BIP_ERR_INVALID_PARAMETER , bipStatus);
+    BIP_CHECK_GOTO(( pServerStatus ),   ( "hPlayer=%p: pServerStatus can't be NULL", (void *)hPlayer ), error, BIP_ERR_INVALID_PARAMETER , bipStatus);
 
     BIP_SETTINGS_ASSERT(pSettings, BIP_PlayerGetStatusFromServerSettings);
 

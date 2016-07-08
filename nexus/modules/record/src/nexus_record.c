@@ -272,7 +272,7 @@ NEXUS_Record_P_WriteDone(void *flow_, ssize_t size)
         return;
     }
     if(flow->info.data.blockOffset+size > flow->info.data.blockSize) {
-        BDBG_ERR(("Wrote more data then expected: %d %d", flow->info.data.blockSize - flow->info.data.blockOffset, size));
+        BDBG_ERR(("Wrote more data then expected: %u %d", (unsigned)(flow->info.data.blockSize - flow->info.data.blockOffset), (int)size));
     }
     flow->info.data.blockOffset += size;
     if(flow->info.data.blockOffset >= flow->info.data.blockSize) {
@@ -487,12 +487,12 @@ NEXUS_Record_P_GetPriority(void *cntx)
               status.data.fifoDepth*100/status.data.fifoSize, factor));
     /* when bandhold=true, no need to test it */
     if (status.data.fifoDepth*100/status.data.fifoSize >= 50 && !record->cfg.recpumpSettings.bandHold) {
-        BDBG_WRN(("[%#lx] CDB level is %d%%. Overflow possible.", (unsigned long)record,
-            status.data.fifoDepth*100/status.data.fifoSize));
+        BDBG_WRN(("[%p] CDB level is %u%%. Overflow possible.", (void *)record,
+            (unsigned)(status.data.fifoDepth*100/status.data.fifoSize)));
     }
     if (status.index.fifoSize && status.index.fifoDepth*100/status.index.fifoSize >= 50 && !record->cfg.recpumpSettings.bandHold) {
-        BDBG_WRN(("[%#lx] ITB level is %d%%. Overflow possible.", (unsigned long)record,
-            status.index.fifoDepth*100/status.index.fifoSize));
+        BDBG_WRN(("[%p] ITB level is %u%%. Overflow possible.", (void *)record,
+            (unsigned)(status.index.fifoDepth*100/status.index.fifoSize)));
     }
     return (int)factor;
 }

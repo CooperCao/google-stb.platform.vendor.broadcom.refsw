@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -11,7 +11,7 @@
  * Software and all intellectual property rights therein.  IF YOU HAVE NO
  * AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
  * AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
- * SOFTWARE.  
+ * SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
@@ -63,18 +63,20 @@ void Surface::AttributesBegin(uint32_t pass, Material *material) const
    glBindVertexArray(m_vao);
 
    // Check if the material is the same as last time
-   if (m_lastMaterial != nullptr && material->GetId() == m_lastMaterial->GetId())
+   if (m_lastMaterial != NULL && material->GetId() == m_lastMaterial->GetId())
       return;
 
    m_lastMaterial = material;
 #endif
 
+   const AttributeSemantics &attributes = material->GetAttributeSemantics(pass);
+
    m_vertexBuffer.Bind();
 
-   for (const auto &attr : material->GetAttributeSemantics(pass))
+   for (AttributeSemantics::const_iterator i = attributes.begin(); i != attributes.end(); ++i)
    {
-      EffectSemantics::eSemantic   semantic = attr.Semantic();
-      GLuint                       index    = attr.Index();
+      EffectSemantics::eSemantic   semantic = (*i).Semantic();
+      GLuint                       index    = (*i).Index();
 
       if (GetPointer(semantic).Pointer(index))
          glEnableVertexAttribArray(index);
@@ -86,44 +88,46 @@ void Surface::AttributesEnd(uint32_t pass, Material *material) const
 #ifdef BSG_USE_ES3
    glBindVertexArray(0);
 #else
-   for (const auto &attr : material->GetAttributeSemantics(pass))
-      glDisableVertexAttribArray(attr.Index());
+   const AttributeSemantics &attributes = material->GetAttributeSemantics(pass);
+
+   for (AttributeSemantics::const_iterator i = attributes.begin(); i != attributes.end(); ++i)
+      glDisableVertexAttribArray((*i).Index());
 #endif
 }
 
 void Surface::UniformsBegin(uint32_t pass, const SemanticData &data, Material *material) const
 {
-   // Fill in the required predefined semantic uniforms
-   for (const auto &sem : material->GetSemanticRequirements(pass).RequiredSemantics())
-   {
-      EffectSemantics::eSemantic  kind = sem.second;
-      const std::string          &name = sem.first;
+   // Fill out any predefined semantic uniforms that we require
+   const EffectSemantics &sem = material->GetSemanticRequirements(pass);
 
-      switch (kind)
+   map<string, EffectSemantics::eSemantic>::const_iterator iter = sem.RequiredSemantics().begin();
+   while (iter != sem.RequiredSemantics().end())
+   {
+      switch (iter->second)
       {
-      case EffectSemantics::eMATRIX4_MODEL : 
-      case EffectSemantics::eMATRIX4_VIEW : 
+      case EffectSemantics::eMATRIX4_MODEL :
+      case EffectSemantics::eMATRIX4_VIEW :
       case EffectSemantics::eMATRIX4_PROJECTION :
       case EffectSemantics::eMATRIX4_MODEL_VIEW :
       case EffectSemantics::eMATRIX4_VIEW_PROJECTION :
       case EffectSemantics::eMATRIX4_MODEL_VIEW_PROJECTION :
-         material->SetUniformValue(name, data.GetMat4(kind));
+         material->SetUniformValue(iter->first, data.GetMat4(iter->second));
          break;
       case EffectSemantics::eMATRIX3_INVT_MODEL :
       case EffectSemantics::eMATRIX3_INVT_VIEW :
       case EffectSemantics::eMATRIX3_INVT_MODEL_VIEW :
-         material->SetUniformValue(name, data.GetMat3(kind));
+         material->SetUniformValue(iter->first, data.GetMat3(iter->second));
          break;
       case EffectSemantics::eSCALAR_OPACITY :
-         material->SetUniformValue(name, data.GetFloat(kind));
+         material->SetUniformValue(iter->first, data.GetFloat(iter->second));
          break;
       case EffectSemantics::eVECTOR4_SCREEN_SIZE :
-      case EffectSemantics::eVECTOR4_QUAD_OFFSET :
-         material->SetUniformValue(name, data.GetVec4(kind));
+         material->SetUniformValue(iter->first, data.GetVec4(iter->second));
          break;
       default :
          break;
       }
+      ++iter;
    }
 
    // Ensure all the uniforms (including the ones we've just set are installed now)

@@ -176,6 +176,8 @@ void NEXUS_Rave_GetAudioFrameCount_priv(
     unsigned *pFrameCount     /* [out] */
     );
 
+bool NEXUS_Rave_IsConsumableVideoElementAvailable_priv(NEXUS_RaveHandle rave);
+
 bool NEXUS_Rave_CompareVideoStartCodeCount_priv(
     NEXUS_RaveHandle rave,
     unsigned threshold

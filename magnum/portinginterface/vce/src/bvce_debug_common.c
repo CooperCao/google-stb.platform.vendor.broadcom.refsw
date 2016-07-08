@@ -313,5 +313,6 @@ const char* const BVCE_P_Debug_EntryTypeLUT[BVCE_DebugFifo_EntryType_eMax] =
    BDBG_STRING_INLINE("ITB"),
    BDBG_STRING_INLINE("CMD"),
    BDBG_STRING_INLINE("RSP"),
-   BDBG_STRING_INLINE("TRC"),
+   BDBG_STRING_INLINE("TR0"),
+   BDBG_STRING_INLINE("TR1"),
 };

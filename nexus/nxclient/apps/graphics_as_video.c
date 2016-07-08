@@ -199,7 +199,7 @@ int main(int argc, char **argv)
         NEXUS_SurfaceHandle freeSurface=NULL;
         NEXUS_VideoImageInputSurfaceSettings surfaceSettings;
         NEXUS_SurfaceHandle pic;
-        unsigned num_entries = 0;
+        size_t num_entries = 0;
 
         /* Make sure image surface is not in use by Video Output (VDC) */
         do {
@@ -215,7 +215,7 @@ int main(int argc, char **argv)
             BDBG_ASSERT(!rc);
             if (num_entries) {
                 /* our surface has been displayed, we can now re-use and re-queue it */
-                BDBG_MSG(("g_surface[releaseIdx=%d].handle=%p  recycSurface=%p" , releaseIdx, g_surface[releaseIdx].handle , freeSurface));
+                BDBG_MSG(("g_surface[releaseIdx=%d].handle=%p  recycSurface=%p" , releaseIdx, (void*)g_surface[releaseIdx].handle , (void*)freeSurface));
                 BDBG_ASSERT(g_surface[releaseIdx].handle == freeSurface);
                 g_surface[releaseIdx].submitted = false;
                 if (++releaseIdx == NUM_SURFACES) releaseIdx=0;
@@ -225,7 +225,7 @@ int main(int argc, char **argv)
 
         g_surface[submitIdx].submitted = true; /* mark as inuse */
         pic = g_surface[submitIdx].handle;
-        BDBG_MSG(("pic=%p" , pic));
+        BDBG_MSG(("pic=%p" , (void*)pic));
         if (++submitIdx == NUM_SURFACES) submitIdx=0;
 
         /* must do M2MC fill. CPU may not have access to this surface on some non-UMA systems. */

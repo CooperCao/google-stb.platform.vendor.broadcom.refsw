@@ -1,41 +1,43 @@
 /******************************************************************************
- *    (c)2007-2015 Broadcom Corporation
- *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
- *
- * Except as expressly set forth in the Authorized License,
- *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
- *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
- *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *
- *****************************************************************************/
+* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*
+* This program is the proprietary software of Broadcom and/or its
+* licensors, and may only be used, duplicated, modified or distributed pursuant
+* to the terms and conditions of a separate, written license agreement executed
+* between you and Broadcom (an "Authorized License").  Except as set forth in
+* an Authorized License, Broadcom grants no license (express or implied), right
+* to use, or waiver of any kind with respect to the Software, and Broadcom
+* expressly reserves all rights in and to the Software and all intellectual
+* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*
+* Except as expressly set forth in the Authorized License,
+*
+* 1. This program, including its structure, sequence and organization,
+*    constitutes the valuable trade secrets of Broadcom, and you shall use all
+*    reasonable efforts to protect the confidentiality thereof, and to use
+*    this information only in connection with your use of Broadcom integrated
+*    circuit products.
+*
+* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+*
+* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. , WHICHEVER
+*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+******************************************************************************/
 
 #include "nexus_base.h"
 #include "nexus_security_module.h"
@@ -112,7 +114,7 @@ void NEXUS_Security_GetDefaultSessionKeySettings(
         BKNI_Memset(pSettings, 0, sizeof(*pSettings));
 		pSettings->keyGenCmdID     = NEXUS_SecurityKeyGenCmdID_eKeyGen;
 		pSettings->keyladderType   = NEXUS_SecurityKeyladderType_e3Des;
-#if HSM_IS_ASKM_40NM_ZEUS_2_0
+#if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(2,0)
 		pSettings->keyLadderSelect = NEXUS_SecurityKeyLadderSelect_eFWKL;
 		pSettings->bkeyGenBlocked  = false;
 		pSettings->rootKeySwap     = false;
@@ -293,7 +295,7 @@ static NEXUS_Error NEXUS_Security_GetKeyLadderType(
 	    case NEXUS_SecurityKeyladderType_eAes128:
 	        *pType = BCMD_KeyLadderType_eAES128;
 	        break;
-#if HSM_IS_ASKM_40NM_ZEUS_2_0
+#if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(2,0)
 #if NEXUS_SUPPORT_HDDTA
 		case NEXUS_SecurityKeyladderType_ePKSM:
 			*pType = BCMD_KeyLadderType_ePKSM;
@@ -386,7 +388,7 @@ static NEXUS_Error NEXUS_Security_GetSwizzleType(
 }
 
 
-#if HSM_IS_ASKM_40NM_ZEUS_2_0
+#if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(2,0)
 
 static BCMD_XptM2MSecCryptoAlg_e NEXUS_Security_MapNexusAlgorithmToHsm(NEXUS_SecurityAlgorithm algorithm)
 {
@@ -563,7 +565,7 @@ static void NEXUS_Security_InitGenerateRouteKey(
 	return;
 }
 
-#if HSM_IS_ASKM_40NM_ZEUS_2_0
+#if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(2,0)
 static int g_scValues[NEXUS_SecurityAlgorithmScPolarity_eMax] = { 0, 1, 2, 3 };
 #endif
 
@@ -762,7 +764,7 @@ static NEXUS_Error NEXUS_Security_GenerateKey4or5(
     else
         keySize = BCMD_KeySize_e192;
 
-#if HSM_IS_ASKM_40NM_ZEUS_2_0
+#if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(2,0)
 	if(pCW->keyLadderSelect == NEXUS_SecurityKeyLadderSelect_ePKL)
     {
 		keyladderID = 10;
@@ -809,7 +811,7 @@ static NEXUS_Error NEXUS_Security_GenerateKey4or5(
     BKNI_Memset(generateRouteKeyIO.aucKeyData, 0,  pCW->keySize);
     BKNI_Memcpy(generateRouteKeyIO.aucKeyData, pCW->keyData,  pCW->keySize);
 
-#if HSM_IS_ASKM_40NM_ZEUS_2_0
+#if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(2,0)
 	generateRouteKeyIO.keyLadderSelect				= pCW->keyLadderSelect;
 	generateRouteKeyIO.bASKM3DesKLRootKeySwapEnable = pCW->rootKeySwap;
 	generateRouteKeyIO.GpipeSC01Val 				= g_scValues[pCW->sc01Polarity[NEXUS_SecurityPacketType_eGlobal]];
@@ -824,7 +826,7 @@ static NEXUS_Error NEXUS_Security_GenerateKey4or5(
 
 #endif
 
-#if HSM_IS_ASKM_40NM_ZEUS_3_0
+#if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(3,0)
     generateRouteKeyIO.client             = pCW->client;
     generateRouteKeyIO.SC01ModeMapping    = pCW->sc01GlobalMapping;
 #if 0
@@ -844,7 +846,7 @@ static NEXUS_Error NEXUS_Security_GenerateKey4or5(
 	generateRouteKeyIO.bSwapAesKey      = pCW->bSwapAESKey;
 	generateRouteKeyIO.keyDestIVType    = ivType;
 
-#if HSM_IS_ASKM_40NM_ZEUS_2_0
+#if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(2,0)
 	generateRouteKeyIO.subCmdID         = (BCMD_VKLAssociationQueryFlag_e)pCW->keyGenCmdID;
 #else
 	generateRouteKeyIO.subCmdID 		= pCW->keyGenCmdID;
@@ -970,7 +972,7 @@ NEXUS_VirtualKeyLadderHandle NEXUS_Security_AllocateVKL(
     }
 	else
 	{
-        BDBG_WRN(("Unable to track VKL handle %p",pVKLHandle));
+        BDBG_WRN(("Unable to track VKL handle %p", (void*)pVKLHandle));
     }
 
     BDBG_LEAVE( NEXUS_Security_AllocateVKL );
@@ -1054,7 +1056,7 @@ void NEXUS_Security_GetVKLInfo(
 
 NEXUS_Error NEXUS_Security_GenerateNextLayerKey(
     NEXUS_KeySlotHandle keyHandle,
-    const NEXUS_SecurityEncryptedKey * pCW
+    const NEXUS_SecurityEncryptedControlWord * pCW
     )
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
@@ -1165,7 +1167,7 @@ NEXUS_Error NEXUS_Security_GenerateNextLayerKey(
     BKNI_Memset(generateRouteKeyIO.aucKeyData, 0,  pCW->keySize);
     BKNI_Memcpy(generateRouteKeyIO.aucKeyData, pCW->keyData,  pCW->keySize);
 
-#if HSM_IS_ASKM_40NM_ZEUS_2_0
+#if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(2,0)
 	generateRouteKeyIO.keyLadderSelect				= pCW->keyLadderSelect;
 	generateRouteKeyIO.bASKM3DesKLRootKeySwapEnable = pCW->rootKeySwap;
 	generateRouteKeyIO.GpipeSC01Val 				= g_scValues[pCW->sc01Polarity[NEXUS_SecurityPacketType_eGlobal]];
@@ -1187,7 +1189,7 @@ NEXUS_Error NEXUS_Security_GenerateNextLayerKey(
 	generateRouteKeyIO.bSwapAesKey      = pCW->bSwapAESKey;
 	generateRouteKeyIO.keyDestIVType    = ivType;
 
-#if HSM_IS_ASKM_40NM_ZEUS_2_0
+#if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(2,0)
 	generateRouteKeyIO.subCmdID         = (BCMD_VKLAssociationQueryFlag_e)pCW->keyGenCmdID;
 #else
 	generateRouteKeyIO.subCmdID 		= pCW->keyGenCmdID;

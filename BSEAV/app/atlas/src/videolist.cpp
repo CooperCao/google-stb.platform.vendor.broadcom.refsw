@@ -1,43 +1,39 @@
-/***************************************************************************
- * (c) 2002-2015 Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 
 #include "band.h"
@@ -66,8 +62,7 @@
 #ifdef PLAYBACK_IP_SUPPORT
 #include "bip.h"
 #include "bip_media_info.h"
-#endif  /* PLAYBACK_IP_SUPPORT */
-
+#endif /* PLAYBACK_IP_SUPPORT */
 
 #define MAXBUF  1024*20
 
@@ -107,8 +102,8 @@ CVideo::CVideo(
     _pidMgr.initialize(pCfg);
 
     if (_videosPath.isEmpty()) { _videosPath = GET_STR(pCfg, VIDEOS_PATH); }
-    if (_infoPath.isEmpty())   { _infoPath   = GET_STR(pCfg, INFO_PATH); }
-    if (_indexPath.isEmpty())  { _indexPath  = GET_STR(pCfg, INDEX_PATH); }
+    if (_infoPath.isEmpty()) { _infoPath = GET_STR(pCfg, INFO_PATH); }
+    if (_indexPath.isEmpty()) { _indexPath = GET_STR(pCfg, INDEX_PATH); }
 }
 
 CVideo::CVideo(
@@ -289,6 +284,7 @@ bool CVideo::hasIndex()
 eRet CVideo::writeXML(MXmlElement * xmlElem)
 {
     eRet ret = eRet_Ok;
+
     BDBG_ASSERT(NULL != xmlElem);
 
     if (xmlElem->tag() != XML_TAG_STREAM)
@@ -317,7 +313,7 @@ eRet CVideo::generateInfoName(const char * strName)
 
 eRet CVideo::readXML(MXmlElement * xmlElem)
 {
-    eRet    ret             = eRet_Ok;
+    eRet    ret = eRet_Ok;
     MString strDuration;
     MString strMaxBitrate;
     MString strType;
@@ -346,7 +342,7 @@ eRet CVideo::readXML(MXmlElement * xmlElem)
     _pidMgr.readXML(xmlElem);
 
     return(ret);
-}
+} /* readXML */
 
 /* in the playback case we will never call this function. Playback will copy the video
  * objects pidMgr, so it can independantly open/close the pid Channels. This is primarily used
@@ -633,12 +629,6 @@ eRet CPlaybackList::readInfo(
 error:
     DEL(pVideo);
 done:
-    if (fd)
-    {
-        close(fd);
-        fd = 0;
-    }
-
     DEL(xmlElemTop);
 
     if (buf)
@@ -647,18 +637,23 @@ done:
         buf = NULL;
     }
 
+    if (0 < fd)
+    {
+        close(fd);
+        fd = 0;
+    }
     return(ret);
 } /* readInfo */
 
-
 eRet CVideo::generateIndex()
 {
-    eRet       ret       = eRet_Ok;
+    eRet ret = eRet_Ok;
+
 #ifdef PLAYBACK_IP_SUPPORT
-    BIP_Status errorBip  = BIP_SUCCESS;
-    int        retOS     = -1;
-    CPid *     pPid      = _pidMgr.getPid(0, ePidType_Video);
-    FILE *     file      = NULL;
+    BIP_Status errorBip     = BIP_SUCCESS;
+    int        retOS        = -1;
+    CPid *     pPid         = _pidMgr.getPid(0, ePidType_Video);
+    FILE *     file         = NULL;
     MString    strIndexName = getIndexName();
     MString    strIndexNamePath;
     MString    strIndexNamePathTmp;
@@ -670,7 +665,7 @@ eRet CVideo::generateIndex()
 
     /* change/add .nav file extension */
     {
-        int     indexDot         = 0;
+        int indexDot = 0;
 
         indexDot = strIndexName.findRev('.');
         if (-1 < indexDot)
@@ -678,8 +673,8 @@ eRet CVideo::generateIndex()
             strIndexName.truncate(indexDot);
         }
 
-        strIndexName     += ".nav";
-        strIndexNamePath =  getIndexPath() + MString("/") + strIndexName;
+        strIndexName    += ".nav";
+        strIndexNamePath = getIndexPath() + MString("/") + strIndexName;
         BDBG_MSG(("new index filename:%s", strIndexNamePath.s()));
     }
 
@@ -696,14 +691,14 @@ eRet CVideo::generateIndex()
     BDBG_WRN(("creating index for:%s pid:%d nav:%s", getVideoNamePath().s(), pPid->getPid(), getIndexNamePath().s()));
 
     /* generate nav into a tmp file in case something goes wrong before we are finished.
-       we will rename the tmp file after generation is completed */
+     * we will rename the tmp file after generation is completed */
     strIndexNamePathTmp = strIndexNamePath + ".tmp";
 
     errorBip = BIP_MediaInfo_MakeNavForTsFile(
-                    getVideoNamePath(),
-                    strIndexNamePathTmp,
-                    pPid->getPid(),
-                    NULL);
+            getVideoNamePath(),
+            strIndexNamePathTmp,
+            pPid->getPid(),
+            NULL);
     CHECK_BIP_ERROR_GOTO((MString("Unable to make index file for:") + getVideoNamePath()).s(), ret, errorBip, error);
 
     retOS = rename(strIndexNamePathTmp, strIndexNamePath);
@@ -712,7 +707,7 @@ eRet CVideo::generateIndex()
     /* set new index name */
     setIndexName(strIndexName);
 
-goto done;
+    goto done;
 error:
     retOS = remove(strIndexNamePathTmp);
     CHECK_BOS_WARN("unable to remove TEMP index nav file", ret, retOS);
@@ -721,7 +716,7 @@ error:
     fclose(fopen(strIndexNamePath, "w"));
 done:
     setIndexGenerationNeeded(false);
-#endif  /* PLAYBACK_IP_SUPPORT */
+#endif /* PLAYBACK_IP_SUPPORT */
     return(ret);
 } /* generateIndex() */
 
@@ -741,14 +736,14 @@ uint32_t CVideo::incrementThumbTimestamp(uint32_t increment)
     }
 
     return(_thumbTimestamp);
-}
+} /* incrementThumbTimestamp */
 
 MString CVideo::getVideoNamePathAbsolute(void)
 {
     MString strPathAbsolute;
     char *  pPathAbsolute = NULL;
 
-    pPathAbsolute = realpath(getVideoNamePath(), NULL);
+    pPathAbsolute   = realpath(getVideoNamePath(), NULL);
     strPathAbsolute = pPathAbsolute;
     FRE(pPathAbsolute);
 
@@ -764,8 +759,8 @@ CVideo * CPlaybackList::find(
 {
     MListItr <CVideo> itrVideo(&_videos);
     MString           compareName(name);
-    CVideo *          video         = NULL;
-    int               index         = 0;
+    CVideo *          video = NULL;
+    int               index = 0;
 
     /* convert possible given path to filename only for comparison */
     index = compareName.findRev('/');
@@ -1169,7 +1164,7 @@ void CPlaybackList::createInfo(
     fin = fopen64(pVideo->getVideoNamePath(), "rb");
     if (!fin)
     {
-        BDBG_ERR(("can't open media file '%s' (path:%s)", (pVideo->getVideoNamePath()).s()));
+        BDBG_ERR(("can't open media file '%s'", (pVideo->getVideoNamePath()).s()));
         goto error;
     }
 
@@ -1215,7 +1210,7 @@ void CPlaybackList::addVideo(
             _videos.add(video);
         }
     }
-}
+} /* addVideo */
 
 void CPlaybackList::removeVideo(CVideo * video)
 {
@@ -1246,7 +1241,7 @@ void CPlaybackList::removeVideo(int index)
     }
 
     BDBG_MSG(("Video at index %d not found", index));
-}
+} /* removeVideo */
 
 void CPlaybackList::dump(bool bForce)
 {
@@ -1365,8 +1360,12 @@ static int compare(
 }
 
 /* copy given directory entry names matching strExtension into pStrList.
-   strExtension can be NULL if no extension matching is required. */
-void CPlaybackList::directoryToStringList(const char * strDir, const char * strExtension, MStringList * pStrList)
+ * strExtension can be NULL if no extension matching is required. */
+void CPlaybackList::directoryToStringList(
+        const char *  strDir,
+        const char *  strExtension,
+        MStringList * pStrList
+        )
 {
     DIR *           dir = opendir((char *) strDir);
     struct dirent * d   = NULL;
@@ -1383,7 +1382,7 @@ void CPlaybackList::directoryToStringList(const char * strDir, const char * strE
     while ((d = readdir(dir)))
     {
         MString strDirEntryName;
-        int     indexDot    = 0;
+        int     indexDot = 0;
 
         strDirEntryName = d->d_name;
 
@@ -1394,16 +1393,16 @@ void CPlaybackList::directoryToStringList(const char * strDir, const char * strE
 
         indexDot = strDirEntryName.findRev('.');
 
-        if ((-1 == indexDot) ||  (NULL == strExtension) || (MString(strExtension) == strDirEntryName.mid(indexDot)))
+        if ((-1 == indexDot) || (NULL == strExtension) || (MString(strExtension) == strDirEntryName.mid(indexDot)))
         {
             /* add directory entry name to string list if it does not have an extension,
-               no extension match is specified, or if extension equals given extension match */
+             * no extension match is specified, or if extension equals given extension match */
             pStrList->add(strDirEntryName.s());
         }
     }
     closedir(dir);
     dir = NULL;
-}
+} /* directoryToStringList */
 
 void CPlaybackList::refreshFromDisk()
 {
@@ -1422,6 +1421,8 @@ void CPlaybackList::refreshFromDisk()
     MString infoName;
     MString mediaName;
     MString indexName;
+
+    ATLAS_MEMLEAK_TRACE("BEGIN");
 
     if (NULL != _generateIndexesThread_handle)
     {
@@ -1452,7 +1453,7 @@ void CPlaybackList::refreshFromDisk()
             for (pVideo = _videos.first(); pVideo != NULL; pVideo = _videos.next())
             {
                 pVideo->closeVideo();
-                delete pVideo;
+                DEL(pVideo);
             }
             _videos.clear();
         }
@@ -1565,7 +1566,7 @@ void CPlaybackList::refreshFromDisk()
     /* determine if index nav files need to be generated */
     {
         MString strIndexName;
-        int indexDot = 0;
+        int     indexDot = 0;
 
         CScopedMutex observerListMutex(_mutexPlaylist);
 
@@ -1626,10 +1627,11 @@ void CPlaybackList::refreshFromDisk()
         CHECK_ERROR("unable to generate nav indexes", ret);
     }
 
+    ATLAS_MEMLEAK_TRACE("END");
+
     notifyObservers(eNotify_PlaybackListChanged, this);
     dump();
 } /* refreshFromDisk */
-
 
 void CPlaybackList::destroyThreadGenerateIndexes()
 {
@@ -1637,33 +1639,17 @@ void CPlaybackList::destroyThreadGenerateIndexes()
     {
         _stopGenerateIndexes = true;
 
-#if 1
-        {
-            eRet    ret      = eRet_Ok;
-            B_Error berror   = B_ERROR_SUCCESS;
-            int     idThread = 0;
-
-            berror = B_Thread_GetId(_generateIndexesThread_handle, &idThread);
-            CHECK_BOS_WARN("unable to get thread id", ret, berror);
-
-            /* this is needed for force stop since nav generation is blocking
-               on a file by file basis.  once bip allows the nav gen to be
-               interruptable, we can remove the kill call here. */
-            BDBG_WRN(("Killing nav thread"));
-            pthread_kill(idThread, SIGKILL);
-        }
-#endif
-
         B_Thread_Destroy(_generateIndexesThread_handle);
         _generateIndexesThread_handle = NULL;
     }
 
     return;
-}
+} /* destroyThreadGenerateIndexes */
 
 void CPlaybackList::doGenerateIndexes()
 {
-    CVideo *         pVideo         = NULL;
+    CVideo * pVideo = NULL;
+
     MListItr<CVideo> itr(&_videos);
 
     BDBG_MSG(("start generating indexes number:%d", _videos.total()));
@@ -1681,15 +1667,15 @@ void CPlaybackList::doGenerateIndexes()
                 pVideo->generateIndex();
 
                 /* after generating a new index we will remove the nfo file.
-                   the nfo file will be regenerated the next time atlas runs.
-                   since the video list in memory has the correct information,
-                   atlas can run just fine until restarted. */
+                 * the nfo file will be regenerated the next time atlas runs.
+                 * since the video list in memory has the correct information,
+                 * atlas can run just fine until restarted. */
                 remove(pVideo->getInfoNamePath());
             }
         }
     }
     BDBG_MSG(("done generating indexes"));
-}
+} /* doGenerateIndexes */
 
 static void generateIndexesThread(void * pParam)
 {
@@ -1704,6 +1690,11 @@ eRet CPlaybackList::generateIndexes()
 {
     eRet ret = eRet_Ok;
 
+    if (false == GET_BOOL(_pCfg, GENERATE_INDEXES))
+    {
+        return(ret);
+    }
+
     if (NULL != _generateIndexesThread_handle)
     {
         destroyThreadGenerateIndexes();
@@ -1716,4 +1707,4 @@ eRet CPlaybackList::generateIndexes()
 
 error:
     return(ret);
-}
+} /* generateIndexes */

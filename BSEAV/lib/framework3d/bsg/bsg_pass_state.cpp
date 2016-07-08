@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -11,7 +11,7 @@
  * Software and all intellectual property rights therein.  IF YOU HAVE NO
  * AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
  * AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
- * SOFTWARE.  
+ * SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
@@ -61,17 +61,17 @@ public:
       case 'f' : iss >> m_float; break;
       case 'i' : iss >> m_int; break;
       case 'u' : iss >> m_uint; break;
-      case 'b' : 
+      case 'b' :
       {
          string bs;
-         iss >> bs; 
+         iss >> bs;
          if (bs == "true" || bs == "TRUE" || bs == "1")
             m_bool = true;
          else
             m_bool = false;
          break;
       }
-      case 'e' : 
+      case 'e' :
       {
          string eStr;
          iss >> eStr;
@@ -168,7 +168,8 @@ GLenum PassStateEnum::MapEnum(const string &name)
    if (!m_enumMapInited)
       FillMap();
 
-   auto iter = m_enumMap.find(name);
+   std::map<std::string, GLenum>::const_iterator iter;
+   iter = m_enumMap.find(name);
 
    if (iter != m_enumMap.end())
       return iter->second;
@@ -369,7 +370,7 @@ void PassState::SetTo(const PassState &mat)
 
 void PassState::ParseArguments(const string &stateIdent, const string &argStr)
 {
-   auto iter = m_parseMap.find(stateIdent);
+   map<string, PassStateInfo>::iterator iter = m_parseMap.find(stateIdent);
    if (iter == m_parseMap.end())
       BSG_THROW("Unknown state identifier");
 
@@ -390,7 +391,7 @@ void PassState::ParseArguments(const string &stateIdent, const string &argStr)
          else
             comma = argStr.length();
       }
-      
+
       v[c].Set(ParseUtils::StripWhite(argStr.substr(start, comma - start)), type);
 
       start = comma + 1;
@@ -683,7 +684,7 @@ void ShadowState::UpdateGLState(const PassState &mat, const PassState &geom)
 
 void ShadowState::UpdateGLState(const PassState &state)
 {
-   // The "toSet" bits are the pieces of state that are requested 
+   // The "toSet" bits are the pieces of state that are requested
    uint32_t toSet  = state.GetDirty();
 
    // The revert bits are those pieces of state that are modified in this state, and which
@@ -789,7 +790,7 @@ void ShadowState::MergeFrom(const PassState &state, uint32_t dirty)
       glPolygonOffset(m_polygonOffset[0], m_polygonOffset[1]);
    }
 
-   if ((dirty & StencilFuncSeparate) && 
+   if ((dirty & StencilFuncSeparate) &&
       (m_stencilFuncFront != state.m_stencilFuncFront || m_stencilFuncBack != state.m_stencilFuncBack))
    {
       m_stencilFuncFront = state.m_stencilFuncFront;
@@ -799,7 +800,7 @@ void ShadowState::MergeFrom(const PassState &state, uint32_t dirty)
       glStencilFuncSeparate(GL_BACK,  m_stencilFuncBack[0] , m_stencilFuncBack[1] , m_stencilFuncBack[2] );
    }
 
-   if ((dirty & StencilMaskSeparate) && 
+   if ((dirty & StencilMaskSeparate) &&
       (m_stencilMaskFront != state.m_stencilMaskFront || m_stencilMaskBack != state.m_stencilMaskBack))
    {
       m_stencilMaskFront = state.m_stencilMaskFront;
@@ -809,7 +810,7 @@ void ShadowState::MergeFrom(const PassState &state, uint32_t dirty)
       glStencilMaskSeparate(GL_BACK , m_stencilMaskBack );
    }
 
-   if ((dirty & StencilOpSeparate) && 
+   if ((dirty & StencilOpSeparate) &&
       (m_stencilOpFront != state.m_stencilOpFront || m_stencilOpBack != state.m_stencilOpBack))
    {
       m_stencilOpFront = state.m_stencilOpFront;

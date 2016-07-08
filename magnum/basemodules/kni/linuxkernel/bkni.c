@@ -1,22 +1,40 @@
 /***************************************************************************
- *     Copyright (c) 2003-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2003-2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ *  Except as expressly set forth in the Authorized License,
  *
- * Module Description:
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * Revision History:
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- * 
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ *
  ***************************************************************************/
 /**
 The following is copied from bstd.h
@@ -299,11 +317,11 @@ void BKNI_Fail(void)
         BKNI_Sleep(30*1000);  /* Print every 30 seconds until someone does something. */
     }
 #else
-    volatile int i=0;
+    volatile long i=0;
     volatile int j=0;
     g_init = false;
     printk("BKNI_Fail: forcing oops\n");
-    i = *(int *)i;
+    i = *(long *)i;
     i /= j;
     panic("BKNI_Fail: panic...");
 #endif
@@ -363,7 +381,7 @@ int BKNI_Vprintf(const char *fmt, va_list ap)
 #endif
 }
 
-void BKNI_Delay_tagged(int microsec, const char *file, unsigned line)
+void BKNI_Delay_tagged(unsigned int microsec, const char *file, unsigned line)
 {
 #ifdef BKNI_METRICS_ENABLED
     /* metrics */
@@ -377,7 +395,7 @@ void BKNI_Delay_tagged(int microsec, const char *file, unsigned line)
     udelay(microsec);
 }
 
-BERR_Code BKNI_Sleep_tagged(int millisec, const char *file, unsigned line)
+BERR_Code BKNI_Sleep_tagged(unsigned int millisec, const char *file, unsigned line)
 {
     unsigned long ticks;
     long rc;
@@ -631,8 +649,15 @@ BERR_Code BKNI_WaitForEvent_tagged(BKNI_EventHandle event, int timeoutMsec, cons
         }
     }
 
-    if (timeoutMsec > 0 && timeoutMsec < 16) {
-        timeoutMsec = 16; /* This is used to achieve consistency between different OS's. */
+    if (timeoutMsec!=0 && timeoutMsec!=BKNI_INFINITE) {
+        if (timeoutMsec<0) {
+            /* If your app is written to allow negative values to this function, then it's highly likely you would allow -1, which would
+            result in an infinite hang. We recommend that you only pass positive values to this function unless you definitely mean BKNI_INFINITE. */
+            BDBG_WRN(("BKNI_WaitForEvent given negative timeout. Possible infinite hang if timeout happens to be -1 (BKNI_INFINITE)."));
+        }
+        if (timeoutMsec < 16) {
+            timeoutMsec = 16; /* This is used to achieve consistency between different OS's. */
+        }
     }
 
     BKNI_P_BlockSignals(&mask);
@@ -1104,7 +1129,7 @@ BKNI_AddEventGroup(BKNI_EventGroupHandle group, BKNI_EventHandle event)
 
     BKNI_AcquireMutex(group->lock);
     if (event->group != NULL) {
-        printk("### Event %#x already connected to the group %#x\n", (unsigned)event, (unsigned)group);
+        printk("### Event %p already connected to the group %p\n", (void *)event, (void *)group);
         result = BERR_TRACE(BERR_OS_ERROR);
     } else {
         BLST_D_INSERT_HEAD(&group->members, event, list);
@@ -1127,7 +1152,7 @@ BKNI_RemoveEventGroup(BKNI_EventGroupHandle group, BKNI_EventHandle event)
 
     BKNI_AcquireMutex(group->lock);
     if (event->group != group) {
-        printk("### Event %#x doesn't belong to the group %#x\n", (unsigned)event, (unsigned)group);
+        printk("### Event %p doesn't belong to the group %p\n", (void *)event, (void *)group);
         result = BERR_TRACE(BERR_OS_ERROR);
     } else {
         BLST_D_REMOVE(&group->members, event, list);
@@ -1175,7 +1200,18 @@ BKNI_WaitForGroup(BKNI_EventGroupHandle group, int timeoutMsec, BKNI_EventHandle
 
     init_waitqueue_entry(&wqe, current);
     add_wait_queue(&group->wq, &wqe);
-    
+
+    if (timeoutMsec!=0 && timeoutMsec!=BKNI_INFINITE) {
+        if (timeoutMsec<0) {
+            /* If your app is written to allow negative values to this function, then it's highly likely you would allow -1, which would
+            result in an infinite hang. We recommend that you only pass positive values to this function unless you definitely mean BKNI_INFINITE. */
+            BDBG_WRN(("BKNI_WaitForEvent given negative timeout. Possible infinite hang if timeout happens to be -1 (BKNI_INFINITE)."));
+        }
+        if (timeoutMsec < 16) {
+            timeoutMsec = 16; /* This is used to achieve consistency between different OS's. */
+        }
+    }
+
     if (timeoutMsec == BKNI_INFINITE)
         ticks = MAX_SCHEDULE_TIMEOUT;
     else if (timeoutMsec)

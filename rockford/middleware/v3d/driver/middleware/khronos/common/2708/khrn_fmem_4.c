@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2010 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2010 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -25,7 +25,7 @@ generated each frame as HW input.
 static void tweak_init(KHRN_FMEM_T *fmem, KHRN_FMEM_TWEAK_LIST_T *list);
 static KHRN_FMEM_TWEAK_T *tweak_new(KHRN_FMEM_T *fmem, MEM_LOCK_T *lbh);
 static KHRN_FMEM_TWEAK_T *tweak_next(KHRN_FMEM_T *fmem, KHRN_FMEM_TWEAK_LIST_T *list);
-static void tweak_close(KHRN_FMEM_T *fmem, KHRN_FMEM_TWEAK_LIST_T *list);
+static void tweak_close(KHRN_FMEM_TWEAK_LIST_T *list);
 static bool alloc_next(KHRN_FMEM_T *fmem);
 static bool fix(KHRN_FMEM_T *fmem, uint8_t *location, MEM_HANDLE_T handle, uint32_t offset);
 static void do_fix_lock(KHRN_FMEM_T *fmem);
@@ -86,7 +86,7 @@ KHRN_FMEM_T *khrn_fmem_init(KHRN_INTERLOCK_USER_T interlock_user)
 void khrn_fmem_discard(KHRN_FMEM_T *fmem)
 {
    vcos_assert(!fmem->nmem_entered);
-   tweak_close(fmem, &fmem->interlock);
+   tweak_close(&fmem->interlock);
    do_interlock_release(fmem);
    khrn_nmem_group_term(&fmem->nmem_group);
 }
@@ -242,10 +242,10 @@ void khrn_fmem_prep_for_job(KHRN_FMEM_T *fmem, uint32_t bin_mem, uint32_t bin_me
 {
    uint32_t     specials[4];
 
-   tweak_close(fmem, &fmem->special);
-   tweak_close(fmem, &fmem->interlock);
+   tweak_close(&fmem->special);
+   tweak_close(&fmem->interlock);
 #ifndef NO_OPENVG
-   tweak_close(fmem, &fmem->ramp);
+   tweak_close(&fmem->ramp);
 #endif /* NO_OPENVG */
 
    do_interlock_transfer(fmem);
@@ -267,10 +267,10 @@ void khrn_fmem_prep_for_job(KHRN_FMEM_T *fmem, uint32_t bin_mem, uint32_t bin_me
 
 void khrn_fmem_prep_for_render_only_job(KHRN_FMEM_T *fmem)
 {
-   tweak_close(fmem, &fmem->special);
-   tweak_close(fmem, &fmem->interlock);
+   tweak_close(&fmem->special);
+   tweak_close(&fmem->interlock);
 #ifndef NO_OPENVG
-   tweak_close(fmem, &fmem->ramp);
+   tweak_close(&fmem->ramp);
 #endif /* NO_OPENVG */
 
    do_interlock_transfer(fmem);
@@ -321,7 +321,7 @@ static void tweak_init(KHRN_FMEM_T *fmem, KHRN_FMEM_TWEAK_LIST_T *list)
    vcos_assert(list->start);   /* Should be enough room in initial block that this didn't fail */
 }
 
-static void tweak_close(KHRN_FMEM_T *fmem, KHRN_FMEM_TWEAK_LIST_T *list)
+static void tweak_close(KHRN_FMEM_TWEAK_LIST_T *list)
 {
    list->header->count = list->i;
 }
@@ -363,17 +363,13 @@ static void do_fix_lock(KHRN_FMEM_T *fmem)
 {
    KHRN_FMEM_FIX_T *f;
    uint32_t i;
-   uint32_t count;
-   void *pointers[TWEAK_COUNT];
-   MEM_LOCK_T lbh[TWEAK_COUNT];
 
    for (f = fmem->fix_start; f != NULL; f = f->next)
    {
-      count = f->count;
-      mem_lock_multiple(pointers, lbh, f->handles, count);
-      for (i = 0; i < count; i++)
+      for (i = 0; i < f->count; i++)
       {
-         put_word(f->locations[i], khrn_hw_addr(pointers[i], &lbh[i]));    //PTR
+         uint32_t offset = mem_lock_offset(f->handles[i].mh_handle);
+         put_word(f->locations[i], offset + f->handles[i].offset);    //PTR
       }
    }
 }
@@ -381,10 +377,15 @@ static void do_fix_lock(KHRN_FMEM_T *fmem)
 static void do_fix_unlock(KHRN_FMEM_T *fmem)
 {
    KHRN_FMEM_FIX_T *f;
+   uint32_t i;
 
    for (f = fmem->fix_start; f != NULL; f = f->next)
    {
-      mem_unlock_unretain_release_multiple(f->handles, f->count);
+      for (i = 0; i < f->count; i++)
+      {
+         mem_unlock(f->handles[i].mh_handle);
+         mem_release(f->handles[i].mh_handle);
+      }
    }
 }
 
@@ -453,7 +454,9 @@ static void do_ramp_lock(KHRN_FMEM_T *fmem)
       for (i = 1; i <= h->count; i++)
       {
          ramp = (VG_RAMP_T *)mem_lock(h[i].ramp_handle, NULL);
-         *h[i].ramp_location += khrn_hw_addr(mem_lock(ramp->data, NULL), NULL);
+         MEM_LOCK_T lbh;
+         void *ramp_location = mem_lock(ramp->data, &lbh);
+         *h[i].ramp_location += khrn_hw_addr(ramp_location, &lbh);
          mem_unlock(h[i].ramp_handle);
       }
    }
@@ -536,7 +539,7 @@ bool khrn_fmem_add_fix_special_0(KHRN_FMEM_T *fmem, uint8_t **p, MEM_HANDLE_T ha
    }
 }
 
-bool khrn_fmem_add_fix_image(KHRN_FMEM_T *fmem, uint8_t **p, uint32_t render_i, MEM_HANDLE_T image_handle, uint32_t offset)
+bool khrn_fmem_add_fix_image(KHRN_FMEM_T *fmem, uint8_t **p, MEM_HANDLE_T image_handle, uint32_t offset)
 {
    bool result;
    KHRN_IMAGE_T *image;
@@ -545,7 +548,6 @@ bool khrn_fmem_add_fix_image(KHRN_FMEM_T *fmem, uint8_t **p, uint32_t render_i, 
       return false;
    }
    image = (KHRN_IMAGE_T *)mem_lock(image_handle, NULL);
-   //khrn_interlock_read(&image->interlock, render_i);
 
    result = khrn_fmem_add_fix(fmem, p, image->mh_storage, image->offset + offset);
    mem_unlock(image_handle);

@@ -1,19 +1,43 @@
 <html><head><title>Broadcom STB Web Applications</title><script  type="text/javascript" src="bpower.js" ></script></head>
 <body lang=EN-US onload="MyLoad();">
-<table cols=2 border=0 >
-    <tr><td><img src="brcm-logo-white.jpg" width="100" id="brcmlogo" onclick="MyClick(event);" /></td></td>
+<table cols=2 border=0 width=80% style="border-collapse:collapse;" >
+    <tr><td width=220 ><img src="brcm-logo-white.jpg" width="200" id="brcmlogo" onclick="MyClick(event);" /></td>
         <td valign=middle style="font-size:28pt;" ><b id=h1bpower onclick="MyClick(event);" >Bpower - Power and Clock Tool</b></td>
     </tr></table>
 <hr>
 <table cols=2 border=0 id=overalltable > <!-- this outer table is used to hide big sections when checkbox is not checked -->
 <!---------------------------------------------------------------------------------------------------------------------------------------------------------------->
 
-<tr id=row_checkboxes style="visibility:display;" ><th align=left valign=top id=CHECKBOXES colspan=2 >
-    <table >
+<tr id=row_checkboxes style="visibility:display;" >
+    <th align=left valign=top id=CHECKBOXES colspan=2 >
+      <table >
         <tr>
-            <td width=150 ><input type=checkbox id=checkboxclocks onclick="MyClick(event);" >Power&nbsp;Management</td>
-    </table>
-    </tr>
+            <td width=150 >
+              <table border=0 style="border-collapse:collapse;" >
+                <tr>
+                    <td style="border:solid white 1px;" >
+                      <table cols=4 border=0 style="border-collapse:collapse;" >
+                        <tr>
+                          <td style="border:solid white 1px;" ><input type=checkbox id=checkboxGetThermal      onclick="MyClick(event);" ></td>
+                          <td style="border:solid white 1px;" >Thermal</td>
+                          <td style="border:solid white 1px;" id=tdCelcius >(C)</td>
+                          <td style="border:solid white 1px;" ><input type=checkbox id=checkboxGetThermalScale onclick="MyClick(event);" checked ></td>
+                          <td style="border:solid white 1px;" ><div style="width:30px" >&nbsp;</div></td>
+                        </tr>
+                     </table>
+                  </td>
+                  <td><input type=checkbox id=checkboxclocks onclick="MyClick(event);" ></td><td><div id=ClockTreeTag >Clock&nbsp;Tree</div></td>
+                </tr>
+              </table>
+            </td>
+        </tr>
+     </table>
+    </th>
+</tr>
+
+<!---------------------------------------------------------------------------------------------------------------------------------------------------------------->
+
+<tr id=row_GetThermal style="visibility:display;" ><th align=left valign=top id=GetThermalSvg colspan=2 ></th></tr>
 
 <!---------------------------------------------------------------------------------------------------------------------------------------------------------------->
 

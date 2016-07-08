@@ -1,22 +1,42 @@
 /***************************************************************************
- *     Copyright (c) 2006-2014, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description: Audio PI Device Level Interface
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ***************************************************************************/
 
 #include "bstd.h"
@@ -60,10 +80,16 @@ void BAPE_GetDefaultSettings(
     BDBG_ASSERT(NULL != pSettings);
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
     pSettings->maxDspTasks = BAPE_CHIP_MAX_DSP_TASKS;
+    pSettings->maxArmTasks = BAPE_CHIP_MAX_ARM_TASKS;
     pSettings->rampPcmSamples = true;
     pSettings->maxIndependentDelay = 0;
     pSettings->maxPcmSampleRate = 48000;
     pSettings->numPcmBuffers = BAPE_CHIP_DEFAULT_NUM_PCM_BUFFERS;
+    if ( BAPE_P_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eMS12 &&
+         BAPE_P_GetDolbyMS12Config() == BAPE_DolbyMs12Config_eA )
+    {
+        pSettings->numPcmBuffers += 1;
+    }
     pSettings->numCompressedBuffers = BAPE_CHIP_DEFAULT_NUM_COMPRESSED_BUFFERS;
     pSettings->numCompressed4xBuffers = BAPE_CHIP_DEFAULT_NUM_COMPRESSED_4X_BUFFERS;
     pSettings->numCompressed16xBuffers = BAPE_CHIP_DEFAULT_NUM_COMPRESSED_16X_BUFFERS;
@@ -201,6 +227,7 @@ BERR_Code BAPE_Open(
     BINT_Handle intHandle,
     BTMR_Handle tmrHandle,
     BDSP_Handle dspHandle,
+    BDSP_Handle armHandle,
     const BAPE_Settings *pSettings  /* NULL will use default settings */
     )
 {
@@ -217,7 +244,7 @@ BERR_Code BAPE_Open(
     BDBG_ASSERT(NULL != memHandle);
     BDBG_ASSERT(NULL != intHandle);
     BDBG_ASSERT(NULL != tmrHandle);
-    
+
     if ( NULL == pSettings )
     {
         BAPE_GetDefaultSettings(&defaultSettings);
@@ -231,7 +258,7 @@ BERR_Code BAPE_Open(
         errCode = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
         goto err_handle;
     }
-    /* Initialize structure */    
+    /* Initialize structure */
     BKNI_Memset(handle, 0, sizeof(BAPE_Device));
     BDBG_OBJECT_SET(handle, BAPE_Device);
     handle->chpHandle = chpHandle;
@@ -240,6 +267,7 @@ BERR_Code BAPE_Open(
     handle->intHandle = intHandle;
     handle->tmrHandle = tmrHandle;
     handle->dspHandle = dspHandle;
+    handle->armHandle = armHandle;
     handle->settings = *pSettings;
     BLST_S_INIT(&handle->mixerList);
 
@@ -283,14 +311,14 @@ BERR_Code BAPE_Open(
     /* Buffer Allocations */
     for ( i = 0; i < BAPE_MAX_BUFFER_POOLS; i++ )
     {
-        static const BAPE_DataType validTypes[BAPE_MAX_BUFFER_POOLS][BAPE_DataType_eMax] = 
+        static const BAPE_DataType validTypes[BAPE_MAX_BUFFER_POOLS][BAPE_DataType_eMax] =
         {
             {BAPE_DataType_ePcmStereo, BAPE_DataType_ePcm5_1, BAPE_DataType_ePcm7_1, BAPE_DataType_eMax},
             {BAPE_DataType_eIec61937, BAPE_DataType_eMax},
             {BAPE_DataType_eIec61937, BAPE_DataType_eIec61937x4, BAPE_DataType_ePcmRf, BAPE_DataType_eMax},
             {BAPE_DataType_eIec61937, BAPE_DataType_eIec61937x4, BAPE_DataType_ePcmRf, BAPE_DataType_eIec61937x16, BAPE_DataType_eMax}
         };
-        static const BAPE_DataSource validSources[] = 
+        static const BAPE_DataSource validSources[] =
         {
             BAPE_DataSource_eDspBuffer, BAPE_DataSource_eHostBuffer, BAPE_DataSource_eDfifo, BAPE_DataSource_eFci, BAPE_DataSource_eMax
         };
@@ -353,16 +381,15 @@ BERR_Code BAPE_Open(
             (void)BERR_TRACE(errCode);
             goto err_context;
         }
-    }
 
-    #if BDBG_DEBUG_BUILD
-    /* log supported BDSP algos */
-    {
+        #if BDBG_DEBUG_BUILD
+        /* log supported BDSP algos */
+        {
         BDSP_AlgorithmInfo algoInfo;
         BERR_Code errCode;
         unsigned i;
 
-        BDBG_MODULE_MSG(bape_algos, ("*** ENABLED DECODE/PT/ENCODE BDSP ALGOS ***"));
+        BDBG_MODULE_MSG(bape_algos, ("*** ENABLED RAAGA DECODE/PT/ENCODE BDSP ALGOS ***"));
         BDBG_MODULE_MSG(bape_algos, ("*** ----------------------------------- ***"));
         BDBG_MODULE_MSG(bape_algos, ("    (BDSP_Algorithm) | Name"));
         for ( i=0; i<BDSP_Algorithm_eGenericPassthrough; i++ )
@@ -370,14 +397,14 @@ BERR_Code BAPE_Open(
             if ( BAPE_DSP_P_AlgorithmSupportedByApe(handle, i) )
             {
                 errCode = BDSP_GetAlgorithmInfo(handle->dspHandle, i, &algoInfo);
-                if ( !errCode ) 
+                if ( !errCode )
                 {
                     BDBG_MODULE_MSG(bape_algos, ("    (%02d) | %s ", i, algoInfo.pName));
                 }
             }
         }
         BDBG_MODULE_MSG(bape_algos, ("*** ----------------------------------- ***"));
-        BDBG_MODULE_MSG(bape_algos, ("***   ENABLED OTHER ALGOS/PROCESSING    ***"));
+        BDBG_MODULE_MSG(bape_algos, ("***   ENABLED RAAGA OTHER ALGOS/PROCESSING    ***"));
         BDBG_MODULE_MSG(bape_algos, ("*** ----------------------------------- ***"));
         BDBG_MODULE_MSG(bape_algos, ("    (BDSP_Algorithm) | Name"));
         for ( i=BDSP_Algorithm_eGenericPassthrough; i<BDSP_Algorithm_eAudioProcessing_EndIdx; i++ )
@@ -385,24 +412,87 @@ BERR_Code BAPE_Open(
             if ( BAPE_DSP_P_AlgorithmSupported(handle, i) )
             {
                 errCode = BDSP_GetAlgorithmInfo(handle->dspHandle, i, &algoInfo);
-                if ( !errCode ) 
+                if ( !errCode )
                 {
                     BDBG_MODULE_MSG(bape_algos, ("    (%02d) | %s ", i, algoInfo.pName));
                 }
             }
         }
         BDBG_MODULE_MSG(bape_algos, ("*** ----------------------------------- ***"));
-    }        
-    #endif
+        }
+        #endif
+    }
 
+    #if BDSP_ARM_AUDIO_SUPPORT
+    if ( handle->armHandle )
+    {
+        BDSP_ContextCreateSettings dspContextSettings;
+        BDSP_Status dspStatus;
+
+        /* Determine num dsps */
+        BDSP_GetStatus(handle->armHandle, &dspStatus);
+        handle->numArms = dspStatus.numDsp;
+
+        /* Create DSP Context */
+        BDSP_Context_GetDefaultCreateSettings(handle->armHandle, BDSP_ContextType_eAudio, &dspContextSettings);
+        dspContextSettings.maxTasks = pSettings->maxArmTasks;
+        errCode = BDSP_Context_Create(handle->armHandle, &dspContextSettings, &handle->armContext);
+        if ( errCode )
+        {
+            (void)BERR_TRACE(errCode);
+            goto err_arm_context;
+        }
+
+        #if BDBG_DEBUG_BUILD
+        /* log supported BDSP algos */
+        {
+        BDSP_AlgorithmInfo algoInfo;
+        BERR_Code errCode;
+        unsigned i;
+
+        BDBG_MODULE_MSG(bape_algos, ("*** ENABLED ARM DECODE/PT/ENCODE BDSP ALGOS ***"));
+        BDBG_MODULE_MSG(bape_algos, ("*** ----------------------------------- ***"));
+        BDBG_MODULE_MSG(bape_algos, ("    (BDSP_Algorithm) | Name"));
+        for ( i=0; i<BDSP_Algorithm_eGenericPassthrough; i++ )
+        {
+            if ( BAPE_DSP_P_AlgorithmSupportedByApe(handle, i) )
+            {
+                errCode = BDSP_GetAlgorithmInfo(handle->armHandle, i, &algoInfo);
+                if ( !errCode )
+                {
+                    BDBG_MODULE_MSG(bape_algos, ("    (%02d) | %s ", i, algoInfo.pName));
+                }
+            }
+        }
+        BDBG_MODULE_MSG(bape_algos, ("*** ----------------------------------- ***"));
+        BDBG_MODULE_MSG(bape_algos, ("***   ENABLED ARM OTHER ALGOS/PROCESSING    ***"));
+        BDBG_MODULE_MSG(bape_algos, ("*** ----------------------------------- ***"));
+        BDBG_MODULE_MSG(bape_algos, ("    (BDSP_Algorithm) | Name"));
+        for ( i=BDSP_Algorithm_eGenericPassthrough; i<BDSP_Algorithm_eAudioProcessing_EndIdx; i++ )
+        {
+            if ( BAPE_DSP_P_AlgorithmSupported(handle, i) )
+            {
+                errCode = BDSP_GetAlgorithmInfo(handle->armHandle, i, &algoInfo);
+                if ( !errCode )
+                {
+                    BDBG_MODULE_MSG(bape_algos, ("    (%02d) | %s ", i, algoInfo.pName));
+                }
+            }
+        }
+        BDBG_MODULE_MSG(bape_algos, ("*** ----------------------------------- ***"));
+        }
+        #endif
+    }
+    #endif
 #endif
-    
+
+
 #if BAPE_CHIP_MAX_PLLS > 0
     errCode = BAPE_P_InitTimers(handle);
     if ( errCode )
     {
         (void)BERR_TRACE(errCode);
-        goto err_timer;    
+        goto err_timer;
     }
 #endif
 
@@ -418,6 +508,14 @@ err_timer:
     BAPE_P_DestroyTimers(handle);
 #endif
 #if BAPE_DSP_SUPPORT
+#if BDSP_ARM_AUDIO_SUPPORT
+    if ( handle->armContext )
+    {
+        BDSP_Context_Destroy(handle->armContext);
+        handle->armContext = NULL;
+    }
+err_arm_context:
+#endif
     if ( handle->dspContext )
     {
         BDSP_Context_Destroy(handle->dspContext);
@@ -439,7 +537,7 @@ err_buffer:
         }
     }
     BAPE_P_UninitInterrupts(handle);
-err_interrupt:    
+err_interrupt:
 err_fmm:
     BDBG_OBJECT_DESTROY(handle, BAPE_Device);
     BKNI_Free(handle);
@@ -683,6 +781,13 @@ void BAPE_Close(
 #endif
 
 #if BAPE_DSP_SUPPORT
+#if BDSP_ARM_AUDIO_SUPPORT
+    if ( handle->armContext )
+    {
+        BDSP_Context_Destroy(handle->armContext);
+        handle->armContext = NULL;
+    }
+#endif
     if ( handle->dspContext )
     {
         BDSP_Context_Destroy(handle->dspContext);
@@ -701,22 +806,22 @@ void BAPE_Close(
         switch ( i )
         {
         case 0:
-            BDBG_MODULE_MSG(bape_mem, ("***            PCM:  allocated %d, max used %d ***", 
+            BDBG_MODULE_MSG(bape_mem, ("***            PCM:  allocated %d, max used %d ***",
                 handle->buffers[i].numBuffers,
                 handle->buffers[i].maxUsed));
             break;
         case 1:
-            BDBG_MODULE_MSG(bape_mem, ("***     COMPRESSED:  allocated %d, max used %d ***", 
+            BDBG_MODULE_MSG(bape_mem, ("***     COMPRESSED:  allocated %d, max used %d ***",
                 handle->buffers[i].numBuffers,
                 handle->buffers[i].maxUsed));
             break;
         case 2:
-            BDBG_MODULE_MSG(bape_mem, ("***  COMPRESSED 4x:  allocated %d, max used %d ***", 
+            BDBG_MODULE_MSG(bape_mem, ("***  COMPRESSED 4x:  allocated %d, max used %d ***",
                 handle->buffers[i].numBuffers,
                 handle->buffers[i].maxUsed));
             break;
         case 3:
-            BDBG_MODULE_MSG(bape_mem, ("*** COMPRESSED 16x:  allocated %d, max used %d ***", 
+            BDBG_MODULE_MSG(bape_mem, ("*** COMPRESSED 16x:  allocated %d, max used %d ***",
                 handle->buffers[i].numBuffers,
                 handle->buffers[i].maxUsed));
              break;
@@ -872,20 +977,20 @@ static BERR_Code BAPE_P_InitFmmHw(BAPE_Handle handle)
     /* Assert toplevel reset */
     BREG_Write32(regHandle, BCHP_AUD_FMM_MISC_RESET, 0);
     regVal = BREG_Read32(regHandle, BCHP_AUD_FMM_MISC_RESET);
-    regVal |= 
+    regVal |=
             (BCHP_FIELD_ENUM (AUD_FMM_MISC_RESET, RESET_TOP_LOGIC_B, Inactive))
     #ifdef BCHP_AUD_FMM_MISC_RESET_RESET_SPDIFRX_LOGIC_B_Inactive
           | (BCHP_FIELD_ENUM (AUD_FMM_MISC_RESET, RESET_HDMIRX_LOGIC_B, Inactive))
           | (BCHP_FIELD_ENUM (AUD_FMM_MISC_RESET, RESET_HDMIRX_REGS_B, Inactive))
           | (BCHP_FIELD_ENUM (AUD_FMM_MISC_RESET, RESET_SPDIFRX_LOGIC_B, Inactive))
-          | (BCHP_FIELD_ENUM (AUD_FMM_MISC_RESET, RESET_SPDIFRX_REGS_B, Inactive))      
-    #else 
+          | (BCHP_FIELD_ENUM (AUD_FMM_MISC_RESET, RESET_SPDIFRX_REGS_B, Inactive))
+    #else
         #ifdef BCHP_AUD_FMM_MISC_RESET_RESET_SPDIFRX_0_LOGIC_B_Inactive
           | (BCHP_FIELD_ENUM (AUD_FMM_MISC_RESET, RESET_SPDIFRX_0_LOGIC_B, Inactive))
-          | (BCHP_FIELD_ENUM (AUD_FMM_MISC_RESET, RESET_SPDIFRX_0_REGS_B, Inactive)) 
+          | (BCHP_FIELD_ENUM (AUD_FMM_MISC_RESET, RESET_SPDIFRX_0_REGS_B, Inactive))
           | (BCHP_FIELD_ENUM (AUD_FMM_MISC_RESET, RESET_SPDIFRX_1_LOGIC_B, Inactive))
           | (BCHP_FIELD_ENUM (AUD_FMM_MISC_RESET, RESET_SPDIFRX_1_REGS_B, Inactive))
-        #endif 
+        #endif
     #endif
 
           | (BCHP_FIELD_ENUM (AUD_FMM_MISC_RESET, RESET_OP_LOGIC_B, Inactive))
@@ -897,7 +1002,7 @@ static BERR_Code BAPE_P_InitFmmHw(BAPE_Handle handle)
           | (BCHP_FIELD_ENUM (AUD_FMM_MISC_RESET, RESET_SRC_REGS_B, Inactive))
     #ifdef BCHP_AUD_FMM_MISC_RESET_RESET_ADC_CIC_REGS_B_Inactive
           | (BCHP_FIELD_ENUM (AUD_FMM_MISC_RESET, RESET_ADC_CIC_REGS_B, Inactive))
-    #endif      
+    #endif
           | (BCHP_FIELD_ENUM (AUD_FMM_MISC_RESET, RESET_DP_LOGIC_B, Inactive))
           | (BCHP_FIELD_ENUM (AUD_FMM_MISC_RESET, RESET_DP_REGS_B, Inactive))
           | (BCHP_FIELD_ENUM (AUD_FMM_MISC_RESET, RESET_BF_LOGIC_B, Inactive))
@@ -916,7 +1021,7 @@ static BERR_Code BAPE_P_InitFmmHw(BAPE_Handle handle)
           | (BCHP_FIELD_ENUM (AUD_FMM_MISC_RESET, RESET_BF_REGS_B, Inactive));
     BREG_Write32(regHandle, BCHP_AUD_FMM_MISC_RESET, regVal);
 
-    /* Powerup the FMM Modules */        
+    /* Powerup the FMM Modules */
     regVal = BREG_Read32(regHandle, BCHP_AIO_MISC_PWRDOWN);
 
 #if BCHP_AIO_MISC_PWRDOWN_ADC_RESET_Reset
@@ -935,12 +1040,12 @@ static BERR_Code BAPE_P_InitFmmHw(BAPE_Handle handle)
                (BCHP_FIELD_DATA (AIO_MISC_PWRDOWN, ADC_L_PWRUP, 1)) |
                (BCHP_FIELD_ENUM (AIO_MISC_PWRDOWN, ADC_RESET, Normal)) |
                (BCHP_FIELD_ENUM (AIO_MISC_PWRDOWN, ADC_PWRUP_CORE, Normal)) |
-               (BCHP_FIELD_ENUM (AIO_MISC_PWRDOWN, SPDIF_RX0, Normal)));    
+               (BCHP_FIELD_ENUM (AIO_MISC_PWRDOWN, SPDIF_RX0, Normal)));
 #endif
 
-#if BCHP_AIO_MISC_PWRDOWN_SPDIF_RX_Powerdown       
+#if BCHP_AIO_MISC_PWRDOWN_SPDIF_RX_Powerdown
     regVal &= ~(BCHP_MASK (AIO_MISC_PWRDOWN, SPDIF_RX));
-    regVal |= (BCHP_FIELD_ENUM (AIO_MISC_PWRDOWN, SPDIF_RX, Normal));  
+    regVal |= (BCHP_FIELD_ENUM (AIO_MISC_PWRDOWN, SPDIF_RX, Normal));
 #endif
 
     BREG_Write32(regHandle, BCHP_AIO_MISC_PWRDOWN, regVal);
@@ -952,7 +1057,7 @@ static BERR_Code BAPE_P_InitFmmHw(BAPE_Handle handle)
     regVal = BCHP_FIELD_ENUM(AUD_MISC_INIT, AUDIO_INIT, Inactive);
     BREG_Write32(regHandle, BCHP_AUD_MISC_INIT, regVal);
 
-    /* Powerup the FMM Modules */        
+    /* Powerup the FMM Modules */
     regVal = BREG_Read32(regHandle, BCHP_AUD_MISC_PWRDOWN);
 
     #if BCHP_AUD_MISC_PWRDOWN_ADC_RESET_Reset
@@ -971,12 +1076,12 @@ static BERR_Code BAPE_P_InitFmmHw(BAPE_Handle handle)
                (BCHP_FIELD_DATA (AUD_MISC_PWRDOWN, ADC_L_PWRUP, 1)) |
                (BCHP_FIELD_ENUM (AUD_MISC_PWRDOWN, ADC_RESET, Normal)) |
                (BCHP_FIELD_ENUM (AUD_MISC_PWRDOWN, ADC_PWRUP_CORE, Normal)) |
-               (BCHP_FIELD_ENUM (AUD_MISC_PWRDOWN, SPDIF_RX0, Normal)));    
+               (BCHP_FIELD_ENUM (AUD_MISC_PWRDOWN, SPDIF_RX0, Normal)));
     #endif
 
-    #if BCHP_AUD_MISC_PWRDOWN_SPDIF_RX_Powerdown       
+    #if BCHP_AUD_MISC_PWRDOWN_SPDIF_RX_Powerdown
     regVal &= ~(BCHP_MASK (AUD_MISC_PWRDOWN, SPDIF_RX));
-    regVal |= (BCHP_FIELD_ENUM (AUD_MISC_PWRDOWN, SPDIF_RX, Normal));  
+    regVal |= (BCHP_FIELD_ENUM (AUD_MISC_PWRDOWN, SPDIF_RX, Normal));
     #endif
 
     BREG_Write32(regHandle, BCHP_AUD_MISC_PWRDOWN, regVal);
@@ -1006,12 +1111,12 @@ static BERR_Code BAPE_P_InitTimers(BAPE_Handle handle)
     int i;
     BERR_Code errCode;
     for(i = 0; i < BAPE_CHIP_MAX_PLLS; i++)
-    {       
+    {
        BTMR_GetDefaultTimerSettings(&timerSettings);
        timerSettings.type = BTMR_Type_eCountDown;
        timerSettings.cb_isr = BAPE_P_VerifyPllCallback_isr;
        timerSettings.pParm1 = (void *)handle;
-       timerSettings.parm2 = i;                 
+       timerSettings.parm2 = i;
        errCode = BTMR_CreateTimer(handle->tmrHandle, &handle->pllTimer[i], &timerSettings);
        if ( errCode ) return BERR_TRACE(errCode);
    }
@@ -1019,7 +1124,7 @@ static BERR_Code BAPE_P_InitTimers(BAPE_Handle handle)
 }
 static void BAPE_P_DestroyTimers(BAPE_Handle handle)
 {
-    int i;    
+    int i;
     for(i = 0; i < BAPE_CHIP_MAX_PLLS; i++)
     {
         if (handle->pllTimer[i] != NULL)
@@ -1307,7 +1412,7 @@ static BERR_Code BAPE_P_StandbyFmmHw(BAPE_Handle handle)
 
     /* Since all channels are stopped, we can relese the unused "path resources"
      * and that should release everything... That way, when we resume from standby,
-     * then all of the resources will be reallocated (causing the corresponding 
+     * then all of the resources will be reallocated (causing the corresponding
      * hardware to be reconfigured to its proper state).
      */
     BAPE_P_ReleaseUnusedPathResources(handle);
@@ -1405,7 +1510,7 @@ BERR_Code BAPE_Standby(
 #endif
 
     BDBG_OBJECT_ASSERT(handle, BAPE_Device);
-    
+
     BSTD_UNUSED(pSettings);
 
 #ifdef BCHP_PWR_SUPPORT
@@ -1439,10 +1544,10 @@ BERR_Code BAPE_Standby(
             return BERR_UNKNOWN;
         }
     }
-#endif       
+#endif
 #if BAPE_CHIP_MAX_PLLS > 0
     BAPE_P_DestroyTimers(handle);
-#endif        
+#endif
 
     /* if we reach here, then no channels are active. we can power down */
     if (!handle->bStandby)
@@ -1471,7 +1576,7 @@ BERR_Code BAPE_Standby(
     }
 #endif
 
-    return BERR_SUCCESS;    
+    return BERR_SUCCESS;
 }
 
 BERR_Code BAPE_Resume(
@@ -1492,15 +1597,15 @@ BERR_Code BAPE_Resume(
 #endif
 #ifdef BCHP_PWR_RESOURCE_AUD_PLL1
         BCHP_PWR_AcquireResource(handle->chpHandle, BCHP_PWR_RESOURCE_AUD_PLL1);
-#endif   
+#endif
 #ifdef BCHP_PWR_RESOURCE_AUD_PLL2
         BCHP_PWR_AcquireResource(handle->chpHandle, BCHP_PWR_RESOURCE_AUD_PLL2);
-#endif      
+#endif
 
         {
             BERR_Code   errCode;
 
-            /* Put the FMM hardware into the "initial" state... the state that 
+            /* Put the FMM hardware into the "initial" state... the state that
              * BAPE_Open() leaves things in.
              */
             errCode = BAPE_P_InitFmmHw(handle);
@@ -1509,13 +1614,13 @@ BERR_Code BAPE_Resume(
             /* Recreate and enable the APE global interrupts. */
             errCode = BAPE_P_InitInterrupts(handle);
             if ( errCode ) return BERR_TRACE(errCode);
-        
+
             /* Now bring inputs and outputs into their "open" (but "unstarted") state. */
             errCode = BAPE_P_ResumeFmmHw(handle);
             if ( errCode ) return BERR_TRACE(errCode);
 #if BAPE_CHIP_MAX_PLLS > 0
             errCode = BAPE_P_InitTimers(handle);
-            if ( errCode ) return BERR_TRACE(errCode);            
+            if ( errCode ) return BERR_TRACE(errCode);
 #endif
         }
     }
@@ -1619,7 +1724,7 @@ void BAPE_GetCapabilities(
                       dspStatus.firmwareVersion.branchVersion,
                       dspStatus.firmwareVersion.branchSubVersion);
 
-        for ( i = 0; i < BAVC_AudioCompressionStd_eMax; i++ )        
+        for ( i = 0; i < BAVC_AudioCompressionStd_eMax; i++ )
         {
             pAttributes = BAPE_P_GetCodecAttributes_isrsafe(i);
             BDBG_ASSERT(NULL != pAttributes);
@@ -1725,6 +1830,12 @@ void BAPE_GetCapabilities(
             {
                 pCaps->dsp.codecs[BAVC_AudioCompressionStd_eAc3Plus].encode = false;
             }
+
+            if ( pCaps->dsp.codecs[BAVC_AudioCompressionStd_eAc3].encode &&
+                 (BAPE_P_GetDolbyMSVersion_isrsafe() == BAPE_DolbyMSVersion_eMS12 || BAPE_P_GetDolbyMSVersion_isrsafe() == BAPE_DolbyMSVersion_eMS11) )
+            {
+                pCaps->dsp.codecs[BAVC_AudioCompressionStd_eAc3].encode = false;
+            }
         }
     }
 
@@ -1739,7 +1850,7 @@ void BAPE_GetCapabilities(
 }
 
 #if BAPE_DSP_SUPPORT
-void BAPE_P_PopulateSupportedBDSPAlgos( 
+void BAPE_P_PopulateSupportedBDSPAlgos(
     BDSP_AlgorithmType type, /* [in] */
     const BAVC_AudioCompressionStd * pSupportedCodecs, /* [in] */
     unsigned numSupportedCodecs, /* [in] */
@@ -1782,9 +1893,9 @@ void BAPE_P_PopulateSupportedBDSPAlgos(
             if ( inAlgorithmSupported[algo] )
             {
                 BDBG_MSG(("%s - %s BAVC codec %d is supported, BDSP algo %d", __FUNCTION__,
-                    (type==BDSP_AlgorithmType_eAudioDecode) ? "Decode" : 
-                    (type==BDSP_AlgorithmType_eAudioPassthrough) ? "Passthrough" : 
-                    (type==BDSP_AlgorithmType_eAudioEncode) ? "Encode" : 
+                    (type==BDSP_AlgorithmType_eAudioDecode) ? "Decode" :
+                    (type==BDSP_AlgorithmType_eAudioPassthrough) ? "Passthrough" :
+                    (type==BDSP_AlgorithmType_eAudioEncode) ? "Encode" :
                     "Invalid",
                     i, algo));
                 algoSupported[algo] = true;

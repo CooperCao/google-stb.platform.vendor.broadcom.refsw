@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,17 +35,9 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   API name: SpdifOutput
 *    Specific APIs related to SPDIF audio outputs.
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 #include "nexus_audio_module.h"
@@ -289,7 +281,7 @@ See Also:
  ***************************************************************************/
 NEXUS_Error NEXUS_SpdifOutput_SetRawChannelStatus(
     NEXUS_SpdifOutputHandle handle,
-    NEXUS_AudioRawChannelStatus *pChannelStatus
+    const NEXUS_AudioRawChannelStatus *pChannelStatus
     )
 {
     BDBG_OBJECT_ASSERT(handle, NEXUS_SpdifOutput);
@@ -406,7 +398,7 @@ NEXUS_AudioOutputHandle NEXUS_SpdifOutput_GetConnector(
 
 NEXUS_Error NEXUS_SpdifOutput_SetRawChannelStatus(
     NEXUS_SpdifOutputHandle handle,
-    NEXUS_AudioRawChannelStatus *pChannelStatus
+    const NEXUS_AudioRawChannelStatus *pChannelStatus
     )
 {
     BSTD_UNUSED(handle);

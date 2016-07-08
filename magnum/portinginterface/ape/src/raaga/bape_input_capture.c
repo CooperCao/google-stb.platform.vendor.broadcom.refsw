@@ -869,7 +869,7 @@ static BERR_Code BAPE_InputCapture_P_ConfigPathToOutput(
         unsigned numChannelPairs;
         unsigned i;
 
-        BDBG_MSG(("  SFIFO required", __FUNCTION__));
+        BDBG_MSG(("  SFIFO required"));
         if ( NULL == handle->pMasterConnection )
         {
             handle->pMasterConnection = pConnection;

@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2014 Broadcom Corporation
+ *     Broadcom Proprietary and Confidential. (c)2014 Broadcom.  All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -195,6 +195,8 @@ void BVC5_P_InitEventMonitor(
 
    BKNI_Memset(&hVC5->sEventMonitor, 0, sizeof(hVC5->sEventMonitor));
 
+   hVC5->sEventMonitor.uiCyclesPerUs = 1;
+
    BVC5_P_SetEventTrack(&hVC5->sEventMonitor, BVC5_P_EVENT_MONITOR_SCHED_TRACK, "Scheduler");
    BVC5_P_SetEventTrack(&hVC5->sEventMonitor, BVC5_P_EVENT_MONITOR_TFU_TRACK,   "TFU");
 
@@ -206,8 +208,17 @@ void BVC5_P_InitEventMonitor(
 
       start = BVC5_P_EVENT_MONITOR_NON_CORE_TRACKS + core * BVC5_P_EVENT_MONITOR_NUM_CORE_TRACKS;
 
+#if V3D_VER_AT_LEAST(3,3,0,0)
+      BVC5_P_SetCoreEventTrack(&hVC5->sEventMonitor, core, start + BVC5_P_EVENT_MONITOR_CORE_CLE_BIN_TRACK, "CLE Bin");
+      BVC5_P_SetCoreEventTrack(&hVC5->sEventMonitor, core, start + BVC5_P_EVENT_MONITOR_CORE_PTB_BIN_TRACK, "PTB Bin");
+      BVC5_P_SetCoreEventTrack(&hVC5->sEventMonitor, core, start + BVC5_P_EVENT_MONITOR_CORE_CLE_RDR_TRACK, "CLE Render");
+      BVC5_P_SetCoreEventTrack(&hVC5->sEventMonitor, core, start + BVC5_P_EVENT_MONITOR_CORE_TLB_RDR_TRACK, "TLB Render");
+#endif
+
+#if INCLUDE_LEGACY_EVENT_TRACKS
       BVC5_P_SetCoreEventTrack(&hVC5->sEventMonitor, core, start + BVC5_P_EVENT_MONITOR_CORE_BIN_TRACK,    "Binner");
       BVC5_P_SetCoreEventTrack(&hVC5->sEventMonitor, core, start + BVC5_P_EVENT_MONITOR_CORE_RENDER_TRACK, "Renderer");
+#endif
    }
 
    BVC5_P_SetEvents(&hVC5->sEventMonitor, BVC5_P_EVENT_MONITOR_BINNING,   "Binning",   numDeps);
@@ -373,6 +384,23 @@ static void BVC5_P_DeleteEventBuffer(
    }
 }
 
+static void BVC5_P_MeasureClockSpeed(
+   BVC5_Handle hVC5
+   )
+{
+   uint32_t uiCoreIndex = 0;
+   uint64_t uiStartUs, uiEndUs;
+   uint64_t uiStartCyc, uiEndCyc;
+
+   BVC5_P_GetTime_isrsafe(&uiStartUs);
+   uiStartCyc = BVC5_P_GetEventTimestamp(hVC5, uiCoreIndex);
+   BKNI_Sleep(100);
+   BVC5_P_GetTime_isrsafe(&uiEndUs);
+   uiEndCyc = BVC5_P_GetEventTimestamp(hVC5, uiCoreIndex);
+
+   hVC5->sEventMonitor.uiCyclesPerUs = (uiEndCyc - uiStartCyc) / (uiEndUs - uiStartUs);
+}
+
 static BERR_Code BVC5_P_SetEventCollection(
    BVC5_Handle       hVC5,
    uint32_t          uiClientId,
@@ -403,14 +431,27 @@ static BERR_Code BVC5_P_SetEventCollection(
             goto error;
          }
 
+#if V3D_VER_AT_LEAST(3,3,0,0)
+         /* We want to prevent the core from powering down whilst events are being gathered.
+          * Any reset will cause the on-core cycle counters to zero, which we don't want.
+          * Acquiring power here increments the internal power on counter and prevents power off. */
+         BVC5_P_HardwarePowerAcquire(hVC5, 0xFFFFFFFF);
+#endif
          hVC5->sEventMonitor.bAcquired = true;
          hVC5->sEventMonitor.uiClientId = uiClientId;
+
+         BVC5_P_MeasureClockSpeed(hVC5);
       }
 
       break;
    case BVC5_EventRelease:
       if (hVC5->sEventMonitor.bAcquired)
       {
+#if V3D_VER_AT_LEAST(3,3,0,0)
+         /* See comment above about preventing power-off whilst collecting event data. */
+         BVC5_P_HardwarePowerRelease(hVC5, 0xFFFFFFFF);
+#endif
+
          BVC5_P_DeleteEventBuffer(hVC5);
          hVC5->sEventMonitor.bAcquired = false;
          hVC5->sEventMonitor.uiClientId = 0;
@@ -418,7 +459,13 @@ static BERR_Code BVC5_P_SetEventCollection(
       break;
    case BVC5_EventStart:
       if (hVC5->sEventMonitor.bAcquired && hVC5->sEventMonitor.uiClientId == uiClientId)
+      {
+#if V3D_VER_AT_LEAST(3,3,0,0)
+         uint32_t uiCoreIndex = 0;
+         BVC5_P_HardwareClearEventFifos(hVC5, uiCoreIndex);
+#endif
          hVC5->sEventMonitor.bActive = true;
+      }
       else
          err = BERR_NOT_AVAILABLE;
       break;
@@ -519,8 +566,7 @@ uint32_t BVC5_GetEventData(
 
 error:
    if (puiTimeStamp)
-      BVC5_P_GetTime_isrsafe(puiTimeStamp);
-
+      *puiTimeStamp = BVC5_P_GetEventTimestamp(hVC5, 0);
 
    BKNI_ReleaseMutex(hVC5->hEventMutex);
    BKNI_ReleaseMutex(hVC5->hModuleMutex);
@@ -575,12 +621,12 @@ static bool AddEvent(
    uint32_t       uiId,
    uint32_t       uiEventIndex,
    BVC5_EventType eEventType,
-   bool           bAlreadyHaveEventMutex
+   bool           bAlreadyHaveEventMutex,
+   uint64_t       uiTimestamp
    )
 {
    BVC5_P_EventBuffer *psBuf = &hVC5->sEventMonitor.sBuffer;
    bool               ok = true;
-   uint64_t           now;
 
    if (!bAlreadyHaveEventMutex)
       BKNI_AcquireMutex(hVC5->hEventMutex);
@@ -593,8 +639,7 @@ static bool AddEvent(
       goto error;
    }
 
-   BVC5_P_GetTime_isrsafe(&now);
-   ok = ok && BVC5_P_Add64(hVC5, now);
+   ok = ok && BVC5_P_Add64(hVC5, uiTimestamp);
    ok = ok && BVC5_P_Add32(hVC5, uiTrackIndex);
    ok = ok && BVC5_P_Add32(hVC5, uiId);
    ok = ok && BVC5_P_Add32(hVC5, uiEventIndex);
@@ -618,7 +663,8 @@ static bool BVC5_P_AddEvent_priv(
    uint32_t       uiId,
    uint32_t       uiEventIndex,
    BVC5_EventType eEventType,
-   bool           bAlreadyHaveEventMutex
+   bool           bAlreadyHaveEventMutex,
+   uint64_t       uiTimestamp
    )
 {
    bool ret = true;
@@ -629,7 +675,8 @@ static bool BVC5_P_AddEvent_priv(
    if (!bAlreadyHaveEventMutex)
       BKNI_AcquireMutex(hVC5->hEventMutex);
 
-   ret = AddEvent(hVC5, uiTrack, uiId, uiEventIndex, eEventType, /*bAlreadyHaveEventMutex=*/true);
+   ret = AddEvent(hVC5, uiTrack, uiId, uiEventIndex, eEventType,
+                  /*bAlreadyHaveEventMutex=*/true, uiTimestamp);
 
    if (!bAlreadyHaveEventMutex)
       BKNI_ReleaseMutex(hVC5->hEventMutex);
@@ -642,10 +689,12 @@ bool BVC5_P_AddEvent(
    uint32_t       uiTrack,
    uint32_t       uiId,
    uint32_t       uiEventIndex,
-   BVC5_EventType eEventType
+   BVC5_EventType eEventType,
+   uint64_t       uiTimestamp
    )
 {
-   return BVC5_P_AddEvent_priv(hVC5, uiTrack, uiId, uiEventIndex, eEventType, /*bAlreadyHaveEventMutex=*/false);
+   return BVC5_P_AddEvent_priv(hVC5, uiTrack, uiId, uiEventIndex, eEventType,
+                               /*bAlreadyHaveEventMutex=*/false, uiTimestamp);
 }
 
 static bool BVC5_P_AddDeps(
@@ -676,7 +725,8 @@ bool BVC5_P_AddFlushEvent(
    BVC5_EventType eEventType,
    bool           clearL3,
    bool           clearL2C,
-   bool           clearL2T
+   bool           clearL2T,
+   uint64_t       uiTimestamp
    )
 {
    bool  ok = true;
@@ -696,7 +746,8 @@ bool BVC5_P_AddFlushEvent(
       goto error;
    }
 
-   ok = BVC5_P_AddEvent_priv(hVC5, BVC5_P_EVENT_MONITOR_SCHED_TRACK, uiId, BVC5_P_EVENT_MONITOR_FLUSH_VC5, eEventType, /*bAlreadyHaveEventMutex=*/true);
+   ok = BVC5_P_AddEvent_priv(hVC5, BVC5_P_EVENT_MONITOR_SCHED_TRACK, uiId, BVC5_P_EVENT_MONITOR_FLUSH_VC5, eEventType,
+                             /*bAlreadyHaveEventMutex=*/true, uiTimestamp);
 
    ok = ok && BVC5_P_Add32(hVC5, (uint32_t)clearL3);
    ok = ok && BVC5_P_Add32(hVC5, (uint32_t)clearL2C);
@@ -712,7 +763,8 @@ error:
 bool BVC5_P_AddTFUJobEvent(
    BVC5_Handle          hVC5,
    BVC5_EventType       eEventType,
-   BVC5_P_InternalJob  *psJob
+   BVC5_P_InternalJob  *psJob,
+   uint64_t             uiTimestamp
    )
 {
    bool  ok = true;
@@ -739,7 +791,8 @@ bool BVC5_P_AddTFUJobEvent(
          goto error;
       }
 
-      ok = BVC5_P_AddEvent_priv(hVC5, BVC5_P_EVENT_MONITOR_TFU_TRACK, (uint32_t)uiJobId, BVC5_P_EVENT_MONITOR_TFU, eEventType, /*bAlreadyHaveEventMutex=*/true);
+      ok = BVC5_P_AddEvent_priv(hVC5, BVC5_P_EVENT_MONITOR_TFU_TRACK, (uint32_t)uiJobId, BVC5_P_EVENT_MONITOR_TFU, eEventType,
+                                /*bAlreadyHaveEventMutex=*/true, uiTimestamp);
 
       ok = ok && BVC5_P_Add32(hVC5, psJob->uiClientId);
       ok = ok && BVC5_P_Add64(hVC5, uiJobId);
@@ -769,7 +822,8 @@ bool BVC5_P_AddCoreEvent_priv(
    uint32_t       uiId,
    uint32_t       uiEventIndex,
    BVC5_EventType eEventType,
-   bool           bAlreadyHaveEventMutex
+   bool           bAlreadyHaveEventMutex,
+   uint64_t       uiTimestamp
    )
 {
    uint32_t  uiTrackIndex = uiTrack + BVC5_P_EVENT_MONITOR_NON_CORE_TRACKS + BVC5_P_EVENT_MONITOR_NUM_CORE_TRACKS * uiCore;
@@ -777,7 +831,7 @@ bool BVC5_P_AddCoreEvent_priv(
    if (!hVC5->sEventMonitor.bActive)
       return true;
 
-   return AddEvent(hVC5, uiTrackIndex, uiId, uiEventIndex, eEventType, bAlreadyHaveEventMutex);
+   return AddEvent(hVC5, uiTrackIndex, uiId, uiEventIndex, eEventType, bAlreadyHaveEventMutex, uiTimestamp);
 }
 
 bool BVC5_P_AddCoreEvent(
@@ -786,10 +840,12 @@ bool BVC5_P_AddCoreEvent(
    uint32_t       uiTrack,
    uint32_t       uiId,
    uint32_t       uiEventIndex,
-   BVC5_EventType eEventType
+   BVC5_EventType eEventType,
+   uint64_t       uiTimestamp
    )
 {
-   return BVC5_P_AddCoreEvent_priv(hVC5, uiCore, uiTrack, uiId, uiEventIndex, eEventType, /*bAlreadyHaveEventMutex=*/false);
+   return BVC5_P_AddCoreEvent_priv(hVC5, uiCore, uiTrack, uiId, uiEventIndex, eEventType,
+                                   /*bAlreadyHaveEventMutex=*/false, uiTimestamp);
 }
 
 static bool BVC5_P_AddCoreEventCJD(
@@ -799,7 +855,8 @@ static bool BVC5_P_AddCoreEventCJD(
    uint32_t                uiEventIndex,
    BVC5_EventType          eEventType,
    BVC5_P_InternalJob     *psJob,
-   BVC5_SchedDependencies *psDeps
+   BVC5_SchedDependencies *psDeps,
+   uint64_t                uiTimestamp
    )
 {
    bool  ok = true;
@@ -825,7 +882,8 @@ static bool BVC5_P_AddCoreEventCJD(
          goto error;
       }
 
-      ok = BVC5_P_AddCoreEvent_priv(hVC5, uiCore, uiTrack, (uint32_t)uiJobId, uiEventIndex, eEventType, /*bAlreadyHaveEventMutex=*/true);
+      ok = BVC5_P_AddCoreEvent_priv(hVC5, uiCore, uiTrack, (uint32_t)uiJobId, uiEventIndex, eEventType,
+                                    /*bAlreadyHaveEventMutex=*/true, uiTimestamp);
 
       ok = ok && BVC5_P_Add32(hVC5, psJob->uiClientId);
       ok = ok && BVC5_P_Add64(hVC5, uiJobId);
@@ -849,10 +907,12 @@ bool BVC5_P_AddCoreEventCJ(
    uint32_t             uiTrack,
    uint32_t             uiEventIndex,
    BVC5_EventType       eEventType,
-   BVC5_P_InternalJob  *psJob
+   BVC5_P_InternalJob  *psJob,
+   uint64_t             uiTimestamp
    )
 {
-   return BVC5_P_AddCoreEventCJD(hVC5, uiCore, uiTrack, uiEventIndex, eEventType, psJob, /*psDeps=*/NULL);
+   return BVC5_P_AddCoreEventCJD(hVC5, uiCore, uiTrack, uiEventIndex, eEventType, psJob,
+                                 /*psDeps=*/NULL, uiTimestamp);
 }
 
 bool BVC5_P_AddCoreJobEvent(
@@ -861,12 +921,13 @@ bool BVC5_P_AddCoreJobEvent(
    uint32_t             uiTrack,
    uint32_t             uiEventIndex,
    BVC5_EventType       eEventType,
-   BVC5_P_InternalJob  *psJob
+   BVC5_P_InternalJob  *psJob,
+   uint64_t             uiTimestamp
    )
 {
    BVC5_SchedDependencies  *deps = hVC5->sOpenParams.bGPUMonDeps ? &psJob->pBase->sCompletedDependencies : NULL;
 
-   return BVC5_P_AddCoreEventCJD(hVC5, uiCore, uiTrack, uiEventIndex, eEventType, psJob, deps);
+   return BVC5_P_AddCoreEventCJD(hVC5, uiCore, uiTrack, uiEventIndex, eEventType, psJob, deps, uiTimestamp);
 }
 
 void BVC5_P_EventMemStats(
@@ -895,4 +956,33 @@ void BVC5_P_EventsRemoveClient(
    }
 }
 
-/* End of File */
+#if V3D_VER_AT_LEAST(3,3,0,0)
+
+void BVC5_P_PushJobFifo(BVC5_P_JobFifo *pFifo, BVC5_P_InternalJob *pJob)
+{
+   BDBG_ASSERT(pFifo->uiCount <= BVC5_P_JOB_FIFO_LEN);
+   pFifo->uiJobs[pFifo->uiWriteIndx] = pJob;
+
+   pFifo->uiCount++;
+   pFifo->uiWriteIndx++;
+   if (pFifo->uiWriteIndx == BVC5_P_JOB_FIFO_LEN)
+      pFifo->uiWriteIndx = 0;
+}
+
+BVC5_P_InternalJob *BVC5_P_PopJobFifo(BVC5_P_JobFifo *pFifo)
+{
+   BVC5_P_InternalJob *pRet;
+
+   BDBG_ASSERT(pFifo->uiCount > 0);
+
+   pRet = pFifo->uiJobs[pFifo->uiReadIndx];
+
+   pFifo->uiCount--;
+   pFifo->uiReadIndx++;
+   if (pFifo->uiReadIndx == BVC5_P_JOB_FIFO_LEN)
+      pFifo->uiReadIndx = 0;
+
+   return pRet;
+}
+
+#endif

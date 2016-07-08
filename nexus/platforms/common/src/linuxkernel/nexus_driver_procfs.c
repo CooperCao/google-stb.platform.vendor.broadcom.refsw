@@ -243,13 +243,17 @@ static int brcm_proc_debug_write(struct file *file, const char __user *buffer, s
     *endofmodule++ = 0;
     level = endofmodule + strspn(endofmodule, WHITESPACE);
 
-    if (!strnicmp(level, "err", 3))
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(3,18,0)
+#define strncasecmp strnicmp
+#endif
+
+    if (!strncasecmp(level, "err", 3))
         debug_level = BDBG_eErr;
-    else if (!strnicmp(level, "wrn", 3))
+    else if (!strncasecmp(level, "wrn", 3))
         debug_level = BDBG_eWrn;
-    else if (!strnicmp(level, "msg", 3))
+    else if (!strncasecmp(level, "msg", 3))
         debug_level = BDBG_eMsg;
-    else if (!strnicmp(level, "none", 4))
+    else if (!strncasecmp(level, "none", 4))
         debug_level = BDBG_eErr;
     else {
         printk("Invalid level. Should be: err, wrn, msg or none.\n");
@@ -305,7 +309,7 @@ static int brcm_proc_config_write(struct file *file, const char __user *buffer, 
     /* NULL is OK to clear the value */
     if (value) {
         *value++ = 0;
-        
+
         /* allow "name=" and "name" to clear */
         if (*value == '\n' || *value == 0) value = NULL;
     }

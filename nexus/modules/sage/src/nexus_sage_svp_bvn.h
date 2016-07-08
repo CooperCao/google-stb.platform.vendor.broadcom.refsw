@@ -70,25 +70,25 @@ See Also:
 ***************************************************************************/
 typedef struct
 {
-	bool                               bViolation;  /* [out] true if BVN routing violation. */
+    bool                               bViolation;  /* [out] true if BVN routing violation. */
 
-	struct {
-		bool                           bSecure;     /* [out] true Hdmi output contains secure content */
-		uint32_t                       ulHSize;     /* [out] BVN Width of this path */
-		uint32_t                       ulVSize;     /* [out] BVN Height of this path */
-	} Hdmi[BBVN_NUM_HDMI_PATH];
+    struct {
+        bool                           bSecure;     /* [out] true Hdmi output contains secure content */
+        uint32_t                       ulHSize;     /* [out] BVN Width of this path */
+        uint32_t                       ulVSize;     /* [out] BVN Height of this path */
+    } Hdmi[BBVN_NUM_HDMI_PATH];
 
-	struct {
-		bool                           bSecure;     /* [out] true if Analog output contains secure content */
-		uint32_t                       ulHSize;     /* [out] BVN Width of this path */
-		uint32_t                       ulVSize;     /* [out] BVN Height of this path */
-	} Analog[BBVN_NUM_ANALOG_PATH];
+    struct {
+        bool                           bSecure;     /* [out] true if Analog output contains secure content */
+        uint32_t                       ulHSize;     /* [out] BVN Width of this path */
+        uint32_t                       ulVSize;     /* [out] BVN Height of this path */
+    } Analog[BBVN_NUM_ANALOG_PATH];
 
-	struct {
-		bool                           bSecure;     /* [out] true if transcode output contains secure content */
-		uint32_t                       ulHSize;     /* [out] BVN Width of this path */
-		uint32_t                       ulVSize;     /* [out] BVN Height of this path */
-	} Xcode[BBVN_NUM_XCODE_PATH];
+    struct {
+        bool                           bSecure;     /* [out] true if transcode output contains secure content */
+        uint32_t                       ulHSize;     /* [out] BVN Width of this path */
+        uint32_t                       ulVSize;     /* [out] BVN Height of this path */
+    } Xcode[BBVN_NUM_XCODE_PATH];
 
 } BBVN_Monitor_Status;
 
@@ -102,9 +102,9 @@ Returns:
 See Also:
 ****************************************************************************/
 BERR_Code BBVN_Monitor_Init
-	( BBVN_Monitor_Handle             *phBvnMonitor,    /* [out] a reference to a BBVN_Handle. */
-	  BREG_Handle                      hReg             /* [in] to traverse vnet/vec routing, maybe opaque handle with hReg. */
-	);
+    ( BBVN_Monitor_Handle             *phBvnMonitor,    /* [out] a reference to a BBVN_Handle. */
+      BREG_Handle                      hReg             /* [in] to traverse vnet/vec routing, maybe opaque handle with hReg. */
+    );
 
 /***************************************************************************
 Summary:
@@ -114,8 +114,8 @@ Returns:
 See Also:
 ****************************************************************************/
 BERR_Code BBVN_Monitor_Uninit
-	( BBVN_Monitor_Handle              hBvnMonitor     /* [out] BVN Monitor Handle becomes invalid. */
-	);
+    ( BBVN_Monitor_Handle              hBvnMonitor     /* [out] BVN Monitor Handle becomes invalid. */
+    );
 
 /***************************************************************************
 Summary:
@@ -124,13 +124,13 @@ Description:
    Monitor if there is BVN violation to be call periodically by SAGE.
 Returns:
 See Also:
-	BBVN_Monitor_Init, BBVN_Monitor_Uninit.
+    BBVN_Monitor_Init, BBVN_Monitor_Uninit.
 ****************************************************************************/
-void BBVN_Monitor_isr
-	( BBVN_Monitor_Handle              hBvnMonitor,     /* [in] A valid BVN Monitor Handle created earlier. */
-	  const BAVC_CoreList             *pSecureCores,    /* [in] list of secure cores */
-	  BBVN_Monitor_Status             *pStatus          /* [out] BVN status */
-	);
+BERR_Code BBVN_Monitor_Check
+    ( BBVN_Monitor_Handle              hBvnMonitor,     /* [in] A valid BVN Monitor Handle created earlier. */
+      const BAVC_CoreList             *pSecureCores,    /* [in] list of secure cores */
+      BBVN_Monitor_Status             *pStatus          /* [out] BVN status */
+    );
 
 #endif /* NEXUS_SAGE_SVP_BVN_H__ */
 /* End of file */

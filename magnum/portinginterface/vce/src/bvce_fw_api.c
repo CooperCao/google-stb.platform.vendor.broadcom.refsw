@@ -1,7 +1,7 @@
 /***************************************************************************
  * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom and/or its
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -98,6 +98,13 @@
 #define INVERSE_FRAMERATE_1998_IN_SECONDS_MANTISSA  (INVERSE_FRAMERATE_5994_IN_SECONDS_MANTISSA * 3)
 #define INVERSE_FRAMERATE_1500_IN_SECONDS_MANTISSA  0x4444
 #define INVERSE_FRAMERATE_1498_IN_SECONDS_MANTISSA  0x4455
+#define INVERSE_FRAMERATE_1250_IN_SECONDS_MANTISSA  0xA3D7
+#define INVERSE_FRAMERATE_1000_IN_SECONDS_MANTISSA  0xCCCC
+#define INVERSE_FRAMERATE_0749_IN_SECONDS_MANTISSA  0x88AB
+#define INVERSE_FRAMERATE_0750_IN_SECONDS_MANTISSA  0x8888
+#define INVERSE_FRAMERATE_1198_IN_SECONDS_MANTISSA  0xAAAA
+#define INVERSE_FRAMERATE_1200_IN_SECONDS_MANTISSA  0xAAD6
+#define INVERSE_FRAMERATE_0999_IN_SECONDS_MANTISSA  0xCD01
 
 #define INVERSE_FRAMERATE_6000_IN_SECONDS_EXPONENT  20
 #define INVERSE_FRAMERATE_5994_IN_SECONDS_EXPONENT  20
@@ -111,6 +118,13 @@
 #define INVERSE_FRAMERATE_1998_IN_SECONDS_EXPONENT  20
 #define INVERSE_FRAMERATE_1500_IN_SECONDS_EXPONENT  18
 #define INVERSE_FRAMERATE_1498_IN_SECONDS_EXPONENT  18
+#define INVERSE_FRAMERATE_1250_IN_SECONDS_EXPONENT  19
+#define INVERSE_FRAMERATE_1000_IN_SECONDS_EXPONENT  19
+#define INVERSE_FRAMERATE_0749_IN_SECONDS_EXPONENT  18
+#define INVERSE_FRAMERATE_0750_IN_SECONDS_EXPONENT  18
+#define INVERSE_FRAMERATE_1198_IN_SECONDS_EXPONENT  19
+#define INVERSE_FRAMERATE_1200_IN_SECONDS_EXPONENT  19
+#define INVERSE_FRAMERATE_0999_IN_SECONDS_EXPONENT  19
 
 #define INVERSE_FRAMERATE_6000_IN_27MHZ_TICKS    450000
 #define INVERSE_FRAMERATE_5994_IN_27MHZ_TICKS    450450
@@ -124,6 +138,13 @@
 #define INVERSE_FRAMERATE_1998_IN_27MHZ_TICKS    ( INVERSE_FRAMERATE_5994_IN_27MHZ_TICKS * 3 )
 #define INVERSE_FRAMERATE_1500_IN_27MHZ_TICKS    1800000
 #define INVERSE_FRAMERATE_1498_IN_27MHZ_TICKS    1801800
+#define INVERSE_FRAMERATE_1250_IN_27MHZ_TICKS    2160000
+#define INVERSE_FRAMERATE_1000_IN_27MHZ_TICKS    2700000
+#define INVERSE_FRAMERATE_0749_IN_27MHZ_TICKS    3603600
+#define INVERSE_FRAMERATE_0750_IN_27MHZ_TICKS    3600000
+#define INVERSE_FRAMERATE_1198_IN_27MHZ_TICKS    2252250
+#define INVERSE_FRAMERATE_1200_IN_27MHZ_TICKS    2250000
+#define INVERSE_FRAMERATE_0999_IN_27MHZ_TICKS    2702700
 
 #define INVERSE_FRAMERATE_1498_IN_90KHZ_TICKS    6006
 #define MAX_PIC_INTERVAL_IN_90KHZ_TICKS         INVERSE_FRAMERATE_1498_IN_90KHZ_TICKS
@@ -440,6 +461,27 @@ BVCE_FW_P_Compute_EncodeDelayIn27MHzTicks(
         case ENCODING_FRAME_RATE_1498:
             vipItfpDelay = INVERSE_FRAMERATE_1498_IN_27MHZ_TICKS;
             break;
+        case ENCODING_FRAME_RATE_1250:
+            vipItfpDelay = INVERSE_FRAMERATE_1250_IN_27MHZ_TICKS;
+            break;
+        case ENCODING_FRAME_RATE_1000:
+            vipItfpDelay = INVERSE_FRAMERATE_1000_IN_27MHZ_TICKS;
+            break;
+        case ENCODING_FRAME_RATE_0749:
+            vipItfpDelay = INVERSE_FRAMERATE_0749_IN_27MHZ_TICKS;
+            break;
+        case ENCODING_FRAME_RATE_0750:
+            vipItfpDelay = INVERSE_FRAMERATE_0750_IN_27MHZ_TICKS;
+            break;
+        case ENCODING_FRAME_RATE_1198:
+            vipItfpDelay = INVERSE_FRAMERATE_1198_IN_27MHZ_TICKS;
+            break;
+        case ENCODING_FRAME_RATE_1200:
+            vipItfpDelay = INVERSE_FRAMERATE_1200_IN_27MHZ_TICKS;
+            break;
+        case ENCODING_FRAME_RATE_0999:
+            vipItfpDelay = INVERSE_FRAMERATE_0999_IN_27MHZ_TICKS;
+            break;
         default:
 #ifdef BCHP_CHIP
             BDBG_ASSERT(!"unsupported BVN frame rate");
@@ -755,6 +797,41 @@ BVCE_FW_P_ConvertFrameRate(
         FP_inverse->mantissa = INVERSE_FRAMERATE_1498_IN_SECONDS_MANTISSA;
         FP_inverse->exponent = INVERSE_FRAMERATE_1498_IN_SECONDS_EXPONENT;
         break;
+    case ENCODING_FRAME_RATE_1250:
+        PictureIntervalIn27MhzTicks = INVERSE_FRAMERATE_1250_IN_27MHZ_TICKS;
+        FP_inverse->mantissa = INVERSE_FRAMERATE_1250_IN_SECONDS_MANTISSA;
+        FP_inverse->exponent = INVERSE_FRAMERATE_1250_IN_SECONDS_EXPONENT;
+        break;
+    case ENCODING_FRAME_RATE_1000:
+        PictureIntervalIn27MhzTicks = INVERSE_FRAMERATE_1000_IN_27MHZ_TICKS;
+        FP_inverse->mantissa = INVERSE_FRAMERATE_1000_IN_SECONDS_MANTISSA;
+        FP_inverse->exponent = INVERSE_FRAMERATE_1000_IN_SECONDS_EXPONENT;
+        break;
+    case ENCODING_FRAME_RATE_0749:
+        PictureIntervalIn27MhzTicks = INVERSE_FRAMERATE_0749_IN_27MHZ_TICKS;
+        FP_inverse->mantissa = INVERSE_FRAMERATE_0749_IN_SECONDS_MANTISSA;
+        FP_inverse->exponent = INVERSE_FRAMERATE_0749_IN_SECONDS_EXPONENT;
+        break;
+    case ENCODING_FRAME_RATE_0750:
+        PictureIntervalIn27MhzTicks = INVERSE_FRAMERATE_0750_IN_27MHZ_TICKS;
+        FP_inverse->mantissa = INVERSE_FRAMERATE_0750_IN_SECONDS_MANTISSA;
+        FP_inverse->exponent = INVERSE_FRAMERATE_0750_IN_SECONDS_EXPONENT;
+        break;
+    case ENCODING_FRAME_RATE_1198:
+        PictureIntervalIn27MhzTicks = INVERSE_FRAMERATE_1198_IN_27MHZ_TICKS;
+        FP_inverse->mantissa = INVERSE_FRAMERATE_1198_IN_SECONDS_MANTISSA;
+        FP_inverse->exponent = INVERSE_FRAMERATE_1198_IN_SECONDS_EXPONENT;
+        break;
+    case ENCODING_FRAME_RATE_1200:
+        PictureIntervalIn27MhzTicks = INVERSE_FRAMERATE_1200_IN_27MHZ_TICKS;
+        FP_inverse->mantissa = INVERSE_FRAMERATE_1200_IN_SECONDS_MANTISSA;
+        FP_inverse->exponent = INVERSE_FRAMERATE_1200_IN_SECONDS_EXPONENT;
+        break;
+    case ENCODING_FRAME_RATE_0999:
+        PictureIntervalIn27MhzTicks = INVERSE_FRAMERATE_0999_IN_27MHZ_TICKS;
+        FP_inverse->mantissa = INVERSE_FRAMERATE_0999_IN_SECONDS_MANTISSA;
+        FP_inverse->exponent = INVERSE_FRAMERATE_0999_IN_SECONDS_EXPONENT;
+        break;
     default:
 #ifdef BCHP_CHIP
         BDBG_ASSERT(!"unsupported frame rate");
@@ -785,7 +862,6 @@ BVCE_FW_P_CalcHRDbufferSize(
 )
 {
     uint32_t   hrdBufferSize;
-
     BSTD_UNUSED(Profile);
 
     /* compute size based on encoding standard level and profile */
@@ -1864,6 +1940,28 @@ FrameRate_e BVCE_FW_P_FrameRateCodeToFrameRate( FrameRateCode_e FrameRateCode )
         case ENCODING_FRAME_RATE_CODE_2000:
             FrameRate = ENCODING_FRAME_RATE_2000;
             break;
+        case ENCODING_FRAME_RATE_CODE_1250:
+            FrameRate = ENCODING_FRAME_RATE_1250;
+            break;
+        case ENCODING_FRAME_RATE_CODE_1000:
+            FrameRate = ENCODING_FRAME_RATE_1000;
+            break;
+        case ENCODING_FRAME_RATE_CODE_0749:
+            FrameRate = ENCODING_FRAME_RATE_0749;
+            break;
+        case ENCODING_FRAME_RATE_CODE_0750:
+            FrameRate = ENCODING_FRAME_RATE_0750;
+            break;
+        case ENCODING_FRAME_RATE_CODE_1198:
+            FrameRate = ENCODING_FRAME_RATE_1198;
+            break;
+        case ENCODING_FRAME_RATE_CODE_1200:
+            FrameRate = ENCODING_FRAME_RATE_1200;
+            break;
+        case ENCODING_FRAME_RATE_CODE_0999:
+            FrameRate = ENCODING_FRAME_RATE_0999;
+            break;
+
         default:
 #ifdef BCHP_CHIP
             BDBG_ASSERT(!"unsupported BVN frame rate");

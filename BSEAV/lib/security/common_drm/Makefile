@@ -1,71 +1,59 @@
-#############################################################################
-#    (c)2011-2015 Broadcom Corporation
+############################################################
+#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 #
-# This program is the proprietary software of Broadcom Corporation and/or its licensors,
-# and may only be used, duplicated, modified or distributed pursuant to the terms and
-# conditions of a separate, written license agreement executed between you and Broadcom
-# (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-# no license (express or implied), right to use, or waiver of any kind with respect to the
-# Software, and Broadcom expressly reserves all rights in and to the Software and all
-# intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-# HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-# NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+#  This program is the proprietary software of Broadcom and/or its licensors,
+#  and may only be used, duplicated, modified or distributed pursuant to the terms and
+#  conditions of a separate, written license agreement executed between you and Broadcom
+#  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+#  no license (express or implied), right to use, or waiver of any kind with respect to the
+#  Software, and Broadcom expressly reserves all rights in and to the Software and all
+#  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+#  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+#  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
 #
-# Except as expressly set forth in the Authorized License,
+#  Except as expressly set forth in the Authorized License,
 #
-# 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-# secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-# and to use this information only in connection with your use of Broadcom integrated circuit products.
+#  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+#  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+#  and to use this information only in connection with your use of Broadcom integrated circuit products.
 #
-# 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-# AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-# WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-# THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-# OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-# LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-# OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-# USE OR PERFORMANCE OF THE SOFTWARE.
+#  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+#  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+#  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+#  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+#  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+#  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+#  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+#  USE OR PERFORMANCE OF THE SOFTWARE.
 #
-# 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-# LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-# EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-# USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-# THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-# ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-# LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-# ANY LIMITED REMEDY.
+#  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+#  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+#  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+#  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+#  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+#  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+#  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+#  ANY LIMITED REMEDY.
 #
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
-# Module Description:
-#
-# Revision History:
-#
-# $brcm_Log: $
-#
-#############################################################################
+############################################################
+
 ifeq ($(URSR_TOP),)
 $(warning URSR_TOP is not defined! setting to ../../../../)
 URSR_TOP := ../../../../
 endif
 
 NEXUS_TOP=$(URSR_TOP)/nexus
-COMMON_DRM_TOP := $(URSR_TOP)/BSEAV/lib/security/common_drm
+BSEAV_TOP      ?= $(URSR_TOP)/BSEAV
+COMMON_DRM_TOP := $(BSEAV_TOP)/lib/security/common_drm
 
 NEXUS_PLATFORM ?= $(PLATFORM)
 B_REFSW_OBJ_DIR ?= obj.${NEXUS_PLATFORM}
 B_REFSW_OBJ_ROOT ?= ${NEXUS_TOP}/../${B_REFSW_OBJ_DIR}
-COMMOND_DRM_TOP=${NEXUS_TOP}/../BSEAV/lib/security/common_drm
 COMMON_DRM_OBJ_ROOT = ${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/common_drm
 
-
-
 # Include nexus definitions
-include $(URSR_TOP)/nexus/platforms/common/build/nexus_platforms.inc
-include $(URSR_TOP)/nexus/platforms/common/build/platform_app.inc
-include $(URSR_TOP)/nexus/build/nexus_defs.inc
+include $(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
+
 # Convert include paths into single variable
 NEXUS_APP_INCLUDE_PATHS := $(foreach module, $(NEXUS_MODULES), $(NEXUS_$(module)_PUBLIC_INCLUDES))
 NEXUS_APP_DEFINES := $(foreach module, $(NEXUS_MODULES), $(NEXUS_$(module)_DEFINES))
@@ -85,10 +73,6 @@ endif
 
 include common_drm.inc
 
-
-# create 'target' dir in out of source dir
-$(shell mkdir -p ${COMMON_DRM_OBJ_ROOT}/drm/playready)
-
 ####################################
 # Use URSR CFLAGS
 ###################################
@@ -97,11 +81,11 @@ $(shell mkdir -p ${COMMON_DRM_OBJ_ROOT}/drm/playready)
 
 # SRAI is always from URSR_TOP
 ifeq ($(SAGE_SUPPORT),y)
-	include $(URSR_TOP)/magnum/syslib/sagelib/bsagelib_public.inc
-	SAGE_CFLAGS += -I${BSAGELIB_INCLUDES}
-	SAGE_CFLAGS += -I$(URSR_TOP)/BSEAV/lib/security/sage/include
-	SAGE_CFLAGS += -I$(URSR_TOP)/BSEAV/lib/security/sage/platforms/include
-	SAGE_CFLAGS += -I$(URSR_TOP)/BSEAV/lib/security/sage/srai/include
+    include $(URSR_TOP)/magnum/syslib/sagelib/bsagelib_public.inc
+    SAGE_CFLAGS += -I${BSAGELIB_INCLUDES}
+    SAGE_CFLAGS += -I$(URSR_TOP)/BSEAV/lib/security/sage/include
+    SAGE_CFLAGS += -I$(URSR_TOP)/BSEAV/lib/security/sage/platforms/include
+    SAGE_CFLAGS += -I$(URSR_TOP)/BSEAV/lib/security/sage/srai/include
 endif
 
 
@@ -131,7 +115,18 @@ ifneq ($(ANDROID_LINKER_SYSROOT),)
 PRDY_LDFLAGS += --sysroot=$(ANDROID_LINKER_SYSROOT)
 endif # end of ANDROID_LINKER_SYSROOT
 PRDY_LDFLAGS += -lnexus -llog
+
+ifeq ($(findstring mips,$(B_REFSW_ARCH)),mips)
+#Adding eglibc support for mips platforms. if the tool chain version is greater than 4.8.5
+GCC_GTEQ_485 := $(shell expr `$(CC) -dumpversion | sed -e 's/\.\([0-9][0-9]\)/\1/g' -e 's/\.\([0-9]\)/0\1/g' -e 's/^[0-9]\{3,4\}$$/&00/'` \>= 40805)
+ifeq "$(GCC_GTEQ_485)" "1"
+PRDY_LDFLAGS += -L${URSR_TOP}/BSEAV/lib/playready/2.5/bin/${ARCH_DIR}/lib/eglibc
+else
 PRDY_LDFLAGS += -L${URSR_TOP}/BSEAV/lib/playready/2.5/bin/${ARCH_DIR}/lib
+endif
+else
+PRDY_LDFLAGS += -L${URSR_TOP}/BSEAV/lib/playready/2.5/bin/${ARCH_DIR}/lib
+endif
 ifeq ($(SAGE_SUPPORT),y)
 PRDY_LDFLAGS += -lplayreadypk_host
 else
@@ -140,7 +135,7 @@ endif # end of SAGE_SUPPORT
 PRDY_LDFLAGS += -ldrmrootfs
 else # end of ANDROID_BUILD=y
 CFLAGS += $(B_OPENSSL_CFLAGS)
-PRDY_LDFLAGS += -L$(URSR_TOP)/BSEAV/lib/drmrootfs/${DRMROOTFS_LIBDIR} -ldrmrootfs
+PRDY_LDFLAGS += -L${B_REFSW_OBJ_ROOT}/BSEAV/lib/drmrootfs/${DRMROOTFS_LIBDIR} -ldrmrootfs
 endif # end of ANDROID_BUILD=n
 
 
@@ -157,7 +152,7 @@ endif
 # <drm>.inc files
 #vvvv#####################vvvvvvvvvvvvvvvvvvvvvvv#####################vvvv##
 ifeq ($(SAGE_SUPPORT),y)
-ifeq ($(findstring $(BCHP_CHIP), 7445 7366 7439 7364 7250 74371), $(BCHP_CHIP))
+ifeq ($(findstring $(BCHP_CHIP), 7445 7366 7439 7364 7250 74371 7268 7271), $(BCHP_CHIP))
 include config/config_zeus4x.inc
 else ifeq ($(findstring $(BCHP_CHIP), 7435 7584 75845), $(BCHP_CHIP))
 include config/config_zeus30.inc
@@ -219,7 +214,7 @@ COMMON_DRM_DEFINES += ${CUSTOM_PRIVATE_DEFINES}
 ifeq (${DATAPROC_SAGE},OFF)
 #Cannot build non-TL version of Common DRM library)
 else
-	$(error Support for DataProc on SAGE does not exist)
+    $(error Support for DataProc on SAGE does not exist)
 endif
 
 COMMON_DRM_INCLUDES += ${DATAPROC_INCLUDES}
@@ -344,12 +339,11 @@ CFLAGS += ${COMMON_DRM_DEFINES}
 
 
 ########################### Playready 2.5 ##################################
-ifeq ($(findstring 2.5, ${MSDRM_PRDY_SDK_VERSION}), 2.5)
 include drm/playready/playready.inc
 include $(NEXUS_TOP)/nxclient/include/nxclient.inc
 DRM_BUILD_PROFILE   := 900
 CFLAGS              += -DDRM_BUILD_PROFILE=$(DRM_BUILD_PROFILE)
-CFLAGS              += -I${NXCLIENT_INCLUDES}
+CFLAGS              += ${NXCLIENT_CFLAGS}
 CFLAGS              += -I$(URSR_TOP)/BSEAV/lib/playready/2.5/inc -DTARGET_LITTLE_ENDIAN=1
 CFLAGS              += -DTARGET_SUPPORTS_UNALIGNED_DWORD_POINTERS=1
 
@@ -359,9 +353,7 @@ PRDY_OBJS           := $(patsubst %.c,%.o, ${PLAYREADY_SOURCES})
 
 include lib/prdy_libdir.inc
 PRDY_FOR_LIB_INSTALL:= ${CMNDRM_PRDY_LIBDIR}
-PRDY_INSTALLED_LIBS	:= $(addprefix ${COMMON_DRM_OBJ_ROOT}/${PRDY_FOR_LIB_INSTALL}/, ${PRDY_PUBLIC_LIBS})
-PRDY_INSTALLED_LIBS_FOR_NEXUS := $(addprefix ${COMMOND_DRM_TOP}/${PRDY_FOR_LIB_INSTALL}/, ${PRDY_PUBLIC_LIBS})
-endif
+PRDY_INSTALLED_LIBS := $(addprefix ${COMMON_DRM_OBJ_ROOT}/${PRDY_FOR_LIB_INSTALL}/, ${PRDY_PUBLIC_LIBS})
 
 ifeq ($(filter ${B_REFSW_ARCH}, arm-linux ), ${B_REFSW_ARCH})
 CFLAGS +=-marm -march=armv7-a
@@ -403,7 +395,7 @@ F_PUBLIC_TL_LIBS   	=
 COMMON_DRM_TL_OBJECTS :=
 F_INSTALLED_TL_LIBS	=
 endif
-
+BUILD_LIBS = $(addprefix ${COMMON_DRM_OBJ_ROOT}/, ${F_PUBLIC_LIBS} ${F_PUBLIC_TL_LIBS})
 
 
 #^^^^#####################^^^^^^^^^^^^^^^^^^^^^^^#####################^^^^##
@@ -422,33 +414,40 @@ endif
 #                              MAIN TARGETS
 #vvvv#####################vvvvvvvvvvvvvvvvvvvvvvv#####################vvvv##
 ifeq ($(ANDROID_BUILD),y)
-all: ${F_PUBLIC_LIBS} ${F_PUBLIC_TL_LIBS}
+all: $(BUILD_LIBS)
 else
-all: prep_folder prep_openssl prep_srai ${F_PUBLIC_LIBS} ${F_PUBLIC_TL_LIBS}
+all: prep_folder prep_openssl prep_srai $(BUILD_LIBS)
 endif
+
+.PHONY: prep_folder prep_openssl prep_srai prep_drmrootfs playready
 
 prep_folder:
 	@ mkdir -p ${COMMON_DRM_OBJ_ROOT}/
 	@ mkdir -p $(addprefix ${COMMON_DRM_OBJ_ROOT}/, $(dir ${PLAYREADY_SOURCES} ${COMMON_DRM_TL_SOURCES}))
+	@ mkdir -p ${COMMON_DRM_OBJ_ROOT}/${PRDY_FOR_LIB_INSTALL}
 ifeq ($(SAGE_SUPPORT),y)
-	@ mkdir -p $(dir ${F_INSTALLED_TL_LIBS})
+	@ mkdir -p ${COMMON_DRM_OBJ_ROOT}/lib/${CMNDRM_DIR}
 endif
+
+prep_drmrootfs:
+	@echo [Compiling drmrootfs dependency ....] && \
+	$(MAKE) -C $(BSEAV_TOP)/lib/drmrootfs install > /dev/null
 
 prep_srai:
 ifeq ($(SAGE_SUPPORT),y)
-	@echo [..... prep_SRAI];
+	@echo [..... prep_SRAI]
 	$(Q)$(MAKE) -C $(URSR_TOP)/BSEAV/lib/security/sage/srai re
 endif
 
 prep_openssl:
-	@echo [..... prep_openssl with j option];
-	$(Q_)$(MAKE) -j8 -C $(B_OPENSSL_BUILD_DIR) > /dev/null
+	@echo [..... prep_openssl]
+	$(Q_)$(MAKE) -C $(B_OPENSSL_BUILD_DIR) > /dev/null
 
-playready: ${PRDY_PUBLIC_LIBS} prdyidirs ${PRDY_INSTALLED_LIBS} ${PRDY_INSTALLED_LIBS_FOR_NEXUS}
+playready: prep_folder prep_drmrootfs
+	$(MAKE) prep_playready && \
+	$(MAKE) ${PRDY_INSTALLED_LIBS}
 
-ifneq ($(findstring 2.5, ${MSDRM_PRDY_SDK_VERSION}), 2.5)
-	$(error invalid Playready SDK version ${MSDRM_PRDY_SDK_VERSION})
-endif
+prep_playready: $(addprefix ${COMMON_DRM_OBJ_ROOT}/, ${PRDY_PUBLIC_LIBS})
 
 clean:
 	rm -rf ${COMMON_DRM_OBJ_ROOT}
@@ -457,6 +456,10 @@ report:
 	@echo "NEXUS CFLAGS is $(NEXUS_CFLAGS)"
 	@echo "TL_FLAGS is $(TL_LDFLAGS)"
 	@echo "LDFLAGS is $(LDFLAGS)"
+	@echo "CC: $(CC)"
+	@echo "CC: $(GCC_GTEQ_485)"
+	@echo "toolchain version: $(GCCVERSION)"
+	@echo "$(shell gcc --version | grep ^gcc | sed 's/^.* //g')"
 
 #^^^^#####################^^^^^^^^^^^^^^^^^^^^^^^#####################^^^^##
 
@@ -464,68 +467,59 @@ report:
 ############################################################################
 #                             BUILD RULES
 #vvvv#####################vvvvvvvvvvvvvvvvvvvvvvv#####################vvvv##
-lib${LIB_TL_BASENAME}.so: ${COMMON_DRM_TL_OBJECTS}
+ifeq ($(SAGE_SUPPORT),y)
+${COMMON_DRM_OBJ_ROOT}/lib${LIB_TL_BASENAME}.so: $(addprefix ${COMMON_DRM_OBJ_ROOT}/, ${COMMON_DRM_TL_OBJECTS})
 	@ echo [Linking shared TL library .... $@ ]
 ifeq ($(B_REFSW_CROSS_COMPILE),arm-linux-androideabi-)
-	@ ${CC} -shared -o ${COMMON_DRM_OBJ_ROOT}/$@ ${TL_LDFLAGS} ${LDFLAGS} $(addprefix ${COMMON_DRM_OBJ_ROOT}/, $^) -Wl,-Bdynamic
+	@ ${CC} -shared -o $@ ${TL_LDFLAGS} ${LDFLAGS} $^ -Wl,-Bdynamic
 else
-	@ ${CC} -shared -o ${COMMON_DRM_OBJ_ROOT}/$@ ${TL_LDFLAGS} $(addprefix ${COMMON_DRM_OBJ_ROOT}/, $^) -Wl,-dy
+	@ ${CC} -shared -o $@ ${TL_LDFLAGS} $^ -Wl,-dy
+endif
 endif
 
-lib${LIB_TL_BASENAME}.a: ${COMMON_DRM_TL_OBJECTS}
+ifeq ($(SAGE_SUPPORT),y)
+${COMMON_DRM_OBJ_ROOT}/lib${LIB_TL_BASENAME}.a: $(addprefix ${COMMON_DRM_OBJ_ROOT}/, ${COMMON_DRM_TL_OBJECTS})
 	@ echo [Linking static TL library .... $@ ]
-	@ ${AR} rc ${COMMON_DRM_OBJ_ROOT}/$@ $(addprefix ${COMMON_DRM_OBJ_ROOT}/, $^)
+	@ ${AR} rc $@ $^
+endif
 
-lib${PRDY_BASENAME}.so: ${PRDY_OBJS}
+${COMMON_DRM_OBJ_ROOT}/lib${PRDY_BASENAME}.so: $(addprefix ${COMMON_DRM_OBJ_ROOT}/, ${PRDY_OBJS})
 	@ echo [Linking shared library .... $@ ]
 ifeq ($(B_REFSW_CROSS_COMPILE),arm-linux-androideabi-)
-	 ${CC} -v -shared -o ${COMMON_DRM_OBJ_ROOT}/$@ ${LD_SYSROOT} ${PRDY_LDFLAGS} $(addprefix ${COMMON_DRM_OBJ_ROOT}/, $^) -Wl,--no-whole-archive -Wl,-Bdynamic
+	@ ${CC} -v -shared -o $@ ${LD_SYSROOT} ${PRDY_LDFLAGS} $^ -Wl,--no-whole-archive -Wl,-Bdynamic
 else
-	@ ${CC} -v -shared -o ${COMMON_DRM_OBJ_ROOT}/$@ ${LD_SYSROOT} ${PRDY_LDFLAGS} $(addprefix ${COMMON_DRM_OBJ_ROOT}/, $^) -Wl,--no-whole-archive -Wl,-dy
+	@ ${CC} -v -shared -o $@ ${LD_SYSROOT} ${PRDY_LDFLAGS} $^ -Wl,--no-whole-archive -Wl,-dy
 endif
 
-lib${PRDY_BASENAME}.a: ${PRDY_OBJS}
+${COMMON_DRM_OBJ_ROOT}/lib${PRDY_BASENAME}.a: $(addprefix ${COMMON_DRM_OBJ_ROOT}/, ${PRDY_OBJS})
 	@ echo [Linking static library .... $@ ]
-	@ ${AR} rc ${COMMON_DRM_OBJ_ROOT}/$@ $(addprefix ${COMMON_DRM_OBJ_ROOT}/, $^)
+	@ ${AR} rc $@ $^
 
 # Install a copy of cmndrmprdy libs in the out of source build folder
-# Also, install a copy of cmndrmprdy libs in the source folder too. One of Nexus's extension will look for it there. Plus
-# Nexus doesn't force the rebuild of cmndrmprdy lib when it compiles.
-prdyidirs:
-	@ [ -d ${COMMON_DRM_OBJ_ROOT} ] || mkdir -p ${COMMON_DRM_OBJ_ROOT}
-	@ [ -d ${COMMON_DRM_OBJ_ROOT}/${PRDY_FOR_LIB_INSTALL} ] || mkdir -p ${COMMON_DRM_OBJ_ROOT}/${PRDY_FOR_LIB_INSTALL}
-	@ [ -d ${COMMON_DRM_TOP}/${PRDY_FOR_LIB_INSTALL} ] || mkdir -p ${COMMON_DRM_TOP}/${PRDY_FOR_LIB_INSTALL}
+install: all
+	@$(MAKE) ${F_INSTALLED_LIBS}
+ifeq ($(SAGE_SUPPORT),y)
+	@$(MAKE) ${F_INSTALLED_TL_LIBS}
+endif
 
-install: all ${F_INSTALLED_LIBS} ${F_INSTALLED_TL_LIBS}
+${COMMON_DRM_OBJ_ROOT}/lib/${CMNDRM_DIR}/%.a : ${COMMON_DRM_OBJ_ROOT}/%.a
+	install -m 0755 $< $@
 
-${COMMON_DRM_OBJ_ROOT}/lib/${CMNDRM_DIR}/%.a : %.a
-	install -m 0755 ${COMMON_DRM_OBJ_ROOT}/$< $@
+${COMMON_DRM_OBJ_ROOT}/lib/${CMNDRM_DIR}/%.so : ${COMMON_DRM_OBJ_ROOT}/%.so
+	install -m 0755 $< $@
 
-${COMMON_DRM_OBJ_ROOT}/lib/${CMNDRM_DIR}/%.so : %.so
-	install -m 0755 ${COMMON_DRM_OBJ_ROOT}/$< $@
+${COMMON_DRM_OBJ_ROOT}/${PRDY_FOR_LIB_INSTALL}/%.a : ${COMMON_DRM_OBJ_ROOT}/%.a
+	install -m 0755 $< $@
 
-${COMMON_DRM_OBJ_ROOT}/${PRDY_FOR_LIB_INSTALL}/%.a : %.a
-	install -m 0755 ${COMMON_DRM_OBJ_ROOT}/$< $@
+${COMMON_DRM_OBJ_ROOT}/${PRDY_FOR_LIB_INSTALL}/%.so : ${COMMON_DRM_OBJ_ROOT}/%.so
+	install -m 0755 $< $@
 
-# Install a copy of cmndrmprdy libs in the source folder too. One of Nexus's extension will look for it there. Plus
-# Nexus doesn't force the rebuild of cmndrmprdy lib when it compiles.
-${COMMON_DRM_OBJ_ROOT}/${PRDY_FOR_LIB_INSTALL}/%.so : %.so
-	install -m 0755 ${COMMON_DRM_OBJ_ROOT}/$< $@
-
-# Install a copy of cmndrmprdy libs in the source folder too. One of Nexus's extension will look for it there. Plus
-# Nexus doesn't force the rebuild of cmndrmprdy lib when it compiles.
- ${COMMOND_DRM_TOP}/${PRDY_FOR_LIB_INSTALL}/%.a : %.a
-	install -m 0755 ${COMMON_DRM_OBJ_ROOT}/$< $@
-
- ${COMMOND_DRM_TOP}/${PRDY_FOR_LIB_INSTALL}/%.so : %.so
-	install -m 0755 ${COMMON_DRM_OBJ_ROOT}/$< $@
-
-%.o: %.c
+${COMMON_DRM_OBJ_ROOT}/%.o: %.c prep_folder
 	@ echo [Compiling with $(CC).... $< ]
 ifeq ($(SAGE_SUPPORT),y)
-	@ ${CC} ${CFLAGS} ${SAGE_CFLAGS} ${COMMON_DRM_TL_DEFINES} -c -o ${COMMON_DRM_OBJ_ROOT}/$@ $<
+	@ ${CC} ${CFLAGS} ${SAGE_CFLAGS} ${COMMON_DRM_TL_DEFINES} -c -o $@ $<
 else
-	@ ${CC} ${CFLAGS} -c -o ${COMMON_DRM_OBJ_ROOT}/$@ $<
+	@ ${CC} ${CFLAGS} -c -o $@ $<
 endif
 
 
@@ -533,7 +527,7 @@ copy: all
 	install -m 0755 ${COMMON_DRM_TOP}/lib/${CMNDRM_DIR}/libcmndrm.so $(NEXUS_BIN_DIR); \
 	if [ -e ${COMMON_DRM_OBJ_ROOT}/libcmndrmprdy.so ]; then \
 		install -m 0755 ${COMMON_DRM_OBJ_ROOT}/libcmndrmprdy.so $(NEXUS_BIN_DIR); \
-	fi;
+	fi; \
 	if [ -e ${COMMON_DRM_OBJ_ROOT}/libcmndrm_tl.so ]; then \
 		install -m 0755 ${COMMON_DRM_OBJ_ROOT}/libcmndrm_tl.so $(NEXUS_BIN_DIR); \
-	fi;
+	fi

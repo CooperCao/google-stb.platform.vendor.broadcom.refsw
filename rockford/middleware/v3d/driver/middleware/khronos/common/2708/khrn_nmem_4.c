@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2010 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2010 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -255,6 +255,7 @@ static void update_throttle_limit(void)
 
 static void advance_exit_pos(uint32_t pos)
 {
+   UNUSED(pos);
    vcos_assert(exit_pos == pos);
    ++exit_pos;
 }

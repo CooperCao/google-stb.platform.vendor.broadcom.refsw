@@ -1,14 +1,43 @@
-/***************************************************************************
- *     Copyright (c) 1999-2016, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/*******************************************************************************
+ * Broadcom Proprietary and Confidential. (c) 2016 Broadcom. All rights reserved.
  *
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- * AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- * EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * Except as expressly set forth in the Authorized License,
  *
- ***************************************************************************/
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
+ *
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 
 #include "bchp.h"
 const uint32_t BDSP_IMG_scm_task_code_array1[] = {
@@ -28,8 +57,8 @@ const uint32_t BDSP_IMG_scm_task_code_array1[] = {
 	0x07bffe1f,
 	0x3db4731f,
 	0x3d887307,
-	0xa76c8dd7,
-	0x001fd674,
+	0xa7700dd7,
+	0x001fd5d3,
 	0x94087fcf,
 	0x3da07317,
 	0x3d8e730b,
@@ -83,8 +112,8 @@ const uint32_t BDSP_IMG_scm_task_code_array1[] = {
 	0x2a817e17,
 	0x07bffe1f,
 	0x2a817e0f,
-	0xa75f09d7,
-	0x001fd674,
+	0xa76289d7,
+	0x001fd5d3,
 	0x46104203,
 	0xa77009d7,
 	0x00000000,
@@ -97,8 +126,8 @@ const uint32_t BDSP_IMG_scm_task_code_array1[] = {
 	0xafe17fc3,
 	0xb4f405f8,
 	0x7400012b,
-	0xa73109d7,
-	0x001fd67c,
+	0xa73489d7,
+	0x001fd5db,
 	0x07b07e03,
 	0xa70109d7,
 	0x00000001,
@@ -163,12 +192,12 @@ const uint32_t BDSP_IMG_scm_task_code_array1[] = {
 	0x94567f07,
 	0x94387f07,
 	0x940a7fcf,
-	0xa7210dd7,
-	0x001fd674,
+	0xa7248dd7,
+	0x001fd5d3,
 	0x07bffe07,
 	0x3da24107,
-	0xa74289d7,
-	0x001fd674,
+	0xa74609d7,
+	0x001fd5d3,
 	0x740c090f,
 	0x07bffe07,
 	0x07bffe17,
@@ -220,8 +249,8 @@ const uint32_t BDSP_IMG_scm_task_code_array1[] = {
 	0x7408410f,
 	0xba1cc857,
 	0x07b1fe0f,
-	0xa71189d7,
-	0x001fd675,
+	0xa71509d7,
+	0x001fd5d4,
 	0x740801cf,
 	0x94027f37,
 	0x110b80c7,
@@ -241,15 +270,15 @@ const uint32_t BDSP_IMG_scm_task_code_array1[] = {
 	0x07bffe1f,
 	0x461ffe27,
 	0x07bffe37,
-	0xa72d8dd7,
-	0x001fd675,
+	0xa7310dd7,
+	0x001fd5d4,
 	0x07bffe03,
-	0xa72f0dd7,
-	0x001fd674,
+	0xa7328dd7,
+	0x001fd5d3,
 	0x740c01cf,
 	0x2b0c7e0f,
 	0x461ffe13,
-	0x15078087,
+	0x152a8087,
 	0x00000001,
 	0xb40481f8,
 	0x741a1907,
@@ -271,13 +300,13 @@ const uint32_t BDSP_IMG_scm_task_code_array1[] = {
 	0x941c0d07,
 	0x941a7f00,
 	0x7400010b,
-	0xa73f0dd7,
-	0x001fd675,
+	0xa7428dd7,
+	0x001fd5d4,
 	0x7400010f,
 	0x07b1fe0f,
 	0x07bffe13,
-	0xa70389d7,
-	0x001fd675,
+	0xa70709d7,
+	0x001fd5d4,
 	0x740801cb,
 	0x110b80c7,
 	0x741c0107,
@@ -384,8 +413,8 @@ const uint32_t BDSP_IMG_scm_task_code_array1[] = {
 	0x46028327,
 	0xba1ccc57,
 	0x46018937,
-	0xa74309d7,
-	0x001fd676,
+	0xa74689d7,
+	0x001fd5d5,
 	0x3d82464f,
 	0x3d88722f,
 	0x84448107,
@@ -394,11 +423,11 @@ const uint32_t BDSP_IMG_scm_task_code_array1[] = {
 	0x07bffe1f,
 	0x07bffe27,
 	0x07a47f0f,
-	0xa76789d7,
-	0x001fd673,
+	0xa76b09d7,
+	0x001fd5d2,
 	0x07bffe03,
-	0xa70909d7,
-	0x001fd674,
+	0xa70c89d7,
+	0x001fd5d3,
 	0x760c0f0f,
 	0x76040d07,
 	0x76140b0f,
@@ -419,8 +448,8 @@ const uint32_t BDSP_IMG_scm_task_code_array1[] = {
 	0x94000443,
 	0x741c030b,
 	0x9400032b,
-	0xa77909d7,
-	0x001fd676,
+	0xa77c89d7,
+	0x001fd5d5,
 	0x760475cf,
 	0x540241cf,
 	0x2b00fe43,
@@ -498,20 +527,20 @@ const uint32_t BDSP_IMG_scm_task_code_array1[] = {
 	0x74480757,
 	0x740805cf,
 	0x9400041b,
-	0xa7178dd7,
-	0x001fd673,
+	0xa71b0dd7,
+	0x001fd5d2,
 	0x2a9e7e03,
-	0xa71709d7,
-	0x001fd673,
+	0xa71a89d7,
+	0x001fd5d2,
 	0x2a98fe03,
-	0xa7160dd7,
-	0x001fd673,
+	0xa7198dd7,
+	0x001fd5d2,
 	0x46114c07,
 	0x4612c617,
 	0xa9f68fd3,
 	0x2a9f7e03,
-	0xa7148dd7,
-	0x001fd673,
+	0xa7180dd7,
+	0x001fd5d2,
 	0x74120107,
 	0x761603cf,
 	0x94045803,
@@ -559,7 +588,7 @@ const uint32_t BDSP_IMG_scm_task_code_array1[] = {
 	0x961041cf,
 	0x07a07f07,
 	0x74020003,
-	0x15078087,
+	0x152a8087,
 	0x00000001,
 	0xb60101f8,
 	0x760475cf,
@@ -583,8 +612,8 @@ const uint32_t BDSP_IMG_scm_task_code_array1[] = {
 	0xa72d09d7,
 	0x00000000,
 	0x07bffe03,
-	0xa75a89d7,
-	0x001fd673,
+	0xa75e09d7,
+	0x001fd5d2,
 	0x74080107,
 	0x74040507,
 	0x74000707,
@@ -711,21 +740,21 @@ const uint32_t BDSP_IMG_scm_task_code_array1[] = {
 	0xb60405fc,
 	0x07b17e0f,
 	0x941a05cf,
-	0x2b0e7e17,
+	0x2b0c7e17,
 	0x941e09cf,
 	0x941607cf,
 	0x941805cf,
 	0x941c41cf,
-	0xa7328dd7,
-	0x001fd674,
+	0xa7360dd7,
+	0x001fd5d3,
 	0x07b17e07,
 	0x3d88720f,
 	0x2b00fe13,
-	0xa7140dd7,
-	0x001fd674,
+	0xa7178dd7,
+	0x001fd5d3,
 	0x740a01cf,
 	0x07bf7e47,
-	0x110d8143,
+	0x110b8143,
 	0xb40181f8,
 	0x760475cf,
 	0x763449cf,
@@ -736,14 +765,14 @@ const uint32_t BDSP_IMG_scm_task_code_array1[] = {
 	0x74400dcf,
 	0x46124227,
 	0x3d96720f,
-	0x2b0e7e17,
+	0x2b0c7e17,
 	0x2b00fe1f,
 	0x07b17e07,
-	0xa76f8dd7,
-	0x001fd674,
+	0xa7730dd7,
+	0x001fd5d3,
 	0x07b0fe03,
-	0xa7328dd7,
-	0x001fd673,
+	0xa7360dd7,
+	0x001fd5d2,
 	0x74060b1f,
 	0x741207cf,
 	0x2b8a7e27,
@@ -792,13 +821,13 @@ const uint32_t BDSP_IMG_scm_task_code_array1[] = {
 	0x8b01040b,
 	0x3d8c7323,
 	0x46124203,
-	0xa71f8dd7,
-	0x001fd674,
+	0xa7230dd7,
+	0x001fd5d3,
 	0x07b27e07,
 	0x2b00fe17,
 	0x3d88720b,
-	0xa7010dd7,
-	0x001fd674,
+	0xa7048dd7,
+	0x001fd5d3,
 	0x741805cf,
 	0x740a01cf,
 	0x07bf7e43,
@@ -815,8 +844,8 @@ const uint32_t BDSP_IMG_scm_task_code_array1[] = {
 	0x07b27e07,
 	0x3d96720f,
 	0x2b00fe1b,
-	0xa75c8dd7,
-	0x001fd674,
+	0xa7600dd7,
+	0x001fd5d3,
 	0x7406090f,
 	0x74120bcf,
 	0x540645cf,

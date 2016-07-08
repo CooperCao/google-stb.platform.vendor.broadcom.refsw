@@ -236,7 +236,7 @@ static void BHDM_EDID_P_PrintEdid(uint8_t *pEDID)
 		if ((i % BHDM_EDID_BLOCKSIZE == 0) /* add a blank line between blocks*/
 		&&  (i != 0)
 		&&  (i != BHDM_EDID_BLOCKSIZE))
-			BDBG_MSG(("")) ;
+			BDBG_MSG((" ")) ;
 
 		if ((i % 16 == 0) )                /* 16 bytes per line */
 		{
@@ -252,7 +252,7 @@ static void BHDM_EDID_P_PrintEdid(uint8_t *pEDID)
 	/* pirint last line */
 	BDBG_MSG(("%s", display_string)) ;
 
-	BDBG_MSG(("")) ;
+	BDBG_MSG((" ")) ;
 }
 
 
@@ -273,7 +273,7 @@ BERR_Code BHDM_EDID_DumpRawEDID(const BHDM_Handle hHDMI)
 	BHDM_CHECK_RC(rc, BHDM_EDID_GetNthBlock(hHDMI,
 		0, hHDMI->AttachedEDID.Block, BHDM_EDID_BLOCKSIZE)) ;
 
-	BDBG_MSG(("")) ;
+	BDBG_MSG((" ")) ;
 	BDBG_MSG(("     /* RAW EDID DUMP from %.13s: */", hHDMI->AttachedEDID.MonitorName)) ;
 	BDBG_MSG(("     /* insert into bhdm_edid_debug.c (DebugRxEdid) for simulation/testing */")) ;
 	BDBG_MSG(("     /* enable with 'export hdmi_use_debug_edid=y' */")) ;
@@ -296,7 +296,7 @@ BERR_Code BHDM_EDID_DumpRawEDID(const BHDM_Handle hHDMI)
 	/* Search EDID Extension blocks for additional timing descriptors */
 	for (i = 1 ; i <= NumExtensions; i++)
 	{
-		BDBG_MSG(("")) ;
+		BDBG_MSG((" ")) ;
 		BDBG_MSG(("     /* EXTENSION BLOCK %d */", i)) ;
 
 		/* read the next 128 Byte EDID block */

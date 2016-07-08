@@ -1,24 +1,43 @@
-/***************************************************************************
- *     Copyright (c) 2006-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * Module Description: Host DSP Task Interface
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
  *
- * Revision History:
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- *
- ***************************************************************************/
-
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 #include "bdsp.h"
 #include "bdsp_raaga_img.h"
 
@@ -35,8 +54,8 @@ extern const void * BDSP_IMG_vididscommon_inter_frame[];
 extern const void * BDSP_IMG_scm_task_code [];
 extern const void * BDSP_IMG_video_decode_task_code [];
 extern const void * BDSP_IMG_video_encode_task_code [];
-extern const void *	BDSP_IMG_cdb_passthru_code[];
-extern const void *	BDSP_IMG_cdb_passthru_tables[];
+extern const void * BDSP_IMG_cdb_passthru_code[];
+extern const void * BDSP_IMG_cdb_passthru_tables[];
 extern const void * BDSP_IMG_cdb_passthru_inter_frame[];
 
 /* Passthru AC3/MPEG/DDP/DTS/AAC even without license */
@@ -180,7 +199,7 @@ extern const void *  BDSP_IMG_pcm_ids_inter_frame [];
 #ifdef BDSP_DTSLBR_SUPPORT
 extern const void *        BDSP_IMG_dts_express_ids_decode [];
 extern const void *        BDSP_IMG_dts_express_decode [];
-extern const void *		   BDSP_IMG_dts_express_decode_tables [];
+extern const void *        BDSP_IMG_dts_express_decode_tables [];
 extern const void *        BDSP_IMG_dts_express_decode_inter_frame [];
 extern const void *        BDSP_IMG_dts_express_ids_inter_frame[];
 #endif
@@ -420,12 +439,21 @@ extern const void * BDSP_IMG_opus_decode_inter_frame[];
 extern const void * BDSP_IMG_opus_decode_tables[];
 #endif
 
-#ifdef BDSP_ALSDEC_SUPPORT
+#ifdef BDSP_ALS_SUPPORT
+extern const void * BDSP_IMG_als_ids [];
+extern const void * BDSP_IMG_als_ids_inter_frame [];
 extern const void * BDSP_IMG_als_decode[];
 extern const void * BDSP_IMG_als_decode_inter_frame[];
 extern const void * BDSP_IMG_als_decode_tables[];
 #endif
 
+#ifdef BDSP_AC4_SUPPORT
+extern const void * BDSP_IMG_ac4_ids [];
+extern const void * BDSP_IMG_ac4_ids_inter_frame [];
+extern const void * BDSP_IMG_ac4_decode[];
+extern const void * BDSP_IMG_ac4_decode_inter_frame[];
+extern const void * BDSP_IMG_ac4_decode_tables[];
+#endif
 #ifdef BDSP_DRA_SUPPORT
 extern const void * BDSP_IMG_dra_decode[];
 extern const void * BDSP_IMG_dra_decode_tables[];
@@ -652,16 +680,16 @@ extern const void *BDSP_IMG_h264_encode_tables[];
 extern const void *BDSP_IMG_h264_encode_inter_frame[];
 #endif
 
-#ifdef BDSP_VP8_ENCODE_SUPPORT
-extern const void *BDSP_IMG_vp8_encode[];
-extern const void *BDSP_IMG_vp8_encode_tables[];
-extern const void *BDSP_IMG_vp8_encode_inter_frame[];
-#endif
 
 #ifdef BDSP_X264_ENCODE_SUPPORT
 extern const void *BDSP_IMG_x264_encode[];
 extern const void *BDSP_IMG_x264_encode_tables[];
 extern const void *BDSP_IMG_x264_encode_inter_frame[];
+#endif
+#ifdef BDSP_XVP8_ENCODE_SUPPORT
+extern const void *BDSP_IMG_xvp8_encode[];
+extern const void *BDSP_IMG_xvp8_encode_tables[];
+extern const void *BDSP_IMG_xvp8_encode_inter_frame[];
 #endif
 #ifdef BDSP_MLP_PASSTHROUGH_SUPPORT
 extern const void *  BDSP_IMG_mlp_passthrough_code [];
@@ -736,9 +764,9 @@ extern const void *BDSP_IMG_ddp_encode_tables[];
 extern const void *BDSP_IMG_ddp_encode_inter_frame[];
 #endif
 /*
-	This array will contain pointers to the arrays that contain that chunk
-	pointers of the firmware binary. Based on the firmware ID one particular
-	firmware Image can be accessed from this array
+    This array will contain pointers to the arrays that contain that chunk
+    pointers of the firmware binary. Based on the firmware ID one particular
+    firmware Image can be accessed from this array
 */
 
 static void *BDSP_IMG_P_GetArray(unsigned imgId)
@@ -760,8 +788,8 @@ static void *BDSP_IMG_P_GetArray(unsigned imgId)
 #ifdef BDSP_SCM2_SUPPORT
     case BDSP_SystemImgId_eScm2_Digest:                                 return BDSP_IMG_scm2_digest;
 #endif
-	case BDSP_SystemImgId_eVideo_Decode_Task_Code:                      return BDSP_IMG_video_decode_task_code;
-	case BDSP_SystemImgId_eVideo_Encode_Task_Code:                      return BDSP_IMG_video_encode_task_code;
+    case BDSP_SystemImgId_eVideo_Decode_Task_Code:                      return BDSP_IMG_video_decode_task_code;
+    case BDSP_SystemImgId_eVideo_Encode_Task_Code:                      return BDSP_IMG_video_encode_task_code;
 
     /* Below values are sorted by BDSP_AF_P_AlgoId values for consistency */
 
@@ -836,7 +864,7 @@ static void *BDSP_IMG_P_GetArray(unsigned imgId)
     case BDSP_IMG_ID_TABLE(BDSP_AF_P_AlgoId_eRealAudioLbrDecode):       return BDSP_IMG_ralbr_decode_tables;
     case BDSP_IMG_ID_IFRAME(BDSP_AF_P_AlgoId_eRealAudioLbrDecode):      return BDSP_IMG_ralbr_decode_inter_frame;
     #endif
-	#ifdef BDSP_DOLBY_AACHE_SUPPORT
+    #ifdef BDSP_DOLBY_AACHE_SUPPORT
     case BDSP_IMG_ID_CODE(BDSP_AF_P_AlgoId_eDolbyAacheDecode):          return BDSP_IMG_dolby_aache_decode;
     case BDSP_IMG_ID_TABLE(BDSP_AF_P_AlgoId_eDolbyAacheDecode):         return BDSP_IMG_dolby_aache_decode_tables;
     case BDSP_IMG_ID_IFRAME(BDSP_AF_P_AlgoId_eDolbyAacheDecode):        return BDSP_IMG_dolby_aache_decode_inter_frame;
@@ -908,11 +936,16 @@ static void *BDSP_IMG_P_GetArray(unsigned imgId)
     case BDSP_IMG_ID_TABLE(BDSP_AF_P_AlgoId_eOpusDecode):              return BDSP_IMG_opus_decode_tables;
     case BDSP_IMG_ID_IFRAME(BDSP_AF_P_AlgoId_eOpusDecode):              return BDSP_IMG_opus_decode_inter_frame;
     #endif
-#ifdef BDSP_ALSDEC_SUPPORT
-case BDSP_IMG_ID_CODE(BDSP_AF_P_AlgoId_eALSDecode):              return BDSP_IMG_als_decode;
-case BDSP_IMG_ID_TABLE(BDSP_AF_P_AlgoId_eALSDecode):              return BDSP_IMG_als_decode_tables;
-case BDSP_IMG_ID_IFRAME(BDSP_AF_P_AlgoId_eALSDecode):              return BDSP_IMG_als_decode_inter_frame;
-#endif
+    #ifdef BDSP_ALS_SUPPORT
+    case BDSP_IMG_ID_CODE(BDSP_AF_P_AlgoId_eALSDecode):              return BDSP_IMG_als_decode;
+    case BDSP_IMG_ID_TABLE(BDSP_AF_P_AlgoId_eALSDecode):              return BDSP_IMG_als_decode_tables;
+    case BDSP_IMG_ID_IFRAME(BDSP_AF_P_AlgoId_eALSDecode):              return BDSP_IMG_als_decode_inter_frame;
+    #endif
+    #ifdef BDSP_AC4_SUPPORT
+    case BDSP_IMG_ID_CODE(BDSP_AF_P_AlgoId_eAC4Decode):              return BDSP_IMG_ac4_decode;
+    case BDSP_IMG_ID_TABLE(BDSP_AF_P_AlgoId_eAC4Decode):              return BDSP_IMG_ac4_decode_tables;
+    case BDSP_IMG_ID_IFRAME(BDSP_AF_P_AlgoId_eAC4Decode):              return BDSP_IMG_ac4_decode_inter_frame;
+    #endif
     /* End of audio decode algorithms */
 
     /* Start of video decode algorithms */
@@ -1030,13 +1063,21 @@ case BDSP_IMG_ID_IFRAME(BDSP_AF_P_AlgoId_eALSDecode):              return BDSP_I
     case BDSP_IMG_ID_CODE(BDSP_AF_P_AlgoId_eiLBCFrameSync):             return BDSP_IMG_ilbc_ids;
     case BDSP_IMG_ID_IFRAME(BDSP_AF_P_AlgoId_eiLBCFrameSync):           return BDSP_IMG_ilbc_ids_inter_frame;
     #endif
-	#ifdef BDSP_ISAC_SUPPORT
+    #ifdef BDSP_ISAC_SUPPORT
     case BDSP_IMG_ID_CODE(BDSP_AF_P_AlgoId_eiSACFrameSync):             return BDSP_IMG_isac_ids;
     case BDSP_IMG_ID_IFRAME(BDSP_AF_P_AlgoId_eiSACFrameSync):           return BDSP_IMG_isac_ids_inter_frame;
     #endif
-	#if defined (BDSP_UDC_SUPPORT) || defined (BDSP_UDC_PASSTHRU_SUPPORT)
+    #if defined (BDSP_UDC_SUPPORT) || defined (BDSP_UDC_PASSTHRU_SUPPORT)
     case BDSP_IMG_ID_CODE(BDSP_AF_P_AlgoId_eUdcFrameSync):             return BDSP_IMG_udc_ids;
     case BDSP_IMG_ID_IFRAME(BDSP_AF_P_AlgoId_eUdcFrameSync):           return BDSP_IMG_udc_ids_inter_frame;
+    #endif
+    #if defined (BDSP_AC4_SUPPORT)
+    case BDSP_IMG_ID_CODE(BDSP_AF_P_AlgoId_eAC4FrameSync):             return BDSP_IMG_ac4_ids;
+    case BDSP_IMG_ID_IFRAME(BDSP_AF_P_AlgoId_eAC4FrameSync):           return BDSP_IMG_ac4_ids_inter_frame;
+    #endif
+    #if defined (BDSP_ALS_SUPPORT)
+    case BDSP_IMG_ID_CODE(BDSP_AF_P_AlgoId_eALSFrameSync):             return BDSP_IMG_als_ids;
+    case BDSP_IMG_ID_IFRAME(BDSP_AF_P_AlgoId_eALSFrameSync):           return BDSP_IMG_als_ids_inter_frame;
     #endif
     /* End of audio framesync */
 
@@ -1108,12 +1149,12 @@ case BDSP_IMG_ID_IFRAME(BDSP_AF_P_AlgoId_eALSDecode):              return BDSP_I
     case BDSP_IMG_ID_TABLE(BDSP_AF_P_AlgoId_eLpcmEncode):               return BDSP_IMG_lpcm_encode_tables;
     case BDSP_IMG_ID_IFRAME(BDSP_AF_P_AlgoId_eLpcmEncode):              return BDSP_IMG_lpcm_encode_inter_frame;
     #endif
-	#ifdef BDSP_OPUS_ENC_SUPPORT
-	case BDSP_IMG_ID_CODE(BDSP_AF_P_AlgoId_eOpusEncode):                return BDSP_IMG_opus_encode_code;
+    #ifdef BDSP_OPUS_ENC_SUPPORT
+    case BDSP_IMG_ID_CODE(BDSP_AF_P_AlgoId_eOpusEncode):                return BDSP_IMG_opus_encode_code;
     case BDSP_IMG_ID_TABLE(BDSP_AF_P_AlgoId_eOpusEncode):               return BDSP_IMG_opus_encode_tables;
     case BDSP_IMG_ID_IFRAME(BDSP_AF_P_AlgoId_eOpusEncode):              return BDSP_IMG_opus_encode_inter_frame;
-	#endif
-	#ifdef BDSP_DDPENC_SUPPORT
+    #endif
+    #ifdef BDSP_DDPENC_SUPPORT
     case BDSP_IMG_ID_CODE(BDSP_AF_P_AlgoId_eDDPEncode):                 return BDSP_IMG_ddp_encode_code;
     case BDSP_IMG_ID_TABLE(BDSP_AF_P_AlgoId_eDDPEncode):                return BDSP_IMG_ddp_encode_tables;
     case BDSP_IMG_ID_IFRAME(BDSP_AF_P_AlgoId_eDDPEncode):               return BDSP_IMG_ddp_encode_inter_frame;
@@ -1127,15 +1168,15 @@ case BDSP_IMG_ID_IFRAME(BDSP_AF_P_AlgoId_eALSDecode):              return BDSP_I
     case BDSP_IMG_ID_IFRAME(BDSP_VF_P_AlgoId_eH264Encode):              return BDSP_IMG_h264_encode_inter_frame;
     #endif
 
-    #ifdef BDSP_VP8_ENCODE_SUPPORT
-    case BDSP_IMG_ID_CODE(BDSP_VF_P_AlgoId_eVP8Encode):                 return BDSP_IMG_vp8_encode;
-    case BDSP_IMG_ID_TABLE(BDSP_VF_P_AlgoId_eVP8Encode):                return BDSP_IMG_vp8_encode_tables;
-    case BDSP_IMG_ID_IFRAME(BDSP_VF_P_AlgoId_eVP8Encode):               return BDSP_IMG_vp8_encode_inter_frame;
-    #endif
-	 #ifdef BDSP_X264_ENCODE_SUPPORT
+     #ifdef BDSP_X264_ENCODE_SUPPORT
     case BDSP_IMG_ID_CODE(BDSP_VF_P_AlgoId_eX264Encode):                return BDSP_IMG_x264_encode;
     case BDSP_IMG_ID_TABLE(BDSP_VF_P_AlgoId_eX264Encode):               return BDSP_IMG_x264_encode_tables;
     case BDSP_IMG_ID_IFRAME(BDSP_VF_P_AlgoId_eX264Encode):              return BDSP_IMG_x264_encode_inter_frame;
+    #endif
+	#ifdef BDSP_XVP8_ENCODE_SUPPORT
+    case BDSP_IMG_ID_CODE(BDSP_VF_P_AlgoId_eXVP8Encode):                return BDSP_IMG_xvp8_encode;
+    case BDSP_IMG_ID_TABLE(BDSP_VF_P_AlgoId_eXVP8Encode):               return BDSP_IMG_xvp8_encode_tables;
+    case BDSP_IMG_ID_IFRAME(BDSP_VF_P_AlgoId_eXVP8Encode):              return BDSP_IMG_xvp8_encode_inter_frame;
     #endif
     /* End of video encode */
 
@@ -1299,7 +1340,7 @@ case BDSP_IMG_ID_IFRAME(BDSP_AF_P_AlgoId_eALSDecode):              return BDSP_I
     }
 }
 
-/*	This context is used by other modules to make use of this interface. They
+/*  This context is used by other modules to make use of this interface. They
     need to supply this as a parameter to BDSP_IMG_Open */
 static void *pDummy = NULL;
 void *BDSP_IMG_Context = &pDummy;
@@ -1315,14 +1356,14 @@ static BERR_Code BDSP_IMG_Open(void *context, void **image, unsigned image_id)
     BSTD_UNUSED(context);
     BDBG_ASSERT(NULL != context);
 
-	*image = BDSP_IMG_P_GetArray(image_id);
+    *image = BDSP_IMG_P_GetArray(image_id);
 
-	if (NULL == *image)
-	{
-		return BERR_TRACE(BERR_INVALID_PARAMETER);
-	}
+    if (NULL == *image)
+    {
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
 
-	return BERR_SUCCESS;
+    return BERR_SUCCESS;
 }
 
 /*  After opening the firmware image, the user of this interface will then be
@@ -1333,17 +1374,17 @@ static BERR_Code BDSP_IMG_Open(void *context, void **image, unsigned image_id)
 static BERR_Code BDSP_IMG_Next(void *image, unsigned chunk, const void **data, uint16_t length)
 {
 
-	BDBG_ASSERT(data);
-	BSTD_UNUSED(length);
+    BDBG_ASSERT(data);
+    BSTD_UNUSED(length);
 
-	*data = ((const void **)image)[chunk];
+    *data = ((const void **)image)[chunk];
 
-	if (NULL == *data)
-	{
-		return BERR_TRACE(BERR_INVALID_PARAMETER);
-	}
+    if (NULL == *data)
+    {
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
 
-	return BERR_SUCCESS;
+    return BERR_SUCCESS;
 }
 
 /* This function is used to close the firmware image that was opened using
@@ -1351,8 +1392,8 @@ static BERR_Code BDSP_IMG_Next(void *image, unsigned chunk, const void **data, u
 static void BDSP_IMG_Close(void *image)
 {
 
-	BSTD_UNUSED(image);
-	return;
+    BSTD_UNUSED(image);
+    return;
 }
 
 /* The interface is actually a set of three functions open, next and close.

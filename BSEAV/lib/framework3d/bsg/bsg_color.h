@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -11,7 +11,7 @@
  * Software and all intellectual property rights therein.  IF YOU HAVE NO
  * AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
  * AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
- * SOFTWARE.  
+ * SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
@@ -81,7 +81,7 @@ public:
       m_colorF[1] = FG();
       m_colorF[2] = FB();
       m_colorF[3] = FA();
-      return m_colorF; 
+      return m_colorF;
    }
    float *VecF()
    {
@@ -89,7 +89,7 @@ public:
       m_colorF[1] = FG();
       m_colorF[2] = FB();
       m_colorF[3] = FA();
-      return m_colorF; 
+      return m_colorF;
    }
 
 private:

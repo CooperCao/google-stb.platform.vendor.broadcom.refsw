@@ -80,6 +80,7 @@ typedef struct NEXUS_VideoOutputVfFilter
 {
     uint32_t filterRegs[NEXUS_MAX_VF_FILTER_ENTRIES];
     unsigned numEntries;
+    uint32_t SUM_OF_TAPS; /* register field */
 } NEXUS_VideoOutputVfFilter;
 
 /**

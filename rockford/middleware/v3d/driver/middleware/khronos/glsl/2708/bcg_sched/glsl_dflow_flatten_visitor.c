@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2013 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2013 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -15,6 +15,7 @@ FILE DESCRIPTION
 
 static void Destroy(void *me)
 {
+   UNUSED(me);
 }
 
 static void Accept(void *me, DFlowNode *node)

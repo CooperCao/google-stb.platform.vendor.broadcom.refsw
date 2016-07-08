@@ -19,12 +19,12 @@
  *
  ***************************************************************************/
 #include "bstd.h"
-#include "bchp_hif.h"
-#include "bchp_leap_host_irq.h"
-#include "bchp_leap_ctrl.h"
-#include "bchp_leap_hab_mem.h"
-#include "bchp_leap_l2.h"
-#include "bchp_jtag_otp.h"
+#include "bchp_4538_hif.h"
+#include "bchp_4538_leap_host_irq.h"
+#include "bchp_4538_leap_ctrl.h"
+#include "bchp_4538_leap_hab_mem.h"
+#include "bchp_4538_leap_l2.h"
+#include "bchp_4538_jtag_otp.h"
 #include "bi2c.h"
 #include "bkni_multi.h"
 #include "bast.h"

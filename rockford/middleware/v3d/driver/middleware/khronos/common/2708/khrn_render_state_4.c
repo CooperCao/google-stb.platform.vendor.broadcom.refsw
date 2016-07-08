@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2008 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2008 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -102,7 +102,7 @@ void khrn_render_state_usurp(uint32_t i, KHRN_RENDER_STATE_TYPE_T type)
 void khrn_render_state_flush(uint32_t i)
 {
    switch (render_states[i].type) {
-   case KHRN_RENDER_STATE_TYPE_COPY_BUFFER: khrn_copy_buffer_render_state_flush(&render_states[i].data.copy_buffer); break;
+   case KHRN_RENDER_STATE_TYPE_COPY_BUFFER: break;
       /* TODO: error checking for GLXX! */
    case KHRN_RENDER_STATE_TYPE_GLXX:        glxx_hw_render_state_flush(&render_states[i].data.glxx); break;
 #ifndef NO_OPENVG

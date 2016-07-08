@@ -1,21 +1,41 @@
 /***************************************************************************
- *     Copyright (c) 2004-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * [File Description:]
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ***************************************************************************/
 #include "bvdc_compositor_priv.h"
@@ -44,9 +64,9 @@ BDBG_MODULE(BVDC_PEP);
 /* new_BP = BP >> 4 */
 /* new_val = new_BP | new_CR | new_CB */
 #define BVDC_P_MAKE_CAB_TABLE(val) \
-		((val & 0xFFF00000) >> 4) | \
-		(((val & 0xFF000) + ((val & 0x800) << 1)) >> 4) | \
-		(((val & 0x3FF) + ((val & 0x002) << 1)) >> 2)
+        ((val & 0xFFF00000) >> 4) | \
+        (((val & 0xFF000) + ((val & 0x800) << 1)) >> 4) | \
+        (((val & 0x3FF) + ((val & 0x002) << 1)) >> 2)
 
 /* Generated using the following parameters: */
 /* hue_start = 1.2217 ( 70 degrees) */
@@ -136,66 +156,66 @@ static const uint16_t LUT8_redBoost_cr_delta[1024] = {
  * Builds CAB table for the auto-flesh function
  **************************************************************************/
 static void BVDC_P_Cab_FleshToneCalculation
-	( const uint32_t             ulFleshTone,
-	  uint32_t                  *puiCabTable )
+    ( const uint32_t             ulFleshTone,
+      uint32_t                  *puiCabTable )
 {
-	uint32_t id;
-	uint32_t regVal;
-	uint16_t cr, cb;
-	int16_t  cr_new, cb_new;
-	int32_t  cr_delta, cb_delta;
+    uint32_t id;
+    uint32_t regVal;
+    uint16_t cr, cb;
+    int16_t  cr_new, cb_new;
+    int32_t  cr_delta, cb_delta;
 
-	BDBG_ENTER(BVDC_P_Cab_FleshToneCalculation);
+    BDBG_ENTER(BVDC_P_Cab_FleshToneCalculation);
 
-	/* Slider can be fixed to add more granularity
-	 * right now the slider can take on the following values: 0,1,2,3,4
-	 * This range should be expanded for around 20 or so discrete values.
-	 */
+    /* Slider can be fixed to add more granularity
+     * right now the slider can take on the following values: 0,1,2,3,4
+     * This range should be expanded for around 20 or so discrete values.
+     */
 
-	/* Note: FleshTone is called first, so it must fill in puiCabTable with */
-	/* something for every location! */
-	if(ulFleshTone <= 4)
-	{
-		for(id = 0; id < BVDC_P_CAB_TABLE_SIZE; id++)
-		{
-			cr_delta = LUT8_redBoost_cr_delta[id];
-			cb_delta = LUT8_redBoost_cb_delta[id];
+    /* Note: FleshTone is called first, so it must fill in puiCabTable with */
+    /* something for every location! */
+    if(ulFleshTone <= 4)
+    {
+        for(id = 0; id < BVDC_P_CAB_TABLE_SIZE; id++)
+        {
+            cr_delta = LUT8_redBoost_cr_delta[id];
+            cb_delta = LUT8_redBoost_cb_delta[id];
 
-			if((cb_delta == 0) && (cr_delta == 0))
-			{
-				/* Fill CAB table with "bypass" if not in FleshTone region */
-				*(puiCabTable + id) = (1 << (2 * BVDC_P_PEP_NUM_CHROMA_BITS));
-			}
-			else
-			{
-				/* Fill CAB table with FleshTone values inside region */
-				cr = (id >> 5) << (BVDC_P_PEP_NUM_CHROMA_BITS - 5);
-				cb = (id % 32) << (BVDC_P_PEP_NUM_CHROMA_BITS - 5);
+            if((cb_delta == 0) && (cr_delta == 0))
+            {
+                /* Fill CAB table with "bypass" if not in FleshTone region */
+                *(puiCabTable + id) = (1 << (2 * BVDC_P_PEP_NUM_CHROMA_BITS));
+            }
+            else
+            {
+                /* Fill CAB table with FleshTone values inside region */
+                cr = (id >> 5) << (BVDC_P_PEP_NUM_CHROMA_BITS - 5);
+                cb = (id % 32) << (BVDC_P_PEP_NUM_CHROMA_BITS - 5);
 
-				if(cr_delta > 32768) cr_delta -= 65536;
-				cr_delta = (ulFleshTone * cr_delta) / 4;
+                if(cr_delta > 32768) cr_delta -= 65536;
+                cr_delta = (ulFleshTone * cr_delta) / 4;
 
-				if(cb_delta > 32768) cb_delta -= 65536;
-				cb_delta = (ulFleshTone * cb_delta) / 4;
+                if(cb_delta > 32768) cb_delta -= 65536;
+                cb_delta = (ulFleshTone * cb_delta) / 4;
 
-				cr_new = ((cr << 8) + cr_delta) >> 8;
-				cb_new = ((cb << 8) + cb_delta) >> 8;
+                cr_new = ((cr << 8) + cr_delta) >> 8;
+                cb_new = ((cb << 8) + cb_delta) >> 8;
 
-				/* perform clipping */
-				if(cr_new < 0) cr_new = 0;
-				if(cr_new >= (1 << BVDC_P_PEP_NUM_CHROMA_BITS))
-					cr_new = (1 << BVDC_P_PEP_NUM_CHROMA_BITS) - 1;
+                /* perform clipping */
+                if(cr_new < 0) cr_new = 0;
+                if(cr_new >= (1 << BVDC_P_PEP_NUM_CHROMA_BITS))
+                    cr_new = (1 << BVDC_P_PEP_NUM_CHROMA_BITS) - 1;
 
-				if(cb_new < 0) cb_new = 0;
-				if(cb_new >= (1 << BVDC_P_PEP_NUM_CHROMA_BITS))
-					cb_new = (1 << BVDC_P_PEP_NUM_CHROMA_BITS) - 1;
+                if(cb_new < 0) cb_new = 0;
+                if(cb_new >= (1 << BVDC_P_PEP_NUM_CHROMA_BITS))
+                    cb_new = (1 << BVDC_P_PEP_NUM_CHROMA_BITS) - 1;
 
-				regVal = (cr_new << BVDC_P_PEP_NUM_CHROMA_BITS) | cb_new;
-				*(puiCabTable + id) = regVal;
-			}
-		}
-	}
-	BDBG_LEAVE(BVDC_P_Cab_FleshToneCalculation);
+                regVal = (cr_new << BVDC_P_PEP_NUM_CHROMA_BITS) | cb_new;
+                *(puiCabTable + id) = regVal;
+            }
+        }
+    }
+    BDBG_LEAVE(BVDC_P_Cab_FleshToneCalculation);
 }
 
 
@@ -287,72 +307,72 @@ static const uint16_t LUT8_greenBoost_cr_delta[1024] = {
  * Builds CAB table for green boost function
  **************************************************************************/
 static void BVDC_P_Cab_GreenBoostCalculation
-	( const uint32_t             ulGreenBoost,
-	  uint32_t                  *puiCabTable )
+    ( const uint32_t             ulGreenBoost,
+      uint32_t                  *puiCabTable )
 {
-	uint32_t id;
-	uint32_t regVal;
-	uint16_t cr, cb;
-	int16_t  cr_new, cb_new;
-	int32_t  cr_delta, cb_delta;
+    uint32_t id;
+    uint32_t regVal;
+    uint16_t cr, cb;
+    int16_t  cr_new, cb_new;
+    int32_t  cr_delta, cb_delta;
 
-	BDBG_ENTER(BVDC_P_Cab_GreenBoostCalculation);
+    BDBG_ENTER(BVDC_P_Cab_GreenBoostCalculation);
 
-	/* Slider can be fixed to add more granularity
-	 * right now the slider can take on the following values: 0,1,2,3,4
-	 * This range should be expanded for around 20 or so discrete values.
-	 * For now we will simply map the input values to the control parameter
-	 * range we normally want to use which is from -32768...32767.
-	 * We most likely will only want the positive range. i.e. 0..32767.
-	 */
+    /* Slider can be fixed to add more granularity
+     * right now the slider can take on the following values: 0,1,2,3,4
+     * This range should be expanded for around 20 or so discrete values.
+     * For now we will simply map the input values to the control parameter
+     * range we normally want to use which is from -32768...32767.
+     * We most likely will only want the positive range. i.e. 0..32767.
+     */
 
-	/* Do nothing for Green Boost at 0, or out of range */
-	if((ulGreenBoost <= 4) && (ulGreenBoost > 0))
-	{
-		for(id = 0; id < BVDC_P_CAB_TABLE_SIZE; id++)
-		{
-			cr_delta = LUT8_greenBoost_cr_delta[id];
-			cb_delta = LUT8_greenBoost_cb_delta[id];
+    /* Do nothing for Green Boost at 0, or out of range */
+    if((ulGreenBoost <= 4) && (ulGreenBoost > 0))
+    {
+        for(id = 0; id < BVDC_P_CAB_TABLE_SIZE; id++)
+        {
+            cr_delta = LUT8_greenBoost_cr_delta[id];
+            cb_delta = LUT8_greenBoost_cb_delta[id];
 
-			if(!((cb_delta == 0) && (cr_delta == 0)))
-			{
-				if(*(puiCabTable + id) == (1 << (2 * BVDC_P_PEP_NUM_CHROMA_BITS)))
-				{
-					/* Calculate cb/cr if this location has not been modified by previous CAB function */
-					cr = (id >> 5) << (BVDC_P_PEP_NUM_CHROMA_BITS - 5);
-					cb = (id % 32) << (BVDC_P_PEP_NUM_CHROMA_BITS - 5);
-				}
-				else
-				{
-					/* Read previously calculated cb/cr from CAB table.  Overlapping regions allowed */
-					cr = *(puiCabTable + id) >> BVDC_P_PEP_NUM_CHROMA_BITS;
-					cb = *(puiCabTable + id) - (cr << BVDC_P_PEP_NUM_CHROMA_BITS);
-				}
+            if(!((cb_delta == 0) && (cr_delta == 0)))
+            {
+                if(*(puiCabTable + id) == (1 << (2 * BVDC_P_PEP_NUM_CHROMA_BITS)))
+                {
+                    /* Calculate cb/cr if this location has not been modified by previous CAB function */
+                    cr = (id >> 5) << (BVDC_P_PEP_NUM_CHROMA_BITS - 5);
+                    cb = (id % 32) << (BVDC_P_PEP_NUM_CHROMA_BITS - 5);
+                }
+                else
+                {
+                    /* Read previously calculated cb/cr from CAB table.  Overlapping regions allowed */
+                    cr = *(puiCabTable + id) >> BVDC_P_PEP_NUM_CHROMA_BITS;
+                    cb = *(puiCabTable + id) - (cr << BVDC_P_PEP_NUM_CHROMA_BITS);
+                }
 
-				if(cr_delta > 32768) cr_delta -= 65536;
-				cr_delta = (ulGreenBoost * cr_delta) / 4;
+                if(cr_delta > 32768) cr_delta -= 65536;
+                cr_delta = (ulGreenBoost * cr_delta) / 4;
 
-				if(cb_delta > 32768) cb_delta -= 65536;
-				cb_delta = (ulGreenBoost * cb_delta) / 4;
+                if(cb_delta > 32768) cb_delta -= 65536;
+                cb_delta = (ulGreenBoost * cb_delta) / 4;
 
-				cr_new = ((cr << 8) + cr_delta) >> 8;
-				cb_new = ((cb << 8) + cb_delta) >> 8;
+                cr_new = ((cr << 8) + cr_delta) >> 8;
+                cb_new = ((cb << 8) + cb_delta) >> 8;
 
-				/* perform clipping */
-				if(cr_new < 0) cr_new = 0;
-				if(cr_new >= (1 << BVDC_P_PEP_NUM_CHROMA_BITS))
-					cr_new = (1 << BVDC_P_PEP_NUM_CHROMA_BITS) - 1;
+                /* perform clipping */
+                if(cr_new < 0) cr_new = 0;
+                if(cr_new >= (1 << BVDC_P_PEP_NUM_CHROMA_BITS))
+                    cr_new = (1 << BVDC_P_PEP_NUM_CHROMA_BITS) - 1;
 
-				if(cb_new < 0) cb_new = 0;
-				if(cb_new >= (1 << BVDC_P_PEP_NUM_CHROMA_BITS))
-					cb_new = (1 << BVDC_P_PEP_NUM_CHROMA_BITS) - 1;
+                if(cb_new < 0) cb_new = 0;
+                if(cb_new >= (1 << BVDC_P_PEP_NUM_CHROMA_BITS))
+                    cb_new = (1 << BVDC_P_PEP_NUM_CHROMA_BITS) - 1;
 
-				regVal = (cr_new << BVDC_P_PEP_NUM_CHROMA_BITS) | cb_new;
-				*(puiCabTable + id) = regVal;
-			}
-		}
-	}
-	BDBG_LEAVE(BVDC_P_Cab_GreenBoostCalculation);
+                regVal = (cr_new << BVDC_P_PEP_NUM_CHROMA_BITS) | cb_new;
+                *(puiCabTable + id) = regVal;
+            }
+        }
+    }
+    BDBG_LEAVE(BVDC_P_Cab_GreenBoostCalculation);
 }
 
 
@@ -444,72 +464,72 @@ static const uint16_t LUT8_blueBoost_cr_delta[1024] = {
  * Builds CAB table for blue boost function
  **************************************************************************/
 static void BVDC_P_Cab_BlueBoostCalculation
-	( const uint32_t             ulBlueBoost,
-	  uint32_t                  *puiCabTable )
+    ( const uint32_t             ulBlueBoost,
+      uint32_t                  *puiCabTable )
 {
-	uint32_t id;
-	uint32_t regVal;
-	uint16_t cr, cb;
-	int16_t  cr_new, cb_new;
-	int32_t  cr_delta, cb_delta;
+    uint32_t id;
+    uint32_t regVal;
+    uint16_t cr, cb;
+    int16_t  cr_new, cb_new;
+    int32_t  cr_delta, cb_delta;
 
-	BDBG_ENTER(BVDC_P_Cab_BlueBoostCalculation);
+    BDBG_ENTER(BVDC_P_Cab_BlueBoostCalculation);
 
-	/* Slider should be fixed to add more granularity
-	 * right now the slider can take on the following values: 0,1,2,3,4
-	 * This range should be expanded for around 20 or so discrete values.
-	 * For now we will simply map the input values to the control parameter
-	 * range we normally want to use which is from -32768...32767.
-	 * We most likely will only want the positive range. i.e. 0..32767.
-	 */
+    /* Slider should be fixed to add more granularity
+     * right now the slider can take on the following values: 0,1,2,3,4
+     * This range should be expanded for around 20 or so discrete values.
+     * For now we will simply map the input values to the control parameter
+     * range we normally want to use which is from -32768...32767.
+     * We most likely will only want the positive range. i.e. 0..32767.
+     */
 
-	/* Do nothing for Blue Boost at 0, or out of range */
-	if((ulBlueBoost <= 4) && (ulBlueBoost > 0))
-	{
-		for(id = 0; id < BVDC_P_CAB_TABLE_SIZE; id++)
-		{
-			cr_delta = LUT8_blueBoost_cr_delta[id];
-			cb_delta = LUT8_blueBoost_cb_delta[id];
+    /* Do nothing for Blue Boost at 0, or out of range */
+    if((ulBlueBoost <= 4) && (ulBlueBoost > 0))
+    {
+        for(id = 0; id < BVDC_P_CAB_TABLE_SIZE; id++)
+        {
+            cr_delta = LUT8_blueBoost_cr_delta[id];
+            cb_delta = LUT8_blueBoost_cb_delta[id];
 
-			if(!((cb_delta == 0) && (cr_delta == 0)))
-			{
-				if(*(puiCabTable + id) == (1 << (2 * BVDC_P_PEP_NUM_CHROMA_BITS)))
-				{
-					/* Calculate cb/cr if this location has not been modified by previous CAB function */
-					cr = (id >> 5) << (BVDC_P_PEP_NUM_CHROMA_BITS - 5);
-					cb = (id % 32) << (BVDC_P_PEP_NUM_CHROMA_BITS - 5);
-				}
-				else
-				{
-					/* Read previously calculated cb/cr from CAB table.  Overlapping regions allowed */
-					cr = *(puiCabTable + id) >> BVDC_P_PEP_NUM_CHROMA_BITS;
-					cb = *(puiCabTable + id) - (cr << BVDC_P_PEP_NUM_CHROMA_BITS);
-				}
+            if(!((cb_delta == 0) && (cr_delta == 0)))
+            {
+                if(*(puiCabTable + id) == (1 << (2 * BVDC_P_PEP_NUM_CHROMA_BITS)))
+                {
+                    /* Calculate cb/cr if this location has not been modified by previous CAB function */
+                    cr = (id >> 5) << (BVDC_P_PEP_NUM_CHROMA_BITS - 5);
+                    cb = (id % 32) << (BVDC_P_PEP_NUM_CHROMA_BITS - 5);
+                }
+                else
+                {
+                    /* Read previously calculated cb/cr from CAB table.  Overlapping regions allowed */
+                    cr = *(puiCabTable + id) >> BVDC_P_PEP_NUM_CHROMA_BITS;
+                    cb = *(puiCabTable + id) - (cr << BVDC_P_PEP_NUM_CHROMA_BITS);
+                }
 
-				if(cr_delta > 32768) cr_delta -= 65536;
-				cr_delta = (ulBlueBoost * cr_delta) / 4;
+                if(cr_delta > 32768) cr_delta -= 65536;
+                cr_delta = (ulBlueBoost * cr_delta) / 4;
 
-				if(cb_delta > 32768) cb_delta -= 65536;
-				cb_delta = (ulBlueBoost * cb_delta) / 4;
+                if(cb_delta > 32768) cb_delta -= 65536;
+                cb_delta = (ulBlueBoost * cb_delta) / 4;
 
-				cr_new = ((cr << 8) + cr_delta) >> 8;
-				cb_new = ((cb << 8) + cb_delta) >> 8;
+                cr_new = ((cr << 8) + cr_delta) >> 8;
+                cb_new = ((cb << 8) + cb_delta) >> 8;
 
-				/* perform clipping */
-				if(cr_new < 0) cr_new = 0;
-				if(cr_new >= (1 << BVDC_P_PEP_NUM_CHROMA_BITS))
-					cr_new = (1 << BVDC_P_PEP_NUM_CHROMA_BITS) - 1;
+                /* perform clipping */
+                if(cr_new < 0) cr_new = 0;
+                if(cr_new >= (1 << BVDC_P_PEP_NUM_CHROMA_BITS))
+                    cr_new = (1 << BVDC_P_PEP_NUM_CHROMA_BITS) - 1;
 
-				if(cb_new < 0) cb_new = 0;
-				if(cb_new >= (1 << BVDC_P_PEP_NUM_CHROMA_BITS))
-					cb_new = (1 << BVDC_P_PEP_NUM_CHROMA_BITS) - 1;
+                if(cb_new < 0) cb_new = 0;
+                if(cb_new >= (1 << BVDC_P_PEP_NUM_CHROMA_BITS))
+                    cb_new = (1 << BVDC_P_PEP_NUM_CHROMA_BITS) - 1;
 
-				regVal = (cr_new << BVDC_P_PEP_NUM_CHROMA_BITS) | cb_new;
-				*(puiCabTable + id) = regVal;
-			}
-		}
-	}
-	BDBG_LEAVE(BVDC_P_Cab_BlueBoostCalculation);
+                regVal = (cr_new << BVDC_P_PEP_NUM_CHROMA_BITS) | cb_new;
+                *(puiCabTable + id) = regVal;
+            }
+        }
+    }
+    BDBG_LEAVE(BVDC_P_Cab_BlueBoostCalculation);
 }
 
 
@@ -520,26 +540,26 @@ static void BVDC_P_Cab_BlueBoostCalculation
  * This function only works for 10-bit CAB environment.
  */
 BERR_Code BVDC_P_Pep_ComposeCabTable
-	( const uint32_t               ulFleshtone,
-	  const uint32_t               ulGreenBoost,
-	  const uint32_t               ulBlueBoost,
-	  uint32_t                    *pulCabTable )
+    ( const uint32_t               ulFleshtone,
+      const uint32_t               ulGreenBoost,
+      const uint32_t               ulBlueBoost,
+      uint32_t                    *pulCabTable )
 {
-	BDBG_ENTER(BVDC_P_Pep_ComposeCabTable);
+    BDBG_ENTER(BVDC_P_Pep_ComposeCabTable);
 
-	/*
-	 * The BVDC_P_Cab_FleshToneCalculation function should be called first
-	 * i.e. before the BVDC_P_Cab_GreenBoostCalculation.  This is because
-	 * it will initialize the CAB table and clear out the old values.
-	 */
-	BDBG_MSG(("Composed CAB table for new Fleshtone = %d, BlueBoost = %d, GreenBoost = %d",
-		ulFleshtone, ulBlueBoost, ulGreenBoost));
-	BVDC_P_Cab_FleshToneCalculation(ulFleshtone, pulCabTable);
-	BVDC_P_Cab_GreenBoostCalculation(ulGreenBoost, pulCabTable);
-	BVDC_P_Cab_BlueBoostCalculation(ulBlueBoost, pulCabTable);
+    /*
+     * The BVDC_P_Cab_FleshToneCalculation function should be called first
+     * i.e. before the BVDC_P_Cab_GreenBoostCalculation.  This is because
+     * it will initialize the CAB table and clear out the old values.
+     */
+    BDBG_MSG(("Composed CAB table for new Fleshtone = %d, BlueBoost = %d, GreenBoost = %d",
+        ulFleshtone, ulBlueBoost, ulGreenBoost));
+    BVDC_P_Cab_FleshToneCalculation(ulFleshtone, pulCabTable);
+    BVDC_P_Cab_GreenBoostCalculation(ulGreenBoost, pulCabTable);
+    BVDC_P_Cab_BlueBoostCalculation(ulBlueBoost, pulCabTable);
 
-	BDBG_LEAVE(BVDC_P_Pep_ComposeCabTable);
-	return BERR_SUCCESS;
+    BDBG_LEAVE(BVDC_P_Pep_ComposeCabTable);
+    return BERR_SUCCESS;
 }
 #endif /* (BVDC_P_SUPPORT_PEP) */
 
@@ -557,110 +577,110 @@ BERR_Code BVDC_P_Pep_ComposeCabTable
 #if BVDC_P_SUPPORT_TAB
 
 static const uint32_t aulSharpnessPeakingPairs[][2] = {
-	{0,  0},   /* [ 0] 0.000 */
-	{4,  1},   /* [ 1] 0.063 */
-	{3,  1},   /* [ 2] 0.125 */
-	{4,  3},   /* [ 3] 0.188 */
-	{2,  1},   /* [ 4] 0.250 */
-	{4,  5},   /* [ 5] 0.313 */
-	{3,  3},   /* [ 6] 0.375 */
-	{4,  7},   /* [ 7] 0.438 */
-	{1,  1},   /* [ 8] 0.500 */
-	{4,  9},   /* [ 9] 0.563 */
-	{3,  5},   /* [10] 0.625 */
-	{4, 11},   /* [11] 0.688 */
-	{2,  3},   /* [12] 0.750 */
-	{4, 13},   /* [13] 0.813 */
-	{3,  7},   /* [14] 0.875 */
-	{4, 15},   /* [15] 0.938 */
-	{0,  1},   /* [16] 1.000 */
-	{3,  9},   /* [17] 1.125 */
-	{2,  5},   /* [18] 1.250 */
-	{3, 11},   /* [19] 1.375 */
-	{1,  3},   /* [20] 1.500 */
-	{3, 13},   /* [21] 1.625 */
-	{2,  7},   /* [22] 1.750 */
-	{3, 15},   /* [23] 1.875 */
-	{0,  2},   /* [24] 2.000 */
-	{2,  9},   /* [25] 2.250 */
-	{1,  5},   /* [26] 2.500 */
-	{2, 11},   /* [27] 2.750 */
-	{0,  3},   /* [28] 3.000 */
-	{2, 13},   /* [29] 3.250 */
-	{1,  7},   /* [30] 3.500 */
-	{2, 15},   /* [31] 3.750 */
-	{0,  4},   /* [32] 4.000 */
-	{1,  9},   /* [33] 4.500 */
-	{0,  5},   /* [34] 5.000 */
-	{1, 11},   /* [35] 5.500 */
-	{0,  6},   /* [36] 6.000 */
-	{1, 13},   /* [37] 6.500 */
-	{0,  7},   /* [38] 7.000 */
-	{1, 15},   /* [39] 7.500 */
-	{0,  8},   /* [40] 8.000 */
-	{0,  9},   /* [41] 9.000 */
-	{0, 10},   /* [42] 10.000 */
-	{0, 11},   /* [43] 11.000 */
-	{0, 12},   /* [44] 12.000 */
-	{0, 13},   /* [45] 13.000 */
-	{0, 14},   /* [46] 14.000 */
-	{0, 15}    /* [47] 15.000 */
+    {0,  0},   /* [ 0] 0.000 */
+    {4,  1},   /* [ 1] 0.063 */
+    {3,  1},   /* [ 2] 0.125 */
+    {4,  3},   /* [ 3] 0.188 */
+    {2,  1},   /* [ 4] 0.250 */
+    {4,  5},   /* [ 5] 0.313 */
+    {3,  3},   /* [ 6] 0.375 */
+    {4,  7},   /* [ 7] 0.438 */
+    {1,  1},   /* [ 8] 0.500 */
+    {4,  9},   /* [ 9] 0.563 */
+    {3,  5},   /* [10] 0.625 */
+    {4, 11},   /* [11] 0.688 */
+    {2,  3},   /* [12] 0.750 */
+    {4, 13},   /* [13] 0.813 */
+    {3,  7},   /* [14] 0.875 */
+    {4, 15},   /* [15] 0.938 */
+    {0,  1},   /* [16] 1.000 */
+    {3,  9},   /* [17] 1.125 */
+    {2,  5},   /* [18] 1.250 */
+    {3, 11},   /* [19] 1.375 */
+    {1,  3},   /* [20] 1.500 */
+    {3, 13},   /* [21] 1.625 */
+    {2,  7},   /* [22] 1.750 */
+    {3, 15},   /* [23] 1.875 */
+    {0,  2},   /* [24] 2.000 */
+    {2,  9},   /* [25] 2.250 */
+    {1,  5},   /* [26] 2.500 */
+    {2, 11},   /* [27] 2.750 */
+    {0,  3},   /* [28] 3.000 */
+    {2, 13},   /* [29] 3.250 */
+    {1,  7},   /* [30] 3.500 */
+    {2, 15},   /* [31] 3.750 */
+    {0,  4},   /* [32] 4.000 */
+    {1,  9},   /* [33] 4.500 */
+    {0,  5},   /* [34] 5.000 */
+    {1, 11},   /* [35] 5.500 */
+    {0,  6},   /* [36] 6.000 */
+    {1, 13},   /* [37] 6.500 */
+    {0,  7},   /* [38] 7.000 */
+    {1, 15},   /* [39] 7.500 */
+    {0,  8},   /* [40] 8.000 */
+    {0,  9},   /* [41] 9.000 */
+    {0, 10},   /* [42] 10.000 */
+    {0, 11},   /* [43] 11.000 */
+    {0, 12},   /* [44] 12.000 */
+    {0, 13},   /* [45] 13.000 */
+    {0, 14},   /* [46] 14.000 */
+    {0, 15}    /* [47] 15.000 */
 };
 
 
 /*************************************************************************
  *  {secret}
- *	BVDC_P_Sharpness_Calculate_Peak_Values
- *	Calculate PEAK_SETTING and PEAK_SCALE values from sSharpness value
- *	for TAB_LUMA_PEAK_CORRECTION_REG
+ *  BVDC_P_Sharpness_Calculate_Peak_Values
+ *  Calculate PEAK_SETTING and PEAK_SCALE values from sSharpness value
+ *  for TAB_LUMA_PEAK_CORRECTION_REG
  **************************************************************************/
 void BVDC_P_Sharpness_Calculate_Peak_Values
-	( const int16_t     sSharpness,
-	  uint32_t         *ulPeakSetting,
-	  uint32_t         *ulPeakScale )
+    ( const int16_t     sSharpness,
+      uint32_t         *ulPeakSetting,
+      uint32_t         *ulPeakScale )
 {
-	uint32_t uiTableId;
+    uint32_t uiTableId;
 
-	uiTableId = (sSharpness <= 0) ?
-	            ((BVDC_P_SHARPNESS_VAL_MIN - sSharpness) *
-	             BVDC_P_SHARPNESS_CENTER_INDEX / BVDC_P_SHARPNESS_VAL_MIN) :
-	            ((BVDC_P_SHARPNESS_MAX_INDEX - BVDC_P_SHARPNESS_CENTER_INDEX) *
-	             sSharpness / BVDC_P_SHARPNESS_VAL_MAX +
-	             BVDC_P_SHARPNESS_CENTER_INDEX);
+    uiTableId = (sSharpness <= 0) ?
+                ((BVDC_P_SHARPNESS_VAL_MIN - sSharpness) *
+                 BVDC_P_SHARPNESS_CENTER_INDEX / BVDC_P_SHARPNESS_VAL_MIN) :
+                ((BVDC_P_SHARPNESS_MAX_INDEX - BVDC_P_SHARPNESS_CENTER_INDEX) *
+                 sSharpness / BVDC_P_SHARPNESS_VAL_MAX +
+                 BVDC_P_SHARPNESS_CENTER_INDEX);
 
-	if (uiTableId >= BVDC_P_SHAPRNESS_NUM_PEAKING_VALUE_PAIRS)
-	{
-		uiTableId = BVDC_P_SHAPRNESS_NUM_PEAKING_VALUE_PAIRS - 1;
-	}
+    if (uiTableId >= BVDC_P_SHAPRNESS_NUM_PEAKING_VALUE_PAIRS)
+    {
+        uiTableId = BVDC_P_SHAPRNESS_NUM_PEAKING_VALUE_PAIRS - 1;
+    }
 
-	/* use the table to look up the two peaking parameters: scale and setting */
-	*ulPeakScale   = aulSharpnessPeakingPairs[uiTableId][0];
-	*ulPeakSetting = aulSharpnessPeakingPairs[uiTableId][1];
+    /* use the table to look up the two peaking parameters: scale and setting */
+    *ulPeakScale   = aulSharpnessPeakingPairs[uiTableId][0];
+    *ulPeakSetting = aulSharpnessPeakingPairs[uiTableId][1];
 }
 #endif
 
 
 /*************************************************************************
  *  {secret}
- *	BVDC_P_Sharpness_Calculate_Gain_Value_isr
- *	Calculate LUMA_Control.gain values from sSharpness value
- *	for TNT_CMP_0_V0_LUMA_CONTROL_GAIN
+ *  BVDC_P_Sharpness_Calculate_Gain_Value_isr
+ *  Calculate LUMA_Control.gain values from sSharpness value
+ *  for TNT_CMP_0_V0_LUMA_CONTROL_GAIN
  **************************************************************************/
 void BVDC_P_Sharpness_Calculate_Gain_Value_isr
-	( const int16_t     sSharpness,
-	  const int16_t     sMinGain,
-	  const int16_t     sCenterGain,
-	  const int16_t     sMaxGain,
-	  uint32_t         *ulSharpnessGain )
+    ( const int16_t     sSharpness,
+      const int16_t     sMinGain,
+      const int16_t     sCenterGain,
+      const int16_t     sMaxGain,
+      uint32_t         *ulSharpnessGain )
 {
-	const int32_t  sMaxValue    = BVDC_P_SHARPNESS_VAL_MAX;
-	const int32_t  sMinValue    = BVDC_P_SHARPNESS_VAL_MIN;
-	const int32_t  sCenterValue = 0;
+    const int32_t  sMaxValue    = BVDC_P_SHARPNESS_VAL_MAX;
+    const int32_t  sMinValue    = BVDC_P_SHARPNESS_VAL_MIN;
+    const int32_t  sCenterValue = 0;
 
-	/* this is a linear mapping from [-32768...0...32767] to [0...sCenterGain...sMaxGain] */
-	*ulSharpnessGain = (sSharpness>0)?
-		((sSharpness - sCenterValue) * (sMaxGain - sCenterGain) / (sMaxValue - sCenterValue) + sCenterGain) :
-		((sSharpness - sCenterValue) * (sMinGain - sCenterGain) / (sMinValue - sCenterValue) + sCenterGain);
+    /* this is a linear mapping from [-32768...0...32767] to [0...sCenterGain...sMaxGain] */
+    *ulSharpnessGain = (sSharpness>0)?
+        ((sSharpness - sCenterValue) * (sMaxGain - sCenterGain) / (sMaxValue - sCenterValue) + sCenterGain) :
+        ((sSharpness - sCenterValue) * (sMinGain - sCenterGain) / (sMinValue - sCenterValue) + sCenterGain);
 
 }
 

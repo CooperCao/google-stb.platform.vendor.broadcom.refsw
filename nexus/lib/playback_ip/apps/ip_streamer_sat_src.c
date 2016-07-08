@@ -1,14 +1,14 @@
 /******************************************************************************
- *    (c)2008-2016 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
  * no license (express or implied), right to use, or waiver of any kind with respect to the
  * Software, and Broadcom expressly reserves all rights in and to the Software and all
  * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELYn
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
@@ -35,16 +35,8 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
  *  main test app for ip_streamer
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ******************************************************************************/
 #include <stdio.h>
@@ -174,13 +166,13 @@ initNexusSatSrcList(
                 BDBG_ERR(("BKNI_CreateMutex failed at %d", __LINE__));
                 return -1;
             }
-            BDBG_MSG(("%s: satSrc %p, lock %p", __FUNCTION__, satSrc, satSrc->lock));
+            BDBG_MSG(("%s: satSrc %p, lock %p", __FUNCTION__, (void *)satSrc, (void *)satSrc->lock));
             /* successfully setup a sat frontend src */
             j++;
         }
         else {
             /* skip other tuner types */
-            BDBG_MSG(("!!!!!!!!!!!!!!!!!!!!!! Satellite Capabilities not set for this frontend %p", frontendHandle));
+            BDBG_MSG(("!!!!!!!!!!!!!!!!!!!!!! Satellite Capabilities not set for this frontend %p", (void *)frontendHandle));
             continue;
         }
     }
@@ -232,17 +224,17 @@ satLockCallback(void *context, int param)
     BSTD_UNUSED(param);
     frontendHandle = satSrc->frontendHandle;
     if (NEXUS_Frontend_GetSatelliteStatus(frontendHandle, &satStatus) != NEXUS_SUCCESS) {
-        BDBG_WRN(("%s: NEXUS_Frontend_GetSatelliteStatus() failed"));
+        BDBG_WRN(("%s: NEXUS_Frontend_GetSatelliteStatus() failed", __FUNCTION__ ));
         return;
     }
 
     BDBG_MSG(("sat Lock callback, frontend %p - demod lock status %s, symbolRate %d",
-                frontendHandle, (satStatus.demodLocked==0)?"UNLOCKED":"LOCKED", satStatus.symbolRate));
+                (void *)frontendHandle, (satStatus.demodLocked==0)?"UNLOCKED":"LOCKED", satStatus.symbolRate));
     if (NEXUS_Frontend_GetDiseqcStatus(frontendHandle, &disqecStatus) != NEXUS_SUCCESS) {
-        BDBG_WRN(("%s: NEXUS_Frontend_GetDiseqcStatus() failed"));
+        BDBG_WRN(("%s: NEXUS_Frontend_GetDiseqcStatus() failed", __FUNCTION__));
         return;
     }
-    BDBG_MSG(("diseqc tone = %d, voltage = %d", disqecStatus.toneEnabled, disqecStatus.voltage));
+    BDBG_MSG(("diseqc tone = %d, voltage = %u", disqecStatus.toneEnabled, disqecStatus.voltage));
 
     if (satStatus.demodLocked)
       BKNI_SetEvent(satSrc->signalLockedEvent);
@@ -270,8 +262,8 @@ openNexusSatSrc(
     unsigned maxNexusFrontends = NEXUS_MAX_FRONTENDS;
     unsigned firstNexusFrontend = 0;
 
-    BDBG_MSG(("%s - StreamerCfg (%p); StreamerCtx (%p)", __FUNCTION__, ipStreamerCfg, ipStreamerCtx ));
-    BDBG_MSG(("%s - StreamerCtx->globalCtx (%p)", __FUNCTION__, ipStreamerCtx->globalCtx ));
+    BDBG_MSG(("%s - StreamerCfg (%p); StreamerCtx (%p)", __FUNCTION__, (void *)ipStreamerCfg, (void *)ipStreamerCtx ));
+    BDBG_MSG(("%s - StreamerCtx->globalCtx (%p)", __FUNCTION__, (void *)ipStreamerCtx->globalCtx ));
     if (ipStreamerCfg==NULL)
     {
         BDBG_ERR(("%s: ipStreamerCfg cannot be NULL", __FUNCTION__));
@@ -309,9 +301,9 @@ openNexusSatSrc(
             /* reached 1st NULL frontendHandle, so we dont have a free tuner to use */
             break;
         }
-        BDBG_MSG(("%s: satSrc[%u] - CTX %x; new frequency %lu, satSrc freq %d, skipPsiAcquisition %d; liveStreaming (%u)",
-                  __FUNCTION__, i, ipStreamerCtx, ipStreamerCfg->frequency, satSrcList[i].frequency, ipStreamerCfg->skipPsiAcquisition,
-                   ipStreamerCtx->cfg.liveStreamingCtx ));
+        BDBG_MSG(("%s: satSrc[%u] - CTX %p; new frequency %u, satSrc freq %u, skipPsiAcquisition %d; liveStreaming (%p)",
+                  __FUNCTION__, i, (void *)ipStreamerCtx, ipStreamerCfg->frequency, satSrcList[i].frequency, ipStreamerCfg->skipPsiAcquisition,
+                   (void *)ipStreamerCtx->cfg.liveStreamingCtx ));
         if (satSrcList[i].frequency == ipStreamerCfg->frequency) {
             /* a tuner is either currently or was already receiving streams for this frequency */
             if (!ipStreamerCfg->skipPsiAcquisition && satSrcList[i].psiAcquiring) {
@@ -319,7 +311,7 @@ openNexusSatSrc(
                 /* if so, let that thread finish getting PSI and then proceed */
                 BKNI_ReleaseMutex(ipStreamerCtx->globalCtx->satSrcMutex);
                 BKNI_ReleaseMutex(ipStreamerCtx->globalCtx->transcoderDstMutex);
-                BDBG_MSG(("CTX %p: Another thread is acquiring the PSI info, waiting for its completion...", ipStreamerCtx));
+                BDBG_MSG(("CTX %p: Another thread is acquiring the PSI info, waiting for its completion...", (void *)ipStreamerCtx));
                 if (BKNI_WaitForEvent(satSrcList[i].psiAcquiredEvent, 30000)) {
                     BDBG_ERR(("%s: timeout while waiting for PSI acquisition by another thread", __FUNCTION__));
                     return -1;
@@ -394,11 +386,11 @@ openNexusSatSrc(
             }
         }
         BKNI_ReleaseMutex(satSrc->lock);
-        BDBG_MSG(("CTX %p: Found a free sat Frontend %p, index %d, sat src %p, use it for %luMhz frequency, refCount %d", ipStreamerCtx, satSrc->frontendHandle, frontendIndex, satSrc, ipStreamerCfg->frequency, satSrc->refCount));
+        BDBG_MSG(("CTX %p: Found a free sat Frontend %p, index %d, sat src %p, use it for %uMhz frequency, refCount %d", (void *)ipStreamerCtx, (void *)satSrc->frontendHandle, frontendIndex, (void *)satSrc, ipStreamerCfg->frequency, satSrc->refCount));
     }
     BKNI_ReleaseMutex(ipStreamerCtx->globalCtx->satSrcMutex);
     if (!satSrc) {
-        BDBG_WRN(("%s: No Free tuner available for this %d frequency all turners (# %lu) busy", __FUNCTION__, ipStreamerCfg->frequency, i));
+        BDBG_WRN(("%s: No Free tuner available for this %u frequency all turners (# %u) busy", __FUNCTION__, ipStreamerCfg->frequency, i));
         goto error;
     }
     ipStreamerCtx->satSrc = satSrc;
@@ -433,8 +425,8 @@ openNexusSatSrc(
         ipStreamerCtx->satSettings.codeRate.denominator = ipStreamerCfg->fec == 910 ? 10 : ipStreamerCfg->fec % 10;
     }
 
-    BDBG_MSG(("%s: then NEXUS_HAS_VIDEO_ENCODER Sat Freq %lu, symbolRate %d, mode %d; sock %d", __FUNCTION__,
-              ipStreamerCtx->satSettings.frequency, ipStreamerCtx->satSettings.symbolRate, ipStreamerCtx->satSettings.mode,
+    BDBG_MSG(("%s: then NEXUS_HAS_VIDEO_ENCODER Sat Freq %u, symbolRate %u, mode %d; sock %d", __FUNCTION__,
+              ipStreamerCtx->satSettings.frequency, ipStreamerCtx->satSettings.symbolRate, (int)ipStreamerCtx->satSettings.mode,
               ipStreamerCtx->cfg.streamingFd ));
 
     /* associate parser band to the input band associated with this tuner */
@@ -449,9 +441,9 @@ openNexusSatSrc(
         goto error;
     }
 
-    BDBG_MSG(("%s: using parserBand %d; freq (%lu); callback (%p); symbolRate (%u)" ,__FUNCTION__
-              ,frontendIndex  ,ipStreamerCtx->satSettings.frequency ,ipStreamerCtx->satSettings.lockCallback.callback
-              ,ipStreamerCtx->satSettings.symbolRate ));
+    BDBG_MSG(("%s: using parserBand %d; freq (%u); symbolRate (%u)" ,__FUNCTION__ ,
+              frontendIndex  ,ipStreamerCtx->satSettings.frequency ,
+              ipStreamerCtx->satSettings.symbolRate ));
     NEXUS_Frontend_GetUserParameters(satSrc->frontendHandle, &userParams);
     BKNI_AcquireMutex(parserBandPtr->lock);
     if (parserBandPtr->refCount == 0) {
@@ -478,7 +470,7 @@ openNexusSatSrc(
         }
         rc = NEXUS_ParserBand_SetSettings(parserBandPtr->parserBand, &parserBandSettings);
         if (rc) {
-            BDBG_ERR(("Failed to set the Nexus Parser band settings for band # %d", parserBandPtr->parserBand));
+            BDBG_ERR(("Failed to set the Nexus Parser band settings for band # %d", (int)parserBandPtr->parserBand));
             BKNI_ReleaseMutex(parserBandPtr->lock);
             goto error;
         }
@@ -493,7 +485,7 @@ openNexusSatSrc(
         BDBG_MSG(("%s: Updated Nexus Diseqc settings: toneEnabled %d, voltage %d", __FUNCTION__, diseqcSettings.toneEnabled, diseqcSettings.voltage));
     }
     else {
-        BDBG_MSG(("Nexus Parser band # %d is already setup (ref cnt %d)", parserBandPtr->parserBand, parserBandPtr->refCount));
+        BDBG_MSG(("Nexus Parser band # %d is already setup (ref cnt %d)", (int)parserBandPtr->parserBand, parserBandPtr->refCount));
     }
     parserBandPtr->refCount++;
     BKNI_ReleaseMutex(parserBandPtr->lock);
@@ -512,6 +504,8 @@ openNexusSatSrc(
 
         }
         else {
+            /* coverity[stack_use_local_overflow] */
+            /* coverity[stack_use_overflow] */
             if ((parserBandPtr->transcoderDst = openNexusTranscoderPipe(ipStreamerCfg, ipStreamerCtx)) == NULL) {
                 BDBG_ERR(("%s: Failed to open the transcoder pipe", __FUNCTION__));
                 BKNI_ReleaseMutex(ipStreamerCtx->globalCtx->transcoderDstMutex);
@@ -530,7 +524,7 @@ openNexusSatSrc(
         ipStreamerCtx->parserBandPtr = parserBandPtr;
     }
     BDBG_MSG(("CTX %p: sat Frontend Src %p (ref count %d), Input Band %d & Parser Band %d (ref count %d) are opened",
-                ipStreamerCtx, satSrc, satSrc->refCount, userParams.param1, ipStreamerCtx->parserBandPtr->parserBand, ipStreamerCtx->parserBandPtr->refCount));
+                (void *)ipStreamerCtx, (void *)satSrc, satSrc->refCount, userParams.param1, (int)ipStreamerCtx->parserBandPtr->parserBand, ipStreamerCtx->parserBandPtr->refCount));
 
     /* add new logic for  new Adc for demods */
     if (ipStreamerCfg->isNewAdc) {
@@ -793,7 +787,7 @@ closeNexusSatSrc(
         BKNI_AcquireMutex(ipStreamerCtx->parserBandPtr->lock);
         ipStreamerCtx->parserBandPtr->refCount--;
         BKNI_ReleaseMutex(ipStreamerCtx->parserBandPtr->lock);
-        BDBG_MSG(("CTX %p: Closed a parser band src %p, refCount %d", ipStreamerCtx, ipStreamerCtx->parserBandPtr, ipStreamerCtx->parserBandPtr->refCount));
+        BDBG_MSG(("CTX %p: Closed a parser band src %p, refCount %d", (void *)ipStreamerCtx, (void *)ipStreamerCtx->parserBandPtr, ipStreamerCtx->parserBandPtr->refCount));
     }
 
     if (!satSrc || !satSrc->refCount)
@@ -805,7 +799,7 @@ closeNexusSatSrc(
     if (satSrc->psiAcquiredEvent)
         BKNI_ResetEvent(satSrc->psiAcquiredEvent);
     BKNI_ReleaseMutex(satSrc->lock);
-    BDBG_MSG(("CTX %p: Closed a sat src %p, refCount %d", ipStreamerCtx, satSrc, satSrc->refCount));
+    BDBG_MSG(("CTX %p: Closed a sat src %p, refCount %d", (void *)ipStreamerCtx, (void *)satSrc, satSrc->refCount));
 }
 
 int
@@ -831,13 +825,13 @@ setupAndAcquirePsiInfoSatSrc(
 
     if (satSrc->numProgramsFound == 0) {
         /* PSI hasn't yet been acquired */
-        BDBG_MSG(("CTX %p: Acquire Psi Info..., PB band %d", ipStreamerCtx, collectionData.parserBand));
+        BDBG_MSG(("CTX %p: Acquire Psi Info..., PB band %d", (void *)ipStreamerCtx, (int)collectionData.parserBand));
 
         /* get the PSI, this can take several seconds ... */
         acquirePsiInfo(&collectionData, &satSrc->psi[0], &satSrc->numProgramsFound);
 
         /* tell any other waiting thread that we are done acquiring PSI */
-        BDBG_MSG(("%s: satSrc %p, lock %p", __FUNCTION__, satSrc, satSrc->lock));
+        BDBG_MSG(("%s: satSrc %p, lock %p", __FUNCTION__, (void *)satSrc, (void *)satSrc->lock));
         BKNI_AcquireMutex(satSrc->lock);
         satSrc->psiAcquiring = false;
         BKNI_SetEvent(satSrc->psiAcquiredEvent);
@@ -848,7 +842,7 @@ setupAndAcquirePsiInfoSatSrc(
         }
     }
     else {
-        BDBG_MSG(("CTX %p: Psi Info is already acquired...", ipStreamerCtx));
+        BDBG_MSG(("CTX %p: Psi Info is already acquired...", (void *)ipStreamerCtx));
     }
 
     if (ipStreamerCfg->subChannel > satSrc->numProgramsFound) {
@@ -856,7 +850,7 @@ setupAndAcquirePsiInfoSatSrc(
         i = 0;
     }
     else {
-        BDBG_MSG(("CTX %p: Requested sub-channel # (%d) is found in the total channels (%d) ", ipStreamerCtx, ipStreamerCfg->subChannel, satSrc->numProgramsFound));
+        BDBG_MSG(("CTX %p: Requested sub-channel # (%d) is found in the total channels (%d) ", (void *)ipStreamerCtx, ipStreamerCfg->subChannel, satSrc->numProgramsFound));
         i = ipStreamerCfg->subChannel - 1; /* sub-channels start from 1, where as psi table starts from 0 */
         if (i < 0) i = 0;
     }
@@ -877,15 +871,15 @@ startNexusSatSrc(
     BKNI_AcquireMutex(satSrc->lock);
     if (satSrc->started) {
         BKNI_ReleaseMutex(satSrc->lock);
-        BDBG_MSG(("CTX %p: Sat Src %p is already started, refCount %d", ipStreamerCtx, satSrc, satSrc->refCount));
+        BDBG_MSG(("CTX %p: Sat Src %p is already started, refCount %d", (void *)ipStreamerCtx, (void *)satSrc, satSrc->refCount));
         return 0;
     }
 
     /* start frontend */
     BKNI_ResetEvent(satSrc->signalLockedEvent);
     NEXUS_StartCallbacks(satSrc->frontendHandle);
-    BDBG_MSG(("CTX %p: TuneSatellite; sock %u; srcPos %u; srcFe %u; freq %lu; tone %u; vpol %u; satMode %u; fec %u; sr %u; pids %d"
-              ,ipStreamerCtx ,ipStreamerCtx->cfg.streamingFd, ipStreamerCtx->cfg.srcPosition, ipStreamerCtx->cfg.srcFe,
+    BDBG_MSG(("CTX %p: TuneSatellite; sock %u; srcPos %u; srcFe %u; freq %u; tone %u; vpol %u; satMode %u; fec %u; sr %u; pids %d"
+              ,(void *)ipStreamerCtx ,ipStreamerCtx->cfg.streamingFd, ipStreamerCtx->cfg.srcPosition, ipStreamerCtx->cfg.srcFe,
               ipStreamerCtx->cfg.frequency,  ipStreamerCtx->cfg.toneEnabled, ipStreamerCtx->cfg.verticalPolarization,
               ipStreamerCtx->cfg.satMode, ipStreamerCtx->cfg.fec, ipStreamerCtx->cfg.symbolRate, ipStreamerCtx->cfg.pidListCount ));
     rc = NEXUS_Frontend_TuneSatellite(satSrc->frontendHandle, &ipStreamerCtx->satSettings);
@@ -896,13 +890,13 @@ startNexusSatSrc(
     }
     if (BKNI_WaitForEvent(satSrc->signalLockedEvent, 5000)) {
         BKNI_ReleaseMutex(satSrc->lock);
-        BDBG_MSG(("CTX %p: Sat Src %p FAILED TO LOCK THE SIGNAL ...", ipStreamerCtx, satSrc));
+        BDBG_MSG(("CTX %p: Sat Src %p FAILED TO LOCK THE SIGNAL ...", (void *)ipStreamerCtx, (void *)satSrc));
         return -1;
     }
 
     satSrc->started = true;
     BKNI_ReleaseMutex(satSrc->lock);
-    BDBG_MSG(("CTX %p: Sat Src %p is started ...", ipStreamerCtx, satSrc));
+    BDBG_MSG(("CTX %p: Sat Src %p is started ...", (void *)ipStreamerCtx, (void *)satSrc));
     return 0;
 }
 
@@ -922,10 +916,10 @@ stopNexusSatSrc(
         NEXUS_StopCallbacks(satSrc->frontendHandle);
         NEXUS_Frontend_Untune(satSrc->frontendHandle);
         satSrc->started = false;
-        BDBG_MSG(("CTX %p: Sat Frontend Src is stopped ...", ipStreamerCtx));
+        BDBG_MSG(("CTX %p: Sat Frontend Src is stopped ...", (void *)ipStreamerCtx));
     }
     else {
-        BDBG_MSG(("CTX %p: Sat Frontend Src %p is not stopped, ref count %d ...", ipStreamerCtx, satSrc, refCount));
+        BDBG_MSG(("CTX %p: Sat Frontend Src %p is not stopped, ref count %d ...", (void *)ipStreamerCtx, (void *)satSrc, refCount));
     }
 }
 #else /* !NEXUS_HAS_FRONTEND */

@@ -1,0 +1,15 @@
+#!/bin/sh
+module="asp_driver"
+device="brcm_asp"
+
+# invoke rmmod with all arguments we got
+#/sbin/rmmod $module $* || exit 1
+/sbin/rmmod $module $*
+
+# remove nodes
+rm -f /dev/${device}[0-3] /dev/${device}
+
+#/sbin/insmod -f ./$module.ko $* || exit 1
+/sbin/insmod  ./$module.ko  || exit 1
+
+exit 0

@@ -1,23 +1,41 @@
-/***************************************************************************
-*     Copyright (c) 2006-2015, Broadcom Corporation*
-*     All Rights Reserved*
-*     Confidential Property of Broadcom Corporation*
-*
-*  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
-*  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
-*  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* Module Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
-*
-***************************************************************************/
+/******************************************************************************
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ ******************************************************************************/
+
 #include "nexus_platform.h"
 #include "nexus_base.h"
 #include "bstd.h"
@@ -223,11 +241,11 @@ static NEXUS_Error b_read_thermal_info(char *filename, unsigned *val)
 
     fp = fopen(filename, "r");
     if(!fp) {
-        rc = NEXUS_OS_ERROR;
+        rc=BERR_TRACE(NEXUS_OS_ERROR);
         goto error;
     }
     if (!fgets(buf, 256, fp)) {
-        rc = NEXUS_OS_ERROR;
+        rc=BERR_TRACE(NEXUS_OS_ERROR);
         goto read_error;
     }
     *val = atoi(buf);
@@ -253,7 +271,8 @@ NEXUS_Error NEXUS_Platform_P_InitThermalMonitor(void)
 
     dir = opendir(THERMAL_SYSFS);
     if(!dir) {
-        return NEXUS_NOT_AVAILABLE;
+        rc=BERR_TRACE(NEXUS_NOT_AVAILABLE);
+        return rc;
     }
 
     while ((ent = readdir(dir)) != NULL) {
@@ -274,31 +293,32 @@ NEXUS_Error NEXUS_Platform_P_InitThermalMonitor(void)
 
             if(strstr(ent->d_name, "temp")) {
                 rc = b_read_thermal_info(buf, &g_NEXUS_Platform_P_ThermalState.tripPoints[idx].temp);
-                if(rc) { break; }
+                if(rc) { rc=BERR_TRACE(rc); break; }
                 g_NEXUS_Platform_P_ThermalState.numTripPoints++;
             }
             if(strstr(ent->d_name, "hyst")) {
                 rc = b_read_thermal_info(buf, &g_NEXUS_Platform_P_ThermalState.tripPoints[idx].hyst);
-                if(rc) { break; }
+                if(rc) { rc=BERR_TRACE(rc); break; }
             }
         } else if (strstr(ent->d_name, "temp")) {
             strncpy(buf, THERMAL_SYSFS, syslen);
             buf[syslen] = '\0';
             strncat(buf, "temp", 4);
             rc = b_read_thermal_info(buf, &temp);
-            if(rc) { break; }
+            if(rc) { rc=BERR_TRACE(rc); break; }
         }
     }
-    closedir(dir);
-    if(rc) {
+
+    if(closedir(dir)) {
         BDBG_WRN(("Init Thermal Monitor Failed"));
+        rc=BERR_TRACE(NEXUS_OS_ERROR);
         return rc;
     }
 
-
     if(g_NEXUS_Platform_P_ThermalState.numTripPoints == 0) {
         BDBG_WRN(("No thermal trip points defined"));
-        return NEXUS_NOT_SUPPORTED;
+        rc=BERR_TRACE(NEXUS_NOT_SUPPORTED);
+        return rc;
     }
 
     for(i=0; i<g_NEXUS_Platform_P_ThermalState.numTripPoints; i++) {

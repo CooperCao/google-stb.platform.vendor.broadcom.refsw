@@ -1,43 +1,41 @@
-#/******************************************************************************
-#* (c) 2014 Broadcom Corporation
-#*
-#* This program is the proprietary software of Broadcom Corporation and/or its
-#* licensors, and may only be used, duplicated, modified or distributed pursuant
-#* to the terms and conditions of a separate, written license agreement executed
-#* between you and Broadcom (an "Authorized License").  Except as set forth in
-#* an Authorized License, Broadcom grants no license (express or implied), right
-#* to use, or waiver of any kind with respect to the Software, and Broadcom
-#* expressly reserves all rights in and to the Software and all intellectual
-#* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-#* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-#* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-#*
-#* Except as expressly set forth in the Authorized License,
-#*
-#* 1. This program, including its structure, sequence and organization,
-#*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-#*    reasonable efforts to protect the confidentiality thereof, and to use
-#*    this information only in connection with your use of Broadcom integrated
-#*    circuit products.
-#*
-#* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-#*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-#*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-#*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-#*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-#*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-#*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-#*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-#*
-#* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-#*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-#*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-#*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-#*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-#*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-#*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-#*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-#******************************************************************************/
+############################################################
+#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+#
+#  This program is the proprietary software of Broadcom and/or its licensors,
+#  and may only be used, duplicated, modified or distributed pursuant to the terms and
+#  conditions of a separate, written license agreement executed between you and Broadcom
+#  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+#  no license (express or implied), right to use, or waiver of any kind with respect to the
+#  Software, and Broadcom expressly reserves all rights in and to the Software and all
+#  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+#  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+#  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+#
+#  Except as expressly set forth in the Authorized License,
+#
+#  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+#  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+#  and to use this information only in connection with your use of Broadcom integrated circuit products.
+#
+#  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+#  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+#  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+#  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+#  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+#  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+#  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+#  USE OR PERFORMANCE OF THE SOFTWARE.
+#
+#  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+#  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+#  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+#  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+#  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+#  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+#  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+#  ANY LIMITED REMEDY.
+#
+############################################################
 
 include ../../../../api/build/tools.mak
 BSEAV_TOP = $(shell cd "../../../../" && ${PWD})
@@ -50,7 +48,7 @@ include $(NEXUS_TOP)/platforms/common/build/nexus_platforms.inc
 include $(NEXUS_TOP)/platforms/common/build/platform_app.inc
 include $(NEXUS_TOP)/build/nexus_defs.inc
 include $(NEXUS_TOP)/nxclient/include/nxclient.inc
-
+include $(BSEAV_TOP)/lib/openssl/openssl.inc
 include $(BSEAV_TOP)/lib/drmrootfs/drmrootfs_libdir.inc
 
 # Convert include paths into single variable
@@ -105,29 +103,30 @@ ifneq ($(MSDRM_PRDY_SUPPORT), y)
 $(error MSDRM_PRDY_SUPPORT must be set to y)
 endif
 
-ifneq ($(MSDRM_PRDY_SDK_VERSION), 2.5)
-$(error MSDRM_PRDY_SDK_VERSION must be set to 2.5)
-endif
-
-
-CXXFLAGS += -I${BSEAV_TOP}/lib/playready/$(MSDRM_PRDY_SDK_VERSION)/inc
-CXXFLAGS += -DDRM_INLINING_SUPPORTED=1 -DDRM_BUILD_PROFILE=900 -DTARGET_LITTLE_ENDIAN=1
+CXXFLAGS += -I${BSEAV_TOP}/lib/playready/2.5/inc
+CXXFLAGS += -DDRM_INLINING_SUPPORTED=1 -DDRM_BUILD_PROFILE=900 -DTARGET_LITTLE_ENDIAN=1 -DTARGET_SUPPORTS_UNALIGNED_DWORD_POINTERS=1
 
 ifeq ($(SAGE_SUPPORT), y)
-LDFLAGS +=  -L${BSEAV_TOP}/lib/playready/$(MSDRM_PRDY_SDK_VERSION)/bin/${ARCH_DIR_PRDY_CDMI}/lib -lplayreadypk_host
-PLAYREADY_LIB_PATH = ${CP} -pv ${BSEAV_TOP}/lib/playready/$(MSDRM_PRDY_SDK_VERSION)/bin/${ARCH_DIR_PRDY_CDMI}/lib/libplayreadypk_host.so  ${NEXUS_BIN_DIR}
+	include $(BSEAV_TOP)/lib/security/common_drm/common_drm.inc
+	LDFLAGS += ${COMMON_DRM_LDFLAGS}
+    CXXFLAGS += ${COMMON_DRM_CFLAGS}
+	CXXFLAGS += -I$(BSEAV_TOP)/../magnum/syslib/sagelib/include
+
+	LDFLAGS +=  -L${BSEAV_TOP}/lib/playready/2.5/bin/${ARCH_DIR_PRDY_CDMI}/lib -lplayreadypk_host
+	LDFLAGS += -L${NEXUS_BIN_DIR} -lcmndrm_tl
+	PLAYREADY_LIB_PATH = ${CP} -pv ${BSEAV_TOP}/lib/playready/2.5/bin/${ARCH_DIR_PRDY_CDMI}/lib/libplayreadypk_host.so  ${NEXUS_BIN_DIR}
 else
-LDFLAGS +=  -L${BSEAV_TOP}/lib/playready/$(MSDRM_PRDY_SDK_VERSION)/bin/${ARCH_DIR_PRDY_CDMI}/lib -lplayreadypk
-PLAYREADY_LIB_PATH = ${CP} -pv ${BSEAV_TOP}/lib/playready/$(MSDRM_PRDY_SDK_VERSION)/bin/${ARCH_DIR_PRDY_CDMI}/lib/libplayreadypk.so  ${NEXUS_BIN_DIR}
+	LDFLAGS +=  -L${BSEAV_TOP}/lib/playready/2.5/bin/${ARCH_DIR_PRDY_CDMI}/lib -lplayreadypk
+	PLAYREADY_LIB_PATH = ${CP} -pv ${BSEAV_TOP}/lib/playready/2.5/bin/${ARCH_DIR_PRDY_CDMI}/lib/libplayreadypk.so  ${NEXUS_BIN_DIR}
 endif
 
-LDFLAGS += -L${BSEAV_TOP}/lib/playready/$(MSDRM_PRDY_SDK_VERSION)/CDMi/${ARCH_DIR_PRDY_CDMI} -lcdmi
-LDFLAGS += -L$(NEXUS_BIN_DIR)/ -lpthread -lm -lnexus
-LDFLAGS +=-ldrmrootfs -L${BSEAV_TOP}/lib/drmrootfs/${DRMROOTFS_LIBDIR}
+LDFLAGS += -L${BSEAV_TOP}/lib/playready/2.5/CDMi/${ARCH_DIR_PRDY_CDMI} -lcdmi
+LDFLAGS += -L$(NEXUS_BIN_DIR)/ -lpthread -lm -lnexus${NEXUS_LIB_SUFFIX}
+LDFLAGS +=-ldrmrootfs -L${B_REFSW_OBJ_ROOT}/BSEAV/lib/drmrootfs/${DRMROOTFS_LIBDIR}
 
-.PHONY:cmdi
+.PHONY:openssl srai cmndrm_tl drmrootfs cmndrmprdy cdmi install
 
-all: cdmi install
+all: openssl srai cmndrm_tl drmrootfs cmndrmprdy cdmi install
 
 cdmi: $(CDMi_LIB) $(CDMi_EXAMPLE)
 
@@ -150,10 +149,35 @@ clean:
 	-${Q_}$(RM) *.o *.d $(ODIR)/*.a $(ODIR)/*.so $(ODIR)/cdmi
 	-${Q_}$(RM) example/*.o *example/*.d
 
+drmrootfs:
+	@echo [..... prep_drmrootfs] && \
+	$(MAKE) -C $(BSEAV_TOP)/lib/drmrootfs install > /dev/null
+
+openssl:
+	@echo [..... prep_openssl] && \
+	$(MAKE) -C $(B_OPENSSL_BUILD_DIR) > /dev/null
+
+srai:
+ifeq ($(SAGE_SUPPORT),y)
+	@echo [..... prep_srai] && \
+	$(MAKE) -C $(BSEAV_TOP)/lib/security/sage/srai re
+endif
+
+cmndrm_tl:
+ifeq ($(SAGE_SUPPORT),y)
+	@echo [..... Common DRM target] && \
+	$(MAKE) -C $(BSEAV_TOP)/lib/security/common_drm install > /dev/null
+endif
+
+cmndrmprdy:
+	@echo [..... Common DRM Playready target] && \
+	$(MAKE) -C $(BSEAV_TOP)/lib/security/common_drm playready && \
+	$(MAKE) -C $(BSEAV_TOP)/lib/security/common_drm install > /dev/null
+
 install:
-	${CP} -pv ${BSEAV_TOP}/lib/playready/$(MSDRM_PRDY_SDK_VERSION)/CDMi/$(ODIR)/libcdmi.so ${NEXUS_BIN_DIR}
-	${CP} -pv ${BSEAV_TOP}/lib/playready/$(MSDRM_PRDY_SDK_VERSION)/CDMi/$(ODIR)/cdmi ${NEXUS_BIN_DIR}
-	${CP} -pv ${BSEAV_TOP}/lib/drmrootfs/${DRMROOTFS_LIBDIR}/libdrmrootfs.so ${NEXUS_BIN_DIR}
+	${CP} -pv ${BSEAV_TOP}/lib/playready/2.5/CDMi/$(ODIR)/libcdmi.so ${NEXUS_BIN_DIR}
+	${CP} -pv ${BSEAV_TOP}/lib/playready/2.5/CDMi/$(ODIR)/cdmi ${NEXUS_BIN_DIR}
+	${CP} -pv ${B_REFSW_OBJ_ROOT}/BSEAV/lib/drmrootfs/${DRMROOTFS_LIBDIR}/libdrmrootfs.so ${NEXUS_BIN_DIR}
 	${PLAYREADY_LIB_PATH}
 
 -include $(ODIR)/*.d

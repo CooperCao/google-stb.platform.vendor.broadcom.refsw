@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2007-2013 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,14 +35,6 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* Revision History:
-*
-* $brcm_Log: $
-* 
 ***************************************************************************/
 #ifndef NEXUS_BASE_OS_H
 #define NEXUS_BASE_OS_H
@@ -100,7 +92,7 @@ This is required in order to make application code resilient to the addition of 
 See Also:
 NEXUS_Thread_Create
 **/
-void NEXUS_Thread_GetDefaultSettings(
+void NEXUS_Thread_GetDefaultSettings( /* attr{local=true} */
     NEXUS_ThreadSettings *pSettings    /* [out] Default Settings for OS */
     );
 
@@ -114,7 +106,7 @@ See Also:
 NEXUS_Thread_Destroy
 NEXUS_Thread_GetDefaultSettings
 **/
-NEXUS_ThreadHandle NEXUS_Thread_Create(
+NEXUS_ThreadHandle NEXUS_Thread_Create( /* attr{local=true} */
     const char *pThreadName,                 /* Thread Name, optional */
     void (*pThreadFunc)(void *),             /* Thread Main Routine */
     void *pContext,                          /* Context provided to callback */
@@ -132,7 +124,7 @@ NEXUS_Thread_Destroy can clean up the resources.
 See Also:
 NEXUS_Thread_Create
 **/
-void NEXUS_Thread_Destroy(
+void NEXUS_Thread_Destroy( /* attr{local=true} */
     NEXUS_ThreadHandle thread /* Thread Handle, returned from NEXUS_Thread_Create() */
     );
 
@@ -141,13 +133,15 @@ Summary:
 Activate gathering of run-time software profile information.
 Profiling support shall be enabled at the compile time.
 **/
-NEXUS_Error NEXUS_Profile_Start(void);
+NEXUS_Error NEXUS_Profile_Start( /* attr{local=true} */
+    void
+    );
 
 /**
 Summary:
 Finishes gathering of run-time software profile information and prints report.
 **/
-void NEXUS_Profile_Stop(
+void NEXUS_Profile_Stop( /* attr{local=true} */
     const char *name /* title of the profile report */
     );
 
@@ -155,7 +149,7 @@ void NEXUS_Profile_Stop(
 Summary:
 Mark thread that could originate profiling samples
 **/
-void NEXUS_Profile_MarkThread(
+void NEXUS_Profile_MarkThread( /* attr{local=true} */
     const char *name /* thread name */
     );
 
@@ -178,7 +172,7 @@ ISRSAFE variant of NEXUS_FlushCache
 Description:
 **/
 
-void NEXUS_FlushCache_isrsafe(
+void NEXUS_FlushCache_isrsafe( /* attr{local=true} */
     const void *address, /* cached address to flush */
     size_t size /* size in bytes to flush */
     );
@@ -199,7 +193,7 @@ NULL means that it does not exist.
 See Also:
 NEXUS_SetEnv
 */
-const char *NEXUS_GetEnv(
+const char *NEXUS_GetEnv( /* attr{local=true} */
     const char *name
     );
 
@@ -213,7 +207,7 @@ If value is NULL, the internal state for the given name will be cleared.
 See Also:
 NEXUS_GetEnv
 */
-void NEXUS_SetEnv(
+void NEXUS_SetEnv( /* attr{local=true} */
     const char *name,
     const char *value
     );
@@ -226,15 +220,27 @@ Convert a null-terminated ASCII string to an integer.
 Description:
 Nexus wrapper for C89,Posix.1 atoi(3) function
 */
-int NEXUS_atoi(const char *str);
+int NEXUS_atoi( /* attr{local=true} */
+    const char *str
+    );
 
 /**
 Summary:
 Standard string functions
 **/
-int NEXUS_P_Base_StrCmp(const char *str1, const char *str2);
-int b_strlen(const char *s);
-char *b_strncpy(char *dest, const char *src, int n);
+int NEXUS_P_Base_StrCmp( /* attr{local=true} */
+    const char *str1,
+    const char *str2
+    );
+
+int b_strlen( /* attr{local=true} */
+    const char *s
+    );
+
+char *b_strncpy( /* attr{local=true} */
+    char *dest,
+    const char *src,
+    int n);
 
 #ifdef __cplusplus
 }

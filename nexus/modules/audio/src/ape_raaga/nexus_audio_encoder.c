@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
-*  
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -9,43 +9,35 @@
 *  Software, and Broadcom expressly reserves all rights in and to the Software and all
 *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
 *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.  
-*   
+*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*
 *  Except as expressly set forth in the Authorized License,
-*   
+*
 *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
 *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
 *  and to use this information only in connection with your use of Broadcom integrated circuit products.
-*   
-*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS" 
-*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR 
-*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO 
-*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES 
-*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE, 
-*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION 
-*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF 
+*
+*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
 *  USE OR PERFORMANCE OF THE SOFTWARE.
-*  
-*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS 
-*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR 
-*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR 
-*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF 
-*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT 
-*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE 
-*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF 
+*
+*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
-* 
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
 *
 * API Description:
 *   API name: DtsEncode
 *    Specific APIs related to DTS Audio Encoding
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 
@@ -193,6 +185,113 @@ NEXUS_Error NEXUS_AudioEncoder_SetSettings(
     return BERR_SUCCESS;
 }
 
+void NEXUS_AudioEncoder_P_PopulateCodecSettings(
+    NEXUS_AudioCodec codec, /* the codec for which you are retrieving settings. */
+    BAPE_EncoderCodecSettings *codecSettings,
+    NEXUS_AudioEncoderCodecSettings *pSettings    /* [out] Settings */
+    )
+{
+    pSettings->codec = codec;
+    switch ( codec )
+    {
+    case NEXUS_AudioCodec_eAc3:
+        pSettings->codecSettings.ac3.spdifHeaderEnabled = codecSettings->codecSettings.ac3.spdifHeaderEnabled;
+        break;
+    case NEXUS_AudioCodec_eDts:
+        pSettings->codecSettings.dts.spdifHeaderEnabled = codecSettings->codecSettings.dts.spdifHeaderEnabled;
+        break;
+    case NEXUS_AudioCodec_eAacAdts:
+    case NEXUS_AudioCodec_eAacLoas:
+        pSettings->codecSettings.aac.bitRate = codecSettings->codecSettings.aac.bitRate;
+        pSettings->codecSettings.aac.outputMode = (codecSettings->codecSettings.aac.channelMode == BAPE_ChannelMode_e1_0)?NEXUS_AudioMode_e1_0:(codecSettings->codecSettings.aac.channelMode == BAPE_ChannelMode_e1_1)?NEXUS_AudioMode_e1_1:NEXUS_AudioMode_e2_0;
+        pSettings->codecSettings.aac.monoMode = (NEXUS_AudioMonoChannelMode)codecSettings->codecSettings.aac.monoMode;
+        pSettings->codecSettings.aac.sampleRate = codecSettings->codecSettings.aac.sampleRate;
+        pSettings->codecSettings.aac.complexity = (NEXUS_AacEncodeComplexity)codecSettings->codecSettings.aac.complexity;
+        break;
+    case NEXUS_AudioCodec_eAacPlusAdts:
+    case NEXUS_AudioCodec_eAacPlusLoas:
+        pSettings->codecSettings.aacPlus.bitRate = codecSettings->codecSettings.aacPlus.bitRate;
+        pSettings->codecSettings.aacPlus.outputMode = (codecSettings->codecSettings.aacPlus.channelMode == BAPE_ChannelMode_e1_0)?NEXUS_AudioMode_e1_0:(codecSettings->codecSettings.aacPlus.channelMode == BAPE_ChannelMode_e1_1)?NEXUS_AudioMode_e1_1:NEXUS_AudioMode_e2_0;
+        pSettings->codecSettings.aacPlus.monoMode = (NEXUS_AudioMonoChannelMode)codecSettings->codecSettings.aacPlus.monoMode;
+        BDBG_CASSERT((int)NEXUS_AudioMonoChannelMode_eLeft==(int)BAPE_MonoChannelMode_eLeft);
+        BDBG_CASSERT((int)NEXUS_AudioMonoChannelMode_eRight==(int)BAPE_MonoChannelMode_eRight);
+        BDBG_CASSERT((int)NEXUS_AudioMonoChannelMode_eMix==(int)BAPE_MonoChannelMode_eMix);
+        pSettings->codecSettings.aacPlus.sampleRate = codecSettings->codecSettings.aacPlus.sampleRate;
+        BDBG_CASSERT((int)NEXUS_AacEncodeComplexity_eLowest == (int)BAPE_AacEncodeComplexity_eLowest);
+        BDBG_CASSERT((int)NEXUS_AacEncodeComplexity_eMediumLow == (int)BAPE_AacEncodeComplexity_eMediumLow);
+        BDBG_CASSERT((int)NEXUS_AacEncodeComplexity_eMediumHigh == (int)BAPE_AacEncodeComplexity_eMediumHigh);
+        BDBG_CASSERT((int)NEXUS_AacEncodeComplexity_eHighest == (int)BAPE_AacEncodeComplexity_eHighest);
+        BDBG_CASSERT((int)NEXUS_AacEncodeComplexity_eMax == (int)BAPE_AacEncodeComplexity_eMax);
+        pSettings->codecSettings.aacPlus.complexity = (NEXUS_AacEncodeComplexity)codecSettings->codecSettings.aacPlus.complexity;
+        break;
+    case NEXUS_AudioCodec_eMp3:
+        pSettings->codecSettings.mp3.bitRate = codecSettings->codecSettings.mp3.bitRate;
+        pSettings->codecSettings.mp3.privateBit = codecSettings->codecSettings.mp3.privateBit;
+        pSettings->codecSettings.mp3.copyrightBit = codecSettings->codecSettings.mp3.copyrightBit;
+        pSettings->codecSettings.mp3.originalBit = codecSettings->codecSettings.mp3.originalBit;
+        pSettings->codecSettings.mp3.emphasis = (NEXUS_AudioMpegEmphasis)codecSettings->codecSettings.mp3.emphasisMode;
+        BDBG_CASSERT((int)NEXUS_AudioMpegEmphasis_eMax==(int)BAPE_MpegEmphasisMode_eMax);
+        pSettings->codecSettings.mp3.outputMode = (codecSettings->codecSettings.mp3.channelMode == BAPE_ChannelMode_e1_0)?NEXUS_AudioMode_e1_0:(codecSettings->codecSettings.mp3.channelMode == BAPE_ChannelMode_e1_1)?NEXUS_AudioMode_e1_1:NEXUS_AudioMode_e2_0;
+        pSettings->codecSettings.mp3.monoMode = (NEXUS_AudioMonoChannelMode)codecSettings->codecSettings.mp3.monoMode;
+        break;
+    case NEXUS_AudioCodec_eWmaStd:
+        pSettings->codecSettings.wmaStd.bitRate = codecSettings->codecSettings.wmaStd.bitRate;
+        pSettings->codecSettings.wmaStd.monoEncoding = (codecSettings->codecSettings.wmaStd.channelMode == BAPE_ChannelMode_e1_0)?true:false;
+        break;
+    case NEXUS_AudioCodec_eG711:
+        pSettings->codecSettings.g711.compressionMode = (NEXUS_G711G726CompressionMode)codecSettings->codecSettings.g711.compressionMode;
+        BDBG_CASSERT(NEXUS_G711G726CompressionMode_eUlaw == (int)BAPE_G711G726CompressionMode_eUlaw);
+        BDBG_CASSERT(NEXUS_G711G726CompressionMode_eAlaw == (int)BAPE_G711G726CompressionMode_eAlaw);
+        BDBG_CASSERT(NEXUS_G711G726CompressionMode_eMax == (int)BAPE_G711G726CompressionMode_eMax);
+        break;
+    case NEXUS_AudioCodec_eG726:
+        pSettings->codecSettings.g726.compressionMode = (NEXUS_G711G726CompressionMode)codecSettings->codecSettings.g726.compressionMode;
+        pSettings->codecSettings.g726.bitRate = codecSettings->codecSettings.g726.bitRate;
+        break;
+    case NEXUS_AudioCodec_eG729:
+        pSettings->codecSettings.g729.dtxEnabled = codecSettings->codecSettings.g729.dtxEnabled;
+        pSettings->codecSettings.g729.bitRate = codecSettings->codecSettings.g729.bitRate;
+        break;
+    case NEXUS_AudioCodec_eG723_1:
+        pSettings->codecSettings.g723_1.vadEnabled = codecSettings->codecSettings.g723_1.vadEnabled;
+        pSettings->codecSettings.g723_1.hpfEnabled = codecSettings->codecSettings.g723_1.hpfEnabled;
+        pSettings->codecSettings.g723_1.bitRate = codecSettings->codecSettings.g723_1.bitRate;
+        break;
+    case NEXUS_AudioCodec_eIlbc:
+        pSettings->codecSettings.ilbc.frameLength = codecSettings->codecSettings.ilbc.frameLength;
+        break;
+    case NEXUS_AudioCodec_eOpus:
+        pSettings->codecSettings.opus.bitRate = codecSettings->codecSettings.opus.bitRate;
+        pSettings->codecSettings.opus.frameSize = codecSettings->codecSettings.opus.frameSize;
+        BDBG_CASSERT((int)NEXUS_OpusEncodeMode_eSilk == (int)BAPE_OpusEncodeMode_eSilk);
+        BDBG_CASSERT((int)NEXUS_OpusEncodeMode_eHybrid == (int)BAPE_OpusEncodeMode_eHybrid);
+        BDBG_CASSERT((int)NEXUS_OpusEncodeMode_eCELT == (int)BAPE_OpusEncodeMode_eCELT);
+        BDBG_CASSERT((int)NEXUS_OpusEncodeMode_eMax == (int)BAPE_OpusEncodeMode_eMax);
+        pSettings->codecSettings.opus.encodeMode = codecSettings->codecSettings.opus.encodeMode;
+        BDBG_CASSERT((int)NEXUS_OpusBitRateType_eCBR == (int)BAPE_OpusBitRateType_eCBR);
+        BDBG_CASSERT((int)NEXUS_OpusBitRateType_eVBR == (int)BAPE_OpusBitRateType_eVBR);
+        BDBG_CASSERT((int)NEXUS_OpusBitRateType_eCVBR == (int)BAPE_OpusBitRateType_eCVBR);
+        BDBG_CASSERT((int)NEXUS_OpusBitRateType_eMax == (int)BAPE_OpusBitRateType_eMax);
+        pSettings->codecSettings.opus.bitRateType = codecSettings->codecSettings.opus.bitRateType;
+        pSettings->codecSettings.opus.complexity = codecSettings->codecSettings.opus.complexity;
+        break;
+    default:
+        break;
+    }
+}
+
+void NEXUS_AudioEncoder_GetDefaultCodecSettings(
+    NEXUS_AudioCodec codec, /* the codec for which you are retrieving settings. */
+    NEXUS_AudioEncoderCodecSettings *pSettings    /* [out] Settings */
+    )
+{
+    BAVC_AudioCompressionStd magnumCodec;
+    BAPE_EncoderCodecSettings codecSettings;
+    BDBG_ASSERT(NULL != pSettings);
+    magnumCodec = NEXUS_Audio_P_CodecToMagnum(codec);
+    BAPE_Encoder_GetDefaultCodecSettings(NEXUS_AUDIO_DEVICE_HANDLE, magnumCodec, &codecSettings);
+    NEXUS_AudioEncoder_P_PopulateCodecSettings(codec, &codecSettings, pSettings);
+}
 
 /***************************************************************************
 Summary:
@@ -208,95 +307,9 @@ void NEXUS_AudioEncoder_GetCodecSettings(
     BAPE_EncoderCodecSettings codecSettings;
     BDBG_OBJECT_ASSERT(handle, NEXUS_AudioEncoder);
     BDBG_ASSERT(NULL != pSettings);
-    pSettings->codec = codec;
     magnumCodec = NEXUS_Audio_P_CodecToMagnum(codec);
     BAPE_Encoder_GetCodecSettings(handle->encoder, magnumCodec, &codecSettings);
-    switch ( codec )
-    {
-    case NEXUS_AudioCodec_eAc3:
-        pSettings->codecSettings.ac3.spdifHeaderEnabled = codecSettings.codecSettings.ac3.spdifHeaderEnabled;
-        break;
-    case NEXUS_AudioCodec_eDts:
-        pSettings->codecSettings.dts.spdifHeaderEnabled = codecSettings.codecSettings.dts.spdifHeaderEnabled;
-        break;
-    case NEXUS_AudioCodec_eAacAdts:
-    case NEXUS_AudioCodec_eAacLoas:
-        pSettings->codecSettings.aac.bitRate = codecSettings.codecSettings.aac.bitRate;
-        pSettings->codecSettings.aac.outputMode = (codecSettings.codecSettings.aac.channelMode == BAPE_ChannelMode_e1_0)?NEXUS_AudioMode_e1_0:(codecSettings.codecSettings.aac.channelMode == BAPE_ChannelMode_e1_1)?NEXUS_AudioMode_e1_1:NEXUS_AudioMode_e2_0;
-        pSettings->codecSettings.aac.monoMode = (NEXUS_AudioMonoChannelMode)codecSettings.codecSettings.aac.monoMode;
-        pSettings->codecSettings.aac.sampleRate = codecSettings.codecSettings.aac.sampleRate;
-        pSettings->codecSettings.aac.complexity = (NEXUS_AacEncodeComplexity)codecSettings.codecSettings.aac.complexity;
-        break;
-    case NEXUS_AudioCodec_eAacPlusAdts:
-    case NEXUS_AudioCodec_eAacPlusLoas:
-        pSettings->codecSettings.aacPlus.bitRate = codecSettings.codecSettings.aacPlus.bitRate;
-        pSettings->codecSettings.aacPlus.outputMode = (codecSettings.codecSettings.aacPlus.channelMode == BAPE_ChannelMode_e1_0)?NEXUS_AudioMode_e1_0:(codecSettings.codecSettings.aacPlus.channelMode == BAPE_ChannelMode_e1_1)?NEXUS_AudioMode_e1_1:NEXUS_AudioMode_e2_0;
-        pSettings->codecSettings.aacPlus.monoMode = (NEXUS_AudioMonoChannelMode)codecSettings.codecSettings.aacPlus.monoMode;
-        BDBG_CASSERT((int)NEXUS_AudioMonoChannelMode_eLeft==(int)BAPE_MonoChannelMode_eLeft);
-        BDBG_CASSERT((int)NEXUS_AudioMonoChannelMode_eRight==(int)BAPE_MonoChannelMode_eRight);
-        BDBG_CASSERT((int)NEXUS_AudioMonoChannelMode_eMix==(int)BAPE_MonoChannelMode_eMix);
-        pSettings->codecSettings.aacPlus.sampleRate = codecSettings.codecSettings.aacPlus.sampleRate;
-        BDBG_CASSERT((int)NEXUS_AacEncodeComplexity_eLowest == (int)BAPE_AacEncodeComplexity_eLowest);
-        BDBG_CASSERT((int)NEXUS_AacEncodeComplexity_eMediumLow == (int)BAPE_AacEncodeComplexity_eMediumLow);
-        BDBG_CASSERT((int)NEXUS_AacEncodeComplexity_eMediumHigh == (int)BAPE_AacEncodeComplexity_eMediumHigh);
-        BDBG_CASSERT((int)NEXUS_AacEncodeComplexity_eHighest == (int)BAPE_AacEncodeComplexity_eHighest);
-        BDBG_CASSERT((int)NEXUS_AacEncodeComplexity_eMax == (int)BAPE_AacEncodeComplexity_eMax);
-        pSettings->codecSettings.aacPlus.complexity = (NEXUS_AacEncodeComplexity)codecSettings.codecSettings.aacPlus.complexity;
-        break;
-    case NEXUS_AudioCodec_eMp3:
-        pSettings->codecSettings.mp3.bitRate = codecSettings.codecSettings.mp3.bitRate;
-        pSettings->codecSettings.mp3.privateBit = codecSettings.codecSettings.mp3.privateBit;
-        pSettings->codecSettings.mp3.copyrightBit = codecSettings.codecSettings.mp3.copyrightBit;
-        pSettings->codecSettings.mp3.originalBit = codecSettings.codecSettings.mp3.originalBit;
-        pSettings->codecSettings.mp3.emphasis = (NEXUS_AudioMpegEmphasis)codecSettings.codecSettings.mp3.emphasisMode;
-        BDBG_CASSERT((int)NEXUS_AudioMpegEmphasis_eMax==(int)BAPE_MpegEmphasisMode_eMax);
-        pSettings->codecSettings.mp3.outputMode = (codecSettings.codecSettings.mp3.channelMode == BAPE_ChannelMode_e1_0)?NEXUS_AudioMode_e1_0:(codecSettings.codecSettings.mp3.channelMode == BAPE_ChannelMode_e1_1)?NEXUS_AudioMode_e1_1:NEXUS_AudioMode_e2_0;
-        pSettings->codecSettings.mp3.monoMode = (NEXUS_AudioMonoChannelMode)codecSettings.codecSettings.mp3.monoMode;
-        break;
-    case NEXUS_AudioCodec_eWmaStd:
-        pSettings->codecSettings.wmaStd.bitRate = codecSettings.codecSettings.wmaStd.bitRate;
-        pSettings->codecSettings.wmaStd.monoEncoding = (codecSettings.codecSettings.wmaStd.channelMode == BAPE_ChannelMode_e1_0)?true:false;
-        break;
-    case NEXUS_AudioCodec_eG711:
-        pSettings->codecSettings.g711.compressionMode = (NEXUS_G711G726CompressionMode)codecSettings.codecSettings.g711.compressionMode;
-        BDBG_CASSERT(NEXUS_G711G726CompressionMode_eUlaw == (int)BAPE_G711G726CompressionMode_eUlaw);
-        BDBG_CASSERT(NEXUS_G711G726CompressionMode_eAlaw == (int)BAPE_G711G726CompressionMode_eAlaw);
-        BDBG_CASSERT(NEXUS_G711G726CompressionMode_eMax == (int)BAPE_G711G726CompressionMode_eMax);
-        break;
-    case NEXUS_AudioCodec_eG726:
-        pSettings->codecSettings.g726.compressionMode = (NEXUS_G711G726CompressionMode)codecSettings.codecSettings.g726.compressionMode;
-        pSettings->codecSettings.g726.bitRate = codecSettings.codecSettings.g726.bitRate;
-        break;
-    case NEXUS_AudioCodec_eG729:
-        pSettings->codecSettings.g729.dtxEnabled = codecSettings.codecSettings.g729.dtxEnabled;
-        pSettings->codecSettings.g729.bitRate = codecSettings.codecSettings.g729.bitRate;
-        break;
-    case NEXUS_AudioCodec_eG723_1:
-        pSettings->codecSettings.g723_1.vadEnabled = codecSettings.codecSettings.g723_1.vadEnabled;
-        pSettings->codecSettings.g723_1.hpfEnabled = codecSettings.codecSettings.g723_1.hpfEnabled;
-        pSettings->codecSettings.g723_1.bitRate = codecSettings.codecSettings.g723_1.bitRate;
-        break;
-    case NEXUS_AudioCodec_eIlbc:
-        pSettings->codecSettings.ilbc.frameLength = codecSettings.codecSettings.ilbc.frameLength;
-        break;
-    case NEXUS_AudioCodec_eOpus:
-        pSettings->codecSettings.opus.bitRate = codecSettings.codecSettings.opus.bitRate;
-        pSettings->codecSettings.opus.frameSize = codecSettings.codecSettings.opus.frameSize;
-        BDBG_CASSERT((int)NEXUS_OpusEncodeMode_eSilk == (int)BAPE_OpusEncodeMode_eSilk);
-        BDBG_CASSERT((int)NEXUS_OpusEncodeMode_eHybrid == (int)BAPE_OpusEncodeMode_eHybrid);
-        BDBG_CASSERT((int)NEXUS_OpusEncodeMode_eCELT == (int)BAPE_OpusEncodeMode_eCELT);
-        BDBG_CASSERT((int)NEXUS_OpusEncodeMode_eMax == (int)BAPE_OpusEncodeMode_eMax);
-        pSettings->codecSettings.opus.encodeMode = codecSettings.codecSettings.opus.encodeMode;
-        BDBG_CASSERT((int)NEXUS_OpusBitRateType_eCBR == (int)BAPE_OpusBitRateType_eCBR);
-        BDBG_CASSERT((int)NEXUS_OpusBitRateType_eVBR == (int)BAPE_OpusBitRateType_eVBR);
-        BDBG_CASSERT((int)NEXUS_OpusBitRateType_eCVBR == (int)BAPE_OpusBitRateType_eCVBR);
-        BDBG_CASSERT((int)NEXUS_OpusBitRateType_eMax == (int)BAPE_OpusBitRateType_eMax);
-        pSettings->codecSettings.opus.bitRateType = codecSettings.codecSettings.opus.bitRateType;
-        pSettings->codecSettings.opus.complexity = codecSettings.codecSettings.opus.complexity;
-        break;
-    default:
-        break;
-    }
+    NEXUS_AudioEncoder_P_PopulateCodecSettings(codec, &codecSettings, pSettings);
 }
 
 
@@ -474,4 +487,3 @@ NEXUS_Error NEXUS_AudioEncoder_RemoveAllInputs(
     }
     return NEXUS_SUCCESS;
 }
-

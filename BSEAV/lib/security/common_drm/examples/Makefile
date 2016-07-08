@@ -1,47 +1,39 @@
 ############################################################
-#    (c)2012-2013 Broadcom Corporation
+#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 #
-# This program is the proprietary software of Broadcom Corporation and/or its licensors,
-# and may only be used, duplicated, modified or distributed pursuant to the terms and
-# conditions of a separate, written license agreement executed between you and Broadcom
-# (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-# no license (express or implied), right to use, or waiver of any kind with respect to the
-# Software, and Broadcom expressly reserves all rights in and to the Software and all
-# intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-# HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-# NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+#  This program is the proprietary software of Broadcom and/or its licensors,
+#  and may only be used, duplicated, modified or distributed pursuant to the terms and
+#  conditions of a separate, written license agreement executed between you and Broadcom
+#  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+#  no license (express or implied), right to use, or waiver of any kind with respect to the
+#  Software, and Broadcom expressly reserves all rights in and to the Software and all
+#  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+#  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+#  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
 #
-# Except as expressly set forth in the Authorized License,
+#  Except as expressly set forth in the Authorized License,
 #
-# 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-# secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-# and to use this information only in connection with your use of Broadcom integrated circuit products.
+#  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+#  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+#  and to use this information only in connection with your use of Broadcom integrated circuit products.
 #
-# 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-# AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-# WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-# THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-# OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-# LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-# OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-# USE OR PERFORMANCE OF THE SOFTWARE.
+#  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+#  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+#  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+#  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+#  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+#  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+#  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+#  USE OR PERFORMANCE OF THE SOFTWARE.
 #
-# 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-# LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-# EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-# USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-# THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-# ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-# LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-# ANY LIMITED REMEDY.
-#
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
-# Module Description:
-#
-# Revision History:
+#  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+#  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+#  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+#  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+#  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+#  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+#  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+#  ANY LIMITED REMEDY.
 #
 ############################################################
 ifeq ($(URSR_TOP),)
@@ -79,16 +71,13 @@ include $(BSEAV_TOP)/lib/security/sage/srai/srai.inc
 endif
 
 ifeq ($(filter $(target), playready playready_svp urr_toggling), $(target))
-ifeq ($(MSDRM_PRDY_SDK_VERSION), 2.5)
 include ../../prdy_libdir.inc
-endif
 endif
 else
 include $(BSEAV_TOP)/lib/security/common_drm/common_drm.inc
 ifeq ($(filter $(target), playready playready_svp urr_toggling), $(target))
-ifeq ($(MSDRM_PRDY_SDK_VERSION), 2.5)
 include $(BSEAV_TOP)/lib/security/common_drm/lib/prdy_libdir.inc
-endif
+#$(warning GCC_GTEQ_485 =$(GCC_GTEQ_485))
 endif
 endif
 
@@ -105,7 +94,8 @@ CLEAN_APPS = $(addprefix  $(NEXUS_BIN_DIR)/, ${APPS})
 #$(warning INSTALLED_APPS = ${INSTALLED_APPS})
 #$(warning CLEAN_APPS = ${CLEAN_APPS})
 
-all:  $(APPS) copy
+all:  $(APPS)
+	@$(MAKE) copy
 
 
 # For linux builds, link to the correct libraries
@@ -123,18 +113,19 @@ endif
 
 PLAYREADY_LIB_PATH :=
 ifeq ($(filter $(target), playready playready_svp urr_toggling), $(target))
-ifeq ($(MSDRM_PRDY_SDK_VERSION), 2.5)
+
 LDFLAGS += -L${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/common_drm/$(CMNDRM_PRDY_LIBDIR) -lcmndrmprdy
 
 ifeq ($(SAGE_SUPPORT),y)
 LDFLAGS +=  -L${BSEAV_TOP}/lib/playready/2.5/bin/${ARCH_DIR_PRDY}/lib -lplayreadypk_host
 PLAYREADY_LIB_PATH = ${CP} -pv ${BSEAV}/lib/playready/2.5/bin/${ARCH_DIR_PRDY}/lib/libplayreadypk_host.so  ${NEXUS_BIN_DIR}
 else
-LDFLAGS +=  -L${BSEAV_TOP}/lib/playready/2.5/bin/${ARCH_DIR_PRDY}/lib -lplayreadypk
-PLAYREADY_LIB_PATH = ${CP} -pv ${BSEAV}/lib/playready/2.5/bin/${ARCH_DIR_PRDY}/lib/libplayreadypk.so  ${NEXUS_BIN_DIR}
-endif
+ifeq "$(GCC_GTEQ_485)" "1"
+LDFLAGS +=  -L${BSEAV_TOP}/lib/playready/2.5/bin/${ARCH_DIR_PRDY}/lib/eglibc -lplayreadypk
 else
-$(error Unsupported Playready Version)
+LDFLAGS +=  -L${BSEAV_TOP}/lib/playready/2.5/bin/${ARCH_DIR_PRDY}/lib -lplayreadypk
+endif
+PLAYREADY_LIB_PATH = ${CP} -pv ${BSEAV}/lib/playready/2.5/bin/${ARCH_DIR_PRDY}/lib/libplayreadypk.so  ${NEXUS_BIN_DIR}
 endif
 endif
 
@@ -157,62 +148,70 @@ CFLAGS += -g
 CFLAGS += ${COMMON_DRM_CFLAGS}
 CFLAGS += -I../include/priv
 
-ifeq ($(MSDRM_PRDY_SDK_VERSION), 2.5)
 CFLAGS += -I$(BSEAV_TOP)/lib/utils
 CFLAGS += -I$(BSEAV_TOP)/lib/media
 CFLAGS += -I${BSEAV_TOP}/lib/media/build
-endif
 
 # Implicit rule for building local apps
-$(APPS): prep_openssl prep_nexus prep_bcrypt prep_srai prep_cmndrmprdy prep_cmndrm_tl $(TARGET_OBJS)
-	@echo [Link... $@]
-	${Q_} $(CC) -o ${B_REFSW_OBJ_ROOT}/${TARGET_DIR}/${target}/$@ ${B_REFSW_OBJ_ROOT}/${TARGET_DIR}/${target}/$@.o $(LDFLAGS)
+$(APPS): do_prep
+	@$(MAKE) $(TARGET_OBJS) && \
+	echo [Link... $@] && \
+	$(CC) -o ${B_REFSW_OBJ_ROOT}/${TARGET_DIR}/${target}/$@ ${B_REFSW_OBJ_ROOT}/${TARGET_DIR}/${target}/$@.o $(LDFLAGS)
 
+do_prep:
+	@$(MAKE) prep_openssl && \
+	$(MAKE) prep_nexus && \
+	$(MAKE) prep_drmrootfs && \
+	$(MAKE) prep_bcrypt && \
+	$(MAKE) prep_srai && \
+	$(MAKE) prep_cmndrmprdy && \
+	$(MAKE) prep_cmndrm_tl
 
 prep_openssl:
-	echo [..... prep_openssl with j option];
-	$(Q_)$(MAKE) -j4 -C $(B_OPENSSL_BUILD_DIR) > /dev/null
+	@echo [..... prep_openssl] && \
+	$(MAKE) -C $(B_OPENSSL_BUILD_DIR) > /dev/null
 
 prep_srai:
 ifeq ($(SAGE_SUPPORT),y)
-	echo [..... prep_srai];
-	$(Q)$(MAKE) -C ../../sage/srai re
+	@echo [..... prep_srai] && \
+	$(MAKE) -C ../../sage/srai re
 endif
 
 prep_cmndrm_tl:
 ifeq ($(SAGE_SUPPORT),y)
-	@echo [..... Common DRM target];
-	$(Q_)$(MAKE) -C $(BSEAV_TOP)/lib/security/common_drm install > /dev/null
+	@echo [..... Common DRM target] && \
+	$(MAKE) -C $(BSEAV_TOP)/lib/security/common_drm install > /dev/null
 endif
 
 prep_cmndrmprdy:
-ifeq ($(MSDRM_PRDY_SDK_VERSION), 2.5)
-	@echo [..... Common DRM Playready target];
-	$(Q_)$(MAKE) -C $(BSEAV_TOP)/lib/security/common_drm playready install > /dev/null
-endif
+	@echo [..... Common DRM Playready target] && \
+	$(MAKE) -C $(BSEAV_TOP)/lib/security/common_drm playready && \
+	$(MAKE) -C $(BSEAV_TOP)/lib/security/common_drm install > /dev/null
 
 prep_nexus:
 ifeq ($(NXCLIENT_SUPPORT),y)
 	@if [ ! -e $(NEXUS_TOP)/../obj.$(NEXUS_PLATFORM)/nexus/bin/nxserver ]; then \
-		echo [ building nxclient .... ]; \
+		echo [ building nxclient .... ] && \
 		$(MAKE) -C $(NEXUS_TOP)/nxclient >/dev/null; \
 	fi
 else
 	@if [ ! -e $(NEXUS_TOP)/../obj.$(NEXUS_PLATFORM)/nexus/bin/libnexus.so ]; then \
-		echo [ building nexus .... ]; \
+		echo [ building nexus .... ] && \
 		$(MAKE) -C $(NEXUS_TOP)/build >/dev/null; \
 	fi
 endif
 
-prep_bcrypt:
-	@echo [Compiling Bcrypt dependency ....];
-	$(Q_)$(MAKE) -C $(BSEAV_TOP)/lib/security/bcrypt install > /dev/null
+prep_drmrootfs:
+	@echo [Compiling drmrootfs dependency ....] && \
+	$(MAKE) -C $(BSEAV_TOP)/lib/drmrootfs install > /dev/null
 
+prep_bcrypt:
+	@echo [Compiling Bcrypt dependency ....] && \
+	$(MAKE) -C $(BSEAV_TOP)/lib/security/bcrypt install > /dev/null
 
 ${target}/%.o: ${target}/%.c
-	@ echo [Compiling  with $(CC).... $< ]
-	@${CC} ${CFLAGS} -c -o  ${B_REFSW_OBJ_ROOT}/${TARGET_DIR}/$@ $<
-
+	@echo [Compiling  with $(CC).... $< ] && \
+	${CC} ${CFLAGS} -c -o  ${B_REFSW_OBJ_ROOT}/${TARGET_DIR}/$@ $<
 
 copy:
 	@echo [Copying executables...]
@@ -220,11 +219,13 @@ copy:
 	@echo [Copy Common DRM and all dependencies...]
 	cp -f -P ${COMMON_DRM_BIN_DEPS_LIST} $(NEXUS_BIN_DIR)
 ifeq ($(filter $(target), playready playready_svp urr_toggling), $(target))
-ifeq ($(MSDRM_PRDY_SDK_VERSION), 2.5)
-	@echo [Copy $(target) dependencies...]
+	@echo [Copy $(target) dependencies. $(CMNDRM_PRDY_LIBDIR)..]
 	cp -f ${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/common_drm/$(CMNDRM_PRDY_LIBDIR)/libcmndrmprdy.so $(NEXUS_BIN_DIR)
 ifeq ($(SAGE_SUPPORT),y)
 	cp -f ${BSEAV}/lib/playready/2.5/bin/${ARCH_DIR_PRDY}/lib/libplayreadypk_host.so  ${NEXUS_BIN_DIR}
+else
+ifeq "$(GCC_GTEQ_485)" "1"
+	cp -f ${BSEAV}/lib/playready/2.5/bin/${ARCH_DIR_PRDY}/lib/eglibc/libplayreadypk.so  ${NEXUS_BIN_DIR}
 else
 	cp -f ${BSEAV}/lib/playready/2.5/bin/${ARCH_DIR_PRDY}/lib/libplayreadypk.so  ${NEXUS_BIN_DIR}
 endif

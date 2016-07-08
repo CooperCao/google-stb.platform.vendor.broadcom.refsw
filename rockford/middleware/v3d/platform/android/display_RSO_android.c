@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2011 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2011 Broadcom.
 All rights reserved.
 
 Project  :  platform layer
@@ -77,6 +77,7 @@ static int isANativeWindow(ANativeWindow * win)
 static BEGL_Error grab_buffer(void *context, RSOAN_BufferData *buffer, RSOAN_WindowState *windowState)
 {
    RSOAN_Display *data = (RSOAN_Display*)context;
+   UNUSED(windowState);
 
    if (data)
    {
@@ -123,7 +124,7 @@ static BEGL_Error grab_buffer(void *context, RSOAN_BufferData *buffer, RSOAN_Win
 
          /* update BEGL_BufferSettings with new information */
          buffer->settings.physOffset = hnd->nxSurfacePhysicalAddress;
-         buffer->settings.cachedAddr = (void *)hnd->nxSurfaceAddress;
+         buffer->settings.cachedAddr = (void *)(intptr_t)hnd->nxSurfaceAddress;
          buffer->settings.pitchBytes = hnd->oglStride;
 
 #if 0
@@ -202,6 +203,9 @@ static BEGL_Error DispBufferDisplay(void *context, BEGL_BufferDisplayState *stat
 /* Flush pending displays until they are all done, then removes all buffers from display. Will block until complete. */
 static BEGL_Error DispWindowUndisplay(void *context, BEGL_WindowState *windowState)
 {
+   UNUSED(context);
+   UNUSED(windowState);
+
    LOGD("==========================================================================");
    LOGD("DispWindowUndisplay called");
    LOGD("==========================================================================");
@@ -287,7 +291,7 @@ static BEGL_BufferHandle DispBufferCreate(void *context, BEGL_BufferSettings *se
    surfSettings.pitch = settings->pitchBytes;
    surfSettings.heap = NXPL_MemHeap(data->memInterface);
 
-   surfaceBacking = data->memInterface->Alloc(data->memInterface->context, settings->totalByteSize, 4096);
+   surfaceBacking = data->memInterface->Alloc(data->memInterface->context, settings->totalByteSize, 4096, false);
    if (surfaceBacking != NULL)
    {
       if (data->useMMA)
@@ -445,6 +449,7 @@ static BEGL_Error DispBufferDestroy(void *context, BEGL_BufferDisplayState *buff
 static BEGL_Error DispBufferGetCreateSettings(void *context, BEGL_BufferHandle bufHandle, BEGL_BufferSettings *settings)
 {
    RSOAN_BufferData *buffer = (RSOAN_BufferData*)bufHandle;
+   UNUSED(context);
 
    if (buffer != NULL)
    {
@@ -521,6 +526,7 @@ extern void client_unlock_api(void);
 static BEGL_Error DispBufferAccess(void *context, BEGL_BufferAccessState *bufferAccess)
 {
    RSOAN_WindowState *windowState = (RSOAN_WindowState*)bufferAccess->windowState.platformState;
+   UNUSED(context);
 
    client_unlock_api();
 
@@ -535,6 +541,7 @@ static BEGL_Error DispBufferAccess(void *context, BEGL_BufferAccessState *buffer
 static void *DispWindowStateCreate(void *context, BEGL_WindowHandle window)
 {
    RSOAN_WindowState *windowState = (RSOAN_WindowState *)malloc(sizeof(RSOAN_WindowState));
+   UNUSED(context);
 
    if (windowState)
    {
@@ -594,6 +601,7 @@ static void *DispWindowStateCreate(void *context, BEGL_WindowHandle window)
 static BEGL_Error DispWindowStateDestroy(void *context, void *swapChainCtx)
 {
    RSOAN_WindowState *windowState = (RSOAN_WindowState *)swapChainCtx;
+   UNUSED(context);
 
    if (windowState)
    {
@@ -612,6 +620,8 @@ static BEGL_Error DispGetNativeFormat(void *context,
                                       uint32_t * nativeFormat)
 {
    BEGL_Error res = BEGL_Success;
+   UNUSED(context);
+
    if (nativeFormat != NULL)
    {
       if (bufferFormat == BEGL_BufferFormat_eA8B8G8R8)
@@ -647,7 +657,7 @@ static BEGL_Error DispDecodeNativeFormat(void *context,
       settings->pitchBytes = ((struct private_handle_t *)androidBuffer->handle)->oglStride;
 
       settings->physOffset = ((struct private_handle_t *)androidBuffer->handle)->nxSurfacePhysicalAddress;
-      settings->cachedAddr = (void *)(((struct private_handle_t *)androidBuffer->handle)->nxSurfaceAddress);
+      settings->cachedAddr = (void *)(intptr_t)(((struct private_handle_t *)androidBuffer->handle)->nxSurfaceAddress);
    }
    else
       res = BEGL_Fail;
@@ -662,6 +672,7 @@ BEGL_DisplayInterface *RSOANPL_CreateDisplayInterface(BEGL_MemoryInterface *mem,
 {
    RSOAN_Display         *data;
    BEGL_DisplayInterface *disp = (BEGL_DisplayInterface*)malloc(sizeof(BEGL_DisplayInterface));
+   UNUSED(displayCallbacks);
 
    if (disp != NULL)
    {
@@ -706,7 +717,7 @@ BEGL_DisplayInterface *RSOANPL_CreateDisplayInterface(BEGL_MemoryInterface *mem,
          surfaceBacking = data->memInterface->Alloc(data->memInterface->context,
                                  ABANDONEDSCRATCH_WIDTH *
                                  ABANDONEDSCRATCH_HEIGHT *
-                                 ABANDONEDSCRATCH_BPP, 4096);
+                                 ABANDONEDSCRATCH_BPP, 4096, false);
 
          if (data->useMMA)
          {
@@ -769,7 +780,7 @@ void RSOANPL_DestroyDisplayInterface(BEGL_DisplayInterface * disp)
 
 __attribute__((visibility("default")))
 bool RSOANPL_BufferGetRequirements(RSOANPL_PlatformHandle handle,
-                                   BEGL_PixmapInfo *bufferRequirements,
+                                   BEGL_PixmapInfoEXT *bufferRequirements,
                                    BEGL_BufferSettings * bufferConstrainedRequirements)
 {
    BEGL_DriverInterfaces *data = (BEGL_DriverInterfaces*)handle;

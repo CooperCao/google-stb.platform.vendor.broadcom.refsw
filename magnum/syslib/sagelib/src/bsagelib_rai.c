@@ -1,47 +1,45 @@
 /******************************************************************************
- * (c) 2014 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+
  ******************************************************************************/
 
 #include "bstd.h"
 #include "bsagelib_types.h"
-#include "bsagelib_shared_types.h"
+#include "priv/bsagelib_shared_types.h"
 
 BDBG_MODULE(BSAGElib);
 
@@ -52,6 +50,7 @@ BDBG_MODULE(BSAGElib);
 #include "bsagelib_rpc.h"
 #include "bsagelib_rai.h"
 
+#include "bsagelib_sdl_header.h"
 
 /* Local functions */
 static void BSAGElib_P_Rai_Check_ContainerCache(BSAGElib_ClientHandle hSAGElibClient);
@@ -84,6 +83,283 @@ BSAGElib_P_Rai_Adjust_ContainerCache(
     BSAGElib_Tools_ContainerCache_SetMax(hSAGElibClient->hContainerCache, max);
 }
 
+
+static BERR_Code
+BSAGELib_Rai_P_WaitForResponse(BSAGElib_ClientHandle hSAGElibClient, uint32_t async_id)
+{
+    BERR_Code rc = BERR_NOT_AVAILABLE;
+    BSAGElib_ResponseData data;
+
+    while(rc == BERR_NOT_AVAILABLE){
+        rc = BSAGElib_Client_GetResponse(hSAGElibClient, &data);
+    }
+    if(async_id != data.async_id){
+        return BERR_UNKNOWN;
+    }
+
+    return rc;
+
+}
+
+static bool
+_P_IsSdlValid(
+    BSAGElib_Handle hSAGElib,
+    uint8_t *sdlBuff,
+    uint32_t sdlBuffSize)
+{
+    bool rc = false;
+    uint32_t sdlTHLSigShort;
+    BSAGElib_SDLHeader *pHeader = (BSAGElib_SDLHeader *)sdlBuff;
+    if (sdlBuffSize < sizeof(BSAGElib_SDLHeader)) {
+        BDBG_ERR(("%s: The binary size is not even as large as the SDL header structure", __FUNCTION__));
+        goto end;
+    }
+
+#if 0
+    rc = (BKNI_Memcmp(pHeader->ucSsfVersion, hSAGElib->frameworkInfo.version, 4) == 0);
+    if (rc != true) {
+        BDBG_ERR(("%s: The SDL is compiled using SAGE version %u.%u.%u.%u SDK",
+                  __FUNCTION__, pHeader->ucSsfVersion[0],
+                  pHeader->ucSsfVersion[1],
+                  pHeader->ucSsfVersion[2],
+                  pHeader->ucSsfVersion[3]));
+        BDBG_ERR(("%s: The SDL is not compiled from the same SDK as the running Framework",
+                  __FUNCTION__));
+        BDBG_ERR(("%s: The SDL shall be recompiled using SAGE version %u.%u.%u.%u SDK",
+                  __FUNCTION__, hSAGElib->frameworkInfo.version[0],
+                  hSAGElib->frameworkInfo.version[1],
+                  hSAGElib->frameworkInfo.version[2],
+                  hSAGElib->frameworkInfo.version[3]));
+        goto end;
+    }
+#endif
+    sdlTHLSigShort = pHeader->ucSsfThlShortSig[0] | (pHeader->ucSsfThlShortSig[1] << 8) |
+                     (pHeader->ucSsfThlShortSig[2] << 16) | (pHeader->ucSsfThlShortSig[3] << 24);
+
+    rc = (sdlTHLSigShort == hSAGElib->frameworkInfo.THLShortSig);
+    if (rc != true) {
+        BDBG_ERR(("%s: The SDL THL Signature Short (0x%08x) differs from the one inside the loaded SAGE Framework (0x%08x)",
+                  __FUNCTION__, sdlTHLSigShort, hSAGElib->frameworkInfo.THLShortSig));
+        BDBG_ERR(("%s: The SDL shall be linked against the same THL (Thin Layer) as the one inside the SAGE Framework",
+                  __FUNCTION__));
+        goto end;
+    }
+
+end:
+    return rc;
+}
+
+BERR_Code
+BSAGElib_Rai_Platform_Install(
+    BSAGElib_ClientHandle hSAGElibClient,
+    uint32_t platformId,
+    uint8_t *binBuff,
+    uint32_t binSize)
+{
+    BERR_Code rc = BERR_SUCCESS;
+    BSAGElib_InOutContainer * container;
+    uint32_t async_id;
+
+    container = BSAGElib_Rai_Container_Allocate(hSAGElibClient);
+    if(container == NULL)
+        goto err;
+
+    BDBG_MSG(("%s: Platform %x %p %d",__FUNCTION__, platformId, binBuff,binSize  ));
+    BDBG_MSG(("%s: System Platform %p %p",__FUNCTION__, (void *)hSAGElibClient->system_platform, (void*)hSAGElibClient->system_module ));
+
+    if(hSAGElibClient->system_platform == NULL){
+
+        /* Open the platform first */
+
+        rc = BSAGElib_Rai_Platform_Open(hSAGElibClient,
+                                        BSAGE_PLATFORM_ID_SYSTEM,
+                                        container,
+                                        &(hSAGElibClient->system_platform),
+                                        (void *)hSAGElibClient,
+                                        &async_id);
+        if (rc != BERR_SUCCESS) {
+            rc = BERR_TRACE(rc);
+            goto err;
+        }
+
+        rc = BSAGELib_Rai_P_WaitForResponse(hSAGElibClient, async_id);
+
+        if (rc != BERR_SUCCESS) {
+            rc = BERR_TRACE(rc);
+            goto err;
+        }
+        BDBG_MSG(("%s: System Platform %p ",__FUNCTION__, (void *)hSAGElibClient->system_platform ));
+
+        if(container->basicOut[0] != BSAGElib_State_eInit){
+
+            /* Not yet initialized: send init command*/
+            rc = BSAGElib_Rai_Platform_Init(hSAGElibClient->system_platform,
+                                            container,
+                                            &async_id);
+
+            if (rc != BERR_SUCCESS) {
+                rc = BERR_TRACE(rc);
+                goto err;
+            }
+
+            rc = BSAGELib_Rai_P_WaitForResponse(hSAGElibClient, async_id);
+
+            if (rc != BERR_SUCCESS) {
+                rc = BERR_TRACE(rc);
+                goto err;
+            }
+        }
+
+        if (hSAGElibClient->system_module == NULL) {
+            rc = BSAGElib_Rai_Module_Init(hSAGElibClient->system_platform,
+                                        System_ModuleId_eDynamicLoad,
+                                        container,
+                                        &(hSAGElibClient->system_module),
+                                        (void *)hSAGElibClient,
+                                        &async_id);
+
+            if (rc != BERR_SUCCESS) {
+                rc = BERR_TRACE(rc);
+                goto end;
+            }
+
+            rc = BSAGELib_Rai_P_WaitForResponse(hSAGElibClient, async_id);
+
+            if (rc != BERR_SUCCESS) {
+                goto err;
+            }
+            BDBG_MSG(("%s: System Platform Module %p ",__FUNCTION__, (void *)hSAGElibClient->system_module ));
+
+        }
+    }
+
+    /* do it after the system platform open so we are sure the SAGE-side is booted
+       and the status info are valid */
+    if (!_P_IsSdlValid(hSAGElibClient->hSAGElib, binBuff, binSize)) {
+        BDBG_ERR(("%s: Cannot install incompatible SDL", __FUNCTION__));
+        rc = BERR_INVALID_PARAMETER;
+        goto err;
+    }
+
+    container->basicIn[0] = platformId;
+
+    /* provide the SDL binary that's been pulled from FS */
+    container->blocks[0].data.ptr = binBuff;
+    container->blocks[0].len = binSize;
+
+    rc = BSAGElib_Rai_Module_ProcessCommand(hSAGElibClient->system_module,
+                                            DynamicLoadModule_CommandId_eLoadSDL,
+                                            container,
+                                            &async_id);
+
+    if (rc != BERR_SUCCESS) {
+        /* If message to Load failed then SAGE might be reset so clean up System Platform Handles */
+        BDBG_ERR(("%s BSAGElib_Rai_Module_ProcessCommand failure %d \n",__FUNCTION__,rc));
+        hSAGElibClient->system_platform = NULL;
+        hSAGElibClient->system_module = NULL;
+        rc = BERR_TRACE(rc);
+        goto err;
+    }
+
+    rc = BSAGELib_Rai_P_WaitForResponse(hSAGElibClient, async_id);
+
+    if (rc != BERR_SUCCESS) {
+        rc = BERR_TRACE(rc);
+        goto err;
+    }
+    BDBG_MSG(("%s Output Status %x \n",__FUNCTION__,container->basicOut[0]));
+
+    if((rc == BERR_SUCCESS) || (container->basicOut[0] == BSAGE_ERR_SDL_ALREADY_LOADED)){
+        rc = BERR_SUCCESS;
+        goto end;
+    }
+
+
+err:
+end:
+
+    if (container) {
+        BSAGElib_Rai_Container_Free(hSAGElibClient, container);
+    }
+    return rc;
+}
+
+BERR_Code
+BSAGElib_Rai_Platform_UnInstall(BSAGElib_ClientHandle hSAGElibClient,
+                                        uint32_t platformId)
+{
+
+    BERR_Code rc = BERR_SUCCESS;
+    BSAGElib_InOutContainer * container = NULL;
+    uint32_t async_id;
+
+
+    if((hSAGElibClient->system_module == NULL) || (hSAGElibClient->system_platform == NULL)){
+        rc = BERR_INVALID_PARAMETER;
+        goto err;
+    }
+
+    container = BSAGElib_Rai_Container_Allocate(hSAGElibClient);
+    if(container == NULL)
+        goto err;
+
+    container->basicIn[0] = platformId;
+
+    BDBG_MSG(("%s: System Platform %p %p",__FUNCTION__, (void *)hSAGElibClient->system_platform, (void*)hSAGElibClient->system_module ));
+
+    rc = BSAGElib_Rai_Module_ProcessCommand(hSAGElibClient->system_module,
+                                            DynamicLoadModule_CommandId_eUnLoadSDL,
+                                            container,
+                                            &async_id);
+
+    if (rc != BERR_SUCCESS) {
+        /* If message to Unload failed then SAGE might be reset so clean up System Platform Handles */
+        BDBG_ERR(("%s BSAGElib_Rai_Module_ProcessCommand failure %d \n",__FUNCTION__,rc));
+        hSAGElibClient->system_platform = NULL;
+        hSAGElibClient->system_module = NULL;
+        goto err;
+    }
+
+    rc = BSAGELib_Rai_P_WaitForResponse(hSAGElibClient, async_id);
+
+    if (rc != BERR_SUCCESS) {
+        goto err;
+    }
+
+    BDBG_MSG(("%s Output Status %d \n",__FUNCTION__,container->basicOut[0]));
+
+    if (hSAGElibClient->system_module != NULL) {
+        BSAGElib_Rai_Module_Uninit(hSAGElibClient->system_module,&async_id);
+        rc = BSAGELib_Rai_P_WaitForResponse(hSAGElibClient, async_id);
+        if (rc != BERR_SUCCESS) {
+            goto err;
+        }
+
+        BSAGElib_Rpc_RemoveRemote(hSAGElibClient->system_module);
+        hSAGElibClient->system_module = NULL;
+    }
+
+    if (hSAGElibClient->system_platform != NULL) {
+        BSAGElib_Rai_Platform_Close(hSAGElibClient->system_platform, &async_id);
+        rc = BSAGELib_Rai_P_WaitForResponse(hSAGElibClient, async_id);
+        if (rc != BERR_SUCCESS) {
+            goto err;
+        }
+        BSAGElib_Rpc_RemoveRemote(hSAGElibClient->system_platform);
+        hSAGElibClient->system_platform = NULL;
+    }
+    goto end;
+
+err:
+end:
+    if (container) {
+        BSAGElib_Rai_Container_Free(hSAGElibClient, container);
+    }
+    return rc;
+
+
+}
+
 BERR_Code
 BSAGElib_Rai_Platform_Open(
     BSAGElib_ClientHandle hSAGElibClient,
@@ -103,6 +379,8 @@ BSAGElib_Rai_Platform_Open(
     BDBG_OBJECT_ASSERT(hSAGElibClient, BSAGElib_P_Client);
     hSAGElib = hSAGElibClient->hSAGElib;
 
+    BDBG_MSG(("%s: Platform %x ",__FUNCTION__, platformId));
+
     if (!pPlatform) {
         rc = BERR_INVALID_PARAMETER;
         BDBG_ERR(("%s: pPlatform is NULL", __FUNCTION__));
@@ -115,7 +393,7 @@ BSAGElib_Rai_Platform_Open(
                                                                       &hSAGElib->i_memory_map);
     if (!command.containerOffset) {
         rc = BERR_INVALID_PARAMETER;
-        BDBG_ERR(("%s: invalid container %p", __FUNCTION__, container));
+        BDBG_ERR(("%s: invalid container %p", __FUNCTION__, (void *)container));
         goto end;
     }
 
@@ -132,7 +410,7 @@ BSAGElib_Rai_Platform_Open(
     command.systemCommandId = BSAGElib_SystemCommandId_ePlatformOpen;
     rc = BSAGElib_Rpc_SendCommand(new_platform, &command, pAsync_id);
     if (rc != BERR_SUCCESS) {
-        BDBG_ERR(("%s: BSAGElib_Rpc_SendCommand failure (%u)", __FUNCTION__));
+        BDBG_ERR(("%s: BSAGElib_Rpc_SendCommand failure (%d)", __FUNCTION__, (int)rc));
         BSAGElib_Rpc_RemoveRemote(new_platform);
         goto end;
     }
@@ -160,6 +438,8 @@ BSAGElib_Rai_Platform_Init(
 
     BDBG_OBJECT_ASSERT(platform, BSAGElib_P_RpcRemote);
     hSAGElib = platform->hSAGElibClient->hSAGElib;
+
+    BDBG_MSG(("%s Platform id %x Module id %x",__FUNCTION__,platform->platformId,platform->moduleId));
 
     /* Convert and sync virtual <--> physical memory */
     command.containerOffset = BSAGElib_Tools_ContainerAddressToOffset(container,
@@ -191,24 +471,105 @@ BSAGElib_Rai_Platform_Close(
 
     BDBG_OBJECT_ASSERT(platform, BSAGElib_P_RpcRemote);
 
+    BDBG_MSG(("%s Platform id %x Module id %x",__FUNCTION__,platform->platformId,platform->moduleId));
     if (platform->valid) {
         command.containerVAddr = NULL;
         command.containerOffset = 0;
         command.moduleCommandId = 0;
         command.systemCommandId = BSAGElib_SystemCommandId_ePlatformClose;
-        rc = BSAGElib_Rpc_SendCommand(platform, &command, pAsync_id);
-        if (rc != BERR_SUCCESS) {
-            BDBG_ERR(("%s: BSAGElib_Rpc_SendCommand failure (%u)", __FUNCTION__, rc));
-            /* keep going */
+        /* During S3 transtion Sys Crit needs to closed for clean up but SAGE cannont close Sys Crit. Hence SAGE command is not sent for this case */
+        if(platform->platformId != BSAGE_PLATFORM_ID_SYSTEM_CRIT){
+            rc = BSAGElib_Rpc_SendCommand(platform, &command, pAsync_id);
+            if (rc != BERR_SUCCESS) {
+                BDBG_ERR(("%s: BSAGElib_Rpc_SendCommand failure (%u)", __FUNCTION__, rc));
+                /* keep going */
+            }
         }
     }
     else {
         BDBG_WRN(("%s: platform is not valid anymore, skip command send", __FUNCTION__));
     }
+
     platform->hSAGElibClient->platformNum--;
     BSAGElib_P_Rai_Adjust_ContainerCache(platform->hSAGElibClient);
 
     BDBG_LEAVE(BSAGElib_Rai_Platform_Close);
+}
+
+BERR_Code
+BSAGElib_Rai_Platform_EnableCallbacks(
+    BSAGElib_RpcRemoteHandle platform,
+    uint32_t *pAsync_id /* [out] */)
+{
+    BERR_Code rc = BERR_SUCCESS;
+    BSAGElib_RpcCommand command;
+    BSAGElib_InOutContainer *container = NULL;
+    BSAGElib_RpcMessage *message = NULL;
+    BSAGElib_Handle hSAGElib;
+    BSAGElib_ClientHandle hSAGElibClient;
+
+    BDBG_ENTER(BSAGElib_Rai_Platform_EnableCallbacks);
+
+    BDBG_OBJECT_ASSERT(platform, BSAGElib_P_RpcRemote);
+
+    if (platform->callbacks.container != NULL) {
+        rc = BERR_INVALID_PARAMETER;
+        BDBG_ERR(("%s: already enabled", __FUNCTION__));
+        goto end;
+    }
+
+    hSAGElibClient = platform->hSAGElibClient;
+    hSAGElib = hSAGElibClient->hSAGElib;
+
+    if (BSAGElib_iRpcCallbackRequest_isr == NULL) {
+        rc = BERR_INVALID_PARAMETER;
+        BDBG_ERR(("%s: client does not support callback requests", __FUNCTION__));
+        goto end;
+    }
+
+    container = BSAGElib_Rai_Container_Allocate(platform->hSAGElibClient);
+    if (container == NULL) {
+        BDBG_ERR(("%s: BSAGElib_Rai_Container_Allocate() failure (%u)", __FUNCTION__, rc));
+        rc = BERR_OUT_OF_DEVICE_MEMORY;
+        goto end;
+    }
+    message = (BSAGElib_RpcMessage *)BSAGElib_Rai_Memory_Allocate(platform->hSAGElibClient,
+                                                                  sizeof(*message),
+                                                                  BSAGElib_MemoryType_Global);
+    if (message == NULL) {
+        BDBG_ERR(("%s: BSAGElib_Rai_Memory_Allocate() failure to allocate message (%u)", __FUNCTION__, rc));
+        rc = BERR_OUT_OF_DEVICE_MEMORY;
+        goto end;
+    }
+    container->blocks[0].data.ptr = (uint8_t *)message;
+    container->blocks[0].len = sizeof(*message);
+    command.containerOffset = BSAGElib_Tools_ContainerAddressToOffset(container,
+                                                                      &hSAGElib->i_memory_sync_isrsafe,
+                                                                      &hSAGElib->i_memory_map);
+    command.containerVAddr = container;
+    command.moduleCommandId = 0;
+    command.systemCommandId = BSAGElib_SystemCommandId_ePlatformEnableCallbacks;
+    rc = BSAGElib_Rpc_SendCommand(platform, &command, pAsync_id);
+    if (rc != BERR_SUCCESS) {
+        BDBG_ERR(("%s: BSAGElib_Rpc_SendCommand (%u)", __FUNCTION__, rc));
+        goto end;
+    }
+
+    platform->callbacks.message = message;
+    message = NULL;
+
+    platform->callbacks.container = container;
+    container = NULL;
+
+end:
+    if (container) {
+        BSAGElib_Rai_Container_Free(platform->hSAGElibClient, container);
+    }
+    if (message) {
+        BSAGElib_Rai_Memory_Free(platform->hSAGElibClient, (uint8_t *)message);
+    }
+    BDBG_LEAVE(BSAGElib_Rai_Platform_EnableCallbacks);
+    return rc;
 }
 
 BERR_Code
@@ -322,7 +683,7 @@ BSAGElib_Rai_Module_ProcessCommand(
     command.systemCommandId = BSAGElib_SystemCommandId_eModuleProcessCommand;
     rc = BSAGElib_Rpc_SendCommand(module, &command, pAsync_id);
     if (rc != BERR_SUCCESS) {
-        BDBG_ERR(("%s: BSAGElib_Rpc_SendCommand failure (%u)", __FUNCTION__));
+        BDBG_ERR(("%s: BSAGElib_Rpc_SendCommand failure (%d)", __FUNCTION__, (int)rc));
         goto end;
     }
 

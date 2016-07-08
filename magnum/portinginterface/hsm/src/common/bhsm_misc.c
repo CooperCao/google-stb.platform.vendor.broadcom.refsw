@@ -1,50 +1,53 @@
 /******************************************************************************
- *    (c)2007-2015 Broadcom Corporation
- *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
- *
- * Except as expressly set forth in the Authorized License,
- *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
- *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
- *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *
- *****************************************************************************/
+* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*
+* This program is the proprietary software of Broadcom and/or its
+* licensors, and may only be used, duplicated, modified or distributed pursuant
+* to the terms and conditions of a separate, written license agreement executed
+* between you and Broadcom (an "Authorized License").  Except as set forth in
+* an Authorized License, Broadcom grants no license (express or implied), right
+* to use, or waiver of any kind with respect to the Software, and Broadcom
+* expressly reserves all rights in and to the Software and all intellectual
+* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*
+* Except as expressly set forth in the Authorized License,
+*
+* 1. This program, including its structure, sequence and organization,
+*    constitutes the valuable trade secrets of Broadcom, and you shall use all
+*    reasonable efforts to protect the confidentiality thereof, and to use
+*    this information only in connection with your use of Broadcom integrated
+*    circuit products.
+*
+* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+*
+* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. , WHICHEVER
+*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+******************************************************************************/
 
 #include "bhsm.h"
+#include "bhsm_private.h"
 #include "bhsm_misc.h"
 #include "bhsm_bsp_msg.h"
 #include "bsp_s_mem_auth.h"
-#include "bhsm_bsp_interface_legacy.h"
 #include "bhsm_keyladder_enc.h"
 
 BDBG_MODULE(BHSM);
+
 
 
 BERR_Code BHSM_SetMiscBits (
@@ -76,7 +79,6 @@ BERR_Code BHSM_SetMiscBits (
     }
 
     BHSM_BspMsg_GetDefaultHeader( &header );
-    header.hChannel = hHsm->channelHandles[BSP_CmdInterface];
     #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(3,0)
     BHSM_BspMsg_Header( hMsg, BCMD_cmdType_eOFFLINE_SetMiscBits_COMMAND, &header );
     #else
@@ -203,7 +205,6 @@ BERR_Code BHSM_SetPciMaxWindowSize (
     }
 
     BHSM_BspMsg_GetDefaultHeader( &header );
-    header.hChannel = hHsm->channelHandles[BSP_CmdInterface];
     BHSM_BspMsg_Header( hMsg, BCMD_cmdType_ePCIE_Window_Size, &header );
 
     BHSM_BspMsg_PackArray( hMsg,
@@ -262,7 +263,6 @@ BERR_Code BHSM_SetArch( BHSM_Handle hHsm, BHSM_SetArchIO_t *pSetArch )
     }
 
     BHSM_BspMsg_GetDefaultHeader( &header );
-    header.hChannel = hHsm->channelHandles[BSP_CmdInterface];
     BHSM_BspMsg_Header( hMsg, BCMD_cmdType_eOFFLINE_ARCH_COMMAND, &header );
 
    #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,0)
@@ -354,171 +354,162 @@ BHSM_P_DONE_LABEL:
 
 
 
-
 BERR_Code  BHSM_SetVichRegPar (
-        BHSM_Handle                    in_handle,
-        BHSM_SetVichRegParIO_t        *inoutp_setVichIO
+    BHSM_Handle             hHsm,
+    BHSM_SetVichRegParIO_t *pSetVich
 )
 {
+    BERR_Code           rc = BERR_SUCCESS;
+    BHSM_BspMsg_h       hMsg = NULL;
+    BHSM_BspMsgHeader_t header;
+    uint8_t             i;
+    uint8_t             status;
 
-    BERR_Code                 errCode = BERR_SUCCESS;
-    BHSM_ChannelHandle         channelHandle = in_handle->channelHandles[BSP_CmdInterface];
-    uint32_t                 unParamLen = 0;
-    BHSM_P_CommandData_t    commandData;
-    uint32_t                i;
+    BDBG_ENTER( BHSM_SetVichRegPar );
 
-    BDBG_MSG(("Inside BHSM_SetVichRegPar"));
-    BDBG_ENTER(BHSM_SetVichRegPar);
-    BDBG_ASSERT( in_handle );
-    BHSM_P_CHECK_ERR_CODE_CONDITION( errCode, BHSM_STATUS_FAILED,
-        (in_handle->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER ) );
-
-    BDBG_ASSERT( inoutp_setVichIO );
-    BKNI_Memset(&commandData, 0, sizeof(BHSM_P_CommandData_t));
-
-    BHSM_P_CHECK_ERR_CODE_CONDITION( errCode, BHSM_STATUS_INPUT_PARM_ERR,
-        (inoutp_setVichIO->nRanges > MAX_AVD_SVD_RANGE) );
-
-    commandData.cmdId      = BCMD_cmdType_eOFFLINE_SET_VICH_REG_PAR;
-    commandData.unContMode = 0;
-
-    /* only fill the command specific input parameters */
-
-    commandData.unInputParamsBuf[unParamLen/4 ] = inoutp_setVichIO->VDECId;
-    unParamLen += 4;
-
-    commandData.unInputParamsBuf[unParamLen/4 ] = inoutp_setVichIO->nRanges;
-    unParamLen += 4;
-
-    for (i = 0; i < inoutp_setVichIO->nRanges; i++)
+    if( (hHsm == NULL) || (hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER) || (pSetVich == NULL) )
     {
-        commandData.unInputParamsBuf[unParamLen/4 ] = inoutp_setVichIO->unRangeLo[i];
-        unParamLen += 4;
-
-        commandData.unInputParamsBuf[unParamLen/4 ] = inoutp_setVichIO->unRangeHi[i];
-        unParamLen += 4;
-
+        return  BERR_TRACE( BHSM_STATUS_FAILED );
     }
 
-    /* Load signature */
-    for(i = 0; i < BHSM_HMACSHA256_SIGNATURE_SIZE; i += 4)
+    if (pSetVich->nRanges < 1)
     {
-         commandData.unInputParamsBuf[unParamLen/4] =
-             ((unsigned long)inoutp_setVichIO->aucSignature[i])   << 24 |
-             ((unsigned long)inoutp_setVichIO->aucSignature[i+1]) << 16 |
-             ((unsigned long)inoutp_setVichIO->aucSignature[i+2]) <<  8 |
-             ((unsigned long)inoutp_setVichIO->aucSignature[i+3]);
-
-         unParamLen += 4;
+        return BERR_TRACE( BHSM_STATUS_INPUT_PARM_ERR );
     }
 
-     commandData.unInputParamsBuf[unParamLen/4 ] =
-               BHSM_RemapVklId(inoutp_setVichIO->virtualKeyLadderID) | (inoutp_setVichIO->keyLayer << 8);
-    unParamLen += 4;
+    if( ( rc = BHSM_BspMsg_Create( hHsm, &hMsg ) ) != BERR_SUCCESS )
+    {
+        return BERR_TRACE( rc );
+    }
 
-    commandData.unInputParamLen = unParamLen;
+    BHSM_BspMsg_GetDefaultHeader( &header );
+    BHSM_BspMsg_Header( hMsg, BCMD_cmdType_eOFFLINE_SET_VICH_REG_PAR, &header );
+
+    BHSM_BspMsg_Pack8( hMsg, BCMD_SetVichRegParField_InCmdField_eVDEC_Id,   pSetVich->VDECId );
+    BHSM_BspMsg_Pack8( hMsg, BCMD_SetVichRegParField_InCmdField_eNumRanges, pSetVich->nRanges );
+
+    for (i = 0; i < pSetVich->nRanges; i++)
+    {
+        BHSM_BspMsg_Pack32( hMsg, BCMD_SetVichRegParField_InCmdField_eRegPar0Start + (i * 8), pSetVich->unRangeLo[i] );
+        BHSM_BspMsg_Pack32( hMsg, BCMD_SetVichRegParField_InCmdField_eRegPar0End + (i * 8),   pSetVich->unRangeHi[i] );
+    }
+
+    #define HSM_BCMD_SetVichRegParField_InCmdField_eSig         (BCMD_SetVichRegParField_InCmdField_eRegPar0Start + (pSetVich->nRanges* 8) )
+    #define HSM_BCMD_VichRegParSignatureWordsLen                (8)
+    #define HSM_BCMD_SetVichRegParVklInfoIdx                    (HSM_BCMD_SetVichRegParField_InCmdField_eSig + (HSM_BCMD_VichRegParSignatureWordsLen * 4))
+    #define HSM_BCMD_SetVichRegParField_InCmdField_eKeyLayer    (HSM_BCMD_SetVichRegParVklInfoIdx + 2)
+    #define HSM_BCMD_SetVichRegParField_InCmdField_eVKL         (HSM_BCMD_SetVichRegParVklInfoIdx + 3)
+
+    BHSM_BspMsg_PackArray( hMsg, HSM_BCMD_SetVichRegParField_InCmdField_eSig,   pSetVich->aucSignature, sizeof(pSetVich->aucSignature) );
+    BHSM_BspMsg_Pack8( hMsg, HSM_BCMD_SetVichRegParField_InCmdField_eKeyLayer,  pSetVich->keyLayer );
+    BHSM_BspMsg_Pack8( hMsg, HSM_BCMD_SetVichRegParField_InCmdField_eVKL,       BHSM_RemapVklId( pSetVich->virtualKeyLadderID ));
 
 
-    BHSM_P_CHECK_ERR_CODE_FUNC(errCode,
-            BHSM_P_CommonSubmitCommand (channelHandle,
-                    &commandData));
+    if( ( rc = BHSM_BspMsg_SubmitCommand( hMsg ) ) != BERR_SUCCESS ) {
+        (void)BERR_TRACE( rc );
+        goto BHSM_P_DONE_LABEL;
+    }
 
-    unParamLen =0;
+    BHSM_BspMsg_Get8( hMsg, BCMD_CommonBufferFields_eStatus, &status );
+	pSetVich->unStatus = status;
 
-    /* Parse the command specific output parameters */
-    inoutp_setVichIO->unStatus    =  commandData.unOutputParamsBuf[unParamLen/4];
-    unParamLen +=  4;
+    switch( status )
+    {
+        case 0:
+        {
+            break; /* success */
+        }
+        case 0x22:
+        {
+            BDBG_WRN(("%s: VICH#%d Already Configured.", __FUNCTION__, pSetVich->VDECId));
+			/* Pass on success to the client. */
+			pSetVich->unStatus = 0;
+            break; /* success */
+		}
+	    default:
+        {
+            rc = BHSM_STATUS_BSP_ERROR;
+            BDBG_ERR(("%s BSP status error. [0x%02X]", __FUNCTION__, status ));
+            break;
+        }
+    }
 
-
-     BHSM_P_CHECK_ERR_CODE_CONDITION( errCode, BHSM_STATUS_FAILED,
-        (inoutp_setVichIO->unStatus != 0) );
 BHSM_P_DONE_LABEL:
 
-    BDBG_LEAVE(BHSM_SetVichRegPar);
-    return( errCode );
+    (void)BHSM_BspMsg_Destroy( hMsg );
+
+    BDBG_LEAVE( BHSM_SetVichRegPar );
+    return rc;
 }
 
 
 BERR_Code  BHSM_StartAVD(
-        BHSM_Handle                in_handle,
-        BHSM_StartAVDIO_t        *inoutp_startAVDIO
-)
+    BHSM_Handle        hHsm,
+    BHSM_StartAVDIO_t  *pStartAvd )
 {
+    BERR_Code           rc = BERR_SUCCESS;
+    BHSM_BspMsg_h       hMsg = NULL;
+    BHSM_BspMsgHeader_t header;
+    uint8_t             status;
+    unsigned            i;
 
-    BERR_Code                 errCode = BERR_SUCCESS;
-    BHSM_ChannelHandle         channelHandle = in_handle->channelHandles[BSP_CmdInterface];
-    uint32_t                 unParamLen = 0;
-    BHSM_P_CommandData_t    commandData;
-    uint32_t                i;
+    BDBG_ENTER( BHSM_StartAVD );
 
-    BDBG_MSG(("Inside BHSM_StartAVD"));
-    BDBG_ENTER(BHSM_StartAVD);
-    BDBG_ASSERT( in_handle );
-    BHSM_P_CHECK_ERR_CODE_CONDITION( errCode, BHSM_STATUS_FAILED,
-        (in_handle->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER ) );
-
-    BDBG_ASSERT( inoutp_startAVDIO );
-    BKNI_Memset(&commandData, 0, sizeof(BHSM_P_CommandData_t));
-
-    BHSM_P_CHECK_ERR_CODE_CONDITION( errCode, BHSM_STATUS_INPUT_PARM_ERR,
-        (inoutp_startAVDIO->numAVDReg > MAX_AVD_SVD_RANGE) );
-
-    commandData.cmdId      = BCMD_cmdType_eSTART_AVD;
-    commandData.unContMode = 0;
-
-    /* only fill the command specific input parameters */
-
-    commandData.unInputParamsBuf[unParamLen/4 ] = inoutp_startAVDIO->avdID;
-    unParamLen += 4;
-
-    commandData.unInputParamsBuf[unParamLen/4 ] = inoutp_startAVDIO->numAVDReg;
-    unParamLen += 4;
-
-    for (i = 0; i < inoutp_startAVDIO->numAVDReg; i++)
+    if( (hHsm == NULL) || (hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER) || (pStartAvd == NULL) )
     {
-        commandData.unInputParamsBuf[unParamLen/4 ] = inoutp_startAVDIO->avdRegAddr[i];
-        unParamLen += 4;
-
-        commandData.unInputParamsBuf[unParamLen/4 ] = inoutp_startAVDIO->avdRegVal[i];
-        unParamLen += 4;
-
+        return  BERR_TRACE( BHSM_STATUS_FAILED );
     }
 
-    /* Load signature */
-    for(i = 0; i < BHSM_HMACSHA256_SIGNATURE_SIZE; i += 4)
+    if( pStartAvd->numAVDReg < 1 )
     {
-         commandData.unInputParamsBuf[unParamLen/4] =
-             ((unsigned long)inoutp_startAVDIO->aucSignature[i])   << 24 |
-             ((unsigned long)inoutp_startAVDIO->aucSignature[i+1]) << 16 |
-             ((unsigned long)inoutp_startAVDIO->aucSignature[i+2]) <<  8 |
-             ((unsigned long)inoutp_startAVDIO->aucSignature[i+3]);
-
-         unParamLen += 4;
+        return BERR_TRACE( BHSM_STATUS_INPUT_PARM_ERR );
     }
 
-     commandData.unInputParamsBuf[unParamLen/4 ] =
-             BHSM_RemapVklId( inoutp_startAVDIO->virtualKeyLadderID) | (inoutp_startAVDIO->keyLayer << 8);
-    unParamLen += 4;
+    if( ( rc = BHSM_BspMsg_Create( hHsm, &hMsg ) ) != BERR_SUCCESS )
+    {
+        return BERR_TRACE( rc );
+    }
 
+    BHSM_BspMsg_GetDefaultHeader( &header );
+    BHSM_BspMsg_Header( hMsg, BCMD_cmdType_eSTART_AVD, &header );
 
-    commandData.unInputParamLen = unParamLen;
+    BHSM_BspMsg_Pack8( hMsg, BCMD_MISC_START_AVD_InCmdField_eAVDId,    pStartAvd->avdID );
+    BHSM_BspMsg_Pack8( hMsg, BCMD_MISC_START_AVD_InCmdField_eNumofReg, pStartAvd->numAVDReg );
 
+    for (i = 0; i < pStartAvd->numAVDReg; i++)
+    {
+        BHSM_BspMsg_Pack32( hMsg, BCMD_MISC_START_AVD_InCmdField_eAddr1 + (i * 8),  pStartAvd->avdRegAddr[i] );
+        BHSM_BspMsg_Pack32( hMsg, BCMD_MISC_START_AVD_InCmdField_eValue1 + (i * 8), pStartAvd->avdRegVal[i]  );
+    }
 
-    BHSM_P_CHECK_ERR_CODE_FUNC(errCode,
-            BHSM_P_CommonSubmitCommand (channelHandle,
-                    &commandData));
+    #define HSM_BCMD_MISC_START_AVD_InCmdField_eSig             ((pStartAvd->numAVDReg * 8)+BCMD_MISC_START_AVD_InCmdField_eAddr1)
+    #define HSM_BCMD_StartAvdSignatureWordsLen                  (8)
+    #define HSM_BCMD_StartAvdVklInfoIdx                         (HSM_BCMD_MISC_START_AVD_InCmdField_eSig + (HSM_BCMD_StartAvdSignatureWordsLen * 4))
+    #define HSM_BCMD_MISC_START_AVD_InCmdField_eKeyLayer        (HSM_BCMD_StartAvdVklInfoIdx + 2)
+    #define HSM_BCMD_MISC_START_AVD_InCmdField_eVKL             (HSM_BCMD_StartAvdVklInfoIdx + 3)
 
-    unParamLen =0;
+    BHSM_BspMsg_PackArray( hMsg, HSM_BCMD_MISC_START_AVD_InCmdField_eSig,      pStartAvd->aucSignature, sizeof(pStartAvd->aucSignature) );
+    BHSM_BspMsg_Pack8( hMsg,     HSM_BCMD_MISC_START_AVD_InCmdField_eVKL,      BHSM_RemapVklId( pStartAvd->virtualKeyLadderID ));
+    BHSM_BspMsg_Pack8( hMsg,     HSM_BCMD_MISC_START_AVD_InCmdField_eKeyLayer, pStartAvd->keyLayer );
 
-    /* Parse the command specific output parameters */
-    inoutp_startAVDIO->unStatus    =  commandData.unOutputParamsBuf[unParamLen/4];
-    unParamLen +=  4;
+    if( ( rc = BHSM_BspMsg_SubmitCommand( hMsg ) ) != BERR_SUCCESS ) {
+        (void)BERR_TRACE( rc );
+        goto BHSM_P_DONE_LABEL;
+    }
 
-     BHSM_P_CHECK_ERR_CODE_CONDITION( errCode, BHSM_STATUS_FAILED,
-        (inoutp_startAVDIO->unStatus != 0) );
+    BHSM_BspMsg_Get8( hMsg, BCMD_CommonBufferFields_eStatus, &status );
+    pStartAvd->unStatus = status;
+    if( status != 0 )
+    {
+        rc = BHSM_STATUS_BSP_ERROR;
+        BDBG_ERR(("%s BSP status error. [0x%02X]", __FUNCTION__, status ));
+        goto BHSM_P_DONE_LABEL;
+    }
 
 BHSM_P_DONE_LABEL:
 
-    BDBG_LEAVE(BHSM_StartAVD);
-    return( errCode );
+    (void)BHSM_BspMsg_Destroy( hMsg );
+
+    BDBG_LEAVE( BHSM_StartAVD );
+    return rc;
 }

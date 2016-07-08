@@ -1198,7 +1198,7 @@ int playback_svp(int argc, char* argv[])
 
     /* DRM_Prdy specific */
     DRM_Prdy_Init_t     prdyParamSettings;
-    DRM_Prdy_Handle_t   drm_context;
+    DRM_Prdy_Handle_t   drm_context = NULL;
 #ifdef TEE
     uint32_t            secClkStatus; /* secure clock status */
 #endif
@@ -1219,6 +1219,9 @@ int playback_svp(int argc, char* argv[])
     if (rc)
         return -1;
 
+    /* Before doing any secure playback, be sure to toggle URR on w/ nexus/sage */
+    setHeapsSecure(true);
+
     /* print heaps on server side */
     NEXUS_Memory_PrintHeaps();
 
@@ -1228,14 +1231,15 @@ int playback_svp(int argc, char* argv[])
     allocSettings.surfaceClient = 1;
     rc = NxClient_Alloc(&allocSettings, &allocResults);
     if (rc)
-        return BERR_TRACE(rc);
+        goto EXIT_JOIN;
 
     DRM_Prdy_GetDefaultParamSettings(&prdyParamSettings);
 
     drm_context =  DRM_Prdy_Initialize( &prdyParamSettings);
     if( drm_context == NULL) {
        BDBG_ERR(("Failed to create drm_context, quitting...."));
-       goto clean_exit ;
+       rc=NEXUS_UNKNOWN;
+       goto EXIT_ALLOC;
     }
 
 #ifdef TEE
@@ -1243,7 +1247,7 @@ int playback_svp(int argc, char* argv[])
     if( DRM_Prdy_SecureClock_GetStatus(drm_context,&secClkStatus) !=  DRM_Prdy_ok)
     {
        BDBG_ERR(("%d Failed to get the Playready Secure Clock status, quitting....\n",__LINE__));
-       goto clean_exit;
+       goto EXIT_ALLOC;
     }
 
     if( secClkStatus != DRM_PRDY_CLK_SET)
@@ -1252,7 +1256,7 @@ int playback_svp(int argc, char* argv[])
        if(initSecureClock(drm_context) != 0)
        {
            BDBG_ERR(("%d Failed to initiize Secure Clock, quitting....\n",__LINE__));
-           goto clean_exit
+           goto EXIT_ALLOC
        }
     }
 
@@ -1297,12 +1301,11 @@ int playback_svp(int argc, char* argv[])
     connectSettings.simpleVideoDecoder[0].decoderCapabilities.secureVideo = true;
     connectSettings.simpleAudioDecoder.id = allocResults.simpleAudioDecoder.id;
     rc = NxClient_Connect(&connectSettings, &connectId);
-    if (rc) return BERR_TRACE(rc);
+    if (rc) {
+        goto EXIT;
+    }
 
     gui_init( surfaceClient );
-
-    /* DRM will toggle URR to "on"... tell nexus */
-    setHeapsSecure(true);
 
     playback_piff(videoDecoder,
                   audioDecoder,
@@ -1314,6 +1317,7 @@ int playback_svp(int argc, char* argv[])
     fclose (fp_aud);
 #endif
 
+EXIT:
     if (videoDecoder != NULL) {
         NEXUS_SimpleVideoDecoder_Release( videoDecoder );
     }
@@ -1326,24 +1330,22 @@ int playback_svp(int argc, char* argv[])
         NEXUS_SurfaceClient_Release( surfaceClient );
     }
 
-    DRM_Prdy_Uninitialize(drm_context);
+    NxClient_Disconnect(connectId);
+EXIT_ALLOC:
+    NxClient_Free(&allocResults);
+EXIT_JOIN:
 
-    do
-    {
-        BKNI_Sleep(100);
-        rc=NEXUS_Sage_GetStatus(&sageStatus);
-    }while(sageStatus.urr.secured&&!rc);
+    if ( drm_context != NULL ) {
+        DRM_Prdy_Uninitialize(drm_context);
+    }
 
     /* DRM done toggle URR to "off"... tell nexus */
     setHeapsSecure(false);
-
-    NxClient_Disconnect(connectId);
-    NxClient_Free(&allocResults);
     NxClient_Uninit();
 
 clean_exit:
 
-    return 0;
+    return rc;
 
 }
 
@@ -1498,8 +1500,9 @@ int main(int argc, char* argv[])
 {
     NxClient_JoinSettings joinSettings;
     NEXUS_Error rc;
+    NEXUS_SageStatus sageStatus;
 
-    /* Nexus assumes heaps are secure at startup. Change to unsecure */
+    /* Nexus/SAGE heaps are secure at startup. Change to unsecure */
     /* After this, mark as secure before DRM, and clear when DRM complete */
     NxClient_GetDefaultJoinSettings(&joinSettings);
     snprintf(joinSettings.name, NXCLIENT_MAX_NAME, argv[0]);
@@ -1507,17 +1510,22 @@ int main(int argc, char* argv[])
     rc = NxClient_Join(&joinSettings);
     if (rc)
         return -1;
+    rc = NEXUS_Sage_GetStatus(&sageStatus);
+    if (rc==NEXUS_SUCCESS)
+    {
+        BDBG_ERR(("SAGE URR: %s", sageStatus.urr.secured ? "ON" : "OFF"));
+    }
 
     setHeapsSecure(false);
 
     NxClient_Uninit();
 
     while(1){
-        if(playback_svp(argc, argv) != 0){
-            fprintf(stderr, "playback_svp failed");
-        }
         if(playback_clear() != 0){
             fprintf(stderr, "playback_clear failed");
+        }
+        if(playback_svp(argc, argv) != 0){
+            fprintf(stderr, "playback_svp failed");
         }
     }
 

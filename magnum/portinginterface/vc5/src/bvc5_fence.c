@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2014 Broadcom Corporation
+ *     Broadcom Proprietary and Confidential. (c)2014 Broadcom.  All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -160,7 +160,7 @@ static void BVC5_P_FenceRefCountDec(
    if (pFence->uiRefCount == 0)
    {
       unsigned index = pFence->uiIndex;
-      BDBG_MSG(("free last refcount pFence=%p fenceId=%d", pFence, pFence->uiIndex));
+      BDBG_MSG(("free last refcount pFence=%p fenceId=%d", (void*)pFence, pFence->uiIndex));
       hFenceArr->pFences[index] = NULL;
       BKNI_Free(pFence);
 
@@ -218,7 +218,7 @@ int BVC5_P_FenceCreate(
    pFence->uiIndex   = (unsigned)index;
    pFence->uiRefCount = 1;
 
-   BDBG_MSG(("Fence %d = %p\n", index, hFenceArr->pFences[index]));
+   BDBG_MSG(("Fence %d = %p\n", index, (void*)hFenceArr->pFences[index]));
 
    /* Find the next available fence */
    for (i = hFenceArr->iFirstAvailable + 1; i < hFenceArr->uiCapacity && !found; ++i)

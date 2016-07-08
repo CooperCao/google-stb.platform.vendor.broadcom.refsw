@@ -232,7 +232,7 @@ void B_Scheduler_Destroy(
         while ( (pTimer = BLST_S_FIRST(&scheduler->timerList)) )
         {
             BLST_S_REMOVE_HEAD(&scheduler->timerList, node);
-            BDBG_WRN(("Cleaning up timer %p", pTimer));
+            BDBG_WRN(("Cleaning up timer %p", (void*)pTimer));
             B_Os_Free(pTimer);
         }
         while ( (pEvent = BLST_S_FIRST(&scheduler->eventList)) )
@@ -240,7 +240,7 @@ void B_Scheduler_Destroy(
             BLST_S_REMOVE_HEAD(&scheduler->eventList, node);
             if ( !pEvent->deleted )
             {
-                BDBG_WRN(("Cleaning up event %p", pEvent));
+                BDBG_WRN(("Cleaning up event %p", (void*)pEvent));
                 B_EventGroup_RemoveEvent(scheduler->eventGroup, pEvent->event);
             }
             B_Os_Free(pEvent);
@@ -248,7 +248,7 @@ void B_Scheduler_Destroy(
         while ( (pCallback = BLST_S_FIRST(&scheduler->callbackList)) )
         {
             BLST_S_REMOVE_HEAD(&scheduler->callbackList, callbackNode);
-            BDBG_WRN(("Cleaning up callback %p", pCallback));
+            BDBG_WRN(("Cleaning up callback %p", (void*)pCallback));
             B_Os_Free(pCallback);
         }
     }
@@ -477,7 +477,7 @@ void B_Scheduler_CancelTimer(
         }
         if ( NULL == pNode || pNode->deleted == true )
         {
-            BDBG_ERR(("Cancelling stale timer %p", timerId));
+            BDBG_ERR(("Cancelling stale timer %p", (void*)timerId));
             B_Mutex_Unlock(scheduler->mutex);
             return;
         }

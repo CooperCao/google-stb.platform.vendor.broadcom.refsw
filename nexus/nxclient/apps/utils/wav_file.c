@@ -113,6 +113,7 @@ int read_wave_header(FILE *file, struct wave_header *wh)
 
         /* looking for 'data' chunk */
         if (wh->dataSig == WAVE_VALUE_DATA_CHUNK) {
+            wh->dataStart = ftell(file);
             break;
         }
         if (fseek(file, wh->dataLen, SEEK_CUR)) {

@@ -270,11 +270,10 @@ static void WriteSplashInfo(FILE *fp, ModeHandles *pMode)
 
 	fprintf(fp,"#define BSPLASH_RULMEMIDX\t\t %d\t/* index to ahMem for vdc/rul usage */\n\n", pMode->iRulMemIdx);
 
-	fprintf(fp,"#define BSPLASH_NUM_SURFACE\t\t %d\n", SPLASH_NUM_SURFACE);
+	fprintf(fp,"#define BSPLASH_NUM_SURFACE\t\t %d\n", pMode->iNumSurf);
 	fprintf(fp,"static SplashSurfaceInfo  s_SplashSurfaceInfo[BSPLASH_NUM_SURFACE] =\n{\n");
 
-
-	for (ii=0; ii<SPLASH_NUM_SURFACE; ii++)
+	for (ii=0; ii<pMode->iNumSurf; ii++)
 	{
 		pSurf = &pMode->surf[ii];
 
@@ -295,16 +294,16 @@ static void WriteSplashInfo(FILE *fp, ModeHandles *pMode)
 		fprintf(fp,"\t\t%d,\t\t\t\t\t\t/* height */\n", surfHeight);
 		fprintf(fp,"\t\t%d,\t\t\t\t\t\t/* pitch */\n", surfPitch);
 		fprintf(fp,"\t\t\"%s\"\t\t\t\t/* bmp file in splashgen */\n", &pSurf->bmpFile[0]);
-		if ((SPLASH_NUM_SURFACE-1) == ii)
+		if ((pMode->iNumSurf-1) == ii)
 			fprintf(fp,"\t}\n");
 		else
 			fprintf(fp,"\t},\n");
 	}
 	fprintf(fp,"};\n\n");
 
-	fprintf(fp,"#define BSPLASH_NUM_DISPLAY\t\t %d\n", SPLASH_NUM_DISPLAY);
+	fprintf(fp,"#define BSPLASH_NUM_DISPLAY\t\t %d\n", pMode->iNumDisp);
 	fprintf(fp,"static SplashDisplayInfo  s_SplashDisplayInfo[BSPLASH_NUM_DISPLAY] =\n{\n");
-	for (ii=0; ii<SPLASH_NUM_DISPLAY; ii++)
+	for (ii=0; ii<pMode->iNumDisp; ii++)
 	{
 		pDisp = &pMode->disp[ii];
 		BFMT_GetVideoFormatInfo(pDisp->eDispFmt, &videoInfo);
@@ -313,7 +312,7 @@ static void WriteSplashInfo(FILE *fp, ModeHandles *pMode)
 		fprintf(fp,"\t\t(BFMT_VideoFmt)%d,\t/* %s */\n", pDisp->eDispFmt, videoInfo.pchFormatStr);
 		fprintf(fp,"\t\t0x%8.8x,\t\t\t/* ulRdcScratchReg0 */\n", pDisp->ulGfdScratchReg0);
 		fprintf(fp,"\t\t0x%8.8x \t\t\t/* ulRdcScratchReg1 */\n", pDisp->ulGfdScratchReg1);
-		if ((SPLASH_NUM_DISPLAY-1) == ii)
+		if ((pMode->iNumDisp-1) == ii)
 			fprintf(fp,"\t}\n");
 		else
 			fprintf(fp,"\t},\n");

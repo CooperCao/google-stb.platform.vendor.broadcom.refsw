@@ -35,8 +35,6 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * Module Description:
- *
  ***************************************************************************/
 #include "nexus_video_decoder_module.h"
 #include "nexus_memory.h"
@@ -314,8 +312,13 @@ static void NEXUS_VideoDecoder_P_PrimerProcessItb(NEXUS_VideoDecoderPrimerHandle
         switch(type)
         {
         case 0x22: /* pcr offset */
-            primer->pcr_offset = pitb->word1;
-            primer->pcr_offset_set = true;
+            if (((pitb->word0 >> 23) & 0x1) == 0) {
+                BDBG_WRN(("%p: received invalid pcr offset : %#x", (void *)primer, pitb->word1));
+            }
+            else {
+                primer->pcr_offset = pitb->word1;
+                primer->pcr_offset_set = true;
+            }
             break;
 
         case 0x21: /* pts */
@@ -373,6 +376,13 @@ static void NEXUS_VideoDecoder_P_PrimerProcessItb(NEXUS_VideoDecoderPrimerHandle
             break;
         }
         pitb++;
+    }
+
+    /* need to ensure that we get a pcr offset if we have valid data we are processing */
+    if (!primer->pcr_offset_set && (itb_valid - primer->sitb_read) > 0) {
+        LOCK_TRANSPORT();
+        NEXUS_StcChannel_SetPcrOffsetContextAcquireMode_priv(primer->startSettings.stcChannel);
+        UNLOCK_TRANSPORT();
     }
 
     primer->sitb_read = NEXUS_AddrToOffset(pitb);
@@ -735,7 +745,9 @@ void NEXUS_VideoDecoderPrimer_Stop( NEXUS_VideoDecoderPrimerHandle primer )
 
         /* Rave must be disabled in order for StartPrimer to work correctly later on */
         NEXUS_VideoDecoderPrimer_P_DisableRave(primer);
-
+        LOCK_TRANSPORT();
+        NEXUS_StcChannel_DisablePidChannel_priv(primer->startSettings.stcChannel, primer->startSettings.pidChannel);
+        UNLOCK_TRANSPORT();
         NEXUS_VideoDecoderPrimer_P_ReleaseStartResources(primer);
         primer->started = false;
     }

@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2007 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2007 Broadcom.
 All rights reserved.
 
 Project  :  vcfw

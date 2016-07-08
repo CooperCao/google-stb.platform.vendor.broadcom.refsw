@@ -1,22 +1,41 @@
 /***************************************************************************
- *     Copyright (c) 2006-2014, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  * Module Description: Audio Decoder Interface
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ***************************************************************************/
 
 #include "bstd.h"
@@ -53,9 +72,9 @@ static BAPE_ChannelMode BAPE_Decoder_P_ChannelModeFromDsp(uint32_t dspMode)
 }
 
 static BERR_Code BAPE_Decoder_P_GetAc3Status(
-    BAPE_DecoderHandle handle, 
-    unsigned mode, 
-    const BDSP_AudioBitRateChangeInfo *pBitRateInfo, 
+    BAPE_DecoderHandle handle,
+    unsigned mode,
+    const BDSP_AudioBitRateChangeInfo *pBitRateInfo,
     BAPE_DecoderStatus *pStatus
     )
 {
@@ -148,6 +167,7 @@ static BERR_Code BAPE_Decoder_P_GetAc3Status(
         pStatus->codecStatus.ac3.dependentFrameChannelMap = handle->streamInfo.ddp.ui32DepFrameChanmapMode;
         pStatus->codecStatus.ac3.dialnorm = handle->streamInfo.ddp.ui32CurrentDialNorm;
         pStatus->codecStatus.ac3.previousDialnorm = handle->streamInfo.ddp.ui32PreviousDialNorm;
+        pStatus->codecStatus.ac3.bitrate = handle->streamInfo.ddp.ui32BitRate/1000;
         pStatus->framesDecoded = handle->streamInfo.ddp.ui32TotalFramesDecoded;
         pStatus->frameErrors = handle->streamInfo.ddp.ui32TotalFramesInError;
         pStatus->dummyFrames = handle->streamInfo.ddp.ui32TotalFramesDummy;
@@ -156,10 +176,141 @@ static BERR_Code BAPE_Decoder_P_GetAc3Status(
     return BERR_SUCCESS;
 }
 
+static BERR_Code BAPE_Decoder_P_GetAc4Status(
+    BAPE_DecoderHandle handle,
+    unsigned mode,
+    const BDSP_AudioBitRateChangeInfo *pBitRateInfo,
+    BAPE_DecoderStatus *pStatus
+    )
+{
+    BERR_Code errCode;
+
+    pStatus->codecStatus.ac4.acmod = mode;  /* Use the value from the interrupt.  The streamInfo value is last decoded frame not last parsed. */
+    pStatus->codecStatus.ac4.channelMode = BAPE_Decoder_P_ChannelModeFromDsp(mode);
+    pStatus->codecStatus.ac4.bitrate = pBitRateInfo->ui32BitRate/1024; /* FW reports in bps */
+    BDBG_MSG(("AC4 Stream Info: acmod %lu, chMode %lu, bitrate %lu",
+              (unsigned long)pStatus->codecStatus.ac4.acmod,
+              (unsigned long)pStatus->codecStatus.ac4.channelMode,
+              (unsigned long)pStatus->codecStatus.ac4.bitrate));
+
+    if ( !handle->passthrough )
+    {
+        errCode = BDSP_Stage_GetStatus(handle->hPrimaryStage, &handle->streamInfo.ac4, sizeof(handle->streamInfo.ac4));
+        if ( errCode )
+        {
+            return errCode;
+        }
+
+        switch(handle->streamInfo.ac4.ui32EffectiveSamplingRate)
+        {
+            case 0:
+                pStatus->codecStatus.ac4.samplingFrequency = 48000;
+                break;
+            case 1:
+                pStatus->codecStatus.ac4.samplingFrequency = 44100;
+                break;
+            case 2:
+                pStatus->codecStatus.ac4.samplingFrequency = 32000;
+                break;
+            default:
+                pStatus->codecStatus.ac4.samplingFrequency = 0;
+                break;
+        }
+
+
+        /* AC-4 Presentations */
+        pStatus->codecStatus.ac4.streamInfoVersion = handle->streamInfo.ac4.ui32StreamInfoVersion;
+        if ( handle->streamInfo.ac4.ui32NumPresentations > AC4_DEC_NUM_OF_PRESENTATIONS )
+        {
+            pStatus->codecStatus.ac4.numPresentations = AC4_DEC_NUM_OF_PRESENTATIONS;
+        }
+        else
+        {
+            pStatus->codecStatus.ac4.numPresentations = handle->streamInfo.ac4.ui32NumPresentations;
+        }
+        pStatus->codecStatus.ac4.currentPresentationIndex = handle->streamInfo.ac4.ui32DecodedPresentationIndex;
+        pStatus->codecStatus.ac4.dialogEnhanceMax = handle->streamInfo.ac4.ui32DecodedPresentationMaxDialogGain;
+
+        BDBG_MSG(("AC4 Stream Info: streamInfoVersion %lu, numPresentations %lu, curPresIdx %lu, deMax %lu",
+                  (unsigned long)pStatus->codecStatus.ac4.streamInfoVersion,
+                  (unsigned long)pStatus->codecStatus.ac4.numPresentations,
+                  (unsigned long)pStatus->codecStatus.ac4.currentPresentationIndex,
+                  (unsigned long)pStatus->codecStatus.ac4.dialogEnhanceMax));
+        /* standard issue items */
+        pStatus->codecStatus.ac4.bitstreamId = 0; /* TBD */
+        pStatus->codecStatus.ac4.lfe = (handle->streamInfo.ac4.ui32OutputLfeMode == 1)?true:false;
+        pStatus->codecStatus.ac4.dialnorm = handle->streamInfo.ac4.ui32CurrentDialNorm;
+        pStatus->codecStatus.ac4.previousDialnorm = handle->streamInfo.ac4.ui32PreviousDialNorm;
+        pStatus->framesDecoded = handle->streamInfo.ac4.ui32TotalFramesDecoded;
+        pStatus->frameErrors = handle->streamInfo.ac4.ui32TotalFramesInError;
+        pStatus->dummyFrames = handle->streamInfo.ac4.ui32TotalFramesDummy;
+    }
+
+    return BERR_SUCCESS;
+}
+
+BERR_Code BAPE_Decoder_P_GetAc4PresentationInfo(
+    BAPE_DecoderHandle handle,
+    unsigned presentationIndex,
+    BAPE_DecoderPresentationInfo *pInfo     /* [out] */
+    )
+{
+    BERR_Code errCode;
+
+    if ( !handle->passthrough )
+    {
+        errCode = BDSP_Stage_GetStatus(handle->hPrimaryStage, &handle->streamInfo.ac4, sizeof(handle->streamInfo.ac4));
+        if ( errCode )
+        {
+            return errCode;
+        }
+
+        /* AC-4 Presentation Info */
+        if ( presentationIndex > handle->streamInfo.ac4.ui32NumPresentations )
+        {
+            BDBG_ERR(("Current Program has %lu presentations. Index %lu is invalid.", (unsigned long)handle->streamInfo.ac4.ui32NumPresentations, (unsigned long)presentationIndex));
+            return BERR_TRACE(BERR_INVALID_PARAMETER);
+        }
+
+        #if 0
+        BKNI_Memcpy((void*)pInfo->info.ac4.name, (void*)handle->streamInfo.ac4.AC4DECPresentationInfo[presentationIndex].ui32PresentationName, (BAPE_AC4_PRESENTATION_NAME_LENGTH/sizeof(uint32_t))*sizeof(uint32_t));
+        BKNI_Memcpy((void*)pInfo->info.ac4.language, (void*)handle->streamInfo.ac4.AC4DECPresentationInfo[presentationIndex].ui32MainLanguage, (BAPE_AC4_PRESENTATION_LANGUAGE_NAME_LENGTH/sizeof(uint32_t))*sizeof(uint32_t));
+        #else
+        {
+            unsigned i;
+            for (i=0; i<AC4_DEC_PRESENTATION_NAME_LENGTH; i++)
+            {
+                pInfo->info.ac4.name[4*i]   = (char)((handle->streamInfo.ac4.AC4DECPresentationInfo[presentationIndex].ui32PresentationName[i]>>24)&0xFF);
+                pInfo->info.ac4.name[4*i+1] = (char)((handle->streamInfo.ac4.AC4DECPresentationInfo[presentationIndex].ui32PresentationName[i]>>16)&0xFF);
+                pInfo->info.ac4.name[4*i+2] = (char)((handle->streamInfo.ac4.AC4DECPresentationInfo[presentationIndex].ui32PresentationName[i]>>8)&0xFF);
+                pInfo->info.ac4.name[4*i+3] = (char)((handle->streamInfo.ac4.AC4DECPresentationInfo[presentationIndex].ui32PresentationName[i])&0xFF);
+                /*BDBG_ERR(("  name[%d]: %lu", i, (unsigned long)handle->streamInfo.ac4.AC4DECPresentationInfo[presentationIndex].ui32PresentationName[i]));*/
+            }
+            for (i=0; i<AC4_DEC_PRESENTATION_LANGUAGE_LENGTH; i++)
+            {
+                pInfo->info.ac4.language[4*i]   = (char)((handle->streamInfo.ac4.AC4DECPresentationInfo[presentationIndex].ui32MainLanguage[i]>>24)&0xFF);
+                pInfo->info.ac4.language[4*i+1] = (char)((handle->streamInfo.ac4.AC4DECPresentationInfo[presentationIndex].ui32MainLanguage[i]>>16)&0xFF);
+                pInfo->info.ac4.language[4*i+2] = (char)((handle->streamInfo.ac4.AC4DECPresentationInfo[presentationIndex].ui32MainLanguage[i]>>8)&0xFF);
+                pInfo->info.ac4.language[4*i+3] = (char)((handle->streamInfo.ac4.AC4DECPresentationInfo[presentationIndex].ui32MainLanguage[i])&0xFF);
+                /*BDBG_ERR(("  language[%d]: %lu", i, (unsigned long)handle->streamInfo.ac4.AC4DECPresentationInfo[presentationIndex].ui32MainLanguage[i]));*/
+            }
+        }
+        #endif
+        pInfo->info.ac4.id = handle->streamInfo.ac4.AC4DECPresentationInfo[presentationIndex].ui32PresentationIndex;
+        pInfo->info.ac4.type = handle->streamInfo.ac4.AC4DECPresentationInfo[presentationIndex].ui32AssociateType;
+        BDBG_MSG(("Presentation Info for idx %lu:", (unsigned long)presentationIndex));
+        BDBG_MSG(("  id: %lu", (unsigned long)pInfo->info.ac4.id));
+        BDBG_MSG(("  type: %d", pInfo->info.ac4.type));
+        BDBG_MSG(("  name: %s", pInfo->info.ac4.name));
+        BDBG_MSG(("  language: %s\n", pInfo->info.ac4.language));
+    }
+    return BERR_SUCCESS;
+}
+
 static BERR_Code BAPE_Decoder_P_GetMpegStatus(
-    BAPE_DecoderHandle handle, 
-    unsigned mode, 
-    const BDSP_AudioBitRateChangeInfo *pBitRateInfo, 
+    BAPE_DecoderHandle handle,
+    unsigned mode,
+    const BDSP_AudioBitRateChangeInfo *pBitRateInfo,
     BAPE_DecoderStatus *pStatus
     )
 {
@@ -191,7 +342,7 @@ static BERR_Code BAPE_Decoder_P_GetMpegStatus(
         {
             return errCode;
         }
-    
+
         pStatus->codecStatus.mpeg.original = handle->streamInfo.mpeg.ui32OriginalCopy?true:false;
         pStatus->codecStatus.mpeg.copyright = handle->streamInfo.mpeg.ui32Copyright?true:false;
         pStatus->codecStatus.mpeg.crcPresent = handle->streamInfo.mpeg.ui32CrcPresent?true:false;
@@ -227,20 +378,20 @@ static BERR_Code BAPE_Decoder_P_GetMpegStatus(
             pStatus->codecStatus.mpeg.layer = 0;
             break;
         }
-    
+
         pStatus->codecStatus.mpeg.emphasisMode = handle->streamInfo.mpeg.ui32Emphasis;   /* This enum is defined to match the MPEG spec */
         pStatus->framesDecoded = handle->streamInfo.mpeg.ui32TotalFramesDecoded;
         pStatus->frameErrors = handle->streamInfo.mpeg.ui32TotalFramesInError;
         pStatus->dummyFrames = handle->streamInfo.mpeg.ui32TotalFramesDummy;
     }
-    
+
     return BERR_SUCCESS;
 }
 
 static BERR_Code BAPE_Decoder_P_GetAacStatus(
-    BAPE_DecoderHandle handle, 
-    unsigned mode, 
-    const BDSP_AudioBitRateChangeInfo *pBitRateInfo, 
+    BAPE_DecoderHandle handle,
+    unsigned mode,
+    const BDSP_AudioBitRateChangeInfo *pBitRateInfo,
     BAPE_DecoderStatus *pStatus
     )
 {
@@ -256,7 +407,7 @@ static BERR_Code BAPE_Decoder_P_GetAacStatus(
         {
             return errCode;
         }
-        
+
         switch ( handle->streamInfo.aac.ui32SamplingFreq )
         {
         case 0:
@@ -300,7 +451,7 @@ static BERR_Code BAPE_Decoder_P_GetAacStatus(
             pStatus->codecStatus.aac.samplingFrequency = 0;
             break;
         }
-        
+
         pStatus->codecStatus.aac.profile = handle->streamInfo.aac.ui32Profile;  /* This enum is defined to match the spec */
         pStatus->codecStatus.aac.lfe = handle->streamInfo.aac.ui32LfeOn?true:false;
         pStatus->codecStatus.aac.pseudoSurround = handle->streamInfo.aac.ui32PseudoSurroundEnable?true:false;
@@ -321,9 +472,9 @@ static BERR_Code BAPE_Decoder_P_GetAacStatus(
 }
 
 static BERR_Code BAPE_Decoder_P_GetWmaStatus(
-    BAPE_DecoderHandle handle, 
-    unsigned mode, 
-    const BDSP_AudioBitRateChangeInfo *pBitRateInfo, 
+    BAPE_DecoderHandle handle,
+    unsigned mode,
+    const BDSP_AudioBitRateChangeInfo *pBitRateInfo,
     BAPE_DecoderStatus *pStatus
     )
 {
@@ -354,9 +505,9 @@ static BERR_Code BAPE_Decoder_P_GetWmaStatus(
 }
 
 static BERR_Code BAPE_Decoder_P_GetWmaProStatus(
-    BAPE_DecoderHandle handle, 
-    unsigned mode, 
-    const BDSP_AudioBitRateChangeInfo *pBitRateInfo, 
+    BAPE_DecoderHandle handle,
+    unsigned mode,
+    const BDSP_AudioBitRateChangeInfo *pBitRateInfo,
     BAPE_DecoderStatus *pStatus
     )
 {
@@ -404,9 +555,9 @@ static BERR_Code BAPE_Decoder_P_GetWmaProStatus(
 }
 
 static BERR_Code BAPE_Decoder_P_GetDtsStatus(
-    BAPE_DecoderHandle handle, 
-    unsigned mode, 
-    const BDSP_AudioBitRateChangeInfo *pBitRateInfo, 
+    BAPE_DecoderHandle handle,
+    unsigned mode,
+    const BDSP_AudioBitRateChangeInfo *pBitRateInfo,
     BAPE_DecoderStatus *pStatus
     )
 {
@@ -450,9 +601,9 @@ static BERR_Code BAPE_Decoder_P_GetDtsStatus(
 }
 
 static BERR_Code BAPE_Decoder_P_GetDtsExpressStatus(
-    BAPE_DecoderHandle handle, 
-    unsigned mode, 
-    const BDSP_AudioBitRateChangeInfo *pBitRateInfo, 
+    BAPE_DecoderHandle handle,
+    unsigned mode,
+    const BDSP_AudioBitRateChangeInfo *pBitRateInfo,
     BAPE_DecoderStatus *pStatus
     )
 {
@@ -478,9 +629,9 @@ static BERR_Code BAPE_Decoder_P_GetDtsExpressStatus(
 }
 
 static BERR_Code BAPE_Decoder_P_GetPcmWavStatus(
-    BAPE_DecoderHandle handle, 
-    unsigned mode, 
-    const BDSP_AudioBitRateChangeInfo *pBitRateInfo, 
+    BAPE_DecoderHandle handle,
+    unsigned mode,
+    const BDSP_AudioBitRateChangeInfo *pBitRateInfo,
     BAPE_DecoderStatus *pStatus
     )
 {
@@ -508,9 +659,9 @@ static BERR_Code BAPE_Decoder_P_GetPcmWavStatus(
 }
 
 static BERR_Code BAPE_Decoder_P_GetAmrStatus(
-    BAPE_DecoderHandle handle, 
-    unsigned mode, 
-    const BDSP_AudioBitRateChangeInfo *pBitRateInfo, 
+    BAPE_DecoderHandle handle,
+    unsigned mode,
+    const BDSP_AudioBitRateChangeInfo *pBitRateInfo,
     BAPE_DecoderStatus *pStatus
     )
 {
@@ -537,9 +688,9 @@ static BERR_Code BAPE_Decoder_P_GetAmrStatus(
 }
 
 static BERR_Code BAPE_Decoder_P_GetAmrWbStatus(
-    BAPE_DecoderHandle handle, 
-    unsigned mode, 
-    const BDSP_AudioBitRateChangeInfo *pBitRateInfo, 
+    BAPE_DecoderHandle handle,
+    unsigned mode,
+    const BDSP_AudioBitRateChangeInfo *pBitRateInfo,
     BAPE_DecoderStatus *pStatus
     )
 {
@@ -555,7 +706,7 @@ static BERR_Code BAPE_Decoder_P_GetAmrWbStatus(
         {
             return errCode;
         }
-        
+
         switch ( handle->streamInfo.amrWb.ui32BitRate )
         {
         default:
@@ -596,9 +747,9 @@ static BERR_Code BAPE_Decoder_P_GetAmrWbStatus(
 }
 
 static BERR_Code BAPE_Decoder_P_GetDraStatus(
-    BAPE_DecoderHandle handle, 
-    unsigned mode, 
-    const BDSP_AudioBitRateChangeInfo *pBitRateInfo, 
+    BAPE_DecoderHandle handle,
+    unsigned mode,
+    const BDSP_AudioBitRateChangeInfo *pBitRateInfo,
     BAPE_DecoderStatus *pStatus
     )
 {
@@ -716,9 +867,9 @@ static BERR_Code BAPE_Decoder_P_GetDraStatus(
 }
 
 static BERR_Code BAPE_Decoder_P_GetCookStatus(
-    BAPE_DecoderHandle handle, 
-    unsigned mode, 
-    const BDSP_AudioBitRateChangeInfo *pBitRateInfo, 
+    BAPE_DecoderHandle handle,
+    unsigned mode,
+    const BDSP_AudioBitRateChangeInfo *pBitRateInfo,
     BAPE_DecoderStatus *pStatus
     )
 {
@@ -747,9 +898,9 @@ static BERR_Code BAPE_Decoder_P_GetCookStatus(
 }
 
 static BERR_Code BAPE_Decoder_P_GetLpcmStatus(
-    BAPE_DecoderHandle handle, 
-    unsigned mode, 
-    const BDSP_AudioBitRateChangeInfo *pBitRateInfo, 
+    BAPE_DecoderHandle handle,
+    unsigned mode,
+    const BDSP_AudioBitRateChangeInfo *pBitRateInfo,
     BAPE_DecoderStatus *pStatus
     )
 {
@@ -775,9 +926,9 @@ static BERR_Code BAPE_Decoder_P_GetLpcmStatus(
 }
 
 static BERR_Code BAPE_Decoder_P_GetMlpStatus(
-    BAPE_DecoderHandle handle, 
-    unsigned mode, 
-    const BDSP_AudioBitRateChangeInfo *pBitRateInfo, 
+    BAPE_DecoderHandle handle,
+    unsigned mode,
+    const BDSP_AudioBitRateChangeInfo *pBitRateInfo,
     BAPE_DecoderStatus *pStatus
     )
 {
@@ -803,9 +954,9 @@ static BERR_Code BAPE_Decoder_P_GetMlpStatus(
 }
 
 static BERR_Code BAPE_Decoder_P_GetAdpcmStatus(
-    BAPE_DecoderHandle handle, 
-    unsigned mode, 
-    const BDSP_AudioBitRateChangeInfo *pBitRateInfo, 
+    BAPE_DecoderHandle handle,
+    unsigned mode,
+    const BDSP_AudioBitRateChangeInfo *pBitRateInfo,
     BAPE_DecoderStatus *pStatus
     )
 {
@@ -831,9 +982,9 @@ static BERR_Code BAPE_Decoder_P_GetAdpcmStatus(
 }
 
 static BERR_Code BAPE_Decoder_P_GetG711G726Status(
-    BAPE_DecoderHandle handle, 
-    unsigned mode, 
-    const BDSP_AudioBitRateChangeInfo *pBitRateInfo, 
+    BAPE_DecoderHandle handle,
+    unsigned mode,
+    const BDSP_AudioBitRateChangeInfo *pBitRateInfo,
     BAPE_DecoderStatus *pStatus
     )
 {
@@ -859,9 +1010,9 @@ static BERR_Code BAPE_Decoder_P_GetG711G726Status(
 }
 
 static BERR_Code BAPE_Decoder_P_GetG729Status(
-    BAPE_DecoderHandle handle, 
-    unsigned mode, 
-    const BDSP_AudioBitRateChangeInfo *pBitRateInfo, 
+    BAPE_DecoderHandle handle,
+    unsigned mode,
+    const BDSP_AudioBitRateChangeInfo *pBitRateInfo,
     BAPE_DecoderStatus *pStatus
     )
 {
@@ -887,9 +1038,9 @@ static BERR_Code BAPE_Decoder_P_GetG729Status(
 }
 
 static BERR_Code BAPE_Decoder_P_GetG723_1Status(
-    BAPE_DecoderHandle handle, 
-    unsigned mode, 
-    const BDSP_AudioBitRateChangeInfo *pBitRateInfo, 
+    BAPE_DecoderHandle handle,
+    unsigned mode,
+    const BDSP_AudioBitRateChangeInfo *pBitRateInfo,
     BAPE_DecoderStatus *pStatus
     )
 {
@@ -915,9 +1066,9 @@ static BERR_Code BAPE_Decoder_P_GetG723_1Status(
 }
 
 static BERR_Code BAPE_Decoder_P_GetVorbisStatus(
-    BAPE_DecoderHandle handle, 
-    unsigned mode, 
-    const BDSP_AudioBitRateChangeInfo *pBitRateInfo, 
+    BAPE_DecoderHandle handle,
+    unsigned mode,
+    const BDSP_AudioBitRateChangeInfo *pBitRateInfo,
     BAPE_DecoderStatus *pStatus
     )
 {
@@ -943,9 +1094,9 @@ static BERR_Code BAPE_Decoder_P_GetVorbisStatus(
 }
 
 static BERR_Code BAPE_Decoder_P_GetApeStatus(
-    BAPE_DecoderHandle handle, 
-    unsigned mode, 
-    const BDSP_AudioBitRateChangeInfo *pBitRateInfo, 
+    BAPE_DecoderHandle handle,
+    unsigned mode,
+    const BDSP_AudioBitRateChangeInfo *pBitRateInfo,
     BAPE_DecoderStatus *pStatus
     )
 {
@@ -971,9 +1122,9 @@ static BERR_Code BAPE_Decoder_P_GetApeStatus(
 }
 
 static BERR_Code BAPE_Decoder_P_GetFlacStatus(
-    BAPE_DecoderHandle handle, 
-    unsigned mode, 
-    const BDSP_AudioBitRateChangeInfo *pBitRateInfo, 
+    BAPE_DecoderHandle handle,
+    unsigned mode,
+    const BDSP_AudioBitRateChangeInfo *pBitRateInfo,
     BAPE_DecoderStatus *pStatus
     )
 {
@@ -1027,9 +1178,9 @@ static BERR_Code BAPE_Decoder_P_GetGenericStatus(
 }
 
 static BERR_Code BAPE_Decoder_P_GetIlbcStatus(
-    BAPE_DecoderHandle handle, 
-    unsigned mode, 
-    const BDSP_AudioBitRateChangeInfo *pBitRateInfo, 
+    BAPE_DecoderHandle handle,
+    unsigned mode,
+    const BDSP_AudioBitRateChangeInfo *pBitRateInfo,
     BAPE_DecoderStatus *pStatus
     )
 {
@@ -1055,9 +1206,9 @@ static BERR_Code BAPE_Decoder_P_GetIlbcStatus(
 }
 
 static BERR_Code BAPE_Decoder_P_GetIsacStatus(
-    BAPE_DecoderHandle handle, 
-    unsigned mode, 
-    const BDSP_AudioBitRateChangeInfo *pBitRateInfo, 
+    BAPE_DecoderHandle handle,
+    unsigned mode,
+    const BDSP_AudioBitRateChangeInfo *pBitRateInfo,
     BAPE_DecoderStatus *pStatus
     )
 {
@@ -1166,6 +1317,8 @@ BERR_Code BAPE_Decoder_P_GetCodecStatus(BAPE_DecoderHandle handle, BAPE_DecoderS
     case BAVC_AudioCompressionStd_eAc3:
     case BAVC_AudioCompressionStd_eAc3Plus:
         return BAPE_Decoder_P_GetAc3Status(handle, mode, &bitRateInfo, pStatus);
+    case BAVC_AudioCompressionStd_eAc4:
+        return BAPE_Decoder_P_GetAc4Status(handle, mode, &bitRateInfo, pStatus);
     case BAVC_AudioCompressionStd_eAacAdts:
     case BAVC_AudioCompressionStd_eAacLoas:
     case BAVC_AudioCompressionStd_eAacPlusAdts:

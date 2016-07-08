@@ -50,10 +50,7 @@ include ${TOP_DIR}/Common.2.6.31.make
 endif
 
 # set defaults
-ifeq ($(B_REFSW_DEBUG),)
-#This must be on because refsw expands macro's in DEBUG=y which we do not use
-B_REFSW_DEBUG=n
-endif
+B_REFSW_DEBUG ?= y
 
 # You must have BSEAV, MAGNUM, already defined before including this makefile
 include ${BSEAV}/build/refsw_inc.mak

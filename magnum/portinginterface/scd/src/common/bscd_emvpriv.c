@@ -1,24 +1,44 @@
 /***************************************************************************
- *     Copyright (c) 2003-2012, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description: This file contains Broadcom smart card Porting 
  *                     Interface EMV private functions.  
  *                    			                    
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ***************************************************************************/
 #include "bstd.h"
 #include "bkni.h"
@@ -756,11 +776,11 @@ BERR_Code BSCD_Channel_P_EMVATRReceiveAndDecode(
 	}
 
 	/* Disable timer, which was enable upon receiving atr_intr */
-	BSCD_Channel_EnableDisableTimer_isr(in_channelHandle, &timer);	
+	BSCD_Channel_ConfigTimer(in_channelHandle, &timer, NULL);
 
 	/* disable WWT.  This was enabled in activating time */
 	wwtTimer.timerMode.eWaitTimerMode = BSCD_WaitTimerMode_eWorkWaitTime;			
-	BSCD_Channel_EnableDisableTimer_isr(in_channelHandle, &wwtTimer);					
+	BSCD_Channel_ConfigTimer(in_channelHandle, &wwtTimer, NULL);
 			
 	/* Print ATR message. */
 	BSCD_P_HexDump("ATR Data",
@@ -808,11 +828,11 @@ BSCD_P_DONE_LABEL:
 
 
 	/* Disable timer, which was enable upon receiving atr_intr */
-	BSCD_Channel_EnableDisableTimer_isr(in_channelHandle, &timer);	
+    BSCD_Channel_ConfigTimer(in_channelHandle, &timer, NULL);
 
 	/* disable WWT.  This was enabled in activating time */
 	wwtTimer.timerMode.eWaitTimerMode = BSCD_WaitTimerMode_eWorkWaitTime;			
-	BSCD_Channel_EnableDisableTimer_isr(in_channelHandle, &wwtTimer);	
+	BSCD_Channel_ConfigTimer(in_channelHandle, &wwtTimer, NULL);
 	
 	BDBG_MSG(("Leave EMVATRReceiveAndDecode  errCode = 0x%x\n", errCode));	
 	BDBG_LEAVE(BSCD_Channel_P_EMVATRReceiveAndDecode);
@@ -1214,7 +1234,7 @@ BERR_Code BSCD_Channel_P_EMVValidateTB3Byte(
 		if ((ucCWIVal > 5) || (ucBWIVal > 4) || 
 				(unCWICheck <= ulGuardTimePlusOne)) {
 
-			BDBG_MSG (("ucCWIVal = 0x%02x, ucBWIVal = 0x%02x, unCWICheck = %02d, guard_time = 0x%02x, ulGuardTimePlusOne=%ld\n", 
+			BDBG_MSG (("ucCWIVal = 0x%02x, ucBWIVal = 0x%02x, unCWICheck = %02d, guard_time = 0x%02x, ulGuardTimePlusOne=%d\n",
 					ucCWIVal, ucBWIVal, unCWICheck, ulGuardTime, ulGuardTimePlusOne));         		
 			BDBG_ERR(("Invalid TB3 = %02x \n",in_ucTB3Byte));
 			BSCD_P_CHECK_ERR_CODE_CONDITION(errCode, BSCD_STATUS_FAILED, true);			
@@ -1281,7 +1301,7 @@ BERR_Code BSCD_Channel_P_EMVValidateTB3Byte(
 
 			else {
 
-				ulBlockWaitTime = (2<<(ucBWIVal-1)) * 960 *  372 * 
+				ulBlockWaitTime = (uint32_t)((2<<(ucBWIVal-1)) * 960 *  372) *
 					ucClkDiv / (in_channelHandle->currentChannelSettings.unPrescale+1) / ucBaudDiv  + 11;
 			}
 
@@ -1289,7 +1309,7 @@ BERR_Code BSCD_Channel_P_EMVValidateTB3Byte(
 				ulBlockWaitTime, ucClkDiv));
 
 			BDBG_MSG (("In SmartCardValidateTB3Byte: ulPrescale = 0x%02x, ucBaudDiv = 0x%02x\n", 
-				in_channelHandle->currentChannelSettings.unPrescale, ucBaudDiv));
+				(unsigned int)in_channelHandle->currentChannelSettings.unPrescale, ucBaudDiv));
 				
 
 			/* Change timer to equal calculated BWT */
@@ -1301,7 +1321,7 @@ BERR_Code BSCD_Channel_P_EMVValidateTB3Byte(
 				in_channelHandle->currentChannelSettings.blockWaitTime.ulValue =  ulBlockWaitTime ;		
 			in_channelHandle->currentChannelSettings.blockWaitTime.unit = BSCD_TimerUnit_eETU;			
 
-			BDBG_MSG (("TB3, blockWaitTime = %ld\n", 
+			BDBG_MSG (("TB3, blockWaitTime = %d\n",
 				in_channelHandle->currentChannelSettings.blockWaitTime.ulValue));
 
 			/* Need this for MetroWerks */
@@ -1415,11 +1435,11 @@ BERR_Code BSCD_Channel_P_EMVATRByteRead(
 			/* disable the timer, always return the  previous error */
 
 			/* Disable timer, which was enable upon receiving atr_intr */
-			BSCD_Channel_EnableDisableTimer_isr(in_channelHandle, &timer);	
+		    BSCD_Channel_ConfigTimer(in_channelHandle, &timer, NULL);
 
 			/* disable WWT.  This was enabled in activating time */
 			wwtTimer.timerMode.eWaitTimerMode = BSCD_WaitTimerMode_eWorkWaitTime;			
-			BSCD_Channel_EnableDisableTimer_isr(in_channelHandle, &wwtTimer);	
+			BSCD_Channel_ConfigTimer(in_channelHandle, &wwtTimer, NULL);
 
 			/* Read timer counter and accumulate it to *inoutp_ultotalAtrByteTimeInETU */
 			#ifndef SMARTCARD_32_BIT_REGISTER
@@ -1439,7 +1459,7 @@ BERR_Code BSCD_Channel_P_EMVATRByteRead(
 			*inoutp_ultotalAtrByteTimeInETU += ulTimerCntVal; 
 
 			if (*inoutp_ultotalAtrByteTimeInETU > (unsigned long) in_lMaxTotalAtrByteTimeInETU) {
-				BDBG_MSG(("SmartCardATRByteRead: inoutp_ultotalAtrByteTimeInETU = %lu , in_lMaxTotalAtrByteTimeInETU = %d\n", 
+				BDBG_MSG(("SmartCardATRByteRead: inoutp_ultotalAtrByteTimeInETU = %lu , in_lMaxTotalAtrByteTimeInETU = %ld\n",
 						*inoutp_ultotalAtrByteTimeInETU, in_lMaxTotalAtrByteTimeInETU));	       											
 				BSCD_P_CHECK_ERR_CODE_CONDITION(errCode, BSCD_STATUS_FAILED, true);
 			}

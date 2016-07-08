@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2009 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2009 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -4133,7 +4133,7 @@ Dataflow *glsl_allocator_get_next_scheduler_node(void)
    return best_node;
 }
 
-void glsl_allocator_finish_scheduler_node(Dataflow *suggestion)
+void glsl_allocator_finish_scheduler_node(void)
 {
    vcos_assert(scheduler_have_node);
    scheduler_have_node = false;

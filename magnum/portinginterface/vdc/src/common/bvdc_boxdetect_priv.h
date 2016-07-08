@@ -1,22 +1,42 @@
 /***************************************************************************
- *     Copyright (c) 2004-2011, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description:
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ***************************************************************************/
 #ifndef BVDC_BOXDETECT_PRIV_H__
 #define BVDC_BOXDETECT_PRIV_H__
@@ -99,41 +119,41 @@ extern "C" {
  */
 typedef struct BVDC_P_BoxDetectContext
 {
-	BDBG_OBJECT(BVDC_BOX)
+    BDBG_OBJECT(BVDC_BOX)
 
-	/* box detect Id */
-	BVDC_P_BoxDetectId               eId;
-	uint32_t                         ulRegOffset;
-	uint32_t                         ulResetAddr;
-	uint32_t                         ulResetMask;
+    /* box detect Id */
+    BVDC_P_BoxDetectId               eId;
+    uint32_t                         ulRegOffset;
+    uint32_t                         ulResetAddr;
+    uint32_t                         ulResetMask;
 
-	/* static info from creating */
-	BREG_Handle                      hRegister;
+    /* static info from creating */
+    BREG_Handle                      hRegister;
 
-	/* */
-	BAVC_SourceId                    eSrcId;
-	uint32_t                         ulCallBckCntr;
-	const BVDC_P_Source_Info        *pCurSrcInfo;
+    /* */
+    BAVC_SourceId                    eSrcId;
+    uint32_t                         ulCallBckCntr;
+    const BVDC_P_Source_Info        *pCurSrcInfo;
 
-	/* a threshhold of continuous box breaking => real break */
-	uint32_t                         ulBreakThresh;
-	uint32_t                         ulHorzBreakCnt;
-	uint32_t                         ulVertBreakCnt;
-	uint32_t                         ulHorzErrCnt;
-	uint32_t                         ulVertErrCnt;
+    /* a threshhold of continuous box breaking => real break */
+    uint32_t                         ulBreakThresh;
+    uint32_t                         ulHorzBreakCnt;
+    uint32_t                         ulVertBreakCnt;
+    uint32_t                         ulHorzErrCnt;
+    uint32_t                         ulVertErrCnt;
 
-	/* current original src size */
-	uint32_t                         ulCurSrcWidth;
-	uint32_t                         ulCurSrcHeight;
+    /* current original src size */
+    uint32_t                         ulCurSrcWidth;
+    uint32_t                         ulCurSrcHeight;
 
-	/* result read from hw and pass to user */
-	BVDC_BoxDetectInfo               Box;
+    /* result read from hw and pass to user */
+    BVDC_BoxDetectInfo               Box;
 
-	/* cut rectangle if bAutoCutBlack, max if not */
-	BVDC_P_Rect                      Cut;
+    /* cut rectangle if bAutoCutBlack, max if not */
+    BVDC_P_Rect                      Cut;
 
-	/* sub-struct to manage vnet and rul build opreations */
-	BVDC_P_SubRulContext             SubRul;
+    /* sub-struct to manage vnet and rul build opreations */
+    BVDC_P_SubRulContext             SubRul;
 
 } BVDC_P_BoxDetectContext;
 
@@ -149,10 +169,10 @@ typedef struct BVDC_P_BoxDetectContext
  * called by BVDC_Open only
  */
 BERR_Code BVDC_P_BoxDetect_Create
-	( BVDC_P_BoxDetect_Handle *         phBoxDetect,
-	  BVDC_P_BoxDetectId                eBoxDetectId,
-	  BREG_Handle                       hRegister,
-	  BVDC_P_Resource_Handle            hResource );
+    ( BVDC_P_BoxDetect_Handle *         phBoxDetect,
+      BVDC_P_BoxDetectId                eBoxDetectId,
+      BREG_Handle                       hRegister,
+      BVDC_P_Resource_Handle            hResource );
 
 /***************************************************************************
  * {private}
@@ -162,7 +182,7 @@ BERR_Code BVDC_P_BoxDetect_Create
  * called by BVDC_Close only
  */
 BERR_Code BVDC_P_BoxDetect_Destroy
-	( BVDC_P_BoxDetect_Handle          hBoxDetect );
+    ( BVDC_P_BoxDetect_Handle          hBoxDetect );
 
 /***************************************************************************
  * {private}
@@ -173,9 +193,9 @@ BERR_Code BVDC_P_BoxDetect_Destroy
  * enablingBox .
  */
 BERR_Code BVDC_P_BoxDetect_AcquireConnect_isr
-	( BVDC_P_BoxDetect_Handle           hBoxDetect,
-	  BAVC_SourceId                     eSrcId,
-	  const BVDC_P_Source_Info         *pCurSrcInfo );
+    ( BVDC_P_BoxDetect_Handle           hBoxDetect,
+      BAVC_SourceId                     eSrcId,
+      const BVDC_P_Source_Info         *pCurSrcInfo );
 
 /***************************************************************************
  * {private}
@@ -186,7 +206,7 @@ BERR_Code BVDC_P_BoxDetect_AcquireConnect_isr
  * its vnet mode (i.e. it is really shut down and teared off from vnet).
  */
 BERR_Code BVDC_P_BoxDetect_ReleaseConnect_isr
-	( BVDC_P_BoxDetect_Handle         *phBoxDetect );
+    ( BVDC_P_BoxDetect_Handle         *phBoxDetect );
 
 /***************************************************************************
  * {private}
@@ -202,10 +222,10 @@ BERR_Code BVDC_P_BoxDetect_ReleaseConnect_isr
  * input when this function is called.
  */
 void BVDC_P_BoxDetect_GetStatis_isr
-	( BVDC_P_BoxDetect_Handle           hBoxDetect,
-	  BVDC_P_Rect                      *pBoxCut, /* in and out */
-	  const BVDC_BoxDetectInfo        **ppBoxInfo, /* out */
-	  uint32_t                         *pulCallBckCntr ); /* out */
+    ( BVDC_P_BoxDetect_Handle           hBoxDetect,
+      BVDC_P_Rect                      *pBoxCut, /* in and out */
+      const BVDC_BoxDetectInfo        **ppBoxInfo, /* out */
+      uint32_t                         *pulCallBckCntr ); /* out */
 
 /***************************************************************************
  * {private}
@@ -230,12 +250,12 @@ void BVDC_P_BoxDetect_GetStatis_isr
  *      reconfigure.
  */
 void BVDC_P_BoxDetect_BuildRul_isr
-	( BVDC_P_BoxDetect_Handle       *phBoxDetect,
-	  BVDC_P_ListInfo               *pList,
-	  BVDC_P_State                   eVnetState,
-	  BVDC_P_PicComRulInfo          *pPicComRulInfo,
-	  const BVDC_P_Rect             *pSrcOut,
-	  bool                           bEnable );
+    ( BVDC_P_BoxDetect_Handle       *phBoxDetect,
+      BVDC_P_ListInfo               *pList,
+      BVDC_P_State                   eVnetState,
+      BVDC_P_PicComRulInfo          *pPicComRulInfo,
+      const BVDC_P_Rect             *pSrcOut,
+      bool                           bEnable );
 
 #ifdef __cplusplus
 }

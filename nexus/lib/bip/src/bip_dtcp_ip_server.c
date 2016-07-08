@@ -1,43 +1,39 @@
 /******************************************************************************
- * (c) 2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 
 /**
@@ -112,7 +108,7 @@ typedef struct BIP_DtcpIpServer
     "[hDtcpIpServer=%p akePort=%s]"
 
 #define BIP_DTCP_IP_SERVER_PRINTF_ARG(pObj)   \
-    (pObj),                                   \
+    (void *)(pObj),                                   \
     (pObj)->startSettings.pAkePort
 
 /* Forward declaration of state processing function */
@@ -131,7 +127,7 @@ static void dtcpServerDestroy(
     )
 {
     if (!hDtcpIpServer) return;
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Destroying hDtcpIpServer %p" BIP_MSG_PRE_ARG, hDtcpIpServer ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Destroying hDtcpIpServer %p" BIP_MSG_PRE_ARG, (void *)hDtcpIpServer ));
 
     if (hDtcpIpServer->startApi.hArb) BIP_Arb_Destroy(hDtcpIpServer->startApi.hArb);
     if (hDtcpIpServer->stopApi.hArb) BIP_Arb_Destroy(hDtcpIpServer->stopApi.hArb);
@@ -140,7 +136,7 @@ static void dtcpServerDestroy(
 
     if (hDtcpIpServer->hStateMutex) B_Mutex_Destroy( hDtcpIpServer->hStateMutex );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hDtcpIpServer %p: Destroyed" BIP_MSG_PRE_ARG, hDtcpIpServer ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hDtcpIpServer %p: Destroyed" BIP_MSG_PRE_ARG, (void *)hDtcpIpServer ));
 
     BDBG_OBJECT_DESTROY( hDtcpIpServer, BIP_DtcpIpServer );
     B_Os_Free( hDtcpIpServer );
@@ -157,7 +153,7 @@ BIP_DtcpIpServerHandle BIP_DtcpIpServer_Create(
 
     /* Create the object */
     hDtcpIpServer = B_Os_Calloc( 1, sizeof( BIP_DtcpIpServer ));
-    BIP_CHECK_GOTO(( hDtcpIpServer != NULL ), ( "Failed to allocate memory (%d bytes) for DtcpIpServer Object", sizeof(BIP_DtcpIpServer) ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, brc );
+    BIP_CHECK_GOTO(( hDtcpIpServer != NULL ), ( "Failed to allocate memory (%zu bytes) for DtcpIpServer Object", sizeof(BIP_DtcpIpServer) ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, brc );
 
     BDBG_OBJECT_SET( hDtcpIpServer, BIP_DtcpIpServer );
 
@@ -185,7 +181,7 @@ BIP_DtcpIpServerHandle BIP_DtcpIpServer_Create(
     hDtcpIpServer->getStatusApi.hArb = BIP_Arb_Create(NULL, NULL);
     BIP_CHECK_GOTO(( hDtcpIpServer->getStatusApi.hArb ), ( "BIP_Arb_Create Failed " ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, brc );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hDtcpIpServer %p: Created ARBs" BIP_MSG_PRE_ARG, hDtcpIpServer));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hDtcpIpServer %p: Created ARBs" BIP_MSG_PRE_ARG, (void *)hDtcpIpServer));
 
     hDtcpIpServer->startState = BIP_DtcpIpServerStartState_eIdle;
 
@@ -253,7 +249,7 @@ BIP_Status BIP_DtcpIpServer_Start(
     BDBG_OBJECT_ASSERT( hDtcpIpServer, BIP_DtcpIpServer );
     BIP_SETTINGS_ASSERT(pSettings, BIP_DtcpIpServerStartSettings);
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hDtcpIpServer %p: --------------------->" BIP_MSG_PRE_ARG, hDtcpIpServer));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hDtcpIpServer %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hDtcpIpServer));
 
     BIP_CHECK_GOTO(( hDtcpIpServer ), ( "hDtcpIpServer pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, brc );
 
@@ -287,7 +283,7 @@ BIP_Status BIP_DtcpIpServer_Start(
     BIP_CHECK_GOTO((brc == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_DtcpIpServer_Start" ), error, brc, brc );
 
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hDtcpIpServer %p: completionStatus %s  <--------------------- " BIP_MSG_PRE_ARG, hDtcpIpServer, BIP_StatusGetText(brc) ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hDtcpIpServer %p: completionStatus %s  <--------------------- " BIP_MSG_PRE_ARG, (void *)hDtcpIpServer, BIP_StatusGetText(brc) ));
 
     return ( brc );
 } /* BIP_DtcpIpServer_Start */
@@ -325,7 +321,7 @@ BIP_Status BIP_DtcpIpServer_Stop(
     BIP_CHECK_GOTO((brc == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_DtcpIpServer_Stop" ), error, brc, brc );
 
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hDtcpIpServer %p: completionStatus %s  <--------------------- " BIP_MSG_PRE_ARG, hDtcpIpServer, BIP_StatusGetText(brc) ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hDtcpIpServer %p: completionStatus %s  <--------------------- " BIP_MSG_PRE_ARG, (void *)hDtcpIpServer, BIP_StatusGetText(brc) ));
 
     return( brc );
 } /* BIP_DtcpIpServer_Stop */
@@ -341,7 +337,7 @@ BIP_Status BIP_DtcpIpServer_GetStatus(
 
     BDBG_OBJECT_ASSERT( hDtcpIpServer, BIP_DtcpIpServer );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hDtcpIpServer %p: --------------------->" BIP_MSG_PRE_ARG, hDtcpIpServer));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hDtcpIpServer %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hDtcpIpServer));
 
     BIP_CHECK_GOTO(( hDtcpIpServer ), ( "hDtcpIpServer pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, brc );
     BIP_CHECK_GOTO(( pStatus ), ( "pStatus pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, brc );
@@ -364,7 +360,7 @@ BIP_Status BIP_DtcpIpServer_GetStatus(
     BIP_CHECK_GOTO((brc == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_DtcpIpServer_DestroyStreamer" ), error, brc, brc );
 
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hDtcpIpServer %p: completionStatus %s  <--------------------- " BIP_MSG_PRE_ARG, hDtcpIpServer, BIP_StatusGetText(brc) ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hDtcpIpServer %p: completionStatus %s  <--------------------- " BIP_MSG_PRE_ARG, (void *)hDtcpIpServer, BIP_StatusGetText(brc) ));
 
     return (brc);
 } /* BIP_DtcpIpServer_GetStatus */
@@ -438,7 +434,7 @@ static BIP_Status startDtcpIpServer(
     BDBG_ASSERT(hDtcpIpServer);
 
     rc = DtcpInitHWSecurityParams(NULL);
-    BIP_CHECK_GOTO( ( rc == B_ERROR_SUCCESS ), ( "hDtcpIpServer %p: DtcpInitHWSecurityParams() Failed", hDtcpIpServer ), error, BIP_ERR_DTCPIP_HW_SECURITY_PARAMS, bipStatus );
+    BIP_CHECK_GOTO( ( rc == B_ERROR_SUCCESS ), ( "hDtcpIpServer %p: DtcpInitHWSecurityParams() Failed", (void *)hDtcpIpServer ), error, BIP_ERR_DTCPIP_HW_SECURITY_PARAMS, bipStatus );
 
     hDtcpIpServer->hAkePort = BIP_String_CreateFromPrintf("%s", hDtcpIpServer->startApi.pSettings->pAkePort );
     hDtcpIpServer->hKeyFileAbsolutePathname = BIP_String_CreateFromPrintf("%s", hDtcpIpServer->startApi.pSettings->pKeyFileAbsolutePathname );
@@ -450,18 +446,18 @@ static BIP_Status startDtcpIpServer(
             hDtcpIpServer->startSettings.keyFormat,
             false /* TODO; CKS Check: Need more info on this. */
             );
-    BIP_CHECK_GOTO( ( hDtcpIpServer->pDtcpIpLibInitCtx ), ( "hDtcpIpServer %p: DtcpAppLib_Startup() Failed", hDtcpIpServer ), error, BIP_ERR_DTCPIP_SERVER_START, bipStatus );
+    BIP_CHECK_GOTO( ( hDtcpIpServer->pDtcpIpLibInitCtx ), ( "hDtcpIpServer %p: DtcpAppLib_Startup() Failed", (void *)hDtcpIpServer ), error, BIP_ERR_DTCPIP_SERVER_START, bipStatus );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hDtcpIpServer %p: DtcpAppLib_Startup is successfull, pDtcpIpLibInitCtx %p" BIP_MSG_PRE_ARG, hDtcpIpServer, hDtcpIpServer->pDtcpIpLibInitCtx ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hDtcpIpServer %p: DtcpAppLib_Startup is successfull, pDtcpIpLibInitCtx %p" BIP_MSG_PRE_ARG, (void *)hDtcpIpServer, hDtcpIpServer->pDtcpIpLibInitCtx ));
 
     rc = DtcpAppLib_Listen(
             hDtcpIpServer->pDtcpIpLibInitCtx,
             NULL /* TODO: src ip */,
             atoi(BIP_String_GetString(hDtcpIpServer->hAkePort))
             );
-    BIP_CHECK_GOTO( ( rc == B_ERROR_SUCCESS ), ( "hDtcpIpServer %p: DtcpAppLib_Listen() Failed", hDtcpIpServer ), error, BIP_ERR_DTCPIP_SERVER_LISTEN, bipStatus );
+    BIP_CHECK_GOTO( ( rc == B_ERROR_SUCCESS ), ( "hDtcpIpServer %p: DtcpAppLib_Listen() Failed", (void *)hDtcpIpServer ), error, BIP_ERR_DTCPIP_SERVER_LISTEN, bipStatus );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hDtcpIpServer %p: DtcpAppLib_Listen is successfull, pDtcpIpLibInitCtx %p" BIP_MSG_PRE_ARG, hDtcpIpServer, hDtcpIpServer->pDtcpIpLibInitCtx ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hDtcpIpServer %p: DtcpAppLib_Listen is successfull, pDtcpIpLibInitCtx %p" BIP_MSG_PRE_ARG, (void *)hDtcpIpServer, hDtcpIpServer->pDtcpIpLibInitCtx ));
 
     bipStatus = BIP_SUCCESS;
 
@@ -493,7 +489,7 @@ void processDtcpIpServerState(
 
     B_Mutex_Lock( hDtcpIpServer->hStateMutex );
     BDBG_MSG(( BIP_MSG_PRE_FMT "ENTRY ---> hDtcpIpServer %p: state %s, threadOrigin %d "
-                BIP_MSG_PRE_ARG, hDtcpIpServer, BIP_DTCP_IP_SERVER_START_STATE(hDtcpIpServer->startState), threadOrigin ));
+                BIP_MSG_PRE_ARG, (void *)hDtcpIpServer, BIP_DTCP_IP_SERVER_START_STATE(hDtcpIpServer->startState), threadOrigin ));
     /*
      ***************************************************************************************************************
      * First, we check API Arbs to see if state processing is being run thru any of these APIs.
@@ -505,7 +501,7 @@ void processDtcpIpServerState(
         if (hDtcpIpServer->startState != BIP_DtcpIpServerStartState_eIdle)
         {
             BDBG_ERR(( BIP_MSG_PRE_FMT "hServer %p: BIP_DtcpIpServer_Start not allowed in this state: %s"
-                        BIP_MSG_PRE_ARG, hDtcpIpServer, BIP_DTCP_IP_SERVER_START_STATE(hDtcpIpServer->startState)));
+                        BIP_MSG_PRE_ARG, (void *)hDtcpIpServer, BIP_DTCP_IP_SERVER_START_STATE(hDtcpIpServer->startState)));
             hDtcpIpServer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, hDtcpIpServer->completionStatus);
         }
@@ -513,7 +509,7 @@ void processDtcpIpServerState(
         {
             BIP_Arb_AcceptRequest(hArb);
             BDBG_MSG(( BIP_MSG_PRE_FMT "hDtcpIpServer %p: Accepted _Start Arb: state %s!"
-                        BIP_MSG_PRE_ARG, hDtcpIpServer, BIP_DTCP_IP_SERVER_START_STATE(hDtcpIpServer->startState) ));
+                        BIP_MSG_PRE_ARG, (void *)hDtcpIpServer, BIP_DTCP_IP_SERVER_START_STATE(hDtcpIpServer->startState) ));
 
             /* Start dtcp/ip server if enabled. */
             hDtcpIpServer->startSettings = *hDtcpIpServer->startApi.pSettings;
@@ -528,7 +524,7 @@ void processDtcpIpServerState(
                             BIP_MSG_PRE_ARG, BIP_DTCP_IP_SERVER_PRINTF_ARG(hDtcpIpServer)));
 
                 BIP_MSG_SUM(( BIP_MSG_PRE_FMT "hDtcpIpServer %p, state %s: BIP_DtcpIpServer Started on Port %s -----<>"
-                            BIP_MSG_PRE_ARG, hDtcpIpServer, BIP_DTCP_IP_SERVER_START_STATE(hDtcpIpServer->startState), hDtcpIpServer->startSettings.pAkePort));
+                            BIP_MSG_PRE_ARG, (void *)hDtcpIpServer, BIP_DTCP_IP_SERVER_START_STATE(hDtcpIpServer->startState), hDtcpIpServer->startSettings.pAkePort));
             }
 
             BIP_Arb_CompleteRequest( hDtcpIpServer->startApi.hArb, hDtcpIpServer->completionStatus);
@@ -539,7 +535,7 @@ void processDtcpIpServerState(
         if (hDtcpIpServer->startState != BIP_DtcpIpServerStartState_eStarted)
         {
             BDBG_ERR(( BIP_MSG_PRE_FMT "hDtcpIpServer %p: BIP_DtcpIpServer_Sttop not allowed in this state: %s, we must be in BIP_DtcpIpServerStartState_eStarted state! "
-                        BIP_MSG_PRE_ARG, hDtcpIpServer, BIP_DTCP_IP_SERVER_START_STATE(hDtcpIpServer->startState)));
+                        BIP_MSG_PRE_ARG, (void *)hDtcpIpServer, BIP_DTCP_IP_SERVER_START_STATE(hDtcpIpServer->startState)));
             hDtcpIpServer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, hDtcpIpServer->completionStatus);
         }
@@ -548,7 +544,7 @@ void processDtcpIpServerState(
             BIP_Arb_AcceptRequest(hArb);
 
             BDBG_MSG(( BIP_MSG_PRE_FMT "hDtcpIpServer %p: Accepted _Stop Arb: state %s!"
-                        BIP_MSG_PRE_ARG, hDtcpIpServer, BIP_DTCP_IP_SERVER_START_STATE(hDtcpIpServer->startState) ));
+                        BIP_MSG_PRE_ARG, (void *)hDtcpIpServer, BIP_DTCP_IP_SERVER_START_STATE(hDtcpIpServer->startState) ));
 
             stopDtcpIpServer(hDtcpIpServer);
 
@@ -558,7 +554,7 @@ void processDtcpIpServerState(
             BIP_Arb_CompleteRequest( hDtcpIpServer->stopApi.hArb, hDtcpIpServer->completionStatus);
 
             BIP_MSG_SUM(( BIP_MSG_PRE_FMT "hDtcpIpServer %p, state %s: BIP_DtcpIpServer Stopped on Port %s -----<>"
-                        BIP_MSG_PRE_ARG, hDtcpIpServer, BIP_DTCP_IP_SERVER_START_STATE(hDtcpIpServer->startState), hDtcpIpServer->startSettings.pAkePort));
+                        BIP_MSG_PRE_ARG, (void *)hDtcpIpServer, BIP_DTCP_IP_SERVER_START_STATE(hDtcpIpServer->startState), hDtcpIpServer->startSettings.pAkePort));
         }
     }
     else if (BIP_Arb_IsNew(hArb = hDtcpIpServer->getStatusApi.hArb))
@@ -576,7 +572,7 @@ void processDtcpIpServerState(
         }
 
         BIP_Arb_CompleteRequest( hDtcpIpServer->getStatusApi.hArb, BIP_SUCCESS );
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hDtcpIpServer %p: BIP_DtcpIpServer_GetStatus(): pDtcpIpLibCtx %p" BIP_MSG_PRE_ARG, hDtcpIpServer, hDtcpIpServer->pDtcpIpLibInitCtx ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hDtcpIpServer %p: BIP_DtcpIpServer_GetStatus(): pDtcpIpLibCtx %p" BIP_MSG_PRE_ARG, (void *)hDtcpIpServer, hDtcpIpServer->pDtcpIpLibInitCtx ));
     }
     else if (BIP_Arb_IsNew(hArb = hDtcpIpServer->destroyApi.hArb))
     {
@@ -597,6 +593,6 @@ void processDtcpIpServerState(
 
     B_Mutex_Unlock( hDtcpIpServer->hStateMutex );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "EXIT <--- hDtcpIpServer %p" BIP_MSG_PRE_ARG, hDtcpIpServer ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "EXIT <--- hDtcpIpServer %p" BIP_MSG_PRE_ARG, (void *)hDtcpIpServer ));
     return;
 }

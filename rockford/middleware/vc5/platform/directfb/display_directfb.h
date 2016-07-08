@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2010 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2010 Broadcom.
 All rights reserved.
 
 Project  :  Default Nexus platform API for EGL driver
@@ -24,9 +24,9 @@ extern "C" {
 struct BEGL_DisplayInterface;
 struct BEGL_SchedInterface;
 
-struct BEGL_DisplayInterface *CreateDisplayInterface(IDirectFB *dfb,
+struct BEGL_DisplayInterface *CreateDirectFBDisplayInterface(IDirectFB *dfb,
                                                    BEGL_MemoryInterface *memIface);
-void DestroyDisplayInterface(struct BEGL_DisplayInterface *disp);
+void DestroyDirectFBDisplayInterface(struct BEGL_DisplayInterface *disp);
 
 #ifdef __cplusplus
 }

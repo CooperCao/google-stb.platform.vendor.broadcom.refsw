@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2008 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2008 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -113,6 +113,7 @@ TODO to be continued...
 typedef struct {
    MEM_HANDLE_T mh_storage;
    KHRN_INTERLOCK_T interlock;
+   bool secure;
 } GLXX_TEXTURE_BLOB_T;
 
 #define GLXX_TEXTURE_POOL_SIZE 4
@@ -217,7 +218,9 @@ typedef enum {
 extern void glxx_texture_init(GLXX_TEXTURE_T *texture, int32_t name, GLenum target);
 extern void glxx_texture_term(void *v, uint32_t size);
 
-extern bool glxx_texture_image(GLXX_TEXTURE_T *texture, GLenum target, uint32_t level, uint32_t width, uint32_t height, GLenum fmt, GLenum type, uint32_t align, const void *pixels);
+extern bool glxx_texture_image(GLXX_TEXTURE_T *texture, GLenum target, uint32_t level,
+   uint32_t width, uint32_t height, GLenum fmt,
+   GLenum type, uint32_t align, const void *pixels, bool secure);
 extern bool glxx_texture_etc1_blank_image(GLXX_TEXTURE_T *texture, GLenum target, uint32_t level, uint32_t width, uint32_t height);
 extern void glxx_texture_etc1_sub_image(GLXX_TEXTURE_T *texture, GLenum target, uint32_t level, uint32_t dstx, uint32_t dsty, uint32_t width, uint32_t height, const void *data);
 extern bool glxx_texture_copy_image(GLXX_TEXTURE_T *texture, GLenum target, uint32_t level, int width, int height, GLenum fmt, const KHRN_IMAGE_T *src, int srcx, int srcy);
@@ -258,11 +261,5 @@ extern void glxx_texture_has_color_alpha(GLXX_TEXTURE_T *texture, bool *has_colo
 
 /* GL_OES_draw_texture */
 void glxx_texture_set_crop_rect(GLXX_TEXTURE_T *texture, const GLint * params);
-
-/*
- * If texture is bound to an external EGL Image source,
- * update the tformat copy
- */
-void glxx_texture_update_from_external(GLXX_TEXTURE_T *tex);
 
 #endif

@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2014 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  *****************************************************************************/
 /* Example to tune a OFDM channel using nexus */
@@ -185,7 +177,7 @@ int main(int argc, char **argv)
         }
         else if (!strcmp(argv[curarg], "-vpid")) {
             if((!strncmp(argv[++curarg], "0X", 2)) || (!strncmp(argv[curarg], "0x", 2))){
-                videoPid = strtol(argv[curarg], NULL, 0);               
+                videoPid = strtol(argv[curarg], NULL, 0);
             }
             else{
                 videoPid = atoi(argv[curarg]);
@@ -193,7 +185,7 @@ int main(int argc, char **argv)
         }
         else if (!strcmp(argv[curarg], "-apid")) {
             if((!strncmp(argv[++curarg], "0X", 2)) || (!strncmp(argv[curarg], "0x", 2))){
-                audioPid = strtol(argv[curarg], NULL, 0);               
+                audioPid = strtol(argv[curarg], NULL, 0);
             }
             else{
                 audioPid = atoi(argv[curarg]);
@@ -201,7 +193,7 @@ int main(int argc, char **argv)
         }
         else if (!strcmp(argv[curarg], "-pcrpid")) {
             if((!strncmp(argv[++curarg], "0X", 2)) || (!strncmp(argv[curarg], "0x", 2))){
-                pcrPid = strtol(argv[curarg], NULL, 0);             
+                pcrPid = strtol(argv[curarg], NULL, 0);
             }
             else{
                 pcrPid = atoi(argv[curarg]);
@@ -242,7 +234,7 @@ int main(int argc, char **argv)
     BKNI_CreateEvent(&statusEvent);
 
     NEXUS_Frontend_GetDefaultOfdmSettings(&ofdmSettings);
-    
+
     if (mode == NEXUS_FrontendOfdmMode_eDvbt) {
          /* If freq and video PID not set on command line use defaults */
          if ((freq == 0) && (videoPid == -1)) {
@@ -251,19 +243,19 @@ int main(int argc, char **argv)
              videoPid = 0x579;
              audioPid = 0x57a;
              pcrPid = 0x579;
-    
+
              videoCodec = NEXUS_VideoCodec_eMpeg2;
              audioCodec = NEXUS_AudioCodec_eMpeg;
          }
-    
+
          ofdmSettings.bandwidth = 8000000;
          ofdmSettings.manualTpsSettings = false;
          ofdmSettings.pullInRange = NEXUS_FrontendOfdmPullInRange_eWide;
          ofdmSettings.cciMode = NEXUS_FrontendOfdmCciMode_eNone;
-    
+
          statusMax = NEXUS_FrontendDvbtStatusType_eMax;
          RequestAsyncStatus = NEXUS_Frontend_RequestDvbtAsyncStatus;
-    
+
      }
      else if (mode == NEXUS_FrontendOfdmMode_eDvbt2) {
          /* If freq and video PID not set on command line use defaults */
@@ -273,24 +265,24 @@ int main(int argc, char **argv)
              videoPid = 0x65;
              audioPid = 0x66;
              pcrPid = 0x65;
-    
+
              videoCodec = NEXUS_VideoCodec_eH264;
              audioCodec = NEXUS_AudioCodec_eAacPlus;
          }
-    
+
          ofdmSettings.bandwidth = 8000000;
          ofdmSettings.dvbt2Settings.plpMode = true;
          ofdmSettings.dvbt2Settings.plpId = 0;
-    
+
          if (dvbT2Lite) {
              ofdmSettings.dvbt2Settings.profile = NEXUS_FrontendDvbt2Profile_eLite;
          } else {
              ofdmSettings.dvbt2Settings.profile = NEXUS_FrontendDvbt2Profile_eBase;
          }
-    
+
          statusMax = NEXUS_FrontendDvbt2StatusType_eMax;
          RequestAsyncStatus = NEXUS_Frontend_RequestDvbt2AsyncStatus;
-    
+
     }
     else if(mode == NEXUS_FrontendOfdmMode_eIsdbt) {
         /* If freq and video PID not set on command line use defaults */
@@ -319,7 +311,7 @@ int main(int argc, char **argv)
     ofdmSettings.frequency = freq;
     ofdmSettings.acquisitionMode = NEXUS_FrontendOfdmAcquisitionMode_eAuto;
     ofdmSettings.terrestrial = true;
-    ofdmSettings.spectrum = NEXUS_FrontendOfdmSpectrum_eAuto;
+    ofdmSettings.spectrumMode = NEXUS_FrontendOfdmSpectrumMode_eAuto;
     ofdmSettings.mode = mode;
     ofdmSettings.lockCallback.callback = lock_callback;
     ofdmSettings.lockCallback.context = frontend;

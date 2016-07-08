@@ -338,7 +338,7 @@ NEXUS_Error NEXUS_AudioDecoder_ConsumeDecodedFrames(
     }
     if ( numBuffers > decoder->maxDecodeBuffers )
     {
-        BDBG_ERR(("Attempt to return %lu buffers but decoder is configured for max %u", numBuffers, decoder->maxDecodeBuffers));
+        BDBG_ERR(("Attempt to return %lu buffers but decoder is configured for max %lu", (unsigned long)numBuffers, (unsigned long)decoder->maxDecodeBuffers));
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
@@ -349,7 +349,7 @@ NEXUS_Error NEXUS_AudioDecoder_ConsumeDecodedFrames(
     }
     if ( numBuffers > totalBuffers )
     {
-        BDBG_ERR(("Attempt to return %lu buffers but only %u are outstanding", numBuffers, totalBuffers));
+        BDBG_ERR(("Attempt to return %lu buffers but only %lu are outstanding", (unsigned long)numBuffers, (unsigned long)totalBuffers));
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 

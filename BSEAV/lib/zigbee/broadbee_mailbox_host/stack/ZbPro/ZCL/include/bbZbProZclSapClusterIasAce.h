@@ -1,44 +1,43 @@
 /******************************************************************************
-* (c) 2014 Broadcom Corporation
-*
-* This program is the proprietary software of Broadcom Corporation and/or its
-* licensors, and may only be used, duplicated, modified or distributed pursuant
-* to the terms and conditions of a separate, written license agreement executed
-* between you and Broadcom (an "Authorized License").  Except as set forth in
-* an Authorized License, Broadcom grants no license (express or implied), right
-* to use, or waiver of any kind with respect to the Software, and Broadcom
-* expressly reserves all rights in and to the Software and all intellectual
-* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1. This program, including its structure, sequence and organization,
-*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-*    reasonable efforts to protect the confidentiality thereof, and to use
-*    this information only in connection with your use of Broadcom integrated
-*    circuit products.
-*
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-******************************************************************************/
-/*****************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
+ *
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************
 *
 * FILENAME: $Workfile$
 *
@@ -80,15 +79,15 @@ typedef enum _ZBPRO_ZCL_SapIasAceClientToServerCommandId_t
  */
 typedef enum _ZBPRO_ZCL_SapIasAceServerToClientCommandId_t
 {
-    ZBPRO_ZCL_SAP_IAS_ACE_CMD_ID_ARM_RESPONSE		        = 0x00,
-    ZBPRO_ZCL_SAP_IAS_ACE_CMD_ID_GET_ZONE_ID_MAP_RESPONSE	= 0x01,
-    ZBPRO_ZCL_SAP_IAS_ACE_CMD_ID_GET_ZONE_INFORMATION_RESPONSE	= 0x02,
-    ZBPRO_ZCL_SAP_IAS_ACE_CMD_ID_ZONE_STATUS_CHANGED		= 0x03,
-    ZBPRO_ZCL_SAP_IAS_ACE_CMD_ID_PANEL_STATUS_CHANGED		= 0x04,
-    ZBPRO_ZCL_SAP_IAS_ACE_CMD_ID_GET_PANEL_STATUS_RESPONSE	= 0x05,
-    ZBPRO_ZCL_SAP_IAS_ACE_CMD_ID_SET_BYPASSED_ZONE_LIST		= 0x06,
-    ZBPRO_ZCL_SAP_IAS_ACE_CMD_ID_BYPASS_RESPONSE		= 0x07,
-    ZBPRO_ZCL_SAP_IAS_ACE_CMD_ID_GET_ZONE_STATUS_RESPONSE	= 0x08
+    ZBPRO_ZCL_SAP_IAS_ACE_CMD_ID_ARM_RESPONSE               = 0x00,
+    ZBPRO_ZCL_SAP_IAS_ACE_CMD_ID_GET_ZONE_ID_MAP_RESPONSE   = 0x01,
+    ZBPRO_ZCL_SAP_IAS_ACE_CMD_ID_GET_ZONE_INFORMATION_RESPONSE  = 0x02,
+    ZBPRO_ZCL_SAP_IAS_ACE_CMD_ID_ZONE_STATUS_CHANGED        = 0x03,
+    ZBPRO_ZCL_SAP_IAS_ACE_CMD_ID_PANEL_STATUS_CHANGED       = 0x04,
+    ZBPRO_ZCL_SAP_IAS_ACE_CMD_ID_GET_PANEL_STATUS_RESPONSE  = 0x05,
+    ZBPRO_ZCL_SAP_IAS_ACE_CMD_ID_SET_BYPASSED_ZONE_LIST     = 0x06,
+    ZBPRO_ZCL_SAP_IAS_ACE_CMD_ID_BYPASS_RESPONSE            = 0x07,
+    ZBPRO_ZCL_SAP_IAS_ACE_CMD_ID_GET_ZONE_STATUS_RESPONSE   = 0x08
 } ZBPRO_ZCL_SapIasAceServerToClientCommandId_t;
 
 /**//**
@@ -113,7 +112,7 @@ typedef enum _ZBPRO_ZCL_IasAceArmMode_t
     ZBPRO_ZCL_IAS_ACE_ARM_MODE_ARM_NIGHT        = 0x02,
     ZBPRO_ZCL_IAS_ACE_ARM_MODE_ARM_ALL          = 0x03
 } ZBPRO_ZCL_IasAceArmMode_t;
-//SYS_DbgAssertStatic(sizeof(ZBPRO_ZCL_IasAceArmMode_t) == 1);    /* check of the actual size */ // short-enum
+SYS_DbgAssertStatic(sizeof(ZBPRO_ZCL_IasAceArmMode_t) == 1);    /* check of the actual size */
 
 /**//**
  * \brief IAS ACE Arm Command indication parameters
@@ -145,7 +144,7 @@ typedef enum _ZBPRO_ZCL_IasAceArmNotification_t
     ZBPRO_ZCL_IAS_ACE_ARM_NOTIFIED_NOT_READY                    = 0x05, /* HA spec errata CCB 1781 */
     ZBPRO_ZCL_IAS_ACE_ARM_NOTIFIED_ALREADY_DISARMED             = 0x06  /* HA spec errata CCB 1781 */
 } ZBPRO_ZCL_IasAceArmNotification_t;
-//SYS_DbgAssertStatic(sizeof(ZBPRO_ZCL_IasAceArmNotification_t) == 1);    /* check of the actual size */  // short-enum
+SYS_DbgAssertStatic(sizeof(ZBPRO_ZCL_IasAceArmNotification_t) == 1);    /* check of the actual size */
 
 /**//**
  * \brief IAS ACE Arm Response Command request parameters
@@ -193,7 +192,7 @@ typedef enum _ZBPRO_ZCL_IasAceBypassResult_t
     ZBPRO_ZCL_IAS_ACE_BYPASS_RESULT_UNKNOWN_ZONE_ID     = 0x04,
     ZBPRO_ZCL_IAS_ACE_BYPASS_RESULT_INVALID_ARM_CODE    = 0x05
 } ZBPRO_ZCL_IasAceBypassResult_t;
-//SYS_DbgAssertStatic(sizeof(ZBPRO_ZCL_IasAceBypassResult_t) == 1);       /* check of the actual size */ // short-enum
+SYS_DbgAssertStatic(sizeof(ZBPRO_ZCL_IasAceBypassResult_t) == 1);       /* check of the actual size */
 
 /**//**
  * \brief IAS ACE Bypass Response Command request parameters
@@ -330,7 +329,7 @@ typedef enum _ZBPRO_ZCL_SapIasAcePanelStatus_t
     ZBPRO_ZCL_IAS_ACE_PANEL_STATUS_ARMING_NIGHT      = 0x09,
     ZBPRO_ZCL_IAS_ACE_PANEL_STATUS_ARMING_AWAY       = 0x0a
 } ZBPRO_ZCL_SapIasAcePanelStatus_t;
-//SYS_DbgAssertStatic(sizeof(ZBPRO_ZCL_SapIasAcePanelStatus_t) == 1);       /* check of the actual size */  // short-enum
+SYS_DbgAssertStatic(sizeof(ZBPRO_ZCL_SapIasAcePanelStatus_t) == 1);       /* check of the actual size */
 
 /**//**
  * \brief IAS ACE Audible Notification
@@ -341,7 +340,7 @@ typedef enum _ZBPRO_ZCL_SapIasAceAudibleNotification_t
     ZBPRO_ZCL_IAS_ACE_AUDIBLE_NOTIFICATION_DEFAULT_SOUND                = 0X01,
     ZBPRO_ZCL_IAS_ACE_AUDIBLE_NOTIFICATION_MANUFACTURER_SPECIFIC_START  = 0X80
 } ZBPRO_ZCL_SapIasAceAudibleNotification_t;
-//SYS_DbgAssertStatic(sizeof(ZBPRO_ZCL_SapIasAceAudibleNotification_t) == 1);       /* check of the actual size */  // short-enum
+SYS_DbgAssertStatic(sizeof(ZBPRO_ZCL_SapIasAceAudibleNotification_t) == 1);       /* check of the actual size */
 
 /**//**
  * \brief IAS ACE Alarm Status
@@ -358,7 +357,7 @@ typedef enum _ZBPRO_ZCL_IasAceAlarmStatus_t
     ZBPRO_ZCL_IAS_ACE_ALARM_STATUS_FIRE_PANICIC     = 0x05,
     ZBPRO_ZCL_IAS_ACE_ALARM_STATUS_EMERGENCY_PANIC  = 0x06
 } ZBPRO_ZCL_IasAceAlarmStatus_t;
-//SYS_DbgAssertStatic(sizeof(ZBPRO_ZCL_IasAceAlarmStatus_t) == 1);        /* check of the actual size */  // short-enum
+SYS_DbgAssertStatic(sizeof(ZBPRO_ZCL_IasAceAlarmStatus_t) == 1);        /* check of the actual size */
 
 /**//**
  * \brief IAS ACE Get Panel Status Response Command request parameters
@@ -522,32 +521,32 @@ typedef struct _ZBPRO_ZCL_SapIasAcePanelStatusChangedReqDescr_t ZBPRO_ZCL_SapIas
  */
 /**@{*/
 typedef void ZBPRO_ZCL_SapIasAceArmRespReqConfCallback_t(
-		ZBPRO_ZCL_SapIasAceArmRespReqDescr_t *const  reqDescr,
-		ZBPRO_ZCL_SapIasAceRespReqConfParams_t *const  confParams);
+        ZBPRO_ZCL_SapIasAceArmRespReqDescr_t *const  reqDescr,
+        ZBPRO_ZCL_SapIasAceRespReqConfParams_t *const  confParams);
 typedef void ZBPRO_ZCL_SapIasAceBypassRespReqConfCallback_t(
-		ZBPRO_ZCL_SapIasAceBypassRespReqDescr_t *const  reqDescr,
-		ZBPRO_ZCL_SapIasAceRespReqConfParams_t *const  confParams);
+        ZBPRO_ZCL_SapIasAceBypassRespReqDescr_t *const  reqDescr,
+        ZBPRO_ZCL_SapIasAceRespReqConfParams_t *const  confParams);
 typedef void ZBPRO_ZCL_SapIasAceGetZoneIdMapRespReqConfCallback_t(
-		ZBPRO_ZCL_SapIasAceGetZoneIdMapRespReqDescr_t *const  reqDescr,
-		ZBPRO_ZCL_SapIasAceRespReqConfParams_t *const  confParams);
+        ZBPRO_ZCL_SapIasAceGetZoneIdMapRespReqDescr_t *const  reqDescr,
+        ZBPRO_ZCL_SapIasAceRespReqConfParams_t *const  confParams);
 typedef void ZBPRO_ZCL_SapIasAceGetZoneInfoRespReqConfCallback_t(
-		ZBPRO_ZCL_SapIasAceGetZoneInfoRespReqDescr_t *const  reqDescr,
-		ZBPRO_ZCL_SapIasAceRespReqConfParams_t *const  confParams);
+        ZBPRO_ZCL_SapIasAceGetZoneInfoRespReqDescr_t *const  reqDescr,
+        ZBPRO_ZCL_SapIasAceRespReqConfParams_t *const  confParams);
 typedef void ZBPRO_ZCL_SapIasAceGetPanelStatusRespReqConfCallback_t(
-		ZBPRO_ZCL_SapIasAceGetPanelStatusRespReqDescr_t *const  reqDescr,
-		ZBPRO_ZCL_SapIasAceRespReqConfParams_t *const  confParams);
+        ZBPRO_ZCL_SapIasAceGetPanelStatusRespReqDescr_t *const  reqDescr,
+        ZBPRO_ZCL_SapIasAceRespReqConfParams_t *const  confParams);
 typedef void ZBPRO_ZCL_SapIasAceSetBypassedZoneListRespReqConfCallback_t(
-		ZBPRO_ZCL_SapIasAceSetBypassedZoneListRespReqDescr_t *const  reqDescr,
-		ZBPRO_ZCL_SapIasAceRespReqConfParams_t *const  confParams);
+        ZBPRO_ZCL_SapIasAceSetBypassedZoneListRespReqDescr_t *const  reqDescr,
+        ZBPRO_ZCL_SapIasAceRespReqConfParams_t *const  confParams);
 typedef void ZBPRO_ZCL_SapIasAceGetZoneStatusRespReqConfCallback_t(
-                ZBPRO_ZCL_SapIasAceGetZoneStatusRespReqDescr_t *const  reqDescr,
-		ZBPRO_ZCL_SapIasAceRespReqConfParams_t *const  confParams);
+        ZBPRO_ZCL_SapIasAceGetZoneStatusRespReqDescr_t *const  reqDescr,
+        ZBPRO_ZCL_SapIasAceRespReqConfParams_t *const  confParams);
 typedef void ZBPRO_ZCL_SapIasAceZoneStatusChangedReqConfCallback_t(
-                ZBPRO_ZCL_SapIasAceZoneStatusChangedReqDescr_t *const  reqDescr,
-                ZBPRO_ZCL_SapIasAceRespReqConfParams_t *const  confParams);
+        ZBPRO_ZCL_SapIasAceZoneStatusChangedReqDescr_t *const  reqDescr,
+        ZBPRO_ZCL_SapIasAceRespReqConfParams_t *const  confParams);
 typedef void ZBPRO_ZCL_SapIasAcePanelStatusChangedReqConfCallback_t(
-                ZBPRO_ZCL_SapIasAcePanelStatusChangedReqDescr_t *const  reqDescr,
-                ZBPRO_ZCL_SapIasAceRespReqConfParams_t *const  confParams);
+        ZBPRO_ZCL_SapIasAcePanelStatusChangedReqDescr_t *const  reqDescr,
+        ZBPRO_ZCL_SapIasAceRespReqConfParams_t *const  confParams);
 /**@}*/
 
 /**//**
@@ -641,52 +640,105 @@ ZBPRO_ZCL_VALIDATE_LOCAL_PRIMITIVE_DESCR_STRUCT(ZBPRO_ZCL_SapIasAcePanelStatusCh
 /************************* PROTOTYPES ***************************************************/
 
 /**//**
- * \brief IAS ACE Arm Command indication
+ * \brief   Handles ZCL Local Indication on reception of IAS ACE Arm Command
+ * specific to IAS ACE ZCL cluster.
+ * \param[in]   indParams       Pointer to ZCL Local Indication parameters.
+ * \note
+ *  The IAS ACE Arm Command is sent by client. Due
+ *  to this reason server side service provides this function.
  */
 void ZBPRO_ZCL_SapIasAceArmInd(ZBPRO_ZCL_SapIasAceArmIndParams_t *const indParams);
 
 /**//**
  * \brief IAS ACE Bypass Command indication
  */
+/**//**
+ * \brief   Handles ZCL Local Indication on reception of IAS ACE Bypass Command
+ * specific to IAS ACE ZCL cluster.
+ * \param[in]   indParams       Pointer to ZCL Local Indication parameters.
+ * \note
+ *  The IAS ACE Bypass Command is sent by client. Due
+ *  to this reason server side service provides this function.
+ */
 void ZBPRO_ZCL_SapIasAceBypassInd(ZBPRO_ZCL_SapIasAceBypassIndParams_t *const indParams);
 
 /**//**
- * \brief Alarm indication for IAS ACE Emergency Command
+ * \brief   Handles ZCL Local Indication on reception of IAS ACE Emergency Command
+ * specific to IAS ACE ZCL cluster.
+ * \param[in]   indParams       Pointer to ZCL Local Indication parameters.
+ * \note
+ *  The IAS ACE Emergency Command is sent by client. Due
+ *  to this reason server side service provides this function.
  */
 void ZBPRO_ZCL_SapIasAceEmergencyInd(ZBPRO_ZCL_SapIasAceAlarmIndParams_t *const indParams);
 
 /**//**
- * \brief Alarm indication for IAS ACE Fire Command
+ * \brief   Handles ZCL Local Indication on reception of IAS ACE Fire Command
+ * specific to IAS ACE ZCL cluster.
+ * \param[in]   indParams       Pointer to ZCL Local Indication parameters.
+ * \note
+ *  The IAS ACE Fire Command is sent by client. Due
+ *  to this reason server side service provides this function.
  */
 void ZBPRO_ZCL_SapIasAceFireInd(ZBPRO_ZCL_SapIasAceAlarmIndParams_t *const indParams);
 
 /**//**
- * \brief Alarm indication for IAS ACE Panic Command
+ * \brief   Handles ZCL Local Indication on reception of IAS ACE Panic Command
+ * specific to IAS ACE ZCL cluster.
+ * \param[in]   indParams       Pointer to ZCL Local Indication parameters.
+ * \note
+ *  The IAS ACE Panic Command is sent by client. Due
+ *  to this reason server side service provides this function.
  */
 void ZBPRO_ZCL_SapIasAcePanicInd(ZBPRO_ZCL_SapIasAceAlarmIndParams_t *const indParams);
 
 /**//**
- * \brief IAS ACE Get Zone ID MAP Command indication
+ * \brief   Handles ZCL Local Indication on reception of IAS ACE Get Zone ID MAP Command
+ * specific to IAS ACE ZCL cluster.
+ * \param[in]   indParams       Pointer to ZCL Local Indication parameters.
+ * \note
+ *  The IAS ACE Get Zone ID MAP Command is sent by client. Due
+ *  to this reason server side service provides this function.
  */
 void ZBPRO_ZCL_SapIasAceGetZoneIdMapInd(ZBPRO_ZCL_SapIasAceGetZoneIdMapIndParams_t *const indParams);
 
 /**//**
- * \brief IAS ACE Get Zone Information Command indication
+ * \brief   Handles ZCL Local Indication on reception of IAS ACE Get Zone Information Command
+ * specific to IAS ACE ZCL cluster.
+ * \param[in]   indParams       Pointer to ZCL Local Indication parameters.
+ * \note
+ *  The IAS ACE Get Zone Information Command is sent by client. Due
+ *  to this reason server side service provides this function.
  */
 void ZBPRO_ZCL_SapIasAceGetZoneInfoInd(ZBPRO_ZCL_SapIasAceGetZoneInfoIndParams_t *const indParams);
 
 /**//**
- * \brief IAS ACE Get Panel Status Command indication
+ * \brief   Handles ZCL Local Indication on reception of IAS ACE Get Panel Status Command
+ * specific to IAS ACE ZCL cluster.
+ * \param[in]   indParams       Pointer to ZCL Local Indication parameters.
+ * \note
+ *  The IAS ACE Get Panel Status Command is sent by client. Due
+ *  to this reason server side service provides this function.
  */
 void ZBPRO_ZCL_SapIasAceGetPanelStatusInd(ZBPRO_ZCL_SapIasAceGetPanelStatusIndParams_t *const indParams);
 
 /**//**
- * \brief IAS ACE Get Bypassed Zone List Command indication
+ * \brief   Handles ZCL Local Indication on reception of IAS ACE Get Bypassed Zone List Command
+ * specific to IAS ACE ZCL cluster.
+ * \param[in]   indParams       Pointer to ZCL Local Indication parameters.
+ * \note
+ *  The IAS ACE Get Bypassed Zone List Command is sent by client. Due
+ *  to this reason server side service provides this function.
  */
 void ZBPRO_ZCL_SapIasAceGetBypassedZoneListInd(ZBPRO_ZCL_SapIasAceGetBypassedZoneListIndParams_t *const indParams);
 
 /**//**
- * \brief IAS ACE Get Zone Status Command indication
+ * \brief   Handles ZCL Local Indication on reception of IAS ACE Get Zone Status Command
+ * specific to IAS ACE ZCL cluster.
+ * \param[in]   indParams       Pointer to ZCL Local Indication parameters.
+ * \note
+ *  The IAS ACE Get Zone Status Command is sent by client. Due
+ *  to this reason server side service provides this function.
  */
 void ZBPRO_ZCL_SapIasAceGetZoneStatusInd(ZBPRO_ZCL_SapIasAceGetZoneStatusIndParams_t *const indParams);
 
@@ -734,7 +786,5 @@ void ZBPRO_ZCL_SapIasAceZoneStatusChangedReq(ZBPRO_ZCL_SapIasAceZoneStatusChange
  * \brief IAS ACE Panel Status Changed Command request
  */
 void ZBPRO_ZCL_SapIasAcePanelStatusChangedReq(ZBPRO_ZCL_SapIasAcePanelStatusChangedReqDescr_t *const reqDescr);
-
-void ZBPRO_ZCL_SapIasAceAlarmInd(ZBPRO_ZCL_SapIasAceAlarmIndParams_t *const indParams);
 
 #endif /* _BB_ZBPRO_ZCL_SAP_CLUSTER_IAS_ACE_H */

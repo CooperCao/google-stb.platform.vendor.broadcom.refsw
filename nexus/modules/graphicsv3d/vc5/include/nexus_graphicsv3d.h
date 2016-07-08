@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2014 Broadcom Corporation
+ *     Broadcom Proprietary and Confidential. (c)2014 Broadcom.  All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -107,6 +107,11 @@ typedef struct NEXUS_Graphicsv3dFenceEvent *NEXUS_Graphicsv3dFenceEventHandle;
 #define NEXUS_GRAPHICSV3D_SYNC_CPU_WRITE            (1u << 10)
 #define NEXUS_GRAPHICSV3D_SYNC_CPU                  (NEXUS_GRAPHICSV3D_SYNC_CPU_READ | NEXUS_GRAPHICSV3D_SYNC_CPU_WRITE)
 
+#define NEXUS_GRAPHICSV3D_EMPTY_TILE_MODE_NONE 0
+#define NEXUS_GRAPHICSV3D_EMPTY_TILE_MODE_SKIP 1
+#define NEXUS_GRAPHICSV3D_EMPTY_TILE_MODE_FILL 2
+
+
 /* Workaround flags */
 #define NEXUS_GRAPHICSV3D_GFXH_1181            1
 
@@ -131,7 +136,6 @@ typedef enum NEXUS_Graphicsv3dJobType
    NEXUS_Graphicsv3dJobType_eUser,
    NEXUS_Graphicsv3dJobType_eTFU,
    NEXUS_Graphicsv3dJobType_eFenceWait,
-   NEXUS_Graphicsv3dJobType_eFenceSignal,
    NEXUS_Graphicsv3dJobType_eTest,
    NEXUS_Graphicsv3dJobType_eUsermode,
    NEXUS_Graphicsv3dJobType_eNumJobTypes
@@ -214,6 +218,7 @@ typedef struct NEXUS_Graphicsv3dJobBase
    NEXUS_Graphicsv3dCompletionFn       pfnCompletion;
    void                               *pCompletionData;
    uint32_t                            uiSyncFlags;
+   bool                                bSecure;
 } NEXUS_Graphicsv3dJobBase;
 
 /**
@@ -251,6 +256,7 @@ typedef struct NEXUS_Graphicsv3dJobRender
    uint32_t                            uiStart[NEXUS_GRAPHICSV3D_MAX_RENDER_SUBJOBS];
    uint32_t                            uiEnd[NEXUS_GRAPHICSV3D_MAX_RENDER_SUBJOBS];
    uint32_t                            uiFlags;
+   uint32_t                            uiEmptyTileMode;
 } NEXUS_Graphicsv3dJobRender;
 
 /**
@@ -278,18 +284,6 @@ typedef struct NEXUS_Graphicsv3dJobFenceWait
    NEXUS_Graphicsv3dJobBase            sBase;
    int32_t                             iFence;
 } NEXUS_Graphicsv3dJobFenceWait;
-
-/**
-Summary:
-A fence signal job.
-
-Description:
-The fence is not part of the job structure, but is returned via NEXUS_Graphicsv3d_QueueFenceSignal.
-**/
-typedef struct NEXUS_Graphicsv3dJobFenceSignal
-{
-   NEXUS_Graphicsv3dJobBase            sBase;
-} NEXUS_Graphicsv3dJobFenceSignal;
 
 /**
 Summary:
@@ -464,19 +458,6 @@ NEXUS_Error NEXUS_Graphicsv3d_QueueNull(
 
 /**
 Summary:
-Create a fence and queue a signal job.
-
-Description:
-The fence will be signalled when all our job dependencies have completed.
-**/
-NEXUS_Error NEXUS_Graphicsv3d_QueueFenceSignal(
-   NEXUS_Graphicsv3dHandle                   hGfx,       /* [in]  */
-   const NEXUS_Graphicsv3dJobFenceSignal    *pSignal,    /* [in]  */
-   int                                      *piFence     /* [out] */
-   );
-
-/**
-Summary:
 Create a test job.
 
 Description:
@@ -506,6 +487,27 @@ NEXUS_Error NEXUS_Graphicsv3d_Query(
    const NEXUS_Graphicsv3dSchedDependencies *pCompletedDeps,   /* [in]  attr{null_allowed=y} */
    const NEXUS_Graphicsv3dSchedDependencies *pFinalizedDeps,   /* [in]  attr{null_allowed=y} */
    NEXUS_Graphicsv3dQueryResponse           *pResponse         /* [out] */
+   );
+
+/**
+Summary:
+Create a fence to wait for the specified jobs
+**/
+NEXUS_Error NEXUS_Graphicsv3d_MakeFenceForJobs(
+   NEXUS_Graphicsv3dHandle                   hGfx,             /* [in]  */
+   const NEXUS_Graphicsv3dSchedDependencies *pCompletedDeps,   /* [in]  */
+   const NEXUS_Graphicsv3dSchedDependencies *pFinalizedDeps,   /* [in]  */
+   bool                                      bForceCreate,     /* [in]  */
+   int                                      *piFence           /* [out] */
+   );
+
+/**
+Summary:
+Create a fence to wait for any non-finalized job
+**/
+NEXUS_Error NEXUS_Graphicsv3d_MakeFenceForAnyNonFinalizedJob(
+   NEXUS_Graphicsv3dHandle hGfx,    /* [in]  */
+   int                     *piFence /* [out] */
    );
 
 /**

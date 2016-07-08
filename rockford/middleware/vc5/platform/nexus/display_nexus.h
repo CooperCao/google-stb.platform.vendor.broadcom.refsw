@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2010 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2010 Broadcom.
 All rights reserved.
 
 Project  :  Default Nexus platform API for EGL driver
@@ -21,10 +21,25 @@ implemented. You can replace this with your own custom version if preferred.
 extern "C" {
 #endif
 
+/* NXPL_DisplayContext */
+typedef struct
+{
+   NXPL_DisplayType     displayType;
+   BEGL_SchedInterface *schedIface;
+
+#ifdef NXPL_PLATFORM_EXCLUSIVE
+   NEXUS_DISPLAYHANDLE  display;
+   bool                 stretch;
+#endif
+} NXPL_DisplayContext;
+
 struct BEGL_DisplayInterface;
 struct BEGL_SchedInterface;
 
-struct BEGL_DisplayInterface *CreateDisplayInterface(NEXUS_DISPLAYHANDLE display, struct BEGL_SchedInterface *schedIface);
+struct BEGL_DisplayInterface *CreateDisplayInterface(
+      NEXUS_DISPLAYHANDLE display,
+      NXPL_DisplayContext *ctx,
+      struct BEGL_SchedInterface *schedIface);
 void DestroyDisplayInterface(struct BEGL_DisplayInterface *disp);
 
 #ifdef __cplusplus

@@ -125,6 +125,9 @@ static void process_rx_message(unsigned int *message_rx, int socket)
    case RPC_C2S_RF4CE_ResetReq:
         server_RF4CE_ResetReq(&socket_cb[socket].message_rx[0], socket);
         break;
+   case RPC_C2S_RF4CE_SetSupportedDevicesReq:
+        server_RF4CE_SetSupportedDevicesReq(&socket_cb[socket].message_rx[0], socket);
+        break;
    case RPC_C2S_RF4CE_StartReq:
         /* Add some more stuff to adapt ZRC2.0 and ZRC1.1 */
         #if defined(USE_RF4CE_PROFILE_ZRC2)
@@ -152,10 +155,11 @@ static void process_rx_message(unsigned int *message_rx, int socket)
         server_Mail_TestEngineEcho(&socket_cb[socket].message_rx[0], socket);
         break;
     case RPC_C2S_SYS_EventSubscribe:
-        server_SYS_EventSubscribe(&socket_cb[socket].message_rx[0], socket);
+        server_sysEventSubscribeHostHandler(&socket_cb[socket].message_rx[0], socket);
+        //server_SYS_EventSubscribe(&socket_cb[socket].message_rx[0], socket);
         break;
     case RPC_C2S_Mail_SetEchoDelay:
-        server_Mail_SetEchoDelay(&socket_cb[socket].message_rx[0], socket);
+        //server_Mail_SetEchoDelay(&socket_cb[socket].message_rx[0], socket);
         break;
     case RPC_C2S_RF4CE_ZRC_SetWakeUpActionCodeKey:
         server_RF4CE_ZRC_SetWakeUpActionCodeReq(&socket_cb[socket].message_rx[0], socket);
@@ -166,6 +170,7 @@ static void process_rx_message(unsigned int *message_rx, int socket)
     case RPC_C2S_RF4CE_ZRC1_TargetBindReq:
         server_RF4CE_ZRC1_TargetBindReq(&socket_cb[socket].message_rx[0], socket);
         break;
+#if defined(USE_RF4CE_PROFILE_ZRC2)
     case RPC_C2S_RF4CE_ZRC2_SetPushButtonStimulusReq:
         server_RF4CE_ZRC2_SetPushButtonStimulusReq(&socket_cb[socket].message_rx[0], socket);
         break;
@@ -178,6 +183,7 @@ static void process_rx_message(unsigned int *message_rx, int socket)
     case RPC_C2S_RF4CE_ZRC2_CheckValidationResp:
         server_RF4CE_ZRC2_CheckValidationResp(&socket_cb[socket].message_rx[0], socket);
         break;
+#endif
     case RPC_C2S_RF4CE_UnpairReq:
         server_RF4CE_UnpairReq(&socket_cb[socket].message_rx[0], socket);
         break;
@@ -196,7 +202,7 @@ static void process_rx_message(unsigned int *message_rx, int socket)
         server_RF4CE_RegisterVirtualDevice(&socket_cb[socket].message_rx[0], socket);
         break;
     case (RPC_C2S_TE_Host2Uart1Req):
-        server_Mail_Host2Uart1(&socket_cb[socket].message_rx[0], socket);
+        //server_Mail_Host2Uart1(&socket_cb[socket].message_rx[0], socket);
         break;
     case (RPC_C2S_Phy_Test_Get_Caps_Req):
         server_Phy_Test_Get_Caps_Req(&socket_cb[socket].message_rx[0], socket);
@@ -235,7 +241,7 @@ static void process_rx_message(unsigned int *message_rx, int socket)
         server_Phy_Test_Get_Stats_Req(&socket_cb[socket].message_rx[0], socket);
         break;
     case (RPC_C2S_Phy_Test_Reset_Stats_Req):
-        server_Phy_Test_Get_Stats_Req(&socket_cb[socket].message_rx[0], socket);
+        server_Phy_Test_Reset_Stats_Req(&socket_cb[socket].message_rx[0], socket);
         break;
     case (RPC_C2S_Phy_Test_Set_TX_Power_Req):
         server_Phy_Test_Set_TX_Power_Req(&socket_cb[socket].message_rx[0], socket);

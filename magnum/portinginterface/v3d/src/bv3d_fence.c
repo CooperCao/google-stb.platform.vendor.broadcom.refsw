@@ -163,7 +163,7 @@ int BV3D_P_FenceAlloc(
    else
       hFenceArr->iNextFenceId += 1;
 
-   BDBG_MSG(("Fence %d = %p\n", fenceId, &hFenceArr->pFences[fenceIx]));
+   BDBG_MSG(("Fence %d = %p\n", fenceId, (void *)&hFenceArr->pFences[fenceIx]));
 
    /* Find the next available fence */
    for (i = hFenceArr->iFirstAvailable + 1; i < hFenceArr->uiCapacity && !found; ++i)

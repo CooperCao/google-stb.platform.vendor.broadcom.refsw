@@ -304,7 +304,7 @@ int main(int argc, char **argv)  {
             break;
         }
 
-        BDBG_MSG(("Decoded frame received - PTS %#x length %u bytes", frameStatus[0].pts, frameStatus[0].filledBytes));
+        BDBG_MSG(("Decoded frame received - PTS %#x length %u bytes", frameStatus[0].pts, (unsigned)frameStatus[0].filledBytes));
 
         if ( !pbStarted )
         {
@@ -331,7 +331,7 @@ int main(int argc, char **argv)  {
         {
             rc=0;
             NEXUS_SimpleAudioPlayback_GetStatus(audioPlayback, &pbStatus);
-            BDBG_MSG(("Playback buffer %u/%u (%u) need %u+1024", pbStatus.queuedBytes, pbStatus.fifoSize, pbStatus.fifoSize - pbStatus.queuedBytes, frameStatus[0].filledBytes));
+            BDBG_MSG(("Playback buffer %u/%u (%u) need %u+1024", (unsigned)pbStatus.queuedBytes, (unsigned)pbStatus.fifoSize, (unsigned)(pbStatus.fifoSize - pbStatus.queuedBytes), (unsigned)frameStatus[0].filledBytes));
             if ( (pbStatus.fifoSize - pbStatus.queuedBytes) < (frameStatus[0].filledBytes+1024) )
             {
                 BDBG_MSG(("Wait for PB space"));

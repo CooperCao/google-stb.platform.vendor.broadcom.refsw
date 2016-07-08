@@ -1,26 +1,41 @@
-/***************************************************************************
-*     Copyright (c) 2003-2014, Broadcom Corporation
-*     All Rights Reserved
-*     Confidential Property of Broadcom Corporation
-*
-*  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
-*  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
-*  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* Module Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
-*
-***************************************************************************/
+/******************************************************************************
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
 
-
-#include "bhdm.h"
+ ******************************************************************************/#include "bhdm.h"
 #include "bhdm_priv.h"
 
 BDBG_MODULE(BHDM) ;
@@ -543,7 +558,6 @@ static const BHDM_P_DISPLAY_FORMAT_DEF BHDM_VideoFmtParams[] =
 static BERR_Code BHDM_P_ConfigureInputVideoFmt(const BHDM_Handle hHDMI,
 	const BHDM_Settings *NewHdmiSettings) ;
 
-
 #ifndef BHDM_FOR_BOOTUPDATER
 static BERR_Code BHDM_P_ConfigurePixelRepeater(const BHDM_Handle hHDMI,
 	BFMT_VideoFmt eVideoFmt, BAVC_HDMI_PixelRepetition ePixelRepetition) ;
@@ -669,7 +683,7 @@ Summary: Get the current version of the HDM PI (used to identify the HDM PI) for
 *******************************************************************************/
 const char * BHDM_P_GetVersion(void)
 {
-	static const char Version[] = "BHDM URSR 16.1" ;
+	static const char Version[] = "BHDM URSR 16.2" ;
 	return Version ;
 }
 
@@ -677,7 +691,7 @@ const char * BHDM_P_GetVersion(void)
 void BHDM_P_SetDisplayStartupDefaults_isr
 Summary: Set the default settings for starting the HDMI Display (after power down, hot plug, etc.)
 *******************************************************************************/
-void BHDM_P_SetDisplayStartupDefaults_isr(BHDM_Handle hHDMI)
+static void BHDM_P_SetDisplayStartupDefaults_isr(BHDM_Handle hHDMI)
 {
 	BDBG_ENTER(BHDM_P_SetDisplayStartupDefaults_isr) ;
 
@@ -695,6 +709,30 @@ void BHDM_P_SetDisplayStartupDefaults_isr(BHDM_Handle hHDMI)
 #endif
 
 	BDBG_LEAVE(BHDM_P_SetDisplayStartupDefaults_isr) ;
+}
+
+
+/*******************************************************************************
+void BHDM_P_ResetHdmiScheduler
+Summary: Set the HDMI Scheduler to its default settings for starting in DVI Mode
+(after power down, hot plug, etc.)
+*******************************************************************************/
+static void BHDM_P_ResetHdmiScheduler(BHDM_Handle hHDMI)
+{
+	BREG_Handle hRegister ;
+	uint32_t Register ;
+	uint32_t ulOffset ;
+
+	hRegister = hHDMI->hRegister ;
+	ulOffset = hHDMI->ulOffset ;
+
+	Register = BREG_Read32(hRegister, BCHP_HDMI_SCHEDULER_CONTROL + ulOffset) ;
+		Register &= ~(
+			  BCHP_MASK(HDMI_SCHEDULER_CONTROL, HDMI_MODE_REQUEST)
+			| BCHP_MASK(HDMI_SCHEDULER_CONTROL, ALWAYS_VERT_KEEP_OUT)) ;
+	BREG_Write32(hRegister, BCHP_HDMI_SCHEDULER_CONTROL + ulOffset, (uint32_t) Register) ;
+
+	hHDMI->DeviceSettings.eOutputFormat = BHDM_OutputFormat_eDVIMode ;
 }
 
 
@@ -990,7 +1028,9 @@ BERR_Code BHDM_P_BREG_I2C_Read(
 
 #if BHDM_CONFIG_HAS_HDCP22
 	/* make sure polling Auto I2C channels are disabled; prior to the read */
-	BHDM_AUTO_I2C_SetChannels_isrsafe(hHDMI, 0) ;
+	BKNI_EnterCriticalSection() ;
+	BHDM_AUTO_I2C_SetChannels_isr(hHDMI, 0) ;
+	BKNI_LeaveCriticalSection() ;
 #endif
 
 	rc = BREG_I2C_Read(hHDMI->hI2cRegHandle, chipAddr, subAddr, pData, length) ;
@@ -998,7 +1038,9 @@ BERR_Code BHDM_P_BREG_I2C_Read(
 
 #if BHDM_CONFIG_HAS_HDCP22
 	/* re-enable any polling Auto I2C channels that had to be disabled prior to the read */
-	BHDM_AUTO_I2C_SetChannels_isrsafe(hHDMI, 1) ;
+	BKNI_EnterCriticalSection() ;
+	BHDM_AUTO_I2C_SetChannels_isr(hHDMI, 1) ;
+	BKNI_LeaveCriticalSection() ;
 #endif
 
 	return rc;
@@ -1016,7 +1058,9 @@ BERR_Code BHDM_P_BREG_I2C_ReadNoAddr(
 
 #if BHDM_CONFIG_HAS_HDCP22
 	/* make sure polling Auto I2C channels are disabled; prior to the read */
-	BHDM_AUTO_I2C_SetChannels_isrsafe(hHDMI, 0) ;
+	BKNI_EnterCriticalSection() ;
+	BHDM_AUTO_I2C_SetChannels_isr(hHDMI, 0) ;
+	BKNI_LeaveCriticalSection() ;
 #endif
 
 	rc = BREG_I2C_ReadNoAddr(hHDMI->hI2cRegHandle, chipAddr, pData, length) ;
@@ -1024,7 +1068,9 @@ BERR_Code BHDM_P_BREG_I2C_ReadNoAddr(
 
 #if BHDM_CONFIG_HAS_HDCP22
 	/* re-enable any polling Auto I2C channels that had to be disabled prior to the read */
-	BHDM_AUTO_I2C_SetChannels_isrsafe(hHDMI, 1) ;
+	BKNI_EnterCriticalSection() ;
+	BHDM_AUTO_I2C_SetChannels_isr(hHDMI, 1) ;
+	BKNI_LeaveCriticalSection() ;
 #endif
 
 	return rc;
@@ -1075,7 +1121,7 @@ BERR_Code BHDM_P_AcquireHDCP22_Resources(
 	BCHP_GetInfo(hHDMI->hChip, &chipInfo) ;
 	if ((chipInfo.familyId == 0x7445) && (chipInfo.rev == 0x30))
 	{
-		hHDMI->TxSupport.MaxTmdsRateMHz = BHDM_CONFIG_HDMI_1_4_MAX_RATE ;
+		hHDMI->TxSupport.MaxTmdsRateMHz = BHDM_HDMI_1_4_MAX_RATE ;
 	}
 
 
@@ -2175,6 +2221,9 @@ void BHDM_P_DisableDisplay_isr(
 	BHDM_P_EnableTmdsData_isr(hHDMI, false) ;
 	BHDM_P_EnableTmdsClock_isr(hHDMI, false) ;
 
+	/* reset the HDMI core to DVI Mode whenever disconnected */
+	BHDM_P_ResetHdmiScheduler(hHDMI) ;
+
 	BHDM_P_SetDisplayStartupDefaults_isr(hHDMI) ;
 
 	BDBG_LEAVE(BHDM_P_DisableDisplay_isr) ;
@@ -2726,8 +2775,13 @@ BERR_Code BHDM_InitializeDriftFIFO(
 	BDBG_MSG(("Start <RECENTER FIFO>...")) ;
 
 	/* do not recenter FIFO if HDCP is enabled */
-	Register = BREG_Read32(hRegister, BCHP_HDMI_CP_CONFIG + ulOffset) ;
-	bAuthenticated = BCHP_GET_FIELD_DATA(Register, HDMI_CP_CONFIG, I_MUX_VSYNC) ;
+	rc = BHDM_HDCP_IsLinkAuthenticated(hHDMI, &bAuthenticated) ;
+	if (rc)
+	{
+		rc = BERR_TRACE(rc) ;
+		goto done ;
+	}
+
 	if (bAuthenticated)
 	{
 		BDBG_WRN(("Tx%d: HDCP is enabled ; <RECENTER FIFO> aborted...", hHDMI->eCoreId)) ;
@@ -2790,7 +2844,7 @@ BERR_Code BHDM_InitializeDriftFIFO(
 
 		if (!RecenterDone)
 		{
-			BDBG_ERR(("Tx%d: <RECENTER FIFO> Timed out...", hHDMI->eCoreId, hHDMI->eCoreId)) ;
+			BDBG_ERR(("Tx%d: <RECENTER FIFO> Timed out...", hHDMI->eCoreId)) ;
 			rc = BERR_TRACE(BERR_TIMEOUT) ;
 			goto done ;
 		}
@@ -3500,22 +3554,17 @@ void BHDM_P_Hotplug_isr(const BHDM_Handle hHDMI)
 	{
 		BDBG_WRN(("Tx%d: HotPlug (Dual Intr) : DEVICE REMOVED!!", hHDMI->eCoreId)) ;
 
+#if BHDM_CONFIG_HAS_HDCP22
+		/* hard reset HDCP_I2C/HDCP SW_INIT first */
+		BHDM_P_ResetHDCPI2C_isr(hHDMI);
+#endif
+
 		BHDM_P_DisableDisplay_isr(hHDMI) ;
 
 		hHDMI->RxDeviceAttached = 0;
 		hHDMI->hotplugInterruptFired = true;
 
 		BHDM_MONITOR_P_HpdChanges_isr(hHDMI) ;
-
-		/* reset the HDMI core to DVI Mode whenever disconnected */
-		Register = BREG_Read32(hRegister, BCHP_HDMI_SCHEDULER_CONTROL + ulOffset) ;
-		Register &= ~(
-			  BCHP_MASK(HDMI_SCHEDULER_CONTROL, HDMI_MODE_REQUEST)
-			| BCHP_MASK(HDMI_SCHEDULER_CONTROL, ALWAYS_VERT_KEEP_OUT)) ;
-		Register |=  BCHP_FIELD_DATA(HDMI_SCHEDULER_CONTROL, reserved0, 0)	;
-
-		BREG_Write32(hRegister, BCHP_HDMI_SCHEDULER_CONTROL + ulOffset, (uint32_t) Register) ;
-		hHDMI->DeviceSettings.eOutputFormat = BHDM_OutputFormat_eDVIMode ;
 
 		/* always disable AvMute after a hot plug */
 		hHDMI->AvMuteState = false ;
@@ -3524,7 +3573,7 @@ void BHDM_P_Hotplug_isr(const BHDM_Handle hHDMI)
 		BHDM_HDCP_P_ResetSettings_isr(hHDMI) ;
 
 #if BHDM_CONFIG_HAS_HDCP22
-		BHDM_AUTO_I2C_SetChannels_isrsafe(hHDMI, false) ;
+		BHDM_AUTO_I2C_SetChannels_isr(hHDMI, false) ;
 #endif
 
 
@@ -3593,16 +3642,6 @@ void BHDM_P_Hotplug_isr(const BHDM_Handle hHDMI)
 		BDBG_WRN(("Tx%d: HotPlug: DEVICE REMOVED!!", hHDMI->eCoreId)) ;
 		BHDM_P_DisableDisplay_isr(hHDMI) ;
 
- 		/* reset the HDMI core to DVI Mode whenever disconnected */
-		Register = BREG_Read32(hRegister, BCHP_HDMI_SCHEDULER_CONTROL + ulOffset) ;
-		Register &= ~(
-			  BCHP_MASK(HDMI_SCHEDULER_CONTROL, HDMI_MODE_REQUEST)
-			| BCHP_MASK(HDMI_SCHEDULER_CONTROL, ALWAYS_VERT_KEEP_OUT)) ;
-		Register |=  BCHP_FIELD_DATA(HDMI_SCHEDULER_CONTROL, reserved0, 0)  ;
-
-		BREG_Write32(hRegister, BCHP_HDMI_SCHEDULER_CONTROL + ulOffset, (uint32_t) Register) ;
-		hHDMI->DeviceSettings.eOutputFormat = BHDM_OutputFormat_eDVIMode ;
-
 		/* always disable AvMute after a hot plug */
 		hHDMI->AvMuteState = false ;
 	}
@@ -3652,7 +3691,17 @@ void BHDM_P_HandleHAEInterrupt_isr(
 	switch (parm2)
 	{
 	case MAKE_HAE_INTR_ENUM(OK_TO_ENC_EN):
-		BDBG_MSG(("Tx%d: HAE_Int0x%x! - OK_TO_ENC_EN", hHDMI->eCoreId, parm2));
+		BDBG_LOG(("Tx%d: HAE_Int0x%x! - OK_TO_ENC_EN", hHDMI->eCoreId, parm2));
+		{
+			uint32_t Register;
+
+			/* Update authentication status in HW */
+			Register = BREG_Read32(hRegister, BCHP_HDMI_HDCP2TX_AUTH_CTL + ulOffset);
+				Register &= ~BCHP_MASK(HDMI_HDCP2TX_AUTH_CTL, HDCP2_AUTHENTICATED);
+				Register |= BCHP_FIELD_DATA(HDMI_HDCP2TX_AUTH_CTL, HDCP2_AUTHENTICATED, 1);
+			BREG_Write32(hRegister, BCHP_HDMI_HDCP2TX_AUTH_CTL + ulOffset, Register) ;
+		}
+
 		BKNI_SetEvent_isr(hHDMI->BHDM_EventHdcp22EncEnUpdate) ;
 		break;
 
@@ -3775,7 +3824,7 @@ void BHDM_P_HandleInterrupt_isr(
 		if (MASK_INTERRUPTS)
 		{
 			BHDM_CHECK_RC( rc, BINT_DisableCallback_isr( hHDMI->hCallback[parm2] ) );
-			BDBG_MSG(("Tx%d: Full Minus Int Masked", hHDMI->eCoreId, hHDMI->eCoreId)) ;
+			BDBG_MSG(("Tx%d: Full Minus Int Masked", hHDMI->eCoreId)) ;
 		}
 		BKNI_SetEvent_isr(hHDMI->BHDM_EventFIFO) ;
 
@@ -4203,7 +4252,7 @@ void BHDM_P_VideoFmt2CEA861Code(BFMT_VideoFmt eVideoFmt,
 			case BAVC_HDMI_PixelRepetition_eNone:
 				*VideoID = 3 ;
 				break;
-			case BAVC_HDMI_PixelRepetition_e2x:
+			case BAVC_HDMI_PixelRepetition_e1x:
 				*VideoID = 15 ;
 				break;
 			case BAVC_HDMI_PixelRepetition_e4x:
@@ -4220,7 +4269,7 @@ void BHDM_P_VideoFmt2CEA861Code(BFMT_VideoFmt eVideoFmt,
 			case BAVC_HDMI_PixelRepetition_eNone:
 				*VideoID = 2 ;
 				break;
-			case BAVC_HDMI_PixelRepetition_e2x:
+			case BAVC_HDMI_PixelRepetition_e1x:
 				*VideoID = 14 ;
 				break;
 			case BAVC_HDMI_PixelRepetition_e4x:
@@ -4242,7 +4291,7 @@ void BHDM_P_VideoFmt2CEA861Code(BFMT_VideoFmt eVideoFmt,
 			case BAVC_HDMI_PixelRepetition_eNone:
 				*VideoID = 7 ;
 				break;
-			case BAVC_HDMI_PixelRepetition_e2x:
+			case BAVC_HDMI_PixelRepetition_e1x:
 				*VideoID = 11 ;
 				break;
 			default:
@@ -4256,7 +4305,7 @@ void BHDM_P_VideoFmt2CEA861Code(BFMT_VideoFmt eVideoFmt,
 			case BAVC_HDMI_PixelRepetition_eNone:
 				*VideoID = 6 ;
 				break;
-			case BAVC_HDMI_PixelRepetition_e2x:
+			case BAVC_HDMI_PixelRepetition_e1x:
 				*VideoID = 10 ;
 				break;
 			default:
@@ -4283,7 +4332,7 @@ void BHDM_P_VideoFmt2CEA861Code(BFMT_VideoFmt eVideoFmt,
 			case BAVC_HDMI_PixelRepetition_eNone:
 				*VideoID = 22 ;
 				break;
-			case BAVC_HDMI_PixelRepetition_e2x:
+			case BAVC_HDMI_PixelRepetition_e1x:
 				*VideoID = 26 ;
 				break;
 			default:
@@ -4297,7 +4346,7 @@ void BHDM_P_VideoFmt2CEA861Code(BFMT_VideoFmt eVideoFmt,
 			case BAVC_HDMI_PixelRepetition_eNone:
 				*VideoID = 21 ;
 				break;
-			case BAVC_HDMI_PixelRepetition_e2x:
+			case BAVC_HDMI_PixelRepetition_e1x:
 				*VideoID = 25 ;
 				break;
 			default:
@@ -4343,7 +4392,7 @@ void BHDM_P_VideoFmt2CEA861Code(BFMT_VideoFmt eVideoFmt,
 			case BAVC_HDMI_PixelRepetition_eNone:
 				*VideoID = 18 ;
 				break;
-			case BAVC_HDMI_PixelRepetition_e2x:
+			case BAVC_HDMI_PixelRepetition_e1x:
 				*VideoID = 30 ;
 				break;
 			case BAVC_HDMI_PixelRepetition_e4x:
@@ -4360,7 +4409,7 @@ void BHDM_P_VideoFmt2CEA861Code(BFMT_VideoFmt eVideoFmt,
 			case BAVC_HDMI_PixelRepetition_eNone:
 				*VideoID = 17 ;
 				break;
-			case BAVC_HDMI_PixelRepetition_e2x:
+			case BAVC_HDMI_PixelRepetition_e1x:
 				*VideoID = 29 ;
 				break;
 			case BAVC_HDMI_PixelRepetition_e4x:
@@ -4471,7 +4520,7 @@ BERR_Code BHDM_SetPixelRepetition(
 	switch (ePixelRepetition)
 	{
 	case BAVC_HDMI_PixelRepetition_eNone:
-	case BAVC_HDMI_PixelRepetition_e2x:
+	case BAVC_HDMI_PixelRepetition_e1x:
 	case BAVC_HDMI_PixelRepetition_e3x:
 	case BAVC_HDMI_PixelRepetition_e4x:
 	case BAVC_HDMI_PixelRepetition_e5x:
@@ -4826,7 +4875,7 @@ static void BHDM_P_TimerExpiration_isr (const BHDM_Handle hHDMI, int parm2)
 			BHDM_P_EnableTmdsData_isr(hHDMI, true) ;
 
 			BHDM_SCDC_P_GetScrambleParams_isrsafe(hHDMI, &ScrambleSettings) ;
-			BHDM_SCDC_P_ConfigureScramblingTx_isrsafe(hHDMI, &ScrambleSettings) ;
+			BHDM_SCDC_P_ConfigureScramblingTx_isr(hHDMI, &ScrambleSettings) ;
 
 			hHDMI->TmdsBitClockRatioChange = false ;
 
@@ -4840,7 +4889,7 @@ static void BHDM_P_TimerExpiration_isr (const BHDM_Handle hHDMI, int parm2)
 		break ;
 
 	default :
-		BDBG_ERR(("Tx%d: hHDM %p Timer %d not handled", hHDMI->eCoreId, hHDMI, parm2)) ;
+		BDBG_ERR(("Tx%d: hHDM %p Timer %d not handled", hHDMI->eCoreId, (void *)hHDMI, parm2)) ;
 	}
 }
 

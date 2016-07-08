@@ -37,7 +37,7 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************/
+ ******************************************************************************
 /*****************************************************************************
 *
 * FILENAME: $Workfile: $
@@ -79,6 +79,7 @@ typedef enum _SYS_EventId_t
     ZBPRO_RECONECTED_EID                = 0x06U,
     /* Child is to be removed from network */
     ZBPRO_CHILD_REMOVING_EID            = 0x07U,
+    ZBPRO_BAD_CHANNEL_QUALITY_EID       = 0x08U,
 
     /* Events for persist manager */
     ZBPRO_NWK_HOT_UPDATE                = 0x0AU,
@@ -87,6 +88,7 @@ typedef enum _SYS_EventId_t
     ZBPRO_ZDO_INIT_DONE                 = 0x0FU,
     /* RF4CE ZRC2 Attributes was initialized */
     RF4CE_ZRC2_INIT_DONE                = 0x10U,
+    RF4CE_FA_CHANNEL_CHANGED            = 0x11U,
 
 
     /* Can be used by application for test proposal. */
@@ -98,7 +100,8 @@ typedef enum _SYS_EventId_t
     APP_EVENT_05                        = 0x1DU,
     APP_EVENT_06                        = 0x1EU,
     APP_EVENT_07                        = 0x1FU,
-#ifdef _PHY_TEST_HOST_INTERFACE_
+
+    /* Events for PHY Test */
     RF4CE_CTRL_EVENT_PAIRING_DEVICE_PAIRED = 0x20U,
     RF4CE_CTRL_EVENT_PAIRING_DEVICE_NOT_FOUND = 0x21U,
     RF4CE_CTRL_EVENT_PAIRING_MULTIPLE_DEVICES_FOUND = 0x22U,
@@ -110,8 +113,8 @@ typedef enum _SYS_EventId_t
     RF4CE_CTRL_EVENT_BAD_VENDOR_FRAME = 0x28U,
     RF4CE_CTRL_EVENT_PAIRING_GENERAL_FAILURE = 0x29U,
     RF4CE_CTRL_EVENT_TEST_TRANSMIT_END = 0x2AU,
-#endif
-    LAST_EVENT_ID,
+
+    LAST_EVENT_ID = 0x3FU,
 } SYS_EventIdEnum_t;
 SYS_DbgAssertStatic(UINT8_MAX > LAST_EVENT_ID);
 typedef uint8_t SYS_EventId_t;

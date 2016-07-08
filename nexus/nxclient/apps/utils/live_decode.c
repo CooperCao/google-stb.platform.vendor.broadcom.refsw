@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2010-2013 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,11 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  *****************************************************************************/
 #if NEXUS_HAS_SIMPLE_DECODER
 #include "live_decode.h"
@@ -136,12 +131,16 @@ void live_decode_destroy(live_decode_t decode)
 void live_decode_get_default_start_settings( live_decode_start_settings *psettings )
 {
     memset(psettings, 0, sizeof(*psettings));
+    psettings->video.colorDepth = 8;
 }
 
 static void start_audio(live_decode_channel_t channel)
 {
     if (channel->audioProgram.primary.pidChannel) {
-        NEXUS_SimpleAudioDecoder_SetStcChannel(channel->audioDecoder, channel->stcChannel);
+        /* for audio/video crc testing, we need video in TSM and audio in vsync */
+        if (!getenv("force_audio_vsync")) {
+            NEXUS_SimpleAudioDecoder_SetStcChannel(channel->audioDecoder, channel->stcChannel);
+        }
         NEXUS_SimpleAudioDecoder_Start(channel->audioDecoder, &channel->audioProgram);
     }
 }
@@ -157,7 +156,7 @@ static void stop_audio(live_decode_channel_t channel)
 static void first_pts_passed(void *context, int param)
 {
     BSTD_UNUSED(param);
-    BDBG_MSG(("first pts passed: %d", context));
+    BDBG_MSG(("first pts passed: %p", context));
 }
 
 live_decode_channel_t live_decode_create_channel( live_decode_t decode )
@@ -245,12 +244,18 @@ void live_decode_destroy_channel( live_decode_channel_t channel )
 int live_decode_start_channel(live_decode_channel_t channel, const live_decode_start_settings *psettings )
 {
     int rc;
+    NEXUS_VideoDecoderSettings settings;
     
     if (!psettings) {
         return BERR_TRACE(NEXUS_INVALID_PARAMETER);
     }
     channel->start_settings = *psettings;
     
+    NEXUS_SimpleVideoDecoder_GetSettings(channel->videoDecoder, &settings);
+    settings.colorDepth = psettings->video.colorDepth;
+    rc = NEXUS_SimpleVideoDecoder_SetSettings(channel->videoDecoder, &settings);
+    if (rc) return BERR_TRACE(rc);
+
     NEXUS_SimpleVideoDecoder_GetDefaultStartSettings(&channel->videoProgram);
     NEXUS_SimpleAudioDecoder_GetDefaultStartSettings(&channel->audioProgram);
 
@@ -398,6 +403,7 @@ int live_decode_activate( live_decode_channel_t channel)
         connectSettings.simpleVideoDecoder[0].id = channel->videoDecoderId;
         connectSettings.simpleVideoDecoder[0].surfaceClientId = channel->decode->create_settings.window.surfaceClientId;
         connectSettings.simpleVideoDecoder[0].windowId = channel->decode->create_settings.window.id;
+        connectSettings.simpleVideoDecoder[0].decoderCapabilities.colorDepth = channel->start_settings.video.colorDepth;
         if (channel->start_settings.video.maxFormat) {
             connectSettings.simpleVideoDecoder[0].decoderCapabilities.maxFormat = channel->start_settings.video.maxFormat;
         }
@@ -414,7 +420,7 @@ int live_decode_activate( live_decode_channel_t channel)
     if (rc) return BERR_TRACE(rc);
     
     if (channel->start_settings.video.pid) {
-        BDBG_MSG(("start decode: %p", channel->decode));
+        BDBG_MSG(("start decode: %p", (void*)channel->decode));
         if (channel->primed) {
             rc = NEXUS_SimpleVideoDecoder_StopPrimerAndStartDecode(channel->videoDecoder);
         }

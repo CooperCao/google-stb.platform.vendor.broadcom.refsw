@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2013 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2013 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -373,6 +373,7 @@ void NodeSet_Flatten(NodeSet *self, NodeVector *result)
 
 void *NodeVectorMap_Alloc(uint32_t size, const char *ident)
 {
+   UNUSED(ident);
    return bcg_glsl_malloc(size);
 }
 

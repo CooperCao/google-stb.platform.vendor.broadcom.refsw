@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2013 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2013 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -16,6 +16,7 @@ FILE DESCRIPTION
 
 static void Destroy(void *me)
 {
+   UNUSED(me);
 }
 
 static int32_t maxi(int32_t l, int32_t r)

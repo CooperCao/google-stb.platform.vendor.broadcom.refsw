@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2010-2013 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #include "nexus_simple_decoder_module.h"
@@ -57,8 +49,6 @@
 
 BDBG_MODULE(nexus_simple_audio_playback);
 
-static BLST_S_HEAD(NEXUS_SimpleAudioPlayback_P_List, NEXUS_SimpleAudioPlayback) g_audioPlaybacks;
-
 void NEXUS_SimpleAudioPlayback_GetDefaultServerSettings( NEXUS_SimpleAudioPlaybackServerSettings *pSettings )
 {
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
@@ -70,13 +60,13 @@ static void NEXUS_SimpleAudioPlayback_P_GetDefaultSettings(NEXUS_SimpleAudioPlay
     pSettings->leftVolume = pSettings->rightVolume = NEXUS_AUDIO_VOLUME_LINEAR_NORMAL;
 }
 
-NEXUS_SimpleAudioPlaybackHandle NEXUS_SimpleAudioPlayback_Create( unsigned index, const NEXUS_SimpleAudioPlaybackServerSettings *pSettings )
+NEXUS_SimpleAudioPlaybackHandle NEXUS_SimpleAudioPlayback_Create( NEXUS_SimpleAudioDecoderServerHandle server, unsigned index, const NEXUS_SimpleAudioPlaybackServerSettings *pSettings )
 {
     NEXUS_SimpleAudioPlaybackHandle handle;
     NEXUS_Error rc;
 
     /* find dup */
-    for (handle=BLST_S_FIRST(&g_audioPlaybacks); handle; handle=BLST_S_NEXT(handle, link)) {
+    for (handle=BLST_S_FIRST(&server->playbacks); handle; handle=BLST_S_NEXT(handle, link)) {
         if (handle->index == index) {
             BERR_TRACE(NEXUS_INVALID_PARAMETER);
             return NULL;
@@ -90,13 +80,13 @@ NEXUS_SimpleAudioPlaybackHandle NEXUS_SimpleAudioPlayback_Create( unsigned index
     }
     NEXUS_OBJECT_INIT(NEXUS_SimpleAudioPlayback, handle);
     handle->index = index;
-    BLST_S_INSERT_HEAD(&g_audioPlaybacks, handle, link);
-    nexus_simpleaudiodecoder_p_add_playback(handle);
+    handle->server = server;
+    BLST_S_INSERT_HEAD(&server->playbacks, handle, link);
     NEXUS_OBJECT_REGISTER(NEXUS_SimpleAudioPlayback, handle, Create);
     /* now a valid object */
 
     if (pSettings) {
-        rc = NEXUS_SimpleAudioPlayback_SetServerSettings(handle, pSettings);
+        rc = NEXUS_SimpleAudioPlayback_SetServerSettings(server, handle, pSettings);
         if (rc) {rc = BERR_TRACE(rc); goto error;}
     }
     NEXUS_SimpleAudioPlayback_P_GetDefaultSettings(&handle->settings);
@@ -112,7 +102,6 @@ static void NEXUS_SimpleAudioPlayback_P_Release( NEXUS_SimpleAudioPlaybackHandle
 {
     NEXUS_OBJECT_ASSERT(NEXUS_SimpleAudioPlayback, handle);
     NEXUS_OBJECT_UNREGISTER(NEXUS_SimpleAudioPlayback, handle, Destroy);
-    nexus_simpleaudiodecoder_p_remove_playback(handle);
     return;
 }
 
@@ -120,7 +109,7 @@ static void NEXUS_SimpleAudioPlayback_P_Finalizer( NEXUS_SimpleAudioPlaybackHand
 {
     NEXUS_OBJECT_ASSERT(NEXUS_SimpleAudioPlayback, handle);
 
-    BLST_S_REMOVE(&g_audioPlaybacks, handle, NEXUS_SimpleAudioPlayback, link);
+    BLST_S_REMOVE(&handle->server->playbacks, handle, NEXUS_SimpleAudioPlayback, link);
     NEXUS_OBJECT_DESTROY(NEXUS_SimpleAudioPlayback, handle);
     BKNI_Free(handle);
     return;
@@ -133,7 +122,9 @@ NEXUS_SimpleAudioPlaybackHandle NEXUS_SimpleAudioPlayback_Acquire(unsigned index
     NEXUS_SimpleAudioPlaybackHandle handle;
     NEXUS_Error rc;
 
-    for (handle=BLST_S_FIRST(&g_audioPlaybacks); handle; handle = BLST_S_NEXT(handle, link)) {
+    if (!g_NEXUS_SimpleAudioDecoderServer) return NULL;
+
+    for (handle=BLST_S_FIRST(&g_NEXUS_SimpleAudioDecoderServer->playbacks); handle; handle = BLST_S_NEXT(handle, link)) {
         BDBG_OBJECT_ASSERT(handle, NEXUS_SimpleAudioPlayback);
         if (handle->index == index) {
             if (handle->acquired) {
@@ -182,6 +173,7 @@ void NEXUS_SimpleAudioPlayback_GetDefaultStartSettings( NEXUS_SimpleAudioPlaybac
     pSettings->signedData = start.signedData;
     pSettings->loopAround = start.loopAround;
     pSettings->timebase = start.timebase;
+    pSettings->endian = start.endian;
 #else
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
 #endif
@@ -205,6 +197,7 @@ NEXUS_Error nexus_simpleaudioplayback_p_internal_start(NEXUS_SimpleAudioPlayback
             start.loopAround = pSettings->loopAround;
             start.dataCallback = pSettings->dataCallback;
             start.timebase = pSettings->timebase;
+            start.endian = pSettings->endian;
 
             BDBG_MSG(("nexus_simpleaudioplayback_p_internal_start %p", (void *)handle));
             rc = NEXUS_AudioPlayback_Start(handle->serverSettings.playback, &start);
@@ -366,17 +359,20 @@ void NEXUS_SimpleAudioPlayback_Flush( NEXUS_SimpleAudioPlaybackHandle handle )
 #endif
 }
 
-void NEXUS_SimpleAudioPlayback_GetServerSettings( NEXUS_SimpleAudioPlaybackHandle handle, NEXUS_SimpleAudioPlaybackServerSettings *pSettings )
+void NEXUS_SimpleAudioPlayback_GetServerSettings( NEXUS_SimpleAudioDecoderServerHandle server, NEXUS_SimpleAudioPlaybackHandle handle, NEXUS_SimpleAudioPlaybackServerSettings *pSettings )
 {
     BDBG_OBJECT_ASSERT(handle, NEXUS_SimpleAudioPlayback);
-    *pSettings = handle->serverSettings;
+    if (server == handle->server) {
+        *pSettings = handle->serverSettings;
+    }
 }
 
-NEXUS_Error NEXUS_SimpleAudioPlayback_SetServerSettings( NEXUS_SimpleAudioPlaybackHandle handle, const NEXUS_SimpleAudioPlaybackServerSettings *pSettings )
+NEXUS_Error NEXUS_SimpleAudioPlayback_SetServerSettings( NEXUS_SimpleAudioDecoderServerHandle server, NEXUS_SimpleAudioPlaybackHandle handle, const NEXUS_SimpleAudioPlaybackServerSettings *pSettings )
 {
     NEXUS_Error rc;
     
     BDBG_OBJECT_ASSERT(handle, NEXUS_SimpleAudioPlayback);
+    if (server != handle->server) return BERR_TRACE(NEXUS_INVALID_PARAMETER);
     
     if (handle->started && (pSettings->playback != handle->serverSettings.playback)) {
         nexus_simpleaudioplayback_p_internal_stop(handle);

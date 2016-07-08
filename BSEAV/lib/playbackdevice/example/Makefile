@@ -1,7 +1,7 @@
 ############################################################
-#     (c)2008-2016 Broadcom Corporation
+#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 #
-#  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+#  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
 #  conditions of a separate, written license agreement executed between you and Broadcom
 #  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,10 +35,6 @@
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
 #
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
 ############################################################
 
 # FlashLite build scripts make assumptions about version of bin-utils (make, tar, etc) so, change path to point into the alternative location of such utils
@@ -48,25 +44,20 @@ export PATH := ${TOOLS_BIN}:${PATH}
 
 
 NEXUS_TOP = $(NEXUS)
-CURR_DIR= $(BSEAV)/lib/playbackdevice/example
-#NEXUS_LIB_PATH = $(NEXUS)/platforms/$(PLATFORM)/bin/linuxuser.mipsel-uclibc.release
-
-# Establish bcrypt path
-B_REFSW_DEBUG ?= y
-ifeq ($(B_REFSW_DEBUG),y)
-BCRYPT_LIB_DIR = lib/debug
-else
-BCRYPT_LIB_DIR = lib/retail
-endif
+BSEAV_TOP = $(NEXUS_TOP)/../BSEAV
+CURR_DIR= $(BSEAV_TOP)/lib/playbackdevice/example
+#NEXUS_LIB_PATH = $(NEXUS)/platforms/$(NEXUS_PLATFORM)/bin/linuxuser.mipsel-uclibc.release
 
 ifeq ($(DEBUG), n)
-   NEXUS_LIB_PATH = $(NEXUS)/platforms/$(PLATFORM)/bin/linuxuser.${ARCH}.release
+   NEXUS_LIB_PATH = $(NEXUS)/platforms/$(NEXUS_PLATFORM)/bin/linuxuser.${ARCH}.release
 else
-   NEXUS_LIB_PATH = $(NEXUS)/platforms/$(PLATFORM)/bin/linuxuser.${ARCH}.debug
+   NEXUS_LIB_PATH = $(NEXUS)/platforms/$(NEXUS_PLATFORM)/bin/linuxuser.${ARCH}.debug
 endif
 
 # Include platform build objects
-include $(NEXUS_TOP)/platforms/$(PLATFORM)/build/platform_app.inc
+include $(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
+include $(BSEAV_TOP)/lib/drmrootfs/drmrootfs_libdir.inc
+include $(BSEAV_TOP)/lib/drmrootfs/drmrootfs_libdir.inc
 
 #ifeq ($(ARCH), mips-uclibc)
 #FL_CXX := mips-uclibc-g++
@@ -88,7 +79,7 @@ CXXFLAG += $(addprefix -I,$(NEXUS_APP_INCLUDE_PATHS)) $(addprefix -D,$(NEXUS_APP
 
 # Include build rules
 CXXFLAG += $(NEXUS_CFLAGS) $(addprefix -I,$(NEXUS_APP_INCLUDE_PATHS)) $(addprefix -D,$(NEXUS_APP_DEFINES))
-CXXFLAG += $(addprefix -I,$(B_LIB_TOP)/os/include) $(addprefix -I,$(B_LIB_TOP)/os/include/linuxuser) $(addprefix -I,$(BSEAV)/lib/security/common_drm/include)
+CXXFLAG += $(addprefix -I,$(B_LIB_TOP)/os/include) $(addprefix -I,$(B_LIB_TOP)/os/include/linuxuser) $(addprefix -I,$(BSEAV_TOP)/lib/security/common_drm/include)
 
 NEXUS_MGR_PATH = $(addsuffix /nexusMgr,$(CURR_DIR)/..)
 CXXFLAG += $(addprefix -I,$(NEXUS_MGR_PATH))
@@ -96,15 +87,14 @@ CXXFLAG += $(addprefix -I,$(NEXUS_MGR_PATH))
 CURL_INCLUDE_PATH = $(NEXUS)/../AppLibs/opensource/libcurl/$(CURL_VER)/include
 PLAYBACKDEVICE_INCLUDE_PATH = $(CURR_DIR)/../src
 #CXXFLAG += $(addprefix -I,$(CURL_INCLUDE_PATH)/curl) $(addprefix -I,$(CURL_INCLUDE_PATH)) $(addprefix -I,$(LINUX)/include.mipsel-uclibc.935230)
-CXXFLAG += $(addprefix -I,$(CURL_INCLUDE_PATH)/curl) $(addprefix -I,$(CURL_INCLUDE_PATH)) $(addprefix -I,$(LINUX)/include.mipsel-uclibc.$(PLATFORM)) $(addprefix -I,$(PLAYBACKDEVICE_INCLUDE_PATH))
+CXXFLAG += $(addprefix -I,$(CURL_INCLUDE_PATH)/curl) $(addprefix -I,$(CURL_INCLUDE_PATH)) $(addprefix -I,$(LINUX)/include.mipsel-uclibc.$(NEXUS_PLATFORM)) $(addprefix -I,$(PLAYBACKDEVICE_INCLUDE_PATH))
 
 CXXFLAG += -DPLAYBACKDEVICE
 
 LDFLAGS = -ldl -L $(CURR_DIR)/../bin -lnexusMgr -lPlaybackDevice -lpthread -lm -lnexus -lb_os -lcurl -lcrypto -lssl
 LDFLAGS += -L$(BSEAV_TOP)/lib/security/common_drm/lib/${BCHP_CHIP}/ -lcmndrm
-LDFLAGS += -L$(BSEAV_TOP)/lib/drmrootfs/ -ldrmrootfs
-LDFLAGS += -L$(BSEAV_TOP)/lib/security/bcrypt/${BCRYPT_LIB_DIR} -lbcrypt
-
+LDFLAGS += -L${B_REFSW_OBJ_ROOT}/BSEAV/lib/drmrootfs/${DRMROOTFS_LIBDIR} -ldrmrootfs
+LDFLAGS += -L$(B_REFSW_OBJ_ROOT)/BSEAV/lib/security/bcrypt/$(BCRYPT_LIBDIR) -lbcrypt
 
 
 ifeq ($(findstring nexus,$(SC_PLATFORM)),nexus)
@@ -124,18 +114,23 @@ NEXUSMGR_LIBDIR = ../../../../bin
 export NEXUSMGR_LIBDIR
 endif
 
-all: playbackdevice_example
+all: prep_drmrootfs prep_bcrypt playbackdevice_example
 
 clean: playbackdevice_example-clean
 
+prep_drmrootfs:
+	@echo [Compiling drmrootfs dependency ....] && \
+	$(MAKE) -C $(BSEAV_TOP)/lib/drmrootfs install
+
+prep_bcrypt:
+	@echo [Compiling Bcrypt dependency ....] && \
+	$(MAKE) -C $(BSEAV_TOP)/lib/security/bcrypt install > /dev/null
+
 lib-environment:
-	@if [ -z "${PLATFORM}"  ] || \
-	   [ -z "${BCHP_VER}"  ] || \
-	   [ -z "${MAGNUM}"  ] || \
+	@if [ -z "${BCHP_VER}"  ] || \
 	   [ -z "${NEXUS}"  ]; then \
 		echo ; echo ;\
 		echo "I detected that one of the following environment variables is missing:"; \
-		echo "PLATFORM"=${PLATFORM}; \
 		echo "BCHP_VER"=${BCHP_VER}; \
 		echo "NEXUS"=${NEXUS}; \
 		echo "You should define ALL of these if you expect this build to work"; \

@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2003-2016 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * Description: SSL/TLS module
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 
@@ -157,7 +149,7 @@ static int _ssl_connect( B_PlaybackIpSsl *sslHandle )
                     return -1;
                 }
                 else if (rc == 0 || !FD_ISSET(sslHandle->sd, &readfds)) {
-                    BDBG_ERR(("%s: SSL_Connect timed out: select returned nothing for %d sec : fd %d", __FUNCTION__, tv.tv_sec, sslHandle->sd));
+                    BDBG_ERR(("%s: SSL_Connect timed out: select returned nothing for %d sec : fd %d", __FUNCTION__, (int)tv.tv_sec, sslHandle->sd));
                     return -1;
                 }
                 continue;
@@ -221,7 +213,7 @@ _http_ssl_socket_read(void *voidHandle, B_PlaybackIpHandle playback_ip, int sd, 
 
     /* Socket may have been closed */
     if (sslHandle->suspended ) {
-        BDBG_ERR(("%s: SSL resumption (%p)", __FUNCTION__, sslHandle->session ));
+        BDBG_ERR(("%s: SSL resumption (%p)", __FUNCTION__, (void *)sslHandle->session ));
         sslHandle->ssl=SSL_new(sslHandle->ctx);
         if (!sslHandle->ssl) {
             BDBG_ERR(("%s: SSL resumption failed, SSL_new", __FUNCTION__ ));
@@ -350,13 +342,13 @@ _http_ssl_socket_write(void *voidHandle, volatile B_PlaybackIpState *playbackIpS
 #endif
 
     if (!sslHandle){
-        BDBG_ERR(("%s: invalid parameter, SSL handle %p ", __FUNCTION__, sslHandle));
+        BDBG_ERR(("%s: invalid parameter, SSL handle %p ", __FUNCTION__, (void *)sslHandle));
       return -1;
     }
 
     /* Socket may have been closed */
     if (sslHandle->suspended ) {
-        BDBG_ERR(("%s: SSL resumption (%p)", __FUNCTION__, sslHandle->session ));
+        BDBG_ERR(("%s: SSL resumption (%p)", __FUNCTION__, (void *)sslHandle->session ));
         sslHandle->ssl=SSL_new(sslHandle->ctx);
         if (!sslHandle->ssl) {
             BDBG_ERR(("%s: SSL resumption failed, SSL_new", __FUNCTION__ ));
@@ -400,7 +392,7 @@ int check_cert(SSL *ssl, char *host)
 {
 
     X509 *server_cert;
-    char peer_CN[256];
+    char *peer_CN;
     char *str;
 
     long ret=SSL_get_verify_result(ssl);
@@ -411,19 +403,19 @@ int check_cert(SSL *ssl, char *host)
                 BDBG_MSG(("Certificate  valid."));
                 break;
         case X509_V_ERR_CERT_NOT_YET_VALID:
-                BDBG_ERR(("Certificate not yet valid. Verify client date and time. x509: %d", ret));
+                BDBG_ERR(("Certificate not yet valid. Verify client date and time. x509: %d", (int)ret));
                 return -1;
                 break;
         case X509_V_ERR_CERT_HAS_EXPIRED:
-                BDBG_ERR(("Certificate expired. Verify certificate and client date. x509: %d", ret));
+                BDBG_ERR(("Certificate expired. Verify certificate and client date. x509: %d", (int)ret));
                 return -1;
                 break;
         case X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY:
-                BDBG_ERR(("Unable to get local issuer certificate.  x509: %d", ret));
+                BDBG_ERR(("Unable to get local issuer certificate.  x509: %d", (int)ret));
                 return -1;
                 break;
         default:
-                BDBG_MSG(("Certificate verification failed: X509_V_ERR: %d", ret));
+                BDBG_MSG(("Certificate verification failed: X509_V_ERR: %d", (int)ret));
                 return -1;
     }
 
@@ -455,6 +447,13 @@ int check_cert(SSL *ssl, char *host)
     BDBG_MSG_FLOW(("\t CERT issuer: %s\n", str));
     OPENSSL_free (str);
 
+#define PEER_CNAME_SIZE 256
+
+    peer_CN = B_Os_Calloc( 1, PEER_CNAME_SIZE);
+    if (peer_CN == NULL) {
+        BDBG_ERR(("%s: Failed to allocate %d bytes", __FUNCTION__, PEER_CNAME_SIZE));
+        goto err_cert;
+    }
     X509_NAME_get_text_by_NID(X509_get_subject_name(server_cert),
                       NID_commonName,
                               peer_CN,
@@ -464,8 +463,10 @@ int check_cert(SSL *ssl, char *host)
 
     if (fnmatch(peer_CN,host, FNM_CASEFOLD|FNM_NOESCAPE)) {
         BDBG_ERR(("SSL: Common name ( %s ) doesn't match host name ( %s )", peer_CN, host));
+        B_Os_Free(peer_CN);
         goto err_cert;
     }
+    B_Os_Free(peer_CN);
 
     X509_free(server_cert);
     return 0;
@@ -491,7 +492,7 @@ int B_PlaybackIp_SslSessionOpen(
     securityOpenParams->byteRangeOffset = 0;
 
     if (openSettings == NULL ) {
-        BDBG_ERR(("%s: Invalid parameters, Open Settings pts: socket %p \n", __FUNCTION__, openSettings));
+        BDBG_ERR(("%s: Invalid parameters, Open Settings pts: socket %p \n", __FUNCTION__, (void *)openSettings));
         goto error;
     }
 
@@ -535,7 +536,7 @@ int B_PlaybackIp_SslSessionOpen(
     sslHandle->sbio=BIO_new_socket(sd,BIO_NOCLOSE);
     SSL_set_bio(sslHandle->ssl,sslHandle->sbio,sslHandle->sbio);
 
-    BDBG_MSG(("%s: fd %d, SSL %p, networkTimeout %d SBIO %p \n", __FUNCTION__, sd, sslHandle->ssl, sslHandle->networkTimeout, sslHandle->sbio));
+    BDBG_MSG(("%s: fd %d, SSL %p, networkTimeout %d SBIO %p \n", __FUNCTION__, sd, (void *)sslHandle->ssl, sslHandle->networkTimeout, (void *)sslHandle->sbio));
 
     if (_ssl_connect(sslHandle))
         goto error;
@@ -584,10 +585,10 @@ void B_PlaybackIp_SslSessionShutdown(
 
     BSTD_UNUSED(flag);
 
-    BDBG_MSG(("%s: Shutdown SSL handle %p ", __FUNCTION__, sslHandle));
+    BDBG_MSG(("%s: Shutdown SSL handle %p ", __FUNCTION__, (void *)sslHandle));
 
     if (!sslHandle) {
-        BDBG_ERR(("%s: invalid parameter, SSL handle %p ", __FUNCTION__, sslHandle));
+        BDBG_ERR(("%s: invalid parameter, SSL handle %p ", __FUNCTION__, (void *)sslHandle));
         return;
     }
 
@@ -611,10 +612,10 @@ void B_PlaybackIp_SslSessionClose(
 {
     B_PlaybackIpSsl *sslHandle = (B_PlaybackIpSsl *)voidHandle;
 
-    BDBG_MSG(("%s: Closing SSL handle %p ", __FUNCTION__, sslHandle));
+    BDBG_MSG(("%s: Closing SSL handle %p ", __FUNCTION__, (void *)sslHandle));
 
     if (!sslHandle) {
-        BDBG_ERR(("%s: invalid parameter, SSL handle %p ", __FUNCTION__, sslHandle));
+        BDBG_ERR(("%s: invalid parameter, SSL handle %p ", __FUNCTION__, (void *)sslHandle));
         return;
     }
 
@@ -646,7 +647,7 @@ int B_PlaybackIp_SslCloneSessionOpen(
     B_PlaybackIpSsl *sslHandle=NULL;
     B_PlaybackIpSsl *srcHandle = sourceSecurityHandle;
     if (!srcHandle){
-        BDBG_ERR(("%s: invalid parameter, security handle %p ", __FUNCTION__, srcHandle));
+        BDBG_ERR(("%s: invalid parameter, security handle %p ", __FUNCTION__, (void *)srcHandle));
         return -1;
     }
 
@@ -676,7 +677,7 @@ int B_PlaybackIp_SslCloneSessionOpen(
     sslHandle->sbio=BIO_new_socket(sd,BIO_NOCLOSE);
     SSL_set_bio(sslHandle->ssl,sslHandle->sbio,sslHandle->sbio);
 
-    BDBG_MSG(("%s: fd %d, SSL %p, SBIO %p \n", __FUNCTION__, sd, sslHandle->ssl, sslHandle->sbio));
+    BDBG_MSG(("%s: fd %d, SSL %p, SBIO %p \n", __FUNCTION__, sd, (void *)sslHandle->ssl, (void *)sslHandle->sbio));
 
     SSL_set_session(sslHandle->ssl, srcHandle->session);
     sslHandle->session = srcHandle->session;
@@ -718,7 +719,7 @@ void B_PlaybackIp_SslSessionSuspend( void *voidHandle)
     B_PlaybackIpSsl *sslHandle = (B_PlaybackIpSsl *)voidHandle;
 
     if (!sslHandle) {
-        BDBG_ERR(("%s: invalid parameter, SSL handle %p ", __FUNCTION__, sslHandle));
+        BDBG_ERR(("%s: invalid parameter, SSL handle %p ", __FUNCTION__, (void *)sslHandle));
         return;
     }
 
@@ -748,7 +749,7 @@ void* B_PlaybackIp_SslInit( B_PlaybackIpSslInitSettings *initSettings)
     SSL_CTX *ctx=NULL;
 
     if (!initSettings) {
-        BDBG_ERR(("%s: invalid parameter, SSL initSettings %p ", __FUNCTION__, initSettings));
+        BDBG_ERR(("%s: invalid parameter, SSL initSettings %p ", __FUNCTION__, (void *)initSettings));
         return NULL;
     }
 
@@ -765,13 +766,13 @@ void* B_PlaybackIp_SslInit( B_PlaybackIpSslInitSettings *initSettings)
 
         meth = TLSv1_method();
         if (!meth) {
-            BDBG_ERR(("%s: SSLv23_method failure %p", __FUNCTION__, meth));
+            BDBG_ERR(("%s: SSLv23_method failure %p", __FUNCTION__, (void *)meth));
             BDBG_ASSERT(meth);
             return NULL;
         }
         ctx = SSL_CTX_new(meth);
         if (!ctx) {
-            BDBG_ERR(("%s: SSL_CTX_new failure %p", __FUNCTION__, ctx ));
+            BDBG_ERR(("%s: SSL_CTX_new failure %p", __FUNCTION__, (void *)ctx ));
             BDBG_ASSERT(ctx);
             return NULL;
         }

@@ -27,6 +27,15 @@ ifndef TOP_DIR
   TOP_DIR := .
 endif
 
+B_REFSW_OS ?= linuxuser
+include ../../../nexus/build/os/$(B_REFSW_OS)/os_tools.inc
+
+BSEAV = $(shell cd "../.." && ${PWD})
+
+B_REFSW_OBJ_DIR ?= obj.${NEXUS_PLATFORM}
+B_REFSW_OBJ_ROOT ?= ${BSEAV}/../${B_REFSW_OBJ_DIR}
+
+LIB_DIR := $(B_REFSW_OBJ_ROOT)/BSEAV/lib/freetype-2.1.5
 include $(TOP_DIR)/builds/toplevel.mk
 
 # EOF

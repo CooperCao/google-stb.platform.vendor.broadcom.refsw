@@ -1,7 +1,7 @@
 /******************************************************************************
- * (c) 2006-2016 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -37,7 +37,6 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 
 
@@ -58,7 +57,7 @@
 #include "bdsp_raaga_cmdresp_priv.h"
 #include "bdsp_raaga_fwdownload_priv.h"
 #include "bdsp_raaga_fw_algo.h"
-#include "bdsp_common_priv.h"
+#include "bdsp_common_priv_include.h"
 
 
 BDBG_OBJECT_ID_DECLARE(BDSP_Raaga);
@@ -398,21 +397,8 @@ typedef struct BDSP_RaagaCapture
     BDSP_RaagaCapturePointerInfo capPtrs[BDSP_AF_P_MAX_CHANNELS]; /* Capture pointer info for all the output capture ports */
 } BDSP_RaagaCapture;
 
-typedef struct BDSP_AlgoBufferOffsets
-{
-    uint32_t ui32IfOffset;      /* Offset to the interframe buffer */
-    uint32_t ui32UserCfgOffset; /* Offset to the user config buffer */
-    uint32_t ui32StatusOffset;  /* Offset to the status buffer */
-}BDSP_AlgoBufferOffsets;
 
  BDBG_OBJECT_ID_DECLARE(BDSP_RaagaStage);
-
-typedef struct BDSP_AF_P_sDRAM_BUFFER_isr
-{
-    raaga_dramaddr              ui32DramBufferAddress;
-    uint32_t                    ui32BufferSizeInBytes;
-    void                       *pDramBufferAddress;
-}BDSP_AF_P_sDRAM_BUFFER_isr;
 
 typedef struct BDSP_RaagaStage
 {
@@ -432,11 +418,11 @@ typedef struct BDSP_RaagaStage
 
     /*Alloc these buffers during Stage create*/
     BDSP_AF_P_sDRAM_BUFFER_isr   sDramUserConfigBuffer;
-    BDSP_AF_P_sDRAM_BUFFER   sDramInterFrameBuffer;
+    BDSP_AF_P_sDRAM_BUFFER       sDramInterFrameBuffer;
     BDSP_AF_P_sDRAM_BUFFER_isr   sDramStatusBuffer;
 
     /* The offsets to the interframe, status and user cfg buffer for the framsync node */
-    BDSP_AlgoBufferOffsets   sFrameSyncOffset;
+    BDSP_P_AlgoBufferOffsets     sFrameSyncOffset;
 
     /* Extra buffer to on-the-fly program cfg params */
     BDSP_AF_P_sDRAM_BUFFER_isr   sDramUserConfigSpareBuffer;
@@ -453,7 +439,7 @@ typedef struct BDSP_RaagaStage
     BDSP_AF_P_DistinctOpType     eStageOpBuffDataType[BDSP_AF_P_MAX_OP_FORKS];
 
     /*uint32_t StageMemReq;*/
-    BDSP_Raaga_P_StageMemoryReqd  stageMemInfo;
+    BDSP_P_StageMemoryReqd       stageMemInfo;
 
     bool running; /* Flag to indicate if the stage is a part of running task */
 
@@ -641,14 +627,6 @@ void BDSP_Raaga_P_RemoveOutput(
     void *pStageHandle,
     unsigned outputIndex);
 
-void BDSP_Raaga_P_GetFreeInputPortIndex(
-    BDSP_RaagaStage *pStage,
-    unsigned *index);
-
-void BDSP_Raaga_P_GetFreeOutputPortIndex(
-    BDSP_RaagaStage *pStage,
-    unsigned *index);
-
 BERR_Code BDSP_Raaga_P_AddOutputStage(
     void *pSrcStageHandle,
     BDSP_DataType dataType,
@@ -831,11 +809,11 @@ BERR_Code BDSP_Raaga_P_InputPictureBufferCount_isr(
 
 BERR_Code BDSP_Raaga_P_GetPictureBuffer_isr(
     void *pTaskHandle,
-    raaga_dramaddr *pPictureParmBuf);
+    dramaddr_t *pPictureParmBuf);
 
 BERR_Code BDSP_Raaga_P_PutPicture_isr(
     void        *pTaskHandle,
-    raaga_dramaddr pPPBAddress
+    dramaddr_t pPPBAddress
     );
 
 BERR_Code BDSP_Raaga_P_Put_CC_Data_isr(
@@ -1039,8 +1017,8 @@ write pointer
 ***************************************************************************/
 void BDSP_Raaga_P_GetUpdatedShadowReadAndLastWrite(
     BDSP_AF_P_sDRAM_CIRCULAR_BUFFER *pBuffer, /* [in] pointer to circular buffer */
-    raaga_dramaddr *pShadowRead, /* [in/out] shadow read pointer */
-    raaga_dramaddr *pLastWrite, /* [out] snapshot of the write pointer */
+    dramaddr_t *pShadowRead, /* [in/out] shadow read pointer */
+    dramaddr_t *pLastWrite, /* [out] snapshot of the write pointer */
     BDSP_AF_P_BufferType eType, /* [in] buffer type */
     uint32_t bytesRead, /* [in] number of bytes to update the shadow read with */
     BREG_Handle hReg /* [in] register handle */
@@ -1053,7 +1031,7 @@ Function to update the output buffer read pointer
 void BDSP_Raaga_P_UpdateReadPointer(
     BDSP_AF_P_sDRAM_CIRCULAR_BUFFER *pBuffer, /* [out] pointer to circular buffer */
     BDSP_AF_P_BufferType eType, /* [in] buffer type */
-    raaga_dramaddr ui32ReadAddr, /* Value of read pointer to update with */
+    dramaddr_t ui32ReadAddr, /* Value of read pointer to update with */
     BREG_Handle hReg /* [in] register handle */
     );
 

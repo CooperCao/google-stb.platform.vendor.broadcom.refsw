@@ -1,23 +1,43 @@
-/***************************************************************************
- *     Copyright (c) 2003-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * [File Description:]
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
  *
- * Revision History:
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- * 
- ***************************************************************************/
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 
 #ifndef BMUXLIB_TS_H_
 #define BMUXLIB_TS_H_
@@ -270,11 +290,21 @@ typedef struct BMUXlib_TS_PCRSystemData
 {
       uint16_t uiPID;
 
-      unsigned uiInterval; /* insertion interval (in milliseconds) */
+      unsigned uiInterval; /* insertion interval (in milliseconds). 0 = disable PCR generation */
 
       unsigned uiTransportChannelIndex; /* Which transport interface to use for PCR packets */
       unsigned uiPIDChannelIndex;
 } BMUXlib_TS_PCRSystemData;
+
+typedef enum BMUXlib_TS_InterleaveMode
+{
+   BMUXlib_TS_InterleaveMode_eCompliant = 0, /* Use the transmission timestamp provided in the BAVC_CompressedBufferDescriptor (required for HRD compliance) */
+   BMUXlib_TS_InterleaveMode_ePTS, /* Use the DTS/PTS provided in the BAVC_CompressedBufferDescriptor to generate a new transmission timestamp (useful to minimize A/V buffering delay)
+                                    * Note: PCRs are NOT generated in this mode
+                                    */
+
+   BMUXlib_TS_InterleaveMode_eMax
+} BMUXlib_TS_InterleaveMode;
 
 typedef struct BMUXlib_TS_StartSettings
 {
@@ -362,6 +392,7 @@ typedef struct BMUXlib_TS_StartSettings
                             * If TRUE: MUXlib will send MTU BPP packets when the total bitrate changes.
                             * Note: Enabling this may increase the mux latency by up to 1 frame time
                             */
+   BMUXlib_TS_InterleaveMode eInterleaveMode; /* Specifies A/V interleave timing mode */
 } BMUXlib_TS_StartSettings;
 
 void
@@ -500,6 +531,43 @@ BMUXlib_TS_GetCompletedSystemDataBuffers(
 /* Suspend/Resume */
 /******************/
 /* TODO: Suspend/Resume API */
+
+/**********/
+/* Status */
+/**********/
+
+typedef struct BMUXlib_TS_Input_Status
+{
+   uint64_t uiCurrentTimestamp; /* Most recent timestamp completed (in 90 Khz) */
+   uint32_t uiCurrentESCR; /* Most recent ESCR completed (in 27 Mhz) */
+} BMUXlib_TS_Input_Status;
+
+typedef struct BMUXlib_TS_Status
+{
+   BMUXlib_TS_Input_Status stVideo[BMUXLIB_TS_MAX_VIDEO_PIDS];
+   BMUXlib_TS_Input_Status stAudio[BMUXLIB_TS_MAX_AUDIO_PIDS];
+   BMUXlib_TS_Input_Status stSystem;
+   BMUXlib_TS_Input_Status stUserData[BMUXLIB_TS_MAX_USERDATA_PIDS];
+
+   struct
+   {
+      unsigned uiVideo; /* Average video bitrate (in kbps) */
+      unsigned uiAudio; /* Average audio bitrate (in kbps) */
+      unsigned uiSystemData; /* Average system data bitrate (in kbps) */
+      unsigned uiUserData; /* Average userdata bitrate (in kbps) */
+   } stAverageBitrate;
+   unsigned uiEfficiency; /* Indicates efficiency of the output TS (e.g. 100 = no TS overhead, 95 = 5% TS overhead, etc.) */
+   unsigned uiTotalBytes; /* Total bytes generated by the TS MUXlib */
+} BMUXlib_TS_Status;
+
+/* BMUXlib_TS_GetStatus - returns the TS MUX specific status as of
+ * the most recent call to BMUXlib_TS_DoMux()
+ */
+void
+BMUXlib_TS_GetStatus(
+   BMUXlib_TS_Handle hMuxTS,
+   BMUXlib_TS_Status *pstStatus
+   );
 
 /***********/
 /* Execute */

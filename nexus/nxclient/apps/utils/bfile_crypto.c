@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,7 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 #include "bstd.h"
 #include "bkni.h"
@@ -203,7 +202,7 @@ static ssize_t
 b_file_crypto_read(bfile_io_read_t fd, void *buf, size_t length)
 {
     bfile_crypto_t file=(void *)fd;
-    BDBG_MSG(("crypto_read(%d)@%lld", length, file->pos));
+    BDBG_MSG(("crypto_read(%d)@"BDBG_UINT64_FMT, (unsigned)length, BDBG_UINT64_ARG(file->pos)));
     if(file->fd) {
         unsigned r = file->pos % file->packetsize;
         uint8_t *ucbuf;
@@ -226,7 +225,7 @@ b_file_crypto_read(bfile_io_read_t fd, void *buf, size_t length)
                 trp = file->packets;
             }
             toread = file->packetsize * trp;
-            BDBG_MSG(("crypto_read: read@%lld/%d", pos, toread));
+            BDBG_MSG(("crypto_read: read@"BDBG_UINT64_FMT"/%d", BDBG_UINT64_ARG(pos), toread));
             file->fd->seek(file->fd, pos, SEEK_SET);
             file->fd->read(file->fd, file->packet, toread);
             decrypt(file, file->packet, toread);
@@ -251,7 +250,7 @@ static off_t
 b_file_crypto_seek(bfile_io_read_t fd, off_t offset, int whence)
 {
     bfile_crypto_t file=(void *)fd;
-    BDBG_MSG(("crypto_seek(%lld, %d)", offset, whence));
+    BDBG_MSG(("crypto_seek("BDBG_UINT64_FMT", %d)", BDBG_UINT64_ARG(offset), whence));
     if(file->fd) {
         off_t first, last;
         int rc;
@@ -321,7 +320,7 @@ bfile_crypto_create(NEXUS_SecurityAlgorithm algo, const void *key, unsigned size
     rc = dmaSetup(file, algo, key, size);
     if (rc) { BERR_TRACE(rc); goto err_dma; }
     NEXUS_Memory_GetDefaultAllocationSettings(&settings);
-    settings.heap = clientConfig.heap[1]; /* follow nxclient convention for fully mapped memory, corresponds to NXCLIENT_FULL_HEAP */
+    settings.heap = NEXUS_Heap_Lookup(NEXUS_HeapLookupType_eMain);
     rc = NEXUS_Memory_Allocate(file->packetsize * file->packets, &settings, (void **)&file->packet);
     if (rc) { BERR_TRACE(rc); goto err_memalloc; }
 

@@ -1,42 +1,39 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c) 2016 Broadcom. All rights reserved.
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 
 #include "nexus_video_decoder.h"
@@ -228,11 +225,11 @@ eRet CVideoDecode::open(
     }
 
     {
-        CPlatform *       pPlatform = _pCfg->getPlatformConfig();
+        CPlatform * pPlatform = _pCfg->getPlatformConfig();
         /* since open() is only called in the nexus atlas (overloaded in nxclient atlas),
-           getNumber() will return the decoder number.  nxclient atlas uses getNumber()
-           to return the nxclient id instead which getDecoderMaxVideoFormat() does not
-           use for its decoder array index. */
+         * getNumber() will return the decoder number.  nxclient atlas uses getNumber()
+         * to return the nxclient id instead which getDecoderMaxVideoFormat() does not
+         * use for its decoder array index. */
         NEXUS_VideoFormat maxFormat = pPlatform->getDecoderMaxVideoFormat(getNumber());
 
         /* get max width and height supported by video decoder */
@@ -433,11 +430,11 @@ eRet CSimpleVideoDecode::open(
     CHECK_ERROR_GOTO("Video decode failed to open", ret, error);
 
     {
-        CPlatform *       pPlatform = _pCfg->getPlatformConfig();
+        CPlatform * pPlatform = _pCfg->getPlatformConfig();
         /* since open() is only called in the nexus atlas (overloaded in nxclient atlas),
-           getNumber() will return the decoder number.  nxclient atlas uses getNumber()
-           to return the nxclient id instead which getDecoderMaxVideoFormat() does not
-           use for its decoder array index. */
+         * getNumber() will return the decoder number.  nxclient atlas uses getNumber()
+         * to return the nxclient id instead which getDecoderMaxVideoFormat() does not
+         * use for its decoder array index. */
         NEXUS_VideoFormat maxFormat = pPlatform->getDecoderMaxVideoFormat(getNumber());
 
         /* get max width and height supported by video decoder */
@@ -452,7 +449,7 @@ eRet CSimpleVideoDecode::open(
         settings.videoDecoder = _pDecoder->getDecoder();
         settings.stcIndex     = getNumber();
 
-        _simpleDecoder = NEXUS_SimpleVideoDecoder_Create(getNumber(), &settings);
+        _simpleDecoder = NEXUS_SimpleVideoDecoder_Create(_pModel->getSimpleVideoDecoderServer(), getNumber(), &settings);
         CHECK_PTR_ERROR_GOTO("unable to create simple video decoder", _simpleDecoder, ret, eRet_NotAvailable, error);
     }
 
@@ -527,7 +524,7 @@ CStc * CSimpleVideoDecode::close()
 
         NEXUS_SimpleVideoDecoder_GetDefaultServerSettings(&settings);
         settings.enabled = false;
-        NEXUS_SimpleVideoDecoder_SetServerSettings(_simpleDecoder, &settings);
+        NEXUS_SimpleVideoDecoder_SetServerSettings(_pModel->getSimpleVideoDecoderServer(), _simpleDecoder, &settings);
 
         NEXUS_SimpleVideoDecoder_Destroy(_simpleDecoder);
         _simpleDecoder = NULL;
@@ -776,7 +773,7 @@ eRet CSimpleVideoDecode::addVideoWindow(CVideoWindow * pVideoWindow)
         restart = true;
     }
 
-    NEXUS_SimpleVideoDecoder_GetServerSettings(getSimpleDecoder(), &settings);
+    NEXUS_SimpleVideoDecoder_GetServerSettings(_pModel->getSimpleVideoDecoderServer(), getSimpleDecoder(), &settings);
     for (i = 0; i < NEXUS_MAX_DISPLAYS; i++)
     {
         if (NULL == settings.window[i])
@@ -789,7 +786,7 @@ eRet CSimpleVideoDecode::addVideoWindow(CVideoWindow * pVideoWindow)
     {
         settings.window[i] = pVideoWindow->getWindow();
         _videoWindowList.add(pVideoWindow);
-        nerror = NEXUS_SimpleVideoDecoder_SetServerSettings(getSimpleDecoder(), &settings);
+        nerror = NEXUS_SimpleVideoDecoder_SetServerSettings(_pModel->getSimpleVideoDecoderServer(), getSimpleDecoder(), &settings);
         CHECK_NEXUS_ERROR_GOTO("unable to set new video window in simple decoder server settings", ret, nerror, done);
     }
 
@@ -871,16 +868,16 @@ eRet CSimpleVideoDecode::setMaxSize(
 
     if ((0 == width) || (0 == height))
     {
-        BDBG_WRN(("Invalid width/height given so set to default 1920x1080"));
+        BDBG_MSG(("Invalid width/height given so set to default 1920x1080"));
         width  = 1920;
         height = 1080;
     }
 
     {
-        CPlatform *       pPlatform         = _pCfg->getPlatformConfig();
+        CPlatform * pPlatform = _pCfg->getPlatformConfig();
         /* we use getWindowType() here because getDecoderMaxVideoFormat() takes the decoder
-           number as a parameter.  getNumber() returns the video decoder ID in nxclient atlas
-           which can be just about anything. */
+         * number as a parameter.  getNumber() returns the video decoder ID in nxclient atlas
+         * which can be just about anything. */
         NEXUS_VideoFormat maxFormatPlatform = pPlatform->getDecoderMaxVideoFormat(getWindowType());
 
         maxWidthPlatform  = videoFormatToHorizRes(maxFormatPlatform).toInt();

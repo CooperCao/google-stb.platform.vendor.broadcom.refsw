@@ -80,8 +80,8 @@ static void print_heap(unsigned i, NEXUS_HeapHandle heap, unsigned otherIndex)
     }
     size_percentage = status.size/100; /* avoid overflow by dividing size by 100 to get percentage */
     NEXUS_Heap_ToString(&status, buf, sizeof(buf));
-    printf("%-2d " BDBG_UINT64_FMT " %d 0x%-8x %3d 0x%08x %3d%% %3d%% %-16s %s\n",
-        i, BDBG_UINT64_ARG(status.offset), status.memcIndex, status.size, status.size/(1024*1024), (unsigned)status.addr,
+    printf("%-2d " BDBG_UINT64_FMT " %d 0x%-8x %3d %08lx %3d%% %3d%% %-16s %s\n",
+           i, BDBG_UINT64_ARG(status.offset), status.memcIndex, status.size, status.size/(1024*1024), (unsigned long)status.addr,
         size_percentage?(status.size-status.free)/size_percentage:0,
         size_percentage?status.highWatermark/size_percentage:0,
         buf, otherIndexStr);

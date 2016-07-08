@@ -42,13 +42,13 @@ static void bufferOnDisplayCallback(void *context, int param)
    int terminating = __sync_fetch_and_and(&priv->terminating, 1);
    if (!terminating)
    {
-      uint32_t numRecycled = 1;
-#ifdef NXPL_PLATFORM_NSC
+      size_t numRecycled = 1;
+#ifndef NXPL_PLATFORM_EXCLUSIVE
       NEXUS_SurfaceHandle surface_list[priv->numSurfaces];
       NEXUS_SurfaceClient_RecycleSurface(priv->surfaceClient, surface_list, priv->numSurfaces, &numRecycled);
 #endif
 
-      for (int i = 0; i < numRecycled; i++)
+      for (size_t i = 0; i < numRecycled; i++)
       {
          /* SIGNAL FENCE! */
          NXPL_Surface *sFence = ReceiveMessage(priv->fenceQueue, IMMEDIATE);
@@ -58,14 +58,20 @@ static void bufferOnDisplayCallback(void *context, int param)
 #ifdef NXPL_PLATFORM_EXCLUSIVE
             SignalFence(priv->schedIface, priv->lastFence);
             priv->lastFence = sFence->fence;
-#endif /* NXPL_PLATFORM_EXCLUSIVE */
-
-#ifdef NXPL_PLATFORM_NSC
+#else
             SignalFence(priv->schedIface, sFence->fence);
 #endif
 
             ReleaseMessage(priv->fenceQueue, sFence);
          }
+#ifdef NXPL_PLATFORM_EXCLUSIVE
+         else
+         {
+            /* drain existing fence, if swap interval changes from >=1 to 0 */
+            SignalFence(priv->schedIface, priv->lastFence);
+            priv->lastFence = -1;
+         }
+#endif
       }
 
 #ifdef NXPL_PLATFORM_EXCLUSIVE
@@ -74,7 +80,7 @@ static void bufferOnDisplayCallback(void *context, int param)
    }
 }
 
-#if defined(NXPL_PLATFORM_NSC) && defined(NXCLIENT_SUPPORT)
+#if !defined(NXPL_PLATFORM_EXCLUSIVE) && defined(NXCLIENT_SUPPORT)
 static void SetComposition(NXPL_NativeWindow_priv *priv)
 {
    NEXUS_SurfaceComposition comp;
@@ -98,10 +104,12 @@ static void SetComposition(NXPL_NativeWindow_priv *priv)
    comp.position.x = priv->windowInfo.x;
    comp.position.y = priv->windowInfo.y;
    comp.zorder = priv->windowInfo.zOrder;
+   comp.colorBlend = priv->windowInfo.colorBlend;
+   comp.alphaBlend = priv->windowInfo.alphaBlend;
 
    NxClient_SetSurfaceClientComposition(priv->clientID, &comp);
 }
-#endif /* defined(NXPL_PLATFORM_NSC) && defined(NXCLIENT_SUPPORT) */
+#endif /* !defined(NXPL_PLATFORM_EXCLUSIVE) && defined(NXCLIENT_SUPPORT) */
 
 static bool InitializeDisplay(NXPL_NativeWindow_priv *priv)
 {
@@ -139,9 +147,7 @@ static bool InitializeDisplay(NXPL_NativeWindow_priv *priv)
 
       priv->vsyncAvailable = true;
    }
-#endif /* NXPL_PLATFORM_EXCLUSIVE */
-
-#ifdef NXPL_PLATFORM_NSC
+#else
    if (priv->surfaceClient != NULL)
    {
       /* You can have swap interval on a single NSC client, but it fails for more, as the
@@ -172,7 +178,7 @@ static bool InitializeDisplay(NXPL_NativeWindow_priv *priv)
       if (err != NEXUS_SUCCESS)
          FATAL_ERROR("NEXUS_SurfaceClient_SetSettings failed");
    }
-#endif /* NXPL_PLATFORM_NSC */
+#endif /* NXPL_PLATFORM_EXCLUSIVE */
 
    if (priv->vsyncAvailable)
    {
@@ -214,10 +220,8 @@ static void TerminateDisplay(NXPL_NativeWindow_priv *priv)
             FATAL_ERROR("NEXUS_Display_SetGraphicsSettings failed");
       }
    }
-#endif /* NXPL_PLATFORM_EXCLUSIVE */
-
-#if 0 /* temp hack for SWVC5-543.  Works around an application bug in webkit integration.  Will remove in 16.2. */
-#ifdef NXPL_PLATFORM_NSC
+#else
+#if 0 /* temp hack for SWVC5-543.  Works round and application bug in webkit integration.  Will remove on 16.2. */
    if (priv->surfaceClient != NULL)
    {
       NEXUS_SurfaceClientSettings clientSettings;
@@ -228,8 +232,8 @@ static void TerminateDisplay(NXPL_NativeWindow_priv *priv)
       if (err != NEXUS_SUCCESS)
          FATAL_ERROR("NEXUS_SurfaceClient_SetSettings failed");
    }
-#endif
-#endif
+#endif /* end of temp hack */
+#endif /* NXPL_PLATFORM_EXCLUSIVE */
 
    if (priv->vsyncAvailable)
    {
@@ -264,7 +268,7 @@ static void *RunDisplayThread(void *p)
       NXPL_Surface *s = GetMessage(priv->displayQueue, INFINITE);
 
       ok = CreateSurface(s,
-         priv->format, priv->windowInfo.width, priv->windowInfo.height,
+         priv->format, priv->windowInfo.width, priv->windowInfo.height, /*secure=*/false,
          "SwapChain Surface");
 
       if (!ok)
@@ -276,10 +280,10 @@ static void *RunDisplayThread(void *p)
       ReleaseMessage(priv->displayQueue, s);
    }
 
-#if defined(NXPL_PLATFORM_NSC) && defined(NXCLIENT_SUPPORT)
+#if !defined(NXPL_PLATFORM_EXCLUSIVE) && defined(NXCLIENT_SUPPORT)
    /* Set the default window position */
    SetComposition(priv);
-#endif /* defined(NXPL_PLATFORM_NSC) && defined(NXCLIENT_SUPPORT) */
+#endif /* !defined(NXPL_PLATFORM_EXCLUSIVE) && defined(NXCLIENT_SUPPORT) */
 
    priv->fenceQueue = CreateQueue(priv->numSurfaces, sizeof(NXPL_Surface));
 
@@ -308,9 +312,7 @@ static void *RunDisplayThread(void *p)
             fb3d.orientation = NEXUS_VideoOrientation_e3D_OverUnder;
          else
             FATAL_ERROR("Invalid displayType");
-#endif /* NXPL_PLATFORM_EXCLUSIVE */
-
-#ifdef NXPL_PLATFORM_NSC
+#else
          NEXUS_SurfaceClientSettings clientSettings;
          NEXUS_SurfaceClient_GetSettings(priv->surfaceClient, &clientSettings);
          if (priv->displayType == NXPL_2D)
@@ -329,7 +331,7 @@ static void *RunDisplayThread(void *p)
 
 #ifdef NXCLIENT_SUPPORT
          /* if the new surface has different composition settings, reprogram */
-         int windowTest = memcmp(&priv->windowInfo, &s->windowInfo, sizeof(NXPL_NativeWindowInfo));
+         int windowTest = memcmp(&priv->windowInfo, &s->windowInfo, sizeof(NXPL_NativeWindowInfoEXT));
          if (windowTest)
          {
             SetComposition(priv);
@@ -337,7 +339,7 @@ static void *RunDisplayThread(void *p)
             priv->windowInfo = s->windowInfo;
          }
 #endif /* NXCLIENT_SUPPORT */
-#endif /* NXPL_PLATFORM_NSC */
+#endif /* NXPL_PLATFORM_EXCLUSIVE */
 
          int swapInterval = s->swapInterval;
          if (swapInterval > 0)
@@ -367,9 +369,7 @@ static void *RunDisplayThread(void *p)
          NEXUS_Error err = NEXUS_Display_SetGraphicsFramebuffer3D(priv->display, &fb3d);
          if (err != NEXUS_SUCCESS)
             FATAL_ERROR("NEXUS_Display_SetGraphicsFramebuffer3D failed");
-#endif /* NXPL_PLATFORM_EXCLUSIVE */
-
-#ifdef NXPL_PLATFORM_NSC
+#else
          err = NEXUS_SurfaceClient_PushSurface(priv->surfaceClient, s->surface, NULL, false);
          if (err != NEXUS_SUCCESS)
             FATAL_ERROR("NEXUS_SurfaceClient_PushSurface failed");
@@ -416,9 +416,6 @@ static void *RunDisplayThread(void *p)
    DeleteQueue(priv->displayQueue);
    DeleteQueue(priv->fenceQueue);
 
-   priv->displayQueue = CreateQueue(priv->numSurfaces, sizeof(NXPL_Surface));
-   DeleteQueue(priv->displayQueue);
-
    return NULL;
 }
 
@@ -427,17 +424,15 @@ void *CreateWorkerThread(void *nw,
                          BEGL_SchedInterface *schedIface,
                          int numSurfaces,
                          int *bound,
-                         NXPL_NativeWindowInfo *windowInfo,
+                         NXPL_NativeWindowInfoEXT *windowInfo,
                          BEGL_BufferFormat format,
                          NEXUS_DISPLAYHANDLE display,
                          NXPL_DisplayType displayType)
-#endif
-
-#ifdef NXPL_PLATFORM_NSC
+#else
 void *CreateWorkerThread(void *nw,
                          BEGL_SchedInterface *schedIface,
                          int numSurfaces,
-                         NXPL_NativeWindowInfo *windowInfo,
+                         NXPL_NativeWindowInfoEXT *windowInfo,
                          BEGL_BufferFormat format,
                          uint32_t clientID,
                          NEXUS_SurfaceClientHandle surfaceClient,
@@ -463,9 +458,7 @@ void *CreateWorkerThread(void *nw,
    priv->bound = bound;
    priv->display = display;
    priv->lastFence = -1;
-#endif
-
-#ifdef NXPL_PLATFORM_NSC
+#else
    priv->clientID = clientID;
    priv->surfaceClient = surfaceClient;
    priv->display = NULL;
@@ -541,8 +534,12 @@ BEGL_Error QueueSurface(void *p, void *nativeSurface, int fence, int swapInterva
    {
       s->poisoned = false;
       s->fence = fence;
+#ifndef NXPL_PLATFORM_EXCLUSIVE
+      swapInterval = 1;    /* Multi-process only works with swap interval 1 */
+#endif
       /* copy the swapInterval at this point as it should only take effect for subsequent buffers */
       s->swapInterval = swapInterval;
+
       SendMessage(priv->displayQueue, s);
 
       return BEGL_Success;

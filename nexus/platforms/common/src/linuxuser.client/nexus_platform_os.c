@@ -135,14 +135,14 @@ void *NEXUS_Platform_P_MapMemory( NEXUS_Addr offset, size_t length, NEXUS_Memory
     case NEXUS_MemoryMapType_eCached:
         addr = mmap64(0, length, PROT_READ|PROT_WRITE, MAP_SHARED, NEXUS_Platform_P_State.mem_fd, offset);
         if (addr == MAP_FAILED) {
-            BDBG_ERR(("mmap failed: offset " BDBG_UINT64_FMT ", size=%u, errno=%d", BDBG_UINT64_ARG(offset), length, errno));
+            BDBG_ERR(("mmap failed: offset " BDBG_UINT64_FMT ", size=%lu, errno=%d", BDBG_UINT64_ARG(offset), (unsigned long)length, errno));
             addr = NULL;
         }
         break;
     case NEXUS_MemoryMapType_eFake:
         addr = mmap64(0, length, PROT_NONE, MAP_SHARED, NEXUS_Platform_P_State.fake_mem_fd, 0);
         if (addr == MAP_FAILED) {
-            BDBG_ERR(("mmap failed: offset " BDBG_UINT64_FMT ", size=%u, errno=%d", BDBG_UINT64_ARG(offset), length, errno));
+            BDBG_ERR(("mmap failed: offset " BDBG_UINT64_FMT ", size=%lu, errno=%d", BDBG_UINT64_ARG(offset), (unsigned long)length, errno));
             addr = NULL;
         }
         break;
@@ -150,7 +150,7 @@ void *NEXUS_Platform_P_MapMemory( NEXUS_Addr offset, size_t length, NEXUS_Memory
         addr = NULL;
         break;
     }
-    BDBG_MSG(("mmap  offset:" BDBG_UINT64_FMT " size:%u -> %p", BDBG_UINT64_ARG(offset), length, addr));
+    BDBG_MSG(("mmap  offset:" BDBG_UINT64_FMT " size:%lu -> %p", BDBG_UINT64_ARG(offset), (unsigned long)length, addr));
     return addr;
 }
 
@@ -509,7 +509,7 @@ void NEXUS_Platform_P_StopCallbacks(void *interfaceHandle)
 {
     /* stop callbacks that are local */
     NEXUS_Base_P_StopCallbacks(interfaceHandle);
-    
+
     /* stop callbacks in server and in flight */
     NEXUS_P_Client_StopCallbacks(g_client, interfaceHandle);
 }
@@ -518,7 +518,7 @@ void NEXUS_Platform_P_StartCallbacks(void *interfaceHandle)
 {
     /* start callbacks in server */
     NEXUS_P_Client_StartCallbacks(g_client, interfaceHandle);
-    
+
     /* start callbacks that are local */
     NEXUS_Base_P_StartCallbacks(interfaceHandle);
 }

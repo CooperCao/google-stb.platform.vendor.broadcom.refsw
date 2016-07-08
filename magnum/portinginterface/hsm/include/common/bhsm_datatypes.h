@@ -1,41 +1,43 @@
 /******************************************************************************
- *    (c)2007-2015 Broadcom Corporation
- *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
- *
- * Except as expressly set forth in the Authorized License,
- *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
- *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
- *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *
- *****************************************************************************/
+* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*
+* This program is the proprietary software of Broadcom and/or its
+* licensors, and may only be used, duplicated, modified or distributed pursuant
+* to the terms and conditions of a separate, written license agreement executed
+* between you and Broadcom (an "Authorized License").  Except as set forth in
+* an Authorized License, Broadcom grants no license (express or implied), right
+* to use, or waiver of any kind with respect to the Software, and Broadcom
+* expressly reserves all rights in and to the Software and all intellectual
+* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*
+* Except as expressly set forth in the Authorized License,
+*
+* 1. This program, including its structure, sequence and organization,
+*    constitutes the valuable trade secrets of Broadcom, and you shall use all
+*    reasonable efforts to protect the confidentiality thereof, and to use
+*    this information only in connection with your use of Broadcom integrated
+*    circuit products.
+*
+* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+*
+* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. , WHICHEVER
+*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+******************************************************************************/
 
 #ifndef BHSM_DATATYPES_H__
 #define BHSM_DATATYPES_H__
@@ -47,25 +49,8 @@
 extern "C" {
 #endif
 
-#define BHSM_DEBUG_POLLING            (0)             /* to turn off */
-#define BHSM_SECURE_MEMORY_SIZE       (4)           /* size of secure memory passed in by client.*/
-
-
-/*DEPRECATED ... scheduled for deletion. */
-#define BHSM_P_CHECK_ERR_CODE_FUNC( errCode, function )        \
-    if( (errCode = (function)) != BERR_SUCCESS )    \
-    {                            \
-        errCode = BERR_TRACE(errCode);    \
-        goto BHSM_P_DONE_LABEL;    \
-    }
-
-/*DEPRECATED ... scheduled for deletion. */
-#define BHSM_P_CHECK_ERR_CODE_FUNC2( errCode, errCodeValue, function )            \
-    if ( ( errCode = (function)) != BERR_SUCCESS ) \
-    {                                        \
-        errCode = BERR_TRACE(errCodeValue);    \
-        goto BHSM_P_DONE_LABEL;                            \
-    }
+#define BHSM_DEBUG_POLLING            (0)           /* to turn off                                */
+#define BHSM_SECURE_MEMORY_SIZE       (4)           /* size of secure memory passed in by client. */
 
 /*DEPRECATED ... scheduled for deletion. */
 #define BHSM_P_CHECK_ERR_CODE_CONDITION( errCode, errCodeValue, condition )            \
@@ -105,26 +90,12 @@ extern "C" {
 #define BHSM_STATUS_REGION_VERIFICATION_IN_PROGRESS  BERR_MAKE_CODE(BERR_ICM_ID, 1002) /* region verification is in progress. */
 #define BHSM_STATUS_REGION_VERIFICATION_NOT_DEFINED  BERR_MAKE_CODE(BERR_ICM_ID, 1003) /* region verification is in progress. */
 
-#define BHSM_MAX_SUPPOTED_CHANNELS  BHSM_HwModule_eMax /*DEPRECATED .. The concept of channels have been deprecated from HSM API. */
-
 /* To hide M2M changes from the upper layer Nexus Security */
 #if HSM_IS_ASKM_28NM_ZEUS_4_2
 #define   BCMD_KeyDestBlockType_eMem2Mem    BCMD_KeyDestBlockType_eReserved5
 #elif HSM_IS_ASKM_28NM_ZEUS_4_0
 #define   BCMD_KeyDestBlockType_eMem2Mem    BCMD_KeyDestBlockType_eReserved3
 #endif
-
-
-
-
-/* BSP interface configuration options */
-typedef enum  BHSM_SpecialCtrol_Flags{
-    BHSM_CTRLS_POLLINGORISR=1,   /* BSP interface to us a polling interface (rather than an event BSP interface). */
-    BHSM_CTRLS_TIMEOUT=2,        /* DEPREACTED */
-
-    BHSM_CTRLS_MAX
-}BHSM_SpecialCtrol_Flag_e;
-
 
 /* Used to enumerate the possible HSM Client contexts.  */
 typedef enum BHSM_ClientType_e
@@ -170,7 +141,7 @@ typedef enum BHSM_Key2Select
 
 typedef struct
 {
-    unsigned int numKeySlotTypes;
+    unsigned numKeySlotTypes;
     uint8_t numKeySlot[BCMD_XptSecKeySlot_eTypeMax];
     unsigned numMulti2KeySlots;  /* Zeus3.0-,  1 enable (8 by default), 0 disable.
                                                               Zeus4.0+,  Number of Multi2 KeySlots  */
@@ -210,21 +181,15 @@ typedef struct BHSM_Capabilities
 
 
 
-
-/* DEPRECATED: HSM is currently not calling back.*/
-typedef void (*BHSM_IsrCallbackFunc)( void * inp_handle, void * inp_data);
-
-
 /***************************************************************************
 Summary:
 Required default settings structure for Host Secure module.
 ****************************************************************************/
 typedef struct BHSM_Setting
 {
-    unsigned char    ucMaxChannels;         /* DEPRECATED: Teh concept of channels has been removed from HSM API */
-    unsigned long    ulTimeOutInMilSecs;    /* DEPRECATED: */
-    BHSM_IsrCallbackFunc exceptionCBfunc;   /* DEPRECATED */
+    unsigned char     ucMaxChannels;        /* DEPRECATED  The concept of channels has been removed from HSM API */
     unsigned long     uSpecialControl;      /* DEPRECATED */
+    unsigned long     ulTimeOutInMilSecs;   /* Timeout waiting for BSP responce. Default 2 seconds */
     BMEM_Heap_Handle  hHeap;                /* newly added for IPTV contiguous memeory support inside HSM*/
     BHSM_ClientType_e clientType;           /* specify client type to be Host or Sage */
     bool              sageEnabled;          /* SAGE is enabled in environment. Currenly only interpreted on HOST side */
@@ -244,20 +209,6 @@ typedef enum BHSM_PidChannelType {
 } BHSM_PidChannelType_e;
 
 
-/*DEPRECATED .. Allowed user to request different notification tyes. */
-typedef enum  BHSM_IntrType {
-      BHSM_IntrType_eOLoad1,
-      BHSM_IntrType_eOLoad2,
-      BHSM_IntrType_eReserved0,
-      BHSM_IntrType_eException,
-      BHSM_IntrType_eMax
-} BHSM_IntrType;
-
-/* DEPRECATED. The concept of channels have been deprecated from HSM API. */
-typedef struct BHSM_ChannelSetting
-{
-    unsigned char  ucUnknown;
-} BHSM_ChannelSettings;
 
 /* DEPRECATED. The concept of channels have been deprecated from HSM API. */
 typedef enum BHSM_HwModule {
@@ -266,12 +217,6 @@ typedef enum BHSM_HwModule {
    BHSM_HwModule_eMax
 } BHSM_HwModule;
 
-/*DEPRECATED. */
-typedef struct BHSM_NewSettings{
-    BHSM_SpecialCtrol_Flag_e   whichControl;
-    unsigned long ctrlValue;
-    unsigned long timeoutMs;
-} BHSM_NewSettings_t;
 
 #ifdef __cplusplus
 }

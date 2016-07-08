@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2013 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -73,7 +73,7 @@ void NEXUS_StripedSurface_GetDefaultCreateSettings(
 /**
 Summary:
 **/
-NEXUS_StripedSurfaceHandle NEXUS_StripedSurface_Create(
+NEXUS_StripedSurfaceHandle NEXUS_StripedSurface_Create( /* attr{destructor=NEXUS_StripedSurface_Destroy}  */
     const NEXUS_StripedSurfaceCreateSettings *pSettings
     );
 

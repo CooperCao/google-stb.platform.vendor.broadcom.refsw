@@ -20,7 +20,7 @@
  ***************************************************************************/
 #include "bstd.h"
 #include "bast.h"
-#include "bchp_hif.h"
+#include "bchp_4538_hif.h"
 #include "bast_priv.h"
 #include "bast_4538.h"
 #include "bast_4538_priv.h"

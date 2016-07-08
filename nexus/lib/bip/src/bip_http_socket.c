@@ -1,43 +1,39 @@
 /******************************************************************************
- * (c) 2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 
 /**
@@ -168,7 +164,7 @@ static void httpSocketDestroy(
 
     if ( hHttpSocket->hShutdownEvent ) B_Event_Destroy( hHttpSocket->hShutdownEvent );
     BDBG_OBJECT_DESTROY( hHttpSocket, BIP_HttpSocket );
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpSocket %p: Destroyed" BIP_MSG_PRE_ARG, hHttpSocket ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpSocket %p: Destroyed" BIP_MSG_PRE_ARG, (void *)hHttpSocket ));
     B_Os_Free( hHttpSocket );
 } /* httpSocketDestroy */
 
@@ -187,7 +183,7 @@ BIP_HttpSocketHandle BIP_HttpSocket_CreateFromBipSocket(
 
     /* Create the httpSocket object */
     hHttpSocket = B_Os_Calloc( 1, sizeof( BIP_HttpSocket ));
-    BIP_CHECK_GOTO(( hHttpSocket != NULL ), ( "Failed to allocate memory (%d bytes) for HttpSocket Object", sizeof(BIP_HttpSocket) ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, brc );
+    BIP_CHECK_GOTO(( hHttpSocket != NULL ), ( "Failed to allocate memory (%zu bytes) for HttpSocket Object", sizeof(BIP_HttpSocket) ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, brc );
 
     BDBG_OBJECT_SET( hHttpSocket, BIP_HttpSocket );
     hHttpSocket->hSocket = hSocket;
@@ -285,7 +281,7 @@ BIP_HttpSocketHandle BIP_HttpSocket_CreateFromBipSocket(
         B_Time_Get(&hHttpSocket->recv.initialRequestStartTime);
     }
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Created hHttpSocket %p: state %d" BIP_MSG_PRE_ARG, hHttpSocket, hHttpSocket->httpState));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Created hHttpSocket %p: state %d" BIP_MSG_PRE_ARG, (void *)hHttpSocket, hHttpSocket->httpState));
 
     BIP_MSG_TRC(( BIP_MSG_PRE_FMT "Created from BipSocket: " BIP_HTTP_SOCKET_PRINTF_FMT
                   BIP_MSG_PRE_ARG, BIP_HTTP_SOCKET_PRINTF_ARG(hHttpSocket)));
@@ -336,13 +332,13 @@ void BIP_HttpSocket_Destroy(
     brc = BIP_Arb_Submit(hArb, &arbSettings, NULL);
     BIP_CHECK_GOTO((brc == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed" ), error, brc, brc );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpSocket %p: Waiting for HttpSocket Shutdown Event Completion!" BIP_MSG_PRE_ARG, hHttpSocket ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpSocket %p: Waiting for HttpSocket Shutdown Event Completion!" BIP_MSG_PRE_ARG, (void *)hHttpSocket ));
     B_Event_Wait( hHttpSocket->hShutdownEvent, B_WAIT_FOREVER );
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpSocket %p: Received HttpSocket Shutdown Event, so start destroying the object" BIP_MSG_PRE_ARG, hHttpSocket ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpSocket %p: Received HttpSocket Shutdown Event, so start destroying the object" BIP_MSG_PRE_ARG, (void *)hHttpSocket ));
 
     httpSocketDestroy( hHttpSocket );
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpSocket %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, hHttpSocket, brc ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpSocket %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hHttpSocket, brc ));
 
     return;
 } /* BIP_HttpSocket_Destroy */
@@ -359,7 +355,7 @@ void BIP_HttpSocket_GetSettings(
     BDBG_OBJECT_ASSERT( hHttpSocket, BIP_HttpSocket );
     BDBG_ASSERT( pSettings );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpSocket %p: --------------------->" BIP_MSG_PRE_ARG, hHttpSocket));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpSocket %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hHttpSocket));
 
     /* Serialize access to Settings state among another thread calling the same _GetSettings API. */
     hArb = hHttpSocket->getSettingsApi.hArb;
@@ -380,7 +376,7 @@ void BIP_HttpSocket_GetSettings(
     BIP_CHECK_GOTO((brc == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed" ), error, brc, brc );
 
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpSocket %p (bipStatus: %s): <--------------------- " BIP_MSG_PRE_ARG, hHttpSocket, BIP_StatusGetText(brc)));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpSocket %p (bipStatus: %s): <--------------------- " BIP_MSG_PRE_ARG, (void *)hHttpSocket, BIP_StatusGetText(brc)));
 
     return;
 }
@@ -397,7 +393,7 @@ BIP_Status BIP_HttpSocket_SetSettings(
     BDBG_OBJECT_ASSERT( hHttpSocket, BIP_HttpSocket );
     BDBG_ASSERT( pSettings );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpSocket %p: --------------------->" BIP_MSG_PRE_ARG, hHttpSocket));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpSocket %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hHttpSocket));
 
     /* Serialize access to Settings state among another thread calling the same _SetSettings API. */
     hArb = hHttpSocket->setSettingsApi.hArb;
@@ -418,7 +414,7 @@ BIP_Status BIP_HttpSocket_SetSettings(
     BIP_CHECK_GOTO((brc == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed" ), error, brc, brc );
 
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpSocket %p: completionStatus %s <--------------------- " BIP_MSG_PRE_ARG, hHttpSocket, BIP_StatusGetText(brc) ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpSocket %p: completionStatus %s <--------------------- " BIP_MSG_PRE_ARG, (void *)hHttpSocket, BIP_StatusGetText(brc) ));
 
     return( brc );
 } /* BIP_HttpSocket_SetSettings */
@@ -444,7 +440,7 @@ BIP_Status BIP_HttpSocket_RecvRequest(
     BDBG_ASSERT( pSettings );
     BIP_SETTINGS_ASSERT(pSettings, BIP_HttpSocketRecvRequestSettings);
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpSocket %p: --------------------->" BIP_MSG_PRE_ARG, hHttpSocket));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpSocket %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hHttpSocket));
     BIP_CHECK_GOTO(( phHttpRequest ), ( "phHttpRequest can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, brc );
     BIP_CHECK_GOTO(( phHttpResponse ), ( "phHttpResponse can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, brc );
 
@@ -473,7 +469,7 @@ BIP_Status BIP_HttpSocket_RecvRequest(
     apiSettings.pAsyncStatus = pSettings->pAsyncStatus;
     brc = BIP_Arb_Submit(hArb, &arbSettings, &apiSettings);
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpSocket %p (bipStatus: %s): <--------------------- " BIP_MSG_PRE_ARG, hHttpSocket, BIP_StatusGetText(brc)));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpSocket %p (bipStatus: %s): <--------------------- " BIP_MSG_PRE_ARG, (void *)hHttpSocket, BIP_StatusGetText(brc)));
 
 error:
     return( brc );
@@ -501,7 +497,7 @@ BIP_Status BIP_HttpSocket_SendResponse(
     BDBG_ASSERT( pSettings );
     BIP_SETTINGS_ASSERT(pSettings, BIP_HttpSocketSendResponseSettings);
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpSocket %p: --------------------->" BIP_MSG_PRE_ARG, hHttpSocket));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpSocket %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hHttpSocket));
 
     BIP_CHECK_GOTO(( hHttpRequest ), ( "hHttpRequest can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, brc );
     BIP_CHECK_GOTO(( hHttpResponse ), ( "hHttpResponse can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, brc );
@@ -535,7 +531,7 @@ BIP_Status BIP_HttpSocket_SendResponse(
     BIP_CHECK_GOTO((brc == BIP_SUCCESS || brc == BIP_INF_IN_PROGRESS),
                     ( "BIP_Arb_SubmitRequest() Failed" ), error, brc, brc );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpSocket %p (bipStatus: %s): <--------------------- " BIP_MSG_PRE_ARG, hHttpSocket, BIP_StatusGetText(brc)));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpSocket %p (bipStatus: %s): <--------------------- " BIP_MSG_PRE_ARG, (void *)hHttpSocket, BIP_StatusGetText(brc)));
 error:
     return( brc );
 }
@@ -563,8 +559,8 @@ BIP_Status BIP_HttpSocket_SendPayload(
 
     BIP_CHECK_GOTO(( hHttpSocket ), ( "hHttpSocket can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, brc );
     BIP_CHECK_GOTO(( pBuffer ), ( "pBuffer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, brc );
-    BIP_CHECK_GOTO(( bytesToSend > 0 ), ( "bytesToSend (%d) must be > 0 ", bytesToSend ), error, BIP_ERR_INVALID_PARAMETER, brc );
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpSocket %p: --------------------->" BIP_MSG_PRE_ARG, hHttpSocket));
+    BIP_CHECK_GOTO(( bytesToSend > 0 ), ( "bytesToSend (%zu) must be > 0 ", bytesToSend ), error, BIP_ERR_INVALID_PARAMETER, brc );
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpSocket %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hHttpSocket));
 
     if ( pSettings == NULL )
     {
@@ -592,7 +588,7 @@ BIP_Status BIP_HttpSocket_SendPayload(
     BIP_CHECK_GOTO((brc == BIP_SUCCESS || brc == BIP_INF_IN_PROGRESS),
                   ( "BIP_Arb_SubmitRequest() Failed" ), error, brc, brc );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpSocket %p (bipStatus: %s): <--------------------- " BIP_MSG_PRE_ARG, hHttpSocket, BIP_StatusGetText(brc)));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpSocket %p (bipStatus: %s): <--------------------- " BIP_MSG_PRE_ARG, (void *)hHttpSocket, BIP_StatusGetText(brc)));
 
 error:
     return( brc );

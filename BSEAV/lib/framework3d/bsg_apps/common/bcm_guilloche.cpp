@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -11,7 +11,7 @@
  * Software and all intellectual property rights therein.  IF YOU HAVE NO
  * AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
  * AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
- * SOFTWARE.  
+ * SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
@@ -59,10 +59,10 @@ GuillocheFactory::GuillocheFactory(uint32_t isteps, uint32_t lines) :
 {
    float step      = 0.999f / (float)(isteps - 3);
    float line_step = 1.0f / (float)lines;
-   
+
    No(ShapeFactory::eNORMAL);
    No(ShapeFactory::eTEXCOORD1);
-   
+
    for (uint32_t j = 0; j < lines; ++j)
    {
       float interp = j * line_step;
@@ -103,7 +103,7 @@ static void CopyControl(std::vector<Vec2> &to, uint32_t size, const Vec2 *from)
 //
 // Basic form of Guilloche is specified via two curves.  Each curve is specified via control points which are expected to
 // lie in the region 0 <= x <= 1 and -0.5 <= y <= 0.5.
-// 
+//
 // The pattern is drawn using numSteps line segments (each segment is 2 triangles)
 // The number of lines in the pattern is specified using numLines
 //
@@ -182,11 +182,9 @@ void Guilloche::SetScale(float horizScale, float vertScaleStart, float vertScale
 //
 // Sets the width of lines in NDC screen (0 .. 1) space
 //
-void Guilloche::SetWidth(float width, bool useY)
+void Guilloche::SetWidth(float width)
 {
-   IVec2 dim = Application::Instance()->GetQuadRender().GetDimensions();
-
-   m_material->SetUniform("u_width", width * (useY ? dim.Y() : dim.X()));
+   m_material->SetUniform("u_width", width);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -197,7 +195,7 @@ void Guilloche::SetWidth(float width, bool useY)
 // It can be positioned using pos and rot.
 //
 // pos runs 0 <= x <= 1 and 0 <= y <= 1 over the display (y positive up)
-// rot is the angle of rotation about the left centre of the waveform 
+// rot is the angle of rotation about the left centre of the waveform
 GuillochePanel::GuillochePanel(const Guilloche &guilloche, const Vec2 &pos, float rot) :
    m_guilloche(guilloche),
    m_camera(New),
@@ -215,10 +213,10 @@ GuillochePanel::GuillochePanel(const Guilloche &guilloche, const Vec2 &pos, floa
    SceneNodeHandle   guillocheRot(New);
 
    guillocheMove->SetPosition(Vec3(pos.X() - 0.5f, pos.Y() - 0.5f, 0.0f));
-   guillocheMove->AppendChild(guillocheRot);   
+   guillocheMove->AppendChild(guillocheRot);
 
    guillocheRot->SetRotation(rot, Vec3(0.0f, 0.0f, 1.0f));
-   guillocheRot->AppendChild(m_guilloche.GetRoot());   
+   guillocheRot->AppendChild(m_guilloche.GetRoot());
 
    m_root->AppendChild(guillocheMove);
    m_root->AppendChild(cameraNode);

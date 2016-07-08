@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,8 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
  *  Example program to demonstrate receiving live or playback content over IP Channels (UDP/RTP/RTSP/HTTP based)
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ******************************************************************************/
 #include "ip_includes.h"
@@ -547,9 +539,9 @@ int preChargeNetworkBuffer(B_PlaybackIpHandle playbackIp, unsigned int preCharge
         BKNI_Sleep(100);
         rc = B_PlaybackIp_GetStatus(playbackIp, &playbackIpStatus);
         if (rc) {BDBG_WRN(("NEXUS Error (%d) at %d, returning...\n", rc, __LINE__)); return (-1);}
-        BDBG_WRN(("currently buffered %lu milli-sec of data, max duration %d, required %u milli-sec of buffer...\n", playbackIpStatus.curBufferDuration, playbackIpStatus.maxBufferDuration, preChargeTime*1000));
+        BDBG_WRN(("currently buffered %lu milli-sec of data, max duration %lu, required %u milli-sec of buffer...\n", (unsigned long)playbackIpStatus.curBufferDuration, (unsigned long)playbackIpStatus.maxBufferDuration, preChargeTime*1000));
         if (playbackIpStatus.curBufferDuration >= playbackIpStatus.maxBufferDuration) {
-            BDBG_WRN(("currently buffered %lu max duration %d milli-sec worth data, so done buffering \n", playbackIpStatus.curBufferDuration, playbackIpStatus.maxBufferDuration));
+            BDBG_WRN(("currently buffered %lu max duration %lu milli-sec worth data, so done buffering \n", (unsigned long)playbackIpStatus.curBufferDuration, (unsigned long)playbackIpStatus.maxBufferDuration));
             break;
         }
         if (!prevBufferDuration)
@@ -563,7 +555,7 @@ int preChargeNetworkBuffer(B_PlaybackIpHandle playbackIp, unsigned int preCharge
             }
         }
         if (noChangeInBufferDepth >= 1000) {
-            BDBG_WRN(("Warning: can't buffer upto the required buffer depth, currently buffered %lu max duration %d milli-sec worth data, so done buffering \n", playbackIpStatus.curBufferDuration, playbackIpStatus.maxBufferDuration));
+            BDBG_WRN(("Warning: can't buffer upto the required buffer depth, currently buffered %lu max duration %lu milli-sec worth data, so done buffering \n", (unsigned long)playbackIpStatus.curBufferDuration, (unsigned long)playbackIpStatus.maxBufferDuration));
             break;
         }
         /* keep buffering until we have buffered upto the high water mark or eof/server close events happen */
@@ -577,16 +569,16 @@ int preChargeNetworkBuffer(B_PlaybackIpHandle playbackIp, unsigned int preCharge
     if (rc) {BDBG_WRN(("NEXUS Error (%d) at %d, returning...\n", rc, __LINE__)); return (-1);}
 
     if (gEof) {
-        BDBG_WRN(("Buffering Aborted due to EOF, buffered %lu milli-sec worth of data...\n", playbackIpStatus.curBufferDuration));
+        BDBG_WRN(("Buffering Aborted due to EOF, buffered %lu milli-sec worth of data...\n", (unsigned long)playbackIpStatus.curBufferDuration));
         return -1;
     }
     else if (playbackIpStatus.serverClosed) {
-        BDBG_WRN(("Can't Buffer anymore due to server closed connection, buffered %lu milli-sec worth of data...\n", playbackIpStatus.curBufferDuration));
+        BDBG_WRN(("Can't Buffer anymore due to server closed connection, buffered %lu milli-sec worth of data...\n", (unsigned long)playbackIpStatus.curBufferDuration));
         /* Note: this is not an error case as server may have closed connection, but we may not have played all this data, so let playback finish */
         return 0;
     }
     else {
-        BDBG_WRN(("Buffering Complete (buffered %lu milli-sec worth of data), serverClosed %d...\n", playbackIpStatus.curBufferDuration, playbackIpStatus.serverClosed));
+        BDBG_WRN(("Buffering Complete (buffered %lu milli-sec worth of data), serverClosed %d...\n", (unsigned long)playbackIpStatus.curBufferDuration, playbackIpStatus.serverClosed));
         return 0;
     }
 }
@@ -651,12 +643,12 @@ runSeekTestAndVerify(B_PlaybackIpPsiInfo *psi, B_PlaybackIpHandle playbackIp, NE
         if (B_PlaybackIp_Seek(playbackIp, &ipTrickModeSettings)) {BDBG_ERR(("ERROR: Failed to seek Ip playback\n")); goto out;}
         sleep(2);
         if (B_PlaybackIp_GetStatus(playbackIp, &playbackIpStatusNew)) {BDBG_WRN(("NEXUS Error (%d) at %d, returning...\n", rc, __LINE__)); goto out;}
-        if (abs((int)(ipTrickModeSettings.seekPosition - playbackIpStatusNew.position)) > (4*1000) ) {BDBG_WRN(("Seek to %d sec position failed: current position %d", seekPosition, playbackIpStatusNew.position/1000)); goto out;}
-        BDBG_WRN(("*********** %s: seeked successfully to %d sec *********** ", __FUNCTION__, seekPosition));
+        if (abs((unsigned long)(ipTrickModeSettings.seekPosition - playbackIpStatusNew.position)) > (4*1000) ) {BDBG_WRN(("Seek to %lu sec position failed: current position %lu", (unsigned long)seekPosition, (unsigned long)playbackIpStatusNew.position/1000)); goto out;}
+        BDBG_WRN(("*********** %s: seeked successfully to %lu sec *********** ", __FUNCTION__, (unsigned long)seekPosition));
     }
     else
     {
-        BDBG_WRN(("*********** %s: Can't seek %d sec , it is beyond end of stream *********** ", __FUNCTION__, seekPosition));
+        BDBG_WRN(("*********** %s: Can't seek %lu sec , it is beyond end of stream *********** ", __FUNCTION__, (unsigned long)seekPosition));
     }
 
     rc = 0;
@@ -702,7 +694,7 @@ int executePause(B_PlaybackIpHandle playbackIp)
     if (playbackIpStatus.ipState != B_PlaybackIpState_ePaused) {BDBG_WRN(("Pause failed: state is %d", playbackIpStatus.ipState)); goto out;}
     sleep(1);
     if (B_PlaybackIp_GetStatus(playbackIp, &playbackIpStatusNew)) {BDBG_WRN(("NEXUS Error (%d) at %d, returning...\n", rc, __LINE__)); goto out;}
-    if (playbackIpStatus.position != playbackIpStatusNew.position) {BDBG_WRN(("Pause failed: positions are %d, %d", playbackIpStatus.position, playbackIpStatusNew.position)); goto out;}
+    if (playbackIpStatus.position != playbackIpStatusNew.position) {BDBG_WRN(("Pause failed: positions are %lu, %lu", (unsigned long)playbackIpStatus.position, (unsigned long)playbackIpStatusNew.position)); goto out;}
     BDBG_WRN(("*********** Successfully Paused Ip playback*********** \n"));
 
     rc = 0;
@@ -720,7 +712,7 @@ int executePlay(B_PlaybackIpHandle playbackIp)
     if (playbackIpStatus.ipState != B_PlaybackIpState_ePlaying) {BDBG_WRN(("Pause-Resume failed: state is %d", playbackIpStatus.ipState)); goto out;}
     sleep(2);
     if (B_PlaybackIp_GetStatus(playbackIp, &playbackIpStatusNew)) {BDBG_WRN(("NEXUS Error (%d) at %d, returning...\n", rc, __LINE__)); goto out;}
-    if (playbackIpStatus.position == playbackIpStatusNew.position || playbackIpStatusNew.position < playbackIpStatus.position) {BDBG_WRN(("Pause-Resume failed: positions are %d, %d", playbackIpStatus.position, playbackIpStatusNew.position)); goto out;}
+    if (playbackIpStatus.position == playbackIpStatusNew.position || playbackIpStatusNew.position < playbackIpStatus.position) {BDBG_WRN(("Pause-Resume failed: positions are %lu, %lu", (unsigned long)playbackIpStatus.position, (unsigned long)playbackIpStatusNew.position)); goto out;}
     BDBG_WRN(("*********** Successfully Pause-Resumed Ip playback*********** \n"));
 
     rc = 0;
@@ -768,7 +760,7 @@ runPlaybackIpUnitTests(B_PlaybackIpPsiInfo *psi, B_PlaybackIpHandle playbackIp)
     if (B_PlaybackIp_Seek(playbackIp, &ipTrickModeSettings)) {BDBG_ERR(("ERROR: Failed to seek Ip playback\n")); goto out;}
     sleep(2);
     if (B_PlaybackIp_GetStatus(playbackIp, &playbackIpStatusNew)) {BDBG_WRN(("NEXUS Error (%d) at %d, returning...\n", rc, __LINE__)); goto out;}
-    if (playbackIpStatus.position-31000 > playbackIpStatusNew.position) {BDBG_WRN(("Seek relative back by 30sec position failed: positions is %d, %d", playbackIpStatus.position, playbackIpStatusNew.position)); goto out;}
+    if (playbackIpStatus.position-31000 > playbackIpStatusNew.position) {BDBG_WRN(("Seek relative back by 30sec position failed: positions is %lu, %lu", (unsigned long)playbackIpStatus.position, (unsigned long)playbackIpStatusNew.position)); goto out;}
     BDBG_WRN(("*********** %s: successfully seeked backward to 30sec *********** ", __FUNCTION__));
     sleep(10);
 
@@ -1064,7 +1056,7 @@ static void pcr_callback(void *context, int param)
         NEXUS_StcChannel_GetStc(stcChannel, &stc);
         gettimeofday(&tv, NULL);
         miliseconds = tv.tv_usec/1000;
-        BDBG_WRN(("pcr=%x stc %x lastError=%d pcrCount=%d pcrErrors=%d pcrValid=%d pcrdiff=%d timediff=%d \n",
+        BDBG_WRN(("pcr=%x stc %x lastError=%d pcrCount=%d pcrErrors=%d pcrValid=%d pcrdiff=%d timediff=%ld \n",
                     status.lastValue, stc, status.lastError,status.pcrCount,status.pcrErrors,status.pcrValid,(((status.lastValue-lastPcr)*1000)/45000),miliseconds-lastTimeMs));
         lastPcr = status.lastValue;
         lastTimeMs = miliseconds;
@@ -1462,7 +1454,7 @@ int main(int argc, char *argv[])
                 goto error;
             }
             for (i=0; i<ipSessionSetupStatus.u.rtsp.scaleListEntries; i++) {
-                BDBG_MSG(("scale list[%d] = %0.1f", ipSessionSetupStatus.u.rtsp.scaleList[i]));
+                BDBG_MSG(("scale list[%d] = %0.1f", i,ipSessionSetupStatus.u.rtsp.scaleList[i]));
             }
             psi = ipSessionSetupStatus.u.rtsp.psi;
             stream = (bmedia_probe_stream *)(ipSessionSetupStatus.u.rtsp.stream);
@@ -1608,7 +1600,7 @@ int main(int argc, char *argv[])
             BDBG_MSG (("psi.mpegType: %u ",             psi.mpegType));
             BDBG_MSG (("psi.pcrPid: %u ",               psi.pcrPid));
             BDBG_MSG (("psi.transportTimeStampEnabled: %u ", psi.transportTimeStampEnabled));
-            BDBG_MSG (("psi.videoFrameRate: %u ",       psi.videoFrameRate));
+            BDBG_MSG (("psi.videoFrameRate: %f ",       psi.videoFrameRate));
             BDBG_MSG (("psi.videoHeight: %u ",          psi.videoHeight));
             BDBG_MSG (("psi.videoPid: %u ",             psi.videoPid));
             BDBG_MSG (("psi.videoWidth: %u ",           psi.videoWidth));
@@ -1616,7 +1608,7 @@ int main(int argc, char *argv[])
             BDBG_MSG (("psi.usePlaypump2ForAudio: %u ", psi.usePlaypump2ForAudio));
             BDBG_WRN (("psi.extraAudioPidsCount: %u ",  psi.extraAudioPidsCount));
 
-            BDBG_MSG (("Session Setup call succeeded, file handle %p", ipSessionSetupStatus.u.http.file));
+            BDBG_MSG (("Session Setup call succeeded, file handle %p", (void *)ipSessionSetupStatus.u.http.file));
             if (ipSessionSetupSettings.u.http.skipPsiParsing)
                 goto skipTrackInfo;
             stream = (bmedia_probe_stream *)(ipSessionSetupStatus.u.http.stream);
@@ -2010,7 +2002,7 @@ skipNexusOpens:
             pidChannelSettings.pidType = NEXUS_PidType_eVideo;
             videoPidChannel = NEXUS_Playpump_OpenPidChannel(playpump, psi.videoPid, &pidChannelSettings);
             if (!videoPidChannel) {BDBG_ERR(("NEXUS Error (%d) at %d, Exiting...\n", rc, __LINE__)); exit(1);}
-            BDBG_MSG (("%s: Opened video pid channel %u for video pid %u ", __FUNCTION__, videoPidChannel, psi.videoPid));
+            BDBG_MSG (("%s: Opened video pid channel %p for video pid %u ", __FUNCTION__, (void *)videoPidChannel, psi.videoPid));
         }
 
         /* Open the extra video pid channel if present in the stream */
@@ -2029,7 +2021,7 @@ skipNexusOpens:
             pidChannelSettings.pidTypeSettings.audio.codec = audioCodec;
             audioPidChannel = NEXUS_Playpump_OpenPidChannel(playpump2?playpump2:playpump, audioPid, &pidChannelSettings);
             if (!audioPidChannel) {BDBG_ERR(("NEXUS Error (%d) at %d, Exiting...\n", rc, __LINE__)); exit(1);}
-            BDBG_MSG (("%s: Opened audio pid channel %u for audio pid %u ", __FUNCTION__, audioPidChannel, audioPid));
+            BDBG_MSG (("%s: Opened audio pid channel %p for audio pid %u ", __FUNCTION__, (void *)audioPidChannel, audioPid));
         }
 
         if (psi.pcrPid && psi.pcrPid != audioPid && psi.pcrPid != psi.videoPid) {
@@ -2038,19 +2030,19 @@ skipNexusOpens:
             pidChannelSettings.pidType = NEXUS_PidType_eUnknown;
             pcrPidChannel = NEXUS_Playpump_OpenPidChannel(playpump, psi.pcrPid, &pidChannelSettings);
             if (!pcrPidChannel) {BDBG_ERR(("NEXUS Error (%d) at %d, Exiting...\n", rc, __LINE__)); exit(1);}
-            BDBG_MSG (("%s: Opened pcr pid channel %u for pcr pid %u ", __FUNCTION__, pcrPidChannel, psi.pcrPid));
+            BDBG_MSG (("%s: Opened pcr pid channel %p for pcr pid %u ", __FUNCTION__, (void *)pcrPidChannel, psi.pcrPid));
             }
         else
         {
             if (psi.pcrPid == audioPid)
             {
                 pcrPidChannel = audioPidChannel;
-                BDBG_MSG (("%s: Setting pcrPidChannel to audioPidChannel %u", __FUNCTION__, pcrPidChannel));
+                BDBG_MSG (("%s: Setting pcrPidChannel to audioPidChannel %p", __FUNCTION__, (void *)pcrPidChannel));
             }
             else
             {
                 pcrPidChannel = videoPidChannel;
-                BDBG_MSG (("%s: Setting pcrPidChannel to videoPidChannel %u", __FUNCTION__, pcrPidChannel));
+                BDBG_MSG (("%s: Setting pcrPidChannel to videoPidChannel %p", __FUNCTION__, (void *)pcrPidChannel));
             }
         }
     }
@@ -2162,9 +2154,9 @@ skipNexusOpens:
             /* this per PCR callback is only for debug purposes */
             timebaseLockedSettings.pcrCallback.callback = pcr_callback;
             timebaseLockedSettings.pcrCallback.context = NULL;
-            BDBG_MSG (("Configured Timebase %d with jitter %d", timebaseLocked, IP_NETWORK_JITTER));
-            BDBG_WRN(("timebase %d: type %d, fr %d, PcrErr %d, trackRange %d, jitterCorr %d",
-                        timebaseLocked,
+            BDBG_MSG (("Configured Timebase %u with jitter %d", (unsigned)timebaseLocked, IP_NETWORK_JITTER));
+            BDBG_WRN(("timebase %u: type %d, fr %d, PcrErr %d, trackRange %d, jitterCorr %d",
+                        (unsigned)timebaseLocked,
                         timebaseLockedSettings.sourceType,
                         timebaseLockedSettings.freeze,
                         timebaseLockedSettings.sourceSettings.pcr.maxPcrError,
@@ -2186,9 +2178,9 @@ skipNexusOpens:
             stcChannelSettings.modeSettings.pcr.disableTimestampCorrection = true;
             /* We just configured the Timebase, so turn off auto timebase config */
             stcChannelSettings.autoConfigTimebase = false;
-            BDBG_MSG(("Configured stc channel: timebase %d, jitter %d", timebaseLocked, IP_NETWORK_JITTER));
-            BDBG_WRN(("stc: timebase %d, mode %d, offsetThr %d, pcrErr %d disJitAdj %d disTs %d, autoConfig %d",
-                        stcChannelSettings.timebase,
+            BDBG_MSG(("Configured stc channel: timebase %u, jitter %d", (unsigned)timebaseLocked, IP_NETWORK_JITTER));
+            BDBG_WRN(("stc: timebase %u, mode %d, offsetThr %d, pcrErr %d disJitAdj %d disTs %d, autoConfig %d",
+                        (unsigned)stcChannelSettings.timebase,
                         stcChannelSettings.mode,
                         stcChannelSettings.modeSettings.pcr.offsetThreshold,
                         stcChannelSettings.modeSettings.pcr.maxPcrError,
@@ -2201,9 +2193,9 @@ skipNexusOpens:
         timebaseFreerunSettings.freeze = true;
         timebaseFreerunSettings.sourceSettings.pcr.trackRange = NEXUS_TimebaseTrackRange_e61ppm;
         timebaseFreerunSettings.sourceType = NEXUS_TimebaseSourceType_eFreeRun;
-        BDBG_MSG(("Configured Timebase %d to freerun \n", timebaseFreerun));
-        BDBG_WRN(("timebase %d: type %d, frz %d, traackRange %d",
-                    timebaseFreerun,
+        BDBG_MSG(("Configured Timebase %u to freerun \n", (unsigned)timebaseFreerun));
+        BDBG_WRN(("timebase %u: type %d, frz %d, traackRange %d",
+                    (unsigned)timebaseFreerun,
                     timebaseFreerunSettings.sourceType,
                     timebaseFreerunSettings.freeze,
                     timebaseFreerunSettings.sourceSettings.pcr.trackRange
@@ -2219,7 +2211,7 @@ skipNexusOpens:
             timebaseLockedSettings.sourceSettings.pcr.pidChannel = pcrPidChannel;
             timebaseLockedSettings.sourceSettings.pcr.maxPcrError = 255;
             timebaseLockedSettings.sourceSettings.pcr.trackRange = NEXUS_TimebaseTrackRange_e61ppm;
-            BDBG_MSG(("Configured Timebase %d with increased tracking range & maxPcrError \n", timebaseLocked));
+            BDBG_MSG(("Configured Timebase %u with increased tracking range & maxPcrError \n", (unsigned)timebaseLocked));
 
         }
         else {
@@ -2228,13 +2220,13 @@ skipNexusOpens:
             timebaseLockedSettings.freeze = true;
             timebaseLockedSettings.sourceSettings.freeRun.trackRange = NEXUS_TimebaseTrackRange_e61ppm;
             timebaseLockedSettings.sourceSettings.freeRun.centerFrequency = 0x400000;
-            BDBG_MSG(("Configured Timebase %d with increased tracking range & maxPcrError \n", timebaseLocked));
+            BDBG_MSG(("Configured Timebase %u with increased tracking range & maxPcrError \n", (unsigned)timebaseLocked));
         }
         /* program the timebase 1: for monitoring the playpump buffer */
         timebaseFreerunSettings.sourceType = NEXUS_TimebaseSourceType_eFreeRun;
         timebaseFreerunSettings.freeze = true;
         timebaseFreerunSettings.sourceSettings.pcr.trackRange = NEXUS_TimebaseTrackRange_e122ppm;
-        BDBG_MSG(("Configured Timebase %d with increased tracking range & maxPcrError \n", timebaseFreerun));
+        BDBG_MSG(("Configured Timebase %u with increased tracking range & maxPcrError \n", (unsigned)timebaseFreerun));
 
         /* Update STC Channel Settings */
         /* configure the StcChannel to do lipsync with the PCR */
@@ -2297,7 +2289,7 @@ skipNexusOpens:
         if (extraVideoPidChannel) {
             videoProgram.enhancementPidChannel = extraVideoPidChannel;
             videoProgram.codec = psi.extraVideoCodec;
-            BDBG_MSG (("%s: extra video pid channel programmed", __FUNCTION__, extraVideoPidChannel));
+            BDBG_MSG (("%s: extra video pid channel:%p programmed", __FUNCTION__, (void *)extraVideoPidChannel));
         }
     }
 
@@ -2794,14 +2786,14 @@ skipNexusOpens:
                         videoStatus.queueDepth, videoStatus.numDecoded, videoStatus.numDisplayed, videoStatus.numDecodeErrors,
                         videoStatus.numDisplayErrors, videoStatus.numDecodeDrops, videoStatus.numDisplayDrops, videoStatus.numDisplayUnderflows, videoStatus.numPicturesReceived, videoStatus.ptsErrorCount));
 
-            BDBG_WRN(("playback: ip pos %lu, last %lu, pb pos %lu, fed %lu, first %lu, last %lu, PB buffer depth %d, size %d, fullness %d%%, played bytes %lld, ip bytes consumed %d",
+            BDBG_WRN(("playback: ip pos %lu, last %lu, pb pos %lu, fed %lu, first %lu, last %lu, PB buffer depth %d, size %d, fullness %d%%, played bytes %lld, ip bytes consumed %lld",
                         playbackIpStatus.position, playbackIpStatus.last, pbStatus.position, pbStatus.readPosition, pbStatus.first, pbStatus.last, ppStatus.fifoDepth, ppStatus.fifoSize,
-                        (ppStatus.fifoDepth*100)/ppStatus.fifoSize, ppStatus.bytesPlayed, playbackIpStatus.totalConsumed));
+                        (ppStatus.fifoDepth*100)/ppStatus.fifoSize, ppStatus.bytesPlayed, (long long)playbackIpStatus.totalConsumed));
             if (playpump2)
             {
-                BDBG_WRN(("playback2: ip pos %lu, last %lu, pb pos %lu, fed %lu, first %lu, last %lu, PB buffer depth %d, size %d, fullness %d%%, played bytes %lld, ip bytes consumed %d",
+                BDBG_WRN(("playback2: ip pos %lu, last %lu, pb pos %lu, fed %lu, first %lu, last %lu, PB buffer depth %d, size %d, fullness %d%%, played bytes %lld, ip bytes consumed %lld",
                             playbackIpStatus.position, playbackIpStatus.last, pbStatus.position, pbStatus.readPosition, pbStatus.first, pbStatus.last, pp2Status.fifoDepth, pp2Status.fifoSize,
-                            (pp2Status.fifoDepth*100)/pp2Status.fifoSize, pp2Status.bytesPlayed, playbackIpStatus.totalConsumed));
+                            (pp2Status.fifoDepth*100)/pp2Status.fifoSize, pp2Status.bytesPlayed, (long long)playbackIpStatus.totalConsumed));
             }
             if (firstTime) {
                 BDBG_WRN(("Proto %d, URL: %s:%d%s, hls %d, mpegDash %d, security %d",
@@ -2940,7 +2932,7 @@ skip_runtime_buffering_check:
                     ipTrickModeSettings.seekPosition = playbackIpStatus.last - 10000;
                 else
                     ipTrickModeSettings.seekPosition = 0;
-                BDBG_WRN(("Seek, Sleep, Rew Test: jumping to %d sec ", ipTrickModeSettings.seekPosition));
+                BDBG_WRN(("Seek, Sleep, Rew Test: jumping to %u sec ", (unsigned int)ipTrickModeSettings.seekPosition));
                 if (B_PlaybackIp_Seek(playbackIp, &ipTrickModeSettings)) {
                     BDBG_ERR(("ERROR: Failed to seek Ip playback"));
                     errorFlag = 1;
@@ -3051,7 +3043,7 @@ skip_runtime_buffering_check:
                     goto errorClose;
                 }
                 state = 1;
-                BDBG_WRN(("IP Playback is started at %d time pos %u", seekTime, ipTrickModeSettings.seekPosition));
+                BDBG_WRN(("IP Playback is started at %d time pos %lu", seekTime, (unsigned long)ipTrickModeSettings.seekPosition));
             }
             else if (buf[0] == 'j') {
                 /* jump forward by a fixed time (defaults to 5 sec) */
@@ -3078,7 +3070,7 @@ skip_runtime_buffering_check:
                     goto error;
                 }
                 state = 1;
-                BDBG_WRN(("IP Playback is started at %d time pos %u", seekTime, ipTrickModeSettings.seekPosition));
+                BDBG_WRN(("IP Playback is started at %d time pos %lu", seekTime, (unsigned long)ipTrickModeSettings.seekPosition));
             }
             else if (strncmp(buf, "tm", 2) == 0) {
                 if (B_PlaybackIp_GetTrickModeSettings(playbackIp, &ipTrickModeSettings) != B_ERROR_SUCCESS) {
@@ -3285,7 +3277,7 @@ skip_runtime_buffering_check:
                         if (audioCodec != NEXUS_AudioCodec_eUnknown) {
                             audioPidChannel = NEXUS_Playpump_OpenPidChannel(playpump2?playpump2:playpump, audioPid, &pidChannelSettings);
                             if (!audioPidChannel) {BDBG_ERR(("NEXUS Error (%d) at %d, Exiting...\n", rc, __LINE__)); exit(1);}
-                            BDBG_WRN (("Opened audio pid channel %u for alternateAudioNumber %u audio pid %u ", audioPidChannel, alternateAudioNumber, audioPid));
+                            BDBG_WRN (("Opened audio pid channel %p for alternateAudioNumber %u audio pid %d ", (void *)audioPidChannel, alternateAudioNumber, audioPid));
 
                             NEXUS_AudioDecoder_GetDefaultStartSettings(&audioProgram);
                             audioProgram.codec = audioCodec;
@@ -3375,14 +3367,14 @@ skip_runtime_buffering_check:
                 ipTrickModeSettings.seekPosition = playbackIpStatus.position - 10000;
             else
                 ipTrickModeSettings.seekPosition = 0;
-            BDBG_WRN(("gEndOfSegments Event: IP Playback jumping to %d sec ", ipTrickModeSettings.seekPosition));
+            BDBG_WRN(("gEndOfSegments Event: IP Playback jumping to %lu sec ", (unsigned long)ipTrickModeSettings.seekPosition));
             if (B_PlaybackIp_Seek(playbackIp, &ipTrickModeSettings)) {
                 BDBG_ERR(("ERROR: Failed to seek Ip playback"));
                 errorFlag = 1;
                 break;
             }
             gEndOfSegments = false;
-            BDBG_WRN(("IP Playback is started at time pos %u after reaching end of current segments!", ipTrickModeSettings.seekPosition));
+            BDBG_WRN(("IP Playback is started at time pos %lu after reaching end of current segments!", (unsigned long)ipTrickModeSettings.seekPosition));
         }
         if (ipCfg.runUnitTests) {
             if (runMultipleSeekTestAndVerify(&psi, playbackIp) < 0) {
@@ -3412,11 +3404,11 @@ error:
         if (ipCfg.decodeTimeDuration && ipCfg.decodeTimeDuration < psi.duration/1000)
             endDuration = ipCfg.decodeTimeDuration;
         if (playbackIpStatus.position/1000 < (endDuration-1)) {
-            BDBG_WRN(("###########Didn't play the whole file: duration %d, last position %u", endDuration, playbackIpStatus.position));
+            BDBG_WRN(("###########Didn't play the whole file: duration %d, last position %lu", endDuration, (unsigned long)playbackIpStatus.position));
             errorFlag = 1;
         }
         else
-            BDBG_WRN(("Played the whole file: duration %d, last position %u, errorFlag %d", psi.duration, playbackIpStatus.position, errorFlag));
+            BDBG_WRN(("Played the whole file: duration %d, last position %lu, errorFlag %d", psi.duration, (unsigned long)playbackIpStatus.position, errorFlag));
     }
     if (playbackIp)
         B_PlaybackIp_SessionStop(playbackIp);

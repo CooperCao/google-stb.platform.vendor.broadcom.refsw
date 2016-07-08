@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2003-2013 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,10 +35,6 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
  * This is the implementation of a software message filter. It
  * is based on the 7003 SW message filtering at BCM3543\tests\filter\
@@ -54,10 +50,6 @@
  *
  * Nexus part is based on /nexus/modules/transport/7400/src/nexus_message_pid2buf.c
  *
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #include "nexus_transport_module.h"
@@ -228,7 +220,7 @@ NEXUS_MessageHandle NEXUS_Message_Open(const NEXUS_MessageSettings *pSettings)
     /* set the interrupts */
     (void)NEXUS_Message_SetSettings(msg, pSettings);
 
-    BDBG_MSG(("Open %p", msg));
+    BDBG_MSG(("Open %p", (void *)msg));
     return msg;
 
 error:
@@ -241,7 +233,7 @@ static void NEXUS_Message_P_Finalizer(NEXUS_MessageHandle msg)
     unsigned i;
     NEXUS_OBJECT_ASSERT(NEXUS_Message, msg);
 
-    BDBG_MSG(("Close %p", msg));
+    BDBG_MSG(("Close %p", (void *)msg));
     if (msg->started) {
         NEXUS_Message_Stop(msg);
     }
@@ -399,7 +391,7 @@ NEXUS_Error NEXUS_Message_Start(NEXUS_MessageHandle msg, const NEXUS_MessageStar
         goto err_openpid;
     }
 
-    BDBG_MSG(("Start(%p, recpump %d): pid %#x", msg, msg->stream->recpumpIndex, hwPidChannel->status.pid));
+    BDBG_MSG(("Start(%p, recpump %d): pid %#x", (void *)msg, msg->stream->recpumpIndex, hwPidChannel->status.pid));
 
 #if B_USE_HW_PES_FILTERING
     if (pStartSettings->format == NEXUS_MessageFormat_ePsi) {
@@ -478,7 +470,7 @@ void NEXUS_Message_Stop(NEXUS_MessageHandle msg)
     if (!msg->started) {
         return;
     }
-    BDBG_MSG(("Stop %p", msg));
+    BDBG_MSG(("Stop %p", (void *)msg));
     NEXUS_OBJECT_RELEASE(msg, NEXUS_PidChannel, msg->startSettings.pidChannel);
     if (msg->filter){
         if (msg->startSettings.format == NEXUS_MessageFormat_ePsi) {
@@ -529,7 +521,7 @@ NEXUS_Error NEXUS_Message_GetBuffer(NEXUS_MessageHandle msg, const void **buffer
     }
 
     msg->lastGetBufferLength = *length;
-    BDBG_MSG(("NEXUS_Message_GetBuffer %p: %p %d", msg, *buffer, *length));
+    BDBG_MSG(("NEXUS_Message_GetBuffer %p: %p %d", (void *)msg, *buffer, *length));
 
     return 0;
 }
@@ -583,7 +575,7 @@ NEXUS_Error NEXUS_Message_ReadComplete(NEXUS_MessageHandle msg, size_t amount_co
         if (rc) return BERR_TRACE(rc);
     }
 
-    BDBG_MSG(("ReadComplete %p: %d out of %d", msg, amount_consumed, msg->lastGetBufferLength));
+    BDBG_MSG(("ReadComplete %p: %d out of %d", (void *)msg, amount_consumed, msg->lastGetBufferLength));
     msg->lastGetBufferLength = 0;
     return 0;
 }
@@ -892,7 +884,7 @@ static void NEXUS_SwFilter_P_PollTask(void *context)
     struct NEXUS_SwFilterCapture *st = context;
     NEXUS_ASSERT_MODULE();
     BDBG_OBJECT_ASSERT(st, NEXUS_SwFilterCapture);
-    BDBG_MSG(("PSI/PES timer %p", st));
+    BDBG_MSG(("PSI/PES timer %p", (void *)st));
     st->parseDataTimer = NULL;
     NEXUS_SwFilter_P_DataReady(st);
     st->parseDataTimer = NEXUS_ScheduleTimer(SM_POLL_INTERVAL, NEXUS_SwFilter_P_PollTask, st);
@@ -965,4 +957,3 @@ NEXUS_Error NEXUS_Message_UpdateFilter( NEXUS_MessageHandle msg, unsigned filter
     BSTD_UNUSED(pFilter);
     return BERR_TRACE(NEXUS_NOT_SUPPORTED);
 }
-

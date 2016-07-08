@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2010 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2010 Broadcom.
 All rights reserved.
 
 Project  :  Default RSO Android platform API for EGL driver
@@ -31,6 +31,7 @@ __attribute__((visibility("default")))
 void RSOANPL_RegisterAndroidDisplayPlatform(RSOANPL_PlatformHandle *handle, ANativeWindow *awin)
 {
    BEGL_DriverInterfaces *data = (BEGL_DriverInterfaces*)malloc(sizeof(BEGL_DriverInterfaces));
+   UNUSED(awin);
    memset(data, 0, sizeof(BEGL_DriverInterfaces));
 
    if (data != NULL)

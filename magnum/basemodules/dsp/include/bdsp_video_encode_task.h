@@ -1,7 +1,7 @@
 /******************************************************************************
- * (c) 2006-2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -37,7 +37,6 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 
 
@@ -50,13 +49,12 @@
 #include "breg_mem.h"
 #include "btmr.h"
 #include "bdsp_task.h"
-#include "bdsp_raaga_fw_settings.h"
 
 
 /* Function for getting a free picture buffer. Returns a NULL address if no picture buffer is available */
 BERR_Code BDSP_VideoEncode_getPictureBuffer_isr(
                                                     BDSP_TaskHandle task,
-                                                    raaga_dramaddr *pPictureParmBuf
+                                                    dramaddr_t *pPictureParmBuf
                                                     );
 
 BERR_Code BDSP_VideoEncode_putPicture_isr(

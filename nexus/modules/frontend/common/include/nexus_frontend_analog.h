@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2011 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2004-2016 Broadcom. All rights reserved.
 *  
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -154,7 +154,7 @@ Description:
 See Also:
     NEXUS_AudioInput_Shutdown
 ***************************************************************************/
-NEXUS_VideoInput NEXUS_Frontend_GetAnalogVideoConnector(
+NEXUS_VideoInputHandle NEXUS_Frontend_GetAnalogVideoConnector(
     NEXUS_FrontendHandle handle
     );
 

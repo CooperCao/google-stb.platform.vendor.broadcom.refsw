@@ -1,43 +1,39 @@
 /******************************************************************************
- * (c) 2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 #include <stdio.h>
 #include <string.h>
@@ -594,7 +590,7 @@ NEXUS_Error startNexusSatSrc(
     rc = NEXUS_Frontend_TuneSatellite( appRtspSession->frontend, &appRtspSession->satSettings );
     BIP_CHECK_GOTO(( !rc ), ( "NEXUS_Frontend_TuneSatellite Failed" ), error, rc, rc );
 
-    BDBG_MSG(( "%s: Success: frontend (%p)", __FUNCTION__, appRtspSession->frontend));
+    BDBG_MSG(( "%s: Success: frontend (%p)", __FUNCTION__, (void *)appRtspSession->frontend));
 error:
     return( rc );
 } /* startNexusSatSrc */
@@ -612,7 +608,7 @@ void stopNexusSatSrc(
         NEXUS_Frontend_Untune( appRtspSession->frontend );
     }
 
-    BDBG_MSG(( "%s: Done: frontend (%p)", __FUNCTION__, appRtspSession->frontend ));
+    BDBG_MSG(( "%s: Done: frontend (%p)", __FUNCTION__, (void *)appRtspSession->frontend ));
 } /* stopNexusSatSrc */
 
 NEXUS_Error openNexusSatSrc(
@@ -745,7 +741,7 @@ NEXUS_Error startNexusIpDst(
         appRtspSession->pidChannelList[i] = NEXUS_PidChannel_Open( appRtspSession->parserBand, appRtspSession->pidInfo.pidList[i], NULL );
         BIP_CHECK_GOTO(( appRtspSession->pidChannelList[i] ), ( "NEXUS_PidChannel_Open failed for pid %d ", appRtspSession->pidInfo.pidList[i] ), error, NEXUS_UNKNOWN, rc );
         rc = NEXUS_Recpump_AddPidChannel( appRtspSession->recpumpHandle, appRtspSession->pidChannelList[i], NULL );
-        BIP_CHECK_GOTO(( !rc ), ( "NEXUS_Recpump_AddPidChannel Failed for pid %d", appRtspSession->pidChannelList[i] ), error, NEXUS_UNKNOWN, rc );
+        BIP_CHECK_GOTO(( !rc ), ( "NEXUS_Recpump_AddPidChannel Failed for pid %p", (void *)appRtspSession->pidChannelList[i] ), error, NEXUS_UNKNOWN, rc );
     }
 #endif /* if  USE_HARDCODED_PARAMS */
 
@@ -756,7 +752,7 @@ NEXUS_Error startNexusIpDst(
     /* SAT>IP only supports MPEG2 TS as stream transport type */
     /*streamerSettings.streamTransportType = NEXUS_TransportType_eTs;*/
     brc = BIP_RtspSession_StartStreamer( appRtspSession->hRtspSession, &streamerSettings );
-    BIP_CHECK_GOTO(( !brc ), ( "Unable to Start Streamer on session %p", appRtspSession->hRtspSession ), error, NEXUS_INVALID_PARAMETER, rc );
+    BIP_CHECK_GOTO(( !brc ), ( "Unable to Start Streamer on session %p", (void *)appRtspSession->hRtspSession ), error, NEXUS_INVALID_PARAMETER, rc );
 
     BDBG_MSG(( "%s: SUCCESS", __FUNCTION__ ));
     return( rc );
@@ -869,7 +865,7 @@ static BIP_Status printAppSessions(
     {
         PRINTMSG_LIST(( "appRtspSession List index %d \n ", i++ ));
 
-        PRINTMSG_LIST(( "%s: App Session %p appRtspSession->hRtspSession %p  ", __FUNCTION__, appRtspSession, appRtspSession->hRtspSession ));
+        PRINTMSG_LIST(( "%s: App Session %p appRtspSession->hRtspSession %p  ", __FUNCTION__, (void *)appRtspSession, (void *)appRtspSession->hRtspSession ));
         /*  BDBG_OBJECT_ASSERT( appRtspSession->hRtspSession, BIP_RtspSession ); */
         PRINTMSG_LIST(( "------------------------\n" ));
         appRtspSession = BLST_Q_NEXT( appRtspSession, rtspSessionListNext );
@@ -919,13 +915,13 @@ static void rtspSessionProcessEvents(
             if (rc == BIP_ERR_NOT_AVAILABLE)
             {
                 /* no more messages available for this hRtspSession, so break out */
-                BDBG_MSG(( "No more message available for hRtspSession %p ...", hRtspSession ));
+                BDBG_MSG(( "No more message available for hRtspSession %p ...", (void *)hRtspSession ));
                 break;
             }
             else if (rc != BIP_SUCCESS)
             {
                 /* error while receiving the next RtspRequest */
-                BDBG_ERR(( "ERROR while receiving the next RtspRequest %p ...", hRtspSession ));
+                BDBG_ERR(( "ERROR while receiving the next RtspRequest %p ...", (void *)hRtspSession ));
                 /* shouldn't happen unless there is an internal BIP bug, so catch it early! */
                 BDBG_ASSERT( NULL );
                 break;
@@ -940,7 +936,7 @@ static void rtspSessionProcessEvents(
                 case BIP_RtspRequestMethod_eSetup:
                 case BIP_RtspRequestMethod_ePlayWithUrl:
                 {
-                    BDBG_MSG(( "%s: SETUP or PLAY_WithUrl Method: treat it like Channel Change %p", __FUNCTION__, appRtspSession->hRtspSession ));
+                    BDBG_MSG(( "%s: SETUP or PLAY_WithUrl Method: treat it like Channel Change %p", __FUNCTION__, (void *)appRtspSession->hRtspSession ));
                     stopNexusIpDst( appCtx, appRtspSession );
                     stopNexusSatSrc( appCtx, appRtspSession );
 
@@ -951,7 +947,7 @@ static void rtspSessionProcessEvents(
                 }
                 case BIP_RtspRequestMethod_ePlay:
                 {
-                    BDBG_MSG(( "%s: PLAY Request on app Session %p, hRtspSession %p", __FUNCTION__, appRtspSession ,appRtspSession->hRtspSession ));
+                    BDBG_MSG(( "%s: PLAY Request on app Session %p, hRtspSession %p", __FUNCTION__, (void *)appRtspSession ,(void *)appRtspSession->hRtspSession ));
                     nrc = startNexusSatSrc( appCtx, appRtspSession );
                     BIP_CHECK_GOTO(( !nrc ), ( "startNexusSatSrc Failed" ), errorOnSession, BIP_RtspResponseStatus_eServerError, rc );
 
@@ -964,7 +960,7 @@ static void rtspSessionProcessEvents(
                 }
                 case BIP_RtspRequestMethod_eTeardown:
                 {
-                    BDBG_MSG(( "%s: TEARDOWN Request on app Session %p, hRtspSession %p", __FUNCTION__,appRtspSession , appRtspSession->hRtspSession ));
+                    BDBG_MSG(( "%s: TEARDOWN Request on app Session %p, hRtspSession %p", __FUNCTION__,(void *)appRtspSession , (void *)appRtspSession->hRtspSession ));
                     stopNexusIpDst( appCtx, appRtspSession );
                     stopNexusSatSrc( appCtx, appRtspSession );
                     closeNexusIpDst( appCtx, appRtspSession );
@@ -991,7 +987,7 @@ errorOnSession:
 
             if (method == BIP_RtspRequestMethod_eTeardown)
             {
-                PRINTMSG_LIST(( "%s: BLST_Q_REMOVE appRtspSession (%p); head (%p)", __FUNCTION__, appRtspSession, appCtx->rtspSessionListHead ));
+                PRINTMSG_LIST(( "%s: BLST_Q_REMOVE appRtspSession (%p)", __FUNCTION__, (void *)appRtspSession ));
                 BLST_Q_REMOVE( &appCtx->rtspSessionListHead, appRtspSession, rtspSessionListNext );
 
                 rtspListenerDestroySession( appRtspSession );
@@ -1017,11 +1013,11 @@ errorOnSession:
 
             if (appRtspSession !=NULL)
             {
-                PRINTMSG_LIST(( "%s: Starting from first AppSession(saw Teardown) App Session %p hRtspSession %p  rc %d ", __FUNCTION__, appRtspSession, appRtspSession->hRtspSession,  rc ));
+                PRINTMSG_LIST(( "%s: Starting from first AppSession(saw Teardown) App Session %p hRtspSession %p  rc %d ", __FUNCTION__, (void *)appRtspSession, (void *)appRtspSession->hRtspSession,  rc ));
             }
             else
             {
-                PRINTMSG_LIST(( "%s: Starting from first AppSession(saw Teardown) App Session %p NULL   rc %d ", __FUNCTION__, appRtspSession,  rc ));
+                PRINTMSG_LIST(( "%s: Starting from first AppSession(saw Teardown) App Session %p NULL   rc %d ", __FUNCTION__, (void *)appRtspSession,  rc ));
             }
 
             startOver = false;
@@ -1033,11 +1029,11 @@ errorOnSession:
             rc             = BIP_SUCCESS;
             if (appRtspSession !=NULL)
             {
-                PRINTMSG_LIST(( "%s: Moving to Next  App Session %p hRtspSession %p   rc %d ", __FUNCTION__, appRtspSession, appRtspSession->hRtspSession,  rc ));
+                PRINTMSG_LIST(( "%s: Moving to Next  App Session %p hRtspSession %p   rc %d ", __FUNCTION__, (void *)appRtspSession, (void *)appRtspSession->hRtspSession,  rc ));
             }
             else
             {
-                PRINTMSG_LIST(( "%s: Moving to Next  App Session %p NULL   rc %d ", __FUNCTION__, appRtspSession, rc ));
+                PRINTMSG_LIST(( "%s: Moving to Next  App Session %p NULL   rc %d ", __FUNCTION__, (void *)appRtspSession, rc ));
             }
         }
     }     /* for loop for processing the next session */
@@ -1068,7 +1064,7 @@ static void rtspSessionIgmpMembershipReportProcessEvents(
             case BIP_RtspIgmpMemRepStatus_eJoin:
             {
 
-                BDBG_MSG(( "%s: Join Memebership. appRtspSession %p appRtspSession->hRtspSession %p  ", __FUNCTION__, appRtspSession, appRtspSession->hRtspSession ));
+                BDBG_MSG(( "%s: Join Memebership. appRtspSession %p appRtspSession->hRtspSession %p  ", __FUNCTION__, (void *)appRtspSession, (void *)appRtspSession->hRtspSession ));
                 /* Get various SesSatIp specific fields from the URL */
                 rc = rtspSessionUpdateTuningParams( appCtx, appRtspSession );
                 BIP_CHECK_GOTO(( !rc ), ( "rtspSessionUpdateTuningParams Failed" ), error, rc, rc );
@@ -1085,7 +1081,7 @@ static void rtspSessionIgmpMembershipReportProcessEvents(
             case BIP_RtspIgmpMemRepStatus_eLeave:
             {
 
-                BDBG_MSG(( "%s: Leave Memebership. appRtspSession %p appRtspSession->hRtspSession %p  ", __FUNCTION__, appRtspSession, appRtspSession->hRtspSession ));
+                BDBG_MSG(( "%s: Leave Memebership. appRtspSession %p appRtspSession->hRtspSession %p  ", __FUNCTION__, (void *)appRtspSession, (void *)appRtspSession->hRtspSession ));
                 stopNexusIpDst( appCtx, appRtspSession );
                 stopNexusSatSrc( appCtx, appRtspSession );
                 responseStatus = BIP_RtspResponseStatus_eSuccess;
@@ -1201,7 +1197,7 @@ static AppRtspSessionCtx *rtspListenerCreateSession(
     appRtspSession->hRtspResponse = BIP_RtspResponse_Create( NULL /*&hRtspResponseCreateSettings*/ );
     BIP_CHECK_GOTO(( appRtspSession->hRtspResponse ), ( "BIP_RtspResponse_Create Failed" ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
 
-    BDBG_MSG(( "%s: returning new session ... %p", __FUNCTION__, appRtspSession ));
+    BDBG_MSG(( "%s: returning new session ... %p", __FUNCTION__, (void *)appRtspSession ));
     return( appRtspSession );
 
 error:
@@ -1280,13 +1276,13 @@ static void rtspListenerProcessEvents(
         if (rc == BIP_ERR_NOT_AVAILABLE)
         {
             /* no more pending messages available for this listener, so break out */
-            BDBG_MSG(( "%s: No more pending message available for hRtspListener %p",__FUNCTION__,  hRtspListener ));
+            BDBG_MSG(( "%s: No more pending message available for hRtspListener %p",__FUNCTION__,  (void *)hRtspListener ));
             break;
         }
         else if (rc != BIP_SUCCESS)
         {
             /* error while receiving the next RtspRequest */
-            BDBG_ERR(( "ERROR while receiving the next RtspRequest %p ...", hRtspListener ));
+            BDBG_ERR(( "ERROR while receiving the next RtspRequest %p ...", (void *)hRtspListener ));
 
             /* shouldn't happen unless there is an internal BIP bug, so catch it early! */
             BDBG_ASSERT( NULL );

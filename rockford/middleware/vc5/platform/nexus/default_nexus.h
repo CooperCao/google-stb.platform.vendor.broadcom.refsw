@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2014 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2014 Broadcom.
 All rights reserved.
 
 Project  :  Default Nexus platform API for EGL driver
@@ -24,6 +24,7 @@ DESC
 
 #include "nexus_display.h"
 #include "nexus_surface.h"
+#include "nexus_graphics2d.h"
 #include "nexus_memory.h"
 
 #define NEXUS_DISPLAYHANDLE NEXUS_DisplayHandle
@@ -47,9 +48,11 @@ extern "C" {
 #endif
 
 struct BEGL_PixmapInfo;
+struct BEGL_PixmapInfoEXT;
 
 typedef void *NXPL_PlatformHandle;
 
+/* WARNING, deprecated */
 typedef struct
 {
    uint32_t    width;
@@ -60,6 +63,21 @@ typedef struct
    uint32_t    clientID;
    uint32_t    zOrder;
 } NXPL_NativeWindowInfo;
+/* END, deprecated */
+
+typedef struct
+{
+   uint32_t             width;
+   uint32_t             height;
+   uint32_t             x;
+   uint32_t             y;
+   bool                 stretch;
+   uint32_t             clientID;
+   uint32_t             zOrder;
+   NEXUS_BlendEquation  colorBlend;
+   NEXUS_BlendEquation  alphaBlend;
+   uint32_t             magic;
+} NXPL_NativeWindowInfoEXT;
 
 typedef enum NXPL_DisplayType
 {
@@ -83,17 +101,31 @@ NXPL_EXPORT void NXPL_UnregisterNexusDisplayPlatform(NXPL_PlatformHandle handle)
 extern bool NXPL_BufferGetRequirements(NXPL_PlatformHandle handle, BEGL_PixmapInfo *bufferRequirements, BEGL_BufferSettings * bufferConstrainedRequirements);
 */
 
+/* Generate a default NXPL_NativeWindowInfoEXT */
+NXPL_EXPORT void NXPL_GetDefaultNativeWindowInfoEXT(NXPL_NativeWindowInfoEXT *info);
+
 /* Create a 'native window' of the given size. This is really just a small structure that holds the size
  * of the window that EGL will write into. */
-NXPL_EXPORT void *NXPL_CreateNativeWindow(const NXPL_NativeWindowInfo *info);
+NXPL_EXPORT void *NXPL_CreateNativeWindow(const NXPL_NativeWindowInfo *info) __attribute__((deprecated("Use NXPL_GetDefaultNativeWindowEXT()/NXPL_CreateNativeWindowEXT() instead")));
+NXPL_EXPORT void *NXPL_CreateNativeWindowEXT(const NXPL_NativeWindowInfoEXT *info);
 
 /* Update the 'native window' with new settings */
-NXPL_EXPORT void NXPL_UpdateNativeWindow(void *native, const NXPL_NativeWindowInfo *info);
+NXPL_EXPORT void NXPL_UpdateNativeWindow(void *native, const NXPL_NativeWindowInfo *info) __attribute__((deprecated("Use NXPL_UpdateNativeWindowEXT() instead")));
+NXPL_EXPORT void NXPL_UpdateNativeWindowEXT(void *native, const NXPL_NativeWindowInfoEXT *info);
 
 /* Destroy a 'native window' */
 NXPL_EXPORT void NXPL_DestroyNativeWindow(void *nativeWin);
 
-NXPL_EXPORT bool NXPL_CreateCompatiblePixmap(NXPL_PlatformHandle handle, void **pixmapHandle, NEXUS_SURFACEHANDLE *surface, struct BEGL_PixmapInfo *info);
+/* Generate a default BEGL_PixmapInfoEXT */
+NXPL_EXPORT void NXPL_GetDefaultPixmapInfoEXT(struct BEGL_PixmapInfoEXT *info);
+
+NXPL_EXPORT bool NXPL_CreateCompatiblePixmap(NXPL_PlatformHandle handle, void **pixmapHandle,
+                                             NEXUS_SURFACEHANDLE *surface, struct BEGL_PixmapInfo *info)
+   __attribute__((deprecated("Use NXPL_GetDefaultPixmapInfoEXT()/NXPL_CreateCompatiblePixmapEXT() instead")));
+
+NXPL_EXPORT bool NXPL_CreateCompatiblePixmapEXT(NXPL_PlatformHandle handle, void **pixmapHandle,
+                                                NEXUS_SURFACEHANDLE *surface, struct BEGL_PixmapInfoEXT *info);
+
 NXPL_EXPORT void NXPL_DestroyCompatiblePixmap(NXPL_PlatformHandle handle, void *pixmapHandle);
 
 NXPL_EXPORT void NXPL_SetDisplayType(NXPL_PlatformHandle handle, NXPL_DisplayType type);

@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2009 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2009 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -485,7 +485,7 @@ void glsl_qdisasm_dump(const void *shader, const void *uniforms, uint32_t count,
 //under cygwin -c gives colours
 //use the external python disassembler
 static int shader_num = 0;
-void glsl_qdisasm_py_dump(uint32_t count,uint32_t * words)
+void glsl_qdisasm_py_dump(uint32_t count, uint32_t *words)
 {
 #ifdef GLSL_SHADER_FD_DQASM
    FILE * f;
@@ -501,5 +501,8 @@ void glsl_qdisasm_py_dump(uint32_t count,uint32_t * words)
       }
       _pclose(f);
    }
+#else
+   UNUSED(count);
+   UNUSED(words);
 #endif
 }

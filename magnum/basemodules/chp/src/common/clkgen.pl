@@ -1,24 +1,40 @@
 #!/usr/bin/perl
 #############################################################################
+#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 #
-#     Copyright (c) 2006-2014, Broadcom Corporation*
-#     All Rights Reserved*
-#     Confidential Property of Broadcom Corporation*
+#  This program is the proprietary software of Broadcom and/or its licensors,
+#  and may only be used, duplicated, modified or distributed pursuant to the terms and
+#  conditions of a separate, written license agreement executed between you and Broadcom
+#  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+#  no license (express or implied), right to use, or waiver of any kind with respect to the
+#  Software, and Broadcom expressly reserves all rights in and to the Software and all
+#  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+#  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+#  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
 #
-#  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
-#  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
-#  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+#  Except as expressly set forth in the Authorized License,
 #
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
+#  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+#  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+#  and to use this information only in connection with your use of Broadcom integrated circuit products.
 #
-# Module Description:
+#  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+#  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+#  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+#  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+#  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+#  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+#  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+#  USE OR PERFORMANCE OF THE SOFTWARE.
 #
-# Revision History:
-#
-# $brcm_Log: $
-#
+#  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+#  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+#  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+#  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+#  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+#  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+#  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+#  ANY LIMITED REMEDY.
 #############################################################################
 
 use strict;
@@ -29,6 +45,8 @@ $Data::Dumper::Sortkeys  = 1;
 $Data::Dumper::Useqq    = 1;
 $Data::Dumper::Indent   = 1;
 $Data::Dumper::Terse    = 1;
+
+my @profiles = ('Standard');
 
 my @nexus_functions = (
         "AIO",
@@ -115,8 +133,7 @@ sub verify_tree {
 }
 
 sub get_name {
-	my ($reg, $field) = @_;
-	my $name = $reg."_".$field;
+    my $name = shift;
 
 
     $name =~ s/CLKGEN_//g;
@@ -163,8 +180,10 @@ sub rename_function {
     $func =~ s/\bHVD\b/HVD0/g;
     $func =~ s/\bHVD_PDA(R|W)\b/HVD0_PDA$1/g;
     $func =~ s/\bDVPHT\b/DVPHT0/g;
+    $func =~ s/\bDVPHT_PDA(R|W)\b/DVPHT0_PDA$1/g;
     $func =~ s/\bDVPHRLP\b/DVPHR/g;
     $func =~ s/\bDVPHR\b/DVPHR0/g;
+    $func =~ s/\bDVPHR_PDA(R|W)\b/DVPHR0_PDA$1/g;
     $func =~ s/\bXPTWAKEUP\b/XPT_WAKEUP/g;
     $func =~ s/\bAIFSAT\b/AIFSAT0/g;
     $func =~ s/OBSERVE//g;
@@ -174,7 +193,7 @@ sub rename_function {
 
 sub parse_rdb_file {
 	my ($file, $clk_tree) = @_;
-	my ($reg, $field, $resource, $default);
+	my ($reg, $field, $resource, $default, $case);
     my $coreprefix;
 
     open(INFILE,"$file") or die "Can't open input file $file";
@@ -182,6 +201,7 @@ sub parse_rdb_file {
     if($file =~ /\/design\/(.*?)\/rdb\//) {
         $coreprefix = uc($1);
     }
+    $coreprefix =~ s/SYS_CTRL/SUN_TOP_CTRL/;
 
     foreach (<INFILE>) {
         s/\r\n/\n/; # convert DOS to Unix
@@ -194,24 +214,32 @@ sub parse_rdb_file {
         } elsif (/^regtype32\s*(\w+)/) {
 			$reg = $1;
 			$reg =~ s/Type/$coreprefix/;
+            $case = "";
+        } elsif (/^case\s*(\w+)/) {
+			$case = $1;
+        } elsif (/\s*union\s*/) {
+            $case = "";
 		} elsif (/^field\s*(\w+)/) {
-			$field = $1;
-			$resource = $reg."_".$field;
+            $field = $1;
+            $resource = $reg."_".$field;
+            if($case ne "") {
+                $field = $case."_".$field;
+            }
 		} elsif (/^default\s*(\d+)/) {
             $default = $1;
-		} elsif (/\/\/PMFunction:\s*(.*?)\s*$/) {
+		} elsif (/^\/\/PMFunction:\s*(.*?)\s*$/) {
             my $func = rename_function($resource, $1);
 			push(@{$clk_tree->{$resource}{_funcs}}, split(' ', $func));
 			push(@{$clk_tree->{$resource}{_toplvl}}, split(' ', $func));
             $clk_tree->{$resource}{_reg} = $reg;
             $clk_tree->{$resource}{_field} = $field;
             $clk_tree->{$resource}{_default} = $default;
-			$clk_tree->{$resource}{_name} = get_name($reg, $field);
+			$clk_tree->{$resource}{_name} = get_name($resource);
             $clk_tree->{$resource}{_delay} = 0;
             $clk_tree->{$resource}{_pda} = get_pda($1);
             $clk_tree->{$resource}{_polarity} = "";
             $clk_tree->{$resource}{_div} = "";
-		} elsif (/\/\/PMSource(\d*):\s*(.*?)\s*$/) {
+		} elsif (/^\/\/PMSource(\d*):\s*(.*?)\s*$/) {
             my $indx = $1;
 			my $srcs = $2;
             if($indx =~ /\d+/) {
@@ -219,12 +247,17 @@ sub parse_rdb_file {
             }
 			$srcs =~ s/\//_/g;
 			push(@{$clk_tree->{$resource}{_srcs}}, split(' ', $srcs));
-		} elsif (/\/\/PMDelay:(\d+)\/(\d+)us/) {
+		} elsif (/^\/\/PMDelay:(\d+)\/(\d+)us/) {
             $clk_tree->{$resource}{_delay} = $2;
-        } elsif (/\/\/PMPolarity:\s*(.*?)\s*$/) {
+        } elsif (/^\/\/PMPolarity:\s*(.*?)\s*$/) {
             $clk_tree->{$resource}{_polarity} = $1;
-        } elsif (/\/\/PMLogic:\s*(.*?)\s*$/) {
+        } elsif (/^\/\/PMLogic:\s*(.*?)\s*$/) {
             $clk_tree->{$resource}{_div} = $1;
+        } elsif (/^\/\/PMPState:\s*STB:(.*?)(\d+):(.*?)(\d+):(\d+)/) {
+            $clk_tree->{$resource}{_pmap}{$2}{_pstate}{$4} = $5;
+        }
+        elsif (/^\/\/PMPowerProfile:\s*STB\s*:\s*(.*?)\s*:\s*PMap(\d+)/) {
+            $profiles[$2] = $1;
         }
 	}
 
@@ -365,14 +398,18 @@ sub print_power_tree {
 	}
 
 	close($fh);
-	return 0;
+    return 0;
 }
 
 sub rename_node {
     my $function = shift;
 
     $function =~ s/^HVD(\d*)$/AVD$1_CLK/g;
+    $function =~ s/^HVD[a-zA-Z](\d*)$/AVD$1_CLK/g;
     $function =~ s/^HVD(\d*)_PDA(R|W)$/AVD$1_PWR/g;
+    $function =~ s/^HVD[a-zA-Z](\d*)_PDA(R|W)$/AVD$1_PWR/g;
+    $function =~ s/^HVD(\d*)_CPU$/AVD$1_CPU/g;
+    $function =~ s/^HVD[a-zA-Z](\d*)_CPU$/AVD$1_CPU/g;
     $function =~ s/^VICE2(\d*)$/VICE$1_CLK/g;
     $function =~ s/^VICE2(\d*)_PDA(R|W)$/VICE$1_PWR/g;
     $function =~ s/^AIO(\d*)$/AIO$1_CLK/g;
@@ -413,6 +450,8 @@ sub generate_nodes {
         $combine = 0;
 
         if(!skip_node($clk_tree, $src)) {
+            my $reg = $clk_tree->{$src}{_reg}.$clk_tree->{$src}{_pda};
+
             if($clk_tree->{$src}{_div}) {
 
                 $hw_node = $node;
@@ -420,19 +459,50 @@ sub generate_nodes {
                 $hw_node =~ s/DIS_//;
                 $hw_node =~ s/CH_\d_//;
                 $hw_node =~ s/CH_//;
+                $hw_node =~ s/POST_//;
+                $hw_node =~ s/DIV_//;
+                $hw_node =~ s/HOLD_//;
                 $hw_node = "DV_".$hw_node."_div";
 
-                $nodes->{$node}{$hw_node}++;
-                $hw_desc->{$hw_node}{$clk_tree->{$src}{_reg}}{_mask}{""}{""} = "";
-                $hw_desc->{$hw_node}{$clk_tree->{$src}{_reg}}{_delay} = $clk_tree->{$src}{_delay};
-                $hw_desc->{$hw_node}{$clk_tree->{$src}{_reg}}{_pda} = $clk_tree->{$src}{_pda};
-                $hw_desc->{$hw_node}{$clk_tree->{$src}{_reg}}{_div}{$clk_tree->{$src}{_div}}{$src} = $clk_tree->{$src}{_default};
+                if(!exists $nodes->{$node}{_list}{$hw_node}) {
+                    push(@{$nodes->{$node}{_order}}, $hw_node);
+                }
+                $nodes->{$node}{_list}{$hw_node}++;
+                if(!exists $hw_desc->{$hw_node}{$reg}{_field}{$clk_tree->{$src}{_div}}{$clk_tree->{$src}{_field}}) {
+                    $hw_desc->{$hw_node}{$reg}{_field}{$clk_tree->{$src}{_div}}{$clk_tree->{$src}{_field}} = $clk_tree->{$src}{_default};
+                }
+                if(!exists $hw_desc->{$hw_node}{$reg}{_field}{$clk_tree->{$src}{_div}}{_pmap}) {
+                    if(exists $clk_tree->{$src}{_pmap}) {
+                        $hw_desc->{$hw_node}{$reg}{_field}{$clk_tree->{$src}{_div}}{_pmap} = $clk_tree->{$src}{_pmap}
+                    }
+                }
 
                 # Combine divisor nodes
                 foreach (@{$clk_tree->{$src}{_srcs}}) {
                     if($clk_tree->{$_}{_div}) {
                         $combine = 1;
                         last;
+                    }
+                }
+            } elsif($clk_tree->{$src}{_mux}) {
+                $hw_node = $src;
+                $hw_node =~ s/CLKGEN_//;
+                $hw_node =~ s/STB_//;
+                $hw_node =~ s/INST_//;
+                $hw_node =~ s/CLOCK_//;
+                $hw_node =~ s/TOP_//;
+                $hw_node = "MX_".$hw_node;
+
+                if(!exists $nodes->{$node}{_list}{$hw_node}) {
+                    push(@{$nodes->{$node}{_order}}, $hw_node);
+                }
+                $nodes->{$node}{_list}{$hw_node}++;
+                if(!exists $hw_desc->{$hw_node}{$reg}{_field}{_mux}{$clk_tree->{$src}{_field}}) {
+                    $hw_desc->{$hw_node}{$reg}{_field}{_mux}{$clk_tree->{$src}{_field}} = $clk_tree->{$src}{_default};
+                }
+                if(!exists $hw_desc->{$hw_node}{$reg}{_field}{_mux}{_pmap}) {
+                    if(exists $clk_tree->{$src}{_pmap}) {
+                        $hw_desc->{$hw_node}{$reg}{_field}{_mux}{_pmap} = $clk_tree->{$src}{_pmap}
                     }
                 }
             } else {
@@ -451,22 +521,26 @@ sub generate_nodes {
                     $hw_node = rename_node($hw_node);
                 }
 
-                $nodes->{$node}{$hw_node}++;
-                $hw_desc->{$hw_node}{$clk_tree->{$src}{_reg}}{_mask}{$clk_tree->{$src}{_polarity}}{$src} = $clk_tree->{$src}{_default};
-                $hw_desc->{$hw_node}{$clk_tree->{$src}{_reg}}{_delay} = $clk_tree->{$src}{_delay};
-                $hw_desc->{$hw_node}{$clk_tree->{$src}{_reg}}{_pda} = $clk_tree->{$src}{_pda};
-                $hw_desc->{$hw_node}{$clk_tree->{$src}{_reg}}{_div}{""}{""} = "";
+                if(!exists $nodes->{$node}{_list}{$hw_node}) {
+                    push(@{$nodes->{$node}{_order}}, $hw_node);
+                }
+                $nodes->{$node}{_list}{$hw_node}++;
+                $hw_desc->{$hw_node}{$reg}{_field}{$clk_tree->{$src}{_polarity}}{$clk_tree->{$src}{_field}} = $clk_tree->{$src}{_default};
 
                 # Combine consecutive sources with same register
-                foreach (@{$clk_tree->{$src}{_srcs}}) {
-                    if($_ ne "null" && !$clk_tree->{$_}{_div}) {
-                        if($clk_tree->{$src}{_reg} eq $clk_tree->{$_}{_reg}) {
-                            $combine = 1;
-                            last;
+                if(scalar(@{$clk_tree->{$src}{_srcs}}) == 1) {
+                    foreach (@{$clk_tree->{$src}{_srcs}}) {
+                        if($_ ne "null" && !$clk_tree->{$_}{_div} && !$clk_tree->{$_}{_mux}) {
+                            if($reg eq $clk_tree->{$_}{_reg}) {
+                                $combine = 1;
+                                last;
+                            }
                         }
                     }
                 }
             }
+            $hw_desc->{$hw_node}{$reg}{_delay} = $clk_tree->{$src}{_delay};
+            $hw_desc->{$hw_node}{$reg}{_pda} = $clk_tree->{$src}{_pda};
         } else {
             $hw_node = $node;
         }
@@ -493,125 +567,184 @@ sub generate_user_defined_nodes {
 
     foreach my $node (keys %$nodes) {
         if($node =~ /(HDMI_)(TX|RX)(\d*)_CLK/) {
-            $nodes->{$1.$2.$3."_PHY"}{"HW_".$1.$2.$3."_PHY"}++;
-            foreach my $hw_node (keys %{$nodes->{$node}}) { $nodes->{"HW_".$1.$2.$3."_PHY"}{$hw_node} = $nodes->{$node}{$hw_node} }
+            $nodes->{$1.$2.$3."_PHY"}{_list}{"HW_".$1.$2.$3."_PHY"}++;
+            foreach my $hw_node (keys %{$nodes->{$node}{_list}}) { $nodes->{"HW_".$1.$2.$3."_PHY"}{_list}{$hw_node} = $nodes->{$node}{_list}{$hw_node} }
 
-            $nodes->{"BINT_OPEN"}{$1.$2.$3."_CLK"}++;
-            $nodes->{"MAGNUM_CONTROLLED"}{$1.$2.$3."_CLK"}++;
-            $nodes->{"MAGNUM_CONTROLLED"}{$1.$2.$3."_PHY"}++;
+            $nodes->{"BINT_OPEN"}{_list}{$1.$2.$3."_CLK"}++;
+            $nodes->{"MAGNUM_CONTROLLED"}{_list}{$1.$2.$3."_CLK"}++;
+            $nodes->{"MAGNUM_CONTROLLED"}{_list}{$1.$2.$3."_PHY"}++;
 
             if ($2 eq "TX") {
-                $nodes->{"VDC_".$1.$2."_PHY".$3}{$1.$2.$3."_PHY"}++;
-                $nodes->{"MAGNUM_CONTROLLED"}{"VDC_".$1.$2."_PHY".$3}++;
+                $nodes->{"VDC_".$1.$2."_PHY".$3}{_list}{$1.$2.$3."_PHY"}++;
+                $nodes->{"MAGNUM_CONTROLLED"}{_list}{"VDC_".$1.$2."_PHY".$3}++;
             } elsif ($2 eq "RX") {
-                $nodes->{"VDC_".$1.$2."_CLK".$3}{$1.$2.$3."_CLK"}++;
-                $nodes->{"MAGNUM_CONTROLLED"}{"VDC_".$1.$2."_CLK".$3}++;
+                $nodes->{"VDC_".$1.$2."_CLK".$3}{_list}{$1.$2.$3."_CLK"}++;
+                $nodes->{"MAGNUM_CONTROLLED"}{_list}{"VDC_".$1.$2."_CLK".$3}++;
             }
-
         } elsif($node =~ /^(RFM)$/) {
-            $nodes->{$1."_PHY"}{"HW_".$1."_PHY"}++;
-            foreach my $hw_node (keys %{$nodes->{$node}}) { $nodes->{"HW_".$1."_PHY"}{$hw_node} = $nodes->{$node}{$hw_node} }
+            $nodes->{$1."_PHY"}{_list}{"HW_".$1."_PHY"}++;
+            foreach my $hw_node (keys %{$nodes->{$node}{_list}}) { $nodes->{"HW_".$1."_PHY"}{_list}{$hw_node} = $nodes->{$node}{_list}{$hw_node} }
 
-            $nodes->{"BINT_OPEN"}{$1}++;
-            $nodes->{"MAGNUM_CONTROLLED"}{$1}++;
-            $nodes->{"MAGNUM_CONTROLLED"}{$1."_PHY"}++;
+            $nodes->{"BINT_OPEN"}{_list}{$1}++;
+            $nodes->{"MAGNUM_CONTROLLED"}{_list}{$1}++;
+            $nodes->{"MAGNUM_CONTROLLED"}{_list}{$1."_PHY"}++;
         } elsif($node =~ /AIO_CLK/) {
-            $nodes->{"AUD_AIO"}{"$node"}++;
-            $nodes->{"AUD_DAC"}{"HW_AUD_DAC"}++;
-            $nodes->{"AUD_PLL0"}{"HW_AUD_PLL0"}++;  # TODO : Remove when fixed in rdb
-            $nodes->{"AUD_PLL1"}{"HW_AUD_PLL1"}++;  # TODO : Remove when fixed in rdb
-            foreach my $hw_node (keys %{$nodes->{$node}}) {
+            $nodes->{"AUD_AIO"}{_list}{"$node"}++;
+            $nodes->{"AUD_DAC"}{_list}{"HW_AUD_DAC"}++;
+            $nodes->{"AUD_PLL0"}{_list}{"HW_AUD_PLL0"}++;  # TODO : Remove when fixed in rdb
+            $nodes->{"AUD_PLL1"}{_list}{"HW_AUD_PLL1"}++;  # TODO : Remove when fixed in rdb
+            foreach my $hw_node (keys %{$nodes->{$node}{_list}}) {
                 if($hw_node !~ /VCXO/) {
-                    $nodes->{"HW_AUD_DAC"}{$hw_node} = $nodes->{$node}{$hw_node};
-                    $nodes->{"HW_AUD_PLL0"}{$hw_node} = $nodes->{$node}{$hw_node}; # TODO : Remove when fixed in rdb
-                    $nodes->{"HW_AUD_PLL1"}{$hw_node} = $nodes->{$node}{$hw_node}; # TODO : Remove when fixed in rdb
+                    $nodes->{"HW_AUD_DAC"}{_list}{$hw_node} = $nodes->{$node}{_list}{$hw_node};
+                    $nodes->{"HW_AUD_PLL0"}{_list}{$hw_node} = $nodes->{$node}{_list}{$hw_node}; # TODO : Remove when fixed in rdb
+                    $nodes->{"HW_AUD_PLL1"}{_list}{$hw_node} = $nodes->{$node}{_list}{$hw_node}; # TODO : Remove when fixed in rdb
                 }
             }
 
-            $nodes->{"BINT_OPEN"}{"AUD_AIO"}++;
-            $nodes->{"MAGNUM_CONTROLLED"}{"AUD_AIO"}++;
-            $nodes->{"MAGNUM_CONTROLLED"}{"AUD_DAC"}++;
-            $nodes->{"MAGNUM_CONTROLLED"}{"AUD_PLL0"}++;  # TODO : Remove when fixed in rdb
-            $nodes->{"MAGNUM_CONTROLLED"}{"AUD_PLL1"}++;  # TODO : Remove when fixed in rdb
+            $nodes->{"BINT_OPEN"}{_list}{"AUD_AIO"}++;
+            $nodes->{"MAGNUM_CONTROLLED"}{_list}{"AUD_AIO"}++;
+            $nodes->{"MAGNUM_CONTROLLED"}{_list}{"AUD_DAC"}++;
+            $nodes->{"MAGNUM_CONTROLLED"}{_list}{"AUD_PLL0"}++;  # TODO : Remove when fixed in rdb
+            $nodes->{"MAGNUM_CONTROLLED"}{_list}{"AUD_PLL1"}++;  # TODO : Remove when fixed in rdb
         } elsif($node =~ /AIO_SRAM/) {
-            $nodes->{"AUD_AIO"}{"$node"}++;
-        } elsif($node =~ /^(AVD)(\d*)(.*?)$/) {
-            $nodes->{$1.$2}{$node}++;
-            $nodes->{$1}{$1.$2}++;
+            $nodes->{"AUD_AIO"}{_list}{"$node"}++;
+        } elsif($node =~ /^(AVD|RAAGA|VICE)(\d*)(.*?)$/) {
+            if($3 eq "_CPU") {
+                foreach my $clk_node (keys %{$nodes->{$1.$2."_CLK"}{_list}}) {
+                    foreach my $cpu_node (keys %{$nodes->{$1.$2.$3}{_list}}) {
+                        $nodes->{$cpu_node}{_list}{$clk_node}++;
+                        push(@{$nodes->{$cpu_node}{_order}}, $clk_node);
 
-            $nodes->{"BINT_OPEN"}{$1}++;
-            $nodes->{"MAGNUM_CONTROLLED"}{$1}++;
+                    }
+                    delete($nodes->{$1.$2."_CLK"}{_list}{$clk_node});
+                }
+                undef(@{$nodes->{$1.$2."_CLK"}{_order}});
+
+                foreach my $cpu_node (keys %{$nodes->{$1.$2.$3}{_list}}) {
+                    $nodes->{$1.$2."_CLK"}{_list}{$cpu_node}++;
+                    push(@{$nodes->{$1.$2."_CLK"}{_order}}, $cpu_node);
+                }
+                delete($nodes->{$1.$2.$3});
+            } else {
+                $nodes->{$1.$2}{_list}{$node}++;
+                $nodes->{$1}{_list}{$1.$2}++;
+
+                $nodes->{"BINT_OPEN"}{_list}{$1}++;
+                $nodes->{"MAGNUM_CONTROLLED"}{_list}{$1}++;
+            }
+        } elsif($node =~ /^(SID|GRAPHICS3D)(_CPU)$/) {
+            foreach my $clk_node (keys %{$nodes->{$1}{_list}}) {
+                foreach my $cpu_node (keys %{$nodes->{$1.$2}{_list}}) {
+                    $nodes->{$cpu_node}{_list}{$clk_node}++;
+                    push(@{$nodes->{$cpu_node}{_order}}, $clk_node);
+
+                }
+                delete($nodes->{$1}{_list}{$clk_node});
+            }
+            undef(@{$nodes->{$1}{_order}});
+
+            foreach my $cpu_node (keys %{$nodes->{$1.$2}{_list}}) {
+                $nodes->{$1}{_list}{$cpu_node}++;
+                push(@{$nodes->{$1}{_order}}, $cpu_node);
+            }
+            delete($nodes->{$1.$2});
         } elsif($node =~ /^(M2MC)(\d*)(.*?)$/) {
-            $nodes->{$1.$3}{$node}++;
+            $nodes->{$1.$3}{_list}{$node}++;
 
-            $nodes->{"BINT_OPEN"}{$1}++;
-            $nodes->{"MAGNUM_CONTROLLED"}{$1}++;
+            $nodes->{"BINT_OPEN"}{_list}{$1}++;
+            $nodes->{"MAGNUM_CONTROLLED"}{_list}{$1}++;
         } elsif($node =~ /^(VICE)(\d*)(_CLK)$/) {
-            $nodes->{"VDC_STG".($2*2)}{$node}++;
-            $nodes->{"VDC_STG".($2*2+1)}{$node}++;
+            $nodes->{"VDC_STG".($2*2)}{_list}{$node}++;
+            $nodes->{"VDC_STG".($2*2+1)}{_list}{$node}++;
 
-            $nodes->{"BINT_OPEN"}{$node}++;
-            $nodes->{"MAGNUM_CONTROLLED"}{$node}++;
-            $nodes->{"MAGNUM_CONTROLLED"}{"VDC_STG".($2*2)}++;
-            $nodes->{"MAGNUM_CONTROLLED"}{"VDC_STG".($2*2+1)}++;
+            $nodes->{"BINT_OPEN"}{_list}{$node}++;
+            $nodes->{"MAGNUM_CONTROLLED"}{_list}{$node}++;
+            $nodes->{"MAGNUM_CONTROLLED"}{_list}{"VDC_STG".($2*2)}++;
+            $nodes->{"MAGNUM_CONTROLLED"}{_list}{"VDC_STG".($2*2+1)}++;
 
         } elsif($node =~ /^(XPT)(_XMEMIF)$/) {
-            $nodes->{$1}{$1."_PARSER"}++;
-            $nodes->{$1}{$1."_PLAYBACK"}++;
-            $nodes->{$1}{$1."_RAVE"}++;
-            $nodes->{$1}{$1."_PACKETSUB"}++;
-            $nodes->{$1."_PARSER"}{$node}++;
-            $nodes->{$1."_PLAYBACK"}{$node}++;
-            $nodes->{$1."_RAVE"}{$node}++;
-            $nodes->{$1."_PACKETSUB"}{$node}++;
-            $nodes->{"DMA"}{$node}++;
-            $nodes->{"HSM"}{$node}++;
+            $nodes->{$1}{_list}{$1."_PARSER"}++;
+            $nodes->{$1}{_list}{$1."_PLAYBACK"}++;
+            $nodes->{$1}{_list}{$1."_RAVE"}++;
+            $nodes->{$1}{_list}{$1."_PACKETSUB"}++;
+            $nodes->{$1."_PARSER"}{_list}{$node}++;
+            $nodes->{$1."_PLAYBACK"}{_list}{$node}++;
+            $nodes->{$1."_RAVE"}{_list}{$node}++;
+            $nodes->{$1."_PACKETSUB"}{_list}{$node}++;
+            $nodes->{"DMA"}{_list}{$node}++;
+            $nodes->{"HSM"}{_list}{$node}++;
 
-            $nodes->{"BINT_OPEN"}{$1}++;
-            $nodes->{"MAGNUM_CONTROLLED"}{$1}++;
+            $nodes->{"BINT_OPEN"}{_list}{$1}++;
+            $nodes->{"MAGNUM_CONTROLLED"}{_list}{$1}++;
         } elsif($node =~ /^(XPT)(_REMUX|_WAKEUP)$/) {
-            $nodes->{$1}{$1.$2}++;
+            $nodes->{$1}{_list}{$1.$2}++;
         } elsif($node =~ /^(BVN|VDC)(.*?)(DAC|VEC|656)?(.*?)/) {
-            $nodes->{"VDC"}{$node}++;
+            $nodes->{"VDC"}{_list}{$node}++;
 
-            $nodes->{"BINT_OPEN"}{"VDC"}++;
-            $nodes->{"MAGNUM_CONTROLLED"}{"VDC"}++;
+            $nodes->{"BINT_OPEN"}{_list}{"VDC"}++;
+            $nodes->{"MAGNUM_CONTROLLED"}{_list}{"VDC"}++;
         } else {
-            if($node !~ /^HW/ && $node !~ /^SECURE_ACCESS$/ && $node !~ /^DV_/) {
-                $nodes->{"MAGNUM_CONTROLLED"}{$node}++;
+            if($node !~ /^HW/ && $node !~ /^SECURE_ACCESS$/ && $node !~ /^DV_/ && $node !~ /^MX_/) {
+                $nodes->{"MAGNUM_CONTROLLED"}{_list}{$node}++;
                 if($node !~ /SRAM/ && $node !~ /PWR/ && $node !~ /PHY/ && $node !~ /DAC/) {
-                    $nodes->{"BINT_OPEN"}{$node}++;
+                    $nodes->{"BINT_OPEN"}{_list}{$node}++;
                 }
             }
         }
     }
 
+    #check for nodes with no order
+    foreach my $node (keys %$nodes) {
+        if(not defined @{$nodes->{$node}{_order}}) {
+            foreach my $child_node (keys %{$nodes->{$node}{_list}}) {
+                push (@{$nodes->{$node}{_order}}, $child_node);
+            }
+        }
+    }
 }
 
 sub generate_brcm_copyright_header
 {
     my @lines;
 
-    push @lines, "/***************************************************************************\n";
-    push @lines, "*     Copyright (c) 2006-2014, Broadcom Corporation*\n";
-    push @lines, "*     All Rights Reserved*\n";
-    push @lines, "*     Confidential Property of Broadcom Corporation*\n";
-    push @lines, "*\n";
-    push @lines, "*  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE\n";
-    push @lines, "*  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR\n";
-    push @lines, "*  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.\n";
-    push @lines, "*\n";
-    push @lines, "* \$brcm_Workfile: \$\n";
-    push @lines, "* \$brcm_Revision: \$\n";
-    push @lines, "* \$brcm_Date: \$\n";
-    push @lines, "*\n";
-    push @lines, "* Module Description:\n";
-    push @lines, "*\n";
-    push @lines, "* Revision History:\n";
-    push @lines, "*\n";
-    push @lines, "* \$brcm_Log: \$\n";
-    push @lines, "*\n";
-    push @lines, "***************************************************************************/\n";
+    push @lines, " /******************************************************************************\n";
+    push @lines, " *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.\n";
+    push @lines, " *\n";
+    push @lines, " *  This program is the proprietary software of Broadcom and/or its licensors,\n";
+    push @lines, " *  and may only be used, duplicated, modified or distributed pursuant to the terms and\n";
+    push @lines, " *  conditions of a separate, written license agreement executed between you and Broadcom\n";
+    push @lines, " *  (an ".'"Authorized License"'.").  Except as set forth in an Authorized License, Broadcom grants\n";
+    push @lines, " *  no license (express or implied), right to use, or waiver of any kind with respect to the\n";
+    push @lines, " *  Software, and Broadcom expressly reserves all rights in and to the Software and all\n";
+    push @lines, " *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU\n";
+    push @lines, " *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY\n";
+    push @lines, " *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.\n";
+    push @lines, " *\n";
+    push @lines, " *  Except as expressly set forth in the Authorized License,\n";
+    push @lines, " *\n";
+    push @lines, " *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade\n";
+    push @lines, " *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,\n";
+    push @lines, " *  and to use this information only in connection with your use of Broadcom integrated circuit products.\n";
+    push @lines, " *\n";
+    push @lines, " *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED".' "AS IS"'."\n";
+    push @lines, " *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR\n";
+    push @lines, " *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO\n";
+    push @lines, " *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES\n";
+    push @lines, " *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,\n";
+    push @lines, " *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION\n";
+    push @lines, " *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF\n";
+    push @lines, " *  USE OR PERFORMANCE OF THE SOFTWARE.\n";
+    push @lines, " *\n";
+    push @lines, " *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS\n";
+    push @lines, " *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR\n";
+    push @lines, " *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR\n";
+    push @lines, " *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF\n";
+    push @lines, " *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT\n";
+    push @lines, " *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S.".' $1'.", WHICHEVER IS GREATER. THESE\n";
+    push @lines, " *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF\n";
+    push @lines, " *  ANY LIMITED REMEDY.\n";
+    push @lines, "\n";
+    push @lines, " ******************************************************************************/\n";
     push @lines, "\n";
     return @lines;
 }
@@ -627,7 +760,7 @@ sub generate_bchp_resources_txt_file {
 
     foreach my $node (sort keys %$nodes) {
         undef @resource_list;
-        foreach my $hw_node (sort keys %{$nodes->{$node}}) {
+        foreach my $hw_node (@{$nodes->{$node}{_order}}) {
             push(@resource_list, $hw_node);
         }
 
@@ -635,6 +768,126 @@ sub generate_bchp_resources_txt_file {
     }
 
     close($fh);
+}
+
+sub generate_bchp_impl_string {
+    my ($hw_desc, $hw_node, $reg) = @_;
+    my @lines;
+    my $pdar = ($hw_desc->{$hw_node}{$reg}{_pda} eq "READ");
+    my $vcxo_reset = ($reg =~ /VCXO\d*_PLL_RESET/)?1:0;
+    my $div = ($hw_node =~ /^DV_.*_div/)?1:0;
+    my $mux = ($hw_node =~ /^MX_/)?1:0;
+    my $register = $reg;
+
+    #Strip away PDA tag from register. This was done to seperate
+    #write and read when both the bits are in the same register.
+    #TODO : Find a better way to  seperate the wirte and read
+    $register =~ s/$hw_desc->{$hw_node}{$reg}{_pda}//;
+
+    if($pdar) {
+        push @lines, "    {\n";
+        push @lines, "        uint32_t val=0, cnt=50;\n";
+        push @lines, "        while(cnt--) {\n";
+        push @lines, "            BKNI_Delay(10);\n";
+        push @lines, "        ";
+    }
+    if($vcxo_reset) {
+        push @lines, "    BSTD_UNUSED(reg);\n\n";
+    } else {
+        push @lines, "    reg = BREG_Read32(handle->regHandle, BCHP_".$register.");\n";
+    }
+
+    if ($div) {
+        foreach my $divisor (keys %{$hw_desc->{$hw_node}{$reg}{_field}}) {
+            foreach my $field (keys %{$hw_desc->{$hw_node}{$reg}{_field}{$divisor}}) {
+                if($field eq "_pmap") {next;}
+                if ($divisor eq "POSTDIV") {
+                    push @lines, "    if(set) {\n";
+                    push @lines, "        BCHP_SET_FIELD_DATA(reg, $register, $field, *postdiv);\n";
+                    push @lines, "        BREG_Write32(handle->regHandle, BCHP_".$register.", reg);\n";
+                    push @lines, "    } else {\n";
+                    push @lines, "        *postdiv = BCHP_GET_FIELD_DATA(reg, $register, $field);\n";
+                    push @lines, "    }\n";
+                } else {
+                    push @lines, "    if(!set) {\n";
+                    if ($divisor eq "MULT") {
+                        push @lines, "        *mult = BCHP_GET_FIELD_DATA(reg, $register, $field);\n";
+                    } elsif ($divisor eq "PREDIV") {
+                        push @lines, "        *prediv = BCHP_GET_FIELD_DATA(reg, $register, $field);\n";
+                    } else {
+                        print "Unknown Div field\n";
+                        next;
+                    }
+                    push @lines, "    }\n";
+                }
+            }
+        }
+    } elsif ($mux) {
+        foreach my $field (keys %{$hw_desc->{$hw_node}{$reg}{_field}{_mux}}) {
+            if($field eq "_pmap") {next;}
+            push @lines, "    if(set) {\n";
+            push @lines, "        BCHP_SET_FIELD_DATA(reg, $register, $field, *mux);\n";
+            push @lines, "        BREG_Write32(handle->regHandle, BCHP_".$register.", reg);\n";
+            push @lines, "    } else {\n";
+            push @lines, "        *mux = BCHP_GET_FIELD_DATA(reg, $register, $field);\n";
+            push @lines, "    }\n";
+        }
+    } else {
+        foreach my $polarity (keys %{$hw_desc->{$hw_node}{$reg}{_field}}) {
+            my $count = keys %{$hw_desc->{$hw_node}{$reg}{_field}{$polarity}};
+            my $idx = 0;
+            if($pdar) {push @lines, "        ";}
+
+            push @lines, "    mask = ";
+            if($count > 1) {push @lines, "(";}
+            foreach my $field (keys %{$hw_desc->{$hw_node}{$reg}{_field}{$polarity}}) {
+                if($idx > 0) {push @lines, "            ";}
+                push @lines, "BCHP_".$register."_".$field."_MASK";
+                $idx++;
+                if($idx < $count) {push @lines, " |\n";}
+            }
+            if($count > 1) {push @lines, ")";}
+            push @lines, ";\n";
+
+            if($pdar) {
+                push @lines, "            reg &= mask;\n";
+                if($polarity eq "HighIsOn") {
+                    push @lines, "            val |= activate?mask:0;\n";
+                } elsif($polarity eq "HighIsOff") {
+                    push @lines, "            val |= activate?0:mask;\n";
+                }
+            } elsif($vcxo_reset) {
+                push @lines, "    BREG_AtomicUpdate32(handle->regHandle, BCHP_".$register.", mask, ";
+                if($polarity eq "HighIsOn") {
+                    push @lines, "activate?mask:0);\n";
+                } elsif($polarity eq "HighIsOff") {
+                    push @lines, "activate?0:mask);\n";
+                }
+            } else {
+                push @lines, "    reg &= ~mask;\n";
+                if($polarity eq "HighIsOn") {
+                    push @lines, "    reg |= activate?mask:0;\n";
+                } elsif($polarity eq "HighIsOff") {
+                    push @lines, "    reg |= activate?0:mask;\n";
+                }
+            }
+        }
+    }
+    if($pdar) {
+        push @lines, "            if (val == reg)\n";
+        push @lines, "                break;\n";
+        push @lines, "        }\n";
+        push @lines, "        if(!cnt)\n";
+        push @lines, "            BDBG_ERR((\"".$hw_node." Timeout\"));\n";
+        push @lines, "    }\n";
+    } elsif(!$vcxo_reset && !$div && !$mux) {
+        push @lines, "    BREG_Write32(handle->regHandle, BCHP_".$register.", reg);\n";
+    }
+    if($hw_desc->{$hw_node}{$reg}{_delay} > 0) {
+        push @lines, "    BKNI_Delay(".$hw_desc->{$hw_node}{$reg}{_delay}.");\n";
+    }
+
+    return @lines;
 }
 
 sub generate_bchp_impl_c_file {
@@ -659,13 +912,23 @@ sub generate_bchp_impl_c_file {
     print $fh "#include \"bkni.h\"\n";
     print $fh "#include \"bchp_clkgen.h\"\n";
     print $fh "#include \"bchp_avs_top_ctrl.h\"\n";
+    print $fh "#include \"bchp_sun_top_ctrl.h\"\n";
     print $fh "\n";
     print $fh "BDBG_MODULE(BCHP_PWR_IMPL);\n";
-    print $fh "\n";
 
     foreach my $hw_node (sort keys %$hw_desc) {
+        my ($pdar_done,$pdaw_done) = (0,0);
+        my $tmp_reg;
+        print $fh "\n";
         if($hw_node =~ /^DV_.*_div/) {
             print $fh "static void BCHP_PWR_P_".$hw_node."_Control(BCHP_Handle handle, unsigned *mult, unsigned *prediv, unsigned *postdiv, bool set)\n";
+            print $fh "{\n";
+            print $fh "    uint32_t reg;\n";
+            print $fh "\n";
+            print $fh "    BDBG_MSG((\"".$hw_node.": %s\", set?\"write\":\"read\"));\n";
+            print $fh "\n";
+        } elsif ($hw_node =~ /^MX_/) {
+            print $fh "static void BCHP_PWR_P_".$hw_node."_Control(BCHP_Handle handle, unsigned *mux, bool set)\n";
             print $fh "{\n";
             print $fh "    uint32_t reg;\n";
             print $fh "\n";
@@ -683,123 +946,47 @@ sub generate_bchp_impl_c_file {
             next;
         }
         foreach my $reg (sort keys %{$hw_desc->{$hw_node}}) {
-            my $pda_read = ($hw_desc->{$hw_node}{$reg}{_pda} eq "READ")?1:0;
-            my $vcxo_reset = ($reg =~ /VCXO\d*_PLL_RESET/)?1:0;
-
-            if($pda_read) {
-                print $fh "    {\n";
-                print $fh "        uint32_t val=0, cnt=50;\n";
-                print $fh "        while(cnt--) {\n";
-                print $fh "            BKNI_Delay(10);\n";
-                print $fh "        ";
-            }
-            if($vcxo_reset) {
-                print $fh "    BSTD_UNUSED(reg);\n\n";
-            } else {
-                print $fh "    reg = BREG_Read32(handle->regHandle, BCHP_".$reg.");\n";
-            }
-
-            if (exists $hw_desc->{$hw_node}{$reg}{_div}{POSTDIV} ||
-                exists $hw_desc->{$hw_node}{$reg}{_div}{MULT} ||
-                exists $hw_desc->{$hw_node}{$reg}{_div}{PREDIV}) {
-                foreach my $type (keys %{$hw_desc->{$hw_node}{$reg}{_div}}) {
-                    foreach my $mask (keys %{$hw_desc->{$hw_node}{$reg}{_div}{$type}}) {
-                        my $field = $mask;
-                        $field =~ s/$reg//;
-                        $field =~ s/^_//;
-                        if ($type eq "POSTDIV") {
-                            print $fh "    if(set) {\n";
-                            print $fh "        BCHP_SET_FIELD_DATA(reg, $reg, $field, *postdiv);\n";
-                            print $fh "        BREG_Write32(handle->regHandle, BCHP_".$reg.", reg);\n";
-                            print $fh "    } else {\n";
-                            print $fh "        *postdiv = BCHP_GET_FIELD_DATA(reg, $reg, $field);\n";
-                            print $fh "    }\n";
-                        } else {
-                            print $fh "    if(!set) {\n";
-                            if ($type eq "MULT") {
-                                print $fh "        *mult = BCHP_GET_FIELD_DATA(reg, $reg, $field);\n";
-                            } elsif ($type eq "PREDIV") {
-                                print $fh "        *prediv = BCHP_GET_FIELD_DATA(reg, $reg, $field);\n";
-                            } else {
-                                print "Unknown Div field\n";
-                                next;
-                            }
-                            print $fh "    }\n";
-                        }
-                    }
-                }
-            } else {
-                foreach my $polarity (keys %{$hw_desc->{$hw_node}{$reg}{_mask}}) {
-                    my $count = keys %{$hw_desc->{$hw_node}{$reg}{_mask}{$polarity}};
-                    my $idx = 0;
-                    if($pda_read) {print $fh "        ";}
-
-                    print $fh "    mask = ";
-                    if($count > 1) {print $fh "(";}
-                    foreach my $mask (keys %{$hw_desc->{$hw_node}{$reg}{_mask}{$polarity}}) {
-                        if($idx > 0) {print $fh "            ";}
-                        print $fh "BCHP_".$mask."_MASK";
-                        $idx++;
-                        if($idx < $count) {print $fh " |\n";}
-                    }
-                    if($count > 1) {print $fh ")";}
-                    print $fh ";\n";
-
-                    if($pda_read) {
-                        print $fh "            reg &= mask;\n";
-                        if($polarity eq "HighIsOn") {
-                            print $fh "            val |= activate?mask:0;\n";
-                        } elsif($polarity eq "HighIsOff") {
-                            print $fh "            val |= activate?0:mask;\n";
-                        }
-                    } elsif($vcxo_reset) {
-                        print $fh "    BREG_AtomicUpdate32(handle->regHandle, BCHP_".$reg.", mask, ";
-                        if($polarity eq "HighIsOn") {
-                            print $fh "activate?mask:0);\n";
-                        } elsif($polarity eq "HighIsOff") {
-                            print $fh "activate?0:mask);\n";
-                        }
-                    } else {
-                        print $fh "    reg &= ~mask;\n";
-                        if($polarity eq "HighIsOn") {
-                            print $fh "    reg |= activate?mask:0;\n";
-                        } elsif($polarity eq "HighIsOff") {
-                            print $fh "    reg |= activate?0:mask;\n";
-                        }
-                    }
+            if($hw_desc->{$hw_node}{$reg}{_pda} eq "READ") {
+                if(!$pdaw_done) {
+                    $tmp_reg = $reg;
+                    next;
+                } else {
+                    $pdar_done=1;
                 }
             }
-            if($pda_read) {
-                print $fh "            if (val == reg)\n";
-                print $fh "                break;\n";
-                print $fh "        }\n";
-                print $fh "        if(!cnt)\n";
-                print $fh "            BDBG_ERR((\"".$hw_node." Timeout\"));\n";
-                print $fh "    }\n";
-            } elsif(!$vcxo_reset && $hw_desc->{$hw_node}{$reg}{_div} eq "") {
-                print $fh "    BREG_Write32(handle->regHandle, BCHP_".$reg.", reg);\n";
-            }
-            print $fh "\n";
+            if($hw_desc->{$hw_node}{$reg}{_pda} eq "WRITE") {$pdaw_done=1;}
 
-            if($hw_desc->{$hw_node}{$reg}{_delay} > 0) {
-                print $fh "    BKNI_Delay(".$hw_desc->{$hw_node}{$reg}{_delay}.");\n";
+            @lines = generate_bchp_impl_string($hw_desc, $hw_node, $reg);
+            print $fh @lines;
+
+            if($pdaw_done && !$pdar_done) {
+                $pdar_done=1;
+                if($tmp_reg) {
+                    @lines = generate_bchp_impl_string($hw_desc, $hw_node, $tmp_reg);
+                    print $fh @lines;
+                } else {
+                    print "PDAR not found : $hw_node\n";
+                }
+
             }
         }
         printf $fh "}\n";
-        print $fh "\n";
     }
 
     close($fh);
 }
 
 sub generate_bchp_resources_priv_h_file {
-    my ($nonleafs, $nonleafshw, $leafs, $nonleafsdv, $leafsdv) = @_;
+    my ($nonleafs, $nonleafshw, $leafs, $nonleafsdv, $leafsdv, $nonleafsmx, $leafsmx) = @_;
     my @nonleafshw = keys %$nonleafshw;
     my @leafs = keys %$leafs;
     my @hw_all = (@nonleafshw, @leafs);
     my @nonleafsdv = keys %$nonleafsdv;
     my @leafsdv = keys %$leafsdv;
     my @DV_all = (@nonleafsdv, @leafsdv);
+    my @nonleafsmx = keys %$nonleafsmx;
+    my @leafsmx = keys %$leafsmx;
+    my @MX_all = (@nonleafsmx, @leafsmx);
 
     open(my $fh, ">bchp_pwr_resources_priv.h") or die "Can't open output file bchp_pwr_resources_priv.h";
 
@@ -825,7 +1012,7 @@ sub generate_bchp_resources_priv_h_file {
 
     # get the length of the longest node string
     my $maxlen = 0;
-    foreach (@hw_all, @DV_all) {
+    foreach (@hw_all, @MX_all, @DV_all) {
         if (length > $maxlen) {
             $maxlen = length;
         }
@@ -836,7 +1023,10 @@ sub generate_bchp_resources_priv_h_file {
     foreach (sort @hw_all) {
         printf $fh ("#define %-${maxlen}s 0x%08x\n", "BCHP_PWR_$_", 0xff000000+$idx++);
     }
-    foreach (@DV_all) {
+    foreach (sort @MX_all) {
+        printf $fh ("#define %-${maxlen}s 0x%08x\n", "BCHP_PWR_$_", 0xff000000+$idx++);
+    }
+    foreach (sort @DV_all) {
         printf $fh ("#define %-${maxlen}s 0x%08x\n", "BCHP_PWR_$_", 0xff000000+$idx++);
     }
 
@@ -844,14 +1034,17 @@ sub generate_bchp_resources_priv_h_file {
     print $fh "/* This is the link between the public and private interface */\n";
     print $fh "void BCHP_PWR_P_HW_Control(BCHP_Handle handle, const BCHP_PWR_P_Resource *resource, bool activate);\n";
     print $fh "void BCHP_PWR_P_HW_ControlId(BCHP_Handle handle, unsigned id, bool activate);\n";
+    print $fh "void BCHP_PWR_P_MUX_Control(BCHP_Handle handle, const BCHP_PWR_P_Resource *resource, unsigned *mux, bool set);\n";
     print $fh "void BCHP_PWR_P_DIV_Control(BCHP_Handle handle, const BCHP_PWR_P_Resource *resource, unsigned *mult, unsigned *prediv, unsigned *postdiv, bool set);\n";
     print $fh "\n";
 
     print $fh "#define BCHP_PWR_P_NUM_NONLEAFS   ", scalar(keys %$nonleafs), "\n";
     print $fh "#define BCHP_PWR_P_NUM_NONLEAFSHW ", scalar(keys %$nonleafshw), "\n";
     print $fh "#define BCHP_PWR_P_NUM_LEAFS      ", scalar(keys %$leafs), "\n";
+    print $fh "#define BCHP_PWR_P_NUM_MUXES      ", scalar(@MX_all), "\n";
     print $fh "#define BCHP_PWR_P_NUM_DIVS       ", scalar(@DV_all), "\n";
-    print $fh "#define BCHP_PWR_P_NUM_ALLNODES   ", scalar(keys %$nonleafs)+scalar(keys %$leafs)+scalar(keys %$nonleafshw)+scalar(@DV_all), "\n";
+    print $fh "#define BCHP_PWR_P_NUM_ALLNODES   ", scalar(keys %$nonleafs)+scalar(keys %$leafs)+scalar(keys %$nonleafshw)+scalar(@MX_all)+scalar(@DV_all), "\n";
+    print $fh "#define BCHP_PWR_NUM_P_STATES     ", scalar(@profiles)+1, "\n";
     print $fh "\n";
 
     print $fh "#endif\n";
@@ -951,7 +1144,7 @@ sub generate_dependency_string
 
     foreach (@$nodes) {
         push @lines, "static const ${prefix1}* $prefix2${_}[] = {\n";
-        foreach my $dep (sort keys %{$graph->{$_}}) {
+        foreach my $dep (@{$graph->{$_}{_order}}) {
             push @lines, "    ${prefix1}_${dep},\n";
         }
         push @lines, "    NULL\n";
@@ -987,6 +1180,37 @@ sub generate_hwcontrol_function_string
     push @lines, "void BCHP_PWR_P_HW_Control(BCHP_Handle handle, const BCHP_PWR_P_Resource *resource, bool activate)\n";
     push @lines, "{\n";
     push @lines, "    BCHP_PWR_P_HW_ControlId(handle, resource->id, activate);\n";
+    push @lines, "}\n";
+
+    return @lines;
+}
+
+sub generate_mxcontrol_function_string
+{
+    my $prefix1 = shift;
+    my $prefix2 = shift;
+    my $nodes = shift;
+    my @lines;
+
+    push @lines, "\n";
+    push @lines, "void BCHP_PWR_P_MUX_Control(BCHP_Handle handle, const BCHP_PWR_P_Resource *resource, unsigned *mux, bool set)\n";
+    push @lines, "{\n";
+    if(scalar(@$nodes) == 0) {
+        push @lines, "    BSTD_UNUSED(handle);\n";
+        push @lines, "    BSTD_UNUSED(mux);\n";
+        push @lines, "    BSTD_UNUSED(set);\n";
+    }
+    push @lines, "\n";
+    push @lines, "    switch(resource->id) {\n";
+    foreach (@$nodes) {
+        push @lines, "        case ${prefix1}_${_}:\n";
+        push @lines, "            ${prefix2}_${_}_Control(handle, mux, set);\n";
+        push @lines, "            break;\n";
+    }
+    push @lines, "        default:\n";
+    push @lines, "            BDBG_ASSERT(0);\n";
+    push @lines, "            break;\n";
+    push @lines, "    }\n";
     push @lines, "}\n";
 
     return @lines;
@@ -1034,25 +1258,41 @@ sub generate_dv_table
     my $hw_desc = shift;
     my (@lines1, @lines2, @lines);
     my ($mult, $prediv, $postdiv);
-
+    my %div_table;
+    my $num_profiles = scalar @profiles;
     push @lines, "\n";
     push @lines2, "const ${prefix3} ${prefix3}List[BCHP_PWR_P_NUM_DIVS] = {\n";
 
     foreach (sort @$nodes) {
         foreach my $reg (sort keys %{$hw_desc->{$_}}) {
-            foreach my $type (keys %{$hw_desc->{$_}{$reg}{_div}}) {
-                foreach my $mask (keys %{$hw_desc->{$_}{$reg}{_div}{$type}}) {
-                    if ($type eq "POSTDIV") {
-                        $postdiv = $hw_desc->{$_}{$reg}{_div}{$type}{$mask};
-                    } elsif ($type eq "MULT") {
-                        $mult = $hw_desc->{$_}{$reg}{_div}{$type}{$mask};
-                    } elsif ($type eq "PREDIV") {
-                        $prediv = $hw_desc->{$_}{$reg}{_div}{$type}{$mask};
+            foreach my $type (keys %{$hw_desc->{$_}{$reg}{_field}}) {
+                foreach my $field (keys %{$hw_desc->{$_}{$reg}{_field}{$type}}) {
+                    if($field eq "_pmap") {next;}
+                    if(exists $hw_desc->{$_}{$reg}{_field}{$type}{_pmap}) {
+                        foreach my $profile (0..$num_profiles) {
+                            if(exists $hw_desc->{$_}{$reg}{_field}{$type}{_pmap}{$profile}) {
+                                push(@{$div_table{$_}{$type}}, $hw_desc->{$_}{$reg}{_field}{$type}{_pmap}{$profile}{_pstate}{0});
+                            } else {
+                                if($profile == $num_profiles) {
+                                    push(@{$div_table{$_}{$type}}, $hw_desc->{$_}{$reg}{_field}{$type}{$field});
+                                } else {
+                                    push(@{$div_table{$_}{$type}}, 0);
+                                }
+                            }
+                        }
+                    } else {
+                        foreach my $profile (0..$num_profiles) {
+                            push(@{$div_table{$_}{$type}}, $hw_desc->{$_}{$reg}{_field}{$type}{$field});
+                        }
                     }
                 }
             }
         }
-        push @lines1, "const ${prefix2} ${prefix2}_${_}[] = {{${mult},${prediv},${postdiv}},{${mult},${prediv},".($postdiv *= 16)."}};\n";
+        push @lines1, "const ${prefix2} ${prefix2}_${_}[] = {";
+        foreach my $profile (0..$num_profiles) {
+            push @lines1, "{$div_table{$_}{MULT}[$profile],$div_table{$_}{PREDIV}[$profile],$div_table{$_}{POSTDIV}[$profile]},";
+        }
+        push @lines1, "};\n";
         push @lines2, "    {${prefix1}_${_}, ${prefix2}_${_}},\n";
     }
     push @lines2, "};\n";
@@ -1061,20 +1301,26 @@ sub generate_dv_table
     push @lines, "\n";
     push @lines, @lines2;
 
+    #print Dumper (%div_table);
+
     return @lines;
 }
 
 sub generate_bchp_resources_c_file {
-    my ($nonleafs, $nonleafshw, $leafs, $nonleafsdv, $leafsdv, $nodes, $hw_desc) = @_;
+    my ($nonleafs, $nonleafshw, $leafs, $nonleafsdv, $leafsdv, $nonleafsmx, $leafsmx, $nodes, $hw_desc) = @_;
     my @nonleafs = sort keys %$nonleafs;
     my @nonleafshw = sort keys %$nonleafshw;
     my @leafs = sort keys %$leafs;
     my @hw_all = (@nonleafshw, @leafs);
-    my @nonleafsdv = keys %$nonleafsdv;
-    my @leafsdv = keys %$leafsdv;
+    my @nonleafsdv = sort keys %$nonleafsdv;
+    my @leafsdv = sort keys %$leafsdv;
     my @DV_all = (@nonleafsdv, @leafsdv);
+    my @nonleafsmx = sort keys %$nonleafsmx;
+    my @leafsmx = sort keys %$leafsmx;
+    my @MX_all = (@nonleafsmx, @leafsmx);
     @hw_all = sort @hw_all;
     @DV_all = sort @DV_all;
+    @MX_all = sort @MX_all;
 
     open(my $fh, ">bchp_pwr_resources.c") or die "Can't open output file bchp_pwr_resources.c";
 
@@ -1106,12 +1352,16 @@ sub generate_bchp_resources_c_file {
     @lines = generate_resource_string("BCHP_PWR_P_Resource", "BCHP_PWR", "NonLeafHw", \@nonleafshw);
     print $fh @lines;
 
+    @lines = generate_resource_string("BCHP_PWR_P_Resource", "BCHP_PWR", "Mux", \@MX_all);
+    print $fh @lines;
+
     @lines = generate_resource_string("BCHP_PWR_P_Resource", "BCHP_PWR", "Div", \@DV_all);
     print $fh @lines;
 
     my @resources;
     push @resources, @nonleafs;
     push @resources, @hw_all;
+    push @resources, @MX_all;
     push @resources, @DV_all;
     print $fh "/* List of resources */\n";
     @lines = generate_array_string("BCHP_PWR_P_Resource*", "BCHP_PWR_P_ResourceList",
@@ -1124,6 +1374,9 @@ sub generate_bchp_resources_c_file {
 
     # NonLeafHw nodes are tacked-on at the end
     @lines = generate_dependency_string("BCHP_PWR_P_Resource", "BCHP_PWR_P_Depend_", $nodes, \@nonleafshw);
+    print $fh @lines;
+
+    @lines = generate_dependency_string("BCHP_PWR_P_Resource", "BCHP_PWR_P_Depend_", $nodes, \@nonleafsmx);
     print $fh @lines;
 
     @lines = generate_dependency_string("BCHP_PWR_P_Resource", "BCHP_PWR_P_Depend_", $nodes, \@nonleafsdv);
@@ -1143,6 +1396,9 @@ sub generate_bchp_resources_c_file {
     @lines = generate_hwcontrol_function_string("BCHP_PWR", "BCHP_PWR_P", \@hw_all);
     print $fh @lines;
 
+    @lines = generate_mxcontrol_function_string("BCHP_PWR", "BCHP_PWR_P", \@MX_all);
+    print $fh @lines;
+
     @lines = generate_dvcontrol_function_string("BCHP_PWR", "BCHP_PWR_P", \@DV_all);
     print $fh @lines;
 
@@ -1154,21 +1410,23 @@ sub generate_bchp_resources_c_file {
 
 sub generate_bchp_files {
     my ($nodes, $hw_desc, $chp) = @_;
-    my (%nonleafs, %nonleafshw, %leafs, %nonleafsdv, %leafsdv);
+    my (%nonleafs, %nonleafshw, %leafs, %nonleafsdv, %leafsdv, %nonleafsmx, %leafsmx);
 
     foreach my $node (keys %$nodes) {
-        if($node !~ /^(HW|DV)_/) {
+        if($node !~ /^(HW|DV|MX)_/) {
             $nonleafs{$node}++;
         } elsif ($node =~ /^HW_/) {
             $nonleafshw{$node}++;
         } elsif ($node =~ /^DV_/) {
             $nonleafsdv{$node}++;
+        } elsif ($node =~ /^MX_/) {
+            $nonleafsmx{$node}++;
         }
-        foreach my $child_node (keys %{$nodes->{$node}}) {
-            if($child_node !~ /^(HW|DV)_/) {
+        foreach my $child_node (@{$nodes->{$node}{_order}}) {
+            if($child_node !~ /^(HW|DV|MX)_/) {
                 $nonleafs{$child_node}++;
                 if(!exists $nodes->{$child_node}) {
-                    print "Non leaf node $child_node has no child nodes\n";
+                    print "Error : Non leaf node $child_node has no child nodes\n";
                 }
             } elsif ($child_node =~ /^HW_/) {
                 if(exists $nodes->{$child_node}) {
@@ -1182,15 +1440,22 @@ sub generate_bchp_files {
                 } else {
                     $leafsdv{$child_node}++;
                 }
+            } elsif ($child_node =~ /^MX_/) {
+                if(exists $nodes->{$child_node}) {
+                    $nonleafsmx{$child_node}++;
+                } else {
+                    print "Error : Leaf mux node found $child_node\n";
+                    $leafsmx{$child_node}++;
+                }
             }
         }
     }
 
     generate_bchp_resources_txt_file($nodes, $chp);
     generate_bchp_impl_c_file($hw_desc);
-    generate_bchp_resources_priv_h_file(\%nonleafs, \%nonleafshw, \%leafs, \%nonleafsdv, \%leafsdv);
+    generate_bchp_resources_priv_h_file(\%nonleafs, \%nonleafshw, \%leafs, \%nonleafsdv, \%leafsdv, \%nonleafsmx, \%leafsmx);
     generate_bchp_resources_h_file(\%nonleafs);
-    generate_bchp_resources_c_file(\%nonleafs, \%nonleafshw, \%leafs, \%nonleafsdv, \%leafsdv, $nodes, $hw_desc);
+    generate_bchp_resources_c_file(\%nonleafs, \%nonleafshw, \%leafs, \%nonleafsdv, \%leafsdv, \%nonleafsmx, \%leafsmx, $nodes, $hw_desc);
 }
 
 sub main {
@@ -1204,7 +1469,7 @@ sub main {
         if(/^[a-zA-Z]\d$/) {
             $ver = $_;
         }
-        if(/\/snapshot/) {
+        if(/\/projects\//) {
             $dir = $_;
         }
         if(/perf/) {
@@ -1237,16 +1502,16 @@ sub main {
     }
     print"\n\n";
 
-    my $clk_dir = $dir."/design/clkgen/rdb/*.rdb";
-    my $pda_dir = $dir."/design/avs_top/rdb/*.rdb";
-    my @files = glob("$clk_dir $pda_dir");
+    my $clkgen_dir = $dir."/design/clkgen/rdb/*.rdb";
+    my $avstop_dir = $dir."/design/avs_top/rdb/*.rdb";
+    my $sysctrl_dir = $dir."/design/sys_ctrl/rdb/sram_pda.rdb" if -e $dir."/design/sys_ctrl/rdb/sram_pda.rdb";
+    my @files = glob("$clkgen_dir $avstop_dir $sysctrl_dir");
 
 	parse_rdb_file($_, \%clk_tree)  foreach (@files);
 
 	verify_tree(\%clk_tree);
 
 	generate_top_level_nodes(\%clk_tree, \%functions);
-
 
     if(not defined $perf) {
         generate_nexus_nodes(\%clk_tree, \%functions, \%nodes, \%hw_desc);
@@ -1266,6 +1531,7 @@ sub main {
     #print Dumper (%functions);
     #print Dumper (%nodes);
     #print Dumper (%hw_desc);
+    #print Dumper (@profiles);
 }
 
 exit main();

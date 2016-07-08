@@ -1,52 +1,51 @@
 /******************************************************************************
-* (c) 2014 Broadcom Corporation
-*
-* This program is the proprietary software of Broadcom Corporation and/or its
-* licensors, and may only be used, duplicated, modified or distributed pursuant
-* to the terms and conditions of a separate, written license agreement executed
-* between you and Broadcom (an "Authorized License").  Except as set forth in
-* an Authorized License, Broadcom grants no license (express or implied), right
-* to use, or waiver of any kind with respect to the Software, and Broadcom
-* expressly reserves all rights in and to the Software and all intellectual
-* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1. This program, including its structure, sequence and organization,
-*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-*    reasonable efforts to protect the confidentiality thereof, and to use
-*    this information only in connection with your use of Broadcom integrated
-*    circuit products.
-*
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-******************************************************************************/
-/*****************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
+ *
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************
 *
 * FILENAME: $Workfile: trunk/stack/IEEE/MAC/include/private/bbMacMpdu.h $
 *
 * DESCRIPTION:
 *   MAC structured MPDU definitions.
 *
-* $Revision: 3402 $
-* $Date: 2014-08-26 14:23:56Z $
+* $Revision: 10772 $
+* $Date: 2016-03-30 02:46:05Z $
 *
 *****************************************************************************************/
 
@@ -72,7 +71,7 @@
 /************************* DEFINITIONS **************************************************/
 /* Constants for sizes of particular PPDU fields.
  * See IEEE 802.15.4-2006, subclauses 6.3, 6.3.3, and table 21. */
-#define MAC_PPDU_PHR_SIZE  1    /*!< PPDU.PHR field has 1 byte size. */
+#define MAC_PPDU_PHR_SIZE     1     /*!< PPDU.PHR field has 1 octet size. */
 
 
 /* Constants for offsets of particular PPDU fields.
@@ -388,6 +387,7 @@ typedef union _MacMpduPendAddrSpec_t
  */
 typedef enum _MacMpduCommandId_t
 {
+    MAC_COMMAND_NOT_COMMAND_FRAME     = 0x00,   /*!< Zero is used instead the Command Id for different frame type. */
     MAC_COMMAND_ASSOCIATION_REQ       = 0x01,   /*!< Association request. */
     MAC_COMMAND_ASSOCIATION_RESP      = 0x02,   /*!< Association response. */
     MAC_COMMAND_DISASSOCIATION_NOTIF  = 0x03,   /*!< Disassociation notification. */
@@ -439,15 +439,14 @@ SYS_DbgAssertStatic(MAC_COMMAND_MAX_ID_GUARD - 1 <= 0x1F);
  */
 typedef enum _MacMpduSurrId_t
 {
-    MAC_SURR_BEACON            = MAC_MPDU_MAKE_SURROGATE_ID(MAC_MPDU_FRAME_TYPE_BEACON, 0),
-    MAC_SURR_DATA              = MAC_MPDU_MAKE_SURROGATE_ID(MAC_MPDU_FRAME_TYPE_DATA, 0),
+    MAC_SURR_BEACON            = MAC_MPDU_MAKE_SURROGATE_ID(MAC_MPDU_FRAME_TYPE_BEACON, MAC_COMMAND_NOT_COMMAND_FRAME),
+    MAC_SURR_DATA              = MAC_MPDU_MAKE_SURROGATE_ID(MAC_MPDU_FRAME_TYPE_DATA, MAC_COMMAND_NOT_COMMAND_FRAME),
     MAC_SURR_ASSOCIATION_REQ   = MAC_MPDU_MAKE_SURROGATE_ID(MAC_MPDU_FRAME_TYPE_COMMAND, MAC_COMMAND_ASSOCIATION_REQ),
     MAC_SURR_ASSOCIATION_RESP  = MAC_MPDU_MAKE_SURROGATE_ID(MAC_MPDU_FRAME_TYPE_COMMAND, MAC_COMMAND_ASSOCIATION_RESP),
     MAC_SURR_DATA_REQ          = MAC_MPDU_MAKE_SURROGATE_ID(MAC_MPDU_FRAME_TYPE_COMMAND, MAC_COMMAND_DATA_REQ),
     MAC_SURR_ORPHAN_NOTIF      = MAC_MPDU_MAKE_SURROGATE_ID(MAC_MPDU_FRAME_TYPE_COMMAND, MAC_COMMAND_ORPHAN_NOTIF),
     MAC_SURR_BEACON_REQ        = MAC_MPDU_MAKE_SURROGATE_ID(MAC_MPDU_FRAME_TYPE_COMMAND, MAC_COMMAND_BEACON_REQ),
-    MAC_SURR_COORD_REALIGNMENT = MAC_MPDU_MAKE_SURROGATE_ID(MAC_MPDU_FRAME_TYPE_COMMAND, MAC_COMMAND_COORD_REALIGNMENT),
-    MAC_SURR_SECURED           = 0xFF,
+    MAC_SURR_COORD_REALIGNMENT = MAC_MPDU_MAKE_SURROGATE_ID(MAC_MPDU_FRAME_TYPE_COMMAND, MAC_COMMAND_COORD_REALIGNMENT)
 } MacMpduSurrId_t;
 
 
@@ -470,12 +469,12 @@ typedef struct _MacMpduSurr_t
     MAC_PanId_t            thatPanId;       /*!< (RX/TX) PAN ID of 'that' device. */
 
     /* Structured data. */
-    union
-    {
+//    union
+//    {
         struct  /* (RX/TX) Parameters of Data frame and Beacon frame. */
         {
             /* 32-bit data. */
-            HAL_SymbolTimestamp_t   timestamp;              /*!< (RX) Frame reception timestamp, in symbol quotients. */
+            HAL_Symbol__Tstamp_t    timestamp;              /*!< (RX) Frame reception timestamp, in symbol quotients. */
 
             /* 32-bit data. */
             SYS_DataPointer_t       payload;                /*!< (RX/TX) Data frame or Beacon frame payload. */
@@ -485,7 +484,7 @@ typedef struct _MacMpduSurr_t
             MAC_SuperframeSpec_t    superframeSpec;         /*!< (RX/TX) Superframe Specification. */
 
             /* 16-bit data. */
-            PHY_ChannelOnPage_t     channelOnPage;          /*!< (RX) The logical channel and channel page
+            PHY_PageChannel_t       channelOnPage;          /*!< (RX) The logical channel and channel page
                                                                 on which the beacon was received. */
 #endif
         };
@@ -524,10 +523,10 @@ typedef struct _MacMpduSurr_t
             MAC_Addr16bit_t         orphanShortAddress;     /*!< (TX) Orphan Short Address. */
 
             /* 8-bit data. */
-            PHY_LogicalChannelId_t  logicalChannel;         /*!< (TX) Logical Channel. */
+            PHY_Channel_t           logicalChannel;         /*!< (TX) Logical Channel. */
         };
 #endif /* _MAC_CONTEXT_ZBPRO_ */
-    };
+//    };
 
     /* 8-bit data. */
     MAC_AddrMode_t                thisAddrMode;     /*!< (RX/TX) Addressing mode of 'this' device. */
@@ -550,7 +549,7 @@ typedef struct _MacMpduSurr_t
 
     union
     {
-        PHY_Lqi_t                 lqi;              /*!< (RX) Frame LQI value from radio. */
+        PHY_LQI_t                 lqi;              /*!< (RX) Frame LQI value from radio. */
         MAC_MaxFrameRetries_t     retries;          /*!< (TX) Number of retransmission attempts. */
     };
 
@@ -558,16 +557,29 @@ typedef struct _MacMpduSurr_t
     MacMpduSurrId_t               surrogateId;      /*!< (RX/TX) MPDU Surrogate identifier. */
 #endif
 
+#if !defined(_MAC_CONTEXT_RF4CE_CONTROLLER_)                                                                                // FIXME: Replace with _MAC_CONTEXT_ZBPRO_
+    MacMpduSecurityEnabled_t      securityEnabled;  /*!< (RX) SecurityEnabled bit of the Frame Control. */
+    MacMpduFrameVersion_t         frameVersion;     /*!< (RX) FrameVersion bits of the Frame Control. */
+    MAC_Status_t                  status;           /*!< (RX) Security processing status. */
+#endif
+#if defined(_MAC_CONTEXT_ZBPRO_)
+    MAC_SecurityLevel_t           securityLevel;    /*!< (RX/TX) The security level to be used. */
+
+    MAC_SecurityParams_t          securityParams;   /*!< (RX/TX) Security parameters. They are ignored if the
+                                                        SecurityLevel is set to zero. */
+    MAC_FrameCounter_t            frameCounter;     /*!< (RX/TX) Security Frame Counter. */
+#endif
+
 } MacMpduSurr_t;
 
 
 /**//**
- * \brief   Template for MPDU Constructor callback function.
+ * \brief   Data type for entry point to the MPDU Constructor callback function.
  * \param[in]   mpduSurr    Pointer to an empty MPDU Surrogate object.
  * \details Functions of this type must be provided by all the MAC-FE Request Processors;
  *  these functions are used to construct MPDU Surrogate objects to be transmitted.
  */
-typedef void MacMpduConstructor_t(MacMpduSurr_t *const mpduSurr);
+typedef void (*MacMpduConstructor_t)(MacMpduSurr_t *const mpduSurr);
 
 
 #endif /* _BB_MAC_MPDU_H */

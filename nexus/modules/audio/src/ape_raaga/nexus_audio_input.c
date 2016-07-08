@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2015 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2004-2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,20 +35,11 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   API name: AudioInput
 *   Generic API for audio filter graph management
 *
-* Revision History:
-*
-* $brcm_Log: $
-*
 ***************************************************************************/
-
 #include "nexus_audio_module.h"
 #include "blst_queue.h"
 #include "blst_slist.h"
@@ -271,6 +262,7 @@ static bool NEXUS_AudioInput_P_IsRunningUpstream(NEXUS_AudioInput input)
         break;
 #endif
     case NEXUS_AudioInputType_eDspMixer:
+    case NEXUS_AudioInputType_eIntermediateMixer:
         running = NEXUS_AudioMixer_P_IsStarted(input->pObjectHandle);
         /* Fall through */
     default:
@@ -313,31 +305,35 @@ static bool NEXUS_AudioInput_P_IsRunningDownstream(NEXUS_AudioInput input)
     {
 #if NEXUS_NUM_AUDIO_DECODERS
     case NEXUS_AudioInputType_eDecoder:
-        BDBG_MSG(("Decoder type - checking run status"));
         running = NEXUS_AudioDecoder_P_IsRunning(input->pObjectHandle);
+        BDBG_MSG(("Decoder type - checking run status: running %d", running));
         break;
 #endif
 #if NEXUS_NUM_AUDIO_PLAYBACKS
     case NEXUS_AudioInputType_ePlayback:
-        BDBG_MSG(("Playback type - checking run status"));
         running = NEXUS_AudioPlayback_P_IsRunning(input->pObjectHandle);
+        BDBG_MSG(("Playback type - checking run status: running %d", running));
         break;
 #endif
 #if NEXUS_NUM_I2S_INPUTS
     case NEXUS_AudioInputType_eI2s:
-        BDBG_MSG(("I2sInput type - checking run status"));
         running = NEXUS_I2sInput_P_IsRunning(input->pObjectHandle);
+        BDBG_MSG(("I2sInput type - checking run status: running %d", running));
         break;
 #endif
 #if NEXUS_NUM_RF_AUDIO_DECODERS
     case NEXUS_AudioInputType_eRfDecoder:
-        BDBG_MSG(("RF Audio Decoder type - checking run status"));
         running = NEXUS_RfAudioDecoder_P_IsRunning(input->pObjectHandle);
+        BDBG_MSG(("RFAudioDecoder type - checking run status: running %d", running));
         break;
 #endif
+#if NEXUS_NUM_AUDIO_MIXERS
     case NEXUS_AudioInputType_eDspMixer:
-        running = NEXUS_AudioMixer_P_IsStarted(input->pObjectHandle);
+    case NEXUS_AudioInputType_eIntermediateMixer:
+        running = NEXUS_AudioMixer_P_IsStarted(input->pObjectHandle) && !NEXUS_AudioMixer_P_IsExplicitlyStarted(input->pObjectHandle);
+        BDBG_MSG(("Dsp/IntMixer type - checking run status: running %d", running));
         break;
+#endif
     default:
         break;
     }
@@ -456,6 +452,7 @@ NEXUS_Error NEXUS_AudioInput_P_AddInput(NEXUS_AudioInput destination, NEXUS_Audi
     /* On 7440/3563/7405+ architectures, inputs must be stopped for this to proceed. */
     if ( NEXUS_AudioInput_P_IsRunning(destination) &&
          (destination->objectType != NEXUS_AudioInputType_eDspMixer &&
+          destination->objectType != NEXUS_AudioInputType_eIntermediateMixer &&
           destination->objectType != NEXUS_AudioInputType_eMixer) )
     {
         BDBG_ERR(("Can not add inputs to a node while it's running."));
@@ -593,6 +590,7 @@ NEXUS_Error NEXUS_AudioInput_P_RemoveInput(NEXUS_AudioInput destination, NEXUS_A
     /* On 7440/3563/7405+ architectures, inputs must be stopped for this to proceed. */
     if ( NEXUS_AudioInput_P_IsRunning(destination) &&
          (destination->objectType != NEXUS_AudioInputType_eDspMixer &&
+          destination->objectType != NEXUS_AudioInputType_eIntermediateMixer &&
           destination->objectType != NEXUS_AudioInputType_eMixer) )
     {
         BDBG_ERR(("Can not remove inputs from a node while it's running."));
@@ -1039,6 +1037,7 @@ void NEXUS_AudioInput_Shutdown(
             break;
         case NEXUS_AudioInputType_eMixer:
         case NEXUS_AudioInputType_eDspMixer:
+        case NEXUS_AudioInputType_eIntermediateMixer:
             NEXUS_AudioMixer_RemoveAllInputs(input->pObjectHandle);
             break;
         case NEXUS_AudioInputType_eAutoVolumeLevel:
@@ -1091,6 +1090,7 @@ void NEXUS_AudioInput_Shutdown(
                 break;
             case NEXUS_AudioInputType_eMixer:
             case NEXUS_AudioInputType_eDspMixer:
+            case NEXUS_AudioInputType_eIntermediateMixer:
                 rc = NEXUS_AudioMixer_RemoveInput(pDownstreamNode->pDownstreamObject->pObjectHandle, input);
                 break;
             case NEXUS_AudioInputType_eAutoVolumeLevel:
@@ -1386,7 +1386,9 @@ NEXUS_Error NEXUS_AudioInput_P_OutputSettingsChanged(
         return NEXUS_SUCCESS;
     }
 
-    if ( input->objectType == NEXUS_AudioInputType_eDspMixer || input->objectType == NEXUS_AudioInputType_eMixer )
+    if ( input->objectType == NEXUS_AudioInputType_eDspMixer ||
+         input->objectType == NEXUS_AudioInputType_eIntermediateMixer ||
+         input->objectType == NEXUS_AudioInputType_eMixer )
     {
         if ( NEXUS_AudioMixer_P_IsStarted(input->pObjectHandle) )
         {
@@ -1882,7 +1884,7 @@ check_vcxo_source:
                 NEXUS_Vcxo_GetSettings(pllSettings.modeSettings.vcxo.vcxo, &vcxoSettings);
                 if ( vcxoSettings.timebase != audioOutputSettings.timebase )
                 {
-                    BDBG_WRN(("Changing VCXO-PLL %u timebase from %u to %u", pllSettings.modeSettings.vcxo.vcxo, vcxoSettings.timebase, audioOutputSettings.timebase));
+                    BDBG_WRN(("Changing VCXO-PLL %u timebase from %lu to %lu", pllSettings.modeSettings.vcxo.vcxo, vcxoSettings.timebase, audioOutputSettings.timebase));
                     vcxoSettings.timebase = audioOutputSettings.timebase;
                     errCode = NEXUS_Vcxo_SetSettings(pllSettings.modeSettings.vcxo.vcxo, &vcxoSettings);
                     if ( errCode )
@@ -1945,7 +1947,9 @@ static NEXUS_Error NEXUS_AudioInput_P_CheckOutputMixers(NEXUS_AudioInput input)
     BDBG_OBJECT_ASSERT(pData, NEXUS_AudioInputData);
 
     /* Check if mixer itself is running (mixer can be started even if inputs are not) */
-    if ( input->objectType == NEXUS_AudioInputType_eDspMixer || input->objectType == NEXUS_AudioInputType_eMixer )
+    if ( input->objectType == NEXUS_AudioInputType_eDspMixer ||
+         input->objectType == NEXUS_AudioInputType_eIntermediateMixer ||
+         input->objectType == NEXUS_AudioInputType_eMixer )
     {
         if ( NEXUS_AudioMixer_P_IsStarted(input->pObjectHandle) )
         {
@@ -2066,6 +2070,7 @@ static NEXUS_Error NEXUS_AudioInput_P_SetVolumeDownstream(
     switch ( input->objectType )
     {
     case NEXUS_AudioInputType_eMixer:
+    case NEXUS_AudioInputType_eIntermediateMixer:
     case NEXUS_AudioInputType_eDspMixer:
         /* For mixers, volume affects the input to the mixer.  Output is not affected. */
         break;
@@ -2076,7 +2081,8 @@ static NEXUS_Error NEXUS_AudioInput_P_SetVolumeDownstream(
     }
 
     /* Don't apply volume past DSP mixers */
-    if ( input->objectType != NEXUS_AudioInputType_eDspMixer )
+    if ( input->objectType != NEXUS_AudioInputType_eDspMixer &&
+         input->objectType != NEXUS_AudioInputType_eIntermediateMixer )
     {
         /* Iterate through my mixers and apply the volume setting */
         for ( pMixerNode = BLST_Q_FIRST(&pData->mixerList);
@@ -2102,6 +2108,7 @@ static NEXUS_Error NEXUS_AudioInput_P_SetVolumeDownstream(
     switch ( input->objectType )
     {
     case NEXUS_AudioInputType_eMixer:
+    case NEXUS_AudioInputType_eIntermediateMixer:
     case NEXUS_AudioInputType_eDspMixer:
         /* Propagate volume to mixer if needed */
         errCode = NEXUS_AudioMixer_P_SetInputVolume(input->pObjectHandle, previous, pInputVolume);
@@ -2156,6 +2163,8 @@ BAPE_InputPort NEXUS_AudioInput_P_GetInputPort(
             return port;
         }
 #endif
+    case NEXUS_AudioInputType_eIntermediateMixer:
+
     default:
         return (BAPE_InputPort)input->inputPort;
     }
@@ -2441,7 +2450,8 @@ static void NEXUS_AudioInput_P_ForceStopUpstream(NEXUS_AudioInput input)
     }
 
     /* Mixers must stop after all other inputs have stopped, not before */
-    if ( input->objectType == NEXUS_AudioInputType_eDspMixer && NEXUS_AudioMixer_P_IsStarted(input->pObjectHandle) )
+    if ( (input->objectType == NEXUS_AudioInputType_eDspMixer || input->objectType == NEXUS_AudioInputType_eIntermediateMixer)
+         && NEXUS_AudioMixer_P_IsStarted(input->pObjectHandle) )
     {
         NEXUS_AudioMixer_Stop(input->pObjectHandle);
     }
@@ -2523,6 +2533,7 @@ static void NEXUS_AudioInput_P_ForceStopDownstream(NEXUS_AudioInput input)
         break;
 #endif
     case NEXUS_AudioInputType_eDspMixer:
+    case NEXUS_AudioInputType_eIntermediateMixer:
     case NEXUS_AudioInputType_eMixer:
         /* Mixers are a special case.  They can have multiple inputs, all of which must be stopped also. */
         /* Recurse Upstream */
@@ -2532,11 +2543,12 @@ static void NEXUS_AudioInput_P_ForceStopDownstream(NEXUS_AudioInput input)
         {
             NEXUS_AudioInput_P_ForceStopUpstream(pUpNode->pUpstreamObject);
         }
-        if ( input->objectType == NEXUS_AudioInputType_eDspMixer && NEXUS_AudioMixer_P_IsStarted(input->pObjectHandle) )
+        if ( (input->objectType == NEXUS_AudioInputType_eDspMixer || input->objectType == NEXUS_AudioInputType_eIntermediateMixer)
+              && NEXUS_AudioMixer_P_IsStarted(input->pObjectHandle) )
         {
             NEXUS_AudioMixer_Stop(input->pObjectHandle);
         }
-        if ( input->objectType == NEXUS_AudioInputType_eMixer && NEXUS_AudioMixer_P_IsStarted(input->pObjectHandle) )
+        else if ( input->objectType == NEXUS_AudioInputType_eMixer && NEXUS_AudioMixer_P_IsStarted(input->pObjectHandle) )
         {
             NEXUS_AudioInput_P_ExplictlyStopFMMMixers(input);
         }
@@ -2682,6 +2694,7 @@ NEXUS_AudioMixerHandle NEXUS_AudioInput_P_LocateMixer(
                 break;
             case NEXUS_AudioInputType_eMixer:
             case NEXUS_AudioInputType_eDspMixer:
+            case NEXUS_AudioInputType_eIntermediateMixer:
                 if ( lastMixerFound || hLastMixerHandle == NULL )
                 {
                     return pNode->pDownstreamObject->pObjectHandle;

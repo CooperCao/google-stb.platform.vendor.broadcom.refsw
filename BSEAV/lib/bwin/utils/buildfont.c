@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2014 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,17 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
  **************************************************************************/
 #include <stdio.h>
 #include <string.h>
@@ -53,15 +42,16 @@
 #include <bkni.h>
 #include <bstd.h>
 
-void printUsage()
+void printUsage(void)
 {
     printf(
     "This application will prerender a font and save it to a file.\n"
     "The characters in the font must come from stdin.\n"
     "\n"
-    "Usage: buildfont INPUT_FONT_FILENAME SIZE ANTIALIASED CHARSET OUTPUT_FONT_FILENAME\n"
+    "Usage: buildfont INPUT_FONT_FILENAME SIZE ANTIALIASED CHARSET OUTPUT_FONT_FILENAME { -i }\n"
     " ANTIALIASED = 0 or 1\n"
     " CHARSET = default, stdin\n"
+    " -i = generate italic font\n"
     );
 }
 
@@ -74,6 +64,7 @@ int main(int argc, char **argv)
     bwin_engine_settings win_engine_settings;
     bwin_engine_t win;
     bwin_font_t font;
+	bool italic = false;	/* default */
 
     /* bwin requires basemodules */
     BKNI_Init();
@@ -96,9 +87,16 @@ int main(int argc, char **argv)
     antialiased = atoi(argv[3]);
     default_charset = !strcasecmp(argv[4], "default");
     outputfile = argv[5];
-
-    printf("Opening font %s, size %d\n", fontface, size);
-    font = bwin_open_font(win, fontface, size, antialiased);
+    if (argc >= 7 && !strcmp(argv[6],"-i")) {
+        italic = true;
+    }
+    printf("Opening font %s, size %d %s\n", fontface, size, italic ? "for italic font" : "" );
+    if (italic) {
+        font = bwin_open_font_italic(win, fontface, size, antialiased);
+    }
+    else {
+        font = bwin_open_font(win, fontface, size, antialiased);
+    }
     if (!font) {
         printf("Unable to open font\n");
         return -1;
@@ -108,7 +106,7 @@ int main(int argc, char **argv)
         unsigned char ch;
         /* all printable ascii characters */
         for (ch=32;ch<=127;ch++) {
-            bwin_measure_text(font, &ch, 1, &width, &height, &base);
+            bwin_measure_text(font, (const char *)&ch, 1, &width, &height, &base);
             /* printf("measure '%c' = %dx%d,base %d\n", ch, width, height, base); */
         }
     }
@@ -122,101 +120,4 @@ int main(int argc, char **argv)
     }
 
     return bwin_save_rendered_font(font, outputfile);
-}
-
-/* this gives a flat entry point for vxworks */
-int vxworks_main(char *arg1,char *arg2,char *arg3,char *arg4,char *arg5,
-    char *arg6,char *arg7,char *arg8,char *arg9,char *arg10)
-{
-    char *argv[11] = {
-        "buildfont",arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9,arg10};
-    int argc;
-    for (argc=1;argc<11;argc++)
-        if (!argv[argc]) break;
-    return main(argc,argv);
-}
-
-/* this gives a simple test point */
-int go()
-{
-    int ret;
-
-    ret = vxworks_main("/tgtsvr/teenbold.ttf",
-                        "11",
-                        "0",
-                        "default",
-                        "/tgtsvr/arial_11.bwin_font",
-                        NULL, NULL, NULL, NULL, NULL);
-
-    ret |= vxworks_main("/tgtsvr/teenbold.ttf",
-                        "24",
-                        "1",
-                        "default",
-                        "/tgtsvr/arial_black_24_aa.bwin_font",
-                        NULL, NULL, NULL, NULL, NULL);
-
-    ret |= vxworks_main("/tgtsvr/teenbold.ttf",
-                        "25",
-                        "0",
-                        "default",
-                        "/tgtsvr/arial_black_25.bwin_font",
-                        NULL, NULL, NULL, NULL, NULL);
-
-    ret |= vxworks_main("/tgtsvr/teenbold.ttf",
-                        "18",
-                        "1",
-                        "default",
-                        "/tgtsvr/arial_18_aa.bwin_font",
-                        NULL, NULL, NULL, NULL, NULL);
-
-    ret |= vxworks_main("/tgtsvr/teenbdit.ttf",
-                        "35",
-                        "1",
-                        "default",
-                        "/tgtsvr/arial_italic_35_aa.bwin_font",
-                        NULL, NULL, NULL, NULL, NULL);
-
-    return ret;
-}
-
-int go1()
-{
-    int ret;
-
-    ret = vxworks_main("/tgtsvr/Arialbd.ttf",
-                        "11",
-                        "0",
-                        "default",
-                        "/tgtsvr/arial_11.bwin_font",
-                        NULL, NULL, NULL, NULL, NULL);
-
-    ret |= vxworks_main("/tgtsvr/Arialbd.ttf",
-                        "24",
-                        "1",
-                        "default",
-                        "/tgtsvr/arial_black_24_aa.bwin_font",
-                        NULL, NULL, NULL, NULL, NULL);
-
-    ret |= vxworks_main("/tgtsvr/Arialbd.ttf",
-                        "25",
-                        "0",
-                        "default",
-                        "/tgtsvr/arial_black_25.bwin_font",
-                        NULL, NULL, NULL, NULL, NULL);
-
-    ret |= vxworks_main("/tgtsvr/Arialbd.ttf",
-                        "18",
-                        "1",
-                        "default",
-                        "/tgtsvr/arial_18_aa.bwin_font",
-                        NULL, NULL, NULL, NULL, NULL);
-
-    ret |= vxworks_main("/tgtsvr/Arialbi.ttf",
-                        "35",
-                        "1",
-                        "default",
-                        "/tgtsvr/arial_italic_35_aa.bwin_font",
-                        NULL, NULL, NULL, NULL, NULL);
-
-    return ret;
 }

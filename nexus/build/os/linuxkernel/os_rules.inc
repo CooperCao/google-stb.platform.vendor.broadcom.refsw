@@ -1,7 +1,7 @@
 ############################################################
-#     (c)2003-2013 Broadcom Corporation
+#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 #
-#  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+#  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
 #  conditions of a separate, written license agreement executed between you and Broadcom
 #  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,8 @@
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
 #
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
 # Module Description:
 #   This file defines the OS-specific rules for building in linuxkernel mode.
-#
-# Revision History:
-#
-# $brcm_Log: $
 #
 ############################################################
 
@@ -139,14 +131,15 @@ ${NEXUS_OBJECTS}: $(NEXUS_SYNCTHUNK_DIR)/nexus_driver_modules.h
 # Rule for nexus driver
 $(NEXUS_OBJ_DIR)/nexus.o_shipped: $(NEXUS_OBJECTS) $(MAGNUM_OBJECTS) $(MAGNUM_PRECOMPILED_OBJECTS) $(MAGNUM_OS_ABSTRACTION_OBJECTS) $(NEXUS_EXTRALIBS) $(NEXUS_ASM_OBJECTS)
 	@echo [Link...... nexus.ko]
-	${Q_}cd $(NEXUS_OBJ_DIR);$(LD) -Map $(abspath ${NEXUS_DRIVER}.map) ${NEXUS_LDFLAGS} $(NEXUS_EXTRA_LDFLAGS) --strip-debug -r $(patsubst $(abspath $(NEXUS_OBJ_DIR))/%,%,$(abspath $^)) -o $(abspath $@)
+	${Q_}rm -f $@.ld && for f in $(patsubst $(abspath $(NEXUS_OBJ_DIR))/%,%,$(abspath $^)) ; do echo $(abspath ${NEXUS_OBJ_DIR})/$$f >>$@.ld; done
+	${Q_}cd $(LINUX);$(LD) -Map $(abspath ${NEXUS_DRIVER}.map) ${NEXUS_LDFLAGS} $(NEXUS_EXTRA_LDFLAGS) --strip-debug -r @$(abspath $@.ld) -o $(abspath $@)
 
-$(NEXUS_DRIVER): $(NEXUS_OBJ_DIR)/nexus.o_shipped
+$(NEXUS_DRIVER): $(NEXUS_OBJ_DIR)/nexus.o_shipped $(NEXUS_DRIVER_EXTRADEPS)
 ifeq ($(LINUX_VER_GE_2_6_31),y)
 	${Q_}# build a dynamic Kbuild file
 	@echo "obj-m += nexus.o" >$(NEXUS_OBJ_DIR)/Kbuild
 	@echo "nexus-y += nexus.o_shipped" >>$(NEXUS_OBJ_DIR)/Kbuild
-	$(MAKE) -C $(LINUX_OUT) M=$(realpath $(NEXUS_OBJ_DIR)) ARCH=$(B_REFSW_LINUX_ARCH) modules PLATFORM=$(NEXUS_PLATFORM) CROSS_COMPILE=$(B_REFSW_CROSS_COMPILE)
+	$(MAKE) -C $(LINUX_OUT) M=$(realpath $(NEXUS_OBJ_DIR)) ARCH=$(B_REFSW_LINUX_ARCH) modules PLATFORM=$(NEXUS_PLATFORM) CROSS_COMPILE=$(B_REFSW_CROSS_COMPILE) $(NEXUS_DRIVER_KBUILD_ARGS)
 else
 	${@_}# do not use kbuild for 2.6.18
 	@$(CP) $^ $@
@@ -164,7 +157,7 @@ ifneq ($(NEXUS_DEP_FILES),)
 -include $(wildcard $(NEXUS_OBJ_DIR)/*/*.d)
 endif
 
-ifeq ($(B_REFSW_LINUX_ARCH),arm)
+ifeq ($(filter $(B_REFSW_LINUX_ARCH), arm64 arm ), $(B_REFSW_LINUX_ARCH))
 ####################################
 # get ARM Linux CFLAGS/LDFLAGS from Kbuild
 

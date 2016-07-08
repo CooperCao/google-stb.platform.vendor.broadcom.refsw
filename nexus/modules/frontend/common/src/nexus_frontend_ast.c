@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2013 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  *****************************************************************************/
 #include "nexus_frontend_module.h"
@@ -367,7 +359,7 @@ NEXUS_Error NEXUS_Frontend_P_Ast_UnregisterEvents(NEXUS_AstDevice *pChannel)
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
 
-    BDBG_MSG(("NEXUS_Frontend_P_Ast_UnregisterEvents(%p)",pChannel));
+    BDBG_MSG(("NEXUS_Frontend_P_Ast_UnregisterEvents(%p)",(void*)pChannel));
 
     if (pChannel->lockAppCallback) {
         NEXUS_TaskCallback_Destroy(pChannel->lockAppCallback);
@@ -765,8 +757,8 @@ NEXUS_Error NEXUS_Frontend_P_Ast_TuneSatellite( void *handle, const NEXUS_Fronte
     BERR_Code errCode;
     NEXUS_AstDevice *pDevice = handle;
     BAST_AcqSettings acqSettings;
-	uint8_t networkSpec;
-	bool nyquist20 = false;
+    uint8_t networkSpec;
+    bool nyquist20 = false;
 
     BDBG_OBJECT_ASSERT(pDevice, NEXUS_AstDevice);
     BDBG_ASSERT(NULL != pSettings);
@@ -836,6 +828,9 @@ NEXUS_Error NEXUS_Frontend_P_Ast_TuneSatellite( void *handle, const NEXUS_Fronte
         acqSettings.acq_ctl |= BAST_ACQSETTINGS_BYPASS_TUNE;
     if ( pSettings->bypassAcquire )
         acqSettings.acq_ctl |= BAST_ACQSETTINGS_BYPASS_ACQUIRE;
+    if (pSettings->shortFrames) {
+        BDBG_WRN(("This frontend does not support short frames."));
+    }
 
     /* AST engineers prefer we always set this to scan. */
     if (pSettings->spectralInversion != NEXUS_FrontendSatelliteInversion_eScan) {
@@ -1554,7 +1549,7 @@ static NEXUS_Error NEXUS_Frontend_P_Ast_SetDiseqcSettings( void *handle, const N
         buf[1] = A8299_control[chipIdx];
 
         i2cHandle = pDevice->settings.i2cRegHandle;
-        BDBG_MSG(("A8299_%d: channel=%d, i2c_addr=0x%X, ctl=0x%X, handle: %p", chipIdx, channel, i2c_addr, buf[1], i2cHandle));
+        BDBG_MSG(("A8299_%d: channel=%d, i2c_addr=0x%X, ctl=0x%X, handle: %p", chipIdx, channel, i2c_addr, buf[1], (void*)i2cHandle));
         BREG_I2C_WriteNoAddr(i2cHandle, i2c_addr, buf, 2);
         if (errCode) return BERR_TRACE(errCode);
 #else

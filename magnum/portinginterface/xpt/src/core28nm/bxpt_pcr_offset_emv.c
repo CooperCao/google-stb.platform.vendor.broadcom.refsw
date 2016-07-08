@@ -1,45 +1,41 @@
 /******************************************************************************
- * (c) 2003-2015 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
- *****************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
 
+ ******************************************************************************/
 
 #include "bstd.h"
 #include "bkni.h"
@@ -445,6 +441,25 @@ BERR_Code BXPT_PcrOffset_GetSettings(
     return( ExitCode );
 }
 
+BERR_Code BXPT_PcrOffset_ReleasePidChannel(
+    BXPT_PcrOffset_Handle hChannel,
+    unsigned int PidChannel
+    )
+{
+    BDBG_ASSERT( hChannel );
+
+    if( PidChannel >= BXPT_NUM_PID_CHANNELS )
+    {
+        /* Bad PID channel number. Complain. */
+        BDBG_ERR(( "PidChannel %lu is out of range!", ( unsigned long ) PidChannel ));
+        return BERR_TRACE( BERR_INVALID_PARAMETER );
+    }
+
+    BXPT_P_SetPidChannelDestination( (BXPT_Handle) hChannel->lvXpt, PidChannel, 5, false );
+    hChannel->PidChannelNum = BXPT_NUM_PID_CHANNELS;
+    return BERR_SUCCESS;
+}
+
 BERR_Code BXPT_PcrOffset_SetSettings(
     BXPT_PcrOffset_Handle hChannel,
     const BXPT_PcrOffset_Settings *Settings
@@ -490,6 +505,30 @@ BERR_Code BXPT_PcrOffset_SetSettings(
 
     RegAddr = GetStcRegAddr_isrsafe( BCHP_XPT_PCROFFSET_STC0_CTRL, hChannel->WhichStc );
     Reg = BREG_Read32( hChannel->hReg, RegAddr );
+#if BXPT_HAS_TSMUX
+    /* if AV window pairing is enabled, must adjust av_window based on the count mode */
+    if(BCHP_GET_FIELD_DATA( Reg, XPT_PCROFFSET_STC0_CTRL, AV_WINDOW_EN )) {
+        uint32_t AvWinRegAddr, AvWinReg, AvWindow;
+        uint32_t oldCountMode = BCHP_GET_FIELD_DATA( Reg, XPT_PCROFFSET_STC0_CTRL, MODE );
+        /* The units used in AV_WINDOW change with the channels' mode (either MOD300 or Binary).
+        ** For MOD300, the units are 45kH ticks, whereas in binary they are 27 MHz. We want to scale this so
+        ** that the AvWindow is expressed as mS of delay. */
+        if(oldCountMode != Settings->CountMode) {/* update av window if count mode is changed */
+            AvWinRegAddr = GetStcRegAddr_isrsafe( BCHP_XPT_PCROFFSET_STC0_AV_WINDOW, hChannel->WhichStc );
+            AvWinReg = BREG_Read32( hChannel->hReg, AvWinRegAddr );
+            AvWindow = BCHP_GET_FIELD_DATA(AvWinReg, XPT_PCROFFSET_STC0_AV_WINDOW, AV_WINDOW ) /
+                    (oldCountMode ? 27000 : 45) *
+                    (Settings->CountMode? 27000 : 45);
+            AvWinReg &= ~(
+                BCHP_MASK( XPT_PCROFFSET_STC0_AV_WINDOW, AV_WINDOW )
+            );
+            AvWinReg |= (
+                BCHP_FIELD_DATA( XPT_PCROFFSET_STC0_AV_WINDOW, AV_WINDOW, AvWindow )
+            );
+            BREG_Write32( hChannel->hReg, AvWinRegAddr, AvWinReg );
+        }
+    }
+#endif
     Reg &= ~(
         BCHP_MASK( XPT_PCROFFSET_STC0_CTRL, MODE )
     );
@@ -764,12 +803,16 @@ BERR_Code BXPT_PcrOffset_SetStc_isr(
         if( Mode )
         {
             /* Binary */
+            /* This API has 32-bit STC, so should zero out hi reg for 27MHz binary count mode */
+            RegAddr = GetStcRegAddr_isrsafe( BCHP_XPT_PCROFFSET_STC0_HI, hChannel->WhichStc );
+            BREG_Write32( hChannel->hReg, RegAddr, 0 );/* zero hi reg in case it's paired in NRT mode */
             RegAddr = GetStcRegAddr_isrsafe( BCHP_XPT_PCROFFSET_STC0_LO, hChannel->WhichStc );
             BREG_Write32( hChannel->hReg, RegAddr, NewStc );
         }
         else
         {
             /* Mod300 */
+            /* STC is in 45KHz */
             RegAddr = GetStcRegAddr_isrsafe( BCHP_XPT_PCROFFSET_STC0_HI, hChannel->WhichStc );
             BREG_Write32( hChannel->hReg, RegAddr, (NewStc >> 22) & 0x3FF );
             RegAddr = GetStcRegAddr_isrsafe( BCHP_XPT_PCROFFSET_STC0_LO, hChannel->WhichStc );
@@ -1014,6 +1057,7 @@ BERR_Code BXPT_PcrOffset_EnableOffset(
     )
 {
     uint32_t Reg, RegAddr;
+    bool bAlreadyEnabled;
 
     BERR_Code ExitCode = BERR_SUCCESS;
 
@@ -1028,6 +1072,9 @@ BERR_Code BXPT_PcrOffset_EnableOffset(
 
     RegAddr = BCHP_XPT_PCROFFSET_PID_CONFIG_TABLE_i_ARRAY_BASE + PidChannelNum * PID_CHNL_STEPSIZE;
     Reg = BREG_Read32( hPcrOff->hReg, RegAddr );
+
+    bAlreadyEnabled = BCHP_GET_FIELD_DATA( Reg, XPT_PCROFFSET_PID_CONFIG_TABLE_i, PCROFFSET_EN ) == 1 ? true : false;
+    if (bAlreadyEnabled) { ExitCode = BERR_NOT_SUPPORTED; BERR_TRACE( ExitCode); goto Done; }
 
     Reg &= ~(
         BCHP_MASK( XPT_PCROFFSET_PID_CONFIG_TABLE_i, JITTER_DIS ) |
@@ -1791,7 +1838,7 @@ BERR_Code BXPT_PcrOffset_SetStcSnapshotConfig(
 
     if( BXPT_MAX_EXTERNAL_TRIGS <= Config->ExternalTriggerNum )
     {
-        BDBG_ERR(( "Invalid external trigger number", Config->ExternalTriggerNum ));
+        BDBG_ERR(( "Invalid external trigger number %d", Config->ExternalTriggerNum ));
         ExitCode = BERR_TRACE( BERR_INVALID_PARAMETER );
         goto Done;
     }

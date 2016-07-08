@@ -1,14 +1,14 @@
 /******************************************************************************
- *    (c)2008-2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
  * no license (express or implied), right to use, or waiver of any kind with respect to the
  * Software, and Broadcom expressly reserves all rights in and to the Software and all
  * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELYn
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
@@ -35,16 +35,8 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
  *  main test app for ip_streamer
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ******************************************************************************/
 #include <stdio.h>
@@ -297,7 +289,7 @@ initNexusVice2TranscoderPipe(
     NEXUS_SyncChannelSettings syncChannelSettings;
 #endif
 
-    BDBG_MSG(("%s: setup transcoder: ctx %p", __FUNCTION__, transcoderDst));
+    BDBG_MSG(("%s: setup transcoder: ctx %p", __FUNCTION__, (void *)transcoderDst));
 
     /* now setup this transcoding pipeline */
 #if NEXUS_HAS_SYNC_CHANNEL
@@ -315,7 +307,7 @@ initNexusVice2TranscoderPipe(
         BDBG_ERR(("%s: ERROR: NEXUS_Timebase_Open Failed to open a free Timebase", __FUNCTION__));
         goto error;
     }
-    BDBG_MSG(("%s: using timebase %d for decode", __FUNCTION__, transcoderDst->timebase));
+    BDBG_MSG(("%s: using timebase %d for decode", __FUNCTION__, (int)transcoderDst->timebase));
 
     /* video decoder, stc channel are not needed for straight hdmi sources */
     {
@@ -368,7 +360,7 @@ initNexusVice2TranscoderPipe(
         BDBG_ERR(("%s: ERROR: Can't get a free Video Encoder Handle, max idx %d", __FUNCTION__, i));
         goto error;
     }
-    BDBG_MSG(("%s: opened video encoder %p for transcode ctx %p", __FUNCTION__, transcoderDst->videoEncoder, transcoderDst));
+    BDBG_MSG(("%s: opened video encoder %p for transcode ctx %p", __FUNCTION__, (void *)transcoderDst->videoEncoder, (void *)transcoderDst));
 
 #ifdef B_HAS_DISPLAY_LOCAL_FOR_ENCODE
     {
@@ -423,7 +415,7 @@ initNexusVice2TranscoderPipe(
         BDBG_ERR(("%s: ERROR: Can't get a free Video Window on Display", __FUNCTION__));
         goto error;
     }
-    BDBG_MSG(("%s: display %p & video window %p are opened for transcoder ctx %p", __FUNCTION__, transcoderDst->displayTranscode, transcoderDst->windowTranscode, transcoderDst));
+    BDBG_MSG(("%s: display %p & video window %p are opened for transcoder ctx %p", __FUNCTION__, (void *)transcoderDst->displayTranscode, (void *)transcoderDst->windowTranscode, (void *)transcoderDst));
 
     /* set transcoder minimum display format before AddInput to avoid black frame transition during dynamic resolution change */
     NEXUS_VideoWindow_GetSettings(transcoderDst->windowTranscode, &windowSettings);
@@ -476,14 +468,14 @@ initNexusVice2TranscoderPipe(
             BDBG_ERR(("%s: ERROR: Can't open audio decoder upto id %d", __FUNCTION__, i-1));
             goto error;
         }
-        BDBG_MSG(("%s: opened audio decoder %p for transcode ctx %p", __FUNCTION__, transcoderDst->audioDecoder, transcoderDst));
+        BDBG_MSG(("%s: opened audio decoder %p for transcode ctx %p", __FUNCTION__, (void *)transcoderDst->audioDecoder, (void *)transcoderDst));
 
         /* Create audio mux output */
         if ((transcoderDst->audioMuxOutput = NEXUS_AudioMuxOutput_Create(NULL)) == NULL) {
             BDBG_ERR(("%s: ERROR: Can't create Audio Stream Mux handle", __FUNCTION__));
             goto error;
         }
-        BDBG_MSG(("%s: Audio Stream Mux %p is created for transcoder ctx %p", __FUNCTION__, transcoderDst->audioMuxOutput, transcoderDst));
+        BDBG_MSG(("%s: Audio Stream Mux %p is created for transcoder ctx %p", __FUNCTION__, (void *)transcoderDst->audioMuxOutput, (void *)transcoderDst));
 
         /* Open audio encoder */
         NEXUS_AudioEncoder_GetDefaultSettings(&encoderSettings);
@@ -584,7 +576,7 @@ initNexusVice2TranscoderPipe(
         BDBG_ERR(("%s: ERROR: Can't create Stream Mux handle", __FUNCTION__));
         goto error;
     }
-    BDBG_MSG(("%s: Stream Mux %p is created for transcoder ctx %p", __FUNCTION__, transcoderDst->streamMux, transcoderDst));
+    BDBG_MSG(("%s: Stream Mux %p is created for transcoder ctx %p", __FUNCTION__, (void *)transcoderDst->streamMux, (void *)transcoderDst));
 
 
     /* and finally open the playpump channels that are used by mux to feed the Audio & Video ES as well as System data to the xpt h/w */
@@ -600,18 +592,18 @@ initNexusVice2TranscoderPipe(
         BDBG_ERR(("%s: ERROR: Failed to Open Nexus Playpump ", __FUNCTION__));
         goto error;
     }
-    BDBG_MSG(("%s: Nexus Playpump is opened for video transcoder ctx %p", __FUNCTION__, transcoderDst));
+    BDBG_MSG(("%s: Nexus Playpump is opened for video transcoder ctx %p", __FUNCTION__, (void *)transcoderDst));
     if ((transcoderDst->playpumpTranscodeAudio = NEXUS_Playpump_Open(NEXUS_ANY_ID, &playpumpConfig)) == NULL) {
         BDBG_ERR(("%s: ERROR: Failed to Open Nexus Playpump ", __FUNCTION__));
         goto error;
     }
-    BDBG_MSG(("%s: Nexus Playpump is opened for audio transcoder ctx %p", __FUNCTION__, transcoderDst));
+    BDBG_MSG(("%s: Nexus Playpump is opened for audio transcoder ctx %p", __FUNCTION__, (void *)transcoderDst));
     if ((transcoderDst->playpumpTranscodeSystemData = NEXUS_Playpump_Open(NEXUS_ANY_ID, &playpumpConfig)) == NULL) {
         BDBG_ERR(("%s: ERROR: Failed to Open Nexus Playpump ", __FUNCTION__));
         goto error;
     }
-    BDBG_MSG(("%s: Nexus Playpump is opened for system data transcoder ctx %p", __FUNCTION__, transcoderDst));
-    BDBG_MSG(("%s: setup transcoder ctx %p is successful", __FUNCTION__, transcoderDst));
+    BDBG_MSG(("%s: Nexus Playpump is opened for system data transcoder ctx %p", __FUNCTION__, (void *)transcoderDst));
+    BDBG_MSG(("%s: setup transcoder ctx %p is successful", __FUNCTION__, (void *)transcoderDst));
 
     return 0;
 
@@ -884,7 +876,7 @@ B_IpStreamer_SetupSystemData(
     NEXUS_Memory_GetDefaultAllocationSettings(&allocSettings);
     if (ipStreamerCtx->globalCtx->globalCfg.heapHandle)
         allocSettings.heap = ipStreamerCtx->globalCtx->globalCfg.heapHandle;
-    BDBG_MSG(("%s: CTX %p, transcoderDst %p", __FUNCTION__, ipStreamerCtx, transcoderDst));
+    BDBG_MSG(("%s: CTX %p, transcoderDst %p", __FUNCTION__, (void *)ipStreamerCtx, (void *)transcoderDst));
     for (i=0; i<IP_STREAMER_PSI_QUEUE_CNT; i++) {
         if (NEXUS_Memory_Allocate(IP_STREAMER_TS_HEADER_BUF_LENGTH, &allocSettings, &transcoderDst->pat[i])) {
             BDBG_ERR(("NEXUS Memory alloc Error at %d, returning..", __LINE__));
@@ -998,7 +990,7 @@ stopNexusTranscoderDstNonRealTime(
 {
 
     if (ipStreamerCtx->transcoderDst->inUse == 0) {
-        BDBG_MSG(("%s: ctx: xcode ctx %p:%p session is already stoped, returning", __FUNCTION__, ipStreamerCtx, ipStreamerCtx->transcoderDst));
+        BDBG_MSG(("%s: ctx: xcode ctx %p:%p session is already stoped, returning", __FUNCTION__, (void *)ipStreamerCtx, (void *)ipStreamerCtx->transcoderDst));
         return;
     }
     if (ipStreamerCtx->transcoderDst->refCount > 1) {
@@ -1041,16 +1033,16 @@ stopNexusTranscoderDstNonRealTime(
         }
         /* since opening of decode stc channel is done in the Start call, closing of the stc channel will need to happen in this stop call */
         if (ipStreamerCtx->transcoderDst->videoStcChannel) {
-            BDBG_MSG(("%s: Closing Video stcChannel %p", __FUNCTION__, ipStreamerCtx->transcoderDst->videoStcChannel));
+            BDBG_MSG(("%s: Closing Video stcChannel %p", __FUNCTION__, (void *)ipStreamerCtx->transcoderDst->videoStcChannel));
             NEXUS_StcChannel_Close(ipStreamerCtx->transcoderDst->videoStcChannel);
         }
         if (ipStreamerCtx->transcoderDst->audioStcChannel && ipStreamerCtx->transcoderDst->audioStcChannel != ipStreamerCtx->transcoderDst->videoStcChannel) {
-            BDBG_MSG(("%s: Closing Audio stcChannel %p", __FUNCTION__, ipStreamerCtx->transcoderDst->audioStcChannel));
+            BDBG_MSG(("%s: Closing Audio stcChannel %p", __FUNCTION__, (void *)ipStreamerCtx->transcoderDst->audioStcChannel));
             NEXUS_StcChannel_Close(ipStreamerCtx->transcoderDst->audioStcChannel);
         }
         ipStreamerCtx->transcoderDst->videoStcChannel = NULL;
         if (ipStreamerCtx->transcoderDst->encodeStcChannel && ipStreamerCtx->cfg.transcode.outAudio && ipStreamerCtx->transcoderDst->audioStcChannel != ipStreamerCtx->transcoderDst->encodeStcChannel) {
-            BDBG_MSG(("%s: Closing Encoder stcChannel %p", __FUNCTION__, ipStreamerCtx->transcoderDst->encodeStcChannel));
+            BDBG_MSG(("%s: Closing Encoder stcChannel %p", __FUNCTION__, (void *)ipStreamerCtx->transcoderDst->encodeStcChannel));
             NEXUS_StcChannel_Close(ipStreamerCtx->transcoderDst->encodeStcChannel);
         }
         ipStreamerCtx->transcoderDst->encodeStcChannel = NULL;
@@ -1058,7 +1050,7 @@ stopNexusTranscoderDstNonRealTime(
 
         ipStreamerCtx->transcodingInProgress = false;
         ipStreamerCtx->transcoderDst->started = false;
-        BDBG_MSG(("CTX %p: Transcoder dst %p is stopped", ipStreamerCtx, ipStreamerCtx->transcoderDst));
+        BDBG_MSG(("CTX %p: Transcoder dst %p is stopped", (void *)ipStreamerCtx, (void *)ipStreamerCtx->transcoderDst));
     }
 }
 
@@ -1130,7 +1122,7 @@ seekNexusTranscoderPipeNonRealTime(
 {
     IpStreamerConfig *ipStreamerCfg = &ipStreamerCtx->cfg;
     if (ipStreamerCtx->transcoderDst->inUse == 0) {
-        BDBG_MSG(("%s: ctx: xcode ctx %p:%p session is already stoped, returning", __FUNCTION__, ipStreamerCtx, ipStreamerCtx->transcoderDst));
+        BDBG_MSG(("%s: ctx: xcode ctx %p:%p session is already stoped, returning", __FUNCTION__, (void *)ipStreamerCtx, (void *)ipStreamerCtx->transcoderDst));
         return -1;
     }
     if (ipStreamerCtx->transcoderDst->refCount > 1) {
@@ -1138,7 +1130,7 @@ seekNexusTranscoderPipeNonRealTime(
         return -1;
     }
 
-    BDBG_MSG(("CTX %p: Transcoder dst %p is being stopped", ipStreamerCtx, ipStreamerCtx->transcoderDst));
+    BDBG_MSG(("CTX %p: Transcoder dst %p is being stopped", (void *)ipStreamerCtx, (void *)ipStreamerCtx->transcoderDst));
     {
         /* stop the pipe from front to back */
         NEXUS_VideoEncoderStopSettings stopSettings;
@@ -1202,7 +1194,7 @@ seekNexusTranscoderPipeNonRealTime(
             NEXUS_StcChannel_Invalidate(ipStreamerCtx->transcoderDst->encodeStcChannel);
 #endif
 
-        BDBG_MSG(("CTX %p: Transcoder dst %p is stopped", ipStreamerCtx, ipStreamerCtx->transcoderDst));
+        BDBG_MSG(("CTX %p: Transcoder dst %p is stopped", (void *)ipStreamerCtx, (void *)ipStreamerCtx->transcoderDst));
     }
     /* restart the xcode pipe */
     {
@@ -1211,14 +1203,14 @@ seekNexusTranscoderPipeNonRealTime(
         rc = NEXUS_StreamMux_Start(transcoderDst->streamMux, &transcoderDst->muxConfig, &transcoderDst->muxOutput);
         if (rc) { BDBG_ERR(("NEXUS Error at %d, returning..", __LINE__)); goto error; }
 
-        BDBG_MSG(("%s: Stream Mux is started for transcoder ctx %p", __FUNCTION__, transcoderDst));
+        BDBG_MSG(("%s: Stream Mux is started for transcoder ctx %p", __FUNCTION__, (void *)transcoderDst));
 
         rc = NEXUS_Recpump_Start(ipStreamerCtx->ipDst->recpumpHandle);
         if (rc) {
             BDBG_ERR(("NEXUS Error at %d, returning..", __LINE__));
             return -1;
         }
-        BDBG_MSG(("%s: Recpump is started for transcoder ctx %p", __FUNCTION__, transcoderDst));
+        BDBG_MSG(("%s: Recpump is started for transcoder ctx %p", __FUNCTION__, (void *)transcoderDst));
         if (transcoderDst->videoDecoder)
         {
             /* Start decoder */
@@ -1227,7 +1219,7 @@ seekNexusTranscoderPipeNonRealTime(
                 BDBG_ERR(("NEXUS Error at %d, returning..", __LINE__));
                 goto error;
             }
-            BDBG_MSG(("%s: Video Decoder is started for transcoder ctx %p", __FUNCTION__, transcoderDst));
+            BDBG_MSG(("%s: Video Decoder is started for transcoder ctx %p", __FUNCTION__, (void *)transcoderDst));
         }
         if (ipStreamerCtx->cfg.transcode.outAudio && transcoderDst->audioDecoder)
         {
@@ -1236,7 +1228,7 @@ seekNexusTranscoderPipeNonRealTime(
                 BDBG_ERR(("NEXUS Error at %d, returning..", __LINE__));
                 goto error;
             }
-            BDBG_MSG(("%s: Audio Mux is started for transcoder ctx %p", __FUNCTION__, transcoderDst));
+            BDBG_MSG(("%s: Audio Mux is started for transcoder ctx %p", __FUNCTION__, (void *)transcoderDst));
             rc = NEXUS_AudioMixer_Start(transcoderDst->audioMixer);
             if (rc) {
                 BDBG_ERR(("NEXUS Error at %d, returning..", __LINE__));
@@ -1247,7 +1239,7 @@ seekNexusTranscoderPipeNonRealTime(
                 BDBG_ERR(("NEXUS Error at %d, returning..", __LINE__));
                 goto error;
             }
-            BDBG_MSG(("%s: Audio Decoder is started for transcoder ctx %p", __FUNCTION__, transcoderDst));
+            BDBG_MSG(("%s: Audio Decoder is started for transcoder ctx %p", __FUNCTION__, (void *)transcoderDst));
         }
 #ifdef NEXUS_HAS_PLAYBACK
         if (ipStreamerCfg->srcType == IpStreamerSrc_eFile && ipStreamerCtx->fileSrc->playbackHandle) {
@@ -1261,16 +1253,16 @@ seekNexusTranscoderPipeNonRealTime(
                 return -1;
             }
             NEXUS_Playback_GetDefaultStartSettings(&startSettings);
-            BDBG_MSG(("%s: restarted playback w/ pause to position %d", __FUNCTION__, seekPosition));
+            BDBG_MSG(("%s: restarted playback w/ pause to position %d", __FUNCTION__, (int)seekPosition));
             if (NEXUS_Playback_Start(ipStreamerCtx->fileSrc->playbackHandle, ipStreamerCtx->fileSrc->filePlayHandle, &startSettings) != NEXUS_SUCCESS) {
                 BDBG_ERR(("%s: ERROR: Failed to start File Streaming handle", __FUNCTION__));
                 return -1;
             }
             if (NEXUS_Playback_Seek(ipStreamerCtx->fileSrc->playbackHandle, seekPosition) != NEXUS_SUCCESS) {
-                BDBG_ERR(("%s: NEXUS_Playback_Seek() Failed: seekPosition %d", __FUNCTION__, seekPosition));
+                BDBG_ERR(("%s: NEXUS_Playback_Seek() Failed: seekPosition %d", __FUNCTION__, (int)seekPosition));
                 return -1;
             }
-            BDBG_MSG(("%s: seeked playback to position %d", __FUNCTION__, seekPosition));
+            BDBG_MSG(("%s: seeked playback to position %d", __FUNCTION__, (int)seekPosition));
             if (NEXUS_Playback_Play(ipStreamerCtx->fileSrc->playbackHandle) != NEXUS_SUCCESS) {
                 BDBG_ERR(("%s: ERROR: Failed to start File Streaming handle", __FUNCTION__));
                 return -1;
@@ -1284,16 +1276,16 @@ seekNexusTranscoderPipeNonRealTime(
             BDBG_ERR(("%s: ERROR: Failed to set the Video Encoder Configuration", __FUNCTION__));
             goto error;
         }
-        BDBG_MSG(("%s: video encoder %p settings are updated for transcode ctx %p", __FUNCTION__, transcoderDst->videoEncoder, transcoderDst));
+        BDBG_MSG(("%s: video encoder %p settings are updated for transcode ctx %p", __FUNCTION__, (void *)transcoderDst->videoEncoder, (void *)transcoderDst));
 
         rc = NEXUS_VideoEncoder_Start(transcoderDst->videoEncoder, &transcoderDst->videoEncoderStartConfig);
         if (rc) {
             BDBG_ERR(("NEXUS Error at %d, returning..", __LINE__));
             goto error;
         }
-        BDBG_MSG(("%s: Video Encoder is started for transcoder ctx %p, CTX %p", __FUNCTION__, transcoderDst, ipStreamerCtx));
+        BDBG_MSG(("%s: Video Encoder is started for transcoder ctx %p, CTX %p", __FUNCTION__, (void *)transcoderDst, (void *)ipStreamerCtx));
 
-        BDBG_MSG(("%s: CTX %p: Transcoder Dst %p is restarted ", __FUNCTION__, ipStreamerCtx, transcoderDst));
+        BDBG_MSG(("%s: CTX %p: Transcoder Dst %p is restarted ", __FUNCTION__, (void *)ipStreamerCtx, (void *)transcoderDst));
         return 0;
 
 error:
@@ -1378,7 +1370,7 @@ stopNexusTranscoderDst(
     NEXUS_DisplayCustomFormatSettings customFormatSettings;
 
     if (ipStreamerCtx->transcoderDst->inUse == 0) {
-        BDBG_MSG(("%s: ctx: xcode ctx %p:%p session is already stoped, returning", __FUNCTION__, ipStreamerCtx, ipStreamerCtx->transcoderDst));
+        BDBG_MSG(("%s: ctx: xcode ctx %p:%p session is already stoped, returning", __FUNCTION__, (void *)ipStreamerCtx, (void *)ipStreamerCtx->transcoderDst));
         return;
     }
     if (ipStreamerCtx->transcoderDst->refCount > 1) {
@@ -1449,7 +1441,7 @@ stopNexusTranscoderDst(
 
         ipStreamerCtx->transcodingInProgress = false;
         ipStreamerCtx->transcoderDst->started = false;
-        BDBG_MSG(("CTX %p: Transcoder dst %p is stopped", ipStreamerCtx, ipStreamerCtx->transcoderDst));
+        BDBG_MSG(("CTX %p: Transcoder dst %p is stopped", (void *)ipStreamerCtx, (void *)ipStreamerCtx->transcoderDst));
     }
 }
 
@@ -2149,7 +2141,7 @@ openNexusVice2TranscoderPipe(
             transcoderDst->contextId = i;
             ipStreamerCtx->transcoderDst = transcoderDst;
             transcoderDst->inUse = true;
-            BDBG_MSG(("%s: Found Free Transcoder Dst entry: idx %d, addr %p, total Transcoder dst entries %d", __FUNCTION__, i, transcoderDst, NEXUS_NUM_VIDEO_ENCODERS));
+            BDBG_MSG(("%s: Found Free Transcoder Dst entry: idx %d, addr %p, total Transcoder dst entries %d", __FUNCTION__, i, (void *)transcoderDst, NEXUS_NUM_VIDEO_ENCODERS));
             break;
         }
     }
@@ -2204,7 +2196,7 @@ openNexusVice2TranscoderPipe(
     }
 #endif
 
-    BDBG_MSG(("############### dp xcode %p", transcoderDst->displayTranscode));
+    BDBG_MSG(("############### dp xcode %p", (void *)transcoderDst->displayTranscode));
 #if !NEXUS_DSP_ENCODER_ACCELERATOR_SUPPORT
     if (ipStreamerCfg->transcode.nonRealTime)
 #endif
@@ -2732,7 +2724,7 @@ startNexusVice2TranscoderDst(
     NEXUS_StcChannelSettings stcSettings;
 
     if (transcoderDst->started) {
-        BDBG_MSG(("%s: transcoder dst (%p) is already started, refCount %d", __FUNCTION__, transcoderDst, transcoderDst->refCount));
+        BDBG_MSG(("%s: transcoder dst (%p) is already started, refCount %d", __FUNCTION__, (void *)transcoderDst, transcoderDst->refCount));
         ipStreamerCtx->transcodingInProgress = true;
         ipStreamerCtx->transcodeVideoPidChannel = transcoderDst->transcodeVideoPidChannelCopy;
         ipStreamerCtx->transcodeAudioPidChannel = transcoderDst->transcodeAudioPidChannelCopy;
@@ -2742,7 +2734,7 @@ startNexusVice2TranscoderDst(
     }
 
     if (B_IpStreamer_SetupSystemData(ipStreamerCtx) == false) {
-        BDBG_ERR(("%s: CTX %p: Failed to setup the system data for PSI insertion", __FUNCTION__, ipStreamerCtx));
+        BDBG_ERR(("%s: CTX %p: Failed to setup the system data for PSI insertion", __FUNCTION__, (void *)ipStreamerCtx));
         goto error;
     }
     if (preparePatPmt(ipStreamerCtx) < 0)
@@ -2799,7 +2791,7 @@ startNexusVice2TranscoderDst(
         BDBG_ERR(("%s: ERROR: Can't get a free STC Channel Handle", __FUNCTION__));
         goto error;
     }
-    BDBG_MSG(("%s: opened decode STC Channel %p, NRT %d", __FUNCTION__, transcoderDst->videoStcChannel, ipStreamerCtx->cfg.transcode.nonRealTime ));
+    BDBG_MSG(("%s: opened decode STC Channel %p, NRT %d", __FUNCTION__, (void *)transcoderDst->videoStcChannel, ipStreamerCtx->cfg.transcode.nonRealTime ));
 
     /* For transcoding from file src, we can do either RT (default) or NRT (non-realtime) transcode */
     if (ipStreamerCfg->srcType == IpStreamerSrc_eFile && ipStreamerCtx->cfg.transcode.nonRealTime && ipStreamerCtx->cfg.transcode.outAudio) {
@@ -2814,7 +2806,7 @@ startNexusVice2TranscoderDst(
             BDBG_ERR(("%s: ERROR: Can't get a free STC Channel Handle for Audio decode in NRT mode", __FUNCTION__));
             goto error;
         }
-        BDBG_MSG(("%s: opened audio decode STC Channel %p for NRT mode", __FUNCTION__, transcoderDst->audioStcChannel));
+        BDBG_MSG(("%s: opened audio decode STC Channel %p for NRT mode", __FUNCTION__, (void *)transcoderDst->audioStcChannel));
     }
     else {
         /* RT mode uses same STC for audio and video decoders */
@@ -2834,7 +2826,7 @@ startNexusVice2TranscoderDst(
         stcSettings.timebase = transcoderDst->timebase;
         stcSettings.mode = NEXUS_StcChannelMode_eAuto;
         stcSettings.pcrBits = NEXUS_StcChannel_PcrBits_eFull42;
-        BDBG_MSG(("%s: using timebase %d for encode", __FUNCTION__, stcSettings.timebase));
+        BDBG_MSG(("%s: using timebase %d for encode", __FUNCTION__, (int)stcSettings.timebase));
         stcSettings.autoConfigTimebase = false;
 #if (BCHP_CHIP == 7445 && BCHP_VER < BCHP_VER_C0)
         transcoderDst->encodeStcChannel = NEXUS_StcChannel_Open(transcoderDst->contextId + NEXUS_NUM_VIDEO_ENCODERS, &stcSettings);
@@ -2846,7 +2838,7 @@ startNexusVice2TranscoderDst(
         BDBG_ERR(("%s: ERROR: Can't get a free STC Channel Handle", __FUNCTION__));
         goto error;
     }
-    BDBG_MSG(("%s: opened encode STC Channel %p", __FUNCTION__, transcoderDst->encodeStcChannel));
+    BDBG_MSG(("%s: opened encode STC Channel %p", __FUNCTION__, (void *)transcoderDst->encodeStcChannel));
 
 #ifdef NEXUS_HAS_PLAYBACK
     if (ipStreamerCfg->srcType == IpStreamerSrc_eFile && ipStreamerCtx->fileSrc->playbackHandle) {
@@ -2907,7 +2899,7 @@ startNexusVice2TranscoderDst(
     transcoderDst->videoEncoderStartConfig.bounds.outputFrameRate.max = NEXUS_VideoFrameRate_e60;
     /* note we were use the default value of rateBufferDelay (3sec) but that seems to be causing quite a bit of initial latency */
     transcoderDst->videoEncoderStartConfig.rateBufferDelay = 1500;
-    BDBG_MSG(("%s: ctx %p: rateBufferDelay %d", __FUNCTION__, ipStreamerCtx, transcoderDst->videoEncoderStartConfig.rateBufferDelay));
+    BDBG_MSG(("%s: ctx %p: rateBufferDelay %d", __FUNCTION__, (void *)ipStreamerCtx, transcoderDst->videoEncoderStartConfig.rateBufferDelay));
 
     /* it seems encoder default memory bound setting adapted to box mode now; don't override until required so. */
 
@@ -2962,7 +2954,7 @@ startNexusVice2TranscoderDst(
         BDBG_ERR(("%s: ERROR: Failed to set the Video Encoder Configuration", __FUNCTION__));
         goto error;
     }
-    BDBG_MSG(("%s: video encoder %p settings are updated for transcode ctx %p", __FUNCTION__, transcoderDst->videoEncoder, transcoderDst));
+    BDBG_MSG(("%s: video encoder %p settings are updated for transcode ctx %p", __FUNCTION__, (void *)transcoderDst->videoEncoder, (void *)transcoderDst));
 
 #ifdef HLS_DISABLE_RAMPUP
     adjustEncoderSettings(ipStreamerCtx, &ipStreamerCtx->cfg);
@@ -2991,7 +2983,7 @@ startNexusVice2TranscoderDst(
     rc = NEXUS_StreamMux_Start(transcoderDst->streamMux, &transcoderDst->muxConfig, &transcoderDst->muxOutput);
     if (rc) { BDBG_ERR(("NEXUS Error at %d, returning..", __LINE__)); goto error; }
 
-    BDBG_MSG(("%s: Stream Mux is started for transcoder ctx %p", __FUNCTION__, transcoderDst));
+    BDBG_MSG(("%s: Stream Mux is started for transcoder ctx %p", __FUNCTION__, (void *)transcoderDst));
     ipStreamerCtx->transcodeVideoPidChannel = transcoderDst->muxOutput.video[0];
     transcoderDst->transcodeVideoPidChannelCopy = ipStreamerCtx->transcodeVideoPidChannel;
     if (ipStreamerCtx->cfg.transcode.outAudio) {
@@ -3037,7 +3029,7 @@ startNexusVice2TranscoderDst(
             BDBG_ERR(("NEXUS Error at %d, returning..", __LINE__));
             goto error;
         }
-        BDBG_MSG(("%s: Video Decoder is started for transcoder ctx %p", __FUNCTION__, transcoderDst));
+        BDBG_MSG(("%s: Video Decoder is started for transcoder ctx %p", __FUNCTION__, (void *)transcoderDst));
     }
     if (psi->audioPid && ipStreamerCtx->cfg.transcode.outAudio) {
         NEXUS_AudioDecoderSettings audioDecoderSettings;
@@ -3060,7 +3052,7 @@ startNexusVice2TranscoderDst(
             BDBG_ERR(("NEXUS Error at %d, returning..", __LINE__));
             goto error;
         }
-        BDBG_MSG(("%s: Audio Mux is started for transcoder ctx %p", __FUNCTION__, transcoderDst));
+        BDBG_MSG(("%s: Audio Mux is started for transcoder ctx %p", __FUNCTION__, (void *)transcoderDst));
 
         NEXUS_AudioDecoder_GetDefaultStartSettings(&transcoderDst->audioProgram);
 #if NEXUS_HAS_HDMI_INPUT
@@ -3087,7 +3079,7 @@ startNexusVice2TranscoderDst(
             BDBG_ERR(("NEXUS Error at %d, returning..", __LINE__));
             goto error;
         }
-        BDBG_MSG(("%s: Audio Decoder is started for transcoder ctx %p", __FUNCTION__, transcoderDst));
+        BDBG_MSG(("%s: Audio Decoder is started for transcoder ctx %p", __FUNCTION__, (void *)transcoderDst));
     }
 
     if (!ipStreamerCfg->hlsSession) {
@@ -3100,11 +3092,11 @@ startNexusVice2TranscoderDst(
         BDBG_ERR(("NEXUS Error at %d, returning..", __LINE__));
         goto error;
     }
-    BDBG_MSG(("%s: Video Encoder is started for transcoder ctx %p, CTX %p", __FUNCTION__, transcoderDst, ipStreamerCtx));
+    BDBG_MSG(("%s: Video Encoder is started for transcoder ctx %p, CTX %p", __FUNCTION__, (void *)transcoderDst, (void *)ipStreamerCtx));
 
     ipStreamerCtx->transcodingInProgress = true;
     transcoderDst->started = true;
-    BDBG_MSG(("%s: CTX %p: Transcoder Dst %p is started", __FUNCTION__, ipStreamerCtx, transcoderDst));
+    BDBG_MSG(("%s: CTX %p: Transcoder Dst %p is started", __FUNCTION__, (void *)ipStreamerCtx, (void *)transcoderDst));
     return 0;
 
 error:
@@ -3146,7 +3138,7 @@ setupNexusTranscoderPidChannels(
     NEXUS_Playpump_GetDefaultOpenPidChannelSettings(&pidChannelSettings);
     pidChannelSettings.pidType = NEXUS_PidType_eOther;
     ipStreamerCtx->transcodePmtPidChannel = NEXUS_Playpump_OpenPidChannel(ipStreamerCtx->transcoderDst->playpumpTranscodeSystemData, ipStreamerCfg->transcode.outPmtPid, &pidChannelSettings);
-    BDBG_MSG(("%s: allocated pat pid ch pat %p, ch %p, pcr %p", __FUNCTION__, ipStreamerCtx->transcodePatPidChannel, ipStreamerCtx->transcodePmtPidChannel, ipStreamerCtx->transcodePcrPidChannel));
+    BDBG_MSG(("%s: allocated pat pid ch pat %p, ch %p, pcr %p", __FUNCTION__, (void *)ipStreamerCtx->transcodePatPidChannel, (void *)ipStreamerCtx->transcodePmtPidChannel, (void *)ipStreamerCtx->transcodePcrPidChannel));
     return 0;
 }
 

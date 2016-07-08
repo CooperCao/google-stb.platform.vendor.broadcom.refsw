@@ -1474,13 +1474,13 @@ static void TranscoderMux_Open( Transcoder  *pTranscoder )
 	playpumpOpenSettings.streamMuxCompatible = true;
 	pTranscoder->mux.videoPlaypump = NEXUS_Playpump_Open(STREAM_MUX_VIDEO_PLAYPUMP_IDX, &playpumpOpenSettings);
 	BDBG_ASSERT(pTranscoder->mux.videoPlaypump);
-	BDBG_MSG(("Transcoder opened TS mux video PES playpump %d [%p].", STREAM_MUX_VIDEO_PLAYPUMP_IDX, pTranscoder->mux.videoPlaypump));
+	BDBG_MSG(("Transcoder opened TS mux video PES playpump %d [%p].", STREAM_MUX_VIDEO_PLAYPUMP_IDX, (void*)pTranscoder->mux.videoPlaypump));
 #if 0
 	NEXUS_Playpump_SuspendPacing(pTranscoder->mux.videoPlaypump, true);
 #endif
 
 	pTranscoder->mux.pcrPlaypump = NEXUS_Playpump_Open(STREAM_MUX_PCR_PLAYPUMP_IDX, &playpumpOpenSettings);
-	BDBG_MSG(("Transcoder opened TS mux PCR playpump %d [%p].", STREAM_MUX_PCR_PLAYPUMP_IDX, pTranscoder->mux.pcrPlaypump));
+	BDBG_MSG(("Transcoder opened TS mux PCR playpump %d [%p].", STREAM_MUX_PCR_PLAYPUMP_IDX, (void*)pTranscoder->mux.pcrPlaypump));
 	BDBG_ASSERT(pTranscoder->mux.pcrPlaypump);
 
 	BKNI_CreateEvent(&pTranscoder->mux.event);
@@ -1508,7 +1508,7 @@ static void TranscoderMux_Open( Transcoder  *pTranscoder )
 	playpumpOpenSettings.streamMuxCompatible = true;
 	pTranscoder->mux.audioPlaypump = NEXUS_Playpump_Open(STREAM_MUX_AUDIO_PLAYPUMP_IDX, &playpumpOpenSettings);
 	BDBG_ASSERT(pTranscoder->mux.audioPlaypump);
-	BDBG_MSG(("Transcoder opened TS mux audio PES playpump%d [%p].", STREAM_MUX_AUDIO_PLAYPUMP_IDX, pTranscoder->mux.audioPlaypump));
+	BDBG_MSG(("Transcoder opened TS mux audio PES playpump%d [%p].", STREAM_MUX_AUDIO_PLAYPUMP_IDX, (void*)pTranscoder->mux.audioPlaypump));
 
 	muxConfig.audio[0].pid = MUX_AUDIO_PID;
 	muxConfig.audio[0].muxOutput = pTranscoder->audioMuxOutput;
@@ -1555,7 +1555,7 @@ static void TranscoderMux_Open( Transcoder  *pTranscoder )
 
 	pTranscoder->mux.recpump = NEXUS_Recpump_Open(STREAM_MUX_RECPUMP_IDX, &recpumpOpenSettings);
 	BDBG_ASSERT(pTranscoder->mux.recpump);
-	BDBG_MSG(("Transcoder opened TS mux recpump%d [%p].",  STREAM_MUX_RECPUMP_IDX, pTranscoder->mux.recpump));
+	BDBG_MSG(("Transcoder opened TS mux recpump%d [%p].",  STREAM_MUX_RECPUMP_IDX, (void*)pTranscoder->mux.recpump));
 
 #if 0
 	/*******************************

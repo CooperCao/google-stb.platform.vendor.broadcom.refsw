@@ -1,21 +1,41 @@
 /***************************************************************************
- *     Copyright (c) 2003-2014, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * [File Description:]
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ***************************************************************************/
 
@@ -95,9 +115,14 @@ static const BXDM_Picture_Rate sFrameRateEnumToIntLUT[BXVD_P_PPB_FrameRate_eMax]
    { 10000, 1000},   /* BXVD_P_PPB_FrameRate_e10      */
    { 20000, 1000},   /* BXVD_P_PPB_FrameRate_e20      */
    { 12500, 1000},   /* BXVD_P_PPB_FrameRate_e12_5    */
-   {120000, 1001},   /* BXVD_P_PPB_FrameRate_e119_88   */
-   {120000, 1000},   /* BXVD_P_PPB_FrameRate_e120      */
-   {100000, 1000}    /* BXVD_P_PPB_FrameRate_e100      */
+   {120000, 1001},   /* BXVD_P_PPB_FrameRate_e119_88  */
+   {120000, 1000},   /* BXVD_P_PPB_FrameRate_e120     */
+   {100000, 1000},   /* BXVD_P_PPB_FrameRate_e100     */
+   { 20000, 1001},   /* BXVD_P_PPB_FrameRate_e19_98   */
+   {  7500, 1000},   /* BXVD_P_PPB_FrameRate_e7_5     */
+   { 12000, 1000},   /* BXVD_P_PPB_FrameRate_e12      */
+   { 12000, 1001},   /* BXVD_P_PPB_FrameRate_e11_988  */
+   { 10000, 1001},   /* BXVD_P_PPB_FrameRate_e9_99 */
 };
 
 
@@ -464,6 +489,77 @@ static bool BXVD_Decoder_S_ContextQ_PeekAtNextElement_isrsafe(
    return bReturn;
 }
 
+/* SWSTB-788: found an issue with a dangling HEVC interlaced field; the Delivery Queue depth was stuck
+ * at "1".  As a result, Nexus was unable to detect the End Of Stream. The fix has two parts.
+ * The first is to move the calculation of the Delivery Queue depth here from BXVD_GetChannelStatus_isr.
+ * The second part is to handle HEVC interlace content correctly. 1/19/16 */
+
+static void BXVD_Decoder_S_DeliveryQ_GetPictureCount_isr(
+   BXVD_ChannelHandle hXvdCh,
+   BXVD_Decoder_P_LocalState * pstLocalState,
+   uint32_t * pPictureCount
+   )
+{
+   uint32_t uiNumPicturesOnQueue;
+   uint32_t uiReadOffset;
+   uint32_t uiWriteOffset;
+
+   BXVD_Decoder_P_PictureContextQueue * pstContextQueue = &(hXvdCh->stDecoderContext.stPictureContextQueue);
+
+   BDBG_ENTER(BXVD_Decoder_S_DeliveryQ_GetPictureCount_isr);
+
+   /* Remember that the context queue is zero based, but the delivery queue can be 0 or 2 based. */
+
+   /* Retrieve the deliver Q read offset and convert it to a 0 based value. */
+   BXVD_P_DELIVERY_QUEUE_GET_READ_OFFSET( hXvdCh, uiReadOffset );
+   uiReadOffset -= BXVD_P_INITIAL_OFFSET_DISPLAY_QUEUE;
+
+   /* Convert the delivery Q write offset to a 0 based value. */
+   uiWriteOffset = pstLocalState->uiDeliveryQueueWriteOffset - BXVD_P_INITIAL_OFFSET_DISPLAY_QUEUE;
+
+   /* Calculate the number of PPB's on the delivery queue. */
+
+   if ( false == hXvdCh->stDecoderContext.stDqtCntxt.bDqtEnabled )
+   {
+      /* DQT is disabled, just use the delivery queue read and write offsets to calculate the depth. */
+
+      BXVD_P_GET_QUEUE_DEPTH( uiReadOffset, uiWriteOffset, uiNumPicturesOnQueue );
+   }
+   else
+   {
+      /* When DQT is enabled, there could be two blocks of pictures on the queue.
+       * - the head which is between the two read offsets
+       * - the tail which is between the write and end_of_gop offsets */
+
+      uint32_t uiNumAtHead, uiNumAtTail;
+      uint32_t uiReverseRead = hXvdCh->stDecoderContext.stDqtCntxt.uiReverseReadOffset - BXVD_P_INITIAL_OFFSET_DISPLAY_QUEUE;
+      uint32_t uiEndOfGop = hXvdCh->stDecoderContext.stDqtCntxt.uiEndOfGopOffset - BXVD_P_INITIAL_OFFSET_DISPLAY_QUEUE;
+
+      BXVD_P_GET_QUEUE_DEPTH( uiReadOffset, uiReverseRead, uiNumAtHead );
+      BXVD_P_GET_QUEUE_DEPTH( uiEndOfGop, uiWriteOffset, uiNumAtTail );
+
+      uiNumPicturesOnQueue = uiNumAtHead + uiNumAtTail;
+   }
+
+   /* SW7231-788 and SWSTB-788: look at the picture at the tail of the queue to determine if this is a
+    * multi picture protocol, i.e. SVC 3D, MVC, H264 full frame 3D or HEVC interlaced. For these
+    * protocols, divide uiNumPicturesOnQueue by 2 to return the number of pictures instead of the
+    * number of PPB's. This has the added benefit of returning '0' if a single "dangling" PPB is
+    * sitting at the end of the queue, i.e. an incomplete pair of pictures. */
+
+   if ( pstContextQueue->astPictureContext[ uiReadOffset ].uiSetCount != 1 )
+   {
+      uiNumPicturesOnQueue /= 2;
+   }
+
+   *pPictureCount = uiNumPicturesOnQueue;
+
+   BDBG_LEAVE(BXVD_Decoder_S_DeliveryQ_GetPictureCount_isr);
+
+   return;
+
+}
+
 /****************************************************************************************************
 **
 ** Local "utility" routines.
@@ -488,22 +584,28 @@ static void BXVD_Decoder_S_Log_Init_isr(
     */
    switch ( hXvdCh->sChSettings.ui32MonitorRefreshRate )
    {
-      case BXVD_MONITOR_REFRESH_RATE_50Hz:
-         hXvdCh->stDecoderContext.stLogData.uiVsyncsPerSecond = 50;
+      case BXVD_MONITOR_REFRESH_RATE_7_493Hz:
+      case BXVD_MONITOR_REFRESH_RATE_7_5Hz:
+         hXvdCh->stDecoderContext.stLogData.uiVsyncsPerSecond = 8;
          break;
 
-      case BXVD_MONITOR_REFRESH_RATE_100Hz:
-         hXvdCh->stDecoderContext.stLogData.uiVsyncsPerSecond = 100;
+      case BXVD_MONITOR_REFRESH_RATE_9_99Hz:
+      case BXVD_MONITOR_REFRESH_RATE_10Hz:
+         hXvdCh->stDecoderContext.stLogData.uiVsyncsPerSecond = 10;
          break;
 
-      case BXVD_MONITOR_REFRESH_RATE_119_88Hz:
-      case BXVD_MONITOR_REFRESH_RATE_120Hz:
-         hXvdCh->stDecoderContext.stLogData.uiVsyncsPerSecond = 120;
+      case BXVD_MONITOR_REFRESH_RATE_11_988Hz:
+      case BXVD_MONITOR_REFRESH_RATE_12Hz:
+         hXvdCh->stDecoderContext.stLogData.uiVsyncsPerSecond = 12;
          break;
 
-      case BXVD_MONITOR_REFRESH_RATE_59_94Hz:
-      case BXVD_MONITOR_REFRESH_RATE_60Hz:
-         hXvdCh->stDecoderContext.stLogData.uiVsyncsPerSecond = 60;
+      case BXVD_MONITOR_REFRESH_RATE_12_5Hz:
+         hXvdCh->stDecoderContext.stLogData.uiVsyncsPerSecond = 13;
+         break;
+
+      case BXVD_MONITOR_REFRESH_RATE_19_98Hz:
+      case BXVD_MONITOR_REFRESH_RATE_20Hz:
+         hXvdCh->stDecoderContext.stLogData.uiVsyncsPerSecond = 20;
          break;
 
       case BXVD_MONITOR_REFRESH_RATE_23_976Hz:
@@ -522,6 +624,24 @@ static void BXVD_Decoder_S_Log_Init_isr(
 
       case BXVD_MONITOR_REFRESH_RATE_48Hz:
          hXvdCh->stDecoderContext.stLogData.uiVsyncsPerSecond = 48;
+         break;
+
+      case BXVD_MONITOR_REFRESH_RATE_50Hz:
+         hXvdCh->stDecoderContext.stLogData.uiVsyncsPerSecond = 50;
+         break;
+
+      case BXVD_MONITOR_REFRESH_RATE_59_94Hz:
+      case BXVD_MONITOR_REFRESH_RATE_60Hz:
+         hXvdCh->stDecoderContext.stLogData.uiVsyncsPerSecond = 60;
+         break;
+
+      case BXVD_MONITOR_REFRESH_RATE_100Hz:
+         hXvdCh->stDecoderContext.stLogData.uiVsyncsPerSecond = 100;
+         break;
+
+      case BXVD_MONITOR_REFRESH_RATE_119_88Hz:
+      case BXVD_MONITOR_REFRESH_RATE_120Hz:
+         hXvdCh->stDecoderContext.stLogData.uiVsyncsPerSecond = 120;
          break;
 
       case BXVD_MONITOR_REFRESH_RATE_INVALID:
@@ -626,15 +746,15 @@ static void BXVD_Decoder_S_Log_Print_isr(
          }
       }
 
-      BXVD_DBG_MSG( hXvdCh, ("AVD: %d/%d Dec: %d/%d Dq: %d Rq: %d Uq: %d InUse: %08x%08x",
+      BXVD_DBG_MSG( hXvdCh, ("AVD:%d/%d Dec:%d/%d Dq:%2d/%2d Rq:%d Uq:%d InUse:%02x",
                   pstLogData->uiPicturesFromAvd,
                   pstLogData->uiPicturesToAvd,
                   pstLogData->uiPicturesToPP,
                   pstLogData->uiPicturesFromPP,
                   uiDeliveryQDepth,
+                  hXvdCh->stDecoderContext.stPictureContextQueue.uiPictureCountDeliveryQueue,
                   uiReleaseQDepth,
                   uiUnifiedQDepth,
-                  uiMaskHighWord,
                   uiMaskLowWord
                   ));
 
@@ -1539,8 +1659,8 @@ static void BXVD_Decoder_S_UnifiedQ_ValidatePicture_isr(
 
 #if BXVD_DECODER_AVD_DEBUG_HELP
    BKNI_Printf("%d,%d\n",
-	       pPPB->il_perf_data.decode_cycle_count,
-	       pPPB->il_perf_data.inst_cache_miss);
+           pPPB->il_perf_data.decode_cycle_count,
+           pPPB->il_perf_data.inst_cache_miss);
 #endif
    /* SW7425-1064: handle of the channel that created the picture.
     * Needed by XMO when going from 2D->3D and the channel change
@@ -1891,6 +2011,16 @@ static void BXVD_Decoder_S_UnifiedQ_ValidatePicture_isr(
       pstXdmPicture->stClipping.uiRight = pPPB->video_width - pPPB->other.vp9.frame_width;
       pstXdmPicture->stClipping.uiTop = 0;
       pstXdmPicture->stClipping.uiBottom = pPPB->video_height - pPPB->other.vp9.frame_height;
+   }
+   else if ( BXVD_P_PPB_Protocol_eVP8 == eProtocol )
+   {
+      /* FWAVD-826/SWANDROID-3040: set VP8 clipping parameters using VP8 specific display size
+       * info in the PPB */
+      pstXdmPicture->stClipping.bValid = true;
+      pstXdmPicture->stClipping.uiLeft = 0;
+      pstXdmPicture->stClipping.uiRight = pPPB->video_width - pPPB->other.vp8.display_horizontal_size;
+      pstXdmPicture->stClipping.uiTop = 0;
+      pstXdmPicture->stClipping.uiBottom = pPPB->video_height - pPPB->other.vp8.display_vertical_size;
    }
 
    /*************************/
@@ -2918,6 +3048,9 @@ static void BXVD_Decoder_S_UnifiedQ_ValidatePicture_isr(
 
       pstXdmPicture->stHDR.ulMaxDispMasteringLuma = pPPB->other.h265.max_disp_mastering_lum;
       pstXdmPicture->stHDR.ulMinDispMasteringLuma = pPPB->other.h265.min_disp_mastering_lum;
+
+      pstXdmPicture->stHDR.uiTransferCharacteristics = pPPB->other.h265.hdr_transfer_characteristics_idc;  /* SWSTB-1629: */
+
    }
 
    /* Conditionally print the Unified Picture.
@@ -4081,6 +4214,14 @@ ProcessGop:
 
    BXVD_Decoder_S_UnifiedQ_PPBToUniPic_isr( hXvdCh, " c" );
 
+   /* SWSTB-788: now that we are done processing the delivery queue, calculate the number of
+    * remaining pictures. This information may be used by the application/middleware */
+
+   BXVD_Decoder_S_DeliveryQ_GetPictureCount_isr(
+         hXvdCh,
+         pstLocalState,
+         &pstContextQueue->uiPictureCountDeliveryQueue );
+
    return;
 
 }  /* end of BXVD_Decoder_S_UnifiedQ_Update_isr() */
@@ -4661,6 +4802,28 @@ BERR_Code BXVD_Decoder_GetPictureCount_isr(
 
 }  /* end of BXVD_Decoder_GetPictureCount_isr */
 
+/* SWSTB-788: move the calculation of the Delivery Queue depth from BXVD_GetChannelStatus_isr to
+ * the XVD Decoder logic. BXVD_Decoder_P_GetStatus_isr() provides a method of retrieving the depth. */
+
+BERR_Code BXVD_Decoder_P_GetStatus_isr(
+   BXVD_ChannelHandle hXvdCh,
+   BXVD_Decoder_P_Status * pstStatus
+   )
+{
+   BDBG_ENTER( BXVD_Decoder_P_GetStatus_isr );
+
+   BKNI_Memset( pstStatus, 0, sizeof(BXVD_Decoder_P_Status));
+
+   if ( true == hXvdCh->stDecoderContext.bDecoderHasBeenInitialized )
+   {
+      pstStatus->uiPictureCountUnifiedQueue = BXVD_Decoder_S_UnifiedQ_GetPictureCount_isr( hXvdCh );
+      pstStatus->uiPictureCountDeliveryQueue = hXvdCh->stDecoderContext.stPictureContextQueue.uiPictureCountDeliveryQueue;
+   }
+
+   BDBG_LEAVE( BXVD_Decoder_P_GetStatus_isr );
+
+   return BERR_TRACE( BERR_SUCCESS );
+}
 
 /*
  *
@@ -5823,4 +5986,3 @@ void BXVD_Decoder_S_Dbg_DumpPPB(
 }  /* end of BXVD_Decoder_S_Dbg_DumpPPB() */
 
 #endif /* End of BXVD_DM_ENABLE_YUV_GRAB_MODE */
-

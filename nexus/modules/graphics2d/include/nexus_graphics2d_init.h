@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2012 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,6 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  **************************************************************************/
 #ifndef NEXUS_GRAPHICS2D_INIT_H__
 #define NEXUS_GRAPHICS2D_INIT_H__
@@ -57,12 +47,12 @@ Graphics2D provides a single Interface. See NEXUS_Graphics2D_Open.
 ===========================================*/
 
 #include "nexus_types.h"
+#include "nexus_graphics2d.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#define NEXUS_MAX_GRAPHICS2D_CORES 2
 
 /**
 Summary:
@@ -71,17 +61,27 @@ Settings used to configure the Graphics2D module.
 Description:
 
 See Also:
-NEXUS_Graphics2DModule_GetDefaultSettings
+NEXUS_Graphics2DModule_GetDefaultInternalSettings
 NEXUS_Graphics2DModule_Init
 **/
-typedef struct NEXUS_Graphics2DModuleSettings
+typedef struct NEXUS_Graphics2DModuleInternalSettings
 {
     NEXUS_ModuleHandle surface; /* See NEXUS_SurfaceModule_Init */
-    unsigned stripeWidth;       /* Deprecated. This parameter is no longer used. */
-    struct {
-        unsigned hwFifoSize;
-    } core[NEXUS_MAX_GRAPHICS2D_CORES];
-} NEXUS_Graphics2DModuleSettings;
+} NEXUS_Graphics2DModuleInternalSettings;
+
+/**
+Summary:
+Get default settings for the structure.
+
+Description:
+This is required in order to make application code resilient to the addition of new strucutre members in the future.
+
+See Also:
+NEXUS_Graphics2DModule_Init
+**/
+void NEXUS_Graphics2DModule_GetDefaultInternalSettings(
+    NEXUS_Graphics2DModuleInternalSettings *pSettings /* [out] */
+    );
 
 /**
 Summary:
@@ -112,6 +112,7 @@ through NEXUS_PlatformSettings as follows:
 
 **/
 NEXUS_ModuleHandle NEXUS_Graphics2DModule_Init(
+    const NEXUS_Graphics2DModuleInternalSettings *pModuleSettings,
     const NEXUS_Graphics2DModuleSettings *pSettings
     );
 

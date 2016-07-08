@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2008 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2008 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -22,22 +22,7 @@ EGL configuration function declarations.
 
 #include "interface/khronos/egl/egl_int_config.h"
 
-
-#ifdef ANDROID
-
-#if defined(EGL_ANDROID_framebuffer_target) && defined(EGL_ANDROID_recordable)
-   #define EGL_MAX_CONFIGS 37
-#elif defined(EGL_ANDROID_framebuffer_target)
-   #define EGL_MAX_CONFIGS 29
-#elif defined(EGL_ANDROID_recordable)
-   #define EGL_MAX_CONFIGS 36
-#else
-   #define EGL_MAX_CONFIGS 28
-#endif /* defined(EGL_ANDROID_framebuffer_target) && defined(EGL_ANDROID_recordable) */
-
-#else
-   #define EGL_MAX_CONFIGS 28
-#endif /* ANDROID */
+extern int EGL_MAX_CONFIGS;
 
 /*
    EGL_CONFIG_MIN_SWAP_INTERVAL
@@ -135,11 +120,11 @@ extern KHRN_IMAGE_FORMAT_T egl_config_get_mapped_format(int id);
 extern bool egl_config_is_lockable(int id);
 #endif
 
-#ifdef EGL_ANDROID_framebuffer_target
+#if EGL_ANDROID_framebuffer_target
 extern bool egl_config_is_framebuffer_target(int id);
 #endif
 
-#ifdef EGL_ANDROID_recordable
+#if EGL_ANDROID_recordable
 extern bool egl_config_is_recordable(int id);
 #endif
 

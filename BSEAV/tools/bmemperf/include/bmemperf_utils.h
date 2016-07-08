@@ -1,44 +1,43 @@
 /******************************************************************************
- * (c) 2014 Broadcom Corporation
- *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
- *
- * Except as expressly set forth in the Authorized License,
- *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
- *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
- *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
- *****************************************************************************/
+* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*
+* This program is the proprietary software of Broadcom and/or its
+* licensors, and may only be used, duplicated, modified or distributed pursuant
+* to the terms and conditions of a separate, written license agreement executed
+* between you and Broadcom (an "Authorized License").  Except as set forth in
+* an Authorized License, Broadcom grants no license (express or implied), right
+* to use, or waiver of any kind with respect to the Software, and Broadcom
+* expressly reserves all rights in and to the Software and all intellectual
+* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*
+* Except as expressly set forth in the Authorized License,
+*
+* 1. This program, including its structure, sequence and organization,
+*    constitutes the valuable trade secrets of Broadcom, and you shall use all
+*    reasonable efforts to protect the confidentiality thereof, and to use
+*    this information only in connection with your use of Broadcom integrated
+*    circuit products.
+*
+* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+*
+* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+******************************************************************************/
 #ifndef __BMEMPERF_UTILS_H__
 #define __BMEMPERF_UTILS_H__
 
@@ -47,8 +46,11 @@
 #include "bmemperf_lib.h"
 
 #define MAJOR_VERSION                  0
-#define MINOR_VERSION                  10
+#define MINOR_VERSION                  21
+#define BMEMPERF_MAX_BOXMODES          30
 /*
+    0.21  Started using new algorithm to compute Intr_penalty counts.
+          Fixed trans_read multiplication overflow.
     0.10  Added contextSwitches to response
 */
 #define PRINTF                         noprintf
@@ -61,6 +63,8 @@
 #define BOXMODE_SOURCES_NUM            3
 #define PERF_REPORT_OUTPUT_FILE        "PerfReport.txt"
 #define PERF_STAT_OUTPUT_FILE          "PerfStat.txt"
+#define PERF_FLAME_OUTPUT_FILE         "perf.data"
+#define PERF_FLAME_SVG_FILE            "perf.svg"
 #define SATA_USB_OUTPUT_FILE           "satausb.txt"
 #define LINUX_TOP_OUTPUT_FILE          "linuxtop.txt"
 #define MAX_LINE_LENGTH                512
@@ -104,6 +108,9 @@ typedef enum
     BMEMPERF_CMD_STOP_LINUX_TOP,
     BMEMPERF_CMD_QUIT,
     BMEMPERF_CMD_GET_CPU_IRQ_INFO,
+    BMEMPERF_CMD_START_PERF_FLAME,
+    BMEMPERF_CMD_STATUS_PERF_FLAME,
+    BMEMPERF_CMD_STOP_PERF_FLAME,
     BMEMPERF_CMD_MAX
 } bmemperf_cmd;
 
@@ -150,6 +157,7 @@ typedef struct bmemperf_request
         bmemperf_cmd_overall_stats_data    overall_stats_data;
         bmemperf_cmd_get_client_stats_data client_stats_data;
         bmemperf_cmd_set_client_rts        client_rts_setting;
+        char                               strCmdLine[128];
     } request;
 } bmemperf_request;
 
@@ -204,6 +212,8 @@ typedef struct bmemperf_overall_stats
     bmemperf_cpu_percent cpuData;
     bmemperf_irq_data    irqData;
     unsigned long int    contextSwitches;
+    unsigned long int    fileSize;
+    unsigned long int    pidCount;
 } bmemperf_overall_stats;
 
 typedef struct bmemperf_per_client_stats
@@ -338,5 +348,17 @@ void PrependTempDirectory(
     );
 bool hasNumeric(
     const char *mystring
+    );
+int bmemperf_init_ddrFreq(
+    void
+    );
+int bmemperf_init_scbFreq(
+    void
+    );
+unsigned int bmemperf_get_ddrFreqInMhz(
+    unsigned int compileTimeDefault
+    );
+unsigned int bmemperf_get_scbFreqInMhz(
+    unsigned int compileTimeDefault
     );
 #endif /*__BMEMPERF_UTILS_H__ */

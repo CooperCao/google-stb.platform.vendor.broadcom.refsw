@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2010 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2010 Broadcom.
 All rights reserved.
 
 Project  :  Default Nexus platform API for EGL driver
@@ -22,6 +22,11 @@ DESC
 #include "png.h"
 
 #define MAX_SWAP_BUFFERS 2
+
+enum
+{
+   PIXMAP_INFO_MAGIC = 0x15EEB1A5
+};
 
 #define DRIVER_NAME "LinuxFB"
 
@@ -950,9 +955,23 @@ void LFPL_DestroyDisplayInterface(BEGL_DisplayInterface *mem)
    }
 }
 
-bool LFPL_CreateCompatiblePixmap(LFPL_PlatformHandle handle, void **pixmapHandle, NEXUS_SURFACEHANDLE *surface, BEGL_PixmapInfo *info)
+void LFPL_GetDefaultPixmapInfoEXT(BEGL_PixmapInfoEXT *info)
+{
+   if (info != NULL)
+   {
+      memset(info, 0, sizeof(BEGL_PixmapInfoEXT));
+
+      info->format = BEGL_BufferFormat_INVALID;
+      info->magic = PIXMAP_INFO_MAGIC;
+   }
+}
+
+bool LFPL_CreateCompatiblePixmapEXT(LFPL_PlatformHandle handle, void **pixmapHandle, NEXUS_SURFACEHANDLE *surface,
+   BEGL_PixmapInfoEXT *info)
 {
    BEGL_DriverInterfaces *data = (BEGL_DriverInterfaces*)handle;
+
+   assert(info->magic == PIXMAP_INFO_MAGIC);
 
    if (data != NULL && data->displayCallbacks.PixmapCreateCompatiblePixmap != NULL)
    {
@@ -966,6 +985,20 @@ bool LFPL_CreateCompatiblePixmap(LFPL_PlatformHandle handle, void **pixmapHandle
    }
 
    return false;
+}
+
+bool LFPL_CreateCompatiblePixmap(LFPL_PlatformHandle handle, void **pixmapHandle, NEXUS_SURFACEHANDLE *surface,
+   BEGL_PixmapInfo *info)
+{
+   BEGL_PixmapInfoEXT   infoEXT;
+
+   LFPL_GetDefaultPixmapInfoEXT(&infoEXT);
+
+   infoEXT.width = info->width;
+   infoEXT.height = info->height;
+   infoEXT.format = info->format;
+
+   return LFPL_CreateCompatiblePixmapEXT(handle, pixmapHandle, surface, &infoEXT);
 }
 
 void LFPL_DestroyCompatiblePixmap(LFPL_PlatformHandle handle, void *pixmapHandle)

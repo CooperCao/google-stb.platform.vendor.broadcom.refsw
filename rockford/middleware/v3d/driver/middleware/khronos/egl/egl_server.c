@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2008 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2008 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -55,7 +55,6 @@ extern void khdispatch_send_async(uint32_t command, uint64_t pid, uint32_t sem);
 #define LOGGING_GENERAL 0
 static INLINE void logging_message(int x, ...) { UNUSED(x); }
 
-#include "helpers/vc_image/vc_image.h"
 #include <string.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -168,7 +167,8 @@ EGLAPI void EGLAPIENTRY BEGL_RegisterDriverInterfaces(BEGL_DriverInterfaces *dri
 
                s_driverInterfacesStruct = *driverInterfaces;
             }
-               s_driverInterfacesStruct = *driverInterfaces;
+
+            s_driverInterfacesStruct = *driverInterfaces;
          }
       }
    }
@@ -193,8 +193,8 @@ EGLAPI BEGL_DriverInterfaces* EGLAPIENTRY BEGL_GetDriverInterfaces(void)
    return BEGLint_GetDriverInterfaces();
 }
 
-extern BEGL_BufferHandle BEGLint_PixmapCreateCompatiblePixmap(BEGL_PixmapInfo *pixmapInfo);
-extern void BEGLint_intBufferGetRequirements(BEGL_PixmapInfo *bufferRequirements, BEGL_BufferSettings * bufferConstrainedRequirements);
+extern BEGL_BufferHandle BEGLint_PixmapCreateCompatiblePixmap(BEGL_PixmapInfoEXT *pixmapInfo);
+extern void BEGLint_intBufferGetRequirements(BEGL_PixmapInfoEXT *bufferRequirements, BEGL_BufferSettings * bufferConstrainedRequirements);
 extern void khrn_job_callback(void);
 
 EGLAPI void EGLAPIENTRY BEGL_GetDefaultDriverInterfaces(BEGL_DriverInterfaces *driverInterfaces)
@@ -441,59 +441,13 @@ void egl_server_unlock()
 #endif /* NO_OPENVG */
 }
 
-/*
-   EGL_SURFACE_ID_T create_surface_internal(
-      uint32_t win,
-      uint32_t buffers,
-      uint32_t width,
-      uint32_t height,
-      uint32_t swapchainc,
-      KHRN_IMAGE_FORMAT_T colorformat,
-      KHRN_IMAGE_FORMAT_T depthstencilformat,
-      KHRN_IMAGE_FORMAT_T maskformat,
-      uint32_t multisample,
-      uint32_t mipmap,
-      uint32_t config_depth_bits,
-      uint32_t config_stencil_bits,
-      MEM_HANDLE_T vgimagehandle,
-      MEM_HANDLE_T hpixmapimage,
-      uint32_t type)
-
-   Preconditions:
-      win is a valid server-side window handle or PLATFORM_WIN_NONE
-      1 <= buffers <= EGL_MAX_BUFFERS
-      0 < width <= EGL_CONFIG_MAX_WIDTH
-      0 < height <= EGL_CONFIG_MAX_HEIGHT
-      swapchainc is the number of external buffers in the swapchain
-      colorformat is a hardware framebuffer-supported uncompressed color format
-      depthstencilformat is a hardware framebuffer-supported depth and/or stencil format, or IMAGE_FORMAT_INVALID
-      maskformat is a hardware framebuffer-supported mask format, or IMAGE_FORMAT_INVALID
-      multisample in {0,1}
-      mipmap in {0,1}
-      config_depth_bits is number of depth bits in the selected config
-      config_stencil_bits is number of stencil bits in the selected config
-      vgimagehandle is MEM_INVALID_HANDLE or a handle to a VG_IMAGE
-      hpixmapimage is MEM_INVALID_HANDLE or a handle to a KHRN_IMAGE_T
-
-      Exactly one of the following is true:
-          win && !mipmap && !vgimagehandle && !hpixmapimage
-         !win && !mipmap && !vgimagehandle && !hpixmapimage && buffers == 1
-         !win &&  mipmap && !vgimagehandle && !hpixmapimage
-         !win && !mipmap &&  vgimagehandle && !hpixmapimage && buffers == 1
-         !win && !mipmap && !vgimagehandle &&  hpixmapimage && buffers == 1
-      where win, vgimagehandle, hpixmapimage are "true" if they are not equal to EGL_PLATFORM_WIN_NONE, MEM_INVALID_HANDLE, MEM_INVALID_HANDLE
-
-   Postconditions:
-
-      Return value is 0 or
-*/
-
 static EGL_SURFACE_ID_T create_surface_internal(
    uint32_t win,
    uint32_t buffers,
    uint32_t width,
    uint32_t height,
    uint32_t swapchainc,
+   bool secure,
    KHRN_IMAGE_FORMAT_T colorformat,
    KHRN_IMAGE_FORMAT_T depthstencilformat,
    KHRN_IMAGE_FORMAT_T maskformat,
@@ -506,23 +460,35 @@ static EGL_SURFACE_ID_T create_surface_internal(
    uint32_t type)
 {
    EGL_SERVER_SURFACE_T *surface;
+
    /* todo: these flags aren't entirely correct... */
-   KHRN_IMAGE_CREATE_FLAG_T color_image_create_flags = (KHRN_IMAGE_CREATE_FLAG_T)(
-      /* clear, but also mark as invalid */
-      IMAGE_CREATE_FLAG_ONE | IMAGE_CREATE_FLAG_INVALID |
-      /* if we're a window surface, might rotate/display */
-      ((win != EGL_PLATFORM_WIN_NONE) ? (IMAGE_CREATE_FLAG_PAD_ROTATE | IMAGE_CREATE_FLAG_DISPLAY) : 0) |
-      /* support rendering to if format is ok (don't force the format) */
-      (khrn_image_is_ok_for_render_target(colorformat, false) ? (IMAGE_CREATE_FLAG_RENDER_TARGET |
+
+   /* clear, but also mark as invalid */
+   KHRN_IMAGE_CREATE_FLAG_T color_image_create_flags =
+      IMAGE_CREATE_FLAG_ONE | IMAGE_CREATE_FLAG_INVALID;
+
+   /* if we're a window surface, might rotate/display */
+   if (win != EGL_PLATFORM_WIN_NONE)
+      color_image_create_flags |= IMAGE_CREATE_FLAG_PAD_ROTATE | IMAGE_CREATE_FLAG_DISPLAY;
+
+   /* support rendering to if format is ok (don't force the format) */
+   if (khrn_image_is_ok_for_render_target(colorformat, false)) {
+      color_image_create_flags |= IMAGE_CREATE_FLAG_RENDER_TARGET;
+
       /* also support use as texture if not window surface (todo: this is hacky, and i don't think it's right) */
-      ((win == EGL_PLATFORM_WIN_NONE) ? IMAGE_CREATE_FLAG_TEXTURE : 0)) : 0));
-   KHRN_IMAGE_CREATE_FLAG_T image_create_flags = (KHRN_IMAGE_CREATE_FLAG_T)(
-      /* clear, but also mark as invalid */
-      IMAGE_CREATE_FLAG_ONE | IMAGE_CREATE_FLAG_INVALID |
-      /* if we're a window surface, might rotate */
-      ((win != EGL_PLATFORM_WIN_NONE) ? IMAGE_CREATE_FLAG_PAD_ROTATE : 0) |
-      /* aux buffers are just there for rendering... */
-      IMAGE_CREATE_FLAG_RENDER_TARGET);
+      if (win == EGL_PLATFORM_WIN_NONE)
+         color_image_create_flags |= IMAGE_CREATE_FLAG_TEXTURE;
+   }
+
+   /* clear, but also mark as invalid */
+   /* aux buffers are just there for rendering... */
+   KHRN_IMAGE_CREATE_FLAG_T image_create_flags =
+      IMAGE_CREATE_FLAG_ONE | IMAGE_CREATE_FLAG_INVALID | IMAGE_CREATE_FLAG_RENDER_TARGET;
+
+   /* if we're a window surface, might rotate */
+   if (win != EGL_PLATFORM_WIN_NONE)
+      image_create_flags |= IMAGE_CREATE_FLAG_PAD_ROTATE;
+
    MEM_HANDLE_T hcommon_storage = MEM_INVALID_HANDLE;
    EGL_SURFACE_ID_T result = 0;
 
@@ -588,11 +554,14 @@ static EGL_SURFACE_ID_T create_surface_internal(
             h = _max(height >> i, 1);
             size += khrn_image_get_size(colorformat, w, h);
          }
-         hcommon_storage = mem_alloc_ex(size, 4096, MEM_FLAG_DIRECT, "EGL_SERVER_SURFACE_T mipmapped storage", MEM_COMPACT_DISCARD);
+         MEM_FLAG_T flags = MEM_FLAG_DIRECT;
+         if (secure)
+            flags |= MEM_FLAG_SECURE;
+         hcommon_storage = mem_alloc_ex(size, 4096, flags,
+            "EGL_SERVER_SURFACE_T mipmapped storage", MEM_COMPACT_DISCARD);
          if (hcommon_storage == MEM_INVALID_HANDLE)
             goto final;
       }
-
       if (type == WINDOW)
       {
          if (!egl_server_platform_create_window_state(&platformState, win))
@@ -628,7 +597,7 @@ static EGL_SURFACE_ID_T create_surface_internal(
                   MEM_INVALID_HANDLE,
                   hcommon_storage,
                   offset,
-                  (KHRN_IMAGE_CREATE_FLAG_T)(IMAGE_CREATE_FLAG_TEXTURE | IMAGE_CREATE_FLAG_RENDER_TARGET)); /* todo: are these flags right? should IMAGE_CREATE_FLAG_INVALID be included? */
+                  IMAGE_CREATE_FLAG_TEXTURE | IMAGE_CREATE_FLAG_RENDER_TARGET, secure); /* todo: are these flags right? should IMAGE_CREATE_FLAG_INVALID be included? */
                offset += khrn_image_get_size(colorformat, w, h);
             }
             else
@@ -663,15 +632,15 @@ static EGL_SURFACE_ID_T create_surface_internal(
                   /* wrap surfaces, if possible, when creating a window */
                   if (type == WINDOW)
                   {
-                     pixmap = egl_server_platform_get_buffer((EGLNativeWindowType)win, colorformat, w, h, color_image_create_flags,
-                                                              platformState, usage);
+                     pixmap = egl_server_platform_get_buffer(colorformat, w, h, color_image_create_flags,
+                        platformState, usage, secure);
                   }
                   else
                   {
                      ANDROID_LOGD("%s: swapchain_count = %d, type = %d\n", __FUNCTION__, swapchainc, type);
 
                      pixmap = egl_server_platform_create_buffer(colorformat, w, h, color_image_create_flags,
-                                                                platformState, usage);
+                        platformState, usage, secure);
                   }
                   himage = egl_server_platform_create_pixmap_info(pixmap, &error);
                   /* Store the opaque buffer handle */
@@ -685,9 +654,7 @@ static EGL_SURFACE_ID_T create_surface_internal(
                   mem_unlock(himage);
                }
                else
-               {
-                  himage = khrn_image_create(colorformat, w, h, color_image_create_flags);
-               }
+                  himage = khrn_image_create(colorformat, w, h, color_image_create_flags, secure);
             }
             if (himage == MEM_INVALID_HANDLE)
                goto final;
@@ -709,16 +676,17 @@ static EGL_SURFACE_ID_T create_surface_internal(
 
    if (depthstencilformat != IMAGE_FORMAT_INVALID) {
       MEM_HANDLE_T himage;
+
+      uint32_t depthstencil_width = width;
+      uint32_t depthstencil_height = height;
       if (multisampleformat != IMAGE_FORMAT_INVALID)
       {
-         himage = khrn_image_create(depthstencilformat, 2*width, 2*height,
-            (KHRN_IMAGE_CREATE_FLAG_T)(image_create_flags | IMAGE_CREATE_FLAG_NO_STORAGE));
+         depthstencil_width *= 2;
+         depthstencil_height *= 2;
       }
-      else
-      {
-         himage = khrn_image_create(depthstencilformat, width, height,
-            (KHRN_IMAGE_CREATE_FLAG_T)(image_create_flags | IMAGE_CREATE_FLAG_NO_STORAGE));
-      }
+
+      himage = khrn_image_create(depthstencilformat, depthstencil_width, depthstencil_height,
+         image_create_flags | IMAGE_CREATE_FLAG_NO_STORAGE, secure);
 
       if (himage == MEM_INVALID_HANDLE)
          goto final;
@@ -752,8 +720,7 @@ static EGL_SURFACE_ID_T create_surface_internal(
       if (color)
       {
          MEM_HANDLE_T himage = khrn_image_create(COL_32_TLBD, 2*width, 2*height,
-            (KHRN_IMAGE_CREATE_FLAG_T)(image_create_flags | IMAGE_CREATE_FLAG_NO_STORAGE)
-            );
+            color_image_create_flags | IMAGE_CREATE_FLAG_NO_STORAGE, secure);
          if (himage == MEM_INVALID_HANDLE)
             goto final;
 
@@ -764,8 +731,7 @@ static EGL_SURFACE_ID_T create_surface_internal(
       if (depth)
       {
          MEM_HANDLE_T himage = khrn_image_create(DEPTH_32_TLBD, 2*width, 2*height,
-            (KHRN_IMAGE_CREATE_FLAG_T)(image_create_flags | IMAGE_CREATE_FLAG_NO_STORAGE)
-            );
+            image_create_flags | IMAGE_CREATE_FLAG_NO_STORAGE, secure);
          if (himage == MEM_INVALID_HANDLE)
             goto final;
 
@@ -780,7 +746,7 @@ static EGL_SURFACE_ID_T create_surface_internal(
    }
 
    if (maskformat != IMAGE_FORMAT_INVALID) {
-      MEM_HANDLE_T himage = khrn_image_create(maskformat, width, height, image_create_flags);
+      MEM_HANDLE_T himage = khrn_image_create(maskformat, width, height, image_create_flags, secure);
       if (himage == MEM_INVALID_HANDLE)
          goto final;
 
@@ -818,60 +784,13 @@ static int euclidean_gcd(int a, int b)
    return a;
 }
 
-/*
-   int eglIntCreateSurface_impl(
-   uint32_t win,
-   uint32_t buffers,
-   uint32_t width,
-   uint32_t height,
-   KHRN_IMAGE_FORMAT_T colorformat,
-   KHRN_IMAGE_FORMAT_T depthstencilformat,
-   KHRN_IMAGE_FORMAT_T maskformat,
-   uint32_t largest_pbuffer,
-   uint32_t mipmap,
-   uint32_t config_depth_bits,
-   uint32_t config_stencil_bits,
-   uint32_t type,
-   uint32_t *results)
-
-   Implementation notes:
-
-   If largest_pbuffer is true, we try creating surfaces of various different
-   sizes (with the correct aspect ratio) until the allocation succeeds.
-   Otherwise we just attempt to create one of the correct size (create_surface_internal
-   does the actual work).
-
-   Preconditions:
-      win is a valid server-side window handle or PLATFORM_WIN_NONE
-      1 <= buffers <= EGL_MAX_BUFFERS
-      0 < width, 0 < height
-      If !largest_pbuffer then width <= EGL_CONFIG_MAX_WIDTH, height <= EGL_CONFIG_MAX_HEIGHT
-      colorformat is a hardware framebuffer-supported uncompressed color format
-      depthstencilformat is a hardware framebuffer-supported depth and/or stencil format, or IMAGE_FORMAT_INVALID
-      maskformat is a hardware framebuffer-supported mask format, or IMAGE_FORMAT_INVALID
-      multisampleformat is a hardware framebuffer-supported multisample color format or IMAGE_FORMAT_INVALID
-      largest_pbuffer in {0,1}
-      mipmap in {0,1}
-      config_depth_bits is number of depth bits in the selected config
-      config_stencil_bits is number of stencil bits in the selected config
-      results is a valid pointer to three elements
-
-   Postconditions:
-      Return value is 3 (i.e. the number of items returned)
-      On success:
-         results[0] is the width of the surface
-         results[1] is the height of the surface
-         results[2] is the server-side surface handle and is nonzero
-      On failure:
-         results[2] == 0
-*/
-
 int eglIntCreateSurface_impl(
    uint32_t win,
    uint32_t buffers,
    uint32_t width,
    uint32_t height,
    uint32_t swapchainc,
+   bool secure,
    KHRN_IMAGE_FORMAT_T colorformat,
    KHRN_IMAGE_FORMAT_T depthstencilformat,
    KHRN_IMAGE_FORMAT_T maskformat,
@@ -900,7 +819,7 @@ int eglIntCreateSurface_impl(
    surface = 0;
 
    for (i = max; i > 0 && !surface; i--) {
-      surface = create_surface_internal(win, buffers, width*i, height*i, swapchainc, colorformat,
+      surface = create_surface_internal(win, buffers, width*i, height*i, swapchainc, secure, colorformat,
                                         depthstencilformat, maskformat, multisampleformat,
                                         mipmap, config_depth_bits, config_stencil_bits, MEM_INVALID_HANDLE,
                                         MEM_INVALID_HANDLE, type);
@@ -923,8 +842,13 @@ int eglIntCreateSurface_impl(
 
 static bool compatible_formats(KHRN_IMAGE_FORMAT_T config_format, KHRN_IMAGE_FORMAT_T vgimage_format)
 {
-   return (config_format & ~(IMAGE_FORMAT_MEM_LAYOUT_MASK | IMAGE_FORMAT_PRE | IMAGE_FORMAT_LIN | IMAGE_FORMAT_OVG)) ==
-      (vgimage_format & ~(IMAGE_FORMAT_MEM_LAYOUT_MASK | IMAGE_FORMAT_PRE | IMAGE_FORMAT_LIN | IMAGE_FORMAT_OVG));
+   config_format = khrn_image_no_layout_format(config_format);
+   config_format = khrn_image_no_colorspace_format(config_format);
+
+   vgimage_format = khrn_image_no_layout_format(vgimage_format);
+   vgimage_format = khrn_image_no_colorspace_format(vgimage_format);
+
+   return config_format == vgimage_format;
 }
 
 /*
@@ -989,6 +913,7 @@ int eglIntCreatePbufferFromVGImage_impl(
                      width,
                      height,
                      0,
+                     false,
                      colorformat,
                      depthstencilformat,
                      maskformat,
@@ -1057,10 +982,10 @@ EGL_SURFACE_ID_T eglIntCreateWrappedSurface_impl(
 {
    MEM_HANDLE_T himage;
    EGLint error;
+   UNUSED(handle_1);
    vcos_assert(handle_1 == -1);
-   {
-      himage = egl_server_platform_create_pixmap_info(handle_0, &error);
-   }
+
+   himage = egl_server_platform_create_pixmap_info(handle_0, &error);
 
    if (himage != MEM_INVALID_HANDLE) {
       KHRN_IMAGE_T *image = (KHRN_IMAGE_T *)mem_lock(himage, NULL);
@@ -1070,6 +995,7 @@ EGL_SURFACE_ID_T eglIntCreateWrappedSurface_impl(
          image->width,
          image->height,
          0,
+         false,
          image->format,
          depthstencilformat,
          maskformat,
@@ -1081,13 +1007,11 @@ EGL_SURFACE_ID_T eglIntCreateWrappedSurface_impl(
          himage,
          PIXMAP);
       mem_unlock(himage);
-      {
       mem_release(himage);
-      }
       return result;
-   } else {
-      return 0;
    }
+   else
+      return 0;
 }
 
 static MEM_HANDLE_T create_shared_context(void)
@@ -1499,7 +1423,9 @@ static void update_vg_buffers(EGL_SERVER_STATE_T *state)
 // by the client. It is not necessary to flush when switching threads
 // If any of the surfaces have been resized then the color and ancillary buffers
 //  are freed and recreated in the new size.
-void eglIntMakeCurrent_impl(uint32_t pid_0, uint32_t pid_1, uint32_t glversion, EGL_GL_CONTEXT_ID_T gc, EGL_SURFACE_ID_T gdraw, EGL_SURFACE_ID_T gread
+void eglIntMakeCurrent_impl(uint32_t pid_0, uint32_t pid_1,
+   uint32_t glversion, EGL_GL_CONTEXT_ID_T gc,
+   EGL_SURFACE_ID_T gdraw, EGL_SURFACE_ID_T gread
 #ifndef NO_OPENVG
    , EGL_VG_CONTEXT_ID_T vc, EGL_SURFACE_ID_T vsurf
 #endif /* NO_OPENVG */
@@ -1641,7 +1567,7 @@ void eglIntFlush_impl(uint32_t flushgl, uint32_t flushvg)
 #endif /* NO_OPENVG */
 }
 
-void eglIntSwapBuffers_impl(EGL_SURFACE_ID_T s, uint32_t width, uint32_t height, uint32_t swapchainc, uint32_t handle, uint32_t preserve, uint32_t position)
+void eglIntSwapBuffers_impl(EGL_SURFACE_ID_T s, uint32_t width, uint32_t height, uint32_t handle, uint32_t preserve, uint32_t position)
 {
    EGL_SERVER_STATE_T *state = EGL_GET_SERVER_STATE();
    MEM_HANDLE_T shandle = khrn_map_lookup(&state->surfaces, s);
@@ -1687,11 +1613,14 @@ void eglIntSwapBuffers_impl(EGL_SURFACE_ID_T s, uint32_t width, uint32_t height,
          {
             MEM_HANDLE_T himage;
 
-            himage = khrn_image_create(src->format, src->width, src->height,
+            KHRN_IMAGE_CREATE_FLAG_T image_create_flags =
                ((src->flags & IMAGE_FLAG_TEXTURE) ? IMAGE_CREATE_FLAG_TEXTURE : 0) |
                ((src->flags & IMAGE_FLAG_RSO_TEXTURE) ? IMAGE_CREATE_FLAG_RSO_TEXTURE : 0) |
                ((src->flags & IMAGE_FLAG_RENDER_TARGET) ? IMAGE_CREATE_FLAG_RENDER_TARGET : 0) |
-               ((src->flags & IMAGE_FLAG_DISPLAY) ? IMAGE_CREATE_FLAG_DISPLAY : 0));
+               ((src->flags & IMAGE_FLAG_DISPLAY) ? IMAGE_CREATE_FLAG_DISPLAY : 0);
+
+            /* if the src image is secure, then propagate to the preserve buffer */
+            himage = khrn_image_create(src->format, src->width, src->height, image_create_flags, src->secure);
 
             MEM_ASSIGN(surface->mh_preserve, himage);
             mem_release(himage);
@@ -1835,7 +1764,7 @@ void eglIntGetColorData_impl(EGL_SURFACE_ID_T s, KHRN_IMAGE_FORMAT_T format, uin
       flags |= IMAGE_FLAG_DISPLAY;
       stride = -stride;
    }
-   khrn_image_interlock_wrap(&dst_wrap, format, width, height, stride, flags, data, NULL);
+   khrn_image_interlock_wrap(&dst_wrap, format, width, height, stride, flags, false, data, NULL);
 
    //TODO: we currently expect the client to flush before calling this
    //I've added a khrn_interlock_read_immediate below. Can we remove the flush on the client?
@@ -1870,19 +1799,22 @@ void eglIntSetColorData_impl(EGL_SURFACE_ID_T s, KHRN_IMAGE_FORMAT_T format, uin
       flags |= IMAGE_FLAG_DISPLAY;
       stride = -stride;
    }
-   khrn_image_interlock_wrap(&src_wrap, format, width, height, stride, flags, (void *)data, NULL); /* casting away constness here, but we won't actually modify */
+   khrn_image_interlock_wrap(&src_wrap, format, width, height, stride, flags, false, (void *)data, NULL); /* casting away constness here, but we won't actually modify */
 
    // TODO will this handle all necessary conversions correctly?
    // Will it handle images of different sizes?
    dst = (KHRN_IMAGE_T *)mem_lock(surface->mh_color[surface->back_buffer_index], NULL);
-   khrn_interlock_write_immediate(&dst->interlock);
-   khrn_image_lock_interlock_wrap(dst, &dst_wrap, NULL);
-   khrn_image_wrap_copy_region(
-      &dst_wrap, 0, y_offset,
-      width, height,
-      &src_wrap, 0, 0,
-      IMAGE_CONV_GL);
-   khrn_image_unlock_wrap(dst);
+   if (!dst->secure)
+   {
+      khrn_interlock_write_immediate(&dst->interlock);
+      khrn_image_lock_interlock_wrap(dst, &dst_wrap, NULL);
+      khrn_image_wrap_copy_region(
+         &dst_wrap, 0, y_offset,
+         width, height,
+         &src_wrap, 0, 0,
+         IMAGE_CONV_GL);
+      khrn_image_unlock_wrap(dst);
+   }
    mem_unlock(surface->mh_color[surface->back_buffer_index]);
 
    mem_unlock(shandle);
@@ -1984,7 +1916,7 @@ static int image_walk(KHRN_IMAGE_T *image, int size)
    UNUSED(size);
 
    usage += get_mem_usage(image->mh_storage);
-   usage += get_mem_usage(image->mh_aux);
+   usage += get_mem_usage(image->mh_palette);
 
    return usage;
 }
@@ -2257,6 +2189,7 @@ static int vg_font_walk(VG_FONT_T *font, int size)
 {
    int usage = 0;
    uint32_t i;
+   UNUSED(size);
 
    VG_FONT_LOCKED_T font_locked;
 
@@ -2275,6 +2208,7 @@ static int vg_font_walk(VG_FONT_T *font, int size)
 static int vg_image_walk(VG_IMAGE_T *image, int size)
 {
    int usage = 0;
+   UNUSED(size);
 
    usage += get_mem_usage(image->image);
 
@@ -2284,6 +2218,7 @@ static int vg_image_walk(VG_IMAGE_T *image, int size)
 static int vg_child_image_walk(VG_CHILD_IMAGE_T *child_image, int size)
 {
    int usage = 0;
+   UNUSED(size);
 
    usage += get_mem_usage(child_image->parent);
 
@@ -2293,6 +2228,7 @@ static int vg_child_image_walk(VG_CHILD_IMAGE_T *child_image, int size)
 static int vg_mask_layer_walk(VG_MASK_LAYER_T *mask_layer, int size)
 {
    int usage = 0;
+   UNUSED(size);
 
    usage += get_mem_usage(mask_layer->image);
 
@@ -2302,6 +2238,7 @@ static int vg_mask_layer_walk(VG_MASK_LAYER_T *mask_layer, int size)
 static int vg_paint_walk(VG_PAINT_T *paint, int size)
 {
    int usage = 0;
+   UNUSED(size);
 
    usage += get_mem_usage(paint->pattern);
 
@@ -2319,6 +2256,7 @@ static int vg_paint_walk(VG_PAINT_T *paint, int size)
 static int vg_path_walk(VG_PATH_T *path, int size)
 {
    int usage = 0;
+   UNUSED(size);
 
    usage += get_mem_usage(path->coords);
    usage += get_mem_usage(path->segments);
@@ -2328,12 +2266,15 @@ static int vg_path_walk(VG_PATH_T *path, int size)
 
 static void set_iterator(VG_SET_T *map, MEM_HANDLE_T handle, void *p)
 {
+   UNUSED(map);
+
    *(int *)p += get_mem_usage(handle);
 }
 
 static int vg_server_shared_state_walk(VG_SERVER_SHARED_STATE_T *shared_state, int size)
 {
    int usage = 0;
+   UNUSED(size);
 
    vg_set_iterate(&shared_state->objects, set_iterator, &usage);
 
@@ -2343,6 +2284,7 @@ static int vg_server_shared_state_walk(VG_SERVER_SHARED_STATE_T *shared_state, i
 static int vg_server_state_walk(VG_SERVER_STATE_T *state, int size)
 {
    int usage = 0;
+   UNUSED(size);
 
    usage += get_mem_usage(state->shared_state);
 

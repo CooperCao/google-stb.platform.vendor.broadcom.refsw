@@ -337,13 +337,13 @@ int bthumbnail_extractor_feed_picture( bthumbnail_extractor_t handle, unsigned t
     }
 
     /* read the still */
-    BDBG_MSG(("bthumbnail_extractor_get_thumbnail:%#lx time:%u", handle, timestamp));
+    BDBG_MSG(("bthumbnail_extractor_get_thumbnail:%p time:%u", (void*)handle, timestamp));
     rc = bmedia_player_seek(handle->player, timestamp);
     if (rc) {
         bmedia_player_status status;
         bmedia_player_get_status(handle->player, &status);
         if (timestamp != status.bounds.first) {
-            BDBG_MSG(("reseek from %d to %d", timestamp, status.bounds.first));
+            BDBG_MSG(("reseek from %d to %d", timestamp, (unsigned)status.bounds.first));
             rc = bmedia_player_seek(handle->player, status.bounds.first);
         }
         if (rc) {
@@ -357,7 +357,7 @@ int bthumbnail_extractor_feed_picture( bthumbnail_extractor_t handle, unsigned t
             /* may have hit BOF */
             break;
         }
-        BDBG_MSG(("bmedia_player_next %u, %u, %u, %d, %u:%u", (unsigned)entry.start, (unsigned)entry.length, entry.embedded, entry.timestamp, entry.type, entry.content));
+        BDBG_MSG(("bmedia_player_next %u, %u, %p, %d, %u:%u", (unsigned)entry.start, (unsigned)entry.length, entry.embedded, (unsigned)entry.timestamp, entry.type, entry.content));
         if (!entry.embedded && entry.start < last_start) {
             /* this works before bmedia is set in reverse mode */
             break;
@@ -601,7 +601,7 @@ static int bthumbnail_extractor_p_send(bthumbnail_extractor_t handle, unsigned o
     rc = bthumbnail_extractor_p_send_raw(handle, buffer, size);
     if (rc) return BERR_TRACE(rc);
 
-    BDBG_MSG(("send size %u, offset %u, timestamp %d", size, offset, timestamp));
+    BDBG_MSG(("send size %u, offset %u, timestamp %d", size, offset, (unsigned)timestamp));
     return 0;
 }
 

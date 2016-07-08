@@ -97,6 +97,7 @@ LDFLAGS += -L${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/sage/srai -lsrai
 LDFLAGS += -L${NEXUS_BIN_DIR} -lnexus -lutility
 LDFLAGS +=  -lpthread -lm
 
+
 #debug symbols
 CFLAGS += -g
 
@@ -120,7 +121,7 @@ export HEARTBEAT_OBJDIR
 .PHONY: all clean uninstall install re
 
 
-all: ${APP}
+all: srai prep_utility ${APP}
 
 # Implicit rule for building local apps
 ${APP}: ${OBJS}

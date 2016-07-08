@@ -1,7 +1,7 @@
 /******************************************************************************
- * (c) 2006-2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -37,9 +37,7 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
- *****************************************************************************/
-
+ ******************************************************************************/
 
 #ifndef BDSP_TYPES_H_
 #define BDSP_TYPES_H_
@@ -111,9 +109,9 @@ Placeholder Types
 typedef uint32_t BDSP_TIME_45KHZ_TICKS;
 /***************************************************************************
 Summary:
-Type for declaring raaga dram offset variable
+Type for declaring dram offset variable
 ***************************************************************************/
-typedef uint32_t raaga_dramaddr;
+typedef uint32_t dramaddr_t;
 /***************************************************************************
 Summary:
 Task Types
@@ -208,6 +206,7 @@ typedef enum BDSP_Algorithm
     BDSP_Algorithm_eDolbyAacheLoasDecode,
     BDSP_Algorithm_eOpusDecode,
     BDSP_Algorithm_eALSDecode,
+    BDSP_Algorithm_eAC4Decode,
     BDSP_Algorithm_eOpusEncode,
     BDSP_Algorithm_eDDPEncode,
     BDSP_Algorithm_eGenericPassthrough,
@@ -241,6 +240,7 @@ typedef enum BDSP_Algorithm
     BDSP_Algorithm_eVp6Decode,
     BDSP_Algorithm_eH264Encode,
     BDSP_Algorithm_eX264Encode,
+    BDSP_Algorithm_eXVP8Encode,
 
     /* Security Algorithms */
     BDSP_Algorithm_eSecurityA,

@@ -1,7 +1,7 @@
-/***************************************************************************
- * (c) 2002-2015 Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -37,7 +37,6 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 
 #include "screen.h"
@@ -403,7 +402,7 @@ error:
 } /* addButton */
 
 /* search internal listview for button matching given value */
-CWidgetCheckButton * CWidgetPopupList::findButton(int value)
+CWidgetCheckButton * CWidgetPopupList::findButton(long value)
 {
     MList <CWidgetListItem> *  pWidgetList = _pListView->getWidgetList();
     CWidgetListItem *          pItem       = NULL;
@@ -521,7 +520,7 @@ error:
     return(ret);
 } /* select */
 
-eRet CWidgetPopupList::select(const int value)
+eRet CWidgetPopupList::select(const long value)
 {
     eRet ret = eRet_Ok;
 

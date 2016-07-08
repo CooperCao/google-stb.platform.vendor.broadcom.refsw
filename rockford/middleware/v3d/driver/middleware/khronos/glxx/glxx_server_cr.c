@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2010 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2010 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -1957,8 +1957,6 @@ void glBindTexture_impl (GLenum target, GLuint texture)
       error = GL_INVALID_ENUM;
       goto end;
    }
-
-   //glxx_texture_update_from_external(tex);  Needed for external
 
    vcos_assert(handle != MEM_HANDLE_INVALID);
    //mem_unlock(handle); Need to unlock (but only if it has been locked, needs a test -- for external)

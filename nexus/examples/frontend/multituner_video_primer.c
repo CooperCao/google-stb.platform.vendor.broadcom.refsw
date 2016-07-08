@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2013-2014 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,11 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  *****************************************************************************/
 
 /* sample application showing multiple tuners used in conjunction with multiple primers to provide
@@ -154,10 +149,10 @@ static void lock_callback(void *context, int param)
 
 #if USE_QAM
     NEXUS_Frontend_GetQamStatus(frontend, &qamStatus);
-    BDBG_MSG(("QAM Lock callback, frontend 0x%08x - lock status %d, %d", (unsigned)frontend, qamStatus.fecLock, qamStatus.receiverLock));
+    BDBG_MSG(("QAM Lock callback, frontend %p - lock status %d, %d", (void*)frontend, qamStatus.fecLock, qamStatus.receiverLock));
 #else
     NEXUS_Frontend_GetSatelliteStatus(frontend, &satStatus);
-    BDBG_MSG(("SAT Lock callback, frontend 0x%08x - lock status %d", (unsigned)frontend, satStatus.demodLocked));
+    BDBG_MSG(("SAT Lock callback, frontend %p - lock status %d", (void*)frontend, satStatus.demodLocked));
 #endif
 }
 
@@ -526,7 +521,7 @@ int main(int argc, char **argv)
 #else
         while (1) {
             NEXUS_IrInputEvent irInput;
-            unsigned num;
+            size_t num;
             bool overflow;
 
             NEXUS_IrInput_GetEvents(irHandle, &irInput, 1, &num, &overflow);

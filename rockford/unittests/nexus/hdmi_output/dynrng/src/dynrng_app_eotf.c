@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
 ******************************************************************************/
 
@@ -63,9 +55,8 @@ static const UTILS_StringIntMapEntry eotfNames[] =
 {
     { "Input", APP_Eotf_eInput },
     { "SDR (GAMMA)", APP_Eotf_eSdr },
-    { "HDR (GAMMA)", APP_Eotf_eHdr },
-    { "SMPTE ST2084", APP_Eotf_eSmpte },
-    { "ARIB STD B67", APP_Eotf_eArib },
+    { "HDR10", APP_Eotf_eHdr10 },
+    { "HLG", APP_Eotf_eHlg },
     { NULL, APP_Eotf_eMax }
 };
 
@@ -79,14 +70,12 @@ static const UTILS_StringIntMapEntry eotfAliases[] =
     { "input", APP_Eotf_eInput },
     { "in", APP_Eotf_eInput },
     { "sdr", APP_Eotf_eSdr },
-    { "sdrgamma", APP_Eotf_eSdr },
-    { "hdr", APP_Eotf_eHdr },
-    { "hdrgamma", APP_Eotf_eHdr },
-    { "smpte", APP_Eotf_eSmpte },
-    { "2084", APP_Eotf_eSmpte },
-    { "hdrpq", APP_Eotf_eSmpte },
-    { "arib", APP_Eotf_eArib },
-    { "future", APP_Eotf_eArib },
+    { "smpte", APP_Eotf_eHdr10 },
+    { "2084", APP_Eotf_eHdr10 },
+    { "hdr10", APP_Eotf_eHdr10 },
+    { "arib", APP_Eotf_eHlg },
+    { "b67", APP_Eotf_eHlg },
+    { "hlg", APP_Eotf_eHlg },
     { NULL, APP_Eotf_eMax }
 };
 
@@ -137,7 +126,7 @@ int APP_ToggleEotf(APP_AppHandle app)
     if (!count)
     {
         choices[0] = APP_Eotf_eSdr;
-        choices[1] = APP_Eotf_eSmpte;
+        choices[1] = APP_Eotf_eHdr10;
         count = 2;
     }
 
@@ -184,14 +173,11 @@ APP_Eotf APP_NexusEotfToApp(NEXUS_VideoEotf nxEotf)
         case NEXUS_VideoEotf_eSdr:
             eotf = APP_Eotf_eSdr;
             break;
-        case NEXUS_VideoEotf_eHdr:
-            eotf = APP_Eotf_eHdr;
+        case NEXUS_VideoEotf_eHlg:
+            eotf = APP_Eotf_eHlg;
             break;
-        case NEXUS_VideoEotf_eSmpteSt2084:
-            eotf = APP_Eotf_eSmpte;
-            break;
-        case NEXUS_VideoEotf_eFuture:
-            eotf = APP_Eotf_eArib;
+        case NEXUS_VideoEotf_eHdr10:
+            eotf = APP_Eotf_eHdr10;
             break;
         default:
             break;
@@ -209,14 +195,11 @@ NEXUS_VideoEotf APP_AppEotfToNexus(APP_Eotf eotf)
         case APP_Eotf_eSdr:
             nxEotf = NEXUS_VideoEotf_eSdr;
             break;
-        case APP_Eotf_eHdr:
-            nxEotf = NEXUS_VideoEotf_eHdr;
+        case APP_Eotf_eHlg:
+            nxEotf = NEXUS_VideoEotf_eHlg;
             break;
-        case APP_Eotf_eSmpte:
-            nxEotf = NEXUS_VideoEotf_eSmpteSt2084;
-            break;
-        case APP_Eotf_eArib:
-            nxEotf = NEXUS_VideoEotf_eFuture;
+        case APP_Eotf_eHdr10:
+            nxEotf = NEXUS_VideoEotf_eHdr10;
             break;
         default:
             break;
@@ -230,6 +213,7 @@ int APP_SetEotf(APP_AppHandle app, APP_Eotf eotf)
     NEXUS_Error rc = NEXUS_SUCCESS;
     NEXUS_VideoEotf nxEotf = NEXUS_VideoEotf_eMax;
 
+    app->eotf = eotf;
     switch (eotf)
     {
         case APP_Eotf_eInput:
@@ -328,23 +312,21 @@ int APP_SetupEotfCommand(APP_AppHandle app)
     command = SHELL_CreateCommand(app->shell,
         "eotf",
         "changes EOTF behavior on the STB HDMI output. With no args, reports current eotf status to console.",
-        "[smpte|sdr|hdr|future|input|toggle]",
+        "[hdr10|hlg|sdr|input|toggle]",
         &APP_DoEotf,
         app);
     if (!command) { rc = BERR_TRACE(NEXUS_NOT_SUPPORTED); goto end; }
     rc = SHELL_AddCommandAlias(command, "e");
     if (rc) { rc = BERR_TRACE(rc); goto end; }
-    rc = SHELL_AddCommandArg(command, "smpte", false, "selects SMPTE2084 EOTF");
+    rc = SHELL_AddCommandArg(command, "hdr10", false, "selects HDR10 EOTF");
     if (rc) { rc = BERR_TRACE(rc); goto end; }
-    rc = SHELL_AddCommandArg(command, "sdr", false, "selects SDR GAMMA EOTF");
+    rc = SHELL_AddCommandArg(command, "sdr", false, "selects SDR EOTF");
     if (rc) { rc = BERR_TRACE(rc); goto end; }
-    rc = SHELL_AddCommandArg(command, "hdr", false, "selects HDR GAMMA EOTF");
-    if (rc) { rc = BERR_TRACE(rc); goto end; }
-    rc = SHELL_AddCommandArg(command, "future", false, "selects Future EOTF");
+    rc = SHELL_AddCommandArg(command, "hlg", false, "selects HLG EOTF");
     if (rc) { rc = BERR_TRACE(rc); goto end; }
     rc = SHELL_AddCommandArg(command, "input", false, "selects input EOTF, if one is present, otherwise SDR GAMMA");
     if (rc) { rc = BERR_TRACE(rc); goto end; }
-    rc = SHELL_AddCommandArg(command, "toggle", false, "enters an interactive mode allowing toggling of the transmitted EOTF between SDR and SMPTE2084");
+    rc = SHELL_AddCommandArg(command, "toggle", false, "enters an interactive mode allowing toggling of the transmitted EOTF between SDR and HDR10");
     if (rc) { rc = BERR_TRACE(rc); goto end; }
 
 end:

@@ -46,7 +46,7 @@
 #include "bsagelib.h"
 #include "bsagelib_client.h"
 #include "bsagelib_priv.h"
-#include "bsagelib_shared_types.h"
+#include "priv/bsagelib_shared_types.h"
 
 #include "bhsm_otpmsp.h"
 #include "bhsm_keyladder_enc.h"
@@ -222,7 +222,7 @@ BSAGElib_Open(
     if (!pSAGElibHandle || !settings) {
         rc = BERR_INVALID_PARAMETER;
         BDBG_ERR(("%s: invalid input parameter [handle=%p, settings=%p]",
-                  __FUNCTION__, pSAGElibHandle, settings));
+                  __FUNCTION__, (void *)pSAGElibHandle, (void *)settings));
         goto end;
     }
 
@@ -328,7 +328,7 @@ BSAGElib_Open(
 
     BLST_S_INIT(&instance->clients);
 
-    BDBG_MSG(("%s add hSAGElib=%p", __FUNCTION__, instance));
+    BDBG_MSG(("%s add hSAGElib=%p", __FUNCTION__, (void *)instance));
     *pSAGElibHandle = instance;
 
 end:
@@ -347,7 +347,7 @@ BSAGElib_P_Close(
         goto end;
     }
 
-    BDBG_MSG(("%s remove hSAGElib=%p", __FUNCTION__, hSAGElib));
+    BDBG_MSG(("%s remove hSAGElib=%p", __FUNCTION__, (void *)hSAGElib));
 
     for (;;)
     {
@@ -356,7 +356,7 @@ BSAGElib_P_Close(
             break;
         }
         BDBG_ERR(("%s: leaked hSAGElib=%p hSAGElibClient=%p. Forcing close.",
-                  __FUNCTION__, hSAGElib, hSAGElibClient));
+                  __FUNCTION__, (void *)hSAGElib, (void *)hSAGElibClient));
         BSAGElib_P_CloseClient(hSAGElibClient, 1);
     }
 
@@ -428,7 +428,7 @@ BSAGElib_OpenClient(
     if (!settings | !pSAGElibClientHandle) {
         rc = BERR_INVALID_PARAMETER;
         BDBG_ERR(("%s: invalid input parameter [handle=%p, settings=%p]",
-                  __FUNCTION__, pSAGElibClientHandle, settings));
+                  __FUNCTION__, (void *)pSAGElibClientHandle, (void *)settings));
         goto end;
     }
 
@@ -456,7 +456,7 @@ BSAGElib_OpenClient(
 
     *pSAGElibClientHandle = hSAGElibClient;
 
-    BDBG_MSG(("%s add hSAGElib=%p hSAGElibClient=%p", __FUNCTION__, hSAGElib, hSAGElibClient));
+    BDBG_MSG(("%s add hSAGElib=%p hSAGElibClient=%p", __FUNCTION__, (void *)hSAGElib, (void *)hSAGElibClient));
 
 end:
     if (rc != BERR_SUCCESS) {
@@ -484,7 +484,7 @@ BSAGElib_P_CloseClient(
 
     hSAGElib = hSAGElibClient->hSAGElib;
 
-    BDBG_MSG(("%s remove hSAGElib=%p hSAGElibClient=%p", __FUNCTION__, hSAGElib, hSAGElibClient));
+    BDBG_MSG(("%s remove hSAGElib=%p hSAGElibClient=%p", __FUNCTION__, (void *)hSAGElib, (void *)hSAGElibClient));
 
     /* if collector is set, lock/unlock callback could be set to NULL */
     if (!collector) {
@@ -503,11 +503,11 @@ BSAGElib_P_CloseClient(
         }
         if (remote == hSAGElib->hStandbyRemote) {
             hSAGElib->hStandbyRemote = NULL;
-            BDBG_MSG(("%s remove hSAGElib=%p hSAGElibClient=%p Standby remote=%p", __FUNCTION__, hSAGElib, hSAGElibClient, remote));
+            BDBG_MSG(("%s remove hSAGElib=%p hSAGElibClient=%p Standby remote=%p", __FUNCTION__, (void *)hSAGElib, (void *)hSAGElibClient, (void *)remote));
         }
         else {
             BDBG_ERR(("%s: leaked hSAGElib=%p hSAGElibClient=%p remote=%p. Forcing close.",
-                      __FUNCTION__, hSAGElib, hSAGElibClient, remote));
+                      __FUNCTION__, (void *)hSAGElib, (void *)hSAGElibClient, (void *)remote));
         }
         BSAGElib_P_Rpc_RemoveRemote(remote);
     }

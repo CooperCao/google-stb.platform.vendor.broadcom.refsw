@@ -128,7 +128,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
             case 1: userParams.param1 = NEXUS_InputBand_e9; break;
             default: BDBG_MSG(("unsupported channel!"));
                 }
-            userParams.pParam2 = NULL;
+            userParams.pParam2 = 0;
             NEXUS_Frontend_SetUserParameters(pConfig->frontend[i], &userParams);
         }
         else
@@ -174,7 +174,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
 
                 default: BDBG_MSG(("unsupported channel!"));
                 }
-            userParams.pParam2 = NULL;
+            userParams.pParam2 = 0;
             NEXUS_Frontend_SetUserParameters(pConfig->frontend[i], &userParams);
         }
         else
@@ -199,6 +199,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
     data = 0x78;
     NEXUS_I2c_Write(g_NEXUS_platformHandles.config.i2c[I2C_DEVICE_VOLTAGE_REG_CH], ISL9492_CH1_I2C_ADDR, 0x00, (const uint8_t *) &data, 1);
 
+
     /* Configure FPGA on 7346(5) SV board */
     BDBG_MSG(("fpga i2c %d %p", I2C_DEVICE_FPGA_CH , g_NEXUS_platformHandles.config.i2c[I2C_DEVICE_FPGA_CH]));
     (void)NEXUS_I2c_Read(g_NEXUS_platformHandles.config.i2c[I2C_DEVICE_FPGA_CH], FPGA_CHIP_ADDR, 0xc, &data_c, 1);
@@ -213,13 +214,28 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
     (void)NEXUS_I2c_Write(g_NEXUS_platformHandles.config.i2c[I2C_DEVICE_FPGA_CH], FPGA_CHIP_ADDR, 4, &data, 1);
 
     if (NEXUS_GetEnv("NEXUS_STREAMER")) {
-        regaddr = 2; /* value maybe 0?*/
+        regaddr = 2;
         data = 0x00; /* Use streamer 0 for LVDS, pkt interface 0 */
     } else { /* ASI is default*/
         regaddr = 2;
         data = 0x10; /* Use streamer 1 for LVDS, pkt interface 2 */
     }
     (void)NEXUS_I2c_Write(g_NEXUS_platformHandles.config.i2c[I2C_DEVICE_FPGA_CH], FPGA_CHIP_ADDR, regaddr, &data, 1);
+    BKNI_Sleep(10);
+
+    /* re-read data back and give a warning */
+    (void)NEXUS_I2c_Read(g_NEXUS_platformHandles.config.i2c[I2C_DEVICE_FPGA_CH], FPGA_CHIP_ADDR, regaddr, &data, 1);
+    if (NEXUS_GetEnv("NEXUS_STREAMER")) {
+       if (data != 0x00)
+       {
+           BDBG_ERR(("LVDS will not work data value is 0x%02x it should be 0x00", data));
+       }
+    } else { /* ASI is default*/
+       if (data != 0x10)
+       {
+           BDBG_ERR(("ASI will not work data value is 0x%02x it should be 0x10", data));
+       }
+    }
 
     return BERR_SUCCESS;
 }
@@ -259,7 +275,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
             case 1: userParams.param1 = NEXUS_InputBand_e9; break;
             default: BDBG_MSG(("unsupported channel!"));
                 }
-            userParams.pParam2 = NULL;
+            userParams.pParam2 = 0;
             NEXUS_Frontend_SetUserParameters(pConfig->frontend[i], &userParams);
         }
         else
@@ -325,7 +341,12 @@ void NEXUS_Platform_UninitFrontend(void)
             deviceHandles[i] = NULL;
         }
     }
-
+#if NEXUS_PLATFORM_97346_SV
+    if (gpioHandleInt) {
+       NEXUS_Gpio_Close(gpioHandleInt);
+       gpioHandleInt = NULL;
+    }
+#endif
     return;
 }
 

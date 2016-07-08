@@ -1,43 +1,39 @@
 /******************************************************************************
- * (c) 2016 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 #include "bip_priv.h"
 #include "bip_media_info.h"
@@ -206,11 +202,11 @@ do                                                                              
     if(*ppTrackGroup == NULL)                                                       \
     {                                                                               \
         listNode = B_Os_Calloc(1, sizeof(BIP_MediaInfoTrackGroup));                 \
-        BIP_CHECK_GOTO(( pTrackGroup!=NULL ), ( "Failed to allocate memory (%d bytes) for BIP_MediaInfoTrackGroup", sizeof(BIP_MediaInfoTrackGroup)  ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );  \
+        BIP_CHECK_GOTO(( pTrackGroup!=NULL ), ( "Failed to allocate memory (%zu bytes) for BIP_MediaInfoTrackGroup", sizeof(BIP_MediaInfoTrackGroup)  ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );  \
         listNode->trackGroupId = groupId;                                           \
         *ppTrackGroup = listNode;                                                   \
         (*pGrpCounter)++;                                                           \
-        BDBG_MSG((BIP_MSG_PRE_FMT "pTrackGroup------------------->%p: pGrpCounter = %d" BIP_MSG_PRE_ARG, listNode, *pGrpCounter));                   \
+        BDBG_MSG((BIP_MSG_PRE_FMT "pTrackGroup------------------->%p: pGrpCounter = %d" BIP_MSG_PRE_ARG, (void *)listNode, *pGrpCounter));                   \
     }                                                                               \
     else                                                                            \
     {                                                                               \
@@ -592,10 +588,7 @@ static void populateMediaInfoTrack(
             }
 #endif
         }
-        if (pTrack->info.video.codec == bvideo_codec_h265)
-        {
-            pMediaInfoTrack->info.video.colorDepth = ((bmedia_probe_h265_video *)&pTrack->info.video.codec_specific )->sps.bit_depth_luma;
-        }
+        pMediaInfoTrack->info.video.colorDepth = bmedia_probe_get_video_color_depth(pTrack);
     }
     else if(pTrack->type == bmedia_track_type_audio)
     {
@@ -679,7 +672,7 @@ static BIP_Status createMediaInfoTrack(
    BDBG_ASSERT( NULL != pStream );
 
    pMediaInfoTrack = B_Os_Calloc(1,sizeof(BIP_MediaInfoTrack));
-   BIP_CHECK_GOTO(( pMediaInfoTrack!=NULL ), ( "Failed to allocate memory (%d bytes) for BIP_MediaInfo Object", sizeof(BIP_MediaInfoTrack)  ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
+   BIP_CHECK_GOTO(( pMediaInfoTrack!=NULL ), ( "Failed to allocate memory (%zu bytes) for BIP_MediaInfo Object", sizeof(BIP_MediaInfoTrack)  ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
 
    /* Populate pMediaInfoTrack from pTrack.*/
    populateMediaInfoTrack(pMediaInfoTrack , pTrack, pStream);
@@ -829,7 +822,7 @@ static BIP_Status BIP_MediaInfo_ProbeFileForMediaInfo(
     {
         fp = fdopen( fd_int, "r" );
     }
-    BIP_CHECK_GOTO((( fd_int>= 0 ) && fp ), ( "failed to open file (%s), fd %d, fp %p, errno %d\n", fileName, fd_int, fp, errno ), error, BIP_ERR_MEDIA_INFO_BAD_MEDIA_PATH, rc );
+    BIP_CHECK_GOTO((( fd_int>= 0 ) && fp ), ( "failed to open file (%s), fd %d, errno %d\n", fileName, fd_int, errno ), error, BIP_ERR_MEDIA_INFO_BAD_MEDIA_PATH, rc );
     BIP_CHECK_GOTO(( !( fstat( fd_int, &fileStats ))  && ( fileStats.st_size > 0 )), ( "Can't obtain file stats info on media file (%s) %d\n", fileName, errno ), error, BIP_ERR_MEDIA_INFO_BAD_MEDIA_PATH, rc );
 
     probe = bmedia_probe_create();
@@ -1525,7 +1518,7 @@ static BIP_Status createTrackFromXmlTree(
 
     /* Create a new track and add it to BIP_TrackGroup list.*/
     pCurrentTrack = B_Os_Calloc(1, sizeof(BIP_MediaInfoTrack));
-    BIP_CHECK_GOTO(( pCurrentTrack!=NULL ), ( "Failed to allocate memory (%d bytes) for BIP_MediaInfoTrack", sizeof(BIP_MediaInfoTrack)  ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
+    BIP_CHECK_GOTO(( pCurrentTrack!=NULL ), ( "Failed to allocate memory (%zu bytes) for BIP_MediaInfoTrack", sizeof(BIP_MediaInfoTrack)  ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
 
     /* if pTrackGroup is not NULL add the track to trackGroup.*/
     if(pTrackGroup)
@@ -1606,7 +1599,7 @@ static BIP_Status BIP_MediaInfo_CreateTrackGroupsFromXmlTree(
        BIP_MediaInfoTrackGroup *pTrackGroup = NULL;
        /* Create a new track group and add it In BIP_MediaInfo tree.*/
        pTrackGroup = B_Os_Calloc(1, sizeof(BIP_MediaInfoTrackGroup));
-       BIP_CHECK_GOTO(( pTrackGroup!=NULL ), ( "Failed to allocate memory (%d bytes) for BIP_MediaInfoTrackGroup", sizeof(BIP_MediaInfoTrackGroup)  ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
+       BIP_CHECK_GOTO(( pTrackGroup!=NULL ), ( "Failed to allocate memory (%zu bytes) for BIP_MediaInfoTrackGroup", sizeof(BIP_MediaInfoTrackGroup)  ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
 
        BIP_MEDIAINFO_GROUPLIST_INSERT(&pMediaInfoStream->pFirstTrackGroupInfo, pTrackGroup);
 
@@ -2163,7 +2156,7 @@ static B_Error collectionFunc(
             {
                 if (0 < size)
                 {
-                    BDBG_MSG((BIP_MSG_PRE_FMT "NEXUS_Message_GetBuffer() succeeded! size:%d\n" BIP_MSG_PRE_ARG, size ));
+                    BDBG_MSG((BIP_MSG_PRE_FMT "NEXUS_Message_GetBuffer() succeeded! size:%zu\n" BIP_MSG_PRE_ARG, size ));
                     memcpy( pRequest->pBuffer, buffer, *( pRequest->pBufferLength )); /* copy valid data to request buffer */
                     *( pRequest->pBufferLength ) = BIP_MIN( *( pRequest->pBufferLength ), size );
                     NEXUS_Message_ReadComplete( msg, size );
@@ -2300,7 +2293,7 @@ static BIP_Status createMediaInfoTrackFromTSPmtBuff(
     {
         /*Create BIP_MediaInfoTrack for pcr track */
         pMediaInfoTrack = B_Os_Calloc(1,sizeof(BIP_MediaInfoTrack));
-        BIP_CHECK_GOTO(( pMediaInfoTrack!=NULL ), ( "Failed to allocate memory (%d bytes) for BIP_MediaInfo Object", sizeof(BIP_MediaInfoTrack)  ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
+        BIP_CHECK_GOTO(( pMediaInfoTrack!=NULL ), ( "Failed to allocate memory (%zu bytes) for BIP_MediaInfo Object", sizeof(BIP_MediaInfoTrack)  ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
 
         /* Populate pcr track related information.*/
         pMediaInfoTrack->trackType = BIP_MediaInfoTrackType_ePcr;
@@ -2327,7 +2320,7 @@ static BIP_Status createMediaInfoTrackFromTSPmtBuff(
         /*Create BIP_MediaInfoTrack for pcr track */
         pMediaInfoTrack = NULL;
         pMediaInfoTrack = B_Os_Calloc(1,sizeof(BIP_MediaInfoTrack));
-        BIP_CHECK_GOTO(( pMediaInfoTrack!=NULL ), ( "Failed to allocate memory (%d bytes) for BIP_MediaInfo Object", sizeof(BIP_MediaInfoTrack)  ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
+        BIP_CHECK_GOTO(( pMediaInfoTrack!=NULL ), ( "Failed to allocate memory (%zu bytes) for BIP_MediaInfo Object", sizeof(BIP_MediaInfoTrack)  ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
 
         populateMediaInfoTrackFromTSPmtStruct( &stream, pMediaInfoTrack );
 
@@ -2478,13 +2471,13 @@ BIP_Status BIP_MediaInfo_ProbeTunerForMediaInfo(
             B_Os_Memset( pBufPMT, 0, bufPMTLength );
             if (B_ERROR_SUCCESS != B_PSIP_GetPMT( &settingsApi, program.PID, pBufPMT, &bufPMTLength ))
             {
-                BDBG_ERR(( BIP_MSG_PRE_FMT "B_PSIP_GetPMT() failed\n" BIP_MSG_PRE_FMT));
+                BDBG_ERR(( BIP_MSG_PRE_FMT "B_PSIP_GetPMT() failed" BIP_MSG_PRE_ARG));
                 continue;
             }
             /* wait for async response from si - wait on dataReadyEvent */
             if (B_Event_Wait((B_EventHandle)settingsApi.dataReadyCallbackParam,  pMediaInfoCreateSettings->psiAcquireTimeoutInMs ))
             {
-                BDBG_ERR((BIP_MSG_PRE_FMT "Failed to find PMT table ...\n" BIP_MSG_PRE_FMT));
+                BDBG_ERR((BIP_MSG_PRE_FMT "Failed to find PMT table ..." BIP_MSG_PRE_ARG));
                 rc = BIP_INF_TIMEOUT;
                 goto error;
             }
@@ -2501,7 +2494,7 @@ BIP_Status BIP_MediaInfo_ProbeTunerForMediaInfo(
 
             if(TS_PMT_getNumStreams( pBufPMT, bufPMTLength ) == 0)
             {
-                BDBG_WRN((BIP_MSG_PRE_FMT "Found zero  tracks in this program \n" BIP_MSG_PRE_FMT));
+                BDBG_WRN((BIP_MSG_PRE_FMT "Found zero  tracks in this program " BIP_MSG_PRE_ARG));
                 continue;
             }
 #ifndef STREAMER_CABLECARD_SUPPORT
@@ -2577,7 +2570,7 @@ BIP_MediaInfoHandle BIP_MediaInfo_CreateFromParserBand(
     }
 
     hMediaInfo = B_Os_Calloc( 1, sizeof( BIP_MediaInfo ));
-    BIP_CHECK_GOTO(( hMediaInfo != NULL ), ( "Failed to allocate memory (%d bytes) for BIP_MediaInfo Object", sizeof(BIP_MediaInfo) ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
+    BIP_CHECK_GOTO(( hMediaInfo != NULL ), ( "Failed to allocate memory (%zu bytes) for BIP_MediaInfo Object", sizeof(BIP_MediaInfo) ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
 
     BDBG_OBJECT_SET( hMediaInfo, BIP_MediaInfo );
 
@@ -2675,7 +2668,7 @@ static BIP_Status createMediaInfoTrackForMainVideoFromPbipPsi(
    BDBG_ASSERT( NULL != pPsi );
 
    pMediaInfoTrack = B_Os_Calloc(1,sizeof(BIP_MediaInfoTrack));
-   BIP_CHECK_GOTO(( pMediaInfoTrack!=NULL ), ( "Failed to allocate memory (%d bytes) for BIP_MediaInfo Object", sizeof(BIP_MediaInfoTrack)  ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
+   BIP_CHECK_GOTO(( pMediaInfoTrack!=NULL ), ( "Failed to allocate memory (%zu bytes) for BIP_MediaInfo Object", sizeof(BIP_MediaInfoTrack)  ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
 
    /* Now populate MainVideo track from PbipPsi structure. */
    pMediaInfoTrack->trackId = pPsi->videoPid;
@@ -2738,7 +2731,7 @@ static BIP_Status createMediaInfoTrackForMainAudioFromPbipPsi(
     BDBG_ASSERT( NULL != pPsi );
 
     pMediaInfoTrack = B_Os_Calloc(1,sizeof(BIP_MediaInfoTrack));
-    BIP_CHECK_GOTO(( pMediaInfoTrack!=NULL ), ( "Failed to allocate memory (%d bytes) for BIP_MediaInfo Object", sizeof(BIP_MediaInfoTrack)  ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
+    BIP_CHECK_GOTO(( pMediaInfoTrack!=NULL ), ( "Failed to allocate memory (%zu bytes) for BIP_MediaInfo Object", sizeof(BIP_MediaInfoTrack)  ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
 
     /* Now populate MainAudio track from PbipPsi structure. */
     pMediaInfoTrack->trackId = pPsi->audioPid;
@@ -2777,7 +2770,7 @@ static BIP_Status createMediaInfoTrackForPcrFromPbipPsi(
     BDBG_ASSERT( NULL != pPsi );
 
     pMediaInfoTrack = B_Os_Calloc(1,sizeof(BIP_MediaInfoTrack));
-    BIP_CHECK_GOTO(( pMediaInfoTrack!=NULL ), ( "Failed to allocate memory (%d bytes) for BIP_MediaInfo Object", sizeof(BIP_MediaInfoTrack)  ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
+    BIP_CHECK_GOTO(( pMediaInfoTrack!=NULL ), ( "Failed to allocate memory (%zu bytes) for BIP_MediaInfo Object", sizeof(BIP_MediaInfoTrack)  ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
 
     /* Now populate MainAudio track from PbipPsi structure. */
     pMediaInfoTrack->trackId = pPsi->pcrPid;
@@ -2848,7 +2841,7 @@ static BIP_Status createMediaInfoTracksForExtraHlsAudioTracks(
         BIP_MediaInfoTrack   *pMediaInfoTrack =  NULL;
 
         pMediaInfoTrack = B_Os_Calloc(1,sizeof(BIP_MediaInfoTrack));
-        BIP_CHECK_GOTO(( pMediaInfoTrack!=NULL ), ( "Failed to allocate memory (%d bytes) for BIP_MediaInfo Object", sizeof(BIP_MediaInfoTrack)  ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
+        BIP_CHECK_GOTO(( pMediaInfoTrack!=NULL ), ( "Failed to allocate memory (%zu bytes) for BIP_MediaInfo Object", sizeof(BIP_MediaInfoTrack)  ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
 
         /* Get virtualTrackId*/
         virtualTrackId = getValidVirtualTrackId( pMediaInfoStream, lastTrackId );
@@ -3000,7 +2993,7 @@ BIP_MediaInfoHandle BIP_MediaInfo_CreateFromPbipPsi_priv(
     }
 
     hMediaInfo = B_Os_Calloc( 1, sizeof( BIP_MediaInfo ));
-    BIP_CHECK_GOTO(( hMediaInfo != NULL ), ( "Failed to allocate memory (%d bytes) for BIP_MediaInfo Object", sizeof(BIP_MediaInfo) ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
+    BIP_CHECK_GOTO(( hMediaInfo != NULL ), ( "Failed to allocate memory (%zu bytes) for BIP_MediaInfo Object", sizeof(BIP_MediaInfo) ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
     BDBG_OBJECT_SET( hMediaInfo, BIP_MediaInfo );
 
     /* Create hAbsoluteMediaPath object, later it will be filled with data.*/
@@ -3056,7 +3049,7 @@ BIP_MediaInfoHandle BIP_MediaInfo_CreateFromBMediaStream_priv(
     }
 
     hMediaInfo = B_Os_Calloc( 1, sizeof( BIP_MediaInfo ));
-    BIP_CHECK_GOTO(( hMediaInfo != NULL ), ( "Failed to allocate memory (%d bytes) for BIP_MediaInfo Object", sizeof(BIP_MediaInfo) ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
+    BIP_CHECK_GOTO(( hMediaInfo != NULL ), ( "Failed to allocate memory (%zu bytes) for BIP_MediaInfo Object", sizeof(BIP_MediaInfo) ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
 
     BDBG_OBJECT_SET( hMediaInfo, BIP_MediaInfo );
 
@@ -3118,7 +3111,7 @@ BIP_MediaInfoHandle BIP_MediaInfo_CreateFromMediaFile(
     }
 
     hMediaInfo = B_Os_Calloc( 1, sizeof( BIP_MediaInfo ));
-    BIP_CHECK_GOTO(( hMediaInfo != NULL ), ( "Failed to allocate memory (%d bytes) for BIP_MediaInfo Object", sizeof(BIP_MediaInfo) ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
+    BIP_CHECK_GOTO(( hMediaInfo != NULL ), ( "Failed to allocate memory (%zu bytes) for BIP_MediaInfo Object", sizeof(BIP_MediaInfo) ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
 
     BDBG_OBJECT_SET( hMediaInfo, BIP_MediaInfo );
 
@@ -3318,7 +3311,7 @@ BIP_MediaInfoStream  *BIP_MediaInfo_GetStream(
     BDBG_ASSERT(hMediaInfo);
     BDBG_OBJECT_ASSERT(hMediaInfo,BIP_MediaInfo);
 
-    BDBG_MSG((BIP_MSG_PRE_FMT "&(hMediaInfo->mediaInfoStream) = %p" BIP_MSG_PRE_ARG, &hMediaInfo->mediaInfoStream));
+    BDBG_MSG((BIP_MSG_PRE_FMT "&(hMediaInfo->mediaInfoStream) = %p" BIP_MSG_PRE_ARG, (void *)&hMediaInfo->mediaInfoStream));
 
     return(&(hMediaInfo->mediaInfoStream));
 }
@@ -3419,7 +3412,7 @@ BIP_MediaInfo_MakeNavForTsFile(
     /* Create mediaInfo object and probe for mediaInfo meta data.*/
     {
         hMediaInfo = B_Os_Calloc( 1, sizeof( BIP_MediaInfo ));
-        BIP_CHECK_GOTO(( hMediaInfo != NULL ), ( "Failed to allocate memory (%d bytes) for BIP_MediaInfo Object", sizeof(BIP_MediaInfo) ), cleanup_probe, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
+        BIP_CHECK_GOTO(( hMediaInfo != NULL ), ( "Failed to allocate memory (%zu bytes) for BIP_MediaInfo Object", sizeof(BIP_MediaInfo) ), cleanup_probe, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
 
         BDBG_OBJECT_SET( hMediaInfo, BIP_MediaInfo );
 
@@ -3534,4 +3527,117 @@ cleanup_probe:
         BIP_MediaInfo_Destroy(hMediaInfo);
     }
     return(rc);
+}
+
+static void mediaInfoPrintFortack(BIP_MediaInfoTrack *pMediaInfoTrack)
+{
+    if(pMediaInfoTrack)
+    {
+        if(pMediaInfoTrack->trackType == BIP_MediaInfoTrackType_eVideo)
+        {
+            BDBG_WRN(("TrackType=Video TrackId=%d Codec=%s", pMediaInfoTrack->trackId, BIP_ToStr_NEXUS_VideoCodec(pMediaInfoTrack->info.video.codec)));
+        }
+        else if(pMediaInfoTrack->trackType == BIP_MediaInfoTrackType_eAudio)
+        {
+            if(pMediaInfoTrack->info.audio.pLanguage) {
+                BDBG_WRN(("TrackType=Audio TrackId=%d Codec=%s Language=%s BsmodValid=%s Bsmod=%d",
+                          pMediaInfoTrack->trackId,
+                          BIP_ToStr_NEXUS_AudioCodec( pMediaInfoTrack->info.audio.codec),
+                          pMediaInfoTrack->info.audio.pLanguage,
+                          pMediaInfoTrack->info.audio.descriptor.ac3.bsmodValid==true? "true": "false",
+                          pMediaInfoTrack->info.audio.descriptor.ac3.bsmod
+                          ));
+
+            }
+            else
+            {
+                BDBG_WRN(("TrackType=Audio TrackId=%d Codec=%s BsmodValid=%s Bsmod=%d",
+                          pMediaInfoTrack->trackId,
+                          BIP_ToStr_NEXUS_AudioCodec( pMediaInfoTrack->info.audio.codec),
+                          pMediaInfoTrack->info.audio.descriptor.ac3.bsmodValid==true? "true": "false",
+                          pMediaInfoTrack->info.audio.descriptor.ac3.bsmod
+                          ));
+            }
+        }
+        else if(pMediaInfoTrack->trackType == BIP_MediaInfoTrackType_ePcr)
+        {
+            BDBG_WRN(("TrackType=Pcr TrackId=%d", pMediaInfoTrack->trackId));
+        }
+        else if(pMediaInfoTrack->trackType == BIP_MediaInfoTrackType_ePmt)
+        {
+            BDBG_WRN(("TrackType=Pmt TrackId=%d", pMediaInfoTrack->trackId));
+        }
+        else /* Other */
+        {
+            BDBG_WRN(("TrackType=Other TrackId=%d", pMediaInfoTrack->trackId));
+        }
+    }
+}
+
+void BIP_MediaInfo_Print(BIP_MediaInfoHandle hMediaInfo)
+{
+    BIP_MediaInfoStream     *pMediaInfoStream = NULL;
+    BIP_MediaInfoTrack      *pMediaInfoTrack =  NULL;
+    BDBG_ASSERT( NULL != hMediaInfo );
+
+    BDBG_WRN((BIP_MSG_PRE_FMT "Printing BIP_MediaInfo ---------------------------------------- " BIP_MSG_PRE_ARG));
+    if( hMediaInfo )
+    {
+        bool trkGrpPresent =false;
+        BIP_MediaInfoTrackGroup *pMediaInfoTrackGroup = NULL;
+        pMediaInfoStream = &hMediaInfo->mediaInfoStream;
+
+        if(pMediaInfoStream)
+        {
+            double avgBitRate = 0, maxBitRate = 0;
+            BIP_MediaInfoTrack *pCurrTrack = NULL;
+
+            if(hMediaInfo->mediaInfoStream.numberOfTrackGroups != 0)
+            {
+                trkGrpPresent = true;
+                pMediaInfoTrackGroup = pMediaInfoStream->pFirstTrackGroupInfo;
+                pMediaInfoTrack = pMediaInfoTrackGroup->pFirstTrackForTrackGroup;
+            }
+            else
+            {
+                 pMediaInfoTrack = pMediaInfoStream->pFirstTrackInfoForStream;
+            }
+
+            avgBitRate = (double)(hMediaInfo->mediaInfoStream.avgBitRate/1024);
+            maxBitRate = (double)(hMediaInfo->mediaInfoStream.maxBitRate/1024);
+            /* stream level information */
+            BDBG_WRN(("InfoType=%s TransportType=%s NumTrackGroups=%d NumberOfTracks=%d Avg=%fKbps Max=%fKbps TtsEnabled=%s",
+                          BIP_ToStr_BIP_MediaInfoType(hMediaInfo->mediaInfoType),
+                          BIP_ToStr_NEXUS_TransportType(hMediaInfo->mediaInfoStream.transportType),
+                          hMediaInfo->mediaInfoStream.numberOfTrackGroups,
+                          hMediaInfo->mediaInfoStream.numberOfTracks,
+                          avgBitRate,
+                          maxBitRate,
+                          hMediaInfo->mediaInfoStream.transportTimeStampEnabled == true ? "true":"false"));
+
+            pCurrTrack = pMediaInfoTrack;
+
+            if(trkGrpPresent)
+            {
+                unsigned i;
+                for (i = 0; i< hMediaInfo->mediaInfoStream.numberOfTrackGroups && pCurrTrack; i++)
+                {
+                    BDBG_WRN(("TrackGroupId=%d ",hMediaInfo->mediaInfoStream.pFirstTrackGroupInfo->trackGroupId));
+                    /* Now print Track specific info */
+                    mediaInfoPrintFortack(pCurrTrack);
+                    pCurrTrack = pCurrTrack->pNextTrackForTrackGroup;
+                }
+            }
+
+            /* following if case will execute if any orphan tracks remain which doesn't belong to any
+               trak group or for the tracks when there is no trackGroup exist.*/
+            while(pCurrTrack)
+            {
+                mediaInfoPrintFortack(pCurrTrack);
+                pCurrTrack = pCurrTrack->pNextTrackForStream;
+                /* Now print Track specific info */
+            }
+        }
+    }
+    BDBG_WRN((BIP_MSG_PRE_FMT "Done with printing ------------------------------------------" BIP_MSG_PRE_ARG));
 }

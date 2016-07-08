@@ -296,27 +296,27 @@ void BASTMlib_Presenter_EventHandler_isr(
                     }
                     else
                     {
-                        BDBG_MSG(("Presenter %p event queue full.  Discarding events.", hPresenter));
+                        BDBG_MSG(("Presenter %p event queue full.  Discarding events.", (void *)hPresenter));
                     }
                 }
                 else
                 {
-                    BDBG_MSG(("Presenter %p event received while not acquiring. Ignored", hPresenter));
+                    BDBG_MSG(("Presenter %p event received while not acquiring. Ignored", (void *)hPresenter));
                 }
             }
             else
             {
-                BDBG_MSG(("Unmanaged presenter (%p) event received", hPresenter));
+                BDBG_MSG(("Unmanaged presenter (%p) event received", (void *)hPresenter));
             }
         }
         else
         {
-            BDBG_MSG(("Presenter %p event received while stopped. Ignored", hPresenter));
+            BDBG_MSG(("Presenter %p event received while stopped. Ignored", (void *)hPresenter));
         }
     }
     else
     {
-        BDBG_MSG(("Unmanaged presenter (%p) event received", hPresenter));
+        BDBG_MSG(("Unmanaged presenter (%p) event received", (void *)hPresenter));
     }
 
     BDBG_LEAVE(BASTMlib_Presenter_EventHandler_isr);

@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2008 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2008 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -17,7 +17,7 @@ EGL context structure declaration.
 typedef struct {
    EGLContext name;
    EGLDisplay display;
-   EGLConfig configname;
+   EGLConfig config;
 
    EGL_CONTEXT_TYPE_T type;
 
@@ -46,11 +46,17 @@ typedef struct {
       Iff true, is not a member of the CLIENT_PROCESS_STATE_T.contexts
    */
    bool is_destroyed;
+
+   /* context is marked secure */
+   bool secure;
 } EGL_CONTEXT_T;
 
-extern EGLBoolean egl_context_check_attribs(const EGLint *attrib_list, EGLint max_version, EGLint *version);
+extern EGLBoolean egl_context_check_attribs(const EGLint *attrib_list, EGLint max_version,
+   EGLint *version, bool *secure);
 
-extern EGL_CONTEXT_T *egl_context_create(EGL_CONTEXT_T *share_context, EGLContext name, EGLDisplay display, EGLConfig configname, EGL_CONTEXT_TYPE_T type);
+extern EGL_CONTEXT_T *egl_context_create(EGL_CONTEXT_T *share_context, EGLContext name,
+   EGLDisplay display, EGLConfig config, EGL_CONTEXT_TYPE_T type, bool secure);
+
 extern void egl_context_term(EGL_CONTEXT_T *context);
 
 extern EGLBoolean egl_context_get_attrib(EGL_CONTEXT_T *context, EGLint attrib, EGLint *value);

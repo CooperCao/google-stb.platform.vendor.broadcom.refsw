@@ -1,53 +1,40 @@
-/***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
-*
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
-*  and may only be used, duplicated, modified or distributed pursuant to the terms and
-*  conditions of a separate, written license agreement executed between you and Broadcom
-*  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-*  no license (express or implied), right to use, or waiver of any kind with respect to the
-*  Software, and Broadcom expressly reserves all rights in and to the Software and all
-*  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-*  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-*  Except as expressly set forth in the Authorized License,
-*
-*  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-*  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-*  and to use this information only in connection with your use of Broadcom integrated circuit products.
-*
-*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-*  USE OR PERFORMANCE OF THE SOFTWARE.
-*
-*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-*  ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* API Description:
-*   API name: Platform
-*   Functions that should be compiled both in linux kernel and linux user/proxy environment
-*
-* Revision History:
-*
-* $brcm_Log: $
-*
-***************************************************************************/
+/******************************************************************************
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ ******************************************************************************/
 #include "nexus_platform_priv.h"
 #include "nexus_types.h"
 #include "nexus_base.h"
@@ -118,12 +105,19 @@ static void NEXUS_Platform_P_AdjustHeapSettings(NEXUS_PlatformSettings *pSetting
 #if defined(NEXUS_VIDEO_SECURE_HEAP)
     pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].heapType |= NEXUS_HEAP_TYPE_COMPRESSED_RESTRICTED_REGION;
 #endif
+#if defined(NEXUS_EXPORT_HEAP)
+    pSettings->heap[NEXUS_EXPORT_HEAP].heapType |= NEXUS_HEAP_TYPE_EXPORT_REGION;
+#endif
 #if NEXUS_HAS_SAGE
     pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].placement.sage = true;
     pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].alignment = 16 * 1024 * 1024;
     pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].alignment = 16 * 1024 * 1024;
     pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].placement.sage = true;
     pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].memoryType = NEXUS_MemoryType_eSecure;
+#if defined(NEXUS_EXPORT_HEAP)
+    pSettings->heap[NEXUS_EXPORT_HEAP].alignment = 1 * 1024 * 1024;
+    pSettings->heap[NEXUS_EXPORT_HEAP].memoryType = NEXUS_MemoryType_eSecure;
+#endif
     pSettings->heap[NEXUS_SAGE_SECURE_HEAP].size =  32*1024*1024; /*Sage Secure heap */
     pSettings->heap[NEXUS_SAGE_SECURE_HEAP].heapType |= NEXUS_HEAP_TYPE_SAGE_RESTRICTED_REGION;
     pSettings->heap[NEXUS_SAGE_SECURE_HEAP].memoryType = NEXUS_MemoryType_eSecure;
@@ -199,9 +193,10 @@ void NEXUS_Platform_Priv_GetDefaultSettings(const NEXUS_Core_PreInitState *preIn
 
     NEXUS_DisplayModule_GetDefaultSettings(preInitState, &pSettings->displayModuleSettings);
 
-    /* Should Not be defined for 7405/7325/7335 and variants,its done on platfrom_core.c
+    /* Should Not be defined for 7405 and variants,its done on platfrom_core.c
        based on board strap options */
 #if (NEXUS_DISPLAY_NUM_SD_BUFFERS || NEXUS_DISPLAY_NUM_HD_BUFFERS || NEXUS_DISPLAY_NUM_FULL_HD_BUFFERS)
+    pSettings->displayModuleSettings.primaryDisplayHeapIndex = 0; /* default 0 and could be overriden by platform */
     pSettings->displayModuleSettings.fullHdBuffers.count = NEXUS_DISPLAY_NUM_FULL_HD_BUFFERS;
     pSettings->displayModuleSettings.hdBuffers.count = NEXUS_DISPLAY_NUM_HD_BUFFERS;
     pSettings->displayModuleSettings.sdBuffers.count = NEXUS_DISPLAY_NUM_SD_BUFFERS;
@@ -211,6 +206,9 @@ void NEXUS_Platform_Priv_GetDefaultSettings(const NEXUS_Core_PreInitState *preIn
 
 #if NEXUS_HAS_VIDEO_DECODER
     NEXUS_VideoDecoderModule_GetDefaultSettings(&pSettings->videoDecoderModuleSettings);
+    if (NEXUS_GetEnv("avd_monitor")) {
+        pSettings->videoDecoderModuleSettings.debugLogBufferSize = 10 * 1024;
+    }
 #if NEXUS_VIDEO_DECODER_GENERAL_HEAP_SIZE
     /* this method for setting default heap sizes is deprecated. instead, each platform's nexus_platform_$(NEXUS_PLATFORM).c sets default. */
     pSettings->videoDecoderModuleSettings.heapSize[0].general = NEXUS_VIDEO_DECODER_GENERAL_HEAP_SIZE;
@@ -244,10 +242,6 @@ void NEXUS_Platform_Priv_GetDefaultSettings(const NEXUS_Core_PreInitState *preIn
         }
     }
     #endif
-#endif
-
-#if NEXUS_HAS_SURFACE
-    NEXUS_SurfaceModule_GetDefaultSettings(&pSettings->surfacePlatformSettings);
 #endif
 
 #if NEXUS_HAS_SMARTCARD
@@ -286,6 +280,10 @@ void NEXUS_Platform_Priv_GetDefaultSettings(const NEXUS_Core_PreInitState *preIn
     NEXUS_SageModule_GetDefaultSettings(&pSettings->sageModuleSettings);
 #endif
 
+#if NEXUS_HAS_PWM
+    NEXUS_PwmModule_GetDefaultSettings(&pSettings->pwmSettings);
+#endif
+
 #if NEXUS_POWER_MANAGEMENT
     NEXUS_Platform_GetStandbySettings(&pSettings->standbySettings);
 #endif
@@ -313,7 +311,7 @@ void NEXUS_Platform_Priv_GetDefaultSettings(const NEXUS_Core_PreInitState *preIn
     }
     NEXUS_Platform_P_AdjustBmemRegions(pMemory);
     NEXUS_P_GetDefaultMemoryRtsSettings(&rtsSettings);
-    NEXUS_Platform_P_GetDefaultHeapSettings(pSettings, g_pPreInitState->boxMode);
+    NEXUS_Platform_P_GetPlatformHeapSettings(pSettings, g_pPreInitState->boxMode);
     NEXUS_Platform_P_AdjustHeapSettings(pSettings);
     errCode = NEXUS_P_ApplyMemoryConfiguration(preInitState, pMemConfigSettings, &rtsSettings, pSettings);
     if (errCode) {
@@ -385,7 +383,7 @@ static void NEXUS_Platform_P_AdjustBmemRegions(NEXUS_PlatformMemory *pMemory)
             pMemory->osRegion[availableBmem].length = pMemory->memc[0].length - 0x10000000;
         }
     }
-#elif BCHP_CHIP == 7405 || BCHP_CHIP == 7420 || BCHP_CHIP == 7400 || BCHP_CHIP==7335 || BCHP_CHIP==7325
+#elif BCHP_CHIP == 7405 || BCHP_CHIP == 7420
     if (pMemory->memc[1].length) {
         unsigned availableBmem = NEXUS_MAX_HEAPS;
         for (i=0;i<NEXUS_MAX_HEAPS;i++) {
@@ -399,23 +397,6 @@ static void NEXUS_Platform_P_AdjustBmemRegions(NEXUS_PlatformMemory *pMemory)
             BDBG_MSG(("dynamically creating bmem.%d because OS is not reporting it", availableBmem));
             pMemory->osRegion[availableBmem].base = 0x60000000;
             pMemory->osRegion[availableBmem].length = pMemory->memc[1].length;
-        }
-    }
-#endif
-#if BCHP_CHIP == 7400
-    if (pMemory->memc[2].length) {
-        unsigned availableBmem = NEXUS_MAX_HEAPS;
-        for (i=0;i<NEXUS_MAX_HEAPS;i++) {
-            if (pMemory->osRegion[i].length &&
-                pMemory->osRegion[i].base >= 0x70000000) break;
-            if (!pMemory->osRegion[i].length && availableBmem == NEXUS_MAX_HEAPS) {
-                availableBmem = i;
-            }
-        }
-        if (i == NEXUS_MAX_HEAPS && availableBmem != NEXUS_MAX_HEAPS) {
-            BDBG_MSG(("dynamically creating bmem.%d because OS is not reporting it", availableBmem));
-            pMemory->osRegion[availableBmem].base = 0x70000000;
-            pMemory->osRegion[availableBmem].length = pMemory->memc[2].length;
         }
     }
 #endif
@@ -676,6 +657,28 @@ static NEXUS_Error NEXUS_Platform_P_GetFramebufferHeapIndex(unsigned displayInde
     NEXUS_Error rc = NEXUS_SUCCESS;
 
     *pHeapIndex = NEXUS_MAX_HEAPS; /* invalid */
+    if (displayIndex == NEXUS_OFFSCREEN_SECURE_GRAPHICS_SURFACE) {
+#if defined NEXUS_MEMC2_SECURE_GRAPHICS_HEAP
+        if (g_NEXUS_platformSettings.heap[NEXUS_MEMC2_SECURE_GRAPHICS_HEAP].size) {
+            *pHeapIndex = NEXUS_MEMC2_SECURE_GRAPHICS_HEAP;
+            return 0;
+        }
+#endif
+#if defined NEXUS_MEMC1_SECURE_GRAPHICS_HEAP
+        if (g_NEXUS_platformSettings.heap[NEXUS_MEMC1_SECURE_GRAPHICS_HEAP].size) {
+            *pHeapIndex = NEXUS_MEMC1_SECURE_GRAPHICS_HEAP;
+            return 0;
+        }
+#endif
+#if defined NEXUS_MEMC0_SECURE_GRAPHICS_HEAP
+        if (g_NEXUS_platformSettings.heap[NEXUS_MEMC0_SECURE_GRAPHICS_HEAP].size) {
+            *pHeapIndex = NEXUS_MEMC0_SECURE_GRAPHICS_HEAP;
+            return 0;
+        }
+#endif
+        return NEXUS_NOT_AVAILABLE; /* no BERR_TRACE */
+    }
+
     if (displayIndex == NEXUS_OFFSCREEN_SURFACE || displayIndex == NEXUS_SECONDARY_OFFSCREEN_SURFACE) {
         unsigned i;
         for (i=0;i<NEXUS_MAX_HEAPS;i++) {
@@ -772,7 +775,7 @@ NEXUS_HeapHandle NEXUS_Platform_GetFramebufferHeap(unsigned displayIndex)
     unsigned index;
     NEXUS_Error rc;
     rc = NEXUS_Platform_P_GetFramebufferHeapIndex(displayIndex, &index);
-    if (rc) {BERR_TRACE(rc);return NULL;}
+    if (rc) return NULL;
     BDBG_ASSERT(index < NEXUS_MAX_HEAPS);
     return g_pCoreHandles->heap[index].nexus;
 #else

@@ -138,11 +138,15 @@ typedef struct Drm_WVoemCryptoKeySlot_t
 
 typedef struct Drm_WVOemCryptoHostSessionCtx_t
 {
-        uint32_t session_id;
-        uint8_t key_id[16];
-        size_t key_id_length;
-        Drm_WVoemCryptoKeySlot_t keySlot;
-        DrmCommonOperationStruct_t drmCommonOpStruct;
+    uint32_t session_id;
+    uint8_t key_id[16];
+    size_t key_id_length;
+    Drm_WVoemCryptoKeySlot_t keySlot;
+    DrmCommonOperationStruct_t drmCommonOpStruct;
+    struct {
+        uint32_t btp_sage_size;
+        uint8_t *btp_sage_buffer;
+    } btp_info;
 }Drm_WVOemCryptoHostSessionCtx_t;
 
 #define SAGE_WVKBOX_DEVID_LEN 32
@@ -317,7 +321,7 @@ DrmRC drm_WVOemCrypto_DeriveKeysFromSessionKey(
                                     int *wvRc);
 
 
-DrmRC drm_WVOemCrypto_GetHDCPCapability(uint8_t *current, uint8_t *maximum, int *wvRc);
+DrmRC drm_WVOemCrypto_GetHDCPCapability(uint32_t *current, uint32_t *maximum, int *wvRc);
 
 DrmRC drm_WVOemCrypto_Generic_Encrypt(uint32_t session,
                                           const uint8_t* in_buffer,

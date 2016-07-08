@@ -1,14 +1,43 @@
-/***************************************************************************
-*     Copyright (c) 1999-2016, Broadcom Corporation
-*     All Rights Reserved
-*     Confidential Property of Broadcom Corporation
-*
-*
-* THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
-* AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
-* EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
-*
-***************************************************************************/
+/*******************************************************************************
+ * Broadcom Proprietary and Confidential. (c) 2016 Broadcom. All rights reserved.
+ *
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
+ *
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 
 
 #define BDSP_IMG_AACHEADTS_IDS_INTER_FRAME_SIZE                      ((uint32_t)16876)
@@ -19,22 +48,29 @@
 #define BDSP_IMG_AACHE_DECODE_SIZE                                   ((uint32_t)189328)
 #define BDSP_IMG_AACHE_DECODE_TABLES_SIZE                            ((uint32_t)70496)
 #define BDSP_IMG_AACHE_ENCODE_INTER_FRAME_SIZE                       ((uint32_t)178804)
-#define BDSP_IMG_AACHE_ENCODE_SIZE                                   ((uint32_t)327872)
+#define BDSP_IMG_AACHE_ENCODE_SIZE                                   ((uint32_t)329960)
 #define BDSP_IMG_AACHE_ENCODE_TABLES_SIZE                            ((uint32_t)23944)
 #define BDSP_IMG_AC3_DECODE_INTER_FRAME_SIZE                         ((uint32_t)62912)
-#define BDSP_IMG_AC3_DECODE_SIZE                                     ((uint32_t)124752)
+#define BDSP_IMG_AC3_DECODE_SIZE                                     ((uint32_t)124824)
 #define BDSP_IMG_AC3_DECODE_TABLES_SIZE                              ((uint32_t)29936)
 #define BDSP_IMG_AC3_IDS_INTER_FRAME_SIZE                            ((uint32_t)16876)
-#define BDSP_IMG_AC3_IDS_SIZE                                        ((uint32_t)10300)
+#define BDSP_IMG_AC3_IDS_SIZE                                        ((uint32_t)10400)
+#define BDSP_IMG_AC4_DECODE_INTER_FRAME_SIZE                         ((uint32_t)4637152)
+#define BDSP_IMG_AC4_DECODE_SIZE                                     ((uint32_t)8)
+#define BDSP_IMG_AC4_DECODE_TABLES_SIZE                              ((uint32_t)178240)
+#define BDSP_IMG_AC4_IDS_INTER_FRAME_SIZE                            ((uint32_t)16876)
+#define BDSP_IMG_AC4_IDS_SIZE                                        ((uint32_t)0)
 #define BDSP_IMG_ADPCM_DECODE_INTER_FRAME_SIZE                       ((uint32_t)15408)
 #define BDSP_IMG_ADPCM_DECODE_SIZE                                   ((uint32_t)10628)
 #define BDSP_IMG_ADPCM_DECODE_TABLES_SIZE                            ((uint32_t)1280)
 #define BDSP_IMG_ADPCM_IDS_INTER_FRAME_SIZE                          ((uint32_t)16876)
 #define BDSP_IMG_ADPCM_IDS_SIZE                                      ((uint32_t)4452)
 #define BDSP_IMG_ALGOLIB_CODE_SIZE                                   ((uint32_t)13336)
-#define BDSP_IMG_ALS_DECODE_INTER_FRAME_SIZE                         ((uint32_t)532)
+#define BDSP_IMG_ALS_DECODE_INTER_FRAME_SIZE                         ((uint32_t)536)
 #define BDSP_IMG_ALS_DECODE_SIZE                                     ((uint32_t)8)
 #define BDSP_IMG_ALS_DECODE_TABLES_SIZE                              ((uint32_t)768)
+#define BDSP_IMG_ALS_IDS_INTER_FRAME_SIZE                            ((uint32_t)16876)
+#define BDSP_IMG_ALS_IDS_SIZE                                        ((uint32_t)17624)
 #define BDSP_IMG_AMRWB_DECODE_INTER_FRAME_SIZE                       ((uint32_t)12332)
 #define BDSP_IMG_AMRWB_DECODE_SIZE                                   ((uint32_t)68720)
 #define BDSP_IMG_AMRWB_DECODE_TABLES_SIZE                            ((uint32_t)24268)
@@ -60,31 +96,31 @@
 #define BDSP_IMG_BTSCENC_CODE_SIZE                                   ((uint32_t)19312)
 #define BDSP_IMG_BTSCENC_INTER_FRAME_SIZE                            ((uint32_t)1564)
 #define BDSP_IMG_BTSCENC_TABLES_SIZE                                 ((uint32_t)2568)
-#define BDSP_IMG_CDB_PASSTHRU_CODE_SIZE                              ((uint32_t)29100)
+#define BDSP_IMG_CDB_PASSTHRU_CODE_SIZE                              ((uint32_t)29080)
 #define BDSP_IMG_CDB_PASSTHRU_INTER_FRAME_SIZE                       ((uint32_t)852)
 #define BDSP_IMG_CDB_PASSTHRU_TABLES_SIZE                            ((uint32_t)176)
 #define BDSP_IMG_CUSTOMVOICE_CODE_SIZE                               ((uint32_t)26392)
 #define BDSP_IMG_CUSTOMVOICE_INTER_FRAME_SIZE                        ((uint32_t)9600)
 #define BDSP_IMG_CUSTOMVOICE_TABLES_SIZE                             ((uint32_t)12004)
 #define BDSP_IMG_DDP_DECODE_INTER_FRAME_SIZE                         ((uint32_t)62912)
-#define BDSP_IMG_DDP_DECODE_SIZE                                     ((uint32_t)124868)
+#define BDSP_IMG_DDP_DECODE_SIZE                                     ((uint32_t)124940)
 #define BDSP_IMG_DDP_DECODE_TABLES_SIZE                              ((uint32_t)29936)
 #define BDSP_IMG_DDP_ENCODE_CODE_SIZE                                ((uint32_t)8)
 #define BDSP_IMG_DDP_ENCODE_INTER_FRAME_SIZE                         ((uint32_t)217504)
 #define BDSP_IMG_DDP_ENCODE_TABLES_SIZE                              ((uint32_t)24812)
 #define BDSP_IMG_DDP_IDS_INTER_FRAME_SIZE                            ((uint32_t)16876)
-#define BDSP_IMG_DDP_IDS_SIZE                                        ((uint32_t)10300)
-#define BDSP_IMG_DDRE_CODE_SIZE                                      ((uint32_t)42504)
+#define BDSP_IMG_DDP_IDS_SIZE                                        ((uint32_t)10400)
+#define BDSP_IMG_DDRE_CODE_SIZE                                      ((uint32_t)42512)
 #define BDSP_IMG_DDRE_INTER_FRAME_SIZE                               ((uint32_t)43516)
 #define BDSP_IMG_DDRE_TABLES_SIZE                                    ((uint32_t)6068)
 #define BDSP_IMG_DD_TRANSCODE_INTER_FRAME_SIZE                       ((uint32_t)53040)
 #define BDSP_IMG_DD_TRANSCODE_SIZE                                   ((uint32_t)52032)
 #define BDSP_IMG_DD_TRANSCODE_TABLES_SIZE                            ((uint32_t)10864)
-#define BDSP_IMG_DOLBY_AACHE_DECODE_INTER_FRAME_SIZE                 ((uint32_t)211764)
+#define BDSP_IMG_DOLBY_AACHE_DECODE_INTER_FRAME_SIZE                 ((uint32_t)211776)
 #define BDSP_IMG_DOLBY_AACHE_DECODE_SIZE                             ((uint32_t)8)
 #define BDSP_IMG_DOLBY_AACHE_DECODE_TABLES_SIZE                      ((uint32_t)36164)
 #define BDSP_IMG_DOLBY_MS_DDP_DECODE_INTER_FRAME_SIZE                ((uint32_t)62912)
-#define BDSP_IMG_DOLBY_MS_DDP_DECODE_SIZE                            ((uint32_t)124880)
+#define BDSP_IMG_DOLBY_MS_DDP_DECODE_SIZE                            ((uint32_t)124952)
 #define BDSP_IMG_DOLBY_MS_DDP_DECODE_TABLES_SIZE                     ((uint32_t)29936)
 #define BDSP_IMG_DOLBY_PULSE_DECODE_INTER_FRAME_SIZE                 ((uint32_t)156320)
 #define BDSP_IMG_DOLBY_PULSE_DECODE_SIZE                             ((uint32_t)274412)
@@ -97,11 +133,11 @@
 #define BDSP_IMG_DRA_DECODE_TABLES_SIZE                              ((uint32_t)37304)
 #define BDSP_IMG_DRA_IDS_INTER_FRAME_SIZE                            ((uint32_t)16876)
 #define BDSP_IMG_DRA_IDS_SIZE                                        ((uint32_t)3320)
-#define BDSP_IMG_DSOLA_CODE_SIZE                                     ((uint32_t)7220)
-#define BDSP_IMG_DSOLA_INTER_FRAME_SIZE                              ((uint32_t)25608)
+#define BDSP_IMG_DSOLA_CODE_SIZE                                     ((uint32_t)5956)
+#define BDSP_IMG_DSOLA_INTER_FRAME_SIZE                              ((uint32_t)25612)
 #define BDSP_IMG_DSOLA_TABLES_SIZE                                   ((uint32_t)1024)
 #define BDSP_IMG_DTSHD_DECODE_INTER_FRAME_SIZE                       ((uint32_t)47580)
-#define BDSP_IMG_DTSHD_DECODE_SIZE                                   ((uint32_t)92920)
+#define BDSP_IMG_DTSHD_DECODE_SIZE                                   ((uint32_t)93344)
 #define BDSP_IMG_DTSHD_DECODE_TABLES_SIZE                            ((uint32_t)129164)
 #define BDSP_IMG_DTSHD_IDS_INTER_FRAME_SIZE                          ((uint32_t)16876)
 #define BDSP_IMG_DTSHD_IDS_SIZE                                      ((uint32_t)13484)
@@ -111,7 +147,7 @@
 #define BDSP_IMG_DTS_EXPRESS_DECODE_INTER_FRAME_SIZE                 ((uint32_t)39624)
 #define BDSP_IMG_DTS_EXPRESS_DECODE_SIZE                             ((uint32_t)121676)
 #define BDSP_IMG_DTS_EXPRESS_DECODE_TABLES_SIZE                      ((uint32_t)29920)
-#define BDSP_IMG_DTS_EXPRESS_IDS_DECODE_SIZE                         ((uint32_t)9024)
+#define BDSP_IMG_DTS_EXPRESS_IDS_DECODE_SIZE                         ((uint32_t)9008)
 #define BDSP_IMG_DTS_EXPRESS_IDS_INTER_FRAME_SIZE                    ((uint32_t)16876)
 #define BDSP_IMG_DTS_IDS_INTER_FRAME_SIZE                            ((uint32_t)16876)
 #define BDSP_IMG_DTS_IDS_SIZE                                        ((uint32_t)5488)
@@ -128,8 +164,8 @@
 #define BDSP_IMG_FLAC_DECODE_TABLES_SIZE                             ((uint32_t)772)
 #define BDSP_IMG_FLAC_IDS_INTER_FRAME_SIZE                           ((uint32_t)16876)
 #define BDSP_IMG_FLAC_IDS_SIZE                                       ((uint32_t)4328)
-#define BDSP_IMG_FW_MIXER_CODE_SIZE                                  ((uint32_t)34992)
-#define BDSP_IMG_FW_MIXER_INTER_FRAME_SIZE                           ((uint32_t)33456)
+#define BDSP_IMG_FW_MIXER_CODE_SIZE                                  ((uint32_t)35864)
+#define BDSP_IMG_FW_MIXER_INTER_FRAME_SIZE                           ((uint32_t)33460)
 #define BDSP_IMG_FW_MIXER_TABLES_SIZE                                ((uint32_t)4780)
 #define BDSP_IMG_G711_G726_DECODE_INTER_FRAME_SIZE                   ((uint32_t)8808)
 #define BDSP_IMG_G711_G726_DECODE_SIZE                               ((uint32_t)14852)
@@ -164,7 +200,7 @@
 #define BDSP_IMG_H264_ENCODE_INTER_FRAME_SIZE                        ((uint32_t)2993504)
 #define BDSP_IMG_H264_ENCODE_SIZE                                    ((uint32_t)8)
 #define BDSP_IMG_H264_ENCODE_TABLES_SIZE                             ((uint32_t)124184)
-#define BDSP_IMG_IDSCOMMON_CODE_SIZE                                 ((uint32_t)35356)
+#define BDSP_IMG_IDSCOMMON_CODE_SIZE                                 ((uint32_t)35736)
 #define BDSP_IMG_ILBC_DECODE_INTER_FRAME_SIZE                        ((uint32_t)10268)
 #define BDSP_IMG_ILBC_DECODE_SIZE                                    ((uint32_t)41408)
 #define BDSP_IMG_ILBC_DECODE_TABLES_SIZE                             ((uint32_t)3320)
@@ -196,12 +232,12 @@
 #define BDSP_IMG_MAC_IDS_INTER_FRAME_SIZE                            ((uint32_t)16876)
 #define BDSP_IMG_MAC_IDS_SIZE                                        ((uint32_t)4840)
 #define BDSP_IMG_MIXER_DAPV2_CODE_SIZE                               ((uint32_t)4)
-#define BDSP_IMG_MIXER_DAPV2_IDS_INTER_FRAME_SIZE                    ((uint32_t)3036)
-#define BDSP_IMG_MIXER_DAPV2_IDS_SIZE                                ((uint32_t)7760)
-#define BDSP_IMG_MIXER_DAPV2_INTER_FRAME_SIZE                        ((uint32_t)515296)
+#define BDSP_IMG_MIXER_DAPV2_IDS_INTER_FRAME_SIZE                    ((uint32_t)3052)
+#define BDSP_IMG_MIXER_DAPV2_IDS_SIZE                                ((uint32_t)7968)
+#define BDSP_IMG_MIXER_DAPV2_INTER_FRAME_SIZE                        ((uint32_t)515360)
 #define BDSP_IMG_MIXER_DAPV2_TABLES_SIZE                             ((uint32_t)207008)
 #define BDSP_IMG_MIXER_IDS_INTER_FRAME_SIZE                          ((uint32_t)32)
-#define BDSP_IMG_MIXER_IDS_SIZE                                      ((uint32_t)3292)
+#define BDSP_IMG_MIXER_IDS_SIZE                                      ((uint32_t)3308)
 #define BDSP_IMG_MLP_IDS_INTER_FRAME_SIZE                            ((uint32_t)16876)
 #define BDSP_IMG_MLP_IDS_SIZE                                        ((uint32_t)4600)
 #define BDSP_IMG_MLP_PASSTHROUGH_CODE_SIZE                           ((uint32_t)6544)
@@ -258,19 +294,19 @@
 #define BDSP_IMG_SRS_TVOL_CODE_SIZE                                  ((uint32_t)29528)
 #define BDSP_IMG_SRS_TVOL_INTER_FRAME_SIZE                           ((uint32_t)7344)
 #define BDSP_IMG_SRS_TVOL_TABLES_SIZE                                ((uint32_t)4624)
-#define BDSP_IMG_SYSLIB_CODE_SIZE                                    ((uint32_t)17140)
-#define BDSP_IMG_SYSTEM_CODE_SIZE                                    ((uint32_t)65680)
+#define BDSP_IMG_SYSLIB_CODE_SIZE                                    ((uint32_t)17400)
+#define BDSP_IMG_SYSTEM_CODE_SIZE                                    ((uint32_t)65736)
 #define BDSP_IMG_TRUEHD_DECODE_INTER_FRAME_SIZE                      ((uint32_t)5108)
 #define BDSP_IMG_TRUEHD_DECODE_SIZE                                  ((uint32_t)74672)
 #define BDSP_IMG_TRUEHD_DECODE_TABLES_SIZE                           ((uint32_t)4824)
-#define BDSP_IMG_UDC_DECODE_INTER_FRAME_SIZE                         ((uint32_t)535720)
+#define BDSP_IMG_UDC_DECODE_INTER_FRAME_SIZE                         ((uint32_t)535756)
 #define BDSP_IMG_UDC_DECODE_SIZE                                     ((uint32_t)4)
 #define BDSP_IMG_UDC_DECODE_TABLES_SIZE                              ((uint32_t)42288)
 #define BDSP_IMG_UDC_IDS_INTER_FRAME_SIZE                            ((uint32_t)16876)
-#define BDSP_IMG_UDC_IDS_SIZE                                        ((uint32_t)10300)
-#define BDSP_IMG_VIDEO_DECODE_TASK_CODE_SIZE                         ((uint32_t)4460)
+#define BDSP_IMG_UDC_IDS_SIZE                                        ((uint32_t)10400)
+#define BDSP_IMG_VIDEO_DECODE_TASK_CODE_SIZE                         ((uint32_t)4472)
 #define BDSP_IMG_VIDEO_ENCODE_TASK_CODE_SIZE                         ((uint32_t)4828)
-#define BDSP_IMG_VIDIDSCOMMON_CODE_SIZE                              ((uint32_t)7616)
+#define BDSP_IMG_VIDIDSCOMMON_CODE_SIZE                              ((uint32_t)7628)
 #define BDSP_IMG_VIDIDSCOMMON_INTER_FRAME_SIZE                       ((uint32_t)2188)
 #define BDSP_IMG_VOCALS_CODE_SIZE                                    ((uint32_t)4956)
 #define BDSP_IMG_VOCALS_INTER_FRAME_SIZE                             ((uint32_t)400408)
@@ -291,13 +327,16 @@
 #define BDSP_IMG_WMA_IDS_INTER_FRAME_SIZE                            ((uint32_t)16876)
 #define BDSP_IMG_WMA_IDS_SIZE                                        ((uint32_t)5388)
 #define BDSP_IMG_WMA_PRO_DECODE_INTER_FRAME_SIZE                     ((uint32_t)267936)
-#define BDSP_IMG_WMA_PRO_DECODE_SIZE                                 ((uint32_t)311904)
+#define BDSP_IMG_WMA_PRO_DECODE_SIZE                                 ((uint32_t)312116)
 #define BDSP_IMG_WMA_PRO_DECODE_TABLES_SIZE                          ((uint32_t)117468)
 #define BDSP_IMG_WMA_PRO_IDS_INTER_FRAME_SIZE                        ((uint32_t)16876)
 #define BDSP_IMG_WMA_PRO_IDS_SIZE                                    ((uint32_t)5216)
 #define BDSP_IMG_X264_ENCODE_INTER_FRAME_SIZE                        ((uint32_t)38624)
 #define BDSP_IMG_X264_ENCODE_SIZE                                    ((uint32_t)8)
 #define BDSP_IMG_X264_ENCODE_TABLES_SIZE                             ((uint32_t)201444)
+#define BDSP_IMG_XVP8_ENCODE_INTER_FRAME_SIZE                        ((uint32_t)3122532)
+#define BDSP_IMG_XVP8_ENCODE_SIZE                                    ((uint32_t)8)
+#define BDSP_IMG_XVP8_ENCODE_TABLES_SIZE                             ((uint32_t)22344)
 #define BDSP_IMG_SYSTEM_RDBVARS_SIZE 								 ((uint32_t)1024)
 #define BDSP_IMG_SYSTEM_SCM1_DIGEST_SIZE 							 ((uint32_t)20)
 #define BDSP_IMG_SYSTEM_SCM2_DIGEST_SIZE 							 ((uint32_t)20)

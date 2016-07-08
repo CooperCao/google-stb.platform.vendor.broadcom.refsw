@@ -1,51 +1,40 @@
-/***************************************************************************
-*     (c)2003-2016 Broadcom Corporation
-*
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
-*  and may only be used, duplicated, modified or distributed pursuant to the terms and
-*  conditions of a separate, written license agreement executed between you and Broadcom
-*  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-*  no license (express or implied), right to use, or waiver of any kind with respect to the
-*  Software, and Broadcom expressly reserves all rights in and to the Software and all
-*  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-*  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-*  Except as expressly set forth in the Authorized License,
-*
-*  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-*  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-*  and to use this information only in connection with your use of Broadcom integrated circuit products.
-*
-*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-*  USE OR PERFORMANCE OF THE SOFTWARE.
-*
-*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-*  ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* Description: Streaming of a pre-record or pre-downloaded file from local disk to a Remote Client using HTTP protocol
-*
-* Revision History:
-*
-* $brcm_Log: $
-*
-***************************************************************************/
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
 #if defined(LINUX) || defined(__vxworks)
 #if defined(LINUX)
 #include <sys/syscall.h>
@@ -163,7 +152,7 @@ B_PlaybackIp_FileStreamingClose(
     B_PlaybackIpFileStreamingHandle fileStreamingHandle
     )
 {
-    BDBG_MSG(("%s: %p", __FUNCTION__, fileStreamingHandle));
+    BDBG_MSG(("%s: %p", __FUNCTION__, (void *)fileStreamingHandle));
 
     if (fileStreamingHandle) {
         if (fileStreamingHandle->fp) {
@@ -233,7 +222,7 @@ B_PlaybackIp_FileStreamingOpen(
     if (fileStreamingHandle->fd >= 0)
         fileStreamingHandle->fp = fdopen(fileStreamingHandle->fd, "r");
     if (fileStreamingHandle->fd < 0 || !fileStreamingHandle->fp) {
-        BDBG_ERR(("%s: failed to open file (%s), fd %d, fp %p, errno %d\n", __FUNCTION__, fileStreamingSettings->fileName, fileStreamingHandle->fd, fileStreamingHandle->fp, errno));
+        BDBG_ERR(("%s: failed to open file (%s), fd %d, fp %p, errno %d\n", __FUNCTION__, fileStreamingSettings->fileName, fileStreamingHandle->fd, (void *)fileStreamingHandle->fp, errno));
         goto error;
     }
 
@@ -241,7 +230,7 @@ B_PlaybackIp_FileStreamingOpen(
         BDBG_MSG(("Skipping streaming session setup as mediaProbeOnly flag is set"));
         goto out;
     }
-    BDBG_MSG(("%s: open file (%s), fd %d, fp %p, protocol %d", __FUNCTION__, fileStreamingSettings->fileName, fileStreamingHandle->fd, fileStreamingHandle->fp, fileStreamingHandle->settings.protocol));
+    BDBG_MSG(("%s: open file (%s), fd %d, fp %p, protocol %d", __FUNCTION__, fileStreamingSettings->fileName, fileStreamingHandle->fd, (void *)fileStreamingHandle->fp, fileStreamingHandle->settings.protocol));
 
 out:
     fileStreamingHandle->connectionState = B_PlaybackIpConnectionState_eSetup;
@@ -644,10 +633,10 @@ setupMediaIndexerTrickMode(
     B_PlaybackIpIndexer *indexer = &fileStreamingHandle->indexer;
     B_PlaybackIpFileStreamingOpenSettings *fileStreamingSettings;
 
-    BDBG_MSG(("%s: file streaming handle %p, playSpeed %d ", __FUNCTION__, fileStreamingHandle, playSpeed));
+    BDBG_MSG(("%s: file streaming handle %p, playSpeed %d ", __FUNCTION__, (void *)fileStreamingHandle, playSpeed));
 
     if (setIndexerMode(indexer, playSpeed, psi) == false) {
-        BDBG_ERR(("%s: Failed to set the indexer mode for file session %p\n", __FUNCTION__, fileStreamingHandle));
+        BDBG_ERR(("%s: Failed to set the indexer mode for file session %p\n", __FUNCTION__, (void *)fileStreamingHandle));
         return false;
     }
     fileStreamingSettings = &fileStreamingHandle->settings;
@@ -1006,9 +995,7 @@ getMediaInfo(
                     if (psi->videoFrameRate <= 0)
                         psi->videoFrameRate = 30.;
                 }
-                if (track->info.video.codec == bvideo_codec_h265) {
-                    psi->colorDepth = ((bmedia_probe_h265_video*)&track->info.video.codec_specific)->sps.bit_depth_luma;
-                }
+                psi->colorDepth = bmedia_probe_get_video_color_depth(track);
 
                 foundVideo = true;
 
@@ -1144,7 +1131,7 @@ getByteRangeFromTimeRange(
     fileStreamingSettings = &fileStreamingHandle->settings;
 
     if (setIndexerMode(indexer, 1/*fileStreamingSettings->playSpeed*/, &fileStreamingHandle->psi) == false) {
-        BDBG_ERR(("%s: Failed to set the indexer mode for file session %p\n", __FUNCTION__, fileStreamingHandle));
+        BDBG_ERR(("%s: Failed to set the indexer mode for file session %p\n", __FUNCTION__, (void *)fileStreamingHandle));
         return false;
     }
 
@@ -1185,11 +1172,11 @@ B_PlaybackIp_FileStreamingGetMediaInfo(
     B_PlaybackIpFileStreamingOpenSettings *fileStreamingSettings;
     unsigned programIndex;
 
-    BDBG_MSG(("%s: %p", __FUNCTION__, fileStreamingHandle));
+    BDBG_MSG(("%s: %p", __FUNCTION__, (void *)fileStreamingHandle));
     BDBG_ASSERT(fileStreamingHandle);
 
     if (!fileStreamingHandle || !psi) {
-        BDBG_ERR(("%s: Invalid params: fileStreamingHandle %p, psi %p\n", __FUNCTION__, fileStreamingHandle, psi));
+        BDBG_ERR(("%s: Invalid params: fileStreamingHandle %p, psi %p\n", __FUNCTION__, (void *)fileStreamingHandle, (void *)psi));
         rc = B_ERROR_INVALID_PARAMETER;
         goto error;
     }
@@ -1304,8 +1291,8 @@ setReadOffset(
                 memcpy(&t,       &entry.pkt[44], sizeof t);
                 memcpy(&pts,     &entry.pkt[48], sizeof pts);
 
-                BDBG_MSG(("inserting special pkts: entry size %d, insert pkt %d, sync byte %x, byte5 %x, ctrl %x",
-                            entry.size, entry.insertPkt,
+                BDBG_MSG(("inserting special pkts: entry size %d, insert pkt %d, sync byte %x, byte5 %x, ctrl %x discard %x t %x pts %x",
+                            (int)entry.size, (int)entry.insertPkt,
                             *(char *)entry.pkt,
                             *((char *)&entry.pkt[5]),
                             ntohl(ctrl),
@@ -1319,7 +1306,7 @@ setReadOffset(
             memcpy(pkt, entry.pkt, entry.size);
             bytesWritten = B_PlaybackIp_UtilsStreamingCtxWriteAll((struct bfile_io_write *)&fileStreamingHandle->data, pkt, entry.size);
             if (bytesWritten < (int)(entry.size)) {
-                BDBG_ERR(("%s: write failed to insert %d bytes of special pkt for streaming session, wrote %d bytes, errno %d\n", __FUNCTION__, entry.size, fileStreamingHandle, bytesWritten, errno));
+                BDBG_ERR(("%s: write failed to insert %d bytes of special pkt for streaming session %p, wrote %d bytes, errno %d\n", __FUNCTION__, (int)entry.size, (void *)fileStreamingHandle, (int)bytesWritten, errno));
                 fileStreamingHandle->connectionState = B_PlaybackIpConnectionState_eError;
                 return false;
             }
@@ -1332,7 +1319,7 @@ setReadOffset(
             *dioBeginOffsetAdjustment = entry.offset - dioBeginOffset;
             *dioEndOffsetAdjustment = DIO_BLK_SIZE - ( (entry.size+*dioBeginOffsetAdjustment) % DIO_BLK_SIZE);
             if (lseek(fileStreamingHandle->fd, dioBeginOffset, SEEK_SET) != dioBeginOffset) {
-                BDBG_ERR(("%s: Failed to set the offset to %lld for fd %d, errno %d\n", __FUNCTION__, dioBeginOffset, fileStreamingHandle->fd, errno));
+                BDBG_ERR(("%s: Failed to set the offset to %" PRId64 " for fd %d, errno %d\n", __FUNCTION__, dioBeginOffset, fileStreamingHandle->fd, errno));
                 return false;
             }
 
@@ -1345,7 +1332,7 @@ setReadOffset(
                     return false;
                 }
                 xbuf = fileStreamingHandle->streamingBufOrig + DIO_BLK_SIZE;
-                BDBG_MSG(("Re-allocated the streaming buf (new %p) to %d size", xbuf, entry.size));
+                BDBG_MSG(("Re-allocated the streaming buf (new %p) to %d size", (void *)xbuf, (int)entry.size));
 #ifndef DMS_CROSS_PLATFORMS
 #ifndef ANDROID
 #define ENABLED_DIO
@@ -1362,8 +1349,8 @@ setReadOffset(
 
             *bytesToRead = entry.size + *dioBeginOffsetAdjustment + *dioEndOffsetAdjustment; /* need to read full entry size + any extra dio related bytes */
             *readBuf = fileStreamingHandle->streamingBuf;
-            BDBG_MSG(("%s: file offset %lld for entry offset %lld dio offset begin %d, end %d, entry size %d, bytesToRead %d",
-                        __FUNCTION__, dioBeginOffset, entry.offset, *dioBeginOffsetAdjustment, *dioEndOffsetAdjustment, entry.size, *bytesToRead));
+            BDBG_MSG(("%s: file offset %"PRId64 "for entry offset %"PRId64 "dio offset begin %d, end %d, entry size %d, bytesToRead %d",
+                        __FUNCTION__, dioBeginOffset, entry.offset, *dioBeginOffsetAdjustment, *dioEndOffsetAdjustment, (int)entry.size, *bytesToRead));
             return true;
         }
     }
@@ -1411,9 +1398,16 @@ fileHttpStreamingThread(
 #endif
 
     BDBG_ASSERT(fileStreamingHandle);
+
     fileStreamingSettings = &fileStreamingHandle->settings;
     fd = fileStreamingHandle->fd;
     streamingFd = fileStreamingSettings->streamingFd;
+#ifdef B_HAS_DTCP_IP
+    if (B_PlaybackIp_UtilsDtcpServerCtxOpen(&fileStreamingHandle->settings.securitySettings, &fileStreamingHandle->data) != B_ERROR_SUCCESS) {
+         BDBG_ERR(("Failed to setup the streaming context\n"));
+         goto error;
+    }
+#endif
 
     if ((fileStreamingHandle->pktOrig = B_PlaybackIp_UtilsAllocateMemory(2*224, fileStreamingSettings->heapHandle)) == NULL) {
         BDBG_ERR(("%s: memory allocation failure at %d\n", __FUNCTION__, __LINE__));
@@ -1440,7 +1434,7 @@ fileHttpStreamingThread(
     fileStreamingHandle->streamingBufSize = bufSize;
 #ifdef BDBG_DEBUG_BUILD
     if (fileStreamingHandle->ipVerboseLog)
-        BDBG_WRN(("handle %p, fd %d, streamingFd %d, streaming buf %p, orig %p, size %d", fileStreamingHandle, fd, streamingFd, fileStreamingHandle->streamingBuf, xbuf, bufSize));
+        BDBG_WRN(("handle %p, fd %d, streamingFd %d, streaming buf %p, orig %p, size %d", (void *)fileStreamingHandle, fd, streamingFd, (void *)fileStreamingHandle->streamingBuf, (void *)xbuf, bufSize));
 #endif
 
 #if (NEXUS_HAS_DMA || NEXUS_HAS_XPT_DMA) && NEXUS_HAS_SECURITY
@@ -1469,22 +1463,22 @@ fileHttpStreamingThread(
         else
             mpegHdrBeginOffset = fileStreamingSettings->beginFileOffset & ~TS_PKT_SIZE;
         dioBeginOffset = fileStreamingSettings->beginFileOffset & ~DIO_MASK;
-        BDBG_MSG(("dioBeginOffset %lld, mpegHdrBeginOffset %lld", dioBeginOffset, mpegHdrBeginOffset));
+        BDBG_MSG(("dioBeginOffset %"PRId64 ", mpegHdrBeginOffset %"PRId64 , dioBeginOffset, mpegHdrBeginOffset));
         if (dioBeginOffset > mpegHdrBeginOffset) {
             /* dioBeginOffset is after than mpeg HDR offset, so it will not cover the mpeg header */
             /* we will need to go back another DIO block to include this mpeg block */
             dioBeginOffset -= DIO_BLK_SIZE;
-            BDBG_MSG(("Adjust DIO offset to cover MPEG Hdr, dioBeginOffset %lld", dioBeginOffset));
+            BDBG_MSG(("Adjust DIO offset to cover MPEG Hdr, dioBeginOffset %"PRId64, dioBeginOffset));
         }
         dioBeginOffsetAdjustment = fileStreamingSettings->beginFileOffset - dioBeginOffset;
         cryptoBeginOffsetAdjustment = mpegHdrBeginOffset - dioBeginOffset;
         BDBG_MSG(("dioBeginOffsetAdjustment %d, cryptoBeginOffsetAdjustment %d", dioBeginOffsetAdjustment, cryptoBeginOffsetAdjustment));
         if (lseek(fd, dioBeginOffset, SEEK_SET) != dioBeginOffset) {
-            BDBG_ERR(("%s: Failed to set the offset to %lld for fd %d, errno %d\n", __FUNCTION__, dioBeginOffset, fd, errno));
+            BDBG_ERR(("%s: Failed to set the offset to %"PRId64 "for fd %d, errno %d\n", __FUNCTION__, dioBeginOffset, fd, errno));
             goto error;
         }
         bytesToStream = fileStreamingSettings->endFileOffset - fileStreamingSettings->beginFileOffset + 1;
-        BDBG_MSG(("offset: end %lld, begin %lld dio %lld, bytesToStream %lld for fd %d, streamingFd %d", fileStreamingSettings->endFileOffset, fileStreamingSettings->beginFileOffset, dioBeginOffset, bytesToStream, fd, streamingFd));
+        BDBG_MSG(("offset: end %"PRId64 ", begin %"PRId64 " dio %"PRId64 ", bytesToStream %"PRId64 " for fd %d, streamingFd %d", fileStreamingSettings->endFileOffset, fileStreamingSettings->beginFileOffset, dioBeginOffset, bytesToStream, fd, streamingFd));
     }
     else if (fileStreamingHandle->indexFileFp &&
             (fileStreamingSettings->playSpeed != 1 ||   /* accounts for trick play cases */
@@ -1493,7 +1487,7 @@ fileHttpStreamingThread(
         /* can seek using beginTimeOffset only if we have index file */
         BDBG_MSG(("%s: stream content at %d speed from time offset %0.3f using index file", __FUNCTION__, fileStreamingSettings->playSpeed, fileStreamingSettings->beginTimeOffset));
         if (setupMediaIndexerTrickMode(fileStreamingHandle, fileStreamingSettings->playSpeed, &fileStreamingHandle->psi) != true) {
-            BDBG_ERR(("%s: Failed to use the index file to stream at %d speed for file streaming session %p", __FUNCTION__, fileStreamingSettings->playSpeed, fileStreamingHandle));
+            BDBG_ERR(("%s: Failed to use the index file to stream at %d speed for file streaming session %p", __FUNCTION__, fileStreamingSettings->playSpeed, (void *)fileStreamingHandle));
             goto error;
         }
         useIndexer = true;
@@ -1520,18 +1514,18 @@ fileHttpStreamingThread(
         bytesWritten = B_PlaybackIp_UtilsStreamingCtxWriteAll((struct bfile_io_write *)&fileStreamingHandle->data, fileStreamingSettings->appHeader.data, fileStreamingSettings->appHeader.length);
         if (bytesWritten != (int)fileStreamingSettings->appHeader.length) {
             /* this happens if client closed the connection or client connection is dead */
-            BDBG_MSG(("%s: handle: %p, failed to write %d bytes of app header data of len %d for fd %d", __FUNCTION__, fileStreamingHandle, bytesWritten, fileStreamingSettings->appHeader.length, streamingFd));
+            BDBG_MSG(("%s: handle: %p, failed to write %d bytes of app header data of len %d for fd %d", __FUNCTION__, (void *)fileStreamingHandle, bytesWritten, fileStreamingSettings->appHeader.length, streamingFd));
             fileStreamingHandle->connectionState = B_PlaybackIpConnectionState_eError;
             goto error;
         }
-        BDBG_MSG(("%s: handle: %p, wrote %d bytes of app header data of len %d for fd %d", __FUNCTION__, fileStreamingHandle, bytesWritten, fileStreamingSettings->appHeader.length, streamingFd));
+        BDBG_MSG(("%s: handle: %p, wrote %d bytes of app header data of len %d for fd %d", __FUNCTION__, (void *)fileStreamingHandle, bytesWritten, fileStreamingSettings->appHeader.length, streamingFd));
     }
 
     while (!fileStreamingHandle->stop) {
         readBuf = fileStreamingHandle->streamingBuf;
         if (useIndexer) {
             if (setReadOffset(fileStreamingHandle, &dioBeginOffsetAdjustment, &dioEndOffsetAdjustment, &readBuf, &bytesToRead) != true) {
-                BDBG_WRN(("%s: setReadOffset failed, breaking out of streaming loop, streamed %lld bytes in %d send calls", __FUNCTION__, fileStreamingHandle->totalBytesStreamed, loopCount));
+                BDBG_WRN(("%s: setReadOffset failed, breaking out of streaming loop, streamed %"PRId64 " bytes in %d send calls", __FUNCTION__, fileStreamingHandle->totalBytesStreamed, loopCount));
                 fileStreamingHandle->connectionState = B_PlaybackIpConnectionState_eEof;
                 break;
             }
@@ -1542,7 +1536,7 @@ fileHttpStreamingThread(
         }
 
 readagain:
-        BDBG_MSG(("issuing read() ... fd %d, readBUf %p, bytesToRead %d\n", fd, readBuf, bytesToRead));
+        BDBG_MSG(("issuing read() ... fd %d, readBUf %p, bytesToRead %d\n", fd, (void *)readBuf, bytesToRead));
         if ((bytesRead = read(fd, readBuf, bytesToRead)) <= 0) {
             BDBG_MSG(("%s: read returned %d for fd %d, errno %d, autoRewind %d", __FUNCTION__, bytesRead, fd, errno, fileStreamingSettings->autoRewind));
             if (errno == EINTR) {
@@ -1584,7 +1578,7 @@ readagain:
                 }
             }
             else {
-                BDBG_WRN(("%s: read(fd %d) unexpected errno %d (%s); bytesRead %lu ", __FUNCTION__, fd, errno, strerror(errno), bytesRead ));
+                BDBG_WRN(("%s: read(fd %d) unexpected errno %d (%s); bytesRead %lu ", __FUNCTION__, fd, errno, strerror(errno), (long unsigned int)bytesRead ));
                 /* read error case */
                 fileStreamingHandle->connectionState = B_PlaybackIpConnectionState_eError;
             }
@@ -1613,7 +1607,7 @@ readagain:
         if (bytesWritten <= 0) {
             /* this happens if client closed the connection or client connection is dead */
             if (fileStreamingHandle->ipVerboseLog)
-                BDBG_MSG(("%s: failed to write %d bytes, fd %d, handle %p, wrote %d bytes, errno %d, streamed %lld bytes in %d send calls", __FUNCTION__, bytesToWrite, streamingFd, fileStreamingHandle, bytesWritten, errno, fileStreamingHandle->totalBytesStreamed, loopCount));
+                BDBG_MSG(("%s: failed to write %d bytes, fd %d, handle %p, wrote %d bytes, errno %d, streamed %"PRId64 " bytes in %d send calls", __FUNCTION__, bytesToWrite, streamingFd, (void *)fileStreamingHandle, bytesWritten, errno, fileStreamingHandle->totalBytesStreamed, loopCount));
             fileStreamingHandle->connectionState = B_PlaybackIpConnectionState_eError;
             break;
         }
@@ -1625,7 +1619,7 @@ readagain:
         fileStreamingHandle->totalBytesStreamed += bytesWritten;
         if (!fileStreamingSettings->autoRewind && bytesToStream && fileStreamingSettings->playSpeed == 1) {
             if (fileStreamingHandle->totalBytesStreamed >= bytesToStream) {
-                BDBG_MSG(("%s: breaking from streaming loop: streamed %lld bytes for streaming fd %d, asked %lld bytes", __FUNCTION__, fileStreamingHandle->totalBytesStreamed, streamingFd, bytesToStream));
+                BDBG_MSG(("%s: breaking from streaming loop: streamed %"PRId64 " bytes for streaming fd %d, asked %"PRId64 " bytes", __FUNCTION__, fileStreamingHandle->totalBytesStreamed, streamingFd, bytesToStream));
                 fileStreamingHandle->connectionState = B_PlaybackIpConnectionState_eEof;
                 break;
             }
@@ -1659,18 +1653,18 @@ readagain:
 #endif
     }
 error:
-    BDBG_MSG(("%s: handle %p, streamed %lld bytes for streaming fd %d in %d send calls", __FUNCTION__, fileStreamingHandle, fileStreamingHandle->totalBytesStreamed, streamingFd, loopCount));
+    BDBG_MSG(("%s: handle %p, streamed %"PRId64 " bytes for streaming fd %d in %d send calls", __FUNCTION__, (void *)fileStreamingHandle, fileStreamingHandle->totalBytesStreamed, streamingFd, loopCount));
 #ifdef BDBG_DEBUG_BUILD
     if (fileStreamingHandle->ipVerboseLog)
-        BDBG_WRN(("%s: %s: fd %d, handle %p, errno %d, streamed %lld bytes in %d send calls", __FUNCTION__,
+        BDBG_WRN(("%s: %s: fd %d, handle %p, errno %d, streamed %"PRId64 " bytes in %d send calls", __FUNCTION__,
                     fileStreamingHandle->connectionState == B_PlaybackIpConnectionState_eEof ? "Reached EOF": "Send Error",
-                    streamingFd, fileStreamingHandle, errno, fileStreamingHandle->totalBytesStreamed, loopCount));
+                    streamingFd, (void *)fileStreamingHandle, errno, fileStreamingHandle->totalBytesStreamed, loopCount));
 #endif
     if (fileStreamingHandle->streamingBufOrig) B_PlaybackIp_UtilsFreeMemory(fileStreamingHandle->streamingBufOrig);
     if (fileStreamingHandle->pktOrig) B_PlaybackIp_UtilsFreeMemory(fileStreamingHandle->pktOrig);
     if (fileStreamingSettings->eventCallback && !fileStreamingHandle->stop) {
         /* app has defined eventCallback function & hasn't yet issued the stop, invoke the callback */
-        BDBG_MSG(("%s: invoking End of Streaming callback for ctx %p", __FUNCTION__, fileStreamingHandle));
+        BDBG_MSG(("%s: invoking End of Streaming callback for ctx %p", __FUNCTION__, (void *)fileStreamingHandle));
         fileStreamingHandle->connectionState = B_PlaybackIpConnectionState_eError;
         fileStreamingSettings->eventCallback(fileStreamingSettings->appCtx, B_PlaybackIpEvent_eServerErrorStreaming);
     }
@@ -1732,7 +1726,7 @@ fileRtpUdpStreamingThread(
     if (maxrate == 0) maxrate = 14.0; /* just some number */
     gettimeofday(&start, NULL);
     BDBG_WRN(("%s: handle %p, fd %d, streamingFd %d, streaming buf %p, orig %p, streaming bitrate %.1f (bits/milli-sec)",
-                __FUNCTION__, fileStreamingHandle, fd, streamingFd, fileStreamingHandle->streamingBuf, xbuf, maxrate));
+                __FUNCTION__, (void *)fileStreamingHandle, fd, streamingFd, (void *)fileStreamingHandle->streamingBuf, (void *)xbuf, maxrate));
 #ifdef ENABLED_DIO_UDP
     bytesToRead = ((512 * (188>>2) * 7));
 #else
@@ -1740,7 +1734,7 @@ fileRtpUdpStreamingThread(
 #endif
     gettimeofday(&start, NULL);
     while (!fileStreamingHandle->stop) {
-        BDBG_MSG(("fd %d, readBuf %p, bytesToRead %d\n", fd, readBuf, bytesToRead));
+        BDBG_MSG(("fd %d, readBuf %p, bytesToRead %d\n", fd, (void *)readBuf, bytesToRead));
         /* streaming directly from file */
         if ((bytesRead = read(fd, readBuf, bytesToRead)) <= 0) {
             BDBG_WRN(("%s: read returned %d for fd %d, errno %d, autoRewind %d", __FUNCTION__, bytesRead, fd, errno, fileStreamingSettings->autoRewind));
@@ -1778,7 +1772,7 @@ fileRtpUdpStreamingThread(
             break;
         }
         BDBG_MSG(("%s: wrote %d bytes for streaming fd %d, bytesToRead %d, bytesRead %d, totalBytesWritten %lu",
-                    __FUNCTION__, bytesWritten, streamingFd, bytesToRead, bytesRead, fileStreamingHandle->totalBytesStreamed));
+                    __FUNCTION__, bytesWritten, streamingFd, bytesToRead, bytesRead, (long unsigned int) fileStreamingHandle->totalBytesStreamed));
         fileStreamingHandle->totalBytesStreamed += bytesWritten;
         loopCount++;
 
@@ -1786,7 +1780,7 @@ fileRtpUdpStreamingThread(
         dt = difftime1(&start, &stop);
         rate = 8.*fileStreamingHandle->totalBytesStreamed/dt;
         if ((loopCount % 100) == 0) {
-            BDBG_MSG(("[%6lu] Wrote %10lu Bytes in dt = %12.2fusec at rate=%2.1f/%2.1f\n", loopCount, fileStreamingHandle->totalBytesStreamed, dt, rate, maxrate));
+            BDBG_MSG(("[%6lu] Wrote %10lu Bytes in dt = %12.2fusec at rate=%2.1f/%2.1f\n", (long unsigned int)loopCount, (long unsigned int)fileStreamingHandle->totalBytesStreamed, dt, rate, maxrate));
         }
         while (rate > maxrate) {
             usleep(10000);
@@ -1798,8 +1792,8 @@ fileRtpUdpStreamingThread(
     }
 error:
     BKNI_Sleep(500);
-    BDBG_WRN(("%s: handle %p, streamed %lld bytes for streaming fd %d in %d send calls", __FUNCTION__, fileStreamingHandle, fileStreamingHandle->totalBytesStreamed, streamingFd, loopCount));
-    BDBG_WRN(("[%6lu] Wrote %10lu Bytes in dt = %12.2fusec at rate=%2.1f/%2.1f\n", loopCount, fileStreamingHandle->totalBytesStreamed, dt, rate, maxrate));
+    BDBG_WRN(("%s: handle %p, streamed %"PRId64 " bytes for streaming fd %d in %d send calls", __FUNCTION__, (void *)fileStreamingHandle, fileStreamingHandle->totalBytesStreamed, streamingFd, loopCount));
+    BDBG_WRN(("[%6lu] Wrote %10lu Bytes in dt = %12.2fusec at rate=%2.1f/%2.1f\n", (long unsigned int)loopCount, (long unsigned int)fileStreamingHandle->totalBytesStreamed, dt, rate, maxrate));
     if (fileStreamingHandle->streamingBufOrig) B_PlaybackIp_UtilsFreeMemory(fileStreamingHandle->streamingBufOrig);
     BKNI_SetEvent(fileStreamingHandle->stopStreamingEvent);
     fileStreamingHandle->threadRunning = false;
@@ -1829,13 +1823,7 @@ B_PlaybackIp_FileStreamingStart(
             }
 #if (NEXUS_HAS_DMA || NEXUS_HAS_XPT_DMA) && NEXUS_HAS_SECURITY
             if (B_PlaybackIp_UtilsPvrDecryptionCtxOpen(&fileStreamingSettings->securitySettings, &fileStreamingHandle->data) != B_ERROR_SUCCESS) {
-                BDBG_ERR(("%s: Failed to setup pvr decryption"));
-                return B_ERROR_UNKNOWN;
-            }
-#endif
-#ifdef B_HAS_DTCP_IP
-            if (B_PlaybackIp_UtilsDtcpServerCtxOpen(&fileStreamingHandle->settings.securitySettings, &fileStreamingHandle->data) != B_ERROR_SUCCESS) {
-                BDBG_ERR(("Failed to setup the streaming context\n"));
+                BDBG_ERR(("%s: Failed to setup pvr decryption", __FUNCTION__));
                 return B_ERROR_UNKNOWN;
             }
 #endif
@@ -1907,7 +1895,7 @@ B_PlaybackIp_FileStreamingStop(
 
     if (fileStreamingHandle->stopStreamingEvent) {
         if (fileStreamingHandle->threadRunning) {
-            rc = BKNI_WaitForEvent(fileStreamingHandle->stopStreamingEvent, 1000);
+            rc = BKNI_WaitForEvent(fileStreamingHandle->stopStreamingEvent, 3000);
             if (rc == BERR_TIMEOUT)
                 BDBG_WRN(("%s: stopStreamingEvent timed out", __FUNCTION__));
             else

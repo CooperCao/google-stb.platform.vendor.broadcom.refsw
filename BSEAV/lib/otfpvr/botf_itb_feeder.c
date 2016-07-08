@@ -1,24 +1,44 @@
 /***************************************************************************
- *	   Copyright (c) 2009-2013, Broadcom Corporation
- *	   All Rights Reserved
- *	   Confidential Property of Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2009-2016 Broadcom. All rights reserved.
  *
- *	THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *	AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *	EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
  *
  * Module Description:
  *
  * Start Code Parser module for the on the fly PVR
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ***************************************************************************/
 #include "bstd.h"
 #include "bkni.h"
@@ -96,7 +116,7 @@ static void
 b_otf_itb_feeder_print_itb(uint32_t *destn)
 {
     BSTD_UNUSED(destn);
-    BDBG_MSG_FEED(("ITB:%08x %08x %08x %08x %08x", (unsigned long)destn, destn[0], destn[1], destn[2], destn[3]));
+    BDBG_MSG_FEED(("ITB:%p %08x %08x %08x %08x", (void *)destn, (unsigned)destn[0], (unsigned)destn[1], (unsigned)destn[2], (unsigned)destn[3]));
     return;
 }
 
@@ -249,8 +269,8 @@ botf_itb_feeder_copy(botf_itb_feeder feeder, void *dst, const void *src_)
     uint32_t *destn = dst;
     const uint32_t *src = src_;
 
-    BDBG_ASSERT((unsigned)dst%4==0);
-    BDBG_ASSERT((unsigned)src%4==0);
+    BDBG_ASSERT((unsigned long)dst%4==0);
+    BDBG_ASSERT((unsigned long)src%4==0);
 
     word0 = src[0];
     if ( B_SCV_ISSPLIT(word0) && (B_SCV_SPLITINDX(word0) == 1)) {
@@ -274,7 +294,7 @@ botf_itb_feeder_copy(botf_itb_feeder feeder, void *dst, const void *src_)
             if (feeder->updatebaseptr) {
                 /* Base pointer copied */
                 feeder->updatebaseptr = false;
-                BDBG_MSG_FEED(("baseentry SCODE PREV %#x", (unsigned)baseptr));
+                BDBG_MSG_FEED(("baseentry SCODE PREV %p", baseptr));
                 destn = b_otf_itb_feeder_add_baseentry(feeder, destn, baseptr);
             }
         } else {
@@ -285,15 +305,15 @@ botf_itb_feeder_copy(botf_itb_feeder feeder, void *dst, const void *src_)
             /* Check if we crossed the boundaries */
             if (baseptr >= cdb_end) {                    
                 baseptr_wrap = feeder->IPParserPtrs->CdbStartPtr  + (baseptr - cdb_end); 
-                BDBG_WRN(("FifoWrap forward: %#x %#x %#x:%#x -> %#x", (unsigned)feeder->IPParserPtrs->CdbStartPtr, (unsigned)baseptr, (unsigned)cdb_end, (unsigned)feeder->IPParserPtrs->CdbEndPtr, (unsigned)baseptr_wrap));
+                BDBG_WRN(("FifoWrap forward: %p %p %p:%p -> %p", feeder->IPParserPtrs->CdbStartPtr, baseptr, cdb_end, feeder->IPParserPtrs->CdbEndPtr, baseptr_wrap));
                 baseptr = baseptr_wrap;
             } else if (baseptr < feeder->IPParserPtrs->CdbStartPtr) {                    
                 baseptr_wrap = cdb_end - (feeder->IPParserPtrs->CdbStartPtr - baseptr); 
-                BDBG_WRN(("FifoWrap backward: %#x %#x %#x:%#x -> %#x", (unsigned)feeder->IPParserPtrs->CdbStartPtr, (unsigned)baseptr, (unsigned)cdb_end, (unsigned)feeder->IPParserPtrs->CdbEndPtr, (unsigned)baseptr_wrap));
+                BDBG_WRN(("FifoWrap backward: %p %p %p:%p -> %p", feeder->IPParserPtrs->CdbStartPtr, baseptr, cdb_end, feeder->IPParserPtrs->CdbEndPtr, baseptr_wrap));
                 baseptr = baseptr_wrap;
             }                 
             offset = 0;
-            BDBG_MSG_FEED(("baseentry SCODE %#x", (unsigned)baseptr));
+            BDBG_MSG_FEED(("baseentry SCODE %p", baseptr));
             destn = b_otf_itb_feeder_add_baseentry(feeder, destn, baseptr);
             feeder->updatebaseptr = true;
         }
@@ -322,7 +342,7 @@ botf_itb_feeder_copy(botf_itb_feeder feeder, void *dst, const void *src_)
 #endif
     case B_SCV_TYPE_TERM:
         /* Termination itb entry, always insert base address entry before and after termination entry */
-        BDBG_MSG_FEED(("baseentry TERM %#x", (unsigned)feeder->lastbaseptr));
+        BDBG_MSG_FEED(("baseentry TERM %p", feeder->lastbaseptr));
         destn = b_otf_itb_feeder_add_baseentry(feeder, destn, feeder->lastbaseptr);
         b_otf_itb_feeder_capture_termination(feeder, feeder->lastbaseptr);
         feeder->updatebaseptr = true;

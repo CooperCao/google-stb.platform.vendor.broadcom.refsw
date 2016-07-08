@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2012 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2012 Broadcom.
 All rights reserved.
 
 Project  :  PPP
@@ -46,9 +46,9 @@ DESC
 #define TO_LE_W(w)
 #endif
 
-static uint32_t To32(uint8_t *ptr) 
-{ 
-   return *(uint32_t*)ptr; 
+static uint32_t To32(uint8_t *ptr)
+{
+   return *(uint32_t*)ptr;
 }
 
 
@@ -438,7 +438,7 @@ bool Loader::Open(const std::string &filename, uint32_t bufferBytes, uint32_t io
 
       if (m_major > CAPTURE_MAJOR_VER || (m_major <= CAPTURE_MAJOR_VER && m_minor > CAPTURE_MINOR_VER))
       {
-         printf("Error: Capture format %d.%d too new for this replayer %d.%d\n", m_major, m_minor, 
+         printf("Error: Capture format %d.%d too new for this replayer %d.%d\n", m_major, m_minor,
             CAPTURE_MAJOR_VER, CAPTURE_MINOR_VER);
          if (m_fp)
          {

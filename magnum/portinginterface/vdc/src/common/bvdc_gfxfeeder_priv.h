@@ -1,23 +1,40 @@
-/***************************************************************************
-*     Copyright (c) 2003-2013, Broadcom Corporation
-*     All Rights Reserved
-*     Confidential Property of Broadcom Corporation
-*
-*  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
-*  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
-*  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* Module Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
-*
-***************************************************************************/
+/******************************************************************************
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ ******************************************************************************/
 #ifndef BVDC_GFXFEEDER_PRIV_H__
 #define BVDC_GFXFEEDER_PRIV_H__
 
@@ -43,7 +60,7 @@ BDBG_OBJECT_ID_DECLARE(BVDC_GFX);
 #define BVDC_P_SUPPORT_GFD_VER_2           (2) /* 3548, 3556, 7125 */
 
 /* VSCL added */
-#define BVDC_P_SUPPORT_GFD_VER_3           (3) /* 7420, 7340, 7342, 7550 */
+#define BVDC_P_SUPPORT_GFD_VER_3           (3) /* 7420, 7550 */
 
 /* 3D Graphics: HW7231-80 issue:
  * GFD REV 0.1.0.B: 7231-A0, 7344-A0, 7346-A0, 7422-A0, 7425-A0
@@ -70,7 +87,7 @@ BDBG_OBJECT_ID_DECLARE(BVDC_GFX);
 #define BVDC_P_SUPPORT_GFD_VER_9           (9) /* 7439 b0 */
 
 #if ((BVDC_P_SUPPORT_GFD_VER == BVDC_P_SUPPORT_GFD_VER_4)|| \
-	 (BVDC_P_SUPPORT_GFD_VER == BVDC_P_SUPPORT_GFD_VER_5))
+     (BVDC_P_SUPPORT_GFD_VER == BVDC_P_SUPPORT_GFD_VER_5))
 /* HW7231-187 transition failure between 2D->3D 3D->2D*/
 #define BVDC_P_GFX_INIT_WORKAROUND         (1)
 #else
@@ -86,35 +103,36 @@ BDBG_OBJECT_ID_DECLARE(BVDC_GFX);
  */
 typedef union BVDC_P_GfxDirtyBits
 {
-	struct
-	{
-		/* configure dirty bits */
-		uint32_t                 bChromaExpan             : 1; /* 0 */
-		uint32_t                 bKey                     : 1;
-		uint32_t                 bScaleCoeffs             : 1;
-		uint32_t                 bGammaTable              : 1;
-		uint32_t                 bConstantColor           : 1;
-		uint32_t                 bClutTable               : 1; /* unused */
-		uint32_t                 bScanType                : 1; /* for bInterlaced */
-		uint32_t                 bSrcClip                 : 1;
-		uint32_t                 bOutRect                 : 1; /* 8 */
-		uint32_t                 bColorMatrix             : 1; /* unused */
-		uint32_t                 bFlags                   : 1; /* some change in BVDC_P_GfxCfgFlags */
-		uint32_t                 bDemoMode                : 1;
-		uint32_t                 bOrientation             : 1;
+    struct
+    {
+        /* configure dirty bits */
+        uint32_t                 bChromaExpan             : 1; /* 0 */
+        uint32_t                 bKey                     : 1;
+        uint32_t                 bScaleCoeffs             : 1;
+        uint32_t                 bGammaTable              : 1;
+        uint32_t                 bConstantColor           : 1;
+        uint32_t                 bClutTable               : 1; /* unused */
+        uint32_t                 bScanType                : 1; /* for bInterlaced */
+        uint32_t                 bSrcClip                 : 1;
+        uint32_t                 bOutRect                 : 1; /* 8 */
+        uint32_t                 bColorMatrix             : 1; /* unused */
+        uint32_t                 bFlags                   : 1; /* some change in BVDC_P_GfxCfgFlags */
+        uint32_t                 bDemoMode                : 1;
+        uint32_t                 bOrientation             : 1;
+        uint32_t                 bSdrGfx2HdrAdj           : 1;
 
-		/* confugure and surface combined dirty bits */
-		uint32_t                 bClipOrOut               : 1;
-		uint32_t                 bCsc                     : 1;
-		uint32_t                 bPxlFmt                  : 1;
-		uint32_t                 bSurOffset               : 1; /* 16 */
-		uint32_t                 bSurface                 : 1;
-		uint32_t                 bPaletteTable            : 1;
-		uint32_t                 bCompress                : 1;
+        /* confugure and surface combined dirty bits */
+        uint32_t                 bClipOrOut               : 1;
+        uint32_t                 bCsc                     : 1;
+        uint32_t                 bPxlFmt                  : 1; /* 16 */
+        uint32_t                 bSurOffset               : 1;
+        uint32_t                 bSurface                 : 1;
+        uint32_t                 bPaletteTable            : 1;
+        uint32_t                 bCompress                : 1;
 
-	} stBits;
+    } stBits;
 
-	uint32_t aulInts [BVDC_P_DIRTY_INT_ARRAY_SIZE];
+    uint32_t aulInts [BVDC_P_DIRTY_INT_ARRAY_SIZE];
 
 } BVDC_P_GfxDirtyBits;
 
@@ -123,25 +141,25 @@ typedef union BVDC_P_GfxDirtyBits
  */
 typedef struct BVDC_P_GfxCfgFlags
 {
-	/* enable bits */
-	uint32_t                 bEnableKey                     : 1;
-	uint32_t                 bEnGfdHwAlphaPreMultiply       : 1;
-	uint32_t                 bEnableGammaCorrection         : 1;
-	uint32_t                 bNeedHorizScale                : 1;
-	uint32_t                 bNeedVertScale                 : 1;
-	uint32_t                 bNeedColorSpaceConv            : 1; /* unused */
-	uint32_t                 bConstantBlending              : 1;
+    /* enable bits */
+    uint32_t                 bEnableKey                     : 1;
+    uint32_t                 bEnGfdHwAlphaPreMultiply       : 1;
+    uint32_t                 bEnableGammaCorrection         : 1;
+    uint32_t                 bNeedHorizScale                : 1;
+    uint32_t                 bNeedVertScale                 : 1;
+    uint32_t                 bNeedColorSpaceConv            : 1; /* unused */
+    uint32_t                 bConstantBlending              : 1;
 
-	/* output video scantype */
-	uint32_t                 bInterlaced                    : 1;
+    /* output video scantype */
+    uint32_t                 bInterlaced                    : 1;
 
-	/* enable control: continuous or stop_on_field_end */
-	uint32_t                 bContinueOnFieldEnd            : 1;
+    /* enable control: continuous or stop_on_field_end */
+    uint32_t                 bContinueOnFieldEnd            : 1;
 
-	uint32_t                 bDeringDemoMode                : 1;
-	uint32_t                 bDejagDemoMode                 : 1;
+    uint32_t                 bDeringDemoMode                : 1;
+    uint32_t                 bDejagDemoMode                 : 1;
 
-	uint32_t                 bEnDecompression               : 1;
+    uint32_t                 bEnDecompression               : 1;
 } BVDC_P_GfxCfgFlags;
 
 /*-------------------------------------------------------------------------
@@ -149,54 +167,57 @@ typedef struct BVDC_P_GfxCfgFlags
  */
 typedef struct BVDC_P_GfxFeederCfgInfo
 {
-	/* dirty bits: when ApplyChanges is called, current Dirty should be
-	 * NewDirty | CurDirty, in order to handle that more than one
-	 * applyChange is called before the RUL is built */
-	BVDC_P_GfxDirtyBits      stDirty;
+    /* dirty bits: when ApplyChanges is called, current Dirty should be
+     * NewDirty | CurDirty, in order to handle that more than one
+     * applyChange is called before the RUL is built */
+    BVDC_P_GfxDirtyBits      stDirty;
 
-	/* misc one bit configs */
-	BVDC_P_GfxCfgFlags       stFlags;
+    /* misc one bit configs */
+    BVDC_P_GfxCfgFlags       stFlags;
 
-	/* chroma expansion method */
-	BVDC_ChromaExpansion     eChromaExpansion;
+    /* chroma expansion method */
+    BVDC_ChromaExpansion     eChromaExpansion;
 
-	/* color key */
-	uint8_t                  ucKeyedAlpha;
-	uint32_t                 ulKeyMinAMNO;
-	uint32_t                 ulKeyMaxAMNO;
-	uint32_t                 ulKeyMaskAMNO;
+    /* color key */
+    uint8_t                  ucKeyedAlpha;
+    uint32_t                 ulKeyMinAMNO;
+    uint32_t                 ulKeyMaxAMNO;
+    uint32_t                 ulKeyMaskAMNO;
 
-	/* constant color for alpha only pixel */
-	uint32_t                 ulConstantColor;
+    /* constant color for alpha only pixel */
+    uint32_t                 ulConstantColor;
 
-	/* window alpha */
-	uint8_t                  ucWindowAlpha;  /* set to HW as default key alpha */
+    /* window alpha */
+    uint8_t                  ucWindowAlpha;  /* set to HW as default key alpha */
 
-	/* horizontal/vertical up scale */
-	BVDC_FilterCoeffs        eHorzScaleCoeffs;  /* coeff mode */
-	BVDC_FilterCoeffs        eVertScaleCoeffs;  /* coeff mode */
+    /* horizontal/vertical up scale */
+    BVDC_FilterCoeffs        eHorzScaleCoeffs;  /* coeff mode */
+    BVDC_FilterCoeffs        eVertScaleCoeffs;  /* coeff mode */
 
-	/* gamma correction */
-	uint32_t                 ulNumGammaClutEntries;
-	uint32_t                 ulGammaClutAddress;
+    /* gamma correction */
+    uint32_t                 ulNumGammaClutEntries;
+    uint32_t                 ulGammaClutAddress;
 
-	/* src clip rect, dest scale rectangle dimension, and up-scale */
-	uint32_t                 ulCntLeft;  /* left with frac */
-	uint32_t                 ulCntTopInt;  /* int, top int part only */
-	uint32_t                 ulCntWidth;  /* int, round to ceiling */
-	uint32_t                 ulCntHeight; /* int, round to ceiling */
-	uint32_t                 ulOutWidth;  /* int */
-	uint32_t                 ulOutHeight;  /* int */
-	uint32_t                 ulHsclSrcStep;  /* src / out, with frac  */
-	uint32_t                 ulVsclSrcStep;  /* src / out, with frac  */
-	uint32_t                 ulVsclBlkAvgSize;  /* vert block average size */
-	uint32_t                 ulVsclInitPhase;  /* for frame or top-field display */
-	uint32_t                 ulVsclInitPhaseBot;  /* for bot-field display */
+    /* src clip rect, dest scale rectangle dimension, and up-scale */
+    uint32_t                 ulCntLeft;  /* left with frac */
+    uint32_t                 ulCntTopInt;  /* int, top int part only */
+    uint32_t                 ulCntWidth;  /* int, round to ceiling */
+    uint32_t                 ulCntHeight; /* int, round to ceiling */
+    uint32_t                 ulOutWidth;  /* int */
+    uint32_t                 ulOutHeight;  /* int */
+    uint32_t                 ulHsclSrcStep;  /* src / out, with frac  */
+    uint32_t                 ulVsclSrcStep;  /* src / out, with frac  */
+    uint32_t                 ulVsclBlkAvgSize;  /* vert block average size */
+    uint32_t                 ulVsclInitPhase;  /* for frame or top-field display */
+    uint32_t                 ulVsclInitPhaseBot;  /* for bot-field display */
 
-	/* display orientation */
-	BFMT_Orientation         eOutOrientation;    /* output Orientation, might not be useful*/
-	bool                     bOrientationOverride;
-	BFMT_Orientation         eInOrientation;
+    /* display orientation */
+    BFMT_Orientation         eOutOrientation;    /* output Orientation, might not be useful*/
+    bool                     bOrientationOverride;
+    BFMT_Orientation         eInOrientation;
+
+    /* adjust to linear approximation of sdr gfx to hdr conversion */
+    BVDC_Source_SdrGfxToHdrApproximationAdjust stSdrGfx2HdrAdj;
 } BVDC_P_GfxFeederCfgInfo;
 
 /*-------------------------------------------------------------------------
@@ -204,56 +225,60 @@ typedef struct BVDC_P_GfxFeederCfgInfo
  */
 typedef struct BVDC_P_GfxFeederContext
 {
-	BDBG_OBJECT(BVDC_GFX)
+    BDBG_OBJECT(BVDC_GFX)
 
-	/* Gfx Feeder Id */
-	BAVC_SourceId                    eId;
-	uint32_t                         ulRegOffset;
+    /* Gfx Feeder Id */
+    BAVC_SourceId                    eId;
+    uint32_t                         ulRegOffset;
 
-	/* only 3d src needs ping-pong buffer mechanism */
-	bool                             b3dSrc;
-	/* memory handle of current chip */
-	BMMA_Heap_Handle                 hMemory;
-	BREG_Handle                      hRegister;
-	BRDC_Handle                      hRdc;
-	BVDC_Window_Handle               hWindow;
-	BVDC_Source_Handle               hSource;
+    /* only 3d src needs ping-pong buffer mechanism */
+    bool                             b3dSrc;
+    BREG_Handle                      hRegister;
+    BRDC_Handle                      hRdc;
+    BVDC_Window_Handle               hWindow;
+    BVDC_Source_Handle               hSource;
 
-	/* gfx surface manager */
-	BVDC_P_GfxSurfaceContext         stGfxSurface;
+    /* gfx surface manager */
+    BVDC_P_GfxSurfaceContext         stGfxSurface;
 
 #if (BVDC_P_SUPPORT_OLD_SET_ALPHA_SUR)
-	/* temporarily used for supporting BVDC_Source_SetAlphaSurface */
-	BAVC_Gfx_Picture                 stTmpNewAvcPic;
-	BAVC_Gfx_Picture                 stTmpIsrAvcPic;
+    /* temporarily used for supporting BVDC_Source_SetAlphaSurface */
+    BAVC_Gfx_Picture                 stTmpNewAvcPic;
+    BAVC_Gfx_Picture                 stTmpIsrAvcPic;
 #endif
 
-	/* could be user set new sur, isr set new, or cur sur,
-	 * decided by Validate, used by ApplyChange */
-	BVDC_P_SurfaceInfo              *pNewSur;
+    /* could be user set new sur, isr set new, or cur sur,
+     * decided by Validate, used by ApplyChange */
+    BVDC_P_SurfaceInfo              *pNewSur;
 
-	/* gfx feeder private processing cfg activated by user with ApplyChange */
-	BVDC_P_GfxFeederCfgInfo          stNewCfgInfo;
-	BVDC_P_GfxFeederCfgInfo          stCurCfgInfo;
+    /* gfx feeder private processing cfg activated by user with ApplyChange */
+    BVDC_P_GfxFeederCfgInfo          stNewCfgInfo;
+    BVDC_P_GfxFeederCfgInfo          stCurCfgInfo;
 
-	/* record previous dirty in case RUL was not executed */
-	BVDC_P_GfxDirtyBits              stPrevDirty;
+    /* record previous dirty in case RUL was not executed */
+    BVDC_P_GfxDirtyBits              stPrevDirty;
 
-	BVDC_P_CscCfg                    stGfxCsc;
-	bool                             bSupportNLCsc;
-	bool                             bSupportMACsc;
+    /* CSC */
+    BVDC_P_CscCfg                    stGfxCsc;
+    BVDC_P_EotfConvCfg               stEotfConv;
+    bool                             bSupportNLCsc;
+    bool                             bSupportMACsc;
+    bool                             bSupportEotfConv;
 
-	bool                             bSupportVertScl;
+    /* current matrix to convert SDR gfx to HDR in pre-7271 chips */
+    BVDC_P_CscCoeffs                 stCscCoeffSdr2Hdr;
 
-	uint32_t                         ulInitVsyncCntr;
+    bool                             bSupportVertScl;
 
-	uint32_t                         ulOffsetPixInByte;   /* Num of offset pix for sub byte pixel format */
-	uint32_t                         ulAlphaOffsetPixInByte;   /* Alpha Sur: Num of offset pix in a byte */
-	uint32_t                         ulFirInitPhase;    /* scale: init phase */
+    uint32_t                         ulInitVsyncCntr;
 
-	uint32_t                         ulVertLineBuf;    /* line buffer length of Vert scaler */
-	uint32_t                         ulResetRegAddr;
-	uint32_t                         ulResetMask;
+    uint32_t                         ulOffsetPixInByte;   /* Num of offset pix for sub byte pixel format */
+    uint32_t                         ulAlphaOffsetPixInByte;   /* Alpha Sur: Num of offset pix in a byte */
+    uint32_t                         ulFirInitPhase;    /* scale: init phase */
+
+    uint32_t                         ulVertLineBuf;    /* line buffer length of Vert scaler */
+    uint32_t                         ulResetRegAddr;
+    uint32_t                         ulResetMask;
 
 } BVDC_P_GfxFeederContext;
 
@@ -272,12 +297,12 @@ typedef struct BVDC_P_GfxFeederContext
  * Note: assume parameter eSourceId are valid for gfx feeder
  */
 BERR_Code BVDC_P_GfxFeeder_Create
-	( BVDC_P_GfxFeeder_Handle         *phGfxFeeder,
-	  BREG_Handle                      hRegister,
-	  BRDC_Handle                      hRdc,
-	  BAVC_SourceId                    eGfdId,
-	  bool                             b3dSrc,
-	  BVDC_Source_Handle               hSource);
+    ( BVDC_P_GfxFeeder_Handle         *phGfxFeeder,
+      BREG_Handle                      hRegister,
+      BRDC_Handle                      hRdc,
+      BAVC_SourceId                    eGfdId,
+      bool                             b3dSrc,
+      BVDC_Source_Handle               hSource);
 
 /*************************************************************************
  * {private}
@@ -286,7 +311,7 @@ BERR_Code BVDC_P_GfxFeeder_Create
  * when BVDC_Handle is closed with BVDC_Close
  */
 BERR_Code BVDC_P_GfxFeeder_Destroy
-	( BVDC_P_GfxFeeder_Handle          hGfxFeeder );
+    ( BVDC_P_GfxFeeder_Handle          hGfxFeeder );
 
 /*************************************************************************
  * {private}
@@ -297,8 +322,7 @@ BERR_Code BVDC_P_GfxFeeder_Destroy
  * until the GFD is really going to be used.
  */
 void BVDC_P_GfxFeeder_Init(
-	BVDC_P_GfxFeeder_Handle          hGfxFeeder,
-	BMMA_Heap_Handle                 hMemory );
+    BVDC_P_GfxFeeder_Handle          hGfxFeeder );
 
 /*************************************************************************
  * {private}
@@ -309,10 +333,10 @@ void BVDC_P_GfxFeeder_Init(
  * It should match the design of BVDC_P_GfxFeeder_ValidateSurAndRects
  */
 BERR_Code BVDC_P_GfxFeeder_GetAdjSclOutRect_isr
-	( const BVDC_P_ClipRect           *pClipRect,            /* in */
-	  const BVDC_P_Rect               *pSclOutRect,          /* in */
-	  const BVDC_P_Rect               *pDstRect,             /* in */
-	  BVDC_P_Rect                     *pAdjSclOutRect );      /* out */
+    ( const BVDC_P_ClipRect           *pClipRect,            /* in */
+      const BVDC_P_Rect               *pSclOutRect,          /* in */
+      const BVDC_P_Rect               *pDstRect,             /* in */
+      BVDC_P_Rect                     *pAdjSclOutRect );      /* out */
 
 /*************************************************************************
  * {private}
@@ -323,8 +347,8 @@ BERR_Code BVDC_P_GfxFeeder_GetAdjSclOutRect_isr
  *
  */
 BERR_Code BVDC_P_GfxFeeder_ValidateChanges
-	( BVDC_P_GfxFeeder_Handle          hGfxFeeder,
-	  BVDC_Source_PictureCallback_isr  pfPicCallbackFunc );
+    ( BVDC_P_GfxFeeder_Handle          hGfxFeeder,
+      BVDC_Source_PictureCallback_isr  pfPicCallbackFunc );
 
 /*************************************************************************
  * {private}
@@ -335,7 +359,7 @@ BERR_Code BVDC_P_GfxFeeder_ValidateChanges
  *
  */
 BERR_Code BVDC_P_GfxFeeder_ApplyChanges_isr
-	( BVDC_P_GfxFeeder_Handle     hGfxFeeder );
+    ( BVDC_P_GfxFeeder_Handle     hGfxFeeder );
 
 /*************************************************************************
  * {private}
@@ -345,7 +369,7 @@ BERR_Code BVDC_P_GfxFeeder_ApplyChanges_isr
  * because user wish to abort the changes in mid-way.
  */
 void BVDC_P_GfxFeeder_AbortChanges
-	( BVDC_P_GfxFeeder_Handle     hGfxFeeder );
+    ( BVDC_P_GfxFeeder_Handle     hGfxFeeder );
 
 /*************************************************************************
  * {private}
@@ -355,11 +379,11 @@ void BVDC_P_GfxFeeder_AbortChanges
  *
  */
 void BVDC_P_GfxFeeder_BuildRul_isr
-	( BVDC_P_GfxFeeder_Handle          hGfxFeeder,
-	  BVDC_P_Source_Info *             pCurSrcInfo,
-	  BVDC_P_ListInfo                 *pList,
-	  BAVC_Polarity                    eFieldId,
-	  BVDC_P_State                     eVnetState );
+    ( BVDC_P_GfxFeeder_Handle          hGfxFeeder,
+      BVDC_P_Source_Info *             pCurSrcInfo,
+      BVDC_P_ListInfo                 *pList,
+      BAVC_Polarity                    eFieldId,
+      BVDC_P_State                     eVnetState );
 
 /***************************************************************************
  * {private}
@@ -369,9 +393,9 @@ void BVDC_P_GfxFeeder_BuildRul_isr
  * blending factor setting
  */
 BERR_Code BVDC_P_GfxFeeder_ValidateBlend
-	( BVDC_BlendFactor             eSrcBlendFactor,
-	  BVDC_BlendFactor             eDstBlendFactor,
-	  uint8_t                      ucConstantAlpha );
+    ( BVDC_BlendFactor             eSrcBlendFactor,
+      BVDC_BlendFactor             eDstBlendFactor,
+      uint8_t                      ucConstantAlpha );
 
 /***************************************************************************
  * {private}
@@ -385,9 +409,9 @@ BERR_Code BVDC_P_GfxFeeder_ValidateBlend
  * values before calling this function
  */
 BERR_Code BVDC_P_GfxFeeder_AdjustBlend_isr
-	( BVDC_BlendFactor            *peSrcBlendFactor,
-	  BVDC_BlendFactor            *peDstBlendFactor,
-	  uint8_t                     *pucConstantAlpha );
+    ( BVDC_BlendFactor            *peSrcBlendFactor,
+      BVDC_BlendFactor            *peDstBlendFactor,
+      uint8_t                     *pucConstantAlpha );
 
 /*------------------------------------------------------------------------
  * {private}
@@ -402,12 +426,13 @@ BERR_Code BVDC_P_GfxFeeder_AdjustBlend_isr
  * to convert between Bt601 and Bt709 (i.e. not conv).
  */
 BERR_Code BVDC_P_GfxFeeder_DecideColorMatrix_isr
-	( BPXL_Format                  eActivePxlFmt,
-	  BVDC_P_GfxFeeder_Handle      hGfxFeeder,
-	  bool                         bConstantBlend,
-	  BVDC_P_CscCfg               *pCscCfg,
-	  const BVDC_P_CscCoeffs     **ppaulRGBToYCbCr,
-	  const BVDC_P_CscCoeffs     **ppaulYCbCrToRGB );
+    ( BPXL_Format                  eActivePxlFmt,
+      BVDC_P_GfxFeeder_Handle      hGfxFeeder,
+      const BVDC_P_CscCoeffs     **ppaulRGBToYCbCr,
+      const BVDC_P_CscCoeffs     **ppaulYCbCrToRGB );
+
+BERR_Code BVDC_P_GfxFeeder_InitColorMatrix
+    ( BVDC_P_GfxFeeder_Handle      hGfxFeeder );
 
 /*------------------------------------------------------------------------
  * {private}
@@ -416,11 +441,11 @@ BERR_Code BVDC_P_GfxFeeder_DecideColorMatrix_isr
  * output: Hscl filter coeff
  */
 BERR_Code BVDC_P_GfxFeeder_DecideFilterCoeff_isr
-	( BVDC_FilterCoeffs     eCoeffs,
-	  uint32_t              ulCtIndex,
-	  uint32_t              ulSrcSize,
-	  uint32_t              ulOutSize,
-	  uint32_t **           paulCoeff );
+    ( BVDC_FilterCoeffs     eCoeffs,
+      uint32_t              ulCtIndex,
+      uint32_t              ulSrcSize,
+      uint32_t              ulOutSize,
+      uint32_t **           paulCoeff );
 
 /*------------------------------------------------------------------------
  * {private}
@@ -432,11 +457,11 @@ BERR_Code BVDC_P_GfxFeeder_DecideFilterCoeff_isr
  * bgrc's update and update this code accordingly.
  */
 BERR_Code BVDC_P_GfxFeeder_DecideVsclFirCoeff_isr
-	( BVDC_FilterCoeffs     eCoeffs,
-	  uint32_t              ulCtIndex,
-	  uint32_t              ulSrcSize,
-	  uint32_t              ulOutSize,
-	  uint32_t **           paulCoeff );
+    ( BVDC_FilterCoeffs     eCoeffs,
+      uint32_t              ulCtIndex,
+      uint32_t              ulSrcSize,
+      uint32_t              ulOutSize,
+      uint32_t **           paulCoeff );
 
 #ifdef __cplusplus
 }

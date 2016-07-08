@@ -1,7 +1,7 @@
 ############################################################
-#     (c)2007-2013 Broadcom Corporation
+#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 #
-#  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+#  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
 #  conditions of a separate, written license agreement executed between you and Broadcom
 #  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -81,46 +81,6 @@
 ######################
 NEXUS_MODULES += FRONTEND
 
-##################
-# Module Options #
-##################
-NEXUS_FRONTEND_OPTIONS = NEXUS_FRONTEND_3418 \
-                         NEXUS_FRONTEND_3420 \
-                         NEXUS_FRONTEND_3440 \
-                         NEXUS_FRONTEND_3431 \
-                         NEXUS_FRONTEND_3510 \
-                         NEXUS_FRONTEND_3520 \
-                         NEXUS_FRONTEND_4500 \
-                         NEXUS_FRONTEND_4501 \
-                         NEXUS_FRONTEND_4501_VER \
-                         NEXUS_FRONTEND_4506 \
-                         NEXUS_FRONTEND_4506_VER \
-                         NEXUS_FRONTEND_4528 \
-                         NEXUS_FRONTEND_4528_VER \
-                         NEXUS_FRONTEND_4538 \
-                         NEXUS_FRONTEND_4538_VER \
-                         NEXUS_FRONTEND_4517 \
-                         NEXUS_FRONTEND_4517_VER \
-                         NEXUS_FRONTEND_DTT760X \
-                         NEXUS_FRONTEND_DTT7045 \
-                         NEXUS_FRONTEND_DTT75409 \
-                         NEXUS_FRONTEND_DTT76800 \
-                         NEXUS_FRONTEND_3461 \
-                         NEXUS_FRONTEND_3462 \
-                         NEXUS_FRONTEND_3255 \
-                         NEXUS_FRONTEND_3383 \
-                         NEXUS_FRONTEND_DOCSIS \
-                         NEXUS_FRONTEND_3123 \
-                         NEXUS_FRONTEND_3124 \
-                         NEXUS_FRONTEND_3128 \
-                         NEXUS_FRONTEND_3117 \
-                         NEXUS_FRONTEND_3114 \
-                         NEXUS_FRONTEND_3112 \
-                         NEXUS_FRONTEND_3109 \
-                         NEXUS_FRONTEND_7364 \
-                         NEXUS_FRONTEND_7366 \
-                         NEXUS_FRONTEND_LEAP_UART_ENABLE
-
 ############################
 # Standard Module Includes #
 ############################
@@ -180,6 +140,7 @@ endif
 #
 # TNRs
 #
+
 ifdef NEXUS_FRONTEND_3418
 NEXUS_FRONTEND_SOURCES += $(NEXUS_TOP)/modules/frontend/3418/src/nexus_tuner_3418.c
 NEXUS_FRONTEND_PUBLIC_INCLUDES += $(NEXUS_TOP)/modules/frontend/3418/include/
@@ -415,9 +376,9 @@ endif
 ifdef NEXUS_FRONTEND_45308_VER
 BSAT_45308_VER := $(NEXUS_FRONTEND_45308_VER)
 BCHP_45308_VER := $(shell awk 'BEGIN{print tolower("$(NEXUS_FRONTEND_45308_VER)")}')
-#else
-#BAST_45308_VER := B0
-#BCHP_45308_VER := B0
+else
+BSAT_45308_VER := B0
+BCHP_45308_VER := B0
 endif
 endif
 
@@ -436,14 +397,6 @@ BAST_4517_VER := $(NEXUS_FRONTEND_4517_VER)
 else
 BAST_4517_VER := A0
 endif
-endif
-
-ifeq ($(findstring $(BCHP_CHIP), 7325 7335 7342 7340), $(BCHP_CHIP))
-NEXUS_FRONTEND_SOURCES += $(NEXUS_TOP)/modules/frontend/7325/src/nexus_frontend_73xx.c
-NEXUS_FRONTEND_PUBLIC_INCLUDES += $(NEXUS_TOP)/modules/frontend/7325/include/
-NEXUS_FRONTEND_DEFINES += NEXUS_FRONTEND_73XX
-# The line below is not necessary for bast.inc but is needed below in this file
-BAST_CHIP += $(BCHP_CHIP)
 endif
 
 ifeq ($(findstring $(BCHP_CHIP), 7346 7344 7358 7360 7362 73625 7228 73465), $(BCHP_CHIP))
@@ -574,6 +527,29 @@ ifeq ($(BCHP_VER),B0)
 BAOB_CHIP := 7552
 NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/portinginterface/aob/baob.inc
 endif
+endif
+
+ifeq ($(filter $(BCHP_CHIP), 75525), $(BCHP_CHIP))
+NEXUS_FRONTEND_SOURCES += $(NEXUS_TOP)/modules/frontend/75525/src/nexus_frontend_75525.c
+NEXUS_FRONTEND_SOURCES += $(NEXUS_TOP)/modules/frontend/75525/src/nexus_frontend_75525_cable.c
+NEXUS_FRONTEND_SOURCES += $(NEXUS_TOP)/modules/frontend/75525/src/nexus_frontend_75525_terrestrial.c
+NEXUS_FRONTEND_PUBLIC_INCLUDES += $(NEXUS_TOP)/modules/frontend/75525/include/
+NEXUS_FRONTEND_DEFINES += NEXUS_FRONTEND_75525
+ifeq ($(NEXUS_FRONTEND_LEAP_UART_ENABLE), y)
+BHAB_LEAP_UART_ENABLE :=y
+NEXUS_FRONTEND_DEFINES += NEXUS_FRONTEND_LEAP_UART_ENABLE
+endif
+# The line below is not necessary for bsat.inc but is needed below in this file
+BHAB_75525_SUPPORT:=y
+ifeq ($(BCHP_75525_VER),)
+BCHP_75525_VER := $(BCHP_VER)
+endif
+BTNR_75525_SUPPORT := y
+BODS_75525_SUPPORT := y
+BHAB_75525_SUPPORT := y
+NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/basemodules/hab/bhab.inc
+NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/portinginterface/ods/bods.inc
+NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/portinginterface/tnr/btnr.inc
 endif
 
 #
@@ -811,12 +787,7 @@ ifdef NEXUS_FRONTEND_7584
 NEXUS_FRONTEND_DEFINES += NEXUS_HAS_FRONTEND_CTFE_IMG
 BTNR_7584IB_SUPPORT := y
 BADS_7584_SUPPORT := y
-ifeq ($(findstring $(BCHP_CHIP), 7584), $(BCHP_CHIP))
 BHAB_7584_SUPPORT := y
-endif
-ifeq ($(findstring $(BCHP_CHIP), 75845), $(BCHP_CHIP))
-BHAB_75845_SUPPORT := y
-endif
 
 ifeq ($(NEXUS_FRONTEND_LEAP_UART_ENABLE), y)
 BHAB_LEAP_UART_ENABLE :=y
@@ -837,7 +808,6 @@ NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/portinginterface/tnr/btnr.inc
 NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/basemodules/hab/bhab.inc
 NEXUS_FRONTEND_SOURCES += $(NEXUS_TOP)/modules/frontend/7584/src/nexus_frontend_7584.c
 endif
-
 
 ifdef NEXUS_FRONTEND_3128
 NEXUS_FRONTEND_DEFINES += NEXUS_HAS_FRONTEND_CTFE_IMG
@@ -863,6 +833,30 @@ ifeq ($(NEXUS_FRONTEND_312x_VER), A0)
 NEXUS_FRONTEND_DEFINES += NEXUS_FRONTEND_312x_A0
 endif
 NEXUS_FRONTEND_DEFINES += NEXUS_FRONTEND_3128
+endif
+
+ifdef NEXUS_FRONTEND_3158
+NEXUS_FRONTEND_DEFINES += NEXUS_HAS_FRONTEND_CTFE_IMG
+BADS_3158_SUPPORT := y
+BHAB_3158_SUPPORT := y
+ifeq ($(NEXUS_FRONTEND_LEAP_UART_ENABLE), y)
+BHAB_LEAP_UART_ENABLE :=y
+NEXUS_FRONTEND_DEFINES += NEXUS_FRONTEND_LEAP_UART_ENABLE
+endif
+ifeq ($(NEXUS_FRONTEND_315x_OOB), y)
+BAOB_CHIP := 3158
+BTNR_3158OB_SUPPORT := y
+NEXUS_FRONTEND_DEFINES += NEXUS_FRONTEND_315x_OOB
+NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/portinginterface/aob/baob.inc
+endif
+NEXUS_FRONTEND_DEFINES += NEXUS_FRONTEND_3158
+
+NEXUS_FRONTEND_DEFINES += NEXUS_HAS_MXT=1
+NEXUS_FRONTEND_PUBLIC_INCLUDES += $(NEXUS_TOP)/modules/frontend/3158/include/
+NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/portinginterface/ads/bads.inc
+NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/basemodules/hab/bhab.inc
+NEXUS_FRONTEND_SOURCES += $(NEXUS_TOP)/modules/frontend/3158/src/nexus_frontend_3158.c
+NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/portinginterface/mxt/bmxt.inc
 endif
 
 ifneq ($(BCHP_312X_VER),)
@@ -960,4 +954,3 @@ endif
 ifneq ($(NEXUS_FRONTEND_CUSTOMER_EXTENSION_INC),)
 include $(NEXUS_FRONTEND_CUSTOMER_EXTENSION_INC)
 endif
-

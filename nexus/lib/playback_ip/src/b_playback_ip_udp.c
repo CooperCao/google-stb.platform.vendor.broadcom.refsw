@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2003-2015 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,8 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * Description: IP Applib Implementation for IP_UDP Protocols in which
 *              UDP payload contains MPEG2 TS packets.
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 
@@ -83,7 +75,7 @@ void B_PlaybackIp_UdpProcessing(
     STRM_SockRecvParams_t sockRecvParams = STRM_SOCK_RECV_PARAMS_UDP_DEFAULT;
 #endif
 
-    BDBG_MSG(("Entered %s(): playback_ip %p, socket fd %d\n", __FUNCTION__, playback_ip, playback_ip->socketState.fd));
+    BDBG_MSG(("Entered %s(): playback_ip %p, socket fd %d\n", __FUNCTION__, (void *)playback_ip, playback_ip->socketState.fd));
 
     /* check if playpump & decoder are setup */
     if (B_PlaybackIp_UtilsWaitForPlaypumpDecoderSetup(playback_ip))
@@ -355,7 +347,7 @@ B_PlaybackIp_UdpSessionOpen(
     B_PlaybackIpSocketState *socketState;
 
     if (!playback_ip || !openSettings || !openStatus) {
-        BDBG_ERR(("%s: invalid params, playback_ip %p, openSettings %p, openStatus %p\n", __FUNCTION__, playback_ip, openSettings, openStatus));
+        BDBG_ERR(("%s: invalid params, playback_ip %p, openSettings %p, openStatus %p\n", __FUNCTION__, (void *)playback_ip, (void *)openSettings, (void *)openStatus));
         rc = B_ERROR_INVALID_PARAMETER;
         goto error;
     }
@@ -408,7 +400,7 @@ B_PlaybackIp_UdpSessionOpen(
     playback_ip->discard_buf = (char *)BKNI_Malloc(DISCARD_BUFFER_SIZE * sizeof(char));
 
     if (playback_ip->bytesRecvPerPkt == NULL || playback_ip->discard_buf == NULL) {
-        BDBG_ERR(("%s: BKNI_Malloc failed: recv buff %p, discard_buf %p\n", __FUNCTION__, playback_ip->bytesRecvPerPkt, playback_ip->discard_buf));
+        BDBG_ERR(("%s: BKNI_Malloc failed: recv buff %p, discard_buf %p\n", __FUNCTION__, (void *)playback_ip->bytesRecvPerPkt, (void *)playback_ip->discard_buf));
         rc = B_ERROR_OUT_OF_MEMORY;
         goto error;
     }
@@ -430,7 +422,7 @@ B_PlaybackIp_UdpSessionSetup(
     B_PlaybackIpPsiInfo *psi;
 
     if (!playback_ip || !setupSettings || !setupStatus) {
-        BDBG_ERR(("%s: invalid params, playback_ip %p, setupSettings %p, setupStatus %p\n", __FUNCTION__, playback_ip, setupSettings, setupStatus));
+        BDBG_ERR(("%s: invalid params, playback_ip %p, setupSettings %p, setupStatus %p\n", __FUNCTION__, (void *)playback_ip, (void *)setupSettings, (void *)setupStatus));
         errorCode = B_ERROR_INVALID_PARAMETER;
         return errorCode;
     }
@@ -441,7 +433,7 @@ B_PlaybackIp_UdpSessionSetup(
 
     /* if SessionSetup is completed, return results to app */
     if (playback_ip->apiCompleted) {
-        BDBG_MSG(("%s: previously started session setup operation completed, playback_ip %p", __FUNCTION__, playback_ip));
+        BDBG_MSG(("%s: previously started session setup operation completed, playback_ip %p", __FUNCTION__, (void *)playback_ip));
         /* Note: since this api was run in a separate thread, we defer thread cleanup until the Ip_Start */
         /* as this call to read up the session status may be invoked in the context of this thread via the callback */
         goto done;
@@ -458,7 +450,7 @@ B_PlaybackIp_UdpSessionSetup(
     }
 
     psi = &playback_ip->psi;
-    BDBG_MSG(("%s: psiParsingTimeLimit %d", __FUNCTION__, playback_ip->setupSettings.u.udp.psiParsingTimeLimit));
+    BDBG_MSG(("%s: psiParsingTimeLimit %ld", __FUNCTION__, playback_ip->setupSettings.u.udp.psiParsingTimeLimit));
     if (playback_ip->openSettings.nonBlockingMode) {
         /* do PSI parsing in a thread and return back to app */
         playback_ip->sessionSetupThread = B_Thread_Create("SessionSetupThread", (B_ThreadFunc)B_PlaybackIp_UtilsMediaProbeCreate, (void *)playback_ip, NULL);
@@ -469,7 +461,7 @@ B_PlaybackIp_UdpSessionSetup(
         }
 #ifdef BDBG_DEBUG_BUILD
         if (playback_ip->ipVerboseLog)
-            BDBG_WRN(("%s: Non blocking media probe operation started: playback_ip %p\n", __FUNCTION__, playback_ip));
+            BDBG_WRN(("%s: Non blocking media probe operation started: playback_ip %p\n", __FUNCTION__, (void *)playback_ip));
 #endif
         errorCode = B_ERROR_IN_PROGRESS;
         goto error;
@@ -544,7 +536,7 @@ B_PlaybackIp_UdpSessionStart(
     NEXUS_PlaypumpSettings nSettings;
 
     if (!playback_ip || !startSettings || !startStatus) {
-        BDBG_ERR(("%s: invalid params, playback_ip %p, startSettings %p, startStatus %p\n", __FUNCTION__, playback_ip, startSettings, startStatus));
+        BDBG_ERR(("%s: invalid params, playback_ip %p, startSettings %p, startStatus %p\n", __FUNCTION__, (void *)playback_ip, (void *)startSettings, (void *)startStatus));
         errorCode = B_ERROR_INVALID_PARAMETER;
         goto error;
     }

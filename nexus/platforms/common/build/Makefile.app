@@ -1,7 +1,7 @@
 ############################################################
-#	  (c)2003-2014 Broadcom Corporation
+#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 #
-#  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+#  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
 #  conditions of a separate, written license agreement executed between you and Broadcom
 #  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,16 +34,6 @@
 #  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
-#
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
-# Module Description:
-#
-# Revision History:
-#
-# $brcm_Log: $
 #
 ############################################################
 
@@ -176,4 +166,4 @@ $(NEXUS_HEADER) $(NEXUS_CPP_HEADER): copy_headers
 	    echo "#include \"nexus_platform_features.h\"" >>$(NEXUS_HEADER); \
 	    LC_ALL=C ls *.h|grep -v "nexus_config\.h"|grep -v "nexus\.h"|grep -v "bstd\.h"|awk '{print "#include \"" $$1 "\""}' >>$(NEXUS_HEADER); \
 	    echo "#endif" >>$(NEXUS_HEADER)
-	${Q_}$(CPP) -P $(NEXUS_HEADER) $(NEXUS_CFLAGS) >$(NEXUS_CPP_HEADER)
+	${Q_}$(CPP) -P $(NEXUS_HEADER) $(NEXUS_CFLAGS) -Wundef -Werror >$(NEXUS_CPP_HEADER)

@@ -1,31 +1,45 @@
-############################################################
-#     Copyright (c) 2003-2013, Broadcom Corporation
-#     All Rights Reserved
-#     Confidential Property of Broadcom Corporation
+#############################################################
+#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 #
-#  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
-#  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
-#  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+#  This program is the proprietary software of Broadcom and/or its licensors,
+#  and may only be used, duplicated, modified or distributed pursuant to the terms and
+#  conditions of a separate, written license agreement executed between you and Broadcom
+#  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+#  no license (express or implied), right to use, or waiver of any kind with respect to the
+#  Software, and Broadcom expressly reserves all rights in and to the Software and all
+#  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+#  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+#  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
 #
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
+#  Except as expressly set forth in the Authorized License,
 #
-# Module Description:
+#  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+#  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+#  and to use this information only in connection with your use of Broadcom integrated circuit products.
 #
-# Revision History:
+#  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+#  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+#  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+#  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+#  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+#  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+#  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+#  USE OR PERFORMANCE OF THE SOFTWARE.
 #
-# Created: 01/09/2007 by Jon Garrett
-#
-# $brcm_Log: $
-# 
+#  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+#  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+#  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+#  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+#  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+#  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+#  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+#  ANY LIMITED REMEDY.
 ############################################################
 
 #
 # Conditional Options for this Makefile
 #
 # BCHP_QAM_CHIP - If defined to a chip number (i.e. 3250), qam support for the specified chip is included.
-# BCHP_7411_VER - If defined (in lower-case), specifies the revision of the 7411 chip to be supported.
 #
 
 # Define this module
@@ -37,35 +51,6 @@ MAGNUM_MODULES += BCHP
 #
 # For compatiblity, these defines are still required at the application level.
 # BCHP_DEFINES := BCHP_CHIP=$(BCHP_CHIP) BCHP_VER=BCHP_VER_$(BCHP_VER)
-# #
-# # 7411 requires a similar definition.
-# #
-# ifneq ($(BCHP_7411_VER),)
-# BCHP_DEFINES += BCHP_7411_VER=$(BCHP_7411_VER)
-# endif
-
-# Make sure we have appropriate lower-case equivalents of BCHP_VER and BCHP_7411_VER
-BCHP_VER_LOWER := $(subst A,a,$(BCHP_VER))
-BCHP_VER_LOWER := $(subst B,b,$(BCHP_VER_LOWER))
-BCHP_VER_LOWER := $(subst C,c,$(BCHP_VER_LOWER))
-BCHP_VER_LOWER := $(subst D,d,$(BCHP_VER_LOWER))
-BCHP_VER_LOWER := $(subst E,e,$(BCHP_VER_LOWER))
-BCHP_VER_LOWER := $(subst F,f,$(BCHP_VER_LOWER))
-BCHP_VER_LOWER := $(subst G,g,$(BCHP_VER_LOWER))
-BCHP_VER_LOWER := $(strip $(subst H,h,$(BCHP_VER_LOWER)))
-
-BCHP_7411_VER_LOWER := $(subst A,a,$(BCHP_7411_VER))
-BCHP_7411_VER_LOWER := $(subst B,b,$(BCHP_7411_VER_LOWER))
-BCHP_7411_VER_LOWER := $(subst C,c,$(BCHP_7411_VER_LOWER))
-BCHP_7411_VER_LOWER := $(subst D,d,$(BCHP_7411_VER_LOWER))
-BCHP_7411_VER_LOWER := $(subst E,e,$(BCHP_7411_VER_LOWER))
-BCHP_7411_VER_LOWER := $(subst F,f,$(BCHP_7411_VER_LOWER))
-BCHP_7411_VER_LOWER := $(subst G,g,$(BCHP_7411_VER_LOWER))
-BCHP_7411_VER_LOWER := $(strip $(subst H,h,$(BCHP_7411_VER_LOWER)))
-
-BENC_CHIP_VER_LOWER := $(subst A,a,$(BENC_CHIP_VER))
-BENC_CHIP_VER_LOWER := $(subst B,b,$(BENC_CHIP_VER_LOWER))
-BENC_CHIP_VER_LOWER := $(subst C,c,$(BENC_CHIP_VER_LOWER))
 
 #
 # Always include support for the chip specified by BCHP_CHIP and BCHP_VER
@@ -109,18 +94,6 @@ ifneq ($(BCHP_QAM_CHIP),)
 # 3250 support
 BCHP_INCLUDES += $(MAGNUM)/basemodules/chp/include/$(BCHP_QAM_CHIP)/common
 BCHP_SOURCES += $(MAGNUM)/basemodules/chp/src/$(BCHP_QAM_CHIP)/bchp_$(BCHP_QAM_CHIP).c
-endif
-
-ifneq ($(BCHP_7411_VER),)
-# 7411 chp support
-BCHP_INCLUDES += $(MAGNUM)/basemodules/chp/include/7411/common
-BCHP_INCLUDES += $(MAGNUM)/basemodules/chp/include/7411/rdb/$(BCHP_7411_VER_LOWER)
-BCHP_SOURCES += $(MAGNUM)/basemodules/chp/src/7411/bchp_7411.c
-endif
-
-ifneq ($(BENC_CHIP),)
-# 7043 support
-BCHP_INCLUDES += $(MAGNUM)/basemodules/chp/include/$(BENC_CHIP)/rdb/$(BENC_CHIP_VER_LOWER)
 endif
 
 # SAGE related

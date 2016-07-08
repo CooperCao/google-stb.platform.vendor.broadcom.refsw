@@ -1,53 +1,40 @@
-/***************************************************************************
-*     (c)2004-2015 Broadcom Corporation
-*
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
-*  and may only be used, duplicated, modified or distributed pursuant to the terms and
-*  conditions of a separate, written license agreement executed between you and Broadcom
-*  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-*  no license (express or implied), right to use, or waiver of any kind with respect to the
-*  Software, and Broadcom expressly reserves all rights in and to the Software and all
-*  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-*  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-*  Except as expressly set forth in the Authorized License,
-*
-*  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-*  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-*  and to use this information only in connection with your use of Broadcom integrated circuit products.
-*
-*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-*  USE OR PERFORMANCE OF THE SOFTWARE.
-*
-*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-*  ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* API Description:
-*   API name: Platform
-*    Specific APIs to configure already initialized board.
-*
-* Revision History:
-*
-* $brcm_Log: $
-*
-***************************************************************************/
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
 
 #include "bchp_sun_top_ctrl.h"
 #include "bchp_common.h"
@@ -99,14 +86,8 @@ static bool g_fpgaInit = false;
 static void NEXUS_Platform_P_StartMonitor(void);
 static void NEXUS_Platform_P_StopMonitor(void);
 
-#if (((BCHP_CHIP == 7325) && (BCHP_VER <= BCHP_VER_A1))  \
- ||  ((BCHP_CHIP == 7325) && (BCHP_VER == BCHP_VER_B0))  \
- ||  ((BCHP_CHIP == 7335) && (BCHP_VER == BCHP_VER_A0))  \
- ||  ((BCHP_CHIP == 7335) && (BCHP_VER == BCHP_VER_B0))  \
- ||  ((BCHP_CHIP == 7400) && (BCHP_VER < BCHP_VER_E0))  \
- ||  ((BCHP_CHIP == 7405) && (BCHP_VER <= BCHP_VER_B0))  \
- ||  ((BCHP_CHIP == 7443) && (BCHP_VER == BCHP_VER_A0)) \
- ||  ((BCHP_CHIP == 7429) && (BCHP_VER == BCHP_VER_A0)))
+#if ((BCHP_CHIP == 7443) && (BCHP_VER == BCHP_VER_A0)) || \
+    ((BCHP_CHIP == 7429) && (BCHP_VER == BCHP_VER_A0))
 #define NEXUS_HAS_HDMI_SOFTI2C_SUPPORT 1
 #endif
 
@@ -115,15 +96,13 @@ static void NEXUS_Platform_P_StopMonitor(void);
 #endif
 
 #ifndef NEXUS_HDMI_OUTPUT_I2C_CHANNEL
-#if BCHP_CHIP == 7405
-#define NEXUS_HDMI_OUTPUT_I2C_CHANNEL 1
-#elif (BCHP_CHIP==7400) || (BCHP_CHIP==7420)  || (BCHP_CHIP==7335)  || (BCHP_CHIP==7336) || \
+#if   (BCHP_CHIP==7420) || \
       (BCHP_CHIP==7125) || (BCHP_CHIP==7342)  || (BCHP_CHIP==7408)  || (BCHP_CHIP==7468) || \
       (BCHP_CHIP==7231) || (BCHP_CHIP==7346)  || (BCHP_CHIP==7358)  || (BCHP_CHIP==7552) || \
       (BCHP_CHIP==7344) || (BCHP_CHIP==7360)  || (BCHP_CHIP==7563)  || (BCHP_CHIP==7362) || \
       (BCHP_CHIP==7228) || (BCHP_CHIP==75635) || (BCHP_CHIP==73625) || (BCHP_CHIP==73465)
 #define NEXUS_HDMI_OUTPUT_I2C_CHANNEL 0
-#elif (BCHP_CHIP == 7325) ||  (BCHP_CHIP==7340)
+#elif (BCHP_CHIP==7340)
 #define NEXUS_HDMI_OUTPUT_I2C_CHANNEL 3
 #elif (BCHP_CHIP==7422)  || (BCHP_CHIP==7425)  || (BCHP_CHIP==7435)  || (BCHP_CHIP==7584)  || \
       (BCHP_CHIP==7445)  || (BCHP_CHIP==7563)  || (BCHP_CHIP==7145)  || (BCHP_CHIP==7366)  || \
@@ -141,7 +120,7 @@ static void NEXUS_Platform_P_StopMonitor(void);
 #endif
 #endif
 
-#if BCHP_HDMI_TX_AUTO_I2C_REG_START
+#if BCHP_HDMI_TX_AUTO_I2C_REG_START && NEXUS_HAS_HDMI_OUTPUT
 #define AUTO_I2C_ENABLED 1
 #else
 #define AUTO_I2C_ENABLED 0
@@ -175,7 +154,7 @@ void NEXUS_Platform_P_GetI2CGpioHandles(unsigned index, NEXUS_GpioHandle *gpioCl
             *gpioData = NEXUS_Gpio_Open(NEXUS_GpioType_eAonSpecial, 1, &gpioSettings);
             BDBG_ASSERT(NULL != gpioData);
         }
-        else if ((BCHP_CHIP==7584) || (BCHP_CHIP==7563) || (BCHP_CHIP==7400)){
+        else if ((BCHP_CHIP==7584) || (BCHP_CHIP==7563)){
             NEXUS_Gpio_GetDefaultSettings(NEXUS_GpioType_eSpecial, &gpioSettings);
             *gpioClk = NEXUS_Gpio_Open(NEXUS_GpioType_eSpecial, 0, &gpioSettings);
             BDBG_ASSERT(NULL != gpioClk);
@@ -260,6 +239,7 @@ NEXUS_Error NEXUS_Platform_P_Config(const NEXUS_PlatformSettings *pSettings)
             }
 #endif
 
+
 #if BCHP_CHIP==7439 && (BCHP_VER == BCHP_VER_A0)
             if (i==NEXUS_HDMI_OUTPUT_I2C_CHANNEL || i==NEXUS_HDMI_OUTPUT_I2C_CHANNEL_1)
 #else
@@ -284,8 +264,8 @@ NEXUS_Error NEXUS_Platform_P_Config(const NEXUS_PlatformSettings *pSettings)
             }
             else
             {
-#if BCHP_CHIP == 7405 || BCHP_CHIP == 7125 || BCHP_CHIP == 7400 || BCHP_CHIP == 7335 || BCHP_CHIP == 7325 || \
-    BCHP_CHIP == 7340 || BCHP_CHIP == 7342 || BCHP_CHIP == 7420 || BCHP_CHIP == 7468 || BCHP_CHIP == 7408
+#if BCHP_CHIP == 7125 || BCHP_CHIP == 7340 || \
+    BCHP_CHIP == 7342 || BCHP_CHIP == 7420 || BCHP_CHIP == 7468 || BCHP_CHIP == 7408
                 /* config 65nm frontend i2c to be slow */
                 i2cSettings.fourByteXferMode = false;
                 i2cSettings.clockRate = NEXUS_I2cClockRate_e100Khz;
@@ -359,7 +339,6 @@ NEXUS_Error NEXUS_Platform_P_Config(const NEXUS_PlatformSettings *pSettings)
     {
     NEXUS_TransportCapabilities transportCapabilities;
     NEXUS_GetTransportCapabilities(&transportCapabilities);
-    /* The 97400 has no valid signal on TS inputs */
     for ( i = 0; i<transportCapabilities.numInputBands; i++ )
     {
         NEXUS_InputBandStatus status;
@@ -407,7 +386,7 @@ NEXUS_Error NEXUS_Platform_P_Config(const NEXUS_PlatformSettings *pSettings)
             NEXUS_OBJECT_REGISTER(NEXUS_CompositeOutput, pConfig->outputs.composite[0], Create);
 
             NEXUS_CompositeOutput_GetSettings(pConfig->outputs.composite[0], &compositeCfg);
-    #if BCHP_CHIP == 7400 || BCHP_CHIP == 7420
+    #if BCHP_CHIP == 7420
             compositeCfg.dac = NEXUS_VideoDac_e4;
     #elif BCHP_CHIP == 7422 || BCHP_CHIP == 7425 || BCHP_CHIP == 7435 || \
           BCHP_CHIP == 7445 || BCHP_CHIP == 7145 || \
@@ -425,7 +404,7 @@ NEXUS_Error NEXUS_Platform_P_Config(const NEXUS_PlatformSettings *pSettings)
           BCHP_CHIP == 7358 || BCHP_CHIP == 7552 || BCHP_CHIP == 7360 || \
           BCHP_CHIP == 7584 || BCHP_CHIP == 7563 || BCHP_CHIP == 7362 || \
           BCHP_CHIP == 7228 || ((BCHP_CHIP == 7439) && (BCHP_VER == BCHP_VER_A0)) || \
-          BCHP_CHIP == 7366 || \
+          BCHP_CHIP == 7366 || BCHP_CHIP == 7271 || BCHP_CHIP == 7268 || \
           BCHP_CHIP == 7250 || BCHP_CHIP == 7364 || BCHP_CHIP == 74371 || BCHP_CHIP == 75635 || \
           BCHP_CHIP == 7586 || BCHP_CHIP == 73625 || BCHP_CHIP == 75845 || BCHP_CHIP == 73465 || \
           BCHP_CHIP == 75525
@@ -473,7 +452,7 @@ NEXUS_Error NEXUS_Platform_P_Config(const NEXUS_PlatformSettings *pSettings)
 
             NEXUS_ComponentOutput_GetSettings(pConfig->outputs.component[0], &componentCfg);
             componentCfg.type = NEXUS_ComponentOutputType_eYPrPb;
-    #if BCHP_CHIP == 7400 || BCHP_CHIP == 7420 || BCHP_CHIP == 7422 || \
+    #if BCHP_CHIP == 7420 || BCHP_CHIP == 7422 || \
         BCHP_CHIP == 7425 || BCHP_CHIP == 7435 || BCHP_CHIP == 7445 || \
         BCHP_CHIP == 7145 || ((BCHP_CHIP == 7439) && (BCHP_VER >= BCHP_VER_B0))
             componentCfg.dacs.YPrPb.dacY = NEXUS_VideoDac_e0;
@@ -543,10 +522,7 @@ NEXUS_Error NEXUS_Platform_P_Config(const NEXUS_PlatformSettings *pSettings)
             NEXUS_OBJECT_REGISTER(NEXUS_SvideoOutput, pConfig->outputs.svideo[0], Create);
 
             NEXUS_SvideoOutput_GetSettings(pConfig->outputs.svideo[0], &svideoCfg);
-    #if BCHP_CHIP == 7400
-            svideoCfg.dacY = NEXUS_VideoDac_e6;
-            svideoCfg.dacC = NEXUS_VideoDac_e5;
-    #elif BCHP_CHIP == 7420
+    #if BCHP_CHIP == 7420
             svideoCfg.dacY = NEXUS_VideoDac_e6;
             svideoCfg.dacC = NEXUS_VideoDac_e5;
     #elif BCHP_CHIP == 7125
@@ -578,6 +554,7 @@ NEXUS_Error NEXUS_Platform_P_Config(const NEXUS_PlatformSettings *pSettings)
 #endif
 
 #if NEXUS_NUM_AUDIO_DACS && NEXUS_HAS_AUDIO
+        BDBG_CASSERT(NEXUS_NUM_AUDIO_DACS <= sizeof(pConfig->outputs.audioDacs)/sizeof(pConfig->outputs.audioDacs[0]));
         for ( i = 0; i < NEXUS_NUM_AUDIO_DACS; i++ )
         {
             pConfig->outputs.audioDacs[i] = NEXUS_AudioDac_Open(i, NULL);
@@ -591,6 +568,7 @@ NEXUS_Error NEXUS_Platform_P_Config(const NEXUS_PlatformSettings *pSettings)
 #endif
 
 #if NEXUS_NUM_SPDIF_OUTPUTS && NEXUS_HAS_AUDIO
+        BDBG_CASSERT(NEXUS_NUM_SPDIF_OUTPUTS<= sizeof(pConfig->outputs.spdif)/sizeof(pConfig->outputs.spdif[0]));
         for ( i = 0; i < NEXUS_NUM_SPDIF_OUTPUTS; i++ )
         {
             pConfig->outputs.spdif[i] = NEXUS_SpdifOutput_Open(i, NULL);
@@ -604,6 +582,7 @@ NEXUS_Error NEXUS_Platform_P_Config(const NEXUS_PlatformSettings *pSettings)
 #endif
 
 #if NEXUS_NUM_AUDIO_DUMMY_OUTPUTS && NEXUS_HAS_AUDIO
+        BDBG_CASSERT(NEXUS_NUM_AUDIO_DUMMY_OUTPUTS <= sizeof(pConfig->outputs.audioDummy)/sizeof(pConfig->outputs.audioDummy[0]));
         for ( i = 0; i < NEXUS_NUM_AUDIO_DUMMY_OUTPUTS; i++ )
         {
             pConfig->outputs.audioDummy[i] = NEXUS_AudioDummyOutput_Open(i, NULL);
@@ -617,6 +596,7 @@ NEXUS_Error NEXUS_Platform_P_Config(const NEXUS_PlatformSettings *pSettings)
 #endif
 
 #if NEXUS_NUM_I2S_OUTPUTS && NEXUS_HAS_AUDIO
+        BDBG_CASSERT(NEXUS_NUM_I2S_OUTPUTS<= sizeof(pConfig->outputs.i2s)/sizeof(pConfig->outputs.i2s[0]));
         for ( i = 0; i < NEXUS_NUM_I2S_OUTPUTS; i++ )
         {
             pConfig->outputs.i2s[i] = NEXUS_I2sOutput_Open(i, NULL);
@@ -628,6 +608,7 @@ NEXUS_Error NEXUS_Platform_P_Config(const NEXUS_PlatformSettings *pSettings)
             NEXUS_OBJECT_REGISTER(NEXUS_I2sOutput, pConfig->outputs.i2s[i], Create);
         }
 #if NEXUS_NUM_I2S_MULTI_OUTPUTS && NEXUS_HAS_AUDIO
+        BDBG_CASSERT(NEXUS_NUM_I2S_MULTI_OUTPUTS<= sizeof(pConfig->outputs.i2sMulti)/sizeof(pConfig->outputs.i2sMulti[0]));
         for ( i = 0; i < NEXUS_NUM_I2S_MULTI_OUTPUTS; i++ )
         {
             pConfig->outputs.i2sMulti[i] = NEXUS_I2sMultiOutput_Open(i, NULL);
@@ -951,27 +932,58 @@ BDBG_FILE_MODULE(AVD);
 #include "nexus_video_decoder_extra.h"
 #endif
 
+#if NEXUS_HAS_VIDEO_DECODER
+static struct {
+    bool init;
+    unsigned hvd[NEXUS_MAX_XVD_DEVICES];
+    bool started[NEXUS_MAX_XVD_DEVICES];
+    unsigned num;
+} avd_monitor;
+#endif
+
 static void NEXUS_Platform_P_Timer(void *context)
 {
-#if NEXUS_HAS_VIDEO_DECODER
-    const char *avd_monitor = NEXUS_GetEnv("avd_monitor");
-#endif
     BSTD_UNUSED(context);
 
 #if NEXUS_HAS_VIDEO_DECODER
-    if (avd_monitor) {
-        unsigned avdCore = NEXUS_atoi(avd_monitor);
-        char buf[256];
-        unsigned n;
-        static bool init = false;
-
-        if (!init) {
-            if (!NEXUS_VideoDecoderModule_SetDebugLog(avdCore, true)) {
-                init = true;
+    if (!avd_monitor.init) {
+        const char *env = NEXUS_GetEnv("avd_monitor");
+        avd_monitor.init = true;
+        avd_monitor.num = 0;
+        if (env) {
+            /* examples: avd_monitor=0 or =1 or =012. or "y" or "all" for all HVD's. */
+            if (!NEXUS_P_Base_StrCmp(env, "y") || !NEXUS_P_Base_StrCmp(env, "all")) {
+                unsigned i;
+                for (i=0;i<NEXUS_MAX_XVD_DEVICES;i++) {
+                    if (g_NEXUS_platformSettings.videoDecoderModuleSettings.avdEnabled[i]) {
+                        avd_monitor.hvd[avd_monitor.num++] = i;
+                    }
+                }
+            }
+            else {
+                const char *s;
+                for (s=env;*s;s++) {
+                    unsigned core = *s - '0';
+                    if (core < NEXUS_MAX_XVD_DEVICES) {
+                        avd_monitor.hvd[avd_monitor.num++] = core;
+                    }
+                }
             }
         }
-        if (init) {
-            while (!NEXUS_VideoDecoderModule_ReadDebugLog(avdCore, buf, 255 /* one less */, &n) && n) {
+    }
+
+    if (avd_monitor.num) {
+        unsigned i;
+        for (i=0;i<avd_monitor.num;i++) {
+            char buf[256];
+            unsigned n;
+            if (!avd_monitor.started[i]) {
+                if (NEXUS_VideoDecoderModule_SetDebugLog(avd_monitor.hvd[i], true)) {
+                    continue;
+                }
+                avd_monitor.started[i] = true;
+            }
+            while (!NEXUS_VideoDecoderModule_ReadDebugLog(avd_monitor.hvd[i], buf, 255 /* one less */, &n) && n) {
                 char *cur = buf;
                 buf[n] = 0;
 
@@ -984,7 +996,7 @@ static void NEXUS_Platform_P_Timer(void *context)
                         *next = 0;
                         more = true;
                     }
-                    BDBG_MODULE_LOG(AVD,("%d: %s", avdCore, cur));
+                    BDBG_MODULE_LOG(AVD,("%d: %s", avd_monitor.hvd[i], cur));
                     if (more)
                         cur = ++next;
                     else
@@ -1000,6 +1012,7 @@ static void NEXUS_Platform_P_Timer(void *context)
     g_platformTimer = NEXUS_ScheduleTimer(1000, NEXUS_Platform_P_Timer, NULL);
 }
 
+
 static void NEXUS_Platform_P_StartMonitor(void)
 {
     g_platformTimer = NEXUS_ScheduleTimer(1000, NEXUS_Platform_P_Timer, NULL);
@@ -1011,6 +1024,9 @@ static void NEXUS_Platform_P_StopMonitor(void)
         NEXUS_CancelTimer(g_platformTimer);
         g_platformTimer = NULL;
     }
+#if NEXUS_HAS_VIDEO_DECODER
+    BKNI_Memset(&avd_monitor, 0, sizeof(avd_monitor));
+#endif
 }
 
 #if BDBG_DEBUG_BUILD && !defined(NEXUS_CPU_ARM)
@@ -1056,7 +1072,7 @@ static const char *g_pGisbMasters[] =
     "VICE0",
     "VICE_1",
     "raaga_1",
-    "reserved"
+    "SCPU"
 };
 #elif BCHP_CHIP == 7344 || BCHP_CHIP==7346 || BCHP_CHIP==7231 || BCHP_CHIP==7429 || BCHP_CHIP==74295 || BCHP_CHIP == 73465
 static const char *g_pGisbMasters[] =
@@ -1064,9 +1080,11 @@ static const char *g_pGisbMasters[] =
     "SSP",
     "CPU",
     "reserved",
+    "reserved",
     "BSP",
     "RDC",
     "raaga",
+    "reserved",
     "reserved",
     "JTAG",
     "SVD0",
@@ -1113,17 +1131,8 @@ static const char *g_pGisbMasters[] =
 #else
 static const char *g_pGisbMasters[] =
 {
-    "SSB",
-    "CPU",
-    "PCI",
-    "reserved",
-    "BSP",
-    "RDC",
-    "RPTD",
-    "AVD0",
-    "reserved",
-    "JTAG",
-    "reserved"
+    /* We can't have a generic read of BCHP_SUN_GISB_ARB_ERR_CAP_MASTER. Must add chip to get feature. */
+    "Unknown"
 };
 #endif
 

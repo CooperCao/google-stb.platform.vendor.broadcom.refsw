@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2010 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2010 Broadcom.
 All rights reserved.
 
 Project  :  Default Nexus platform API for EGL driver
@@ -23,7 +23,13 @@ DESC
 
 #define MAX_SWAP_BUFFERS 3
 
-typedef void (*BufferGetRequirementsFunc)(BEGL_PixmapInfo *bufferRequirements, BEGL_BufferSettings *bufferConstrainedRequirements);
+enum
+{
+   NATIVE_WINDOW_INFO_MAGIC = 0xABBA601D,
+   PIXMAP_INFO_MAGIC = 0x15EEB1A5
+};
+
+typedef void (*BufferGetRequirementsFunc)(BEGL_PixmapInfoEXT *bufferRequirements, BEGL_BufferSettings *bufferConstrainedRequirements);
 
 typedef struct
 {
@@ -60,7 +66,7 @@ static BEGL_Error DispBufferDisplay(void *context, BEGL_BufferDisplayState *stat
 
 #ifdef PNG_OUT
    NXPL_BufferData *buffer = (NXPL_BufferData*)state->buffer;
-   NXPL_NativeWindowInfo *nw = (NXPL_NativeWindowInfo*)state->windowState.window;
+   NXPL_NativeWindowInfoEXT *nw = (NXPL_NativeWindowInfoEXT*)state->windowState.window;
    FILE *fp;
    char fname[256];
    png_structp png_ptr;
@@ -142,7 +148,7 @@ error0:
 /* Flush pending displays until they are all done, then removes all buffers from display. Will block until complete. */
 static BEGL_Error DispWindowUndisplay(void *context, BEGL_WindowState *windowState)
 {
-   NXPL_NativeWindowInfo   *nw = (NXPL_NativeWindowInfo*)windowState->window;
+   NXPL_NativeWindowInfoEXT   *nw = (NXPL_NativeWindowInfoEXT*)windowState->window;
 
    return BEGL_Success;
 }
@@ -222,7 +228,7 @@ static BEGL_Error DispWindowGetInfo(void *context,
                                     BEGL_WindowInfoFlags flags,
                                     BEGL_WindowInfo *info)
 {
-   NXPL_NativeWindowInfo *nw = (NXPL_NativeWindowInfo*)window;
+   NXPL_NativeWindowInfoEXT *nw = (NXPL_NativeWindowInfoEXT*)window;
 
    if (nw != NULL)
    {
@@ -380,9 +386,23 @@ bool NXPL_BufferGetRequirements(NXPL_PlatformHandle handle,
    return false;
 }
 
-bool NXPL_CreateCompatiblePixmap(NXPL_PlatformHandle handle, void **pixmapHandle, NEXUS_SURFACEHANDLE *surface, BEGL_PixmapInfo *info)
+void NXPL_GetDefaultPixmapInfoEXT(BEGL_PixmapInfoEXT *info)
+{
+   if (info != NULL)
+   {
+      memset(info, 0, sizeof(BEGL_PixmapInfoEXT));
+
+      info->format = BEGL_BufferFormat_INVALID;
+      info->magic = PIXMAP_INFO_MAGIC;
+   }
+}
+
+bool NXPL_CreateCompatiblePixmapEXT(NXPL_PlatformHandle handle, void **pixmapHandle, NEXUS_SURFACEHANDLE *surface,
+   BEGL_PixmapInfoEXT *info)
 {
    BEGL_DriverInterfaces *data = (BEGL_DriverInterfaces*)handle;
+
+   assert(info->magic == PIXMAP_INFO_MAGIC);
 
    if (data != NULL && data->displayCallbacks.PixmapCreateCompatiblePixmap != NULL)
    {
@@ -396,6 +416,20 @@ bool NXPL_CreateCompatiblePixmap(NXPL_PlatformHandle handle, void **pixmapHandle
    }
 
    return false;
+}
+
+bool NXPL_CreateCompatiblePixmap(NXPL_PlatformHandle handle, void **pixmapHandle, NEXUS_SURFACEHANDLE *surface,
+   BEGL_PixmapInfo *info)
+{
+   BEGL_PixmapInfoEXT   infoEXT;
+
+   NXPL_GetDefaultPixmapInfoEXT(&infoEXT);
+
+   infoEXT.width = info->width;
+   infoEXT.height = info->height;
+   infoEXT.format = info->format;
+
+   return NXPL_CreateCompatiblePixmapEXT(handle, pixmapHandle, surface, &infoEXT);
 }
 
 void NXPL_DestroyCompatiblePixmap(NXPL_PlatformHandle handle, void *pixmapHandle)
@@ -414,28 +448,78 @@ void NXPL_DestroyCompatiblePixmap(NXPL_PlatformHandle handle, void *pixmapHandle
    }
 }
 
-void *NXPL_CreateNativeWindow(const NXPL_NativeWindowInfo *info)
+void NXPL_GetDefaultNativeWindowInfoEXT(NXPL_NativeWindowInfoEXT *info)
 {
-   NXPL_NativeWindowInfo *nw = (NXPL_NativeWindowInfo*)malloc(sizeof(NXPL_NativeWindowInfo));
-   memset(nw, 0, sizeof(NXPL_NativeWindowInfo));
-   if (nw != NULL && info != NULL)
+   if (info != NULL)
+   {
+      memset(info, 0, sizeof(NXPL_NativeWindowInfoEXT));
+      info->magic = NATIVE_WINDOW_INFO_MAGIC;
+   }
+}
+
+void *NXPL_CreateNativeWindowEXT(const NXPL_NativeWindowInfoEXT *info)
+{
+   NXPL_NativeWindowInfoEXT *nw;
+
+   if (info == NULL)
+      return NULL;
+
+   assert(info->magic == NATIVE_WINDOW_INFO_MAGIC);
+
+   nw = (NXPL_NativeWindowInfoEXT*)malloc(sizeof(NXPL_NativeWindowInfoEXT));
+   memset(nw, 0, sizeof(NXPL_NativeWindowInfoEXT));
+   if (nw != NULL)
       *nw = *info;
 
    return nw;
 }
 
-void NXPL_UpdateNativeWindow(void *native, const NXPL_NativeWindowInfo *info)
+void *NXPL_CreateNativeWindow(const NXPL_NativeWindowInfo *info)
+{
+   /* deprecated API */
+   NXPL_NativeWindowInfoEXT infoEXT;
+   NXPL_GetDefaultNativeWindowInfoEXT(&infoEXT);
+
+   infoEXT.width = info->width;
+   infoEXT.height = info->height;
+   infoEXT.x = info->x;
+   infoEXT.y = info->y;
+   infoEXT.stretch = info->stretch;
+   infoEXT.clientID = info->clientID;
+   infoEXT.zOrder = info->zOrder;
+
+   return NXPL_CreateNativeWindowEXT(&infoEXT);
+}
+
+void NXPL_UpdateNativeWindowEXT(void *native, const NXPL_NativeWindowInfoEXT *info)
 {
    if (info != NULL && native != NULL)
-      *((NXPL_NativeWindowInfo*)native) = *info;
+      *((NXPL_NativeWindowInfoEXT*)native) = *info;
+}
+
+void NXPL_UpdateNativeWindow(void *native, const NXPL_NativeWindowInfo *info)
+{
+   /* deprecated API */
+   NXPL_NativeWindowInfoEXT *nw = (NXPL_NativeWindowInfoEXT*)native;
+
+   if (info != NULL && nw != NULL)
+   {
+      nw->width = info->width;
+      nw->height = info->height;
+      nw->x = info->x;
+      nw->y = info->y;
+      nw->stretch = info->stretch;
+      nw->clientID = info->clientID;
+      nw->zOrder = info->zOrder;
+   }
 }
 
 void NXPL_DestroyNativeWindow(void *nativeWin)
 {
    if (nativeWin != NULL)
    {
-      NXPL_NativeWindowInfo *nw = (NXPL_NativeWindowInfo*)nativeWin;
-      memset(nw, 0, sizeof(NXPL_NativeWindowInfo));
+      NXPL_NativeWindowInfoEXT *nw = (NXPL_NativeWindowInfoEXT*)nativeWin;
+      memset(nw, 0, sizeof(NXPL_NativeWindowInfoEXT));
       free(nw);
    }
 }

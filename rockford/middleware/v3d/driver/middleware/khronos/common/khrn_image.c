@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2008 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2008 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -21,8 +21,6 @@ which is implemented in interface/khronos/common/khrn_int_image.c.
 
 #include "middleware/khronos/egl/egl_server.h"
 #include "middleware/khronos/egl/egl_platform.h"
-
-#include "helpers/vc_image/vc_image.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -123,7 +121,7 @@ void khrn_image_term(void *v, uint32_t size)
    khrn_interlock_term(&image->interlock);
 
    MEM_ASSIGN(image->mh_storage, MEM_INVALID_HANDLE);
-   MEM_ASSIGN(image->mh_aux, MEM_INVALID_HANDLE);
+   MEM_ASSIGN(image->mh_palette, MEM_INVALID_HANDLE);
 
    egl_server_platform_destroy_buffer((uint32_t)image->opaque_buffer_handle, image->window_state);
    image->opaque_buffer_handle = NULL;
@@ -132,8 +130,8 @@ void khrn_image_term(void *v, uint32_t size)
 
 MEM_HANDLE_T khrn_image_create_from_storage(KHRN_IMAGE_FORMAT_T format,
    uint32_t width, uint32_t height, int32_t stride,
-   MEM_HANDLE_T aux_handle, MEM_HANDLE_T storage_handle, uint32_t offset,
-   KHRN_IMAGE_CREATE_FLAG_T flags)
+   MEM_HANDLE_T palette_handle, MEM_HANDLE_T storage_handle, uint32_t offset,
+   KHRN_IMAGE_CREATE_FLAG_T flags, bool secure)
 {
    MEM_HANDLE_T handle;
    KHRN_IMAGE_T *image;
@@ -158,10 +156,10 @@ MEM_HANDLE_T khrn_image_create_from_storage(KHRN_IMAGE_FORMAT_T format,
    image->width = (uint16_t)width;
    image->height = (uint16_t)height;
    image->stride = stride;
-   if (aux_handle != MEM_INVALID_HANDLE) {
-      mem_acquire(aux_handle);
+   if (palette_handle != MEM_INVALID_HANDLE) {
+      mem_acquire(palette_handle);
    }
-   image->mh_aux = aux_handle;
+   image->mh_palette = palette_handle;
    if (storage_handle != MEM_INVALID_HANDLE) {
       mem_acquire(storage_handle);
    }
@@ -172,13 +170,12 @@ MEM_HANDLE_T khrn_image_create_from_storage(KHRN_IMAGE_FORMAT_T format,
       ((flags & IMAGE_CREATE_FLAG_RSO_TEXTURE) ? IMAGE_FLAG_RSO_TEXTURE : 0) |
       ((flags & IMAGE_CREATE_FLAG_RENDER_TARGET) ? IMAGE_FLAG_RENDER_TARGET : 0) |
       ((flags & IMAGE_CREATE_FLAG_DISPLAY) ? IMAGE_FLAG_DISPLAY : 0);
+   image->secure = secure;
    khrn_interlock_init(&image->interlock);
    if (flags & IMAGE_CREATE_FLAG_INVALID) {
       khrn_interlock_invalidate(&image->interlock);
    }
-#ifdef IMAGE_VC_IMAGE
-   khrn_image_fill_vcimage(image, &image->vc_image);
-#endif
+
    image->fence = -1;
 
    mem_unlock(handle);
@@ -194,10 +191,11 @@ MEM_HANDLE_T khrn_image_create_from_storage(KHRN_IMAGE_FORMAT_T format,
 
 MEM_HANDLE_T khrn_image_create(KHRN_IMAGE_FORMAT_T format,
    uint32_t width, uint32_t height,
-   KHRN_IMAGE_CREATE_FLAG_T flags)
+   KHRN_IMAGE_CREATE_FLAG_T flags,
+   bool secure)
 {
    uint32_t padded_width = width, padded_height = height, align = DEFAULT_ALIGN, storage_size;
-   MEM_HANDLE_T aux_handle, storage_handle, handle;
+   MEM_HANDLE_T palette_handle, storage_handle, handle;
 
    vcos_assert(format != IMAGE_FORMAT_INVALID);
 
@@ -207,37 +205,13 @@ MEM_HANDLE_T khrn_image_create(KHRN_IMAGE_FORMAT_T format,
       alloc palette / early z if needed
    */
 
-   aux_handle = MEM_INVALID_HANDLE;
+   palette_handle = MEM_INVALID_HANDLE;
 
    if (khrn_image_is_paletted(format)) {
-      aux_handle = mem_alloc_ex((1 << khrn_image_get_bpp(format)) * sizeof(uint32_t), alignof(uint32_t), MEM_FLAG_NONE, "KHRN_IMAGE_T.aux (palette)", MEM_COMPACT_DISCARD);      // check, no term
-      if (aux_handle == MEM_INVALID_HANDLE) {
+      palette_handle = mem_alloc_ex((1 << khrn_image_get_bpp(format)) * sizeof(uint32_t),
+         alignof(uint32_t), MEM_FLAG_NONE, "KHRN_IMAGE_T.palette", MEM_COMPACT_DISCARD);      // check, no term
+      if (palette_handle == MEM_INVALID_HANDLE) {
          return MEM_INVALID_HANDLE;
-      }
-   }
-
-   if (khrn_hw_supports_early_z() && (format == DEPTH_16_TF || format == DEPTH_32_TF)) {
-      uint32_t early_z_width  = (width  + 3) >> 2;
-      uint32_t early_z_height = (height + 3) >> 2;
-
-      uint32_t aux_size = khrn_image_get_size(format, early_z_width, early_z_height);
-
-      if (flags & IMAGE_CREATE_FLAG_PAD_ROTATE)
-         aux_size = _max(aux_size, khrn_image_get_size(format, early_z_height, early_z_width));
-
-      aux_handle = mem_alloc_ex(
-         aux_size,
-         64, /* todo */
-         (MEM_FLAG_T)(MEM_FLAG_DIRECT | MEM_FLAG_RESIZEABLE | (((flags & IMAGE_CREATE_FLAG_INIT_MASK) == IMAGE_CREATE_FLAG_ZERO) ? (MEM_FLAG_ZERO | MEM_FLAG_INIT) : MEM_FLAG_NO_INIT)),
-         "KHRN_IMAGE_T.aux (early z)",
-         MEM_COMPACT_DISCARD);
-      if (aux_handle == MEM_INVALID_HANDLE) {
-         /* TODO: should we fail, or just silently not create the early z buffer? */
-         return MEM_INVALID_HANDLE;
-      }
-      if ((flags & IMAGE_CREATE_FLAG_INIT_MASK) == IMAGE_CREATE_FLAG_ONE) {
-         khrn_memset(mem_lock(aux_handle, NULL), -1, aux_size);
-         mem_unlock(aux_handle);
       }
    }
 
@@ -252,14 +226,22 @@ MEM_HANDLE_T khrn_image_create(KHRN_IMAGE_FORMAT_T format,
       if (flags & IMAGE_CREATE_FLAG_PAD_ROTATE)
          storage_size = _max(storage_size, khrn_image_get_size(format, padded_height, padded_width));
 
+      MEM_FLAG_T mem_flag =
+         MEM_FLAG_DIRECT | MEM_FLAG_256BIT_PAD | MEM_FLAG_RESIZEABLE;
+      if ((flags & IMAGE_CREATE_FLAG_INIT_MASK) == IMAGE_CREATE_FLAG_ZERO)
+         mem_flag |= MEM_FLAG_ZERO | MEM_FLAG_INIT;
+      else
+         mem_flag |= MEM_FLAG_NO_INIT;
+      if (secure)
+         mem_flag |= (MEM_FLAG_SECURE | MEM_FLAG_NO_INIT);
+
       storage_handle = mem_alloc_ex(storage_size, align,
-         (MEM_FLAG_T)(MEM_FLAG_DIRECT | MEM_FLAG_256BIT_PAD | MEM_FLAG_RESIZEABLE | (((flags & IMAGE_CREATE_FLAG_INIT_MASK) == IMAGE_CREATE_FLAG_ZERO) ? (MEM_FLAG_ZERO | MEM_FLAG_INIT) : MEM_FLAG_NO_INIT)),
+         mem_flag,
          "KHRN_IMAGE_T.storage",
          MEM_COMPACT_DISCARD);     // check, no term
       if (storage_handle == MEM_INVALID_HANDLE) {
-         if (aux_handle != MEM_INVALID_HANDLE) {
-            mem_release(aux_handle);
-         }
+         if (palette_handle != MEM_INVALID_HANDLE)
+            mem_release(palette_handle);
          return MEM_INVALID_HANDLE;
       }
       if ((flags & IMAGE_CREATE_FLAG_INIT_MASK) == IMAGE_CREATE_FLAG_ONE) {
@@ -274,9 +256,9 @@ MEM_HANDLE_T khrn_image_create(KHRN_IMAGE_FORMAT_T format,
 
    handle = khrn_image_create_from_storage(format,
       width, height, khrn_image_get_stride(format, padded_width),
-      aux_handle, storage_handle, 0, flags);
-   if (aux_handle != MEM_INVALID_HANDLE) {
-      mem_release(aux_handle);
+      palette_handle, storage_handle, 0, flags, secure);
+   if (palette_handle != MEM_INVALID_HANDLE) {
+      mem_release(palette_handle);
    }
    if (storage_handle != MEM_INVALID_HANDLE) {
       mem_release(storage_handle);
@@ -289,19 +271,20 @@ MEM_HANDLE_T khrn_image_create_dup(const KHRN_IMAGE_T *src,
    KHRN_IMAGE_CREATE_FLAG_T flags)
 {
    MEM_HANDLE_T handle;
-   KHRN_IMAGE_T *image;
 
    /*
       alloc new image
    */
 
-   handle = khrn_image_create(src->format, src->width, src->height,
-      /* todo: preserve rotate padding? */
-      (KHRN_IMAGE_CREATE_FLAG_T)(flags |
+   KHRN_IMAGE_CREATE_FLAG_T image_create_flags =
       ((src->flags & IMAGE_FLAG_TEXTURE) ? IMAGE_CREATE_FLAG_TEXTURE : 0) |
       ((src->flags & IMAGE_FLAG_RSO_TEXTURE) ? IMAGE_CREATE_FLAG_RSO_TEXTURE : 0) |
       ((src->flags & IMAGE_FLAG_RENDER_TARGET) ? IMAGE_CREATE_FLAG_RENDER_TARGET : 0) |
-      ((src->flags & IMAGE_FLAG_DISPLAY) ? IMAGE_CREATE_FLAG_DISPLAY : 0)));
+      ((src->flags & IMAGE_FLAG_DISPLAY) ? IMAGE_CREATE_FLAG_DISPLAY : 0);
+
+   handle = khrn_image_create(src->format, src->width, src->height,
+      /* todo: preserve rotate padding? */
+      flags | image_create_flags, false);
    if (handle == MEM_INVALID_HANDLE) {
       return MEM_INVALID_HANDLE;
    }
@@ -310,15 +293,15 @@ MEM_HANDLE_T khrn_image_create_dup(const KHRN_IMAGE_T *src,
       copy
    */
 
-   image = (KHRN_IMAGE_T *)mem_lock(handle, NULL);
-   vcos_assert((src->mh_aux == MEM_INVALID_HANDLE) == (image->mh_aux == MEM_INVALID_HANDLE));
-   if (src->mh_aux != MEM_INVALID_HANDLE) {
-      vcos_assert(mem_get_size(src->mh_aux) == mem_get_size(image->mh_aux));
-      khrn_memcpy(mem_lock(image->mh_aux, NULL), mem_lock(src->mh_aux, NULL), mem_get_size(src->mh_aux));
-      mem_unlock(image->mh_aux);
-      mem_unlock(src->mh_aux);
+   KHRN_IMAGE_T *dst = (KHRN_IMAGE_T *)mem_lock(handle, NULL);
+   vcos_assert((src->mh_palette == MEM_INVALID_HANDLE) == (dst->mh_palette == MEM_INVALID_HANDLE));
+   if (src->mh_palette != MEM_INVALID_HANDLE) {
+      vcos_assert(mem_get_size(src->mh_palette) == mem_get_size(dst->mh_palette));
+      khrn_memcpy(mem_lock(dst->mh_palette, NULL), mem_lock(src->mh_palette, NULL), mem_get_size(src->mh_palette));
+      mem_unlock(dst->mh_palette);
+      mem_unlock(src->mh_palette);
    }
-   khrn_image_convert(image, src, IMAGE_CONV_GL);
+   khrn_image_convert(dst, src, IMAGE_CONV_GL);
    mem_unlock(handle);
 
    return handle;
@@ -329,32 +312,15 @@ bool khrn_image_resize(KHRN_IMAGE_T *image, uint32_t width, uint32_t height)
    KHRN_IMAGE_FORMAT_T format = image->format;
    uint32_t padded_width = width, padded_height = height, align = DEFAULT_ALIGN;
 
-   uint32_t flags = (KHRN_IMAGE_CREATE_FLAG_T)(
+   KHRN_IMAGE_CREATE_FLAG_T image_create_flags =
       ((image->flags & IMAGE_FLAG_TEXTURE) ? IMAGE_CREATE_FLAG_TEXTURE : 0) |
       ((image->flags & IMAGE_FLAG_RSO_TEXTURE) ? IMAGE_CREATE_FLAG_RSO_TEXTURE : 0) |
       ((image->flags & IMAGE_FLAG_RENDER_TARGET) ? IMAGE_CREATE_FLAG_RENDER_TARGET : 0) |
-      ((image->flags & IMAGE_FLAG_DISPLAY) ? IMAGE_CREATE_FLAG_DISPLAY : 0));
+      ((image->flags & IMAGE_FLAG_DISPLAY) ? IMAGE_CREATE_FLAG_DISPLAY : 0);
 
-   khrn_image_platform_fudge(&format, &padded_width, &padded_height, &align, flags);
+   khrn_image_platform_fudge(&format, &padded_width, &padded_height, &align, image_create_flags);
    vcos_assert(format == image->format);
    vcos_assert(image->mh_storage == MEM_INVALID_HANDLE || align <= khrn_image_get_align(image));
-
-   /*
-      this function should only be called if we know an external constraint
-      will ensure that our existing backing is sufficiently large
-   */
-
-   if (khrn_hw_supports_early_z() && (image->format == DEPTH_16_TF || image->format == DEPTH_32_TF)) {
-      uint32_t early_z_width  = (width  + 3) >> 2;
-      uint32_t early_z_height = (height + 3) >> 2;
-
-      uint32_t aux_size = khrn_image_get_size(image->format, early_z_width, early_z_height);
-
-      if (mem_get_size(image->mh_aux) < aux_size) {
-         if (!mem_resize_ex(image->mh_aux, aux_size, MEM_COMPACT_DISCARD))
-            return false;
-      }
-   }
 
    if (image->opaque_buffer_handle != NULL)
    {
@@ -390,8 +356,9 @@ bool khrn_image_resize(KHRN_IMAGE_T *image, uint32_t width, uint32_t height)
          MEM_ASSIGN(image->mh_storage, MEM_HANDLE_INVALID);
 
          /* Create new opaque buffer */
-         image->opaque_buffer_handle = (void*)egl_server_platform_create_buffer(image->format,
-                                                         width, height, flags, image->window_state, origSettings.usage);
+         image->opaque_buffer_handle =
+            (void*)egl_server_platform_create_buffer(image->format,
+            width, height, image_create_flags, image->window_state, origSettings.usage, false);
 
          if (driverInterfaces->displayInterface->BufferGetCreateSettings != NULL)
          {
@@ -401,10 +368,10 @@ bool khrn_image_resize(KHRN_IMAGE_T *image, uint32_t width, uint32_t height)
             if (ret == BEGL_Success)
             {
                /* Re-wrap the buffer handle */
-               image->mh_storage = mem_wrap(bufferSettings.cachedAddr,
+               image->mh_storage = mem_wrap(image->secure ? NULL : bufferSettings.cachedAddr,
                                             bufferSettings.physOffset,
                                             bufferSettings.pitchBytes * height,
-                                            align, MEM_FLAG_DIRECT,
+                                            align, MEM_FLAG_DIRECT | (image->secure ? MEM_FLAG_SECURE : 0),
                                             "wrapped pixmap");
             }
          }
@@ -414,7 +381,8 @@ bool khrn_image_resize(KHRN_IMAGE_T *image, uint32_t width, uint32_t height)
    {
       if (image->mh_storage != MEM_INVALID_HANDLE && mem_get_size(image->mh_storage) != 0) {
          uint32_t storage_size = khrn_image_get_size(image->format, padded_width, padded_height);
-         if (mem_get_size(image->mh_storage) < storage_size) {
+         if (mem_get_size(image->mh_storage) < storage_size)
+         {
             if (!mem_resize_ex(image->mh_storage, storage_size, MEM_COMPACT_DISCARD))
                return false;
          }
@@ -425,21 +393,18 @@ bool khrn_image_resize(KHRN_IMAGE_T *image, uint32_t width, uint32_t height)
    image->height = height;
    image->stride = khrn_image_get_stride(image->format, padded_width);
 
-#ifdef IMAGE_VC_IMAGE
-   khrn_image_fill_vcimage(image, &image->vc_image);
-#endif
-
    return true;
 }
 
 void khrn_image_lock_interlock_wrap(KHRN_IMAGE_T *image, KHRN_IMAGE_WRAP_T *wrap, KHRN_INTERLOCK_T *interlock)
 {
    wrap->format = image->format;
+   wrap->secure = image->secure;
    wrap->width = image->width;
    wrap->height = image->height;
    wrap->stride = image->stride;
    wrap->flags = image->flags;
-   wrap->aux = (image->mh_aux == MEM_INVALID_HANDLE) ? NULL : mem_lock(image->mh_aux, NULL);
+   wrap->palette = (image->mh_palette == MEM_INVALID_HANDLE) ? NULL : mem_lock(image->mh_palette, NULL);
    wrap->storage = (char*)mem_lock(image->mh_storage, NULL) + image->offset;
    wrap->interlock = interlock;
 }
@@ -447,8 +412,8 @@ void khrn_image_lock_interlock_wrap(KHRN_IMAGE_T *image, KHRN_IMAGE_WRAP_T *wrap
 void khrn_image_unlock_wrap(const KHRN_IMAGE_T *image)
 {
    mem_unlock(image->mh_storage);
-   if (image->mh_aux != MEM_INVALID_HANDLE) {
-      mem_unlock(image->mh_aux);
+   if (image->mh_palette != MEM_INVALID_HANDLE) {
+      mem_unlock(image->mh_palette);
    }
 }
 
@@ -836,7 +801,7 @@ uint32_t khrn_image_pixel_to_rgba(KHRN_IMAGE_FORMAT_T format, uint32_t pixel, KH
       }
    }
 
-   if ((conv == IMAGE_CONV_VG) && (format & IMAGE_FORMAT_PRE)) {
+   if ((conv == IMAGE_CONV_VG) && khrn_image_is_premultiplied(format)) {
       rgba = khrn_color_rgba_clamp_to_a(rgba);
    }
 
@@ -921,7 +886,7 @@ uint32_t khrn_image_rgba_to_pixel(KHRN_IMAGE_FORMAT_T format, uint32_t rgba, KHR
          (to_5((rgba >> 8) & 0xff) << 5) |
          (to_5((rgba >> 16) & 0xff) << 10) |
          (to_1((rgba >> 24) & 0xff) << 15);
-      if ((conv == IMAGE_CONV_VG) && (format & IMAGE_FORMAT_PRE) && !(pixel & (1 << 15))) {
+      if ((conv == IMAGE_CONV_VG) && khrn_image_is_premultiplied(format) && !(pixel & (1 << 15))) {
          /* keep rgb <= a */
          pixel = 0;
       }
@@ -974,18 +939,19 @@ uint32_t khrn_image_rgba_to_pixel(KHRN_IMAGE_FORMAT_T format, uint32_t rgba, KHR
 
 uint32_t khrn_image_rgba_convert_pre_lin(KHRN_IMAGE_FORMAT_T dst_format, KHRN_IMAGE_FORMAT_T src_format, uint32_t rgba)
 {
-   if ((dst_format ^ src_format) & (IMAGE_FORMAT_PRE | IMAGE_FORMAT_LIN)) {
-      if (src_format & IMAGE_FORMAT_PRE) {
+   if (khrn_image_is_linear(dst_format ^ src_format) ||
+      khrn_image_is_premultiplied(dst_format ^ src_format)) {
+      if (khrn_image_is_premultiplied(src_format)) {
          rgba = khrn_color_rgba_unpre(rgba);
       }
-      if ((dst_format ^ src_format) & IMAGE_FORMAT_LIN) {
-         if (dst_format & IMAGE_FORMAT_LIN) {
+      if (khrn_image_is_linear(dst_format ^ src_format)) {
+         if (khrn_image_is_linear(dst_format)) {
             rgba = khrn_color_rgba_s_to_lin(rgba);
          } else {
             rgba = khrn_color_rgba_lin_to_s(rgba);
          }
       }
-      if (dst_format & IMAGE_FORMAT_PRE) {
+      if (khrn_image_is_premultiplied(dst_format)) {
          rgba = khrn_color_rgba_pre(rgba);
       }
    }
@@ -995,14 +961,14 @@ uint32_t khrn_image_rgba_convert_pre_lin(KHRN_IMAGE_FORMAT_T dst_format, KHRN_IM
 uint32_t khrn_image_rgba_convert_l_pre_lin(KHRN_IMAGE_FORMAT_T dst_format, KHRN_IMAGE_FORMAT_T src_format, uint32_t rgba)
 {
    if ((dst_format & IMAGE_FORMAT_L) && !(src_format & IMAGE_FORMAT_L)) {
-      if (!(src_format & IMAGE_FORMAT_LIN) && (src_format & IMAGE_FORMAT_PRE)) {
+      if (!khrn_image_is_linear(src_format) && khrn_image_is_premultiplied(src_format)) {
          rgba = khrn_color_rgba_unpre(rgba);
          src_format = (KHRN_IMAGE_FORMAT_T)(src_format & ~IMAGE_FORMAT_PRE);
       }
-      if ((dst_format | src_format) & IMAGE_FORMAT_LIN) {
-         if (!(src_format & IMAGE_FORMAT_LIN)) {
+      if (khrn_image_is_linear(dst_format) || khrn_image_is_linear(src_format)) {
+         if (!khrn_image_is_linear(src_format)) {
             rgba = khrn_color_rgba_s_to_lin(rgba);
-            src_format = (KHRN_IMAGE_FORMAT_T)(src_format | IMAGE_FORMAT_LIN);
+            src_format = khrn_image_to_linear_format(src_format);
          }
          rgba = khrn_color_rgba_to_la_lin(rgba);
       } else {
@@ -1076,15 +1042,18 @@ static void copy_pixel(
 
    if (((dst->format ^ src->format) & ~IMAGE_FORMAT_MEM_LAYOUT_MASK) ||
       /* need khrn_image_pixel_to_rgba to clamp rgb to a */
-      ((conv == IMAGE_CONV_VG) && khrn_image_is_color(src->format) && (src->format & IMAGE_FORMAT_PRE))) {
+      ((conv == IMAGE_CONV_VG) &&
+       khrn_image_is_color(src->format) &&
+       khrn_image_is_premultiplied(src->format))
+       ) {
       if (khrn_image_is_paletted(src->format) && khrn_image_is_color(dst->format)) {
          /* we can convert from paletted to non-paletted by doing palette lookups */
          uint32_t rgba;
 
-         vcos_assert(src->aux);
+         vcos_assert(src->palette);
          vcos_assert(pixel < 16);
 
-         rgba = ((uint32_t *)src->aux)[pixel];
+         rgba = ((uint32_t *)src->palette)[pixel];
          /* TODO: would lum/pre/lin conversion make sense here? */
          pixel = khrn_image_rgba_to_pixel(dst->format, rgba, conv);
       } else {
@@ -2226,8 +2195,8 @@ static bool khrn_copy_YUYV_to_rso(
 
    for (y = 0; y < height; y++)
    {
-      uint8_t *dstRow = (uint8_t*)((dstStartY + y) * dstWidth * 2 + (dstStartX * 2));
-      uint8_t *srcRow = (uint8_t*)((srcStartY + y) * srcStride + (srcStartX * 2));
+      uint8_t *dstRow = dst + ((dstStartY + y) * dstWidth * 2 + (dstStartX * 2));
+      uint8_t *srcRow = src + ((srcStartY + y) * srcStride + (srcStartX * 2));
 
       khrn_memcpy(dstRow, srcRow, width * 2);
    }
@@ -2374,10 +2343,14 @@ static bool OPTIMIZE_FN khrn_copy_888_to_tf32(
                   tmp1 = vld1q_lane_u32(&src0[ 4], tmp1, 1);
                   tmp1 = vld1q_lane_u32(&src0[ 5], tmp1, 2);
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-braces"
+                  /* GCC incorrectly warns here, fixed in GCC 5.x */
                   tmp0 = vcombine_u32(vreinterpret_u32_u8(vtbl2_u8(uint32x4_to_8x8x2(tmp0), vget_low_u8(swizzle))),
                                       vreinterpret_u32_u8(vtbl2_u8(uint32x4_to_8x8x2(tmp0), vget_high_u8(swizzle))));
                   tmp1 = vcombine_u32(vreinterpret_u32_u8(vtbl2_u8(uint32x4_to_8x8x2(tmp1), vget_low_u8(swizzle))),
                                       vreinterpret_u32_u8(vtbl2_u8(uint32x4_to_8x8x2(tmp1), vget_high_u8(swizzle))));
+#pragma GCC diagnostic pop
 
                   vst1q_u32(&dest[0x00], tmp0);
                   vst1q_u32(&dest[0x10], tmp1);
@@ -2391,10 +2364,14 @@ static bool OPTIMIZE_FN khrn_copy_888_to_tf32(
                   tmp1 = vld1q_lane_u32(&src1[ 4], tmp1, 1);
                   tmp1 = vld1q_lane_u32(&src1[ 5], tmp1, 2);
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-braces"
+                  /* GCC incorrectly warns here, fixed in GCC 5.x */
                   tmp0 = vcombine_u32(vreinterpret_u32_u8(vtbl2_u8(uint32x4_to_8x8x2(tmp0), vget_low_u8(swizzle))),
                                       vreinterpret_u32_u8(vtbl2_u8(uint32x4_to_8x8x2(tmp0), vget_high_u8(swizzle))));
                   tmp1 = vcombine_u32(vreinterpret_u32_u8(vtbl2_u8(uint32x4_to_8x8x2(tmp1), vget_low_u8(swizzle))),
                                       vreinterpret_u32_u8(vtbl2_u8(uint32x4_to_8x8x2(tmp1), vget_high_u8(swizzle))));
+#pragma GCC diagnostic pop
 
                   vst1q_u32(&dest[0x04], tmp0);
                   vst1q_u32(&dest[0x14], tmp1);
@@ -2408,10 +2385,14 @@ static bool OPTIMIZE_FN khrn_copy_888_to_tf32(
                   tmp1 = vld1q_lane_u32(&src2[ 4], tmp1, 1);
                   tmp1 = vld1q_lane_u32(&src2[ 5], tmp1, 2);
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-braces"
+                  /* GCC incorrectly warns here, fixed in GCC 5.x */
                   tmp0 = vcombine_u32(vreinterpret_u32_u8(vtbl2_u8(uint32x4_to_8x8x2(tmp0), vget_low_u8(swizzle))),
                                       vreinterpret_u32_u8(vtbl2_u8(uint32x4_to_8x8x2(tmp0), vget_high_u8(swizzle))));
                   tmp1 = vcombine_u32(vreinterpret_u32_u8(vtbl2_u8(uint32x4_to_8x8x2(tmp1), vget_low_u8(swizzle))),
                                       vreinterpret_u32_u8(vtbl2_u8(uint32x4_to_8x8x2(tmp1), vget_high_u8(swizzle))));
+#pragma GCC diagnostic pop
 
                   vst1q_u32(&dest[0x08], tmp0);
                   vst1q_u32(&dest[0x18], tmp1);
@@ -2425,10 +2406,14 @@ static bool OPTIMIZE_FN khrn_copy_888_to_tf32(
                   tmp1 = vld1q_lane_u32(&src3[ 4], tmp1, 1);
                   tmp1 = vld1q_lane_u32(&src3[ 5], tmp1, 2);
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-braces"
+                  /* GCC incorrectly warns here, fixed in GCC 5.x */
                   tmp0 = vcombine_u32(vreinterpret_u32_u8(vtbl2_u8(uint32x4_to_8x8x2(tmp0), vget_low_u8(swizzle))),
                                       vreinterpret_u32_u8(vtbl2_u8(uint32x4_to_8x8x2(tmp0), vget_high_u8(swizzle))));
                   tmp1 = vcombine_u32(vreinterpret_u32_u8(vtbl2_u8(uint32x4_to_8x8x2(tmp1), vget_low_u8(swizzle))),
                                       vreinterpret_u32_u8(vtbl2_u8(uint32x4_to_8x8x2(tmp1), vget_high_u8(swizzle))));
+#pragma GCC diagnostic pop
 
                   vst1q_u32(&dest[0x0c], tmp0);
                   vst1q_u32(&dest[0x1c], tmp1);
@@ -2442,10 +2427,14 @@ static bool OPTIMIZE_FN khrn_copy_888_to_tf32(
                   tmp1 = vld1q_lane_u32(&src0[10], tmp1, 1);
                   tmp1 = vld1q_lane_u32(&src0[11], tmp1, 2);
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-braces"
+                  /* GCC incorrectly warns here, fixed in GCC 5.x */
                   tmp0 = vcombine_u32(vreinterpret_u32_u8(vtbl2_u8(uint32x4_to_8x8x2(tmp0), vget_low_u8(swizzle))),
                                       vreinterpret_u32_u8(vtbl2_u8(uint32x4_to_8x8x2(tmp0), vget_high_u8(swizzle))));
                   tmp1 = vcombine_u32(vreinterpret_u32_u8(vtbl2_u8(uint32x4_to_8x8x2(tmp1), vget_low_u8(swizzle))),
                                       vreinterpret_u32_u8(vtbl2_u8(uint32x4_to_8x8x2(tmp1), vget_high_u8(swizzle))));
+#pragma GCC diagnostic pop
 
                   vst1q_u32(&dest[0x20], tmp0);
                   vst1q_u32(&dest[0x30], tmp1);
@@ -2459,10 +2448,14 @@ static bool OPTIMIZE_FN khrn_copy_888_to_tf32(
                   tmp1 = vld1q_lane_u32(&src1[10], tmp1, 1);
                   tmp1 = vld1q_lane_u32(&src1[11], tmp1, 2);
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-braces"
+                  /* GCC incorrectly warns here, fixed in GCC 5.x */
                   tmp0 = vcombine_u32(vreinterpret_u32_u8(vtbl2_u8(uint32x4_to_8x8x2(tmp0), vget_low_u8(swizzle))),
                                       vreinterpret_u32_u8(vtbl2_u8(uint32x4_to_8x8x2(tmp0), vget_high_u8(swizzle))));
                   tmp1 = vcombine_u32(vreinterpret_u32_u8(vtbl2_u8(uint32x4_to_8x8x2(tmp1), vget_low_u8(swizzle))),
                                       vreinterpret_u32_u8(vtbl2_u8(uint32x4_to_8x8x2(tmp1), vget_high_u8(swizzle))));
+#pragma GCC diagnostic pop
 
                   vst1q_u32(&dest[0x24], tmp0);
                   vst1q_u32(&dest[0x34], tmp1);
@@ -2476,10 +2469,14 @@ static bool OPTIMIZE_FN khrn_copy_888_to_tf32(
                   tmp1 = vld1q_lane_u32(&src2[10], tmp1, 1);
                   tmp1 = vld1q_lane_u32(&src2[11], tmp1, 2);
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-braces"
+                  /* GCC incorrectly warns here, fixed in GCC 5.x */
                   tmp0 = vcombine_u32(vreinterpret_u32_u8(vtbl2_u8(uint32x4_to_8x8x2(tmp0), vget_low_u8(swizzle))),
                                       vreinterpret_u32_u8(vtbl2_u8(uint32x4_to_8x8x2(tmp0), vget_high_u8(swizzle))));
                   tmp1 = vcombine_u32(vreinterpret_u32_u8(vtbl2_u8(uint32x4_to_8x8x2(tmp1), vget_low_u8(swizzle))),
                                       vreinterpret_u32_u8(vtbl2_u8(uint32x4_to_8x8x2(tmp1), vget_high_u8(swizzle))));
+#pragma GCC diagnostic pop
 
                   vst1q_u32(&dest[0x28], tmp0);
                   vst1q_u32(&dest[0x38], tmp1);
@@ -2493,10 +2490,14 @@ static bool OPTIMIZE_FN khrn_copy_888_to_tf32(
                   tmp1 = vld1q_lane_u32(&src3[10], tmp1, 1);
                   tmp1 = vld1q_lane_u32(&src3[11], tmp1, 2);
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-braces"
+                  /* GCC incorrectly warns here, fixed in GCC 5.x */
                   tmp0 = vcombine_u32(vreinterpret_u32_u8(vtbl2_u8(uint32x4_to_8x8x2(tmp0), vget_low_u8(swizzle))),
                                       vreinterpret_u32_u8(vtbl2_u8(uint32x4_to_8x8x2(tmp0), vget_high_u8(swizzle))));
                   tmp1 = vcombine_u32(vreinterpret_u32_u8(vtbl2_u8(uint32x4_to_8x8x2(tmp1), vget_low_u8(swizzle))),
                                       vreinterpret_u32_u8(vtbl2_u8(uint32x4_to_8x8x2(tmp1), vget_high_u8(swizzle))));
+#pragma GCC diagnostic pop
 
                   vst1q_u32(&dest[0x2c], tmp0);
                   vst1q_u32(&dest[0x3c], tmp1);
@@ -2571,10 +2572,14 @@ static bool OPTIMIZE_FN khrn_copy_888_to_tf32(
                tmp1 = vld1q_lane_u32(&src_texel[ 4], tmp1, 1);
                tmp1 = vld1q_lane_u32(&src_texel[ 5], tmp1, 2);
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-braces"
+                  /* GCC incorrectly warns here, fixed in GCC 5.x */
                tmp0 = vcombine_u32(vreinterpret_u32_u8(vtbl2_u8(uint32x4_to_8x8x2(tmp0), vget_low_u8(swizzle))),
                                     vreinterpret_u32_u8(vtbl2_u8(uint32x4_to_8x8x2(tmp0), vget_high_u8(swizzle))));
                tmp1 = vcombine_u32(vreinterpret_u32_u8(vtbl2_u8(uint32x4_to_8x8x2(tmp1), vget_low_u8(swizzle))),
                                     vreinterpret_u32_u8(vtbl2_u8(uint32x4_to_8x8x2(tmp1), vget_high_u8(swizzle))));
+#pragma GCC diagnostic pop
 
                vst1q_u32(&rowAddr0[0x00], tmp0);
                vst1q_u32(&rowAddr0[0x10], tmp1);
@@ -2587,10 +2592,14 @@ static bool OPTIMIZE_FN khrn_copy_888_to_tf32(
                tmp1 = vld1q_lane_u32(&src_texel[10], tmp1, 1);
                tmp1 = vld1q_lane_u32(&src_texel[11], tmp1, 2);
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-braces"
+                  /* GCC incorrectly warns here, fixed in GCC 5.x */
                tmp0 = vcombine_u32(vreinterpret_u32_u8(vtbl2_u8(uint32x4_to_8x8x2(tmp0), vget_low_u8(swizzle))),
                                     vreinterpret_u32_u8(vtbl2_u8(uint32x4_to_8x8x2(tmp0), vget_high_u8(swizzle))));
                tmp1 = vcombine_u32(vreinterpret_u32_u8(vtbl2_u8(uint32x4_to_8x8x2(tmp1), vget_low_u8(swizzle))),
                                     vreinterpret_u32_u8(vtbl2_u8(uint32x4_to_8x8x2(tmp1), vget_high_u8(swizzle))));
+#pragma GCC diagnostic pop
 
                vst1q_u32(&rowAddr0[0x20], tmp0);
                vst1q_u32(&rowAddr0[0x30], tmp1);
@@ -2604,10 +2613,14 @@ static bool OPTIMIZE_FN khrn_copy_888_to_tf32(
                tmp1 = vld1q_lane_u32(&src_texel[16], tmp1, 1);
                tmp1 = vld1q_lane_u32(&src_texel[17], tmp1, 2);
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-braces"
+                  /* GCC incorrectly warns here, fixed in GCC 5.x */
                tmp0 = vcombine_u32(vreinterpret_u32_u8(vtbl2_u8(uint32x4_to_8x8x2(tmp0), vget_low_u8(swizzle))),
                                     vreinterpret_u32_u8(vtbl2_u8(uint32x4_to_8x8x2(tmp0), vget_high_u8(swizzle))));
                tmp1 = vcombine_u32(vreinterpret_u32_u8(vtbl2_u8(uint32x4_to_8x8x2(tmp1), vget_low_u8(swizzle))),
                                     vreinterpret_u32_u8(vtbl2_u8(uint32x4_to_8x8x2(tmp1), vget_high_u8(swizzle))));
+#pragma GCC diagnostic pop
 
                vst1q_u32(&rowAddr1[0x00], tmp0);
                vst1q_u32(&rowAddr1[0x10], tmp1);
@@ -2620,10 +2633,14 @@ static bool OPTIMIZE_FN khrn_copy_888_to_tf32(
                tmp1 = vld1q_lane_u32(&src_texel[22], tmp1, 1);
                tmp1 = vld1q_lane_u32(&src_texel[23], tmp1, 2);
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-braces"
+                  /* GCC incorrectly warns here, fixed in GCC 5.x */
                tmp0 = vcombine_u32(vreinterpret_u32_u8(vtbl2_u8(uint32x4_to_8x8x2(tmp0), vget_low_u8(swizzle))),
                                     vreinterpret_u32_u8(vtbl2_u8(uint32x4_to_8x8x2(tmp0), vget_high_u8(swizzle))));
                tmp1 = vcombine_u32(vreinterpret_u32_u8(vtbl2_u8(uint32x4_to_8x8x2(tmp1), vget_low_u8(swizzle))),
                                     vreinterpret_u32_u8(vtbl2_u8(uint32x4_to_8x8x2(tmp1), vget_high_u8(swizzle))));
+#pragma GCC diagnostic pop
 
                vst1q_u32(&rowAddr1[0x20], tmp0);
                vst1q_u32(&rowAddr1[0x30], tmp1);
@@ -3710,11 +3727,11 @@ void khrn_image_wrap_copy_region(
       khrn_image_interlock_wrap(&rgba_dst,
          ABGR_8888 | (dst->format & IMAGE_FORMAT_MEM_LAYOUT_MASK),
          2*((dst->width+3)/4), (dst->height+3)/4,
-         4*dst->stride, dst->flags, dst->storage, NULL);
+         4 * dst->stride, dst->flags, false, dst->storage, NULL);
       khrn_image_interlock_wrap(&rgba_src,
          ABGR_8888 | (src->format & IMAGE_FORMAT_MEM_LAYOUT_MASK),
          2*((src->width+3)/4), (src->height+3)/4,
-         4*src->stride, src->flags, src->storage, NULL);
+         4 * src->stride, src->flags, false, src->storage, NULL);
       khrn_image_wrap_copy_region(
          &rgba_dst, dst_x/4, dst_y/4, 2*((width+3)/4), (height+3)/4,
          &rgba_src, src_x/4, src_y/4, IMAGE_CONV_GL);
@@ -4542,17 +4559,25 @@ bool khrn_image_alloc_storage(KHRN_IMAGE_T *image, const char *description)
       KHRN_IMAGE_FORMAT_T format = image->format;
       uint32_t padded_width = image->width, padded_height = image->height, align = DEFAULT_ALIGN;
 
-      khrn_image_platform_fudge(&format, &padded_width, &padded_height, &align, (KHRN_IMAGE_CREATE_FLAG_T)(
+      KHRN_IMAGE_CREATE_FLAG_T image_create_flags =
          ((image->flags & IMAGE_FLAG_TEXTURE) ? IMAGE_CREATE_FLAG_TEXTURE : 0) |
          ((image->flags & IMAGE_FLAG_RSO_TEXTURE) ? IMAGE_CREATE_FLAG_RSO_TEXTURE : 0) |
          ((image->flags & IMAGE_FLAG_RENDER_TARGET) ? IMAGE_CREATE_FLAG_RENDER_TARGET : 0) |
-         ((image->flags & IMAGE_FLAG_DISPLAY) ? IMAGE_CREATE_FLAG_DISPLAY : 0)));
+         ((image->flags & IMAGE_FLAG_DISPLAY) ? IMAGE_CREATE_FLAG_DISPLAY : 0);
+
+      khrn_image_platform_fudge(&format, &padded_width, &padded_height, &align, image_create_flags);
 
       storage_size = khrn_image_get_size(image->format, padded_width, padded_height);
 
       /* TODO: I'm ignoring stagger/rotate here (see khrn_image_create calculation of storage_size) */
+      MEM_FLAG_T mem_flag =
+         MEM_FLAG_DIRECT | MEM_FLAG_NO_INIT | MEM_FLAG_RESIZEABLE;
+
+      if (image->secure)
+         mem_flag |= MEM_FLAG_SECURE;
+
       handle = mem_alloc_ex(storage_size, 4096,
-         (MEM_FLAG_T)(MEM_FLAG_DIRECT | MEM_FLAG_NO_INIT | MEM_FLAG_RESIZEABLE),
+         mem_flag,
          description,
          MEM_COMPACT_DISCARD);
 
@@ -4563,44 +4588,15 @@ bool khrn_image_alloc_storage(KHRN_IMAGE_T *image, const char *description)
       mem_release(handle);
 
 #ifdef DEBUG
-      /* Fill image with known colour rather than snow */
-      if (khrn_image_is_color(image->format) && (khrn_image_is_rso(image->format) ||
-          khrn_image_is_tformat(image->format) || khrn_image_is_lineartile(image->format)))
-         khrn_image_clear_region(image, 0, 0, image->width, image->height, 0xff0080ff, IMAGE_CONV_GL);
+      /* secure can't hit this buffer with CPU, so ignore */
+      if (!khrn_image_is_secure(image->format))
+      {
+         /* Fill image with known color rather than snow */
+         if (khrn_image_is_color(image->format) && (khrn_image_is_rso(image->format) ||
+            khrn_image_is_tformat(image->format) || khrn_image_is_lineartile(image->format)))
+            khrn_image_clear_region(image, 0, 0, image->width, image->height, 0xff0080ff, IMAGE_CONV_GL);
+      }
 #endif
    }
    return true;
-}
-
-void khrn_image_fill_vcimage(const KHRN_IMAGE_T *image, VC_IMAGE_T *vc_image)
-{
-   memset(vc_image, 0, sizeof(*vc_image));
-
-   if (khrn_image_is_color(image->format)) {
-      switch (image->format & ~(IMAGE_FORMAT_PRE | IMAGE_FORMAT_LIN | IMAGE_FORMAT_OVG)) {
-      case ABGR_8888_TF:  vc_image->type = VC_IMAGE_TF_RGBA32;   break;
-      case XBGR_8888_TF:  vc_image->type = VC_IMAGE_TF_RGBX32;   break;
-      case RGBA_4444_TF:  vc_image->type = VC_IMAGE_TF_RGBA16;   break;
-      case RGBA_5551_TF:  vc_image->type = VC_IMAGE_TF_RGBA5551; break;
-      case RGB_565_TF:    vc_image->type = VC_IMAGE_TF_RGB565;   break;
-      case ABGR_8888_RSO:
-      case ARGB_8888_RSO: vc_image->type = VC_IMAGE_RGBA32;      break;   //TODO: color channels in the right order? Right upside-downness? (one of these is wrong!)
-      case XBGR_8888_RSO: vc_image->type = VC_IMAGE_RGBX32;      break;
-      case RGB_565_RSO:   vc_image->type = VC_IMAGE_RGB565;      break;   //if you change these, make sure it doesn't break EGL_KHR_lock_surface
-      case ARGB_4444_RSO: vc_image->type = VC_IMAGE_RGBA16;      break;
-      default:
-         UNREACHABLE();
-         vc_image->type = 0;
-      }
-   } else if (khrn_image_is_packed_mask(image->format)) {
-      vc_image->type = VC_IMAGE_TF_RGBX32;
-   } else {
-      UNREACHABLE();
-      vc_image->type = 0;
-   }
-   vc_image->width = image->width;
-   vc_image->height = (uint16_t)(khrn_image_is_packed_mask(image->format) ? khrn_image_get_packed_mask_height(image->height) : image->height);
-   vc_image->pitch = image->stride;
-   vc_image->size = mem_get_size(image->mh_storage);
-   vc_image->mem_handle = image->mh_storage;
 }

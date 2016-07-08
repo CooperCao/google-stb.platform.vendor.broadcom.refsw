@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2008 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2008 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -180,11 +180,6 @@ void khrn_hw_common_wait(void)
    khrn_hw_wait();
 }
 
-bool khrn_hw_supports_early_z(void)
-{
-   return false;
-}
-
 void lockCallback(void)
 {
    vcos_mutex_lock(&s_callbackMutex);
@@ -266,9 +261,9 @@ void khrn_swapbuffers_job_done(BEGL_HWCallbackRecord *cbRecord)
    free(cbRecord);
 }
 
-void khrn_issue_bin_render_job(GLXX_HW_RENDER_STATE_T *rs)
+void khrn_issue_bin_render_job(GLXX_HW_RENDER_STATE_T *rs, bool secure)
 {
-   BEGL_HWBinMemorySettings   settings;
+   BEGL_HWBinMemorySettings   settings = { 0 };
    BEGL_HWBinMemory           binMemory;
    BEGL_HWCallbackRecord      *callback_data = (BEGL_HWCallbackRecord*)calloc(sizeof(BEGL_HWCallbackRecord), 1);
    BEGL_HWJob                 job;
@@ -282,6 +277,7 @@ void khrn_issue_bin_render_job(GLXX_HW_RENDER_STATE_T *rs)
    callback_data->payload[0] = (uint32_t)fmem;
    callback_data->payload[1] = (uint32_t)rs->fence_active;
 
+   settings.secure = secure;
    if (!BEGL_GetDriverInterfaces()->hwInterface->GetBinMemory(BEGL_GetDriverInterfaces()->hwInterface->context, &settings, &binMemory))
    {
       /* Flush out any pending jobs and try again */
@@ -292,6 +288,7 @@ void khrn_issue_bin_render_job(GLXX_HW_RENDER_STATE_T *rs)
    }
 
    job.binMemory = binMemory.address;
+   job.binMemorySecure = secure;
 
    khrn_fmem_prep_for_job(fmem, binMemory.address, binMemory.size);
 
@@ -301,6 +298,10 @@ void khrn_issue_bin_render_job(GLXX_HW_RENDER_STATE_T *rs)
       anything.  Causes corruption on startup which doesnt look good */
    if (!abandon)
    {
+      job.program[i].operation         = BEGL_HW_OP_SECURE;
+      job.program[i].arg1              = secure;
+      i++;
+
       if (rs->vshader_has_texture)
       {
          /* The vertex shader for this job uses a texture which could
@@ -368,7 +369,7 @@ void khrn_issue_vg_job(VG_BE_RENDER_STATE_T *rs,
                        bool storeFrameUsed,
                        bool maskUsed)
 {
-   BEGL_HWBinMemorySettings   settings;
+   BEGL_HWBinMemorySettings   settings = { 0 };
    BEGL_HWBinMemory           binMemory;
    BEGL_HWCallbackRecord      *callback_data = (BEGL_HWCallbackRecord*)calloc(sizeof(BEGL_HWCallbackRecord), 1);
    BEGL_HWJob                 job;
@@ -396,6 +397,7 @@ void khrn_issue_vg_job(VG_BE_RENDER_STATE_T *rs,
    }
 
    job.binMemory = binMemory.address;
+   job.binMemorySecure = false;
 
    khrn_fmem_prep_for_job(fmem, binMemory.address, binMemory.size);
 
@@ -476,7 +478,8 @@ void khrn_vg_job_done(BEGL_HWCallbackRecord *cbRecord, uint64_t job_sequence)
 #endif /* NO_OPENVG */
 
 /* Submit a tf convert job */
-void khrn_issue_tfconvert_job(KHRN_FMEM_T *fmem, MEM_HANDLE_T heglimage, uint8_t *ctrlListPtr, uint32_t numBytes)
+void khrn_issue_tfconvert_job(KHRN_FMEM_T *fmem, MEM_HANDLE_T heglimage,
+   uint8_t *ctrlListPtr, uint32_t numBytes, bool secure)
 {
    BEGL_HWCallbackRecord   *callback_data = (BEGL_HWCallbackRecord*)calloc(sizeof(BEGL_HWCallbackRecord), 1);
    BEGL_HWJob              job;
@@ -496,13 +499,16 @@ void khrn_issue_tfconvert_job(KHRN_FMEM_T *fmem, MEM_HANDLE_T heglimage, uint8_t
    convData->semaphoreTaken = false;
    convData->numCLBytes = numBytes;
 
-   job.program[0].operation     = BEGL_HW_OP_SYNC;
-   job.program[0].callbackParam = (uint32_t)callback_data;
+   job.program[0].operation = BEGL_HW_OP_SECURE;
+   job.program[0].arg1 = secure;
 
-   job.program[1].operation     = BEGL_HW_OP_RENDER;
-   job.program[1].arg1          = khrn_hw_addr(fmem->render_begin, &fmem->render_begin_lbh);
-   job.program[1].arg2          = khrn_hw_addr(fmem->cle_pos, &fmem->lbh);
+   job.program[1].operation     = BEGL_HW_OP_SYNC;
    job.program[1].callbackParam = (uint32_t)callback_data;
+
+   job.program[2].operation     = BEGL_HW_OP_RENDER;
+   job.program[2].arg1          = khrn_hw_addr(fmem->render_begin, &fmem->render_begin_lbh);
+   job.program[2].arg2          = khrn_hw_addr(fmem->cle_pos, &fmem->lbh);
+   job.program[2].callbackParam = (uint32_t)callback_data;
 
    /* The dcache will be flushed during the Sync callback for lock, so no need to do it here */
 
@@ -510,7 +516,7 @@ void khrn_issue_tfconvert_job(KHRN_FMEM_T *fmem, MEM_HANDLE_T heglimage, uint8_t
 }
 
 /* Submit a job to copy a buffer */
-void khrn_issue_copy_buffer_job(KHRN_FMEM_T *fmem, MEM_HANDLE_T dst, MEM_HANDLE_T src, uint32_t numCLBytes)
+void khrn_issue_copy_buffer_job(KHRN_FMEM_T *fmem, MEM_HANDLE_T dst, MEM_HANDLE_T src, uint32_t numCLBytes, bool secure)
 {
    BEGL_HWCallbackRecord   *callback_data = (BEGL_HWCallbackRecord*)calloc(sizeof(BEGL_HWCallbackRecord), 1);
    BEGL_HWJob              job;
@@ -524,10 +530,13 @@ void khrn_issue_copy_buffer_job(KHRN_FMEM_T *fmem, MEM_HANDLE_T dst, MEM_HANDLE_
 
    khrn_fmem_prep_for_render_only_job(fmem);
 
-   job.program[0].operation     = BEGL_HW_OP_RENDER;
-   job.program[0].arg1          = khrn_hw_addr(fmem->render_begin, &fmem->render_begin_lbh);
-   job.program[0].arg2          = khrn_hw_addr(fmem->cle_pos, &fmem->lbh);
-   job.program[0].callbackParam = (uint32_t)callback_data;
+   job.program[0].operation = BEGL_HW_OP_SECURE;
+   job.program[0].arg1 = secure;
+
+   job.program[1].operation     = BEGL_HW_OP_RENDER;
+   job.program[1].arg1          = khrn_hw_addr(fmem->render_begin, &fmem->render_begin_lbh);
+   job.program[1].arg2          = khrn_hw_addr(fmem->cle_pos, &fmem->lbh);
+   job.program[1].callbackParam = (uint32_t)callback_data;
 
    khrn_hw_flush_dcache_range(fmem->render_begin, numCLBytes);
 

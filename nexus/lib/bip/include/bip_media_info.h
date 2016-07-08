@@ -1,7 +1,7 @@
 /******************************************************************************
- * (c) 2007-2016 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -37,7 +37,6 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 
 #ifndef BIP_MEDIA_INFO_NEW_H
@@ -558,7 +557,7 @@ This structure defines Track-specific information.
 struct BIP_MediaInfoTrack
 {
     BIP_MediaInfoTrackType trackType;                /*!< Type of Track: Audio/Video/Pcr */
-    unsigned               trackId;             /*!< Unique Track ID (PID for MPEG2-TS, track_ID for ISOBMFF) */
+    unsigned               trackId;                  /*!< Unique Track ID (PID for MPEG2-TS, track_ID for ISOBMFF) */
 
     BIP_MediaInfoTrack   *pNextTrackForStream;     /*!< Pointer to next Track in Stream's Track list. */
     BIP_MediaInfoTrack   *pNextTrackForTrackGroup; /*!< Pointer to next Track in same TrackGroup. */
@@ -694,7 +693,11 @@ BIP_MediaInfo_MakeNavForTsFile(
     const BIP_MediaInfoMakeNavForTsSettings *pMakeNavForTsSettings /*!< Optional address of a BIP_MediaInfoMakeNavForTsSettings structure.  */
                                                                      /*!< Passing NULL will use default settings.*/
     );
-
+/**
+Summary:
+Print the BIP_MediaInfo related information on console.
+**/
+void BIP_MediaInfo_Print(BIP_MediaInfoHandle hMediaInfo);
 
 #ifdef __cplusplus
 }

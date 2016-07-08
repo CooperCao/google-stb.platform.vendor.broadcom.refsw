@@ -1,61 +1,81 @@
 /******************************************************************************
-* (c) 2014 Broadcom Corporation
-*
-* This program is the proprietary software of Broadcom Corporation and/or its
-* licensors, and may only be used, duplicated, modified or distributed pursuant
-* to the terms and conditions of a separate, written license agreement executed
-* between you and Broadcom (an "Authorized License").  Except as set forth in
-* an Authorized License, Broadcom grants no license (express or implied), right
-* to use, or waiver of any kind with respect to the Software, and Broadcom
-* expressly reserves all rights in and to the Software and all intellectual
-* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1. This program, including its structure, sequence and organization,
-*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-*    reasonable efforts to protect the confidentiality thereof, and to use
-*    this information only in connection with your use of Broadcom integrated
-*    circuit products.
-*
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-******************************************************************************/
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ ******************************************************************************/
 #ifndef BHAB_LEAP_PRIV_H
 #define BHAB_LEAP_PRIV_H
 
+#if BHAB_CHIP==7364 || BHAB_CHIP==75525
+#define BHAB_SOC_FRONTEND           1
+#endif
+#if BHAB_CHIP==3158
+#define BHAB_STANDALONE_FRONTEND    1
+#endif
 #include "bstd.h"
 #include "bi2c.h"
 #include "bspi.h"
 #include "bkni.h"
 #include "bkni_multi.h"
 #include "bhab_priv.h"
+#if BHAB_STANDALONE_FRONTEND
+#include "bchp_3158_leap_ctrl.h"
+#include "bchp_3158_leap_ctrl_misc.h"
+#include "bchp_3158_leap_hab_mem.h"
+#include "bchp_3158_leap_l1.h"
+#include "bchp_3158_leap_l2.h"
+#include "bchp_3158_leap_prog0_mem.h"
+#else
 #include "bchp_leap_ctrl.h"
 #include "bchp_leap_ctrl_misc.h"
 #include "bchp_leap_hab_mem.h"
 #include "bchp_leap_l1.h"
 #include "bchp_leap_l2.h"
+#include "bchp_leap_prog0_mem.h"
+#endif
+#if BHAB_SOC_FRONTEND
 #include "bchp_sun_top_ctrl.h"
 #include "bchp_sun_gisb_arb.h"
-#include "bchp_leap_prog0_mem.h"
+#endif
+#if BHAB_CHIP==7364
 #include "bhab_7364.h"
+#elif BHAB_CHIP==3158
+#include "bhab_3158.h"
+#elif BHAB_CHIP==75525
+#include "bhab_75525.h"
+#endif
 
 /* HAB mesg header */
 #define HAB_MSG_HDR(OPCODE,N,CORE_TYPE,CORE_ID) \
@@ -82,6 +102,9 @@ typedef enum BHAB_EventId
     BHAB_EventId_eStatusReady = 65,
     BHAB_EventId_eSpectrumAnalyzerDataReady = 66,
     BHAB_EventId_eEmergencyWarningSystem = 69,
+    BHAB_EventId_eIfDacAcquireComplete = 70,
+    BHAB_EventId_eIfDacStatusReady = 71,
+    BHAB_EventId_eCppm = 72,
     BHAB_EventId_eLast
 } BHAB_EventId;
 
@@ -100,38 +123,38 @@ typedef enum BHAB_CoreType
     BHAB_CoreType_eTNR = 15,
     BHAB_CoreType_eLast
 } BHAB_CoreType;
-
 #define BHAB_HAB_DONE               0x03000040
+#if BHAB_STANDALONE_FRONTEND
+#define BHAB_HAB_RESET              0x00100000
+#else
 #define BHAB_HAB_RESET              0x04000000
+#endif
 
 #define BHAB_AP_INIT_DONE           0x80000000
 #define BHAB_AP_ERROR               0x40000000
 #define BHAB_AP_EVENT               0x20000000
-
 #define BHAB_CORE_TYPE_MASK         0x00F80000
 #define BHAB_CORE_ID_MASK           0x0007F800
 #define BHAB_EVENT_DATA_MASK        0x000007C0
-
+#define BHAB_CPPM_PWR_LVL_CHANGE    1
+#define BHAB_CALIBRATION_COMPLETE   2
 #define BLNA_CORE_ID                0x0
 #define BLNA_WRITE_REGISTER         0x2A
 #define BLNA_READ_REGISTER          0xAA
 #define CORE_TYPE_GLOBAL            0x0
-#define BHAB_TNR_SPECTRUM_DATA_RDY          0x80000000
-
+#define BHAB_TNR_SPECTRUM_DATA_RDY  0x80000000
 #define BHAB_WINDOW_IRAM            0x00000000
 #define BHAB_WINDOW_IROM            0x00008000
 #define BHAB_WINDOW_HAB             0x00010000
 #define BHAB_WINDOW_IDATA           0x00010400
-
 #define BHAB_IRAM_SIZE              0xffff
 #define BHAB_IROM_SIZE              0x8000
-
-#define BHAB_MEM_SIZE               512
-#define BHAB_HAB_SIZE               0x200
+#define BHAB_MEM_SIZE               1024
+#define BHAB_HAB_SIZE               1024
 #define BCHP_LEAP_HAB_MEM_WORD_TWO  BCHP_LEAP_HAB_MEM_WORDi_ARRAY_BASE + 4
-
 #define BHAB_CPU_RUNNIG             0x40
 #define BHAB_INIT_RETRIES           0x14
+#define BHAB_CSR_STATUS_ERROR_MASK  0xF
 #define BHAB_CORE_TYPE              0xF
 #define BHAB_GLOBAL_CORE_TYPE       0x0
 #define BHAB_CORE_ID                0x0
@@ -149,16 +172,47 @@ typedef enum BHAB_CoreType
 #define BHAB_INTERNAL_GAIN_READ     0xC6
 #define BHAB_EXTERNAL_GAIN_READ     0xC5
 #define BHAB_EXTERNAL_GAIN_WRITE    0x25
-#define BTNR_CORE_TYPE              0xF
 #define BTNR_CORE_ID                0x0
 #define BHAB_VSB_STATUS_RDY         0x1
+#define BHAB_GET_TUNER_STATUS       0x96
+#define BHAB_REQUEST_TUNER_STATUS   0x16
+#define BHAB_SET_CPPM_SETTINGS      0x27
+#define BHAB_AVS_DATA               0x273
+#define BHAB_SET_STANDYBY_MODE      0x38
+#if BHAB_STANDALONE_FRONTEND
+#define BTNR_CORE_TYPE              0xE
+#else
+#define BTNR_CORE_TYPE              0xF
+#endif
+#define BTNR_CORE_ID                0x0
 
 #define BHAB_P_ACQUIRE_MUTEX(handle) BKNI_AcquireMutex(((BHAB_Leap_P_Handle *)(handle->pImpl))->hMutex)
 #define BHAB_P_RELEASE_MUTEX(handle) BKNI_ReleaseMutex(((BHAB_Leap_P_Handle *)(handle->pImpl))->hMutex)
 #define BHAB_P_ACQUIRE_REG_ACCESS_MUTEX(handle) BKNI_AcquireMutex(((BHAB_Leap_P_Handle *)(handle->pImpl))->hRegAccessMutex)
 #define BHAB_P_RELEASE_REG_ACCESS_MUTEX(handle) BKNI_ReleaseMutex(((BHAB_Leap_P_Handle *)(handle->pImpl))->hRegAccessMutex)
 
+#if BHAB_STANDALONE_FRONTEND
+#define BCHP_CSR_CONFIG_READ_RBUS_READ              0x01
+#define BCHP_CSR_CONFIG_SPECULATIVE_READ_EN_BITS    1
+#define BCHP_CSR_STATUS_ERROR_BITS                  1
+#define BCHP_CSR_CONFIG_READ_RBUS_WRITE             0x00
+#define  DEMOD_XPT_WAKEUP_STATUS                    0x4401004
+#define  DEMOD_XPT_WAKEUP_INTR_STATUS_REG           0x4401008
+#endif
 
+#define BHAB_ERROR_RECOVERY_TIMEOUT 1500
+#define BHAB_INITAP_TIMEOUT         150
+#define BHAB_HAB_TIMEOUT            10100
+#define BHAB_HAB_UART_ENABLE        0x80000001
+#define FW_DATA_OFFSET              312
+#define FW_SIZE_OFFSET              72
+#if BHAB_SOC_FRONTEND
+#define FW_INST_ADDR_OFFSET         66
+#define FW_LOAD_ADDR                0x4000c200
+#define FW_LOAD_ADDR_COMPLEMENT     0xBFFF3DFF
+#else
+#define FW_INST_ADDR_OFFSET         64
+#endif
 typedef struct BHAB_P_CallbackInfo
 {
     BHAB_IntCallbackFunc func;
@@ -170,7 +224,14 @@ typedef struct BHAB_P_CallbackInfo
 
 typedef struct BHAB_Leap_P_Handle
 {
+#if BHAB_CHIP==7364
     BHAB_7364_Settings settings;
+#elif BHAB_CHIP==75525
+    BHAB_75525_Settings settings;
+#elif BHAB_CHIP==3158
+    BHAB_3158_Settings settings;
+    BHAB_3158_StandbySettings standbySettings;
+#endif
     BREG_I2C_Handle  hI2cRegister;  /* handle to the master I2C device used to access registers */
     BREG_SPI_Handle  hSpiRegister;  /* handle to the master SPI device used to access registers */
     BREG_Handle      hRegHandle;    /* register handle */
@@ -182,6 +243,8 @@ typedef struct BHAB_Leap_P_Handle
     BKNI_MutexHandle hMutex;            /* Mutex handle for serialization */
     BKNI_MutexHandle hRegAccessMutex;            /* Mutex handle for serialization */
     BHAB_P_CallbackInfo InterruptCallbackInfo[BHAB_DevId_eMax];
+    BHAB_IntCallbackFunc powerLevelChangeCallback;
+    BHAB_IntCallbackFunc calibrationCompleteCallback;
     BHAB_WatchDogTimerSettings wdtSettings;
     BHAB_NmiSettings nmiSettings;
     bool loadAP;                          /* Load(ed) Acquisition Processor microcode when starting. */
@@ -189,6 +252,7 @@ typedef struct BHAB_Leap_P_Handle
     BHAB_TunerApplication tnrApplication;
     BHAB_RfInputMode rfInputMode;
     BHAB_RfDaisyChain daisyChain;   /* daisy chain output*/
+    BHAB_RecalibrateSettings recalibrateSettings;
     uint8_t inBuf[BHAB_COMMAND_BUF_SIZE];
 } BHAB_Leap_P_Handle;
 
@@ -517,6 +581,11 @@ BERR_Code BHAB_Leap_SetConfigSettings(
     const BHAB_ConfigSettings *settings     /* [in] HAB config settings. */
 );
 
+BERR_Code BHAB_Leap_GetLnaStatus(
+    BHAB_Handle handle,                     /* [in] Device handle */
+    BHAB_LnaStatus *pStatus
+);
+
 BERR_Code BHAB_Leap_GetInternalGain(
     BHAB_Handle handle,                                 /* [in] Device handle */
     const BHAB_InternalGainInputParams *inputParams,  /* [in] frequency */
@@ -535,6 +604,21 @@ BERR_Code BHAB_Leap_SetExternalGain(
 
 BERR_Code BHAB_Leap_Reset(
     BHAB_Handle handle    /* [in] BHAB handle */
+);
+
+BERR_Code BHAB_Leap_GetRecalibrateSettings(
+    BHAB_Handle handle,
+    BHAB_RecalibrateSettings *pSettings
+);
+
+BERR_Code BHAB_Leap_SetRecalibrateSettings (
+    BHAB_Handle handle,
+    const BHAB_RecalibrateSettings *pSettings
+);
+
+BERR_Code BHAB_Leap_GetAvsData(
+    BHAB_Handle handle,         /* [in] Device handle */
+    BHAB_AvsData *pAvsData      /* [out] pointer to AVS Data */
 );
 
 BERR_Code BHAB_Leap_GetTunerChannels(

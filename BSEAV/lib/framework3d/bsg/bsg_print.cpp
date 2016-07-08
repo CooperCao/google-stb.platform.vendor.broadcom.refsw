@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -11,7 +11,7 @@
  * Software and all intellectual property rights therein.  IF YOU HAVE NO
  * AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
  * AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
- * SOFTWARE.  
+ * SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
@@ -256,7 +256,7 @@ Vec2 PrintFont::GetKerning(uint32_t prev, uint32_t next)
    FT_Vector theKerning;
    theKerning.x = 0;
    theKerning.y = 0;
-         
+
    if (prev != 0 && next != 0)
       FT_Get_Kerning((FT_Face)m_face, prev, next, FT_KERNING_DEFAULT, &theKerning);
 
@@ -304,10 +304,10 @@ void PrintFont::Load(const string &name, float pointSize)
    FontTexturePacker tp;
 
    // populate the structure with all the textures
-   for (const auto &ch : charSet)
+   for (vector<Character>::iterator it = charSet.begin(); it != charSet.end(); ++it)
    {
       // round to even number as we divide by two in places
-      uint32_t wh = (std::max(ch.m_width, ch.m_height) + 1) & ~0x1;
+      uint32_t wh = (std::max((*it).m_width, (*it).m_height) + 1) & ~0x1;
       // these are all square, so use width for the height
       // use 2 texel border round each character
       // TODO: can this be 1?
@@ -456,7 +456,7 @@ void PrintCallback::OnEnd(PrintState &)
 //! does ragged right formatting of text
 const std::vector<uint32_t> &PrintRaggedRight::Format(const std::vector<uint32_t> &str)
 {
-   auto readIter = str.begin();
+   std::vector<uint32_t>::const_iterator   readIter = str.begin();
 
    m_result.clear();
 
@@ -478,7 +478,7 @@ const std::vector<uint32_t> &PrintRaggedRight::Format(const std::vector<uint32_t
          if (position == 0.0f)
             return m_result;
 
-         auto rewindIter = m_result.end() - 1;
+         std::vector<uint32_t>::const_iterator   rewindIter = m_result.end() - 1;
 
          // Backtrack to last space or newline
          while (rewindIter != m_result.begin() && *rewindIter != '\n' && *rewindIter != ' ')
@@ -522,7 +522,7 @@ const std::vector<uint32_t> &PrintRaggedRight::Format(const std::vector<uint32_t
 
          if (inch == '\n')
             startPara = true;
-         
+
          if (inch != ' ' && inch != '\t')
             startPara = false;
 
@@ -662,7 +662,7 @@ void Print::Reset(float height, const Vec2 &position)
    }
 
    // Generate geometry
-   uint32_t          numTextures(m_font->GetNumTextures()); 
+   uint32_t          numTextures(m_font->GetNumTextures());
 
    vector<Vec2>      vb(text.size() * 12);                  // Holds all the character data
    vector<uint32_t>  vbStart(numTextures);                  // vbStart and vbEnd hold start and end

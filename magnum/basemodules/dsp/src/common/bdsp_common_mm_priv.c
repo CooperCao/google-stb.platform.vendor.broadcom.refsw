@@ -1,7 +1,7 @@
 /******************************************************************************
- * (c) 2006-2016 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -37,7 +37,6 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 #include "bdsp_common_mm_priv.h"
 
@@ -187,4 +186,49 @@ void BDSP_P_ReadFromOffset(BMEM_Handle    hHeap,
 
     /*Read the DRAM to local structure */
     BDSP_P_CopyDataFromDram(hHeap, pDest, pSrc, ui32size);
+}
+
+/***************************************************************************************************
+Summary:
+#Use BDSP_MEM_P_AllocateAlignedMemory to assign memory which will be accessed by Raaga;It may be the location that only Raaga reads or writes
+#into or both Host and Raaga access it. System allocates cache memory pointer whenever you allocate using BDSP_MEM_P_AllocateAlignedMemory.
+#So any write into that address needs to be flushed for it to be seen by Raaga as it is a different processor. Unless the BDSP code does a flush
+#one can't guarantee  that Raaga will see the values written by BDSP code into that location. So always flush after a write to the memory which
+#will be read by Raaga.
+
+#Cache address needs to be converted to Virtual offset address for DSP to be abe to read from it.
+#BDSP needs address to be Cached address for it to Read or write into.
+
+#In BDSP: Write and Read requires cached address
+#In Raaga: Write or Read into DRAM requries virtual offset.
+
+--Usage of BDSP_MEM_P_AllocateAlignedMemory function
+#define BDSP_MEM_P_AllocateAlignedMemory(memHandle, size, align, boundary) \
+                 BDSP_P_ConvertAllocToCache(memHandle, BMEM_AllocAligned(memHandle,size,align, boundary) )
+
+Do Not use BDSP_P_ConvertAllocToCache independently in BDSP code. It will be called inside the
+BDSP_MEM_P_AllocateAlignedMemory only for now. Check other definition in BDSP_MEM_P* function calls
+in the file bdsp_raaga_mm_priv.h to choose the functions required for bmem access.
+
+***************************************************************************************************/
+
+
+void * BDSP_P_ConvertAllocToCache(BMEM_Handle memHandle, void * ptr)
+{
+        void * pCache = NULL;
+        BERR_Code err;
+
+        if(ptr == NULL){
+                goto exit;
+        }
+
+        err = BMEM_ConvertAddressToCached(memHandle, ptr, &pCache);
+        if(err != BERR_SUCCESS){
+                pCache = NULL;
+                BDBG_ERR((" %s: Issue with ptr=%p being tried to convert to cache", __FUNCTION__, ptr));
+        }
+
+exit:
+        return pCache;
+
 }

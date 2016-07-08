@@ -1,0 +1,2 @@
+load_pub_key -in=test_key/brcm_test_fwkey2_pub.pem
+write_key -out=brcm_test_fwkey2_pub.bin

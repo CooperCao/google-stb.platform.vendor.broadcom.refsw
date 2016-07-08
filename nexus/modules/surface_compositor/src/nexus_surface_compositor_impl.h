@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2011-2014 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -26,7 +26,7 @@
  *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
  *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
-   3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
  *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
  *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
  *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
@@ -35,15 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #ifndef NEXUS_SURFACECMP_IMPL_H__
@@ -286,6 +278,7 @@ struct NEXUS_SurfaceCompositor
     NEXUS_TimerHandle inactiveTimer; /* provide timer for displayed callbacks which inactive */
     NEXUS_Graphics2DHandle gfx;
     NEXUS_CallbackHandler packetSpaceAvailableCallback, checkpointCallback;
+    bool secureFramebuffer;
 
     struct {
         NEXUS_SurfaceClientHandle client; /* tunneled client that has allocated framebuffer surfaces, it may or may not be visible/rendered */
@@ -441,13 +434,6 @@ struct NEXUS_SurfaceClient
         NEXUS_Surface_P_ClientSurface current; /* current surface that should be composited */
         NEXUS_Surface_P_Composition left; /* left eye view or 2D view, managed and used all the time */
         NEXUS_Surface_P_Composition right; /* managed and used only if server.formatInfo.orientation != 3D */
-        struct {
-            NEXUS_SurfaceHandle surface; /* created if NEXUS_SurfaceComposition.displayCache is true */
-            bool needs_update; /* need a blit from serverSurface to cache.surface */
-            uint16_t width;
-            uint16_t height;
-            NEXUS_PixelFormat format;
-        } cache;
     } state;
 };
 

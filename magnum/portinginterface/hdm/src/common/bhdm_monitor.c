@@ -343,11 +343,11 @@ void BHDM_MONITOR_P_HpdChanges_isr(BHDM_Handle hHDMI)
 	{
 		if (hHDMI->MonitorStatus.NumHotPlugChanges > hHDMI->DeviceSettings.HotplugDetectThreshold)
 		{
-			BDBG_LOG(("")) ;
+			BDBG_LOG((" ")) ;
 			BDBG_ERR(("Tx%d: Exceeded EXCESSIVE HP INTRs of %d", hHDMI->eCoreId,
 				hHDMI->DeviceSettings.HotplugDetectThreshold)) ;
 			BDBG_ERR(("HP INTRs have been DISABLED")) ;
-			BDBG_LOG(("")) ;
+			BDBG_LOG((" ")) ;
 
 			hHDMI->MonitorStatus.TxHotPlugInterruptDisabled = true ;
 #if BHDM_CONFIG_DUAL_HPD_SUPPORT

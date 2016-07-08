@@ -1,30 +1,48 @@
-/***************************************************************************
- *     Copyright (c) 2003-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * [File Description:]
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * Revision History:
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- *
- ***************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ ******************************************************************************/
+
 #include "bhab_4538_priv.h"
-#include "bchp_leap_ctrl.h"
-#include "bchp_leap_hab_mem.h"
-#include "bchp_leap_host_irq.h"
-#include "bchp_leap_l2.h"
-#include "bchp_hif.h"
-#include "bchp_csr.h"
+#include "bchp_4538_leap_ctrl.h"
+#include "bchp_4538_leap_hab_mem.h"
+#include "bchp_4538_leap_host_irq.h"
+#include "bchp_4538_leap_l2.h"
+#include "bchp_4538_hif.h"
+#include "bchp_4538_csr.h"
 
 #if 0 /* define BHAB_NO_IMG to disable IMG in the HAB module */
 #define BHAB_NO_IMG
@@ -191,7 +209,7 @@ BERR_Code BHAB_4538_P_InitAp(
       return BERR_NOT_INITIALIZED;
    }
 
-   BDBG_MSG(("BHAB_4538_P_InitAp: interface: %p, context: %p", pImgInterface, pImgContext));
+   BDBG_MSG(("BHAB_4538_P_InitAp: interface: %p, context: %p", (void*)pImgInterface, (void*)pImgContext));
 #endif
 
    /* disable host interrupts */
@@ -213,9 +231,6 @@ BERR_Code BHAB_4538_P_InitAp(
       pImage = pHexImage;
       while (1)
       {
-          BDBG_MSG(("BHAB_4538_P_InitAp: img next[%d of %d]...", chunk, num_chunks));
-         BHAB_CHK_RETCODE(pImgInterface->next(pImg, chunk, (const void **)&pImage, fw_size));
-
          n = (uint32_t)(*pImage++ << 16);
          n |= (uint32_t)(*pImage++ << 8);
          n |= (uint32_t)(*pImage++);
@@ -542,6 +557,7 @@ BERR_Code BHAB_4538_P_WriteMemory(BHAB_Handle h, uint32_t start_addr, const uint
    uint32_t i, addr = start_addr, nWords, nWordsLeft, leftover, len;
    bool bIsRunning;
    uint8_t i2c_buf[5], csr_status, hab[128], length, x, *pBuf = (uint8_t *)buf;
+   BREG_SPI_Data spiData[2];
 
    /* make sure memory address is 32-bit aligned */
    if ((n == 0) || (start_addr & 0x03))
@@ -623,29 +639,15 @@ BERR_Code BHAB_4538_P_WriteMemory(BHAB_Handle h, uint32_t start_addr, const uint
                }
                else
                {
-#if 1
                   BSTD_UNUSED(len);
-                  BREG_SPI_SetContinueAfterCommand(((BHAB_4538_P_Handle*)h->pImpl)->hSpiRegister, true); /* assert and hold the chip select until the completion of BREG_SPI_WriteAlls */
                   i2c_buf[0] = 0x41;
                   i2c_buf[1] = BCHP_CSR_RBUS_DATA0;
-                  BHAB_CHK_RETCODE(BREG_SPI_WriteAll(((BHAB_4538_P_Handle*)h->pImpl)->hSpiRegister, i2c_buf, 2)); /* Write chip address and sub address as part of first write of two bytes*/
-                  BHAB_CHK_RETCODE(BREG_SPI_WriteAll(((BHAB_4538_P_Handle*)h->pImpl)->hSpiRegister, buf, nWords<<2));
-                  BREG_SPI_SetContinueAfterCommand(((BHAB_4538_P_Handle*)h->pImpl)->hSpiRegister, false);
 
-#else
-                  /* spi portinginterface limits writes to 16 bytes, so we can only write 3 words per transaction at most */
-                  nWordsLeft = nWords;
-                  while (nWordsLeft > 0)
-                  {
-                     if (nWordsLeft >= 3)
-                        len = 3;
-                     else
-                        len = nWordsLeft;
-                     nWordsLeft -= len;
-                     BHAB_CHK_RETCODE(BHAB_4538_P_WriteBbsi(h, BCHP_CSR_RBUS_DATA0, pBuf, len<<2));
-                     pBuf += (len<<2);
-                  }
-#endif
+                  spiData[0].data = (void *)i2c_buf;
+                  spiData[0].length = 2;
+                  spiData[1].data = (void *)buf;
+                  spiData[1].length = nWords<<2;
+                  BHAB_CHK_RETCODE(BREG_SPI_Multiple_Write(((BHAB_4538_P_Handle*)h->pImpl)->hSpiRegister, spiData, 2));
                }
             }
             break;

@@ -1,52 +1,51 @@
 /******************************************************************************
-* (c) 2014 Broadcom Corporation
-*
-* This program is the proprietary software of Broadcom Corporation and/or its
-* licensors, and may only be used, duplicated, modified or distributed pursuant
-* to the terms and conditions of a separate, written license agreement executed
-* between you and Broadcom (an "Authorized License").  Except as set forth in
-* an Authorized License, Broadcom grants no license (express or implied), right
-* to use, or waiver of any kind with respect to the Software, and Broadcom
-* expressly reserves all rights in and to the Software and all intellectual
-* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1. This program, including its structure, sequence and organization,
-*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-*    reasonable efforts to protect the confidentiality thereof, and to use
-*    this information only in connection with your use of Broadcom integrated
-*    circuit products.
-*
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-******************************************************************************/
-/*****************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
+ *
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************
 *
 * FILENAME: $Workfile: trunk/stack/IEEE/MAC/include/bbMacSapTypesSet.h $
 *
 * DESCRIPTION:
 *   MLME-SET service data types definition.
 *
-* $Revision: 2722 $
-* $Date: 2014-06-24 19:37:15Z $
+* $Revision: 10530 $
+* $Date: 2016-03-18 00:29:29Z $
 *
 *****************************************************************************************/
 
@@ -75,12 +74,15 @@
  *  the caller for other activities). The higher layer is responsible for freeing memory
  *  allocated for the payload; the MAC layer never frees it. The higher layer should
  *  dismiss the payload object when the MAC layer confirms the corresponding request; the
- *  payload object shall persists up to the confirmation from the MAC is issued.
+ *  payload object shall persist until the confirmation from the MAC is issued.
  * \note    Security MAC-PIB attributes are excluded because MAC security is not
- *  implemented. The PIBAttributeIndex parameter is excluded, because it is used just with
- *  MAC-PIB security attributes.
+ *  implemented.
+ * \note    The PIBAttributeIndex parameter is implemented but ignored by MAC because it
+ *  is used just with MAC-PIB security attributes which are not implemented. For such
+ *  attributes MLME-SET.confirm will return UNSUPPORTED_ATTRIBUTE status (status
+ *  INVALID_INDEX is never returned).
  * \par     Documentation
- *  See IEEE 802.15.4-2006, subclause 7.1.13.1, table 70.
+ *  See IEEE 802.15.4-2006, subclause 7.1.13.1.1, table 70.
  */
 typedef struct _MAC_SetReqParams_t
 {
@@ -90,34 +92,51 @@ typedef struct _MAC_SetReqParams_t
     /* 32-bit data. */
     SYS_DataPointer_t        payload;               /*!< The value of attribute with variable data size. */
 
-    /* 8-bit data. */
-    MAC_PibAttributeId_t     attribute;             /*!< The identifier of the PIB attribute to write. */
-
-    /* TODO: This field is redundant. Wrap it with a conditional build key. */
+    /* 16-bit data. */
     MAC_PibAttributeIndex_t  attributeIndex;        /*!< The index within the table of the specified PIB attribute to
                                                         write. */
+    /* 8-bit data. */
+    MAC_PibAttributeId_t     attribute;             /*!< The identifier of the PIB attribute to write. */
 
 } MAC_SetReqParams_t;
 
 
 /**//**
  * \brief   Structure for parameters of the MLME-SET.confirm.
+ * \details Possible values for the \c status parameter are the following:
+ *  - SUCCESS                   The requested operation was completed successfully.
+ *  - INVALID_PARAMETER         A parameter in the primitive is either not supported or is
+ *      out of the valid range.
+ *  - READ_ONLY                 A SET request was issued with the identifier of an
+ *      attribute that is read only.
+ *  - UNSUPPORTED_ATTRIBUTE     A SET request was issued with the identifier of a PIB
+ *      attribute that is not supported.
+ *  - RESET                     An MLME-RESET.request was issued prior to execution of the
+ *      MLME-SET.request being confirmed.
+ *
+ * \note    The following values for the \c status parameter are not used due to listed
+ *  reasons:
+ *  - INVALID_INDEX             MAC security is not implemented.
+ *
  * \note    Security MAC-PIB attributes are excluded because MAC security is not
- *  implemented. The PIBAttributeIndex parameter is excluded, because it is used just with
- *  MAC-PIB security attributes.
+ *  implemented. The PIBAttributeIndex parameter is left unassigned because it is used
+ *  just with MAC-PIB security attributes which are not implemented; or assigned with 0x00
+ *  'Not used' if _MAC_SAP_PROCESS_REDUNDANT_PARAMS_ conditional build key is defined by
+ *  the project make configuration file. For all security attributes MLME-GET.confirm will
+ *  return UNSUPPORTED_ATTRIBUTE status (status INVALID_INDEX is never returned).
  * \par     Documentation
- *  See IEEE 802.15.4-2006, subclause 7.1.13.2, table 71.
+ *  See IEEE 802.15.4-2006, subclause 7.1.13.2.1, table 71.
  */
 typedef struct _MAC_SetConfParams_t
 {
-    /* 8-bit data. */
-    MAC_Status_t             status;                /*!< The result of the request to write the PIB attribute. */
-
-    MAC_PibAttributeId_t     attribute;             /*!< The identifier of the PIB attribute that was written. */
-
-    /* TODO: This field is redundant. Wrap it with a conditional build key. */
+    /* 16-bit data. */
     MAC_PibAttributeIndex_t  attributeIndex;        /*!< The index within the table of the specified PIB attribute to
                                                         write. */
+    /* 8-bit data. */
+    MAC_PibAttributeId_t     attribute;             /*!< The identifier of the PIB attribute that was written. */
+
+    MAC_Status_t             status;                /*!< The result of the request to write the PIB attribute. */
+
 } MAC_SetConfParams_t;
 
 

@@ -93,7 +93,7 @@ static void NEXUS_Sage_WatchdogEventhandler(void *dummy)
     /* fire watchdog callbacks (1 per application instance) */
     for (sage = BLST_S_FIRST(&g_NEXUS_sageModule.instances); sage; sage = BLST_S_NEXT(sage, link)) {
         if (sage->watchdogCallback) {
-            BDBG_MSG(("FIRE upper layer callback for sage %p", sage));
+            BDBG_MSG(("FIRE upper layer callback for sage %p", (void *)sage));
             NEXUS_TaskCallback_Fire(sage->watchdogCallback);
         }
         else {
@@ -152,7 +152,7 @@ NEXUS_Error NEXUS_Sage_P_WatchdogLink(NEXUS_SageHandle sage, const NEXUS_Callbac
 
     if (!watchdogCallback->callback) {
         BDBG_WRN(("%s: Cannot link Sage instance %p with a watchdog Callback",
-                  __FUNCTION__, sage));
+                  __FUNCTION__, (void *)sage));
         goto end;
     }
 
@@ -165,7 +165,7 @@ NEXUS_Error NEXUS_Sage_P_WatchdogLink(NEXUS_SageHandle sage, const NEXUS_Callbac
     }
 
     NEXUS_TaskCallback_Set(sage->watchdogCallback, watchdogCallback);
-    BDBG_MSG(("instance %p : watchdog link 0x%8x", sage, watchdogCallback));
+    BDBG_MSG(("instance %p : watchdog link %p", (void *)sage, (void *)watchdogCallback));
 
 end:
     return rc;
@@ -177,7 +177,7 @@ void NEXUS_Sage_P_WatchdogUnlink(NEXUS_SageHandle sage)
     }
     NEXUS_TaskCallback_Destroy(sage->watchdogCallback);
     sage->watchdogCallback = NULL;
-    BDBG_MSG(("instance %p : watchdog unlink", sage));
+    BDBG_MSG(("instance %p : watchdog unlink", (void *)sage));
 }
 
 /* Called once during Nexus Sage module initialization */

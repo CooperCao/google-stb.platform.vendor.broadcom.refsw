@@ -27,8 +27,7 @@ MAGNUM_MODULES += BHDM
 
 # Module Includes
 BHDM_INCLUDES += \
-	$(MAGNUM)/portinginterface/hdm/include \
-	$(MAGNUM)/portinginterface/hdm/src/common
+	$(MAGNUM)/portinginterface/hdm/include
 
 # Module Sources
 BHDM_SOURCES += \
@@ -37,10 +36,16 @@ BHDM_SOURCES += \
 ifndef BHDM_FOR_BOOTUPDATER
 BHDM_SOURCES += \
 	$(MAGNUM)/portinginterface/hdm/src/common/bhdm_edid.c \
+	\
 	$(MAGNUM)/portinginterface/hdm/src/common/bhdm_packet.c \
+	$(MAGNUM)/portinginterface/hdm/src/common/bhdm_packet_audio.c \
+	$(MAGNUM)/portinginterface/hdm/src/common/bhdm_packet_avi.c \
 	$(MAGNUM)/portinginterface/hdm/src/common/bhdm_packet_drm.c \
+	$(MAGNUM)/portinginterface/hdm/src/common/bhdm_packet_spd.c \
+	$(MAGNUM)/portinginterface/hdm/src/common/bhdm_packet_vsi.c \
 	$(MAGNUM)/portinginterface/hdm/src/common/bhdm_packet_acr_priv.c \
 	$(MAGNUM)/portinginterface/hdm/src/common/bhdm_packet_acr_priv_isr.c \
+	\
 	$(MAGNUM)/portinginterface/hdm/src/common/bhdm_monitor.c \
 	$(MAGNUM)/portinginterface/hdm/src/common/bhdm_edid_debug.c \
 	$(MAGNUM)/portinginterface/hdm/src/common/bhdm_hdcp.c \
@@ -111,7 +116,11 @@ else ifeq ($(filter $(BCHP_CHIP), 7422 7425 7429 74295 7435 7231 7358 7344 7346 
 else
 	BHDM_SOURCES += $(MAGNUM)/portinginterface/hdm/src/core28nm/bhdm_priv.c
 
-## BHDM_CONFIG adjusts macros for non HDMI 2.0 SUPPORT
+#########################################
+## Majority of 28nm chips support HDMI 2.0
+## BHDM_CONFIG adjusts macros for those 28nm that do not
+#########################################
+
 	BHDM_HDMI_20_SUPPORT=y
 endif
 
@@ -126,7 +135,6 @@ BHDM_DEFINES += BHDM_HAS_HDMI_1_3_FEATURES
 endif
 
 ifeq ($(BHDM_HDMI_20_SUPPORT), y)
-	BHDM_DEFINES += BHDM_HAS_HDMI_20_SUPPORT
 	BHDM_SOURCES += $(MAGNUM)/portinginterface/hdm/src/core28nm/bhdm_scdc.c
 	BHDM_SOURCES += $(MAGNUM)/portinginterface/hdm/src/core28nm/bhdm_auto_i2c.c
 	BHDM_SOURCES += $(MAGNUM)/portinginterface/hdm/src/core28nm/bhdm_auto_i2c_priv.c

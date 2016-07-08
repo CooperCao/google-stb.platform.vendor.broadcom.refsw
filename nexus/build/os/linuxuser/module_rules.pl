@@ -1,7 +1,7 @@
 #############################################################################
-#    (c)2008-2013 Broadcom Corporation
+#  Broadcom Proprietary and Confidential. (c)2008-2016 Broadcom. All rights reserved.
 #
-# This program is the proprietary software of Broadcom Corporation and/or its licensors,
+# This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
 # conditions of a separate, written license agreement executed between you and Broadcom
 # (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,16 +34,6 @@
 # ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 # LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 # ANY LIMITED REMEDY.
-#
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
-# Module Description:
-#
-# Revision History:
-#
-# $brcm_Log: $
 #
 #############################################################################
 use strict;
@@ -95,6 +85,7 @@ foreach $moduleUpper (@ARGV) {
     my $thunked = 1;
     my $proxy = 1;
     my $ipc = 1;
+    my $abiverify = 1;
 
         print OUTFILE "#\n# $moduleUpper\n#\n";
 
@@ -103,6 +94,7 @@ foreach $moduleUpper (@ARGV) {
            $thunked = 0;
            $proxy = 0;
            $ipc = 0;
+           $abiverify = 0;
         }
         if ( $no_proxy =~ /$moduleUpper/ ) {
            $proxy = 0;
@@ -136,7 +128,7 @@ foreach $moduleUpper (@ARGV) {
             print OUTFILE "\$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_ipc_server.c: \$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_ipc_api.h\n\n";
             print OUTFILE "\$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_ipc_api.h: \$(NEXUS_SYNCTHUNK_DIR)/exists \$(wildcard \$(addsuffix /*.h,\$(NEXUS_$moduleUpper\_PUBLIC_INCLUDES))) \$(CLASS_LIST) \$(NEXUS_IPC_MODULES)\n";
             print OUTFILE "\t\@echo \"[Ipc....... $moduleLower]\"\n";
-            print OUTFILE "\t\$(Q_)\$(PERL) -I \$(NEXUS_TOP)/build/tools/common -I \$(NEXUS_TOP)/build/tools/ipcthunk \$(NEXUS_TOP)/build/tools/ipcthunk/bapi_build.pl $moduleUpper \$(NEXUS_SYNCTHUNK_DIR) \$(CLASS_LIST) \$(addsuffix /*.preload,\$(NEXUS_$moduleUpper\_PUBLIC_INCLUDES)) \$(addsuffix /*.h,\$(NEXUS_$moduleUpper\_PUBLIC_INCLUDES))\n\n";
+            print OUTFILE "\t\$(Q_)\$(CC) -MM \$(NEXUS_CFLAGS) \$(NEXUS_CFLAGS_BPROFILE) \$(NEXUS_$moduleUpper\_CFLAGS) \$(filter-out %_init.h,\$(wildcard \$(addsuffix /*.h,\$(NEXUS_$moduleUpper\_PUBLIC_INCLUDES)))) |  \$(PERL) -I \$(NEXUS_TOP)/build/tools/common -I \$(NEXUS_TOP)/build/tools/ipcthunk \$(NEXUS_TOP)/build/tools/ipcthunk/bapi_build.pl --stdin --class_list \$(CLASS_LIST) $moduleUpper \$(NEXUS_SYNCTHUNK_DIR) \$(wildcard \$(addsuffix /*.h,\$(NEXUS_$moduleUpper\_PUBLIC_INCLUDES)))\n\n";
 
             # for client, only compile the client object + local sources
             print OUTFILE "ifeq (\${NEXUS_MODE},client)\n";
@@ -165,12 +157,22 @@ foreach $moduleUpper (@ARGV) {
            print OUTFILE "\$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_thunks.c : \$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_thunks.h\n";
            print OUTFILE "\$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_thunks.h : \$(wildcard \$(addsuffix /*.h,\$(NEXUS_$moduleUpper\_PUBLIC_INCLUDES))) \$(NEXUS_SYNCTHUNK_DIR)/exists\n";
            print OUTFILE "\t\@echo \"[Thunk..... $moduleLower]\"\n";
-           print OUTFILE "\t\$(Q_)\$(PERL) -I \$(NEXUS_TOP)/build/tools/common -I \$(NEXUS_TOP)/build/tools/syncthunk \$(NEXUS_TOP)/build/tools/syncthunk/bapi_build.pl $moduleUpper \$(NEXUS_SYNCTHUNK_DIR) \$(addsuffix /*.preload,\$(NEXUS_$moduleUpper\_PUBLIC_INCLUDES)) \$(addsuffix /*.h,\$(NEXUS_$moduleUpper\_PUBLIC_INCLUDES))\n";
+           print OUTFILE "\t\$(Q_)\$(CC) -MM \$(NEXUS_CFLAGS) \$(NEXUS_CFLAGS_BPROFILE) \$(NEXUS_$moduleUpper\_CFLAGS) \$(filter-out %_init.h,\$(wildcard \$(addsuffix /*.h,\$(NEXUS_$moduleUpper\_PUBLIC_INCLUDES)))) | \$(PERL) -I \$(NEXUS_TOP)/build/tools/common -I \$(NEXUS_TOP)/build/tools/syncthunk \$(NEXUS_TOP)/build/tools/syncthunk/bapi_build.pl -stdin $moduleUpper \$(NEXUS_SYNCTHUNK_DIR) \$(wildcard \$(addsuffix /*.h,\$(NEXUS_$moduleUpper\_PUBLIC_INCLUDES)))\n";
            print OUTFILE "\n";
         }
 
+        if ( $abiverify == 1) {
+            print OUTFILE "ifeq (\$(filter $moduleUpper,\${NEXUS_ABIVERIFY_MODULES}), $moduleUpper)\n";
+            print OUTFILE "NEXUS_$moduleUpper\_OBJECTS += \$(NEXUS_OBJ_DIR)/$moduleUpper/nexus_$moduleLower\_abiverify.\$(NEXUS_OBJ_SUFFIX)\n";
+            print OUTFILE "endif\n";
+            print OUTFILE "\$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_abiverify.c : \$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_abiverify.h\n";
+            print OUTFILE "\$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_abiverify.h : \$(wildcard \$(addsuffix /*.h,\$(NEXUS_$moduleUpper\_PUBLIC_INCLUDES))) \$(CLASS_LIST) \$(NEXUS_SYNCTHUNK_DIR)/exists\n";
+            print OUTFILE "\t\@echo \"[ABI..... $moduleLower]\"\n";
+            print OUTFILE "\t\$(Q_)\$(CC) -MM \$(NEXUS_CFLAGS) \$(NEXUS_CFLAGS_BPROFILE) \$(NEXUS_$moduleUpper\_CFLAGS) \$(filter-out %_init.h,\$(wildcard \$(addsuffix /*.h,\$(NEXUS_$moduleUpper\_PUBLIC_INCLUDES)))) | \$(PERL) -I \$(NEXUS_TOP)/build/tools/common -I \$(NEXUS_TOP)/build/tools/abiverify \$(NEXUS_TOP)/build/tools/abiverify/bapi_build.pl --stdin --class_list \$(CLASS_LIST) $moduleUpper \$(NEXUS_SYNCTHUNK_DIR) \$(wildcard \$(addsuffix /*.h,\$(NEXUS_$moduleUpper\_PUBLIC_INCLUDES)))\n";
+            print OUTFILE "\n";
+        }
         # Module Rules
-        my $static_analyze = <<"EOF";
+        my $static_analyzer = <<"EOF";
 ifdef B_REFSW_STATIC_ANALYZER
 	\@echo \"[Analyze... \$(notdir \$<) ($moduleLower)]\"
 	\${Q_}\$(CC) -E -DB_REFSW_STATIC_ANALYZER=1 \$(NEXUS_CFLAGS) \$(NEXUS_CFLAGS_BPROFILE) \$(NEXUS_$moduleUpper\_CFLAGS) -c \$< -o \$@.i
@@ -187,13 +189,13 @@ EOF
         print OUTFILE "\$(NEXUS_$moduleUpper\_OBJECTS): \$(NEXUS_OBJ_DIR)/$moduleUpper/%.\$(NEXUS_OBJ_SUFFIX): %.c \${NEXUS_OBJ_DIR}/$moduleUpper/exists \$(if \${NEXUS_P_WITH_PRECOMPILED_HEADERS},\${NEXUS_OBJ_DIR}/$moduleUpper/nexus_$moduleLower\_precompiled.h.gch \${NEXUS_PRECOMPILED_HEADER_H}.gch) \$(NEXUS_$moduleUpper\_SYNCTHUNKS) \$(NEXUS_IPC_MODULES)\n";
         print OUTFILE "\t\@echo \"[Compile... \$(notdir \$<) ($moduleLower)]\"\n";
         print OUTFILE "\t\$(Q_)\$(CC) \$(if \${NEXUS_P_WITH_PRECOMPILED_HEADERS},-include \$(if \$(filter \$<,\$(NEXUS_$moduleUpper\_SYNCTHUNKS) \$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_proxy.c \$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_ipc_client.c),\${NEXUS_PRECOMPILED_HEADER_H},\${NEXUS_OBJ_DIR}/$moduleUpper/nexus_$moduleLower\_precompiled.h)) \$(CDEP_FLAG) \$(NEXUS_CFLAGS) \$(NEXUS_CFLAGS_BPROFILE) \$(NEXUS_$moduleUpper\_CFLAGS) -c \$< -o \$@\n";
-        print OUTFILE $static_analyze;
+        print OUTFILE $static_analyzer;
         print OUTFILE "\n";
         print OUTFILE "else\n";
         print OUTFILE "\$(NEXUS_$moduleUpper\_OBJECTS): \$(NEXUS_OBJ_DIR)/$moduleUpper/%.\$(NEXUS_OBJ_SUFFIX): %.c \${NEXUS_OBJ_DIR}/$moduleUpper/exists \$(NEXUS_$moduleUpper\_SYNCTHUNKS) \$(if \${NEXUS_P_WITH_PRECOMPILED_HEADERS},\${NEXUS_PRECOMPILED_HEADER_H}.gch) \$(NEXUS_IPC_MODULES)\n";
         print OUTFILE "\t\@echo \"[Compile... \$(notdir \$<) ($moduleLower)]\"\n";
         print OUTFILE "\t\$(Q_)\$(CC) \$(CDEP_FLAG) \$(if \${NEXUS_P_WITH_PRECOMPILED_HEADERS},-include \${NEXUS_PRECOMPILED_HEADER_H}) \$(NEXUS_CFLAGS) \$(NEXUS_CFLAGS_BPROFILE) \$(NEXUS_$moduleUpper\_CFLAGS) -c \$< -o \$@\n";
-        print OUTFILE $static_analyze;
+        print OUTFILE $static_analyzer;
         print OUTFILE "\n";
         print OUTFILE "endif\n";
 

@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2013 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,8 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  **************************************************************************/
 #ifndef NEXUS_DISPLAY_VBI_H__
 #define NEXUS_DISPLAY_VBI_H__
@@ -288,6 +280,9 @@ Set a new macrovision value to be output on the VEC
 Description:
 Macrovision code is not included or enabled by default. If you have a Macrovision license and have
 obtained the necessary source code, then compile with BVDC_MACROVISION=y set your compilation environment.
+
+If a display format does not support macrovision, Nexus will print a warning but will not fail.
+Macrovision will be re-applied after every display format change.
 **/
 NEXUS_Error NEXUS_Display_SetMacrovision(
     NEXUS_DisplayHandle handle,

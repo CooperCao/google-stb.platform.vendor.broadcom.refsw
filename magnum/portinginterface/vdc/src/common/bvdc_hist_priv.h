@@ -1,21 +1,41 @@
 /***************************************************************************
- *     Copyright (c) 2004-2010, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ***************************************************************************/
 #ifndef BVDC_HIST_PRIV_H__
@@ -55,8 +75,8 @@ extern "C" {
  */
 typedef struct BVDC_P_Hist_NumBins
 {
-	uint32_t                        ulHwNumBin;
-	uint32_t                        ulHistSize;
+    uint32_t                        ulHwNumBin;
+    uint32_t                        ulHistSize;
 } BVDC_P_Hist_NumBins;
 
 /*-------------------------------------------------------------------------
@@ -64,29 +84,29 @@ typedef struct BVDC_P_Hist_NumBins
  */
 typedef struct BVDC_P_HistContext
 {
-	BDBG_OBJECT(BVDC_HST)
+    BDBG_OBJECT(BVDC_HST)
 
-	/* Hist Id */
-	BVDC_P_HistId                    eId;
-	uint32_t                         ulRegOffset;
+    /* Hist Id */
+    BVDC_P_HistId                    eId;
+    uint32_t                         ulRegOffset;
 
-	/* static info from creating */
-	BREG_Handle                      hRegister;
+    /* static info from creating */
+    BREG_Handle                      hRegister;
 
-	/* Which window it connect to */
-	BVDC_Window_Handle               hWindow;
+    /* Which window it connect to */
+    BVDC_Window_Handle               hWindow;
 
-	/* sub-struct to manage vnet and rul build opreations */
-	BVDC_P_SubRulContext             SubRul;
+    /* sub-struct to manage vnet and rul build opreations */
+    BVDC_P_SubRulContext             SubRul;
 
-	bool                             bInitial;
+    bool                             bInitial;
 
-	/* Histogram data */
-	BVDC_LumaStatus                  stHistData;
-	uint32_t                         ulHistSize;
+    /* Histogram data */
+    BVDC_LumaStatus                  stHistData;
+    uint32_t                         ulHistSize;
 
-	/* Freezed histogram data */
-	BVDC_LumaStatus                  stFreezedHistData;
+    /* Freezed histogram data */
+    BVDC_LumaStatus                  stFreezedHistData;
 
 } BVDC_P_HistContext;
 
@@ -102,10 +122,10 @@ typedef struct BVDC_P_HistContext
  * called by BVDC_Open only
  */
 BERR_Code BVDC_P_Hist_Create
-	( BVDC_P_Hist_Handle               *phHist,
-	  BVDC_P_HistId                     eHistId,
-	  BREG_Handle                       hRegister,
-	  BVDC_P_Resource_Handle            hResource );
+    ( BVDC_P_Hist_Handle               *phHist,
+      BVDC_P_HistId                     eHistId,
+      BREG_Handle                       hRegister,
+      BVDC_P_Resource_Handle            hResource );
 
 /***************************************************************************
  * {private}
@@ -115,7 +135,7 @@ BERR_Code BVDC_P_Hist_Create
  * called by BVDC_Close only
  */
 BERR_Code BVDC_P_Hist_Destroy
-	( BVDC_P_Hist_Handle                hHist );
+    ( BVDC_P_Hist_Handle                hHist );
 
 /***************************************************************************
  * {private}
@@ -126,8 +146,8 @@ BERR_Code BVDC_P_Hist_Destroy
  * enabling Hist.
  */
 BERR_Code BVDC_P_Hist_AcquireConnect_isr
-	( BVDC_P_Hist_Handle                hHist,
-	  BVDC_Window_Handle                hWindow);
+    ( BVDC_P_Hist_Handle                hHist,
+      BVDC_Window_Handle                hWindow);
 
 /***************************************************************************
  * {private}
@@ -138,7 +158,7 @@ BERR_Code BVDC_P_Hist_AcquireConnect_isr
  * its vnet mode (i.e. it is really shut down and teared off from vnet).
  */
 BERR_Code BVDC_P_Hist_ReleaseConnect_isr
-	( BVDC_P_Hist_Handle               *phHist );
+    ( BVDC_P_Hist_Handle               *phHist );
 
 /***************************************************************************
  * {private}
@@ -149,10 +169,10 @@ BERR_Code BVDC_P_Hist_ReleaseConnect_isr
  * histogram HW module.
  */
 void BVDC_P_Hist_BuildRul_isr
-	( BVDC_P_Hist_Handle                hHist,
-	  BVDC_P_ListInfo                  *pList,
-	  BVDC_P_State                      eVnetState,
-	  BVDC_P_PicComRulInfo             *pPicComRulInfo );
+    ( BVDC_P_Hist_Handle                hHist,
+      BVDC_P_ListInfo                  *pList,
+      BVDC_P_State                      eVnetState,
+      BVDC_P_PicComRulInfo             *pPicComRulInfo );
 
 /***************************************************************************
  * {private}
@@ -163,7 +183,7 @@ void BVDC_P_Hist_BuildRul_isr
  * Histogram registers.
  */
 void BVDC_P_Hist_UpdateHistData_isr
-	( BVDC_P_Hist_Handle                hHist );
+    ( BVDC_P_Hist_Handle                hHist );
 
 /***************************************************************************
  * {private}
@@ -174,8 +194,8 @@ void BVDC_P_Hist_UpdateHistData_isr
  * collected by the HIST block.
  */
 void BVDC_P_Hist_GetHistogramData
-	( const BVDC_Window_Handle          hWindow,
-	  BVDC_LumaStatus                  *pLumaStatus );
+    ( const BVDC_Window_Handle          hWindow,
+      BVDC_LumaStatus                  *pLumaStatus );
 
 #ifdef __cplusplus
 }

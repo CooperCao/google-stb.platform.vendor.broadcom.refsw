@@ -82,8 +82,6 @@
 /**//**
  * \brief Mailbox descriptor.
  */
-MailDescriptor_t mail;
-
 bool wdt_occured;
 
 /**//**
@@ -96,7 +94,7 @@ static void initPlatform(void)
     SYS_MemoryManagerInit();
     SYS_SchedulerInit();
     HAL_SystemTimeInit();
-    Mail_ServiceInit(&mail);
+    Mail_ServiceInit();
     HAL_IRQ_ENABLE();
 }
 
@@ -186,7 +184,7 @@ int main(int argc, char *argv[])
 #endif
 
     /* Initialize the NVM support */
-    Zigbee_NVM_Init();
+    Zigbee_NVM_Init(open, close, write, read, lseek);
 
 #ifdef WDT_RELOAD_FW_ONLY
     while (1)

@@ -1,42 +1,39 @@
 /******************************************************************************
  * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 
 #include "nexus_audio_decoder.h"
@@ -407,6 +404,7 @@ eRet CSimpleAudioDecode::open(
     NEXUS_Error nError = NEXUS_SUCCESS;
     int         i      = 0;
 
+    /* coverity[stack_use_local_overflow] */
     NEXUS_SimpleAudioDecoderServerSettings settings;
 
     BDBG_ASSERT(NULL != pStc);
@@ -532,10 +530,10 @@ eRet CSimpleAudioDecode::open(
         /* assign Hdmi outputs for simple audio decoder to use */
         settings.hdmi.outputs[0] = _pHdmi->getOutput();
     }
-    settings.stcIndex = getNumber();
 
-    _simpleDecoder = NEXUS_SimpleAudioDecoder_Create(_number, &settings);
+    _simpleDecoder = NEXUS_SimpleAudioDecoder_Create(_pModel->getSimpleAudioDecoderServer(), _number, &settings);
     CHECK_PTR_ERROR_GOTO("unable to create a simple audio decoder", _simpleDecoder, ret, eRet_OutOfMemory, error);
+    NEXUS_SimpleAudioDecoder_SetStcIndex(_pModel->getSimpleAudioDecoderServer(), _simpleDecoder, getNumber());
 
     ret = setStc(pStc);
     CHECK_ERROR_GOTO("SetStcChannel simple audio decoder failed!", ret, error);
@@ -583,7 +581,7 @@ void CSimpleAudioDecode::getSettings(NEXUS_SimpleAudioDecoderServerSettings * pS
 {
     BDBG_ASSERT(NULL != _simpleDecoder);
 
-    NEXUS_SimpleAudioDecoder_GetServerSettings(_simpleDecoder, pSettings);
+    NEXUS_SimpleAudioDecoder_GetServerSettings(_pModel->getSimpleAudioDecoderServer(), _simpleDecoder, pSettings);
 }
 
 eRet CSimpleAudioDecode::setSettings(NEXUS_SimpleAudioDecoderServerSettings * pSettings)
@@ -593,7 +591,7 @@ eRet CSimpleAudioDecode::setSettings(NEXUS_SimpleAudioDecoderServerSettings * pS
 
     BDBG_ASSERT(NULL != _simpleDecoder);
 
-    nerror = NEXUS_SimpleAudioDecoder_SetServerSettings(_simpleDecoder, pSettings);
+    nerror = NEXUS_SimpleAudioDecoder_SetServerSettings(_pModel->getSimpleAudioDecoderServer(), _simpleDecoder, pSettings);
     CHECK_NEXUS_ERROR_GOTO("unable to set simple audio decoder server settings", ret, nerror, error);
 
 error:
@@ -772,6 +770,7 @@ eRet CSimpleAudioDecode::setSpdifInput(
         NEXUS_SimpleAudioDecoderServerSettings * pSettings
         )
 {
+    /* coverity[stack_use_local_overflow] */
     NEXUS_SimpleAudioDecoderServerSettings   settings;
     NEXUS_SimpleAudioDecoderServerSettings * pSettingsTemp;
     NEXUS_AudioConnectorType                 spdifType;
@@ -886,6 +885,7 @@ error:
 
 eSpdifInput CSimpleAudioDecode::getSpdifInput(NEXUS_AudioCodec codec)
 {
+    /* coverity[stack_use_local_overflow] */
     NEXUS_SimpleAudioDecoderServerSettings settings;
     eSpdifInput spdifType = eSpdifInput_None;
 
@@ -924,6 +924,7 @@ eRet CSimpleAudioDecode::setHdmiInput(
         NEXUS_SimpleAudioDecoderServerSettings * pSettings
         )
 {
+    /* coverity[stack_use_local_overflow] */
     NEXUS_SimpleAudioDecoderServerSettings   settings;
     NEXUS_SimpleAudioDecoderServerSettings * pSettingsTemp;
     NEXUS_AudioConnectorType                 hdmiType;
@@ -1082,6 +1083,7 @@ error:
 
 eHdmiAudioInput CSimpleAudioDecode::getHdmiInput(NEXUS_AudioCodec codec)
 {
+    /* coverity[stack_use_local_overflow] */
     NEXUS_SimpleAudioDecoderServerSettings settings;
     eHdmiAudioInput hdmiAudioType = eHdmiAudioInput_None;
 
@@ -1126,8 +1128,6 @@ CStc * CSimpleAudioDecode::close()
 
     if (NULL != _simpleDecoder)
     {
-        NEXUS_SimpleAudioDecoderServerSettings settings;
-
         /* Disconnect the STC */
         setStc(NULL);
 
@@ -1162,10 +1162,6 @@ CStc * CSimpleAudioDecode::close()
             NEXUS_Ac3Encode_Close(_encodeAc3);
             _encodeAc3 = NULL;
         }
-
-        NEXUS_SimpleAudioDecoder_GetDefaultServerSettings(&settings);
-        settings.enabled = false;
-        NEXUS_SimpleAudioDecoder_SetServerSettings(_simpleDecoder, &settings);
 
         NEXUS_SimpleAudioDecoder_Destroy(_simpleDecoder);
         _simpleDecoder = NULL;
@@ -1236,8 +1232,8 @@ eRet CSimpleAudioDecode::start(
 
     if (NULL != pStc)
     {
-        settings.primer.pcm         = true;
-        settings.primer.compressed  = true;
+        settings.primer.pcm        = true;
+        settings.primer.compressed = true;
 
         nerror = NEXUS_SimpleAudioDecoder_SetStcChannel(_simpleDecoder, pStc->getSimpleStcChannel());
         CHECK_NEXUS_ERROR_GOTO("starting simple audio decoder failed!", ret, nerror, error);

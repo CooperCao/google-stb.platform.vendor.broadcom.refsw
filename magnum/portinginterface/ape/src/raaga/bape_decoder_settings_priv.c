@@ -1,23 +1,44 @@
-/***************************************************************************
- *     Copyright (c) 2006-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * Module Description: Audio Decoder Interface
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
  *
- * Revision History:
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- *
- ***************************************************************************/
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ *****************************************************************************/
+
 
 #include "bstd.h"
 #include "bkni.h"
@@ -130,10 +151,10 @@ static void BAPE_Decoder_P_GetAFDecoderType(BAPE_DecoderHandle handle, BDSP_AF_P
 
 static void BAPE_Decoder_P_GetDefaultAc3Settings(BAPE_DecoderHandle handle)
 {
-#if BDSP_MS12_SUPPORT
-    BDSP_Algorithm bdspAlgo = BDSP_Algorithm_eUdcDecode;
-#else
+#if BAPE_DSP_LEGACY_DDP_ALGO
     BDSP_Algorithm bdspAlgo = BDSP_Algorithm_eAc3Decode;
+#else
+    BDSP_Algorithm bdspAlgo = BDSP_Algorithm_eUdcDecode;
 #endif
 
     if ( !BAPE_DSP_P_AlgorithmSupported(handle->deviceHandle, bdspAlgo) )
@@ -155,7 +176,14 @@ static void BAPE_Decoder_P_GetDefaultAc3Settings(BAPE_DecoderHandle handle)
     handle->ac3Settings.codecSettings.ac3.drcScaleLow = 100;
     handle->ac3Settings.codecSettings.ac3.drcScaleHiDownmix = 100;
     handle->ac3Settings.codecSettings.ac3.drcScaleLowDownmix = 100;
-#if BDSP_MS12_SUPPORT
+#if BAPE_DSP_LEGACY_DDP_ALGO
+    BDBG_ASSERT(0x7fffffff == handle->userConfig.ddp.sUserOutputCfg[0].i32PcmScale);
+    BDBG_ASSERT(0x7fffffff == handle->userConfig.ddp.sUserOutputCfg[1].i32PcmScale);
+    BDBG_ASSERT(0x7fffffff == handle->userConfig.ddp.sUserOutputCfg[0].i32DynScaleHigh);
+    BDBG_ASSERT(0x7fffffff == handle->userConfig.ddp.sUserOutputCfg[1].i32DynScaleHigh);
+    BDBG_ASSERT(0x7fffffff == handle->userConfig.ddp.sUserOutputCfg[0].i32DynScaleLow);
+    BDBG_ASSERT(0x7fffffff == handle->userConfig.ddp.sUserOutputCfg[1].i32DynScaleLow);
+#else
     BDBG_ASSERT(0x64 == handle->userConfig.ddp.sUserOutputCfg[0].i32PcmScale);
     BDBG_ASSERT(0x64 == handle->userConfig.ddp.sUserOutputCfg[1].i32PcmScale);
     BDBG_ASSERT(0x64 == handle->userConfig.ddp.sUserOutputCfg[0].i32DynScaleHigh);
@@ -163,16 +191,29 @@ static void BAPE_Decoder_P_GetDefaultAc3Settings(BAPE_DecoderHandle handle)
     BDBG_ASSERT(0x64 == handle->userConfig.ddp.sUserOutputCfg[0].i32DynScaleLow);
     BDBG_ASSERT(0x64 == handle->userConfig.ddp.sUserOutputCfg[1].i32DynScaleLow);
     handle->ac3Settings.codecSettings.ac3.enableAtmosProcessing = (handle->userConfig.ddp.ui32EnableAtmosMetadata == 1) ? true : false;
-#else
-    BDBG_ASSERT(0x7fffffff == handle->userConfig.ddp.sUserOutputCfg[0].i32PcmScale);
-    BDBG_ASSERT(0x7fffffff == handle->userConfig.ddp.sUserOutputCfg[1].i32PcmScale);
-    BDBG_ASSERT(0x7fffffff == handle->userConfig.ddp.sUserOutputCfg[0].i32DynScaleHigh);
-    BDBG_ASSERT(0x7fffffff == handle->userConfig.ddp.sUserOutputCfg[1].i32DynScaleHigh);
-    BDBG_ASSERT(0x7fffffff == handle->userConfig.ddp.sUserOutputCfg[0].i32DynScaleLow);
-    BDBG_ASSERT(0x7fffffff == handle->userConfig.ddp.sUserOutputCfg[1].i32DynScaleLow);
 #endif
     BKNI_Memcpy(&handle->ac3PlusSettings, &handle->ac3Settings, sizeof(BAPE_DecoderCodecSettings));
     handle->ac3PlusSettings.codec = BAVC_AudioCompressionStd_eAc3Plus;
+}
+
+static void BAPE_Decoder_P_GetDefaultAc4Settings(BAPE_DecoderHandle handle)
+{
+    BDSP_Algorithm bdspAlgo = BDSP_Algorithm_eAC4Decode;
+
+    if ( !BAPE_DSP_P_AlgorithmSupported(handle->deviceHandle, bdspAlgo) )
+    {
+        return;
+    }
+    BERR_TRACE(BDSP_Raaga_GetDefaultAlgorithmSettings(bdspAlgo, &handle->userConfig.ac4, sizeof(handle->userConfig.ac4)));
+
+    handle->ac4Settings.codec = BAVC_AudioCompressionStd_eAc4;
+    handle->ac4Settings.codecSettings.ac4.drcMode = BAPE_DolbyDrcMode_eLine; /* Default multichannel outputs to Line Mode */
+    handle->ac4Settings.codecSettings.ac4.drcModeDownmix = BAPE_DolbyDrcMode_eRf; /* Default stereo outputs to RF Mode */
+    handle->ac4Settings.codecSettings.ac4.stereoMode = BAPE_DolbyStereoMode_eLoRo; /* Default stereo outputs to RF Mode */
+    handle->ac4Settings.codecSettings.ac4.programSelection = handle->userConfig.ac4.ui32MainAssocDec;
+    handle->ac4Settings.codecSettings.ac4.programBalance = handle->userConfig.ac4.sUserOutputCfg[0].i32MainAssocMixPref;
+    handle->ac4Settings.codecSettings.ac4.presentationId = handle->userConfig.ac4.ui32PresentationNumber;
+    handle->ac4Settings.codecSettings.ac4.dialogEnhancerAmount = handle->userConfig.ac4.sUserOutputCfg[0].i32DialogEnhGainInput;
 }
 
 #if BDSP_MS12_SUPPORT
@@ -438,6 +479,7 @@ void BAPE_Decoder_P_GetDefaultCodecSettings(BAPE_DecoderHandle handle)
     BDBG_OBJECT_ASSERT(handle, BAPE_Decoder);
 
     BAPE_Decoder_P_GetDefaultAc3Settings(handle);
+    BAPE_Decoder_P_GetDefaultAc4Settings(handle);
     BAPE_Decoder_P_GetDefaultAacSettings(handle);
     BAPE_Decoder_P_GetDefaultWmaProSettings(handle);
     BAPE_Decoder_P_GetDefaultDtsSettings(handle);
@@ -489,7 +531,20 @@ static BERR_Code BAPE_Decoder_P_ApplyAc3Settings(BAPE_DecoderHandle handle, BAPE
     /* Setup global parameters */
     BAPE_Decoder_P_GetAFDecoderType(handle, &handle->userConfig.ddp.eDecoderType);
 
-#if BDSP_MS12_SUPPORT
+#if BAPE_DSP_LEGACY_DDP_ALGO
+    if ( handle->ddre && BAPE_Decoder_P_HasMultichannelOutput(handle) )
+    {
+        handle->userConfig.ddp.eDdpUsageMode = BDSP_Raaga_Audio_eMS11DecodeMode;
+    }
+    else if ( handle->fwMixer && handle->startSettings.mixingMode == BAPE_DecoderMixingMode_eDescription )
+    {
+        handle->userConfig.ddp.eDdpUsageMode = BDSP_Raaga_Audio_eMS10DecodeMode;
+    }
+    else
+    {
+        handle->userConfig.ddp.eDdpUsageMode = BDSP_Raaga_Audio_eSingleDecodeMode;
+    }
+#else
     handle->userConfig.ddp.ui32EnableAtmosMetadata = 0; /* disable Atmos metadata by default */
     if ( handle->ddre && BAPE_Decoder_P_HasMultichannelOutput(handle) )
     {
@@ -514,19 +569,6 @@ static BERR_Code BAPE_Decoder_P_ApplyAc3Settings(BAPE_DecoderHandle handle, BAPE
     {
         handle->userConfig.ddp.eDolbyMSUsageMode = BDSP_AF_P_DolbyMsUsageMode_eSingleDecodeMode;
     }
-#else
-    if ( handle->ddre && BAPE_Decoder_P_HasMultichannelOutput(handle) )
-    {
-        handle->userConfig.ddp.eDdpUsageMode = BDSP_Raaga_Audio_eMS11DecodeMode;
-    }
-    else if ( handle->fwMixer && handle->startSettings.mixingMode == BAPE_DecoderMixingMode_eDescription )
-    {
-        handle->userConfig.ddp.eDdpUsageMode = BDSP_Raaga_Audio_eMS10DecodeMode;
-    }
-    else
-    {
-        handle->userConfig.ddp.eDdpUsageMode = BDSP_Raaga_Audio_eSingleDecodeMode;
-    }
 #endif
 
     handle->userConfig.ddp.ui32SubstreamIDToDecode = pSettings->substreamId;
@@ -542,7 +584,9 @@ static BERR_Code BAPE_Decoder_P_ApplyAc3Settings(BAPE_DecoderHandle handle, BAPE
     }
     handle->userConfig.ddp.i32StreamDialNormEnable = pSettings->dialogNormalization?1:0;
     handle->userConfig.ddp.i32UserDialNormVal = pSettings->dialogNormalizationValue;
-#if BDSP_MS12_SUPPORT
+#if BAPE_DSP_LEGACY_DDP_ALGO
+    handle->userConfig.ddp.sUserOutputCfg[0].i32OutMode = BAPE_DSP_P_ChannelModeToDsp(channelMode);    /* Stereo or Multichannel */
+#else
     if ( (pSettings->certificationMode & BAPE_DOLBY_UDC_DECORRELATION) != 0 )
     {
         BDBG_WRN(("certification mode De-correlation enabled"));
@@ -562,11 +606,11 @@ static BERR_Code BAPE_Decoder_P_ApplyAc3Settings(BAPE_DecoderHandle handle, BAPE
         }
         BDBG_WRN(("Special certification output mode %d for UDC 7.1", handle->userConfig.ddp.sUserOutputCfg[0].i32OutMode));
 
-		/* This is for setting correct output matrix for mono mode */
-		if((handle->userConfig.ddp.sUserOutputCfg[0].i32OutMode == 1) && (channelMode <= BAPE_ChannelMode_e2_0))
-		{
-			channelMode = BAPE_ChannelMode_e1_0;
-		}
+        /* This is for setting correct output matrix for mono mode */
+        if((handle->userConfig.ddp.sUserOutputCfg[0].i32OutMode == 1) && (channelMode <= BAPE_ChannelMode_e2_0))
+        {
+            channelMode = BAPE_ChannelMode_e1_0;
+        }
     }
     else
     {
@@ -581,8 +625,6 @@ static BERR_Code BAPE_Decoder_P_ApplyAc3Settings(BAPE_DecoderHandle handle, BAPE
     {
         handle->userConfig.ddp.sUserOutputCfg[0].i32MdctBandLimitEnable = 0;
     }
-#else
-    handle->userConfig.ddp.sUserOutputCfg[0].i32OutMode = BAPE_DSP_P_ChannelModeToDsp(channelMode);    /* Stereo or Multichannel */
 #endif
     handle->userConfig.ddp.sUserOutputCfg[0].i32OutLfe = lfe?1:0;
     BAPE_DSP_P_GetChannelMatrix(channelMode, lfe, handle->userConfig.ddp.sUserOutputCfg[0].ui32OutputChannelMatrix);
@@ -597,17 +639,17 @@ static BERR_Code BAPE_Decoder_P_ApplyAc3Settings(BAPE_DecoderHandle handle, BAPE
         switch (handle->deviceHandle->settings.loudnessMode)
         {
         case BAPE_LoudnessEquivalenceMode_eAtscA85:
-#if BDSP_MS12_SUPPORT
-            handle->userConfig.ddp.sUserOutputCfg[stereoOutputPort].i32CompMode = 10;   /* -24dB for stereo */
-#else
+#if BAPE_DSP_LEGACY_DDP_ALGO
             handle->userConfig.ddp.sUserOutputCfg[stereoOutputPort].i32CompMode = 6;   /* -24dB for stereo */
+#else
+            handle->userConfig.ddp.sUserOutputCfg[stereoOutputPort].i32CompMode = 10;   /* -24dB for stereo */
 #endif
             break;
         case BAPE_LoudnessEquivalenceMode_eEbuR128:
-#if BDSP_MS12_SUPPORT
-            handle->userConfig.ddp.sUserOutputCfg[stereoOutputPort].i32CompMode = 9;   /* -23dB for stereo */
-#else
+#if BAPE_DSP_LEGACY_DDP_ALGO
             handle->userConfig.ddp.sUserOutputCfg[stereoOutputPort].i32CompMode = 5;   /* -23dB for stereo */
+#else
+            handle->userConfig.ddp.sUserOutputCfg[stereoOutputPort].i32CompMode = 9;   /* -23dB for stereo */
 #endif
             break;
         default:
@@ -647,10 +689,10 @@ static BERR_Code BAPE_Decoder_P_ApplyAc3Settings(BAPE_DecoderHandle handle, BAPE
                 break;
             default:
             case BAPE_Ac3DrcMode_eDisabled:
-#if BDSP_MS12_SUPPORT
-                handle->userConfig.ddp.sUserOutputCfg[0].i32CompMode = 8;
-#else
+#if BAPE_DSP_LEGACY_DDP_ALGO
                 handle->userConfig.ddp.sUserOutputCfg[0].i32CompMode = 4;
+#else
+                handle->userConfig.ddp.sUserOutputCfg[0].i32CompMode = 8;
 #endif
                 break;
             }
@@ -673,10 +715,10 @@ static BERR_Code BAPE_Decoder_P_ApplyAc3Settings(BAPE_DecoderHandle handle, BAPE
                 break;
             default:
             case BAPE_Ac3DrcMode_eDisabled:
-#if BDSP_MS12_SUPPORT
-                handle->userConfig.ddp.sUserOutputCfg[0].i32CompMode = 8;
-#else
+#if BAPE_DSP_LEGACY_DDP_ALGO
                 handle->userConfig.ddp.sUserOutputCfg[0].i32CompMode = 4;
+#else
+                handle->userConfig.ddp.sUserOutputCfg[0].i32CompMode = 8;
 #endif
                 break;
             }
@@ -699,10 +741,10 @@ static BERR_Code BAPE_Decoder_P_ApplyAc3Settings(BAPE_DecoderHandle handle, BAPE
                 break;
             default:
             case BAPE_Ac3DrcMode_eDisabled:
-#if BDSP_MS12_SUPPORT
-                handle->userConfig.ddp.sUserOutputCfg[0].i32CompMode = 8;
-#else
+#if BAPE_DSP_LEGACY_DDP_ALGO
                 handle->userConfig.ddp.sUserOutputCfg[0].i32CompMode = 4;
+#else
+                handle->userConfig.ddp.sUserOutputCfg[0].i32CompMode = 8;
 #endif
                 break;
             }
@@ -722,10 +764,10 @@ static BERR_Code BAPE_Decoder_P_ApplyAc3Settings(BAPE_DecoderHandle handle, BAPE
                 break;
             default:
             case BAPE_Ac3DrcMode_eDisabled:
-#if BDSP_MS12_SUPPORT
-                handle->userConfig.ddp.sUserOutputCfg[1].i32CompMode = 8;
-#else
+#if BAPE_DSP_LEGACY_DDP_ALGO
                 handle->userConfig.ddp.sUserOutputCfg[1].i32CompMode = 4;
+#else
+                handle->userConfig.ddp.sUserOutputCfg[1].i32CompMode = 8;
 #endif
                 break;
             }
@@ -768,20 +810,20 @@ static BERR_Code BAPE_Decoder_P_ApplyAc3Settings(BAPE_DecoderHandle handle, BAPE
         handle->userConfig.ddp.sUserOutputCfg[1].i32StereoMode = 2;
         break;
     }
-#if BDSP_MS12_SUPPORT
-    handle->userConfig.ddp.sUserOutputCfg[0].i32PcmScale = pSettings->scale;
-    handle->userConfig.ddp.sUserOutputCfg[1].i32PcmScale = pSettings->scaleDownmix;
-    handle->userConfig.ddp.sUserOutputCfg[0].i32DynScaleHigh = pSettings->drcScaleHi;
-    handle->userConfig.ddp.sUserOutputCfg[0].i32DynScaleLow = pSettings->drcScaleLow;
-    handle->userConfig.ddp.sUserOutputCfg[1].i32DynScaleHigh = pSettings->drcScaleHiDownmix;
-    handle->userConfig.ddp.sUserOutputCfg[1].i32DynScaleLow = pSettings->drcScaleLowDownmix;
-#else
+#if BAPE_DSP_LEGACY_DDP_ALGO
     handle->userConfig.ddp.sUserOutputCfg[0].i32PcmScale = BAPE_P_FloatToQ131(pSettings->scale, 100);
     handle->userConfig.ddp.sUserOutputCfg[1].i32PcmScale = BAPE_P_FloatToQ131(pSettings->scaleDownmix, 100);
     handle->userConfig.ddp.sUserOutputCfg[0].i32DynScaleHigh = BAPE_P_FloatToQ131(pSettings->drcScaleHi, 100);
     handle->userConfig.ddp.sUserOutputCfg[0].i32DynScaleLow = BAPE_P_FloatToQ131(pSettings->drcScaleLow, 100);
     handle->userConfig.ddp.sUserOutputCfg[1].i32DynScaleHigh = BAPE_P_FloatToQ131(pSettings->drcScaleHiDownmix, 100);
     handle->userConfig.ddp.sUserOutputCfg[1].i32DynScaleLow = BAPE_P_FloatToQ131(pSettings->drcScaleLowDownmix, 100);
+#else
+    handle->userConfig.ddp.sUserOutputCfg[0].i32PcmScale = pSettings->scale;
+    handle->userConfig.ddp.sUserOutputCfg[1].i32PcmScale = pSettings->scaleDownmix;
+    handle->userConfig.ddp.sUserOutputCfg[0].i32DynScaleHigh = pSettings->drcScaleHi;
+    handle->userConfig.ddp.sUserOutputCfg[0].i32DynScaleLow = pSettings->drcScaleLow;
+    handle->userConfig.ddp.sUserOutputCfg[1].i32DynScaleHigh = pSettings->drcScaleHiDownmix;
+    handle->userConfig.ddp.sUserOutputCfg[1].i32DynScaleLow = pSettings->drcScaleLowDownmix;
 #endif
     errCode = BDSP_Stage_SetSettings(handle->hPrimaryStage, &handle->userConfig.ddp, sizeof(handle->userConfig.ddp));
     if ( errCode )
@@ -793,6 +835,169 @@ static BERR_Code BAPE_Decoder_P_ApplyAc3Settings(BAPE_DecoderHandle handle, BAPE
     return BERR_SUCCESS;
 }
 
+#define BAPE_DECODER_INVALID_USERCONFIG_ID 0xffffffff
+static BERR_Code BAPE_Decoder_P_ApplyAc4Settings(BAPE_DecoderHandle handle, BAPE_Ac4Settings *pSettings)
+{
+    bool lfe;
+    bool forceDrcModes=false;
+    BERR_Code errCode;
+    BAPE_ChannelMode channelMode;
+    unsigned stereoOutputPort = BAPE_DECODER_INVALID_USERCONFIG_ID;
+    unsigned multichOutputPort = BAPE_DECODER_INVALID_USERCONFIG_ID;
+
+    if ( handle->deviceHandle->settings.loudnessMode != BAPE_LoudnessEquivalenceMode_eNone )
+    {
+        forceDrcModes = true;
+    }
+
+    errCode = BDSP_Stage_GetSettings(handle->hPrimaryStage, &handle->userConfig.ac4, sizeof(handle->userConfig.ac4));
+    if ( errCode )
+    {
+        return BERR_TRACE(errCode);
+    }
+
+    if ( BAPE_Decoder_P_HasStereoOutput(handle) && BAPE_Decoder_P_HasMultichannelOutput(handle) )
+    {
+        BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, i32NumOutPorts, 2);
+        multichOutputPort = 0;
+        stereoOutputPort = 1;
+    }
+    else if ( BAPE_Decoder_P_HasStereoOutput(handle) )
+    {
+        /* only Stereo output port */
+        BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, i32NumOutPorts, 1);
+        stereoOutputPort = 0;
+    }
+    else if ( BAPE_Decoder_P_HasMultichannelOutput(handle) )
+    {
+        /* only Multich output port */
+        BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, i32NumOutPorts, 1);
+        multichOutputPort = 0;
+    }
+    else
+    {
+        BDBG_ERR(("%s, No Valid Output Port found!", __FUNCTION__));
+        BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+
+    /* Determine output mode */
+    lfe = handle->settings.outputLfe;
+    channelMode = BAPE_Decoder_P_GetChannelMode(handle);
+    if ( !BAPE_DSP_P_IsLfePermitted(channelMode) )
+    {
+        lfe = false;
+    }
+
+    /* Setup global parameters */
+    BAPE_Decoder_P_GetAFDecoderType(handle, &handle->userConfig.ac4.eDecoderType);
+
+    if ( handle->ddre && BAPE_Decoder_P_HasMultichannelOutput(handle) )
+    {
+        BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, eDolbyMSUsageMode, 1);
+    }
+    else
+    {
+        BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, eDolbyMSUsageMode, 0);
+    }
+
+    BAPE_DSP_P_GetChannelMatrix(channelMode, lfe, handle->userConfig.ac4.sUserOutputCfg[0].ui32OutputChannelMatrix);
+
+    if ( multichOutputPort != BAPE_DECODER_INVALID_USERCONFIG_ID )
+    {
+        if ( forceDrcModes )
+        {
+            BDBG_MSG(("Loudness Management Active for AC4 Multichannel"));
+            BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, sUserOutputCfg[multichOutputPort].ui32DrcMode, 1); /* Line mode for multichannel (-31dB) */
+        }
+        else
+        {
+            BDBG_MSG(("Loudness Management NOT Active for AC4 Multichannel"));
+            switch ( pSettings->drcMode )
+            {
+            case BAPE_Ac3DrcMode_eLine:
+                BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, sUserOutputCfg[multichOutputPort].ui32DrcMode, 1);
+                break;
+            case BAPE_Ac3DrcMode_eRf:
+                BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, sUserOutputCfg[multichOutputPort].ui32DrcMode, 2);
+                break;
+            default:
+            case BAPE_Ac3DrcMode_eDisabled:
+                BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, sUserOutputCfg[multichOutputPort].ui32DrcMode, 0);
+                break;
+            }
+        }
+        BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, sUserOutputCfg[multichOutputPort].i32MainAssocMixPref, BAPE_DSP_P_VALIDATE_VARIABLE_RANGE(handle->ac4Settings.codecSettings.ac4.programBalance,-32,32));
+        BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, sUserOutputCfg[multichOutputPort].i32DialogEnhGainInput, BAPE_DSP_P_VALIDATE_VARIABLE_RANGE(handle->ac4Settings.codecSettings.ac4.dialogEnhancerAmount,-12,12));
+    }
+
+    if ( stereoOutputPort != BAPE_DECODER_INVALID_USERCONFIG_ID )
+    {
+        if ( forceDrcModes )
+        {
+            BDBG_MSG(("Loudness Management Active for AC4 Stereo"));
+            switch (handle->deviceHandle->settings.loudnessMode)
+            {
+            case BAPE_LoudnessEquivalenceMode_eAtscA85:
+                BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, sUserOutputCfg[stereoOutputPort].ui32DrcMode, 4); /* -24dB for stereo */
+                break;
+            case BAPE_LoudnessEquivalenceMode_eEbuR128:
+                BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, sUserOutputCfg[stereoOutputPort].ui32DrcMode, 3); /* -23dB for stereo */
+                break;
+            default:
+                BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, sUserOutputCfg[stereoOutputPort].ui32DrcMode, 2); /* RF mode for stereo (-20dB) */
+                break;
+            }
+            BDBG_MODULE_MSG(bape_loudness,("AC4 decoder (Stereo Port) is configured for %s loudness mode%s",
+                (handle->deviceHandle->settings.loudnessMode == BAPE_LoudnessEquivalenceMode_eAtscA85 ? "ATSC" :
+                 handle->deviceHandle->settings.loudnessMode == BAPE_LoudnessEquivalenceMode_eEbuR128 ? "EBU" : "DISABLED"),
+                (handle->deviceHandle->settings.loudnessMode == BAPE_LoudnessEquivalenceMode_eAtscA85 ? ", expected input level -31 expected output level -24" :
+                 handle->deviceHandle->settings.loudnessMode == BAPE_LoudnessEquivalenceMode_eEbuR128 ? ", expected input level -23 expected output level -23" : "")));
+            BDBG_MODULE_MSG(bape_loudness,("Stereo ui32DrcMode %d ", handle->userConfig.ac4.sUserOutputCfg[stereoOutputPort].ui32DrcMode));
+        }
+        else
+        {
+            BDBG_MSG(("Loudness Management NOT Active for AC4 Stereo"));
+            switch ( pSettings->drcModeDownmix )
+            {
+            case BAPE_Ac3DrcMode_eLine:
+                BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, sUserOutputCfg[stereoOutputPort].ui32DrcMode, 1);
+                break;
+            case BAPE_Ac3DrcMode_eRf:
+                BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, sUserOutputCfg[stereoOutputPort].ui32DrcMode, 2);
+                break;
+            default:
+            case BAPE_Ac3DrcMode_eDisabled:
+                BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, sUserOutputCfg[stereoOutputPort].ui32DrcMode, 0);
+                break;
+            }
+        }
+
+        switch ( pSettings->stereoMode )
+        {
+        default:
+        case BAPE_DolbyStereoMode_eLoRo:
+            BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, sUserOutputCfg[stereoOutputPort].ui32ChannelConfig, 0);
+            break;
+        case BAPE_DolbyStereoMode_eLtRt:
+            BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, sUserOutputCfg[stereoOutputPort].ui32ChannelConfig, 2);
+            break;
+        }
+
+        BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, sUserOutputCfg[stereoOutputPort].i32MainAssocMixPref, BAPE_DSP_P_VALIDATE_VARIABLE_RANGE(handle->ac4Settings.codecSettings.ac4.programBalance,-32,32));
+        BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, sUserOutputCfg[stereoOutputPort].i32DialogEnhGainInput, BAPE_DSP_P_VALIDATE_VARIABLE_RANGE(handle->ac4Settings.codecSettings.ac4.dialogEnhancerAmount,-12,12));
+    }
+
+    BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, ui32MainAssocDec, handle->ac4Settings.codecSettings.ac4.programSelection);
+    BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, ui32PresentationNumber, handle->ac4Settings.codecSettings.ac4.presentationId);
+    errCode = BDSP_Stage_SetSettings(handle->hPrimaryStage, &handle->userConfig.ac4, sizeof(handle->userConfig.ac4));
+    if ( errCode )
+    {
+        return BERR_TRACE(errCode);
+    }
+
+
+    return BERR_SUCCESS;
+}
 
 #if BDSP_MS12_SUPPORT
 static BERR_Code BAPE_Decoder_P_ApplyMs12AacSettings(
@@ -1049,9 +1254,7 @@ static BERR_Code BAPE_Decoder_P_ApplyMs10AacSettings(
     handle->userConfig.aac.sOutPortCfg[0].i32GainFactor = pSettings->gainFactor;
 
     {
-        BDSP_Raaga_Audio_DolbyPulseUserConfig userConfig;
-        BDSP_Raaga_GetDefaultAlgorithmSettings(BDSP_Algorithm_eDolbyPulseAdtsDecode, &userConfig, sizeof(BDSP_Raaga_Audio_DolbyPulseUserConfig));
-        BAPE_DSP_P_SET_VARIABLE(handle->userConfig.aac, ui32DefDialnormLevel, userConfig.ui32DefDialnormLevel);
+        BAPE_DSP_P_SET_VARIABLE(handle->userConfig.aac, ui32DefDialnormLevel, pSettings->drcDefaultLevel);
         BAPE_DSP_P_SET_VARIABLE(handle->userConfig.aac, ui32EnforceLoudnessLevelsOnAllPorts, 0);
         switch (pSettings->drcMode)
         {
@@ -1490,7 +1693,7 @@ static BERR_Code BAPE_Decoder_P_ApplyWmaStdSettings(BAPE_DecoderHandle handle)
     /* Setup datasync for ASF vs. TS */
     handle->datasyncSettings.uAlgoSpecConfigStruct.sWmaConfig.eWMAIpType =
         (handle->startSettings.codec == BAVC_AudioCompressionStd_eWmaStdTs)?
-        BDSP_Raaga_Audio_WMAIpType_eTS:BDSP_Raaga_Audio_WMAIpType_eASF;
+        BDSP_Audio_WMAIpType_eTS:BDSP_Audio_WMAIpType_eASF;
 
     errCode = BDSP_AudioStage_SetDatasyncSettings(handle->hPrimaryStage, &handle->datasyncSettings);
     if ( errCode )
@@ -1607,7 +1810,7 @@ static BERR_Code BAPE_Decoder_P_ApplyDtsSettings(BAPE_DecoderHandle handle)
     /* Set endian of compressed input data */
     handle->datasyncSettings.uAlgoSpecConfigStruct.sDtsConfig.eDtsEndianType =
         (handle->dtsSettings.codecSettings.dts.littleEndian)?
-        BDSP_Raaga_Audio_DtsEndianType_eLITTLE_ENDIAN:BDSP_Raaga_Audio_DtsEndianType_eBIG_ENDIAN;
+        BDSP_Audio_DtsEndianType_eLITTLE_ENDIAN:BDSP_Audio_DtsEndianType_eBIG_ENDIAN;
 
     errCode = BDSP_AudioStage_SetDatasyncSettings(handle->hPrimaryStage, &handle->datasyncSettings);
     if ( errCode )
@@ -1620,6 +1823,9 @@ static BERR_Code BAPE_Decoder_P_ApplyDtsSettings(BAPE_DecoderHandle handle)
     {
         return BERR_TRACE(errCode);
     }
+
+    /* Setup global parameters */
+    BAPE_Decoder_P_GetAFDecoderType(handle, &handle->userConfig.dts.eDecoderType);
 
     lfe = handle->settings.outputLfe;
     channelMode = BAPE_Decoder_P_GetChannelMode(handle);
@@ -2377,6 +2583,8 @@ BERR_Code BAPE_Decoder_P_ApplyCodecSettings(BAPE_DecoderHandle handle)
                 return BAPE_Decoder_P_ApplyAc3Settings(handle, &handle->ac3Settings.codecSettings.ac3);
             case BAVC_AudioCompressionStd_eAc3Plus:
                 return BAPE_Decoder_P_ApplyAc3Settings(handle, &handle->ac3PlusSettings.codecSettings.ac3Plus);
+            case BAVC_AudioCompressionStd_eAc4:
+                return BAPE_Decoder_P_ApplyAc4Settings(handle, &handle->ac4Settings.codecSettings.ac4);
             case BAVC_AudioCompressionStd_eAacAdts:
             case BAVC_AudioCompressionStd_eAacLoas:
                 return BAPE_Decoder_P_ApplyAacSettings(handle, &handle->aacSettings.codecSettings.aac);
@@ -2440,4 +2648,3 @@ BERR_Code BAPE_Decoder_P_ApplyCodecSettings(BAPE_DecoderHandle handle)
 
     return BERR_SUCCESS;
 }
-

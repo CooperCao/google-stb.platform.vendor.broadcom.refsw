@@ -1,7 +1,7 @@
 /******************************************************************************
-*    (c)2011-2013 Broadcom Corporation
+* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-* This program is the proprietary software of Broadcom Corporation and/or its licensors,
+* This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
 * conditions of a separate, written license agreement executed between you and Broadcom
 * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
 * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 * ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * Module Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 *****************************************************************************/
 #ifndef _BSAT_45308_H_
@@ -64,6 +56,7 @@ enum {
    BSAT_45308_CONFIG_PARAM_OTP_DISABLE_FEATURE,
    BSAT_45308_CONFIG_PARAM_FLASH_BUF_ADDR,
    BSAT_45308_CONFIG_PARAM_OTP_DISABLE_DSEC,
+   BSAT_45308_CONFIG_PARAM_DEBUG_MODULES,
    BSAT_45308_CONFIG_MAX
 };
 
@@ -83,6 +76,7 @@ enum {
    BSAT_45308_CHAN_CONFIG_EQ_CTL,
    BSAT_45308_CHAN_CONFIG_ACQ_DAFE_CTL,
    BSAT_45308_CHAN_CONFIG_TRK_DAFE_CTL,
+   BSAT_45308_CHAN_CONFIG_ACM_DEBUG,
    BSAT_45308_CHAN_CONFIG_MAX
 };
 
@@ -101,6 +95,11 @@ enum {
 #define BSAT_45308_CONFIG_DFT_STATUS_PEAK_SCAN 0x10000000 /* peak scan operation */
 #define BSAT_45308_CONFIG_DFT_STATUS_DONE      0x80000000 /* DFT freq estimate finished */
 #define BSAT_45308_CONFIG_DFT_STATUS_STATE     0x000000FF
+
+
+/* bit definitions for BSAT_45308_CONFIG_PARAM_DEBUG_MODULES */
+#define BSAT_45308_CONFIG_DEBUG_MODULES_HAB    0x00000001
+#define BSAT_45308_CONFIG_DEBUG_MODULES_AVS    0x00000002
 
 
 /* chip-specific functions */

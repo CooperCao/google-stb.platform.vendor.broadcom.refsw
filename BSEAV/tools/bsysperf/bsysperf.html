@@ -38,11 +38,13 @@
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  *
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Broadcom System Performance</title>
                                                                              -->
 <html><head><title>Broadcom System Performance</title>
     <meta http-equiv="X-UA-Compatible" content="IE=9">
     <script type="text/javascript" src="bsysperf.js" ></script>
-    <style>
+    <script type="text/javascript" src="bsysperf_flame.js" ></script>
+    <style type="text/css">
     textarea {
     font-size: 8pt;
     font-family: Courier New;
@@ -64,11 +66,12 @@
         -moz-border-radius: 15px;
         border-radius: 15px;
     }
+	.func_g:hover { stroke:black; stroke-width:0.5; cursor:pointer; }
     </style>
     </head>
-<body onload="MyLoad();" >
-<table border=0 >
-    <tr><td><img src="brcm-logo-white.jpg" width="100" id="brcmlogo" onclick="MyClick(event);" /></td></td>
+<body onload="MyLoad();">
+<table border=0 style="border-collapse:collapse;" >
+    <tr><td width=220 ><img src="brcm-logo-white.jpg" width="200" id="brcmlogo" onclick="MyClick(event);" /></td>
         <td valign=middle style="font-size:28pt;" ><b id=h1bsysperf onclick="MyClick(event);" >Bsysperf - System Profiling Tool</b></td>
         <td valign=middle style="width:50px;" >&nbsp;</td> <!-- spacer -->
         <td >Platform: <span id=platform >xxxxx</span>&nbsp;<span id=platver>YY</span><br><span id=stbtime valign=middle ></span></td>
@@ -76,7 +79,7 @@
     </tr>
 </table>
 <hr />
-<table cols=2 border=0 id=overalltable > <!-- this outer table is used to hide big sections when checkbox is not checked -->
+<table cols=2 border=0 id=overalltable style="border-collapse:collapse;" width="80%" > <!-- this outer table is used to hide big sections when checkbox is not checked -->
 <!---------------------------------------------------------------------------------------------------------------------------------------------------------------->
 
 <tr id=row_checkboxes style="visibility:display;" ><th align=left valign=top id=CHECKBOXES colspan=2 >
@@ -87,8 +90,10 @@
             <td width=150 ><input type=checkbox id=checkboxnets onclick="MyClick(event);" checked >Network Stats</td>
             <td width=150 ><input type=checkbox id=checkboxirqs onclick="MyClick(event);" checked >IRQ Counts</td>
             <td width=150 ><input type=checkbox id=checkboxprofiling onclick="MyClick(event);" >Profiling</td>
+            <td width=150 ><input type=checkbox id=checkboxPerfFlame onclick="MyClick(event);" >Flame Graph</td>
+        </tr>
     </table>
-    </tr>
+</tr>
 
 <!---------------------------------------------------------------------------------------------------------------------------------------------------------------->
 
@@ -109,6 +114,10 @@
 <!---------------------------------------------------------------------------------------------------------------------------------------------------------------->
 
 <tr id=row_profiling style="visibility:display;" ><th align=left valign=top id=PERFUTILS colspan=2 ></th></tr>
+
+<!---------------------------------------------------------------------------------------------------------------------------------------------------------------->
+
+<tr id=row_PerfFlame style="visibility:display;" ><th align=left valign=top id=PerfFlameContents colspan=2 ></th></tr>
 
 <!---------------------------------------------------------------------------------------------------------------------------------------------------------------->
 

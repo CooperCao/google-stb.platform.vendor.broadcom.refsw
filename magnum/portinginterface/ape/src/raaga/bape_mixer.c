@@ -1,22 +1,42 @@
 /***************************************************************************
- *     Copyright (c) 2006-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description: Mixer Interface
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ***************************************************************************/
 
 #include "bstd.h"
@@ -91,7 +111,7 @@ BERR_Code BAPE_GetOutputVolume(
 {
     BDBG_OBJECT_ASSERT(output, BAPE_OutputPort);
     BDBG_ASSERT(NULL != pVolume);
-    
+
     *pVolume = output->volume;
     return BERR_SUCCESS;
 }
@@ -130,8 +150,8 @@ void BAPE_GetOutputDelayStatus(
     BDBG_ASSERT(NULL != pStatus);
 
     pStatus->pathDelay = BAPE_CHIP_MAX_PATH_DELAY;
-    pStatus->additionalDelay = (output->mixer)?output->mixer->settings.outputDelay:0;    
-}   
+    pStatus->additionalDelay = (output->mixer)?output->mixer->settings.outputDelay:0;
+}
 
 /*************************************************************************/
 /* Dispatchers for type-specific mixer functions                         */
@@ -163,19 +183,19 @@ BERR_Code BAPE_Mixer_Create(
         errCode = BAPE_StandardMixer_P_Create( deviceHandle, pSettings, pHandle );
         break;
     #endif
-        
+
     #if BAPE_CHIP_MAX_BYPASS_MIXERS
     case BAPE_MixerType_eBypass:
         errCode = BAPE_BypassMixer_P_Create( deviceHandle, pSettings, pHandle );
         break;
     #endif
-        
+
     #if BAPE_CHIP_MAX_DSP_MIXERS
     case BAPE_MixerType_eDsp:
         errCode = BAPE_DspMixer_P_Create( deviceHandle, pSettings, pHandle );
         break;
     #endif
-    
+
     default:
         BDBG_ERR(("MixerType %u is invalid or not supported", pSettings->type ));
         errCode = BERR_INVALID_PARAMETER;
@@ -240,10 +260,10 @@ BERR_Code BAPE_Mixer_SetSettings(
         return hMixer->interface->setSettings(hMixer, pSettings);
     }
     else
-    {   
+    {
         BDBG_ERR(("This mixer type does not support changing settings on the fly."));
         return BERR_TRACE(BERR_NOT_SUPPORTED);
-    }   
+    }
 }
 
 /*************************************************************************/
@@ -253,7 +273,7 @@ BERR_Code BAPE_Mixer_Start(
 {
     BDBG_OBJECT_ASSERT(handle, BAPE_Mixer);
     BDBG_ASSERT(NULL != handle->interface);
-    
+
     if(handle->interface->start) {
         return handle->interface->start(handle);
     } else {
@@ -433,21 +453,21 @@ const char *BAPE_Mixer_P_MclkSourceToText_isrsafe( BAPE_MclkSource mclkSource )
 {
     BDBG_CASSERT((int)BAPE_MclkSource_eMax == (int)14);  /* This should cause compile error if somebody adds to the BAPE_MclkSource enum */
 
-    return ( mclkSource == BAPE_MclkSource_eNone       ?  "None"      : 
-             mclkSource == BAPE_MclkSource_ePll0       ?  "Pll0"      : 
-             mclkSource == BAPE_MclkSource_ePll1       ?  "Pll1"      : 
-             mclkSource == BAPE_MclkSource_ePll2       ?  "Pll2"      : 
-             mclkSource == BAPE_MclkSource_eHifidac0   ?  "Hifidac0"  : 
-             mclkSource == BAPE_MclkSource_eHifidac1   ?  "Hifidac1"  : 
-             mclkSource == BAPE_MclkSource_eHifidac2   ?  "Hifidac2"  : 
-             mclkSource == BAPE_MclkSource_eNco0       ?  "Nco0"      : 
-             mclkSource == BAPE_MclkSource_eNco1       ?  "Nco1"      : 
-             mclkSource == BAPE_MclkSource_eNco2       ?  "Nco2"      : 
-             mclkSource == BAPE_MclkSource_eNco3       ?  "Nco3"      : 
-             mclkSource == BAPE_MclkSource_eNco4       ?  "Nco4"      : 
+    return ( mclkSource == BAPE_MclkSource_eNone       ?  "None"      :
+             mclkSource == BAPE_MclkSource_ePll0       ?  "Pll0"      :
+             mclkSource == BAPE_MclkSource_ePll1       ?  "Pll1"      :
+             mclkSource == BAPE_MclkSource_ePll2       ?  "Pll2"      :
+             mclkSource == BAPE_MclkSource_eHifidac0   ?  "Hifidac0"  :
+             mclkSource == BAPE_MclkSource_eHifidac1   ?  "Hifidac1"  :
+             mclkSource == BAPE_MclkSource_eHifidac2   ?  "Hifidac2"  :
+             mclkSource == BAPE_MclkSource_eNco0       ?  "Nco0"      :
+             mclkSource == BAPE_MclkSource_eNco1       ?  "Nco1"      :
+             mclkSource == BAPE_MclkSource_eNco2       ?  "Nco2"      :
+             mclkSource == BAPE_MclkSource_eNco3       ?  "Nco3"      :
+             mclkSource == BAPE_MclkSource_eNco4       ?  "Nco4"      :
              mclkSource == BAPE_MclkSource_eNco5       ?  "Nco5"      :
              mclkSource == BAPE_MclkSource_eNco6       ?  "Nco6"      :
-             mclkSource == BAPE_MclkSource_eMax        ?  "<eMax>"    : 
+             mclkSource == BAPE_MclkSource_eMax        ?  "<eMax>"    :
                                                           "<Undefined>" );
 }
 /*************************************************************************/
@@ -596,7 +616,7 @@ BERR_Code BAPE_Mixer_P_DetermineOutputDataType(BAPE_MixerHandle handle, BAPE_Dat
     return BERR_SUCCESS;
 }
 
-#if BDBG_DEBUG_BUILD 
+#if BDBG_DEBUG_BUILD
 
 BDBG_FILE_MODULE(bape_diag);
 
@@ -605,16 +625,16 @@ static BERR_Code BAPE_Mixer_P_PrintOutputPortObjectInfo( BAPE_OutputPortObject  
     BERR_Code errCode=BERR_SUCCESS;
 
     #if 0
-        
+
             /* When we find a way to get info about the specific output device, then
              * we can print info specific to the output type like this:
              */
-        
+
             if ( BAPE_OutputPortType_eI2sOutput == pOutputPortObject->type  )
             {
                 BAPE_I2sOutputHandle  i2sOutputHandle = pOutputPortObject->pHandle;
-        
-                BDBG_MODULE_LOG(bape_diag,("%*sOutputPort: %s (%p) muted:%u Fs:%u enab:%u", level*4, "", 
+
+                BDBG_MODULE_LOG(bape_diag,("%*sOutputPort: %s (%p) muted:%u Fs:%u enab:%u", level*4, "",
                                             pOutputPortObject->pName, (void *) pOutputPortObject,
                                             pOutputPortObject->volume.muted  ));
             }
@@ -652,7 +672,7 @@ BERR_Code BAPE_Mixer_P_PrintInputPortInfo( BAPE_PathNode *pPathNode, int level, 
             }
             else if (decoderHandle->startSettings.pContextMap)
             {
-                pContextMap = &decoderHandle->contextMap;   
+                pContextMap = &decoderHandle->contextMap;
             }
         }
     }
@@ -683,7 +703,7 @@ BERR_Code BAPE_Mixer_P_PrintInputPortInfo( BAPE_PathNode *pPathNode, int level, 
     else if (pContextMap)
     {
         /* For a RAVE context input, just print the context index.  */
-        BDBG_LOG(("%*sRAVE Context Index:%u", level*4, "", 
+        BDBG_LOG(("%*sRAVE Context Index:%u", level*4, "",
                                     pContextMap->ContextIdx ));
     }
     return( errCode );
@@ -708,7 +728,7 @@ BERR_Code BAPE_Mixer_P_PrintNodeInfo( BAPE_PathNode *pPathNode, int level, int i
 
             BDBG_LOG(("%*sPathNode(%p): %s(%p) Type:%s Codec:%s DSP Index: %d", level*4, "",
                                         (void *) pPathNode, pPathNode->pName, (void *)pPathNode->pHandle,
-                                        BAPE_PathNode_P_PathNodeTypeToText(pPathNode->type), 
+                                        BAPE_PathNode_P_PathNodeTypeToText(pPathNode->type),
                                         pCodecAttributes->pName, decoderHandle->dspIndex ));
         }
     }
@@ -730,12 +750,12 @@ BERR_Code BAPE_Mixer_P_PrintNodeInfo( BAPE_PathNode *pPathNode, int level, int i
                                     (void *) pPathNode, pPathNode->pName, (void *)pPathNode->pHandle,
                                     BAPE_PathNode_P_PathNodeTypeToText(pPathNode->type),
                                     mixerHandle->running ? "RUNNING" : "stopped",
-                                    mixerHandle->running , 
+                                    mixerHandle->running ,
                                     BAPE_FMT_P_GetTypeName_isrsafe(&pPathNode->connectors[0].format),
                                     pPathNode->connectors[0].format.sampleRate,
                                     BAPE_Mixer_P_MclkSourceToText_isrsafe(mixerHandle->mclkSource),
                                     mixerIndex));
-        
+
         for ( pOutputPortObject = BLST_S_FIRST(&mixerHandle->outputList);
               pOutputPortObject != NULL;
               pOutputPortObject = BLST_S_NEXT(pOutputPortObject, node) )
@@ -748,10 +768,25 @@ BERR_Code BAPE_Mixer_P_PrintNodeInfo( BAPE_PathNode *pPathNode, int level, int i
     }
     else
     {
-        BDBG_LOG(("%*sPathNode(%p): %s(%p) Type:%s ", level*4, "",
+        char dspIndex[16] = "";
+        if ( BAPE_PathNodeType_ePostProcessor == pPathNode->type )
+        {
+            switch ( pPathNode->subtype )
+            {
+            case BAPE_PostProcessorType_eDdre:
+                {
+                    BAPE_DolbyDigitalReencodeHandle ddreHandle = pPathNode->pHandle;
+                    BKNI_Snprintf(dspIndex, sizeof(dspIndex), "Device Index: %u", BAPE_DolbyDigitalReencode_P_GetDeviceIndex(ddreHandle));
+                }
+                break;
+            default:
+                break;
+            }
+        }
+        BDBG_LOG(("%*sPathNode(%p): %s(%p) Type:%s %s", level*4, "",
             (void *) pPathNode, pPathNode->pName, (void *)pPathNode->pHandle,
-            BAPE_PathNode_P_PathNodeTypeToText(pPathNode->type) ));
-    
+            BAPE_PathNode_P_PathNodeTypeToText(pPathNode->type), dspIndex ));
+
     }
     return( errCode );
 }
@@ -774,8 +809,8 @@ BERR_Code BAPE_Mixer_P_PrintMixers(BAPE_Handle deviceHandle)
 
     /* To determine if our debuglevel is enabled, we'll need to make two calls to BDBG_MODULE_MSG.  The first call
      * is to make sure that the module gets registered, then the second will only evaluate the argument list
-     * if the BDBG level is enabled. 
-     */ 
+     * if the BDBG level is enabled.
+     */
     BDBG_MODULE_MSG(bape_mixerprint,("bape_mixerprint is enabled"));                                                      /* Make sure that bape_mixerprint is registered with BDBG   */
     BDBG_MODULE_MSG(bape_mixerprint,("Printing Audio Filter Graph...%s", BAPE_Mixer_P_CheckBdbgEnabled(&dbug_enabled)));  /* Set dbug_enabled if bape_mixerprint is enabled           */
     if (!dbug_enabled)
@@ -813,8 +848,8 @@ BERR_Code BAPE_Mixer_P_PrintDownstreamNodes(BAPE_PathNode *pPathNode)
 
     /* To determine if our debuglevel is enabled, we'll need to make two calls to BDBG_MODULE_MSG.  The first call
      * is to make sure that the module gets registered, then the second will only evaluate the argument list
-     * if the BDBG level is enabled. 
-     */ 
+     * if the BDBG level is enabled.
+     */
     BDBG_MODULE_MSG(bape_startprint,("bape_startprint is enabled"));                                                 /* Make sure that bape_startprint is registered with BDBG   */
     BDBG_MODULE_MSG(bape_startprint,("Printing Started Nodes...%s", BAPE_Mixer_P_CheckBdbgEnabled(&dbug_enabled)));  /* Set dbug_enabled if bape_startprint is enabled           */
     if (!dbug_enabled)
@@ -851,5 +886,3 @@ BERR_Code BAPE_Mixer_P_PrintMixers(BAPE_Handle deviceHandle)
 }
 
 #endif /* BDBG_DEBUG_BUILD */
-
-

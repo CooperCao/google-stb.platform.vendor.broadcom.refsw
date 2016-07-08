@@ -1,7 +1,7 @@
 #!/usr/bin/perl
-#     (c)2003-2013 Broadcom Corporation
+#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 #
-#  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+#  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
 #  conditions of a separate, written license agreement executed between you and Broadcom
 #  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,6 @@
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
 #
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
-# File Description:
-#
-# Revision History:
-#
-# $brcm_Log: $
-# 
 #############################################################################
 use strict;
 
@@ -194,11 +184,6 @@ SWITCH
             print $file "   /* coverity[ tainted_data_transitive : FALSE ] */\n";
             print $file "   /* coverity[ FORWARD_NULL : FALSE ] */\n";
 
-            # make a function call
-            if ($func->{RETTYPE} ne "void") {
-                print $file "   $retval = \n"
-            }
-
             # capture arguments
             my @args;
             for $param (@$params) {
@@ -213,7 +198,33 @@ SWITCH
                 }
             }
 
+            # enter MSG
+            print $file "   NEXUS_P_TRACE_MSG((\">%s\(";
+            for $param (@$params) {
+                print $file "%#lx";
+                if ($param != $params->[-1]) { print $file ", "; }
+            }
+            print $file ")\" ";
+            print $file ", \"$func->{FUNCNAME}\"";
+            for $param (@args) {
+                print $file ",$param";
+            }
+            print $file "));\n";
+
+            # make a function call
+            if ($func->{RETTYPE} ne "void") {
+                print $file "   $retval = \n"
+            }
+
             print $file "   " . bapi_util::call($func->{FUNCNAME}, @args) . ";\n\n";
+
+            # leave MSG and return value
+            if ($func->{RETTYPE} ne "void") {
+                print $file "  NEXUS_P_TRACE_MSG((\"<%s\=%#lx\", \"$func->{FUNCNAME}\", (unsigned long)$retval));\n";
+            }
+            else {
+                print $file "  NEXUS_P_TRACE_MSG((\"<%s\", \"$func->{FUNCNAME}\"));\n";
+            }
         }
 
         my @post;
@@ -273,8 +284,7 @@ sub generate
 {
     my ($filename, $module, $version, $structs, $funcs, $class_handles) = @_;
     my $module_lc = lc $module;
-    open FILE, ">$filename";
-    my $file = \*FILE;
+    open(my $file,">$filename") or die "Can't open $filename";
 
     my $destructors = bapi_classes::get_destructors $funcs;
     my $classes = bapi_classes::get_classes $funcs, $destructors;
@@ -282,6 +292,12 @@ sub generate
     print $file "#define NEXUS_DRIVER_MODULE_NAME \"$module\"\n";
     print $file "#include \"nexus_${module_lc}_module.h\"\n";
     print $file "BDBG_MODULE(nexus_${module_lc}_driver);\n";
+    print $file "BDBG_FILE_MODULE(nexus_trace_${module_lc});\n";
+    print $file "#if NEXUS_P_TRACE\n";
+    print $file "#define NEXUS_P_TRACE_MSG(x) BDBG_MODULE_MSG(nexus_trace_${module_lc}, x)\n";
+    print $file "#else\n";
+    print $file "#define NEXUS_P_TRACE_MSG(x) \n";
+    print $file "#endif\n";
     print $file "#include \"nexus_core_utils.h\"\n";
     print $file "\n\n";
     print $file "/* defines to make all module symbols uniques */\n";
@@ -316,7 +332,7 @@ sub generate
     print $file "\n\n\n";
     print $file "#include \"driver/nexus_driver_epilogue.h\"\n";
     print $file "\n\n\n";
-    close FILE;
+    close $file;
 }
 
 1;

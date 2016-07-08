@@ -1,23 +1,39 @@
 ############################################################
-#     Copyright (c) 2003-2013, Broadcom Corporation
-#     All Rights Reserved
-#     Confidential Property of Broadcom Corporation
+#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 #
-#  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
-#  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
-#  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+#  This program is the proprietary software of Broadcom and/or its licensors,
+#  and may only be used, duplicated, modified or distributed pursuant to the terms and
+#  conditions of a separate, written license agreement executed between you and Broadcom
+#  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+#  no license (express or implied), right to use, or waiver of any kind with respect to the
+#  Software, and Broadcom expressly reserves all rights in and to the Software and all
+#  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+#  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+#  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
 #
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
+#  Except as expressly set forth in the Authorized License,
 #
-# Module Description:
+#  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+#  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+#  and to use this information only in connection with your use of Broadcom integrated circuit products.
 #
-# Revision History:
+#  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+#  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+#  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+#  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+#  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+#  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+#  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+#  USE OR PERFORMANCE OF THE SOFTWARE.
 #
-# Created:
-#
-# $brcm_Log: $
+#  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+#  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+#  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+#  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+#  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+#  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+#  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+#  ANY LIMITED REMEDY.
 #
 ############################################################
 
@@ -34,6 +50,10 @@ MAGNUM_MODULES += BHAB
 # If the chip version is not specified, select a default
 ifeq ($(BCHP_312X_VER),)
 BCHP_312X_VER := C0
+endif
+
+ifeq ($(BCHP_3158_VER),)
+BCHP_3158_VER := A0
 endif
 
 ifeq ($(BCHP_3461_VER),)
@@ -88,6 +108,7 @@ BHAB_4517_VER_LOWER ?= $(shell awk 'BEGIN{print tolower("$(BCHP_4517_VER)")}')
 BHAB_7366_VER_LOWER ?= $(shell awk 'BEGIN{print tolower("$(BCHP_7366_VER)")}')
 BHAB_45216_VER_LOWER ?= $(shell awk 'BEGIN{print tolower("$(BCHP_45216_VER)")}')
 BHAB_45308_VER_LOWER ?= $(shell awk 'BEGIN{print tolower("$(BCHP_45308_VER)")}')
+BHAB_3158_VER_LOWER ?= $(shell awk 'BEGIN{print tolower("$(BCHP_3158_VER)")}')
 
 # Source needs to know which revision
 BHAB_DEFINES += BHAB_312X_VER=BCHP_VER_$(BCHP_312X_VER)
@@ -162,27 +183,28 @@ BHAB_SOURCES += $(MAGNUM)/basemodules/hab/src/leapctfe/3128/bhab_3128_fw_c0.c
 endif
 endif
 
+ifneq ($(BHAB_3158_SUPPORT),)
+ifeq ($(BHAB_LEAP_UART_ENABLE),y)
+BHAB_DEFINES += BHAB_LEAP_UART_ENABLE
+endif
+BHAB_DEFINES += BHAB_CHIP=3158
+BHAB_INCLUDES += $(MAGNUM)/basemodules/hab/include/3158/
+BHAB_INCLUDES += $(MAGNUM)/basemodules/hab/src/leapctfe
+BHAB_INCLUDES += $(MAGNUM)/basemodules/hab/src/leapctfe/common/
+BHAB_INCLUDES += $(MAGNUM)/basemodules/chp/include/3158/rdb/hab/$(BHAB_3158_VER_LOWER)
+ifeq ($(BHAB_IMG_ONLY),)
+BHAB_SOURCES += $(MAGNUM)/basemodules/hab/src/leapctfe/3158/bhab_3158.c
+BHAB_SOURCES += $(MAGNUM)/basemodules/hab/src/leapctfe/bhab_leap_priv.c
+endif
+ifeq ($(BHAB_IMG_EXTERNAL),)
+BHAB_SOURCES += $(MAGNUM)/basemodules/hab/src/leapctfe/3158/bhab_3158_fw_a0.c
+endif
+endif
+
 ifneq ($(BHAB_7584_SUPPORT),)
 ifeq ($(BHAB_LEAP_UART_ENABLE),y)
 BHAB_DEFINES += BHAB_LEAP_UART_ENABLE
 endif
-BHAB_INCLUDES += $(MAGNUM)/basemodules/hab/include/$(BCHP_CHIP)/
-BHAB_INCLUDES += $(MAGNUM)/basemodules/hab/src/leapctfe/$(BCHP_CHIP)/
-BHAB_INCLUDES += $(MAGNUM)/basemodules/hab/src/leapctfe/common/
-ifeq ($(BHAB_IMG_ONLY),)
-BHAB_SOURCES += $(MAGNUM)/basemodules/hab/src/leapctfe/$(BCHP_CHIP)/bhab_7584.c
-BHAB_SOURCES += $(MAGNUM)/basemodules/hab/src/leapctfe/$(BCHP_CHIP)/bhab_7584_priv.c
-endif
-ifeq ($(BHAB_IMG_EXTERNAL),)
-BHAB_SOURCES += $(MAGNUM)/basemodules/hab/src/leapctfe/$(BCHP_CHIP)/bhab_7584_fw_a0.c
-endif
-endif
-
-ifneq ($(BHAB_75845_SUPPORT),)
-ifeq ($(BHAB_LEAP_UART_ENABLE),y)
-BHAB_DEFINES += BHAB_LEAP_UART_ENABLE
-endif
-BHAB_RDB_CHIP := 75845
 BHAB_INCLUDES += $(MAGNUM)/basemodules/hab/include/7584/
 BHAB_INCLUDES += $(MAGNUM)/basemodules/hab/src/leapctfe/7584/
 BHAB_INCLUDES += $(MAGNUM)/basemodules/hab/src/leapctfe/common/
@@ -211,26 +233,11 @@ BHAB_SOURCES += $(MAGNUM)/basemodules/hab/src/leapctfe/7563/bhab_7563_fw_$(BCHP_
 endif
 endif
 
-ifneq ($(BHAB_75635_SUPPORT),)
-ifeq ($(BHAB_LEAP_UART_ENABLE),y)
-BHAB_DEFINES += BHAB_LEAP_UART_ENABLE
-endif
-BHAB_INCLUDES += $(MAGNUM)/basemodules/hab/include/7563/
-BHAB_INCLUDES += $(MAGNUM)/basemodules/hab/src/leapctfe/7563/
-BHAB_INCLUDES += $(MAGNUM)/basemodules/hab/src/leapctfe/common/
-ifeq ($(BHAB_IMG_ONLY),)
-BHAB_SOURCES += $(MAGNUM)/basemodules/hab/src/leapctfe/7563/bhab_7563.c
-BHAB_SOURCES += $(MAGNUM)/basemodules/hab/src/leapctfe/7563/bhab_7563_priv.c
-endif
-ifeq ($(BHAB_IMG_EXTERNAL),)
-BHAB_SOURCES += $(MAGNUM)/basemodules/hab/src/leapctfe/7563/bhab_7563_fw_$(BCHP_VER_LOWER).c
-endif
-endif
-
 ifneq ($(BHAB_7364_SUPPORT),)
 ifeq ($(BHAB_LEAP_UART_ENABLE),y)
 BHAB_DEFINES += BHAB_LEAP_UART_ENABLE
 endif
+BHAB_DEFINES += BHAB_CHIP=7364
 BHAB_INCLUDES += $(MAGNUM)/basemodules/hab/include/$(BCHP_CHIP)/
 BHAB_INCLUDES += $(MAGNUM)/basemodules/hab/src/leapctfe/
 BHAB_INCLUDES += $(MAGNUM)/basemodules/hab/src/leapctfe/common/
@@ -241,6 +248,20 @@ endif
 ifeq ($(BHAB_IMG_EXTERNAL),)
 BHAB_SOURCES += $(MAGNUM)/basemodules/hab/src/leapctfe/$(BCHP_CHIP)/bhab_7364_fw_$(BHAB_7364_VER_LOWER).c
 endif
+endif
+
+ifneq ($(BHAB_75525_SUPPORT),)
+ifeq ($(BHAB_LEAP_UART_ENABLE),y)
+BHAB_DEFINES += BHAB_LEAP_UART_ENABLE
+endif
+BHAB_DEFINES += BHAB_CHIP=75525
+BHAB_INCLUDES += $(MAGNUM)/basemodules/hab/include/$(BCHP_CHIP)/
+BHAB_INCLUDES += $(MAGNUM)/basemodules/hab/src/leapctfe/
+ifeq ($(BHAB_IMG_ONLY),)
+BHAB_SOURCES += $(MAGNUM)/basemodules/hab/src/leapctfe/$(BCHP_CHIP)/bhab_75525.c
+BHAB_SOURCES += $(MAGNUM)/basemodules/hab/src/leapctfe/bhab_leap_priv.c
+endif
+BHAB_SOURCES += $(MAGNUM)/basemodules/hab/src/leapctfe/$(BCHP_CHIP)/bhab_75525_fw_a0.c
 endif
 
 ifneq ($(BHAB_3117_SUPPORT),)
@@ -279,7 +300,7 @@ BHAB_SOURCES += $(MAGNUM)/basemodules/hab/src/8051/3109/bhab_3109.c
 endif
 endif
 
-ifneq ($(filter y,$(BHAB_7364_SUPPORT) $(BHAB_3128_SUPPORT) $(BHAB_7584_SUPPORT) $(BHAB_75845_SUPPORT) $(BHAB_3461_SUPPORT) $(BHAB_7563_SUPPORT)),)
+ifneq ($(filter y,$(BHAB_7364_SUPPORT) $(BHAB_3128_SUPPORT) $(BHAB_3158_SUPPORT) $(BHAB_7584_SUPPORT) $(BHAB_3461_SUPPORT) $(BHAB_7563_SUPPORT)),)
 ifeq ($(BHAB_IMG_EXTERNAL),)
 BHAB_SOURCES += $(MAGNUM)/basemodules/hab/src/leapctfe/common/bhab_ctfe_img.c
 endif

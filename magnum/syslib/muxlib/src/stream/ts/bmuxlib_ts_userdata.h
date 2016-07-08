@@ -1,23 +1,43 @@
-/***************************************************************************
- *     Copyright (c) 2003-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * [File Description:]
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
  *
- * Revision History:
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- *
- ***************************************************************************/
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 
 #ifndef BMUXLIB_TS_USERDATA_H_
 #define BMUXLIB_TS_USERDATA_H_
@@ -255,8 +275,8 @@ typedef struct BMUXlib_TS_P_UserdataInfo
    /* FIXME: The following is a hack for working around badly encoded PTS - for testing only */
    uint32_t uiTimingOffset45kHz;    /* NOTE: this should be zero for properly encoded streams */
 #endif
-   bool bUserDataAddressToOffsetDeltaValid;
-   BSTD_DeviceOffset uiUserDataAddressToOffsetDelta;
+   BMMA_Block_Handle hBlock;        /* handle of the memory block the data for this input comes from */
+   void *pBlockBase;                /* base virtual address of the input buffer for this input */
 } BMUXlib_TS_P_UserdataInfo;
 
 /* the user data (TS) packets to be queued to transport */
@@ -270,10 +290,12 @@ typedef struct
    uint32_t uiSequenceCount;           /* SW7425-3250: Sequence count used to ensure packets are released in order */
    struct stSegment
    {
-      uint8_t *pData;
+      uint8_t *pData;                  /* NOTE: This pointer is only used for PTS or unwrap (local storage) */
+      size_t uiOffset;                 /* NOTE: this offset is currently only used for userdata input data */
       uint32_t uiLength;
       BMUXlib_TS_P_DataType eDataType; /* the type of the data pointed to by pData (may be either userdata, local storage or PTS entry) */
                                        /* Note: Source is always "Userdata" to ensure bytes get freed from userdata input */
+      uint64_t uiTimestamp;
    } aSegments[BMUXLIB_TS_USERDATA_MAX_SEGMENTS];
 } BMUXlib_TS_P_UserdataPending;
 
@@ -296,11 +318,11 @@ typedef struct BMUXlib_TS_P_UserdataStatus
 #endif
 } BMUXlib_TS_P_UserdataStatus;
 
-/* information about the incoming data for this userdata input */
+/* information about the incoming data for this userdata input (obtained from GetUserdataBuffer API) */
 typedef struct
 {
-   uint8_t *pData0, *pData1;
-   uint32_t uiBytes0, uiBytes1, uiBytesTotal;
+   size_t uiOffset0, uiOffset1;     /* offset to the data in the input (relative to the virtual point from BMMA_Lock()) */
+   size_t uiBytes0, uiBytes1, uiBytesTotal;
 } BMUXlib_TS_P_UserdataInput;
 
 /*************************/

@@ -229,7 +229,7 @@ BERR_Code BSYNClib_CreateChannel(
 
     BSYSlib_List_AddElement(hSync->hChannels, hChn);
     hChn->iIndex = BSYSlib_List_IndexOf(hSync->hChannels, hChn);
-    BDBG_MSG(("chn %p is index %d", hChn, hChn->iIndex));
+    BDBG_MSG(("chn %p is index %d", (void*)hChn, hChn->iIndex));
     hChn->sVideo.hChn = hChn;
     hChn->sAudio.hChn = hChn;
 

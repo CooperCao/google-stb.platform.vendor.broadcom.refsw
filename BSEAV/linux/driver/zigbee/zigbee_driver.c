@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Broadcom
+ * Copyright 2016 Broadcom
  *
  * This library is free software; you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -9,18 +9,15 @@
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
+ * Lesser General Public License version 2.1 for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, you may obtain a copy at
- * http://www.broadcom.com/licenses/LGPLv2.1.php or by writing to the Free
- * Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301  USA
+ * License v2.1 (LGPLv2.1) along with this source code.
  */
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 //#define DEBUG
-//#define COMPILE_TIME
+#define COMPILE_TIME
 
 /* This version demonstrates how to create a kernel module WITH a /proc interface */
 #include <linux/init.h>
@@ -35,6 +32,7 @@
 #include <linux/interrupt.h>
 #include <linux/sched.h>
 #include <linux/platform_device.h>
+#include <linux/cdev.h>
 #include <linux/of.h>
 #include <linux/completion.h>
 #include <asm/uaccess.h>
@@ -55,6 +53,7 @@ typedef void (*FUNCPTR)(int nArg1,...);
 #define DRV_NAME	"brcm-zigbee"
 
 struct zigbee_priv_data {
+    struct cdev chr_dev;
     struct platform_device *pdev;
     struct device *dev;
     void __iomem *base;
@@ -393,8 +392,8 @@ long my_ioctl_2 (struct file *filp, unsigned int cmd, unsigned long arg)
 
 /*\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\*/
 
-#define DEVICE_NAME  "MyModuleTest"
-#define MAJOR_DEVICE 105 /* use this for our major device number */
+#define ZIGBEE_MAJOR 105 /* use this for our major device number */
+static const char zigbee_name[] = "zigbee";
 
 static struct file_operations module_ops = {
     .owner = THIS_MODULE,
@@ -705,15 +704,17 @@ static int brcmstb_zigbee_parse_dt_node(struct zigbee_priv_data *priv)
     return status;
 }
 
-static int brcmstb_zigbee_probe(struct platform_device *pdev)
+int brcmstb_zigbee_probe(struct platform_device *pdev)
 {
     int rc=0;
-
     struct device *dev = &pdev->dev;
     struct zigbee_priv_data *priv;
     struct resource *res;
     int ret;
     struct zigbee_platform_data *pd;
+#ifdef DYNAMIC_MAJOR_NUMBER
+    dev_t dev_no;
+#endif
 #ifndef COMPILE_TIME
     u32 val;
 #endif
@@ -759,7 +760,17 @@ static int brcmstb_zigbee_probe(struct platform_device *pdev)
         return -ENODEV;
 
     //printk(KERN_ALERT "DRIVER:  Hello, world!\n");
-    register_chrdev(MAJOR_DEVICE, DEVICE_NAME, &module_ops);
+#ifdef DYNAMIC_MAJOR_NUMBER
+    cdev_init(&priv->chr_dev,&module_ops);
+    rc = alloc_chrdev_region(&dev_no,0,1,zigbee_name);
+    if (rc != 0) {
+        dev_err(dev,"Failed to alloc chr region\n");
+        return -ENOMEM;
+    }
+    rc = cdev_add(&priv->chr_dev,dev_no,1);
+#else
+    register_chrdev(ZIGBEE_MAJOR, zigbee_name, &module_ops);
+#endif
 
     init_proc();
 
@@ -856,7 +867,11 @@ static int brcmstb_zigbee_remove(struct platform_device *pdev)
 
     /* Question: can I prevent this from happening if I have open devices??? */
     printk(KERN_ALERT "DRIVER:  Goodbye, cruel world\n");
-    unregister_chrdev(MAJOR_DEVICE, DEVICE_NAME);
+#ifdef DYNAMIC_MAJOR_NUMBER
+    cdev_del(&priv->chr_dev);
+#else
+    unregister_chrdev(ZIGBEE_MAJOR, zigbee_name);
+#endif
 
     return 0;
 }
@@ -895,11 +910,10 @@ static SIMPLE_DEV_PM_OPS(brcmstb_zigbee_pm_ops, brcmstb_zigbee_suspend,
         brcmstb_zigbee_resume);
 
 static const struct of_device_id brcmstb_zigbee_of_match[] = {
-    { .compatible = "brcm,rf4ce" },
-    {},
+    { .compatible = "brcm,rf4ce" }
 };
 
-static struct platform_driver brcmstb_zigbee_driver = {
+struct platform_driver brcmstb_zigbee_driver = {
     .probe          = brcmstb_zigbee_probe,
     .remove         = brcmstb_zigbee_remove,
     .driver = {
@@ -909,8 +923,10 @@ static struct platform_driver brcmstb_zigbee_driver = {
         .of_match_table = of_match_ptr(brcmstb_zigbee_of_match),
     }
 };
+#ifndef BYPASS_MODULE_LICENSE
 module_platform_driver(brcmstb_zigbee_driver);
 
 MODULE_LICENSE("GPL");
-MODULE_AUTHOR("Broadcom Corporation");
+MODULE_AUTHOR("Broadcom");
 MODULE_DESCRIPTION("Zigbee driver for STB chips");
+#endif

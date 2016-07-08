@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2014 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  *****************************************************************************/
 /* Example to tune a QAM channel using nexus */
@@ -308,7 +300,7 @@ int main(int argc, char **argv)
     {
         unsigned x, y;
         for (y=0;y<createSettings.height;y++) {
-            uint32_t *ptr = (uint32_t *)((unsigned)mem.buffer + y*mem.pitch);
+            uint32_t *ptr = (uint32_t *)&((uint8_t*)mem.buffer)[y*mem.pitch];
             for (x=0;x<createSettings.width;x++) {
                 ptr[x] = 0xFF0000FF;
             }

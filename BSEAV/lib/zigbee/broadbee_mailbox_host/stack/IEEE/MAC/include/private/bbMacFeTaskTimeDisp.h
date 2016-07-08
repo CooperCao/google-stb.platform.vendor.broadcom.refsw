@@ -1,52 +1,51 @@
 /******************************************************************************
-* (c) 2014 Broadcom Corporation
-*
-* This program is the proprietary software of Broadcom Corporation and/or its
-* licensors, and may only be used, duplicated, modified or distributed pursuant
-* to the terms and conditions of a separate, written license agreement executed
-* between you and Broadcom (an "Authorized License").  Except as set forth in
-* an Authorized License, Broadcom grants no license (express or implied), right
-* to use, or waiver of any kind with respect to the Software, and Broadcom
-* expressly reserves all rights in and to the Software and all intellectual
-* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1. This program, including its structure, sequence and organization,
-*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-*    reasonable efforts to protect the confidentiality thereof, and to use
-*    this information only in connection with your use of Broadcom integrated
-*    circuit products.
-*
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-******************************************************************************/
-/*****************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
+ *
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************
 *
 * FILENAME: $Workfile: trunk/stack/IEEE/MAC/include/private/bbMacFeTaskTimeDisp.h $
 *
 * DESCRIPTION:
 *   MAC-FE Task-Time Dispatcher interface.
 *
-* $Revision: 3159 $
-* $Date: 2014-08-05 19:11:02Z $
+* $Revision: 10772 $
+* $Date: 2016-03-30 02:46:05Z $
 *
 *****************************************************************************************/
 
@@ -57,6 +56,38 @@
 
 /************************* INCLUDES *****************************************************/
 #include "private/bbMacMpdu.h"      /* MAC MPDU definitions. */
+
+
+/************************* DEFINITIONS **************************************************/
+/**//**
+ * \brief   Enumeration of identifiers for the MAC Tasks.
+ * \note    Do not change the relative order of identifiers inside this group because it
+ *  defines their relative priority to each other. The first item in the list denotes the
+ *  task with the highest priority, etc.
+ */
+typedef enum _MacFeTaskId_t
+{
+    MAC_LE_TASK_RECEIVED,       /*!< MAC-LE-RECEIVED.indication was issued on received MPDU. */
+
+    MAC_LE_TASK_TRANSMITTED,    /*!< MAC-LE-TRANSMITTED.indication was issued on completion of Transmission. */
+
+    MAC_LE_TASK_COMPLETED,      /*!< MAC-LE-COMPLETED.indication was issued on completion of ED Scan, Channel Switch. */
+
+#if !defined(_MAC_CONTEXT_RF4CE_CONTROLLER_)
+    MAC_FE_TASK_TIMEOUT,        /*!< MAC-FE Request Processor TIMEOUT event was signaled. */
+#endif
+
+#if defined(_MAC_CONTEXT_ZBPRO_)
+    MAC_FE_TASK_EXPIRED,        /*!< MAC-FE Transactions Dispatcher EXPIRED event was signaled.   */
+#endif
+
+    MAC_FE_TASK_START,          /*!< MAC-FE Request Processor START event task was scheduled.   */
+
+    MAC_FE_TASKS_NUMBER,        /*!< Total number of MAC tasks. This item must be the last one in the list. */
+
+} MacFeTaskId_t;
+
+SYS_DbgAssertStatic(MAC_FE_TASKS_NUMBER <= SYS_SCHEDULER_HANDLERS_MAX_NUMBER);
 
 
 /************************* PROTOTYPES ***************************************************/
@@ -83,42 +114,6 @@
 MAC_PRIVATE void macFeTaskTimeDispScheduleStart(void);
 
 
-/*************************************************************************************//**
- * \brief   Requests the MAC-LE to perform an MPDU transmission.
- * \param[in]   mpduConstructor     Entry point to MPDU Surrogate Constructor function.
- * \details
- *  Sets the specified MPDU Surrogate Constructor function entry point and issues the
- *  MAC-LE-START-TX.request for the new data frame transmission. The function specified
- *  with the \p mpduConstructor will be called later; it shall construct the MPDU
- *  Surrogate structured object in the memory pointed by its argument \c mpduSurr.
-*****************************************************************************************/
-MAC_PRIVATE void macFeTaskTimeDispStartTxReq(MacMpduConstructor_t *mpduConstructor);
-
-
-#if !defined(_MAC_CONTEXT_RF4CE_CONTROLLER_)
-/*************************************************************************************//**
- * \brief   Requests the MAC-LE to perform an ED Scan.
- * \param[in]   duration    Duration of the ED Scan to be performed, in symbol quotients.
- * \details
- *  Issues the MAC-LE-START-ED.request to start the ED Scan. The \p duration argument
- *  specifies the overhaul duration of scanning.
-*****************************************************************************************/
-MAC_PRIVATE void macFeTaskTimeDispStartEdReq(const HAL_SymbolTimeshift_t duration);
-#endif
-
-
-/*************************************************************************************//**
- * \brief   Requests the MAC-LE to perform an ED Scan.
- * \param[in]   channelOnPage   The 16-bit plain value of the Channel-on-Page object
- *  containing the Channel Page IEEE-index in its MSB and the Logical Channel index in its
- *  LSB to be switched to.
- * \details
- *  Issues the MAC-LE-SET-CHANNEL.request to switch the current channel and channel page
- *  as specified by the \p channelOnPage argument.
-*****************************************************************************************/
-MAC_PRIVATE void macFeTaskTimeDispSetChannelReq(const PHY_ChannelOnPagePlain_t channelOnPage);
-
-
 #if !defined(_MAC_CONTEXT_RF4CE_CONTROLLER_)
 /*************************************************************************************//**
  * \brief   Appoints the TIMEOUT task for the Currently Active MAC-FE Request Processor.
@@ -133,7 +128,7 @@ MAC_PRIVATE void macFeTaskTimeDispSetChannelReq(const PHY_ChannelOnPagePlain_t c
  *  states) under some other condition but not the timeout, the previously appointed
  *  TIMEOUT task must be recalled.
 *****************************************************************************************/
-MAC_PRIVATE void macFeTaskTimeDispAppointTimeout(const HAL_SymbolPeriod_t period);
+MAC_PRIVATE void macFeTaskTimeDispAppointTimeout(const HAL_Symbol__Tshift_t period);
 
 
 /*************************************************************************************//**
@@ -168,7 +163,7 @@ MAC_PRIVATE void macFeTaskTimeDispRecallTimeout(void);
  *  reappointed to the new timestamp, according to the \p timeshift, if the new expiration
  *  moment is closer to the current moment than the previously appointed.
 *****************************************************************************************/
-MAC_PRIVATE void macFeTaskTimeDispReappointExpired(const HAL_SymbolTimeshift_t timeshift);
+MAC_PRIVATE void macFeTaskTimeDispReappointExpired(const HAL_Symbol__Tshift_t timeshift);
 
 
 /*************************************************************************************//**

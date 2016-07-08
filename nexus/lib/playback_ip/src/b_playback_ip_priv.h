@@ -1,51 +1,40 @@
-/***************************************************************************
-*     (c)2003-2016 Broadcom Corporation
-*
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
-*  and may only be used, duplicated, modified or distributed pursuant to the terms and
-*  conditions of a separate, written license agreement executed between you and Broadcom
-*  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-*  no license (express or implied), right to use, or waiver of any kind with respect to the
-*  Software, and Broadcom expressly reserves all rights in and to the Software and all
-*  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-*  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-*  Except as expressly set forth in the Authorized License,
-*
-*  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-*  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-*  and to use this information only in connection with your use of Broadcom integrated circuit products.
-*
-*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-*  USE OR PERFORMANCE OF THE SOFTWARE.
-*
-*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-*  ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* Description: IP Applib Private Definitions
-*
-* Revision History:
-*
-* $brcm_Log: $
-*
-***************************************************************************/
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
 #ifndef __B_PLAYBACK_IP_PRIV__
 #define __B_PLAYBACK_IP_PRIV__
 
@@ -88,6 +77,7 @@
     #define EINTR -1
 #endif /* _WIN32_WCE */
 
+#include <inttypes.h>
 #include "b_os_lib.h"
 #include "bdbg.h"
 #include "bkni.h"
@@ -630,7 +620,9 @@ typedef struct HlsNetworkBandwidthContext
 typedef struct HlsSessionState {
     struct PlaylistFileInfoQueue playlistFileInfoQueueHead;
     struct AltRenditionInfoQueue altRenditionInfoQueueHead;
+    struct PlaylistFileInfoQueue iFramePlaylistFileInfoQueueHead;
     PlaylistFileInfo *currentPlaylistFile;
+    PlaylistFileInfo *currentIFramePlaylistFile;
     char *playlistBuffer;
     int playlistBufferSize;
     int playlistBufferDepth;
@@ -675,6 +667,8 @@ typedef struct HlsSessionState {
     unsigned dropEveryNthSegment; /* which segment should get dropped at the higher speeds. */
     unsigned segmentCount; /* how many segments have been downloaded & fed during a particular trickmode speed. */
     NEXUS_PlaybackPosition segmentsRemovedDuration; /* set to the duration of segments removed when a live playlist is updated, needed to calculate the next segment position. */
+    bmedia_pes_info pesInfo;
+    bool useIFrameTrickmodes;
 }HlsSessionState;
 #endif
 
@@ -753,7 +747,7 @@ typedef struct MpegDashDateTime
 } MpegDashDateTime;
 
 #define MPEG_DASH_DATETIME_TO_PRINTF_ARGS(pObj)     \
-            "DateTime: valid:%u utc_time_t:%lu nsecs:%lu tz_secs:%u", \
+            "DateTime: valid:%u utc_time_t:%lu nsecs:%lu tz_secs:%ld", \
             (pObj)->valid,                            \
             (pObj)->utc_time_t,                       \
             (pObj)->nsecs,                            \
@@ -1524,6 +1518,7 @@ typedef struct B_PlaybackIp
     bool socket_flush;  /* Set by the controller to request socket evacuate */
     int initial_data_len;
     unsigned int firstPts;  /* Cached First PTS value sent by the server */
+    bool firstPtsPassed;  /* Cached First PTS value sent by the server */
     unsigned int streamDurationUntilLastDiscontinuity; /* cumulative stream duration until the last PTS discontinuity */
     unsigned int lastUsedPts;   /* PTS used during last trickplay operation */
     unsigned int ptsDuringLastDiscontinuity;    /* pts of the displayed frame before the last dicontinuity */
@@ -1638,6 +1633,7 @@ typedef struct B_PlaybackIp
     unsigned rtpHeaderLength;
     NEXUS_CallbackDesc appSourceChanged;
     NEXUS_CallbackDesc appFirstPts;
+    NEXUS_CallbackDesc streamStatusAvailable;
     NEXUS_CallbackDesc appFirstPtsPassed;
     NEXUS_CallbackDesc appPtsError;
     char encryptedBuf[HTTP_AES_BLOCK_SIZE]; /* buffer to cache the encrypted bytes from the dtcp lib that couldn't be decrypted as they were followed by HTTP Chunk header that had to be removed */
@@ -1666,6 +1662,8 @@ typedef struct B_PlaybackIp
     bool forward;
     bool frameRewindCalled;
     B_PlaybackIpPsiStateHandle pPsiState;
+    uint32_t fifoMarker;
+    B_Time fifoMarkerUpdateTime;
 } B_PlaybackIp;
 
 /* Output structure used in security session opens */

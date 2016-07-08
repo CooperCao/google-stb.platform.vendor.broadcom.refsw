@@ -1,7 +1,7 @@
 ############################################################
-#     (c)2003-2014 Broadcom Corporation
+#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 #
-#  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+#  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
 #  conditions of a separate, written license agreement executed between you and Broadcom
 #  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -58,7 +58,7 @@ NEXUS_HDMI_INPUT_SUPPORT := n
 endif
 
 ifeq ($(NEXUS_USE_7250_CD2),y)
-# TODO: add frontend
+NEXUS_FRONTEND_3158:=y
 endif
 
 ifeq ($(NEXUS_USE_7250_DGL),y)

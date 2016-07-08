@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -76,17 +76,24 @@ class Platform;
 
 // @cond
 
+typedef struct DisplaySessionHandles
+{
+   NEXUS_HdmiOutputHandle  hdmi;
+   NEXUS_DisplayHandle     display;
+} DisplaySessionHandles;
+
 class PlatformDataNexus : public Platform::PlatformData
 {
 public:
    PlatformDataNexus(Platform *platform) :
       m_platform(platform),
 #ifdef IR_INPUT
-      m_IRHandle(nullptr),
+      m_IRHandle(NULL),
 #endif
-      m_platformHandle(nullptr),
+      m_platformHandle(NULL),
 #ifdef SINGLE_PROCESS
-      m_nexusDisplay(nullptr),
+      m_nexusDisplay(NULL),
+      m_sessionHandles(NULL),
       m_kbdThread(0),
       m_mouseThread(0),
       m_kbdFd(0),
@@ -98,7 +105,7 @@ public:
       m_compositeOn(false),
       m_hdmiOn(false),
       m_timeout(0),
-      m_event(nullptr)
+      m_event(NULL)
    {
       m_lastCPUTicks = times(&m_lastCPUUsage);
    }
@@ -106,6 +113,9 @@ public:
    ~PlatformDataNexus()
    {
       TermUSBInputs();
+#ifdef SINGLE_PROCESS
+      delete m_sessionHandles;
+#endif
    }
 
    void InitRoutedInputs();
@@ -129,10 +139,11 @@ public:
    NEXUS_IrInputHandle           m_IRHandle;
    NEXUS_IrInputMode             m_IRMode;
 #endif
-   std::list<NXPL_NativeWindowInfo> m_winInfo;
+   std::list<NXPL_NativeWindowInfoEXT> m_winInfo;
    NXPL_PlatformHandle           m_platformHandle;
 #ifdef SINGLE_PROCESS
    NEXUS_DisplayHandle           m_nexusDisplay;
+   DisplaySessionHandles         *m_sessionHandles;
    pthread_t                     m_kbdThread;
    pthread_t                     m_mouseThread;
    int                           m_kbdFd;
@@ -161,7 +172,7 @@ class NexusPixmapData : public NativePixmapData
 {
 public:
    NexusPixmapData() :
-      m_surface(nullptr)
+      m_surface(NULL)
    {
    }
 

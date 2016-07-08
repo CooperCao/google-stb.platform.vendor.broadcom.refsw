@@ -54,6 +54,7 @@ BASIC_BUILD_APPS = \
 	crc \
 	cursor \
 	desktop \
+	dual_transcode \
 	encode_display \
 	encode_graphics_as_video \
 	graphics_as_video \
@@ -75,6 +76,7 @@ BASIC_BUILD_APPS = \
 	setdisplay \
 	sethdcp \
 	simpleplay \
+	thumbnail \
 	video_as_graphics \
 	wait_for_server
 
@@ -215,6 +217,19 @@ NXCLIENT_APPS_UTILS_SRC := $(foreach src,$(NXUTILS_SOURCES), $(notdir $(src)))
 CFLAGS += $(addprefix -I,$(NXUTILS_INCLUDES)) -I$(BINDIR)
 vpath %.c $(foreach src,$(NXUTILS_SOURCES), $(dir $(src)))
 
+ifeq ($(FREETYPE_SUPPORT),y)
+EXTRA_BUILD_RULES += freetype
+EXTRA_CLEAN_RULES += clean_freetype
+FREETYPE_DIR = $(NEXUS_TOP)/../BSEAV/lib/freetype-2.1.5
+CFLAGS += -DFREETYPE_SUPPORT -I$(FREETYPE_DIR)/include
+FREETYPE_ODIR = $(B_REFSW_OBJ_ROOT)/BSEAV/lib/freetype-2.1.5
+LDFLAGS += -L$(FREETYPE_ODIR) -lfreetype
+freetype:
+	$(MAKE) -C $(FREETYPE_DIR)
+clean_freetype:
+	$(MAKE) -C $(FREETYPE_DIR) clean
+endif
+
 $(NXCLIENT_APPS_UTILS_LIB): $(EXTRA_BUILD_RULES)
 $(NXCLIENT_APPS_UTILS_LIB): $(patsubst %.c,%.o,$(NXCLIENT_APPS_UTILS_SRC))
 	@echo [Archive... $@]
@@ -308,6 +323,9 @@ APPLIB_DEFINES := $(foreach lib,$(B_LIBS),$($(lib)_DEFINES))
 ccgfx: CFLAGS += $(addprefix -I,$(APPLIB_INCLUDES)) $(addprefix -D,$(APPLIB_DEFINES)) $(B_DCC_LIB_CFLAGS_OPTIONS) -I$(NEXUS_TOP)/../magnum/commonutils/udp/include -I$(NEXUS_TOP)/../magnum/commonutils/avc/include
 ifneq ($(NEXUS_PLAYBACK_SUPPORT),n)
 ccgfx: LDFLAGS += -lm -lb_dcc
+ifeq ($(FREETYPE_SUPPORT),y)
+ccgfx: LDFLAGS += -lfreetype
+endif
 CCGFX_DEPENDENCIES = dcclib $(NEXUS_TOP)/../magnum/commonutils/udp/src/budp_dccparse.c $(NEXUS_TOP)/../magnum/commonutils/udp/src/budp_bitread.c parse_userdata.c $(NXCLIENT_APPS_UTILS_LIB)
 else
 CCGFX_DEPENDENCIES =

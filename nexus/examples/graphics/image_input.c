@@ -1,51 +1,40 @@
 /******************************************************************************
- *    (c)2008-2014 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
-******************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ ******************************************************************************/
 #include "nexus_platform.h"
 #include <stdio.h>
 
@@ -137,7 +126,7 @@ int main(int argc, char **argv)
 #if NEXUS_NUM_HDMI_OUTPUTS
     NEXUS_HdmiOutputStatus hdmiStatus;
 #endif
-    int i;
+    int i=NEXUS_MEMC0_MAIN_HEAP;
     bool moveWindow=false;
     bool vfd = false;
     bool stripe = false;
@@ -174,25 +163,50 @@ int main(int argc, char **argv)
 
     NEXUS_Platform_GetDefaultSettings(&platformSettings);
     platformSettings.openFrontend = false;
-    /* increase gfx heaps size to hold the image input surfaces */
+
+    /* The following trick is complicated and might not be able to map memory for all cases; maybe it's easier to
+       use "bounce buffer" technique to work around: do gfx stripe blit with surface in main heap;
+       then dma to the image input picture heap for render; */
 #if NEXUS_MEMC2_GRAPHICS_HEAP
-    if(platformSettings.heap[NEXUS_MEMC2_GRAPHICS_HEAP].size>0 &&
-        platformSettings.heap[NEXUS_MEMC2_GRAPHICS_HEAP].size < (int)(w*h*2*NUM_SURFACES*2)) {
-        platformSettings.heap[NEXUS_MEMC2_GRAPHICS_HEAP].size = (w*h*2*NUM_SURFACES*2);
-    }
+    i = NEXUS_MEMC2_GRAPHICS_HEAP;
 #endif
+    if(stripe) { /* gfx stripe blit module might be in kernel mode, that currently needs cpu access to surface */
+#if NEXUS_MEMC2_DRIVER_HEAP
+        i = NEXUS_MEMC2_DRIVER_HEAP;
+#endif
+        platformSettings.heap[i].memoryType |= NEXUS_MemoryType_eDriver;
+    }
+    /* increase gfx heaps size to hold the image input surfaces */
+    if(platformSettings.heap[i].size>0 &&
+        platformSettings.heap[i].size < (int)(w*h*2*NUM_SURFACES*2)) {
+        platformSettings.heap[i].size = (w*h*2*NUM_SURFACES*2);
+    }
 #if NEXUS_MEMC1_GRAPHICS_HEAP
-    if(platformSettings.heap[NEXUS_MEMC1_GRAPHICS_HEAP].size>0 &&
-        platformSettings.heap[NEXUS_MEMC1_GRAPHICS_HEAP].size < (int)(w*h*2*NUM_SURFACES*2)) {
-        platformSettings.heap[NEXUS_MEMC1_GRAPHICS_HEAP].size = (w*h*2*NUM_SURFACES*2);
-    }
+    i = NEXUS_MEMC1_GRAPHICS_HEAP;
 #endif
+    if(stripe) { /* gfx stripe blit module might be in kernel mode, that currently needs cpu access to surface */
+#if NEXUS_MEMC1_DRIVER_HEAP
+        i = NEXUS_MEMC1_DRIVER_HEAP;
+#endif
+        platformSettings.heap[i].memoryType |= NEXUS_MemoryType_eDriver;
+    }
+    if(platformSettings.heap[i].size>0 &&
+        platformSettings.heap[i].size < (int)(w*h*2*NUM_SURFACES*2)) {
+        platformSettings.heap[i].size = (w*h*2*NUM_SURFACES*2);
+    }
 #if NEXUS_MEMC0_GRAPHICS_HEAP
-    if(platformSettings.heap[NEXUS_MEMC0_GRAPHICS_HEAP].size>0 &&
-        platformSettings.heap[NEXUS_MEMC0_GRAPHICS_HEAP].size < (int)(w*h*2*NUM_SURFACES*2)) {
-        platformSettings.heap[NEXUS_MEMC0_GRAPHICS_HEAP].size = (w*h*2*NUM_SURFACES*2);
-    }
+    i = NEXUS_MEMC0_GRAPHICS_HEAP;
 #endif
+    if(stripe) { /* gfx stripe blit module might be in kernel mode, that currently needs cpu access to surface */
+#if NEXUS_MEMC0_DRIVER_HEAP
+        i = NEXUS_MEMC0_DRIVER_HEAP;
+#endif
+        platformSettings.heap[i].memoryType |= NEXUS_MemoryType_eDriver;
+    }
+    if(platformSettings.heap[i].size>0 &&
+        platformSettings.heap[i].size < (int)(w*h*2*NUM_SURFACES*2)) {
+        platformSettings.heap[i].size = (w*h*2*NUM_SURFACES*2);
+    }
     rc = NEXUS_Platform_Init(&platformSettings);
     BDBG_ASSERT(!rc);
     NEXUS_Platform_GetConfiguration(&platformConfig);
@@ -264,7 +278,8 @@ int main(int argc, char **argv)
     for (i=0;i<NEXUS_MAX_HEAPS;i++) {
         NEXUS_MemoryStatus s;
         if (!platformConfig.heap[i] || NEXUS_Heap_GetStatus(platformConfig.heap[i], &s)) continue;
-        if (s.memcIndex == imageInputStatus.memcIndex && (s.memoryType & NEXUS_MemoryType_eApplication) && s.largestFreeBlock >= w*h*2 && !mainHeapFound) {
+        /* use driver heap in case of kernel mode NEXUS */
+        if (s.memcIndex == imageInputStatus.memcIndex && (s.memoryType & NEXUS_MemoryType_eDriver) && s.largestFreeBlock >= w*h*2 && !mainHeapFound) {
             surfaceCfg.heap = platformConfig.heap[i];
             mainHeapFound = true;
             BDBG_MSG(("main heap %d", i));
@@ -272,7 +287,7 @@ int main(int argc, char **argv)
                 break;
             }
         }
-        if (s.memcIndex == imageInputStatus.secondaryMemcIndex && (s.memoryType & NEXUS_MemoryType_eApplication) && s.largestFreeBlock >= w*h/2 && !chromaHeapFound) {
+        if (s.memcIndex == imageInputStatus.secondaryMemcIndex && (s.memoryType & NEXUS_MemoryType_eDriver) && s.largestFreeBlock >= w*h/2 && !chromaHeapFound) {
             chromaHeap = platformConfig.heap[i];
             chromaHeapFound = true;
             BDBG_MSG(("second heap %d", i));
@@ -289,7 +304,7 @@ int main(int argc, char **argv)
         BDBG_ASSERT(g_surface[i].surface);
         g_surface[i].submitted = false;
         if(stripe) {
-            BKNI_Memset(&stripeSettings, 0 , sizeof(stripeSettings));
+            NEXUS_StripedSurface_GetDefaultCreateSettings(&stripeSettings);
             stripeSettings.lumaHeap = surfaceCfg.heap;
             stripeSettings.chromaHeap = chromaHeap;
             stripeSettings.imageWidth  = surfaceCfg.width;
@@ -372,7 +387,7 @@ int main(int argc, char **argv)
         NEXUS_Graphics2DFillSettings fillSettings;
         NEXUS_SurfaceHandle freeSurface=NULL;
         NEXUS_SurfaceHandle pic;
-        unsigned num_entries = 0;
+        size_t num_entries = 0;
 
         /* Make sure image surface is not in use by Video Output (VDC) */
         do {
@@ -387,7 +402,7 @@ int main(int argc, char **argv)
             BDBG_ASSERT(!rc);
             if ( num_entries ) {
                 /* our surface has been displayed, we can now re-use and re-queue it */
-                BDBG_MSG(("g_surface[releaseIdx=%d].surface=%p  recycSurface=%p" , releaseIdx, g_surface[releaseIdx].surface , freeSurface ));
+                BDBG_MSG(("g_surface[releaseIdx=%d].surface=%p  recycSurface=%p" , releaseIdx, (void*)g_surface[releaseIdx].surface , (void*)freeSurface ));
                 BDBG_ASSERT( ((NEXUS_SurfaceHandle)g_surface[releaseIdx].stripedSurface==freeSurface) || (g_surface[releaseIdx].surface == freeSurface) );
                 g_surface[releaseIdx].submitted = false;
                 if ( ++releaseIdx == NUM_SURFACES ) releaseIdx=0;
@@ -397,7 +412,7 @@ int main(int argc, char **argv)
 
         g_surface[submitIdx].submitted = true; /* mark as inuse */
         pic = g_surface[submitIdx].surface;
-        BDBG_MSG(("pic[%u]=%p" , submitIdx, pic ));
+        BDBG_MSG(("pic[%u]=%p" , submitIdx, (void*)pic ));
 
         /* must do M2MC fill. CPU may not have access to this surface on some non-UMA systems. */
         NEXUS_Graphics2D_GetDefaultFillSettings(&fillSettings);

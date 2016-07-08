@@ -1,7 +1,7 @@
-/***************************************************************************
- *     (c)2007-2012 Broadcom Corporation
+/******************************************************************************
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,31 +34,43 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
- **************************************************************************/
+ ******************************************************************************/
 #include "nexus_hdmi_output_module.h"
 #include "nexus_base.h"
 #include "priv/nexus_core.h"
-#include "nexus_hdmi_output_init.h"
+#include "nexus_memory.h"
 
+#include "nexus_hdmi_output_init.h"
+#include "nexus_hdmi_output_image.h"
+
+#if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_SUPPORT)
+#include "nexus_sage.h"
+#include "bsagelib.h"
+#include "priv/nexus_sage_priv.h" /* get access to NEXUS_Sage_GetSageLib_priv() */
+#if NEXUS_HAS_HDMI_INPUT
+#include "priv/nexus_hdmi_input_priv.h"
+#endif
+#endif
 
 BDBG_MODULE(nexus_hdmi_output);
+
 
 /* global module handle & data */
 NEXUS_ModuleHandle g_NEXUS_hdmiOutputModule;
 NEXUS_HdmiOutputModuleSettings g_NEXUS_hdmiOutputModuleSettings;
 #if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_SUPPORT)
 NEXUS_HdmiOutput_SageData g_NEXUS_hdmiOutputSageData;
+NEXUS_HdmiOutputMemoryBlock g_hdcpTABlock;
+
+typedef struct NEXUS_HdmiOutputImageHolder {
+    const char *name;         /* printable name */
+    uint8_t id;         /* firmware Id */
+    NEXUS_HdmiOutputMemoryBlock *raw;
+} NEXUS_HdmiOutputImageHolder;
+
+static NEXUS_Error NEXUS_HdmiOutputModule_P_Img_Create(const char *id, void **ppContext, BIMG_Interface  *pInterface);
+static void NEXUS_HdmiOutputModule_P_Img_Destroy(void *pContext);
+static NEXUS_Error NEXUS_HdmiOutputModule_P_LoadTA(NEXUS_HdmiOutputImageHolder *holder, BIMG_Interface *img_interface, void *img_context);
 #endif
 
 
@@ -75,6 +87,19 @@ NEXUS_ModuleHandle NEXUS_HdmiOutputModule_Init(
 {
     NEXUS_ModuleSettings moduleSettings;
     NEXUS_Error errCode;
+
+#if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_SUPPORT)
+    BSAGElib_Handle sagelibHandle;
+	BSAGElib_ChipInfo chipInfo;
+    NEXUS_SageStatus sageStatus;
+
+    NEXUS_HdmiOutputImageHolder hdcpTAImg =
+        {"HDCP2.2 TA", HDMI_OUTPUT_IMG_ID_Production, NULL};
+
+    /* Image Interface */
+    void * img_context = NULL;
+    BIMG_Interface img_interface;
+#endif
 
     BDBG_ASSERT(NULL == g_NEXUS_hdmiOutputModule);
 
@@ -105,10 +130,70 @@ NEXUS_ModuleHandle NEXUS_HdmiOutputModule_Init(
     if (pSettings != &g_NEXUS_hdmiOutputModuleSettings) {
         g_NEXUS_hdmiOutputModuleSettings = *pSettings;
     }
+
 #if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_SUPPORT)
     /* Delay the process of populating until Sage is up */
     BKNI_Memset(&g_NEXUS_hdmiOutputSageData, 0, sizeof(g_NEXUS_hdmiOutputSageData));
+
+    /* Initialize IMG interface; used to pull out an image on the file system from the kernel. */
+    errCode = NEXUS_HdmiOutputModule_P_Img_Create(NEXUS_CORE_IMG_ID_HDCP, &img_context, &img_interface);
+    if (errCode != NEXUS_SUCCESS) {
+        BDBG_ERR(("%s - Cannot use IMG interface", __FUNCTION__));
+        errCode = BERR_TRACE(errCode);
+        if (img_context) {
+            NEXUS_HdmiOutputModule_P_Img_Destroy(img_context);
+        }
+    }
+
+    /* get status so we block until Sage is running */
+    errCode = NEXUS_Sage_GetStatus(&sageStatus);
+    if (errCode)
+	{
+		errCode = BERR_TRACE(errCode);
+		goto error;
+    }
+
+    /* retrieve Sagelib Handle */
+    NEXUS_Module_Lock(g_NEXUS_hdmiOutputModuleSettings.modules.sage);
+    NEXUS_Sage_GetSageLib_priv(&sagelibHandle);
+    NEXUS_Module_Unlock(g_NEXUS_hdmiOutputModuleSettings.modules.sage);
+
+	/* retrieve chip type */
+	BSAGElib_GetChipInfo(sagelibHandle, &chipInfo);
+
+    /* Specify which version of TA to load based on the type of chip on the board */
+    if (chipInfo.chipType == BSAGElib_ChipType_eZS) {
+        hdcpTAImg.id = HDMI_OUTPUT_IMG_ID_Development;
+    }
+	else {
+		hdcpTAImg.id = HDMI_OUTPUT_IMG_ID_Production;
+	}
+
+    /************* load hdcp22 TA to memory*******************/
+    hdcpTAImg.raw = &g_hdcpTABlock;
+    errCode = NEXUS_HdmiOutputModule_P_LoadTA(&hdcpTAImg, &img_interface, img_context);
+    if (errCode != NEXUS_SUCCESS) {
+        errCode = BERR_TRACE(errCode);
+        goto error;
+    }
+
+#if NEXUS_HAS_HDMI_INPUT
+    NEXUS_Module_Lock(g_NEXUS_hdmiOutputModuleSettings.modules.hdmiInput);
+    errCode = NEXUS_HdmiInput_LoadHdcpTA_priv(g_hdcpTABlock.buf, g_hdcpTABlock.len);
+    NEXUS_Module_Unlock(g_NEXUS_hdmiOutputModuleSettings.modules.hdmiInput);
+    if (errCode != NEXUS_SUCCESS)
+    {
+        errCode = BERR_TRACE(errCode);
+        goto error;
+    }
 #endif
+
+error:
+    if (img_context) {
+        NEXUS_HdmiOutputModule_P_Img_Destroy(img_context);
+    }
+#endif
+
 
     /* Success */
     return g_NEXUS_hdmiOutputModule;
@@ -123,8 +208,178 @@ void NEXUS_HdmiOutputModule_Uninit(void)
     NEXUS_UnlockModule();
     NEXUS_Module_Destroy(g_NEXUS_hdmiOutputModule);
     BKNI_Memset(&g_NEXUS_hdmiOutputModuleSettings, 0, sizeof(g_NEXUS_hdmiOutputModuleSettings));
+
+#if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_SUPPORT)
+    if (g_hdcpTABlock.buf != NULL)
+    {
+        NEXUS_Memory_Free(g_hdcpTABlock.buf);
+        g_hdcpTABlock.buf = NULL;
+        g_hdcpTABlock.len = 0;
+    }
+#endif
+
     g_NEXUS_hdmiOutputModule = NULL;
 
     return;
 }
 
+#if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_SUPPORT)
+static NEXUS_Error NEXUS_HdmiOutputModule_P_Img_Create(
+    const char *id,             /* Image Name */
+    void **ppContext,           /* [out] Context */
+    BIMG_Interface  *pInterface /* [out] Pointer to Image interface */
+    )
+{
+    NEXUS_Error rc;
+#if defined(NEXUS_MODE_driver)
+    rc = Nexus_Core_P_Img_Create(id, ppContext, pInterface);
+#else
+    BSTD_UNUSED(id);
+    *ppContext = HDMI_OUTPUT_IMAGE_Context;
+    *pInterface = HDMI_OUTPUT_IMAGE_Interface;
+    rc = NEXUS_SUCCESS;
+#endif
+    return rc;
+}
+
+static void NEXUS_HdmiOutputModule_P_Img_Destroy(
+    void *pContext              /* Context returned by previous call */
+    )
+{
+#if defined(NEXUS_MODE_driver)
+    Nexus_Core_P_Img_Destroy(pContext);
+#else
+    BSTD_UNUSED(pContext);
+#endif
+}
+
+/* Load a hdcp22 TA binary located on the file system into memory */
+static NEXUS_Error NEXUS_HdmiOutputModule_P_LoadTA(
+    NEXUS_HdmiOutputImageHolder *holder,
+    BIMG_Interface *img_interface,
+    void *img_context)
+{
+    void *image = NULL;
+    NEXUS_Error rc = NEXUS_SUCCESS;
+
+    /* Prepare memory to load binfile */
+    {
+        uint32_t *size = NULL;
+
+        /* Open file */
+        rc = img_interface->open(img_context, &image, holder->id);
+        if(rc != NEXUS_SUCCESS) {
+            BDBG_MSG(("%s - Could not find HDCP_TA '%s' file, assuming hdcp22_ta is pre-loaded",
+                      __FUNCTION__, holder->name));
+            holder->raw->buf = NULL;
+            holder->raw->len = 0;
+            rc = NEXUS_SUCCESS;
+            goto done;
+        }
+
+        /* Get buffer size */
+        rc = img_interface->next(image, 0, (const void **)&size, sizeof(uint32_t));
+        if(rc != NEXUS_SUCCESS) {
+            BDBG_ERR(("%s - Error while reading '%s' file to get size",
+                      __FUNCTION__, holder->name));
+            rc = BERR_TRACE(rc);
+            goto done;
+        }
+
+        /* Allocate buffer to save data */
+        {
+            uint32_t alloc_size = *size;
+
+            BDBG_MSG(("alloc '%s' %u bytes", holder->name, alloc_size));
+            rc = NEXUS_Memory_Allocate(alloc_size, NULL, &holder->raw->buf);
+            if(rc != NEXUS_SUCCESS) {
+                BDBG_ERR(("%s - Error allocating %u bytes memory for '%s' buffer",
+                          __FUNCTION__, *size, holder->name));
+                BERR_TRACE(rc);
+                goto done;
+            }
+
+            holder->raw->len = *size;
+        }
+    }
+
+    /* Load file into memory: read HDMI_OUTPUT_IMG_BUFFER_SIZE bytes at once */
+    {
+        uint32_t buff_size = holder->raw->len;
+        uint8_t *buffer_ex = holder->raw->buf;
+        unsigned chunk = 0;
+
+        while (buff_size) {
+            void *data = NULL;
+            const uint16_t bytes_to_read =
+                (buff_size >= HDMI_OUTPUT_IMG_BUFFER_SIZE) ? (HDMI_OUTPUT_IMG_BUFFER_SIZE - 1) : buff_size;
+
+            rc = img_interface->next(image, chunk, (const void **)&data, bytes_to_read);
+            if(rc != NEXUS_SUCCESS) {
+                BDBG_ERR(("%s - Error while reading '%s' file", __FUNCTION__, holder->name));
+                rc = BERR_TRACE(rc);
+                goto done;
+            }
+
+            BDBG_MSG(("%s - Read %u bytes from file (chunk: %u)", __FUNCTION__, bytes_to_read, chunk));
+            BKNI_Memcpy(buffer_ex, data, bytes_to_read);
+            buff_size -= bytes_to_read;
+            buffer_ex += bytes_to_read;
+            chunk++;
+        }
+    }
+
+    /* Sync physical memory for all areas */
+    NEXUS_Memory_FlushCache(holder->raw->buf, holder->raw->len);
+    BDBG_MSG(("%s - '%s' Raw@%p,  size=%u", __FUNCTION__,
+              holder->name, (void *)holder->raw->buf, (unsigned)holder->raw->len));
+
+done:
+
+    /* allocated memory block is freed in NEXUS_HdmiOutputModule_Uninit()? *****/
+    if (image) {
+        img_interface->close(image);
+    }
+
+    return rc;
+}
+#endif
+
+/* Update Rx supported hdcp version - use hdcp 2.2 if support */
+void NEXUS_HdmiOutput_P_CheckHdcpVersion(NEXUS_HdmiOutputHandle output)
+{
+#if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_SUPPORT)
+    BHDM_HDCP_Version eHdcpVersion = output->eHdcpVersion;
+    BERR_Code rc = BERR_SUCCESS;
+
+    if ( output->rxState != NEXUS_HdmiOutputState_ePoweredOn ) {
+        return;
+    }
+
+    if (output->hdcpVersionSelect == NEXUS_HdmiOutputHdcpVersion_e1_x) {
+        eHdcpVersion = BHDM_HDCP_Version_e1_1;
+    }
+    else {
+        rc = BHDM_HDCP_GetHdcpVersion(output->hdmHandle, &eHdcpVersion);
+        /* default to HDCP 1.x if cannot read HDCP Version */
+        if (rc != BERR_SUCCESS) {
+            eHdcpVersion = BHDM_HDCP_Version_e1_1;
+        }
+    }
+
+    /* close/re-open hdcplib handle for diff hdcp version if needed */
+    if (output->eHdcpVersion != eHdcpVersion)
+    {
+        NEXUS_HdmiOutput_P_UninitHdcp(output);
+
+        output->eHdcpVersion = eHdcpVersion;
+        rc = NEXUS_HdmiOutput_P_InitHdcp(output);
+        if (rc)
+        {
+            rc = BERR_TRACE(rc);
+        };
+    }
+#else
+    BSTD_UNUSED(output);
+#endif
+}

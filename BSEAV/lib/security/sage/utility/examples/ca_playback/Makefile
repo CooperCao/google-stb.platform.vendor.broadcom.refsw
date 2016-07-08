@@ -122,7 +122,7 @@ CFLAGS += -std=c99
 
 .PHONY: all clean uninstall install re
 
-all: ${APPS}
+all: srai prep_utility ${APPS}
 
 # Implicit rule for building local apps
 %: %.c $(patsubst %.o,%.c,)
@@ -153,8 +153,8 @@ install:
 	@echo [Installing SRAI... in ${NEXUS_BIN_DIR}]
 	${Q_} install -m 0755 ${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/sage/srai/* ${NEXUS_BIN_DIR}
 
-prep_utlity:
+prep_utility:
 	@echo [Building Utility lib ...]
 	make -C ${SAGE_PUBLIC_TOP}/utility re
 
-re: srai prep_utlity uninstall clean all install
+re: srai prep_utility uninstall clean all install

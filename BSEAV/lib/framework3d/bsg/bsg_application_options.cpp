@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -11,7 +11,7 @@
  * Software and all intellectual property rights therein.  IF YOU HAVE NO
  * AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
  * AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
- * SOFTWARE.  
+ * SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
@@ -68,7 +68,6 @@ ApplicationOptions::ApplicationOptions() :
    m_showRuntime(false),
    m_perfMonitoring(false),
    m_stereo(false),
-   m_quad(1, 1),
 #ifdef BSG_USE_ES3
    m_apiVersion(eGLES_3_0),
 #else
@@ -103,6 +102,8 @@ ApplicationOptions::ApplicationOptions() :
    m_bgColour(-1.0f, -1.0f, -1.0f, -1.0f),
    m_finalAlpha(-1.0f),
    m_zOrder(~0u),
+   m_conformant(true),
+   m_secure(false),
    m_argc(0),
    m_argv(0)
 {
@@ -199,7 +200,7 @@ bool ApplicationOptions::CheckSanity() const
    return true;
 }
 
-bool ApplicationOptions::ParseCommandLine(int argc, char **argv, ArgumentParser *extraParser/* = nullptr */)
+bool ApplicationOptions::ParseCommandLine(int argc, char **argv, ArgumentParser *extraParser/* = NULL*/)
 {
    // Use for the initialisation of Trellis platform
    m_argc = argc;
@@ -209,7 +210,7 @@ bool ApplicationOptions::ParseCommandLine(int argc, char **argv, ArgumentParser 
 
    if (argc < 1)
    {
-      PrintUsage("???", "", nullptr);
+      PrintUsage("???", "", NULL);
       ok = false;
    }
 
@@ -237,10 +238,10 @@ bool ApplicationOptions::ParseCommandLine(int argc, char **argv, ArgumentParser 
    for (int arg = 1; ok && arg < argc; ++arg)
    {
       ok = ProcessArg(argv[arg]);
-      if (!ok && extraParser != nullptr)
+      if (!ok && extraParser != NULL)
          ok = extraParser->ParseArgument(std::string(argv[arg]));
 
-  
+
       if (!ok)
          PrintUsage(argv[0], argv[arg], extraParser);
    }
@@ -256,47 +257,7 @@ ApplicationOptions ApplicationOptions::CalculateDerived() const
 {
    ApplicationOptions  result(*this);
 
-   // Sort out the quad mode and screen size options
-   // - if quad mode is selected adjust the window size accordingly
-   // - if quad mode is not selected and the screen size is too big then enable quad mode
-
-   if (m_quad.X() != 1 || m_quad.Y() != 1)
-   {
-      result.m_vpW = m_vpW / m_quad.X();
-      result.m_vpH = m_vpH / m_quad.Y();
-   }
-   else
-   {
-#ifndef BSG_VC5
-      uint32_t vpW = m_vpW;
-      uint32_t vpH = m_vpH;
-      uint32_t qx  = m_quad.X();
-      uint32_t qy  = m_quad.Y();
-
-      while (vpW > 2047)
-      {
-         qx  = qx + 1;
-         vpW = m_vpW / qx;
-      }
-
-      while (vpH > 2047)
-      {
-         qy  = qy + 1;
-         vpH = m_vpH / qy;
-      }
-
-      if (qy > qx)
-      {
-         qx  = qy;
-         vpW = m_vpW / qx;
-      }
-
-      result.m_vpW      = vpW;
-      result.m_vpH      = vpH;
-      result.m_quad.X() = qx;
-      result.m_quad.Y() = qy;
-#endif
-   }
+   // Nothing to do
 
    return result;
 }
@@ -393,12 +354,6 @@ bool ApplicationOptions::ProcessArg(char *arg)
    if (CoordMatch(&m_x, &m_y, arg, "o=%dx%d"))
       return true;
 
-   if (CoordMatch(&m_quad.X(), &m_quad.Y(), arg, "quad=%dx%d"))
-   {
-      if (m_quad.X() >= m_quad.Y() && !m_stereo)
-         return true;
-   }
-
    if (FlagMatch(&m_useMultisample, arg, "m"))
       return true;
 
@@ -422,7 +377,7 @@ bool ApplicationOptions::ProcessArg(char *arg)
       m_stencilBits = 0;
       return true;
    }
-   
+
    if (FlagMatch(&m_authenticatedClient, arg, "auth"))
       return true;
 
@@ -442,7 +397,7 @@ bool ApplicationOptions::ProcessArg(char *arg)
 
    if (UIntMatch(&m_stencilBits, arg, "stencil_bits=%d"))
       return true;
-   
+
    if (UIntMatch(&m_lastFrame, arg, "last=%d"))
    {
       if (m_lastFrame > 0)
@@ -450,7 +405,7 @@ bool ApplicationOptions::ProcessArg(char *arg)
 
       return false;
    }
-   
+
    if (UIntMatch(&m_firstFrame, arg, "first=%d"))
    {
       if (m_firstFrame > 0)
@@ -458,7 +413,7 @@ bool ApplicationOptions::ProcessArg(char *arg)
 
       return false;
    }
-   
+
    if (UIntMatch(&m_swapInterval, arg, "swap=%d"))
       return true;
 
@@ -479,14 +434,19 @@ bool ApplicationOptions::ProcessArg(char *arg)
 
    if (FlagMatch(&m_stereo, arg, "stereo"))
    {
-      if (m_quad.X() == 1 && m_quad.Y() == 1)
-         return true;
+      return true;
    }
 
    if (FlagMatch(&m_forceHDMI, arg, "force_hdmi"))
       return true;
 
    if (FlagMatch(&m_showRenderer, arg, "show_renderer"))
+      return true;
+
+   if (FlagMatch(&m_conformant, arg, "conformant"))
+      return true;
+
+   if (FlagMatch(&m_secure, arg, "secure"))
       return true;
 
    if (FloatMatch(&m_rateMultiplier, arg, "rate=%f"))
@@ -612,10 +572,10 @@ bool ApplicationOptions::ArgMatch(const char *arg, const char *str)
 
 void ApplicationOptions::PrintUsage(const char *progName, const char *badArg, ArgumentParser *extraParser)
 {
-   if (badArg != nullptr)
+   if (badArg != NULL)
       fprintf(stderr, "Error in argument (%s)\n\n", badArg);
 
-   fprintf(stderr, 
+   fprintf(stderr,
       "Usage: %s options\n"
       "+m                 use multi-sampling\n"
       "+p                 preserve during swap\n"
@@ -637,11 +597,10 @@ void ApplicationOptions::PrintUsage(const char *progName, const char *badArg, Ar
       "+fps               report frames per second to the console\n"
       "+hud               show developer HUD\n"
       "+fps_hud           show developer FPS HUD\n"
-      "+stereo            render in stereo 3D (quad not supported)\n"
+      "+stereo            render in stereo 3D\n"
       // "z=N                sets the z-order for composited platforms (0 is bottom)\n"
       "alpha=X            sets the final alpha of the graphics plane to X (hex)\n"
       "bg=RRGGBBAA        sets the clear colour to RRGGBBAA e.g. 770077ff (opaque magenta)\n"
-      "quad=XxY           render XxY panels for oversized displays (X >= Y) (stereo not supported)\n"
       "+force_hdmi        force hdmi output resolution, no hotplug callback\n"
       "+show_renderer     print the GL renderer information string\n"
       "dump_stats=[0|1]   collect and dump one bank of monitoring statistics\n"
@@ -653,6 +612,7 @@ void ApplicationOptions::PrintUsage(const char *progName, const char *badArg, Ar
       "+disp_interlace    use interlaced display if possible\n"
       "es=N               set the ES version to N = {1, 2, 3}\n"
       "+headless          headless display mode (only on Nexus platforms)\n"
+      "+secure            run in secure mode\n"
       "parg=<arg>         specify a platform argument\n", progName);
 
    if (extraParser)

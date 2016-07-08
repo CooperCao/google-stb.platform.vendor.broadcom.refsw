@@ -1,53 +1,41 @@
-/***************************************************************************
-*     (c)2004-2014 Broadcom Corporation
-*
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
-*  and may only be used, duplicated, modified or distributed pursuant to the terms and
-*  conditions of a separate, written license agreement executed between you and Broadcom
-*  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-*  no license (express or implied), right to use, or waiver of any kind with respect to the
-*  Software, and Broadcom expressly reserves all rights in and to the Software and all
-*  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-*  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-*  Except as expressly set forth in the Authorized License,
-*
-*  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-*  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-*  and to use this information only in connection with your use of Broadcom integrated circuit products.
-*
-*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-*  USE OR PERFORMANCE OF THE SOFTWARE.
-*
-*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-*  ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* API Description:
-*   API name: Frontend
-*    Generic Frontend APIs.
-*
-* Revision History:
-*
-* $brcm_Log: $
-*
-***************************************************************************/
+/******************************************************************************
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+
+ ******************************************************************************/
 
 #include "nexus_frontend_module.h"
 #include "priv/nexus_frontend_mtsif_priv.h"
@@ -290,6 +278,7 @@ NEXUS_Error NEXUS_Frontend_GetBertStatus(NEXUS_FrontendHandle handle, NEXUS_Fron
         return handle->getBertStatus(handle->pDeviceHandle, pStatus);
     }
 }
+
 
 NEXUS_FrontendHandle NEXUS_Frontend_P_Create(void *pDeviceHandle)
 {
@@ -1598,6 +1587,8 @@ void NEXUS_FrontendDevice_GetCapabilities(NEXUS_FrontendDeviceHandle handle, NEX
 {
     BDBG_ASSERT(NULL != handle);
 
+    BKNI_Memset(pCapabilities, 0, sizeof(*pCapabilities));
+
     if (!handle->nonblocking.getCapabilities) {
         if(NEXUS_FrontendDevice_P_CheckOpen(handle)){
             BDBG_ERR(("Device open failed. Cannot get device capabilities."));
@@ -1777,19 +1768,22 @@ void NEXUS_FrontendModule_P_Print(void)
     for (frontend = BLST_SQ_FIRST(&g_frontendList.frontends), index = 0; frontend; frontend = BLST_SQ_NEXT(frontend, link), index++) {
         handleFound = false;
         deviceHandle = NEXUS_Frontend_GetDevice(frontend);
-         if(deviceHandle != NULL){
+         if (deviceHandle != NULL) {
             for (tempHandle = BLST_D_FIRST(&g_frontendDeviceList.deviceList); tempHandle; tempHandle = BLST_D_NEXT(tempHandle, node)) {
-                if(tempHandle == deviceHandle){
+                if (tempHandle == deviceHandle) {
                     handleFound = true;
                 }
-
             }
-            if(!handleFound){
-                BLST_D_INSERT_HEAD(&g_frontendDeviceList.deviceList, deviceHandle, node);
-
+            if (!handleFound) {
+                if (BLST_D_FIRST(&g_frontendDeviceList.deviceList)==NULL) {
+                    BLST_D_INSERT_HEAD(&g_frontendDeviceList.deviceList, deviceHandle, node);
+                }
+                else {
+                    BLST_D_INSERT_AFTER(&g_frontendDeviceList.deviceList, BLST_D_FIRST(&g_frontendDeviceList.deviceList), deviceHandle, node);
+                }
             }
         }
-        BDBG_MODULE_LOG(nexus_frontend_proc, ("frontend %d: %p, acquired %c", index, (void *)frontend, frontend->acquired?'y':'n'));
+        BDBG_MODULE_LOG(nexus_frontend_proc, ("frontend %2d: %p:%p, acquired %c", index, (void *)frontend, (void *)deviceHandle, frontend->acquired?'y':'n'));
         NEXUS_Frontend_GetCapabilities(frontend, &frontendCapabilities);
         if (frontend->acquired && frontendCapabilities.qam) {
             NEXUS_FrontendQamStatus *pStatus = pQamStatus;
@@ -1882,8 +1876,8 @@ void NEXUS_FrontendModule_P_Print(void)
         }
     }
 
-    for (device = BLST_D_FIRST(&g_frontendDeviceList.deviceList); device; device = BLST_D_NEXT(device, link)) {
-        BDBG_MODULE_LOG(nexus_frontend_proc, ("device %#x: %p", device->familyId, (void *)device));
+    for (device = BLST_D_FIRST(&g_frontendDeviceList.deviceList); device; device = BLST_D_NEXT(device, node)) {
+        BDBG_MODULE_LOG(nexus_frontend_proc, ("device %p (%#x)", (void *)device, device->familyId));
 
         if (device->parent) {
             BDBG_MODULE_LOG(nexus_frontend_proc, ("  parent %#x: %p", device->parent->familyId, (void *)device->parent));
@@ -1892,17 +1886,18 @@ void NEXUS_FrontendModule_P_Print(void)
         {
             unsigned j;
             NEXUS_FrontendDeviceMtsifConfig *pConfig = &device->mtsifConfig;
+            NEXUS_FrontendDeviceMtsifConfig *pChainedConfig = device->chainedConfig;
+            if (pChainedConfig && pChainedConfig->slave) {
+                BDBG_MODULE_LOG(nexus_frontend_proc, ("  chain %p -> %p -> host", (void *)pChainedConfig, (void *)pConfig));
+            }
             for (j=0; j<pConfig->numDemodPb; j++) {
                 if (pConfig->demodPbSettings[j].enabled) {
                     /* lookup frontend using connector */
                     for (frontend = BLST_SQ_FIRST(&g_frontendList.frontends); frontend; frontend = BLST_SQ_NEXT(frontend, link)) {
                         if (frontend->connector == pConfig->demodPbSettings[j].connector) break;
                     }
-                    BDBG_MODULE_LOG(nexus_frontend_proc, ("  frontend %p -> IB%u -> PB%u -> PB%u",
-                        (void *)frontend,
-                        pConfig->demodPbSettings[j].inputBandNum,
-                        j,
-                        pConfig->demodPbSettings[j].virtualNum));
+                    BDBG_MODULE_LOG(nexus_frontend_proc, ("  frontend %p -> IB%u -> PB%u -> PB%u (TX%u)",
+                        (void *)frontend, pConfig->demodPbSettings[j].inputBandNum, j, pConfig->demodPbSettings[j].virtualNum, pConfig->demodPbSettings[j].mtsifTxSel));
                 }
             }
         }
@@ -1962,41 +1957,49 @@ NEXUS_Error NEXUS_FrontendDevice_Probe(const NEXUS_FrontendDeviceOpenSettings *p
         BDBG_MSG(("chip family ID = 0x%04x", chipId));
     }
 #if NEXUS_HAS_SPI
+#define NUM_SPI_BYTES 8
+#define NUM_SPI_ADDRESSES 2
     else if (pSettings->spiDevice) {
-        uint8_t wData[2], rData[8];
+        uint8_t wData[2], rData[NUM_SPI_BYTES];
         NEXUS_Error rc;
+        uint8_t spiAddr[NUM_SPI_ADDRESSES] = { 0x40, 0x80 };
+        unsigned i = 0;
 
-        BDBG_MSG(("Probing for 45216 at SPI %p",(void*)pSettings->spiDevice));
+        BDBG_MSG(("Probing for chip at SPI %p",(void *)pSettings->spiDevice));
 
-        wData[0] = 0x40;
-        wData[1] = 0x00;
+        while (i < NUM_SPI_ADDRESSES && (chipId == 0 || chipId == 0xFFFF)) {
+
+            wData[0] = spiAddr[i];
+            wData[1] = 0x00;
 #if DEBUG_SPI_READS
-        {
-            int i;
-            for (i=0; i < 2; i++) {
-                BDBG_MSG(("wData[%d]: 0x%02x",i,wData[i]));
+            {
+                int i;
+                for (i=0; i < 2; i++) {
+                    BDBG_MSG(("wData[%d]: 0x%02x",i,wData[i]));
+                }
             }
-        }
 #endif
 
-        rc = NEXUS_Spi_Read(pSettings->spiDevice, wData, rData, 8);
-        if(rc) {rc = BERR_TRACE(rc);}
+            rc = NEXUS_Spi_Read(pSettings->spiDevice, wData, rData, NUM_SPI_BYTES);
+            if(rc) {rc = BERR_TRACE(rc);}
 
 #if DEBUG_SPI_READS
-        {
-            int i;
-            for (i=0; i < 8; i++) {
-                BDBG_MSG(("rData[%d]: 0x%02x",i,rData[i]));
+            {
+                int i;
+                for (i=0; i < NUM_SPI_BYTES; i++) {
+                    BDBG_MSG(("rData[%d]: 0x%02x",i,rData[i]));
+                }
             }
-        }
 #endif
 
-        chipId = (rData[3] << 8) | (rData[4]);
-        if (chipId < 0x3000) {
-            chipId = (chipId << 8) | (rData[5]);
-        }
+            chipId = (rData[3] << 8) | (rData[4]);
+            if (chipId < 0x3000) {
+                chipId = (chipId << 8) | (rData[5]);
+            }
 
-        BDBG_MSG(("chip family ID = 0x%04x", chipId));
+            BDBG_MSG(("chip family ID = 0x%04x", chipId));
+            i++;
+        }
 
     }
 #endif
@@ -2029,7 +2032,7 @@ NEXUS_FrontendDeviceHandle NEXUS_FrontendDevice_Open(unsigned index, const NEXUS
 
     if (!NEXUS_FrontendDevice_Probe(pSettings, &probe)) {
         for (i=0;g_frontends[i].chipid;i++) {
-            BDBG_MSG(("NEXUS_FrontendDevice_Open: %x %x | %d %d | %p",g_frontends[i].chipid,probe.chip.familyId,g_frontends[i].chipid,probe.chip.familyId,g_frontends[i].openDevice));
+            BDBG_MSG(("NEXUS_FrontendDevice_Open: %x %x | %d %d | %p",g_frontends[i].chipid,probe.chip.familyId,g_frontends[i].chipid,probe.chip.familyId,(void *)(unsigned long)g_frontends[i].openDevice));
             if (g_frontends[i].chipid == probe.chip.familyId) {
                 return g_frontends[i].openDevice(index, pSettings);
             }
@@ -2122,10 +2125,44 @@ NEXUS_FrontendHandle NEXUS_Frontend_Open(const NEXUS_FrontendChannelSettings *pS
     if (pSettings->device->familyId) {
         for (i=0;g_frontends[i].chipid;i++) {
             if (g_frontends[i].chipid == pSettings->device->familyId) {
+                BDBG_MSG(("NEXUS_Frontend_Open: %x %x | %d %d | %p",g_frontends[i].chipid,pSettings->device->familyId,g_frontends[i].chipid,pSettings->device->familyId,(void *)(unsigned long)g_frontends[i].openChannel));
                 return g_frontends[i].openChannel(pSettings);
             }
         }
     }
     BERR_TRACE(NEXUS_NOT_SUPPORTED);
     return NULL;
+}
+
+
+void NEXUS_FrontendDevice_GetWakeupSettings(NEXUS_FrontendDeviceHandle handle, NEXUS_TransportWakeupSettings *pSettings)
+{
+    BKNI_Memset(pSettings, 0, sizeof(*pSettings));
+    if(handle != NULL){
+        if (NULL == handle->getWakeupSettings)
+        {
+            BDBG_WRN(("Getting or setting wakeup packet settings is not supported for this frontend device."));
+        }
+        else
+        {
+            handle->getWakeupSettings(handle, pSettings);
+            return;
+        }
+    }
+    BERR_TRACE(NEXUS_NOT_SUPPORTED);
+}
+
+NEXUS_Error NEXUS_FrontendDevice_SetWakeupSettings(NEXUS_FrontendDeviceHandle handle, const NEXUS_TransportWakeupSettings *pSettings)
+{
+    if(handle != NULL){
+        if (NULL == handle->setWakeupSettings)
+        {
+            BDBG_WRN(("Getting or setting wakeup packet settings is not supported for this frontend device."));
+        }
+        else
+        {
+            return handle->setWakeupSettings(handle, pSettings);
+        }
+    }
+    return BERR_TRACE(NEXUS_NOT_SUPPORTED);
 }

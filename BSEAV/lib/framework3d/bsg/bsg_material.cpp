@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -11,7 +11,7 @@
  * Software and all intellectual property rights therein.  IF YOU HAVE NO
  * AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
  * AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
- * SOFTWARE.  
+ * SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
@@ -61,8 +61,8 @@ void Material::Reset()
 {
    m_uniformsNeedForcing = true;
 
-   for (const auto &uniform : m_uniforms)
-      delete uniform.second;
+   for (map<string, GLUniformBase *>::const_iterator iter = m_uniforms.begin(); iter != m_uniforms.end(); ++iter)
+      delete iter->second;
 
    m_uniforms.clear();
    m_textures.clear();
@@ -96,16 +96,16 @@ void Material::MakeActive(uint32_t passNum) const
    prog.Use();
 
    // Install uniforms
-   for (const auto &uniform : m_uniforms)
+   for (map<string, GLUniformBase *>::const_iterator iter = m_uniforms.begin(); iter != m_uniforms.end(); ++iter)
    {
-      uniform.second->SetProgram(prog);
-      uniform.second->Install(forceInstall);
+      iter->second->SetProgram(prog);
+      iter->second->Install(forceInstall);
    }
 
    // Install samplers
-   for (const auto texture : m_textures)
+   for (map<string, GLTextureBinding>::const_iterator iter = m_textures.begin(); iter != m_textures.end(); ++iter)
    {
-      texture.second.Select(prog, texture.first);
+      iter->second.Select(prog, iter->first);
    }
 
    m_uniformsNeedForcing = false;
@@ -118,7 +118,8 @@ uint32_t Material::NumPasses() const
 
 void Material::SetUniformValue(const std::string &name, const float *scalarArray, uint32_t count)
 {
-   auto iter = m_uniforms.find(name);
+   map<string, GLUniformBase *>::const_iterator iter;
+   iter = m_uniforms.find(name);
    if (iter == m_uniforms.end())
       iter = m_uniforms.insert(pair<string, GLUniformBase *>(name, new GLUniform1fArray(name))).first;
 
@@ -127,7 +128,8 @@ void Material::SetUniformValue(const std::string &name, const float *scalarArray
 
 void Material::SetUniformValue(const std::string &name, const Vec2 *vecArray, uint32_t count)
 {
-   auto iter = m_uniforms.find(name);
+   map<string, GLUniformBase *>::const_iterator iter;
+   iter = m_uniforms.find(name);
    if (iter == m_uniforms.end())
       iter = m_uniforms.insert(pair<string, GLUniformBase *>(name, new GLUniform2fArray(name))).first;
 
@@ -136,7 +138,8 @@ void Material::SetUniformValue(const std::string &name, const Vec2 *vecArray, ui
 
 void Material::SetUniformValue(const std::string &name, const Vec3 *vecArray, uint32_t count)
 {
-   auto iter = m_uniforms.find(name);
+   map<string, GLUniformBase *>::const_iterator iter;
+   iter = m_uniforms.find(name);
    if (iter == m_uniforms.end())
       iter = m_uniforms.insert(pair<string, GLUniformBase *>(name, new GLUniform3fArray(name))).first;
 
@@ -145,7 +148,8 @@ void Material::SetUniformValue(const std::string &name, const Vec3 *vecArray, ui
 
 void Material::SetUniformValue(const std::string &name, const Vec4 *vecArray, uint32_t count)
 {
-   auto iter = m_uniforms.find(name);
+map<string, GLUniformBase *>::const_iterator iter;
+iter = m_uniforms.find(name);
 if (iter == m_uniforms.end())
 iter = m_uniforms.insert(pair<string, GLUniformBase *>(name, new GLUniform4fArray(name))).first;
 
@@ -154,7 +158,8 @@ dynamic_cast<GLUniform4fArray*>(iter->second)->SetValue(vecArray, count);
 
 void Material::SetUniformValue(const std::string &name, const std::vector<float> &scalarArray)
 {
-   auto iter = m_uniforms.find(name);
+   map<string, GLUniformBase *>::const_iterator iter;
+   iter = m_uniforms.find(name);
    if (iter == m_uniforms.end())
       iter = m_uniforms.insert(pair<string, GLUniformBase *>(name, new GLUniform1fVector(name))).first;
 
@@ -163,7 +168,8 @@ void Material::SetUniformValue(const std::string &name, const std::vector<float>
 
 void Material::SetUniformValue(const std::string &name, const std::vector<AnimatableFloat> &scalarArray)
 {
-   auto iter = m_uniforms.find(name);
+   map<string, GLUniformBase *>::const_iterator iter;
+   iter = m_uniforms.find(name);
    if (iter == m_uniforms.end())
       iter = m_uniforms.insert(pair<string, GLUniformBase *>(name, new GLUniform1fVector(name))).first;
 
@@ -176,7 +182,8 @@ void Material::SetUniformValue(const std::string &name, const std::vector<Animat
 
 void Material::SetUniformValue(const std::string &name, const std::vector<Vec2> &vecArray)
 {
-   auto iter = m_uniforms.find(name);
+   map<string, GLUniformBase *>::const_iterator iter;
+   iter = m_uniforms.find(name);
    if (iter == m_uniforms.end())
       iter = m_uniforms.insert(pair<string, GLUniformBase *>(name, new GLUniform2fVector(name))).first;
 
@@ -185,7 +192,8 @@ void Material::SetUniformValue(const std::string &name, const std::vector<Vec2> 
 
 void Material::SetUniformValue(const std::string &name, const std::vector<AnimatableVec2> &vecArray)
 {
-   auto iter = m_uniforms.find(name);
+   map<string, GLUniformBase *>::const_iterator iter;
+   iter = m_uniforms.find(name);
    if (iter == m_uniforms.end())
       iter = m_uniforms.insert(pair<string, GLUniformBase *>(name, new GLUniform2fVector(name))).first;
 
@@ -198,7 +206,8 @@ void Material::SetUniformValue(const std::string &name, const std::vector<Animat
 
 void Material::SetUniformValue(const std::string &name, const std::vector<Vec3> &vecArray)
 {
-   auto iter = m_uniforms.find(name);
+   map<string, GLUniformBase *>::const_iterator iter;
+   iter = m_uniforms.find(name);
    if (iter == m_uniforms.end())
       iter = m_uniforms.insert(pair<string, GLUniformBase *>(name, new GLUniform3fVector(name))).first;
 
@@ -207,7 +216,8 @@ void Material::SetUniformValue(const std::string &name, const std::vector<Vec3> 
 
 void Material::SetUniformValue(const std::string &name, const std::vector<AnimatableVec3> &vecArray)
 {
-   auto iter = m_uniforms.find(name);
+   map<string, GLUniformBase *>::const_iterator iter;
+   iter = m_uniforms.find(name);
    if (iter == m_uniforms.end())
       iter = m_uniforms.insert(pair<string, GLUniformBase *>(name, new GLUniform3fVector(name))).first;
 
@@ -220,7 +230,8 @@ void Material::SetUniformValue(const std::string &name, const std::vector<Animat
 
 void Material::SetUniformValue(const std::string &name, const std::vector<Vec4> &vecArray)
 {
-   auto iter = m_uniforms.find(name);
+   map<string, GLUniformBase *>::const_iterator iter;
+   iter = m_uniforms.find(name);
    if (iter == m_uniforms.end())
       iter = m_uniforms.insert(pair<string, GLUniformBase *>(name, new GLUniform4fVector(name))).first;
 
@@ -229,7 +240,8 @@ void Material::SetUniformValue(const std::string &name, const std::vector<Vec4> 
 
 void Material::SetUniformValue(const std::string &name, const std::vector<AnimatableVec4> &vecArray)
 {
-   auto iter = m_uniforms.find(name);
+   map<string, GLUniformBase *>::const_iterator iter;
+   iter = m_uniforms.find(name);
    if (iter == m_uniforms.end())
       iter = m_uniforms.insert(pair<string, GLUniformBase *>(name, new GLUniform4fVector(name))).first;
 
@@ -248,7 +260,7 @@ const GLSamplerState *Material::FindSamplerState(const string &name) const
 
       const std::map<std::string, GLSamplerState>  &list = semantics.GetSemantics();
 
-      auto iter = list.find(name);
+      std::map<std::string, GLSamplerState>::const_iterator iter = list.find(name);
 
       if (iter != list.end())
          return &(*iter).second;
@@ -259,7 +271,8 @@ const GLSamplerState *Material::FindSamplerState(const string &name) const
 
 void Material::SetTexture(const string &name, TextureHandle texture)
 {
-   auto iter = m_textures.find(name);
+   map<string, GLTextureBinding>::iterator iter;
+   iter = m_textures.find(name);
    if (iter == m_textures.end())
    {
       // Bind the texture handle to its semantics
@@ -278,7 +291,8 @@ void Material::SetTexture(const string &name, TextureHandle texture)
 
 AnimTarget<TextureHandle> &Material::GetTexture(const std::string &name)
 {
-   auto iter = m_textures.find(name);
+   map<string, GLTextureBinding>::iterator iter;
+   iter = m_textures.find(name);
    if (iter == m_textures.end())
    {
       // Bind the texture handle to its semantics

@@ -1,48 +1,48 @@
 /******************************************************************************
-* (c) 2014 Broadcom Corporation
+* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-* This program is the proprietary software of Broadcom Corporation and/or its
-* licensors, and may only be used, duplicated, modified or distributed pursuant
-* to the terms and conditions of a separate, written license agreement executed
-* between you and Broadcom (an "Authorized License").  Except as set forth in
-* an Authorized License, Broadcom grants no license (express or implied), right
-* to use, or waiver of any kind with respect to the Software, and Broadcom
-* expressly reserves all rights in and to the Software and all intellectual
-* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+* This program is the proprietary software of Broadcom and/or its licensors,
+* and may only be used, duplicated, modified or distributed pursuant to the terms and
+* conditions of a separate, written license agreement executed between you and Broadcom
+* (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+* no license (express or implied), right to use, or waiver of any kind with respect to the
+* Software, and Broadcom expressly reserves all rights in and to the Software and all
+* intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
 * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
 * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
 *
 * Except as expressly set forth in the Authorized License,
 *
-* 1. This program, including its structure, sequence and organization,
-*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-*    reasonable efforts to protect the confidentiality thereof, and to use
-*    this information only in connection with your use of Broadcom integrated
-*    circuit products.
+* 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+* secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+* and to use this information only in connection with your use of Broadcom integrated circuit products.
 *
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+* 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+* AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+* WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+* THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+* OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+* LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+* OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+* USE OR PERFORMANCE OF THE SOFTWARE.
 *
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+* 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+* LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+* EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+* USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+* THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+* ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+* LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+* ANY LIMITED REMEDY.
 ******************************************************************************/
 #include "nexus_platform_priv.h"
 #include "bkni.h"
 #include "bdbg_log.h"
 #include "nexus_interrupt_map.h"
 #include "nexus_generic_driver_impl.h"
+#if NEXUS_HAS_GPIO
+#include "nexus_platform_shared_gpio.h"
+#endif
 #include "int1.h"
 #if UCOS_VERSION==1
     #include <ucos.h>
@@ -52,7 +52,14 @@
 #include "bsu-api.h"
 #include "bsu-api2.h"
 
+#define BDBG_TRACE_L2(x) /*BDBG_MSG(x)*/
+
 BDBG_MODULE(nexus_platform_os);
+
+#define PERR(fmt, args...)
+#define PWARN(fmt, args...)
+#define PINFO(fmt, args...)
+#define PDEBUG(fmt, args...)
 
 #ifndef NEXUS_CPU_ARM
     #include "memmap.h"
@@ -218,29 +225,29 @@ NEXUS_Platform_P_MapMemory(NEXUS_Addr offset, size_t length, NEXUS_MemoryMapType
 #else
     switch ((unsigned)offset & 0xf0000000)
     {
-        case 0x00000000:	/* KSEG0/KSEZG1 */
+        case 0x00000000:    /* KSEG0/KSEZG1 */
                 if (cached)
                     addr = offset + 0x80000000;
                 else
                     addr = offset + 0xA0000000;
             break;
-        case 0x10000000:	/* chips regs */
+        case 0x10000000:    /* chips regs */
             addr = offset + 0xA0000000;
             break;
 
-        case DRAM_0_PHYS_ADDR_START+0x00000000:	/* memc0 */
-        case DRAM_0_PHYS_ADDR_START+0x10000000:	/* memc0 */
-        case DRAM_0_PHYS_ADDR_START+0x20000000:	/* memc0 */
+        case DRAM_0_PHYS_ADDR_START+0x00000000: /* memc0 */
+        case DRAM_0_PHYS_ADDR_START+0x10000000: /* memc0 */
+        case DRAM_0_PHYS_ADDR_START+0x20000000: /* memc0 */
                 if (cached)
                     addr = offset + (DRAM_0_VIRT_CACHED_ADDR_START-DRAM_0_PHYS_ADDR_START);
                 else
                     addr = offset + (DRAM_0_VIRT_ADDR_START-DRAM_0_PHYS_ADDR_START);
             break;
 
-        case DRAM_1_PHYS_ADDR_START+0x00000000:	/* memc1 */
-        case DRAM_1_PHYS_ADDR_START+0x10000000:	/* memc1 */
-        case DRAM_1_PHYS_ADDR_START+0x20000000:	/* memc1 */
-        case DRAM_1_PHYS_ADDR_START+0x30000000:	/* memc1 */
+        case DRAM_1_PHYS_ADDR_START+0x00000000: /* memc1 */
+        case DRAM_1_PHYS_ADDR_START+0x10000000: /* memc1 */
+        case DRAM_1_PHYS_ADDR_START+0x20000000: /* memc1 */
+        case DRAM_1_PHYS_ADDR_START+0x30000000: /* memc1 */
             if (cached)
                 addr = offset + (DRAM_1_VIRT_CACHED_ADDR_START-DRAM_1_PHYS_ADDR_START);
             else
@@ -489,6 +496,18 @@ NEXUS_Platform_P_Isr(unsigned long data)
     return;
 }
 
+static void NEXUS_Platform_P_SetL1Status(unsigned l1)
+{
+    struct b_bare_interrupt_state *state = &b_bare_interrupt_state;
+    unsigned i;
+    for(i=0;i<NEXUS_NUM_L1_REGISTERS;i++,l1-=32) {
+        if(l1<32) {
+            state->pending[i].IntrStatus |= 1<<l1;
+            break;
+        }
+    }
+}
+
 void NEXUS_Platform_P_LinuxIsr(void *dev_id, int linux_irq)
 {
     struct b_bare_interrupt_entry *entry = dev_id;
@@ -669,6 +688,20 @@ void NEXUS_Platform_P_MonitorOS(void)
         state->table[irq].print = false;
     }
     BKNI_LeaveCriticalSection();
+}
+
+static void NEXUS_Platform_P_SetmaskL1(unsigned l1, unsigned disable)
+{
+    struct b_bare_interrupt_state *state = &b_bare_interrupt_state;
+    unsigned reg = l1/32;
+    if (disable)
+    {
+        state->processing[reg].IntrMaskStatus |= 1 << (l1%32);
+    }
+    else
+    {
+        state->processing[reg].IntrMaskStatus &= ~(1 << (l1%32));
+    }
 }
 
 NEXUS_Error NEXUS_Platform_P_EnableInterrupt_isr( unsigned irqNum)
@@ -1009,9 +1042,9 @@ uint32_t NEXUS_Platform_P_ReadReserved(
     uint32_t physicalAddress
     )
 {
-	uint32_t value;
-	value = *((volatile uint32_t *)(0xa0000000 | physicalAddress));
-	return value;
+    uint32_t value;
+    value = *((volatile uint32_t *)(0xa0000000 | physicalAddress));
+    return value;
 }
 
 /***************************************************************************
@@ -1023,7 +1056,7 @@ void NEXUS_Platform_P_WriteReserved(
     uint32_t value
     )
 {
-	*((volatile uint32_t *)(0xa0000000 | physicalAddress)) = value;
+    *((volatile uint32_t *)(0xa0000000 | physicalAddress)) = value;
 }
 
 /***************************************************************************
@@ -1034,12 +1067,12 @@ uint32_t NEXUS_Platform_P_ReadCoreReg(
     uint32_t offset
     )
 {
-	uint32_t physicalAddress, value;
-	uint32_t cbr = CpuCbrGet();
-	physicalAddress = cbr & ~0x3ffff; /* mask off lower 18 bits */
-	physicalAddress |= offset;
-	value = *((volatile uint32_t *)(0xa0000000 | physicalAddress));
-	return value;
+    uint32_t physicalAddress, value;
+    uint32_t cbr = CpuCbrGet();
+    physicalAddress = cbr & ~0x3ffff; /* mask off lower 18 bits */
+    physicalAddress |= offset;
+    value = *((volatile uint32_t *)(0xa0000000 | physicalAddress));
+    return value;
 }
 
 /***************************************************************************
@@ -1051,11 +1084,11 @@ void NEXUS_Platform_P_WriteCoreReg(
     uint32_t value
     )
 {
-	uint32_t physicalAddress;
-	uint32_t cbr = CpuCbrGet();
-	physicalAddress = CpuCbrGet() & ~0x3ffff; /* mask off lower 18 bits */
-	physicalAddress |= offset;
-	*((volatile uint32_t *)(0xa0000000 | physicalAddress)) = value;
+    uint32_t physicalAddress;
+    uint32_t cbr = CpuCbrGet();
+    physicalAddress = CpuCbrGet() & ~0x3ffff; /* mask off lower 18 bits */
+    physicalAddress |= offset;
+    *((volatile uint32_t *)(0xa0000000 | physicalAddress)) = value;
 }
 
 /***************************************************************************
@@ -1163,3 +1196,83 @@ NEXUS_Error NEXUS_Platform_P_RemoveDynamicRegion(NEXUS_Addr addr, unsigned size)
     BSTD_UNUSED(size);
     return NEXUS_SUCCESS;
 }
+
+#if NEXUS_HAS_GPIO
+#include "b_shared_gpio.h"
+
+static void NEXUS_Platform_P_FireGpioL2(int aon)
+{
+#ifdef FIXME
+    if (NEXUS_Platform_P_VirtualIrqSupported())
+    {
+        b_virtual_irq_software_l2_isr(aon ? b_virtual_irq_line_gio_aon : b_virtual_irq_line_gio);
+    }
+    else
+    {
+        /* TODO */
+    }
+#else
+    printf("NEXUS_Platform_P_FireGpioL2 stubbed\n");
+#endif
+}
+
+static void NEXUS_Platform_P_GetSharedGpioSubmoduleInitSettings(b_shared_gpio_module_init_settings * gio_settings)
+{
+#ifdef FIXME
+    if (NEXUS_Platform_P_VirtualIrqSupported())
+    {
+        gio_settings->gio_linux_irq = b_virtual_irq_get_linux_irq(b_virtual_irq_line_gio);
+        gio_settings->gio_aon_linux_irq = b_virtual_irq_get_linux_irq(b_virtual_irq_line_gio_aon);
+    }
+    else
+    {
+        gio_settings->gio_linux_irq = 0;
+        gio_settings->gio_aon_linux_irq = 0;
+    }
+#else
+    printf("NEXUS_Platform_P_GetSharedGpioSubmoduleInitSettings stubbed\n");
+#endif
+}
+
+#define NEXUS_PLATFORM_P_SHARED_GPIO_SUPPORTED() (NEXUS_Platform_P_SharedGpioSupported())
+#else
+#define NEXUS_PLATFORM_P_SHARED_GPIO_SUPPORTED() (false)
+#endif
+#define EINVAL          22
+#define ENOSYS          38
+#define IRQ_HANDLED 0
+#define IRQF_TRIGGER_NONE 0
+#define IRQF_TRIGGER_HIGH 0
+#include "nexus_platform_virtual_irq.inc"
+#ifdef FIXME
+#define B_VIRTUAL_IRQ_SPIN_LOCK(flags) spin_lock_irqsave(&b_bare_interrupt_state.lock, flags)
+#define B_VIRTUAL_IRQ_SPIN_UNLOCK(flags) spin_unlock_irqrestore(&b_bare_interrupt_state.lock, flags)
+#else
+#define B_VIRTUAL_IRQ_SPIN_LOCK(flags)
+#define B_VIRTUAL_IRQ_SPIN_UNLOCK(flags)
+#endif
+#define B_VIRTUAL_IRQ_GET_L1_WORD_COUNT() (NEXUS_NUM_L1_REGISTERS)
+#define B_VIRTUAL_IRQ_MASK_L1(L1) NEXUS_Platform_P_SetmaskL1(L1, 1)
+#define B_VIRTUAL_IRQ_UNMASK_L1(L1) NEXUS_Platform_P_SetmaskL1(L1, 0)
+#define B_VIRTUAL_IRQ_SET_L1_STATUS(L1) NEXUS_Platform_P_SetL1Status(L1)
+#define B_VIRTUAL_IRQ_INC_L1(L1)
+#ifdef FIXME
+#define B_VIRTUAL_IRQ_WAKE_L1_LISTENERS() tasklet_hi_schedule(&NEXUS_Platform_P_IsrTasklet)
+#else
+#define B_VIRTUAL_IRQ_WAKE_L1_LISTENERS()
+#endif
+#include "b_virtual_irq_ucos.inc"
+
+#if NEXUS_HAS_GPIO
+#include "nexus_platform_shared_gpio.inc"
+#define B_SHARED_GPIO_FIRE_GPIO_L2(AON) NEXUS_Platform_P_FireGpioL2(AON)
+#ifdef FIXME
+#define B_SHARED_GPIO_SPIN_LOCK(flags) spin_lock_irqsave(&b_bare_interrupt_state.lock, flags)
+#define B_SHARED_GPIO_SPIN_UNLOCK(flags) spin_unlock_irqrestore(&b_bare_interrupt_state.lock, flags)
+#else
+#define B_SHARED_GPIO_SPIN_LOCK(flags)
+#define B_SHARED_GPIO_SPIN_UNLOCK(flags)
+#endif
+
+#include "b_shared_gpio_ucos.inc"
+#endif

@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,17 +35,9 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   API name: AudioMixer
 *    APIs for an audio mixer.  Allows multiple inputs to be connected to outputs.
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 #include "nexus_audio_module.h"
@@ -59,10 +51,12 @@ typedef struct NEXUS_AudioMixer
     NEXUS_OBJECT(NEXUS_AudioMixer);
     bool opened;
     bool started;
+    bool explicitlyStarted;
     NEXUS_AudioMixerSettings settings;
     NEXUS_AudioInputObject connector;
-    BAPE_MixerHandle dspMixer;
-    char name[10];   /* DSP MIXER */
+    BAPE_MixerHandle dspMixer, imMixer;
+    char name[13];   /* INT HW MIXER */
+    BLST_Q_HEAD(InputList, NEXUS_AudioMixerInputNode) inputList;
 } NEXUS_AudioMixer;
 
 #if NEXUS_NUM_AUDIO_MIXERS
@@ -73,6 +67,8 @@ static NEXUS_AudioMixer g_mixers[NEXUS_NUM_AUDIO_MIXERS];
 #endif
 static NEXUS_AudioMixer g_mixers[1];
 #endif
+
+static NEXUS_Error NEXUS_AudioMixer_P_ApplyMixerVolume(NEXUS_AudioMixerHandle handle, NEXUS_AudioInput input, const BAPE_MixerInputVolume *pInputVolume, const NEXUS_AudioMixerInputNode *pInputNode);
 
 /***************************************************************************
 Summary:
@@ -133,7 +129,8 @@ NEXUS_AudioMixerHandle NEXUS_AudioMixer_Open(
     }
 
     pMixer->settings.mixUsingDsp = pSettings->mixUsingDsp;
-    BDBG_MSG(("mixUsingDsp = %u",pMixer->settings.mixUsingDsp));
+    pMixer->settings.intermediate = pSettings->intermediate;
+    BDBG_MSG(("mixUsingDsp = %u, intermediate = %u",pMixer->settings.mixUsingDsp,pMixer->settings.intermediate));
 
     /* Setup connector */
     if ( pSettings->mixUsingDsp )
@@ -169,8 +166,76 @@ NEXUS_AudioMixerHandle NEXUS_AudioMixer_Open(
         BAPE_Mixer_GetConnector(pMixer->dspMixer, &connector);
         pMixer->connector.port = (size_t)connector;
         pMixer->connector.format = NEXUS_AudioInputFormat_eNone; /* Determined by inputs */
+        BLST_Q_INIT(&pMixer->inputList);
     }
-    else
+    else if ( pSettings->intermediate ) /* Fixed "intermediate" HW mixer */
+    {
+        BAPE_MixerSettings mixerSettings;
+        BAPE_Connector connector;
+
+        BKNI_Snprintf(pMixer->name, sizeof(pMixer->name), "INT HW MIXER");
+        NEXUS_AUDIO_INPUT_INIT(&pMixer->connector, NEXUS_AudioInputType_eIntermediateMixer, pMixer);
+        pMixer->connector.pName = pMixer->name;
+        BAPE_Mixer_GetDefaultSettings(&mixerSettings);
+        mixerSettings.type = BAPE_MixerType_eStandard;
+        mixerSettings.format = BAPE_MixerFormat_eAuto;
+        if ( pSettings->fixedOutputFormatEnabled )
+        {
+            switch ( pSettings->fixedOutputFormat )
+            {
+            case NEXUS_AudioMultichannelFormat_e7_1:
+                mixerSettings.format = BAPE_MixerFormat_ePcm7_1;
+                break;
+            case NEXUS_AudioMultichannelFormat_e5_1:
+                mixerSettings.format = BAPE_MixerFormat_ePcm5_1;
+                break;
+            case NEXUS_AudioMultichannelFormat_eStereo:
+                mixerSettings.format = BAPE_MixerFormat_ePcmStereo;
+                break;
+            default:
+            case NEXUS_AudioMultichannelFormat_eMax:
+                mixerSettings.format = BAPE_MixerFormat_eAuto;
+                break;
+            }
+        }
+        BDBG_MSG(("Intermediate Mixer - create bape mixer, format %lu", (unsigned long)mixerSettings.format));
+        mixerSettings.mixerSampleRate = pSettings->outputSampleRate;
+        rc = BAPE_Mixer_Create(NEXUS_AUDIO_DEVICE_HANDLE, &mixerSettings, &pMixer->imMixer);
+        if ( rc )
+        {
+            rc = BERR_TRACE(rc);
+            goto mixer_create_fail;
+        }
+        BAPE_Mixer_GetConnector(pMixer->imMixer, &connector);
+        pMixer->connector.port = (size_t)connector;
+        pMixer->connector.format = NEXUS_AudioInputFormat_eNone; /* Determined by inputs */
+        if ( pSettings->fixedOutputFormatEnabled )
+        {
+            switch ( pSettings->fixedOutputFormat )
+            {
+            case NEXUS_AudioMultichannelFormat_e5_1:
+                pMixer->connector.format = NEXUS_AudioInputFormat_ePcm5_1;
+                break;
+            case NEXUS_AudioMultichannelFormat_e7_1:
+                pMixer->connector.format = NEXUS_AudioInputFormat_ePcm7_1;
+                break;
+            case NEXUS_AudioMultichannelFormat_eStereo:
+                pMixer->connector.format = NEXUS_AudioInputFormat_ePcmStereo;
+                break;
+            default:
+            case NEXUS_AudioMultichannelFormat_eMax:
+                BDBG_ERR(("Fixed Mixer output format %u is not currently supported", pSettings->fixedOutputFormat));
+                rc = BERR_TRACE(BERR_NOT_SUPPORTED);
+                goto mixer_create_fail;
+                break; /* unreachable */
+            }
+            BDBG_MSG(("Fixed Mixer output format = %u enabled", pSettings->fixedOutputFormat));
+        }
+        pMixer->settings.fixedOutputFormatEnabled = pSettings->fixedOutputFormatEnabled;
+        pMixer->settings.fixedOutputFormat = pSettings->fixedOutputFormat;
+        BLST_Q_INIT(&pMixer->inputList);
+    }
+    else /* Automatic Output Mixer */
     {
         BKNI_Snprintf(pMixer->name, sizeof(pMixer->name), "HW MIXER");
         NEXUS_AUDIO_INPUT_INIT(&pMixer->connector, NEXUS_AudioInputType_eMixer, pMixer);
@@ -276,14 +341,16 @@ NEXUS_Error NEXUS_AudioMixer_SetSettings(
     NEXUS_AudioMixerDolbySettings oldDolbySettings;
     NEXUS_AudioInput oldMaster, newMaster;
     unsigned oldSampleRate;
+    int oldMultiStreamBalance;
     NEXUS_Error errCode;
 
     BDBG_OBJECT_ASSERT(handle, NEXUS_AudioMixer);
     BDBG_ASSERT(NULL != pSettings);
 
-    if ( handle->settings.mixUsingDsp != pSettings->mixUsingDsp )
+    if ( handle->settings.mixUsingDsp != pSettings->mixUsingDsp ||
+         handle->settings.intermediate != pSettings->intermediate )
     {
-        BDBG_ERR(("mixUsingDsp can only be set when a mixer is opened.  It cannot be changed on-the-fly."));
+        BDBG_ERR(("mixUsingDsp/intermediate can only be set when a mixer is opened.  It cannot be changed on-the-fly."));
         BDBG_ASSERT(0);
         return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
@@ -306,6 +373,7 @@ NEXUS_Error NEXUS_AudioMixer_SetSettings(
     newMaster = pSettings->master;
     oldSampleRate = handle->settings.outputSampleRate;
     oldDolbySettings = handle->settings.dolby;
+    oldMultiStreamBalance = handle->settings.multiStreamBalance;
 
     handle->settings = *pSettings;
 
@@ -313,6 +381,16 @@ NEXUS_Error NEXUS_AudioMixer_SetSettings(
     {
         if ( NULL != newMaster )
         {
+            NEXUS_AudioMixerInputSettings inputSettings;
+            if ( handle->settings.mixUsingDsp || handle->settings.intermediate )
+            {
+                errCode = NEXUS_AudioMixer_GetInputSettings(handle, newMaster, &inputSettings);
+                if ( errCode )
+                {
+                    BDBG_ERR(("%s Unable to get master inputs Input Volume", __FUNCTION__));
+                }
+            }
+
             errCode = NEXUS_AudioMixer_RemoveInput(handle, newMaster);
             if ( errCode )
             {
@@ -326,12 +404,22 @@ NEXUS_Error NEXUS_AudioMixer_SetSettings(
                 handle->settings.master = NULL;
                 return BERR_TRACE(BERR_NOT_SUPPORTED);
             }
+
+            if ( handle->settings.mixUsingDsp || handle->settings.intermediate )
+            {
+                errCode = NEXUS_AudioMixer_SetInputSettings(handle, newMaster, &inputSettings);
+                if ( errCode )
+                {
+                    BDBG_ERR(("%s Unable to set master inputs Input Volume", __FUNCTION__));
+                }
+            }
         }
     }
 
     if ( pSettings->mixUsingDsp )
     {
-        if ( (BKNI_Memcmp(&oldDolbySettings, &pSettings->dolby, sizeof(oldDolbySettings)) != 0) || oldSampleRate != pSettings->outputSampleRate )
+        if ( (BKNI_Memcmp(&oldDolbySettings, &pSettings->dolby, sizeof(oldDolbySettings)) != 0) || oldSampleRate != pSettings->outputSampleRate ||
+             oldMultiStreamBalance != pSettings->multiStreamBalance )
         {
             BAPE_MixerSettings mixerSettings;
             BAPE_Mixer_GetSettings(handle->dspMixer, &mixerSettings);
@@ -356,6 +444,21 @@ NEXUS_Error NEXUS_AudioMixer_SetSettings(
             }
         }
     }
+    else if ( pSettings->intermediate )
+    {
+        if ( oldSampleRate != pSettings->outputSampleRate )
+        {
+            BAPE_MixerSettings mixerSettings;
+            BAPE_Mixer_GetSettings(handle->imMixer, &mixerSettings);
+            mixerSettings.mixerSampleRate = pSettings->outputSampleRate;
+            errCode = BAPE_Mixer_SetSettings(handle->imMixer, &mixerSettings);
+            if ( errCode )
+            {
+                handle->settings.dolby = oldDolbySettings;
+                return BERR_TRACE(errCode);
+            }
+        }
+    }
 
     /* Success */
     return BERR_SUCCESS;
@@ -372,9 +475,11 @@ NEXUS_Error NEXUS_AudioMixer_Start(
     {
         BDBG_ERR(("Already started."));
     }
-    
-    if ( handle->settings.mixUsingDsp )
+
+    if ( handle->settings.mixUsingDsp || handle->settings.intermediate )
     {
+        BAPE_MixerHandle mixer = handle->settings.mixUsingDsp?handle->dspMixer:handle->imMixer;
+
         /* Only prepare the path layout if no inputs have already started*/
         if ( !NEXUS_AudioInput_P_IsRunning(&handle->connector) )
         {
@@ -385,13 +490,14 @@ NEXUS_Error NEXUS_AudioMixer_Start(
             }
         }
 
-        errCode = BAPE_Mixer_Start(handle->dspMixer);
+        errCode = BAPE_Mixer_Start(mixer);
         if ( errCode )
         {
             return BERR_TRACE(errCode);
         }
-    
-        handle->started = true;    
+
+        handle->started = true;
+        handle->explicitlyStarted = true;
         return BERR_SUCCESS;
     }
     else if (handle->settings.fixedOutputFormatEnabled)
@@ -412,12 +518,13 @@ NEXUS_Error NEXUS_AudioMixer_Start(
         }
 
         handle->started = true;
+        handle->explicitlyStarted = true;
         return BERR_SUCCESS;
     }
     else
     {
         return BERR_TRACE(BERR_NOT_SUPPORTED);
-    }        
+    }
 }
 
 void NEXUS_AudioMixer_Stop(
@@ -425,25 +532,29 @@ void NEXUS_AudioMixer_Stop(
     )
 {
     BDBG_OBJECT_ASSERT(handle, NEXUS_AudioMixer);
-    
+
     if ( false == handle->started )
     {
         return;
     }
-    
-    if ( handle->settings.mixUsingDsp )
+
+    if ( handle->settings.mixUsingDsp || handle->settings.intermediate )
     {
-        BAPE_Mixer_Stop(handle->dspMixer);
+        BAPE_MixerHandle mixer = handle->settings.mixUsingDsp?handle->dspMixer:handle->imMixer;
+
+        BAPE_Mixer_Stop(mixer);
         handle->started = false;
+        handle->explicitlyStarted = false;
     }
     else
     {
         NEXUS_AudioInput_P_ExplictlyStopFMMMixers(&handle->connector);
         handle->started = false;
+        handle->explicitlyStarted = false;
         return;
-    }            
+    }
 }
-    
+
 /***************************************************************************
 Summary:
     Add an audio input to a mixer
@@ -456,6 +567,8 @@ NEXUS_Error NEXUS_AudioMixer_AddInput(
     )
 {
     BERR_Code errCode;
+    NEXUS_AudioMixerInputNode *pInputNode;
+
 
     BDBG_OBJECT_ASSERT(handle, NEXUS_AudioMixer);
     BDBG_ASSERT(NULL != input);
@@ -476,22 +589,43 @@ NEXUS_Error NEXUS_AudioMixer_AddInput(
     }
 #endif
 
-    if ( handle->settings.mixUsingDsp )
+    if ( handle->settings.mixUsingDsp || handle->settings.intermediate )
     {
         BAPE_MixerAddInputSettings addInputSettings;
         BAPE_MixerInputVolume inputVolume;
-        bool master = (input == handle->settings.master)?true:false;
+        BAPE_MixerHandle mixer;
+        bool master;
+        int i;
+
+        master = (input == handle->settings.master)?true:false;
+        mixer = handle->settings.mixUsingDsp?handle->dspMixer:handle->imMixer;
 
         BAPE_Mixer_GetDefaultAddInputSettings(&addInputSettings);
         addInputSettings.sampleRateMaster = master;
-        errCode = BAPE_Mixer_AddInput(handle->dspMixer, (BAPE_Connector)input->port, &addInputSettings);
+        errCode = BAPE_Mixer_AddInput(mixer, (BAPE_Connector)input->port, &addInputSettings);
         if ( errCode )
         {
             return BERR_TRACE(errCode);
         }
-        /* Match input volume in mixer */
+
+        pInputNode = BKNI_Malloc(sizeof(NEXUS_AudioMixerInputNode));
+        if ( NULL == pInputNode )
+        {
+            errCode = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+            BAPE_Mixer_RemoveInput(mixer, (BAPE_Connector)input->port);
+            return errCode;
+        }
+        BKNI_Memset(pInputNode, 0, sizeof(NEXUS_AudioMixerInputNode));
+        pInputNode->input = input;
+        for ( i = 0; i < NEXUS_AudioChannel_eMax; i++ )
+        {
+            pInputNode->inputSettings.volumeMatrix[i][i] = NEXUS_AUDIO_VOLUME_LINEAR_NORMAL;
+        }
+        pInputNode->inputSettings.muted = false;
+        BLST_Q_INSERT_TAIL(&handle->inputList, pInputNode, inputNode);
+
         NEXUS_AudioInput_P_GetVolume(input, &inputVolume);
-        errCode = BAPE_Mixer_SetInputVolume(handle->dspMixer, (BAPE_Connector)input->port, &inputVolume);
+        errCode = NEXUS_AudioMixer_P_SetInputVolume(handle, input, &inputVolume);
         if ( errCode )
         {
             return BERR_TRACE(errCode);
@@ -502,9 +636,20 @@ NEXUS_Error NEXUS_AudioMixer_AddInput(
     errCode = NEXUS_AudioInput_P_AddInput(&handle->connector, input);
     if ( errCode )
     {
-        if ( handle->settings.mixUsingDsp )
+        if ( handle->settings.mixUsingDsp || handle->settings.intermediate )
         {
-            BAPE_Mixer_RemoveInput(handle->dspMixer, (BAPE_Connector)input->port);
+            BAPE_MixerHandle mixer = handle->settings.mixUsingDsp?handle->dspMixer:handle->imMixer;
+            BAPE_Mixer_RemoveInput(mixer, (BAPE_Connector)input->port);
+            pInputNode = BLST_Q_FIRST(&handle->inputList);
+            while ( NULL != pInputNode && pInputNode->input != input)
+            {
+                pInputNode = BLST_Q_NEXT(pInputNode, inputNode);
+            }
+            if (pInputNode != NULL)
+            {
+                BLST_Q_REMOVE(&handle->inputList, pInputNode, inputNode);
+                BKNI_Free(pInputNode);
+            }
         }
         return BERR_TRACE(errCode);
     }
@@ -522,18 +667,27 @@ NEXUS_Error NEXUS_AudioMixer_RemoveAllInputs(
     NEXUS_AudioMixerHandle handle
     )
 {
+    NEXUS_AudioMixerInputNode *pInputNode;
     BDBG_OBJECT_ASSERT(handle, NEXUS_AudioMixer);
 
+    #if 0
     /* Check if I'm running */
     if ( NEXUS_AudioInput_P_IsRunning(&handle->connector) || handle->started )
     {
         BDBG_ERR(("Mixer %p is running.  Stop all inputs first.", (void *)handle));
         return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
+    #endif
 
-    if ( handle->settings.mixUsingDsp )
+    if ( handle->settings.mixUsingDsp || handle->settings.intermediate )
     {
-        (void)BAPE_Mixer_RemoveAllInputs(handle->dspMixer);
+        BAPE_MixerHandle mixer = handle->settings.mixUsingDsp?handle->dspMixer:handle->imMixer;
+        (void)BAPE_Mixer_RemoveAllInputs(mixer);
+        while ( NULL != (pInputNode = BLST_Q_FIRST(&handle->inputList)) )
+        {
+            BLST_Q_REMOVE(&handle->inputList, pInputNode, inputNode);
+            BKNI_Free(pInputNode);
+        }
     }
 
     /* Connect at input node */
@@ -551,6 +705,8 @@ NEXUS_Error NEXUS_AudioMixer_RemoveInput(
     NEXUS_AudioInput input
     )
 {
+    NEXUS_AudioMixerInputNode *pInputNode;
+
     BDBG_OBJECT_ASSERT(handle, NEXUS_AudioMixer);
     BDBG_ASSERT(NULL != input);
 #if 0
@@ -569,9 +725,21 @@ NEXUS_Error NEXUS_AudioMixer_RemoveInput(
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
-    if ( handle->settings.mixUsingDsp )
+    if ( handle->settings.mixUsingDsp || handle->settings.intermediate )
     {
-        (void)BAPE_Mixer_RemoveInput(handle->dspMixer, (BAPE_Connector)input->port);
+        BAPE_MixerHandle mixer = handle->settings.mixUsingDsp?handle->dspMixer:handle->imMixer;
+        (void)BAPE_Mixer_RemoveInput(mixer, (BAPE_Connector)input->port);
+
+        pInputNode = BLST_Q_FIRST(&handle->inputList);
+        while ( NULL != pInputNode && pInputNode->input != input)
+        {
+            pInputNode = BLST_Q_NEXT(pInputNode, inputNode);
+        }
+        if (pInputNode != NULL)
+        {
+            BLST_Q_REMOVE(&handle->inputList, pInputNode, inputNode);
+            BKNI_Free(pInputNode);
+        }
     }
 
     /* Remove Input */
@@ -590,33 +758,158 @@ NEXUS_AudioInput NEXUS_AudioMixer_GetConnector(
     return &mixer->connector;
 }
 
+
 /***************************************************************************
-Summary: 
-    Propagate mixer input volume into a mixer object in nexus 
+Summary:
+    Acquire mixer input volume into a mixer object in nexus
  ***************************************************************************/
+NEXUS_Error NEXUS_AudioMixer_GetInputSettings(
+    NEXUS_AudioMixerHandle handle,
+    NEXUS_AudioInput input,
+    NEXUS_AudioMixerInputSettings *pSettings
+    )
+{
+    if ( handle->settings.mixUsingDsp || handle->settings.intermediate )
+    {
+        NEXUS_AudioMixerInputNode *pInputNode;
+
+        pInputNode = BLST_Q_FIRST(&handle->inputList);
+        while ( NULL != pInputNode && pInputNode->input != input)
+        {
+            pInputNode = BLST_Q_NEXT(pInputNode, inputNode);
+        }
+        if (pInputNode != NULL)
+        {
+            *pSettings = pInputNode->inputSettings;
+        }
+        else
+        {
+            BDBG_ERR(("%s: Could not locate input(%p) in mixer(%p)",__FUNCTION__, (void *)input, (void *)handle));
+            return BERR_INVALID_PARAMETER;
+        }
+    }
+    else
+    {
+        BDBG_ERR(("%s: Mixer is neither DSP or Intermediate type",__FUNCTION__));
+        return BERR_INVALID_PARAMETER;
+    }
+    return BERR_SUCCESS;
+}
+
+
+/***************************************************************************
+Summary:
+    Propagate mixer input volume into a mixer object in nexus
+ ***************************************************************************/
+NEXUS_Error NEXUS_AudioMixer_SetInputSettings(
+    NEXUS_AudioMixerHandle handle,
+    NEXUS_AudioInput input,
+    const NEXUS_AudioMixerInputSettings *pSettings
+    )
+{
+    if ( handle->settings.mixUsingDsp || handle->settings.intermediate )
+    {
+        NEXUS_AudioMixerInputNode *pInputNode;
+        BAPE_MixerInputVolume inputVolume;
+        NEXUS_Error rc;
+
+        pInputNode = BLST_Q_FIRST(&handle->inputList);
+        while ( NULL != pInputNode && pInputNode->input != input)
+        {
+            pInputNode = BLST_Q_NEXT(pInputNode, inputNode);
+        }
+        if (pInputNode != NULL)
+        {
+            pInputNode->inputSettings = *pSettings;
+            NEXUS_AudioInput_P_GetVolume(input, &inputVolume);
+            rc = NEXUS_AudioMixer_P_ApplyMixerVolume(handle, input, &inputVolume, pInputNode);
+            if ( rc )
+            {
+                return BERR_TRACE(rc);
+            }
+        }
+        else
+        {
+            BDBG_ERR(("%s: Could not locate input(%p) in mixer(%p)", __FUNCTION__, (void *)input, (void *)handle));
+            return BERR_INVALID_PARAMETER;
+        }
+    }
+    else
+    {
+        BDBG_ERR(("%s: Mixer is neither DSP or Intermediate type",__FUNCTION__));
+        return BERR_INVALID_PARAMETER;
+    }
+    return BERR_SUCCESS;
+}
+
 NEXUS_Error NEXUS_AudioMixer_P_SetInputVolume(
-    NEXUS_AudioMixerHandle handle, 
+    NEXUS_AudioMixerHandle handle,
     NEXUS_AudioInput input,
     const BAPE_MixerInputVolume *pInputVolume
     )
 {
-    if ( handle->dspMixer )
+    if ( handle->settings.mixUsingDsp || handle->settings.intermediate )
     {
-        BERR_Code errCode;
+        NEXUS_Error rc;
+        NEXUS_AudioMixerInputNode *pInputNode;
 
-        errCode = BAPE_Mixer_SetInputVolume(handle->dspMixer, (BAPE_Connector)input->port, pInputVolume);
-        if ( errCode )
+        pInputNode = BLST_Q_FIRST(&handle->inputList);
+        while ( NULL != pInputNode && pInputNode->input != input)
         {
-            return BERR_TRACE(errCode);
+            pInputNode = BLST_Q_NEXT(pInputNode, inputNode);
+        }
+        if (pInputNode != NULL)
+        {
+            rc = NEXUS_AudioMixer_P_ApplyMixerVolume(handle, input, pInputVolume, pInputNode);
+            if ( rc )
+            {
+                return BERR_TRACE(rc);
+            }
+        }
+        else
+        {
+            BDBG_ERR(("%s: Could not locate input(%p) in mixer(%p)", __FUNCTION__, (void *)input, (void *)handle));
+            return BERR_INVALID_PARAMETER;
         }
     }
 
     return BERR_SUCCESS;
 }
 
+static NEXUS_Error NEXUS_AudioMixer_P_ApplyMixerVolume(
+    NEXUS_AudioMixerHandle handle,
+    NEXUS_AudioInput input,
+    const BAPE_MixerInputVolume *pInputVolume,
+    const NEXUS_AudioMixerInputNode *pInputNode
+    )
+{
+    BERR_Code errCode;
+    BAPE_MixerInputVolume combinedVolume;
+    BAPE_MixerHandle mixer = handle->settings.mixUsingDsp?handle->dspMixer:handle->imMixer;
+    int i,j;
+
+    for ( i = 0; i < NEXUS_AudioChannel_eMax; i++ )
+    {
+        for ( j = 0; j < NEXUS_AudioChannel_eMax; j++ )
+        {
+            combinedVolume.coefficients[i][j] =
+                (int32_t)(((uint64_t)pInputVolume->coefficients[i][j]  * (uint64_t)pInputNode->inputSettings.volumeMatrix[i][j]) / 0x800000);
+        }
+    }
+
+    combinedVolume.muted = pInputVolume->muted | pInputNode->inputSettings.muted;
+
+    errCode = BAPE_Mixer_SetInputVolume(mixer, (BAPE_Connector)input->port, &combinedVolume);
+    if ( errCode )
+    {
+        return BERR_TRACE(errCode);
+    }
+    return BERR_SUCCESS;
+}
+
 /***************************************************************************
-Summary: 
-    Check mixer state - mixer can be started even if inputs are not started 
+Summary:
+    Check mixer state - mixer can be started even if inputs are not started
  ***************************************************************************/
 bool NEXUS_AudioMixer_P_IsStarted(
     NEXUS_AudioMixerHandle handle
@@ -624,6 +917,18 @@ bool NEXUS_AudioMixer_P_IsStarted(
 {
     BDBG_OBJECT_ASSERT(handle, NEXUS_AudioMixer);
     return handle->started;
+}
+
+/***************************************************************************
+Summary:
+    Check mixer state - mixer can be started even if inputs are not started
+ ***************************************************************************/
+bool NEXUS_AudioMixer_P_IsExplicitlyStarted(
+    NEXUS_AudioMixerHandle handle
+    )
+{
+    BDBG_OBJECT_ASSERT(handle, NEXUS_AudioMixer);
+    return handle->explicitlyStarted;
 }
 
 NEXUS_AudioMixerHandle

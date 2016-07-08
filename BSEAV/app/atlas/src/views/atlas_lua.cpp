@@ -1,4 +1,4 @@
-/***************************************************************************
+/******************************************************************************
  * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
@@ -79,12 +79,11 @@ extern "C" {
 #define CALLBACK_LUA  "CallbackLua"
 
 /* push return parameter to lua stack and return number of return parameters */
-#define LUA_RETURN(ret)                                         \
-    do {                                                        \
-        lua_pushnumber(pLua, (eRet_Ok == ret) ? 0 : -1);        \
-        return(pThis->getBusyLuaEvent()->getNumReturnVals());   \
+#define LUA_RETURN(ret)                                        \
+    do {                                                       \
+        lua_pushnumber(pLua, (eRet_Ok == ret) ? 0 : -1);       \
+        return (pThis->getBusyLuaEvent()->getNumReturnVals()); \
     } while (0)
-
 
 BDBG_MODULE(atlas_lua);
 
@@ -113,7 +112,7 @@ static CLua * getCLua(lua_State * pLua)
 
     lua_pushlightuserdata(pLua, (void *)&LUAKEY_CLUA);
     lua_gettable(pLua, LUA_REGISTRYINDEX);
-    pThis = (CLua *)lua_tointeger(pLua, -1);
+    pThis = (CLua *)lua_topointer(pLua, -1);
 
     return(pThis);
 }
@@ -128,6 +127,12 @@ static int atlasLua_ChannelUp(lua_State * pLua)
 
     pLuaEvent = new CLuaEvent(eNotify_ChUp, eNotify_VideoSourceChanged, DEFAULT_LUA_EVENT_TIMEOUT);
     CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+
+    /* for audio only channels */
+    pLuaEvent->addWaitNotification(eNotify_AudioSourceChanged);
+
+    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+     * bwinLuaCallback() */
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
@@ -136,7 +141,7 @@ static int atlasLua_ChannelUp(lua_State * pLua)
     goto done;
 error:
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error - atlasLua_ChannelUp()");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_ChannelUp */
@@ -151,6 +156,12 @@ static int atlasLua_ChannelDown(lua_State * pLua)
 
     pLuaEvent = new CLuaEvent(eNotify_ChDown, eNotify_VideoSourceChanged, DEFAULT_LUA_EVENT_TIMEOUT);
     CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+
+    /* for audio only channels */
+    pLuaEvent->addWaitNotification(eNotify_AudioSourceChanged);
+
+    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+     * bwinLuaCallback() */
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
@@ -159,7 +170,7 @@ static int atlasLua_ChannelDown(lua_State * pLua)
     goto done;
 error:
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_ChannelDown */
@@ -208,6 +219,9 @@ static int atlasLua_ChannelTune(lua_State * pLua)
     pLuaEvent = new CLuaDataEvent <CChannelData>(eNotify_Tune, pChannelData, eNotify_VideoSourceChanged, DEFAULT_LUA_EVENT_TIMEOUT);
     CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
 
+    /* for audio only channels */
+    pLuaEvent->addWaitNotification(eNotify_AudioSourceChanged);
+
     /* save lua event to queue - this event will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
     pThis->addEvent(pLuaEvent);
@@ -219,7 +233,7 @@ static int atlasLua_ChannelTune(lua_State * pLua)
 error:
     DEL(pChannelData);
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_ChannelTune */
@@ -260,7 +274,7 @@ static int atlasLua_ChannelUnTune(lua_State * pLua)
 error:
     DEL(pChannelData);
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_ChannelUnTune */
@@ -393,7 +407,7 @@ static int atlasLua_ScanQam(lua_State * pLua)
 error:
     DEL(pQamScanData);
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_ScanQam */
@@ -489,7 +503,7 @@ static int atlasLua_ScanVsb(lua_State * pLua)
 error:
     DEL(pVsbScanData);
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_ScanVsb */
@@ -587,7 +601,7 @@ static int atlasLua_ScanSat(lua_State * pLua)
 error:
     DEL(pSatScanData);
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_ScanSat */
@@ -683,7 +697,7 @@ static int atlasLua_ScanOfdm(lua_State * pLua)
 error:
     DEL(pOfdmScanData);
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_ScanOfdm */
@@ -746,7 +760,7 @@ static int atlasLua_SetContentMode(lua_State * pLua)
 error:
     DEL(pContentMode);
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_SetContentMode */
@@ -807,7 +821,7 @@ static int atlasLua_SetColorSpace(lua_State * pLua)
 error:
     DEL(pColorSpace);
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_SetColorSpace */
@@ -860,7 +874,7 @@ static int atlasLua_SetMpaaDecimation(lua_State * pLua)
 error:
     DEL(pMpaaDecimation);
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_SetMpaaDecimation */
@@ -913,7 +927,7 @@ static int atlasLua_SetDeinterlacer(lua_State * pLua)
 error:
     DEL(pDeinterlacer);
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_SetDeinterlacer */
@@ -976,7 +990,7 @@ static int atlasLua_SetBoxDetect(lua_State * pLua)
 error:
     DEL(pBoxDetect);
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_SetBoxDetect */
@@ -1037,7 +1051,7 @@ static int atlasLua_SetAspectRatio(lua_State * pLua)
 error:
     DEL(pAspectRatio);
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_SetAspectRatio */
@@ -1119,7 +1133,7 @@ static int atlasLua_SetVideoFormat(lua_State * pLua)
 error:
     DEL(pVideoFormat);
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_SetVideoFormat */
@@ -1172,7 +1186,7 @@ static int atlasLua_SetAutoVideoFormat(lua_State * pLua)
 error:
     DEL(pAutoVideoFormat);
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_SetAutoVideoFormat */
@@ -1242,7 +1256,7 @@ static int atlasLua_ChannelListLoad(lua_State * pLua)
 error:
     DEL(pLoadSaveData);
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_ChannelListLoad */
@@ -1315,7 +1329,7 @@ static int atlasLua_ChannelListSave(lua_State * pLua)
 error:
     DEL(pLoadSaveData);
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_ChannelListSave */
@@ -1340,7 +1354,7 @@ static int atlasLua_ChannelListDump(lua_State * pLua)
     goto done;
 error:
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_ChannelListDump */
@@ -1365,7 +1379,7 @@ static int atlasLua_PlaybackListDump(lua_State * pLua)
     goto done;
 error:
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_PlaybackListDump */
@@ -1605,7 +1619,7 @@ static int atlasLua_PlaybackTrickMode(lua_State * pLua)
 error:
     DEL(pPlaybackTrickData);
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_PlaybackTrickMode */
@@ -1677,6 +1691,9 @@ static int atlasLua_PlaybackStart(lua_State * pLua)
     pLuaEvent = new CLuaDataEvent <CPlaybackData>(eNotify_PlaybackStart, pPlaybackData, eNotify_VideoSourceChanged, DEFAULT_LUA_EVENT_TIMEOUT);
     CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
 
+    /* for audio only channels */
+    pLuaEvent->addWaitNotification(eNotify_AudioSourceChanged);
+
     /* save lua event to queue - this event will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
     pThis->addEvent(pLuaEvent);
@@ -1688,7 +1705,7 @@ static int atlasLua_PlaybackStart(lua_State * pLua)
 error:
     DEL(pPlaybackData);
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_PlaybackStart */
@@ -1721,10 +1738,9 @@ static int atlasLua_PlaybackStop(lua_State * pLua)
             pPlaybackData->_strFileName = strFileName;
         }
     }
-    else
-    {
-        LUA_ERROR(pLua, "need to define at least filename Arguments: [fileName]", error);
-    }
+
+    /* have the playback tune to the last channel */
+    pPlaybackData->_bTuneLastChannel = true;
 
     /* create lua event and give it playback info */
     pLuaEvent = new CLuaDataEvent <CPlaybackData>(eNotify_PlaybackStop, pPlaybackData, eNotify_PlaybackStateChanged, DEFAULT_LUA_EVENT_TIMEOUT);
@@ -1741,7 +1757,7 @@ static int atlasLua_PlaybackStop(lua_State * pLua)
 error:
     DEL(pPlaybackData);
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_PlaybackStop */
@@ -1808,7 +1824,7 @@ static int atlasLua_RecordStart(lua_State * pLua)
      * create lua event and give it record info
      * note that we are not setting a wait notification so we will not wait for this command to complete
      */
-    pLuaEvent = new CLuaDataEvent <CRecordData>(eNotify_RecordStart, pRecordData);
+    pLuaEvent = new CLuaDataEvent <CRecordData>(eNotify_RecordStart, pRecordData, eNotify_RecordStarted, DEFAULT_LUA_EVENT_TIMEOUT);
     CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
 
     /* save lua event to queue - this event will be serviced when we get the bwin io callback:
@@ -1822,7 +1838,7 @@ static int atlasLua_RecordStart(lua_State * pLua)
 error:
     DEL(pRecordData);
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_RecordStart */
@@ -1881,7 +1897,7 @@ static int atlasLua_RecordStop(lua_State * pLua)
 error:
     DEL(pRecordData);
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_RecordStop */
@@ -1909,7 +1925,7 @@ static int atlasLua_EncodeStart(lua_State * pLua)
     goto done;
 error:
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_EncodeStart */
@@ -1934,7 +1950,7 @@ static int atlasLua_EncodeStop(lua_State * pLua)
     goto done;
 error:
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_EncodeStop */
@@ -1957,7 +1973,7 @@ static int atlasLua_RefreshPlaybackList(lua_State * pLua)
     goto done;
 error:
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_RefreshPlaybackList */
@@ -2018,7 +2034,7 @@ static int atlasLua_SetAudioProgram(lua_State * pLua)
 error:
     DEL(pPid);
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_SetAudioProgram */
@@ -2077,7 +2093,7 @@ static int atlasLua_RemoteKeypress(lua_State * pLua)
 error:
     DEL(pRemoteEvent);
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_RemoteKeypress */
@@ -2138,7 +2154,7 @@ static int atlasLua_SetSpdifType(lua_State * pLua)
 error:
     DEL(pSpdifInput);
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_SetSpdifType */
@@ -2199,7 +2215,7 @@ static int atlasLua_SetHdmiAudioType(lua_State * pLua)
 error:
     DEL(pHdmiInput);
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_SetHdmiAudioType */
@@ -2260,7 +2276,7 @@ static int atlasLua_SetDownmix(lua_State * pLua)
 error:
     DEL(pDownmix);
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_SetDownmix */
@@ -2321,7 +2337,7 @@ static int atlasLua_SetDualMono(lua_State * pLua)
 error:
     DEL(pDualMono);
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_SetDualMono */
@@ -2382,7 +2398,7 @@ static int atlasLua_SetDolbyDRC(lua_State * pLua)
 error:
     DEL(pDolbyDRC);
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_SetDolbyDRC */
@@ -2435,7 +2451,7 @@ static int atlasLua_SetDolbyDialogNorm(lua_State * pLua)
 error:
     DEL(pDialogNorm);
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_SetDolbyDialogNorm */
@@ -2493,7 +2509,7 @@ static int atlasLua_SetVolume(lua_State * pLua)
 error:
     DEL(pVolume);
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_SetVolume */
@@ -2546,7 +2562,7 @@ static int atlasLua_SetMute(lua_State * pLua)
 error:
     DEL(pMute);
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_SetMute */
@@ -2604,7 +2620,7 @@ static int atlasLua_SetSpdifInput(lua_State * pLua)
 error:
     DEL(pInput);
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_SetSpdifInput */
@@ -2662,7 +2678,7 @@ static int atlasLua_SetHdmiInput(lua_State * pLua)
 error:
     DEL(pInput);
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_SetHdmiInput */
@@ -2747,7 +2763,7 @@ static int atlasLua_SetAudioProcessing(lua_State * pLua)
 error:
     DEL(pProcessing);
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_SetAudioProcessing */
@@ -2804,7 +2820,7 @@ static int atlasLua_ShowPip(lua_State * pLua)
 error:
     DEL(pShow);
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_ShowPip */
@@ -2846,7 +2862,7 @@ static int atlasLua_SwapPip(lua_State * pLua)
     goto done;
 error:
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_SwapPip */
@@ -2888,7 +2904,7 @@ static int atlasLua_ClosedCaptionEnable(lua_State * pLua)
 error:
     DEL(pCcEnable);
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_ClosedCaptionEnable */
@@ -2936,7 +2952,7 @@ static int atlasLua_ClosedCaptionMode(lua_State * pLua)
 error:
     DEL(pCcMode);
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_ClosedCaptionMode */
@@ -3001,7 +3017,7 @@ static int atlasLua_SetVbiClosedCaptions(lua_State * pLua)
 error:
     DEL(pDisplayVbiData);
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_SetVbiClosedCaptions  */
@@ -3063,7 +3079,7 @@ static int atlasLua_SetVbiTeletext(lua_State * pLua)
 error:
     DEL(pDisplayVbiData);
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_SetVbiTeletext  */
@@ -3125,7 +3141,7 @@ static int atlasLua_SetVbiVps(lua_State * pLua)
 error:
     DEL(pDisplayVbiData);
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_SetVbiVps  */
@@ -3187,7 +3203,7 @@ static int atlasLua_SetVbiWss(lua_State * pLua)
 error:
     DEL(pDisplayVbiData);
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_SetVbiWss  */
@@ -3250,7 +3266,7 @@ static int atlasLua_SetVbiCgms(lua_State * pLua)
 error:
     DEL(pDisplayVbiData);
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_SetVbiCgms  */
@@ -3312,7 +3328,7 @@ static int atlasLua_SetVbiGemstar(lua_State * pLua)
 error:
     DEL(pDisplayVbiData);
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_SetVbiGemstar  */
@@ -3377,7 +3393,7 @@ static int atlasLua_SetVbiAmol(lua_State * pLua)
 error:
     DEL(pDisplayVbiData);
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_SetVbiAmol  */
@@ -3443,7 +3459,7 @@ static int atlasLua_SetVbiMacrovision(lua_State * pLua)
 error:
     DEL(pDisplayVbiData);
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_SetVbiMacrovision  */
@@ -3508,7 +3524,7 @@ static int atlasLua_SetVbiDcs(lua_State * pLua)
 error:
     DEL(pDisplayVbiData);
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_SetVbiDcs  */
@@ -3558,7 +3574,7 @@ static int atlasLua_SetPowerMode(lua_State * pLua)
 error:
     DEL(pPowerMode);
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_SetPowerMode  */
@@ -3582,7 +3598,7 @@ static int atlasLua_WifiScanStart(lua_State * pLua)
     }
 
     /* create lua event and give it scan data */
-    pLuaEvent = new CLuaDataEvent <bool>(eNotify_NetworkWifiScanStart, NULL, eNotify_NetworkWifiScanResult, DEFAULT_LUA_EVENT_TIMEOUT);
+    pLuaEvent = new CLuaDataEvent <bool>(eNotify_NetworkWifiScanStart, NULL, eNotify_NetworkWifiScanResult, 20000);
     CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
 
     /* save lua event to queue - this event will be serviced when we get the bwin io callback:
@@ -3595,7 +3611,7 @@ static int atlasLua_WifiScanStart(lua_State * pLua)
     goto done;
 error:
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_WifiScanStart */
@@ -3639,7 +3655,7 @@ static int atlasLua_WifiConnect(lua_State * pLua)
 error:
     DEL(pNetworkWifiConnectData);
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_WifiConnect */
@@ -3675,7 +3691,7 @@ static int atlasLua_WifiDisconnect(lua_State * pLua)
     goto done;
 error:
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_WifiDisconnect */
@@ -3711,7 +3727,7 @@ static int atlasLua_BluetoothDiscoveryStart(lua_State * pLua)
     goto done;
 error:
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_BluetoothDiscoveryStart */
@@ -3757,7 +3773,7 @@ static int atlasLua_BluetoothConnect(lua_State * pLua)
 error:
     DEL(pBluetoothConnectiontData);
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_BluetoothConnect */
@@ -3801,7 +3817,7 @@ static int atlasLua_BluetoothDisconnect(lua_State * pLua)
 error:
     DEL(pBluetoothConnectionData);
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_BluetoothDisconnect */
@@ -3837,7 +3853,7 @@ static int atlasLua_BluetoothGetSavedBtListInfo(lua_State * pLua)
     goto done;
 error:
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_BluetoothGetSavedBtListInfo */
@@ -3873,7 +3889,7 @@ static int atlasLua_BluetoothGetConnectedBtListInfo(lua_State * pLua)
     goto done;
 error:
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_BluetoothGetConnectedBtListInfo */
@@ -3909,7 +3925,7 @@ static int atlasLua_BluetoothGetDiscoveryBtListInfo(lua_State * pLua)
     goto done;
 error:
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_BluetoothGetDiscoveryBtListInfo */
@@ -3952,7 +3968,7 @@ static int atlasLua_BluetoothConnectBluetoothFromDiscList(lua_State * pLua)
 error:
     DEL(pBluetoothConnectionData);
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_BluetoothConnectBluetoothFromDiscList */
@@ -3988,7 +4004,7 @@ static int atlasLua_BluetoothA2DPStart(lua_State * pLua)
     goto done;
 error:
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_BluetoothA2DPStart */
@@ -4024,7 +4040,7 @@ static int atlasLua_BluetoothA2DPStop(lua_State * pLua)
     goto done;
 error:
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_BluetoothA2DPStart */
@@ -4075,7 +4091,7 @@ static int atlasLua_AddRf4ceRemote(lua_State * pLua)
     goto done;
 error:
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error - atlasLua_AddRf4ceRemote()");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_AddRf4ceRemote */
@@ -4118,7 +4134,7 @@ static int atlasLua_RemoveRf4ceRemote(lua_State * pLua)
     goto done;
 error:
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error - atlasLua_RemoveRf4ceRemote()");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_RemoveRf4ceRemote */
@@ -4138,7 +4154,7 @@ static int atlasLua_DisplayRf4ceRemotes(lua_State * pLua)
     goto done;
 error:
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error - atlasLua_DisplayRf4ceRemotes()");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_DisplayRf4ceRemotes */
@@ -4147,11 +4163,11 @@ done:
 
 static int atlasLua_PlaylistDiscovery(lua_State * pLua)
 {
-    CLua *        pThis       = getCLua(pLua);
-    eRet          err         = eRet_Ok;
-    int  *        pIndex      = 0;
-    CModel *      pModel      = NULL;
-    uint8_t       numArgTotal = lua_gettop(pLua) - 1;
+    CLua *   pThis       = getCLua(pLua);
+    eRet     err         = eRet_Ok;
+    int *    pIndex      = 0;
+    CModel * pModel      = NULL;
+    uint8_t  numArgTotal = lua_gettop(pLua) - 1;
 
     CLuaDataEvent <int> * pLuaEvent = NULL;
 
@@ -4159,7 +4175,6 @@ static int atlasLua_PlaylistDiscovery(lua_State * pLua)
 
     pModel = pThis->getModel();
     BDBG_ASSERT(NULL != pModel);
-
 
     pIndex = new int;
 
@@ -4190,7 +4205,7 @@ static int atlasLua_PlaylistDiscovery(lua_State * pLua)
 error:
     DEL(pIndex);
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_PlaylistDiscovery */
@@ -4242,7 +4257,7 @@ static int atlasLua_PlaylistShow(lua_State * pLua)
     goto done;
 error:
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_ShowDiscoveredPlaylists */
@@ -4286,7 +4301,7 @@ static int atlasLua_ChannelStream(lua_State * pLua)
     goto done;
 error:
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_ChannelStream */
@@ -4383,10 +4398,10 @@ static int atlasLua_RunScript(lua_State * pLua)
 
 static int atlasLua_Debug(lua_State * pLua)
 {
-    CLua *       pThis     = getCLua(pLua);
-    eRet         err       = eRet_Ok;
-    int          argNum    = 1;
-    MString *    pStrDebug = NULL;
+    CLua *    pThis     = getCLua(pLua);
+    eRet      err       = eRet_Ok;
+    int       argNum    = 1;
+    MString * pStrDebug = NULL;
 
     CLuaDataEvent <MString> * pLuaEvent = NULL;
     BDBG_ASSERT(pThis);
@@ -4406,7 +4421,7 @@ static int atlasLua_Debug(lua_State * pLua)
     goto done;
 error:
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_Debug */
@@ -4428,12 +4443,15 @@ static int atlasLua_Exit(lua_State * pLua)
     CLuaEvent * pLuaEvent = NULL;
     eRet        err       = eRet_Ok;
 
+    BDBG_ASSERT(pThis);
+
     /*
      * save lua event and necessary data
      * note that we are not setting a wait notification so we will not wait for this command to complete
      */
     pLuaEvent = new CLuaEvent(eNotify_Exit);
     CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    BDBG_ASSERT(NULL != pThis);
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
@@ -4442,7 +4460,7 @@ static int atlasLua_Exit(lua_State * pLua)
     goto done;
 error:
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_Exit */
@@ -4746,7 +4764,7 @@ eRet CLua::initialize(CConfig * pConfig)
 
     /* save "this" pointer to lua registry */
     lua_pushlightuserdata(_pLua, (void *)&LUAKEY_CLUA);
-    lua_pushinteger(_pLua, (int)this);
+    lua_pushlightuserdata(_pLua, (void *)this);
     lua_settable(_pLua, LUA_REGISTRYINDEX);
 
 error:
@@ -5022,8 +5040,8 @@ error:
 
 eRet CLua::trigger(CLuaEvent * pLuaEvent)
 {
-    eRet            ret               = eRet_Ok;
-    CWidgetEngine * pWidgetEngine     = getWidgetEngine();
+    eRet            ret           = eRet_Ok;
+    CWidgetEngine * pWidgetEngine = getWidgetEngine();
 
     BDBG_ASSERT(NULL != pLuaEvent);
 
@@ -5039,8 +5057,8 @@ eRet CLua::trigger(CLuaEvent * pLuaEvent)
     }
 
     /*** do not access pLuaEvent after the syncCallback call.  since we are running
-         in the Lua thread context, the bwinLuaCallback can trigger at anytime
-         after syncCallback() which will delete the pLuaEvent! use _busyLuaEvent instead. ***/
+     *   in the Lua thread context, the bwinLuaCallback can trigger at anytime
+     *   after syncCallback() which will delete the pLuaEvent! use _busyLuaEvent instead. ***/
 
     /* if command specified a valid wait notification, we will wait for it here */
     if (eNotify_Invalid != _busyLuaEvent.getWaitNotification())
@@ -5172,7 +5190,7 @@ void CLua::processNotification(CNotification & notification)
         CTunerScanNotificationData * pScanData = (CTunerScanNotificationData *)notification.getData();
         if (NULL != pScanData)
         {
-            BDBG_MSG(("Tuner name:%s type:%lu num:%lu - Channel scan started",
+            BDBG_MSG(("Tuner name:%s type:%d num:%u - Channel scan started",
                       pScanData->getTuner()->getName(),
                       pScanData->getTuner()->getType(),
                       pScanData->getTuner()->getNumber()));
@@ -5184,7 +5202,7 @@ void CLua::processNotification(CNotification & notification)
         CTunerScanNotificationData * pScanData = (CTunerScanNotificationData *)notification.getData();
         if (NULL != pScanData)
         {
-            BDBG_MSG(("Tuner name:%s type:%lu num:%lu - Channel scan stopped",
+            BDBG_MSG(("Tuner name:%s type:%d num:%u - Channel scan stopped",
                       pScanData->getTuner()->getName(),
                       pScanData->getTuner()->getType(),
                       pScanData->getTuner()->getNumber()));
@@ -5200,7 +5218,7 @@ void CLua::processNotification(CNotification & notification)
         CTunerScanNotificationData * pScanData = (CTunerScanNotificationData *)notification.getData();
         if (NULL != pScanData)
         {
-            BDBG_MSG(("Tuner name:%s type:%lu num:%lu - Channel scan %lu%% complete",
+            BDBG_MSG(("Tuner name:%s type:%d num:%u - Channel scan %u%% complete",
                       pScanData->getTuner()->getName(),
                       pScanData->getTuner()->getType(),
                       pScanData->getTuner()->getNumber(),
@@ -5210,14 +5228,15 @@ void CLua::processNotification(CNotification & notification)
     break;
 #endif /* NEXUS_HAS_FRONTEND */
 
+#ifdef PLAYBACK_IP_SUPPORT
     case eNotify_DiscoveredPlaylistsShown:
     {
-        CPlaylist   * pPlaylist = (CPlaylist *)notification.getData();
-        int           nRetVals  = 0;
+        CPlaylist * pPlaylist = (CPlaylist *)notification.getData();
+        int         nRetVals  = 0;
 
         /* this notification is a response from an Atlas model class - retrieve return
-           data and push to the Lua stack for return to the calling Lua function.  Also
-           update the number of return values. */
+         * data and push to the Lua stack for return to the calling Lua function.  Also
+         * update the number of return values. */
         if (NULL != pPlaylist)
         {
             CChannel * pChannel = NULL;
@@ -5245,11 +5264,11 @@ void CLua::processNotification(CNotification & notification)
     case eNotify_PlaylistShown:
     {
         CChannelBip * pChannelBip = (CChannelBip *)notification.getData();
-        int        nRetVals = 0;
+        int           nRetVals    = 0;
 
         /* this notification is a response from an Atlas model class - retrieve return
-           data and push to the Lua stack for return to the calling Lua function.  Also
-           update the number of return values. */
+         * data and push to the Lua stack for return to the calling Lua function.  Also
+         * update the number of return values. */
         if (NULL != pChannelBip)
         {
             lua_pushlstring(_pLua, pChannelBip->getUrl().s(), pChannelBip->getUrl().length());
@@ -5265,14 +5284,27 @@ void CLua::processNotification(CNotification & notification)
         _busyLuaEvent.setNumReturnVals(_busyLuaEvent.getNumReturnVals() + nRetVals);
     }
     break;
+#endif /* ifdef PLAYBACK_IP_SUPPORT */
 
     default:
         break;
     } /* switch */
 
     /* check to see if the current notification is one that a pending lua command is waiting on */
-    if (notification.getId() == _busyLuaEvent.getWaitNotification())
     {
-        B_Event_Set(_busyEvent);
+        int           i           = 0;
+        eNotification busyNotify = _busyLuaEvent.getWaitNotification(i);
+
+        while (eNotify_Invalid != busyNotify)
+        {
+            if (notification.getId() == busyNotify)
+            {
+                B_Event_Set(_busyEvent);
+                break;
+            }
+
+            i++;
+            busyNotify = _busyLuaEvent.getWaitNotification(i);
+        }
     }
 } /* processNotification */

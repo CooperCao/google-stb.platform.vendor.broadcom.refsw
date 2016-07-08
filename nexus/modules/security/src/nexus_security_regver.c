@@ -1,41 +1,43 @@
 /******************************************************************************
- *    (c)2007-2015 Broadcom Corporation
- *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
- *
- * Except as expressly set forth in the Authorized License,
- *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
- *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
- *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *
- *****************************************************************************/
+* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*
+* This program is the proprietary software of Broadcom and/or its
+* licensors, and may only be used, duplicated, modified or distributed pursuant
+* to the terms and conditions of a separate, written license agreement executed
+* between you and Broadcom (an "Authorized License").  Except as set forth in
+* an Authorized License, Broadcom grants no license (express or implied), right
+* to use, or waiver of any kind with respect to the Software, and Broadcom
+* expressly reserves all rights in and to the Software and all intellectual
+* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*
+* Except as expressly set forth in the Authorized License,
+*
+* 1. This program, including its structure, sequence and organization,
+*    constitutes the valuable trade secrets of Broadcom, and you shall use all
+*    reasonable efforts to protect the confidentiality thereof, and to use
+*    this information only in connection with your use of Broadcom integrated
+*    circuit products.
+*
+* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+*
+* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. , WHICHEVER
+*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+******************************************************************************/
 
 #include "nexus_security_module.h"
 #include "priv/nexus_security_priv.h"
@@ -45,9 +47,15 @@
 #include "bhsm_misc.h"
 #include "bhsm_otpmsp.h"
 #include "bsp_s_otp_common.h"
-#include "nexus_security_regver_signatures.h"
-#include "nexus_security_regver_key.h"
+#include "bhsm_bseck.h"
 
+#if NEXUS_SECURITY_FW_SIGN
+#include "nexus_security_regver_signatures.inc"
+#include "nexus_security_regver_key.inc"
+#else
+#include "nexus_security_regver_signatures_stub.c"
+#include "nexus_security_regver_key_stub.c"
+#endif
 
 #if NEXUS_REGION_VERIFICATION_DUMP_FIRMWARE || NEXUS_REGION_VERIFICATION_DUMP_FIRMWARE_RAW
 #include <stdio.h>
@@ -754,8 +762,23 @@ void NEXUS_Security_RegionVerifyDisable_priv( NEXUS_SecurityRegverRegionID regio
 }
 
 
+bool  NEXUS_Security_RegionVerification_IsRequired_priv( NEXUS_SecurityRegverRegionID regionId )
+{
+    regionData_t *pRegionData;
 
+    BDBG_ENTER( NEXUS_Security_RegionVerification_IsRequired_priv );
+    NEXUS_ASSERT_MODULE();
 
+    pRegionData = getRegionData( regionId );
+    if( pRegionData == NULL ) {
+        (void)BERR_TRACE( NEXUS_INVALID_PARAMETER ); /* Currently unsupported Region ID */
+        return true;
+    }
+
+    BDBG_LEAVE( NEXUS_Security_RegionVerification_IsRequired_priv );
+
+    return pRegionData->verificationRequired;
+}
 
 
 static NEXUS_Error verifyRegion( NEXUS_SecurityRegverRegionID regionId, void *pRegionAddress, unsigned regionSize )
@@ -1328,11 +1351,18 @@ Summary
 static BERR_Code loadDefaultRegionVerificationKey( void )
 {
     NEXUS_Error rc;
-    unsigned char *pKey = NULL;
+    BHSM_Handle                    hHsm;
+    BHSM_VerifySecondTierKeyIO_t   sndTierKey;
+    unsigned char *                pKey = NULL;
     NEXUS_MemoryAllocationSettings memSetting;
-    unsigned int inBuffer[16], outBuffer[16], actualOutSize;
 
     BDBG_ENTER( loadDefaultRegionVerificationKey );
+
+    NEXUS_Security_GetHsm_priv (&hHsm);
+    if ( !hHsm )
+    {
+        return NEXUS_INVALID_PARAMETER;
+    }
 
     NEXUS_Memory_GetDefaultAllocationSettings(&memSetting);
     memSetting.alignment = 32;
@@ -1344,32 +1374,25 @@ static BERR_Code loadDefaultRegionVerificationKey( void )
     BKNI_Memcpy( pKey, gRegionVerificationKey2, sizeof(gRegionVerificationKey2) );
     NEXUS_FlushCache( (const void*)pKey, sizeof(gRegionVerificationKey2) );
 
-    inBuffer[0] = 0x00000010;
-    inBuffer[1] = 0x00000022;
-    inBuffer[2] = 0xabcdef00;
-    inBuffer[3] = 0xc955aa36;
-    inBuffer[4] = 0x789a000c;
-    inBuffer[5] = 0x00000002;
-    inBuffer[6] = 0x00000000;
-    inBuffer[7] = NEXUS_AddrToOffset( (void *)pKey );
+    sndTierKey.bChipResetOnFail      = false;
+    sndTierKey.bMultiTierRootKeySrc  = false;
+    sndTierKey.eFirstTierRootKeySrc  = BCMD_FirstTierKeyId_eKey0Prime;
+    sndTierKey.eKeyIdentifier        = BCMD_SecondTierKeyId_eKey2;
+    sndTierKey.eSecondTierRootKeySrc = BCMD_FirstTierKeyId_eKey0Prime;
+    sndTierKey.keyAddr               = NEXUS_AddrToOffset( (void *)pKey );
 
+    rc = BHSM_VerifySecondTierKey ( hHsm, &sndTierKey);
 
-    rc = NEXUS_Security_SubmitRawCommand (
-            inBuffer,    /* attr{nelem=sizeInBuffer;reserved=90} */
-            8,        /* size of pInBuffer in integers */
-            outBuffer,         /* [out] attr{nelem=sizeOutBuffer;reserved=90} */
-            6,        /* size of pOutBuffer in integers */
-            &actualOutSize      /* [out] number of integers written into pOutBuffer */
-    );
     NEXUS_Memory_Free( pKey );
 
-    if ( rc || (outBuffer[5]!=0 ) )
+    if ( rc )
     {
         BDBG_WRN(( "Failed to load Region Verification Key, key2" ));
-        return NEXUS_INVALID_PARAMETER;
+        return BERR_TRACE( NEXUS_INVALID_PARAMETER );
     }
 
     BDBG_LEAVE( loadDefaultRegionVerificationKey );
+
     return NEXUS_SUCCESS;
 }
 

@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2008 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2008 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -92,7 +92,7 @@ static INLINE GLXX_CLIENT_STATE_T *glxx_get_client_state(CLIENT_THREAD_STATE_T *
 {
    EGL_CONTEXT_T *context = thread->opengl.context;
    GLXX_CLIENT_STATE_T * state;
-   vcos_assert( context != NULL );
+   vcos_assert(context != NULL);
    vcos_assert(context->type == OPENGL_ES_11 || context->type == OPENGL_ES_20);
    state = (GLXX_CLIENT_STATE_T *)context->state;
    vcos_assert(context->type == state->type);
@@ -102,6 +102,7 @@ static INLINE GLXX_CLIENT_STATE_T *glxx_get_client_state(CLIENT_THREAD_STATE_T *
 #define IS_OPENGLES_11(thread)       is_opengles_11(thread)
 #define IS_OPENGLES_20(thread)       is_opengles_20(thread)
 #define IS_OPENGLES_11_OR_20(thread) is_opengles_11_or_20(thread)
+#define IS_OPENGLES_SECURE(thread)   is_opengles_secure(thread)
 
 static INLINE bool is_opengles_11(CLIENT_THREAD_STATE_T *thread)
 {
@@ -127,4 +128,9 @@ static INLINE bool is_opengles_11_or_20(CLIENT_THREAD_STATE_T *thread)
    return context != NULL;
 }
 
+static INLINE bool is_opengles_secure(CLIENT_THREAD_STATE_T *thread)
+{
+   EGL_CONTEXT_T *context = thread->opengl.context;
+   return context && context->secure;
+}
 #endif

@@ -1,5 +1,5 @@
-#############################################################################
-# Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+############################################################
+#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,8 @@
 #  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
-#############################################################################
+#
+############################################################
 NEXUS_PLATFORM ?= $(PLATFORM)
 ifndef NEXUS_PLATFORM
 $(error NEXUS_PLATFORM is not defined)
@@ -49,6 +50,9 @@ NEXUS_TOP=$(URSR_TOP)/nexus
 BSEAV_TOP=$(URSR_TOP)/BSEAV
 B_REFSW_OBJ_ROOT = $(URSR_TOP)/obj.$(NEXUS_PLATFORM)
 
+# Redirect logs to
+LOG_REDIRECT_FILE ?= /dev/null
+
 target ?= playback
 $(warning target = $(target))
 
@@ -57,7 +61,6 @@ COMMON_DRM_TOP := $(BSEAV_TOP)/lib/security/common_drm
 $(warning COMMON_DRM_TOP is not defined! Set it as default: $(COMMON_DRM_TOP))
 endif
 
-WIDEVINE_CENC_DIR := $(BSEAV_TOP)/lib/security/third_party/widevine/CENC21
 ifeq ($(B_REFSW_DEBUG),y)
 BUILD_TYPE ?= debug
 FLAGS += -g
@@ -86,7 +89,7 @@ include $(COMMON_DRM_TOP)/lib/prdy_libdir.inc
 include $(COMMON_DRM_TOP)/common_drm.inc
 include $(BSEAV_TOP)/lib/security/bcrypt/bcrypt_libdir.inc
 include $(BSEAV_TOP)/lib/drmrootfs/drmrootfs_libdir.inc
-include $(WIDEVINE_CENC_DIR)/oemcrypto_libdir.inc
+
 include $(BSEAV_TOP)/lib/security/dif/dif_libdir.inc
 -include $(BSEAV_TOP)/lib/protobuf/protobuf_ver.inc
 ifeq ($(NXCLIENT_SUPPORT),y)
@@ -100,8 +103,6 @@ DIF_OBJ_ROOT := ${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/dif
 
 # set target dir
 OUT_ROOT_DIR := $(DIF_OBJ_ROOT)/examples/bin
-OEMCRYPTO_LIBDIR :=$(WIDEVINE_CENC_DIR)/oemcrypto/$(OEMCRYPTO_LIBDIR)
-WVCDM_LIBDIR :=$(WIDEVINE_CENC_DIR)/cdm/$(WVCDM_LIBDIR)
 
 # Convert include paths into single variable
 NEXUS_APP_INCLUDE_PATHS := $(foreach module, $(NEXUS_MODULES), $(NEXUS_$(module)_PUBLIC_INCLUDES))
@@ -163,12 +164,13 @@ ifeq ($(NXCLIENT_SUPPORT),y)
 LDFLAGS += $(NXCLIENT_LDFLAGS)
 endif
 
+ifeq ($(WIDEVINE_SUPPORT),y)
 LDFLAGS_THIRDPARTY_LIB := $(PROTOBUF_LDFLAGS) $(GTEST_LDFLAGS)
 ifeq ($(SAGE_SUPPORT),y)
-LDFLAGS_OEMCRYPTO_CDM_LIB :=  -lwvcdm -L$(OEMCRYPTO_LIBDIR) -loemcrypto_tl \
-                             -L$(NEXUS_BIN_DIR) -lsrai
+LDFLAGS_OEMCRYPTO_CDM_LIB := -L$(NEXUS_BIN_DIR) -lwvcdm -loemcrypto_tl -lsrai
 else
-LDFLAGS_OEMCRYPTO_CDM_LIB :=  -lwvcdm -L$(OEMCRYPTO_LIBDIR) -loemcrypto
+LDFLAGS_OEMCRYPTO_CDM_LIB := -L$(NEXUS_BIN_DIR) -lwvcdm -loemcrypto
+endif
 endif
 
 LDFLAGS += $(COMMON_DRM_LDFLAGS)
@@ -178,8 +180,9 @@ LDFLAGS += $(LDFLAGS_THIRDPARTY_LIB)
 LDFLAGS += $(COMMON_DRM_LDFLAGS)
 LDFLAGS += -L$(NEXUS_BIN_DIR) -lnexus
 LDFLAGS += -L$(NEXUS_TOP)/../obj.$(NEXUS_PLATFORM)/BSEAV/lib/security/bcrypt/$(BCRYPT_LIBDIR) -lbcrypt \
-            -L$(BSEAV_TOP)/lib/drmrootfs/$(DRMROOTFS_LIBDIR) -ldrmrootfs
-LDFLAGS += -L$(COMMON_DRM_TOP)/lib/$(CMNDRM_DIR) -lcmndrm -lcmndrmprdy
+           -L${B_REFSW_OBJ_ROOT}/BSEAV/lib/drmrootfs/${DRMROOTFS_LIBDIR} -ldrmrootfs
+LDFLAGS += -L$(COMMON_DRM_TOP)/lib/$(CMNDRM_DIR) -lcmndrm
+LDFLAGS += -L${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/common_drm/$(CMNDRM_PRDY_LIBDIR) -lcmndrmprdy
 ifeq ($(SAGE_SUPPORT),y)
 LDFLAGS += -L$(COMMON_DRM_TOP)/lib/$(CMNDRM_DIR) -lcmndrm_tl -lplayreadypk_host
 else
@@ -209,14 +212,13 @@ prep_dif:
 	@echo [..... prep_dif target ]
 	@if [ ! -d $(NEXUS_TOP)/../obj.$(NEXUS_PLATFORM)/BSEAV/lib/security/dif/$(DIF_LIBDIR) ]; then \
 		echo [ building dif .... ]; \
-		$(MAKE) -C $(BSEAV_TOP)/lib/security/dif  >/dev/null; \
+		$(MAKE) -C $(BSEAV_TOP)/lib/security/dif  > $(LOG_REDIRECT_FILE); \
 	fi
 	@echo [..... prep_dif target done ]
 
 report:
 	@echo "Reporting ..."
 	@echo NEXUS_BIN_DIR = "$(NEXUS_BIN_DIR)"
-	@echo WIDEVINE_CENC_DIR = "$(WIDEVINE_CENC_DIR)"
 	@echo NEXUS_TOP = "$(NEXUS_TOP)"
 	@echo
 	@echo INCLUDES = "$(INCLUDES)"

@@ -1,7 +1,7 @@
 /******************************************************************************
-*    (c)2011-2013 Broadcom Corporation
+* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-* This program is the proprietary software of Broadcom Corporation and/or its licensors,
+* This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
 * conditions of a separate, written license agreement executed between you and Broadcom
 * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
 * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 * ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * Module Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 *****************************************************************************/
 #ifndef _BSAT_G1_H_
@@ -52,7 +44,7 @@
 #include "bsat.h"
 
 #define BSAT_G1_MAJOR_VERSION 2
-#define BSAT_G1_MINOR_VERSION 0
+#define BSAT_G1_MINOR_VERSION 2
 
 
 /* define device configuration parameters */
@@ -73,6 +65,7 @@ enum {
    BSAT_g1_CONFIG_EQ_CTL,
    BSAT_g1_CONFIG_ACQ_DAFE_CTL,
    BSAT_g1_CONFIG_TRK_DAFE_CTL,
+   BSAT_g1_CONFIG_ACM_DEBUG,
    BSAT_g1_CONFIG_MAX
 };
 
@@ -105,6 +98,9 @@ enum {
 /* bit definitions for BSAT_g1_CONFIG_HP_CTL */
 #define BSAT_g1_CONFIG_HP_CTL_OVERRIDE_DAFE_AVERAGE 0x80000000
 #define BSAT_g1_CONFIG_HP_CTL_DAFE_AVERAGE_MASK     0x3F
+
+/* bit definitions for BSAT_g1_ACM_DEBUG */
+#define BSAT_g1_CONFIG_ACM_DEBUG_DONT_WRITE_VLC 0x00000001 /* bypass VLC table programming */
 
 /* channel interrupt ID enumeration */
 typedef enum BSAT_g1_IntID{

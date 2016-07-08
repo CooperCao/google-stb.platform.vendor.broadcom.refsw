@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -403,7 +403,7 @@ void ImageArray::Construct(const std::string &filename, uint32_t width, uint32_t
    m_width  = width;
    m_height = height;
    m_slices = slices;
-   m_data   = nullptr;
+   m_data   = NULL;
 
    if (bytesPerPixel > 4)
       BSG_THROW("ImageArray: only supports up to 4 bytes per pixel");
@@ -415,14 +415,14 @@ void ImageArray::Construct(const std::string &filename, uint32_t width, uint32_t
 
    FILE  *fp = fopen(file.c_str(), "rb");
 
-   if (fp == nullptr)
+   if (fp == NULL)
       BSG_THROW("ImageArray: Can't open file " << file);
 
    std::vector<uint8_t>   temp(size);
 
    m_data = new uint8_t[numElems];
 
-   if (m_data == nullptr)
+   if (m_data == NULL)
       BSG_THROW("ImageArray: Out of memory");
 
    fread(&temp[0], size, 1, fp);

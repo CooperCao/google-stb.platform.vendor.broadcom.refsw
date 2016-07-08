@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2004-2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,23 +35,13 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* API Description:
-*   API name: Base
-*
-* Revision History:
-*
-* $brcm_Log: $
-*
 ***************************************************************************/
 #ifndef NEXUS_BASE_TYPES_H
 #define NEXUS_BASE_TYPES_H
 
 #include "bstd_defs.h"
 #include "bstd_file.h"
+#include "nexus_base_types_client.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -221,96 +211,6 @@ typedef enum NEXUS_TristateEnable {
     NEXUS_TristateEnable_eMax
 } NEXUS_TristateEnable;
 
-/***************************************************************************
-Summary:
-Heap handle
-
-Description:
-This is used to manage custom memory configurations.
-A NEXUS_HeapHandle is created by specifying custom heap options in NEXUS_PlatformSettings.
-***************************************************************************/
-typedef struct NEXUS_Heap *NEXUS_HeapHandle;
-
-/***************************************************************************
-ummary:
-NEXUS_ClientResources allows server to limit resources available to untrusted clients
-
-Resources are set by the server in two ways:
-1. using NEXUS_ClientSettings.configuration when calling NEXUS_Platform_RegisterClient
-2. using NEXUS_PlatformStartServerSettings.unauthenticatedConfiguration when calling NEXUS_Platform_StartServer
-
-Resources are enforced in each module using nexus_client_resources.h macros
-
-Resources can be read by client using NEXUS_Platform_GetClientConfiguration
-***************************************************************************/
-#define NEXUS_MAX_IDS 16
-typedef struct NEXUS_ClientResourceIdList
-{
-    unsigned id[NEXUS_MAX_IDS]; /* packed array of 'total' elements. */
-    unsigned total; /* count of elements in id[] */
-} NEXUS_ClientResourceIdList;
-typedef struct NEXUS_ClientResourceCount
-{
-    unsigned total; /* count of resources */
-} NEXUS_ClientResourceCount;
-
-typedef struct NEXUS_ClientResources
-{
-    NEXUS_ClientResourceIdList simpleAudioDecoder;
-    NEXUS_ClientResourceIdList simpleVideoDecoder;
-    NEXUS_ClientResourceIdList simpleEncoder;
-    NEXUS_ClientResourceIdList surfaceClient;
-    NEXUS_ClientResourceIdList inputClient;
-    NEXUS_ClientResourceIdList audioCapture;
-    NEXUS_ClientResourceIdList audioCrc;
-
-    NEXUS_ClientResourceCount dma;
-    NEXUS_ClientResourceCount graphics2d;
-    NEXUS_ClientResourceCount graphicsv3d;
-    NEXUS_ClientResourceCount pictureDecoder;
-    NEXUS_ClientResourceCount playpump;
-    NEXUS_ClientResourceCount recpump;
-    NEXUS_ClientResourceCount simpleAudioPlayback;
-    NEXUS_ClientResourceCount simpleStcChannel;
-    NEXUS_ClientResourceCount surface;
-    struct {
-        unsigned sizeLimit;
-    } temporaryMemory; /* memory that is allocated for duration of call to hold temporary data */
-} NEXUS_ClientResources;
-
-/**
-Summary:
-Client modes
-
-See nexus/docs/Nexus_MultiProcess.pdf for full discussion of process isolation and multi-process application design.
-**/
-typedef enum NEXUS_ClientMode
-{
-    NEXUS_ClientMode_eUnprotected, /* deprecated */
-    NEXUS_ClientMode_eVerified,    /* verify handle value, but not owner. unsynchronized caller may compromise nexus settings. */
-    NEXUS_ClientMode_eProtected,   /* full handle verification. access to full API. if client crashes, server is protected. */
-    NEXUS_ClientMode_eUntrusted,   /* full handle verification. access to limited API. see nexus/build/common/tools/nexus_untrusted_api.txt. if client crashes, server is protected. */
-    NEXUS_ClientMode_eMax
-} NEXUS_ClientMode;
-
-/* NEXUS_MAX_HEAPS is the maximum number of heaps in the system, pointed to be NEXUS_HeapHandle.
-A heap is required for any memory access, whether by HW or SW.
-This depends on both HW capabilities & SW configuration. */
-#define NEXUS_MAX_HEAPS 16
-
-/* NEXUS_MAX_MEMC is the maximum number of memory controllers in the system. */
-#define NEXUS_MAX_MEMC 3
-
-/**
-Summary:
-Information provided by the server to the client
-**/
-typedef struct NEXUS_ClientConfiguration
-{
-    NEXUS_ClientMode mode; /* default is eProtected. */
-    NEXUS_HeapHandle heap[NEXUS_MAX_HEAPS]; /* untrusted client will be restricted to these heaps. heap[0] will be its default. */
-    NEXUS_ClientResources resources; /* resources granted by the server for untrusted clients */
-} NEXUS_ClientConfiguration;
 
 /***************************************************************************
 Summary:

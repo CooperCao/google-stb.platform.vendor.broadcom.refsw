@@ -132,8 +132,8 @@ endif
 # component build. Use '%' as the wildcard. Files may be specified without extension.
 
 # Exclude units not necessary for MAC Sertification Tests.
-SRCEXCL += bbSys% zigbee_core_sim zigbee_rpc_client shell sqlite3 bbPcUsart bbHal% bbMailPowerFilterKey
-SRCINCL += bbSysEvent bbSysDbg bbSysFsm bbSysMemMan bbSysPayload bbSysStackData bbSysTaskScheduler bbSysTimeoutTask bbHalSystemTimer bbHalTask
+SRCEXCL += bbSys% zigbee_core_sim zigbee_rpc_client shell sqlite3 bbPcUsart bbHal% bbExtPowerFilterKey
+SRCINCL += bbSysEvent bbSysDbg bbSysFsm bbSysMemMan bbSysDbgMm bbSysPayload bbSysStackData bbSysTaskScheduler bbSysTimeoutTask bbHalSystemTimer bbHalTask
 
 ifeq ($(RF4CE_TEST), y)
 override CDEFS = \
@@ -177,6 +177,7 @@ override CDEFS += \
     USE_RF4CE_PROFILE_GDP=1 \
     _ZBPRO_ \
     USE_ZBPRO_PROFILE_ZHA \
+    _ZHA_PROFILE_CIE_DEVICE_IMPLEMENTATION_ \
     _MAC_BAN_TABLE_SIZE_=1
 
 ifeq ($(USE_RF4CE_PROFILE_ZRC2), y)

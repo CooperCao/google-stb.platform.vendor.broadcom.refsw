@@ -279,6 +279,9 @@ int main(int argc, char* argv[])
     IMediaKeySession *piMediaKeySession = NULL;
     IMediaKeySessionCallback *piCallback = NULL;
     IMediaEngineSession *piMediaEngineSession = NULL;
+
+    BSTD_UNUSED(argc);
+    BSTD_UNUSED(argv);
 #if USE_PRO
     uint8_t *pbInitData = NULL;
     uint32_t cbInitData = 0;

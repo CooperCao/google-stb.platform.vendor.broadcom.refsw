@@ -1,7 +1,7 @@
 #############################################################################
-#    (c)2010-2014 Broadcom Corporation
+# Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 #
-# This program is the proprietary software of Broadcom Corporation and/or its licensors,
+# This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
 # conditions of a separate, written license agreement executed between you and Broadcom
 # (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -21,7 +21,7 @@
 # AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
 # WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
 # THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-# OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTLIBCURLLAR PURPOSE,
+# OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
 # LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
 # OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
 # USE OR PERFORMANCE OF THE SOFTWARE.
@@ -34,7 +34,6 @@
 # ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 # LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 # ANY LIMITED REMEDY.
-#
 #############################################################################
 
 SHELL := /bin/bash
@@ -86,7 +85,7 @@ ifeq ($(B_REFSW_OPENSSL_IS_EXTERNAL),y)
     $(warning B_REFSW_OPENSSL_IS_EXTERNAL=${B_REFSW_OPENSSL_IS_EXTERNAL} Skipping build of OpenSSL...)
 endif   #  ifeq ($(B_REFSW_OPENSSL_IS_EXTERNAL),y)
 
-all: .source .$(B_OPENSSL_NAME) install
+all: install
 
 #  Set up some make output filtering to get a medium amount of neatly formatted output (unless VERBOSE is enabled).
 B_OPENSSL_EXTRACT_REDIR :=
@@ -144,13 +143,22 @@ ifneq ($(B_REFSW_OPENSSL_IS_EXTERNAL),y)
 	fi
 endif   #  ifeq ($(B_REFSW_OPENSSL_IS_EXTERNAL),y)
 
+# The OpenSSL makefile has problems generating dependencies if $(CC) isn't "gcc", so strip off
+# the "ccache" prefix (if it's there) and remove the toolchain prefix.
+ifeq ($(B_REFSW_CCACHE),)
+    B_OPENSSL_CC:=${CC}
+else
+    B_OPENSSL_CC:=$(strip $(subst $(B_REFSW_CCACHE),,$(CC)))
+endif
+B_OPENSSL_CC:=$(strip $(subst $(B_OPENSSL_TOOLCHAIN_ARCH),,$(B_OPENSSL_CC)))
+
 .configure: .source
 ifneq ($(B_REFSW_OPENSSL_IS_EXTERNAL),y)
 	@if [ ! -e "${B_OPENSSL_SOURCE_PATH}/.configured" ]; then \
 		echo "================ Configuring OPENSSL"; \
 		sed -ie 's/^\(\#\#\#\# Variety of LINUX\).*/\1 \n${B_OPENSSL_CONFIG_ENTRY}/' ${B_OPENSSL_SOURCE_PATH}/Configure; \
 		cd ${B_OPENSSL_SOURCE_PATH}; \
-		CC=$(strip $(subst $(B_OPENSSL_TOOLCHAIN_ARCH),,$(CC))) \
+		CC="$(B_OPENSSL_CC)" \
 		CFLAGS="${B_OPENSSL_LIB_BUILD_CFLAGS}" \
 		LDFLAGS="${B_OPENSSL_LIB_BUILD_LDFLAGS}" \
 		./Configure \

@@ -886,7 +886,7 @@ NEXUS_PictureDecoder_GetBuffer(NEXUS_PictureDecoderHandle decoder, void **pBuffe
         /* full size buffer mode */
         *pBuffer = (uint8_t *)decoder->fifo + decoder->wr_offset;
         *pSize = decoder->openSettings.bufferSize - decoder->wr_offset;
-         BDBG_MSG(("FULL dec=%p dec->fifo=%p pBuffer=%p pSize=%u", (void *)decoder, (void *)decoder->fifo ,*pBuffer, *pSize ));
+         BDBG_MSG(("FULL dec=%p dec->fifo=%p pBuffer=%p pSize=%u", (void *)decoder, (void *)decoder->fifo ,*pBuffer, (unsigned)*pSize ));
     }
 
     return NEXUS_SUCCESS;
@@ -901,7 +901,7 @@ NEXUS_PictureDecoder_ReadComplete(NEXUS_PictureDecoderHandle decoder, size_t ski
     if (nexus_picturedecoder_verify(decoder,false)) {
         return NEXUS_NOT_AVAILABLE; /* currently, not an error. */
     }
-    BDBG_MSG(("ReadComplete: state=%d, skip=%d, amount_used=%d", decoder->state, skip, amountUsed));
+    BDBG_MSG(("ReadComplete: state=%d, skip=%d, amount_used=%d", decoder->state, (unsigned)skip, (unsigned)amountUsed));
 
     switch(decoder->state) {
     case NEXUS_PictureDecoder_P_eMoreInfoData:

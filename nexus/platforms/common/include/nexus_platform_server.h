@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2010-2013 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2010-2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,18 +35,10 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   API name: Platform (private)
 *    Common part of all kernel servers
 *
-* Revision History:
-*
-* $brcm_Log: $
-* 
 ***************************************************************************/
 #ifndef NEXUS_PLATFORM_SERVER_H__
 #define NEXUS_PLATFORM_SERVER_H__
@@ -157,7 +149,7 @@ Acquires object to prevent its destruction
 Description:
 Verifies that object is a valid instance of said type and it's accessible by a given client, and if test passes increases the object reference count
 */
-NEXUS_Error NEXUS_Platform_AcquireObject(NEXUS_ClientHandle client, const NEXUS_InterfaceName *name, void *object);
+NEXUS_Error NEXUS_Platform_AcquireObject(NEXUS_ClientHandle client, const NEXUS_InterfaceName *name, NEXUS_PlatformAnyObject object);
 
 /*
 Summary:
@@ -166,7 +158,7 @@ Releases object to allow its destruction
 Description:
 Verifies that object is a valid instance of said type, and if test passes decreases the object reference count
 */
-void NEXUS_Platform_ReleaseObject(const NEXUS_InterfaceName *name, void *object);
+void NEXUS_Platform_ReleaseObject(const NEXUS_InterfaceName *name, NEXUS_PlatformAnyObject object);
 
 void NEXUS_Platform_GetClientResources(
     NEXUS_ClientHandle client,

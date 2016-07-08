@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2003-2015 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * Description: Code for decrypting and encrypting directly using AES algorithm
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 #if defined(LINUX) || defined(__vxworks)
@@ -367,7 +359,7 @@ aes_socket_read(void *voidHandle, B_PlaybackIpHandle playback_ip, int sd, char *
 
     read_len = rbuf_len - bytesRead;
     bytesToRead = read_len;
-    BDBG_MSG(("%s:%p now read remaining %d bytes from sockFd %d, total rbuf_len %d, bytesRead %d", __FUNCTION__, playback_ip, read_len, sd, rbuf_len, bytesRead));
+    BDBG_MSG(("%s:%p now read remaining %d bytes from sockFd %d, total rbuf_len %d, bytesRead %d", __FUNCTION__, (void *)playback_ip, read_len, sd, rbuf_len, bytesRead));
 
     if (rbuf_len < 0 || read_len < 0 )
         BDBG_ASSERT(NULL);
@@ -376,7 +368,7 @@ aes_socket_read(void *voidHandle, B_PlaybackIpHandle playback_ip, int sd, char *
         /* read_len will only be 0 when initialPayload had all the requested bytes, so we dont need to read any data from the socket */
         if ( breakFromLoop(playback_ip)) {
             /* user changed the channel, so return */
-            BDBG_MSG(("%s:%p breaking out of read loop due to state (%d) change\n", __FUNCTION__, playback_ip, playbackIpState(playback_ip) ));
+            BDBG_MSG(("%s:%p breaking out of read loop due to state (%d) change\n", __FUNCTION__, (void *)playback_ip, playbackIpState(playback_ip) ));
             return -1;
         }
         rc = read(sd, read_ptr + bytesRead, read_len);
@@ -412,12 +404,12 @@ aes_socket_read(void *voidHandle, B_PlaybackIpHandle playback_ip, int sd, char *
 
     /* if decryption is not yet enabled or is disabled, then simply return the read data */
     if (!securityCtx->openSettings.security.enableDecryption) {
-        BDBG_MSG(("%s:%p: decryption is off: so memcopying the result of %d bytes from src %p to dst %p buffer", __FUNCTION__, playback_ip, bytesRead, read_ptr, rbuf));
+        BDBG_MSG(("%s:%p: decryption is off: so memcopying the result of %d bytes from src %p to dst %p buffer", __FUNCTION__, (void *)playback_ip, bytesRead, (void *)read_ptr, rbuf));
         memcpy(rbuf, read_ptr, bytesRead);
         return bytesRead;
     }
 
-    BDBG_MSG(("%s:%p Asked %d bytes Read =%d bytes\n", __FUNCTION__, playback_ip, rbuf_len-securityCtx->extended_len+truncated_len, bytesRead));
+    BDBG_MSG(("%s:%p Asked %d bytes Read =%d bytes\n", __FUNCTION__, (void *)playback_ip, rbuf_len-securityCtx->extended_len+truncated_len, bytesRead));
 
     /* Partial data receive.  Data is NOT aligned to 16 byte */
     if (bytesRead % HTTP_AES_BLOCK_SIZE) {
@@ -465,7 +457,7 @@ aes_socket_read(void *voidHandle, B_PlaybackIpHandle playback_ip, int sd, char *
         return 0;
     }
 #endif
-    BDBG_MSG(("%s:%p: AES decryption successfull: clear bytes %d", __FUNCTION__, playback_ip, bytesRead));
+    BDBG_MSG(("%s:%p: AES decryption successfull: clear bytes %d", __FUNCTION__, (void *)playback_ip, bytesRead));
 #ifdef RECORD_CLEAR_DATA
         /* write data to file */
         fwrite(rbuf, 1, bytesRead , fclear);
@@ -540,7 +532,7 @@ int  B_PlaybackIp_AesDecryptionDisable(
     B_PlaybackIpAesCtx *securityCtx = (B_PlaybackIpAesCtx *)securityHandle;
 
     if (!securityCtx) {
-        BDBG_ERR(("%s: invalid securityCtx %p", __FUNCTION__, securityCtx));
+        BDBG_ERR(("%s: invalid securityCtx %p", __FUNCTION__, (void *)securityCtx));
         return -1;
     }
     /* set flag to disable decryption */
@@ -558,7 +550,7 @@ int B_PlaybackIp_AesDecryptionEnable(
     B_PlaybackIpAesCtx *securityCtx = (B_PlaybackIpAesCtx *)securityHandle;
 
     if (!securityCtx || (initialPayloadLength && !initialPayload)) {
-        BDBG_ERR(("%s: invalid securityCtx %p or initial paylaod params (length %d, payload ptr %p)\n", __FUNCTION__, securityCtx, initialPayloadLength, initialPayload));
+        BDBG_ERR(("%s: invalid securityCtx %p or initial paylaod params (length %d, payload ptr %p)\n", __FUNCTION__, (void *)securityCtx, initialPayloadLength, (void *)initialPayload));
         return -1;
     }
     /* set flag to enable decryption */
@@ -625,7 +617,7 @@ int B_PlaybackIp_AesSessionOpen(
     BSTD_UNUSED(sd);
 
     if (openSettings == NULL) {
-        BDBG_ERR(("%s: Invalid parameters, Open Settings %p", __FUNCTION__, openSettings));
+        BDBG_ERR(("%s: Invalid parameters, Open Settings %p", __FUNCTION__, (void *)openSettings));
         goto error;
     }
     securityOpenSettings = &openSettings->security;
@@ -684,7 +676,7 @@ int B_PlaybackIp_AesSessionOpen(
         BDBG_ERR(("%s: ERROR: failed to setup nexus dma", __FUNCTION__));
         goto error;
     }
-    BDBG_MSG(("%s: Successfully Allocated Nexus Key Slot: handle %p, encrypt Buffer %p", __FUNCTION__, securityCtx->encKeyHandle, securityCtx->encryptBuf));
+    BDBG_MSG(("%s: Successfully Allocated Nexus Key Slot: handle %p, encrypt Buffer %p", __FUNCTION__, (void *)securityCtx->encKeyHandle, (void *)securityCtx->encryptBuf));
 #else
     if (aes_setup_sw_dec(securityCtx) != true ) {
         BDBG_ERR(("%s: ERROR: failed to setup sw dec key", __FUNCTION__));

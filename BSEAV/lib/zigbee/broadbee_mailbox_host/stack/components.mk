@@ -56,6 +56,7 @@ sys : export COMPDIR := $(STACKDIR)/common/System
 hal : export COMPDIR := $(STACKDIR)/common/HAL
 aes : export COMPDIR := $(STACKDIR)/common/Security
 mbx : export COMPDIR := $(STACKDIR)/common/Mailbox
+ext : export COMPDIR := $(STACKDIR)/common/External
 nvm : export COMPDIR := $(STACKDIR)/common/NVM
 zrpc: export COMPDIR := $(STACKDIR)/common/RPC
 apl : export COMPDIR := $(STACKDIR)/APL

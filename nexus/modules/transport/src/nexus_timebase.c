@@ -209,14 +209,14 @@ static void NEXUS_Timebase_P_ComputeVsyncTrackingCoefficients(NEXUS_VideoFormat 
     *inc = num / gcd;
     *prescale = (den / gcd) - 1;
 
-    BDBG_MSG(("VSYNC; format = %u; frameRate = %u; refreshNum = %u; refreshDen = %u; num = %llu; den = %llu; gcd = %llu; inc = %u; prescale = %u",
+    BDBG_MSG(("VSYNC; format = %u; frameRate = %u; refreshNum = %u; refreshDen = %u; num = "BDBG_UINT64_FMT"; den = "BDBG_UINT64_FMT"; gcd = "BDBG_UINT64_FMT"; inc = %u; prescale = %u",
         format,
         frameRate,
         refreshRateNum,
         refreshRateDen,
-        num,
-        den,
-        gcd,
+        BDBG_UINT64_ARG(num),
+        BDBG_UINT64_ARG(den),
+        BDBG_UINT64_ARG(gcd),
         *inc,
         *prescale));
 }
@@ -253,15 +253,15 @@ static void NEXUS_Timebase_P_ComputeHsyncTrackingCoefficients(NEXUS_VideoFormat 
     *inc = num / gcd;
     *prescale = (den / gcd) - 1;
 
-    BDBG_MSG(("HSYNC; format = %u; frameRate = %u; refreshNum = %u; refreshDen = %u; scanHeight = %u; num = %llu; den = %llu; gcd = %llu; inc = %u; prescale = %u",
+    BDBG_MSG(("HSYNC; format = %u; frameRate = %u; refreshNum = %u; refreshDen = %u; scanHeight = %u; num = "BDBG_UINT64_FMT"; den = "BDBG_UINT64_FMT"; gcd = "BDBG_UINT64_FMT"; inc = %u; prescale = %u",
         format,
         frameRate,
         refreshRateNum,
         refreshRateDen,
         scanHeight,
-        num,
-        den,
-        gcd,
+        BDBG_UINT64_ARG(num),
+        BDBG_UINT64_ARG(den),
+        BDBG_UINT64_ARG(gcd),
         *inc,
         *prescale));
 }
@@ -1245,11 +1245,4 @@ NEXUS_Error NEXUS_Timebase_SetHdDviFrameRate( NEXUS_Timebase timebase, NEXUS_Vid
     BDBG_MSG(("NEXUS_Timebase_SetHdDviFrameRate(%u,%u)", handle->hwIndex, frameRate));
     handle->hdDviFrameRate = frameRate;
     return NEXUS_Timebase_P_SetSettings(handle, &handle->settings);
-}
-
-NEXUS_Error NEXUS_Timebase_SetVdecFrameRate( NEXUS_Timebase timebase, NEXUS_VideoFrameRate frameRate )
-{
-    BSTD_UNUSED(timebase);
-    BSTD_UNUSED(frameRate);
-    return BERR_TRACE(NEXUS_NOT_SUPPORTED);
 }

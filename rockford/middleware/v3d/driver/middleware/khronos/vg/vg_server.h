@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2008 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2008 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -480,9 +480,9 @@ extern void vg_compute_mask_clip_rec(MEM_HANDLE_T handle, VGMaskOperation operat
                                     int32_t *width, int32_t *height,
                                     int32_t *src_x, int32_t *src_y);
 
-extern bool vg_computer_rendertomask_clip(VG_SERVER_STATE_T *state, uint32_t *paint_modes, VG_PATH_T *path, MEM_HANDLE_T handle,
+extern bool vg_computer_rendertomask_clip(VG_SERVER_STATE_T *state, uint32_t *paint_modes, VG_PATH_T *path,
                                     VGMaskOperation operation, uint32_t *clip_rect,
-                                    MEM_HANDLE_T  *scissor_handle, float *clip, float *scale_max);
+                                    MEM_HANDLE_T *scissor_handle, float *clip, float *scale_max);
 
 /******************************************************************************
 server-side functions

@@ -1,5 +1,5 @@
 ###############################################################################
-# Copyright (c) 2008 Broadcom Europe Limited.
+# Broadcom Proprietary and Confidential. (c)2008 Broadcom.  All rights reserved.
 # All rights reserved.
 #
 # Project  :  spytool_replay

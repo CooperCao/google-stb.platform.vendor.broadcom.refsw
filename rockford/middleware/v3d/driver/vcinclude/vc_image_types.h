@@ -1,6 +1,5 @@
 /*=============================================================================
-Copyright (c) 2006 Broadcom Europe Limited.
-Copyright (c) 2005 Alphamosaic Limited.
+Broadcom Proprietary and Confidential. (c)2006 Broadcom.
 All rights reserved.
 
 Project  :  VideoCore

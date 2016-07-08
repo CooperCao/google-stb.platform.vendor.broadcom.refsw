@@ -1,23 +1,43 @@
-/***************************************************************************
-*     Copyright (c) 2002-2014, Broadcom Corporation
-*     All Rights Reserved
-*     Confidential Property of Broadcom Corporation
-*
-*  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
-*  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
-*  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* Module Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
-*
-***************************************************************************/
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
+ *
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 #include "bi2c_priv.h"
 
 BDBG_MODULE(bi2c_sw);
@@ -51,7 +71,7 @@ static BERR_Code _BI2C_P_ByteRead(BREG_Handle hReg, BI2C_ChannelHandle  hChn, in
  ***************************************************************************/
 static void BI2C_P_RegBitSet(BREG_Handle hReg, uint32_t addr, uint32_t mask, uint8_t val)
 {
-	BREG_Update32(hReg, addr, mask, val);
+    BREG_Update32(hReg, addr, mask, val);
 
     return;
 }
@@ -306,7 +326,7 @@ BERR_Code BI2C_SwReset
     BERR_Code rc = BERR_SUCCESS;
 
     BDBG_ASSERT( hChn );
-    BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hChn, BI2C_P_ChannelHandle);
 
     /* Get I2C handle from channel handle */
     hDev = hChn->hI2c;
@@ -379,12 +399,12 @@ BERR_Code BI2C_P_WriteSwCmd
     BERR_Code rc = BERR_SUCCESS;
     uint32_t lval = 0;
 
-    BDBG_MSG(("BI2C_P_WriteSwCmd:   ch=%d, clkRate=%d, chipAddr=0x%x, numSubAddrBytes=%d, subAddr=0x%x, numBytes=%d, pData=0x%x.",
-        hChn->chnNo, hChn->chnSettings.clkRate, chipAddr, numSubAddrBytes, subAddr, numBytes, *(uint8_t *)pData));
+    BDBG_MSG(("BI2C_P_WriteSwCmd:   ch=%d, clkRate=%d, chipAddr=0x%x, numSubAddrBytes=%d, subAddr=0x%x, numBytes=%lu, pData=0x%x.",
+              hChn->chnNo, hChn->chnSettings.clkRate, chipAddr, numSubAddrBytes, subAddr, (unsigned long)numBytes, *(uint8_t *)pData));
 
     BSTD_UNUSED( isNvram );
     BDBG_ASSERT( hChn );
-    BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hChn, BI2C_P_ChannelHandle);
     BDBG_ASSERT( pData );
 
     BI2C_P_ACQUIRE_MUTEX( hChn );
@@ -469,8 +489,8 @@ no_ack_detected:
     BI2C_P_DataSet(1);
 
     if(rc != BERR_SUCCESS){
-        BDBG_ERR(("BI2C_P_WriteSwCmd: failed ch=%d, clkRate=%d, chipAddr=0x%x, numSubAddrBytes=%d, subAddr=0x%x, numBytes=%d, pData=0x%x.",
-            hChn->chnNo, hChn->chnSettings.clkRate, chipAddr, numSubAddrBytes, numSubAddrBytes ? subAddr : 0, numBytes, *(uint8_t *)pData));
+        BDBG_ERR(("BI2C_P_WriteSwCmd: failed ch=%d, clkRate=%d, chipAddr=0x%x, numSubAddrBytes=%d, subAddr=0x%x, numBytes=%lu, pData=0x%x.",
+                  hChn->chnNo, hChn->chnSettings.clkRate, chipAddr, numSubAddrBytes, numSubAddrBytes ? subAddr : 0, (unsigned long)numBytes, *(uint8_t *)pData));
     }
 
     BI2C_P_RELEASE_MUTEX( hChn );
@@ -599,7 +619,7 @@ BERR_Code BI2C_P_ReadSwCmd
     unsigned char ret_data;
 
     BDBG_ASSERT( hChn );
-    BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hChn, BI2C_P_ChannelHandle);
     BDBG_ASSERT( pData );
 
     BI2C_P_ACQUIRE_MUTEX( hChn );
@@ -777,8 +797,8 @@ no_ack_detected:
     BI2C_P_DataSet(1);
 
     if(rc != BERR_SUCCESS){
-       BDBG_ERR(("BI2C_P_ReadSwCmd: failed ch=%d, clkRate=%d, chipAddr=0x%x, numSubAddrBytes=%d, subAddr=0x%x, numBytes=%d, pData=0x%x.",
-           hChn->chnNo, hChn->chnSettings.clkRate, chipAddr, numSubAddrBytes, numSubAddrBytes ? subAddr : 0, numBytes, *(uint8_t *)pData));
+       BDBG_ERR(("BI2C_P_ReadSwCmd: failed ch=%d, clkRate=%d, chipAddr=0x%x, numSubAddrBytes=%d, subAddr=0x%x, numBytes=%lu, pData=0x%x.",
+                 hChn->chnNo, hChn->chnSettings.clkRate, chipAddr, numSubAddrBytes, numSubAddrBytes ? subAddr : 0, (unsigned long)numBytes, *(uint8_t *)pData));
     }
 
     BI2C_P_RELEASE_MUTEX( hChn );
@@ -930,7 +950,7 @@ BERR_Code BI2C_P_ReadSwEDDC(
     BI2C_ChannelHandle  hChn = (BI2C_ChannelHandle)context;
 
     BDBG_ASSERT( hChn );
-    BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hChn, BI2C_P_ChannelHandle);
 
     retCode = BI2C_P_ReadSwCmd (hChn, chipAddr, subAddr, 1, pData, length, true /*EDDC*/, segment, true /*ack*/);
 

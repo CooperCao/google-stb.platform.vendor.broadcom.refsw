@@ -1,0 +1,45 @@
+load_prv_key -in=test_key/brcm_test_fwkey2.pem
+load_pub_key -in=test_key/brcm_test_fwkey2_pub.pem
+add_param_key -right=0x2  -exp=0x1 -mid=0x0 -mid_mask=0xffffffff -epo_sel=0 -epo=0x0  -epo_mask=0xff -sig_type=0x1 -sig_ver=0x1 -out=7445D1_ZB/signatures/brcm_test_avd_key2.bin
+add_param_bin -in=7445D1_ZB/fw_images/fw_img_dump_7445_sid.bin            -in_endian=be -cpu_type=sid -mid=0x00000000 -mid_mask=0xffffffff -epo_sel=0 -epo=0x1  -epo_mask=0xff -sig_type=0x4 -sig_ver=0x1 -out=7445D1_ZB/signatures/7445_region_0x11.bin
+add_param_bin -in=7445D1_ZB/fw_images/fw_img_dump_7445_dsp.bin           -in_endian=be -cpu_type=raaga -mid=0x00000000 -mid_mask=0xffffffff -epo_sel=0 -epo=0x0  -epo_mask=0xff -sig_type=0x4 -sig_ver=0x1 -out=7445D1_ZB/signatures/7445_region_0x9.bin
+add_param_bin -in=7445D1_ZB/fw_images/fw_img_dump_7445_xpt_rave.bin    -in_endian=be -cpu_type=rave  -mid=0x00000000 -mid_mask=0xffffffff -epo_sel=0 -epo=0x0  -epo_mask=0xff -sig_type=0x4 -sig_ver=0x1 -out=7445D1_ZB/signatures/7445_region_0x8.bin
+add_param_bin -in=7445D1_ZB/fw_images/fw_img_dump_7445_vce_picarc.bin -in_endian=be -cpu_type=vice   -mid=0x00000000 -mid_mask=0xffffffff -epo_sel=0 -epo=0x1  -epo_mask=0xff -sig_type=0x4 -sig_ver=0x1 -out=7445D1_ZB/signatures/7445_region_0xF.bin
+add_param_bin -in=7445D1_ZB/fw_images/fw_img_dump_7445_vce_mbarc.bin -in_endian=be -cpu_type=vice   -mid=0x00000000 -mid_mask=0xffffffff -epo_sel=0 -epo=0x1  -epo_mask=0xff -sig_type=0x4 -sig_ver=0x1 -out=7445D1_ZB/signatures/7445_region_0x10.bin
+#add_param_bin -in=7445D1_ZB/fw_images/fw_img_dump_7445_xvd_outer.bin  -in_endian=be -cpu_type=hvd    -mid=0x00000000 -mid_mask=0xffffffff -epo_sel=0 -epo=0x1  -epo_mask=0xff -sig_type=0x4 -sig_ver=0x1 -out=7445D1_ZB/signatures/7445_region_0xD.bin
+add_param_bin -in=7445D1_ZB/fw_images/firmware_zeus42_cpuType04_region0x0D_Vdec0_Ola.bin  -in_endian=be -cpu_type=hvd    -mid=0x00000000 -mid_mask=0xffffffff -epo_sel=0 -epo=0x1  -epo_mask=0xff -sig_type=0x4 -sig_ver=0x1 -out=7445D1_ZB/signatures/7445_region_0xD.bin
+#add_param_bin -in=7445D1_ZB/fw_images/fw_img_dump_7445_xvd_inner.bin   -in_endian=be -cpu_type=hvd   -mid=0x00000000 -mid_mask=0xffffffff -epo_sel=0 -epo=0x1  -epo_mask=0xff -sig_type=0x4 -sig_ver=0x1 -out=7445D1_ZB/signatures/7445_region_0xC.bin
+add_param_bin -in=7445D1_ZB/fw_images/firmware_zeus42_cpuType04_region0x0C_Vdec0_Ila.bin   -in_endian=be -cpu_type=hvd   -mid=0x00000000 -mid_mask=0xffffffff -epo_sel=0 -epo=0x1  -epo_mask=0xff -sig_type=0x4 -sig_ver=0x1 -out=7445D1_ZB/signatures/7445_region_0xC.bin
+sign -in=7445D1_ZB/signatures/7445_region_0x11.bin -out_endian=le -out_type=binary -out=7445D1_ZB/signatures/7445_region_0x11_signature.bin
+sign -in=7445D1_ZB/signatures/7445_region_0x9.bin  -out_endian=le -out_type=binary -out=7445D1_ZB/signatures/7445_region_0x9_signature.bin
+sign -in=7445D1_ZB/signatures/7445_region_0x8.bin  -out_endian=le -out_type=binary -out=7445D1_ZB/signatures/7445_region_0x8_signature.bin
+sign -in=7445D1_ZB/signatures/7445_region_0xF.bin  -out_endian=le -out_type=binary -out=7445D1_ZB/signatures/7445_region_0xF_signature.bin
+sign -in=7445D1_ZB/signatures/7445_region_0x10.bin -out_endian=le -out_type=binary -out=7445D1_ZB/signatures/7445_region_0x10_signature.bin
+sign -in=7445D1_ZB/signatures/7445_region_0xD.bin  -out_endian=le -out_type=binary -out=7445D1_ZB/signatures/7445_region_0xD_signature.bin
+sign -in=7445D1_ZB/signatures/7445_region_0xC.bin  -out_endian=le -out_type=binary -out=7445D1_ZB/signatures/7445_region_0xC_signature.bin
+#
+add_param_bin -in=7445D1_ZB/signatures/7445_region_0x11_signature.bin  -in_endian=be -cpu_type=sid -mid=0x00000000 -mid_mask=0xffffffff -epo_sel=0 -epo=0x1  -epo_mask=0xff -sig_type=0x4 -sig_ver=0x1 -out=7445D1_ZB/signatures/7445_region_0x11_signature_post.bin
+add_param_bin -in=7445D1_ZB/signatures/7445_region_0x9_signature.bin   -in_endian=be -cpu_type=raaga -mid=0x00000000 -mid_mask=0xffffffff -epo_sel=0 -epo=0x0  -epo_mask=0xff -sig_type=0x4 -sig_ver=0x1 -out=7445D1_ZB/signatures/7445_region_0x9_signature_post.bin
+add_param_bin -in=7445D1_ZB/signatures/7445_region_0x8_signature.bin   -in_endian=be -cpu_type=rave  -mid=0x00000000 -mid_mask=0xffffffff -epo_sel=0 -epo=0x0  -epo_mask=0xff -sig_type=0x4 -sig_ver=0x1 -out=7445D1_ZB/signatures/7445_region_0x8_signature_post.bin
+add_param_bin -in=7445D1_ZB/signatures/7445_region_0xF_signature.bin   -in_endian=be -cpu_type=vice   -mid=0x00000000 -mid_mask=0xffffffff -epo_sel=0 -epo=0x1  -epo_mask=0xff -sig_type=0x4 -sig_ver=0x1 -out=7445D1_ZB/signatures/7445_region_0xF_signature_post.bin
+add_param_bin -in=7445D1_ZB/signatures/7445_region_0x10_signature.bin -in_endian=be -cpu_type=vice   -mid=0x00000000 -mid_mask=0xffffffff -epo_sel=0 -epo=0x1  -epo_mask=0xff -sig_type=0x4 -sig_ver=0x1 -out=7445D1_ZB/signatures/7445_region_0x10_signature_post.bin
+add_param_bin -in=7445D1_ZB/signatures/7445_region_0xD_signature.bin  -in_endian=be -cpu_type=hvd    -mid=0x00000000 -mid_mask=0xffffffff -epo_sel=0 -epo=0x1  -epo_mask=0xff -sig_type=0x4 -sig_ver=0x1 -out=7445D1_ZB/signatures/7445_region_0xD_signature_post.bin
+add_param_bin -in=7445D1_ZB/signatures/7445_region_0xC_signature.bin  -in_endian=be -cpu_type=hvd   -mid=0x00000000 -mid_mask=0xffffffff -epo_sel=0 -epo=0x1  -epo_mask=0xff -sig_type=0x4 -sig_ver=0x1 -out=7445D1_ZB/signatures/7445_region_0xC_signature_post.bin
+#
+post_process             -in=7445D1_ZB/signatures/7445_region_0x11_signature_post.bin -in_endian=be -region=0x11 -out=7445D1_ZB/signatures/nexus_security_regver_signatures.h
+post_process -append -in=7445D1_ZB/signatures/7445_region_0x9_signature_post.bin -in_endian=be -region=0x9 -out=7445D1_ZB/signatures/nexus_security_regver_signatures.h
+post_process -append -in=7445D1_ZB/signatures/7445_region_0x9_signature_post.bin -in_endian=be -region=0x12 -out=7445D1_ZB/signatures/nexus_security_regver_signatures.h
+post_process -append -in=7445D1_ZB/signatures/7445_region_0x8_signature_post.bin -in_endian=be -region=0x8 -out=7445D1_ZB/signatures/nexus_security_regver_signatures.h
+post_process -append -in=7445D1_ZB/signatures/7445_region_0xF_signature_post.bin -in_endian=be -region=0xF -out=7445D1_ZB/signatures/nexus_security_regver_signatures.h
+post_process -append -in=7445D1_ZB/signatures/7445_region_0x10_signature_post.bin -in_endian=be -region=0x10 -out=7445D1_ZB/signatures/nexus_security_regver_signatures.h
+post_process -append -in=7445D1_ZB/signatures/7445_region_0xF_signature_post.bin -in_endian=be -region=0x13 -out=7445D1_ZB/signatures/nexus_security_regver_signatures.h
+post_process -append -in=7445D1_ZB/signatures/7445_region_0x10_signature_post.bin -in_endian=be -region=0x14 -out=7445D1_ZB/signatures/nexus_security_regver_signatures.h
+post_process -append -in=7445D1_ZB/signatures/7445_region_0xD_signature_post.bin -in_endian=be -region=0xD -out=7445D1_ZB/signatures/nexus_security_regver_signatures.h
+post_process -append -in=7445D1_ZB/signatures/7445_region_0xC_signature_post.bin -in_endian=be -region=0xC -out=7445D1_ZB/signatures/nexus_security_regver_signatures.h
+post_process -append -in=7445D1_ZB/signatures/7445_region_0xC_signature_post.bin -in_endian=be -region=0xB -out=7445D1_ZB/signatures/nexus_security_regver_signatures.h
+post_process -append -in=7445D1_ZB/signatures/7445_region_0xD_signature_post.bin -in_endian=be -region=0x16 -out=7445D1_ZB/signatures/nexus_security_regver_signatures.h
+post_process -append -in=7445D1_ZB/signatures/7445_region_0xC_signature_post.bin -in_endian=be -region=0x15 -out=7445D1_ZB/signatures/nexus_security_regver_signatures.h
+post_process -append -in=7445D1_ZB/signatures/7445_region_0xD_signature_post.bin -in_endian=be -region=0x1D -out=7445D1_ZB/signatures/nexus_security_regver_signatures.h
+post_process -append -in=7445D1_ZB/signatures/7445_region_0xC_signature_post.bin -in_endian=be -region=0x1C -out=7445D1_ZB/signatures/nexus_security_regver_signatures.h
+#
+test_cmd

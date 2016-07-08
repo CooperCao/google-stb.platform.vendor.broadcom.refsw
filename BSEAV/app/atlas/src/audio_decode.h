@@ -1,7 +1,7 @@
-/***************************************************************************
- * (c) 2002-2016 Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -37,7 +37,6 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 
 #ifndef AUDIO_DECODE_H__
@@ -207,6 +206,8 @@ public:
     virtual bool             isCodecSupported(NEXUS_AudioCodec codec);
     virtual eRet             setHdmiInput(eHdmiAudioInput hdmiInput, NEXUS_SimpleAudioDecoderServerSettings * pSettings = NULL);
     virtual eHdmiAudioInput  getHdmiInput(NEXUS_AudioCodec codec);
+    virtual eRet             setSpdifInput(eSpdifInput spdifInput, NEXUS_SimpleAudioDecoderServerSettings * pSettings = NULL);
+    virtual eSpdifInput      getSpdifInput(NEXUS_AudioCodec codec);
     virtual bool             isEncodeSupportedAc3(void)       { return(NULL != _encodeAc3 ? true : false); }
     virtual bool             isEncodeSupportedDts(void)       { return(NULL != _encodeDts ? true : false); }
     virtual bool             isAutoVolumeLevelSupported(void) { return(NULL != _pAutoVolumeLevel ? true : false); }
@@ -235,18 +236,15 @@ public:
     void        connectEncodeAc3(bool bConnect);
     void        connectEncodeDts(bool bConnect);
     void        verifyEncode(NEXUS_AudioCodec codec);
-    eRet        setSpdifInput(eSpdifInput spdifInput, NEXUS_SimpleAudioDecoderServerSettings * pSettings = NULL);
-    eSpdifInput getSpdifInput(NEXUS_AudioCodec codec);
     eRet        setStc(CStc * pStc);
-    CStc *      getStc(void) { return(_pStc); }
+    CStc *      getStc(void)              { return(_pStc); }
     void        setModel(CModel * pModel) { _pModel = pModel; }
     CModel *    getModel(void)            { return(_pModel); }
 
-    COutputHdmi *  getOutputHdmi(void)  { return(_pHdmi); }
-    COutputSpdif * getOutputSpdif(void) { return(_pSpdif); }
+    COutputHdmi *  getOutputHdmi(void)                   { return(_pHdmi); }
+    COutputSpdif * getOutputSpdif(void)                  { return(_pSpdif); }
     void           setWindowType(eWindowType windowType) { _windowType = windowType; }
-    eWindowType    getWindowType(void) { return(_windowType); }
-
+    eWindowType    getWindowType(void)                   { return(_windowType); }
 
 protected:
     NEXUS_SimpleAudioDecoderHandle _simpleDecoder;

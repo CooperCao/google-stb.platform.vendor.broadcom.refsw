@@ -60,6 +60,13 @@ BERR_Code BSAGElib_P_Init_Serial(BSAGElib_Handle hSAGElib)
     BDBG_ENTER(BSAGElib_P_Init_Serial);
     BDBG_OBJECT_ASSERT(hSAGElib, BSAGElib_P_Instance);
 
+    /* UART configurations are platform specific, not just chip specific. SAGE
+       pin muxing for new chips should be set up in nexus_platform_pinmux.c,
+       and compile conditionally on value of NEXUS_HAS_SAGE  */
+
+    /* reg may not be referenced for newer chip ports */
+    BSTD_UNUSED(reg);
+
     /* Set up GPIO */
 #if BCHP_CHIP==7435
     /* BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_13

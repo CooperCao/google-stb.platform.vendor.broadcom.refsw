@@ -105,9 +105,7 @@ void RF4CE_StartReq(RF4CE_StartReqDescr_t *request) { STUB_DUMP_ERROR_MSG; }
 void RF4CE_ResetReq(RF4CE_ResetReqDescr_t *request)  { STUB_DUMP_ERROR_MSG; }
 #endif
 void RF4CE_ZRC2_GetAttributesReq(RF4CE_ZRC2_GetAttributesReqDescr_t *request) { STUB_DUMP_ERROR_MSG; }
-#ifndef BYPASS_RPC
 void RF4CE_ZRC2_SetAttributesReq(RF4CE_ZRC2_SetAttributesReqDescr_t *request) { STUB_DUMP_ERROR_MSG; }
-#endif
 //void RF4CE_GDP_PullAttributesReq(RF4CE_GDP_AttributeDescr_t *request) {}
 //void RF4CE_GDP_PushAttributesReq(RF4CE_GDP_AttributeDescr_t *request) {}
 void RF4CE_ZRC2_KeyExchangeReq(RF4CE_ZRC2_KeyExchangeReqDescr_t *request) { STUB_DUMP_ERROR_MSG;}
@@ -139,7 +137,7 @@ void RF4CE_ZRC2_BindingFinishedNtfyInd(RF4CE_ZRC2_BindingFinishedNtfyIndParams_t
 
 void Mail_TestEngineHelloInd(TE_HelloCommandIndParams_t *ind)
 {
-    SYS_EventHandlerParams_t eventMap = {0};
+    SYS_EventHandlerMailParams_t eventMap = {0};
     BITMAP_SET(eventMap.subscribedEventsMap, APP_EVENT_00);
     BITMAP_SET(eventMap.subscribedEventsMap, APP_EVENT_01);
     BITMAP_SET(eventMap.subscribedEventsMap, APP_EVENT_02);
@@ -150,8 +148,22 @@ void Mail_TestEngineHelloInd(TE_HelloCommandIndParams_t *ind)
     BITMAP_SET(eventMap.subscribedEventsMap, APP_EVENT_07);
     BITMAP_SET(eventMap.subscribedEventsMap, ZBPRO_NEW_CHILD_EID);
 
-    void SYS_EventSubscribe_Call(SYS_EventHandlerParams_t*);
-    SYS_EventSubscribe_Call(&eventMap);
+    BITMAP_SET(eventMap.subscribedEventsMap, RF4CE_CTRL_EVENT_PAIRING_DEVICE_PAIRED);
+
+    BITMAP_SET(eventMap.subscribedEventsMap, RF4CE_CTRL_EVENT_PAIRING_DEVICE_NOT_FOUND);
+    BITMAP_SET(eventMap.subscribedEventsMap, RF4CE_CTRL_EVENT_PAIRING_MULTIPLE_DEVICES_FOUND);
+    BITMAP_SET(eventMap.subscribedEventsMap, RF4CE_CTRL_EVENT_PAIRING_DUPLICATE_PAIR_FOUND);
+    BITMAP_SET(eventMap.subscribedEventsMap, RF4CE_CTRL_EVENT_UNPAIRING_DEVICE_UNPAIRED);
+    BITMAP_SET(eventMap.subscribedEventsMap, RF4CE_CTRL_EVENT_VENDOR_FRAME_RECEIVED);
+    BITMAP_SET(eventMap.subscribedEventsMap, RF4CE_CTRL_EVENT_VENDOR_FRAME_SEND_OK);
+    BITMAP_SET(eventMap.subscribedEventsMap, RF4CE_CTRL_EVENT_VENDOR_FRAME_SEND_FAILED);
+    BITMAP_SET(eventMap.subscribedEventsMap, RF4CE_CTRL_EVENT_BAD_VENDOR_FRAME);
+    BITMAP_SET(eventMap.subscribedEventsMap, RF4CE_CTRL_EVENT_PAIRING_GENERAL_FAILURE);
+    BITMAP_SET(eventMap.subscribedEventsMap, RF4CE_CTRL_EVENT_TEST_TRANSMIT_END);
+
+    void SYS_EventSubscribe_Call(SYS_EventHandlerMailParams_t*);
+    sysEventSubscribeHostHandler_Call(&eventMap);
+    //SYS_EventSubscribe_Call(&eventMap);
 }
 
 void MailUnitTest_f1(MailUnitTest_f1Descr_t *req) { STUB_DUMP_ERROR_MSG; }
@@ -230,6 +242,7 @@ void ZBPRO_ZDO_MgmtBindReq(ZBPRO_ZDO_MgmtBindReqDescr_t *const  reqDescr) { STUB
 void ZBPRO_ZDO_MgmtNwkUpdateUnsolResp(ZBPRO_ZDO_MgmtNwkUpdateUnsolRespDescr_t *const respDescr) { STUB_DUMP_ERROR_MSG; }
 void ZBPRO_ZDO_MgmtLqiReq(ZBPRO_ZDO_MgmtLqiReqDescr_t *const  reqDescr) { STUB_DUMP_ERROR_MSG; }
 #endif
+void ZBPRO_ZDO_ReadyInd(ZBPRO_ZDO_ReadyIndParams_t *ind) { STUB_DUMP_ERROR_MSG; }
 void ZBPRO_ZDO_MgmtNwkUpdateUnsolInd(ZBPRO_ZDO_MgmtNwkUpdateUnsolIndParams_t *const indParams) { STUB_DUMP_ERROR_MSG; }
 #ifndef BYPASS_RPC
 void ZBPRO_TC_NwkKeyUpdateReq(ZBPRO_TC_NwkKeyUpdateReqDescr_t *reqDescr) { STUB_DUMP_ERROR_MSG; }
@@ -339,6 +352,31 @@ void ZBPRO_ZCL_SapIasAceEmergencyInd(ZBPRO_ZCL_SapIasAceAlarmIndParams_t *const 
 void ZBPRO_ZCL_SapIasAceFireInd(ZBPRO_ZCL_SapIasAceAlarmIndParams_t *const indParams) { STUB_DUMP_ERROR_MSG; }
 void ZBPRO_ZCL_SapIasAcePanicInd(ZBPRO_ZCL_SapIasAceAlarmIndParams_t *const indParams) { STUB_DUMP_ERROR_MSG; }
 void ZBPRO_ZHA_CieDeviceEnrollInd(ZBPRO_ZHA_CieEnrollIndParams_t *const indParams) { STUB_DUMP_ERROR_MSG; }
+void ZBPRO_ZCL_IASZoneCmdZoneEnrollRequestForMailboxInd(ZBPRO_ZCL_IASZoneCmdZoneEnrollRequestIndParams_t *const indParams) { STUB_DUMP_ERROR_MSG; }
+void ZBPRO_ZCL_IASZoneCmdZoneStatusChangeNotificationForMailboxInd(ZBPRO_ZCL_IASZoneCmdZoneStatusChangeNotificationIndParams_t *const indParams) { STUB_DUMP_ERROR_MSG; }
+void ZBPRO_ZCL_SapIasAceArmForMailboxInd(
+                   ZBPRO_ZCL_SapIasAceArmIndParams_t *const indParams) { STUB_DUMP_ERROR_MSG; }
+void ZBPRO_ZCL_SapIasAceBypassForMailboxInd(
+                   ZBPRO_ZCL_SapIasAceBypassIndParams_t *const indParams) { STUB_DUMP_ERROR_MSG; }
+void ZBPRO_ZCL_SapIasAceEmergencyForMailboxInd(
+                   ZBPRO_ZCL_SapIasAceAlarmIndParams_t *const indParams) { STUB_DUMP_ERROR_MSG; }
+void ZBPRO_ZCL_SapIasAceFireForMailboxInd(
+                   ZBPRO_ZCL_SapIasAceAlarmIndParams_t *const indParams) { STUB_DUMP_ERROR_MSG; }
+void ZBPRO_ZCL_SapIasAcePanicForMailboxInd(
+                   ZBPRO_ZCL_SapIasAceAlarmIndParams_t *const indParams) { STUB_DUMP_ERROR_MSG; }
+void ZBPRO_ZCL_SapIasAceGetZoneIdMapForMailboxInd(
+                   ZBPRO_ZCL_SapIasAceGetZoneIdMapIndParams_t *const indParams) { STUB_DUMP_ERROR_MSG; }
+void ZBPRO_ZCL_SapIasAceGetZoneInfoForMailboxInd(
+                   ZBPRO_ZCL_SapIasAceGetZoneInfoIndParams_t *const indParams) { STUB_DUMP_ERROR_MSG; }
+void ZBPRO_ZCL_SapIasAceGetPanelStatusForMailboxInd(
+                   ZBPRO_ZCL_SapIasAceGetPanelStatusIndParams_t *const indParams) { STUB_DUMP_ERROR_MSG; }
+void ZBPRO_ZCL_SapIasAceGetBypassedZoneListForMailboxInd(
+                   ZBPRO_ZCL_SapIasAceGetBypassedZoneListIndParams_t *const indParams) { STUB_DUMP_ERROR_MSG; }
+void ZBPRO_ZCL_SapIasAceGetZoneStatusForMailboxInd(
+                   ZBPRO_ZCL_SapIasAceGetZoneStatusIndParams_t *const indParams) { STUB_DUMP_ERROR_MSG; }
+void ZBPRO_ZHA_CieDeviceRegisterReq(ZBPRO_ZHA_CieDeviceRegisterReqDescr_t * const descr)  { STUB_DUMP_ERROR_MSG; }
+void ZBPRO_ZHA_CieDeviceUnregisterReq(ZBPRO_ZHA_CieDeviceUnregisterReqDescr_t * const descr) { STUB_DUMP_ERROR_MSG; }
+
 #ifndef BYPASS_RPC
 void ZBPRO_ZHA_EzModeReq(ZBPRO_ZHA_EzModeReqDescr_t *reqDescr) { STUB_DUMP_ERROR_MSG; }
 void ZBPRO_ZHA_CieDeviceEnrollReq(ZBPRO_ZHA_CieEnrollReqDescr_t *reqDescr) { STUB_DUMP_ERROR_MSG; }
@@ -363,6 +401,18 @@ void RF4CE_NWK_StartReq(RF4CE_NWK_StartReqDescr_t *request) { STUB_DUMP_ERROR_MS
 void RF4CE_NWK_DataReq(RF4CE_NWK_DataReqDescr_t *request) { STUB_DUMP_ERROR_MSG; }
 void RF4CE_NWK_SetReq(RF4CE_NWK_SetReqDescr_t *request) { STUB_DUMP_ERROR_MSG; }
 #endif
+void RF4CE_MAC_DataInd(MAC_DataIndParams_t *const indParams)
+{
+    printf("MAC Data Indication dumping\n");
+    uint8_t length = SYS_GetPayloadSize(&indParams->payload);
+    uint8_t ch;
+    for(uint8_t i = 0; i < length; i++){
+        SYS_CopyFromPayload(&ch, &indParams->payload, i, 1);
+        printf(" %02X ", ch);
+    }
+    printf("\n");
+}
+
 void RF4CE_NWK_RXEnableReq(RF4CE_NWK_RXEnableReqDescr_t *request) { STUB_DUMP_ERROR_MSG; }
 void RF4CE_NWK_UpdateKeyReq(RF4CE_NWK_UpdateKeyReqDescr_t *request) { STUB_DUMP_ERROR_MSG; }
 void RF4CE_NWK_UnpairReq(RF4CE_NWK_UnpairReqDescr_t *request) { STUB_DUMP_ERROR_MSG; }
@@ -374,8 +424,8 @@ void RF4CE_NWK_DiscoveryResp(RF4CE_NWK_DiscoveryRespDescr_t *response) { STUB_DU
 void RF4CE_NWK_PairResp(RF4CE_NWK_PairRespDescr_t *response) { STUB_DUMP_ERROR_MSG; }
 #ifndef BYPASS_RPC
 void ZBPRO_NWK_PermitJoiningReq(ZBPRO_NWK_PermitJoiningReqDescr_t *reqDescr) { STUB_DUMP_ERROR_MSG; }
-#endif
 void RF4CE_SetSupportedDevicesReq(RF4CE_SetSupportedDevicesReqDescr_t *request) { STUB_DUMP_ERROR_MSG; }
+#endif
 void RF4CE_CounterExpiredInd(RF4CE_PairingReferenceIndParams_t *indication) { STUB_DUMP_ERROR_MSG; }
 void RF4CE_UnpairInd(RF4CE_PairingReferenceIndParams_t *indication) { STUB_DUMP_ERROR_MSG; }
 #ifndef BYPASS_RPC
@@ -399,6 +449,8 @@ void RF4CE_ZRC1_TargetBindReq(RF4CE_ZRC1_BindReqDescr_t *request) {}
 //void Mail_TestEngineSendHello(MailDescriptor_t *const mail) {}
 void RF4CE_ZRC2_ControlCommandPressedReq(RF4CE_ZRC2_ControlCommandReqDescr_t *request) { STUB_DUMP_ERROR_MSG; }
 void RF4CE_ZRC2_ControlCommandReleasedReq(RF4CE_ZRC2_ControlCommandReqDescr_t *request) { STUB_DUMP_ERROR_MSG; }
+void RF4CE_ZRC2_GetAttrRespInd(RF4CE_ZRC2_SetAttributesReqParams_t *const indParams) { STUB_DUMP_ERROR_MSG; }
+void RF4CE_ZRC2_PushAttrReqInd(RF4CE_ZRC2_SetAttributesReqParams_t *const indParams) { STUB_DUMP_ERROR_MSG; }
 
 #ifndef BYPASS_RPC
 void RF4CE_ZRC_SetWakeUpActionCodeReq(RF4CE_ZRC_SetWakeUpActionCodeReqDescr_t *req) { STUB_DUMP_ERROR_MSG; }
@@ -421,6 +473,8 @@ void RF4CE_GDP2_HeartbeatInd(RF4CE_GDP2_HeartbeatIndParams_t *const indParams) {
 void RF4CE_GDP2_ClientNotificationInd(RF4CE_GDP2_ClientNotificationIndParams_t *const indParams) { STUB_DUMP_ERROR_MSG; }
 void RF4CE_GDP2_IdentifyReq(RF4CE_GDP2_IdentifyReqDescr_t *const reqDescr) { STUB_DUMP_ERROR_MSG; }
 void RF4CE_GDP2_IdentifyInd(RF4CE_GDP2_IdentifyIndParams_t *const indParams) { STUB_DUMP_ERROR_MSG; }
+void SYS_PrintInd(SYS_PrintIndParams_t *indication) { STUB_DUMP_ERROR_MSG; }
+void Mail_TestEngineHaltInd(TE_AssertLogIdCommandIndParams_t *const indParams) { STUB_DUMP_ERROR_MSG; }
 
 #include <stdio.h>
 
@@ -452,17 +506,17 @@ uint32_t TEST_DbgAssert(uint32_t errorUid, const char *fileName, uint16_t line)
 }
 #endif
 
-void MailUartRxInterruptHandler(TE_Host2Uart1ReqDescr_t *const req) {}
+//void MailUartRxInterruptHandler(TE_Host2Uart1ReqDescr_t *const req) {}
 
-void Mail_Uart1ToHostInd(TE_Uart1ToHostReqParams_t *ind){
-    uint8_t length = SYS_GetPayloadSize(&ind->payload);
-    uint8_t ch;
-    for(uint8_t i = 0; i < length; i++){
-        SYS_CopyFromPayload(&ch, &ind->payload, i, 1);
-        printf("%c", ch);
-    }
+/* void Mail_Uart1ToHostInd(TE_Uart1ToHostReqParams_t *ind){ */
+/*     uint8_t length = SYS_GetPayloadSize(&ind->payload); */
+/*     uint8_t ch; */
+/*     for(uint8_t i = 0; i < length; i++){ */
+/*         SYS_CopyFromPayload(&ch, &ind->payload, i, 1); */
+/*         printf("%c", ch); */
+/*     } */
 
-}
+/* } */
 
 void RF4CE_GDP_StartValidationInd(RF4CE_PairingReferenceProfileIdIndParams_t *indication) { STUB_DUMP_ERROR_MSG; }
 //void RF4CE_GDP_ClientNotificationInd(RF4CE_GDP_ClientNotificationIndParams_t *indication) {}

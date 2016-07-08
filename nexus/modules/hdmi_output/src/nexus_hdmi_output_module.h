@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2014 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 
@@ -60,17 +52,19 @@
 #include "nexus_platform_features.h"
 #include "priv/nexus_core_video.h"
 #include "priv/nexus_core_audio.h"
+#include "priv/nexus_core_img_id.h"
+#include "priv/nexus_core_img.h"
 #include "priv/nexus_hdmi_output_priv.h"
 
-#if NEXUS_HAS_SAGE
+#if NEXUS_HAS_SAGE && NEXUS_HAS_HDCP_2X_SUPPORT
 #include "bchp_common.h"
-#ifdef BCHP_HDCP2_TX_HAE_INTR2_0_REG_START
-#define NEXUS_HAS_HDCP_2X_SUPPORT 1
+#ifndef BCHP_HDCP2_TX_HAE_INTR2_0_REG_START
+#undef NEXUS_HAS_HDCP_2X_SUPPORT
 #endif
 #endif
 
-#if NEXUS_HAS_SECURITY
 #include "bhdm_hdcp.h"
+#if NEXUS_HAS_SECURITY
 #include "bhdcplib.h"
 #include "bhdcplib_keyloader.h"
 #endif
@@ -143,12 +137,15 @@ typedef struct NEXUS_HdmiOutput
     NEXUS_HdmiOutputOpenSettings openSettings;
     NEXUS_HdmiOutputSettings settings;
     NEXUS_HdmiOutputSettings previousSettings;
+    NEXUS_HdmiOutputExtraSettings extraSettings;
     NEXUS_EventCallbackHandle hotplugEventCallback;
     NEXUS_EventCallbackHandle mhlStandbyEventCallback;
     NEXUS_EventCallbackHandle rxSenseEventCallback;
     NEXUS_EventCallbackHandle scrambleEventCallback;
     NEXUS_EventCallbackHandle avRateChangeEventCallback;
     NEXUS_TimerHandle powerTimer;
+
+    bool hdcpRequiredPostFormatChange;
     bool formatChangeMute;
     bool avMuteSetting;
     bool hdcpStarted;
@@ -160,7 +157,6 @@ typedef struct NEXUS_HdmiOutput
     uint8_t checkRxSenseCount ;
     uint8_t lastReceiverSense ;
 
-    NEXUS_TimerHandle postFormatChangeTimer;
     bool aspectRatioChangeOnly;
 
     BAVC_AudioSamplingRate sampleRate;
@@ -182,8 +178,9 @@ typedef struct NEXUS_HdmiOutput
     BKNI_EventHandle notifyAudioEvent;
     BKNI_EventHandle notifyHotplugEvent ;
 
-#if NEXUS_HAS_SECURITY
     BHDM_HDCP_Version eHdcpVersion;
+    NEXUS_HdmiOutputHdcpVersion hdcpVersionSelect;
+#if NEXUS_HAS_SECURITY
     BHDCPlib_Handle hdcpHandle;
     NEXUS_EventCallbackHandle hdcpHotplugCallback;
     NEXUS_EventCallbackHandle riCallback;
@@ -192,8 +189,8 @@ typedef struct NEXUS_HdmiOutput
     NEXUS_HdmiOutputHdcpSettings hdcpSettings;
     NEXUS_HdmiOutputHdcpKsv *pRevokedKsvs;
     uint16_t numRevokedKsvs;
-    BHDCPlib_State hdcpState;
-    BHDCPlib_HdcpError hdcpError;
+    BHDCPlib_State hdcp1xState;
+    BHDCPlib_HdcpError hdcp1xError;
 #if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_SUPPORT)
     NEXUS_HdmiInputHandle hdmiInput;
     NEXUS_EventCallbackHandle hdcp2xEncryptionEnableCallback;
@@ -203,6 +200,8 @@ typedef struct NEXUS_HdmiOutput
 #endif
     bool resumeFromS3;
     BHDM_Settings hdmSettings;
+    bool invalidEdid ;
+    bool invalidEdidReported ;
     bool edidHdmiDevice ;
     BHDM_EDID_RxVendorSpecificDB edidVendorSpecificDB ;
 
@@ -216,14 +215,31 @@ typedef struct NEXUS_HdmiOutput
     } crc;
 
     char audioConnectorName[14];   /* HDMI OUTPUT %d */
+
+    struct
+    {
+        bool inputDrmInfoFrameValid;
+        NEXUS_HdmiDynamicRangeMasteringInfoFrame inputDrmInfoFrame;
+        NEXUS_HdmiDynamicRangeMasteringInfoFrame outputDrmInfoFrame;
+        bool connected;
+        NEXUS_HdmiOutputEdidRxHdrdb hdrdb;
+    } drm;
 } NEXUS_HdmiOutput;
 
 #if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_SUPPORT)
+typedef struct NEXUS_HdmiOutputMemoryBlock {
+    size_t len;
+    void *buf;
+} NEXUS_HdmiOutputMemoryBlock;
+
+
 typedef struct NEXUS_HdmiOutput_SageData
 {
     BSAGElib_ClientHandle sagelibClientHandle;
     BKNI_EventHandle eventWatchdogRecv;
     NEXUS_EventCallbackHandle eventWatchdogRecvCallback;
+    BKNI_EventHandle eventTATerminated;
+    NEXUS_EventCallbackHandle eventTATerminatedCallback;
     BKNI_EventHandle eventResponseRecv;
     BKNI_EventHandle eventIndicationRecv;
     NEXUS_EventCallbackHandle eventIndicationRecvCallback;
@@ -243,6 +259,7 @@ extern NEXUS_ModuleHandle g_NEXUS_hdmiOutputModule;
 extern NEXUS_HdmiOutputModuleSettings g_NEXUS_hdmiOutputModuleSettings;
 #if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_SUPPORT)
 extern NEXUS_HdmiOutput_SageData g_NEXUS_hdmiOutputSageData;
+extern NEXUS_HdmiOutputMemoryBlock g_hdcpTABlock;
 #endif
 
 /* Internal Private Routines */
@@ -256,9 +273,13 @@ void NEXUS_HdmiOutput_P_HdcpNotifyHotplug(NEXUS_HdmiOutputHandle output);
 
 void NEXUS_HdmiOutputModule_Print(void);
 
+void NEXUS_HdmiOutput_P_CheckHdcpVersion(NEXUS_HdmiOutputHandle output);
 
 /* Proxy conversion */
 #define NEXUS_P_HDMI_OUTPUT_HDCP_KSV_SIZE(num) ((num)*sizeof(NEXUS_HdmiOutputHdcpKsv))
+
+NEXUS_Error NEXUS_HdmiOutput_P_ApplyDrmInfoFrameSource(NEXUS_HdmiOutputHandle output); /* call from SetExtendedSettings */
+void NEXUS_HdmiOutput_P_DrmInfoFrameConnectionChanged(NEXUS_HdmiOutputHandle output); /* call from hotplug */
 
 #endif /* #ifndef NEXUS_HDMI_OUTPUT_MODULE_H__ */
 

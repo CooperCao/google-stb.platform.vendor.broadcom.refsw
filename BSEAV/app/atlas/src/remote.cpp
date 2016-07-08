@@ -1,39 +1,42 @@
-/***************************************************************************
+/******************************************************************************
  * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  *****************************************************************************/
 
 #include "atlas.h"
@@ -62,9 +65,11 @@ using namespace std;
 #ifdef MAX
 #undef MAX
 #endif
+extern "C"{
 #include "bbMailAPI.h"
 #include "zigbee_api.h"
 #include "zigbee.h"
+}
 #endif /* ifdef RF4CE_SUPPORT */
 #ifdef NETAPP_SUPPORT
 #define bclose(fd)  close(fd);
@@ -549,7 +554,7 @@ eRet CIrRemote::getEvent(CRemoteEvent * pEvent)
     eRet               ret    = eRet_NotAvailable;
     NEXUS_Error        nerror = NEXUS_SUCCESS;
     NEXUS_IrInputEvent irEvent;
-    unsigned           num;
+    size_t             num;
     bool               overflow;
 
     BDBG_ASSERT(NULL != pEvent);
@@ -595,6 +600,7 @@ CRf4ceRemote::CRf4ceRemote(
     BDBG_ASSERT(eKey_Max == sizeof(eKey2bwidgets)/sizeof(bwidget_key));
 }
 
+extern "C"{
 static int permPairingRef = 0;
 
 /* Called, only once in a lifetime */
@@ -665,7 +671,9 @@ static void rf4ce_Test_Show_My_Interest(int prn)
     req.params.pairRef = prn;
     req.callback       = rf4ce_Test_RF4CE_RegisterVirtualDevice_Callback;
     RF4CE_RegisterVirtualDevice(&req);
-    while (!statusRegistered);
+    while (!statusRegistered)
+    {
+    }
 } /* rf4ce_Test_Show_My_Interest */
 
 static uint8_t statusStarted = 0;
@@ -732,9 +740,13 @@ void rf4ce_Test_ZRC1_TargetBinding_Callback(
     statusTargetBinding = 1;
     statusConf          = conf->status;
     if (RF4CE_ZRC1_BOUND == statusConf)
+    {
         printf("One remote control has been bound successfully.\r\n");
+    }
     else
+    {
         printf("No any remote contoller has been bound. status = %d\r\n", statusConf);
+    }
 }
 
 static void rf4ce_Test_ZRC1_TargetBinding()
@@ -748,8 +760,10 @@ static void rf4ce_Test_ZRC1_TargetBinding()
     statusTargetBinding = 0;
     RF4CE_ZRC1_TargetBindReq(&req);
     printf("waiting for rf4ce_Test_ZRC1_TargetBinding_Callback..., statusConf=%d\n", statusConf);
-    while (!statusTargetBinding);
+    while (!statusTargetBinding)
+    {
         usleep(100);
+    }
     printf("got it..., statusConf=%d, permPairingRef=%d\n", statusConf, permPairingRef);
     /*
      *    if(RF4CE_ZRC1_BOUND == statusConf)
@@ -808,7 +822,9 @@ static void rf4ce_Test_Get_PowerFilterKey_Callback(
     {
         statusGetPowerFilterKey = 1;
         for (uint8_t i = 0; i < sizeof(conf->wakeUpActionCodeFilter); i++)
+        {
             printf(" %02x ", conf->wakeUpActionCodeFilter[i]);
+        }
         printf("\n");
     }
 }
@@ -822,7 +838,9 @@ static void rf4ce_Test_Get_WakeUpActionCode()
     req.callback = rf4ce_Test_Get_PowerFilterKey_Callback;
 
     RF4CE_ZRC_GetWakeUpActionCodeReq(&req);
-    while (!statusGetPowerFilterKey);
+    while (!statusGetPowerFilterKey)
+    {
+    }
     printf("Get power filter key successfully\r\n");
 }
 
@@ -835,7 +853,9 @@ static void rf4ce_Test_Set_PowerFilterKey_Callback(
 {
     BSTD_UNUSED(request);
     if (0 == conf->status)
+    {
         statusSetPowerFilterKey = 1;
+    }
 }
 
 static void rf4ce_Test_Set_WakeUpActionCode()
@@ -853,6 +873,7 @@ static void rf4ce_Test_Set_WakeUpActionCode()
     }
     printf("Set power filter key successfully\r\n");
 }
+}/* extern "C" */
 
 static uint8_t statusRestoreFactorySettings;
 
@@ -863,7 +884,9 @@ static void rf4ce_Restore_Factory_Settings_Callback(
 {
     BSTD_UNUSED(request);
     if (RF4CE_START_RESET_OK == conf->status)
+    {
         statusRestoreFactorySettings = 1;
+    }
 }
 
 static void rf4ce_Restore_Factory_Settings(uint8_t restore)
@@ -875,7 +898,9 @@ static void rf4ce_Restore_Factory_Settings(uint8_t restore)
     req.params.setDefaultPIBNIB = restore;
     req.callback                = rf4ce_Restore_Factory_Settings_Callback;
     RF4CE_ResetReq(&req);
-    while (!statusRestoreFactorySettings);
+    while (!statusRestoreFactorySettings)
+    {
+    }
     printf("Restore factory settings successfully\r\n");
 }
 
@@ -885,7 +910,8 @@ void My_RF4CE_ZRC_ControlCommandInd(RF4CE_ZRC2_ControlCommandIndParams_t * comma
     char                  command[200], msg[10] = { 0 };
     RF4CE_ZRC2_Action_t * commands = (RF4CE_ZRC2_Action_t *)calloc(sizeof(char), SYS_GetPayloadSize(&commandInd->payload));
     SYS_CopyFromPayload(commands, &commandInd->payload, 0, SYS_GetPayloadSize(&commandInd->payload));
-    for (int i = 0; i < (int)(SYS_GetPayloadSize(&commandInd->payload) / sizeof(RF4CE_ZRC2_Action_t)); i++){
+    for (int i = 0; i < (int)(SYS_GetPayloadSize(&commandInd->payload) / sizeof(RF4CE_ZRC2_Action_t)); i++)
+    {
         msg[i] = commands[i].code;
         printf("%c\n", msg[i]);
     }
@@ -1429,7 +1455,7 @@ CBluetoothRemote::CBluetoothRemote(
 
     bt_semaphore = NetAppOSSemBCreate(true);
 
-    if (bt_semaphore == 0)
+    if (bt_semaphore == NULL)
     {
         BDBG_ERR(("%s(): -- Cannot create sem!", __FUNCTION__));
         BDBG_ASSERT(bt_semaphore);
@@ -1454,7 +1480,7 @@ eRet CBluetoothRemote::open(CWidgetEngine * pWidgetEngine)
     /* Spawn polling thread that looks at the inputs */
     _taskId = NetAppOSTaskSpawn("LinuxInputSourceTask", NETAPP_OS_PRIORITY_LOW, 64*1024, LinuxInputSource_P_Task, this);
 
-    if (_taskId == 0)
+    if (_taskId == NULL)
     {
         BDBG_ERR(("%s(): Failure Spawning LinuxInputSourceTask!!", __FUNCTION__));
         return(eRet_ExternalError);
@@ -1590,10 +1616,10 @@ done:
 
 CBluetoothRemote::~CBluetoothRemote()
 {
-    if (bt_semaphore != 0)
+    if (bt_semaphore)
     {
         NetAppOSSemDelete(bt_semaphore);
-        bt_semaphore = 0;
+        bt_semaphore = NULL;
     }
 
     close();

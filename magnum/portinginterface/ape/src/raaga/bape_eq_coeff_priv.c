@@ -749,8 +749,8 @@ int32_t EQ_subwoofer_LPF_isrsafe (int32_t fs, int32_t fc, int32_t type, int32_t 
         int32_t b0[], int32_t b1[], int32_t b2[], int32_t a1[], int32_t a2[])
 {
     int32_t biquad_mant[6], biquad_exp[6];
-    static const int32_t *ptr_mant;
-    static const int32_t *ptr_exp;
+    const int32_t *ptr_mant;
+    const int32_t *ptr_exp;
     int32_t i;
     int32_t ret_val = 0;
 

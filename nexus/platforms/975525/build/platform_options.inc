@@ -1,7 +1,7 @@
 #############################################################################
-#    (c)2013 Broadcom Corporation
+# Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 #
-# This program is the proprietary software of Broadcom Corporation and/or its licensors,
+# This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
 # conditions of a separate, written license agreement executed between you and Broadcom
 # (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,19 +34,18 @@
 # ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 # LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 # ANY LIMITED REMEDY.
-#
 #############################################################################
 #
 # this file is included by nexus/platform/common/build/platform_modules.inc
 # you can define your platform's options here
 
 #TODO, to enable it after frontend module is updated
-NEXUS_FRONTEND_SUPPORT := n
+NEXUS_FRONTEND_SUPPORT := y
 
 #NEXUS_UHF_INPUT_SUPPORT := n
 
 #TODO, to enable it after rfm module is updated
-NEXUS_RFM_SUPPORT := n
+NEXUS_RFM_SUPPORT := y
 
 NEXUS_IR_BLASTER_SUPPORT := n
 NEXUS_HDMI_INPUT_SUPPORT := n

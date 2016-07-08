@@ -11,7 +11,6 @@ PASS 0
     {
         a_position   = VATTR_POSITION;
         a_index      = VATTR_USER1;
-        u_quadOffset = VECTOR4_QUAD_OFFSET;
     }
 
     STATE
@@ -27,11 +26,10 @@ PASS 0
         attribute   float   a_index;
         varying     vec3    v_color;
         uniform     vec3    u_colors[4];
-        uniform     vec4    u_quadOffset;
 
         void main()
         {
-            vec2     xy = a_position.xy * u_quadOffset.xy + u_quadOffset.zw;
+            vec2     xy = a_position.xy;
 
             v_color     = u_colors[int(a_index + 0.5)];
             gl_Position = vec4(xy, a_position.z, 1.0);

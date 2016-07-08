@@ -37,7 +37,7 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************/
+ ******************************************************************************
 /*****************************************************************************
 *
 * FILENAME: $Workfile: trunk/stack/IEEE/MAC/include/bbMacSapTypesStart.h $
@@ -58,6 +58,7 @@
 /************************* INCLUDES *****************************************************/
 #include "bbMacSapPib.h"            /* MAC-PIB for MAC-SAP definitions. */
 
+//#ifdef _PHY_TEST_HOST_INTERFACE_
 typedef struct _Phy_Test_Get_Caps_ConfParams_t
 {
     uint8_t channelMin;
@@ -213,7 +214,7 @@ typedef struct _Phy_Test_Echo_Stop_ReqDescr_t{
 }Phy_Test_Echo_Stop_ReqDescr_t;
 
 
-typedef struct _RF4CE_EnergyDetectionScanResults
+typedef struct _Phy_Sap_RF4CE_EnergyDetectionScanResults
 {
     uint8_t energy;
 }Phy_Sap_RF4CE_EnergyDetectionScanResults;
@@ -225,7 +226,7 @@ typedef struct _Phy_Test_Energy_Detect_Scan_ReqParams_t{
 
 typedef struct _Phy_Test_Energy_Detect_Scan_ConfParams_t{
     uint8_t             status;
-    SYS_DataPointer_t   payload;  /* the array of the Phy_Sap_RF4CE_EnergyDetectionScanResults, the number of elements is numberOfScans */
+    SYS_DataPointer_t   payload;  /* the array of the RF4CE_EnergyDetectionScanResults, the number of elements is numberOfScans */
 }Phy_Test_Energy_Detect_Scan_ConfParams_t;
 
 typedef struct _Phy_Test_Energy_Detect_Scan_ReqDescr_t Phy_Test_Energy_Detect_Scan_ReqDescr_t;
@@ -305,4 +306,5 @@ void Phy_Test_Reset_Stats_Req(Phy_Test_Reset_Stats_ReqDescr_t *req);
 
 void Phy_Test_Set_TX_Power_Req(Phy_Test_Set_TX_Power_ReqDescr_t *req);
 
+//#endif
 #endif /* _BB_PHY_SAP_TEST_H */

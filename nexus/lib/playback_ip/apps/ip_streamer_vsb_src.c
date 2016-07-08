@@ -1,14 +1,14 @@
 /******************************************************************************
- *    (c)2008-2012 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
  * no license (express or implied), right to use, or waiver of any kind with respect to the
  * Software, and Broadcom expressly reserves all rights in and to the Software and all
  * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELYn
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
@@ -35,17 +35,9 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description: 
  *  stream from vsb source
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ******************************************************************************/
 #include <stdio.h>
 #include <assert.h>
@@ -220,8 +212,8 @@ vsbLockCallback(void *context, int param)
     BKNI_Memset(&vsbStatus, 0, sizeof(vsbStatus));
     if (NEXUS_Frontend_GetVsbStatus(frontendHandle, &vsbStatus) != NEXUS_SUCCESS) 
         return;
-    BDBG_MSG(("VSB Lock callback, frontend 0x%08x - receiverLock=%d, fecLock=%d, opllLock=%d",
-                vsbStatus.receiverLock, vsbStatus.fecLock, vsbStatus.opllLock));
+    BDBG_MSG(("VSB Lock callback, frontend %p - receiverLock=%d, fecLock=%d, opllLock=%d",
+                (void *)frontendHandle , vsbStatus.receiverLock, vsbStatus.fecLock, vsbStatus.opllLock));
 
 }
 
@@ -270,11 +262,11 @@ openNexusVsbSrc(
             vsbSrc->numProgramsFound = 0;
         }
         BKNI_ReleaseMutex(vsbSrc->lock);
-        BDBG_MSG(("Found a free VSB Frontend %p, use it for %dMhz frequency, refCount %d", vsbSrc, ipStreamerCfg->frequency, vsbSrc->refCount));
+        BDBG_MSG(("Found a free VSB Frontend %p, use it for %uMhz frequency, refCount %d", (void *)vsbSrc, ipStreamerCfg->frequency, vsbSrc->refCount));
     }
     BKNI_ReleaseMutex(ipStreamerCtx->globalCtx->vsbSrcMutex);
     if (!vsbSrc) {
-        BDBG_MSG(("No Free tuner available for this %d frequency all turners (# %d) busy", ipStreamerCfg->frequency, i));
+        BDBG_MSG(("No Free tuner available for this %d frequency all turners (# %u) busy", ipStreamerCfg->frequency, i));
         return -1;
     }
     ipStreamerCtx->vsbSrc = vsbSrc;
@@ -331,7 +323,7 @@ openNexusVsbSrc(
         parserBandSettings.transportType = NEXUS_TransportType_eTs;
         rc = NEXUS_ParserBand_SetSettings(ipStreamerCtx->parserBandPtr->parserBand, &parserBandSettings);
         if (rc) {
-            BDBG_ERR(("Failed to set the Nexus Parser band settings for band # %d", ipStreamerCtx->parserBandPtr->parserBand));
+            BDBG_ERR(("Failed to set the Nexus Parser band settings for band # %d", (int)ipStreamerCtx->parserBandPtr->parserBand));
             BKNI_ReleaseMutex(ipStreamerCtx->parserBandPtr->lock);
             ipStreamerCtx->parserBandPtr = NULL;
             goto error;
@@ -340,7 +332,7 @@ openNexusVsbSrc(
     ipStreamerCtx->parserBandPtr->refCount++;
     BKNI_ReleaseMutex(ipStreamerCtx->parserBandPtr->lock);
     BDBG_MSG(("CTX %p: VSB Frontend Src %p (ref count %d), Input Band %d & Parser Band %d (ref count %d) are opened",
-                ipStreamerCtx, vsbSrc, vsbSrc->refCount, userParams.param1, ipStreamerCtx->parserBandPtr->parserBand, ipStreamerCtx->parserBandPtr->refCount));
+                (void *)ipStreamerCtx, (void *)vsbSrc, vsbSrc->refCount, userParams.param1, (int)ipStreamerCtx->parserBandPtr->parserBand, ipStreamerCtx->parserBandPtr->refCount));
     return 0;
 
 error:
@@ -362,7 +354,7 @@ closeNexusVsbSrc(
         BKNI_AcquireMutex(ipStreamerCtx->parserBandPtr->lock);
         ipStreamerCtx->parserBandPtr->refCount--;
         BKNI_ReleaseMutex(ipStreamerCtx->parserBandPtr->lock);
-        BDBG_MSG(("CTX %p: Closed a parser band src %p, refCount %d", ipStreamerCtx, ipStreamerCtx->parserBandPtr, ipStreamerCtx->parserBandPtr->refCount));
+        BDBG_MSG(("CTX %p: Closed a parser band src %p, refCount %d", (void *)ipStreamerCtx, (void *)ipStreamerCtx->parserBandPtr, ipStreamerCtx->parserBandPtr->refCount));
     }
 
     if (!vsbSrc || !vsbSrc->refCount)
@@ -372,7 +364,7 @@ closeNexusVsbSrc(
     BKNI_AcquireMutex(vsbSrc->lock);
     vsbSrc->refCount--;
     BKNI_ReleaseMutex(vsbSrc->lock);
-    BDBG_MSG(("CTX %p: Closed a VSB src %p, refCount %d", ipStreamerCtx, vsbSrc, vsbSrc->refCount));
+    BDBG_MSG(("CTX %p: Closed a VSB src %p, refCount %d", (void *)ipStreamerCtx, (void *)vsbSrc, vsbSrc->refCount));
 }
 
 int
@@ -401,7 +393,7 @@ setupAndAcquirePsiInfoVsbSrc(
         BKNI_AcquireMutex(vsbSrc->lock);
         if (!vsbSrc->psiAcquiring) {
             /* no other thread is acquiring PSI */
-            BDBG_MSG(("CTX %p: Acquire Psi Info...", ipStreamerCtx));
+            BDBG_MSG(("CTX %p: Acquire Psi Info...", (void *)ipStreamerCtx));
             /* set flag to indicate this thread is getting PSI */
             vsbSrc->psiAcquiring = true;
             BKNI_ReleaseMutex(vsbSrc->lock);
@@ -418,7 +410,7 @@ setupAndAcquirePsiInfoVsbSrc(
         else {
             /* other thread is acquiring PSI, so wait for its completion */
             BKNI_ReleaseMutex(vsbSrc->lock);
-            BDBG_MSG(("CTX %p: Another thread is acquiring the PSI info, waiting for its completion...", ipStreamerCtx));
+            BDBG_MSG(("CTX %p: Another thread is acquiring the PSI info, waiting for its completion...", (void *)ipStreamerCtx));
             if (BKNI_WaitForEvent(vsbSrc->psiAcquiredEvent, 60000)) {
                 BDBG_ERR(("%s: timeout while waiting for PSI acquisition by another thread", __FUNCTION__));
                 return -1;
@@ -436,7 +428,7 @@ setupAndAcquirePsiInfoVsbSrc(
         i = 0;
     }
     else {
-        BDBG_MSG(("CTX %p: Requested sub-channel # (%d) is found in the total channels (%d) ", ipStreamerCtx, ipStreamerCfg->subChannel, vsbSrc->numProgramsFound));
+        BDBG_MSG(("CTX %p: Requested sub-channel # (%d) is found in the total channels (%d) ", (void *)ipStreamerCtx, ipStreamerCfg->subChannel, vsbSrc->numProgramsFound));
         i = ipStreamerCfg->subChannel - 1; /* sub-channels start from 1, where as psi table starts from 0 */
         if (i < 0) i = 0;
     }
@@ -456,7 +448,7 @@ startNexusVsbSrc(
     BKNI_AcquireMutex(vsbSrc->lock);
     if (vsbSrc->started) {
         BKNI_ReleaseMutex(vsbSrc->lock);
-        BDBG_MSG(("CTX %p: VSB Src %p is already started, refCount %d", ipStreamerCtx, vsbSrc, vsbSrc->refCount));
+        BDBG_MSG(("CTX %p: VSB Src %p is already started, refCount %d", (void *)ipStreamerCtx, (void *)vsbSrc, vsbSrc->refCount));
         return 0;
     }
 
@@ -471,13 +463,13 @@ startNexusVsbSrc(
 
     if (BKNI_WaitForEvent(vsbSrc->signalLockedEvent, 5000)) {
         BKNI_ReleaseMutex(vsbSrc->lock);
-        BDBG_MSG(("CTX %p: VSB Src %p failed to lock the signal ...", ipStreamerCtx, vsbSrc));
+        BDBG_MSG(("CTX %p: VSB Src %p failed to lock the signal ...", (void *)ipStreamerCtx, (void *)vsbSrc));
         return -1;
     }
 
     vsbSrc->started = true;
     BKNI_ReleaseMutex(vsbSrc->lock);
-    BDBG_MSG(("CTX %p: VSB Src %p is started ...", ipStreamerCtx, vsbSrc));
+    BDBG_MSG(("CTX %p: VSB Src %p is started ...", (void *)ipStreamerCtx, (void *)vsbSrc));
     return 0;
 }
 
@@ -496,10 +488,10 @@ stopNexusVsbSrc(
     if (refCount == 1) {
         NEXUS_Frontend_Untune(vsbSrc->frontendHandle);
         vsbSrc->started = false;
-        BDBG_MSG(("CTX %p: vsb Frontend Src is stopped ...", ipStreamerCtx));
+        BDBG_MSG(("CTX %p: vsb Frontend Src is stopped ...", (void *)ipStreamerCtx));
     }
     else {
-        BDBG_MSG(("CTX %p: vsb Frontend Src %p is not stopped, ref count %d ...", ipStreamerCtx, vsbSrc, refCount));
+        BDBG_MSG(("CTX %p: vsb Frontend Src %p is not stopped, ref count %d ...", (void *)ipStreamerCtx, (void *)vsbSrc, refCount));
     }
 }
 #else /* !NEXUS_HAS_FRONTEND */

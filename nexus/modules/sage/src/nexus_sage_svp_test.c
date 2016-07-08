@@ -1,43 +1,40 @@
 /******************************************************************************
-* (c) 2015 Broadcom Corporation
-*
-* This program is the proprietary software of Broadcom Corporation and/or its
-* licensors, and may only be used, duplicated, modified or distributed pursuant
-* to the terms and conditions of a separate, written license agreement executed
-* between you and Broadcom (an "Authorized License").  Except as set forth in
-* an Authorized License, Broadcom grants no license (express or implied), right
-* to use, or waiver of any kind with respect to the Software, and Broadcom
-* expressly reserves all rights in and to the Software and all intellectual
-* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1. This program, including its structure, sequence and organization,
-*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-*    reasonable efforts to protect the confidentiality thereof, and to use
-*    this information only in connection with your use of Broadcom integrated
-*    circuit products.
-*
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-******************************************************************************/
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ ******************************************************************************/
 
 #include "nexus_sage_module.h"
 
@@ -64,6 +61,7 @@
 #if defined(BCHP_MEMC_ARC_2_REG_START)
 #include "bchp_memc_arc_2.h"
 #endif
+#include "bchp_sun_gisb_arb.h"
 
 BDBG_MODULE(nexus_sage_svp_test);
 
@@ -131,9 +129,7 @@ typedef struct coreMapInfo {
 }coreMapInfo;
 
 #define CLIENT_INDEX_SIZE 8
-#define ARC_IDX_SECURE_SAGE_HEAP (BCHP_P_MEMC_COUNT)
-#define ARC_IDX_SECURE_VIDEO_HEAP (ARC_IDX_SECURE_SAGE_HEAP+1)
-#define ARC_IDX_MAX (ARC_IDX_SECURE_VIDEO_HEAP+1)
+#define ARC_IDX_MAX (BCHP_P_MEMC_COUNT)
 #define ARC_DELTA (BCHP_MEMC_ARC_0_ARC_1_CNTRL-BCHP_MEMC_ARC_0_ARC_0_CNTRL)
 #define SETINFO(MEMC, IDX, info) \
     info.cntrl = BCHP_MEMC_ARC_##MEMC##_ARC_##IDX##_CNTRL; \
@@ -142,9 +138,14 @@ typedef struct coreMapInfo {
     info.readStart = BCHP_MEMC_ARC_##MEMC##_ARC_##IDX##_READ_RIGHTS_0; \
     info.writeStart = BCHP_MEMC_ARC_##MEMC##_ARC_##IDX##_WRITE_RIGHTS_0;
 
+struct maskInfo {
+    uint32_t read;
+    uint32_t write;
+};
+
 struct memcInfo {
-    uint32_t exclusive_mask[CLIENT_INDEX_SIZE];
-    uint32_t nonexclusive_mask[CLIENT_INDEX_SIZE];
+    struct maskInfo exclusive[CLIENT_INDEX_SIZE];
+    struct maskInfo nonexclusive[CLIENT_INDEX_SIZE];
     NEXUS_Addr start;
     unsigned len;
 };
@@ -159,6 +160,8 @@ struct svpTestInfo {
     BBVN_Monitor_Status bvnStatus;
     coreMapInfo coreMap[BAVC_CoreId_eMax];
     bool init;
+    uint32_t v3dCount;
+    bool custom_arc;
 };
 
 struct arc_reg_info {
@@ -179,7 +182,7 @@ static const struct {
 #undef BCHP_P_MEMC_DEFINE_SVP_HWBLOCK
 };
 
-static void addClient(unsigned int client, bool add, uint32_t *mask)
+static void addClient(unsigned int client, bool add, struct maskInfo *exc, struct maskInfo *nonExc, BAVC_Access access)
 {
     int idx=0;
 
@@ -188,13 +191,38 @@ static void addClient(unsigned int client, bool add, uint32_t *mask)
         return;
     }
 
+    if(access>=BAVC_Access_eInvalid)
+    {
+        return;
+    }
+
     idx = client>>5;
     client %= 32;
 
     if(add)
-        mask[idx]|=(1<<client);
+    {
+        if(access!=BAVC_Access_eWO)
+        {
+            nonExc[idx].read|=(1<<client);
+        }
+        if(access!=BAVC_Access_eRO)
+        {
+            exc[idx].write|=(1<<client);
+            nonExc[idx].write|=(1<<client);
+        }
+    }
     else
-        mask[idx]&=~(1<<client);
+    {
+        if(access!=BAVC_Access_eWO)
+        {
+            nonExc[idx].read&=~(1<<client);
+        }
+        if(access!=BAVC_Access_eRO)
+        {
+            exc[idx].write&=~(1<<client);
+            nonExc[idx].write&=~(1<<client);
+        }
+    }
 }
 
 
@@ -238,11 +266,9 @@ static BERR_Code generateCoreMap(void)
                 for(j=0;j<BCHP_P_MEMC_COUNT;j++)
                 {
                     addClient(BMRC_P_astClientTbl[clientId].ausClientId[j],
-                              true, local_info.gConfig[j].nonexclusive_mask);
+                              true, local_info.gConfig[j].nonexclusive,
+                              local_info.gConfig[j].nonexclusive, BAVC_Access_eRW);
                 }
-                /* Also to CRR in host test code */
-                addClient(BMRC_P_astClientTbl[clientId].ausClientId[0],
-                          true, local_info.gConfig[ARC_IDX_SECURE_VIDEO_HEAP].nonexclusive_mask);
                 coreId=BAVC_CoreId_eNOT_MAP;
                 break;
             default:
@@ -278,20 +304,20 @@ static void dumpArcInfo(void)
     for(i=0;i<ARC_IDX_MAX;i++)
     {
         if(local_info.gConfig[i].len==0)
+        {
+            BDBG_MSG(("MEMC%d: N/A", i));
             continue;
+        }
 
-        if(i<BCHP_P_MEMC_COUNT)
-        {
-            BDBG_MSG(("MEMC%d: 0x%08x@0" BDBG_UINT64_FMT, i, local_info.gConfig[i].len, local_info.gConfig[i].start));
-        }
-        else
-        {
-            BDBG_MSG(("%s: 0x%08x@" BDBG_UINT64_FMT, (i==ARC_IDX_SECURE_SAGE_HEAP) ? "SRR" : "CRR"
-                      , local_info.gConfig[i].len, local_info.gConfig[i].start));
-        }
+        BDBG_MSG(("MEMC%d: 0x%08x@" BDBG_UINT64_FMT, i, local_info.gConfig[i].len,
+                  BDBG_UINT64_ARG(local_info.gConfig[i].start)));
         for(j=0;j<CLIENT_INDEX_SIZE;j++)
         {
-            BDBG_MSG(("\tE%d:NE%d\t0x%08x:0x%08x\n",j,j,local_info.gConfig[i].exclusive_mask[j],local_info.gConfig[i].nonexclusive_mask[j]));
+            BDBG_MSG(("\tE%d:NE%d\tW - 0x%08x:0x%08x\tR - 0x%08x:0x%08x", j, j,
+                      local_info.gConfig[i].exclusive[j].write,
+                      local_info.gConfig[i].nonexclusive[j].write,
+                      local_info.gConfig[i].exclusive[j].read,
+                      local_info.gConfig[i].nonexclusive[j].read));
         }
     }
 
@@ -301,6 +327,24 @@ static void dumpArcInfo(void)
         {
             BDBG_MSG(("CORE id[%d] - (%d)", i, local_info.coreList.aeCores[i]));
         }
+    }
+}
+
+static void dumpGisbViolation(void)
+{
+    uint32_t status;
+    uint32_t address;
+    uint32_t master;
+    master=BREG_Read32(g_pCoreHandles->reg, BCHP_SUN_GISB_ARB_BP_CAP_MASTER);
+    address=BREG_Read32(g_pCoreHandles->reg, BCHP_SUN_GISB_ARB_BP_CAP_ADDR);
+    status=BREG_Read32(g_pCoreHandles->reg, BCHP_SUN_GISB_ARB_BP_CAP_STATUS);
+
+    if(status&BCHP_SUN_GISB_ARB_BP_CAP_STATUS_valid_MASK)
+    {
+        BDBG_ERR(("GISB %s violation at address 0x%08x. MASTER=0x%08x",
+            (status&BCHP_SUN_GISB_ARB_BP_CAP_STATUS_write_MASK) ? "WRITE" : "READ",
+            address, master));
+        BREG_Write32(g_pCoreHandles->reg, BCHP_SUN_GISB_ARB_BP_CAP_CLR, 0x1);
     }
 }
 
@@ -322,6 +366,54 @@ static void dumpArcViolation(void)
     /* For SRR and CRR */
     VIOLATION_SHOW(0, 3, val);
     VIOLATION_SHOW(0, 5, val);
+}
+
+static void v3d_gisb(bool on)
+{
+    uint32_t start;
+    uint32_t end;
+    uint32_t mask;
+    uint32_t enable;
+
+#if defined(BCHP_V3D_DBG_REG_START)
+    start = BCHP_PHYSICAL_OFFSET + BCHP_V3D_DBG_REG_START;
+    end = BCHP_PHYSICAL_OFFSET + BCHP_V3D_DBG_REG_END;
+#elif defined(BCHP_V3D_QPUDBG_REG_START)
+    start = BCHP_PHYSICAL_OFFSET + BCHP_V3D_QPUDBG_REG_START;
+    end = BCHP_PHYSICAL_OFFSET + BCHP_V3D_QPUDBG_REG_END;
+#elif defined(BCHP_V3D_QPUDBG_0_REG_START)
+    start = BCHP_PHYSICAL_OFFSET + BCHP_V3D_QPUDBG_0_REG_START;
+    end = BCHP_PHYSICAL_OFFSET + BCHP_V3D_QPUDBG_0_REG_END;
+#else
+#error non-supported 3D HW
+#endif
+
+    if(on)
+    {
+        BREG_Write32(g_pCoreHandles->reg, BCHP_SUN_GISB_ARB_BP_CAP_CLR, 0x1);
+        enable=0x7;
+    }
+    else
+    {
+        enable=0x0;
+    }
+
+    mask=0xFFFFFFFF;
+    mask &= ~(BCHP_FIELD_DATA(SUN_GISB_ARB_BP_READ_0, bsp_0, 1));
+    mask &= ~(BCHP_FIELD_DATA(SUN_GISB_ARB_BP_READ_0, scpu_0, 1));
+    mask &= ~(BCHP_FIELD_DATA(SUN_GISB_ARB_BP_READ_0, reserved0, 1));
+    mask &= ~(BCHP_FIELD_DATA(SUN_GISB_ARB_BP_READ_0, reserved1, 1));
+    mask &= ~(BCHP_FIELD_DATA(SUN_GISB_ARB_BP_READ_0, reserved2, 1));
+    mask &= ~(BCHP_FIELD_DATA(SUN_GISB_ARB_BP_READ_0, reserved3, 1));
+
+    BREG_Write32(g_pCoreHandles->reg, BCHP_SUN_GISB_ARB_BP_START_ADDR_0, start);
+    BREG_Write32(g_pCoreHandles->reg, BCHP_SUN_GISB_ARB_BP_END_ADDR_0, end);
+    BREG_Write32(g_pCoreHandles->reg, BCHP_SUN_GISB_ARB_BP_READ_0, mask);
+    BREG_Write32(g_pCoreHandles->reg, BCHP_SUN_GISB_ARB_BP_WRITE_0, mask);
+
+    BREG_Write32(g_pCoreHandles->reg, BCHP_SUN_GISB_ARB_BP_ENABLE_0, enable);
+
+    BDBG_MSG(("%s V3D GISB BLOCKER: (0x%08x - 0x%08x)", on ? "ENABLE" :"DISABLE", start, end));
 }
 
 static void bvnMonitor_Uninit(void)
@@ -349,8 +441,10 @@ static void NEXUS_Sage_P_BvnMonitorThread(void *dummy)
         /* Overload usage of this thread... until/unless irq hooked up, poll the ARC's for violations */
         dumpArcViolation();
 
+        dumpGisbViolation();
+
         BKNI_AcquireMutex(local_info.bvnLock);
-        BBVN_Monitor_isr(local_info.hBvnMonitor, &local_info.coreList, &local_info.bvnStatus);
+        BBVN_Monitor_Check(local_info.hBvnMonitor, &local_info.coreList, &local_info.bvnStatus);
         BKNI_ReleaseMutex(local_info.bvnLock);
         if(local_info.bvnStatus.bViolation)
         {
@@ -400,14 +494,7 @@ ERROR_EXIT:
 static int arc_Init(void)
 {
     unsigned heapIndex;
-
-    /* When running as a NEXUS test, custom_arc MUST be defined, otherwise the unsecure ARC's
-    * will not be available for use */
-    if(!NEXUS_GetEnv("custom_arc"))
-    {
-        BDBG_ERR(("Test code will NOT function if custom_arc is NOT defined!\n"));
-        return -1;
-    }
+    NEXUS_Error rc;
 
     /* TODO: For NEXUS testing, setup interrupts for ARC violations? */
 
@@ -415,77 +502,61 @@ static int arc_Init(void)
     for (heapIndex=0;heapIndex<NEXUS_MAX_HEAPS;heapIndex++) {
         NEXUS_MemoryStatus status;
         NEXUS_HeapHandle heap = g_pCoreHandles->heap[heapIndex].nexus;
-        int8_t arcIdx=~0, memc;
 
         if (!heap) continue;
-        NEXUS_Heap_GetStatus(heap, &status);
-
-        /* Might as well throw ARC's around some other secure heaps as additional test vectors */
-        switch(heapIndex)
-        {
-            case NEXUS_SAGE_SECURE_HEAP:
-                arcIdx=ARC_IDX_SECURE_SAGE_HEAP;
-                memc=0;
-                break;
-            case NEXUS_VIDEO_SECURE_HEAP:
-                arcIdx=ARC_IDX_SECURE_VIDEO_HEAP;
-                memc=0;
-                break;
-            default:
-                if ((status.heapType & NEXUS_HEAP_TYPE_PICTURE_BUFFERS) &&
-                    (status.memoryType & NEXUS_MEMORY_TYPE_SECURE))
-                {
-                    arcIdx=status.memcIndex;
-                    memc=arcIdx;
-                }
-                break;
-
-        }
-
-        if(arcIdx==(__typeof__(arcIdx))~0)
+        rc=NEXUS_Heap_GetStatus(heap, &status);
+        if(rc!=NEXUS_SUCCESS)
         {
             continue;
         }
 
-        if(local_info.gConfig[arcIdx].start!=0)
+        if ((status.heapType & NEXUS_HEAP_TYPE_PICTURE_BUFFERS) &&
+            (status.memoryType & NEXUS_MEMORY_TYPE_SECURE))
         {
-            BDBG_ERR(("CANNOT HAVE MULTIPLE SECURE PICTURE BUFFERS per MEMC"));
+            if(local_info.gConfig[status.memcIndex].start!=0)
+            {
+                BDBG_ERR(("CANNOT HAVE MULTIPLE SECURE PICTURE BUFFERS per MEMC"));
+                continue;
+            }
+
+            local_info.gConfig[status.memcIndex].start = status.offset;
+            local_info.gConfig[status.memcIndex].len = status.size;
+
+            BDBG_MSG(("ARC Lock 0x%x@" BDBG_UINT64_FMT, status.size, BDBG_UINT64_ARG(status.offset)));
+
+            /* Secure HW can always access */
+            addClient(BMRC_P_astClientTbl[BCHP_MemcClient_eBSP].ausClientId[status.memcIndex], 1,
+                      local_info.gConfig[status.memcIndex].nonexclusive,
+                      local_info.gConfig[status.memcIndex].nonexclusive, BAVC_Access_eRW);
+            addClient(BMRC_P_astClientTbl[BCHP_MemcClient_eSCPU].ausClientId[status.memcIndex], 1,
+                      local_info.gConfig[status.memcIndex].nonexclusive,
+                      local_info.gConfig[status.memcIndex].nonexclusive, BAVC_Access_eRW);
+        }
+    }
+
+    /* Second pass for adjacent buffers */
+    for (heapIndex=0;heapIndex<NEXUS_MAX_HEAPS;heapIndex++) {
+        NEXUS_MemoryStatus status;
+        NEXUS_HeapHandle heap = g_pCoreHandles->heap[heapIndex].nexus;
+
+        if (!heap) continue;
+        rc=NEXUS_Heap_GetStatus(heap, &status);
+        if(rc!=NEXUS_SUCCESS)
+        {
             continue;
         }
 
-        local_info.gConfig[arcIdx].start = status.offset;
-        local_info.gConfig[arcIdx].len = status.size;
-
-        BDBG_MSG(("ARC Lock 0x%x@" BDBG_UINT64_FMT, status.size, status.offset));
-
-        /* Secure HW can always access */
-        addClient(BMRC_P_astClientTbl[BCHP_MemcClient_eBSP].ausClientId[memc], 1, local_info.gConfig[arcIdx].nonexclusive_mask);
-        addClient(BMRC_P_astClientTbl[BCHP_MemcClient_eSCPU].ausClientId[memc], 1, local_info.gConfig[arcIdx].nonexclusive_mask);
-
-        if(arcIdx==ARC_IDX_SECURE_VIDEO_HEAP)
+        if (status.heapType & NEXUS_HEAP_TYPE_SECURE_GRAPHICS)
         {
-            /* XPT Can access */
-            addClient(BMRC_P_astClientTbl[BCHP_MemcClient_eXPT_WR_RS].ausClientId[memc], 1, local_info.gConfig[arcIdx].nonexclusive_mask);
-            addClient(BMRC_P_astClientTbl[BCHP_MemcClient_eXPT_WR_XC].ausClientId[memc], 1, local_info.gConfig[arcIdx].nonexclusive_mask);
-            addClient(BMRC_P_astClientTbl[BCHP_MemcClient_eXPT_WR_CDB].ausClientId[memc], 1, local_info.gConfig[arcIdx].nonexclusive_mask);
-            addClient(BMRC_P_astClientTbl[BCHP_MemcClient_eXPT_WR_ITB_MSG].ausClientId[memc], 1, local_info.gConfig[arcIdx].nonexclusive_mask);
-            addClient(BMRC_P_astClientTbl[BCHP_MemcClient_eXPT_RD_RS].ausClientId[memc], 1, local_info.gConfig[arcIdx].nonexclusive_mask);
-            addClient(BMRC_P_astClientTbl[BCHP_MemcClient_eXPT_RD_XC_RMX_MSG].ausClientId[memc], 1, local_info.gConfig[arcIdx].nonexclusive_mask);
-            addClient(BMRC_P_astClientTbl[BCHP_MemcClient_eXPT_RD_XC_RAVE].ausClientId[memc], 1, local_info.gConfig[arcIdx].nonexclusive_mask);
-            addClient(BMRC_P_astClientTbl[BCHP_MemcClient_eXPT_RD_PB].ausClientId[memc], 1, local_info.gConfig[arcIdx].nonexclusive_mask);
-            addClient(BMRC_P_astClientTbl[BCHP_MemcClient_eXPT_WR_MEMDMA].ausClientId[memc], 1, local_info.gConfig[arcIdx].nonexclusive_mask);
-            addClient(BMRC_P_astClientTbl[BCHP_MemcClient_eXPT_RD_MEMDMA].ausClientId[memc], 1, local_info.gConfig[arcIdx].nonexclusive_mask);
-
-            /* RAAGA */
-            addClient(BMRC_P_astClientTbl[BCHP_MemcClient_eRAAGA].ausClientId[memc], 1, local_info.gConfig[arcIdx].nonexclusive_mask);
-            addClient(BMRC_P_astClientTbl[BCHP_MemcClient_eRAAGA_1].ausClientId[memc], 1, local_info.gConfig[arcIdx].nonexclusive_mask);
-#ifdef BCHP_RAAGA_DSP_RGR_1_REG_START
-            addClient(BMRC_P_astClientTbl[BCHP_MemcClient_eRAAGA1].ausClientId[memc], 1, local_info.gConfig[arcIdx].nonexclusive_mask);
-            addClient(BMRC_P_astClientTbl[BCHP_MemcClient_eRAAGA1_1].ausClientId[memc], 1, local_info.gConfig[arcIdx].nonexclusive_mask);
-#endif
+            /* This is a "upper" adjacent heap, adjust size only */
+            local_info.gConfig[status.memcIndex].len += status.size;
         }
-
-        /* TODO: VICE.... SID? */
+        if (status.heapType & NEXUS_HEAP_TYPE_PICTURE_BUFFER_EXT)
+        {
+            /* This is a "lower" adjacent heap, adjust size and offset */
+            local_info.gConfig[status.memcIndex].start = status.offset;
+            local_info.gConfig[status.memcIndex].len += status.size;
+        }
     }
 
     return NEXUS_SUCCESS;
@@ -494,6 +565,20 @@ static int arc_Init(void)
 static NEXUS_Error svpTestInit(void)
 {
     NEXUS_Error rc;
+
+    /* When running as a NEXUS test, custom_arc MUST be defined, otherwise the unsecure ARC's
+    * will not be available for use */
+    if(NEXUS_GetEnv("custom_arc"))
+    {
+        local_info.custom_arc=true;
+    }
+    else
+    {
+        local_info.init=true;
+        BDBG_ERR(("Test code will NOT function if custom_arc is NOT defined!\n"));
+        rc=BERR_TRACE(NEXUS_NOT_SUPPORTED);
+        goto EXIT;
+    }
 
     BKNI_CreateMutex(&local_info.bvnLock);
 
@@ -504,18 +589,21 @@ static NEXUS_Error svpTestInit(void)
 
     local_info.init=true;
 
+EXIT:
     BDBG_MSG(("SVP Test Code: INIT %s", (rc==NEXUS_SUCCESS) ? "OK" : "FAIL"));
-
     return rc;
 }
 
 static void svpTestUnint(void)
 {
-    bvnMonitor_Uninit();
+    if(local_info.custom_arc)
+    {
+        bvnMonitor_Uninit();
 
-    /* Ok to not do anything for ARC's, this is just test code */
+        /* Ok to not do anything for ARC's, this is just test code */
+        BKNI_DestroyMutex(local_info.bvnLock);
+    }
 
-    BKNI_DestroyMutex(local_info.bvnLock);
     BKNI_Memset(&local_info, 0, sizeof(local_info));
 
     BDBG_MSG(("SVP Test Code: TERM"));
@@ -526,7 +614,7 @@ static int setArch(void)
     uint32_t offset,  val;
     int i, j, k;
     uint32_t excl, nonExcl, mode;
-    uint32_t *mask;
+    struct maskInfo *mask;
     struct arc_reg_info arcInfo;
 
     excl=BCHP_FIELD_DATA(MEMC_ARC_0_ARC_0_CNTRL, WRITE_CHECK, 1);
@@ -557,12 +645,6 @@ static int setArch(void)
                 SETINFO(2, 0, arcInfo);
                 break;
 #endif
-            case ARC_IDX_SECURE_SAGE_HEAP:
-                SETINFO(0, 2, arcInfo);
-                break;
-            case ARC_IDX_SECURE_VIDEO_HEAP:
-                SETINFO(0, 4, arcInfo);
-                break;
             default:
                 BDBG_ERR(("Unsupported MEMC\n"));
                 return -1;
@@ -575,11 +657,11 @@ static int setArch(void)
             switch(j)
             {
                 case 0:
-                    mask = local_info.gConfig[i].exclusive_mask;
+                    mask = local_info.gConfig[i].exclusive;
                     mode = excl;
                     break;
                 case 1:
-                    mask = local_info.gConfig[i].nonexclusive_mask;
+                    mask = local_info.gConfig[i].nonexclusive;
                     mode = nonExcl;
                     break;
             }
@@ -595,8 +677,8 @@ static int setArch(void)
             BREG_Write32(g_pCoreHandles->reg, arcInfo.high + offset, (uint32_t)((local_info.gConfig[i].start + local_info.gConfig[i].len - 1)>>3));
             for(k=0;k<CLIENT_INDEX_SIZE;k++)
             {
-                BREG_Write32(g_pCoreHandles->reg, arcInfo.readStart + offset + (k*sizeof(uint32_t)), mask[k]);
-                BREG_Write32(g_pCoreHandles->reg, arcInfo.writeStart + offset + (k*sizeof(uint32_t)), mask[k]);
+                BREG_Write32(g_pCoreHandles->reg, arcInfo.readStart + offset + (k*sizeof(uint32_t)), mask[k].read);
+                BREG_Write32(g_pCoreHandles->reg, arcInfo.writeStart + offset + (k*sizeof(uint32_t)), mask[k].write);
             }
 
             /* Enable/Re-enable */
@@ -613,12 +695,51 @@ NEXUS_Error NEXUS_Sage_P_SecureCores_test(const BAVC_CoreList *pCoreList, bool a
     uint16_t scbClient;
     BAVC_CoreId coreId;
     bool dirty=false;
+    uint8_t count=0;
 
     /* TODO: This bit of code would normally be in SAGE init */
     if(!local_info.init)
     {
         if(svpTestInit()!=0)
             return NEXUS_NOT_AVAILABLE;
+    }
+
+    if(!local_info.custom_arc)
+    {
+        return NEXUS_NOT_AVAILABLE;
+    }
+
+    if(pCoreList->aeCores[BAVC_CoreId_eV3D_0])
+    {
+        count++;
+    }
+    if(pCoreList->aeCores[BAVC_CoreId_eV3D_1])
+    {
+        count++;
+    }
+
+    if(count)
+    {
+        if(add)
+        {
+            if(local_info.v3dCount==0)
+            {
+                v3d_gisb(add);
+            }
+            local_info.v3dCount+=count;
+        }
+        else
+        {
+            if(count>local_info.v3dCount)
+            {
+                BDBG_ERR(("INVALID V3D USAGE"));
+            }
+            local_info.v3dCount-=count;
+            if(local_info.v3dCount==0)
+            {
+                v3d_gisb(add);
+            }
+        }
     }
 
     /* Stop BVN monitor while list is updated */
@@ -652,24 +773,14 @@ NEXUS_Error NEXUS_Sage_P_SecureCores_test(const BAVC_CoreList *pCoreList, bool a
             if(scbClient==BCHP_MemcClient_eMax)
                 break;
 
-            BDBG_MSG(("%s Secure core %d (%d)", add ? "add" : "remove", scbClient, BMRC_P_astClientTbl[scbClient].ausClientId[0]));
+            BDBG_MSG(("%s Secure core [%d].%d (%d)", add ? "add" : "remove", coreId,
+                scbClient, BMRC_P_astClientTbl[scbClient].ausClientId[0]));
 
-            if(g_CoreIdAccess[coreId].eAccess==BAVC_Access_eRO)
+            for(memc=0;memc<BCHP_P_MEMC_COUNT;memc++)
             {
-                /* Readers are NOT exclusive */
-                for(memc=0;memc<BCHP_P_MEMC_COUNT;memc++)
-                {
-                    addClient(BMRC_P_astClientTbl[scbClient].ausClientId[memc], add, local_info.gConfig[memc].nonexclusive_mask);
-                }
-            }
-            else
-            {
-                /* Writers ARE exclusive */
-                for(memc=0;memc<BCHP_P_MEMC_COUNT;memc++)
-                {
-                    addClient(BMRC_P_astClientTbl[scbClient].ausClientId[memc], add, local_info.gConfig[memc].nonexclusive_mask);
-                    addClient(BMRC_P_astClientTbl[scbClient].ausClientId[memc], add, local_info.gConfig[memc].exclusive_mask);
-                }
+                addClient(BMRC_P_astClientTbl[scbClient].ausClientId[memc], add,
+                    local_info.gConfig[memc].exclusive,
+                    local_info.gConfig[memc].nonexclusive, g_CoreIdAccess[coreId].eAccess);
             }
         }
     }

@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2014 Broadcom Corporation
+ *     Broadcom Proprietary and Confidential. (c)2014 Broadcom.  All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -40,14 +40,32 @@
 #ifndef __BVC5_EVENT_MONITOR_PRIV_H__
 #define __BVC5_EVENT_MONITOR_PRIV_H__
 
+#include "bvc5_registers_priv.h"
+
 #define BVC5_P_EVENT_MONITOR_SCHED_TRACK     0
 #define BVC5_P_EVENT_MONITOR_TFU_TRACK       1
 #define BVC5_P_EVENT_MONITOR_NON_CORE_TRACKS 2
 
 /* These are per core, so are actually offsets */
+#if V3D_VER_AT_LEAST(3,3,0,0)
+#define BVC5_P_EVENT_MONITOR_CORE_CLE_BIN_TRACK 0
+#define BVC5_P_EVENT_MONITOR_CORE_PTB_BIN_TRACK 1
+#define BVC5_P_EVENT_MONITOR_CORE_CLE_RDR_TRACK 2
+#define BVC5_P_EVENT_MONITOR_CORE_TLB_RDR_TRACK 3
+
+#if INCLUDE_LEGACY_EVENT_TRACKS
+#define BVC5_P_EVENT_MONITOR_CORE_BIN_TRACK     4
+#define BVC5_P_EVENT_MONITOR_CORE_RENDER_TRACK  5
+#define BVC5_P_EVENT_MONITOR_NUM_CORE_TRACKS    6
+#else
+#define BVC5_P_EVENT_MONITOR_NUM_CORE_TRACKS    4
+#endif
+
+#else
 #define BVC5_P_EVENT_MONITOR_CORE_BIN_TRACK     0
 #define BVC5_P_EVENT_MONITOR_CORE_RENDER_TRACK  1
 #define BVC5_P_EVENT_MONITOR_NUM_CORE_TRACKS    2
+#endif
 
 #define BVC5_P_EVENT_MONITOR_NUM_TRACKS (BVC5_P_EVENT_MONITOR_NON_CORE_TRACKS + BVC5_P_EVENT_MONITOR_NUM_CORE_TRACKS * BVC5_MAX_CORES)
 
@@ -87,6 +105,16 @@ typedef struct BVC5_P_EventBuffer
    bool         bOverflow;
 } BVC5_P_EventBuffer;
 
+#define BVC5_P_JOB_FIFO_LEN 2
+
+typedef struct BVC5_P_JobFifo
+{
+   BVC5_P_InternalJob     *uiJobs[BVC5_P_JOB_FIFO_LEN];
+   uint8_t                 uiWriteIndx;
+   uint8_t                 uiReadIndx;
+   uint8_t                 uiCount;
+} BVC5_P_JobFifo;
+
 typedef struct BVC5_P_EventMonitor
 {
    uint32_t                uiNumTracks;
@@ -100,6 +128,17 @@ typedef struct BVC5_P_EventMonitor
 
    bool                    bActive;
    uint32_t                uiSchedTrackNextId;
+
+   uint32_t                uiCyclesPerUs;
+
+#if V3D_VER_AT_LEAST(3,3,0,0)
+   BVC5_P_JobFifo          sRenderJobFifoCLE;
+   BVC5_P_JobFifo          sRenderJobFifoTLB;
+   BVC5_P_JobFifo          sBinJobFifoCLE;
+   BVC5_P_JobFifo          sBinJobFifoPTB;
+   BVC5_P_JobFifo          sFifoTFU;
+#endif
+
 } BVC5_P_EventMonitor;
 
 void BVC5_P_InitEventMonitor(
@@ -111,7 +150,8 @@ bool BVC5_P_AddEvent(
    uint32_t       uiTrack,
    uint32_t       uiId,
    uint32_t       uiEventIndex,
-   BVC5_EventType eEventType
+   BVC5_EventType eEventType,
+   uint64_t       uiTimestamp
    );
 
 bool BVC5_P_AddFlushEvent(
@@ -120,13 +160,15 @@ bool BVC5_P_AddFlushEvent(
    BVC5_EventType eEventType,
    bool           clearL3,
    bool           clearL2C,
-   bool           clearL2T
+   bool           clearL2T,
+   uint64_t       uiTimestamp
    );
 
 bool BVC5_P_AddTFUJobEvent(
    BVC5_Handle          hVC5,
    BVC5_EventType       eEventType,
-   BVC5_P_InternalJob  *psJob
+   BVC5_P_InternalJob  *psJob,
+   uint64_t             uiTimestamp
    );
 
 bool BVC5_P_AddCoreEvent(
@@ -135,7 +177,8 @@ bool BVC5_P_AddCoreEvent(
    uint32_t       uiTrack,
    uint32_t       uiId,
    uint32_t       uiEventIndex,
-   BVC5_EventType eEventType
+   BVC5_EventType eEventType,
+   uint64_t       uiTimestamp
    );
 
 bool BVC5_P_AddCoreEventCJ(
@@ -144,7 +187,8 @@ bool BVC5_P_AddCoreEventCJ(
    uint32_t             uiTrack,
    uint32_t             uiEventIndex,
    BVC5_EventType       eEventType,
-   BVC5_P_InternalJob  *psJob
+   BVC5_P_InternalJob  *psJob,
+   uint64_t             uiTimestamp
    );
 
 bool BVC5_P_AddCoreJobEvent(
@@ -153,7 +197,8 @@ bool BVC5_P_AddCoreJobEvent(
    uint32_t             uiTrack,
    uint32_t             uiEventIndex,
    BVC5_EventType       eEventType,
-   BVC5_P_InternalJob  *psJob
+   BVC5_P_InternalJob  *psJob,
+   uint64_t             uiTimestamp
    );
 
 void BVC5_P_EventMemStats(
@@ -165,6 +210,15 @@ void BVC5_P_EventMemStats(
 void BVC5_P_EventsRemoveClient(
    BVC5_Handle    hVC5,
    uint32_t       uiClientId
+   );
+
+void BVC5_P_PushJobFifo(
+   BVC5_P_JobFifo     *pFifo,
+   BVC5_P_InternalJob *pJob
+   );
+
+BVC5_P_InternalJob *BVC5_P_PopJobFifo(
+   BVC5_P_JobFifo *pFifo
    );
 
 #endif /* __BVC5_EVENT_MONITOR_PRIV_H__ */

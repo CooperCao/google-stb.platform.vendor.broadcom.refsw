@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2011-2014 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #include "nexus_surface_compositor_module.h"
@@ -453,6 +445,9 @@ NEXUS_Error NEXUS_SurfaceClient_SetSurface( NEXUS_SurfaceClientHandle client, NE
     }
     if(client->set.serverSurface==NULL) {
         client->set.serverCreateSettings = createSettings;
+        if (client->server->secureFramebuffer) {
+            client->set.serverCreateSettings.heap = client->server->settings.display[0].framebuffer.heap;
+        }
         client->set.serverSurface = NEXUS_Surface_Create(&client->set.serverCreateSettings);
         if (!client->set.serverSurface) {
             return BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY);
@@ -697,10 +692,6 @@ void NEXUS_SurfaceClient_Clear( NEXUS_SurfaceClientHandle client )
         client->set.serverSurface = NULL;
         client->set.dirty = false;
         client->set.updating = false;
-        if(client->state.cache.surface) {
-            NEXUS_Surface_Destroy(client->state.cache.surface);
-            client->state.cache.surface = NULL;
-        }
         break;
     case client_type_push:
         /* recycle multibuffering queue */
@@ -821,37 +812,6 @@ NEXUS_Error NEXUS_SurfaceClient_GetStatus( NEXUS_SurfaceClientHandle client, NEX
     }
 
     return 0;
-}
-
-NEXUS_Error NEXUS_SurfaceClient_AcquireTunneledSurface( NEXUS_SurfaceClientHandle client, NEXUS_SurfaceHandle *pSurface )
-{
-    BDBG_OBJECT_ASSERT(client, NEXUS_SurfaceClient);
-    BSTD_UNUSED(pSurface);
-    return BERR_TRACE(NEXUS_NOT_SUPPORTED);
-}
-
-void NEXUS_SurfaceClient_ReleaseTunneledSurface( NEXUS_SurfaceClientHandle client, NEXUS_SurfaceHandle surface )
-{
-    BDBG_OBJECT_ASSERT(client, NEXUS_SurfaceClient);
-    BSTD_UNUSED(surface);
-}
-
-NEXUS_Error NEXUS_SurfaceClient_PushTunneledSurface( NEXUS_SurfaceClientHandle client, NEXUS_SurfaceHandle surface, const NEXUS_Rect *pUpdateRect, bool infront)
-{
-    BDBG_OBJECT_ASSERT(client, NEXUS_SurfaceClient);
-    BSTD_UNUSED(surface);
-    BSTD_UNUSED(pUpdateRect);
-    BSTD_UNUSED(infront);
-    return BERR_TRACE(NEXUS_NOT_SUPPORTED);
-}
-
-NEXUS_Error NEXUS_SurfaceClient_RecycleTunneledSurface( NEXUS_SurfaceClientHandle client, NEXUS_SurfaceHandle *recycled, size_t num_entries, size_t *num_returned )
-{
-    BDBG_OBJECT_ASSERT(client, NEXUS_SurfaceClient);
-    BSTD_UNUSED(recycled);
-    BSTD_UNUSED(num_entries);
-    BSTD_UNUSED(num_returned);
-    return BERR_TRACE(NEXUS_NOT_SUPPORTED);
 }
 
 NEXUS_Error NEXUS_SurfaceClient_PublishSurface( NEXUS_SurfaceClientHandle client )

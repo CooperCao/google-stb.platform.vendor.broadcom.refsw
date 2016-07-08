@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2013 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,6 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
  **************************************************************************/
 #ifndef NEXUS_TYPES_H__
 #define NEXUS_TYPES_H__
@@ -67,7 +57,7 @@ Description:
 See Also:
 NEXUS_InputBand_SetSettings
 **/
-typedef unsigned NEXUS_InputBand;
+typedef unsigned long NEXUS_InputBand;
 #define NEXUS_InputBand_e0 (0)
 #define NEXUS_InputBand_e1 (1)
 #define NEXUS_InputBand_e2 (2)
@@ -97,34 +87,33 @@ Nexus supports playback parser bands through the Playpump and Playback interface
 See Also:
 NEXUS_ParserBand_SetSettings
 **/
-typedef enum {
-    NEXUS_ParserBand_eInvalid = -1,
-    NEXUS_ParserBand_e0 = 0,
-    NEXUS_ParserBand_e1,
-    NEXUS_ParserBand_e2,
-    NEXUS_ParserBand_e3,
-    NEXUS_ParserBand_e4,
-    NEXUS_ParserBand_e5,
-    NEXUS_ParserBand_e6,
-    NEXUS_ParserBand_e7,
-    NEXUS_ParserBand_e8,
-    NEXUS_ParserBand_e9,
-    NEXUS_ParserBand_e10,
-    NEXUS_ParserBand_e11,
-    NEXUS_ParserBand_e12,
-    NEXUS_ParserBand_e13,
-    NEXUS_ParserBand_e14,
-    NEXUS_ParserBand_e15,
-    NEXUS_ParserBand_e16,
-    NEXUS_ParserBand_e17,
-    NEXUS_ParserBand_e18,
-    NEXUS_ParserBand_e19,
-    NEXUS_ParserBand_e20,
-    NEXUS_ParserBand_e21,
-    NEXUS_ParserBand_e22,
-    NEXUS_ParserBand_e23,
-    NEXUS_ParserBand_eMax
-} NEXUS_ParserBand;
+typedef unsigned long NEXUS_ParserBand;
+#define NEXUS_ParserBand_eInvalid  ((NEXUS_ParserBand)(-1))
+#define NEXUS_ParserBand_e0 (0)
+#define NEXUS_ParserBand_e1 (1)
+#define NEXUS_ParserBand_e2 (2)
+#define NEXUS_ParserBand_e3 (3)
+#define NEXUS_ParserBand_e4 (4)
+#define NEXUS_ParserBand_e5 (5)
+#define NEXUS_ParserBand_e6 (6)
+#define NEXUS_ParserBand_e7 (7)
+#define NEXUS_ParserBand_e8 (8)
+#define NEXUS_ParserBand_e9 (9)
+#define NEXUS_ParserBand_e10 (10)
+#define NEXUS_ParserBand_e11 (11)
+#define NEXUS_ParserBand_e12 (12)
+#define NEXUS_ParserBand_e13 (13)
+#define NEXUS_ParserBand_e14 (14)
+#define NEXUS_ParserBand_e15 (15)
+#define NEXUS_ParserBand_e16 (16)
+#define NEXUS_ParserBand_e17 (17)
+#define NEXUS_ParserBand_e18 (18)
+#define NEXUS_ParserBand_e19 (19)
+#define NEXUS_ParserBand_e20 (20)
+#define NEXUS_ParserBand_e21 (21)
+#define NEXUS_ParserBand_e22 (22)
+#define NEXUS_ParserBand_e23 (23)
+#define NEXUS_ParserBand_eMax (24)
 
 /**
 Summary:
@@ -215,25 +204,23 @@ Description:
 See Also:
 NEXUS_Timebase_SetSettings
 **/
-typedef enum
-{
-    NEXUS_Timebase_eInvalid=-1,
-    NEXUS_Timebase_e0 = 0,
-    NEXUS_Timebase_e1,
-    NEXUS_Timebase_e2,
-    NEXUS_Timebase_e3,
-    NEXUS_Timebase_e4,
-    NEXUS_Timebase_e5,
-    NEXUS_Timebase_e6,
-    NEXUS_Timebase_e7,
-    NEXUS_Timebase_e8,
-    NEXUS_Timebase_e9,
-    NEXUS_Timebase_e10,
-    NEXUS_Timebase_e11,
-    NEXUS_Timebase_e12,
-    NEXUS_Timebase_e13,
-    NEXUS_Timebase_eMax
-} NEXUS_Timebase;
+typedef unsigned long NEXUS_Timebase;
+#define NEXUS_Timebase_eInvalid ((NEXUS_Timebase)(-1))
+#define NEXUS_Timebase_e0 (0)
+#define NEXUS_Timebase_e1 (1)
+#define NEXUS_Timebase_e2 (2)
+#define NEXUS_Timebase_e3 (3)
+#define NEXUS_Timebase_e4 (4)
+#define NEXUS_Timebase_e5 (5)
+#define NEXUS_Timebase_e6 (6)
+#define NEXUS_Timebase_e7 (7)
+#define NEXUS_Timebase_e8 (8)
+#define NEXUS_Timebase_e9 (9)
+#define NEXUS_Timebase_e10 (10)
+#define NEXUS_Timebase_e11 (11)
+#define NEXUS_Timebase_e12 (12)
+#define NEXUS_Timebase_e13 (13)
+#define NEXUS_Timebase_eMax (14)
 
 /**
 Summary:
@@ -678,6 +665,9 @@ typedef unsigned NEXUS_MemoryType;
 #define NEXUS_HEAP_TYPE_GRAPHICS                     0x00010
 /* SECONDARY_GRAPHICS is used for off-screen graphics which are not accessible by VC4; not to be confused with GFD RTS */
 #define NEXUS_HEAP_TYPE_SECONDARY_GRAPHICS           0x00020
+#define NEXUS_HEAP_TYPE_EXPORT_REGION                0x00040
+#define NEXUS_HEAP_TYPE_SECURE_GRAPHICS              0x00080
+#define NEXUS_HEAP_TYPE_PICTURE_BUFFER_EXT           0x00100
 
 /***************************************************************************
 Summary:

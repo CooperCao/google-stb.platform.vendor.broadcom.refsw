@@ -1,43 +1,41 @@
 /******************************************************************************
-* (c) 2004-2015 Broadcom Corporation
-*
-* This program is the proprietary software of Broadcom Corporation and/or its
-* licensors, and may only be used, duplicated, modified or distributed pursuant
-* to the terms and conditions of a separate, written license agreement executed
-* between you and Broadcom (an "Authorized License").  Except as set forth in
-* an Authorized License, Broadcom grants no license (express or implied), right
-* to use, or waiver of any kind with respect to the Software, and Broadcom
-* expressly reserves all rights in and to the Software and all intellectual
-* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1. This program, including its structure, sequence and organization,
-*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-*    reasonable efforts to protect the confidentiality thereof, and to use
-*    this information only in connection with your use of Broadcom integrated
-*    circuit products.
-*
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-******************************************************************************/
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ *
+ ******************************************************************************/
 
 #include "bstd.h"
 #include "bkni.h"
@@ -57,6 +55,7 @@ BDBG_FILE_MODULE(BSID_INT);
 BDBG_FILE_MODULE(BSID_CDB_ITB);
 BDBG_FILE_MODULE(BSID_START_DECODE);
 BDBG_FILE_MODULE(BSID_STOP_DECODE);
+BDBG_FILE_MODULE(BSID_METADATA);
 
 #define BSID_SIGNAL_MBX_RESPONSE_READY  BCHP_SID_ARC_CPU_INTGEN_SET_CPU_2_HST_MASK /* response ready isr */
 
@@ -254,6 +253,8 @@ static BERR_Code ReadItb4ByteAt_isr(BSID_ChannelHandle hSidCh, uint32_t ItbRead,
 static bool GetNextPicItbInfo_isr(BSID_Handle hSid, BSID_ChannelHandle hSidCh, uint32_t *BaseAddress, uint32_t *Pts);
 static void PrepareNextUnifiedPicture_isr(BSID_ChannelHandle  hSidCh, BXDM_Picture *pUnifiedPicture, uint32_t displayReadIndex);
 static BSID_LinearBuffer * LookUp_Buffer_isr(BSID_ChannelHandle hSidCh, uint32_t offset);
+static uint32_t NewMetadataEntry(BSID_ChannelHandle hSidCh, BSID_DataQueueEntry *psDataQueueEntry, void *pImageInfo);
+static void FreeMetadataEntry_isr(BSID_ChannelHandle hSidCh, uint32_t uiMetadataIndex);
 
 /******************************************************************************
 * Function name: BSID_P_SetMailboxInfo
@@ -310,18 +311,25 @@ void BSID_P_Dispatch_isr(void *pv_Param1, int iParam2)
         if (ui32_IrqSource & (1<<ui32_ChannelNumber))
         {
             BSID_ChannelHandle      hSidCh = hSid->ahChannel[ui32_ChannelNumber];
-            BSID_CommandQueueHeader       *psQueueHeader = (BSID_CommandQueueHeader *)hSidCh->sRelQueue.sBuf.pv_CachedAddr;
-            BMMA_Block_Handle hRelQBlock = hSidCh->sRelQueue.sBuf.hBlock;
-            BSID_RelQueueEntry     *psQueueEntry;
+            BSID_CommandQueueHeader *psQueueHeader = (BSID_CommandQueueHeader *)hSidCh->sRelQueue.sBuf.pv_CachedAddr;
+            BMMA_Block_Handle       hRelQBlock = hSidCh->sRelQueue.sBuf.hBlock;
+            BSID_RelQueueEntry      *psQueueEntry;
             BSID_CallbackFunc       pvCallbackFunc_isr;
             uint32_t                ui32_CallbackEvents;
-            void                   *pv_CallbackData;
+            void                    *pv_CallbackData;
             BSID_NotificationEvent  eEvent = 0x0;
             bool                    ChannelOperationsCompleted = false;
 
             BDBG_MODULE_MSG(BSID_INT, ("Processing Channel Num: 0x%x, reqQ = %p", ui32_ChannelNumber, hSidCh->sReqQueue.sBuf.pv_CachedAddr));
 
             BMMA_FlushCache(hRelQBlock, (void *)psQueueHeader, sizeof(BSID_CommandQueueHeader));
+
+            /* NOTE: The queue can be empty during a "wait for data" request */
+            if ((psQueueHeader->ui32_ReadIndex == psQueueHeader->ui32_WriteIndex) && !psQueueHeader->ui32_WaitForData)
+            {
+               /* this indicates something went wrong in the FW */
+               BDBG_WRN(("Channel[%d]: IRQ but channel release Q is empty!", ui32_ChannelNumber));
+            }
 
             while (psQueueHeader->ui32_ReadIndex != psQueueHeader->ui32_WriteIndex)
             {
@@ -348,18 +356,20 @@ void BSID_P_Dispatch_isr(void *pv_Param1, int iParam2)
                 /* get info events */
                 if (psQueueEntry->rspHeader.header == BSID_MSG_HDR_GETSTREAMINFO)
                 {
-                    /* FIXME: This should not retrieve virtual pointer from the FW structure - it should
-                       maintain them locally in a metadata queue; this woula avoid any type conversion when
-                       going from PI to FW and vice-versa */
-                    SID_ImageHeader *pFWImageHeader = (SID_ImageHeader *)psQueueEntry->sidMemStreamInfoBufVirtAddr;       /* address where the FW has deposited the image header */
-                    BSID_ImageHeader *pUserImageHeaderBuffer = (BSID_ImageHeader *)psQueueEntry->streamInfoBufVirtAddr;   /* location where the user/application wants the header to go */
-
+                    BSID_P_MetadataEntry *pMetadataEntry = &hSidCh->pMetadata[psQueueEntry->uiMetadataIndex];
+                    /* where the FW has deposited the image header ... */
+                    /* NOTE: This corresponds to an entry in the data queue */
+                    SID_ImageHeader *pFWImageHeader = (SID_ImageHeader *)pMetadataEntry->pvStreamInfoFWAddr;
+                    /* where the application wants the header to go ... */
+                    BSID_ImageHeader *pUserImageHeaderBuffer = (BSID_ImageHeader *)pMetadataEntry->pStreamInfoDestAddr;
+                    /* NOTE: This will error check the index and give an error if an attempt is made to free an invalid entry */
+                    FreeMetadataEntry_isr(hSidCh, psQueueEntry->uiMetadataIndex);
+                    /* read the header from the FW */
                     BMMA_FlushCache(hSidCh->sDataQueue.sBuf.hBlock, (void *)pFWImageHeader, sizeof(SID_ImageHeader));
                     BKNI_Memcpy((void *)pUserImageHeaderBuffer, (void *)pFWImageHeader, sizeof(BSID_ImageHeader));
-
+                     /* convert enum fields from FW constants to magnum constants */
                     pUserImageHeaderBuffer->e_PixelFormat = ae_PxlFmtPi2Pxl[hSid->sFwHwConfig.b_EndianessSwap][ae_PxlFmtArc2Pi[pFWImageHeader->ePixelFormat][pFWImageHeader->ui32_BitPerPixel]];
                     pUserImageHeaderBuffer->e_ClutPixelFormat = ae_ClutPxlFmtPi2Pxl[hSid->sFwHwConfig.b_EndianessSwap][(pFWImageHeader->eClutPixelFormat == SID_OUT_RGBA) ? 0 : 1];
-                    /*BMMA_FlushCache(hSidCh->sDataQueue.sBuf.hBlock, (void *)ps_SwapImageHeader, sizeof(BSID_ImageHeader));*/
 
                     if (pUserImageHeaderBuffer->e_PixelFormat == BPXL_INVALID)
                     {
@@ -408,17 +418,17 @@ void BSID_P_Dispatch_isr(void *pv_Param1, int iParam2)
                     }
                 }
 
+                /* free release Q entry (the response) */
                 BSID_INCR_INDEX(psQueueHeader->ui32_ReadIndex, hSidCh->ui32_QueueTrueDepth);
-
                 BMMA_FlushCache(hRelQBlock, (void *)psQueueHeader, sizeof(BSID_CommandQueueHeader));
             }
 
             if (psQueueHeader->ui32_WaitForData)
             {
+                BDBG_MODULE_MSG(BSID_INT, ("Waiting for data (flush pending = %d, abort initiated = %d)", hSidCh->b_FlushPending, hSidCh->bAbortInitiated));
                 /* if wait for more data occurs during pending abort, we ignore it */
                 if ((hSidCh->e_ChannelType == BSID_ChannelType_eStill) && !hSidCh->bAbortInitiated)
                 {
-                    BDBG_MODULE_MSG(BSID_INT, ("Waiting for data (flush pending = %d, abort initiated = %d)", hSidCh->b_FlushPending, hSidCh->bAbortInitiated));
                     if (hSidCh->b_FlushPending == false)
                     {
                         pvCallbackFunc_isr = hSidCh->sChSettings.u_ChannelSpecific.still.p_CallbackFunc_isr;
@@ -461,10 +471,12 @@ void BSID_P_Dispatch_isr(void *pv_Param1, int iParam2)
                 BMMA_FlushCache(hReqQBlock, (void *)psQueueHeader, sizeof(BSID_CommandQueueHeader));
                 if (psQueueHeader->ui32_ReadIndex == psQueueHeader->ui32_WriteIndex)
                 {
+                    /* this indicates that all commands were read by the FW, so we need to clear the request */
                     uint32_t ui32_hst2cpu = BREG_Read32(hSid->hReg, BCHP_SID_ARC_HST2CPU_STAT);
                     ui32_hst2cpu &= ~(1 << ui32_ChannelNumber);
                     BREG_Write32(hSid->hReg, BCHP_SID_ARC_HST2CPU_STAT, ui32_hst2cpu);
                 }
+                /* otherwise, there are still commands to be processed by FW */
             }
 
             /* clear current channel request */
@@ -523,30 +535,28 @@ BERR_Code BSID_P_SendCmdInit(BSID_Handle hSid)
    BDBG_ENTER(BSID_P_SendCmdInit);
 
    /* prepare cmd body */
-   {
-       ps_InitCmd->cmdHdr.header    = BSID_MSG_HDR_INIT;
-       ps_InitCmd->cmdHdr.sequence  = 0;
-       ps_InitCmd->cmdHdr.needAck   = needAck;
+   ps_InitCmd->cmdHdr.header    = BSID_MSG_HDR_INIT;
+   ps_InitCmd->cmdHdr.sequence  = 0;
+   ps_InitCmd->cmdHdr.needAck   = needAck;
 
-       ps_InitCmd->frequency        = BSID_P_ARC_CPU_FREQUENCY;
-       ps_InitCmd->baudRate         = BSID_P_ARC_UART_BAUDRATE;
-       ps_InitCmd->mbxCmdBufAddr    = hSid->sMailbox.ui32_CmdQPhysAddr;
-       ps_InitCmd->mbxRspBufAddr    = hSid->sMailbox.ui32_RspQPhysAddr;
-       ps_InitCmd->mbxCmdRspBufSize = hSid->sFwHwConfig.sMbxMemory.sCmd.ui32_Size;
-       ps_InitCmd->memMode          = hSid->sFwHwConfig.eMemoryMode;
-       ps_InitCmd->memBase          = hSid->sFwHwConfig.sDataMemory.ui32_PhysAddr;
-       ps_InitCmd->memSize          = hSid->sFwHwConfig.sDataMemory.ui32_Size;
-       ps_InitCmd->msBufBase        = 0x00000000; /* provided decode time */
-       ps_InitCmd->msBufSize        = 0x00000000; /* provided decode time */
-       ps_InitCmd->dmaInfoBufAddr   = hSid->sFwHwConfig.sInpDmaMemory.ui32_PhysAddr;
-       ps_InitCmd->dmaInfoBufSize   = hSid->sFwHwConfig.sInpDmaMemory.ui32_Size;
-       ps_InitCmd->endianessSwap    = hSid->sFwHwConfig.b_EndianessSwap;
-       ps_InitCmd->jpegFiltMode     = hSid->sFwHwConfig.ui16_JPEGHorizAndVerFilt;
-       ps_InitCmd->alphaValue       = hSid->sFwHwConfig.ui8_AlphaValue;
-       ps_InitCmd->dbgMsgOn         = BSID_ARC_INIT_MSG_ENABLE;
-   }
+   ps_InitCmd->frequency        = BSID_P_ARC_CPU_FREQUENCY;
+   ps_InitCmd->baudRate         = BSID_P_ARC_UART_BAUDRATE;
+   ps_InitCmd->mbxCmdBufAddr    = hSid->sMailbox.ui32_CmdQPhysAddr;
+   ps_InitCmd->mbxRspBufAddr    = hSid->sMailbox.ui32_RspQPhysAddr;
+   ps_InitCmd->mbxCmdRspBufSize = hSid->sFwHwConfig.sMbxMemory.sCmd.ui32_Size;
+   ps_InitCmd->memMode          = hSid->sFwHwConfig.eMemoryMode;
+   ps_InitCmd->memBase          = hSid->sFwHwConfig.sDataMemory.ui32_PhysAddr;
+   ps_InitCmd->memSize          = hSid->sFwHwConfig.sDataMemory.ui32_Size;
+   ps_InitCmd->msBufBase        = 0x00000000; /* provided decode time */
+   ps_InitCmd->msBufSize        = 0x00000000; /* provided decode time */
+   ps_InitCmd->dmaInfoBufAddr   = hSid->sFwHwConfig.sInpDmaMemory.ui32_PhysAddr;
+   ps_InitCmd->dmaInfoBufSize   = hSid->sFwHwConfig.sInpDmaMemory.ui32_Size;
+   ps_InitCmd->endianessSwap    = hSid->sFwHwConfig.b_EndianessSwap;
+   ps_InitCmd->jpegFiltMode     = hSid->sFwHwConfig.ui16_JPEGHorizAndVerFilt;
+   ps_InitCmd->alphaValue       = hSid->sFwHwConfig.ui8_AlphaValue;
+   ps_InitCmd->dbgMsgOn         = BSID_ARC_INIT_MSG_ENABLE;
 
-   BDBG_MODULE_MSG(BSID_CMD, ("[MBOX] cmd @%p rsp @%p => init sent", ps_InitCmd, ps_InitRsp));
+   BDBG_MODULE_MSG(BSID_CMD, ("[MBOX] cmd @%p rsp @%p => init sent", (void *)ps_InitCmd, (void *)ps_InitRsp));
    BDBG_MODULE_MSG(BSID_CMD, ("frequency     = 0x%x", ps_InitCmd->frequency));
    BDBG_MODULE_MSG(BSID_CMD, ("baudRate      = 0x%x", ps_InitCmd->baudRate));
    BDBG_MODULE_MSG(BSID_CMD, ("cmd buf       = 0x%x", ps_InitCmd->mbxCmdBufAddr));
@@ -568,6 +578,7 @@ BERR_Code BSID_P_SendCmdInit(BSID_Handle hSid)
    }
 
    /* FIXME: extract FW and HW revision information and store (in context) for status report */
+   /* Also, need to have PNG widths in response since they are FW memory dependent */
 
    BDBG_MSG(("cmd init done"));
 
@@ -594,22 +605,19 @@ BERR_Code BSID_P_SendCmdOpenChannel(BSID_ChannelHandle hSidCh)
    BDBG_ENTER(BSID_P_SendCmdOpenChannel);
 
    /* prepare cmd body */
-   {
-       ps_OpenChannelCmd->cmdHdr.header   = BSID_MSG_HDR_OPENCHANNEL;
-       ps_OpenChannelCmd->cmdHdr.sequence = hSidCh->ui32_SequenceNumber++;
-       ps_OpenChannelCmd->cmdHdr.needAck  = needAck;
+   ps_OpenChannelCmd->cmdHdr.header   = BSID_MSG_HDR_OPENCHANNEL;
+   ps_OpenChannelCmd->cmdHdr.sequence = hSidCh->ui32_SequenceNumber++;
+   ps_OpenChannelCmd->cmdHdr.needAck  = needAck;
 
+   ps_OpenChannelCmd->channelID       = hSidCh->ui32_ChannelID;
+   ps_OpenChannelCmd->channelNumber   = hSidCh->ui32_ChannelNum;
+   ps_OpenChannelCmd->priority        = hSidCh->sChSettings.ui32_ChannelPriority;
+   ps_OpenChannelCmd->reqQueueAddr    = hSidCh->sReqQueue.sBuf.ui32_PhysAddr;
+   ps_OpenChannelCmd->relQueueAddr    = hSidCh->sRelQueue.sBuf.ui32_PhysAddr;
+   ps_OpenChannelCmd->queueDepth      = hSidCh->ui32_QueueTrueDepth;
+   ps_OpenChannelCmd->dbgMsgOn        = BSID_ARC_OPENCHANNEL_MSG_ENABLE;
 
-       ps_OpenChannelCmd->channelID       = hSidCh->ui32_ChannelID;
-       ps_OpenChannelCmd->channelNumber   = hSidCh->ui32_ChannelNum;
-       ps_OpenChannelCmd->priority        = hSidCh->sChSettings.ui32_ChannelPriority;
-       ps_OpenChannelCmd->reqQueueAddr    = hSidCh->sReqQueue.sBuf.ui32_PhysAddr;
-       ps_OpenChannelCmd->relQueueAddr    = hSidCh->sRelQueue.sBuf.ui32_PhysAddr;
-       ps_OpenChannelCmd->queueDepth      = hSidCh->ui32_QueueTrueDepth;
-       ps_OpenChannelCmd->dbgMsgOn        = BSID_ARC_OPENCHANNEL_MSG_ENABLE;
-   }
-
-   BDBG_MODULE_MSG(BSID_CMD, ("[MBOX] cmd @%p rsp @%p => open channel sent", ps_OpenChannelCmd, ps_OpenChannelRsp));
+   BDBG_MODULE_MSG(BSID_CMD, ("[MBOX] cmd @%p rsp @%p => open channel sent", (void *)ps_OpenChannelCmd, (void *)ps_OpenChannelRsp));
    BDBG_MODULE_MSG(BSID_CMD, ("channelID    = 0x%x", ps_OpenChannelCmd->channelID));
    BDBG_MODULE_MSG(BSID_CMD, ("channelNum   = 0x%x", ps_OpenChannelCmd->channelNumber));
    BDBG_MODULE_MSG(BSID_CMD, ("priority     = 0x%x", ps_OpenChannelCmd->priority));
@@ -650,17 +658,15 @@ BERR_Code BSID_P_SendCmdCloseChannel(BSID_ChannelHandle hSidCh)
    BDBG_ENTER(BSID_P_SendCmdCloseChannel);
 
    /* prepare cmd body */
-   {
-       ps_CloseChannelCmd->cmdHdr.header    = BSID_MSG_HDR_CLOSECHANNEL;
-       ps_CloseChannelCmd->cmdHdr.sequence  = hSidCh->ui32_SequenceNumber++;
-       ps_CloseChannelCmd->cmdHdr.needAck   = needAck;
+   ps_CloseChannelCmd->cmdHdr.header    = BSID_MSG_HDR_CLOSECHANNEL;
+   ps_CloseChannelCmd->cmdHdr.sequence  = hSidCh->ui32_SequenceNumber++;
+   ps_CloseChannelCmd->cmdHdr.needAck   = needAck;
 
-       ps_CloseChannelCmd->channelID        = hSidCh->ui32_ChannelID;
-       ps_CloseChannelCmd->channelNumber    = hSidCh->ui32_ChannelNum;
-       ps_CloseChannelCmd->dbgMsgOn         = BSID_ARC_CLOSECHANNEL_MSG_ENABLE;
-   }
+   ps_CloseChannelCmd->channelID        = hSidCh->ui32_ChannelID;
+   ps_CloseChannelCmd->channelNumber    = hSidCh->ui32_ChannelNum;
+   ps_CloseChannelCmd->dbgMsgOn         = BSID_ARC_CLOSECHANNEL_MSG_ENABLE;
 
-   BDBG_MODULE_MSG(BSID_CMD, ("[MBOX] cmd @%p rsp @%p => close channel sent", ps_CloseChannelCmd, ps_CloseChannelRsp));
+   BDBG_MODULE_MSG(BSID_CMD, ("[MBOX] cmd @%p rsp @%p => close channel sent", (void *)ps_CloseChannelCmd, (void *)ps_CloseChannelRsp));
    BDBG_MODULE_MSG(BSID_CMD, ("channelID         = 0x%x", ps_CloseChannelCmd->channelID));
    BDBG_MODULE_MSG(BSID_CMD, ("channelNum        = 0x%x", ps_CloseChannelCmd->channelNumber));
 
@@ -698,29 +704,25 @@ BERR_Code BSID_P_SendCmdFlushChannel(BSID_ChannelHandle  hSidCh)
    BMMA_Block_Handle hReqQBlock = hSidCh->sReqQueue.sBuf.hBlock;
    BMMA_Block_Handle hRelQBlock = hSidCh->sRelQueue.sBuf.hBlock;
    BMMA_Block_Handle hDataQBlock = hSidCh->sDataQueue.sBuf.hBlock;
-
    bool needAck = true;
 
    BDBG_ENTER(BSID_P_SendCmdFlushChannel);
 
    /* prepare cmd body */
-   {
-       ps_FlushChannelCmd->cmdHdr.header    = BSID_MSG_HDR_FLUSHCHANNEL;
-       ps_FlushChannelCmd->cmdHdr.sequence  = hSidCh->ui32_SequenceNumber++;
-       ps_FlushChannelCmd->cmdHdr.needAck   = needAck;
+   ps_FlushChannelCmd->cmdHdr.header    = BSID_MSG_HDR_FLUSHCHANNEL;
+   ps_FlushChannelCmd->cmdHdr.sequence  = hSidCh->ui32_SequenceNumber++;
+   ps_FlushChannelCmd->cmdHdr.needAck   = needAck;
 
-       ps_FlushChannelCmd->channelID        = hSidCh->ui32_ChannelID;
-       ps_FlushChannelCmd->channelNumber    = hSidCh->ui32_ChannelNum;
-       ps_FlushChannelCmd->dbgMsgOn         = BSID_ARC_FLUSHCHANNEL_MSG_ENABLE;
-   }
+   ps_FlushChannelCmd->channelID        = hSidCh->ui32_ChannelID;
+   ps_FlushChannelCmd->channelNumber    = hSidCh->ui32_ChannelNum;
+   ps_FlushChannelCmd->dbgMsgOn         = BSID_ARC_FLUSHCHANNEL_MSG_ENABLE;
 
-   BDBG_MODULE_MSG(BSID_CMD, ("[MBOX] cmd @%p rsp @%p => flush channel sent", ps_FlushChannelCmd, ps_FlushChannelRsp));
+   BDBG_MODULE_MSG(BSID_CMD, ("[MBOX] cmd @%p rsp @%p => flush channel sent", (void *)ps_FlushChannelCmd, (void *)ps_FlushChannelRsp));
    BDBG_MODULE_MSG(BSID_CMD, ("channelID         = 0x%x", ps_FlushChannelCmd->channelID));
    BDBG_MODULE_MSG(BSID_CMD, ("channelNum        = 0x%x", ps_FlushChannelCmd->channelNumber));
-   BDBG_MODULE_MSG(BSID_CMD, ("request Q @ %p", psReqQueueHeader));
-   BDBG_MODULE_MSG(BSID_CMD, ("release Q @ %p", psRelQueueHeader));
-   BDBG_MODULE_MSG(BSID_CMD, ("data Q @ %p", psDataQueueHeader));
-
+   BDBG_MODULE_MSG(BSID_CMD, ("request Q @ %p", (void *)psReqQueueHeader));
+   BDBG_MODULE_MSG(BSID_CMD, ("release Q @ %p", (void *)psRelQueueHeader));
+   BDBG_MODULE_MSG(BSID_CMD, ("data Q @ %p", (void *)psDataQueueHeader));
 
    /* send command and wait for response. */
    retCode = SendCommand(hSid, hCmdMbxBlock, (void *)ps_FlushChannelCmd, sizeof(BSID_Cmd_FlushChannel), hRspMbxBlock, (void *)ps_FlushChannelRsp, sizeof(BSID_Rsp_FlushChannel), needAck);
@@ -732,25 +734,25 @@ BERR_Code BSID_P_SendCmdFlushChannel(BSID_ChannelHandle  hSidCh)
 
    BMMA_FlushCache(hReqQBlock, (void *)psReqQueueHeader, sizeof(BSID_CommandQueueHeader));
    /* reset queue rd/wr index */
+
+   /* sanity check, queues should be empty */
+   if (psReqQueueHeader->ui32_ReadIndex != psReqQueueHeader->ui32_WriteIndex)
    {
-       /* sanity check, should always not be verified! */
-       if (psReqQueueHeader->ui32_ReadIndex != psReqQueueHeader->ui32_WriteIndex)
-       {
-           BDBG_WRN(("BSID_P_FlushChannel: reqQ rd and wr index are not the same"));
-       }
-
-       /* reset to beginning of the request queue */
-       psReqQueueHeader->ui32_ReadIndex = psReqQueueHeader->ui32_WriteIndex = 0;
-
-       /* reset to beginning of the release queue */
-       psRelQueueHeader->ui32_ReadIndex = psRelQueueHeader->ui32_WriteIndex = 0;
-
-       /* reset to beginning of the data queue */
-       psDataQueueHeader->ui32_ReadIndex = psDataQueueHeader->ui32_WriteIndex = 0;
-       BMMA_FlushCache(hReqQBlock, (void *)psReqQueueHeader, sizeof(BSID_CommandQueueHeader));
-       BMMA_FlushCache(hRelQBlock, (void *)psRelQueueHeader, sizeof(BSID_CommandQueueHeader));
-       BMMA_FlushCache(hDataQBlock, (void *)psDataQueueHeader, sizeof(BSID_CommandQueueHeader));
+       BDBG_WRN(("BSID_P_FlushChannel: reqQ rd and wr index are not the same"));
    }
+
+   /* reset to beginning of the request queue */
+   psReqQueueHeader->ui32_ReadIndex = psReqQueueHeader->ui32_WriteIndex = 0;
+
+   /* reset to beginning of the release queue */
+   psRelQueueHeader->ui32_ReadIndex = psRelQueueHeader->ui32_WriteIndex = 0;
+
+   /* reset to beginning of the data queue */
+   psDataQueueHeader->ui32_ReadIndex = psDataQueueHeader->ui32_WriteIndex = 0;
+
+   BMMA_FlushCache(hReqQBlock, (void *)psReqQueueHeader, sizeof(BSID_CommandQueueHeader));
+   BMMA_FlushCache(hRelQBlock, (void *)psRelQueueHeader, sizeof(BSID_CommandQueueHeader));
+   BMMA_FlushCache(hDataQBlock, (void *)psDataQueueHeader, sizeof(BSID_CommandQueueHeader));
 
    BDBG_MSG(("rsp flush channel done"));
 
@@ -781,60 +783,56 @@ BERR_Code BSID_P_SendCmdDecodeStillImage(
    BDBG_ENTER(BSID_P_SendCmdDecodeStillImage);
 
    /* prepare request queue elem */
-   {
-       BMMA_FlushCache(hQueueHeaderBlock, (void *)psQueueHeader, sizeof(BSID_CommandQueueHeader));
-       psQueueEntry = (BSID_ReqQueueEntry *)((uint8_t *)psQueueHeader + sizeof(BSID_CommandQueueHeader) + \
-                      (psQueueHeader->ui32_WriteIndex * sizeof(BSID_ReqQueueEntry)));
-       BKNI_Memset((void *)psQueueEntry, 0x00, sizeof(BSID_ReqQueueEntry));
-       BMMA_FlushCache(hQueueHeaderBlock, (void *)psQueueEntry, sizeof(BSID_ReqQueueEntry));
-       ps_DecodeCmd   = (BSID_Cmd_Decode *)psQueueEntry;
-   }
+   /* FIXME: New function GetRequestEntry() => returns pointer to queue entry based on teh write Index */
+   BMMA_FlushCache(hQueueHeaderBlock, (void *)psQueueHeader, sizeof(BSID_CommandQueueHeader));
+   psQueueEntry = (BSID_ReqQueueEntry *)((uint8_t *)psQueueHeader + sizeof(BSID_CommandQueueHeader) + \
+                  (psQueueHeader->ui32_WriteIndex * sizeof(BSID_ReqQueueEntry)));
+   BKNI_Memset((void *)psQueueEntry, 0x00, sizeof(BSID_ReqQueueEntry));
+   BMMA_FlushCache(hQueueHeaderBlock, (void *)psQueueEntry, sizeof(BSID_ReqQueueEntry));
+   ps_DecodeCmd   = (BSID_Cmd_Decode *)psQueueEntry;
 
    /* prepare cmd body */
+   ps_DecodeCmd->cmdHdr.header   = BSID_MSG_HDR_DECODE;
+   ps_DecodeCmd->cmdHdr.needAck  = needAck;
+   ps_DecodeCmd->cmdHdr.sequence = ps_DecodeImage->ui32_DecodeSequenceID;
+
+   ps_DecodeCmd->imgFormat         = ae_ImgFmtPi2Arc[ps_DecodeImage->e_ImageFormat];
+   ps_DecodeCmd->imgWidth          = ps_ImageBuffer->ui32_Width;
+   ps_DecodeCmd->imgHeight         = ps_ImageBuffer->ui32_Height;
+   ps_DecodeCmd->imgPitch          = ps_ImageBuffer->ui32_Pitch;
+   ps_DecodeCmd->imgBpp            = BPXL_BITS_PER_PIXEL(ps_ImageBuffer->e_Format);
+   ps_DecodeCmd->sidMemImgBufAddr  = ps_ImageBuffer->ui32_Offset;
+   ps_DecodeCmd->sidMemImgBufSize  = ps_ImageBuffer->ui32_Pitch * ps_ImageBuffer->ui32_Height;
+   ps_DecodeCmd->sidMemInpBufAddr0 = ((BSID_LinDataMap *)ps_DecodeImage->pv_InputDataMap)->ui32_Offset;
+   ps_DecodeCmd->sidMemInpBufSize0 = ((BSID_LinDataMap *)ps_DecodeImage->pv_InputDataMap)->ui32_Size;
+   ps_DecodeCmd->sidMemInpBufAddr1 = ps_DecodeCmd->sidMemInpBufAddr0 + ps_DecodeCmd->sidMemInpBufSize0;
+   ps_DecodeCmd->sidMemInpBufSize1 = 0;
+   ps_DecodeCmd->segMaxHeight      = 0;
+   ps_DecodeCmd->dbgRleParseHeader = false;
+   ps_DecodeCmd->dbgMsgOn          = BSID_ARC_DECODE_MSG_ENABLE;
+   ps_DecodeCmd->lastDMAchunk      = ps_DecodeImage->b_LastDmaChunk;
+   ps_DecodeCmd->msBufBase         = ps_DecodeImage->ui32_MultiScanBufAddr;
+   ps_DecodeCmd->msBufSize         = ps_DecodeImage->ui32_MultiScanBufSize;
+   ps_DecodeCmd->bypass            = false;
+   ps_DecodeCmd->doCheckSum        = true;
+
+   if (ps_DecodeImage->pui8_IntraQuantTable)
    {
-       ps_DecodeCmd->cmdHdr.header   = BSID_MSG_HDR_DECODE;
-       ps_DecodeCmd->cmdHdr.needAck  = needAck;
-       ps_DecodeCmd->cmdHdr.sequence = ps_DecodeImage->ui32_DecodeSequenceID;
+         ps_DecodeCmd->isIntraQuantTablePresent = 1;
+         for (i = 0; i < BSID_MPEG2IFRAME_INTRA_QUANT_ENTRIES; i++)
+         {
+            ps_DecodeCmd->intra_quant_table[i] = ps_DecodeImage->pui8_IntraQuantTable[i];
 
-       ps_DecodeCmd->imgFormat         = ae_ImgFmtPi2Arc[ps_DecodeImage->e_ImageFormat];
-       ps_DecodeCmd->imgWidth          = ps_ImageBuffer->ui32_Width;
-       ps_DecodeCmd->imgHeight         = ps_ImageBuffer->ui32_Height;
-       ps_DecodeCmd->imgPitch          = ps_ImageBuffer->ui32_Pitch;
-       ps_DecodeCmd->imgBpp            = BPXL_BITS_PER_PIXEL(ps_ImageBuffer->e_Format);
-       ps_DecodeCmd->sidMemImgBufAddr  = ps_ImageBuffer->ui32_Offset;
-       ps_DecodeCmd->sidMemImgBufSize  = ps_ImageBuffer->ui32_Pitch * ps_ImageBuffer->ui32_Height;
-       ps_DecodeCmd->sidMemInpBufAddr0 = ((BSID_LinDataMap *)ps_DecodeImage->pv_InputDataMap)->ui32_Offset;
-       ps_DecodeCmd->sidMemInpBufSize0 = ((BSID_LinDataMap *)ps_DecodeImage->pv_InputDataMap)->ui32_Size;
-       ps_DecodeCmd->sidMemInpBufAddr1 = ps_DecodeCmd->sidMemInpBufAddr0 + ps_DecodeCmd->sidMemInpBufSize0;
-       ps_DecodeCmd->sidMemInpBufSize1 = 0;
-       ps_DecodeCmd->segMaxHeight      = 0;
-       ps_DecodeCmd->dbgRleParseHeader = false;
-       ps_DecodeCmd->dbgMsgOn          = BSID_ARC_DECODE_MSG_ENABLE;
-       ps_DecodeCmd->lastDMAchunk      = ps_DecodeImage->b_LastDmaChunk;
-       ps_DecodeCmd->msBufBase         = ps_DecodeImage->ui32_MultiScanBufAddr;
-       ps_DecodeCmd->msBufSize         = ps_DecodeImage->ui32_MultiScanBufSize;
-       ps_DecodeCmd->bypass            = false;
-       ps_DecodeCmd->doCheckSum        = true;
-
-      if (ps_DecodeImage->pui8_IntraQuantTable)
-      {
-            ps_DecodeCmd->isIntraQuantTablePresent = 1;
-            for (i = 0; i < BSID_MPEG2IFRAME_INTRA_QUANT_ENTRIES; i++)
-            {
-               ps_DecodeCmd->intra_quant_table[i] = ps_DecodeImage->pui8_IntraQuantTable[i];
-
-            }
-      }
-      else
-      {
-         ps_DecodeCmd->isIntraQuantTablePresent = 0;
-      }
-
-
-       BSID_P_BuildGammaCorrectionTable(hSid, ps_DecodeCmd->gamma_correction_table);
+         }
+   }
+   else
+   {
+      ps_DecodeCmd->isIntraQuantTablePresent = 0;
    }
 
-   BDBG_MODULE_MSG(BSID_CMD, ("[ReqQ] cmd @%p (%p[%d]) => Decode Still Image sent", ps_DecodeCmd, psQueueHeader, psQueueHeader->ui32_WriteIndex));
+   BSID_P_BuildGammaCorrectionTable(hSid, ps_DecodeCmd->gamma_correction_table);
+
+   BDBG_MODULE_MSG(BSID_CMD, ("[ReqQ] cmd @%p (%p[%d]) => Decode Still Image sent", (void *)ps_DecodeCmd, (void *)psQueueHeader, psQueueHeader->ui32_WriteIndex));
    BDBG_MODULE_MSG(BSID_CMD, ("channelNum        = 0x%x", hSidCh->ui32_ChannelNum));
    BDBG_MODULE_MSG(BSID_CMD, ("imgFormat         = 0x%x", ps_DecodeCmd->imgFormat));
    BDBG_MODULE_MSG(BSID_CMD, ("imgWidth          = 0x%x", ps_DecodeCmd->imgWidth));
@@ -849,7 +847,9 @@ BERR_Code BSID_P_SendCmdDecodeStillImage(
    BDBG_MODULE_MSG(BSID_CMD, ("bLastDma          = %d", ps_DecodeCmd->lastDMAchunk));
 
    BMMA_FlushCache(hQueueHeaderBlock, (void *)ps_DecodeCmd, sizeof(BSID_Cmd_Decode));
-   /* signal new queue enty to the ARC */
+   /* signal new queue entry to the ARC */
+   /* FIXME: Put this in a function  BSID_P_SignalNewCmdRequest()
+     takes queue header pointer(s)/blocks - if data queue pointer is non-null increment/flush it too */
    {
        uint32_t ui32_hst2cpu;
 
@@ -883,67 +883,66 @@ BERR_Code BSID_P_SendCmdGetStreamInfo(
    BSID_Handle             hSid          = hSidCh->hSid;
    BSID_CommandQueueHeader *psReqQueueHeader = (BSID_CommandQueueHeader *)hSidCh->sReqQueue.sBuf.pv_CachedAddr;
    BSID_CommandQueueHeader *psDataQueueHeader = (BSID_CommandQueueHeader *)hSidCh->sDataQueue.sBuf.pv_CachedAddr;
-   BMMA_Block_Handle hReqQHeaderBlock = hSidCh->sReqQueue.sBuf.hBlock;
-   BMMA_Block_Handle hDataQHeaderBlock = hSidCh->sDataQueue.sBuf.hBlock;
-   BSID_Cmd_GetStreamInfo *ps_GetInfoCmd = NULL;
-   BSID_ReqQueueEntry *psReqQueueEntry = NULL;
-   BSID_DataQueueEntry *psDataQueueEntry = NULL;
-   uint32_t            dataQueueEntryPhysAddr = 0x0;
+   BMMA_Block_Handle       hReqQHeaderBlock = hSidCh->sReqQueue.sBuf.hBlock;
+   BMMA_Block_Handle       hDataQHeaderBlock = hSidCh->sDataQueue.sBuf.hBlock;
+   BSID_Cmd_GetStreamInfo  *ps_GetInfoCmd = NULL;
+   BSID_ReqQueueEntry      *psReqQueueEntry = NULL;
+   BSID_DataQueueEntry     *psDataQueueEntry = NULL;
+   uint32_t                dataQueueEntryPhysAddr = 0x0;
+   uint32_t                uiMetadataIndex;
    bool                    needAck = false;
 
    BDBG_ENTER(BSID_P_SendCmdGetStreamInfo);
 
    /* prepare request queue elem */
-   {
-       BMMA_FlushCache(hReqQHeaderBlock, (void *)psReqQueueHeader, sizeof(BSID_CommandQueueHeader));
-       psReqQueueEntry = (BSID_ReqQueueEntry *)((uint8_t *)psReqQueueHeader + sizeof(BSID_CommandQueueHeader) + \
-                      (psReqQueueHeader->ui32_WriteIndex * sizeof(BSID_ReqQueueEntry)));
-       BKNI_Memset((void *)psReqQueueEntry, 0x00, sizeof(BSID_ReqQueueEntry));
-       BMMA_FlushCache(hReqQHeaderBlock, (void *)psReqQueueEntry, sizeof(BSID_ReqQueueEntry));
-       ps_GetInfoCmd   = (BSID_Cmd_GetStreamInfo *)psReqQueueEntry;
-   }
+   BMMA_FlushCache(hReqQHeaderBlock, (void *)psReqQueueHeader, sizeof(BSID_CommandQueueHeader));
+   psReqQueueEntry = (BSID_ReqQueueEntry *)((uint8_t *)psReqQueueHeader + sizeof(BSID_CommandQueueHeader) + \
+                  (psReqQueueHeader->ui32_WriteIndex * sizeof(BSID_ReqQueueEntry)));
+   BKNI_Memset((void *)psReqQueueEntry, 0x00, sizeof(BSID_ReqQueueEntry));
+   BMMA_FlushCache(hReqQHeaderBlock, (void *)psReqQueueEntry, sizeof(BSID_ReqQueueEntry));
+   ps_GetInfoCmd   = (BSID_Cmd_GetStreamInfo *)psReqQueueEntry;
 
    /* prepare data queue elem */
-   {
-       BMMA_FlushCache(hDataQHeaderBlock, (void *)psDataQueueHeader, sizeof(BSID_CommandQueueHeader));
-       psDataQueueEntry = (BSID_DataQueueEntry *)((uint8_t *)psDataQueueHeader + sizeof(BSID_CommandQueueHeader) + \
-                      (psDataQueueHeader->ui32_WriteIndex * sizeof(BSID_DataQueueEntry)));
+   /* FIXME: NewDataQueueEntry() */
+   BMMA_FlushCache(hDataQHeaderBlock, (void *)psDataQueueHeader, sizeof(BSID_CommandQueueHeader));
+   psDataQueueEntry = (BSID_DataQueueEntry *)((uint8_t *)psDataQueueHeader + sizeof(BSID_CommandQueueHeader) + \
+                  (psDataQueueHeader->ui32_WriteIndex * sizeof(BSID_DataQueueEntry)));
 
-       dataQueueEntryPhysAddr = hSidCh->sDataQueue.sBuf.ui32_PhysAddr + sizeof(BSID_CommandQueueHeader) + \
-                      (psDataQueueHeader->ui32_WriteIndex * sizeof(BSID_DataQueueEntry));
-       BKNI_Memset((void *)psDataQueueEntry, 0x00, sizeof(BSID_DataQueueEntry));
-       BMMA_FlushCache(hDataQHeaderBlock, (void *)psDataQueueEntry, sizeof(BSID_DataQueueEntry));
+   dataQueueEntryPhysAddr = hSidCh->sDataQueue.sBuf.ui32_PhysAddr + sizeof(BSID_CommandQueueHeader) + \
+                  (psDataQueueHeader->ui32_WriteIndex * sizeof(BSID_DataQueueEntry));
+   BKNI_Memset((void *)psDataQueueEntry, 0x00, sizeof(BSID_DataQueueEntry));
+   BMMA_FlushCache(hDataQHeaderBlock, (void *)psDataQueueEntry, sizeof(BSID_DataQueueEntry));
+
+   /* prepare a metadata entry to store the addresses to be used by the interrupt handler */
+   uiMetadataIndex = NewMetadataEntry(hSidCh, psDataQueueEntry, ps_StreamInfo->ps_OutImageInfo);
+   if (BSID_P_INVALID_METADATA_INDEX == uiMetadataIndex)
+   {
+      /* Shouldn't happen unless we ran out of queue entries also */
+      BDBG_ERR(("Out of metadata entries"));
+      BDBG_LEAVE(BSID_P_SendCmdGetStreamInfo);
+      return BERR_TRACE(BERR_UNKNOWN);
    }
 
    /* prepare cmd body */
-   {
-       ps_GetInfoCmd->cmdHdr.header   = BSID_MSG_HDR_GETSTREAMINFO;
-       ps_GetInfoCmd->cmdHdr.needAck  = needAck;
-       ps_GetInfoCmd->cmdHdr.sequence = ps_StreamInfo->ui32_DecodeSequenceID;
+   ps_GetInfoCmd->cmdHdr.header   = BSID_MSG_HDR_GETSTREAMINFO;
+   ps_GetInfoCmd->cmdHdr.needAck  = needAck;
+   ps_GetInfoCmd->cmdHdr.sequence = ps_StreamInfo->ui32_DecodeSequenceID;
 
-       ps_GetInfoCmd->imgFormat                   = ae_ImgFmtPi2Arc[ps_StreamInfo->e_ImageFormat];
-       ps_GetInfoCmd->sidMemInpBufAddr0           = ((BSID_LinDataMap *)ps_StreamInfo->pv_InputDataMap)->ui32_Offset;
-       ps_GetInfoCmd->sidMemInpBufSize0           = ((BSID_LinDataMap *)ps_StreamInfo->pv_InputDataMap)->ui32_Size;
-       ps_GetInfoCmd->sidMemInpBufAddr1           = ps_GetInfoCmd->sidMemInpBufAddr0 + ps_GetInfoCmd->sidMemInpBufSize0;
-       ps_GetInfoCmd->sidMemInpBufSize1           = 0;
-       ps_GetInfoCmd->sidMemStreamInfoBufSize     = sizeof(BSID_ImageHeader);
-       ps_GetInfoCmd->dbgMsgOn                    = BSID_ARC_GET_INFO_MSG_ENABLE;
-       ps_GetInfoCmd->sidMemStreamInfoBufPhysAddr = dataQueueEntryPhysAddr;
-       /* NOTE: These two are passed into request queue and are
-          simply copied back into the release queue for use by
-          the PI when manipulating the results
-          The PI should maintain a mapping to obtain these rather than passing them thru the FW */
-       /* FIXME: these should be uint64 to support void * pointers! */
-       /* NOTE: FW writes the Image header to a data queue entry */
-       ps_GetInfoCmd->sidMemStreamInfoBufVirtAddr = (uint32_t)psDataQueueEntry; /* FIXME: this is bad on a 64-bit system */
-       BDBG_ASSERT((void *)(ps_GetInfoCmd->sidMemStreamInfoBufVirtAddr) == (void *)psDataQueueEntry);
-       /* This is the location where the application wants the data to go ... */
-       ps_GetInfoCmd->streamInfoBufVirtAddr       = (uint32_t)ps_StreamInfo->ps_OutImageInfo;   /* FIXME: this is bad on a 64-bit system */
-       BDBG_ASSERT((void *)(ps_GetInfoCmd->streamInfoBufVirtAddr) == (void *)ps_StreamInfo->ps_OutImageInfo);
-       ps_GetInfoCmd->lastDMAchunk                = ps_StreamInfo->b_LastDmaChunk;
-   }
+   ps_GetInfoCmd->imgFormat                   = ae_ImgFmtPi2Arc[ps_StreamInfo->e_ImageFormat];
+   ps_GetInfoCmd->sidMemInpBufAddr0           = ((BSID_LinDataMap *)ps_StreamInfo->pv_InputDataMap)->ui32_Offset;
+   ps_GetInfoCmd->sidMemInpBufSize0           = ((BSID_LinDataMap *)ps_StreamInfo->pv_InputDataMap)->ui32_Size;
+   ps_GetInfoCmd->sidMemInpBufAddr1           = ps_GetInfoCmd->sidMemInpBufAddr0 + ps_GetInfoCmd->sidMemInpBufSize0;
+   ps_GetInfoCmd->sidMemInpBufSize1           = 0;
+   ps_GetInfoCmd->dbgMsgOn                    = BSID_ARC_GET_INFO_MSG_ENABLE;
+   ps_GetInfoCmd->sidMemStreamInfoBufPhysAddr = dataQueueEntryPhysAddr;
+   /* This is the index of the metadata entry containing the addresses
+      where the FW writes the stream info and the address of where the app wants it to go
+      This is simply passed to the FW which then passes it back in the release Q response
+      for use by the interrupt handler */
+   ps_GetInfoCmd->uiMetadataIndex             = uiMetadataIndex;
+   ps_GetInfoCmd->lastDMAchunk                = ps_StreamInfo->b_LastDmaChunk;
 
-   BDBG_MODULE_MSG(BSID_CMD, ("[ReqQ] cmd @%p (%p[%d]) => GetStreamInfo sent", ps_GetInfoCmd, psReqQueueHeader, psReqQueueHeader->ui32_WriteIndex));
+   BDBG_MODULE_MSG(BSID_CMD, ("[ReqQ] cmd @%p (%p[%d]) => GetStreamInfo sent", (void *)ps_GetInfoCmd, (void *)psReqQueueHeader, psReqQueueHeader->ui32_WriteIndex));
    BDBG_MODULE_MSG(BSID_CMD, ("channelNum              = 0x%x", hSidCh->ui32_ChannelNum));
    BDBG_MODULE_MSG(BSID_CMD, ("imgFormat               = 0x%x", ps_GetInfoCmd->imgFormat));
    BDBG_MODULE_MSG(BSID_CMD, ("sidMemInpBufAddr0       = 0x%x", ps_GetInfoCmd->sidMemInpBufAddr0));
@@ -951,8 +950,8 @@ BERR_Code BSID_P_SendCmdGetStreamInfo(
    BDBG_MODULE_MSG(BSID_CMD, ("sidMemInpBufAddr1       = 0x%x", ps_GetInfoCmd->sidMemInpBufAddr1));
    BDBG_MODULE_MSG(BSID_CMD, ("sidMemInpBufSize1       = 0x%x", ps_GetInfoCmd->sidMemInpBufSize1));
    BDBG_MODULE_MSG(BSID_CMD, ("sidMemStreamInfoBufAddr = 0x%x", ps_GetInfoCmd->sidMemStreamInfoBufPhysAddr));
-   BDBG_MODULE_MSG(BSID_CMD, ("sidMemStreamInfoBufSize = 0x%x", ps_GetInfoCmd->sidMemStreamInfoBufSize));
-   BDBG_MODULE_MSG(BSID_CMD, ("stream info @%p (%p[%d])", psDataQueueEntry, psDataQueueHeader, psDataQueueHeader->ui32_WriteIndex));
+   BDBG_MODULE_MSG(BSID_CMD, ("Metadata Index          = 0x%x", ps_GetInfoCmd->uiMetadataIndex));
+   BDBG_MODULE_MSG(BSID_CMD, ("stream info @%p (%p[%d])", (void *)psDataQueueEntry, (void *)psDataQueueHeader, psDataQueueHeader->ui32_WriteIndex));
    BDBG_MODULE_MSG(BSID_CMD, ("bLastDma          = %d", ps_GetInfoCmd->lastDMAchunk));
 
    BMMA_FlushCache(hReqQHeaderBlock, (void *)ps_GetInfoCmd, sizeof(BSID_Cmd_GetStreamInfo));
@@ -989,9 +988,9 @@ BERR_Code BSID_P_SendCmdDecodeSegment(
 {
    BERR_Code                retCode       = BERR_SUCCESS;
    BSID_Handle              hSid          = hSidCh->hSid;
-   BSID_CommandQueueHeader *psQueueHeader = (BSID_CommandQueueHeader *)hSidCh->sReqQueue.sBuf.pv_CachedAddr;
-   BMMA_Block_Handle hReqQBlock = hSidCh->sReqQueue.sBuf.hBlock;
-   BSID_ReqQueueEntry *psQueueEntry = NULL;
+   BSID_CommandQueueHeader  *psQueueHeader = (BSID_CommandQueueHeader *)hSidCh->sReqQueue.sBuf.pv_CachedAddr;
+   BMMA_Block_Handle        hReqQBlock = hSidCh->sReqQueue.sBuf.hBlock;
+   BSID_ReqQueueEntry       *psQueueEntry = NULL;
    BSID_Cmd_DecodeSegment   *ps_DecodeCmd = NULL;
    const BSID_ImageBuffer   *ps_ImageBuffer  = &ps_DecodeSegment->s_ImageBuffer;
    bool                     needAck = false;
@@ -999,44 +998,40 @@ BERR_Code BSID_P_SendCmdDecodeSegment(
    BDBG_ENTER(BSID_P_SendCmdDecodeSegment);
 
    /* prepare request queue elem */
-   {
-       BMMA_FlushCache(hReqQBlock, (void *)psQueueHeader, sizeof(BSID_CommandQueueHeader));
-       psQueueEntry = (BSID_ReqQueueEntry *)((uint8_t *)psQueueHeader + sizeof(BSID_CommandQueueHeader) + \
-                      (psQueueHeader->ui32_WriteIndex * sizeof(BSID_ReqQueueEntry)));
-       BKNI_Memset((void *)psQueueEntry, 0x00, sizeof(BSID_ReqQueueEntry));
-       BMMA_FlushCache(hReqQBlock, (void *)psQueueEntry, sizeof(BSID_ReqQueueEntry));
-       ps_DecodeCmd   = (BSID_Cmd_Decode *)psQueueEntry;
-   }
+   BMMA_FlushCache(hReqQBlock, (void *)psQueueHeader, sizeof(BSID_CommandQueueHeader));
+   psQueueEntry = (BSID_ReqQueueEntry *)((uint8_t *)psQueueHeader + sizeof(BSID_CommandQueueHeader) + \
+                  (psQueueHeader->ui32_WriteIndex * sizeof(BSID_ReqQueueEntry)));
+   BKNI_Memset((void *)psQueueEntry, 0x00, sizeof(BSID_ReqQueueEntry));
+   BMMA_FlushCache(hReqQBlock, (void *)psQueueEntry, sizeof(BSID_ReqQueueEntry));
+   ps_DecodeCmd   = (BSID_Cmd_Decode *)psQueueEntry;
 
    /* prepare cmd body */
-   {
-       ps_DecodeCmd->cmdHdr.header     = BSID_MSG_HDR_DECODESEGMENT;
-       ps_DecodeCmd->cmdHdr.needAck    = needAck;
-       ps_DecodeCmd->cmdHdr.sequence   = ps_DecodeSegment->ui32_DecodeSequenceID;
+   ps_DecodeCmd->cmdHdr.header     = BSID_MSG_HDR_DECODESEGMENT;
+   ps_DecodeCmd->cmdHdr.needAck    = needAck;
+   ps_DecodeCmd->cmdHdr.sequence   = ps_DecodeSegment->ui32_DecodeSequenceID;
 
-       ps_DecodeCmd->imgFormat         = ae_ImgFmtPi2Arc[ps_DecodeSegment->e_ImageFormat];
-       ps_DecodeCmd->imgWidth          = ps_ImageBuffer->ui32_Width;
-       ps_DecodeCmd->imgHeight         = ps_ImageBuffer->ui32_Height;
-       ps_DecodeCmd->imgPitch          = ps_ImageBuffer->ui32_Pitch;
-       ps_DecodeCmd->imgBpp            = BPXL_BITS_PER_PIXEL(ps_ImageBuffer->e_Format);
-       ps_DecodeCmd->sidMemImgBufAddr  = ps_ImageBuffer->ui32_Offset;
-       ps_DecodeCmd->sidMemImgBufSize  = ps_ImageBuffer->ui32_Pitch * ps_ImageBuffer->ui32_Height;
-       ps_DecodeCmd->sidMemInpBufAddr0 = ((BSID_LinDataMap *)ps_DecodeSegment->pv_InputDataMap)->ui32_Offset;
-       ps_DecodeCmd->sidMemInpBufSize0 = ((BSID_LinDataMap *)ps_DecodeSegment->pv_InputDataMap)->ui32_Size;
-       ps_DecodeCmd->sidMemInpBufAddr1 = ps_DecodeCmd->sidMemInpBufAddr0 + ps_DecodeCmd->sidMemInpBufSize0;
-       ps_DecodeCmd->sidMemInpBufSize1 = 0;
-       ps_DecodeCmd->segMaxHeight      = ps_DecodeSegment->ui32_SegmentHeight;
-       ps_DecodeCmd->firstSegment      = ps_DecodeSegment->b_FirstSegment;
-       ps_DecodeCmd->dbgRleParseHeader = false;
-       ps_DecodeCmd->dbgMsgOn          = BSID_ARC_DECODE_SEGMENT_MSG_ENABLE;
-       ps_DecodeCmd->lastDMAchunk      = ps_DecodeSegment->b_LastDmaChunk;
-       ps_DecodeCmd->msBufBase         = ps_DecodeSegment->ui32_MultiScanBufAddr;
-       ps_DecodeCmd->msBufSize         = ps_DecodeSegment->ui32_MultiScanBufSize;
-       ps_DecodeCmd->bypass            = false;
-       ps_DecodeCmd->doCheckSum        = true;
-   }
+   ps_DecodeCmd->imgFormat         = ae_ImgFmtPi2Arc[ps_DecodeSegment->e_ImageFormat];
+   ps_DecodeCmd->imgWidth          = ps_ImageBuffer->ui32_Width;
+   ps_DecodeCmd->imgHeight         = ps_ImageBuffer->ui32_Height;
+   ps_DecodeCmd->imgPitch          = ps_ImageBuffer->ui32_Pitch;
+   ps_DecodeCmd->imgBpp            = BPXL_BITS_PER_PIXEL(ps_ImageBuffer->e_Format);
+   ps_DecodeCmd->sidMemImgBufAddr  = ps_ImageBuffer->ui32_Offset;
+   ps_DecodeCmd->sidMemImgBufSize  = ps_ImageBuffer->ui32_Pitch * ps_ImageBuffer->ui32_Height;
+   ps_DecodeCmd->sidMemInpBufAddr0 = ((BSID_LinDataMap *)ps_DecodeSegment->pv_InputDataMap)->ui32_Offset;
+   ps_DecodeCmd->sidMemInpBufSize0 = ((BSID_LinDataMap *)ps_DecodeSegment->pv_InputDataMap)->ui32_Size;
+   ps_DecodeCmd->sidMemInpBufAddr1 = ps_DecodeCmd->sidMemInpBufAddr0 + ps_DecodeCmd->sidMemInpBufSize0;
+   ps_DecodeCmd->sidMemInpBufSize1 = 0;
+   ps_DecodeCmd->segMaxHeight      = ps_DecodeSegment->ui32_SegmentHeight;
+   ps_DecodeCmd->firstSegment      = ps_DecodeSegment->b_FirstSegment;
+   ps_DecodeCmd->dbgRleParseHeader = false;
+   ps_DecodeCmd->dbgMsgOn          = BSID_ARC_DECODE_SEGMENT_MSG_ENABLE;
+   ps_DecodeCmd->lastDMAchunk      = ps_DecodeSegment->b_LastDmaChunk;
+   ps_DecodeCmd->msBufBase         = ps_DecodeSegment->ui32_MultiScanBufAddr;
+   ps_DecodeCmd->msBufSize         = ps_DecodeSegment->ui32_MultiScanBufSize;
+   ps_DecodeCmd->bypass            = false;
+   ps_DecodeCmd->doCheckSum        = true;
 
-   BDBG_MODULE_MSG(BSID_CMD, ("[ReqQ] cmd @%p (%p[%d]) => decode segment sent", ps_DecodeCmd, psQueueHeader, psQueueHeader->ui32_WriteIndex));
+   BDBG_MODULE_MSG(BSID_CMD, ("[ReqQ] cmd @%p (%p[%d]) => decode segment sent", (void *)ps_DecodeCmd, (void *)psQueueHeader, psQueueHeader->ui32_WriteIndex));
    BDBG_MODULE_MSG(BSID_CMD, ("channelNum        = 0x%x", hSidCh->ui32_ChannelNum));
    BDBG_MODULE_MSG(BSID_CMD, ("imgFormat         = 0x%x", ps_DecodeCmd->imgFormat));
    BDBG_MODULE_MSG(BSID_CMD, ("imgWidth          = 0x%x", ps_DecodeCmd->imgWidth));
@@ -1082,34 +1077,30 @@ BERR_Code BSID_P_SendCmdSyncChannel(
 {
    BERR_Code                retCode       = BERR_SUCCESS;
    BSID_Handle              hSid          = hSidCh->hSid;
-   BSID_CommandQueueHeader *psQueueHeader = (BSID_CommandQueueHeader *)hSidCh->sReqQueue.sBuf.pv_CachedAddr;
-   BMMA_Block_Handle hReqQBlock = hSidCh->sReqQueue.sBuf.hBlock;
-   BSID_ReqQueueEntry *psQueueEntry = NULL;
-   BSID_Cmd_SyncChannel   *ps_SyncChannelCmd = NULL;
+   BSID_CommandQueueHeader  *psQueueHeader = (BSID_CommandQueueHeader *)hSidCh->sReqQueue.sBuf.pv_CachedAddr;
+   BMMA_Block_Handle        hReqQBlock = hSidCh->sReqQueue.sBuf.hBlock;
+   BSID_ReqQueueEntry       *psQueueEntry = NULL;
+   BSID_Cmd_SyncChannel     *ps_SyncChannelCmd = NULL;
    bool                     needAck = false;
 
    BDBG_ENTER(BSID_P_SendSyncChannel);
 
    /* prepare request queue elem */
-   {
-       BMMA_FlushCache(hReqQBlock, (void *)psQueueHeader, sizeof(BSID_CommandQueueHeader));
-       psQueueEntry = (BSID_ReqQueueEntry *)((uint8_t *)psQueueHeader + sizeof(BSID_CommandQueueHeader) + \
-                      (psQueueHeader->ui32_WriteIndex * sizeof(BSID_ReqQueueEntry)));
-       BKNI_Memset((void *)psQueueEntry, 0x00, sizeof(BSID_ReqQueueEntry));
-       BMMA_FlushCache(hReqQBlock, (void *)psQueueEntry, sizeof(BSID_ReqQueueEntry));
-       ps_SyncChannelCmd   = (BSID_Cmd_SyncChannel *)psQueueEntry;
-   }
+   BMMA_FlushCache(hReqQBlock, (void *)psQueueHeader, sizeof(BSID_CommandQueueHeader));
+   psQueueEntry = (BSID_ReqQueueEntry *)((uint8_t *)psQueueHeader + sizeof(BSID_CommandQueueHeader) + \
+                  (psQueueHeader->ui32_WriteIndex * sizeof(BSID_ReqQueueEntry)));
+   BKNI_Memset((void *)psQueueEntry, 0x00, sizeof(BSID_ReqQueueEntry));
+   BMMA_FlushCache(hReqQBlock, (void *)psQueueEntry, sizeof(BSID_ReqQueueEntry));
+   ps_SyncChannelCmd   = (BSID_Cmd_SyncChannel *)psQueueEntry;
 
    /* prepare cmd body */
-   {
-       ps_SyncChannelCmd->cmdHdr.header     = BSID_MSG_HDR_SYNCCHANNEL;
-       ps_SyncChannelCmd->cmdHdr.needAck    = needAck;
-       ps_SyncChannelCmd->cmdHdr.sequence   = hSidCh->ui32_SequenceNumber++;
-       ps_SyncChannelCmd->dbgMsgOn          = BSID_ARC_SYNCCHANNEL_MSG_ENABLE;
-       ps_SyncChannelCmd->bypass            = true;
-   }
+   ps_SyncChannelCmd->cmdHdr.header     = BSID_MSG_HDR_SYNCCHANNEL;
+   ps_SyncChannelCmd->cmdHdr.needAck    = needAck;
+   ps_SyncChannelCmd->cmdHdr.sequence   = hSidCh->ui32_SequenceNumber++;
+   ps_SyncChannelCmd->dbgMsgOn          = BSID_ARC_SYNCCHANNEL_MSG_ENABLE;
+   ps_SyncChannelCmd->bypass            = true;
 
-   BDBG_MODULE_MSG(BSID_CMD, ("[ReqQ] cmd @%p (%p[%d]) => channel sync sent", ps_SyncChannelCmd, psQueueHeader, psQueueHeader->ui32_WriteIndex));
+   BDBG_MODULE_MSG(BSID_CMD, ("[ReqQ] cmd @%p (%p[%d]) => channel sync sent", (void *)ps_SyncChannelCmd, (void *)psQueueHeader, psQueueHeader->ui32_WriteIndex));
    BDBG_MODULE_MSG(BSID_CMD, ("channelNum        = 0x%x", hSidCh->ui32_ChannelNum));
 
 
@@ -1143,73 +1134,43 @@ BERR_Code BSID_P_SendCmdStartDecode(BSID_ChannelHandle hSidCh)
    BERR_Code               retCode       = BERR_SUCCESS;
    BSID_Handle             hSid          = hSidCh->hSid;
    BSID_CommandQueueHeader *psReqQueueHeader = (BSID_CommandQueueHeader *)hSidCh->sReqQueue.sBuf.pv_CachedAddr;
-   BSID_CommandQueueHeader *psDataQueueHeader = (BSID_CommandQueueHeader *)hSidCh->sDataQueue.sBuf.pv_CachedAddr;
-   BMMA_Block_Handle hReqQueueBlock = hSidCh->sReqQueue.sBuf.hBlock;
-   BMMA_Block_Handle hDataQueueBlock = hSidCh->sDataQueue.sBuf.hBlock;
-   BSID_Cmd_StartDecode *ps_StartDecodeCmd = NULL;
-   BSID_ReqQueueEntry *psReqQueueEntry = NULL;
-   BSID_DataQueueEntry *psDataQueueEntry = NULL;
-   uint32_t            dataQueueEntryPhysAddr = 0x0;
+   BMMA_Block_Handle       hReqQueueBlock = hSidCh->sReqQueue.sBuf.hBlock;
+   BSID_Cmd_StartDecode    *ps_StartDecodeCmd = NULL;
+   BSID_ReqQueueEntry      *psReqQueueEntry = NULL;
    bool                    needAck = false;
 
    BDBG_ENTER(BSID_P_SendCmdStartDecode);
 
    /* prepare request queue elem */
-   {
-       BMMA_FlushCache(hReqQueueBlock, (void *)psReqQueueHeader, sizeof(BSID_CommandQueueHeader));
-       psReqQueueEntry = (BSID_ReqQueueEntry *)((uint8_t *)psReqQueueHeader + sizeof(BSID_CommandQueueHeader) + \
-                      (psReqQueueHeader->ui32_WriteIndex * sizeof(BSID_ReqQueueEntry)));
-       BKNI_Memset((void *)psReqQueueEntry, 0x00, sizeof(BSID_ReqQueueEntry));
-       BMMA_FlushCache(hReqQueueBlock, (void *)psReqQueueHeader, sizeof(BSID_CommandQueueHeader));
-       ps_StartDecodeCmd   = (BSID_Cmd_StartDecode *)psReqQueueEntry;
-   }
-
-   /* prepare data queue elem */
-   {
-       BMMA_FlushCache(hDataQueueBlock, (void *)psDataQueueHeader, sizeof(BSID_CommandQueueHeader));
-       psDataQueueEntry = (BSID_DataQueueEntry *)((uint8_t *)psDataQueueHeader + sizeof(BSID_CommandQueueHeader) + \
-                      (psDataQueueHeader->ui32_WriteIndex * sizeof(BSID_DataQueueEntry)));
-
-       dataQueueEntryPhysAddr = hSidCh->sDataQueue.sBuf.ui32_PhysAddr + sizeof(BSID_CommandQueueHeader) + \
-                      (psDataQueueHeader->ui32_WriteIndex * sizeof(BSID_DataQueueEntry));
-       BKNI_Memset((void *)psDataQueueEntry, 0x00, sizeof(BSID_DataQueueEntry));
-       BMMA_FlushCache(hDataQueueBlock, (void *)psDataQueueHeader, sizeof(BSID_CommandQueueHeader));
-   }
+   BMMA_FlushCache(hReqQueueBlock, (void *)psReqQueueHeader, sizeof(BSID_CommandQueueHeader));
+   psReqQueueEntry = (BSID_ReqQueueEntry *)((uint8_t *)psReqQueueHeader + sizeof(BSID_CommandQueueHeader) + \
+                   (psReqQueueHeader->ui32_WriteIndex * sizeof(BSID_ReqQueueEntry)));
+   BKNI_Memset((void *)psReqQueueEntry, 0x00, sizeof(BSID_ReqQueueEntry));
+   BMMA_FlushCache(hReqQueueBlock, (void *)psReqQueueHeader, sizeof(BSID_CommandQueueHeader));
+   ps_StartDecodeCmd   = (BSID_Cmd_StartDecode *)psReqQueueEntry;
 
    /* prepare cmd body */
-   {
-       ps_StartDecodeCmd->cmdHdr.header   = BSID_MSG_HDR_STARTDECODE;
-       ps_StartDecodeCmd->cmdHdr.needAck  = needAck;
-       ps_StartDecodeCmd->cmdHdr.sequence = hSidCh->ui32_SequenceNumber++;
+   ps_StartDecodeCmd->cmdHdr.header   = BSID_MSG_HDR_STARTDECODE;
+   ps_StartDecodeCmd->cmdHdr.needAck  = needAck;
+   ps_StartDecodeCmd->cmdHdr.sequence = hSidCh->ui32_SequenceNumber++;
 
-       ps_StartDecodeCmd->imgFormat                   = ae_ImgFmtPi2Arc[BSID_ImageFormat_eJPEG];
-       ps_StartDecodeCmd->raveReportBufAddr           = hSidCh->sRaveReport.ui32_PhysAddr;
-       ps_StartDecodeCmd->playbackReadQueueAddr       = hSidCh->sPlaybackQueue.sReadBuf.ui32_PhysAddr;
-       ps_StartDecodeCmd->playbackWriteQueueAddr      = hSidCh->sPlaybackQueue.sWriteBuf.ui32_PhysAddr;
-       ps_StartDecodeCmd->queueDepth                  = hSidCh->sChSettings.u_ChannelSpecific.motion.ui32_OutputBuffersNumber;
-       ps_StartDecodeCmd->dbgMsgOn                    = BSID_ARC_STARTDECODE_MSG_ENABLE;
-       ps_StartDecodeCmd->sidMemStreamInfoBufPhysAddr = dataQueueEntryPhysAddr;
-       /* FIXME: The following is a pass-thru from request to release Q - should be sized appropriately to
-          support 64-bit pointers
-          Better yet, the PI should maintain a mapping so that it does not need to pass these pointers to the FW
-          (i.e. maintain a metadata queue) */
-       ps_StartDecodeCmd->sidMemStreamInfoBufVirtAddr = (uint32_t)psDataQueueEntry;  /* FIXME: This is bad on a 64-bit system! */
-       BDBG_ASSERT((void *)(ps_StartDecodeCmd->sidMemStreamInfoBufVirtAddr) == (void *)psDataQueueEntry);
-       ps_StartDecodeCmd->sidMemStreamInfoBufSize     = sizeof(BSID_ImageHeader);
-       ps_StartDecodeCmd->numPicToDecode              = 0xFFFFFFFF;
-       ps_StartDecodeCmd->endianessInput              = !BSID_RAVE_CDB_ENDIAN; /* fw uses reverse notation */
-       ps_StartDecodeCmd->endianessOutput             = hSid->sFwHwConfig.b_EndianessSwap;
-       ps_StartDecodeCmd->bypass                      = false;
-   }
+   ps_StartDecodeCmd->imgFormat                   = ae_ImgFmtPi2Arc[BSID_ImageFormat_eJPEG];
+   ps_StartDecodeCmd->raveReportBufAddr           = hSidCh->sRaveReport.ui32_PhysAddr;
+   ps_StartDecodeCmd->playbackReadQueueAddr       = hSidCh->sPlaybackQueue.sReadBuf.ui32_PhysAddr;
+   ps_StartDecodeCmd->playbackWriteQueueAddr      = hSidCh->sPlaybackQueue.sWriteBuf.ui32_PhysAddr;
+   ps_StartDecodeCmd->queueDepth                  = hSidCh->sChSettings.u_ChannelSpecific.motion.ui32_OutputBuffersNumber;
+   ps_StartDecodeCmd->dbgMsgOn                    = BSID_ARC_STARTDECODE_MSG_ENABLE;
+   ps_StartDecodeCmd->numPicToDecode              = 0xFFFFFFFF;
+   ps_StartDecodeCmd->endianessInput              = !BSID_RAVE_CDB_ENDIAN; /* fw uses reverse notation */
+   ps_StartDecodeCmd->endianessOutput             = hSid->sFwHwConfig.b_EndianessSwap;
+   ps_StartDecodeCmd->bypass                      = false;
 
-   BDBG_MODULE_MSG(BSID_CMD, ("[ReqQ] cmd @%p (%p[%d]) => start decode sent", ps_StartDecodeCmd, psReqQueueHeader, psReqQueueHeader->ui32_WriteIndex));
+   BDBG_MODULE_MSG(BSID_CMD, ("[ReqQ] cmd @%p (%p[%d]) => start decode sent", (void *)ps_StartDecodeCmd, (void *)psReqQueueHeader, psReqQueueHeader->ui32_WriteIndex));
    BDBG_MODULE_MSG(BSID_CMD, ("channelNum              = 0x%x", hSidCh->ui32_ChannelNum));
    BDBG_MODULE_MSG(BSID_CMD, ("imgFormat               = 0x%x", ps_StartDecodeCmd->imgFormat));
    BDBG_MODULE_MSG(BSID_CMD, ("memoryReportBufAddr     = 0x%x", ps_StartDecodeCmd->raveReportBufAddr ));
-   BDBG_MODULE_MSG(BSID_CMD, ("sidMemStreamInfoBufAddr = 0x%x", ps_StartDecodeCmd->sidMemStreamInfoBufPhysAddr));
-   BDBG_MODULE_MSG(BSID_CMD, ("sidMemStreamInfoBufSize = 0x%x", ps_StartDecodeCmd->sidMemStreamInfoBufSize));
    BDBG_MODULE_MSG(BSID_CMD, ("endianessInput          = 0x%x", ps_StartDecodeCmd->endianessInput));
-   BDBG_MODULE_MSG(BSID_CMD, ("stream info @%p (%p[%d])", psDataQueueEntry, psDataQueueHeader, psDataQueueHeader->ui32_WriteIndex));
+   /*BDBG_MODULE_MSG(BSID_CMD, ("stream info @%p (%p[%d])", psDataQueueEntry, psDataQueueHeader, psDataQueueHeader->ui32_WriteIndex));*/
 
    BMMA_FlushCache(hReqQueueBlock, (void *)ps_StartDecodeCmd, sizeof(BSID_Cmd_StartDecode));
 
@@ -1220,9 +1181,7 @@ BERR_Code BSID_P_SendCmdStartDecode(BSID_ChannelHandle hSidCh)
        BKNI_EnterCriticalSection();
        ui32_hst2cpu = BREG_Read32(hSid->hReg, BCHP_SID_ARC_HST2CPU_STAT);
        BSID_INCR_INDEX(psReqQueueHeader->ui32_WriteIndex, hSidCh->ui32_QueueTrueDepth);
-       BSID_INCR_INDEX(psDataQueueHeader->ui32_WriteIndex, hSidCh->ui32_QueueTrueDepth);
        BMMA_FlushCache(hReqQueueBlock, (void *)psReqQueueHeader, sizeof(BSID_CommandQueueHeader));
-       BMMA_FlushCache(hDataQueueBlock, (void *)psDataQueueHeader, sizeof(BSID_CommandQueueHeader));
        BREG_Write32(hSid->hReg, BCHP_SID_ARC_HST2CPU_STAT, (ui32_hst2cpu | (1 << hSidCh->ui32_ChannelNum)));
        BKNI_LeaveCriticalSection();
    }
@@ -1442,10 +1401,7 @@ BERR_Code BSID_P_InitPlayback(
             break;
         }
 
-        /* NOTE: in theory this doesn't need to be critical sectioned since channel is not manipulated in interrupt for motion decode */
-        BKNI_EnterCriticalSection();
-        hSidCh->e_ChannelState = psPbWriteQueueHeader->ui32_ChannelState = psPbReadQueueHeader->ui32_ChannelState = BSID_ChannelState_eDecode;
-        BKNI_LeaveCriticalSection();
+        psPbWriteQueueHeader->ui32_ChannelState = psPbReadQueueHeader->ui32_ChannelState = BSID_ChannelState_eDecode;
 
         BMMA_FlushCache(hPbWriteQueueBlock, (void *)psPbWriteQueueHeader, sizeof(BSID_PlaybackWriteQueueHeader));
         BMMA_FlushCache(hPbReadQueueBlock, (void *)psPbReadQueueHeader, sizeof(BSID_PlaybackReadQueueHeader));
@@ -1735,9 +1691,8 @@ BERR_Code BSID_P_DisableForFlush(BSID_ChannelHandle hSidCh)
      * Signal FW to suspend decode operation.
      */
     /* NOTE: in theory this does not need to be critical sectioned since channels are not manipulated under interrupt by motion decode */
-    BKNI_EnterCriticalSection();
-    hSidCh->e_ChannelState = psPbWriteQueueHeader->ui32_ChannelState = BSID_ChannelState_eSuspend;
-    BKNI_LeaveCriticalSection();
+    BSID_SET_CH_STATE(hSidCh, Suspend);
+    psPbWriteQueueHeader->ui32_ChannelState = BSID_ChannelState_eSuspend;
 
     BMMA_FlushCache(hPbWriteQueueBlock, (void *)psPbWriteQueueHeader, sizeof(BSID_PlaybackWriteQueueHeader));
     BMMA_FlushCache(hPbReadQueueBlock, (void *)psPbReadQueueHeader, sizeof(BSID_PlaybackReadQueueHeader));
@@ -1804,7 +1759,7 @@ static BERR_Code SendCommand(
        retCode = BKNI_WaitForEvent(hSid->sMailbox.hMailboxEvent, BSID_MAILBOX_MAX_WAITING_TIME);
        if (retCode != BERR_SUCCESS)
        {
-           BDBG_ERR(("Wait for event timeout reached"));
+           BDBG_ERR(("Wait for response: event timeout reached"));
            return BERR_TRACE(BERR_UNKNOWN);
        }
 
@@ -2113,4 +2068,46 @@ static void PrepareNextUnifiedPicture_isr(
     pUnifiedPicture->stPTS.uiValue));
 
     return;
+}
+
+static uint32_t NewMetadataEntry(BSID_ChannelHandle hSidCh, BSID_DataQueueEntry *psDataQueueEntry, void *pImageInfo)
+{
+   uint32_t i;
+
+   BDBG_ASSERT(hSidCh);
+
+   for (i = 0; i < hSidCh->ui32_QueueTrueDepth; i++)
+   {
+      BSID_P_MetadataEntry *pMetadataEntry = &hSidCh->pMetadata[i];
+      if (pMetadataEntry->bInUse)
+         continue;
+      BKNI_EnterCriticalSection();
+      pMetadataEntry->bInUse = true;
+      BKNI_LeaveCriticalSection();
+      pMetadataEntry->pvStreamInfoFWAddr = psDataQueueEntry;   /* this is an entry in the data queue and
+                                                                  is where the FW will write the info */
+      pMetadataEntry->pStreamInfoDestAddr = pImageInfo;        /* this is where the app wants the info to go */
+      BDBG_MODULE_MSG(BSID_METADATA, ("Allocating Metadata Entry %d", i));
+      return i;
+   }
+   return BSID_P_INVALID_METADATA_INDEX;
+
+}
+
+static void FreeMetadataEntry_isr(BSID_ChannelHandle hSidCh, uint32_t uiMetadataIndex)
+{
+   BSID_P_MetadataEntry *pMetadataEntry;
+
+   BDBG_ASSERT(hSidCh);
+
+   if ((uiMetadataIndex == BSID_P_INVALID_METADATA_INDEX) || (uiMetadataIndex >= hSidCh->ui32_QueueTrueDepth))
+   {
+      BDBG_ERR(("Attempt to free an invalid metadata entry"));
+   }
+   else
+   {
+      BDBG_MODULE_MSG(BSID_METADATA, ("Freeing Metadata Entry %d", uiMetadataIndex));
+      pMetadataEntry = &hSidCh->pMetadata[uiMetadataIndex];
+      pMetadataEntry->bInUse = false;
+   }
 }

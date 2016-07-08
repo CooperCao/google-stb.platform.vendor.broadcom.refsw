@@ -1,42 +1,39 @@
 /******************************************************************************
-* (c) 2014 Broadcom Corporation
+* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-* This program is the proprietary software of Broadcom Corporation and/or its
-* licensors, and may only be used, duplicated, modified or distributed pursuant
-* to the terms and conditions of a separate, written license agreement executed
-* between you and Broadcom (an "Authorized License").  Except as set forth in
-* an Authorized License, Broadcom grants no license (express or implied), right
-* to use, or waiver of any kind with respect to the Software, and Broadcom
-* expressly reserves all rights in and to the Software and all intellectual
-* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+* This program is the proprietary software of Broadcom and/or its licensors,
+* and may only be used, duplicated, modified or distributed pursuant to the terms and
+* conditions of a separate, written license agreement executed between you and Broadcom
+* (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+* no license (express or implied), right to use, or waiver of any kind with respect to the
+* Software, and Broadcom expressly reserves all rights in and to the Software and all
+* intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
 * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
 * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
 *
 * Except as expressly set forth in the Authorized License,
 *
-* 1. This program, including its structure, sequence and organization,
-*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-*    reasonable efforts to protect the confidentiality thereof, and to use
-*    this information only in connection with your use of Broadcom integrated
-*    circuit products.
+* 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+* secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+* and to use this information only in connection with your use of Broadcom integrated circuit products.
 *
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+* 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+* AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+* WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+* THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+* OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+* LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+* OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+* USE OR PERFORMANCE OF THE SOFTWARE.
 *
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+* 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+* LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+* EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+* USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+* THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+* ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+* LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+* ANY LIMITED REMEDY.
 ******************************************************************************/
 #include <stdio.h>
 #include <string.h>
@@ -53,7 +50,7 @@ OS_SEM calloc_sem;
 OS_SEM realloc_sem;
 OS_SEM free_sem;
 #endif
-#define PRINTF_BUF_SIZE	2048
+#define PRINTF_BUF_SIZE 2048
 
 #if MIPS_BSU_HEAP_ADDR == 0
 static int init=0;
@@ -351,6 +348,7 @@ char *strncat(char *dest, const char *src, size_t n)
 /* thread-safe */
 void *malloc(size_t size)
 {
+#ifdef UCOS
     void *p;
     OS_ERR err;
     CPU_TS ts;
@@ -364,11 +362,15 @@ void *malloc(size_t size)
     p = xapi->xfn_malloc(size);
     OSSemPost(&malloc_sem, OS_OPT_POST_1, &err);
     return p;
+#else
+    return xapi->xfn_malloc(size);
+#endif
 }
 
 /* thread-safe */
 void free(void *ptr)
 {
+#ifdef UCOS
     OS_ERR err;
     CPU_TS ts;
 
@@ -381,10 +383,14 @@ void free(void *ptr)
     xapi->xfn_free(ptr);
     OSSemPost(&free_sem, OS_OPT_POST_1, &err);
     return;
+#else
+    xapi->xfn_free(ptr);
+#endif
 }
 
 void *calloc(size_t nmemb, size_t size)
 {
+#ifdef UCOS
     size_t s = nmemb * size;
     void *p = NULL;
     OS_ERR err;
@@ -399,11 +405,23 @@ void *calloc(size_t nmemb, size_t size)
         memset(p, '\0', s);
 
     return p;
+#else
+    size_t s = nmemb * size;
+    void *p = NULL;
+
+    if (s)
+        p = xapi->xfn_malloc(s);
+    if (p)
+        memset(p, '\0', s);
+
+    return p;
+#endif
 }
 
 /* thread-safe */
 void* realloc (void* ptr, size_t size)
 {
+#ifdef UCOS
     OS_ERR err;
     CPU_TS ts;
 
@@ -418,6 +436,12 @@ void* realloc (void* ptr, size_t size)
     dbg_print("realloc\n");
     OSSemPost(&realloc_sem, OS_OPT_POST_1, &err);
     return NULL;
+#else
+    BSTD_UNUSED(ptr);
+    BSTD_UNUSED(size);
+    dbg_print("realloc\n");
+    return NULL;
+#endif
 }
 #endif
 
@@ -553,7 +577,7 @@ char *gets(char *str)
     if (l < 1)
         return NULL;
 
-    for (i = 0; i < l; i++)	{
+    for (i = 0; i < l; i++) {
         v = xapi->xfn_console_readkey();
         switch (v) {
             case 0x0d: /* CR or LF */

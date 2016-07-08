@@ -1,42 +1,41 @@
-/* #############################################################################
-#    (c)2011 Broadcom Corporation
-# 
-# This program is the proprietary software of Broadcom Corporation and/or its licensors,
-# and may only be used, duplicated, modified or distributed pursuant to the terms and
-# conditions of a separate, written license agreement executed between you and Broadcom
-# (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-# no license (express or implied), right to use, or waiver of any kind with respect to the
-# Software, and Broadcom expressly reserves all rights in and to the Software and all
-# intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-# HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-# NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.  
-#  
-# Except as expressly set forth in the Authorized License,
-#  
-# 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-# secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-# and to use this information only in connection with your use of Broadcom integrated circuit products.
-#  
-# 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS" 
-# AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR 
-# WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO 
-# THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES 
-# OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE, 
-# LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION 
-# OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF 
-# USE OR PERFORMANCE OF THE SOFTWARE.
-# 
-# 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS 
-# LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR 
-# EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR 
-# USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF 
-# THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT 
-# ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE 
-# LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF 
-# ANY LIMITED REMEDY.
-#
-##############################################################################
-*/
+/******************************************************************************
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ ******************************************************************************/
+
 /*
 // IMPORTANT:  This file should be included EXCLUSIVELY by drm_data.cpp.
 */
@@ -122,6 +121,31 @@ _DRM_SHORT_WCHAR_ pr_bin_filename[] = L"/mnt/hwcfg/drm.bin";
 _DRM_SHORT_WCHAR_ pr_bin_filename[] = L"./playready.bin";
 #endif
 
+
+/******************************************************************************
+** VARIABLE:
+**   pr3x_bin_filename
+**
+** DESCRIPTION:
+**   This configuration variable holds filename of the playready 3.x drm bin file generated by Broadcom's DRM utility.
+**
+** NOTES:
+**   This file must only be included in drm_data.h. To retrieve the playready 3.x drm bin file,
+**   an application must link with the drmrootfs library. Then they can use the followings functions to
+**   retrieve the string.
+**     - bdrm_get_pr3x_bin_fname
+**  Refer to drm_data.h for more details.
+**
+**  The playready libraries and drmrootfs are compiled using -fshort-wchar. Make sure that your application uses
+**  the same compilation flags to avoid unexpected behaviors.
+**
+******************************************************************************/
+#ifdef ANDROID
+_DRM_SHORT_WCHAR_ pr3x_bin_filename[] = L"/mnt/hwcfg/drm3x.bin";
+#else
+_DRM_SHORT_WCHAR_ pr3x_bin_filename[] = L"./playready3x.bin";
+#endif
+
 /******************************************************************************
 ** VARIABLE:
 **   key_history_filename
@@ -130,7 +154,7 @@ _DRM_SHORT_WCHAR_ pr_bin_filename[] = L"./playready.bin";
 **   This configuration variable holds filename of the key history file.
 **
 ** NOTES:
-**   This file must only be included in drm_data.h. To retrieve the playready drm bin file,
+**   This file must only be included in drm_data.h. To retrieve the playready key history,
 **   an application must link with the drmrootfs library. Then they can use the followings functions to
 **   retrieve the string.
 **     - bdrm_get_key_history_fname
@@ -144,6 +168,30 @@ _DRM_SHORT_WCHAR_ pr_bin_filename[] = L"./playready.bin";
 _DRM_SHORT_WCHAR_ key_history_filename[] = L"/data/mediadrm/playready/keyhistory.dat";
 #else
 _DRM_SHORT_WCHAR_ key_history_filename[] = L"./keyhistory.dat";
+#endif
+
+/******************************************************************************
+** VARIABLE:
+**   pr3x_key_history_filename
+**
+** DESCRIPTION:
+**   This configuration variable holds filename of the playready 3.x key history file.
+**
+** NOTES:
+**   This file must only be included in drm_data.h. To retrieve the playready 3.x drm key history,
+**   an application must link with the drmrootfs library. Then they can use the followings functions to
+**   retrieve the string.
+**     - bdrm_get_pr3x_key_history_fname
+**  Refer to drm_data.h for more details.
+**
+**  The playready libraries and drmrootfs are compiled using -fshort-wchar. Make sure that your application uses
+**  the same compilation flags to avoid unexpected behaviors.
+**
+******************************************************************************/
+#ifdef ANDROID
+_DRM_SHORT_WCHAR_ pr3x_key_history_filename[] = L"/data/mediadrm/playready/keyhistory3x.dat";
+#else
+_DRM_SHORT_WCHAR_ pr3x_key_history_filename[] = L"./keyhistory3x.dat";
 #endif
 
 /******************************************************************************
@@ -270,7 +318,6 @@ _DRM_SHORT_WCHAR_ pr_hds_dir[] =L"/data/mediadrm/playready/";
 #else
 _DRM_SHORT_WCHAR_ pr_hds_dir[] =L"";
 #endif
-
 
 /******************************************************************************
 ** VARIABLE:
@@ -486,6 +533,51 @@ _DRM_SHORT_WCHAR_ pr_hds_pw_file[] = L"datastore_pwd.dat";
 ******************************************************************************/
 _DRM_SHORT_WCHAR_ pr_hds_file[] = L"datastore.hds";
 
+
+/******************************************************************************
+** VARIABLE:
+**   pr3x_hds_file
+**
+** DESCRIPTION:
+**   This configuration variable holds the filename of Playready 3.x data store. The SDK will concatenate it
+**   with the pr_hds_dir string to form the path of the data store file. Customers
+**   can changes the value of this variable to meet their needs.
+**
+** NOTES:
+**   This file must only be included in drm_data.h. To retrieve the data store path,
+**   a customer application must link with the drmrootfs library. Then they can use the followings functions to
+**   retrieve the string.
+**     - bdrm_get_pr3x_hds_fname
+**     - bdrm_get_pr3xhds_fname_lgth
+**  Refer to drm_data.h for more details.
+**
+**  The playready libraries and drmrootfs are compiled using -fshort-wchar. Make sure that your application uses
+**  the same compilation flags to avoid unexpected behaviors.
+**
+******************************************************************************/
+_DRM_SHORT_WCHAR_ pr3x_hds_file[] = L"datastore3x.hds";
+
+/******************************************************************************
+** VARIABLE:
+**   ta_pr3x_bin_file_rootfs_path
+**   ta_pr3x_dev_bin_file_rootfs_path
+** DESCRIPTION:
+**   This configuration variable holds the file path where the Playready 3.0 TA binary file
+**   exists in rootfs.
+**
+** NOTES:
+**   This file must only be included in drm_data.h.
+**
+**  Refer to drm_data.h for more details.
+**
+******************************************************************************/
+#ifdef ANDROID
+char ta_pr3x_bin_file_rootfs_path[] ="/mnt/hwcfg/sage_ta_playready_30.bin";
+char ta_pr3x_dev_bin_file_rootfs_path[] ="/mnt/hwcfg/sage_ta_playready_30_dev.bin";
+#else
+char ta_pr3x_bin_file_rootfs_path[] ="./sage_ta_playready_30.bin";
+char ta_pr3x_dev_bin_file_rootfs_path[] ="./sage_ta_playready_30_dev.bin";
+#endif
 
 #ifdef __cplusplus
 }

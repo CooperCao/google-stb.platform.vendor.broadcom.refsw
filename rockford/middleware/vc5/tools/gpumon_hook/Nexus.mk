@@ -12,9 +12,7 @@ V3D_DIR ?= $(ROCKFORD_TOP)/middleware/vc5/driver
 V3D_PLATFORM_DIR ?= $(ROCKFORD_TOP)/middleware/vc5/platform
 
 CFLAGS += -I. -I$(V3D_DIR)/interface/khronos/include -I$(V3D_DIR)
-## CAUTION: Using higher optimsation levels causes a SEGV when getting state
-#CFLAGS += -O0 -fPIC -DPIC -fvisibility=hidden
-CFLAGS += -O0 -fPIC -DPIC -DBCG_ABSTRACT_PLATFORM -std=c++0x
+CFLAGS += -Os -fPIC -DPIC -DBCG_ABSTRACT_PLATFORM -std=c++0x
 CFLAGS += -c $(foreach dir,$(NEXUS_APP_INCLUDE_PATHS),-I$(dir)) $(foreach def,$(NEXUS_APP_DEFINES),-D"$(def)")
 
 LDFLAGS = -shared -Wl,--export-dynamic

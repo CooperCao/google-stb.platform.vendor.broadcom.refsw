@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2013 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,37 +35,15 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  **************************************************************************/
 #ifndef NEXUS_SMARTCARD_INIT_H__
 #define NEXUS_SMARTCARD_INIT_H__
 
-#include "nexus_types.h"
+#include "nexus_smartcard.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/*
-Summary:
-Smartcard clock source
-*/
-typedef enum NEXUS_SmartcardClockSource
-{
-    NEXUS_SmartcardClockSource_eUnknown = 0,    /* Unknown value */
-    NEXUS_SmartcardClockSource_eInternalClock,  /* Smartcard uses internal clock */
-    NEXUS_SmartcardClockSource_eExternalClock,  /* Smartcard uses external clock */
-    NEXUS_SmartcardClockSource_eMax
-} NEXUS_SmartcardClockSource;
 
 /**
 Summary:
@@ -74,18 +52,27 @@ Settings used to configure the Smartcard module.
 Description:
 
 See Also:
-NEXUS_SmartcardModule_GetDefaultSettings
+NEXUS_SmartcardModule_GetDefaultInternalSettings
 NEXUS_SmartcardModule_Init
 **/
-typedef struct NEXUS_SmartcardModuleSettings
+typedef struct NEXUS_SmartcardModuleInternalSettings
 {
-    NEXUS_CommonModuleSettings common;
-    NEXUS_SmartcardClockSource clockSource;
-    unsigned long clockFrequency;
     NEXUS_ModuleHandle audio; /* needed for smartcard implementations that use an audio PLL */
-    bool externalOscillatior; /* Set to true if the external oscillator is used. */
-    bool routedInternal; /* Set to true if the clock is routed internally within the chip. */
-} NEXUS_SmartcardModuleSettings;
+} NEXUS_SmartcardModuleInternalSettings;
+
+/**
+Summary:
+Get default settings for the structure.
+
+Description:
+This is required in order to make application code resilient to the addition of new strucutre members in the future.
+
+See Also:
+NEXUS_SmartcardModule_Init
+**/
+void NEXUS_SmartcardModule_GetDefaultInternalSettings(
+    NEXUS_SmartcardModuleInternalSettings *pSettings /* [out] */
+    );
 
 /**
 Summary:
@@ -100,6 +87,7 @@ NEXUS_SmartcardModule_Init
 void NEXUS_SmartcardModule_GetDefaultSettings(
     NEXUS_SmartcardModuleSettings *pSettings /* [out] */
     );
+
 
 /**
 Summary:
@@ -116,6 +104,7 @@ through NEXUS_PlatformSettings as follows:
 
 **/
 NEXUS_ModuleHandle NEXUS_SmartcardModule_Init(
+    const NEXUS_SmartcardModuleInternalSettings *pModuleSettings,
     const NEXUS_SmartcardModuleSettings *pSettings
     );
 

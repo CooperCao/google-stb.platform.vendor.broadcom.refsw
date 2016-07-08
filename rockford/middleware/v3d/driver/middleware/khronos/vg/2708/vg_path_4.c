@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2008 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2008 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -97,7 +97,7 @@ bool vg_path_are_bounds_valid(VG_PATH_T *path)
    return false;
 }
 
-bool vg_path_read_tight_bounds_immediate(MEM_HANDLE_T handle, VG_PATH_T *path)
+bool vg_path_read_tight_bounds_immediate(VG_PATH_T *path)
 {
    if (!(path->flags & VG_PATH_FLAG_BOUNDS_VALID) || (path->flags & VG_PATH_FLAG_BOUNDS_LOOSE)) {
       if (!vg_path_tess_retain(path)) {
@@ -225,7 +225,7 @@ VGErrorCode vg_path_interpolate(
    return vg_path_interpolate_slow(dst, begin, end, t);
 }
 
-bool vg_path_get_length(MEM_HANDLE_T handle, VG_PATH_T *path, float *length, uint32_t segments_i, uint32_t segments_count)
+bool vg_path_get_length(VG_PATH_T *path, float *length, uint32_t segments_i, uint32_t segments_count)
 {
    if (!vg_path_tess_retain(path)) {
       return false;
@@ -239,7 +239,7 @@ bool vg_path_get_length(MEM_HANDLE_T handle, VG_PATH_T *path, float *length, uin
    return true;
 }
 
-bool vg_path_get_p_t_along(MEM_HANDLE_T handle, VG_PATH_T *path, float *p, float *t, uint32_t segments_i, uint32_t segments_count, float distance)
+bool vg_path_get_p_t_along(VG_PATH_T *path, float *p, float *t, uint32_t segments_i, uint32_t segments_count, float distance)
 {
    if (!vg_path_tess_retain(path)) {
       return false;

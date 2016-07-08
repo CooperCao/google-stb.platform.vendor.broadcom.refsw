@@ -1,12 +1,43 @@
-/***************************************************************************
- *     Copyright (c) 2005-2014, Broadcom Corporation
- *     All Rights Reserved
- *     Highly Confidential Property of Broadcom Corporation
- *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
- ***************************************************************************/
+/******************************************************************************
+* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*
+* This program is the proprietary software of Broadcom and/or its
+* licensors, and may only be used, duplicated, modified or distributed pursuant
+* to the terms and conditions of a separate, written license agreement executed
+* between you and Broadcom (an "Authorized License").  Except as set forth in
+* an Authorized License, Broadcom grants no license (express or implied), right
+* to use, or waiver of any kind with respect to the Software, and Broadcom
+* expressly reserves all rights in and to the Software and all intellectual
+* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*
+* Except as expressly set forth in the Authorized License,
+*
+* 1. This program, including its structure, sequence and organization,
+*    constitutes the valuable trade secrets of Broadcom, and you shall use all
+*    reasonable efforts to protect the confidentiality thereof, and to use
+*    this information only in connection with your use of Broadcom integrated
+*    circuit products.
+*
+* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+*
+* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. , WHICHEVER
+*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+******************************************************************************/
 
 #ifndef BSP_S_KEYCOMMON_H__
 #define BSP_S_KEYCOMMON_H__
@@ -30,7 +61,7 @@ typedef enum BCMD_CustomerSubMode_e
     BCMD_CustomerSubMode_eReserved10       = 0xA,
     BCMD_CustomerSubMode_eReserved11       = 0xB,
 
-    BCMD_CustomerSubMode_eResserved12       = 0xC,
+    BCMD_CustomerSubMode_eReserved12       = 0xC,
 
     BCMD_CustomerSubMode_eReserved13       = 0xD,
 
@@ -55,9 +86,14 @@ typedef enum BCMD_CustomerSubMode_e
     BCMD_CustomerSubMode_eReserved27  =  0x1B,
     BCMD_CustomerSubMode_eRESERVED26       =  0x1A,
     BCMD_CustomerSubMode_eRESERVED27       =  0x1B,
-    BCMD_CustomerSubMode_eSCTE52_CA_5       = 0x1C,
-    BCMD_CustomerSubMode_eReserved39        = 0x27,
+    BCMD_CustomerSubMode_eReserved0x1C      = 0x1C,
+    BCMD_CustomerSubMode_eReserved0x1D      = 0x1D,
+    BCMD_CustomerSubMode_eReserved0x1E      = 0x1E,
+    BCMD_CustomerSubMode_eReserved0x1F      = 0x1F,
 
+    BCMD_CustomerSubMode_eReserved32  =  0x20,
+    BCMD_CustomerSubMode_eReserved39  =  0x27,
+    BCMD_CustomerSubMode_eReserved0x27      = 0x27,
     BCMD_CustomerSubMode_eMax
 } BCMD_CustomerSubMode_e;
 
@@ -97,6 +133,9 @@ typedef enum BCMD_ModuleID_e
     BCMD_ModuleID_eModuleID_22              = 22,
     BCMD_ModuleID_eModuleID_23              = 23,
     BCMD_ModuleID_eModuleID_24              = 24,
+    BCMD_ModuleID_eModuleID_25              = 25,
+    BCMD_ModuleID_eWord0Boundary            = 32,
+    BCMD_ModuleID_eModuleID_33              = 33,
     BCMD_ModuleID_eMax
 }BCMD_ModuleID_e;
 
@@ -121,6 +160,7 @@ typedef enum BCMD_RootKeySrc_e
     BCMD_RootKeySrc_eOTPKeyd                = 4,
     BCMD_RootKeySrc_eOTPKeye                = 5,
     BCMD_RootKeySrc_eOTPKeyf                = 6,
+    BCMD_RootKeySrc_eOTPKeyMax              = 6,
     BCMD_RootKeySrc_eReserved7  =  7,
     BCMD_RootKeySrc_eReserved8  =  8,
     BCMD_RootKeySrc_eReserved9  =  9,
@@ -366,7 +406,8 @@ typedef enum BCMD_XptKeyTableCustomerMode_e
     BCMD_XptKeyTableCustomerMode_eMax
 } BCMD_XptKeyTableCustomerMode_e;
 
-typedef enum BSP_MscValues_e {
+typedef enum BSP_MscValues_e
+{
     BSP_MscValues_eReserved2  =  2,
     BSP_MscValues_eReserved18  =  18,
     BSP_MscValues_eReserved4  =  4,
@@ -521,18 +562,18 @@ typedef enum BCMD_KeyLadderSelection_e
 {
 	BCMD_eFWKL	= 0,
 	BCMD_eHWKL	= 1,
+    BCMD_KeyLadderSelection_eReserved2  =  2,
 	BCMD_ePKL	= 2,
 	BCMD_KeyLadderSelection_eMax
 }BCMD_KeyLadderSelection_e;
 
-
 typedef enum BCMD_HwKeyLadderLength_e
 {
-	BCMD_HWKL_LEN0 	= 0,
-	BCMD_HWKL_LEN1 	= 1,
-	BCMD_HWKL_LEN2 	= 2,
-	BCMD_HWKL_LEN3 	= 3,
-	BCMD_HWKL_eMax
+    BCMD_HWKL_LEN0  = 0,
+    BCMD_HWKL_LEN1  = 1,
+    BCMD_HWKL_LEN2  = 2,
+    BCMD_HWKL_LEN3  = 3,
+    BCMD_HWKL_eMax
 } BCMD_HwKeyLadderLength_e;
 
 

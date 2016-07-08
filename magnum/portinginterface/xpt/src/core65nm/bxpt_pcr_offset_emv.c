@@ -1,7 +1,7 @@
 /******************************************************************************
- * (c) 2003-2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c) 2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -887,6 +887,7 @@ BERR_Code BXPT_PcrOffset_EnableOffset(
     )
 {
     uint32_t Reg, RegAddr;
+    bool bAlreadyEnabled;
 
     BERR_Code ExitCode = BERR_SUCCESS;
 
@@ -901,6 +902,9 @@ BERR_Code BXPT_PcrOffset_EnableOffset(
 
     RegAddr = BCHP_XPT_PCROFFSET_PID_CONFIG_TABLE_i_ARRAY_BASE + PidChannelNum * PID_CHNL_STEPSIZE;
     Reg = BREG_Read32( hPcrOff->hReg, RegAddr );
+
+    bAlreadyEnabled = BCHP_GET_FIELD_DATA( Reg, XPT_PCROFFSET_PID_CONFIG_TABLE_i, PCROFFSET_EN ) == 1 ? true : false;
+    if (bAlreadyEnabled) { ExitCode = BERR_NOT_SUPPORTED; BERR_TRACE( ExitCode); goto Done; }
 
     Reg &= ~(
         BCHP_MASK( XPT_PCROFFSET_PID_CONFIG_TABLE_i, JITTER_DIS ) |

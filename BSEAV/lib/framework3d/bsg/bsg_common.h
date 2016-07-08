@@ -1,9 +1,9 @@
 /*=============================================================================
-Copyright (c) 2012 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2012 Broadcom.
 All rights reserved.
 
 Project  :  Include file included everywhere in bsg
-Module   :  
+Module   :
 
 FILE DESCRIPTION
 Common include file

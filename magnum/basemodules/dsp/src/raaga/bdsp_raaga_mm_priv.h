@@ -1,7 +1,7 @@
 /******************************************************************************
- * (c) 2006-2016 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -37,7 +37,6 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 
 
@@ -132,20 +131,12 @@ typedef struct BDSP_Raaga_P_DwnldMemInfo
     BDSP_Raaga_P_AlgoTypeImgBuf AlgoTypeBufs[BDSP_AlgorithmType_eMax];
 }BDSP_Raaga_P_DwnldMemInfo;
 
-
-/* This structure is used to store base pointer & size of buffers used by
-   firmware like the interframe buffers & configparams buffers */
-typedef struct BDSP_Raaga_P_FwBuffer
-{
-    void     *pBaseAddr;
-    uint32_t    ui32Size;
-}BDSP_Raaga_P_FwBuffer;
 /* contains Task Sync & Async Queue info */
 typedef struct BDSP_Raaga_P_TaskQueues
 {
     BDSP_Raaga_P_MsgQueueParams    sTaskSyncQueue;     /* Synchronous queue */
     BDSP_Raaga_P_MsgQueueParams    sTaskAsyncQueue;    /* Asynchronous queue */
-    BDSP_Raaga_P_FwBuffer           sAsyncMsgBufmem;    /* Memory for Async */
+    BDSP_P_FwBuffer                sAsyncMsgBufmem;    /* Memory for Async */
 
     /*Video Task related Queues*/
     BDSP_Raaga_P_MsgQueueParams    sPDQueue;     /* PD queue */
@@ -163,19 +154,21 @@ typedef struct BDSP_Raaga_P_TaskQueues
 /* This structure contains actual addresses & sizes per task */
 typedef struct BDSP_Raaga_P_TaskMemoryInfo
 {
-    BDSP_Raaga_P_TaskQueues         sTaskQueue;
-    BDSP_Raaga_P_FwBuffer           sTaskInfo;
-    BDSP_Raaga_P_FwBuffer           sCitStruct;
-    BDSP_Raaga_P_FwBuffer           sSpareCitStruct; /* The working buffer for bdsp to populate
+    BDSP_Raaga_P_TaskQueues     sTaskQueue;
+    BDSP_P_FwBuffer             sTaskInfo;
+    BDSP_P_FwBuffer             sCitStruct;
+    BDSP_P_FwBuffer             sSpareCitStruct; /* The working buffer for bdsp to populate
                                                         the updated cit on a seamless input port switch */
-    BDSP_Raaga_P_FwBuffer           sStackSwapBuff; /* Task stack swap space */
-    BDSP_Raaga_P_FwBuffer           sTaskCfgBufInfo;    /*All global task configurations come in here*/
+    BDSP_P_FwBuffer             sStackSwapBuff; /* Task stack swap space */
+    BDSP_P_FwBuffer             sTaskCfgBufInfo;    /*All global task configurations come in here*/
 
-    BDSP_Raaga_P_FwBuffer       sTaskSrcIoBufInfo[BDSP_MAX_INPUTS_PER_TASK];  /* 2 Input FMM/RAVE, non IS buffer   */
-    BDSP_Raaga_P_FwBuffer       sTaskDstIoBufInfo[BDSP_MAX_OUTPUTS_PER_TASK];  /* 8 Outputs FMM/RAVE, non IS buffer   */
+    BDSP_P_FwBuffer             sTaskGateOpenBufInfo;    /*All Gate Open Buffer details for Configuration come in here*/
 
-    BDSP_Raaga_P_FwBuffer       sTaskISIoBufInfo[BDSP_RAAGA_MAX_BRANCH_PER_TASK];  /* 2 Input FMM/RAVE, IS buffer   */
-    BDSP_Raaga_P_FwBuffer       sTaskISIoGenBufInfo[BDSP_RAAGA_MAX_BRANCH_PER_TASK];    /* 8 Outputs FMM/RAVE, IS buffer   */
+    BDSP_P_FwBuffer             sTaskSrcIoBufInfo[BDSP_MAX_INPUTS_PER_TASK];  /* 2 Input FMM/RAVE, non IS buffer   */
+    BDSP_P_FwBuffer             sTaskDstIoBufInfo[BDSP_MAX_OUTPUTS_PER_TASK];  /* 8 Outputs FMM/RAVE, non IS buffer   */
+
+    BDSP_P_FwBuffer             sTaskISIoBufInfo[BDSP_RAAGA_MAX_BRANCH_PER_TASK];  /* 2 Input FMM/RAVE, IS buffer   */
+    BDSP_P_FwBuffer             sTaskISIoGenBufInfo[BDSP_RAAGA_MAX_BRANCH_PER_TASK];    /* 8 Outputs FMM/RAVE, IS buffer   */
 }BDSP_Raaga_P_TaskMemoryInfo;
 
 
@@ -241,26 +234,14 @@ typedef struct BDSP_Raaga_P_MemoryGrant
 
 }BDSP_Raaga_P_MemoryGrant;
 
-/* Memory allocated information for whole Raptor device */
-typedef struct BDSP_Raaga_P_StageMemoryReqd
-{
-
-    uint32_t            sUserConfigReqd;
-    uint32_t            sStatusBufReqd;
-    uint32_t            sInterframeBufReqd;
-    uint32_t            sInterframeGenBufReqd;
-
-                            /* Interframe, UsrCfg, Status buffer*/
-
-}BDSP_Raaga_P_StageMemoryReqd;
 typedef struct BDSP_Raaga_P_ContextMemoryGrant
 {
-    BDSP_Raaga_P_FwBuffer            sDspScratchInfo[BDSP_RAAGA_MAX_DSP];
+    BDSP_P_FwBuffer            sDspScratchInfo[BDSP_RAAGA_MAX_DSP];
                                 /* Scratch,interstage,interface buffers per DSP*/
                                 /*will not be used with new CIT, allocated one time per DSP at Raaga_Open time*/
-    BDSP_Raaga_P_FwBuffer            sSpdifStatusBitBufInfo;
+    BDSP_P_FwBuffer            sSpdifStatusBitBufInfo;
                                 /* Extra buffer to on-the-fly program cfg params*/
-    BDSP_Raaga_P_FwBuffer            sVomTableInfo;
+    BDSP_P_FwBuffer            sVomTableInfo;
                                 /* DRAM for VOM Table */
 }BDSP_Raaga_P_ContextMemoryGrant;
 

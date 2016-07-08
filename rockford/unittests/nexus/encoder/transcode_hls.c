@@ -627,7 +627,8 @@ static void avsync_correlation_error( TranscodeContext *pContext )
 				v_pts  = vdesc[j][i].pts;
 				v_stc  = vdesc[j][i].stcSnapshot;
 				v_opts2pts = (double)v_pts / 90 - (double)v_opts / 45;
-				BDBG_MSG(("V: opts=%u pts=%llu, stc=%llu, opts2pts=%f", v_opts, v_pts, v_stc, v_opts2pts));
+				BDBG_MSG(("V: opts=%u pts="BDBG_UINT64_FMT", stc="BDBG_UINT64_FMT", opts2pts=%f",
+					  v_opts, BDBG_UINT64_ARG(v_pts), BDBG_UINT64_ARG(v_stc), v_opts2pts));
 				validVframe = true;
 				break;
 			}
@@ -642,7 +643,8 @@ static void avsync_correlation_error( TranscodeContext *pContext )
 				a_pts  = adesc[j][i].pts;
 				a_stc  = adesc[j][i].stcSnapshot;
 				a_opts2pts = (double)a_pts / 90 - (double)a_opts / 45;
-				BDBG_MSG(("A: opts=%u pts=%llu, stc=%llu, opts2pts=%f", a_opts, a_pts, a_stc, a_opts2pts));
+				BDBG_MSG(("A: opts=%u pts="BDBG_UINT64_FMT", stc="BDBG_UINT64_FMT", opts2pts=%f",
+					  a_opts, BDBG_UINT64_ARG(a_pts), BDBG_UINT64_ARG(a_stc), a_opts2pts));
 				validAframe = true;
 				break;
 			}
@@ -1053,7 +1055,7 @@ static void seekNextChunk(VideoChunk *nextChunk /* output */)
         /* discontinuity may result in a short chunk; but it should be ok */
         dpts = (endPosition->pts >= startPosition->pts)? (endPosition->pts - startPosition->pts)
                 : ((unsigned long)(-1) - startPosition->pts + 1 + endPosition->pts);
-        BDBG_MODULE_MSG(chunk_hls, ("dpts[%lu], start[%ld]@pts=%08x, end[%ld] pts=%08x", dpts, startPosition->index, startPosition->pts, index, endPosition->pts));
+        BDBG_MODULE_MSG(chunk_hls, ("dpts[%lu], start[%ld]@pts=%08x, end[%ld] pts=%08x", dpts, startPosition->index, (unsigned)startPosition->pts, index, (unsigned)endPosition->pts));
     } while(dpts/45 < g_chunkDuration);
 
     /* round down offset to 188-byte TP aligned */
@@ -1069,7 +1071,7 @@ static void seekNextChunk(VideoChunk *nextChunk /* output */)
                 : ((unsigned long)(-1) - startPosition->pts + 1 + position.pts);
     }
     BDBG_MSG(("Chunk start at index %ld, end at index %ld with duration %u ms\n",
-        xcodeContext.latestVideoChunk.startRapIndex, index, dpts/45));
+              xcodeContext.latestVideoChunk.startRapIndex, index, (unsigned)(dpts/45)));
     xcodeContext.latestVideoChunk.endRapIndex = index;
 
     xcodeContext.latestVideoChunk.startOffset = xcodeContext.latestVideoChunk.startPosition.offsetLo + ((uint64_t)xcodeContext.latestVideoChunk.startPosition.offsetHi<<32);
@@ -1216,7 +1218,10 @@ static void videoPlaypump_thread(
                      /* 1) Seek the next chunk to start with; */
                      seekNextChunk(&pContext->chunk);
                      pContext->fileOffset = pContext->chunk.startOffset;
-                     BDBG_MSG(("Xcoder[%d] to start chunk[%d] from %llu to %llu", pContext->xcodeId, pContext->chunk.chunkId, pContext->chunk.startOffset, pContext->chunk.endOffset));
+                     BDBG_MSG(("Xcoder[%d] to start chunk[%d] from "BDBG_UINT64_FMT" to "BDBG_UINT64_FMT,
+                               pContext->xcodeId, pContext->chunk.chunkId,
+                               BDBG_UINT64_ARG(pContext->chunk.startOffset),
+                               BDBG_UINT64_ARG(pContext->chunk.endOffset)));
                      lseek(pContext->file, pContext->chunk.startOffset, SEEK_SET);
                      chunkState = BTST_P_ChunkState_eStart;
                      BDBG_MODULE_MSG(chunk_state, ("[%u] eGetNextChunk --> eStart", pContext->xcodeId));
@@ -1404,7 +1409,7 @@ static int open_video_transcode(
 	stcSettings.mode = NEXUS_StcChannelMode_eAuto;
 	/*stcSettings.modeSettings.Auto.behavior = NEXUS_StcChannelAutoModeBehavior_eAudioMaster;*/
 	pContext->stcVideoChannel = NEXUS_StcChannel_Open(NEXUS_ANY_ID, &stcSettings);
-	BDBG_MSG(("Transcoder opened source vSTC [%p].", pContext->stcVideoChannel));
+	BDBG_MSG(("Transcoder opened source vSTC [%p].", (void*)pContext->stcVideoChannel));
 
 	if(!g_bNrt) {/* RT mode encoder has separate STC */
 		NEXUS_StcChannel_GetDefaultSettings(NEXUS_ANY_ID, &stcSettings);
@@ -1463,7 +1468,7 @@ static int open_video_transcode(
 			if(g_fileSize == 0) {/* get the source media file size */
 				g_fileSize = lseek(pContext->file, 0, SEEK_END);
 				lseek(pContext->file, 0, SEEK_SET);
-				BDBG_MSG(("Source file size: %llu bytes", g_fileSize));
+				BDBG_MSG(("Source file size: "BDBG_UINT64_FMT" bytes", BDBG_UINT64_ARG(g_fileSize)));
 			}
 
 			pContext->playpump = NEXUS_Playpump_Open(NEXUS_ANY_ID, NULL);
@@ -1511,7 +1516,7 @@ static int open_video_transcode(
 		displaySettings.format = (NEXUS_VideoFormat)pEncodeSettings->displayFormat;
 		pContext->displayTranscode = NEXUS_Display_Open(encoderCap.videoEncoder[0].displayIndex, &displaySettings);
 		assert(pContext->displayTranscode);
-		BDBG_MSG(("Transcoder opened encoder display%d [%p].", encoderCap.videoEncoder[0].displayIndex, pContext->displayTranscode));
+		BDBG_MSG(("Transcoder opened encoder display%d [%p].", encoderCap.videoEncoder[0].displayIndex, (void*)pContext->displayTranscode));
 		pContext->windowTranscode = NEXUS_VideoWindow_Open(pContext->displayTranscode, 0);
 		assert(pContext->windowTranscode);
 		NEXUS_VideoFormat_GetInfo(displaySettings.format, &fmtInfo);
@@ -1521,7 +1526,7 @@ static int open_video_transcode(
 	{
 		pContext->displayTranscode = NEXUS_Display_Open(encoderCap.videoEncoder[0].displayIndex, &displaySettings);
 		assert(pContext->displayTranscode);
-		BDBG_MSG(("Transcoder opened encoder display%d [%p].", encoderCap.videoEncoder[0].displayIndex, pContext->displayTranscode));
+		BDBG_MSG(("Transcoder opened encoder display%d [%p].", encoderCap.videoEncoder[0].displayIndex, (void*)pContext->displayTranscode));
 		pContext->windowTranscode = NEXUS_VideoWindow_Open(pContext->displayTranscode, 0);
 		assert(pContext->windowTranscode);
 
@@ -1734,7 +1739,7 @@ static int open_audio_transcode(
 	 */
 	if(g_bNrt) {
 		pContext->stcAudioChannel = pContext->stcChannelTranscode;
-		BDBG_MSG(("Transcoder%d opened source aSTC  [%p].", pContext->xcodeId, pContext->stcAudioChannel));
+		BDBG_MSG(("Transcoder%d opened source aSTC  [%p].", pContext->xcodeId, (void*)pContext->stcAudioChannel));
 	} else {
 		pContext->stcAudioChannel = pContext->stcVideoChannel;
 	}
@@ -1770,7 +1775,7 @@ static int open_audio_transcode(
 	/* Open audio mux output */
 	pContext->audioMuxOutput = NEXUS_AudioMuxOutput_Create(NULL);
 	assert(pContext->audioMuxOutput);
-	BDBG_MSG(("Audio mux output= %p", pContext->audioMuxOutput));
+	BDBG_MSG(("Audio mux output= %p", (void*)pContext->audioMuxOutput));
 
 	if(pEncodeSettings->bAudioEncode)
 	{
@@ -2147,8 +2152,8 @@ static void videoRecpump_thread(
 			highByte = ((off_t)*((uint32_t*)indexBuf+2) >> 24);
 			bytesRecordedTillCurrentRai = highByte << 32;
 			bytesRecordedTillCurrentRai |= (off_t)*((uint32_t*)indexBuf+3);
-			BDBG_MSG(("Seg[%u] byte offset: %llu", segment, bytesRecordedTillCurrentRai));
-			BDBG_MSG(("fifo: R[%x], W[%x], duration=%u, idxSize=%u", BFIFO_READ(&pContext->durationFifo), BFIFO_WRITE(&pContext->durationFifo), *BFIFO_READ(&pContext->durationFifo), indexsize));
+			BDBG_MSG(("Seg[%u] byte offset: "BDBG_UINT64_FMT, segment, BDBG_UINT64_ARG(bytesRecordedTillCurrentRai)));
+			BDBG_MSG(("fifo: R[%p], W[%p], duration=%u, idxSize=%u", (void*)BFIFO_READ(&pContext->durationFifo), (void*)BFIFO_WRITE(&pContext->durationFifo), *BFIFO_READ(&pContext->durationFifo), indexsize));
 			/* log the segment info */
 			/* increment segment counter: assume one RAI per segment. */
 			fprintf(pContext->fileHls, "%u,", segment++);
@@ -2179,8 +2184,10 @@ static void videoRecpump_thread(
 				/* record rest of the previous segment before the new RAI packet and increment buffer pointer */
 				write(pContext->fileTranscode, buffer, bytesRecordedTillCurrentRai - totalRecordBytes);
 				buffer = (uint8_t*)buffer + bytesRecordedTillCurrentRai - totalRecordBytes;
-				BDBG_MSG(("2) Wrote %llu data (%llu, %llu).", bytesRecordedTillCurrentRai - totalRecordBytes,
-					bytesRecordedTillCurrentRai, totalRecordBytes));
+				BDBG_MSG(("2) Wrote "BDBG_UINT64_FMT" data ("BDBG_UINT64_FMT", "BDBG_UINT64_FMT").",
+					  BDBG_UINT64_ARG(bytesRecordedTillCurrentRai - totalRecordBytes),
+					  BDBG_UINT64_ARG(bytesRecordedTillCurrentRai),
+					  BDBG_UINT64_ARG(totalRecordBytes)));
 
 				if(firstTime) {/* first pat/pmt already written previously for the 1st segment */
 					firstTime = false;

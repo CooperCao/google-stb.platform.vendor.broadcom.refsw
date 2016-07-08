@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2012 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #ifndef NEXUS_HDMI_INPUT_PRIV_H__
@@ -113,7 +105,17 @@ Called by Hdmi_Output
 **/
 NEXUS_Error NEXUS_HdmiInput_LoadHdcp2xReceiverIdList_priv(
 	NEXUS_HdmiInputHandle hdmiInput,
-	NEXUS_Hdcp2xReceiverIdListData *pData
+	NEXUS_Hdcp2xReceiverIdListData *pData,
+	bool downstreamIsRepeater
+	);
+
+NEXUS_Error NEXUS_HdmiInput_UpdateHdcp2xRxCaps_priv(
+	NEXUS_HdmiInputHandle hdmiInput,
+	bool downstreamDeviceAttached
+	);
+
+NEXUS_Error NEXUS_HdmiInput_LoadHdcpTA_priv(
+    void *buf, size_t length
 	);
 
 

@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2014 Broadcom Corporation
+ *     Broadcom Proprietary and Confidential. (c)2014 Broadcom.  All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -71,14 +71,21 @@
 
 typedef struct BVC5_P_Handle
 {
-   BCHP_Handle          hChp;
-   BREG_Handle          hReg;
-   BMEM_Heap_Handle     hHeap;
-   BMMA_Heap_Handle     hMMAHeap;
-   BINT_Handle          hInt;
-   BVC5_OpenParameters  sOpenParams;
+   BCHP_Handle                hChp;
+   BREG_Handle                hReg;
+
+   BMEM_Heap_Handle           hHeap;
+   BMMA_Heap_Handle           hMMAHeap;
+   BMEM_Heap_Handle           hSecureHeap;
+   BMMA_Heap_Handle           hSecureMMAHeap;
+
+   BINT_Handle                hInt;
+   BVC5_OpenParameters        sOpenParams;
 
    BKNI_MutexHandle     hModuleMutex;              /* used to protect the worker queue and the posting of messages         */
+
+   /* Records if the SAGE put us in secure mode */
+   bool                 bSecure;
 
    /* Current hardware unit states */
    BVC5_P_CoreState     psCoreStates[BVC5_MAX_CORES];
@@ -113,6 +120,7 @@ typedef struct BVC5_P_Handle
 
    /* Bin memory management */
    BVC5_BinPoolHandle         hBinPool;
+   BVC5_BinPoolHandle         hSecureBinPool;
 
    /* Standby */
    bool                       bEnterStandby;     /* Standby has been requested; stop issuing work to hardware  */
@@ -139,6 +147,20 @@ typedef struct BVC5_P_Handle
    BMMA_DeviceOffset          uiGMPOffset;
 
    bool                       bLockupReported;
+
+   bool                       bToggling;         /* Set when security toggle code is invoked                   */
 } BVC5_P_Handle;
+
+BVC5_BinPoolHandle BVC5_P_GetBinPool(
+   BVC5_Handle hVC5
+);
+
+BMEM_Heap_Handle BVC5_P_GetHeap(
+   BVC5_Handle hVC5
+);
+
+BMMA_Heap_Handle BVC5_P_GetMMAHeap(
+   BVC5_Handle hVC5
+);
 
 #endif /* BVC5_PRIV_H__ */

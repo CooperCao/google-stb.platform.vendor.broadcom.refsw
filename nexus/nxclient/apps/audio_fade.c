@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2014 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  *****************************************************************************/
 
@@ -101,9 +93,9 @@ int main(int argc, char **argv)
     NEXUS_PidChannelHandle videoPidChannel, audioPidChannel, audioPidChannel2;
     NEXUS_SimpleVideoDecoderHandle videoDecoder;
     NEXUS_SimpleVideoDecoderStartSettings videoProgram;
-    NEXUS_SimpleAudioDecoderHandle audioDecoder;
-    NEXUS_SimpleAudioDecoderStartSettings audioProgram;
-    NEXUS_SimpleAudioDecoderSettings audioSettings;
+    NEXUS_SimpleAudioDecoderHandle audioDecoder, audioDecoder2;
+    NEXUS_SimpleAudioDecoderStartSettings audioProgram, audioProgram2;
+    NEXUS_SimpleAudioDecoderSettings audioSettings, audioSettings2;
     NEXUS_MemoryAllocationSettings memSettings;
     NEXUS_ClientConfiguration clientConfig;
     NEXUS_AudioDecoderStatus audioStatus;
@@ -154,6 +146,7 @@ int main(int argc, char **argv)
     videoPidChannel = NEXUS_Playpump_OpenPidChannel(playpump, VIDEO_PID, NULL);
     audioPidChannel = NEXUS_Playpump_OpenPidChannel(playpump, AUDIO_PID, NULL);
     audioPidChannel2 = NEXUS_Playpump_OpenPidChannel(playpump, AUDIO_PID2, NULL);
+    BDBG_ERR(("pid channels: video %p, audio %p, audio 2 %p", (void*)videoPidChannel, (void*)audioPidChannel, (void*)audioPidChannel2));
 
     NxClient_GetDefaultAllocSettings(&allocSettings);
     allocSettings.simpleVideoDecoder = 1;
@@ -164,14 +157,36 @@ int main(int argc, char **argv)
     NxClient_GetDefaultConnectSettings(&connectSettings);
     connectSettings.simpleVideoDecoder[0].id = allocResults.simpleVideoDecoder[0].id;
     connectSettings.simpleAudioDecoder.id = allocResults.simpleAudioDecoder.id;
+    connectSettings.simpleAudioDecoder.decoderCapabilities.type = NxClient_AudioDecoderType_ePersistent;
     rc = NxClient_Connect(&connectSettings, &connectId);
     if (rc) {BDBG_WRN(("unable to connect decode resources")); return -1;}
 
     videoDecoder = NEXUS_SimpleVideoDecoder_Acquire(allocResults.simpleVideoDecoder[0].id);
     audioDecoder = NEXUS_SimpleAudioDecoder_Acquire(allocResults.simpleAudioDecoder.id);
+    if ( !audioDecoder ) {
+        BDBG_ERR(("Unable to Acquire Audio Decoder 0"));
+        return -1;
+    }
+
+    NxClient_GetDefaultAllocSettings(&allocSettings);
+    allocSettings.simpleAudioDecoder = 1;
+    rc = NxClient_Alloc(&allocSettings, &allocResults);
+    if (rc) {BDBG_WRN(("unable to alloc decode resources")); return -1;}
+
+    NxClient_GetDefaultConnectSettings(&connectSettings);
+    connectSettings.simpleAudioDecoder.id = allocResults.simpleAudioDecoder.id;
+    connectSettings.simpleAudioDecoder.decoderCapabilities.type = NxClient_AudioDecoderType_ePersistent;
+    rc = NxClient_Connect(&connectSettings, &connectId);
+
+    audioDecoder2 = NEXUS_SimpleAudioDecoder_Acquire(allocResults.simpleAudioDecoder.id);
+    if ( !audioDecoder2 ) {
+        BDBG_ERR(("Unable to Acquire Audio Decoder 1"));
+        return -1;
+    }
 
     NEXUS_SimpleVideoDecoder_SetStcChannel(videoDecoder, stcChannel);
     NEXUS_SimpleAudioDecoder_SetStcChannel(audioDecoder, stcChannel);
+    NEXUS_SimpleAudioDecoder_SetStcChannel(audioDecoder2, stcChannel);
 
     NEXUS_SimpleVideoDecoder_GetDefaultStartSettings(&videoProgram);
     videoProgram.settings.codec = VIDEO_CODEC;
@@ -181,19 +196,25 @@ int main(int argc, char **argv)
     NEXUS_SimpleAudioDecoder_GetDefaultStartSettings(&audioProgram);
     audioProgram.primary.codec = AUDIO_CODEC;
     audioProgram.primary.pidChannel = audioPidChannel;
-    audioProgram.description.codec = AUDIO_CODEC;
-    audioProgram.description.pidChannel = audioPidChannel2;
+    NEXUS_SimpleAudioDecoder_GetDefaultStartSettings(&audioProgram2);
+    audioProgram2.primary.codec = AUDIO_CODEC;
+    audioProgram2.primary.pidChannel = audioPidChannel2;
     NEXUS_SimpleAudioDecoder_GetSettings(audioDecoder, &audioSettings);
     audioSettings.processorSettings[NEXUS_SimpleAudioDecoderSelector_ePrimary].fade.connected = true;
     audioSettings.processorSettings[NEXUS_SimpleAudioDecoderSelector_ePrimary].fade.settings.type = 2;
     audioSettings.processorSettings[NEXUS_SimpleAudioDecoderSelector_ePrimary].fade.settings.duration = 1000;
     audioSettings.processorSettings[NEXUS_SimpleAudioDecoderSelector_ePrimary].fade.settings.level = 80;
-    audioSettings.processorSettings[NEXUS_SimpleAudioDecoderSelector_eDescription].fade.connected = true;
-    audioSettings.processorSettings[NEXUS_SimpleAudioDecoderSelector_eDescription].fade.settings.type = 2;
-    audioSettings.processorSettings[NEXUS_SimpleAudioDecoderSelector_eDescription].fade.settings.duration = 1000;
-    audioSettings.processorSettings[NEXUS_SimpleAudioDecoderSelector_eDescription].fade.settings.level = 20;
     NEXUS_SimpleAudioDecoder_SetSettings(audioDecoder, &audioSettings);
+    NEXUS_SimpleAudioDecoder_GetSettings(audioDecoder2, &audioSettings);
+    audioSettings.processorSettings[NEXUS_SimpleAudioDecoderSelector_ePrimary].fade.connected = true;
+    audioSettings.processorSettings[NEXUS_SimpleAudioDecoderSelector_ePrimary].fade.settings.type = 2;
+    audioSettings.processorSettings[NEXUS_SimpleAudioDecoderSelector_ePrimary].fade.settings.duration = 1000;
+    audioSettings.processorSettings[NEXUS_SimpleAudioDecoderSelector_ePrimary].fade.settings.level = 20;
+    NEXUS_SimpleAudioDecoder_SetSettings(audioDecoder2, &audioSettings);
+    BDBG_ERR(("Starting Audio Decoder 0"));
     NEXUS_SimpleAudioDecoder_Start(audioDecoder, &audioProgram);
+    BDBG_ERR(("Starting Audio Decoder 1"));
+    NEXUS_SimpleAudioDecoder_Start(audioDecoder2, &audioProgram2);
 
     /* buffers must be from the nexus heap to be used by playpump; therefore use NEXUS_Memory_Allocate */
     NEXUS_Platform_GetClientConfiguration(&clientConfig);
@@ -232,10 +253,12 @@ int main(int argc, char **argv)
                 BDBG_ERR(("Toggle Primary / Description fade values"));
 
                 NEXUS_SimpleAudioDecoder_GetSettings(audioDecoder, &audioSettings);
+                NEXUS_SimpleAudioDecoder_GetSettings(audioDecoder2, &audioSettings2);
                 level = audioSettings.processorSettings[NEXUS_SimpleAudioDecoderSelector_ePrimary].fade.settings.level;
-                audioSettings.processorSettings[NEXUS_SimpleAudioDecoderSelector_ePrimary].fade.settings.level = audioSettings.processorSettings[NEXUS_SimpleAudioDecoderSelector_eDescription].fade.settings.level;
-                audioSettings.processorSettings[NEXUS_SimpleAudioDecoderSelector_eDescription].fade.settings.level = level;
+                audioSettings.processorSettings[NEXUS_SimpleAudioDecoderSelector_ePrimary].fade.settings.level = audioSettings2.processorSettings[NEXUS_SimpleAudioDecoderSelector_ePrimary].fade.settings.level;
+                audioSettings2.processorSettings[NEXUS_SimpleAudioDecoderSelector_ePrimary].fade.settings.level = level;
                 NEXUS_SimpleAudioDecoder_SetSettings(audioDecoder, &audioSettings);
+                NEXUS_SimpleAudioDecoder_SetSettings(audioDecoder2, &audioSettings2);
             }
             rc = NEXUS_SimpleAudioDecoder_GetProcessorStatus(audioDecoder, NEXUS_SimpleAudioDecoderSelector_ePrimary, NEXUS_AudioPostProcessing_eFade, &processorStatus);
             BDBG_ASSERT(!rc);
@@ -261,7 +284,7 @@ int main(int argc, char **argv)
         }
         else {
             NEXUS_PlaypumpScatterGatherDescriptor desc;
-            unsigned numConsumed;
+            size_t numConsumed;
             desc.addr = buf[cur_buf];
             desc.length = n;
             if (playpumpSettings.dataNotCpuAccessible) {

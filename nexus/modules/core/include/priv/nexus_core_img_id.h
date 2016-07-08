@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,18 +35,11 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Date: $
-*
 * API Description:
 *   API name: Base
 *   It also initializes the magnum base modules. And provides system level
 *   interrupt routing
 *
-* Revision History:
-*
-* $brcm_Log: $
-* 
 ***************************************************************************/
 #ifndef NEXUS_CORE_IMG_ID_H
 #define NEXUS_CORE_IMG_ID_H
@@ -55,12 +48,15 @@
 #define NEXUS_CORE_IMG_ID_VCE "VCE"
 #define NEXUS_CORE_IMG_ID_SAGE "SAGE"
 #define NEXUS_CORE_IMG_ID_SID  "SID"
+#define NEXUS_CORE_IMG_ID_HDCP  "HDCP-TA"
+#define NEXUS_CORE_IMG_ID_SVP  "SVP"
 #define NEXUS_CORE_IMG_ID_FRONTEND_7366 "FE_7366"
 #define NEXUS_CORE_IMG_ID_FRONTEND_4538 "FE_4538"
 #define NEXUS_CORE_IMG_ID_FRONTEND_45216 "FE_45216"
 #define NEXUS_CORE_IMG_ID_FRONTEND_45308 "FE_45308"
 #define NEXUS_CORE_IMG_ID_FRONTEND_7364 "FE_7364"
 #define NEXUS_CORE_IMG_ID_FRONTEND_3128 "FE_3128"
+#define NEXUS_CORE_IMG_ID_FRONTEND_3158 "FE_3158"
 #define NEXUS_CORE_IMG_ID_FRONTEND_7584 "FE_7584"
 #define NEXUS_CORE_IMG_ID_FRONTEND_3461 "FE_3461"
 #define NEXUS_CORE_IMG_ID_FRONTEND_7563 "FE_7563"

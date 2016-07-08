@@ -1,7 +1,7 @@
 /******************************************************************************
- * (c) 2003-2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -1006,6 +1006,11 @@ BERR_Code BXPT_GetParserConfig(
         Reg = BREG_Read32( hXpt->hRegister, BCHP_XPT_FULL_PID_PARSER_IBP_ACCEPT_ADAPT_00 );
         ParserConfig->AcceptAdapt00 = (Reg >> GetParserIndex (hXpt, ParserNum)) & 0x01 ? true : false;
 #endif
+
+        /* The hw logic defaults to 1, opposite of what we're used to. */
+        RegAddr = BXPT_P_GetParserCtrlRegAddr( hXpt, ParserNum, BCHP_XPT_FE_MINI_PID_PARSER0_CTRL2 );
+        Reg = BREG_Read32( hXpt->hRegister, RegAddr );
+        ParserConfig->ForceRestamping = BCHP_GET_FIELD_DATA( Reg, XPT_FE_MINI_PID_PARSER0_CTRL2, PARSER_TIMESTAMP_RESTAMP ) ? true : false;
     }
 
     return( ExitCode );
@@ -1036,6 +1041,7 @@ BERR_Code BXPT_GetDefaultParserConfig(
         ParserConfig->TsMode = BXPT_ParserTimestampMode_eAutoSelect;
         ParserConfig->AcceptNulls = false;
         ParserConfig->AcceptAdapt00 = false;
+        ParserConfig->ForceRestamping = true;
     }
 
     return( ExitCode );
@@ -1084,6 +1090,16 @@ BERR_Code BXPT_SetParserConfig(
 
         BREG_Write32( hXpt->hRegister, RegAddr, Reg );
 
+        /* The hw logic defaults to 1, opposite of what we're used to. */
+        RegAddr = BXPT_P_GetParserCtrlRegAddr( hXpt, ParserNum, BCHP_XPT_FE_MINI_PID_PARSER0_CTRL2 );
+        Reg = BREG_Read32( hXpt->hRegister, RegAddr );
+        Reg &= ~(
+            BCHP_MASK( XPT_FE_MINI_PID_PARSER0_CTRL2, PARSER_TIMESTAMP_RESTAMP )
+        );
+        Reg |= (
+            BCHP_FIELD_DATA( XPT_FE_MINI_PID_PARSER0_CTRL2, PARSER_TIMESTAMP_RESTAMP, ParserConfig->ForceRestamping ? 1 : 0 )
+        );
+        BREG_Write32( hXpt->hRegister, RegAddr, Reg );
 
 #if BCHP_XPT_FULL_PID_PARSER_IBP_ACCEPT_ADAPT_00_PARSER0_ACCEPT_ADP_00_MASK != 0x00000001 || BXPT_NUM_PID_PARSERS > 32
     #error "PI NEEDS UPDATING"
@@ -2444,6 +2460,7 @@ BERR_Code BXPT_GetPidChannel_CC_Config(
     }
     else
     {
+#if 0
         /* All-pass mode overrides the user settings, so return the last ones they gave before all-pass was enabled */
         unsigned Band = hXpt->PidChannelTable[ PidChannelNum ].Band;
         bool IsAllPass = false;
@@ -2466,6 +2483,7 @@ BERR_Code BXPT_GetPidChannel_CC_Config(
             }
         }
         else
+#endif
         {
             uint32_t Reg, RegAddr;
 
@@ -2504,6 +2522,7 @@ BERR_Code BXPT_SetPidChannel_CC_Config(
     }
     else
     {
+#if 0
         /* All-pass must override the new settings, so store them until all-pass is disabled */
         unsigned Band = hXpt->PidChannelTable[ PidChannelNum ].Band;
         bool IsAllPass = false;
@@ -2526,6 +2545,7 @@ BERR_Code BXPT_SetPidChannel_CC_Config(
             }
         }
         else
+#endif
         {
             uint32_t Reg, RegAddr;
 

@@ -1,7 +1,7 @@
 /******************************************************************************
-*    (c)2011-2013 Broadcom Corporation
+* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-* This program is the proprietary software of Broadcom Corporation and/or its licensors,
+* This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
 * conditions of a separate, written license agreement executed between you and Broadcom
 * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
 * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 * ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * Module Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 *****************************************************************************/
 #ifndef _BHAB_45308_PRIV_H_
@@ -74,7 +66,6 @@ typedef struct BHAB_45308_P_Handle
    BKNI_EventHandle hApiEvent;       /* API event handle */
    BKNI_EventHandle hInitDoneEvent;  /* AP initialization done event handle */
    BKNI_EventHandle hHabDoneEvent;   /* HAB done event handle */
-   BKNI_EventHandle hFlashDoneEvent; /* Flash operation done event handle */
    BHAB_45308_P_CallbackInfo cbSat;  /* SAT callback info */
    BHAB_45308_P_CallbackInfo cbDsq;  /* DSQ callback info */
    BHAB_45308_P_CallbackInfo cbFsk;  /* FSK callback info */

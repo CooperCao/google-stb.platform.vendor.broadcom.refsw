@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2008 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2008 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -69,7 +69,7 @@ typedef struct {
 extern int khrn_cache_init(KHRN_CACHE_T *cache);
 extern void khrn_cache_term(KHRN_CACHE_T *cache);
 
-extern int khrn_cache_lookup(CLIENT_THREAD_STATE_T *thread, KHRN_CACHE_T *cache, const void *data, int len, int sig, bool is_opengles_11);
+extern int khrn_cache_lookup(KHRN_CACHE_T *cache, const void *data, int len, int sig);
 extern int khrn_cache_get_entries(KHRN_CACHE_T *cache);
 
 #endif

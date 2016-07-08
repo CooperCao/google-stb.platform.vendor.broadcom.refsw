@@ -230,6 +230,7 @@ int main(void)
     NEXUS_KeySlotHandle decAudioCaHandle = NULL;
     NEXUS_PidChannelStatus pidStatus;
     NEXUS_PlatformSettings platformSettings;
+    NEXUS_PlatformConfiguration platformConfig;
 #if RECORD_FROM_PLAYBACK
     NEXUS_PlaypumpHandle playpump = NULL;
     NEXUS_PlaybackHandle playback = NULL;
@@ -242,7 +243,14 @@ int main(void)
     /* Bring up all modules for a platform in a default configuration for this platform */
     NEXUS_Platform_GetDefaultSettings(&platformSettings);
     platformSettings.openFrontend = false;
+
+#ifdef NEXUS_EXPORT_HEAP
+    /* Configure export heap since it's not allocated by nexus by default */
+    platformSettings.heap[NEXUS_EXPORT_HEAP].size = 32*1024*1024;
+#endif
+
     NEXUS_Platform_Init(&platformSettings);
+    NEXUS_Platform_GetConfiguration(&platformConfig);
 
     NEXUS_Memory_PrintHeaps();
 
@@ -275,15 +283,6 @@ int main(void)
             pidChannel[0] = NEXUS_Playback_OpenPidChannel(playback, VIDEO_PID, &playbackPidSettings);
         }
         pidChannel[1] = NEXUS_Playback_OpenPidChannel(playback, AUDIO_PID, NULL);
-
-        /* Open Other PIDs */
-#if SUBT_PID
-        pidChannel[2] = NEXUS_Playback_OpenPidChannel(playback, SUBT_PID, NULL);
-#endif
-        pidChannel[3] = NEXUS_Playback_OpenPidChannel(playback, PAT_PID, NULL);
-#if PMT_PID
-        pidChannel[4] = NEXUS_Playback_OpenPidChannel(playback, PMT_PID, NULL);
-#endif
     }
 #else
     {
@@ -301,15 +300,6 @@ int main(void)
         /* Open Audio and Video PIDs */
         pidChannel[PID_INDEX_eVideo] = NEXUS_PidChannel_Open(parserBand, VIDEO_PID, NULL);
         pidChannel[PID_INDEX_eAudio] = NEXUS_PidChannel_Open(parserBand, AUDIO_PID, NULL);
-
-        /* Open Other PIDs */
-#if SUBT_PID
-        pidChannel[PID_INDEX_eSubtitle] = NEXUS_PidChannel_Open(parserBand, SUBT_PID, NULL);
-#endif
-        pidChannel[PID_INDEX_ePAT] = NEXUS_PidChannel_Open(parserBand, PAT_PID, NULL);
-#if PMT_PID
-        pidChannel[PID_INDEX_ePMT] = NEXUS_PidChannel_Open(parserBand, PMT_PID, NULL);
-#endif
     }
 #endif
 
@@ -324,7 +314,7 @@ int main(void)
     berr = BKNI_CreateEvent(&event);
     BDBG_ASSERT(berr == BERR_SUCCESS && event);
 
-    err = prepare_keyslots(0/* NOT playback application */, &encKeyHandle, &encCpHandle, &decVideoCaHandle, &decAudioCaHandle);
+    err = prepare_keyslots(0/* NOT playback application */, &encKeyHandle, NULL, &decVideoCaHandle, &decAudioCaHandle);
     BDBG_ASSERT(err == 0);
 
     dma = NEXUS_Dma_Open(0, NULL);
@@ -375,9 +365,11 @@ int main(void)
     openSettings.data.bufferSize = (CHUNK_COUNT * CHUNK_SIZE);
     openSettings.data.dataReadyThreshold = CHUNK_SIZE;
 
-#if USE_SECURE_HEAP
-    openSettings.useSecureHeap = true;
+#ifdef NEXUS_EXPORT_HEAP
+    openSettings.data.heap = platformConfig.heap[NEXUS_EXPORT_HEAP];
+    openSettings.useSecureHeap = false;
 #endif
+
 #if RECORD_FROM_PLAYBACK
     /* set threshold to 80%. with band hold enabled, it's not actually a dataready threshold. it's
        a bandhold threshold. we are relying on the timer that's already in record. */
@@ -413,15 +405,6 @@ int main(void)
     }
     NEXUS_Recpump_AddPidChannel(recpump, pidChannel[PID_INDEX_eAudio], NULL);
 
-    /* Open Other PIDs */
-#if SUBT_PID
-    NEXUS_Recpump_AddPidChannel(recpump, pidChannel[PID_INDEX_eSubtitle], NULL);
-#endif
-    NEXUS_Recpump_AddPidChannel(recpump, pidChannel[PID_INDEX_ePAT], NULL);
-#if PMT_PID
-    NEXUS_Recpump_AddPidChannel(recpump, pidChannel[PID_INDEX_ePMT], NULL);
-#endif
-
 #if CA_STREAM
     /* In case it is a CA-encrypted stream, attach Video and Audio PIDs to CA keyslots */
     NEXUS_PidChannel_GetStatus(pidChannel[PID_INDEX_eVideo], &pidStatus);
@@ -430,17 +413,6 @@ int main(void)
     NEXUS_Security_AddPidChannelToKeySlot(decAudioCaHandle, pidStatus.pidChannelIndex);
 #endif
 
-    /* All other streams, will be encrypted by CPSrambler */
-#if SUBT_PID
-    NEXUS_PidChannel_GetStatus(pidChannel[PID_INDEX_eSubtitle], &pidStatus);
-    NEXUS_Security_AddPidChannelToKeySlot(encCpHandle, pidStatus.pidChannelIndex);
-#endif
-    NEXUS_PidChannel_GetStatus(pidChannel[PID_INDEX_ePAT], &pidStatus);
-    NEXUS_Security_AddPidChannelToKeySlot(encCpHandle, pidStatus.pidChannelIndex);
-#if PMT_PID
-    NEXUS_PidChannel_GetStatus(pidChannel[PID_INDEX_ePMT], &pidStatus);
-    NEXUS_Security_AddPidChannelToKeySlot(encCpHandle, pidStatus.pidChannelIndex);
-#endif
     NEXUS_Recpump_Start(recpump);
 
     /* To retreive buffer base */
@@ -562,7 +534,7 @@ int main(void)
     BKNI_DestroyEvent(dmaEvent);
     NEXUS_Memory_Free(pMem);
     NEXUS_Dma_Close(dma);
-    clean_keyslots(encKeyHandle, encCpHandle, decVideoCaHandle, decAudioCaHandle);
+    clean_keyslots(encKeyHandle, NULL, decVideoCaHandle, decAudioCaHandle);
     BKNI_DestroyEvent(event);
 #if SAGE_PRE_M2M
     fclose(saveFile);

@@ -1,7 +1,7 @@
 /******************************************************************************
- * (c) 2006-2016 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -37,19 +37,28 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 #ifndef BDSP_COMMON_PRIV_H_
 #define BDSP_COMMON_PRIV_H_
 
 #include "bdsp_common_priv_include.h"
 
-/* To support 1 MS-11 usage + dual seamless transcods usage cases - 8 tasks */
-/* To support 6 seamless transcodes - 12 tasks */
-#define BDSP_MAX_FW_TASK_PER_CTXT (int32_t)12
+#define BDSP_P_INVALID_TASK_ID            ((unsigned int)(-1))
 
-#define BDSP_MAX_BRANCH 3
-#define BDSP_MAX_STAGE_PER_BRANCH (7+3)/*MAX PP stage added externally + MAX internal stage added*/
+/* This structure is used to store base pointer & size of buffers used by
+  firmware like the interframe buffers & configparams buffers */
+typedef struct BDSP_P_FwBuffer
+{
+   void       *pBaseAddr;
+   uint32_t    ui32Size;
+}BDSP_P_FwBuffer;
+
+typedef struct BDSP_P_AlgoBufferOffsets
+{
+   uint32_t ui32IfOffset;      /* Offset to the interframe buffer */
+   uint32_t ui32UserCfgOffset; /* Offset to the user config buffer */
+   uint32_t ui32StatusOffset;  /* Offset to the status buffer */
+}BDSP_P_AlgoBufferOffsets;
                                                                                /*(Decode + SRC + DSOLA)*/
 BDBG_OBJECT_ID_DECLARE(BDSP_P_InterTaskBuffer);
 typedef struct BDSP_P_InterTaskBuffer
@@ -72,5 +81,27 @@ typedef struct BDSP_P_InterTaskBuffer
     void       *pIoBuffer; /*Address of the IO buffer allocated */
     void       *pIoGenBuffer; /*Address of the IO Gen buffer allocated */
 } BDSP_P_InterTaskBuffer;
+
+void BDSP_P_GetDistinctOpTypeAndNumChans(
+    BDSP_DataType dataType, /* [in] */
+    unsigned *numChans, /* [out] */
+    BDSP_AF_P_DistinctOpType *distinctOp /* [out] */
+);
+
+void BDSP_P_GetFreeOutputPortIndex(
+    BDSP_StageSrcDstDetails *psStageOutput,
+    unsigned *index
+);
+
+void BDSP_P_GetFreeInputPortIndex(
+    BDSP_StageSrcDstDetails *psStageInput,
+    unsigned *index
+);
+
+BERR_Code BDSP_DSP_P_InterframeRunLengthDecode(
+    void *pSrc, void *pDst,
+    uint32_t ui32IfBuffEncodedSize,
+    uint32_t ui32AllocatedBufferSize
+);
 
 #endif /*BDSP_COMMON_PRIV_H_*/

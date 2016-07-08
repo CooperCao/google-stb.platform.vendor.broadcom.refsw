@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2012 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,6 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  **************************************************************************/
 #ifndef NEXUS_SECURITY_TYPES_H__
 #define NEXUS_SECURITY_TYPES_H__
@@ -186,7 +176,7 @@ typedef struct NEXUS_SecurityKeySlotSettings {
 Summary:
 Information from a keyslot returned by NEXUS_KeySlot_GetInfo
 **/
-typedef struct NEXUS_KeySlotInfo
+typedef struct NEXUS_SecurityKeySlotInfo
 {
     NEXUS_SecurityEngine        keySlotEngine;  /* Identifies the Crypto Engine (i.e., CA/CPS/CPD) that the keyslot is being used with. */
     unsigned                    keySlotNumber;  /* keySlotNumber and keySlotType uniquely identify a physical keyslot. */
@@ -195,9 +185,9 @@ typedef struct NEXUS_KeySlotInfo
         unsigned pidChannelIndex;               /* A pid channel is reserved by Nexus Security if keyslot is for a DMA transfer.
                                                    Valid only if keySlotEngine == NEXUS_SecurityEngine_eM2m.  */
     }dma;
-} NEXUS_KeySlotInfo;
+} NEXUS_SecurityKeySlotInfo;
 
-typedef NEXUS_KeySlotInfo NEXUS_SecurityKeySlotInfo;
+typedef NEXUS_SecurityKeySlotInfo NEXUS_KeySlotInfo;
 
 /**
 Summary:

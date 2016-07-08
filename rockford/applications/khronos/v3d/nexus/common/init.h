@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2010 Broadcom Corporation
+ *    Broadcom Proprietary and Confidential. (c)2008-2010 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -63,11 +63,11 @@ typedef enum
 }
 eInitResult;
 
-extern eInitResult InitPlatformAndDefaultDisplay(NEXUS_DISPLAYHANDLE *handle, float *aspect, uint32_t w, uint32_t h);
-extern eInitResult InitPlatform(void);
+extern eInitResult InitPlatformAndDefaultDisplay(NEXUS_DISPLAYHANDLE *handle, float *aspect, uint32_t w, uint32_t h, bool secure);
+extern eInitResult InitPlatform(bool secure);
 extern void TermPlatform(NEXUS_DISPLAYHANDLE handle);
 
-extern NEXUS_DisplayHandle OpenDisplay(NEXUS_VideoFormat format, uint32_t w, uint32_t h);
+extern NEXUS_DisplayHandle OpenDisplay(NEXUS_VideoFormat format, uint32_t w, uint32_t h, bool secure);
 
 extern void InitPanelOutput(NEXUS_DisplayHandle display);
 

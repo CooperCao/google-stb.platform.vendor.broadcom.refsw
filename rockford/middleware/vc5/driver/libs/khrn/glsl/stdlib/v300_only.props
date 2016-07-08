@@ -1,0 +1,228 @@
+version3 version31 version32:
+#
+# Hyperbolic functions
+#
+  float sinh (float x);
+  vec2  sinh (vec2  x);
+  vec3  sinh (vec3  x);
+  vec4  sinh (vec4  x);
+  float cosh (float x);
+  vec2  cosh (vec2  x);
+  vec3  cosh (vec3  x);
+  vec4  cosh (vec4  x);
+  float tanh (float x);
+  vec2  tanh (vec2  x);
+  vec3  tanh (vec3  x);
+  vec4  tanh (vec4  x);
+  float asinh(float x);
+  vec2  asinh(vec2  x);
+  vec3  asinh(vec3  x);
+  vec4  asinh(vec4  x);
+  float acosh(float x);
+  vec2  acosh(vec2  x);
+  vec3  acosh(vec3  x);
+  vec4  acosh(vec4  x);
+  float atanh(float x);
+  vec2  atanh(vec2  x);
+  vec3  atanh(vec3  x);
+  vec4  atanh(vec4  x);
+#
+# Common functions
+#
+  int   abs      (int   x);
+  ivec2 abs      (ivec2 x);
+  ivec3 abs      (ivec3 x);
+  ivec4 abs      (ivec4 x);
+  int   sign     (int   x);
+  ivec2 sign     (ivec2 x);
+  ivec3 sign     (ivec3 x);
+  ivec4 sign     (ivec4 x);
+  float trunc    (float x);
+  vec2  trunc    (vec2  x);
+  vec3  trunc    (vec3  x);
+  vec4  trunc    (vec4  x);
+  float round    (float x);
+  vec2  round    (vec2  x);
+  vec3  round    (vec3  x);
+  vec4  round    (vec4  x);
+  float roundEven(float x);
+  vec2  roundEven(vec2  x);
+  vec3  roundEven(vec3  x);
+  vec4  roundEven(vec4  x);
+  float modf     (float x, out float i);
+  vec2  modf     (vec2  x, out vec2  i);
+  vec3  modf     (vec3  x, out vec3  i);
+  vec4  modf     (vec4  x, out vec4  i);
+  int   min      (int   x, int       y);
+  ivec2 min      (ivec2 x, ivec2     y);
+  ivec3 min      (ivec3 x, ivec3     y);
+  ivec4 min      (ivec4 x, ivec4     y);
+  ivec2 min      (ivec2 x, int       y);
+  ivec3 min      (ivec3 x, int       y);
+  ivec4 min      (ivec4 x, int       y);
+  uint  min      (uint  x, uint      y);
+  uvec2 min      (uvec2 x, uvec2     y);
+  uvec3 min      (uvec3 x, uvec3     y);
+  uvec4 min      (uvec4 x, uvec4     y);
+  uvec2 min      (uvec2 x, uint      y);
+  uvec3 min      (uvec3 x, uint      y);
+  uvec4 min      (uvec4 x, uint      y);
+  int   max      (int   x, int       y);
+  ivec2 max      (ivec2 x, ivec2     y);
+  ivec3 max      (ivec3 x, ivec3     y);
+  ivec4 max      (ivec4 x, ivec4     y);
+  ivec2 max      (ivec2 x, int       y);
+  ivec3 max      (ivec3 x, int       y);
+  ivec4 max      (ivec4 x, int       y);
+  uint  max      (uint  x, uint      y);
+  uvec2 max      (uvec2 x, uvec2     y);
+  uvec3 max      (uvec3 x, uvec3     y);
+  uvec4 max      (uvec4 x, uvec4     y);
+  uvec2 max      (uvec2 x, uint      y);
+  uvec3 max      (uvec3 x, uint      y);
+  uvec4 max      (uvec4 x, uint      y);
+  int   clamp    (int   x, int       minVal, int   maxVal);
+  ivec2 clamp    (ivec2 x, ivec2     minVal, ivec2 maxVal);
+  ivec3 clamp    (ivec3 x, ivec3     minVal, ivec3 maxVal);
+  ivec4 clamp    (ivec4 x, ivec4     minVal, ivec4 maxVal);
+  ivec2 clamp    (ivec2 x, int       minVal, int   maxVal);
+  ivec3 clamp    (ivec3 x, int       minVal, int   maxVal);
+  ivec4 clamp    (ivec4 x, int       minVal, int   maxVal);
+  uint  clamp    (uint  x, uint      minVal, uint  maxVal);
+  uvec2 clamp    (uvec2 x, uvec2     minVal, uvec2 maxVal);
+  uvec3 clamp    (uvec3 x, uvec3     minVal, uvec3 maxVal);
+  uvec4 clamp    (uvec4 x, uvec4     minVal, uvec4 maxVal);
+  uvec2 clamp    (uvec2 x, uint      minVal, uint  maxVal);
+  uvec3 clamp    (uvec3 x, uint      minVal, uint  maxVal);
+  uvec4 clamp    (uvec4 x, uint      minVal, uint  maxVal);
+  float mix      (float x, float     y,      bool  a);
+  vec2  mix      (vec2  x, vec2      y,      bvec2 a);
+  vec3  mix      (vec3  x, vec3      y,      bvec3 a);
+  vec4  mix      (vec4  x, vec4      y,      bvec4 a);
+  bool  isinf    (float x);
+  bvec2 isinf    (vec2  x);
+  bvec3 isinf    (vec3  x);
+  bvec4 isinf    (vec4  x);
+  bool  isnan    (float x);
+  bvec2 isnan    (vec2  x);
+  bvec3 isnan    (vec3  x);
+  bvec4 isnan    (vec4  x);
+  int   floatBitsToInt (float value);
+  ivec2 floatBitsToInt (vec2  value);
+  ivec3 floatBitsToInt (vec3  value);
+  ivec4 floatBitsToInt (vec4  value);
+  float intBitsToFloat (int   value);
+  vec2  intBitsToFloat (ivec2 value);
+  vec3  intBitsToFloat (ivec3 value);
+  vec4  intBitsToFloat (ivec4 value);
+  uint  floatBitsToUint(float value);
+  uvec2 floatBitsToUint(vec2  value);
+  uvec3 floatBitsToUint(vec3  value);
+  uvec4 floatBitsToUint(vec4  value);
+  float uintBitsToFloat(uint  value);
+  vec2  uintBitsToFloat(uvec2 value);
+  vec3  uintBitsToFloat(uvec3 value);
+  vec4  uintBitsToFloat(uvec4 value);
+#
+# Packing functions
+#
+  highp   uint packSnorm2x16  (        vec2 v);
+  highp   vec2 unpackSnorm2x16(highp   uint p);
+  highp   uint packUnorm2x16  (        vec2 v);
+  highp   vec2 unpackUnorm2x16(highp   uint p);
+  highp   uint packHalf2x16   (mediump vec2 v);
+  mediump vec2 unpackHalf2x16 (highp   uint p);
+#
+# Matrix functions
+#
+  mat2   outerProduct(vec2   c, vec2 r);
+  mat3   outerProduct(vec3   c, vec3 r);
+  mat4   outerProduct(vec4   c, vec4 r);
+  mat2x3 outerProduct(vec3   c, vec2 r);
+  mat3x2 outerProduct(vec2   c, vec3 r);
+  mat2x4 outerProduct(vec4   c, vec2 r);
+  mat4x2 outerProduct(vec2   c, vec4 r);
+  mat3x4 outerProduct(vec4   c, vec3 r);
+  mat4x3 outerProduct(vec3   c, vec4 r);
+  mat2   transpose   (mat2   x);
+  mat3   transpose   (mat3   x);
+  mat4   transpose   (mat4   x);
+  mat2x3 transpose   (mat3x2 x);
+  mat3x2 transpose   (mat2x3 x);
+  mat2x4 transpose   (mat4x2 x);
+  mat4x2 transpose   (mat2x4 x);
+  mat3x4 transpose   (mat4x3 x);
+  mat4x3 transpose   (mat3x4 x);
+  float  determinant (mat2   x);
+  float  determinant (mat3   x);
+  float  determinant (mat4   x);
+  mat2   inverse     (mat2   x);
+  mat3   inverse     (mat3   x);
+  mat4   inverse     (mat4   x);
+#
+# Vector relational ops
+#
+  bvec2 lessThan        (uvec2 x, uvec2 y);
+  bvec3 lessThan        (uvec3 x, uvec3 y);
+  bvec4 lessThan        (uvec4 x, uvec4 y);
+  bvec2 lessThanEqual   (uvec2 x, uvec2 y);
+  bvec3 lessThanEqual   (uvec3 x, uvec3 y);
+  bvec4 lessThanEqual   (uvec4 x, uvec4 y);
+  bvec2 greaterThan     (uvec2 x, uvec2 y);
+  bvec3 greaterThan     (uvec3 x, uvec3 y);
+  bvec4 greaterThan     (uvec4 x, uvec4 y);
+  bvec2 greaterThanEqual(uvec2 x, uvec2 y);
+  bvec3 greaterThanEqual(uvec3 x, uvec3 y);
+  bvec4 greaterThanEqual(uvec4 x, uvec4 y);
+  bvec2 equal           (uvec2 x, uvec2 y);
+  bvec3 equal           (uvec3 x, uvec3 y);
+  bvec4 equal           (uvec4 x, uvec4 y);
+  bvec2 notEqual        (uvec2 x, uvec2 y);
+  bvec3 notEqual        (uvec3 x, uvec3 y);
+  bvec4 notEqual        (uvec4 x, uvec4 y);
+#
+# Texture functions (remainder in textures.auto.props generated by build_texture_functions.py)
+#
+  highp ivec2 textureSize(sampler2D sampler, int lod);
+  highp ivec2 textureSize(isampler2D sampler, int lod);
+  highp ivec2 textureSize(usampler2D sampler, int lod);
+  highp ivec3 textureSize(sampler3D sampler, int lod);
+  highp ivec3 textureSize(isampler3D sampler, int lod);
+  highp ivec3 textureSize(usampler3D sampler, int lod);
+  highp ivec2 textureSize(samplerCube sampler, int lod);
+  highp ivec2 textureSize(isamplerCube sampler, int lod);
+  highp ivec2 textureSize(usamplerCube sampler, int lod);
+  highp ivec2 textureSize(sampler2DShadow sampler, int lod);
+  highp ivec2 textureSize(samplerCubeShadow sampler, int lod);
+  highp ivec3 textureSize(sampler2DArray sampler, int lod);
+  highp ivec3 textureSize(isampler2DArray sampler, int lod);
+  highp ivec3 textureSize(usampler2DArray sampler, int lod);
+  highp ivec3 textureSize(sampler2DArrayShadow sampler, int lod);
+#
+# Fragment processing functions (derivatives)
+#
+  float dFdx  (float p);
+  vec2  dFdx  (vec2  p);
+  vec3  dFdx  (vec3  p);
+  vec4  dFdx  (vec4  p);
+  float dFdy  (float p);
+  vec2  dFdy  (vec2  p);
+  vec3  dFdy  (vec3  p);
+  vec4  dFdy  (vec4  p);
+  float fwidth(float p);
+  vec2  fwidth(vec2  p);
+  vec3  fwidth(vec3  p);
+  vec4  fwidth(vec4  p);
+#
+# Global variables
+#
+  const mediump int gl_MaxVertexOutputVectors;
+  const mediump int gl_MaxFragmentInputVectors;
+  const mediump int gl_MinProgramTexelOffset;
+  const mediump int gl_MaxProgramTexelOffset;
+  in  highp   int   gl_VertexID;
+  in  highp   int   gl_InstanceID;
+  out highp   float gl_PointSize;
+  in  highp   vec4  gl_FragCoord;
+  out highp   float gl_FragDepth;
+  in  mediump float __brcm_LineCoord;

@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2011-2013 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #include "nxclient.h"
@@ -99,6 +91,9 @@ static void print_usage(const struct nxapps_cmdline *cmdline)
     "  -n X                     number of surfaces (default 4)\n"
     "  -move\n"
     "  -bypass                  set allowCompositionBypass for this client\n"
+    );
+    printf(
+    "  -secure\n"
     );
     nxapps_cmdline_print_usage(cmdline);
 }
@@ -186,6 +181,7 @@ int main(int argc, const char **argv)
     struct { int x, y; } pig_inc = {0,0};
     NEXUS_SurfaceComposition comp;
     bool bypass = false;
+    bool secure = false;
     
     srand(time(NULL));
     nxapps_cmdline_init(&cmdline);
@@ -232,6 +228,9 @@ int main(int argc, const char **argv)
                 BDBG_ERR(("num surfaces must be at least 2"));
                 return -1;
             }
+        }
+        else if (!strcmp(argv[curarg], "-secure")) {
+            secure = true;
         }
         else if ((n = nxapps_cmdline_parse(curarg, argc, argv, &cmdline))) {
             if (n < 0) {
@@ -292,6 +291,7 @@ int main(int argc, const char **argv)
 
     NEXUS_Graphics2D_GetDefaultOpenSettings(&openSettings);
     openSettings.packetFifoSize = 4*1024; /* minimal fifo */
+    openSettings.secure = secure;
     g_queue.gfx = NEXUS_Graphics2D_Open(NEXUS_ANY_ID, &openSettings);
 
     NEXUS_Graphics2D_GetDefaultFillSettings(&g_queue.fillSettings);
@@ -318,6 +318,12 @@ int main(int argc, const char **argv)
         g_queue.surfaceCreateSettings.width = SURFACE_WIDTH;
         g_queue.surfaceCreateSettings.height = SURFACE_HEIGHT;
         g_queue.surfaceCreateSettings.heap = clientConfig.heap[NXCLIENT_SECONDARY_GRAPHICS_HEAP]; /* if NULL, will use NXCLIENT_DEFAULT_HEAP */
+    }
+    if (secure) {
+        g_queue.surfaceCreateSettings.heap = clientConfig.heap[NXCLIENT_SECURE_GRAPHICS_HEAP];
+        if (!g_queue.surfaceCreateSettings.heap) {
+            BDBG_WRN(("cannot get secure graphics heap. security violation likely."));
+        }
     }
     for (i=0;i<g_queue.numsurfaces;i++) {
         g_queue.surface[i].handle = NEXUS_Surface_Create(&g_queue.surfaceCreateSettings);
@@ -387,7 +393,7 @@ int main(int argc, const char **argv)
 
 static void recycle_next(NEXUS_SurfaceClientHandle blit_client)
 {
-    unsigned num;
+    size_t num;
     do {
 #define MAX_RECYCLE 10
         NEXUS_SurfaceHandle surface[MAX_RECYCLE];

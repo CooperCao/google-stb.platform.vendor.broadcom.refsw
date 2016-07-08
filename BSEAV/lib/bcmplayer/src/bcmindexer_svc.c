@@ -1,22 +1,42 @@
 /***************************************************************************
- *     Copyright (c) 2006-2014, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description: Converts startcode index to bcmplayer index
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ****************************************************************************/
 #include "bstd.h"
 #include "bkni.h"
@@ -119,8 +139,7 @@ static void BNAV_Indexer_SVC_PackEntry(const BNAV_SVC_Entry *entry, BNAV_Entry *
     BKNI_Memset(navEntry, 0, sizeof(*navEntry));
     BNAV_set_version(navEntry, entry->header.version); /* word1 bits 31..24 */
     BNAV_set_frameSize(navEntry, entry->common.payload_size); /* word5 bits 28 .. 0 */
-    BNAV_set_frameOffsetLo(navEntry, (unsigned)entry->common.offset); /* word3 */
-    BNAV_set_frameOffsetHi(navEntry, (unsigned)(entry->common.offset>>32)); /* word2 */
+    BNAV_set_frameOffset(navEntry, entry->common.offset); /* word3 */
     navEntry->words[0] = 
         B_SET_BITS("pid", entry->header.pid, 12, 0) |
         B_SET_BITS("type", entry->header.type, 16, 13) |
@@ -148,14 +167,6 @@ static void BNAV_Indexer_SVC_PackEntry(const BNAV_SVC_Entry *entry, BNAV_Entry *
 }
 
 
-static uint64_t BNAV_Indexer_P_GetEntryOffset(const BNAV_Entry *navEntry)
-{
-    uint64_t offset;
-    offset = BNAV_get_frameOffsetHi(navEntry);
-    offset = (offset<<32) | BNAV_get_frameOffsetLo(navEntry);
-    return offset;
-}
-
 static unsigned BNAV_Indexer_P_GetEntryType(const BNAV_Entry *navEntry)
 {
     return B_GET_BITS(navEntry->words[0], 16, 13);
@@ -169,7 +180,7 @@ int BNAV_Indexer_SVC_UnPackEntry(const BNAV_Entry *navEntry, BNAV_SVC_Entry *ent
     BKNI_Memset(entry, 0, sizeof(*entry));
     entry->header.version = BNAV_get_version(navEntry);
     entry->common.payload_size = BNAV_get_frameSize(navEntry);
-    entry->common.offset = BNAV_Indexer_P_GetEntryOffset(navEntry);
+    entry->common.offset = BNAV_get_frameOffset(navEntry);
     entry->header.pid = B_GET_BITS(navEntry->words[0], 12, 0);
     entry->header.type = BNAV_Indexer_P_GetEntryType(navEntry);
 
@@ -225,11 +236,11 @@ static BERR_Code BNAV_Indexer_SVC_EnqueueEntry(BNAV_Indexer_SVC_Pid *pid, const 
     BNAV_Entry *navEntry;
     BNAV_Indexer_SVC_Pid *minPid;
 
-    BDBG_MSG(("%#x:new entry %u at %lu:%u", pid->pid, entry->header.type, (unsigned long)entry->common.offset, entry->common.payload_size));
+    BDBG_MSG(("%#x:new entry %u at %lu:%u", pid->pid, entry->header.type, (unsigned long)entry->common.offset, (unsigned)entry->common.payload_size));
     if(BFIFO_WRITE_PEEK(&pid->entryFifo)==0) {
         navEntry = BFIFO_READ(&pid->entryFifo);
         BFIFO_READ_COMMIT(&pid->entryFifo, 1);
-        BDBG_MSG(("%#x:reordering fifo full saving entry %u at %lu:%u", pid->pid, entry->header.type, (unsigned long)entry->common.offset, entry->common.payload_size));
+        BDBG_MSG(("%#x:reordering fifo full saving entry %u at %lu:%u", pid->pid, entry->header.type, (unsigned long)entry->common.offset, (unsigned)entry->common.payload_size));
         BNAV_Indexer_SVC_P_WriteEntry(pid, navEntry);
     }
     navEntry = BFIFO_WRITE(&pid->entryFifo);
@@ -245,7 +256,7 @@ static BERR_Code BNAV_Indexer_SVC_EnqueueEntry(BNAV_Indexer_SVC_Pid *pid, const 
                 break;
             }
             navEntry = BFIFO_READ(&nextPid->entryFifo);
-            if(minNavEntry==NULL || BNAV_Indexer_P_GetEntryOffset(minNavEntry)>BNAV_Indexer_P_GetEntryOffset(navEntry)) {
+            if(minNavEntry==NULL || BNAV_get_frameOffset(minNavEntry)>BNAV_get_frameOffset(navEntry)) {
                 minPid = nextPid;
                 minNavEntry = navEntry;
             }
@@ -254,7 +265,7 @@ static BERR_Code BNAV_Indexer_SVC_EnqueueEntry(BNAV_Indexer_SVC_Pid *pid, const 
             break;
         }
         BFIFO_READ_COMMIT(&minPid->entryFifo, 1);
-        BDBG_MSG(("%#x:saving reordered entry %u at %lu:%u", minPid->pid, BNAV_Indexer_P_GetEntryType(minNavEntry), (unsigned long)BNAV_Indexer_P_GetEntryOffset(minNavEntry), BNAV_get_frameSize(minNavEntry)));
+        BDBG_MSG(("%#x:saving reordered entry %u at %lu:%u", minPid->pid, (unsigned)BNAV_Indexer_P_GetEntryType(minNavEntry), (unsigned long)BNAV_get_frameOffset(minNavEntry), (unsigned)BNAV_get_frameSize(minNavEntry)));
         BNAV_Indexer_SVC_P_WriteEntry(minPid, minNavEntry);
     }
 
@@ -390,9 +401,9 @@ done:
 
 static void BNAV_Indexer_SVC_P_UpdateRecordCount(BNAV_Indexer_Handle handle, BNAV_Indexer_SVC_Pid *pid, const BSCT_SixWord_Entry *itb)
 {
-    BNAV_Indexer_getOffset(handle, CONVERT_TO_SCT4(itb), &pid->lastRecordCountHi, &pid->lastRecordCountLo);
+    pid->lastRecordCount = BNAV_Indexer_getOffset(handle, CONVERT_TO_SCT4(itb));
     pid->lastRecordCountValid = true;
-    pid->record_count = (pid->lastRecordCountLo | ((uint64_t)(pid->lastRecordCountHi))<<32);
+    pid->record_count = pid->lastRecordCount;
     return ;
 }
 
@@ -633,8 +644,7 @@ long BNAV_Indexer_FeedAVC_SVC(BNAV_Indexer_Handle handle, const void *p_bfr, lon
             svc_pid->pts = 0;
             svc_pid->dts = 0;
             svc_pid->pts_record_count = 0;
-            svc_pid->lastRecordCountHi = 0;
-            svc_pid->lastRecordCountLo = 0;
+            svc_pid->lastRecordCount = 0;
             svc_pid->record_count = 0;        
             svc_pid->payload_len = 0;
             BFIFO_INIT(&svc_pid->entryFifo, svc_pid->fifoEntries, sizeof(svc_pid->fifoEntries)/sizeof(*svc_pid->fifoEntries));

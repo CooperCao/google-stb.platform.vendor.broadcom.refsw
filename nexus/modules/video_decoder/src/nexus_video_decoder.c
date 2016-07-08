@@ -1,7 +1,7 @@
 /***************************************************************************
  *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom and/or its
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -88,6 +88,7 @@ NEXUS_MAX_XVD_DEVICES = # of AVD cores that can be supported by the API. must be
 /* non-static global module data */
 NEXUS_ModuleHandle g_NEXUS_videoDecoderModule = NULL;
 NEXUS_VideoDecoderModuleSettings g_NEXUS_videoDecoderModuleSettings;
+NEXUS_VideoDecoderModuleInternalSettings g_NEXUS_videoDecoderModuleInternalSettings;
 struct NEXUS_VideoDecoderDevice g_NEXUS_videoDecoderXvdDevices[NEXUS_MAX_XVD_DEVICES];
 
 /* static global module data */
@@ -112,6 +113,11 @@ static void NEXUS_VideoDecoder_P_StcChannelStatusChangeEventHandler(void *contex
 /**************************************
 * Module functions
 **************************************/
+void NEXUS_VideoDecoderModule_GetDefaultInternalSettings(NEXUS_VideoDecoderModuleInternalSettings *pSettings)
+{
+    BKNI_Memset(pSettings, 0, sizeof(*pSettings));
+    return;
+}
 
 void NEXUS_VideoDecoderModule_GetDefaultSettings(NEXUS_VideoDecoderModuleSettings *pSettings)
 {
@@ -332,7 +338,7 @@ static void NEXUS_VideoDecoderModule_P_Print_Avd(void)
 #endif
 }
 
-NEXUS_ModuleHandle NEXUS_VideoDecoderModule_P_Init_Avd(const NEXUS_VideoDecoderModuleSettings *pSettings)
+NEXUS_ModuleHandle NEXUS_VideoDecoderModule_P_Init_Avd(const NEXUS_VideoDecoderModuleInternalSettings *pModuleSettings, const NEXUS_VideoDecoderModuleSettings *pSettings)
 {
     BERR_Code rc;
     NEXUS_ModuleSettings moduleSettings;
@@ -353,6 +359,7 @@ NEXUS_ModuleHandle NEXUS_VideoDecoderModule_P_Init_Avd(const NEXUS_VideoDecoderM
     /* init global data */
     BKNI_Memset(&g_NEXUS_videoDecoderXvdDevices, 0, sizeof(g_NEXUS_videoDecoderXvdDevices));
     g_NEXUS_videoDecoderModuleSettings = *pSettings;
+    g_NEXUS_videoDecoderModuleInternalSettings = *pModuleSettings;
 
     /* touch up settings for non-memconfig platforms. everything should be uniform after this. */
     for (i=0;i<NEXUS_MAX_VIDEO_DECODERS;i++) {
@@ -448,8 +455,8 @@ static NEXUS_Error NEXUS_VideoDecoderModule_P_PostInit(void)
             }
         }
         if (xvdSettings.stFWMemConfig.uiCabacHeapSize) {
-            if (pSettings->secureHeap) {
-                xvdSettings.hCabacHeap = NEXUS_Heap_GetMmaHandle(pSettings->secureHeap);
+            if (g_NEXUS_videoDecoderModuleInternalSettings.secureHeap) {
+                xvdSettings.hCabacHeap = NEXUS_Heap_GetMmaHandle(g_NEXUS_videoDecoderModuleInternalSettings.secureHeap);
             }
         }
         xvdSettings.hTimerDev = g_pCoreHandles->tmr;
@@ -582,10 +589,8 @@ void NEXUS_VideoDecoder_P_GetRaveSettings(unsigned avdIndex, NEXUS_RaveOpenSetti
         else {
             /* change ITB size relative to the fifoSize change */
             pRaveSettings->config.Itb.Length = pRaveSettings->config.Itb.Length * (pOpenSettings->openSettings.fifoSize/10000) / (pRaveSettings->config.Cdb.Length/10000);
-            /* AV ITB length must be 4-bit aligned */
-            if (pRaveSettings->config.Itb.Length % 16) {
-                pRaveSettings->config.Itb.Length = 16 * ((pRaveSettings->config.Itb.Length / 16) + 1);
-            }
+            /* ITB length must be 128 byte aligned */
+            pRaveSettings->config.Itb.Length -= (pRaveSettings->config.Itb.Length % 128);
         }
 
         /* If the user has specified a CDB size, use it...
@@ -1560,6 +1565,8 @@ static NEXUS_Error NEXUS_VideoDecoder_P_SetMosaicIndex(NEXUS_VideoDecoderHandle 
     unsigned avdIndex, i;
     bool used[NEXUS_NUM_XVD_CHANNELS];
     BKNI_Memset(used, 0, sizeof(used));
+    /* TODO: rewrite to only search videoDecoder->device and (optionally) videoDecoder->device->slaveLinkedDevice.
+    Or, rewrite to do bookkeeping of used mosaicIndex on the master device. */
     for (avdIndex=0; avdIndex<NEXUS_NUM_XVD_DEVICES; avdIndex++) {
         for (i=0;i<NEXUS_NUM_XVD_CHANNELS;i++) {
             NEXUS_VideoDecoderHandle v = g_NEXUS_videoDecoderXvdDevices[avdIndex].channel[i];
@@ -1639,9 +1646,10 @@ NEXUS_Error NEXUS_VideoDecoder_P_OpenChannel(NEXUS_VideoDecoderHandle videoDecod
     }
 
 
-    /* prevent dual decode if a channel is in exclusive mode: 4K, MVC or triple-HD mosaic. */
+    /* prevent dual decode if a channel is in exclusive mode: 4K, MVC or 3 or 4 HD mosaic. */
     {
         unsigned num4K = 0, numHD = 0, numMvc = 0, num = 0, i;
+        char problem[16] = "";
         for (i=0;i<NEXUS_NUM_XVD_CHANNELS;i++) {
             NEXUS_VideoDecoderHandle v = videoDecoder->device->channel[i];
             BXVD_DecodeResolution res;
@@ -1652,24 +1660,18 @@ NEXUS_Error NEXUS_VideoDecoder_P_OpenChannel(NEXUS_VideoDecoderHandle videoDecod
             if (res == BXVD_DecodeResolution_eHD) numHD++;
             num++;
         }
-        if ((numHD >= 3 && num > 3) || ((num4K || numMvc) && num > 1)) {
-            BDBG_ERR(("cannot allocate another decoder on this device while in %s exclusive mode",
-                (numHD >= 3 && num > 3)?"triple HD mosaic":num4K?"4K":"MVC"));
+        if (g_NEXUS_videoDecoderModuleSettings.memory[0].mosaic.maxNumber &&
+            numHD >= g_NEXUS_videoDecoderModuleSettings.memory[0].mosaic.maxNumber && num > numHD) {
+            BKNI_Snprintf(problem, sizeof(problem), "%u HD mosaic", g_NEXUS_videoDecoderModuleSettings.memory[0].mosaic.maxNumber);
+        }
+        else if ((num4K||numMvc) && num > 1) {
+            BKNI_Snprintf(problem, sizeof(problem), num4K?"4K":"MVC");
+        }
+        if (problem[0]){
+            BDBG_ERR(("cannot allocate another decoder on this device while in %s exclusive mode", problem));
             return BERR_TRACE(NEXUS_NOT_SUPPORTED);
         }
     }
-
-#if BCHP_CHIP == 7445
-    /* 7445 box 9 RTS doesn't allow decoder 1 (HVD1) when decoder 0 (HVD0) is 4K */
-    if (g_pCoreHandles->boxConfig->stBox.ulBoxId == 9) {
-        NEXUS_VideoDecoderHandle d0 = g_NEXUS_videoDecoderXvdDevices[0].channel[0];
-        NEXUS_VideoDecoderHandle d1 = g_NEXUS_videoDecoderXvdDevices[1].channel[0];
-        if (d0 && d1 && NEXUS_VideoDecoder_GetDecodeResolution_priv(d0->settings.maxWidth, d0->settings.maxHeight) == BXVD_DecodeResolution_e4K) {
-            BDBG_ERR(("cannot use decoder 0 as 4K along with decoder 1 on 7445 box 9"));
-            return BERR_TRACE(NEXUS_NOT_SUPPORTED);
-        }
-    }
-#endif
 
     if (g_NEXUS_videoDecoderModuleSettings.heapSize[videoDecoder->device->index].secondaryPicture &&
         videoDecoder->settings.supportedCodecs[NEXUS_VideoCodec_eH265])
@@ -1764,10 +1766,10 @@ NEXUS_Error NEXUS_VideoDecoder_P_OpenChannel(NEXUS_VideoDecoderHandle videoDecod
                 }
             }
         }
-        if( g_NEXUS_videoDecoderModuleSettings.heapSize[videoDecoder->device->index].secure == 0 && g_NEXUS_videoDecoderModuleSettings.secureHeap) {
+        if( g_NEXUS_videoDecoderModuleSettings.heapSize[videoDecoder->device->index].secure == 0 && g_NEXUS_videoDecoderModuleInternalSettings.secureHeap) {
             channelSettings.uiChannelCabacBlockOffset = 0;
             channelSettings.uiChannelCabacBlockSize = memConfig.uiCabacHeapSize;
-            channelSettings.hChannelCabacBlock = BMMA_Alloc(NEXUS_Heap_GetMmaHandle(g_NEXUS_videoDecoderModuleSettings.secureHeap), memConfig.uiCabacHeapSize,0,NULL);
+            channelSettings.hChannelCabacBlock = BMMA_Alloc(NEXUS_Heap_GetMmaHandle(g_NEXUS_videoDecoderModuleInternalSettings.secureHeap), memConfig.uiCabacHeapSize,0,NULL);
             if(channelSettings.hChannelCabacBlock==NULL) {
                 if(channelSettings.hChannelPictureBlock) {
                     BMMA_Free(channelSettings.hChannelPictureBlock);
@@ -1923,9 +1925,9 @@ NEXUS_MemoryBlockHandle NEXUS_VideoDecoder_P_MemoryBlockFromMma(NEXUS_VideoDecod
     }
     if(available<0) { (void)BERR_TRACE(NEXUS_NOT_AVAILABLE); return NULL; }
 
-    NEXUS_Module_Lock(g_NEXUS_videoDecoderModuleSettings.core);
+    NEXUS_Module_Lock(g_NEXUS_videoDecoderModuleInternalSettings.core);
     block = NEXUS_MemoryBlock_FromMma_priv(mma);
-    NEXUS_Module_Unlock(g_NEXUS_videoDecoderModuleSettings.core);
+    NEXUS_Module_Unlock(g_NEXUS_videoDecoderModuleInternalSettings.core);
     if(block==NULL) { (void)BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);return NULL; }
     NEXUS_OBJECT_REGISTER(NEXUS_MemoryBlock, block, Acquire);
     decoder->memoryBlockHeap[available].block = block;
@@ -2098,6 +2100,11 @@ NEXUS_VideoDecoderHandle NEXUS_VideoDecoder_P_OpenMosaic_Avd(unsigned parentInde
                 goto err_link;
             }
             /* because the XVD is not runtime opened/closed, we can link and never unlink. */
+            if (videoDecoder->linkedDevice->slaveLinkedDevice && videoDecoder->linkedDevice->slaveLinkedDevice != videoDecoder->device) {
+                BERR_TRACE(NEXUS_INVALID_PARAMETER);
+                goto err_link;
+            }
+            videoDecoder->linkedDevice->slaveLinkedDevice = videoDecoder->device;
             BXVD_LinkDecoders(videoDecoder->linkedDevice->xvd, videoDecoder->device->xvd, BXVD_DisplayInterrupt_eZero);
             BDBG_MSG(("linking videoDecoder %u on AVD%u to AVD%u", videoDecoder->index, videoDecoder->device->index, videoDecoder->linkedDevice->index));
         }
@@ -2664,6 +2671,9 @@ static void NEXUS_VideoDecoder_P_FifoWatchdog(void *context)
     isCdbFull = percentCdbFull > NEXUS_VIDEO_DECODER_P_FIFO_WATCHDOG_FULL_THRESHOLD;
     percentItbFull = itbSize ? itbDepth * 100 / itbSize : 0;
     isItbFull = percentItbFull > NEXUS_VIDEO_DECODER_P_FIFO_WATCHDOG_FULL_THRESHOLD;
+    LOCK_TRANSPORT();
+    percentCdbFull = NEXUS_Rave_IsConsumableVideoElementAvailable_priv(videoDecoder->rave) ? percentCdbFull : 0;
+    UNLOCK_TRANSPORT();
 
     videoDecoder->fifoWatchdog.status.percentFull = percentCdbFull;
     videoDecoder->fifoWatchdog.status.frameSyncUnlocked = false;
@@ -2832,12 +2842,16 @@ NEXUS_Error NEXUS_VideoDecoder_P_Start_Avd(NEXUS_VideoDecoderHandle videoDecoder
     if(rc!=NEXUS_SUCCESS) { return BERR_TRACE(rc); }
 
     rc = NEXUS_VideoDecoder_P_Start_priv(videoDecoder, pStartSettings, false);
-    if(rc!=NEXUS_SUCCESS) { return BERR_TRACE(rc); }
+    if(rc!=NEXUS_SUCCESS) { rc = BERR_TRACE(rc); goto err_start; }
 
     rc = NEXUS_VideoDecoder_P_Start_Generic_Epilogue(videoDecoder, pStartSettings);
-    if(rc!=NEXUS_SUCCESS) { return BERR_TRACE(rc); }
+    if(rc!=NEXUS_SUCCESS) { rc = BERR_TRACE(rc); goto err_start; }
 
     return NEXUS_SUCCESS;
+
+err_start:
+    BKNI_Memset(&videoDecoder->startSettings, 0, sizeof(videoDecoder->startSettings));
+    return rc;
 }
 
 #if NEXUS_HAS_SYNC_CHANNEL
@@ -2934,6 +2948,7 @@ NEXUS_Error NEXUS_VideoDecoder_P_Start_Generic_Body(NEXUS_VideoDecoderHandle vid
     BKNI_Memset(&videoDecoder->last_field, 0, sizeof(videoDecoder->last_field));
     videoDecoder->last_field.bMute = true;
     videoDecoder->last_field.ulDecodePictureId = 0xFFFFFFFF;
+    videoDecoder->last_getStripedSurfaceSerialNumber = 0xFFFFFFFF;
     BKNI_Memset(&videoDecoder->s3DTVStatus, 0, sizeof(videoDecoder->s3DTVStatus));
     videoDecoder->lastStreamInfo = videoDecoder->streamInfo;
     BKNI_Memset(&videoDecoder->streamInfo, 0, sizeof(videoDecoder->streamInfo));
@@ -3240,7 +3255,7 @@ NEXUS_Error NEXUS_VideoDecoder_P_Start_priv(NEXUS_VideoDecoderHandle videoDecode
         }
         else
         {
-            BDBG_ERR(("Preroll rates > 99% are not supported; disabling preroll"));
+            BDBG_ERR(("Preroll rates > 99%% are not supported; disabling preroll"));
         }
     }
     else
@@ -4856,21 +4871,12 @@ static void NEXUS_VideoDecoder_P_ContextToStatus(NEXUS_VideoDecoderHandle decode
     pStatus->lastPicture = UnifiedPicture->stPictureType.bLastPicture;
     if ( false == pStatus->lastPicture )
     {
-        /* Temporary workaround for FWAVD-812 */
-        if ( UnifiedPicture->stBufferInfo.stDisplay.bValid && (decoder->startSettings.codec == NEXUS_VideoCodec_eVp8 || decoder->startSettings.codec == NEXUS_VideoCodec_eMpeg2) )
+        pStatus->surfaceCreateSettings.imageWidth = UnifiedPicture->stBufferInfo.stSource.uiWidth;
+        pStatus->surfaceCreateSettings.imageHeight = UnifiedPicture->stBufferInfo.stSource.uiHeight;
+        if ( true == UnifiedPicture->stClipping.bValid )
         {
-            pStatus->surfaceCreateSettings.imageWidth = UnifiedPicture->stBufferInfo.stDisplay.uiWidth;
-            pStatus->surfaceCreateSettings.imageHeight = UnifiedPicture->stBufferInfo.stDisplay.uiHeight;
-        }
-        else
-        {
-            pStatus->surfaceCreateSettings.imageWidth = UnifiedPicture->stBufferInfo.stSource.uiWidth;
-            pStatus->surfaceCreateSettings.imageHeight = UnifiedPicture->stBufferInfo.stSource.uiHeight;
-            if ( true == UnifiedPicture->stClipping.bValid )
-            {
-                pStatus->surfaceCreateSettings.imageWidth = pStatus->surfaceCreateSettings.imageWidth - (UnifiedPicture->stClipping.uiLeft +UnifiedPicture->stClipping.uiRight);
-                pStatus->surfaceCreateSettings.imageHeight = pStatus->surfaceCreateSettings.imageHeight - (UnifiedPicture->stClipping.uiTop + UnifiedPicture->stClipping.uiBottom);
-            }
+            pStatus->surfaceCreateSettings.imageWidth = pStatus->surfaceCreateSettings.imageWidth - (UnifiedPicture->stClipping.uiLeft +UnifiedPicture->stClipping.uiRight);
+            pStatus->surfaceCreateSettings.imageHeight = pStatus->surfaceCreateSettings.imageHeight - (UnifiedPicture->stClipping.uiTop + UnifiedPicture->stClipping.uiBottom);
         }
         pStatus->surfaceCreateSettings.lumaBuffer = NEXUS_VideoDecoder_P_MemoryBlockFromMma(decoder, UnifiedPicture->stBufferInfo.hLuminanceFrameBufferBlock);
         pStatus->surfaceCreateSettings.chromaBuffer = NEXUS_VideoDecoder_P_MemoryBlockFromMma(decoder, UnifiedPicture->stBufferInfo.hChrominanceFrameBufferBlock);
@@ -5158,6 +5164,11 @@ NEXUS_Error NEXUS_VideoDecoder_ReturnDecodedFrames_Avd(
         if ( pDisplayPicture->pUnifiedPicture->stPictureType.eCoding == BXDM_Picture_Coding_eI )
         {
             videoDecoder->externalTsm.numIFramesDisplayed++;
+        }
+
+        if (pSettings != NULL)
+        {
+            ++pSettings;
         }
     }
 

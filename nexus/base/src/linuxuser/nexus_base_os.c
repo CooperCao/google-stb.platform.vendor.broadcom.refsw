@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2008-2014 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2008-2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,16 +34,6 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* API Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 #include "nexus_base.h"
@@ -383,8 +373,8 @@ static BERR_Code NEXUS_P_Base_Os_CacheFlush(char *addr, int nbytes)
 {
     BERR_Code result=0;
     t_bcm_linux_mem_addr_range addr_range;
-    addr_range.address = (uintptr_t)addr;
-    addr_range.length =  (uint32_t)nbytes ;
+    addr_range.address = (unsigned long)addr;
+    addr_range.length =  (unsigned)nbytes ;
     if ( ioctl(g_bcmdriver, BRCM_IOCTL_FLUSH_DCACHE_RANGE, &addr_range) ) {
         return BERR_TRACE(BERR_OS_ERROR);
     }
@@ -480,15 +470,22 @@ NEXUS_FlushCache_isrsafe(const void *pvAddr, size_t ulNumBytes)
     case NEXUS_AddrType_eFake:
         /* Nexus interface should be used with NEXUS_MemoryType_eFull to avoid this.
         Or, if eFull memory is limited, we could add a boolean to skip driver flush and require application flush. */
+#if NEXUS_CPU_ARM64
+        /* on AARCH64 there is no correct flush_all (correct such as it would flush all cache hierarchy on all CPU */
+        BDBG_ERR(("Can't flush fake address %p at %s:%u", pvAddr, BSTD_FILE, __LINE__));
+        BKNI_Delay(100 * 1000); /* This delay is intentional, other option is BKNI_Fail */
+        break;
+#else
         BDBG_WRN(("flushing fake address %p results in flush all", pvAddr));
         pvAddr = 0;
         ulNumBytes = ~0;
         /* fall through */
+#endif
     case NEXUS_AddrType_eCached:
     case NEXUS_AddrType_eUnknown: /* must flush eUnknown because file module must flush OS malloc'd memory or dynamically managed memory mappings. */
         rc = cacheflush((void *)pvAddr, ulNumBytes, DCACHE);
         if (rc<0) {
-            BDBG_ERR(("cacheflush has returned error %d, addr %p, size %u, ignored", rc, pvAddr, ulNumBytes));
+            BDBG_ERR(("cacheflush has returned error %d, addr %p, size %u, ignored", rc, pvAddr, (unsigned)ulNumBytes));
         }
         break;
     default:

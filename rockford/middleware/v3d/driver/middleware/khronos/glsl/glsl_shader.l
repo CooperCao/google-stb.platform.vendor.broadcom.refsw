@@ -26,14 +26,6 @@
    #define YY_INPUT(buf,result,max_size) { result = yyinput(buf,(int)max_size); }
 
    extern void yyerror(char *c);
-
-   /*
-      disable unreachable code warning (break after return)
-   */
-
-#ifndef WIN32
-#pragma off warn
-#endif
 %}
 
 %option prefix="pp"

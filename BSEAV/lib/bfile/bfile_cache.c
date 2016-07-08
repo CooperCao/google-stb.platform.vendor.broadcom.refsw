@@ -327,7 +327,14 @@ b_file_cached_segment_async_read_complete(void *cntx, batom_t atom, bfile_buffer
 		batom_release(atom);
 		segment->async.read_complete(segment->async.cntx, b_file_cached_segment_convert_result(result));
 	} else {
+        bfile_segment_async_result async_result;
 	    BDBG_MSG_TRACE(("%s:%#lx read block failed buffer:%#lx at %u size:%u accum:%u", "b_file_cached_segment_async_read_complete", (unsigned long)segment, (unsigned long)segment->buffer, (unsigned)(segment->segment.start + segment->accum_offset+segment->async.accum_size), segment->async.load_size, batom_accum_len(segment->accum)));
+        async_result = b_file_cached_segment_convert_result(result);
+        if(async_result==bfile_segment_async_result_eof) {
+            if(batom_accum_len(segment->accum)>=segment->async.reserve_size) {
+                async_result=bfile_segment_async_result_success;
+            }
+        }
 		segment->async.read_complete(segment->async.cntx, b_file_cached_segment_convert_result(result));
 	}
 }
@@ -343,6 +350,7 @@ bfile_cached_segment_async_reserve(bfile_cached_segment *segment, size_t reserve
 	accum_size = batom_accum_len(segment->accum);
 	cursor_pos = batom_cursor_pos(&segment->cursor);
     segment->last_read_result = bfile_buffer_result_ok;
+    segment->async.reserve_size = reserve_size;
 	if(accum_size >= reserve_size + cursor_pos) { /* we need min_size of _new_ data, so account here current position of cursor */
 		return bfile_segment_async_result_success;
 	}

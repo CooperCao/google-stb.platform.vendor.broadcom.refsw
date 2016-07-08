@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2013 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 
@@ -66,6 +58,8 @@
 #include "bsagelib.h"
 #include "bsagelib_rpc.h"
 
+#include "nexus_sage_image.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -76,6 +70,18 @@ extern "C" {
 
 #define NEXUS_MODULE_NAME sage
 #define NEXUS_MODULE_SELF g_NEXUS_sageModule.moduleHandle
+
+
+typedef struct NEXUS_SageMemoryBlock {
+    size_t len;
+    void *buf;
+} NEXUS_SageMemoryBlock;
+
+typedef struct NEXUS_SageImageHolder {
+    const char *name;         /* printable name */
+    SAGE_IMAGE_FirmwareID id; /* SAGE_IMAGE_FirmwareID_eFramework or SAGE_IMAGE_FirmwareID_eBootLoader */
+    NEXUS_SageMemoryBlock *raw;
+} NEXUS_SageImageHolder;
 
 /* SageChannel context */
 typedef struct NEXUS_SageChannel {
@@ -93,6 +99,12 @@ typedef struct NEXUS_SageChannel {
     /* response callbacks */
     NEXUS_IsrCallbackHandle successCallback;
     NEXUS_IsrCallbackHandle errorCallback;
+
+    /* callbacks from SAGE */
+    NEXUS_IsrCallbackHandle callbackRequestRecvCallback;
+
+    /* TA termination indication callback */
+    NEXUS_IsrCallbackHandle taTerminateCallback;
 
 } NEXUS_SageChannel;
 
@@ -134,6 +146,8 @@ typedef struct NEXUS_SageModule_P_Handle
     BSAGElib_Handle hSAGElib;
 #define NEXUS_SAGE_MAX_WATCHDOG_EVENTS 4
     BKNI_EventHandle watchdogEvent[NEXUS_SAGE_MAX_WATCHDOG_EVENTS];
+
+    BKNI_EventHandle sageReadyEvent;
 } NEXUS_SageModule_P_Handle;
 
 
@@ -204,6 +218,12 @@ NEXUS_Error NEXUS_Sage_P_GetLogBuffer(uint8_t *pBuff,  uint32_t inputBufSize,
 NEXUS_Error NEXUS_Sage_P_GetEncKey(uint8_t *pKeyBuff,uint32_t inputKeyBufSize, uint32_t *pOutKeySize);
 
 void NEXUS_Sage_P_SAGELogUninit(void);
+
+NEXUS_Error Nexus_SageModule_P_Img_Create(const char *id, void **ppContext, BIMG_Interface  *pInterface);
+void Nexus_SageModule_P_Img_Destroy(void *pContext);
+NEXUS_Error NEXUS_SageModule_P_Load(NEXUS_SageImageHolder *holder, BIMG_Interface *img_interface, void *img_context);
+void NEXUS_Sage_P_PrintSvp(void);
+
 #ifdef __cplusplus
 }
 #endif

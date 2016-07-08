@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2014 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,17 +34,7 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
+*
  ***************************************************************************/
 #ifndef NEXUS_PLATFORM_FEATURES_H__
 #define NEXUS_PLATFORM_FEATURES_H__
@@ -73,10 +63,7 @@
 
 #define NEXUS_NUM_I2S_INPUTS 1
 #define NEXUS_NUM_I2S_OUTPUTS 2
-#define NEXUS_NUM_AUDIO_CAPTURE_CHANNELS 1
-#define NEXUS_NUM_AUDIO_CAPTURES 1
 #define NEXUS_NUM_AUDIO_PLAYBACKS 3
-#define NEXUS_NUM_AUDIO_CRCS 2
 
 #define NEXUS_HAS_AUDIO_MUX_OUTPUT 1
 
@@ -99,14 +86,14 @@ upon the chip usage. See below */
 #define NEXUS_MAX_FRONTENDS NEXUS_NUM_PARSER_BANDS
 /* Cable Frontend */
 /* The maximum number of input bands on 7425 are 9. Also 3128 has 8 DS + 1 OB */
-#if NEXUS_FRONTEND_3128
+#if defined NEXUS_FRONTEND_3128
 #define NEXUS_3128_MAX_DOWNSTREAM_CHANNELS 8
-#elif NEXUS_FRONTEND_3124
+#elif defined NEXUS_FRONTEND_3124
 #define NEXUS_3128_MAX_DOWNSTREAM_CHANNELS 4
-#elif NEXUS_FRONTEND_3123
+#elif defined NEXUS_FRONTEND_3123
 #define NEXUS_3128_MAX_DOWNSTREAM_CHANNELS 3
 #endif
-#if NEXUS_USE_FRONTEND_DAUGHTER_CARD
+#if defined NEXUS_USE_FRONTEND_DAUGHTER_CARD
 #define NEXUS_NUM_FRONTEND_CARD_SLOTS 1
 #endif
 
@@ -120,7 +107,7 @@ upon the chip usage. See below */
 /* I2C Channels */
 #define NEXUS_NUM_I2C_CHANNELS 5
 
-#if NEXUS_USE_7445_DBS
+#if defined NEXUS_USE_7445_DBS
 /* SPI Channels */
 #define NEXUS_NUM_SPI_CHANNELS 3
 #endif
@@ -156,6 +143,8 @@ upon the chip usage. See below */
 #define NEXUS_MEMC0_SECURE_PICTURE_BUFFER_HEAP 11
 #define NEXUS_MEMC1_SECURE_PICTURE_BUFFER_HEAP 12
 #define NEXUS_MEMC2_SECURE_PICTURE_BUFFER_HEAP 13
+#define NEXUS_MEMC2_SECURE_GRAPHICS_HEAP 14
+#define NEXUS_EXPORT_HEAP               15
 
 #define NEXUS_PLATFORM_P_GET_FRAMEBUFFER_HEAP_INDEX 1
 

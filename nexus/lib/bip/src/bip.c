@@ -1,7 +1,7 @@
 /******************************************************************************
- * (c) 2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c) 2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -38,7 +38,7 @@
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  *
-*****************************************************************************/
+ *****************************************************************************/
 #include <pthread.h>
 
 #include "bip_priv.h"
@@ -48,15 +48,13 @@ BIP_SETTINGS_ID(BIP_InitSettings);
 BIP_CLASS_DEFINE(BIP_Socket);
 BIP_CLASS_DEFINE(BIP_HttpServer);
 BIP_CLASS_DEFINE(BIP_HttpServerSocket);
+BIP_CLASS_DEFINE(BIP_HttpStreamer);
 
 
 static pthread_mutex_t  g_initMutex = PTHREAD_MUTEX_INITIALIZER;
 static int              g_refCount;
 
 static BIP_ConsoleHandle  g_hConsole = NULL;
-
-
-
 
 void BIP_Uninit_locked(void)
 {
@@ -68,6 +66,7 @@ void BIP_Uninit_locked(void)
         BIP_Console_Destroy(g_hConsole);
     }
 
+    BIP_CLASS_UNINIT(BIP_HttpStreamer);
     BIP_CLASS_UNINIT(BIP_HttpServerSocket);
     BIP_CLASS_UNINIT(BIP_HttpServer);
     BIP_CLASS_UNINIT(BIP_Socket);
@@ -162,8 +161,11 @@ BIP_Status BIP_Init(
         rc = BIP_CLASS_INIT(BIP_HttpServerSocket, NULL);
         BIP_CHECK_GOTO(rc==BIP_SUCCESS, ("BIP_CLASS_INIT(BIP_HttpServerSocket) failed"), error, rc, rc);
 
+        rc = BIP_CLASS_INIT(BIP_HttpStreamer, NULL);
+        BIP_CHECK_GOTO(rc==BIP_SUCCESS, ("BIP_CLASS_INIT(BIP_HttpStreamer) failed"), error, rc, rc);
+
         /* Now start any BIP "services". */
-#if 0  /* Don't bother starting the Console service since it's not really useful yet. */
+#if 0   /* Don't bother starting the Console service since it's not really useful yet. */
         g_hConsole = BIP_Console_Create(NULL);
         if (g_hConsole == NULL)
         {

@@ -1,43 +1,39 @@
 /******************************************************************************
- * (c) 2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -381,7 +377,7 @@ static void pipeReadCallback(
 
     readCount = read(pIoCheckerFactory->pipeFd[0], &msg, sizeof(BIP_IoCheckerPipeMsg));
     if (readCount < (ssize_t)sizeof(BIP_IoCheckerPipeMsg)) {
-        BDBG_WRN(("%s: Partial read from pipeFd, count = %d", __FUNCTION__, readCount));
+        BDBG_WRN(("%s: Partial read from pipeFd, count = %zd", __FUNCTION__, readCount));
     }
     else {
         switch(msg)
@@ -506,9 +502,9 @@ static void ioWorkerThread ( void *context )
             {
                 /*TODO:Call the call back*/
                 /*hIoCheckerReady->settings.dataReadyCallback */
-                BDBG_MSG(("%s: Entering Call Back for hIoChecker = %p , fd = %d in threadIndex = %d", __FUNCTION__,hIoCheckerReady, hIoCheckerReady->fd,pIoWorker->threadIndex ));
+                BDBG_MSG(("%s: Entering Call Back for hIoChecker = %p , fd = %d in threadIndex = %d", __FUNCTION__, (void *)hIoCheckerReady, hIoCheckerReady->fd,pIoWorker->threadIndex ));
                 hIoCheckerReady->settings.callBackFunction( hIoCheckerReady->settings.callBackContext,hIoCheckerReady->settings.callBackParam, eventMask);
-                BDBG_MSG(("%s: Exiting Call Back for hIoChecker = %p , fd = %d in threadIndex = %d", __FUNCTION__,hIoCheckerReady, hIoCheckerReady->fd,pIoWorker->threadIndex ));
+                BDBG_MSG(("%s: Exiting Call Back for hIoChecker = %p , fd = %d in threadIndex = %d", __FUNCTION__, (void *)hIoCheckerReady, hIoCheckerReady->fd,pIoWorker->threadIndex ));
             }
 
             B_Mutex_Lock( pIoCheckerFactory->ioCheckerLock );
@@ -631,7 +627,7 @@ static void destroyIoChecker(
 
     if(hIoChecker)
     {
-        BDBG_MSG(("%s: Deleting hIoChecker = %p for fd = %d", __FUNCTION__,hIoChecker, hIoChecker->fd));
+        BDBG_MSG(("%s: Deleting hIoChecker = %p for fd = %d", __FUNCTION__, (void *)hIoChecker, hIoChecker->fd));
 
         /* IoChecker element is already removed from the Factory list and */
 
@@ -911,7 +907,7 @@ BIP_Status BIP_IoChecker_Disable(
     }
     else
     {
-        BDBG_WRN(("%s: Can't disable the ioChecker object %p , it is not present in the ioCheckerFactoryList", __FUNCTION__,hIoChecker));
+        BDBG_WRN(("%s: Can't disable the ioChecker object %p , it is not present in the ioCheckerFactoryList", __FUNCTION__, (void *)hIoChecker));
     }
 
     rc = BIP_SUCCESS;
@@ -949,7 +945,7 @@ BIP_Status BIP_IoChecker_Enable(
         B_Mutex_Lock( pIoCheckerFactory->ioCheckerLock );
         hIoChecker->eventMask |= eventMask;
         B_Mutex_Unlock( pIoCheckerFactory->ioCheckerLock );
-        BDBG_MSG(("%s: hIoChecker = %x, fd = %d, Enabled for Events = %d and refCount = %d \n",__FUNCTION__,hIoChecker, hIoChecker->fd,hIoChecker->eventMask, hIoChecker->refCount));
+        BDBG_MSG(("%s: hIoChecker = %p, fd = %d, Enabled for Events = %d and refCount = %d \n",__FUNCTION__, (void *)hIoChecker, hIoChecker->fd,hIoChecker->eventMask, hIoChecker->refCount));
 
         /* B_Mutex_Unlock of ioCheckerLock should always be done before calling updateApiEvent else it will deadlock.*/
         enable = BIP_IoCheckerPipeMsg_eEnableIoChecker;
@@ -961,7 +957,7 @@ BIP_Status BIP_IoChecker_Enable(
     {
         /*TODO check whether this need to be returned as rc = BIP_ERR_INVALID_PARAMETER;*/
         rc = BIP_SUCCESS;
-        BDBG_WRN(("%s: ioChecker:%p can't be enabled since it is not in the ioChecker list",__FUNCTION__, hIoChecker));
+        BDBG_WRN(("%s: ioChecker:%p can't be enabled since it is not in the ioChecker list",__FUNCTION__, (void *)hIoChecker));
     }
 
     B_Mutex_Unlock( pIoCheckerFactory->apiLock );
@@ -1169,7 +1165,7 @@ BIP_IoCheckerHandle BIP_IoChecker_Create(
       * Also reduce the count once a fd is deleted.*/
     B_Mutex_Lock( pIoCheckerFactory->ioCheckerLock );
     BLST_Q_INSERT_TAIL( &pIoCheckerFactory->ioCheckerListHead , hIoChecker, ioCheckerNext );
-    BDBG_MSG(("%s: hIoChecker = %p,fd = %d, Enable for Events = %d and refCount = %d \n",__FUNCTION__,hIoChecker, hIoChecker->fd,hIoChecker->eventMask, hIoChecker->refCount));
+    BDBG_MSG(("%s: hIoChecker = %p,fd = %d, Enable for Events = %d and refCount = %d \n",__FUNCTION__, (void *)hIoChecker, hIoChecker->fd,hIoChecker->eventMask, hIoChecker->refCount));
     pIoCheckerFactory->numFdPolled++;
 
     pIoCheckerFactory->totalNumFdsAdded++;
@@ -1177,7 +1173,7 @@ BIP_IoCheckerHandle BIP_IoChecker_Create(
 
     B_Mutex_Unlock( pIoCheckerFactory->apiLock );
 
-    BDBG_MSG(("%s: Created hIoChecker=%p for fd = %d", __FUNCTION__, hIoChecker, hIoChecker->fd));
+    BDBG_MSG(("%s: Created hIoChecker=%p for fd = %d", __FUNCTION__, (void *)hIoChecker, hIoChecker->fd));
 
     BDBG_LEAVE( BIP_IoChecker_Create );
     return(hIoChecker);
@@ -1236,7 +1232,7 @@ void BIP_IoCheckerFactory_Uninit( void )
 
         BDBG_OBJECT_ASSERT( pIoCheckerFactory, BIP_IoCheckerFactory );
 
-        BDBG_MSG(( "%s: pIoCheckerFactory %p", __FUNCTION__, pIoCheckerFactory ));
+        BDBG_MSG(( "%s: pIoCheckerFactory %p", __FUNCTION__, (void *)pIoCheckerFactory ));
 
         ioCheckerUninit();
 

@@ -1,21 +1,41 @@
 /***************************************************************************
- *     Copyright (c) 2004-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ***************************************************************************/
 #ifndef BVDC_MAD_PRIV_H__
@@ -61,52 +81,52 @@ extern "C" {
 #if (0!=BVDC_P_SUPPORT_MAD_VER) && (0<BVDC_P_SUPPORT_MAD)
 
 #define BVDC_P_MAD_GET_REG_IDX(reg) \
-	((BCHP##_##reg - BCHP_MAD_0_REG_START) / sizeof(uint32_t))
+    ((BCHP##_##reg - BCHP_MAD_0_REG_START) / sizeof(uint32_t))
 
 /* Get/Set reg data */
 #define BVDC_P_MAD_GET_REG_DATA(reg) \
-	(hMad->aulRegs[BVDC_P_MAD_GET_REG_IDX(reg)])
+    (hMad->aulRegs[BVDC_P_MAD_GET_REG_IDX(reg)])
 #define BVDC_P_MAD_SET_REG_DATA(reg, data) \
-	(BVDC_P_MAD_GET_REG_DATA(reg) = (uint32_t)(data))
+    (BVDC_P_MAD_GET_REG_DATA(reg) = (uint32_t)(data))
 
 /* Get with index. */
 #define BVDC_P_MAD_GET_REG_DATA_I(reg, idx) \
-	(hMad->aulRegs[BVDC_P_MAD_GET_REG_IDX(reg) + (idx)])
+    (hMad->aulRegs[BVDC_P_MAD_GET_REG_IDX(reg) + (idx)])
 
 /* Get field */
 #define BVDC_P_MAD_GET_FIELD_NAME(reg, field) \
-	(BVDC_P_GET_FIELD(BVDC_P_MAD_GET_REG_DATA(reg), reg, field))
+    (BVDC_P_GET_FIELD(BVDC_P_MAD_GET_REG_DATA(reg), reg, field))
 
 /* Compare field */
 #define BVDC_P_MAD_COMPARE_FIELD_DATA(reg, field, data) \
-	(BVDC_P_COMPARE_FIELD_DATA(BVDC_P_MAD_GET_REG_DATA(reg), reg, field, (data)))
+    (BVDC_P_COMPARE_FIELD_DATA(BVDC_P_MAD_GET_REG_DATA(reg), reg, field, (data)))
 #define BVDC_P_MAD_COMPARE_FIELD_NAME(reg, field, name) \
-	(BVDC_P_COMPARE_FIELD_NAME(BVDC_P_MAD_GET_REG_DATA(reg), reg, field, name))
+    (BVDC_P_COMPARE_FIELD_NAME(BVDC_P_MAD_GET_REG_DATA(reg), reg, field, name))
 
 /* This macro does a write into RUL (write, addr, data). 3 dwords. */
 #define BVDC_P_MAD_WRITE_TO_RUL(reg, addr_ptr) \
 { \
-	*addr_ptr++ = BRDC_OP_IMM_TO_REG(); \
-	*addr_ptr++ = BRDC_REGISTER(BCHP##_##reg + hMad->ulRegOffset); \
-	*addr_ptr++ = BVDC_P_MAD_GET_REG_DATA(reg); \
+    *addr_ptr++ = BRDC_OP_IMM_TO_REG(); \
+    *addr_ptr++ = BRDC_REGISTER(BCHP##_##reg + hMad->ulRegOffset); \
+    *addr_ptr++ = BVDC_P_MAD_GET_REG_DATA(reg); \
 }
 
 /* This macro does a block write into RUL */
 #define BVDC_P_MAD_BLOCK_WRITE_TO_RUL(from, to, pulCurrent) \
 do { \
-	uint32_t ulBlockSize = \
-		BVDC_P_REGS_ENTRIES(from, to);\
-	*pulCurrent++ = BRDC_OP_IMMS_TO_REGS( ulBlockSize ); \
-	*pulCurrent++ = BRDC_REGISTER(BCHP##_##from + hMad->ulRegOffset); \
-	BKNI_Memcpy((void*)pulCurrent, \
-		(void*)&(hMad->aulRegs[BVDC_P_MAD_GET_REG_IDX(from)]), \
-		ulBlockSize * sizeof(uint32_t)); \
-	pulCurrent += ulBlockSize; \
+    uint32_t ulBlockSize = \
+        BVDC_P_REGS_ENTRIES(from, to);\
+    *pulCurrent++ = BRDC_OP_IMMS_TO_REGS( ulBlockSize ); \
+    *pulCurrent++ = BRDC_REGISTER(BCHP##_##from + hMad->ulRegOffset); \
+    BKNI_Memcpy((void*)pulCurrent, \
+        (void*)&(hMad->aulRegs[BVDC_P_MAD_GET_REG_IDX(from)]), \
+        ulBlockSize * sizeof(uint32_t)); \
+    pulCurrent += ulBlockSize; \
 } while(0)
 
 /* number of registers in one block. */
 #define BVDC_P_MAD_REGS_COUNT    \
-	BVDC_P_REGS_ENTRIES(MAD_0_REG_START, MAD_0_REG_END)
+    BVDC_P_REGS_ENTRIES(MAD_0_REG_START, MAD_0_REG_END)
 
 /* get register offset base on id. */
 #define BVDC_P_MAD_GET_REG_OFFSET(mad_id)     (0)
@@ -114,10 +134,10 @@ do { \
 /* Set horizontal scale down ratio */
 #define BVDC_P_MAD_SET_HORZ_RATIO(ratio) \
 { \
-	BVDC_P_MAD_GET_REG_DATA(MAD_0_HORIZ_STEP) &= ~( \
-		BCHP_MASK(MAD_0_HORIZ_STEP, SIZE)); \
-	BVDC_P_MAD_GET_REG_DATA(MAD_0_HORIZ_STEP) |=  ( \
-		BCHP_FIELD_DATA(MAD_0_HORIZ_STEP, SIZE, ratio)); \
+    BVDC_P_MAD_GET_REG_DATA(MAD_0_HORIZ_STEP) &= ~( \
+        BCHP_MASK(MAD_0_HORIZ_STEP, SIZE)); \
+    BVDC_P_MAD_GET_REG_DATA(MAD_0_HORIZ_STEP) |=  ( \
+        BCHP_FIELD_DATA(MAD_0_HORIZ_STEP, SIZE, ratio)); \
 }
 
 /* fixed point stuffs */
@@ -161,13 +181,13 @@ do { \
 
 /* Make Horizontal ratio */
 #define BVDC_P_MAD_MAKE_H_RATIO(src, dst) \
-	(BVDC_P_MAD_NORM_2_SPEC((src), BVDC_P_MAD_H_RATIO_F_BITS) / (dst))
+    (BVDC_P_MAD_NORM_2_SPEC((src), BVDC_P_MAD_H_RATIO_F_BITS) / (dst))
 
 #define BVDC_P_MAD_HORZ_1_FIXED BVDC_P_FLOAT_TO_FIXED(1.000, \
-	BVDC_P_MAD_LUMA_INIT_PHASE_I_BITS, BVDC_P_MAD_LUMA_INIT_PHASE_F_BITS)
+    BVDC_P_MAD_LUMA_INIT_PHASE_I_BITS, BVDC_P_MAD_LUMA_INIT_PHASE_F_BITS)
 
 #define BVDC_P_MAD_FIR_COEFFS_MAX \
-	(BVDC_P_MAD_FIR_TAP_COUNT_MAX * BVDC_P_MAD_FIR_PHASE_COUNT_MAX)
+    (BVDC_P_MAD_FIR_TAP_COUNT_MAX * BVDC_P_MAD_FIR_PHASE_COUNT_MAX)
 
 #define BVDC_P_MAD_LAST UINT32_C(-1)
 
@@ -283,170 +303,170 @@ do { \
  ***************************************************************************/
 typedef struct BVDC_P_MadRev22Statistics
 {
-	uint32_t   ulMatchWeave;
-	uint32_t   ulNonMatchWeave;
-	uint32_t   ulMatchUM;
-	uint32_t   ulNonMatchUM;
-	uint32_t   ulAvgWeave;
-	uint32_t   ulPixelWeave;
-	uint32_t   ulRepfMotion;
+    uint32_t   ulMatchWeave;
+    uint32_t   ulNonMatchWeave;
+    uint32_t   ulMatchUM;
+    uint32_t   ulNonMatchUM;
+    uint32_t   ulAvgWeave;
+    uint32_t   ulPixelWeave;
+    uint32_t   ulRepfMotion;
 } BVDC_P_MadRev22Statistics;
 
 typedef struct BVDC_P_MadRev32Statistics
 {
-	uint32_t           ulBwvCtrl5;
-	uint32_t           ulPhaseCalc0;
-	uint32_t           ulPhaseCalc1;
-	uint32_t           ulPhaseCalc2;
-	uint32_t           ulPhaseCalc8;
-	uint32_t           ulPccLumaPcc;
-	uint32_t           ulPccChromaPcc;
-	uint32_t           ulPrevLumaPcc;
-	uint32_t           ulPrevChromaPcc;
+    uint32_t           ulBwvCtrl5;
+    uint32_t           ulPhaseCalc0;
+    uint32_t           ulPhaseCalc1;
+    uint32_t           ulPhaseCalc2;
+    uint32_t           ulPhaseCalc8;
+    uint32_t           ulPccLumaPcc;
+    uint32_t           ulPccChromaPcc;
+    uint32_t           ulPrevLumaPcc;
+    uint32_t           ulPrevChromaPcc;
 
-	uint32_t           ulWndBias;
+    uint32_t           ulWndBias;
 
-	bool               abRev32Locked[5];
-	uint32_t           aulSigma[5];
-	uint32_t           aulX[5];
-	uint32_t           aulP[5];
-	uint32_t           aulV[5];
+    bool               abRev32Locked[5];
+    uint32_t           aulSigma[5];
+    uint32_t           aulX[5];
+    uint32_t           aulP[5];
+    uint32_t           aulV[5];
 } BVDC_P_MadRev32Statistics;
 
 typedef struct BVDC_P_MadGameModeInfo
 {
-	BVDC_MadGameMode               eMode;
-	uint16_t                       usDelay;
-	uint16_t                       usPixelBufferCnt;
-	const char                    *pchModeName;
+    BVDC_MadGameMode               eMode;
+    uint16_t                       usDelay;
+    uint16_t                       usPixelBufferCnt;
+    const char                    *pchModeName;
 
 } BVDC_P_MadGameModeInfo;
 
 
 typedef struct BVDC_P_MadContext
 {
-	BDBG_OBJECT(BVDC_MAD)
+    BDBG_OBJECT(BVDC_MAD)
 
-	BREG_Handle                    hRegister;
-	BVDC_Heap_Handle               hHeap;
-	BVDC_Window_Handle             hWindow;
+    BREG_Handle                    hRegister;
+    BVDC_Heap_Handle               hHeap;
+    BVDC_Window_Handle             hWindow;
 
-	BVDC_P_Compression_Settings    *pstCompression;
+    BVDC_P_Compression_Settings    *pstCompression;
 
-	/* flag initial state, require reset; */
-	bool                           bInitial;
-	uint32_t                       ulResetRegAddr;
-	uint32_t                       ulResetMask;
+    /* flag initial state, require reset; */
+    bool                           bInitial;
+    uint32_t                       ulResetRegAddr;
+    uint32_t                       ulResetMask;
 
-	/* OSD feature for MAD */
-	bool                           bEnableOsd;
-	uint32_t                       ulOsdHpos;
-	uint32_t                       ulOsdVpos;
+    /* OSD feature for MAD */
+    bool                           bEnableOsd;
+    uint32_t                       ulOsdHpos;
+    uint32_t                       ulOsdVpos;
 
-	/* flag for changes */
-	uint32_t                       ulUpdateAll;
-	uint32_t                       ulUpdateMisc;
-	uint32_t                       ulUpdatePullDown;
-	uint32_t                       ulUpdate22PullDown;
-	uint32_t                       ulUpdateChromaSettings;
-	uint32_t                       ulUpdateMotionSettings;
+    /* flag for changes */
+    uint32_t                       ulUpdateAll;
+    uint32_t                       ulUpdateMisc;
+    uint32_t                       ulUpdatePullDown;
+    uint32_t                       ulUpdate22PullDown;
+    uint32_t                       ulUpdateChromaSettings;
+    uint32_t                       ulUpdateMotionSettings;
 
-	/* parameters to used in software 2:2 pulldown algorithm */
-	bool                           bReverse22Pulldown;
-	bool                           bReverse32Pulldown;
+    /* parameters to used in software 2:2 pulldown algorithm */
+    bool                           bReverse22Pulldown;
+    bool                           bReverse32Pulldown;
 
-	int32_t                        ulRev22NonMatchMatchRatio;
-	int32_t                        ulRev22EnterLockLevel;
-	int32_t                        ulRev22LocksatLevel;
-	int32_t                        ulRev22BwvLumaThreshold;
-	uint32_t                       ulRev22Candidate;
-	uint32_t                       ulPrevCtIndexLuma;
-	uint32_t                       ulPrevCtIndexChroma;
-	BVDC_P_CtInput                 ePrevCtInputType;
+    int32_t                        ulRev22NonMatchMatchRatio;
+    int32_t                        ulRev22EnterLockLevel;
+    int32_t                        ulRev22LocksatLevel;
+    int32_t                        ulRev22BwvLumaThreshold;
+    uint32_t                       ulRev22Candidate;
+    uint32_t                       ulPrevCtIndexLuma;
+    uint32_t                       ulPrevCtIndexChroma;
+    BVDC_P_CtInput                 ePrevCtInputType;
 
-	/* Optimized */
-	int32_t                        lMadCutLeft; /* S11.6, same fmt as SclCut->lLeft */
+    /* Optimized */
+    int32_t                        lMadCutLeft; /* S11.6, same fmt as SclCut->lLeft */
 
-	/* for 3:2 pulldown alg */
+    /* for 3:2 pulldown alg */
 #if (BVDC_P_SUPPORT_MAD_VER >= 5)
-	BVDC_P_MadRev32Statistics      stRev32Statistics;
+    BVDC_P_MadRev32Statistics      stRev32Statistics;
 #endif
 
-	/* for both 3:2 and 2:2 pulldown alg */
-	uint32_t                       ulPhaseCounter;
-	uint32_t                       ulPhaseCounter22;
-	int32_t                        alPhase[5];
-	int32_t                        alPhase22[2];
+    /* for both 3:2 and 2:2 pulldown alg */
+    uint32_t                       ulPhaseCounter;
+    uint32_t                       ulPhaseCounter22;
+    int32_t                        alPhase[5];
+    int32_t                        alPhase22[2];
 
-	/* parameters to used in optimize algorithm */
-	uint32_t                       ulRepfMotion;
-	uint32_t                       aulSigma;
-	uint32_t                       ulPreFieldMotion;
-	uint32_t                       ulStillFieldNum;
-	uint32_t                       ulChangeFieldNum;
-	bool                           b5FieldMode;
-	bool                           bOptimizeStill;
+    /* parameters to used in optimize algorithm */
+    uint32_t                       ulRepfMotion;
+    uint32_t                       aulSigma;
+    uint32_t                       ulPreFieldMotion;
+    uint32_t                       ulStillFieldNum;
+    uint32_t                       ulChangeFieldNum;
+    bool                           b5FieldMode;
+    bool                           bOptimizeStill;
 
-	/* Fir coeff tables */
-	const BVDC_P_FirCoeffTbl      *pHorzFirCoeffTbl;
-	const BVDC_P_FirCoeffTbl      *pChromaHorzFirCoeffTbl;
+    /* Fir coeff tables */
+    const BVDC_P_FirCoeffTbl      *pHorzFirCoeffTbl;
+    const BVDC_P_FirCoeffTbl      *pChromaHorzFirCoeffTbl;
 
-	/* private fields. */
-	BVDC_P_MadId                   eId;
-	uint32_t                       ulRegOffset; /* MAD_0, MAD_1, and etc. */
-	uint32_t                       ulMaxWidth; /* max width limited by line buf size */
-	uint32_t                       ulMaxHeight; /* max height limited by RTS */
-	uint32_t                       ulHsclSizeThreshold; /* hsize that triggers use of HSCL before deinterlacing */
-	uint32_t                       aulRegs[BVDC_P_MAD_REGS_COUNT];
+    /* private fields. */
+    BVDC_P_MadId                   eId;
+    uint32_t                       ulRegOffset; /* MAD_0, MAD_1, and etc. */
+    uint32_t                       ulMaxWidth; /* max width limited by line buf size */
+    uint32_t                       ulMaxHeight; /* max height limited by RTS */
+    uint32_t                       ulHsclSizeThreshold; /* hsize that triggers use of HSCL before deinterlacing */
+    uint32_t                       aulRegs[BVDC_P_MAD_REGS_COUNT];
 
-	/* Pixel Field Memory Store */
-	BVDC_P_HeapNodePtr             apPixelHeapNode[BVDC_P_MAD_PIXEL_SD_BUFFER_COUNT];
-	/* Quantized Motion Field Memory Store */
-	BVDC_P_HeapNodePtr             apQmHeapNode[BVDC_P_MAD_QM_BUFFER_COUNT];
+    /* Pixel Field Memory Store */
+    BVDC_P_HeapNodePtr             apPixelHeapNode[BVDC_P_MAD_PIXEL_SD_BUFFER_COUNT];
+    /* Quantized Motion Field Memory Store */
+    BVDC_P_HeapNodePtr             apQmHeapNode[BVDC_P_MAD_QM_BUFFER_COUNT];
 
-	/* values for MAD game mode */
-	uint16_t                       usFeedCapture;
-	uint16_t                       usCurQm;
-	uint16_t                       usGameModeStartDelay;
-	uint16_t                       usGameModeQmDelay;
-	uint16_t                       usPixelBufferCnt;
-	bool                           bBufferCntChanged;
+    /* values for MAD game mode */
+    uint16_t                       usFeedCapture;
+    uint16_t                       usCurQm;
+    uint16_t                       usGameModeStartDelay;
+    uint16_t                       usGameModeQmDelay;
+    uint16_t                       usPixelBufferCnt;
+    bool                           bBufferCntChanged;
 
-	/* mad user setting */
-	BVDC_MadGameMode               eGameMode;
-	bool                           bRev32Custom;
-	bool                           bRev22Custom;
-	bool                           bChromaCustom;
-	bool                           bMotionCustom;
+    /* mad user setting */
+    BVDC_MadGameMode               eGameMode;
+    bool                           bRev32Custom;
+    bool                           bRev22Custom;
+    bool                           bChromaCustom;
+    bool                           bMotionCustom;
 
-	/* flag user changes to optimize MAD code */
-	bool                           bUsrChanges;
+    /* flag user changes to optimize MAD code */
+    bool                           bUsrChanges;
 
-	/* sub-struct to manage vnet and rul build opreations */
-	BVDC_P_SubRulContext           SubRul;
+    /* sub-struct to manage vnet and rul build opreations */
+    BVDC_P_SubRulContext           SubRul;
 
-	/* last field saved PCC_FWD */
-	uint32_t                       ulPccFwd;
-	uint32_t                       ulPrePccFwd;
+    /* last field saved PCC_FWD */
+    uint32_t                       ulPccFwd;
+    uint32_t                       ulPrePccFwd;
 
-	/* Dither */
-	BVDC_P_DitherSetting           stDither;
+    /* Dither */
+    BVDC_P_DitherSetting           stDither;
 
-	/* delay for MAD freeze transition */
-	uint16_t                       usTrickModeStartDelay;
+    /* delay for MAD freeze transition */
+    uint16_t                       usTrickModeStartDelay;
 
 #if (BVDC_P_SUPPORT_MAD_VER >= BVDC_P_MAD_VER_7)
-	/* mem saving mode between MAD/ANR */
-	bool                            bMemSaving;
+    /* mem saving mode between MAD/ANR */
+    bool                            bMemSaving;
 #endif
 
 #if (BVDC_P_SUPPORT_HSCL_MAD_HARD_WIRED)
-	BVDC_P_Hscaler_Handle           hHscaler;
+    BVDC_P_Hscaler_Handle           hHscaler;
 #endif
 
-	uint32_t                        ulHardStartCountdown;
+    uint32_t                        ulHardStartCountdown;
 
-	uint32_t                        ulGameModeTransCnt;
+    uint32_t                        ulGameModeTransCnt;
 } BVDC_P_MadContext;
 
 
@@ -454,117 +474,117 @@ typedef struct BVDC_P_MadContext
  * Mad private functions
  ***************************************************************************/
 BERR_Code BVDC_P_Mad_Create
-	( BVDC_P_Mad_Handle            *phMad,
-	  BREG_Handle                   hRegister,
-	  BVDC_P_MadId                  eMadId,
-	  BVDC_P_Resource_Handle        hResource );
+    ( BVDC_P_Mad_Handle            *phMad,
+      BREG_Handle                   hRegister,
+      BVDC_P_MadId                  eMadId,
+      BVDC_P_Resource_Handle        hResource );
 
 void BVDC_P_Mad_Destroy
-	( BVDC_P_Mad_Handle             hMad );
+    ( BVDC_P_Mad_Handle             hMad );
 
 BERR_Code BVDC_P_Mad_AcquireConnect_isr
-	( BVDC_P_Mad_Handle             hMad,
-	  BVDC_Heap_Handle              hHeap,
-	  BVDC_Window_Handle            hWindow);
+    ( BVDC_P_Mad_Handle             hMad,
+      BVDC_Heap_Handle              hHeap,
+      BVDC_Window_Handle            hWindow);
 
 BERR_Code BVDC_P_Mad_ReleaseConnect_isr
-	( BVDC_P_Mad_Handle            *phMad );
+    ( BVDC_P_Mad_Handle            *phMad );
 
 void BVDC_P_Mad_SetVnetAllocBuf_isr
-	( BVDC_P_Mad_Handle             hMad,
-	  uint32_t                      ulSrcMuxValue,
-	  BVDC_P_VnetPatch              eVnetPatchMode,
-	  BVDC_P_BufferHeapId           eMadPixelBufHeapId,
-	  BVDC_P_BufferHeapId           eMadQmBufHeapId,
-	  uint16_t                      usMadPixelSdBufferCnt);
+    ( BVDC_P_Mad_Handle             hMad,
+      uint32_t                      ulSrcMuxValue,
+      BVDC_P_VnetPatch              eVnetPatchMode,
+      BVDC_P_BufferHeapId           eMadPixelBufHeapId,
+      BVDC_P_BufferHeapId           eMadQmBufHeapId,
+      uint16_t                      usMadPixelSdBufferCnt);
 
 void BVDC_P_Mad_UnsetVnetFreeBuf_isr
-	( BVDC_P_Mad_Handle             hMad );
+    ( BVDC_P_Mad_Handle             hMad );
 
 void BVDC_P_Mad_BuildRul_isr
-	( const BVDC_P_Mad_Handle       hMad,
-	  BVDC_P_ListInfo              *pList,
-	  BVDC_P_State                  eVnetState,
-	  BVDC_P_PicComRulInfo         *pPicComRulInfo );
+    ( const BVDC_P_Mad_Handle       hMad,
+      BVDC_P_ListInfo              *pList,
+      BVDC_P_State                  eVnetState,
+      BVDC_P_PicComRulInfo         *pPicComRulInfo );
 
 BERR_Code BVDC_P_Mad_SetInfo_isr
-	( BVDC_P_Mad_Handle             hMad,
-	  const BVDC_Window_Handle      hWindow,
-	  const BVDC_P_PictureNodePtr   pPicture );
+    ( BVDC_P_Mad_Handle             hMad,
+      const BVDC_Window_Handle      hWindow,
+      const BVDC_P_PictureNodePtr   pPicture );
 
 BERR_Code BVDC_P_Mad_SetEnable_isr
-	( BVDC_P_Mad_Handle             hMad,
-	  bool                          bEnable );
+    ( BVDC_P_Mad_Handle             hMad,
+      bool                          bEnable );
 
 /***************************************************************************
  * Return the user set of mad chroma
  */
 void BVDC_P_Mad_GetUserChroma_isr
-	( BVDC_P_Mad_Handle                hMad,
-	  BVDC_Deinterlace_ChromaSettings *pstChromaSettings );
+    ( BVDC_P_Mad_Handle                hMad,
+      BVDC_Deinterlace_ChromaSettings *pstChromaSettings );
 
 /***************************************************************************
  * Return the user set of mad motino
  */
 void BVDC_P_Mad_GetUserMotion_isr
-	( BVDC_P_Mad_Handle                hMad,
-	  BVDC_Deinterlace_MotionSettings *pstMotionSettings );
+    ( BVDC_P_Mad_Handle                hMad,
+      BVDC_Deinterlace_MotionSettings *pstMotionSettings );
 
 /***************************************************************************
  * Return the user set of mad 3:2 pulldown
  */
 void BVDC_P_Mad_GetUserReverse32_isr
-	( BVDC_P_Mad_Handle                   hMad,
-	  BVDC_Deinterlace_Reverse32Settings *pstRev32Settings );
+    ( BVDC_P_Mad_Handle                   hMad,
+      BVDC_Deinterlace_Reverse32Settings *pstRev32Settings );
 
 /***************************************************************************
  * Return the user set of mad chroma
  */
 void BVDC_P_Mad_GetUserReverse22_isr
-	( BVDC_P_Mad_Handle                   hMad,
-	  BVDC_Deinterlace_Reverse22Settings *pstRev22Settings );
+    ( BVDC_P_Mad_Handle                   hMad,
+      BVDC_Deinterlace_Reverse22Settings *pstRev22Settings );
 
 void BVDC_P_Mad_Init_Default
-	( BVDC_MadGameMode                      *peGameMode,
-	  BPXL_Format                           *pePxlFormat,
-	  BVDC_Mode                             *pePqEnhancement,
-	  bool                                  *pbShrinkWidth,
-	  bool                                  *pbReverse32Pulldown,
-	  BVDC_Deinterlace_Reverse32Settings    *pReverse32Settings,
-	  bool                                  *pbReverse22Pulldown,
-	  BVDC_Deinterlace_Reverse22Settings    *pReverse22Settings,
-	  BVDC_Deinterlace_ChromaSettings       *pChromaSettings,
-	  BVDC_Deinterlace_MotionSettings       *pMotionSettings );
+    ( BVDC_MadGameMode                      *peGameMode,
+      BPXL_Format                           *pePxlFormat,
+      BVDC_Mode                             *pePqEnhancement,
+      bool                                  *pbShrinkWidth,
+      bool                                  *pbReverse32Pulldown,
+      BVDC_Deinterlace_Reverse32Settings    *pReverse32Settings,
+      bool                                  *pbReverse22Pulldown,
+      BVDC_Deinterlace_Reverse22Settings    *pReverse22Settings,
+      BVDC_Deinterlace_ChromaSettings       *pChromaSettings,
+      BVDC_Deinterlace_MotionSettings       *pMotionSettings );
 
 void BVDC_P_Mad_Init_Custom
-	( BVDC_422To444UpSampler          *pUpSampler,
-	  BVDC_444To422DnSampler          *pDnSampler,
-	  BVDC_Deinterlace_LowAngleSettings *pLowAngles );
+    ( BVDC_422To444UpSampler          *pUpSampler,
+      BVDC_444To422DnSampler          *pDnSampler,
+      BVDC_Deinterlace_LowAngleSettings *pLowAngles );
 
 BERR_Code BVDC_P_Mad_Init_DynamicDefault
-	( BVDC_Window_Handle                  hWindow,
-	  BVDC_Deinterlace_Reverse32Settings *pReverse32Settings,
-	  BVDC_Deinterlace_Reverse22Settings *pReverse22Settings,
-	  BVDC_Deinterlace_ChromaSettings    *pChromaSettings );
+    ( BVDC_Window_Handle                  hWindow,
+      BVDC_Deinterlace_Reverse32Settings *pReverse32Settings,
+      BVDC_Deinterlace_Reverse22Settings *pReverse22Settings,
+      BVDC_Deinterlace_ChromaSettings    *pChromaSettings );
 
 BERR_Code BVDC_P_Mad_Init_DynamicDefault_isr
-	( BVDC_Window_Handle                  hWindow,
-	  BVDC_Deinterlace_Reverse32Settings *pReverse32Settings,
-	  BVDC_Deinterlace_Reverse22Settings *pReverse22Settings,
-	  BVDC_Deinterlace_ChromaSettings    *pChromaSettings );
+    ( BVDC_Window_Handle                  hWindow,
+      BVDC_Deinterlace_Reverse32Settings *pReverse32Settings,
+      BVDC_Deinterlace_Reverse22Settings *pReverse22Settings,
+      BVDC_Deinterlace_ChromaSettings    *pChromaSettings );
 
 uint16_t BVDC_P_Mad_GetVsyncDelayNum_isr
-	( BVDC_MadGameMode                 eGameMode );
+    ( BVDC_MadGameMode                 eGameMode );
 
 uint16_t BVDC_P_Mad_GetPixBufCnt_isr
-	(  BVDC_MadGameMode                eGameMode );
+    (  BVDC_MadGameMode                eGameMode );
 
 bool BVDC_P_Mad_BeHardStart_isr
-	( BVDC_P_Mad_Handle                hMad );
+    ( BVDC_P_Mad_Handle                hMad );
 
 void BVDC_P_Mad_ReadOutPhase_isr
-	( BVDC_P_Mad_Handle                  hMad,
-	  BVDC_P_PictureNode                *pPicture);
+    ( BVDC_P_Mad_Handle                  hMad,
+      BVDC_P_PictureNode                *pPicture);
 
 #ifdef __cplusplus
 }

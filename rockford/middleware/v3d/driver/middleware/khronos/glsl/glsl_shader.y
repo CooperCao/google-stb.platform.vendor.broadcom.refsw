@@ -26,6 +26,7 @@
    static TokenSeq *seq;
 
    static void yyerror (void *top_level_statement, const char *s) {
+      UNUSED(top_level_statement);
       if (strcmp(s, "syntax error") == 0) {
          // Catch syntax errors and redirect them.
          glsl_compile_error(ERROR_LEXER_PARSER, 1, g_LineNumber, NULL);

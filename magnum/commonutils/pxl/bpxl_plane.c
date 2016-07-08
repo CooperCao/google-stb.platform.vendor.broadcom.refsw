@@ -92,7 +92,7 @@ void BPXL_Plane_Init(BPXL_Plane *plane, size_t width, size_t height, BPXL_Format
         /* calculate bytes for sub-byte formats */
         if( uiBitsPerPixel < 8 )
         {
-			unsigned int uiPixPerByte = (8 / uiBitsPerPixel);
+            unsigned int uiPixPerByte = (8 / uiBitsPerPixel);
             ulPitch = (width + (uiPixPerByte - 1)) / uiPixPerByte;
         }
         /* calculate bytes for formats that are a byte or larger */

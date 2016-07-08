@@ -1,7 +1,9 @@
 /*=============================================================================
-Copyright (c) 2014 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2014 Broadcom.
 All rights reserved.
 =============================================================================*/
+
+#include "assert.h"
 
 #include "nexus_memory.h"
 #include "nexus_platform.h"
@@ -42,17 +44,6 @@ static int dummy(void) { return 0; }
 static FILE *sLogFile = NULL;
 #endif
 
-enum
-{
-   eNO_PROBLEMS            = 0,
-   eNOT_HD_GRAPHICS_HEAP   = 1 << 0,
-   eCROSSES_256MB          = 1 << 1,
-   eGUARD_BANDED           = 1 << 2,
-   eWRONG_TYPE             = 1 << 3,
-   eCROSSES_1GB            = 1 << 4,
-   eTOO_SMALL              = 1 << 5
-};
-
 typedef struct
 {
    NEXUS_HeapHandle        heap;
@@ -64,19 +55,14 @@ typedef struct
 
 typedef struct
 {
-   NXPL_HeapMapping        heaps[4];   /* 0 is NXCLIENT_DEFAULT_HEAP, 1 is NXCLIENT_DYNAMIC_HEAP */
+   NXPL_HeapMapping        heapMap;
+   NXPL_HeapMapping        heapMapSecure;
    uint32_t                numHeaps;
    int                     l2_cache_size;
    bool                    useDynamicMMA;
    int                     heapGrow;
    uint32_t                processId;
 } NXPL_MemoryContext;
-
-#ifdef SINGLE_PROCESS
-#define NEXUS_HEAPCONFIG NEXUS_PlatformConfiguration
-#else
-#define NEXUS_HEAPCONFIG NEXUS_ClientConfiguration
-#endif
 
 /* Not a complete implementation, just enough to match what nx_ashmem is doing */
 static unsigned long long memparse(const char *ptr, char **retptr, unsigned long long def)
@@ -121,20 +107,23 @@ static bool UseDynamicMMAHeap(int *growSize)
 /*****************************************************************************
  * Memory interface
  *****************************************************************************/
-static BEGL_MemHandle MemAllocBlock(void *context, size_t numBytes, size_t alignment, uint32_t flags, const char *desc)
+static BEGL_MemHandle MemAllocBlock(void *ctx, size_t numBytes, size_t alignment, uint32_t flags, const char *desc)
 {
-   NXPL_MemoryContext                  *data = (NXPL_MemoryContext*)context;
-   NEXUS_MemoryBlockHandle             block;
+   NXPL_MemoryContext        *context = (NXPL_MemoryContext*)ctx;
+   NEXUS_MemoryBlockHandle    block;
+   bool                       secureHeap = (flags & BEGL_USAGE_SECURE) != 0;
+   NEXUS_HeapHandle           heap    = secureHeap ? context->heapMapSecure.heap : context->heapMap.heap;
 
 #if defined(NEXUS_MemoryBlock_Allocate) /* NEXUS_MemoryBlock_Allocate became a define when
                                            NEXUS_MemoryBlock_Allocate_tagged started to exist */
-   block = NEXUS_MemoryBlock_Allocate_tagged(data->heaps[0].heap, numBytes, alignment, NULL, desc, data->processId);
+   block = NEXUS_MemoryBlock_Allocate_tagged(heap, numBytes, alignment, NULL, desc, context->processId);
 #else
-   block = NEXUS_MemoryBlock_Allocate(data->heaps[0].heap, numBytes, alignment, NULL);
+   block = NEXUS_MemoryBlock_Allocate(heap, numBytes, alignment, NULL);
 #endif
 
 #ifndef SINGLE_PROCESS
-   if (!block)
+   /* Can't grow secure heap */
+   if (!block && !secureHeap)
    {
       int growRC = NEXUS_SUCCESS;
       while (block == NULL && growRC == NEXUS_SUCCESS)
@@ -142,23 +131,23 @@ static BEGL_MemHandle MemAllocBlock(void *context, size_t numBytes, size_t align
 #ifndef NXCLIENT_SUPPORT
          uint32_t numGrowBlocks = 1;
 
-         if (numBytes > data->heapGrow)
-            numGrowBlocks = numBytes / data->heapGrow + 1;
+         if (numBytes > context->heapGrow)
+            numGrowBlocks = numBytes / context->heapGrow + 1;
 #endif
 
          /* multiprocess we can grow the heap and try again */
 #ifdef NXCLIENT_SUPPORT
          growRC = NxClient_GrowHeap(NXCLIENT_DYNAMIC_HEAP);
 #else
-         growRC = NEXUS_Platform_GrowHeap(data->heaps[0].heap, numGrowBlocks * data->heapGrow);
+         growRC = NEXUS_Platform_GrowHeap(heap, numGrowBlocks * context->heapGrow);
 #endif
          if (growRC == NEXUS_SUCCESS)
          {
 #if defined(NEXUS_MemoryBlock_Allocate) /* NEXUS_MemoryBlock_Allocate became a define when
                                            NEXUS_MemoryBlock_Allocate_tagged started to exist */
-            block = NEXUS_MemoryBlock_Allocate_tagged(data->heaps[0].heap, numBytes, alignment, NULL, desc, data->processId);
+            block = NEXUS_MemoryBlock_Allocate_tagged(heap, numBytes, alignment, NULL, desc, context->processId);
 #else
-            block = NEXUS_MemoryBlock_Allocate(data->heaps[0].heap, numBytes, alignment, NULL);
+            block = NEXUS_MemoryBlock_Allocate(heap, numBytes, alignment, NULL);
 #endif
          }
          else
@@ -204,17 +193,21 @@ static void *MemMapBlock(void *context, BEGL_MemHandle h, size_t offset, size_t 
    UNUSED(usage_flags);
 
    err = NEXUS_MemoryBlock_Lock((NEXUS_MemoryBlockHandle)h, &ret);
+   assert(ret != NULL);
    if (err != NEXUS_SUCCESS)
+   {
+      assert(0);
       return NULL;
+   }
 
 #ifdef LOG_MEMORY_PATTERN
    if (sLogFile)
-      fprintf(sLogFile, "M %u %u %u %p\n", (uint32_t)h, offset, length, ret + offset);
+      fprintf(sLogFile, "M %u %u %u %p\n", (uint32_t)h, offset, length, (char *)ret + offset);
 #endif
 
    /*PRINTF("MemMapBlock %p = %p\n", h, ret);*/
 
-   return ret + offset;
+   return (char *)ret + offset;
 }
 
 static void MemUnmapBlock(void *context, BEGL_MemHandle h, void *cpu_ptr, size_t length)
@@ -241,8 +234,12 @@ static uint32_t MemLockBlock(void *context, BEGL_MemHandle h)
    UNUSED(context);
 
    err = NEXUS_MemoryBlock_LockOffset((NEXUS_MemoryBlockHandle)h, &devPtr);
+   assert(devPtr != 0);
    if (err != NEXUS_SUCCESS)
+   {
+      assert(0);
       return 0;
+   }
 
 #ifdef LOG_MEMORY_PATTERN
    if (sLogFile)
@@ -272,24 +269,23 @@ static void MemUnlockBlock(void *context, BEGL_MemHandle h)
 static void MemFlushCache(void *context, BEGL_MemHandle handle, void *pCached, size_t numBytes)
 {
    UNUSED(context);
+   (void)handle;
+   BDBG_ASSERT(pCached != NULL);
 
-   if (handle == NULL || pCached == NULL)
-   {
 #ifdef LOG_MEMORY_PATTERN
-      if (sLogFile)
-         fprintf(sLogFile, "C %u %p %u\n", (uint32_t)handle, 0, ~0);
+   if (sLogFile)
+      fprintf(sLogFile, "C %u %p %u\n", (uint32_t)handle, pCached, numBytes);
 #endif
 
-      NEXUS_FlushCache(0, ~0);
-   }
-   else
+   /* Avoid Nexus ARM cache flush using broken set/way approach for flushes >= 3MB */
+   while (numBytes > 0)
    {
-#ifdef LOG_MEMORY_PATTERN
-      if (sLogFile)
-         fprintf(sLogFile, "C %u %p %u\n", (uint32_t)handle, pCached, numBytes);
-#endif
+      size_t const maxBytesThisTime = 2*1024*1024;
+      size_t numBytesThisTime = numBytes < maxBytesThisTime ? numBytes : maxBytesThisTime;
 
-      NEXUS_FlushCache(pCached, numBytes);
+      NEXUS_FlushCache(pCached, numBytesThisTime);
+      pCached = (uint8_t*)pCached + numBytesThisTime;
+      numBytes -= numBytesThisTime;
    }
 }
 
@@ -311,7 +307,7 @@ static uint64_t MemGetInfo(void *context, BEGL_MemInfoType type)
            fprintf(sLogFile, "B\n");
 #endif
         struct NEXUS_MemoryStatus  status;
-        NEXUS_Heap_GetStatus(data->heaps[0].heap, &status);
+        NEXUS_Heap_GetStatus(data->heapMap.heap, &status);
         return (uint64_t)status.largestFreeBlock;
         break;
      }
@@ -323,14 +319,16 @@ static uint64_t MemGetInfo(void *context, BEGL_MemInfoType type)
            fprintf(sLogFile, "G\n");
 #endif
         struct NEXUS_MemoryStatus  status;
-        NEXUS_Heap_GetStatus(data->heaps[0].heap, &status);
+        NEXUS_Heap_GetStatus(data->heapMap.heap, &status);
         return (uint64_t)status.free;
         break;
      }
 
   case BEGL_MemPrintHeapData:
      {
-        NEXUS_Heap_Dump(data->heaps[0].heap);
+        NEXUS_Heap_Dump(data->heapMap.heap);
+        if (data->heapMapSecure.heap != 0)
+           NEXUS_Heap_Dump(data->heapMapSecure.heap);
         return 0;
      }
   }
@@ -351,18 +349,6 @@ static uint64_t MemGetInfo(void *context, BEGL_MemInfoType type)
 //         status.highWatermark,
 //         status.guardBanding?'y':'n');
 //}
-
-/* Return the primary memory heap */
-__attribute__((visibility("default")))
-NEXUS_HeapHandle NXPL_MemHeap(BEGL_MemoryInterface *mem)
-{
-   if (mem != NULL)
-   {
-      NXPL_MemoryContext *data = (NXPL_MemoryContext*)mem->context;
-      return data->heaps[0].heap;
-   }
-   return NULL;
-}
 
 BEGL_MemoryInterface *CreateMemoryInterface(void)
 {
@@ -406,28 +392,42 @@ BEGL_MemoryInterface *CreateMemoryInterface(void)
             NEXUS_Platform_GetClientConfiguration(&clientConfig);
 
             if (ctx->useDynamicMMA)
-               ctx->heaps[0].heap = clientConfig.heap[4];
+               ctx->heapMap.heap = clientConfig.heap[4];
             else if (clientConfig.mode == NEXUS_ClientMode_eUntrusted)
-               ctx->heaps[0].heap = clientConfig.heap[0];
+               ctx->heapMap.heap = clientConfig.heap[0];
             else
-               ctx->heaps[0].heap = NEXUS_Platform_GetFramebufferHeap(NEXUS_OFFSCREEN_SURFACE);
+               ctx->heapMap.heap = NEXUS_Platform_GetFramebufferHeap(NEXUS_OFFSCREEN_SURFACE);
+
+            ctx->heapMapSecure.heap = clientConfig.heap[NXCLIENT_SECURE_GRAPHICS_HEAP];
          }
 #else
          /* If you change this, then the heap must also change in nexus_platform.c
             With refsw NEXUS_OFFSCREEN_SURFACE is the only heap guaranteed to be valid for v3d to use */
-         ctx->heaps[0].heap = NEXUS_Platform_GetFramebufferHeap(NEXUS_OFFSCREEN_SURFACE);
+         ctx->heapMap.heap    = NEXUS_Platform_GetFramebufferHeap(NEXUS_OFFSCREEN_SURFACE);
+         ctx->heapMapSecure.heap = NEXUS_Platform_GetFramebufferHeap(NEXUS_OFFSCREEN_SECURE_GRAPHICS_SURFACE);
 #endif
-
-         NEXUS_Heap_GetStatus(ctx->heaps[0].heap, &memStatus);
-         ctx->heaps[0].heapStartCached = memStatus.addr;
-         ctx->heaps[0].heapStartPhys = memStatus.offset;
-         ctx->heaps[0].heapSize = memStatus.size;
+         NEXUS_Heap_GetStatus(ctx->heapMap.heap, &memStatus);
+         ctx->heapMap.heapStartCached = memStatus.addr;
+         ctx->heapMap.heapStartPhys = memStatus.offset;
+         ctx->heapMap.heapSize = memStatus.size;
          ctx->l2_cache_size = memStatus.alignment;
 
          DEBUG_PRINTF("NXPL : NXPL_CreateMemInterface() INFO.\nVirtual (cached) %p, Physical 0x%08x, Size %d, Alignment %d\n",
-            ctx->heaps[0].heapStartCached,
-            ctx->heaps[0].heapStartPhys,
-            ctx->heaps[0].heapSize,
+            ctx->heapMap.heapStartCached,
+            ctx->heapMap.heapStartPhys,
+            ctx->heapMap.heapSize,
+            ctx->l2_cache_size);
+
+         NEXUS_Heap_GetStatus(ctx->heapMapSecure.heap, &memStatus);
+         ctx->heapMapSecure.heapStartCached = memStatus.addr;
+         ctx->heapMapSecure.heapStartPhys = memStatus.offset;
+         ctx->heapMapSecure.heapSize = memStatus.size;
+         ctx->l2_cache_size = memStatus.alignment;
+
+         DEBUG_PRINTF("NXPL : NXPL_CreateMemInterface() INFO.\nVirtual (cached) %p, Physical 0x%08x, Size %d, Alignment %d\n",
+            ctx->heapMapSecure.heapStartCached,
+            ctx->heapMapSecure.heapStartPhys,
+            ctx->heapMapSecure.heapSize,
             ctx->l2_cache_size);
       }
       else

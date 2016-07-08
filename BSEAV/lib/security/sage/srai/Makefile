@@ -115,7 +115,7 @@ F_PUBLIC_LIBS += lib${LIB_BASENAME}.a lib${LIB_BASENAME}.so
 ifneq ($(NEXUS_BIN_DIR),)
 D_FOR_LIB_INSTALL := $(NEXUS_BIN_DIR)
 else
-$(error defien NEXUS_BIN_DIR for install dir)
+$(error define NEXUS_BIN_DIR for install dir)
 endif
 F_OBJS := $(patsubst %.c,%.o, ${F_SRCS})
 END_OBJS := $(addprefix ${SRAI_OBJ_ROOT}/,${F_OBJS})
@@ -125,9 +125,11 @@ F_INSTALLED_LIBS := $(addprefix ${D_FOR_LIB_INSTALL}/, ${F_PUBLIC_LIBS})
 ############################################################################
 #                              MAIN TARGETS
 #vvvv#####################vvvvvvvvvvvvvvvvvvvvvvv#####################vvvv##
+all: prep_folder
+	@$(MAKE) ${F_PUBLIC_LIBS}
+
 prep_folder:
 	@ mkdir -p ${SRAI_OBJ_ROOT}/
-all: prep_folder ${F_PUBLIC_LIBS}
 
 clean:
 	@ echo clean objects [${F_OBJS}]
@@ -135,7 +137,8 @@ clean:
 	@ echo clean libraries [${F_PUBLIC_LIBS}]
 	@ rm -f ${F_INSTALLED_LIBS} ${SRAI_OBJ_ROOT}/lib${LIB_BASENAME}.so ${SRAI_OBJ_ROOT}/lib${LIB_BASENAME}.a
 
-re: clean install
+re: clean
+	@$(MAKE) install
 
 #^^^^#####################^^^^^^^^^^^^^^^^^^^^^^^#####################^^^^##
 
@@ -157,10 +160,11 @@ lib${LIB_BASENAME}.a: ${F_OBJS}
 	@ ${AR} rc ${SRAI_OBJ_ROOT}/$@ ${END_OBJS}
 	${STRIP_COMMAND}
 
-idirs:
+idirs: all
 	@ [ -d ${D_FOR_LIB_INSTALL} ] || mkdir -p ${D_FOR_LIB_INSTALL}
 
-install: all idirs ${F_INSTALLED_LIBS}
+install: idirs
+	@$(MAKE) ${F_INSTALLED_LIBS}
 
 ${D_FOR_LIB_INSTALL}/%.a : %.a
 	install -m 0755 ${SRAI_OBJ_ROOT}/$< $@

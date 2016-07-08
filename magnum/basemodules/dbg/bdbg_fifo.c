@@ -1,22 +1,39 @@
 /***************************************************************************
- *     Copyright (c) 2003-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2003-2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ *  Except as expressly set forth in the Authorized License,
  *
- * Module Description:
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * Revision History:
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- * 
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
  ***************************************************************************/
 
 #include "bstd.h"
@@ -24,7 +41,7 @@
 #include "bdbg_fifo.h"
 
 #if !defined(BDBG_P_LOG_SUPPORTED)
-#if defined(__GNUC__) && (defined(__mips__) || defined(__arm__) ||  (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 4)) && (defined(__i386__) || defined(__x86_64__)))
+#if defined(__GNUC__) && (defined(__mips__) || defined(__arm__) || defined(__aarch64__) ||  (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 4)) && (defined(__i386__) || defined(__x86_64__)))
 #define BDBG_P_LOG_SUPPORTED    1
 #endif
 #endif
@@ -149,6 +166,7 @@ BDBG_Fifo_P_NearPow2(unsigned a, unsigned *result)
 BERR_Code 
 BDBG_Fifo_Create(BDBG_Fifo_Handle *pFifo, const BDBG_Fifo_CreateSettings *createSettings)
 {
+#if BDBG_P_LOG_SUPPORTED
     BDBG_Fifo_Handle fifo;
     BERR_Code rc;
     unsigned i;
@@ -170,7 +188,6 @@ BDBG_Fifo_Create(BDBG_Fifo_Handle *pFifo, const BDBG_Fifo_CreateSettings *create
     element_size = createSettings->elementSize + 2*sizeof(BDBG_P_Atomic) - 1;
     element_size = element_size - (element_size % sizeof(BDBG_P_Atomic));
 
-#if BDBG_P_LOG_SUPPORTED  
     if(createSettings->buffer) {
         unsigned nelementsLimit;
         unsigned bufferLeft = createSettings->bufferSize;
@@ -195,11 +212,6 @@ BDBG_Fifo_Create(BDBG_Fifo_Handle *pFifo, const BDBG_Fifo_CreateSettings *create
         BDBG_OBJECT_INIT(fifo, BDBG_Fifo);
         fifo->buffer_allocated = true;
     }
-#else
-    /* short circuit execution */
-    fifo = NULL; 
-    rc = BERR_TRACE(BERR_NOT_SUPPORTED);goto err_alloc;
-#endif
     BDBG_ASSERT(nelements>0);
     fifo->enabled = true;
     fifo->nelements = nelements;
@@ -217,10 +229,14 @@ BDBG_Fifo_Create(BDBG_Fifo_Handle *pFifo, const BDBG_Fifo_CreateSettings *create
 
     /* BKNI_Free(fifo); */
 err_alloc:
-#if BDBG_P_LOG_SUPPORTED  
 err_nelements:
-#endif
     return rc;
+#else /* BDBG_P_LOG_SUPPORTED */
+    /* short circuit execution */
+    BSTD_UNUSED(createSettings);
+    *pFifo = NULL;
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+#endif
 }
 
 void 

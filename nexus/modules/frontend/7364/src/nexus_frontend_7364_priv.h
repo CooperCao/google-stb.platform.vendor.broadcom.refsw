@@ -1,53 +1,40 @@
 /***************************************************************************
-*     (c)2004-2014 Broadcom Corporation
-*
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
-*  and may only be used, duplicated, modified or distributed pursuant to the terms and
-*  conditions of a separate, written license agreement executed between you and Broadcom
-*  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-*  no license (express or implied), right to use, or waiver of any kind with respect to the
-*  Software, and Broadcom expressly reserves all rights in and to the Software and all
-*  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-*  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-*  Except as expressly set forth in the Authorized License,
-*
-*  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-*  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-*  and to use this information only in connection with your use of Broadcom integrated circuit products.
-*
-*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-*  USE OR PERFORMANCE OF THE SOFTWARE.
-*
-*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-*  ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* API Description:
-*   API name: Frontend 7364
-*    Internal API for a BCM7364 Tuner/Demodulator Device.
-*
-* Revision History:
-*
-* $brcm_Log: $
-*
-***************************************************************************/
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ ***************************************************************************/
 #ifndef _NEXUS_FRONTEND_7364_PRIV__H_
 /* General includes */
 #include "nexus_frontend_module.h"
@@ -65,10 +52,16 @@
 #include "bhab_7364_fw.h"
 /* End general includes */
 
+
+#if BCHP_VER >= BCHP_VER_C0
+#define NEXUS_FRONTEND_7364_DISABLE_TERRESTRIAL 1
+#endif
+
 /* Cable and Terrestrial includes */
 #include "nexus_platform_features.h"
 #include "nexus_i2c.h"
 #include "priv/nexus_i2c_priv.h"
+#if !NEXUS_FRONTEND_7364_DISABLE_TERRESTRIAL
 #include "btnr.h"
 #include "btnr_7364ib.h"
 #include "bods_7364.h"
@@ -81,6 +74,7 @@
 #include "bhab_ctfe_img.h"
 #include "priv/nexus_core_img.h"
 #include "priv/nexus_core_img_id.h"
+#endif
 /* End Cable and terrestrial includes */
 
 /* Satellite includes */
@@ -130,8 +124,10 @@ typedef struct NEXUS_7364Device
     unsigned    numfrontends;
     uint16_t revId;
     bool adsOpenDrain;
+#if !NEXUS_FRONTEND_7364_DISABLE_TERRESTRIAL
     BODS_Handle ods;
     BTFE_Handle tfe;
+#endif
     BKNI_EventHandle isrEvent;
     uint8_t lastChannel;
     NEXUS_EventCallbackHandle isrEventCallback;
@@ -142,6 +138,7 @@ typedef struct NEXUS_7364Device
     bool enableRfLoopThrough;
     bool acquireInProgress;
     signed count;
+#if !NEXUS_FRONTEND_7364_DISABLE_TERRESTRIAL
     NEXUS_FrontendDvbt2Status t2PartialStatus;
     BODS_SelectiveStatus odsStatus;
     BTFE_SelectiveStatus vsbStatus;
@@ -151,6 +148,7 @@ typedef struct NEXUS_7364Device
     NEXUS_FrontendVsbSettings  last_tfe[NEXUS_MAX_7364_TFE_CHANNELS];
     BODS_ChannelHandle         ods_chn[NEXUS_7364_MAX_OFDM_CHN];
     NEXUS_FrontendOfdmSettings last_ofdm[NEXUS_MAX_7364_TUNERS];
+#endif
     NEXUS_IsrCallbackHandle    lockAppCallback[NEXUS_MAX_7364_T_FRONTENDS];
     NEXUS_IsrCallbackHandle    asyncStatusAppCallback[NEXUS_MAX_7364_T_FRONTENDS];
     NEXUS_IsrCallbackHandle    updateGainAppCallback[NEXUS_MAX_7364_TUNERS];

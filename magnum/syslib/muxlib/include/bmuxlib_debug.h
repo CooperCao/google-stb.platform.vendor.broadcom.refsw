@@ -46,7 +46,7 @@
 extern "C" {
 #endif
 
-#if (BMUXLIB_INPUT_P_DUMP_DESC || BMUXLIB_FNRT_P_DUMP_DESC || BMUXLIB_FNRT_P_TEST_MODE)
+#if (BMUXLIB_INPUT_P_DUMP_DESC)
 
 typedef struct BMuxlib_Debug_P_CSV_Context* BMuxlib_Debug_CSV_Handle;
 

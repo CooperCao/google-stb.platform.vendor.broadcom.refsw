@@ -1,43 +1,40 @@
 /******************************************************************************
  * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
 #include "nexus_types.h"
 #include "nexus_base.h"
 #include "priv/nexus_core.h"
@@ -181,6 +178,8 @@ static NEXUS_Error NEXUS_Platform_P_MemcBspInterrupt_Init(struct NEXUS_Platform_
 #endif
 #if defined(BCHP_MEMC_L2_1_0_REG_START)
          case 1:
+             /* coverity[dead_error_line: FALSE */
+             /* coverity[-unreachable] for some platform this line is unreachable */
 #if defined(BCHP_INT_ID_MEMC_L2_0_0_BSP_WRCH_INTR)
             wrchIrq = BCHP_INT_ID_MEMC_L2_0_0_BSP_WRCH_INTR;
             archIrq = BCHP_INT_ID_MEMC_L2_0_0_BSP_ARCH_INTR;
@@ -194,9 +193,13 @@ static NEXUS_Error NEXUS_Platform_P_MemcBspInterrupt_Init(struct NEXUS_Platform_
             break;
 #endif
          default:
+             /* coverity[dead_error_line: FALSE */
+             /* coverity[-unreachable] for some platform this line is unreachable */
             break;
          }
          if(wrchIrq==0 || archIrq==0) {
+             /* coverity[dead_error_line: FALSE */
+             /* coverity[-unreachable] for some platform this line is unreachable */
              break;
          }
          rc = NEXUS_Platform_P_MemcBspInterrupt_InitOne(memc, &memc->memc[i], wrchIrq, archIrq, i);
@@ -281,8 +284,8 @@ static NEXUS_Error NEXUS_Platform_P_MapRegisters(NEXUS_Core_PreInitState *preIni
         return BERR_TRACE(NEXUS_UNKNOWN);
     }
 
-#define REGISTER_BASE   BCHP_PHYSICAL_OFFSET
-#define REGISTER_SIZE   BCHP_REGISTER_END
+#define REGISTER_BASE   (BCHP_PHYSICAL_OFFSET + (BCHP_REGISTER_START & ~0xFFF))
+#define REGISTER_SIZE   (BCHP_REGISTER_END - (BCHP_REGISTER_START & ~0xFFF))
 
     /* mmap registers in uncached address space */
     preInitState->privateState.pRegAddress = NEXUS_Platform_P_MapRegisterMemory(REGISTER_BASE, REGISTER_SIZE);
@@ -313,12 +316,87 @@ static void NEXUS_Platform_P_UnmapRegisters(NEXUS_Core_PreInitState *preInitStat
     return;
 }
 
+static NEXUS_Error NEXUS_Platform_P_GetPictureBufferForAdjacent(const NEXUS_PlatformSettings *pSettings, unsigned adjacentHeap, unsigned *picbufHeap)
+{
+    unsigned i;
+    for (i=0;i<NEXUS_MAX_HEAPS;i++) {
+        if (pSettings->heap[i].heapType & NEXUS_HEAP_TYPE_PICTURE_BUFFERS &&
+            pSettings->heap[i].memoryType & NEXUS_MEMORY_TYPE_SECURE &&
+            pSettings->heap[i].memcIndex == pSettings->heap[adjacentHeap].memcIndex) {
+            *picbufHeap = i;
+            return NEXUS_SUCCESS;
+        }
+    }
+    *picbufHeap = 0;
+    return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+}
+
+/* bmem algo doesn't see NEXUS_HEAP_TYPE_SECURE_GRAPHICS or NEXUS_HEAP_TYPE_PICTURE_BUFFER_EXT heaps */
+static NEXUS_PlatformSettings *NEXUS_Platform_P_AllocSettingsForAdjacentHeaps(const NEXUS_PlatformSettings *pSettings)
+{
+    unsigned i;
+    NEXUS_PlatformSettings *pBmemSettings = NULL;
+    for (i=0;i<NEXUS_MAX_HEAPS;i++) {
+        if (pSettings->heap[i].heapType & (NEXUS_HEAP_TYPE_SECURE_GRAPHICS|NEXUS_HEAP_TYPE_PICTURE_BUFFER_EXT) && pSettings->heap[i].size) {
+            int rc;
+            unsigned picbufHeap;
+            if (!pBmemSettings) {
+                pBmemSettings = BKNI_Malloc(sizeof(*pBmemSettings));
+                if (!pBmemSettings) {BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);return NULL;}
+                *pBmemSettings = *pSettings;
+            }
+            rc = NEXUS_Platform_P_GetPictureBufferForAdjacent(pSettings, i, &picbufHeap);
+            if (rc) {BERR_TRACE(rc); return NULL;}
+            if (pSettings->heap[i].heapType & NEXUS_HEAP_TYPE_SECURE_GRAPHICS) {
+                /* additional memory */
+                pBmemSettings->heap[picbufHeap].size += pBmemSettings->heap[i].size;
+            }
+            pBmemSettings->heap[i].size = 0;
+        }
+    }
+    return pBmemSettings;
+}
+static void NEXUS_Platform_P_FreeSettingsForAdjacentHeaps(NEXUS_PlatformSettings *pSettings)
+{
+    BKNI_Free(pSettings);
+}
+static NEXUS_Error NEXUS_Platform_P_BuildAdjacentHeaps(const NEXUS_PlatformSettings *pSettings, NEXUS_Core_Settings *pCoreSettings)
+{
+    unsigned i;
+    for (i=0;i<NEXUS_MAX_HEAPS;i++) {
+        if (pSettings->heap[i].heapType & (NEXUS_HEAP_TYPE_SECURE_GRAPHICS|NEXUS_HEAP_TYPE_PICTURE_BUFFER_EXT) && pSettings->heap[i].size) {
+            unsigned picbufHeap;
+            int rc;
+            rc = NEXUS_Platform_P_GetPictureBufferForAdjacent(pSettings, i, &picbufHeap);
+            if (rc) return BERR_TRACE(rc);
+            pCoreSettings->heapRegion[i] = pCoreSettings->heapRegion[picbufHeap];
+            pCoreSettings->heapRegion[i].length = pSettings->heap[i].size;
+            if (pCoreSettings->heapRegion[picbufHeap].length < (unsigned)pSettings->heap[i].size) {
+                return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+            }
+            pCoreSettings->heapRegion[picbufHeap].length -= pSettings->heap[i].size;
+            if (pSettings->heap[i].heapType & NEXUS_HEAP_TYPE_PICTURE_BUFFER_EXT) {
+                pCoreSettings->heapRegion[picbufHeap].offset += pSettings->heap[i].size;
+            }
+            else {
+                pCoreSettings->heapRegion[i].offset += pSettings->heap[picbufHeap].size;
+            }
+            pCoreSettings->heapRegion[i].heapType = pSettings->heap[i].heapType;
+            pCoreSettings->heapRegion[i].memoryType = pSettings->heap[i].memoryType;
+        }
+    }
+    return NEXUS_SUCCESS;
+}
+
 NEXUS_Error NEXUS_Platform_P_InitCore( const NEXUS_Core_PreInitState *preInitState, NEXUS_PlatformSettings *pSettings)
 {
     NEXUS_Error errCode = 0;
     unsigned int i = 0;
     NEXUS_PlatformMemory *pMemory = &g_platformMemory;
     struct nexus_map_settings map_settings;
+    BINT_Settings intSettings;
+    const BINT_Settings *intr_cfg;
+    NEXUS_PlatformSettings *pBmemSettings;
 
 /* TODO: for nfe image, g_mipsKernelMode could be passed in as runtime param */
 #if NEXUS_MODE_driver || NEXUS_BASE_OS_linuxkernel
@@ -333,22 +411,26 @@ NEXUS_Error NEXUS_Platform_P_InitCore( const NEXUS_Core_PreInitState *preInitSta
         pMemory->max_dcache_line_size = 4096;
         BDBG_WRN(("max_dcache_line_size is 0. increasing to %d for cache coherency.", pMemory->max_dcache_line_size));
     }
-    errCode = NEXUS_Platform_P_SetCoreModuleSettings(pSettings, pMemory, &g_coreSettings);
+
+    pBmemSettings = NEXUS_Platform_P_AllocSettingsForAdjacentHeaps(pSettings);
+
+    errCode = NEXUS_Platform_P_SetCoreModuleSettings(pBmemSettings?pBmemSettings:pSettings, pMemory, &g_coreSettings);
     if ( errCode ) { errCode=BERR_TRACE(errCode); goto err_memc; }
+
+    if (pBmemSettings) {
+        NEXUS_Platform_P_FreeSettingsForAdjacentHeaps(pBmemSettings);
+        errCode = NEXUS_Platform_P_BuildAdjacentHeaps(pSettings, &g_coreSettings);
+        if (errCode) return BERR_TRACE(errCode);
+    }
 
     nexus_p_get_default_map_settings(&map_settings);
     /* the fake address range is (2GB - 4K). subtracting 4K allows the code to avoid 0x0000_0000.
     for kernel mode, we can't have a valid fake address of 0x0000_0000. too much code depends on ptr == NULL meaning "no pointer".
     for user mode, we can't have base+size == 0x0000_0000. too much code will fail on the wrap around.
     only 1 byte is needed to avoid this situation, but using 4K avoid possible alignment bugs. */
-    if (g_mipsKernelMode) {
-        map_settings.offset = 0x00000000 + 4096;
-        map_settings.size = NEXUS_KERNEL_MODE_VIRTUAL_ADDRESS_BASE - 4096;
-    }
-    else {
-        map_settings.offset = NEXUS_KERNEL_MODE_VIRTUAL_ADDRESS_BASE;
-        map_settings.size = (0- NEXUS_KERNEL_MODE_VIRTUAL_ADDRESS_BASE) - 4096;
-    }
+    map_settings.offset = (unsigned long)g_NEXUS_P_CpuNotAccessibleRange.start + 4096;
+    map_settings.size = g_NEXUS_P_CpuNotAccessibleRange.length - 2 * 4096;
+
 #if B_REFSW_SYSTEM_MODE_CLIENT
     map_settings.offset = 0x00000000 + 4096;
     map_settings.size = 4096;
@@ -404,7 +486,13 @@ NEXUS_Error NEXUS_Platform_P_InitCore( const NEXUS_Core_PreInitState *preInitSta
     }
 #endif
     /* Initialize core module */
-    g_NEXUS_platformHandles.core = NEXUS_CoreModule_Init(&g_coreSettings, preInitState);
+    intr_cfg = BINT_GETSETTINGS();
+    BDBG_ASSERT(intr_cfg);
+    intSettings = *intr_cfg;
+    errCode = NEXUS_Platform_P_UpdateIntSettings(&intSettings);
+    if(errCode!=NEXUS_SUCCESS) {errCode=BERR_TRACE(errCode);goto err_int;}
+
+    g_NEXUS_platformHandles.core = NEXUS_CoreModule_Init(&g_coreSettings, preInitState, &intSettings);
     if ( !g_NEXUS_platformHandles.core ) {
         errCode=BERR_TRACE(NEXUS_UNKNOWN);
         goto err_core;
@@ -432,6 +520,8 @@ NEXUS_Error NEXUS_Platform_P_InitCore( const NEXUS_Core_PreInitState *preInitSta
 /* Error cases */
 err_memc_intr:
 err_core:
+
+err_int:
 err_map:
     for (i=0;i<NEXUS_MAX_HEAPS;i++) {
         NEXUS_Platform_P_UnmapRegion(&g_coreSettings.heapRegion[i]);
@@ -485,8 +575,8 @@ static NEXUS_Error NEXUS_Platform_P_MapRegion(unsigned index, NEXUS_Core_MemoryR
         bool cachedMapOnly;
 
 #if BCHP_CHIP==7125 ||\
-    BCHP_CHIP==7325 || BCHP_CHIP==7336 || BCHP_CHIP==7340 || BCHP_CHIP==7342 ||\
-    BCHP_CHIP==7400 || BCHP_CHIP==7405 || BCHP_CHIP==7408 || BCHP_CHIP==7420 || BCHP_CHIP==7468
+    BCHP_CHIP==7340 || BCHP_CHIP==7342 ||\
+    BCHP_CHIP==7405 || BCHP_CHIP==7408 || BCHP_CHIP==7420 || BCHP_CHIP==7468
         cachedMapOnly = false;
         if(NEXUS_GetEnv("without_uncached_mmap")) {
             cachedMapOnly = true;
@@ -594,7 +684,7 @@ NEXUS_Error NEXUS_Platform_P_CalcSubMemc(const NEXUS_Core_PreInitState *preInitS
     }
 #endif
 
-#if BCHP_CHIP == 7325 || BCHP_CHIP == 7335 || BCHP_CHIP == 7336 || BCHP_CHIP == 7400 || BCHP_CHIP == 7403 || BCHP_CHIP == 7405
+#if BCHP_CHIP == 7403 || BCHP_CHIP == 7405
     /* BCHP_GetMemoryInfo only populates offsets for 65nm, so get sizes from pMemory */
     for (memcIndex=0;memcIndex<NEXUS_NUM_MEMC;memcIndex++) {
         info.memc[memcIndex].size = pMemory->memc[memcIndex].length;
@@ -716,7 +806,7 @@ NEXUS_HeapHandle NEXUS_Platform_CreateHeap( const NEXUS_PlatformCreateHeapSettin
                 rc = BERR_TRACE(rc);
                 return NULL;
             }
-			status.addr = NEXUS_OffsetToCachedAddr(status.offset);
+            status.addr = NEXUS_OffsetToCachedAddr(status.offset);
             if (pSettings->offset >= status.offset && pSettings->offset + pSettings->size <= status.offset + status.size) {
                 BDBG_ERR(("NEXUS_Platform_CreateHeap: runtime heap's offset cannot overlap existing heap"));
                 return NULL;

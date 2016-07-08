@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2012 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2012 Broadcom.
 All rights reserved.
 
 Project  :  3D Tools
@@ -294,6 +294,7 @@ bool khrn_rso_to_tf_convert(MEM_HANDLE_T heglimage, MEM_HANDLE_T srcImg, MEM_HAN
    uint32_t                numBytes;
    bool                    res;
    EGL_IMAGE_T             *eglimage;
+   bool                    secure;
 
    if ((heglimage == MEM_INVALID_HANDLE) || (dstImg == MEM_HANDLE_INVALID))
       return false;
@@ -322,6 +323,14 @@ bool khrn_rso_to_tf_convert(MEM_HANDLE_T heglimage, MEM_HANDLE_T srcImg, MEM_HAN
    }
 
    dst = (KHRN_IMAGE_T *)mem_lock(dstImg, NULL);
+
+   secure = src->secure;
+   /* if the src is secure, the destination must also be */
+   if (secure)
+      vcos_demand(dst->secure == true);
+   else
+      /* its allowable to raise security */
+      secure = dst->secure;
 
    xTiles = (src->width  + 63) / 64;
    yTiles = (src->height + 63) / 64;
@@ -427,7 +436,7 @@ bool khrn_rso_to_tf_convert(MEM_HANDLE_T heglimage, MEM_HANDLE_T srcImg, MEM_HAN
          mem_unlock(eglimage->mh_image);
       mem_unlock(dstImg);
 
-      khrn_issue_tfconvert_job(fmem, heglimage, listPtr, numBytes);
+      khrn_issue_tfconvert_job(fmem, heglimage, listPtr, numBytes, secure);
 
       mem_unlock(heglimage);
 

@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2012 Broadcom Corporation
+ *     Broadcom Proprietary and Confidential. (c)2012 Broadcom.  All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -110,9 +110,13 @@ BERR_Code BV3D_P_UnrollJob(
       if (psJob->uiBinMemory != 0)
       {
          BV3D_BinMemHandle   hMem = (BV3D_BinMemHandle)psJob->uiBinMemory;
+         /* Attached prior to the job running, and pulled via Nexus API and passed to the driver.
+            This may be inconstent to hV3d->bSecure, but it will have transitioned to the correct state
+            by the time the job runs. */
+         bool bBinMemorySecure = psJob->bBinMemorySecure;
 
          /* The job owns this memory chunk */
-         BV3D_P_BinMemAttachToJob(hV3d->hBinMemManager, hMem, psJob);
+         BV3D_P_BinMemAttachToJob(bBinMemorySecure ? hV3d->hBinMemManagerSecure : hV3d->hBinMemManager, hMem, psJob);
       }
 
       while ((psInstruction = BV3D_P_JobGetCurrentInstruction(psJob)) &&
@@ -163,7 +167,7 @@ BERR_Code BV3D_SendJob(
    /* TODO: probably should clear out fields that we want zero -- shouldn't rely on caller */
    *pOurJob = *psJob;
 
-   BDBG_MSG(("SendJob %p (i0=%d), client %d", pOurJob, pOurJob->sProgram[0].eOperation, pOurJob->uiClientId));
+   BDBG_MSG(("SendJob %p (i0=%d), client %d", (void *)pOurJob, pOurJob->sProgram[0].eOperation, pOurJob->uiClientId));
 
    if (pOurJob->bCollectTimeline)
       BKNI_Memset(&pOurJob->sTimelineData, 0, sizeof(BV3D_TimelineData));

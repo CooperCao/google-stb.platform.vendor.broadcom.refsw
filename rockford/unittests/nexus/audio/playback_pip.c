@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2014 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,8 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  *****************************************************************************/
 #include "nexus_platform.h"
 #include "nexus_video_decoder.h"
@@ -113,8 +105,6 @@ struct context {
     NEXUS_AudioDecoderStartSettings audioProgram;
     NEXUS_AudioDecoderPrimerHandle primer;
 };
-
-#if (NEXUS_NUM_VIDEO_WINDOWS > 1)
 
 static int start_decode(struct context *context, bool usePrimer)
 {
@@ -216,13 +206,12 @@ static int stop_decode(struct context *context)
     
     return 0;
 }
-#endif
 
 int main(int argc, char **argv)
 {
-#if (NEXUS_NUM_VIDEO_WINDOWS > 1) 
     NEXUS_PlatformSettings platformSettings;
     NEXUS_PlatformConfiguration platformConfig;
+    NEXUS_DisplayCapabilities displayCap;
     NEXUS_DisplayHandle display;
     NEXUS_VideoWindowHandle window[2];
     struct context context[2];
@@ -256,8 +245,15 @@ int main(int argc, char **argv)
 
     NEXUS_Platform_GetDefaultSettings(&platformSettings);
     platformSettings.openFrontend = false;
-    NEXUS_Platform_Init(&platformSettings);
+    rc = NEXUS_Platform_Init(&platformSettings);
+    if (rc) return rc;
     NEXUS_Platform_GetConfiguration(&platformConfig);
+
+    NEXUS_GetDisplayCapabilities(&displayCap);
+    if (displayCap.display[0].numVideoWindows < 2) {
+        BDBG_WRN(("No PIP support, nothing tested."));
+        goto done;
+    }
 
     display = NEXUS_Display_Open(0, NULL);
 
@@ -387,12 +383,7 @@ int main(int argc, char **argv)
     NEXUS_VideoWindow_Close(window[0]);
     NEXUS_Display_Close(display);
 
+done:
     NEXUS_Platform_Uninit();
-#else
-	BSTD_UNUSED(argc);
-	BSTD_UNUSED(argv);
-	BDBG_WRN(("No PIP support, nothing tested."));
-#endif
     return 0;
 }
-

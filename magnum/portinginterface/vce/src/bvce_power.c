@@ -36,6 +36,44 @@
 
 BDBG_MODULE(BVCE_POWER);
 
+#ifdef BCHP_PWR_SUPPORT
+static bool
+BVCE_Power_S_IsArcAsleep(
+   BVCE_Handle hVce,
+   unsigned uiArcInstance
+   )
+{
+   if ( ( true == hVce->bBooted )
+        && ( false == hVce->bWatchdogOccurred ) )
+   {
+      uint32_t uiValue;
+      /* Check to see if ARC is asleep */
+      if ( 0 != hVce->stPlatformConfig.stPower.stCore[uiArcInstance].stSleep.uiAddress )
+      {
+         uiValue = BREG_Read32( hVce->handles.hReg, hVce->stPlatformConfig.stPower.stCore[uiArcInstance].stSleep.uiAddress );
+         /* ARC is asleep if the sleep bit is 1 */
+         if ( ( hVce->stPlatformConfig.stPower.stCore[uiArcInstance].stSleep.uiValue & hVce->stPlatformConfig.stPower.stCore[uiArcInstance].stSleep.uiMask ) != ( uiValue & hVce->stPlatformConfig.stPower.stCore[uiArcInstance].stSleep.uiMask ) )
+         {
+            return false;
+         }
+      }
+
+      /* Check to see if the Watchdog is enabled */
+      if ( 0 != hVce->stPlatformConfig.stPower.stCore[uiArcInstance].stWatchdog.uiAddress )
+      {
+         uiValue = BREG_Read32( hVce->handles.hReg, hVce->stPlatformConfig.stPower.stCore[uiArcInstance].stWatchdog.uiAddress );
+         /* Watchdog is enabled if the watchdog enable bit is 1 */
+         if ( ( hVce->stPlatformConfig.stPower.stCore[uiArcInstance].stWatchdog.uiValue & hVce->stPlatformConfig.stPower.stCore[uiArcInstance].stWatchdog.uiMask ) == ( uiValue & hVce->stPlatformConfig.stPower.stCore[uiArcInstance].stWatchdog.uiMask ) )
+         {
+            return false;
+         }
+      }
+   }
+   return true;
+}
+
+#endif
+
 void
 BVCE_Power_P_AcquireResource(
       BVCE_Handle hVce,
@@ -100,6 +138,21 @@ BVCE_Power_P_ReleaseResource(
    {
       if ( 0 == hVce->stPlatformConfig.stPower.astResource[eType].uiRefCount )
       {
+         /* Halt the ARC before shutting down clock */
+         if ( BVCE_Power_Type_eClock == eType )
+         {
+            unsigned i;
+
+            /* Wait for ARCs to be asleep */
+            for ( i = 0; i < BVCE_PLATFORM_P_NUM_ARC_CORES; i++ )
+            {
+               while ( false == BVCE_Power_S_IsArcAsleep( hVce, i ) )
+               {
+                  BKNI_Sleep(10);
+               }
+            }
+         }
+
          BCHP_PWR_ReleaseResource(
                hVce->handles.hChp,
                hVce->stPlatformConfig.stPower.astResource[eType].id

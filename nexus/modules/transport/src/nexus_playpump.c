@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2014 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -10,7 +10,7 @@
  *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-
+ *
  *  Except as expressly set forth in the Authorized License,
  *
  *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
@@ -35,15 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #include "nexus_transport_module.h"
@@ -156,17 +148,28 @@ NEXUS_Playpump_Open(unsigned index, const NEXUS_PlaypumpOpenSettings *pSettings)
     if (index == NEXUS_ANY_ID) {
         unsigned i;
         for (i=0;i<NEXUS_NUM_PLAYPUMPS;i++) {
-            if(pTransport->playpump[i].playpump==NULL && BXPT_Playback_IsAvailable(pTransport->xpt, i) && PLAYBACK_HAS_MEMORY(i)) {
+            if (pTransport->playpump[i].playpump==NULL && BXPT_Playback_IsAvailable(pTransport->xpt, i) && PLAYBACK_HAS_MEMORY(i)) {
+#if NEXUS_HAS_XPT_DMA && (!BXPT_DMA_HAS_MEMDMA_MCPB)
+                if (pTransport->dmaChannel[i].dma) { continue; }
+#endif
                 index = i;
                 break;
             }
         }
         if (i == NEXUS_NUM_PLAYPUMPS) {
             rc = BERR_TRACE(NEXUS_NOT_AVAILABLE);
-            BDBG_ERR(("no playpump not available"));
+            BDBG_ERR(("no playpump available"));
             return NULL;
         }
     }
+
+#if NEXUS_HAS_XPT_DMA && (!BXPT_DMA_HAS_MEMDMA_MCPB)
+    if (pTransport->dmaChannel[index].dma) {
+        BDBG_ERR(("playpump[%d]'s MCPB channel is in use by DMA", index));
+        rc = BERR_TRACE(NEXUS_NOT_AVAILABLE);
+        return NULL;
+    }
+#endif
 
     if (index >= NEXUS_NUM_PLAYPUMPS) {
         rc = BERR_TRACE(BERR_INVALID_PARAMETER);
@@ -234,7 +237,7 @@ NEXUS_Playpump_Open(unsigned index, const NEXUS_PlaypumpOpenSettings *pSettings)
 
     heap = NEXUS_P_DefaultHeap(pSettings->heap, NEXUS_DefaultHeapType_eFull);
     if (!heap) {
-        heap = g_pCoreHandles->heap[pTransport->settings.mainHeapIndex].nexus;
+        heap = g_pCoreHandles->heap[pTransport->moduleSettings.mainHeapIndex].nexus;
     }
     /* some playpump operations require driver CPU accessible to the playback fifo */
     if ( !pSettings->dataNotCpuAccessible && !NEXUS_P_CpuAccessibleHeap(heap)) {
@@ -310,7 +313,7 @@ NEXUS_Playpump_Open(unsigned index, const NEXUS_PlaypumpOpenSettings *pSettings)
     feed_cfg.xptPlayHandle = p->xpt_play;
     feed_cfg.bufferBlock = feed_bufBlock;
     feed_cfg.bufferOffset = 0;
-    feed_cfg.mmaHeap = NEXUS_Heap_GetMmaHandle(g_pCoreHandles->heap[pTransport->settings.mainHeapIndex].nexus);
+    feed_cfg.mmaHeap = NEXUS_Heap_GetMmaHandle(g_pCoreHandles->heap[pTransport->moduleSettings.mainHeapIndex].nexus);
     feed_cfg.intHandle = g_pCoreHandles->bint;
     feed_cfg.numDesc = 32;
     if(p->openSettings.streamMuxCompatible) {
@@ -576,7 +579,7 @@ NEXUS_Playpump_SetSettings(NEXUS_PlaypumpHandle p, const NEXUS_PlaypumpSettings 
 #else
         BDBG_WRN(("Playpump M2M crypto has been deprecated. Use NEXUS_KeySlot_AddPidChannel instead."));
 #if !NEXUS_HAS_XPT_DMA
-        if (!pTransport->settings.dma) {
+        if (!pTransport->moduleSettings.dma) {
             BDBG_ERR(("Transport module does not have dma module handle."));
             return BERR_TRACE(BERR_NOT_SUPPORTED);
         }
@@ -644,6 +647,21 @@ NEXUS_Playpump_SetSettings(NEXUS_PlaypumpHandle p, const NEXUS_PlaypumpSettings 
         }
     }
 #endif
+    {
+        bool dataNotCpuAccessible = pSettings->dataNotCpuAccessible;
+        if(p->openSettings.dataNotCpuAccessible && !dataNotCpuAccessible) {
+            BDBG_WRN(("%p:overwrite application supplied NEXUS_PlaypumpSettings.dataNotCpuAccessible", (void *)p));
+            dataNotCpuAccessible = true;
+        }
+#if B_HAS_MEDIA
+        if(dataNotCpuAccessible && p->use_media) {
+            BDBG_ERR(("SW demux requires CPU accessible memory"));
+            return BERR_TRACE(BERR_NOT_SUPPORTED);
+        }
+#endif
+        p->settings = *pSettings;
+        p->settings.dataNotCpuAccessible = dataNotCpuAccessible;
+    }
 
 #if NEXUS_NUM_DMA_CHANNELS
     if (pSettings->securityDma != p->settings.securityDma) {
@@ -656,11 +674,6 @@ NEXUS_Playpump_SetSettings(NEXUS_PlaypumpHandle p, const NEXUS_PlaypumpSettings 
     }
 #endif
 
-    p->settings = *pSettings;
-    if(p->openSettings.dataNotCpuAccessible && !p->settings.dataNotCpuAccessible) {
-        BDBG_WRN(("%p:overwrite application supplied NEXUS_PlaypumpSettings.dataNotCpuAccessible", (void *)p));
-        p->settings.dataNotCpuAccessible = true;
-    }
     NEXUS_TaskCallback_Set(p->dataCallback, &p->settings.dataCallback);
     NEXUS_TaskCallback_Set(p->errorCallback, &p->settings.errorCallback);
     NEXUS_Playpump_P_SetInterrupts(p, &p->settings);

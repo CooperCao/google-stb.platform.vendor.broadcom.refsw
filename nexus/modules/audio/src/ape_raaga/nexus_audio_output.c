@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2014 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,8 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   Private routines internal to the audio module
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 #include "nexus_audio_module.h"
@@ -281,6 +273,15 @@ NEXUS_Error NEXUS_AudioOutput_P_SetHDMISettings(
             else
             {
                 maiOutputSettings.loudnessType = BAPE_OutputLoudnessType_Active;
+            }
+
+            if (hdmiSettings.loudnessDeviceMode == NEXUS_AudioLoudnessDeviceMode_eActive)
+            {
+                maiOutputSettings.loudnessType = BAPE_OutputLoudnessType_Active;
+            }
+            else if (hdmiSettings.loudnessDeviceMode == NEXUS_AudioLoudnessDeviceMode_ePassive)
+            {
+                maiOutputSettings.loudnessType = BAPE_OutputLoudnessType_Passive;
             }
             maiOutputSettings.channelStatus.professional = hdmiSettings.audioChannelStatusInfo.professionalMode;
             maiOutputSettings.channelStatus.copyright = hdmiSettings.audioChannelStatusInfo.swCopyRight;

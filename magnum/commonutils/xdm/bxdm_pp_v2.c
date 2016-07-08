@@ -1,21 +1,41 @@
 /***************************************************************************
- *     Copyright (c) 2003-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * [File Description:]
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ***************************************************************************/
 
@@ -109,19 +129,26 @@ static const BXDM_PPFP_P_DataType sDeltaStcLUT[BXDM_PictureProvider_P_ClockRate_
    /* BXDM_PictureProvider_P_ClockRate_eMPEG2 (45Khz) */
    {
       {    0,     0},   /* BXDM_PictureProvider_MonitorRefreshRate_eUnknown - NOT POSSIBLE */
+      { 6006,     0},   /* BXDM_PictureProvider_MonitorRefreshRate_e7_493Hz */
+      { 6000,     0},   /* BXDM_PictureProvider_MonitorRefreshRate_e7_5Hz */
+      { 4504, 32768},   /* BXDM_PictureProvider_MonitorRefreshRate_e9_99Hz */
+      { 4500,     0},   /* BXDM_PictureProvider_MonitorRefreshRate_e10Hz */
+      { 3753, 49152},   /* BXDM_PictureProvider_MonitorRefreshRate_e11_988Hz */
+      { 3750,     0},   /* BXDM_PictureProvider_MonitorRefreshRate_e12Hz */
       { 3600,     0},   /* BXDM_PictureProvider_MonitorRefreshRate_e12_5Hz */
       { 3003,     0},   /* BXDM_PictureProvider_MonitorRefreshRate_e14_985Hz */
       { 3000,     0},   /* BXDM_PictureProvider_MonitorRefreshRate_e15Hz */
+      { 2252, 16384},   /* BXDM_PictureProvider_MonitorRefreshRate_e19_98Hz */
       { 2250,     0},   /* BXDM_PictureProvider_MonitorRefreshRate_e20Hz */
       { 1876, 57344},   /* BXDM_PictureProvider_MonitorRefreshRate_e23_97 */
       { 1875,     0},   /* BXDM_PictureProvider_MonitorRefreshRate_e24 */
       { 1800,     0},   /* BXDM_PictureProvider_MonitorRefreshRate_e25 */
       { 1501, 32768},   /* BXDM_PictureProvider_MonitorRefreshRate_e29_97 */
       { 1500,     0},   /* BXDM_PictureProvider_MonitorRefreshRate_e30 */
+      {  937, 32768},   /* BXDM_PictureProvider_MonitorRefreshRate_e48 */
       {  900,     0},   /* BXDM_PictureProvider_MonitorRefreshRate_e50 */
       {  750, 49152},   /* BXDM_PictureProvider_MonitorRefreshRate_e59_94 */
       {  750,     0},   /* BXDM_PictureProvider_MonitorRefreshRate_e60 */
-      {  937, 32768},   /* BXDM_PictureProvider_MonitorRefreshRate_e48 */
       {  450,     0},   /* BXDM_PictureProvider_MonitorRefreshRate_e100 */
       {  375, 24576},   /* BXDM_PictureProvider_MonitorRefreshRate_e119_88 */
       {  375,     0}   /* BXDM_PictureProvider_MonitorRefreshRate_e120 */
@@ -130,19 +157,26 @@ static const BXDM_PPFP_P_DataType sDeltaStcLUT[BXDM_PictureProvider_P_ClockRate_
    /* BXDM_PictureProvider_P_ClockRate_eDirecTV (27 Mhz) */
    {
       {       0,     0},   /* BXDM_PictureProvider_MonitorRefreshRate_eUnknown - NOT POSSIBLE */
+      { 3603600,     0},   /* BXDM_PictureProvider_MonitorRefreshRate_e7_493Hz */
+      { 3600000,     0},   /* BXDM_PictureProvider_MonitorRefreshRate_e7_5Hz */
+      { 2702700,     0},   /* BXDM_PictureProvider_MonitorRefreshRate_e9_99Hz */
+      { 2700000,     0},   /* BXDM_PictureProvider_MonitorRefreshRate_e10Hz */
+      { 2252250,     0},   /* BXDM_PictureProvider_MonitorRefreshRate_e11_988Hz */
+      { 2250000,     0},   /* BXDM_PictureProvider_MonitorRefreshRate_e12Hz */
       { 2160000,     0},   /* BXDM_PictureProvider_MonitorRefreshRate_e12_5Hz */
       { 1801800,     0},   /* BXDM_PictureProvider_MonitorRefreshRate_e14_985Hz */
       { 1800000,     0},   /* BXDM_PictureProvider_MonitorRefreshRate_e15Hz */
+      { 1351350,     0},   /* BXDM_PictureProvider_MonitorRefreshRate_e19_98Hz */
       { 1350000,     0},   /* BXDM_PictureProvider_MonitorRefreshRate_e20Hz */
       { 1126125,     0},   /* BXDM_PictureProvider_MonitorRefreshRate_e23_97 */
       { 1125000,     0},   /* BXDM_PictureProvider_MonitorRefreshRate_e24 */
       { 1080000,     0},   /* BXDM_PictureProvider_MonitorRefreshRate_e25 */
       {  900900,     0},   /* BXDM_PictureProvider_MonitorRefreshRate_e29_97 */
       {  900000,     0},   /* BXDM_PictureProvider_MonitorRefreshRate_e30 */
+      {  562500,     0},   /* BXDM_PictureProvider_MonitorRefreshRate_e48 */
       {  540000,     0},   /* BXDM_PictureProvider_MonitorRefreshRate_e50 */
       {  450450,     0},   /* BXDM_PictureProvider_MonitorRefreshRate_e59_94 */
       {  450000,     0},   /* BXDM_PictureProvider_MonitorRefreshRate_e60 */
-      {  562500,     0},   /* BXDM_PictureProvider_MonitorRefreshRate_e48 */
       {  270000,     0},   /* BXDM_PictureProvider_MonitorRefreshRate_e100 */
       {  225225,     0},   /* BXDM_PictureProvider_MonitorRefreshRate_e119_88 */
       {  225000,     0}    /* BXDM_PictureProvider_MonitorRefreshRate_e120 */
@@ -152,7 +186,7 @@ static const BXDM_PPFP_P_DataType sDeltaStcLUT[BXDM_PictureProvider_P_ClockRate_
 #define BXDM_PictureProvider_P_FRAMERATE_UNINITIALIZED ((BAVC_FrameRateCode) 0xFFFFFFFF)
 #define BXDM_PictureProvider_P_PULLDOWN_UNINITIALIZED ((BXDM_Picture_PullDown) 0xFFFFFFFF)
 #define BXDM_PictureProvider_P_PTS_JITTER_LOWER_THRESHOLD 1
-#define BXDM_PictureProvider_P_PTS_JITTER_UPPER_THRESHOLD 45
+#define BXDM_PictureProvider_P_PTS_JITTER_UPPER_THRESHOLD 90 /* CDSTRMANA-1092, bump from 1 ms to 2 ms. */
 #define BXDM_PictureProvider_P_RATE_MATCH_DETECTION_SAMPLES 30
 
 /*
@@ -332,7 +366,11 @@ static const BXDM_Picture_Rate s_aFrameRateCodeToValue[BXDM_PictureProvider_P_MA
    {100000, 1000 },   /* BAVC_FrameRateCode_e100 */
    {120000, 1001 },   /* BAVC_FrameRateCode_e119_88 */
    {120000, 1000 },   /* BAVC_FrameRateCode_e120 */
-   { 20000, 1001 },   /* BAVC_FrameRate_Code_e19_98 */
+   { 20000, 1001 },   /* BAVC_FrameRateCode_e19_98 */
+   {  7500, 1000 },   /* SWSTB-1401: add support for BAVC_FrameRateCode_e7_5 */
+   { 12000, 1000 },   /* SWSTB-1401: add support for BAVC_FrameRateCode_e12 */
+   { 12000, 1001 },   /* SWSTB-1401: add support for BAVC_FrameRateCode_e11_988 */
+   { 10000, 1001 },   /* SWSTB-1401: add support for BAVC_FrameRateCode_e9_99 */
 };
 
 /*
@@ -2418,6 +2456,22 @@ BXDM_PictureProvider_StopDecode_isr(
    }
 
    BXDM_PPDBG_P_Print_isr(hXdmPP, (BXDM_PictureProvider_P_LocalState *)&hXdmPP->stPerVsyncState, true);
+
+
+   /* SW7439-929: If there is a pending clip request and the first picture has NOT
+    * been received, assume that the clip request is for the current video segment
+    * and clear it. This prevents a stale request from being applied to the next
+    * video segment. */
+
+   if ( false == hXdmPP->stDMState.stDecode.bFirstPPBSeen )
+   {
+      BKNI_Memset(&hXdmPP->stDMConfig.stClipTimeSettings, 0, sizeof( BXDM_PictureProvider_ClipTimeSettings ));
+      BDBG_MODULE_MSG( BXDM_PPDBG, (" %x:[%02x.%03x] %s: clearing clip request",
+                          hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
+                          BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
+                          hXdmPP->stDMState.stChannel.stSelectedPicture.stPicParms.uiPPBIndex & 0xFFF,
+                          __FUNCTION__ ));
+   }
 
    /* PR55616: setting "bFirstPPBSeen" to false will disable the
     * "BXVD_Interrupt_ePictureParameters" callback until the first picture

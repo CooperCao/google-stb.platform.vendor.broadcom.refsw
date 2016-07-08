@@ -1,7 +1,7 @@
 /******************************************************************************
- * (c) 2010-2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -37,9 +37,7 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
- *****************************************************************************/
-
+ ******************************************************************************/
 
 #include "bstd.h" /* also includes berr, bdbg, etc */
 #include "bkni.h"
@@ -131,7 +129,7 @@ BERR_Code BMUXlib_File_PES_Create(BMUXlib_File_PES_Handle *phPESMux, const BMUXl
 
    /* Allocate PES context from system memory */
    hMux = (BMUXlib_File_PES_Handle)BKNI_Malloc(sizeof(struct BMUXlib_File_PES_P_Context));
-   BDBG_MODULE_MSG(BMUX_PES_MEMORY, ("Context: Allocating %d bytes", sizeof(struct BMUXlib_File_PES_P_Context)));
+   BDBG_MODULE_MSG(BMUX_PES_MEMORY, ("Context: Allocating %d bytes", (int)sizeof(struct BMUXlib_File_PES_P_Context)));
    if (NULL != hMux)
    {
       BKNI_Memset( hMux, 0, sizeof(struct BMUXlib_File_PES_P_Context) );

@@ -1,52 +1,51 @@
 /******************************************************************************
-* (c) 2014 Broadcom Corporation
-*
-* This program is the proprietary software of Broadcom Corporation and/or its
-* licensors, and may only be used, duplicated, modified or distributed pursuant
-* to the terms and conditions of a separate, written license agreement executed
-* between you and Broadcom (an "Authorized License").  Except as set forth in
-* an Authorized License, Broadcom grants no license (express or implied), right
-* to use, or waiver of any kind with respect to the Software, and Broadcom
-* expressly reserves all rights in and to the Software and all intellectual
-* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1. This program, including its structure, sequence and organization,
-*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-*    reasonable efforts to protect the confidentiality thereof, and to use
-*    this information only in connection with your use of Broadcom integrated
-*    circuit products.
-*
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-******************************************************************************/
-/*****************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
+ *
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************
 *
 * FILENAME: $Workfile: trunk/stack/IEEE/PHY/include/private/bbPhyPibApi.h $
 *
 * DESCRIPTION:
 *   PHY-PIB API interface.
 *
-* $Revision: 3367 $
-* $Date: 2014-08-21 15:57:21Z $
+* $Revision: 10263 $
+* $Date: 2016-02-29 18:03:06Z $
 *
 *****************************************************************************************/
 
@@ -67,7 +66,7 @@
  * \return  Bitmask of corresponding channels set. Empty channels set (zero value) is
  *  returned if the channel page with identifier \p pageId is not implemented.
 *****************************************************************************************/
-PHY_PRIVATE PHY_ChannelsSet_t phyPibApiGetChannelsSet(const PHY_ChannelPageId_t pageId);
+PHY_PRIVATE PHY_ChannelMask_t phyPibApiGetChannelsSet(const PHY_Page_t pageId);
 
 
 /*************************************************************************************//**
@@ -76,7 +75,7 @@ PHY_PRIVATE PHY_ChannelsSet_t phyPibApiGetChannelsSet(const PHY_ChannelPageId_t 
  * \return  TRUE if the specified channel is implemented on the specified channel page;
  *  FALSE otherwise.
 *****************************************************************************************/
-PHY_PRIVATE bool phyPibApiFindChannelOnPage(const PHY_ChannelOnPagePlain_t channelOnPage);
+PHY_PRIVATE bool phyPibApiFindChannelOnPage(const PHY_PageChannel_t channelOnPage);
 
 
 /************************* INLINES ******************************************************/
@@ -84,9 +83,9 @@ PHY_PRIVATE bool phyPibApiFindChannelOnPage(const PHY_ChannelOnPagePlain_t chann
  * \brief   Returns value of the PHY-PIB attribute phyCurrentChannel.
  * \return  Value of the requested PHY-PIB attribute.
 *****************************************************************************************/
-INLINE PHY_CurrentChannel_t phyPibApiGetCurrentChannel(void)
+INLINE PHY_Channel_t phyPibApiGetCurrentChannel(void)
 {
-    return PHY_MEMORY_PIB().phyCurrentChannelOnPage.logicalChannel;
+    return PHY__Take_Channel(PHY_MEMORY_PIB().phyCurrentChannelOnPage);
 }
 
 
@@ -106,8 +105,8 @@ INLINE PHY_CurrentChannel_t phyPibApiGetCurrentChannel(void)
 INLINE void phyPibApiGetChannelsSupported(PHY_ChannelsSupported_t *const payload)
 {
     SYS_LinkStaticPayload(payload, (void*)(PHY_MEMORY_PIB_CHANNELS_SUPPORTED()),
-            HAL_RADIO_CHANNEL_PAGES_NUMBER * sizeof(PHY_ChannelsSupportedOnPage_t));
-    SYS_MemAlloc(payload, HAL_RADIO_CHANNEL_PAGES_NUMBER * sizeof(PHY_ChannelsSupportedOnPage_t));
+            HAL_RADIO__PAGES_NUM * sizeof(PHY_ChannelsSupportedOnPage_t));
+    SYS_MemAlloc(payload, HAL_RADIO__PAGES_NUM * sizeof(PHY_ChannelsSupportedOnPage_t));
 }
 
 
@@ -130,7 +129,7 @@ INLINE PHY_TransmitPower_t phyPibApiGetTransmitPower(void)
 *****************************************************************************************/
 INLINE void phyPibApiSetTransmitPower(const PHY_TransmitPower_t newValue)
 {
-    const PHY_TxPowerValue_t  newTxPower = newValue.txPower;    /* New value of transmit power to be assigned. */
+    const PHY_TXPower_t  newTxPower = newValue.txPower;     /* New value of transmit power to be assigned. */
 
     SYS_DbgAssertLog(0 == newValue.tolerance, LOG_phyPibApiSetTransmitPower_NonemptyTransmitPowerTolerance);
     SYS_DbgAssertComplex(newTxPower >= PHY_ATTR_MINALLOWED_VALUE_TRANSMIT_POWER_VALUE,
@@ -149,7 +148,7 @@ INLINE void phyPibApiSetTransmitPower(const PHY_TransmitPower_t newValue)
  * \brief   Returns value of the PHY-PIB attribute phyCcaMode.
  * \return  Value of the requested PHY-PIB attribute.
 *****************************************************************************************/
-INLINE PHY_CcaMode_t phyPibApiGetCcaMode(void)
+INLINE enum PHY_CCAMode_t phyPibApiGetCcaMode(void)
 {
     return PHY_MEMORY_PIB().phyCcaMode;
 }
@@ -159,9 +158,9 @@ INLINE PHY_CcaMode_t phyPibApiGetCcaMode(void)
  * \brief   Assigns a new value to the PHY-PIB attribute phyCcaMode.
  * \param[in]   newValue    New value of the specified PHY-PIB attribute.
 *****************************************************************************************/
-INLINE void phyPibApiSetCcaMode(const PHY_CcaMode_t newValue)
+INLINE void phyPibApiSetCcaMode(const enum PHY_CCAMode_t newValue)
 {
-    const PHY_CcaMode_t  newCcaMode = newValue;     /* New value of CCA mode to be assigned. */
+    const enum PHY_CCAMode_t  newCcaMode = newValue;    /* New value of CCA mode to be assigned. */
 
 #if (PHY_ATTR_MINALLOWED_VALUE_CCA_MODE > 0)
     SYS_DbgAssertComplex(newCcaMode >= PHY_ATTR_MINALLOWED_VALUE_CCA_MODE, LOG_phyPibApiSetCcaMode_InvalidTooLow);
@@ -170,7 +169,7 @@ INLINE void phyPibApiSetCcaMode(const PHY_CcaMode_t newValue)
 
     ATOMIC_SECTION_ENTER(ATM_phyPibApiSetCcaMode)
         PHY_MEMORY_PIB().phyCcaMode = newCcaMode;
-        HAL_RadioSetCcaMode(newCcaMode);
+        PHY__CCAMode_set(newCcaMode);
     ATOMIC_SECTION_LEAVE(ATM_phyPibApiSetCcaMode)
 }
 
@@ -179,9 +178,9 @@ INLINE void phyPibApiSetCcaMode(const PHY_CcaMode_t newValue)
  * \brief   Returns value of the PHY-PIB attribute phyCurrentPage.
  * \return  Value of the requested PHY-PIB attribute.
 *****************************************************************************************/
-INLINE PHY_CurrentPage_t phyPibApiGetCurrentPage(void)
+INLINE PHY_Page_t phyPibApiGetCurrentPage(void)
 {
-    return PHY_MEMORY_PIB().phyCurrentChannelOnPage.channelPage;
+    return PHY__Take_Page(PHY_MEMORY_PIB().phyCurrentChannelOnPage);
 }
 
 
@@ -189,14 +188,14 @@ INLINE PHY_CurrentPage_t phyPibApiGetCurrentPage(void)
  * \brief   Assigns new values to PHY-PIB attributes phyCurrentChannel and phyCurrentPage.
  * \param[in]   newChannelOnPage    Plain value of Channel-on-Page object.
 *****************************************************************************************/
-INLINE void phyPibApiSetCurrentChannelOnPage(const PHY_ChannelOnPagePlain_t newChannelOnPage)
+INLINE void phyPibApiSetCurrentChannelOnPage(const PHY_PageChannel_t newChannelOnPage)
 {
     SYS_DbgAssertComplex(FALSE != phyPibApiFindChannelOnPage(newChannelOnPage),
             LOG_phyPibApiSetCurrentChannelOnPage_ChannelOnPageNotImplemented);
 
     ATOMIC_SECTION_ENTER(ATM_phyPibApiSetCurrentChannelOnPage)
-        PHY_MEMORY_PIB().phyCurrentChannelOnPage.plain = newChannelOnPage;
-        HAL_RadioSetChannelReq(newChannelOnPage);
+        PHY_MEMORY_PIB().phyCurrentChannelOnPage = newChannelOnPage;
+        PHY__CHANNEL_req(newChannelOnPage);
     ATOMIC_SECTION_LEAVE(ATM_phyPibApiSetCurrentChannelOnPage)
 }
 
@@ -219,7 +218,7 @@ INLINE PHY_MaxFrameDuration_t phyPibApiGetMaxFrameDuration(void)
      *   915 O-QPSK      266 symbols = 10 + RoundUp((127 + 1) * 2)
      *  2450 O-QPSK      266 symbols = 10 + RoundUp((127 + 1) * 2)
      */
-    return 10 + CEIL((127 + 1) * 20, 10);       /* TODO: Implement table of constants. This one is just for 2.45 GHz. */
+    return 10 + CEIL((PHY_aMaxPHYPacketSize + 1) * 20, 10);         /* TODO: Implement table of constants. This one is just for 2.45 GHz. */
 }
 
 
@@ -274,15 +273,9 @@ INLINE PHY_SymbolsPerOctetX10_t phyPibApiGetSymbolsPerOctetX10(void)
  * \brief   Returns value of the PHY-PIB attribute phyRssi.
  * \return  Value of the requested PHY-PIB attribute.
 *****************************************************************************************/
-INLINE PHY_Rssi_t phyPibApiGetRssi(void)
+INLINE PHY_RSSI_t phyPibApiGetRssi(void)
 {
-    PHY_Rssi_t phyRssi;         /* Value to be returned. */
-
-    ATOMIC_SECTION_ENTER(ATM_phyPibApiGetRssi)
-        phyRssi = HAL_RadioGetRssi();
-    ATOMIC_SECTION_LEAVE(ATM_phyPibApiGetRssi)
-
-    return phyRssi;
+    return PHY__RSSI_get();
 }
 #endif /* RF4CE_TARGET */
 

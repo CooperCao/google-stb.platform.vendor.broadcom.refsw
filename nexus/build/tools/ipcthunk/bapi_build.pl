@@ -1,7 +1,7 @@
 #!/usr/bin/perl
-#     (c)2003-2013 Broadcom Corporation
+#  Broadcom Proprietary and Confidential. (c)2003 Broadcom. All rights reserved.
 #
-#  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+#  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
 #  conditions of a separate, written license agreement executed between you and Broadcom
 #  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,125 +35,24 @@
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
 #
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
-# File Description:
-#
-# Revision History:
-#
-# $brcm_Log: $
-#
 #############################################################################
 use strict;
 use warnings FATAL => 'all';
 
 use lib "../common";
-use bapi_parse_c;
 use bapi_ipc_apidef;
 use bapi_ipc_client;
 use bapi_ipc_server;
-use bapi_untrusted_api;
-use Getopt::Long;
+use bapi_main;
 
-my $file;
-my %structs;
-my $source_file;
-my $file_headers;
-my @file_list;
-my @funcrefs;
+# This uses and consumes ARGV
+my $main = bapi_main::main ('ipcthunk');
 
-if ($#ARGV == -1) {
-    print "Usage: perl bapi_build.pl [--source listfile] module destdir class_handles file1.h file2.h ...\n";
-    exit;
-}
-
-#check presence of a sources file and process if present
-GetOptions ('source=s' => \$source_file);
-if($source_file) {
-    open(HEADERS, $source_file) || die("Could not open source file: $source_file");
-    $file_headers=<HEADERS>;
-    close(HEADERS);
-
-    chomp($file_headers);
-    @file_list = split(/\s+/,$file_headers);
-    my $count;
-    $count = @file_list;
-    print "Sources file $source_file contains $count headers\n";
-}
-
-my @untrusted_api = bapi_untrusted_api::parse "nexus/build/tools/common/nexus_untrusted_api.txt";
-
-# Process all files on the command line
-my $module = lc shift @ARGV;
-my $destdir = shift @ARGV;
-
-# read class_handles.inc file into a list
-my $class_list_file = shift @ARGV;
-open FILE, $class_list_file;
-my @class_handles = <FILE>;
-close FILE;
-chomp @class_handles;
-
-my %preload_structs;
-for $file (@file_list,@ARGV) {
-    my $name;
-    my $members;
-    next if (bapi_classes::skip_thunk($file));
-    #print "ipcthunk/bapi_build.pl parsing $file\n";
-    
-    # a .preload file allows nexus to load structs from other header files
-    # for proxy autogen. this removes the need to have attr/callback definitions present 
-    # in the same header file.
-    if ($file =~ /\.preload/) {
-        open(my $fin , $file) or die "Can't open $file";
-        my @preload_files = <$fin>;
-        close $fin;
-        chomp @preload_files;
-        my ($dir) = $file =~ /(.+)\/\w+/;
-        for my $f (@preload_files) {
-            # trim comments and test for some non-whitespace
-            $f =~ s/(.*)\#.*/$1/g;
-            if ($f =~ /\w/) {
-                #print "ipcthunk/bapi_build.pl parsing preload $dir/$file\n";
-                my $file_structs = bapi_parse_c::parse_struct "$dir\/$f";
-                while (($name, $members) = each %$file_structs) {
-                    $preload_structs{$name} = $members;
-                }
-            }
-        }
-        next;
-    }
-    
-    my @funcs;
-    push @funcs, bapi_parse_c::get_func_prototypes $file;
-    my @refs = bapi_parse_c::parse_funcs @funcs;
-    
-    my $basename = $file;
-    $basename =~ s{.*/}{};
-    if (!($basename =~ /\*/) && grep {/$basename/} @untrusted_api) {
-        for (@refs) {
-            $_->{CALLABLE_BY_UNTRUSTED} = 1;
-            #print "untrusted api: $_->{FUNCNAME}\n";
-        }
-    }
-    push @funcrefs, @refs;
-
-    my $file_structs = bapi_parse_c::parse_struct $file, \%preload_structs;
-    while (($name, $members) = each %$file_structs) {
-        $structs{$name} = $members;
-    }
-}
-
-# Print out the perl datastructure
-#bapi_parse_c::print_api @funcrefs;
-#bapi_parse_c::print_struct \%structs;
-
-my $version = bapi_parse_c::version_api @funcrefs;
-$version = ($version * 0x10000) + bapi_parse_c::version_struct \%structs;
+my $destdir = $main->{DESTDIR};
+my $module = lc $main->{MODULE};
+my $funcrefs =$main->{FUNCREFS};
 
 # Build thunk layer
-bapi_ipc_apidef::generate "${destdir}/" . (bapi_common::ipc_header $module) , $module, $version, @funcrefs;
-bapi_ipc_client::generate "${destdir}/nexus_${module}_ipc_client.c", $module, $version, \%structs, @funcrefs;
-bapi_ipc_server::generate "${destdir}/nexus_${module}_ipc_server.c", $module, $version, \%structs, \@funcrefs, \@class_handles;
+bapi_ipc_apidef::generate "${destdir}/" . (bapi_common::ipc_header $module), $module, $main->{VERSION}, @$funcrefs;
+bapi_ipc_client::generate "${destdir}/nexus_${module}_ipc_client.c", $module, $main->{VERSION}, $main->{STRUCTS}, @$funcrefs;
+bapi_ipc_server::generate "${destdir}/nexus_${module}_ipc_server.c", $module, $main->{VERSION}, $main->{STRUCTS}, $funcrefs, $main->{CLASS_HANDLES};

@@ -418,7 +418,7 @@ done:
     file->data = data;
     file->chunk = dest_chunk;
     file->cur_pos = offset;
-    BDBG_MSG(("<seek %u -> %u:[%zu/%u]", (unsigned)offset, file->chunk, file->chunk_budget, (unsigned)off));
+    BDBG_MSG(("<seek %u -> %u:[%u/%u]", (unsigned)offset, file->chunk, (unsigned)file->chunk_budget, (unsigned)off));
     return offset;
 }
 

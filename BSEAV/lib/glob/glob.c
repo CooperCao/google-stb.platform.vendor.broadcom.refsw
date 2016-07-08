@@ -96,6 +96,11 @@ static char sccsid[] = "@(#)glob.c	8.3 (Berkeley) 10/13/93";
 //      and collate is only used once for string comparisons. As a side-effect, you might not
 //      be able to match non-ASCII filenames. 
 
+#if defined(B_REFSW_ANDROID)
+#undef issetugid
+#define issetugid() 0
+#endif
+
 #define	DOLLAR		'$'
 #define	DOT		'.'
 #define	EOS		'\0'

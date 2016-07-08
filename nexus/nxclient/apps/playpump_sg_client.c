@@ -197,7 +197,7 @@ int main(int argc, char **argv)
         }
         else {
             NEXUS_PlaypumpScatterGatherDescriptor desc;
-            unsigned numConsumed;
+            size_t numConsumed;
             desc.addr = buf[cur_buf];
             desc.length = n;
             if (playpumpSettings.dataNotCpuAccessible) {

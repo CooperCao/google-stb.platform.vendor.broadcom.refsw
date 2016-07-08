@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2010-2014 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,7 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 #if NEXUS_HAS_SIMPLE_DECODER
 #include "nexus_platform_client.h"
@@ -85,7 +84,7 @@ static void print_usage(const struct nxapps_cmdline *cmdline)
 static void print_mem(NEXUS_ClientHandle client)
 {
     NEXUS_PlatformObjectInstance objects[MAX_OBJECTS];
-    unsigned num;
+    size_t num;
     unsigned total = 0;
     NEXUS_MemoryBlockHandle blocks[MAX_OBJECTS];
     unsigned total_blocks = 0;
@@ -128,7 +127,7 @@ static void print_mem(NEXUS_ClientHandle client)
 
         NEXUS_MemoryBlock_GetProperties(objects[i].object, &prop);
         total += prop.size;
-        printf(" block %p: %d bytes\n", objects[i].object, prop.size);
+        printf(" block %p: %ld bytes\n", objects[i].object, (unsigned long)prop.size);
     }
     printf("  total: %d bytes\n", total);
 }
@@ -177,7 +176,8 @@ int main(int argc, const char **argv)  {
 
     {
         NEXUS_PlatformObjectInstance objects[MAX_OBJECTS];
-        unsigned num, total = 0;
+        size_t num;
+        unsigned total = 0;
 
         NEXUS_Platform_GetDefaultInterfaceName(&interfaceName);
         strcpy(interfaceName.name, "NEXUS_Client");
@@ -224,7 +224,7 @@ int main(int argc, const char **argv)  {
             }
         }
         else if (!strcmp(argv[curarg], "-c") && argc>curarg+1) {
-            unsigned id = atoi(argv[++curarg]);
+            unsigned long id = atol(argv[++curarg]);
             if (id) {
                 id--;
                 if (id < MAX_OBJECTS && clients[id].handle) {
@@ -234,7 +234,7 @@ int main(int argc, const char **argv)  {
                 else {
                     /* by handle */
                     for (i=0;clients[i].handle;i++) {
-                        if ((unsigned)clients[i].handle == id) {
+                        if ((unsigned long)clients[i].handle == id) {
                             clientIndex = i;
                             break;
                         }
@@ -303,7 +303,7 @@ int main(int argc, const char **argv)  {
 
         if (nxapps_cmdline_is_set(&cmdline, nxapps_cmdline_type_SurfaceComposition)) {
             NEXUS_PlatformObjectInstance surfaceClients[MAX_OBJECTS];
-            unsigned num;
+            size_t num;
 
             strcpy(interfaceName.name, "NEXUS_SurfaceClient");
             rc = NEXUS_Platform_GetClientObjects(client, &interfaceName, surfaceClients, MAX_OBJECTS, &num);
@@ -328,12 +328,13 @@ int main(int argc, const char **argv)  {
             BDBG_ASSERT(!rc);
             for (i=0;i<NXCLIENT_MAX_IDS;i++) {
                 if (!list.connectId[i]) break;
-                NxClient_Config_RefreshConnect(client, list.connectId[i]);
+                rc = NxClient_Config_RefreshConnect(client, list.connectId[i]);
+                if (rc) BERR_TRACE(rc);
             }
         }
         if (focus) {
             NEXUS_PlatformObjectInstance inputClients[MAX_OBJECTS];
-            unsigned num;
+            size_t num;
 
             strcpy(interfaceName.name, "NEXUS_InputClient");
             for (i=0;i<MAX_OBJECTS;i++) {
@@ -355,7 +356,7 @@ int main(int argc, const char **argv)  {
 
         if (nxapps_cmdline_is_set(&cmdline, nxapps_cmdline_type_SimpleVideoDecoderPictureQualitySettings)) {
             NEXUS_PlatformObjectInstance decoders[MAX_OBJECTS];
-            unsigned num;
+            size_t num;
             strcpy(interfaceName.name, "NEXUS_SimpleVideoDecoder");
             rc = NEXUS_Platform_GetClientObjects(client, &interfaceName, decoders, MAX_OBJECTS, &num);
             BDBG_ASSERT(!rc);
@@ -376,7 +377,7 @@ int main(int argc, const char **argv)  {
     else {
         if (clientIndex != -1) {
             NEXUS_PlatformObjectInstance surfaceClients[MAX_OBJECTS];
-            unsigned num;
+            size_t num;
 
             NxClient_ConnectList list;
 

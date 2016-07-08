@@ -1,7 +1,7 @@
 /******************************************************************************
- * (c) 2003-2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c) 2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -39,7 +39,6 @@
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  *
  *****************************************************************************/
-
 #include "bstd.h"
 #include "bint_7439.h"
 #include "bkni.h"
@@ -452,7 +451,7 @@ static const BINT_P_IntMap bint_7439[] =
     BINT_MAP(2, UPG_SC, "", SCIRQ0_SCIRQEN, REGULAR, ALL, 0),
     BINT_MAP(2, UPG_TMR, "", TIMER_TIMER_IS, REGULAR, ALL, 0),
 
-   BINT_MAP(2, UPG_MAIN, "" , IRQ0_IRQEN, REGULAR, MASK, 0xFFFFF1C7),
+   BINT_MAP(2, UPG_MAIN, "" , IRQ0_IRQEN, REGULAR, MASK, 0xFFFFF9C7),
    BINT_MAP(2, UPG_BSC, "" , IRQ0_IRQEN, REGULAR, MASK, 0xFFFFFE3F),
    BINT_MAP(2, UPG_MAIN_AON, "" , IRQ0_AON_IRQEN, REGULAR, MASK, 0xFFFFFE98),
    BINT_MAP(2, UPG_BSC_AON, "" , IRQ0_AON_IRQEN, REGULAR, MASK, 0xFFFFFFE7),
@@ -721,8 +720,8 @@ static void BINT_P_7439_SetMask( BREG_Handle regHandle, uint32_t baseAddr, int s
         /* Dont support setting the v3d L2 via this interface */
         break;
     default:
-       BDBG_ERR(("NOT SUPPORTED baseAddr 0x%08x ,regHandel %p,  shift %d",
-                         baseAddr, regHandle, shift));
+       BDBG_ERR(("NOT SUPPORTED baseAddr %#x ,regHandel %p,  shift %d",
+                         (unsigned)baseAddr, (void *)regHandle, shift));
 
         /* Unhandled interrupt base address */
         BDBG_ASSERT( false );

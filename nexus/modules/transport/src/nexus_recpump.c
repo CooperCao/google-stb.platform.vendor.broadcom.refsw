@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2015 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,16 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #include "nexus_transport_module.h"
@@ -200,9 +190,9 @@ NEXUS_Recpump_P_AllocContextMem(BXPT_Rave_AllocCxSettings *allocSettings, const 
     if (allowUserAllocation && pSettings->data.buffer) {
         NEXUS_MemoryBlockHandle block;
         unsigned blockOffset;
-        NEXUS_Module_Lock(g_NEXUS_Transport_P_State.settings.core);
+        NEXUS_Module_Lock(g_NEXUS_Transport_P_State.moduleSettings.core);
         rc = NEXUS_MemoryBlock_BlockAndOffsetFromRange_priv((void*)pSettings->data.buffer, pSettings->data.bufferSize, &block, &blockOffset);
-        NEXUS_Module_Unlock(g_NEXUS_Transport_P_State.settings.core);
+        NEXUS_Module_Unlock(g_NEXUS_Transport_P_State.moduleSettings.core);
         if (rc) {
             rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
             goto error;
@@ -214,7 +204,7 @@ NEXUS_Recpump_P_AllocContextMem(BXPT_Rave_AllocCxSettings *allocSettings, const 
         alloc->data.offset = BMMA_LockOffset(alloc->data.block);
     }
     else if (pSettings->data.bufferSize) {
-        NEXUS_HeapHandle heap = useSecureHeap ? pTransport->settings.secureHeap : pSettings->data.heap;
+        NEXUS_HeapHandle heap = useSecureHeap ? pTransport->moduleSettings.secureHeap : pSettings->data.heap;
         heap = NEXUS_P_DefaultHeap(heap, NEXUS_DefaultHeapType_eFull);
         if (!heap) heap = g_pCoreHandles->heap[g_pCoreHandles->defaultHeapIndex].nexus;
         alloc->data.mmaHeap = NEXUS_Heap_GetMmaHandle(heap);
@@ -232,9 +222,9 @@ NEXUS_Recpump_P_AllocContextMem(BXPT_Rave_AllocCxSettings *allocSettings, const 
     if (allowUserAllocation && pSettings->index.buffer) {
         NEXUS_MemoryBlockHandle block;
         unsigned blockOffset;
-        NEXUS_Module_Lock(g_NEXUS_Transport_P_State.settings.core);
+        NEXUS_Module_Lock(g_NEXUS_Transport_P_State.moduleSettings.core);
         rc = NEXUS_MemoryBlock_BlockAndOffsetFromRange_priv((void*)pSettings->index.buffer, pSettings->index.bufferSize, &block, &blockOffset);
-        NEXUS_Module_Unlock(g_NEXUS_Transport_P_State.settings.core);
+        NEXUS_Module_Unlock(g_NEXUS_Transport_P_State.moduleSettings.core);
         if (rc) {
             rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
             goto error;
@@ -353,14 +343,14 @@ NEXUS_RecpumpHandle NEXUS_Recpump_Open(unsigned index, const NEXUS_RecpumpOpenSe
         pSettings = &settings;
     }
 
-    BDBG_MSG(("NEXUS_Recpump_Open %d: cdb=%d (%d threshold), itb=%d (%d threshold)",
+    BDBG_MSG(("NEXUS_Recpump_Open %d: cdb=%u (%d threshold), itb=%u (%d threshold)",
         index,
-        pSettings->data.bufferSize, pSettings->data.dataReadyThreshold,
-        pSettings->index.bufferSize, pSettings->index.dataReadyThreshold));
+        (unsigned)pSettings->data.bufferSize, pSettings->data.dataReadyThreshold,
+        (unsigned)pSettings->index.bufferSize, pSettings->index.dataReadyThreshold));
 
     /* Ensure required numbers */
     if (pSettings->data.bufferSize < NEXUS_RAVE_MEMC_BLOCK_SIZE*2) {
-        BDBG_ERR(("data.bufferSize %d invalid", pSettings->data.bufferSize));
+        BDBG_ERR(("data.bufferSize %u invalid", (unsigned)pSettings->data.bufferSize));
         return NULL;
     }
     if (pSettings->data.dataReadyThreshold > pSettings->data.bufferSize) {
@@ -370,7 +360,7 @@ NEXUS_RecpumpHandle NEXUS_Recpump_Open(unsigned index, const NEXUS_RecpumpOpenSe
     /* index.bufferSize can be 0. Otherwise, it must be valid. */
     if (pSettings->index.bufferSize) {
         if (pSettings->index.bufferSize < NEXUS_RAVE_MEMC_BLOCK_SIZE*2) {
-            BDBG_ERR(("index.bufferSize %d invalid", pSettings->index.bufferSize));
+            BDBG_ERR(("index.bufferSize %u invalid", (unsigned)pSettings->index.bufferSize));
             return NULL;
         }
         if (pSettings->index.dataReadyThreshold > pSettings->index.bufferSize) {
@@ -713,7 +703,7 @@ NEXUS_Error NEXUS_Recpump_SetSettings(NEXUS_RecpumpHandle r, const NEXUS_Recpump
 #else
         BDBG_WRN(("Recpump M2M crypto has been deprecated. Use NEXUS_KeySlot_AddPidChannel instead."));
 #if !NEXUS_HAS_XPT_DMA
-        if (!pTransport->settings.dma) {
+        if (!pTransport->moduleSettings.dma) {
             BDBG_ERR(("Transport module does not have dma module handle."));
             return BERR_TRACE(BERR_NOT_SUPPORTED);
         }
@@ -982,9 +972,9 @@ static NEXUS_Error NEXUS_Recpump_P_Start(NEXUS_RecpumpHandle r)
     NEXUS_Recpump_P_GetThresholds(bandHold, r->openSettings.data.dataReadyThreshold, rec_cfg.UseCdbSize, &rec_cfg.CdbUpperThreshold, &rec_cfg.CdbLowerThreshold);
     NEXUS_Recpump_P_GetThresholds(bandHold, r->openSettings.index.dataReadyThreshold, r->openSettings.index.bufferSize, &rec_cfg.ItbUpperThreshold, &rec_cfg.ItbLowerThreshold);
 
-    BDBG_MSG(("Start: CDB alloc=%d use=%d, threshold=%d, ITB alloc=%d threshold=%d",
-        r->openSettings.data.bufferSize, rec_cfg.UseCdbSize, r->openSettings.data.dataReadyThreshold,
-        r->openSettings.index.bufferSize, r->openSettings.index.dataReadyThreshold));
+    BDBG_MSG(("Start: CDB alloc=%u use=%d, threshold=%d, ITB alloc=%u threshold=%d",
+        (unsigned)r->openSettings.data.bufferSize, rec_cfg.UseCdbSize, r->openSettings.data.dataReadyThreshold,
+        (unsigned)r->openSettings.index.bufferSize, r->openSettings.index.dataReadyThreshold));
 
     switch (pSettings->timestampType) {
     case NEXUS_TransportTimestampType_eNone:
@@ -1282,7 +1272,7 @@ static NEXUS_Error NEXUS_Recpump_P_Start(NEXUS_RecpumpHandle r)
             r->data.dataReadyThreshold -= r->data.dataReadyThreshold%packetSize; /* convert dataReadyThreshold to multiplier of transport packet size */
         }
 #if (!NEXUS_HAS_XPT_DMA)
-        if(!g_NEXUS_Transport_P_State.settings.dma) { rc = BERR_TRACE(BERR_NOT_SUPPORTED);goto err_dma;}
+        if(!g_NEXUS_Transport_P_State.moduleSettings.dma) { rc = BERR_TRACE(BERR_NOT_SUPPORTED);goto err_dma;}
 #endif
 
         r->crypto.head = r->crypto.tail = NULL;
@@ -1753,14 +1743,14 @@ NEXUS_Recpump_P_GetBuffer(struct NEXUS_RecpumpFlow *flow, const void **buffer, s
     }
     BDBG_MSG_TRACE(("RAVE %s depth %u %u, size %u", NEXUS_P_FLOW_NAME(flow),
             (unsigned long)(ptr->ByteCount), (unsigned long)ptr->WrapByteCount,
-            flow->bufferSize));
+            (unsigned)flow->bufferSize));
 
     /* if the depth is greater than the size, then underlying FW or SW must be in a bad state.
        Log the event and flush buffer. Upper level software needs to decide whether to continue or terminate. */
     if ((unsigned long)(ptr->ByteCount + ptr->WrapByteCount) > flow->bufferSize) {
         BDBG_ERR(("Invalid RAVE %s depth %u, size %u", NEXUS_P_FLOW_NAME(flow),
             (unsigned)(ptr->ByteCount + ptr->WrapByteCount),
-            flow->bufferSize));
+            (unsigned)flow->bufferSize));
         (void)BXPT_Rave_DisableContext(pump->rave_rec);
         (void)BXPT_Rave_FlushContext(pump->rave_rec);
         if ( bufferSize )  *bufferSize = 0;
@@ -1873,9 +1863,9 @@ NEXUS_Recpump_P_GetBuffer(struct NEXUS_RecpumpFlow *flow, const void **buffer, s
                     pump->crypto.blocks[0].scatterGatherCryptoEnd = nvecs==2?false:true;
 
 #if (!NEXUS_HAS_XPT_DMA)
-                    NEXUS_Module_Lock(g_NEXUS_Transport_P_State.settings.dma);
+                    NEXUS_Module_Lock(g_NEXUS_Transport_P_State.moduleSettings.dma);
                     rc = NEXUS_DmaJob_ProcessBlocks_priv(pump->crypto.job, pump->crypto.blocks, nvecs, pump->crypto.event);
-                    NEXUS_Module_Unlock(g_NEXUS_Transport_P_State.settings.dma);
+                    NEXUS_Module_Unlock(g_NEXUS_Transport_P_State.moduleSettings.dma);
 #else
                     rc = NEXUS_DmaJob_ProcessBlocks_priv(pump->crypto.job, pump->crypto.blocks, nvecs, pump->crypto.event);
 #endif
@@ -1957,7 +1947,7 @@ done:
     *buffer = dataPtr;
     *pBypassThresholdTest = bypassThresholdTest;
 
-    BDBG_MSG(("GetBuffer[%s] %u (actual %u, threshold %u)", NEXUS_P_FLOW_NAME(flow), *bufferSize, size, flow->dataReadyThreshold));
+    BDBG_MSG(("GetBuffer[%s] %u (actual %u, threshold %u)", NEXUS_P_FLOW_NAME(flow), (unsigned)*bufferSize, (unsigned)size, flow->dataReadyThreshold));
 
     return NEXUS_SUCCESS;
 }
@@ -1974,11 +1964,11 @@ NEXUS_Recpump_P_WriteComplete(struct NEXUS_RecpumpFlow *flow, size_t amount_writ
         return BERR_TRACE(NEXUS_UNKNOWN);
     }
     if (amount_written > flow->lastGetBuffer) {
-        BDBG_WRN(("Cannot WriteComplete %u when last GetBuffer was %u", amount_written, flow->lastGetBuffer));
+        BDBG_WRN(("Cannot WriteComplete %u when last GetBuffer was %u", (unsigned)amount_written, flow->lastGetBuffer));
         return BERR_TRACE(NEXUS_UNKNOWN);
     }
 
-    BDBG_MSG(("WriteComplete[%s] %u", NEXUS_P_FLOW_NAME(flow), amount_written));
+    BDBG_MSG(("WriteComplete[%s] %u", NEXUS_P_FLOW_NAME(flow), (unsigned)amount_written));
     flow->bytesRecorded += amount_written;
 
     if (flow == &flow->recpump->index) {
@@ -2115,7 +2105,7 @@ NEXUS_Error NEXUS_Recpump_GetStatus(NEXUS_RecpumpHandle r, NEXUS_RecpumpStatus *
     pStatus->data.fifoDepth = (unsigned long)(ptr->ByteCount + ptr->WrapByteCount);
     pStatus->data.fifoSize =  r->data.bufferSize;
     if (pStatus->data.fifoDepth > pStatus->data.fifoSize) {
-        BDBG_ERR(("Invalid RAVE CDB depth %d, size %d", pStatus->data.fifoDepth, pStatus->data.fifoSize));
+        BDBG_ERR(("Invalid RAVE CDB depth %u, size %u", (unsigned)pStatus->data.fifoDepth, (unsigned)pStatus->data.fifoSize));
         pStatus->data.fifoDepth = 0;
         return BERR_TRACE(NEXUS_UNKNOWN);
     }
@@ -2126,7 +2116,7 @@ NEXUS_Error NEXUS_Recpump_GetStatus(NEXUS_RecpumpHandle r, NEXUS_RecpumpStatus *
     pStatus->index.fifoDepth = (unsigned long)(ptr->ByteCount + ptr->WrapByteCount);
     pStatus->index.fifoSize = r->index.bufferSize;
     if (pStatus->index.fifoDepth > pStatus->index.fifoSize) {
-        BDBG_ERR(("Invalid RAVE ITB depth %d, size %d", pStatus->index.fifoDepth, pStatus->index.fifoSize));
+        BDBG_ERR(("Invalid RAVE ITB depth %u, size %u", (unsigned)pStatus->index.fifoDepth, (unsigned)pStatus->index.fifoSize));
         pStatus->index.fifoDepth = 0;
         return BERR_TRACE(NEXUS_UNKNOWN);
     }
@@ -2182,7 +2172,7 @@ NEXUS_Recpump_P_TestDataReadyCallback(struct NEXUS_RecpumpFlow *flow)
     }
 
     flow->pending = true;
-    BDBG_MSG(("dataReady[%s] size=%d", NEXUS_P_FLOW_NAME(flow), size));
+    BDBG_MSG(("dataReady[%s] size=%u", NEXUS_P_FLOW_NAME(flow), (unsigned)size));
 
     NEXUS_TaskCallback_Fire(flow->dataReadyCallback);
     return NEXUS_Recpump_P_BufferState_eApplicationNotified;

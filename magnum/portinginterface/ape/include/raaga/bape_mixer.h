@@ -1,23 +1,40 @@
-/***************************************************************************
- *     Copyright (c) 2006-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * Module Description: Audio Mixer Interface
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * Revision History:
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- * 
- ***************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
 
 #ifndef BAPE_MIXER_H_
 #define BAPE_MIXER_H_
@@ -62,82 +79,86 @@ Mixer Settings
 ***************************************************************************/
 typedef struct BAPE_MixerSettings
 {
-    BAPE_MixerType type;                /* Type of mixer.  This can only be set while creating 
+    BAPE_MixerType type;                /* Type of mixer.  This can only be set while creating
                                            a mixer and not changed afterward. */
+
+    bool intermediate;                  /* Create the mixer as an "intermediate" HW mixer.  This field is
+                                           ignored for non HW mixers. An intermediate HW mixer can be looped back
+                                           into the DSP, or used as an input to a decoder. */
 
     BAPE_MixerFormat format;            /* Format of the mixer.  "Auto" is legacy mode, allowing
                                            the format to be auto selected during start routine of source.
                                            Specifying a format allows the mixer to be started prior to inputs,
                                            and left running while inputs of the correct type are added/removed. */
 
-    unsigned mixerSampleRate;           /* Output rate of this mixer if it is fixed.  
+    unsigned mixerSampleRate;           /* Output rate of this mixer if it is fixed.
                                            Default = 0, which will slave to the master input
-                                           sample rate */ 
+                                           sample rate */
 
     unsigned defaultSampleRate;         /* If there is no master input or the
-                                           master input is not started, the 
-                                           sample rate specified here will be 
+                                           master input is not started, the
+                                           sample rate specified here will be
                                            applied to all outputs.  Ignored if mixerSampleRate
                                            has been set. */
 
-    unsigned dspIndex;                  /* Index of the DSP you would like to use.  Default = 0. 
+    unsigned dspIndex;                  /* Index of the DSP you would like to use.  Default = 0.
                                            Applies to DSP mixers only. */
 
-    BAPE_Pll outputPll;                 /* Which output PLL will be used with this mixer.  
-                                           It's usage depends on the type of outputs 
-                                           connected to the mixer.  If the mixer has 
+    BAPE_Pll outputPll;                 /* Which output PLL will be used with this mixer.
+                                           It's usage depends on the type of outputs
+                                           connected to the mixer.  If the mixer has
                                            only DAC outputs, then outputPll is not used.
-                                           Otherwise, if the mixer has any I2S or Spdif 
-                                           outputs, then outputPll specifies the PLL to 
-                                           be used as the mixer's timing source.  
-                                           Otherwise (no DACS, I2S, or Spdif outputs), 
+                                           Otherwise, if the mixer has any I2S or Spdif
+                                           outputs, then outputPll specifies the PLL to
+                                           be used as the mixer's timing source.
+                                           Otherwise (no DACS, I2S, or Spdif outputs),
                                            outputPll specifies the PLL to use when:
-                                           1) there is not another mixer with matching inputs 
-                                           and settings that has a DAC output whose 
+                                           1) there is not another mixer with matching inputs
+                                           and settings that has a DAC output whose
                                            clock can be used for the timing source,
-                                           and 2) a valid outputNco has not been 
+                                           and 2) a valid outputNco has not been
                                            specified.
 
-                                           Strongly recommended for I2S and SPDIF outputs.  
-                                           Independent PLLs should be used if their 
-                                           input clock (VCXO) is different or if their 
-                                           sample rate is not an integer multiple of 
-                                           other rates driven by the PLL. This cannot 
+                                           Strongly recommended for I2S and SPDIF outputs.
+                                           Independent PLLs should be used if their
+                                           input clock (VCXO) is different or if their
+                                           sample rate is not an integer multiple of
+                                           other rates driven by the PLL. This cannot
                                            be changed while inputs are running.
 
-                                           Setting this field to BAPE_Pll_eMax will 
-                                           prevent this mixer from using a PLL as a 
+                                           Setting this field to BAPE_Pll_eMax will
+                                           prevent this mixer from using a PLL as a
                                            timing source.   */
 
     BAPE_Nco outputNco;                 /* Which output NCO will be used with this mixer.
-                                           It's usage depends on the type of outputs 
-                                           connected to the mixer.  If the mixer has 
+                                           It's usage depends on the type of outputs
+                                           connected to the mixer.  If the mixer has
                                            only DAC outputs, then outputNco is not used.
-                                           Otherwise, if the mixer has any I2S or Spdif 
-                                           outputs, then outputNco specifies the NCO to 
-                                           be used as the mixer's timing source unless 
-                                           outputPll specifies a valid PLL.  Otherwise 
-                                           (no DACS, I2S, or Spdif outputs), then 
-                                           outputNco specifies the NCO to use for the 
+                                           Otherwise, if the mixer has any I2S or Spdif
+                                           outputs, then outputNco specifies the NCO to
+                                           be used as the mixer's timing source unless
+                                           outputPll specifies a valid PLL.  Otherwise
+                                           (no DACS, I2S, or Spdif outputs), then
+                                           outputNco specifies the NCO to use for the
                                            timing source.
 
-                                           Recommended for use when a mixer only has MAI, 
+                                           Recommended for use when a mixer only has MAI,
                                            DummyOutput, and/or OutputCapture outputs
                                            (if the current chip has an audio NCO).
 
-                                           Independent NCOs should be used if their 
+                                           Independent NCOs should be used if their
                                            input clock (timebase) is different.  This
                                            cannot be changed while inputs are running.
 
                                            This field's default value is BAPE_Nco_eMax,
-                                           which prevents the mixer from using an 
+                                           which prevents the mixer from using an
                                            NCO for a timing source.  */
 
-    BAVC_Timebase outputTimebase;       /* What timebase will be used to drive 
-                                           any DAC outputs connected to this mixer.  
-                                           Timebase input to the VCXO Rate Manager 
-                                           must be programmed externally by the 
-                                           application.  This cannot be changed while 
+    BAVC_Timebase outputTimebase;       /* What timebase will be used to drive
+                                           any DAC outputs connected to this mixer.
+                                           Timebase input to the VCXO Rate Manager
+                                           must be programmed externally by the
+                                           application.  This cannot be changed while
                                            inputs are running. */
 
     unsigned outputDelay;               /* Delay for connected outputs (in ms).  Currently, applies to decoder
@@ -145,7 +166,7 @@ typedef struct BAPE_MixerSettings
 
     int multiStreamBalance;             /* If this is a DSP mixer and you are mixing multi-stream content, this
                                            value controls the relative volume between the main and associated
-                                           audio content.  0 means no preference.  Positive values up to 32 
+                                           audio content.  0 means no preference.  Positive values up to 32
                                            favor associated audio in dB steps.  32 will mute main audio.  Negative
                                            values down to -32 favor main audio in dB steps.  -32 will mute the
                                            associated audio. */
@@ -222,17 +243,17 @@ void BAPE_Mixer_GetSettings(
 
 /***************************************************************************
 Summary:
-Set Mixer Settings 
- 
-Description: 
-This call can only be made while all inputs to a mixer are stopped and 
-the mixer itself is stopped (meaning BAPE_Mixer_Start has not been called). 
-Attempts to change on the fly will return an error and the new settings will 
-not be saved.  The only exception is changing the mixer balance settings 
-for DSP mixers. 
- 
-See Also: 
-BAPE_Mixer_GetSettings 
+Set Mixer Settings
+
+Description:
+This call can only be made while all inputs to a mixer are stopped and
+the mixer itself is stopped (meaning BAPE_Mixer_Start has not been called).
+Attempts to change on the fly will return an error and the new settings will
+not be saved.  The only exception is changing the mixer balance settings
+for DSP mixers.
+
+See Also:
+BAPE_Mixer_GetSettings
 ***************************************************************************/
 BERR_Code BAPE_Mixer_SetSettings(
     BAPE_MixerHandle hMixer,
@@ -241,12 +262,12 @@ BERR_Code BAPE_Mixer_SetSettings(
 
 /***************************************************************************
 Summary:
-Start a mixer 
+Start a mixer
 
 Description:
 This call is optional.  By default, mixers will automatically start when
 The first input starts, but if you want to explicitly enable the mixer
-earlier call this function prior to starting any inputs. 
+earlier call this function prior to starting any inputs.
 ***************************************************************************/
 BERR_Code BAPE_Mixer_Start(
     BAPE_MixerHandle handle
@@ -257,7 +278,7 @@ Summary:
 Stop a mixer
 
 Description:
-This call is required only if you call BAPE_Mixer_Start().  By default, 
+This call is required only if you call BAPE_Mixer_Start().  By default,
 mixers will automatically stop when the last input stops, but if you
 have explicitly started the mixer via BAPE_Mixer_Start() you must call
 this routine to stop it after all inputs have stopped.
@@ -282,7 +303,7 @@ Mixer Input Settings
 typedef struct BAPE_MixerAddInputSettings
 {
     bool sampleRateMaster;      /* If true, this will be the master input for sample rate purposes */
-    bool convertSampleRate;     /* For DSP mixers, this input must be sample-rate converted to 
+    bool convertSampleRate;     /* For DSP mixers, this input must be sample-rate converted to
                                    match the mixed sample rate.  Ignored on other mixer types.  */
 
     BAPE_MixerInputCaptureHandle capture;   /* A mixer input capture handle may be provided to
@@ -300,11 +321,11 @@ void BAPE_Mixer_GetDefaultAddInputSettings(
 
 /***************************************************************************
 Summary:
-Add Mixer Input 
- 
-Description: 
-Inputs to a mixer can not be modified while any previously connected 
-inputs are running. 
+Add Mixer Input
+
+Description:
+Inputs to a mixer can not be modified while any previously connected
+inputs are running.
 ***************************************************************************/
 BERR_Code BAPE_Mixer_AddInput(
     BAPE_MixerHandle handle,
@@ -314,11 +335,11 @@ BERR_Code BAPE_Mixer_AddInput(
 
 /***************************************************************************
 Summary:
-Remove Mixer Input 
- 
-Description: 
-Inputs to a mixer can not be modified while any previously connected 
-inputs are running. 
+Remove Mixer Input
+
+Description:
+Inputs to a mixer can not be modified while any previously connected
+inputs are running.
 ***************************************************************************/
 BERR_Code BAPE_Mixer_RemoveInput(
     BAPE_MixerHandle handle,
@@ -328,10 +349,10 @@ BERR_Code BAPE_Mixer_RemoveInput(
 /***************************************************************************
 Summary:
 Remove All Mixer Inputs
- 
-Description: 
-Inputs to a mixer can not be modified while any previously connected 
-inputs are running. 
+
+Description:
+Inputs to a mixer can not be modified while any previously connected
+inputs are running.
 ***************************************************************************/
 BERR_Code BAPE_Mixer_RemoveAllInputs(
     BAPE_MixerHandle handle
@@ -340,9 +361,9 @@ BERR_Code BAPE_Mixer_RemoveAllInputs(
 /***************************************************************************
 Summary:
 Add Mixer Output
- 
-Description: 
-Outputs from a mixer can not be modified while any previously connected 
+
+Description:
+Outputs from a mixer can not be modified while any previously connected
 inputs are running.
 ***************************************************************************/
 BERR_Code BAPE_Mixer_AddOutput(
@@ -353,9 +374,9 @@ BERR_Code BAPE_Mixer_AddOutput(
 /***************************************************************************
 Summary:
 Remove Mixer Output
- 
-Description: 
-Outputs from a mixer can not be modified while any previously connected 
+
+Description:
+Outputs from a mixer can not be modified while any previously connected
 inputs are running.
 ***************************************************************************/
 BERR_Code BAPE_Mixer_RemoveOutput(
@@ -366,10 +387,10 @@ BERR_Code BAPE_Mixer_RemoveOutput(
 /***************************************************************************
 Summary:
 Remove All Mixer Outputs
- 
-Description: 
-Outputs from a mixer can not be modified while any previously connected 
-inputs are running. 
+
+Description:
+Outputs from a mixer can not be modified while any previously connected
+inputs are running.
 ***************************************************************************/
 BERR_Code BAPE_Mixer_RemoveAllOutputs(
     BAPE_MixerHandle handle
@@ -383,15 +404,15 @@ typedef struct BAPE_MixerInputVolume
 {
     int32_t coefficients[BAPE_Channel_eMax][BAPE_Channel_eMax];     /* Entries in this table reflect scaling from the input channel to the output channel.
                                                                        The first index is the input channel and the second index is the output channel.
-                                                                       Default is to have BAPE_VOLUME_NORMAL for each [n][n] coefficient and 
+                                                                       Default is to have BAPE_VOLUME_NORMAL for each [n][n] coefficient and
                                                                        BAPE_VOLUME_MIN for all others.  This maps input channels to the same output channel
                                                                        with no scaling.  You can achieve effects such as a mono mix with these coefficients
-                                                                       if desired by setting [Left][Left] to BAPE_VOLUME_NORMAL/2 and [Left][Right] to 
-                                                                       BAPE_VOLUME_NORMAL/2, etc.  Mixing is only permitted between channels in the 
-                                                                       same channel pair, so for example you can blend left and right, but not left and 
-                                                                       center.  Values are specified in 5.23 2' complement integers.  These settings 
+                                                                       if desired by setting [Left][Left] to BAPE_VOLUME_NORMAL/2 and [Left][Right] to
+                                                                       BAPE_VOLUME_NORMAL/2, etc.  Mixing is only permitted between channels in the
+                                                                       same channel pair, so for example you can blend left and right, but not left and
+                                                                       center.  Values are specified in 5.23 2' complement integers.  These settings
                                                                        are ignored for compressed inputs. */
-    uint32_t coefficientRamp;     /* The 23 LSB of this field is the fractional part and the bit[26:23] MSB is the integer part. 
+    uint32_t coefficientRamp;     /* The 23 LSB of this field is the fractional part and the bit[26:23] MSB is the integer part.
                                      e.g. 0x800000 = 1, 0x400000 = 0.5 */
     bool muted;                   /* Mute input data if true */
 } BAPE_MixerInputVolume;
@@ -408,11 +429,11 @@ BERR_Code BAPE_Mixer_GetInputVolume(
 
 /***************************************************************************
 Summary:
-Set Input Volume Settings 
- 
-Description: 
-Because inputs can be connected to more than one mixer, input volume is not 
-persistent after an input is removed from a mixer. 
+Set Input Volume Settings
+
+Description:
+Because inputs can be connected to more than one mixer, input volume is not
+persistent after an input is removed from a mixer.
 ***************************************************************************/
 BERR_Code BAPE_Mixer_SetInputVolume(
     BAPE_MixerHandle mixer,
@@ -426,7 +447,7 @@ Output Volume Settings
 ***************************************************************************/
 typedef struct BAPE_OutputVolume
 {
-    uint32_t volume[BAPE_Channel_eMax];         /* Output volume scaling per output channel.  Default is BAPE_VOLUME_NORMAL for all channels.  
+    uint32_t volume[BAPE_Channel_eMax];         /* Output volume scaling per output channel.  Default is BAPE_VOLUME_NORMAL for all channels.
                                                    Ignored for compressed data.  Values are specified in 5.23 integers, so 0x800000 corresponds
                                                    to unity (BAPE_VOLUME_NORMAL). */
     bool muted;                                 /* Mute all output channels if true. */
@@ -443,17 +464,17 @@ BERR_Code BAPE_GetOutputVolume(
 
 /***************************************************************************
 Summary:
-Set Output Volume Settings 
- 
-Description: 
-Output volume settings are persistent and will remain set even when 
-outputs are added/removed from mixers. 
+Set Output Volume Settings
+
+Description:
+Output volume settings are persistent and will remain set even when
+outputs are added/removed from mixers.
 ***************************************************************************/
 BERR_Code BAPE_SetOutputVolume(
     BAPE_OutputPort output,
     const BAPE_OutputVolume *pVolume
     );
-   
+
 /***************************************************************************
 Summary:
 Output Delay Status
@@ -472,7 +493,7 @@ void BAPE_GetOutputDelayStatus(
     BAPE_OutputPort output,
     BAPE_OutputDelayStatus *pStatus     /* [out] */
     );
-      
+
 /***************************************************************************
 Summary:
 Get Output Volume Ramp Step
@@ -480,10 +501,10 @@ Get Output Volume Ramp Step
 void BAPE_GetOutputVolumeRampStep(
     BAPE_Handle deviceHandle,
     uint32_t *pRampStep                 /* All mixers output volume is changed by this amount
-                                           every Fs while ramping.  Specified in 4.23 format. 
+                                           every Fs while ramping.  Specified in 4.23 format.
                                            Ignored for compressed data. */
     );
-   
+
 /***************************************************************************
 Summary:
 Set Output Volume Ramp Step
@@ -491,10 +512,10 @@ Set Output Volume Ramp Step
 BERR_Code BAPE_SetOutputVolumeRampStep(
     BAPE_Handle deviceHandle,
     uint32_t rampStep                   /* All mixers output volume is changed by this amount
-                                           every Fs while ramping.  Specified in 4.23 format. 
+                                           every Fs while ramping.  Specified in 4.23 format.
                                            Ignored for compressed data. */
     );
-   
+
 /***************************************************************************
 Summary:
 Get Sample Rate Converter Volume Ramp Step
@@ -502,10 +523,10 @@ Get Sample Rate Converter Volume Ramp Step
 void BAPE_GetSampleRateConverterRampStep(
     BAPE_Handle deviceHandle,
     uint32_t *pRampStep                 /* All sample rate converters volume is changed by this amount
-                                           every Fs while ramping.  Specified in 4.23 format. 
+                                           every Fs while ramping.  Specified in 4.23 format.
                                            Ignored for compressed data. */
     );
-   
+
 /***************************************************************************
 Summary:
 Set Sample Rate Converter Volume Ramp Step
@@ -513,9 +534,8 @@ Set Sample Rate Converter Volume Ramp Step
 BERR_Code BAPE_SetSampleRateConverterRampStep(
     BAPE_Handle deviceHandle,
     uint32_t rampStep                   /* All sample rate converters volume is changed by this amount
-                                           every Fs while ramping.  Specified in 4.23 format. 
+                                           every Fs while ramping.  Specified in 4.23 format.
                                            Ignored for compressed data. */
     );
 
 #endif /* #ifndef BAPE_MIXER_H_ */
-

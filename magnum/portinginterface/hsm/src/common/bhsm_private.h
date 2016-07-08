@@ -1,41 +1,43 @@
 /******************************************************************************
- *    (c)2007-2015 Broadcom Corporation
- *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
- *
- * Except as expressly set forth in the Authorized License,
- *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
- *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
- *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *
- *****************************************************************************/
+* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*
+* This program is the proprietary software of Broadcom and/or its
+* licensors, and may only be used, duplicated, modified or distributed pursuant
+* to the terms and conditions of a separate, written license agreement executed
+* between you and Broadcom (an "Authorized License").  Except as set forth in
+* an Authorized License, Broadcom grants no license (express or implied), right
+* to use, or waiver of any kind with respect to the Software, and Broadcom
+* expressly reserves all rights in and to the Software and all intellectual
+* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*
+* Except as expressly set forth in the Authorized License,
+*
+* 1. This program, including its structure, sequence and organization,
+*    constitutes the valuable trade secrets of Broadcom, and you shall use all
+*    reasonable efforts to protect the confidentiality thereof, and to use
+*    this information only in connection with your use of Broadcom integrated
+*    circuit products.
+*
+* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+*
+* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. , WHICHEVER
+*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+******************************************************************************/
 
 #ifndef BHSM_PRIVATE_H__
 #define BHSM_PRIVATE_H__
@@ -62,12 +64,7 @@ extern "C" {
 #endif
 
 
-/* external variable section (global ) */
-extern unsigned int           BSP_CmdInterface;      /* defined in bhsm.c */
-
 /* Definitions */
-
-
 #define BHSM_MAX_KEYLSOTS                         (186)    /* Absolute mixumum number of Keyslots that can be supported by BSP for Zeus 4.1*/
 
 /* External Keys */
@@ -80,18 +77,6 @@ extern unsigned int           BSP_CmdInterface;      /* defined in bhsm.c */
 #define BHSM_STASH_DWORDSIZE_NUM_KEYSLOT_TYPES    (1)
 #define BHSM_STASH_DWORDSIZE_KEYSLOT_TYPES        (2)
 
-
-#if BHSM_SAGE_INTF_SUPPORT
-
-/* START at offset DWORD 0x50 */
-#define BHSM_STASH_OFFSET                    (0x50*4)
-#define BHSM_STASH_MAX_SIZE                  (0xF*4)  /* Maximum size of the SRAM STASH */
-#define BHSM_STASH_OFFSET_SIGNATURE          (BHSM_STASH_OFFSET)
-#define BHSM_STASH_OFFSET_M2M_SLOTS          (BHSM_STASH_OFFSET_SIGNATURE         + (BHSM_STASH_DWORDSIZE_SIGNATURE*4))
-#define BHSM_STASH_OFFSET_NUM_KEYSLOT_TYPES  (BHSM_STASH_OFFSET_M2M_SLOTS         + (BHSM_STASH_DWORDSIZE_M2M_SLOTS*4))
-#define BHSM_STASH_OFFSET_KEYSLOT_TYPES      (BHSM_STASH_OFFSET_NUM_KEYSLOT_TYPES + (BHSM_STASH_DWORDSIZE_NUM_KEYSLOT_TYPES*4) )
-/*                 to 0x5F available. */
-#endif
 
 #define BHSM_P_HANDLE_MAGIC_NUMBER             0xface1001   /* HSM handle magic number  */
 #define BHSM_P_CHANNEL_HANDLE_MAGIC_NUMBER     0xface1002   /* channel handle magic number */
@@ -178,49 +163,6 @@ typedef struct BHSM_P_CAKeySlotInfo {
 
 struct BHSM_P_Handle;
 
-/***************************************************************************
-Summary:
-Structure that defines Host Secure channel handle.
-
-Description:
-Structure that defines Host Secure channel handle.
-
-****************************************************************************/
-typedef struct BHSM_P_ChannelHandle
-{
-    uint32_t                  ulMagicNumber; /* Must be  BHSM_P_CHANNEL_HANDLE_MAGIC_NUMBER */
-
-    struct BHSM_P_Handle     *moduleHandle;   /* Module handle */
-
-    BHSM_ChannelSettings      currentChannelSettings;   /* current channel settings */
-
-    uint8_t                   ucChannelNumber;     /* channel number */
-
-    bool                      bIsOpen;    /* Is channel opened */
-
-    uint32_t                  ulSequenceNum; /* sequence number, only use 8 bits now. Watch out for big/little endian */
-
-    unsigned long            ulInCmdBufAddr;                   /* Start Address of input cmd buffer */
-    unsigned long            ulOutCmdBufAddr;                   /* Start Address of output cmd buffer */
-
-    unsigned long            ulILoadRegAddr;
-    unsigned long            ulILoadVal;
-
-    unsigned long            ulIReadyRegAddr;
-    unsigned long            ulIReadyVal;
-
-    BKNI_EventHandle         oLoadWait;
-
-    uint8_t                  oLoadSet;            /* for CTRL-C issue */
-
-#if BHSM_DEBUG_POLLING          /* a safe place, not in bhsm.c */
-#define BHSM_DEBUG_POLLINGBUF_MAX (256)
-    uint16_t              pollingIntervalBuf[BHSM_DEBUG_POLLINGBUF_MAX];    /* max interval = 65535 us = 65 ms, long enough*/
-    uint16_t              pollingBufIndex;
-#endif
-
-} BHSM_P_ChannelHandle;
-
 
 /* Representation of BSP external key slot table */
 typedef struct {
@@ -251,8 +193,6 @@ BHSM_Open()
  typedef struct BHSM_P_Handle
 {
     uint32_t                  ulMagicNumber; /* Must be  BHSM_P_HANDLE_MAGIC_NUMBER */
-
-    struct BHSM_P_ChannelHandle *    channelHandles[BHSM_MAX_SUPPOTED_CHANNELS];
 
     BHSM_Settings          currentSettings;   /* current settings */
 

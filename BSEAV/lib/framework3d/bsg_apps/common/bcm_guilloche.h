@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -11,7 +11,7 @@
  * Software and all intellectual property rights therein.  IF YOU HAVE NO
  * AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
  * AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
- * SOFTWARE.  
+ * SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
@@ -71,7 +71,7 @@ public:
    void SetScale(float horiz, float vertStart, float vertFinish);
 
    // Set the curve width (in 0 .. 1 screen space)
-   void SetWidth(float width, bool useY = true);
+   void SetWidth(float width);
 
    // Use this handle to include the Guilloche in your own graph
    const bsg::SceneNodeHandle   &GetRoot() const     { return m_root; }
@@ -104,7 +104,7 @@ private:
 // Render the provided Guilloche based on screen position "pos" and rotation "rot"
 // pos is in the screen space (0,0) <= x,y <= (1,1) and refers to the point (0, 0) of the curve
 // rot is the rotation (anticlockwise degrees) about pos
-// 
+//
 class GuillochePanel
 {
 public:

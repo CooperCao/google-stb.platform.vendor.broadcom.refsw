@@ -220,7 +220,7 @@ static void ipc_thread(void *context)
                     BDBG_ASSERT(client->id == id);
                     rc = bipc_server_client_process(server->ipc, client->ipc);
                     if(rc!=0) {
-                        BDBG_MSG(("closing %s client:%#lx(%#lx) with fd:%d ", dbg_str, (unsigned long)client, client->client, client->fd));
+                        BDBG_MSG(("closing %s client:%p(%p) with fd:%d ", dbg_str, (void*)client, (void*)client->client, client->fd));
                         nxserver_client_destroy(server, client);
                     }
                 } else {

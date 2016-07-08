@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2013 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,6 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  **************************************************************************/
 #ifndef NEXUS_STILL_DECODER_H__
 #define NEXUS_STILL_DECODER_H__
@@ -75,7 +65,7 @@ typedef struct NEXUS_StillDecoderOpenSettings
 {
     unsigned fifoSize;
     NEXUS_HeapHandle cdbHeap; /* Heap for CDB. For compressed restricted region (CRR), set to heap[NEXUS_VIDEO_SECURE_HEAP]. */
-    NEXUS_HeapHandle heap; /* optional picture buffer heap. This overrides the NEXUS_VideoDecoderModuleSettings.avdHeapIndex setting. */
+    NEXUS_HeapHandle heap; /* optional picture buffer heap. This overrides the NEXUS_VideoDecoderModuleInternalSettings.avdHeapIndex setting. */
     
     bool supportedCodecs[NEXUS_VideoCodec_eMax]; /* list of codecs that can be decoded. */
     unsigned maxWidth, maxHeight; /* max resolution of still */

@@ -1,7 +1,7 @@
-/***************************************************************************
- *     (c)2007-2013 Broadcom Corporation
+/******************************************************************************
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,18 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
- **************************************************************************/
+ ******************************************************************************/
 #include "nexus_graphics2d_module.h"
 #include "nexus_graphics2d_impl.h"
 #include "priv/nexus_surface_priv.h"
@@ -66,7 +55,7 @@ BDBG_FILE_MODULE(pxlval);
       (((c1) & 0xFF) <<  8) | (((c0) & 0xFF) << 0) )
 #endif
 
-#if (BCHP_CHIP==7271)
+#if (BCHP_CHIP==7271) || (BCHP_CHIP==7268)
     #define SCB_8_0    1
 #elif (BCHP_CHIP==7445) || (BCHP_CHIP==7439) || (BCHP_CHIP==7366) || (BCHP_CHIP==7145) || \
     (BCHP_CHIP==74371) || (BCHP_CHIP==7439) || (BCHP_CHIP==7445) || (BCHP_CHIP==7364) || (BCHP_CHIP==7250)
@@ -139,13 +128,22 @@ NEXUS_Error NEXUS_Graphics2D_StripeBlit(
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
+    /* NOTE: current solution requires cpu access to surface, so must protect cpu
+       accessible address to avoid crash; */
+    NEXUS_Surface_GetMemory(pSettings->source.surface, &surfaceMem);
+    if(!NEXUS_P_CpuAccessibleAddress(surfaceMem.buffer)) {
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+
     /* pin down striped surface memory */
-    if( NEXUS_SUCCESS != NEXUS_MemoryBlock_Lock(picCfg.lumaBuffer, &ptr)) {
+    if( NEXUS_SUCCESS != NEXUS_MemoryBlock_Lock(picCfg.lumaBuffer, &ptr) ||
+        !NEXUS_P_CpuAccessibleAddress(ptr) ) {
         return BERR_TRACE(NEXUS_INVALID_PARAMETER);
     }
     pvLumaStartAddress = ptr;
     pvLumaStartAddress += picCfg.lumaBufferOffset;
-    if( NEXUS_SUCCESS != NEXUS_MemoryBlock_Lock(picCfg.chromaBuffer, &ptr)) {
+    if( NEXUS_SUCCESS != NEXUS_MemoryBlock_Lock(picCfg.chromaBuffer, &ptr) ||
+        !NEXUS_P_CpuAccessibleAddress(ptr) ) {
         NEXUS_MemoryBlock_Unlock(picCfg.lumaBuffer);
         return BERR_TRACE(NEXUS_INVALID_PARAMETER);
     }
@@ -162,26 +160,22 @@ NEXUS_Error NEXUS_Graphics2D_StripeBlit(
         pvChromaStartAddress += picCfg.stripedWidth;
     }
 
-    /* for now do a short-cut and assume that NEXUS_MemoryBlock is already pinned */
-
     /* get the source surface address */
-    NEXUS_Surface_GetMemory(pSettings->source.surface, &surfaceMem);
     pvSurface = surfaceMem.buffer;
 
     /* flush the offscreen surface filled by GRC hw before host access */
     NEXUS_Surface_Flush(pSettings->source.surface);
-    BDBG_MODULE_MSG(pxlval, ("%p(0, 0): pxl = %#x", (unsigned*)surfaceMem.buffer, *(unsigned*)surfaceMem.buffer));
-    BDBG_MODULE_MSG(pxlval, ("%p(4, 0): pxl = %#x", (unsigned*)surfaceMem.buffer + 1, *((unsigned*)surfaceMem.buffer + 1)));
+    BDBG_MODULE_MSG(pxlval, ("%p(0, 0): pxl = %#x", (void*)((unsigned*)surfaceMem.buffer), *(unsigned *)surfaceMem.buffer));
+    BDBG_MODULE_MSG(pxlval, ("%p(4, 0): pxl = %#x", (void*)((unsigned*)surfaceMem.buffer + 1), *((unsigned *)surfaceMem.buffer + 1)));
 
     /* get the stripe surface info */
-    NEXUS_StripedSurface_GetCreateSettings(pSettings->output.stripedSurface, &picCfg);
     shuffleBit = (picCfg.stripedWidth==256)? 9:8;
     totalByteWidth = picCfg.stripedWidth * (picCfg.imageWidth + (picCfg.stripedWidth - 1)) / picCfg.stripedWidth;
     lumaBufSize   = totalByteWidth * picCfg.lumaStripedHeight;
     chromaBufSize = totalByteWidth * picCfg.chromaStripedHeight;
 
     /* Traverse through each line in the frame */
-    BDBG_MSG(("to stripe the image: %ux%u...", picCfg.imageWidth, picCfg.imageHeight));
+    BDBG_MSG(("to stripe the image: %ux%u...", (unsigned)picCfg.imageWidth, (unsigned)picCfg.imageHeight));
     for( yi = 0; yi < picCfg.imageHeight; yi++ )
     {
         /* Traverse through each 4 pixels in the line */

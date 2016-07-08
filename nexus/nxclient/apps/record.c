@@ -1,45 +1,40 @@
 /******************************************************************************
- *    (c)2013 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- *****************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ ******************************************************************************/
 #if NEXUS_HAS_PLAYBACK && NEXUS_HAS_RECORD && NEXUS_HAS_SIMPLE_DECODER && NEXUS_HAS_TRANSPORT
 #include "nxclient.h"
 #if NEXUS_HAS_FRONTEND
@@ -63,6 +58,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
+#include <sys/stat.h>
 
 BDBG_MODULE(record);
 
@@ -101,6 +97,7 @@ static void print_usage(const struct nxapps_cmdline *cmdline)
     print_list_option("crypto",g_securityAlgoStrs);
     printf(
         "  -psi {on|off}            inject PSI into recording. defaults on with crypto.\n"
+        "  -append                  append recording to OUTPUTFILE\n"
         );
 }
 
@@ -111,15 +108,15 @@ static void print_record_status(const char *filename, const char *indexname, NEX
     if (indexonly) {
         status.recpumpStatus.data.bytesRecorded = 0;
     }
-    BDBG_WRN(("%s %llu bytes (%d%%), %s %u (%d%%), %d seconds, %d pictures",
+    BDBG_WRN(("%s "BDBG_UINT64_FMT" bytes (%d%%), %s %u (%d%%), %d seconds, %d pictures",
         filename,
-        status.recpumpStatus.data.bytesRecorded,
-        status.recpumpStatus.data.fifoSize ? status.recpumpStatus.data.fifoDepth*100/status.recpumpStatus.data.fifoSize : 0,
+        BDBG_UINT64_ARG(status.recpumpStatus.data.bytesRecorded),
+        status.recpumpStatus.data.fifoSize ? (unsigned)(status.recpumpStatus.data.fifoDepth*100/status.recpumpStatus.data.fifoSize) : 0,
         indexname,
         (unsigned)status.recpumpStatus.index.bytesRecorded,
-        status.recpumpStatus.index.fifoSize ? status.recpumpStatus.index.fifoDepth*100/status.recpumpStatus.index.fifoSize : 0,
-        status.lastTimestamp / 1000,
-        status.picturesIndexed));
+        status.recpumpStatus.index.fifoSize ? (unsigned)(status.recpumpStatus.index.fifoDepth*100/status.recpumpStatus.index.fifoSize) : 0,
+        (unsigned)status.lastTimestamp / 1000,
+        (unsigned)status.picturesIndexed));
 }
 
 static int set_fifo_settings(NEXUS_FifoRecordHandle fifofile, unsigned interval, unsigned maxBitRate)
@@ -213,6 +210,7 @@ int main(int argc, const char **argv)
     struct nxapps_cmdline cmdline;
     int n;
     NEXUS_TristateEnable psi_injection = NEXUS_TristateEnable_eNotSet;
+    bool append = false;
 
     nxapps_cmdline_init(&cmdline);
     nxapps_cmdline_allow(&cmdline, nxapps_cmdline_type_frontend);
@@ -257,6 +255,9 @@ int main(int argc, const char **argv)
         }
         else if (!strcmp(argv[curarg], "-psi") && argc>curarg+1) {
             psi_injection = parse_boolean(argv[++curarg]) ? NEXUS_TristateEnable_eEnable : NEXUS_TristateEnable_eDisable;
+        }
+        else if (!strcmp(argv[curarg], "-append")) {
+            append = true;
         }
         else if ((n = nxapps_cmdline_parse(curarg, argc, argv, &cmdline))) {
             if (n < 0) {
@@ -412,6 +413,9 @@ int main(int argc, const char **argv)
         set_fifo_settings(fifofile, timeshift, 20*1024*1024);
         file = NEXUS_FifoRecord_GetFile(fifofile);
     }
+    else if (append) {
+        file = NEXUS_FileRecord_AppendPosix(filename, indexname);
+    }
     else {
         file = NEXUS_FileRecord_OpenPosix(indexonly?NULL:filename, indexname);
     }
@@ -483,8 +487,23 @@ int main(int argc, const char **argv)
         scan_results.program_info[program].num_other_pids = 1;
     }
 
-    rc = NEXUS_Record_Start(record, file);
-    BDBG_ASSERT(!rc);
+    if (append) {
+        NEXUS_RecordAppendSettings appendSettings;
+        struct stat st;
+        rc = stat(filename, &st);
+        if (rc) {
+            return BERR_TRACE(rc);
+        }
+        BDBG_WRN(("appending to %s, size %u MB", filename, (unsigned)(st.st_size/1024/1024)));
+        NEXUS_Record_GetDefaultAppendSettings(&appendSettings);
+        appendSettings.startingOffset = st.st_size;
+        rc = NEXUS_Record_StartAppend(record, file, &appendSettings);
+        BDBG_ASSERT(!rc);
+    }
+    else {
+        rc = NEXUS_Record_Start(record, file);
+        BDBG_ASSERT(!rc);
+    }
 
     if (psi_injection == NEXUS_TristateEnable_eNotSet) {
         psi_injection = crypto ? NEXUS_TristateEnable_eEnable : NEXUS_TristateEnable_eDisable;

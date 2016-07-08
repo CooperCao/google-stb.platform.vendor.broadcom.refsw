@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2011 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2011 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -130,7 +130,8 @@ Server-side implementation of the GL_OES_draw_texture extension for GLES 1.1.
 
 */
 
-static void try_slow_path(GLXX_SERVER_STATE_T *state, GLfloat Xs, GLfloat Ys, GLfloat Zw, GLfloat Ws, GLfloat Hs)
+static void try_slow_path(GLXX_SERVER_STATE_T *state,
+   GLfloat Xs, GLfloat Ys, GLfloat Zw, GLfloat Ws, GLfloat Hs, bool secure)
 {
    uint32_t i;
    GL11_TEXUNIT_T * texunit = NULL;
@@ -168,39 +169,34 @@ static void try_slow_path(GLXX_SERVER_STATE_T *state, GLfloat Xs, GLfloat Ys, GL
                {
                   uint32_t pixels = (uint32_t)mem_lock(hstorage, NULL);
                   if(!(pixels & 0xfff))/* 4k aligned */
-                  {
                      tex_ok = true;
-                  }
+
                   mem_unlock(hstorage);
                }
                mem_unlock(himage);
             }
          }
-         else if(khrn_image_is_tformat(texture->format) || khrn_image_is_lineartile(texture->format))
-         {
+         else if (khrn_image_is_tformat(texture->format) || khrn_image_is_lineartile(texture->format))
             tex_ok = true;
-         }
 
          mem_unlock(thandle);
-         if(!tex_ok) /*found an enabled but not supported texture */
+         if (!tex_ok) /*found an enabled but not supported texture */
          {
-            if(texture->format == ABGR_8888_RSO || texture->format == BGR_888_RSO)
+            if (texture->format == ABGR_8888_RSO || texture->format == BGR_888_RSO)
             {
                /* call texture_image with null pixel pointer - should convert mipmaps back into tformat blob */
                tex_ok = glxx_texture_image(texture, GL_TEXTURE_2D, 0, texture->width, texture->height,
-                  texture->format == ABGR_8888_RSO ? GL_RGBA : GL_RGB, GL_UNSIGNED_BYTE, 4, 0);
+                  texture->format == ABGR_8888_RSO ? GL_RGBA : GL_RGB, GL_UNSIGNED_BYTE, 4, 0, false);
             }
          }
       }
    }
 
-   if(tex_ok)
-   {
-      glxx_hw_draw_tex(state, Xs, Ys, Zw, Ws, Hs);
-   }
+   if (tex_ok)
+      glxx_hw_draw_tex(state, Xs, Ys, Zw, Ws, Hs, secure);
 }
 
-void glDrawTexfOES_impl_11 (GLfloat Xs, GLfloat Ys, GLfloat Zs, GLfloat Ws, GLfloat Hs)
+void glDrawTexfOES_impl_11(GLfloat Xs, GLfloat Ys, GLfloat Zs, GLfloat Ws, GLfloat Hs, bool secure)
 {
    GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
 
@@ -216,7 +212,7 @@ void glDrawTexfOES_impl_11 (GLfloat Xs, GLfloat Ys, GLfloat Zs, GLfloat Ws, GLfl
       f = state->viewport.far;
       Zw = Zs <=0 ? n : Zs>=1 ? f : n + Zs * (f - n);
 
-      try_slow_path(state, Xs, Ys, Zw, Ws, Hs);
+      try_slow_path(state, Xs, Ys, Zw, Ws, Hs, secure);
    }
 
    GL11_UNLOCK_SERVER_STATE();

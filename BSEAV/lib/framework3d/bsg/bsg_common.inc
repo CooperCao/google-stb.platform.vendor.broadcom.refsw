@@ -1,7 +1,7 @@
 #############################################################################
-#    (c)2014 Broadcom Corporation
+#    Broadcom Proprietary and Confidential. (c)2014 Broadcom.  All rights reserved.
 #
-# This program is the proprietary software of Broadcom Corporation and/or its licensors,
+# This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
 # conditions of a separate, written license agreement executed between you and Broadcom
 # (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -94,7 +94,6 @@ CPP_COMMON_FILES += \
 	bsg_utf8.cpp \
 	bsg_task.cpp \
 	bsg_shape.cpp \
-	bsg_quad_render.cpp \
 	bsg_render_options.cpp \
 	bsg_pixel.cpp
 
@@ -178,7 +177,6 @@ H_COMMON_FILES += \
 	bsg_utf8.h \
 	bsg_task.h \
 	bsg_shape.h \
-	bsg_quad_render.h \
 	bsg_circle.h \
 	bsg_glapi.h \
 	bsg_pixel.h

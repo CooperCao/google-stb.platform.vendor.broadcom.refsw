@@ -1,7 +1,7 @@
 /******************************************************************************
-*    (c)2011-2013 Broadcom Corporation
+* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-* This program is the proprietary software of Broadcom Corporation and/or its licensors,
+* This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
 * conditions of a separate, written license agreement executed between you and Broadcom
 * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
 * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 * ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * Module Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 *****************************************************************************/
 #include "bstd.h"
@@ -70,6 +62,14 @@ static const uint32_t afec_pls_ldpc_iter_cnt_reg[8] = {
    BCHP_AFEC_PLS4_LDPC_ITER_CNT, BCHP_AFEC_PLS5_LDPC_ITER_CNT,
    BCHP_AFEC_PLS6_LDPC_ITER_CNT, BCHP_AFEC_PLS7_LDPC_ITER_CNT,
 };
+
+static const uint32_t afec_pls_bch_decnblk_reg[8] = {
+   BCHP_AFEC_PLS0_BCH_DECNBLK, BCHP_AFEC_PLS1_BCH_DECNBLK,
+   BCHP_AFEC_PLS2_BCH_DECNBLK, BCHP_AFEC_PLS3_BCH_DECNBLK,
+   BCHP_AFEC_PLS4_BCH_DECNBLK, BCHP_AFEC_PLS5_BCH_DECNBLK,
+   BCHP_AFEC_PLS6_BCH_DECNBLK, BCHP_AFEC_PLS7_BCH_DECNBLK,
+};
+
 #endif
 
 
@@ -873,7 +873,7 @@ BERR_Code BSAT_g1_P_GetBertStatus(BSAT_ChannelHandle h, BSAT_BertStatus *pStatus
    if (pStatus->bEnabled)
    {
       /* take snapshot */
-      BSAT_g1_P_ToggleBit_isrsafe(h, BCHP_SDS_BERT_BERCTL, 1<<18);
+      BSAT_g1_P_ToggleBit_isrsafe(h, BCHP_SDS_BERT_BERCTL, BCHP_SDS_BERT_0_BERCTL_BERT_SNAP_MASK);
       val = BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_SDS_BERT_BEST);
 
       BSAT_g1_P_GetLockStatus(h, &bDemodLocked, &bAcqDone);
@@ -1395,14 +1395,13 @@ BERR_Code BSAT_g1_P_SetACIBandwidth(BSAT_ChannelHandle h, uint32_t bw)
       hChn->bOverrideAciBandwidth = false;
    else
    {
-
-      if ((bw < 1000000) || (bw > 45000000))
-         retCode = BERR_INVALID_PARAMETER;
-      else
+      if (BSAT_g1_P_IsValidSymbolRate(bw))
       {
          hChn->bOverrideAciBandwidth = true;
          hChn->aciBandwidth = bw;
       }
+      else
+         retCode = BERR_INVALID_PARAMETER;
    }
 
    BDBG_LEAVE(BSAT_g1_P_SetACIBandwidth);
@@ -1999,6 +1998,12 @@ BERR_Code BSAT_g1_P_GetStreamStatus(BSAT_ChannelHandle h, uint8_t streamId, BSAT
          pStatus->iterationCount = BSAT_g1_P_ReadRegister_isrsafe(h, addr);
          pStatus->ldpcErrorCount = BSAT_g1_P_ReadRegister_isrsafe(h, addr+4);
          pStatus->ldpcFrameCount = BSAT_g1_P_ReadRegister_isrsafe(h, addr+8);
+
+         addr = afec_pls_bch_decnblk_reg[pls_idx];
+         pStatus->totalBlocks = BSAT_g1_P_ReadRegister_isrsafe(h, addr);
+         pStatus->corrBlocks = BSAT_g1_P_ReadRegister_isrsafe(h, addr+4);
+         pStatus->badBlocks = BSAT_g1_P_ReadRegister_isrsafe(h, addr+8);
+         pStatus->corrBits = BSAT_g1_P_ReadRegister_isrsafe(h, addr+12);
 
          val = BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_AFEC_LOCK_STATUS);
          if ((val >> pls_idx) & 1)

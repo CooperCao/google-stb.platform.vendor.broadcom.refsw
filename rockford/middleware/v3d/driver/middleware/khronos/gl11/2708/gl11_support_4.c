@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2010 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2010 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -28,7 +28,6 @@ implementation.
 #include "middleware/khronos/gl11/gl11_server.h"
 #include "middleware/khronos/gl11/gl11_matrix.h"
 #include "middleware/khronos/glxx/glxx_texture.h"
-#include "helpers/vc_image/vc_image.h"           // For debugging
 
 #include "middleware/khronos/glsl/glsl_common.h"
 #include "middleware/khronos/glsl/glsl_dataflow.h"

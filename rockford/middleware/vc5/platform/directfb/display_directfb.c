@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2010-11 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2010-11 Broadcom.
 All rights reserved.
 
 Project  :  Default DirectFB platform API for EGL driver
@@ -21,9 +21,9 @@ DFB platform layer
 
 #include <bkni.h>
 
-#include "interface/khronos/include/EGL/egl.h"
-#include "interface/khronos/include/EGL/eglext.h"
-#include "interface/khronos/include/EGL/eglext_brcm.h"
+#include <EGL/egl.h>
+#include <EGL/eglext.h>
+#include <EGL/eglext_brcm.h>
 
 #define MAX_SWAP_BUFFERS   3
 
@@ -359,6 +359,7 @@ static BEGL_Error DispGetNextSurface(
    BEGL_BufferFormat format,
    BEGL_BufferFormat *actualFormat,
    void **nativeSurface,
+   bool secure,
    int *fence)
 {
    DBPL_NativeWindow       *nw  = (DBPL_NativeWindow*)nativeWindow;
@@ -710,7 +711,7 @@ static const char *GetClientExtensions(void *context)
    return "EGL_BRCM_platform_nexus";
 }
 
-BEGL_DisplayInterface *CreateDisplayInterface(IDirectFB *dfb,
+BEGL_DisplayInterface *CreateDirectFBDisplayInterface(IDirectFB *dfb,
                                              BEGL_SchedInterface *schedIface)
 {
    DBPL_DisplayContext *context;
@@ -754,7 +755,7 @@ BEGL_DisplayInterface *CreateDisplayInterface(IDirectFB *dfb,
    return disp;
 }
 
-void DestroyDisplayInterface(BEGL_DisplayInterface * disp)
+void DestroyDirectFBDisplayInterface(BEGL_DisplayInterface * disp)
 {
    if (disp)
    {

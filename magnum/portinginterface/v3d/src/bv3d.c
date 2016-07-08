@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2012-2013 Broadcom Corporation
+ *     Broadcom Proprietary and Confidential. (c)2012-13 Broadcom.  All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -72,36 +72,39 @@ static void InterruptCallback_intctl_isr(void * pParm, int value)
 
    BSTD_UNUSED(value);
 
-   /* What Bin/Render interrupts have happened? */
-   flags  = BREG_Read32_isr(v3d->hReg, BCHP_V3D_CTL_INTCTL);
-   flags &= BREG_Read32_isr(v3d->hReg, BCHP_V3D_CTL_INTENA);
-   flags &= BREG_Read32_isr(v3d->hReg, BCHP_V3D_CTL_INTCTL);
-
-   /* Clear bin/render interrupts that we captured */
-   if (flags)
+   if (!v3d->bScrubbing)
    {
-      BREG_Write32_isr(v3d->hReg, BCHP_V3D_CTL_INTCTL, flags);
+      /* What Bin/Render interrupts have happened? */
+      flags  = BREG_Read32_isr(v3d->hReg, BCHP_V3D_CTL_INTCTL);
+      flags &= BREG_Read32_isr(v3d->hReg, BCHP_V3D_CTL_INTENA);
+      flags &= BREG_Read32_isr(v3d->hReg, BCHP_V3D_CTL_INTCTL);
 
-      /* If it's OOM, then disable the interrupt until we have done something about it */
-      if ((flags & BCHP_V3D_CTL_INTCTL_OFB_MASK) != 0)
+      /* Clear bin/render interrupts that we captured */
+      if (flags)
       {
-         BREG_Write32_isr(v3d->hReg, BCHP_V3D_CTL_INTDIS, BCHP_V3D_CTL_INTCTL_OFB_MASK);
+         BREG_Write32_isr(v3d->hReg, BCHP_V3D_CTL_INTCTL, flags);
+
+         /* If it's OOM, then disable the interrupt until we have done something about it */
+         if ((flags & BCHP_V3D_CTL_INTCTL_OFB_MASK) != 0)
+         {
+            BREG_Write32_isr(v3d->hReg, BCHP_V3D_CTL_INTDIS, BCHP_V3D_CTL_INTCTL_OFB_MASK);
+         }
+
+         BV3D_P_OnInterrupt_isr(v3d, flags);
       }
 
-      BV3D_P_OnInterrupt_isr(v3d, flags);
-   }
-
 #ifdef V3D_HANDLED_VIA_L2
-   /* L2 controller accepts a 'v3d_int_pulse'.  This means it need to go low->high to re-assert the IRQ.
-      The v3d block contains lots of async blocks so this can't be guaranteed.
+      /* L2 controller accepts a 'v3d_int_pulse'.  This means it need to go low->high to re-assert the IRQ.
+         The v3d block contains lots of async blocks so this can't be guaranteed.
 
-      To force the v3d IRQ low->high mask off IRQs and then put them back */
-   intena = BREG_Read32_isr(v3d->hReg, BCHP_V3D_CTL_INTENA);
-   BREG_Write32_isr(v3d->hReg, BCHP_V3D_CTL_INTDIS, -1);
+         To force the v3d IRQ low->high mask off IRQs and then put them back */
+      intena = BREG_Read32_isr(v3d->hReg, BCHP_V3D_CTL_INTENA);
+      BREG_Write32_isr(v3d->hReg, BCHP_V3D_CTL_INTDIS, -1);
 
-   /* re-enable state */
-   BREG_Write32_isr(v3d->hReg, BCHP_V3D_CTL_INTENA, intena);
+      /* re-enable state */
+      BREG_Write32_isr(v3d->hReg, BCHP_V3D_CTL_INTENA, intena);
 #endif
+   }
 }
 
 static void InterruptCallback_dbqitc_isr(void * pParm, int value)
@@ -112,18 +115,21 @@ static void InterruptCallback_dbqitc_isr(void * pParm, int value)
 
    BSTD_UNUSED(value);
 
-   /* What USR interrupts happened? */
-   dbqitc = BREG_Read32_isr(v3d->hReg, BCHP_V3D_DBG_DBQITC);
+   if (!v3d->bScrubbing && !v3d->bSecure)
+   {
+      /* What USR interrupts happened? */
+      dbqitc = BREG_Read32_isr(v3d->hReg, BCHP_V3D_DBG_DBQITC);
 
-   /* Clear the USR bits */
-   if (dbqitc)
-      BREG_Write32_isr(v3d->hReg, BCHP_V3D_DBG_DBQITC, dbqitc);
+      /* Clear the USR bits */
+      if (dbqitc)
+         BREG_Write32_isr(v3d->hReg, BCHP_V3D_DBG_DBQITC, dbqitc);
 
-   /* Signal the interrupt to the worker thread */
-   dbqitc = (dbqitc << 16);
+      /* Signal the interrupt to the worker thread */
+      dbqitc = (dbqitc << 16);
 
-   if (dbqitc != 0)
-      BV3D_P_OnInterrupt_isr(v3d, dbqitc);
+      if (dbqitc != 0)
+         BV3D_P_OnInterrupt_isr(v3d, dbqitc);
+   }
 }
 
 #ifdef V3D_HANDLED_VIA_L2
@@ -142,9 +148,13 @@ BERR_Code BV3D_Open(
    BREG_Handle hReg,
    BMMA_Heap_Handle hMma,
    uint64_t    uiHeapOffset,
+   BMMA_Heap_Handle hMmaSecure,
+   uint64_t    uiHeapOffsetSecure,
    BINT_Handle hInt,
    uint32_t    uiBinMemMegs,
    uint32_t    uiBinMemChunkPow,
+   uint32_t    uiBinMemMegsSecure,
+   void (*pfnSecureToggle)(bool),
    bool        bDisableAQA,
    uint32_t    uiClockFreq
 )
@@ -165,15 +175,18 @@ BERR_Code BV3D_Open(
    BKNI_Memset((void *)hV3d, 0, sizeof (BV3D_P_Handle));
 
    /* save base modules handles for future use */
-   hV3d->hChp  = hChp;
-   hV3d->hReg  = hReg;
-   hV3d->hInt  = hInt;
-   hV3d->hMma  = hMma;
+   hV3d->hChp              = hChp;
+   hV3d->hReg              = hReg;
+   hV3d->hInt              = hInt;
+   hV3d->hMma              = hMma;
+   hV3d->hMmaSecure        = hMmaSecure;
+   hV3d->pfnSecureToggle   = pfnSecureToggle;
 
    hV3d->hFd   = -1;
 
    /* v3d only handles 32bit */
    hV3d->uiHeapOffset = (uint32_t)uiHeapOffset;
+   hV3d->uiHeapOffsetSecure = (uint32_t)uiHeapOffsetSecure;
 
    hV3d->reallyPoweredOn = false;
    hV3d->isStandby = false;
@@ -230,6 +243,15 @@ BERR_Code BV3D_Open(
    err = BV3D_P_BinMemCreate(&hV3d->hBinMemManager, hV3d->hMma, uiBinMemMegs, uiBinMemChunkPow);
    if (err != BERR_SUCCESS)
       goto error;
+
+   if (hV3d->hMmaSecure)
+   {
+      err = BV3D_P_BinMemCreate(&hV3d->hBinMemManagerSecure, hV3d->hMmaSecure, uiBinMemMegsSecure, uiBinMemChunkPow);
+      if (err != BERR_SUCCESS)
+         goto error;
+   }
+   else
+      hV3d->hBinMemManagerSecure = NULL;
 
    err = BV3D_P_FenceArrayCreate(&hV3d->hFences);
    if (err != BERR_SUCCESS)
@@ -341,6 +363,9 @@ BERR_Code BV3D_Close(
 
    if (hV3d->hBinMemManager != NULL)
       BV3D_P_BinMemDestroy(hV3d->hBinMemManager);
+
+   if (hV3d->hBinMemManagerSecure != NULL)
+      BV3D_P_BinMemDestroy(hV3d->hBinMemManagerSecure);
 
    if (hV3d->hFences != NULL)
       BV3D_P_FenceArrayDestroy(hV3d->hFences);
@@ -565,6 +590,8 @@ BERR_Code BV3D_UnregisterClient(
 
    /* Release all remaining bin memory associated with this client */
    BV3D_P_BinMemReleaseByClient(hV3d->hBinMemManager, uiClientId);
+   if (hV3d->hBinMemManagerSecure != NULL)
+      BV3D_P_BinMemReleaseByClient(hV3d->hBinMemManagerSecure, uiClientId);
 
    /* Remove any pending fences */
    BV3D_P_FenceClientDestroy(hV3d->hFences, uiClientId);
@@ -685,12 +712,15 @@ BERR_Code BV3D_GetBinMemory(
 
    BKNI_AcquireMutex(hV3d->hModuleMutex);
    {
-      uint32_t          uiSize;
-      BV3D_BinMemHandle hMem = NULL;
+      uint32_t                   uiSize;
+      BV3D_BinMemHandle          hMem = NULL;
+      BV3D_BinMemManagerHandle   hBinMemManager = settings->bSecure ? hV3d->hBinMemManagerSecure : hV3d->hBinMemManager;
+
+      BDBG_ASSERT(hBinMemManager != NULL);
 
       /* Mustn't give away a block that could be used to replenish the overspill. */
-      if (BV3D_P_BinMemEnoughFreeBlocks(hV3d->hBinMemManager))
-         hMem = BV3D_P_BinMemAlloc(hV3d->hBinMemManager, uiClientId, &uiSize);
+      if (BV3D_P_BinMemEnoughFreeBlocks(hBinMemManager))
+         hMem = BV3D_P_BinMemAlloc(hBinMemManager, uiClientId, &uiSize);
 
       if (hMem != NULL)
       {
@@ -803,10 +833,14 @@ BERR_Code BV3D_Standby(
       return BERR_INVALID_PARAMETER;
    }
 
-   BKNI_AcquireMutex(hV3d->hModuleMutex);
-
    /* wait until the core goes idle */
-   while(!BV3D_P_AllUnitsIdle(hV3d));
+   while(1)
+   {
+      BKNI_AcquireMutex(hV3d->hModuleMutex);
+      if (BV3D_P_AllUnitsIdle(hV3d))
+         break;
+      BKNI_ReleaseMutex(hV3d->hModuleMutex);
+   }
 
 #ifdef BCHP_PWR_SUPPORT
    /* power off if the driver is really powered up but dont change the reallyPoweredOn state */
@@ -999,7 +1033,7 @@ BERR_Code BV3D_FenceSignal(
       goto exit;
    }
 
-   BDBG_MSG(("BV3D_FenceSignal %d : Handler %p, Fence Ptr %p", fd, pFence->pfnCallback, pFence));
+   BDBG_MSG(("BV3D_FenceSignal %d : Handler %p, Fence Ptr %p", fd, (void *)(uintptr_t)pFence->pfnCallback, (void *)pFence));
 
    pFence->eState = BV3D_FENCE_SIGNALLED;
 

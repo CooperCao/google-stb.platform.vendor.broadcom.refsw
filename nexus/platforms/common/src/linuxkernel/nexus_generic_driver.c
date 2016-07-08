@@ -471,11 +471,9 @@ nexus_generic_driver_ioctl(unsigned module, void *context_, unsigned int cmd, un
 
     /* Standby is handled as a special case because it needs to be syncronized with driver_close */
     if (lock_standby) LOCK();
-
     rc = g_nexus_driver_ioctl_handlers[module].ioctl(context, cmd, arg, NEXUS_IOCTL_TYPE(cmd), unlocked);
-    if (rc) {return BERR_TRACE(rc);}
-
     if (lock_standby) UNLOCK();
+    if (rc) {return BERR_TRACE(rc);}
 
 done:
     BDBG_MSG_TRACE(("<<nexus_driver_ioctl %u %#x %#x -> %d", module, cmd, arg, rc));
@@ -619,7 +617,7 @@ nexus_driver_proxy_ioctl(void *context, unsigned int cmd, unsigned long arg, uns
             if(rc!=0) {rc=BERR_TRACE(rc);goto err_fault;}
             rc = nexus_driver_run_scheduler(data.in.priority, data.in.timeout, &data.out.has_callbacks, state->slave_scheduler);
             if(rc!=0) {rc=BERR_TRACE(rc);goto err_fault;}
-            rc = copy_to_user_small((void *)((uint8_t *)arg+sizeof(data.in)), &data.out, sizeof(data.out));
+            rc = copy_to_user_small((&((PROXY_NEXUS_RunScheduler *)arg)->out), &data.out, sizeof(data.out));
             if(rc!=0) {rc=BERR_TRACE(rc);goto err_fault;}
             break;
         }}
@@ -630,7 +628,7 @@ nexus_driver_proxy_ioctl(void *context, unsigned int cmd, unsigned long arg, uns
             /* coverity[dead_error_condition] - it's important to do this check in case it's not a dead condition in the future. */
             if(rc!=0) {rc=BERR_TRACE(rc);goto err_fault;}
             data.out.count = nexus_driver_scheduler_dequeue(data.in.priority, data.out.callbacks, PROXY_NEXUS_CALLBACK_PACKET, state->slave_scheduler);
-            rc = copy_to_user_small((void *)((uint8_t *)arg+sizeof(data.in)), &data.out, sizeof(data.out));
+            rc = copy_to_user_small((&((PROXY_NEXUS_Scheduler *)arg)->out), &data.out, sizeof(data.out));
             if(rc!=0) {rc=BERR_TRACE(rc);goto err_fault;}
             break;
         }}

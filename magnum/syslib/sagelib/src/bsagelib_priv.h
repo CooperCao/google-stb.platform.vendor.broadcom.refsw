@@ -50,8 +50,9 @@
 #include "blst_slist.h"
 #include "blst_squeue.h"
 #include "bsagelib.h"
-#include "bsagelib_rpc_shared.h"
+#include "priv/bsagelib_rpc_shared.h"
 #include "bsagelib_types.h"
+#include "bsagelib_boot.h"
 #include "bsagelib_tools.h"
 #include "bsagelib_client.h"
 #include "bsagelib_management.h"
@@ -62,8 +63,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#define SIZE_OF_BOOT_IMAGE_VERSION_STRING 80
 
 typedef struct BSAGElib_P_CallbackItem {
     BLST_SQ_ENTRY(BSAGElib_P_CallbackItem) link; /* member of a linked list */
@@ -85,7 +84,14 @@ struct BSAGElib_P_RpcRemote {
     BSAGElib_CallbackItem *callbackItem;
     BSAGElib_InOutContainer *container;
     uint8_t valid;
+    uint8_t terminated;
     uint8_t open;
+    /* Resources for callbacks comming from SAGE */
+    struct {
+        uint32_t sequence;
+        BSAGElib_RpcMessage *message;
+        BSAGElib_InOutContainer *container;
+    } callbacks;
 };
 
 BDBG_OBJECT_ID_DECLARE(BSAGElib_P_Client);
@@ -100,6 +106,8 @@ struct BSAGElib_P_Client {
     BSAGElib_Tools_ContainerCacheHandle hContainerCache;
     uint16_t platformNum;
     uint16_t moduleNum;
+    BSAGElib_RpcRemoteHandle system_platform;
+    BSAGElib_RpcRemoteHandle system_module;
 };
 
 typedef struct BSAGElib_Management_CallbackItem {
@@ -149,8 +157,8 @@ struct BSAGElib_P_Instance {
     BCMD_VKLID_e vkl1;
     BCMD_VKLID_e vkl2;
 
-    char BootImage_BlVerStr[SIZE_OF_BOOT_IMAGE_VERSION_STRING]; /* To hold the string of Boot Loader version */
-    char BootImage_OSVerStr[SIZE_OF_BOOT_IMAGE_VERSION_STRING]; /* To hold the string of OS/APP version */
+    BSAGElib_ImageInfo bootloaderInfo;
+    BSAGElib_ImageInfo frameworkInfo;
 
     bool bBootPostCalled;
 };
@@ -170,7 +178,9 @@ struct BSAGElib_P_Instance {
 /* instance specifics */
 #define BSAGElib_iRpcResponseRecv_isr   hSAGElibClient->settings.i_rpc.responseRecv_isr
 #define BSAGElib_iRpcIndicationRecv_isr hSAGElibClient->settings.i_rpc.indicationRecv_isr
+#define BSAGElib_iRpcTATerminate_isr    hSAGElibClient->settings.i_rpc.taTerminate_isr
 #define BSAGElib_iRpcResponse_isr       hSAGElibClient->settings.i_rpc.response_isr
+#define BSAGElib_iRpcCallbackRequest_isr hSAGElibClient->settings.i_rpc.callbackRequest_isr
 
 #define _SAGElib_call(FCT) if (FCT) { FCT(); }
 #define BSAGElib_iLockSecurity    _SAGElib_call(hSAGElibClient->settings.i_sync_security.lock)

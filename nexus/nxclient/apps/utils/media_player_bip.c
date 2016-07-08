@@ -1,43 +1,39 @@
 /******************************************************************************
- * (c) 2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 #include "media_player.h"
 #include "media_player_priv.h"
@@ -125,87 +121,6 @@ static bool playerGetTrackOfType(
     return (trackFound);
 } /* getTrackOfType */
 
-static bool playerGetSpecialAudioTrackType(
-    BIP_MediaInfoHandle             hMediaInfo,
-    BIP_MediaInfoTrack              *pMediaInfoTrackOut,
-    const char                      *language,
-    unsigned                        ac3ServiceType
-    )
-{
-    bool                    trackFound = false;
-    BIP_MediaInfoStream     *pMediaInfoStream;
-    BIP_MediaInfoTrackGroup *pMediaInfoTrackGroup = NULL;
-    bool                    trackGroupPresent = false;
-    BIP_MediaInfoTrack      *pMediaInfoTrack;
-
-    pMediaInfoStream = BIP_MediaInfo_GetStream(hMediaInfo);
-    BDBG_ASSERT(pMediaInfoStream);
-    if (!pMediaInfoStream) return false;
-
-    if (pMediaInfoStream->numberOfTrackGroups != 0)
-    {
-        pMediaInfoTrackGroup = pMediaInfoStream->pFirstTrackGroupInfo;
-        pMediaInfoTrack = pMediaInfoTrackGroup->pFirstTrackForTrackGroup;
-        trackGroupPresent = true;
-    }
-    else
-    {
-        /* None of the track belongs to any trackGroup, in this case stream out all tracks from mediaInfoStream.*/
-        pMediaInfoTrack = pMediaInfoStream->pFirstTrackInfoForStream;
-    }
-
-    if (!pMediaInfoTrack) return false;
-
-    while (pMediaInfoTrack)
-    {
-        if (pMediaInfoTrack->trackType == BIP_MediaInfoTrackType_eAudio)
-        {
-            if(language && ac3ServiceType != UINT_MAX) /* If both are set */
-            {
-                int ret;
-                ret = strncmp(language, pMediaInfoTrack->info.audio.pLanguage, BIP_MEDIA_INFO_LANGUAGE_FIELD_SIZE);
-
-                if((!ret) && (pMediaInfoTrack->info.audio.descriptor.ac3.bsmod == ac3ServiceType))
-                {
-                    BDBG_MSG(( BIP_MSG_PRE_FMT "Found Special Audio track for language = %s and pMediaInfoTrack->info.audio.descriptor.ac3.bsmod = %d" BIP_MSG_PRE_ARG,pMediaInfoTrack->info.audio.pLanguage, pMediaInfoTrack->info.audio.descriptor.ac3.bsmod));
-                    *pMediaInfoTrackOut = *pMediaInfoTrack;
-                    trackFound = true;
-                    break;
-                }
-            }
-            else if(language)
-            {
-                if(!strncmp(language, pMediaInfoTrack->info.audio.pLanguage, BIP_MEDIA_INFO_LANGUAGE_FIELD_SIZE))
-                {
-                    BDBG_MSG(( BIP_MSG_PRE_FMT "Found Audio track for language = %s and trackId =%d" BIP_MSG_PRE_ARG,pMediaInfoTrack->info.audio.pLanguage, pMediaInfoTrack->trackId));
-                    *pMediaInfoTrackOut = *pMediaInfoTrack;
-                    trackFound = true;
-                    break;
-                }
-            }
-            else if(ac3ServiceType != UINT_MAX
-                    && (pMediaInfoTrack->info.audio.descriptor.ac3.bsmodValid)
-                    && (pMediaInfoTrack->info.audio.descriptor.ac3.bsmod == ac3ServiceType))
-            {
-                    BDBG_MSG(( BIP_MSG_PRE_FMT "Found Special Audio track for ac3ServiceType = %d and trackId =%d" BIP_MSG_PRE_ARG, ac3ServiceType, pMediaInfoTrack->trackId));
-                    *pMediaInfoTrackOut = *pMediaInfoTrack;
-                    trackFound = true;
-                    break;
-            }
-        }
-
-        if (true == trackGroupPresent)
-        {
-            pMediaInfoTrack = pMediaInfoTrack->pNextTrackForTrackGroup;
-        }
-        else
-        {
-            pMediaInfoTrack = pMediaInfoTrack->pNextTrackForStream;
-        }
-    }
-    return (trackFound);
-} /* playerGetSpecialAudioTrackType */
-
 static void playbackDoneCallbackFromBIP(
     void *context,
     int   param
@@ -214,7 +129,7 @@ static void playbackDoneCallbackFromBIP(
     media_player_bip_t   player = (media_player_bip_t)context;
 
     BSTD_UNUSED( param );
-    BDBG_WRN(( BIP_MSG_PRE_FMT "Got endOfStreamer Callback from BIP: eof CB %p, ctx %p)" BIP_MSG_PRE_ARG, player->parent->start_settings.eof, player->parent->start_settings.context ));
+    BDBG_WRN(( BIP_MSG_PRE_FMT "Got endOfStreamer Callback from BIP: eof CB ctx %p)" BIP_MSG_PRE_ARG, player->parent->start_settings.context ));
     if (player->parent->start_settings.eof) {
         (player->parent->start_settings.eof)(player->parent->start_settings.context);
     }
@@ -429,6 +344,11 @@ int media_player_bip_start(media_player_bip_t player, const media_player_start_s
         NEXUS_SimpleVideoDecoderStartSettings   videoProgram;
         NEXUS_SimpleAudioDecoderStartSettings   audioProgram;
 
+        /* Once probing and player prepare is done set video and audio programs.*/
+        NEXUS_SimpleVideoDecoder_GetDefaultStartSettings(&videoProgram);
+        /* set AudioProgram details.*/
+        NEXUS_SimpleAudioDecoder_GetDefaultStartSettings(&audioProgram);
+
         BIP_Player_GetDefaultPrepareSettings(&prepareSettings);
         BIP_Player_GetDefaultSettings(&playerSettings);
 
@@ -466,14 +386,35 @@ int media_player_bip_start(media_player_bip_t player, const media_player_start_s
                 }
             }
 
+            if(psettings->mediaPlayerSettings.audio.language)
+            {
+                BDBG_MSG(( BIP_MSG_PRE_FMT "preferred audio language is |%s|" BIP_MSG_PRE_ARG, psettings->mediaPlayerSettings.audio.language));
+                playerSettings.pPreferredAudioLanguage = psettings->mediaPlayerSettings.audio.language;
+            }
+
+            if(psettings->mediaPlayerSettings.audio.ac3_service_type != UINT_MAX)
+            {
+                playerSettings.ac3Descriptor.bsmodValid = true;
+                playerSettings.ac3Descriptor.bsmod = psettings->mediaPlayerSettings.audio.ac3_service_type;
+            }
+
+            if(psettings->mediaPlayerSettings.enableDynamicTrackSelection == true)
+            {
+                playerSettings.enableDynamicTrackSelection = true;
+            }
+
             if(psettings->audio.pid != 0) /* This flgs is coming from app to indicate audio is disabled.*/
             {
-                if (playerGetTrackOfType(player->hMediaInfo, BIP_MediaInfoTrackType_eAudio, &mediaInfoTrack) )
+                /* If language and/or ac3_service_type is specified than let bip_player internally find out the track. */
+                if((psettings->mediaPlayerSettings.audio.ac3_service_type == UINT_MAX) && (psettings->mediaPlayerSettings.audio.language == NULL) )
                 {
-                    playerSettings.audioTrackId = mediaInfoTrack.trackId;
-                    playerSettings.audioTrackSettings.pidSettings.pidTypeSettings.audio.codec = mediaInfoTrack.info.audio.codec;
-                    audioCodec = mediaInfoTrack.info.audio.codec;
-                    BDBG_MSG(( BIP_MSG_PRE_FMT "Found a valid Video Track with trackId=%d , codec=%s" BIP_MSG_PRE_ARG, playerSettings.audioTrackId,BIP_ToStr_NEXUS_AudioCodec(audioCodec)));
+                    if (playerGetTrackOfType(player->hMediaInfo, BIP_MediaInfoTrackType_eAudio, &mediaInfoTrack) )
+                    {
+                        playerSettings.audioTrackId = mediaInfoTrack.trackId;
+                        playerSettings.audioTrackSettings.pidSettings.pidTypeSettings.audio.codec = mediaInfoTrack.info.audio.codec;
+                        audioCodec = mediaInfoTrack.info.audio.codec;
+                        BDBG_MSG(( BIP_MSG_PRE_FMT "Found a valid Audio Track with trackId=%d , codec=%s" BIP_MSG_PRE_ARG, playerSettings.audioTrackId,BIP_ToStr_NEXUS_AudioCodec(audioCodec)));
+                    }
                 }
             }
 
@@ -490,7 +431,7 @@ int media_player_bip_start(media_player_bip_t player, const media_player_start_s
             playerSettings.playbackSettings.simpleStcChannel = player->parent->stcChannel;
             /* TODO: missing sync mode passed to BIP from media player, since bip uses NEXUS_SimpleStcChannel_GetDefaultSettings */
 
-            if (audioCodec != NEXUS_AudioCodec_eUnknown)
+            if (audioCodec != NEXUS_AudioCodec_eUnknown || psettings->mediaPlayerSettings.audio.language || psettings->mediaPlayerSettings.audio.ac3_service_type != UINT_MAX)
             {
                 playerSettings.audioTrackSettings.pidTypeSettings.audio.simpleDecoder = player->parent->audioDecoder;
             }
@@ -503,20 +444,21 @@ int media_player_bip_start(media_player_bip_t player, const media_player_start_s
             BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "BIP_Player_Prepare Failed: URL=%s", url ), error, bipStatus, bipStatus );
             BDBG_MSG(( BIP_MSG_PRE_FMT "BIP_Player_Prepare: prepared" BIP_MSG_PRE_ARG));
 
-            /* Once probing and player prepare is done set video and audio programs.*/
-            NEXUS_SimpleVideoDecoder_GetDefaultStartSettings(&videoProgram);
-            if (videoCodec != NEXUS_VideoCodec_eUnknown)
+
+            /* psettings->video.pid != 0 :This flgs is coming from app to indicate video is disabled.*/
+            if ((videoCodec != NEXUS_VideoCodec_eUnknown) && (psettings->video.pid != 0))
             {
                 videoProgram.settings.codec = videoCodec;
                 videoProgram.settings.pidChannel = prepareStatus.hVideoPidChannel;
                 player->parent->videoProgram = videoProgram;
             }
 
-            /* set AudioProgram details.*/
-            NEXUS_SimpleAudioDecoder_GetDefaultStartSettings(&audioProgram);
-            if (audioCodec != NEXUS_AudioCodec_eUnknown)
+            /* psettings->audio.pid != 0 :This flgs is coming from app to indicate audio is disabled.*/
+            /* audioCodec we get from prepare status since we may not have done explicit audioTrack selection
+               in app and player has selected track internall during BIP_Player_Prepare..*/
+            if ((prepareStatus.audioCodec != NEXUS_AudioCodec_eUnknown) && (psettings->audio.pid != 0))
             {
-                audioProgram.primary.codec = audioCodec;
+                audioProgram.primary.codec = prepareStatus.audioCodec;
                 audioProgram.primary.pidChannel = prepareStatus.hAudioPidChannel;
                 player->parent->audioProgram = audioProgram;
             }
@@ -551,35 +493,31 @@ error:
 
 int media_player_bip_set_settings(media_player_bip_t player, const media_player_settings *psettings)
 {
-    bool trackFound = false;
     BIP_Status bipStatus = BIP_SUCCESS;
     BIP_PlayerSettings          playerSettings;
-    BIP_MediaInfoTrack          mediaInfoTrack;
+
     BIP_Player_GetSettings( player->hPlayer, &playerSettings );
 
-   trackFound = playerGetSpecialAudioTrackType(
-                    player->hMediaInfo,
-                    &mediaInfoTrack,
-                    psettings->audio.language,
-                    psettings->audio.ac3_service_type
-                    );
-
-
-    if(trackFound == false)
+    if(psettings->audio.language)
     {
-        if(psettings->audio.language) {
-            BDBG_WRN(("Can't change audio track since |%s| Language specific audio track doesn't exist.", psettings->audio.language));
-        }
-        if(psettings->audio.ac3_service_type != UINT_MAX) {
-            BDBG_WRN(("Can't change audio track since |%d| ac3 bsmod specific audio track doesn't exist.", psettings->audio.ac3_service_type));
-        }
+        playerSettings.audioTrackId = UINT_MAX;
+        playerSettings.pPreferredAudioLanguage = psettings->audio.language;
+        BDBG_MSG(( BIP_MSG_PRE_FMT "changing preferred audio language to |%s|" BIP_MSG_PRE_ARG, psettings->audio.language));
     }
-    else
+    if(psettings->audio.ac3_service_type != UINT_MAX)
     {
-         playerSettings.audioTrackId = mediaInfoTrack.trackId;
-         bipStatus = BIP_Player_SetSettings( player->hPlayer, &playerSettings );
-         BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "BIP_Player_SetSettings Failed:" ), error, bipStatus, bipStatus );
+        playerSettings.ac3Descriptor.bsmod = psettings->audio.ac3_service_type;
+        playerSettings.ac3Descriptor.bsmodValid = true;
+        playerSettings.audioTrackId = UINT_MAX;
+        BDBG_MSG(( BIP_MSG_PRE_FMT "changing ac3 service type to %d" BIP_MSG_PRE_ARG, psettings->audio.ac3_service_type));
     }
+    if(psettings->enableDynamicTrackSelection == true)
+    {
+        playerSettings.enableDynamicTrackSelection = true;
+    }
+    /* Even if we may not found any valid track we still need to call SetSettings to set the language and/or ac3_service_type(In that case trackId will be UINT_MAX). */
+    bipStatus = BIP_Player_SetSettings( player->hPlayer, &playerSettings );
+    BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "BIP_Player_SetSettings Failed:" ), error, bipStatus, bipStatus );
 
 error:
     return bipStatus;
@@ -598,7 +536,7 @@ int media_player_bip_status(media_player_bip_t player, NEXUS_PlaybackStatus *pst
     pstatus->last = playerStatus.lastPositionInMs;
     pstatus->position = playerStatus.currentPositionInMs;
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "playerStatus.lastPositionInMs=%d and playerStatus.currentPositionInMs=%d" BIP_MSG_PRE_ARG, playerStatus.lastPositionInMs, playerStatus.currentPositionInMs));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "playerStatus.lastPositionInMs=%d and playerStatus.currentPositionInMs=%d" BIP_MSG_PRE_ARG, (int)playerStatus.lastPositionInMs, (int)playerStatus.currentPositionInMs));
 
     return 0;
 error:

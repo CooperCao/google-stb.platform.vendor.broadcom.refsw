@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2008 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2008 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -136,6 +136,7 @@ typedef struct {
 static void our_callback(KHRN_MAP_T *map, uint32_t key, MEM_HANDLE_T value, void *v)
 {
    OUR_CALLBACK_ARG_T *args = (OUR_CALLBACK_ARG_T *)v;
+   UNUSED(key);
 
    args->func(map, value, args->v);
 }

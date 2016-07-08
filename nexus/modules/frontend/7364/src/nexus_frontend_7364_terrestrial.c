@@ -1,61 +1,52 @@
 /***************************************************************************
-*     (c)2004-2014 Broadcom Corporation
-*
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
-*  and may only be used, duplicated, modified or distributed pursuant to the terms and
-*  conditions of a separate, written license agreement executed between you and Broadcom
-*  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-*  no license (express or implied), right to use, or waiver of any kind with respect to the
-*  Software, and Broadcom expressly reserves all rights in and to the Software and all
-*  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-*  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-*  Except as expressly set forth in the Authorized License,
-*
-*  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-*  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-*  and to use this information only in connection with your use of Broadcom integrated circuit products.
-*
-*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-*  USE OR PERFORMANCE OF THE SOFTWARE.
-*
-*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-*  ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* API Description:
-*   API name: Frontend 7364
-*    APIs to open, close, and setup initial settings for a BCM7364
-*    Terrestrial Tuner/Demodulator Device.
-*
-* Revision History:
-*
-* $brcm_Log: $
-*
-***************************************************************************/
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ ***************************************************************************/
+
 /* Begin Includes */
 #include "nexus_frontend_7364_priv.h"
+#if !NEXUS_FRONTEND_7364_DISABLE_TERRESTRIAL
 #include "bchp_leap_host_l1.h"
 #include "bhab_leap_priv.h"
+#endif
 /* End includes */
 
 BDBG_MODULE(nexus_frontend_7364_terrestrial);
+
+#if !NEXUS_FRONTEND_7364_DISABLE_TERRESTRIAL
 static void NEXUS_Frontend_P_7364_ResetStatus(void *handle);
 static void NEXUS_FrontendDevice_P_7364_UninstallCallbacks(void *handle);
 
@@ -98,27 +89,28 @@ static void NEXUS_Frontend_P_7364_callback_isr(void *pParam)
 static void NEXUS_Frontend_P_7364_IsrControl_isr(bool enable, void *pParam)
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
-    int isrnumber = (int)pParam;
+    unsigned *isrNumber = (unsigned *)pParam;
 
     BDBG_MSG(("NEXUS_Frontend_P_7364_IsrControl_isr: (%p) enabled: %s", pParam, enable ? "true" : "false"));
     if ( enable )
     {
-        rc = NEXUS_Core_EnableInterrupt_isr(isrnumber);
+        rc = NEXUS_Core_EnableInterrupt_isr(*isrNumber);
         if(rc) BERR_TRACE(rc);
     }
     else
     {
-        NEXUS_Core_DisableInterrupt_isr(isrnumber);
+        NEXUS_Core_DisableInterrupt_isr(*isrNumber);
     }
 }
 
 static void NEXUS_Frontend_P_7364_L1_isr(void *pParam1, int pParam2)
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
-    BHAB_Handle hab = (BHAB_Handle)pParam2;
-    BSTD_UNUSED(pParam1);
+    NEXUS_7364Device *pDevice = (NEXUS_7364Device *)pParam1;
+    BHAB_Handle hab = pDevice->hab;
+    BSTD_UNUSED(pParam2);
 
-    BDBG_MSG(("NEXUS_Frontend_P_7364_L1_isr: (%p,%p)", pParam1, hab));
+    BDBG_MSG(("NEXUS_Frontend_P_7364_L1_isr: (%p,%p)", pParam1, (void *)hab));
     if(hab){
         rc = BHAB_HandleInterrupt_isr(hab);
         if(rc){rc = BERR_TRACE(rc); goto done;}
@@ -132,7 +124,7 @@ static void NEXUS_Frontend_P_7364_IsrEvent(void *pParam)
     NEXUS_Error rc = NEXUS_SUCCESS;
     BHAB_Handle hab = (BHAB_Handle)pParam;
 
-    BDBG_MSG(("NEXUS_Frontend_P_7364_IsrEvent: %p",hab));
+    BDBG_MSG(("NEXUS_Frontend_P_7364_IsrEvent: %p",(void *)hab));
     if(hab){
         rc = BHAB_ProcessInterruptEvent(hab);
         if(rc) BERR_TRACE(rc);
@@ -189,7 +181,7 @@ NEXUS_Error NEXUS_FrontendDevice_P_Init_7364_Hab(NEXUS_7364Device *pDevice, cons
 
     if(pSettings->isrNumber) {
         stHabSettings.interruptEnableFunc = NEXUS_Frontend_P_7364_IsrControl_isr;
-        stHabSettings.interruptEnableFuncParam = (void*)pSettings->isrNumber;
+        stHabSettings.interruptEnableFuncParam = (void*)&pSettings->isrNumber;
         stHabSettings.pChp = g_pCoreHandles->chp;
     }
 
@@ -206,7 +198,7 @@ NEXUS_Error NEXUS_FrontendDevice_P_Init_7364_Hab(NEXUS_7364Device *pDevice, cons
         NEXUS_Gpio_SetInterruptCallback_priv(pSettings->gpioInterrupt, NEXUS_Frontend_P_7364_L1_isr, (void *)pDevice, (int)pDevice->hab);
     }
 #else
-    rc = BINT_CreateCallback(&(pDevice->cbHandle), g_pCoreHandles->bint, BLEAP_HOST_L1_INTERRUPT_ID, NEXUS_Frontend_P_7364_L1_isr, (void *)pDevice, (int)pDevice->hab);
+    rc = BINT_CreateCallback(&(pDevice->cbHandle), g_pCoreHandles->bint, BLEAP_HOST_L1_INTERRUPT_ID, NEXUS_Frontend_P_7364_L1_isr, (void *)pDevice, 0);
     BDBG_ASSERT(rc == BERR_SUCCESS);
 
     rc = BINT_EnableCallback(pDevice->cbHandle);
@@ -446,7 +438,7 @@ static void NEXUS_Frontend_P_7364_UnTune(void *handle)
     BODS_PowerSaverSettings pwrSettings;
     unsigned chn_num=0;
 
-    BDBG_MSG(("Untune: pDevice = 0x%x", pDevice));
+    BDBG_MSG(("Untune: pDevice = %p", (void *)pDevice));
     BDBG_MSG(("Tuner is not powered down for now to decrease channel change time."));
 
     switch ( pDevice->lastChannel )
@@ -2529,3 +2521,32 @@ static NEXUS_Error NEXUS_Frontend_P_7364_Terrestrial_Standby(void *handle, bool 
 done:
     return rc;
 }
+#else
+NEXUS_Error NEXUS_FrontendDevice_P_Init7364_Terrestrial(NEXUS_7364Device *pDevice)
+{
+    BSTD_UNUSED(pDevice);
+    return NEXUS_UNKNOWN;
+}
+
+void NEXUS_FrontendDevice_P_Uninit7364_Terrestrial(NEXUS_7364Device *pDevice)
+{
+    BSTD_UNUSED(pDevice);
+}
+
+NEXUS_Error NEXUS_FrontendDevice_Open7364_Terrestrial(NEXUS_7364Device *pDevice)
+{
+    BSTD_UNUSED(pDevice);
+    return NEXUS_UNKNOWN;
+}
+
+NEXUS_FrontendHandle NEXUS_Frontend_Open7364_Terrestrial(const NEXUS_FrontendChannelSettings *pSettings)
+{
+    BSTD_UNUSED(pSettings);
+    return NULL;
+}
+
+void NEXUS_FrontendDevice_Close7364_Terrestrial(NEXUS_7364Device *pDevice)
+{
+    BSTD_UNUSED(pDevice);
+}
+#endif

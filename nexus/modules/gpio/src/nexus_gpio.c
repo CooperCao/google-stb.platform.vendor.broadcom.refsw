@@ -1,41 +1,43 @@
-/***************************************************************************
- *     (c)2007-2015 Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- *  Except as expressly set forth in the Authorized License,
+ * Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
- *
- **************************************************************************/
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 #include "nexus_gpio_module.h"
 #include "priv/nexus_core.h"
 #include "priv/nexus_gpio_priv.h"
@@ -46,6 +48,7 @@
 
 #ifdef BCHP_UPG_MAIN_IRQ_REG_START
 /* New B53 IRQ register mappings */
+#include "bchp_gio_aon.h"
 #include "bchp_int_id_upg_main_irq.h"
 #include "bchp_int_id_upg_main_aon_irq.h"
 #define BCHP_INT_ID_gio_irqen BCHP_INT_ID_UPG_MAIN_IRQ_gio
@@ -88,13 +91,55 @@ struct {
             ];
     BLST_S_HEAD(NEXUS_GpioList, NEXUS_Gpio) list;
     bool standby;
+    NEXUS_GpioModuleOsSharedBankCapabilities osSharedBankCaps;
 } g_NEXUS_gpio;
 static void NEXUS_Gpio_P_isr(void *context, int param);
-static void NEXUS_Gpio_P_ReadSettings(NEXUS_GpioHandle gpio);
+static NEXUS_Error NEXUS_Gpio_P_ReadSettings(NEXUS_GpioHandle gpio);
 
 /****************************************
 * Module functions
 ***************/
+
+static uint32_t const g_NEXUS_gpioBankBaseAddresses[NEXUS_GPIO_NUM_BANKS] =
+{
+    BCHP_GIO_ODEN_LO,
+#ifdef BCHP_GIO_ODEN_HI
+    BCHP_GIO_ODEN_HI,
+#endif
+#ifdef BCHP_GIO_ODEN_EXT
+    BCHP_GIO_ODEN_EXT,
+#endif
+#ifdef BCHP_GIO_ODEN_EXT_HI
+    BCHP_GIO_ODEN_EXT_HI,
+#endif
+#ifdef BCHP_GIO_ODEN_EXT2
+    BCHP_GIO_ODEN_EXT2,
+#endif
+#ifdef BCHP_GIO_AON_ODEN_LO
+    BCHP_GIO_AON_ODEN_LO,
+#endif
+#ifdef BCHP_GIO_AON_ODEN_EXT
+    BCHP_GIO_AON_ODEN_EXT,
+#endif
+    0
+};
+
+static int NEXUS_GpioModule_P_GetBankIndex_isrsafe(uint32_t baseAddress)
+{
+    int index = -1;
+    unsigned i;
+
+    for (i = 0; i < sizeof(g_NEXUS_gpioBankBaseAddresses)/sizeof(g_NEXUS_gpioBankBaseAddresses[0]); i++)
+    {
+        if (g_NEXUS_gpioBankBaseAddresses[i] == baseAddress)
+        {
+            index = i;
+            break;
+        }
+    }
+
+    return index;
+}
 
 void NEXUS_GpioModule_GetDefaultSettings(NEXUS_GpioModuleSettings *pSettings)
 {
@@ -127,33 +172,73 @@ NEXUS_ModuleHandle NEXUS_GpioModule_Init(const NEXUS_GpioModuleSettings *pSettin
     g_NEXUS_gpio.settings = *pSettings;
     BLST_S_INIT(&g_NEXUS_gpio.list);
 
-    /* Prior to installing L2 callback, we must ensure that all GPIO interrupts are masked. */
-    BREG_Update32(g_pCoreHandles->reg, BCHP_GIO_MASK_LO, 0xFFFFFFFF, 0);
-    BREG_Update32(g_pCoreHandles->reg, BCHP_GIO_STAT_LO, 0xFFFFFFFF, 0xFFFFFFFF);
-    #ifdef BCHP_GIO_MASK_HI
-    BREG_Update32(g_pCoreHandles->reg, BCHP_GIO_MASK_HI, 0xFFFFFFFF, 0);
-    BREG_Update32(g_pCoreHandles->reg, BCHP_GIO_STAT_HI, 0xFFFFFFFF, 0xFFFFFFFF);
-    #endif
-    #ifdef BCHP_GIO_MASK_EXT
-    BREG_Update32(g_pCoreHandles->reg, BCHP_GIO_MASK_EXT, 0xFFFFFFFF, 0);
-    BREG_Update32(g_pCoreHandles->reg, BCHP_GIO_STAT_EXT, 0xFFFFFFFF, 0xFFFFFFFF);
-    #endif
-    #ifdef BCHP_GIO_AON_MASK_LO
-    BREG_Update32(g_pCoreHandles->reg, BCHP_GIO_AON_MASK_LO, 0xFFFFFFFF, 0);
-    BREG_Update32(g_pCoreHandles->reg, BCHP_GIO_AON_STAT_LO, 0xFFFFFFFF, 0xFFFFFFFF);
-    #endif
-    #ifdef BCHP_GIO_AON_MASK_EXT
-    BREG_Update32(g_pCoreHandles->reg, BCHP_GIO_AON_MASK_EXT, 0xFFFFFFFF, 0);
-    BREG_Update32(g_pCoreHandles->reg, BCHP_GIO_AON_STAT_EXT, 0xFFFFFFFF, 0xFFFFFFFF);
-    #endif
-    #ifdef BCHP_GIO_MASK_EXT_HI
-    BREG_Update32(g_pCoreHandles->reg, BCHP_GIO_MASK_EXT_HI, 0xFFFFFFFF, 0);
-    BREG_Update32(g_pCoreHandles->reg, BCHP_GIO_STAT_EXT_HI, 0xFFFFFFFF, 0xFFFFFFFF);
-    #endif
-    #ifdef BCHP_GIO_MASK_EXT2
-    BREG_Update32(g_pCoreHandles->reg, BCHP_GIO_MASK_EXT2, 0xFFFFFFFF, 0);
-    BREG_Update32(g_pCoreHandles->reg, BCHP_GIO_STAT_EXT2, 0xFFFFFFFF, 0xFFFFFFFF);
-    #endif
+    if (g_NEXUS_gpio.settings.osSharedBankSettings.getCapabilities)
+    {
+        g_NEXUS_gpio.settings.osSharedBankSettings.getCapabilities(&g_NEXUS_gpio.osSharedBankCaps);
+        BDBG_MSG(("Using %s-managed gpio interrupts", g_NEXUS_gpio.osSharedBankCaps.osManaged ? "os" : "nexus"));
+    }
+
+    if (g_NEXUS_gpio.osSharedBankCaps.osManaged)
+    {
+        NEXUS_GpioModuleOsSharedBankInitSettings initSettings;
+
+        if (!g_NEXUS_gpio.settings.osSharedBankSettings.init ||
+            !g_NEXUS_gpio.settings.osSharedBankSettings.openPin ||
+            !g_NEXUS_gpio.settings.osSharedBankSettings.closePin ||
+            !g_NEXUS_gpio.settings.osSharedBankSettings.getInterruptStatus_isr ||
+            !g_NEXUS_gpio.settings.osSharedBankSettings.setPinInterruptMask_isr ||
+            !g_NEXUS_gpio.settings.osSharedBankSettings.clearPinInterrupt_isr)
+        {
+            BDBG_ERR(("OS-managed gpios without bank-sharing interface"));
+            NEXUS_UnlockModule();
+            NEXUS_Module_Destroy(g_NEXUS_gpioModule);
+            g_NEXUS_gpioModule = NULL;
+            return NULL;
+        }
+
+        for (i = 0; i < sizeof(g_NEXUS_gpioBankBaseAddresses)/sizeof(g_NEXUS_gpioBankBaseAddresses[0]); i++)
+        {
+            initSettings.bankBaseAddresses[i] = g_NEXUS_gpioBankBaseAddresses[i];
+            initSettings.aon[i] = false;
+#ifdef BCHP_GIO_AON_ODEN_LO
+            if (initSettings.bankBaseAddresses[i] >= BCHP_GIO_AON_ODEN_LO)
+            {
+                initSettings.aon[i] = true;
+            }
+#endif
+        }
+        (void)g_NEXUS_gpio.settings.osSharedBankSettings.init(&initSettings);
+    }
+    else
+    {
+        /* Prior to installing L2 callback, we must ensure that all GPIO interrupts are masked. */
+        BREG_Update32(g_pCoreHandles->reg, BCHP_GIO_MASK_LO, 0xFFFFFFFF, 0);
+        BREG_Update32(g_pCoreHandles->reg, BCHP_GIO_STAT_LO, 0xFFFFFFFF, 0xFFFFFFFF);
+        #ifdef BCHP_GIO_MASK_HI
+        BREG_Update32(g_pCoreHandles->reg, BCHP_GIO_MASK_HI, 0xFFFFFFFF, 0);
+        BREG_Update32(g_pCoreHandles->reg, BCHP_GIO_STAT_HI, 0xFFFFFFFF, 0xFFFFFFFF);
+        #endif
+        #ifdef BCHP_GIO_MASK_EXT
+        BREG_Update32(g_pCoreHandles->reg, BCHP_GIO_MASK_EXT, 0xFFFFFFFF, 0);
+        BREG_Update32(g_pCoreHandles->reg, BCHP_GIO_STAT_EXT, 0xFFFFFFFF, 0xFFFFFFFF);
+        #endif
+        #ifdef BCHP_GIO_AON_MASK_LO
+        BREG_Update32(g_pCoreHandles->reg, BCHP_GIO_AON_MASK_LO, 0xFFFFFFFF, 0);
+        BREG_Update32(g_pCoreHandles->reg, BCHP_GIO_AON_STAT_LO, 0xFFFFFFFF, 0xFFFFFFFF);
+        #endif
+        #ifdef BCHP_GIO_AON_MASK_EXT
+        BREG_Update32(g_pCoreHandles->reg, BCHP_GIO_AON_MASK_EXT, 0xFFFFFFFF, 0);
+        BREG_Update32(g_pCoreHandles->reg, BCHP_GIO_AON_STAT_EXT, 0xFFFFFFFF, 0xFFFFFFFF);
+        #endif
+        #ifdef BCHP_GIO_MASK_EXT_HI
+        BREG_Update32(g_pCoreHandles->reg, BCHP_GIO_MASK_EXT_HI, 0xFFFFFFFF, 0);
+        BREG_Update32(g_pCoreHandles->reg, BCHP_GIO_STAT_EXT_HI, 0xFFFFFFFF, 0xFFFFFFFF);
+        #endif
+        #ifdef BCHP_GIO_MASK_EXT2
+        BREG_Update32(g_pCoreHandles->reg, BCHP_GIO_MASK_EXT2, 0xFFFFFFFF, 0);
+        BREG_Update32(g_pCoreHandles->reg, BCHP_GIO_STAT_EXT2, 0xFFFFFFFF, 0xFFFFFFFF);
+        #endif
+    }
 
 #ifndef BCHP_INT_ID_gio_irqen
 #ifdef BCHP_INT_ID_IRQ0_gio_irqen
@@ -253,6 +338,7 @@ NEXUS_GpioHandle NEXUS_Gpio_OpenAux(unsigned typeAndPin, const NEXUS_GpioSetting
     gpio->addr.stat=BCHP_GIO_STAT_LO+offset;
     }
 #endif
+
     gpio->isrCallback = NEXUS_IsrCallback_Create(gpio,NULL);
     if(!gpio->isrCallback) { rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);goto err_callback;}
 
@@ -265,7 +351,8 @@ NEXUS_GpioHandle NEXUS_Gpio_OpenAux(unsigned typeAndPin, const NEXUS_GpioSetting
         if (rc) {rc=BERR_TRACE(rc); goto err_gpio;}
     }
     else {
-        NEXUS_Gpio_P_ReadSettings(gpio);
+        rc = NEXUS_Gpio_P_ReadSettings(gpio);
+        if (rc) { rc = BERR_TRACE(rc); goto err_gpio; }
     }
 
     return gpio;
@@ -297,7 +384,7 @@ static unsigned NEXUS_Gpio_P_InterruptIndex(NEXUS_GpioHandle gpio)
     return 0;
 }
 
-static NEXUS_Error NEXUS_Gpio_P_AcquireInterrupt(NEXUS_GpioHandle gpio)
+static NEXUS_Error NEXUS_Gpio_P_AcquireInterrupt(NEXUS_GpioHandle gpio, NEXUS_GpioInterrupt interruptMode)
 {
     unsigned index = NEXUS_Gpio_P_InterruptIndex(gpio);
 
@@ -311,6 +398,16 @@ static NEXUS_Error NEXUS_Gpio_P_AcquireInterrupt(NEXUS_GpioHandle gpio)
     }
     g_NEXUS_gpio.intCallbacks[index].refCnt++;
 
+    if (g_NEXUS_gpio.osSharedBankCaps.osManaged && g_NEXUS_gpio.settings.osSharedBankSettings.openPin)
+    {
+        NEXUS_GpioModuleOsSharedBankPinOpenSettings openSettings;
+        openSettings.bankBaseAddress = gpio->addr.oden;
+        openSettings.shift = gpio->shift;
+        openSettings.interruptType = interruptMode;
+        gpio->osSharedBankGpio = g_NEXUS_gpio.settings.osSharedBankSettings.openPin(&openSettings);
+        if (!gpio->osSharedBankGpio) { return BERR_TRACE(NEXUS_OS_ERROR); }
+    }
+
     return NEXUS_SUCCESS;
 }
 
@@ -318,6 +415,12 @@ static void NEXUS_Gpio_P_ReleaseInterrupt(NEXUS_GpioHandle gpio)
 {
     unsigned index = NEXUS_Gpio_P_InterruptIndex(gpio);
     BDBG_MSG(("%p:ReleaseInterrupt isr:%u %#x:%u", (void*)gpio, index, gpio->addr.mask, gpio->shift));
+
+    if (g_NEXUS_gpio.osSharedBankCaps.osManaged && g_NEXUS_gpio.settings.osSharedBankSettings.closePin)
+    {
+        g_NEXUS_gpio.settings.osSharedBankSettings.closePin(gpio->osSharedBankGpio);
+    }
+
     if(g_NEXUS_gpio.intCallbacks[index].refCnt>0) {
         g_NEXUS_gpio.intCallbacks[index].refCnt--;
         if(g_NEXUS_gpio.intCallbacks[index].refCnt==0) {
@@ -335,11 +438,17 @@ static void NEXUS_Gpio_P_Finalizer(NEXUS_GpioHandle gpio)
     if (gpio->isrCallback) {
         NEXUS_IsrCallback_Destroy(gpio->isrCallback);
     }
+
     if(gpio->settings.interruptMode != NEXUS_GpioInterrupt_eDisabled) {
+        /* disable the interrupt first */
+        BKNI_EnterCriticalSection();
+        NEXUS_Gpio_SetInterruptEnabled_isr(gpio, false);
+        BKNI_LeaveCriticalSection();
+
+        /* then release it */
         NEXUS_Gpio_P_ReleaseInterrupt(gpio);
     }
     BKNI_EnterCriticalSection();
-    NEXUS_Gpio_SetInterruptEnabled_isr(gpio, false);
     BLST_S_REMOVE(&g_NEXUS_gpio.list, gpio, NEXUS_Gpio, link);
     BKNI_LeaveCriticalSection();
     NEXUS_OBJECT_DESTROY(NEXUS_Gpio, gpio);
@@ -369,12 +478,23 @@ static unsigned NEXUS_Gpio_P_GetBit_isrsafe(uint32_t addr, unsigned shift)
 
 void NEXUS_Gpio_SetInterruptEnabled_isr(NEXUS_GpioHandle gpio, bool enabled)
 {
-      NEXUS_Gpio_P_SetBit_isr(gpio->addr.mask, gpio->shift, enabled); /* The MASK register is a misnomer. MASK = 1 is unmasked. */
+    if (g_NEXUS_gpio.osSharedBankCaps.osManaged && g_NEXUS_gpio.settings.osSharedBankSettings.setPinInterruptMask_isr)
+    {
+        g_NEXUS_gpio.settings.osSharedBankSettings.setPinInterruptMask_isr(gpio->osSharedBankGpio, !enabled);
+    }
+    else
+    {
+        NEXUS_Gpio_P_SetBit_isr(gpio->addr.mask, gpio->shift, enabled); /* The MASK register is a misnomer. MASK = 1 is unmasked. */
+    }
+    BDBG_MSG(("%#x:%u mask bit: %s = %s", gpio->addr.mask, gpio->shift,
+        NEXUS_Gpio_P_GetBit_isrsafe(gpio->addr.mask, gpio->shift) ? "enabled" : "disabled",
+        enabled ? "enabled" : "disabled"));
 }
 
-static void NEXUS_Gpio_P_ReadSettings(NEXUS_GpioHandle gpio)
+static NEXUS_Error NEXUS_Gpio_P_ReadSettings(NEXUS_GpioHandle gpio)
 {
-    unsigned edge_conf, edge_insensitive, edge_level;
+    NEXUS_Error rc = NEXUS_SUCCESS;
+    unsigned edge_conf, edge_insensitive, edge_level, mask;
 
     NEXUS_OBJECT_ASSERT(NEXUS_Gpio, gpio);
 
@@ -391,27 +511,31 @@ static void NEXUS_Gpio_P_ReadSettings(NEXUS_GpioHandle gpio)
     edge_conf = NEXUS_Gpio_P_GetBit_isrsafe(gpio->addr.ec, gpio->shift);
     edge_insensitive = NEXUS_Gpio_P_GetBit_isrsafe(gpio->addr.ei, gpio->shift);
     edge_level = NEXUS_Gpio_P_GetBit_isrsafe(gpio->addr.level, gpio->shift);
+    mask = NEXUS_Gpio_P_GetBit_isrsafe(gpio->addr.mask, gpio->shift);
 
-    if (edge_conf == 1 && edge_insensitive == 0 && edge_level == 0) {
-        gpio->settings.interruptMode = NEXUS_GpioInterrupt_eRisingEdge;
-    }
-    else if (edge_conf == 0 && edge_insensitive == 0 && edge_level == 0) {
-        gpio->settings.interruptMode = NEXUS_GpioInterrupt_eFallingEdge;
-    }
-    else if (edge_conf == 0 && edge_insensitive == 1 && edge_level == 0) {
-        gpio->settings.interruptMode = NEXUS_GpioInterrupt_eEdge;
-    }
-    else if (edge_conf == 1 && edge_insensitive == 0 && edge_level == 1) {
-        gpio->settings.interruptMode = NEXUS_GpioInterrupt_eHigh;
-    }
-    else if (edge_conf == 0 && edge_insensitive == 0 && edge_level == 1) {
-        gpio->settings.interruptMode = NEXUS_GpioInterrupt_eLow;
-    }
-    else {
-        gpio->settings.interruptMode = NEXUS_GpioInterrupt_eDisabled;
+    gpio->settings.interruptMode = NEXUS_GpioInterrupt_eDisabled;
+    if (mask) {
+        if (edge_conf == 1 && edge_insensitive == 0 && edge_level == 0) {
+            gpio->settings.interruptMode = NEXUS_GpioInterrupt_eRisingEdge;
+        }
+        else if (edge_conf == 0 && edge_insensitive == 0 && edge_level == 0) {
+            gpio->settings.interruptMode = NEXUS_GpioInterrupt_eFallingEdge;
+        }
+        else if (edge_insensitive == 1 && edge_level == 0) {
+            gpio->settings.interruptMode = NEXUS_GpioInterrupt_eEdge;
+        }
+        else if (edge_conf == 1 && edge_level == 1) {
+            gpio->settings.interruptMode = NEXUS_GpioInterrupt_eHigh;
+        }
+        else if (edge_conf == 0 && edge_level == 1) {
+            gpio->settings.interruptMode = NEXUS_GpioInterrupt_eLow;
+        }
+        rc = NEXUS_Gpio_P_AcquireInterrupt(gpio, gpio->settings.interruptMode);
+        if (rc) { BERR_TRACE(rc); return rc; }
     }
 
     gpio->settings.value = NEXUS_Gpio_P_GetBit_isrsafe(gpio->addr.data, gpio->shift);
+    return rc;
 }
 
 NEXUS_Error NEXUS_Gpio_SetSettings(NEXUS_GpioHandle gpio, const NEXUS_GpioSettings *pSettings)
@@ -456,7 +580,7 @@ NEXUS_Error NEXUS_Gpio_SetSettings(NEXUS_GpioHandle gpio, const NEXUS_GpioSettin
     if(enabled) {
         if(gpio->settings.interruptMode == NEXUS_GpioInterrupt_eDisabled) {
             NEXUS_Error rc;
-            rc = NEXUS_Gpio_P_AcquireInterrupt(gpio);
+            rc = NEXUS_Gpio_P_AcquireInterrupt(gpio, pSettings->interruptMode);
             if(rc!=NEXUS_SUCCESS) {return BERR_TRACE(rc);}
         }
     } else if(gpio->settings.interruptMode != NEXUS_GpioInterrupt_eDisabled) {
@@ -473,20 +597,24 @@ NEXUS_Error NEXUS_Gpio_SetSettings(NEXUS_GpioHandle gpio, const NEXUS_GpioSettin
 
     NEXUS_Gpio_P_SetBit_isr(gpio->addr.iodir, gpio->shift, pSettings->mode == NEXUS_GpioMode_eInput);
 
-    if (!enabled) {
-        /* Mask before resetting interrupt condition bits to avoid a re-trigger */
-        NEXUS_Gpio_SetInterruptEnabled_isr(gpio, false);
-    }
+    if (!g_NEXUS_gpio.osSharedBankCaps.osManaged)
+    {
+        if (enabled) {
+            /* Mask before resetting interrupt condition bits to avoid a re-trigger */
+            NEXUS_Gpio_SetInterruptEnabled_isr(gpio, false);
+        }
 
-    NEXUS_Gpio_P_SetBit_isr(gpio->addr.ec, gpio->shift, edge_conf);
-    NEXUS_Gpio_P_SetBit_isr(gpio->addr.ei, gpio->shift, edge_insensitive);
-    NEXUS_Gpio_P_SetBit_isr(gpio->addr.level, gpio->shift, edge_level);
+        NEXUS_Gpio_P_SetBit_isr(gpio->addr.ec, gpio->shift, edge_conf);
+        NEXUS_Gpio_P_SetBit_isr(gpio->addr.ei, gpio->shift, edge_insensitive);
+        NEXUS_Gpio_P_SetBit_isr(gpio->addr.level, gpio->shift, edge_level);
+
+        if (enabled) {
+            NEXUS_Gpio_SetInterruptEnabled_isr(gpio, enabled);
+        }
+    }
 
     gpio->settings = *pSettings;
 
-    if (enabled) {
-        NEXUS_Gpio_SetInterruptEnabled_isr(gpio, enabled);
-    }
     BKNI_LeaveCriticalSection();
 
     return 0;
@@ -497,7 +625,21 @@ NEXUS_Error NEXUS_Gpio_GetStatus(NEXUS_GpioHandle gpio, NEXUS_GpioStatus *pStatu
     NEXUS_OBJECT_ASSERT(NEXUS_Gpio, gpio);
     BKNI_EnterCriticalSection();
     pStatus->value = NEXUS_Gpio_P_GetBit_isrsafe(gpio->addr.data, gpio->shift);
-    pStatus->interruptPending = NEXUS_Gpio_P_GetBit_isrsafe(gpio->addr.stat, gpio->shift);
+    if (g_NEXUS_gpio.osSharedBankCaps.osManaged && g_NEXUS_gpio.settings.osSharedBankSettings.getInterruptStatus_isr)
+    {
+        NEXUS_GpioModuleOsSharedBankInterruptStatus osSharedBankStatus;
+        int bank = NEXUS_GpioModule_P_GetBankIndex_isrsafe(gpio->addr.oden);
+        g_NEXUS_gpio.settings.osSharedBankSettings.getInterruptStatus_isr(&osSharedBankStatus);
+        pStatus->interruptPending = false;
+        if (bank != -1)
+        {
+            pStatus->interruptPending = osSharedBankStatus.status[bank] & (1 << gpio->shift);
+        }
+    }
+    else
+    {
+        pStatus->interruptPending = NEXUS_Gpio_P_GetBit_isrsafe(gpio->addr.stat, gpio->shift);
+    }
     BKNI_LeaveCriticalSection();
     return 0;
 }
@@ -506,7 +648,15 @@ NEXUS_Error NEXUS_Gpio_ClearInterrupt(NEXUS_GpioHandle gpio)
 {
     NEXUS_OBJECT_ASSERT(NEXUS_Gpio, gpio);
     BKNI_EnterCriticalSection();
-    BREG_Update32(g_pCoreHandles->reg, gpio->addr.stat, 0xFFFFFFFF, 1 << gpio->shift);
+    if (g_NEXUS_gpio.osSharedBankCaps.osManaged && g_NEXUS_gpio.settings.osSharedBankSettings.clearPinInterrupt_isr)
+    {
+        g_NEXUS_gpio.settings.osSharedBankSettings.clearPinInterrupt_isr(gpio->osSharedBankGpio);
+    }
+    else
+    {
+        BREG_Update32(g_pCoreHandles->reg, gpio->addr.stat, 1 << gpio->shift, 0xffffffff);
+    }
+
     if ( gpio->settings.interruptMode != NEXUS_GpioInterrupt_eDisabled )
     {
         /* Re-enable interrupts.  May be a masked level interrupt */
@@ -525,27 +675,30 @@ void NEXUS_Gpio_SetInterruptCallback_priv(NEXUS_GpioHandle gpio, NEXUS_GpioIsrCa
     BKNI_LeaveCriticalSection();
 }
 
-static bool NEXUS_Gpio_P_Dispatch_isr(NEXUS_GpioHandle gpio)
+static void NEXUS_Gpio_P_Dispatch_isr(NEXUS_GpioHandle gpio)
+{
+    if ( gpio->settings.maskEdgeInterrupts ||
+         gpio->settings.interruptMode == NEXUS_GpioInterrupt_eLow ||
+         gpio->settings.interruptMode == NEXUS_GpioInterrupt_eHigh )
+    {
+        /* Mask a level interrupt */
+        NEXUS_Gpio_SetInterruptEnabled_isr(gpio, false);
+    }
+    if(gpio->isrCallback) {
+        NEXUS_IsrCallback_Fire_isr(gpio->isrCallback);
+    }
+
+    if(gpio->directIsrCallback.callback_isr){
+        gpio->directIsrCallback.callback_isr(gpio->directIsrCallback.context, gpio->directIsrCallback.param);
+    }
+}
+
+static bool NEXUS_Gpio_P_DirectDispatch_isr(NEXUS_GpioHandle gpio)
 {
     if (NEXUS_Gpio_P_GetBit_isrsafe(gpio->addr.stat, gpio->shift) &
         NEXUS_Gpio_P_GetBit_isrsafe(gpio->addr.mask, gpio->shift))
     {
-        /* clear status immediately */
-        BREG_Update32(g_pCoreHandles->reg,gpio->addr.stat, 0xFFFFFFFF, 1 << gpio->shift);
-        if ( gpio->settings.maskEdgeInterrupts ||
-             gpio->settings.interruptMode == NEXUS_GpioInterrupt_eLow ||
-             gpio->settings.interruptMode == NEXUS_GpioInterrupt_eHigh )
-        {
-            /* Mask a level interrupt */
-            NEXUS_Gpio_SetInterruptEnabled_isr(gpio, false);
-        }
-        if(gpio->isrCallback) {
-            NEXUS_IsrCallback_Fire_isr(gpio->isrCallback);
-        }
-
-        if(gpio->directIsrCallback.callback_isr){
-            gpio->directIsrCallback.callback_isr(gpio->directIsrCallback.context, gpio->directIsrCallback.param);
-        }
+        NEXUS_Gpio_P_Dispatch_isr(gpio);
 
         return true;
     }
@@ -556,6 +709,7 @@ static bool NEXUS_Gpio_P_Dispatch_isr(NEXUS_GpioHandle gpio)
 static void NEXUS_Gpio_P_isr(void *context, int param)
 {
     NEXUS_GpioHandle gpio;
+    NEXUS_GpioModuleOsSharedBankInterruptStatus osSharedBankStatus;
     BDBG_MSG(("NEXUS_Gpio_P_isr"));
 
     BSTD_UNUSED(context);
@@ -576,10 +730,29 @@ static void NEXUS_Gpio_P_isr(void *context, int param)
     BDBG_MSG(("GIO_MASK_EXT2 0x%08x GIO_STAT_EXT2 0x%08x", BREG_Read32(g_pCoreHandles->reg, BCHP_GIO_MASK_EXT2), BREG_Read32(g_pCoreHandles->reg, BCHP_GIO_MASK_EXT2)));
     #endif
 #endif
+    if (g_NEXUS_gpio.osSharedBankCaps.osManaged && g_NEXUS_gpio.settings.osSharedBankSettings.getInterruptStatus_isr)
+    {
+        g_NEXUS_gpio.settings.osSharedBankSettings.getInterruptStatus_isr(&osSharedBankStatus);
+    }
 
     for (gpio=BLST_S_FIRST(&g_NEXUS_gpio.list); gpio; gpio = BLST_S_NEXT(gpio, link)) {
-        if (NEXUS_Gpio_P_Dispatch_isr(gpio)) {
-            BDBG_MSG(("Dispatched GPIO interrupt %u, type %u", gpio->pin, gpio->type));
+        if (g_NEXUS_gpio.osSharedBankCaps.osManaged)
+        {
+            int bank = NEXUS_GpioModule_P_GetBankIndex_isrsafe(gpio->addr.oden);
+            if (bank != -1)
+            {
+                if (osSharedBankStatus.status[bank] & (1<<gpio->shift))
+                {
+                    NEXUS_Gpio_P_Dispatch_isr(gpio);
+                    BDBG_MSG(("Dispatched virtual GPIO interrupt %u, type %u", gpio->pin, gpio->type));
+                }
+            }
+        }
+        else
+        {
+            if (NEXUS_Gpio_P_DirectDispatch_isr(gpio)) {
+                BDBG_MSG(("Dispatched direct GPIO interrupt %u, type %u", gpio->pin, gpio->type));
+            }
         }
     }
 }
@@ -589,6 +762,28 @@ NEXUS_Error NEXUS_Gpio_GetPinMux( unsigned typeAndPin, uint32_t *pAddr, uint32_t
     NEXUS_GpioType type = NEXUS_GPIO_TYPE(typeAndPin);
     unsigned pin = NEXUS_GPIO_PIN(typeAndPin);
     return NEXUS_Gpio_P_GetPinMux(type, pin, pAddr, pMask, pShift );
+}
+
+#define NEXUS_GPIO_P_IS_AON(G) (((G)->type == NEXUS_GpioType_eAonStandard) || ((G)->type == NEXUS_GpioType_eAonSpecial))
+
+static void NEXUS_GpioModule_P_SetStandby(bool enabled, NEXUS_StandbyMode mode)
+{
+    if (g_NEXUS_gpio.osSharedBankCaps.osManaged && g_NEXUS_gpio.settings.osSharedBankSettings.setStandby) {
+        NEXUS_GpioHandle gpio;
+        for (gpio = BLST_S_FIRST(&g_NEXUS_gpio.list); gpio; gpio = BLST_S_NEXT(gpio, link))
+        {
+            if ((gpio->settings.mode == NEXUS_GpioMode_eInput)
+                && (gpio->settings.interruptMode != NEXUS_GpioInterrupt_eDisabled)
+                && gpio->osSharedBankGpio)
+            {
+                if (enabled && (mode == NEXUS_StandbyMode_eDeepSleep) && !NEXUS_GPIO_P_IS_AON(gpio))
+                {
+                    BDBG_WRN(("Entering S3 with a regular gpio set as wake source. Only AON gpio can wake from S3."));
+                }
+                g_NEXUS_gpio.settings.osSharedBankSettings.setStandby(gpio->osSharedBankGpio, enabled);
+            }
+        }
+    }
 }
 
 NEXUS_Error NEXUS_GpioModule_Standby_priv(bool enabled, const NEXUS_StandbySettings *pSettings)
@@ -601,6 +796,7 @@ NEXUS_Error NEXUS_GpioModule_Standby_priv(bool enabled, const NEXUS_StandbySetti
             if(g_NEXUS_gpio.intCallbacks[0].callback) {
                 rc = BINT_DisableCallback(g_NEXUS_gpio.intCallbacks[0].callback);
             }
+            NEXUS_GpioModule_P_SetStandby(enabled, pSettings->mode);
             g_NEXUS_gpio.standby = true;
         }
     } else {
@@ -608,6 +804,7 @@ NEXUS_Error NEXUS_GpioModule_Standby_priv(bool enabled, const NEXUS_StandbySetti
             if(g_NEXUS_gpio.intCallbacks[0].callback) {
                 rc = BINT_EnableCallback(g_NEXUS_gpio.intCallbacks[0].callback);
             }
+            NEXUS_GpioModule_P_SetStandby(enabled, pSettings->mode);
             g_NEXUS_gpio.standby = false;
         }
     }
@@ -615,6 +812,7 @@ NEXUS_Error NEXUS_GpioModule_Standby_priv(bool enabled, const NEXUS_StandbySetti
 #else
     BSTD_UNUSED(enabled);
     BSTD_UNUSED(pSettings);
+    BSTD_UNUSED(NEXUS_GpioModule_P_SetStandby);
     return NEXUS_SUCCESS;
 #endif
 }

@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2008 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2008 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -158,7 +158,6 @@ int khrn_cache_init(KHRN_CACHE_T *cache)
    return khrn_pointer_map_init(&cache->map, 64);
 }
 
-
 void khrn_cache_term(KHRN_CACHE_T *cache)
 {
    khrn_platform_free(cache->tree);
@@ -169,31 +168,23 @@ void khrn_cache_term(KHRN_CACHE_T *cache)
    clear_ptr_info_all(cache);
 }
 
-static void send_create(CLIENT_THREAD_STATE_T *thread, int base, bool is_opengles_11)
+static void send_create(int base)
 {
-   UNUSED(is_opengles_11);
-
    glintCacheCreate_impl(base);
 }
 
-static void send_delete(CLIENT_THREAD_STATE_T *thread, int base, bool is_opengles_11)
+static void send_delete(int base)
 {
-   UNUSED(is_opengles_11);
-
    glintCacheDelete_impl(base);
 }
 
-static int send_grow(CLIENT_THREAD_STATE_T *thread, bool is_opengles_11)
+static int send_grow(void)
 {
-   UNUSED(is_opengles_11);
-
    return glintCacheGrow_impl();
 }
 
-static void send_data(CLIENT_THREAD_STATE_T *thread, int base, const void *data, int len, bool is_opengles_11)
+static void send_data(int base, const void *data, int len)
 {
-   UNUSED(is_opengles_11);
-
    /* no need to chop the data into small chunks */
    if (len > 0)
       glintCacheData_impl(base, len, (char *)data);
@@ -216,7 +207,7 @@ static void clear_ptr_info_entry(KHRN_CACHE_T *cache, CACHE_ENTRY_T *entry)
    }
 }
 
-static void discard(CLIENT_THREAD_STATE_T *thread, KHRN_CACHE_T *cache, CACHE_ENTRY_T *entry, bool is_opengles_11)
+static void discard(KHRN_CACHE_T *cache, CACHE_ENTRY_T *entry)
 {
    heap_free(cache, (int)((uint8_t *)entry - cache->data) >> CACHE_LOG2_BLOCK_SIZE);
 
@@ -224,7 +215,7 @@ static void discard(CLIENT_THREAD_STATE_T *thread, KHRN_CACHE_T *cache, CACHE_EN
 
    link_remove(&entry->link);
 
-   send_delete(thread, (int)((uint8_t *)entry - cache->data), is_opengles_11);
+   send_delete((int)((uint8_t *)entry - cache->data));
 
    clear_ptr_info_entry(cache, entry);
 }
@@ -246,7 +237,7 @@ static void callback(KHRN_POINTER_MAP_T *map, uint32_t key, void *value, void *u
    verify(khrn_pointer_map_insert(map, key, relocate(value, user)));
 }
 
-static int grow(CLIENT_THREAD_STATE_T *thread, KHRN_CACHE_T *cache, bool is_opengles_11)
+static int grow(KHRN_CACHE_T *cache)
 {
    /*
       try to grow the server cache
@@ -257,7 +248,7 @@ static int grow(CLIENT_THREAD_STATE_T *thread, KHRN_CACHE_T *cache, bool is_open
    int i;
 
    if (cache->server_depth == cache->client_depth) {
-      if (cache->server_depth < CACHE_MAX_DEPTH && send_grow(thread, is_opengles_11))
+      if (cache->server_depth < CACHE_MAX_DEPTH && send_grow())
          cache->server_depth++;
       else
          return 0;
@@ -342,7 +333,7 @@ static int grow(CLIENT_THREAD_STATE_T *thread, KHRN_CACHE_T *cache, bool is_open
    return 1;
 }
 
-int khrn_cache_lookup(CLIENT_THREAD_STATE_T *thread, KHRN_CACHE_T *cache, const void *data, int len, int sig, bool is_opengles_11)
+int khrn_cache_lookup(KHRN_CACHE_T *cache, const void *data, int len, int sig)
 {
    CACHE_ENTRY_T *entry = NULL;
 
@@ -379,14 +370,14 @@ int khrn_cache_lookup(CLIENT_THREAD_STATE_T *thread, KHRN_CACHE_T *cache, const 
          CACHE_LINK_T *link;
 
          if (entry)
-            discard(thread, cache, entry, is_opengles_11);
+            discard(cache, entry);
 
          /* Grow the cache until there is enough room, or we reach the maximum size */
-         while (!heap_avail(cache, size) && grow(thread, cache, is_opengles_11));
+         while (!heap_avail(cache, size) && grow(cache));
 
          /* If there isn't enough room, discard entries until there is */
          for (link = cache->start.next; link != &cache->end && !heap_avail(cache, size); link = link->next)
-            discard(thread, cache, (CACHE_ENTRY_T *)link, is_opengles_11);
+            discard(cache, (CACHE_ENTRY_T *)link);
 
          /* If there still isn't enough room, we are lost */
          if (!heap_avail(cache, size))
@@ -406,8 +397,8 @@ int khrn_cache_lookup(CLIENT_THREAD_STATE_T *thread, KHRN_CACHE_T *cache, const 
 
          link_insert(&entry->link, cache->end.prev, &cache->end);
 
-         send_create(thread, (int)((uint8_t *)entry - cache->data), is_opengles_11);
-         send_data(thread, (int)(entry->data - cache->data), data, len, is_opengles_11);
+         send_create((int)((uint8_t *)entry - cache->data));
+         send_data((int)(entry->data - cache->data), data, len);
       }
    }
 

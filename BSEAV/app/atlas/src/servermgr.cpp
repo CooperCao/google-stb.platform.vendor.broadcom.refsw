@@ -1,7 +1,7 @@
 /******************************************************************************
- * (c) 2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -37,7 +37,6 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 #include "servermgr.h"
 #include "atlas.h"
@@ -54,6 +53,7 @@ CServerMgr::CServerMgr(
     _pModel(NULL),
     _pWidgetEngine(NULL),
     _pServerHttp(NULL),
+    _pServerUdp(NULL),
     _pServerPlaylist(NULL)
 {
     BDBG_ASSERT(NULL != pCfg);
@@ -84,6 +84,18 @@ eRet CServerMgr::open(CWidgetEngine * pWidgetEngine)
     ret = _pServerHttp->open(_pWidgetEngine, _pCfg);
     CHECK_ERROR_GOTO("Unable to open HTTP server object", ret, error);
 
+
+    /* Create UDP Server object */
+    _pServerUdp = new CServerUdp(_pCfg);
+    CHECK_PTR_ERROR_GOTO("Unable to allocate Http Server object", _pServerHttp, ret, eRet_OutOfMemory, error);
+
+    ret = _pServerUdp->open(_pWidgetEngine, _pCfg);
+    if (ret != eRet_Ok)
+    {
+       /* This is optional so print out informational message */
+       BDBG_MSG(("UDP server is not started create udpUrl.xml"));
+    }
+
     /* Now Create HTTP Playlist server object.*/
     _pServerPlaylist = new CServerPlaylist(_pCfg);
     CHECK_PTR_ERROR_GOTO("Unable to allocate Http Server object", _pServerHttp, ret, eRet_OutOfMemory, error);
@@ -105,6 +117,11 @@ eRet CServerMgr::registerObserver(
 
     ret = _pServerHttp->registerObserver(observer, notification);
     CHECK_ERROR_GOTO("Unable to registerObserver for _pServerHttp", ret, error);
+
+    if (_pServerUdp) {
+       ret = _pServerUdp->registerObserver(observer, notification);
+       CHECK_ERROR_GOTO("Unable to registerObserver for _pServerHttp", ret, error);
+    }
 
     ret = _pServerPlaylist->registerObserver(observer, notification);
     CHECK_ERROR_GOTO("Unable to registerObserver for _pServerPlaylist", ret, error);
@@ -130,7 +147,30 @@ eRet CServerMgr::startHttpServer(void)
 
 error:
     return(ret);
-}
+} /* startHttpServer */
+
+eRet CServerMgr::startUdpServer(void)
+{
+    eRet ret = eRet_Ok;
+
+    if (true == _pServerUdp->isStarted())
+    {
+        /* server is already started */
+        return(ret);
+    }
+
+    _pServerUdp->setModel(_pModel);
+    /* Start the server.*/
+    ret = _pServerUdp->start();
+    if (ret != eRet_Ok)
+    {
+       /* this is optional that it is why this is a MSG and not ERR */
+       BDBG_MSG(("UDP Server not started "));
+       ret = eRet_ExternalError;
+    }
+error:
+    return(ret);
+} /* startUdpServer */
 
 eRet CServerMgr::startPlaylistServer(void)
 {
@@ -160,6 +200,29 @@ eRet CServerMgr::stopHttpServer(void)
 
 error:
     return(ret);
+} /* stopHttpServer */
+
+eRet CServerMgr::stopUdpServer(void)
+{
+    eRet ret = eRet_Ok;
+
+    if (false == _pServerUdp->isStarted())
+    {
+        /* server is already stopped */
+        return(ret);
+    }
+
+    /* Stop the server*/
+    ret = _pServerUdp->stop();
+    CHECK_ERROR_GOTO("Unable to stop UDP server object", ret, error);
+
+error:
+    return(ret);
+} /* stopUdpServer */
+
+bool CServerMgr::isUdpServerStarted(void)
+{
+    return((NULL == _pServerUdp) ? false : _pServerUdp->isStarted());
 }
 
 bool CServerMgr::isHttpServerStarted(void)
@@ -174,6 +237,7 @@ eRet CServerMgr::stopPlaylistServer(void)
     ret = _pServerPlaylist->stop();
     CHECK_ERROR_GOTO("Unable to stop HTTP server object", ret, error);
 
+
 error:
     return(ret);
 }
@@ -183,6 +247,12 @@ void CServerMgr::close()
     stopHttpServer(); /*TODO:Right now we do it here, later it can be moved.*/
     _pServerHttp->close();
     DEL(_pServerHttp);
+
+    if (_pServerUdp) {
+       stopUdpServer();
+       _pServerUdp->close();
+       DEL(_pServerUdp);
+    }
 
     stopPlaylistServer();
     _pServerPlaylist->close();

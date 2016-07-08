@@ -1,7 +1,7 @@
 ############################################################
-#     (c)2003-2014 Broadcom Corporation
+#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 #
-#  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+#  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
 #  conditions of a separate, written license agreement executed between you and Broadcom
 #  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,80 +34,91 @@
 #  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
-#
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
-# Module Description:
-#
-# Revision History:
-#
-# Created: 08/28/2007 by Jon Garrett
-#
-# $brcm_Log: $
-#
 ############################################################
 # Nexus examples
 
-FREETYPE_SUPPORT?=y
+export FREETYPE_SUPPORT=y
+export PNG_SUPPORT=n
 
-ifdef COMSPEC
-# Any DOS environment
-NEXUS_TOP := $(shell cd ../../../../nexus && cd)
-else
-NEXUS_TOP := $(shell cd ../../../../nexus; pwd)
+B_THIS_DIR:=BSEAV/lib/bwin/utils
+PHONY := all clean nexus clean_nexus api clean_api clean_apps clean_bwin install nexus_headers
+.PHONY: ${PHONY}
+.NOTPARALLEL: api apps
+
+THEAPPS = \
+	buildfont
+
+NEXUS_PLATFORM ?= $(PLATFORM)
+ifndef NEXUS_PLATFORM
+$(error NEXUS_PLATFORM is not defined)
 endif
 
-ifndef PLATFORM
-$(error PLATFORM is not defined)
+ifeq ($(B_REFSW_OS),)
+B_REFSW_OS=linuxuser
 endif
+include ../../../../nexus/build/os/$(B_REFSW_OS)/os_tools.inc
 
-# include cross-compiler definitions
-include $(NEXUS_TOP)/platforms/$(PLATFORM)/build/platform_app.inc
-OS ?= $(B_REFSW_OS)
-B_REFSW_ARCH?=mipsel-linux
+#ifeq ($(B_REFSW_REAL_MAKE),)
+#NEXUS_TOP ?= $(shell cd "../../../../nexus" && ${PWD})
+#
+#B_REFSW_OBJ_DIR ?= obj.${NEXUS_PLATFORM}
+#B_REFSW_OBJ_ROOT ?= ${NEXUS_TOP}/../${B_REFSW_OBJ_DIR}
+#BINDIR := ${B_REFSW_OBJ_ROOT}/nexus/examples
+#
+#${PHONY} ${THEAPPS}: ${BINDIR}/exists
+	#@${MAKE} -C ${BINDIR} B_REFSW_REAL_NEXUS_TOP=${NEXUS_TOP} B_REFSW_REAL_MAKE=1 -f ${CURDIR}/Makefile ${MAKECMDGOALS}
+#
+#${BINDIR}/exists:
+	#@mkdir -p $@
+#
+#else # B_REFSW_REAL_MAKE
+#NEXUS_TOP?=${B_REFSW_REAL_NEXUS_TOP}
+NEXUS_TOP = $(shell cd "../../../../nexus" && ${PWD})
 
-BSEAV=$(shell cd ../../.. && ${PWD})
-CFLAGS += $(SYSTEM_FLAGS)
+include $(NEXUS_TOP)/examples/Makefile_prologue.inc
 
-include $(BSEAV)/lib/bwin/include/bwin.mak
-CFLAGS += $(BWIN_CFLAGS)
-LDFLAGS += ${BWIN_LDFLAGS}
+BWIN=$(BSEAV)/lib/bwin
+include $(BWIN)/include/bwin.mak
+CFLAGS += $(BWIN_CFLAGS) -DBWIN_SUPPORT
+CXXFLAGS += $(BWIN_CFLAGS) -DBWIN_SUPPORT
+LDFLAGS += $(BWIN_LDFLAGS)
 
-APPS = showimage osddump buildfont
+APPS = $(THEAPPS)
+APPS ?= $(APP)
 
-.PHONY: bwin api clean_apps clean_api clean_bwin
+vpath %.c ${B_THIS_DIR}
 
-ifeq ($(APP),)
-all: $(APPS)
-$(APPS): bwin api
-else
-all: $(APP)
-$(APP): bwin api
-endif
+all: apps
+
+apps: $(APPS)
 
 LDFLAGS += $(NEXUS_LDFLAGS) $(NEXUS_LD_LIBRARIES) -lm
+CLIENT_LDFLAGS := $(NEXUS_LDFLAGS) $(NEXUS_CLIENT_LD_LIBRARIES)
 
-# build bwin
 bwin:
-	$(MAKE) FREETYPE_SUPPORT=$(FREETYPE_SUPPORT) -C ../build
+	$(MAKE) -C $(BWIN_DIR)/build
 
-# build nexus
-api:
-	$(MAKE) -C $(NEXUS_TOP)/build
+nexus_print_options nexus_headers:
+	$(MAKE) -C $(NEXUS_TOP)/build $@
 
 # This cleans nexus and local apps
-clean: clean_bwin clean_api clean_apps
+clean: clean_api clean_apps clean_bwin
 
-clean_bwin:
-	$(MAKE) -C ../build clean
-
-clean_api:
+# Clean api except on binary version
+ifeq ($(NEXUS_PREBUILT_BINARY),y)
+nexus api:
+clean_nexus clean_api:
+else
+nexus api:
+	$(MAKE) -C $(NEXUS_TOP)/build
+clean_nexus clean_api:
 	$(MAKE) -C $(NEXUS_TOP)/build clean
+endif
+clean_bwin:
+	$(MAKE) -C $(BWIN_DIR)/build clean
 
 clean_apps:
-	-$(RM) $(APPS) *.d *.o *.out;
+	-$(RM) $(APPS) *.d *.o *.out
 
 # This is the minimum needed to compile and link with Nexus
 CFLAGS += $(NEXUS_CFLAGS) $(addprefix -I,$(NEXUS_APP_INCLUDE_PATHS)) $(addprefix -D,$(NEXUS_APP_DEFINES))
@@ -116,9 +127,14 @@ CFLAGS += $(NEXUS_CFLAGS) $(addprefix -I,$(NEXUS_APP_INCLUDE_PATHS)) $(addprefix
 CFLAGS += -g
 
 # Implicit rule for building local apps
-%: %.c $(EXTRA_OBJS)
+%$(APPSUFFIX): bwin %.c $(patsubst %.o,%.c,$(EXTRA_OBJS)) $(if ${B_NEXUS_API_BUILD_COMPLETED}, , api)
 	@echo [Compile... $<]
-	$(Q_)$(CC) -o $@ $(filter %.c %.s %.o, $^) $(CFLAGS) $(LDFLAGS)
-	cp $@ ${NEXUS_BIN_DIR}
+	$(Q_)$(CC) -o $@ $(filter %.c %.s %.o, $^) $(CFLAGS) ${CDEP_FLAG} $(LDFLAGS)
+	cp -f $@ ${NEXUS_BIN_DIR}
+
+-include *.d
 
 install: all
+	cp -f ${APPS} ${NEXUS_BIN_DIR}
+
+#endif # B_REFSW_REAL_MAKE

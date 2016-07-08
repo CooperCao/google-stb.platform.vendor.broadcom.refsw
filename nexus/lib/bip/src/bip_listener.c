@@ -1,43 +1,39 @@
 /******************************************************************************
- * (c) 2016 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -155,7 +151,7 @@ struct BIP_Listener
     "[hListener=%p Port=%s Iface=%s Type=%s qDepth=%d fd=%d]"
 
 #define BIP_LISTENER_PRINTF_ARG(pObj)                                                                 \
-    (pObj),                                                                                           \
+    (void *)(pObj),                                                                                           \
     (pObj)->startSettings.pPort           ? (pObj)->startSettings.pPort :          "NULL",            \
     (pObj)->startSettings.pInterfaceName  ? (pObj)->startSettings.pInterfaceName : "NULL",            \
     (pObj)->startSettings.ipAddressType==BIP_NetworkAddressType_eIpV4           ? "IpV4"          :   \
@@ -200,26 +196,26 @@ static BIP_Status mapInterfaceNametoIpV4Address(
     interfaceNameLength = strlen(pInterfaceName);
     if (interfaceNameLength > IFNAMSIZ-1)
     {
-        BDBG_ERR(( BIP_MSG_PRE_FMT "hListener %p: interface name: %s, is too long, MAX allowed IFNAMSIZ-1: %d"
-                    BIP_MSG_PRE_ARG, hListener, pInterfaceName, interfaceNameLength, IFNAMSIZ-1));
+        BDBG_ERR(( BIP_MSG_PRE_FMT "hListener %p: interface name: %s, interface name size:%d is too long, MAX allowed IFNAMSIZ-1: %d"
+                    BIP_MSG_PRE_ARG, (void *)hListener, pInterfaceName, interfaceNameLength, IFNAMSIZ-1));
         return BIP_ERR_INVALID_PARAMETER;
     }
 
     socketFd = socket(AF_INET, SOCK_STREAM, 0);
     if (socketFd < 0) osErrno = errno;
-    BIP_CHECK_GOTO( ( socketFd >= 0), ("hListener %p: System call: socket returned %d, errno=%d", hListener, socketFd, osErrno ), error, BIP_StatusFromErrno(osErrno), bipStatus );
+    BIP_CHECK_GOTO( ( socketFd >= 0), ("hListener %p: System call: socket returned %d, errno=%d", (void *)hListener, socketFd, osErrno ), error, BIP_StatusFromErrno(osErrno), bipStatus );
 
     B_Os_Memset(&ifreq, 0, sizeof(struct ifreq));
     strncpy( ifreq.ifr_name, pInterfaceName, IFNAMSIZ-1);
     ifreq.ifr_addr.sa_family = AF_INET;
     osRc = ioctl(socketFd, SIOCGIFADDR, (char *)&ifreq);
     if (osRc != 0) osErrno = errno;
-    BIP_CHECK_GOTO( ( osRc == 0), ("hListener %p: System call: ioctl SIOCGIFADDR returned %d, errno=%d", hListener, osRc, osErrno ), error, BIP_StatusFromErrno(osErrno), bipStatus );
+    BIP_CHECK_GOTO( ( osRc == 0), ("hListener %p: System call: ioctl SIOCGIFADDR returned %d, errno=%d", (void *)hListener, osRc, osErrno ), error, BIP_StatusFromErrno(osErrno), bipStatus );
 
     pSockAddrIn = (struct sockaddr_in *)&ifreq.ifr_addr;
     *pInAddr = *pSockAddrIn;
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hListener %p: interface name: %s, ip Address: 0x%x" BIP_MSG_PRE_ARG, hListener, pInterfaceName, pInAddr->sin_addr.s_addr ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hListener %p: interface name: %s, ip Address: 0x%x" BIP_MSG_PRE_ARG, (void *)hListener, pInterfaceName, pInAddr->sin_addr.s_addr ));
     bipStatus = BIP_SUCCESS;
 
 error:
@@ -257,7 +253,7 @@ static BIP_Status printBIPListenerList(
         PRINTMSG_LIST(( "ListIndex %d \n ", i++ ));
         PRINTMSG_LIST(( "Listener state %d \n ", hElem->state ));
         PRINTMSG_LIST(( "Listener's socketFd %d \n ", hElem->socketFd ));
-        PRINTMSG_LIST(( "Listener's pPort %d \n ", hElem->startSettings.pPort ));
+        PRINTMSG_LIST(( "Listener's pPort %s \n ", hElem->startSettings.pPort ));
     }
     PRINTMSG_LIST(( "----------End of List----------\n" ));
 
@@ -327,7 +323,7 @@ BIP_Status BIP_Listener_Uninit(
        while (hIter) {
            hElem = hIter;
            hIter = BLST_Q_NEXT( hIter, listenerListNext );
-           BDBG_WRN(("leftover listener handle %p deleteing ",hElem));
+           BDBG_WRN(("leftover listener handle %p deleteing ", (void *)hElem));
            BLST_Q_REMOVE( &g_ListenerListHead, hElem, listenerListNext );
            BIP_Listener_Destroy( hElem );
        }
@@ -514,7 +510,7 @@ static BIP_Status ProcessState(
                         {
                             BDBG_ERR(("hListener->startSettings.pInterfaceName -------------> %s", hListener->startSettings.pInterfaceName));
                             rc = mapInterfaceNametoIpV4Address( hListener, hListener->startSettings.pInterfaceName, &localAddr);
-                            BIP_CHECK_GOTO(( rc == BIP_SUCCESS ), ( "hListener %p: mapInterfaceNametoIpV4Address() Failed", hListener ), error, BIP_ERR_INTERFACE_NAME_TO_IP_ADDR, rc );
+                            BIP_CHECK_GOTO(( rc == BIP_SUCCESS ), ( "hListener %p: mapInterfaceNametoIpV4Address() Failed", (void *)hListener ), error, BIP_ERR_INTERFACE_NAME_TO_IP_ADDR, rc );
                             pIpAddress = inet_ntop(AF_INET, &localAddr.sin_addr, ipAddress, INET6_ADDRSTRLEN);
                         }
                         /* TODO: Add code for IPv6 & other enums! */
@@ -567,7 +563,7 @@ error:
             {
                 case BIP_ListenerProcessStateEvent_eStart:
                 {
-                    BDBG_ERR(( "%s: State Listening: You are already Started.  " ));
+                    BDBG_ERR(( "%s: State Listening: You are already Started.  ",__FUNCTION__ ));
                     rc = BIP_ERR_INTERNAL;
                     break;
                 }
@@ -579,7 +575,7 @@ error:
                     /*Send conncected callback to upper level,  Need to handle when connectedCallback is Null or App directly calls Bip_Listener_Accept */
                     if (hListener->settings.connectedCallback.callback && ( hListener->callbackState == BIP_ListenerCallbackState_eEnable ))
                     {
-                        BDBG_MSG(( "%s:Listener Data Ready CB calling connected callback  %p", __FUNCTION__, hListener->hIoElement ));
+                        BDBG_MSG(( "%s:Listener Data Ready CB calling connected callback  %p", __FUNCTION__, (void *)hListener->hIoElement ));
 
                         hListener->callbackState = BIP_ListenerCallbackState_eDisable;
 
@@ -637,7 +633,7 @@ error:
             {
                 case BIP_ListenerProcessStateEvent_eStart:
                 {
-                    BDBG_MSG(( "%s: State: Accepting and Event: Start, do nothing " ));
+                    BDBG_MSG(( "%s: State: Accepting and Event: Start, do nothing " ,__FUNCTION__));
                     break;
                 }
                 /* Accept is waiting, data ready callback has come to set event */
@@ -1076,7 +1072,7 @@ BIP_Status BIP_Listener_Stop(
         hListener->waitingOnStopEvent = false;
         if (( rc == BERR_TIMEOUT ) || ( rc != 0 ))
         {
-            BDBG_ERR(( "%s: Has Timeout of %d reached, rc %d: %s", __FUNCTION__, 1000, rc == BERR_TIMEOUT ? "event timeout" : "event failure" ));
+            BDBG_ERR(( "%s: Has Timeout of %d reached, rc %d: %s", __FUNCTION__, 1000, rc, rc == BERR_TIMEOUT ? "event timeout" : "event failure" ));
         }
     }
 
@@ -1118,7 +1114,7 @@ BIP_SocketHandle BIP_Listener_Accept(
 
         if (hListener->hAcceptedSocket) {
             BIP_MSG_TRC(( BIP_MSG_PRE_FMT "New connect on BipSocket=%p: " BIP_LISTENER_PRINTF_FMT
-                          BIP_MSG_PRE_ARG, hListener->hAcceptedSocket, BIP_LISTENER_PRINTF_ARG(hListener)));
+                          BIP_MSG_PRE_ARG, (void *)hListener->hAcceptedSocket, BIP_LISTENER_PRINTF_ARG(hListener)));
         }
         return( hListener->hAcceptedSocket );
     }
@@ -1154,7 +1150,7 @@ BIP_SocketHandle BIP_Listener_Accept(
 
         if (( rc == BERR_TIMEOUT ) || ( rc != 0 ))
         {
-            BDBG_WRN(( "%s: Has Timeout of %d reached, rc %d: %s", __FUNCTION__, timeout, rc == BERR_TIMEOUT ? "event timeout" : "event failure" ));
+            BDBG_WRN(( "%s: Has Timeout of %d reached, rc %d: %s", __FUNCTION__, timeout, rc, rc == BERR_TIMEOUT ? "event timeout" : "event failure" ));
             if (rc == BERR_TIMEOUT)
             {
                 /* Change State */
@@ -1176,7 +1172,7 @@ BIP_SocketHandle BIP_Listener_Accept(
 
     if (hListener->hAcceptedSocket) {
         BIP_MSG_TRC(( BIP_MSG_PRE_FMT "New connect on BipSocket=%p: " BIP_LISTENER_PRINTF_FMT
-                      BIP_MSG_PRE_ARG, hListener->hAcceptedSocket, BIP_LISTENER_PRINTF_ARG(hListener)));
+                      BIP_MSG_PRE_ARG, (void *)hListener->hAcceptedSocket, BIP_LISTENER_PRINTF_ARG(hListener)));
     }
 
     return( hListener->hAcceptedSocket );

@@ -1,43 +1,39 @@
 /******************************************************************************
- * (c) 2016 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -192,7 +188,7 @@ struct BIP_Socket
     "[hSocket=%p Type=%s Port=%s Ip=%s Iface=%s fd=%d Eof/Err=%s localIP=%s remoteIp=%s]"
 
 #define BIP_SOCKET_PRINTF_ARG(pObj)                                                         \
-    (pObj),                                                                                 \
+    (void *)(pObj),                                                                                 \
     (pObj)->createSettings.type==BIP_SocketType_eTcp   ? "Tcp"   :                          \
     (pObj)->createSettings.type==BIP_SocketType_eUdpTx ? "UdpTx" :                          \
     (pObj)->createSettings.type==BIP_SocketType_eUdpRx ? "UdpRx" :                          \
@@ -218,14 +214,14 @@ static BIP_Status  BIP_Socket_CheckForObjectShutdown(
 
     BDBG_OBJECT_ASSERT( hSocket, BIP_Socket );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Entry..." BIP_MSG_PRE_ARG, hSocket ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Entry..." BIP_MSG_PRE_ARG, (void *)hSocket ));
 
     if (hSocket->shutdown.state != BIP_SocketShutdownState_eShutdownDone) {
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Not ready to shut down, returning..." BIP_MSG_PRE_ARG, hSocket ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Not ready to shut down, returning..." BIP_MSG_PRE_ARG, (void *)hSocket ));
         return(BIP_ERR_OBJECT_BEING_DESTROYED);  /* Destruction still in progress. */
     }
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Setting hObjectShutdownEvent" BIP_MSG_PRE_ARG, hSocket ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Setting hObjectShutdownEvent" BIP_MSG_PRE_ARG, (void *)hSocket ));
     B_Event_Set(hSocket->hObjectShutdownEvent);
 
     return(rc);
@@ -250,7 +246,7 @@ static void processStateFromRecvIoCheckerCallback(void *pContext, int param, BIP
     BSTD_UNUSED(param);
     BSTD_UNUSED(eventMask);
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Entry..." BIP_MSG_PRE_ARG, hSocket ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Entry..." BIP_MSG_PRE_ARG, (void *)hSocket ));
 
     rc = BIP_CLASS_LOCK_AND_CHECK_INSTANCE(BIP_Socket, hSocket);
     if (rc != BIP_SUCCESS) { return; }
@@ -270,7 +266,7 @@ static void processStateFromSendIoCheckerCallback(void *pContext, int param, BIP
     BSTD_UNUSED(param);
     BSTD_UNUSED(eventMask);
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Entry..." BIP_MSG_PRE_ARG, hSocket ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Entry..." BIP_MSG_PRE_ARG, (void *)hSocket ));
 
     rc = BIP_CLASS_LOCK_AND_CHECK_INSTANCE(BIP_Socket, hSocket);
     if (rc != BIP_SUCCESS) { return; }
@@ -287,13 +283,13 @@ static void processStateFromTimerCallback_Recv(void *pContext)
 {
     BIP_Status          rc;
     BIP_SocketHandle    hSocket = (BIP_SocketHandle) pContext;
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Entry..." BIP_MSG_PRE_ARG, hSocket ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Entry..." BIP_MSG_PRE_ARG, (void *)hSocket ));
 
     rc = BIP_CLASS_LOCK_AND_CHECK_INSTANCE(BIP_Socket, hSocket);
     if (rc != BIP_SUCCESS) { return; }
 
     if (hSocket->recv.timerId) {
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Got BIP_Timer callback for Recv, marking timer as self-destroyed" BIP_MSG_PRE_ARG, hSocket ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Got BIP_Timer callback for Recv, marking timer as self-destroyed" BIP_MSG_PRE_ARG, (void *)hSocket ));
         hSocket->recv.timerId = NULL;   /* Indicate timer not active. */
     }
     BIP_CLASS_UNLOCK(BIP_Socket, hSocket);
@@ -306,13 +302,13 @@ void processStateFromTimerCallback_Send(void *pContext)
 {
     BIP_Status          rc;
     BIP_SocketHandle    hSocket = (BIP_SocketHandle) pContext;
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Entry..." BIP_MSG_PRE_ARG, hSocket ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Entry..." BIP_MSG_PRE_ARG, (void *)hSocket ));
 
     rc = BIP_CLASS_LOCK_AND_CHECK_INSTANCE(BIP_Socket, hSocket);
     if (rc != BIP_SUCCESS) { return; }
 
     if (hSocket->send.timerId) {
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Got BIP_Timer callback for Send, marking timer as self-destroyed" BIP_MSG_PRE_ARG, hSocket ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Got BIP_Timer callback for Send, marking timer as self-destroyed" BIP_MSG_PRE_ARG, (void *)hSocket ));
         hSocket->send.timerId = NULL;   /* Indicate timer not active. */
     }
     BIP_CLASS_UNLOCK(BIP_Socket, hSocket);
@@ -337,24 +333,24 @@ static void processRecvState_locked(void *hObject, int value, BIP_Arb_ThreadOrig
     BDBG_ASSERT(hSocket);
     BDBG_OBJECT_ASSERT(hSocket,BIP_Socket);
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Entry..." BIP_MSG_PRE_ARG, hSocket ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Entry..." BIP_MSG_PRE_ARG, (void *)hSocket ));
 
     /**************************************************************************
      * Start by handling the Arbs for the BIP_Socket_Recv API.
      **************************************************************************/
     hArb = BIP_ArbList_GetNewArb(hSocket->hRecvArbList);
     if (hArb) {
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Got Recv Arb request!" BIP_MSG_PRE_ARG, hSocket ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Got Recv Arb request!" BIP_MSG_PRE_ARG, (void *)hSocket ));
 
         if (hSocket->shutdown.state != BIP_SocketShutdownState_eNormal) {
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: BIP_Socket is shutting down, rejecting request (BIP_ERR_OBJECT_BEING_DESTROYED) " BIP_MSG_PRE_ARG, hSocket ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: BIP_Socket is shutting down, rejecting request (BIP_ERR_OBJECT_BEING_DESTROYED) " BIP_MSG_PRE_ARG, (void *)hSocket ));
             BIP_Arb_RejectRequest(hArb, BIP_ERR_OBJECT_BEING_DESTROYED);
         }
         else {
             /* Add the new Arb to our list of active Arbs. */
             BLST_Q_INSERT_TAIL(&hSocket->recvArbQueueHead, BIP_APPARB_FROM_ARB( hArb, BIP_SocketRecvArb), recvArbQueueNext);
 
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Calling BIP_Arb_AcceptRequest()" BIP_MSG_PRE_ARG, hSocket ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Calling BIP_Arb_AcceptRequest()" BIP_MSG_PRE_ARG, (void *)hSocket ));
             BIP_Arb_AcceptRequest(hArb);
         }
     }
@@ -365,10 +361,10 @@ static void processRecvState_locked(void *hObject, int value, BIP_Arb_ThreadOrig
     if (hSocket->recv.state == BIP_SocketRecvState_eIdle) {
         BIP_SocketRecvArb   *pRecvArb;
 
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Handling Receive State: eIdle" BIP_MSG_PRE_ARG, hSocket ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Handling Receive State: eIdle" BIP_MSG_PRE_ARG, (void *)hSocket ));
 
         pRecvArb = BLST_Q_FIRST(&hSocket->recvArbQueueHead);
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Oldest Recv queued Recv Arb: %p" BIP_MSG_PRE_ARG, hSocket, pRecvArb ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Oldest Recv queued Recv Arb: %p" BIP_MSG_PRE_ARG, (void *)hSocket, (void *)pRecvArb ));
 
         if (pRecvArb) {
             BDBG_OBJECT_ASSERT(pRecvArb, BIP_SocketRecvArb);
@@ -378,7 +374,7 @@ static void processRecvState_locked(void *hObject, int value, BIP_Arb_ThreadOrig
             hSocket->recv.state             = BIP_SocketRecvState_eNew;
             hSocket->recv.completionStatus  = BIP_INF_IN_PROGRESS;
 
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Recv pBuffer:%p bytesToRead:%ld" BIP_MSG_PRE_ARG, hSocket, pRecvArb->settings.output.pBuffer, pRecvArb->settings.input.bytesToRead ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Recv pBuffer:%p bytesToRead:%ld" BIP_MSG_PRE_ARG, (void *)hSocket, (void *)pRecvArb->settings.output.pBuffer, (long int)pRecvArb->settings.input.bytesToRead ));
         }
     }
 
@@ -386,12 +382,12 @@ static void processRecvState_locked(void *hObject, int value, BIP_Arb_ThreadOrig
     *  BIP_SocketRecvState_eNew: Start a new Recv request.
     **************************************************************************/
     if (hSocket->recv.state == BIP_SocketRecvState_eNew) {
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Handling Receive State: eNew" BIP_MSG_PRE_ARG, hSocket ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Handling Receive State: eNew" BIP_MSG_PRE_ARG, (void *)hSocket ));
         B_Time_Get(&hSocket->recv.startTime);
         if (hSocket->recv.pAppArb->settings.api.timeout > 0) {
             BIP_TimerCreateSettings timerCreateSettings;
 
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Starting timer for %ld ms" BIP_MSG_PRE_ARG, hSocket, hSocket->recv.pAppArb->settings.api.timeout ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Starting timer for %ld ms" BIP_MSG_PRE_ARG, (void *)hSocket, (long int)hSocket->recv.pAppArb->settings.api.timeout ));
             timerCreateSettings.input.callback    = processStateFromTimerCallback_Recv;
             timerCreateSettings.input.pContext    = hSocket;
             timerCreateSettings.input.timeoutInMs = hSocket->recv.pAppArb->settings.api.timeout;
@@ -407,11 +403,11 @@ static void processRecvState_locked(void *hObject, int value, BIP_Arb_ThreadOrig
      *  socket, then read it.
      **************************************************************************/
     if (hSocket->recv.state == BIP_SocketRecvState_eReceiving) {
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Handling Receive State: eReceiving" BIP_MSG_PRE_ARG, hSocket ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Handling Receive State: eReceiving" BIP_MSG_PRE_ARG, (void *)hSocket ));
 
         rc = BIP_Fd_CheckNow(hSocket->socketFd, BIP_IoCheckerEvent_ePollIn);
         if (rc == 0 ) {
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: CheckNow: Nothing there" BIP_MSG_PRE_ARG, hSocket ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: CheckNow: Nothing there" BIP_MSG_PRE_ARG, (void *)hSocket ));
 
             if (hSocket->recv.dataReadyCallbackState == BIP_SocketCallbackState_eTriggered) {
                 hSocket->recv.dataReadyCallbackState = BIP_SocketCallbackState_eArmed;
@@ -422,8 +418,8 @@ static void processRecvState_locked(void *hObject, int value, BIP_Arb_ThreadOrig
             ssize_t bytesRead;
             int     myErrno;
 
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: CheckNow: Something there (0x%0X)! Trying to read %d bytes"
-                       BIP_MSG_PRE_ARG, hSocket, rc, hSocket->recv.pAppArb->settings.input.bytesToRead - hSocket->recv.bytesRead ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: CheckNow: Something there (0x%0X)! Trying to read %zd bytes"
+                       BIP_MSG_PRE_ARG, (void *)hSocket, rc, hSocket->recv.pAppArb->settings.input.bytesToRead - hSocket->recv.bytesRead ));
             bytesRead = recv( hSocket->socketFd,
                               hSocket->recv.pAppArb->settings.output.pBuffer + hSocket->recv.bytesRead,
                               hSocket->recv.pAppArb->settings.input.bytesToRead - hSocket->recv.bytesRead,
@@ -431,7 +427,7 @@ static void processRecvState_locked(void *hObject, int value, BIP_Arb_ThreadOrig
                               );
             myErrno = errno;
 
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: After read, bytesRead: %ld" BIP_MSG_PRE_ARG, hSocket, bytesRead ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: After read, bytesRead: %ld" BIP_MSG_PRE_ARG, (void *)hSocket, (long int)bytesRead ));
             if (bytesRead < 0)
             {
                 hSocket->recv.completionStatus = BIP_StatusFromErrno( myErrno );
@@ -459,9 +455,9 @@ static void processRecvState_locked(void *hObject, int value, BIP_Arb_ThreadOrig
 
                 B_Time_Get(&timeNow);
                 elapsedTimeInMs = B_Time_Diff(&timeNow,&hSocket->recv.startTime);
-                BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Read Timeout Check: So far: %ld ms, limit is %ld ms." BIP_MSG_PRE_ARG, hSocket, elapsedTimeInMs , hSocket->recv.pAppArb->settings.api.timeout ));
+                BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Read Timeout Check: So far: %ld ms, limit is %ld ms." BIP_MSG_PRE_ARG, (void *)hSocket, (long int)elapsedTimeInMs , (long int)hSocket->recv.pAppArb->settings.api.timeout ));
                 if (elapsedTimeInMs >= hSocket->recv.pAppArb->settings.api.timeout) {
-                    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Read Timed Out!" BIP_MSG_PRE_ARG, hSocket ));
+                    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Read Timed Out!" BIP_MSG_PRE_ARG, (void *)hSocket ));
                     hSocket->recv.completionStatus = BIP_INF_TIMEOUT;
                 }
             }
@@ -471,7 +467,7 @@ static void processRecvState_locked(void *hObject, int value, BIP_Arb_ThreadOrig
          *  Check for completion by object destruction.
          **********************************************************************/
         if (hSocket->shutdown.state != BIP_SocketShutdownState_eNormal) {
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Aborting Read due to object destruction!" BIP_MSG_PRE_ARG, hSocket ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Aborting Read due to object destruction!" BIP_MSG_PRE_ARG, (void *)hSocket ));
             hSocket->recv.completionStatus = BIP_ERR_OBJECT_BEING_DESTROYED;
         }
 
@@ -482,7 +478,7 @@ static void processRecvState_locked(void *hObject, int value, BIP_Arb_ThreadOrig
 
             if (hSocket->recv.timerId != NULL)
             {
-                BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Cancelling timer for Recv" BIP_MSG_PRE_ARG, hSocket ));
+                BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Cancelling timer for Recv" BIP_MSG_PRE_ARG, (void *)hSocket ));
                 BIP_Timer_Destroy(hSocket->recv.timerId);
                 hSocket->recv.timerId = NULL;
             }
@@ -491,7 +487,7 @@ static void processRecvState_locked(void *hObject, int value, BIP_Arb_ThreadOrig
                 *hSocket->recv.pAppArb->settings.output.pBytesRead = hSocket->recv.bytesRead;    /* Set caller's output variable. */
             }
 
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Calling BIP_Arb_CompleteRequest()." BIP_MSG_PRE_ARG, hSocket ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Calling BIP_Arb_CompleteRequest()." BIP_MSG_PRE_ARG, (void *)hSocket ));
             BIP_Arb_CompleteRequest(BIP_ARB_FROM_APPARB(hSocket->recv.pAppArb), hSocket->recv.completionStatus);
 
             hSocket->recv.state = BIP_SocketRecvState_eIdle;
@@ -514,11 +510,11 @@ static void processRecvState_locked(void *hObject, int value, BIP_Arb_ThreadOrig
      **************************************************************************/
     if (hSocket->recv.dataReadyCallbackState == BIP_SocketCallbackState_eArmed &&
         ! hSocket->socketAtEofOrError ) {
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Checking for DataReady..." BIP_MSG_PRE_ARG, hSocket ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Checking for DataReady..." BIP_MSG_PRE_ARG, (void *)hSocket ));
 
         rc = BIP_Fd_CheckNow(hSocket->socketFd, BIP_IoCheckerEvent_ePollIn);
         if (rc != 0 ) {
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: CheckNow: Got data! Firing callback!" BIP_MSG_PRE_ARG, hSocket ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: CheckNow: Got data! Firing callback!" BIP_MSG_PRE_ARG, (void *)hSocket ));
 
             rc = BIP_Arb_AddDeferredCallback(hSocket->setSettingsApi.hArb, &hSocket->settings.dataReadyCallback);
             hSocket->recv.dataReadyCallbackState = BIP_SocketCallbackState_eTriggered;
@@ -534,7 +530,7 @@ static void processRecvState_locked(void *hObject, int value, BIP_Arb_ThreadOrig
     if (hSocket->recv.state == BIP_SocketRecvState_eReceiving  ||
         hSocket->recv.dataReadyCallbackState == BIP_SocketCallbackState_eArmed ) {
         if (hSocket->recv.ioCheckerState != BIP_SocketIoCheckerState_eBusy) {
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Enabling ioChecker for ePollIn" BIP_MSG_PRE_ARG, hSocket ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Enabling ioChecker for ePollIn" BIP_MSG_PRE_ARG, (void *)hSocket ));
             rc = BIP_IoChecker_Enable(hSocket->recv.hIoChecker, BIP_IoCheckerEvent_ePollIn);
             BIP_CHECK_GOTO((rc == BIP_SUCCESS), ( "BIP_IoChecker_Enable() failed" ), error, rc, rc );
 
@@ -544,7 +540,7 @@ static void processRecvState_locked(void *hObject, int value, BIP_Arb_ThreadOrig
     else
     {
         if (hSocket->recv.ioCheckerState != BIP_SocketIoCheckerState_eIdle) {
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Disabling ioChecker for ePollIn" BIP_MSG_PRE_ARG, hSocket ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Disabling ioChecker for ePollIn" BIP_MSG_PRE_ARG, (void *)hSocket ));
             rc = BIP_IoChecker_Disable(hSocket->recv.hIoChecker, BIP_IoCheckerEvent_ePollIn);
             BIP_CHECK_GOTO((rc == BIP_SUCCESS), ( "BIP_IoChecker_Disable() failed" ), error, rc, rc );
 
@@ -552,7 +548,7 @@ static void processRecvState_locked(void *hObject, int value, BIP_Arb_ThreadOrig
         }
     }
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Returning." BIP_MSG_PRE_ARG, hSocket ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Returning." BIP_MSG_PRE_ARG, (void *)hSocket ));
 
 error:
     return;
@@ -575,22 +571,22 @@ static void processSendState_locked(void *hObject, int value, BIP_Arb_ThreadOrig
     BDBG_ASSERT(hSocket);
     BDBG_OBJECT_ASSERT(hSocket,BIP_Socket);
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Entry..." BIP_MSG_PRE_ARG, hSocket ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Entry..." BIP_MSG_PRE_ARG, (void *)hSocket ));
 
     /**************************************************************************
      * Start by handling the Arbs for the BIP_Socket_Send API.
      **************************************************************************/
     if (BIP_Arb_IsNew(hArb = hSocket->sendApi.hArb)) {
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Got Send Arb request!" BIP_MSG_PRE_ARG, hSocket ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Got Send Arb request!" BIP_MSG_PRE_ARG, (void *)hSocket ));
 
         if (hSocket->shutdown.state != BIP_SocketShutdownState_eNormal) {
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: BIP_Socket is shutting down, rejecting request (BIP_ERR_OBJECT_BEING_DESTROYED) " BIP_MSG_PRE_ARG, hSocket ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: BIP_Socket is shutting down, rejecting request (BIP_ERR_OBJECT_BEING_DESTROYED) " BIP_MSG_PRE_ARG, (void *)hSocket ));
             BIP_Arb_RejectRequest(hArb, BIP_ERR_OBJECT_BEING_DESTROYED);
         }
         else {
             /* If our send state isn't Idle, fail the request.  Actually, the Arb shouldn't allow this case to occur. */
             if (hSocket->send.state != BIP_SocketSendState_eIdle) {
-                BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Calling BIP_Arb_RejectRequest(). Current send.state:%ld " BIP_MSG_PRE_ARG, hSocket, hSocket->send.state ));
+                BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Calling BIP_Arb_RejectRequest(). Current send.state:%ld " BIP_MSG_PRE_ARG, (void *)hSocket, (long int)hSocket->send.state ));
                 rc = BIP_Arb_RejectRequest(hArb, BIP_ERR_ALREADY_IN_PROGRESS);
             }
             else /* The receive state is Idle, go ahead and start a new send. */
@@ -598,9 +594,9 @@ static void processSendState_locked(void *hObject, int value, BIP_Arb_ThreadOrig
                 hSocket->send.state             = BIP_SocketSendState_eNew;
                 hSocket->send.completionStatus  = BIP_INF_IN_PROGRESS;
 
-                BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Send pBuffer:%p bytesToSend:%ld" BIP_MSG_PRE_ARG, hSocket, hSocket->sendApi.settings.input.pBuffer, hSocket->sendApi.settings.input.bytesToSend ));
+                BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Send pBuffer:%p bytesToSend:%ld" BIP_MSG_PRE_ARG, (void *)hSocket, hSocket->sendApi.settings.input.pBuffer, (long int)hSocket->sendApi.settings.input.bytesToSend ));
 
-                BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Calling BIP_Arb_AcceptRequest()" BIP_MSG_PRE_ARG, hSocket ));
+                BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Calling BIP_Arb_AcceptRequest()" BIP_MSG_PRE_ARG, (void *)hSocket ));
                 BIP_Arb_AcceptRequest(hArb);
             }
         }
@@ -613,14 +609,14 @@ static void processSendState_locked(void *hObject, int value, BIP_Arb_ThreadOrig
     /**************************************************************************
     *  BIP_SocketSendState_eNew: Start a new Send request.
     **************************************************************************/
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Handling Send State" BIP_MSG_PRE_ARG, hSocket ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Handling Send State" BIP_MSG_PRE_ARG, (void *)hSocket ));
     if (hSocket->send.state == BIP_SocketSendState_eNew) {
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Handling Send State: eNew" BIP_MSG_PRE_ARG, hSocket ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Handling Send State: eNew" BIP_MSG_PRE_ARG, (void *)hSocket ));
         B_Time_Get(&hSocket->send.startTime);
         if (hSocket->sendApi.settings.api.timeout > 0) {
             BIP_TimerCreateSettings timerCreateSettings;
 
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Starting timer for %ld ms" BIP_MSG_PRE_ARG, hSocket, hSocket->sendApi.settings.api.timeout ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Starting timer for %ld ms" BIP_MSG_PRE_ARG, (void *)hSocket, (long int)hSocket->sendApi.settings.api.timeout ));
             timerCreateSettings.input.callback    = processStateFromTimerCallback_Send;
             timerCreateSettings.input.pContext    = hSocket;
             timerCreateSettings.input.timeoutInMs = hSocket->sendApi.settings.api.timeout;
@@ -636,11 +632,11 @@ static void processSendState_locked(void *hObject, int value, BIP_Arb_ThreadOrig
      *  socket, then write our data to it.
      **************************************************************************/
     if (hSocket->send.state == BIP_SocketSendState_eSending) {
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Handling Send State: eSending" BIP_MSG_PRE_ARG, hSocket ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Handling Send State: eSending" BIP_MSG_PRE_ARG, (void *)hSocket ));
 
         rc = BIP_Fd_CheckNow(hSocket->socketFd, BIP_IoCheckerEvent_ePollOut);
         if (rc == 0 ) {
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: CheckNow: No room in socket" BIP_MSG_PRE_ARG, hSocket ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: CheckNow: No room in socket" BIP_MSG_PRE_ARG, (void *)hSocket ));
 
             if (hSocket->send.writeReadyCallbackState == BIP_SocketCallbackState_eTriggered) {
                 hSocket->send.writeReadyCallbackState = BIP_SocketCallbackState_eArmed;
@@ -651,8 +647,8 @@ static void processSendState_locked(void *hObject, int value, BIP_Arb_ThreadOrig
             ssize_t bytesSent;
             int     myErrno;
 
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: CheckNow: Socket has some room (0x%0X)! Trying to send %d bytes"
-                       BIP_MSG_PRE_ARG, hSocket, rc, hSocket->sendApi.settings.input.bytesToSend - hSocket->send.bytesSent ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: CheckNow: Socket has some room (0x%0X)! Trying to send %zd bytes"
+                       BIP_MSG_PRE_ARG, (void *)hSocket, rc, hSocket->sendApi.settings.input.bytesToSend - hSocket->send.bytesSent ));
             bytesSent = send( hSocket->socketFd,
                               hSocket->sendApi.settings.input.pBuffer + hSocket->send.bytesSent,
                               hSocket->sendApi.settings.input.bytesToSend - hSocket->send.bytesSent,
@@ -660,7 +656,7 @@ static void processSendState_locked(void *hObject, int value, BIP_Arb_ThreadOrig
                               );
             myErrno = errno;    /* Save errno before it gets clobbered by next system call. */
 
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: After write, bytesSent: %ld" BIP_MSG_PRE_ARG, hSocket, bytesSent ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: After write, bytesSent: %ld" BIP_MSG_PRE_ARG, (void *)hSocket, (long int)bytesSent ));
             if (bytesSent < 0)
             {
                 hSocket->send.completionStatus = BIP_StatusFromErrno( myErrno );
@@ -688,9 +684,9 @@ static void processSendState_locked(void *hObject, int value, BIP_Arb_ThreadOrig
 
                 B_Time_Get(&timeNow);
                 elapsedTimeInMs = B_Time_Diff(&timeNow,&hSocket->send.startTime);
-                BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Write Timeout Check: So far: %ld ms, limit is %ld ms." BIP_MSG_PRE_ARG, hSocket, elapsedTimeInMs , hSocket->sendApi.settings.api.timeout ));
+                BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Write Timeout Check: So far: %ld ms, limit is %ld ms." BIP_MSG_PRE_ARG, (void *)hSocket, (long int)elapsedTimeInMs , (long int)hSocket->sendApi.settings.api.timeout ));
                 if (elapsedTimeInMs >= hSocket->sendApi.settings.api.timeout) {
-                    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Write Timed Out!" BIP_MSG_PRE_ARG, hSocket ));
+                    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Write Timed Out!" BIP_MSG_PRE_ARG, (void *)hSocket ));
                     hSocket->send.completionStatus = BIP_INF_TIMEOUT;
                 }
             }
@@ -700,7 +696,7 @@ static void processSendState_locked(void *hObject, int value, BIP_Arb_ThreadOrig
          *  Check for completion by object destruction.
          **********************************************************************/
         if (hSocket->shutdown.state != BIP_SocketShutdownState_eNormal) {
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Aborting Write due to object destruction!" BIP_MSG_PRE_ARG, hSocket ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Aborting Write due to object destruction!" BIP_MSG_PRE_ARG, (void *)hSocket ));
             hSocket->send.completionStatus = BIP_ERR_OBJECT_BEING_DESTROYED;
         }
 
@@ -711,7 +707,7 @@ static void processSendState_locked(void *hObject, int value, BIP_Arb_ThreadOrig
 
             if (hSocket->send.timerId != NULL)
             {
-                BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Cancelling timer for Send" BIP_MSG_PRE_ARG, hSocket ));
+                BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Cancelling timer for Send" BIP_MSG_PRE_ARG, (void *)hSocket ));
                 BIP_Timer_Destroy(hSocket->send.timerId);
                 hSocket->send.timerId = NULL;
             }
@@ -720,7 +716,7 @@ static void processSendState_locked(void *hObject, int value, BIP_Arb_ThreadOrig
                 *hSocket->sendApi.settings.output.pBytesSent = hSocket->send.bytesSent;    /* Set caller's output variable. */
             }
 
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Calling BIP_Arb_CompleteRequest()." BIP_MSG_PRE_ARG, hSocket ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Calling BIP_Arb_CompleteRequest()." BIP_MSG_PRE_ARG, (void *)hSocket ));
             BIP_Arb_CompleteRequest(hSocket->sendApi.hArb, hSocket->send.completionStatus);
 
             hSocket->send.state = BIP_SocketSendState_eIdle;
@@ -740,11 +736,11 @@ static void processSendState_locked(void *hObject, int value, BIP_Arb_ThreadOrig
      **************************************************************************/
     if (hSocket->send.writeReadyCallbackState == BIP_SocketCallbackState_eArmed &&
         ! hSocket->socketAtEofOrError) {
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Checking for WriteReady..." BIP_MSG_PRE_ARG, hSocket ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Checking for WriteReady..." BIP_MSG_PRE_ARG, (void *)hSocket ));
 
         rc = BIP_Fd_CheckNow(hSocket->socketFd, BIP_IoCheckerEvent_ePollOut);
         if (rc != 0 ) {
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: CheckNow: Socket has room! Firing callback!" BIP_MSG_PRE_ARG, hSocket ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: CheckNow: Socket has room! Firing callback!" BIP_MSG_PRE_ARG, (void *)hSocket ));
 
             rc = BIP_Arb_AddDeferredCallback(hSocket->setSettingsApi.hArb, &hSocket->settings.writeReadyCallback);
             hSocket->send.writeReadyCallbackState = BIP_SocketCallbackState_eTriggered;
@@ -760,7 +756,7 @@ static void processSendState_locked(void *hObject, int value, BIP_Arb_ThreadOrig
     if (hSocket->send.state == BIP_SocketSendState_eSending  ||
         hSocket->send.writeReadyCallbackState == BIP_SocketCallbackState_eArmed ) {
         if (hSocket->send.ioCheckerState != BIP_SocketIoCheckerState_eBusy) {
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Enabling ioChecker for ePollOut" BIP_MSG_PRE_ARG, hSocket ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Enabling ioChecker for ePollOut" BIP_MSG_PRE_ARG, (void *)hSocket ));
             rc = BIP_IoChecker_Enable(hSocket->send.hIoChecker, BIP_IoCheckerEvent_ePollOut);
             BIP_CHECK_GOTO((rc == BIP_SUCCESS), ( "BIP_IoChecker_Enable() failed" ), error, rc, rc );
 
@@ -770,7 +766,7 @@ static void processSendState_locked(void *hObject, int value, BIP_Arb_ThreadOrig
     else
     {
         if (hSocket->send.ioCheckerState != BIP_SocketIoCheckerState_eIdle) {
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Disabling ioChecker for ePollIn" BIP_MSG_PRE_ARG, hSocket ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Disabling ioChecker for ePollIn" BIP_MSG_PRE_ARG, (void *)hSocket ));
             rc = BIP_IoChecker_Disable(hSocket->send.hIoChecker, BIP_IoCheckerEvent_ePollOut);
             BIP_CHECK_GOTO((rc == BIP_SUCCESS), ( "BIP_IoChecker_Disable() failed" ), error, rc, rc );
 
@@ -778,7 +774,7 @@ static void processSendState_locked(void *hObject, int value, BIP_Arb_ThreadOrig
         }
     }
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Returning." BIP_MSG_PRE_ARG, hSocket ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Returning." BIP_MSG_PRE_ARG, (void *)hSocket ));
 
 error:
     return;
@@ -800,7 +796,7 @@ static void processState(void *hObject, int value, BIP_Arb_ThreadOrigin threadOr
     BDBG_ASSERT(hSocket);
     BDBG_OBJECT_ASSERT(hSocket,BIP_Socket);
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Entry..." BIP_MSG_PRE_ARG, hSocket ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Entry..." BIP_MSG_PRE_ARG, (void *)hSocket ));
 
     /**************************************************************************
      *  Take the object lock and keep it locked until we're done.
@@ -814,64 +810,64 @@ static void processState(void *hObject, int value, BIP_Arb_ThreadOrigin threadOr
      **************************************************************************/
     /* BIP_Socket_Destroy: Request for object shutdown */
     if (BIP_Arb_IsNew(hArb = hSocket->shutdownApi.hArb)) {
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Got Shutdown Arb request!" BIP_MSG_PRE_ARG, hSocket ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Got Shutdown Arb request!" BIP_MSG_PRE_ARG, (void *)hSocket ));
 
         if (hSocket->shutdown.state != BIP_SocketShutdownState_eNormal) {
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: BIP_Socket is shutting down, rejecting request (BIP_ERR_OBJECT_BEING_DESTROYED) " BIP_MSG_PRE_ARG, hSocket ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: BIP_Socket is shutting down, rejecting request (BIP_ERR_OBJECT_BEING_DESTROYED) " BIP_MSG_PRE_ARG, (void *)hSocket ));
             BIP_Arb_RejectRequest(hArb, BIP_ERR_OBJECT_BEING_DESTROYED);
         }
         else {
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Calling BIP_Arb_AcceptRequest()" BIP_MSG_PRE_ARG, hSocket ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Calling BIP_Arb_AcceptRequest()" BIP_MSG_PRE_ARG, (void *)hSocket ));
             BIP_Arb_AcceptRequest(hArb);
 
             hSocket->shutdown.state = BIP_SocketShutdownState_eStartShutdown;
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Initiating BIP_Socket destruction..." BIP_MSG_PRE_ARG, hSocket ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Initiating BIP_Socket destruction..." BIP_MSG_PRE_ARG, (void *)hSocket ));
 
             completionStatus = BIP_SUCCESS;
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Calling BIP_Arb_CompleteRequest(), completionStatus:0x%X" BIP_MSG_PRE_ARG, hSocket, completionStatus ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Calling BIP_Arb_CompleteRequest(), completionStatus:0x%X" BIP_MSG_PRE_ARG, (void *)hSocket, completionStatus ));
             BIP_Arb_CompleteRequest(hArb, completionStatus);
         }
     }
 
     /* BIP_Socket_GetSettings: */
     if (BIP_Arb_IsNew(hArb = hSocket->getSettingsApi.hArb)) {
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Got GetSettings Arb request!" BIP_MSG_PRE_ARG, hSocket ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Got GetSettings Arb request!" BIP_MSG_PRE_ARG, (void *)hSocket ));
 
         if (hSocket->shutdown.state != BIP_SocketShutdownState_eNormal) {
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: BIP_Socket is shutting down, rejecting request (BIP_ERR_OBJECT_BEING_DESTROYED) " BIP_MSG_PRE_ARG, hSocket ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: BIP_Socket is shutting down, rejecting request (BIP_ERR_OBJECT_BEING_DESTROYED) " BIP_MSG_PRE_ARG, (void *)hSocket ));
             BIP_Arb_RejectRequest(hArb, BIP_ERR_OBJECT_BEING_DESTROYED);
         }
         else
         {
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Calling BIP_Arb_AcceptRequest()" BIP_MSG_PRE_ARG, hSocket ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Calling BIP_Arb_AcceptRequest()" BIP_MSG_PRE_ARG, (void *)hSocket ));
             BIP_Arb_AcceptRequest(hArb);
 
             BKNI_Memcpy(hSocket->getSettingsApi.pSettings, &hSocket->settings, sizeof *hSocket->getSettingsApi.pSettings );
 
             /* All done with this Arb, mark it completed. */
             completionStatus = BIP_SUCCESS;
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Calling BIP_Arb_CompleteRequest(), completionStatus:0x%X" BIP_MSG_PRE_ARG, hSocket, completionStatus ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Calling BIP_Arb_CompleteRequest(), completionStatus:0x%X" BIP_MSG_PRE_ARG, (void *)hSocket, completionStatus ));
             BIP_Arb_CompleteRequest(hArb, completionStatus);
         }
     }
 
     /* BIP_Socket_SetSettings: */
     if (BIP_Arb_IsNew(hArb = hSocket->setSettingsApi.hArb)) {
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Got SetSettings Arb request!" BIP_MSG_PRE_ARG, hSocket ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Got SetSettings Arb request!" BIP_MSG_PRE_ARG, (void *)hSocket ));
 
         if (hSocket->shutdown.state != BIP_SocketShutdownState_eNormal) {
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: BIP_Socket is shutting down, rejecting request (BIP_ERR_OBJECT_BEING_DESTROYED) " BIP_MSG_PRE_ARG, hSocket ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: BIP_Socket is shutting down, rejecting request (BIP_ERR_OBJECT_BEING_DESTROYED) " BIP_MSG_PRE_ARG, (void *)hSocket ));
             BIP_Arb_RejectRequest(hArb, BIP_ERR_OBJECT_BEING_DESTROYED);
         }
         else {
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Calling BIP_Arb_AcceptRequest()" BIP_MSG_PRE_ARG, hSocket ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Calling BIP_Arb_AcceptRequest()" BIP_MSG_PRE_ARG, (void *)hSocket ));
             BIP_Arb_AcceptRequest(hArb);
 
             /* See if they enabled the dataReady callback... */
             if ( ! hSocket->settings.dataReadyCallback.callback  &&
                 hSocket->setSettingsApi.pSettings->dataReadyCallback.callback) {
 
-                BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Enabling DataReady callbacks to app" BIP_MSG_PRE_ARG, hSocket ));
+                BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Enabling DataReady callbacks to app" BIP_MSG_PRE_ARG, (void *)hSocket ));
                 BDBG_ASSERT(hSocket->recv.dataReadyCallbackState == BIP_SocketCallbackState_eDisabled);
                 hSocket->recv.dataReadyCallbackState = BIP_SocketCallbackState_eArmed;
             }
@@ -880,7 +876,7 @@ static void processState(void *hObject, int value, BIP_Arb_ThreadOrigin threadOr
             if (hSocket->settings.dataReadyCallback.callback  &&
                 ! hSocket->setSettingsApi.pSettings->dataReadyCallback.callback) {
 
-                BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Disabling DataReady callbacks to app" BIP_MSG_PRE_ARG, hSocket ));
+                BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Disabling DataReady callbacks to app" BIP_MSG_PRE_ARG, (void *)hSocket ));
                 BDBG_ASSERT(hSocket->recv.dataReadyCallbackState == BIP_SocketCallbackState_eArmed ||
                             hSocket->recv.dataReadyCallbackState == BIP_SocketCallbackState_eTriggered );
                 hSocket->recv.dataReadyCallbackState = BIP_SocketCallbackState_eDisabled;
@@ -892,7 +888,7 @@ static void processState(void *hObject, int value, BIP_Arb_ThreadOrigin threadOr
             if ( ! hSocket->settings.writeReadyCallback.callback  &&
                 hSocket->setSettingsApi.pSettings->writeReadyCallback.callback) {
 
-                BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Enabling WriteReady callbacks to app" BIP_MSG_PRE_ARG, hSocket ));
+                BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Enabling WriteReady callbacks to app" BIP_MSG_PRE_ARG, (void *)hSocket ));
                 BDBG_ASSERT(hSocket->send.writeReadyCallbackState == BIP_SocketCallbackState_eDisabled);
                 hSocket->send.writeReadyCallbackState = BIP_SocketCallbackState_eArmed;
             }
@@ -901,7 +897,7 @@ static void processState(void *hObject, int value, BIP_Arb_ThreadOrigin threadOr
             if (hSocket->settings.writeReadyCallback.callback  &&
                 ! hSocket->setSettingsApi.pSettings->writeReadyCallback.callback) {
 
-                BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Disabling WriteReady callbacks to app" BIP_MSG_PRE_ARG, hSocket ));
+                BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Disabling WriteReady callbacks to app" BIP_MSG_PRE_ARG, (void *)hSocket ));
                 BDBG_ASSERT(hSocket->send.writeReadyCallbackState == BIP_SocketCallbackState_eArmed ||
                             hSocket->send.writeReadyCallbackState == BIP_SocketCallbackState_eTriggered );
                 hSocket->send.writeReadyCallbackState = BIP_SocketCallbackState_eDisabled;
@@ -909,7 +905,7 @@ static void processState(void *hObject, int value, BIP_Arb_ThreadOrigin threadOr
             hSocket->settings.writeReadyCallback = hSocket->setSettingsApi.pSettings->writeReadyCallback;
 
             completionStatus = BIP_SUCCESS;
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Calling BIP_Arb_CompleteRequest(), completionStatus:0x%X" BIP_MSG_PRE_ARG, hSocket, completionStatus ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Calling BIP_Arb_CompleteRequest(), completionStatus:0x%X" BIP_MSG_PRE_ARG, (void *)hSocket, completionStatus ));
             BIP_Arb_CompleteRequest(hArb, completionStatus);
         }
     }
@@ -925,8 +921,8 @@ static void processState(void *hObject, int value, BIP_Arb_ThreadOrigin threadOr
      **************************************************************************/
     if (hSocket->shutdown.state == BIP_SocketShutdownState_eStartShutdown) {    /* Beginning destruction. */
 
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Beginning BIP_Socket destruction..." BIP_MSG_PRE_ARG, hSocket ));
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Disabling dataReady and writeReady callbacks..." BIP_MSG_PRE_ARG, hSocket ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Beginning BIP_Socket destruction..." BIP_MSG_PRE_ARG, (void *)hSocket ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Disabling dataReady and writeReady callbacks..." BIP_MSG_PRE_ARG, (void *)hSocket ));
 
         hSocket->recv.dataReadyCallbackState = BIP_SocketCallbackState_eDisabled;
         hSocket->send.writeReadyCallbackState = BIP_SocketCallbackState_eDisabled;
@@ -937,35 +933,35 @@ static void processState(void *hObject, int value, BIP_Arb_ThreadOrigin threadOr
     if (hSocket->shutdown.state == BIP_SocketShutdownState_eFinishingArbs) {
         bool    arbsAreStillBusy = false;
 
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: BIP_Socket destruction waiting for unfinished Arbs..." BIP_MSG_PRE_ARG, hSocket ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: BIP_Socket destruction waiting for unfinished Arbs..." BIP_MSG_PRE_ARG, (void *)hSocket ));
 
         if ( ! BIP_Arb_IsIdle(hSocket->getSettingsApi.hArb)) {
             arbsAreStillBusy = true;
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: BIP_Socket destruction is waiting for getSettingsApi..." BIP_MSG_PRE_ARG, hSocket ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: BIP_Socket destruction is waiting for getSettingsApi..." BIP_MSG_PRE_ARG, (void *)hSocket ));
         }
 
         if ( ! BIP_Arb_IsIdle(hSocket->setSettingsApi.hArb)) {
             arbsAreStillBusy = true;
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: BIP_Socket destruction is waiting for setSettingsApi..." BIP_MSG_PRE_ARG, hSocket ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: BIP_Socket destruction is waiting for setSettingsApi..." BIP_MSG_PRE_ARG, (void *)hSocket ));
         }
 
         if ( ! BIP_ArbList_IsEmpty(hSocket->hRecvArbList)) {
             arbsAreStillBusy = true;
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: BIP_Socket destruction is waiting for recvApi..." BIP_MSG_PRE_ARG, hSocket ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: BIP_Socket destruction is waiting for recvApi..." BIP_MSG_PRE_ARG, (void *)hSocket ));
         }
 
         if ( ! BIP_Arb_IsIdle(hSocket->sendApi.hArb)) {
             arbsAreStillBusy = true;
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: BIP_Socket destruction is waiting for sendApi..." BIP_MSG_PRE_ARG, hSocket ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: BIP_Socket destruction is waiting for sendApi..." BIP_MSG_PRE_ARG, (void *)hSocket ));
         }
 
         if ( ! BIP_Arb_IsIdle(hSocket->shutdownApi.hArb)) {
             arbsAreStillBusy = true;
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: BIP_Socket destruction is waiting for shutdownApi..." BIP_MSG_PRE_ARG, hSocket ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: BIP_Socket destruction is waiting for shutdownApi..." BIP_MSG_PRE_ARG, (void *)hSocket ));
         }
 
         if (!arbsAreStillBusy) {
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: BIP_Socket Arbs are all Idle..." BIP_MSG_PRE_ARG, hSocket ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: BIP_Socket Arbs are all Idle..." BIP_MSG_PRE_ARG, (void *)hSocket ));
             hSocket->shutdown.state = BIP_SocketShutdownState_eShutdownDone;
             BIP_Socket_CheckForObjectShutdown(hSocket);
         }
@@ -977,13 +973,13 @@ static void processState(void *hObject, int value, BIP_Arb_ThreadOrigin threadOr
     *  because it might have already been destroyed by another thread!
     **************************************************************************/
     BIP_CLASS_UNLOCK(BIP_Socket, hSocket);
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Unlocking object Mutex." BIP_MSG_PRE_ARG, hSocket ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Unlocking object Mutex." BIP_MSG_PRE_ARG, (void *)hSocket ));
 
     rc = BIP_Arb_DoDeferred(NULL, threadOrigin);
     BIP_CHECK_GOTO(( rc == BIP_SUCCESS ), ( "BIP_Arb_DoDeferred() failed" ), error, rc, rc );
 
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Returning." BIP_MSG_PRE_ARG, hSocket ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Returning." BIP_MSG_PRE_ARG, (void *)hSocket ));
     return;
 }
 
@@ -1060,36 +1056,36 @@ BIP_SocketHandle BIP_Socket_CreateFromFd(
     rc = BIP_CLASS_ADD_INSTANCE(BIP_Socket, hSocket);
     BIP_CHECK_GOTO((rc==BIP_SUCCESS), ( "BIP_CLASS_ADD_INSTANCE failed" ), error, rc, rc );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Allocated " BIP_MSG_PRE_ARG, hSocket ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Allocated " BIP_MSG_PRE_ARG, (void *)hSocket ));
 
     BDBG_OBJECT_SET( hSocket, BIP_Socket );
 
     BLST_Q_INIT(&hSocket->recvArbQueueHead);
 
     hSocket->shutdownApi.hArb = BIP_Arb_Create(NULL, NULL);
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Created hArb:%p" BIP_MSG_PRE_ARG, hSocket, hSocket->shutdownApi.hArb ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Created hArb:%p" BIP_MSG_PRE_ARG, (void *)hSocket, (void *)hSocket->shutdownApi.hArb ));
 
     hSocket->getSettingsApi.hArb = BIP_Arb_Create(NULL, NULL);
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Created hArb:%p" BIP_MSG_PRE_ARG, hSocket, hSocket->getSettingsApi.hArb ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Created hArb:%p" BIP_MSG_PRE_ARG, (void *)hSocket, (void *)hSocket->getSettingsApi.hArb ));
 
     hSocket->setSettingsApi.hArb = BIP_Arb_Create(NULL, NULL);
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Created hArb:%p" BIP_MSG_PRE_ARG, hSocket, hSocket->setSettingsApi.hArb ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Created hArb:%p" BIP_MSG_PRE_ARG, (void *)hSocket, (void *)hSocket->setSettingsApi.hArb ));
 
     hSocket->hRecvArbList = BIP_ArbList_Create(NULL);
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Created hRecvArbList:%p" BIP_MSG_PRE_ARG, hSocket, hSocket->hRecvArbList ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Created hRecvArbList:%p" BIP_MSG_PRE_ARG, (void *)hSocket, (void *)hSocket->hRecvArbList ));
 
 
     hSocket->sendApi.hArb = BIP_Arb_Create(NULL, NULL);
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Created hArb:%p" BIP_MSG_PRE_ARG, hSocket, hSocket->sendApi.hArb ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Created hArb:%p" BIP_MSG_PRE_ARG, (void *)hSocket, (void *)hSocket->sendApi.hArb ));
 
     hSocket->socketFd = socketFd;
 
     hSocket->hObjectLock = B_Mutex_Create( NULL );
     BIP_CHECK_GOTO(( hSocket->hObjectLock !=NULL ), ( "B_Mutex_Create failed" ), error, BIP_ERR_INTERNAL, rc );
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Created hObjectLock:%p" BIP_MSG_PRE_ARG, hSocket, hSocket->hObjectLock ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Created hObjectLock:%p" BIP_MSG_PRE_ARG, (void *)hSocket, (void *)hSocket->hObjectLock ));
 
     hSocket->hObjectShutdownEvent = B_Event_Create(NULL);
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Created hObjectShutdownEvent:%p" BIP_MSG_PRE_ARG, hSocket, hSocket->hObjectShutdownEvent ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Created hObjectShutdownEvent:%p" BIP_MSG_PRE_ARG, (void *)hSocket, hSocket->hObjectShutdownEvent ));
     BIP_CHECK_GOTO(( hSocket->hObjectShutdownEvent !=NULL ), ( "B_Event_Create failed" ), error, BIP_ERR_INTERNAL, rc );
 
     {
@@ -1112,11 +1108,11 @@ BIP_SocketHandle BIP_Socket_CreateFromFd(
 
     if (getRemoteIpAddress( hSocket->socketFd, hSocket->remoteIpAddress, INET6_ADDRSTRLEN) == false)
     {
-        BDBG_WRN(( BIP_MSG_PRE_FMT "hSocket %p: Couldn't obtain the Socket Peer Name" BIP_MSG_PRE_ARG, hSocket ));
+        BDBG_WRN(( BIP_MSG_PRE_FMT "hSocket %p: Couldn't obtain the Socket Peer Name" BIP_MSG_PRE_ARG, (void *)hSocket ));
     }
     if (getLocalIpAddress( hSocket->socketFd, hSocket->localIpAddress, INET6_ADDRSTRLEN) == false)
     {
-        BDBG_WRN(( BIP_MSG_PRE_FMT "hSocket %p: Couldn't obtain the Socket Peer Name" BIP_MSG_PRE_ARG, hSocket ));
+        BDBG_WRN(( BIP_MSG_PRE_FMT "hSocket %p: Couldn't obtain the Socket Peer Name" BIP_MSG_PRE_ARG, (void *)hSocket ));
     }
 
     BDBG_MSG((    BIP_MSG_PRE_FMT "Created: " BIP_SOCKET_PRINTF_FMT
@@ -1160,9 +1156,9 @@ void BIP_Socket_Destroy(
     hArb = hSocket->shutdownApi.hArb;
 
     /* Tell the Arb that we're starting an API. */
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Calling BIP_Arb_Acquire() hArb:%p" BIP_MSG_PRE_ARG, hSocket, hArb ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Calling BIP_Arb_Acquire() hArb:%p" BIP_MSG_PRE_ARG, (void *)hSocket, (void *)hArb ));
     rc = BIP_Arb_Acquire(hArb);
-    BDBG_ASSERT(rc == BIP_SUCCESS);  /* TODO: What if BIP_Arb_Acquire() fails?  */
+    BIP_CHECK_GOTO((rc == BIP_SUCCESS), ( "BIP_Arb_Acquire() Failed" ), error_locked, rc, rc );
 
     /* Move the API arguments into it's argument list so the state machine can find them. */
     /* (No API arguments for the shutdown arb.) */
@@ -1176,7 +1172,7 @@ void BIP_Socket_Destroy(
     BIP_CLASS_UNLOCK(BIP_Socket, hSocket);
 
     /* Send the Arb to the state machine. */
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Calling BIP_Arb_SubmitRequest() hArb:%p" BIP_MSG_PRE_ARG, hSocket, hArb ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Calling BIP_Arb_SubmitRequest() hArb:%p" BIP_MSG_PRE_ARG, (void *)hSocket, (void *)hArb ));
     rc = BIP_Arb_Submit(hArb, &arbSettings, NULL);
     BDBG_ASSERT(rc == BIP_SUCCESS);
 
@@ -1184,62 +1180,62 @@ void BIP_Socket_Destroy(
 
     BIP_Socket_CheckForObjectShutdown(hSocket);
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Waiting for Socket to finish up..." BIP_MSG_PRE_ARG, hSocket ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Waiting for Socket to finish up..." BIP_MSG_PRE_ARG, (void *)hSocket ));
     rc = B_Event_Wait(hSocket->hObjectShutdownEvent, B_WAIT_FOREVER);
     BIP_CHECK_GOTO((rc == B_ERROR_SUCCESS), ( "B_Event_Wait failed" ), error, rc, rc );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Socket is finished! It's okay to shut down!  Here we go..." BIP_MSG_PRE_ARG, hSocket ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Socket is finished! It's okay to shut down!  Here we go..." BIP_MSG_PRE_ARG, (void *)hSocket ));
 
     if (hSocket->socketFd != -1 ) {
         shutdown(hSocket->socketFd, SHUT_RDWR);
         close(hSocket->socketFd);
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Closed socketFd:%d" BIP_MSG_PRE_ARG, hSocket, hSocket->socketFd ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Closed socketFd:%d" BIP_MSG_PRE_ARG, (void *)hSocket, hSocket->socketFd ));
         hSocket->socketFd = -1;
     }
 
     if (hSocket->recv.hIoChecker) {
         BIP_IoChecker_Destroy(hSocket->recv.hIoChecker);
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Destroyed recv hIoChecker:%p" BIP_MSG_PRE_ARG, hSocket, hSocket->recv.hIoChecker ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Destroyed recv hIoChecker:%p" BIP_MSG_PRE_ARG, (void *)hSocket, (void *)hSocket->recv.hIoChecker ));
     }
 
     if (hSocket->send.hIoChecker) {
         BIP_IoChecker_Destroy(hSocket->send.hIoChecker);
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Destroyed send hIoChecker:%p" BIP_MSG_PRE_ARG, hSocket, hSocket->send.hIoChecker ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Destroyed send hIoChecker:%p" BIP_MSG_PRE_ARG, (void *)hSocket, (void *)hSocket->send.hIoChecker ));
     }
 
     if (hSocket->hObjectShutdownEvent) {
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Destroying hObjectShutdownEvent:%p" BIP_MSG_PRE_ARG, hSocket, hSocket->hObjectShutdownEvent ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Destroying hObjectShutdownEvent:%p" BIP_MSG_PRE_ARG, (void *)hSocket, (void *)hSocket->hObjectShutdownEvent ));
         B_Event_Destroy( hSocket->hObjectShutdownEvent);
     }
 
     if (hSocket->hObjectLock) {
         B_Mutex_Destroy( hSocket->hObjectLock );
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Destroyed hObjectLock:%p" BIP_MSG_PRE_ARG, hSocket, hSocket->hObjectLock ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Destroyed hObjectLock:%p" BIP_MSG_PRE_ARG, (void *)hSocket, (void *)hSocket->hObjectLock ));
     }
 
     if (hSocket->sendApi.hArb) {
         BIP_Arb_Destroy(hSocket->sendApi.hArb);
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Destroyed hArb:%p" BIP_MSG_PRE_ARG, hSocket, hSocket->sendApi.hArb ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Destroyed hArb:%p" BIP_MSG_PRE_ARG, (void *)hSocket, (void *)hSocket->sendApi.hArb ));
     }
 
     if (hSocket->hRecvArbList) {
         BIP_ArbList_Destroy(hSocket->hRecvArbList);
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Destroyed hRecvArbList:%p" BIP_MSG_PRE_ARG, hSocket, hSocket->hRecvArbList ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Destroyed hRecvArbList:%p" BIP_MSG_PRE_ARG, (void *)hSocket, (void *)hSocket->hRecvArbList ));
     }
 
     if (hSocket->setSettingsApi.hArb) {
         BIP_Arb_Destroy(hSocket->setSettingsApi.hArb);
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Destroyed hArb:%p" BIP_MSG_PRE_ARG, hSocket, hSocket->setSettingsApi.hArb ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Destroyed hArb:%p" BIP_MSG_PRE_ARG, (void *)hSocket, (void *)hSocket->setSettingsApi.hArb ));
     }
 
     if (hSocket->getSettingsApi.hArb) {
         BIP_Arb_Destroy(hSocket->getSettingsApi.hArb);
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Destroyed hArb:%p" BIP_MSG_PRE_ARG, hSocket, hSocket->getSettingsApi.hArb ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Destroyed hArb:%p" BIP_MSG_PRE_ARG, (void *)hSocket, (void *)hSocket->getSettingsApi.hArb ));
     }
 
     if (hSocket->shutdownApi.hArb) {
         BIP_Arb_Destroy(hSocket->shutdownApi.hArb);
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Destroyed hArb:%p" BIP_MSG_PRE_ARG, hSocket, hSocket->shutdownApi.hArb ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Destroyed hArb:%p" BIP_MSG_PRE_ARG, (void *)hSocket, (void *)hSocket->shutdownApi.hArb ));
     }
 
     BDBG_ASSERT( BLST_Q_EMPTY( &hSocket->recvArbQueueHead));
@@ -1248,11 +1244,14 @@ void BIP_Socket_Destroy(
 
     BDBG_OBJECT_DESTROY( hSocket, BIP_Socket );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Freeing object memory" BIP_MSG_PRE_ARG, hSocket ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Freeing object memory" BIP_MSG_PRE_ARG, (void *)hSocket ));
     B_Os_Free( hSocket );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Destruction complete." BIP_MSG_PRE_ARG, (unsigned long)hSocket ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Destruction complete." BIP_MSG_PRE_ARG, (void *)hSocket ));
+    return;
 
+error_locked:
+    BIP_CLASS_UNLOCK(BIP_Socket, hSocket);
 error:
     return;
 
@@ -1278,9 +1277,9 @@ void BIP_Socket_GetSettings(
     hArb = hSocket->getSettingsApi.hArb;
 
     /* Tell the Arb that we're starting an API. */
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Calling BIP_Arb_Acquire() hArb:%p" BIP_MSG_PRE_ARG, hSocket, hArb ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Calling BIP_Arb_Acquire() hArb:%p" BIP_MSG_PRE_ARG, (void *)hSocket, (void *)hArb ));
     rc = BIP_Arb_Acquire(hArb);
-    BDBG_ASSERT(rc == BIP_SUCCESS);  /* TODO: What if BIP_Arb_Acquire() fails?  */
+    BIP_CHECK_GOTO((rc == BIP_SUCCESS), ( "BIP_Arb_Acquire() Failed" ), error_locked, rc, rc );
 
     /* Move the API arguments into it's argument list so the state machine can find them. */
     hSocket->getSettingsApi.pSettings = pSettings;
@@ -1294,11 +1293,13 @@ void BIP_Socket_GetSettings(
     BIP_CLASS_UNLOCK(BIP_Socket, hSocket);
 
     /* Send the Arb to the state machine. */
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Calling BIP_Arb_SubmitRequest() hArb:%p" BIP_MSG_PRE_ARG, hSocket, hArb ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Calling BIP_Arb_SubmitRequest() hArb:%p" BIP_MSG_PRE_ARG, (void *)hSocket, (void *)hArb ));
     rc = BIP_Arb_Submit(hArb, &arbSettings, NULL);
     BDBG_ASSERT(rc == BIP_SUCCESS);
     return;
 
+error_locked:
+    BIP_CLASS_UNLOCK(BIP_Socket, hSocket);
 error:
     BDBG_ASSERT(rc == BIP_SUCCESS);
     return;
@@ -1324,9 +1325,9 @@ BIP_Status BIP_Socket_SetSettings(
     hArb = hSocket->setSettingsApi.hArb;
 
     /* Tell the Arb that we're starting an API. */
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Calling BIP_Arb_Acquire() hArb:%p" BIP_MSG_PRE_ARG, hSocket, hArb ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Calling BIP_Arb_Acquire() hArb:%p" BIP_MSG_PRE_ARG, (void *)hSocket, (void *)hArb ));
     rc = BIP_Arb_Acquire(hArb);
-    BDBG_ASSERT(rc == BIP_SUCCESS);  /* TODO: What if BIP_Arb_Acquire() fails?  */
+    BIP_CHECK_GOTO((rc == BIP_SUCCESS), ( "BIP_Arb_Acquire() Failed" ), error_locked, rc, rc );
 
     /* Move the API arguments into it's argument list so the state machine can find them. */
     hSocket->setSettingsApi.pSettings = pSettings;
@@ -1340,10 +1341,12 @@ BIP_Status BIP_Socket_SetSettings(
     BIP_CLASS_UNLOCK(BIP_Socket, hSocket);
 
     /* Send the Arb to the state machine. */
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Calling BIP_Arb_SubmitRequest() hArb:%p" BIP_MSG_PRE_ARG, hSocket, hArb ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Calling BIP_Arb_SubmitRequest() hArb:%p" BIP_MSG_PRE_ARG, (void *)hSocket, (void *)hArb ));
     rc = BIP_Arb_Submit(hArb, &arbSettings, NULL);
     return rc;
 
+error_locked:
+    BIP_CLASS_UNLOCK(BIP_Socket, hSocket);
 error:
     return(rc);
 } /* BIP_Socket_SetSettings */
@@ -1385,9 +1388,9 @@ BIP_Status BIP_Socket_Recv(
     BDBG_OBJECT_ASSERT( hArb, BIP_Arb );
 
     /* Tell the Arb that we're starting an API. */
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Calling BIP_Arb_Acquire() hArb:%p" BIP_MSG_PRE_ARG, hSocket, hArb));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Calling BIP_Arb_Acquire() hArb:%p" BIP_MSG_PRE_ARG, (void *)hSocket, (void *)hArb));
     rc = BIP_Arb_Acquire(hArb);
-    BDBG_ASSERT(rc == BIP_SUCCESS);  /* TODO: What if BIP_Arb_Acquire() fails?  */
+    BIP_CHECK_GOTO((rc == BIP_SUCCESS), ( "BIP_Arb_Acquire() Failed" ), error_locked, rc, rc );
 
     /* Move the API arguments into the object so the state machine can find them. */
     pAppArb->settings = *pSocketRecvSettings;
@@ -1401,7 +1404,7 @@ BIP_Status BIP_Socket_Recv(
     BIP_CLASS_UNLOCK(BIP_Socket, hSocket);
 
     /* Send the Arb to the state machine. */
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Calling BIP_ArbList_SubmitRequest() hArbList:%p pAppArb:%p" BIP_MSG_PRE_ARG, hSocket, hArbList, pAppArb ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Calling BIP_ArbList_SubmitRequest() hArbList:%p pAppArb:%p" BIP_MSG_PRE_ARG, (void *)hSocket, (void *)hArbList, (void *)pAppArb ));
     rc = BIP_ArbList_Submit(hArbList, hArb, &arbSettings, &pSocketRecvSettings->api);
     return rc;
 
@@ -1443,9 +1446,9 @@ BIP_Status BIP_Socket_Send(
     hArb = hSocket->sendApi.hArb;
 
     /* Tell the Arb that we're starting an API. */
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Calling BIP_Arb_Acquire() hArb:%p" BIP_MSG_PRE_ARG, hSocket, hArb ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Calling BIP_Arb_Acquire() hArb:%p" BIP_MSG_PRE_ARG, (void *)hSocket, (void *)hArb ));
     rc = BIP_Arb_Acquire(hArb);
-    BDBG_ASSERT(rc == BIP_SUCCESS);
+    BIP_CHECK_GOTO((rc == BIP_SUCCESS), ( "BIP_Arb_Acquire() Failed" ), error_locked, rc, rc );
 
     /* Move the API arguments into the object so the state machine can find them. */
     hSocket->sendApi.settings = *pSocketSendSettings ;
@@ -1459,9 +1462,12 @@ BIP_Status BIP_Socket_Send(
     BIP_CLASS_UNLOCK(BIP_Socket, hSocket);
 
     /* Send the Arb to the state machine. */
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Calling BIP_Arb_SubmitRequest() hArb:%p" BIP_MSG_PRE_ARG, hSocket, hArb ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hSocket %p: Calling BIP_Arb_SubmitRequest() hArb:%p" BIP_MSG_PRE_ARG, (void *)hSocket, (void *)hArb ));
     rc = BIP_Arb_Submit(hArb, &arbSettings, &pSocketSendSettings->api);
+    return rc;
 
+error_locked:
+    BIP_CLASS_UNLOCK(BIP_Socket, hSocket);
 error:
     return rc;
 

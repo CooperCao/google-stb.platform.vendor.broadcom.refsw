@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2008 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2008 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -94,7 +94,7 @@ extern bool vg_be_draw_path(VG_SERVER_STATE_T *state,
    MEM_HANDLE_T handle, VG_PATH_T *path, /* should unlock handle */
    uint32_t paint_modes,
    const uint32_t *clip_rect, MEM_HANDLE_T scissor_handle, /* should unretain scissor_handle if not MEM_INVALID_HANDLE */
-   const float *clip, float scale_max, const float *stroke_clip);
+   const float *clip, float scale_max);
 
 extern bool vg_be_draw_image(VG_SERVER_STATE_T *state,
    MEM_HANDLE_T handle, uint32_t x, uint32_t y, uint32_t width, uint32_t height,

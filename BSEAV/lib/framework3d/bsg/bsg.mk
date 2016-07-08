@@ -1,7 +1,7 @@
 #############################################################################
-#    (c)2012-2013 Broadcom Corporation
+# Broadcom Proprietary and Confidential. (c)2012-2013 Broadcom
 # 
-# This program is the proprietary software of Broadcom Corporation and/or its licensors,
+# This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
 # conditions of a separate, written license agreement executed between you and Broadcom
 # (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -87,13 +87,9 @@ FREETYPE         ?= $(BSG_DIR)/../freetype-2.3.12
 INCLUDES       += $(V3D_DIR)/interface/khronos/include                \
                   $(V3D_DIR)/../platform/nexus                        \
                   $(V3D_DIR)/platform/nexus                           \
-                  $(V3D_DIR)/v3d_platform/bcg_abstract/hw_platforms   \
-                  $(V3D_DIR)/v3d_platform/bcg_abstract/egl_platforms  \
-                  $(V3D_DIR)/v3d_platform/bcg_abstract/               \
-                  $(V3D_DIR)/v3d_platform                             \
-                  $(V3D_DIR)/vcos/include                             \
-                  $(V3D_DIR)/vcos/pthreads                            \
-                  $(V3D_DIR)/vcos                                     \
+                  $(V3D_DIR)/libs/platform/bcg_abstract               \
+                  $(V3D_DIR)/libs/core/vcos/include                   \
+                  $(V3D_DIR)/libs/core/vcos/pthreads                  \
                   $(V3D_DIR)                                          \
                   $(FREETYPE)/include                                 \
                   $(PNG)                                              \

@@ -1,43 +1,39 @@
 /******************************************************************************
- * (c) 2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 
 #include <sys/stat.h>
@@ -143,22 +139,22 @@ void consoleAppThread( void* pParam)
         BIP_StringHandle  bsh;
         BIP_Status rc;
 
-        /* GARYWASHERE (other) */  BDBG_LOG(("%s:%d: Calling recv for %d bytes", __FUNCTION__, __LINE__, sizeof(buffer)));
+        /* GARYWASHERE (other) */  BDBG_LOG(("%s:%d: Calling recv for %zu bytes", __FUNCTION__, __LINE__, sizeof(buffer)));
 
         count = recv(fd, buffer, sizeof(buffer)-1, 0);
         if (count==0) {
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hConsoleApp %p: Got end of file on socketFd=%d" BIP_MSG_PRE_ARG, hConsoleApp, hConsoleApp->socketFd));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hConsoleApp %p: Got end of file on socketFd=%d" BIP_MSG_PRE_ARG, (void *)hConsoleApp, hConsoleApp->socketFd));
             goto error;
         }
         else if (count<0) {
-            BIP_CHECK_GOTO((count>0),("recv failed: count=%d, errno=%d",count,errno),error,errno,rc);
+            BIP_CHECK_GOTO((count>0),("recv failed: count=%zd, errno=%d",count,errno),error,errno,rc);
         }
 
         buffer[count] = '\0';
 
-        bsh = BIP_String_CreateFromPrintf("You entered: %d bytes: \"%s\"", count, buffer);
+        bsh = BIP_String_CreateFromPrintf("You entered: %zd bytes: \"%s\"", count, buffer);
 
-        /* GARYWASHERE (other) */  BDBG_LOG(("%s:%d: You entered: %d bytes: \"%s\"", __FUNCTION__, __LINE__, count, buffer));
+        /* GARYWASHERE (other) */  BDBG_LOG(("%s:%d: You entered: %zd bytes: \"%s\"", __FUNCTION__, __LINE__, count, buffer));
 
         count = send(fd, BIP_String_GetString(bsh), BIP_String_GetLength(bsh), MSG_NOSIGNAL);
         BIP_String_Destroy(bsh);
@@ -187,7 +183,7 @@ static void consoleWrapperThread(void *data)
     hConsoleApp->threadFunc( hConsoleApp->pThreadParam);
 
     /* The App thread is done, close its socketFd. */
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hConsoleApp %p: Closing socketFd=%d" BIP_MSG_PRE_ARG, hConsoleApp, hConsoleApp->socketFd));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hConsoleApp %p: Closing socketFd=%d" BIP_MSG_PRE_ARG, (void *)hConsoleApp, hConsoleApp->socketFd));
     rc = close(hConsoleApp->socketFd);
     BIP_CHECK_LOGERR((rc==0),("close() failed on sockeFd=%d", hConsoleApp->socketFd),BIP_StatusFromErrno(errno), rc);
 
@@ -195,18 +191,18 @@ static void consoleWrapperThread(void *data)
         BIP_ConsoleHandle       hConsole = hConsoleApp->hConsole;
         BIP_TimerCreateSettings timerCreateSettings;
 
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hConsoleApp %p: Setting ConsoleApp's exited flag." BIP_MSG_PRE_ARG, hConsoleApp));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hConsoleApp %p: Setting ConsoleApp's exited flag." BIP_MSG_PRE_ARG, (void *)hConsoleApp));
         hConsoleApp->exited = true;
         /* hConsoleApp is now invalid!!! */
 
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hConsole %p: Waking up state machine" BIP_MSG_PRE_ARG, hConsole ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hConsole %p: Waking up state machine" BIP_MSG_PRE_ARG, (void *)hConsole ));
         timerCreateSettings.input.callback    = processConsoleStateFromThreadExitTimer;
         timerCreateSettings.input.pContext    = hConsole;
         timerCreateSettings.input.timeoutInMs = 0;
         hConsole->hShutdownTimer = BIP_Timer_Create(&timerCreateSettings);
     }
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hConsoleApp %p: exiting." BIP_MSG_PRE_ARG, hConsoleApp));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hConsoleApp %p: exiting." BIP_MSG_PRE_ARG, (void *)hConsoleApp));
     return;
 }
 
@@ -220,10 +216,10 @@ static BIP_Status launchConsoleThread(BIP_ConsoleHandle hConsole, BIP_SocketHand
      * is free by the consoleWrapperThread after the real ConsoleApp thread
      * returns back to it. */
     hConsoleApp = B_Os_Calloc( 1, sizeof( BIP_ConsoleApp ));
-    BIP_CHECK_GOTO(( hConsoleApp != NULL ), ( "Failed to allocate memory (%d bytes) for BIP_ConsoleApp Object", sizeof(BIP_ConsoleApp) ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, brc );
+    BIP_CHECK_GOTO(( hConsoleApp != NULL ), ( "Failed to allocate memory (%zu bytes) for BIP_ConsoleApp Object", sizeof(BIP_ConsoleApp) ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, brc );
 
     BDBG_OBJECT_SET( hConsoleApp, BIP_ConsoleApp );
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hConsoleApp %p: Allocated " BIP_MSG_PRE_ARG, hConsoleApp ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hConsoleApp %p: Allocated " BIP_MSG_PRE_ARG, (void *)hConsoleApp ));
 
     /* Get the Linux socket file descriptor from the BIP_Socket. */
     brc = BIP_Socket_GetStatus(hSocket, &socketStatus);
@@ -258,7 +254,7 @@ static BIP_Status launchConsoleThread(BIP_ConsoleHandle hConsole, BIP_SocketHand
         goto error;
     }
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Created hThread=%p" BIP_MSG_PRE_ARG, hConsoleApp->hThread));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Created hThread=%p" BIP_MSG_PRE_ARG, (void *)hConsoleApp->hThread));
     return (BIP_SUCCESS);
 
 error:
@@ -276,9 +272,9 @@ static void connectedCallbackFromListener (
 
     BSTD_UNUSED(param);
     BDBG_ASSERT(hConsole);
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hConsole %p" BIP_MSG_PRE_ARG, hConsole ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hConsole %p" BIP_MSG_PRE_ARG, (void *)hConsole ));
     processConsoleState( hConsole, 0, BIP_Arb_ThreadOrigin_eBipCallback);
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hConsole %p" BIP_MSG_PRE_ARG, hConsole ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hConsole %p" BIP_MSG_PRE_ARG, (void *)hConsole ));
     return;
 }
 
@@ -286,11 +282,11 @@ static void connectedCallbackFromListener (
 static void processConsoleStateFromShutdownTimer(void *pContext)
 {
     BIP_ConsoleHandle    hConsole = (BIP_ConsoleHandle) pContext;
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hConsole %p: Entry..." BIP_MSG_PRE_ARG, hConsole ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hConsole %p: Entry..." BIP_MSG_PRE_ARG, (void *)hConsole ));
 
     B_Mutex_Lock(hConsole->hObjectLock);
     if (hConsole->hShutdownTimer) {
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hConsole %p: Got BIP_Timer callback, marking timer as self-destroyed" BIP_MSG_PRE_ARG, hConsole ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hConsole %p: Got BIP_Timer callback, marking timer as self-destroyed" BIP_MSG_PRE_ARG, (void *)hConsole ));
         hConsole->hShutdownTimer = NULL;   /* Indicate timer not active. */
     }
     B_Mutex_Unlock(hConsole->hObjectLock);
@@ -302,11 +298,11 @@ static void processConsoleStateFromShutdownTimer(void *pContext)
 static void processConsoleStateFromThreadExitTimer(void *pContext)
 {
     BIP_ConsoleHandle    hConsole = (BIP_ConsoleHandle) pContext;
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hConsole %p: Entry..." BIP_MSG_PRE_ARG, hConsole ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hConsole %p: Entry..." BIP_MSG_PRE_ARG, (void *)hConsole ));
 
     B_Mutex_Lock(hConsole->hObjectLock);
     if (hConsole->hThreadExitTimer) {
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hConsole %p: Got BIP_Timer callback, marking timer as self-destroyed" BIP_MSG_PRE_ARG, hConsole ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hConsole %p: Got BIP_Timer callback, marking timer as self-destroyed" BIP_MSG_PRE_ARG, (void *)hConsole ));
         hConsole->hThreadExitTimer = NULL;   /* Indicate timer not active. */
     }
     B_Mutex_Unlock(hConsole->hObjectLock);
@@ -345,7 +341,7 @@ void processConsoleState(
     /* Check for a new Create Arb. */
     if (BIP_Arb_IsNew(hArb = hConsole->createApi.hArb))
     {
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hConsole %p: BIP_Console_Create() in progress..." BIP_MSG_PRE_ARG, hConsole ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hConsole %p: BIP_Console_Create() in progress..." BIP_MSG_PRE_ARG, (void *)hConsole ));
         if (hConsole->shutdownState != BIP_ConsoleShutdownState_eNormal)
         {
             BIP_Arb_RejectRequest(hArb, BIP_ERR_OBJECT_BEING_DESTROYED);
@@ -373,7 +369,7 @@ void processConsoleState(
             BIP_Arb_AcceptRequest(hArb);
         }
 
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hConsole %p: BIP_Console_Destroy() in progress..." BIP_MSG_PRE_ARG, hConsole ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hConsole %p: BIP_Console_Destroy() in progress..." BIP_MSG_PRE_ARG, (void *)hConsole ));
     }
 
     /******************************************************************************
@@ -396,17 +392,17 @@ void processConsoleState(
 
             if (hConsoleApp->exited)
             {
-                BDBG_MSG(( BIP_MSG_PRE_FMT "hConsole %p: ConsoleApp %p has exited. Cleaning up" BIP_MSG_PRE_ARG, hConsole, hConsoleApp));
+                BDBG_MSG(( BIP_MSG_PRE_FMT "hConsole %p: ConsoleApp %p has exited. Cleaning up" BIP_MSG_PRE_ARG, (void *)hConsole, (void *)hConsoleApp));
 
                 BLST_Q_REMOVE(&hConsole->consoleAppListHead, hConsoleApp, consoleAppListNext);
 
                 BIP_Socket_Destroy(hConsoleApp->hSocket);
 
-                BDBG_MSG(( BIP_MSG_PRE_FMT "hConsole %p: Destroying B_Thread %p from ConsoleApp %p" BIP_MSG_PRE_ARG, hConsole, hConsoleApp->hThread, hConsoleApp));
+                BDBG_MSG(( BIP_MSG_PRE_FMT "hConsole %p: Destroying B_Thread %p from ConsoleApp %p" BIP_MSG_PRE_ARG, (void *)hConsole, (void *)hConsoleApp->hThread, (void *)hConsoleApp));
                 B_Thread_Destroy(hConsoleApp->hThread);
 
                 /* And free the BIP_ConsoleApp context. */
-                BDBG_MSG(( BIP_MSG_PRE_FMT "hConsoleApp %p: Freeing object data" BIP_MSG_PRE_ARG, hConsoleApp));
+                BDBG_MSG(( BIP_MSG_PRE_FMT "hConsoleApp %p: Freeing object data" BIP_MSG_PRE_ARG, (void *)hConsoleApp));
                 B_Os_Free(hConsoleApp);
             }
             else
@@ -415,7 +411,7 @@ void processConsoleState(
 
                 if (hConsole->shutdownState != BIP_ConsoleShutdownState_eNormal)
                 {
-                    BDBG_MSG(( BIP_MSG_PRE_FMT "hConsole %p: Calling shutdown() for ConsoleApp %p: fd=%d" BIP_MSG_PRE_ARG, hConsole, hConsoleApp, hConsoleApp->socketFd));
+                    BDBG_MSG(( BIP_MSG_PRE_FMT "hConsole %p: Calling shutdown() for ConsoleApp %p: fd=%d" BIP_MSG_PRE_ARG, (void *)hConsole, (void *)hConsoleApp, hConsoleApp->socketFd));
                     shutdown(hConsoleApp->socketFd, SHUT_RDWR);
                 }
             }
@@ -488,7 +484,7 @@ void processConsoleState(
             if (createStatus == BIP_SUCCESS)
             {
                 BDBG_MSG(( BIP_MSG_PRE_FMT "hConsole %p: Listening for telnet on port %s"
-                           BIP_MSG_PRE_ARG, hConsole, hConsole->createSettings.pPort ));
+                           BIP_MSG_PRE_ARG, (void *)hConsole, hConsole->createSettings.pPort ));
 
                 hConsole->state = BIP_ConsoleState_eListening;
             }
@@ -515,14 +511,14 @@ void processConsoleState(
         {
             BIP_SocketHandle   hSocket = NULL;
 
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hConsole %p: Trying to Accept a connection." BIP_MSG_PRE_ARG, hConsole));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hConsole %p: Trying to Accept a connection." BIP_MSG_PRE_ARG, (void *)hConsole));
 
             hSocket = BIP_Listener_Accept( hConsole->hListener, 0 /* timeout */); /* non-blocking accept call */
             if (hSocket)
             {
                 BIP_Status  rc;
 
-                BDBG_MSG(( BIP_MSG_PRE_FMT "hConsole %p: Got connection on hSocket %p" BIP_MSG_PRE_ARG, hConsole, hSocket));
+                BDBG_MSG(( BIP_MSG_PRE_FMT "hConsole %p: Got connection on hSocket %p" BIP_MSG_PRE_ARG, (void *)hConsole, (void *)hSocket));
                 rc = launchConsoleThread(hConsole, hSocket);
                 BIP_CHECK_LOGERR((rc==BIP_SUCCESS), ("Failed to launch console thread"), rc, rc);
             }
@@ -530,7 +526,7 @@ void processConsoleState(
             {
                 /* No new connection available to accept at this time, we remain in the same state! */
                 BDBG_MSG(( BIP_MSG_PRE_FMT "hConsole %p: Accept came up empty."
-                            BIP_MSG_PRE_ARG, hConsole ));
+                            BIP_MSG_PRE_ARG, (void *)hConsole ));
             }
         } /* End if (hConsole->state == BIP_ConsoleState_eListening) */
 
@@ -544,7 +540,7 @@ void processConsoleState(
 
             if (hConsole->hListener) {
                 BDBG_MSG(( BIP_MSG_PRE_FMT "hConsole %p: Stopping Listener: hListener %p"
-                           BIP_MSG_PRE_ARG, hConsole, hConsole->hListener));
+                           BIP_MSG_PRE_ARG, (void *)hConsole, (void *)hConsole->hListener));
                 BIP_Listener_Destroy(hConsole->hListener);
                 hConsole->hListener = NULL;
             }
@@ -560,7 +556,7 @@ void processConsoleState(
                 BDBG_WRN(( BIP_MSG_PRE_FMT "Waiting for %d ConsoleApps to exit" BIP_MSG_PRE_ARG, hConsole->consoleAppsCount));
 
                 if (hConsole->hShutdownTimer == NULL) {
-                    BDBG_MSG(( BIP_MSG_PRE_FMT "hConsole %p: Starting timer for a second" BIP_MSG_PRE_ARG, hConsole ));
+                    BDBG_MSG(( BIP_MSG_PRE_FMT "hConsole %p: Starting timer for a second" BIP_MSG_PRE_ARG, (void *)hConsole ));
                     timerCreateSettings.input.callback    = processConsoleStateFromShutdownTimer;
                     timerCreateSettings.input.pContext    = hConsole;
                     timerCreateSettings.input.timeoutInMs = 1000;
@@ -611,14 +607,14 @@ static void bipConsoleDestroy(
     )
 {
     if (!hConsole) return;
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Destroying hConsole %p" BIP_MSG_PRE_ARG, hConsole ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Destroying hConsole %p" BIP_MSG_PRE_ARG, (void *)hConsole ));
 
     if (hConsole->destroyApi.hArb) BIP_Arb_Destroy(hConsole->destroyApi.hArb);
     if (hConsole->createApi.hArb) BIP_Arb_Destroy(hConsole->createApi.hArb);
 
     if (hConsole->hObjectLock) B_Mutex_Destroy( hConsole->hObjectLock );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hConsole %p: Destroyed" BIP_MSG_PRE_ARG, hConsole ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hConsole %p: Destroyed" BIP_MSG_PRE_ARG, (void *)hConsole ));
     BDBG_OBJECT_DESTROY( hConsole, BIP_Console );
     B_Os_Free( hConsole );
 
@@ -637,17 +633,17 @@ BIP_ConsoleHandle BIP_Console_Create(
     /* Create the BIP_Console object */
     {
         hConsole = B_Os_Calloc( 1, sizeof( BIP_Console ));
-        BIP_CHECK_GOTO(( hConsole != NULL ), ( "Failed to allocate memory (%d bytes) for BIP_Console Object", sizeof(BIP_Console) ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, brc );
+        BIP_CHECK_GOTO(( hConsole != NULL ), ( "Failed to allocate memory (%zu bytes) for BIP_Console Object", sizeof(BIP_Console) ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, brc );
 
         BDBG_OBJECT_SET( hConsole, BIP_Console );
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hConsole %p: Allocated " BIP_MSG_PRE_ARG, hConsole ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hConsole %p: Allocated " BIP_MSG_PRE_ARG, (void *)hConsole ));
     }
 
     /* Create mutex to synchronize state machine from being run by multiple threads. */
     {
         hConsole->hObjectLock = B_Mutex_Create(NULL);
         BIP_CHECK_GOTO(( hConsole->hObjectLock ), ( "B_Mutex_Create Failed" ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, brc );
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hConsole %p: Created hObjectLock:%p" BIP_MSG_PRE_ARG, hConsole, hConsole->hObjectLock ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hConsole %p: Created hObjectLock:%p" BIP_MSG_PRE_ARG, (void *)hConsole, (void *)hConsole->hObjectLock ));
     }
 
     BLST_Q_INIT(&hConsole->consoleAppListHead);
@@ -673,7 +669,7 @@ BIP_ConsoleHandle BIP_Console_Create(
         BIP_CHECK_GOTO(( hConsole->createApi.hArb ), ( "BIP_Arb_Create Failed " ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, brc );
     }
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hConsole %p: Dispatching Create Arb" BIP_MSG_PRE_ARG, hConsole));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hConsole %p: Dispatching Create Arb" BIP_MSG_PRE_ARG, (void *)hConsole));
 
     /* Now issue a Create Arb to the state machine so it can do its initialization. */
     {

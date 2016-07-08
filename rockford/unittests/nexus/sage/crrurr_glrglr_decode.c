@@ -97,12 +97,12 @@ BDBG_MODULE(sec_unsec);
 #define PIP_AUDIO_PID   0x1012
 #define PIP_AUDIO_CODEC NEXUS_AudioCodec_eAc3
 #else
-#define FILENAME_MAIN    "avatar_AVC_15M.ts"
+#define FILENAME_MAIN    "videos/cnnticker.mpg"
 #define MAIN_TS_TYPE     NEXUS_TransportType_eTs
-#define MAIN_VIDEO_PID   0x101
-#define MAIN_VIDEO_CODEC NEXUS_VideoCodec_eH264
-#define MAIN_AUDIO_PID   0x104
-#define MAIN_AUDIO_CODEC NEXUS_AudioCodec_eAc3
+#define MAIN_VIDEO_PID   0x21
+#define MAIN_VIDEO_CODEC NEXUS_VideoCodec_eMpeg2
+#define MAIN_AUDIO_PID   0x22
+#define MAIN_AUDIO_CODEC NEXUS_AudioCodec_eMpeg
 #if 0
 #define FILENAME_PIP    "videos/sm_10cd.dss"
 #define PIP_TS_TYPE     NEXUS_TransportType_eDssEs

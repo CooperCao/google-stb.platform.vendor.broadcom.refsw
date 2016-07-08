@@ -1,7 +1,7 @@
-/***************************************************************************
- * (c) 2002-2016 Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -37,7 +37,6 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 
 #include "notification.h"
@@ -181,12 +180,12 @@ ENUM_TO_MSTRING_ENTRY(MString(eNotify_BluetoothConnectionStatus).s(), "eNotify_B
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_BluetoothConnectionDone).s(), "eNotify_BluetoothDiscoveryStarted")   /* status   - connection done */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_BluetoothListStatusDone).s(), "eNotify_BluetoothDiscoveryStarted")   /* status   - Bt list status done */
 #endif /* ifdef NETAPP_SUPPORT */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_PlaylistAdded).s(), "eNotify_PlaylistAdded")     /* status   - a playlist was added to the playlist database */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_PlaylistRemoved).s(), "eNotify_PlaylistRemoved") /* status   - a playlist was removed from the playlist database */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_DecodeStarted).s(), "eNotify_DecodeStarted") /* status   - a video or audio decode has started decoding */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_DecodeStopped).s(), "eNotify_DecodeStopped") /* status   - a video or audio decode has stopped decoding */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_PlaylistAdded).s(), "eNotify_PlaylistAdded")                       /* status   - a playlist was added to the playlist database */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_PlaylistRemoved).s(), "eNotify_PlaylistRemoved")                   /* status   - a playlist was removed from the playlist database */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_DecodeStarted).s(), "eNotify_DecodeStarted")                       /* status   - a video or audio decode has started decoding */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_DecodeStopped).s(), "eNotify_DecodeStopped")                       /* status   - a video or audio decode has stopped decoding */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_DiscoveredPlaylistsShown).s(), "eNotify_DiscoveredPlaylistsShown") /* status   - a discovered playlist has been displayed on console */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_PlaylistShown).s(), "eNotify_PlaylistShown") /* status   - a playlist contents has been displayed on console */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_PlaylistShown).s(), "eNotify_PlaylistShown")                       /* status   - a playlist contents has been displayed on console */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_Invalid).s(), "eNotify_Invalid")
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_Max).s(), "eNotify_Max")
 ENUM_TO_MSTRING_END()
@@ -271,7 +270,7 @@ CSubject::CSubject(const char * strName) :
     /* set this environment variable to help debug memory leaks all CSubject derived classes */
     if (getenv("ATLAS_MEMORY_LEAK_DETECT"))
     {
-        BDBG_WRN(("==> Allocated mutex (%p) for:%s (%p)", _mutex, strName, this));
+        BDBG_WRN(("==> Allocated mutex (%p) for:%s (%p)", (void *)_mutex, strName, (void *)this));
     }
 
     clearAllObservers();

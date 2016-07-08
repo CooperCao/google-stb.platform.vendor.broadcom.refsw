@@ -1,27 +1,40 @@
-/***************************************************************************
- *     Copyright (c) 2006-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * Module Description: Audio Decoder Interface
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * Revision History:
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- * 
- * $brcm_Log: $
- * 
- * $brcm_Log: $
- * 
- ***************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
 
 #ifndef BAPE_H_
 #define BAPE_H_
@@ -65,107 +78,107 @@ typedef void *BDSP_Handle;
 #include "bape_crc.h"
 #include "bape_debug.h"
 
-/*=************************ Module Overview ******************************** 
-APE (Audio Processing Engine) is a porting interface (PI) module that 
-controls the audio subsystem.  This includes the AIO (mixer, inputs, outputs) 
-as well as the decode processor (DSP or CPU). 
- 
-Device: 
--------
-An APE Device is identified by a device handle (BAPE_Handle).  This is the 
-top-level interface to the audio subsystem. 
- 
-Decoder: 
--------- 
-A decoder is capable of decoding digital audio into PCM samples and also 
-providing compressed passthrough of input data.  This is identified by 
-a BAPE_DecoderHandle.  Decoding is done in a decode processor, and the 
-output can be fed into a mixer.  Optionally, post-processing (BAPE_Processor) 
-may be inserted between the decoder and the mixer.   Decoders can read 
-from a RAVE context (BAVC_XptContextMap) or on some systems can read 
-from an input port (BAPE_InputPort).  The latter is useful for external 
-inputs that provide compressed data (e.g. SPDIF) or inputs that require 
-post processing.   
+/*=************************ Module Overview ********************************
+APE (Audio Processing Engine) is a porting interface (PI) module that
+controls the audio subsystem.  This includes the AIO (mixer, inputs, outputs)
+as well as the decode processor (DSP or CPU).
 
-Playback: 
---------- 
-Playback is used for playing host-generated PCM data.  It is also an 
-input to a mixer. 
- 
-InputCapture: 
-------------- 
-InputCapture is used to capture PCM input from an input port (BAPE_InputPort) 
-and feeds data into a mixer. 
- 
-InputGroup: 
------------ 
-Input groups allow for multiple stereo inputs to be grouped together 
-and treated as multichannel data.  This is useful if you want to combine 
-three stereo playback channels to generate 5.1 audio for example.  Grouped 
-inputs will always start synchronously in the mixer. 
- 
-Mixer: 
------- 
-Mixers are used to mix one or more inputs to one or more outputs.  A 
-mixer is always required to bind an output to its input(s).   Mixers 
-provide input volume scaling as well as output volume scaling.  All 
-inputs to a mixer must run at the same sample rate, and correspondingly 
-they will be sample rate converted to either a fixed sample rate value 
-or they can slave to a master input's sampling rate.  It is possible 
-for an input to be routed to more than one mixer.  For example, the 
-application may want different input volume levels applied to one 
-output vs. another one.  For example, you could use two mixers to 
-send a decode input mixed with a playback input to one output setting 
-both inputs to half volume.  You could simultaneously route the same 
-decode input to another output at full volume with no playback 
-by using two mixers and applying different volume levels to each. 
-Inputs to a mixer are connected using a generic connector type 
-(BAPE_Connector), and similarly outputs are connected using 
-a generic connector type (BAPE_OutputPort). 
- 
+Device:
+-------
+An APE Device is identified by a device handle (BAPE_Handle).  This is the
+top-level interface to the audio subsystem.
+
+Decoder:
+--------
+A decoder is capable of decoding digital audio into PCM samples and also
+providing compressed passthrough of input data.  This is identified by
+a BAPE_DecoderHandle.  Decoding is done in a decode processor, and the
+output can be fed into a mixer.  Optionally, post-processing (BAPE_Processor)
+may be inserted between the decoder and the mixer.   Decoders can read
+from a RAVE context (BAVC_XptContextMap) or on some systems can read
+from an input port (BAPE_InputPort).  The latter is useful for external
+inputs that provide compressed data (e.g. SPDIF) or inputs that require
+post processing.
+
+Playback:
+---------
+Playback is used for playing host-generated PCM data.  It is also an
+input to a mixer.
+
+InputCapture:
+-------------
+InputCapture is used to capture PCM input from an input port (BAPE_InputPort)
+and feeds data into a mixer.
+
+InputGroup:
+-----------
+Input groups allow for multiple stereo inputs to be grouped together
+and treated as multichannel data.  This is useful if you want to combine
+three stereo playback channels to generate 5.1 audio for example.  Grouped
+inputs will always start synchronously in the mixer.
+
+Mixer:
+------
+Mixers are used to mix one or more inputs to one or more outputs.  A
+mixer is always required to bind an output to its input(s).   Mixers
+provide input volume scaling as well as output volume scaling.  All
+inputs to a mixer must run at the same sample rate, and correspondingly
+they will be sample rate converted to either a fixed sample rate value
+or they can slave to a master input's sampling rate.  It is possible
+for an input to be routed to more than one mixer.  For example, the
+application may want different input volume levels applied to one
+output vs. another one.  For example, you could use two mixers to
+send a decode input mixed with a playback input to one output setting
+both inputs to half volume.  You could simultaneously route the same
+decode input to another output at full volume with no playback
+by using two mixers and applying different volume levels to each.
+Inputs to a mixer are connected using a generic connector type
+(BAPE_Connector), and similarly outputs are connected using
+a generic connector type (BAPE_OutputPort).
+
 Outputs:
--------- 
-Several different output types are supported by this module.  They include 
-audio DACs (BAPE_DacHandle), SPDIF transmitters (BAPE_SpdifOutputHandle), 
-I2S transmitters (BAPE_I2sOutputHandle) and the MAI interface to HDMI 
-(BAPE_MaiOutputHandle).  Outputs must always be connected to a single 
-mixer to receive data, even if they are receiving compressed output. 
-Output data can also be captured by the host by connecting an 
-BAPE_OutputCaptureHandle. 
- 
-Inputs: 
-------- 
-External audio inputs are supported by this module.  BAPE_I2sInput 
-represents an I2S receiver.  In the future, other inputs may be 
-added as well. 
- 
-Example Connection Diagrams: 
----------------------------- 
-1) Single decoder routed to DAC + SPDIF 
-BAPE_DecoderHandle (stereo data) -> BAPE_MixerHandle -> BAPE_DacHandle + BAPE_SpdifOutputHandle 
- 
-2) Decoder + host data mixed to DAC, Decoder data routed directly to SPDIF (PCM) 
-BAPE_PlaybackHandle --------------\  
-BAPE_DecoderHandle (stereo data) --> BAPE_MixerHandle1 -> BAPE_DacHandle 
+--------
+Several different output types are supported by this module.  They include
+audio DACs (BAPE_DacHandle), SPDIF transmitters (BAPE_SpdifOutputHandle),
+I2S transmitters (BAPE_I2sOutputHandle) and the MAI interface to HDMI
+(BAPE_MaiOutputHandle).  Outputs must always be connected to a single
+mixer to receive data, even if they are receiving compressed output.
+Output data can also be captured by the host by connecting an
+BAPE_OutputCaptureHandle.
+
+Inputs:
+-------
+External audio inputs are supported by this module.  BAPE_I2sInput
+represents an I2S receiver.  In the future, other inputs may be
+added as well.
+
+Example Connection Diagrams:
+----------------------------
+1) Single decoder routed to DAC + SPDIF
+BAPE_DecoderHandle (stereo data) -> BAPE_MixerHandle -> BAPE_DacHandle + BAPE_SpdifOutputHandle
+
+2) Decoder + host data mixed to DAC, Decoder data routed directly to SPDIF (PCM)
+BAPE_PlaybackHandle --------------\
+BAPE_DecoderHandle (stereo data) --> BAPE_MixerHandle1 -> BAPE_DacHandle
                                  \-> BAPE_MixerHandle2 -> BAPE_SpdifOutputHandle
- 
-3) Decode to DAC with compressed passthrough to SPDIF 
- 
-BAPE_DecoderHandle1 (stereo data)     -> BAPE_MixerHandle1 -> BAPE_DacHandle 
-BAPE_DecoderHandle2 (compressed data) -> BAPE_MixerHandle2 -> BAPE_SpdifOutputHandle 
- 
-4) Decode to DAC and I2S with DAC delayed to compensate for an external 
-audio processor on I2S. 
-BAPE_DecoderHandle (stereo data) --> BAPE_MixerHandle1 (delay=0) -> BAPE_DacHandle 
+
+3) Decode to DAC with compressed passthrough to SPDIF
+
+BAPE_DecoderHandle1 (stereo data)     -> BAPE_MixerHandle1 -> BAPE_DacHandle
+BAPE_DecoderHandle2 (compressed data) -> BAPE_MixerHandle2 -> BAPE_SpdifOutputHandle
+
+4) Decode to DAC and I2S with DAC delayed to compensate for an external
+audio processor on I2S.
+BAPE_DecoderHandle (stereo data) --> BAPE_MixerHandle1 (delay=0) -> BAPE_DacHandle
                                  \-> BAPE_MixerHandle2 (delay=n) -> BAPE_I2sOutputHandle
- 
-5) I2S stereo input routed to DAC 
-BAPE_I2sInput -> BAPE_InputCapture -> BAPE_MixerHandle -> BAPE_DacHandle 
- 
-6) Decode of primary audio mixed with decode of secondary audio (e.g. MP3 sound effect) 
-BAPE_DecoderHandle1 (stereo data) --> BAPE_MixerHandle -> BAPE_DacHandle 
+
+5) I2S stereo input routed to DAC
+BAPE_I2sInput -> BAPE_InputCapture -> BAPE_MixerHandle -> BAPE_DacHandle
+
+6) Decode of primary audio mixed with decode of secondary audio (e.g. MP3 sound effect)
+BAPE_DecoderHandle1 (stereo data) --> BAPE_MixerHandle -> BAPE_DacHandle
 BAPE_DecoderHandle2 (stereo data) -/
- 
+
 ***************************************************************************/
 
 /***************************************************************************
@@ -175,28 +188,29 @@ Device Settings
 typedef struct BAPE_Settings
 {
     unsigned maxDspTasks;               /* Maximum DSP tasks.  One task is required for each decoder and FW Mixer that will run concurrently. */
+    unsigned maxArmTasks;               /* Maximum ARM tasks.  One task is required for each decoder and FW Mixer that will run concurrently. */
     unsigned maxIndependentDelay;       /* Max independent delay value in ms */
     unsigned maxPcmSampleRate;          /* Max PCM sample rate in Hz */
     unsigned numPcmBuffers;             /* Number of discrete PCM decoder output buffers required.  This is the
                                            number of outputs that will receive discrete stereo content plus the
                                            number of outputs that will receive discrete multichannel output * the number
-                                           of channel pairs involved in multichannel (3 for 5.1, 4 for 7.1).  
-                                           Independent delay does not affect this number, only different content sources. 
-                                           These buffers are also used when non-DSP data sources (e.g. Playback or Equalizer) connect 
-                                           as input to DSP mixers. */ 
+                                           of channel pairs involved in multichannel (3 for 5.1, 4 for 7.1).
+                                           Independent delay does not affect this number, only different content sources.
+                                           These buffers are also used when non-DSP data sources (e.g. Playback or Equalizer) connect
+                                           as input to DSP mixers. */
     unsigned numCompressedBuffers;      /* Number of discrete compressed decoder output buffers required.  This is the
                                            number of outputs that will receive discrete compressed content running at up to 48kHz.
-                                           Independent delay does not affect this number, only different content sources. */ 
+                                           Independent delay does not affect this number, only different content sources. */
     unsigned numCompressed4xBuffers;    /* Number of discrete compressed decoder output buffers required.  This is the
                                            number of outputs that will receive discrete compressed content running at up to 192kHz.
-                                           Independent delay does not affect this number, only different content sources. */ 
+                                           Independent delay does not affect this number, only different content sources. */
     unsigned numCompressed16xBuffers;   /* Number of discrete compressed decoder output buffers required.  This is the
                                            number of outputs that will receive discrete compressed content running at up to 768kHz (HDMI HBR).
-                                           Independent delay does not affect this number, only different content sources. */ 
+                                           Independent delay does not affect this number, only different content sources. */
     unsigned numRfEncodedPcmBuffers;    /* Number of discrete RF encoded PCM buffers required.  This is the
                                            number of outputs that will receive discrete RF encoded PCM content running at up to 192kHz (BTSC).
-                                           Independent delay does not affect this number, only different content sources. */     
-    bool rampPcmSamples;                /* If true (default), PCM samples will be ramped up/down on startup, shutdown, and underflow conditions.  
+                                           Independent delay does not affect this number, only different content sources. */
+    bool rampPcmSamples;                /* If true (default), PCM samples will be ramped up/down on startup, shutdown, and underflow conditions.
                                           Set to false if you want to disable this feature for testing or verification purposes. */
     BAPE_LoudnessEquivalenceMode loudnessMode;  /* Loudness Equivalence Mode.  Default is BAPE_LoudnessEquivalenceMode_eNone. */
 } BAPE_Settings;
@@ -248,6 +262,7 @@ BERR_Code BAPE_Open(
     BINT_Handle intHandle,
     BTMR_Handle tmrHandle,
     BDSP_Handle dspHandle,
+    BDSP_Handle armHandle,
     const BAPE_Settings *pSettings  /* NULL will use default settings */
     );
 
@@ -269,7 +284,7 @@ typedef struct BAPE_InterruptHandlers
     {
         void (*pCallback_isr)(void *pParam1, int param2);
         void *pParam1;
-        int param2;        
+        int param2;
     } watchdog;
 } BAPE_InterruptHandlers;
 
@@ -284,9 +299,9 @@ void BAPE_GetInterruptHandlers(
 
 /***************************************************************************
 Summary:
-Set Interrupt Handlers 
- 
-Description: 
+Set Interrupt Handlers
+
+Description:
 To disable any unwanted interrupt, pass NULL for its callback routine
 ***************************************************************************/
 BERR_Code BAPE_SetInterruptHandlers(
@@ -339,7 +354,7 @@ typedef struct BAPE_StandbySettings
 
 /***************************************************************************
 Summary:
-Enter Standby mode 
+Enter Standby mode
 ***************************************************************************/
 BERR_Code BAPE_Standby(
     BAPE_Handle handle,             /* [in]APE device handle */
@@ -388,7 +403,7 @@ typedef struct BAPE_Capabilities
     unsigned numNcos;                   /* Number of output NCO clocks */
     unsigned numCrcs;                   /* Number of CRC objects */
     unsigned numStcs;                   /* Number of STC objects */
-   
+
     unsigned numDsps;                   /* Number of audio DSPs */
     struct
     {
@@ -481,4 +496,3 @@ BAPE_DolbyMSVersion BAPE_GetDolbyMSVersion (void);
 #endif
 
 #endif
-

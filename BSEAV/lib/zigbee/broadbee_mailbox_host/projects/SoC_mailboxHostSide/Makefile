@@ -97,6 +97,7 @@ endif
 export INCFLAGS := $(addprefix -I,$(INCDIRS))
 
 sys : export COMPDIR := $(STACKDIR)/common/System
+ext : export COMPDIR := $(STACKDIR)/common/External
 hal : export COMPDIR := $(STACKDIR)/common/HAL
 mbx : export COMPDIR := $(STACKDIR)/common/Mailbox
 nvm : export COMPDIR := $(STACKDIR)/common/NVM
@@ -111,9 +112,9 @@ hrn : export COMPDIR := ./ha_registration
 prj : export COMPDIR := ./
 
 ifeq ($(BYPASS_RPC),y)
-COMPONENTS := sys hal mbx non_rpc rrn hrn prj common
+COMPONENTS := sys hal mbx non_rpc rrn hrn prj common ext
 else
-COMPONENTS := sys hal mbx rpc rrn hrn prj common
+COMPONENTS := sys hal mbx rpc rrn hrn prj common ext
 endif
 
 ### Include the Stack Makefile. The Stack target 'all' will become the default target.

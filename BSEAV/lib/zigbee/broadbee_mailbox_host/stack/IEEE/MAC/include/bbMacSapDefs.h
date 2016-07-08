@@ -1,118 +1,114 @@
 /******************************************************************************
-* (c) 2014 Broadcom Corporation
-*
-* This program is the proprietary software of Broadcom Corporation and/or its
-* licensors, and may only be used, duplicated, modified or distributed pursuant
-* to the terms and conditions of a separate, written license agreement executed
-* between you and Broadcom (an "Authorized License").  Except as set forth in
-* an Authorized License, Broadcom grants no license (express or implied), right
-* to use, or waiver of any kind with respect to the Software, and Broadcom
-* expressly reserves all rights in and to the Software and all intellectual
-* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1. This program, including its structure, sequence and organization,
-*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-*    reasonable efforts to protect the confidentiality thereof, and to use
-*    this information only in connection with your use of Broadcom integrated
-*    circuit products.
-*
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-******************************************************************************/
-/*****************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
+ *
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************
 *
 * FILENAME: $Workfile: trunk/stack/IEEE/MAC/include/bbMacSapDefs.h $
 *
 * DESCRIPTION:
 *   MAC-SAP common definitions.
 *
-* $Revision: 2952 $
-* $Date: 2014-07-16 17:08:40Z $
+* $Revision: 10530 $
+* $Date: 2016-03-18 00:29:29Z $
 *
 *****************************************************************************************/
-
 
 #ifndef _BB_MAC_SAP_DEFS_H
 #define _BB_MAC_SAP_DEFS_H
 
+/************************* INCLUDES ***********************************************************************************/
+#include "bbMacBasics.h"
+#include "bbPhySapForMAC.h"
 
-/************************* INCLUDES *****************************************************/
-#include "bbMacBasics.h"            /* Basic MAC set. */
-#include "bbPhySapForMAC.h"         /* PHY-SAP interface for the MAC layer. */
-
-
-/************************* DEFINITIONS **************************************************/
-/*
- * MAC constants.
+/************************* DEFINITIONS ********************************************************************************/
+/**//**
+ * \brief   MAC constants.
+ * \par     Documentation
+ *  See IEEE 802.15.4-2006, subclause 7.4.1, table 85.
  */
-#define MAC_BASE_SLOT_DURATION              60      /*!< The number of symbols forming a superframe slot when the
+/**@{*/
+#define MAC_aBaseSlotDuration               (60)    /*!< The number of symbols forming a superframe slot when the
                                                         superframe order is equal to 0. */
 
-#define MAC_GTS_DESC_PERSISTENCE_TIME       4       /*!< The number of superframes in which a GTS descriptor exists in
+#define MAC_aGTSDescPersistenceTime         (4)     /*!< The number of superframes in which a GTS descriptor exists in
                                                         the beacon frame of the PAN coordinator. */
 
-#define MAC_MAX_BEACON_OVERHEAD             75      /*!< The maximum number of octets added by the MAC sublayer to the
+#define MAC_aMaxBeaconOverhead              (75)    /*!< The maximum number of octets added by the MAC sublayer to the
                                                         MAC payload of a beacon frame. */
 
-#define MAC_MAX_LOST_BEACONS                4       /*!< The number of consecutive lost beacons that will cause the MAC
+#define MAC_aMaxLostBeacons                 (4)     /*!< The number of consecutive lost beacons that will cause the MAC
                                                         sublayer of a receiving device to declare a loss of
                                                         synchronization. */
 
-#define MAC_MAX_MPDU_UNSECURED_OVERHEAD     25      /*!< The maximum number of octets added by the MAC sublayer to the
+#define MAC_aMaxMPDUUnsecuredOverhead       (25)    /*!< The maximum number of octets added by the MAC sublayer to the
                                                         PSDU without security. */
 
-#define MAC_MAX_SIFS_FRAME_SIZE             18      /*!< The maximum size of an MPDU, in octets, that can be followed by
+#define MAC_aMaxSIFSFrameSize               (18)    /*!< The maximum size of an MPDU, in octets, that can be followed by
                                                         a SIFS period. */
 
-#define MAC_MIN_CAP_LENGTH                  440     /*!< The minimum number of symbols forming the CAP. This ensures
+#define MAC_aMinCAPLength                   (440)   /*!< The minimum number of symbols forming the CAP. This ensures
                                                         that MAC commands can still be transferred to devices when GTSs
                                                         are being used. An exception to this minimum shall be allowed
                                                         for the accommodation of the temporary increase in the beacon
                                                         frame length needed to perform GTS maintenance. */
 
-#define MAC_ACK_MPDU_OVERHEAD               5       /*!< The number of octets added by the MAC sublayer to the PSDU
-                                                        for the Acknowledgment (ACK) frame. */
-
-#define MAC_MIN_MPDU_OVERHEAD               9       /*!< The minimum number of octets added by the MAC sublayer
+#define MAC_aMinMPDUOverhead                (9)     /*!< The minimum number of octets added by the MAC sublayer
                                                         to the PSDU. */
 
-#define MAC_NUM_SUPERFRAME_SLOTS            16      /*!< The number of slots contained in any superframe. */
+#define MAC_aNumSuperframeSlots             (16)    /*!< The number of slots contained in any superframe. */
 
-#define MAC_UNIT_BACKOFF_PERIOD             20      /*!< The number of symbols forming the basic time period used by the
+#define MAC_aUnitBackoffPeriod              (20)    /*!< The number of symbols forming the basic time period used by the
                                                         CSMA-CA algorithm. */
 
-#define MAC_BASE_SUPERFRAME_DURATION        (MAC_BASE_SLOT_DURATION * MAC_NUM_SUPERFRAME_SLOTS)
+#define MAC_aBaseSuperframeDuration         (MAC_aBaseSlotDuration * MAC_aNumSuperframeSlots)
                                                     /*!< The number of symbols forming a superframe when the superframe
                                                         order is equal to 0. */
 
-#define MAC_MAX_BEACON_PAYLOAD_LENGTH       (PHY_MAX_PACKET_SIZE - MAC_MAX_BEACON_OVERHEAD)
+#define MAC_aMaxBeaconPayloadLength         (PHY_aMaxPHYPacketSize - MAC_aMaxBeaconOverhead)
                                                     /*!< The maximum size, in octets, of a beacon payload. */
 
-#define MAC_MAX_SAFE_PAYLOAD_SIZE           (PHY_MAX_PACKET_SIZE - MAC_MAX_MPDU_UNSECURED_OVERHEAD)
+#define MAC_aMaxMACSafePayloadSize          (PHY_aMaxPHYPacketSize - MAC_aMaxMPDUUnsecuredOverhead)
                                                     /*!< The maximum number of octets that can be transmitted in the MAC
                                                         Payload field of an unsecured MAC frame that will be guaranteed
                                                         not to exceed aMaxPHYPacketSize. */
 
-#define MAC_MAX_PAYLOAD_SIZE                (PHY_MAX_PACKET_SIZE - MAC_MIN_MPDU_OVERHEAD)
+#define MAC_aMaxMACPayloadSize              (PHY_aMaxPHYPacketSize - MAC_aMinMPDUOverhead)
                                                     /*!< The maximum number of octets that can be transmitted in the MAC
                                                         Payload field. */
 
@@ -120,24 +116,23 @@
 /**//**
  * \brief   The 64-bit address assigned to this device in ZigBee PRO context.
  */
-# define MAC_EXTENDED_ADDRESS_ZBPRO         (MAC_GetAddr64bit(MAC_ZBPRO_CONTEXT_ID))
+# define ZBPRO_MAC_aExtendedAddress         (MAC_GetAddr64bit(MAC_ZBPRO_CONTEXT_ID))
 #endif /* _MAC_CONTEXT_ZBPRO_ */
 
 #if defined(_MAC_CONTEXT_RF4CE_)
 /**//**
  * \brief   The 64-bit address assigned to this device in RF4CE context.
  */
-# define MAC_EXTENDED_ADDRESS_RF4CE         (MAC_GetAddr64bit(MAC_RF4CE_CONTEXT_ID))
+# define RF4CE_MAC_aExtendedAddress         (MAC_GetAddr64bit(MAC_RF4CE_CONTEXT_ID))
 #endif /* _MAC_CONTEXT_RF4CE_ */
-
+/**@}*/
 
 /**//**
  * \brief   Consolidated enumerations for the MAC-SAP.
  * \par     Documentation
  *  See IEEE 802.15.4-2006, subclause 7.1.17, table 78.
  */
-typedef enum _MAC_Enumerations_t
-{
+typedef enum _MAC_Enumerations_t {
     MAC_SUCCESS                     = 0x00,     /*!< The requested operation was completed successfully. For a
                                                     transmission request, this value indicates a successful
                                                     transmission. */
@@ -150,6 +145,7 @@ typedef enum _MAC_Enumerations_t
 
     MAC_ASSOCIATION_STATUS_MAX      = MAC_PAN_ACCESS_DENIED,    /*!< Maximum allowed value for
                                                                     association response status. */
+    MAC_NO_MEMORY                   = 0x7D,     /*!< Not enough dynamic memory to proceed some request. */
 
     MAC_PURGED                      = 0x7E,     /*!< The MCPS-DATA.request processing was terminated due to
                                                     MCPS-PURGE.request. */
@@ -202,7 +198,7 @@ typedef enum _MAC_Enumerations_t
     MAC_INVALID_PARAMETER           = 0xE8,     /*!< A parameter in the primitive is either not supported or is out of
                                                     the valid range. */
 
-    MAC_NO_ACK                      = 0xE9,     /*!< No acknowledgement was received after macMaxFrameRetries. */
+    MAC_NO_ACK                      = 0xE9,     /*!< No acknowledgment was received after macMaxFrameRetries. */
 
     MAC_NO_BEACON                   = 0xEA,     /*!< A scan operation failed to find any network beacons. */
 
@@ -268,49 +264,12 @@ typedef enum _MAC_Enumerations_t
                                                     of its coordinator. */
 } MAC_Enumerations_t;
 
-
 /**//**
- * \brief   Data type for the \c status parameter returned by the MAC-SAP confirmation
- *  primitives.
+ * \brief   Data type for the \c status parameter returned by the MAC-SAP confirmation primitives.
  * \par     Documentation
- *  See IEEE 802.15.4-2006, subclauses 7.1.1.2.1, 7.1.3.4.1, 7.1.6.2.1, 7.1.9.2.1,
- *  7.1.10.2.1, 7.1.11.2.1, 7.1.13.2.1, 7.1.14.2.1, tables 42, 50, 57, 64, 66, 68, 71, 73.
+ *  See IEEE 802.15.4-2006, subclauses 7.1.1.2.1, 7.1.3.4.1, 7.1.6.2.1, 7.1.9.2.1, 7.1.10.2.1, 7.1.11.2.1, 7.1.13.2.1,
+ *  7.1.14.2.1, tables 42, 50, 57, 64, 66, 68, 71, 73.
  */
 typedef MAC_Enumerations_t  MAC_Status_t;
-
-
-/**//**
- * \brief   Enumeration for the SecurityLevel parameter of different MAC primitives.
- * \note    Parameter SecurityLevel shall be assigned with 0x00 'None' when calling MAC
- *  requests/responses primitives having such parameter; otherwise UNSUPPORTED_SECURITY
- *  status will be returned by the corresponding confirmation primitive (or by the
- *  MLME-COMM-STATUS.indication for the case of MLME-ASSOCIATION.response and
- *  MLME-ORPHAN.response).
- * \note    To instruct the MAC to ignore the SecurityLevel parameter (i.e., to assume it
- *  equal to 0x00 'None') exclude the _MAC_SAP_PROCESS_REDUNDANT_PARAMS_ conditional build
- *  key from the project make configuration file.
- * \par     Documentation
- *  See IEEE 802.15.4-2006, subclause 7.6.2.2.1, table 95.
- */
-typedef enum _MAC_SecurityLevel_t
-{
-    MAC_SECURITY_LEVEL_NONE        = 0x00,      /*!< Security level 'None'. */
-
-    MAC_SECURITY_LEVEL_MIC_32      = 0x01,      /*!< Security level 'MIC_32'. */
-
-    MAC_SECURITY_LEVEL_MIC_64      = 0x02,      /*!< Security level 'MIC_64'. */
-
-    MAC_SECURITY_LEVEL_MIC_128     = 0x03,      /*!< Security level 'MIC_128'. */
-
-    MAC_SECURITY_LEVEL_ENC         = 0x04,      /*!< Security level 'ENC'. */
-
-    MAC_SECURITY_LEVEL_ENC_MIC_32  = 0x05,      /*!< Security level 'ENC_MIC_32'. */
-
-    MAC_SECURITY_LEVEL_ENC_MIC_64  = 0x06,      /*!< Security level 'ENC_MIC_64'. */
-
-    MAC_SECURITY_LEVEL_ENC_MIC_128 = 0x07,      /*!< Security level 'ENC_MIC_128'. */
-
-} MAC_SecurityLevel_t;
-
 
 #endif /* _BB_MAC_SAP_DEFS_H */

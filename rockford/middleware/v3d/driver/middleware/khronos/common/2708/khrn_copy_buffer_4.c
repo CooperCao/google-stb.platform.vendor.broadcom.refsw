@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2010 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2010 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -66,6 +66,14 @@ bool khrn_delayed_copy_buffer(MEM_HANDLE_T dst_handle, MEM_HANDLE_T src_handle)
 
    src = (KHRN_IMAGE_T *)mem_lock(src_handle, NULL);
    dst = (KHRN_IMAGE_T *)mem_lock(dst_handle, NULL);
+
+   bool secure = src->secure;
+   /* if the src is secure, the destination must also be */
+   if (secure)
+      vcos_demand(dst->secure == true);
+   else
+      /* its allowable to raise security, so src can be insecure */
+      secure = dst->secure;
 
    xTiles = (src->width  + 63) / 64;
    yTiles = (src->height + 63) / 64;
@@ -144,12 +152,7 @@ bool khrn_delayed_copy_buffer(MEM_HANDLE_T dst_handle, MEM_HANDLE_T src_handle)
    mem_unlock(dst_handle);
    mem_unlock(src_handle);
 
-   khrn_issue_copy_buffer_job(fmem, dst_handle, src_handle, numBytes);
+   khrn_issue_copy_buffer_job(fmem, dst_handle, src_handle, numBytes, secure);
 
    return true;
-}
-
-void khrn_copy_buffer_render_state_flush(KHRN_COPY_BUFFER_RENDER_STATE_T *render_state)
-{
-   /* Nothing to do */
 }

@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2015 Broadcom Corporation
+ *     Broadcom Proprietary and Confidential. (c)2015 Broadcom.  All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -182,20 +182,8 @@ bool BVC5_P_ActiveQContainsId(
    uint64_t             uiJobId
 )
 {
-   BVC5_P_InternalJob  *psJob;
-
-   BDBG_MSG(("BVC5_P_ActiveQContainsId jobID=%lld", uiJobId));
-
-   for (psJob = BLST_Q_FIRST(&hActiveQ->sQueue); psJob != NULL; psJob = BLST_Q_NEXT(psJob, sActiveqChain))
-   {
-      if (psJob->uiJobId == uiJobId)
-         return true;
-
-      if (psJob->uiJobId > uiJobId)
-         return false;
-   }
-
-   return false;
+   BDBG_MSG(("BVC5_P_ActiveQContainsId jobID="BDBG_UINT64_FMT, BDBG_UINT64_ARG(uiJobId)));
+   return BVC5_P_ActiveQFindById(hActiveQ, uiJobId) != NULL;
 }
 
 /***************************************************************************/

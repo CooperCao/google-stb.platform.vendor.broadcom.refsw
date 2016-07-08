@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2008 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2008 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -85,7 +85,8 @@ static KHRN_IMAGE_FORMAT_T convert_format(GLenum format)
    return IMAGE_FORMAT_INVALID;
 }
 
-bool glxx_renderbuffer_storage_multisample(GLXX_RENDERBUFFER_T *renderbuffer, GLsizei samples, GLenum internalformat, GLuint width, GLuint height)
+bool glxx_renderbuffer_storage_multisample(GLXX_RENDERBUFFER_T *renderbuffer, GLsizei samples,
+   GLenum internalformat, GLuint width, GLuint height, bool secure)
 {
    // Image size factor for multisample render buffer
    static const GLuint MS_SIZE_FACTOR = 2;
@@ -95,8 +96,13 @@ bool glxx_renderbuffer_storage_multisample(GLXX_RENDERBUFFER_T *renderbuffer, GL
    KHRN_IMAGE_T *oldimage = (KHRN_IMAGE_T *)mem_maybe_lock(renderbuffer->mh_storage, NULL);
 
    /* TODO: what about if we're sharing the image? */
-   bool imagechanged = !oldimage || oldimage->format != format || oldimage->width != width ||
-                         oldimage->height != height || renderbuffer->type != type || renderbuffer->samples != samples;
+   bool imagechanged = !oldimage ||
+      oldimage->format != format ||
+      oldimage->width != width ||
+      oldimage->height != height ||
+      oldimage->secure != secure ||
+      renderbuffer->type != type ||
+      renderbuffer->samples != samples;
    mem_maybe_unlock(renderbuffer->mh_storage);
 
    if (imagechanged)
@@ -122,7 +128,7 @@ bool glxx_renderbuffer_storage_multisample(GLXX_RENDERBUFFER_T *renderbuffer, GL
          if (type == RB_COLOR_T)
          {
             // Allocate the resolve buffer if it is a colour render buffer
-            hnew = khrn_image_create(format, width, height, flags); /* todo: check usage flags */
+            hnew = khrn_image_create(format, width, height, flags, secure); /* todo: check usage flags */
             if (hnew == MEM_INVALID_HANDLE)
                return false;
             MEM_ASSIGN(renderbuffer->mh_storage, hnew);
@@ -130,11 +136,11 @@ bool glxx_renderbuffer_storage_multisample(GLXX_RENDERBUFFER_T *renderbuffer, GL
 
             // Allocate the multisample buffer which is stored in the renderbuffer
             hnew = khrn_image_create(COL_32_TLBD, MS_SIZE_FACTOR*width, MS_SIZE_FACTOR*height,
-                                 (KHRN_IMAGE_CREATE_FLAG_T)(IMAGE_CREATE_FLAG_RENDER_TARGET | IMAGE_CREATE_FLAG_ONE));
+                                 IMAGE_CREATE_FLAG_RENDER_TARGET | IMAGE_CREATE_FLAG_ONE, secure);
          }
          else
             // Allocate the multisample buffer which is stored in the renderbuffer
-            hnew = khrn_image_create(format, MS_SIZE_FACTOR*width, MS_SIZE_FACTOR*height, flags); /* todo: check usage flags */
+            hnew = khrn_image_create(format, MS_SIZE_FACTOR*width, MS_SIZE_FACTOR*height, flags, secure); /* todo: check usage flags */
 
          if (hnew == MEM_INVALID_HANDLE)
             return false;
@@ -144,7 +150,7 @@ bool glxx_renderbuffer_storage_multisample(GLXX_RENDERBUFFER_T *renderbuffer, GL
       else
       {  // Non-multisample render buffer
          // Allocate the resolve buffer if it is a colour render buffer
-         hnew = khrn_image_create(format, width, height, flags); /* todo: check usage flags */
+         hnew = khrn_image_create(format, width, height, flags, secure); /* todo: check usage flags */
          if (hnew == MEM_INVALID_HANDLE)
             return false;
          MEM_ASSIGN(renderbuffer->mh_storage, hnew);
@@ -166,10 +172,11 @@ bool glxx_renderbuffer_storage_multisample(GLXX_RENDERBUFFER_T *renderbuffer, GL
    return true;
 }
 
-bool glxx_renderbuffer_storage(GLXX_RENDERBUFFER_T *renderbuffer, GLenum internalformat, GLuint width, GLuint height)
+bool glxx_renderbuffer_storage(GLXX_RENDERBUFFER_T *renderbuffer, GLenum internalformat,
+   GLuint width, GLuint height, bool secure)
 {
    GLsizei samples = 0;
-   return glxx_renderbuffer_storage_multisample(renderbuffer, samples, internalformat, width, height);
+   return glxx_renderbuffer_storage_multisample(renderbuffer, samples, internalformat, width, height, secure);
 }
 
 static bool valid_image(KHRN_IMAGE_T *image)

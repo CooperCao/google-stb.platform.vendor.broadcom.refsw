@@ -23,7 +23,7 @@ then
 	}
 	else
 	{
-		cd /projects/cable_refsw/unified_releases/phase15.4_take1
+		cd /projects/cable_refsw/unified_releases/phase16.1_take1
 		find . -type d | cpio -pdvm ../$destination
 		cd ../$destination
 		destination=$(pwd)
@@ -33,7 +33,7 @@ then
 }
 else
 {
-	cd /projects/cable_refsw/unified_releases/phase15.4_take1
+	cd /projects/cable_refsw/unified_releases/phase16.1_take1
 	find . -type d | cpio -pdvm ../build_script
 	cd build_script
 	destination=$(pwd)
@@ -207,7 +207,7 @@ source /opt/brcm/scripts/plat  97439 B0 le VMS_SFF
 unset NEXUS_USE_7252S_VMS_SFF
 make -j BHDM_CEC_SUPPORT=n CDL_SUPPORT=n CHIP_REV_NOT_SUPPORTED=0 ESTB_SNMP_SUPPORT=n STREAMING_SUPPORT=n NEXUS_SYSTEM_CABLE=y NEXUS_FRONTEND_DOCSIS=y NEXUS_MODE=proxy BDSP_3RDPARTY_ALGO_SUPPORT=n NEXUS_USE_3390_VMS=y clean
 make -j BHDM_CEC_SUPPORT=n CDL_SUPPORT=n CHIP_REV_NOT_SUPPORTED=0 ESTB_SNMP_SUPPORT=n STREAMING_SUPPORT=n NEXUS_SYSTEM_CABLE=y NEXUS_FRONTEND_DOCSIS=y NEXUS_MODE=proxy BDSP_3RDPARTY_ALGO_SUPPORT=n NEXUS_USE_3390_VMS=y install
-cp ../../../../obj.$NEXUS_PLATFORM/BSEAV/bin/refsw-$today.97439-linux-atlas.bin.tgz $destination/binaries/external/93390/refsw-$reldate.93390_vms_sff-linux-atlas-cable.bin.tgz
+cp ../../../../obj.$NEXUS_PLATFORM/BSEAV/bin/refsw-$today.97439-linux-atlas.bin.tgz $destination/binaries/external/93390/refsw-$reldate.93390VMS52S-linux-atlas-cable.bin.tgz
 make -j BHDM_CEC_SUPPORT=n CDL_SUPPORT=n CHIP_REV_NOT_SUPPORTED=0 ESTB_SNMP_SUPPORT=n STREAMING_SUPPORT=n NEXUS_SYSTEM_CABLE=y NEXUS_FRONTEND_DOCSIS=y NEXUS_MODE=proxy BDSP_3RDPARTY_ALGO_SUPPORT=n NEXUS_USE_3390_VMS=y clean
 
 # 97445 E0 VMS_SFF

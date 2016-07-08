@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2015 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,7 +34,6 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
- *
  ***************************************************************************/
 #ifndef NEXUS_PLATFORM_GENERIC_FEATURES_H__
 #define NEXUS_PLATFORM_GENERIC_FEATURES_H__
@@ -63,14 +62,14 @@ See NEXUS_TransportCapabilities.numInputBands for actual number. */
 #define NEXUS_NUM_UARTS 3
 
 /* undefine NEXUS_HAS_GRAPHICSV3D by compiling with V3D_SUPPORT=n */
-#if NEXUS_HAS_GRAPHICSV3D
+#ifdef NEXUS_HAS_GRAPHICSV3D
 #define NEXUS_NUM_3D_ENGINES 1
 #else
 #define NEXUS_NUM_3D_ENGINES 0
 #endif
 
-#if NEXUS_HAS_UHF_INPUT
-#if BCHP_CHIP == 7400 || BCHP_CHIP == 7420
+#ifdef NEXUS_HAS_UHF_INPUT
+#if BCHP_CHIP == 7420
 #define NEXUS_NUM_UHF_INPUTS 2
 #else
 #define NEXUS_NUM_UHF_INPUTS 1
@@ -79,23 +78,23 @@ See NEXUS_TransportCapabilities.numInputBands for actual number. */
 #define NEXUS_NUM_UHF_INPUTS 0
 #endif
 
-#if NEXUS_HAS_XPT_DMA
+#ifdef NEXUS_HAS_XPT_DMA
 #define NEXUS_NUM_DMA_CHANNELS 31
-#elif NEXUS_HAS_DMA
-#if BCHP_CHIP == 7400 || BCHP_CHIP == 7435
+#elif defined NEXUS_HAS_DMA
+#if BCHP_CHIP == 7435
 #define NEXUS_NUM_DMA_CHANNELS 2
 #else
 #define NEXUS_NUM_DMA_CHANNELS 1
 #endif
 #endif
 
-#if NEXUS_HAS_HDMI_INPUT
+#ifdef NEXUS_HAS_HDMI_INPUT
 #define NEXUS_NUM_HDMI_INPUTS 1
 #else
 #define NEXUS_NUM_HDMI_INPUTS 0
 #endif
 
-#if NEXUS_HAS_HDMI_OUTPUT
+#ifdef NEXUS_HAS_HDMI_OUTPUT
 #if BCHP_CHIP == 7439 && BCHP_VER == BCHP_VER_A0
 #define NEXUS_NUM_HDMI_OUTPUTS 2
 #else
@@ -105,20 +104,20 @@ See NEXUS_TransportCapabilities.numInputBands for actual number. */
 #define NEXUS_NUM_HDMI_OUTPUTS 0
 #endif
 
-#if NEXUS_HAS_CEC
+#ifdef NEXUS_HAS_CEC
 #define NEXUS_NUM_CEC 1
 #else
 #define NEXUS_NUM_CEC 0
 #endif
 
-#if NEXUS_HAS_RFM
+#ifdef NEXUS_HAS_RFM
 #define NEXUS_NUM_RFM_OUTPUTS  1
 #else
 #define NEXUS_NUM_RFM_OUTPUTS  0
 #endif
 
-#if NEXUS_HAS_GRAPHICS2D
-#if (BCHP_CHIP == 7145 || BCHP_CHIP == 7366 || BCHP_CHIP == 7435 || BCHP_CHIP == 74371 || BCHP_CHIP == 7439 || BCHP_CHIP == 7445) && !NEXUS_WEBCPU
+#ifdef NEXUS_HAS_GRAPHICS2D
+#if (BCHP_CHIP == 7145 || BCHP_CHIP == 7366 || BCHP_CHIP == 7435 || BCHP_CHIP == 74371 || BCHP_CHIP == 7439 || BCHP_CHIP == 7445) && !defined NEXUS_WEBCPU
 #define NEXUS_NUM_2D_ENGINES 2
 #else
 #define NEXUS_NUM_2D_ENGINES 1
@@ -127,11 +126,11 @@ See NEXUS_TransportCapabilities.numInputBands for actual number. */
 #define NEXUS_NUM_2D_ENGINES 0
 #endif
 
-#if NEXUS_HAS_VIDEO_DECODER
+#ifdef NEXUS_HAS_VIDEO_DECODER
 /* TODO: convert to generic max when BBOX_XVD specifies this */
 #if BCHP_CHIP == 7445
 #define NEXUS_NUM_XVD_DEVICES 3
-#elif BCHP_CHIP == 7400 || BCHP_CHIP == 7145 || BCHP_CHIP == 7420 || BCHP_CHIP == 7422 || BCHP_CHIP == 7425 || BCHP_CHIP == 7435 || BCHP_CHIP == 7439
+#elif BCHP_CHIP == 7145 || BCHP_CHIP == 7420 || BCHP_CHIP == 7422 || BCHP_CHIP == 7425 || BCHP_CHIP == 7435 || BCHP_CHIP == 7439
 #define NEXUS_NUM_XVD_DEVICES 2
 #else
 #define NEXUS_NUM_XVD_DEVICES 1
@@ -166,7 +165,7 @@ but is retained here for app backward compat */
 #define NEXUS_NUM_PEP 1
 #define NEXUS_HAS_TNT 1
 
-#if NEXUS_HAS_AUDIO
+#ifdef NEXUS_HAS_AUDIO
 /* NEXUS_NUM_AUDIO_DSP is deprecated and may be higher than actual number of DSP's.
 Use NEXUS_AudioCapabilities.numDsps at run-time instead.
 
@@ -175,6 +174,15 @@ For a compile-time test for RAAGA, use:
 #if NEXUS_AUDIO_MODULE_FAMILY == NEXUS_AUDIO_MODULE_FAMILY_APE_RAAGA
 */
 #define NEXUS_NUM_AUDIO_DSP 2
+#ifndef NEXUS_NUM_AUDIO_CAPTURES
+#define NEXUS_NUM_AUDIO_CAPTURES 4
+#endif
+#ifndef NEXUS_NUM_AUDIO_CRCS
+#define NEXUS_NUM_AUDIO_CRCS 2
+#endif
+#else /* NEXUS_HAS_AUDIO */
+#define NEXUS_NUM_AUDIO_CRCS 0
+#define NEXUS_NUM_AUDIO_CAPTURES 0
 #endif
 
 #endif

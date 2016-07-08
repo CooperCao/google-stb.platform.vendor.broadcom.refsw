@@ -1,42 +1,39 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c) 2016 Broadcom. All rights reserved.
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 
 #include "atlas_main.h"
@@ -130,15 +127,21 @@ void CAtlas::displayDestroy(CDisplay * pDisplay)
     _pBoardResources->checkinResource(pDisplay);
 }
 
-CDisplay * CAtlas::displayInitialize(NEXUS_VideoFormat videoFormat, uint32_t framebufferWidth, uint32_t framebufferHeight)
+CDisplay * CAtlas::displayInitialize(
+        NEXUS_VideoFormat videoFormat,
+        uint32_t          framebufferWidth,
+        uint32_t          framebufferHeight
+        )
 {
     CDisplay * pDisplay = NULL;
     eRet       ret      = eRet_Ok;
 
+    ATLAS_MEMLEAK_TRACE("BEGIN");
+
     pDisplay = displayCreate();
     CHECK_PTR_ERROR_GOTO("unable to checkout display", pDisplay, ret, eRet_NotAvailable, error);
 
-    if ((true  == pDisplay->isReservedForEncoder()) || (false == pDisplay->isSupported()))
+    if ((true == pDisplay->isReservedForEncoder()) || (false == pDisplay->isSupported()))
     {
         BDBG_WRN(("Display%d is NOT supported or is dedicated for encoder use only and will NOT be set up as a slave display", pDisplay->getNumber()));
         goto error;
@@ -163,8 +166,9 @@ CDisplay * CAtlas::displayInitialize(NEXUS_VideoFormat videoFormat, uint32_t fra
 error:
     displayUninitialize(&pDisplay);
 done:
+    ATLAS_MEMLEAK_TRACE("END");
     return(pDisplay);
-}
+} /* displayInitialize */
 
 void CAtlas::displayUninitialize(CDisplay ** pDisplay)
 {
@@ -202,10 +206,15 @@ void CAtlas::graphicsDestroy(CGraphics * pGraphics)
     _pBoardResources->checkinResource(pGraphics);
 }
 
-CGraphics * CAtlas::graphicsInitialize(CDisplay * pDisplayHD, CDisplay * pDisplaySD)
+CGraphics * CAtlas::graphicsInitialize(
+        CDisplay * pDisplayHD,
+        CDisplay * pDisplaySD
+        )
 {
     eRet        ret       = eRet_Ok;
     CGraphics * pGraphics = NULL;
+
+    ATLAS_MEMLEAK_TRACE("BEGIN");
 
     /* open graphics resource */
     {
@@ -238,8 +247,9 @@ CGraphics * CAtlas::graphicsInitialize(CDisplay * pDisplayHD, CDisplay * pDispla
 error:
     graphicsUninitialize();
 done:
+    ATLAS_MEMLEAK_TRACE("END");
     return(pGraphics);
-}
+} /* graphicsInitialize */
 
 void CAtlas::graphicsUninitialize()
 {
@@ -260,7 +270,7 @@ void CAtlas::graphicsUninitialize()
 
 CIrRemote * CAtlas::irRemoteCreate()
 {
-    eRet         ret        = eRet_Ok;
+    eRet        ret       = eRet_Ok;
     CIrRemote * pIrRemote = NULL;
 
     pIrRemote = (CIrRemote *)_pBoardResources->checkoutResource(this, eBoardResource_irRemote);
@@ -286,6 +296,8 @@ CIrRemote * CAtlas::irRemoteInitialize()
     eRet        retIR     = eRet_Ok;
     CIrRemote * pIrRemote = NULL;
 
+    ATLAS_MEMLEAK_TRACE("BEGIN");
+
     /* open ir remote if reserved for us */
     pIrRemote = irRemoteCreate();
     if (NULL != pIrRemote)
@@ -300,8 +312,9 @@ errorIR:
     irRemoteDestroy(pIrRemote);
     pIrRemote = NULL;
 doneIR:
+    ATLAS_MEMLEAK_TRACE("END");
     return(pIrRemote);
-}
+} /* irRemoteInitialize */
 
 void CAtlas::irRemoteUninitialize()
 {
@@ -321,7 +334,7 @@ void CAtlas::irRemoteUninitialize()
 #if RF4CE_SUPPORT
 CRf4ceRemote * CAtlas::rf4ceRemoteCreate()
 {
-    eRet         ret        = eRet_Ok;
+    eRet           ret          = eRet_Ok;
     CRf4ceRemote * pRf4ceRemote = NULL;
 
     pRf4ceRemote = (CRf4ceRemote *)_pBoardResources->checkoutResource(this, eBoardResource_rf4ceRemote);
@@ -347,6 +360,8 @@ CRf4ceRemote * CAtlas::rf4ceRemoteInitialize()
     eRet           retRF4CE     = eRet_Ok;
     CRf4ceRemote * pRf4ceRemote = NULL;
 
+    ATLAS_MEMLEAK_TRACE("BEGIN");
+
     /* open rf4ce remote if reserved for us */
     pRf4ceRemote = rf4ceRemoteCreate();
     if (NULL != pRf4ceRemote)
@@ -360,8 +375,9 @@ error:
     rf4ceRemoteDestroy(pRf4ceRemote);
     pRf4ceRemote = NULL;
 done:
+    ATLAS_MEMLEAK_TRACE("END");
     return(pRf4ceRemote);
-}
+} /* rf4ceRemoteInitialize */
 
 void CAtlas::rf4ceRemoteUninitialize()
 {
@@ -377,7 +393,8 @@ void CAtlas::rf4ceRemoteUninitialize()
     rf4ceRemoteDestroy(pRemote);
     pRemote = NULL;
 }
-#endif
+
+#endif /* if RF4CE_SUPPORT */
 
 #if NEXUS_HAS_UHF_INPUT
 CUhfRemote * CAtlas::uhfRemoteCreate()
@@ -408,6 +425,8 @@ CUhfRemote * CAtlas::uhfRemoteInitialize()
     eRet         retUHF     = eRet_Ok;
     CUhfRemote * pUhfRemote = NULL;
 
+    ATLAS_MEMLEAK_TRACE("BEGIN");
+
     /* open uhf remote if reserved for us */
     pUhfRemote = uhfRemoteCreate();
     if (NULL != pUhfRemote)
@@ -422,8 +441,9 @@ error:
     uhfRemoteDestroy(pUhfRemote);
     pUhfRemote = NULL;
 done:
+    ATLAS_MEMLEAK_TRACE("END");
     return(pUhfRemote);
-}
+} /* uhfRemoteInitialize */
 
 void CAtlas::uhfRemoteUninitialize()
 {
@@ -439,12 +459,19 @@ void CAtlas::uhfRemoteUninitialize()
     uhfRemoteDestroy(pRemote);
     pRemote = NULL;
 }
-#endif
 
-CVideoWindow * CAtlas::videoWindowInitialize(CDisplay * pDisplay, CSimpleVideoDecode * pVideoDecode, eWindowType windowType)
+#endif /* if NEXUS_HAS_UHF_INPUT */
+
+CVideoWindow * CAtlas::videoWindowInitialize(
+        CDisplay *           pDisplay,
+        CSimpleVideoDecode * pVideoDecode,
+        eWindowType          windowType
+        )
 {
     eRet           ret          = eRet_Ok;
     CVideoWindow * pVideoWindow = NULL;
+
+    ATLAS_MEMLEAK_TRACE("BEGIN");
 
     if ((NULL == pDisplay) || (NULL == pVideoDecode))
     {
@@ -467,10 +494,15 @@ error:
     videoWindowUninitialize(pDisplay, pVideoDecode, pVideoWindow);
     pVideoWindow = NULL;
 done:
+    ATLAS_MEMLEAK_TRACE("END");
     return(pVideoWindow);
-}
+} /* videoWindowInitialize */
 
-void CAtlas::videoWindowUninitialize(CDisplay * pDisplay, CSimpleVideoDecode * pVideoDecode, CVideoWindow * pVideoWindow)
+void CAtlas::videoWindowUninitialize(
+        CDisplay *           pDisplay,
+        CSimpleVideoDecode * pVideoDecode,
+        CVideoWindow *       pVideoWindow
+        )
 {
     if ((NULL == pDisplay) || (NULL == pVideoDecode) || (NULL == pVideoWindow))
     {
@@ -488,6 +520,8 @@ CStc * CAtlas::stcInitialize(eWindowType windowType)
     eRet   ret  = eRet_Ok;
     CStc * pStc = NULL;
 
+    ATLAS_MEMLEAK_TRACE("BEGIN");
+
     /* open STC channel for a/v sync */
     pStc = (CStc *)_pBoardResources->checkoutResource(this, eBoardResource_stcChannel);
     CHECK_PTR_ERROR_GOTO("unable to checkout stc channel", pStc, ret, eRet_NotAvailable, error);
@@ -501,8 +535,9 @@ CStc * CAtlas::stcInitialize(eWindowType windowType)
 error:
     stcUninitialize(&pStc, windowType);
 done:
+    ATLAS_MEMLEAK_TRACE("END");
     return(pStc);
-}
+} /* stcInitialize */
 
 void CAtlas::stcUninitialize(
         CStc **     pStc,
@@ -525,7 +560,14 @@ CSimpleVideoDecode * CAtlas::videoDecodeCreate(eWindowType windowType)
     eRet                 ret          = eRet_Ok;
     CSimpleVideoDecode * pVideoDecode = NULL;
 
-    pVideoDecode = (CSimpleVideoDecode *)_pBoardResources->checkoutResource(this, eBoardResource_simpleDecodeVideo);
+    if ((eWindowType_Main != windowType) && (eWindowType_Pip != windowType))
+    {
+        /* mosaic window types not currently supported in nexus mode Atlas */
+        return(NULL);
+    }
+
+    pVideoDecode =
+        (CSimpleVideoDecode *)_pBoardResources->checkoutResource(this, eBoardResource_simpleDecodeVideo);
     CHECK_PTR_ERROR_GOTO("unable to checkout simple video decoder", pVideoDecode, ret, eRet_NotAvailable, error);
 
     _model.addSimpleVideoDecode(pVideoDecode, windowType);
@@ -543,10 +585,27 @@ void CAtlas::videoDecodeDestroy(eWindowType windowType)
     _pBoardResources->checkinResource(pVideoDecode);
 }
 
-CSimpleVideoDecode * CAtlas::videoDecodeInitialize(CStc * pStc, eWindowType windowType)
+eRet CAtlas::mosaicInitialize()
+{
+    /* mosaic only supported in nxclient atlas */
+    return(eRet_Ok);
+}
+
+void CAtlas::mosaicUninitialize()
+{
+    /* mosaic only supported in nxclient atlas */
+    return;
+}
+
+CSimpleVideoDecode * CAtlas::videoDecodeInitialize(
+        CStc *      pStc,
+        eWindowType windowType
+        )
 {
     eRet                 ret          = eRet_Ok;
     CSimpleVideoDecode * pVideoDecode = NULL;
+
+    ATLAS_MEMLEAK_TRACE("BEGIN");
 
     if (NULL == pStc)
     {
@@ -575,8 +634,9 @@ error:
     videoDecodeUninitialize(&pVideoDecode);
     pVideoDecode = NULL;
 done:
+    ATLAS_MEMLEAK_TRACE("END");
     return(pVideoDecode);
-}
+} /* videoDecodeInitialize */
 
 void CAtlas::videoDecodeUninitialize(CSimpleVideoDecode ** pVideoDecode)
 {
@@ -587,16 +647,16 @@ void CAtlas::videoDecodeUninitialize(CSimpleVideoDecode ** pVideoDecode)
 
     (*pVideoDecode)->close();
 
-    if (_model.getSimpleVideoDecode(eWindowType_Main) == *pVideoDecode)
+    for (int winType = 0; winType < eWindowType_Max; winType++)
     {
-        videoDecodeDestroy(eWindowType_Main);
+        if (_model.getSimpleVideoDecode((eWindowType)winType) == *pVideoDecode)
+        {
+            videoDecodeDestroy((eWindowType)winType);
+        }
     }
-    if (_model.getSimpleVideoDecode(eWindowType_Pip) == *pVideoDecode)
-    {
-        videoDecodeDestroy(eWindowType_Pip);
-    }
+
     *pVideoDecode = NULL;
-}
+} /* videoDecodeUninitialize */
 
 CSimpleAudioDecode * CAtlas::audioDecodeCreate(eWindowType windowType)
 {
@@ -625,15 +685,18 @@ void CAtlas::audioDecodeDestroy(eWindowType windowType)
 }
 
 CSimpleAudioDecode * CAtlas::audioDecodeInitialize(
-            COutputHdmi *     pOutputHdmi,
-            COutputSpdif *    pOutputSpdif,
-            COutputAudioDac * pOutputAudioDac,
-            COutputRFM *      pOutputRFM,
-            CStc *            pStc,
-            eWindowType       winType)
+        COutputHdmi *     pOutputHdmi,
+        COutputSpdif *    pOutputSpdif,
+        COutputAudioDac * pOutputAudioDac,
+        COutputRFM *      pOutputRFM,
+        CStc *            pStc,
+        eWindowType       winType
+        )
 {
     eRet                 ret          = eRet_Ok;
     CSimpleAudioDecode * pAudioDecode = NULL;
+
+    ATLAS_MEMLEAK_TRACE("BEGIN");
 
     if (NULL == pStc)
     {
@@ -661,16 +724,18 @@ CSimpleAudioDecode * CAtlas::audioDecodeInitialize(
 error:
     audioDecodeUninitialize(&pAudioDecode, winType);
 done:
+    ATLAS_MEMLEAK_TRACE("END");
     return(pAudioDecode);
-}
+} /* audioDecodeInitialize */
 
 CSimpleAudioDecode * CAtlas::audioDecodeInitializePip(
-            COutputHdmi *     pOutputHdmi,
-            COutputSpdif *    pOutputSpdif,
-            COutputAudioDac * pOutputAudioDac,
-            COutputRFM *      pOutputRFM,
-            CStc *            pStc,
-            eWindowType       winType)
+        COutputHdmi *     pOutputHdmi,
+        COutputSpdif *    pOutputSpdif,
+        COutputAudioDac * pOutputAudioDac,
+        COutputRFM *      pOutputRFM,
+        CStc *            pStc,
+        eWindowType       winType
+        )
 {
     BSTD_UNUSED(pOutputHdmi);
     BSTD_UNUSED(pOutputSpdif);
@@ -680,11 +745,14 @@ CSimpleAudioDecode * CAtlas::audioDecodeInitializePip(
     BSTD_UNUSED(winType);
 
     /* dedicated pip audio decoder only used in nxclient atlas mode.
-       see CAtlasNx::audioDecodeInitializePip() */
+     * see CAtlasNx::audioDecodeInitializePip() */
     return(NULL);
 }
 
-void CAtlas::audioDecodeUninitialize(CSimpleAudioDecode ** pAudioDecode, eWindowType winType)
+void CAtlas::audioDecodeUninitialize(
+        CSimpleAudioDecode ** pAudioDecode,
+        eWindowType           winType
+        )
 {
     if ((NULL == pAudioDecode) || (NULL == *pAudioDecode))
     {
@@ -704,8 +772,10 @@ void CAtlas::audioDecodeUninitialize(CSimpleAudioDecode ** pAudioDecode, eWindow
 #ifdef NETAPP_SUPPORT
 eRet CAtlas::networkInitialize(void)
 {
-    eRet ret = eRet_Ok;
+    eRet       ret      = eRet_Ok;
     CNetwork * pNetwork = NULL;
+
+    ATLAS_MEMLEAK_TRACE("BEGIN");
 
     pNetwork = (CNetwork *)_pBoardResources->checkoutResource(this, eBoardResource_network);
     if (NULL != pNetwork)
@@ -715,6 +785,7 @@ eRet CAtlas::networkInitialize(void)
         _pBoardResources->checkinResource(pNetwork);
     }
 error:
+    ATLAS_MEMLEAK_TRACE("END");
     return(ret);
 }
 
@@ -738,6 +809,8 @@ CBluetoothRemote * CAtlas::bluetoothRemoteInitialize(void)
     eRet               ret              = eRet_Ok;
     CBluetoothRemote * pBluetoothRemote = NULL;
 
+    ATLAS_MEMLEAK_TRACE("BEGIN");
+
     /* open bluetooth remote if reserved for us */
     pBluetoothRemote = (CBluetoothRemote *)_pBoardResources->checkoutResource(this, eBoardResource_bluetoothRemote);
     if (NULL != pBluetoothRemote)
@@ -753,10 +826,12 @@ CBluetoothRemote * CAtlas::bluetoothRemoteInitialize(void)
 error:
     bluetoothRemoteUninitialize();
 done:
+    ATLAS_MEMLEAK_TRACE("END");
     return(pBluetoothRemote);
-}
+} /* bluetoothRemoteInitialize */
 
-void CAtlas::bluetoothRemoteUninitialize()
+
+void CAtlas::bluetoothRemoteUninitialize(void)
 {
     CBluetoothRemote * pBluetoothRemote = _model.getBluetoothRemote();
 
@@ -770,6 +845,7 @@ void CAtlas::bluetoothRemoteUninitialize()
     _pBoardResources->checkinResource(pBluetoothRemote);
     pBluetoothRemote = NULL;
 }
+
 
 CBluetooth * CAtlas::bluetoothCreate()
 {
@@ -798,6 +874,8 @@ CBluetooth * CAtlas::bluetoothInitialize()
     eRet         ret        = eRet_Ok;
     CBluetooth * pBluetooth = NULL;
 
+    ATLAS_MEMLEAK_TRACE("BEGIN");
+
     pBluetooth = bluetoothCreate();
     CHECK_PTR_ERROR_GOTO("unable to create bluetooth", pBluetooth, ret, eRet_OutOfMemory, error);
 
@@ -809,8 +887,9 @@ CBluetooth * CAtlas::bluetoothInitialize()
 error:
     bluetoothUninitialize();
 done:
+    ATLAS_MEMLEAK_TRACE("END");
     return(pBluetooth);
-}
+} /* bluetoothInitialize */
 
 void CAtlas::bluetoothUninitialize()
 {
@@ -838,13 +917,15 @@ void CAtlas::audioCaptureUninitialize()
 {
     return;
 }
-#endif /* NETAPP_SUPPORT */
 
+#endif /* NETAPP_SUPPORT */
 
 #ifdef PLAYBACK_IP_SUPPORT
 eRet CAtlas::ipServerInitialize()
 {
     eRet ret = eRet_Ok;
+
+    ATLAS_MEMLEAK_TRACE("BEGIN");
 
     /* initialize server database */
     {
@@ -865,7 +946,12 @@ eRet CAtlas::ipServerInitialize()
         CHECK_PTR_ERROR_GOTO("unable to allocate server manager", pServerMgr, ret, eRet_OutOfMemory, error);
 
         ret = pServerMgr->open(_pWidgetEngine);
-        CHECK_ERROR_GOTO("unable to open HTTP server object", ret, error);
+        CHECK_ERROR("unable to open HTTP server object", ret);
+        if ( ret != eRet_Ok )
+        {
+            delete pServerMgr;
+            goto error;
+        }
         pServerMgr->setModel(&_model);
         _model.setServerMgr(pServerMgr);
     }
@@ -893,8 +979,9 @@ eRet CAtlas::ipServerInitialize()
 error:
     ipServerUninitialize();
 done:
+    ATLAS_MEMLEAK_TRACE("END");
     return(ret);
-}
+} /* ipServerInitialize */
 
 void CAtlas::ipServerUninitialize()
 {
@@ -930,7 +1017,7 @@ void CAtlas::ipServerUninitialize()
         pPlaylistDb->close();
         DEL(pPlaylistDb);
     }
-}
+} /* ipServerUninitialize */
 
 eRet CAtlas::ipServerStart()
 {
@@ -938,13 +1025,19 @@ eRet CAtlas::ipServerStart()
     CServerMgr *           pServerMgr           = _model.getServerMgr();
     CAutoDiscoveryClient * pAutoDiscoveryClient = _model.getAutoDiscoveryClient();
 
+    ATLAS_MEMLEAK_TRACE("BEGIN");
+
     /* start atlas server manager */
     if (NULL != pServerMgr)
     {
         ret = pServerMgr->startHttpServer();
-        CHECK_ERROR("unable to start ip http server", ret);
+        CHECK_ERROR_GOTO("unable to start ip http server", ret, error);
         ret = pServerMgr->startPlaylistServer();
-        CHECK_ERROR("unable to start ip playlist server", ret);
+        CHECK_ERROR_GOTO("unable to start ip playlist server", ret, error);
+
+        /* Start UDP Streamer, optional */
+        pServerMgr->startUdpServer();
+
     }
 
     /* start auto discovery client */
@@ -955,8 +1048,9 @@ eRet CAtlas::ipServerStart()
     }
 
 error:
+    ATLAS_MEMLEAK_TRACE("END");
     return(ret);
-}
+} /* ipServerStart */
 
 eRet CAtlas::ipServerStop()
 {
@@ -971,6 +1065,9 @@ eRet CAtlas::ipServerStop()
         CHECK_ERROR("unable to stop ip http server", ret);
         ret = pServerMgr->stopPlaylistServer();
         CHECK_ERROR("unable to stop ip playlist server", ret);
+
+        /* optional */
+        pServerMgr->stopUdpServer();
     }
 
     /* stop auto discovery client */
@@ -982,12 +1079,15 @@ eRet CAtlas::ipServerStop()
 
 error:
     return(ret);
-}
-#endif
+} /* ipServerStop */
+
+#endif /* ifdef PLAYBACK_IP_SUPPORT */
 
 #ifdef SNMP_SUPPORT
 eRet CAtlas::snmpInitialize()
 {
+    ATLAS_MEMLEAK_TRACE("BEGIN");
+
     if (true == GET_BOOL(_pCfg, SNMP_ENABLED))
     {
         CSnmp * pSnmp = new CSnmp;
@@ -997,7 +1097,11 @@ eRet CAtlas::snmpInitialize()
         return(eRet_Ok);
     }
     else
+    {
         return(eRet_NotSupported);
+    }
+
+    ATLAS_MEMLEAK_TRACE("END");
 }
 
 void CAtlas::snmpUninitialize()
@@ -1013,13 +1117,15 @@ void CAtlas::snmpUninitialize()
         }
     }
 }
+
 #endif /* ifdef SNMP_SUPPORT */
 
 eRet CAtlas::setPreferredVideoFormat(
-                COutputHdmi *      pOutputHdmi,
-                COutputComponent * pOutputComponent,
-                COutputComposite * pOutputComposite,
-                COutputRFM *       pOutputRFM)
+        COutputHdmi *      pOutputHdmi,
+        COutputComponent * pOutputComponent,
+        COutputComposite * pOutputComposite,
+        COutputRFM *       pOutputRFM
+        )
 {
     eRet        ret        = eRet_Ok;
     CDisplay *  pDisplayHD = _model.getDisplay(0);
@@ -1053,7 +1159,7 @@ eRet CAtlas::setPreferredVideoFormat(
             ((NULL != pOutputHdmi) && (false == pOutputHdmi->isConnected())))
         {
             /* no hdmi or disconnected, so set SD display format */
-            if ((NULL != pOutputComposite) || (NULL != pOutputRFM))
+            if (NULL != pOutputComposite)
             {
                 pDisplaySD->setFormat(pOutputComposite->getPreferredVideoFormat(), pGraphics, false);
             }
@@ -1062,16 +1168,24 @@ eRet CAtlas::setPreferredVideoFormat(
         /* update default vbi settings */
         {
             CDisplayVbiData data = pDisplaySD->getVbiSettings();
-            pDisplaySD->setVbiSettings(&data);
+            ret = pDisplaySD->setVbiSettings(&data);
+            CHECK_WARN("Unable to set VBI settings", ret);
         }
     }
 
     return(ret);
-}
+} /* setPreferredVideoFormat */
 
-eRet CAtlas::guiInitialize(CConfig * pConfig, CGraphics * pGraphics)
+eRet CAtlas::guiInitialize(
+        CConfig *   pConfig,
+        CGraphics * pGraphics
+        )
 {
     eRet ret = eRet_Ok;
+
+    ATLAS_MEMLEAK_TRACE("BEGIN");
+
+    BDBG_ASSERT(NULL != pGraphics);
 
     /* create full sized transparent background screen */
     _pBackgroundScreen = new CScreen("CAtlas::_pBackgroundScreen", _pWidgetEngine, pConfig, NULL, pGraphics->getWinFramebuffer());
@@ -1093,55 +1207,64 @@ eRet CAtlas::guiInitialize(CConfig * pConfig, CGraphics * pGraphics)
 error:
     guiUninitialize();
 done:
+    ATLAS_MEMLEAK_TRACE("END");
     return(ret);
-}
+} /* guiInitialize */
 
 void CAtlas::guiUninitialize()
 {
-   _pControl->removeView(_pMainScreen);
-   _pMainScreen->uninitialize();
-   DEL(_pMainScreen);
+    _pControl->removeView(_pMainScreen);
+    _pMainScreen->uninitialize();
+    DEL(_pMainScreen);
 
-   /* reparent pBackgroundScreen before destroying because all windows directly
-    * descended from the framebuffer win don't seem to unlink automatically.
-    * changing the parent win to NULL will force the unlink to occur before
-    * destruction. */
-   {
-       _pBackgroundScreen->setParentWin(NULL);
-       DEL(_pBackgroundScreen);
-   }
+    /* reparent pBackgroundScreen before destroying because all windows directly
+     * descended from the framebuffer win don't seem to unlink automatically.
+     * changing the parent win to NULL will force the unlink to occur before
+     * destruction. */
+    {
+        _pBackgroundScreen->setParentWin(NULL);
+        DEL(_pBackgroundScreen);
+    }
 }
 
 #ifdef ESTB_CFG_SUPPORT
 void CAtlas::estbInitialize()
 {
+    ATLAS_MEMLEAK_TRACE("BEGIN");
+
     /* load the estb_cfg */
-    B_Estb_cfg_Init((char*)"/perm");
-    B_Estb_cfg_Init((char*)"/dyn");
-    B_Estb_cfg_Init((char*)"/sys");
-    B_Estb_cfg_Open((char*)"/perm", (char*)"./perm.bin");
-    B_Estb_cfg_Open((char*)"/dyn", (char*)"./dyn.bin");
-    B_Estb_cfg_Open((char*)"/sys", (char*)"./sys.bin");
+    B_Estb_cfg_Init((char *)"/perm");
+    B_Estb_cfg_Init((char *)"/dyn");
+    B_Estb_cfg_Init((char *)"/sys");
+    B_Estb_cfg_Open((char *)"/perm", (char *)"./perm.bin");
+    B_Estb_cfg_Open((char *)"/dyn", (char *)"./dyn.bin");
+    B_Estb_cfg_Open((char *)"/sys", (char *)"./sys.bin");
+
+    ATLAS_MEMLEAK_TRACE("END");
 }
 
 void CAtlas::estbUninitialize()
 {
-    B_Estb_cfg_Close((char*)"/sys");
-    B_Estb_cfg_Close((char*)"/dyn");
-    B_Estb_cfg_Close((char*)"/perm");
-    B_Estb_cfg_Uninit((char*)"/sys");
-    B_Estb_cfg_Uninit((char*)"/dyn");
-    B_Estb_cfg_Uninit((char*)"/perm");
+    B_Estb_cfg_Close((char *)"/sys");
+    B_Estb_cfg_Close((char *)"/dyn");
+    B_Estb_cfg_Close((char *)"/perm");
+    B_Estb_cfg_Uninit((char *)"/sys");
+    B_Estb_cfg_Uninit((char *)"/dyn");
+    B_Estb_cfg_Uninit((char *)"/perm");
 }
-#endif
+
+#endif /* ifdef ESTB_CFG_SUPPORT */
 
 #ifdef MPOD_SUPPORT
 CCablecard * CAtlas::cableCardInitialize(void)
 {
-    eRet              ret         = eRet_Ok;
-    CCablecard *      pCableCard  = NULL;
+    eRet              ret        = eRet_Ok;
+    CCablecard *      pCableCard = NULL;
     cablecard_t       _cablecard;
     cablecard_setting mpod_setting;
+
+    ATLAS_MEMLEAK_TRACE("BEGIN");
+
     mpod_setting.oob_mode = NEXUS_FrontendOutOfBandMode_ePod_Dvs178Qpsk;
     mpod_setting.us_mode  = NEXUS_FrontendUpstreamMode_ePodDvs178;
 
@@ -1166,8 +1289,9 @@ CCablecard * CAtlas::cableCardInitialize(void)
 error:
     cableCardUninitialize();
 done:
+    ATLAS_MEMLEAK_TRACE("END");
     return(pCableCard);
-}
+} /* cableCardInitialize */
 
 void CAtlas::cableCardUninitialize(void)
 {
@@ -1180,11 +1304,14 @@ void CAtlas::cableCardUninitialize(void)
         DEL(pCableCard);
     }
 }
-#endif
+
+#endif /* ifdef MPOD_SUPPORT */
 
 #ifdef CDL_SUPPORT
 void CAtlas::commonDownloadInitialize(void)
 {
+    ATLAS_MEMLEAK_TRACE("BEGIN");
+
     if (CDL_ENABLED == true)
     {
         B_Cdl_Settings cdl_params;
@@ -1193,6 +1320,8 @@ void CAtlas::commonDownloadInitialize(void)
         B_Cdl_Start();
         cdl_started = true;
     }
+
+    ATLAS_MEMLEAK_TRACE("END");
 }
 
 void CAtlas::commonDownloadUninitialize(void)
@@ -1204,14 +1333,17 @@ void CAtlas::commonDownloadUninitialize(void)
         B_Cdl_Uninit();
     }
 }
-#endif
+
+#endif /* ifdef CDL_SUPPORT */
 
 #if DVR_LIB_SUPPORT
 CTsb * CAtlas::dvrLibInitialize(void)
 {
     CTsb * pTsb    = NULL;
     CTsb * pTsbPip = NULL;
-    eRet ret       = eRet_Ok;
+    eRet   ret     = eRet_Ok;
+
+    ATLAS_MEMLEAK_TRACE("BEGIN");
 
     pTsb = (CTsb *)_pBoardResources->checkoutResource(this, eBoardResource_tsb);
     CHECK_PTR_ERROR_GOTO("main tsb checkout failed", pTsb, ret, eRet_NotAvailable, error);
@@ -1225,8 +1357,9 @@ error:
     dvrLibUninitialize();
     pTsb = NULL;
 done:
+    ATLAS_MEMLEAK_TRACE("END");
     return(pTsb);
-}
+} /* dvrLibInitialize */
 
 void CAtlas::dvrLibUninitialize(void)
 {
@@ -1238,6 +1371,7 @@ void CAtlas::dvrLibUninitialize(void)
     _model.setTsb(NULL, eWindowType_Pip);
     _pBoardResources->checkinResource(pTsbPip);
 }
+
 #endif /* if DVR_LIB_SUPPORT */
 
 #ifdef DCC_SUPPORT
@@ -1245,6 +1379,8 @@ eRet CAtlas::digitalClosedCaptionsInitialize(CConfig * pConfig)
 {
     eRet             ret            = eRet_Ok;
     CClosedCaption * pClosedCaption = NULL;
+
+    ATLAS_MEMLEAK_TRACE("BEGIN");
 
     BDBG_ASSERT(NULL != pConfig);
 
@@ -1257,9 +1393,13 @@ eRet CAtlas::digitalClosedCaptionsInitialize(CConfig * pConfig)
 
         _model.addClosedCaption(pClosedCaption);
     }
-error:
     return(ret);
-}
+error:
+    DEL(pClosedCaption);
+
+    ATLAS_MEMLEAK_TRACE("END");
+    return (ret);
+} /* digitalClosedCaptionsInitialize */
 
 void CAtlas::digitalClosedCaptionsUninitialize()
 {
@@ -1271,6 +1411,7 @@ void CAtlas::digitalClosedCaptionsUninitialize()
         DEL(pClosedCaption);
     }
 }
+
 #endif /* ifdef DCC_SUPPORT */
 
 CStillDecode * CAtlas::videoDecodeStillInitialize()
@@ -1278,6 +1419,8 @@ CStillDecode * CAtlas::videoDecodeStillInitialize()
     eRet           ret               = eRet_Ok;
     CStillDecode * pVideoDecodeStill = NULL;
     CThumb *       pThumb            = NULL;
+
+    ATLAS_MEMLEAK_TRACE("BEGIN");
 
     pVideoDecodeStill = (CStillDecode *)_pBoardResources->checkoutResource(this, eBoardResource_decodeStill);
     CHECK_PTR_ERROR_GOTO("unable to checkout still decode", pVideoDecodeStill, ret, eRet_NotAvailable, error);
@@ -1297,8 +1440,9 @@ error:
     videoDecodeStillUninitialize();
     pVideoDecodeStill = NULL;
 done:
+    ATLAS_MEMLEAK_TRACE("END");
     return(pVideoDecodeStill);
-}
+} /* videoDecodeStillInitialize */
 
 void CAtlas::videoDecodeStillUninitialize()
 {
@@ -1333,13 +1477,12 @@ error:
 
 void CAtlas::outputHdmiDestroy(COutputHdmi ** pOutputHdmi)
 {
-    if ((NULL != pOutputHdmi) || (NULL != *pOutputHdmi))
+    if ((NULL == pOutputHdmi) || (NULL == *pOutputHdmi))
     {
         return;
     }
 
     _model.removeAudioOutput(*pOutputHdmi);
-    (*pOutputHdmi)->setWidgetEngine(NULL);
     _pBoardResources->checkinResource(*pOutputHdmi);
     *pOutputHdmi = NULL;
 }
@@ -1350,6 +1493,8 @@ COutputHdmi * CAtlas::outputHdmiInitialize(CDisplay * pDisplay)
     COutputHdmi *            pOutputHdmi = NULL;
     NEXUS_Error              nerror      = NEXUS_SUCCESS;
     NEXUS_HdmiOutputSettings settings;
+
+    ATLAS_MEMLEAK_TRACE("BEGIN");
 
     if (NULL == pDisplay)
     {
@@ -1375,10 +1520,14 @@ error:
     outputHdmiUninitialize(pDisplay, &pOutputHdmi);
     pOutputHdmi = NULL;
 done:
+    ATLAS_MEMLEAK_TRACE("END");
     return(pOutputHdmi);
-}
+} /* outputHdmiInitialize */
 
-void CAtlas::outputHdmiUninitialize(CDisplay * pDisplay, COutputHdmi ** pOutputHdmi)
+void CAtlas::outputHdmiUninitialize(
+        CDisplay *     pDisplay,
+        COutputHdmi ** pOutputHdmi
+        )
 {
     if ((NULL == pOutputHdmi) || (NULL == *pOutputHdmi))
     {
@@ -1396,6 +1545,8 @@ COutputComponent * CAtlas::outputComponentInitialize(CDisplay * pDisplay)
     COutputComponent *            pOutputComponent = NULL;
     NEXUS_Error                   nerror           = NEXUS_SUCCESS;
     NEXUS_ComponentOutputSettings settings;
+
+    ATLAS_MEMLEAK_TRACE("BEGIN");
 
     if (NULL == pDisplay)
     {
@@ -1420,10 +1571,14 @@ COutputComponent * CAtlas::outputComponentInitialize(CDisplay * pDisplay)
 error:
     outputComponentUninitialize(pDisplay, &pOutputComponent);
 done:
+    ATLAS_MEMLEAK_TRACE("END");
     return(pOutputComponent);
-}
+} /* outputComponentInitialize */
 
-void CAtlas::outputComponentUninitialize(CDisplay * pDisplay, COutputComponent ** pOutputComponent)
+void CAtlas::outputComponentUninitialize(
+        CDisplay *          pDisplay,
+        COutputComponent ** pOutputComponent
+        )
 {
     if ((NULL == pOutputComponent) || (NULL == *pOutputComponent))
     {
@@ -1439,6 +1594,8 @@ COutputComposite * CAtlas::outputCompositeInitialize(CDisplay * pDisplay)
 {
     COutputComposite * pOutputComposite = NULL;
     eRet               ret              = eRet_Ok;
+
+    ATLAS_MEMLEAK_TRACE("BEGIN");
 
     if (NULL == pDisplay)
     {
@@ -1457,10 +1614,14 @@ COutputComposite * CAtlas::outputCompositeInitialize(CDisplay * pDisplay)
 error:
     outputCompositeUninitialize(pDisplay, &pOutputComposite);
 done:
+    ATLAS_MEMLEAK_TRACE("END");
     return(pOutputComposite);
-}
+} /* outputCompositeInitialize */
 
-void CAtlas::outputCompositeUninitialize(CDisplay * pDisplay, COutputComposite ** pOutputComposite)
+void CAtlas::outputCompositeUninitialize(
+        CDisplay *          pDisplay,
+        COutputComposite ** pOutputComposite
+        )
 {
     if ((NULL == pOutputComposite) || (NULL == *pOutputComposite))
     {
@@ -1478,6 +1639,8 @@ COutputRFM * CAtlas::outputRfmInitialize(CDisplay * pDisplay)
     COutputRFM * pOutputRfm = NULL;
     eRet         ret        = eRet_Ok;
 
+    ATLAS_MEMLEAK_TRACE("BEGIN");
+
     if (NULL == pDisplay)
     {
         return(pOutputRfm);
@@ -1491,20 +1654,30 @@ COutputRFM * CAtlas::outputRfmInitialize(CDisplay * pDisplay)
     ret = pDisplay->addOutput(pOutputRfm);
     CHECK_ERROR_GOTO("Error adding RFM output", ret, error);
 
+    if (NULL != pOutputRfm)
+    {
+        _model.addAudioOutput(pOutputRfm);
+    }
+
     goto done;
 error:
     outputRfmUninitialize(pDisplay, &pOutputRfm);
 done:
+    ATLAS_MEMLEAK_TRACE("END");
     return(pOutputRfm);
-}
+} /* outputRfmInitialize */
 
-void CAtlas::outputRfmUninitialize(CDisplay * pDisplay, COutputRFM ** pOutputRfm)
+void CAtlas::outputRfmUninitialize(
+        CDisplay *    pDisplay,
+        COutputRFM ** pOutputRfm
+        )
 {
     if ((NULL == pOutputRfm) || (NULL == *pOutputRfm))
     {
         return;
     }
 
+    _model.removeAudioOutput(*pOutputRfm);
     pDisplay->removeOutput(*pOutputRfm);
     (*pOutputRfm)->disconnect();
     _pBoardResources->checkinResource(*pOutputRfm);
@@ -1515,12 +1688,15 @@ COutputSpdif * CAtlas::outputSpdifInitialize()
 {
     COutputSpdif * pOutputSpdif = NULL;
 
+    ATLAS_MEMLEAK_TRACE("BEGIN");
+
     pOutputSpdif = (COutputSpdif *)_pBoardResources->checkoutResource(this, eBoardResource_outputSpdif);
     if (NULL != pOutputSpdif)
     {
         _model.addAudioOutput(pOutputSpdif);
     }
 
+    ATLAS_MEMLEAK_TRACE("END");
     return(pOutputSpdif);
 }
 
@@ -1541,6 +1717,8 @@ COutputAudioDac * CAtlas::outputDacInitialize()
 {
     COutputAudioDac * pOutputAudioDac = NULL;
 
+    ATLAS_MEMLEAK_TRACE("BEGIN");
+
     pOutputAudioDac = (COutputAudioDac *)_pBoardResources->checkoutResource(this, eBoardResource_outputAudioDac);
     if (NULL != pOutputAudioDac)
     {
@@ -1555,8 +1733,9 @@ COutputAudioDac * CAtlas::outputDacInitialize()
         }
     }
 
+    ATLAS_MEMLEAK_TRACE("END");
     return(pOutputAudioDac);
-}
+} /* outputDacInitialize */
 
 void CAtlas::outputDacUninitialize(COutputAudioDac ** pOutputAudioDac)
 {
@@ -1573,6 +1752,8 @@ void CAtlas::outputDacUninitialize(COutputAudioDac ** pOutputAudioDac)
 
 void CAtlas::mvcRelationshipsInitialize(CConfig * pConfig)
 {
+    ATLAS_MEMLEAK_TRACE("BEGIN");
+
     if (NULL != _pLua)
     {
         _pControl->addView(_pLua, "lua");
@@ -1589,7 +1770,7 @@ void CAtlas::mvcRelationshipsInitialize(CConfig * pConfig)
     _pChannelMgr->setModel(&_model);
 
     _model.setConfig(pConfig);
-}
+} /* mvcRelationshipsInitialize */
 
 void CAtlas::mvcRelationshipsUninitialize()
 {
@@ -1608,38 +1789,38 @@ void CAtlas::mvcRelationshipsUninitialize()
         _pControl->removeView(_pLua);
     }
 
-}
+    ATLAS_MEMLEAK_TRACE("END");
+} /* mvcRelationshipsUninitialize */
 
 /* register observers for notification events */
 void CAtlas::notificationsInitialize()
 {
     CDisplay *           pDisplayHD        = _model.getDisplay(0);
     CDisplay *           pDisplaySD        = _model.getDisplay(1);
-    CSimpleVideoDecode * pVideoDecodeMain  = _model.getSimpleVideoDecode(eWindowType_Main);
-    CSimpleVideoDecode * pVideoDecodePip   = _model.getSimpleVideoDecode(eWindowType_Pip);
-    CSimpleAudioDecode * pAudioDecodeMain  = _model.getSimpleAudioDecode(eWindowType_Main);
-    CSimpleAudioDecode * pAudioDecodePip   = _model.getSimpleAudioDecode(eWindowType_Pip);
+    CSimpleVideoDecode * pVideoDecode      = NULL;
+    CSimpleAudioDecode * pAudioDecode      = NULL;
     CStillDecode *       pVideoDecodeStill = _model.getStillDecode();
     CPlaybackList *      pPlaybackList     = _model.getPlaybackList();
+
 #ifdef PLAYBACK_IP_SUPPORT
     CPlaylistDb *          pPlaylistDb          = _model.getPlaylistDb();
     CAutoDiscoveryServer * pAutoDiscoveryServer = _model.getAutoDiscoveryServer();
     CAutoDiscoveryClient * pAutoDiscoveryClient = _model.getAutoDiscoveryClient();
     CServerMgr *           pServerMgr           = _model.getServerMgr();
-#endif
+#endif /* ifdef PLAYBACK_IP_SUPPORT */
 #if RF4CE_SUPPORT
     CRf4ceRemote * pRf4ceRemote = _model.getRf4ceRemote();
 #endif
 #if NEXUS_HAS_UHF_INPUT
     CUhfRemote * pUhfRemote = _model.getUhfRemote();
 #endif
-    CIrRemote *        pIrRemote        = _model.getIrRemote(stringToIrRemoteType(GET_STR(_pCfg, REMOTE_TYPE_PRIMARY)));
-    COutput *          pOutputHdmi      = _model.getAudioOutput(eBoardResource_outputHdmi);
+    CIrRemote * pIrRemote   = _model.getIrRemote(stringToIrRemoteType(GET_STR(_pCfg, REMOTE_TYPE_PRIMARY)));
+    COutput *   pOutputHdmi = _model.getAudioOutput(eBoardResource_outputHdmi);
 #ifdef NETAPP_SUPPORT
     CBluetoothRemote * pBluetoothRemote = _model.getBluetoothRemote();
 #endif
 
-    CPower *    pPower      = (CPower *)_pBoardResources->checkoutResource(this, eBoardResource_power);
+    CPower * pPower = (CPower *)_pBoardResources->checkoutResource(this, eBoardResource_power);
 #ifdef NETAPP_SUPPORT
     CBluetooth * pBluetooth = (CBluetooth *)_pBoardResources->checkoutResource(this, eBoardResource_bluetooth);
     CNetwork *   pNetwork   = (CNetwork *)_pBoardResources->checkoutResource(this, eBoardResource_network);
@@ -1647,8 +1828,9 @@ void CAtlas::notificationsInitialize()
 #ifdef MPOD_SUPPORT
     CCablecard * pCableCard = _model.getCableCard();
 #endif
+    ATLAS_MEMLEAK_TRACE("BEGIN");
 
-    /* register observers of _pControl */
+    /* register objects _pControl observes */
     if (NULL != _pControl)
     {
 #ifdef NETAPP_SUPPORT
@@ -1666,8 +1848,13 @@ void CAtlas::notificationsInitialize()
         if (NULL != pUhfRemote) { pUhfRemote->registerObserver(_pControl); }
 #endif /* if NEXUS_HAS_UHF_INPUT */
         if (NULL != pIrRemote) { pIrRemote->registerObserver(_pControl); }
-        if (NULL != pVideoDecodeMain) { pVideoDecodeMain->registerObserver(_pControl); }
-        if (NULL != pVideoDecodePip) { pVideoDecodePip->registerObserver(_pControl); }
+
+        for (int winType = 0; winType < eWindowType_Max; winType++)
+        {
+            pVideoDecode = _model.getSimpleVideoDecode((eWindowType)winType);
+            if (NULL != pVideoDecode) { pVideoDecode->registerObserver(_pControl); }
+        }
+
         if (NULL != pOutputHdmi) { pOutputHdmi->registerObserver(_pControl); }
         _pBoardResources->registerObserver(this, eBoardResource_streamer, _pControl);
         _pBoardResources->registerObserver(this, eBoardResource_decodeVideo, _pControl);
@@ -1690,10 +1877,9 @@ void CAtlas::notificationsInitialize()
         if (NULL != _pLua) { _pLua->registerObserver(_pControl); }
     }
 
-    /* register observers of _pMainScreen */
+    /* register objects _pMainScreen observes */
     if (NULL != _pMainScreen)
     {
-
         if (NULL != _pLua) { _pLua->registerObserver(_pMainScreen, eNotify_Debug); }
         if (NULL != pPower) { pPower->registerObserver(_pMainScreen); }
 #ifdef NETAPP_SUPPORT
@@ -1706,12 +1892,21 @@ void CAtlas::notificationsInitialize()
         if (NULL != pAutoDiscoveryServer) { pAutoDiscoveryServer->registerObserver(_pMainScreen); }
         if (NULL != pAutoDiscoveryClient) { pAutoDiscoveryClient->registerObserver(_pMainScreen); }
 #endif /* ifdef PLAYBACK_IP_SUPPORT */
-        if (NULL != pVideoDecodeMain)
+
+        for (int winType = 0; winType < eWindowType_Max; winType++)
         {
-            pVideoDecodeMain->registerObserver(_pMainScreen);
-            if (NULL != pVideoDecodeStill) { pVideoDecodeStill->registerObserver(_pMainScreen); }
+            pVideoDecode = _model.getSimpleVideoDecode((eWindowType)winType);
+            if (NULL != pVideoDecode)
+            {
+                pVideoDecode->registerObserver(_pMainScreen);
+
+                if (winType == eWindowType_Main)
+                {
+                    if (NULL != pVideoDecodeStill) { pVideoDecodeStill->registerObserver(_pMainScreen); }
+                }
+            }
         }
-        if (NULL != pVideoDecodePip) { pVideoDecodePip->registerObserver(_pMainScreen); }
+
         if (NULL != _pChannelMgr) { _pChannelMgr->registerObserver(_pMainScreen); }
 
         _model.registerObserver(_pMainScreen);
@@ -1725,8 +1920,15 @@ void CAtlas::notificationsInitialize()
             pDisplaySD->registerObserver(_pMainScreen, eNotify_ErrorVbiDcs);
         }
 
-        if (NULL != pAudioDecodeMain) {  pAudioDecodeMain->registerObserver(_pMainScreen); }
-        if (NULL != pAudioDecodePip) {  pAudioDecodePip->registerObserver(_pMainScreen); }
+        for (int winType = 0; winType < eWindowType_Max; winType++)
+        {
+            pAudioDecode = _model.getSimpleAudioDecode((eWindowType)winType);
+            if (NULL != pAudioDecode)
+            {
+                pAudioDecode->registerObserver(_pMainScreen);
+            }
+        }
+
         if (NULL != pPlaybackList) { pPlaybackList->registerObserver(_pMainScreen); }
 
 #ifdef MPOD_SUPPORT
@@ -1750,16 +1952,16 @@ void CAtlas::notificationsInitialize()
         {
             CTsb * pTsb    = _model.getTsb(eWindowType_Main);
             CTsb * pTsbPip = _model.getTsb(eWindowType_Pip);
-            if (NULL != pTsb)    { pTsb->registerObserver(_pMainScreen); }
+            if (NULL != pTsb) { pTsb->registerObserver(_pMainScreen); }
             if (NULL != pTsbPip) { pTsbPip->registerObserver(_pMainScreen); }
         }
-#endif
+#endif /* if DVR_LIB_SUPPORT */
 #if NEXUS_HAS_VIDEO_ENCODER
         _pBoardResources->registerObserver(this, eBoardResource_encode, _pMainScreen);
 #endif
     }
 
-    /* register observers of _pLua */
+    /* register objects _pLua observes */
     if (NULL != _pLua)
     {
         if (NULL != pPower) { pPower->registerObserver(_pLua); }
@@ -1772,11 +1974,16 @@ void CAtlas::notificationsInitialize()
         if (NULL != pPlaylistDb) { pPlaylistDb->registerObserver(_pLua); }
         if (NULL != pAutoDiscoveryServer) { pAutoDiscoveryServer->registerObserver(_pLua); }
         if (NULL != pAutoDiscoveryClient) { pAutoDiscoveryClient->registerObserver(_pLua); }
-#endif
+#endif /* ifdef PLAYBACK_IP_SUPPORT */
 
         _model.registerObserver(_pLua);
-        if (NULL != pVideoDecodeMain) { pVideoDecodeMain->registerObserver(_pLua); }
-        if (NULL != pVideoDecodePip) { pVideoDecodePip->registerObserver(_pLua); }
+
+        for (int winType = 0; winType < eWindowType_Max; winType++)
+        {
+            pVideoDecode = _model.getSimpleVideoDecode((eWindowType)winType);
+            if (NULL != pVideoDecode) { pVideoDecode->registerObserver(_pLua); }
+        }
+
 #if NEXUS_HAS_FRONTEND
         _pBoardResources->registerObserver(this, eBoardResource_frontendQam, _pLua);
         _pBoardResources->registerObserver(this, eBoardResource_frontendVsb, _pLua);
@@ -1786,8 +1993,13 @@ void CAtlas::notificationsInitialize()
         if (NULL != _pChannelMgr) { _pChannelMgr->registerObserver(_pLua); }
         if (NULL != pDisplayHD) { pDisplayHD->registerObserver(_pLua); }
         if (NULL != pDisplaySD) { pDisplaySD->registerObserver(_pLua, eNotify_VbiSettingsChanged); }
-        if (NULL != pAudioDecodeMain) { pAudioDecodeMain->registerObserver(_pLua); }
-        if (NULL != pAudioDecodePip) { pAudioDecodePip->registerObserver(_pLua); }
+
+        for (int winType = 0; winType < eWindowType_Max; winType++)
+        {
+            pAudioDecode = _model.getSimpleAudioDecode((eWindowType)winType);
+            if (NULL != pAudioDecode) { pAudioDecode->registerObserver(_pLua); }
+        }
+
         _pBoardResources->registerObserver(this, eBoardResource_playback, _pLua);
 #if NEXUS_HAS_VIDEO_ENCODER
         _pBoardResources->registerObserver(this, eBoardResource_encode, _pLua);
@@ -1806,24 +2018,25 @@ void CAtlas::notificationsInitialize()
     if (NULL != pNetwork) { _pBoardResources->checkinResource(pNetwork); }
     if (NULL != pBluetooth) { _pBoardResources->checkinResource(pBluetooth); }
 #endif
-}
+
+    ATLAS_MEMLEAK_TRACE("END");
+} /* notificationsInitialize */
 
 void CAtlas::notificationsUninitialize()
 {
     CDisplay *           pDisplayHD        = _model.getDisplay(0);
     CDisplay *           pDisplaySD        = _model.getDisplay(1);
-    CSimpleVideoDecode * pVideoDecodeMain  = _model.getSimpleVideoDecode(eWindowType_Main);
-    CSimpleVideoDecode * pVideoDecodePip   = _model.getSimpleVideoDecode(eWindowType_Pip);
-    CSimpleAudioDecode * pAudioDecodeMain  = _model.getSimpleAudioDecode(eWindowType_Main);
-    CSimpleAudioDecode * pAudioDecodePip   = _model.getSimpleAudioDecode(eWindowType_Pip);
+    CSimpleVideoDecode * pVideoDecode      = NULL;
+    CSimpleAudioDecode * pAudioDecode      = NULL;
     CStillDecode *       pVideoDecodeStill = _model.getStillDecode();
     CPlaybackList *      pPlaybackList     = _model.getPlaybackList();
+
 #ifdef PLAYBACK_IP_SUPPORT
     CPlaylistDb *          pPlaylistDb          = _model.getPlaylistDb();
     CAutoDiscoveryServer * pAutoDiscoveryServer = _model.getAutoDiscoveryServer();
     CAutoDiscoveryClient * pAutoDiscoveryClient = _model.getAutoDiscoveryClient();
     CServerMgr *           pServerMgr           = _model.getServerMgr();
-#endif
+#endif /* ifdef PLAYBACK_IP_SUPPORT */
 #if RF4CE_SUPPORT
     CRf4ceRemote * pRf4ceRemote = _model.getRf4ceRemote();
 #endif
@@ -1833,7 +2046,7 @@ void CAtlas::notificationsUninitialize()
     CIrRemote * pIrRemote   = _model.getIrRemote(stringToIrRemoteType(GET_STR(_pCfg, REMOTE_TYPE_PRIMARY)));
     COutput *   pOutputHdmi = _model.getAudioOutput(eBoardResource_outputHdmi);
 
-    CPower *    pPower      = (CPower *)_pBoardResources->checkoutResource(this, eBoardResource_power);
+    CPower * pPower = (CPower *)_pBoardResources->checkoutResource(this, eBoardResource_power);
 #ifdef NETAPP_SUPPORT
     CBluetooth *       pBluetooth       = (CBluetooth *)_pBoardResources->checkoutResource(this, eBoardResource_bluetooth);
     CBluetoothRemote * pBluetoothRemote = (CBluetoothRemote *)_pBoardResources->checkoutResource(this, eBoardResource_bluetoothRemote);
@@ -1843,7 +2056,7 @@ void CAtlas::notificationsUninitialize()
     CCablecard * pCableCard = _model.getCableCard();
 #endif
 
-    /* register observers of _pControl */
+    /* unregister objects _pControl observes */
     if (NULL != _pControl)
     {
 #ifdef NETAPP_SUPPORT
@@ -1861,13 +2074,18 @@ void CAtlas::notificationsUninitialize()
         if (NULL != pUhfRemote) { pUhfRemote->unregisterObserver(_pControl); }
 #endif /* if NEXUS_HAS_UHF_INPUT */
         if (NULL != pIrRemote) { pIrRemote->unregisterObserver(_pControl); }
-        if (NULL != pVideoDecodeMain) { pVideoDecodeMain->unregisterObserver(_pControl); }
-        if (NULL != pVideoDecodePip) { pVideoDecodePip->unregisterObserver(_pControl); }
+
+        for (int winType = 0; winType < eWindowType_Max; winType++)
+        {
+            pVideoDecode = _model.getSimpleVideoDecode((eWindowType)winType);
+            if (NULL != pVideoDecode) { pVideoDecode->unregisterObserver(_pControl); }
+        }
+
         if (NULL != pOutputHdmi) { pOutputHdmi->unregisterObserver(_pControl); }
         _pBoardResources->unregisterObserver(this, eBoardResource_streamer, _pControl);
         _pBoardResources->unregisterObserver(this, eBoardResource_decodeVideo, _pControl);
 #if NEXUS_HAS_FRONTEND
-        /* register control with tuners so control can monitor when scan completes */
+        /* unregister control with tuners */
         _pBoardResources->unregisterObserver(this, eBoardResource_frontendQam, _pControl);
         _pBoardResources->unregisterObserver(this, eBoardResource_frontendVsb, _pControl);
         _pBoardResources->unregisterObserver(this, eBoardResource_frontendSds, _pControl);
@@ -1885,7 +2103,7 @@ void CAtlas::notificationsUninitialize()
         if (NULL != _pLua) { _pLua->unregisterObserver(_pControl); }
     }
 
-    /* register observers of _pMainScreen */
+    /* unregister objects _pMainScreen observes */
     if (NULL != _pMainScreen)
     {
         if (NULL != pPower) { pPower->unregisterObserver(_pMainScreen); }
@@ -1899,12 +2117,20 @@ void CAtlas::notificationsUninitialize()
         if (NULL != pAutoDiscoveryServer) { pAutoDiscoveryServer->unregisterObserver(_pMainScreen); }
         if (NULL != pAutoDiscoveryClient) { pAutoDiscoveryClient->unregisterObserver(_pMainScreen); }
 #endif /* ifdef PLAYBACK_IP_SUPPORT */
-        if (NULL != pVideoDecodeMain)
+
+        for (int winType = 0; winType < eWindowType_Max; winType++)
         {
-            pVideoDecodeMain->unregisterObserver(_pMainScreen);
-            if (NULL != pVideoDecodeStill) { pVideoDecodeStill->unregisterObserver(_pMainScreen); }
+            pVideoDecode = _model.getSimpleVideoDecode((eWindowType)winType);
+            if (NULL != pVideoDecode)
+            {
+                pVideoDecode->unregisterObserver(_pMainScreen);
+                if (winType == eWindowType_Main)
+                {
+                    if (NULL != pVideoDecodeStill) { pVideoDecodeStill->unregisterObserver(_pMainScreen); }
+                }
+            }
         }
-        if (NULL != pVideoDecodePip) { pVideoDecodePip->unregisterObserver(_pMainScreen); }
+
         if (NULL != _pChannelMgr) { _pChannelMgr->unregisterObserver(_pMainScreen); }
 
         _model.unregisterObserver(_pMainScreen);
@@ -1918,8 +2144,12 @@ void CAtlas::notificationsUninitialize()
             pDisplaySD->unregisterObserver(_pMainScreen, eNotify_ErrorVbiDcs);
         }
 
-        if (NULL != pAudioDecodeMain) {  pAudioDecodeMain->unregisterObserver(_pMainScreen); }
-        if (NULL != pAudioDecodePip) {  pAudioDecodePip->unregisterObserver(_pMainScreen); }
+        for (int winType = 0; winType < eWindowType_Max; winType++)
+        {
+            pAudioDecode = _model.getSimpleAudioDecode((eWindowType)winType);
+            if (NULL != pAudioDecode) { pAudioDecode->unregisterObserver(_pMainScreen); }
+        }
+
         if (NULL != pPlaybackList) { pPlaybackList->unregisterObserver(_pMainScreen); }
 
 #ifdef MPOD_SUPPORT
@@ -1943,16 +2173,16 @@ void CAtlas::notificationsUninitialize()
         {
             CTsb * pTsb    = _model.getTsb(eWindowType_Main);
             CTsb * pTsbPip = _model.getTsb(eWindowType_Pip);
-            if (NULL != pTsb)    { pTsb->unregisterObserver(_pMainScreen); }
+            if (NULL != pTsb) { pTsb->unregisterObserver(_pMainScreen); }
             if (NULL != pTsbPip) { pTsbPip->unregisterObserver(_pMainScreen); }
         }
-#endif
+#endif /* if DVR_LIB_SUPPORT */
 #if NEXUS_HAS_VIDEO_ENCODER
         _pBoardResources->unregisterObserver(this, eBoardResource_encode, _pMainScreen);
 #endif
     }
 
-    /* register observers of _pLua */
+    /* unregister objects _pLua observes */
     if (NULL != _pLua)
     {
         if (NULL != pPower) { pPower->unregisterObserver(_pLua); }
@@ -1965,11 +2195,16 @@ void CAtlas::notificationsUninitialize()
         if (NULL != pPlaylistDb) { pPlaylistDb->unregisterObserver(_pLua); }
         if (NULL != pAutoDiscoveryServer) { pAutoDiscoveryServer->unregisterObserver(_pLua); }
         if (NULL != pAutoDiscoveryClient) { pAutoDiscoveryClient->unregisterObserver(_pLua); }
-#endif
+#endif /* ifdef PLAYBACK_IP_SUPPORT */
 
         _model.unregisterObserver(_pLua);
-        if (NULL != pVideoDecodeMain) { pVideoDecodeMain->unregisterObserver(_pLua); }
-        if (NULL != pVideoDecodePip) { pVideoDecodePip->unregisterObserver(_pLua); }
+
+        for (int winType = 0; winType < eWindowType_Max; winType++)
+        {
+            pVideoDecode = _model.getSimpleVideoDecode((eWindowType)winType);
+            if (NULL != pVideoDecode) { pVideoDecode->unregisterObserver(_pLua); }
+        }
+
 #if NEXUS_HAS_FRONTEND
         _pBoardResources->unregisterObserver(this, eBoardResource_frontendQam, _pLua);
         _pBoardResources->unregisterObserver(this, eBoardResource_frontendVsb, _pLua);
@@ -1979,8 +2214,13 @@ void CAtlas::notificationsUninitialize()
         if (NULL != _pChannelMgr) { _pChannelMgr->unregisterObserver(_pLua); }
         if (NULL != pDisplayHD) { pDisplayHD->unregisterObserver(_pLua); }
         if (NULL != pDisplaySD) { pDisplaySD->unregisterObserver(_pLua, eNotify_VbiSettingsChanged); }
-        if (NULL != pAudioDecodeMain) { pAudioDecodeMain->unregisterObserver(_pLua); }
-        if (NULL != pAudioDecodePip) { pAudioDecodePip->unregisterObserver(_pLua); }
+
+        for (int winType = 0; winType < eWindowType_Max; winType++)
+        {
+            pAudioDecode = _model.getSimpleAudioDecode((eWindowType)winType);
+            if (NULL != pAudioDecode) { pAudioDecode->unregisterObserver(_pLua); }
+        }
+
         _pBoardResources->unregisterObserver(this, eBoardResource_playback, _pLua);
 #if NEXUS_HAS_VIDEO_ENCODER
         _pBoardResources->unregisterObserver(this, eBoardResource_encode, _pLua);
@@ -1999,29 +2239,30 @@ void CAtlas::notificationsUninitialize()
     if (NULL != pNetwork) { _pBoardResources->checkinResource(pNetwork); }
     if (NULL != pBluetooth) { _pBoardResources->checkinResource(pBluetooth); }
 #endif
-}
+} /* notificationsUninitialize */
 
 eRet CAtlas::initialize(CConfig * pConfig)
 {
-    eRet                 ret               = eRet_Ok;
-    CDisplay *           pDisplayHD        = NULL;
-    CDisplay *           pDisplaySD        = NULL;
-    CGraphics *          pGraphics         = NULL;
-    CSimpleVideoDecode * pVideoDecodeMain  = NULL;
-    CSimpleVideoDecode * pVideoDecodePip   = NULL;
-    CStillDecode *       pVideoDecodeStill = NULL;
-    CSimpleAudioDecode * pAudioDecodeMain  = NULL;
-    CSimpleAudioDecode * pAudioDecodePip   = NULL;
-    CStc *               pStcMain          = NULL;
-    CStc *               pStcPip           = NULL;
-    CIrRemote *          pIrRemote         = NULL;
-    CPlaybackList *      pPlaybackList     = NULL;
-    COutputComponent *   pOutputComponent  = NULL;
-    COutputComposite *   pOutputComposite  = NULL;
-    COutputRFM *         pOutputRFM        = NULL;
-    COutputHdmi *        pOutputHdmi       = NULL;
-    COutputSpdif *       pOutputSpdif      = NULL;
-    COutputAudioDac *    pOutputAudioDac   = NULL;
+    eRet                 ret                 = eRet_Ok;
+    CDisplay *           pDisplayHD          = NULL;
+    CDisplay *           pDisplaySD          = NULL;
+    CGraphics *          pGraphics           = NULL;
+    CSimpleVideoDecode * pVideoDecodeMain    = NULL;
+    CSimpleVideoDecode * pVideoDecodePip     = NULL;
+    CStillDecode *       pVideoDecodeStill   = NULL;
+    CSimpleAudioDecode * pAudioDecodeMain    = NULL;
+    CSimpleAudioDecode * pAudioDecodePip     = NULL;
+    CStc *               pStcMain            = NULL;
+    CStc *               pStcPip             = NULL;
+    CIrRemote *          pIrRemote           = NULL;
+    CPlaybackList *      pPlaybackList       = NULL;
+    COutputComponent *   pOutputComponent    = NULL;
+    COutputComposite *   pOutputComposite    = NULL;
+    COutputRFM *         pOutputRFM          = NULL;
+    COutputHdmi *        pOutputHdmi         = NULL;
+    COutputSpdif *       pOutputSpdif        = NULL;
+    COutputAudioDac *    pOutputAudioDac     = NULL;
+
 #if RF4CE_SUPPORT
     CRf4ceRemote * pRf4ceRemote = NULL;
 #endif
@@ -2047,19 +2288,18 @@ eRet CAtlas::initialize(CConfig * pConfig)
     mvcRelationshipsInitialize(pConfig);
 
     pDisplayHD = displayInitialize(
-                        stringToVideoFormat(GET_STR(_pCfg, PREFERRED_FORMAT_HD)),
-                        GET_INT(_pCfg, FRAMEBUFFER_SURFACE_WIDTH_HD),
-                        GET_INT(_pCfg, FRAMEBUFFER_SURFACE_HEIGHT_HD));
+            stringToVideoFormat(GET_STR(_pCfg, PREFERRED_FORMAT_HD)),
+            GET_INT(_pCfg, FRAMEBUFFER_SURFACE_WIDTH_HD),
+            GET_INT(_pCfg, FRAMEBUFFER_SURFACE_HEIGHT_HD));
     CHECK_PTR_ERROR("unable to create HD Display", pDisplayHD, ret, eRet_NotSupported);
 
     if ((true == _pBoardResources->findResource(this, eBoardResource_outputComposite)) ||
         (true == _pBoardResources->findResource(this, eBoardResource_outputRFM)))
     {
-
         pDisplaySD = displayInitialize(
-                            stringToVideoFormat(GET_STR(_pCfg, PREFERRED_FORMAT_SD)),
-                            GET_INT(_pCfg, FRAMEBUFFER_SURFACE_WIDTH_SD),
-                            GET_INT(_pCfg, FRAMEBUFFER_SURFACE_HEIGHT_SD));
+                stringToVideoFormat(GET_STR(_pCfg, PREFERRED_FORMAT_SD)),
+                GET_INT(_pCfg, FRAMEBUFFER_SURFACE_WIDTH_SD),
+                GET_INT(_pCfg, FRAMEBUFFER_SURFACE_HEIGHT_SD));
         CHECK_PTR_ERROR("unable to create SD Display", pDisplaySD, ret, eRet_NotSupported);
     }
 
@@ -2071,12 +2311,12 @@ eRet CAtlas::initialize(CConfig * pConfig)
 
     _pControl->initialize(this, _pConfig, _pChannelMgr, _pWidgetEngine);
 
-    pIrRemote    = irRemoteInitialize();
+    pIrRemote = irRemoteInitialize();
 #if RF4CE_SUPPORT
     pRf4ceRemote = rf4ceRemoteInitialize();
 #endif
 #if NEXUS_HAS_UHF_INPUT
-    pUhfRemote   = uhfRemoteInitialize();
+    pUhfRemote = uhfRemoteInitialize();
 #endif
 
 #ifdef ESTB_CFG_SUPPORT
@@ -2108,10 +2348,10 @@ eRet CAtlas::initialize(CConfig * pConfig)
         CHECK_PTR_ERROR_GOTO("unable to initialize main video decode", pVideoDecodeMain, ret, eRet_NotAvailable, errorDecodeMain);
 
         pVideoWindowHD = videoWindowInitialize(pDisplayHD, pVideoDecodeMain, eWindowType_Main);
-        CHECK_PTR_WARN("unable to initialize video window for HD display (main)", pVideoWindowHD, ret, eRet_NotAvailable);
+        CHECK_PTR_WARN("unable to initialize video window for HD display (main)", pVideoWindowHD, ret, eRet_Ok);
 
         pVideoWindowSD = videoWindowInitialize(pDisplaySD, pVideoDecodeMain, eWindowType_Main);
-        CHECK_PTR_WARN("unable to initialize video window for SD display (main)", pVideoWindowSD, ret, eRet_NotAvailable);
+        CHECK_PTR_WARN("unable to initialize video window for SD display (main)", pVideoWindowSD, ret, eRet_Ok);
 
         goto doneDecodeMain;
 errorDecodeMain: /* we can continue even if main decode cannot be initialized (headless) */
@@ -2123,6 +2363,7 @@ errorDecodeMain: /* we can continue even if main decode cannot be initialized (h
         {
             videoWindowUninitialize(pDisplayHD, pVideoDecodeMain, pVideoWindowHD);
         }
+
         if (NULL != pVideoDecodeMain)
         {
             videoDecodeUninitialize(&pVideoDecodeMain);
@@ -2149,10 +2390,10 @@ doneDecodeMain:
         CHECK_PTR_WARN_GOTO("unable to initialize pip video decode", pVideoDecodePip, ret, eRet_NotAvailable, errorDecodePip);
 
         pVideoWindowHD = videoWindowInitialize(pDisplayHD, pVideoDecodePip, eWindowType_Pip);
-        CHECK_PTR_WARN("unable to initialize video window for HD display (pip)", pVideoWindowHD, ret, eRet_NotAvailable);
+        CHECK_PTR_WARN("unable to initialize video window for HD display (pip)", pVideoWindowHD, ret, eRet_Ok);
 
         pVideoWindowSD = videoWindowInitialize(pDisplaySD, pVideoDecodePip, eWindowType_Pip);
-        CHECK_PTR_WARN("unable to initialize video window for SD display (pip)", pVideoWindowSD, ret, eRet_NotAvailable);
+        CHECK_PTR_WARN("unable to initialize video window for SD display (pip)", pVideoWindowSD, ret, eRet_Ok);
 
         _model.setPipEnabled(true);
 
@@ -2185,29 +2426,32 @@ doneDecodePip:
     if (NULL != pVideoDecodeMain)
     {
         pVideoDecodeStill = videoDecodeStillInitialize();
-        CHECK_PTR_WARN("unable to initialize still decode", pVideoDecodeStill, ret, eRet_NotAvailable);
+        CHECK_PTR_WARN("unable to initialize still decode", pVideoDecodeStill, ret, eRet_Ok);
     }
+
+    ret = mosaicInitialize();
+    CHECK_WARN("unable to initialize mosaics", ret);
 
     /* initialize video and audio outputs */
     pOutputHdmi = outputHdmiInitialize(pDisplayHD);
-    CHECK_PTR_WARN("unable to initialize hdmi output - disabled", pOutputHdmi, ret, eRet_NotAvailable);
+    CHECK_PTR_WARN("unable to initialize hdmi output - disabled", pOutputHdmi, ret, eRet_Ok);
     pOutputComponent = outputComponentInitialize(pDisplayHD);
-    CHECK_PTR_WARN("unable to initialize component output - disabled", pOutputComponent, ret, eRet_NotAvailable);
+    CHECK_PTR_WARN("unable to initialize component output - disabled", pOutputComponent, ret, eRet_Ok);
     pOutputComposite = outputCompositeInitialize(pDisplaySD);
-    CHECK_PTR_WARN("unable to initialize composite output - disabled", pOutputComposite, ret, eRet_NotAvailable);
+    CHECK_PTR_WARN("unable to initialize composite output - disabled", pOutputComposite, ret, eRet_Ok);
     pOutputRFM = outputRfmInitialize(pDisplaySD);
-    CHECK_PTR_WARN("unable to initialize rfm output - disabled", pOutputRFM, ret, eRet_NotAvailable);
+    CHECK_PTR_WARN("unable to initialize rfm output - disabled", pOutputRFM, ret, eRet_Ok);
     pOutputSpdif = outputSpdifInitialize();
-    CHECK_PTR_WARN("unable to initialize spdif output - disabled", pOutputSpdif, ret, eRet_NotAvailable);
+    CHECK_PTR_WARN("unable to initialize spdif output - disabled", pOutputSpdif, ret, eRet_Ok);
     pOutputAudioDac = outputDacInitialize();
-    CHECK_PTR_WARN("unable to initialize Dac output - disabled", pOutputAudioDac, ret, eRet_NotAvailable);
+    CHECK_PTR_WARN("unable to initialize Dac output - disabled", pOutputAudioDac, ret, eRet_Ok);
 
     /* initialize Main audio decoder */
     pAudioDecodeMain = audioDecodeInitialize(pOutputHdmi, pOutputSpdif, pOutputAudioDac, pOutputRFM, pStcMain, eWindowType_Main);
-    CHECK_PTR_WARN("unable to initialize Main audio decode - disabled", pAudioDecodeMain, ret, eRet_NotAvailable);
+    CHECK_PTR_WARN("unable to initialize Main audio decode - disabled", pAudioDecodeMain, ret, eRet_Ok);
     /* initialize Pip audio decoder */
     pAudioDecodePip = audioDecodeInitializePip(pOutputHdmi, pOutputSpdif, pOutputAudioDac, pOutputRFM, pStcPip, eWindowType_Pip);
-    CHECK_PTR_WARN("unable to initialize Pip audio decode - disabled", pAudioDecodePip, ret, eRet_NotAvailable);
+    CHECK_PTR_WARN("unable to initialize Pip audio decode - disabled", pAudioDecodePip, ret, eRet_Ok);
 
     pPlaybackList = new CPlaybackList(_pCfg);
     CHECK_PTR_ERROR_GOTO("unable to allocate playback list", pPlaybackList, ret, eRet_OutOfMemory, error);
@@ -2218,7 +2462,7 @@ doneDecodePip:
     CHECK_WARN("unable to initialize wifi networking support - disabled", ret);
 
     pBluetoothRemote = bluetoothRemoteInitialize();
-    CHECK_PTR_WARN("unable to initialize bluetooth remote - disabled", pBluetoothRemote, ret, eRet_NotAvailable);
+    CHECK_PTR_WARN("unable to initialize bluetooth remote - disabled", pBluetoothRemote, ret, eRet_Ok);
 
     {
         CBluetooth *    pBluetooth    = NULL;
@@ -2233,7 +2477,6 @@ doneDecodePip:
         /* audio capture is only supported in nxclient mode */
         pAudioCapture = audioCaptureInitialize(pBluetooth);
         CHECK_PTR_WARN_GOTO("unable to initialize audio capture support - disabled", pAudioCapture, ret, eRet_NotAvailable, errorAudioCapture);
-
     }
 errorBluetooth:
 errorAudioCapture:
@@ -2285,21 +2528,17 @@ error:
 
 void CAtlas::uninitialize()
 {
-    CDisplay *           pDisplayHD         = _model.getDisplay(0);
-    CDisplay *           pDisplaySD         = _model.getDisplay(1);
-    CPlaybackList *      pPlaybackList      = _model.getPlaybackList();
-    CSimpleVideoDecode * pVideoDecodeMain   = _model.getSimpleVideoDecode(eWindowType_Main);
-    CSimpleVideoDecode * pVideoDecodePip    = _model.getSimpleVideoDecode(eWindowType_Pip);
-    CSimpleAudioDecode * pAudioDecodeMain   = _model.getSimpleAudioDecode(eWindowType_Main);
-    CSimpleAudioDecode * pAudioDecodePip    = _model.getSimpleAudioDecode(eWindowType_Pip);
-    CStc *               pStcMain           = _model.getStc(eWindowType_Main);
-    CStc *               pStcPip            = _model.getStc(eWindowType_Pip);
-    COutputAudioDac *    pOutputAudioDac    = (COutputAudioDac *)_model.getAudioOutput(eBoardResource_outputAudioDac);
-    COutputSpdif *       pOutputSpdif       = (COutputSpdif *)_model.getAudioOutput(eBoardResource_outputSpdif);
-    COutputHdmi *        pOutputHdmi        = NULL;
-    COutputComponent *   pOutputComponent   = NULL;
-    COutputComposite *   pOutputComposite   = NULL;
-    COutputRFM *         pOutputRFM         = NULL;
+    CDisplay *           pDisplayHD          = _model.getDisplay(0);
+    CDisplay *           pDisplaySD          = _model.getDisplay(1);
+    CPlaybackList *      pPlaybackList       = _model.getPlaybackList();
+    CSimpleAudioDecode * pAudioDecodeMain    = _model.getSimpleAudioDecode(eWindowType_Main);
+    CSimpleAudioDecode * pAudioDecodePip     = _model.getSimpleAudioDecode(eWindowType_Pip);
+    COutputAudioDac *    pOutputAudioDac     = (COutputAudioDac *)_model.getAudioOutput(eBoardResource_outputAudioDac);
+    COutputSpdif *       pOutputSpdif        = (COutputSpdif *)_model.getAudioOutput(eBoardResource_outputSpdif);
+    COutputHdmi *        pOutputHdmi         = NULL;
+    COutputComponent *   pOutputComponent    = NULL;
+    COutputComposite *   pOutputComposite    = NULL;
+    COutputRFM *         pOutputRFM          = NULL;
 
     if (NULL != pDisplayHD)
     {
@@ -2357,10 +2596,7 @@ void CAtlas::uninitialize()
     }
     outputHdmiUninitialize(pDisplayHD, &pOutputHdmi);
 
-    if (NULL != pVideoDecodeMain)
-    {
-        videoDecodeStillUninitialize();
-    }
+    videoDecodeStillUninitialize();
 
 #ifdef DCC_SUPPORT
     digitalClosedCaptionsUninitialize();
@@ -2368,11 +2604,13 @@ void CAtlas::uninitialize()
 
     _model.setPipEnabled(false);
     /* no need to uninitialize video windows - uninitialize display will take care of it */
-    videoDecodeUninitialize(&pVideoDecodePip);
-    stcUninitialize(&pStcPip, eWindowType_Pip);
-
-    videoDecodeUninitialize(&pVideoDecodeMain);
-    stcUninitialize(&pStcMain, eWindowType_Main);
+    for (int winType = 0; winType < eWindowType_Max; winType++)
+    {
+        CSimpleVideoDecode * pVideoDecode = _model.getSimpleVideoDecode((eWindowType)winType);
+        CStc *               pStc         = _model.getStc((eWindowType)winType);
+        videoDecodeUninitialize(&pVideoDecode);
+        stcUninitialize(&pStc, (eWindowType)winType);
+    }
 
 #if DVR_LIB_SUPPORT
     dvrLibUninitialize();
@@ -2397,16 +2635,16 @@ void CAtlas::uninitialize()
     bluetoothRemoteUninitialize();
 #endif
 
+    mvcRelationshipsUninitialize();
+
     _pControl->uninitialize();
     controlDestroy(_pControl);
 
+    // graphicsUninitialize must be _after_ control unitialize to avoid leaks when the widget engine is destroyed
     graphicsUninitialize();
 
     displayUninitialize(&pDisplaySD);
     displayUninitialize(&pDisplayHD);
-
-    mvcRelationshipsUninitialize();
-
 } /* uninitialize */
 
 bwin_engine_t CAtlas::getWinEngine()

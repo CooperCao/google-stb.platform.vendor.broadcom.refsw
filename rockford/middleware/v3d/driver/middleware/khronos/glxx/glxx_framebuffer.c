@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2008 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2008 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -160,16 +160,19 @@ MEM_HANDLE_T glxx_attachment_info_get_ms_image(GLXX_ATTACHMENT_INFO_T *attachmen
    return result;
 }
 
-
 bool glxx_framebuffer_hw_support(KHRN_IMAGE_FORMAT_T format)
 {
 #ifdef BIG_ENDIAN_CPU
-   if (format != RGBA_8888_TF && format != RGBX_8888_TF && format != RGB_565_TF && format != DEPTH_32_TLBD && format != DEPTH_COL_64_TLBD)
+   // one of the suppored formats
+   return ((format == RGBA_8888_TF) ||
+      (format == RGBX_8888_TF) ||
 #else
-   if (format != ABGR_8888_TF && format != XBGR_8888_TF && format != RGB_565_TF && format != DEPTH_32_TLBD && format != DEPTH_COL_64_TLBD)
+   return ((format == ABGR_8888_TF) ||
+      (format == XBGR_8888_TF) ||
 #endif
-      return false;
-   return true;
+      (format == RGB_565_TF) ||
+      (format == DEPTH_32_TLBD) ||
+      (format == DEPTH_COL_64_TLBD));
 }
 
 /*
@@ -198,17 +201,20 @@ bool glxx_framebuffer_hw_support(KHRN_IMAGE_FORMAT_T format)
    it is implementation-dependent as to exactly which enum will be returned by CheckFramebufferStatus.
 */
 
-#define ATTACHMENT_MISSING 0   //Attachment type is NONE, therefore complete
-#define ATTACHMENT_BROKEN 1    //Attachment is incomplete
-#define ATTACHMENT_COLOR 2     //Attachment type is COLOR and is complete
-#define ATTACHMENT_DEPTH16 3   //Attachment type is DEPTH, is complete and the image is 16bpp
-#define ATTACHMENT_DEPTH24 4   //Attachment type is DEPTH, is complete and the image is 24bpp
-#define ATTACHMENT_STENCIL 5   //Attachment type is STENCIL and is complete
-#define ATTACHMENT_DEPTH_STENCIL 6//Attachment type is DEPTH_STENCIL and is complete
-#define ATTACHMENT_UNSUPPORTED 7//Attachment type is valid but rendering is not supported
+typedef enum
+{
+   ATTACHMENT_MISSING,                    // Attachment type is NONE, therefore complete
+   ATTACHMENT_BROKEN,                     // Attachment is incomplete
+   ATTACHMENT_COLOR,                      // Attachment type is COLOR and is complete
+   ATTACHMENT_DEPTH16,                    // Attachment type is DEPTH, is complete and the image is 16bpp
+   ATTACHMENT_DEPTH24,                    // Attachment type is DEPTH, is complete and the image is 24bpp
+   ATTACHMENT_STENCIL,                    // Attachment type is STENCIL and is complete
+   ATTACHMENT_DEPTH_STENCIL,              // Attachment type is DEPTH_STENCIL and is complete
+   ATTACHMENT_UNSUPPORTED = 0xFFFFFFFF    // Attachment type is valid but rendering is not supported
+} ATTACHMENT_STATUS_T;
 
-
-static uint32_t attachment_get_status(GLXX_ATTACHMENT_INFO_T *attachment, uint32_t *width, uint32_t *height, uint32_t *samples)
+static ATTACHMENT_STATUS_T attachment_get_status(GLXX_ATTACHMENT_INFO_T *attachment,
+   uint32_t *width, uint32_t *height, uint32_t *samples, bool *secure)
 {
    switch (attachment->type) {
    case GL_NONE:
@@ -216,7 +222,7 @@ static uint32_t attachment_get_status(GLXX_ATTACHMENT_INFO_T *attachment, uint32
    case GL_RENDERBUFFER:
    {
       GLXX_RENDERBUFFER_T *renderbuffer = (GLXX_RENDERBUFFER_T *)mem_lock(attachment->mh_object, NULL);
-      uint32_t result = ATTACHMENT_BROKEN;
+      ATTACHMENT_STATUS_T result = ATTACHMENT_BROKEN;
 
       // Multisample?
       *samples = renderbuffer->samples;
@@ -244,11 +250,14 @@ static uint32_t attachment_get_status(GLXX_ATTACHMENT_INFO_T *attachment, uint32
          *height = 0;
       } else {
          KHRN_IMAGE_T *image = NULL;
+         KHRN_IMAGE_FORMAT_T format;
          if ((*samples != 0) && (result != ATTACHMENT_COLOR))   // If it is multisample and depth/stencil buffer
          {
             image = (KHRN_IMAGE_T *)mem_lock(renderbuffer->mh_ms_storage, NULL);
             *width = image->width / 2;
             *height = image->height / 2;
+            *secure = image->secure;
+            format = image->format;
             mem_unlock(renderbuffer->mh_ms_storage);
          }
          else
@@ -259,9 +268,13 @@ static uint32_t attachment_get_status(GLXX_ATTACHMENT_INFO_T *attachment, uint32
             image = (KHRN_IMAGE_T *)mem_lock(renderbuffer->mh_storage, NULL);
             *width = image->width;
             *height = image->height;
+            *secure = image->secure;
+            format = image->format;
             mem_unlock(renderbuffer->mh_storage);
          }
-         if (!glxx_framebuffer_hw_support(image->format))
+
+         format = khrn_image_no_colorspace_format(image->format);
+         if (!glxx_framebuffer_hw_support(format))
             result = ATTACHMENT_UNSUPPORTED;
       }
       if (*width == 0 || *height == 0)
@@ -271,15 +284,17 @@ static uint32_t attachment_get_status(GLXX_ATTACHMENT_INFO_T *attachment, uint32
    }
    case GL_TEXTURE:
    {
-      MEM_HANDLE_T himg = glxx_attachment_info_get_image(attachment);
-      uint32_t result = ATTACHMENT_BROKEN;
-      if (himg == MEM_INVALID_HANDLE) {
+      MEM_HANDLE_T himage = glxx_attachment_info_get_image(attachment);
+      ATTACHMENT_STATUS_T result = ATTACHMENT_BROKEN;
+      if (himage == MEM_INVALID_HANDLE) {
          *width = 0;
          *height = 0;
+         *secure = false;
          *samples = 0;
       } else {
-         KHRN_IMAGE_T *img = (KHRN_IMAGE_T *)mem_lock(himg, NULL);
-         switch (img->format)
+         KHRN_IMAGE_T *image = (KHRN_IMAGE_T *)mem_lock(himage, NULL);
+         KHRN_IMAGE_FORMAT_T format = khrn_image_no_colorspace_format(image->format);
+         switch (format)
          {
 #ifndef BIG_ENDIAN_CPU
          case ABGR_8888_TF:
@@ -315,10 +330,11 @@ static uint32_t attachment_get_status(GLXX_ATTACHMENT_INFO_T *attachment, uint32
          default:  //other texture formats or IMAGE_FORMAT_INVALID
             result = ATTACHMENT_BROKEN;
          }
-         *width = img->width;
-         *height = img->height;
+         *width = image->width;
+         *height = image->height;
+         *secure = image->secure;
          *samples = attachment->samples;
-         mem_unlock(himg);
+         mem_unlock(himage);
       }
       if (*width == 0 || *height == 0)
          result = ATTACHMENT_BROKEN;
@@ -332,20 +348,22 @@ static uint32_t attachment_get_status(GLXX_ATTACHMENT_INFO_T *attachment, uint32
 
 GLenum glxx_framebuffer_check_status(GLXX_FRAMEBUFFER_T *framebuffer)
 {
-   //          Attachment, width,   height,  sample
-   uint32_t    ca,         cw,      ch,      cs;
-   uint32_t    da,         dw,      dh,      ds;
-   uint32_t    sa,         sw,      sh,      ss;
+   ATTACHMENT_STATUS_T ca, da, sa;
+   bool csecure, dsecure, ssecure;
+   //          width,   height,  sample
+   uint32_t    cw,      ch,      cs;
+   uint32_t    dw,      dh,      ds;
+   uint32_t    sw,      sh,      ss;
    GLenum result = GL_FRAMEBUFFER_COMPLETE;
 
    vcos_assert(framebuffer);
 
-   //color/depth/stencil attachment/width/height
-   //If attachment is NONE or BROKEN, width and height should be ignored
+   // color/depth/stencil attachment/width/height
+   // If attachment is NONE or BROKEN, width and height should be ignored
 
-   ca = attachment_get_status(&framebuffer->attachments.color, &cw, &ch, &cs);
-   da = attachment_get_status(&framebuffer->attachments.depth, &dw, &dh, &ds);
-   sa = attachment_get_status(&framebuffer->attachments.stencil, &sw, &sh, &ss);
+   ca = attachment_get_status(&framebuffer->attachments.color, &cw, &ch, &cs, &csecure);
+   da = attachment_get_status(&framebuffer->attachments.depth, &dw, &dh, &ds, &dsecure);
+   sa = attachment_get_status(&framebuffer->attachments.stencil, &sw, &sh, &ss, &ssecure);
 
    if (ca == ATTACHMENT_MISSING && da == ATTACHMENT_MISSING && sa == ATTACHMENT_MISSING)
       result = GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT;
@@ -383,6 +401,11 @@ GLenum glxx_framebuffer_check_status(GLXX_FRAMEBUFFER_T *framebuffer)
                result = GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS;
             else if (sa != ATTACHMENT_MISSING && (cw != sw || ch != sh))
                result = GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS;
+
+            if (da != ATTACHMENT_MISSING && (csecure != dsecure))
+               result = GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT;
+            else if (sa != ATTACHMENT_MISSING && (csecure != ssecure))
+               result = GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT;
 
             // If this is a multisample FBO
             if (cs != 0)

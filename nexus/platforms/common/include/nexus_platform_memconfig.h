@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2014 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,37 +34,31 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* Revision History:
-*
-* $brcm_Log: $
-*
 ***************************************************************************/
 #ifndef NEXUS_PLATFORM_MEMCONFIG_H__
 #define NEXUS_PLATFORM_MEMCONFIG_H__
 
 #include "nexus_types.h"
-#if NEXUS_HAS_VIDEO_DECODER
+#ifdef NEXUS_HAS_VIDEO_DECODER
 #include "nexus_video_decoder_types.h"
 #endif
-#if NEXUS_HAS_DISPLAY
+#ifdef NEXUS_HAS_DISPLAY
 #include "nexus_display_init.h"
 #endif
-#if NEXUS_HAS_VIDEO_ENCODER
+#ifdef NEXUS_HAS_VIDEO_ENCODER
 #include "nexus_video_encoder_init.h"
 #endif
-#if NEXUS_HAS_AUDIO
+#ifdef NEXUS_HAS_AUDIO
 #include "nexus_audio_init.h"
 #endif
+
+#include "nexus_platform_compat.h"
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
+
 
 /**
 Summary:
@@ -81,24 +75,15 @@ Some platforms (for instance, 65nm) do not support this memconfig API. To tell i
 **/
 typedef struct NEXUS_MemoryConfigurationSettings
 {
-#if NEXUS_HAS_VIDEO_DECODER
     NEXUS_VideoDecoderMemory videoDecoder[NEXUS_MAX_VIDEO_DECODERS]; /* typically 0 is main, 1 is PIP. mapping from videoDecoder[] to AVD can vary, but we support a generic mapping. */
     NEXUS_VideoDecoderMemory stillDecoder[NEXUS_MAX_STILL_DECODERS];
-#endif
-#if NEXUS_HAS_DISPLAY
     NEXUS_DisplayMemConfig display[NEXUS_MAX_DISPLAYS];
-#endif
     struct {
         bool hdDvi;
         bool ccir656;
     } videoInputs;
-#if NEXUS_HAS_VIDEO_ENCODER
     NEXUS_VideoEncoderMemory videoEncoder[NEXUS_MAX_VIDEO_ENCODERS];
-#endif
-
-#if NEXUS_HAS_AUDIO
     NEXUS_AudioModuleUsageSettings audio;
-#endif
 } NEXUS_MemoryConfigurationSettings;
 
 /**
@@ -107,18 +92,14 @@ HW/RTS capabilities of the system. NEXUS_MemoryConfigurationSettings decisions c
 **/
 typedef struct NEXUS_PlatformCapabilities
 {
-#if NEXUS_HAS_DISPLAY
     struct {
         bool supported;
         bool encoder; /* if true, this is only for encoder use */
     } display[NEXUS_MAX_DISPLAYS];
-#endif
-#if NEXUS_HAS_VIDEO_ENCODER
     struct {
         bool supported;
         unsigned displayIndex;
     } videoEncoder[NEXUS_MAX_VIDEO_ENCODERS];
-#endif
     unsigned unused;
 } NEXUS_PlatformCapabilities;
 

@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2008 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2008 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -169,25 +169,27 @@ GL_API void GL_APIENTRY glBlendEquation( GLenum mode ) // S
 GL_API void GL_APIENTRY glBlendEquationSeparate(GLenum modeRGB, GLenum modeAlpha) // S
 {
    CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
-   if (IS_OPENGLES_20(thread)) {
+   if (IS_OPENGLES_20(thread))
       glBlendEquationSeparate_impl_20(modeRGB, modeAlpha);
-   }
 }
 
-static void set_blend_func (CLIENT_THREAD_STATE_T *thread, GLenum srcRGB, GLenum dstRGB, GLenum srcAlpha, GLenum dstAlpha) {
+static void set_blend_func(GLenum srcRGB, GLenum dstRGB, GLenum srcAlpha, GLenum dstAlpha)
+{
    glBlendFuncSeparate_impl(srcRGB, dstRGB, srcAlpha, dstAlpha);
 }
 
 GL_API void GL_APIENTRY glBlendFunc (GLenum sfactor, GLenum dfactor)
 {
    CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
-   if (IS_OPENGLES_11_OR_20(thread)) set_blend_func(thread, sfactor, dfactor, sfactor, dfactor);
+   if (IS_OPENGLES_11_OR_20(thread))
+      set_blend_func(sfactor, dfactor, sfactor, dfactor);
 }
 
 GL_API void GL_APIENTRY glBlendFuncSeparate (GLenum srcRGB, GLenum dstRGB, GLenum srcAlpha, GLenum dstAlpha) // S
 {
    CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
-   if (IS_OPENGLES_20(thread)) set_blend_func(thread, srcRGB, dstRGB, srcAlpha, dstAlpha);
+   if (IS_OPENGLES_20(thread))
+      set_blend_func(srcRGB, dstRGB, srcAlpha, dstAlpha);
 }
 
 GL_API void GL_APIENTRY glBufferData (GLenum target, GLsizeiptr size, const GLvoid *data, GLenum usage)
@@ -712,7 +714,7 @@ typedef struct MERGE_INFO {
    struct MERGE_INFO *next;
 } MERGE_INFO_T;
 
-static int merge_attribs(CLIENT_THREAD_STATE_T *thread, KHRN_CACHE_T *cache, MERGE_INFO_T *merge, int *keys, int send, bool is_opengles_11)
+static int merge_attribs(KHRN_CACHE_T *cache, MERGE_INFO_T *merge, int *keys, int send)
 {
    int i, j;
 
@@ -748,7 +750,7 @@ static int merge_attribs(CLIENT_THREAD_STATE_T *thread, KHRN_CACHE_T *cache, MER
 
    for (i = 0; i < GLXX_CONFIG_MAX_VERTEX_ATTRIBS; i++)
       if (merge[i].send && !merge[i].next) {
-         int key = khrn_cache_lookup(thread, cache, merge[i].start, merge[i].end - merge[i].start, CACHE_SIG_ATTRIB_0 + i, is_opengles_11);
+         int key = khrn_cache_lookup(cache, merge[i].start, merge[i].end - merge[i].start, CACHE_SIG_ATTRIB_0 + i);
 
          merge[i].key = key;
          keys[send++] = key;
@@ -779,14 +781,16 @@ static unsigned int b = 0;
 
 static void segv_handler(int nSig)
 {
+   UNUSED(nSig);
    if (exit_handler_installed)
       siglongjmp(exit_handler, 1);
 }
 
+static bool ret;
 static bool IsBadReadPtr(const void* lp, unsigned int ucb)
 {
    unsigned int i;
-   bool ret = false;
+   ret = false;
    struct sigaction new_action, old_action;
 
    /* install temporary segv handler for purpose of catching the error */
@@ -822,7 +826,8 @@ error0:
 }
 #endif /* __linux__ */
 
-static void draw_arrays_or_elements(CLIENT_THREAD_STATE_T *thread, GLXX_CLIENT_STATE_T *state, GLenum mode, GLsizei count, GLenum type, const GLvoid *indices)
+static void draw_arrays_or_elements(GLXX_CLIENT_STATE_T *state, GLenum mode, GLsizei count,
+   GLenum type, const GLvoid *indices, bool secure)
 {
    const void *indices_pointer = 0;
    GLuint indices_buffer;
@@ -880,7 +885,7 @@ static void draw_arrays_or_elements(CLIENT_THREAD_STATE_T *thread, GLXX_CLIENT_S
       }
 
       max = send_indices ? find_max(count, khrn_get_type_size( (int)type ), indices) : (send_any ? glintFindMax_impl(count, type, indices) : -1);
-      indices_key = send_indices ? khrn_cache_lookup(thread, &state->cache, indices, indices_length, CACHE_SIG_INDEX, IS_OPENGLES_11(thread)) : 0;
+      indices_key = send_indices ? khrn_cache_lookup(&state->cache, indices, indices_length, CACHE_SIG_INDEX) : 0;
       indices_pointer = !send_indices ? indices : (void *)(indices_key + offsetof(CACHE_ENTRY_T, data));
    }
 
@@ -900,7 +905,7 @@ static void draw_arrays_or_elements(CLIENT_THREAD_STATE_T *thread, GLXX_CLIENT_S
    }
 
    keys[0] = indices_key;
-   send = merge_attribs(thread, &state->cache, attrib_merge, keys, send_indices, IS_OPENGLES_11(thread));
+   send = merge_attribs(&state->cache, attrib_merge, keys, send_indices);
    if (khrn_cache_get_entries(&state->cache) < send){
       set_error(state, GL_OUT_OF_MEMORY);
       return;
@@ -927,7 +932,7 @@ static void draw_arrays_or_elements(CLIENT_THREAD_STATE_T *thread, GLXX_CLIENT_S
 
    glDrawElements_impl(mode, count, type,
                        (void *)indices_pointer, indices_buffer,
-                       state->attrib, keys, send);
+                       state->attrib, keys, send, secure);
 
    for (i = 0; i < GLXX_CONFIG_MAX_VERTEX_ATTRIBS; i++)
    {
@@ -941,7 +946,7 @@ GL_API void GL_APIENTRY glDrawArrays (GLenum mode, GLint first, GLsizei count)
    CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
    if (IS_OPENGLES_11_OR_20(thread)) {
       GLXX_CLIENT_STATE_T *state = GLXX_GET_CLIENT_STATE(thread);
-      draw_arrays_or_elements(thread, state, mode, count, 0, (void *)first);
+      draw_arrays_or_elements(state, mode, count, 0, (void *)first, IS_OPENGLES_SECURE(thread));
    }
 }
 
@@ -954,11 +959,14 @@ GL_API void GL_APIENTRY glDrawElements (GLenum mode, GLsizei count, GLenum type,
          set_error(state, GL_INVALID_ENUM);
          return;
       }
+
+#if (__mips__) || (__arm__ && __ARM_FEATURE_UNALIGNED != 1)
       if (!is_aligned(type, (size_t)indices)) {
          set_error(state, GL_INVALID_VALUE);
          return;
       }
-      draw_arrays_or_elements(thread, state, mode, count, type, indices);
+#endif
+      draw_arrays_or_elements(state, mode, count, type, indices, IS_OPENGLES_SECURE(thread));
    }
 }
 
@@ -3016,7 +3024,8 @@ GL_API void GL_APIENTRY glShadeModel (GLenum mode)
    }
 }
 
-static void set_stencil_func(CLIENT_THREAD_STATE_T *thread, GLenum face, GLenum func, GLint ref, GLuint mask) {
+static void set_stencil_func(GLenum face, GLenum func, GLint ref, GLuint mask)
+{
    glStencilFuncSeparate_impl(face, func, ref, mask);
 }
 
@@ -3024,17 +3033,18 @@ GL_API void GL_APIENTRY glStencilFunc (GLenum func, GLint ref, GLuint mask)
 {
    CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
    if (IS_OPENGLES_11_OR_20(thread))
-      set_stencil_func(thread, GL_FRONT_AND_BACK, func, ref, mask);
+      set_stencil_func(GL_FRONT_AND_BACK, func, ref, mask);
 }
 
 GL_API void GL_APIENTRY glStencilFuncSeparate (GLenum face, GLenum func, GLint ref, GLuint mask) // S
 {
    CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
    if (IS_OPENGLES_20(thread))
-      set_stencil_func(thread, face, func, ref, mask);
+      set_stencil_func(face, func, ref, mask);
 }
 
-static void set_stencil_mask(CLIENT_THREAD_STATE_T *thread, GLenum face, GLuint mask) {
+static void set_stencil_mask(GLenum face, GLuint mask)
+{
    glStencilMaskSeparate_impl(face, mask);
 }
 
@@ -3042,17 +3052,18 @@ GL_API void GL_APIENTRY glStencilMask (GLuint mask)
 {
    CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
    if (IS_OPENGLES_11_OR_20(thread))
-      set_stencil_mask(thread, GL_FRONT_AND_BACK, mask);
+      set_stencil_mask(GL_FRONT_AND_BACK, mask);
 }
 
 GL_API void GL_APIENTRY glStencilMaskSeparate (GLenum face, GLuint mask) // S
 {
    CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
    if (IS_OPENGLES_20(thread))
-      set_stencil_mask(thread, face, mask);
+      set_stencil_mask(face, mask);
 }
 
-static void set_stencil_op(CLIENT_THREAD_STATE_T *thread, GLenum face, GLenum fail, GLenum zfail, GLenum zpass) {
+static void set_stencil_op(GLenum face, GLenum fail, GLenum zfail, GLenum zpass)
+{
    glStencilOpSeparate_impl(face, fail, zfail, zpass);
 }
 
@@ -3060,14 +3071,14 @@ GL_API void GL_APIENTRY glStencilOp (GLenum fail, GLenum zfail, GLenum zpass)
 {
    CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
    if (IS_OPENGLES_11_OR_20(thread))
-      set_stencil_op(thread, GL_FRONT_AND_BACK, fail, zfail, zpass);
+      set_stencil_op(GL_FRONT_AND_BACK, fail, zfail, zpass);
 }
 
 GL_API void GL_APIENTRY glStencilOpSeparate (GLenum face, GLenum fail, GLenum zfail, GLenum zpass) // S
 {
    CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
    if (IS_OPENGLES_20(thread))
-      set_stencil_op(thread, face, fail, zfail, zpass);
+      set_stencil_op(face, fail, zfail, zpass);
 }
 
 static GLboolean is_texture_coord_size(GLint size)
@@ -3250,7 +3261,8 @@ GL_API void GL_APIENTRY glTexImage2D (GLenum target, GLint level, GLint internal
                         format,
                         type,
                         state->alignment.unpack,
-                        pixels);
+                        pixels,
+                        IS_OPENGLES_SECURE(thread));
    }
 }
 
@@ -3768,7 +3780,8 @@ GL_API void GL_APIENTRY glViewport (GLint x, GLint y, GLsizei width, GLsizei hei
 /*                             EXT extension functions                                   */
 /*****************************************************************************************/
 
-void glxx_RenderbufferStorageMultisampleEXT (GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height)
+void glxx_RenderbufferStorageMultisampleEXT(GLenum target, GLsizei samples,
+   GLenum internalformat, GLsizei width, GLsizei height)
 {
    CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
    if (IS_OPENGLES_11_OR_20(thread)) {
@@ -3776,11 +3789,13 @@ void glxx_RenderbufferStorageMultisampleEXT (GLenum target, GLsizei samples, GLe
                                                   samples,
                                                   internalformat,
                                                   width,
-                                                  height);
+                                                  height,
+                                                  IS_OPENGLES_SECURE(thread));
    }
 }
 
-void glxx_FramebufferTexture2DMultisampleEXT (GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level, GLsizei samples)
+void glxx_FramebufferTexture2DMultisampleEXT(GLenum target, GLenum attachment,
+   GLenum textarget, GLuint texture, GLint level, GLsizei samples)
 {
    CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
    if (IS_OPENGLES_11_OR_20(thread)) {
@@ -3789,7 +3804,8 @@ void glxx_FramebufferTexture2DMultisampleEXT (GLenum target, GLenum attachment, 
                                                    textarget,
                                                    texture,
                                                    level,
-                                                   samples);
+                                                   samples,
+                                                   IS_OPENGLES_SECURE(thread));
    }
 }
 /*****************************************************************************************/
@@ -3957,7 +3973,8 @@ void glxx_client_RenderbufferStorage(GLenum target, GLenum internalformat, GLsiz
       glRenderbufferStorage_impl(target,
                                  internalformat,
                                  width,
-                                 height);
+                                 height,
+                                 IS_OPENGLES_SECURE(thread));
    }
 }
 

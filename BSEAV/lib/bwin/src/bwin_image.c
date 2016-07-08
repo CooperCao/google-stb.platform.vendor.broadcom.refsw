@@ -314,7 +314,7 @@ void bwin_image_close(bwin_image_t image)
     if (!image) return;
 
     BDBG_MSG(("closing image %p (buffer=%p, size=%d, file='%s')",
-              image, image->buffer, image->size, image->fpImage?image->filename:"none"));
+              (void*)image, image->buffer, image->size, image->fpImage?image->filename:"none"));
 
     if (image->finalize)
         image->finalize(image);

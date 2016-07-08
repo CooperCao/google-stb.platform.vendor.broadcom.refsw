@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -11,7 +11,7 @@
  * Software and all intellectual property rights therein.  IF YOU HAVE NO
  * AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
  * AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
- * SOFTWARE.  
+ * SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
@@ -83,7 +83,7 @@ public:
 //!
 //! AddPhysicalNode(newNode);
 //! \endcode
-//! 
+//!
 //! When the carousel spins from one selection to the next, the transforms you have set on the scene nodes
 //! are interpolated for all the nodes, and the carousel appears to spin. The start and end nodes are updated
 //! appropriately to reset their transforms.
@@ -98,12 +98,12 @@ public:
 //! TextureHandle texture(New);
 //! texture->SetAutoMipmap(true);
 //! texture->TexImage2D(Image(textureFile, Image::eRGB565));
-//! 
+//!
 //! MaterialHandle mat(New);
-//! 
+//!
 //! mat->SetEffect(m_effect);
 //! mat->SetTexture("u_tex", texture);
-//! 
+//!
 //! GeometryHandle geom = QuadFactory(1.0f, 1.0f, 0.0f, eZ_AXIS).MakeGeometry(mat);
 //! AddGeometry(geom);
 //! \endcode
@@ -153,11 +153,11 @@ public:
          m_root->AppendChild(endNode);
       }
 
-      for (const auto &transform : transforms)
+      for (typename C::const_iterator i = transforms.begin(); i != transforms.end(); ++i)
       {
          SceneNodeHandle   node(New);
 
-         node->SetTransform(transform);
+         node->SetTransform(*i);
          m_root->AppendChild(node);
       }
 

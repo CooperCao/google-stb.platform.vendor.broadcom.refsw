@@ -1,54 +1,40 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
-*
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
-*  and may only be used, duplicated, modified or distributed pursuant to the terms and
-*  conditions of a separate, written license agreement executed between you and Broadcom
-*  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-*  no license (express or implied), right to use, or waiver of any kind with respect to the
-*  Software, and Broadcom expressly reserves all rights in and to the Software and all
-*  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-*  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-*  Except as expressly set forth in the Authorized License,
-*
-*  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-*  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-*  and to use this information only in connection with your use of Broadcom integrated circuit products.
-*
-*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-*  USE OR PERFORMANCE OF THE SOFTWARE.
-*
-*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-*  ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* API Description:
-*   API name: Frontend 7346
-*    APIs to open, close, and setup initial settings for a BCM7346
-*    Dual-Channel Satellite Tuner/Demodulator Device.
-*
-* Revision History:
-*
-* $brcm_Log: $
-*
-***************************************************************************/
+ *  Broadcom Proprietary and Confidential. (c)2004-2016 Broadcom. All rights reserved.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ ***************************************************************************/
 #include "nexus_frontend_module.h"
 #include "nexus_frontend_ast.h"
 #include "priv/nexus_i2c_priv.h"
@@ -102,7 +88,6 @@ NEXUS_FrontendHandle NEXUS_Frontend_Open7346( const NEXUS_7346FrontendSettings *
     NEXUS_7346Device *pDevice=NULL;
     NEXUS_FrontendHandle frontend;
     NEXUS_FrontendAstSettings astChannelSettings;
-  
 
     BDBG_ASSERT(NULL != pSettings);
 
@@ -270,11 +255,10 @@ NEXUS_FrontendHandle NEXUS_Frontend_Open7346( const NEXUS_7346FrontendSettings *
         }
 
         if(pSettings->isInternalLna){
-                            
             internalLnaSettings.out0 = pSettings->lnaSettings.out0;
             internalLnaSettings.out1 = pSettings->lnaSettings.out1;
             internalLnaSettings.daisy = pSettings->lnaSettings.daisy;
-            
+
             BDBG_MSG(("NEXUS_Frontend_Open7346: internal LNA"));
 
             errCode = BAST_ConfigTunerLna(pDevice->astHandle, &internalLnaSettings);
@@ -303,7 +287,7 @@ NEXUS_FrontendHandle NEXUS_Frontend_Open7346( const NEXUS_7346FrontendSettings *
     /*  power down all channels after 3445 config and mapping */
     for (i=0; i<pDevice->numChannels; i++) {
         if (pDevice->handles[i]==NULL) {
-            BDBG_MSG(("Power down [%d]=%#lx", i, pDevice->astChannels[i]));
+            BDBG_MSG(("Power down [%d]=%p", i, (void *)pDevice->astChannels[i]));
             BAST_PowerDown(pDevice->astChannels[i], BAST_CORE_ALL);
         }
     }
@@ -337,7 +321,7 @@ NEXUS_FrontendHandle NEXUS_Frontend_Open7346( const NEXUS_7346FrontendSettings *
 
 #ifdef NEXUS_POWER_MANAGEMENT
     /* power up this channel propr to creating the matching AstDevice */
-    BDBG_MSG(("Power up [%d]=%#lx", pSettings->channelNumber, pDevice->astChannels[pSettings->channelNumber]));
+    BDBG_MSG(("Power up [%d]=%p", pSettings->channelNumber, (void *)pDevice->astChannels[pSettings->channelNumber]));
     BAST_PowerUp(pDevice->astChannels[pSettings->channelNumber], BAST_CORE_ALL);
 #endif
 
@@ -367,7 +351,7 @@ NEXUS_FrontendHandle NEXUS_Frontend_Open7346( const NEXUS_7346FrontendSettings *
 
 #ifdef NEXUS_POWER_MANAGEMENT
     /* ...and leave this channel powered down */
-    BDBG_MSG(("Power down [%d]=%#lx", pSettings->channelNumber, pDevice->astChannels[pSettings->channelNumber]));
+    BDBG_MSG(("Power down [%d]=%p", pSettings->channelNumber, (void *)pDevice->astChannels[pSettings->channelNumber]));
     BAST_PowerDown(pDevice->astChannels[pSettings->channelNumber], BAST_CORE_ALL);
 #endif
 
@@ -444,7 +428,7 @@ static void NEXUS_Frontend_P_7346_DestroyDevice(void *handle)
     unsigned i;
     BDBG_OBJECT_ASSERT(pDevice, NEXUS_7346Device);
 
-    BDBG_MSG(("Destroying 7346 device %p", pDevice));
+    BDBG_MSG(("Destroying 7346 device %p", (void *)pDevice));
     for ( i = 0; i < pDevice->numChannels; i++ ) {
         if (pDevice->i2cHandles[i]) {
             NEXUS_I2c_DestroyHandle(pDevice->i2cHandles[i]);
@@ -468,7 +452,6 @@ static void NEXUS_Frontend_P_7346_DestroyDevice(void *handle)
 
 void NEXUS_Frontend_Get7346LnaSettings( NEXUS_FrontendHandle handle, NEXUS_7346LnaSettings *pSettings )
 {
-    
     NEXUS_7346Device *pDevice=NULL;
 
     BDBG_OBJECT_ASSERT(handle, NEXUS_Frontend);
@@ -483,7 +466,7 @@ void NEXUS_Frontend_Get7346LnaSettings( NEXUS_FrontendHandle handle, NEXUS_7346L
     }
     else
     {
-        *pSettings = pDevice->internalLnaSettings;        
+        *pSettings = pDevice->internalLnaSettings;
     }
 }
 
@@ -491,7 +474,7 @@ NEXUS_Error NEXUS_Frontend_Set7346LnaSettings( NEXUS_FrontendHandle handle, cons
 {
     NEXUS_7346Device *pDevice=NULL;
     NEXUS_Error errCode = NEXUS_SUCCESS;
-    
+
     BDBG_OBJECT_ASSERT(handle, NEXUS_Frontend);
     BDBG_ASSERT(NULL != pSettings);
 
@@ -504,20 +487,19 @@ NEXUS_Error NEXUS_Frontend_Set7346LnaSettings( NEXUS_FrontendHandle handle, cons
     else
     {
         BAST_TunerLnaSettings internalLnaSettings;
-        
-                            
+
         internalLnaSettings.out0 = pSettings->out0;
         internalLnaSettings.out1 = pSettings->out1;
         internalLnaSettings.daisy = pSettings->daisy;
-        
+
         errCode = BAST_ConfigTunerLna(pDevice->astHandle, &internalLnaSettings);
         if (errCode != BERR_SUCCESS)
         {
             BDBG_ERR(("BAST_ConfigTunerLna() error"));
             return errCode;
         }
-        
-        pDevice->internalLnaSettings = *pSettings;    
+
+        pDevice->internalLnaSettings = *pSettings;
     }
 
     return NEXUS_SUCCESS;
@@ -535,7 +517,7 @@ NEXUS_Error NEXUS_Frontend_Get7346LnaStatus( NEXUS_FrontendHandle handle, NEXUS_
     if (!astDevice) {
         return BERR_TRACE(NEXUS_NOT_SUPPORTED); /* wrong frontend */
     }
-    
+
     errCode = BAST_GetTunerLnaStatus(astDevice->astChannel, &lnaStatus);
     if ( errCode )
     {
@@ -552,7 +534,6 @@ NEXUS_Error NEXUS_Frontend_Get7346LnaStatus( NEXUS_FrontendHandle handle, NEXUS_
 
 void NEXUS_Frontend_Get3445LnaSettings( NEXUS_FrontendHandle handle, NEXUS_3445LnaSettings *pSettings )
 {
-    
     NEXUS_7346Device *pDevice=NULL;
 
     BDBG_OBJECT_ASSERT(handle, NEXUS_Frontend);
@@ -575,7 +556,7 @@ NEXUS_Error NEXUS_Frontend_Set3445LnaSettings( NEXUS_FrontendHandle handle, cons
 {
     NEXUS_7346Device *pDevice=NULL;
     NEXUS_Error errCode = NEXUS_SUCCESS;
-    
+
     BDBG_OBJECT_ASSERT(handle, NEXUS_Frontend);
     BDBG_ASSERT(NULL != pSettings);
 
@@ -587,7 +568,6 @@ NEXUS_Error NEXUS_Frontend_Set3445LnaSettings( NEXUS_FrontendHandle handle, cons
     }
     else
     {
-        
         BAST_Bcm3445Settings external3445lnaSettings;
 
         external3445lnaSettings.mi2c = pDevice->lnaI2cChannel;
@@ -612,7 +592,7 @@ NEXUS_Error NEXUS_Frontend_Set3445LnaSettings( NEXUS_FrontendHandle handle, cons
             return BERR_TRACE(errCode);
         }
 
-        pDevice->external3445LnaSettings = *pSettings;    
+        pDevice->external3445LnaSettings = *pSettings;
     }
 
     return NEXUS_SUCCESS;
@@ -629,7 +609,7 @@ NEXUS_Error NEXUS_Frontend_Get3445LnaStatus( NEXUS_FrontendHandle handle, NEXUS_
     if (!astDevice) {
         return BERR_TRACE(NEXUS_NOT_SUPPORTED); /* wrong frontend */
     }
-    
+
     /* External LNA note: Your app should not call NEXUS_Frontend_Get7346LnaStatus. See first "External LNA note" above.
     TODO: consider failing this call if g_p7346Device->settings.lnaOutput == NEXUS_7346LnaOutput_eNone. */
     errCode = BAST_GetBcm3445Status(astDevice->astChannel, &lnaStatus);
@@ -654,7 +634,7 @@ NEXUS_I2cHandle NEXUS_Frontend_Get7346MasterI2c( NEXUS_FrontendHandle handle )
         BERR_TRACE(NEXUS_NOT_SUPPORTED); /* wrong frontend */
         return NULL;
     }
-    
+
     if (!g_p7346Device) {
         BDBG_ERR(("Invalid frontend handle"));
         (void)BERR_TRACE(BERR_INVALID_PARAMETER);
@@ -775,11 +755,11 @@ NEXUS_Error NEXUS_Frontend_Set7346TuneSettings( NEXUS_FrontendHandle handle, con
     NEXUS_Error rc;
     NEXUS_AstDevice *astDevice = NEXUS_Frontend_P_GetAstDevice(handle);
     NEXUS_Frontend7346TuneSettings *pCurrent;
-    
+
     if (!astDevice) {
         return BERR_TRACE(NEXUS_NOT_SUPPORTED); /* wrong frontend */
     }
-    
+
     pCurrent = &g_p7346Device->tuneSettings[astDevice->settings.channelIndex];
 
     if (pCurrent->disableFecReacquire != pSettings->disableFecReacquire) {

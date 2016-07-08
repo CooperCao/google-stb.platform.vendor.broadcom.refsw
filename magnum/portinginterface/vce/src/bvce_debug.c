@@ -1,21 +1,41 @@
 /***************************************************************************
- *     Copyright (c) 2003-2014, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * [File Description:]
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ***************************************************************************/
 
@@ -68,7 +88,7 @@ BVCE_Debug_PrintLogMessageEntry(
    switch ( pstEntry->stMetadata.eType )
    {
       case BVCE_DebugFifo_EntryType_eConfig:
-         BDBG_CWARNING( sizeof( BVCE_Channel_StartEncodeSettings ) == 132 );
+         BDBG_CWARNING( sizeof( BVCE_Channel_StartEncodeSettings ) == 136 );
          BDBG_CWARNING( sizeof( BVCE_P_SendCommand_ConfigChannel_Settings ) == 3 );
          BDBG_CWARNING( sizeof( BVCE_Channel_EncodeSettings ) == 56 );
 
@@ -86,7 +106,7 @@ BVCE_Debug_PrintLogMessageEntry(
             pstEntry->data.stConfig.stStartEncodeSettings.stMemoryBandwidthSaving.bRequiredPatchesOnly
          ));
 
-         BDBG_MODULE_MSG(BVCE_DBG_CFG, ("(%10u)[%u][%u] TIMING: stc=%u,rate_buffer_delay=%u,fr=%u,vfr=%u,br_max=%u,br_target=%u,A2PDelay=%u,num_parallel_encodes=%u,segment_rc=%u,segment_duration=%u,segment_upper_tolerance=%u,segment_upper_slope_factor=%u,segment_lower_tolerance=%u,segment_lower_slope_factor=%u",
+         BDBG_MODULE_MSG(BVCE_DBG_CFG, ("(%10u)[%u][%u] TIMING: stc=%u,rate_buffer_delay=%u,fr=%u,vfr=%u,br_max=%u,br_target=%u,A2PDelay=%u,num_parallel_encodes=%u,segment_rc=%u,segment_duration=%u,segment_upper_tolerance=%u,segment_upper_slope_factor=%u,segment_lower_tolerance=%u,segment_lower_slope_factor=%u,,disable_hrd_drop=%u",
             pstEntry->stMetadata.uiTimestamp,
             pstEntry->stMetadata.uiInstance,
             pstEntry->stMetadata.uiChannel,
@@ -103,7 +123,8 @@ BVCE_Debug_PrintLogMessageEntry(
             pstEntry->data.stConfig.stStartEncodeSettings.stRateControl.stSegmentMode.stTargetBitRatePercentage.stUpper.uiTolerance,
             pstEntry->data.stConfig.stStartEncodeSettings.stRateControl.stSegmentMode.stTargetBitRatePercentage.stUpper.uiSlopeFactor,
             pstEntry->data.stConfig.stStartEncodeSettings.stRateControl.stSegmentMode.stTargetBitRatePercentage.stLower.uiTolerance,
-            pstEntry->data.stConfig.stStartEncodeSettings.stRateControl.stSegmentMode.stTargetBitRatePercentage.stLower.uiSlopeFactor
+            pstEntry->data.stConfig.stStartEncodeSettings.stRateControl.stSegmentMode.stTargetBitRatePercentage.stLower.uiSlopeFactor,
+            pstEntry->data.stConfig.stStartEncodeSettings.stRateControl.stHrdMode.bDisableFrameDrop
          ));
 
          BDBG_MODULE_MSG(BVCE_DBG_CFG, ("(%10u)[%u][%u] FLAGS: nrt=%u,pipeline_low_delay=%u,adaptive_low_delay=%u,itfp=%u,on_input_change=%u,new_rap=%u,fast_channel_change=%u",
@@ -583,18 +604,36 @@ BVCE_Debug_FormatLogHeader(
       {
          BVCE_DebugFifo_EntryType eType = uiIndex - 1;
 
-         iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
-            "%u,%s,instance,channel",
-            eType,
-            BVCE_P_Debug_EntryTypeLUT[eType]
-         );
+         BDBG_CASSERT( BVCE_DebugFifo_EntryType_eMax == (BVCE_DebugFifo_EntryType_eTrace1 + 1) );
+         switch ( eType )
+         {
+            case BVCE_DebugFifo_EntryType_eConfig:
+            case BVCE_DebugFifo_EntryType_eStatus:
+            case BVCE_DebugFifo_EntryType_eBufferDescriptor:
+            case BVCE_DebugFifo_EntryType_eMetadataDescriptor:
+            case BVCE_DebugFifo_EntryType_eITB:
+            case BVCE_DebugFifo_EntryType_eCommand:
+            case BVCE_DebugFifo_EntryType_eResponse:
+            case BVCE_DebugFifo_EntryType_eTrace0:
+            case BVCE_DebugFifo_EntryType_eTrace1:
+               iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
+                  "%u,%u,%s,instance,channel",
+                  0,
+                  eType,
+                  BVCE_P_Debug_EntryTypeLUT[eType]
+               );
+               break;
+            default:
+               break;
+         }
+
          if ( iBytesLeft < 0 ) { goto dbg_fmt_hdr_overflow; }
 
          /* Print the header */
          switch ( eType )
          {
             case BVCE_DebugFifo_EntryType_eConfig:
-               BDBG_CWARNING( sizeof( BVCE_Channel_StartEncodeSettings ) == 132 );
+               BDBG_CWARNING( sizeof( BVCE_Channel_StartEncodeSettings ) == 136 );
                BDBG_CWARNING( sizeof( BVCE_P_SendCommand_ConfigChannel_Settings ) == 3 );
                BDBG_CWARNING( sizeof( BVCE_Channel_EncodeSettings ) == 56 );
 
@@ -604,7 +643,7 @@ BVCE_Debug_FormatLogHeader(
                if ( iBytesLeft < 0 ) { goto dbg_fmt_hdr_overflow; }
 
                iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
-                  ",stc index,rate buffer delay,fr,vfr,br_max,br_target,A2PDelay,num parallel encodes,segment rc,segment duration,segment upper tolerance,segment upper slope factor,segment lower tolerance,segment lower slope factor"
+                  ",stc index,rate buffer delay,fr,vfr,br_max,br_target,A2PDelay,num parallel encodes,segment rc,segment duration,segment upper tolerance,segment upper slope factor,segment lower tolerance,segment lower slope factor,disable hrd drop"
                );
                if ( iBytesLeft < 0 ) { goto dbg_fmt_hdr_overflow; }
 
@@ -742,12 +781,12 @@ BVCE_Debug_FormatLogMessage(
       switch ( pstEntry->stMetadata.eType )
       {
          case BVCE_DebugFifo_EntryType_eConfig:
-            BDBG_CWARNING( sizeof( BVCE_Channel_StartEncodeSettings ) == 132 );
+            BDBG_CWARNING( sizeof( BVCE_Channel_StartEncodeSettings ) == 136 );
             BDBG_CWARNING( sizeof( BVCE_P_SendCommand_ConfigChannel_Settings ) == 3 );
             BDBG_CWARNING( sizeof( BVCE_Channel_EncodeSettings ) == 56 );
 
             iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
-               ",%u,%u,%u,%u,%u,%u,%u,%u,%u",
+               ",%u,%u,%u,%u,%u,%u,%u,%u",
                pstEntry->data.stConfig.stStartEncodeSettings.stProtocolInfo.eProtocol,
                pstEntry->data.stConfig.stStartEncodeSettings.stProtocolInfo.eProfile,
                pstEntry->data.stConfig.stStartEncodeSettings.stProtocolInfo.eLevel,
@@ -760,7 +799,7 @@ BVCE_Debug_FormatLogMessage(
             if ( iBytesLeft < 0 ) { goto dbg_fmt_overflow; }
 
             iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
-               ",%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u",
+               ",%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u",
                pstEntry->data.stConfig.stStartEncodeSettings.uiStcIndex,
                pstEntry->data.stConfig.stStartEncodeSettings.uiRateBufferDelay,
                pstEntry->data.stConfig.stEncodeSettings.stFrameRate.eFrameRate,
@@ -774,7 +813,8 @@ BVCE_Debug_FormatLogMessage(
                pstEntry->data.stConfig.stStartEncodeSettings.stRateControl.stSegmentMode.stTargetBitRatePercentage.stUpper.uiTolerance,
                pstEntry->data.stConfig.stStartEncodeSettings.stRateControl.stSegmentMode.stTargetBitRatePercentage.stUpper.uiSlopeFactor,
                pstEntry->data.stConfig.stStartEncodeSettings.stRateControl.stSegmentMode.stTargetBitRatePercentage.stLower.uiTolerance,
-               pstEntry->data.stConfig.stStartEncodeSettings.stRateControl.stSegmentMode.stTargetBitRatePercentage.stLower.uiSlopeFactor
+               pstEntry->data.stConfig.stStartEncodeSettings.stRateControl.stSegmentMode.stTargetBitRatePercentage.stLower.uiSlopeFactor,
+               pstEntry->data.stConfig.stStartEncodeSettings.stRateControl.stHrdMode.bDisableFrameDrop
             );
             if ( iBytesLeft < 0 ) { goto dbg_fmt_overflow; }
 
@@ -804,7 +844,7 @@ BVCE_Debug_FormatLogMessage(
 
          case BVCE_DebugFifo_EntryType_eStatus:
             iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
-               ",%u,%08x,%08x,%u,%u,%u,%u,%u,%u,%u,%u,%llu",
+               ",%u,%08x,%08x,%u,%u,%u,%u,%u,%u,%u,%u,"BDBG_UINT64_FMT,
                pstEntry->data.stStatus.uiTotalErrors,
                pstEntry->data.stStatus.uiErrorFlags,
                pstEntry->data.stStatus.uiEventFlags,
@@ -816,14 +856,14 @@ BVCE_Debug_FormatLogMessage(
                pstEntry->data.stStatus.uiTotalPicturesDroppedDueToHRDUnderflow,
                pstEntry->data.stStatus.uiLastPictureIdEncoded,
                pstEntry->data.stStatus.uiEtsDtsOffset,
-               pstEntry->data.stStatus.uiSTCSnapshot
+               BDBG_UINT64_ARG(pstEntry->data.stStatus.uiSTCSnapshot)
             );
             if ( iBytesLeft < 0 ) { goto dbg_fmt_overflow; }
             break;
 
          case BVCE_DebugFifo_EntryType_eBufferDescriptor:
             iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
-               ",0x%08x,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%llu,%u,%u,%u,%u,%u,%d,%u,%llu",
+               ",0x%08x,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,"BDBG_UINT64_FMT",%u,%u,%u,%u,%u,%d,%u,"BDBG_UINT64_FMT,
                pstEntry->data.stBufferDescriptor.stCommon.uiFlags,
                (0 != (pstEntry->data.stBufferDescriptor.stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_METADATA)),
                (0 != (pstEntry->data.stBufferDescriptor.stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_EXTENDED)),
@@ -837,7 +877,7 @@ BVCE_Debug_FormatLogMessage(
                (0 != (pstEntry->data.stBufferDescriptor.stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_ORIGINALPTS_VALID)),
                pstEntry->data.stBufferDescriptor.stCommon.uiOriginalPTS,
                (0 != (pstEntry->data.stBufferDescriptor.stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_PTS_VALID)),
-               pstEntry->data.stBufferDescriptor.stCommon.uiPTS,
+               BDBG_UINT64_ARG(pstEntry->data.stBufferDescriptor.stCommon.uiPTS),
                (0 != (pstEntry->data.stBufferDescriptor.stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_ESCR_VALID)),
                pstEntry->data.stBufferDescriptor.stCommon.uiESCR,
                (0 != (pstEntry->data.stBufferDescriptor.stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_TICKSPERBIT_VALID)),
@@ -845,15 +885,15 @@ BVCE_Debug_FormatLogMessage(
                (0 != (pstEntry->data.stBufferDescriptor.stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_SHR_VALID)),
                pstEntry->data.stBufferDescriptor.stCommon.iSHR,
                (0 != (pstEntry->data.stBufferDescriptor.stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_STCSNAPSHOT_VALID)),
-               pstEntry->data.stBufferDescriptor.stCommon.uiSTCSnapshot
+               BDBG_UINT64_ARG(pstEntry->data.stBufferDescriptor.stCommon.uiSTCSnapshot)
             );
             if ( iBytesLeft < 0 ) { goto dbg_fmt_overflow; }
 
             iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
-               ",0x%08x,%u,%llu,%u,%u,%u",
+               ",0x%08x,%u,"BDBG_UINT64_FMT",%u,%u,%u",
                pstEntry->data.stBufferDescriptor.uiVideoFlags,
                ( 0 != ( pstEntry->data.stBufferDescriptor.uiVideoFlags & BAVC_VIDEOBUFFERDESCRIPTOR_FLAGS_DTS_VALID ) ),
-               pstEntry->data.stBufferDescriptor.uiDTS,
+               BDBG_UINT64_ARG(pstEntry->data.stBufferDescriptor.uiDTS),
                ( 0 != ( pstEntry->data.stBufferDescriptor.uiVideoFlags & BAVC_VIDEOBUFFERDESCRIPTOR_FLAGS_DATA_UNIT_START ) ),
                pstEntry->data.stBufferDescriptor.uiDataUnitType,
                ( 0 != ( pstEntry->data.stBufferDescriptor.uiVideoFlags & BAVC_VIDEOBUFFERDESCRIPTOR_FLAGS_RAP ) )
@@ -901,9 +941,9 @@ BVCE_Debug_FormatLogMessage(
             if ( iBytesLeft < 0 ) { goto dbg_fmt_overflow; }
 
             iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
-               ",%u,%llu,%u,%u,%u,%u",
+               ",%u,"BDBG_UINT64_FMT",%u,%u,%u,%u",
                ( 0 != ( pstEntry->data.stMetadataDescriptor.uiMetadataFlags & BAVC_VIDEOMETADATADESCRIPTOR_FLAGS_TIMING_STC_VALID ) ),
-               pstEntry->data.stMetadataDescriptor.stTiming.uiSTCSnapshot,
+               BDBG_UINT64_ARG(pstEntry->data.stMetadataDescriptor.stTiming.uiSTCSnapshot),
                ( 0 != ( pstEntry->data.stMetadataDescriptor.uiMetadataFlags & BAVC_VIDEOMETADATADESCRIPTOR_FLAGS_TIMING_CHUNK_ID_VALID ) ),
                pstEntry->data.stMetadataDescriptor.stTiming.uiChunkId,
                ( 0 != ( pstEntry->data.stMetadataDescriptor.uiMetadataFlags & BAVC_VIDEOMETADATADESCRIPTOR_FLAGS_TIMING_ETS_DTS_OFFSET_VALID ) ),

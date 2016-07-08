@@ -1,0 +1,68 @@
+vertex:
+  vec4 texture2DLod(sampler2D sampler, vec2 coord, float lod);
+  vec4 texture2DProjLod(sampler2D sampler, vec3 coord, float lod);
+  vec4 texture2DProjLod(sampler2D sampler, vec4 coord, float lod);
+  vec4 textureCubeLod(samplerCube sampler, vec3 coord, float lod);
+  out highp   vec4  gl_Position;
+  out highp   float gl_PointSize;
+  out mediump float gl_PointSize;
+  in highp    int   gl_VertexID;
+  in highp    int   gl_InstanceID;
+
+
+tess-c:
+  in highp int gl_PatchVerticesIn;
+  in highp int gl_PrimitiveID;
+  in highp int gl_InvocationID;
+  patch out highp float gl_TessLevelOuter[4];
+  patch out highp float gl_TessLevelInner[2];
+# Leave spaces before the semicolons to work around a problem in the stdlib parser
+  void barrier() ;
+
+
+tess-e:
+  in highp int  gl_PatchVerticesIn;
+  in highp int  gl_PrimitiveID;
+  in highp vec3 gl_TessCoord;
+  patch in highp float gl_TessLevelOuter[4];
+  patch in highp float gl_TessLevelInner[2];
+
+
+fragment:
+  vec4 texture2D    (sampler2D sampler, vec2 coord, float bias);
+  vec4 texture2DProj(sampler2D sampler, vec3 coord, float bias);
+  vec4 texture2DProj(sampler2D sampler, vec4 coord, float bias);
+  vec4 textureCube(samplerCube sampler, vec3 coord, float bias);
+  float dFdx(float p);
+  vec2 dFdx(vec2 p);
+  vec3 dFdx(vec3 p);
+  vec4 dFdx(vec4 p);
+  float dFdy(float p);
+  vec2 dFdy(vec2 p);
+  vec3 dFdy(vec3 p);
+  vec4 dFdy(vec4 p);
+  float fwidth(float p);
+  vec2 fwidth(vec2 p);
+  vec3 fwidth(vec3 p);
+  vec4 fwidth(vec4 p);
+  out mediump vec4  gl_FragColor;
+  out mediump vec4  gl_FragData[gl_MaxDrawBuffers];
+  out highp   float gl_FragDepth;
+  in  mediump vec4  gl_FragCoord;
+  in  highp   vec4  gl_FragCoord;
+  in          bool  gl_FrontFacing;
+  in  mediump vec2  gl_PointCoord;
+  in          bool  gl_HelperInvocation;
+  in  mediump float __brcm_LineCoord;
+
+
+compute:
+  in    uvec3 gl_NumWorkGroups;
+  in    uvec3 gl_WorkGroupID;
+  in    uvec3 gl_LocalInvocationID;
+  in    uvec3 gl_GlobalInvocationID;
+  in    uint  gl_LocalInvocationIndex;
+# Leave spaces before the semicolons to work around a problem in the stdlib parser
+  void barrier() ;
+  void memoryBarrierShared() ;
+  void groupMemoryBarrier() ;

@@ -1,22 +1,42 @@
 /***************************************************************************
- *     Copyright (c) 2006-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description: Audio Decoder Interface
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ***************************************************************************/
 
 #ifndef BAPE_CODEC_TYPES_H_
@@ -26,15 +46,23 @@
 Summary:
 AC3 DRC (Dynamic Range Compression) Modes
 ***************************************************************************/
-typedef enum BAPE_Ac3DrcMode
+typedef enum BAPE_DolbyDrcMode
 {
-    BAPE_Ac3DrcMode_eLine,
-    BAPE_Ac3DrcMode_eRf,
-    BAPE_Ac3DrcMode_eCustomA,
-    BAPE_Ac3DrcMode_eCustomD,
-    BAPE_Ac3DrcMode_eDisabled,
-    BAPE_Ac3DrcMode_eMax
-} BAPE_Ac3DrcMode;
+    BAPE_DolbyDrcMode_eLine,
+    BAPE_DolbyDrcMode_eRf,
+    BAPE_DolbyDrcMode_eCustomA,
+    BAPE_DolbyDrcMode_eCustomD,
+    BAPE_DolbyDrcMode_eDisabled,
+    BAPE_DolbyDrcMode_eMax
+} BAPE_DolbyDrcMode;
+
+typedef BAPE_DolbyDrcMode BAPE_Ac3DrcMode;
+#define BAPE_Ac3DrcMode_eLine BAPE_DolbyDrcMode_eLine
+#define BAPE_Ac3DrcMode_eRf BAPE_DolbyDrcMode_eRf
+#define BAPE_Ac3DrcMode_eCustomA BAPE_DolbyDrcMode_eCustomA
+#define BAPE_Ac3DrcMode_eCustomD BAPE_DolbyDrcMode_eCustomD
+#define BAPE_Ac3DrcMode_eDisabled BAPE_DolbyDrcMode_eDisabled
+#define BAPE_Ac3DrcMode_eMax BAPE_DolbyDrcMode_eMax
 
 /***************************************************************************
 Summary:
@@ -78,6 +106,46 @@ typedef struct BAPE_Ac3Settings
 
 /***************************************************************************
 Summary:
+Dolby Stereo Downmix Modes
+***************************************************************************/
+typedef enum BAPE_DolbyStereoMode
+{
+    BAPE_DolbyStereoMode_eLoRo,   /* LoRo */
+    BAPE_DolbyStereoMode_eLtRt,   /* Pro-Logic/Pro-Logic II */
+    BAPE_DolbyStereoMode_eMax
+} BAPE_DolbyStereoMode;
+
+/***************************************************************************
+Summary:
+AC4 Codec Settings
+***************************************************************************/
+typedef struct BAPE_Ac4Settings
+{
+    BAPE_DolbyDrcMode drcMode;      /* DRC (Dynamic Range Compression) Mode */
+    BAPE_DolbyDrcMode drcModeDownmix;/* DRC (Dynamic Range Compression) Mode for stereo downmix path */
+
+    BAPE_DolbyStereoMode stereoMode;/* Stereo Downmix Mode */
+
+    unsigned programSelection;      /* Program Selection for embedded description (substream) program.
+                                       0 (Default) - decode main + description program,
+                                       1 - decode main program only,
+                                       2 - decode description program only. */
+    int programBalance;             /* Program balance adjusts the balance between the main and description
+                                       programs. This control is for embedded description program only.
+                                       Valid values are -32 to 32. -32 is main only, 32 is description only.
+                                       Default is -32 */
+
+    unsigned presentationId;        /* Multiple "presentation" groups can exist within a single PID.
+                                       Use this field to pick the desired presentation. Valid values
+                                       are 0 - 511. Default value is 0 */
+
+    int dialogEnhancerAmount;       /* Valid values are -12 to +12, in 1dB steps. Default value is 0 */
+
+    unsigned certificationMode;     /* for internal use only */
+} BAPE_Ac4Settings;
+
+/***************************************************************************
+Summary:
 AAC Stereo Downmix Modes
 ***************************************************************************/
 typedef enum BAPE_AacStereoMode
@@ -109,7 +177,7 @@ typedef struct BAPE_AacSettings
     uint16_t drcScaleHi;            /* In %, ranges from 0..100 */
     uint16_t drcScaleLow;           /* In %, ranges from 0..100 */
     uint16_t drcReferenceLevel;     /* DRC (Dynamic Range Compression) Reference Level.  Ranges from 0..127  in -0.25dB units (e.g. program 80 for -20dB) */
-    
+
     BAPE_AacStereoMode downmixMode; /* AAC Downmix Mode */
 
     bool enableGainFactor;      /* If true, the gain factor below is applied (Used in Dolby Pulse only) */
@@ -127,7 +195,7 @@ typedef struct BAPE_AacSettings
                                        If set to false, AAC HE decoding is disabled,
                                        allowing only AAC LC decoding */
 
-    uint16_t downmixCoefficients[6][6]; /* User defined downmix (or karaoke) coefficients. 
+    uint16_t downmixCoefficients[6][6]; /* User defined downmix (or karaoke) coefficients.
                                            Valid only when enableDownmixCoefficients is true (Not Applicable with Dolby Pulse) */
 
     uint32_t downmixCoefScaleIndex;      /* Default = 0,  0 -> 0dB, 1 -> -0.5dB, 2 -> -1dB, ... , 23 -> -11.5dB, 24 -> -12dB; all values beyond 24 map to 50
@@ -142,11 +210,11 @@ typedef enum BAPE_WmaProDrcMode
 {
     BAPE_WmaProDrcMode_eDisabled,   /* DRC is disabled */
     BAPE_WmaProDrcMode_eHigh,       /* No scaling is applied.  Content is played in it's original form. */
-    BAPE_WmaProDrcMode_eMedium,     /* drc_frame_scale_factor is applied along with a scale factor to make 
-                                       the output rms of the content rms_amplitude_target_dB, and the peak 
+    BAPE_WmaProDrcMode_eMedium,     /* drc_frame_scale_factor is applied along with a scale factor to make
+                                       the output rms of the content rms_amplitude_target_dB, and the peak
                                        of the content be peak_amplitude_target_med_dB. */
-    BAPE_WmaProDrcMode_eLow,        /* drc_frame_scale_factor is applied along with a scale factor to make 
-                                       the output rms of the content rms_amplitude_target_dB, and the peak 
+    BAPE_WmaProDrcMode_eLow,        /* drc_frame_scale_factor is applied along with a scale factor to make
+                                       the output rms of the content rms_amplitude_target_dB, and the peak
                                        of the content be peak_amplitude_target_low_dB.*/
     BAPE_WmaProDrcMode_eMax
 
@@ -173,9 +241,9 @@ typedef struct BAPE_WmaProSettings
     BAPE_WmaProStereoMode stereoMode;
     BAPE_WmaProDrcMode drcMode;
     unsigned rmsAmplitudeReference;
-    unsigned peakAmplitudeReference;    
+    unsigned peakAmplitudeReference;
     unsigned desiredRms;        /* desired rmsDb for normalization */
-    unsigned desiredPeak;       /* desired peakDb for normalization */ 
+    unsigned desiredPeak;       /* desired peakDb for normalization */
 } BAPE_WmaProSettings;
 
 /***************************************************************************
@@ -384,10 +452,10 @@ typedef enum BAPE_Ac3Acmod
 
 /***************************************************************************
 Summary:
-AC3 Center Mix Level (cmixlev) 
- 
-Description: 
-Expressed as dB attenuation 
+AC3 Center Mix Level (cmixlev)
+
+Description:
+Expressed as dB attenuation
 ***************************************************************************/
 typedef enum BAPE_Ac3CenterMixLevel
 {
@@ -399,10 +467,10 @@ typedef enum BAPE_Ac3CenterMixLevel
 
 /***************************************************************************
 Summary:
-AC3 Surround Mix Level (surmixlev) 
- 
-Description: 
-Expressed as dB attenuation 
+AC3 Surround Mix Level (surmixlev)
+
+Description:
+Expressed as dB attenuation
 ***************************************************************************/
 typedef enum BAPE_Ac3SurroundMixLevel
 {
@@ -440,25 +508,25 @@ typedef enum BAPE_Ac3DependentFrameChannelMap
     BAPE_Ac3DependentFrameChannelMap_eL_C_R_l_r,
     BAPE_Ac3DependentFrameChannelMap_eL_C_R_Cvh,
     BAPE_Ac3DependentFrameChannelMap_eL_R_l_r_Ts,
-    BAPE_Ac3DependentFrameChannelMap_eL_C_R_l_r_Ts,                
-    BAPE_Ac3DependentFrameChannelMap_eL_C_R_l_r_Cvh,            
+    BAPE_Ac3DependentFrameChannelMap_eL_C_R_l_r_Ts,
+    BAPE_Ac3DependentFrameChannelMap_eL_C_R_l_r_Cvh,
     BAPE_Ac3DependentFrameChannelMap_eL_C_R_Lc_Rc,
     BAPE_Ac3DependentFrameChannelMap_eL_R_l_r_Lw_Rw,
     BAPE_Ac3DependentFrameChannelMap_eL_R_l_r_Lvh_Rvh,
-    BAPE_Ac3DependentFrameChannelMap_eL_R_l_r_Lsd_rsd,            
+    BAPE_Ac3DependentFrameChannelMap_eL_R_l_r_Lsd_rsd,
     BAPE_Ac3DependentFrameChannelMap_eL_R_l_r_Lrs_Rrs,
     BAPE_Ac3DependentFrameChannelMap_eL_C_R_l_r_Lc_Rc,
     BAPE_Ac3DependentFrameChannelMap_eL_C_R_l_r_Lw_Rw,
-    BAPE_Ac3DependentFrameChannelMap_eL_C_R_l_r_Lvh_Rvh,            
+    BAPE_Ac3DependentFrameChannelMap_eL_C_R_l_r_Lvh_Rvh,
     BAPE_Ac3DependentFrameChannelMap_eL_C_R_l_r_Lsg_Rsd,
     BAPE_Ac3DependentFrameChannelMap_eL_C_R_l_r_Lrs_Rrs,
     BAPE_Ac3DependentFrameChannelMap_eL_C_R_l_r_Ts_Cvh,
-    BAPE_Ac3DependentFrameChannelMap_eL_R_l_r_Cs,            
+    BAPE_Ac3DependentFrameChannelMap_eL_R_l_r_Cs,
     BAPE_Ac3DependentFrameChannelMap_eL_C_R_l_r_Cs,
-    BAPE_Ac3DependentFrameChannelMap_eL_R_l_r_Cs_Ts,           
+    BAPE_Ac3DependentFrameChannelMap_eL_R_l_r_Cs_Ts,
     BAPE_Ac3DependentFrameChannelMap_eL_C_R_l_r_Cs_Cvh,
     BAPE_Ac3DependentFrameChannelMap_eL_C_R_l_r_Cs_Ts,
-    BAPE_Ac3DependentFrameChannelMap_eMax    
+    BAPE_Ac3DependentFrameChannelMap_eMax
 } BAPE_Ac3DependentFrameChannelMap;
 
 /***************************************************************************
@@ -468,7 +536,7 @@ AC3 Codec Status
 typedef struct BAPE_Ac3Status
 {
     unsigned                    samplingFrequency;
-    uint8_t                     frameSizeCode;          /* frmsizcod - Frame Size Code.  Can be used in conjunction with fscod/sampleRateCode 
+    uint8_t                     frameSizeCode;          /* frmsizcod - Frame Size Code.  Can be used in conjunction with fscod/sampleRateCode
                                                            to determine frame size */
     uint8_t                     bitstreamId;            /* bsid - Version of the standard the stream is compliant with */
     BAPE_Ac3Bsmod               bsmod;                  /* bsmod - indicates type of service conveyed according to the standard */
@@ -485,6 +553,59 @@ typedef struct BAPE_Ac3Status
     unsigned                    dialnorm;               /* Current Dialog Normalization value - Possible range 0 to 31 which corresponds to 0 to -31 dB level. */
     unsigned                    previousDialnorm;       /* Previous Dialog Normalization value - Possible range 0 to 31 which corresponds to 0 to -31 dB level. */
 } BAPE_Ac3Status;
+
+typedef enum BAPE_Ac4Acmod
+{
+    BAPE_Ac4Acmod_e1_ch1_ch2,
+    BAPE_Ac4Acmod_e1_0_C,
+    BAPE_Ac4Acmod_e2_0_L_R,
+    BAPE_Ac4Acmod_e3_0_L_C_R,
+    BAPE_Ac4Acmod_e2_1_L_R_S,
+    BAPE_Ac4Acmod_e3_1_L_C_R_S,
+    BAPE_Ac4Acmod_e2_2_L_R_LS_RS,
+    BAPE_Ac4Acmod_e3_2_L_C_R_LS_RS,
+    BAPE_Ac4Acmod_e2_2_L_C_R_CVH,
+    BAPE_Ac4Acmod_e2_3_L_R_LS_RS_TS,
+    BAPE_Ac4Acmod_e3_3_L_R_C_LS_RS_TS,
+    BAPE_Ac4Acmod_e3_3_L_R_C_LS_RS_CVH,
+    BAPE_Ac4Acmod_e3_2_L_R_C_LC_RC,
+    BAPE_Ac4Acmod_e2_4_L_R_LS_RS_LW_RW,
+    BAPE_Ac4Acmod_e2_4_L_R_LS_RS_LVH_RVH,
+    BAPE_Ac4Acmod_e2_4_L_R_LS_RS_LSD_RSD,
+    BAPE_Ac4Acmod_e2_4_L_R_LS_RS_LRS_RRS,
+    BAPE_Ac4Acmod_e3_4_L_R_C_LS_RS_LC_RC,
+    BAPE_Ac4Acmod_e3_4_L_R_C_LS_RS_LW_RW,
+    BAPE_Ac4Acmod_e3_4_L_R_C_LS_RS_LVH_RVH,
+    BAPE_Ac4Acmod_e3_4_L_R_C_LS_RS_LSD_RSD,
+    BAPE_Ac4Acmod_e3_4_L_R_C_LS_RS_LRS_RRS,
+    BAPE_Ac4Acmod_e3_4_L_R_C_LS_RS_TS_CVH,
+    BAPE_Ac4Acmod_eMax
+} BAPE_Ac4Acmod;
+
+/***************************************************************************
+Summary:
+AC4 Codec Status
+***************************************************************************/
+typedef struct BAPE_Ac4Status
+{
+    unsigned                    samplingFrequency;
+    uint8_t                     bitstreamId;            /* bsid - Version of the standard the stream is compliant with */
+    BAPE_Ac4Acmod               acmod;                  /* acmod - Indicates channel layout */
+    BAPE_ChannelMode            channelMode;            /* Codec-independent ACMOD value */
+    bool                        lfe;                    /* lfeon - If true, the LFE channel exists in the stream. */
+    unsigned                    bitrate;                /* Bitrate in kbps */
+    unsigned                    dialnorm;               /* Current Dialog Normalization value - Possible range 0 to 31 which corresponds to 0 to -31 dB level. */
+    unsigned                    previousDialnorm;       /* Previous Dialog Normalization value - Possible range 0 to 31 which corresponds to 0 to -31 dB level. */
+
+    /* AC-4 specific stream info */
+    unsigned streamInfoVersion;                                        /* Identifies which version of the decoder stream info is being provided */
+    unsigned numPresentations;                                         /* Identifies the number of presentations present in compressed bitstream.
+                                                                           Values greater than NEXUS_AUDIO_AC4_MAX_PRESENTATIONS should be ignored. */
+    unsigned currentPresentationIndex;                                 /* Index to the current Presentation that is being decoded. */
+    unsigned dialogEnhanceMax;                                         /* Specifies the maximum value that will be honored as
+                                                                          a Dialog Enhance Amount Value. Possible range 0 to 12.
+                                                                          Values outside of this range should be ignored */
+} BAPE_Ac4Status;
 
 /***************************************************************************
 Summary:
@@ -572,7 +693,7 @@ typedef enum BAPE_DtsAmode
     BAPE_DtsAmode_eSixCh_CF_CR_LF_RF_Lr_Rr,
     BAPE_DtsAmode_eSevenCh_CL_C_CR_L_R_SL_SR,
     BAPE_DtsAmode_eEightCh_CL_CR_L_R_SL1_SL2_SR1_SR2,
-    BAPE_DtsAmode_eEightCh_CL_C_CR_L_R_SL_S_SR,   
+    BAPE_DtsAmode_eEightCh_CL_C_CR_L_R_SL_S_SR,
     BAPE_DtsAmode_eUserDefined,
     BAPE_DtsAmode_eMax
 }BAPE_DtsAmode;
@@ -694,7 +815,7 @@ typedef enum BAPE_DraStereoMode
     BAPE_DraStereoMode_eLoRo,
     BAPE_DraStereoMode_eLtRt,
     BAPE_DraStereoMode_eMax
-} BAPE_DraStereoMode; 
+} BAPE_DraStereoMode;
 
 /***************************************************************************
 Summary:
@@ -723,4 +844,3 @@ typedef struct BAPE_CookStatus
 } BAPE_CookStatus;
 
 #endif /* #ifndef BAPE_CODEC_TYPES_H_ */
-

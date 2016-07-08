@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2015 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -155,7 +155,7 @@ typedef struct NEXUS_DisplayModule_State {
     BTMR_TimerHandle tmr;
 
     /* mapping of nexus to vdc heap */
-#define MAX_VDC_HEAPS 4
+#define MAX_VDC_HEAPS 8
     struct {
         NEXUS_HeapHandle nexusHeap;
         BVDC_Heap_Handle vdcHeap;
@@ -223,6 +223,7 @@ struct NEXUS_DisplayGraphics {
     bool colorMatrixSet;
     unsigned validCount;
     NEXUS_GraphicsColorSettings colorSettings;
+    bool secure;
 };
 
 typedef struct NEXUS_Display_P_Image {
@@ -265,6 +266,11 @@ struct NEXUS_Display {
         bool enabled[nexus_vbi_resources_max];
     } vbi;
 #endif
+    struct {
+        NEXUS_DisplayMacrovisionType type;
+        bool tableSet;
+        NEXUS_DisplayMacrovisionTables table;
+    } macrovision;
     unsigned index;
     NEXUS_DisplaySettings cfg;
     NEXUS_DisplayStatus status;
@@ -383,6 +389,7 @@ void NEXUS_Display_P_DisableVbi(NEXUS_DisplayHandle display);
 BERR_Code NEXUS_Display_P_EnableVbi(NEXUS_DisplayHandle display, NEXUS_VideoFormat format);
 BERR_Code NEXUS_Display_P_VbiData_isr(NEXUS_DisplayHandle display, BVBI_Field_Handle vbiData);
 #endif
+void nexus_p_check_macrovision( NEXUS_DisplayHandle display, NEXUS_VideoFormat videoFormat);
 
 BVDC_Heap_Handle NEXUS_Display_P_CreateHeap(NEXUS_HeapHandle heap);
 void NEXUS_Display_P_DestroyHeap(BVDC_Heap_Handle vdcHeap);

@@ -631,6 +631,7 @@ static BERR_Code BCHP_P_ResetMagnumCores
     ( const BCHP_Handle                hChip )
 
 {
+    BCHP_P_ResetRaagaCore(hChip, hChip->regHandle);
 	/* Reset some cores. This is needed to avoid L1 interrupts before BXXX_Open can be called per core. */
     /* Note, SW_INIT set/clear registers don't need read-modify-write. */
     BREG_Write32(hChip->regHandle, BCHP_SUN_TOP_CTRL_SW_INIT_0_SET,
@@ -652,7 +653,6 @@ static BERR_Code BCHP_P_ResetMagnumCores
          | BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_0_CLEAR, raaga_sw_init, 1)
          | BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_0_CLEAR, dvp_ht_sw_init, 1));
 
-	BCHP_P_ResetRaagaCore(hChip, hChip->regHandle);
     return BERR_SUCCESS;
 }
 

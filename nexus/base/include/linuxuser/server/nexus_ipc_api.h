@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2012 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2004-2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -62,6 +62,9 @@ typedef struct NEXUS_Ipc_Header {
    unsigned function_id;
    int result; /* ipc system rc, not the function's rc */
 } NEXUS_Ipc_Header;
+
+/* unit type for IPC, variable size arrays would use this type, and would be aligned to size of this type */
+typedef unsigned long NEXUS_Ipc_Unit;
 
 /**
 Intermediate physical addressed used to translate addresses between processes.

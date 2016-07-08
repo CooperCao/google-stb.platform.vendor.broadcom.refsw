@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -53,7 +53,6 @@
 #include "bsg_print.h"
 #include "bsg_hud.h"
 #include "bsg_render_options.h"
-#include "bsg_quad_render.h"
 
 #include <stdint.h>
 
@@ -230,9 +229,6 @@ public:
    //! Returns if set to stereoscopic mode
    bool IsStereo() const         { return m_platform.IsStereo();     }
 
-   //! Returns if set to stereoscopic mode
-   bool IsQuad() const           { return m_platform.IsQuad();       }
-
    //! Set and get the swap interval
    uint32_t GetSwapInterval() const { return m_platform.GetSwapInterval(); }
    void SetSwapInterval(uint32_t s) { m_platform.SetSwapInterval(s);       }
@@ -313,12 +309,12 @@ public:
    //! Left frames are drawn first.  Returns true in "normal mode".
    bool IsLeftFrame() const;
 
-   //! Test if a frame is the first of a set of renders e.g. is it the left stereo frame
-   //! or is it the first panel in quad mode.  Returns true in "normal mode".
+   //! Test if a frame is the first of a set of renders e.g. is it the left stereo frame.
+   //! Returns true in "normal mode".
    bool IsBeginFrame() const;
 
-   //! Test if a frame is the last of a set of renders e.g. it is the right stero frame
-   //! or is it the last panel in quad mode.  Returns true in "normal mode".
+   //! Test if a frame is the last of a set of renders e.g. it is the right stero frame.
+   //! Returns true in "normal mode".
    bool IsEndFrame() const;
 
    //! Tell BSG that the GL state has been meddled with
@@ -342,13 +338,11 @@ public:
    //! The singleton instance accessor
    static Application *Instance()
    {
-      if (m_instance == nullptr)
+      if (m_instance == NULL)
          BSG_THROW("Application hasn't been created.  No instance available");
 
       return m_instance;
    }
-
-   QuadRender &GetQuadRender() const { return *m_quad; }
 
    friend class NativePixmap;
    friend class Video;
@@ -368,7 +362,6 @@ private:
    FramebufferHandle          *m_renderTarget;
 
    static CameraHandle        m_nullCamera;
-   std::unique_ptr<QuadRender>  m_quad;
 };
 
 class RawApplication : public Application

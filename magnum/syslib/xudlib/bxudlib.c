@@ -598,7 +598,7 @@ BXUDlib_P_OutputUserData_isr( BXUDlib_P_Context *pContext, uint32_t stgPictureId
     BUDP_Encoder_FieldInfo *pstFieldInfo = (BUDP_Encoder_FieldInfo *) pContext->auiFieldInfo;
     BUDP_Encoder_PacketDescriptor *pstPacketDescriptor = pstFieldInfo->stPacketDescriptor;
 
-    unsigned queuedCount;
+    size_t queuedCount;
     uint8_t i;
 
     userDataAdd_isr = pContext->settings.sinkInterface.userDataAdd_isr;

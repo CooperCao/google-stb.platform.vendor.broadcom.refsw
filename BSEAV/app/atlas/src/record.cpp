@@ -1,7 +1,7 @@
-/***************************************************************************
- * (c) 2002-2015 Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -37,7 +37,6 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 
 #include "band.h"
@@ -80,7 +79,7 @@ void CRecpump::close()
     if (_recpump != NULL)
     {
         NEXUS_Recpump_Close(_recpump);
-        _recpump= NULL;
+        _recpump = NULL;
     }
     _allocated = false;
 }
@@ -109,7 +108,7 @@ eRet CRecpump::open()
     _recpump = NEXUS_Recpump_Open(NEXUS_ANY_ID, NULL);
     CHECK_PTR_ERROR_GOTO("Cannot Open Recpump", _recpump, ret, eRet_ExternalError, error);
 
-    BDBG_MSG(("(*&*&*&**&*&*& recpump %p",_recpump));
+    BDBG_MSG(("(*&*&*&**&*&*& recpump %p", (void *)_recpump));
     _allocated = true;
 
 error:
@@ -195,7 +194,8 @@ CRecord::CRecord(
     _pParserBand(NULL),
     _allocated(false),
     _currentVideo(NULL),
-    _pBoardResources(NULL)
+    _pBoardResources(NULL),
+    _pidMgr(NULL)
 #if NEXUS_HAS_DMA || NEXUS_HAS_XPT_DMA
     , _pDma(NULL)
 #endif
@@ -206,8 +206,10 @@ CRecord::CRecord(
 
 CRecord::~CRecord()
 {
-   if (_record != NULL)
-      stop();
+    if (_record != NULL)
+    {
+        stop();
+    }
 
     close();
 }
@@ -216,7 +218,7 @@ void CRecord::close()
 {
     if (_record != NULL)
     {
-        //stop();
+        /* stop(); */
         NEXUS_Record_Destroy(_record);
         _record = NULL;
     }
@@ -230,8 +232,7 @@ void CRecord::close()
     }
 
     _allocated = false;
-
-}
+} /* close */
 
 void CRecord::dump(void)
 {
@@ -249,7 +250,6 @@ eRet CRecord::open()
 
     ret = CResource::initialize();
     CHECK_ERROR_GOTO("resource initialization failed", ret, error);
-
 
     if ((_pRecpump != NULL) && (_record != NULL))
     {
@@ -273,7 +273,7 @@ eRet CRecord::open()
     NEXUS_Record_SetSettings(_record, &_recordSettings);
 
     BDBG_MSG(("added record/recpump #%d", _number));
-    BDBG_MSG(("(*&*&*&**&*&*& record  %p",_record ));
+    BDBG_MSG(("(*&*&*&**&*&*& record %p", (void *)_record));
     _allocated = true;
     goto done;
 error:

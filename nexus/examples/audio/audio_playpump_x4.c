@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2014 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,17 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
  *****************************************************************************/
 /* Nexus example app: basic file playback */
 
@@ -272,22 +261,22 @@ int main(void)
         if ( !hdmiStatus.videoFormatSupported[displaySettings.format] ) {
             displaySettings.format = hdmiStatus.preferredVideoFormat;
             NEXUS_Display_SetSettings(display, &displaySettings);
-		}
+        }
     }
     #endif
 
-	/* bring up decoder and connect to display */
+    /* bring up decoder and connect to display */
     videoDecoder = NEXUS_VideoDecoder_Open(0, NULL); /* take default capabilities */
     NEXUS_VideoWindow_AddInput(window, NEXUS_VideoDecoder_GetConnector(videoDecoder));
     NEXUS_Playback_GetDefaultPidChannelSettings(&playbackPidSettings);
 
-	file = NEXUS_FilePlay_OpenPosix(fname, NULL);
+    file = NEXUS_FilePlay_OpenPosix(fname, NULL);
     if (!file) {
         fprintf(stderr, "can't open file:%s\n", fname);
         return -1;
     }
 
-	/* Open the audio and video pid channels */
+    /* Open the audio and video pid channels */
     playbackPidSettings.pidSettings.pidType = NEXUS_PidType_eVideo;
     playbackPidSettings.pidTypeSettings.video.codec = VIDEO_CODEC; /* must be told codec for correct handling */
     playbackPidSettings.pidTypeSettings.video.index = true;
@@ -295,13 +284,13 @@ int main(void)
     videoPidChannel = NEXUS_Playback_OpenPidChannel(playback, VIDEO_PID, &playbackPidSettings);
 
     /* Set up decoder Start structures now. We need to know the audio codec to properly set up the audio outputs. */
-	NEXUS_VideoDecoder_GetDefaultStartSettings(&videoProgram);
+    NEXUS_VideoDecoder_GetDefaultStartSettings(&videoProgram);
     videoProgram.codec = VIDEO_CODEC;
     videoProgram.pidChannel = videoPidChannel;
     videoProgram.stcChannel = stcChannel;
 
-	printf("Press ENTER to Start Playback\n");
-	while (getchar() != '\n'){ }
+    printf("Press ENTER to Start Playback\n");
+    while (getchar() != '\n'){ }
 
     /* Start decoders */
     NEXUS_VideoDecoder_Start(videoDecoder, &videoProgram);
@@ -330,7 +319,7 @@ int main(void)
         }
     }
 
-	/* Start playback */
+    /* Start playback */
     NEXUS_Playback_Start(playback, file, NULL);
 
     for (;;)
@@ -339,8 +328,8 @@ int main(void)
     }
 
     /* Bring down system */
-	NEXUS_Playback_Stop(playback);
-	NEXUS_VideoDecoder_Stop(videoDecoder);
+    NEXUS_Playback_Stop(playback);
+    NEXUS_VideoDecoder_Stop(videoDecoder);
     for (i = 0; i < NUM_AUDIO_DECODES; i++)
     {
         if (AUDIO_CODEC == NEXUS_AudioCodec_eAc3Plus)

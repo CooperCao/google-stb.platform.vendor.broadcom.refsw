@@ -1,51 +1,40 @@
-/***************************************************************************
-*     (c)2003-2016 Broadcom Corporation
-*
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
-*  and may only be used, duplicated, modified or distributed pursuant to the terms and
-*  conditions of a separate, written license agreement executed between you and Broadcom
-*  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-*  no license (express or implied), right to use, or waiver of any kind with respect to the
-*  Software, and Broadcom expressly reserves all rights in and to the Software and all
-*  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-*  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-*  Except as expressly set forth in the Authorized License,
-*
-*  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-*  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-*  and to use this information only in connection with your use of Broadcom integrated circuit products.
-*
-*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-*  USE OR PERFORMANCE OF THE SOFTWARE.
-*
-*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-*  ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* Description: utility routines used by IP Applib
-*
-* Revision History:
-*
-* $brcm_Log: $
-*
-***************************************************************************/
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
 #ifndef _WIN32_WCE
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -273,7 +262,7 @@ B_PlaybackIp_UtilsWaitForSocketWriteReady(
         else if (rc == 0) {
             /* select timeout */
             BDBG_MSG(("%s: ERROR: select timed out (%d user val %d usec) in waiting for socket to be ready to accept more data (fd %d)\n",
-                            __FUNCTION__, tv.tv_usec, timeout, fd));
+                            __FUNCTION__, (int)tv.tv_usec, (int)timeout, (int)fd));
             return 0;
         }
 
@@ -317,7 +306,7 @@ B_PlaybackIp_UtilsWaitForSocketData(
             /* increase the socket timeout as scaled data may take longer to arrive */
             tv.tv_sec = 30;
             tv.tv_usec = 0;
-            BDBG_MSG(("Live mode is disabled, so using the default large timeout of %d sec\n", tv.tv_sec));
+            BDBG_MSG(("Live mode is disabled, so using the default large timeout of %d sec\n", (int)tv.tv_sec));
         }
         else {
             tv.tv_sec = 0;
@@ -337,7 +326,7 @@ B_PlaybackIp_UtilsWaitForSocketData(
             /* if in non-paused state, indicate to caller this timeout event. For LIVE IP Channels, this event is */
             /* considered as unmarked discontinuity */
             if (playback_ip->playback_state == B_PlaybackIpState_ePaused) {
-                BDBG_MSG(("%s: timed out during pause state, continue waiting on select (fd %d, timeout %d)\n", __FUNCTION__, fd, tv.tv_sec));
+                BDBG_MSG(("%s: timed out during pause state, continue waiting on select (fd %d, timeout %d)\n", __FUNCTION__, (int)fd, (int)tv.tv_sec));
                 continue;
             }
 
@@ -391,7 +380,7 @@ int B_PlaybackIp_UtilsGetPlaypumpBuffer(
             NEXUS_PlaypumpStatus ppStatus;
             /* bplaypump_flush(playback_ip->nexusHandles.playpump); */
             rc = NEXUS_Playpump_GetStatus(playback_ip->nexusHandles.playpump, &ppStatus);
-            if (!rc) BDBG_MSG(("Returned 0 buffer size from GetBuffer()!, fifo dep %d, size %d, desc sz %d dep %d", ppStatus.fifoDepth, ppStatus.fifoSize, ppStatus.descFifoDepth, ppStatus.descFifoSize));
+            if (!rc) BDBG_MSG(("Returned 0 buffer size from GetBuffer()!, fifo dep %zu, size %zu, desc sz %zu dep %zu", ppStatus.fifoDepth, ppStatus.fifoSize, ppStatus.descFifoDepth, ppStatus.descFifoSize));
             BKNI_Sleep(200);
             continue;
         }
@@ -814,7 +803,7 @@ B_PlaybackIp_UtilsTcpSocketConnect(
         return B_ERROR_INVALID_PARAMETER;
     }
     BDBG_MSG(("%s: socket family %d, type %d, protocol %d, ai_next %p",
-                __FUNCTION__, addrInfo->ai_family, addrInfo->ai_socktype, addrInfo->ai_protocol, addrInfo->ai_next));
+                __FUNCTION__, addrInfo->ai_family, addrInfo->ai_socktype, addrInfo->ai_protocol, (void *)addrInfo->ai_next));
     getnameinfo(addrInfo->ai_addr, addrInfo->ai_addrlen, hostbuf, sizeof(hostbuf), serverbuf, sizeof(serverbuf), NI_NUMERICHOST | NI_NUMERICSERV);
     BDBG_MSG(("IP Addr = %s, Port = %s\n", hostbuf, serverbuf));
     for (addrInfoNode = addrInfo; addrInfoNode != NULL; addrInfoNode = addrInfo->ai_next) {
@@ -823,7 +812,7 @@ B_PlaybackIp_UtilsTcpSocketConnect(
     }
     addrInfoParent = addrInfo;
     if (!addrInfoNode) {
-        BDBG_ERR(("%s: ERROR: no IPv4 address available for this server, no support for IPv6 yet"));
+        BDBG_ERR(("%s: ERROR: no IPv4 address available for this server, no support for IPv6 yet", __FUNCTION__));
         goto error;
     }
     addrInfo = addrInfoNode;
@@ -839,6 +828,18 @@ B_PlaybackIp_UtilsTcpSocketConnect(
         perror("socket");
         status = B_ERROR_SOCKET_ERROR;
         goto error;
+    }
+
+    {
+        /* Set the DSCP Value for the outgoing Request & TCP ACKs. */
+#define DSCP_CLASS_SELECTOR_VIDEO 0xa0
+        int dscpTcValue = DSCP_CLASS_SELECTOR_VIDEO;
+
+        if (setsockopt(sd, IPPROTO_IP, IP_TOS, &dscpTcValue, sizeof(dscpTcValue)) < 0) {
+            BDBG_WRN(("%s: setsockopt() error, errno %d", __FUNCTION__, errno));
+            perror("setsockopt:");
+            /* Note: we ignore the warning & continue w/ the socket setup. */
+        }
     }
 
     B_PlaybackIp_UtilsTuneNetworkStack(sd);
@@ -1032,7 +1033,7 @@ char *B_PlaybackIp_UtilsStristr ( char *str, char *subStr)
 
 char *B_PlaybackIp_UtilsStrdup_Tagged(char *src, char *funcName, int lineNum)
 {
-    BDBG_MSG(("%s: called by %s at %d string len %d", __FUNCTION__, funcName, lineNum, strlen(src)+1));
+    BDBG_MSG(("%s: called by %s at %d string len %zu", __FUNCTION__, funcName, lineNum, strlen(src)+1));
     return B_PlaybackIp_UtilsStrdup(src);
 }
 
@@ -1043,12 +1044,12 @@ char *B_PlaybackIp_UtilsStrdup(char *src)
     if (src) {
         srcLen = strlen(&src[0]) + 1; /* +1 for string terminator '\0' */
     if ((dst = (char  *)BKNI_Malloc(srcLen)) == NULL) {
-        BDBG_ERR(("%s: Failed to allocate %d bytes of memory for strdup ", __FUNCTION__, srcLen));
+        BDBG_ERR(("%s: Failed to allocate %zu bytes of memory for strdup ", __FUNCTION__, srcLen));
         return NULL;
     }
     BKNI_Memcpy(dst, src, srcLen-1);
     dst[srcLen-1] = '\0';
-    BDBG_MSG(("%s: duplicated %d bytes from %p to %p", __FUNCTION__, srcLen, src, dst));
+    BDBG_MSG(("%s: duplicated %zu bytes from %p to %p", __FUNCTION__, srcLen, src, dst));
     }
     return dst;
 }
@@ -1173,7 +1174,7 @@ http_get_payload_content_length(char *http_hdr, off_t *length, bool *chunk_encod
                         tmp2++;
                         if (*tmp2 != '*') {
                             *length = strtoll(tmp2, (char **)NULL, 10);
-                            BDBG_WRN(("Content-Length: %lld, determined by using the Content-Range header", *length));
+                            BDBG_WRN(("Content-Length: %"PRId64 ", determined by using the Content-Range header", *length));
                         }
                     }
                     endStr[0] = '\r';
@@ -1200,7 +1201,7 @@ http_get_payload_content_length(char *http_hdr, off_t *length, bool *chunk_encod
             endStr[0] = '\0';
             *length = strtoll(tmp1, (char **)NULL, 10);
             endStr[0] = '\r';
-            BDBG_MSG(("Content-Length: %lld\n", *length));
+            BDBG_MSG(("Content-Length: %"PRId64 "\n", *length));
         }
         else {
             BDBG_ERR(("%s: Received incorrect HTTP Message Header: CRLF pair is missing\n", __FUNCTION__));
@@ -1368,7 +1369,7 @@ B_PlaybackIp_UtilsHttpResponseParse(
      */
     httpFields->chunkEncoding = false;
     if (http_get_payload_content_length(rbuf, &httpFields->contentLength, &httpFields->chunkEncoding)) {
-        BDBG_ERR(("%s: ERROR: HTTP Content Length parsing failed, content length %lld, chunk encoding enabled %d\n",
+        BDBG_ERR(("%s: ERROR: HTTP Content Length parsing failed, content length %"PRId64 ", chunk encoding enabled %d\n",
             __FUNCTION__, httpFields->contentLength, httpFields->chunkEncoding));
         httpFields->parsingResult = B_PlaybackIpHttpHdrParsingResult_eIncorrectHdr;
         return B_ERROR_PROTO;
@@ -1379,7 +1380,7 @@ B_PlaybackIp_UtilsHttpResponseParse(
     * we will need to skip the chunk headers also from the payload pointer.
     */
 #ifndef ANDROID
-    BDBG_MSG(("Received Valid HTTP Response: status code %d, content length %lld, chunk xfer encoding %s, initial_payload_len %d",
+    BDBG_MSG(("Received Valid HTTP Response: status code %d, content length %"PRId64 ", chunk xfer encoding %s, initial_payload_len %d",
         httpFields->statusCode, httpFields->contentLength, (httpFields->chunkEncoding == true) ? "Yes":"No", httpFields->httpPayloadLength));
 #else
     BDBG_MSG(("Received Valid HTTP Response: status code %d, content length %lld, chunk xfer encoding %d, initial_payload_len %d",
@@ -1493,7 +1494,7 @@ B_PlaybackIp_UtilsBuildWavHeader(
 
     if(bufSize<sizeof(wavTemplate)) {
         /* not enough size for the header */
-        BDBG_WRN(("%s: ERROR: not enough size (%d) building the Wave header\n", __FUNCTION__, bufSize, sizeof(wavTemplate)));
+        BDBG_WRN(("%s: ERROR: not enough size (%zu) building the Wave header\n", __FUNCTION__, bufSize));
         return -1;
     }
     BKNI_Memcpy(buf, wavTemplate, sizeof(wavTemplate));
@@ -1594,7 +1595,7 @@ int B_PlaybackIp_UtilsSendNullRtpPacket(struct bfile_io_write_net *data)
     if ((bytesWritten = sendmsg(data->fd, &msg, 0)) <= 0)
     {
         perror("ERROR sendmsg():");
-        BDBG_ERR(("%s: ERROR sendmsg(fd %u; addr (%s); port (%u); namelen (%u); iovlen (%u)", __FUNCTION__, data->fd,
+        BDBG_ERR(("%s: ERROR sendmsg(fd %u; addr (%s); port (%u); namelen (%u); iovlen (%zu)", __FUNCTION__, data->fd,
                     inet_ntoa(data->streamingSockAddr.sin_addr), htons(data->streamingSockAddr.sin_port),
                     msg.msg_namelen, msg.msg_iovlen ));
         return -1;
@@ -1641,7 +1642,7 @@ buildRtpIovec(struct bfile_io_write_net *data, unsigned char *buf, int bufSize, 
         file->iovec[i+1].iov_len = bytesToSend;
         *totalBytesInIovec += bytesToSend + rtpHdrSize;
         *totalPayloadCopied += bytesToSend;
-        BDBG_MSG(("%s: iovec[%d].len %d; addr %p; iovec[%d].len %d; addr %p", __FUNCTION__, i, file->iovec[i].iov_len, file->iovec[i].iov_base, i+1, file->iovec[i+1].iov_len, file->iovec[i+1].iov_base ));
+        BDBG_MSG(("%s: iovec[%d].len %zu; addr %p; iovec[%d].len %zu; addr %p", __FUNCTION__, i, file->iovec[i].iov_len, file->iovec[i].iov_base, i+1, file->iovec[i+1].iov_len, file->iovec[i+1].iov_base ));
     }
 
     BDBG_MSG(("%s: built %d iovecs for %d bytes, total in iovec (including RTP headers) %d", __FUNCTION__, i, *totalPayloadCopied, *totalBytesInIovec));
@@ -1667,7 +1668,7 @@ buildUdpIovec(struct bfile_io_write_net *data, unsigned char *buf, int bufSize, 
         file->iovec[i].iov_len = bytesToSend;
         *totalBytesInIovec += bytesToSend;
         *totalPayloadCopied += bytesToSend;
-        BDBG_MSG(("%s: iovecs[%d].len %d", __FUNCTION__, i, file->iovec[i].iov_len));
+        BDBG_MSG(("%s: iovecs[%d].len %zu", __FUNCTION__, i, file->iovec[i].iov_len));
     }
     BDBG_MSG(("%s: built %d iovecs for %d bytes, total in iovec (including RTP headers) %d", __FUNCTION__, i, *totalPayloadCopied, *totalBytesInIovec));
     return i;
@@ -1700,7 +1701,7 @@ sendRtpUdpChunk(struct bfile_io_write_net *data, unsigned char *buf, int bufSize
         msg.msg_iovlen = iovecCount;
 
         /* usual way of sending out payload */
-        BDBG_MSG(("%s: calling sendmsg(fd %u; addr (%s); port (%u); namelen (%u); iovlen (%u)", __FUNCTION__, data->fd,
+        BDBG_MSG(("%s: calling sendmsg(fd %u; addr (%s); port (%u); namelen (%u); iovlen (%zu)", __FUNCTION__, data->fd,
                   inet_ntoa(data->streamingSockAddr.sin_addr), htons(data->streamingSockAddr.sin_port),
                   msg.msg_namelen, msg.msg_iovlen ));
 
@@ -1709,7 +1710,7 @@ sendRtpUdpChunk(struct bfile_io_write_net *data, unsigned char *buf, int bufSize
 
         if ((bytesWritten = sendmsg(data->fd, &msg, 0)) <= 0) {
             perror("ERROR sendmsg():");
-            BDBG_ERR(("%s: ERROR sendmsg(fd %u; addr (%s); port (%u); namelen (%u); iovlen (%u)", __FUNCTION__, data->fd,
+            BDBG_ERR(("%s: ERROR sendmsg(fd %u; addr (%s); port (%u); namelen (%u); iovlen (%zu)", __FUNCTION__, data->fd,
                       inet_ntoa(data->streamingSockAddr.sin_addr), htons(data->streamingSockAddr.sin_port),
                       msg.msg_namelen, msg.msg_iovlen ));
             goto out;
@@ -1752,7 +1753,7 @@ out:
 #define MAX_SELECT_TIMEOUT_COUNT 50 /* timeout duraton of 5 sec */
 /* loops until all bytes are sent or we get an error */
 static int
-sendData(int fd, void *outBuf, int bytesToSend)
+sendData(int fd, void *outBuf, int bytesToSend, bool *stopStreaming)
 {
     int bytesSent = 0;
     int rc;
@@ -1760,6 +1761,10 @@ sendData(int fd, void *outBuf, int bytesToSend)
 
     while (bytesToSend) {
         loopCount++;
+        if (*stopStreaming == true) {
+            BDBG_WRN(("%s: app wants to stop streaming, breaking out for fd %d", __FUNCTION__, fd));
+            return -1;
+        }
 #ifdef USE_NON_BLOCKING_MODE
         if (B_PlaybackIp_UtilsWaitForSocketWriteReady(fd, SELECT_TIMEOUT_FOR_SOCKET_SEND /* timeout in usec*/) < 0) {
             BDBG_ERR(("%s: Select ERROR", __FUNCTION__));
@@ -1833,7 +1838,7 @@ B_PlaybackIp_UtilsStreamingCtxWrite(bfile_io_write_t self, const void *buf, size
         writeQueueDepth = 0;
     }
     writeQueueSpaceAvail = file->writeQueueSize - writeQueueDepth;
-    BDBG_MSG(("%s: Write %d bytes for socket %d (wr q depth %d, size %d, rem %d)\n", __FUNCTION__, length, file->fd, writeQueueDepth, file->writeQueueSize, writeQueueSpaceAvail));
+    BDBG_MSG(("%s: Write %zu bytes for socket %d (wr q depth %d, size %d, rem %zu)\n", __FUNCTION__, length, file->fd, writeQueueDepth, file->writeQueueSize, writeQueueSpaceAvail));
     file->writeQueueFullTimeouts = 0;
     if (writeQueueSpaceAvail == 0) {
         /* write q is full, check if there is a socket error. This can happen particularly for streaming to a local client */
@@ -1850,7 +1855,7 @@ B_PlaybackIp_UtilsStreamingCtxWrite(bfile_io_write_t self, const void *buf, size
         }
     }
     else if (length > writeQueueSpaceAvail) {
-        BDBG_MSG(("Write trimming # of bytes to write (%d) to the write q available space (%d) for socket %d\n", length, writeQueueSpaceAvail, file->fd));
+        BDBG_MSG(("Write trimming # of bytes to write (%zu) to the write q available space (%zu) for socket %d\n", length, writeQueueSpaceAvail, file->fd));
         length = writeQueueSpaceAvail;
     }
     if (length > 0) {
@@ -1896,7 +1901,7 @@ B_PlaybackIp_UtilsStreamingCtxWrite(bfile_io_write_t self, const void *buf, size
             timeSub(&endTime, &startTime, &curTime);
             timeAdd(&file->totalTime, &curTime, &file->totalTime);
             if (curTime.tv_sec > 1) {
-                BDBG_WRN(("TOOK over a second for encrypt operation: time: cur sec %d, usec %d\n", curTime.tv_sec, curTime.tv_usec));
+                BDBG_WRN(("TOOK over a second for encrypt operation: time: cur sec %d, usec %d\n", (int)curTime.tv_sec, (int)curTime.tv_usec));
             }
             else {
                 if (curTime.tv_usec < file->minTime.tv_usec)
@@ -1905,8 +1910,8 @@ B_PlaybackIp_UtilsStreamingCtxWrite(bfile_io_write_t self, const void *buf, size
                     file->maxTime.tv_usec = curTime.tv_usec;
             }
             BDBG_MSG(("time: cur sec %d, usec %d, total sec %d, usec %d, iter %u\n",
-                        curTime.tv_sec, curTime.tv_usec,
-                        file->totalTime.tv_sec, file->totalTime.tv_usec, file->totalIterations));
+                        (int)curTime.tv_sec, (int)curTime.tv_usec,
+                        (int)file->totalTime.tv_sec, (int)file->totalTime.tv_usec, file->totalIterations));
             file->totalIterations++;
             BDBG_MSG(("Encrypted bytes: %d, asked %d, to send %d\n", bytesEncrypted, bytesToEncrypt, encryptedBufSize));
             if (bytesEncrypted > bytesToEncrypt) {
@@ -1931,7 +1936,7 @@ B_PlaybackIp_UtilsStreamingCtxWrite(bfile_io_write_t self, const void *buf, size
 #endif
             memset(chunkHdr, 0, sizeof(chunkHdr));
             chunkHdrToSend = snprintf(chunkHdr, sizeof(chunkHdr)-1, "%x\r\n", outBufLength);
-            rc = sendData(file->fd, chunkHdr, chunkHdrToSend);
+            rc = sendData(file->fd, chunkHdr, chunkHdrToSend, &file->stopStreaming);
             if (rc != chunkHdrToSend) {
                 BDBG_MSG(("%s: Failed to send %d bytes of chunk header begining, sent %d for socket %d", __FUNCTION__, chunkHdrToSend, rc, file->fd));
                 return -1;
@@ -1950,32 +1955,32 @@ B_PlaybackIp_UtilsStreamingCtxWrite(bfile_io_write_t self, const void *buf, size
             if (pcpHeaderInserted == true) {
                 if (pcpHeaderOffset == 0) {
                     /* send PCP header first and then the encrypted data */
-                    rc = sendData(file->fd, file->pcpHeader, file->pcpHeaderSize);
+                    rc = sendData(file->fd, file->pcpHeader, file->pcpHeaderSize, &file->stopStreaming);
                     if (rc < 0 || (unsigned)rc != file->pcpHeaderSize) {
                         BDBG_MSG(("%s: Failed to send %d bytes of PCP header, sent %d for socket %d", __FUNCTION__, file->pcpHeaderSize, rc, file->fd));
                         return -1;
                     }
                     /* now send the actual data */
-                    rc = sendData(file->fd, outBuf, outBufLength);
+                    rc = sendData(file->fd, outBuf, outBufLength, &file->stopStreaming);
                 }
                 else {
                     BDBG_MSG(("PCP header offset is %d outBufLength-pcpHeaderOffset %d", pcpHeaderOffset, outBufLength-pcpHeaderOffset ));
                     /* PCP header offset is not 0, so it is somewhere in the middle of the stream */
                     /* need to send it in multiple transactions */
-                    rc = sendData(file->fd, outBuf, pcpHeaderOffset);
+                    rc = sendData(file->fd, outBuf, pcpHeaderOffset, &file->stopStreaming);
                     if (rc < 0 || (unsigned)rc != pcpHeaderOffset) {
                         BDBG_MSG(("%s: PCP header is in the middle of the stream case: Failed to send %d bytes of first payload, sent %d for socket %d", __FUNCTION__, pcpHeaderOffset, rc, file->fd));
                         return -1;
                     }
                     /* now send PCP header and then the encrypted data */
-                    rc = sendData(file->fd, file->pcpHeader, file->pcpHeaderSize);
+                    rc = sendData(file->fd, file->pcpHeader, file->pcpHeaderSize, &file->stopStreaming);
                     if (rc < 0 || (unsigned)
             rc != file->pcpHeaderSize) {
                         BDBG_MSG(("%s: PCP header is in the middle of the stream case: Failed to send %d bytes of PCP header, sent %d for socket %d", __FUNCTION__, file->pcpHeaderSize, rc, file->fd));
                         return -1;
                     }
                     /* now send the remaining data */
-                    rc = sendData(file->fd, (char*)outBuf+pcpHeaderOffset, outBufLength-pcpHeaderOffset);
+                    rc = sendData(file->fd, (char*)outBuf+pcpHeaderOffset, outBufLength-pcpHeaderOffset, &file->stopStreaming);
                     if (rc < 0 || (unsigned)rc != outBufLength-pcpHeaderOffset) {
                         BDBG_MSG(("%s: PCP header is in the middle of the stream case: Failed to send the remaining %d bytes of payload, sent %d for socket %d", __FUNCTION__, outBufLength-pcpHeaderOffset, rc, file->fd));
                         return -1;
@@ -1985,19 +1990,19 @@ B_PlaybackIp_UtilsStreamingCtxWrite(bfile_io_write_t self, const void *buf, size
                 bytesSent += file->pcpHeaderSize;
             }
             else {
-                rc = sendData(file->fd, outBuf, outBufLength);
+                rc = sendData(file->fd, outBuf, outBufLength, &file->stopStreaming);
             }
 #else
-            rc = sendData(file->fd, outBuf, outBufLength);
+            rc = sendData(file->fd, outBuf, outBufLength, &file->stopStreaming);
 #endif
 #else
-            rc = sendData(file->fd, outBuf, outBufLength);
+            rc = sendData(file->fd, outBuf, outBufLength, &file->stopStreaming);
 #endif
         } else if ( (file->streamingProtocol == B_PlaybackIpProtocol_eRtp) || (file->streamingProtocol == B_PlaybackIpProtocol_eUdp) )
             rc = sendRtpUdpChunk(file, outBuf, outBufLength);
 
         if (rc != outBufLength) {
-            BDBG_MSG(("%s: Failed to send %d bytes, sent %d for socket %d", __FUNCTION__, outBufLength, rc, file->fd));
+            BDBG_MSG(("%s: Failed to send %d bytes, sent %zd for socket %d", __FUNCTION__, outBufLength, rc, file->fd));
             return -1;
         }
         bytesSent += rc;
@@ -2017,7 +2022,7 @@ B_PlaybackIp_UtilsStreamingCtxWrite(bfile_io_write_t self, const void *buf, size
             /* send end of current chunk header */
             memset(chunkHdr, 0, sizeof(chunkHdr));
             chunkHdrToSend = snprintf(chunkHdr, sizeof(chunkHdr)-1, "\r\n");
-            rc = sendData(file->fd, chunkHdr, chunkHdrToSend);
+            rc = sendData(file->fd, chunkHdr, chunkHdrToSend, &file->stopStreaming);
             if (rc != chunkHdrToSend) {
                 BDBG_MSG(("%s: Failed to send %d bytes of chunk header end, sent %d for socket %d", __FUNCTION__, chunkHdrToSend, rc, file->fd));
                 return -1;
@@ -2027,7 +2032,7 @@ B_PlaybackIp_UtilsStreamingCtxWrite(bfile_io_write_t self, const void *buf, size
 #endif
     }
     file->totalBytesConsumed += bytesConsumed;
-    BDBG_MSG(("%s: asked %d, Wrote %d, Consumed %d (total %lld) bytes for fd %d\n", __FUNCTION__, length, bytesSent, bytesConsumed, file->totalBytesConsumed, file->fd));
+    BDBG_MSG(("%s: asked %zu, Wrote %zu, Consumed %d (total %"PRId64 ") bytes for fd %d\n", __FUNCTION__, length, bytesSent, bytesConsumed, file->totalBytesConsumed, file->fd));
     return bytesConsumed;
 }
 
@@ -2058,13 +2063,13 @@ B_PlaybackIp_UtilsStreamingCtxWriteAll(
     ssize_t totalWritten = 0;
     int bytesToWrite;
     struct bfile_io_write_net *file = (struct bfile_io_write_net *)self;
-    BDBG_MSG(("%s: write %d bytes\n", __FUNCTION__, bufSize));
+    BDBG_MSG(("%s: write %zu bytes\n", __FUNCTION__, bufSize));
 
 #if 0
     look_for_sync_bytes(buf, bufSize);
 #endif
     if (file->fd <= 0) {
-        BDBG_MSG(("%s: streaming session is not yet enabled, skipping %d bytes", __FUNCTION__, bufSize));
+        BDBG_MSG(("%s: streaming session is not yet enabled, skipping %zu bytes", __FUNCTION__, bufSize));
         /* we pretend that we have sent these bytes, this is mainly for Fast Channel Change scenario */
         /* where whole pipe is setup but not data is being streamed out as client hasn't yet tuned to that channel */
         return bufSize;
@@ -2111,7 +2116,7 @@ B_PlaybackIp_UtilsStreamingCtxWriteAll(
         bufSize -= bytesWritten;
         totalWritten += bytesWritten;
         if (bufSize) {
-            BDBG_MSG(("%s: wrote %d bytes, to write %d\n", __FUNCTION__, bytesWritten, bufSize));
+            BDBG_MSG(("%s: wrote %d bytes, to write %zu\n", __FUNCTION__, bytesWritten, bufSize));
         }
 #ifdef B_HAS_DTCP_IP
         if (!file->liveStreaming && bufSize < 16 && bufSize > 0) {
@@ -2123,7 +2128,7 @@ B_PlaybackIp_UtilsStreamingCtxWriteAll(
         }
 #endif
     }
-    BDBG_MSG(("%s: wrote %d bytes\n", __FUNCTION__, totalWritten));
+    BDBG_MSG(("%s: wrote %zd bytes\n", __FUNCTION__, totalWritten));
     return totalWritten;
 }
 
@@ -2141,10 +2146,10 @@ B_PlaybackIp_UtilsDtcpServerCtxClose(struct bfile_io_write_net *data)
         return;
     if (data->totalIterations)
         BDBG_MSG(("###### total time: sec %d, usec %d, iter %u, avg usec %d, min %d, max %d ######\n",
-                data->totalTime.tv_sec, data->totalTime.tv_usec, data->totalIterations,
-                ((data->totalTime.tv_sec *1000000) + data->totalTime.tv_usec) / data->totalIterations,
-                data->minTime.tv_usec,
-                data->maxTime.tv_usec
+                (int)data->totalTime.tv_sec, (int)data->totalTime.tv_usec, data->totalIterations,
+                (int)((data->totalTime.tv_sec *1000000) + data->totalTime.tv_usec) / data->totalIterations,
+                (int)data->minTime.tv_usec,
+                (int)data->maxTime.tv_usec
                 ));
     if (data->dtcpStreamHandle) {
         DtcpAppLib_CloseStream(data->dtcpStreamHandle);
@@ -2203,7 +2208,7 @@ B_PlaybackIp_UtilsPvrDecryptionCtxOpen(B_PlaybackIpSecurityOpenSettings *securit
         BDBG_ERR(("%s: Failed to create Nexus DMA job", __FUNCTION__));
         goto error;
     }
-    BDBG_MSG(("%s: PVR Decryption setup is successful, jobHandle %p", __FUNCTION__, data->dmaJobHandle));
+    BDBG_MSG(("%s: PVR Decryption setup is successful, jobHandle %p", __FUNCTION__, (void *)data->dmaJobHandle));
     return B_ERROR_SUCCESS;
 
 error:
@@ -2230,12 +2235,12 @@ B_PlaybackIp_UtilsPvrDecryptBuffer(struct bfile_io_write_net *data, unsigned cha
     blockSettings.scatterGatherCryptoStart = true;
     blockSettings.scatterGatherCryptoEnd = true;
     blockSettings.cached = false;
-    BDBG_MSG(("%s: DMA job %p, size %d", __FUNCTION__, data->dmaJobHandle, blockSettings.blockSize));
+    BDBG_MSG(("%s: DMA job %p, size %zu", __FUNCTION__, (void *)data->dmaJobHandle, blockSettings.blockSize));
     if ((nrc = NEXUS_DmaJob_ProcessBlocks(data->dmaJobHandle, &blockSettings, 1)) != NEXUS_DMA_QUEUED) {
-        BDBG_ERR(("%s: NEXUS_DmaJob_ProcessBlocks Failed: dmaJobHandle %p, nexus rc %d", __FUNCTION__, data->dmaJobHandle, nrc));
+        BDBG_ERR(("%s: NEXUS_DmaJob_ProcessBlocks Failed: dmaJobHandle %p, nexus rc %d", __FUNCTION__, (void *)data->dmaJobHandle, nrc));
         goto error;
     }
-    BDBG_MSG(("%s: DMA job %p sumitted", __FUNCTION__, data->dmaJobHandle));
+    BDBG_MSG(("%s: DMA job %p sumitted", __FUNCTION__, (void *)data->dmaJobHandle));
     rc = BKNI_WaitForEvent(data->event, 10000);
     if (rc == BERR_TIMEOUT || rc != 0) {
         BDBG_ERR(("%s: Nexus DMA Job completion event failed for PVR decryption, rc %d: %s", __FUNCTION__, rc, rc == BERR_TIMEOUT? "event timeout in 10sec":"event failure"));
@@ -2450,7 +2455,7 @@ B_PlaybackIp_UtilsRtpUdpStreamingCtxOpen(B_PlaybackIpSecurityOpenSettings *secur
     memset(&sa_loc, 0, sizeof(sa_loc));
     strncpy(ifr.ifr_name, data->interfaceName, sizeof(ifr.ifr_name)-1);
     memcpy(&ifr.ifr_ifru.ifru_dstaddr, &sa_loc, sizeof(sa_loc));
-    BDBG_MSG(("%s: Bind socket %d; sizeof(dstaddr) (%u); sizeof sa_loc (%u) ", __FUNCTION__, data->fd, sizeof(ifr.ifr_ifru.ifru_dstaddr), sizeof(sa_loc) ));
+    BDBG_MSG(("%s: Bind socket %d; sizeof(dstaddr) (%u); sizeof sa_loc (%u) ", __FUNCTION__, data->fd, (unsigned)sizeof(ifr.ifr_ifru.ifru_dstaddr), (unsigned)sizeof(sa_loc) ));
     if (setsockopt(data->fd, SOL_SOCKET, SO_BINDTODEVICE, (void *)&ifr, sizeof(ifr) ) < 0 ) {
         BDBG_ERR(("%s: failed to bind a datagram socket (%u)", __FUNCTION__, data->fd ));
         perror("SO_BINDTODEVICE");
@@ -2534,7 +2539,7 @@ B_PlaybackIp_UtilsUdpNetIndexSeek(bfile_io_read_t self, off_t offset, int whence
     }
     file->offset = offset;
     /* since we want to probe live channels, seek doesn't mean much, just update the offset and return */
-    BDBG_MSG(("%s: playback_ip %p, file %p, offset %lld", __FUNCTION__, file->playback_ip, file, offset));
+    BDBG_MSG(("%s: playback_ip %p, file %p, offset %"PRId64 "", __FUNCTION__, (void *)file->playback_ip, (void *)file, offset));
     return offset;
 }
 
@@ -2638,11 +2643,11 @@ B_PlaybackIp_UtilsUdpNetIndexRead(bfile_io_read_t self, void *buf, size_t length
     long psiParsingTimeLimit;
 
     if (!file) {
-        BDBG_MSG(("%s: returning error (-1) due to invalid file handle %p ", __FUNCTION__, file ));
+        BDBG_MSG(("%s: returning error (-1) due to invalid file handle %p ", __FUNCTION__, (void *)file ));
         return -1;
     }
     if (!file->playback_ip) {
-        BDBG_MSG(("%s: returning error (-1) due to invalid playback_ip %p handle", __FUNCTION__, file->playback_ip));
+        BDBG_MSG(("%s: returning error (-1) due to invalid playback_ip %p handle", __FUNCTION__, (void *)file->playback_ip));
         return -1;
     }
     playback_ip = file->playback_ip;
@@ -2672,7 +2677,7 @@ B_PlaybackIp_UtilsUdpNetIndexRead(bfile_io_read_t self, void *buf, size_t length
     if (playback_ip->playback_state == B_PlaybackIpState_eSessionSetupInProgress &&
         psiParsingTimeLimit) {
         if (!playback_ip->mediaProbeStartTimeNoted) {
-            BDBG_MSG(("%s: parsingTimeLimit %d", __FUNCTION__, psiParsingTimeLimit));
+            BDBG_MSG(("%s: parsingTimeLimit %d", __FUNCTION__, (int)psiParsingTimeLimit));
             B_Time_Get(&playback_ip->mediaProbeStartTime);
             playback_ip->mediaProbeStartTimeNoted = true;
         }
@@ -2682,7 +2687,7 @@ B_PlaybackIp_UtilsUdpNetIndexRead(bfile_io_read_t self, void *buf, size_t length
             if (mediaProbeTime >= psiParsingTimeLimit) {
 #ifdef BDBG_DEBUG_BUILD
                 if (playback_ip->ipVerboseLog)
-                    BDBG_WRN(("%s: media probe time %d exceeded user specified limit %d", __FUNCTION__, mediaProbeTime, psiParsingTimeLimit));
+                    BDBG_WRN(("%s: media probe time %d exceeded user specified limit %d", __FUNCTION__, (int)mediaProbeTime, (int)psiParsingTimeLimit));
 #endif
                 rc = -1;
                 goto error;
@@ -2693,7 +2698,7 @@ B_PlaybackIp_UtilsUdpNetIndexRead(bfile_io_read_t self, void *buf, size_t length
     if (playback_ip->initial_data_len > 0) {
         bytesToCopy = (playback_ip->initial_data_len < (int)length) ? playback_ip->initial_data_len : (int)length;
         memcpy(buf, playback_ip->temp_buf, bytesToCopy);
-        BDBG_MSG(("%s: copied %d bytes from previous read of %d bytes, asked %u bytes", __FUNCTION__, bytesToCopy, playback_ip->initial_data_len, length));
+        BDBG_MSG(("%s: copied %zu bytes from previous read of %d bytes, asked %zu bytes", __FUNCTION__, bytesToCopy, playback_ip->initial_data_len, length));
         length -= bytesToCopy;
         playback_ip->initial_data_len -= bytesToCopy;
         buf = (unsigned char *)buf + bytesToCopy;
@@ -2710,7 +2715,7 @@ B_PlaybackIp_UtilsUdpNetIndexRead(bfile_io_read_t self, void *buf, size_t length
         bytesToRead = length - length%tsPktSize;
         bufPtr = buf;
     }
-    BDBG_MSG(("%s: socketFd %d, asked %d to read %d bytes of data, total copied %d", __FUNCTION__, playback_ip->socketState.fd, length, bytesToRead, totalBytesRead));
+    BDBG_MSG(("%s: socketFd %d, asked %zu to read %d bytes of data, total copied %d", __FUNCTION__, playback_ip->socketState.fd, length, bytesToRead, totalBytesRead));
     while (bytesToRead > 0) {
         /* requested range is not in the index cache, so try to read more data from server */
         if (playback_ip->playback_state == B_PlaybackIpState_eStopping || (playback_ip->playback_state == B_PlaybackIpState_eStopped)) {
@@ -2726,7 +2731,7 @@ B_PlaybackIp_UtilsUdpNetIndexRead(bfile_io_read_t self, void *buf, size_t length
             if (mediaProbeTime >= psiParsingTimeLimit) {
 #ifdef BDBG_DEBUG_BUILD
                 if (playback_ip->ipVerboseLog)
-                    BDBG_WRN(("%s: media probe time %d exceeded user specified limit %d", __FUNCTION__, mediaProbeTime, psiParsingTimeLimit));
+                    BDBG_WRN(("%s: media probe time %d exceeded user specified limit %d", __FUNCTION__, (int)mediaProbeTime, (int)psiParsingTimeLimit));
 #endif
                 rc = -1;
                 goto error;
@@ -2740,7 +2745,7 @@ B_PlaybackIp_UtilsUdpNetIndexRead(bfile_io_read_t self, void *buf, size_t length
         totalBytesRead += bytesRead;
         bytesToRead -= bytesRead;
         bufPtr = (char *)bufPtr + bytesRead;
-        BDBG_MSG(("%s: read %d bytes, total read so far %d, asked %d", __FUNCTION__, bytesRead, totalBytesRead, bytesToRead, length));
+        BDBG_MSG(("%s: read %d bytes, total read so far %d, asked %d", __FUNCTION__, bytesRead, totalBytesRead, bytesToRead));
     }
     if (length <= tsPktSize) {
         memcpy(buf, playback_ip->temp_buf, length);
@@ -2750,7 +2755,7 @@ B_PlaybackIp_UtilsUdpNetIndexRead(bfile_io_read_t self, void *buf, size_t length
     }
 out:
     rc = totalBytesRead;
-    BDBG_MSG(("%s: returning %d bytes, asked %d", __FUNCTION__, totalBytesRead, length));
+    BDBG_MSG(("%s: returning %d bytes, asked %zu", __FUNCTION__, totalBytesRead, length));
 
 error:
     return rc;
@@ -2912,7 +2917,6 @@ out:
         BKNI_SetEvent(playback_ip->playback_halt_event);
     playback_ip->apiCompleted = true;
     playback_ip->apiInProgress = false;
-    BDBG_MSG(("eventCallback %p, state %d", playback_ip->openSettings.eventCallback, playback_ip->playback_state));
     if (playback_ip->openSettings.eventCallback && playback_ip->playback_state != B_PlaybackIpState_eStopping && playback_ip->playback_state != B_PlaybackIpState_eStopped)
     {
         playback_ip->openSettings.eventCallback(playback_ip->openSettings.appCtx, B_PlaybackIpEvent_eSessionSetupDone);
@@ -3036,13 +3040,27 @@ B_PlaybackIp_UtilsPlayedCount(
 {
     unsigned int currentPlayed = playback_ip->lastPlayed;
 
-    if (playback_ip->nexusHandles.videoDecoder && playback_ip->psi.videoCodec != NEXUS_VideoCodec_eNone && playback_ip->psi.videoPid) {
+    if (playback_ip->nexusHandles.videoDecoder && playback_ip->psi.videoCodec != NEXUS_VideoCodec_eNone && playback_ip->psi.videoPid &&
+            (playback_ip->playback_state == B_PlaybackIpState_eTrickMode || !playback_ip->startSettings.musicChannelWithVideoStills)
+       ){
         NEXUS_VideoDecoderStatus status;
         if (NEXUS_VideoDecoder_GetStatus(playback_ip->nexusHandles.videoDecoder, &status) != NEXUS_SUCCESS) {
             BDBG_ERR(("%s: Failed to get video decoder status", __FUNCTION__));
             goto error;
         }
         currentPlayed = status.numDisplayed;
+        playback_ip->firstPtsPassed = status.firstPtsPassed;
+    }
+    else if (playback_ip->nexusHandles.simpleVideoDecoder && playback_ip->psi.videoCodec != NEXUS_VideoCodec_eNone && playback_ip->psi.videoPid &&
+            (playback_ip->playback_state == B_PlaybackIpState_eTrickMode || !playback_ip->startSettings.musicChannelWithVideoStills)
+            ) {
+        NEXUS_VideoDecoderStatus status;
+        if (NEXUS_SimpleVideoDecoder_GetStatus(playback_ip->nexusHandles.simpleVideoDecoder, &status) != NEXUS_SUCCESS) {
+            BDBG_ERR(("%s: Failed to get vidoer status", __FUNCTION__));
+            goto error;
+        }
+        currentPlayed = status.numDisplayed;
+        playback_ip->firstPtsPassed = status.firstPtsPassed;
     }
     else if (playback_ip->nexusHandles.primaryAudioDecoder || playback_ip->nexusHandles.secondaryAudioDecoder) {
         NEXUS_AudioDecoderStatus audioStatus;
@@ -3054,15 +3072,7 @@ B_PlaybackIp_UtilsPlayedCount(
             goto error;
         }
         currentPlayed = audioStatus.pts;
-    }
-#ifdef NEXUS_HAS_SIMPLE_DECODER
-    else if (playback_ip->nexusHandles.simpleVideoDecoder) {
-        NEXUS_VideoDecoderStatus status;
-        if (NEXUS_SimpleVideoDecoder_GetStatus(playback_ip->nexusHandles.simpleVideoDecoder, &status) != NEXUS_SUCCESS) {
-            BDBG_ERR(("%s: Failed to get vidoer status", __FUNCTION__));
-            goto error;
-        }
-        currentPlayed = status.numDisplayed;
+        playback_ip->firstPtsPassed = audioStatus.locked;
     }
     else if (playback_ip->nexusHandles.simpleAudioDecoder) {
         NEXUS_AudioDecoderStatus audioStatus;
@@ -3071,8 +3081,8 @@ B_PlaybackIp_UtilsPlayedCount(
             goto error;
         }
         currentPlayed = audioStatus.pts;
+        playback_ip->firstPtsPassed = audioStatus.locked;
     }
-#endif
     else {
         /* no audio or video decoders, shouldn't happen */
         goto error;
@@ -3083,68 +3093,6 @@ B_PlaybackIp_UtilsPlayedCount(
 error:
     /* since we couldn't get the count of currently played pictures, so we return our last snapshot of it */
     return (playback_ip->lastPlayed);
-}
-
-bool
-B_PlaybackIp_UtilsEndOfStream(
-    B_PlaybackIpHandle playback_ip
-    )
-{
-    bool status = true;
-    unsigned int currentPlayed;
-
-    currentPlayed = B_PlaybackIp_UtilsPlayedCount(playback_ip);
-    if (playback_ip->prevPlayed == 0) {
-        /* 1st call to this function */
-        playback_ip->prevPlayed = currentPlayed;
-        status = false;
-    }
-    else {
-        if (currentPlayed == playback_ip->prevPlayed) {
-            /* audio PTS or display count isn't changing, so we may be done playing the stream */
-            NEXUS_PlaybackPosition currentPosition;
-
-            if (B_PlaybackIp_HttpGetCurrentPlaybackPosition(playback_ip, &currentPosition) != B_ERROR_SUCCESS) {
-                BDBG_WRN(("%s: Failed to determine the current playback position", __FUNCTION__));
-            }
-            else
-                BDBG_MSG(("%s: last position %0.3f, duration %d", __FUNCTION__, currentPosition/1000., playback_ip->psi.duration));
-            if ( playback_ip->playback_state == B_PlaybackIpState_eTrickMode && playback_ip->hlsSessionEnabled &&
-                    ( (playback_ip->speedNumerator < 0 && currentPosition/1000 > 0) || /* rewind case */
-                      (playback_ip->speedNumerator > 1 && playback_ip->speedDenominator == 1 && currentPosition <= (playback_ip->psi.duration-1000))  /* fwd case, we only go upto the last 1 sec. */
-                    )) {
-                /* even though picture count didn't change from the last time, but the position hasn't yet reached the beginning or end of the stream. */
-                /* so we dont yet declare that we are done. This can happen for H264/H265 Codecs where I-frames are sparsely present due to biggers GOPs. */
-                status = false;
-                BDBG_MSG(("%s: picture count (%d) didin't change, but still haven't reached the beginning or end of stream: currentPosition %0.3f", __FUNCTION__, currentPlayed, currentPosition/1000.));
-            }
-            else {
-#ifdef BDBG_DEBUG_BUILD
-                if (playback_ip->ipVerboseLog)
-                    BDBG_WRN(("%s: %s isn't changing, so we are done playing the stream", __FUNCTION__, (playback_ip->nexusHandles.videoDecoder || playback_ip->nexusHandles.simpleVideoDecoder)? "Displaed Picture Count" : "Audio PTS"));
-#endif
-                /* reached EOF */
-                status = true;
-                playback_ip->serverClosed = true;
-                if ( playback_ip->playback_state == B_PlaybackIpState_eTrickMode && playback_ip->speedNumerator < 0) {
-                    /* rewind case, dont set the mediaEndTime flag. */
-                    playback_ip->mediaEndTimeNoted = false;
-                }
-                else {
-                    playback_ip->mediaEndTimeNoted = true;
-                }
-                playback_ip->lastPosition = currentPosition;
-            }
-        }
-        else {
-            /* still changing, so not yet reached end of stream */
-            playback_ip->prevPlayed = currentPlayed;
-            status = false;
-        }
-    }
-    BDBG_MSG(("%s: status %d, currentPlayed %d, prevPlayed %d", __FUNCTION__, status, currentPlayed, playback_ip->prevPlayed));
-
-    return status;
 }
 
 /* If the displayed picture count doesn't change for this interval, we consider it as end of Stream. */
@@ -3177,12 +3125,224 @@ B_PlaybackIp_UtilsGetEndOfStreamTimeout(
         }
         default:
         {
-            /* for non-trickmode cases, we should get plenty of frames till the end and thus our interval to check for display count not changing can be reduced upto 100msec. */
-            endOfStreamTimeout = HTTP_END_OF_STREAM_TIMEOUT/10;
+            /* for non-trickmode cases, we should get plenty of frames till the end and thus we can reduce the interval to check for EOS. */
+            endOfStreamTimeout = HTTP_END_OF_STREAM_TIMEOUT/2;
         }
     }
     BDBG_MSG(("%s: endOfStreamTimeout %d", __FUNCTION__, endOfStreamTimeout));
     return endOfStreamTimeout;
+}
+
+NEXUS_Error B_PlaybackIp_UtilsGetVideoDecoderStatus(B_PlaybackIpHandle playback_ip, NEXUS_VideoDecoderStatus *pVideoStatus)
+{
+    NEXUS_Error nrc = NEXUS_NOT_AVAILABLE;
+
+    if (playback_ip->nexusHandles.videoDecoder) {
+        nrc = NEXUS_VideoDecoder_GetStatus(playback_ip->nexusHandles.videoDecoder, pVideoStatus);
+    }
+    else if (playback_ip->nexusHandles.simpleVideoDecoder) {
+        nrc = NEXUS_SimpleVideoDecoder_GetStatus(playback_ip->nexusHandles.simpleVideoDecoder, pVideoStatus);
+    }
+    return (nrc);
+}
+
+NEXUS_Error B_PlaybackIp_UtilsGetAudioDecoderStatus(B_PlaybackIpHandle playback_ip, NEXUS_AudioDecoderHandle audioDecoder, NEXUS_AudioDecoderStatus *pAudioStatus)
+{
+    NEXUS_Error nrc = NEXUS_NOT_AVAILABLE;
+
+    if (audioDecoder) {
+        nrc = NEXUS_AudioDecoder_GetStatus(audioDecoder, pAudioStatus);
+    }
+    else {
+        if (playback_ip->nexusHandles.simpleAudioDecoder) {
+            nrc = NEXUS_SimpleAudioDecoder_GetStatus(playback_ip->nexusHandles.simpleAudioDecoder, pAudioStatus);
+        }
+        else if (playback_ip->nexusHandles.primaryAudioDecoder) {
+            nrc = NEXUS_AudioDecoder_GetStatus(playback_ip->nexusHandles.primaryAudioDecoder, pAudioStatus);
+        }
+    }
+    return (nrc);
+}
+
+/**
+EOS Stream Detection logic:
+Previously this logic was mainly based on the changing of display picture count. However, this alone
+would cause us to prematurely determine the EOS for certain H264 streams.
+
+Now this logic is refined to use a combination to CDB depth, AV PTS change, DM picture queue depth for Video,
+and Audio Decode/Queued frames, etc. to determine EOS (logic is deducted from Nexus Playback).
+
+The following conditions are evaluated in order. If any are not true, EOS logic will wait longer.
+1) playback fifoDepth must go to zero.
+2) video decoder queueDepth (which is the post-decoder picture queue) must go to zero.
+3) cdbDepth (which is the sum of video and audio fifos) must be less than B_MIN_CDB_DEPTH (which is 1 MB)
+4) fifoMarker (which is a combination of current PTS and post-decoder queue depths) must be unchanged for 6 frame times
+
+NOTE: audio decoder queuedFrames (which is the post-decoder frame queue) only contributes to the fifoMarker because bad
+streams may give a bogus frame count that never drops below a certain level; whereas video is guaranteed to drop to zero.
+
+If all of these are true, the stream has come to an end.
+**/
+
+/* B_MIN_CDB_DEPTH should be greater than max picture. If there's no video_picture_queue info, and if PTS's aren't changing,
+we will wait for playback+CDB to go below this. */
+#define B_MIN_CDB_DEPTH (1024*1024) /* With 1080p source, we need to set this at 1 MB */
+/* related to frame time, but doesn't need to be exact */
+#define B_FRAME_DISPLAY_TIME    30
+#define B_MIN_PLAYPUMP_FIFO_DEPTH (64*1024)
+
+static void
+B_PlaybackIp_UtilsGetEndOfStreamMarker(
+    B_PlaybackIpHandle playback_ip,
+    uint32_t *pFifoMarker,
+    unsigned *pCdbDepth,
+    unsigned *pWaitTime
+    )
+{
+    NEXUS_Error nrc;
+    uint32_t cdbDepth=0;
+    uint32_t fifoMarker=0;
+
+    /* Check if Playpump FIFO has any data in it. */
+    if (playback_ip->nexusHandles.playpump) {
+        NEXUS_PlaypumpStatus pumpStatus;
+        nrc = NEXUS_Playpump_GetStatus(playback_ip->nexusHandles.playpump, &pumpStatus);
+        if (nrc == NEXUS_SUCCESS && pumpStatus.started && pumpStatus.fifoDepth > B_MIN_PLAYPUMP_FIFO_DEPTH) {
+            /* if there's even 1 byte in the playback fifo, we must still wait */
+            /* TODO: for IP Playback, Playpump FIFO seems to retain some data in it and doesn't go down to 0. */
+            /* So, using a 64K as lower threshold for it. */
+            cdbDepth += B_MIN_CDB_DEPTH;
+            BDBG_MSG(("PP1 Status: depth=%zu, total cdbDepth=%u", pumpStatus.fifoDepth, cdbDepth));
+        }
+    }
+    if (playback_ip->nexusHandles.playpump2) {
+        NEXUS_PlaypumpStatus pumpStatus;
+        nrc = NEXUS_Playpump_GetStatus(playback_ip->nexusHandles.playpump2, &pumpStatus);
+        if (nrc == NEXUS_SUCCESS && pumpStatus.started && pumpStatus.fifoDepth > B_MIN_PLAYPUMP_FIFO_DEPTH) {
+            cdbDepth += B_MIN_CDB_DEPTH;
+            BDBG_MSG(("PP2 Status: depth=%zu, total cdbDepth=%u", pumpStatus.fifoDepth, cdbDepth));
+        }
+    }
+
+    if (playback_ip->psi.videoCodec != NEXUS_VideoCodec_eNone && playback_ip->psi.videoPid) {
+        NEXUS_VideoDecoderStatus videoStatus;
+
+        nrc = B_PlaybackIp_UtilsGetVideoDecoderStatus(playback_ip, &videoStatus);
+        if (nrc == NEXUS_SUCCESS && videoStatus.started) {
+            cdbDepth += videoStatus.fifoDepth; /* pre-decode depth */
+            if (videoStatus.queueDepth > 0) { /* post-decode depth */
+                cdbDepth += B_MIN_CDB_DEPTH;
+            }
+            fifoMarker += videoStatus.pts;
+            fifoMarker += videoStatus.queueDepth;
+            BDBG_MSG(("Vdec Status: fifoDepth decode=%u bytes, postDecode=%d pics, pts=%u, combined cdbDepth=%u fifoMarker=%u numDisplayed=%u",
+                        videoStatus.fifoDepth, videoStatus.queueDepth, videoStatus.pts, cdbDepth, fifoMarker, videoStatus.numDisplayed));
+        }
+    }
+
+    if (playback_ip->psi.audioCodec != NEXUS_AudioCodec_eUnknown && playback_ip->psi.audioPid) {
+        NEXUS_AudioDecoderStatus audioStatus;
+
+        /* Get Audio Stats for the main audio decoder. */
+        {
+            nrc = B_PlaybackIp_UtilsGetAudioDecoderStatus(playback_ip, NULL, &audioStatus);
+            if (nrc == NEXUS_SUCCESS && audioStatus.started) {
+                cdbDepth += audioStatus.fifoDepth;
+                fifoMarker += audioStatus.pts;
+                fifoMarker += audioStatus.queuedFrames;
+                if(audioStatus.queuedFrames > 8) {
+                    /* if we have a quite a few audio frames, we need to wait longer. */
+                    *pWaitTime = 500; /* msec */
+                }
+                BDBG_MSG(("Adec Status (main): fifoDepth=%u bytes, queuedFrames=%d, pts=%u, combined cdbDepth=%u fifoMarker=%u",
+                            audioStatus.fifoDepth, audioStatus.queuedFrames, audioStatus.pts, cdbDepth, fifoMarker));
+            }
+        }
+        if (!playback_ip->nexusHandles.simpleAudioDecoder && playback_ip->nexusHandles.secondaryAudioDecoder) {
+            nrc = B_PlaybackIp_UtilsGetAudioDecoderStatus(playback_ip, playback_ip->nexusHandles.secondaryAudioDecoder, &audioStatus);
+            if (nrc == NEXUS_SUCCESS && audioStatus.started) {
+                cdbDepth += audioStatus.fifoDepth;
+                fifoMarker += audioStatus.pts;
+                fifoMarker += audioStatus.queuedFrames;
+                if(audioStatus.queuedFrames > 8) {
+                    /* if we have a quite a few audio frames, we need to wait longer. */
+                    *pWaitTime = 500; /* msec */
+                }
+                BDBG_MSG(("Adec Status (pcm):  fifoDepth=%u bytes, queuedFrames=%d, pts=%u, combined cdbDepth=%u fifoMarker=%u",
+                            audioStatus.fifoDepth, audioStatus.queuedFrames, audioStatus.pts, cdbDepth, fifoMarker));
+            }
+        }
+    }
+
+    *pCdbDepth = cdbDepth;
+    *pFifoMarker = fifoMarker+cdbDepth;
+#ifdef BDBG_DEBUG_BUILD
+    if (playback_ip->ipVerboseLog) {
+        BDBG_WRN(("%s:%p total cbdDepth=%u fifoMarker=%u", __FUNCTION__, (void *)playback_ip, cdbDepth, fifoMarker));
+    }
+#endif
+    if (cdbDepth==0 && fifoMarker==0) {
+        BDBG_WRN(("%s:%p unable to get any decode marker for EOS detection!", __FUNCTION__, (void *)playback_ip));
+    }
+    return;
+}
+
+/* Checks if End of Stream condition has reached & return true. Otherwise, it returns false. */
+bool
+B_PlaybackIp_UtilsEndOfStream(
+    B_PlaybackIpHandle playback_ip
+    )
+{
+    uint32_t fifoMarker;
+    uint32_t cdbDepth;
+    B_Time curTime;
+    long diff;
+    unsigned waitTime = B_FRAME_DISPLAY_TIME * 6;
+
+    B_PlaybackIp_UtilsGetEndOfStreamMarker(playback_ip, &fifoMarker, &cdbDepth, &waitTime);
+    if (fifoMarker != playback_ip->fifoMarker) {
+        playback_ip->fifoMarker = fifoMarker;
+        B_Time_Get(&playback_ip->fifoMarkerUpdateTime);
+        return false;
+    }
+
+    /* FIFO marker is same, check if it is same for certain time. */
+    B_Time_Get(&curTime);
+    diff = B_Time_Diff(&curTime, &playback_ip->fifoMarkerUpdateTime);
+
+    BDBG_MSG(("%s:%p timeDiff=%ld cdbDepth=%u", __FUNCTION__, (void *)playback_ip, diff, cdbDepth));
+
+    if (cdbDepth >= B_MIN_CDB_DEPTH || diff < (int)waitTime) {
+        /* need to wait longer */
+        return false;
+    }
+
+    /* Else we have reached EOS. Reset state. */
+    playback_ip->fifoMarker = 0;
+    B_Time_Get(&playback_ip->fifoMarkerUpdateTime);
+    if (playback_ip->serverClosed) {
+        NEXUS_PlaybackPosition currentPosition;
+
+        if (B_PlaybackIp_HttpGetCurrentPlaybackPosition(playback_ip, &currentPosition) != B_ERROR_SUCCESS) {
+            BDBG_WRN(("%s: Failed to determine the current playback position", __FUNCTION__));
+        }
+        else {
+#ifdef BDBG_DEBUG_BUILD
+            if (playback_ip->ipVerboseLog) {
+                BDBG_WRN(("%s: last position %0.3f, duration %d", __FUNCTION__, currentPosition/1000., playback_ip->psi.duration));
+            }
+#endif
+        }
+        playback_ip->lastPosition = currentPosition;
+        if ( playback_ip->playback_state == B_PlaybackIpState_eTrickMode && playback_ip->speedNumerator < 0) {
+            /* rewind case, dont set the mediaEndTime flag. */
+            playback_ip->mediaEndTimeNoted = false;
+        }
+        else {
+            playback_ip->mediaEndTimeNoted = true;
+        }
+    }
+    return true;
 }
 
 /* BTP Commands: PlaybackIp usage of BTP commands for DQT based TrickModes: go in word[0] of a BTP */

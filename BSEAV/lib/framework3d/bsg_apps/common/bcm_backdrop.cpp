@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -11,7 +11,7 @@
  * Software and all intellectual property rights therein.  IF YOU HAVE NO
  * AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
  * AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
- * SOFTWARE.  
+ * SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
@@ -265,7 +265,7 @@ SurfaceHandle BCMBackdrop::CreateMyQuad(const Vec2 &bl, const Vec2 &tr, float of
       x0,  y0, offset,  eBCM_BL,      0,          0
    };
 
-   static const GLushort quad_idx[] = 
+   static const GLushort quad_idx[] =
    {
       2, 3, 0, 1
    };
@@ -295,7 +295,7 @@ GeometryHandle BCMBackdrop::CreateMyQuad(const Vec2 &bl, const Vec2 &tr, float o
 
 void BCMBackdrop::ResizeHandler(uint32_t width, uint32_t height)
 {
-   m_backdropMat->SetUniform("u_windowSizeDiv10", Vec4((float)width * 0.1f, (float)height * 0.1f, 
+   m_backdropMat->SetUniform("u_windowSizeDiv10", Vec4((float)width * 0.1f, (float)height * 0.1f,
                                                    7.0f, ceil((float)height * 0.1f - 7.0f)));
 
    m_backdropMat->SetUniform("u_windowSizeDiv20", Vec4((float)width * 0.05f, (float)height * 0.05f,

@@ -1,7 +1,7 @@
-/***************************************************************************
- *     (c)2013 Broadcom Corporation
+/******************************************************************************
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,8 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- **************************************************************************/
+ ******************************************************************************/
 
 #ifndef NEXUS_SAGE_PRIV_H__
 #define NEXUS_SAGE_PRIV_H__
@@ -66,10 +65,21 @@ void NEXUS_Sage_RemoveWatchdogEvent_priv(BKNI_EventHandle event);
 /* Standby/Resume */
 NEXUS_Error NEXUS_SageModule_Standby_priv( bool enabled, const NEXUS_StandbySettings *pSettings);
 
+NEXUS_Error NEXUS_Sage_UpdateUrr(void);
 NEXUS_Error NEXUS_Sage_AddSecureCores(const BAVC_CoreList *pCoreList);
 void NEXUS_Sage_RemoveSecureCores(const BAVC_CoreList *pCoreList);
+NEXUS_Error NEXUS_Sage_UrrToggle(bool enable);
+NEXUS_Error NEXUS_Sage_P_SvpEnterS3(void);
 NEXUS_Error NEXUS_Sage_P_SvpInit(void);
-void NEXUS_Sage_P_SvpUninit(bool reset);
+NEXUS_Error NEXUS_Sage_P_SvpStart(void);
+void NEXUS_Sage_P_SvpStop(bool reset);
+void NEXUS_Sage_P_SvpUninit(void);
+
+NEXUS_Error NEXUS_Sage_P_ARInit(void);
+void NEXUS_Sage_P_ARUninit(void);
+NEXUS_Error NEXUS_SageModule_P_AddRegion(uint32_t id, NEXUS_Addr offset, uint32_t size);
+NEXUS_Error NEXUS_Sage_P_SvpSetRegions(void);
+
 #ifdef NEXUS_SAGE_SVP_TEST
 NEXUS_Error NEXUS_Sage_P_SecureCores_test(const BAVC_CoreList *pCoreList, bool add);
 #endif

@@ -1,7 +1,7 @@
 ############################################################
-#     (c)2003-2013 Broadcom Corporation
+#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 #
-#  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+#  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
 #  conditions of a separate, written license agreement executed between you and Broadcom
 #  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,10 +35,6 @@
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
 #
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
 # Module Description:
 #   This file defines the variables needed to build an app using
 #   nexus.  The output is two variables. NEXUS_APP_INCLUDE_PATHS
@@ -49,9 +45,6 @@
 #   style your compiler needs -- e.g.
 #   $(addprefix -I,$(NEXUS_APP_INCLUDE_PATHS)) and
 #   $(addprefix -D,$(NEXUS_APP_DEFINES))
-#
-# Revision History:
-# $brcm_Log: $
 #
 ############################################################
 ifndef NEXUS_TOP
@@ -125,5 +118,9 @@ ifeq ($(B_REFSW_SHAREABLE),n)
 NEXUS_LDFLAGS += -Wl,--gc-sections
 endif
 
-# create CXXFLAGS by removing options from CFLAGS that don't work with c++ compilers.
-NEXUS_CXXFLAGS := $(filter-out -Wstrict-prototypes -std=c89,$(NEXUS_CFLAGS))
+# filter out CFLAGS that aren't required of apps
+ifneq ($(NEXUS_INTERNAL_CFLAGS),)
+NEXUS_CFLAGS := $(filter-out $(NEXUS_INTERNAL_CFLAGS),$(NEXUS_CFLAGS))
+endif
+
+NEXUS_CXXFLAGS := $(NEXUS_CFLAGS)

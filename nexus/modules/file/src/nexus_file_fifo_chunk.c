@@ -1370,19 +1370,19 @@ bfile_fifo_write_snapshot_locked(struct NEXUS_ChunkedFifoRecord *file)
 
     rc = b_pvrfifo_io_write(&file->index.file->data, &buf->data, sizeof(buf->data));
     if(rc!=sizeof(buf->data)) {
-        BDBG_ERR(("%p can't write FIFO data meta %d(%u)", (void *)file, rc, sizeof(buf->data)));
+        BDBG_ERR(("%p can't write FIFO data meta %d(%u)", (void *)file, (int)rc, (unsigned)sizeof(buf->data)));
     }
 
     buf = file->data.file->header;
     seek_rc = b_pvrfifo_io_wseek(&file->index.file->data, sizeof(buf->data), SEEK_SET);
     if(seek_rc != sizeof(buf->data)) {
-        BDBG_ERR(("%p can't write FIFO data to %u(%d)", (void *)file, sizeof(buf->data), (int)seek_rc));
+        BDBG_ERR(("%p can't write FIFO data to %u(%d)", (void *)file, (unsigned)sizeof(buf->data), (int)seek_rc));
         return;
     }
 
     b_pvrfifo_io_write(&file->index.file->data, &buf->data, sizeof(buf->data));
     if(rc!=sizeof(buf->data)) {
-        BDBG_ERR(("%p can't write FIFO header meta %d(%u)", (void *)file, rc, sizeof(buf->data)));
+        BDBG_ERR(("%p can't write FIFO header meta %d(%u)", (void *)file, (int)rc, (unsigned)sizeof(buf->data)));
     }
     return;
 }

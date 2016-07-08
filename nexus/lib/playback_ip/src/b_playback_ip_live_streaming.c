@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2003-2016 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * Description: Live Streaming of Data to a Remote Client
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 
@@ -115,7 +107,7 @@ B_PlaybackIp_UtilsDumpBuffer ( const char * funccaller, const unsigned char * bu
         if ( (strlen(line) + strlen(nibble)  + 1) < sizeof(line) ) {
             strncat(line, nibble, sizeof(line)-1 );
         } else {
-            BDBG_WRN(("%s: line buffer len (%u) exceeded", funccaller, sizeof(line) ));
+            BDBG_WRN(("%s: line buffer len (%zu) exceeded", funccaller, sizeof(line) ));
         }
         /* add a space after every two bytes */
         if (idx%2==1) {
@@ -368,7 +360,7 @@ B_PlaybackIp_LiveStreamingClose(B_PlaybackIpLiveStreamingHandle liveStreamingHan
 {
 
     if (liveStreamingHandle) {
-        BDBG_MSG(("%s: liveStreamingHandle %p, filePlayHandle %p", __FUNCTION__, liveStreamingHandle, liveStreamingHandle->filePlayHandle));
+        BDBG_MSG(("%s: liveStreamingHandle %p, filePlayHandle %p", __FUNCTION__, (void *)liveStreamingHandle, (void *)liveStreamingHandle->filePlayHandle));
 #ifdef B_HAS_DTCP_IP
         B_PlaybackIp_UtilsDtcpServerCtxClose(&liveStreamingHandle->data);
 #endif
@@ -549,21 +541,21 @@ liveStreamingThreadFromFifo(
     filePlayHandle = NEXUS_FifoPlay_Open(liveStreamingSettings->fileName, indexFileName, liveStreamingSettings->fifoFileHandle);
     if (!filePlayHandle) {
         BDBG_ERR(("%s: NEXUS_FifoPlay_Open() failed to open circular file (%s) handle for live streaming, fifoFileHandle %p",
-                    __FUNCTION__, liveStreamingSettings->fileName, liveStreamingSettings->fifoFileHandle));
+                    __FUNCTION__, liveStreamingSettings->fileName, (void *)liveStreamingSettings->fifoFileHandle));
         goto error;
     }
     liveStreamingHandle->filePlayHandle = filePlayHandle;
 
-    BDBG_WRN(("%s: handle %p, streamingFd %d, streaming buf %p", __FUNCTION__, liveStreamingHandle, streamingFd, liveStreamingHandle->streamingBuf));
+    BDBG_WRN(("%s: handle %p, streamingFd %d, streaming buf %p", __FUNCTION__, (void *)liveStreamingHandle, streamingFd, (void *)liveStreamingHandle->streamingBuf));
     /* seek to begining of file */
     while (loopCount++ < 100) {
         if (filePlayHandle->file.data->seek(filePlayHandle->file.data, 0, SEEK_SET) != 0) {
             if (loopCount == 100) {
-                BDBG_ERR(("%s: underflow, no data coming in, return failure, fd %p, loopCount %d", __FUNCTION__, filePlayHandle->file.data, loopCount));
+                BDBG_ERR(("%s: underflow, no data coming in, return failure, fd %p, loopCount %d", __FUNCTION__, (void *)filePlayHandle->file.data, loopCount));
                 goto error;
             }
             else {
-                BDBG_MSG(("%s: underflow: no data yet in the FIFO, retrying after small sleep, offset %d for fd %p, loopCount %d", __FUNCTION__, 0, filePlayHandle->file.data, loopCount));
+                BDBG_MSG(("%s: underflow: no data yet in the FIFO, retrying after small sleep, offset %d for fd %p, loopCount %d", __FUNCTION__, 0, (void *)filePlayHandle->file.data, loopCount));
             }
             BKNI_Sleep(130);
             continue;
@@ -581,7 +573,7 @@ liveStreamingThreadFromFifo(
 
     if (liveStreamingHandle->startStreamingEvent)
         BKNI_SetEvent(liveStreamingHandle->startStreamingEvent);
-    BDBG_MSG(("%s: Ready for streaming: handle %p, streamingFd %d", __FUNCTION__, liveStreamingHandle, streamingFd));
+    BDBG_MSG(("%s: Ready for streaming: handle %p, streamingFd %d", __FUNCTION__, (void *)liveStreamingHandle, streamingFd));
     while (!liveStreamingHandle->stop) {
         readBuf = liveStreamingHandle->streamingBuf;
         if (readTimeouts > 200) {
@@ -594,7 +586,7 @@ liveStreamingThreadFromFifo(
             BDBG_MSG(("%s: streaming session is not yet enabled, skipping %d bytes", __FUNCTION__, bytesToWrite));
             streamingDisabled = true;
             curOffset = filePlayHandle->file.data->seek(filePlayHandle->file.data, 0, SEEK_CUR);
-            BDBG_MSG(("cur offset %lld, ts aligned mod %d, aligned %lld", curOffset, curOffset%188, curOffset - curOffset%188));
+            BDBG_MSG(("cur offset %"PRId64 ", ts aligned mod %" PRId64 ", aligned %"PRId64, curOffset, curOffset%188, curOffset - curOffset%188));
         }
         else {
             if (streamingDisabled) {
@@ -604,21 +596,21 @@ liveStreamingThreadFromFifo(
                 streamingDisabled = false;
                 /* reset the file offset to TS friendly point and resume streaming from there */
                 curOffset = filePlayHandle->file.data->seek(filePlayHandle->file.data, 0, SEEK_CUR);
-                BDBG_WRN(("enable streaming: cur offset %lld, ts aligned mod %d, aligned %lld", curOffset, curOffset%188, curOffset - curOffset%188));
+                BDBG_WRN(("enable streaming: cur offset %"PRId64 ", ts aligned mod %d, aligned %"PRId64, curOffset, (int)curOffset%188, curOffset - curOffset%188));
                 /* calculate offset to go back */
                 offset = curOffset%(512*188); /* to make the offset DIO & TS aligned */
 #if 1
                 offset += (512*188*10*4); /* goback additional few seconds so as to allow quick TSM lock at the client */
 #endif
                 if (filePlayHandle->file.data->seek(filePlayHandle->file.data, -curOffset, SEEK_CUR) < 0) {
-                    BDBG_ERR(("%s: failed to shift back the current ffset by %d amount, errno %d", __FUNCTION__, curOffset, errno));
+                    BDBG_ERR(("%s: failed to shift back the current ffset by %d amount, errno %d", __FUNCTION__, (int)curOffset, errno));
                     break;
                 }
                 curOffset = filePlayHandle->file.data->seek(filePlayHandle->file.data, 0, SEEK_CUR);
-                BDBG_WRN(("enable streaming: aligned cur offset %lld by %d bytes ", curOffset, offset));
+                BDBG_WRN(("enable streaming: aligned cur offset %"PRId64 " by %d bytes ", curOffset, offset));
             }
         }
-        BDBG_MSG(("readBUf %p, bytesToRead %d\n", readBuf, bytesToRead));
+        BDBG_MSG(("readBUf %p, bytesToRead %d\n", (void *)readBuf, bytesToRead));
         if ((bytesRead = (int)filePlayHandle->file.data->read(filePlayHandle->file.data, (void *)readBuf, (size_t)bytesToRead)) <= 0) {
             BDBG_MSG(("%s: read returned %d errno %d\n", __FUNCTION__, bytesRead, errno));
             if (errno == EINTR) {
@@ -634,7 +626,7 @@ liveStreamingThreadFromFifo(
                 continue;
             }
             else {
-                BDBG_WRN(("%s: read error for circular file fd %p, rewinding to begining", __FUNCTION__, filePlayHandle->file.data));
+                BDBG_WRN(("%s: read error for circular file fd %p, rewinding to begining", __FUNCTION__, (void *)filePlayHandle->file.data));
                 readTimeouts++;
                 BKNI_Sleep(100);
                 filePlayHandle->file.index->seek(filePlayHandle->file.index, 0, SEEK_SET);
@@ -700,10 +692,10 @@ error:
 #endif
     if (liveStreamingSettings->eventCallback && !liveStreamingHandle->stop) {
         /* app has defined eventCallback function & hasn't yet issued the stop, invoke the callback */
-        BDBG_WRN(("%s: invoking End of Streaming callback for ctx %p", __FUNCTION__, liveStreamingHandle));
+        BDBG_WRN(("%s: invoking End of Streaming callback for ctx %p", __FUNCTION__, (void *)liveStreamingHandle));
         liveStreamingSettings->eventCallback(liveStreamingSettings->appCtx, B_PlaybackIpEvent_eServerEndofStreamReached);
     }
-    BDBG_WRN(("%s: Done: handle %p, streamed %lld bytes for streaming fd %d in %d send calls", __FUNCTION__, liveStreamingHandle, liveStreamingHandle->totalBytesStreamed, streamingFd, loopCount));
+    BDBG_WRN(("%s: Done: handle %p, streamed %"PRId64 " bytes for streaming fd %d in %d send calls", __FUNCTION__, (void *)liveStreamingHandle, liveStreamingHandle->totalBytesStreamed, streamingFd, loopCount));
     if (liveStreamingHandle->streamingBufOrig)
         NEXUS_Memory_Free(liveStreamingHandle->streamingBufOrig);
     if (liveStreamingHandle->stopStreamingEvent)
@@ -736,7 +728,7 @@ liveStreamingThreadFromRaveBuffer(
     bool firstTime = true;
     NEXUS_RecpumpStatus status;
     unsigned long long bytesRecordedTillPreviousGop = 0;
-    unsigned long long bytesRecordedTillCurrentGop = 0;
+    uint64_t bytesRecordedTillCurrentGop = 0;
     int gopsSentInHlsSegment = 0;
     FILE *fclear = NULL;
     int fileNameSuffix = 0;
@@ -802,7 +794,7 @@ liveStreamingThreadFromRaveBuffer(
         BKNI_SetEvent(liveStreamingHandle->startStreamingEvent);
 #ifdef BDBG_DEBUG_BUILD
     if (liveStreamingHandle->ipVerboseLog)
-    BDBG_ERR(("%s: Ready for streaming: handle %p, streamingFd %d: clearBufferSize %d", __FUNCTION__, liveStreamingHandle, streamingFd, clearBufferSize));
+    BDBG_ERR(("%s: Ready for streaming: handle %p, streamingFd %d: clearBufferSize %zu", __FUNCTION__, (void *)liveStreamingHandle, streamingFd, clearBufferSize));
 #endif
 
 #if (NEXUS_HAS_DMA || NEXUS_HAS_XPT_DMA) && NEXUS_HAS_SECURITY
@@ -812,10 +804,10 @@ liveStreamingThreadFromRaveBuffer(
         bytesWritten = B_PlaybackIp_UtilsStreamingCtxWriteAll((struct bfile_io_write *)&liveStreamingHandle->data, liveStreamingSettings->appHeader.data, liveStreamingSettings->appHeader.length);
         if (bytesWritten != (int)liveStreamingSettings->appHeader.length) {
             /* this happens if client closed the connection or client connection is dead */
-            BDBG_WRN(("%s: handle: %p, failed to write %d bytes of app header data of len %d for fd %d", __FUNCTION__, liveStreamingHandle, bytesWritten, liveStreamingSettings->appHeader.length, streamingFd));
+            BDBG_WRN(("%s: handle: %p, failed to write %d bytes of app header data of len %d for fd %d", __FUNCTION__, (void *)liveStreamingHandle, bytesWritten, liveStreamingSettings->appHeader.length, streamingFd));
             goto error;
         }
-        BDBG_MSG(("%s: handle: %p, wrote %d bytes of app header data of len %d for fd %d", __FUNCTION__, liveStreamingHandle, bytesWritten, liveStreamingSettings->appHeader.length, streamingFd));
+        BDBG_MSG(("%s: handle: %p, wrote %d bytes of app header data of len %d for fd %d", __FUNCTION__, (void *)liveStreamingHandle, bytesWritten, liveStreamingSettings->appHeader.length, streamingFd));
     }
 #endif
 
@@ -831,7 +823,7 @@ liveStreamingThreadFromRaveBuffer(
 
         rc = BKNI_WaitForEvent(liveStreamingHandle->dataReadyEvent, liveStreamingHandle->settings.dataReadyTimeoutInterval);
         if (liveStreamingHandle->stop) {
-            BDBG_MSG(("%s: app asked us to stop streaming (handle %p)", __FUNCTION__, liveStreamingHandle));
+            BDBG_MSG(("%s: app asked us to stop streaming (handle %p)", __FUNCTION__, (void *)liveStreamingHandle));
             break;
         }
 
@@ -845,13 +837,13 @@ liveStreamingThreadFromRaveBuffer(
         /* check for read timeouts */
         if (readTimeouts * LIVE_STREAMING_DATA_READY_TIMEOUT_INTERVAL > LIVE_STREAMING_DATA_READY_MAX_TIMEOUT) {
             BDBG_ERR(("%s: handle %p, too many timeouts (cnt %d, time %d) while waiting for live data from recpump for streamingFd %d, breaking out of streaming loop",
-                        __FUNCTION__, liveStreamingHandle, readTimeouts, LIVE_STREAMING_DATA_READY_MAX_TIMEOUT, streamingFd));
+                        __FUNCTION__, (void *)liveStreamingHandle, readTimeouts, LIVE_STREAMING_DATA_READY_MAX_TIMEOUT, streamingFd));
             break;
         }
         /* determine how many bytes to read from the rave buffer */
         if(liveStreamingHandle->settings.sendNullRtpPktsOnTimeout && streamingNull == true)
         {
-            BDBG_WRN(("%s: Stop Send Null RtspPacket  data found in Rave.", __FUNCTION__, liveStreamingHandle->settings.dataReadyTimeoutInterval ));
+            BDBG_WRN(("%s: Stop Send Null RtspPacket  data found in Rave.", __FUNCTION__ ));
             streamingNull = false;
         }
 
@@ -869,14 +861,14 @@ liveStreamingThreadFromRaveBuffer(
                 if (firstTime) {
                     if (indexBytesRead <= BRCM_TPIT_ENTRY_SIZE) {
                         /* wait until first two full GOPs are available in rave */
-                        BDBG_MSG(("%s: waiting until first full GOP is received, indexBytesRead %d", __FUNCTION__, indexBytesRead));
+                        BDBG_MSG(("%s: waiting until first full GOP is received, indexBytesRead %zu", __FUNCTION__, indexBytesRead));
                         continue;
                     }
                     else {
                         /* got atleast 1st 2 GOPs, so get the bytesRecordedTill last gop */
                         BDBG_ASSERT(indexBytesRead%BRCM_TPIT_ENTRY_SIZE==0);
-                        BDBG_MSG(("%s: received 1st GOP (indexBytesRead %d), last RAP entry %p", __FUNCTION__, indexBytesRead, indexBuf + (indexBytesRead - BRCM_TPIT_ENTRY_SIZE)));
-                        indexBuf = indexBuf + (indexBytesRead - BRCM_TPIT_ENTRY_SIZE);
+                        BDBG_MSG(("%s: received 1st GOP (indexBytesRead %zu), last RAP entry %p", __FUNCTION__, indexBytesRead, (void *)(indexBuf + (indexBytesRead - BRCM_TPIT_ENTRY_SIZE))));
+                        indexBuf = (unsigned *) ((unsigned)indexBuf + (indexBytesRead - BRCM_TPIT_ENTRY_SIZE));
                     }
                 }
                 /* accumulated upto 2nd Random Access Indicator, i.e. one full GOP */
@@ -884,22 +876,22 @@ liveStreamingThreadFromRaveBuffer(
                 /* calculate the GOP size, so that only that many bytes are read from rave and streamed to the client */
                 highByte = ((unsigned long long)*(indexBuf+2) >> 24);
                 bytesRecordedTillCurrentGop = highByte << 32;
-                BDBG_MSG(("bytesRecordedTillCurrentGop %llu", bytesRecordedTillCurrentGop));
+                BDBG_MSG(("bytesRecordedTillCurrentGop %"PRIu64 , bytesRecordedTillCurrentGop));
                 bytesRecordedTillCurrentGop |= (unsigned long long)*(indexBuf+3);
-                BDBG_MSG(("final bytesRecordedTillCurrentGop %llu", bytesRecordedTillCurrentGop));
+                BDBG_MSG(("final bytesRecordedTillCurrentGop %"PRIu64, bytesRecordedTillCurrentGop));
                 bytesToRead = bytesRecordedTillCurrentGop  - bytesRecordedTillPreviousGop;
                 bytesRecordedTillPreviousGop = bytesRecordedTillCurrentGop;
-                BDBG_MSG(("%s: CTX %p: Got full GOP: index bytesRead %d, bytesToRead %d, streaming fd %d", __FUNCTION__, liveStreamingHandle, indexBytesRead, bytesToRead, streamingFd));
+                BDBG_MSG(("%s: CTX %p: Got full GOP: index bytesRead %zu, bytesToRead %zu, streaming fd %d", __FUNCTION__, (void *)liveStreamingHandle, indexBytesRead, bytesToRead, streamingFd));
 
 #ifdef DEBUG
-                BDBG_MSG(("%s: GOT full GOP: index bytesRead %d, tipt[0] 0x%x, tpit[2] 0x%x, tpit[3] 0x%x, bytesToRead %d", __FUNCTION__, indexBytesRead, *indexBuf, *(indexBuf+2), *(indexBuf+3), bytesToRead));
+                BDBG_MSG(("%s: GOT full GOP: index bytesRead %zu, tipt[0] 0x%x, tpit[2] 0x%x, tpit[3] 0x%x, bytesToRead %zu", __FUNCTION__, indexBytesRead, *indexBuf, *(indexBuf+2), *(indexBuf+3), bytesToRead));
                 NEXUS_Recpump_GetStatus(liveStreamingHandle->recpumpHandle, &status);
                 BDBG_WRN(("%s: streamingFd %d: Recpump status: FIFO: depth %d, size %d", __FUNCTION__, streamingFd, status.data.fifoDepth, status.data.fifoSize));
 #endif
             }
             else {
                 readTimeouts++;
-                BDBG_MSG(("%s: handle %p, for streamingFd %d, readTimeouts %d, wait until 1 full GOP is received", __FUNCTION__, liveStreamingHandle, streamingFd, readTimeouts));
+                BDBG_MSG(("%s: handle %p, for streamingFd %d, readTimeouts %d, wait until 1 full GOP is received", __FUNCTION__, (void *)liveStreamingHandle, streamingFd, readTimeouts));
                 continue;
             }
         } else {
@@ -910,7 +902,7 @@ liveStreamingThreadFromRaveBuffer(
         totalBytesRead = 0;
         while (totalBytesRead < bytesToRead) {
             if (liveStreamingHandle->stop) {
-                BDBG_MSG(("%s: app asked us to stop streaming (handle %p)", __FUNCTION__, liveStreamingHandle));
+                BDBG_MSG(("%s: app asked us to stop streaming (handle %p)", __FUNCTION__, (void *)liveStreamingHandle));
                 gotErrorInStreamingLoop = true;
                 break;
             }
@@ -919,7 +911,7 @@ liveStreamingThreadFromRaveBuffer(
             rc = NEXUS_Recpump_GetDataBuffer(liveStreamingHandle->recpumpHandle, (const void **)&readBuf, (size_t *)&bytesRead);
 
            /* Send Null Packets for SES SATIP spec when no signal is being received,
-                       the signal is being lost, or no PID is available (also e.g. when “pids=none”) */
+                       the signal is being lost, or no PID is available (also e.g. when Â“pids=noneÂ”) */
             if (rc != 0  && liveStreamingHandle->settings.sendNullRtpPktsOnTimeout) {
                 if(streamingNull == false)
                 {
@@ -976,9 +968,9 @@ liveStreamingThreadFromRaveBuffer(
 #endif
 
                 bytesToRead = bytesRead;
-                BDBG_MSG(("%s: bytesToRead %d, adjusted bytesRead %d, totalBytesRead %d", __FUNCTION__, bytesToRead, bytesRead, totalBytesRead));
+                BDBG_MSG(("%s: bytesToRead %zu, adjusted bytesRead %zu, totalBytesRead %zu", __FUNCTION__, bytesToRead, bytesRead, totalBytesRead));
                 if (bytesToRead <= 0) {
-                    BDBG_MSG(("%s: recpump underflow (bytesRead %d), sleeping for 100msec...", __FUNCTION__, bytesRead));
+                    BDBG_MSG(("%s: recpump underflow (bytesRead %zu), sleeping for 100msec...", __FUNCTION__, bytesRead));
                     continue;
                 }
             }
@@ -988,25 +980,25 @@ liveStreamingThreadFromRaveBuffer(
             /* send bytes just read */
             bytesToWrite = bytesRead;
 
-            BDBG_MSG(("%s:%x: bytesToWrite (%lu); mod 188 (%lu); thread (%lx)", __FUNCTION__, liveStreamingHandle->recpumpHandle, bytesToWrite, bytesToWrite%188, pthread_self() ));
+            BDBG_MSG(("%s:%p: bytesToWrite (%lu); mod 188 (%lu); thread (%lx)", __FUNCTION__, (void *)liveStreamingHandle->recpumpHandle, (long unsigned int)bytesToWrite,(long unsigned int)bytesToWrite%188, pthread_self() ));
 
 #if (NEXUS_HAS_DMA || NEXUS_HAS_XPT_DMA) && NEXUS_HAS_SECURITY
             if (liveStreamingHandle->data.pvrDecKeyHandle) {
                 /* decrypt the buffer first */
-                if (B_PlaybackIp_UtilsPvrDecryptBuffer(&liveStreamingHandle->data, readBuf, clearBuf, bytesRead, &bytesToWrite) != B_ERROR_SUCCESS) {
-                    BDBG_ERR(("%s: handle %p, PVR Decryption Failed", __FUNCTION__, liveStreamingHandle));
+                if (B_PlaybackIp_UtilsPvrDecryptBuffer((struct bfile_io_write_net *)&data, readBuf, clearBuf, bytesRead, &bytesToWrite) != B_ERROR_SUCCESS) {
+                    BDBG_ERR(("%s: handle %p, PVR Decryption Failed", __FUNCTION__, (void *)liveStreamingHandle));
                     gotErrorInStreamingLoop = true;
                     break;
                 }
                 readBuf = clearBuf;
-                BDBG_MSG(("%s: decrypting of %d bytes buffer done, bytesToWrite %d", __FUNCTION__, bytesRead, bytesToWrite));
+                BDBG_MSG(("%s: decrypting of %zu bytes buffer done, bytesToWrite %d", __FUNCTION__, bytesRead, bytesToWrite));
             }
 #endif
             bytesWritten = B_PlaybackIp_UtilsStreamingCtxWriteAll((struct bfile_io_write *)&liveStreamingHandle->data, readBuf, bytesToWrite);
             if (bytesWritten <= 0) {
                 /* this happens if client closed the connection or client connection is dead */
                 if ( liveStreamingHandle->ipVerboseLog )
-                    BDBG_WRN(("%s: failed to write %d bytes for handle %p, streaming fd %d, wrote %d bytes, errno %d, streamed %lld bytes in %d calls", __FUNCTION__, bytesToWrite, liveStreamingHandle, streamingFd, bytesWritten, errno, liveStreamingHandle->totalBytesStreamed, loopCount));
+                    BDBG_WRN(("%s: failed to write %d bytes for handle %p, streaming fd %d, wrote %d bytes, errno %d, streamed %"PRId64 " bytes in %d calls", __FUNCTION__, bytesToWrite, (void *)liveStreamingHandle, streamingFd, bytesWritten, errno, liveStreamingHandle->totalBytesStreamed, loopCount));
                 gotErrorInStreamingLoop = true;
                 liveStreamingHandle->connectionState = B_PlaybackIpConnectionState_eError;
                 if (NEXUS_Recpump_DataReadComplete(liveStreamingHandle->recpumpHandle, 0) != NEXUS_SUCCESS) {
@@ -1033,7 +1025,7 @@ liveStreamingThreadFromRaveBuffer(
 
         if (readTimeouts) {
             /* didn't get any data, retry */
-            BDBG_MSG(("%s: handle %p, for streamingFd %d, readTimeouts %d, wait until more data is received", __FUNCTION__, liveStreamingHandle, streamingFd, readTimeouts));
+            BDBG_MSG(("%s: handle %p, for streamingFd %d, readTimeouts %d, wait until more data is received", __FUNCTION__, (void *)liveStreamingHandle, streamingFd, readTimeouts));
             continue;
         }
         if (gotErrorInStreamingLoop == true) {
@@ -1041,7 +1033,7 @@ liveStreamingThreadFromRaveBuffer(
             break;
         }
 
-        BDBG_MSG(("%s: bytesToRead %d bytes for streaming fd %d, wrote %d bytes", __FUNCTION__, bytesToRead, streamingFd, totalBytesRead));
+        BDBG_MSG(("%s: bytesToRead %zu bytes for streaming fd %d, wrote %zu bytes", __FUNCTION__, bytesToRead, streamingFd, totalBytesRead));
         if (liveStreamingSettings->hlsSession) {
             gopsSentInHlsSegment++;
             if (NEXUS_Recpump_IndexReadComplete(liveStreamingHandle->recpumpHandle, indexBytesRead) != NEXUS_SUCCESS) {
@@ -1057,7 +1049,7 @@ liveStreamingThreadFromRaveBuffer(
                 close(streamingFd);
                 if (liveStreamingSettings->eventCallback && !liveStreamingHandle->stop) {
                     /* app has defined eventCallback function & hasn't yet issued the stop, invoke the callback */
-                    BDBG_MSG(("%s: invoking End of segment callback for ctx %p", __FUNCTION__, liveStreamingHandle));
+                    BDBG_MSG(("%s: invoking End of segment callback for ctx %p", __FUNCTION__, (void *)liveStreamingHandle));
                     liveStreamingSettings->eventCallback(liveStreamingSettings->appCtx, B_PlaybackIpEvent_eServerEndofSegmentReached);
                 }
                 if (fclear) {
@@ -1070,26 +1062,26 @@ liveStreamingThreadFromRaveBuffer(
                 BKNI_ResetEvent(liveStreamingHandle->resumeStreamingEvent);
                 rc = BKNI_WaitForEvent(liveStreamingHandle->resumeStreamingEvent, HLS_RESUME_STREAMING_TIMEOUT);
                 if (rc == BERR_TIMEOUT || rc != 0) {
-                    BDBG_WRN(("%s: resume streaming event timedout or error on event, handle %p, client is done w/ HLS session", __FUNCTION__, liveStreamingHandle));
+                    BDBG_WRN(("%s: resume streaming event timedout or error on event, handle %p, client is done w/ HLS session", __FUNCTION__, (void *)liveStreamingHandle));
                     eventId = B_PlaybackIpEvent_eServerStartStreamingTimedout;
                     break;
                 }
                 streamingFd = liveStreamingHandle->data.fd; /* updated by the SetSettings function */
-                BDBG_MSG(("%s: CTX %p: resume streaming on fd %d", __FUNCTION__, liveStreamingHandle, streamingFd));
+                BDBG_MSG(("%s: CTX %p: resume streaming on fd %d", __FUNCTION__, (void *)liveStreamingHandle, streamingFd));
             }
         }
 
         /* look for recpump overflow before returning to top of the loop */
         NEXUS_Recpump_GetStatus(liveStreamingHandle->recpumpHandle, &status);
         if (loopCount % 50 == 0) {
-            BDBG_MSG(("%s: streamingFd %d: Recpump status: FIFO: depth %d, size %d, read %d, written %d, totolBytesStreamd %lu", __FUNCTION__, streamingFd, status.data.fifoDepth, status.data.fifoSize, bytesRead, bytesWritten, liveStreamingHandle->totalBytesStreamed));
+            BDBG_MSG(("%s: streamingFd %d: Recpump status: FIFO: depth %zu, size %zu, read %zu, written %d, totolBytesStreamd %lu", __FUNCTION__, streamingFd, status.data.fifoDepth, status.data.fifoSize, bytesRead, bytesWritten, (long unsigned int)liveStreamingHandle->totalBytesStreamed));
         }
         if (status.data.fifoDepth >= .95 * status.data.fifoSize) {
             if (NEXUS_Recpump_GetDataBuffer(liveStreamingHandle->recpumpHandle, (const void **)&readBuf, (size_t *)&bytesRead) != NEXUS_SUCCESS) {
                 BDBG_ERR(("%s: NEXUS_Recpump_GetDataBuffer failed, breaking out of streaming loop", __FUNCTION__));
                 break;
             }
-            BDBG_WRN(("%s: streamingFd %d: Recpump overflow, flushing the FIFO: depth %d, size %d, read %d", __FUNCTION__, streamingFd, status.data.fifoDepth, status.data.fifoSize, bytesRead));
+            BDBG_WRN(("%s: streamingFd %d: Recpump overflow, flushing the FIFO: depth %zu, size %zu, read %zu", __FUNCTION__, streamingFd, status.data.fifoDepth, status.data.fifoSize, bytesRead));
             if (NEXUS_Recpump_DataReadComplete(liveStreamingHandle->recpumpHandle, bytesRead) != NEXUS_SUCCESS) {
                 BDBG_ERR(("%s: NEXUS_Recpump_DataReadComplete failed, breaking out of streaming loop", __FUNCTION__));
                 break;
@@ -1117,14 +1109,14 @@ error:
 #endif
     if (liveStreamingSettings->eventCallback && !liveStreamingHandle->stop) {
         /* app has defined eventCallback function & hasn't yet issued the stop, invoke the callback */
-        BDBG_MSG(("%s: invoking End of Streaming callback for ctx %p", __FUNCTION__, liveStreamingHandle));
+        BDBG_MSG(("%s: invoking End of Streaming callback for ctx %p", __FUNCTION__, (void *)liveStreamingHandle));
         liveStreamingSettings->eventCallback(liveStreamingSettings->appCtx, eventId);
     }
     if (enableRecording && fclear) {
         fflush(fclear);
         fclose(fclear);
     }
-    BDBG_MSG(("%s: Done: handle %p, streamed %lld bytes for streaming fd %d in %d send calls ", __FUNCTION__, liveStreamingHandle, liveStreamingHandle->totalBytesStreamed, streamingFd, loopCount));
+    BDBG_MSG(("%s: Done: handle %p, streamed %"PRId64 " bytes for streaming fd %d in %d send calls ", __FUNCTION__, (void *)liveStreamingHandle, liveStreamingHandle->totalBytesStreamed, streamingFd, loopCount));
     if (liveStreamingHandle->stopStreamingEvent)
         BKNI_SetEvent(liveStreamingHandle->stopStreamingEvent);
     liveStreamingHandle->connectionState = B_PlaybackIpConnectionState_eError;
@@ -1150,18 +1142,18 @@ int sendPatPmt(
     /* send Pat */
     bytesWritten = B_PlaybackIp_UtilsStreamingCtxWriteAll((struct bfile_io_write *)&liveStreamingHandle->data, liveStreamingHandle->patBuffer, HLS_PAT_PMT_BUFFER_SIZE);
     if (bytesWritten != HLS_PAT_PMT_BUFFER_SIZE) {
-        BDBG_ERR(("%s: CTX %p: Failed to write PAT on socket %u", __FUNCTION__, liveStreamingHandle, liveStreamingHandle->data.fd));
+        BDBG_ERR(("%s: CTX %p: Failed to write PAT on socket %u", __FUNCTION__, (void *)liveStreamingHandle, liveStreamingHandle->data.fd));
         return -1;
     }
-    BDBG_MSG(("%s: ctx:streamingFd %p:%d: sent PAT", __FUNCTION__, liveStreamingHandle, liveStreamingHandle->data.fd));
+    BDBG_MSG(("%s: ctx:streamingFd %p:%d: sent PAT", __FUNCTION__, (void *)liveStreamingHandle, liveStreamingHandle->data.fd));
 
     /* send Pmt */
     bytesWritten = B_PlaybackIp_UtilsStreamingCtxWriteAll((struct bfile_io_write *)&liveStreamingHandle->data, liveStreamingHandle->pmtBuffer, HLS_PAT_PMT_BUFFER_SIZE);
     if (bytesWritten != HLS_PAT_PMT_BUFFER_SIZE) {
-        BDBG_ERR(("%s: CTX %p: Failed to write PMT on socket %u", __FUNCTION__, liveStreamingHandle, liveStreamingHandle->data.fd));
+        BDBG_ERR(("%s: CTX %p: Failed to write PMT on socket %u", __FUNCTION__, (void *)liveStreamingHandle, liveStreamingHandle->data.fd));
         return -1;
     }
-    BDBG_MSG(("%s: ctx:streamingFd %p:%d: sent PMT", __FUNCTION__, liveStreamingHandle, liveStreamingHandle->data.fd));
+    BDBG_MSG(("%s: ctx:streamingFd %p:%d: sent PMT", __FUNCTION__, (void *)liveStreamingHandle, liveStreamingHandle->data.fd));
 
     /* optionally: if local recording is enabled for debug purposes, we also write the PAT & PMT to that file */
     if (enableRecording) {
@@ -1171,7 +1163,7 @@ int sendPatPmt(
             BDBG_MSG(("%s: Opening recording %s", __FUNCTION__, recordFileName));
             liveStreamingHandle->fclear = fopen(recordFileName, "w+b");
             if (liveStreamingHandle->fclear == NULL) {
-                BDBG_ERR(("%s: CTX %p: local recording of HLS Segments is enabled, but fopen failed for file name %s, errno %d", __FUNCTION__, liveStreamingHandle, recordFileName, errno));
+                BDBG_ERR(("%s: CTX %p: local recording of HLS Segments is enabled, but fopen failed for file name %s, errno %d", __FUNCTION__, (void *)liveStreamingHandle, recordFileName, errno));
                 return 0; /* we ignore the recording failure of the PAT/PMT as this is just for debug purposes */
             }
         }
@@ -1202,7 +1194,7 @@ static int waitUntilAvDataAvailableOrTimeout(
     {
         rc = B_ERROR_UNKNOWN;
         if (liveStreamingHandle->stop) {
-            BDBG_WRN(("%s: ctx:fd %p:%d: app asked us to stop streaming", __FUNCTION__, liveStreamingHandle, liveStreamingHandle->settings.streamingFd));
+            BDBG_WRN(("%s: ctx:fd %p:%d: app asked us to stop streaming", __FUNCTION__, (void *)liveStreamingHandle, liveStreamingHandle->settings.streamingFd));
             break;
         }
 
@@ -1212,12 +1204,12 @@ static int waitUntilAvDataAvailableOrTimeout(
 
         /* check again for stop streaming event */
         if (liveStreamingHandle->stop) {
-            BDBG_WRN(("%s: ctx:fd %p:%d: app asked us to stop streaming", __FUNCTION__, liveStreamingHandle, liveStreamingHandle->settings.streamingFd));
+            BDBG_WRN(("%s: ctx:fd %p:%d: app asked us to stop streaming", __FUNCTION__, (void *)liveStreamingHandle, liveStreamingHandle->settings.streamingFd));
             break;
         }
         if (liveStreamingHandle->abortStreaming) {
             liveStreamingHandle->abortStreaming = false;
-            BDBG_WRN(("%s: ctx:fd %p:%d: app asked us to abort streaming", __FUNCTION__, liveStreamingHandle, liveStreamingHandle->settings.streamingFd));
+            BDBG_WRN(("%s: ctx:fd %p:%d: app asked us to abort streaming", __FUNCTION__, (void *)liveStreamingHandle, liveStreamingHandle->settings.streamingFd));
             break;
         }
         for (i = 0; i < numTriggeredEvents; i++)
@@ -1225,7 +1217,7 @@ static int waitUntilAvDataAvailableOrTimeout(
             if (triggeredEvents[i] == liveStreamingHandle->resumeStreamingEvent) {
                 liveStreamingHandle->state = B_PlaybackIpLiveStreamingState_eStreaming;
                 liveStreamingHandle->settings.streamingFd = liveStreamingHandle->data.fd; /* updated by the SetSettings function */
-                BDBG_MSG(("%s: CTX %p: resume streaming on fd %d", __FUNCTION__, liveStreamingHandle, liveStreamingHandle->settings.streamingFd));
+                BDBG_MSG(("%s: CTX %p: resume streaming on fd %d", __FUNCTION__, (void *)liveStreamingHandle, liveStreamingHandle->settings.streamingFd));
                 BKNI_ResetEvent(liveStreamingHandle->resumeStreamingEvent);
                 continue; /* to check for the next event */
             }
@@ -1239,7 +1231,7 @@ static int waitUntilAvDataAvailableOrTimeout(
         if (liveStreamingHandle->state == B_PlaybackIpLiveStreamingState_eWaitingToResumeStreaming) {
             /* if we are not in the streaming state, we continue waiting for app to tell us to resume streaming */
             waitingToResumeStreaming++;
-            BDBG_MSG(("%s: ctx:fd %p:%d: waiting for app to resume streaming (waitingToResumeStreaming %d)", __FUNCTION__, liveStreamingHandle, liveStreamingHandle->settings.streamingFd, waitingToResumeStreaming));
+            BDBG_MSG(("%s: ctx:fd %p:%d: waiting for app to resume streaming (waitingToResumeStreaming %d)", __FUNCTION__, (void *)liveStreamingHandle, liveStreamingHandle->settings.streamingFd, waitingToResumeStreaming));
             continue;
         }
 
@@ -1254,16 +1246,16 @@ static int waitUntilAvDataAvailableOrTimeout(
         {
             readTimeouts++;
             /* nothing available at this time, keep trying until we exceed the max timeout */
-            BDBG_MSG(("%s: ctx:fd %p:%d: no data available yet: readTimeouts %d, readBuf %p, bytesRead %u", __FUNCTION__, liveStreamingHandle, liveStreamingHandle->settings.streamingFd, readTimeouts, *readBuf, *bytesRead));
+            BDBG_MSG(("%s: ctx:fd %p:%d: no data available yet: readTimeouts %d, readBuf %p, bytesRead %zu", __FUNCTION__, (void *)liveStreamingHandle, liveStreamingHandle->settings.streamingFd, readTimeouts, *readBuf, *bytesRead));
             /* check if we have gotten enough readTimeout events to give up on this streaming session */
             if (readTimeouts * LIVE_STREAMING_DATA_READY_TIMEOUT_INTERVAL > LIVE_STREAMING_DATA_READY_MAX_TIMEOUT) {
                 BDBG_ERR(("%s: handle %p, too many timeouts (cnt %d, timeout %d) while waiting for live data for streamingFd %d, breaking out",
-                            __FUNCTION__, liveStreamingHandle, readTimeouts, LIVE_STREAMING_DATA_READY_MAX_TIMEOUT, liveStreamingHandle->settings.streamingFd));
+                            __FUNCTION__, (void *)liveStreamingHandle, readTimeouts, LIVE_STREAMING_DATA_READY_MAX_TIMEOUT, liveStreamingHandle->settings.streamingFd));
                 break;
             }
         }
         else {
-            BDBG_MSG(("%s: readBuf %p, bytesRead %u, readTimeouts %d, waitingToResumeStreaming %d", __FUNCTION__, *readBuf, *bytesRead, readTimeouts, waitingToResumeStreaming));
+            BDBG_MSG(("%s: readBuf %p, bytesRead %zu, readTimeouts %d, waitingToResumeStreaming %d", __FUNCTION__, *readBuf, *bytesRead, readTimeouts, waitingToResumeStreaming));
             rc = B_ERROR_SUCCESS;
             break;
         }
@@ -1312,7 +1304,7 @@ hlsStreamingThreadFromRaveBuffer(
     /* we need to wait until app sets the streamingEnabled flag */
     while (!liveStreamingHandle->stop) {
         if (!liveStreamingHandle->settings.streamingDisabled) {
-            BDBG_MSG(("%s: ctx: streaming is no longer distabled: streamingFd %p : %d", __FUNCTION__, liveStreamingHandle, liveStreamingSettings->streamingFd));
+            BDBG_MSG(("%s: ctx: streaming is no longer distabled: streamingFd %p : %d", __FUNCTION__, (void *)liveStreamingHandle, liveStreamingSettings->streamingFd));
             break;
         }
         rc = BKNI_WaitForEvent(liveStreamingHandle->resumeStreamingEvent, LIVE_STREAMING_DATA_READY_TIMEOUT_INTERVAL);
@@ -1328,7 +1320,7 @@ hlsStreamingThreadFromRaveBuffer(
 
 #ifdef BDBG_DEBUG_BUILD
     if (liveStreamingHandle->ipVerboseLog)
-    BDBG_WRN(("%s: Ready for streaming: handle %p, streamingFd %d", __FUNCTION__, liveStreamingHandle, liveStreamingSettings->streamingFd));
+    BDBG_WRN(("%s: Ready for streaming: handle %p, streamingFd %d", __FUNCTION__, (void *)liveStreamingHandle, liveStreamingSettings->streamingFd));
 #endif
     while (!liveStreamingHandle->stop)
     {
@@ -1350,7 +1342,7 @@ hlsStreamingThreadFromRaveBuffer(
             liveStreamingHandle->state = B_PlaybackIpLiveStreamingState_eWaitingToResumeStreaming;
             if (liveStreamingSettings->eventCallback && !liveStreamingHandle->stop) {
                 /* app has defined eventCallback function & hasn't yet issued the stop, invoke the callback */
-                BDBG_MSG(("%s: invoking ErrorStreaming callback for ctx %p", __FUNCTION__, liveStreamingHandle));
+                BDBG_MSG(("%s: invoking ErrorStreaming callback for ctx %p", __FUNCTION__, (void *)liveStreamingHandle));
                 liveStreamingSettings->eventCallback(liveStreamingSettings->appCtx, B_PlaybackIpEvent_eServerErrorStreaming);
             }
             continue;
@@ -1362,7 +1354,7 @@ hlsStreamingThreadFromRaveBuffer(
             BDBG_ERR(("%s: NEXUS_Recpump_GetIndexBuffer failed, breaking out of streaming loop", __FUNCTION__));
             break;
         }
-        BDBG_MSG(("%s: TOP: indexBuf %p, indexBytesRead %d, bytesRead %u", __FUNCTION__, indexBuf, indexBytesRead, bytesRead));
+        BDBG_MSG(("%s: TOP: indexBuf %p, indexBytesRead %zu, bytesRead %zu", __FUNCTION__, (void *)indexBuf, indexBytesRead, bytesRead));
 
         if (liveStreamingHandle->resetStreaming)
         {
@@ -1371,19 +1363,19 @@ hlsStreamingThreadFromRaveBuffer(
             bytesRecordedTillCurrentGop = 0;
             bytesSentInCurrentGop = 0;
             liveStreamingHandle->resetStreaming = false;
-            BDBG_MSG(("%s: ctx %p: Reset Streaming params!", __FUNCTION__, liveStreamingHandle));
+            BDBG_MSG(("%s: ctx %p: Reset Streaming params!", __FUNCTION__, (void *)liveStreamingHandle));
         }
         if (liveStreamingHandle->sendPatPmt)
         {
             rc = sendPatPmt(liveStreamingHandle);
             liveStreamingHandle->sendPatPmt = false;
             if (rc != B_ERROR_SUCCESS) {
-                BDBG_ERR(("%s: ctx %p: failed to send PAT/PMT, issue errorcallback to app", __FUNCTION__, liveStreamingHandle));
+                BDBG_ERR(("%s: ctx %p: failed to send PAT/PMT, issue errorcallback to app", __FUNCTION__, (void *)liveStreamingHandle));
                 /* we change the state here and go back to the top. waitUntilAvDataAvailableOrTimeout() waits for app to resume or stop streaming */
                 liveStreamingHandle->state = B_PlaybackIpLiveStreamingState_eWaitingToResumeStreaming;
                 if (liveStreamingSettings->eventCallback && !liveStreamingHandle->stop) {
                     /* app has defined eventCallback function & hasn't yet issued the stop, invoke the callback */
-                    BDBG_MSG(("%s: invoking ErrorStreaming callback for ctx %p", __FUNCTION__, liveStreamingHandle));
+                    BDBG_MSG(("%s: invoking ErrorStreaming callback for ctx %p", __FUNCTION__, (void *)liveStreamingHandle));
                     liveStreamingSettings->eventCallback(liveStreamingSettings->appCtx, B_PlaybackIpEvent_eServerErrorStreaming);
                 }
                 continue;
@@ -1398,7 +1390,7 @@ hlsStreamingThreadFromRaveBuffer(
             /* iOS7 player otherwise times out if it doesn't receive initial data in ~1sec (which can happen during the start of xcode session) */
             bytesToWrite = bytesRead;
             bytesSentInCurrentGop += bytesToWrite;
-            PRINTMSG_SUMMARY(("%s: ctx:fd %p:%d Current GOP is partially available, just send it: indexBytesRead %d, bytesRead %u, bytesSentInCurrentGop %u", __FUNCTION__, liveStreamingHandle, streamingFd, indexBytesRead, bytesRead, bytesSentInCurrentGop));
+            PRINTMSG_SUMMARY(("%s: ctx:fd %p:%d Current GOP is partially available, just send it: indexBytesRead %zu, bytesRead %zu, bytesSentInCurrentGop %zu", __FUNCTION__, (void *)liveStreamingHandle, streamingFd, indexBytesRead, bytesRead, bytesSentInCurrentGop));
             /* we set this to 0 as we dont want to consume the index bytes below until we either get a full GOP worth or 1 complete GOP for first time case */
             indexBytesRead = 0;
         }
@@ -1414,9 +1406,9 @@ hlsStreamingThreadFromRaveBuffer(
                 /* we will use the 2nd entry for calculating the size of the 1st GOP */
                 BDBG_MSG(("%s: GOT 1st full GOP", __FUNCTION__));
                 BDBG_ASSERT((indexBytesRead >= (2*BRCM_TPIT_ENTRY_SIZE)));
-                indexBuf = indexBuf + BRCM_TPIT_ENTRY_SIZE; /* index needs to point to the 2nd RAI entry, then we can get the size of the very 1st GOP in belows logic */
+                indexBuf = (unsigned *) ((unsigned)indexBuf + BRCM_TPIT_ENTRY_SIZE); /* index needs to point to the 2nd RAI entry, then we can get the size of the very 1st GOP in belows logic */
 #ifdef DEBUG
-                BDBG_MSG(("%s: 2nd index bytesRead %d, tipt[0] 0x%x, tpit[2] 0x%x, tpit[3] 0x%x", __FUNCTION__, indexBytesRead, *indexBuf, *(indexBuf+2), *(indexBuf+3)));
+                BDBG_MSG(("%s: 2nd index bytesRead %zu, tipt[0] 0x%x, tpit[2] 0x%x, tpit[3] 0x%x", __FUNCTION__, indexBytesRead, *indexBuf, *(indexBuf+2), *(indexBuf+3)));
 #endif
                 indexBytesRead = 2*BRCM_TPIT_ENTRY_SIZE;  /* consume both index entries as they together make up the 1st GOP */
             }
@@ -1430,7 +1422,7 @@ hlsStreamingThreadFromRaveBuffer(
             bytesRecordedTillCurrentGop = highByte << 32;
             bytesRecordedTillCurrentGop |= (unsigned long long)*(indexBuf+3);
 #ifdef DEBUG
-            BDBG_MSG(("%s: 2nd index bytesRead %d, tipt[0] 0x%x, tpit[2] 0x%x, tpit[3] 0x%x", __FUNCTION__, indexBytesRead, *indexBuf, *(indexBuf+2), *(indexBuf+3)));
+            BDBG_MSG(("%s: 2nd index bytesRead %zu, tipt[0] 0x%x, tpit[2] 0x%x, tpit[3] 0x%x", __FUNCTION__, indexBytesRead, *indexBuf, *(indexBuf+2), *(indexBuf+3)));
             BDBG_MSG(("%s: highByte %llx, bytesRecordedTillCurrentGop %llu, bytesRecordedTillPreviousGop %llu", __FUNCTION__, highByte, bytesRecordedTillCurrentGop, bytesRecordedTillPreviousGop));
 #endif
             currentGopSize = bytesRecordedTillCurrentGop  - bytesRecordedTillPreviousGop; /* TPIT entry contains the cumulative i-frame offsets, so we need to find the relative GOP sizes */
@@ -1441,10 +1433,10 @@ hlsStreamingThreadFromRaveBuffer(
 #endif
             bytesToWrite = currentGopSize - bytesSentInCurrentGop;
             bytesSentInCurrentGop = 0;
-            PRINTMSG_SUMMARY(("%s: ctx:fd %p:%d: Got full GOP (# %d): currentGopSize %d, sent %u, remain bytesToWrite %u, bytesRead %u, indexBytesRead %d", __FUNCTION__, liveStreamingHandle, streamingFd,
+            PRINTMSG_SUMMARY(("%s: ctx:fd %p:%d: Got full GOP (# %d): currentGopSize %d, sent %zu, remain bytesToWrite %zu, bytesRead %zu, indexBytesRead %zu", __FUNCTION__, (void *)liveStreamingHandle, streamingFd,
                         gopsReadSoFar, currentGopSize, bytesSentInCurrentGop, bytesToWrite, bytesRead, indexBytesRead));
             if (bytesToWrite > bytesRead) {
-                BDBG_MSG(("%s: FIFO wrap: index bytesRead %d, bytesRead %u, bytesToWrite %d, streaming fd %d", __FUNCTION__, indexBytesRead, bytesRead, bytesToWrite, streamingFd));
+                BDBG_MSG(("%s: FIFO wrap: index bytesRead %zu, bytesRead %zu, bytesToWrite %zu, streaming fd %d", __FUNCTION__, indexBytesRead, bytesRead, bytesToWrite, streamingFd));
             }
         }
 
@@ -1468,12 +1460,12 @@ hlsStreamingThreadFromRaveBuffer(
                 /* read more than the current required size, so trim it */
                 bytesRead = bytesToWrite - totalBytesWritten;
 
-            BDBG_MSG(("%s: ctx:fd %p:%d: bytesToWrite %lu, bytesRead %u, totalBytesWritten %u ", __FUNCTION__, liveStreamingHandle, streamingFd, bytesToWrite, bytesRead, totalBytesWritten));
+            BDBG_MSG(("%s: ctx:fd %p:%d: bytesToWrite %lu, bytesRead %zu, totalBytesWritten %zu ", __FUNCTION__, (void *)liveStreamingHandle, streamingFd, (long unsigned int)bytesToWrite, bytesRead, totalBytesWritten));
             /* send it to the network client */
             bytesWritten = B_PlaybackIp_UtilsStreamingCtxWriteAll((struct bfile_io_write *)&liveStreamingHandle->data, readBuf, bytesRead);
             if (bytesWritten <= 0 || bytesWritten != (int)bytesRead) {
                 /* this happens if client closed the connection or client connection is dead */
-                BDBG_WRN(("%s: failed to write %d bytes for handle %p, streaming fd %d, wrote %d bytes, errno %d, streamed %lld bytes in %d calls", __FUNCTION__, bytesToWrite, liveStreamingHandle, streamingFd, bytesWritten, errno, liveStreamingHandle->totalBytesStreamed, loopCount));
+                BDBG_WRN(("%s: failed to write %zu bytes for handle %p, streaming fd %d, wrote %d bytes, errno %d, streamed %"PRIu64 " bytes in %u calls", __FUNCTION__, bytesToWrite, (void *)liveStreamingHandle, streamingFd, bytesWritten, errno, liveStreamingHandle->totalBytesStreamed, loopCount));
                 gotErrorInStreamingLoop = true;
                 if (NEXUS_Recpump_DataReadComplete(liveStreamingHandle->recpumpHandle, 0) != NEXUS_SUCCESS) {
                     BDBG_ERR(("%s: NEXUS_Recpump_DataReadComplete failed, breaking out of streaming loop", __FUNCTION__));
@@ -1497,12 +1489,12 @@ hlsStreamingThreadFromRaveBuffer(
         }
         if (gotErrorInStreamingLoop == true) {
             if (bytesWritten <= 0 || bytesWritten != (int)bytesRead) {
-                BDBG_WRN(("%s: ctx:fd %p:%d: error while trying to write streaming data, wait for app to resume or stop streaming", __FUNCTION__, liveStreamingHandle, streamingFd));
+                BDBG_WRN(("%s: ctx:fd %p:%d: error while trying to write streaming data, wait for app to resume or stop streaming", __FUNCTION__, (void *)liveStreamingHandle, streamingFd));
                 /* we change the state here and go back to the top. waitUntilAvDataAvailableOrTimeout() waits for app to resume or stop streaming */
                 liveStreamingHandle->state = B_PlaybackIpLiveStreamingState_eWaitingToResumeStreaming;
                 if (liveStreamingSettings->eventCallback && !liveStreamingHandle->stop) {
                     /* app has defined eventCallback function & hasn't yet issued the stop, invoke the callback */
-                    BDBG_MSG(("%s: invoking ErrorStreaming callback for ctx %p", __FUNCTION__, liveStreamingHandle));
+                    BDBG_MSG(("%s: invoking ErrorStreaming callback for ctx %p", __FUNCTION__, (void *)liveStreamingHandle));
                     liveStreamingSettings->eventCallback(liveStreamingSettings->appCtx, B_PlaybackIpEvent_eServerErrorStreaming);
                 }
                 continue;
@@ -1510,7 +1502,7 @@ hlsStreamingThreadFromRaveBuffer(
             BDBG_MSG(("%s: gotErrorInStreamingLoop: breaking out of streaming loop", __FUNCTION__));
             break;
         }
-        PRINTMSG_SUMMARY(("%s: ctx:fd %p:%d: bytesToWrite %d, bytesWritten %d bytes, wrote %d bytes so far", __FUNCTION__, liveStreamingHandle, streamingFd, bytesToWrite, bytesWritten, liveStreamingHandle->totalBytesStreamed));
+        PRINTMSG_SUMMARY(("%s: ctx:fd %p:%d: bytesToWrite %d, bytesWritten %d bytes, wrote %d bytes so far", __FUNCTION__, (void *)liveStreamingHandle, streamingFd, (int)bytesToWrite, (int)bytesWritten, (int)liveStreamingHandle->totalBytesStreamed));
         BDBG_ASSERT(totalBytesWritten == bytesToWrite);
 
         if (indexBytesRead)
@@ -1520,7 +1512,7 @@ hlsStreamingThreadFromRaveBuffer(
                 BDBG_ERR(("%s: NEXUS_Recpump_IndexReadComplete failed, breaking out of streaming loop", __FUNCTION__));
                 break;
             }
-            BDBG_MSG(("%s: consumed %u index bytes", __FUNCTION__, indexBytesRead));
+            BDBG_MSG(("%s: consumed %zu index bytes", __FUNCTION__, indexBytesRead));
             gopsSentInHlsSegment +=1; /* we are only sending 1 GOP per indexRead */
             firstRai = false;
             bytesRecordedTillPreviousGop = bytesRecordedTillCurrentGop; /* Also update the previousGopOffset for the next GOP size calculations (above) */
@@ -1543,13 +1535,13 @@ hlsStreamingThreadFromRaveBuffer(
                 liveStreamingHandle->fclear = NULL;
             }
             liveStreamingHandle->totalHlsSegmentsSent +=1;
-            PRINTMSG_SUMMARY(("%s: ctx:fd %p:%d: finished writing one segment: sent %u GOPs, total Segments sent %u, closing current socket and waiting for client to request new segment", __FUNCTION__, liveStreamingHandle, streamingFd, gopsSentInHlsSegment, liveStreamingHandle->totalHlsSegmentsSent));
+            PRINTMSG_SUMMARY(("%s: ctx:fd %p:%d: finished writing one segment: sent %u GOPs, total Segments sent %u, closing current socket and waiting for client to request new segment", __FUNCTION__, (void *)liveStreamingHandle, streamingFd, gopsSentInHlsSegment, liveStreamingHandle->totalHlsSegmentsSent));
             gopsSentInHlsSegment = 0;
             /* we change the state here and go back to the top. waitUntilAvDataAvailableOrTimeout() waits for app to resume streaming or stop streaming */
             liveStreamingHandle->state = B_PlaybackIpLiveStreamingState_eWaitingToResumeStreaming;
             if (liveStreamingSettings->eventCallback && !liveStreamingHandle->stop) {
                 /* app has defined eventCallback function & hasn't yet issued the stop, invoke the callback */
-                BDBG_MSG(("%s: invoking End of segment callback for ctx %p", __FUNCTION__, liveStreamingHandle));
+                BDBG_MSG(("%s: invoking End of segment callback for ctx %p", __FUNCTION__, (void *)liveStreamingHandle));
                 liveStreamingSettings->eventCallback(liveStreamingSettings->appCtx, B_PlaybackIpEvent_eServerEndofSegmentReached);
             }
 
@@ -1558,12 +1550,12 @@ hlsStreamingThreadFromRaveBuffer(
             BKNI_ResetEvent(liveStreamingHandle->startStreamingEvent);
             rc = BKNI_WaitForEvent(liveStreamingHandle->startStreamingEvent, HLS_RESUME_STREAMING_TIMEOUT);
             if (rc == BERR_TIMEOUT || rc != 0) {
-                BDBG_ERR(("%s: resume streaming event timedout or error on event, handle %p, client is done w/ HLS session", __FUNCTION__, liveStreamingHandle));
+                BDBG_ERR(("%s: resume streaming event timedout or error on event, handle %p, client is done w/ HLS session", __FUNCTION__, (void *)liveStreamingHandle));
                 eventId = B_PlaybackIpEvent_eServerStartStreamingTimedout;
                 break;
             }
             streamingFd = liveStreamingHandle->data.fd; /* updated by the SetSettings function */
-            BDBG_MSG(("%s: CTX %p: resume streaming on fd %d", __FUNCTION__, liveStreamingHandle, streamingFd));
+            BDBG_MSG(("%s: CTX %p: resume streaming on fd %d", __FUNCTION__, (void *)liveStreamingHandle, streamingFd));
 #endif
         }
     } /* while (!liveStreaming->stop) loop */
@@ -1576,11 +1568,11 @@ hlsStreamingThreadFromRaveBuffer(
     }
     if (liveStreamingSettings->eventCallback && !liveStreamingHandle->stop) {
         /* app has defined eventCallback function & hasn't yet issued the stop, invoke the callback */
-        BDBG_MSG(("%s: invoking End of Streaming callback for ctx %p", __FUNCTION__, liveStreamingHandle));
+        BDBG_MSG(("%s: invoking End of Streaming callback for ctx %p", __FUNCTION__, (void *)liveStreamingHandle));
         liveStreamingHandle->connectionState = B_PlaybackIpConnectionState_eError;
         liveStreamingSettings->eventCallback(liveStreamingSettings->appCtx, eventId);
     }
-    BDBG_MSG(("%s: Done: handle %p, streamed %lld bytes for streaming fd %d in %d send calls ", __FUNCTION__, liveStreamingHandle, liveStreamingHandle->totalBytesStreamed, liveStreamingSettings->streamingFd, loopCount));
+    BDBG_MSG(("%s: Done: handle %p, streamed %"PRId64 " bytes for streaming fd %d in %d send calls ", __FUNCTION__, (void *)liveStreamingHandle, liveStreamingHandle->totalBytesStreamed, liveStreamingSettings->streamingFd, loopCount));
     if (liveStreamingHandle->stopStreamingEvent)
         BKNI_SetEvent(liveStreamingHandle->stopStreamingEvent);
     liveStreamingHandle->threadRunning = false;
@@ -1610,7 +1602,7 @@ startLiveStreamingThread(
         goto error;
     }
     BKNI_ResetEvent(liveStreamingHandle->startStreamingEvent);
-    BDBG_MSG(("%s: CTX %p: complete, streaming socket %d", __FUNCTION__, liveStreamingHandle, liveStreamingHandle->data.fd));
+    BDBG_MSG(("%s: CTX %p: complete, streaming socket %d", __FUNCTION__, (void *)liveStreamingHandle, liveStreamingHandle->data.fd));
     return 0;
 error:
     return -1;
@@ -1655,7 +1647,7 @@ B_PlaybackIp_LiveStreamingSetSettings(
             }
 #if (NEXUS_HAS_DMA || NEXUS_HAS_XPT_DMA) && NEXUS_HAS_SECURITY
             if (B_PlaybackIp_UtilsPvrDecryptionCtxOpen(&liveStreamingSettings->securitySettings, &liveStreamingHandle->data) != B_ERROR_SUCCESS) {
-                BDBG_ERR(("%s: Failed to setup pvr decryption"));
+                BDBG_ERR(("%s: Failed to setup pvr decryption", __FUNCTION__));
                 return B_ERROR_UNKNOWN;
             }
 #endif
@@ -1665,7 +1657,7 @@ B_PlaybackIp_LiveStreamingSetSettings(
                 liveStreamingHandle->sendPatPmt = true;
             }
             BKNI_SetEvent(liveStreamingHandle->resumeStreamingEvent);
-            BDBG_MSG(("%s: ctx:streamingFd %p:%d : complete, start streaming", __FUNCTION__, liveStreamingHandle, liveStreamingSettings->streamingFd));
+            BDBG_MSG(("%s: ctx:streamingFd %p:%d : complete, start streaming", __FUNCTION__, (void *)liveStreamingHandle, liveStreamingSettings->streamingFd));
         }
         else if (settings->resumeStreaming && liveStreamingSettings->hlsSession) {
             liveStreamingHandle->data.fd = settings->streamingFd;
@@ -1692,16 +1684,16 @@ B_PlaybackIp_LiveStreamingSetSettings(
                 liveStreamingHandle->threadReStarted = true;
                 if (startLiveStreamingThread(liveStreamingThreadFunc, liveStreamingHandle) < 0)
                     return B_ERROR_UNKNOWN;
-                BDBG_MSG(("%s: CTX %p: Live streaming thread restarted, streaming on fd %d, hlsSegmentSize %d", __FUNCTION__, liveStreamingHandle, settings->streamingFd, liveStreamingSettings->hlsSegmentSize));
+                BDBG_MSG(("%s: CTX %p: Live streaming thread restarted, streaming on fd %d, hlsSegmentSize %d", __FUNCTION__, (void *)liveStreamingHandle, settings->streamingFd, liveStreamingSettings->hlsSegmentSize));
             }
             else {
                 if (liveStreamingHandle->resumeStreamingEvent)
                     BKNI_SetEvent(liveStreamingHandle->resumeStreamingEvent);
                 else {
-                    BDBG_ERR(("%s: CTX %p: resumeStreamingEvent is NULL for new fd %d, returning error", __FUNCTION__, liveStreamingHandle, settings->streamingFd));
+                    BDBG_ERR(("%s: CTX %p: resumeStreamingEvent is NULL for new fd %d, returning error", __FUNCTION__, (void *)liveStreamingHandle, settings->streamingFd));
                     return B_ERROR_UNKNOWN;
                 }
-                BDBG_MSG(("%s: CTX %p: Generated event to resume streaming on fd %d, hlsSegmentSize %d", __FUNCTION__, liveStreamingHandle, settings->streamingFd, liveStreamingSettings->hlsSegmentSize));
+                BDBG_MSG(("%s: CTX %p: Generated event to resume streaming on fd %d, hlsSegmentSize %d", __FUNCTION__, (void *)liveStreamingHandle, settings->streamingFd, liveStreamingSettings->hlsSegmentSize));
             }
         }
         break;
@@ -1717,7 +1709,7 @@ B_PlaybackIp_LiveStreamingSetSettings(
             }
 #if (NEXUS_HAS_DMA || NEXUS_HAS_XPT_DMA) && NEXUS_HAS_SECURITY
             if (B_PlaybackIp_UtilsPvrDecryptionCtxOpen(&liveStreamingSettings->securitySettings, &liveStreamingHandle->data) != B_ERROR_SUCCESS) {
-                BDBG_ERR(("%s: Failed to setup pvr decryption"));
+                BDBG_ERR(("%s: Failed to setup pvr decryption", __FUNCTION__));
                 return B_ERROR_UNKNOWN;
             }
 #endif
@@ -1751,7 +1743,7 @@ B_PlaybackIp_LiveStreamingStart(
     switch (liveStreamingSettings->protocol) {
     case B_PlaybackIpProtocol_eHttp: {
         if (liveStreamingSettings->streamingDisabled) {
-            BDBG_MSG(("%s: streaming fd is not yet set for this session (%p), defer streaming setup", __FUNCTION__, liveStreamingHandle));
+            BDBG_MSG(("%s: streaming fd is not yet set for this session (%p), defer streaming setup", __FUNCTION__, (void *)liveStreamingHandle));
             liveStreamingHandle->data.fd = -1;
             liveStreamingHandle->data.self = net_io_data_write;
             break;
@@ -1766,7 +1758,7 @@ B_PlaybackIp_LiveStreamingStart(
         }
 #if (NEXUS_HAS_DMA || NEXUS_HAS_XPT_DMA) && NEXUS_HAS_SECURITY
         if (B_PlaybackIp_UtilsPvrDecryptionCtxOpen(&liveStreamingSettings->securitySettings, &liveStreamingHandle->data) != B_ERROR_SUCCESS) {
-            BDBG_ERR(("%s: Failed to setup pvr decryption"));
+            BDBG_ERR(("%s: Failed to setup pvr decryption", __FUNCTION__));
             return B_ERROR_UNKNOWN;
         }
 #endif
@@ -1783,7 +1775,7 @@ B_PlaybackIp_LiveStreamingStart(
         case B_PlaybackIpProtocol_eUdp: {
             liveStreamingHandle->data.interfaceName = liveStreamingSettings->rtpUdpSettings.interfaceName;
             liveStreamingHandle->data.streamingProtocol = liveStreamingSettings->protocol;
-            BDBG_MSG(("%s: liveStreamingsettings->psi 1 (%p); streamingFd (%d)", __FUNCTION__, liveStreamingSettings->psi, liveStreamingSettings->streamingFd ));fflush(stderr);fflush(stdout);
+            BDBG_MSG(("%s: liveStreamingsettings->psi 1 (%p); streamingFd (%d)", __FUNCTION__, (void *)liveStreamingSettings->psi, liveStreamingSettings->streamingFd ));fflush(stderr);fflush(stdout);
             if (liveStreamingSettings->psi) {
                 if (liveStreamingSettings->psi->mpegType == 0 || liveStreamingSettings->psi->mpegType > 10 ) liveStreamingSettings->psi->mpegType  = NEXUS_TransportType_eTs;
             }
@@ -1806,7 +1798,7 @@ B_PlaybackIp_LiveStreamingStart(
                 goto error;
             }
             if ( (liveStreamingSettings->protocol == B_PlaybackIpProtocol_eRtp) || (liveStreamingSettings->protocol == B_PlaybackIpProtocol_eUdp) ) {
-                BDBG_MSG(("%s: liveStreamingsettings->psi 2 (%p)", __FUNCTION__, liveStreamingSettings->psi ));fflush(stderr);fflush(stdout);
+                BDBG_MSG(("%s: liveStreamingsettings->psi 2 (%p)", __FUNCTION__, (void *)liveStreamingSettings->psi ));fflush(stderr);fflush(stdout);
                 if (liveStreamingSettings->psi) {
                     B_PlaybackIp_UtilsSetRtpPayloadType(liveStreamingSettings->psi->mpegType, &liveStreamingHandle->data.rtpPayloadType);
                     BDBG_MSG(("%s: complete for RTP/UDP streaming, socket %d", __FUNCTION__, liveStreamingHandle->data.fd));
@@ -1879,10 +1871,11 @@ B_PlaybackIp_LiveStreamingStop(
     BDBG_MSG(("%s: %p", __FUNCTION__, (void *)liveStreamingHandle));
     BDBG_ASSERT(liveStreamingHandle);
     if (liveStreamingHandle->state == B_PlaybackIpLiveStreamingState_eStopped) {
-        BDBG_WRN(("%s: CTX %p is already stopped", __FUNCTION__, liveStreamingHandle));
+        BDBG_WRN(("%s: CTX %p is already stopped", __FUNCTION__, (void *)liveStreamingHandle));
         return;
     }
     liveStreamingHandle->stop = true;
+    liveStreamingHandle->data.stopStreaming = true;
 
     liveStreamingHandle->state = B_PlaybackIpLiveStreamingState_eStopping;
     if (liveStreamingHandle->stopStreamingEvent) {

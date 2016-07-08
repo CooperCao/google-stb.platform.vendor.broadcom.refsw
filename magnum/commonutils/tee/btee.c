@@ -1,12 +1,39 @@
 /***************************************************************************
- *     Copyright (c) 2016, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  ***************************************************************/
 
 #include "bstd.h"
@@ -161,17 +188,17 @@ void BTEE_Client_Destroy(
     /* Clean up dependent resources left open */
     for ( hApp = BLST_S_FIRST(&hClient->appList); NULL != hApp; hApp = BLST_S_NEXT(hApp, node) )
     {
-        BDBG_WRN(("Application %#x leaked on shutdown", hApp));
+        BDBG_WRN(("Application %p leaked on shutdown", (void *)hApp));
     }
 
     for ( hFile = BLST_S_FIRST(&hClient->fileList); NULL != hFile; hFile = BLST_S_NEXT(hFile, node) )
     {
-        BDBG_WRN(("File %#x leaked on shutdown", hFile));
+        BDBG_WRN(("File %p leaked on shutdown", (void *)hFile));
     }
 
     for ( pMem = BLST_S_FIRST(&hClient->memList); NULL != pMem; pMem = BLST_S_NEXT(pMem, node) )
     {
-        BDBG_WRN(("Leaked shared memory allocation %#x on shutdown", pMem->pMemory));
+        BDBG_WRN(("Leaked shared memory allocation %p on shutdown", pMem->pMemory));
     }
 
     for ( pSecureMem = BLST_S_FIRST(&hClient->secureMemList); NULL != pSecureMem; pSecureMem = BLST_S_NEXT(pSecureMem, node) )
@@ -239,7 +266,7 @@ BERR_Code BTEE_Client_ReceiveMessage(
 
         if ( NULL == pConnection )
         {
-            BDBG_WRN(("Unable to map received private connection handle %#x to BTEE_Connection handle", pConnectionPrivate));
+            BDBG_WRN(("Unable to map received private connection handle %p to BTEE_Connection handle", pConnectionPrivate));
         }
     }
 
@@ -313,8 +340,9 @@ void BTEE_Client_FreeMemory(
 
     if ( NULL == pMem )
     {
-        BDBG_ERR(("Attempt to free shared memory block %#x not allocated by this client (%#x)"));
+        BDBG_ERR(("Attempt to free shared memory block %p not allocated by this client (%p)", pMemory, (void *)hClient));
         (void)BERR_TRACE(BERR_INVALID_PARAMETER);
+        return;
     }
 
     hClient->hInstance->createSettings.ClientFree(hClient->pPrivateData, pMem->pMemory);
@@ -399,8 +427,9 @@ void BTEE_Client_FreeSecureMemory(
 
     if ( NULL == pMem )
     {
-        BDBG_ERR(("Attempt to free secure memory block %#x not allocated by this client (%#x)"));
+        BDBG_ERR(("Attempt to free secure memory block %#x not allocated by this client (%p)", address, (void *)hClient));
         (void)BERR_TRACE(BERR_INVALID_PARAMETER);
+        return;
     }
 
     hClient->hInstance->createSettings.ClientSecureFree(hClient->pPrivateData, pMem->address);
@@ -819,6 +848,7 @@ BERR_Code BTEE_Instance_Create(
     if ( NULL == pSettings->ConnectionOpen ) { return BERR_TRACE(BERR_INVALID_PARAMETER); }
     if ( NULL == pSettings->ConnectionSendMessage ) { return BERR_TRACE(BERR_INVALID_PARAMETER); }
     if ( NULL == pSettings->ConnectionClose ) { return BERR_TRACE(BERR_INVALID_PARAMETER); }
+    if ( NULL == pSettings->GetStatus ) { return BERR_TRACE(BERR_INVALID_PARAMETER); }
 
     hInstance = BKNI_Malloc(sizeof(BTEE_Instance));
     if ( NULL == hInstance )
@@ -848,9 +878,28 @@ void BTEE_Instance_Destroy(
 
     for ( hClient = BLST_S_FIRST(&hInstance->clientList); NULL != hClient; hClient = BLST_S_NEXT(hClient, node) )
     {
-        BDBG_WRN(("Leaked client %#x on instance shutdown", hClient));
+        BDBG_WRN(("Leaked client %p on instance shutdown", (void *)hClient));
     }
 
     BDBG_OBJECT_DESTROY(hInstance, BTEE_Instance);
     BKNI_Free(hInstance);
+}
+
+/***************************************************************************
+Summary:
+    Get TEE Instance Status
+***************************************************************************/
+BERR_Code BTEE_Instance_GetStatus(
+    BTEE_InstanceHandle hInstance,
+    BTEE_InstanceStatus *pStatus
+    )
+{
+    BDBG_OBJECT_ASSERT(hInstance, BTEE_Instance);
+
+    if ( pStatus == NULL )
+    {
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+
+    return hInstance->createSettings.GetStatus(pStatus);
 }

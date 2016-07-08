@@ -381,7 +381,7 @@ NEXUS_P_File_FindAndDeque(struct NEXUS_File_P_Scheduler *sched, struct NEXUS_Fil
         {
         size_t write_size = e->length;
         BDBG_ASSERT(e->io.write.fd);
-        BDBG_MSG_TRACE(("NEXUS_P_File_FindAndDeque[%u:wr]:+ %#lx %#lx %u %#lx %#lx", worker->no, (unsigned long)e->io.write.fd, (unsigned long)e->buf, e->length, (unsigned long)e->callback, (unsigned long)e->cntx));
+        BDBG_MSG_TRACE(("NEXUS_P_File_FindAndDeque[%u:wr]:+ %p %p %u %p %p", worker->no, (void *)e->io.write.fd, e->buf, (unsigned)e->length, (void *)(unsigned long)e->callback, e->cntx));
 #if 0
         if(e->length/2>4096) {
             write_size = e->length/2 ;
@@ -389,12 +389,12 @@ NEXUS_P_File_FindAndDeque(struct NEXUS_File_P_Scheduler *sched, struct NEXUS_Fil
         }
 #endif
         size = e->io.write.fd->write(e->io.write.fd, e->buf, write_size);
-        BDBG_MSG_TRACE(("NEXUS_P_File_FindAndDeque[%u:wr]:- %#lx %#lx %u->%d %#lx %#lx", worker->no, (unsigned long)e->io.write.fd, (unsigned long)e->buf, e->length, size, (unsigned long)e->callback, (unsigned long)e->cntx));
+        BDBG_MSG_TRACE(("NEXUS_P_File_FindAndDeque[%u:wr]:- %p %p %u->%d %p %p", worker->no, (void *)e->io.write.fd, e->buf, (unsigned)e->length, (int)size, (void *)(unsigned long)e->callback, e->cntx));
         break;
         }
     case ioType_Read:
         BDBG_ASSERT(e->io.read.fd);
-        BDBG_MSG_TRACE(("NEXUS_P_File_FindAndDeque[%u:rd]:+ %#lx %#lx %u %#lx %#lx", worker->no, (unsigned long)e->io.read.fd, (unsigned long)e->buf, e->length, (unsigned long)e->callback, (unsigned long)e->cntx));
+        BDBG_MSG_TRACE(("NEXUS_P_File_FindAndDeque[%u:rd]:+ %p %p %u %p %p", worker->no, (void *)e->io.read.fd, e->buf, (unsigned)e->length, (void *)(unsigned long)e->callback, e->cntx));
         size = e->io.read.fd->read(e->io.read.fd, e->buf, e->length);
 
 #if 0
@@ -413,19 +413,19 @@ NEXUS_Playback_P_CheckWaitingIo timeout. */
     }
 }
 #endif
-        BDBG_MSG_TRACE(("NEXUS_P_File_FindAndDeque[%u:rd]:- %#lx %#lx %u->%d %#lx %#lx", worker->no, (unsigned long)e->io.read.fd, (unsigned long)e->buf, e->length, size, (unsigned long)e->callback, (unsigned long)e->cntx));
+        BDBG_MSG_TRACE(("NEXUS_P_File_FindAndDeque[%u:rd]:- %p %p %u->%d %p %p", worker->no, (void *)e->io.read.fd, e->buf, (unsigned)e->length, (int)size, (void *)(unsigned long)e->callback, e->cntx));
         break;
     case ioType_MuxWrite:
         BDBG_ASSERT(e->io.muxWrite.fd);
-        BDBG_MSG_TRACE(("NEXUS_P_File_FindAndDeque[%u:muxWr]:+ %#lx %#lx %lu:%u %#lx %#lx", worker->no, (unsigned long)e->io.muxWrite.fd, (unsigned long)e->buf, (unsigned long)e->io.muxWrite.offset, e->length, (unsigned long)e->callback, (unsigned long)e->cntx));
+        BDBG_MSG_TRACE(("NEXUS_P_File_FindAndDeque[%u:muxWr]:+ %p %p %lu:%u %p %p", worker->no, (void *)e->io.muxWrite.fd, e->buf, (unsigned long)e->io.muxWrite.offset, (unsigned)e->length, (void *)(unsigned long)e->callback, e->cntx));
         size = e->io.muxWrite.fd->write(e->io.muxWrite.fd, e->io.muxWrite.offset, (const NEXUS_FileMuxIoWriteAtom *)e->buf, e->length);
-        BDBG_MSG_TRACE(("NEXUS_P_File_FindAndDeque[%u:muxWr]:- %#lx %#lx %lu:%u->%d %#lx %#lx", worker->no, (unsigned long)e->io.muxWrite.fd, (unsigned long)e->buf, (unsigned long)e->io.muxWrite.offset, e->length, size, (unsigned long)e->callback, (unsigned long)e->cntx));
+        BDBG_MSG_TRACE(("NEXUS_P_File_FindAndDeque[%u:muxWr]:- %p %p %lu:%u->%d %p %p", worker->no, (void *)e->io.muxWrite.fd, e->buf, (unsigned long)e->io.muxWrite.offset, (unsigned)e->length, (int)size, (void *)(unsigned long)e->callback, e->cntx));
         break;
     case ioType_MuxRead:
         BDBG_ASSERT(e->io.muxRead.fd);
-        BDBG_MSG_TRACE(("NEXUS_P_File_FindAndDeque[%u:muxRd]:+ %#lx %#lx %lu:%u %#lx %#lx", worker->no, (unsigned long)e->io.muxRead.fd, (unsigned long)e->buf, (unsigned long)e->io.muxRead.offset, e->length, (unsigned long)e->callback, (unsigned long)e->cntx));
+        BDBG_MSG_TRACE(("NEXUS_P_File_FindAndDeque[%u:muxRd]:+ %p %p %lu:%u %p %p", worker->no, (void *)e->io.muxRead.fd, e->buf, (unsigned long)e->io.muxRead.offset, (unsigned)e->length, (void *)(unsigned long)e->callback, e->cntx));
         size = e->io.muxWrite.fd->read(e->io.muxRead.fd, e->io.muxRead.offset, (const NEXUS_FileMuxIoReadAtom *)e->buf, e->length);
-        BDBG_MSG_TRACE(("NEXUS_P_File_FindAndDeque[%u:muxRd]:- %#lx %#lx %lu:%u->%d %#lx %#lx", worker->no, (unsigned long)e->io.muxRead.fd, (unsigned long)e->buf, (unsigned long)e->io.muxRead.offset, e->length, size, (unsigned long)e->callback, (unsigned long)e->cntx));
+        BDBG_MSG_TRACE(("NEXUS_P_File_FindAndDeque[%u:muxRd]:- %p %p %lu:%u->%d %p %p", worker->no, (void *)e->io.muxRead.fd, e->buf, (unsigned long)e->io.muxRead.offset, (unsigned)e->length, (int)size, (void *)(unsigned long)e->callback, e->cntx));
         break;
     default:
         BDBG_ASSERT(0);

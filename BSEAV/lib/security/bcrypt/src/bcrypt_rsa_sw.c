@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2015 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,7 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
+
  **************************************************************************/
 
 #include <stdio.h>
@@ -179,10 +179,10 @@ BCRYPT_STATUS_eCode BCrypt_GetRSA_From_PrivateKeyInfo(BCRYPT_Handle  hBcrypt,
         break;
     }
 
-    BDBG_MSG(("%s %d n 0x%x e 0x%x d0x%x data: n 0x%x e 0x%x d 0x%x\n",
+    BDBG_MSG(("%s %d n %p e %p d %p data: n %p e %p d %p\n",
         __FUNCTION__, __LINE__,
-        priv_rsa->n,priv_rsa->e,priv_rsa->d,
-        pBcrypt_rsaSw->n.pData, pBcrypt_rsaSw->e.pData, pBcrypt_rsaSw->d.pData));
+        (void *)priv_rsa->n,(void *)priv_rsa->e,(void *)priv_rsa->d,
+        (void *)pBcrypt_rsaSw->n.pData, (void *)pBcrypt_rsaSw->e.pData, (void *)pBcrypt_rsaSw->d.pData));
 
     pBcrypt_rsaSw->n.len = BN_bn2bin(priv_rsa->n, pBcrypt_rsaSw->n.pData );
     pBcrypt_rsaSw->e.len  = BN_bn2bin(priv_rsa->e,pBcrypt_rsaSw->e.pData );

@@ -160,6 +160,7 @@ BERR_Code  splash_vdc_setup(
 	{
 		if ( pState->surf[ii].hMem != NULL)
 		{
+			pState->iNumSurf++;
 			if ((bmpFileName == NULL) || strcmp(bmpFileName, &pState->surf[ii].bmpFile[0]))
 			{
 				if(bmpBuf)
@@ -311,6 +312,7 @@ BERR_Code  splash_vdc_setup(
 
 		if (pState->disp[ii].pSurf->hMem != NULL)
 		{
+			pState->iNumDisp++;
 			BDBG_MSG(("***********display[%d]*************", ii));
 
 			/* Create a compositor handle from our hVdc handle */

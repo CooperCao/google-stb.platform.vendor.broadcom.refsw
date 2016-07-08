@@ -120,9 +120,10 @@ F_INSTALLED_LIBS := $(addprefix ${D_FOR_LIB_INSTALL}/, ${F_PUBLIC_LIBS})
 ############################################################################
 #                              MAIN TARGETS
 #vvvv#####################vvvvvvvvvvvvvvvvvvvvvvv#####################vvvv##
+all: prep_folder ${F_PUBLIC_LIBS}
+
 prep_folder:
 	@ mkdir -p ${UTILITY_OBJ_ROOT}/
-all: prep_folder ${F_PUBLIC_LIBS}
 
 clean:
 	@ echo clean objects [${F_OBJS}]

@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2008 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2008 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -16,7 +16,6 @@ abstract platform layer
 #include "interface/khronos/common/khrn_client.h"
 #include "interface/khronos/egl/egl_client_config.h"
 #include "middleware/khronos/egl/egl_server.h"
-#include "helpers/vc_image/vc_image.h"
 #include "interface/vcos/vcos.h"
 #include "middleware/khronos/common/khrn_hw.h"
 #ifndef V3D_LEAN
@@ -25,6 +24,7 @@ abstract platform layer
 #include "interface/khronos/common/khrn_int_ids.h"
 
 #include "interface/khronos/common/khrn_client_platform.h"
+#include "interface/khronos/common/abstract/khrn_client_platform_abstract.h"
 
 #ifdef KHRONOS_CLIENT_LOGGING
 #include <stdio.h>
@@ -124,7 +124,7 @@ void platform_tls_set(PLATFORM_TLS_T tls, void *v)
 {
    if (vcos_tls_set(tls, v) != VCOS_SUCCESS)
    {
-      ANDROID_LOGD("platform_tls_set() : FAILED (key %p), (v %p)\n", tls, v);
+      ANDROID_LOGD("platform_tls_set() : FAILED (key %p), (v %p)\n", (void *)tls, v);
    }
 }
 
@@ -236,7 +236,7 @@ bool platform_supported_format(KHRN_IMAGE_FORMAT_T format)
       {
          BEGL_BufferFormat bufferFormat;
 
-         format &= ~(IMAGE_FORMAT_PRE | IMAGE_FORMAT_LIN | IMAGE_FORMAT_OVG);
+         format = khrn_image_no_colorspace_format(format);
 
          switch (format)
          {
@@ -363,24 +363,17 @@ bool platform_get_pixmap_info(EGLNativePixmapType pixmap, KHRN_IMAGE_WRAP_T *ima
 
          if (bufferSettings.openvg)
          {
-            switch (bufferSettings.colorFormat)
-            {
-               case BEGL_ColorFormat_eLinear:  format |= IMAGE_FORMAT_LIN;                            break;
-               case BEGL_ColorFormat_eSRGB:  /* nothing */                                            break;
-               case BEGL_ColorFormat_eLinear_Pre: format |= (IMAGE_FORMAT_LIN | IMAGE_FORMAT_PRE);    break;
-               case BEGL_ColorFormat_eSRGB_Pre: format |= IMAGE_FORMAT_PRE;                           break;
-               default:
-                  UNREACHABLE();
-               break;
-            }
-            format |= IMAGE_FORMAT_OVG;
+            format = abstract_colorformat_to_format(format, bufferSettings.colorFormat);
+            format = khrn_image_to_openvg_format(format);
          }
 
-         khrn_image_platform_fudge(&format, &w, &h, &align, (KHRN_IMAGE_CREATE_FLAG_T)(
+         KHRN_IMAGE_CREATE_FLAG_T image_create_flags =
             ((flags & IMAGE_FLAG_TEXTURE) ? IMAGE_CREATE_FLAG_TEXTURE : 0) |
             ((flags & IMAGE_FLAG_RSO_TEXTURE) ? IMAGE_CREATE_FLAG_RSO_TEXTURE : 0) |
             ((flags & IMAGE_FLAG_RENDER_TARGET) ? IMAGE_CREATE_FLAG_RENDER_TARGET : 0) |
-            ((flags & IMAGE_FLAG_DISPLAY) ? IMAGE_CREATE_FLAG_DISPLAY : 0)));
+            ((flags & IMAGE_FLAG_DISPLAY) ? IMAGE_CREATE_FLAG_DISPLAY : 0);
+
+         khrn_image_platform_fudge(&format, &w, &h, &align, image_create_flags);
 
          /* Check that this looks like a validly sized pixmap buffer */
          if (khrn_image_is_rso(format) &&
@@ -388,7 +381,7 @@ bool platform_get_pixmap_info(EGLNativePixmapType pixmap, KHRN_IMAGE_WRAP_T *ima
             (bufferSettings.alignment == align))
          {
             khrn_image_interlock_wrap(image, format, bufferSettings.width, bufferSettings.height,
-               bufferSettings.pitchBytes, flags, bufferSettings.cachedAddr, NULL);
+               bufferSettings.pitchBytes, flags, bufferSettings.secure, bufferSettings.cachedAddr, NULL);
             return true;
          }
       }
@@ -506,34 +499,38 @@ EGLDisplay khrn_platform_set_display_id(EGLNativeDisplayType display_id)
       return EGL_NO_DISPLAY;
 }
 
-static int xxx_position = 0;
 uint32_t khrn_platform_get_window_position(EGLNativeWindowType win)
 {
-   return xxx_position;
+   UNUSED(win);
+   return 0;
 }
 
-uint32_t platform_get_color_format ( uint32_t format )
+uint32_t khrn_platform_get_color_format(KHRN_IMAGE_FORMAT_T format)
 {
    uint32_t res = 0;
    BEGL_DriverInterfaces   *driverInterfaces = BEGL_GetDriverInterfaces();
 
    /* remove any colorspace flags */
-   format &= ~(IMAGE_FORMAT_PRE | IMAGE_FORMAT_LIN | IMAGE_FORMAT_OVG);
+   format = khrn_image_no_colorspace_format(format);
 
-   if ((driverInterfaces != NULL) &&
-       (driverInterfaces->displayInterface != NULL) &&
-       (driverInterfaces->displayInterface->GetNativeFormat != NULL))
+   if (khrn_image_is_tformat(format) || khrn_image_is_rso(format))
    {
-      BEGL_BufferFormat bufferFormat = BEGL_BufferFormat_INVALID;
-      if ((format == ABGR_8888_TF) || (format == ABGR_8888))
-         bufferFormat = BEGL_BufferFormat_eA8B8G8R8;
-      else if ((format == XBGR_8888_TF) || (format == XBGR_8888))
-         bufferFormat = BEGL_BufferFormat_eX8B8G8R8;
-      else if ((format == RGB_565_TF) || (format == RGB_565))
-         bufferFormat = BEGL_BufferFormat_eR5G6B5;
+      if ((driverInterfaces != NULL) &&
+         (driverInterfaces->displayInterface != NULL) &&
+         (driverInterfaces->displayInterface->GetNativeFormat != NULL))
+      {
+         BEGL_BufferFormat bufferFormat = BEGL_BufferFormat_INVALID;
+         format = khrn_image_to_rso_format(format);
+         if (format == ABGR_8888)
+            bufferFormat = BEGL_BufferFormat_eA8B8G8R8;
+         else if (format == XBGR_8888)
+            bufferFormat = BEGL_BufferFormat_eX8B8G8R8;
+         else if (format == RGB_565)
+            bufferFormat = BEGL_BufferFormat_eR5G6B5;
 
-      driverInterfaces->displayInterface->GetNativeFormat(driverInterfaces->displayInterface->context,
-               bufferFormat, &res);
+         driverInterfaces->displayInterface->GetNativeFormat(driverInterfaces->displayInterface->context,
+            bufferFormat, &res);
+      }
    }
 
    return res;

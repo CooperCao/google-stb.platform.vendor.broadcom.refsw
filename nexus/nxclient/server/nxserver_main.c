@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2011-2014 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,11 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  *****************************************************************************/
 #include "nxserverlib.h"
 #include <stdio.h>
@@ -50,6 +45,8 @@ int main(int argc, char **argv)
     server = nxserver_init(argc, argv, true);
     if (!server) {
         /* may be invalid cmdline params, so don't print error. */
+        /* but we must call NEXUS_Platform_Uninit to clean up a possible NEXUS_Platform_GetDefaultSettings in proxy mode. */
+        NEXUS_Platform_Uninit();
         return -1;
     }
     nxserver_uninit(server);

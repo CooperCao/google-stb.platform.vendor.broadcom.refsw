@@ -141,13 +141,13 @@ case $1 in
         blit_client -rect $x,400,200,200 -zorder 1 &
     done
     while [ 1 ]; do
-        sleep 3
+        sleep 8
         setdisplay -format 720p
-        sleep 3
+        sleep 8
         setdisplay -format 1080i
-        sleep 3
+        sleep 8
         setdisplay -format 480p
-        sleep 3
+        sleep 8
         setdisplay -format 480i
     done
     ;;
@@ -171,73 +171,91 @@ case $1 in
     ;;
 
 9)
-    # multi-channel record
-    picviewer $PICTURES -timeout 2000 &
-    record -freq 765 -program 0&
-    record -freq 765 -program 1&
-    record -freq 789 -program 0&
-    record -freq 789 -program 1&
-    record -freq 777 -program 0&
-    record -freq 777 -program 1&
-    record -freq 789 -program 0&
-    record -freq 789 -program 1&
+    while true; do
+        picviewer $PICTURES -timeout 2000 &
+        record -program 0&
+        record -program 1&
+        record -program 0&
+        record -program 1&
+        record -program 0&
+        record -program 1&
+        record -program 0&
+        record -program 1&
+        sleep 120
+        killall record picviewer
+    done
     ;;
 
 10)
-    # record and transcode
-    picviewer $PICTURES -timeout 2000 &
-    record -freq 765 -program 0&
-    record -freq 765 -program 1&
-    record -freq 789 -program 0&
-    record -freq 789 -program 1&
-    transcode $PLAYFILE2&
-    transcode $PLAYFILE3&
+    while true; do
+        picviewer $PICTURES -timeout 2000 &
+        record -program 0&
+        record -program 1&
+        record -program 0&
+        record -program 1&
+        transcode $PLAYFILE2&
+        transcode $PLAYFILE3
+        killall transcode picviewer record
+    done
     ;;
 
 11)
-    # record and playback
-    play $PLAYFILE &
-    play $PLAYFILE2 -pip &
-    record -freq 765 -program 0&
-    record -freq 765 -program 1&
-    record -freq 789 -program 0&
-    record -freq 789 -program 1&
-    transcode $PLAYFILE3&
-    transcode $PLAYFILE4&
+    while true; do
+        play $PLAYFILE &
+        play $PLAYFILE2 -pip &
+        record -program 0 -timeout 30 &
+        record -program 1 -timeout 50 &
+        record -program 0 -timeout 70 &
+        record -program 1 -timeout 90 &
+        transcode $PLAYFILE3&
+        transcode $PLAYFILE4
+        killall play record transcode
+    done
     ;;
 
 12)
-    # transcode
-    # first transcode has as size which is DSP-encoder friendly
-    transcode $GUI $PLAYFILE  -video_size 416,224&
-    transcode $GUI $PLAYFILE2 -video_size 352,288&
-    transcode $GUI $PLAYFILE3 -video_size 352,288&
-    transcode $GUI $PLAYFILE4 -video_size 352,288&
+    while true; do
+        # first transcode has as size which is DSP-encoder friendly
+        transcode $GUI $PLAYFILE  -video_size 416,224&
+        transcode $GUI $PLAYFILE2 -video_size 352,288&
+        transcode $GUI $PLAYFILE3 -video_size 352,288&
+        transcode $GUI $PLAYFILE4 -video_size 352,288&
+        sleep 30
+        killall transcode
+    done
     ;;
 
 13)
-    # encrypted record and playback
-    record -crypto aes  -freq 765 -program 0 videos/stream0.aes.mpg  videos/stream0.aes.nav&
-    record -crypto 3des -freq 765 -program 1 videos/stream1.3des.mpg videos/stream1.3des.nav&
-    record -crypto aes  -freq 777 -program 0 videos/stream2.aes.mpg  videos/stream2.aes.nav&
-    # not true timeshifting, so we must sleep to build up files
-    sleep 10
-    play -crypto aes  videos/stream0.aes.mpg videos/stream0.aes.nav -timeshift&
-    play -crypto 3des videos/stream1.3des.mpg videos/stream1.3des.nav -pip -timeshift&
+    while true; do
+        # encrypted record and playback
+        record -crypto aes  -program 0 videos/stream0.aes.mpg  videos/stream0.aes.nav&
+        record -crypto 3des -program 1 videos/stream1.3des.mpg videos/stream1.3des.nav&
+        record -crypto aes  -program 0 videos/stream2.aes.mpg  videos/stream2.aes.nav&
+        # not true timeshifting, so we must sleep to build up files
+        sleep 10
+        play -crypto aes  videos/stream0.aes.mpg videos/stream0.aes.nav -timeshift&
+        play -crypto 3des videos/stream1.3des.mpg videos/stream1.3des.nav -pip -timeshift&
+        sleep 60
+        killall play record
+    done
     ;;
 
 14)
-    mosaic_video_as_graphics videos/mosaic_6avc_6mp2_cif.ts -n 2 &
-    sleep 1
-    mosaic_video_as_graphics videos/mosaic_6avc_6mp2_cif.ts -n 3 &
-    sleep 1
-    mosaic_video_as_graphics videos/mosaic_6avc_6mp2_cif.ts -n 6 &
-    sleep 1
-    mosaic_video_as_graphics videos/mosaic_6avc_6mp2_cif.ts -n 1 &
-    sleep 1
-    config -c 1 -vrect 1280,720:0,0,640,360
-    config -c 2 -vrect 1280,720:640,0,640,360
-    config -c 3 -vrect 1280,720:0,360,640,360
-    config -c 4 -vrect 1280,720:640,360,640,360
+    while true; do
+        mosaic_video_as_graphics videos/mosaic_6avc_6mp2_cif.ts -n 2 &
+        sleep 1
+        mosaic_video_as_graphics videos/mosaic_6avc_6mp2_cif.ts -n 3 &
+        sleep 1
+        mosaic_video_as_graphics videos/mosaic_6avc_6mp2_cif.ts -n 6 &
+        sleep 1
+        mosaic_video_as_graphics videos/mosaic_6avc_6mp2_cif.ts -n 1 &
+        sleep 1
+        config -c 1 -vrect 1280,720:0,0,640,360
+        config -c 2 -vrect 1280,720:640,0,640,360
+        config -c 3 -vrect 1280,720:0,360,640,360
+        config -c 4 -vrect 1280,720:640,360,640,360
+        sleep 60
+        killall mosaic_video_as_graphics
+    done
     ;;
 esac

@@ -37,7 +37,7 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************/
+ ******************************************************************************
 /*****************************************************************************
  *
  * FILENAME: $Workfile: trunk/stack/RF4CE/NWK/include/bbRF4CENWKConstants.h $
@@ -246,5 +246,8 @@
 
 /* Frequency Agility Scan Duration */
 #define RF4CE_NWKC_FA_SCAN_DURATION                  0xFA
+
+/* The default Tx power, in dBm, at which key seed command frames should be sent. */
+#define RF4CE_NWKC_SEC_CMD_TX_POWER                  RF4CE_NWKC_MAX_SEC_CMD_TX_POWER
 
 #endif /* _RF4CE_NWK_CONSTANTS_H */

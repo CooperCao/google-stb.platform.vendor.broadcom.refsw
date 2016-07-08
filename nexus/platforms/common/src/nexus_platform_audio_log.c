@@ -163,10 +163,10 @@ static void *NEXUS_Platform_P_AudioLogThread(void *pParam)
                         if ( errCode != BERR_SUCCESS || bufferSize == 0 )
                         {
                             break;
-                        }                        
+                        }
                         (void)fwrite(pBuffer, bufferSize, 1, debugData[type].dsp[dsp].pFile);
                         NEXUS_AudioDsp_DebugReadComplete(dsp, type, bufferSize);
-                        BDBG_MSG(("Wrote %zu bytes of debug type %u", bufferSize, type));
+                        BDBG_MSG(("Wrote %u bytes of debug type %u", (unsigned)bufferSize, type));
                         logged = true;
                     } while ( 1 );
 

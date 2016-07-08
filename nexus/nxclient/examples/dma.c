@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2011-2013 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,16 +34,7 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #include "nxclient.h"
@@ -101,9 +92,7 @@ int main(int argc, char **argv)
     NEXUS_Memory_GetDefaultAllocationSettings(&allocSettings);
     if (method == 2) {
         /* select a heap with driver-side mmap */
-        NEXUS_ClientConfiguration clientConfig;
-        NEXUS_Platform_GetClientConfiguration(&clientConfig);
-        allocSettings.heap = clientConfig.heap[NXCLIENT_FULL_HEAP];
+        allocSettings.heap = NEXUS_Heap_Lookup(NEXUS_HeapLookupType_eMain);
     }
     rc = NEXUS_Memory_Allocate(bufferSize, &allocSettings, &buffer);
     BDBG_ASSERT(!rc);

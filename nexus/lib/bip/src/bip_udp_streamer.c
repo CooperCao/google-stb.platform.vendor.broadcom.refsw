@@ -1,43 +1,39 @@
 /******************************************************************************
- * (c) 2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 
 #include "bip_priv.h"
@@ -67,7 +63,7 @@ static void udpStreamerDestroy(
     )
 {
     if (!hUdpStreamer) return;
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Destroying hUdpStreamer %p" BIP_MSG_PRE_ARG, hUdpStreamer ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Destroying hUdpStreamer %p" BIP_MSG_PRE_ARG, (void *)hUdpStreamer ));
 
     if (hUdpStreamer->hStreamer) BIP_Streamer_Destroy(hUdpStreamer->hStreamer);
     if (hUdpStreamer->getStatusApi.hArb) BIP_Arb_Destroy(hUdpStreamer->getStatusApi.hArb);
@@ -88,7 +84,7 @@ static void udpStreamerDestroy(
     if (hUdpStreamer->hStateMutex) B_Mutex_Destroy( hUdpStreamer->hStateMutex );
 
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hUdpStreamer %p: Destroyed" BIP_MSG_PRE_ARG, hUdpStreamer ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hUdpStreamer %p: Destroyed" BIP_MSG_PRE_ARG, (void *)hUdpStreamer ));
     BDBG_OBJECT_DESTROY( hUdpStreamer, BIP_UdpStreamer );
     B_Os_Free( hUdpStreamer );
 
@@ -104,7 +100,7 @@ BIP_UdpStreamerHandle BIP_UdpStreamer_Create(
 
     /* Create the udpStreamer object */
     hUdpStreamer = B_Os_Calloc( 1, sizeof( BIP_UdpStreamer ));
-    BIP_CHECK_GOTO(( hUdpStreamer != NULL ), ( "Failed to allocate memory (%d bytes) for UdpStreamer Object", sizeof(BIP_UdpStreamer) ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, bipStatus );
+    BIP_CHECK_GOTO(( hUdpStreamer != NULL ), ( "Failed to allocate memory (%zu bytes) for UdpStreamer Object", sizeof(BIP_UdpStreamer) ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, bipStatus );
     BIP_SETTINGS_ASSERT(pCreateSettings, BIP_UdpStreamerCreateSettings);
 
     BDBG_OBJECT_SET( hUdpStreamer, BIP_UdpStreamer );
@@ -175,7 +171,7 @@ BIP_UdpStreamerHandle BIP_UdpStreamer_Create(
     }
 
     hUdpStreamer->state = BIP_UdpStreamerState_eIdle;
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Created hUdpStreamer %p: state %d" BIP_MSG_PRE_ARG, hUdpStreamer, hUdpStreamer->state));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Created hUdpStreamer %p: state %d" BIP_MSG_PRE_ARG, (void *)hUdpStreamer, hUdpStreamer->state));
 
     BDBG_MSG((    BIP_MSG_PRE_FMT "Created: " BIP_UDP_STREAMER_PRINTF_FMT
                   BIP_MSG_PRE_ARG, BIP_UDP_STREAMER_PRINTF_ARG(hUdpStreamer)));
@@ -240,7 +236,7 @@ void BIP_UdpStreamer_GetSettings(
 
     BDBG_OBJECT_ASSERT( hUdpStreamer, BIP_UdpStreamer );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hUdpStreamer %p: --------------------->" BIP_MSG_PRE_ARG, hUdpStreamer));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hUdpStreamer %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hUdpStreamer));
 
     BIP_CHECK_GOTO(( hUdpStreamer ), ( "hUdpStreamer pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
     BIP_CHECK_GOTO(( pSettings ), ( "pSettings can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
@@ -264,7 +260,7 @@ void BIP_UdpStreamer_GetSettings(
     BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_UdpStreamer_GetSettings" ), error, bipStatus, bipStatus );
 
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hUdpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, hUdpStreamer, bipStatus ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hUdpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hUdpStreamer, bipStatus ));
 
     return;
 }
@@ -281,7 +277,7 @@ BIP_Status BIP_UdpStreamer_SetSettings(
     BDBG_OBJECT_ASSERT( hUdpStreamer, BIP_UdpStreamer );
     BDBG_ASSERT( pSettings );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hUdpStreamer %p: --------------------->" BIP_MSG_PRE_ARG, hUdpStreamer));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hUdpStreamer %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hUdpStreamer));
 
     BIP_CHECK_GOTO(( hUdpStreamer ), ( "hUdpStreamer pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
     BIP_CHECK_GOTO(( pSettings ), ( "pSettings can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
@@ -305,7 +301,7 @@ BIP_Status BIP_UdpStreamer_SetSettings(
     BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_UdpStreamer_SetSettings" ), error, bipStatus, bipStatus );
 
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hUdpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, hUdpStreamer, bipStatus ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hUdpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hUdpStreamer, bipStatus ));
 
     return( bipStatus );
 } /* BIP_UdpStreamer_SetSettings */
@@ -324,7 +320,7 @@ BIP_Status BIP_UdpStreamer_SetFileInputSettings(
 
     BDBG_OBJECT_ASSERT( hUdpStreamer, BIP_UdpStreamer );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hUdpStreamer %p: --------------------->" BIP_MSG_PRE_ARG, hUdpStreamer));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hUdpStreamer %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hUdpStreamer));
 
     BIP_CHECK_GOTO(( hUdpStreamer ), ( "hUdpStreamer pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
     BIP_CHECK_GOTO(( pMediaFileAbsolutePathName ), ( "pMediaFileAbsolutePathName can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
@@ -359,7 +355,7 @@ BIP_Status BIP_UdpStreamer_SetFileInputSettings(
     BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_UdpStreamer_SetFileInputSettings" ), error, bipStatus, bipStatus );
 
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hUdpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, hUdpStreamer, bipStatus ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hUdpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hUdpStreamer, bipStatus ));
 
     return( bipStatus );
 } /* BIP_UdpStreamer_SetSettings */
@@ -378,7 +374,7 @@ BIP_Status BIP_UdpStreamer_SetTunerInputSettings(
 
     BDBG_OBJECT_ASSERT( hUdpStreamer, BIP_UdpStreamer );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hUdpStreamer %p: --------------------->" BIP_MSG_PRE_ARG, hUdpStreamer));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hUdpStreamer %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hUdpStreamer));
 
     BIP_CHECK_GOTO(( hUdpStreamer ), ( "hUdpStreamer pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
     /* Note: Rest of parameter validation happens in the BIP_Streamer class. */
@@ -410,7 +406,7 @@ BIP_Status BIP_UdpStreamer_SetTunerInputSettings(
     BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_UdpStreamer_SetTunerInputSettings" ), error, bipStatus, bipStatus );
 
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hUdpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, hUdpStreamer, bipStatus ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hUdpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hUdpStreamer, bipStatus ));
 
     return( bipStatus );
 } /* BIP_UdpStreamer_SetSettings */
@@ -429,7 +425,7 @@ BIP_Status BIP_UdpStreamer_SetRecpumpInputSettings(
     BDBG_OBJECT_ASSERT( hUdpStreamer, BIP_UdpStreamer );
     BDBG_ASSERT( pRecpumpInputSettings );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hUdpStreamer %p: --------------------->" BIP_MSG_PRE_ARG, hUdpStreamer));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hUdpStreamer %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hUdpStreamer));
 
     BIP_CHECK_GOTO(( hUdpStreamer ), ( "hUdpStreamer pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
     BIP_CHECK_GOTO(( hRecpump ), ( "hRecpump can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
@@ -460,7 +456,7 @@ BIP_Status BIP_UdpStreamer_SetRecpumpInputSettings(
     BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_UdpStreamer_SetRecpumpInputSettings" ), error, bipStatus, bipStatus );
 
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hUdpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, hUdpStreamer, bipStatus ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hUdpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hUdpStreamer, bipStatus ));
 
     return( bipStatus );
 } /* BIP_UdpStreamer_SetRecpumpInputSettings */
@@ -478,7 +474,7 @@ BIP_Status BIP_UdpStreamer_AddTrack(
 
     BDBG_OBJECT_ASSERT( hUdpStreamer, BIP_UdpStreamer );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hUdpStreamer %p: --------------------->" BIP_MSG_PRE_ARG, hUdpStreamer));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hUdpStreamer %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hUdpStreamer));
 
     BIP_CHECK_GOTO(( hUdpStreamer ), ( "hUdpStreamer pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
     BIP_CHECK_GOTO(( pStreamerTrackInfo ), ( "pStreamerTrackInfo can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
@@ -509,7 +505,7 @@ BIP_Status BIP_UdpStreamer_AddTrack(
     BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_UdpStreamer_AddTrack" ), error, bipStatus, bipStatus );
 
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hUdpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, hUdpStreamer, bipStatus ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hUdpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hUdpStreamer, bipStatus ));
 
     return( bipStatus );
 }
@@ -532,7 +528,7 @@ BIP_Status BIP_UdpStreamer_SetOutputSettings(
     BDBG_ASSERT( pOutputSettings );
     BIP_SETTINGS_ASSERT(pOutputSettings, BIP_UdpStreamerOutputSettings)
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hUdpStreamer %p: --------------------->" BIP_MSG_PRE_ARG, hUdpStreamer));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hUdpStreamer %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hUdpStreamer));
 
     BIP_CHECK_GOTO(( hUdpStreamer ), ( "hUdpStreamer pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
     BIP_CHECK_GOTO(( pStreamerPort ), ( "pStreamerPort can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
@@ -569,7 +565,7 @@ BIP_Status BIP_UdpStreamer_SetOutputSettings(
     BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_UdpStreamer_SetOutputSettings" ), error, bipStatus, bipStatus );
 
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hUdpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, hUdpStreamer, bipStatus ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hUdpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hUdpStreamer, bipStatus ));
 
     return( bipStatus );
 } /* BIP_UdpStreamer_SetSettings */
@@ -589,7 +585,7 @@ BIP_Status BIP_UdpStreamer_AddTranscodeProfile(
     BDBG_OBJECT_ASSERT( hUdpStreamer, BIP_UdpStreamer );
     BIP_SETTINGS_ASSERT(pTranscodeProfile, BIP_TranscodeProfile);
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hUdpStreamer %p: --------------------->" BIP_MSG_PRE_ARG, hUdpStreamer));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hUdpStreamer %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hUdpStreamer));
 
     /* Note: Rest of parameter validation happens in the BIP_Streamer class. */
 
@@ -611,7 +607,7 @@ BIP_Status BIP_UdpStreamer_AddTranscodeProfile(
     BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_UdpStreamer_AddTranscodeProfile" ), error, bipStatus, bipStatus );
 
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hUdpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, hUdpStreamer, bipStatus ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hUdpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hUdpStreamer, bipStatus ));
 
     return( bipStatus );
 }
@@ -631,7 +627,7 @@ BIP_Status BIP_UdpStreamer_SetTranscodeHandles(
     BDBG_OBJECT_ASSERT( hUdpStreamer, BIP_UdpStreamer );
     BIP_SETTINGS_ASSERT(pTranscodeNexusHandles, BIP_TranscodeNexusHandles);
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hUdpStreamer %p: --------------------->" BIP_MSG_PRE_ARG, hUdpStreamer));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hUdpStreamer %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hUdpStreamer));
 
     hArb = hUdpStreamer->setTranscodeNexusHandlesApi.hArb;
     bipStatus = BIP_Arb_Acquire(hArb);
@@ -651,7 +647,7 @@ BIP_Status BIP_UdpStreamer_SetTranscodeHandles(
     BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_UdpStreamer_AddTranscodeProfile" ), error, bipStatus, bipStatus );
 
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hUdpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, hUdpStreamer, bipStatus ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hUdpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hUdpStreamer, bipStatus ));
 
     return( bipStatus );
 }
@@ -669,7 +665,7 @@ BIP_Status BIP_UdpStreamer_Start(
     BDBG_OBJECT_ASSERT( hUdpStreamer, BIP_UdpStreamer );
     BIP_SETTINGS_ASSERT(pSettings, BIP_UdpStreamerStartSettings)
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hUdpStreamer %p: --------------------->" BIP_MSG_PRE_ARG, hUdpStreamer));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hUdpStreamer %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hUdpStreamer));
 
     BIP_CHECK_GOTO(( hUdpStreamer ), ( "hUdpStreamer pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
 
@@ -696,10 +692,10 @@ BIP_Status BIP_UdpStreamer_Start(
     bipStatus = BIP_Arb_Submit(hArb, &arbSettings, NULL);
     BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_UdpStreamer_Start" ), error, bipStatus, bipStatus );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hUdpStreamer %p: Streamer Started: completionStatus: %s" BIP_MSG_PRE_ARG, hUdpStreamer, BIP_StatusGetText(bipStatus) ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hUdpStreamer %p: Streamer Started: completionStatus: %s" BIP_MSG_PRE_ARG, (void *)hUdpStreamer, BIP_StatusGetText(bipStatus) ));
 
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hUdpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, hUdpStreamer, bipStatus ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hUdpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hUdpStreamer, bipStatus ));
 
     return ( bipStatus );
 } /* BIP_UdpStreamer_Start */
@@ -737,7 +733,7 @@ BIP_Status BIP_UdpStreamer_Stop(
     BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_UdpStreamer_Stop" ), error, bipStatus, bipStatus );
 
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hUdpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, hUdpStreamer, bipStatus ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hUdpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hUdpStreamer, bipStatus ));
 
     return( bipStatus );
 } /* BIP_UdpStreamer_Stop */
@@ -753,7 +749,7 @@ BIP_Status  BIP_UdpStreamer_GetStatus(
 
     BDBG_OBJECT_ASSERT( hUdpStreamer, BIP_UdpStreamer );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hUdpStreamer %p: --------------------->" BIP_MSG_PRE_ARG, hUdpStreamer));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hUdpStreamer %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hUdpStreamer));
 
     BIP_CHECK_GOTO(( hUdpStreamer ), ( "hUdpStreamer pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
     BIP_CHECK_GOTO(( pStatus ), ( "pStatus can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
@@ -777,7 +773,7 @@ BIP_Status  BIP_UdpStreamer_GetStatus(
     BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_UdpStreamer_GetStatus" ), error, bipStatus, bipStatus );
 
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hUdpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, hUdpStreamer, bipStatus ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hUdpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hUdpStreamer, bipStatus ));
 
     return ( bipStatus );
 }

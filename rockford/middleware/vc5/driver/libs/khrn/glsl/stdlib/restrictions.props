@@ -1,0 +1,114 @@
+arg3-const:
+    vec4 textureGather( sampler2D sampler, vec2 coord, int comp);
+   ivec4 textureGather(isampler2D sampler, vec2 coord, int comp);
+   uvec4 textureGather(usampler2D sampler, vec2 coord, int comp);
+    vec4 textureGather( samplerCube sampler, vec3 coord, int comp);
+   ivec4 textureGather(isamplerCube sampler, vec3 coord, int comp);
+   uvec4 textureGather(usamplerCube sampler, vec3 coord, int comp);
+    vec4 textureGather( sampler2DArray sampler, vec3 coord, int comp);
+   ivec4 textureGather(isampler2DArray sampler, vec3 coord, int comp);
+   uvec4 textureGather(usampler2DArray sampler, vec3 coord, int comp);
+    vec4 textureGatherOffsets( sampler2D sampler, vec2 coord, ivec2 offsets[4]);
+    vec4 textureGatherOffsets( sampler2D sampler, vec2 coord, ivec2 offsets[4], int comp);
+   ivec4 textureGatherOffsets(isampler2D sampler, vec2 coord, ivec2 offsets[4]);
+   ivec4 textureGatherOffsets(isampler2D sampler, vec2 coord, ivec2 offsets[4], int comp);
+   uvec4 textureGatherOffsets(usampler2D sampler, vec2 coord, ivec2 offsets[4]);
+   uvec4 textureGatherOffsets(usampler2D sampler, vec2 coord, ivec2 offsets[4], int comp);
+    vec4 textureGatherOffsets( sampler2DArray sampler, vec3 coord, ivec2 offsets[4]);
+    vec4 textureGatherOffsets( sampler2DArray sampler, vec3 coord, ivec2 offsets[4], int comp);
+   ivec4 textureGatherOffsets(isampler2DArray sampler, vec3 coord, ivec2 offsets[4]);
+   ivec4 textureGatherOffsets(isampler2DArray sampler, vec3 coord, ivec2 offsets[4], int comp);
+   uvec4 textureGatherOffsets(usampler2DArray sampler, vec3 coord, ivec2 offsets[4]);
+   uvec4 textureGatherOffsets(usampler2DArray sampler, vec3 coord, ivec2 offsets[4], int comp);
+
+arg4-const:
+    vec4 textureGatherOffset( sampler2D sampler, vec2 coord, ivec2 offset, int comp);
+   ivec4 textureGatherOffset(isampler2D sampler, vec2 coord, ivec2 offset, int comp);
+   uvec4 textureGatherOffset(usampler2D sampler, vec2 coord, ivec2 offset, int comp);
+    vec4 textureGatherOffset( sampler2DArray sampler, vec3 coord, ivec2 offset, int comp);
+   ivec4 textureGatherOffset(isampler2DArray sampler, vec3 coord, ivec2 offset, int comp);
+   uvec4 textureGatherOffset(usampler2DArray sampler, vec3 coord, ivec2 offset, int comp);
+    vec4 textureGatherOffsets( sampler2D sampler, vec2 coord, ivec2 offsets[4], int comp);
+   ivec4 textureGatherOffsets(isampler2D sampler, vec2 coord, ivec2 offsets[4], int comp);
+   uvec4 textureGatherOffsets(usampler2D sampler, vec2 coord, ivec2 offsets[4], int comp);
+    vec4 textureGatherOffsets( sampler2DArray sampler, vec3 coord, ivec2 offsets[4], int comp);
+   ivec4 textureGatherOffsets(isampler2DArray sampler, vec3 coord, ivec2 offsets[4], int comp);
+   uvec4 textureGatherOffsets(usampler2DArray sampler, vec3 coord, ivec2 offsets[4], int comp);
+    vec4 textureGatherOffsets(sampler2DShadow      sampler, vec2 coord, float refZ, ivec2 offsets[4]);
+    vec4 textureGatherOffsets(sampler2DArrayShadow sampler, vec3 coord, float refZ, ivec2 offsets[4]);
+
+arg3-gather-offset:
+    vec4 textureGatherOffset( sampler2D sampler, vec2 coord, ivec2 offset);
+    vec4 textureGatherOffset( sampler2D sampler, vec2 coord, ivec2 offset, int comp);
+   ivec4 textureGatherOffset(isampler2D sampler, vec2 coord, ivec2 offset);
+   ivec4 textureGatherOffset(isampler2D sampler, vec2 coord, ivec2 offset, int comp);
+   uvec4 textureGatherOffset(usampler2D sampler, vec2 coord, ivec2 offset);
+   uvec4 textureGatherOffset(usampler2D sampler, vec2 coord, ivec2 offset, int comp);
+    vec4 textureGatherOffset( sampler2DArray sampler, vec3 coord, ivec2 offset);
+    vec4 textureGatherOffset( sampler2DArray sampler, vec3 coord, ivec2 offset, int comp);
+   ivec4 textureGatherOffset(isampler2DArray sampler, vec3 coord, ivec2 offset);
+   ivec4 textureGatherOffset(isampler2DArray sampler, vec3 coord, ivec2 offset, int comp);
+   uvec4 textureGatherOffset(usampler2DArray sampler, vec3 coord, ivec2 offset);
+   uvec4 textureGatherOffset(usampler2DArray sampler, vec3 coord, ivec2 offset, int comp);
+
+arg4-gather-offset:
+    vec4 textureGatherOffset(sampler2DShadow      sampler, vec2 coord, float refZ, ivec2 offset);
+    vec4 textureGatherOffset(sampler2DArrayShadow sampler, vec3 coord, float refZ, ivec2 offset);
+
+atomic-mem:
+   uint atomicAdd(inout uint mem, uint data);
+    int atomicAdd(inout  int mem,  int data);
+   uint atomicMin(inout uint mem, uint data);
+    int atomicMin(inout  int mem,  int data);
+   uint atomicMax(inout uint mem, uint data);
+    int atomicMax(inout  int mem,  int data);
+   uint atomicAnd(inout uint mem, uint data);
+    int atomicAnd(inout  int mem,  int data);
+   uint atomicOr (inout uint mem, uint data);
+    int atomicOr (inout  int mem,  int data);
+   uint atomicXor(inout uint mem, uint data);
+    int atomicXor(inout  int mem,  int data);
+   uint atomicExchange(inout uint mem, uint data);
+    int atomicExchange(inout  int mem,  int data);
+   uint atomicCompSwap(inout uint mem, uint compare, uint data);
+    int atomicCompSwap(inout  int mem,  int compare,  int data);
+
+memq-template:
+   highp ivec2 imageSize(readonly writeonly  image2D image);
+   highp ivec2 imageSize(readonly writeonly iimage2D image);
+   highp ivec2 imageSize(readonly writeonly uimage2D image);
+   highp ivec3 imageSize(readonly writeonly  image3D image);
+   highp ivec3 imageSize(readonly writeonly iimage3D image);
+   highp ivec3 imageSize(readonly writeonly uimage3D image);
+   highp ivec2 imageSize(readonly writeonly  imageCube image);
+   highp ivec2 imageSize(readonly writeonly iimageCube image);
+   highp ivec2 imageSize(readonly writeonly uimageCube image);
+   highp ivec3 imageSize(readonly writeonly  image2DArray image);
+   highp ivec3 imageSize(readonly writeonly iimage2DArray image);
+   highp ivec3 imageSize(readonly writeonly uimage2DArray image);
+
+   highp  vec4 imageLoad(readonly  image2D image, ivec2 coord);
+   highp ivec4 imageLoad(readonly iimage2D image, ivec2 coord);
+   highp uvec4 imageLoad(readonly uimage2D image, ivec2 coord);
+   highp  vec4 imageLoad(readonly  image3D image, ivec3 coord);
+   highp ivec4 imageLoad(readonly iimage3D image, ivec3 coord);
+   highp uvec4 imageLoad(readonly uimage3D image, ivec3 coord);
+   highp  vec4 imageLoad(readonly  imageCube image, ivec3 coord);
+   highp ivec4 imageLoad(readonly iimageCube image, ivec3 coord);
+   highp uvec4 imageLoad(readonly uimageCube image, ivec3 coord);
+   highp  vec4 imageLoad(readonly  image2DArray image, ivec3 coord);
+   highp ivec4 imageLoad(readonly iimage2DArray image, ivec3 coord);
+   highp uvec4 imageLoad(readonly uimage2DArray image, ivec3 coord);
+
+   highp void imageStore(writeonly  image2D image, ivec2 coord,  vec4 data);
+   highp void imageStore(writeonly iimage2D image, ivec2 coord, ivec4 data);
+   highp void imageStore(writeonly uimage2D image, ivec2 coord, uvec4 data);
+   highp void imageStore(writeonly  image3D image, ivec3 coord,  vec4 data);
+   highp void imageStore(writeonly iimage3D image, ivec3 coord, ivec4 data);
+   highp void imageStore(writeonly uimage3D image, ivec3 coord, uvec4 data);
+   highp void imageStore(writeonly  imageCube image, ivec3 coord,  vec4 data);
+   highp void imageStore(writeonly iimageCube image, ivec3 coord, ivec4 data);
+   highp void imageStore(writeonly uimageCube image, ivec3 coord, uvec4 data);
+   highp void imageStore(writeonly  image2DArray image, ivec3 coord,  vec4 data);
+   highp void imageStore(writeonly iimage2DArray image, ivec3 coord, ivec4 data);
+   highp void imageStore(writeonly uimage2DArray image, ivec3 coord, uvec4 data);

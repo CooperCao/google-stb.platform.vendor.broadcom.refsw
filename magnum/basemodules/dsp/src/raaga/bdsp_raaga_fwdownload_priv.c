@@ -1,7 +1,7 @@
 /******************************************************************************
- * (c) 2006-2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -37,9 +37,7 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
- *****************************************************************************/
-
+ ******************************************************************************/
 #include "bdsp_raaga_fwdownload_priv.h"
 #include "bdsp_raaga_priv.h"
 
@@ -85,6 +83,7 @@ static const char * const algoidname[]=
     "BDSP_AF_P_AlgoId_eDolbyAacheDecode",
     "BDSP_AF_P_AlgoId_eOpusDecode",
     "BDSP_AF_P_AlgoId_eALSDecode",
+    "BDSP_AF_P_AlgoId_eAC4Decode",
     "BDSP_AF_P_AlgoId_eEndOfAudioDecodeAlgos",
     "BDSP_VF_P_AlgoId_eRealVideo9Decode",
     "BDSP_VF_P_AlgoId_eVP6Decode",
@@ -128,6 +127,8 @@ static const char * const algoidname[]=
     "BDSP_AF_P_AlgoId_eiLBCFrameSync",
     "BDSP_AF_P_AlgoId_eiSACFrameSync",
     "BDSP_AF_P_AlgoId_eUdcFrameSync",
+    "BDSP_AF_P_AlgoId_eAC4FrameSync",
+    "BDSP_AF_P_AlgoId_eALSFrameSync",
     "BDSP_AF_P_AlgoId_eEndOfAudioDecFsAlgos",
 
     "BDSP_VF_P_AlgoId_eRealVideo9FrameSync ",
@@ -158,6 +159,7 @@ static const char * const algoidname[]=
     "BDSP_AF_P_AlgoId_eEndOfAudioEncodeAlgos",
     "BDSP_VF_P_AlgoId_eH264Encode ",
     "BDSP_VF_P_AlgoId_eX264Encode ",
+    "BDSP_VF_P_AlgoId_eXVP8Encode ",
     "BDSP_VF_P_AlgoId_eEndOfVideoEncodeAlgos",
 
 
@@ -452,20 +454,22 @@ BERR_Code BDSP_Raaga_P_Alloc_DwnldFwExec(
     /*Rest of the Image Code download/allocation */
     if( pDevice->memInfo.sDwnldMemInfo.IsImagePreLoaded == true )
     {
-       BDSP_Raaga_P_PreLoadFwImages(pDevice->settings.pImageInterface,pDevice->settings.pImageContext, pDevice->imgCache, ptr, pDwnldMemInfo->ui32AllocatedBinSize, pDevice->memHandle);
+       errCode = BDSP_Raaga_P_PreLoadFwImages(pDevice->settings.pImageInterface,pDevice->settings.pImageContext, pDevice->imgCache, ptr, pDwnldMemInfo->ui32AllocatedBinSize, pDevice->memHandle);
+       IF_ERR_GOTO_error;
     }
     else
     {
-    /* System Code download*/
-    for ( imageId = 0; imageId < BDSP_SystemImgId_eMax; imageId++ )
-    {
-    if(pDevice->imgCache[imageId].size == 0 ){
-            continue;
-    }
+        /* System Code download*/
+        for ( imageId = 0; imageId < BDSP_SystemImgId_eMax; imageId++ )
+        {
+            if(pDevice->imgCache[imageId].size == 0 )
+            {
+                continue;
+            }
             errCode = BDSP_Raaga_P_RequestImg(pDevice->settings.pImageInterface,pDevice->settings.pImageContext, pDevice->imgCache, imageId, bDownload, pDevice->memHandle, ptr);
-        ptr = (void *)((uint8_t *)ptr + pDevice->imgCache[imageId].size);
-        IF_ERR_GOTO_error   ;
-    }
+            ptr = (void *)((uint8_t *)ptr + pDevice->imgCache[imageId].size);
+            IF_ERR_GOTO_error   ;
+        }
         /* Code download happens during start task when images are not
         preloaded. Only pointers are allocated here.*/
         errCode = BDSP_Raaga_P_AssignMem_DwnldBuf(pDeviceHandle, ptr);

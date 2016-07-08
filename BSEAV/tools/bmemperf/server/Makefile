@@ -1,7 +1,7 @@
-#############################################################################
-# (c)2013-2014 Broadcom Corporation
+###############################################################################
+# Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 #
-# This program is the proprietary software of Broadcom Corporation and/or its
+# This program is the proprietary software of Broadcom and/or its
 # licensors, and may only be used, duplicated, modified or distributed pursuant
 # to the terms and conditions of a separate, written license agreement executed
 # between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -37,8 +37,7 @@
 #    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
 #    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
 #    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-#
-#############################################################################
+###############################################################################
 
 B_THIS_DIR:=BSEAV/tools/bmemperf/server
 
@@ -108,6 +107,9 @@ ifeq ($(ANDROID_BUILD),y)
 APP_CFLAGS += -DB_ANDROID_BUILD
 endif
 
+# Added for aarch64-linux-gcc
+APP_CFLAGS += -D_LINUX_TYPES_H
+
 BOXMODE_FILES = $(shell ls -1v $(NEXUS_TOP)/../magnum/commonutils/box/src/$(BCHP_CHIP)/$(BCHP_VER_LOWER)/bbox_memc_box*_config.c )
 
 install: all
@@ -117,8 +119,11 @@ install: all
 	@chmod a+x ${BINDIR}/bmemperf.sh
 
 clean:
-	rm -f $(BINDIR)/bmemperf*
+	@rm -f $(BINDIR)/bmemperf*
 	$(MAKE) -C $(NEXUS_TOP)/../BSEAV/lib/boa clean
+ifeq ($(ANDROID_BUILD),y)
+	@rm -f $(BINDIR)/device_node.cfg
+endif
 
 all:	boa bmemperf_server
 
@@ -155,3 +160,6 @@ bmemperf_server: bmemperf_server.c ../common/bmemperf_utils.c ../common/bmemperf
 	@$(CC) $(APP_CFLAGS) -o $(BINDIR)/bmemperf_server bmemperf_server.c ../common/bmemperf_api.c ../common/bmemperf.c ../common/bmemperf_utils.c ../common/bmemperf_lib.c $(BINDIR)/bmemperf_info.c
 ### if the server built successfully, delete temporary info file; otherwise leave it to help with debugging
 	@if [ -a $(BINDIR)/bmemperf_server ] ; then $(RM) $(BINDIR)/bmemperf_info.c; fi
+ifeq ($(ANDROID_BUILD),y)
+	@cp device_node.cfg ${BINDIR}
+endif

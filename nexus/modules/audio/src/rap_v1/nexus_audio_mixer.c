@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
-*  
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -9,44 +9,36 @@
 *  Software, and Broadcom expressly reserves all rights in and to the Software and all
 *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
 *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.  
-*   
+*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*
 *  Except as expressly set forth in the Authorized License,
-*   
+*
 *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
 *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
 *  and to use this information only in connection with your use of Broadcom integrated circuit products.
-*   
-*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS" 
-*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR 
-*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO 
-*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES 
-*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE, 
-*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION 
-*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF 
+*
+*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
 *  USE OR PERFORMANCE OF THE SOFTWARE.
-*  
-*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS 
-*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR 
-*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR 
-*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF 
-*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT 
-*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE 
-*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF 
+*
+*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
-* 
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
 *
 * API Description:
 *   API name: AudioMixer
 *    APIs for an audio mixer.  Allows inputs to be connected to outputs
 *    with the capability to mix inputs and control volume/equalization.
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 #include "nexus_audio_module.h"
@@ -71,7 +63,7 @@ static NEXUS_Error NEXUS_AudioMixer_P_ConnectionChange(void *pHandle, struct NEX
 
 /***************************************************************************
 Summary:
-	Get default settings for an audio mixer
+    Get default settings for an audio mixer
 See Also:
     NEXUS_AudioMixer_Open
  ***************************************************************************/
@@ -85,7 +77,7 @@ void NEXUS_AudioMixer_GetDefaultSettings(
 
 /***************************************************************************
 Summary:
-	Open an audio mixer
+    Open an audio mixer
 See Also:
     NEXUS_AudioMixer_Close
  ***************************************************************************/
@@ -132,7 +124,7 @@ NEXUS_AudioMixerHandle NEXUS_AudioMixer_Open(
 
 /***************************************************************************
 Summary:
-	Close an audio mixer
+    Close an audio mixer
 See Also:
     NEXUS_AudioMixer_Open
  ***************************************************************************/
@@ -152,7 +144,7 @@ NEXUS_OBJECT_CLASS_MAKE(NEXUS_AudioMixer, NEXUS_AudioMixer_Close);
 
 /***************************************************************************
 Summary:
-	Get current settings for an audio mixer
+    Get current settings for an audio mixer
 See Also:
     NEXUS_AudioMixer_SetSettings
  ***************************************************************************/
@@ -169,7 +161,7 @@ void NEXUS_AudioMixer_GetSettings(
 
 /***************************************************************************
 Summary:
-	Set settings of an audio mixer
+    Set settings of an audio mixer
 See Also:
     NEXUS_AudioMixer_SetSettings
  ***************************************************************************/
@@ -202,7 +194,7 @@ NEXUS_Error NEXUS_AudioMixer_SetSettings(
 
 /***************************************************************************
 Summary:
-	Add an audio input to a mixer
+    Add an audio input to a mixer
 See Also:
     NEXUS_AudioMixer_RemoveInput
  ***************************************************************************/
@@ -241,7 +233,7 @@ NEXUS_Error NEXUS_AudioMixer_AddInput(
 
 /***************************************************************************
 Summary:
-	Remove all audio inputs from a mixer
+    Remove all audio inputs from a mixer
 See Also:
     NEXUS_AudioMixer_RemoveInput
  ***************************************************************************/
@@ -264,7 +256,7 @@ NEXUS_Error NEXUS_AudioMixer_RemoveAllInputs(
 
 /***************************************************************************
 Summary:
-	Remove an audio input from a mixer
+    Remove an audio input from a mixer
 See Also:
     NEXUS_AudioMixer_AddInput
  ***************************************************************************/
@@ -353,5 +345,28 @@ void NEXUS_AudioMixer_Stop(
     BSTD_UNUSED(handle);
 }
 
-#endif /* #if NEXUS_NUM_AUDIO_MIXERS */
+NEXUS_Error NEXUS_AudioMixer_GetInputSettings(
+    NEXUS_AudioMixerHandle handle,
+    NEXUS_AudioInput input,
+    NEXUS_AudioMixerInputSettings *pSettings
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(input);
+    BSTD_UNUSED(pSettings);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
 
+NEXUS_Error NEXUS_AudioMixer_SetInputSettings(
+    NEXUS_AudioMixerHandle handle,
+    NEXUS_AudioInput input,
+    const NEXUS_AudioMixerInputSettings *pSettings
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(input);
+    BSTD_UNUSED(pSettings);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+#endif /* #if NEXUS_NUM_AUDIO_MIXERS */

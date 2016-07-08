@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,8 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   API name: Base
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 #ifndef NEXUS_VIDEO_TYPES_H
@@ -85,6 +77,10 @@ typedef enum NEXUS_VideoFrameRate {
     NEXUS_VideoFrameRate_e119_88,
     NEXUS_VideoFrameRate_e120,
     NEXUS_VideoFrameRate_e19_98,
+    NEXUS_VideoFrameRate_e7_5,
+    NEXUS_VideoFrameRate_e12,
+    NEXUS_VideoFrameRate_e11_988,
+    NEXUS_VideoFrameRate_e9_99,
     NEXUS_VideoFrameRate_eMax
 } NEXUS_VideoFrameRate;
 
@@ -142,7 +138,7 @@ Codec used for video compression.
 Description:
 See Also:
 NEXUS_VideoDecoderStartSettings
-NEXUS_VideoDecoderModuleSettings
+NEXUS_VideoDecoderModuleInternalSettings
 */
 typedef enum NEXUS_VideoCodec {
     NEXUS_VideoCodec_eUnknown = 0,     /* unknown/not supported video codec */
@@ -780,10 +776,15 @@ Video Electro-Optical Transfer Function (EOTF) types for dynamic range signaling
 typedef enum NEXUS_VideoEotf
 {
     NEXUS_VideoEotf_eSdr,
-    NEXUS_VideoEotf_eHdr,
+    NEXUS_VideoEotf_eAribStdB67,
     NEXUS_VideoEotf_eSmpteSt2084,
-    NEXUS_VideoEotf_eFuture,
-    NEXUS_VideoEotf_eMax
+    NEXUS_VideoEotf_eInvalid,
+    NEXUS_VideoEotf_eMax,
+    /* only aliases allowed after eMax */
+    NEXUS_VideoEotf_eHdr10 = NEXUS_VideoEotf_eSmpteSt2084,
+    NEXUS_VideoEotf_eHlg = NEXUS_VideoEotf_eAribStdB67,
+    NEXUS_VideoEotf_eHdr = NEXUS_VideoEotf_eInvalid,
+    NEXUS_VideoEotf_eFuture = NEXUS_VideoEotf_eInvalid
 } NEXUS_VideoEotf;
 
 /**
@@ -809,6 +810,12 @@ typedef enum NEXUS_SecureVideo
     NEXUS_SecureVideo_eBoth,     /* decoder/window may switch between secure and unsecure */
     NEXUS_SecureVideo_eMax
 } NEXUS_SecureVideo;
+
+#define NEXUS_MAX_VIDEO_DECODERS 6
+#define NEXUS_MAX_STILL_DECODERS 3
+#define NEXUS_MAX_VIDEO_WINDOWS 2
+#define NEXUS_MAX_VIDEO_ENCODERS 6
+#define NEXUS_MAX_DISPLAYS 7
 
 #ifdef __cplusplus
 }

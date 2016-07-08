@@ -1,7 +1,7 @@
 /******************************************************************************
- * (c) 2004-2016 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -37,13 +37,12 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
- *****************************************************************************/
-
+ ******************************************************************************/
 
 #ifndef BRAAGA_FW_USER_CONFIG_H
 #define BRAAGA_FW_USER_CONFIG_H
 
+#include "bdsp_common_fw_settings.h"
 #include "bdsp_raaga_fw.h"
 
 #define  DDP_DEC_GBL_MAXPCMCHANS                    6
@@ -107,6 +106,7 @@
 #define BDSP_Raaga_UdcSettings                      BDSP_Raaga_Audio_UdcdecConfigParams
 #define BDSP_Raaga_OpusDecSettings                  BDSP_Raaga_Audio_OpusDecConfigParams
 #define BDSP_Raaga_ALSDecSettings                   BDSP_Raaga_Audio_ALSDecConfigParams
+#define BDSP_Raaga_AC4DecSettings                   BDSP_Raaga_Audio_AC4DecConfigParams
 
 /* BDSP_AudioProcessing */
 #define BDSP_Raaga_DtsNeoSettings                   BDSP_Raaga_Audio_ProcessingConfigParams
@@ -550,7 +550,7 @@ typedef struct  BDSP_Raaga_Audio_AacheConfigParams
     uint32_t                        ui32DrcGainControlCompress;     /* Default = 0x40000000, Constant used in the DRC calculation, typically between 0 and 1, in Q2.30 format */
     uint32_t                        ui32DrcGainControlBoost;        /* Default = 0x40000000, Constant used in the DRC calculation, typically between 0 and 1, in Q2.30 format */
 
-    /* This parameter ui32DrcTargetLevel is no longer in use, use i32OutputVolLevel instead */
+    /* This parameter ui32DrcTargetLevel is used to ignore PRL when set to 0, any non zero value has no impact on the output levels */
     uint32_t                        ui32DrcTargetLevel;             /* Default = 127, Target level desired by the host */
     BDSP_Raaga_Audio_AacheUserConfig        sUserOutputCfg[2];
 
@@ -700,7 +700,7 @@ typedef struct BDSP_Raaga_Audio_Mpeg1L2EncConfigParams
     7               Reserved
     */
 
-    uint32_t ui32Copyright; /* Copyright bit setting in the header */
+    uint32_t ui32Copyright; /* Cpyright bit setting in the header */
 
     uint32_t ui32Original;  /* Original bit setting in the header */
 
@@ -862,42 +862,6 @@ typedef struct  BDSP_Raaga_Audio_AacheEncConfigParams
     BDSP_Raaga_Audio_AacEncodeMonoChannelSelect   eAacEncodeMonoChSelcect;
     BDSP_Raaga_Audio_AacEncodeAdtsMpegType eAacEncodeAdtsMpegType;
 }BDSP_Raaga_Audio_AacheEncConfigParams;
-
-typedef enum BDSP_Raaga_eTsmBool
-{
-    BDSP_Raaga_eTsmBool_False,
-    BDSP_Raaga_eTsmBool_True,
-    BDSP_Raaga_eTsmBool_Last,
-    BDSP_Raaga_eTsmBool_Invalid = 0x7FFFFFFF
-}BDSP_Raaga_eTsmBool;
-
-
-typedef struct BDSP_AudioTaskTsmSettings
-{
-    int32_t                 i32TSMSmoothThreshold;
-    int32_t                 i32TSMSyncLimitThreshold;
-    int32_t                 i32TSMGrossThreshold;
-    int32_t                 i32TSMDiscardThreshold;
-    int32_t                 i32TsmTransitionThreshold;     /* Transition threshold is required for the
-                                                                                DVD case not required right now*/
-    uint32_t                ui32STCAddr;
-    uint32_t                ui32AVOffset;
-    /* SwSTCOffset. This earlier was ui32PVROffset */
-    uint32_t                ui32SwSTCOffset;
-    uint32_t                ui32AudioOffset;
-
-    /* For TSM error recovery*/
-    BDSP_Raaga_eTsmBool            eEnableTSMErrorRecovery; /* Whether to go for error recovery
-                                                                                            when there are continuous TSM_FAIL */
-    BDSP_Raaga_eTsmBool            eSTCValid;        /* If the STC in valid or not. In NRT case case, this is StcOffsetValid */
-    BDSP_Raaga_eTsmBool            ePlayBackOn;  /* If the play back in on of off */
-    BDSP_Raaga_eTsmBool              eTsmEnable;   /* if the tsm is enable or not*/
-    BDSP_Raaga_eTsmBool              eTsmLogEnable;  /*if the tsm log is enable or not */
-    BDSP_Raaga_eTsmBool             eAstmEnable;  /* if the  Adaptive System Time Management(ASTM) enable or not */
-
-}BDSP_AudioTaskTsmSettings;
-
-
 
 /*
 Settings structure that are populated by APE to be sent as a part of freeze command payload.
@@ -1223,113 +1187,6 @@ typedef enum BDSP_Raaga_Audio_CapInputPort
     BDSP_Raaga_Audio_CapInputPort_eInvalid = 0x7FFFFFFF
 
 } BDSP_Raaga_Audio_CapInputPort;
-
-
-typedef enum BDSP_Raaga_Audio_WMAIpType
-{
- BDSP_Raaga_Audio_WMAIpType_eASF = 0,
- BDSP_Raaga_Audio_WMAIpType_eTS,
- BDSP_Raaga_Audio_WMAIpType_eMax,
- BDSP_Raaga_Audio_WMAIpType_eInvalid = 0x7FFFFFFF
-}BDSP_Raaga_Audio_WMAIpType;
-
-typedef enum BDSP_Raaga_Audio_ASFPTSType
-{
-     BDSP_Raaga_Audio_ASFPTSType_eInterpolated = 0,
-     BDSP_Raaga_Audio_ASFPTSType_eCoded,
-     BDSP_Raaga_Audio_ASFPTSType_eMax,
-     BDSP_Raaga_Audio_ASFPTSType_eInvalid = 0x7FFFFFFF
-}BDSP_Raaga_Audio_ASFPTSType;
-
-typedef enum BDSP_Raaga_Audio_LpcmAlgoType
-{
-    BDSP_Raaga_Audio_LpcmAlgoType_eDvd,
-    BDSP_Raaga_Audio_LpcmAlgoType_eIeee1394,
-    BDSP_Raaga_Audio_LpcmAlgoType_eBd,
-    BDSP_Raaga_Audio_LpcmAlgoType_eMax,
-    BDSP_Raaga_Audio_LpcmAlgoType_eInvalid = 0x7FFFFFFF
-}BDSP_Raaga_Audio_LpcmAlgoType;
-
-typedef enum BDSP_Raaga_Audio_DtsEndianType
-{
-    BDSP_Raaga_Audio_DtsEndianType_eBIG_ENDIAN = 0,
-    BDSP_Raaga_Audio_DtsEndianType_eLITTLE_ENDIAN,
-    BDSP_Raaga_Audio_DtsEndianType_eINVALID = 0x7FFFFFFF
-}BDSP_Raaga_Audio_DtsEndianType;
-
-typedef enum BDSP_Raaga_Audio_AudioInputSource
-{
-    BDSP_Raaga_Audio_AudioInputSource_eExtI2s0 = 0,     /* External I2S Capture port */
-    BDSP_Raaga_Audio_AudioInputSource_eCapPortRfI2s,   /* BTSC Capture port */
-    BDSP_Raaga_Audio_AudioInputSource_eCapPortSpdif,     /* SPDIF Capture port      */
-    BDSP_Raaga_Audio_AudioInputSource_eCapPortHdmi,      /* HDMI */
-    BDSP_Raaga_Audio_AudioInputSource_eCapPortAdc,
-    BDSP_Raaga_Audio_AudioInputSource_eRingbuffer,      /* This is for Certification needs where PCM Samples are loaded from file to Ring buffers*/
-    BDSP_Raaga_Audio_AudioInputSource_eMax,              /* Invalid/last Entry */
-    BDSP_Raaga_Audio_AudioInputSource_eInvalid = 0x7FFFFFFF
-
-} BDSP_Raaga_Audio_AudioInputSource;
-
-
-
-typedef struct BDSP_AudioTaskDatasyncSettings
-{
-    BDSP_AF_P_EnableDisable         eEnablePESBasedFrameSync;    /* Default = Disabled */
-    BDSP_Raaga_Audio_AudioInputSource    eAudioIpSourceType;           /* Capture port Type    */
-
-    union
-    {
-        uint32_t ui32SamplingFrequency;                 /* Will be used if IpPortType is I2S*/
-        uint32_t ui32RfI2sCtrlStatusRegAddr;            /* For RfI2s i.e. BTSC */
-        uint32_t ui32SpdifCtrlStatusRegAddr;            /* For SPDIF */
-        uint32_t ui32MaiCtrlStatusRegAddr;              /* For HDMI */
-
-    }uAudioIpSourceDetail;
-
-    BDSP_AF_P_EnableDisable               eEnableTargetSync;   /* Default = Enabled */
-
-    union
-    {
-        struct
-        {
-            BDSP_Raaga_Audio_ASFPTSType eAsfPtsType;            /* Default = 0 (Use Interpolation always). 1 = Use Coded always. */
-            BDSP_Raaga_Audio_WMAIpType eWMAIpType;              /* Default = 0 (Type ASF). Set to TS only when WMATS is enabled */
-        }sWmaConfig;
-        struct
-        {
-            BDSP_Raaga_Audio_LpcmAlgoType               eLpcmType;
-        }sLpcmConfig;
-        struct
-        {
-            BDSP_Raaga_Audio_DtsEndianType              eDtsEndianType; /* Added for DTS-CD Little Endian Support */
-        }sDtsConfig;
-    }uAlgoSpecConfigStruct;                                     /* The algo specific structures for configuration */
-
-    BDSP_AF_P_EnableDisable               eForceCompleteFirstFrame;   /* If enabled, the first frame will always be entirely rendered to the
-                                                                         output and not partially truncated for TSM computations.  This should
-                                                                         be disabled for normal operation, but may be required for some bit-exact
-                                                                         certification testing that requires all data to be rendered even with TSM
-                                                                         enabled. */
-
-} BDSP_AudioTaskDatasyncSettings ;
-
-/*
-    This data structure defines IDS, DS and TSM configuration parameters
-*/
-
-typedef struct BDSP_Raaga_Audio_FrameSyncTsmConfigParams
-{
-    /*
-    * Data sync configuration parameters
-    */
-    BDSP_AudioTaskDatasyncSettings  sFrameSyncConfigParams;
-
-    /*
-    * TSM configuration parameters
-    */
-    BDSP_AudioTaskTsmSettings           sTsmConfigParams;
-
-} BDSP_Raaga_Audio_FrameSyncTsmConfigParams;
 
 /*
     This data structure defines AVL configuration parameters
@@ -1763,6 +1620,8 @@ typedef struct BDSP_Raaga_Audio_DtsHdConfigParams
 
     BDSP_Raaga_Audio_DtshdUserOutput sUserOutputCfg[2];
 
+    /* This enum lets the mixer know if the decoder type is primary or secondary or sound effects. */
+    BDSP_AF_P_DecoderType   eDecoderType; /* Default : BDSP_AF_P_DecoderType_ePrimary */
 }BDSP_Raaga_Audio_DtsHdConfigParams;
 
 
@@ -1971,7 +1830,7 @@ typedef struct BDSP_Raaga_Audio_Mpeg1L3EncConfigParams
     /* Bit for private use, Default Value = BDSP_AF_P_eDisable */
     BDSP_AF_P_EnableDisable ePrivateBit;
 
-    /* Copyright bit setting in the header */
+    /* Cpyright bit setting in the header */
     /* Default Value = BDSP_AF_P_eDisable; */
     BDSP_AF_P_EnableDisable eCopyright;
 
@@ -2398,8 +2257,8 @@ typedef struct BDSP_Raaga_Audio_DolbyPulseUserConfig
 
     BDSP_Raaga_Audio_DolbyPulsePortConfig   sOutPortCfg[2];
 
-	/* Ensure that the multichannel and stereo ports have the similar loudness based on the selected RF mode: EBU or ATSC */
-    uint32_t    ui32EnforceLoudnessLevelsOnAllPorts;	/* Default = 0, 0 -> Disable, 1 -> Enable */
+    /* Ensure that the multichannel and stereo ports have the similar loudness based on the selected RF mode: EBU or ATSC */
+    uint32_t    ui32EnforceLoudnessLevelsOnAllPorts;    /* Default = 0, 0 -> Disable, 1 -> Enable */
 
 } BDSP_Raaga_Audio_DolbyPulseUserConfig;
 
@@ -2510,6 +2369,17 @@ typedef struct BDSP_Raaga_Audio_MixerConfigParams
                                                                  per channel per input basis.
                                                               */
     int32_t         i32UserMixBalance;
+    /* This field can be set to enable custom mixing of effect audio with primary*/
+    /* default: disable (0) */
+    int32_t         i32CustomEffectsAudioMixingEnable;
+    /* These mixing coefficients will be used to mix effects audio if custom mixing mode is enabled
+    These Mixing Coefficients can be negative and must be programmed in Q2.30 format. For example:
+    scale factor as 0.5 must be programmed in Q2.30 as (0.5*(2^30)) =0x20000000. First index in
+    this matrix represents the channels of primary input however second corresponds to effects
+    audio input. The channel order is fixed as "Left, Right, Left Surround, Right Surround, Center,
+    LFE" for both inputs.  The default is one to one matching. For example L->L and R->R and so on
+     */
+    int32_t  i32CustomMixingCoefficients[6][6];
 }BDSP_Raaga_Audio_MixerConfigParams;
 
 /*
@@ -3031,7 +2901,215 @@ typedef struct
     uint32_t                            ui32EnableAtmosMetadata;
 } BDSP_Raaga_Audio_UdcdecConfigParams;
 
+typedef struct BDSP_Raaga_AC4_UserOutput
+{
+    /* Channel configuration
+         0 = Decoder outputs stereo or a LoRo downmix of multichannel content. (Default)
+         1 = Decoder outputs stereo or a Dolby ProLogic compatible LtRt downmix of multichannel content.
+         2 = Decoder outputs stereo or a Dolby ProLogic II compatible LtRt downmix of multichannel content. */
+    uint32_t        ui32ChannelConfig;
 
+
+    /* Indicates the preferred mixing ratio between main and associate streams
+          Range = -32 to 32 (in 1dB steps)
+          Default = -32
+          Extreme limits: -32 -> Main Audio only; 32 -> Associated only
+          */
+    int32_t         i32MainAssocMixPref;
+
+
+    /* Indicates if the output is requested to have a 90 degree phase shift in the surround channels
+        0 = Disable 90 degree phase shift (Default)
+        1 = Enable 90 degree phase shift */
+    uint32_t        ui32Phase90Preference;
+
+
+    /* Indicates gain that will be applied to dialog enhancement
+        Range = -12 to 12 dB (in 1 dB steps)
+        Default = 0
+        */
+    int32_t         i32DialogEnhGainInput;
+
+
+    /* Target reference level for output signal
+        Range = -31 to -7 dB (in 1 dB steps)
+        Value of 0 dB = leveling is deactivated
+        Default = -31 */
+    int32_t         i32TargetRefLevel;
+
+
+    /* Indicates if DRC shall be performed
+         0 = Disable DRC
+         1 = Enable DRC (Default)  */
+    uint32_t        ui32DrcEnable;
+
+    /* DRC Presets
+        0=none (Default), 1=Line@-31dB, 2=RF@-20dB, 3=RF@-23dB, 4=RF@-24dB*/
+    uint32_t    ui32DrcMode;
+
+    /*** Audio post processing parameters ***/
+    /* Strength factor for intelligent EQ
+        Min. value = 0 (intelligent EQ disabled)
+        Max. value = 256 (full strength)
+        Default : 256 */
+     uint32_t        ui32IeqStrength;
+
+
+    /* Profile for intelligent EQ
+         0 = Disabled (Default)
+         1 = Open mode
+         2 = Rich mode
+         3 = Focused mode */
+    uint32_t        ui32IeqProfile;
+
+    uint32_t        ui32OutputChannelMatrix[BDSP_AF_P_MAX_CHANNELS];
+} BDSP_Raaga_AC4_UserOutput;
+
+
+#define AC4_DEC_ABBREV_PRESENTATION_LANGUAGE_LENGTH          (8>>2)
+#define AC4_DEC_PROGRAM_IDENTIFIER_LENGTH                    (20>>2)
+typedef struct BDSP_Raaga_Audio_AC4DecConfigParams
+{
+    /* Possible Values: eSingleDecodeMode, eMS12DecodeMode
+       Default 0 : eSingleDecodeMode */
+    BDSP_AF_P_DolbyMsUsageMode          eDolbyMSUsageMode;
+
+    /* This enum lets the mixer know if the decoder type is primary or secondary or sound effects.
+       Default 0 */
+    BDSP_AF_P_DecoderType               eDecoderType;
+
+    /* This value "i32NumOutPorts" can be set upto 3 based on output ports enabled 7.1 5.1 and 2.0.
+       Default 1 */
+    int32_t                             i32NumOutPorts;
+
+    /* Per output port configs
+       CIDK Defaults
+       {0,-32,0,0,-31,1,0,256,0,{0,1,2,3,4,5,0xFFFFFFFF,0xFFFFFFFF}}, Port Config 1
+       {0,-32,0,0,-31,1,0,256,0,{0,1,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF}}, Port Config 2
+
+       IDK Defaults
+       {6,0,0,0,-31,0,0,0,0,{0,1,2,3,4,5,6,7}}, Port Config 1
+       {2,0,0,0,-31,0,0,0,0,{0,1,2,3,4,5,6,7}}  POrt Config 2
+
+    */
+    BDSP_Raaga_AC4_UserOutput           sUserOutputCfg[2];
+
+    /* AC-4 Decoding complexity level
+         3 = Level 3 (Default)     */
+    uint32_t        ui32InputCplxLevel;
+
+
+    /* AC-4 Decoding main/associate audio selection
+         0 = decode main & associate audio (Default)
+         1 = decode main audio only
+         2 = decode associate audio only */
+    uint32_t        ui32MainAssocDec;
+
+
+    /* AC-4 Decoder output complexity level
+         0 = Stereo
+         1 = 5.1 Multichannel (Default) */
+    uint32_t        ui32OutputCplxLevel;
+
+
+    /* Flag that indicates that this instance is the only one to be opened
+         0 = multiple instances of the output stage can/will be opened
+         1 = single instance of the output stage can/will be opened (Default) */
+    uint32_t        ui32SingleInstance;
+
+
+    /* AC-4 Decoder output sampling rate
+         0 = Decoder resamples everything to 48 kHz output sampling rate (IDK DEFAULT)
+         1 = Decoder output sampling rate equals input sampling rate up to the max output sampling rate supported, e.g. 48 kHz. (CIDK Default) */
+    uint32_t        ui32SamplingRateMode;
+
+
+    /* Flag that indicates if DAP shall be performed
+         0 = Disable DAP (Default)
+         1 = Enable DAP  */
+    uint32_t        ui32DapEnable;
+
+    /* Presentation number to be decoded
+        0 to 511: presentation index
+        Default: 0xFFFFFFFF (INVALID)
+        A presentation is selected to be decoded based on one of the personalization user configs available, if none of the
+        selected personalizations match with what is available in a stream, then the first presentation, of presentation index 0 is decoded
+        Personalization options for a AC4 decode
+          - By presentation index
+          - By Language tags
+          - By Associate Type */
+    uint32_t        ui32PresentationNumber;
+
+    /* Enable limiter : Turn off/on limiter for testing
+            Default : 1 (Enable)*/
+    uint32_t        ui32LimiterEnable;
+
+    /* Dolby certification mode
+         0 = Disabled (CIDK Default)
+         1 = Enabled (IDK Default) */
+    uint32_t        ui32CertificationMode;
+
+    /* Time scale in ticks per second
+       Required only for Component level cert testing
+        CIDK Default = 90000
+         IDK Default = AC4DEC_FRAMER_DEFAULT_TIME_SCALE */
+    uint32_t        ui32TimeScale;
+
+    /*******************************************/
+    /* Personalization Features of AC4 Decoder */
+    /*******************************************/
+    /* Preferred language 1 of the presentation
+        Big Endian Population
+        Initialized to /'0'/ by default */
+    uint32_t        ui32PreferredLanguage1[AC4_DEC_ABBREV_PRESENTATION_LANGUAGE_LENGTH];
+
+    /* Preferred language 1 of the presentation
+        Big Endian Population
+        Initialized to /'0'/ by default */
+    uint32_t        ui32PreferredLanguage2[AC4_DEC_ABBREV_PRESENTATION_LANGUAGE_LENGTH];
+
+    /*  Preferred Associate type of the presentation
+        Identifies the type of associated audio service to decode for Dolby AC-4 inputs
+            1 = Visually impaired (Default)
+            2 = Hearing impaired
+            3 = Commentary */
+    uint32_t        ui32PreferredAssociateType;
+
+
+    /* Indicates the type of ID to be expected in the program_identifier field of the Dolby AC-4 bitstream.
+        0 = NONE (Default)
+        1 = PROGRAM_ID_TYPE_SHORT
+        2 = PROGRAM_ID_TYPE_UUID */
+    uint32_t        ui32PreferredIdentifierType;
+
+
+    /* Identifies the Dolby AC-4 stream that the primary presentation index relates to based on the opted for Preferred Identifier type
+       The Personalized-program universal unique ID is populated in the array in big endian fashion
+       Initialized to /'0'/ by default */
+    int32_t         i32PreferredProgramID[AC4_DEC_PROGRAM_IDENTIFIER_LENGTH];
+
+
+    /* Choose a AC4 Decoding Mode
+        0 = Single Stream, Single Decode (Default)
+        1 = Single Stream, Dual Decode, Single Instance
+        2 = Single Stream, Dual Decode, Dual Instance
+        3 = Dual Stream, Dual Decode */
+    uint32_t        ui32AC4DecodeMode;
+
+
+    /* Associate mixing in an instance of AC4 Decoding
+        0 = Disable
+        1 = Enable (Default)*/
+    uint32_t        ui32EnableADMixing;
+
+    /* Prioritize associated audio service type matching
+    Indicates whether matching of the preferred associated audio service type takes priority over matching of the
+    preferred language type when selecting a presentation for decoding
+        0 = No
+        1 = Yes (default) */
+    uint32_t    ui32PreferAssociateTypeOverLanguage;
+
+} BDSP_Raaga_Audio_AC4DecConfigParams;
 
 /*
    These data structures define Dolby AACHE Decoder user configuration parameters
@@ -4689,6 +4767,36 @@ typedef struct BDSP_Raaga_VideoBX264UserConfig
     uint32_t                                        picStructure;
     uint32_t                                        InputYUVFormat;
 }BDSP_Raaga_VideoBX264UserConfig;
+typedef struct BDSP_Raaga_VideoBXVp8RCConfigStruct
+{
+    uint32_t    ui32BasicUnit; /* Size of Basic Unit in MBs. '0' impliese FrameLevel RC */
+    uint32_t    RCMinQP[BDSP_Raaga_VideoSlice_eMax];
+    uint32_t    RCMaxQP[BDSP_Raaga_VideoSlice_eMax];
+    uint32_t    RCMaxQPChange;/*Max Qp Change allowed between consequetive BUs in BU-level RC */
+    uint32_t    SeinitialQp; /* Initial Qp: Initial config parameter.*/
+}BDSP_Raaga_VideoBXVP8RCConfigStruct;
+typedef struct BDSP_Raaga_VideoBXVP8UserConfig
+{
+    BDSP_Raaga_VideoEncodeMode                      eMode;                  /* (High Delay, Low Delay, AFAP)     */
+    uint32_t                                        ui32TargetBitRate;          /* Number of bits per sec.  */
+    uint32_t                                        ui32EncodPicWidth;
+    uint32_t                                        ui32EncodPicHeight;
+    uint32_t                                        ui32IntraPeriod;
+    uint32_t                                        ui32IDRPeriod;
+    BDSP_Raaga_VideoGopStruct                       eGopStruct;
+    BDSP_Raaga_Video_eBOOLEAN                       eDblkEnable;
+    BDSP_Raaga_Video_eBOOLEAN                       eRateControlEnable;
+    uint32_t                                        ui32End2EndDelay;
+    BDSP_Raaga_VideoBXVP8RCConfigStruct             sRCConfig;
+    uint32_t                                        ui32FrameRate;
+    uint32_t                                        ui32AspectRatioIdc;
+    uint32_t                                        ui32SARWidth;
+    uint32_t                                        ui32SARHeight;
+    BDSP_Raaga_Video_eBOOLEAN                       eSendCC;
+    BDSP_Raaga_Video_eBOOLEAN                       eSceneChangeEnable;
+    uint32_t                                        picStructure;
+    uint32_t                                        InputYUVFormat;
+}BDSP_Raaga_VideoBXVP8UserConfig;
 typedef struct BDSP_Raaga_Audio_LpcmEncConfigParams
 {
 int32_t dummyLpcmEnc;
@@ -4907,7 +5015,7 @@ typedef struct BDSP_Raaga_Audio_DDPEncConfigParams
     uint32_t    ui32AudioProductionMixLevel2;
 
     /*
-    Copyright flag [Default: 1 -xn1 = copyrighted material]
+    Cpyright flag [Default: 1 -xn1 = copyrighted material]
                 0 = non-copyrighted material
                 1 = copyrighted material
                 */
@@ -4982,7 +5090,7 @@ typedef struct BDSP_Raaga_Audio_DDPEncConfigParams
 
 } BDSP_Raaga_Audio_DDPEncConfigParams;
 
-extern const BDSP_Raaga_Audio_FrameSyncTsmConfigParams   BDSP_sDefaultFrameSyncTsmSettings;
+extern const BDSP_P_Audio_FrameSyncTsmConfigParams   BDSP_sDefaultFrameSyncTsmSettings;
 extern const BDSP_Raaga_Audio_MpegConfigParams  BDSP_sMpegDefaultUserConfig;
 extern const BDSP_Raaga_Audio_AacheConfigParams BDSP_sAacheDefaultUserConfig;
 extern const BDSP_Raaga_Audio_DolbyPulseUserConfig BDSP_sDolbyPulseDefaultUserConfig;
@@ -5010,6 +5118,7 @@ extern const BDSP_Raaga_Audio_UdcdecConfigParams  BDSP_sUdcdecDefaultUserConfig;
 extern const BDSP_Raaga_Audio_DolbyAacheUserConfig BDSP_sDolbyAacheDefaultUserConfig;
 extern const BDSP_Raaga_Audio_OpusDecConfigParams BDSP_sOpusDecDefaultUserConfig;
 extern const BDSP_Raaga_Audio_ALSDecConfigParams  BDSP_sALSDecDefaultUserConfig;
+extern const BDSP_Raaga_Audio_AC4DecConfigParams  BDSP_sAC4DecDefaultUserConfig;
 extern const BDSP_Raaga_Audio_MlpConfigParams BDSP_sMlpUserConfig;
 extern const BDSP_Raaga_Audio_PassthruConfigParams   BDSP_sDefaultPassthruSettings;
 extern const BDSP_Raaga_Audio_AVLConfigParams BDSP_sDefAVLConfigSettings;
@@ -5045,6 +5154,7 @@ extern const BDSP_Raaga_Audio_G723_1DEC_ConfigParams BDSP_sG723_1_Configsettings
 extern const BDSP_Raaga_Audio_G723EncoderUserConfig BDSP_sDefG723_1EncodeConfigSettings;
 extern const BDSP_Raaga_VideoBH264UserConfig BDSP_sBH264EncodeUserConfigSettings;
 extern const BDSP_Raaga_VideoBX264UserConfig BDSP_sBX264EncodeUserConfigSettings;
+extern const BDSP_Raaga_VideoBXVP8UserConfig BDSP_sBXVP8EncodeUserConfigSettings;
 extern const BDSP_Raaga_Audio_Broadcom3DSurroundConfigParams BDSP_sBroadcom3DSurroundConfigSettings;
 extern const BDSP_Raaga_Audio_SpeexAECConfigParams  BDSP_sDefSpeexAECConfigParams;
 extern const BDSP_Raaga_Audio_KaraokeConfigParams   BDSP_sDefKaraokeConfigSettings;

@@ -1,22 +1,42 @@
 /***************************************************************************
- *     Copyright (c) 2003-2014, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * File Description: This file definitions for PPB data structure passed
  *                   from 7401 decode FW to DM.
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ***************************************************************************/
 
@@ -157,7 +177,7 @@ typedef struct BXVD_P_SEI_Message
 /* User Data Header */
 typedef struct user_data
 {
-   struct user_data  *next;
+   uint32_t      next; /* FW has struct user_data  *next; which is a 32 bit value */
    uint32_t      type;
    uint32_t      size;
 } UD_HDR;
@@ -386,6 +406,7 @@ typedef struct
    unsigned int white_point_xy;          /* [31:16] = Y and [15:0] = X */
    unsigned int max_disp_mastering_lum;
    unsigned int min_disp_mastering_lum;
+   unsigned int hdr_transfer_characteristics_idc;  /* SWSTB-1629: */
 } BXVD_P_PPB_H265;
 
 #define HDR_SEI_CONTENT_LIGHT_AVG_MASK   0xffff0000
@@ -633,6 +654,11 @@ typedef enum BXVD_P_PPB_FrameRate
   BXVD_P_PPB_FrameRate_e119_88,
   BXVD_P_PPB_FrameRate_e120,
   BXVD_P_PPB_FrameRate_e100,
+  BXVD_P_PPB_FrameRate_e19_98,
+  BXVD_P_PPB_FrameRate_e7_5,
+  BXVD_P_PPB_FrameRate_e12,
+  BXVD_P_PPB_FrameRate_e11_988,
+  BXVD_P_PPB_FrameRate_e9_99,
   BXVD_P_PPB_FrameRate_eMax
 
 } BXVD_P_PPB_FrameRate;
@@ -762,8 +788,8 @@ typedef enum BXVD_P_PPB_Protocol
 #define BXVD_P_PPB_PROTOCOL_PROFILE_SHIFT         0x10
 
 
-#define BXVD_P_PPB_DNR_FLAG_REFPIC		  0x01
-#define BXVD_P_PPB_DNR_FLAG_GOPHEADER		  0x02
+#define BXVD_P_PPB_DNR_FLAG_REFPIC        0x01
+#define BXVD_P_PPB_DNR_FLAG_GOPHEADER         0x02
 
 typedef struct
 {
@@ -1026,11 +1052,11 @@ typedef struct
 /* picture information block (PIB) */
 typedef struct BXVD_P_PPB_PIB
 {
-	BXVD_P_PPB    sPPB;
-	uint32_t      bFormatChange;
-	uint32_t      ulResolution;
-	uint32_t      ulChannelId;
-	uint32_t      ppbPtr;
+    BXVD_P_PPB    sPPB;
+    uint32_t      bFormatChange;
+    uint32_t      ulResolution;
+    uint32_t      ulChannelId;
+    uint32_t      ppbPtr;
 } BXVD_P_PPB_PIB;
 
 
@@ -1049,9 +1075,9 @@ typedef struct BXVD_P_PPB_PIB
 /* Paramaters passed from DMS to DM */
 typedef struct BXVD_P_DMS2DMInfo
 {
-	BXVD_P_DisplayInfo *pDisplayInfo ;
-	BXVD_P_PictureDeliveryQueue *pPictureDeliveryQueue ;
-	BXVD_P_PictureReleaseQueue  *pPictureReleaseQueue ;
+    BXVD_P_DisplayInfo *pDisplayInfo ;
+    BXVD_P_PictureDeliveryQueue *pPictureDeliveryQueue ;
+    BXVD_P_PictureReleaseQueue  *pPictureReleaseQueue ;
 } BXVD_P_DMS2DMInfo ;
 
 /* Parameters passed from DM to DMS */
@@ -1063,17 +1089,17 @@ typedef struct BXVD_P_DM2DMSInfo
 
 typedef struct BXVD_P_DisplayElement
 {
-	BXVD_P_PPB *pPPB ;
-/*	BXVD_P_PPB *pPPBPhysical ; */
-	uint32_t pPPBPhysical ;
-	BAVC_Polarity ePPBPolarity;
+    BXVD_P_PPB *pPPB ;
+/*  BXVD_P_PPB *pPPBPhysical ; */
+    uint32_t pPPBPhysical ;
+    BAVC_Polarity ePPBPolarity;
 } BXVD_P_DisplayElement ;
 
 typedef struct BXVD_P_DisplayElementQueue
 {
-	BXVD_P_PPB *pPPBQArray[ BXVD_P_MAX_ELEMENTS_IN_DISPLAY_QUEUE ] ;
-	uint32_t read_pointer ;
-	uint32_t write_pointer ;
+    BXVD_P_PPB *pPPBQArray[ BXVD_P_MAX_ELEMENTS_IN_DISPLAY_QUEUE ] ;
+    uint32_t read_pointer ;
+    uint32_t write_pointer ;
     uint32_t depth_pointer ;
 } BXVD_P_DisplayElementQueue ;
 /************************************************************************/
@@ -1081,5 +1107,3 @@ typedef struct BXVD_P_DisplayElementQueue
 /************************************************************************/
 
 #endif /* __INC_VDEC_INFO_H__ */
-
-

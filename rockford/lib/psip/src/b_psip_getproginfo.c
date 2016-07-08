@@ -731,7 +731,7 @@ void B_PSIP_State_GetProgInfo_SearchMGT4ETT(
 
             PSIP_STT_getHeader(pStateData->sttBuffer, &header);
             timeCurrentUTC = header.system_time - header.GPS_UTC_offset;
-            BDBG_MSG(("timeCurrentUTC:%lu", timeCurrentUTC));
+            BDBG_MSG(("timeCurrentUTC:%u", timeCurrentUTC));
 
             timeDiff = pStateData->timeUTCStart - timeCurrentUTC;
             if ((0 <= timeDiff) && (0 < (timeDiff / 60 / 60 / 3)))
@@ -843,7 +843,7 @@ void B_PSIP_State_GetProgInfo_SearchEIT(
                     break;
                 }
 
-                BDBG_MSG(("eitEvent.start_time:%lu eitEvent.end_time:%lu requested time:%lu", 
+                BDBG_MSG(("eitEvent.start_time:%u eitEvent.end_time:%u requested time:%u",
                           eitEvent.start_time, eitEvent.start_time + eitEvent.length_in_seconds,
                           pStateData->timeUTCStart));
 
@@ -1078,7 +1078,7 @@ void B_PSIP_State_GetProgInfo_SearchMGT4EIT(
 
             PSIP_STT_getHeader(pStateData->sttBuffer, &header);
             timeCurrentUTC = header.system_time - header.GPS_UTC_offset;
-            BDBG_MSG(("timeCurrentUTC:%lu", timeCurrentUTC));
+            BDBG_MSG(("timeCurrentUTC:%u", timeCurrentUTC));
 
             timeDiff = pStateData->timeUTCStart - timeCurrentUTC;
             if ((0 <= timeDiff) && (0 < (timeDiff / 60 / 60 / 3)))
@@ -1103,7 +1103,7 @@ void B_PSIP_State_GetProgInfo_SearchMGT4EIT(
                     continue;
                 }
 
-                BDBG_MSG(("EIT table (type:0x%04x) found - search for program event for given time:%lu", 
+                BDBG_MSG(("EIT table (type:0x%04x) found - search for program event for given time:%u",
                           table.table_type, pStateData->timeUTCStart));
 
                 if (pStateData->pidEIT == table.table_type_PID)

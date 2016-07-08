@@ -534,7 +534,7 @@ static void BCHP_PWR_P_HW_HDMI_TX_CLK_Control(BCHP_Handle handle, bool activate)
 
     BDBG_MSG(("HW_HDMI_TX_CLK: %s", activate?"on":"off"));
 
-#if (BCHP_VER == BCHP_VER_A0)
+#if (BCHP_VER < BCHP_VER_B0)
     reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_ONOFF_DVP_MHT__7364_INST_CLOCK_ENABLE);
     mask = ( BCHP_CLKGEN_ONOFF_DVP_MHT__7364_INST_CLOCK_ENABLE_DVPHT_108_CLOCK_ENABLE_MASK |
             BCHP_CLKGEN_ONOFF_DVP_MHT__7364_INST_CLOCK_ENABLE_DVPHT_54_CLOCK_ENABLE_MASK );
@@ -549,7 +549,7 @@ static void BCHP_PWR_P_HW_HDMI_TX_CLK_Control(BCHP_Handle handle, bool activate)
     reg &= ~mask;
     reg |= activate?mask:0;
     BREG_Write32(handle->regHandle, BCHP_CLKGEN_ONOFF_DVP_MHT__7364_INST_ENABLE, reg);
-#elif (BCHP_VER == BCHP_VER_B0)
+#else
     reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_ONOFF_DVP_MHT_INST_CLOCK_ENABLE);
     mask = ( BCHP_CLKGEN_ONOFF_DVP_MHT_INST_CLOCK_ENABLE_DVPHT_108_CLOCK_ENABLE_MASK |
             BCHP_CLKGEN_ONOFF_DVP_MHT_INST_CLOCK_ENABLE_DVPHT_54_CLOCK_ENABLE_MASK );
@@ -573,13 +573,13 @@ static void BCHP_PWR_P_HW_HDMI_IIC_CLK_Control(BCHP_Handle handle, bool activate
 
     BDBG_MSG(("HW_HDMI_IIC_CLK: %s", activate?"on":"off"));
 
-#if (BCHP_VER == BCHP_VER_A0)
+#if (BCHP_VER < BCHP_VER_B0)
     reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_ONOFF_DVP_MHT__7364_INST_CLOCK_DISABLE);
     mask = BCHP_CLKGEN_ONOFF_DVP_MHT__7364_INST_CLOCK_DISABLE_DISABLE_DVPHT_IIC_MASTER_CLOCK_MASK;
     reg &= ~mask;
     reg |= activate?0:mask;
     BREG_Write32(handle->regHandle, BCHP_CLKGEN_ONOFF_DVP_MHT__7364_INST_CLOCK_DISABLE, reg);
-#elif (BCHP_VER == BCHP_VER_B0)
+#else
     reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_ONOFF_DVP_MHT_INST_CLOCK_DISABLE);
     mask = BCHP_CLKGEN_ONOFF_DVP_MHT_INST_CLOCK_DISABLE_DISABLE_DVPHT_IIC_MASTER_CLOCK_MASK;
     reg &= ~mask;

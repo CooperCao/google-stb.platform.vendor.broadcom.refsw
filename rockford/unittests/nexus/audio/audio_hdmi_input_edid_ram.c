@@ -329,9 +329,9 @@ int main(int argc, char **argv)
         errCode = NEXUS_AudioDecoder_Start(audioDecoder, &audioProgram);
         if ( errCode ) return BERR_TRACE(errCode);
 
-        BDBG_LOG((""));
+        BDBG_LOG(("."));
         BDBG_LOG(("Beginning Test Cycle %lu... ", testCycle));
-        BDBG_LOG((""));
+        BDBG_LOG(("."));
 
         for (seconds=0 ; seconds<9999999  ; seconds++)
         {

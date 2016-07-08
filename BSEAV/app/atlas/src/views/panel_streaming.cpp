@@ -1,7 +1,7 @@
 /******************************************************************************
- * (c) 2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -37,7 +37,7 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************/
+ *****************************************************************************/
 
 #include "convert.h"
 #include "panel_streaming.h"
@@ -505,7 +505,7 @@ void CPanelStreaming::onFocus(bwidget_t widget)
                 CChannel * pChannel = _pFocusPlaylist->getChannel(i);
 
                 /* update displayed channel properties based on item in focus */
-                BDBG_MSG(("update channel properties for %s", pChannel->getDescription().s()));
+                BDBG_MSG(("update channel properties for %s", pChannel ? pChannel->getDescription().s() : "invalid"));
                 updateProperties(pChannel);
             }
         }
@@ -756,7 +756,7 @@ eRet CPanelStreaming::addPlaylist(CPlaylist * pPlaylist)
     pButton = new CWidgetButton("CPanelStreaming::pButton", getEngine(), this, MRect(0, 0, 0, 22), font);
     BDBG_MSG(("Allocate Button widget, for disovered Playlist:%s,", pPlaylist->getName().s()));
     pButton->setText(pPlaylist->getName().s(), bwidget_justify_horiz_left);
-    pButton->setValue((int)pPlaylist);
+    pButton->setValue((unsigned long)pPlaylist);
 
     _pPlaylistsMenu->addButton(pButton, pPlaylist->getName().s());
     _ButtonsPlaylist.add(pButton);
@@ -773,7 +773,7 @@ eRet CPanelStreaming::removePlaylist(CPlaylist * pPlaylist)
 
     for (pButton = _ButtonsPlaylist.first(); pButton; pButton = _ButtonsPlaylist.next())
     {
-        if (pButton->getValue() == (int)pPlaylist)
+        if (pButton->getValue() == (long)pPlaylist)
         {
             _pPlaylistsMenu->removeButton(pButton);
             _ButtonsPlaylist.remove(pButton); /* MAutoList so frees pButton memory */

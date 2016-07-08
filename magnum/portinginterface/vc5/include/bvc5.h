@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2014 Broadcom Corporation
+ *     Broadcom Proprietary and Confidential. (c)2014 Broadcom.  All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -94,6 +94,10 @@ extern "C" {
 #define BVC5_SYNC_CPU_WRITE            (1u << 10)
 #define BVC5_SYNC_CPU                  (BVC5_SYNC_CPU_READ | BVC5_SYNC_CPU_WRITE)
 
+#define BVC5_EMPTY_TILE_MODE_NONE      0u
+#define BVC5_EMPTY_TILE_MODE_SKIP      1u
+#define BVC5_EMPTY_TILE_MODE_FILL      2u
+
 /* Workaround flags */
 #define BVC5_GFXH_1181                 1
 
@@ -146,7 +150,6 @@ typedef enum BVC5_JobType
    BVC5_JobType_eUser,
    BVC5_JobType_eTFU,
    BVC5_JobType_eFenceWait,
-   BVC5_JobType_eFenceSignal,
    BVC5_JobType_eTest,
    BVC5_JobType_eUsermode,
    BVC5_JobType_eNumJobTypes
@@ -204,6 +207,7 @@ typedef struct BVC5_JobBase
    BVC5_CompletionFn       pfnCompletion;
    void                   *pData;
    uint32_t                uiSyncFlags;
+   bool                    bSecure;
 } BVC5_JobBase;
 
 typedef struct BVC5_JobNull
@@ -229,6 +233,7 @@ typedef struct BVC5_JobRender
    uint32_t                uiStart[BVC5_MAX_RENDER_SUBJOBS];
    uint32_t                uiEnd[BVC5_MAX_RENDER_SUBJOBS];
    uint32_t                uiFlags;
+   uint32_t                uiEmptyTileMode;
 } BVC5_JobRender;
 
 typedef struct BVC5_JobUser
@@ -244,11 +249,6 @@ typedef struct BVC5_JobFenceWait
    BVC5_JobBase            sBase;
    int32_t                 iFence;
 } BVC5_JobFenceWait;
-
-typedef struct BVC5_JobFenceSignal
-{
-   BVC5_JobBase            sBase;
-} BVC5_JobFenceSignal;
 
 typedef struct BVC5_JobTFU
 {
@@ -333,6 +333,7 @@ typedef struct BVC5_OpenParameters
    bool  bNoQueueAhead;      /* Prevent queue ahead of render jobs           */
    bool  bResetOnStall;      /* Reset & recover when a h/w stall is detected */
    bool  bMemDumpOnStall;    /* Dump heap when a stall is detected            */
+   bool  bNoBurstSplitting;  /* Disable burst splitting in the wrapper? */
 } BVC5_OpenParameters;
 
 /**************************************************************************
@@ -341,8 +342,9 @@ Summary:
 ***************************************************************************/
 typedef struct BVC5_Callbacks
 {
-   void (*fpUsermodeHandler)(void *pVc5);          /* Issue a usermode callback   */
-   void (*fpCompletionHandler)(void *pVC5);        /* Issue a completion callback */
+   void (*fpUsermodeHandler)(void *pVc5);    /* Issue a usermode callback           */
+   void (*fpCompletionHandler)(void *pVC5);  /* Issue a completion callback         */
+   void (*fpSecureToggleHandler)(bool bEnter);  /* Transition to/from secure operation */
 } BVC5_Callbacks;
 
 /***************************************************************************
@@ -378,8 +380,10 @@ BERR_Code BVC5_Open(
    BVC5_Handle         *phVC5,        /* [out] Pointer to returned VC5 handle.  */
    BCHP_Handle          hChp,         /* [in] Chip handle.                      */
    BREG_Handle          hReg,         /* [in] Register access handle.           */
-   BMEM_Heap_Handle     hHeap,        /* [in] Memory allocation handle.         */
-   BMMA_Heap_Handle     hMMAHeap,     /* [in] Memory allocation handle.         */
+   BMEM_Heap_Handle     hHeap,        /* [in] Unsecure heap handles.            */
+   BMMA_Heap_Handle     hMMAHeap,     /* [in] Unsecure heap handles.            */
+   BMEM_Heap_Handle     hSecureHeap,  /* [in] Secure heap handles.              */
+   BMMA_Heap_Handle     hSecureMMAHeap, /* [in] Secure heap handles.              */
    BINT_Handle          bint,         /* [in] Interrupt handle.                 */
    BVC5_OpenParameters *sOpenParams,  /* [in] Options                           */
    BVC5_Callbacks      *sCallbacks    /* [in] Callback fn pointers              */
@@ -537,13 +541,6 @@ BERR_Code BVC5_BinRenderJob(
    const BVC5_JobRender       *pRender          /* [in]                       */
    );
 
-BERR_Code BVC5_FenceSignalJob(
-   BVC5_Handle                 hVC5,       /* [in] Handle to VC5 module. */
-   uint32_t                    uiClientId, /* [in]                       */
-   const BVC5_JobFenceSignal  *pSignal,    /* [in]                       */
-   int                        *pFence      /* [out]                      */
-   );
-
 BERR_Code BVC5_FenceWaitJob(
    BVC5_Handle                 hVC5,       /* [in] Handle to VC5 module. */
    uint32_t                    uiClientId, /* [in]                       */
@@ -595,6 +592,21 @@ BERR_Code BVC5_Query(
    BVC5_SchedDependencies     *pCompletedDeps,         /* [in]          */
    BVC5_SchedDependencies     *pFinalizedDeps,         /* [in]          */
    BVC5_QueryResponse         *pResponse               /* [out]         */
+   );
+
+BERR_Code BVC5_MakeFenceForJobs(
+   BVC5_Handle                   hVC5,             /* [in] */
+   uint32_t                      uiClientId,       /* [in] */
+   const BVC5_SchedDependencies *pCompletedDeps,   /* [in] */
+   const BVC5_SchedDependencies *pFinalizedDeps,   /* [in] */
+   bool                          bForceCreate,     /* [in] */
+   int                          *piFence           /* [out] */
+   );
+
+BERR_Code BVC5_MakeFenceForAnyNonFinalizedJob(
+   BVC5_Handle hVC5,       /* [in] */
+   uint32_t    uiClientId, /* [in] */
+   int        *piFence     /* [out] */
    );
 
 BERR_Code BVC5_FenceSignal(

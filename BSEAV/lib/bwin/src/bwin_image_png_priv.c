@@ -59,7 +59,7 @@ static void bwin_p_png_read(png_structp png_ptr, png_bytep destptr, png_size_t s
     BDBG_ASSERT(image->data->png_ptr == png_ptr);
 
     BDBG_MSG(("bwin_p_png_read %p %p %d %d", destptr, &image->buffer[image->pos],
-        size, image->pos));
+              (unsigned)size, image->pos));
     if (image->pos + (int)size > image->size) {
         BDBG_ERR(("read overflow"));
         size = image->size - image->pos;
@@ -294,7 +294,7 @@ bwin_result bwin_image_png_create_buffer(bwin_image_t image)
     if (!image->data->row_pointers) {
         goto error;
     }
-    BDBG_MSG(("image->data->row_pointers %p %d", image->data->row_pointers, image->settings.height * sizeof(png_bytep)));
+    BDBG_MSG(("image->data->row_pointers %p %d", (void*)image->data->row_pointers, (unsigned)(image->settings.height * sizeof(png_bytep))));
 
     /* allocate entire buffer at once */
     BDBG_ASSERT(!image->data->uncompressed_buffer);

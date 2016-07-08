@@ -1,0 +1,12 @@
+#add_signature -in_key=brcm_test_fsbl_key1.bin     -in_signature=brcm_test_fsbl_key1.bin.BCM7364_prod_key0-0.sign.1440653806     -out_endian=le -out=brcm_test_fsbl_key1_signed_le.bin
+#add_signature -in_key=brcm_test_fsbl_neg_0010.bin -in_signature=brcm_test_fsbl_neg_0010.bin.BCM7364_prod_key0-0.sign.1440653806 -out_endian=le -out=brcm_test_fsbl_neg_0010_signed_le.bin
+#add_signature -in_key=brcm_test_fsbl_neg_0011.bin -in_signature=brcm_test_fsbl_neg_0011.bin.BCM7364_prod_key0-0.sign.1440653806 -out_endian=le -out=brcm_test_fsbl_neg_0011_signed_le.bin
+#add_signature -in_key=brcm_test_fsbl_neg_0012.bin -in_signature=brcm_test_fsbl_neg_0012.bin.BCM7364_prod_key0-0.sign.1440653806 -out_endian=le -out=brcm_test_fsbl_neg_0012_signed_le.bin
+#add_signature -in_key=brcm_test_fsbl_neg_0013.bin -in_signature=brcm_test_fsbl_neg_0013.bin.BCM7364_prod_key0-0.sign.1440653806 -out_endian=le -out=brcm_test_fsbl_neg_0013_signed_le.bin
+#add_signature -in_key=brcm_test_fsbl_neg_0014.bin -in_signature=brcm_test_fsbl_neg_0014.bin.BCM7364_prod_key0-0.sign.1440653806 -out_endian=le -out=brcm_test_fsbl_neg_0014_signed_le.bin
+#add_signature -in_key=data_out/brcm_test_avd_key2.bin -in_signature=data_in/brcm_test_avd_key2.bin.BCM7439_prod_key0.sign.1441045218 -out_endian=le -out=data_out/brcm_test_avd_key2_signed_le.bin
+#add_signature -in_key=data_out/brcm_test_avd_key2.bin -in_signature=data_in/brcm_test_avd_key2.bin.BCM7439ZS_dev_key0.sign.1443823870 -out_endian=le -out=data_out/brcm_test_avd_key2_7439ZS_signed_le.bin
+#c_array -in=data_out/brcm_test_avd_key2_7439ZS_signed_le.bin -var=gKey2 -out=data_out/nexus_key2_array_7439ZS.c
+add_signature -in_key=brcm_test_avd_key2.bin -in_signature=data_in/brcm_test_avd_key2.bin.BCM7439ZS_dev_key0.sign.1446163012 -out_endian=le -out=brcm_test_avd_key2_7439ZS_signed_le.bin
+c_array -in=brcm_test_avd_key2_7439ZS_signed_le.bin -var=gKey2 -out=nexus_key2_array_7439ZS.c
+test_cmd

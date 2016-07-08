@@ -1,43 +1,40 @@
 /******************************************************************************
-* (c) 2015 Broadcom Corporation
-*
-* This program is the proprietary software of Broadcom Corporation and/or its
-* licensors, and may only be used, duplicated, modified or distributed pursuant
-* to the terms and conditions of a separate, written license agreement executed
-* between you and Broadcom (an "Authorized License").  Except as set forth in
-* an Authorized License, Broadcom grants no license (express or implied), right
-* to use, or waiver of any kind with respect to the Software, and Broadcom
-* expressly reserves all rights in and to the Software and all intellectual
-* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1. This program, including its structure, sequence and organization,
-*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-*    reasonable efforts to protect the confidentiality thereof, and to use
-*    this information only in connection with your use of Broadcom integrated
-*    circuit products.
-*
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-******************************************************************************/
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ ******************************************************************************/
 
 #include <sys/types.h>                  /* standard includes */
 #include <stdio.h>
@@ -1099,6 +1096,88 @@ DRM_Prdy_http_client_license_post_soap (char* url, char* chall, uint8_t non_quie
     *offset = 0;
 
 	DRM_Prdy_http_engine_close(&http);
+    DRM_Prdy_http_engine_headers_cleanup(&http);
+
+    return 0; //(bdrm_http_status_ok);
+}
+
+/* drm license post function; feeds a SOAP challenge to a server with user input url, parses
+   the response looking for the license section, and passes it back to
+   the drm engine for processing.
+*/
+int32_t
+DRM_Prdy_http_client_license_post_soap_url (char* url, char* chall, uint8_t non_quiet,
+                               uint32_t app_sec, unsigned char** resp,
+                               uint32_t *offset, uint32_t* out_resp_len,
+                               char *hdr_action_value, char *hdr_value_host_ct
+                               )
+{
+    DRM_Prdy_http_engine http;
+    int32_t post_ret;
+
+    int32_t len = 0;
+    /*int32_t licresp_len = 0;*/
+    int32_t resp_len = HTTP_XMLRPC_BUFSIZE;
+    /*char* licresp_opened = NULL, *licresp_closed = NULL;*/
+
+    BSTD_UNUSED(non_quiet);
+    BSTD_UNUSED(app_sec);
+    BDBG_ASSERT(resp != NULL); BDBG_ASSERT(out_resp_len != NULL);BDBG_ASSERT(hdr_action_value != NULL);BDBG_ASSERT(hdr_value_host_ct != NULL);
+
+    if (*resp == NULL) return -1; //(bdrm_http_status_failed_internal);
+
+    /* append drm specific tokens */
+    #if 0
+    BDBG_MSG(("\nposting to : %s", url));
+    #endif
+    #if 0
+    len += sprintf(buf, DRM_POST_PREFIX, app_sec, non_quiet);
+    #endif
+    len += sprintf((char *)*resp + len, "%s", chall);
+   // printf("%s - %d get the len of the challenge %d\n",__FUNCTION__,__LINE__,len);
+
+    /* initialize http engine and post */
+    DRM_Prdy_http_engine_init(&http);
+   // printf("%s - http engine init success. \n",__FUNCTION__);
+    if ((post_ret = DRM_Prdy_http_client_post(&http, url)) != 0) {
+        BDBG_WRN(("DRM_Prdy_http_license_post failed on POST"));
+        return (post_ret);
+    }
+   // printf("%s - DRM_Prdy_http_client_post success. \n",__FUNCTION__);
+
+
+    /* set headers, read response */
+    DRM_Prdy_http_engine_set_headers(&http, HDR_TAG_SOAP_ACTION, hdr_action_value);
+    DRM_Prdy_http_engine_set_headers(&http, HDR_TAG_CONTENT_TYPE, HDR_VALUE_XML_UTF8_CT);
+    DRM_Prdy_http_engine_set_headers(&http, HDR_TAG_HOST, hdr_value_host_ct);
+
+    DRM_Prdy_http_engine_set_headers(&http, "Pragma", "no-cache");
+    DRM_Prdy_http_engine_set_headers(&http, "Accept", "*/*");
+    DRM_Prdy_http_engine_set_headers(&http, "Accept-Language", "en-US");
+    DRM_Prdy_http_engine_set_headers(&http, "User-Agent", "Mozilla/5.0 (compatible; MSIE 9.0; Windows NT 6.1; WOW64; Trident/5.0)");
+
+    DRM_Prdy_http_engine_set_header(&http,  HDR_TAG_CONTENT_LENGTH, len);
+    DRM_Prdy_http_engine_write(&http, (const char *)*resp, len);
+    DRM_Prdy_http_engine_flush(&http);
+    if (DRM_Prdy_http_client_read_responsehdr(&http)) {
+        BDBG_WRN(("failed on readResponseHeader"));
+        return -1; //(bdrm_http_status_failed_response_read);
+    }
+    #if 0
+    BDBG_MSG(("HTTP DEBUG :: len <%d>, buf<%s>", len, buf));
+    #endif
+
+    /* look for a license */
+    bzero(*resp, resp_len); len = DRM_Prdy_http_engine_read(&http, (char *)*resp, resp_len);
+    #if 0
+    BDBG_MSG(("HTTP :: resp_len <%d>, buf<%s>", resp_len, buf));
+    #endif
+
+
+
+    *out_resp_len = len;
+    *offset = 0;
+
     DRM_Prdy_http_engine_headers_cleanup(&http);
 
     return 0; //(bdrm_http_status_ok);

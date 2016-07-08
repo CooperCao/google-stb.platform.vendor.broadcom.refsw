@@ -297,7 +297,7 @@ NEXUS_SurfaceHandle NEXUS_Surface_Create(const NEXUS_SurfaceCreateSettings *pCre
         surface->plane.ulBufSize = surface->plane.ulHeight * surface->plane.ulPitch;
     }
     if ((uint64_t)surface->plane.ulHeight * surface->plane.ulPitch > surface->plane.ulBufSize) {
-        BDBG_ERR(("surface too large: pitch %u x height %u", surface->plane.ulPitch, surface->plane.ulHeight));
+        BDBG_ERR(("surface too large: pitch %u x height %u", (unsigned)surface->plane.ulPitch, (unsigned)surface->plane.ulHeight));
         goto error;
     }
 
@@ -333,11 +333,11 @@ NEXUS_SurfaceHandle NEXUS_Surface_Create(const NEXUS_SurfaceCreateSettings *pCre
             rc = ((heapStatus.memoryType & NEXUS_MEMORY_TYPE_DYNAMIC)==NEXUS_MEMORY_TYPE_DYNAMIC) ?
                BERR_OUT_OF_DEVICE_MEMORY : BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
             if (!((heapStatus.memoryType & NEXUS_MEMORY_TYPE_DYNAMIC)==NEXUS_MEMORY_TYPE_DYNAMIC)) {
-               BDBG_ERR(("unable to allocate surface size=%d alignment=2^%d", sz, pCreateSettings->alignment));
+               BDBG_ERR(("unable to allocate surface size=%u alignment=2^%d", (unsigned)sz, pCreateSettings->alignment));
             }
             goto error;
         }
-        BDBG_MSG(("allocated surface mem=%p size=%d alignment=2^%d", (void *)surface->plane.hPixels, sz, pCreateSettings->alignment));
+        BDBG_MSG(("allocated surface mem=%p size=%d alignment=2^%d", (void *)surface->plane.hPixels, (unsigned)sz, pCreateSettings->alignment));
     }
 
     if (BPXL_IS_PALETTE_FORMAT(pixel_format)) {
@@ -570,7 +570,7 @@ NEXUS_StripedSurfaceHandle NEXUS_StripedSurface_Create( const NEXUS_StripedSurfa
             BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
             goto err_nochroma;
         }
-        BDBG_MSG(("lumaBuffer=%p, chromaBuffer=%p", picCfg.lumaBuffer, picCfg.chromaBuffer));
+        BDBG_MSG(("lumaBuffer=%p, chromaBuffer=%p", (void *)picCfg.lumaBuffer, (void *)picCfg.chromaBuffer));
         pSettings = &picCfg;
     }
 

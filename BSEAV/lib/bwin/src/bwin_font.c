@@ -1,43 +1,39 @@
 /******************************************************************************
- * (c) 2004-2014 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 
 #include "bwin.h"
@@ -56,11 +52,36 @@ static bwin_font_glyph *bwin_p_get_glyph(bwin_font_t font, bwin_char ch);
 int bwin_save_rendered_font(bwin_font_t font, const char *filename)
 {
     int i;
+    unsigned dummy = 0;
     FILE *f = fopen(filename, "wb+");
     if (!f) return -1;
-    fwrite(font, sizeof(*font), 1, f);
-    fwrite(font->glyph_cache, sizeof(bwin_font_glyph) * font->cache_size, 1, f);
+
+    fwrite(&(font->version), sizeof(font->version), 1, f);
+    fwrite(&(font->refcnt), sizeof(font->refcnt), 1, f);
+    fwrite(&dummy, sizeof(dummy), 1, f);
+    fwrite(&(font->size), sizeof(font->size), 1, f);
+    fwrite(&(font->antialiased), sizeof(font->antialiased), 1, f);
+    fwrite(&(font->height), sizeof(font->height), 1, f);
+    fwrite(&dummy, sizeof(dummy), 1, f);
+    fwrite(&(font->ascender), sizeof(font->ascender), 1, f);
+    fwrite(&(font->descender), sizeof(font->descender), 1, f);
+    fwrite(&(font->cache_size), sizeof(font->cache_size), 1, f);
+    fwrite(&(font->cache_maxsize), sizeof(font->cache_maxsize), 1, f);
+    fwrite(&dummy, sizeof(dummy), 1, f);
+    fwrite(&dummy, sizeof(dummy), 1, f);
+    for (i=0;i<font->cache_size;i++) {
+        bwin_font_glyph *glyph = &font->glyph_cache[i];
+        fwrite(&(glyph->top), sizeof(glyph->top), 1, f);
+        fwrite(&(glyph->left), sizeof(glyph->left), 1, f);
+        fwrite(&(glyph->width), sizeof(glyph->width), 1, f);
+        fwrite(&(glyph->height), sizeof(glyph->height), 1, f);
+        fwrite(&(glyph->pitch), sizeof(glyph->pitch), 1, f);
+        fwrite(&(glyph->advance), sizeof(glyph->advance), 1, f);
+        fwrite(&dummy, sizeof(dummy), 1, f);
+    }
+
     fwrite(font->char_map, sizeof(bwin_char) * font->cache_size, 1, f);
+
     for (i=0;i<font->cache_size;i++) {
         bwin_font_glyph *glyph = &font->glyph_cache[i];
         int s = glyph->pitch * glyph->height;
@@ -101,19 +122,68 @@ bwin_font_t bwin_open_rendered_font(bwin_engine_t win, bwin_readfn_t readfn, voi
 {
     int i, s;
     bwin_font_t font;
+    unsigned dummy;
 
     font = malloc(sizeof(*font));
     if (!font) {
         return NULL;
     }
 
-    if (readfn(font, sizeof(*font), 1, context) != 1) {
-        BDBG_ERR(("Font read error(1)"));
+    if (readfn(&(font->version), sizeof(font->version), 1, context) != 1) {
+        BDBG_ERR(("Font read error(2) version"));
+        goto error;
+    }
+    if (font->version != BWIN_FONT_VERSION) {
+        BDBG_ERR(("Incorrect font version %d. Code supports %d", font->version, BWIN_FONT_VERSION));
         goto error;
     }
 
-    if (font->version != BWIN_FONT_VERSION) {
-        BDBG_ERR(("Incorrect font version %d. Code supports %d", font->version, BWIN_FONT_VERSION));
+    if (readfn(&(font->refcnt), sizeof(font->refcnt), 1, context) != 1) {
+        BDBG_ERR(("Font read error(2) refcnt"));
+        goto error;
+    }
+    if (readfn(&dummy, sizeof(dummy), 1, context) != 1) {
+        BDBG_ERR(("Font read error(2) size"));
+        goto error;
+    }
+    if (readfn(&(font->size), sizeof(font->size), 1, context) != 1) {
+        BDBG_ERR(("Font read error(2) size"));
+        goto error;
+    }
+    if (readfn(&(font->antialiased), sizeof(font->antialiased), 1, context) != 1) {
+        BDBG_ERR(("Font read error(2) antialiased"));
+        goto error;
+    }
+    if (readfn(&(font->height), sizeof(font->height), 1, context) != 1) {
+        BDBG_ERR(("Font read error(2) height"));
+        goto error;
+    }
+    if (readfn(&dummy, sizeof(dummy), 1, context) != 1) {
+        BDBG_ERR(("Font read error(2) size"));
+        goto error;
+    }
+    if (readfn(&(font->ascender), sizeof(font->ascender), 1, context) != 1) {
+        BDBG_ERR(("Font read error(2) ascender"));
+        goto error;
+    }
+    if (readfn(&(font->descender), sizeof(font->descender), 1, context) != 1) {
+        BDBG_ERR(("Font read error(2) descender"));
+        goto error;
+    }
+    if (readfn(&(font->cache_size), sizeof(font->cache_size), 1, context) != 1) {
+        BDBG_ERR(("Font read error(2) cache_size"));
+        goto error;
+    }
+    if (readfn(&(font->cache_maxsize), sizeof(font->cache_maxsize), 1, context) != 1) {
+        BDBG_ERR(("Font read error(2) cache_maxsize"));
+        goto error;
+    }
+    if (readfn(&dummy, sizeof(dummy), 1, context) != 1) {
+        BDBG_ERR(("Font read error(2) size"));
+        goto error;
+    }
+    if (readfn(&dummy, sizeof(dummy), 1, context) != 1) {
+        BDBG_ERR(("Font read error(2) size"));
         goto error;
     }
 
@@ -124,9 +194,36 @@ bwin_font_t bwin_open_rendered_font(bwin_engine_t win, bwin_readfn_t readfn, voi
 
     s = sizeof(bwin_font_glyph) * font->cache_size;
     font->glyph_cache = (bwin_font_glyph*)malloc(s);
-    if (readfn(font->glyph_cache, s, 1, context) != 1) {
-        BDBG_ERR(("Font read error(2)"));
-        goto error;
+    for (i=0;i<font->cache_size;i++) {
+        bwin_font_glyph *glyph = &font->glyph_cache[i];
+        if (readfn(&(glyph->top), sizeof(glyph->top), 1, context) != 1) {
+            BDBG_ERR(("Font read error(2) top"));
+            goto error;
+        }
+        if (readfn(&(glyph->left), sizeof(glyph->left), 1, context) != 1) {
+            BDBG_ERR(("Font read error(2) left"));
+            goto error;
+        }
+        if (readfn(&(glyph->width), sizeof(glyph->width), 1, context) != 1) {
+            BDBG_ERR(("Font read error(2) width"));
+            goto error;
+        }
+        if (readfn(&(glyph->height), sizeof(glyph->height), 1, context) != 1) {
+            BDBG_ERR(("Font read error(2) height"));
+            goto error;
+        }
+        if (readfn(&(glyph->pitch), sizeof(glyph->pitch), 1, context) != 1) {
+            BDBG_ERR(("Font read error(2) pitch"));
+            goto error;
+        }
+        if (readfn(&(glyph->advance), sizeof(glyph->advance), 1, context) != 1) {
+            BDBG_ERR(("Font read error(2) advance"));
+            goto error;
+        }
+        if (readfn(&dummy, sizeof(dummy), 1, context) != 1) {
+            BDBG_ERR(("Font read error(2) size"));
+            goto error;
+        }
     }
 
     s = sizeof(bwin_char) * font->cache_size;
@@ -160,7 +257,7 @@ bwin_font_t bwin_open_rendered_font(bwin_engine_t win, bwin_readfn_t readfn, voi
     return font;
 
 error:
-    BDBG_ERR(("Unable to load font"));
+    BDBG_ERR(("%s Unable to load font", __FUNCTION__));
     free(font);
     return NULL;
 }
@@ -306,7 +403,7 @@ bwin_font_t bwin_open_font(bwin_engine_t win, const char *filename,
     return bwin_p_open_freetype_font(win, (void*)filename, size, antialiased, 0);
 #endif
 
-    if (!font) { BDBG_ERR(("unable to load font: %s", filename)); }
+    if (!font) { BDBG_ERR(("%s unable to load font: %s", __FUNCTION__, filename)); }
 
     return font;
 }
@@ -327,7 +424,7 @@ bwin_font_t bwin_open_font_italic(bwin_engine_t win, const char *filename,
     return bwin_p_open_freetype_font_italic(win, (void*)filename, size, antialiased, 0);
 #endif
 
-    if (!font) { BDBG_ERR(("unable to load font: %s", filename)); }
+    if (!font) { BDBG_ERR(("%s unable to load font: %s", __FUNCTION__, filename)); }
 
     return font;
 }
@@ -346,7 +443,7 @@ bwin_font_t bwin_open_font_generic(bwin_engine_t win, bwin_font_settings *settin
     return bwin_p_open_freetype_font(win, settings->context, settings->size, settings->antialiased, settings->buf_len);
 #endif
 
-    BDBG_ERR(("unable to load font"));
+    BDBG_ERR(("%s unable to load font", __FUNCTION__));
 
     return NULL;
 }
@@ -459,7 +556,7 @@ unsigned short antialias_argb1555_pixels(unsigned short bg_pixel, unsigned short
     return COMPOSE_ARGB1555(a1,r1,g1,b1);
 }
 
-unsigned long antialias_argb8888_pixels(unsigned long bg_pixel, unsigned long fg_pixel,
+unsigned int antialias_argb8888_pixels(unsigned int bg_pixel, unsigned int fg_pixel,
     int alpha)
 {
     int a1,r1,g1,b1;
@@ -483,7 +580,7 @@ unsigned long antialias_argb8888_pixels(unsigned long bg_pixel, unsigned long fg
     return COMPOSE_ARGB8888(a1,r1,g1,b1);
 }
 
-unsigned long antialias_palette8_pixels(unsigned long bg_pixel, unsigned long fg_pixel,
+unsigned int antialias_palette8_pixels(unsigned int bg_pixel, unsigned int fg_pixel,
     int alpha)
 {
 #if 1
@@ -550,11 +647,11 @@ void bwin_p_fb_draw_font_bitmap(bwin_framebuffer_t fb, bwin_font_t font, bwin_fo
                     b += 2;
                     break;
                 case bwin_pixel_format_a8_r8_g8_b8:
-                    *(unsigned long *)b = antialias_argb8888_pixels(*(unsigned long *)b, color, src[j]);
+                    *(unsigned int *)b = antialias_argb8888_pixels(*(unsigned int *)b, color, src[j]);
                     b += 4;
                     break;
                 case bwin_pixel_format_palette8:
-                    *(unsigned char *)b = antialias_palette8_pixels(*(unsigned long *)b, color, src[j]);
+                    *(unsigned char *)b = antialias_palette8_pixels(*(unsigned int *)b, color, src[j]);
                     b += 1;
                     break;
                 }
@@ -585,7 +682,7 @@ void bwin_p_fb_draw_font_bitmap(bwin_framebuffer_t fb, bwin_font_t font, bwin_fo
                     break;
                 case bwin_pixel_format_a8_r8_g8_b8:
                     if (src[j] >= 128)
-                        *(unsigned long *)b = color;
+                        *(unsigned int *)b = color;
                     b += 4;
                     break;
                 case bwin_pixel_format_palette8:
@@ -625,7 +722,7 @@ void bwin_p_fb_draw_font_bitmap(bwin_framebuffer_t fb, bwin_font_t font, bwin_fo
                     break;
                 case bwin_pixel_format_a8_r8_g8_b8:
                     if (isset)
-                        *(unsigned long *)b = color;
+                        *(unsigned int *)b = color;
                     b += 4;
                     break;
                 case bwin_pixel_format_palette8:

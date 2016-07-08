@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2012 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,8 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  *****************************************************************************/
 #include "nexus_platform.h"
 #include <stdio.h>
@@ -143,15 +135,24 @@ typedef struct wave_header
     unsigned long dataLen;      /* length of data */
 }wave_header;
 
+typedef struct dataCallbackParameters
+{
+    NEXUS_AudioPlaybackHandle playback;
+    BKNI_EventHandle event;
+} dataCallbackParameters;
+
 BDBG_MODULE(audio_playback);
 
 static void data_callback(void *pParam1, int param2)
 {
+    dataCallbackParameters *dataCBParams;
+
+    dataCBParams = (dataCallbackParameters *)pParam1;
     /*
-    printf("Data callback - channel 0x%08x\n", (unsigned)pParam1);
+    printf("Data callback - channel 0x%08x\n", (unsigned)dataCBParams->playback);
     */
-    pParam1=pParam1;    /*unused*/
-    BKNI_SetEvent((BKNI_EventHandle)param2);
+
+    BKNI_SetEvent(dataCBParams->event);
 }
 
 int main(int argc, char **argv)
@@ -163,6 +164,7 @@ int main(int argc, char **argv)
     NEXUS_AudioOutputSettings outputSettings;
     NEXUS_AudioPlaybackHandle handle;
     NEXUS_AudioPlaybackStartSettings settings;
+    dataCallbackParameters dataCBParams;
 #if NEXUS_HAS_HDMI_OUTPUT
     NEXUS_DisplayHandle display=NULL;
     NEXUS_DisplaySettings displaySettings;
@@ -281,8 +283,9 @@ int main(int argc, char **argv)
 
     settings.signedData = true;
     settings.dataCallback.callback = data_callback;
-    settings.dataCallback.context = handle;
-    settings.dataCallback.param = (int)event;
+    dataCBParams.event = event;
+    dataCBParams.playback = handle;
+    settings.dataCallback.context = &dataCBParams;
 
     /* If we have a wav file, get the sample rate from it */
     if ( pFile )
@@ -694,4 +697,3 @@ int main(void)
     return 0;
 }
 #endif
-

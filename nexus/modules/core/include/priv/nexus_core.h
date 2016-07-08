@@ -296,6 +296,7 @@ NEXUS_ColorRange  NEXUS_P_ColorRange_FromMagnum_isrsafe(BAVC_ColorRange colorRan
 BAVC_ColorRange NEXUS_P_ColorRange_ToMagnum_isrsafe(NEXUS_ColorRange colorRange);
 BAVC_HDMI_BitsPerPixel NEXUS_P_HdmiColorDepth_ToMagnum_isrsafe(NEXUS_HdmiColorDepth colorDepth);
 BAVC_HDMI_DRM_EOTF NEXUS_P_VideoEotf_ToMagnum_isrsafe(NEXUS_VideoEotf eotf);
+NEXUS_VideoEotf NEXUS_P_VideoEotf_FromMagnum_isrsafe(BAVC_HDMI_DRM_EOTF eotf);
 
 NEXUS_VideoFrameRate NEXUS_P_FrameRate_FromMagnum_isrsafe(BAVC_FrameRateCode magnumFramerate);
 NEXUS_Error NEXUS_P_FrameRate_ToMagnum_isrsafe(NEXUS_VideoFrameRate frameRate, BAVC_FrameRateCode *pMagnumFramerate);
@@ -349,6 +350,21 @@ void NEXUS_P_VideoFormat_SetInfo(
     NEXUS_VideoFormat customVideoFormat,
     const NEXUS_VideoFormatInfo *pVideoFmtInfo    /* [out] */
     );
+
+
+NEXUS_VideoEotf NEXUS_P_TransferCharacteristicsToEotf_isrsafe(
+    NEXUS_TransferCharacteristics tc,
+    NEXUS_TransferCharacteristics preferredTc);
+void NEXUS_P_ContentLightLevel_FromMagnum_isrsafe(
+    NEXUS_ContentLightLevel * pCll,
+    uint32_t ulMaxContentLight,
+    uint32_t ulAvgContentLight);
+void NEXUS_P_MasteringDisplayColorVolume_FromMagnum_isrsafe(
+    NEXUS_MasteringDisplayColorVolume * pMdcv,
+    const BAVC_Point * pstDisplayPrimaries,
+    const BAVC_Point * pstWhitePoint,
+    uint32_t ulMaxDispMasteringLuma,
+    uint32_t ulMinDispMasteringLuma);
 
 /***************************************************************************
 Summary:
@@ -431,6 +447,7 @@ bool NEXUS_P_CpuAccessibleHeap(
 NEXUS_Error NEXUS_Heap_GetStatus_priv( NEXUS_HeapHandle heap, NEXUS_MemoryStatus *pStatus );
 NEXUS_Error NEXUS_Heap_AddRegion_priv(NEXUS_HeapHandle heap, NEXUS_Addr base, size_t size);
 NEXUS_Error NEXUS_Heap_RemoveRegion_priv(NEXUS_HeapHandle heap, NEXUS_Addr base, size_t size);
+NEXUS_Error NEXUS_Heap_GetStatus_driver_priv( NEXUS_HeapHandle heap, NEXUS_MemoryStatus *pStatus );
 
 typedef struct NEXUS_MemaoryRegion {
     NEXUS_Addr base;
@@ -498,7 +515,7 @@ NEXUS_ModulePriority NEXUS_AdjustModulePriority(
     const NEXUS_CommonModuleSettings *pSettings
     );
 
-void NEXUS_VideoFormat_GetInfo_priv(NEXUS_VideoFormat videoFormat, NEXUS_VideoFormatInfo *pInfo);
+void NEXUS_VideoFormat_GetInfo_isrsafe(NEXUS_VideoFormat videoFormat, NEXUS_VideoFormatInfo *pInfo);
 
 NEXUS_Error NEXUS_Core_HeapMemcIndex_isrsafe(unsigned heapIndex, unsigned *pMemcIndex);
 

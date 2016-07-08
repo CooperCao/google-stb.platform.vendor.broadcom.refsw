@@ -1,23 +1,41 @@
-/***************************************************************************
- *     Copyright (c) 2003-2012, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ *  Except as expressly set forth in the Authorized License,
  *
- * Module Description:
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * Revision History:
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- *
- ***************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+
+ ******************************************************************************/
 #ifndef BHDR_HDCP_H__
 #define BHDR_HDCP_H__
 
@@ -234,6 +252,23 @@ void BHDR_HDCP_LoadRepeaterKsvFifo(
 
 
 #if BHDR_CONFIG_HDCP2X_SUPPORT
+/**************************************************************************
+Summary:
+	Update Hdcp2.x RxCaps
+
+Description:
+	This function will update the HDCP2.x RxCaps in the HW
+
+Input:
+	hHDR - HDMI Rx Handle
+	version - hdcp version per the HDCP spec
+	rxCapsMask - RxCaps_MASK define in HDCP spec
+	repeater - identify as Repeater or Receiver
+
+Returns:
+	none
+
+**************************************************************************/
 BERR_Code BHDR_HDCP_SetHdcp2xRxCaps(
        const BHDR_Handle hHDR,
        const uint8_t version,
@@ -241,10 +276,97 @@ BERR_Code BHDR_HDCP_SetHdcp2xRxCaps(
        const uint8_t repeater
 );
 
+
+/**************************************************************************
+Summary:
+	Enable/Disable Serial Key RAM
+
+Description:
+	This function will enable/disable Serial Key RAM which is needed based on the current
+	HDCP version being authenticated
+
+Input:
+	hHDR - HDMI Rx Handle
+	enable - true to enable Serial Key RAM. Otherwise, disable
+
+Returns:
+	none
+
+**************************************************************************/
 BERR_Code BHDR_HDCP_EnableSerialKeyRam(
 	const BHDR_Handle hHDR,
 	const bool enable
 );
+
+
+/**************************************************************************
+Summary:
+	Get HDCP2.x authentication status
+
+Description:
+	This function will retrieve the current HDCP2.x authentication status
+
+Input:
+	hHDR - HDMI Rx Handle
+	bEncrypted - true if HDCP2.x is currently authenticated and encryption is anbled
+
+Returns:
+	none
+
+**************************************************************************/
+BERR_Code BHDR_HDCP_GetHdcp2xEncryptionStatus(
+	const BHDR_Handle hHDR,
+	bool *bEncrypted
+);
+
+
+/**************************************************************************
+Summary:
+	Install HPD disconnect event callback
+
+Description:
+	This function allows the application to install a callback to be notify when the HPD
+	signal is pull/held LOW
+
+Input:
+	hHDR - HDMI Rx Handle
+	pfCallback_isr - callback function for notification
+	pvParm1 - the first argument (void *) passed to the callback function
+	iParm2 - the second argument(int) passed to the callback function
+
+Returns:
+	none
+
+**************************************************************************/
+BERR_Code BHDR_HDCP_InstallDisconnectNotifyCallback(
+	const BHDR_Handle hHDR,
+	const BHDR_CallbackFunc pfCallback_isr, /* [in] cb for notification */
+	void *pvParm1,  /* [in] the first argument (void *) passed to the callback function */
+	int iParm2      /* [in] the second argument(int) passed to the callback function */
+);
+
+
+/**************************************************************************
+Summary:
+	UnInstall HPD disconnect event callback
+
+Description:
+	This function uninstall the HDCP disconnect event callback registered/installed by
+	the application using BHDR_HDCP_InstallDisconnectNotifyCallback
+
+Input:
+	hHDR - HDMI Rx Handle
+	pfCallback_isr - callback function need to uninstall
+
+Returns:
+	none
+
+**************************************************************************/
+BERR_Code BHDR_HDCP_UnInstallDisconnectNotifyCallback(
+	const BHDR_Handle hHDR,
+	const BHDR_CallbackFunc pfCallback_isr /* [in] cb for notification  */
+);
+
 
 #endif
 

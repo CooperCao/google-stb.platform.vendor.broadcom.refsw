@@ -81,6 +81,11 @@ NEXUS_Error NEXUS_DisplayModule_SetUserDataEncodeMode_priv(
     BXUDlib_Settings *userDataEncodeSettings,
     NEXUS_VideoWindowHandle udWindow
     );
+NEXUS_Error
+NEXUS_DisplayModule_SetBarDataEncodeMode_priv(
+    NEXUS_DisplayHandle display,
+    bool encodeBarData
+);
 #ifdef NEXUS_NUM_DSP_VIDEO_ENCODERS
 typedef struct NEXUS_DisplayCapturedImage {
     BMMA_Block_Handle   hImage;

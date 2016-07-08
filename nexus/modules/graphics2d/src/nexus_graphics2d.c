@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2014 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,22 +35,15 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
  **************************************************************************/
 #include "nexus_graphics2d_module.h"
 #include "nexus_graphics2d_impl.h"
 #include "nexus_power_management.h"
 #include "nexus_client_resources.h"
 #include "priv/nexus_surface_priv.h"
+#if NEXUS_HAS_SAGE
+#include "priv/nexus_sage_priv.h"
+#endif
 
 BDBG_MODULE(nexus_graphics2d);
 BTRC_MODULE(nexus_graphics2d_blit, ENABLE);
@@ -65,6 +58,7 @@ static struct NEXUS_Graphics2DEngine g_grcInstance[NEXUS_NUM_2D_ENGINES];
 static BERR_Code NEXUS_Graphics2D_PacketCallback_isr( BGRC_Handle grc, void *data );
 static void NEXUS_Graphics2D_P_PacketAdvance( void *context );
 static void nexus_graphics2d_p_checkpoint_watchdog(void *context);
+static void nexus_p_check_and_switch_secure(NEXUS_Graphics2DHandle gfx);
 
 /****************************************
 * Module functions
@@ -80,32 +74,35 @@ static void NEXUS_Graphics2DModule_P_Print(void)
             NEXUS_Graphics2DHandle gfx;
             BDBG_LOG(("Graphics2D M2MC%d:", i));
             for (gfx = BLST_S_FIRST(&engine->contexts);gfx; gfx = BLST_S_NEXT(gfx, link)) {
-                BDBG_LOG(("%p: packetspace %d, checkpoint %d, packet write completes %d, function blits %d, FIFO:%u..%u(%u)", (void *)gfx, gfx->packetSpaceAvailableCount, gfx->checkpointCount,
-                    gfx->packetWriteCompleteCount, gfx->blitCount, gfx->surfaceFifoRead, gfx->surfaceFifoWrite,gfx->openSettings.maxOperations));
+                BDBG_LOG(("%p: packetspace %d, checkpoint %d, packet write completes %d, function blits %d, FIFO:%u..%u(%u), %s", (void *)gfx, gfx->packetSpaceAvailableCount, gfx->checkpointCount,
+                    gfx->packetWriteCompleteCount, gfx->blitCount, gfx->surfaceFifoRead, gfx->surfaceFifoWrite,gfx->openSettings.maxOperations,
+                    gfx->openSettings.secure?"secure":"unsecure"));
             }
         }
     }
 #endif
 }
 
+void NEXUS_Graphics2DModule_GetDefaultInternalSettings(NEXUS_Graphics2DModuleInternalSettings *pSettings)
+{
+    BKNI_Memset(pSettings, 0, sizeof(*pSettings));
+    return;
+}
+
 void NEXUS_Graphics2DModule_GetDefaultSettings(NEXUS_Graphics2DModuleSettings *pSettings)
 {
     unsigned i;
-    BKNI_Memset(pSettings, 0, sizeof(*pSettings));
     for (i=0;i<NEXUS_MAX_GRAPHICS2D_CORES;i++) {
         pSettings->core[i].hwFifoSize = 128*1024;
     }
 }
 
-NEXUS_ModuleHandle NEXUS_Graphics2DModule_Init(const NEXUS_Graphics2DModuleSettings *pSettings)
+NEXUS_ModuleHandle NEXUS_Graphics2DModule_Init(const NEXUS_Graphics2DModuleInternalSettings *pModuleSettings, const NEXUS_Graphics2DModuleSettings *pSettings)
 {
     NEXUS_ModuleSettings moduleSettings;
     BDBG_ASSERT(!g_NEXUS_graphics2DModule);
 
-    if (!pSettings) {
-        BDBG_ERR(("Graphics2D requires Surface handle. Cannot Init with NULL."));
-        return NULL;
-    }
+    BDBG_ASSERT(pSettings);
 
     /* init global module handle */
     NEXUS_Module_GetDefaultSettings(&moduleSettings);
@@ -119,6 +116,7 @@ NEXUS_ModuleHandle NEXUS_Graphics2DModule_Init(const NEXUS_Graphics2DModuleSetti
 
     BKNI_Memset(g_grcInstance, 0, sizeof(g_grcInstance));
     g_NEXUS_graphics2DData.settings = *pSettings;
+    g_NEXUS_graphics2DData.moduleSettings = *pModuleSettings;
 
     return g_NEXUS_graphics2DModule;
 }
@@ -237,7 +235,6 @@ NEXUS_Graphics2DHandle NEXUS_Graphics2D_Open(unsigned index, const NEXUS_Graphic
         index = 0;
 #endif
     }
-
     if (index >= NEXUS_NUM_2D_ENGINES) {
         BERR_TRACE(NEXUS_INVALID_PARAMETER);
         return NULL;
@@ -285,6 +282,7 @@ NEXUS_Graphics2DHandle NEXUS_Graphics2D_Open(unsigned index, const NEXUS_Graphic
         if (rc) { rc = BERR_TRACE(rc); goto error; }
     }
     BLST_S_INSERT_HEAD(&engine->contexts, gfx, link);
+    gfx->engine = engine;
     gfx->grc = engine->grc;
 
     /* The nexus packet API requires that BM2MC_PACKET_PixelFormat and NEXUS_PixelFormat must match.
@@ -314,6 +312,7 @@ NEXUS_Graphics2DHandle NEXUS_Graphics2D_Open(unsigned index, const NEXUS_Graphic
     packetContextSettings.packet_buffer_size = pSettings->packetFifoSize;
     packetContextSettings.packet_buffer_store = pSettings->packetFifoThreshold;
     packetContextSettings.private_data = gfx;
+    packetContextSettings.secure = pSettings->secure;
     heap = NEXUS_P_DefaultHeap(pSettings->boundsHeap, NEXUS_DefaultHeapType_eBounds);
     if (heap) {
         NEXUS_MemoryStatus status;
@@ -356,9 +355,9 @@ NEXUS_Error NEXUS_Graphics2D_P_LockPlaneAndPalette(NEXUS_Graphics2DHandle gfx, N
     }
     if(!gfx->openSettings.compatibleWithSurfaceCompaction) {
         int rc;
-        NEXUS_Module_Lock(g_NEXUS_graphics2DData.settings.surface);
+        NEXUS_Module_Lock(g_NEXUS_graphics2DData.moduleSettings.surface);
         rc = NEXUS_Surface_InitPlaneAndPaletteOffset_priv(surface, pPlane, pPaletteOffset);
-        NEXUS_Module_Unlock(g_NEXUS_graphics2DData.settings.surface);
+        NEXUS_Module_Unlock(g_NEXUS_graphics2DData.moduleSettings.surface);
         return rc;
     }
     for(;;) {
@@ -397,13 +396,13 @@ static void NEXUS_Graphics2D_P_UnlockPlaneAndPalette(NEXUS_Graphics2DHandle gfx)
 
     BDBG_ASSERT(gfx->surfaceFifoRead <= gfx->surfaceFifoWrite);
     BDBG_ASSERT(gfx->surfaceFifoCheckpoint <= gfx->surfaceFifoWrite);
-    NEXUS_Module_Lock(g_NEXUS_graphics2DData.settings.surface);
+    NEXUS_Module_Lock(g_NEXUS_graphics2DData.moduleSettings.surface);
     checkpoint = gfx->surfaceFifoCheckpoint;
     for(read=gfx->surfaceFifoRead;read<checkpoint;read++) {
         NEXUS_SurfaceHandle surface = gfx->surfaceFifo[read];
         NEXUS_Surface_UnlockPlaneAndPalette_priv(surface);
     }
-    NEXUS_Module_Unlock(g_NEXUS_graphics2DData.settings.surface);
+    NEXUS_Module_Unlock(g_NEXUS_graphics2DData.moduleSettings.surface);
     for(read=gfx->surfaceFifoRead;read<checkpoint;read++) {
         NEXUS_SurfaceHandle surface = gfx->surfaceFifo[read];
         NEXUS_OBJECT_RELEASE(gfx, NEXUS_Surface, surface);
@@ -552,6 +551,7 @@ NEXUS_Error NEXUS_Graphics2D_Fill(NEXUS_Graphics2DHandle gfx, const NEXUS_Graphi
 
     BDBG_CASSERT((NEXUS_FillOp_eMax - 2) == (NEXUS_FillOp)BGRCLib_FillOp_eBlend); /* skip over NEXUS_FillOp_eUseBlendEquation */
     BDBG_OBJECT_ASSERT(gfx, NEXUS_Graphics2D);
+    nexus_p_check_and_switch_secure(gfx);
 
     if (!pSettings->surface || pSettings->colorOp >= NEXUS_FillOp_eMax || pSettings->alphaOp >= NEXUS_FillOp_eMax) {
         return BERR_TRACE(NEXUS_INVALID_PARAMETER);
@@ -621,7 +621,7 @@ NEXUS_Error NEXUS_Graphics2D_Fill(NEXUS_Graphics2DHandle gfx, const NEXUS_Graphi
     rc = NEXUS_Graphics2D_P_LockPlaneAndPalette(gfx, pSettings->surface, &surface, &srcPaletteOffset);
     if(rc!=NEXUS_SUCCESS) {return BERR_TRACE(rc);}
 
-    BDBG_PRINT_OP(("fill %#x(%u,%u,%u,%u) pixel=%#x %u,%u", (unsigned)pSettings->surface,
+    BDBG_PRINT_OP(("fill " BDBG_UINT64_FMT "(%u,%u,%u,%u) pixel=%#x %u,%u", BDBG_UINT64_ARG(surface.address),
         pSettings->rect.x, pSettings->rect.y, pSettings->rect.width, pSettings->rect.height,
         pSettings->color, pSettings->colorOp, pSettings->alphaOp));
 
@@ -650,12 +650,13 @@ NEXUS_Error NEXUS_Graphics2D_PorterDuffFill(NEXUS_Graphics2DHandle gfx, const NE
     uint32_t color;
 
     BTRC_TRACE(nexus_graphics2d_blit, START);
-
     BDBG_OBJECT_ASSERT(gfx, NEXUS_Graphics2D);
+    nexus_p_check_and_switch_secure(gfx);
+
     rc = NEXUS_Graphics2D_P_LockPlaneAndPalette(gfx, pSettings->surface, &surface, &srcPaletteOffset);
     if(rc!=NEXUS_SUCCESS) {return BERR_TRACE(rc);}
 
-    BDBG_PRINT_OP(("Porter Duff fill %#x(%u,%u,%u,%u) pixel=%#x op=%u", (unsigned)pSettings->surface,
+    BDBG_PRINT_OP(("Porter Duff fill " BDBG_UINT64_FMT "(%u,%u,%u,%u) pixel=%#x op=%u", BDBG_UINT64_ARG(surface.address),
         pSettings->rect.x, pSettings->rect.y, pSettings->rect.width, pSettings->rect.height,
         pSettings->color, pSettings->operation));
 
@@ -790,6 +791,8 @@ NEXUS_Error NEXUS_Graphics2D_Blit(NEXUS_Graphics2DHandle gfx, const NEXUS_Graphi
 #endif
 
     BDBG_OBJECT_ASSERT(gfx, NEXUS_Graphics2D);
+
+    nexus_p_check_and_switch_secure(gfx);
 
     /* copy surfaces */
     rc = NEXUS_Graphics2D_P_LockPlaneAndPalette(gfx, pSettings->source.surface, &src, &srcPaletteOffset);
@@ -1054,12 +1057,12 @@ NEXUS_Error NEXUS_Graphics2D_Blit(NEXUS_Graphics2DHandle gfx, const NEXUS_Graphi
         BDBG_PRINT_OP(("blit alphaBlend a=%u b=%u %c c=%u d=%u %c e=%u", pSettings->alphaBlend.a, pSettings->alphaBlend.b, pSettings->alphaBlend.subtract_cd?'-':'+', pSettings->alphaBlend.c, pSettings->alphaBlend.d, pSettings->alphaBlend.subtract_e?'-':'+', pSettings->alphaBlend.e));
     }
 
-    BDBG_PRINT_OP(("blit source=%#x(%u,%u,%u,%u) output=%#x(%u,%u,%u,%u) dest=%#x(%u,%u,%u,%u) ops=%u,%u",
-        (unsigned)pSettings->source.surface,
+    BDBG_PRINT_OP(("blit source=" BDBG_UINT64_FMT "(%u,%u,%u,%u) output=" BDBG_UINT64_FMT "(%u,%u,%u,%u) dest=" BDBG_UINT64_FMT "(%u,%u,%u,%u) ops=%u,%u",
+        BDBG_UINT64_ARG(src.address),
         pSettings->source.rect.x, pSettings->source.rect.y, pSettings->source.rect.width, pSettings->source.rect.height,
-        (unsigned)pSettings->output.surface,
+        BDBG_UINT64_ARG(out.address),
         pSettings->output.rect.x, pSettings->output.rect.y, pSettings->output.rect.width, pSettings->output.rect.height,
-        (unsigned)pSettings->dest.surface,
+        BDBG_UINT64_ARG(dst.address),
         pSettings->source.rect.x, pSettings->dest.rect.y, pSettings->dest.rect.width, pSettings->dest.rect.height,
         pSettings->colorOp, pSettings->alphaOp ));
 
@@ -1080,6 +1083,8 @@ NEXUS_Error NEXUS_Graphics2D_FastBlit( NEXUS_Graphics2DHandle gfx,
 
     BTRC_TRACE(nexus_graphics2d_blit, START);
     BDBG_OBJECT_ASSERT(gfx, NEXUS_Graphics2D);
+
+    nexus_p_check_and_switch_secure(gfx);
 
     /* copy surfaces */
     rc = NEXUS_Graphics2D_P_LockPlaneAndPalette(gfx, sourceSurface, &src, &srcPaletteOffset);
@@ -1131,10 +1136,10 @@ NEXUS_Error NEXUS_Graphics2D_FastBlit( NEXUS_Graphics2DHandle gfx,
     gfx->blitData.blitParams.constantColor = constantColor;
     gfx->blitData.blitParams.colorKeySelect = BGRC_Output_ColorKeySelection_eTakeBlend;
 
-    BDBG_PRINT_OP(("fastblit source=%#x(%u,%u,%u,%u) output=%#x(%u,%u,%u,%u) op=%u,%u,%#x",
-        (unsigned)outputSurface,
+    BDBG_PRINT_OP(("fastblit source=" BDBG_UINT64_FMT "(%u,%u,%u,%u) output=" BDBG_UINT64_FMT "(%u,%u,%u,%u) op=%u,%u,%#x",
+        BDBG_UINT64_ARG(src.address),
         pSourceRect?pSourceRect->x:0, pSourceRect?pSourceRect->y:0, pSourceRect?pSourceRect->width:0, pSourceRect?pSourceRect->height:0,
-        (unsigned)sourceSurface,
+        BDBG_UINT64_ARG(out.address),
         pOutputRect?pOutputRect->x:0, pOutputRect?pOutputRect->y:0, pOutputRect?pOutputRect->width:0, pOutputRect?pOutputRect->height:0,
         a_colorOp, a_alphaOp, constantColor
         ));
@@ -1159,6 +1164,8 @@ NEXUS_Error NEXUS_Graphics2D_PorterDuffBlit(NEXUS_Graphics2DHandle gfx, const NE
     BTRC_TRACE(nexus_graphics2d_blit, START);
     BDBG_OBJECT_ASSERT(gfx, NEXUS_Graphics2D);
 
+    nexus_p_check_and_switch_secure(gfx);
+
     rc = NEXUS_Graphics2D_P_LockPlaneAndPalette(gfx, pSettings->sourceSurface, &src, &srcPaletteOffset);
     if(rc!=NEXUS_SUCCESS) {return BERR_TRACE(rc);}
     if (pSettings->destSurface) {
@@ -1171,12 +1178,12 @@ NEXUS_Error NEXUS_Graphics2D_PorterDuffBlit(NEXUS_Graphics2DHandle gfx, const NE
 
     BDBG_CASSERT(BGRCLib_PorterDuffOp_Count == (BGRCLib_PorterDuffOp)NEXUS_PorterDuffOp_eMax);
 
-    BDBG_PRINT_OP(("porterDuff source=%#x(%u,%u,%u,%u) output=%#x(%u,%u,%u,%u) dest=%#x(%u,%u,%u,%u) op=%u",
-        (unsigned)pSettings->sourceSurface,
+    BDBG_PRINT_OP(("porterDuff source=" BDBG_UINT64_FMT "(%u,%u,%u,%u) output=" BDBG_UINT64_FMT "(%u,%u,%u,%u) dest=" BDBG_UINT64_FMT "(%u,%u,%u,%u) op=%u",
+        BDBG_UINT64_ARG(src.address),
         pSettings->sourceRect.x, pSettings->sourceRect.y, pSettings->sourceRect.width, pSettings->sourceRect.height,
-        (unsigned)pSettings->outSurface,
+        BDBG_UINT64_ARG(out.address),
         pSettings->outRect.x, pSettings->outRect.y, pSettings->outRect.width, pSettings->outRect.height,
-        (unsigned)pSettings->destSurface,
+        BDBG_UINT64_ARG(dst.address),
         pSettings->destRect.x, pSettings->destRect.y, pSettings->destRect.width, pSettings->destRect.height,
         pSettings->operation ));
 
@@ -1197,6 +1204,51 @@ static BERR_Code NEXUS_Graphics2D_PacketCallback_isr( BGRC_Handle grc, void *dat
     return NEXUS_SUCCESS;
 }
 
+static int nexus_p_switch_secure(struct NEXUS_Graphics2DEngine *engine)
+{
+#if NEXUS_HAS_SAGE
+    /* if nothing more to advance, check for mode switch */
+    BAVC_CoreList coreList;
+    unsigned index = (engine - g_grcInstance);
+    bool secure = !engine->secure;
+    int rc;
+
+    /* attempt switch. will only work if all contexts synced. */
+    rc = BGRC_SetSecureMode(engine->grc, secure);
+    if (rc) {
+        BDBG_MSG(("cannot switch M2MC%u from %u now", index, engine->secure));
+        return rc;
+    }
+
+    BDBG_MSG(("M2MC%u secure %u -> %u", index, engine->secure, secure));
+    BKNI_Memset(&coreList, 0, sizeof(coreList));
+    BDBG_ASSERT(index <= BAVC_CoreId_eGFX_2 - BAVC_CoreId_eGFX_0); /* don't overrun BAVC_CoreId GFX types */
+    coreList.aeCores[BAVC_CoreId_eGFX_0 + index] = true;
+    if (secure) {
+        rc = NEXUS_Sage_AddSecureCores(&coreList);
+        if (rc) BERR_TRACE(rc);
+    }
+    else {
+        NEXUS_Sage_RemoveSecureCores(&coreList);
+    }
+    engine->secure = secure;
+#else
+    if (!engine->secure) return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+#endif
+    return NEXUS_SUCCESS;
+}
+
+static void nexus_p_check_and_switch_secure(NEXUS_Graphics2DHandle gfx)
+{
+#if NEXUS_HAS_SAGE
+    if (gfx->openSettings.secure != gfx->engine->secure) {
+        nexus_p_switch_secure(gfx->engine);
+    }
+#else
+    BSTD_UNUSED(gfx);
+#endif
+}
+
 static void NEXUS_Graphics2D_P_PacketAdvance( void *context )
 {
     BERR_Code rc;
@@ -1204,6 +1256,8 @@ static void NEXUS_Graphics2D_P_PacketAdvance( void *context )
     size_t n;
     unsigned i;
     BGRC_Packet_ContextStatus *array = engine->contextStatus;
+    NEXUS_Graphics2DHandle gfx;
+    bool secureModeSwitchNeeded;
 
     /* advance all */
     rc = BGRC_Packet_AdvancePackets(engine->grc, NULL);
@@ -1212,16 +1266,15 @@ static void NEXUS_Graphics2D_P_PacketAdvance( void *context )
         return;
     }
 
-    rc = BGRC_Packet_GetContextStatus(engine->grc, array, &n, NEXUS_GRAPHICS2D_MAX_CONTEXTS);
+    rc = BGRC_Packet_GetContextStatus(engine->grc, array, &n, NEXUS_GRAPHICS2D_MAX_CONTEXTS, &secureModeSwitchNeeded);
     if (rc) {rc = BERR_TRACE(rc); return;}
 
     BDBG_PRINT_OP(("NEXUS_Graphics2D_P_PacketAdvance %d contexts", n));
     for (i=0;i<n;i++) {
-        NEXUS_Graphics2DHandle gfx;
-
         gfx = array[i].private_data;
         BDBG_OBJECT_ASSERT(gfx, NEXUS_Graphics2D);
-        BDBG_PRINT_OP(("  %d: avail=%d, sync=%d, checkpointCount=%d", i, array[i].packet_buffer_available, array[i].sync, gfx->checkpointCount));
+        BDBG_PRINT_OP(("  %p: avail=%d, sync=%d, checkpointCount=%d, %s", (void*)gfx, array[i].packet_buffer_available, array[i].sync, gfx->checkpointCount,
+            gfx->openSettings.secure?"secure":"unsecure"));
 
         if (gfx->packetSpaceAvailableCount && array[i].packet_buffer_available) {
             if (--gfx->packetSpaceAvailableCount == 0) {
@@ -1239,8 +1292,12 @@ static void NEXUS_Graphics2D_P_PacketAdvance( void *context )
         }
     }
 
+    /* if a context needs a mode switch, attempt */
+    if (secureModeSwitchNeeded && !nexus_p_switch_secure(engine)) {
+        /* call recursively if we can switch */
+        NEXUS_Graphics2D_P_PacketAdvance(engine);
+    }
 }
-
 
 NEXUS_Error NEXUS_Graphics2D_Checkpoint( NEXUS_Graphics2DHandle gfx, const NEXUS_CallbackDesc *pCallback )
 {
@@ -1272,6 +1329,11 @@ NEXUS_Error NEXUS_Graphics2D_Checkpoint( NEXUS_Graphics2DHandle gfx, const NEXUS
         if (pCallback) {
             NEXUS_TaskCallback_Set( gfx->checkpoint, pCallback );
         }
+    }
+
+    if (gfx->openSettings.secure != g_grcInstance[gfx->index].secure) {
+        nexus_p_switch_secure(&g_grcInstance[gfx->index]);
+        /* if we can't mode switch now, BGRC_Packet_SyncPackets will be queued for later */
     }
 
     rc = BGRC_Packet_SyncPackets(gfx->grc, gfx->packetContext);
@@ -1327,29 +1389,12 @@ NEXUS_Error NEXUS_Graphics2D_Checkpoint( NEXUS_Graphics2DHandle gfx, const NEXUS
     }
 }
 
-void NEXUS_Graphics2D_GetDefaultBatchBlitSettings(NEXUS_Graphics2DBatchBlitSettings *pSettings)
-{
-    BKNI_Memset(pSettings, 0, sizeof(*pSettings));
-}
-
-NEXUS_Error NEXUS_Graphics2D_BatchBlit( NEXUS_Graphics2DHandle gfx,
-    size_t count, size_t index, size_t *next,
-    const NEXUS_Graphics2DBatchBlitSettings *pBatchSettings,
-    const NEXUS_Graphics2DBlitSettings *pBlitSettings )
-{
-    BDBG_OBJECT_ASSERT(gfx, NEXUS_Graphics2D);
-    BSTD_UNUSED(count);
-    BSTD_UNUSED(index);
-    BSTD_UNUSED(next);
-    BSTD_UNUSED(pBatchSettings);
-    BSTD_UNUSED(pBlitSettings);
-    return BERR_TRACE(NEXUS_NOT_SUPPORTED);
-}
-
 NEXUS_Error NEXUS_Graphics2D_Memset32( NEXUS_Graphics2DHandle gfx, void *address, uint32_t data, unsigned count )
 {
     NEXUS_Error err = NEXUS_SUCCESS;
     uint32_t offset;
+
+    nexus_p_check_and_switch_secure(gfx);
 
     if (count < 0x400 || count > 0x1000000) { /* 1K to 16M */
         return BERR_TRACE(NEXUS_INVALID_PARAMETER);
@@ -1374,6 +1419,8 @@ NEXUS_Error NEXUS_Graphics2D_GetPacketBuffer( NEXUS_Graphics2DHandle gfx, void *
 {
     BERR_Code rc;
     BDBG_OBJECT_ASSERT(gfx, NEXUS_Graphics2D);
+
+    nexus_p_check_and_switch_secure(gfx);
 
     if (!gfx->verifyPacketHeap) {
         /* packet buffer memory must be CPU accessible for application and driver. we can only check driver mapping here.
@@ -1486,7 +1533,6 @@ NEXUS_Error NEXUS_Graphics2DModule_Standby_priv(bool enabled, const NEXUS_Standb
                 }
             } while (grcStatus.m2mc_busy);
 
-
             rc = BGRC_Standby(engine->grc, &standbySettings);
             if (rc) { return rc = BERR_TRACE(rc); }
         }
@@ -1512,23 +1558,21 @@ static void nexus_graphics2d_p_checkpoint_watchdog(void *context)
     }
 
     if (gfx->checkpointCount && ++gfx->checkpointWaitCount >= 3) { /* after 0.5 to 0.75 seconds */
-        if (gfx->checkpointWaitCount >= 16) { /* after 3.75 to 4.0 seconds */
+        if (gfx->checkpointWaitCount < 6) {
+            BGRC_Packet_CheckpointWatchdog(gfx->grc, gfx->packetContext, false);
+            BGRC_Packet_CheckpointWatchdog(gfx->grc, gfx->functionContext, false);
+        }
+        else if (gfx->checkpointWaitCount < 16) {
+            BGRC_Packet_CheckpointWatchdog(gfx->grc, gfx->packetContext, true);
+            BGRC_Packet_CheckpointWatchdog(gfx->grc, gfx->functionContext, true);
+        }
+        else {
             /* bgrc failed to handle, we fire anyway */
             BDBG_WRN(("%p: checkpoint watchdog %d %d", (void *)gfx, gfx->checkpointCount, gfx->checkpointWaitCount));
             gfx->checkpointCount = 0;
             gfx->checkpointWaitCount = 0;
             NEXUS_Graphics2D_P_UnlockPlaneAndPalette(gfx);
             NEXUS_TaskCallback_Fire(gfx->checkpoint);
-        }
-        else
-        {
-            int rc1, rc2;
-            /* inform bgrc to handle the watch dog time out */
-            rc1 = BGRC_Packet_CheckpointWatchdog(gfx->grc, gfx->packetContext, gfx->checkpointWaitCount);
-            rc2 = BGRC_Packet_CheckpointWatchdog(gfx->grc, gfx->functionContext, gfx->checkpointWaitCount);
-            if (rc1 && rc2) {
-                BDBG_ERR(("%p: debug grc state packet %d, func %d", (void *)gfx, rc1, rc2));
-            }
         }
     }
 

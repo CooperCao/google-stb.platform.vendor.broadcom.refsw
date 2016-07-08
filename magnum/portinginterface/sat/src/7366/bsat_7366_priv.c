@@ -1643,6 +1643,7 @@ BERR_Code BSAT_7366_P_GetExtAcqSettings(BSAT_ChannelHandle h, BSAT_ExtAcqSetting
    pSettings->blindScanModes = hab[2] & BSAT_BLIND_SCAN_MODE_MASK;
    pSettings->filtctlOverride = hab[3];
    pSettings->maxReacqs = hab[4];
+   pSettings->snrEstMethod = (uint8_t)((hab[1] >> 8) & 0x03);
 
    done:
    BDBG_LEAVE(BSAT_7366_P_GetExtAcqSettings);
@@ -1677,6 +1678,7 @@ BERR_Code BSAT_7366_P_SetExtAcqSettings(BSAT_ChannelHandle h, BSAT_ExtAcqSetting
       hab[1] |= 0x40;
    if (pSettings->bOverrideFiltctl)
       hab[1] |= 0x80;
+   hab[1] |= ((pSettings->snrEstMethod & 0x03) << 8);
    hab[2] = (uint32_t)(pSettings->blindScanModes & BSAT_BLIND_SCAN_MODE_MASK);
    hab[3] = pSettings->filtctlOverride;
    hab[4] = pSettings->maxReacqs;

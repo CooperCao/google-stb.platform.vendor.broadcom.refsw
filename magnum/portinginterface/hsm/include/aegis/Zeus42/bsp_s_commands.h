@@ -1,12 +1,43 @@
-/***************************************************************************
- *     Copyright (c) 2005-2014, Broadcom Corporation
- *     All Rights Reserved
- *     Highly Confidential Property of Broadcom Corporation
- *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
- ***************************************************************************/
+/******************************************************************************
+* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*
+* This program is the proprietary software of Broadcom and/or its
+* licensors, and may only be used, duplicated, modified or distributed pursuant
+* to the terms and conditions of a separate, written license agreement executed
+* between you and Broadcom (an "Authorized License").  Except as set forth in
+* an Authorized License, Broadcom grants no license (express or implied), right
+* to use, or waiver of any kind with respect to the Software, and Broadcom
+* expressly reserves all rights in and to the Software and all intellectual
+* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*
+* Except as expressly set forth in the Authorized License,
+*
+* 1. This program, including its structure, sequence and organization,
+*    constitutes the valuable trade secrets of Broadcom, and you shall use all
+*    reasonable efforts to protect the confidentiality thereof, and to use
+*    this information only in connection with your use of Broadcom integrated
+*    circuit products.
+*
+* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+*
+* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. , WHICHEVER
+*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+******************************************************************************/
 
 
 #ifndef BSP_S_COMMANDS_H__
@@ -76,7 +107,7 @@ typedef enum BCMD_cmdType_e
     BCMD_cmdType_eReserved40  =  0x28,
     BCMD_cmdType_eRESERVED_40 = 0x28,
     BCMD_cmdType_eRESERVED_41 = 0x29,
-    BCMD_cmdType_eDEBUG_DUMP_EXC = 0x2a,
+    BCMD_cmdType_eREAD_EXCEPTION_STATUS = 0x2a,
     BCMD_cmdType_eOFFLINE_SET_VICH_REG_PAR = 0x2b,
     BCMD_cmdType_eRESERVED_44 = 0x2c,
     BCMD_cmdType_eReserved45  =  0x2d,
@@ -87,13 +118,15 @@ typedef enum BCMD_cmdType_e
     BCMD_cmdType_eRESERVED_47 = 0x2f,
     BCMD_cmdType_eOTP_KEY_FIELD_PROG = 0x30,
     BCMD_cmdType_eReserved49  =  0x31,
-    BCMD_cmdType_eRESERVED_50 = 0x32,
+    BCMD_cmdType_eRESERVED_49 = 0x31,
+
+    BCMD_cmdType_eREAD_LAST_BOOT_STATUS = 0x32,
+
     BCMD_cmdType_eRESERVED_51 = 0x33,
     BCMD_cmdType_eRESERVED_52 = 0x34,
     BCMD_cmdType_eSTART_AVD = 0x35,
     BCMD_cmdType_eSECOND_TIER_KEY_VERIFY = 0x36,
     BCMD_cmdType_eSECOND_STAGE_CODE_LOAD = 0x37,
-
     BCMD_cmdType_eRESERVED_56 = 0x38,
     BCMD_cmdType_eMEMSYS_READY_FOR_INIT = 0x39,
     BCMD_cmdType_eReserved58  =  0x3a,
@@ -107,6 +140,7 @@ typedef enum BCMD_cmdType_e
     BCMD_cmdType_eRESERVED_61 = 0x3d,
     BCMD_cmdType_eRESERVED_62 = 0x3e,
     BCMD_cmdType_eKEY_SLOT_STATUS_QUERY = 0x3f,
+    BCMD_cmdType_eReserved64  =  0x40,
     BCMD_cmdType_eRESERVED_64 = 0x40,
 
     BCMD_cmdType_eReserved65  =  0x41,
@@ -163,7 +197,8 @@ typedef enum BCMD_cmdType_e
     BCMD_cmdType_eAllocateKeySlot = 0x61,
     BCMD_cmdType_eReserved98  =  0x62,
     BCMD_cmdType_eRESERVED_98 = 0x62,
-    BCMD_cmdType_eOTP_ROLLOVER_COUNTER_Op = 0x63,
+    BCMD_cmdType_eRESERVED_99 = 0x63,
+
     BCMD_cmdType_eOTP_ReadMSP32 = 0x64,
     BCMD_cmdType_eReserved101  =  0x65,
     BCMD_cmdType_eRESERVED_101 = 0x65,

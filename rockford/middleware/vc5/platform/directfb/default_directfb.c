@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2010 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2010 Broadcom.
 All rights reserved.
 
 Project  :  Default DirectFB platform API for EGL driver
@@ -32,7 +32,7 @@ void DBPL_RegisterDirectFBDisplayPlatform(DBPL_PlatformHandle *handle, IDirectFB
    {
       platform->memoryInterface  = CreateMemoryInterface();
       platform->schedInterface   = CreateSchedInterface(platform->memoryInterface);
-      platform->displayInterface = CreateDisplayInterface(dfb,
+      platform->displayInterface = CreateDirectFBDisplayInterface(dfb,
                                                          platform->schedInterface);
 
       *handle = (DBPL_PlatformHandle)platform;
@@ -56,13 +56,13 @@ void DBPL_UnregisterDirectFBDisplayPlatform(DBPL_PlatformHandle handle)
       DBPL_InternalPlatformHandle nulliface;
       memset(&nulliface, 0, sizeof(DBPL_InternalPlatformHandle));
 
-      BEGL_RegisterMemoryInterface(platform->memoryInterface);
-      BEGL_RegisterSchedInterface(platform->schedInterface);
-      BEGL_RegisterDisplayInterface(platform->displayInterface);
+      BEGL_RegisterMemoryInterface(NULL);
+      BEGL_RegisterSchedInterface(NULL);
+      BEGL_RegisterDisplayInterface(NULL);
 
-      DestroyDisplayInterface(platform->displayInterface);
-      DestroyMemoryInterface(platform->memoryInterface);
+      DestroyDirectFBDisplayInterface(platform->displayInterface);
       DestroySchedInterface(platform->schedInterface);
+      DestroyMemoryInterface(platform->memoryInterface);
 
       memset(platform, 0, sizeof(DBPL_InternalPlatformHandle));
       free(platform);

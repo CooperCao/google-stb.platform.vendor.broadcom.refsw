@@ -1,7 +1,7 @@
 #############################################################################
-#    (c)2015 Broadcom Corporation
+# Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 #
-# This program is the proprietary software of Broadcom Corporation and/or its licensors,
+# This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
 # conditions of a separate, written license agreement executed between you and Broadcom
 # (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
 # LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 # ANY LIMITED REMEDY.
 #
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
 # Module Description:
-#
-# Revision History:
-#
-# $brcm_Log: $
 #
 #############################################################################
 
@@ -533,10 +525,10 @@ install_playback_ip:        install_b_os install_livemedia install_blive_ext ins
 
 #  The following variables were set appropriately in bip_lib.inc.
 #    BIP_DTCP_IP_LIB_DIR_NAME:  either "dtcp_ip" or "dtcp_ip_sage"
-#    BIP_DTCP_IP_NEEDS_OPENSSL:  either "" or "y"
+#    BIP_OPENSSL_LIB_MAYBE:  either "" or "openssl"
 
 .PHONY: dtcp_ip
-dtcp_ip:   $(if $(BIP_DTCP_IP_NEEDS_OPENSSL),openssl,)
+dtcp_ip:   $(if $(BIP_OPENSSL_LIB_MAYBE),openssl,)
 	$(B_TRACE_RECIPE_BEGIN)
 	@echo "[Build... dtcp_ip]"
 	$(Q_)$(MAKE)            -C $(NEXUS_TOP)/lib/$(BIP_DTCP_IP_LIB_DIR_NAME)
@@ -550,7 +542,7 @@ clean_dtcp_ip:
 	$(B_TRACE_RECIPE_END)
 
 .PHONY: install_dtcp_ip
-install_dtcp_ip:   $(if $(BIP_DTCP_IP_NEEDS_OPENSSL),install_openssl,)
+install_dtcp_ip:   $(if $(BIP_OPENSSL_LIB_MAYBE),install_openssl,)
 	$(B_TRACE_RECIPE_BEGIN)
 	@echo "[Install... dtcp_ip]"
 	$(Q_)$(MAKE)            -C $(NEXUS_TOP)/lib/$(BIP_DTCP_IP_LIB_DIR_NAME) install

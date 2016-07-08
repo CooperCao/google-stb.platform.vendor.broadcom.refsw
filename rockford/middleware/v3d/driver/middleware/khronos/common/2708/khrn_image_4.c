@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2009 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2009 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -26,7 +26,11 @@ Platform-specific image stuff.
 bool khrn_image_is_ok_for_render_target(KHRN_IMAGE_FORMAT_T format, bool ignore_mem_layout)
 {
    vcos_assert(khrn_image_is_color(format));
-   switch (format & ~(IMAGE_FORMAT_MEM_LAYOUT_MASK | IMAGE_FORMAT_PRE | IMAGE_FORMAT_LIN | IMAGE_FORMAT_OVG)) {
+
+   format = khrn_image_no_layout_format(format);
+   format = khrn_image_no_colorspace_format(format);
+
+   switch (format) {
    case ABGR_8888:
    case XBGR_8888:
    case RGBA_8888:

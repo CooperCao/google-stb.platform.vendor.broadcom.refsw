@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2010-2015 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,12 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* Revision History:
-*
-* $brcm_Log: $
+* API Description:
+*   API name: 75525 platform init
+*   APIs to get / set BCM75525 memory config
 *
 ***************************************************************************/
+
 #include "nexus_platform_priv.h"
 #include "bchp_common.h"
 
@@ -79,7 +76,7 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
 
     BCHP_GetMemoryInfo(g_pPreInitState->hReg, &memInfo);
 
-    BDBG_WRN(("Nexus built for 975525 platform with %dMB RAM", memInfo.memc[0].size / MB ));
+    BDBG_WRN(("Nexus built for 975525 platform with %d MB RAM", (unsigned)(memInfo.memc[0].size / MB) ));
 
     /* bmem=192M@64M for 256MB platforms or bmem=100M@28M for 128MB platforms which both use only one heap. */
     /* bmem=192M@64M bmem=192M@512M for the boards with 512 MB or more of memory. */

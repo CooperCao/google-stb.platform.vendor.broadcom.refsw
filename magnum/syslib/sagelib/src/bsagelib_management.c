@@ -82,8 +82,8 @@ BSAGElib_Management_Register(
         BKNI_Memset(item, 0, sizeof(*item));
         item->watchdog_isr = i_management->watchdog_isr;
         /* Insert in management list. Avoid concurrency with isr */
-        BDBG_MSG(("%s: Add Watchdog callback %08x",
-                  __FUNCTION__, (uint32_t)i_management->watchdog_isr));
+        BDBG_MSG(("%s: Add Watchdog callback %p",
+                  __FUNCTION__, (void *)(unsigned long)i_management->watchdog_isr));
         BKNI_EnterCriticalSection();
         BLST_SQ_INSERT_TAIL(&hSAGElib->watchdog_callbacks, item, link);
         BKNI_LeaveCriticalSection();
@@ -109,8 +109,8 @@ BSAGElib_Management_Unregister(
         BSAGElib_Management_CallbackItem *item;
         for (item = BLST_SQ_FIRST(&hSAGElib->watchdog_callbacks); item; item = BLST_SQ_NEXT(item, link)) {
             if (item->watchdog_isr == i_management->watchdog_isr) {
-                BDBG_MSG(("%s: Remove Watchdog callback %08x",
-                          __FUNCTION__, (uint32_t)i_management->watchdog_isr));
+                BDBG_MSG(("%s: Remove Watchdog callback %p",
+                          __FUNCTION__, (void *)(unsigned long)i_management->watchdog_isr));
                 BKNI_EnterCriticalSection();
                 BLST_SQ_REMOVE(&hSAGElib->watchdog_callbacks, item, BSAGElib_Management_CallbackItem, link);
                 BKNI_LeaveCriticalSection();
@@ -196,8 +196,8 @@ BSAGElib_P_Management_WatchdogIntHandler_isr(
     {
         BSAGElib_Management_CallbackItem *item;
         for (item = BLST_SQ_FIRST(&hSAGElib->watchdog_callbacks); item; item = BLST_SQ_NEXT(item, link)) {
-            BDBG_MSG(("%s: Fire Watchdog callback %08x",
-                      __FUNCTION__, (uint32_t)item->watchdog_isr));
+            BDBG_MSG(("%s: Fire Watchdog callback %p",
+                      __FUNCTION__, (void *)(unsigned long)item->watchdog_isr));
             item->watchdog_isr();
         }
     }

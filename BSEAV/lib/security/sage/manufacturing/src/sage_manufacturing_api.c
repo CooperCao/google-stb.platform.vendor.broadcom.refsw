@@ -1,7 +1,7 @@
-/***************************************************************************
- *     (c)2014-2015 Broadcom Corporation
+/******************************************************************************
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,16 +34,12 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: sage_manufacturing_api.c $
- * $brcm_Revision: ursr_integration/1 $
- * $brcm_Date: 4/2/15 4:43p $
- *
- * Module Description: SAGE DRM bin file provisioning tool (host-side)
- *
- *
- **************************************************************************/
+
+ ******************************************************************************/
+
 #include <string.h>
+#include <stdio.h>
+#include <errno.h>
 
 #include "bstd.h"
 #include "bkni.h"
@@ -61,6 +57,7 @@
 
 BDBG_MODULE(sage_manufacturing);
 
+#define MFG_TA_BIN_FILENAME "sage_ta_manufacturing.bin"
 
 /* defines */
 #define SIZEOF_DRM_BINFILE_HEADER    (192)
@@ -74,8 +71,11 @@ BDBG_MODULE(sage_manufacturing);
      ((uint32_t)(((uint8_t*)(pBuf))[2]) << 8)  | \
      ((uint8_t *)(pBuf))[3])
 
+/* static function definitions */
 static const char * _MapDrmEnumToString(uint32_t drm_type);
 static bool verifyOtpIndex(SAGE_Manufacturing_OTP_Index OTP_Index);
+static BERR_Code _P_TA_Install(void);
+static BERR_Code _P_GetFileSize(char * filename, uint32_t *filesize);
 
 /* create the table */
 typedef struct SAGE_Manufacturing_P_Settings {
@@ -88,11 +88,10 @@ typedef struct SAGE_Manufacturing_P_Settings {
 
 static SAGE_Manufacturing_P_Settings SAGE_Private_Settings;
 
-int SAGE_Manufacturing_Init(SAGE_Manufacturing_OTP_Index otp_index)
+BERR_Code SAGE_Manufacturing_Init(SAGE_Manufacturing_OTP_Index otp_index)
 {
-    BERR_Code sage_rc;
     BSAGElib_State state;
-    int rc = 0;
+    BERR_Code rc = 0;
     BSAGElib_InOutContainer *container = NULL;
 #if USE_NXCLIENT /* NxClient customization */
     SRAI_Settings appSettings;
@@ -134,18 +133,27 @@ int SAGE_Manufacturing_Init(SAGE_Manufacturing_OTP_Index otp_index)
     SRAI_SetSettings(&appSettings);
 #endif
 
+    rc = _P_TA_Install();
+    if(rc != BERR_SUCCESS)
+    {
+        BDBG_ERR(("%s: error opening MFG platform", __FUNCTION__));
+        goto handle_error;
+    }
+
     container = SRAI_Container_Allocate();
-    if (container == NULL) {
+    if (container == NULL)
+    {
         rc = 1;
         goto handle_error;
     }
 
     /* Open the Manufacturing platform */
-    sage_rc = SRAI_Platform_Open(BSAGE_PLATFORM_ID_MANUFACTURING,
+    rc = SRAI_Platform_Open(BSAGE_PLATFORM_ID_MANUFACTURING,
                                  &state,
                                  &SAGE_Private_Settings.platformHandle);
-    if (sage_rc != BERR_SUCCESS) {
-        rc = 1;
+    if (rc != BERR_SUCCESS)
+    {
+        BDBG_ERR(("%s: error opening MFG platform", __FUNCTION__));
         goto handle_error;
     }
 
@@ -153,38 +161,36 @@ int SAGE_Manufacturing_Init(SAGE_Manufacturing_OTP_Index otp_index)
     if (state != BSAGElib_State_eInit)
     {
         /* Not yet initialized: send init command */
-        sage_rc = SRAI_Platform_Init(SAGE_Private_Settings.platformHandle, NULL);
-        if (sage_rc != BERR_SUCCESS)
+        rc = SRAI_Platform_Init(SAGE_Private_Settings.platformHandle, NULL);
+        if (rc != BERR_SUCCESS)
         {
-            rc = 1;
+            BDBG_ERR(("%s: error initializing MFG platform", __FUNCTION__));
             goto handle_error;
         }
     }
 
     /* Initialize Provisioning module */
-    sage_rc = SRAI_Module_Init(SAGE_Private_Settings.platformHandle,
+    rc = SRAI_Module_Init(SAGE_Private_Settings.platformHandle,
                                PROVISIONING_MODULE,
                                container, &SAGE_Private_Settings.provToolModuleHandle);
-    if ((sage_rc != BERR_SUCCESS) || (container->basicOut[0] != 0))
+    if ((rc != BERR_SUCCESS) || (container->basicOut[0] != 0))
     {
-        rc = 1;
         goto handle_error;
     }
 
     /* Initialize Validation module */
-    sage_rc = SRAI_Module_Init(SAGE_Private_Settings.platformHandle,
+    rc = SRAI_Module_Init(SAGE_Private_Settings.platformHandle,
                                VALIDATION_MODULE,
                                container, &SAGE_Private_Settings.validationToolModuleHandle);
-    if ((sage_rc != BERR_SUCCESS) || (container->basicOut[0] != 0))
+    if ((rc != BERR_SUCCESS) || (container->basicOut[0] != 0))
     {
-        rc = 1;
         goto handle_error;
     }
 
-    BDBG_LOG(("*** Sage provisioning init done!!! ***"));
+    BDBG_LOG(("%s: Sage Manufacturing platform and module initialized", __FUNCTION__));
 
 handle_error:
-    if (rc)
+    if (rc != BERR_SUCCESS)
     {
         /* error: cleanup */
         SAGE_Manufacturing_Uninit();
@@ -204,23 +210,25 @@ void SAGE_Manufacturing_Uninit(void)
 {
     if (SAGE_Private_Settings.validationToolModuleHandle)
     {
-        BDBG_LOG(("Uninitializing Validation module '%p'", SAGE_Private_Settings.validationToolModuleHandle));
+        BDBG_LOG(("Uninitializing Validation module '%p'", (void*)SAGE_Private_Settings.validationToolModuleHandle));
         SRAI_Module_Uninit(SAGE_Private_Settings.validationToolModuleHandle);
         SAGE_Private_Settings.validationToolModuleHandle = NULL;
     }
 
     if (SAGE_Private_Settings.provToolModuleHandle)
     {
-        BDBG_LOG(("Uninitializing Provisioning module '%p'", SAGE_Private_Settings.provToolModuleHandle));
+        BDBG_LOG(("Uninitializing Provisioning module '%p'", (void*)SAGE_Private_Settings.provToolModuleHandle));
         SRAI_Module_Uninit(SAGE_Private_Settings.provToolModuleHandle);
         SAGE_Private_Settings.provToolModuleHandle = NULL;
     }
 
     if (SAGE_Private_Settings.platformHandle)
     {
-        BDBG_LOG(("Uninitializing Manufacturing platform '%p'", SAGE_Private_Settings.platformHandle));
+        BDBG_LOG(("Closing Manufacturing platform '%p'", (void*)SAGE_Private_Settings.platformHandle));
         SRAI_Platform_Close(SAGE_Private_Settings.platformHandle);
         SAGE_Private_Settings.platformHandle = NULL;
+        BDBG_LOG(("Uninstalling Manufacturing platform..."));
+        SRAI_Platform_UnInstall(BSAGE_PLATFORM_ID_MANUFACTURING);
     }
 
     return;
@@ -269,13 +277,13 @@ int SAGE_Manufacturing_DeallocBinBuffer()
 
     if (container != NULL)
     {
-        BDBG_LOG(("\tFreeing shared memory\n"));
+        BDBG_MSG(("\tFreeing shared memory\n"));
         if(container->blocks[0].data.ptr != NULL)
         {
             SRAI_Memory_Free(container->blocks[0].data.ptr);
             container->blocks[0].data.ptr = NULL;
         }
-        BDBG_LOG(("\tFreeing SRAI container\n"));
+        BDBG_MSG(("\tFreeing SRAI container\n"));
         SRAI_Container_Free(container);
         container = NULL;
     }
@@ -295,8 +303,8 @@ int SAGE_Manufacturing_BinFile_ParseAndDisplay(uint8_t* pBinData, uint32_t binFi
 
     if(binFileLength < (SIZEOF_DRM_BINFILE_HEADER + SIZEOF_DYNAMIC_OFFSET_HEADER))
     {
-        BDBG_ERR(("\tbinFileLength = %u is less than the size of a valid bin file",
-                  number_of_drms, MAX_NUMBER_BINFILE_DRM_TYPES));
+        BDBG_ERR(("%s: DRM bin file length '%u' is less than the minimum size of a valid bin file (%u)", __FUNCTION__,
+                  binFileLength, (SIZEOF_DRM_BINFILE_HEADER + SIZEOF_DYNAMIC_OFFSET_HEADER)));
         return -1;
     }
 
@@ -379,30 +387,30 @@ int SAGE_Manufacturing_VerifyDrmBinFileType(uint8_t* pBinData, int validationCom
     return 0;
 }
 
-int SAGE_Manufacturing_Provision_BinData(int *pStatus)
+BERR_Code SAGE_Manufacturing_Provision_BinData(int *pStatus)
 {
-    int rc = 0, sage_rc = 0;
+    BERR_Code rc = BERR_SUCCESS;
     BSAGElib_InOutContainer *container = SAGE_Private_Settings.SAGELib_Container;
 
-    BDBG_LOG(("\tSENDING Provisioning command to Sage w/ container 0x%x & OTP index %x\n", container, SAGE_Private_Settings.OTP_Index));
+    BDBG_LOG(("\tSENDING Provision command to Sage with OTP index '0x%02x'\n", SAGE_Private_Settings.OTP_Index));
 
     /* set the OTP key index specified by the user and make it map to SAGE_Crypto enum for RootKeySrc hence the +1 */
     container->basicIn[0] = SAGE_Private_Settings.OTP_Index + 1;
 
-    sage_rc = SRAI_Module_ProcessCommand(SAGE_Private_Settings.provToolModuleHandle, PROVISIONING_COMMAND_ProcessBinFile, container);
-
-    if ((sage_rc != BERR_SUCCESS) || (container->basicOut[0] != 0))
+    rc = SRAI_Module_ProcessCommand(SAGE_Private_Settings.provToolModuleHandle, PROVISIONING_COMMAND_ProcessBinFile, container);
+    if ((rc != BERR_SUCCESS) || (container->basicOut[0] != 0))
     {
-        BDBG_ERR(("\tError processing bin file (provisioning) with SAGE rc = 0x%x, container->basicOut[0] = 0x%x", sage_rc, container->basicOut[0]));
-        rc = 1;
+        BDBG_ERR(("\tError provisioning DRM bin file (rc = 0x%08x), container->basicOut[0] = 0x%08x", rc, container->basicOut[0]));
         goto handle_error;
     }
     BDBG_LOG(("\tProvisioning command successfully returned from SAGE, analyzing result....\n"));
 
-    if (container->basicOut[1] == OPERATION_SUCCESSFULLY_OCCURRED)
+    if (container->basicOut[1] == OPERATION_SUCCESSFULLY_OCCURRED){
         *pStatus = 0;
-    else
+    }
+    else{
         *pStatus = -1;
+    }
 
 handle_error:
     return rc;
@@ -482,7 +490,7 @@ static const char * _MapDrmEnumToString(uint32_t drm_type)
     case BSAGElib_BinFileDrmType_eDtcpIp:
            return "DTCP-IP";
     case BSAGElib_BinFileDrmType_ePlayready:
-           return "PLAYREADY";
+           return "PLAYREADY 2.5";
     case BSAGElib_BinFileDrmType_eSecureSwRsa:
            return "SECURE_SW_RSA";
     case BSAGElib_BinFileDrmType_eCustomPrivate:
@@ -501,6 +509,8 @@ static const char * _MapDrmEnumToString(uint32_t drm_type)
            return "EDRM";
     case BSAGElib_BinFileDrmType_eEcc:
            return "ECC";
+    case BSAGElib_BinFileDrmType_ePlayready30:
+           return "PLAYREADY 3.0";
     case BSAGElib_BinFileDrmType_eMax:
            return NULL;
     default:
@@ -570,4 +580,144 @@ static bool verifyOtpIndex(SAGE_Manufacturing_OTP_Index OTP_Index)
 
 ErrorExit:
     return brc;
+}
+
+BERR_Code _P_TA_Install(void)
+{
+    BERR_Code rc = BERR_SUCCESS;
+    FILE * fptr = NULL;
+    uint32_t file_size = 0;
+    uint32_t read_size = 0;
+    uint8_t *ta_bin_file_buff = NULL;
+    BERR_Code sage_rc = BERR_SUCCESS;
+
+    BDBG_ENTER(_P_TA_Install);
+
+    BDBG_MSG(("%s - Loadable TA filename '%s'", __FUNCTION__, MFG_TA_BIN_FILENAME));
+
+    rc = _P_GetFileSize(MFG_TA_BIN_FILENAME, &file_size);
+    if(rc != BERR_SUCCESS)
+    {
+        BDBG_LOG(("%s - Error determine file size of TA bin file", __FUNCTION__));
+        goto ErrorExit;
+    }
+
+    ta_bin_file_buff = SRAI_Memory_Allocate(file_size, SRAI_MemoryType_Shared);
+    if(ta_bin_file_buff == NULL)
+    {
+        BDBG_ERR(("%s - Error allocating '%u' bytes for loading TA bin file", __FUNCTION__, file_size));
+        rc = BERR_INVALID_PARAMETER;
+        goto ErrorExit;
+    }
+
+    fptr = fopen(MFG_TA_BIN_FILENAME, "rb");
+    if(fptr == NULL)
+    {
+        BDBG_ERR(("%s - Error opening TA bin file (%s)", __FUNCTION__, MFG_TA_BIN_FILENAME));
+        rc = BERR_INVALID_PARAMETER;
+        goto ErrorExit;
+    }
+
+    read_size = fread(ta_bin_file_buff, 1, file_size, fptr);
+    if(read_size != file_size)
+    {
+        BDBG_ERR(("%s - Error reading TA bin file size (%u != %u)", __FUNCTION__, read_size, file_size));
+        rc = BERR_INVALID_PARAMETER;
+        goto ErrorExit;
+    }
+
+    /* close file and set to NULL */
+    if(fclose(fptr) != 0)
+    {
+        BDBG_ERR(("%s - Error closing TA bin file '%s'.  (%s)", __FUNCTION__, MFG_TA_BIN_FILENAME, strerror(errno)));
+        rc = BERR_INVALID_PARAMETER;
+        goto ErrorExit;
+    }
+    fptr = NULL;
+
+    BDBG_MSG(("%s - TA 0x%08x Install file '%s'", __FUNCTION__, BSAGE_PLATFORM_ID_MANUFACTURING, MFG_TA_BIN_FILENAME));
+
+    sage_rc = SRAI_Platform_Install(BSAGE_PLATFORM_ID_MANUFACTURING, ta_bin_file_buff, file_size);
+    if(sage_rc != BERR_SUCCESS)
+    {
+        BDBG_ERR(("%s - Error calling SRAI_Platform_Install Error 0x%08x", __FUNCTION__, sage_rc ));
+        rc = BERR_INVALID_PARAMETER;
+        goto ErrorExit;
+    }
+
+ErrorExit:
+
+    if(ta_bin_file_buff != NULL){
+        SRAI_Memory_Free(ta_bin_file_buff);
+        ta_bin_file_buff = NULL;
+    }
+
+    if(fptr != NULL){
+        fclose(fptr);
+        fptr = NULL;
+    }
+
+    BDBG_LEAVE(_P_TA_Install);
+
+    return rc;
+}
+
+BERR_Code _P_GetFileSize(char * filename, uint32_t *filesize)
+{
+    BERR_Code rc = BERR_SUCCESS;
+    FILE *fptr = NULL;
+    int pos = 0;
+
+    BDBG_ENTER(_P_GetFileSize);
+
+    fptr = fopen(filename, "rb");
+    if(fptr == NULL)
+    {
+        BDBG_LOG(("%s - Error opening file '%s'.  (%s)", __FUNCTION__, filename, strerror(errno)));
+        rc = BERR_INVALID_PARAMETER;
+        goto ErrorExit;
+    }
+
+    pos = fseek(fptr, 0, SEEK_END);
+    if(pos == -1)
+    {
+        BDBG_ERR(("%s - Error seeking to end of file '%s'.  (%s)", __FUNCTION__, filename, strerror(errno)));
+        rc = BERR_INVALID_PARAMETER;
+        goto ErrorExit;
+    }
+
+    pos = ftell(fptr);
+    if(pos == -1)
+    {
+        BDBG_ERR(("%s - Error determining position of file pointer of file '%s'.  (%s)", __FUNCTION__, filename, strerror(errno)));
+        rc = BERR_INVALID_PARAMETER;
+        goto ErrorExit;
+    }
+
+    /* check vs. arbitrary large file size */
+    if(pos >= 2*1024*1024)
+    {
+        BDBG_ERR(("%s - Invalid file size detected for of file '%s'.  (%u)", __FUNCTION__, filename, pos));
+        rc = BERR_INVALID_PARAMETER;
+        goto ErrorExit;
+    }
+
+    (*filesize) = pos;
+
+ErrorExit:
+
+    BDBG_MSG(("%s - Exiting function (%u bytes)", __FUNCTION__, (*filesize)));
+
+    if(fptr != NULL)
+    {
+        /* error closing?!  weird error case not sure how to handle */
+        if(fclose(fptr) != 0){
+            BDBG_ERR(("%s - Error closing Loadable TA file '%s'.  (%s)", __FUNCTION__, filename, strerror(errno)));
+            rc = 1;
+        }
+    }
+
+    BDBG_LEAVE(_P_GetFileSize);
+
+    return rc;
 }

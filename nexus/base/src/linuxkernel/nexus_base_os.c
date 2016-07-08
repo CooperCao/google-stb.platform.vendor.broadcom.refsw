@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2008-2013 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2008-2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,16 +34,6 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* API Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 #include "nexus_base.h"
@@ -78,7 +68,7 @@ NEXUS_Time_Diff_isrsafe(const NEXUS_Time *future, const NEXUS_Time *past)
     if(jiffies_diff>=0) {
         msec_diff = jiffies_to_msecs(jiffies_diff);
     } else {
-        msec_diff = -jiffies_to_msecs(-jiffies_diff);
+        msec_diff = -(long)jiffies_to_msecs(-jiffies_diff);
     }
     return msec_diff;
 }
@@ -170,7 +160,7 @@ NEXUS_P_Thread_Create(const char *pThreadName, void (*pThreadFunc)(void *), void
     /* in linux kernel stack size is fixed to 2 4K pages */
 #define LINUX_KERNEL_STACK_SIZE (8*1024)
     if (thread->settings.stackSize < LINUX_KERNEL_STACK_SIZE) {
-        BDBG_WRN(("NEXUS_Thread_Create: %s stack size %u forced to %u",  thread->name, thread->settings.stackSize, LINUX_KERNEL_STACK_SIZE));
+        BDBG_WRN(("NEXUS_Thread_Create: %s stack size %u forced to %u",  thread->name, (unsigned)thread->settings.stackSize, LINUX_KERNEL_STACK_SIZE));
     }
     thread->settings.stackSize = LINUX_KERNEL_STACK_SIZE;
     thread->started = false;
@@ -346,12 +336,19 @@ NEXUS_FlushCache_isrsafe(const void *pvAddr, size_t ulNumBytes)
         NEXUS_AddrType addrtype = NEXUS_GetAddrType(pvAddr);
         switch (addrtype) {
         case NEXUS_AddrType_eFake:
-            /* Nexus interface should be used with NEXUS_MemoryType_eFull to avoid this.
+          /* Nexus interface should be used with NEXUS_MemoryType_eFull to avoid this.
             Or, if eFull memory is limited, we could add a boolean to skip driver flush and require application flush. */
+#if NEXUS_CPU_ARM64
+          /* on AARCH64 there is no correct flush_all (correct such as it would flush all cache hierarchy on all CPU */
+            BDBG_ERR(("Can't flush fake address %p at %s:%u", pvAddr, BSTD_FILE, __LINE__));
+            BKNI_Delay(100 * 1000); /* This delay is intentional, other option is BKNI_Fail */
+            break;
+#else
             BDBG_WRN(("flushing fake address %p results in flush all", pvAddr));
             pvAddr = 0;
             ulNumBytes = ~0;
             /* fall through */
+#endif
         case NEXUS_AddrType_eCached:
         case NEXUS_AddrType_eUnknown: /* Unknown could correspond to dynamically managed memory mappings. */
 #if NEXUS_CPU_ARM

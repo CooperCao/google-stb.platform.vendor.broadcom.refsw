@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2012 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -207,6 +207,12 @@ Summary:
 NEXUS_Error NEXUS_Pwm_Stop(
     NEXUS_PwmChannelHandle channel
     );
+
+typedef struct NEXUS_PwmModuleSettings
+{
+    NEXUS_CommonModuleSettings common;
+} NEXUS_PwmModuleSettings;
+
 
 #ifdef __cplusplus
 }

@@ -19,7 +19,7 @@
 *
 ***************************************************************************/
 #include "bhdm_mhl_priv.h"
-#include "bhdm_priv.h"
+#include "../common/bhdm_priv.h"
 
 BDBG_MODULE(BHDM_MHL);
 

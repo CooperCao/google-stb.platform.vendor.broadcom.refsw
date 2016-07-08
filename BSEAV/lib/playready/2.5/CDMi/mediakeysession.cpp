@@ -8,6 +8,9 @@
 
 #include "cdmi_imp.h"
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <drmrevocation.h>
 #include <drmxmlparser.h>
 

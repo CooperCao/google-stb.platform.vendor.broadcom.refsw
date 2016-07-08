@@ -1,22 +1,42 @@
 /***************************************************************************
- *     Copyright (c) 2004-2014, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description:
  *   See code
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ***************************************************************************/
 #include "bstd.h"                /* standard types */
@@ -38,6 +58,7 @@
 #include "bchp_common.h"
 #include "bxvd_status.h"
 #include "bxvd_decoder.h"
+#include "bbox_xvd.h"
 
 #ifdef BCHP_PWR_SUPPORT
 #include "bchp_pwr.h"
@@ -960,7 +981,7 @@ BERR_Code BXVD_GetHardwareCapabilities(BXVD_Handle hXvd,
       return BERR_TRACE(BXVD_ERR_INVALID_HANDLE);
    }
 
-   for (eVideoCmprStd = BAVC_VideoCompressionStd_eH264; eVideoCmprStd <	BAVC_VideoCompressionStd_eMax; eVideoCmprStd++)
+   for (eVideoCmprStd = BAVC_VideoCompressionStd_eH264; eVideoCmprStd < BAVC_VideoCompressionStd_eMax; eVideoCmprStd++)
    {
       pCap->bCodecSupported[eVideoCmprStd] = BXVD_P_IsDecodeProtocolSupported(hXvd, eVideoCmprStd);
    }
@@ -972,6 +993,15 @@ BERR_Code BXVD_GetHardwareCapabilities(BXVD_Handle hXvd,
    else
    {
       pCap->uiSTC_Count = (uint32_t)BXVD_STC_eMax;
+   }
+
+   if ( BXVD_P_CORE_REVISION_NUM >= 19 )
+   {
+      pCap->bIncludeRepeatedItbStartCodes = true;
+   }
+   else
+   {
+      pCap->bIncludeRepeatedItbStartCodes = false;
    }
 
    BDBG_LEAVE(BXVD_GetHardwareCapabilities);
@@ -1406,7 +1436,7 @@ BXVD_CallbackFunc BXVD_Callback(void *pParm1, int parm2)
 
 #if BDBG_DEBUG_BUILD
 
-#define BXVD_S_MAX_FRAMERATE ( BAVC_FrameRateCode_e19_98 + 1 )
+#define BXVD_S_MAX_FRAMERATE ( BAVC_FrameRateCode_eMax )
 
 static const char * const sFrameRateCodeNameLUT[BXVD_S_MAX_FRAMERATE] =
 {
@@ -1429,6 +1459,10 @@ static const char * const sFrameRateCodeNameLUT[BXVD_S_MAX_FRAMERATE] =
    "BAVC_FrameRateCode_e119_88",
    "BAVC_FrameRateCode_e120",
    "BAVC_FrameRateCode_e19_98"   /* SWSTB-378: Add support for 19.98fps */
+   "BAVC_FrameRateCode_e7_5", /* SWSTB-1401: */
+   "BAVC_FrameRateCode_e12", /* SWSTB-1401: */
+   "BAVC_FrameRateCode_e11_988", /* SWSTB-1401: */
+   "BAVC_FrameRateCode_e9_99", /* SWSTB-1401: */
 };
 
 static const char * const sDecodeResolutionNameLUT[BXVD_DecodeResolution_eMaxModes] =
@@ -2135,6 +2169,12 @@ BERR_Code BXVD_StartDecode(BXVD_ChannelHandle        hXvdChannel,
 
    BDBG_ASSERT(psDecodeSettings);
 
+   BDBG_CASSERT((int)BBOX_XVD_DecodeResolution_eHD == (int)BXVD_DecodeResolution_eHD);
+   BDBG_CASSERT((int)BBOX_XVD_DecodeResolution_eSD == (int)BXVD_DecodeResolution_eSD);
+   BDBG_CASSERT((int)BBOX_XVD_DecodeResolution_eCIF == (int)BXVD_DecodeResolution_eCIF);
+   BDBG_CASSERT((int)BBOX_XVD_DecodeResolution_eQCIF == (int)BXVD_DecodeResolution_eQCIF);
+   BDBG_CASSERT((int)BBOX_XVD_DecodeResolution_e4K == (int)BXVD_DecodeResolution_e4K);
+
    /* Check handle type for correctness */
    if (hXvdChannel->eHandleType != BXVD_P_HandleType_XvdChannel)
    {
@@ -2600,8 +2640,8 @@ BERR_Code BXVD_StartDecode(BXVD_ChannelHandle        hXvdChannel,
       uiChannelMode = VDEC_CHANNEL_MODE_SPARSE_NORMAL;
    }
 
-   if (((pXvdCh->sDecodeSettings.eVideoCmprStd == BAVC_VideoCompressionStd_eH264) ||
-        (pXvdCh->sDecodeSettings.eVideoCmprStd == BAVC_VideoCompressionStd_eMPEG2)) &&
+   if (((pXvdCh->sDecodeSettings.eVideoCmprStd != BAVC_VideoCompressionStd_eVP8) &&
+        (pXvdCh->sDecodeSettings.eVideoCmprStd != BAVC_VideoCompressionStd_eVP9)) &&
        (pXvdCh->sDecodeSettings.bZeroDelayOutputMode == true))
    {
       uiChannelMode |= VDEC_CHANNEL_MODE_ZERO_DELAY;
@@ -3542,42 +3582,15 @@ BERR_Code BXVD_GetChannelStatus_isr(BXVD_ChannelHandle hXvdCh,
       return BERR_TRACE(BERR_INVALID_PARAMETER);
    }
 
-   /* Get the number of pictures on the Unified Picture Queue. */
-   BXVD_Decoder_GetPictureCount_isr(
-            hXvdCh,
-            &uiPictureDeliveryCount);
-
-   /* SWDTV-7262: Get the number of pictures on the Delivery Queue. */
-   if ( true == hXvdCh->stDecoderContext.bDecoderHasBeenInitialized )
    {
-      uint32_t uiWriteOffset;
-      uint32_t uiReadOffset;
-      uint32_t uiDepth;
+      /* SWSTB-788: move the calculation of the Delivery Queue depth from BXVD_GetChannelStatus_isr to
+       * the XVD Decoder logic. BXVD_Decoder_P_GetStatus_isr() provides a method of retrieving the depth. */
 
-      BXVD_P_DELIVERY_QUEUE_GET_READ_OFFSET( hXvdCh, uiReadOffset );
-      BXVD_P_DELIVERY_QUEUE_GET_WRITE_OFFSET( hXvdCh, uiWriteOffset );
+      BXVD_Decoder_P_Status stDecoderStatus;
 
-      uiReadOffset -= BXVD_P_INITIAL_OFFSET_DISPLAY_QUEUE;
-      uiWriteOffset -= BXVD_P_INITIAL_OFFSET_DISPLAY_QUEUE;
+      BXVD_Decoder_P_GetStatus_isr( hXvdCh, &stDecoderStatus );
 
-      BXVD_P_GET_QUEUE_DEPTH( uiReadOffset, uiWriteOffset, uiDepth );
-
-      /* SW7231-788: for SVC 3D and MVC, the Delivery Queue contains pairs of pictures.
-       * Divide uiDepth by 2 to return the number of pictures instead of the number of PPB's.
-       * This has the added benefit of returning '0' if a single base picture is sitting
-       * at the end of the queue, i.e. an incomplete pair of pictures.
-       */
-      if  ( ( true == hXvdCh->sDecodeSettings.bSVC3DModeEnable )
-            || ( BAVC_VideoCompressionStd_eMVC == hXvdCh->sDecodeSettings.eVideoCmprStd )
-          )
-      {
-         uiDepth /= 2 ;
-      }
-
-      /* The number of outstanding pictures is equal to the sum on the Unified
-       * Picture Queue and the Delivery Queue.
-       */
-      uiPictureDeliveryCount += uiDepth;
+      uiPictureDeliveryCount = stDecoderStatus.uiPictureCountUnifiedQueue + stDecoderStatus.uiPictureCountDeliveryQueue;
    }
 
    /*
@@ -4771,6 +4784,7 @@ static void BXVD_S_PictureParameters_XDMCompatibility_isr(
    hXvdCh->stPictureParameterInfo.eFrameRateCode = pstPictureParameters->pstMFDPicture->eFrameRateCode;
    hXvdCh->stPictureParameterInfo.eMatrixCoefficients = pstPictureParameters->pstMFDPicture->eMatrixCoefficients;
    hXvdCh->stPictureParameterInfo.eTransferCharacteristics = pstPictureParameters->pstMFDPicture->eTransferCharacteristics;
+   hXvdCh->stPictureParameterInfo.ePreferredTransferCharacteristics = pstPictureParameters->pstMFDPicture->ePreferredTransferCharacteristics; /* SWSTB-1629 */
    hXvdCh->stPictureParameterInfo.uiSampleAspectRatioX = pstPictureParameters->pstMFDPicture->uiSampleAspectRatioX;
    hXvdCh->stPictureParameterInfo.uiSampleAspectRatioY = pstPictureParameters->pstMFDPicture->uiSampleAspectRatioY;
    hXvdCh->stPictureParameterInfo.ulSourceHorizontalSize = pstPictureParameters->pstMFDPicture->ulSourceHorizontalSize;
@@ -7307,6 +7321,27 @@ BERR_Code BXVD_SetMonitorRefreshRate_isr
       case BXVD_MONITOR_REFRESH_RATE_120Hz:
          eXDMMonitorRefreshRate = BXDM_PictureProvider_MonitorRefreshRate_e120Hz;
          break;
+      case BXVD_MONITOR_REFRESH_RATE_7_493Hz:
+         eXDMMonitorRefreshRate = BXDM_PictureProvider_MonitorRefreshRate_e7_493Hz;
+         break;
+      case BXVD_MONITOR_REFRESH_RATE_7_5Hz:
+         eXDMMonitorRefreshRate = BXDM_PictureProvider_MonitorRefreshRate_e7_5Hz;
+         break;
+      case BXVD_MONITOR_REFRESH_RATE_9_99Hz:
+         eXDMMonitorRefreshRate = BXDM_PictureProvider_MonitorRefreshRate_e9_99Hz;
+         break;
+      case BXVD_MONITOR_REFRESH_RATE_10Hz:
+         eXDMMonitorRefreshRate = BXDM_PictureProvider_MonitorRefreshRate_e10Hz;
+         break;
+      case BXVD_MONITOR_REFRESH_RATE_11_988Hz:
+         eXDMMonitorRefreshRate = BXDM_PictureProvider_MonitorRefreshRate_e11_988Hz;
+         break;
+      case BXVD_MONITOR_REFRESH_RATE_12Hz:
+         eXDMMonitorRefreshRate = BXDM_PictureProvider_MonitorRefreshRate_e12Hz;
+         break;
+      case BXVD_MONITOR_REFRESH_RATE_19_98Hz:
+         eXDMMonitorRefreshRate = BXDM_PictureProvider_MonitorRefreshRate_e19_98Hz;
+         break;
 
       case BXVD_MONITOR_REFRESH_RATE_INVALID:
          eXDMMonitorRefreshRate = BXDM_PictureProvider_MonitorRefreshRate_eUnknown;
@@ -7453,6 +7488,27 @@ BERR_Code BXVD_GetMonitorRefreshRate_isr
 
          case BXDM_PictureProvider_MonitorRefreshRate_e120Hz:
             *pui32MonitorRefreshRate = BXVD_MONITOR_REFRESH_RATE_120Hz;
+            break;
+         case BXDM_PictureProvider_MonitorRefreshRate_e7_493Hz:
+            *pui32MonitorRefreshRate = BXVD_MONITOR_REFRESH_RATE_7_493Hz;
+            break;
+         case BXDM_PictureProvider_MonitorRefreshRate_e7_5Hz:
+            *pui32MonitorRefreshRate = BXVD_MONITOR_REFRESH_RATE_7_5Hz;
+            break;
+         case BXDM_PictureProvider_MonitorRefreshRate_e9_99Hz:
+            *pui32MonitorRefreshRate = BXVD_MONITOR_REFRESH_RATE_9_99Hz;
+            break;
+         case BXDM_PictureProvider_MonitorRefreshRate_e10Hz:
+            *pui32MonitorRefreshRate = BXVD_MONITOR_REFRESH_RATE_10Hz;
+            break;
+         case BXDM_PictureProvider_MonitorRefreshRate_e11_988Hz:
+            *pui32MonitorRefreshRate = BXVD_MONITOR_REFRESH_RATE_11_988Hz;
+            break;
+         case BXDM_PictureProvider_MonitorRefreshRate_e12Hz:
+            *pui32MonitorRefreshRate = BXVD_MONITOR_REFRESH_RATE_12Hz;
+            break;
+         case BXDM_PictureProvider_MonitorRefreshRate_e19_98Hz:
+            *pui32MonitorRefreshRate = BXVD_MONITOR_REFRESH_RATE_19_98Hz;
             break;
 
          case BXDM_PictureProvider_MonitorRefreshRate_eUnknown:

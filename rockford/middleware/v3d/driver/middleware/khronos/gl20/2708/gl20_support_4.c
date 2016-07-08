@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2009 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2009 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -29,4 +29,5 @@ void gl20_hw_iu_init(GL20_HW_INDEXED_UNIFORM_T *iu)
 
 void gl20_hw_iu_close(GL20_HW_INDEXED_UNIFORM_T *iu)
 {
+   UNUSED(iu);
 }

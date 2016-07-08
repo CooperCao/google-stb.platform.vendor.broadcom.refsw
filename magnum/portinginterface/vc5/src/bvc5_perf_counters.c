@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2014 Broadcom Corporation
+ *     Broadcom Proprietary and Confidential. (c)2014 Broadcom.  All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -463,7 +463,7 @@ static void BVC5_P_UpdateCalculatedCounters(
 
    BVC5_P_GetTime_isrsafe(&now);
 
-   BVC5_P_BinPoolStats(hVC5->hBinPool, &capacity, &used);
+   BVC5_P_BinPoolStats(BVC5_P_GetBinPool(hVC5), &capacity, &used);
 
    if (hVC5->sPerfCounters.sSchedValues[BVC5_P_PERF_BIN_MEMORY_RESERVED].bEnabled)
       hVC5->sPerfCounters.sSchedValues[BVC5_P_PERF_BIN_MEMORY_RESERVED].uiValue = capacity;
@@ -574,7 +574,7 @@ static void BVC5_P_UpdateCalculatedCounters(
    {
       BMMA_Heap_FastStatus memStats;
 
-      BMMA_Heap_GetStatus(hVC5->hMMAHeap, &memStats, NULL);
+      BMMA_Heap_GetStatus(BVC5_P_GetMMAHeap(hVC5), &memStats, NULL);
 
       if (hVC5->sPerfCounters.sSchedValues[BVC5_P_PERF_HEAP_MEMORY_IN_USE].bEnabled)
          hVC5->sPerfCounters.sSchedValues[BVC5_P_PERF_HEAP_MEMORY_IN_USE].uiValue = memStats.totalAllocated;
@@ -654,7 +654,8 @@ uint32_t BVC5_GetPerfCounterData(
             c++;
          }
 
-         if (c >= psPerf->uiActiveBwCounters || c >= uiMaxCounters)
+         if (c >= (psPerf->uiActiveHwCounters + psPerf->uiActiveBwCounters) ||
+             c >= uiMaxCounters)
             break;
       }
 

@@ -1,52 +1,51 @@
 /******************************************************************************
-* (c) 2014 Broadcom Corporation
-*
-* This program is the proprietary software of Broadcom Corporation and/or its
-* licensors, and may only be used, duplicated, modified or distributed pursuant
-* to the terms and conditions of a separate, written license agreement executed
-* between you and Broadcom (an "Authorized License").  Except as set forth in
-* an Authorized License, Broadcom grants no license (express or implied), right
-* to use, or waiver of any kind with respect to the Software, and Broadcom
-* expressly reserves all rights in and to the Software and all intellectual
-* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1. This program, including its structure, sequence and organization,
-*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-*    reasonable efforts to protect the confidentiality thereof, and to use
-*    this information only in connection with your use of Broadcom integrated
-*    circuit products.
-*
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-******************************************************************************/
-/*****************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
+ *
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************
 *
 * FILENAME: $Workfile: trunk/stack/IEEE/MAC/include/private/bbMacPibDefs.h $
 *
 * DESCRIPTION:
 *   MAC-PIB internals definitions.
 *
-* $Revision: 3547 $
-* $Date: 2014-09-11 13:46:56Z $
+* $Revision: 10537 $
+* $Date: 2016-03-18 12:15:44Z $
 *
 *****************************************************************************************/
 
@@ -82,22 +81,21 @@ typedef struct _MacPibPermanent_t
  */
 typedef struct _MacPibEssential_t
 {
-    /* Structured / 16-bit data. */
-    PHY_ChannelOnPage_t    macCurrentChannelOnPage;     /*!< Values of macCurrentPage and macCurrentChannel. */
-
     /* 16-bit data. */
-    MAC_PanId_t            macPanId;                    /*!< Value of macPanId. */
+    MAC_PanId_t            macPANId;                    /*!< Value of macPANId. */
 
     MAC_ShortAddress_t     macShortAddress;             /*!< Value of macShortAddress. */
 
     /* 8-bit data. */
-    MAC_Dsn_t              macDsn;                      /*!< Value of macDsn. */
+    PHY_PageChannel_t      macCurrentChannelOnPage;     /*!< Values of macCurrentPage and macCurrentChannel. */
 
-    MAC_MaxCsmaBackoffs_t  macMaxCsmaBackoffs;          /*!< Value of macMaxCsmaBackoffs. */
+    MAC_Dsn_t              macDSN;                      /*!< Value of macDSN. */
 
-    MAC_MinBe_t            macMinBe;                    /*!< Value of macMinBe. */
+    MAC_MaxCSMABackoffs_t  macMaxCSMABackoffs;          /*!< Value of macMaxCSMABackoffs. */
 
-    MAC_MaxBe_t            macMaxBe;                    /*!< Value of macMaxBe. */
+    MAC_MinBE_t            macMinBE;                    /*!< Value of macMinBE. */
+
+    MAC_MaxBE_t            macMaxBE;                    /*!< Value of macMaxBE. */
 
     MAC_MaxFrameRetries_t  macMaxFrameRetries;          /*!< Value of macMaxFrameRetries. */
 
@@ -118,7 +116,7 @@ typedef struct _MacPibBeaconing_t
     /* 8-bit data. */
     MAC_BeaconPayloadLength_t  macBeaconPayloadLength;      /*!< Value of macBeaconPayloadLength. */
 
-    MAC_Bsn_t                  macBsn;                      /*!< Value of macBsn. */
+    MAC_Bsn_t                  macBSN;                      /*!< Value of macBSN. */
 
     /* 1-bit data. */
     MAC_AutoRequest_t          macAutoRequest;              /*!< Value of macAutoRequest. */
@@ -153,7 +151,16 @@ typedef struct _MacPibZBPRO_t
 
     MAC_AssociationPermit_t           macAssociationPermit;             /*!< Value of macAssociationPermit. */
 
+    MAC_SecurityEnabled_t             macSecurityEnabled;               /*!< Value of macSecurityEnabled. */
+
+    MAC_ThreadMode_t                  macThreadMode;                    /*!< Thread-mode if TRUE; ZbPRO if FALSE. */        // TODO: Move to separate structure with other MAC Security attributes.
+
 } MacPibZBPRO_t;
+
+
+// TODO: Provide separate structure for MAC Security attributes.
+
+
 
 
 /*
@@ -192,6 +199,7 @@ typedef struct _MacPibZBPRO_t
 #define MAC_ATTR_DEFAULT_VALUE_SECURITY_ENABLED                 FALSE
 #define MAC_ATTR_DEFAULT_VALUE_MIN_LIFS_PERIOD                  40
 #define MAC_ATTR_DEFAULT_VALUE_MIN_SIFS_PERIOD                  12
+#define MAC_ATTR_DEFAULT_VALUE_THREAD_MODE                      FALSE
 
 
 /* TODO: Implement as a macro-formula from other default values.

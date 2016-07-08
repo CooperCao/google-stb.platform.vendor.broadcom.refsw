@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -11,7 +11,7 @@
  * Software and all intellectual property rights therein.  IF YOU HAVE NO
  * AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
  * AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
- * SOFTWARE.  
+ * SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
@@ -86,15 +86,15 @@ static float FixedToFloat(uint32_t i)
    return (float)i / 64.0f;
 }
 
-Font::Font() : 
+Font::Font() :
    m_usePoints(false),
    m_pointSize(0.0f),
-   m_data(nullptr),
-   m_charMap(nullptr),
-   m_charSize(nullptr),
-   m_charAdvance(nullptr),
-   m_library(nullptr),
-   m_face(nullptr),
+   m_data(NULL),
+   m_charMap(NULL),
+   m_charSize(NULL),
+   m_charAdvance(NULL),
+   m_library(NULL),
+   m_face(NULL),
    m_effect(New)
 {
 }
@@ -108,18 +108,12 @@ void Font::SetFontInPercent(const std::string &fontName, float pointSizePercent,
 {
    float pixels = screenHeight * pointSizePercent / 100.0f;
 
-   if (Application::Instance()->IsQuad())
-      pixels *= Application::Instance()->GetQuadRender().GetDimensions().Y();
-
    SetFontInPixels(fontName, pixels, usePoints);
 }
 
 void Font::SetFontInPercent(const FontMemInfo &fontInfo, float pointSizePercent, uint32_t screenHeight, bool usePoints)
 {
    float pixels = screenHeight * pointSizePercent / 100.0f;
-
-   if (Application::Instance()->IsQuad())
-      pixels *= Application::Instance()->GetQuadRender().GetDimensions().Y();
 
    SetFontInPixels(fontInfo, pixels, usePoints);
 }
@@ -137,17 +131,13 @@ void Font::SetFontInPixels(const FontMemInfo &fontInfo, float pointSize, bool us
 void Font::SetFont(const std::string &fontName, const unsigned char *fontInMemory, uint32_t size, float pointSize, bool usePoints)
 {
    static   GLint numUniforms = -1;
-   
+
    if (numUniforms == -1)
       glGetIntegerv(GL_MAX_VERTEX_UNIFORM_VECTORS, &numUniforms);
 
    // The points shader uses two arrays of 127 plus one vec = 127 + 127 + 1 = 255 worst case with
    // no tight packing.
    m_usePoints = usePoints && (numUniforms >= 255);
-
-   // Let's not support point-based text in quad render mode.
-   if (Application::Instance()->IsQuad())
-      m_usePoints = false;
 
    std::istringstream iss(EffectString(), istringstream::in);
    m_effect = EffectHandle(New);
@@ -232,10 +222,12 @@ void Font::SetFont(const std::string &fontName, const unsigned char *fontInMemor
    FontTexturePacker tp;
 
    // populate the structure with all the textures
-   for (const auto &ch : charSet)
+   for (vector<FontCharacter>::iterator it = charSet.begin();
+      it != charSet.end();
+      ++it)
    {
       // round to even number as we divide by two in places
-      uint32_t wh = (std::max(ch.m_width, ch.m_height) + 1) & ~0x1;
+      uint32_t wh = (std::max((*it).m_width, (*it).m_height) + 1) & ~0x1;
       // these are all square, so use width for the height
       // use 2 texel border round each character
       // TODO: can this be 1?
@@ -272,22 +264,23 @@ void Font::SetFont(const std::string &fontName, const unsigned char *fontInMemor
    // fill in the final result
    int   j = 0;
 
-   for (const auto &ch : charSet)
+   for (vector<FontCharacter>::iterator it = charSet.begin(); it != charSet.end(); ++it)
    {
       const FontTextureRectangle &r = tp.GetRectangle(j);
+      FontCharacter *p = &(*it);
 
       // copy the sub-texture to its packed destination
       uint8_t  *src, *dst;
       uint32_t src_stride, dst_stride;
 
-      src = ch.m_bitmap;
+      src = p->m_bitmap;
       dst = m_data + ((r.GetY() + 2) * m_texWidth) + (r.GetX() + 2);
-      src_stride = ch.m_pitch;
+      src_stride = p->m_pitch;
       dst_stride = m_texWidth;
 
-      for (uint32_t y = 0; y < ch.m_height; y++)
+      for (uint32_t y = 0; y < p->m_height; y++)
       {
-         memcpy(&dst[1], src, ch.m_width);
+         memcpy(&dst[1], src, p->m_width);
 
          dst += dst_stride;
          src += src_stride;
@@ -305,19 +298,23 @@ void Font::SetFont(const std::string &fontName, const unsigned char *fontInMemor
       int32_t offset = (int32_t)m_charSize[j] / 2;
 
       // advance
-      m_charAdvance[j].m_advanceX = FixedToFloat(ch.m_advanceX);
-      m_charAdvance[j].m_unused   = ch.m_advanceY;
-      m_charAdvance[j].m_middleX  = ch.m_bitmapLeft + offset;
-      m_charAdvance[j].m_middleY  = ch.m_bitmapTop  - offset;
+      m_charAdvance[j].m_advanceX = FixedToFloat(p->m_advanceX);
+      m_charAdvance[j].m_unused   = p->m_advanceY;
+      m_charAdvance[j].m_middleX  = p->m_bitmapLeft + offset;
+      m_charAdvance[j].m_middleY  = p->m_bitmapTop  - offset;
 
       // move to next character
       j++;
    }
 
    // delete as the atlas has been built
-   for (const auto &ch : charSet)
-      delete [] ch.m_bitmap;
-
+   for (vector<FontCharacter>::iterator it = charSet.begin();
+      it != charSet.end();
+      ++it)
+   {
+      FontCharacter *p = &(*it);
+      delete [] p->m_bitmap;
+   }
    charSet.clear();
 
    m_material->SetEffect(m_effect);
@@ -364,7 +361,7 @@ TextureHandle Font::GetTexture()
    {
       m_texture->TexImage2D(GL_LUMINANCE, m_texWidth, m_texHeight, GL_LUMINANCE, GL_UNSIGNED_BYTE, m_data);
       delete [] m_data;
-      m_data = nullptr;
+      m_data = NULL;
    }
 
    return m_texture;
@@ -378,7 +375,6 @@ static float ViewScale(float n)
 void Font::MakeStringQuadArray(string &str, float x, float y, int32_t irx, int32_t iry, vector<Vec2> *arr)
 {
    vector<Vec2>   &res   = *arr;
-   bool           isQuad = Application::Instance()->IsQuad();
 
    float rx = (float)irx;
    float ry = (float)iry;
@@ -387,31 +383,6 @@ void Font::MakeStringQuadArray(string &str, float x, float y, int32_t irx, int32
 
    float qox = 0.0f;
    float qoy = 0.0f;
-
-   if (isQuad)
-   {
-      const QuadRender  &quad = Application::Instance()->GetQuadRender();
-
-      uint32_t panel = quad.GetPanel();
-      IVec2    dim   = quad.GetDimensions();
-
-      int32_t ox = panel % dim.X();
-      int32_t oy = panel / dim.X();
-
-      qox = (dim.X() - 1.0f) - 2.0f * ox;
-      qoy = (dim.Y() - 1.0f) - 2.0f * oy;
-
-      float xs = ViewScale(x / rx);
-      float ys = ViewScale(y / ry);
-
-      float xq = xs * dim.X() + qox;
-      qox = xq - xs;
-
-      float yq = ys * dim.Y() + qoy;
-      qoy = yq - ys;
-
-      wrapx = rx * dim.X();
-   }
 
    y -= m_lineHeight;  // Move origin to top left of first char
 
@@ -464,7 +435,7 @@ void Font::MakeStringQuadArray(string &str, float x, float y, int32_t irx, int32
       }
 
       // if we have gone off the screen, record where we got to and quit
-      if (!isQuad && pen_y < -2 * (int32_t)m_lineHeight)
+      if (pen_y < -2 * (int32_t)m_lineHeight)
       {
          // Clip the string where we stopped drawing
          str = str.substr(0, i);
@@ -716,7 +687,7 @@ static const char *s_pointEffect =
    "      precision mediump float;                              \n"
    "                                                            \n"
    "      uniform sampler2D   u_tex;                            \n"
-   "      uniform	vec4        u_color;                          \n"
+   "      uniform vec4        u_color;                          \n"
    "      uniform vec2        u_clamp;                          \n"
    "      varying vec2        start_position;                   \n"
    "      varying vec2        scale;                            \n"

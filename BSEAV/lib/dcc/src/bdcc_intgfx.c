@@ -636,7 +636,7 @@ void BCCGFX_INT_P_AccumulateChar(
 
     if ( 0 )
     {
-        BDBG_WRN(("gifxAccumulateChar pw = 0x%08x\n", pw)) ;
+        BDBG_WRN(("gifxAccumulateChar pw = %p\n", (void*)pw)) ;
         BDBG_WRN(("gifxAccumulateChar SecondaryRC = %d\n", *pSecondaryRC)) ;
         BDBG_WRN(("gifxAccumulateChar TsRowScrollAdj = %d\n", pw->WndBuf.TsRowScrollAdj)) ;
         BDBG_WRN(("gifxAccumulateChar fPendingScroll = %d\n", pw->fPendingScroll)) ;
@@ -807,8 +807,8 @@ void BCCGFX_INT_P_AccumulateChar(
             {
                 pw->fPendingScroll = 1 ;
                 *pSecondaryRC -= SecondaryRCInc ;
-                BDBG_MSG(("PendingScroll, queue it up, wnd %d pw 0x%08x row remains at %d, inc %d, limit %d\n",
-                        pw->WndId, pw,
+                BDBG_MSG(("PendingScroll, queue it up, wnd %d pw %p row remains at %d, inc %d, limit %d\n",
+                          pw->WndId, (void*)pw,
                         *pSecondaryRC,SecondaryRCInc,SecondaryRCLimit)) ;
             }
             else
@@ -1221,9 +1221,9 @@ void ResizeWndBuf(BDCC_INT_P_Handle hCodObject, BDCC_INT_P_Window * pw, int OldR
     else if ( AddlRows < 0 )
     {
         /* shrinking */
-        BDBG_MSG(("ResizeWndBuf SHRINKING orc %d nrc %d  wnd=%d pw 0x%08x rowinc=%d ScrollAdj %d\n",
+        BDBG_MSG(("ResizeWndBuf SHRINKING orc %d nrc %d  wnd=%d pw %p rowinc=%d ScrollAdj %d\n",
             OldRowCount, NewRowCount,
-            pw->WndId, pw,AddlRows,pw->WndBuf.TsRowScrollAdj)) ;
+                  pw->WndId, (void*)pw,AddlRows,pw->WndBuf.TsRowScrollAdj)) ;
 
         /*
          * We have a choice here whether to remove rows from the top

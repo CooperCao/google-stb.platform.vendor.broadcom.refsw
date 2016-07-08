@@ -590,11 +590,21 @@ static void Mode_Status(int SPDIF_ST, int HDMI_ST, int DV_ST, int TV_ST, int Mut
 
 }
 
+struct capture_callback_context
+{
+    NEXUS_AudioCaptureHandle capture;
+    FILE *pFile;
+};
+
 static void capture_callback(void *pParam, int param)
 {
-    NEXUS_AudioCaptureHandle capture = pParam;
-    FILE *pFile = (FILE *)param;
+
+    struct capture_callback_context *context = pParam;
+    NEXUS_AudioCaptureHandle capture = context->capture;
+    FILE *pFile = context->pFile;
     NEXUS_Error errCode;
+
+    BSTD_UNUSED(param);
 
     for ( ;; )
     {
@@ -643,6 +653,7 @@ static void audiodecoder_output_capture(void){
 
 	NEXUS_AudioCaptureHandle capture; 
 	NEXUS_AudioCaptureStartSettings captureSettings;
+        static struct capture_callback_context context;
 		
 	char *CapFileName, CapFile[50]; 
 	FILE *pFile; 
@@ -737,8 +748,10 @@ static void audiodecoder_output_capture(void){
 	/* Start the capture -- no data will be received until the decoder starts */
 	NEXUS_AudioCapture_GetDefaultStartSettings(&captureSettings);
 	captureSettings.dataCallback.callback = capture_callback;
+
+	context.capture = capture;
+	context.pFile = pFile;
 	captureSettings.dataCallback.context = capture;
-	captureSettings.dataCallback.param = (int)pFile;
 	NEXUS_AudioCapture_Start(capture, &captureSettings);
 	
 	
@@ -823,6 +836,7 @@ int main(int argc, char **argv)
 	char pcr[10], video[10], audio[10] , audiotype[10], S1[10], S2[10], S3[10], S4[10];
 	char *pcr_id, *video_id, *audio_id;
 	long pcr_pid, video_pid, audio_pid; 
+
 
     if ( argc > 1 ){
 		if((!strcmp(argv[1],"-help")) || (!strcmp(argv[1],"-HELP")) || (!strcmp(argv[1],"--help")) || (!strcmp(argv[1],"--HELP")) || (!strcmp(argv[1],"-h")) || (!strcmp(argv[1],"-H"))){
@@ -1100,6 +1114,8 @@ int main(int argc, char **argv)
 				printf(
 					" SPDIF/HDMI modes : \n"
 					" ------------------------------ \n"
+					);
+				printf(
 					"  1 : spdif-comp  - switch SPDIF to compressed mode\n" 
 					"  2 : spdif-pcm  - switch SPDIF to pcm mode\n" 
 					"  3 : spdif-ac3encode	- switch SPDIF to AC3 Encode\n" 

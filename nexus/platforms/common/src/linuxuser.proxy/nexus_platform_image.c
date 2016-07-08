@@ -182,7 +182,7 @@ NEXUS_Error Nexus_Platform_P_Image_Handler(int fd, int ioctl_no)
         }
         switch(ctl.req.req_type) {
         case BIMG_Ioctl_Req_Type_Open:
-            BDBG_MSG((">>Open[%s]: %#x %#x", ctl.req.id, (unsigned)entry->context, (unsigned)ctl.req.data.open.image_id));
+            BDBG_MSG((">>Open[%s]: %p %u", ctl.req.id, (void *)entry->context, (unsigned)ctl.req.data.open.image_id));
             if (b_interfaces.imgInterface.open) {
                 mrc = (b_interfaces.imgInterface.open)(entry->name, &ctl.ack.data.open.image, ctl.req.data.open.image_id);
                 if (!mrc) {
@@ -196,10 +196,10 @@ NEXUS_Error Nexus_Platform_P_Image_Handler(int fd, int ioctl_no)
             if (mrc==BERR_SUCCESS) {
                 entry->image = ctl.ack.data.open.image;
             }
-            BDBG_MSG(("<<Open[%s]: %#x %#x %d %#x", ctl.req.id, (unsigned)entry->context, (unsigned)ctl.req.data.open.image_id, ctl.ack.result, (unsigned)entry->image));
+            BDBG_MSG(("<<Open[%s]: %p %u %d %p", ctl.req.id, (void *)entry->context, (unsigned)ctl.req.data.open.image_id, ctl.ack.result, (void *)entry->image));
             break;
         case BIMG_Ioctl_Req_Type_Next:
-            BDBG_MSG((">>Next[%s]: %#x %#x %u", ctl.req.id, (unsigned)entry->image, (unsigned)ctl.req.data.next.chunk, (unsigned)ctl.req.data.next.length));
+            BDBG_MSG((">>Next[%s]: %p %u %u", ctl.req.id, (void *)entry->image, (unsigned)ctl.req.data.next.chunk, (unsigned)ctl.req.data.next.length));
             if (entry->external) {
                 mrc = (b_interfaces.imgInterface.next)(entry->image, ctl.req.data.next.chunk, &ctl.ack.data.next.data, (uint16_t)ctl.req.data.next.length);
             }
@@ -207,10 +207,10 @@ NEXUS_Error Nexus_Platform_P_Image_Handler(int fd, int ioctl_no)
                 mrc = entry->iface->next(entry->image, ctl.req.data.next.chunk, &ctl.ack.data.next.data, (uint16_t)ctl.req.data.next.length);
             }
             ctl.ack.result = mrc;
-            BDBG_MSG(("<<Next[%s]: %#x %#x %u %d %#x", ctl.req.id, (unsigned)entry->image, (unsigned)ctl.req.data.next.chunk, (unsigned)ctl.req.data.next.length, ctl.ack.result, (unsigned)ctl.ack.data.next.data ));
+            BDBG_MSG(("<<Next[%s]: %p %u %u %d %p", ctl.req.id, (void *)entry->image, (unsigned)ctl.req.data.next.chunk, (unsigned)ctl.req.data.next.length, ctl.ack.result, (void *)ctl.ack.data.next.data ));
             break;
         case BIMG_Ioctl_Req_Type_Close:
-            BDBG_MSG((">>Close[%s]: %#x", ctl.req.id, (unsigned)entry->image));
+            BDBG_MSG((">>Close[%s]: %p", ctl.req.id, (void *)entry->image));
             if (entry->external) {
                 (b_interfaces.imgInterface.close)(entry->image);
             }
@@ -218,7 +218,7 @@ NEXUS_Error Nexus_Platform_P_Image_Handler(int fd, int ioctl_no)
                 entry->iface->close(entry->image);
             }
             entry->image = NULL;
-            BDBG_MSG(("<<Close[%s]: %#x", ctl.req.id, (unsigned)entry->image));
+            BDBG_MSG(("<<Close[%s]: %p", ctl.req.id, (void *)entry->image));
             ctl.ack.result = BERR_SUCCESS;
             break;
         default:

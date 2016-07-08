@@ -253,3 +253,70 @@ BERR_Code BHAB_45216_ReadFlash(
    done:
    return retCode;
 }
+
+
+/******************************************************************************
+ BHAB_45216_BscWrite()
+******************************************************************************/
+BERR_Code BHAB_45216_BscWrite(
+   BHAB_Handle h,        /* [in] BHAB handle */
+   uint8_t channel,      /* [in] BSC channel, 0=BSCA, 1=BSCB, 2=BSCC */
+   uint16_t slave_addr,  /* [in] for 7-bit address: bits[6:0]; for 10-bit address: bits[9:0], bit 15 is set  */
+   uint8_t *i2c_buf,     /* [in] specifies the data to transmit */
+   uint32_t n            /* [in] number of bytes to transmit after the i2c slave address, 0 to 8 */
+)
+{
+   BERR_Code retCode;
+   uint32_t hab[13], i;
+
+   if ((n > 8) || (i2c_buf == NULL) || (channel > 2))
+      return BERR_INVALID_PARAMETER;
+
+   BKNI_Memset(hab, 0, 13*sizeof(uint32_t));
+   hab[0] = BHAB_45216_InitHeader(0x3B, channel, 0, 0);
+   hab[2] = slave_addr | (n << 16);
+   for (i = 0; i < n; i++)
+      hab[3+i] = (uint32_t)i2c_buf[i];
+   retCode = BHAB_45216_P_SendCommand(h, hab, 4+n);
+   if (retCode == BERR_SUCCESS)
+      retCode = hab[1];
+
+   return retCode;
+}
+
+
+/******************************************************************************
+ BHAB_45216_BscRead()
+******************************************************************************/
+BERR_Code BHAB_45216_BscRead(
+   BHAB_Handle h,        /* [in] BHAB handle */
+   uint8_t channel,      /* [in] BSC channel, 0=BSCA, 1=BSCB, 2=BSCC */
+   uint16_t slave_addr,  /* [in] for 7-bit address: bits[6:0]; for 10-bit address: bits[9:0], bit 15 is set  */
+   uint8_t *out_buf,     /* [in] specifies the data to transmit before the i2c restart condition */
+   uint8_t out_n,        /* [in] number of bytes to transmit (<=8) before the i2c restart condition not including the i2c slave address */
+   uint8_t *in_buf,      /* [out] stores the data read */
+   uint32_t in_n         /* [in] number of bytes to read after the i2c restart condition */
+)
+{
+   BERR_Code retCode = BERR_SUCCESS;
+   uint32_t hab[21], i;
+
+   if ((in_n > 8) || (in_n == 0) || (in_buf == NULL) || (out_n > 8) || ((out_buf == NULL) && out_n) || (channel > 2))
+      return BERR_INVALID_PARAMETER;
+
+   BKNI_Memset(hab, 0, 21*sizeof(uint32_t));
+   hab[0] = BHAB_45216_InitHeader(0x3C, channel, 0, 0);
+   hab[2] = slave_addr | (out_n << 16) | (in_n << 24);
+   for (i = 0; i < out_n; i++)
+      hab[3+i] = (uint32_t)out_buf[i];
+
+   retCode = BHAB_45216_P_SendCommand(h, hab, 4+in_n+out_n);
+   if (retCode == BERR_SUCCESS)
+   {
+      retCode = hab[1];
+      for (i = 0; i < in_n; i++)
+         in_buf[i] = (uint8_t)(hab[3+out_n+i] & 0xFF);
+   }
+
+   return retCode;
+}

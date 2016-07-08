@@ -1,7 +1,7 @@
 /******************************************************************************
-*    (c)2011-2013 Broadcom Corporation
+* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-* This program is the proprietary software of Broadcom Corporation and/or its licensors,
+* This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
 * conditions of a separate, written license agreement executed between you and Broadcom
 * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
 * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 * ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * Module Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 *****************************************************************************/
 #include "bstd.h"
@@ -54,6 +46,12 @@
 
 
 BDBG_MODULE(bsat_g1_priv_dft);
+
+#ifdef BCHP_SDS_DFT_0_CTRL1_dft_avg_mode_MASK
+#define BSAT_HAS_DFT_AVG 1
+#else
+#define BSAT_HAS_DFT_AVG 0
+#endif
 
 #define BSAT_DEBUG_DFT 0
 #define BSAT_DEBUG_PEAK_SCAN 0
@@ -506,11 +504,14 @@ BERR_Code BAST_g1_P_DftDoneTimeout_isr(BSAT_ChannelHandle h)
 BERR_Code BSAT_g1_P_DftStartAndWaitForDone_isr(BSAT_ChannelHandle h, BSAT_g1_FUNCT funct)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
-   uint32_t i, val, retry_count = 0, timeout = 5000;
+   uint32_t i, val = 0, retry_count = 0, timeout = 5000;
 
    hChn->passFunct = funct;
 
-#ifdef BCHP_SDS_DFT_0_CTRL1_dft_avg_mode_MASK
+   if (hChn->acqSettings.symbolRate < 2000000)
+      timeout = 7000;
+
+#if BSAT_HAS_DFT_AVG
    /* adjust the timeout based on the average number */
    val = BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_SDS_DFT_CTRL1);
    i = (val & BCHP_SDS_DFT_0_CTRL1_dft_avg_num_MASK) >> BCHP_SDS_DFT_0_CTRL1_dft_avg_num_SHIFT;
@@ -562,7 +563,7 @@ BERR_Code BSAT_g1_P_DftSymbolRateScan_isr(BSAT_ChannelHandle h)
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_DFT_RANGE_START, 0);
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_DFT_RANGE_END, 0x0F);
    val = 0x3F5;
-#ifdef BCHP_SDS_DFT_0_CTRL1_dft_avg_mode_MASK
+#if BSAT_HAS_DFT_AVG
    val |= (1 << BCHP_SDS_DFT_0_CTRL1_dft_avg_mode_SHIFT); /* minimum power mode */
    val |= (2 << BCHP_SDS_DFT_0_CTRL1_dft_avg_num_SHIFT);  /* average number = 4 */
 #endif
@@ -614,7 +615,11 @@ BERR_Code BSAT_g1_P_DftSymbolRateScanStateMachine_isr(BSAT_ChannelHandle h)
 #if 0 /* BSAT_DEBUG_PEAK_SCAN */
          BKNI_Printf("Fb=%u: ", hChn->acqSettings.symbolRate);
 #endif
+#if BSAT_HAS_DFT_AVG
+         BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_DFT_MEM_RADDR, 64);
+#else
          BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_DFT_MEM_RADDR, 0);
+#endif
          for (i = 0; i < 16; i++)
          {
             val = BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_SDS_DFT_MEM_RDATA);
@@ -627,7 +632,7 @@ BERR_Code BSAT_g1_P_DftSymbolRateScanStateMachine_isr(BSAT_ChannelHandle h)
 #if 0 /* BSAT_DEBUG_PEAK_SCAN */
          BKNI_Printf("\n");
 #endif
-#ifndef BCHP_SDS_DFT_0_CTRL1_dft_avg_mode_MASK
+#if BSAT_HAS_DFT_AVG==0
          if (state != 4)
          {
             BSAT_g1_P_DftSetState_isr(h, state+1);
@@ -678,7 +683,7 @@ BERR_Code BSAT_g1_P_DftSymbolRateScanStateMachine_isr(BSAT_ChannelHandle h)
          }
 
          hChn->acqSettings.symbolRate += hChn->tunerIfStepSize;
-         if (hChn->acqSettings.symbolRate <= hChn->symbolRateScanStatus.maxSymbolRate)
+         if (hChn->acqSettings.symbolRate <= (hChn->symbolRateScanStatus.maxSymbolRate + hChn->tunerIfStepSize))
          {
             BSAT_g1_P_SetBfos_isr(h);
             BSAT_g1_P_DftSetState_isr(h, 0);
@@ -750,7 +755,7 @@ BERR_Code BSAT_g1_P_DftPsdScan1_isr(BSAT_ChannelHandle h)
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_DFT_CTRL0, 0);
    BKNI_Delay(2);
    val = 0x257;
-#ifdef BCHP_SDS_DFT_0_CTRL1_dft_avg_mode_MASK
+#if BSAT_HAS_DFT_AVG
       val |= (3 << BCHP_SDS_DFT_0_CTRL1_dft_avg_num_SHIFT); /* average number = 8 */
 #endif
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_DFT_CTRL1, val);
@@ -767,25 +772,26 @@ BERR_Code BSAT_g1_P_DftPsdScan1_isr(BSAT_ChannelHandle h)
 BERR_Code BSAT_g1_P_DftPsdScan2_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
+#if BSAT_HAS_DFT_AVG==0
    uint32_t val;
+#endif
 
+#if BSAT_HAS_DFT_AVG
+   /* read bin 0 */
+   hChn->psdScanStatus.power = BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_SDS_DFT_PEAK_POW);
+#else
    val = BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_SDS_DFT_PEAK_POW);
-#ifndef BCHP_SDS_DFT_0_CTRL1_dft_avg_mode_MASK
    hChn->count1++;
    hChn->count2 += val;
    if (hChn->count1 < 8)
       return BSAT_g1_P_DftPsdScan1_isr(h);
+
+   hChn->psdScanStatus.power = hChn->count2 / 8;
 #endif
 
    BSAT_g1_P_DisableChannelInterrupts_isr(h);
    hChn->psdScanStatus.bScanDone = true;
    hChn->psdScanStatus.status = BERR_SUCCESS;
-#ifdef BCHP_SDS_DFT_0_CTRL1_dft_avg_mode_MASK
-   hChn->psdScanStatus.power = val;
-#else
-   hChn->psdScanStatus.power = hChn->count2 / 8;
-#endif
-
    hChn->configParam[BSAT_g1_CONFIG_DFT_STATUS] |=  BSAT_g1_CONFIG_DFT_STATUS_DONE;
    hChn->acqState = BSAT_AcqState_eIdle;
    BSAT_g1_P_IndicateAcqDone_isr(h);

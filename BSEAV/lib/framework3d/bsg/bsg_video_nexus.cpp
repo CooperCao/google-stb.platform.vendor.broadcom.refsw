@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -11,7 +11,7 @@
  * Software and all intellectual property rights therein.  IF YOU HAVE NO
  * AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
  * AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
- * SOFTWARE.  
+ * SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
@@ -93,13 +93,13 @@ namespace bsg
 
    public:
       NexusVideoStream() :
-         m_videoDecoder(nullptr),
-         m_filePlay(nullptr),
-         m_playPump(nullptr),
-         m_playBack(nullptr),
-         m_stcChannel(nullptr),
-         m_videoPidChannel(nullptr),
-         m_nexusDisplay(nullptr),
+         m_videoDecoder(NULL),
+         m_filePlay(NULL),
+         m_playPump(NULL),
+         m_playBack(NULL),
+         m_stcChannel(NULL),
+         m_videoPidChannel(NULL),
+         m_nexusDisplay(NULL),
          m_sourceWidth(0),
          m_sourceHeight(0),
          m_outputWidth(0),
@@ -110,7 +110,7 @@ namespace bsg
          m_connectId = 0;
          for (unsigned int i = 0; i < NEXUS_SIMPLE_DECODER_MAX_SURFACES; i++)
          {
-            m_videoSurfaces[i] = nullptr;
+            m_videoSurfaces[i] = NULL;
          }
 #endif
       }
@@ -138,18 +138,18 @@ namespace bsg
             m_outputWidth  = m_sourceWidth;
             m_outputHeight = m_sourceHeight;
 
-            m_playPump = NEXUS_Playpump_Open(m_index, nullptr);
-            if (m_playPump == nullptr)
+            m_playPump = NEXUS_Playpump_Open(m_index, NULL);
+            if (m_playPump == NULL)
                BSG_THROW("NEXUS_Playpump_Open failed");
 
             m_playBack = NEXUS_Playback_Create();
-            if (m_playBack == nullptr)
+            if (m_playBack == NULL)
                BSG_THROW("NEXUS_Playback_Create failed");
 
             /* open stream file */
             /* 2nd argument is the index */
             m_filePlay = NEXUS_FilePlay_OpenPosix(mediaData.m_filename.c_str(), mediaData.m_filename.c_str());
-            if (m_filePlay == nullptr)
+            if (m_filePlay == NULL)
                BSG_THROW("Failed to open video file");
 
 #ifdef SINGLE_PROCESS
@@ -160,13 +160,13 @@ namespace bsg
                videoDecoderOpenMosaicSettings.maxWidth = m_sourceWidth;
                videoDecoderOpenMosaicSettings.maxHeight = m_sourceHeight;
                m_videoDecoder = NEXUS_VideoDecoder_OpenMosaic(0, m_index, &videoDecoderOpenMosaicSettings);
-               if (m_videoDecoder == nullptr)
+               if (m_videoDecoder == NULL)
                   BSG_THROW("NEXUS_VideoDecoder_OpenMosaic failed");
             }
             else
             {
-               m_videoDecoder = NEXUS_VideoDecoder_Open(0, nullptr); /* take default capabilities */
-               if (m_videoDecoder == nullptr)
+               m_videoDecoder = NEXUS_VideoDecoder_Open(0, NULL); /* take default capabilities */
+               if (m_videoDecoder == NULL)
                   BSG_THROW("NEXUS_VideoDecoder_Open failed");
             }
 #else
@@ -185,7 +185,7 @@ namespace bsg
             if (m_allocResults.simpleVideoDecoder[0].id)
                m_videoDecoder = NEXUS_SimpleVideoDecoder_Acquire(m_allocResults.simpleVideoDecoder[0].id);
 
-            if (m_videoDecoder == nullptr)
+            if (m_videoDecoder == NULL)
                BSG_THROW("Acquire Nxclient decoder failed");
 #endif
 
@@ -193,7 +193,7 @@ namespace bsg
             stcSettings.timebase = NEXUS_Timebase_e0;
             stcSettings.mode = NEXUS_StcChannelMode_eAuto;
             m_stcChannel = NEXUS_StcChannel_Open(m_index, &stcSettings);
-            if (m_stcChannel == nullptr)
+            if (m_stcChannel == NULL)
                BSG_THROW("NEXUS_StcChannel_Open failed");
 
             /* setup playback */
@@ -215,7 +215,7 @@ namespace bsg
 #endif
             pidChannelSettings.pidTypeSettings.video.index = true;
             m_videoPidChannel = NEXUS_Playback_OpenPidChannel(m_playBack, mediaData.m_videoPid, &pidChannelSettings);
-            if (m_videoPidChannel == nullptr)
+            if (m_videoPidChannel == NULL)
                BSG_THROW("NEXUS_Playback_OpenPidChannel failed");
 
 #ifdef SINGLE_PROCESS
@@ -279,7 +279,7 @@ namespace bsg
 #endif
 
             /* start playback */
-            NEXUS_Playback_Start(m_playBack, m_filePlay, nullptr);
+            NEXUS_Playback_Start(m_playBack, m_filePlay, NULL);
          }
          catch (Exception e)
          {
@@ -323,7 +323,7 @@ namespace bsg
             if (m_videoSurfaces[i])
             {
                NEXUS_Surface_Destroy(m_videoSurfaces[i]);
-               m_videoSurfaces[i] = nullptr;
+               m_videoSurfaces[i] = NULL;
             }
          }
 
@@ -353,7 +353,7 @@ namespace bsg
          NEXUS_SimpleVideoDecoder_Start(m_videoDecoder, &m_videoProgram);
 
          /* start playback */
-         NEXUS_Playback_Start(m_playBack, m_filePlay, nullptr);
+         NEXUS_Playback_Start(m_playBack, m_filePlay, NULL);
 #endif
 #endif
       }
@@ -382,7 +382,7 @@ namespace bsg
                if (m_videoSurfaces[i])
                {
                   NEXUS_Surface_Destroy(m_videoSurfaces[i]);
-                  m_videoSurfaces[i] = nullptr;
+                  m_videoSurfaces[i] = NULL;
                }
             }
 #endif
@@ -391,13 +391,13 @@ namespace bsg
          if (m_videoPidChannel)
          {
             NEXUS_Playback_ClosePidChannel(m_playBack, m_videoPidChannel);
-            m_videoPidChannel = nullptr;
+            m_videoPidChannel = NULL;
          }
 
          if (m_stcChannel)
          {
             NEXUS_StcChannel_Close(m_stcChannel);
-            m_stcChannel = nullptr;
+            m_stcChannel = NULL;
          }
 
 #ifdef SINGLE_PROCESS
@@ -407,7 +407,7 @@ namespace bsg
          if (m_videoDecoder)
          {
             NEXUS_VideoDecoder_Close(m_videoDecoder);
-            m_videoDecoder = nullptr;
+            m_videoDecoder = NULL;
          }
 #else
          if (m_connectId)
@@ -416,7 +416,7 @@ namespace bsg
          if (m_videoDecoder)
          {
             NEXUS_SimpleVideoDecoder_Release(m_videoDecoder);
-            m_videoDecoder = nullptr;
+            m_videoDecoder = NULL;
          }
 
          NxClient_Free(&m_allocResults);
@@ -425,19 +425,19 @@ namespace bsg
          if (m_filePlay)
          {
             NEXUS_FilePlay_Close(m_filePlay);
-            m_filePlay = nullptr;
+            m_filePlay = NULL;
          }
 
          if (m_playBack)
          {
             NEXUS_Playback_Destroy(m_playBack);
-            m_playBack = nullptr;
+            m_playBack = NULL;
          }
 
          if (m_playPump)
          {
             NEXUS_Playpump_Close(m_playPump);
-            m_playPump = nullptr;
+            m_playPump = NULL;
          }
       }
 
@@ -469,11 +469,11 @@ namespace bsg
    {
    public:
       NexusVideoPrivate(const std::string &videoFileName, NEXUS_DisplayHandle nexusDisplay) :
-         m_gfxDone(nullptr),
-         m_gfx2d(nullptr),
+         m_gfxDone(NULL),
+         m_gfx2d(NULL),
          m_numStreams(0)
 #ifdef SINGLE_PROCESS
-         ,m_stripedSurfaces(nullptr)
+         ,m_stripedSurfaces(NULL)
 #endif
       {
 
@@ -484,10 +484,10 @@ namespace bsg
       }
 #ifdef SINGLE_PROCESS
       NexusVideoPrivate(const std::vector<std::string> &videoFileNames, NEXUS_DisplayHandle nexusDisplay) :
-         m_gfxDone(nullptr),
-         m_gfx2d(nullptr),
+         m_gfxDone(NULL),
+         m_gfx2d(NULL),
          m_numStreams(0),
-         m_stripedSurfaces(nullptr)
+         m_stripedSurfaces(NULL)
       {
          Init(videoFileNames, nexusDisplay);
       }
@@ -530,23 +530,23 @@ namespace bsg
          if (m_stripedSurfaces)
          {
             delete [] m_stripedSurfaces;
-            m_stripedSurfaces = nullptr;
+            m_stripedSurfaces = NULL;
          }
 #endif
 
          delete [] m_streams;
-         m_streams = nullptr;
+         m_streams = NULL;
 
          if (m_gfx2d)
          {
             NEXUS_Graphics2D_Close(m_gfx2d);
-            m_gfx2d = nullptr;
+            m_gfx2d = NULL;
          }
 
          if (m_gfxDone)
          {
             BKNI_DestroyEvent(m_gfxDone);
-            m_gfxDone = nullptr;
+            m_gfxDone = NULL;
          }
       }
 
@@ -599,7 +599,7 @@ Video::Video(const std::string &videoFileName) :
 {
    std::string fileName = Application::Instance()->FindResource(videoFileName);
 
-   m_priv = new NexusVideoPrivate(fileName, nullptr);
+   m_priv = new NexusVideoPrivate(fileName, NULL);
 }
 
 Video::Video(const std::vector<std::string> &videoFileNames) :
@@ -611,7 +611,7 @@ Video::Video(const std::vector<std::string> &videoFileNames) :
    for (uint32_t i = 0; i < videoFileNames.size(); ++i)
       fileNames.push_back(Application::Instance()->FindResource(videoFileNames[i]));
 
-   m_priv = new NexusVideoPrivate(fileNames[0], nullptr);
+   m_priv = new NexusVideoPrivate(fileNames[0], NULL);
 }
 
 #endif
@@ -714,8 +714,8 @@ void Video::SetOutputParameters(uint32_t widthArg, uint32_t heightArg, eVideoFra
 
       BKNI_CreateEvent(&priv->m_gfxDone);
 
-      priv->m_gfx2d = NEXUS_Graphics2D_Open(0, nullptr);
-      if (priv->m_gfx2d == nullptr)
+      priv->m_gfx2d = NEXUS_Graphics2D_Open(0, NULL);
+      if (priv->m_gfx2d == NULL)
          BSG_THROW("NEXUS_Graphics2D_Open failed");
 
       NEXUS_Graphics2D_GetSettings(priv->m_gfx2d, &gfxSettings);
@@ -741,10 +741,10 @@ void Video::SetOutputFormat(eVideoFrameFormat format, GLTexture::eVideoTextureMo
 
 Video::eFrameStatus Video::GetFrame(eMode mode, VideoBuffer *buffer, TextureHandle texture)
 {
-   NEXUS_StripedSurfaceHandle stripedSurface = nullptr;
-   
-   if (buffer == nullptr)
-      BSG_THROW("nullptr buffer passed to GetFrame");
+   NEXUS_StripedSurfaceHandle stripedSurface = NULL;
+
+   if (buffer == NULL)
+      BSG_THROW("NULL buffer passed to GetFrame");
 
    if (buffer->GetWidth() != priv->m_streams[0].m_outputWidth || buffer->GetHeight() != priv->m_streams[0].m_outputHeight)
       BSG_THROW("Video buffer size does not match decoder");
@@ -755,9 +755,9 @@ Video::eFrameStatus Video::GetFrame(eMode mode, VideoBuffer *buffer, TextureHand
    if (mode != BLOCK)
    {
       // We may not have a new video frame ready to use, in which case NEXUS_VideoDecoder_CreateStripedSurface
-      // will return nullptr. Check now so we can avoid any destination surface lock if we don't yet have a buffer.
+      // will return NULL. Check now so we can avoid any destination surface lock if we don't yet have a buffer.
       stripedSurface = NEXUS_VideoDecoder_CreateStripedSurface(priv->m_streams[0].m_videoDecoder);
-      if (stripedSurface == nullptr)
+      if (stripedSurface == NULL)
       {
          // No more frames ready yet. Pixmap should still have valid data from last time.
          return Video::eFRAME_REPEAT;
@@ -777,7 +777,7 @@ Video::eFrameStatus Video::GetFrame(eMode mode, VideoBuffer *buffer, TextureHand
       if (mode == BLOCK)
       {
          // Wait for a new video frame
-         while (stripedSurface == nullptr)
+         while (stripedSurface == NULL)
             stripedSurface = NEXUS_VideoDecoder_CreateStripedSurface(priv->m_streams[0].m_videoDecoder);
       }
       else
@@ -786,9 +786,9 @@ Video::eFrameStatus Video::GetFrame(eMode mode, VideoBuffer *buffer, TextureHand
          // The video buffer chain may have looped around and we could end up using a surface
          // that's being written into otherwise, resulting in nasty tearing.
          NEXUS_StripedSurfaceHandle nextStripe = NEXUS_VideoDecoder_CreateStripedSurface(priv->m_streams[0].m_videoDecoder);
-         if (nextStripe == nullptr)
+         if (nextStripe == NULL)
          {
-            if (stripedSurface == nullptr)
+            if (stripedSurface == NULL)
             {
                // Still no striped surface ready. Unlock and return.
                if (m_updateMode == eEXT_SYNC || m_updateMode == eALWAYS_SYNC)
@@ -801,7 +801,7 @@ Video::eFrameStatus Video::GetFrame(eMode mode, VideoBuffer *buffer, TextureHand
          else
          {
             // Use the newest surface (nextStripe), but first destroy the buffer we got before the lock (if we got one)
-            if (stripedSurface != nullptr)
+            if (stripedSurface != NULL)
                NEXUS_VideoDecoder_DestroyStripedSurface(priv->m_streams[0].m_videoDecoder, stripedSurface);
 
             stripedSurface = nextStripe;
@@ -809,16 +809,16 @@ Video::eFrameStatus Video::GetFrame(eMode mode, VideoBuffer *buffer, TextureHand
       }
 
       // Now destripe the surface into our destination buffer
-      rc = NEXUS_Graphics2D_DestripeToSurface(priv->m_gfx2d, stripedSurface, dstSurface, nullptr);
+      rc = NEXUS_Graphics2D_DestripeToSurface(priv->m_gfx2d, stripedSurface, dstSurface, NULL);
       BDBG_ASSERT(!rc);
 
       // We must wait for the destripe to complete now
       do
       {
-         rc = NEXUS_Graphics2D_Checkpoint(priv->m_gfx2d, nullptr);
+         rc = NEXUS_Graphics2D_Checkpoint(priv->m_gfx2d, NULL);
          if (rc == NEXUS_GRAPHICS2D_QUEUED)
             rc = BKNI_WaitForEvent(priv->m_gfxDone, 1000);
-      } 
+      }
       while (rc == NEXUS_GRAPHICS2D_QUEUE_FULL);
 
       // We're done with the striped surface, so kill it.
@@ -838,20 +838,20 @@ Video::eFrameStatus Video::GetFrame(eMode mode, VideoBuffer *buffer, TextureHand
    return Video::eFRAME_ERROR;
 }
 
-void Video::GetMosaicFrames(std::vector<eFrameStatus> &results, 
+void Video::GetMosaicFrames(std::vector<eFrameStatus> &results,
                             const std::vector<VideoBuffer *> &buffers, const std::vector<TextureHandle> &textures)
 {
    uint32_t numStripedSurfaces;
    uint32_t s;
 
-   // Initialiase the striped surface to nullptr
+   // Initialiase the striped surface to NULL
    // as NEXUS_VideoDecoder_CreateStripedMosaicSurfaces might not do it
    for (s = 0; s < priv->m_numStreams; s++)
-      priv->m_stripedSurfaces[s] = nullptr;
+      priv->m_stripedSurfaces[s] = NULL;
 
    // We may not have a new video frame ready to use, in which case NEXUS_VideoDecoder_CreateStripedMosaicSurfaces
-   // will return all nullptr. Check now so we can avoid any destination surface lock if we don't yet have a buffer.
-   NEXUS_VideoDecoder_CreateStripedMosaicSurfaces(priv->m_streams[0].m_videoDecoder, priv->m_stripedSurfaces, 
+   // will return all NULL. Check now so we can avoid any destination surface lock if we don't yet have a buffer.
+   NEXUS_VideoDecoder_CreateStripedMosaicSurfaces(priv->m_streams[0].m_videoDecoder, priv->m_stripedSurfaces,
                                                   priv->m_numStreams, &numStripedSurfaces);
 
    results.clear();
@@ -861,7 +861,7 @@ void Video::GetMosaicFrames(std::vector<eFrameStatus> &results,
    {
       results.push_back(Video::eFRAME_REPEAT);
 
-      if (priv->m_stripedSurfaces[s] != nullptr)
+      if (priv->m_stripedSurfaces[s] != NULL)
          gotSome = true;
    }
 
@@ -873,7 +873,7 @@ void Video::GetMosaicFrames(std::vector<eFrameStatus> &results,
       if (buffers[s]->GetWidth() != priv->m_streams[s].m_outputWidth || buffers[s]->GetHeight() != priv->m_streams[s].m_outputHeight)
          BSG_THROW("Video buffer size does not match decoder");
 
-      if (priv->m_stripedSurfaces[s] != nullptr)
+      if (priv->m_stripedSurfaces[s] != NULL)
       {
          NEXUS_SurfaceHandle dstSurface = ((NexusPixmapData*)buffers[s]->GetNativePixmap()->GetNativePixmapData())->m_surface;
          if (dstSurface)
@@ -886,16 +886,16 @@ void Video::GetMosaicFrames(std::vector<eFrameStatus> &results,
                textures[s]->Lock();
 
             // Now destripe the surface into our destination buffer
-            rc = NEXUS_Graphics2D_DestripeToSurface(priv->m_gfx2d, priv->m_stripedSurfaces[s], dstSurface, nullptr);
+            rc = NEXUS_Graphics2D_DestripeToSurface(priv->m_gfx2d, priv->m_stripedSurfaces[s], dstSurface, NULL);
             BDBG_ASSERT(!rc);
 
             // We must wait for the destripe to complete now
             do
             {
-               rc = NEXUS_Graphics2D_Checkpoint(priv->m_gfx2d, nullptr);
+               rc = NEXUS_Graphics2D_Checkpoint(priv->m_gfx2d, NULL);
                if (rc == NEXUS_GRAPHICS2D_QUEUED)
                   rc = BKNI_WaitForEvent(priv->m_gfxDone, 1000);
-            } 
+            }
             while (rc == NEXUS_GRAPHICS2D_QUEUE_FULL);
 
             // Tell V3D we've changed it
@@ -926,8 +926,8 @@ Video::eFrameStatus Video::GetFrame(eMode mode, VideoBuffer *buffer, TextureHand
 
    NEXUS_SurfaceHandle dstSurface = ((NexusPixmapData*)buffer->GetNativePixmap()->GetNativePixmapData())->m_surface;
 
-   if (buffer == nullptr)
-      BSG_THROW("nullptr buffer passed to GetFrame");
+   if (buffer == NULL)
+      BSG_THROW("NULL buffer passed to GetFrame");
 
    if (buffer->GetWidth() != priv->m_streams[0].m_outputWidth ||
        buffer->GetHeight() != priv->m_streams[0].m_outputHeight)
@@ -967,7 +967,7 @@ Video::eFrameStatus Video::GetFrame(eMode mode, VideoBuffer *buffer, TextureHand
             // We must wait for the fill to complete now
             do
             {
-               rc = NEXUS_Graphics2D_Checkpoint(priv->m_gfx2d, nullptr);
+               rc = NEXUS_Graphics2D_Checkpoint(priv->m_gfx2d, NULL);
                if (rc == NEXUS_GRAPHICS2D_QUEUED)
                   rc = BKNI_WaitForEvent(priv->m_gfxDone, 1000);
             }
@@ -1016,7 +1016,7 @@ Video::eFrameStatus Video::GetFrame(eMode mode, VideoBuffer *buffer, TextureHand
       /* We must wait for the blit to complete now */
       do
       {
-         rc = NEXUS_Graphics2D_Checkpoint(priv->m_gfx2d, nullptr);
+         rc = NEXUS_Graphics2D_Checkpoint(priv->m_gfx2d, NULL);
          if (rc == NEXUS_GRAPHICS2D_QUEUED)
             rc = BKNI_WaitForEvent(priv->m_gfxDone, 1000);
       }

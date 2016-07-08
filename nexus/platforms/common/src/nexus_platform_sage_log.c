@@ -222,8 +222,11 @@ exit:
     {
         NEXUS_Memory_Free(pLogBuffer);
     }
-    fclose(pFile);
-    pFile = NULL;
+    if(pFile != NULL)
+    {
+        fclose(pFile);
+        pFile = NULL;
+    }
 
     pthread_exit(NULL);
     return NULL;

@@ -1,43 +1,39 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c) 2016 Broadcom. All rights reserved.
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 
 #include "graphics_nx.h"
@@ -293,16 +289,19 @@ eRet CSimpleVideoDecodeNx::start(
         CStc * pStc
         )
 {
-    eRet  ret              = eRet_Ok;
+    eRet          ret       = eRet_Ok;
+    NEXUS_Error   nerror    = NEXUS_SUCCESS;
     CGraphicsNx * pGraphics = (CGraphicsNx *)_pModel->getGraphics();
-    MRect rectVideoFormat;
+    MRect         rectVideoFormat;
 
-    if (NULL != pGraphics)
+    BDBG_ASSERT(NULL != _surfaceClientVideoWin);
+    BDBG_ASSERT(NULL != pGraphics);
+
     {
         NEXUS_SurfaceComposition settingsSurfaceClient;
         NxClient_GetSurfaceClientComposition(
-            pGraphics->getSurfaceClientDesktop()->getNumber(),
-            &settingsSurfaceClient);
+                pGraphics->getSurfaceClientDesktop()->getNumber(),
+                &settingsSurfaceClient);
 
         /* get size of required video window - we will base main/pip on this size */
         rectVideoFormat.setX(settingsSurfaceClient.position.x);
@@ -311,8 +310,42 @@ eRet CSimpleVideoDecodeNx::start(
         rectVideoFormat.setHeight(settingsSurfaceClient.position.height);
     }
 
-    if ((getWindowType() != _pModel->getFullScreenWindowType()) &&
-        (NULL != _surfaceClientVideoWin))
+    /* disable close captioning routing for mosaic decodes */
+    if ((eWindowType_Mosaic1 <= getWindowType()) && (eWindowType_Max > getWindowType()))
+    {
+        NEXUS_SimpleVideoDecoderClientSettings  videoDecoderClientSettings;
+
+        NEXUS_SimpleVideoDecoder_GetClientSettings(getSimpleDecoder(), &videoDecoderClientSettings);
+        videoDecoderClientSettings.closedCaptionRouting = false;
+        nerror = NEXUS_SimpleVideoDecoder_SetClientSettings(getSimpleDecoder(), &videoDecoderClientSettings);
+        CHECK_NEXUS_ERROR("unable to disable closed caption routing", nerror);
+    }
+
+    if (eWindowType_Mosaic1 == getWindowType())
+    {
+        BDBG_MSG(("---------------------------------- resizing mosaic1 video window"));
+        ret = setGeometryVideoWindow(rectVideoFormat, 50, eWinArea_UpperLeft, 0, 1);
+    }
+    else
+    if (eWindowType_Mosaic2 == getWindowType())
+    {
+        BDBG_MSG(("---------------------------------- resizing mosaic2 video window"));
+        ret = setGeometryVideoWindow(rectVideoFormat, 50, eWinArea_UpperRight, 0, 1);
+    }
+    else
+    if (eWindowType_Mosaic3 == getWindowType())
+    {
+        BDBG_MSG(("---------------------------------- resizing mosaic3 video window"));
+        ret = setGeometryVideoWindow(rectVideoFormat, 50, eWinArea_LowerLeft, 0, 1);
+    }
+    else
+    if (eWindowType_Mosaic4 == getWindowType())
+    {
+        BDBG_MSG(("---------------------------------- resizing mosaic4 video window"));
+        ret = setGeometryVideoWindow(rectVideoFormat, 50, eWinArea_LowerRight, 0, 1);
+    }
+    else
+    if (getWindowType() != _pModel->getFullScreenWindowType())
     {
         BDBG_MSG(("---------------------------------- resizing decimate video window"));
         ret = setGeometryVideoWindow(
@@ -331,44 +364,45 @@ eRet CSimpleVideoDecodeNx::start(
     }
 
     return(CSimpleVideoDecode::start(pPid, pStc));
+
 error:
     return(ret);
 } /* start */
 
-eRet CSimpleVideoDecodeNx::updateConnectSettings(NxClient_ConnectSettings * pSettings)
+eRet CSimpleVideoDecodeNx::updateConnectSettings(NxClient_ConnectSettings * pSettings, int index)
 {
-     eRet          ret       = eRet_Ok;
-     CGraphicsNx * pGraphics = (CGraphicsNx *)_pModel->getGraphics();
+    eRet          ret       = eRet_Ok;
+    CGraphicsNx * pGraphics = (CGraphicsNx *)_pModel->getGraphics();
 
-     pSettings->simpleVideoDecoder[0].id = getNumber();
+    pSettings->simpleVideoDecoder[index].id = getNumber();
 
-     if (eWindowType_Pip == _pModel->getFullScreenWindowType())
-     {
-         /* pip is fullscreen (swap occurred) */
-         pSettings->simpleVideoDecoder[0].windowCapabilities.type = //NxClient_VideoWindowType_eMain;
-             (eWindowType_Main == getWindowType()) ? NxClient_VideoWindowType_ePip : NxClient_VideoWindowType_eMain;
-     }
-     else
-     {
-         /* main is fullscreen (no swap) */
-         pSettings->simpleVideoDecoder[0].windowCapabilities.type =
-             (eWindowType_Main == getWindowType()) ? NxClient_VideoWindowType_eMain : NxClient_VideoWindowType_ePip;
-     }
+    if (eWindowType_Pip == _pModel->getFullScreenWindowType())
+    {
+        /* pip is fullscreen (swap occurred) */
+        pSettings->simpleVideoDecoder[index].windowCapabilities.type = /* NxClient_VideoWindowType_eMain; */
+            (eWindowType_Pip == getWindowType()) ? NxClient_VideoWindowType_eMain : NxClient_VideoWindowType_ePip;
+    }
+    else
+    {
+        /* main is fullscreen (no swap) */
+        pSettings->simpleVideoDecoder[index].windowCapabilities.type =
+            (eWindowType_Pip == getWindowType()) ? NxClient_VideoWindowType_ePip : NxClient_VideoWindowType_eMain;
+    }
 
-     if (NULL != pGraphics)
-     {
-         pSettings->simpleVideoDecoder[0].surfaceClientId = pGraphics->getSurfaceClientDesktop()->getNumber();
-         pSettings->simpleVideoDecoder[0].windowId        = getWindowType(); //(eWindowType_Main == getVideoWindowType()) ? 0 : 1;
-     }
+    if (NULL != pGraphics)
+    {
+        pSettings->simpleVideoDecoder[index].surfaceClientId = pGraphics->getSurfaceClientDesktop()->getNumber();
+        pSettings->simpleVideoDecoder[index].windowId        = getWindowType(); /* (eWindowType_Main == getVideoWindowType()) ? 0 : 1; */
+    }
 
     if ((0 < _maxWidth) && (0 < _maxHeight))
     {
-        pSettings->simpleVideoDecoder[0].decoderCapabilities.maxWidth  = _maxWidth;
-        pSettings->simpleVideoDecoder[0].decoderCapabilities.maxHeight = _maxHeight;
+        pSettings->simpleVideoDecoder[index].decoderCapabilities.maxWidth  = _maxWidth;
+        pSettings->simpleVideoDecoder[index].decoderCapabilities.maxHeight = _maxHeight;
         /* TTTTTTTTTTTTTTTT TODO: support 10bit color depth
-         * pSettings->simpleVideoDecoder[0].decoderCapabilities.colorDepth =
+         * pSettings->simpleVideoDecoder[index].decoderCapabilities.colorDepth =
          */
     }
 
-     return(ret);
+    return(ret);
 } /* updateConnectSettings */

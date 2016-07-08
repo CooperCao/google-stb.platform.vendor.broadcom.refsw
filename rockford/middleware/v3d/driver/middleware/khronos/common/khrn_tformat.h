@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2005 Broadcom Ltd. All rights reserved.
+Broadcom Proprietary and Confidential. (c)2005 Broadcom.  All rights reserved.
 
 Project  :  VideoCore III 3D Renderer
 Module   :  Reference Renderer

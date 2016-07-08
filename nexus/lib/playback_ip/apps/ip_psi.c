@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,8 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
  *  ip psi test file
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ******************************************************************************/
 #include "nexus_platform.h"
@@ -498,7 +490,7 @@ void acquirePsiInfo(pPsiCollectionDataType pCollectionData, B_PlaybackIpPsiInfo 
             BDBG_ERR(("%s: QAM Src failed to lock the signal during PSI acquisition...", __FUNCTION__));
             goto error;
         }
-        BDBG_MSG(("%s: QAM Src (frontend %p) locked the signal during PSI acquisition...", __FUNCTION__, pCollectionData->frontend));
+        BDBG_MSG(("%s: QAM Src (frontend %p) locked the signal during PSI acquisition...", __FUNCTION__, (void *)pCollectionData->frontend));
         /* continue below */
     }
     else if (pCollectionData->srcType == IpStreamerSrc_eSat) {
@@ -593,7 +585,7 @@ out:
         for (i = 0; i<MAX_PROGRAMS_PER_FREQUENCY && (TS_PAT_getProgram(buf, bufLength, i, &program)==BERR_SUCCESS); i++)
         {
             memset(psi, 0, sizeof(*psi));
-            BDBG_MSG(("program_number: %d, i %d, PID: 0x%04X, psi %p, sizeof psi %d\n", program.program_number, i, program.PID, psi, sizeof(*psi)));
+            BDBG_MSG(("program_number: %d, i %d, PID: 0x%04X, psi %p, sizeof psi %d\n", program.program_number, i, program.PID, (void *)psi, sizeof(*psi)));
             psi->pmtPid = program.PID;
 
             BKNI_ResetEvent((BKNI_EventHandle)settingsApi.dataReadyCallbackParam);

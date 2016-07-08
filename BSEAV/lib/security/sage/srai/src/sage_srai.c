@@ -35,6 +35,8 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  ******************************************************************************/
+
+
 /*
  * Includes
  */
@@ -46,6 +48,7 @@
 #include "bstd.h"
 #include "bkni.h"
 #include "bkni_multi.h"
+#include "bkni_event_group.h"
 #include "blst_list.h"
 
 /* Nexus headers */
@@ -57,14 +60,20 @@
 
 /* SAGE software framework headers */
 #include "bsagelib_types.h"
-#include "sage_private_types.h"
+#include "bsagelib_sdl_header.h"
 
 /* SRAI header */
 #include "sage_srai.h"
 
+
 #ifdef NXCLIENT_SUPPORT
 #include "nxclient.h"
 #endif
+
+#include "sage_srai_extended.h"
+#include "priv/bsagelib_rpc_shared.h"
+#include "priv/bsagelib_shared_types.h"
+
 /*
  * Debug
  */
@@ -75,7 +84,7 @@ BDBG_MODULE(srai);
 /* DEBUG - only for development */
 #if 0
 #define SRAI_DUMP_COMMAND(STR, COMMAND)                         \
-        BDBG_MSG(("DUMP command %s (%d bytes):\n"               \
+        BDBG_LOG(("DUMP command %s (%d bytes):\n"               \
                   "\tsystemCommandId=%08x\n"                    \
                   "\tplatformId=%08x\n"                         \
                   "\tmoduleId=%08x\n"                           \
@@ -104,8 +113,9 @@ typedef struct srai_sync_call {
     NEXUS_SageChannelHandle channel;  /* Nexus SAGE channel used to communicate with SAGE-side */
     NEXUS_SageCommand command;        /* command definition (IDs) */
     NEXUS_Error lastErrorNexus;       /* returned error at Nexus level */
-    BERR_Code lastErrorSage;         /* returned error at SAGE level */
+    BERR_Code lastErrorSage;          /* returned error at SAGE level */
     uint8_t reset;                    /* if reset is set to 1, this sync context cannot be used anymore */
+    uint8_t terminated;               /* if terminated is set to 1, this sync context cannot be used anymore */
 } srai_sync_call;
 
 /* SRAI platform context.
@@ -114,7 +124,14 @@ typedef struct srai_sync_call {
 typedef struct SRAI_Platform {
     srai_sync_call sync;              /* sync object used to run a synchronous call to SAGE */
     uint32_t id;                      /* platform identifier */
+    struct {
+        uint8_t notified;
+        SRAI_RequestRecvCallback requestRecvCallback;
+        BSAGElib_InOutContainer *container;
+        BSAGElib_RpcMessage *message;
+    } callbacks;
     BLST_D_ENTRY(SRAI_Platform) link; /* member of a linked list */
+    uint8_t ta_terminate_reported;
 } SRAI_Platform;
 
 /* SRAI module context.
@@ -131,6 +148,11 @@ typedef struct SRAI_CallbackItem {
     SRAI_Callback callback;
     BLST_D_ENTRY(SRAI_CallbackItem) link; /* member of a linked list */
 } SRAI_CallbackItem;
+
+typedef struct SRAI_TATerminateCallbackItem {
+    SRAI_TATerminateCallback callback;
+    BLST_D_ENTRY(SRAI_TATerminateCallbackItem) link; /* member of a linked list */
+} SRAI_TATerminateCallbackItem;
 
 /*
  * SRAI private context (used by sage_srai.c routines)
@@ -153,6 +175,7 @@ static struct srai_context {
     /* allocation settings for NEXUS_MemoryAllocate() */
     NEXUS_MemoryAllocationSettings allocSettings;
     NEXUS_MemoryAllocationSettings secureAllocSettings;
+    NEXUS_MemoryAllocationSettings exportAllocSettings;
     NEXUS_Addr secure_offset;
     unsigned secure_size;
 
@@ -167,25 +190,48 @@ static struct srai_context {
     BLST_D_HEAD(SRAI_PlatformList, SRAI_Platform) platforms;
     BLST_D_HEAD(SRAI_ModuleList, SRAI_Module) modules;
 
-    /* watchdog */
     struct {
-        /* Management API is not available during watchdog handling (in watchdog callback):
-         * use pthread_self to prevent deadlock from upper layer  */
-        pthread_t management_lock_thread;
-        uint8_t management_lock;
-
+        /* async thread resources */
         uint8_t started;
-        uint16_t count;
         pthread_t thread;
-        BKNI_EventHandle event;
+        BKNI_EventHandle hEvent;
+        BKNI_EventGroupHandle hEventGroup;
 
-        BLST_D_HEAD(SRAI_WatchdogCallbackList, SRAI_CallbackItem) callbacks;
-    } watchdog;
+        struct {
+            /* Management API is not available during callbacks processing:
+             * use pthread_self to prevent deadlock from upper layer  */
+            pthread_t lock_thread;
+            uint8_t lock;
+        } management;
+
+        /* Watchdog event handling */
+        struct {
+            uint16_t count;
+            BKNI_EventHandle hEvent;
+            BLST_D_HEAD(SRAI_WatchdogCallbackList, SRAI_CallbackItem) callbacks;
+        } watchdog;
+
+        struct {
+            BKNI_EventHandle hEvent;
+            BLST_D_HEAD(SRAI_TATerminateCallbackList, SRAI_TATerminateCallbackItem) callbacks;
+        } ta_terminate;
+
+        /* Callback request event handling */
+        struct {
+            uint16_t count;
+            BKNI_EventHandle hEvent;
+        } callbackRequest;
+    } async;
 
     BSAGElib_MemorySyncInterface i_memory_sync;
     BSAGElib_MemoryMapInterface i_memory_map;
     BSAGElib_MemoryAllocInterface i_memory_alloc;
     BSAGElib_SyncInterface i_sync_cache;
+
+    SRAI_PlatformHandle system_platform;
+    SRAI_ModuleHandle system_module;
+
+  int platform_refcount;
 
 } _srai;
 
@@ -193,9 +239,9 @@ static struct srai_context {
 //static SRAI_Settings _srai_settings = {NEXUS_MEMC0_MAIN_HEAP, NEXUS_VIDEO_SECURE_HEAP};
 static SRAI_Settings _srai_settings =
 #ifdef NXCLIENT_SUPPORT
-    {NXCLIENT_FULL_HEAP, NXCLIENT_VIDEO_SECURE_HEAP};
+    {NXCLIENT_FULL_HEAP, NXCLIENT_VIDEO_SECURE_HEAP, NXCLIENT_EXPORT_HEAP};
 #else
-    {NEXUS_MEMC0_MAIN_HEAP, NEXUS_VIDEO_SECURE_HEAP};
+    {NEXUS_MEMC0_MAIN_HEAP, NEXUS_VIDEO_SECURE_HEAP, NEXUS_EXPORT_HEAP};
 #endif
 
 /* use .secure_* parameters to determine if a given memory block belongs to secure heap */
@@ -304,6 +350,8 @@ static void _srai_nexus_sage_success_callback(void *context, int param);
 static void _srai_nexus_sage_last_error(srai_sync_call * sync);
 static void _srai_nexus_sage_error_callback(void *context, int param);
 static void _srai_nexus_sage_watchdog_callback(void *context, int param);
+static void _srai_nexus_sage_callback_request_callback(void *context, int param);
+static void _srai_nexus_sage_ta_terminate_callback(void *context, int param);
 static NEXUS_Error _srai_nexus_sage_command(srai_sync_call * sync,
                                             NEXUS_SageCommand * command,
                                             BSAGElib_InOutContainer *container);
@@ -341,13 +389,24 @@ static void *_srai_memory_allocate(size_t size,
                                    NEXUS_MemoryAllocationSettings *settings);
 static int _srai_containers_cache_init(void);
 static void _srai_containers_cache_cleanup(void);
-static int _srai_watchdog_init(void);
-static void _srai_watchdog_cleanup(void);
+
+static void _srai_watchdog_handler(void);
+static void _srai_ta_terminate_handler(void);
+static void _srai_ta_terminate_mark_UNLOCKED(void);
+static void _srai_ta_terminate_mark(void);
+static void _srai_process_callback_request(SRAI_PlatformHandle platform);
+static void _srai_callback_requests_handler(void);
+static void *_srai_async_handler(void *dummy);
+static int _srai_async_init(void);
+static void _srai_async_cleanup(void);
+
 static void _srai_management_cleanup(void);
 
 static void _srai_flush_cache(const void *addr, size_t size);
 static void * _srai_offset_to_addr(uint64_t offset);
 static uint64_t _srai_addr_to_offset(const void *addr);
+
+static bool _srai_is_sdl_valid(uint8_t *sdlBuff, uint32_t sdlBuffSize);
 
 /*
  * Functions implementation
@@ -390,6 +449,64 @@ static void _srai_nexus_sage_error_callback(void *context, int param)
     BKNI_SetEvent(sync->event);
 }
 
+/* NEXUS_Callback prototype
+ * fired by Nexus SAGE on incoming callback request from SAGE */
+static void _srai_nexus_sage_callback_request_callback(void *context, int param)
+{
+    SRAI_Platform *platform = (SRAI_Platform *)context;
+    bool found;
+
+    BSTD_UNUSED(param);
+
+    SRAI_P_Lock();
+    found = _srai_platform_find(platform);
+    SRAI_P_Unlock();
+
+    if (found != true) {
+        BDBG_ERR(("%s: cannot find the platform %p", __FUNCTION__, (void *)platform));
+        goto end;
+    }
+
+    platform->callbacks.notified = 1;
+
+    /* wake up callbacks handler (_srai_callback_request_handler is waiting on that event) */
+    if (_srai.async.callbackRequest.hEvent) {
+        BDBG_MSG(("%s: set callback request event", __FUNCTION__));
+        BKNI_SetEvent(_srai.async.callbackRequest.hEvent);
+    }
+    else {
+        BDBG_WRN(("%s: callback request not enabled", __FUNCTION__));
+    }
+
+end:
+    return;
+}
+
+/* NEXUS_Callback prototype
+ * fired by Nexus SAGE on incoming TA Termination indication from SAGE */
+static void _srai_nexus_sage_ta_terminate_callback(void *context, int param)
+{
+    SRAI_Platform *platform = (SRAI_Platform *)context;
+    bool found;
+    BSTD_UNUSED(param);
+
+    SRAI_P_Lock();
+    found = _srai_platform_find(platform);
+
+    if (found != true) {
+        BDBG_ERR(("%s: cannot find the platform %p", __FUNCTION__, (void *)platform));
+        SRAI_P_Unlock();
+        goto end;
+    }
+
+    platform->sync.terminated = 1;
+    _srai_ta_terminate_mark_UNLOCKED();
+
+    SRAI_P_Unlock();
+
+end:
+    return;
+}
 
 /* NEXUS_Callback prototype
  * fired by Nexus SAGE on SAGE-side watchdog timeout event */
@@ -399,114 +516,359 @@ static void _srai_nexus_sage_watchdog_callback(void *context, int param)
     BSTD_UNUSED(param);
 
     /* wake up watchdog handler (_srai_watchdog_handler is waiting on that event) */
-    BDBG_LOG(("%s: set watchdog event", __FUNCTION__));
-    BKNI_SetEvent(_srai.watchdog.event);
+    BDBG_MSG(("%s: set watchdog event", __FUNCTION__));
+    BKNI_SetEvent(_srai.async.watchdog.hEvent);
 }
 
-/* waits for a watchdog event */
-static void *_srai_watchdog_handler(void *dummy)
+/* handle a watchdog event */
+static void _srai_watchdog_handler(void)
+{
+    SRAI_PlatformHandle platform;
+    SRAI_ModuleHandle module;
+
+    _srai.async.watchdog.count++;
+    BDBG_LOG(("%s: handle watchdog event #%u",
+              __FUNCTION__, _srai.async.watchdog.count));
+
+    _srai_enter();
+    SRAI_P_Lock();
+
+    if (_srai.balance > 1) {
+        /* Acquire Lock on all modules and platforms guarantee that there is nothing in progress
+         * set reset flag on all channels will prevent sending commands through Nexus Sage. */
+        for (platform = BLST_D_FIRST(&_srai.platforms); platform; platform = BLST_D_NEXT(platform, link)) {
+            BKNI_AcquireMutex(platform->sync.mutex);
+            platform->sync.reset = 1;
+        }
+        for (module = BLST_D_FIRST(&_srai.modules); module; module = BLST_D_NEXT(module, link)) {
+            BKNI_AcquireMutex(module->sync.mutex);
+            module->sync.reset = 1;
+        }
+    }
+
+    /* reset Nexus Sage */
+    _srai_nexus_sage_cleanup();
+    if (_srai_nexus_sage_init()) {
+        BDBG_ERR(("Nexus Sage reset failure"));
+    }
+
+    /* Unlock all modules and platforms. */
+    if (_srai.balance > 1) {
+        for (platform = BLST_D_FIRST(&_srai.platforms); platform; platform = BLST_D_NEXT(platform, link)) {
+            BKNI_ReleaseMutex(platform->sync.mutex);
+        }
+        for (module = BLST_D_FIRST(&_srai.modules); module; module = BLST_D_NEXT(module, link)) {
+            BKNI_ReleaseMutex(module->sync.mutex);
+        }
+    }
+
+    SRAI_P_Unlock();
+    _srai_leave();
+
+    /* from now SRAI is unlocked; we can start firing watchdog callbacks */
+    {
+        SRAI_CallbackItem *item;
+        SRAI_P_LockManagement();
+
+        _srai.async.management.lock = 1;
+        _srai.async.management.lock_thread = pthread_self();
+        for (item = BLST_D_FIRST(&_srai.async.watchdog.callbacks); item; item = BLST_D_NEXT(item, link)) {
+            item->callback();
+        }
+        _srai.async.management.lock_thread = 0;
+        _srai.async.management.lock = 0;
+
+        SRAI_P_UnlockManagement();
+    }
+}
+
+static void _srai_ta_terminate_mark_UNLOCKED(void)
+{
+    SRAI_PlatformHandle platform;
+    SRAI_ModuleHandle module;
+
+    /* Find all terminated modules and set platforms flags accordingly */
+    for (module = BLST_D_FIRST(&_srai.modules); module; module = BLST_D_NEXT(module, link)) {
+        if (module->sync.terminated == 1) {
+            module->platform->sync.terminated = 1;
+        }
+    }
+    /* Now all terminated platforms are marked terminated, walk on all modules and set flags accordingly */
+    for (platform = BLST_D_FIRST(&_srai.platforms); platform; platform = BLST_D_NEXT(platform, link)) {
+        if (platform->sync.terminated == 0) {
+            continue;
+        }
+        for (module = BLST_D_FIRST(&_srai.modules); module; module = BLST_D_NEXT(module, link)) {
+            if (module->platform == platform) {
+                module->sync.terminated = 1;
+            }
+        }
+    }
+    BKNI_SetEvent(_srai.async.ta_terminate.hEvent);
+}
+
+static void _srai_ta_terminate_mark(void)
+{
+    SRAI_P_Lock();
+    _srai_ta_terminate_mark_UNLOCKED();
+    SRAI_P_Unlock();
+}
+
+/* handle a TA terminate event (TA got killed on SAGE-side) */
+static void _srai_ta_terminate_handler(void)
+{
+    _srai_enter();
+
+    /* we need to loop on the list and find one by one the platforms that have been terminated
+       to handle the callbacks logic, the SRAI lock is released
+       hence after each processing, the platform is marked as already handled and
+       the loop start over from the beggiing (since the platforms database may have changed) */
+    do {
+        SRAI_PlatformHandle platform;
+        uint32_t platformId = 0;
+
+        /* Acquire SRAI lock in order to walk on platform contexts */
+        SRAI_P_Lock();
+        for (platform = BLST_D_FIRST(&_srai.platforms); platform; platform = BLST_D_NEXT(platform, link)) {
+            if ((platform->sync.terminated == 1) &&
+                (platform->ta_terminate_reported == 0)) {
+                platformId = platform->id;
+                platform->ta_terminate_reported = 1;
+                break;
+            }
+        }
+        SRAI_P_Unlock();
+
+        /* check stop condition */
+        if (platform == NULL) {
+            break;
+        }
+        /* from now SRAI is unlocked; we can start firing TA terminate callbacks
+           SRAI_* API can be used from the callback, except for SRAI_Management_* ones */
+        {
+            SRAI_TATerminateCallbackItem *item;
+            SRAI_P_LockManagement();
+
+            _srai.async.management.lock = 1;
+            _srai.async.management.lock_thread = pthread_self();
+            for (item = BLST_D_FIRST(&_srai.async.ta_terminate.callbacks); item; item = BLST_D_NEXT(item, link)) {
+                item->callback(platformId);
+            }
+            _srai.async.management.lock_thread = 0;
+            _srai.async.management.lock = 0;
+
+            SRAI_P_UnlockManagement();
+        }
+
+    } while (0);
+
+    _srai_leave();
+}
+
+static void _srai_process_callback_request(SRAI_PlatformHandle platform)
+{
+    BERR_Code rsRc = BERR_NOT_AVAILABLE;
+    BSAGElib_RpcMessage *message = platform->callbacks.message;
+    BSAGElib_InOutContainer *container = NULL;
+    uint32_t sequence = 0;
+
+    if (platform->callbacks.requestRecvCallback == NULL) {
+        BDBG_WRN(("%s: received callback request for platform %p but no callback registered",
+                  __FUNCTION__, (void *)platform));
+        goto callback_response;
+    }
+
+    BDBG_MSG(("%s: received callback request for platform %p, return code=%u",
+              __FUNCTION__, (void *)platform, rsRc));
+
+    /* force read from physical memory */
+    _srai.i_memory_sync.invalidate((const void *)message,
+                                   sizeof(*message));
+
+    sequence = message->sequence;
+
+    /* container is not mandatory; but if any it must be the preallocated one */
+    if (message->payloadOffset) {
+        container = BSAGElib_Tools_ContainerOffsetToAddress(message->payloadOffset,
+                                                            &_srai.i_memory_sync,
+                                                            &_srai.i_memory_map);
+        if (container != platform->callbacks.container) {
+            BDBG_ERR(("%s: container inconsistency for callback request of platform %p",
+                      __FUNCTION__, (void *)platform));
+            goto sync_back;
+        }
+    }
+
+    /* Fireing the callback. It shall be non-blocking. */
+    rsRc = platform->callbacks.requestRecvCallback(platform,
+                                                   message->moduleCommandId,
+                                                   container);
+
+sync_back:
+    /* regardless of any former return code, sync back the container if any */
+    BSAGElib_Tools_ContainerAddressToOffset(container,
+                                            &_srai.i_memory_sync,
+                                            &_srai.i_memory_map);
+
+    /* force write back to physical memory (should not have change) */
+    _srai.i_memory_sync.flush((const void *)message,
+                              sizeof(*message));
+
+callback_response:
+    {
+        NEXUS_Error nexus_rc;
+        NEXUS_SageResponse response =  {sequence, rsRc};
+        nexus_rc = NEXUS_SageChannel_SendResponse(platform->sync.channel, &response);
+        if (nexus_rc != NEXUS_SUCCESS) {
+            BERR_Code rc = _srai_convert_last_error(nexus_rc, BERR_OS_ERROR);
+            BDBG_ERR(("%s: cannot send callback response nexus_error=%u, rc=%u",
+                      __FUNCTION__, nexus_rc, rc));
+        }
+    }
+}
+
+/* handle a callback request event */
+static void _srai_callback_requests_handler(void)
+{
+    SRAI_PlatformHandle platform;
+
+    _srai.async.callbackRequest.count++;
+
+    _srai_enter();
+
+    SRAI_P_Lock();
+
+    for (platform = BLST_D_FIRST(&_srai.platforms); platform; platform = BLST_D_NEXT(platform, link)) {
+        if (platform->callbacks.notified) {
+            _srai_process_callback_request(platform);
+            platform->callbacks.notified = 0;
+        }
+    }
+
+    SRAI_P_Unlock();
+    _srai_leave();
+}
+
+/* waits for an async event */
+static void *_srai_async_handler(void *dummy)
 {
     BSTD_UNUSED(dummy); /* pthread_create start routine prototype */
 
     do {
-        SRAI_PlatformHandle platform;
-        SRAI_ModuleHandle module;
+        unsigned nevents, i;
+        BKNI_EventHandle notifiedEvents[4];
 
-        BKNI_WaitForEvent(_srai.watchdog.event, BKNI_INFINITE);
-        if (!_srai.watchdog.started || !_srai.run) {
+        BKNI_WaitForGroup(_srai.async.hEventGroup, BKNI_INFINITE,
+                          notifiedEvents, 4, &nevents);
+        if (!_srai.async.started || !_srai.run) {
             break;
         }
 
-        _srai.watchdog.count++;
-        BDBG_LOG(("%s: handle watchdog event #%u", __FUNCTION__, _srai.watchdog.count));
+        BDBG_MSG(("%s: handle async event", __FUNCTION__));
 
-        _srai_enter();
-        SRAI_P_Lock();
-
-        if (_srai.balance > 1) {
-            /* Acquire Lock on all modules and platforms guarantee that there is nothing in progress
-             * set reset flag on all channels will prevent sending commands through Nexus Sage. */
-            for (platform = BLST_D_FIRST(&_srai.platforms); platform; platform = BLST_D_NEXT(platform, link)) {
-                BKNI_AcquireMutex(platform->sync.mutex);
-                platform->sync.reset = 1;
+        for (i = 0; i < nevents; i++) {
+            if (notifiedEvents[i] == NULL) {
+                BDBG_ERR(("%s: invalid NULL event", __FUNCTION__));
+                continue;
             }
-            for (module = BLST_D_FIRST(&_srai.modules); module; module = BLST_D_NEXT(module, link)) {
-                BKNI_AcquireMutex(module->sync.mutex);
-                module->sync.reset = 1;
+            if (notifiedEvents[i] == _srai.async.callbackRequest.hEvent) {
+                _srai_callback_requests_handler();
             }
-        }
-
-        /* reset Nexus Sage */
-        _srai_nexus_sage_cleanup();
-        if (_srai_nexus_sage_init()) {
-            BDBG_ERR(("Nexus Sage reset failure"));
-        }
-
-        /* Unlock all modules and platforms. */
-        if (_srai.balance > 1) {
-            for (platform = BLST_D_FIRST(&_srai.platforms); platform; platform = BLST_D_NEXT(platform, link)) {
-                BKNI_ReleaseMutex(platform->sync.mutex);
+            else if (notifiedEvents[i] == _srai.async.watchdog.hEvent) {
+                _srai_watchdog_handler();
             }
-            for (module = BLST_D_FIRST(&_srai.modules); module; module = BLST_D_NEXT(module, link)) {
-                BKNI_ReleaseMutex(module->sync.mutex);
+            else if (notifiedEvents[i] == _srai.async.ta_terminate.hEvent) {
+                _srai_ta_terminate_handler();
+            }
+            else if (notifiedEvents[i] == _srai.async.hEvent) {
+                BDBG_MSG(("%s: terminating", __FUNCTION__));
+            }
+            else {
+                BDBG_ERR(("%s: unknown event %p", __FUNCTION__, (void *)(notifiedEvents[i])));
             }
         }
 
-        SRAI_P_Unlock();
-        _srai_leave();
-
-        /* from now SRAI is unlocked; we can start firing watchdog callbacks */
-        {
-            SRAI_CallbackItem *item;
-            SRAI_P_LockManagement();
-
-            _srai.watchdog.management_lock = 1;
-            _srai.watchdog.management_lock_thread = pthread_self();
-            for (item = BLST_D_FIRST(&_srai.watchdog.callbacks); item; item = BLST_D_NEXT(item, link)) {
-                item->callback();
-            }
-            _srai.watchdog.management_lock_thread = 0;
-            _srai.watchdog.management_lock = 0;
-
-            SRAI_P_UnlockManagement();
-        }
-    } while (_srai.watchdog.started && _srai.run);
+    } while (_srai.async.started && _srai.run);
 
     pthread_exit(NULL);
 }
 
-static int _srai_watchdog_init(void)
+static int _srai_async_init(void)
 {
     BERR_Code magnumRc;
     int rc = 0;
 
-    magnumRc = BKNI_CreateEvent(&_srai.watchdog.event);
+    magnumRc = BKNI_CreateEventGroup(&_srai.async.hEventGroup);
     if (magnumRc != BERR_SUCCESS) { rc = -1; goto end; }
 
-    rc = pthread_create(&_srai.watchdog.thread, NULL, _srai_watchdog_handler, NULL);
+    magnumRc = BKNI_CreateEvent(&_srai.async.hEvent);
     if (magnumRc != BERR_SUCCESS) { rc = -2; goto end; }
 
-    _srai.watchdog.started = 1;
+    magnumRc = BKNI_AddEventGroup(_srai.async.hEventGroup, _srai.async.hEvent);
+    if (magnumRc != BERR_SUCCESS) { rc = -3; goto end; }
+
+    magnumRc = BKNI_CreateEvent(&_srai.async.watchdog.hEvent);
+    if (magnumRc != BERR_SUCCESS) { rc = -4; goto end; }
+
+    magnumRc = BKNI_AddEventGroup(_srai.async.hEventGroup, _srai.async.watchdog.hEvent);
+    if (magnumRc != BERR_SUCCESS) { rc = -5; goto end; }
+
+    magnumRc = BKNI_CreateEvent(&_srai.async.ta_terminate.hEvent);
+    if (magnumRc != BERR_SUCCESS) { rc = -4; goto end; }
+
+    magnumRc = BKNI_AddEventGroup(_srai.async.hEventGroup, _srai.async.ta_terminate.hEvent);
+    if (magnumRc != BERR_SUCCESS) { rc = -5; goto end; }
+
+    magnumRc = BKNI_CreateEvent(&_srai.async.callbackRequest.hEvent);
+    if (magnumRc != BERR_SUCCESS) { rc = -6; goto end; }
+
+    magnumRc = BKNI_AddEventGroup(_srai.async.hEventGroup, _srai.async.callbackRequest.hEvent);
+    if (magnumRc != BERR_SUCCESS) { rc = -7; goto end; }
+
+    rc = pthread_create(&_srai.async.thread, NULL, _srai_async_handler, NULL);
+    if (magnumRc != BERR_SUCCESS) { rc = -8; goto end; }
+
+    _srai.async.started = 1;
 
 end:
     if (rc) {
-        BDBG_ERR(("cannot init watchdog failure (%d)", rc));
-        _srai_watchdog_cleanup();
+        BDBG_ERR(("cannot init async; failure at %d ; err = %u", rc, magnumRc));
+        _srai_async_cleanup();
     }
     return rc;
 }
 
-static void _srai_watchdog_cleanup(void)
+static void _srai_async_cleanup(void)
 {
-    if (_srai.watchdog.started) {
-        _srai.watchdog.started = 0;
-        BKNI_SetEvent(_srai.watchdog.event);
-        pthread_join(_srai.watchdog.thread, NULL);
+    if (_srai.async.started) {
+        _srai.async.started = 0;
+        BKNI_SetEvent(_srai.async.hEvent);
+        pthread_join(_srai.async.thread, NULL);
     }
 
-    if (_srai.watchdog.event) {
-        BKNI_DestroyEvent(_srai.watchdog.event);
-        _srai.watchdog.event = NULL;
+    if (_srai.async.callbackRequest.hEvent) {
+        BKNI_DestroyEvent(_srai.async.callbackRequest.hEvent);
+        _srai.async.callbackRequest.hEvent = NULL;
+    }
+
+    if (_srai.async.ta_terminate.hEvent) {
+        BKNI_DestroyEvent(_srai.async.ta_terminate.hEvent);
+        _srai.async.ta_terminate.hEvent = NULL;
+    }
+
+    if (_srai.async.watchdog.hEvent) {
+        BKNI_DestroyEvent(_srai.async.watchdog.hEvent);
+        _srai.async.watchdog.hEvent = NULL;
+    }
+
+    if (_srai.async.hEvent) {
+        BKNI_DestroyEvent(_srai.async.hEvent);
+        _srai.async.hEvent = NULL;
+    }
+
+    if (_srai.async.hEventGroup) {
+        BKNI_DestroyEventGroup(_srai.async.hEventGroup);
+        _srai.async.hEventGroup = NULL;
     }
 }
 
@@ -532,6 +894,7 @@ static BERR_Code _srai_convert_last_error(NEXUS_Error nexus_rc, BERR_Code sage_r
         case BSAGE_ERR_CONTAINER_REQUIRED:
         case BSAGE_ERR_SIGNATURE_MISMATCH:
         case BSAGE_ERR_RESET:
+        case BSAGE_ERR_TA_TERMINATED:
             rc = sage_rc;
             break;
         default:
@@ -574,9 +937,22 @@ static BERR_Code _srai_nexus_sage_command(srai_sync_call *sync,
     int nb = 0;
 
     if (sync->reset) {
-        BDBG_ERR(("SAGE has been reset, %p is not valid anymore.", sync));
+        BDBG_ERR(("SAGE has been reset, %p is not valid anymore.", (void *)sync));
         rc = BSAGE_ERR_RESET;
         goto end;
+    }
+
+    if (sync->terminated) {
+        /* Do not print errors for deprovisioning commands */
+        if ((command->systemCommandId == BSAGElib_SystemCommandId_ePlatformClose) ||
+            (command->systemCommandId == BSAGElib_SystemCommandId_eModuleUninit)) {
+            /* let the command go, so lower layers can clean their contexts */
+        }
+        else {
+            BDBG_ERR(("SAGE-side TA had been terminated, %p is not valid anymore.", (void *)sync));
+            rc = BSAGE_ERR_TA_TERMINATED;
+            goto end;
+        }
     }
 
     /* -1- prepare command and container to be used used by SAGE-side */
@@ -620,6 +996,17 @@ static BERR_Code _srai_nexus_sage_command(srai_sync_call *sync,
 
     /* -4- get return code */
     rc = _srai_convert_last_error(sync->lastErrorNexus, sync->lastErrorSage);
+    switch (rc) {
+        case BSAGE_ERR_RESET:
+            sync->reset = 1;
+            break;
+        case BSAGE_ERR_TA_TERMINATED:
+            sync->terminated = 1;
+            _srai_ta_terminate_mark();
+            break;
+    default:
+        break;
+    }
 
 end_convert:
     /* -5- restore container to be used by the Host */
@@ -671,7 +1058,7 @@ static int _srai_get_heap(NEXUS_MemoryType memoryType, NEXUS_HeapHandle heap,
     else {
         int i;
         BDBG_WRN(("%s: given heap %p is not valid. Consider using SRAI_SetSettings() with proper heap indexes.",
-                  __FUNCTION__, heap));
+                  __FUNCTION__, (void *)heap));
         for (i = 0; i < NEXUS_MAX_HEAPS; i++) {
             if (_srai_valid_heap(pClientConfig->heap[i], memoryType, pHeapStatus)) {
                 validHeap = pClientConfig->heap[i];
@@ -750,6 +1137,13 @@ static int _srai_init_settings(void)
         BDBG_ERR(("%s: --> check for secure_heap=y environment variable", __FUNCTION__));
         rc -= 0x2;
     }
+    if (_srai_get_heap(NEXUS_MemoryType_eSecure, clientConfig.heap[_srai_settings.exportHeapIndex],
+                       &_srai.exportAllocSettings, &heapStatus, &clientConfig)) {
+        BDBG_ERR(("%s: Cannot retrieve export secure heap from index %d.",
+                  __FUNCTION__, _srai_settings.exportHeapIndex));
+        BDBG_ERR(("%s: --> check your NEXUS platform settings", __FUNCTION__));
+        rc -= 0x3;
+    }
     else {
         /* get secure heap boundaries for _SRAI_IsMemoryInSecureHeap() */
         _srai.secure_offset = heapStatus.offset;
@@ -809,7 +1203,7 @@ static void _srai_init_vars(void)
     BKNI_Memset(&_srai, 0, sizeof(_srai));
     BLST_D_INIT(&_srai.platforms);
     BLST_D_INIT(&_srai.modules);
-    BLST_D_INIT(&_srai.watchdog.callbacks);
+    BLST_D_INIT(&_srai.async.watchdog.callbacks);
     if (_srai_init_settings()) {
         BDBG_ERR(("%s: Cannot initialize SRAI lib properly: Bad settings.", __FUNCTION__));
     }
@@ -858,7 +1252,7 @@ static void _srai_leave(void)
     --_srai.balance;
     if (!_srai.balance &&
         !_srai.platformNum &&
-        BLST_D_EMPTY(&_srai.watchdog.callbacks)) {
+        BLST_D_EMPTY(&_srai.async.watchdog.callbacks)) {
         if (!_srai.moduleNum) {
             _srai_cleanup();
         } else {
@@ -884,7 +1278,7 @@ static void _srai_init(void)
 
     BDBG_MSG(("Initialize SRAI features"));
     if (_srai_nexus_sage_init() ||
-        _srai_watchdog_init()) {
+        _srai_async_init()) {
         _srai_cleanup();/* TODO: how to handle that case? */
         return;
     }
@@ -904,7 +1298,7 @@ static void _srai_cleanup(void)
 
     _srai.run = 0;
 
-    _srai_watchdog_cleanup();
+    _srai_async_cleanup();
     _srai_management_cleanup();
     _srai_nexus_sage_cleanup();
     _srai_containers_cache_cleanup();
@@ -917,7 +1311,7 @@ static void _srai_cleanup(void)
 }
 
 /* do the memory allocation */
-static void *_srai_memory_allocate(uint32_t size,
+static void *_srai_memory_allocate(size_t size,
                                       NEXUS_MemoryAllocationSettings *settings)
 {
     void *ret = NULL;
@@ -948,6 +1342,11 @@ static void *_srai_memory_allocate_restricted(size_t size)
     return _srai_memory_allocate(size, &_srai.secureAllocSettings);
 }
 
+static void *_srai_memory_allocate_export(size_t size)
+{
+    return _srai_memory_allocate(size, &_srai.exportAllocSettings);
+}
+
 /* Get/Set settings */
 void SRAI_GetSettings(SRAI_Settings *pSettings /* [out] */)
 {
@@ -973,6 +1372,13 @@ BERR_Code SRAI_SetSettings(SRAI_Settings *pSettings)
     if (pSettings->videoSecureHeapIndex >= NEXUS_MAX_HEAPS) {
         BDBG_ERR(("%s: cannot set video secure heap index to %u",
                   __FUNCTION__, pSettings->videoSecureHeapIndex));
+        rc = BERR_INVALID_PARAMETER;
+        goto end;
+    }
+
+    if (pSettings->exportHeapIndex >= NEXUS_MAX_HEAPS) {
+        BDBG_ERR(("%s: cannot set export secure heap index to %u",
+                  __FUNCTION__, pSettings->exportHeapIndex));
         rc = BERR_INVALID_PARAMETER;
         goto end;
     }
@@ -1011,6 +1417,9 @@ uint8_t *SRAI_Memory_Allocate(uint32_t size, SRAI_MemoryType memoryType)
         break;
     case SRAI_MemoryType_SagePrivate:
         ret = (uint8_t *)_srai_memory_allocate_restricted(size);
+        break;
+    case SRAI_MemoryType_SageExport:
+        ret = (uint8_t *)_srai_memory_allocate_export(size);
         break;
     default:
         ret = NULL;
@@ -1102,16 +1511,23 @@ static int _srai_sync_init(srai_sync_call *sync)
         goto end;
     }
 
-    /* Channel settings: register result callbacks
+    /* Channel settings */
+    channelSettings = _srai.channelSettings;
+    /* register result callbacks
      * Fired by Nexus SAGE when receiving response from SAGE-side:
      * - successCallback in case of success
      * - errorCallback for failure. In that case, SRAI will have to poll
      *   channel status in order to retrieve last error value. */
-    channelSettings = _srai.channelSettings;
     channelSettings.successCallback.context = (void *)sync;
     channelSettings.successCallback.callback = _srai_nexus_sage_success_callback;
     channelSettings.errorCallback.context = (void *)sync;
     channelSettings.errorCallback.callback = _srai_nexus_sage_error_callback;
+    /* register 'callback request receive' callback
+     * Fired by Nexus SAGE when receiving a 'callback request' from SAGE-side */
+    channelSettings.callbackRequestRecvCallback.context = (void *)sync;
+    channelSettings.callbackRequestRecvCallback.callback = _srai_nexus_sage_callback_request_callback;
+    channelSettings.taTerminateCallback.context = (void *)sync;
+    channelSettings.taTerminateCallback.callback = _srai_nexus_sage_ta_terminate_callback;
 
     /* Create Nexus Sage channels for all communication with SAGE-side */
     sync->channel = NEXUS_Sage_CreateChannel(_srai.sage, &channelSettings);
@@ -1181,10 +1597,225 @@ static void _srai_platform_cleanup(SRAI_PlatformHandle platform)
 
     } while(1);
 
+    if (platform->callbacks.requestRecvCallback) {
+        if (platform->callbacks.container) {
+            SRAI_Container_Free(platform->callbacks.container);
+            platform->callbacks.container = NULL;
+        }
+        if (platform->callbacks.message) {
+            SRAI_Memory_Free((uint8_t *)platform->callbacks.message);
+            platform->callbacks.message = NULL;
+        }
+        platform->callbacks.requestRecvCallback = NULL;
+    }
     _srai_containers_cache_adjust_max();
 
     _srai_sync_cleanup(&platform->sync);
-    BKNI_Free(platform);
+    BKNI_Free((uint8_t *)platform);
+}
+
+/* Install a platform.
+ * SAGE side Platform/TA can by dynamically loaded from the Host.
+ * Host application can use this API to install any Platform/TA on the SAGE side.
+ * Once the Platform/TA has been installed on the SAGE side successfully, Host can then call:
+ * SRAI_Platform_XXX APIs to Open and Init the Platform and Modules in the Platform.
+ * Note: before loading the SDL sanity checks are realized on the presented binary:
+ *   - verify that the Framework Version in the SDL header matches the running Framework one
+ *   - verify that the Framework THL Signature Short in the SDL header matches the running Framework one
+ */
+
+static bool
+_srai_is_sdl_valid(
+    uint8_t *sdlBuff,
+    uint32_t sdlBuffSize)
+{
+    bool rc = false;
+    uint32_t sdlTHLSigShort;
+    NEXUS_SageStatus status;
+    BSAGElib_SDLHeader *pHeader = (BSAGElib_SDLHeader *)sdlBuff;
+    if (sdlBuffSize < sizeof(BSAGElib_SDLHeader)) {
+        BDBG_ERR(("%s: The binary size is not even as large as the SDL header structure", __FUNCTION__));
+        goto end;
+    }
+
+    if (NEXUS_Sage_GetStatus(&status) != NEXUS_SUCCESS) {
+        BDBG_ERR(("%s: cannot retrieve nexus status", __FUNCTION__));
+        goto end;
+    }
+
+#if 0
+    BDBG_ASSERT(sizeof(pHeader->ucSsfVersion) == sizeof(status.framework.version));
+    rc = (BKNI_Memcmp(pHeader->ucSsfVersion, status.framework.version, sizeof(status.framework.version)) == 0);
+    if (rc != true) {
+        BDBG_ERR(("%s: The SDL is compiled using SAGE version %u.%u.%u.%u SDK",
+                  __FUNCTION__,
+                  pHeader->ucSsfVersion[0], pHeader->ucSsfVersion[1],
+                  pHeader->ucSsfVersion[2], pHeader->ucSsfVersion[3]));
+        BDBG_ERR(("%s: The SDL is not compiled from the same SDK as the running Framework",
+                  __FUNCTION__));
+        BDBG_ERR(("%s: The SDL shall be recompiled using SAGE version %u.%u.%u.%u SDK",
+                  __FUNCTION__,
+                  status.framework.version[0], status.framework.version[1],
+                  status.framework.version[2], status.framework.version[3]));
+        goto end;
+    }
+#endif
+    sdlTHLSigShort = *((uint32_t *)(pHeader->ucSsfThlShortSig));
+
+    rc = (sdlTHLSigShort == status.framework.THLShortSig);
+    if (rc != true) {
+        BDBG_ERR(("%s: The SDL THL Signature Short (0x%08x) differs from the one inside the loaded SAGE Framework (0x%08x)",
+                  __FUNCTION__, sdlTHLSigShort, status.framework.THLShortSig));
+        BDBG_ERR(("%s: The SDL shall be linked against the same THL (Thin Layer) as the one inside the SAGE Framework",
+                  __FUNCTION__));
+        goto end;
+    }
+
+end:
+    return rc;
+}
+
+BERR_Code SRAI_Platform_Install(uint32_t platformId,
+                             uint8_t *binBuff,
+                             uint32_t binSize)
+{
+    BERR_Code rc;
+    BSAGElib_State state;
+    BSAGElib_InOutContainer *container;
+
+    BDBG_ENTER(SRAI_Platform_Install);
+
+    /* Run defer/lazy init  */
+
+    if (_srai_enter()) {
+        rc = BERR_NOT_INITIALIZED;
+        goto end;
+    }
+
+    BDBG_MSG(("%s: System Platform %p ", __FUNCTION__, (void *)_srai.system_platform ));
+
+    if(_srai.system_platform == NULL){
+
+        /* Open the platform first */
+        rc = SRAI_Platform_Open(BSAGE_PLATFORM_ID_SYSTEM,
+                                     &state,
+                                     &_srai.system_platform);
+        if (rc != BERR_SUCCESS) {
+            goto end;
+        }
+
+        BDBG_MSG(("%s: System Platform %p ",__FUNCTION__, (void *)_srai.system_platform));
+
+        /* Check init state */
+        if (state != BSAGElib_State_eInit) {
+            /* Not yet initialized: send init command*/
+            rc = SRAI_Platform_Init(_srai.system_platform, NULL);
+            /* check for BSAGE_ERR_ALREADY_INITIALIZED to handle race conditions */
+            if ((rc != BERR_SUCCESS) &&
+                (rc != BSAGE_ERR_ALREADY_INITIALIZED)) {
+                goto end;
+            }
+        }
+
+        if(_srai.system_module == NULL){
+
+            rc = SRAI_Module_Init(_srai.system_platform,
+                                       System_ModuleId_eDynamicLoad,
+                                       NULL,
+                                       &_srai.system_module);
+            if (rc != BERR_SUCCESS) {
+                goto end;
+            }
+            BDBG_MSG(("%s: System Platform Module %p ", __FUNCTION__, (void *)_srai.system_module ));
+
+        }
+    }
+
+    if (!_srai_is_sdl_valid(binBuff, binSize)) {
+        BDBG_ERR(("%s: Cannot install incompatible SDL", __FUNCTION__));
+        rc = BERR_INVALID_PARAMETER;
+        goto end;
+    }
+
+    container = SRAI_Container_Allocate();
+    BDBG_ASSERT(container);
+
+    container->basicIn[0] = platformId;
+
+    /* provide the SDL binary that's been pulled from FS */
+    container->blocks[0].data.ptr = binBuff;
+    container->blocks[0].len = binSize;
+
+    rc = SRAI_Module_ProcessCommand(_srai.system_module,
+                                    DynamicLoadModule_CommandId_eLoadSDL,
+                                    container);
+
+    BDBG_MSG(("%s Output Status %d \n",__FUNCTION__,container->basicOut[0]));
+
+    if((rc == BERR_SUCCESS) || (container->basicOut[0] == BSAGE_ERR_SDL_ALREADY_LOADED))
+        rc = BERR_SUCCESS;
+
+    if (container) {
+        SRAI_Container_Free(container);
+    }
+
+
+end:
+    /* Keep refcount to make sure we close the */
+    /* BSAGE_PLATFORM_ID_SYSTEM when all else are closed */
+    _srai.platform_refcount++;
+
+    _srai_leave();
+    BDBG_LEAVE(SRAI_Platform_Install);
+    return rc;
+}
+
+/* Un-install a platform.
+* This API is used to Un-install the Platform/TA that has been installed by SRAI_Platform_Install API */
+BERR_Code SRAI_Platform_UnInstall(uint32_t platformId )
+{
+    BERR_Code rc;
+    BSAGElib_InOutContainer *container;
+    BDBG_ENTER(SRAI_Platform_UnInstall);
+
+    /* Run defer/lazy init  */
+    if (_srai_enter()) {
+        rc = BERR_NOT_INITIALIZED;
+        goto leave;
+    }
+
+    if((_srai.system_module == NULL) || (_srai.system_platform == NULL)){
+        rc = BERR_INVALID_PARAMETER;
+        goto leave;
+    }
+
+    container = SRAI_Container_Allocate();
+    BDBG_ASSERT(container);
+
+    container->basicIn[0] = platformId;
+
+    BDBG_MSG(("%s: System Platform %p ", __FUNCTION__, (void *)_srai.system_platform));
+    BDBG_MSG(("%s: System Platform Module %p ", __FUNCTION__, (void *)_srai.system_module));
+
+    rc = SRAI_Module_ProcessCommand(_srai.system_module,
+                                    DynamicLoadModule_CommandId_eUnLoadSDL,
+                                    container);
+
+    BDBG_MSG(("%s Output Status %d \n",__FUNCTION__,container->basicOut[0]));
+    if (container) {
+        SRAI_Container_Free(container);
+    }
+
+leave:
+    if (--_srai.platform_refcount == 0)
+    {
+      // We are done, cleanup
+      SRAI_Module_Uninit(_srai.system_module);
+      SRAI_Platform_Close(_srai.system_platform);
+    }
+    _srai_leave();
+    BDBG_LEAVE(SRAI_Platform_UnInstall);
+    return rc;
 }
 
 /* Open a platform.
@@ -1208,6 +1839,8 @@ BERR_Code SRAI_Platform_Open(uint32_t platformId,
         rc = BERR_NOT_INITIALIZED;
         goto leave;
     }
+
+    BDBG_MSG(("%s: Platform %x ", __FUNCTION__, platformId));
 
     if (!state || !pPlatform) {
         rc = BERR_INVALID_PARAMETER;
@@ -1239,7 +1872,7 @@ BERR_Code SRAI_Platform_Open(uint32_t platformId,
     }
 
     /* setup PlatformOpen command */
-    command.systemCommandId = SAGE_SystemCommandId_ePlatformOpen;
+    command.systemCommandId = BSAGElib_SystemCommandId_ePlatformOpen;
     command.platformId = platformId;
     command.moduleId = 0;
     command.moduleCommandId = 0;
@@ -1303,7 +1936,7 @@ void SRAI_Platform_Close(SRAI_PlatformHandle platform)
     /* from here, platform cannot be used any more by public API */
 
     /* setup PlatformClose command */
-    command.systemCommandId = SAGE_SystemCommandId_ePlatformClose;
+    command.systemCommandId = BSAGElib_SystemCommandId_ePlatformClose;
     command.platformId = platform->id;
     command.moduleId = 0;
     command.moduleCommandId = 0;
@@ -1350,7 +1983,7 @@ BERR_Code SRAI_Platform_Init(SRAI_PlatformHandle platform,
     }
 
     /* setup PlatformInit command */
-    command.systemCommandId = SAGE_SystemCommandId_ePlatformInit;
+    command.systemCommandId = BSAGElib_SystemCommandId_ePlatformInit;
     command.platformId = platform->id;
     command.moduleId = 0;
     command.moduleCommandId = 0;
@@ -1371,6 +2004,99 @@ end:
     BDBG_LEAVE(SRAI_Platform_Init);
     return rc;
 }
+
+BERR_Code SRAI_Platform_EnableCallbacks(SRAI_PlatformHandle platform,
+                                        SRAI_RequestRecvCallback callback)
+{
+    BERR_Code rc = BERR_SUCCESS;
+    BSAGElib_InOutContainer *container = NULL;
+    BSAGElib_InOutContainer *callbackReqContainer = NULL;
+    BSAGElib_RpcMessage *message = NULL;
+    NEXUS_SageCommand command;
+
+    BDBG_ENTER(SRAI_Platform_EnableCallbacks);
+
+    /* Run defer/lazy init  */
+    if (_srai_enter()) {
+        rc = BERR_NOT_INITIALIZED;
+        goto end;
+    }
+
+    if (callback == NULL) {
+        BDBG_ERR(("%s: missing callback pointer", __FUNCTION__));
+        rc = BERR_INVALID_PARAMETER;
+        goto end;
+    }
+
+    callbackReqContainer = SRAI_Container_Allocate();
+    if (callbackReqContainer == NULL) {
+        BDBG_ERR(("%s: cannot allocate container for callback requests", __FUNCTION__));
+        rc = BERR_OUT_OF_DEVICE_MEMORY;
+        goto end;
+    }
+
+    container = SRAI_Container_Allocate();
+    if (container == NULL) {
+        BDBG_ERR(("%s: cannot allocate container", __FUNCTION__));
+        rc = BERR_OUT_OF_DEVICE_MEMORY;
+        goto end;
+    }
+
+    message = (BSAGElib_RpcMessage *)SRAI_Memory_Allocate(sizeof(*message), SRAI_MemoryType_Shared);
+    if (message == NULL) {
+        BDBG_ERR(("%s: cannot allocate Rpc message", __FUNCTION__));
+        rc = BERR_OUT_OF_DEVICE_MEMORY;
+        goto end;
+    }
+    BKNI_Memset(message, 0, sizeof(*message));
+
+    container->blocks[0].data.ptr = (uint8_t *)message;
+    container->blocks[0].len = sizeof(*message);
+    container->blocks[1].data.ptr = (uint8_t *)callbackReqContainer;
+    container->blocks[1].len = sizeof(*callbackReqContainer);
+
+    if (!_srai_platform_acquire(platform, 0)) {
+        BDBG_ERR(("%s: cannot acquire the platform", __FUNCTION__));
+        rc = BERR_NOT_INITIALIZED;
+        goto end;
+    }
+
+    /* setup ModuleProcessCommand command */
+    command.systemCommandId = BSAGElib_SystemCommandId_ePlatformEnableCallbacks;
+    command.platformId = platform->id;
+    command.moduleId = 0;
+    command.moduleCommandId = 0;
+
+    SRAI_DUMP_COMMAND("PlatformEnableCallbacks", &command);
+
+    rc = _srai_nexus_sage_command(&platform->sync, &command, container);
+    if (rc != BERR_SUCCESS) {
+        BDBG_ERR(("%s: nexus_sage_command failure %x '%s'",
+                  __FUNCTION__, rc, BSAGElib_Tools_ReturnCodeToString(rc)));
+        goto end_locked;
+    }
+
+    /* Success */
+    platform->callbacks.requestRecvCallback = callback;
+    platform->callbacks.container = callbackReqContainer;
+    container = NULL;
+    platform->callbacks.message = message;
+    message = NULL;
+
+end_locked:
+    BKNI_ReleaseMutex(platform->sync.mutex);
+end:
+    if (container) {
+        SRAI_Container_Free(container);
+    }
+    if (message) {
+        SRAI_Memory_Free((uint8_t *)message);
+    }
+
+    BDBG_LEAVE(SRAI_Platform_EnableCallbacks);
+    return rc;
+}
+
 
 /* Initialize a module instance. This module identified by moduleId has to be
  * available within the platform associated with given PlatformHandle.
@@ -1425,7 +2151,7 @@ BERR_Code SRAI_Module_Init(SRAI_PlatformHandle platform,
     }
 
     /* setup ModuleInit command */
-    command.systemCommandId = SAGE_SystemCommandId_eModuleInit;
+    command.systemCommandId = BSAGElib_SystemCommandId_eModuleInit;
     command.platformId = platform->id;
     command.moduleId = moduleId;
     command.moduleCommandId = 0;
@@ -1654,7 +2380,7 @@ static void _srai_module_uninit_sage_command(SRAI_ModuleHandle module)
     NEXUS_SageCommand command;
 
     /* setup ModuleUninit command */
-    command.systemCommandId = SAGE_SystemCommandId_eModuleUninit;
+    command.systemCommandId = BSAGElib_SystemCommandId_eModuleUninit;
     command.platformId = module->platform->id;
     command.moduleId = module->id;
     command.moduleCommandId = 0;
@@ -1722,7 +2448,7 @@ BERR_Code SRAI_Module_ProcessCommand(SRAI_ModuleHandle module,
     }
 
     /* setup ModuleProcessCommand command */
-    command.systemCommandId = SAGE_SystemCommandId_eModuleProcessCommand;
+    command.systemCommandId = BSAGElib_SystemCommandId_eModuleProcessCommand;
     command.platformId = module->platform->id;
     command.moduleId = module->id;
     command.moduleCommandId = commandId;
@@ -1748,9 +2474,9 @@ end:
 static void _srai_management_cleanup(void)
 {
     do {
-        SRAI_CallbackItem *item = BLST_D_FIRST(&_srai.watchdog.callbacks);
+        SRAI_CallbackItem *item = BLST_D_FIRST(&_srai.async.watchdog.callbacks);
         if (item) {
-            BLST_D_REMOVE(&_srai.watchdog.callbacks, item, link);
+            BLST_D_REMOVE(&_srai.async.watchdog.callbacks, item, link);
             BKNI_Free(item);
             continue;
         }
@@ -1774,7 +2500,7 @@ BERR_Code SRAI_Management_Register(SRAI_ManagementInterface *interface)
         goto end;
     }
 
-    if (_srai.watchdog.management_lock && _srai.watchdog.management_lock_thread == pthread_self()) {
+    if (_srai.async.management.lock && _srai.async.management.lock_thread == pthread_self()) {
         BDBG_ERR(("SRAI_Management_* API is not available in watchdog callback."));
         rc = BERR_OS_ERROR;
         goto end;
@@ -1784,14 +2510,29 @@ BERR_Code SRAI_Management_Register(SRAI_ManagementInterface *interface)
         SRAI_CallbackItem *item;
         item = BKNI_Malloc(sizeof(*item));
         if (!item) {
-            BDBG_ERR(("%s: cannot allocate callback context", __FUNCTION__));
+            BDBG_ERR(("%s: cannot allocate watchdog callback context", __FUNCTION__));
             rc = BERR_OUT_OF_SYSTEM_MEMORY;
             goto end;
         }
         BKNI_Memset(item, 0, sizeof(*item));
         item->callback = interface->watchdog_callback;
         SRAI_P_LockManagement();
-        BLST_D_INSERT_HEAD(&_srai.watchdog.callbacks, item, link);
+        BLST_D_INSERT_HEAD(&_srai.async.watchdog.callbacks, item, link);
+        SRAI_P_UnlockManagement();
+    }
+
+    if (interface->ta_terminate_callback) {
+        SRAI_TATerminateCallbackItem *item;
+        item = BKNI_Malloc(sizeof(*item));
+        if (!item) {
+            BDBG_ERR(("%s: cannot allocate ta_terminate callback context", __FUNCTION__));
+            rc = BERR_OUT_OF_SYSTEM_MEMORY;
+            goto end;
+        }
+        BKNI_Memset(item, 0, sizeof(*item));
+        item->callback = interface->ta_terminate_callback;
+        SRAI_P_LockManagement();
+        BLST_D_INSERT_HEAD(&_srai.async.ta_terminate.callbacks, item, link);
         SRAI_P_UnlockManagement();
     }
 
@@ -1818,7 +2559,7 @@ BERR_Code SRAI_Management_Unregister(SRAI_ManagementInterface *interface)
         goto end;
     }
 
-    if (_srai.watchdog.management_lock && _srai.watchdog.management_lock_thread == pthread_self()) {
+    if (_srai.async.management.lock && _srai.async.management.lock_thread == pthread_self()) {
         BDBG_ERR(("SRAI_Management_* API is not available in watchdog callback."));
         rc = BERR_OS_ERROR;
         goto end;
@@ -1826,10 +2567,23 @@ BERR_Code SRAI_Management_Unregister(SRAI_ManagementInterface *interface)
 
     if (interface->watchdog_callback) {
         SRAI_CallbackItem *item;
-        for (item = BLST_D_FIRST(&_srai.watchdog.callbacks); item; item = BLST_D_NEXT(item, link)) {
+        for (item = BLST_D_FIRST(&_srai.async.watchdog.callbacks); item; item = BLST_D_NEXT(item, link)) {
             if (item->callback == interface->watchdog_callback) {
                 SRAI_P_LockManagement();
-                BLST_D_REMOVE(&_srai.watchdog.callbacks, item, link);
+                BLST_D_REMOVE(&_srai.async.watchdog.callbacks, item, link);
+                SRAI_P_UnlockManagement();
+                BKNI_Free(item);
+                break;
+            }
+        }
+    }
+
+    if (interface->ta_terminate_callback) {
+        SRAI_TATerminateCallbackItem *item;
+        for (item = BLST_D_FIRST(&_srai.async.ta_terminate.callbacks); item; item = BLST_D_NEXT(item, link)) {
+            if (item->callback == interface->ta_terminate_callback) {
+                SRAI_P_LockManagement();
+                BLST_D_REMOVE(&_srai.async.ta_terminate.callbacks, item, link);
                 SRAI_P_UnlockManagement();
                 BKNI_Free(item);
                 break;

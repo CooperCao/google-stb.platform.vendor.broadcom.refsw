@@ -1,22 +1,42 @@
 /***************************************************************************
- *     Copyright (c) 2004-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * [File Description:]
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ***************************************************************************/
 #include "bvdc_compositor_priv.h"
 #include "bvdc_pep_priv.h"
@@ -32,12 +52,12 @@ BDBG_MODULE(BVDC_PEP);
 
 typedef enum
 {
-	BVDC_P_Cms_ColorBar_eGreen = 0,
-	BVDC_P_Cms_ColorBar_eYellow,
-	BVDC_P_Cms_ColorBar_eRed,
-	BVDC_P_Cms_ColorBar_eMagnenta,
-	BVDC_P_Cms_ColorBar_eBlue,
-	BVDC_P_Cms_ColorBar_eCyan
+    BVDC_P_Cms_ColorBar_eGreen = 0,
+    BVDC_P_Cms_ColorBar_eYellow,
+    BVDC_P_Cms_ColorBar_eRed,
+    BVDC_P_Cms_ColorBar_eMagnenta,
+    BVDC_P_Cms_ColorBar_eBlue,
+    BVDC_P_Cms_ColorBar_eCyan
 } BVDC_P_Cms_ColorBar;
 
 
@@ -309,311 +329,311 @@ static const int32_t COS_LUT[] =
 
 static int32_t BMTH_FIX_SIGNED_DIV2(int32_t x, int32_t y, int32_t xint, int32_t xfract, int32_t yint, int32_t yfract, int32_t outint, int32_t outfract)
 {
-	int32_t t1 = (BMTH_FIX_SIGNED_CONVERT(x, xint, xfract, BMTH_P_FIX_SIGNED_MAX_BITS - (xfract), xfract) << (outfract - (xfract - yfract)));
-	int32_t t2 = (BMTH_FIX_SIGNED_CONVERT(x, xint, xfract, BMTH_P_FIX_SIGNED_MAX_BITS - (xfract), xfract) >> ((xfract - yfract) - outfract));
-	int32_t t3 = (outfract > ((xfract) - (yfract))) ? t1 : t2;
-	int32_t t4 = BMTH_FIX_SIGNED_CONVERT(y, yint, yfract, BMTH_P_FIX_SIGNED_MAX_BITS - yfract, yfract);
-	int32_t t5 = t3 / t4;
-	BSTD_UNUSED(outint);
-	return t5;
+    int32_t t1 = (BMTH_FIX_SIGNED_CONVERT(x, xint, xfract, BMTH_P_FIX_SIGNED_MAX_BITS - (xfract), xfract) << (outfract - (xfract - yfract)));
+    int32_t t2 = (BMTH_FIX_SIGNED_CONVERT(x, xint, xfract, BMTH_P_FIX_SIGNED_MAX_BITS - (xfract), xfract) >> ((xfract - yfract) - outfract));
+    int32_t t3 = (outfract > ((xfract) - (yfract))) ? t1 : t2;
+    int32_t t4 = BMTH_FIX_SIGNED_CONVERT(y, yint, yfract, BMTH_P_FIX_SIGNED_MAX_BITS - yfract, yfract);
+    int32_t t5 = t3 / t4;
+    BSTD_UNUSED(outint);
+    return t5;
 }
 
 static int32_t BMTH_FIX_SIGNED_MUL2(int32_t x, int32_t y, int32_t xint, int32_t xfract, int32_t yint, int32_t yfract, int32_t outint, int32_t outfract)
 {
-	int32_t t1 = BMTH_FIX_SIGNED_CONVERT(x, xint, xfract, BMTH_P_FIX_SIGNED_MAX_BITS - (xfract), xfract);
-	int32_t t2 = BMTH_FIX_SIGNED_CONVERT(y, yint, yfract, BMTH_P_FIX_SIGNED_MAX_BITS - (yfract), yfract);
+    int32_t t1 = BMTH_FIX_SIGNED_CONVERT(x, xint, xfract, BMTH_P_FIX_SIGNED_MAX_BITS - (xfract), xfract);
+    int32_t t2 = BMTH_FIX_SIGNED_CONVERT(y, yint, yfract, BMTH_P_FIX_SIGNED_MAX_BITS - (yfract), yfract);
 
-	int32_t t3 = (outfract > ((xfract) + (yfract))) ?
-	    (t1 * t2) << ((outfract) - ((xfract) + (yfract))) :
-	    (int32_t)((t1 * t2) >> (((xfract) + (yfract)) - (outfract)) & BMTH_P_FIX_SIGNED_MASK(outint, outfract));
-	return t3;
+    int32_t t3 = (outfract > ((xfract) + (yfract))) ?
+        (t1 * t2) << ((outfract) - ((xfract) + (yfract))) :
+        (int32_t)((t1 * t2) >> (((xfract) + (yfract)) - (outfract)) & BMTH_P_FIX_SIGNED_MASK(outint, outfract));
+    return t3;
 }
 
 
 static void GainAccumulate
-	( BVDC_P_PepContext         *pPep,
-	  bool                       bIsHd,
-	  int32_t                   *plCr,
-	  int32_t                   *plCb )
+    ( BVDC_P_PepContext         *pPep,
+      bool                       bIsHd,
+      int32_t                   *plCr,
+      int32_t                   *plCb )
 {
-	int32_t i, k;
-	int32_t deltaCr, deltaCb;
-	int32_t Cr_t, Cb_t;
-	int32_t Cr_new, Cb_new;
-	int32_t tempGain;
-	int32_t ratio;
-	bool    bClipped;
-	const uint16_t *alSatGainRadial = NULL;
-	const uint16_t *alSatGainAngle = NULL;
+    int32_t i, k;
+    int32_t deltaCr, deltaCb;
+    int32_t Cr_t, Cb_t;
+    int32_t Cr_new, Cb_new;
+    int32_t tempGain;
+    int32_t ratio;
+    bool    bClipped;
+    const uint16_t *alSatGainRadial = NULL;
+    const uint16_t *alSatGainAngle = NULL;
 
-	for(k = 0; k < BVDC_P_PEP_CMS_COLOR_REGION_NUM; k++)
-	{
-		if(pPep->alSatGain[k] != 0)
-		{
-			BVDC_P_Pep_GetRadialTable(k, bIsHd, &alSatGainRadial);
-			BVDC_P_Pep_GetAngleTable(k, bIsHd, &alSatGainAngle);
+    for(k = 0; k < BVDC_P_PEP_CMS_COLOR_REGION_NUM; k++)
+    {
+        if(pPep->alSatGain[k] != 0)
+        {
+            BVDC_P_Pep_GetRadialTable(k, bIsHd, &alSatGainRadial);
+            BVDC_P_Pep_GetAngleTable(k, bIsHd, &alSatGainAngle);
 
-			/* update the pixelwise gain */
-			for(i = 0; i < BVDC_P_CAB_TABLE_SIZE; i++)
-			{
-				if(alSatGainRadial[i] != 0 && alSatGainAngle[i] != 0)
-				{
-					tempGain = BMTH_FIX_SIGNED_MUL(alSatGainRadial[i], pPep->alSatGain[k], 5, 10, 23, 8, 23, 8);
-					tempGain = BMTH_FIX_SIGNED_MUL(tempGain, alSatGainAngle[i], 23, 8, 5, 10, 23, 8);
-					deltaCr = BMTH_FIX_SIGNED_MUL(tempGain, COS_LUT[i], 23, 8, 5, 10, 23, 8);
-					deltaCb = BMTH_FIX_SIGNED_MUL(tempGain, SIN_LUT[i], 23, 8, 5, 10, 23, 8);
-					*(plCr + i) = BMTH_FIX_SIGNED_CONVERT(*(plCr + i) + deltaCr, 8, 8, 23, 8);
-					*(plCb + i) = BMTH_FIX_SIGNED_CONVERT(*(plCb + i) + deltaCb, 8, 8, 23, 8);
-				}
-			}
-		}
-	}
+            /* update the pixelwise gain */
+            for(i = 0; i < BVDC_P_CAB_TABLE_SIZE; i++)
+            {
+                if(alSatGainRadial[i] != 0 && alSatGainAngle[i] != 0)
+                {
+                    tempGain = BMTH_FIX_SIGNED_MUL(alSatGainRadial[i], pPep->alSatGain[k], 5, 10, 23, 8, 23, 8);
+                    tempGain = BMTH_FIX_SIGNED_MUL(tempGain, alSatGainAngle[i], 23, 8, 5, 10, 23, 8);
+                    deltaCr = BMTH_FIX_SIGNED_MUL(tempGain, COS_LUT[i], 23, 8, 5, 10, 23, 8);
+                    deltaCb = BMTH_FIX_SIGNED_MUL(tempGain, SIN_LUT[i], 23, 8, 5, 10, 23, 8);
+                    *(plCr + i) = BMTH_FIX_SIGNED_CONVERT(*(plCr + i) + deltaCr, 8, 8, 23, 8);
+                    *(plCb + i) = BMTH_FIX_SIGNED_CONVERT(*(plCb + i) + deltaCb, 8, 8, 23, 8);
+                }
+            }
+        }
+    }
 
-	/* convert it to the standard format, result is 10bits integer from 0~1023 */
-	for(i = 0; i < BVDC_P_CAB_TABLE_SIZE; i++)
-	{
-		Cr_t = ((int32_t)(i / 32)) * 32;
-		Cb_t = ((int32_t)(i % 32)) * 32;
-		deltaCr = (int32_t)(*(plCr + i) / 256);
-		deltaCb = (int32_t)(*(plCb + i) / 256);
+    /* convert it to the standard format, result is 10bits integer from 0~1023 */
+    for(i = 0; i < BVDC_P_CAB_TABLE_SIZE; i++)
+    {
+        Cr_t = ((int32_t)(i / 32)) * 32;
+        Cb_t = ((int32_t)(i % 32)) * 32;
+        deltaCr = (int32_t)(*(plCr + i) / 256);
+        deltaCb = (int32_t)(*(plCb + i) / 256);
 
-		bClipped = false;
-		if(i / 32 > 16)
-		{
-			Cr_new = BVDC_P_MIN(BVDC_P_MAX(Cr_t + deltaCr, 512), 1023);
-			if(Cr_new != (Cr_t + deltaCr))
-			{
-				ratio =((Cr_new - Cr_t) << 11) / deltaCr;
-				deltaCr = (ratio * deltaCr) >> 11;
-				deltaCb = (ratio * deltaCb) >> 11;
-				bClipped = true;
-			}
-			if(Cr_new < 0)
-				Cr_new = 0;
-		}
-		else
-		{
-			Cr_new = BVDC_P_MIN(BVDC_P_MAX(Cr_t + deltaCr, 0), 512);
-			if(Cr_new != (Cr_t + deltaCr))
-			{
-				ratio =((Cr_new - Cr_t) << 11) / deltaCr;
-				deltaCr = (ratio * deltaCr) >> 11;
-				deltaCb = (ratio * deltaCb) >> 11;
-				bClipped = true;
-			}
-			if(Cr_new < 0)
-				Cr_new =0;
-		}
+        bClipped = false;
+        if(i / 32 > 16)
+        {
+            Cr_new = BVDC_P_MIN(BVDC_P_MAX(Cr_t + deltaCr, 512), 1023);
+            if(Cr_new != (Cr_t + deltaCr))
+            {
+                ratio =((Cr_new - Cr_t) << 11) / deltaCr;
+                deltaCr = (ratio * deltaCr) >> 11;
+                deltaCb = (ratio * deltaCb) >> 11;
+                bClipped = true;
+            }
+            if(Cr_new < 0)
+                Cr_new = 0;
+        }
+        else
+        {
+            Cr_new = BVDC_P_MIN(BVDC_P_MAX(Cr_t + deltaCr, 0), 512);
+            if(Cr_new != (Cr_t + deltaCr))
+            {
+                ratio =((Cr_new - Cr_t) << 11) / deltaCr;
+                deltaCr = (ratio * deltaCr) >> 11;
+                deltaCb = (ratio * deltaCb) >> 11;
+                bClipped = true;
+            }
+            if(Cr_new < 0)
+                Cr_new =0;
+        }
 
-		if(i % 32 > 16)
-		{
-			Cb_new = BVDC_P_MIN(BVDC_P_MAX(Cb_t + deltaCb, 512), 1023);
-			if(Cb_new != (Cb_t + deltaCb))
-			{
-				ratio =((Cb_new - Cb_t) << 11) / deltaCb;
-				deltaCr = (ratio * deltaCr) >> 11;
-				deltaCb = (ratio * deltaCb) >> 11;
-				bClipped = true;
-			}
-			if(Cb_new < 0)
-				Cb_new = 0;
-		}
-		else
-		{
-			Cb_new = BVDC_P_MIN(BVDC_P_MAX(Cb_t + deltaCb, 0), 512);
-			if(Cb_new != (Cb_t + deltaCb))
-			{
-				ratio =((Cb_new - Cb_t) << 11) / deltaCb;
-				deltaCr = (ratio * deltaCr) >> 11;
-				deltaCb = (ratio * deltaCb) >> 11;
-				bClipped = true;
-			}
-			if(Cb_new < 0)
-				Cb_new =0;
-		}
+        if(i % 32 > 16)
+        {
+            Cb_new = BVDC_P_MIN(BVDC_P_MAX(Cb_t + deltaCb, 512), 1023);
+            if(Cb_new != (Cb_t + deltaCb))
+            {
+                ratio =((Cb_new - Cb_t) << 11) / deltaCb;
+                deltaCr = (ratio * deltaCr) >> 11;
+                deltaCb = (ratio * deltaCb) >> 11;
+                bClipped = true;
+            }
+            if(Cb_new < 0)
+                Cb_new = 0;
+        }
+        else
+        {
+            Cb_new = BVDC_P_MIN(BVDC_P_MAX(Cb_t + deltaCb, 0), 512);
+            if(Cb_new != (Cb_t + deltaCb))
+            {
+                ratio =((Cb_new - Cb_t) << 11) / deltaCb;
+                deltaCr = (ratio * deltaCr) >> 11;
+                deltaCb = (ratio * deltaCb) >> 11;
+                bClipped = true;
+            }
+            if(Cb_new < 0)
+                Cb_new =0;
+        }
 
-		if(bClipped)
-		{
-			if(i / 32 > 16)
-			{
-				Cr_new = BVDC_P_MIN(BVDC_P_MAX(Cr_t + deltaCr, 512), 1023);
-				if(Cr_new < 0)
-					Cr_new = 0;
-			}
-			else
-			{
-				Cr_new = BVDC_P_MIN(BVDC_P_MAX(Cr_t + deltaCr, 0), 512);
-				if(Cr_new < 0)
-					Cr_new = 0;
-			}
+        if(bClipped)
+        {
+            if(i / 32 > 16)
+            {
+                Cr_new = BVDC_P_MIN(BVDC_P_MAX(Cr_t + deltaCr, 512), 1023);
+                if(Cr_new < 0)
+                    Cr_new = 0;
+            }
+            else
+            {
+                Cr_new = BVDC_P_MIN(BVDC_P_MAX(Cr_t + deltaCr, 0), 512);
+                if(Cr_new < 0)
+                    Cr_new = 0;
+            }
 
-			if(i % 32 > 16)
-			{
-				Cb_new = BVDC_P_MIN(BVDC_P_MAX(Cb_t + deltaCb, 512), 1023);
-				if(Cb_new < 0)
-					Cb_new = 0;
-			}
-			else
-			{
-				Cb_new = BVDC_P_MIN(BVDC_P_MAX(Cb_t + deltaCb, 0), 512);
-				if (Cb_new < 0)
-					Cb_new = 0;
-			}
-		}
+            if(i % 32 > 16)
+            {
+                Cb_new = BVDC_P_MIN(BVDC_P_MAX(Cb_t + deltaCb, 512), 1023);
+                if(Cb_new < 0)
+                    Cb_new = 0;
+            }
+            else
+            {
+                Cb_new = BVDC_P_MIN(BVDC_P_MAX(Cb_t + deltaCb, 0), 512);
+                if (Cb_new < 0)
+                    Cb_new = 0;
+            }
+        }
 
-		*(plCb + i) = Cb_new;
-		*(plCr + i) = Cr_new;
-	}
+        *(plCb + i) = Cb_new;
+        *(plCr + i) = Cr_new;
+    }
 }
 
 
 static void HueGainAccumulate
-	( BVDC_P_PepContext         *pPep,
-	  bool                       bIsHd,
-	  int32_t                   *plCr,
-	  int32_t                   *plCb )
+    ( BVDC_P_PepContext         *pPep,
+      bool                       bIsHd,
+      int32_t                   *plCr,
+      int32_t                   *plCb )
 {
-	int32_t i, k;
-	int32_t fCb, fCr;
-	int32_t tempGain;
-	int32_t sin_t, cos_t;
-	int32_t nCb, nCr;
-	int32_t Crtemp1, Crtemp2;
-	int32_t Cbtemp1, Cbtemp2;
-	const uint16_t *alHueGainAngle = NULL;
+    int32_t i, k;
+    int32_t fCb, fCr;
+    int32_t tempGain;
+    int32_t sin_t, cos_t;
+    int32_t nCb, nCr;
+    int32_t Crtemp1, Crtemp2;
+    int32_t Cbtemp1, Cbtemp2;
+    const uint16_t *alHueGainAngle = NULL;
 
-	for(i = 0; i < BVDC_P_CAB_TABLE_SIZE; i++)
-	{
-		pPep->tempCr[i] = *(plCr + i);
-		pPep->tempCb[i] = *(plCb + i);
-	}
+    for(i = 0; i < BVDC_P_CAB_TABLE_SIZE; i++)
+    {
+        pPep->tempCr[i] = *(plCr + i);
+        pPep->tempCb[i] = *(plCb + i);
+    }
 
-	for(k = 0; k < BVDC_P_PEP_CMS_COLOR_REGION_NUM; k++)
-	{
-		if(pPep->alHueGain[k] != 0)
-		{
-			BVDC_P_Pep_GetHueAngleTable(k, bIsHd, &alHueGainAngle);
+    for(k = 0; k < BVDC_P_PEP_CMS_COLOR_REGION_NUM; k++)
+    {
+        if(pPep->alHueGain[k] != 0)
+        {
+            BVDC_P_Pep_GetHueAngleTable(k, bIsHd, &alHueGainAngle);
 
-			/* update the pixelwise gain */
-			for(i = 0; i < BVDC_P_CAB_TABLE_SIZE; i++)
-			{
-				if(alHueGainAngle[i] != 0)
-				{
-					tempGain = BMTH_FIX_SIGNED_MUL2(alHueGainAngle[i], pPep->alHueGain[k], 5, 10, 23, 8, 20, 11);
-/*					sin_t = BVDC_P_WIN_FIX_SIN(tempGain);
-					cos_t = BVDC_P_WIN_FIX_COS(tempGain);
-*/					sin_t = BMTH_FIX_SIGNED_SIN(tempGain, 20, 11, 20, 11);
-					cos_t = BMTH_FIX_SIGNED_COS(tempGain, 20, 11, 20, 11);
-					fCb = *(plCb + i) - 512;
-					fCr = *(plCr + i) - 512;
+            /* update the pixelwise gain */
+            for(i = 0; i < BVDC_P_CAB_TABLE_SIZE; i++)
+            {
+                if(alHueGainAngle[i] != 0)
+                {
+                    tempGain = BMTH_FIX_SIGNED_MUL2(alHueGainAngle[i], pPep->alHueGain[k], 5, 10, 23, 8, 20, 11);
+/*                  sin_t = BVDC_P_WIN_FIX_SIN(tempGain);
+                    cos_t = BVDC_P_WIN_FIX_COS(tempGain);
+*/                  sin_t = BMTH_FIX_SIGNED_SIN(tempGain, 20, 11, 20, 11);
+                    cos_t = BMTH_FIX_SIGNED_COS(tempGain, 20, 11, 20, 11);
+                    fCb = *(plCb + i) - 512;
+                    fCr = *(plCr + i) - 512;
 
-					/* according to the triangular formula */
-					/* nCb = A * sin(a + delta_a) */
-					/*     = A * sin(a) * cos(delta_a) + A * cos(a) * sin(delta_a) */
-					/*     = fCb * cos(delta_a) + fCr * sin(delta_a) */
-					/* nCr = A * cos(a + delta_a) */
-					/*     = A * cos(a) * cos(delta_a) - A * sin(a) * sin(delta_a) */
-					/*     = fCr * cos(delta_a) - fCb * sin(delta_a) */
-					/* where nCb, nCr is the new Cb, Cr and */
-					/* fCb, fCr are obtained from last step */
-					Cbtemp1 = BMTH_FIX_SIGNED_MUL2(fCb, cos_t, 10, 5, 5, 11, 26, 5);
-					Cbtemp2 = BMTH_FIX_SIGNED_MUL2(fCr, sin_t, 10, 5, 5, 11, 26, 5);
-					nCb = Cbtemp1 + Cbtemp2;
+                    /* according to the triangular formula */
+                    /* nCb = A * sin(a + delta_a) */
+                    /*     = A * sin(a) * cos(delta_a) + A * cos(a) * sin(delta_a) */
+                    /*     = fCb * cos(delta_a) + fCr * sin(delta_a) */
+                    /* nCr = A * cos(a + delta_a) */
+                    /*     = A * cos(a) * cos(delta_a) - A * sin(a) * sin(delta_a) */
+                    /*     = fCr * cos(delta_a) - fCb * sin(delta_a) */
+                    /* where nCb, nCr is the new Cb, Cr and */
+                    /* fCb, fCr are obtained from last step */
+                    Cbtemp1 = BMTH_FIX_SIGNED_MUL2(fCb, cos_t, 10, 5, 5, 11, 26, 5);
+                    Cbtemp2 = BMTH_FIX_SIGNED_MUL2(fCr, sin_t, 10, 5, 5, 11, 26, 5);
+                    nCb = Cbtemp1 + Cbtemp2;
 
-					Crtemp1 = BMTH_FIX_SIGNED_MUL2(fCr, cos_t, 10, 5, 5, 11, 26, 5);
-					Crtemp2 = BMTH_FIX_SIGNED_MUL2(fCb, sin_t, 10, 5, 5, 11, 26, 5);
-					nCr = Crtemp1 - Crtemp2;
+                    Crtemp1 = BMTH_FIX_SIGNED_MUL2(fCr, cos_t, 10, 5, 5, 11, 26, 5);
+                    Crtemp2 = BMTH_FIX_SIGNED_MUL2(fCb, sin_t, 10, 5, 5, 11, 26, 5);
+                    nCr = Crtemp1 - Crtemp2;
 
-					pPep->tempCr[i] = nCr + 512;
-					pPep->tempCb[i] = nCb + 512;
-				}
-			}
-		}
-	}
+                    pPep->tempCr[i] = nCr + 512;
+                    pPep->tempCb[i] = nCb + 512;
+                }
+            }
+        }
+    }
 
-	/* convert it to the standard format, result is 10bits integer from 0~1023 */
-	for(i = 0; i < BVDC_P_CAB_TABLE_SIZE; i++)
-	{
-		if(pPep->tempCr[i] > 1023)
-			*(plCr + i) = 1023;
-		else if(pPep->tempCr[i] < 0)
-			*(plCr + i) = 0;
-		else
-			*(plCr + i) = pPep->tempCr[i];
+    /* convert it to the standard format, result is 10bits integer from 0~1023 */
+    for(i = 0; i < BVDC_P_CAB_TABLE_SIZE; i++)
+    {
+        if(pPep->tempCr[i] > 1023)
+            *(plCr + i) = 1023;
+        else if(pPep->tempCr[i] < 0)
+            *(plCr + i) = 0;
+        else
+            *(plCr + i) = pPep->tempCr[i];
 
-		if(pPep->tempCb[i] > 1023)
-			*(plCb + i) = 1023;
-		else if(pPep->tempCb[i] < 0)
-			*(plCb + i) = 0;
-		else
-			*(plCb + i) = pPep->tempCb[i];
-	}
+        if(pPep->tempCb[i] > 1023)
+            *(plCb + i) = 1023;
+        else if(pPep->tempCb[i] < 0)
+            *(plCb + i) = 0;
+        else
+            *(plCb + i) = pPep->tempCb[i];
+    }
 }
 
 
 void BVDC_P_Pep_Cms
-	( BVDC_P_PepContext           *pPep,
-	  const BVDC_ColorBar         *pSatGain,
-	  const BVDC_ColorBar         *pHueGain,
-	  bool                         bIsHd,
-	  uint32_t                    *pulCabTable )
+    ( BVDC_P_PepContext           *pPep,
+      const BVDC_ColorBar         *pSatGain,
+      const BVDC_ColorBar         *pHueGain,
+      bool                         bIsHd,
+      uint32_t                    *pulCabTable )
 {
-	int32_t i;
+    int32_t i;
 
-	BDBG_ENTER(BVDC_P_Pep_Cms);
+    BDBG_ENTER(BVDC_P_Pep_Cms);
 
-	pPep->alSatGain[BVDC_P_Cms_ColorBar_eGreen]    = pSatGain->lGreen;
-	pPep->alSatGain[BVDC_P_Cms_ColorBar_eYellow]   = pSatGain->lYellow;
-	pPep->alSatGain[BVDC_P_Cms_ColorBar_eRed]      = pSatGain->lRed;
-	pPep->alSatGain[BVDC_P_Cms_ColorBar_eMagnenta] = pSatGain->lMagenta;
-	pPep->alSatGain[BVDC_P_Cms_ColorBar_eBlue]     = pSatGain->lBlue;
-	pPep->alSatGain[BVDC_P_Cms_ColorBar_eCyan]     = pSatGain->lCyan;
-	pPep->alHueGain[BVDC_P_Cms_ColorBar_eGreen]    = pHueGain->lGreen;
-	pPep->alHueGain[BVDC_P_Cms_ColorBar_eYellow]   = pHueGain->lYellow;
-	pPep->alHueGain[BVDC_P_Cms_ColorBar_eRed]      = pHueGain->lRed;
-	pPep->alHueGain[BVDC_P_Cms_ColorBar_eMagnenta] = pHueGain->lMagenta;
-	pPep->alHueGain[BVDC_P_Cms_ColorBar_eBlue]     = pHueGain->lBlue;
-	pPep->alHueGain[BVDC_P_Cms_ColorBar_eCyan]     = pHueGain->lCyan;
+    pPep->alSatGain[BVDC_P_Cms_ColorBar_eGreen]    = pSatGain->lGreen;
+    pPep->alSatGain[BVDC_P_Cms_ColorBar_eYellow]   = pSatGain->lYellow;
+    pPep->alSatGain[BVDC_P_Cms_ColorBar_eRed]      = pSatGain->lRed;
+    pPep->alSatGain[BVDC_P_Cms_ColorBar_eMagnenta] = pSatGain->lMagenta;
+    pPep->alSatGain[BVDC_P_Cms_ColorBar_eBlue]     = pSatGain->lBlue;
+    pPep->alSatGain[BVDC_P_Cms_ColorBar_eCyan]     = pSatGain->lCyan;
+    pPep->alHueGain[BVDC_P_Cms_ColorBar_eGreen]    = pHueGain->lGreen;
+    pPep->alHueGain[BVDC_P_Cms_ColorBar_eYellow]   = pHueGain->lYellow;
+    pPep->alHueGain[BVDC_P_Cms_ColorBar_eRed]      = pHueGain->lRed;
+    pPep->alHueGain[BVDC_P_Cms_ColorBar_eMagnenta] = pHueGain->lMagenta;
+    pPep->alHueGain[BVDC_P_Cms_ColorBar_eBlue]     = pHueGain->lBlue;
+    pPep->alHueGain[BVDC_P_Cms_ColorBar_eCyan]     = pHueGain->lCyan;
 
-	BDBG_MSG(("Sat level: %4d %4d %4d %4d %4d %4d",
-		pPep->alSatGain[0], pPep->alSatGain[1], pPep->alSatGain[2],
-		pPep->alSatGain[3], pPep->alSatGain[4], pPep->alSatGain[5]));
-	BDBG_MSG(("Hue level: %4d %4d %4d %4d %4d %4d",
-		pPep->alHueGain[0], pPep->alHueGain[1], pPep->alHueGain[2],
-		pPep->alHueGain[3], pPep->alHueGain[4], pPep->alHueGain[5]));
-	BDBG_MSG(("isHdSd = %s", (bIsHd) ? "true" : "false"));
+    BDBG_MSG(("Sat level: %4d %4d %4d %4d %4d %4d",
+        pPep->alSatGain[0], pPep->alSatGain[1], pPep->alSatGain[2],
+        pPep->alSatGain[3], pPep->alSatGain[4], pPep->alSatGain[5]));
+    BDBG_MSG(("Hue level: %4d %4d %4d %4d %4d %4d",
+        pPep->alHueGain[0], pPep->alHueGain[1], pPep->alHueGain[2],
+        pPep->alHueGain[3], pPep->alHueGain[4], pPep->alHueGain[5]));
+    BDBG_MSG(("isHdSd = %s", (bIsHd) ? "true" : "false"));
 
-	/* Convert alSatGain and alHueGain to FIX POINT format used by the algo */
-	for(i = 0; i < BVDC_P_PEP_CMS_COLOR_REGION_NUM; i++)
-	{
-		pPep->alSatGain[i] = BMTH_FIX_SIGNED_ITOFIX(pPep->alSatGain[i], 23, 8);
+    /* Convert alSatGain and alHueGain to FIX POINT format used by the algo */
+    for(i = 0; i < BVDC_P_PEP_CMS_COLOR_REGION_NUM; i++)
+    {
+        pPep->alSatGain[i] = BMTH_FIX_SIGNED_ITOFIX(pPep->alSatGain[i], 23, 8);
 
-		pPep->alHueGain[i] = BMTH_FIX_SIGNED_ITOFIX(pPep->alHueGain[i], 23, 8);
-		pPep->alHueGain[i] = BMTH_FIX_SIGNED_DIV2(pPep->alHueGain[i], F_50, 23, 8, 7, 8, 23, 8);
-		pPep->alHueGain[i] = BMTH_FIX_SIGNED_MUL2(pPep->alHueGain[i], 0x00000086, 23, 8, 7, 8, 23, 8);
-	}
+        pPep->alHueGain[i] = BMTH_FIX_SIGNED_ITOFIX(pPep->alHueGain[i], 23, 8);
+        pPep->alHueGain[i] = BMTH_FIX_SIGNED_DIV2(pPep->alHueGain[i], F_50, 23, 8, 7, 8, 23, 8);
+        pPep->alHueGain[i] = BMTH_FIX_SIGNED_MUL2(pPep->alHueGain[i], 0x00000086, 23, 8, 7, 8, 23, 8);
+    }
 
-	/* Init alCb[] and alCr[] */
-	BKNI_Memset((int32_t *)&pPep->alCr[0], 0x0, BVDC_P_CAB_TABLE_SIZE*sizeof(int32_t));
-	BKNI_Memset((int32_t *)&pPep->alCb[0], 0x0, BVDC_P_CAB_TABLE_SIZE*sizeof(int32_t));
+    /* Init alCb[] and alCr[] */
+    BKNI_Memset((int32_t *)&pPep->alCr[0], 0x0, BVDC_P_CAB_TABLE_SIZE*sizeof(int32_t));
+    BKNI_Memset((int32_t *)&pPep->alCb[0], 0x0, BVDC_P_CAB_TABLE_SIZE*sizeof(int32_t));
 
-	GainAccumulate(pPep, bIsHd, &pPep->alCr[0], &pPep->alCb[0]);
-	HueGainAccumulate(pPep, bIsHd, &pPep->alCr[0], &pPep->alCb[0]);
+    GainAccumulate(pPep, bIsHd, &pPep->alCr[0], &pPep->alCb[0]);
+    HueGainAccumulate(pPep, bIsHd, &pPep->alCr[0], &pPep->alCb[0]);
 
-	/* Combine alCr[] and alCb[] into pulCabTable[] */
-	for(i = 0; i < BVDC_P_CAB_TABLE_SIZE; i++)
-	{
-		*(pulCabTable + i ) =
-			BCHP_FIELD_DATA(PEP_CMP_0_V0_CAB_LUT_DATA_i, BYPASS, 0) |
-			BCHP_FIELD_DATA(PEP_CMP_0_V0_CAB_LUT_DATA_i, CR_DATA, pPep->alCr[i]) |
-			BCHP_FIELD_DATA(PEP_CMP_0_V0_CAB_LUT_DATA_i, CB_DATA, pPep->alCb[i]);
+    /* Combine alCr[] and alCb[] into pulCabTable[] */
+    for(i = 0; i < BVDC_P_CAB_TABLE_SIZE; i++)
+    {
+        *(pulCabTable + i ) =
+            BCHP_FIELD_DATA(PEP_CMP_0_V0_CAB_LUT_DATA_i, BYPASS, 0) |
+            BCHP_FIELD_DATA(PEP_CMP_0_V0_CAB_LUT_DATA_i, CR_DATA, pPep->alCr[i]) |
+            BCHP_FIELD_DATA(PEP_CMP_0_V0_CAB_LUT_DATA_i, CB_DATA, pPep->alCb[i]);
 
-		/* printf("%d		%d		%d\n", i, alCr[i], alCb[i]); */
-		/* BDBG_MSG(("CMS: CabTable[%d] = 0x%x", i, *(pulCabTable + i))); */
-	}
+        /* printf("%d       %d      %d\n", i, alCr[i], alCb[i]); */
+        /* BDBG_MSG(("CMS: CabTable[%d] = 0x%x", i, *(pulCabTable + i))); */
+    }
 
-	BDBG_LEAVE(BVDC_P_Pep_Cms);
-	return;
+    BDBG_LEAVE(BVDC_P_Pep_Cms);
+    return;
 }
 
 #endif /* (BVDC_P_SUPPORT_PEP) */

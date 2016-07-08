@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2014 Broadcom Corporation
+ *     Broadcom Proprietary and Confidential. (c)2014 Broadcom.  All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -57,7 +57,7 @@ typedef struct BVC5_P_BinPoolOversizedBlocks
 
 typedef struct BVC5_P_BinPool
 {
-   BVC5_Handle          hVC5;
+   BMMA_Heap_Handle     hMMAHeap;
    uint32_t             uiSize;    /* Number of items in the main pool */
    uint32_t             uiMinSize;
 
@@ -110,8 +110,8 @@ static void BVC5_P_BinBlockUnlockOffset(
 
 /***************************************************************************/
 BERR_Code BVC5_P_BinPoolCreate(
-   BVC5_Handle         hVC5,
-   BVC5_BinPoolHandle *phBinPool
+   BMMA_Heap_Handle     hMMAHeap,
+   BVC5_BinPoolHandle  *phBinPool
 )
 {
    BVC5_BinPoolHandle hBinPool = NULL;
@@ -130,7 +130,7 @@ BERR_Code BVC5_P_BinPoolCreate(
    if (hBinPool->ppBlocks == NULL)
       goto exit1;
 
-   hBinPool->hVC5       = hVC5;
+   hBinPool->hMMAHeap   = hMMAHeap;
    hBinPool->uiSize     = 0;
    hBinPool->uiMinSize  = 0;
    hBinPool->uiCapacity = BVC5_P_BINMEM_CHUNK_SIZE;
@@ -161,7 +161,7 @@ static BVC5_BinBlockHandle BVC5_P_BinPoolBlockAlloc(
 
    /* BKNI_Printf("BlockAlloc\n"); */
 
-   pData->hBlock = BVC5_P_BinPoolBlock_AllocMem(hBinPool->hVC5->hMMAHeap, uiNumBytes, 1 << BVC5_P_BINMEM_ALIGN);
+   pData->hBlock = BVC5_P_BinPoolBlock_AllocMem(hBinPool->hMMAHeap, uiNumBytes, 1 << BVC5_P_BINMEM_ALIGN);
    pData->uiLockOffset = 0;
    pData->uiPhysOffset = 0;
    pData->uiNumBytes = uiNumBytes;
@@ -391,6 +391,9 @@ void BVC5_P_BinPoolPurge(
    BVC5_BinPoolHandle   hBinPool
 )
 {
+   if (hBinPool == NULL)
+      return;
+
    /* BKNI_Printf("Purge min: %d, size: %d\n", hBinPool->uiMinSize, hBinPool->uiSize); */
    if (hBinPool->uiMinSize > BVC5_P_BINMEM_MIN_NUM_BLOCKS &&
        hBinPool->uiSize    > BVC5_P_BINMEM_MIN_NUM_BLOCKS)

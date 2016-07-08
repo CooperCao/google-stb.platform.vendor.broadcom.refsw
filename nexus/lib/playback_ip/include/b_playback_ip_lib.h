@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2008-2016 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * Description: header file for Playback IP App Lib
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 #ifndef B_PLAYBACK_IP_LIB_H__
@@ -565,6 +557,8 @@ typedef enum
     /* Event to indicate when client playback thread has doesn't have anymore segments to play and is waiting for app to either resume via seeking little back or stop the playback */
     /* This can happen for live Event type hls channels when app does a fast fwd and we reach the end of currently available segments but not end of stream as it is a live event. */
     B_PlaybackIpEvent_eClientEndofSegmentsReached,
+    /* Event to indicate that a new program is found in the stream. */
+    B_PlaybackIpEvent_eNewProgram,
     /* Invalid event */
     B_PlaybackIpEvent_eMax
 } B_PlaybackIpEventIds;
@@ -989,7 +983,8 @@ typedef struct B_PlaybackIpSessionStartSettings
                                               /* if non-zero, app must set the language code below & playpump2 handle in nexusHandles. */
     bool audioOnlyPlayback;                   /* if set to true, HTTP Player can allocate smaller internal buffers (especially for HLS Player). */
     bool startPaused;                         /* Flag to indicate that app is starting in the paused mode. App will need to call B_PlaybackIp_Play() to resume playing. */
-    bool monitorPsiAndRemapPids;              /* Flag to indicate if PBIP should monitor the PSI changes during runtime & remap the pids. */
+    bool monitorPsi;                          /* Flag to indicate if PBIP should monitor the PSI changes during runtime. */
+    bool musicChannelWithVideoStills;         /* Flag to indicate if app is playing a music channel w/ video stills. Enables PBIP to use position using audio PTS. */
 } B_PlaybackIpSessionStartSettings;
 
 /**
@@ -1105,6 +1100,7 @@ typedef struct B_PlaybackIpSettings
     bool playPositionOffsetValid;       /* flag to indicate if playPositionOffsetInMs is valid. */
     NEXUS_PlaybackPosition playPositionOffsetInMs; /* Updated Play position offset that should be used as the starting play position to play from. */
                                         /* Mainly applicable for timeshift cases to align current position w/ the server's current position. */
+    bool resumePsiMonitoring;           /* Flag to indicate if PBIP should resume monitoring of the PSI changes during runtime. */
 } B_PlaybackIpSettings;
 
 /**
@@ -1339,7 +1335,7 @@ typedef struct B_PlaybackIpRtpTxStats
 typedef struct B_PlaybackIpHlsPlayerStats
 {
     unsigned lastSegmentDownloadTime;           /* time, in msec, taken to download the last segment: spans from HTTP Get Request to full segment download */
-    unsigned lastSegmentBitrate;                /* time, in msec, taken to acquire the last segment: spans from HTTP Get Request to full download of segment */
+    unsigned lastSegmentBitrate;                /* bit rate, in bips per sec (bps), associated with the segments currently being downloaded & played out. */
     unsigned lastSegmentDuration;               /* duration, in msec, of the last segment fed to the playback h/w channel */
     unsigned lastSegmentSequence;               /* sequence number of the last segment fed to the playback h/w channel */
     const char *lastSegmentUrl;                 /* URL (i.e. playlist name) of the last segment fed to the playback h/w channel */
@@ -1378,6 +1374,7 @@ typedef struct B_PlaybackIpStatus
     B_PlaybackIpRtpRxStats rtpStats;            /* RTP Rx related commulative stats: only updated if RTP session is being played */
     B_PlaybackIpSessionInfo sessionInfo;        /* Provides session related info: IP, Port, URL, Prototol, Security, etc. */
     B_PlaybackIpHlsPlayerStats hlsStats;        /* valid if sessionInfo.hlsSessionEnabled is true */
+    const void *stream;                         /* pointer to the bmedia_probe_stream structure to allow apps to extract additional program/track info associated w/ the current program. */
 } B_PlaybackIpStatus;
 
 /**

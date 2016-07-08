@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2004-2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,18 +34,6 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* API Description:
-*   API name: Platform linuxuser
-*    linuxuser OS routines
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 
@@ -209,7 +197,7 @@ static NEXUS_Error NEXUS_Platform_P_StopInterruptThread(void)
 NEXUS_Error NEXUS_Platform_P_InitWebCpuServer(void)
 {
     NEXUS_ModuleHandle module;
-    NEXUS_Graphics2DModuleSettings graphics2dSettings;
+    NEXUS_Graphics2DModuleInternalSettings graphics2dSettings;
     unsigned base, length;
     void *addr;
     NEXUS_Error rc;
@@ -296,7 +284,7 @@ NEXUS_Error NEXUS_Platform_P_InitWebCpuServer(void)
     rc = NEXUS_Platform_P_StartInterruptThread();
     if(rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc); goto startinterrupts_error; }
 
-    NEXUS_Graphics2DModule_GetDefaultSettings(&graphics2dSettings);
+    NEXUS_Graphics2DModule_GetDefaultInternalSettings(&graphics2dSettings);
     module = NEXUS_Graphics2DModule_Init(&graphics2dSettings);
     if (!module) { rc = BERR_TRACE(NEXUS_UNKNOWN); goto graphics2d_error; }
 

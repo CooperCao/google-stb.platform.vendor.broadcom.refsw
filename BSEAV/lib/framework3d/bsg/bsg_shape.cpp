@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -11,7 +11,7 @@
  * Software and all intellectual property rights therein.  IF YOU HAVE NO
  * AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
  * AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
- * SOFTWARE.  
+ * SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
@@ -300,22 +300,22 @@ void CuboidFactory::Init(float w, float h, float d)
    AddVertex(-x,  y,  z,  -1,  0,  0,   1, 1);
    AddVertex(-x,  y, -z,  -1,  0,  0,   0, 1);
    AddVertex(-x, -y, -z,  -1,  0,  0,   0, 0);
-                              
+
    AddVertex( x, -y,  z,   0,  0,  1,   1, 0);
    AddVertex( x,  y,  z,   0,  0,  1,   1, 1);
    AddVertex(-x, -y,  z,   0,  0,  1,   0, 0);
    AddVertex(-x,  y,  z,   0,  0,  1,   0, 1);
-                              
+
    AddVertex( x, -y, -z,   1,  0,  0,   1, 0);
    AddVertex( x,  y, -z,   1,  0,  0,   1, 1);
    AddVertex( x, -y,  z,   1,  0,  0,   0, 0);
    AddVertex( x,  y,  z,   1,  0,  0,   0, 1);
-                              
+
    AddVertex( x,  y, -z,   0,  1,  0,   1, 0);
    AddVertex(-x,  y, -z,   0,  1,  0,   0, 0);
    AddVertex( x,  y,  z,   0,  1,  0,   1, 1);
    AddVertex(-x,  y,  z,   0,  1,  0,   0, 1);
-                              
+
    AddVertex( x, -y, -z,   0, -1,  0,   1, 0);
    AddVertex( x, -y,  z,   0, -1,  0,   1, 1);
    AddVertex(-x, -y,  z,   0, -1,  0,   0, 1);
@@ -633,7 +633,7 @@ static void EmitVertex(std::vector<float> &buffer, const ObjReader &reader, cons
    if (hasN)
    {
       const Vec3  &norm = reader.GetNormal(face, v);
-            
+
       buffer.push_back(norm.X());
       buffer.push_back(norm.Y());
       buffer.push_back(norm.Z());
@@ -661,7 +661,7 @@ static uint32_t ObjVertexSize(bool hasN, bool hasTC)
 
    if (hasN)
       res += 3;
-   
+
    if (hasTC)
       res += 2;
 
@@ -810,7 +810,7 @@ GeometryHandle ObjFactory::MakeGeometry(const ObjMaterialOptions &options, std::
 // ObjFactoryTask
 ///////////////////////////////////////////////////////////////////////////////
 
-// Runs in 
+// Runs in
 void ObjFactoryTask::CreateSurface(bool hasN, bool hasTC, uint32_t vertexSize, uint32_t totalVertices)
 {
    m_surface = SurfaceHandle(New);
@@ -856,7 +856,7 @@ static Box CalcBox(uint32_t count, float *buff, uint32_t size)
 
 void ObjFactoryTask::OnThread()
 {
-   m_reader = std::unique_ptr<ObjReader>(new ObjReader(m_fileName, Application::Instance()->FindResourceFolder(m_fileName)));
+   m_reader = std::auto_ptr<ObjReader>(new ObjReader(m_fileName, Application::Instance()->FindResourceFolder(m_fileName)));
 
    Call(&ObjFactoryTask::OnLoaded);
 
@@ -876,7 +876,7 @@ void ObjFactoryTask::OnThread()
             uint32_t remaining  = numFaces - b;
             uint32_t batchSize  = std::min(remaining, m_faceBatchSize);
             uint32_t totalVerts = 0;
-      
+
             std::vector<float>   vertexData;
 
             for (uint32_t f = 0; f < batchSize; ++f)

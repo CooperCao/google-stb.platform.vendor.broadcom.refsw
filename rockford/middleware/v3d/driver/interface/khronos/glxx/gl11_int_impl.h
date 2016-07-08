@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2008 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2008 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -96,6 +96,6 @@ extern void glVertexPointer_impl_11(void);
 //gl 1.1 specific
 extern void glintColor_impl_11(float red, float green, float blue, float alpha);
 extern void glQueryMatrixxOES_impl_11(GLfixed mantissa[16]);
-extern void glDrawTexfOES_impl_11(GLfloat Xs, GLfloat Ys, GLfloat Zs, GLfloat Ws, GLfloat Hs);
+extern void glDrawTexfOES_impl_11(GLfloat Xs, GLfloat Ys, GLfloat Zs, GLfloat Ws, GLfloat Hs, bool secure);
 
 #endif /* GL11_INT_IMPL_H */

@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2010 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2010 Broadcom.
 All rights reserved.
 
 Project  :  Default RSO Android platform API for EGL driver
@@ -29,7 +29,9 @@ extern void RSOANPL_RegisterAndroidDisplayPlatform(RSOANPL_PlatformHandle *handl
 /* Unregister Android */
 extern void RSOANPL_UnregisterAndroidDisplayPlatform(RSOANPL_PlatformHandle handle);
 
-extern bool RSOANPL_BufferGetRequirements(RSOANPL_PlatformHandle handle, BEGL_PixmapInfo *bufferRequirements, BEGL_BufferSettings * bufferConstrainedRequirements);
+extern bool RSOANPL_BufferGetRequirements(RSOANPL_PlatformHandle handle, BEGL_PixmapInfoEXT *bufferRequirements, BEGL_BufferSettings * bufferConstrainedRequirements);
+
+#define UNUSED(X) X
 
 #ifdef __cplusplus
 }

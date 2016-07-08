@@ -1,52 +1,44 @@
-/***************************************************************************
-*     (c)2004-2014 Broadcom Corporation
-*
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
-*  and may only be used, duplicated, modified or distributed pursuant to the terms and
-*  conditions of a separate, written license agreement executed between you and Broadcom
-*  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-*  no license (express or implied), right to use, or waiver of any kind with respect to the
-*  Software, and Broadcom expressly reserves all rights in and to the Software and all
-*  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-*  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-*  Except as expressly set forth in the Authorized License,
-*
-*  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-*  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-*  and to use this information only in connection with your use of Broadcom integrated circuit products.
-*
-*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-*  USE OR PERFORMANCE OF THE SOFTWARE.
-*
-*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-*  ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* API Description:
-*   Management of STC Channels that deliver timebases to decoders.
-*
-* Revision History:
-*
-* $brcm_Log: $
-*
-***************************************************************************/
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c) 2016 Broadcom. All rights reserved.
+ *
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
+ *
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ *
+ *****************************************************************************/
 #include "nexus_transport_module.h"
 #include "priv/nexus_stc_channel_priv.h"
 
@@ -58,6 +50,11 @@ BDBG_FILE_MODULE(nexus_flow_stc_channel);
 /*#define NEXUS_STC_CHANNEL_DEBUG_DECODER_QUEUE 1*/
 
 static NEXUS_Error NEXUS_StcChannel_P_SetDecoderConnectionSettings(NEXUS_StcChannelDecoderConnectionHandle decoder, const NEXUS_StcChannelDecoderConnectionSettings *pSettings, bool force);
+static NEXUS_StcChannelPidChannelEntry * NEXUS_StcChannel_P_FindPidChannelEntry(NEXUS_StcChannelHandle stcChannel, NEXUS_PidChannelHandle pidChannel);
+static void NEXUS_StcChannel_P_SetSwPcrOffsetEnabled(NEXUS_StcChannelHandle stcChannel);
+
+#define PID_CHANNEL_INDEX(pidChannel) ((pidChannel)->hwPidChannel->status.pidChannelIndex)
+#define PID_CHANNEL_PID(pidChannel) ((pidChannel)->hwPidChannel->status.pid)
 
 void NEXUS_StcChannel_GetDefaultSettings(unsigned index, NEXUS_StcChannelSettings *pSettings)
 {
@@ -85,6 +82,7 @@ void NEXUS_StcChannel_GetDefaultSettings(unsigned index, NEXUS_StcChannelSetting
 static void NEXUS_StcChannel_P_Finalizer(NEXUS_StcChannelHandle stcChannel)
 {
     NEXUS_StcChannelSettings settings;
+    NEXUS_StcChannelPidChannelEntry * e;
 
     BDBG_OBJECT_ASSERT(stcChannel, NEXUS_StcChannel);
 
@@ -102,6 +100,14 @@ static void NEXUS_StcChannel_P_Finalizer(NEXUS_StcChannelHandle stcChannel)
     (void)NEXUS_StcChannel_SetSettings(stcChannel, &settings);
 
     stcChannel->timebase = NULL;
+
+    /* clean up any leftover enabled pid channels */
+    while ((e = BLST_Q_FIRST(&stcChannel->pids))) {
+        BDBG_WRN(("Unbalanced EnablePidChannel(%u) for pidChannel %u; disabling", e->refcnt, e->pidChannelIndex));
+        BXPT_PcrOffset_DisableOffset(stcChannel->pcrOffset, e->pidChannelIndex);
+        BLST_Q_REMOVE(&stcChannel->pids, e, link);
+        BKNI_Free(e);
+    }
 
     if (stcChannel->pcrlibChannel) {
         BPCRlib_Channel_Destroy(stcChannel->pcrlibChannel);
@@ -142,16 +148,22 @@ NEXUS_StcChannelHandle NEXUS_StcChannel_Open(unsigned index, const NEXUS_StcChan
             }
         }
         if (index == BXPT_NUM_PCR_OFFSET_CHANNELS) {
-            rc = BERR_TRACE(NEXUS_NOT_AVAILABLE);
             BDBG_ERR(("no stc channel available"));
+            rc = BERR_TRACE(NEXUS_NOT_AVAILABLE);
+            return NULL;
+        }
+    } else {
+        if (index >= BXPT_NUM_PCR_OFFSET_CHANNELS) {
+            BDBG_ERR(("stcChannel %d not available", index));
+            (void)BERR_TRACE(NEXUS_NOT_AVAILABLE);
+            return NULL;
+        }
+        if(pTransport->stcChannel[index] != NULL) {
+            (void)BERR_TRACE(NEXUS_NOT_AVAILABLE);
             return NULL;
         }
     }
 
-    if (index >= BXPT_NUM_PCR_OFFSET_CHANNELS) {
-        BDBG_ERR(("stcChannel %d not available", index));
-        return NULL;
-    }
 
     stcChannel = BKNI_Malloc(sizeof(*stcChannel));
     if (!stcChannel) {
@@ -198,6 +210,8 @@ NEXUS_StcChannelHandle NEXUS_StcChannel_Open(unsigned index, const NEXUS_StcChan
     /* on open, need to clear out old settings before applying new ones */
     NEXUS_StcChannel_GetDefaultSettings(index, &stcChannel->settings);
 
+    stcChannel->swPcrOffsetEnabled = true; /* soft, until connected, or host mode */
+
     rc = NEXUS_StcChannel_SetSettings(stcChannel, pSettings);
     if (rc) {rc=BERR_TRACE(rc); goto error;}
 
@@ -207,7 +221,6 @@ NEXUS_StcChannelHandle NEXUS_StcChannel_Open(unsigned index, const NEXUS_StcChan
 
     BLST_Q_INIT(&stcChannel->decoders);
 
-    stcChannel->swPcrOffsetEnabled = true; /* soft, until connected */
     stcChannel->stcValid = false;
     stcChannel->nonRealTime = false;
     stcChannel->pairedChannel = NULL;
@@ -556,7 +569,6 @@ error:
     return rc;
 }
 
-
 static NEXUS_Error setPcrOffsetSettings(
     NEXUS_StcChannelHandle stcChannel,
     const NEXUS_StcChannelSettings * pSettings,
@@ -632,9 +644,48 @@ static NEXUS_Error setPcrOffsetSettings(
     if (pSettings->pcrBits != NEXUS_StcChannel_PcrBits_eLegacy) { rc = BERR_TRACE(NEXUS_NOT_SUPPORTED); goto error; }
 #endif
 
+    /*
+     * BXPT_PcrOffset_SetSettings will add the pcr to the pid table for us, but
+     * with hard-coded jitter settings.
+     * if we are in PCR mode, we need to undo what we've done and redo later
+     * steps are:
+     *
+     * 1. disable any offset for pcr pid channel that we have refcnted
+     * 2. call PcrOffset_SetSettings, which will enable the offset with fixed jitter settings
+     * 3. disable the offset entry XPT installed with fixed jitter settings
+     * 4. enable it again with the right settings
+     */
+    if (mode == NEXUS_StcChannelMode_ePcr)
+    {
+        NEXUS_StcChannelPidChannelEntry * e;
+        /* step 1 */
+        e = NEXUS_StcChannel_P_FindPidChannelEntry(stcChannel, pSettings->modeSettings.pcr.pidChannel);
+        if (e)
+        {
+            BXPT_PcrOffset_DisableOffset(stcChannel->pcrOffset, PID_CHANNEL_INDEX(pSettings->modeSettings.pcr.pidChannel));
+        }
+    }
+
+    /* step 2 */
     rc = BXPT_PcrOffset_SetSettings(stcChannel->pcrOffset, &pcr_offset_settings);
     if (rc) { rc = BERR_TRACE(rc); goto error; }
 
+    if (mode == NEXUS_StcChannelMode_ePcr)
+    {
+        NEXUS_StcChannelPidChannelEntry * e;
+        /* step 3 */
+        BXPT_PcrOffset_DisableOffset(stcChannel->pcrOffset, PID_CHANNEL_INDEX(pSettings->modeSettings.pcr.pidChannel));
+
+        /* step 4 */
+        e = NEXUS_StcChannel_P_FindPidChannelEntry(stcChannel, pSettings->modeSettings.pcr.pidChannel);
+        if (e)
+        {
+            BXPT_PcrOffset_EnableOffset(stcChannel->pcrOffset,
+                PID_CHANNEL_INDEX(pSettings->modeSettings.pcr.pidChannel),
+                false,
+                !pSettings->modeSettings.pcr.disableJitterAdjustment);
+        }
+    }
 error:
     return rc;
 }
@@ -733,6 +784,8 @@ NEXUS_Error NEXUS_StcChannel_SetSettings(NEXUS_StcChannelHandle stcChannel, cons
     if (rc) { rc = BERR_TRACE(rc); goto error; }
 
     stcChannel->settings = *pSettings;
+
+    NEXUS_StcChannel_P_SetSwPcrOffsetEnabled(stcChannel);
 
     /*
      * WARNING: this part must come after settings are copied to the handle,
@@ -1055,11 +1108,19 @@ static bool hasAudio(NEXUS_StcChannelHandle stcChannel)
 
 static void NEXUS_StcChannel_P_SetSwPcrOffsetEnabled(NEXUS_StcChannelHandle stcChannel)
 {
-    /* swPcrOffset is false if there's an audio decoder (because RAP does not support a swPcrOffset) or
-    if there's a video decoder which doesn't provide the setPcrOffset callback.
-    There should be only one audio program (possibly multichannel, but the same PTS domain) active for a set of mosaics. */
+    /*
+     * swPcrOffset is false if there's an audio decoder (because RAP does not
+     * support a swPcrOffset) or if there's a video decoder which doesn't
+     * provide the setPcrOffset callback. There should be only one audio program
+     * (possibly multichannel, but the same PTS domain) active for a set of
+     * mosaics. Also, we set swPcrOffset false for Host mode, since the host
+     * is in full control over the hardware stc counter, and in PCR mode we
+     * expect to use the hardware PCR offset instead of the sw one.
+     */
     bool enabled =
-        stcChannel->settings.mode != NEXUS_StcChannelMode_ePcr;
+        (stcChannel->settings.mode != NEXUS_StcChannelMode_ePcr)
+        &&
+        (stcChannel->settings.mode != NEXUS_StcChannelMode_eHost);
 
 #if BXPT_HAS_TSMUX
     if (stcChannel->nonRealTime)
@@ -1070,8 +1131,16 @@ static void NEXUS_StcChannel_P_SetSwPcrOffsetEnabled(NEXUS_StcChannelHandle stcC
     else
 #endif
     {
-        /* without NRT, condition is whether video has its setter set and audios are not connected */
-        enabled = enabled && !hasAudio(stcChannel) && connectedDecodersHaveSwOffsetSetter(stcChannel);
+        /*
+         * without NRT, only enable sw pcr offset if:
+         * - no audio decoders are connected
+         * - 1 or more video decoders are connected
+         * - all connected videos have sw pcr offset setter defined
+         */
+        enabled = enabled
+            && !hasAudio(stcChannel)
+            && !BLST_Q_EMPTY(&stcChannel->decoders)
+            && connectedDecodersHaveSwOffsetSetter(stcChannel);
     }
     if (stcChannel->swPcrOffsetEnabled != enabled) {
         if (!enabled) {
@@ -1082,6 +1151,10 @@ static void NEXUS_StcChannel_P_SetSwPcrOffsetEnabled(NEXUS_StcChannelHandle stcC
             if (stcChannel->settings.mode == NEXUS_StcChannelMode_ePcr)
             {
                 BDBG_MSG(("%p Using HW PCR OFFSET%u", (void *)stcChannel, stcChannel->stcIndex));
+            }
+            else if (stcChannel->settings.mode == NEXUS_StcChannelMode_eHost)
+            {
+                BDBG_MSG(("%p Using raw HW STC counter%u (no offset)", (void *)stcChannel, stcChannel->stcIndex));
             }
             NEXUS_StcChannel_GetStc(stcChannel, &stc); /* get HW STC + swPcrOffset */
             stcChannel->swPcrOffset = 0;
@@ -1739,6 +1812,79 @@ NEXUS_Error NEXUS_StcChannel_PtsError_isr(NEXUS_StcChannelDecoderConnectionHandl
     return rc;
 }
 
+static NEXUS_StcChannelPidChannelEntry * NEXUS_StcChannel_P_FindPidChannelEntry(NEXUS_StcChannelHandle stcChannel, NEXUS_PidChannelHandle pidChannel)
+{
+    NEXUS_StcChannelPidChannelEntry * scpce = NULL;
+    NEXUS_StcChannelPidChannelEntry * e;
+
+    if (!pidChannel) goto end;
+
+    for (e = BLST_Q_FIRST(&stcChannel->pids); e; e = BLST_Q_NEXT(e, link))
+    {
+        BDBG_ASSERT(e->refcnt);
+        if (e->pidChannelIndex == PID_CHANNEL_INDEX(pidChannel))
+        {
+            scpce = e;
+            break;
+        }
+    }
+
+end:
+    return scpce;
+}
+
+static bool NEXUS_StcChannel_P_AddPidChannel(
+    NEXUS_StcChannelHandle stcChannel,
+    NEXUS_PidChannelHandle pidChannel
+)
+{
+    bool enable = false;
+    NEXUS_StcChannelPidChannelEntry * e;
+    e = NEXUS_StcChannel_P_FindPidChannelEntry(stcChannel, pidChannel);
+    if (!e)
+    {
+        e = BKNI_Malloc(sizeof(*e));
+        if (!e) { BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto end; }
+        BKNI_Memset(e, 0, sizeof(*e));
+        BDBG_ASSERT(pidChannel);
+        e->pidChannelIndex = PID_CHANNEL_INDEX(pidChannel);
+        BLST_Q_INSERT_TAIL(&stcChannel->pids, e, link);
+        enable = true;
+        BDBG_MSG_TRACE(("Added pid refcnt entry for pidch: %u (%u)", PID_CHANNEL_INDEX(pidChannel), PID_CHANNEL_PID(pidChannel)));
+    }
+    e->refcnt++;
+    BDBG_MSG_TRACE(("add pidch: %u (%u) refcnt: %u", e->pidChannelIndex, PID_CHANNEL_PID(pidChannel), e->refcnt));
+
+end:
+    return enable;
+}
+
+static bool NEXUS_StcChannel_P_RemovePidChannel(
+    NEXUS_StcChannelHandle stcChannel,
+    NEXUS_PidChannelHandle pidChannel
+)
+{
+    bool disable = false;
+    NEXUS_StcChannelPidChannelEntry * e;
+
+    e = NEXUS_StcChannel_P_FindPidChannelEntry(stcChannel, pidChannel);
+    if (e)
+    {
+        BDBG_ASSERT(e->refcnt);
+        e->refcnt--;
+        BDBG_MSG_TRACE(("remove pidch: %u (%u) refcnt: %u", e->pidChannelIndex, PID_CHANNEL_PID(pidChannel), e->refcnt));
+        if (!e->refcnt)
+        {
+            BLST_Q_REMOVE(&stcChannel->pids, e, link);
+            BKNI_Free(e);
+            disable = true;
+            BDBG_MSG_TRACE(("Removed pid refcnt entry for pidch: %u (%u)", PID_CHANNEL_INDEX(pidChannel), PID_CHANNEL_PID(pidChannel)));
+        }
+    }
+
+    return disable;
+}
+
 /*
 Enable Output to a specified PID Channel
 */
@@ -1755,22 +1901,19 @@ BERR_Code NEXUS_StcChannel_EnablePidChannel_priv(
     BDBG_OBJECT_ASSERT(pidChannel, NEXUS_PidChannel);
     BDBG_OBJECT_ASSERT(stcChannel, NEXUS_StcChannel);
 
-    /* PI calls it JitterEnable even though RDB calls it JITTER_DISABLE */
-    enableJitterAdjustment = !stcChannel->settings.modeSettings.pcr.disableJitterAdjustment;
-    rc = BXPT_PcrOffset_EnableOffset(stcChannel->pcrOffset, pidChannel->hwPidChannel->status.pidChannelIndex, false, enableJitterAdjustment);
-    if (rc) {return BERR_TRACE(rc);}
+    if (NEXUS_StcChannel_P_AddPidChannel(stcChannel, pidChannel))
+    {
+        /* PI calls it JitterEnable even though RDB calls it JITTER_DISABLE */
+        enableJitterAdjustment = !stcChannel->settings.modeSettings.pcr.disableJitterAdjustment;
+        rc = BXPT_PcrOffset_EnableOffset(stcChannel->pcrOffset, PID_CHANNEL_INDEX(pidChannel), false, enableJitterAdjustment);
+        if (rc) { (void)NEXUS_StcChannel_P_RemovePidChannel(stcChannel, pidChannel); return BERR_TRACE(rc);}
+    }
 #else
     BSTD_UNUSED(stcChannel);
     BSTD_UNUSED(pidChannel);
+    BSTD_UNUSED(NEXUS_StcChannel_P_AddPidChannel);
 #endif
     return BERR_SUCCESS;
-}
-
-void NEXUS_StcChannel_GetIndex_priv( NEXUS_StcChannelHandle stcChannel, unsigned *pIndex )
-{
-    BDBG_OBJECT_ASSERT(stcChannel, NEXUS_StcChannel);
-    NEXUS_ASSERT_MODULE();
-    *pIndex = stcChannel->stcIndex;
 }
 
 /*
@@ -1785,30 +1928,24 @@ BERR_Code NEXUS_StcChannel_DisablePidChannel_priv(
     NEXUS_ASSERT_MODULE();
     BDBG_OBJECT_ASSERT(stcChannel, NEXUS_StcChannel);
     BDBG_OBJECT_ASSERT(pidChannel, NEXUS_PidChannel);
-    /*
-     * if we are in pcr mode, in the case where the pcr pid and one of the
-     * decoder pids are the same, we don't want to remove the pcr pid from
-     * the pcr offset pid table.  This happens because in transport we reuse
-     * the same pid channels for the same pid.
-     */
-    if
-    (
-        (stcChannel->settings.mode != NEXUS_StcChannelMode_ePcr)
-        ||
-        (
-            (stcChannel->settings.mode == NEXUS_StcChannelMode_ePcr)
-            &&
-            (pidChannel->hwPidChannel->status.pidChannelIndex != stcChannel->settings.modeSettings.pcr.pidChannel->hwPidChannel->status.pidChannelIndex)
-        )
-    )
+
+    if (NEXUS_StcChannel_P_RemovePidChannel(stcChannel, pidChannel))
     {
-        BXPT_PcrOffset_DisableOffset(stcChannel->pcrOffset, pidChannel->hwPidChannel->status.pidChannelIndex);
+        BXPT_PcrOffset_DisableOffset(stcChannel->pcrOffset, PID_CHANNEL_INDEX(pidChannel));
     }
 #else
     BSTD_UNUSED(stcChannel);
     BSTD_UNUSED(pidChannel);
+    BSTD_UNUSED(NEXUS_StcChannel_P_RemovePidChannel);
 #endif
     return BERR_SUCCESS;
+}
+
+void NEXUS_StcChannel_GetIndex_priv( NEXUS_StcChannelHandle stcChannel, unsigned *pIndex )
+{
+    BDBG_OBJECT_ASSERT(stcChannel, NEXUS_StcChannel);
+    NEXUS_ASSERT_MODULE();
+    *pIndex = stcChannel->stcIndex;
 }
 
 NEXUS_Error NEXUS_StcChannel_Freeze( NEXUS_StcChannelHandle stcChannel, bool frozen )
@@ -2564,6 +2701,13 @@ static NEXUS_Error stc_phase_mismatch_set_config(NEXUS_StcChannelHandle stc)
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
     BXPT_PcrOffset_NRTConfig testNrtConfig;
+    BXPT_PcrOffset_Settings settings;
+
+    /* use MOD300 count mode for workaround */
+    BXPT_PcrOffset_GetSettings(stc->pcrOffset, &settings);
+    settings.CountMode = BXPT_PcrOffset_StcCountMode_eMod300;
+    rc = BXPT_PcrOffset_SetSettings(stc->pcrOffset, &settings);
+    if (rc) { BERR_TRACE(rc); goto error; }
 
     BXPT_PcrOffset_GetNRTConfig(stc->pcrOffset, &testNrtConfig);
     testNrtConfig.EnableAvWindowComparison = true;
@@ -2681,10 +2825,14 @@ static NEXUS_Error stc_phase_mismatch_workaround(NEXUS_StcChannelHandle stc1, NE
     NEXUS_Error rc = NEXUS_UNKNOWN;
     BXPT_PcrOffset_NRTConfig stc1SavedNrtConfig;
     BXPT_PcrOffset_NRTConfig stc2SavedNrtConfig;
+    BXPT_PcrOffset_Settings stc1Settings, stc2Settings;
     int i;
 
+    /* store the programmed config */
     BXPT_PcrOffset_GetNRTConfig(stc1->pcrOffset, &stc1SavedNrtConfig);
     BXPT_PcrOffset_GetNRTConfig(stc2->pcrOffset, &stc2SavedNrtConfig);
+    BXPT_PcrOffset_GetSettings(stc1->pcrOffset, &stc1Settings);
+    BXPT_PcrOffset_GetSettings(stc2->pcrOffset, &stc2Settings);
 
     rc = stc_phase_mismatch_set_config(stc1);
     if (rc) { BERR_TRACE(rc); goto error; }
@@ -2708,6 +2856,12 @@ static NEXUS_Error stc_phase_mismatch_workaround(NEXUS_StcChannelHandle stc1, NE
     }
 
     /* reset back to programmed config */
+    rc = BXPT_PcrOffset_SetSettings(stc1->pcrOffset, &stc1Settings);
+    if (rc) { BERR_TRACE(rc); goto error; }
+
+    rc = BXPT_PcrOffset_SetSettings(stc2->pcrOffset, &stc2Settings);
+    if (rc) { BERR_TRACE(rc); goto error; }
+
     rc = BXPT_PcrOffset_SetNRTConfig(stc1->pcrOffset, &stc1SavedNrtConfig);
     if (rc) { BERR_TRACE(rc); goto error; }
 

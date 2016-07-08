@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -58,6 +58,7 @@ namespace pg
 static bool          s_oldBackdrop = false;
 static bool          s_withBackdrop = true;
 static bool          s_peelOffLongScrollAnim = true;
+static bool          s_demo = false;
 
 
 // Implement metrics in cpp for now as it reduces compilation times
@@ -195,6 +196,11 @@ public:
          s_peelOffLongScrollAnim = false;
          return true;
       }
+      else if (ApplicationOptions::ArgMatch(arg.c_str(), "+demo"))
+      {
+         s_demo = true;
+         return true;
+      }
       
       return false;
    }
@@ -205,6 +211,7 @@ public:
       return "+old               run using old backdrop style\n"
              "+new2              run using a new style without the backdrop\n"
              "+anim2             scrolling animation for the long scrolls\n"
+             "+demo              run in scrolling mode\n"
              ;
    }
 };
@@ -647,7 +654,8 @@ App::App(Platform &platform) :
       m_helpMenu->FinaliseMenuLayout();
    }
 
-   //InitFBO();
+   if (s_demo)
+      StartDemoMode();
 }
 
 App::~App()

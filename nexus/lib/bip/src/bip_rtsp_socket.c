@@ -1,43 +1,39 @@
 /******************************************************************************
- * (c) 2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -148,8 +144,8 @@ static int getInterfaceName(
         /* If this interface's name is too long, skip it. */
         if (if_nameLen > sizeof(ifr.ifr_name) - 1 )
         {
-            BDBG_WRN((BIP_MSG_PRE_FMT "%s:%d: Network interface name: %s exceeds %u bytes! Skipping..."
-                      BIP_MSG_PRE_ARG, __LINE__, if_name, sizeof(ifr.ifr_name)-1 ));
+            BDBG_WRN((BIP_MSG_PRE_FMT "%s:%d: Network interface name: %s exceeds %zu bytes! Skipping..."
+                      BIP_MSG_PRE_ARG,__FUNCTION__, __LINE__, if_name, sizeof(ifr.ifr_name)-1 ));
             continue;
         }
 
@@ -228,7 +224,7 @@ BIP_RtspSocketHandle BIP_RtspSocket_CreateFromFd(
     BIP_RtspLiveMediaListenerHandle hRtspLmListener = (BIP_RtspLiveMediaListenerHandle)lmListener;
 
     /* Create the rtspSocket object */
-    BDBG_MSG((BIP_MSG_PRE_FMT "hRtspSocket Malloc(%d); " BIP_MSG_PRE_ARG,  sizeof( *hRtspSocket ) ));
+    BDBG_MSG((BIP_MSG_PRE_FMT "hRtspSocket Malloc(%zu); " BIP_MSG_PRE_ARG,  sizeof( *hRtspSocket ) ));
     hRtspSocket = BKNI_Malloc( sizeof( *hRtspSocket ));
     BIP_CHECK_PTR_GOTO( hRtspSocket, "Memory Allocation Failed", error, BIP_ERR_OUT_OF_SYSTEM_MEMORY );
     BKNI_Memset( hRtspSocket, 0, sizeof( *hRtspSocket ));
@@ -257,9 +253,9 @@ BIP_RtspSocketHandle BIP_RtspSocket_CreateFromFd(
 
     /* Set state to idle */
     hRtspSocket->state = BIP_RtspSocketState_eIdle;
-    BDBG_MSG((BIP_MSG_PRE_FMT "hRtspSocket %p" BIP_MSG_PRE_ARG , hRtspSocket ));
+    BDBG_MSG((BIP_MSG_PRE_FMT "hRtspSocket %p" BIP_MSG_PRE_ARG , (void *)hRtspSocket ));
 
-    BDBG_MSG((BIP_MSG_PRE_FMT "returning %p" BIP_MSG_PRE_ARG, hRtspSocket ));
+    BDBG_MSG((BIP_MSG_PRE_FMT "returning %p" BIP_MSG_PRE_ARG, (void *)hRtspSocket ));
     return( hRtspSocket );
 
 error:
@@ -279,7 +275,7 @@ void BIP_RtspSocket_Destroy(
     )
 {
     BDBG_OBJECT_ASSERT( hRtspSocket, BIP_RtspSocket );
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hRtspSocket %p" BIP_MSG_PRE_ARG, hRtspSocket ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hRtspSocket %p" BIP_MSG_PRE_ARG, (void *)hRtspSocket ));
     rtspSocketDestroy( hRtspSocket );
 } /* BIP_RtspSocket_Destroy */
 
@@ -311,7 +307,7 @@ static void rtspSocketMessageReceivedCallback(
 
     BDBG_OBJECT_ASSERT( hRtspSocket, BIP_RtspSocket );
     BDBG_ASSERT( messageLength );
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hRtspSocket %p, messageLength %d"BIP_MSG_PRE_ARG, hRtspSocket, messageLength ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hRtspSocket %p, messageLength %d"BIP_MSG_PRE_ARG, (void *)hRtspSocket, messageLength ));
 
     /* Create new messageInfo entry to hold this message */
     messageInfo = (BIP_RtspSocketMessageInfo *)BKNI_Malloc( sizeof( BIP_RtspSocketMessageInfo ));
@@ -366,7 +362,7 @@ static void rtspSocketErrorCallback(
 {
     BIP_RtspSocketHandle hRtspSocket = (BIP_RtspSocketHandle)context;
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hRtspSocket %p, socketError %d, socketState %d" BIP_MSG_PRE_ARG, hRtspSocket, socketError, hRtspSocket->state ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hRtspSocket %p, socketError %d, socketState %d" BIP_MSG_PRE_ARG, (void *)hRtspSocket, socketError, hRtspSocket->state ));
     BDBG_OBJECT_ASSERT( hRtspSocket, BIP_RtspSocket );
 
     BKNI_AcquireMutex( hRtspSocket->lock );
@@ -427,7 +423,7 @@ BIP_Status BIP_RtspSocket_RecvRequest(
          * Since got an error on this socket, we wont be able to send out the response on it.
          * So purge all pending messages on this socket and then return error to caller.
          **/
-        BDBG_MSG(( BIP_MSG_PRE_FMT "Got Error on hRtspSocket %p" BIP_MSG_PRE_ARG, hRtspSocket )); /* this happens when socket closes */
+        BDBG_MSG(( BIP_MSG_PRE_FMT "Got Error on hRtspSocket %p" BIP_MSG_PRE_ARG, (void *)hRtspSocket )); /* this happens when socket closes */
         destroyPendingMessageInfoList( hRtspSocket );
         BKNI_ReleaseMutex( hRtspSocket->lock );
         return( BIP_ERR_OS_CHECK_ERRNO );
@@ -458,7 +454,7 @@ BIP_Status BIP_RtspSocket_RecvRequest(
     /* TODO: rtspRequest is now setup, so free up the message info or should we keep these objects into a free-list ? */
     BKNI_Free( messageInfo );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hRtspSocket %p, hRtspRequest %p" BIP_MSG_PRE_ARG, hRtspSocket, hRtspRequest ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hRtspSocket %p, hRtspRequest %p" BIP_MSG_PRE_ARG, (void *)hRtspSocket, (void *)hRtspRequest ));
     return( BIP_SUCCESS );
 } /* BIP_RtspSocket_RecvRequest */
 

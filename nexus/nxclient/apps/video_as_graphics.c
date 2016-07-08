@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2010-2013 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,11 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  *****************************************************************************/
 #if NEXUS_HAS_PLAYBACK && NEXUS_HAS_SIMPLE_DECODER
 #include "nexus_platform_client.h"
@@ -48,6 +43,7 @@
 #include "namevalue.h"
 #include "nxclient.h"
 #include "nexus_graphics2d.h"
+#include "nxapps_cmdline.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -63,12 +59,11 @@ BDBG_MODULE(video_as_graphics);
 NOTE: this client is preliminary; not ready to be run.
 **/
 
-static void print_usage(void)
+static void print_usage(const struct nxapps_cmdline *cmdline)
 {
     printf(
     "Usage: video_as_graphics OPTIONS filename [indexfile]\n"
     "  --help or -h for help\n"
-    "  -rect x,y,width,height   position in default 1920x1080 coordinates\n"
     "  -once\n"
     "  -downscale factor\n"
     "  -flip                    flip video vertically (proof that it's video as graphics)\n"
@@ -79,7 +74,9 @@ static void print_usage(void)
     );
     printf(
     "  -forceFrameDestripe      destripe pictures from VideoDecoder as frames to improve quality\n"
+    "  -secure\n"
     );
+    nxapps_cmdline_print_usage(cmdline);
 }
 
 struct client_state
@@ -112,10 +109,10 @@ int main(int argc, const char **argv)
     NEXUS_Error rc = 0;
     int curarg = 1;
     struct client_state context, *client = &context;
-    NEXUS_Rect rect = {0,0,0,0};
     media_player_create_settings create_settings;
     media_player_start_settings start_settings;
     NxClient_JoinSettings joinSettings;
+    NEXUS_ClientConfiguration clientConfig;
     NxClient_AllocSettings allocSettings;
     NxClient_AllocResults allocResults;
     NEXUS_SurfaceClientHandle surfaceClient;
@@ -124,6 +121,7 @@ int main(int argc, const char **argv)
     NEXUS_SurfaceMemory mem;
     NEXUS_SurfaceCreateSettings createSettings;
     NEXUS_Graphics2DHandle gfx;
+    NEXUS_Graphics2DOpenSettings graphics2dOpenSettings;
     NEXUS_Graphics2DSettings gfxSettings;
     NEXUS_Graphics2DFillSettings fillSettings;
     NEXUS_Graphics2DBlitSettings blitSettings;
@@ -142,14 +140,18 @@ int main(int argc, const char **argv)
         NEXUS_SurfaceHandle backgroundSurface;
     } colorkey;
     bool forceFrameDestripe = false;
+    struct nxapps_cmdline cmdline;
+    int n;
 
     media_player_get_default_create_settings(&create_settings);
     media_player_get_default_start_settings(&start_settings);
     memset(&colorkey, 0, sizeof(colorkey));
+    nxapps_cmdline_init(&cmdline);
+    nxapps_cmdline_allow(&cmdline, nxapps_cmdline_type_SurfaceComposition);
 
     while (argc > curarg) {
         if (!strcmp(argv[curarg], "-h") || !strcmp(argv[curarg], "--help")) {
-            print_usage();
+            print_usage(&cmdline);
             return 0;
         }
         else if (!strcmp(argv[curarg], "-once")) {
@@ -157,15 +159,6 @@ int main(int argc, const char **argv)
         }
         else if (!strcmp(argv[curarg], "-flip")) {
             flip = true;
-        }
-        else if (!strcmp(argv[curarg], "-rect") && argc>curarg+1) {
-            unsigned x, y, width, height;
-            if (sscanf(argv[++curarg], "%u,%u,%u,%u", &x,&y,&width,&height) == 4) {
-                rect.x = x;
-                rect.y = y;
-                rect.width = width;
-                rect.height = height;
-            }
         }
         else if (!strcmp(argv[curarg], "-downscale") && argc>curarg+1) {
             sscanf(argv[++curarg], "%u", &downscale);
@@ -176,7 +169,7 @@ int main(int argc, const char **argv)
         else if (!strcmp(argv[curarg], "-max") && curarg+1 < argc) {
             int n = sscanf(argv[++curarg], "%u,%u", &maxWidth, &maxHeight);
             if (n != 2) {
-                print_usage();
+                print_usage(&cmdline);
                 return -1;
             }
         }
@@ -192,6 +185,16 @@ int main(int argc, const char **argv)
         else if (!strcmp(argv[curarg], "-forceFrameDestripe")) {
             forceFrameDestripe = true;
         }
+        else if (!strcmp(argv[curarg], "-secure")) {
+            start_settings.video.secure = true;
+        }
+        else if ((n = nxapps_cmdline_parse(curarg, argc, argv, &cmdline))) {
+            if (n < 0) {
+                print_usage(&cmdline);
+                return -1;
+            }
+            curarg += n;
+        }
         else if (!start_settings.stream_url) {
             start_settings.stream_url = argv[curarg];
         }
@@ -199,13 +202,13 @@ int main(int argc, const char **argv)
             start_settings.index_url = argv[curarg];
         }
         else {
-            print_usage();
+            print_usage(&cmdline);
             return -1;
         }
         curarg++;
     }
     if (!start_settings.stream_url) {
-        print_usage();
+        print_usage(&cmdline);
         return -1;
     }
     
@@ -214,6 +217,7 @@ int main(int argc, const char **argv)
     rc = NxClient_Join(&joinSettings);
     if (rc) return -1;
     
+    NEXUS_Platform_GetClientConfiguration(&clientConfig);
     BKNI_CreateEvent(&client->endOfStreamEvent);
     BKNI_CreateEvent(&displayedEvent);
     BKNI_CreateEvent(&checkpointEvent);
@@ -225,12 +229,10 @@ int main(int argc, const char **argv)
 
     surfaceClient = NEXUS_SurfaceClient_Acquire(allocResults.surfaceClient[0].id);
     if (surfaceClient) {       
-        if (rect.width) {
+        if (nxapps_cmdline_is_set(&cmdline, nxapps_cmdline_type_SurfaceComposition)) {
             NEXUS_SurfaceComposition comp;
             NxClient_GetSurfaceClientComposition(allocResults.surfaceClient[0].id, &comp);
-            if (rect.width) {
-                comp.position = rect;
-            }
+            nxapps_cmdline_apply_SurfaceComposition(&cmdline, &comp);
             NxClient_SetSurfaceClientComposition(allocResults.surfaceClient[0].id, &comp);
         }
     }
@@ -257,6 +259,9 @@ int main(int argc, const char **argv)
     createSettings.pixelFormat = NEXUS_PixelFormat_eA8_R8_G8_B8;
     createSettings.width = 720/downscale;
     createSettings.height = 480/downscale;
+    if (start_settings.video.secure) {
+        createSettings.heap = clientConfig.heap[NXCLIENT_SECURE_GRAPHICS_HEAP];
+    }
     for (i=0; i<NEXUS_SIMPLE_DECODER_MAX_SURFACES; i++) {
         videoSurfaces[i] = NEXUS_Surface_Create(&createSettings);
     }
@@ -278,7 +283,9 @@ int main(int argc, const char **argv)
         }
     }
 
-    gfx = NEXUS_Graphics2D_Open(NEXUS_ANY_ID, NULL);
+    NEXUS_Graphics2D_GetDefaultOpenSettings(&graphics2dOpenSettings);
+    graphics2dOpenSettings.secure = start_settings.video.secure;
+    gfx = NEXUS_Graphics2D_Open(NEXUS_ANY_ID, &graphics2dOpenSettings);
     NEXUS_Graphics2D_GetSettings(gfx, &gfxSettings);
     gfxSettings.checkpointCallback.callback = gfx_checkpoint;
     gfxSettings.checkpointCallback.context = checkpointEvent;
@@ -314,6 +321,7 @@ int main(int argc, const char **argv)
     NEXUS_SimpleVideoDecoder_GetDefaultStartCaptureSettings(&captureSettings);
     BKNI_Memcpy(&captureSettings.surface, &videoSurfaces, sizeof(videoSurfaces));
     captureSettings.forceFrameDestripe = forceFrameDestripe;
+    captureSettings.secure = start_settings.video.secure;
     rc = NEXUS_SimpleVideoDecoder_StartCapture(videoDecoder, &captureSettings);
     if ( rc == NEXUS_NOT_SUPPORTED ) {
         BDBG_WRN(("Video as graphics not supported !" ));
@@ -336,7 +344,7 @@ int main(int argc, const char **argv)
         NEXUS_SimpleVideoDecoder_GetCapturedSurfaces(videoDecoder, captureSurface, captureStatus, NUM_CAPTURE_SURFACES, &numReturned);
         if (numReturned==0) {
             BKNI_Sleep(10);
-            continue;
+            goto done;
         }
         total += numReturned;
         if (numReturned > 1) {
@@ -381,6 +389,7 @@ int main(int argc, const char **argv)
         if (total % 100 == 0) {
             BDBG_MSG(("%d pictures", total));
         }
+done:
         if (timeout && b_get_time() - starttime >= timeout*1000) {
             break;
         }

@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2014 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,16 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
 ******************************************************************************/
 #if NEXUS_HAS_DISPLAY && NEXUS_HAS_SIMPLE_DECODER
@@ -289,11 +279,6 @@ int main(int argc, char **argv)
     imageInput = NEXUS_SimpleVideoDecoder_StartImageInput(videoDecoder, &startSettings);
     BDBG_ASSERT(imageInput);
 
-    threadContext.hEncoder = encoder;
-
-    rc = pthread_create(&threadContext.thread, NULL, encoder_thread, &threadContext);
-    BDBG_ASSERT(0==rc);
-
     NEXUS_VideoImageInput_GetStatus(imageInput, &imageInputStatus);
 
     NEXUS_Surface_GetDefaultCreateSettings(&surfaceCreateSettings);
@@ -310,8 +295,14 @@ int main(int argc, char **argv)
         }
     }
     if (!surfaceCreateSettings.heap) {
-        BDBG_ERR(("no heap found. RTS failure likely."));
+        BDBG_ERR(("No client heap found for MFD RTS. Feature not supported."));
+        goto err_mfd_rts;
     }
+
+    threadContext.hEncoder = encoder;
+    rc = pthread_create(&threadContext.thread, NULL, encoder_thread, &threadContext);
+    BDBG_ASSERT(0==rc);
+
     for (i=0; i<NUM_SURFACES; i++) {
         g_surface[i].handle = NEXUS_Surface_Create(&surfaceCreateSettings);
         BDBG_ASSERT(g_surface[i].handle);
@@ -329,7 +320,7 @@ int main(int argc, char **argv)
         NEXUS_SurfaceHandle freeSurface=NULL;
         NEXUS_VideoImageInputSurfaceSettings surfaceSettings;
         NEXUS_SurfaceHandle pic;
-        unsigned num_entries = 0;
+        size_t num_entries = 0;
 
         /* Make sure image surface is not in use by Video Output (VDC) */
         do {
@@ -345,7 +336,7 @@ int main(int argc, char **argv)
             BDBG_ASSERT(!rc);
             if (num_entries) {
                 /* our surface has been displayed, we can now re-use and re-queue it */
-                BDBG_MSG(("g_surface[releaseIdx=%d].handle=%p  recycSurface=%p" , releaseIdx, g_surface[releaseIdx].handle , freeSurface));
+                BDBG_MSG(("g_surface[releaseIdx=%d].handle=%p  recycSurface=%p" , releaseIdx, (void*)g_surface[releaseIdx].handle , (void*)freeSurface));
                 BDBG_ASSERT(g_surface[releaseIdx].handle == freeSurface);
                 g_surface[releaseIdx].submitted = false;
                 if (++releaseIdx == NUM_SURFACES) releaseIdx=0;
@@ -355,7 +346,7 @@ int main(int argc, char **argv)
 
         g_surface[submitIdx].submitted = true; /* mark as inuse */
         pic = g_surface[submitIdx].handle;
-        BDBG_MSG(("pic=%p" , pic));
+        BDBG_MSG(("pic=%p" , (void*)pic));
         if (++submitIdx == NUM_SURFACES) submitIdx=0;
 
         /* must do M2MC fill. CPU may not have access to this surface on some non-UMA systems. */
@@ -414,7 +405,7 @@ int main(int argc, char **argv)
     /* Recycle at least one surface to make room for EOS */
     do {
         NEXUS_SurfaceHandle freeSurface=NULL;
-        unsigned num_entries = 0;
+        size_t num_entries = 0;
         (void)BKNI_WaitForEvent(imageEvent, 3000);
         rc = NEXUS_VideoImageInput_RecycleSurface(imageInput, &freeSurface , 1, &num_entries);
     } while (rc);
@@ -442,6 +433,7 @@ int main(int argc, char **argv)
 
     BDBG_WRN(("Displayed %u frames", frameCount));
 
+err_mfd_rts:
     NEXUS_SimpleVideoDecoder_StopImageInput(videoDecoder);
     NEXUS_SimpleEncoder_Stop(encoder);
 
@@ -452,7 +444,7 @@ int main(int argc, char **argv)
 
     if (gfx) NEXUS_Graphics2D_Close(gfx);
     for (i=NUM_SURFACES; i > 0; i--) {
-        NEXUS_Surface_Destroy(g_surface[i-1].handle);
+        if (g_surface[i-1].handle) NEXUS_Surface_Destroy(g_surface[i-1].handle);
     }
     NxClient_Disconnect(connectId);
     NxClient_Free(&allocResults);
@@ -512,7 +504,7 @@ static bool HaveCompletePacket(
 }
 
 #define ADVANCE_DESC() do { if ( size0 > 1 ) { pDesc0++; size0--; } else { pDesc0=pDesc1; size0=size1; pDesc1=NULL; size1=0; } } while (0)
-#define DESC_DATA_PTR() ((void *)((uint32_t)pDesc0->offset + (uint32_t)pBufferBase))
+#define DESC_DATA_PTR(PDESC, BASEPTR) ((void*)&((unsigned char *)(BASEPTR))[(PDESC)->offset])
 
 static void *encoder_thread(void *context)
 {
@@ -570,7 +562,7 @@ static void *encoder_thread(void *context)
                         }
                     }
                     /* Write payload to file */
-                    pData = DESC_DATA_PTR();
+                    pData = DESC_DATA_PTR(pDesc0, pBufferBase);
                     fwrite(pData, 1, pDesc0->length, pContext->pOutputFile);
                     numRequired--;
                     NEXUS_SimpleEncoder_VideoReadComplete(pContext->hEncoder, 1);

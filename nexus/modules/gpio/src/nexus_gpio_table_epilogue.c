@@ -38,17 +38,6 @@
 ***************************************************************************/
 
 
-/* if these NEXUS_NUM gpio macros are defined in nexus_platform_features.h, it is only for application convenience.
-this internal definition is more reliable for implementation. */
-#undef NEXUS_NUM_GPIO_PINS
-#define NEXUS_NUM_GPIO_PINS (sizeof(g_gpioTable)/sizeof(g_gpioTable[0]))
-#undef NEXUS_NUM_SGPIO_PINS
-#define NEXUS_NUM_SGPIO_PINS (sizeof(g_sgpioTable)/sizeof(g_sgpioTable[0]))
-#undef NEXUS_NUM_AON_GPIO_PINS
-#define NEXUS_NUM_AON_GPIO_PINS (sizeof(g_aonGpioTable)/sizeof(g_aonGpioTable[0]))
-#undef NEXUS_NUM_AON_SGPIO_PINS
-#define NEXUS_NUM_AON_SGPIO_PINS (sizeof(g_aonSgpioTable)/sizeof(g_aonSgpioTable[0]))
-
 /* These functions must be implemented per-chip */
 NEXUS_Error NEXUS_Gpio_P_GetPinMux(NEXUS_GpioType type, unsigned pin, uint32_t *pAddr, uint32_t *pMask, unsigned *pShift )
 {
@@ -64,12 +53,14 @@ NEXUS_Error NEXUS_Gpio_P_GetPinMux(NEXUS_GpioType type, unsigned pin, uint32_t *
             pEntry = g_gpioTable+pin;
             break;
         case NEXUS_GpioType_eSpecial:
+#ifdef NEXUS_SGPIO_PINS
             if ( pin >= NEXUS_NUM_SGPIO_PINS )
             {
                 return BERR_TRACE(BERR_INVALID_PARAMETER);
             }
             pEntry = g_sgpioTable+pin;
             break;
+#endif
         case NEXUS_GpioType_eAonStandard:
             if ( pin >= NEXUS_NUM_AON_GPIO_PINS)
             {

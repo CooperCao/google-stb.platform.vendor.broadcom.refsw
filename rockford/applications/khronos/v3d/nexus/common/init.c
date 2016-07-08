@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2010 Broadcom Corporation
+ *    Broadcom Proprietary and Confidential. (c)2008-2010 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -64,24 +64,69 @@ extern "C"
 #endif
 
 #ifdef SINGLE_PROCESS
-eInitResult InitPlatform(void)
+eInitResult InitPlatform(bool secure)
 {
    NEXUS_Error                         err = NEXUS_NOT_SUPPORTED;
    NEXUS_PlatformSettings              platform_settings;
-   NEXUS_PlatformConfiguration         platform_config;
+   unsigned                            secure_graphics_heap, secure_graphics_memc;
 
    NEXUS_Platform_GetDefaultSettings(&platform_settings);
-
    platform_settings.openFrontend = false;
-
-   err = NEXUS_Platform_Init(&platform_settings);
-   if (err != NEXUS_SUCCESS)
+#if NEXUS_HAS_SAGE
+   if (secure)
    {
-      printf("NEXUS_Platform_Init() failed\n");
-      return eInitFailed;
+      NEXUS_MemoryConfigurationSettings memory_config_settings;
+      NEXUS_GetDefaultMemoryConfigurationSettings(&memory_config_settings);
+      memory_config_settings.videoDecoder[0].secure = NEXUS_SecureVideo_eBoth;
+#if defined(NEXUS_MEMC2_SECURE_GRAPHICS_HEAP)
+      secure_graphics_heap = NEXUS_MEMC2_SECURE_GRAPHICS_HEAP;
+      secure_graphics_memc = 2;
+#elif defined(NEXUS_MEMC1_SECURE_GRAPHICS_HEAP)
+      secure_graphics_heap = NEXUS_MEMC1_SECURE_GRAPHICS_HEAP;
+      secure_graphics_memc = 1;
+#elif defined(NEXUS_MEMC0_SECURE_GRAPHICS_HEAP)
+      secure_graphics_heap = NEXUS_MEMC0_SECURE_GRAPHICS_HEAP;
+      secure_graphics_memc = 0;
+#elif defined(NEXUS_MEMC0_SECURE_PICTURE_BUFFER_HEAP)
+      secure_graphics_heap = NEXUS_MEMC0_SECURE_PICTURE_BUFFER_HEAP;
+      secure_graphics_memc = 0;
+#endif
+      platform_settings.heap[secure_graphics_heap].size = 64 * 1024 * 1024;
+      platform_settings.heap[secure_graphics_heap].memcIndex = secure_graphics_memc;
+      platform_settings.heap[secure_graphics_heap].heapType = NEXUS_HEAP_TYPE_SECURE_GRAPHICS;
+      platform_settings.heap[secure_graphics_heap].memoryType =
+         NEXUS_MEMORY_TYPE_ONDEMAND_MAPPED |
+         NEXUS_MEMORY_TYPE_MANAGED |
+         NEXUS_MEMORY_TYPE_SECURE;
+      err = NEXUS_Platform_MemConfigInit(&platform_settings, &memory_config_settings);
    }
+   else
+#endif
+      err = NEXUS_Platform_Init(&platform_settings);
 
-   NEXUS_Platform_GetConfiguration(&platform_config);
+   if (err != NEXUS_SUCCESS)
+      return eInitFailed;
+
+#if NEXUS_HAS_SAGE
+   if (secure)
+   {
+      NEXUS_PlatformConfiguration platform_config;
+      NEXUS_MemoryStatus memory_status_0, memory_status_1;
+      NEXUS_Platform_GetConfiguration(&platform_config);
+      /* Ensure secure graphics heap is also GFD0 accessible. In a multiprocess system, clients blit to large offscreen secure graphics heap
+         and NSC copies to GFD0/GFD1 secure graphics. For this example, we keep it simple. */
+      err = NEXUS_Heap_GetStatus(NEXUS_Platform_GetFramebufferHeap(NEXUS_OFFSCREEN_SECURE_GRAPHICS_SURFACE), &memory_status_0);
+      BDBG_ASSERT(!err);
+      err = NEXUS_Heap_GetStatus(NEXUS_Platform_GetFramebufferHeap(0), &memory_status_1);
+      BDBG_ASSERT(!err);
+      if (memory_status_0.memcIndex != memory_status_1.memcIndex)
+      {
+         printf("app does not support multiple secure graphics heaps\n");
+         return eInitFailed;
+      }
+      BDBG_ASSERT(platform_config.heap[secure_graphics_heap] == NEXUS_Platform_GetFramebufferHeap(NEXUS_OFFSCREEN_SECURE_GRAPHICS_SURFACE));
+   }
+#endif
 
    return eInitSuccess;
 }
@@ -89,9 +134,10 @@ eInitResult InitPlatform(void)
 #endif /* SINGLE_PROCESS */
 
 #ifndef SINGLE_PROCESS
-eInitResult InitPlatform(void)
+eInitResult InitPlatform(bool secure)
 {
    NEXUS_Error err = NEXUS_NOT_SUPPORTED;
+   BSTD_UNUSED(secure);
 
    /* We are multiprocess mode Nexus, so join with the existing instance */
 #ifdef NXCLIENT_SUPPORT
@@ -110,9 +156,9 @@ eInitResult InitPlatform(void)
 }
 #endif /* !SINGLE_PROCESS */
 
-eInitResult InitPlatformAndDefaultDisplay(NEXUS_DISPLAYHANDLE *handle, float *aspect, uint32_t w, uint32_t h)
+eInitResult InitPlatformAndDefaultDisplay(NEXUS_DISPLAYHANDLE *handle, float *aspect, uint32_t w, uint32_t h, bool secure)
 {
-   eInitResult res = InitPlatform();
+   eInitResult res = InitPlatform(secure);
 
    if (res == eInitSuccess)
    {
@@ -120,7 +166,7 @@ eInitResult InitPlatformAndDefaultDisplay(NEXUS_DISPLAYHANDLE *handle, float *as
       NEXUS_GraphicsSettings  graphics_settings;
 
       /* We are the primary process, so open the display */
-      *handle = OpenDisplay(0, w, h);
+      *handle = OpenDisplay(0, w, h, secure);
       InitCompositeOutput(*handle, w, h);
       InitComponentOutput(*handle);
       InitHDMIOutput(*handle);
@@ -171,7 +217,7 @@ void TermPlatform(NEXUS_DISPLAYHANDLE handle)
 }
 
 /* If format == 0, w & h are used to determine requested video format */
-NEXUS_DisplayHandle OpenDisplay(NEXUS_VideoFormat format, uint32_t w, uint32_t h)
+NEXUS_DisplayHandle OpenDisplay(NEXUS_VideoFormat format, uint32_t w, uint32_t h, bool secure)
 {
    NEXUS_DisplayHandle     display = NULL;
    NEXUS_DisplaySettings   display_settings;
@@ -193,6 +239,7 @@ NEXUS_DisplayHandle OpenDisplay(NEXUS_VideoFormat format, uint32_t w, uint32_t h
       else
          display_settings.format = NEXUS_VideoFormat_e1080p;
    }
+   display_settings.displayType = NEXUS_DisplayType_eAuto;
 
    display = NEXUS_Display_Open(0, &display_settings);
    if (!display)
@@ -201,6 +248,7 @@ NEXUS_DisplayHandle OpenDisplay(NEXUS_VideoFormat format, uint32_t w, uint32_t h
    NEXUS_Display_GetGraphicsSettings(display, &graphics_settings);
    graphics_settings.horizontalFilter = NEXUS_GraphicsFilterCoeffs_eBilinear;
    graphics_settings.verticalFilter = NEXUS_GraphicsFilterCoeffs_eBilinear;
+   graphics_settings.secure = secure;
 
    /* Disable blend with video plane */
    graphics_settings.sourceBlendFactor = NEXUS_CompositorBlendFactor_eOne;
@@ -246,11 +294,20 @@ void InitCompositeOutput(NEXUS_DisplayHandle display, uint32_t w, uint32_t h)
 }
 
 #if NEXUS_NUM_HDMI_OUTPUTS
+typedef struct DisplaySessionHandles
+{
+    NEXUS_HdmiOutputHandle hdmi;
+    NEXUS_DisplayHandle    display;
+} DisplaySessionHandles;
+
 static void hotplug_callback(void *pParam, int iParam)
 {
    NEXUS_HdmiOutputStatus status;
-   NEXUS_HdmiOutputHandle hdmi = pParam;
-   NEXUS_DisplayHandle display = (NEXUS_DisplayHandle)iParam;
+   DisplaySessionHandles *displayHandles = (DisplaySessionHandles*)pParam;
+   NEXUS_HdmiOutputHandle hdmi = displayHandles->hdmi;
+   NEXUS_DisplayHandle    display = displayHandles->display;
+
+   UNUSED(iParam);
 
    NEXUS_HdmiOutput_GetStatus(hdmi, &status);
    fprintf(stderr, "HDMI hotplug event: %s\n", status.connected?"connected":"not connected");
@@ -273,7 +330,7 @@ static void hotplug_callback(void *pParam, int iParam)
 void InitHDMIOutput(NEXUS_DisplayHandle display)
 {
 #if NEXUS_NUM_HDMI_OUTPUTS
-
+   static DisplaySessionHandles  displayHandles;
    NEXUS_HdmiOutputSettings      hdmiSettings;
    NEXUS_PlatformConfiguration   platform_config;
    NEXUS_Platform_GetConfiguration(&platform_config);
@@ -282,14 +339,16 @@ void InitHDMIOutput(NEXUS_DisplayHandle display)
    {
       NEXUS_Display_AddOutput(display, NEXUS_HdmiOutput_GetVideoConnector(platform_config.outputs.hdmi[0]));
       /* Install hotplug callback -- video only for now */
+      displayHandles.hdmi = platform_config.outputs.hdmi[0];
+      displayHandles.display = display;
+
       NEXUS_HdmiOutput_GetSettings(platform_config.outputs.hdmi[0], &hdmiSettings);
       hdmiSettings.hotplugCallback.callback = hotplug_callback;
-      hdmiSettings.hotplugCallback.context = platform_config.outputs.hdmi[0];
-      hdmiSettings.hotplugCallback.param = (int)display;
+      hdmiSettings.hotplugCallback.context = &displayHandles;
       NEXUS_HdmiOutput_SetSettings(platform_config.outputs.hdmi[0], &hdmiSettings);
 
       /* Force a hotplug to switch to a supported format if necessary */
-      hotplug_callback(platform_config.outputs.hdmi[0], (int)display);
+      hotplug_callback(&displayHandles, 0);
    }
 #else
    UNUSED(display);

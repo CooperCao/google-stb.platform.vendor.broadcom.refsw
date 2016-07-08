@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2008 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2008 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -272,7 +272,8 @@ extern bool egl_surface_check_attribs(
    bool *largest_pbuffer,
    EGLenum *texture_format,
    EGLenum *texture_target,
-   bool *mipmap_texture
+   bool *mipmap_texture,
+   bool *secure
 );
 struct CLIENT_PROCESS_STATE;
 
@@ -281,9 +282,8 @@ extern EGL_SURFACE_T *egl_surface_create(
    EGL_SURFACE_TYPE_T type,
    EGL_SURFACE_COLORSPACE_T colorspace,
    EGL_SURFACE_ALPHAFORMAT_T alphaformat,
-#ifndef NO_OPENVG
-   bool is_openvg,
-#endif /* NO_OPENVG */
+   bool openvg,
+   bool secure,
    uint32_t buffers,
    uint32_t width,
    uint32_t height,

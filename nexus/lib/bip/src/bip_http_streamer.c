@@ -1,45 +1,41 @@
 /******************************************************************************
- * (c) 2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
-
+#include "bip_priv.h"
 #include "bip_http_streamer_impl.h"
 #include "bip_streamer_priv.h"
 #include <sys/types.h>
@@ -49,6 +45,8 @@
 
 BDBG_MODULE( bip_http_streamer );
 BDBG_OBJECT_ID( BIP_HttpStreamer );
+
+BIP_CLASS_DECLARE(BIP_HttpStreamer);
 BIP_SETTINGS_ID(BIP_HttpStreamerOutputSettings);
 BIP_SETTINGS_ID(BIP_HttpStreamerCreateSettings);
 BIP_SETTINGS_ID(BIP_HttpStreamerStartSettings);
@@ -71,7 +69,7 @@ static void httpStreamerDestroy(
     )
 {
     if (!hHttpStreamer) return;
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Destroying hHttpStreamer %p" BIP_MSG_PRE_ARG, hHttpStreamer ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Destroying hHttpStreamer %p" BIP_MSG_PRE_ARG, (void *)hHttpStreamer ));
 
     if (hHttpStreamer->hStreamer) BIP_Streamer_Destroy(hHttpStreamer->hStreamer);
     if (hHttpStreamer->printStatusApi.hArb) BIP_Arb_Destroy(hHttpStreamer->printStatusApi.hArb);
@@ -101,7 +99,9 @@ static void httpStreamerDestroy(
     if ( hHttpStreamer->atomPipe ) batom_pipe_destroy( hHttpStreamer->atomPipe );
     if ( hHttpStreamer->atomFactory) batom_factory_destroy( hHttpStreamer->atomFactory );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer %p: Destroyed" BIP_MSG_PRE_ARG, hHttpStreamer ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer %p: Destroyed" BIP_MSG_PRE_ARG, (void *)hHttpStreamer ));
+
+    BIP_CLASS_REMOVE_INSTANCE( BIP_HttpStreamer, hHttpStreamer );
     BDBG_OBJECT_DESTROY( hHttpStreamer, BIP_HttpStreamer );
     B_Os_Free( hHttpStreamer );
 
@@ -110,18 +110,24 @@ static void httpStreamerDestroy(
 static void httpStreamerEndOfStreamingCallback( void *hObject, int value )
 {
     /* Callback from BIP_Streamer. */
+    BIP_Status bipStatus;
     BIP_HttpStreamerHandle hHttpStreamer = hObject;
+
+    bipStatus = BIP_CLASS_LOCK_AND_CHECK_INSTANCE(BIP_HttpStreamer, hHttpStreamer);
+    if (bipStatus != BIP_SUCCESS) { return; }
 
     BDBG_ASSERT(hHttpStreamer);
     BDBG_OBJECT_ASSERT( hHttpStreamer, BIP_HttpStreamer);
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer:state %p: %d" BIP_MSG_PRE_ARG, hHttpStreamer, hHttpStreamer->state ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer:state %p: %d" BIP_MSG_PRE_ARG, (void *)hHttpStreamer, hHttpStreamer->state ));
     if (hHttpStreamer)
     {
         B_Mutex_Lock( hHttpStreamer->hStateMutex );
         hHttpStreamer->state = BIP_HttpStreamerState_eStreamingDone;
         B_Mutex_Unlock( hHttpStreamer->hStateMutex );
     }
+    BIP_CLASS_UNLOCK(BIP_HttpStreamer, hHttpStreamer);
+
     processHttpStreamerState( (BIP_HttpStreamerHandle) hObject, value, BIP_Arb_ThreadOrigin_eBipCallback);
 }
 
@@ -137,7 +143,10 @@ BIP_HttpStreamerHandle BIP_HttpStreamer_Create(
 
     /* Create the httpStreamer object */
     hHttpStreamer = B_Os_Calloc( 1, sizeof( BIP_HttpStreamer ));
-    BIP_CHECK_GOTO(( hHttpStreamer != NULL ), ( "Failed to allocate memory (%d bytes) for HttpStreamer Object", sizeof(BIP_HttpStreamer) ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, bipStatus );
+    BIP_CHECK_GOTO(( hHttpStreamer != NULL ), ( "Failed to allocate memory (%zu bytes) for HttpStreamer Object", sizeof(BIP_HttpStreamer) ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, bipStatus );
+
+    bipStatus = BIP_CLASS_ADD_INSTANCE(BIP_HttpStreamer, hHttpStreamer);
+    BIP_CHECK_GOTO((bipStatus==BIP_SUCCESS), ( "BIP_CLASS_ADD_INSTANCE failed" ), error, bipStatus, bipStatus );
 
     BDBG_OBJECT_SET( hHttpStreamer, BIP_HttpStreamer );
 
@@ -244,7 +253,7 @@ BIP_HttpStreamerHandle BIP_HttpStreamer_Create(
     }
 
     hHttpStreamer->state = BIP_HttpStreamerState_eIdle;
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Created hHttpStreamer %p: state %d" BIP_MSG_PRE_ARG, hHttpStreamer, hHttpStreamer->state));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Created hHttpStreamer %p: state %d" BIP_MSG_PRE_ARG, (void *)hHttpStreamer, hHttpStreamer->state));
 
     BDBG_MSG((    BIP_MSG_PRE_FMT "Created: " BIP_HTTP_STREAMER_PRINTF_FMT
                   BIP_MSG_PRE_ARG, BIP_HTTP_STREAMER_PRINTF_ARG(hHttpStreamer)));
@@ -272,6 +281,9 @@ void BIP_HttpStreamer_Destroy(
     BIP_ArbHandle hArb;
     BIP_ArbSubmitSettings arbSettings;
 
+    bipStatus = BIP_CLASS_LOCK_AND_CHECK_INSTANCE(BIP_HttpStreamer, hHttpStreamer);
+    BIP_CHECK_GOTO((bipStatus==BIP_SUCCESS), ("BIP_CLASS_LOCK_AND_CHECK_INSTANCE failed."), error, bipStatus, bipStatus);
+
     BDBG_OBJECT_ASSERT( hHttpStreamer, BIP_HttpStreamer );
 
     BIP_MSG_TRC(( BIP_MSG_PRE_FMT "Destroying: " BIP_HTTP_STREAMER_PRINTF_FMT
@@ -280,13 +292,20 @@ void BIP_HttpStreamer_Destroy(
     /* Serialize access to Settings state among another thread calling the same _GetSettings API. */
     hArb = hHttpStreamer->destroyApi.hArb;
     bipStatus = BIP_Arb_Acquire(hArb);
-    BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_Acquire() Failed" ), error, bipStatus, bipStatus );
+    if(bipStatus != BIP_SUCCESS)
+    {
+        BDBG_ERR((BIP_MSG_PRE_FMT "BIP_Arb_Acquire() Failed" BIP_MSG_PRE_ARG));
+        BIP_CLASS_UNLOCK(BIP_HttpStreamer, hHttpStreamer);
+        goto error;
+    }
 
     /* Get ready to run the state machine. */
     BIP_Arb_GetDefaultSubmitSettings( &arbSettings );
     arbSettings.hObject = hHttpStreamer;
     arbSettings.arbProcessor = processHttpStreamerState;
-    arbSettings.waitIfBusy = true;;
+    arbSettings.waitIfBusy = true;
+
+    BIP_CLASS_UNLOCK(BIP_HttpStreamer, hHttpStreamer);
 
     /* Invoke state machine to notify it about object being destroyed. */
     bipStatus = BIP_Arb_Submit(hArb, &arbSettings, NULL);
@@ -307,17 +326,19 @@ void BIP_HttpStreamer_GetSettings(
     BIP_ArbHandle hArb;
     BIP_ArbSubmitSettings arbSettings;
 
+    bipStatus = BIP_CLASS_LOCK_AND_CHECK_INSTANCE(BIP_HttpStreamer, hHttpStreamer);
+    BIP_CHECK_GOTO((bipStatus==BIP_SUCCESS), ("BIP_CLASS_LOCK_AND_CHECK_INSTANCE failed."), error, bipStatus, bipStatus);
+
     BDBG_OBJECT_ASSERT( hHttpStreamer, BIP_HttpStreamer );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpStreamer %p: --------------------->" BIP_MSG_PRE_ARG, hHttpStreamer));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpStreamer %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hHttpStreamer));
 
-    BIP_CHECK_GOTO(( hHttpStreamer ), ( "hHttpStreamer pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
-    BIP_CHECK_GOTO(( pSettings ), ( "pSettings can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
+    BIP_CHECK_GOTO(( pSettings ), ( "pSettings can't be NULL" ), error_locked, BIP_ERR_INVALID_PARAMETER, bipStatus );
 
     /* Serialize access to Settings state among another thread calling the same _GetSettings API. */
     hArb = hHttpStreamer->getSettingsApi.hArb;
     bipStatus = BIP_Arb_Acquire(hArb);
-    BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_Acquire() Failed" ), error, bipStatus, bipStatus );
+    BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_Acquire() Failed" ), error_locked, bipStatus, bipStatus );
 
     /* Move the API arguments into it's argument list so the state machine can find them. */
     hHttpStreamer->getSettingsApi.pSettings = pSettings;
@@ -326,14 +347,23 @@ void BIP_HttpStreamer_GetSettings(
     BIP_Arb_GetDefaultSubmitSettings( &arbSettings );
     arbSettings.hObject = hHttpStreamer;
     arbSettings.arbProcessor = processHttpStreamerState;
-    arbSettings.waitIfBusy = true;;
+    arbSettings.waitIfBusy = true;
+
+    BIP_CLASS_UNLOCK(BIP_HttpStreamer, hHttpStreamer);
 
     /* Invoke state machine via the Arb Submit API */
     bipStatus = BIP_Arb_Submit(hArb, &arbSettings, NULL);
     BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_HttpStreamer_GetSettings" ), error, bipStatus, bipStatus );
 
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hHttpStreamer, bipStatus ));
+
+    return;
+
+error_locked:
+    BIP_CLASS_UNLOCK(BIP_HttpStreamer, hHttpStreamer);
+
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, hHttpStreamer, bipStatus ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hHttpStreamer, bipStatus ));
 
     return;
 }
@@ -347,18 +377,20 @@ BIP_Status BIP_HttpStreamer_SetSettings(
     BIP_ArbHandle hArb;
     BIP_ArbSubmitSettings arbSettings;
 
+    bipStatus = BIP_CLASS_LOCK_AND_CHECK_INSTANCE(BIP_HttpStreamer, hHttpStreamer);
+    BIP_CHECK_GOTO((bipStatus==BIP_SUCCESS), ("BIP_CLASS_LOCK_AND_CHECK_INSTANCE failed."), error, bipStatus, bipStatus);
+
     BDBG_OBJECT_ASSERT( hHttpStreamer, BIP_HttpStreamer );
     BDBG_ASSERT( pSettings );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpStreamer %p: --------------------->" BIP_MSG_PRE_ARG, hHttpStreamer));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpStreamer %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hHttpStreamer));
 
-    BIP_CHECK_GOTO(( hHttpStreamer ), ( "hHttpStreamer pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
-    BIP_CHECK_GOTO(( pSettings ), ( "pSettings can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
+    BIP_CHECK_GOTO(( pSettings ), ( "pSettings can't be NULL" ), error_locked, BIP_ERR_INVALID_PARAMETER, bipStatus );
 
     /* Serialize access to Settings state among another thread calling the same _SetSettings API. */
     hArb = hHttpStreamer->setSettingsApi.hArb;
     bipStatus = BIP_Arb_Acquire(hArb);
-    BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_Acquire() Failed" ), error, bipStatus, bipStatus );
+    BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_Acquire() Failed" ), error_locked, bipStatus, bipStatus );
 
     /* Move the API arguments into it's argument list so the state machine can find them. */
     hHttpStreamer->setSettingsApi.pSettings = pSettings;
@@ -369,12 +401,19 @@ BIP_Status BIP_HttpStreamer_SetSettings(
     arbSettings.arbProcessor = processHttpStreamerState;
     arbSettings.waitIfBusy = true;;
 
+    BIP_CLASS_UNLOCK(BIP_HttpStreamer, hHttpStreamer);
+
     /* Invoke state machine via the Arb Submit API */
     bipStatus = BIP_Arb_Submit(hArb, &arbSettings, NULL);
     BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_HttpStreamer_SetSettings" ), error, bipStatus, bipStatus );
 
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hHttpStreamer, bipStatus ));
+    return( bipStatus );
+
+error_locked:
+    BIP_CLASS_UNLOCK(BIP_HttpStreamer, hHttpStreamer);
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, hHttpStreamer, bipStatus ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hHttpStreamer, bipStatus ));
 
     return( bipStatus );
 } /* BIP_HttpStreamer_SetSettings */
@@ -391,20 +430,22 @@ BIP_Status BIP_HttpStreamer_SetFileInputSettings(
     BIP_ArbSubmitSettings arbSettings;
     BIP_StreamerFileInputSettings defaultFileInputSettings;
 
+    bipStatus = BIP_CLASS_LOCK_AND_CHECK_INSTANCE(BIP_HttpStreamer, hHttpStreamer);
+    BIP_CHECK_GOTO((bipStatus==BIP_SUCCESS), ("BIP_CLASS_LOCK_AND_CHECK_INSTANCE failed."), error, bipStatus, bipStatus);
+
     BDBG_OBJECT_ASSERT( hHttpStreamer, BIP_HttpStreamer );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpStreamer %p: --------------------->" BIP_MSG_PRE_ARG, hHttpStreamer));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpStreamer %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hHttpStreamer));
 
-    BIP_CHECK_GOTO(( hHttpStreamer ), ( "hHttpStreamer pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
-    BIP_CHECK_GOTO(( pMediaFileAbsolutePathName ), ( "pMediaFileAbsolutePathName can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
-    BIP_CHECK_GOTO(( pStreamerStreamInfo), ( "pStreamerStreamInfo can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
+    BIP_CHECK_GOTO(( pMediaFileAbsolutePathName ), ( "pMediaFileAbsolutePathName can't be NULL" ), error_locked, BIP_ERR_INVALID_PARAMETER, bipStatus );
+    BIP_CHECK_GOTO(( pStreamerStreamInfo), ( "pStreamerStreamInfo can't be NULL" ), error_locked, BIP_ERR_INVALID_PARAMETER, bipStatus );
 
     /* Note: Rest of parameter validation happens in the BIP_Streamer class. */
 
     /* Serialize access to Settings state among another thread calling the same _SetSettings API. */
     hArb = hHttpStreamer->fileInputSettingsApi.hArb;
     bipStatus = BIP_Arb_Acquire(hArb);
-    BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_Acquire() Failed" ), error, bipStatus, bipStatus );
+    BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_Acquire() Failed" ), error_locked, bipStatus, bipStatus );
 
     if ( pFileInputSettings == NULL )
     {
@@ -422,12 +463,19 @@ BIP_Status BIP_HttpStreamer_SetFileInputSettings(
     arbSettings.arbProcessor = processHttpStreamerState;
     arbSettings.waitIfBusy = true;;
 
+    BIP_CLASS_UNLOCK(BIP_HttpStreamer, hHttpStreamer);
+
     /* Invoke state machine via the Arb Submit API */
     bipStatus = BIP_Arb_Submit(hArb, &arbSettings, NULL);
     BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_HttpStreamer_SetFileInputSettings" ), error, bipStatus, bipStatus );
 
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hHttpStreamer, bipStatus ));
+    return( bipStatus );
+
+error_locked:
+    BIP_CLASS_UNLOCK(BIP_HttpStreamer, hHttpStreamer);
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, hHttpStreamer, bipStatus ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hHttpStreamer, bipStatus ));
 
     return( bipStatus );
 } /* BIP_HttpStreamer_SetSettings */
@@ -444,11 +492,13 @@ BIP_Status BIP_HttpStreamer_SetTunerInputSettings(
     BIP_ArbSubmitSettings arbSettings;
     BIP_StreamerTunerInputSettings  defaultTunerInputSettings;
 
+    bipStatus = BIP_CLASS_LOCK_AND_CHECK_INSTANCE(BIP_HttpStreamer, hHttpStreamer);
+    BIP_CHECK_GOTO((bipStatus==BIP_SUCCESS), ("BIP_CLASS_LOCK_AND_CHECK_INSTANCE failed."), error, bipStatus, bipStatus);
+
     BDBG_OBJECT_ASSERT( hHttpStreamer, BIP_HttpStreamer );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpStreamer %p: --------------------->" BIP_MSG_PRE_ARG, hHttpStreamer));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpStreamer %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hHttpStreamer));
 
-    BIP_CHECK_GOTO(( hHttpStreamer ), ( "hHttpStreamer pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
     /* Note: Rest of parameter validation happens in the BIP_Streamer class. */
 
     if ( pTunerInputSettings == NULL )
@@ -460,7 +510,7 @@ BIP_Status BIP_HttpStreamer_SetTunerInputSettings(
     /* Serialize access to Settings state among another thread calling the same _SetSettings API. */
     hArb = hHttpStreamer->tunerInputSettingsApi.hArb;
     bipStatus = BIP_Arb_Acquire(hArb);
-    BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_Acquire() Failed" ), error, bipStatus, bipStatus );
+    BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_Acquire() Failed" ), error_locked, bipStatus, bipStatus );
 
     /* Move the API arguments into it's argument list so the state machine can find them. */
     hHttpStreamer->tunerInputSettingsApi.hParserBand = hParserBand;
@@ -473,12 +523,19 @@ BIP_Status BIP_HttpStreamer_SetTunerInputSettings(
     arbSettings.arbProcessor = processHttpStreamerState;
     arbSettings.waitIfBusy = true;;
 
+    BIP_CLASS_UNLOCK(BIP_HttpStreamer, hHttpStreamer);
+
     /* Invoke state machine via the Arb Submit API */
     bipStatus = BIP_Arb_Submit(hArb, &arbSettings, NULL);
     BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_HttpStreamer_SetTunerInputSettings" ), error, bipStatus, bipStatus );
 
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hHttpStreamer, bipStatus ));
+    return( bipStatus );
+
+error_locked:
+    BIP_CLASS_UNLOCK(BIP_HttpStreamer, hHttpStreamer);
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, hHttpStreamer, bipStatus ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hHttpStreamer, bipStatus ));
 
     return( bipStatus );
 } /* BIP_HttpStreamer_SetSettings */
@@ -495,12 +552,14 @@ BIP_Status BIP_HttpStreamer_SetIpInputSettings(
     BIP_ArbSubmitSettings arbSettings;
     BIP_StreamerIpInputSettings  defaultIpInputSettings;
 
+    bipStatus = BIP_CLASS_LOCK_AND_CHECK_INSTANCE(BIP_HttpStreamer, hHttpStreamer);
+    BIP_CHECK_GOTO((bipStatus==BIP_SUCCESS), ("BIP_CLASS_LOCK_AND_CHECK_INSTANCE failed."), error, bipStatus, bipStatus);
+
     BDBG_OBJECT_ASSERT( hHttpStreamer, BIP_HttpStreamer );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpStreamer %p: --------------------->" BIP_MSG_PRE_ARG, hHttpStreamer));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpStreamer %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hHttpStreamer));
 
-    BIP_CHECK_GOTO(( hHttpStreamer ), ( "hHttpStreamer pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
-    BIP_CHECK_GOTO(( hPlayer ), ( "hPlayer pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
+    BIP_CHECK_GOTO(( hPlayer ), ( "hPlayer pointer can't be NULL" ), error_locked, BIP_ERR_INVALID_PARAMETER, bipStatus );
     /* Note: Rest of parameter validation happens in the BIP_Streamer class. */
 
     if ( pIpInputSettings == NULL )
@@ -512,7 +571,7 @@ BIP_Status BIP_HttpStreamer_SetIpInputSettings(
     /* Serialize access to Settings state among another thread calling the same _SetSettings API. */
     hArb = hHttpStreamer->ipInputSettingsApi.hArb;
     bipStatus = BIP_Arb_Acquire(hArb);
-    BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_Acquire() Failed" ), error, bipStatus, bipStatus );
+    BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_Acquire() Failed" ), error_locked, bipStatus, bipStatus );
 
     /* Move the API arguments into it's argument list so the state machine can find them. */
     hHttpStreamer->ipInputSettingsApi.hPlayer = hPlayer;
@@ -525,12 +584,19 @@ BIP_Status BIP_HttpStreamer_SetIpInputSettings(
     arbSettings.arbProcessor = processHttpStreamerState;
     arbSettings.waitIfBusy = true;;
 
+    BIP_CLASS_UNLOCK(BIP_HttpStreamer, hHttpStreamer);
+
     /* Invoke state machine via the Arb Submit API */
     bipStatus = BIP_Arb_Submit(hArb, &arbSettings, NULL);
     BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_HttpStreamer_SetIpInputSettings" ), error, bipStatus, bipStatus );
 
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hHttpStreamer, bipStatus ));
+    return( bipStatus );
+
+error_locked:
+    BIP_CLASS_UNLOCK(BIP_HttpStreamer, hHttpStreamer);
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, hHttpStreamer, bipStatus ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hHttpStreamer, bipStatus ));
 
     return( bipStatus );
 } /* BIP_HttpStreamer_SetSettings */
@@ -546,18 +612,20 @@ BIP_Status BIP_HttpStreamer_SetRecpumpInputSettings(
     BIP_ArbSubmitSettings arbSettings;
     BIP_StreamerRecpumpInputSettings defaultSettings;
 
+    bipStatus = BIP_CLASS_LOCK_AND_CHECK_INSTANCE(BIP_HttpStreamer, hHttpStreamer);
+    BIP_CHECK_GOTO((bipStatus==BIP_SUCCESS), ("BIP_CLASS_LOCK_AND_CHECK_INSTANCE failed."), error, bipStatus, bipStatus);
+
     BDBG_OBJECT_ASSERT( hHttpStreamer, BIP_HttpStreamer );
     BDBG_ASSERT( pRecpumpInputSettings );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpStreamer %p: --------------------->" BIP_MSG_PRE_ARG, hHttpStreamer));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpStreamer %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hHttpStreamer));
 
-    BIP_CHECK_GOTO(( hHttpStreamer ), ( "hHttpStreamer pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
-    BIP_CHECK_GOTO(( hRecpump ), ( "hRecpump can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
+    BIP_CHECK_GOTO(( hRecpump ), ( "hRecpump can't be NULL" ), error_locked, BIP_ERR_INVALID_PARAMETER, bipStatus );
 
     /* Serialize access to Settings state among another thread calling the same _SetSettings API. */
     hArb = hHttpStreamer->recpumpInputSettingsApi.hArb;
     bipStatus = BIP_Arb_Acquire(hArb);
-    BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_Acquire() Failed" ), error, bipStatus, bipStatus );
+    BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_Acquire() Failed" ), error_locked, bipStatus, bipStatus );
 
     if ( pRecpumpInputSettings == NULL )
     {
@@ -575,12 +643,19 @@ BIP_Status BIP_HttpStreamer_SetRecpumpInputSettings(
     arbSettings.arbProcessor = processHttpStreamerState;
     arbSettings.waitIfBusy = true;;
 
+    BIP_CLASS_UNLOCK(BIP_HttpStreamer, hHttpStreamer);
+
     /* Invoke state machine via the Arb Submit API */
     bipStatus = BIP_Arb_Submit(hArb, &arbSettings, NULL);
     BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_HttpStreamer_SetRecpumpInputSettings" ), error, bipStatus, bipStatus );
 
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hHttpStreamer, bipStatus ));
+    return( bipStatus );
+
+error_locked:
+    BIP_CLASS_UNLOCK(BIP_HttpStreamer, hHttpStreamer);
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, hHttpStreamer, bipStatus ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hHttpStreamer, bipStatus ));
 
     return( bipStatus );
 } /* BIP_HttpStreamer_SetRecpumpInputSettings */
@@ -596,12 +671,14 @@ BIP_Status BIP_HttpStreamer_AddTrack(
     BIP_ArbSubmitSettings arbSettings;
     BIP_StreamerTrackSettings defaultTrackSettings;
 
+    bipStatus = BIP_CLASS_LOCK_AND_CHECK_INSTANCE(BIP_HttpStreamer, hHttpStreamer);
+    BIP_CHECK_GOTO((bipStatus==BIP_SUCCESS), ("BIP_CLASS_LOCK_AND_CHECK_INSTANCE failed."), error, bipStatus, bipStatus);
+
     BDBG_OBJECT_ASSERT( hHttpStreamer, BIP_HttpStreamer );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpStreamer %p: --------------------->" BIP_MSG_PRE_ARG, hHttpStreamer));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpStreamer %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hHttpStreamer));
 
-    BIP_CHECK_GOTO(( hHttpStreamer ), ( "hHttpStreamer pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
-    BIP_CHECK_GOTO(( pStreamerTrackInfo ), ( "pStreamerTrackInfo can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
+    BIP_CHECK_GOTO(( pStreamerTrackInfo ), ( "pStreamerTrackInfo can't be NULL" ), error_locked, BIP_ERR_INVALID_PARAMETER, bipStatus );
     /* Note: Rest of parameter validation happens in the BIP_Streamer class. */
 
     if ( pTrackSettings == NULL )
@@ -612,7 +689,7 @@ BIP_Status BIP_HttpStreamer_AddTrack(
 
     hArb = hHttpStreamer->addTrackApi.hArb;
     bipStatus = BIP_Arb_Acquire(hArb);
-    BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_Acquire() Failed" ), error, bipStatus, bipStatus );
+    BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_Acquire() Failed" ), error_locked, bipStatus, bipStatus );
 
     /* Move the API arguments into it's argument list so the state machine can find them. */
     hHttpStreamer->addTrackApi.pStreamerTrackInfo = pStreamerTrackInfo;
@@ -624,12 +701,19 @@ BIP_Status BIP_HttpStreamer_AddTrack(
     arbSettings.arbProcessor = processHttpStreamerState;
     arbSettings.waitIfBusy = true;;
 
+    BIP_CLASS_UNLOCK(BIP_HttpStreamer, hHttpStreamer);
+
     /* Invoke state machine via the Arb Submit API */
     bipStatus = BIP_Arb_Submit(hArb, &arbSettings, NULL);
     BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_HttpStreamer_AddTrack" ), error, bipStatus, bipStatus );
 
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hHttpStreamer, bipStatus ));
+    return( bipStatus );
+
+error_locked:
+    BIP_CLASS_UNLOCK(BIP_HttpStreamer, hHttpStreamer);
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, hHttpStreamer, bipStatus ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hHttpStreamer, bipStatus ));
 
     return( bipStatus );
 }
@@ -645,14 +729,16 @@ BIP_Status BIP_HttpStreamer_SetOutputSettings(
     BIP_ArbSubmitSettings arbSettings;
     BIP_HttpStreamerOutputSettings defaultSettings;
 
+    bipStatus = BIP_CLASS_LOCK_AND_CHECK_INSTANCE(BIP_HttpStreamer, hHttpStreamer);
+    BIP_CHECK_GOTO((bipStatus==BIP_SUCCESS), ("BIP_CLASS_LOCK_AND_CHECK_INSTANCE failed."), error, bipStatus, bipStatus);
+
     BDBG_OBJECT_ASSERT( hHttpStreamer, BIP_HttpStreamer );
     BDBG_ASSERT( pOutputSettings );
     BIP_SETTINGS_ASSERT(pOutputSettings, BIP_HttpStreamerOutputSettings)
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpStreamer %p: --------------------->" BIP_MSG_PRE_ARG, hHttpStreamer));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpStreamer %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hHttpStreamer));
 
-    BIP_CHECK_GOTO(( hHttpStreamer ), ( "hHttpStreamer pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
-    BIP_CHECK_GOTO(( streamerProtocol < BIP_HttpStreamerProtocol_eMax ), ( "streamerProtocol %d is not valid", streamerProtocol ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
+    BIP_CHECK_GOTO(( streamerProtocol < BIP_HttpStreamerProtocol_eMax ), ( "streamerProtocol %d is not valid", streamerProtocol ), error_locked, BIP_ERR_INVALID_PARAMETER, bipStatus );
 
     if ( pOutputSettings == NULL )
     {
@@ -662,7 +748,7 @@ BIP_Status BIP_HttpStreamer_SetOutputSettings(
     /* Serialize access to Settings state among another thread calling the same _SetSettings API. */
     hArb = hHttpStreamer->outputSettingsApi.hArb;
     bipStatus = BIP_Arb_Acquire(hArb);
-    BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_Acquire() Failed" ), error, bipStatus, bipStatus );
+    BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_Acquire() Failed" ), error_locked, bipStatus, bipStatus );
 
     /* Move the API arguments into it's argument list so the state machine can find them. */
     hHttpStreamer->outputSettingsApi.pOutputSettings = pOutputSettings;
@@ -674,12 +760,19 @@ BIP_Status BIP_HttpStreamer_SetOutputSettings(
     arbSettings.arbProcessor = processHttpStreamerState;
     arbSettings.waitIfBusy = true;;
 
+    BIP_CLASS_UNLOCK(BIP_HttpStreamer, hHttpStreamer);
+
     /* Invoke state machine via the Arb Submit API */
     bipStatus = BIP_Arb_Submit(hArb, &arbSettings, NULL);
     BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_HttpStreamer_SetOutputSettings" ), error, bipStatus, bipStatus );
 
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hHttpStreamer, bipStatus ));
+    return( bipStatus );
+
+error_locked:
+    BIP_CLASS_UNLOCK(BIP_HttpStreamer, hHttpStreamer);
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, hHttpStreamer, bipStatus ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hHttpStreamer, bipStatus ));
 
     return( bipStatus );
 } /* BIP_HttpStreamer_SetSettings */
@@ -693,19 +786,21 @@ BIP_Status BIP_HttpStreamer_AddTranscodeProfile(
     BIP_ArbHandle hArb;
     BIP_ArbSubmitSettings arbSettings;
 
-    BIP_CHECK_GOTO(( hHttpStreamer ), ( "hHttpStreamer pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
-    BIP_CHECK_GOTO(( pTranscodeProfile ), ( "pTranscodeProfile can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
+    bipStatus = BIP_CLASS_LOCK_AND_CHECK_INSTANCE(BIP_HttpStreamer, hHttpStreamer);
+    BIP_CHECK_GOTO((bipStatus==BIP_SUCCESS), ("BIP_CLASS_LOCK_AND_CHECK_INSTANCE failed."), error, bipStatus, bipStatus);
+
+    BIP_CHECK_GOTO(( pTranscodeProfile ), ( "pTranscodeProfile can't be NULL" ), error_locked, BIP_ERR_INVALID_PARAMETER, bipStatus );
 
     BDBG_OBJECT_ASSERT( hHttpStreamer, BIP_HttpStreamer );
     BIP_SETTINGS_ASSERT(pTranscodeProfile, BIP_TranscodeProfile);
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpStreamer %p: --------------------->" BIP_MSG_PRE_ARG, hHttpStreamer));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpStreamer %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hHttpStreamer));
 
     /* Note: Rest of parameter validation happens in the BIP_Streamer class. */
 
     hArb = hHttpStreamer->addTranscodeProfileApi.hArb;
     bipStatus = BIP_Arb_Acquire(hArb);
-    BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_Acquire() Failed" ), error, bipStatus, bipStatus );
+    BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_Acquire() Failed" ), error_locked, bipStatus, bipStatus );
 
     /* Move the API arguments into it's argument list so the state machine can find them. */
     hHttpStreamer->addTranscodeProfileApi.pTranscodeProfile = pTranscodeProfile;
@@ -716,12 +811,19 @@ BIP_Status BIP_HttpStreamer_AddTranscodeProfile(
     arbSettings.arbProcessor = processHttpStreamerState;
     arbSettings.waitIfBusy = true;;
 
+    BIP_CLASS_UNLOCK(BIP_HttpStreamer, hHttpStreamer);
+
     /* Invoke state machine via the Arb Submit API */
     bipStatus = BIP_Arb_Submit(hArb, &arbSettings, NULL);
     BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_HttpStreamer_AddTranscodeProfile" ), error, bipStatus, bipStatus );
 
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hHttpStreamer, bipStatus ));
+    return( bipStatus );
+
+error_locked:
+    BIP_CLASS_UNLOCK(BIP_HttpStreamer, hHttpStreamer);
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, hHttpStreamer, bipStatus ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hHttpStreamer, bipStatus ));
 
     return( bipStatus );
 }
@@ -735,17 +837,19 @@ BIP_Status BIP_HttpStreamer_SetTranscodeHandles(
     BIP_ArbHandle hArb;
     BIP_ArbSubmitSettings arbSettings;
 
-    BIP_CHECK_GOTO(( hHttpStreamer ), ( "hHttpStreamer pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
-    BIP_CHECK_GOTO(( pTranscodeNexusHandles ), ( "pTranscodeNexusHandles can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
+    bipStatus = BIP_CLASS_LOCK_AND_CHECK_INSTANCE(BIP_HttpStreamer, hHttpStreamer);
+    BIP_CHECK_GOTO((bipStatus==BIP_SUCCESS), ("BIP_CLASS_LOCK_AND_CHECK_INSTANCE failed."), error, bipStatus, bipStatus);
+
+    BIP_CHECK_GOTO(( pTranscodeNexusHandles ), ( "pTranscodeNexusHandles can't be NULL" ), error_locked, BIP_ERR_INVALID_PARAMETER, bipStatus );
 
     BDBG_OBJECT_ASSERT( hHttpStreamer, BIP_HttpStreamer );
     BIP_SETTINGS_ASSERT(pTranscodeNexusHandles, BIP_TranscodeNexusHandles);
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpStreamer %p: --------------------->" BIP_MSG_PRE_ARG, hHttpStreamer));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpStreamer %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hHttpStreamer));
 
     hArb = hHttpStreamer->setTranscodeNexusHandlesApi.hArb;
     bipStatus = BIP_Arb_Acquire(hArb);
-    BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_Acquire() Failed" ), error, bipStatus, bipStatus );
+    BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_Acquire() Failed" ), error_locked, bipStatus, bipStatus );
 
     /* Move the API arguments into it's argument list so the state machine can find them. */
     hHttpStreamer->setTranscodeNexusHandlesApi.pTranscodeNexusHandles = pTranscodeNexusHandles;
@@ -756,12 +860,19 @@ BIP_Status BIP_HttpStreamer_SetTranscodeHandles(
     arbSettings.arbProcessor = processHttpStreamerState;
     arbSettings.waitIfBusy = true;;
 
+    BIP_CLASS_UNLOCK(BIP_HttpStreamer, hHttpStreamer);
+
     /* Invoke state machine via the Arb Submit API */
     bipStatus = BIP_Arb_Submit(hArb, &arbSettings, NULL);
     BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_HttpStreamer_AddTranscodeProfile" ), error, bipStatus, bipStatus );
 
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hHttpStreamer, bipStatus ));
+    return( bipStatus );
+
+error_locked:
+    BIP_CLASS_UNLOCK(BIP_HttpStreamer, hHttpStreamer);
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, hHttpStreamer, bipStatus ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hHttpStreamer, bipStatus ));
 
     return( bipStatus );
 }
@@ -776,18 +887,20 @@ BIP_Status BIP_HttpStreamer_GetResponseHeader(
     BIP_ArbHandle hArb;
     BIP_ArbSubmitSettings arbSettings;
 
+    brc = BIP_CLASS_LOCK_AND_CHECK_INSTANCE(BIP_HttpStreamer, hHttpStreamer);
+    BIP_CHECK_GOTO((brc==BIP_SUCCESS), ("BIP_CLASS_LOCK_AND_CHECK_INSTANCE failed."), error, brc, brc);
+
     BDBG_OBJECT_ASSERT( hHttpStreamer, BIP_HttpStreamer );
 
-    BIP_CHECK_GOTO(( hHttpStreamer ), ( "hHttpStreamer pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, brc );
-    BIP_CHECK_GOTO(( pHeaderName ), ( "pHeaderName pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, brc );
-    BIP_CHECK_GOTO(( pHeaderValue ), ( "pHeaderValue pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, brc );
+    BIP_CHECK_GOTO(( pHeaderName ), ( "pHeaderName pointer can't be NULL" ), error_locked, BIP_ERR_INVALID_PARAMETER, brc );
+    BIP_CHECK_GOTO(( pHeaderValue ), ( "pHeaderValue pointer can't be NULL" ), error_locked, BIP_ERR_INVALID_PARAMETER, brc );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpStreamer %p: --------------------->" BIP_MSG_PRE_ARG, hHttpStreamer));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpStreamer %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hHttpStreamer));
 
     /* Serialize access to state among another thread calling the same API. */
     hArb = hHttpStreamer->getResponseHeaderApi.hArb;
     brc = BIP_Arb_Acquire(hArb);
-    BIP_CHECK_GOTO((brc == BIP_SUCCESS), ( "BIP_Arb_Acquire() Failed" ), error, brc, brc );
+    BIP_CHECK_GOTO((brc == BIP_SUCCESS), ( "BIP_Arb_Acquire() Failed" ), error_locked, brc, brc );
 
     /* Move the API arguments into it's argument list so the state machine can find them. */
     hHttpStreamer->getResponseHeaderApi.hHttpStreamer = hHttpStreamer;
@@ -798,12 +911,19 @@ BIP_Status BIP_HttpStreamer_GetResponseHeader(
     arbSettings.arbProcessor = processHttpStreamerState;
     arbSettings.waitIfBusy = true;;
 
+    BIP_CLASS_UNLOCK(BIP_HttpStreamer, hHttpStreamer);
+
     /* Invoke state machine via the Arb Submit API */
     brc = BIP_Arb_Submit(hArb, &arbSettings, NULL);
     BIP_CHECK_GOTO((brc == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_HttpStreamer_GetResponseHeader" ), error, brc, brc );
 
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpStreamer %p: completionStatus %s  <--------------------- " BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_StatusGetText(brc) ));
+    return( brc );
+
+error_locked:
+    BIP_CLASS_UNLOCK(BIP_HttpStreamer, hHttpStreamer);
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpStreamer %p: completionStatus %s  <--------------------- " BIP_MSG_PRE_ARG, hHttpStreamer, BIP_StatusGetText(brc) ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpStreamer %p: completionStatus %s  <--------------------- " BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_StatusGetText(brc) ));
 
     return( brc );
 }
@@ -818,18 +938,20 @@ BIP_Status BIP_HttpStreamer_SetResponseHeader(
     BIP_ArbHandle hArb;
     BIP_ArbSubmitSettings arbSettings;
 
+    brc = BIP_CLASS_LOCK_AND_CHECK_INSTANCE(BIP_HttpStreamer, hHttpStreamer);
+    BIP_CHECK_GOTO((brc==BIP_SUCCESS), ("BIP_CLASS_LOCK_AND_CHECK_INSTANCE failed."), error, brc, brc);
+
     BDBG_OBJECT_ASSERT( hHttpStreamer, BIP_HttpStreamer );
 
-    BIP_CHECK_GOTO(( hHttpStreamer ), ( "hHttpStreamer pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, brc );
-    BIP_CHECK_GOTO(( pHeaderName ), ( "pHeaderName pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, brc );
+    BIP_CHECK_GOTO(( pHeaderName ), ( "pHeaderName pointer can't be NULL" ), error_locked, BIP_ERR_INVALID_PARAMETER, brc );
     /* pHeaderValue can be NULL. */
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpStreamer %p: --------------------->" BIP_MSG_PRE_ARG, hHttpStreamer));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpStreamer %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hHttpStreamer));
 
     /* Serialize access to state among another thread calling the same API. */
     hArb = hHttpStreamer->setResponseHeaderApi.hArb;
     brc = BIP_Arb_Acquire(hArb);
-    BIP_CHECK_GOTO((brc == BIP_SUCCESS), ( "BIP_Arb_Acquire() Failed" ), error, brc, brc );
+    BIP_CHECK_GOTO((brc == BIP_SUCCESS), ( "BIP_Arb_Acquire() Failed" ), error_locked, brc, brc );
 
     /* Move the API arguments into it's argument list so the state machine can find them. */
     hHttpStreamer->setResponseHeaderApi.hHttpStreamer = hHttpStreamer;
@@ -838,14 +960,21 @@ BIP_Status BIP_HttpStreamer_SetResponseHeader(
     BIP_Arb_GetDefaultSubmitSettings( &arbSettings );
     arbSettings.hObject = hHttpStreamer;
     arbSettings.arbProcessor = processHttpStreamerState;
-    arbSettings.waitIfBusy = true;;
+    arbSettings.waitIfBusy = true;
+
+    BIP_CLASS_UNLOCK(BIP_HttpStreamer, hHttpStreamer);
 
     /* Invoke state machine via the Arb Submit API */
     brc = BIP_Arb_Submit(hArb, &arbSettings, NULL);
     BIP_CHECK_GOTO((brc == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_HttpStreamer_SetResponseHeader" ), error, brc, brc );
 
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpStreamer %p: completionStatus %s  <--------------------- " BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_StatusGetText(brc) ));
+    return( brc );
+
+error_locked:
+    BIP_CLASS_UNLOCK(BIP_HttpStreamer, hHttpStreamer);
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpStreamer %p: completionStatus %s  <--------------------- " BIP_MSG_PRE_ARG, hHttpStreamer, BIP_StatusGetText(brc) ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpStreamer %p: completionStatus %s  <--------------------- " BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_StatusGetText(brc) ));
 
     return( brc );
 }
@@ -859,17 +988,18 @@ BIP_Status BIP_HttpStreamer_Start(
     BIP_ArbHandle hArb;
     BIP_ArbSubmitSettings arbSettings;
 
+    bipStatus = BIP_CLASS_LOCK_AND_CHECK_INSTANCE(BIP_HttpStreamer, hHttpStreamer);
+    BIP_CHECK_GOTO((bipStatus==BIP_SUCCESS), ("BIP_CLASS_LOCK_AND_CHECK_INSTANCE failed."), error, bipStatus, bipStatus);
+
     BDBG_OBJECT_ASSERT( hHttpStreamer, BIP_HttpStreamer );
     BIP_SETTINGS_ASSERT(pSettings, BIP_HttpStreamerStartSettings);
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpStreamer %p: --------------------->" BIP_MSG_PRE_ARG, hHttpStreamer));
-
-    BIP_CHECK_GOTO(( hHttpStreamer ), ( "hHttpStreamer pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpStreamer %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hHttpStreamer));
 
     /* Serialize access to Settings state among another thread calling the same _SetSettings API. */
     hArb = hHttpStreamer->startApi.hArb;
     bipStatus = BIP_Arb_Acquire(hArb);
-    BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_Acquire() Failed" ), error, bipStatus, bipStatus );
+    BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_Acquire() Failed" ), error_locked, bipStatus, bipStatus );
 
     /* Move the API arguments into it's argument list so the state machine can find them. */
     hHttpStreamer->startApi.pSettings = pSettings;
@@ -880,14 +1010,21 @@ BIP_Status BIP_HttpStreamer_Start(
     arbSettings.arbProcessor = processHttpStreamerState;
     arbSettings.waitIfBusy = true;;
 
+    BIP_CLASS_UNLOCK(BIP_HttpStreamer, hHttpStreamer);
+
     /* Invoke state machine via the Arb Submit API */
     bipStatus = BIP_Arb_Submit(hArb, &arbSettings, NULL);
     BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_HttpStreamer_Start" ), error, bipStatus, bipStatus );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer %p: Streamer Started: completionStatus: %s" BIP_MSG_PRE_ARG, hHttpStreamer, BIP_StatusGetText(bipStatus) ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer %p: Streamer Started: completionStatus: %s" BIP_MSG_PRE_ARG, (void *)hHttpStreamer, BIP_StatusGetText(bipStatus) ));
 
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hHttpStreamer, bipStatus ));
+    return ( bipStatus );
+
+error_locked:
+    BIP_CLASS_UNLOCK(BIP_HttpStreamer, hHttpStreamer);
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, hHttpStreamer, bipStatus ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hHttpStreamer, bipStatus ));
 
     return ( bipStatus );
 } /* BIP_HttpStreamer_Start */
@@ -900,6 +1037,9 @@ BIP_Status BIP_HttpStreamer_Stop(
     BIP_ArbHandle hArb;
     BIP_ArbSubmitSettings arbSettings;
 
+    bipStatus = BIP_CLASS_LOCK_AND_CHECK_INSTANCE(BIP_HttpStreamer, hHttpStreamer);
+    BIP_CHECK_GOTO((bipStatus==BIP_SUCCESS), ("BIP_CLASS_LOCK_AND_CHECK_INSTANCE failed."), error, bipStatus, bipStatus);
+
     BDBG_OBJECT_ASSERT( hHttpStreamer, BIP_HttpStreamer );
 
     BIP_MSG_TRC(( BIP_MSG_PRE_FMT "Stopping: " BIP_HTTP_STREAMER_PRINTF_FMT
@@ -907,12 +1047,10 @@ BIP_Status BIP_HttpStreamer_Stop(
     BDBG_MSG((    BIP_MSG_PRE_FMT "Stopping: " BIP_HTTP_STREAMER_PRINTF_FMT
                   BIP_MSG_PRE_ARG, BIP_HTTP_STREAMER_PRINTF_ARG(hHttpStreamer)));
 
-    BIP_CHECK_GOTO(( hHttpStreamer ), ( "hHttpStreamer pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
-
     /* Serialize access to Settings state among another thread calling the same _SetSettings API. */
     hArb = hHttpStreamer->stopApi.hArb;
     bipStatus = BIP_Arb_Acquire(hArb);
-    BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_Acquire() Failed" ), error, bipStatus, bipStatus );
+    BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_Acquire() Failed" ), error_locked, bipStatus, bipStatus );
 
     /* Get ready to run the state machine. */
     BIP_Arb_GetDefaultSubmitSettings( &arbSettings );
@@ -920,12 +1058,19 @@ BIP_Status BIP_HttpStreamer_Stop(
     arbSettings.arbProcessor = processHttpStreamerState;
     arbSettings.waitIfBusy = true;;
 
+    BIP_CLASS_UNLOCK(BIP_HttpStreamer, hHttpStreamer);
+
     /* Invoke state machine via the Arb Submit API */
     bipStatus = BIP_Arb_Submit(hArb, &arbSettings, NULL);
     BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_HttpStreamer_Stop" ), error, bipStatus, bipStatus );
 
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hHttpStreamer, bipStatus ));
+    return( bipStatus );
+
+error_locked:
+    BIP_CLASS_UNLOCK(BIP_HttpStreamer, hHttpStreamer);
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, hHttpStreamer, bipStatus ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hHttpStreamer, bipStatus ));
 
     return( bipStatus );
 } /* BIP_HttpStreamer_Stop */
@@ -941,19 +1086,21 @@ BIP_Status BIP_HttpStreamer_ProcessRequest(
     BIP_ArbHandle hArb;
     BIP_ArbSubmitSettings arbSettings;
 
+    bipStatus = BIP_CLASS_LOCK_AND_CHECK_INSTANCE(BIP_HttpStreamer, hHttpStreamer);
+    BIP_CHECK_GOTO((bipStatus==BIP_SUCCESS), ("BIP_CLASS_LOCK_AND_CHECK_INSTANCE failed."), error, bipStatus, bipStatus);
+
     BDBG_OBJECT_ASSERT( hHttpStreamer, BIP_HttpStreamer );
     BIP_SETTINGS_ASSERT(pSettings, BIP_HttpStreamerProcessRequestSettings);
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpStreamer %p: --------------------->" BIP_MSG_PRE_ARG, hHttpStreamer));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpStreamer %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hHttpStreamer));
 
-    BIP_CHECK_GOTO(( hHttpStreamer ), ( "hHttpStreamer pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
-    BIP_CHECK_GOTO(( hHttpSocket ), ( "hHttpSocket can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
-    BIP_CHECK_GOTO(( pRequestProcessedCallback->callback ), ( "requestProcessedCallback can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
+    BIP_CHECK_GOTO(( hHttpSocket ), ( "hHttpSocket can't be NULL" ), error_locked, BIP_ERR_INVALID_PARAMETER, bipStatus );
+    BIP_CHECK_GOTO(( pRequestProcessedCallback->callback ), ( "requestProcessedCallback can't be NULL" ), error_locked, BIP_ERR_INVALID_PARAMETER, bipStatus );
 
     /* Serialize access to Settings state among another thread calling the same API. */
     hArb = hHttpStreamer->processRequestApi.hArb;
     bipStatus = BIP_Arb_Acquire(hArb);
-    BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_Acquire() Failed" ), error, bipStatus, bipStatus );
+    BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_Acquire() Failed" ), error_locked, bipStatus, bipStatus );
 
     /* Move the API arguments into it's argument list so the state machine can find them. */
     hHttpStreamer->processRequestApi.pSettings = pSettings;
@@ -966,6 +1113,8 @@ BIP_Status BIP_HttpStreamer_ProcessRequest(
     arbSettings.arbProcessor = processHttpStreamerState;
     arbSettings.waitIfBusy = true;;
 
+    BIP_CLASS_UNLOCK(BIP_HttpStreamer, hHttpStreamer);
+
     /* Invoke state machine via the Arb Submit API */
     bipStatus = BIP_Arb_Submit(hArb, &arbSettings, NULL);
     BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_HttpStreamer_ProcessRequest" ), error, bipStatus, bipStatus );
@@ -973,8 +1122,13 @@ BIP_Status BIP_HttpStreamer_ProcessRequest(
     BIP_MSG_TRC(( BIP_MSG_PRE_FMT "Started: " BIP_HTTP_STREAMER_PRINTF_FMT
                   BIP_MSG_PRE_ARG, BIP_HTTP_STREAMER_PRINTF_ARG(hHttpStreamer)));
 
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hHttpStreamer, bipStatus ));
+    return ( bipStatus );
+
+error_locked:
+    BIP_CLASS_UNLOCK(BIP_HttpStreamer, hHttpStreamer);
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, hHttpStreamer, bipStatus ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hHttpStreamer, bipStatus ));
 
     return ( bipStatus );
 } /* BIP_HttpStreamer_ProcessRequest */
@@ -988,17 +1142,19 @@ BIP_Status  BIP_HttpStreamer_GetStatus(
     BIP_ArbHandle hArb;
     BIP_ArbSubmitSettings arbSettings;
 
+    bipStatus = BIP_CLASS_LOCK_AND_CHECK_INSTANCE(BIP_HttpStreamer, hHttpStreamer);
+    BIP_CHECK_GOTO((bipStatus==BIP_SUCCESS), ("BIP_CLASS_LOCK_AND_CHECK_INSTANCE failed."), error, bipStatus, bipStatus);
+
     BDBG_OBJECT_ASSERT( hHttpStreamer, BIP_HttpStreamer );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpStreamer %p: --------------------->" BIP_MSG_PRE_ARG, hHttpStreamer));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpStreamer %p: --------------------->" BIP_MSG_PRE_ARG, (void *)hHttpStreamer));
 
-    BIP_CHECK_GOTO(( hHttpStreamer ), ( "hHttpStreamer pointer can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
-    BIP_CHECK_GOTO(( pStatus ), ( "pStatus can't be NULL" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
+    BIP_CHECK_GOTO(( pStatus ), ( "pStatus can't be NULL" ), error_locked, BIP_ERR_INVALID_PARAMETER, bipStatus );
 
     /* Serialize access to Settings state among another thread calling the same _GetStatus API. */
     hArb = hHttpStreamer->getStatusApi.hArb;
     bipStatus = BIP_Arb_Acquire(hArb);
-    BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_Acquire() Failed" ), error, bipStatus, bipStatus );
+    BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_Acquire() Failed" ), error_locked, bipStatus, bipStatus );
 
     /* Move the API arguments into it's argument list so the state machine can find them. */
     hHttpStreamer->getStatusApi.pStatus = pStatus;
@@ -1009,12 +1165,19 @@ BIP_Status  BIP_HttpStreamer_GetStatus(
     arbSettings.arbProcessor = processHttpStreamerState;
     arbSettings.waitIfBusy = true;;
 
+    BIP_CLASS_UNLOCK(BIP_HttpStreamer, hHttpStreamer);
+
     /* Invoke state machine via the Arb Submit API */
     bipStatus = BIP_Arb_Submit(hArb, &arbSettings, NULL);
     BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed for BIP_HttpStreamer_GetStatus" ), error, bipStatus, bipStatus );
 
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hHttpStreamer, bipStatus ));
+    return ( bipStatus );
+
+error_locked:
+    BIP_CLASS_UNLOCK(BIP_HttpStreamer, hHttpStreamer);
 error:
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, hHttpStreamer, bipStatus ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpStreamer %p: completionStatus 0x%x <--------------------- " BIP_MSG_PRE_ARG, (void *)hHttpStreamer, bipStatus ));
 
     return ( bipStatus );
 }
@@ -1027,6 +1190,9 @@ void BIP_HttpStreamer_PrintStatus(
     BIP_ArbHandle hArb;
     BIP_ArbSubmitSettings arbSettings;
 
+    bipStatus = BIP_CLASS_LOCK_AND_CHECK_INSTANCE(BIP_HttpStreamer, hHttpStreamer);
+    BIP_CHECK_GOTO((bipStatus==BIP_SUCCESS), ("BIP_CLASS_LOCK_AND_CHECK_INSTANCE failed."), error, bipStatus, bipStatus);
+
     BDBG_ASSERT( hHttpStreamer );
     BDBG_OBJECT_ASSERT( hHttpStreamer, BIP_HttpStreamer );
 
@@ -1035,7 +1201,7 @@ void BIP_HttpStreamer_PrintStatus(
     /* Serialize access to Settings state among another thread calling the same _GetSettings API. */
     hArb = hHttpStreamer->printStatusApi.hArb;
     bipStatus = BIP_Arb_Acquire(hArb);
-    BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_Acquire() Failed" ), error, bipStatus, bipStatus );
+    BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_Acquire() Failed" ), error_locked, bipStatus, bipStatus );
 
     /* Get ready to run the state machine. */
     BIP_Arb_GetDefaultSubmitSettings( &arbSettings );
@@ -1043,9 +1209,14 @@ void BIP_HttpStreamer_PrintStatus(
     arbSettings.arbProcessor = processHttpStreamerState;
     arbSettings.waitIfBusy = true;;
 
+    BIP_CLASS_UNLOCK(BIP_HttpStreamer, hHttpStreamer);
+
     bipStatus = BIP_Arb_Submit(hArb, &arbSettings, NULL);
     BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ( "BIP_Arb_SubmitRequest() Failed" ), error, bipStatus, bipStatus );
+    return;
 
+error_locked:
+    BIP_CLASS_UNLOCK(BIP_HttpStreamer, hHttpStreamer);
 error:
     return;
 } /* BIP_HttpStreamer_PrintStatus */

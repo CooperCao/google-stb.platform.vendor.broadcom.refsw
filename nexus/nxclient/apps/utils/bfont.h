@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2010-2013 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,11 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  *****************************************************************************/
 #ifndef BFONT_H__
 #define BFONT_H__
@@ -144,6 +139,18 @@ int bfont_draw_text_ex(struct bfont_surface_desc *desc, bfont_t font,
 /* deprecated. use bfont_draw_text_ex. */
 int bfont_draw_aligned_text(struct bfont_surface_desc *desc, bfont_t font, const NEXUS_Rect *pRect, const char *text, int len, uint32_t color,
     bfont_valign valign, bfont_halign halign);
+
+/**
+only available if you build with FREETYPE_SUPPORT=y
+**/
+struct bfont_open_freetype_settings {
+    const char *filename;
+    int size;
+    bool antialiased;
+    bool italics;
+};
+void bfont_get_default_open_freetype_settings(struct bfont_open_freetype_settings *psettings);
+bfont_t bfont_open_freetype(const struct bfont_open_freetype_settings *psettings);
 
 #ifdef __cplusplus
 }

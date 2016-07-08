@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2014 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,14 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
-
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
 ******************************************************************************/
 /* Nexus example app: single live a/v decode from an input band, routed to hdmi output */
@@ -95,6 +88,11 @@ BDBG_MODULE(audio_decode_fade) ;
 /*    2) set the USE_PRODUCTION_KEYS macro to to 1 */
 /*****************/
 #define USE_PRODUCTION_KEYS     0
+
+struct hotplug_context {
+    NEXUS_HdmiOutputHandle hdmi;
+    NEXUS_DisplayHandle display;
+};
 
 static bool hdmiHdcpEnabled = false ;
 static void initializeHdmiOutputHdcpSettings(void);
@@ -151,6 +149,10 @@ int main(int argc, char **argv)
     unsigned fadeType = 2;
     int i;
 
+#if NEXUS_NUM_HDMI_OUTPUTS
+    struct hotplug_context hotplug_context;
+#endif
+
     for ( i = 1; i < argc; i++ )
     {
         if (!strcmp("--help", argv[i]) ||
@@ -179,7 +181,7 @@ int main(int argc, char **argv)
     NEXUS_Platform_Init(&platformSettings);
     NEXUS_Platform_GetConfiguration(&platformConfig);
 
-	/* bring up decoders and connect to display */
+    /* bring up decoders and connect to display */
     mixer = NEXUS_AudioMixer_Open(NULL);
     NEXUS_AudioProcessor_GetDefaultOpenSettings(&fadeOpenSettings);
     fadeOpenSettings.type = NEXUS_AudioPostProcessing_eFade;
@@ -199,7 +201,7 @@ int main(int argc, char **argv)
     playback = NEXUS_Playback_Create();
     assert(playback);
 
-	file = NEXUS_FilePlay_OpenPosix(fname, NULL);
+    file = NEXUS_FilePlay_OpenPosix(fname, NULL);
     if (!file) {
         fprintf(stderr, "can't open file:%s\n", fname);
         return -1;
@@ -317,16 +319,16 @@ int main(int argc, char **argv)
 
     /* Install hotplug callback -- video only for now */
     NEXUS_HdmiOutput_GetSettings(platformConfig.outputs.hdmi[0], &hdmiSettings);
-    hdmiSettings.hotplugCallback.callback = hotplug_callback;
-    hdmiSettings.hotplugCallback.context = platformConfig.outputs.hdmi[0];
-    hdmiSettings.hotplugCallback.param = (int)display;
+    hotplug_context.hdmi                 = platformConfig.outputs.hdmi[0];
+    hotplug_context.display              = display;
+    hdmiSettings.hotplugCallback.context = &hotplug_context;
     NEXUS_HdmiOutput_SetSettings(platformConfig.outputs.hdmi[0], &hdmiSettings);
 
     /* initalize HDCP settings, keys, etc. */
     initializeHdmiOutputHdcpSettings() ;
 
     /* Force a hotplug to switch to preferred format */
-    hotplug_callback(platformConfig.outputs.hdmi[0], (int)display);
+    hotplug_callback(&hotplug_context, 0);
 
     /* Start Decoders */
     NEXUS_VideoDecoder_Start(videoDecoder, &videoProgram);
@@ -339,7 +341,7 @@ int main(int argc, char **argv)
     NEXUS_Display_SetSettings(display, &displaySettings);
 
 #if ENABLE_PLAYBACK
-	/* Start playback */
+    /* Start playback */
     NEXUS_Playback_Start(playback, file, NULL);
 #endif
 
@@ -545,11 +547,14 @@ static const NEXUS_HdmiOutputHdcpKsv RevokedKsvs[NUM_REVOKED_KSVS] =
 
 static void hotplug_callback(void *pParam, int iParam)
 {
+    struct hotplug_context *context = pParam;
     NEXUS_HdmiOutputStatus status;
-    NEXUS_HdmiOutputHandle hdmi = pParam;
-    NEXUS_DisplayHandle display = (NEXUS_DisplayHandle)iParam;
+    NEXUS_HdmiOutputHandle hdmi = context->hdmi;
+    NEXUS_DisplayHandle display = context->display;
     NEXUS_DisplaySettings displaySettings;
-    NEXUS_HdmiOutputSettings hdmiSettings    ;
+    NEXUS_HdmiOutputSettings hdmiSettings;
+
+    BSTD_UNUSED(iParam);
 
     NEXUS_HdmiOutput_GetStatus(hdmi, &status);
     /* the app can choose to switch to the preferred format, but it's not required. */

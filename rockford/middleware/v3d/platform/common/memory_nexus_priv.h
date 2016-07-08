@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2015 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2015 Broadcom.
 All rights reserved.
 
 Project  :  Default Nexus platform API for EGL driver
@@ -39,9 +39,10 @@ typedef struct
 typedef struct
 {
    NXPL_HeapMapping        heapMap;
+   NXPL_HeapMapping        heapMapSecure;
    int                     l2CacheSize;
    bool                    useMMA;
-   int                     heapGrow;
+   size_t                  heapGrow;
 
 #if NEXUS_HAS_GRAPHICS2D
    BKNI_EventHandle        checkpointEvent;

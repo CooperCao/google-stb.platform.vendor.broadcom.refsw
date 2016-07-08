@@ -1,0 +1,68 @@
+ifndef BCM_PRINT_KBUILD_ENV_ONLY
+
+TARGET ?= 7445
+TARGET_REV ?= d0
+obj-m := bcm_astra.o
+
+bcm_astra-y += \
+	tzioc_drv.o \
+	tzioc_api.o \
+	tzioc_ioctl.o \
+	tzioc_msg.o \
+	tzioc_mem.o \
+	tzioc_client.o \
+	tzioc_peer.o \
+	tzioc_file.o \
+	astra_drv.o \
+	astra_api.o \
+	astra_ioctl.o
+
+bcm_astra-y += \
+	common/tzioc_common.o \
+	common/tzioc_common_msg.o \
+	common/tzioc_common_ring.o \
+	common/tzioc_common_mem.o \
+	common/tzioc_common_client.o
+
+bcm_astra-y += \
+	tracelog/tracelog.o
+
+bcm_astra-y += \
+	vuart/vuart.o
+
+ccflags-y += \
+	-I$(src) \
+	-I$(src)/common \
+	-I$(src)/tracelog \
+	-I$(src)/vuart \
+	-I$(TOP_DIR)/common/include
+
+ifeq ($(NEXUS_BUILD),y)
+# Get RDB from magnum
+BCHP_CHIP := $(TARGET)
+MAGNUM := $(realpath $(TOP_DIR)/../magnum)
+include $(MAGNUM)/basemodules/chp/bchp.inc
+ccflags-y += \
+        $(addprefix -I,$(BCHP_INCLUDES)) \
+        $(addprefix -D,$(BCHP_DEFINES))
+
+else
+ccflags-y += \
+	-I$(TOP_DIR)/linux/platform/$(PLATFORM) \
+	-I$(TOP_DIR)/linux/platform/$(PLATFORM)/$(TARGET)$(TARGET_REV)
+
+endif
+
+ccflags-y += -DTARGET_SOC=$(TARGET)
+ccflags-y += -DTARGET_SOC_REV=0x$(TARGET_REV)
+
+ifneq ($(VIRTUAL_UART_USE_TTY),n)
+ccflags-y += -DVUART_USE_TTY
+endif
+
+else
+
+$(shell echo BCM_KBUILD_CFLAGS:=$(KBUILD_CFLAGS) $(KBUILD_CFLAGS_MODULE) >&2 )
+$(shell echo BCM_KBUILD_LDFLAGS:=$(LDFLAGS) $(LDFLAGS_MODULE) $(KBUILD_LDFLAGS_MODULE) >&2)
+
+endif

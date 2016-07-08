@@ -86,10 +86,29 @@ static struct nexus_simplevideodecoder_defaultsettings {
     NEXUS_VideoDecoderExtendedSettings extendedSettings;
 } *g_default;
 
+struct NEXUS_SimpleVideoDecoderServer
+{
+    NEXUS_OBJECT(NEXUS_SimpleVideoDecoderServer);
+    BLST_S_HEAD(NEXUS_SimpleVideoDecoder_P_List, NEXUS_SimpleVideoDecoder) decoders;
+    struct {
+        unsigned refcnt;
+        NEXUS_TimerHandle timer;
+        NEXUS_Graphics2DHandle gfx;
+        bool checkpointPending;
+    } videoAsGraphics;
+    struct {
+        NEXUS_SimpleVideoDecoderHandle handle;
+        NEXUS_VideoInput videoInput;
+    } sdOverride;
+};
+
+static NEXUS_SimpleVideoDecoderServerHandle g_NEXUS_SimpleVideoDecoderServer;
+
 struct NEXUS_SimpleVideoDecoder
 {
     NEXUS_OBJECT(NEXUS_SimpleVideoDecoder);
     BLST_S_ENTRY(NEXUS_SimpleVideoDecoder) link;
+    NEXUS_SimpleVideoDecoderServerHandle server;
     unsigned index;
     bool acquired;
     bool started; /* decode is actually started. if started, must be connected. may or may not be acquired. if priming, this should be false. */
@@ -140,21 +159,6 @@ struct NEXUS_SimpleVideoDecoder
     } hdDviInput;
 };
 
-static BLST_S_HEAD(NEXUS_SimpleVideoDecoder_P_List, NEXUS_SimpleVideoDecoder) g_videoDecoders;
-
-static struct {
-    struct {
-        unsigned refcnt;
-        NEXUS_TimerHandle timer;
-        NEXUS_Graphics2DHandle gfx;
-        bool checkpointPending;
-    } videoAsGraphics;
-    struct {
-        NEXUS_SimpleVideoDecoderHandle handle;
-        NEXUS_VideoInput videoInput;
-    } sdOverride;
-} g_state;
-
 static NEXUS_Error nexus_simplevideodecoder_p_setdecodersettings(NEXUS_SimpleVideoDecoderHandle handle, bool currentSettings);
 static NEXUS_Error nexus_simplevideodecoder_p_start( NEXUS_SimpleVideoDecoderHandle handle );
 static void nexus_simplevideodecoder_p_stop( NEXUS_SimpleVideoDecoderHandle handle );
@@ -170,6 +174,26 @@ static bool use_cache(NEXUS_SimpleVideoDecoderHandle handle);
 /**
 server functions
 **/
+
+NEXUS_SimpleVideoDecoderServerHandle NEXUS_SimpleVideoDecoderServer_Create(void)
+{
+    NEXUS_SimpleVideoDecoderServerHandle handle;
+    if (g_NEXUS_SimpleVideoDecoderServer) return NULL; /* singleton */
+    handle = BKNI_Malloc(sizeof(*handle));
+    if (!handle) return NULL;
+    NEXUS_OBJECT_INIT(NEXUS_SimpleVideoDecoderServer, handle);
+    g_NEXUS_SimpleVideoDecoderServer = handle;
+    return handle;
+}
+
+static void NEXUS_SimpleVideoDecoderServer_P_Finalizer( NEXUS_SimpleVideoDecoderServerHandle handle )
+{
+    NEXUS_OBJECT_DESTROY(NEXUS_SimpleVideoDecoderServer, handle);
+    g_NEXUS_SimpleVideoDecoderServer = NULL;
+    BKNI_Free(handle);
+}
+
+NEXUS_OBJECT_CLASS_MAKE(NEXUS_SimpleVideoDecoderServer, NEXUS_SimpleVideoDecoderServer_Destroy);
 
 void NEXUS_SimpleVideoDecoder_GetDefaultServerSettings( NEXUS_SimpleVideoDecoderServerSettings *pSettings )
 {
@@ -222,13 +246,13 @@ static void nexus_simplevideodecoder_p_set_default_settings(NEXUS_SimpleVideoDec
     handle->clientSettings.closedCaptionRouting = true;
 }
 
-NEXUS_SimpleVideoDecoderHandle NEXUS_SimpleVideoDecoder_Create( unsigned index, const NEXUS_SimpleVideoDecoderServerSettings *pSettings )
+NEXUS_SimpleVideoDecoderHandle NEXUS_SimpleVideoDecoder_Create( NEXUS_SimpleVideoDecoderServerHandle server, unsigned index, const NEXUS_SimpleVideoDecoderServerSettings *pSettings )
 {
     NEXUS_SimpleVideoDecoderHandle handle;
     NEXUS_Error rc;
 
     /* find dup */
-    for (handle=BLST_S_FIRST(&g_videoDecoders); handle; handle=BLST_S_NEXT(handle, link)) {
+    for (handle=BLST_S_FIRST(&server->decoders); handle; handle=BLST_S_NEXT(handle, link)) {
         if (handle->index == index) {
             BERR_TRACE(NEXUS_INVALID_PARAMETER);
             return NULL;
@@ -242,17 +266,18 @@ NEXUS_SimpleVideoDecoderHandle NEXUS_SimpleVideoDecoder_Create( unsigned index, 
     }
     NEXUS_OBJECT_INIT(NEXUS_SimpleVideoDecoder, handle);
     handle->index = index;
+    handle->server = server;
     NEXUS_OBJECT_REGISTER(NEXUS_SimpleVideoDecoder, handle, Create);
 
     /* insert in order. not required, but makes debug easier */
-    if (!BLST_S_FIRST(&g_videoDecoders)) {
-        BLST_S_INSERT_HEAD(&g_videoDecoders, handle, link);
+    if (!BLST_S_FIRST(&server->decoders)) {
+        BLST_S_INSERT_HEAD(&server->decoders, handle, link);
     }
     else {
         NEXUS_SimpleVideoDecoderHandle prev;
-        for (prev=BLST_S_FIRST(&g_videoDecoders);;prev=BLST_S_NEXT(prev, link)) {
+        for (prev=BLST_S_FIRST(&server->decoders);;prev=BLST_S_NEXT(prev, link)) {
             if (!BLST_S_NEXT(prev, link)) {
-                BLST_S_INSERT_AFTER(&g_videoDecoders, prev, handle, link);
+                BLST_S_INSERT_AFTER(&server->decoders, prev, handle, link);
                 break;
             }
         }
@@ -261,7 +286,7 @@ NEXUS_SimpleVideoDecoderHandle NEXUS_SimpleVideoDecoder_Create( unsigned index, 
     nexus_simplevideodecoder_p_set_default_settings(handle);
     /* now a valid object */
 
-    rc = NEXUS_SimpleVideoDecoder_SetServerSettings(handle, pSettings);
+    rc = NEXUS_SimpleVideoDecoder_SetServerSettings(server, handle, pSettings);
     if (rc) { rc = BERR_TRACE(rc); goto error; }
 
     return handle;
@@ -274,7 +299,7 @@ error:
 /* stop or clear so that we're not holding anything open */
 static void NEXUS_SimpleVideoDecoder_P_ReleaseResources( NEXUS_SimpleVideoDecoderHandle handle )
 {
-    if (handle == g_state.sdOverride.handle) {
+    if (handle == handle->server->sdOverride.handle) {
         NEXUS_SimpleVideoDecoder_SetSdOverride(handle, false);
     }
     NEXUS_SimpleVideoDecoder_StopAndFree(handle);
@@ -299,7 +324,7 @@ static void NEXUS_SimpleVideoDecoder_P_Release( NEXUS_SimpleVideoDecoderHandle h
 static void NEXUS_SimpleVideoDecoder_P_Finalizer( NEXUS_SimpleVideoDecoderHandle handle )
 {
     NEXUS_OBJECT_ASSERT(NEXUS_SimpleVideoDecoder, handle);
-    BLST_S_REMOVE(&g_videoDecoders, handle, NEXUS_SimpleVideoDecoder, link);
+    BLST_S_REMOVE(&handle->server->decoders, handle, NEXUS_SimpleVideoDecoder, link);
     if (handle->resourceChangedCallback) {
         NEXUS_TaskCallback_Destroy(handle->resourceChangedCallback);
     }
@@ -310,17 +335,19 @@ static void NEXUS_SimpleVideoDecoder_P_Finalizer( NEXUS_SimpleVideoDecoderHandle
 
 NEXUS_OBJECT_CLASS_MAKE_WITH_RELEASE(NEXUS_SimpleVideoDecoder, NEXUS_SimpleVideoDecoder_Destroy);
 
-void NEXUS_SimpleVideoDecoder_GetServerSettings( NEXUS_SimpleVideoDecoderHandle handle, NEXUS_SimpleVideoDecoderServerSettings *pSettings )
+void NEXUS_SimpleVideoDecoder_GetServerSettings( NEXUS_SimpleVideoDecoderServerHandle server, NEXUS_SimpleVideoDecoderHandle handle, NEXUS_SimpleVideoDecoderServerSettings *pSettings )
 {
     BDBG_OBJECT_ASSERT(handle, NEXUS_SimpleVideoDecoder);
+    if (handle->server != server) {BERR_TRACE(NEXUS_INVALID_PARAMETER); return;}
     *pSettings = handle->serverSettings;
 }
 
-NEXUS_Error NEXUS_SimpleVideoDecoder_SetServerSettings( NEXUS_SimpleVideoDecoderHandle handle, const NEXUS_SimpleVideoDecoderServerSettings *pSettings )
+NEXUS_Error NEXUS_SimpleVideoDecoder_SetServerSettings( NEXUS_SimpleVideoDecoderServerHandle server, NEXUS_SimpleVideoDecoderHandle handle, const NEXUS_SimpleVideoDecoderServerSettings *pSettings )
 {
     NEXUS_Error rc;
 
     BDBG_OBJECT_ASSERT(handle, NEXUS_SimpleVideoDecoder);
+    if (handle->server != server) return BERR_TRACE(NEXUS_INVALID_PARAMETER);
 
     /* testing for loss of secondary windows. this is a specific case for nxserver. */
     if (handle->serverSettings.videoDecoder && handle->serverSettings.videoDecoder == pSettings->videoDecoder && !pSettings->window[1] && handle->serverSettings.window[1]) {
@@ -357,7 +384,7 @@ NEXUS_Error NEXUS_SimpleVideoDecoder_SetServerSettings( NEXUS_SimpleVideoDecoder
         /* this is added for backward compat with the risk that we wipe out client settings already made */
         NEXUS_SimpleVideoDecoderHandle d;
         NEXUS_SimpleVideoDecoderModule_LoadDefaultSettings(handle->serverSettings.videoDecoder);
-        for (d=BLST_S_FIRST(&g_videoDecoders); d; d=BLST_S_NEXT(d, link)) {
+        for (d=BLST_S_FIRST(&server->decoders); d; d=BLST_S_NEXT(d, link)) {
             nexus_simplevideodecoder_p_set_default_settings(d);
         }
     }
@@ -426,8 +453,10 @@ NEXUS_SimpleVideoDecoderHandle NEXUS_SimpleVideoDecoder_Acquire( unsigned index 
 {
     NEXUS_Error rc;
     NEXUS_SimpleVideoDecoderHandle handle;
+    NEXUS_SimpleVideoDecoderServerHandle server = g_NEXUS_SimpleVideoDecoderServer;
 
-    for (handle=BLST_S_FIRST(&g_videoDecoders); handle; handle = BLST_S_NEXT(handle, link)) {
+    if (!server) return NULL;
+    for (handle=BLST_S_FIRST(&server->decoders); handle; handle = BLST_S_NEXT(handle, link)) {
         BDBG_OBJECT_ASSERT(handle, NEXUS_SimpleVideoDecoder);
         if (handle->index == index) {
             if (handle->acquired) {
@@ -587,8 +616,8 @@ static NEXUS_Error nexus_simplevideodecoder_p_connect(NEXUS_SimpleVideoDecoderHa
                         }
                     }
 
-                    if (i == 1 && g_state.sdOverride.videoInput) {
-                        rc = NEXUS_VideoWindow_AddInput(window, g_state.sdOverride.videoInput);
+                    if (i == 1 && handle->server->sdOverride.videoInput) {
+                        rc = NEXUS_VideoWindow_AddInput(window, handle->server->sdOverride.videoInput);
                         if (rc) { rc = BERR_TRACE(rc); goto error; }
                     }
                     else {
@@ -600,7 +629,7 @@ static NEXUS_Error nexus_simplevideodecoder_p_connect(NEXUS_SimpleVideoDecoderHa
         }
     }
     else {
-        NEXUS_SimpleVideoDecoderModule_CheckCache(NULL, handle->serverSettings.videoDecoder);
+        NEXUS_SimpleVideoDecoderModule_CheckCache(handle->server, NULL, handle->serverSettings.videoDecoder);
         rc = NEXUS_VideoDecoder_SetPowerState(handle->serverSettings.videoDecoder, true);
         if (rc) {rc = BERR_TRACE(rc); goto error;}
         handle->capture.displayConnected = true;
@@ -618,7 +647,7 @@ static void nexus_simplevideodecoder_p_disconnect_settings(const NEXUS_SimpleVid
 {
     NEXUS_VideoInput videoInput;
     if (handle) {
-        if (g_state.sdOverride.videoInput) {
+        if (handle->server->sdOverride.videoInput) {
             NEXUS_VideoWindowHandle window = handle->serverSettings.window[1];
             if (window) {
                 NEXUS_VideoWindow_RemoveAllInputs(window);
@@ -655,7 +684,7 @@ static NEXUS_Error nexus_simplevideodecoder_p_setvbisetings(NEXUS_SimpleVideoDec
     if (!connect) {
         /* if disconnecting, try to throw to another connected decoder */
         NEXUS_SimpleVideoDecoderHandle d;
-        for (d=BLST_S_FIRST(&g_videoDecoders); d; d=BLST_S_NEXT(d, link)) {
+        for (d=BLST_S_FIRST(&handle->server->decoders); d; d=BLST_S_NEXT(d, link)) {
             if (d != handle && d->connected && d->clientSettings.closedCaptionRouting && d->serverSettings.display[0] == handle->serverSettings.display[0]) {
                 return nexus_simplevideodecoder_p_setvbisetings(d, true);
             }
@@ -691,7 +720,7 @@ static void nexus_simplevideodecoder_p_disconnect(NEXUS_SimpleVideoDecoderHandle
     if (handle->hdmiInput.handle) {
         allow_cache = false;
     }
-    if (g_state.sdOverride.handle) {
+    if (handle->server->sdOverride.handle) {
         allow_cache = false;
     }
 
@@ -740,16 +769,18 @@ static void surface_timer_func(void *arg)
     NEXUS_Error rc;
     struct nexus_captured_surface *cap;
     unsigned rptr;
+    NEXUS_SimpleVideoDecoderServerHandle server = g_NEXUS_SimpleVideoDecoderServer;
 
     BSTD_UNUSED(arg);
 
-    g_state.videoAsGraphics.timer = NULL;
+    if (!server) return;
+    server->videoAsGraphics.timer = NULL;
 
-    if (!g_state.videoAsGraphics.checkpointPending) {
+    if (!server->videoAsGraphics.checkpointPending) {
         NEXUS_SimpleVideoDecoderHandle handle;
         unsigned total = 0;
 
-        for (handle=BLST_S_FIRST(&g_videoDecoders); handle; handle=BLST_S_NEXT(handle, link)) {
+        for (handle=BLST_S_FIRST(&server->decoders); handle; handle=BLST_S_NEXT(handle, link)) {
             if (!handle->capture.started || !handle->serverSettings.videoDecoder) continue;
             BDBG_ASSERT(handle->capture.total);
             while (1) {
@@ -795,7 +826,7 @@ static void surface_timer_func(void *arg)
                 BDBG_ASSERT(rptr < handle->capture.total);
                 cap = &handle->capture.destripe[rptr];
                 if (cap->state == nexus_captured_surface_striped) {
-                    rc = NEXUS_Graphics2D_DestripeToSurface(g_state.videoAsGraphics.gfx, cap->stripedSurface, cap->surface, NULL);
+                    rc = NEXUS_Graphics2D_DestripeToSurface(server->videoAsGraphics.gfx, cap->stripedSurface, cap->surface, NULL);
                     if (rc == NEXUS_GRAPHICS2D_QUEUE_FULL) {
                         break;
                     }
@@ -816,21 +847,21 @@ static void surface_timer_func(void *arg)
         BDBG_MSG_TRACE(("surface_timer_func: checkpoint %d surface(s)", total));
     }
 
-    rc = NEXUS_Graphics2D_Checkpoint(g_state.videoAsGraphics.gfx, NULL);
+    rc = NEXUS_Graphics2D_Checkpoint(server->videoAsGraphics.gfx, NULL);
     if (rc==NEXUS_GRAPHICS2D_BUSY) {
         BDBG_MSG_TRACE(("surface_timer_func: checkpoint busy"));
-        g_state.videoAsGraphics.checkpointPending = true;
+        server->videoAsGraphics.checkpointPending = true;
         goto done;
     }
     else if (rc!=NEXUS_SUCCESS) {
-        g_state.videoAsGraphics.checkpointPending = false;
+        server->videoAsGraphics.checkpointPending = false;
         rc = BERR_TRACE(rc);
         goto done;
     }
     else { /* success */
         NEXUS_SimpleVideoDecoderHandle handle;
-        g_state.videoAsGraphics.checkpointPending = false;
-        for (handle=BLST_S_FIRST(&g_videoDecoders); handle; handle=BLST_S_NEXT(handle, link)) {
+        server->videoAsGraphics.checkpointPending = false;
+        for (handle=BLST_S_FIRST(&server->decoders); handle; handle=BLST_S_NEXT(handle, link)) {
             if (!handle->capture.total) continue;
             rptr = handle->capture.rptr;
             while (1) {
@@ -850,7 +881,7 @@ static void surface_timer_func(void *arg)
     }
 
 done:
-    g_state.videoAsGraphics.timer = NEXUS_ScheduleTimer(g_state.videoAsGraphics.checkpointPending?1:5, surface_timer_func, NULL);
+    server->videoAsGraphics.timer = NEXUS_ScheduleTimer(server->videoAsGraphics.checkpointPending?1:5, surface_timer_func, NULL);
 }
 
 NEXUS_Error NEXUS_SimpleVideoDecoder_GetCapturedSurfaces(NEXUS_SimpleVideoDecoderHandle handle, NEXUS_SurfaceHandle *pSurface, NEXUS_SimpleVideoDecoderCaptureStatus *pStatus, unsigned numEntries, unsigned *pNumReturned)
@@ -1005,24 +1036,25 @@ NEXUS_Error NEXUS_SimpleVideoDecoder_StartCapture(NEXUS_SimpleVideoDecoderHandle
     }
     handle->capture.rptr = handle->capture.wptr = 0;
 
-    if (g_state.videoAsGraphics.refcnt++ == 0) {
+    if (handle->server->videoAsGraphics.refcnt++ == 0) {
         NEXUS_Graphics2DSettings gfxSettings;
         NEXUS_Graphics2DOpenSettings openSettings;
 
         NEXUS_Graphics2D_GetDefaultOpenSettings(&openSettings);
         openSettings.packetFifoSize = 4096; /* alloc space to destripe 12 mosaics, but also handle full queue */
-        g_state.videoAsGraphics.gfx = NEXUS_Graphics2D_Open(NEXUS_ANY_ID, &openSettings);
-        if (g_state.videoAsGraphics.gfx==NULL) {
+        openSettings.secure = pSettings->secure;
+        handle->server->videoAsGraphics.gfx = NEXUS_Graphics2D_Open(NEXUS_ANY_ID, &openSettings);
+        if (handle->server->videoAsGraphics.gfx==NULL) {
             rc = BERR_TRACE(NEXUS_UNKNOWN);
             goto err_opengfx;
         }
-        NEXUS_Graphics2D_GetSettings(g_state.videoAsGraphics.gfx, &gfxSettings);
+        NEXUS_Graphics2D_GetSettings(handle->server->videoAsGraphics.gfx, &gfxSettings);
         gfxSettings.pollingCheckpoint = true; /* must use pollingCheckpoint inside module */
-        NEXUS_Graphics2D_SetSettings(g_state.videoAsGraphics.gfx, &gfxSettings);
+        NEXUS_Graphics2D_SetSettings(handle->server->videoAsGraphics.gfx, &gfxSettings);
 
-        BDBG_ASSERT(!g_state.videoAsGraphics.timer);
-        g_state.videoAsGraphics.timer = NEXUS_ScheduleTimer(5, surface_timer_func, NULL);
-        g_state.videoAsGraphics.checkpointPending = false;
+        BDBG_ASSERT(!handle->server->videoAsGraphics.timer);
+        handle->server->videoAsGraphics.timer = NEXUS_ScheduleTimer(5, surface_timer_func, NULL);
+        handle->server->videoAsGraphics.checkpointPending = false;
     }
 
     return 0;
@@ -1042,12 +1074,12 @@ void NEXUS_SimpleVideoDecoder_StopCapture(NEXUS_SimpleVideoDecoderHandle handle)
 
     nexus_simplevideodecoder_p_reset_caps(handle);
 
-    BDBG_ASSERT(g_state.videoAsGraphics.refcnt);
-    if (--g_state.videoAsGraphics.refcnt == 0) {
-        BDBG_ASSERT(g_state.videoAsGraphics.timer);
-        NEXUS_CancelTimer(g_state.videoAsGraphics.timer);
-        g_state.videoAsGraphics.timer = NULL;
-        NEXUS_Graphics2D_Close(g_state.videoAsGraphics.gfx);
+    BDBG_ASSERT(handle->server->videoAsGraphics.refcnt);
+    if (--handle->server->videoAsGraphics.refcnt == 0) {
+        BDBG_ASSERT(handle->server->videoAsGraphics.timer);
+        NEXUS_CancelTimer(handle->server->videoAsGraphics.timer);
+        handle->server->videoAsGraphics.timer = NULL;
+        NEXUS_Graphics2D_Close(handle->server->videoAsGraphics.gfx);
     }
 
     handle->capture.total = 0;
@@ -1269,10 +1301,6 @@ static void nexus_simplevideodecoder_p_stop( NEXUS_SimpleVideoDecoderHandle hand
     handle->primer.started = false;
 
     nexus_simplevideodecoder_p_reset_caps(handle);
-    if (handle->encoder.handle) {
-        nexus_simpleencoder_p_stop(handle->encoder.handle);
-        BDBG_ASSERT(!handle->encoder.handle); /* it should unlink */
-    }
 }
 
 void NEXUS_SimpleVideoDecoder_StopAndFree( NEXUS_SimpleVideoDecoderHandle handle )
@@ -1780,8 +1808,10 @@ BDBG_FILE_MODULE(nexus_simple_decoder_proc);
 void NEXUS_SimpleDecoderModule_P_PrintVideoDecoder(void)
 {
 #if BDBG_DEBUG_BUILD
+    NEXUS_SimpleVideoDecoderServerHandle server = g_NEXUS_SimpleVideoDecoderServer;
     NEXUS_SimpleVideoDecoderHandle handle;
-    for (handle=BLST_S_FIRST(&g_videoDecoders); handle; handle=BLST_S_NEXT(handle, link)) {
+    if (!server) return;
+    for (handle=BLST_S_FIRST(&server->decoders); handle; handle=BLST_S_NEXT(handle, link)) {
         BDBG_MODULE_LOG(nexus_simple_decoder_proc, ("video %u(%p)", handle->index, (void *)handle));
         BDBG_MODULE_LOG(nexus_simple_decoder_proc, ("  acquired %d, clientStarted %d",
             handle->acquired, handle->clientStarted));
@@ -1849,7 +1879,7 @@ static bool use_cache(NEXUS_SimpleVideoDecoderHandle handle)
         }
         if (c->settings.videoDecoder == handle->serverSettings.videoDecoder) {
             /* but if the video decoder is being reused with different settings, we must disconnect first */
-            NEXUS_SimpleVideoDecoderModule_CheckCache(NULL, c->settings.videoDecoder);
+            NEXUS_SimpleVideoDecoderModule_CheckCache(handle->server, NULL, c->settings.videoDecoder);
             break;
         }
         c = next;
@@ -1925,17 +1955,18 @@ NEXUS_Error NEXUS_SimpleVideoDecoder_GetFifoStatus(
 }
 
 
-void NEXUS_SimpleVideoDecoderModule_SetCacheEnabled( bool enabled )
+void NEXUS_SimpleVideoDecoderModule_SetCacheEnabled( NEXUS_SimpleVideoDecoderServerHandle server, bool enabled )
 {
     if (g_cache.enabled && !enabled) {
-        NEXUS_SimpleVideoDecoderModule_CheckCache(NULL,NULL);
+        NEXUS_SimpleVideoDecoderModule_CheckCache(server, NULL,NULL);
     }
     g_cache.enabled = enabled;
 }
 
-void NEXUS_SimpleVideoDecoderModule_CheckCache( NEXUS_VideoWindowHandle window, NEXUS_VideoDecoderHandle videoDecoder )
+void NEXUS_SimpleVideoDecoderModule_CheckCache( NEXUS_SimpleVideoDecoderServerHandle server, NEXUS_VideoWindowHandle window, NEXUS_VideoDecoderHandle videoDecoder )
 {
     struct settings_cache *c;
+    BSTD_UNUSED(server);
     for (c = BLST_S_FIRST(&g_cache.list); c; ) {
         struct settings_cache *next = BLST_S_NEXT(c, link);
         bool has_window = false;
@@ -2041,8 +2072,9 @@ NEXUS_Error NEXUS_SimpleVideoDecoder_SetPictureQualitySettings( NEXUS_SimpleVide
     return 0;
 }
 
-void NEXUS_SimpleVideoDecoder_GetStcIndex( NEXUS_SimpleVideoDecoderHandle handle, int *pStcIndex )
+void NEXUS_SimpleVideoDecoder_GetStcIndex( NEXUS_SimpleVideoDecoderServerHandle server, NEXUS_SimpleVideoDecoderHandle handle, int *pStcIndex )
 {
+    if (handle->server != server) {BERR_TRACE(NEXUS_INVALID_PARAMETER); return;}
     *pStcIndex = handle->serverSettings.stcIndex;
 }
 
@@ -2234,11 +2266,13 @@ static int nexus_simplevideodecoder_p_setmanualpowerstate(NEXUS_SimpleVideoDecod
     return rc;
 }
 
-NEXUS_Error NEXUS_SimpleVideoDecoder_SwapWindows( NEXUS_SimpleVideoDecoderHandle decoder1, NEXUS_SimpleVideoDecoderHandle decoder2 )
+NEXUS_Error NEXUS_SimpleVideoDecoder_SwapWindows( NEXUS_SimpleVideoDecoderServerHandle server, NEXUS_SimpleVideoDecoderHandle decoder1, NEXUS_SimpleVideoDecoderHandle decoder2 )
 {
     NEXUS_SimpleVideoDecoderServerSettings swap;
     unsigned i;
     int rc;
+
+    if (decoder1->server != server || decoder2->server != server) return BERR_TRACE(NEXUS_INVALID_PARAMETER);
 
     /* now we have a true swap. do it without stopping decode. */
     nexus_simplevideodecoder_p_setmanualpowerstate(decoder1, true);
@@ -2330,26 +2364,26 @@ NEXUS_Error NEXUS_SimpleVideoDecoder_GetVideoInputCrcData( NEXUS_SimpleVideoDeco
 NEXUS_Error NEXUS_SimpleVideoDecoder_SetSdOverride( NEXUS_SimpleVideoDecoderHandle handle, bool enabled )
 {
     if (enabled) {
-        if (g_state.sdOverride.handle) {
+        if (handle->server->sdOverride.handle) {
             return BERR_TRACE(NEXUS_INVALID_PARAMETER);
         }
-        g_state.sdOverride.handle = handle;
-        g_state.sdOverride.videoInput = nexus_simplevideodecoder_p_getinput(g_state.sdOverride.handle);
+        handle->server->sdOverride.handle = handle;
+        handle->server->sdOverride.videoInput = nexus_simplevideodecoder_p_getinput(handle->server->sdOverride.handle);
     }
     else if (!enabled) {
-        if (g_state.sdOverride.handle != handle) {
+        if (handle->server->sdOverride.handle != handle) {
             return NEXUS_SUCCESS;
         }
-        g_state.sdOverride.handle = NULL;
-        g_state.sdOverride.videoInput = NULL;
+        handle->server->sdOverride.handle = NULL;
+        handle->server->sdOverride.videoInput = NULL;
     }
-    for (handle=BLST_S_FIRST(&g_videoDecoders); handle; handle=BLST_S_NEXT(handle, link)) {
+    for (handle=BLST_S_FIRST(&handle->server->decoders); handle; handle=BLST_S_NEXT(handle, link)) {
         NEXUS_Error rc;
         NEXUS_VideoWindowHandle window = handle->serverSettings.window[1];
         if (!window) continue;
         NEXUS_VideoWindow_RemoveAllInputs(window);
-        if (g_state.sdOverride.videoInput) {
-            rc = NEXUS_VideoWindow_AddInput(window, g_state.sdOverride.videoInput);
+        if (handle->server->sdOverride.videoInput) {
+            rc = NEXUS_VideoWindow_AddInput(window, handle->server->sdOverride.videoInput);
             if (rc) return BERR_TRACE(rc);
         }
         else {

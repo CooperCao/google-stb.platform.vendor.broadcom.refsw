@@ -328,7 +328,7 @@ int main(void)  {
 
             NEXUS_AudioDecoder_GetStatus(audioDecoder, &astatus);
             fflush(fout);
-            fprintf(stderr, "encoded %u bytes.... decode:%u\t\r", bytes, astatus.pts);
+            fprintf(stderr, "encoded %lu bytes.... decode:%lu\t\r", (unsigned long)bytes, (unsigned long)astatus.pts);
             BKNI_Sleep(30);
             continue;
         }
@@ -340,9 +340,9 @@ int main(void)  {
                     if((desc[j][i].flags & NEXUS_AUDIOMUXOUTPUTFRAME_FLAG_METADATA) ==0) {/* ignore metadata descriptor in es capture */
                         fwrite((const uint8_t *)pDataBuffer + desc[j][i].offset, desc[j][i].length, 1, fout);
                     }
-                    fprintf(fdesc, "%8x %8x   %08x%08x %8x %5u %5d %8x %8x\n", desc[j][i].flags, desc[j][i].originalPts,
+                    fprintf(fdesc, "%8x %8x   %08x%08x %8x %5u %5d %8x %8lx\n", desc[j][i].flags, desc[j][i].originalPts,
                         (uint32_t)(desc[j][i].pts>>32), (uint32_t)(desc[j][i].pts & 0xffffffff), desc[j][i].escr,
-                        desc[j][i].ticksPerBit, desc[j][i].shr, desc[j][i].offset, desc[j][i].length);
+                            desc[j][i].ticksPerBit, desc[j][i].shr, desc[j][i].offset, (unsigned long)desc[j][i].length);
                 }
                 bytes+= desc[j][i].length;
             }

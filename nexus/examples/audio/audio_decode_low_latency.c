@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2014 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,14 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
-
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
 ******************************************************************************/
 /* Nexus example app: single live a/v decode from an input band, routed to hdmi output */
@@ -95,6 +88,12 @@ BDBG_MODULE(audio_decode_low_latency) ;
 /*****************/
 #define USE_PRODUCTION_KEYS     0
 
+typedef struct hotplugCallbackParameters
+{
+    NEXUS_HdmiOutputHandle hdmiOutput;
+    NEXUS_DisplayHandle display;
+} hotplugCallbackParameters;
+
 static bool hdmiHdcpEnabled = false ;
 static void initializeHdmiOutputHdcpSettings(void);
 static void hdmiOutputHdcpStateChanged(void *pContext, int param);
@@ -142,6 +141,7 @@ int main(int argc, char **argv)
     #if NEXUS_HAS_HDMI_OUTPUT
     NEXUS_HdmiOutputSettings hdmiSettings;
     NEXUS_HdmiOutputStatus hdmiStatus;
+    hotplugCallbackParameters hotPlugCbParams;
     #endif
     bool done = false;
     bool compressed = false;
@@ -206,7 +206,7 @@ int main(int argc, char **argv)
     NEXUS_Platform_Init(&platformSettings);
     NEXUS_Platform_GetConfiguration(&platformConfig);
 
-	/* bring up decoders and connect to display */
+    /* bring up decoders and connect to display */
     pcmDecoder = NEXUS_AudioDecoder_Open(0, NULL);
     compressedDecoder = NEXUS_AudioDecoder_Open(1, NULL);
     videoDecoder = NEXUS_VideoDecoder_Open(0, NULL); /* take default capabilities */
@@ -221,7 +221,7 @@ int main(int argc, char **argv)
     playback = NEXUS_Playback_Create();
     assert(playback);
 
-	file = NEXUS_FilePlay_OpenPosix(fileName, NULL);
+    file = NEXUS_FilePlay_OpenPosix(fileName, NULL);
     if (!file) {
         fprintf(stderr, "can't open file:%s\n", fileName);
         return -1;
@@ -347,15 +347,16 @@ int main(int argc, char **argv)
     /* Install hotplug callback -- video only for now */
     NEXUS_HdmiOutput_GetSettings(platformConfig.outputs.hdmi[0], &hdmiSettings);
     hdmiSettings.hotplugCallback.callback = hotplug_callback;
-    hdmiSettings.hotplugCallback.context = platformConfig.outputs.hdmi[0];
-    hdmiSettings.hotplugCallback.param = (int)display;
+    hotPlugCbParams.hdmiOutput = platformConfig.outputs.hdmi[0];
+    hotPlugCbParams.display = display;
+    hdmiSettings.hotplugCallback.context = &hotPlugCbParams;
     NEXUS_HdmiOutput_SetSettings(platformConfig.outputs.hdmi[0], &hdmiSettings);
 
     /* initalize HDCP settings, keys, etc. */
     initializeHdmiOutputHdcpSettings() ;
 
     /* Force a hotplug to switch to preferred format */
-    hotplug_callback(platformConfig.outputs.hdmi[0], (int)display);
+    hotplug_callback(&hotPlugCbParams, 0);
     #endif
 
     /* Start Decoders */
@@ -368,7 +369,7 @@ int main(int argc, char **argv)
     NEXUS_Display_SetSettings(display, &displaySettings);
 
 #if ENABLE_PLAYBACK
-	/* Start playback */
+    /* Start playback */
     NEXUS_Playback_Start(playback, file, NULL);
 #endif
 
@@ -556,10 +557,15 @@ static const NEXUS_HdmiOutputHdcpKsv RevokedKsvs[NUM_REVOKED_KSVS] =
 static void hotplug_callback(void *pParam, int iParam)
 {
     NEXUS_HdmiOutputStatus status;
-    NEXUS_HdmiOutputHandle hdmi = pParam;
-    NEXUS_DisplayHandle display = (NEXUS_DisplayHandle)iParam;
+    NEXUS_HdmiOutputHandle hdmi;
+    NEXUS_DisplayHandle display;
     NEXUS_DisplaySettings displaySettings;
-    NEXUS_HdmiOutputSettings hdmiSettings    ;
+    NEXUS_HdmiOutputSettings hdmiSettings;
+    hotplugCallbackParameters *hotPlugCbParams ;
+
+    hotPlugCbParams = (hotplugCallbackParameters *) pParam ;
+    hdmi = hotPlugCbParams->hdmiOutput ;
+    display = hotPlugCbParams->display ;
 
     NEXUS_HdmiOutput_GetStatus(hdmi, &status);
     /* the app can choose to switch to the preferred format, but it's not required. */

@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2011 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2011 Broadcom.
 All rights reserved.
 
 Project  :  Android platform layer
@@ -25,8 +25,8 @@ Android platform layer for composition
 #include "sched_nexus.h"
 #include "nexus_platform.h"
 
-#include "interface/khronos/include/EGL/egl.h"
-#include "interface/khronos/include/EGL/eglext.h"
+#include <EGL/egl.h>
+#include <EGL/eglext.h>
 
 #define MAX_DEQUEUE_BUFFERS   2
 
@@ -153,7 +153,7 @@ static BEGL_Error DispSurfaceGetInfo(void *context, void *nativeSurface, BEGL_Su
    hnd = (struct private_handle_t const*)buffer->handle;
 
    info->physicalOffset = hnd->nxSurfacePhysicalAddress;
-   info->cachedAddr     = (void*)hnd->nxSurfaceAddress;
+   info->cachedAddr     = (void*)(intptr_t)hnd->nxSurfaceAddress;
    info->byteSize       = hnd->oglSize;
    info->pitchBytes     = hnd->oglStride;
    info->width          = buffer->width;
@@ -205,6 +205,7 @@ static BEGL_Error DispGetNextSurface(
    BEGL_BufferFormat format,
    BEGL_BufferFormat *actualFormat,
    void **nativeBackBuffer,
+   bool secure,
    int *fence)
 {
    ANativeWindow  *anw = (ANativeWindow*) nativeWindow;
@@ -383,7 +384,7 @@ static const char *GetDisplayExtensions(void *context)
    return s_expose_fences ? EXTS_ALL : EXTS_WITHOUT_FENCE_SYNC;
 }
 
-BEGL_DisplayInterface *CreateDisplayInterface(BEGL_SchedInterface *schedIface)
+BEGL_DisplayInterface *CreateAndroidDisplayInterface(BEGL_SchedInterface *schedIface)
 {
    BEGL_DisplayInterface *disp;
 
@@ -416,7 +417,7 @@ BEGL_DisplayInterface *CreateDisplayInterface(BEGL_SchedInterface *schedIface)
    return disp;
 }
 
-void DestroyDisplayInterface(BEGL_DisplayInterface *disp)
+void DestroyAndroidDisplayInterface(BEGL_DisplayInterface *disp)
 {
    free(disp);
 }

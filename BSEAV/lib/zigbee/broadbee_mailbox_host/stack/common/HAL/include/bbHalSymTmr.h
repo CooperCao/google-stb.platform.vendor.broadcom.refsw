@@ -1,566 +1,326 @@
 /******************************************************************************
-* (c) 2014 Broadcom Corporation
-*
-* This program is the proprietary software of Broadcom Corporation and/or its
-* licensors, and may only be used, duplicated, modified or distributed pursuant
-* to the terms and conditions of a separate, written license agreement executed
-* between you and Broadcom (an "Authorized License").  Except as set forth in
-* an Authorized License, Broadcom grants no license (express or implied), right
-* to use, or waiver of any kind with respect to the Software, and Broadcom
-* expressly reserves all rights in and to the Software and all intellectual
-* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1. This program, including its structure, sequence and organization,
-*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-*    reasonable efforts to protect the confidentiality thereof, and to use
-*    this information only in connection with your use of Broadcom integrated
-*    circuit products.
-*
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-******************************************************************************/
-/*****************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
+ *
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************
 *
 * FILENAME: $Workfile: trunk/stack/common/HAL/include/bbHalSymTmr.h $
 *
 * DESCRIPTION:
-*   Symbol Timer Hardware interface.
+*   Symbol Timer Driver interface.
 *
-* $Revision: 3943 $
-* $Date: 2014-10-07 20:55:38Z $
+* $Revision: 10263 $
+* $Date: 2016-02-29 18:03:06Z $
 *
 *****************************************************************************************/
-
 
 #ifndef _BB_HAL_SYM_TMR_H
 #define _BB_HAL_SYM_TMR_H
 
+/************************* INCLUDES ***********************************************************************************/
+#include "bbSysBasics.h"
 
-/************************* INCLUDES *****************************************************/
-#include "bbSysBasics.h"            /* Basic system environment set. */
+#ifdef __SoC__
+# include "bbSocSymTmr.h"
+#elif defined(__ML507__)
+# include "bbMl507SymTmr.h"
+#else /* __i386__ */
+#define HAL_SYMBOL__LOG2_FREQ_FACTOR 5
+#endif
 
-
-/************************* DEFINITIONS **************************************************/
+/************************* DEFINITIONS ********************************************************************************/
 /**//**
- * \brief   Enumeration of codes for Symbol Timer Hardware symbol rate.
+ * \brief   The default symbol rate to be assigned to the Symbol Timer at startup.
+ * \details Symbol rate 62.5 ksymbol/s correspond to 2.45 GHz band with O-QPSK modulation.
  */
-/* TODO: Think how to reduce enumeration for the incomplete set of channels supported by the radio. */
-typedef enum _HAL_SymbolRateId_t
-{
-    HAL_SYMBOL_RATE_12K5,           /*!< Symbol rate 12500 symbols/s. */
+#define HAL_SYMBOL_RATE__DEFAULT_HZ         (62500)
 
-    HAL_SYMBOL_RATE_20K,            /*!< Symbol rate 20000 symbols/s. */
-
-    HAL_SYMBOL_RATE_25K,            /*!< Symbol rate 25000 symbols/s. */
-
-    HAL_SYMBOL_RATE_40K,            /*!< Symbol rate 40000 symbols/s. */
-
-    HAL_SYMBOL_RATE_50K,            /*!< Symbol rate 50000 symbols/s. */
-
-    HAL_SYMBOL_RATE_62K5,           /*!< Symbol rate 62500 symbols/s. */
-
-    HAL_SYMBOL_RATES_NUMBER,        /*!< Total number of different supported symbol rates. */
-
-} HAL_SymbolRateId_t;
-
+#ifndef HAL_SYMBOL__LOG2_FREQ_FACTOR
+# error The LOG2-factor of the Symbol Clock frequency is not defined. Define its value in the range from 0 to 5.
+#elif (HAL_SYMBOL__LOG2_FREQ_FACTOR < 0 || HAL_SYMBOL__LOG2_FREQ_FACTOR > 5)
+# error The LOG2-factor of the Symbol Clock frequency is outside the allowed range from 0 to 5.
+#endif
 
 /**//**
- * \brief   The LOG2 of the Symbol Counter Hardware frequency factor.
- * \details The Symbol Counter frequency is calculated as <em>f_cnt = f_sym * 2 ^ k</em>
- *  where:
- *  - \e k is the value defined with this constant (the LOG2 of the frequency factor),
- *  - \e f_sym is the desired symbol frequency, in symbol/s (i.e., in whole symbols per
- *      second),
- *  - \e f_cnt is the Symbol Counter frequency, in counts/s (i.e., in symbol quotients per
- *      second).
+ * \brief   Data type for the Symbol Timer timestamp, in symbol fractions.
+ * \note    When necessary, this type may also be used for timestamps in whole symbols.
+ */
+typedef uint32_t  HAL_Symbol__Tstamp_t;
+
+/**//**
+ * \brief   Data type for the Symbol Timer timeshift, signed integer, in symbol fractions.
+ * \details Use this data type for representation of difference between two timestamps.
+ * \note    The minuend A timestamp is considered to be in the future with respect to the subtrahend B timestamp if the
+ *  difference (A - B), expressed as a timeshift, receives positive value. Otherwise, if the difference is negative, the
+ *  timestamp A is considered in the past with respect to the timestamp B.
+ * \note    When necessary, this type may also be used for timeshifts in whole symbols.
+ */
+typedef int32_t  HAL_Symbol__Tshift_t;
+
+/**//**
+ * \brief   The minimum safe value of timeshift according to the Symbol Clock (Symbol Counter) frequency factor, symbol
+ *  rate and CPU main clock.
+ * \details The smallest safe value of the timeshift for the Symbol Counter in order not to run over the appointed
+ *  timestamp without interrupt triggering when the compare-match channel is being appointed is 2 symbol clock periods,
+ *  where the first unit is provided for quantization of the current timestamp and the second unit guarantees the front
+ *  edge transition on the compare-match channel to generate interrupt. This limit is theoretically achievable in the
+ *  easiest case: frequency factor 0, symbol rate 12.5 ksymbol/s, CPU main clock 54 MHz. For different cases this limit
+ *  must be increased because CPU may not be in time with all the necessary calculations while performing appointment.
+ *  The worst case: frequency factor 5, symbol rate 62.5 ksymbol/s, CPU main clock 27 MHz.
+ * \details The following results were observed on SoC at symbol rate 62.5 ksymbol/s, CPU main clock 54 MHz:
+ *  - frequency factor 0..3 - minimal safe timeshift 2
+ *  - frequency factor 4 - minimal safe timeshift 3
+ *  - frequency factor 5 - minimal safe timeshift 6
  *
- * \details The maximum allowed value of this factor in order not to exceed the 32-bit
- *  unsigned integer rank (0xFFFFFFFF) and support signed durations up to 0x03FFFFFF (the
- *  maximum lifetime of indirect transaction) is 5 - i.e., 32 counts per one symbol. The
- *  minimum allowed value is 0 (i.e., one count per symbol).
- */
-#define HAL_SYMBOL_LOG2_FREQ_FACTOR         4
-
-/*
- * Validate HAL_SYMBOL_LOG2_FREQ_FACTOR.
- */
-SYS_DbgAssertStatic(HAL_SYMBOL_LOG2_FREQ_FACTOR >= 0);
-SYS_DbgAssertStatic(HAL_SYMBOL_LOG2_FREQ_FACTOR <= 5);
-
-
-/**//**
- * \brief   Data type for the Symbol Timer Hardware timestamp, in symbol quotients.
- * \details Use this data type for storing timestamps, the moments in the time when an
- *  appointed signal must be issued, etc.
- * \details This type may also be used for timestamps in whole symbols.
- */
-typedef uint32_t  HAL_SymbolTimestamp_t;
-
-
-/**//**
- * \brief   Data type for the Symbol Timer Hardware timeshift, in symbol quotients.
- * \details Use this data type for representation of difference between two timestamps, in
- *  symbol quotients. In particular this type may be used to discover if the specified
- *  timestamp is in the past or in the future from the current timestamp.
- * \note    This type is signed 32-bit integer. The negative values are intended in
- *  general for representation of timeshifts to timestamps in the past from the current
- *  timestamp.
- */
-typedef int32_t  HAL_SymbolTimeshift_t;
-
-
-/**//**
- * \brief   Data type for the Symbol Timer Hardware period of time, in whole symbols.
- * \details Use this data type for representation of periods of time (durations) or
- *  difference between two moments in the time, in whole symbols.
- * \note    This type is signed 32-bit integer. The negative values are intended in
- *  general for representation of timeshifts to moments in the past from the current
- *  moment.
- */
-typedef HAL_SymbolTimeshift_t  HAL_SymbolPeriod_t;
-
-
-/**//**
- * \brief   The maximum supported value for time period, in whole symbols.
- */
-#define HAL_SYMBOL_MAX_PERIOD                   (HAL_SymbolQuotToSymb(INT32_MAX))
-
-
-/**//**
- * \brief   The minimum safe value of timeshift according to the Symbol Counter frequency
- *  factor.
- * \details The smallest safe value of the timeshift for the Symbol Counter in order not
- *  to run over the appointed timestamp without interrupt triggering when the
- *  compare-match channel is being appointed is 2 units, where one unit is provided for
- *  quantization of the current timestamp and the second unit is to guarantee the front
- *  edge transition on the compare-match channel to generate interrupt. The value 1 is
- *  potentially unsafe. The value 0 is not allowed. For the Symbol Counter Hardware high
- *  frequencies the minimum safe value must be increased.
- * \details For Symbol Counter LOG2 frequency factor from 0 to 2 the minimum safe timeshift
- *  is equal to 2 units. For the worst case of 27 MHz main CPU clock, 62500 symbol/s
- *  desired symbol rate and LOG2 frequency factor equal to 2 (i.e., the absolute frequency
- *  factor equal to 4) a single unit is equal to 4.0 us or 108 CPU clocks.
- * \details For Symbol Counter LOG2 frequency factor \e k greater then 2 the minimum safe
- *  timeshift is calculated with formula: <em>timeshift_min = 2 ^ (k - 2) + 1</em>.
- */
-#if (HAL_SYMBOL_LOG2_FREQ_FACTOR <= 2)
-# define HAL_SYMBOL_MINIMUM_SAFE_TIMESHIFT      2
-#else
-# define HAL_SYMBOL_MINIMUM_SAFE_TIMESHIFT      ((1 << (HAL_SYMBOL_LOG2_FREQ_FACTOR - 2)) + 1)
-#endif
-
-
-/**//**
- * \brief   Returns the safe value for the specified timeshift according to the Symbol
- *  Counter frequency factor.
- * \param[in]   timeshift   Arbitrary value of the timeshift (signed integer), in symbol
- *  quotients.
- * \return  Safe value of the timeshift, in symbol quotients.
- * \details Use this macro function to avoid the situation of the Symbol Counter Hardware
- *  to run over the calculated timestamp for the given (unsafe) timeshift. For example, if
- *  the time-signal is being appointed for the timestamp that is equal to the current
- *  timestamp plus one (i.e., plus a single System Counter unit), the System Counter
- *  Hardware may already advance for this single (or even more) units ahead, and
- *  consequently the Symbol Timer Hardware interrupt will not be requested (or the timed
- *  transmission will not be started). This problem is actual for fast symbol rates and
- *  extremely low timeshifts.
- * \note    It is not recommended to use global variables (or references to global
- *  variables) for the \p timeshift, because the MAX() macro used in the formula will
- *  produce doubled code to read and process the value. It is not allowed also to directly
- *  use for the \p timeshift functions or expressions returning the timeshift. In both
- *  cases use local buffer variable to pass the argument to this macro function.
- */
-#define HAL_SymbolSafeTimeshift(timeshift)      (MAX((timeshift), HAL_SYMBOL_MINIMUM_SAFE_TIMESHIFT))
-
-
-/**//**
- * \brief   Converts a timeshift, given in symbol quotients, to the time period, in whole
- *  symbols, truncating downwards to integer value.
- * \param[in]   timeshift   The timeshift, in symbol quotients, to be converted.
- * \return  The time period, in whole symbols. Periods that are not even truncated
- *  downwards (to zero) to whole periods in symbols.
- * \details Use this macro function to calculate the remaining time to the existent
- *  appointment, when shall decide if the new appointment (in whole symbols) is closer to
- *  the current moment then the existent one.
- */
-#define HAL_SymbolQuotToSymb(timeshift)         ((timeshift) >> HAL_SYMBOL_LOG2_FREQ_FACTOR)
-
-
-/*
- * Auxiliary macro for the HAL_SymbolSymbToQuot() function.
- */
-#define HAL_SymbolSymbToQuot_(period)           ((period) << HAL_SYMBOL_LOG2_FREQ_FACTOR)
-
-/**//**
- * \brief   Converts a time period, given in whole symbols, to the timeshift, in symbol
- *  quotients.
- * \param[in]   period      The time period, in whole symbols, to be converted.
- * \return  The timeshift, in symbol quotients.
- */
-#if defined(_DEBUG_COMPLEX_)
-INLINE HAL_SymbolTimeshift_t HAL_SymbolSymbToQuot(HAL_SymbolPeriod_t period)
-{
-    SYS_DbgAssertComplex(-HAL_SYMBOL_MAX_PERIOD <= period && period <= HAL_SYMBOL_MAX_PERIOD,
-            LOG_HAL_SymbolSymbToQuot_InvalidPeriod);
-
-    return HAL_SymbolSymbToQuot_(period);
-}
-#else
-# define HAL_SymbolSymbToQuot(period)           (HAL_SymbolSymbToQuot_(period))
-#endif
-
-
-/**//**
- * \brief   Converts a time interval duration, given in microseconds, to the timeshift, in
- *  symbol quotients.
- * \param[in]   interval    The time interval duration, in microseconds, to be converted.
- * \return  The timeshift, in symbol quotients. Periods that are not even augmented
- *  upwards to the whole periods in symbol quotients.
- */
-/* TODO: This formula is valid only for 62.5 ksym/sec and frequency factor = 4. */
-#define HAL_SymbolUsecToQuot(interval)          (interval)
-
-
-/**//**
- * \brief   Converts a time interval duration, given in octets, to the period, in 1/10 of
- *  whole symbol.
- * \param[in]   interval    The time interval duration, in octets, to be converted.
- * \return  The timeshift, in 1/10 of whole symbol.
- */
-/* TODO: This formula is valid only for 62.5 ksym/sec and frequency factor = 4. */
-#define HAL_SymbolOctetToSymbX10(interval)      ((interval) * 20)
-
-
-/**//**
- * \brief   Enumeration of identifiers of the Symbol Timer Hardware channels.
- * \note    Symbol Timer Hardware compare-match channels have the following relative
- *  priority:
- *  - the channel #7 has the highest priority; its IRQ has the mid level of hardware
- *      priority and is served by dedicated handler-function; this channel is used for
- *      timed transmissions on ML507 with external Atmel Radio Hardware,
- *  - the channel #6 has the next priority; its IRQ has low (common) level of hardware
- *      priority but is also served by dedicated handler-function,
- *  - channels #0-5 have the lowest priority; their IRQs have low (common) level of
- *      hardware priority and they share common IRQ handler-function. Amongst these
- *      channels the channel #5 has the highest priority and the channel #0 has the lowest
- *      priority.
+ * \details The following results were observed on SoC at symbol rate 62.5 ksymbol/s, CPU main clock 27 MHz:
+ *  - frequency factor 0..2 - minimal safe timeshift 2
+ *  - frequency factor 3 - minimal safe timeshift 3
+ *  - frequency factor 4 - minimal safe timeshift 5
+ *  - frequency factor 5 - minimal safe timeshift 8
  *
- * \details Identifiers in the enumeration are listed here in their relative priority
- *  order from lowest to highest. Do not change assignment of the Symbol Timer Hardware
- *  channels.
+ * \details According to collected results the following set of safe timeshifts is accepted for all possible cases:
+ *  - frequency factor 0..1 - minimal safe timeshift 2
+ *  - frequency factor 2 - minimal safe timeshift 3
+ *  - frequency factor 3 - minimal safe timeshift 4
+ *  - frequency factor 4 - minimal safe timeshift 6
+ *  - frequency factor 5 - minimal safe timeshift 9 or 10
+ *
+ * \details The set introduced above, for frequency factors in the range from 2 to 5, may be expressed with the
+ *  formula:<\br>
+ *      safe_timeshift = 2 ^ (factor - 2) + 2
  */
-/* TODO: Channel #7 has the low (common) level of HW priority. */
-typedef enum _HAL_SymbolChannelId_t
-{
-    HAL_SYMBOL_CHANNEL_MFE_EXPIRED    = 0,      /*!< Channel #0 (the lowest priority) is used by the MAC-FE Transactions
-                                                    Dispatcher for appointment of the EXPIRED task. */
-
-    HAL_SYMBOL_CHANNEL_MFE_TIMEOUT    = 1,      /*!< Channel #1 is shared by MAC-FE Request Processors for appointment
-                                                    of the TIMEOUT task. */
-
-    HAL_SYMBOL_CHANNEL_MLE_TRX_OFF    = 2,      /*!< Channel #2 is used by the MAC-LE Transceiver Mode Dispatcher for
-                                                    timed switching from the RX_ON to the TRX_OFF state after
-                                                    MLME-RX-ENABLE.request and after Frame Pending subfield in received
-                                                    ACK frame. */
-
-    HAL_SYMBOL_CHANNEL_MLE_DISP_FSM   = 3,      /*!< Channel #3 is used by the MAC-LE Real-Time Dispatcher FSM when
-                                                    performing different timed processes. */
-
-    HAL_SYMBOL_CHANNEL_PHY_CONF       = 4,      /*!< Channel #4 is used by the PHY for asynchronous issuing of
-                                                    confirmations on requests from the MAC-LE. */                           /* TODO: Think to use SW triggered IRQ on any empty vector. */
-
-    HAL_SYMBOL_CHANNEL_PHY_POLL       = 5,      /*!< Channel #5 is used by the PHY for postponed polling of the Radio
-                                                    Hardware transceiver state. */
-
-    HAL_SYMBOL_SHARED_CHANNELS_NUMBER = 6,      /*!< Number of Symbol Timer Hardware channels sharing the same hardware
-                                                    interrupt request - channels #0-5. */
-
-    HAL_SYMBOL_CHANNEL_HAL_CHANNEL    = 6,      /*!< Channel #6 is used by the Radio HAL for postponed confirmation on
-                                                    channel switching. */
-
-    HAL_SYMBOL_CHANNEL_HAL_TIMED_TX   = 7,      /*!< Channel #7 (the highest priority) is used by the ML507 Radio HAL
-                                                    for timed data transmission; not used on the SoC. */
-
-    HAL_SYMBOL_CHANNELS_NUMBER        = 8,      /*!< Total number of Symbol Timer Hardware channels. */
-
-} HAL_SymbolChannelId_t;
-
-
-/**//**
- * \brief   Template for the callback handler-function of the Symbol Timer Hardware
- *  time-event.
- * \details To issue a previously appointed time-event signal to the dedicated destination
- *  the Symbol Timer Software calls the callback handler-function that was appointed for
- *  the desired timestamp and Symbol Counter channel.
- */
-typedef void HAL_SymbolMatchHandler_t(void);
-
-
-/**//**
- * \brief   Initializes and configures the Symbol Timer Hardware.
- * \details This function perform full hardware reset of the Symbol Timer. All
- *  compare-match channels are disabled (masked), prescaler counter and symbol counter
- *  registers are zeroed (i.e., timestamp is set to zero), prescaler register is assigned
- *  with the default value for the Radio Hardware.
- */
-#if defined(__SoC__)
-# define HAL_SymbolInit()       SOC_SymbolInit()
-#
-#elif defined(__ML507__)
-# define HAL_SymbolInit()       ML507_SymbolInit()
-#
-#else /* __i386__ */
-# define HAL_SymbolInit()       PC_SymbolInit()
-#
+#if (HAL_SYMBOL__LOG2_FREQ_FACTOR <= 1)
+# define HAL_SYMBOL__SAFE_TSHIFT            ((HAL_Symbol__Tshift_t)(2))
+#else
+# define HAL_SYMBOL__SAFE_TSHIFT            ((HAL_Symbol__Tshift_t)((1 << (HAL_SYMBOL__LOG2_FREQ_FACTOR - 2)) + 2))
 #endif
 
+/**//**
+ * \brief   Returns the safe value for the specified timeshift according to the Symbol Clock frequency factor.
+ * \param[in]   t       Arbitrary value of the timeshift, signed integer, in symbol fractions.
+ * \return  Safe value of the timeshift, in symbol fractions.
+ * \details Use this macro function to avoid the situation of the Symbol Counter to run over the calculated timestamp
+ *  for the given (unsafe) timeshift. For example, if the Match event is being appointed for the timestamp that is
+ *  already less than the current timestamp, or that equals to the current timestamp, the Match event will not be
+ *  triggered. Then, even if the appointed timestamp is greater than the current timestamp, but the difference is too
+ *  low (just one or two Symbol Counter units), the Symbol Counter may advance its value directly in the middle of the
+ *  COMPARE register assignment and due to this reason the Match event will not be triggered also. This problem becomes
+ *  actual for high symbol rates, small symbol fractions and slow CPU clocking.
+ * \note    This macro is based on the MAX() macro and due to this reason may produce side effects on \p t if it's a
+ *  complex expression or a function call. In such cases the caller shall introduce a local variable to hold the value
+ *  of \p t passed as the argument to this macro.
+ */
+#define HAL_Symbol__Safe(t)                 (MAX(((HAL_Symbol__Tshift_t)(t)), HAL_SYMBOL__SAFE_TSHIFT))
 
 /**//**
- * \brief   Configures the Symbol Timer Hardware.
- * \param[in]   symbolRateId    Identifier code of the desired symbol rate.
- * \details This function assigns Symbol Counter hardware Prescaler register to perform
- *  generation of counts at the specified symbol rate multiplied by the frequency factor.
- * \details The value of Symbol Counter is left unchanged by this function. By these means
- *  the timestamping remains progressive. All compare-match statuses and channels
- *  assignments are also left unchanged in order not to disturb other software units
- *  functioning.
- * \details The Prescaler Counter is reset to zero by this function if its current value
- *  is greater then or equal to the new value of the Prescaler register being assigned. It
- *  is performed in order to arrange correct switching of symbol frequency in the case
- *  when the Prescaler register is configured to smaller value the the previous one.
+ * \brief   Converts a time period expressed in whole symbols to symbol fractions.
+ * \param[in]   t       The time period, in whole symbols.
+ * \return  The time period, in symbol fractions.
+ * \note    This macro does not perform validation of \p t and shall be used carefully - i.e., only when it is known
+ *  that \p t will not overrun the result.
  */
-#if defined(__SoC__)
-# define HAL_SymbolConfig(symbolRateId)     SOC_SymbolConfig(symbolRateId)
-#
-#elif defined(__ML507__)
-# define HAL_SymbolConfig(symbolRateId)     ML507_SymbolConfig(symbolRateId)
-#
-#else /* __i386__ */
-# define HAL_SymbolConfig(symbolRateId)     PC_SymbolConfig(symbolRateId)
-#
-#endif
-
+#define HAL_Symbol__SymbToFrac(t)           (((HAL_Symbol__Tshift_t)(t)) << HAL_SYMBOL__LOG2_FREQ_FACTOR)
 
 /**//**
- * \brief   Returns the current timestamp according to the Symbol Counter Hardware.
- * \return  The current timestamp according to the Symbol Counter Hardware, in symbol
- *  quotients.
- * \note    The value of timestamp is reset to zero only on the application startup; it is
- *  not reset when the Symbol Timer Hardware is (re-)configured for particular symbol
- *  frequency by the PHY.
+ * \brief   Converts a time period expressed in symbol fractions to whole symbols, truncating the uneven result
+ *  downwards (as signed integers - i.e., to zero) to the nearest integer value.
+ * \param[in]   t       The time period, in symbol fractions.
+ * \return  The time period, in whole symbols.
+ * \details Use this macro function to calculate the remaining time to the existent appointment in whole symbols, when
+ *  shall decide if the new appointment (in whole symbols) is closer to the current moment than the existent one.
  */
-#if defined(__SoC__)
-# define HAL_SymbolTimestamp()      SOC_SymbolTimestamp()
-#
-#elif defined(__ML507__)
-# define HAL_SymbolTimestamp()      ML507_SymbolTimestamp()
-#
-#else /* __i386__ */
-# define HAL_SymbolTimestamp()      PC_SymbolTimestamp()
-#
-#endif
-
+#define HAL_Symbol__FracToSymb(t)           (((HAL_Symbol__Tshift_t)(t)) >> HAL_SYMBOL__LOG2_FREQ_FACTOR)
 
 /**//**
- * \brief   Appoints the specified Symbol Timer Hardware channel to call its
- *  handler-function at the given timeshift from the current moment.
- * \param[in]   timeshift   Timeshift from the current timestamp to appoint the timer, in
- *  symbol quotients. Must be greater or equal to zero.
- * \param[in]   channelId   Identifier of the Symbol Timer Hardware channel to be used for
- *  the time-event appointment.
- * \details This function makes timed appointment to the Symbol Timer Hardware to call its
- *  statically linked handler-function in the future in \p timeshift symbol quotients from
- *  the current moment. The Symbol Timer channel specified with the \p channelId must be
- *  free from appointments at the moment when this function is called. The appointment is
- *  triggered only once, and after that the Symbol Timer channel is disengaged.
- * \details Negative values are prohibited for the \p timeshift. Zero timeshift, timeshift
- *  equal to a single symbol quotient (i.e., single Symbol Counter unit), and extremely
- *  low timeshifts (in the case of high Symbol Counter frequency factor) are increased to
- *  the minimum safe timeshift value.
+ * \brief   Converts a time period expressed in microseconds to symbol fractions at the symbol rate 62.5 ksymbol/s.
+ * \param[in]   t       The time period, in microseconds.
+ * \return  The time period, in symbol fractions, at the symbol rate 62.5 ksymbol/s.
+ * \details This function rounds the returned value down.
+ * \note    This implementation is specific to the symbol rate 62.5 ksymbol/s, where single symbol equals 16 us exactly.
  */
-#if defined(__SoC__)
-# define HAL_SymbolAppoint(timeshift, channelId)        SOC_SymbolAppoint(timeshift, channelId)
-#
-#elif defined(__ML507__)
-# define HAL_SymbolAppoint(timeshift, channelId)        ML507_SymbolAppoint(timeshift, channelId)
-#
-#else /* __i386__ */
-# define HAL_SymbolAppoint(timeshift, channelId)        PC_SymbolAppoint(timeshift, channelId)
-#
+#if (HAL_SYMBOL__LOG2_FREQ_FACTOR < 4)
+# define HAL_Symbol__UsecToFrac_62k5(t)     (((HAL_Symbol__Tshift_t)(t)) >> (4 - HAL_SYMBOL__LOG2_FREQ_FACTOR))
+#else
+# define HAL_Symbol__UsecToFrac_62k5(t)     (((HAL_Symbol__Tshift_t)(t)) << (HAL_SYMBOL__LOG2_FREQ_FACTOR - 4))
 #endif
-
 
 /**//**
- * \brief   Reappoints the specified Symbol Timer Hardware channel to call its
- *  handler-function at the newly given timeshift from the current moment if the new
- *  timestamp is closer to the current timestamp than the originally appointed one. Or
- *  simply appoints the channel if there is no appointment on it.
- * \param[in]   newTimeshift    New timeshift from the current timestamp to appoint the
- *  timer, in symbol quotients. Must be greater or equal to zero.
- * \param[in]   channelId       Identifier of the Symbol Timer Hardware channel to be used
- *  for the time-event appointment.
- * \details This function reappoints originally appointed event to the \p newTimeshift if
- *  the new timestamp is closer to the current moment then the previously (re-)appointed
- *  one. If the Symbol Timer channel specified with the \p channelId is currently free
- *  from an appointment (the original appointment was already triggered, or there was no
- *  appointment at all), the new appointment is performed unconditionally.
- * \details Negative values are prohibited for the \p newTimeshift. Zero timeshift,
- *  timeshift equal to a single symbol quotient (i.e., single Symbol Counter unit), and
- *  extremely low timeshifts (in the case of high Symbol Counter frequency factor) are
- *  increased to the minimum safe timeshift value.
+ * \brief   Converts a time period expressed in symbol fractions to microseconds at the symbol rate 62.5 ksymbol/s.
+ * \param[in]   t       The time period, in symbol fractions.
+ * \return  The time period, in microseconds, at the symbol rate 62.5 ksymbol/s.
+ * \details This function rounds the returned value down.
+ * \note    This implementation is specific to the symbol rate 62.5 ksymbol/s, where single symbol equals 16 us exactly.
  */
-#if defined(__SoC__)
-# define HAL_SymbolReappoint(newTimeshift, channelId)       SOC_SymbolReappoint05(newTimeshift, channelId)
-#
-#elif defined(__ML507__)
-# define HAL_SymbolReappoint(newTimeshift, channelId)       ML507_SymbolReappoint(newTimeshift, channelId)
-#
-#else /* __i386__ */
-# define HAL_SymbolReappoint(newTimeshift, channelId)       PC_SymbolReappoint05(newTimeshift, channelId)
-#
+#if (HAL_SYMBOL__LOG2_FREQ_FACTOR < 4)
+# define HAL_Symbol__FracToUsec_62k5(t)     (((HAL_Symbol__Tshift_t)(t)) << (4 - HAL_SYMBOL__LOG2_FREQ_FACTOR))
+#else
+# define HAL_Symbol__FracToUsec_62k5(t)     (((HAL_Symbol__Tshift_t)(t)) >> (HAL_SYMBOL__LOG2_FREQ_FACTOR - 4))
 #endif
-
 
 /**//**
- * \brief   Recalls previously appointed time-event from the specified Symbol Timer
- *  Hardware channel.
- * \param[in]   channelId   Identifier of the Symbol Timer Hardware channel to be freed
- *  from its appointment.
- * \details This function disengages the corresponding Symbol Timer Hardware channel. If
- *  the specified channel is free at the moment, this function does nothing.
+ * \brief   Converts a time period expressed in octets to 1/10 symbol fractions.
+ * \param[in]   t       The time period, in octets.
+ * \return  The time period, in 1/10 fractions of whole symbol, for the modulation scheme consuming 2 symbols per octet.
+ * \note    This implementation is specific to the O-QPSK modulation scheme at 2.45 GHz and 868/915 MHz bands that
+ *  consumes 2 symbols per octet.
  */
-#if defined(__SoC__)
-# define HAL_SymbolRecall(channelId)        SOC_SymbolRecall05(channelId)
-#
-#elif defined(__ML507__)
-# define HAL_SymbolRecall(channelId)        ML507_SymbolRecall(channelId)
-#
-#else /* __i386__ */
-# define HAL_SymbolRecall(channelId)        PC_SymbolRecall05(channelId)
-#
-#endif
+#define HAL_Symbol__OctetToSymbX10_OQPSK(t)         (((HAL_Symbol__Tshift_t)(t)) * 20)
 
+/**//**
+ * \brief   Enumeration of Symbol Timer compare-match channels and their assignment.
+ * \details Unused channels may be enabled on particular platforms.
+ * \details Channels are numbered from 0 to N-1, where N is the number of channels.
+ * \details Channels #0~5 are the low-priority channels; channels #6 and #7 are the high-priority channels.
+ */
+enum HAL_Symbol__Match_Channel_t {
+    HAL_SYMBOL_MATCH__MFE_EXPIRED   = 0,    /*!< Channel #0: Timeout timer for pending transactions. */
+    HAL_SYMBOL_MATCH__MFE_TIMEOUT   = 1,    /*!< Channel #1: Timeout/delay timer for MAC-FE FSMs. */
+    HAL_SYMBOL_MATCH__MLE_TRX_OFF   = 2,    /*!< Channel #2: Timed transceiver switching off timer. */
+    HAL_SYMBOL_MATCH__CHANNEL_3     = 3,    /*!< Channel #3: Unused. May be assigned on particular platform. */
+    HAL_SYMBOL_MATCH__CHANNEL_4     = 4,    /*!< Channel #4: Unused. May be assigned on particular platform. */
+    HAL_SYMBOL_MATCH__CHANNEL_5     = 5,    /*!< Channel #5: Unused. May be assigned on particular platform. */
+    HAL_SYMBOL_MATCH__MRTS_TIMEOUT  = 6,    /*!< Channel #6: Timeout/delay timer for MAC RTS Flowcharts. */
+    HAL_SYMBOL_MATCH__CHANNEL_7     = 7,    /*!< Channel #7: Unused. May be assigned on particular platform. */
+};
 
-/************************* PROTOTYPES ***************************************************/
-/*************************************************************************************//**
- * \brief   Callback handler-function for the MAC-FE EXPIRED timed-event.
- * \details
- *  This function schedules the EXPIRED task for the MAC-FE.
-*****************************************************************************************/
-HAL_PUBLIC HAL_SymbolMatchHandler_t  HAL_SymbolHandlerMfeExpired;
+/**//**
+ * \brief   Total number of channels.
+ * \details Channels are numbered from 0 to N-1, where N is the number of channels.
+ */
+#define HAL_SYMBOL__CHANNELS_NUM            (8)
 
+/**//**
+ * \brief   Number of the low-priority channels.
+ * \details Channels are numbered from 0 to N-1, where N is the number of channels.
+ * \details Channels #0~5 are the low-priority channels; channels #6 and #7 are the high-priority channels.
+ */
+#define HAL_SYMBOL__CHANNELS_NUM_LP         (6)
 
-/*************************************************************************************//**
- * \brief   Callback handler-function for the MAC-FE TIMEOUT timed-event.
- * \details
- *  This function schedules the TIMEOUT task for the MAC-FE.
-*****************************************************************************************/
-HAL_PUBLIC HAL_SymbolMatchHandler_t  HAL_SymbolHandlerMfeTimeout;
+/**//**
+ * \brief   Type for the Symbol Timer compare-match event handler.
+ */
+typedef void HAL_Symbol__Match_Handler_t(void);
 
+/************************* PROTOTYPES *********************************************************************************/
+/**//**
+ * \brief   Initializes the Symbol Timer Driver.
+ * \details This function performs the following:
+ *  - Configure ARC interrupts used by the Symbol Timer Driver hardware and software.
+ *  - Disengage all the Symbol Timer channels and disable interrupts from them.
+ *  - Clear spurious interrupt requests from the Symbol Timer.
+ *  - Set the Symbol Timer prescaler default Symbol Rate.
+ *  - Reset Prescaler and Symbol Counters.
+ *
+ * \details This function must be called once on the application startup. All interrupts of Level 1 and Level 2 must be
+ *  disabled during this function execution. The hardware must be reset/disabled/stopped prior to call this function.
+ * \note    This function does not enable ARC interrupts. Interrupts must be enabled by the application startup routine
+ *  after all the necessary software and hardware are configured.
+ */
+void HAL_Symbol__Init(void);
 
-/*************************************************************************************//**
- * \brief   Callback handler-function for the MAC-LE TRX_OFF timed-event.
- * \details
- *  This functions is called on the appointed time when one of the TRX_ON_WHEN_IDLE mode
- *  timeouts elapses. It compares the current timestamp with saved timestamps of different
- *  timeouts and decides which one of timeouts has just elapsed. Finally, when all
- *  timeouts have elapsed and there is no persistent TRX_ON_WHEN_IDLE assignment, then the
- *  transceiver is switched off.
-*****************************************************************************************/
-HAL_PUBLIC HAL_SymbolMatchHandler_t  HAL_SymbolHandlerMleTrxOff;
+/**//**
+ * \brief   Configures the Symbol Timer symbol rate.
+ * \param[in]   symbolRate      Value of the desired symbol rate, in symbol/s.
+ * \details This function assigns the Symbol Prescaler register to perform generation of the Symbol Clock at the
+ *  specified symbol rate multiplied by the predefined frequency factor.
+ * \details The Symbol Counter register is left unchanged by this function. By these means the timestamping remains
+ *  progressive after the Symbol Timer reconfiguration. All compare-match statuses and channel assignments are also left
+ *  unchanged in order not to disturb other software units functioning.
+ * \details The Prescaler Counter is reset to zero by this function. It is performed in order to arrange correct
+ *  switching of symbol frequency in the case when the Prescaler register is assigned with a value that is smaller than
+ *  the previous one.
+ * \note    It is recommended to call this function right after reset of the MAC and PHY. Hence, it's not necessary.
+*/
+void HAL_Symbol__Config(const uint32_t symbolRate);
 
+/**//**
+ * \brief   Appoints the specified Symbol Timer channel to trigger at the given timeshift from the current moment.
+ *  Applicable to all channels from 0 to 7.
+ * \param[in]   tshift      Timeshift to appointment from the current timestamp, in symbol fractions. Must be greater or
+ *  equal to zero.
+ * \param[in]   channel     The identifier of a Symbol Timer channel to be used for the appointment.
+ * \details This function makes timed appointment to the Symbol Timer channel to call its statically linked handler
+ *  function in \p tshift symbol fractions from the current moment. The Symbol Timer channel specified with the
+ *  \p channel must be free from appointments at the moment when this function is called. The appointment is triggered
+ *  only once, and after that the Symbol Timer channel is disengaged.
+ * \note    Negative values are prohibited for the \p tshift. Zero timeshift, timeshift equal to a single symbol
+ *  fraction (i.e., single Symbol Counter unit), and extremely low timeshifts (in the case of high Symbol Counter
+ *  frequency factor) are increased to the minimum safe timeshift value.
+ */
+void HAL_Symbol__Appoint(const HAL_Symbol__Tshift_t tshift, const enum HAL_Symbol__Match_Channel_t channel);
 
-/*************************************************************************************//**
- * \brief   Callback handler-function for the MAC-LE TIMEOUT timed-event.
- * \details
- *  The TIMEOUT signal is appointed by the MAC-LE Real-Time Dispatcher FSM to itself in
- *  order to establish timeouts for the following processes: waiting for the IFS period
- *  prior to starting CSMA-CA and transmission, waiting for the CSMA-CA backoff period,
- *  waiting for the acknowledgment frame reception after transmission for not more then
- *  macAckWaitDuration, waiting for the whole period of Energy Detection scanning.
- * \note
- *  The acknowledgment frame timed transmission on a unicast frame reception is performed
- *  without TIMEOUT event, but with help of hardware capabilities to establish timed
- *  transmission and timestamping of all frames received.
-*****************************************************************************************/
-HAL_PUBLIC HAL_SymbolMatchHandler_t  HAL_SymbolHandlerMleDispFsm;
+/**//**
+ * \brief   Reappoints the specified Symbol Timer channel to trigger at the given timeshift from the current
+ *  moment if the new timestamp is closer to the current moment than the previously appointed, or simply appoints the
+ *  channel if there is no appointment on it at the moment. Applicable only to low-priority channels from 0 to 5.
+ * \param[in]   tshift      Timeshift to new appointment from the current timestamp, in symbol fractions. Must be
+ *  greater or equal to zero.
+ * \param[in]   channel         The identifier of a Symbol Timer channel to be used for the new appointment.
+ * \note    This function is applicable only to low-priority channels - channels from 0 to 5.
+ * \details This function reappoints originally appointed event to the new \p tshift symbol fractions from the current
+ *  moment, if the new timestamp is closer to the current moment then the previously (re-)appointed one. In the
+ *  case when the Symbol Timer channel \p channel is currently free from an appointment (the original appointment had
+ *  already triggered and has been handled, or there was no appointment at all), the new appointment is performed
+ *  unconditionally.
+ * \note    Negative values are prohibited for the \p tshift. Zero timeshift, timeshift equal to a single symbol
+ *  fraction (i.e., single Symbol Counter unit), and extremely low timeshifts (in the case of high Symbol Counter
+ *  frequency factor) are increased to the minimum safe timeshift value.
+ */
+void HAL_Symbol__Reappoint_LP(const HAL_Symbol__Tshift_t tshift, const enum HAL_Symbol__Match_Channel_t channel);
 
+/**//**
+ * \brief   Recalls previously appointed (and probably just triggered but not handled) Match event from the specified
+ *  Symbol Timer channel. Applicable to all channels from 0 to 7.
+ * \param[in]   channel     The identifier of a Symbol Timer channel to be freed from its appointment.
+ * \details This function disengages the corresponding Symbol Timer channel. If the specified channel is free at the
+ *  moment, this function does nothing.
+ */
+void HAL_Symbol__Recall(const enum HAL_Symbol__Match_Channel_t channel);
 
-/*************************************************************************************//**
- * \brief   Callback handler-function for the PHY-SAP Confirm timed-event.
- * \details
- *  This handler-function is called by the Symbol Timer on an appointed signal if there is
- *  an appointment for issuing a PHY-SAP confirmation primitive. This function issues an
- *  appointed PHY-SAP confirmation primitive and resets appointment.
- * \details
- *  If for any reason at the moment of an appointed signal generation there is no
- *  confirmation appointed (i.e., 'No operation' is appointed), then this function does
- *  nothing.
-*****************************************************************************************/
-HAL_PUBLIC HAL_SymbolMatchHandler_t  HAL_SymbolHandlerPhyConf;
-
-
-/*************************************************************************************//**
- * \brief   Callback handler-function for the PHY Radio State Poll timed-event.
- * \details
- *  This handler-function is called by the Symbol Timer on an appointed signal when need
- *  to discover (to poll) the current state of the Radio transceiver. This function polls
- *  the actual transceiver state until it will become defined. When the transceiver state
- *  become defined, this function appoints issuing of the PLME-SET-TRX-STATE.confirm, but
- *  only if there is no deferred state switching already appointed.
-*****************************************************************************************/
-HAL_PUBLIC HAL_SymbolMatchHandler_t  HAL_SymbolHandlerPhyPoll;
-
-
-/*************************************************************************************//**
- * \brief   Callback handler-function for the RF-SET-CHANNEL.confirm timed-event.
- * \details
- *  Transfers the RF-SET-CHANNEL.confirm to the PHY from the Radio hardware for a just
- *  finished channel switching.
-*****************************************************************************************/
-HAL_PUBLIC HAL_SymbolMatchHandler_t  HAL_SymbolHandlerHalChannel;
-
-
-/*************************************************************************************//**
- * \brief   Callback handler-function for immediate transmission of a PPDU prepared in the
- *  Radio Hardware Frame Buffer.
- * \details
- *  This function immediately starts transmission of a PPDU prepared in the Atmel
- *  AT86RF231 Radio Hardware Frame Buffer. This function does not perform Radio hardware
- *  transceiver switching and also it does not perform CSMA-CA algorithm, it just starts
- *  transmission if the Radio hardware is ready to perform it (i.e., the Radio is in the
- *  TX_ON state).
-*****************************************************************************************/
-HAL_PUBLIC HAL_SymbolMatchHandler_t  HAL_SymbolHandlerHalTimedTx;
-
-
-/************************* INCLUDES *****************************************************/
-#if defined(__SoC__)
-# include "bbSocSymTmr.h"           /* SoC Symbol Timer Hardware interface. */
-#elif defined(__ML507__)
-# include "bbMl507SymTmr.h"         /* ML507 Symbol Timer Hardware interface. */
-#else /* __i386__ */
-# include "bbPcSymTmr.h"            /* i386 Symbol Timer Simulator interface. */
-#endif
-
+/**//**
+ * \name    Set of handler-functions for Symbol Timer Match events.
+ * \details This set may be augmented on particular platforms.
+ */
+/**@{*/
+extern void HAL_Symbol_Match__MFE_Expired(void);        /*!< Channel #0: Timeout timer for pending transactions. */
+extern void HAL_Symbol_Match__MFE_Timeout(void);        /*!< Channel #1: Timeout/delay timer for MAC-FE FSMs. */
+extern void HAL_Symbol_Match__MLE_TrxOff(void);         /*!< Channel #2: Timed transceiver switching off timer. */
+extern void HAL_Symbol_Match__MRTS_Timeout(void);       /*!< Channel #6: Timeout/delay timer for MAC RTS Flowcharts. */
+/**@}*/
 
 #endif /* _BB_HAL_SYM_TMR_H */

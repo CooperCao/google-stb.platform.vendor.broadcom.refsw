@@ -1,22 +1,42 @@
 /***************************************************************************
- *     Copyright (c) 2003-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * [File Description:]
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ***************************************************************************/
 #include "bstd.h"           /* standard types */
 #include "berr.h"           /* error code */
@@ -234,6 +254,110 @@ BVCE_Platform_P_IsInstanceSupported(
    return bIsSupported;
 }
 
+typedef struct BVCE_VideoFormatInfo
+{
+   BAVC_ScanType eDefaultInputType;
+   BAVC_ScanType eDefaultInputTypeMemory;
+   struct
+   {
+      unsigned uiWidth;
+      unsigned uiHeight;
+      struct
+      {
+         BAVC_FrameRateCode eDefault;
+         BAVC_FrameRateCode eMin;
+         BAVC_FrameRateCode eMax;
+      } stFrameRate;
+   } stBounds[2]; /* Bounds for each BAVC_ScanType. The 1st entry is the default settings */
+} BVCE_VideoFormatInfo;
+
+typedef struct BVCE_VideoFormatEntry
+{
+   BFMT_VideoFmt eVideoFormat;
+   BVCE_VideoFormatInfo stInfo;
+} BVCE_VideoFormatEntry;
+
+static const BVCE_VideoFormatEntry BVCE_VideoFormatLUT[] =
+{
+   { 0,
+      { BAVC_ScanType_eProgressive, BAVC_ScanType_eProgressive, /* Instance[0] */\
+         {
+            { 0, 0, { BAVC_FrameRateCode_e30, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e30 }, }, /* Bounds[eInterlaced] */
+            { 0, 0, { BAVC_FrameRateCode_e30, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e60 }, }, /* Bounds[eProgressive] */
+         }
+      }
+   },
+   { BFMT_VideoFmt_e720p_25Hz,
+      {
+         BAVC_ScanType_eProgressive, BAVC_ScanType_eProgressive, /* Instance[0] */
+         {
+            { 720, 576, { BAVC_FrameRateCode_e25, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e25, }, }, /* Bounds[eInterlaced] */
+            { 1280, 720, { BAVC_FrameRateCode_e25, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e50, }, }, /* Bounds[eProgressive] */
+         }
+      },
+   },
+   { BFMT_VideoFmt_e720p_30Hz,
+      {
+         BAVC_ScanType_eProgressive, BAVC_ScanType_eProgressive, /* Instance[0] */
+         {
+            { 720, 576, { BAVC_FrameRateCode_e30, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e30, }, }, /* Bounds[eInterlaced] */
+            { 1280, 720, { BAVC_FrameRateCode_e30, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e60, }, }, /* Bounds[eProgressive] */
+         }
+      },
+   },
+   { BFMT_VideoFmt_e720p,
+      {
+         BAVC_ScanType_eProgressive, BAVC_ScanType_eProgressive, /* Instance[0] */
+         {
+            { 720, 576, { BAVC_FrameRateCode_e30, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e30, }, }, /* Bounds[eInterlaced] */
+            { 1280, 720, { BAVC_FrameRateCode_e60, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e60, }, },  /* Bounds[eProgressive] */
+         }
+      },
+   },
+   { BFMT_VideoFmt_e1080p_25Hz,
+      {
+         BAVC_ScanType_eProgressive, BAVC_ScanType_eInterlaced, /* Instance[0] */
+         {
+            { 1920, 1088, { BAVC_FrameRateCode_e25, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e50, }, }, /* Bounds[eInterlaced] */
+            { 1920, 1088, { BAVC_FrameRateCode_e25, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e50, }, }, /* Bounds[eProgressive] */
+         }
+      },
+   },
+   { BFMT_VideoFmt_e1080p_30Hz,
+      {
+         BAVC_ScanType_eProgressive, BAVC_ScanType_eInterlaced, /* Instance[0] */
+         {
+            { 1920, 1088, { BAVC_FrameRateCode_e30, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e30, }, }, /* Bounds[eInterlaced] */
+            { 1920, 1088, { BAVC_FrameRateCode_e30, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e60, }, }, /* Bounds[eProgressive] */
+         }
+      },
+   },
+   { BFMT_VideoFmt_e1080p,
+      {
+         BAVC_ScanType_eProgressive, BAVC_ScanType_eInterlaced, /* Instance[0] */
+         {
+            { 1920, 1088, { BAVC_FrameRateCode_e30, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e30, }, }, /* Bounds[eInterlaced] */
+            { 1920, 1088, { BAVC_FrameRateCode_e60, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e60, }, }, /* Bounds[eProgressive] */
+         }
+      },
+   },
+};
+
+const BVCE_VideoFormatInfo* BVCE_Platform_P_GetVideoFormatInfo( const BFMT_VideoFmt eVideoFormat )
+{
+   unsigned i;
+
+   for ( i = 0; i < sizeof(BVCE_VideoFormatLUT)/sizeof(BVCE_VideoFormatEntry); i++ )
+   {
+      if ( eVideoFormat == BVCE_VideoFormatLUT[i].eVideoFormat )
+      {
+         return &BVCE_VideoFormatLUT[i].stInfo;
+      }
+   }
+
+   return NULL;
+}
+
 void
 BVCE_Platform_P_OverrideChannelDefaultStartEncodeSettings(
    const BBOX_Handle hBox,
@@ -248,14 +372,18 @@ BVCE_Platform_P_OverrideChannelDefaultStartEncodeSettings(
       {
          if ( 0 != pstBoxConfig->stVce.uiBoxId )
          {
-            BAVC_ScanType eInputType = pstBoxConfig->stVce.stInstance[0].eDefaultInputType;
-            pstChStartEncodeSettings->eInputType = eInputType;
-            pstChStartEncodeSettings->stBounds.stDimensions.stMax.uiWidth = pstBoxConfig->stVce.stInstance[0].stBounds[BAVC_ScanType_eProgressive].uiWidth;
-            pstChStartEncodeSettings->stBounds.stDimensions.stMax.uiHeight = pstBoxConfig->stVce.stInstance[0].stBounds[BAVC_ScanType_eProgressive].uiHeight;
-            pstChStartEncodeSettings->stBounds.stDimensions.stMaxInterlaced.uiWidth = pstBoxConfig->stVce.stInstance[0].stBounds[BAVC_ScanType_eInterlaced].uiWidth;
-            pstChStartEncodeSettings->stBounds.stDimensions.stMaxInterlaced.uiHeight = pstBoxConfig->stVce.stInstance[0].stBounds[BAVC_ScanType_eInterlaced].uiHeight;
-            pstChStartEncodeSettings->stBounds.stFrameRate.eMin = pstBoxConfig->stVce.stInstance[0].stBounds[eInputType].stFrameRate.eMin;
-            pstChStartEncodeSettings->stBounds.stFrameRate.eMax = pstBoxConfig->stVce.stInstance[0].stBounds[eInputType].stFrameRate.eMax;
+            const BVCE_VideoFormatInfo *pstVideoFormatInfo = BVCE_Platform_P_GetVideoFormatInfo( pstBoxConfig->stVce.stInstance[0].eVideoFormat );
+            BDBG_ASSERT( pstVideoFormatInfo );
+            {
+               BAVC_ScanType eInputType = pstVideoFormatInfo->eDefaultInputType;
+               pstChStartEncodeSettings->eInputType = eInputType;
+               pstChStartEncodeSettings->stBounds.stDimensions.stMax.uiWidth = pstVideoFormatInfo->stBounds[BAVC_ScanType_eProgressive].uiWidth;
+               pstChStartEncodeSettings->stBounds.stDimensions.stMax.uiHeight = pstVideoFormatInfo->stBounds[BAVC_ScanType_eProgressive].uiHeight;
+               pstChStartEncodeSettings->stBounds.stDimensions.stMaxInterlaced.uiWidth = pstVideoFormatInfo->stBounds[BAVC_ScanType_eInterlaced].uiWidth;
+               pstChStartEncodeSettings->stBounds.stDimensions.stMaxInterlaced.uiHeight = pstVideoFormatInfo->stBounds[BAVC_ScanType_eInterlaced].uiHeight;
+               pstChStartEncodeSettings->stBounds.stFrameRate.eMin = pstVideoFormatInfo->stBounds[eInputType].stFrameRate.eMin;
+               pstChStartEncodeSettings->stBounds.stFrameRate.eMax = pstVideoFormatInfo->stBounds[eInputType].stFrameRate.eMax;
+            }
          }
       }
 
@@ -277,8 +405,12 @@ BVCE_Platform_P_OverrideChannelDefaultEncodeSettings(
       {
          if ( 0 != pstBoxConfig->stVce.uiBoxId )
          {
-            BAVC_ScanType eInputType = pstBoxConfig->stVce.stInstance[0].eDefaultInputType;
-            pstChEncodeSettings->stFrameRate.eFrameRate = pstBoxConfig->stVce.stInstance[0].stBounds[eInputType].stFrameRate.eDefault;
+            const BVCE_VideoFormatInfo *pstVideoFormatInfo = BVCE_Platform_P_GetVideoFormatInfo( pstBoxConfig->stVce.stInstance[0].eVideoFormat );
+            BDBG_ASSERT( pstVideoFormatInfo );
+            {
+               BAVC_ScanType eInputType = pstVideoFormatInfo->eDefaultInputType;
+               pstChEncodeSettings->stFrameRate.eFrameRate = pstVideoFormatInfo->stBounds[eInputType].stFrameRate.eDefault;
+            }
          }
       }
 
@@ -300,10 +432,14 @@ BVCE_Platform_P_OverrideChannelDefaultMemoryBoundsSettings(
       {
          if ( 0 != pstBoxConfig->stVce.uiBoxId )
          {
-            BAVC_ScanType eInputType = pstBoxConfig->stVce.stInstance[0].eDefaultInputTypeMemory;
-            pstChMemoryBoundsSettings->eInputType = eInputType;
-            pstChMemoryBoundsSettings->stDimensions.stMax.uiWidth = pstBoxConfig->stVce.stInstance[0].stBounds[eInputType].uiWidth;
-            pstChMemoryBoundsSettings->stDimensions.stMax.uiHeight = pstBoxConfig->stVce.stInstance[0].stBounds[eInputType].uiHeight;
+            const BVCE_VideoFormatInfo *pstVideoFormatInfo = BVCE_Platform_P_GetVideoFormatInfo( pstBoxConfig->stVce.stInstance[0].eVideoFormat );
+            BDBG_ASSERT( pstVideoFormatInfo );
+            {
+               BAVC_ScanType eInputType = pstVideoFormatInfo->eDefaultInputTypeMemory;
+               pstChMemoryBoundsSettings->eInputType = eInputType;
+               pstChMemoryBoundsSettings->stDimensions.stMax.uiWidth = pstVideoFormatInfo->stBounds[eInputType].uiWidth;
+               pstChMemoryBoundsSettings->stDimensions.stMax.uiHeight = pstVideoFormatInfo->stBounds[eInputType].uiHeight;
+            }
          }
       }
 
@@ -327,30 +463,34 @@ BVCE_Platform_P_OverrideChannelDimensionBounds(
       {
          if ( 0 != pstBoxConfig->stVce.uiBoxId )
          {
-            bool bOverride = false;
-            unsigned uiOldWidth = *puiWidth;
-            unsigned uiOldHeight = *puiHeight;
+            const BVCE_VideoFormatInfo *pstVideoFormatInfo = BVCE_Platform_P_GetVideoFormatInfo( pstBoxConfig->stVce.stInstance[0].eVideoFormat );
+            BDBG_ASSERT( pstVideoFormatInfo );
+            {
+               bool bOverride = false;
+               unsigned uiOldWidth = *puiWidth;
+               unsigned uiOldHeight = *puiHeight;
 
-            if ( (*puiWidth > pstBoxConfig->stVce.stInstance[0].stBounds[eScanType].uiWidth )
-                 || (*puiWidth == 0 ) )
-            {
-               *puiWidth = pstBoxConfig->stVce.stInstance[0].stBounds[eScanType].uiWidth;
-               bOverride = true;
-            }
-            if ( ( *puiHeight > pstBoxConfig->stVce.stInstance[0].stBounds[eScanType].uiHeight )
-                 || ( *puiHeight == 0 ) )
-            {
-               *puiHeight = pstBoxConfig->stVce.stInstance[0].stBounds[eScanType].uiHeight;
-               bOverride = true;
-            }
+               if ( (*puiWidth > pstVideoFormatInfo->stBounds[eScanType].uiWidth )
+                    || (*puiWidth == 0 ) )
+               {
+                  *puiWidth = pstVideoFormatInfo->stBounds[eScanType].uiWidth;
+                  bOverride = true;
+               }
+               if ( ( *puiHeight > pstVideoFormatInfo->stBounds[eScanType].uiHeight )
+                    || ( *puiHeight == 0 ) )
+               {
+                  *puiHeight = pstVideoFormatInfo->stBounds[eScanType].uiHeight;
+                  bOverride = true;
+               }
 
-            if ( true == bOverride )
-            {
-               BDBG_WRN(("Overriding max resolution to match box mode %d: %dx%d%c --> %dx%d%c",
-                  pstBoxConfig->stVce.uiBoxId,
-                  uiOldWidth, uiOldHeight, (eScanType == BAVC_ScanType_eInterlaced) ? 'i' : 'p',
-                  *puiWidth, *puiHeight, (eScanType == BAVC_ScanType_eInterlaced) ? 'i' : 'p'
-                  ));
+               if ( true == bOverride )
+               {
+                  BDBG_WRN(("Overriding max resolution to match box mode %d: %dx%d%c --> %dx%d%c",
+                     pstBoxConfig->stVce.uiBoxId,
+                     uiOldWidth, uiOldHeight, (eScanType == BAVC_ScanType_eInterlaced) ? 'i' : 'p',
+                     *puiWidth, *puiHeight, (eScanType == BAVC_ScanType_eInterlaced) ? 'i' : 'p'
+                     ));
+               }
             }
          }
       }

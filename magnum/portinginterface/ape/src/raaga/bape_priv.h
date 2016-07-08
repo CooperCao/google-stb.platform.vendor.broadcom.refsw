@@ -1,23 +1,40 @@
-/***************************************************************************
- *     Copyright (c) 2006-2014, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * Module Description: Audio PI Private Interfaces
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * Revision History:
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- * 
- ***************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
 
 #ifndef BAPE_PRIV_H_
 #define BAPE_PRIV_H_
@@ -70,25 +87,25 @@ BDBG_OBJECT_ID_DECLARE(BAPE_EchoCanceller);
 
 /***************************************************************************
 Summary:
-A macro to compare two values and print a BDBG message that contains one 
-value if they match, or both values if they differ. 
- 
-For example, this code: 
+A macro to compare two values and print a BDBG message that contains one
+value if they match, or both values if they differ.
+
+For example, this code:
     BAPE_LOG_CHANGE(BDBG_LOG, "  Sample Rate     ", "%u",
-                        oldSampleRate, oldSampleRate, 
+                        oldSampleRate, oldSampleRate,
                         newSampleRate, newSampleRate );
- 
+
 Will print this if both oldSampleRate and newSampleRate are 48000.
     00:00:01.003 bape_fmt_priv:   Sample Rate     : 48000
- 
-And will print this if oldSampleRate is 48000 and newSampleRate is 768000: 
+
+And will print this if oldSampleRate is 48000 and newSampleRate is 768000:
     00:00:01.003 bape_fmt_priv:   Sample Rate     : 48000 -> 768000
- 
+
 ***************************************************************************/
 #define BAPE_LOG_CHANGE(bdbg_log_macro, heading, pfmt, oldval, oldprint, newval, newprint)           \
-        (  (oldval) != (newval)   	 											                     \
-            ? 	   bdbg_log_macro(("%s: " pfmt " -> " pfmt , heading,	 (oldprint), (newprint )))   \
-            : 	   bdbg_log_macro(("%s: " pfmt, heading, (newprint) ))			        	         \
+        (  (oldval) != (newval)                                                                      \
+            ?      bdbg_log_macro(("%s: " pfmt " -> " pfmt , heading,    (oldprint), (newprint )))   \
+            :      bdbg_log_macro(("%s: " pfmt, heading, (newprint) ))                               \
         )
 
 /***************************************************************************
@@ -295,8 +312,9 @@ typedef struct BAPE_Device
     BINT_Handle intHandle;
     BTMR_Handle tmrHandle;
     BDSP_Handle dspHandle;
+    BDSP_Handle armHandle;
     BAPE_Settings settings;
-    
+
     /* Ramp Step Sizes */
     uint32_t outputVolumeRampStep;
     uint32_t sampleRateConverterRampStep;
@@ -304,8 +322,8 @@ typedef struct BAPE_Device
     /* Buffer Lists */
     struct
     {
-        BLST_S_HEAD(FreeBufferList, BAPE_BufferNode) freeList;        
-        BLST_S_HEAD(AllocatedBufferList, BAPE_BufferNode) allocatedList;        
+        BLST_S_HEAD(FreeBufferList, BAPE_BufferNode) freeList;
+        BLST_S_HEAD(AllocatedBufferList, BAPE_BufferNode) allocatedList;
         BAPE_FMT_Capabilities capabilities;
         unsigned bufferSize, numFreeBuffers;
 #if BDBG_DEBUG_BUILD
@@ -316,9 +334,11 @@ typedef struct BAPE_Device
     /* Software resource allocation */
 #if BAPE_CHIP_MAX_DECODERS > 0
     BDSP_ContextHandle       dspContext;
+    BDSP_ContextHandle       armContext;
     unsigned                 numDsps;
+    unsigned                 numArms;
     BAPE_DecoderHandle       decoders[BAPE_CHIP_MAX_DECODERS];
-    struct 
+    struct
     {
         BAPE_DecoderState state;
         BAPE_DecoderStartSettings startSettings;
@@ -460,11 +480,11 @@ typedef struct BAPE_Device
     /* Interrupts */
     BAPE_InterruptHandlers interrupts;
 
-    bool bStandby; 
+    bool bStandby;
 
 #if BAPE_CHIP_MAX_PLLS > 0
     BTMR_TimerHandle pllTimer[BAPE_CHIP_MAX_PLLS];
-#endif 
+#endif
 
 } BAPE_Device;
 
@@ -537,7 +557,7 @@ typedef enum BAPE_PathNodeState
     BAPE_PathNodeState_eAllocatingPath,
     BAPE_PathNodeState_eAllocatedPath,
     BAPE_PathNodeState_eConfiguredPath,
-    BAPE_PathNodeState_eStarted,    
+    BAPE_PathNodeState_eStarted,
     BAPE_PathNodeState_eMax
 } BAPE_PathNodeState;
 
@@ -755,7 +775,7 @@ typedef struct BAPE_Mixer
     bool resourcesAllocated;
     bool restartPending;
     BAPE_MixerFormat explicitFormat;
-    unsigned index;    
+    unsigned index;
     unsigned numMixerGroups;
     unsigned fs;
     unsigned numOutputs;
@@ -798,15 +818,15 @@ BAPE_MixerInputCapture
 ***************************************************************************/
 typedef struct BAPE_MixerInputCapture
 {
-	BDBG_OBJECT(BAPE_MixerInputCapture)
+    BDBG_OBJECT(BAPE_MixerInputCapture)
 
 #if BAPE_DSP_SUPPORT
-	BDSP_AudioCaptureHandle hCapture;
+    BDSP_AudioCaptureHandle hCapture;
 #endif
 
-	BAPE_MixerInputCaptureInterruptHandlers interrupts;	
+    BAPE_MixerInputCaptureInterruptHandlers interrupts;
 
-	/* Capture pointer info for all the output capture ports */
+    /* Capture pointer info for all the output capture ports */
 } BAPE_MixerInputCapture;
 
 /***************************************************************************
@@ -922,9 +942,9 @@ Generic InputPort Structure
 typedef struct BAPE_InputPortObject
 {
     BDBG_OBJECT(BAPE_InputPort)
-    BAPE_InputPortType type;    /* type of output device this port belongs to */   
-    unsigned index;             /* index with respect to type */                   
-    void *pHandle;              /* pointer to the specific output device */        
+    BAPE_InputPortType type;    /* type of output device this port belongs to */
+    unsigned index;             /* index with respect to type */
+    void *pHandle;              /* pointer to the specific output device */
     BLST_S_HEAD(InputConsumerList, BAPE_PathNode) consumerList;    /* List of Consumers of this Input Port */
     BAPE_FciSplitterGroupHandle fciSpGroup;           /* FCI splitter group handle - Available on certain 28nm and newer chips */
     bool consumerAttaching;                           /* True if a consumer is in process of attaching */
@@ -933,7 +953,7 @@ typedef struct BAPE_InputPortObject
     void (*enable)(BAPE_InputPort  inputPort);        /* Called when consumer starts */
     void (*disable)(BAPE_InputPort inputPort);        /* Called when consumer stops */
     BERR_Code (*consumerAttached_isr)(BAPE_InputPort inputPort, BAPE_PathNode *pConsumer, BAPE_FMT_Descriptor *pFormat);       /* Called when a new consumer attaches */
-    void      (*consumerDetached_isr)(BAPE_InputPort inputPort, BAPE_PathNode *pConsumer);       /* Called when a consumer detaches */    
+    void      (*consumerDetached_isr)(BAPE_InputPort inputPort, BAPE_PathNode *pConsumer);       /* Called when a consumer detaches */
     bool halted;                /* true => Input halted due to unhandled format change. */
     const char *pName;
 } BAPE_InputPortObject;
@@ -1196,48 +1216,48 @@ BERR_Code BAPE_Mixer_P_PrintNodeInfo( BAPE_PathNode *pPathNode, int level, int i
 
 /***************************************************************************
 Summary:
-Print a mixer-centric representation of the audio filter graph (for all 
-mixers). 
+Print a mixer-centric representation of the audio filter graph (for all
+mixers).
 ***************************************************************************/
 BERR_Code BAPE_Mixer_P_PrintMixers(BAPE_Handle deviceHandle);
 
 /***************************************************************************
 Summary:
-Print a representation of the audio filter graph (for all downstream 
-PathNodes). 
+Print a representation of the audio filter graph (for all downstream
+PathNodes).
 ***************************************************************************/
 BERR_Code BAPE_Mixer_P_PrintDownstreamNodes(BAPE_PathNode *pPathNode);
 
 /***************************************************************************
 Summary:
-Print a representation of the audio filter graph (for all downstream 
-PathNodes). 
+Print a representation of the audio filter graph (for all downstream
+PathNodes).
 ***************************************************************************/
 const char *BAPE_Mixer_P_MclkSourceToText_isrsafe(BAPE_MclkSource mclkSource);
 
 /***************************************************************************
 Summary:
-Get a mixer's output data type 
+Get a mixer's output data type
 ***************************************************************************/
 #define BAPE_Mixer_P_GetOutputDataType_isr BAPE_Mixer_P_GetOutputDataType
 #define BAPE_Mixer_P_GetOutputDataType(hMix) ((hMix)->pathNode.connectors[0].format.type)
 
 /***************************************************************************
-Summary: 
-Get a mixer's output data type 
+Summary:
+Get a mixer's output data type
 ***************************************************************************/
 #define BAPE_Mixer_P_GetOutputFormat_isr BAPE_Mixer_P_GetOutputFormat
 #define BAPE_Mixer_P_GetOutputFormat(hMix) ((const BAPE_FMT_Descriptor *)&(hMix)->pathNode.connectors[0].format)
 
 /***************************************************************************
-Summary: 
+Summary:
 Get a mixer's output sample rate
 ***************************************************************************/
 #define BAPE_Mixer_P_GetOutputSampleRate_isr BAPE_Mixer_P_GetOutputSampleRate
 #define BAPE_Mixer_P_GetOutputSampleRate(hMix) ((hMix)->pathNode.connectors[0].format.sampleRate)
 
 /***************************************************************************
-Summary: 
+Summary:
 Get a mixer's output data type based on the widest of all inputs
 ***************************************************************************/
 BERR_Code BAPE_Mixer_P_DetermineOutputDataType(BAPE_MixerHandle handle, BAPE_DataType *pDataType /* [out] */);
@@ -1296,7 +1316,7 @@ Allocate buffers from the resource pool
 ***************************************************************************/
 BERR_Code BAPE_P_AllocateBuffers(
     BAPE_Handle deviceHandle,
-    const BAPE_FMT_Descriptor *pDesc, 
+    const BAPE_FMT_Descriptor *pDesc,
     BAPE_BufferNode *pBuffers[BAPE_ChannelPair_eMax]
     );
 
@@ -1309,7 +1329,7 @@ void BAPE_P_FreeBuffers(
     BAPE_BufferNode *pBuffers[BAPE_ChannelPair_eMax]
     );
 
-/*************************************************************************** 
+/***************************************************************************
 Summary:
 Allocate FMM Resource
 ***************************************************************************/
@@ -1329,7 +1349,7 @@ typedef enum BAPE_FmmResourceType
     BAPE_FmmResourceType_eMax
 } BAPE_FmmResourceType;
 
-/*************************************************************************** 
+/***************************************************************************
 Summary:
 Allocate FMM Resource
 ***************************************************************************/
@@ -1338,25 +1358,25 @@ Allocate FMM Resource
 BERR_Code BAPE_P_AllocateFmmResource_tagged(BAPE_Handle handle, BAPE_FmmResourceType resourceType, unsigned numChannelPairs, unsigned *pFirstResource, const char *pFile, unsigned line);
 #else
 BERR_Code BAPE_P_AllocateFmmResource(
-    BAPE_Handle handle, 
-    BAPE_FmmResourceType resourceType, 
-    unsigned numChannelPairs, 
+    BAPE_Handle handle,
+    BAPE_FmmResourceType resourceType,
+    unsigned numChannelPairs,
     unsigned *pFirstResource
     );
 #endif
 
-/*************************************************************************** 
+/***************************************************************************
 Summary:
 Free FMM Resource
 ***************************************************************************/
 void BAPE_P_FreeFmmResource(
-    BAPE_Handle handle, 
-    BAPE_FmmResourceType resourceType, 
-    unsigned numChannelPairs, 
+    BAPE_Handle handle,
+    BAPE_FmmResourceType resourceType,
+    unsigned numChannelPairs,
     unsigned firstResource
     );
 
-/*************************************************************************** 
+/***************************************************************************
 Summary:
 Release all unused path resources.
 ***************************************************************************/
@@ -1376,7 +1396,7 @@ void BAPE_P_FreeInputBuffers(BAPE_Handle handle, BAPE_Connector input);
 
 /***************************************************************************
 Summary:
-Determine if a MuxOutput object has been started 
+Determine if a MuxOutput object has been started
 ***************************************************************************/
 bool BAPE_MuxOutput_P_IsRunning(BAPE_MuxOutputHandle handle);
 
@@ -1503,17 +1523,19 @@ typedef struct BAPE_Decoder
 
     union
     {
-#if BDSP_MS12_SUPPORT
-        BDSP_Raaga_Audio_UdcdecConfigParams ddp;
-        BDSP_Raaga_Audio_DolbyAacheUserConfig aac;
-#else
+#if defined BDSP_MS10_SUPPORT || defined BDSP_DOLBY_DCV_SUPPORT
         BDSP_Raaga_Audio_DDPMultiStreamConfigParams ddp;
-#if BDSP_MS10_SUPPORT
+#else
+        BDSP_Raaga_Audio_UdcdecConfigParams ddp;
+#endif
+#if BDSP_MS12_SUPPORT
+        BDSP_Raaga_Audio_DolbyAacheUserConfig aac;
+#elif BDSP_MS10_SUPPORT
         BDSP_Raaga_Audio_DolbyPulseUserConfig aac;
 #else
         BDSP_Raaga_Audio_AacheConfigParams aac;
-#endif /* BDSP_MS10_SUPPORT */
-#endif /* BDSP_MS12_SUPPORT */
+#endif
+        BDSP_Raaga_Audio_AC4DecConfigParams ac4;
         BDSP_Raaga_Audio_MpegConfigParams mpeg;
         BDSP_Raaga_Audio_WmaConfigParams wma;
         BDSP_Raaga_Audio_WmaProConfigParams wmaPro;
@@ -1539,11 +1561,12 @@ typedef struct BAPE_Decoder
 
     union
     {
-#if BDSP_MS12_SUPPORT
-        BDSP_Raaga_Audio_UdcStreamInfo ddp;
-#else
+#if defined BDSP_MS10_SUPPORT || defined BDSP_DOLBY_DCV_SUPPORT
         BDSP_Raaga_Audio_MultiStreamDDPStreamInfo ddp;
-#endif /* BDSP_MS12_SUPPORT */
+#else
+        BDSP_Raaga_Audio_UdcStreamInfo ddp;
+#endif
+        BDSP_Raaga_Audio_AC4StreamInfo ac4;
         BDSP_Raaga_Audio_MpegStreamInfo mpeg;
         BDSP_Raaga_Audio_AacheStreamInfo aac;
         BDSP_Raaga_Audio_WmaStreamInfo wma;
@@ -1574,6 +1597,7 @@ typedef struct BAPE_Decoder
     /* Codec-specific settings */
     /* TODO: Codec settings should be stored in the individual structures and not the full union to save space. */
     BAPE_DecoderCodecSettings ac3Settings, ac3PlusSettings;
+    BAPE_DecoderCodecSettings ac4Settings;
     BAPE_DecoderCodecSettings aacSettings, aacPlusSettings;
     BAPE_DecoderCodecSettings wmaProSettings;
     BAPE_DecoderCodecSettings dtsSettings, dtsExpressSettings;
@@ -1588,7 +1612,8 @@ typedef struct BAPE_Decoder
     BDSP_StageHandle hPrimaryStage;
     BDSP_StageHandle hSrcStageStereo;
     BDSP_StageHandle hSrcStageMultichannel;
-    BDSP_StageHandle hDsolaStage;
+    BDSP_StageHandle hDsolaStageStereo;
+    BDSP_StageHandle hDsolaStageMultichannel;
     BDSP_StageHandle hKaraokeStage;
     BDSP_StageHandle hPassthroughStage;
     BDSP_StageHandle hOutputFormatter;
@@ -1609,7 +1634,7 @@ typedef struct BAPE_Decoder
     /* Required for Multi-stream Decoding  */
     bool fwMixerMaster;
     BAPE_DolbyDigitalReencodeHandle ddre;
-    BAPE_MixerHandle fwMixer;    
+    BAPE_MixerHandle fwMixer;
 
     /* Ancillary Data Handling */
     BDSP_QueueHandle hAncDataQueue;
@@ -1621,7 +1646,8 @@ typedef struct BAPE_Decoder
     bool ancDataInit;
 
     /* Encoder overflow handling */
-    BAPE_MuxOutputHandle hMuxOutput;
+    /*BAPE_MuxOutputHandle hMuxOutput;*/
+    BLST_S_HEAD(DecoderMuxOutputList, BAPE_MuxOutput) muxOutputList;
 
     /* Timer for Underflow checks */
     BTMR_TimerHandle underFlowTimer;
@@ -1666,6 +1692,12 @@ BERR_Code BAPE_Decoder_P_GetCodecStatus(BAPE_DecoderHandle handle, BAPE_DecoderS
 
 /***************************************************************************
 Summary:
+Get AC-4 Presentation Info
+***************************************************************************/
+BERR_Code BAPE_Decoder_P_GetAc4PresentationInfo(BAPE_DecoderHandle handle, unsigned presentationIndex, BAPE_DecoderPresentationInfo *pInfo);
+
+/***************************************************************************
+Summary:
 Get data sync status from DSP
 ***************************************************************************/
 BERR_Code BAPE_Decoder_P_GetDataSyncStatus_isr(BAPE_DecoderHandle handle, unsigned *underflowCount);
@@ -1675,7 +1707,7 @@ Summary:
 Propagate settings between decoder and DDRE
 ***************************************************************************/
 BERR_Code BAPE_DolbyDigitalReencode_P_SettingsChanged(
-    BAPE_DolbyDigitalReencodeHandle handle, 
+    BAPE_DolbyDigitalReencodeHandle handle,
     BAPE_DecoderHandle decoder
     );
 
@@ -1684,6 +1716,30 @@ Summary:
 Get the DDRE Multichannel Format
 ***************************************************************************/
 BAPE_MultichannelFormat BAPE_DolbyDigitalReencode_P_GetMultichannelFormat(
+    BAPE_DolbyDigitalReencodeHandle handle
+    );
+
+/***************************************************************************
+Summary:
+Get the Task Handle for a dependent encoder task (dual dsp or host audio)
+***************************************************************************/
+void * BAPE_DolbyDigitalReencode_P_GetEncoderTaskHandle(
+    BAPE_DolbyDigitalReencodeHandle handle
+    );
+
+/***************************************************************************
+Summary:
+Query whether there are compressed consumers
+***************************************************************************/
+bool BAPE_DolbyDigitalReencode_P_HasCompressedConsumers(
+    BAPE_DolbyDigitalReencodeHandle handle
+    );
+
+/***************************************************************************
+Summary:
+Get the Device Index (used for debug logging)
+***************************************************************************/
+unsigned BAPE_DolbyDigitalReencode_P_GetDeviceIndex(
     BAPE_DolbyDigitalReencodeHandle handle
     );
 
@@ -1794,31 +1850,31 @@ Summary:
 Set the timing parameters for an Fs timing source
 ***************************************************************************/
 void BAPE_P_SetFsTiming_isr(
-    BAPE_Handle handle, 
-    unsigned fsIndex, 
-    BAPE_MclkSource mclkSource, 
-    unsigned pllChannel, 
+    BAPE_Handle handle,
+    unsigned fsIndex,
+    BAPE_MclkSource mclkSource,
+    unsigned pllChannel,
     unsigned mclkFreqToFsRatio
     );
 
 #if BAPE_DSP_SUPPORT
 /***************************************************************************
 Summary:
-Map User settings to DSP for TruVolume.  Required in both StudioSound 
-and TruVolume. 
+Map User settings to DSP for TruVolume.  Required in both StudioSound
+and TruVolume.
 ***************************************************************************/
 BERR_Code BAPE_TruVolume_P_ConvertSettingsToDsp(
-    const BAPE_TruVolumeSettings *pSettings, 
+    const BAPE_TruVolumeSettings *pSettings,
     BDSP_Raaga_Audio_TruVolumeUserConfig *pUserConfig
     );
 
 /***************************************************************************
 Summary:
-Map User settings to DSP for TruSurroundHd.  Required in both StudioSound 
-and TruSurroundHd. 
+Map User settings to DSP for TruSurroundHd.  Required in both StudioSound
+and TruSurroundHd.
 ***************************************************************************/
 BERR_Code BAPE_TruSurroundHd_P_ConvertSettingsToDsp(
-    const BAPE_TruSurroundHdSettings *pSettings, 
+    const BAPE_TruSurroundHdSettings *pSettings,
     unsigned numChannelPairs,
     BDSP_Raaga_Audio_TruSurrndHDConfigParams *pUserConfig
     );
@@ -1936,6 +1992,7 @@ typedef struct BAPE_MuxOutput
     } cdb, itb;
     BAPE_OutputDescriptorInfo descriptorInfo;
     BLST_S_ENTRY(BAPE_MuxOutput) deviceListNode;
+    BLST_S_ENTRY(BAPE_MuxOutput) decoderListNode;
     #if BAPE_DSP_SUPPORT
     BDSP_StageHandle hStage;
     #endif
@@ -1975,7 +2032,7 @@ void BAPE_Crc_P_Stop(
     );
 
 #if BAPE_DSP_SUPPORT
-void BAPE_P_PopulateSupportedBDSPAlgos( 
+void BAPE_P_PopulateSupportedBDSPAlgos(
     BDSP_AlgorithmType type, /* [in] */
     const BAVC_AudioCompressionStd * pSupportedCodecs, /* [in] */
     unsigned numSupportedCodecs, /* [in] */
@@ -2002,4 +2059,3 @@ void BAPE_P_PopulateSupportedBAVCAlgos(
 #include "bape_fmm_priv.h"
 
 #endif /* #ifndef BAPE_PRIV_H_ */
-

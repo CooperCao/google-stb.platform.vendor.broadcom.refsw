@@ -212,7 +212,7 @@ static int nexus_driver_mmap(struct file *file, struct vm_area_struct *vma) {
     if (file->f_flags & O_SYNC) {
         vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
     }
-#if NEXUS_CPU_ARM
+#if NEXUS_CPU_ARM && !NEXUS_CPU_ARM64 /* Arm64 kernel doesn't use these PTE options */
     else {
         /*
          * ARM has an explicit setting for WC. Use default for other

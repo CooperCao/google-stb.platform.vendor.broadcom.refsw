@@ -1,9 +1,10 @@
 /*=============================================================================
-Copyright (c) 2015 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2015 Broadcom.
 All rights reserved.
 =============================================================================*/
 
-#include "nexus_memory.h"
+#include <EGL/begl_memplatform.h>
+#include "memory_android.h"
 #include "nexus_platform.h"
 #include "nexus_base_mmap.h"
 #ifdef NXCLIENT_SUPPORT
@@ -125,11 +126,11 @@ static bool UseDynamicMMAHeap(int *growSize)
 
    property_get("ro.nx.mma", val, "0");
 
-   if (val && (val[0] == 't' || val[0] == 'T' || val[0] == '1'))
+   if (val[0] == 't' || val[0] == 'T' || val[0] == '1')
       useDynamicMMA = true;
 
    property_get("ro.nx.heap.grow", val, "0");
-   if (val)
+   if (val[0] != '0')
       *growSize = memparse(val, NULL, BLOCK_SIZE);
 
    return useDynamicMMA;
@@ -141,7 +142,7 @@ static bool UseMovableBlocks(void)
    bool useMovableBlocks = false;
 
    property_get("ro.nx.v3d.no_map_lock", val, "0");
-   if (val && (atoi(val) != 0))
+   if (atoi(val) != 0)
       useMovableBlocks = true;
 
    return useMovableBlocks;
@@ -182,8 +183,9 @@ static BEGL_MemHandle MemAllocBlock(void *context, size_t numBytes, size_t align
       }
       else
       {
-         block = (NEXUS_MemoryBlockHandle)ioctl(memBlkFd, NX_ASHMEM_GETMEM);
-         if (block == NULL)
+         struct nx_ashmem_getmem ashmem_getmem;
+         ret = ioctl(memBlkFd, NX_ASHMEM_GETMEM, &ashmem_getmem);
+         if (ret < 0)
          {
             close(memBlkFd);
             memBlkFd = -1;
@@ -191,7 +193,7 @@ static BEGL_MemHandle MemAllocBlock(void *context, size_t numBytes, size_t align
          else
          {
             memTracker->fd = memBlkFd;
-            memTracker->hdl = block;
+            memTracker->hdl = (NEXUS_MemoryBlockHandle)(intptr_t)ashmem_getmem.hdl;
             /* block has been allocated, early exit. */
             return (BEGL_MemHandle) memTracker;
          }
@@ -304,12 +306,12 @@ static void *MemMapBlock(void *context, BEGL_MemHandle h, size_t offset, size_t 
 
 #ifdef LOG_MEMORY_PATTERN
    if (sLogFile)
-      fprintf(sLogFile, "M %u %u %u %p\n", (uint32_t)h, offset, length, ret + offset);
+      fprintf(sLogFile, "M %u %u %u %p\n", (uint32_t)h, offset, length, (uint8_t *)ret + offset);
 #endif
 
    /*PRINTF("MemMapBlock %p = %p\n", h, ret);*/
 
-   return ret + offset;
+   return (uint8_t *)ret + offset;
 }
 
 static void MemUnmapBlock(void *context, BEGL_MemHandle h, void *cpu_ptr, size_t length)
@@ -371,24 +373,23 @@ static void MemUnlockBlock(void *context, BEGL_MemHandle h)
 static void MemFlushCache(void *context, BEGL_MemHandle handle, void *pCached, size_t numBytes)
 {
    UNUSED(context);
+   (void)handle;
+   BDBG_ASSERT(pCached != NULL);
 
-   if (handle == NULL || pCached == NULL)
-   {
 #ifdef LOG_MEMORY_PATTERN
-      if (sLogFile)
-         fprintf(sLogFile, "C %u %p %u\n", (uint32_t)handle, 0, ~0);
+   if (sLogFile)
+      fprintf(sLogFile, "C %u %p %u\n", (uint32_t)handle, pCached, numBytes);
 #endif
 
-      NEXUS_FlushCache(0, ~0);
-   }
-   else
+   /* Avoid Nexus ARM cache flush using broken set/way approach for flushes >= 3MB */
+   while (numBytes > 0)
    {
-#ifdef LOG_MEMORY_PATTERN
-      if (sLogFile)
-         fprintf(sLogFile, "C %u %p %u\n", (uint32_t)handle, pCached, numBytes);
-#endif
+      size_t const maxBytesThisTime = 2*1024*1024;
+      size_t numBytesThisTime = numBytes < maxBytesThisTime ? numBytes : maxBytesThisTime;
 
-      NEXUS_FlushCache(pCached, numBytes);
+      NEXUS_FlushCache(pCached, numBytesThisTime);
+      pCached = (uint8_t*)pCached + numBytesThisTime;
+      numBytes -= numBytesThisTime;
    }
 }
 
@@ -451,19 +452,7 @@ static uint64_t MemGetInfo(void *context, BEGL_MemInfoType type)
 //         status.guardBanding?'y':'n');
 //}
 
-/* Return the primary memory heap */
-__attribute__((visibility("default")))
-NEXUS_HeapHandle NXPL_MemHeap(BEGL_MemoryInterface *mem)
-{
-   if (mem != NULL)
-   {
-      ANPL_MemoryContext *data = (ANPL_MemoryContext*)mem->context;
-      return data->heaps[0].heap;
-   }
-   return NULL;
-}
-
-BEGL_MemoryInterface *CreateMemoryInterface(void)
+BEGL_MemoryInterface *CreateAndroidMemoryInterface(void)
 {
    ANPL_MemoryContext   *ctx = NULL;
    BEGL_MemoryInterface *mem = (BEGL_MemoryInterface*)malloc(sizeof(BEGL_MemoryInterface));
@@ -550,7 +539,7 @@ error0:
    return NULL;
 }
 
-void DestroyMemoryInterface(BEGL_MemoryInterface *mem)
+void DestroyAndroidMemoryInterface(BEGL_MemoryInterface *mem)
 {
    if (mem != NULL)
    {

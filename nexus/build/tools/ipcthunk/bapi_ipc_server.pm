@@ -1,7 +1,7 @@
 #!/usr/bin/perl
-#     (c)2004-2013 Broadcom Corporation
+#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 #
-#  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+#  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
 #  conditions of a separate, written license agreement executed between you and Broadcom
 #  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,16 +34,6 @@
 #  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
-#
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
-# File Description:
-#
-# Revision History:
-#
-# $brcm_Log: $
 # 
 #############################################################################
 use strict;
@@ -136,18 +126,38 @@ sub generate_ipc
         if (!$bypass) {
             # make a function call
 
-            if ($func->{RETTYPE} ne "void") {
-                print $file "   $retval = \n"
-            }
-
-
             my @args;
             for $param (@$params) {
                 my $info = bapi_common::process_function_param $func, $param;
                 push @args, "\n        " . $info->{'driver_arg'};
             }
 
+            # enter MSG
+            print $file "   NEXUS_P_TRACE_MSG((\">%s\(";
+            for $param (@$params) {
+                print FILE "%#lx";
+                if ($param != $params->[-1]) { print FILE ", "; }
+            }
+            print FILE ")\" ";
+            print FILE ", \"$func->{FUNCNAME}\"";
+            for $param (@args) {
+                print FILE ",$param";
+            }
+            print FILE "));\n";
+
+            if ($func->{RETTYPE} ne "void") {
+                print $file "   $retval = \n"
+            }
+
             print $file "   " . bapi_util::call($func->{FUNCNAME} , @args) . ";\n\n";
+
+            # leave MSG and return value
+            if ($func->{RETTYPE} ne "void") {
+                print FILE "  NEXUS_P_TRACE_MSG((\"<%s\=%#lx\", \"$func->{FUNCNAME}\", (unsigned long)$retval));\n";
+            }
+            else {
+                print FILE "  NEXUS_P_TRACE_MSG((\"<%s\", \"$func->{FUNCNAME}\"));\n";
+            }
         }
 
         if (defined $attr->{driver_post_success} || defined $attr->{driver_post_error} || defined $class_code_post) {
@@ -188,6 +198,12 @@ sub generate
     print $file "#define NEXUS_SERVER_MODULE_NAME \"$module\"\n";
     print $file "#include \"nexus_${module_lc}_module.h\"\n";
     print $file "BDBG_MODULE(nexus_${module_lc}_ipc_server);\n";
+    print $file "BDBG_FILE_MODULE(nexus_trace_${module_lc});\n";
+    print $file "#if NEXUS_P_TRACE\n";
+    print $file "#define NEXUS_P_TRACE_MSG(x) BDBG_MODULE_MSG(nexus_trace_${module_lc}, x)\n";
+    print $file "#else\n";
+    print $file "#define NEXUS_P_TRACE_MSG(x)\n";
+    print $file "#endif\n";
     print $file "#include \"nexus_core_utils.h\"\n";
     print $file "\n\n";
     print $file "/* defines to make all module symbols uniques */\n";

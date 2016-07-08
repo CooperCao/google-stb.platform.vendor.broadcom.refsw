@@ -42,71 +42,11 @@ BDBG_MODULE(nexus_platform_97250);
 
 static void nexus_p_modifyDefaultMemoryConfigurationSettings( NEXUS_MemoryConfigurationSettings *pSettings )
 {
-    unsigned boxMode = g_pPreInitState->boxMode;
-    unsigned i;
 #if NEXUS_HAS_VIDEO_DECODER
-    for (i=0;i<NEXUS_NUM_VIDEO_DECODERS;i++)
-    {
-        pSettings->videoDecoder[i].supportedCodecs[NEXUS_VideoCodec_eH265] = true;
-    }
+    NEXUS_P_SupportVideoDecoderCodec(pSettings, NEXUS_VideoCodec_eH265);
     pSettings->videoDecoder[0].supportedCodecs[NEXUS_VideoCodec_eH264_Mvc] = true;
-
-    switch (boxMode)
-    {
-        default:
-        case 1: /* Main + PiP */
-            pSettings->videoDecoder[0].colorDepth = 10;
-            pSettings->videoDecoder[0].maxFormat = NEXUS_VideoFormat_e1080i;
-            pSettings->videoDecoder[1].colorDepth = 10;
-            pSettings->videoDecoder[1].maxFormat = NEXUS_VideoFormat_e1080i;
-            break;
-        case 2: /* Main only @ 8-bit, no PiP */
-            pSettings->videoDecoder[0].colorDepth = 8;
-            pSettings->videoDecoder[0].maxFormat = NEXUS_VideoFormat_e1080i;
-            pSettings->videoDecoder[1].used = false; /* Single Decoder */
-	    break;
-        case 3: /* Main only @ 8-bit, no PiP */
-            pSettings->videoDecoder[0].colorDepth = 8;
-            pSettings->videoDecoder[0].maxFormat = NEXUS_VideoFormat_e1080p;
-            pSettings->videoDecoder[1].used = false; /* Single Decoder */
-            break;
-        case 4: /* Main + xcode */
-            pSettings->videoDecoder[0].colorDepth = 8;
-            pSettings->videoDecoder[0].maxFormat = NEXUS_VideoFormat_e1080i;
-            pSettings->videoDecoder[1].colorDepth = 8;
-            pSettings->videoDecoder[1].maxFormat = NEXUS_VideoFormat_e1080i;
-            break;
-        case 5: /* Headless, 1 xcode */
-        case 6: /* Main only, no PiP (similar to case 2) */
-            pSettings->videoDecoder[0].colorDepth = 10;
-            pSettings->videoDecoder[0].maxFormat = NEXUS_VideoFormat_e1080p;
-            pSettings->videoDecoder[1].used = false; /* Single Decoder */
-            break;
-        case 7: /* Main + PiP @ 8-bit */
-            pSettings->videoDecoder[0].colorDepth = 8;
-            pSettings->videoDecoder[0].maxFormat = NEXUS_VideoFormat_e1080i;
-            pSettings->videoDecoder[1].colorDepth = 8;
-            pSettings->videoDecoder[1].maxFormat = NEXUS_VideoFormat_eNtsc;
-            break;
-        case 8: /* Single decoder, multi-PIP (2x) */
-            pSettings->videoDecoder[0].colorDepth = 8;
-            pSettings->videoDecoder[0].maxFormat = NEXUS_VideoFormat_e1080i;
-            pSettings->videoDecoder[0].mosaic.maxNumber = 2;
-            pSettings->videoDecoder[0].mosaic.maxWidth = 1920;
-            pSettings->videoDecoder[0].mosaic.maxHeight = 1080;
-            pSettings->videoDecoder[1].used = false; /* Single Decoder */
-            break;
-    }
-
-#if NEXUS_NUM_STILL_DECODES
-    pSettings->stillDecoder[0].used = true;
-    pSettings->stillDecoder[0].maxFormat = NEXUS_VideoFormat_e1080p;
-    /* this is needed since Atlas tries to use the first iframe of 4K stream as thumb-nail */
-    pSettings->stillDecoder[0].supportedCodecs[NEXUS_VideoCodec_eH265] = true;
-#endif /* NEXUS_NUM_STILL_DECODES */
-
 #else
-    BSTD_UNUSED(i);
+    BSTD_UNUSED(pSettings);
 #endif
 }
 

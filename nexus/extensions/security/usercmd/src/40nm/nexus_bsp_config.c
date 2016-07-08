@@ -1,41 +1,43 @@
 /******************************************************************************
- *    (c)2007-2015 Broadcom Corporation
- *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
- *
- * Except as expressly set forth in the Authorized License,
- *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
- *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
- *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *
- *****************************************************************************/
+* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*
+* This program is the proprietary software of Broadcom and/or its
+* licensors, and may only be used, duplicated, modified or distributed pursuant
+* to the terms and conditions of a separate, written license agreement executed
+* between you and Broadcom (an "Authorized License").  Except as set forth in
+* an Authorized License, Broadcom grants no license (express or implied), right
+* to use, or waiver of any kind with respect to the Software, and Broadcom
+* expressly reserves all rights in and to the Software and all intellectual
+* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*
+* Except as expressly set forth in the Authorized License,
+*
+* 1. This program, including its structure, sequence and organization,
+*    constitutes the valuable trade secrets of Broadcom, and you shall use all
+*    reasonable efforts to protect the confidentiality thereof, and to use
+*    this information only in connection with your use of Broadcom integrated
+*    circuit products.
+*
+* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+*
+* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. , WHICHEVER
+*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+******************************************************************************/
 
 #include "nexus_security_module.h"
 #include "nexus_security_datatypes.h"
@@ -53,9 +55,13 @@
 
 BDBG_MODULE(nexus_bsp_config);
 
+
+#define NEXUS_PCIE_MAX_WINDOW_RAW_HEADER_SIZE   (3*4 + 20) /* 3*32bit + 160bit */
+#define NEXUS_PCIE_MAX_WINDOW_PROCIN_SIZE       (16)
+
 #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,2)
 
-typedef struct pciESignatureVerificationKeyConfig_t {
+typedef struct pciESignatureVerificationKeyConfig {
 
     NEXUS_SecurityVirtualKeyladderID vkl;
 
@@ -65,12 +71,9 @@ typedef struct pciESignatureVerificationKeyConfig_t {
     BCMD_ASKM_MaskKeySel_e maskKeySelect;
     uint32_t caVendorId;                    /* Ca Vendor separation on root key. */
 
-}pciESignatureVerificationKeyConfig_t;
+}pciESignatureVerificationKeyConfig;
 
-static BERR_Code GeneratePciESignatureVerificationKey( pciESignatureVerificationKeyConfig_t *pConfig );
-
-static BERR_Code allocateVKL(
-    const NEXUS_SecurityPciEMaxWindowSizeSettings_t *pConfig, BHSM_AllocateVKLIO_t *vkl);
+static NEXUS_Error GeneratePciESignatureVerificationKey( pciESignatureVerificationKeyConfig *pConfig );
 
 #endif
 
@@ -286,9 +289,9 @@ NEXUS_Error NEXUS_Security_DefineSecureRegion(
 
 
 #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,2)
-static BERR_Code GeneratePciESignatureVerificationKey ( pciESignatureVerificationKeyConfig_t *pConfig )
+static NEXUS_Error GeneratePciESignatureVerificationKey ( pciESignatureVerificationKeyConfig *pConfig )
 {
-    BERR_Code rc = NEXUS_SUCCESS;
+    BERR_Code rc = BERR_SUCCESS;
     BHSM_Handle hHsm;
     BHSM_GenerateGlobalKey_t hsmGlobalKey;
     uint8_t  procInForKey3[NEXUS_PCIE_MAX_WINDOW_PROCIN_SIZE] = { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77,
@@ -321,68 +324,12 @@ static BERR_Code GeneratePciESignatureVerificationKey ( pciESignatureVerificatio
 
     if( ( rc = BHSM_GenerateGlobalKey( hHsm, &hsmGlobalKey ) ) != NEXUS_SUCCESS )
     {
-        return BERR_TRACE( rc ); /* failed to generate signature verification key  */
+        return BERR_TRACE( MAKE_HSM_ERR(rc) ); /* failed to generate signature verification key  */
     }
 
-    return rc;
+    return NEXUS_SUCCESS;
 }
-
-static BERR_Code allocateVKL(
-    const NEXUS_SecurityPciEMaxWindowSizeSettings_t *pConfig,
-	BHSM_AllocateVKLIO_t *vkl
-	)
-{
-    BERR_Code rc = NEXUS_SUCCESS;
-    BHSM_Handle hHsm;
-    BDBG_ASSERT(pConfig) ;
-
-    NEXUS_Security_GetHsm_priv(&hHsm);
-    BDBG_ASSERT(hHsm) ;
-
-    if (pConfig->vkl < NEXUS_SecurityVirtualKeyladderID_eMax)
-    {
-        BDBG_WRN(("VKL is deprecated from the API, to be removed. Client should not allocate."));
-        return rc;
-    }
-
-	if (!vkl)
-	{
-		return BERR_TRACE( NEXUS_INVALID_PARAMETER );
-	}
-
-    /* allocate a VKL */
-    BKNI_Memset( vkl, 0, sizeof( *vkl ) );
-
-   #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(3,0)
-    vkl->client = BHSM_ClientType_eHost;
-   #else
-    vkl->customerSubMode = BCMD_CustomerSubMode_eGeneralPurpose1;
-   #endif
-
-    if( (rc = BHSM_AllocateVKL( hHsm, vkl ) != BERR_SUCCESS ))
-    {
-        /* failed to allocate a keyladder. */
-        return BERR_TRACE( rc );
-    }
-
-    return rc;
-}
-
 #endif /* #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,2) */
-
-void NEXUS_Security_GetDefaultPciEMaxWindowSizeSettings(
-    NEXUS_SecurityPciEMaxWindowSizeSettings_t *pConfig
-    )
-{
-    if( pConfig != NULL )
-    {
-        BKNI_Memset( pConfig, 0, sizeof( *pConfig ) );
-        /* We actually need BCMD_VKLID_e, instead of NEXUS_SecurityVirtualKeyladderID. */
-        pConfig->vkl = NEXUS_SecurityVirtualKeyladderID_eMax;
-    }
-
-    return;
-}
 
 
 typedef struct {
@@ -400,28 +347,40 @@ typedef struct {
 
 } pciESignedCommandHeader;
 
-NEXUS_Error  parsePciESignedCommandHeader(const uint8_t *pRawHeader, pciESignedCommandHeader *pHeader )
+
+#define NEXUS_PCIE_MAX_WINDOW_RAW_COMMAND_SIZE_VERSION_1_1 (96)
+
+
+NEXUS_Error parsePciESignedCommandHeader(const uint8_t *pSignedCommand,  unsigned signedCommandLength, pciESignedCommandHeader *pHeader )
 {
-    BDBG_ASSERT( pRawHeader );
+    BDBG_ASSERT( pSignedCommand );
     BDBG_ASSERT( pHeader );
 
     /* word 0, version */
-    pHeader->version.major = (pRawHeader[0]<<8) + pRawHeader[1];
-    pHeader->version.minor = (pRawHeader[2]<<8) + pRawHeader[3];
+    pHeader->version.major = (pSignedCommand[0]<<8) + pSignedCommand[1];
+    pHeader->version.minor = (pSignedCommand[2]<<8) + pSignedCommand[3];
 
     if( pHeader->version.major == 1 && pHeader->version.minor >= 1 ) /* only version 1.1 (+minor updates) supported  */
     {
-        /* word 1 */
-        pHeader->caVendorId       = (pRawHeader[4]<<8) + pRawHeader[5];
+        BDBG_CASSERT( NEXUS_PCIE_MAX_WINDOW_RAW_COMMAND_SIZE_VERSION_1_1 <= NEXUS_PCIE_MAX_WINDOW_RAW_COMMAND_SIZE );
 
-        switch( pRawHeader[6] ) /* Mask Key select */
+        if( ( signedCommandLength != NEXUS_PCIE_MAX_WINDOW_RAW_COMMAND_SIZE_VERSION_1_1 ) &&
+            ( signedCommandLength != 0 /* back compat */ ) )
+        {
+            return BERR_TRACE( NEXUS_INVALID_PARAMETER ); /* signed command is the wrong length */
+        }
+
+        /* word 1 */
+        pHeader->caVendorId       = (pSignedCommand[4]<<8) + pSignedCommand[5];
+
+        switch( pSignedCommand[6] ) /* Mask Key select */
         {
             case 0: pHeader->maskKeySelect = BCMD_ASKM_MaskKeySel_eRealMaskKey; break;
             case 1: pHeader->maskKeySelect = BCMD_ASKM_MaskKeySel_eFixedMaskKey; break;
             default:return BERR_TRACE( NEXUS_INVALID_PARAMETER );
         }
 
-        switch( pRawHeader[7] ) /* STB owner Id Select */
+        switch( pSignedCommand[7] ) /* STB owner Id Select */
         {
             case 0: pHeader->stbOwnerId = BCMD_STBOwnerID_eOTPVal; break;
             case 1: pHeader->stbOwnerId = BCMD_STBOwnerID_eOneVal; break;
@@ -429,14 +388,14 @@ NEXUS_Error  parsePciESignedCommandHeader(const uint8_t *pRawHeader, pciESignedC
         }
 
         /* word 2 */
-        switch( pRawHeader[10] ) /* Global Key Owner Id select */
+        switch( pSignedCommand[10] ) /* Global Key Owner Id select */
         {
             case 0: pHeader->globalKeyOwnerId = BHSM_OwnerIDSelect_eMSP0; break;
             case 1: pHeader->globalKeyOwnerId = BHSM_OwnerIDSelect_eMSP1; break;
             default:return BERR_TRACE( NEXUS_INVALID_PARAMETER );
         }
 
-        pHeader->globalKeyIndex = pRawHeader[11];
+        pHeader->globalKeyIndex = pSignedCommand[11];
 
         return NEXUS_SUCCESS;
     }
@@ -445,52 +404,75 @@ NEXUS_Error  parsePciESignedCommandHeader(const uint8_t *pRawHeader, pciESignedC
 }
 
 
+
+void NEXUS_Security_GetDefaultPciEMaxWindowSizeSettings(
+    NEXUS_SecurityPciEMaxWindowSizeSettings *pConfig
+    )
+{
+    if( pConfig != NULL )
+    {
+        BKNI_Memset( pConfig, 0, sizeof( *pConfig ) );
+        pConfig->vkl = NEXUS_SecurityVirtualKeyladderID_eMax;  /* vkl is DEPRECATED. *Not* to be modified. */
+    }
+
+    return;
+}
+
+
+
+
 NEXUS_Error NEXUS_Security_SetPciEMaxWindowSize (
-    const NEXUS_SecurityPciEMaxWindowSizeSettings_t *pConfig
+    const NEXUS_SecurityPciEMaxWindowSizeSettings *pConfig
     )
 {
 #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,2)
-
     BHSM_Handle  hHsm;
+    NEXUS_Error rc = NEXUS_SUCCESS;
+    BERR_Code magnumRc = BERR_SUCCESS;
     BHSM_ReadMspIO_t msp0;
     BHSM_ReadMspIO_t msp1;
     BHSM_PciMaxWindowConfig_t hsmConf;
-    BERR_Code rc = NEXUS_SUCCESS;
-    pciESignatureVerificationKeyConfig_t keyLadderConfig;
+    pciESignatureVerificationKeyConfig keyLadderConfig;
     pciESignedCommandHeader header;
-    BHSM_AllocateVKLIO_t vkl;
+    BHSM_AllocateVKLIO_t vklConf;
 
-    BDBG_CASSERT( (NEXUS_PCIE_MAX_WINDOW_RAW_COMMAND_SIZE - NEXUS_PCIE_MAX_WINDOW_RAW_HEADER_SIZE) == BHSM_PCIE_MAX_WINDOW_RAW_COMMAND_SIZE );
-
-    if ( pConfig == NULL )
+    if( pConfig == NULL )
     {
         return BERR_TRACE( NEXUS_INVALID_PARAMETER );
     }
 
-    NEXUS_Security_GetHsm_priv(&hHsm);
+    if( pConfig->vkl != NEXUS_SecurityVirtualKeyladderID_eMax )
+    {
+        return BERR_TRACE( NEXUS_INVALID_PARAMETER );  /* Don't configure vkl, the paramater is deprecated.  */
+    }
+
+    NEXUS_Security_GetHsm_priv( &hHsm );
     if( !hHsm )
     {
         return BERR_TRACE( NEXUS_INVALID_PARAMETER );
     }
 
-    rc = allocateVKL( pConfig, &vkl );
-
-    if (rc)
+    /* allocate a VKL */
+    BKNI_Memset( &vklConf, 0, sizeof( vklConf ) );
+   #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(3,0)
+    vklConf.client = BHSM_ClientType_eHost;
+   #else
+    vklConf.customerSubMode = BCMD_CustomerSubMode_eGeneralPurpose1;
+   #endif
+    if( ( magnumRc = BHSM_AllocateVKL( hHsm, &vklConf ) != BERR_SUCCESS ) )
     {
-        return BERR_TRACE( rc );
+        return BERR_TRACE( MAKE_HSM_ERR( magnumRc ) );
     }
 
-    if ( parsePciESignedCommandHeader( pConfig->signedCommand, &header ) != NEXUS_SUCCESS )
+    if( parsePciESignedCommandHeader( pConfig->signedCommand, pConfig->signedCommandLength, &header ) != NEXUS_SUCCESS )
     {
-        /* invalid header format */
-        BERR_TRACE( NEXUS_INVALID_PARAMETER );
+        BERR_TRACE( NEXUS_INVALID_PARAMETER );   /* invalid header format */
         goto EXIT;
     }
 
     BKNI_Memset( &keyLadderConfig, 0, sizeof(keyLadderConfig) );
 
-    keyLadderConfig.vkl              = vkl.allocVKL;
-
+    keyLadderConfig.vkl              = vklConf.allocVKL;
     keyLadderConfig.globalKeyIndex   = header.globalKeyIndex;
     keyLadderConfig.globalKeyOwnerId = header.globalKeyOwnerId;
     keyLadderConfig.stbOwnerId       = header.stbOwnerId;
@@ -521,24 +503,24 @@ NEXUS_Error NEXUS_Security_SetPciEMaxWindowSize (
     {
         BKNI_Memset( &hsmConf, 0, sizeof(hsmConf) );
 
-        hsmConf.vklId    = pConfig->vkl;
+        hsmConf.vklId    = vklConf.allocVKL;
         hsmConf.keyLayer = BCMD_KeyRamBuf_eKey3;
         BKNI_Memcpy( hsmConf.signedCommand,
                      pConfig->signedCommand + NEXUS_PCIE_MAX_WINDOW_RAW_HEADER_SIZE,
                      sizeof(hsmConf.signedCommand) );
 
-        if( BHSM_SetPciMaxWindowSize ( hHsm, &hsmConf ) != BERR_SUCCESS )
+        if( ( magnumRc = BHSM_SetPciMaxWindowSize ( hHsm, &hsmConf ) ) != BERR_SUCCESS )
         {
-           BERR_TRACE( NEXUS_INVALID_PARAMETER );
-           goto EXIT;
+            rc =  BERR_TRACE( MAKE_HSM_ERR( magnumRc ) );
+            goto EXIT;
         }
     }
 
 EXIT:
 
-    BHSM_FreeVKL( hHsm, pConfig->vkl);
+    BHSM_FreeVKL( hHsm, vklConf.allocVKL );
 
-    return NEXUS_SUCCESS;
+    return rc;
 #else
    BSTD_UNUSED( pConfig );
    return  BERR_TRACE(NEXUS_NOT_SUPPORTED);
@@ -556,6 +538,7 @@ NEXUS_Error NEXUS_Security_SetPciERestrictedRange( NEXUS_Addr baseOffset, size_t
     unsigned i = 0;
     unsigned numMemc = 0;
     NEXUS_Error rc;
+    size_t addressUpdate = size < 1 ? 0 : size - 1;
 
     NEXUS_Security_GetHsm_priv( &hHsm );
     if( !hHsm )
@@ -574,7 +557,9 @@ NEXUS_Error NEXUS_Security_SetPciERestrictedRange( NEXUS_Addr baseOffset, size_t
 
     numMemc = sizeof(memInfo.memc)/sizeof(memInfo.memc[0]);
 
-    /* locate the MEMC that controls the memory. */
+    /* Testing if the PCIE ARCH can be on MEMC1. */
+    /* baseOffset = memInfo.memc[1].offset + 16; */
+
     for( i = 0; i < numMemc; i++ )
     {
         if( ( baseOffset >= memInfo.memc[i].offset ) && ( baseOffset < ( memInfo.memc[i].offset + memInfo.memc[i].size ) ) )
@@ -590,13 +575,25 @@ NEXUS_Error NEXUS_Security_SetPciERestrictedRange( NEXUS_Addr baseOffset, size_t
         return BERR_TRACE( NEXUS_INVALID_PARAMETER ); /* failed to locate  MEMC for baseOffset. */
     }
 
+  #if BHSM_ZEUS_VERSION <= BHSM_ZEUS_VERSION_CALC(2,0)
+    if (memcIndex != 0)
+    {
+        return BERR_TRACE( NEXUS_INVALID_PARAMETER ); /* Only support on MEMC0 */
+    }
+  #endif
+
     /* put ARCH on MEMC of PCIe bus */
     BKNI_Memset( &arch, 0, sizeof(arch) );
+
+    arch.PciEConfig[index].activate = true;
+    arch.DRAMSel                    = memcIndex;
+
+  #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,2)
+
     arch.unLowerRangeAddress    = (baseOffset & 0xFFFFFFFF)>>3/*o-word shift*/;
-    arch.unUpperRangeAddress    = ((baseOffset + size) & 0xFFFFFFFF)>>3/*o-word shift*/;
-   #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,2)
+    arch.unUpperRangeAddress    = ((baseOffset + addressUpdate ) & 0xFFFFFFFF)>>3/*o-word shift*/;
     arch.unLowerRangeAddressMsb =  baseOffset >> 32;
-    arch.unUpperRangeAddressMsb = (baseOffset + size) >> 32;
+    arch.unUpperRangeAddressMsb = (baseOffset + addressUpdate ) >> 32;
 
     #if BHSM_ZEUS_VERSION == BHSM_ZEUS_VERSION_CALC(4,2) /*only 4.2*/
     {
@@ -616,7 +613,6 @@ NEXUS_Error NEXUS_Security_SetPciERestrictedRange( NEXUS_Addr baseOffset, size_t
         }
     }
     #endif
-   #endif
 
     switch( index )
     {
@@ -624,9 +620,8 @@ NEXUS_Error NEXUS_Security_SetPciERestrictedRange( NEXUS_Addr baseOffset, size_t
         case 1: { arch.ArchSel = BHSM_ArchSelect_ePciE1; break; }
         default: return BERR_TRACE( NEXUS_INVALID_PARAMETER );   /* invalid Index */
     }
-    arch.DRAMSel = memcIndex;
+
     arch.pciEExcusive = true; /* we only what to support exclusive for Zeus4.2+ */
-    arch.PciEConfig[index].activate = true;
     arch.PciEConfig[index].enableWindow = true;
 
     if( ( BHSM_SetArch( hHsm, &arch ) ) != BERR_SUCCESS )
@@ -634,7 +629,9 @@ NEXUS_Error NEXUS_Security_SetPciERestrictedRange( NEXUS_Addr baseOffset, size_t
         return BERR_TRACE( NEXUS_INVALID_PARAMETER );
     }
 
-    /*  close the other MEMCs */
+    /*  Followings are for closing the other MEMCs, and blocking other memory. */
+
+    /* For exclusive supporting Zeus platforms. */
     for( i = 0; i < numMemc; i++ )
     {
         if( ( i != memcIndex ) && ( memInfo.memc[i].size > 0 ) )
@@ -654,6 +651,36 @@ NEXUS_Error NEXUS_Security_SetPciERestrictedRange( NEXUS_Addr baseOffset, size_t
            }
         }
     }
+
+  #else /* #if BHSM_ZEUS_VERSION > BHSM_ZEUS_VERSION_CALC(4,2) */
+
+    /* Non-exclusive mode only. Following range will be blocked. */
+    /* Use the first ARCH to block the first section. */
+    if (baseOffset > memInfo.memc[memcIndex].offset)
+    {
+        arch.unLowerRangeAddress        = (memInfo.memc[memcIndex].offset & 0xFFFFFFFF)>>3/*o-word shift*/;
+        arch.unUpperRangeAddress        = ((baseOffset - 1) & 0xFFFFFFFF)>>3/*o-word shift*/;
+        arch.ArchSel                    = BHSM_ArchSelect_ePciE0;
+
+        if( ( BHSM_SetArch( hHsm, &arch ) ) != BERR_SUCCESS )
+        {
+            return BERR_TRACE( NEXUS_INVALID_PARAMETER );
+        }
+    }
+
+    /* Followings are for closing the other MEMCs, and blocking other memory. */
+    /* Using the second PCIE arch to block the remained section. */
+    arch.unLowerRangeAddress = ((baseOffset + addressUpdate + 1 ) & 0xFFFFFFFF) >> 3;
+    arch.unUpperRangeAddress = ((memInfo.memc[memcIndex].offset + memInfo.memc[memcIndex].size - 1) & 0xFFFFFFFF) >> 3;
+    arch.ArchSel             = BHSM_ArchSelect_ePciE1;
+
+    if( ( BHSM_SetArch( hHsm, &arch ) ) != BERR_SUCCESS )
+    {
+        return BERR_TRACE( NEXUS_INVALID_PARAMETER );
+    }
+
+
+  #endif /* #if BHSM_ZEUS_VERSION > BHSM_ZEUS_VERSION_CALC(4,2) */
 
    return NEXUS_SUCCESS;
 }

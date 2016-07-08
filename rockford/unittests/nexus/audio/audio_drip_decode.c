@@ -188,7 +188,7 @@ int main(void)  {
         BDBG_ASSERT(!rc);
         rc = NEXUS_AudioDecoder_GetStatus(audioDecoder, &astatus);
         BDBG_ASSERT(!rc);
-        printf("playbacl: %u/%u audio %u/%u (%.1f) pts=%u, \n", pstatus.fifoDepth, pstatus.fifoSize, astatus.fifoDepth, astatus.fifoSize, astatus.fifoDepth/(float)sizeof(frame), astatus.pts);
+        printf("playback: %lu/%lu audio %u/%u (%.1f) pts=%u, \n", (unsigned long)pstatus.fifoDepth, (unsigned long)pstatus.fifoSize, astatus.fifoDepth, astatus.fifoSize, astatus.fifoDepth/(float)sizeof(frame), astatus.pts);
 #endif
 #if 0
         BKNI_Sleep(100);

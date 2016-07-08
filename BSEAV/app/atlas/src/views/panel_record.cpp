@@ -1,43 +1,39 @@
-/***************************************************************************
- * (c) 2002-2015 Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 
 #include "panel_record.h"
@@ -45,8 +41,6 @@
 #include "bdbg.h"
 
 BDBG_MODULE(atlas_panel_record);
-
-#if NEXUS_HAS_SECURITY
 
 static int msg_box_bwidget_key_down(
         bwidget_t         widget,
@@ -80,10 +74,12 @@ CPanelRecord::CPanelRecord(
     _pOk(NULL),
     _pCancel(NULL),
     _result(),
-    _Clear(NULL),
+#if NEXUS_HAS_SECURITY
     _AES(NULL),
     _3DES(NULL),
     _DES(NULL),
+#endif
+    _Clear(NULL),
     _security("none")
 {
 }
@@ -181,6 +177,7 @@ eRet CPanelRecord::initialize(
         _Clear->setCheck(true);
         _security = "none";
 
+#if NEXUS_HAS_SECURITY
         _AES = new CWidgetCheckButton("CPanelRecord::_AES", getEngine(), this, MRect(0, 0, 0, 22), font12, _pRecordEncryptMenu->getWin());
         CHECK_PTR_ERROR_GOTO("unable to allocate button widget", _AES, ret, eRet_OutOfMemory, error);
         _pRecordEncryptMenu->addButton(_AES, "AES(Aes128) Encryption");
@@ -198,6 +195,7 @@ eRet CPanelRecord::initialize(
         _pRecordEncryptMenu->addButton(_DES, "Des   Encryption");
         _DES->setText("DES :", bwidget_justify_horiz_left);
         _DES->setCheck(false);
+#endif
     }
 
     rectButton.setWidth(65);
@@ -238,9 +236,11 @@ void CPanelRecord::uninitialize()
     DEL(_pRecordMode);
 #endif
     DEL(_Clear);
+#if NEXUS_HAS_SECURITY
     DEL(_AES);
     DEL(_3DES);
     DEL(_DES);
+#endif
     DEL(_pRecordEncryptMenu);
 }
 
@@ -334,12 +334,15 @@ void CPanelRecord::onClick(bwidget_t widget)
 
     if (_Clear->getWidget() == widget)
     {
+#if NEXUS_HAS_SECURITY
         _AES->setCheck(false);
         _3DES->setCheck(false);
         _DES->setCheck(false);
+#endif
         _security = "none";
     }
     else
+#if NEXUS_HAS_SECURITY
     if (_AES->getWidget() == widget)
     {
         _Clear->setCheck(false);
@@ -364,6 +367,7 @@ void CPanelRecord::onClick(bwidget_t widget)
         _security = "des";
     }
     else
+#endif
     if (_pOk->getWidget() == widget)
     {
         _done                = true;
@@ -407,76 +411,6 @@ eRet CPanelRecord::onKeyDown(
     return(ret);
 } /* onKeyDown */
 
-#else /* !NEXUS_HAS_SECURITY*/
-CPanelRecord::CPanelRecord(
-        CWidgetEngine * pWidgetEngine,
-        CScreenMain *   pScreenMain,
-        CWidgetBase *   pParentWidget,
-        MRect           geometry,
-        bwin_font_t     font,
-        bwin_t          parentWin
-        ) :
-    CPanel("CPanelRecord", pWidgetEngine, pScreenMain, pParentWidget, geometry, font, parentWin),
-    _pRecordEncryptMenu(NULL),
-    _done(false),
-    _pOk(NULL),
-    _pCancel(NULL),
-    _result(),
-    _Clear(NULL),
-    _AES(NULL),
-    _3DES(NULL),
-    _DES(NULL)
-{
-}
-
-CPanelRecord::~CPanelRecord()
-{
-}
-
-void CPanelRecord::show(bool bShow)
-{
-    BSTD_UNUSED(bShow);
-}
-
-eRet CPanelRecord::initialize(
-        CModel *  pModel,
-        CConfig * pConfig
-        )
-{
-    BSTD_UNUSED(pModel);
-    BSTD_UNUSED(pConfig);
-    return(eRet_Ok);
-}
-
-void CPanelRecord::uninitialize(void)
-{
-}
-
-MString CPanelRecord::showModal(void)
-{
-    /* NO Security, just start record in the clear*/
-    MString str;
-
-    notifyObservers(eNotify_RecordStart);
-    return(str);
-}
-
-eRet CPanelRecord::onKeyDown(
-        bwidget_t   widget,
-        bwidget_key key
-        )
-{
-    BSTD_UNUSED(widget);
-    BSTD_UNUSED(key);
-    return(eRet_Ok);
-}
-
-void CPanelRecord::onClick(bwidget_t widget)
-{
-    BSTD_UNUSED(widget);
-}
-
-#endif /* if NEXUS_HAS_SECURITY */
 
 void CPanelRecord::processNotification(CNotification & notification)
 {

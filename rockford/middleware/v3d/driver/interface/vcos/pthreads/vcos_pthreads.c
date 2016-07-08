@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2009 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2009 Broadcom.
 All rights reserved.
 
 Project  :  vcfw
@@ -223,6 +223,8 @@ VCOSPRE_ VCOS_STATUS_T VCOSPOST_ vcos_thread_create_classic(VCOS_THREAD_T *threa
                                                             VCOS_UNSIGNED autostart)
 {
    VCOS_THREAD_ATTR_T attrs;
+   VCOS_UNUSED(timeslice);
+   VCOS_UNUSED(autostart);
    vcos_thread_attr_init(&attrs);
    vcos_thread_attr_setstacksize(&attrs, stacksz);
    vcos_thread_attr_setpriority(&attrs, priaff & ~_VCOS_AFFINITY_MASK);
@@ -345,6 +347,7 @@ int vcos_snprintf(char *buf, size_t buflen, const char *fmt, ...)
 }
 
 int vcos_llthread_running(VCOS_THREAD_T *t) {
+   VCOS_UNUSED(t);
    vcos_assert(0);   // this function only exists as a nasty hack for the video codecs!
    return 1;
 }

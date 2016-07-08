@@ -1,21 +1,41 @@
 /***************************************************************************
- *     Copyright (c) 2009-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * [File Description:]
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ***************************************************************************/
 
@@ -500,15 +520,22 @@
 #if (BCHP_CHIP == 7145)
 #define BXVD_P_CORE_REVISION 'N'
 
-#elif (((BCHP_CHIP == 7439) || (BCHP_CHIP == 7366) || (BCHP_CHIP == 74371)) && (BCHP_VER == BCHP_VER_A0))
+#elif (((BCHP_CHIP == 7439) || ((BCHP_CHIP == 7366) && (BCHP_VER == BCHP_VER_A0)) || \
+        (BCHP_CHIP == 74371)) && (BCHP_VER == BCHP_VER_A0))
 #define BXVD_P_CORE_REVISION 'P'
 
+#elif (BCHP_CHIP == 7250) || (BCHP_CHIP == 73465) || (BCHP_CHIP == 73625) || (BCHP_CHIP == 7364) || \
+      (BCHP_CHIP == 7366) || (BCHP_CHIP == 7364) || (BCHP_CHIP == 74295) || (BCHP_CHIP == 7444) || \
+      ((BCHP_CHIP == 7445) && (BCHP_VER == BCHP_VER_D0)) || (BCHP_CHIP == 75525) || \
+      (BCHP_CHIP == 75635) || (BCHP_CHIP == 75845) || (BCHP_CHIP == 7586)
+#define BXVD_P_CORE_REVISION 'Q'
+
 #elif ((BCHP_CHIP == 7439) && (BCHP_VER > BCHP_VER_A0)) || \
-      ((BCHP_CHIP == 7445) && (BCHP_VER > BCHP_VER_D0))
+      ((BCHP_CHIP == 7445) && (BCHP_VER == BCHP_VER_E0))
 #define BXVD_P_CORE_REVISION 'R'
 
-#else /* BCHP_CHIP == 7250, 7364, 7366, 7586, 7445 or 7439 B0+ */
-#define BXVD_P_CORE_REVISION 'Q'
+#elif (BCHP_CHIP == 7268) || (BCHP_CHIP == 7271)
+#define BXVD_P_CORE_REVISION 'S'
 #endif
 
 /* HW is RV9 capable, but it could still be disabled by OTP */
@@ -587,5 +614,3 @@ void BXVD_P_SetPowerState_RevK0(BXVD_Handle hXvd,
 #endif /* BXVD_P_POWER_MANAGEMENT */
 
 #endif /* _BXVD_PLATFORM_REVN0_H_ */
-
-

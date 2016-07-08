@@ -1,7 +1,7 @@
-/***************************************************************************
- * (c) 2002-2015 Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -37,7 +37,6 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 
 #ifndef ATLAS_CFG_H__
@@ -106,11 +105,13 @@ CConfiguration::Predefined CConfiguration::_predefines[] = {
     ATLAS_DECLARE(ATLAS_VERSION_MINOR,                     int,    "3",                "Atlas Minor version number."),
     ATLAS_DECLARE(XML_VERSION_MAJOR_CHLIST,                int,    "3",                "Channel List Major XML version number. XML version with the same major number are backwards compatible."),
     ATLAS_DECLARE(XML_VERSION_MINOR_CHLIST,                int,    "0",                "Channel List Minor XML version number. XML version with the same major number are backwards compatible."),
+    ATLAS_DECLARE(XML_VERSION_MAJOR_UDPLIST,               int,    "1",                "UDP URL List Major XML version number. XML version with the same major number are backwards compatible."),
+    ATLAS_DECLARE(XML_VERSION_MINOR_UDPLIST,               int,    "0",                "UDP URL List Minor XML version number. XML version with the same major number are backwards compatible."),
     ATLAS_DECLARE(XML_VERSION_MAJOR_NFO,                   int,    "10",               ".nfo file Major XML version number. XML version with the same major number are backwards compatible."),
     ATLAS_DECLARE(XML_VERSION_MINOR_NFO,                   int,    "0",                ".nfo file Minor XML version number. XML version with the same major number are backwards compatible."),
     ATLAS_DECLARE(EXIT_APPLICATION,                        bool,   "false",            "Gracefully quit the application."),
     ATLAS_DECLARE(FIRST_TUNE,                              bool,   "true",             "Tune to current channel in idle loop."),
-    ATLAS_DECLARE(ENABLE_IDLE_TUNE,                        bool,   "true",             "Enable auto-tuning in idle loop."),
+    ATLAS_DECLARE(ENABLE_IDLE_TUNE,                        bool,   "false",            "Enable auto-tuning in idle loop. Default is false"),
     ATLAS_DECLARE(ENABLE_LUA,                              bool,   "true",             "Enable Lua command prompt."),
     ATLAS_DECLARE(CONFIG_FILENAME,                         string, "atlas.cfg",        "Filename of Atlas configuration file (contains default settings)"),
     ATLAS_DECLARE(GRAPHICS_SURFACE_WIDTH,                  int,    "960",              "Width of the display's graphics video surface"),
@@ -256,7 +257,7 @@ CConfiguration::Predefined CConfiguration::_predefines[] = {
     ATLAS_DECLARE(NETWORK_DB_PATH,                         bool,   "/data/netapp",     "Location of the NetApp database (caches previous WiFi network) - do not use NFS mounted directory"),
     ATLAS_DECLARE(ATLAS_SERVER_ENABLED,                    bool,   "true",             "If true,then it enables atlas server."),
     ATLAS_DECLARE(HTTP_SERVER_LISTENING_PORT,              string, "8089",             "Port on which Http Server Listens for HTTP Requests from clients."),
-    ATLAS_DECLARE(HTTP_SERVER_INTERFACE_NAME,              string,  NULL,              "Binds Media Server to this specific interface name.Defaults to none, meaning HttpServer will listen on all interfaces."),
+    ATLAS_DECLARE(HTTP_SERVER_INTERFACE_NAME,              string, NULL,              "Binds Media Server to this specific interface name.Defaults to none, meaning HttpServer will listen on all interfaces."),
     ATLAS_DECLARE(HTTP_SERVER_MAX_CONCURRENT_REQUEST,      int,    "16",               "Maximum HTTP Requests HttpServer will queue & will not accept anymore new connections Request."),
     ATLAS_DECLARE(HTTP_SERVER_PERSISTENT_TIMEOUT_IN_MS,    int,    "5000",             "Non-zero timeout values enables HTTP Persistent Connection. Timeout duration is in msec after which idle connection will be timed out."),
     ATLAS_DECLARE(HTTP_SERVER_ENABLE_HW_PACING,            bool,   "true",             "If true, BIP will use File -> playpump -> recpump -> network path to enable h/w based pacing."),
@@ -267,8 +268,10 @@ CConfiguration::Predefined CConfiguration::_predefines[] = {
     ATLAS_DECLARE(AUTO_DISCOVERY_BEACON_MCAST_ADDRESS,     string, "239.99.99.99",     "udp multicast address for autodiscovery server and client. Change this to create a separate atlas server cleint envirnment on the same network."),
     ATLAS_DECLARE(AUTO_DISCOVERY_BEACON_MCAST_PORT,        int,    "9999",             "udp port number for autodiscovery server and client. Change this if there is port number conflict."),
     ATLAS_DECLARE(AUTO_DISCOVERY_BEACON_INTERVAL,          int,    "5000",             "In msec, determines how frequently autodiscovery beacons are sent, make this higher if too many atlas found in the network."),
-    ATLAS_DECLARE(AUTO_DISCOVERY_CLIENT_ENABLED,           bool,   "true",            "Turn on off atlas auto discovery client"),
-    ATLAS_DECLARE(AUTO_DISCOVERY_SERVER_ENABLED,           bool,   "true",             "Turn on off atlas auto discovery client")
+    ATLAS_DECLARE(AUTO_DISCOVERY_CLIENT_ENABLED,           bool,   "true",             "Turn on off atlas auto discovery client"),
+    ATLAS_DECLARE(AUTO_DISCOVERY_SERVER_ENABLED,           bool,   "true",             "Turn on off atlas auto discovery client"),
+    ATLAS_DECLARE(GENERATE_INDEXES,                        bool,   "true",             "Turn on off atlas threaded auto index generation for existing playback files"),
+    ATLAS_DECLARE(UDP_URL_LIST,                            string, "udpUrl.xml",       "Name of the list of UDP/RTP URLS to stream out")
 };
 
 #ifndef ATLAS_DECLARE_CONFIGSETTING_VALUES

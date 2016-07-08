@@ -163,6 +163,7 @@ int main(void)
     NEXUS_AudioDecoderHandle audioDecoder;
     NEXUS_AudioDecoderStartSettings audioProgram;
     NEXUS_PlatformSettings platformSettings;
+    NEXUS_MemoryConfigurationSettings memConfigSettings;
     NEXUS_PlatformConfiguration platformConfig;
 #if NEXUS_NUM_HDMI_OUTPUTS
     NEXUS_HdmiOutputStatus hdmiStatus;
@@ -173,7 +174,7 @@ int main(void)
     void *buf[CHUNK_COUNT];
     size_t buf_size = CHUNK_SIZE;
     unsigned cur_buf;
-    unsigned i;
+    unsigned i,j;
     NEXUS_DmaHandle dma;
     NEXUS_DmaJobSettings jobSettings;
     NEXUS_DmaJobBlockSettings blockSettings[1];
@@ -197,13 +198,33 @@ int main(void)
 
     NEXUS_Platform_GetDefaultSettings(&platformSettings);
     platformSettings.openFrontend = false;
-    NEXUS_Platform_Init(&platformSettings);
+
+#ifdef NEXUS_EXPORT_HEAP
+    /* Configure export heap since it's not allocated by nexus by default */
+    platformSettings.heap[NEXUS_EXPORT_HEAP].size = 32*1024*1024;
+#endif
+
+    NEXUS_GetDefaultMemoryConfigurationSettings(&memConfigSettings);
+    /* Request secure picture buffers, i.e. URR
+    * Only needed if SAGE is in use, and when SAGE_SECURE_MODE is NOT 1 */
+    /* For now default to SVP2.0 type configuration (i.e. ALL buffers are
+    * secure ONLY */
+    for (i=0;i<NEXUS_NUM_VIDEO_DECODERS;i++) {
+        memConfigSettings.videoDecoder[i].secure = NEXUS_SecureVideo_eSecure;
+    }
+    for (i=0;i<NEXUS_NUM_DISPLAYS;i++) {
+        for (j=0;j<NEXUS_NUM_VIDEO_WINDOWS;j++) {
+            memConfigSettings.display[i].window[j].secure = NEXUS_SecureVideo_eSecure;
+        }
+    }
+    rc = NEXUS_Platform_MemConfigInit(&platformSettings, &memConfigSettings);
+    if (rc) return -1;
     NEXUS_Platform_GetConfiguration(&platformConfig);
 
     berr = BKNI_CreateEvent(&event);
     BDBG_ASSERT(berr == BERR_SUCCESS && event);
 
-    err = prepare_keyslots(1/* playback application */, &decKeyHandle, &decCpHandle, NULL, NULL);
+    err = prepare_keyslots(1/* playback application */, &decKeyHandle, NULL, NULL, NULL);
     BDBG_ASSERT(err == 0);
 
     dma = NEXUS_Dma_Open(0, NULL);
@@ -370,10 +391,6 @@ int main(void)
     rc = NEXUS_Message_Start(msg, &msgStartSettings);
     BDBG_ASSERT(rc == BERR_SUCCESS);
 
-    /* Don't attach to video and audio pid, they'are not encrypted with CA keys anymore here */
-    NEXUS_PidChannel_GetStatus(filterPidChannel, &pidStatus);
-    NEXUS_Security_AddPidChannelToKeySlot(decCpHandle, pidStatus.pidChannelIndex);
-
     for(cur_buf=0;;) {
         int n;
         NEXUS_Error rc;
@@ -491,7 +508,7 @@ int main(void)
     BKNI_DestroyEvent(dmaEvent);
     NEXUS_Memory_Free(pMem);
     NEXUS_Dma_Close(dma);
-    clean_keyslots(decKeyHandle, decCpHandle, NULL, NULL);
+    clean_keyslots(decKeyHandle, NULL, NULL, NULL);
     BKNI_DestroyEvent(event);
 
     return 0;

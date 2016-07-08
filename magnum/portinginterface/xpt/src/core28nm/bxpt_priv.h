@@ -82,7 +82,7 @@ BXPT_POWER_MANAGEMENT is XPT-specific auxiliary PM, such as submodule-clockgatin
 #if BCHP_PWR_SUPPORT && BXPT_POWER_MANAGEMENT
 #define BXPT_P_ENABLE_SUBMODULE_CLOCKGATING 1
 #endif
-#define PWR_BO_COUNT 0xffffff
+#define PWR_BO_COUNT 0x3fffffff
 
 /***************************************************************************
 Summary:

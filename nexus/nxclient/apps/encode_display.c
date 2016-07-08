@@ -261,7 +261,7 @@ int main(int argc, char **argv)  {
 #define MB (1024*1024)
         while (!sizelimit || streamTotal < sizelimit*MB) {
             const void *dataBuffer, *indexBuffer;
-            unsigned dataSize, indexSize;
+            size_t dataSize, indexSize;
             rc = NEXUS_Recpump_GetDataBuffer(recpump, &dataBuffer, &dataSize);
             BDBG_ASSERT(!rc);
             rc = NEXUS_Recpump_GetIndexBuffer(recpump, &indexBuffer, &indexSize);

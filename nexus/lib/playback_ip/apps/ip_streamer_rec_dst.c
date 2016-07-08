@@ -1,14 +1,14 @@
 /******************************************************************************
- *    (c)2008-2012 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
  * no license (express or implied), right to use, or waiver of any kind with respect to the
  * Software, and Broadcom expressly reserves all rights in and to the Software and all
  * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELYn
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
@@ -35,17 +35,9 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description: 
  *  rec destination => record to local disk
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ******************************************************************************/
 #include <stdio.h>
 #include <assert.h>
@@ -161,7 +153,7 @@ errorCallbackDst(
     )
 {
     IpStreamerCtx *ipStreamerCtx = (IpStreamerCtx *)context;
-    BDBG_WRN(("CTX %p: Got error during network streaming/recording: stopping ip/rec dst %d", ipStreamerCtx, param));
+    BDBG_WRN(("CTX %p: Got error during network streaming/recording: stopping ip/rec dst %d", (void *)ipStreamerCtx, param));
     if (ipStreamerCtx->recDst)
         stopNexusRecDst(ipStreamerCtx);
 }
@@ -186,7 +178,7 @@ openNexusRecDst(
     for (i = 0; i < IP_STREAMER_NUM_RECPUMPS_FOR_RECORD; i++) {
         if (!ipStreamerCtx->globalCtx->recDstList[i].inUse) {
             recDst = &ipStreamerCtx->globalCtx->recDstList[i];
-            BDBG_MSG(("Found Free Record Dst entry %p", recDst));
+            BDBG_MSG(("Found Free Record Dst entry %p", (void *)recDst));
             ipStreamerCtx->recDst = recDst;
             recDst->inUse = true;
             break;
@@ -284,7 +276,7 @@ openNexusRecDst(
         return -1;
     }
 
-    BDBG_MSG(("CTX %p: Record Dst %p (file %s) is opened", ipStreamerCtx, recDst, ipStreamerCfg->fileName));
+    BDBG_MSG(("CTX %p: Record Dst %p (file %s) is opened", (void *)ipStreamerCtx, (void *)recDst, ipStreamerCfg->fileName));
     return 0;
 }
 
@@ -306,7 +298,7 @@ closeNexusRecDst(
         NEXUS_Record_Destroy(ipStreamerCtx->recDst->recordHandle);
     if (ipStreamerCtx->recDst->recpumpHandle)
         NEXUS_Recpump_Close(ipStreamerCtx->recDst->recpumpHandle);
-    BDBG_MSG(("CTX %p: Rec Dst %p is closed", ipStreamerCtx, ipStreamerCtx->recDst));
+    BDBG_MSG(("CTX %p: Rec Dst %p is closed", (void *)ipStreamerCtx, (void *)ipStreamerCtx->recDst));
 }
 
 int
@@ -321,7 +313,7 @@ startNexusRecDst(
         return -1;
     }
     ipStreamerCtx->localRecordingInProgress = true;
-    BDBG_MSG(("CTX %p: Record Dst %p is started", ipStreamerCtx, ipStreamerCtx->recDst));
+    BDBG_MSG(("CTX %p: Record Dst %p is started", (void *)ipStreamerCtx, (void *)ipStreamerCtx->recDst));
     return 0;
 }
 
@@ -333,7 +325,7 @@ stopNexusRecDst(
     if (ipStreamerCtx->localRecordingInProgress) {
         NEXUS_Record_Stop(ipStreamerCtx->recDst->recordHandle);
         ipStreamerCtx->localRecordingInProgress = false;
-        BDBG_MSG(("CTX %p: Rec dst %p is stopped", ipStreamerCtx, ipStreamerCtx->recDst));
+        BDBG_MSG(("CTX %p: Rec dst %p is stopped", (void *)ipStreamerCtx, (void *)ipStreamerCtx->recDst));
     }
 }
 

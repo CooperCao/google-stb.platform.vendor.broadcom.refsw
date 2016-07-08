@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2009 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2009 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -239,7 +239,7 @@ bool gl11_hw_get_shaders(
    }
 
    shader_out->flags =
-      !cache[hash].data.threaded |
+      (!cache[hash].data.threaded) |
       cache[hash].data.has_point_size<<1 |
       1<<2;
    shader_out->num_varyings = cache[hash].data.num_varyings;

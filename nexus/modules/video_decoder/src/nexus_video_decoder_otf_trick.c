@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2013 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -256,7 +256,7 @@ NEXUS_VideoDecoder_P_OtfPvr_Start(NEXUS_VideoDecoderHandle videoDecoder, const N
 
     BDBG_ASSERT(videoDecoder->otfPvr.otf);
 
-    BDBG_MSG(("NEXUS_VideoDecoder_P_OtfPvr_Start: %#x ", (unsigned)videoDecoder));
+    BDBG_MSG(("NEXUS_VideoDecoder_P_OtfPvr_Start: %p ", (void *)videoDecoder));
     rc = NEXUS_VideoDecoder_P_OtfPvr_MapSettings(pState, &config);
     if(rc!=BERR_SUCCESS) { rc=BERR_TRACE(rc); goto err_settings;}
     rc = BOTF_ConfigSet(videoDecoder->otfPvr.otf, &config);
@@ -317,7 +317,7 @@ NEXUS_VideoDecoder_P_OtfPvr_SetTrickState(NEXUS_VideoDecoderHandle videoDecoder,
             rc = NEXUS_VideoDecoder_P_SetChannelChangeMode(videoDecoder, NEXUS_VideoDecoder_ChannelChangeMode_eHoldUntilFirstPicture);
             if(rc!=NEXUS_SUCCESS) {rc=BERR_TRACE(rc);}
             NEXUS_VideoDecoder_P_Stop_priv(videoDecoder);
-            BDBG_MSG(("%s: %#x enabling OTF PVR", "NEXUS_VideoDecoder_OtfPvr_SetSettings", (unsigned)videoDecoder));
+            BDBG_MSG(("%s: %p enabling OTF PVR", "NEXUS_VideoDecoder_OtfPvr_SetSettings", (void *)videoDecoder));
             rc = NEXUS_VideoDecoder_P_Start_priv(videoDecoder, &videoDecoder->startSettings, true);
             if(rc!=NEXUS_SUCCESS) {return BERR_TRACE(rc);}
 
@@ -330,7 +330,7 @@ NEXUS_VideoDecoder_P_OtfPvr_SetTrickState(NEXUS_VideoDecoderHandle videoDecoder,
             return NEXUS_SUCCESS;
         } else {
             if(pState->reorderingMode != videoDecoder->trickState.reorderingMode) { /* need to restart OTF PVR */
-                BDBG_MSG(("%#s: %#x restarting OtfPvr", "NEXUS_VideoDecoder_OtfPvr_SetSettings", (unsigned)videoDecoder));
+                BDBG_MSG(("%s: %p restarting OtfPvr", "NEXUS_VideoDecoder_OtfPvr_SetSettings", (void *)videoDecoder));
                 NEXUS_VideoDecoder_Flush(videoDecoder);
                 BOTF_Stop(videoDecoder->otfPvr.otf);
                 rc = NEXUS_VideoDecoder_P_OtfPvr_Start(videoDecoder, pState);
@@ -348,7 +348,7 @@ NEXUS_VideoDecoder_P_OtfPvr_SetTrickState(NEXUS_VideoDecoderHandle videoDecoder,
             return NEXUS_SUCCESS;
         }
     } else if(videoDecoder->otfPvr.active) {
-        BDBG_MSG(("%s: %#x disabling OTF PVR", "NEXUS_VideoDecoder_OtfPvr_SetSettings", (unsigned)videoDecoder));
+        BDBG_MSG(("%s: %p disabling OTF PVR", "NEXUS_VideoDecoder_OtfPvr_SetSettings", (void *)videoDecoder));
 
         videoDecoder->otfPvr.active = false;
         rc = NEXUS_VideoDecoder_P_SetChannelChangeMode(videoDecoder, NEXUS_VideoDecoder_ChannelChangeMode_eHoldUntilFirstPicture);

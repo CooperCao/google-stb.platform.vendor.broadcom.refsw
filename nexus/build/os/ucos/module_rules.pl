@@ -1,7 +1,7 @@
 #############################################################################
-#    (c)2008-2013 Broadcom Corporation
+#  Broadcom Proprietary and Confidential. (c)2008-2016 Broadcom. All rights reserved.
 #
-# This program is the proprietary software of Broadcom Corporation and/or its licensors,
+# This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
 # conditions of a separate, written license agreement executed between you and Broadcom
 # (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,16 +34,6 @@
 # ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 # LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 # ANY LIMITED REMEDY.
-#
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
-# Module Description:
-#
-# Revision History:
-#
-# $brcm_Log: $
 #
 #############################################################################
 use strict;
@@ -136,7 +126,7 @@ foreach $moduleUpper (@ARGV) {
             print OUTFILE "\$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_ipc_server.c: \$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_ipc_api.h\n\n";
             print OUTFILE "\$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_ipc_api.h: \$(NEXUS_SYNCTHUNK_DIR)/exists \$(wildcard \$(addsuffix /*.h,\$(NEXUS_$moduleUpper\_PUBLIC_INCLUDES))) \$(CLASS_LIST) \$(NEXUS_IPC_MODULES)\n";
             print OUTFILE "\t\@echo \"[Ipc ..... $moduleLower]\"\n";
-            print OUTFILE "\t\$(Q_)\$(PERL) -I \$(NEXUS_TOP)/build/tools/common -I \$(NEXUS_TOP)/build/tools/ipcthunk \$(NEXUS_TOP)/build/tools/ipcthunk/bapi_build.pl $moduleUpper \$(NEXUS_SYNCTHUNK_DIR) \$(CLASS_LIST) \$(addsuffix /*.preload,\$(NEXUS_$moduleUpper\_PUBLIC_INCLUDES)) \$(addsuffix /*.h,\$(NEXUS_$moduleUpper\_PUBLIC_INCLUDES))\n\n";
+            print OUTFILE "\t\$(Q_)\$(PERL) -I \$(NEXUS_TOP)/build/tools/common -I \$(NEXUS_TOP)/build/tools/ipcthunk \$(NEXUS_TOP)/build/tools/ipcthunk/bapi_build.pl --class_list \$(CLASS_LIST) $moduleUpper \$(NEXUS_SYNCTHUNK_DIR) \$(addsuffix /*.preload,\$(NEXUS_$moduleUpper\_PUBLIC_INCLUDES)) \$(addsuffix /*.h,\$(NEXUS_$moduleUpper\_PUBLIC_INCLUDES))\n\n";
 
             # for client, only compile the client object + local sources
             print OUTFILE "ifeq (\${NEXUS_MODE},client)\n";

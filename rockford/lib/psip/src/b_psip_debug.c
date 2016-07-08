@@ -228,7 +228,7 @@ void printVCT(
         PSIP_VCT_channel ch;
         if (!PSIP_VCT_getChannel(buffer, i, &ch))
         {
-            BDBG_MSG(("\nshort_name:%s", ch.short_name));
+            BDBG_MSG(("\nshort_name:%s", (char*)ch.short_name));
             BDBG_MSG(("major_channel_number:%d", ch.major_channel_number));
             BDBG_MSG(("minor_channel_number:%d", ch.minor_channel_number));
             switch(ch.modulation_mode)
@@ -393,7 +393,7 @@ void printEIT(
         if (!PSIP_EIT_getEvent(buffer, i, &event))
         {
             BDBG_MSG(("event_id:0x%04x", event.event_id));
-            BDBG_MSG(("start_time:%lu", event.start_time));
+            BDBG_MSG(("start_time:%u", event.start_time));
             switch(event.ETM_location)
             {
             case PSIP_no_ETM:
@@ -515,8 +515,8 @@ void printSTT(
     BSTD_UNUSED(size);
 
     PSIP_STT_getHeader(buffer, &header);
-    BDBG_MSG(("system_time:%lu", header.system_time));
-    BDBG_MSG(("GPS_UTC_offset:%lu", header.GPS_UTC_offset));
+    BDBG_MSG(("system_time:%u", header.system_time));
+    BDBG_MSG(("GPS_UTC_offset:%u", header.GPS_UTC_offset));
     BDBG_MSG(("DS_status:%d", header.daylight_savings.DS_status));
     BDBG_MSG(("DS_day_of_month:%d", header.daylight_savings.DS_day_of_month));
     BDBG_MSG(("DS_hour:%d", header.daylight_savings.DS_hour));
@@ -541,7 +541,7 @@ void printHeader(
     BDBG_MSG(("****** current_next_indicator:%d", headerpsi.current_next_indicator));
     BDBG_MSG(("****** section_number:%d", headerpsi.section_number));
     BDBG_MSG(("****** last_section_number:%d", headerpsi.last_section_number));
-    BDBG_MSG(("****** CRC_32:%lu", headerpsi.CRC_32));
+    BDBG_MSG(("****** CRC_32:%u", headerpsi.CRC_32));
     BDBG_MSG(("******"));
 }
 

@@ -1,52 +1,51 @@
 /******************************************************************************
-* (c) 2014 Broadcom Corporation
-*
-* This program is the proprietary software of Broadcom Corporation and/or its
-* licensors, and may only be used, duplicated, modified or distributed pursuant
-* to the terms and conditions of a separate, written license agreement executed
-* between you and Broadcom (an "Authorized License").  Except as set forth in
-* an Authorized License, Broadcom grants no license (express or implied), right
-* to use, or waiver of any kind with respect to the Software, and Broadcom
-* expressly reserves all rights in and to the Software and all intellectual
-* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1. This program, including its structure, sequence and organization,
-*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-*    reasonable efforts to protect the confidentiality thereof, and to use
-*    this information only in connection with your use of Broadcom integrated
-*    circuit products.
-*
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-******************************************************************************/
-/*****************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
+ *
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************
 *
 * FILENAME: $Workfile: trunk/stack/IEEE/MAC/include/bbMacSapTypesAssociate.h $
 *
 * DESCRIPTION:
 *   MLME-ASSOCIATE service data types definition.
 *
-* $Revision: 3417 $
-* $Date: 2014-08-27 16:19:14Z $
+* $Revision: 10263 $
+* $Date: 2016-02-29 18:03:06Z $
 *
 *****************************************************************************************/
 
@@ -243,9 +242,9 @@ typedef struct _MAC_AssociateReqParams_t
     MAC_AddrMode_t          coordAddrMode;      /*!< The coordinator addressing mode for this primitive and subsequent
                                                     MPDU. */
 
-    PHY_LogicalChannelId_t  logicalChannel;     /*!< The logical channel on which to attempt association. */
+    PHY_Channel_t           logicalChannel;     /*!< The logical channel on which to attempt association. */
 
-    PHY_ChannelPageId_t     channelPage;        /*!< The channel page on which to attempt association. */
+    PHY_Page_t              channelPage;        /*!< The channel page on which to attempt association. */
 
     MAC_CapabilityInfo_t    capabilityInfo;     /*!< Specifies the operational capabilities of the associating
                                                     device. */
@@ -286,10 +285,10 @@ typedef struct _MAC_AssociateReqParams_t
 typedef struct _MAC_AssociateConfParams_t
 {
     /* 16-bit data. */
-    MAC_Addr16bit_t  assocShortAddress;     /*!< The short device address allocated by the coordinator on successful
-                                                association. */
+    MAC_Addr16bit_t      assocShortAddress;     /*!< The short device address allocated by the coordinator on successful
+                                                    association. */
     /* 8-bit data. */
-    MAC_Status_t     status;                /*!< The status of the association attempt. */
+    MAC_Status_t         status;                /*!< The status of the association attempt. */
 
     /* TODO: This field is redundant. Wrap it with a conditional build key. */
     MAC_SecurityLevel_t  securityLevel;         /*!< The security level to be used; or the security level purportedly
@@ -358,7 +357,7 @@ typedef struct _MAC_AssociateIndParams_t
     MAC_CapabilityInfo_t  capabilityInfo;       /*!< The operational capabilities of the device requesting
                                                     association. */
 
-    PHY_Lqi_t             mpduLinkQuality;      /*!< LQI value measured during reception of the association request. */
+    PHY_LQI_t             mpduLinkQuality;      /*!< LQI value measured during reception of the association request. */
 
     /* TODO: This field is redundant. Wrap it with a conditional build key. */
     MAC_SecurityLevel_t   securityLevel;        /*!< The security level purportedly used by the received MAC command
@@ -407,14 +406,14 @@ typedef void MAC_AssociateIndCallback_t(MAC_AssociateIndParams_t *const indParam
 typedef struct _MAC_AssociateRespParams_t
 {
     /* 64-bit data. */
-    MAC_Addr64bit_t  deviceAddress;         /*!< The 64-bit address of the device requesting association. */
+    MAC_Addr64bit_t      deviceAddress;         /*!< The 64-bit address of the device requesting association. */
 
     /* 16-bit data. */
-    MAC_Addr16bit_t  assocShortAddress;     /*!< The 16-bit short device address allocated by the coordinator on
-                                                successful association. */
+    MAC_Addr16bit_t      assocShortAddress;     /*!< The 16-bit short device address allocated by the coordinator on
+                                                    successful association. */
 
-    MAC_PanId_t      devicePanId;           /*!< The 16-bit PAN identifier of the device requesting association. This
-                                                 field is assigned by the MAC according to its macPANId attribute
+    MAC_PanId_t          devicePanId;           /*!< The 16-bit PAN identifier of the device requesting association.
+                                                 This field is assigned by the MAC according to its macPANId attribute
                                                  current value while processing the MLME-ASSOCIATE.response. */
     /* 8-bit data. */
     MAC_Status_t         status;                /*!< The status of the association attempt. */

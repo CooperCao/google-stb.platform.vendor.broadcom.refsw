@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2014 Broadcom Corporation
+ *     Broadcom Proprietary and Confidential. (c)2014 Broadcom.  All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -47,15 +47,6 @@
 #include "bchp_pwr.h"
 #endif
 
-#ifdef BVC5_HARDWARE_REAL
-#include "bchp_sun_top_ctrl.h"
-#include "bchp_clkgen.h"
-#ifdef V3D_HAS_BPCM
-#include "bchp_v3d_bpcm.h"
-#endif
-#include "bchp_v3d_gmp.h"
-#endif
-
 #include "bmma_system.h"
 
 BDBG_MODULE(BVC5_P);
@@ -90,6 +81,20 @@ uint32_t BVC5_P_ReadRegister(
 #endif
 }
 
+uint32_t BVC5_P_ReadNonCoreRegister(
+   BVC5_Handle  hVC5,
+   uint32_t     uiReg
+   )
+{
+#if defined(BVC5_HARDWARE_NONE)
+   return BVC5_P_NullReadRegister(hVC5, 0, uiReg);
+#elif defined(BVC5_HARDWARE_SIMPENROSE)
+   return BVC5_P_SimpenroseReadRegister(hVC5, 0, uiReg);
+#else
+   return BREG_Read32(hVC5->hReg, uiReg);
+#endif
+}
+
 void BVC5_P_WriteRegister(
    BVC5_Handle  hVC5,
    uint32_t     uiCoreIndex,
@@ -103,6 +108,21 @@ void BVC5_P_WriteRegister(
    BVC5_P_SimpenroseWriteRegister(hVC5, uiCoreIndex, uiReg, uiValue);
 #else
    BREG_Write32(hVC5->hReg, uiReg + hVC5->psCoreStates[uiCoreIndex].uiRegOffset, uiValue);
+#endif
+}
+
+void BVC5_P_WriteNonCoreRegister(
+   BVC5_Handle  hVC5,
+   uint32_t     uiReg,
+   uint32_t     uiValue
+   )
+{
+#if defined(BVC5_HARDWARE_NONE)
+   BVC5_P_NullWriteRegister(hVC5, 0, uiReg, uiValue);
+#elif defined(BVC5_HARDWARE_SIMPENROSE)
+   BVC5_P_SimpenroseWriteRegister(hVC5, 0, uiReg, uiValue);
+#else
+   BREG_Write32(hVC5->hReg, uiReg, uiValue);
 #endif
 }
 
@@ -122,6 +142,24 @@ static uint32_t BVC5_P_ReadRegister_isr(
    return BVC5_P_SimpenroseReadRegister(hVC5, uiCoreIndex, uiReg);
 #else
    return BREG_Read32_isr(hVC5->hReg, uiReg + hVC5->psCoreStates[uiCoreIndex].uiRegOffset);
+#endif
+}
+
+/* BVC5_P_ReadNonCoreRegister_isr
+ *
+ * Used in ISR context only
+ */
+static uint32_t BVC5_P_ReadNonCoreRegister_isr(
+   BVC5_Handle  hVC5,
+   uint32_t     uiReg
+)
+{
+#if defined(BVC5_HARDWARE_NONE)
+   return BVC5_P_NullReadRegister(hVC5, 0, uiReg);
+#elif defined(BVC5_HARDWARE_SIMPENROSE)
+   return BVC5_P_SimpenroseReadRegister(hVC5, 0, uiReg);
+#else
+   return BREG_Read32_isr(hVC5->hReg, uiReg);
 #endif
 }
 
@@ -145,20 +183,41 @@ static void BVC5_P_WriteRegister_isr(
 #endif
 }
 
+/* BVC5_P_WriteNonCoreRegister_isr
+ *
+ * Used in ISR context only
+ */
+static void BVC5_P_WriteNonCoreRegister_isr(
+   BVC5_Handle  hVC5,
+   uint32_t     uiReg,
+   uint32_t     uiValue
+)
+{
+#if defined(BVC5_HARDWARE_NONE)
+   BVC5_P_NullWriteRegister(hVC5, 0, uiReg, uiValue);
+#elif defined(BVC5_HARDWARE_SIMPENROSE)
+   BVC5_P_SimpenroseWriteRegister(hVC5, 0, uiReg, uiValue);
+#else
+   BREG_Write32_isr(hVC5->hReg, uiReg, uiValue);
+#endif
+}
+
 void BVC5_P_ClearL3Cache(
    BVC5_Handle hVC5,
    uint32_t uiCoreIndex
    )
 {
    /* L3 cache reset */
-   uint32_t uiCacheControl = BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_GCA_CACHE_CTRL);
+   uint32_t uiCacheControl = BVC5_P_ReadNonCoreRegister(hVC5, BCHP_V3D_GCA_CACHE_CTRL);
    uiCacheControl &= ~(BCHP_MASK(V3D_GCA_CACHE_CTRL, FLUSH));
-   BVC5_P_WriteRegister(hVC5, uiCoreIndex, BCHP_V3D_GCA_CACHE_CTRL, uiCacheControl | BCHP_FIELD_DATA(V3D_GCA_CACHE_CTRL, FLUSH, 1));
+   BVC5_P_WriteNonCoreRegister(hVC5, BCHP_V3D_GCA_CACHE_CTRL, uiCacheControl | BCHP_FIELD_DATA(V3D_GCA_CACHE_CTRL, FLUSH, 1));
 
-   /* while ((BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_GCA_CACHE_STATUS) & BCHP_V3D_GCA_CACHE_STATUS_IDLE_MASK) == 0)
+   BSTD_UNUSED(uiCoreIndex);
+
+   /* while ((BVC5_P_ReadNonCoreRegister(hVC5, uiCoreIndex, BCHP_V3D_GCA_CACHE_STATUS) & BCHP_V3D_GCA_CACHE_STATUS_IDLE_MASK) == 0)
       ; */
 
-   BVC5_P_WriteRegister(hVC5, uiCoreIndex, BCHP_V3D_GCA_CACHE_CTRL, uiCacheControl | BCHP_FIELD_DATA(V3D_GCA_CACHE_CTRL, FLUSH, 0));
+   BVC5_P_WriteNonCoreRegister(hVC5, BCHP_V3D_GCA_CACHE_CTRL, uiCacheControl | BCHP_FIELD_DATA(V3D_GCA_CACHE_CTRL, FLUSH, 0));
 }
 
 void BVC5_P_FlushTextureCache(
@@ -180,6 +239,11 @@ void BVC5_P_CleanTextureCache(
    /* Clean dirty lines only */
    BVC5_P_WriteRegister(hVC5, uiCoreIndex, BCHP_V3D_CTL_L2TFLSTA, 0);
    BVC5_P_WriteRegister(hVC5, uiCoreIndex, BCHP_V3D_CTL_L2TFLEND, ~0);
+#if V3D_VER_AT_LEAST(3,3,0,0)
+   BVC5_P_WriteRegister(hVC5, uiCoreIndex, BCHP_V3D_CTL_L2TCACTL, (1 << 8)); /* l1t write combiner flush */
+   while ((BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_CTL_L2TCACTL) & (1 << 8)) != 0)
+      ;
+#endif
    BVC5_P_WriteRegister(hVC5, uiCoreIndex, BCHP_V3D_CTL_L2TCACTL, 5); /* Clean */
    while ((BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_CTL_L2TCACTL) & 1) != 0)
       ;
@@ -227,12 +291,12 @@ void BVC5_P_UpdateShadowCounters(
       {
          uint32_t c;
          for (c = 0; c < BVC5_P_PERF_COUNTER_MAX_HW_CTRS_ACTIVE; c++)
-            hVC5->sPerfCounters.uiPCTRShadows[c] += BVC5_P_ReadRegister(hVC5, 0, BCHP_V3D_PCTR_PCTR0 + (8 * c));
+            hVC5->sPerfCounters.uiPCTRShadows[c] += BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_PCTR_PCTR0 + (8 * c));
       }
 
       if (hVC5->sPerfCounters.uiActiveBwCounters > 0)
       {
-         hVC5->sPerfCounters.uiMemBwCntShadow += BVC5_P_ReadRegister(hVC5, 0, BCHP_V3D_GCA_MEM_BW_CNT);
+         hVC5->sPerfCounters.uiMemBwCntShadow += BVC5_P_ReadNonCoreRegister(hVC5, BCHP_V3D_GCA_MEM_BW_CNT);
       }
    }
 }
@@ -242,9 +306,25 @@ static void BVC5_P_WaitForAXIIdle(
    uint32_t    uiCoreIndex
    )
 {
+   /* Wait until V3D has no active or pending AXI transactions */
+#if V3D_VER_AT_LEAST(3,3,0,0)
    uint32_t uiQuiet;
 
-   /* Wait until V3D has no active or pending AXI transactions */
+   /* Ask the GMP to stop all transactions cleanly */
+   /* This is only called before a V3D or GMP reset, so we don't need to re-enable the AXI transactions later */
+   BVC5_P_WriteRegister_isr(hVC5, uiCoreIndex, BCHP_V3D_GMP_CFG, BCHP_FIELD_DATA(V3D_GMP_CFG, STOP_REQ, 1));
+
+   /* Wait until it has stopped, and there is no table load in progress */
+   uiQuiet = BCHP_FIELD_DATA(V3D_GMP_STATUS, WR_CNT, 1) | BCHP_FIELD_DATA(V3D_GMP_STATUS, RD_CNT, 1) |
+             BCHP_FIELD_DATA(V3D_GMP_STATUS, CFG_BUSY, 1);
+   while (BVC5_P_ReadRegister_isr(hVC5, uiCoreIndex, BCHP_V3D_GMP_STATUS) & uiQuiet)
+   {
+      BKNI_Printf("AXI WAS NOT IDLE\n");
+      continue;
+   }
+#else
+   uint32_t uiQuiet;
+
    uiQuiet = BCHP_FIELD_DATA(V3D_GMP_GMPCS, AWBURST, 1) |
              BCHP_FIELD_DATA(V3D_GMP_GMPCS, AWOST, 1)   |
              BCHP_FIELD_DATA(V3D_GMP_GMPCS, AWBWAIT, 1) |
@@ -257,6 +337,7 @@ static void BVC5_P_WaitForAXIIdle(
       BKNI_Printf("AXI WAS NOT IDLE\n");
       continue;
    }
+#endif
 }
 
 void BVC5_P_HardwareBPCMPowerUp(
@@ -264,27 +345,34 @@ void BVC5_P_HardwareBPCMPowerUp(
    )
 {
 #ifdef V3D_HAS_BPCM
+#if V3D_VER_AT_LEAST(3,3,0,0)
+   #define BCHP_V3D_BPCM_PWR_ZONE_0_CONTROL BCHP_ZONE0_FS_PWR_CONTROL
+   #define V3D_BPCM_PWR_ZONE_0(X) ZONE0_FS_PWR_##X
+#else
+   #define V3D_BPCM_PWR_ZONE_0(X) V3D_BPCM_PWR_ZONE_0_##X
+#endif
+   #define BPCM_MASK(X, Y) BCHP_MASK(X, Y)
    /* Power-up V3D */
    uint32_t uiSuccess, uiMask;
    uint32_t uiZoneControl;
 
-   uiZoneControl = BCHP_FIELD_DATA(V3D_BPCM_PWR_ZONE_0_CONTROL, ZONE_DPG_CNTL_EN, 1) |
-      BCHP_FIELD_DATA(V3D_BPCM_PWR_ZONE_0_CONTROL, ZONE_PWR_UP_REQ, 1) |
-      BCHP_FIELD_DATA(V3D_BPCM_PWR_ZONE_0_CONTROL, ZONE_BLK_RST_ASSERT, 1) |
-      BCHP_FIELD_DATA(V3D_BPCM_PWR_ZONE_0_CONTROL, ZONE_MEM_PWR_CNTL_EN, 1);
+   uiZoneControl = BCHP_FIELD_DATA(V3D_BPCM_PWR_ZONE_0(CONTROL), ZONE_DPG_CNTL_EN, 1) |
+      BCHP_FIELD_DATA(V3D_BPCM_PWR_ZONE_0(CONTROL), ZONE_PWR_UP_REQ, 1) |
+      BCHP_FIELD_DATA(V3D_BPCM_PWR_ZONE_0(CONTROL), ZONE_BLK_RST_ASSERT, 1) |
+      BCHP_FIELD_DATA(V3D_BPCM_PWR_ZONE_0(CONTROL), ZONE_MEM_PWR_CNTL_EN, 1);
 
    BREG_Write32(hVC5->hReg, BCHP_V3D_BPCM_PWR_ZONE_0_CONTROL, uiZoneControl);
 
    uiZoneControl = BREG_Read32(hVC5->hReg, BCHP_V3D_BPCM_PWR_ZONE_0_CONTROL);
 
-   uiSuccess = BCHP_MASK(V3D_BPCM_PWR_ZONE_0_CONTROL, ZONE_MEM_PWR_STATE) |
-      BCHP_MASK(V3D_BPCM_PWR_ZONE_0_CONTROL, ZONE_DPG_PWR_STATE) |
-      BCHP_MASK(V3D_BPCM_PWR_ZONE_0_CONTROL, ZONE_PWR_ON_STATE);
+   uiSuccess = BPCM_MASK(V3D_BPCM_PWR_ZONE_0(CONTROL), ZONE_MEM_PWR_STATE) |
+      BPCM_MASK(V3D_BPCM_PWR_ZONE_0(CONTROL), ZONE_DPG_PWR_STATE) |
+      BPCM_MASK(V3D_BPCM_PWR_ZONE_0(CONTROL), ZONE_PWR_ON_STATE);
 
-   uiMask = BCHP_MASK(V3D_BPCM_PWR_ZONE_0_CONTROL, ZONE_ISO_STATE) |
-      BCHP_MASK(V3D_BPCM_PWR_ZONE_0_CONTROL, ZONE_MEM_PWR_STATE) |
-      BCHP_MASK(V3D_BPCM_PWR_ZONE_0_CONTROL, ZONE_DPG_PWR_STATE) |
-      BCHP_MASK(V3D_BPCM_PWR_ZONE_0_CONTROL, ZONE_PWR_ON_STATE);
+   uiMask = BPCM_MASK(V3D_BPCM_PWR_ZONE_0(CONTROL), ZONE_ISO_STATE) |
+      BPCM_MASK(V3D_BPCM_PWR_ZONE_0(CONTROL), ZONE_MEM_PWR_STATE) |
+      BPCM_MASK(V3D_BPCM_PWR_ZONE_0(CONTROL), ZONE_DPG_PWR_STATE) |
+      BPCM_MASK(V3D_BPCM_PWR_ZONE_0(CONTROL), ZONE_PWR_ON_STATE);
 
    uiZoneControl = BREG_Read32(hVC5->hReg, BCHP_V3D_BPCM_PWR_ZONE_0_CONTROL);
 
@@ -304,23 +392,23 @@ void BVC5_P_HardwareBPCMPowerDown(
    uint32_t uiZoneControl = BREG_Read32(hVC5->hReg, BCHP_V3D_BPCM_PWR_ZONE_0_CONTROL);
 
    /* Check PWR_ON_STATE bit */
-   if (BCHP_GET_FIELD_DATA(uiZoneControl, V3D_BPCM_PWR_ZONE_0_CONTROL, ZONE_PWR_ON_STATE))
+   if (BCHP_GET_FIELD_DATA(uiZoneControl, V3D_BPCM_PWR_ZONE_0(CONTROL), ZONE_PWR_ON_STATE))
    {
       uint32_t uiSuccess, uiMask;
 
-      uiZoneControl = BCHP_FIELD_DATA(V3D_BPCM_PWR_ZONE_0_CONTROL, ZONE_DPG_CNTL_EN, 1) |
-         BCHP_FIELD_DATA(V3D_BPCM_PWR_ZONE_0_CONTROL, ZONE_PWR_DN_REQ, 1) |
-         BCHP_FIELD_DATA(V3D_BPCM_PWR_ZONE_0_CONTROL, ZONE_MEM_PWR_CNTL_EN, 1);
+      uiZoneControl = BCHP_FIELD_DATA(V3D_BPCM_PWR_ZONE_0(CONTROL), ZONE_DPG_CNTL_EN, 1) |
+         BCHP_FIELD_DATA(V3D_BPCM_PWR_ZONE_0(CONTROL), ZONE_PWR_DN_REQ, 1) |
+         BCHP_FIELD_DATA(V3D_BPCM_PWR_ZONE_0(CONTROL), ZONE_MEM_PWR_CNTL_EN, 1);
 
       BREG_Write32(hVC5->hReg, BCHP_V3D_BPCM_PWR_ZONE_0_CONTROL, uiZoneControl);
 
-      uiSuccess = BCHP_MASK(V3D_BPCM_PWR_ZONE_0_CONTROL, ZONE_ISO_STATE) |
-         BCHP_MASK(V3D_BPCM_PWR_ZONE_0_CONTROL, ZONE_PWR_OFF_STATE);
+      uiSuccess = BPCM_MASK(V3D_BPCM_PWR_ZONE_0(CONTROL), ZONE_ISO_STATE) |
+         BPCM_MASK(V3D_BPCM_PWR_ZONE_0(CONTROL), ZONE_PWR_OFF_STATE);
 
-      uiMask = BCHP_MASK(V3D_BPCM_PWR_ZONE_0_CONTROL, ZONE_ISO_STATE) |
-         BCHP_MASK(V3D_BPCM_PWR_ZONE_0_CONTROL, ZONE_MEM_PWR_STATE) |
-         BCHP_MASK(V3D_BPCM_PWR_ZONE_0_CONTROL, ZONE_DPG_PWR_STATE) |
-         BCHP_MASK(V3D_BPCM_PWR_ZONE_0_CONTROL, ZONE_PWR_OFF_STATE);
+      uiMask = BPCM_MASK(V3D_BPCM_PWR_ZONE_0(CONTROL), ZONE_ISO_STATE) |
+         BPCM_MASK(V3D_BPCM_PWR_ZONE_0(CONTROL), ZONE_MEM_PWR_STATE) |
+         BPCM_MASK(V3D_BPCM_PWR_ZONE_0(CONTROL), ZONE_DPG_PWR_STATE) |
+         BPCM_MASK(V3D_BPCM_PWR_ZONE_0(CONTROL), ZONE_PWR_OFF_STATE);
 
       uiZoneControl = BREG_Read32(hVC5->hReg, BCHP_V3D_BPCM_PWR_ZONE_0_CONTROL);
       while ((uiZoneControl & uiMask) != uiSuccess)
@@ -356,16 +444,20 @@ static void BVC5_P_HardwareTurnOff(
 
       BVC5_P_HardwareResetV3D(hVC5);
 
-#ifdef BCHP_PWR_SUPPORT
-      BCHP_PWR_ReleaseResource(hVC5->hChp, BCHP_PWR_RESOURCE_GRAPHICS3D_SRAM);
-      BCHP_PWR_ReleaseResource(hVC5->hChp, BCHP_PWR_RESOURCE_GRAPHICS3D);
-#endif
-
       if (hVC5->sOpenParams.bUsePowerGating)
          BVC5_P_HardwareBPCMPowerDown(hVC5);
 
       if (hVC5->sPerfCounters.bCountersActive)
          BVC5_P_GetTime_isrsafe(&hVC5->sPerfCounters.uiPoweredOffStartTime);
+
+#ifdef BCHP_PWR_SUPPORT
+#ifdef BCHP_PWR_RESOURCE_GRAPHICS3D_SRAM
+      BCHP_PWR_ReleaseResource(hVC5->hChp, BCHP_PWR_RESOURCE_GRAPHICS3D_SRAM);
+#endif
+#ifdef BCHP_PWR_RESOURCE_GRAPHICS3D
+      BCHP_PWR_ReleaseResource(hVC5->hChp, BCHP_PWR_RESOURCE_GRAPHICS3D);
+#endif
+#endif
    }
 }
 
@@ -376,22 +468,22 @@ void BVC5_P_RestorePerfCounters(
 {
    if (hVC5->psCoreStates[uiCoreIndex].bPowered)
    {
-      BVC5_P_WriteRegister(hVC5, 0, BCHP_V3D_PCTR_PCTRC, 0xFFFF);
-      BVC5_P_WriteRegister(hVC5, 0, BCHP_V3D_GCA_PM_CTRL, 1);     /* Holds the counters in reset until de-asserted */
+      BVC5_P_WriteRegister(hVC5, uiCoreIndex, BCHP_V3D_PCTR_PCTRC, 0xFFFF);
+      BVC5_P_WriteNonCoreRegister(hVC5, BCHP_V3D_GCA_PM_CTRL, 1);     /* Holds the counters in reset until de-asserted */
 
       /* re-write the performance monitor values/re-enable */
       if (hVC5->sPerfCounters.uiPCTREShadow)
       {
          uint32_t c;
          for (c = 0; c < BVC5_P_PERF_COUNTER_MAX_HW_CTRS_ACTIVE; c++)
-            BVC5_P_WriteRegister(hVC5, 0, BCHP_V3D_PCTR_PCTRS0 + (c * 8), hVC5->sPerfCounters.uiPCTRSShadow[c]);
-         BVC5_P_WriteRegister(hVC5, 0, BCHP_V3D_PCTR_PCTRE, hVC5->sPerfCounters.uiPCTREShadow);
+            BVC5_P_WriteRegister(hVC5, uiCoreIndex, BCHP_V3D_PCTR_PCTRS0 + (c * 8), hVC5->sPerfCounters.uiPCTRSShadow[c]);
+         BVC5_P_WriteRegister(hVC5, uiCoreIndex, BCHP_V3D_PCTR_PCTRE, hVC5->sPerfCounters.uiPCTREShadow);
       }
 
       if (hVC5->sPerfCounters.uiActiveBwCounters > 0)
       {
          /* Must also clear the bottom two bits to enable the counters */
-         BVC5_P_WriteRegister(hVC5, 0, BCHP_V3D_GCA_PM_CTRL, hVC5->sPerfCounters.uiGCAPMSelShadow & (~3));
+         BVC5_P_WriteNonCoreRegister(hVC5, BCHP_V3D_GCA_PM_CTRL, hVC5->sPerfCounters.uiGCAPMSelShadow & (~3));
       }
    }
 }
@@ -407,6 +499,9 @@ static bool BVC5_P_InitGMPTable(
    const uint32_t          size       = 8 * 1024;
    const uint32_t          byteRegion = 512 * 1024;
    int32_t                 sByte, eByte;
+
+   if (hVC5->bSecure)
+      return false;
 
    if (hVC5->hGMPTable != NULL)
       return true;
@@ -441,7 +536,7 @@ static bool BVC5_P_InitGMPTable(
    /* Fill the 512K regions from start to end for the protected region */
    BKNI_Memset(ptr + sByte, 0x0, eByte - sByte + 1);
 
-   BMEM_Heap_FlushCache(hVC5->hHeap, 0, ~0);
+   BMEM_Heap_FlushCache(hVC5->hHeap, ptr, size);
 
    BMMA_Unlock(hVC5->hGMPTable, ptr);
 
@@ -461,6 +556,27 @@ static void BVC5_P_SetupGMP_isr(
    /* Wait until the GMP can accept a reset */
    BVC5_P_WaitForAXIIdle(hVC5, uiCoreIndex);
 
+#if V3D_VER_AT_LEAST(3,3,0,0)
+   /* Reset the GMP */
+   BVC5_P_WriteRegister_isr(hVC5, uiCoreIndex, BCHP_V3D_GMP_STATUS, BCHP_FIELD_DATA(V3D_GMP_STATUS, GMPRST, 1));
+
+   /* Enable the GMP violation interrupt bit */
+   uiMask = BCHP_FIELD_DATA(V3D_CTL_INT_MSK_CLR_INT, OUTOMEM, 1) |
+            BCHP_FIELD_DATA(V3D_CTL_INT_MSK_CLR_INT, FLDONE, 1) |
+            BCHP_FIELD_DATA(V3D_CTL_INT_MSK_CLR_INT, FRDONE, 1) |
+            BCHP_FIELD_DATA(V3D_CTL_INT_MSK_CLR_INT, GMPV, 1);
+   BVC5_P_WriteRegister_isr(hVC5, uiCoreIndex, BCHP_V3D_CTL_INT_MSK_CLR, uiMask);
+
+   /* Set the address of the protection table */
+   BVC5_P_WriteRegister_isr(hVC5, uiCoreIndex, BCHP_V3D_GMP_TABLE_ADDR, (uint32_t)hVC5->uiGMPOffset);
+
+   /* Load the entire table */
+   BVC5_P_WriteRegister_isr(hVC5, uiCoreIndex, BCHP_V3D_GMP_CLEAR_LOAD, 0xFFFFFFFF);
+
+   /* Turn on protection - no need to wait for table load to finish */
+   BVC5_P_WriteRegister_isr(hVC5, uiCoreIndex, BCHP_V3D_GMP_CFG, BCHP_FIELD_DATA(V3D_GMP_CFG, PROTENABLE, 1));
+
+#else
    /* Reset the GMP */
    BVC5_P_WriteRegister_isr(hVC5, uiCoreIndex, BCHP_V3D_GMP_GMPCS, BCHP_FIELD_DATA(V3D_GMP_GMPCS, GMPRST, 1));
 
@@ -495,6 +611,7 @@ static void BVC5_P_SetupGMP_isr(
    BVC5_P_WriteRegister_isr(hVC5, uiCoreIndex, BCHP_V3D_GMP_GMPCFG,
                             BCHP_FIELD_DATA(V3D_GMP_GMPCFG, ENABLE, 1) |
                             BCHP_FIELD_DATA(V3D_GMP_GMPCFG, FSTALL, 0));
+#endif
 }
 
 static void BVC5_P_PrintGMPViolation_isr(
@@ -530,6 +647,19 @@ static void BVC5_P_HandleGMPViolation_isr(
    uint32_t    uiCoreIndex
    )
 {
+#if V3D_VER_AT_LEAST(3,3,0,0)
+   uint32_t type;
+   uint32_t addr;
+   uint32_t id;
+   uint32_t write;
+
+   addr  = BVC5_P_ReadRegister_isr(hVC5, uiCoreIndex, BCHP_V3D_GMP_VIO_ADDR);
+   type  = BVC5_P_ReadRegister_isr(hVC5, uiCoreIndex, BCHP_V3D_GMP_VIO_TYPE);
+   id    = BCHP_GET_FIELD_DATA(type, V3D_GMP_VIO_TYPE, VIOID);
+   write = BCHP_GET_FIELD_DATA(type, V3D_GMP_VIO_TYPE, VIO_WR);
+
+   BVC5_P_PrintGMPViolation_isr(addr, id, write ? true : false);
+#else
    uint32_t status;
    uint32_t addr;
    uint32_t pvrt;
@@ -554,12 +684,13 @@ static void BVC5_P_HandleGMPViolation_isr(
 
       BVC5_P_PrintGMPViolation_isr(addr, id, true);
    }
+#endif
 
    /* Reset the GMP */
    BVC5_P_SetupGMP_isr(hVC5, uiCoreIndex);
 }
 
-static void BVC5_P_SetDefaultRegisterState(
+void BVC5_P_HardwareSetDefaultRegisterState(
    BVC5_Handle hVC5,
    uint32_t    uiCoreIndex
 )
@@ -580,15 +711,24 @@ static void BVC5_P_SetDefaultRegisterState(
    /* Client IDs : 0=L2C, 1=CLE, 2=PTB, 3=PSE, 4=VC4, 5=VDW, 6=L2T, 7=TLB */
    uiCacheId = BCHP_FIELD_DATA(V3D_GCA_CACHE_ID, CACHE_ID_EN, 0x41) | /* Bypass the L3C for L2C & L2T data */
                BCHP_FIELD_DATA(V3D_GCA_CACHE_ID, INVERT_FUNCTION, 1);
-   BVC5_P_WriteRegister(hVC5, 0, BCHP_V3D_GCA_CACHE_ID, uiCacheId);
+   BVC5_P_WriteNonCoreRegister(hVC5, BCHP_V3D_GCA_CACHE_ID, uiCacheId);
 
    uiLowPriId = BCHP_FIELD_DATA(V3D_GCA_LOW_PRI_ID, LOW_PRI_ID_EN, 0x7F) | /* High-priority for all except TLB and TFU */
                 BCHP_FIELD_DATA(V3D_GCA_LOW_PRI_ID, INVERT_FUNCTION, 1);
-   BVC5_P_WriteRegister(hVC5, 0, BCHP_V3D_GCA_LOW_PRI_ID, uiLowPriId);
+   BVC5_P_WriteNonCoreRegister(hVC5, BCHP_V3D_GCA_LOW_PRI_ID, uiLowPriId);
 
-#if !((BCHP_CHIP == 7250) || (BCHP_CHIP == 7439))
+#if V3D_VER_AT_LEAST(3,3,0,0)
+   if (hVC5->sOpenParams.bNoBurstSplitting)
+      BVC5_P_WriteRegister(hVC5, 0, BCHP_V3D_GCA_SCB_8_0_CMD_SPLIT_CTL,
+                   BCHP_FIELD_DATA(V3D_GCA_SCB_8_0_CMD_SPLIT_CTL, SCB_8_0_CMD_SPLIT_DIS, 1));
+
    /* Set up OVRTMUOUT mode (this doesn't work in v3dv3.2) */
    BVC5_P_WriteRegister(hVC5, uiCoreIndex, BCHP_V3D_CTL_MISCCFG, 1);
+
+   /* Workaround GFXH-1383: restore register at address 0 to default value. */
+   BVC5_P_WriteNonCoreRegister(hVC5, BCHP_V3D_HUB_CTL_AXICFG,
+      (BCHP_V3D_HUB_CTL_AXICFG_QOS_DEFAULT << BCHP_V3D_HUB_CTL_AXICFG_QOS_SHIFT)
+    | (BCHP_V3D_HUB_CTL_AXICFG_MAXLEN_DEFAULT << BCHP_V3D_HUB_CTL_AXICFG_MAXLEN_SHIFT) );
 #endif
 
 #if USE_GMP_MONITORING
@@ -602,6 +742,20 @@ static void BVC5_P_SetDefaultRegisterState(
       BVC5_P_WriteRegister(hVC5, uiCoreIndex, BCHP_V3D_CLE_RFC, 1);
       renderState->uiLastRFC = 0;
    }
+
+#if V3D_VER_AT_LEAST(3,3,0,0)
+   /* Enable & clear the cycle counters in the core and the TFU*/
+   BVC5_P_WriteRegister(hVC5, uiCoreIndex, BCHP_V3D_CLE_CCNTCS,
+                        BCHP_FIELD_DATA(V3D_CLE_CCNTCS, CCNT_EN,  1) |
+                        BCHP_FIELD_DATA(V3D_CLE_CCNTCS, FIFO_CLR, 1));
+
+   BVC5_P_WriteNonCoreRegister(hVC5, BCHP_V3D_TFU_CCCS,
+                        BCHP_FIELD_DATA(V3D_TFU_CCCS, CCNT_EN,  1) |
+                        BCHP_FIELD_DATA(V3D_TFU_CCCS, FIFO_CLR, 1));
+#endif
+
+   __sync_fetch_and_and(&hVC5->uiInterruptReason, 0);
+   __sync_fetch_and_and(&hVC5->uiTFUInterruptReason, 0);
 }
 
 static void BVC5_P_HardwareResetV3D(
@@ -626,7 +780,7 @@ void BVC5_P_HardwareResetCoreAndState(
 )
 {
    BVC5_P_HardwareResetV3D(hVC5);
-   BVC5_P_SetDefaultRegisterState(hVC5, uiCoreIndex);
+   BVC5_P_HardwareSetDefaultRegisterState(hVC5, uiCoreIndex);
 }
 
 static void BVC5_P_HardwareTurnOn(
@@ -637,8 +791,12 @@ static void BVC5_P_HardwareTurnOn(
    if (!hVC5->psCoreStates[uiCoreIndex].bPowered)
    {
 #ifdef BCHP_PWR_SUPPORT
+#ifdef BCHP_PWR_RESOURCE_GRAPHICS3D
       BCHP_PWR_AcquireResource(hVC5->hChp, BCHP_PWR_RESOURCE_GRAPHICS3D);
+#endif
+#ifdef BCHP_PWR_RESOURCE_GRAPHICS3D_SRAM
       BCHP_PWR_AcquireResource(hVC5->hChp, BCHP_PWR_RESOURCE_GRAPHICS3D_SRAM);
+#endif
 #endif
 
       if (hVC5->sOpenParams.bUsePowerGating)
@@ -662,7 +820,7 @@ static void BVC5_P_HardwareTurnOn(
          same thread */
       __sync_fetch_and_or(&hVC5->psCoreStates[uiCoreIndex].bPowered, 1);
 
-      BVC5_P_SetDefaultRegisterState(hVC5, uiCoreIndex);
+      BVC5_P_HardwareSetDefaultRegisterState(hVC5, uiCoreIndex);
       BVC5_P_RestorePerfCounters(hVC5, uiCoreIndex);
       BVC5_P_HardwareResetWatchdog(hVC5, uiCoreIndex);
    }
@@ -876,16 +1034,15 @@ static bool BVC5_P_IssueBinJob(
    BDBG_ASSERT(psJob != NULL);
 
    pBinJob = (BVC5_JobBin *)psJob->pBase;
-
-   BDBG_ASSERT(pBinJob->uiStart[uiCoreIndex] != 0);
-   BDBG_ASSERT(pBinJob->uiEnd[uiCoreIndex] != 0);
-   BDBG_ASSERT(pBinJob->uiStart[uiCoreIndex] != pBinJob->uiEnd[uiCoreIndex]);
-
    psRenderJob = psJob->jobData.sBin.psInternalRenderJob;
 
-   if (!psJob->bAbandon && psRenderJob != NULL)
+   if (!psJob->bAbandon && psRenderJob != NULL && pBinJob->uiNumSubJobs > 0)
    {
-      pvAddr = BVC5_P_BinMemArrayAdd(&psRenderJob->jobData.sRender.sBinMemArray, hVC5->hBinPool,
+      BDBG_ASSERT(pBinJob->uiStart[uiCoreIndex] != 0);
+      BDBG_ASSERT(pBinJob->uiEnd[uiCoreIndex] != 0);
+      BDBG_ASSERT(pBinJob->uiStart[uiCoreIndex] != pBinJob->uiEnd[uiCoreIndex]);
+
+      pvAddr = BVC5_P_BinMemArrayAdd(&psRenderJob->jobData.sRender.sBinMemArray,
                                      psJob->jobData.sBin.uiMinInitialBinBlockSize, &uiPhysical);
 
       if (pvAddr == NULL)
@@ -900,6 +1057,8 @@ static bool BVC5_P_IssueBinJob(
       /* Clear BPOS to ensure we can't use left over bin memory */
       BVC5_P_WriteRegister(hVC5, uiCoreIndex, BCHP_V3D_PTB_BPOS, 0);
 
+      /* BKNI_Printf("Bin memory physical address %x\n", uiPhysical); */
+
       /* Setup the memory for this bin job and kick it off */
       BVC5_P_WriteRegister(hVC5, uiCoreIndex, BCHP_V3D_CLE_CT0QMA, uiPhysical);
       BVC5_P_WriteRegister(hVC5, uiCoreIndex, BCHP_V3D_CLE_CT0QMS, pvAddr->uiNumBytes);
@@ -913,13 +1072,23 @@ static bool BVC5_P_IssueBinJob(
          hVC5->sPerfCounters.uiBinnerIdleStartTime = 0;
       }
 
+#if V3D_VER_AT_LEAST(3,3,0,0)
+      if (hVC5->sEventMonitor.bActive)
+      {
+         BVC5_P_PushJobFifo(&hVC5->sEventMonitor.sBinJobFifoCLE, psJob);
+         BVC5_P_PushJobFifo(&hVC5->sEventMonitor.sBinJobFifoPTB, psJob);
+      }
+#endif
+
+#if INCLUDE_LEGACY_EVENT_TRACKS
       BVC5_P_AddCoreJobEvent(hVC5, uiCoreIndex, BVC5_P_EVENT_MONITOR_CORE_BIN_TRACK, BVC5_P_EVENT_MONITOR_BINNING,
-                             BVC5_EventBegin, psJob);
+                             BVC5_EventBegin, psJob, BVC5_P_GetEventTimestamp(hVC5, uiCoreIndex));
+#endif
 
       BVC5_P_WriteRegister(hVC5, uiCoreIndex, BCHP_V3D_CLE_CT0QEA, pBinJob->uiEnd[uiCoreIndex]);
 
       /* The binner is off and running, so now reallocate memory. */
-      BVC5_P_BinPoolReplenish(hVC5->hBinPool);
+      BVC5_P_BinMemArrayReplenishPool(&psRenderJob->jobData.sRender.sBinMemArray);
    }
    else
    {
@@ -958,23 +1127,37 @@ static void BVC5_P_IssueRenderJob(
 
    if (!psJob->bAbandon)
    {
+      uint32_t uiQCFG = BCHP_FIELD_DATA(V3D_CLE_CT1QCFG, CTQMCDIS, 1);
+
       BVC5_P_SchedPerfCounterAdd_isr(hVC5, BVC5_P_PERF_RENDER_JOBS_SUBMITTED, 1);
+
+#if V3D_VER_AT_LEAST(3,3,0,0)
+      /* Control empty-tile processing (TBL) */
+      if (pRenderJob->uiEmptyTileMode != BVC5_EMPTY_TILE_MODE_NONE)
+      {
+         /* Macros to control empty-tile processing are missing. */
+         uiQCFG |= 1u << 7; /* BCHP_FIELD_DATA(V3D_CLE_CT1QCFG, CTETFILT, 1); */
+         if (pRenderJob->uiEmptyTileMode == BVC5_EMPTY_TILE_MODE_FILL)
+            uiQCFG |= 1u << 6; /* BCHP_FIELD_DATA(V3D_CLE_CT1QCFG, CTETPROC, 1); */
+      }
+#endif
 
       /* We don't support multi-core yet */
       BDBG_ASSERT(pRenderJob->uiNumSubJobs == 1);
-
-      /* TODO is this needed in single core? */
-      if (pRenderJob->uiNumSubJobs == 1)
-         BVC5_P_WriteRegister(hVC5, uiCoreIndex, BCHP_V3D_CLE_CT1QCFG, BCHP_FIELD_DATA(V3D_CLE_CT1QCFG, CTQMCDIS, 1));
+      BVC5_P_WriteRegister(hVC5, uiCoreIndex, BCHP_V3D_CLE_CT1QCFG, uiQCFG);
 
       if (!psJob->jobData.sRender.bRenderOnlyJob)
       {
          uint32_t              physAddr;
          BVC5_BinBlockHandle   pvBinMem = BVC5_P_BinMemArrayGetBlock(&psJob->jobData.sRender.sBinMemArray, 0);
+         if (pvBinMem != NULL)
+         {
+            physAddr = BVC5_P_BinBlockGetPhysical(pvBinMem);
 
-         BDBG_ASSERT(pvBinMem != NULL);
-         physAddr = BVC5_P_BinBlockGetPhysical(pvBinMem);
-         BVC5_P_WriteRegister(hVC5, uiCoreIndex, BCHP_V3D_CLE_CT1QBASE0, physAddr);
+            /* BKNI_Printf("Renderer physical address %08x -> BCHP_V3D_CLE_CT1QBASE0\n", physAddr); */
+
+            BVC5_P_WriteRegister(hVC5, uiCoreIndex, BCHP_V3D_CLE_CT1QBASE0, physAddr);
+         }
       }
 
       BVC5_P_WriteRegister(hVC5, uiCoreIndex, BCHP_V3D_CLE_CT1QBA, pRenderJob->uiStart[uiCoreIndex]);
@@ -987,13 +1170,23 @@ static void BVC5_P_IssueRenderJob(
          hVC5->sPerfCounters.uiRendererIdleStartTime = 0;
       }
 
+#if V3D_VER_AT_LEAST(3,3,0,0)
+      if (hVC5->sEventMonitor.bActive)
+      {
+         BVC5_P_PushJobFifo(&hVC5->sEventMonitor.sRenderJobFifoCLE, psJob);
+         BVC5_P_PushJobFifo(&hVC5->sEventMonitor.sRenderJobFifoTLB, psJob);
+      }
+#endif
+
+#if INCLUDE_LEGACY_EVENT_TRACKS
       /* Job is issued straight away so record start.  In the other case, we record the start when the previous job
          has finished */
       if (bUseRunning)
       {
          BVC5_P_AddCoreJobEvent(hVC5, uiCoreIndex, BVC5_P_EVENT_MONITOR_CORE_RENDER_TRACK, BVC5_P_EVENT_MONITOR_RENDERING,
-                                BVC5_EventBegin, psJob);
+                                BVC5_EventBegin, psJob, BVC5_P_GetEventTimestamp(hVC5, uiCoreIndex));
       }
+#endif
 
       BVC5_P_WriteRegister(hVC5, uiCoreIndex, BCHP_V3D_CLE_CT1QEA, pRenderJob->uiEnd[uiCoreIndex]);
    }
@@ -1027,19 +1220,19 @@ static void BVC5_P_IssueTFUJob(
       uiVal = BCHP_FIELD_DATA(V3D_TFU_TFUCOEF3, ABB, pTFUJob->sCustomCoefs.uiBB) |
               BCHP_FIELD_DATA(V3D_TFU_TFUCOEF3, AGB, pTFUJob->sCustomCoefs.uiGB);
 
-      BVC5_P_WriteRegister(hVC5, 0, BCHP_V3D_TFU_TFUCOEF3, uiVal);
+      BVC5_P_WriteNonCoreRegister(hVC5, BCHP_V3D_TFU_TFUCOEF3, uiVal);
 
       /* COEF2 */
       uiVal = BCHP_FIELD_DATA(V3D_TFU_TFUCOEF2, AGR, pTFUJob->sCustomCoefs.uiGR) |
               BCHP_FIELD_DATA(V3D_TFU_TFUCOEF2, ARR, pTFUJob->sCustomCoefs.uiRR);
 
-      BVC5_P_WriteRegister(hVC5, 0, BCHP_V3D_TFU_TFUCOEF2, uiVal);
+      BVC5_P_WriteNonCoreRegister(hVC5, BCHP_V3D_TFU_TFUCOEF2, uiVal);
 
       /* COEF1 */
       uiVal = BCHP_FIELD_DATA(V3D_TFU_TFUCOEF1, AGC, pTFUJob->sCustomCoefs.uiGC) |
               BCHP_FIELD_DATA(V3D_TFU_TFUCOEF1, ABC, pTFUJob->sCustomCoefs.uiBC);
 
-      BVC5_P_WriteRegister(hVC5, 0, BCHP_V3D_TFU_TFUCOEF1, uiVal);
+      BVC5_P_WriteNonCoreRegister(hVC5, BCHP_V3D_TFU_TFUCOEF1, uiVal);
 
       /* COEF0 */
       uiVal = BCHP_FIELD_DATA(V3D_TFU_TFUCOEF0, AY, pTFUJob->sCustomCoefs.uiY) |
@@ -1047,14 +1240,14 @@ static void BVC5_P_IssueTFUJob(
               BCHP_FIELD_DATA(V3D_TFU_TFUCOEF0, USECOEF, 1);
 
       /* Also enable custom coeffs */
-      BVC5_P_WriteRegister(hVC5, 0, BCHP_V3D_TFU_TFUCOEF0, uiVal);
+      BVC5_P_WriteNonCoreRegister(hVC5, BCHP_V3D_TFU_TFUCOEF0, uiVal);
    }
 
    /* Output Size */
    uiVal = BCHP_FIELD_DATA(V3D_TFU_TFUIOS, XSIZE, pTFUJob->sOutput.uiWidth) |
            BCHP_FIELD_DATA(V3D_TFU_TFUIOS, YSIZE, pTFUJob->sOutput.uiHeight);
 
-   BVC5_P_WriteRegister(hVC5, 0, BCHP_V3D_TFU_TFUIOS, uiVal);
+   BVC5_P_WriteNonCoreRegister(hVC5, BCHP_V3D_TFU_TFUIOS, uiVal);
 
    BDBG_ASSERT((pTFUJob->sOutput.uiAddress & ~BCHP_V3D_TFU_TFUIOA_OADDR_MASK) == 0);
 
@@ -1064,21 +1257,21 @@ static void BVC5_P_IssueTFUJob(
            BCHP_FIELD_DATA(V3D_TFU_TFUIOA, OBIGEND, pTFUJob->sOutput.uiEndianness) |
            BCHP_FIELD_DATA(V3D_TFU_TFUIOA, DIMTW, pTFUJob->sOutput.uiFlags & TFU_OUTPUT_DISABLE_MAIN_TEXTURE ? 1 : 0);
 
-   BVC5_P_WriteRegister(hVC5, 0, BCHP_V3D_TFU_TFUIOA, uiVal);
+   BVC5_P_WriteNonCoreRegister(hVC5, BCHP_V3D_TFU_TFUIOA, uiVal);
 
    /* Input stride */
    uiVal = BCHP_FIELD_DATA(V3D_TFU_TFUIIS, STRIDE0, pTFUJob->sInput.uiRasterStride) |
            BCHP_FIELD_DATA(V3D_TFU_TFUIIS, STRIDE1, pTFUJob->sInput.uiChromaStride);
 
-   BVC5_P_WriteRegister(hVC5, 0, BCHP_V3D_TFU_TFUIIS, uiVal);
+   BVC5_P_WriteNonCoreRegister(hVC5, BCHP_V3D_TFU_TFUIIS, uiVal);
 
    /* Chroma address */
    uiVal = pTFUJob->sInput.uiChromaAddress;
-   BVC5_P_WriteRegister(hVC5, 0, BCHP_V3D_TFU_TFUICA, uiVal);
+   BVC5_P_WriteNonCoreRegister(hVC5, BCHP_V3D_TFU_TFUICA, uiVal);
 
    /* Raster address */
    uiVal = pTFUJob->sInput.uiAddress;
-   BVC5_P_WriteRegister(hVC5, 0, BCHP_V3D_TFU_TFUIIA, uiVal);
+   BVC5_P_WriteNonCoreRegister(hVC5, BCHP_V3D_TFU_TFUIIA, uiVal);
 
    /* Configuration and submit conversion, enable interrupts */
    uiVal = BCHP_FIELD_DATA(V3D_TFU_TFUICFG, OPAD, pTFUJob->sOutput.uiVerticalPadding) |
@@ -1099,40 +1292,63 @@ static void BVC5_P_IssueTFUJob(
       hVC5->sPerfCounters.uiTFUIdleStartTime = 0;
    }
 
-   BVC5_P_AddTFUJobEvent(hVC5, BVC5_EventBegin, psJob);
+#if V3D_VER_AT_LEAST(3,3,0,0)
+   if (hVC5->sEventMonitor.bActive)
+      BVC5_P_PushJobFifo(&hVC5->sEventMonitor.sFifoTFU, psJob);
+#endif
 
-   BVC5_P_WriteRegister(hVC5, 0, BCHP_V3D_TFU_TFUICFG, uiVal);
+   BVC5_P_AddTFUJobEvent(hVC5, BVC5_EventBegin, psJob, BVC5_P_GetEventTimestamp(hVC5, 0));
+
+   BVC5_P_WriteNonCoreRegister(hVC5, BCHP_V3D_TFU_TFUICFG, uiVal);
 
    BVC5_P_SchedPerfCounterAdd_isr(hVC5, BVC5_P_PERF_TFU_JOBS_SUBMITTED, 1);
 }
 
-void BVC5_P_HardwarePrepareForJob(
+static bool BVC5_P_SwitchMode(
+   BVC5_Handle          hVC5,
+   BVC5_P_InternalJob   *pJob
+)
+{
+   bool  bSecure = pJob->pBase->bSecure;
+
+   if (hVC5->bSecure != bSecure)
+   {
+      /* Mustn't change if there is anything in the hardware */
+      if (!BVC5_P_HardwareIsIdle(hVC5))
+         return false;
+
+      hVC5->bSecure = bSecure;
+
+      BKNI_EnterCriticalSection();  /* Ensure no spurious ISR is running when we set bToggling */
+      hVC5->bToggling = true;
+      BKNI_LeaveCriticalSection();
+
+      /* Change security mode */
+      if (hVC5->sCallbacks.fpSecureToggleHandler)
+         hVC5->sCallbacks.fpSecureToggleHandler(bSecure);
+
+      hVC5->bToggling = false;
+
+      /* Core will have been reset, so reconfigure it */
+      /* TODO will need to handle multiple cores */
+      BVC5_P_HardwareSetDefaultRegisterState(hVC5, 0);
+   }
+
+   return true;
+}
+
+bool BVC5_P_HardwarePrepareForJob(
    BVC5_Handle          hVC5,
    uint32_t             uiCoreIndex,
    BVC5_P_InternalJob  *pJob
 )
 {
-   BVC5_ClientHandle hClient;
-
    BVC5_P_HardwarePowerAcquire(hVC5, 1 << uiCoreIndex);
 
-   hClient = BVC5_P_ClientMapGet(hVC5, hVC5->hClientMap, pJob->uiClientId);
-   if ((int32_t)(hClient->uiFlushCpuCacheDone - pJob->uiFlushCpuCacheReq) < 0)
+   if (!BVC5_P_SwitchMode(hVC5, pJob))
    {
-      /* All outstanding CPU cache flush requests will be done. */
-      hClient->uiFlushCpuCacheDone = hClient->uiFlushCpuCacheReq;
-
-      /* Flush entire CPU cache */
-      BVC5_P_AddEvent(hVC5, BVC5_P_EVENT_MONITOR_SCHED_TRACK,
-                        hVC5->sEventMonitor.uiSchedTrackNextId,
-                        BVC5_P_EVENT_MONITOR_FLUSH_CPU, BVC5_EventBegin);
-
-      /* resolves to a flush all */
-      BMEM_Heap_FlushCache(hVC5->hHeap, 0, ~0);
-
-      BVC5_P_AddEvent(hVC5, BVC5_P_EVENT_MONITOR_SCHED_TRACK,
-                        hVC5->sEventMonitor.uiSchedTrackNextId++,
-                        BVC5_P_EVENT_MONITOR_FLUSH_CPU, BVC5_EventEnd);
+      BVC5_P_HardwarePowerRelease(hVC5, 1 << uiCoreIndex);
+      return false;
    }
 
    if (!pJob->bFlushedV3D)
@@ -1142,7 +1358,7 @@ void BVC5_P_HardwarePrepareForJob(
       {
          /* Clean all VC5 caches. Outside in. */
          BVC5_P_AddFlushEvent(hVC5, hVC5->sEventMonitor.uiSchedTrackNextId, BVC5_EventBegin,
-                              true, true, true);
+                              true, true, true, BVC5_P_GetEventTimestamp(hVC5, uiCoreIndex));
 
          BVC5_P_ClearL3Cache(hVC5, uiCoreIndex);
          BVC5_P_ClearL2Cache(hVC5, uiCoreIndex);
@@ -1150,12 +1366,14 @@ void BVC5_P_HardwarePrepareForJob(
          BVC5_P_FlushTextureCache(hVC5, uiCoreIndex);
 
          BVC5_P_AddFlushEvent(hVC5, hVC5->sEventMonitor.uiSchedTrackNextId++, BVC5_EventEnd,
-                              true, true, true);
+                              true, true, true, BVC5_P_GetEventTimestamp(hVC5, uiCoreIndex));
 
          BVC5_P_MarkJobsFlushedV3D(hVC5);
       }
       pJob->bFlushedV3D = true;
    }
+
+   return true;
 }
 
 bool BVC5_P_HardwareIssueBinnerJob(
@@ -1164,28 +1382,36 @@ bool BVC5_P_HardwareIssueBinnerJob(
    BVC5_P_InternalJob  *pJob
 )
 {
-   BVC5_P_HardwarePrepareForJob(hVC5, uiCoreIndex, pJob);
+   if (!BVC5_P_HardwarePrepareForJob(hVC5, uiCoreIndex, pJob))
+      return false;
+
    return BVC5_P_IssueBinJob(hVC5, uiCoreIndex, pJob);
 }
 
-void BVC5_P_HardwareIssueRenderJob(
+bool BVC5_P_HardwareIssueRenderJob(
    BVC5_Handle          hVC5,
    uint32_t             uiCoreIndex,
    BVC5_P_InternalJob  *pJob
 )
 {
-   BVC5_P_HardwarePrepareForJob(hVC5, uiCoreIndex, pJob);
+   if (!BVC5_P_HardwarePrepareForJob(hVC5, uiCoreIndex, pJob))
+      return false;
+
    BVC5_P_IssueRenderJob(hVC5, uiCoreIndex, pJob);
+   return true;
 }
 
-void BVC5_P_HardwareIssueTFUJob(
+bool BVC5_P_HardwareIssueTFUJob(
    BVC5_Handle          hVC5,
    BVC5_P_InternalJob  *pJob
 )
 {
    /* TODO -- core 0 should be something indicating the TFU in multi-core */
-   BVC5_P_HardwarePrepareForJob(hVC5, 0, pJob);
+   if (!BVC5_P_HardwarePrepareForJob(hVC5, 0, pJob))
+      return false;
+
    BVC5_P_IssueTFUJob(hVC5, pJob);
+   return true;
 }
 
 BVC5_P_BinnerState *BVC5_P_HardwareGetBinnerState(
@@ -1235,10 +1461,12 @@ void BVC5_P_HardwareJobDone(
 
          if (pState->psJob[BVC5_P_HW_QUEUE_RUNNING] != NULL)
          {
+#if INCLUDE_LEGACY_EVENT_TRACKS
             BVC5_P_InternalJob   *pRunning = pState->psJob[BVC5_P_HW_QUEUE_RUNNING];
 
             BVC5_P_AddCoreJobEvent(hVC5, uiCoreIndex, BVC5_P_EVENT_MONITOR_CORE_RENDER_TRACK, BVC5_P_EVENT_MONITOR_RENDERING,
-                                   BVC5_EventBegin, pRunning);
+                                   BVC5_EventBegin, pRunning, BVC5_P_GetEventTimestamp(hVC5, uiCoreIndex));
+#endif
          }
          else
          {
@@ -1253,12 +1481,12 @@ void BVC5_P_HardwareJobDone(
          if (pJob->pBase->uiSyncFlags & BVC5_SYNC_TMU_DATA_WRITE)
          {
             BVC5_P_AddFlushEvent(hVC5, hVC5->sEventMonitor.uiSchedTrackNextId, BVC5_EventBegin,
-                                 false, false, /*clearL2T=*/true);
+                                 false, false, /*clearL2T=*/true, BVC5_P_GetEventTimestamp(hVC5, uiCoreIndex));
 
             BVC5_P_CleanTextureCache(hVC5, uiCoreIndex);
 
             BVC5_P_AddFlushEvent(hVC5, hVC5->sEventMonitor.uiSchedTrackNextId++, BVC5_EventEnd,
-                                 false, false, /*clearL2T=*/true);
+                                 false, false, /*clearL2T=*/true, BVC5_P_GetEventTimestamp(hVC5, uiCoreIndex));
          }
       }
       break;
@@ -1309,10 +1537,10 @@ void BVC5_P_HardwareGetInfo(
    }
 
    pCur = &pInfo->uiHubIdent[0];
-   *pCur++ = BVC5_P_ReadRegister(hVC5, 0, BCHP_V3D_HUB_CTL_IDENT0);
-   *pCur++ = BVC5_P_ReadRegister(hVC5, 0, BCHP_V3D_HUB_CTL_IDENT1);
-   *pCur++ = BVC5_P_ReadRegister(hVC5, 0, BCHP_V3D_HUB_CTL_IDENT2);
-   *pCur++ = BVC5_P_ReadRegister(hVC5, 0, BCHP_V3D_HUB_CTL_IDENT3);
+   *pCur++ = BVC5_P_ReadNonCoreRegister(hVC5, BCHP_V3D_HUB_CTL_IDENT0);
+   *pCur++ = BVC5_P_ReadNonCoreRegister(hVC5, BCHP_V3D_HUB_CTL_IDENT1);
+   *pCur++ = BVC5_P_ReadNonCoreRegister(hVC5, BCHP_V3D_HUB_CTL_IDENT2);
+   *pCur++ = BVC5_P_ReadNonCoreRegister(hVC5, BCHP_V3D_HUB_CTL_IDENT3);
 
    /* Power off all cores */
    BVC5_P_HardwarePowerRelease(hVC5, ~0u);
@@ -1329,6 +1557,10 @@ void BVC5_P_InterruptHandler_isr(
    uint32_t    uiCoreIndex = 0; /* TODO */
 
    BSTD_UNUSED(iValue);
+
+   /* We are not interested in these interrupts */
+   if (hVC5->bToggling)
+      return;
 
    /* system needs to be tolerant of spurious IRQ's.  Under heavy load, you can get dup's through
       here with the power off, leading to GISB timeouts */
@@ -1413,17 +1645,22 @@ void BVC5_P_InterruptHandlerHub_isr(
 
    BSTD_UNUSED(iValue);
 
+   /* We are not interested in these interrupts */
+   if (hVC5->bToggling)
+      return;
+
    /* system needs to be tolerant of spurious IRQ's.  Under heavy load, you can get dup's through
       here with the power off, leading to GISB timeouts */
    /* ATOMIC as written out of the IRQ context */
    if (__sync_fetch_and_and(&hVC5->psCoreStates[uiCoreIndex].bPowered, 0xFFFFFFFF))
    {
-      uiEnable = ~BVC5_P_ReadRegister_isr(hVC5, 0, BCHP_V3D_TFU_TFUINT_MSK_STS);
+      uiEnable = ~BVC5_P_ReadNonCoreRegister_isr(hVC5, BCHP_V3D_TFU_TFUINT_MSK_STS);
 
-      uiIntStatus = BVC5_P_ReadRegister_isr(hVC5, 0, BCHP_V3D_TFU_TFUINT_STS) & uiEnable;
+      uiIntStatus = BVC5_P_ReadNonCoreRegister_isr(hVC5, BCHP_V3D_TFU_TFUINT_STS) & uiEnable;
 
       if (BCHP_GET_FIELD_DATA(uiIntStatus, V3D_TFU_TFUINT_STS, INT_TFUC))
-         BVC5_P_WriteRegister_isr(hVC5, 0, BCHP_V3D_TFU_TFUINT_CLR, BCHP_FIELD_DATA(V3D_TFU_TFUINT_CLR, INT_TFUC, 1));
+         BVC5_P_WriteNonCoreRegister_isr(hVC5, BCHP_V3D_TFU_TFUINT_CLR,
+                                         BCHP_FIELD_DATA(V3D_TFU_TFUINT_CLR, INT_TFUC, 1));
 
       __sync_fetch_and_or(&hVC5->uiTFUInterruptReason, uiIntStatus);
 
@@ -1646,4 +1883,152 @@ bool BVC5_P_HardwareCacheClearBlocked(
    }
 
    return false;
+}
+
+#if V3D_VER_AT_LEAST(3,3,0,0)
+
+#define LogData(track, evt, startEnd, counterReg, pJob)\
+{\
+   uint64_t val;\
+   /* Must read the LO part first as this latches the HI result */\
+   val = (uint64_t)BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_CLE_##counterReg##LO); \
+   val = val | ((uint64_t)BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_CLE_##counterReg##HI) << 32);\
+   val = val / hVC5->sEventMonitor.uiCyclesPerUs;\
+   BVC5_P_AddCoreJobEvent(hVC5, uiCoreIndex, track, evt, startEnd, pJob, val);\
+}
+
+#define LogTFUData(startEnd, statusField, counterReg, pJob)\
+{\
+   uint64_t val;\
+   /* Must read the LO part first as this latches the HI result */\
+   val = (uint64_t)BVC5_P_ReadNonCoreRegister(hVC5, BCHP_V3D_TFU_##counterReg##LO); \
+   val = val | ((uint64_t)BVC5_P_ReadNonCoreRegister(hVC5, BCHP_V3D_TFU_##counterReg##HI) << 32);\
+   val = val / hVC5->sEventMonitor.uiCyclesPerUs;\
+   BVC5_P_AddTFUJobEvent(hVC5, startEnd, pJob, val);\
+}
+
+void BVC5_P_HardwareReadEventFifos(
+   BVC5_Handle          hVC5,
+   uint32_t             uiCoreIndex
+   )
+{
+   bool gotData = hVC5->sEventMonitor.bActive;  /* Check nothing if not collecting data */
+   while (gotData)
+   {
+      uint32_t status = BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_CLE_CCNTCS);
+
+      /* Be aware - 3.3.0 hardware has a bug in the counter fifos.
+       * Reading from the CTRE fifo actually pops both CTRE and CTRS fifos and
+       * clears both status bit if applicable. Reading CTRS doesn't clear any status bits.
+       * To work around this, we ignore all start status bits and read both
+       * start and end fifos when we see an end status bit.
+       * This has the advantage that the same code will work when the h/w bug is fixed.
+       */
+
+      /* Create a mask for all the fifo not-empty bits */
+      const uint32_t hasDataMask =
+         BCHP_FIELD_DATA(V3D_CLE_CCNTCS, CBEND_NE, 1)    |
+         BCHP_FIELD_DATA(V3D_CLE_CCNTCS, PBEND_NE, 1)    |
+         BCHP_FIELD_DATA(V3D_CLE_CCNTCS, CREND_NE, 1)    |
+         BCHP_FIELD_DATA(V3D_CLE_CCNTCS, TREND_NE, 1);
+
+      if ((status & BCHP_FIELD_DATA(V3D_CLE_CCNTCS, CCNT_EN, 1)) &&
+            (status & hasDataMask))
+      {
+         BVC5_P_InternalJob *pJob;
+
+         /* We have some event data to handle in the fifos and they are enabled */
+         if (status & BCHP_FIELD_DATA(V3D_CLE_CCNTCS, CBEND_NE, 1))
+         {
+            pJob = BVC5_P_PopJobFifo(&hVC5->sEventMonitor.sBinJobFifoCLE);
+            LogData(BVC5_P_EVENT_MONITOR_CORE_CLE_BIN_TRACK, BVC5_P_EVENT_MONITOR_BINNING, BVC5_EventEnd,     CCBE, pJob);
+            LogData(BVC5_P_EVENT_MONITOR_CORE_CLE_BIN_TRACK, BVC5_P_EVENT_MONITOR_BINNING, BVC5_EventBegin,   CCBS, pJob);
+         }
+         if (status & BCHP_FIELD_DATA(V3D_CLE_CCNTCS, PBEND_NE, 1))
+         {
+            pJob = BVC5_P_PopJobFifo(&hVC5->sEventMonitor.sBinJobFifoPTB);
+            LogData(BVC5_P_EVENT_MONITOR_CORE_PTB_BIN_TRACK, BVC5_P_EVENT_MONITOR_BINNING,   BVC5_EventBegin, CPBS, pJob);
+            LogData(BVC5_P_EVENT_MONITOR_CORE_PTB_BIN_TRACK, BVC5_P_EVENT_MONITOR_BINNING,   BVC5_EventEnd,   CPBE, pJob);
+         }
+         if (status & BCHP_FIELD_DATA(V3D_CLE_CCNTCS, CREND_NE, 1))
+         {
+            pJob = BVC5_P_PopJobFifo(&hVC5->sEventMonitor.sRenderJobFifoCLE);
+            LogData(BVC5_P_EVENT_MONITOR_CORE_CLE_RDR_TRACK, BVC5_P_EVENT_MONITOR_RENDERING, BVC5_EventBegin, CCRS, pJob);
+            LogData(BVC5_P_EVENT_MONITOR_CORE_CLE_RDR_TRACK, BVC5_P_EVENT_MONITOR_RENDERING, BVC5_EventEnd,   CCRE, pJob);
+         }
+         if (status & BCHP_FIELD_DATA(V3D_CLE_CCNTCS, TREND_NE, 1))
+         {
+            pJob = BVC5_P_PopJobFifo(&hVC5->sEventMonitor.sRenderJobFifoTLB);
+            LogData(BVC5_P_EVENT_MONITOR_CORE_TLB_RDR_TRACK, BVC5_P_EVENT_MONITOR_RENDERING, BVC5_EventBegin, CTRS, pJob);
+            LogData(BVC5_P_EVENT_MONITOR_CORE_TLB_RDR_TRACK, BVC5_P_EVENT_MONITOR_RENDERING, BVC5_EventEnd,   CTRE, pJob);
+         }
+         gotData = true;
+      }
+      else
+         gotData = false;
+   }
+
+   gotData = hVC5->sEventMonitor.bActive;  /* Check nothing if not collecting data */
+   while (gotData)
+   {
+      /* Now do the same for the TFU counters */
+      uint32_t status = BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_TFU_CCCS);
+
+      const uint32_t hasTFUDataMask =
+         BCHP_FIELD_DATA(V3D_TFU_CCCS, TFU_END_NE, 1);
+
+      if ((status & BCHP_FIELD_DATA(V3D_TFU_CCCS, CCNT_EN, 1)) &&
+          (status & hasTFUDataMask))
+      {
+         /* We have some event data to handle in the fifos and they are enabled */
+         BVC5_P_InternalJob *pJob = BVC5_P_PopJobFifo(&hVC5->sEventMonitor.sFifoTFU);
+         LogTFUData(BVC5_EventBegin, TFU_STRT_NE, SCC, pJob);
+         LogTFUData(BVC5_EventEnd,   TFU_END_NE,  ECC, pJob);
+
+         gotData = true;
+      }
+      else
+         gotData = false;
+   }
+}
+#endif
+
+#if V3D_VER_AT_LEAST(3,3,0,0)
+void BVC5_P_HardwareClearEventFifos(
+   BVC5_Handle hVC5,
+   uint32_t    uiCoreIndex
+   )
+{
+   /* Enable & clear the cycle counters in the core and the TFU*/
+   BVC5_P_WriteRegister(hVC5, uiCoreIndex, BCHP_V3D_CLE_CCNTCS,
+                        BCHP_FIELD_DATA(V3D_CLE_CCNTCS, CCNT_EN, 1) |
+                        BCHP_FIELD_DATA(V3D_CLE_CCNTCS, FIFO_CLR, 1));
+
+   BVC5_P_WriteNonCoreRegister(hVC5, BCHP_V3D_TFU_CCCS,
+                               BCHP_FIELD_DATA(V3D_TFU_CCCS, CCNT_EN, 1) |
+                               BCHP_FIELD_DATA(V3D_TFU_CCCS, FIFO_CLR, 1));
+}
+#endif
+
+uint64_t BVC5_P_GetEventTimestamp(
+   BVC5_Handle hVC5,
+   uint32_t    uiCoreIndex
+   )
+{
+   uint64_t val = 0;
+
+#if V3D_VER_AT_LEAST(3,3,0,0)
+   if (hVC5->sEventMonitor.bAcquired && hVC5->psCoreStates[uiCoreIndex].bPowered)
+   {
+      val = (uint64_t)BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_CLE_0_CCNTLO);
+      val = val | ((uint64_t)BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_CLE_0_CCNTHI) << 32);
+      val = val / hVC5->sEventMonitor.uiCyclesPerUs;
+   }
+#else
+   BSTD_UNUSED(hVC5);
+   BSTD_UNUSED(uiCoreIndex);
+   BVC5_P_GetTime_isrsafe(&val);
+#endif
+
+   return val;
 }

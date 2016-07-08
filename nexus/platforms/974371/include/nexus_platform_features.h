@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2014 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,16 +34,8 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
+*
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ***************************************************************************/
 #ifndef NEXUS_PLATFORM_FEATURES_H__
@@ -78,8 +70,6 @@
 
 #define NEXUS_NUM_I2S_INPUTS 1
 #define NEXUS_NUM_I2S_OUTPUTS 1
-#define NEXUS_NUM_AUDIO_CAPTURE_CHANNELS 1
-#define NEXUS_NUM_AUDIO_CAPTURES 1
 #define NEXUS_NUM_AUDIO_PLAYBACKS 3
 
 #define NEXUS_HAS_AUDIO_MUX_OUTPUT 1
@@ -134,6 +124,7 @@ upon the chip usage. See below */
 #define NEXUS_VIDEO_SECURE_HEAP         3 /* CABAC, CDB, RS and XC buffers for encoder */
 #define NEXUS_MEMC0_PICTURE_BUFFER_HEAP 4 /* XVD/VDC buffers for 2 decode/encode*/
 #define NEXUS_SAGE_SECURE_HEAP          5 /* SAGE HEAP - 32 MB */
+#define NEXUS_EXPORT_HEAP 6
 
 #define NEXUS_PLATFORM_P_GET_FRAMEBUFFER_HEAP_INDEX 1
 

@@ -1,7 +1,7 @@
 //#define IMAGE_VC_IMAGE /* KHRN_IMAGE_T contains a VC_IMAGE_T (for debugging) */
 
 /*=============================================================================
-Copyright (c) 2008 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2008 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -18,8 +18,6 @@ Khronos image wrapper declarations.
 #include "middleware/khronos/common/khrn_interlock.h"
 #include "middleware/khronos/common/khrn_mem.h"
 #include "interface/khronos/include/EGL/egl.h"
-
-#include "helpers/vc_image/vc_image.h"
 
 #include <string.h>
 
@@ -65,17 +63,13 @@ typedef struct {
 
    int32_t stride; /* in bytes */
 
-   MEM_HANDLE_T mh_aux; /* palette or early z */
+   MEM_HANDLE_T mh_palette;
    MEM_HANDLE_T mh_storage;
    uint32_t offset;
 
    uint16_t flags;
 
    KHRN_INTERLOCK_T interlock;
-
-#ifdef IMAGE_VC_IMAGE
-   VC_IMAGE_T vc_image;
-#endif
 
    void              *opaque_buffer_handle;
    BEGL_WindowState  *window_state;
@@ -84,6 +78,7 @@ typedef struct {
    uint32_t          swap_interval;
 
    int               fence;
+   bool              secure;
 
 } KHRN_IMAGE_T;
 
@@ -154,11 +149,11 @@ extern void khrn_image_term(void *v, uint32_t);
 
 extern MEM_HANDLE_T khrn_image_create_from_storage(KHRN_IMAGE_FORMAT_T format,
    uint32_t width, uint32_t height, int32_t stride,
-   MEM_HANDLE_T aux_handle, MEM_HANDLE_T storage_handle, uint32_t offset,
-   KHRN_IMAGE_CREATE_FLAG_T flags); /* just used for setting up usage flags */
+   MEM_HANDLE_T palette_handle, MEM_HANDLE_T storage_handle, uint32_t offset,
+   KHRN_IMAGE_CREATE_FLAG_T flags, bool secure); /* just used for setting up usage flags */
 extern MEM_HANDLE_T khrn_image_create(KHRN_IMAGE_FORMAT_T format,
    uint32_t width, uint32_t height,
-   KHRN_IMAGE_CREATE_FLAG_T flags);
+   KHRN_IMAGE_CREATE_FLAG_T flags, bool secure);
 extern MEM_HANDLE_T khrn_image_create_dup(const KHRN_IMAGE_T *src,
    KHRN_IMAGE_CREATE_FLAG_T flags); /* flags are in addition to implicit flags from src */
 
@@ -176,20 +171,6 @@ static INLINE void khrn_image_unlock(const KHRN_IMAGE_T *image)
 
 extern void khrn_image_unlock_wrap(const KHRN_IMAGE_T *image);
 extern void khrn_image_lock_interlock_wrap(KHRN_IMAGE_T *image, KHRN_IMAGE_WRAP_T *wrap, KHRN_INTERLOCK_T *interlock);
-
-/* vc_image->image_data will be set to NULL */
-extern void khrn_image_fill_vcimage(const KHRN_IMAGE_T *image, VC_IMAGE_T *vc_image);
-
-static INLINE void khrn_image_lock_vcimage(const KHRN_IMAGE_T *image, VC_IMAGE_T *vc_image)
-{
-   khrn_image_fill_vcimage(image, vc_image);
-   vc_image->image_data = khrn_image_lock(image);
-}
-
-static INLINE void khrn_image_unlock_vcimage(const KHRN_IMAGE_T *image)
-{
-   khrn_image_unlock(image);
-}
 
 /******************************************************************************
 blitting etc

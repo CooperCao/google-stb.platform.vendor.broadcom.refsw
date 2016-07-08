@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2008 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2008 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -38,7 +38,8 @@ typedef struct {
 extern void glxx_renderbuffer_init(GLXX_RENDERBUFFER_T *renderbuffer, int32_t name);
 extern void glxx_renderbuffer_term(void *v, uint32_t size);
 
-extern bool glxx_renderbuffer_storage(GLXX_RENDERBUFFER_T *renderbuffer, GLenum internalformat, GLuint width, GLuint height);
+extern bool glxx_renderbuffer_storage(GLXX_RENDERBUFFER_T *renderbuffer,
+   GLenum internalformat, GLuint width, GLuint height, bool secure);
 
 extern bool glxx_renderbuffer_unmerge(GLXX_RENDERBUFFER_T *renderbuffer);
 extern void glxx_renderbuffer_attempt_merge(GLXX_RENDERBUFFER_T *depth, GLXX_RENDERBUFFER_T *stencil);
@@ -46,5 +47,5 @@ extern void glxx_renderbuffer_attempt_merge(GLXX_RENDERBUFFER_T *depth, GLXX_REN
 extern bool glxx_renderbuffer_bind_image(GLXX_RENDERBUFFER_T *renderbuffer, MEM_HANDLE_T himage);
 
 extern bool glxx_renderbuffer_storage_multisample(GLXX_RENDERBUFFER_T *renderbuffer, GLsizei samples,
-                                                  GLenum internalformat, GLuint width, GLuint height);
+   GLenum internalformat, GLuint width, GLuint height, bool secure);
 #endif

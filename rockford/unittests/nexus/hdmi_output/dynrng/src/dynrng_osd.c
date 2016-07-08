@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
 ******************************************************************************/
 
@@ -304,16 +296,12 @@ int OSD_PopulateEotfIcon(OSD_OsdHandle osd, OSD_IconHandle icon, OSD_Eotf eotf)
             rc = OSD_DrawIcon(osd, osd->sdr, icon->rect.x, icon->rect.y + icon->rect.height);
             if (rc) { rc = BERR_TRACE(rc); goto end; }
             break;
-        case OSD_Eotf_eHdr:
-            rc = OSD_DrawIcon(osd, osd->hdr, icon->rect.x, icon->rect.y + icon->rect.height);
+        case OSD_Eotf_eHdr10:
+            rc = OSD_DrawIcon(osd, osd->hdr10, icon->rect.x, icon->rect.y + icon->rect.height);
             if (rc) { rc = BERR_TRACE(rc); goto end; }
             break;
-        case OSD_Eotf_eSmpte:
-            rc = OSD_DrawIcon(osd, osd->smpte, icon->rect.x, icon->rect.y + icon->rect.height);
-            if (rc) { rc = BERR_TRACE(rc); goto end; }
-            break;
-        case OSD_Eotf_eArib:
-            rc = OSD_DrawIcon(osd, osd->arib, icon->rect.x, icon->rect.y + icon->rect.height);
+        case OSD_Eotf_eHlg:
+            rc = OSD_DrawIcon(osd, osd->hlg, icon->rect.x, icon->rect.y + icon->rect.height);
             if (rc) { rc = BERR_TRACE(rc); goto end; }
             break;
         default:
@@ -384,10 +372,15 @@ void OSD_Destroy(OSD_OsdHandle osd)
             OSD_DestroyIcon(osd->sdr);
             osd->sdr = NULL;
         }
-        if (osd->hdr)
+        if (osd->hdr10)
         {
-            OSD_DestroyIcon(osd->hdr);
-            osd->hdr = NULL;
+            OSD_DestroyIcon(osd->hdr10);
+            osd->hdr10 = NULL;
+        }
+        if (osd->hlg)
+        {
+            OSD_DestroyIcon(osd->hlg);
+            osd->hlg = NULL;
         }
         if (osd->screen)
         {
@@ -436,12 +429,10 @@ OSD_OsdHandle OSD_Create(unsigned width, unsigned height)
     rc = NEXUS_Graphics2D_SetSettings(osd->graphics, &graphicsSettings);
     if (rc) { rc = BERR_TRACE(rc); goto error; }
 
-    osd->arib = OSD_CreateIcon(OSD_ImageId_eArib);
-    if (!osd->arib) { rc = BERR_TRACE(NEXUS_NOT_SUPPORTED); goto error; }
-    osd->smpte = OSD_CreateIcon(OSD_ImageId_eSmpte);
-    if (!osd->smpte) { rc = BERR_TRACE(NEXUS_NOT_SUPPORTED); goto error; }
-    osd->hdr = OSD_CreateIcon(OSD_ImageId_eHdr);
-    if (!osd->hdr) { rc = BERR_TRACE(NEXUS_NOT_SUPPORTED); goto error; }
+    osd->hlg = OSD_CreateIcon(OSD_ImageId_eHlg);
+    if (!osd->hlg) { rc = BERR_TRACE(NEXUS_NOT_SUPPORTED); goto error; }
+    osd->hdr10 = OSD_CreateIcon(OSD_ImageId_eHdr10);
+    if (!osd->hdr10) { rc = BERR_TRACE(NEXUS_NOT_SUPPORTED); goto error; }
     osd->sdr = OSD_CreateIcon(OSD_ImageId_eSdr);
     if (!osd->sdr) { rc = BERR_TRACE(NEXUS_NOT_SUPPORTED); goto error; }
     osd->unknown = OSD_CreateIcon(OSD_ImageId_eUnknown);
@@ -451,7 +442,7 @@ OSD_OsdHandle OSD_Create(unsigned width, unsigned height)
     osd->no = OSD_CreateIcon(OSD_ImageId_eNo);
     if (!osd->no) { rc = BERR_TRACE(NEXUS_NOT_SUPPORTED); goto error; }
 
-    osd->screen = OSD_CreateScreen(width, height, osd->hdr->rect.height);
+    osd->screen = OSD_CreateScreen(width, height, osd->sdr->rect.height);
     if (!osd->screen) { rc = BERR_TRACE(NEXUS_NOT_SUPPORTED); goto error; }
 
     return osd;
@@ -587,7 +578,8 @@ static const UTILS_StringIntMapEntry eotfNames[] =
 {
     { "unknown", OSD_Eotf_eUnknown },
     { "sdr", OSD_Eotf_eSdr },
-    { "hdr", OSD_Eotf_eHdr },
+    { "hdr10", OSD_Eotf_eHdr10 },
+    { "hlg", OSD_Eotf_eHlg },
     { NULL, OSD_Eotf_eMax }
 };
 
@@ -633,7 +625,8 @@ void OSD_Print(OSD_OsdHandle osd)
     OSD_PrintModel(&osd->model);
     OSD_PrintScreen("main", osd->screen);
     fprintf(stdout, "# state icons:\n");
-    OSD_PrintIcon("hdr", osd->hdr);
+    OSD_PrintIcon("hdr10", osd->hdr10);
+    OSD_PrintIcon("hlg", osd->hlg);
     OSD_PrintIcon("sdr", osd->sdr);
     OSD_PrintIcon("unknown", osd->unknown);
     OSD_PrintIcon("yes", osd->yes);

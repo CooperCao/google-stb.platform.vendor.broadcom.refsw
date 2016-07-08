@@ -1,23 +1,43 @@
-/***************************************************************************
- *     Copyright (c) 2005-2014, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * [File Description:]
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
  *
- * Revision History:
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- * 
- ***************************************************************************/
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 
 #include "bstd.h"
 #include "bwfe.h"
@@ -147,12 +167,26 @@ BERR_Code BWFE_g3_Adc_P_PowerUp(BWFE_ChannelHandle h)
 BERR_Code BWFE_g3_Adc_P_PowerDown(BWFE_ChannelHandle h)
 {
    BERR_Code retCode = BERR_SUCCESS;
+#ifdef BWFE_HYBRID_ADC
+   uint32_t slice;
+#endif
 
    BDBG_MSG(("ADC%d pwrdown", h->channel));
 
-   /* freeze RFAGC before ADC power down */
    if (BWFE_P_IsAdcOn(h))
+   {
+      /* freeze RFAGC before ADC power down */
       BWFE_P_OrRegister(h, BCHP_WFE_CORE_AGCCTL1, 0x04020000);
+
+#ifdef BWFE_HYBRID_ADC
+      for (slice = 0; slice < BWFE_NUM_SLICES; slice++)
+      {
+         BWFE_P_AndSliceReg(h, slice, BCHP_WFE_CORE_DGSLMS_SLC, ~0x03F30000);    /* disable pn input and stop update for mdac1 */
+         BWFE_P_AndSliceReg(h, slice, BCHP_WFE_CORE_DGSBGLMS_SLC, ~0x00000001);  /* disable background mdac */
+         BWFE_P_OrSliceReg(h, slice, BCHP_WFE_CORE_DGSEPCTL_SLC, 0x00000003);    /* freeze error power control */
+      }
+#endif
+   }
 
    /* power down ADC */
    retCode = BWFE_P_ShutdownAdc(h);
@@ -699,6 +733,13 @@ BERR_Code BWFE_g3_Adc_P_EqualizeMdac1(BWFE_ChannelHandle h)
             BWFE_DEBUG_EQU(BDBG_MSG(("PN gain calibration...")));
             for (slice = 0; slice < BWFE_NUM_SLICES; slice++)
             {
+               /* initialize taps for faster convergence */
+               BWFE_P_ReadModifyWriteSliceReg(h, slice, BCHP_WFE_CORE_DGSCOEFEN_SLC, ~0x00000003, 0x00000003);
+               BWFE_P_WriteSliceRegister(h, slice, BCHP_WFE_CORE_DGSCOEFA_SLC, 3);
+               BWFE_P_WriteSliceRegister(h, slice, BCHP_WFE_CORE_DGSCOEFD_SLC, 0x00400000);
+               BWFE_P_WriteSliceRegister(h, slice, BCHP_WFE_CORE_DGSCOEFA_SLC, 4);
+               BWFE_P_WriteSliceRegister(h, slice, BCHP_WFE_CORE_DGSCOEFD_SLC, 0x00400000);
+
                /* disable auto dc-tap reset, dc tap mode, 1 pre-main tap, 2 post-main taps */
                BWFE_P_ReadModifyWriteSliceReg(h, slice, BCHP_WFE_CORE_DGSLMS_SLC, ~0x1C0C0000, 0x00040000);
                BWFE_P_OrSliceReg(h, slice, BCHP_WFE_CORE_DGSLMS_SLC, 0x03000000);   /* update ping and pong coefficients */
@@ -732,7 +773,7 @@ BERR_Code BWFE_g3_Adc_P_EqualizeMdac1(BWFE_ChannelHandle h)
 
             /* run for 3400ms */
             hChn->equState = 7;
-            return BWFE_g3_P_EnableTimer(h, BWFE_g3_TimerSelect_e1, 3400000, BWFE_g3_Adc_P_EqualizeMdac1);
+            return BWFE_g3_P_EnableTimer(h, BWFE_g3_TimerSelect_e1, 1000000, BWFE_g3_Adc_P_EqualizeMdac1);
 
          case 7:
             BWFE_DEBUG_EQU(BDBG_MSG(("disable PN gain calibration")));

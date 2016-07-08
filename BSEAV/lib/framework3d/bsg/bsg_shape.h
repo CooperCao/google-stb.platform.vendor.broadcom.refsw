@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -11,7 +11,7 @@
  * Software and all intellectual property rights therein.  IF YOU HAVE NO
  * AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
  * AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
- * SOFTWARE.  
+ * SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
@@ -159,7 +159,7 @@ public:
    //! Override these methods for specific geometries, default is non-indexed
    virtual void      PushVertex(std::vector<float> &vertex, uint32_t i) const = 0;
    virtual void      PushIndices(std::vector<short> &/*indices*/)       const   {}
-   
+
    GLenum GetDrawMode() const { return m_drawMode; }
 
    //! Use to enable or disable attributes.
@@ -279,7 +279,7 @@ public:
    virtual void PushVertex(std::vector<float> &vertex, uint32_t i) const
    {
       if (Uses(ePOSITION))
-         Push(vertex, m_vb[i].GetPos()); 
+         Push(vertex, m_vb[i].GetPos());
 
       if (Uses(eNORMAL))
          Push(vertex, m_vb[i].GetNorm());
@@ -465,7 +465,7 @@ private:
    void SubmitVertexData(uint32_t floatOffset, uint32_t floatCount, float *vertArray);
 
 private:
-   std::unique_ptr<ObjReader> m_reader;
+   std::auto_ptr<ObjReader> m_reader;
    std::string                m_fileName;
    GeometryHandle             m_geometry;
    MaterialHandle             m_material;

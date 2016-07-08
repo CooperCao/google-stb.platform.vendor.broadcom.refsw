@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2014 Broadcom Corporation
+ *     Broadcom Proprietary and Confidential. (c)2014 Broadcom.  All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -54,8 +54,9 @@
 typedef struct BVC5_P_BinMemArray
 {
    BVC5_BinBlockHandle *pvBinMemoryBlocks;
-   uint32_t  uiNumBinBlocks;
-   uint32_t  uiTotalBinBlocks;
+   uint32_t             uiNumBinBlocks;
+   uint32_t             uiTotalBinBlocks;
+   BVC5_BinPoolHandle   hBinPool;
 } BVC5_P_BinMemArray;
 
 /* BVC5_P_BinMemArrayCreate
@@ -64,6 +65,7 @@ typedef struct BVC5_P_BinMemArray
 
  */
 BERR_Code BVC5_P_BinMemArrayCreate(
+   BVC5_BinPoolHandle   hBinPool,
    BVC5_P_BinMemArray  *psArray
 );
 
@@ -73,8 +75,7 @@ BERR_Code BVC5_P_BinMemArrayCreate(
    Frees all allocated bin memory in this array
  */
 void BVC5_P_BinMemArrayDestroy(
-   BVC5_P_BinMemArray  *psArray,
-   BVC5_BinPoolHandle   hBinPool
+   BVC5_P_BinMemArray  *psArray
 );
 
 /* BVC5_P_BinMemArrayAdd
@@ -84,7 +85,6 @@ void BVC5_P_BinMemArrayDestroy(
  */
 BVC5_BinBlockHandle BVC5_P_BinMemArrayAdd(
    BVC5_P_BinMemArray  *psArray,
-   BVC5_BinPoolHandle   hBinPool,
    uint32_t             uiMinBlockSizeBytes,
    uint32_t            *uiPhysOffset
 );
@@ -97,6 +97,14 @@ BVC5_BinBlockHandle BVC5_P_BinMemArrayAdd(
 BVC5_BinBlockHandle BVC5_P_BinMemArrayGetBlock(
    BVC5_P_BinMemArray *psArray,
    uint32_t uiIndex
+);
+
+/* BVC5_BinMemArrayReplenishPool
+
+   Replenish the bin memory pool
+*/
+void BVC5_P_BinMemArrayReplenishPool(
+   BVC5_P_BinMemArray *psArray
 );
 
 #endif /* __BVC5_BIN_MEM_PRIV_H__ */

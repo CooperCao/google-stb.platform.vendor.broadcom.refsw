@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2008-2014 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2008-2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,7 +34,6 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
-*
 ***************************************************************************/
 
 #include "nexus_types.h"
@@ -95,6 +94,10 @@
 #if NEXUS_HAS_SAGE
 extern void *SAGE_IMAGE_Context;
 extern BIMG_Interface SAGE_IMAGE_Interface;
+#if NEXUS_HAS_HDMI_OUTPUT
+extern void *HDMI_OUTPUT_IMAGE_Context;
+extern BIMG_Interface HDMI_OUTPUT_IMAGE_Interface;
+#endif
 #endif
 #if NEXUS_HAS_SCM
 extern void *SCM_IMAGE_Context;
@@ -111,6 +114,9 @@ extern BIMG_Interface SCM_IMAGE_Interface;
 #endif
 #if NEXUS_FRONTEND_3128
 #include "bhab_3128_fw.h"
+#endif
+#if NEXUS_FRONTEND_3158
+#include "bhab_3158_fw.h"
 #endif
 #if NEXUS_FRONTEND_7584
 #include "bhab_7584_fw.h"
@@ -259,10 +265,10 @@ void *NEXUS_Platform_P_MapMemory( NEXUS_Addr offset, size_t length, NEXUS_Memory
     if (type!=NEXUS_MemoryMapType_eCached) return NULL; /* only cached mmap allows in proxy */
     addr = mmap64(0, length, PROT_READ|PROT_WRITE, MAP_SHARED, NEXUS_Platform_P_State.fd, offset);
     if (addr == MAP_FAILED) {
-        BDBG_ERR(("mmap failed: offset " BDBG_UINT64_FMT ", size=%u, errno=%d", BDBG_UINT64_ARG(offset), length, errno));
+        BDBG_ERR(("mmap failed: offset " BDBG_UINT64_FMT ", size=%u, errno=%d", BDBG_UINT64_ARG(offset), (unsigned)length, errno));
         addr = NULL;
     }
-    BDBG_MSG(("mmap  offset:" BDBG_UINT64_FMT " size:%u -> %p", BDBG_UINT64_ARG(offset), length, addr));
+    BDBG_MSG(("mmap  offset:" BDBG_UINT64_FMT " size:%u -> %p", BDBG_UINT64_ARG(offset), (unsigned)length, addr));
     return addr;
 }
 
@@ -354,16 +360,15 @@ NEXUS_Platform_P_InitOS(void)
     if (rc) {rc=BERR_TRACE(rc);goto err_get_memory;}
 
     nexus_p_get_default_map_settings(&map_settings);
-    /* see nexus_platform_core.c for fake address range logic */
-    map_settings.offset = NEXUS_KERNEL_MODE_VIRTUAL_ADDRESS_BASE;
-    map_settings.size = NEXUS_KERNEL_MODE_VIRTUAL_ADDRESS_BASE - 4096;
+    map_settings.offset = (unsigned long)g_NEXUS_P_CpuNotAccessibleRange.start + 4096;
+    map_settings.size = g_NEXUS_P_CpuNotAccessibleRange.length - 2*4096;
     map_settings.mmap = NEXUS_Platform_P_MapMemory;
     map_settings.munmap = NEXUS_Platform_P_UnmapMemory;
     rc = nexus_p_init_map(&map_settings);
     if (rc) {rc = BERR_TRACE(rc); goto err_init_map;}
 
     for (i=0;i<NEXUS_MAX_HEAPS;i++) {
-        BDBG_MSG(("mem.region[%d]: %#x %#x %d", i, mem.region[i].base, mem.region[i].length, mem.region[i].memoryType));
+        BDBG_MSG(("mem.region[%d]: " BDBG_UINT64_FMT " %#x %d", i, BDBG_UINT64_ARG(mem.region[i].base), (unsigned)mem.region[i].length, mem.region[i].memoryType));
         if (mem.region[i].length) {
             rc = nexus_p_add_heap(i, (NEXUS_HeapHandle)-1, mem.region[i].base, mem.region[i].length, mem.region[i].memoryType, false, NULL);
             if (rc) { rc = BERR_TRACE(BERR_OS_ERROR); goto err_mmap; }
@@ -639,6 +644,7 @@ static NEXUS_Error NEXUS_P_Init(void)
 
 err_driver:
     NEXUS_Module_Destroy(proxy);
+    state->module = NULL;
 err_proxy:
 #if NEXUS_HAS_SURFACE
     NEXUS_SurfaceModule_LocalUninit();
@@ -666,26 +672,27 @@ static void NEXUS_P_Uninit(void)
         NEXUS_Platform_P_DebugLog_Uninit(&state->debugLog);
     }
 
-    BDBG_MSG(("<DRIVER"));
-    NEXUS_Platform_P_UninitDriver();
+    if (state->module) {
+        BDBG_MSG(("<DRIVER"));
+        NEXUS_Platform_P_UninitDriver();
 
-    BDBG_MSG(("<MODULE"));
-    NEXUS_Module_Destroy(state->module);
-    state->module = NULL;
+        BDBG_MSG(("<MODULE"));
+        NEXUS_Module_Destroy(state->module);
 
 #if NEXUS_HAS_SURFACE
-    BDBG_MSG(("<SURFACE_LOCAL"));
-    NEXUS_SurfaceModule_LocalUninit();
+        BDBG_MSG(("<SURFACE_LOCAL"));
+        NEXUS_SurfaceModule_LocalUninit();
 #endif
 
-    BDBG_MSG(("<CORE_LOCAL"));
-    NEXUS_CoreModule_LocalUninit();
+        BDBG_MSG(("<CORE_LOCAL"));
+        NEXUS_CoreModule_LocalUninit();
 
-    BDBG_MSG(("<BASE"));
-    NEXUS_Base_Uninit();
+        BDBG_MSG(("<BASE"));
+        NEXUS_Base_Uninit();
 
-    BDBG_MSG(("<MAGNUM"));
-    NEXUS_Platform_P_Magnum_Uninit();
+        BDBG_MSG(("<MAGNUM"));
+        NEXUS_Platform_P_Magnum_Uninit();
+    }
 
     memset(state, 0, sizeof(*state)); /* can't use BKNI_Memset here */
     return;
@@ -708,7 +715,7 @@ NEXUS_Platform_GetDefaultSettings_tagged(NEXUS_PlatformSettings *pSettings, size
         }
     }
     if(size!=sizeof(*pSettings)) {
-        BDBG_ERR(("NEXUS_Platform_GetDefaultSettings:size mismatch %u != %u", sizeof(*pSettings), size));
+        BDBG_ERR(("NEXUS_Platform_GetDefaultSettings:size mismatch %u != %u", (unsigned)sizeof(*pSettings), (unsigned)size));
         BKNI_Memset(pSettings, 0, size);
         return;
     }
@@ -817,7 +824,18 @@ static NEXUS_Error NEXUS_Platform_P_InitImage(const NEXUS_PlatformImgInterface *
 	{
 		return BERR_TRACE(NEXUS_UNKNOWN);
 	}
+
+#if NEXUS_HAS_HDMI_OUTPUT
+    rc = Nexus_Platform_P_Image_Interfaces_Register(&HDMI_OUTPUT_IMAGE_Interface, HDMI_OUTPUT_IMAGE_Context, NEXUS_CORE_IMG_ID_HDCP);
+	if(rc != NEXUS_SUCCESS)
+	{
+		return BERR_TRACE(NEXUS_UNKNOWN);
+	}
+
 #endif
+#endif
+
+
 
 #if NEXUS_HAS_PICTURE_DECODER
     rc = Nexus_Platform_P_Image_Interfaces_Register(&BSID_ImageInterface, BSID_ImageContext, NEXUS_CORE_IMG_ID_SID);
@@ -841,6 +859,9 @@ static NEXUS_Error NEXUS_Platform_P_InitImage(const NEXUS_PlatformImgInterface *
 #endif
 #if NEXUS_FRONTEND_3128
     rc = Nexus_Platform_P_Image_Interfaces_Register(&BHAB_CTFE_IMG_Interface, (void *)&bcm3128_leap_image, NEXUS_CORE_IMG_ID_FRONTEND_3128); if (rc != NEXUS_SUCCESS) { return BERR_TRACE(NEXUS_UNKNOWN); }
+#endif
+#if NEXUS_FRONTEND_3158
+    rc = Nexus_Platform_P_Image_Interfaces_Register(&BHAB_CTFE_IMG_Interface, (void *)&bcm3158_leap_image, NEXUS_CORE_IMG_ID_FRONTEND_3158); if (rc != NEXUS_SUCCESS) { return BERR_TRACE(NEXUS_UNKNOWN); }
 #endif
 #if NEXUS_FRONTEND_7584
     rc = Nexus_Platform_P_Image_Interfaces_Register(&BHAB_CTFE_IMG_Interface, (void *)&bcm7584_leap_image, NEXUS_CORE_IMG_ID_FRONTEND_7584); if (rc != NEXUS_SUCCESS) { return BERR_TRACE(NEXUS_UNKNOWN); }
@@ -925,7 +946,7 @@ NEXUS_Platform_Init_tagged(const NEXUS_PlatformSettings *pSettings, const NEXUS_
 
     if (structSizeCheck != NEXUS_P_GET_STRUCT_SIZES()) {
         BDBG_ERR(("NEXUS_Platform failed with struct size mismatch (nexus=%d, caller=%d). Please recompile application and/or nexus.",
-            NEXUS_P_GET_STRUCT_SIZES(), structSizeCheck));
+            (unsigned)NEXUS_P_GET_STRUCT_SIZES(), structSizeCheck));
         errCode = BERR_TRACE(NEXUS_INVALID_PARAMETER);
         goto err_platform_init;
     }
@@ -989,7 +1010,8 @@ NEXUS_Platform_Uninit(void)
     struct NEXUS_Platform_P_State *state = &NEXUS_Platform_P_State;
 
     if (!state->platform_init) {
-        return;
+        /* even if NEXUS_Platform_Init was not called, we may need to clean up NEXUS_Platform_GetDefaultSettings. */
+        goto local_uninit;
     }
     state->platform_init = false;
 
@@ -1006,19 +1028,16 @@ NEXUS_Platform_Uninit(void)
 
         BDBG_MSG(("<PLATFORM_UNINIT"));
         NEXUS_Platform_Uninit_proxy();
-
-        BDBG_MSG(("<NEXUS UNINIT"));
-        NEXUS_P_Uninit();
     } else {
         BDBG_MSG(("<OS"));
         NEXUS_Platform_P_UninitOS();
 
         /* tell driver that shutdown is clean */
         (void)ioctl(state->proxy_fd, IOCTL_PROXY_NEXUS_Platform_Uninit, NULL);
-
-        BDBG_MSG(("<NEXUS UNINIT"));
-        NEXUS_P_Uninit();
     }
+local_uninit:
+    BDBG_MSG(("<NEXUS UNINIT"));
+    NEXUS_P_Uninit();
     return ;
 }
 
@@ -1519,7 +1538,7 @@ static void nexus_p_watchdog_thread(void *context)
                 unsigned duration;
                 duration = NEXUS_Time_Diff(&now, &scheduler->monitor.startTime);
                 if (duration > 5000) {
-                    BDBG_ERR(("stuck callback %p for %d msec. You can go from function pointer to name using 'nm'.", scheduler->monitor.callback, duration));
+                    BDBG_ERR(("stuck callback %p for %d msec. You can go from function pointer to name using 'nm'.", (void *)(unsigned long)scheduler->monitor.callback, duration));
                 }
             }
         }

@@ -1,7 +1,7 @@
-/***************************************************************************
- * (c) 2002-2016 Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -37,7 +37,6 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 
 #include "nexus_audio_capture.h"
@@ -200,9 +199,9 @@ static void bwinDumpToFile_P_CaptureCallback(
 
     BSTD_UNUSED(strCallback);
 
-    if (pAudioCaptureNx->lTaskId == 0)
+    if (pAudioCaptureNx->TaskId == NULL)
     {
-        pAudioCaptureNx->lTaskId = NetAppOSTaskSpawn("bwinDumpToFileTask",
+        pAudioCaptureNx->TaskId = NetAppOSTaskSpawn("bwinDumpToFileTask",
                 NETAPP_OS_PRIORITY_NORMAL, 64*1024, bwinDumpToFileTask, pAudioCaptureNx);
     }
 }
@@ -294,9 +293,9 @@ static void bwinDumpToFileTask(void * pObject)
 
     BSTD_UNUSED(strCallback);
 
-    if (pAudioCaptureNx->lTaskId == 0)
+    if (pAudioCaptureNx->TaskId == NULL)
     {
-        pAudioCaptureNx->lTaskId = NetAppOSTaskSpawn("NexusBtAvSource_P_CaptureTask",
+        pAudioCaptureNx->TaskId = NetAppOSTaskSpawn("NexusBtAvSource_P_CaptureTask",
                 NETAPP_OS_PRIORITY_NORMAL, 64*1024, NexusBtAvSource_P_CaptureTask, pAudioCaptureNx);
     }
 }
@@ -476,9 +475,9 @@ CAudioCaptureNx::CAudioCaptureNx(const char * name) :
     BDBG_ASSERT(eRet_Ok == ret);
     hCapture = NULL;
     memset(&allocResults, 0, sizeof(NxClient_AllocResults));
-    lTaskId             = 0;
-    bShutdown           = false;
-    _state = eAudioCaptureState_Off;
+    TaskId   = NULL;
+    bShutdown = false;
+    _state    = eAudioCaptureState_Off;
 }
 
 CAudioCaptureNx::~CAudioCaptureNx()
@@ -582,16 +581,16 @@ eRet CAudioCaptureNx::stop(void)
     }
     if (_state == eAudioCaptureState_On)
     {
-        if (lTaskId != 0)
+        if (TaskId)
         {
             bShutdown = true;
 
 #ifdef NETAPP_SUPPORT
-            NetAppOSTaskJoin(lTaskId);
-            NetAppOSTaskDelete(lTaskId);
+            NetAppOSTaskJoin(TaskId);
+            NetAppOSTaskDelete(TaskId);
 #endif
             bShutdown = false;
-            lTaskId   = 0;
+            TaskId   = NULL;
         }
 
         BDBG_WRN(("%s: Audio Capture Stop ", __FUNCTION__));

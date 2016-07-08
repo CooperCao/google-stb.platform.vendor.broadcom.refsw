@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2012 Broadcom Corporation
+ *     Broadcom Proprietary and Confidential. (c)2012 Broadcom.  All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -88,6 +88,7 @@ typedef struct BV3D_P_Handle {
    BCHP_Handle         hChp;
    BREG_Handle         hReg;
    BMMA_Heap_Handle    hMma;
+   BMMA_Heap_Handle    hMmaSecure;
    BINT_Handle         hInt;
 
    int                 hFd;
@@ -95,62 +96,68 @@ typedef struct BV3D_P_Handle {
    BINT_CallbackHandle  callback_intctl;
    BINT_CallbackHandle  callback_dbqitc;
 
-   BKNI_EventHandle     workerCanTerminate;     /* signaled when the worker can shutdown                                */
+   BKNI_EventHandle     workerCanTerminate;        /* signaled when the worker can shutdown                                */
    BKNI_EventHandle     wakeWorkerThread;
-   BKNI_EventHandle     workerSync;             /* created by the caller and used to sync thread creation/destruction   */
-   bool                 workerPresent;          /* used in termination                                                  */
+   BKNI_EventHandle     workerSync;                /* created by the caller and used to sync thread creation/destruction   */
+   bool                 workerPresent;             /* used in termination                                                  */
 
-   uint32_t             interruptReason;        /* Current interrupt conditions                                         */
-   uint32_t             powerOnCount;           /* Reference count of power on/off                                      */
-   bool                 reallyPoweredOn;        /* Set when the core is actually powered                                */
-   bool                 isStandby;              /* Power down is done via a watchdog, dont let it power down when
-                                                   already in standby                                                   */
-   uint32_t             quiescentTimeMs;        /* How long has the hardware been quiet? Power down after a period      */
+   uint32_t             interruptReason;           /* Current interrupt conditions                                         */
+   uint32_t             powerOnCount;              /* Reference count of power on/off                                      */
+   bool                 reallyPoweredOn;           /* Set when the core is actually powered                                */
+   bool                 isStandby;                 /* Power down is done via a watchdog, dont let it power down when
+                                                      already in standby                                                   */
+   uint32_t             quiescentTimeMs;           /* How long has the hardware been quiet? Power down after a period      */
 
-   uint32_t             timeoutCount;           /* Used for lockup detection                                            */
-   uint32_t             prevBinAddress;         /* The last control list address the binner processed                   */
-   uint32_t             prevRenderAddress;      /* The last control list address the renderer processed                 */
+   uint32_t             timeoutCount;              /* Used for lockup detection                                            */
+   uint32_t             prevBinAddress;            /* The last control list address the binner processed                   */
+   uint32_t             prevRenderAddress;         /* The last control list address the renderer processed                 */
 
-   BKNI_MutexHandle           hModuleMutex;     /* used to protect the worker queue and the posting of messages         */
-   BV3D_IQMapHandle           hIQMap;           /* map of instruction queues based on clientId                          */
-   BV3D_WaitQHandle           hWaitQ;           /* job queue for waiting jobs                                           */
-   BV3D_NotifyQHandle         hNotifyQ;         /* when a job is complete it goes into the notification queue           */
-   BV3D_CallbackMapHandle     hCallbackQ;       /* callbacks                                                            */
-   BV3D_BinMemManagerHandle   hBinMemManager;   /* binmemory allocator object                                           */
+   BKNI_MutexHandle           hModuleMutex;        /* used to protect the worker queue and the posting of messages         */
+   BV3D_IQMapHandle           hIQMap;              /* map of instruction queues based on clientId                          */
+   BV3D_WaitQHandle           hWaitQ;              /* job queue for waiting jobs                                           */
+   BV3D_NotifyQHandle         hNotifyQ;            /* when a job is complete it goes into the notification queue           */
+   BV3D_CallbackMapHandle     hCallbackQ;          /* callbacks                                                            */
+   BV3D_BinMemManagerHandle   hBinMemManager;      /* binmemory allocator object                                           */
+   BV3D_BinMemManagerHandle   hBinMemManagerSecure;/* secure binmemory allocator object                                    */
+   void                 (*pfnSecureToggle)(bool);  /* callback up the stack for the secure toggle                          */
+   bool                 bScrubbing;                /* scrubbing code is running, bypass IRQs                               */
 
-   uint32_t             uiUserVPM;              /* Current VPM settings                                                 */
+   uint32_t             uiUserVPM;                 /* Current VPM settings                                                 */
 
-   uint32_t             uiNextClientId;         /* Counter for client ids                                               */
+   uint32_t             uiNextClientId;            /* Counter for client ids                                               */
 
-   uint32_t             uiScheduleFirst;        /* round robin for the scheduler                                        */
+   uint32_t             uiScheduleFirst;           /* round robin for the scheduler                                        */
 
-   BV3D_Instruction    sBin;                    /* current Bin instruction                                              */
-   BV3D_Instruction    sRender;                 /* current Render instruction                                           */
-   BV3D_Instruction    sUser;                   /* current User instruction                                             */
+   BV3D_Instruction    sBin;                       /* current Bin instruction                                              */
+   BV3D_Instruction    sRender;                    /* current Render instruction                                           */
+   BV3D_Instruction    sUser;                      /* current User instruction                                             */
 
-   BV3D_PerfMonitorData sPerfData;              /* Current performance data                                             */
-   bool                 bPerfMonitorActive;     /* True if we are gathering data                                        */
+   BV3D_PerfMonitorData sPerfData;                 /* Current performance data                                             */
+   bool                 bPerfMonitorActive;        /* True if we are gathering data                                        */
    uint32_t             uiPerfMonitorHwBank;
    uint32_t             uiPerfMonitorMemBank;
 
-   uint32_t             uiHeapOffset;           /* needs to be patched for SCB remap.  Get it once at BV3D_Open()       */
+   uint32_t             uiHeapOffset;              /* needs to be patched for SCB remap.  Get it once at BV3D_Open()       */
+   uint32_t             uiHeapOffsetSecure;        /* needs to be patched for SCB remap.  Get it once at BV3D_Open()       */
 
-   bool                 bCollectLoadStats;      /* Do we want to gather load statistics for each client?                */
-   uint32_t             uiNumSlices;            /* Number of slices                                                     */
+   bool                 bSecure;                   /* current mode of operation                                            */
 
-   bool                 bDisableAQA;            /* Disable adaptive QPU assignment if true                              */
-   uint64_t             uiCumBinTimeUs;         /* Cumulative bin time since last load check                            */
-   uint64_t             uiBinStartTimeUs;       /* Start time of last bin job                                           */
-   uint64_t             uiCumRenderTimeUs;      /* Cumulative render time since last load check                         */
-   uint64_t             uiRenderStartTimeUs;    /* Start time of last render job                                        */
-   uint64_t             sLastLoadCheckTimeUs;   /* Timestamp of last load check                                         */
-   uint32_t             uiCurQpuSched0;         /* Shadow of the QPU0 scheduler register                                */
-   uint32_t             uiCurQpuSched1;         /* Shadow of the QPU1 scheduler register                                */
+   bool                 bCollectLoadStats;         /* Do we want to gather load statistics for each client?                */
+   uint32_t             uiNumSlices;               /* Number of slices                                                     */
 
-   uint32_t             uiMdiv;                 /* calculated Mdiv for the requested frequency                          */
+   bool                 bDisableAQA;               /* Disable adaptive QPU assignment if true                              */
+   uint64_t             uiCumBinTimeUs;            /* Cumulative bin time since last load check                            */
+   uint64_t             uiBinStartTimeUs;          /* Start time of last bin job                                           */
+   uint64_t             uiCumRenderTimeUs;         /* Cumulative render time since last load check                         */
+   uint64_t             uiRenderStartTimeUs;       /* Start time of last render job                                        */
+   uint64_t             sLastLoadCheckTimeUs;      /* Timestamp of last load check                                         */
+   uint32_t             uiCurQpuSched0;            /* Shadow of the QPU0 scheduler register                                */
+   uint32_t             uiCurQpuSched1;            /* Shadow of the QPU1 scheduler register                                */
+
+   uint32_t             uiMdiv;                    /* calculated Mdiv for the requested frequency                          */
 
    /* Fences */
-   BV3D_FenceArrayHandle     hFences;           /* holds the fence pool                                                 */
+   BV3D_FenceArrayHandle     hFences;              /* holds the fence pool                                                 */
 } BV3D_P_Handle;
 
 #endif /* BV3D_PRIV_H__ */

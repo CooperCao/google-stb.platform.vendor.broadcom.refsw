@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2008 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2008 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -43,7 +43,7 @@ Inline functions to control the texture units.
 static INLINE uint32_t tu_image_format_to_type(KHRN_IMAGE_FORMAT_T format)
 {
 #ifndef NO_OPENVG
-   format = format & ~(IMAGE_FORMAT_PRE | IMAGE_FORMAT_LIN | IMAGE_FORMAT_OVG);
+   format = khrn_image_no_colorspace_format(format);
 #endif
    switch (format) {
    case ABGR_8888_TF: return 0;
@@ -82,7 +82,7 @@ static INLINE uint32_t tu_image_format_to_type(KHRN_IMAGE_FORMAT_T format)
 static INLINE bool tu_image_format_rb_swap(KHRN_IMAGE_FORMAT_T format)
 {
 #ifndef NO_OPENVG
-   format = format & ~(IMAGE_FORMAT_PRE | IMAGE_FORMAT_LIN | IMAGE_FORMAT_OVG);
+   format = khrn_image_no_colorspace_format(format);
 #endif
    switch (format) {
    case ABGR_8888_TF:

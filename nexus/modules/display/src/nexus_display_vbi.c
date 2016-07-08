@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2015 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #include "nexus_base.h"
@@ -902,15 +894,30 @@ NEXUS_Error NEXUS_Display_SetVps(NEXUS_DisplayHandle display, const NEXUS_VpsDat
 /* bvdc_nomacrovision_priv.c does not provide stubs for public API, so we must #if */
 #ifdef MACROVISION_SUPPORT
 #include "bvdc_macrovision.h"
-#endif
 
-NEXUS_Error NEXUS_Display_SetMacrovision( NEXUS_DisplayHandle display, NEXUS_DisplayMacrovisionType type, const NEXUS_DisplayMacrovisionTables *pTable)
+static bool nexus_p_display_supports_macrovision(NEXUS_VideoFormat format)
 {
-#ifdef MACROVISION_SUPPORT
+    NEXUS_VideoFormatInfo info;
+    NEXUS_VideoFormat_GetInfo(format, &info);
+    /* logic extracted from BVDC_P_aFormatInfoTable[] in bvdc_displayfmt_priv.c. */
+    return info.height <= 576 &&
+           format != NEXUS_VideoFormat_eNtsc443 &&
+           format != NEXUS_VideoFormat_ePalN &&
+           format != NEXUS_VideoFormat_ePal60hz &&
+           format != NEXUS_VideoFormat_e720x482_NTSC_J;
+}
+
+static NEXUS_Error NEXUS_Display_P_SetMacrovision( NEXUS_DisplayHandle display, NEXUS_DisplayMacrovisionType type, const NEXUS_DisplayMacrovisionTables *pTable, NEXUS_VideoFormat videoFormat)
+{
     BERR_Code rc;
     BVDC_MacrovisionType mv_type;
 
     BDBG_OBJECT_ASSERT(display, NEXUS_Display);
+
+    if (type != NEXUS_DisplayMacrovisionType_eNone && !nexus_p_display_supports_macrovision(videoFormat)) {
+        BDBG_WRN(("display %u format %u does not support macrovision.", display->index, videoFormat));
+        type = NEXUS_DisplayMacrovisionType_eNone;
+    }
 
     switch (type) {
     case NEXUS_DisplayMacrovisionType_eAgcOnly:
@@ -953,16 +960,50 @@ NEXUS_Error NEXUS_Display_SetMacrovision( NEXUS_DisplayHandle display, NEXUS_Dis
         rc = BVDC_Display_SetMacrovisionTable(display->displayVdc, pTable->cpcTable, pTable->cpsTable);
         if (rc) return BERR_TRACE(rc);
     }
+
+    return 0;
+}
+
+void nexus_p_check_macrovision( NEXUS_DisplayHandle display, NEXUS_VideoFormat videoFormat)
+{
+    (void)NEXUS_Display_P_SetMacrovision(display, display->macrovision.type,  display->macrovision.tableSet?&display->macrovision.table:NULL, videoFormat);
+}
+
+NEXUS_Error NEXUS_Display_SetMacrovision( NEXUS_DisplayHandle display, NEXUS_DisplayMacrovisionType type, const NEXUS_DisplayMacrovisionTables *pTable)
+{
+    NEXUS_Error rc;
+
+    rc = NEXUS_Display_P_SetMacrovision(display, type, pTable, display->cfg.format);
+    if (rc) return BERR_TRACE(rc);
+
     rc = NEXUS_Display_P_ApplyChanges();
     if (rc) return BERR_TRACE(rc);
-    return 0;
+
+    display->macrovision.type = type;
+    if (pTable) {
+        display->macrovision.tableSet = true;
+        display->macrovision.table = *pTable;
+    }
+    else {
+        display->macrovision.tableSet = false;
+    }
+
+    return NEXUS_SUCCESS;
+}
 #else
+void nexus_p_check_macrovision( NEXUS_DisplayHandle display, NEXUS_VideoFormat videoFormat)
+{
+    BSTD_UNUSED(display);
+    BSTD_UNUSED(videoFormat);
+}
+NEXUS_Error NEXUS_Display_SetMacrovision( NEXUS_DisplayHandle display, NEXUS_DisplayMacrovisionType type, const NEXUS_DisplayMacrovisionTables *pTable)
+{
     BDBG_OBJECT_ASSERT(display, NEXUS_Display);
     BSTD_UNUSED(type);
     BSTD_UNUSED(pTable);
     return BERR_TRACE(NEXUS_NOT_SUPPORTED);
-#endif
 }
+#endif
 
 /* bvdc_nodcs_priv.c does not provide stubs for public API, so we must #if */
 #ifdef DCS_SUPPORT

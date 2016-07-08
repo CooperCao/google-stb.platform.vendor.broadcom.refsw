@@ -1,23 +1,44 @@
-/***************************************************************************
- *     Copyright (c) 2006-2014, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * Module Description: DSP Utility Functions
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
  *
- * Revision History:
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- * 
- ***************************************************************************/
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ *****************************************************************************/
+
 
 #include "bape_types.h"
 #include "bdsp.h"
@@ -26,6 +47,12 @@
 
 #ifndef BAPE_DSP_UTILS_PRIV_H_
 #define BAPE_DSP_UTILS_PRIV_H_
+
+#if defined BDSP_MS10_SUPPORT || defined BDSP_DOLBY_DCV_SUPPORT
+  #define BAPE_DSP_LEGACY_DDP_ALGO        1
+#else /* Standalone and MS12 use UDC Algo */
+  #define BAPE_DSP_LEGACY_DDP_ALGO        0
+#endif
 
 /***************************************************************************
 Summary:
@@ -142,8 +169,8 @@ void BAPE_DSP_P_GetChannelMatrix(BAPE_ChannelMode outputMode, bool lfe, uint32_t
 
 /***************************************************************************
 Summary:
-Helper to setup true mono channel matrix, which is different from the 
-typical mono->stereo output from a DSP node. 
+Helper to setup true mono channel matrix, which is different from the
+typical mono->stereo output from a DSP node.
 ***************************************************************************/
 void BAPE_DSP_P_GetMonoChannelMatrix(uint32_t *pChannelMatrix);
 
@@ -151,67 +178,67 @@ void BAPE_DSP_P_GetMonoChannelMatrix(uint32_t *pChannelMatrix);
 Summary:
 Unit conversion routines
 ***************************************************************************/
-uint32_t 
+uint32_t
 BAPE_P_FloatToQ131(
-    int32_t floatVal, 
+    int32_t floatVal,
     unsigned int uiRange
     );
 
-uint32_t 
+uint32_t
 BAPE_P_FloatToQ230(
     int16_t floatVar
     );
 
-int32_t 
+int32_t
 BAPE_P_FloatToQ923(
-    uint32_t floatVar, 
+    uint32_t floatVar,
     unsigned int uiRange
     );
 
-uint32_t 
+uint32_t
 BAPE_P_FloatToQ521(
-    uint32_t floatVar, 
+    uint32_t floatVar,
     unsigned int uiRange
     );
 
-int32_t 
+int32_t
 BAPE_P_FloatToQ824(
-    int32_t floatVar, 
+    int32_t floatVar,
     unsigned int uiRange
     );
 
 
-int32_t 
+int32_t
 BAPE_P_FloatToQ1022(
     int32_t floatVar,
     unsigned int uiRange
     );
 
-uint32_t 
+uint32_t
 BAPE_P_FloatToQ518(
     uint32_t floatVar,
     unsigned int uiRange
     );
 
-uint32_t 
+uint32_t
     BAPE_P_FloatToQ815(
     uint32_t floatVar,
     unsigned int uiRange
     );
 
-uint32_t 
+uint32_t
     BAPE_P_FloatToQ527(
     uint32_t floatVar,
     unsigned int uiRange
     );
 
-uint32_t 
+uint32_t
     BAPE_P_FloatToQ329(
     uint32_t floatVal,
     unsigned int uiRange
     );
 
-uint32_t 
+uint32_t
     BAPE_P_FloatToQ428(
     uint32_t floatVal,
     unsigned int uiRange
@@ -227,7 +254,7 @@ BERR_Code BAPE_DSP_P_AddFmmBuffer(
 
 /***************************************************************************
 Summary:
-Get Connector Data Type 
+Get Connector Data Type
 ***************************************************************************/
 BDSP_DataType BAPE_DSP_P_GetDataTypeFromConnector(
     BAPE_Connector connector
@@ -239,13 +266,13 @@ Summary:
 Init an FMM buffer descriptor from a DFIFO group
 ***************************************************************************/
 BERR_Code BAPE_DSP_P_InitFmmInputDescriptor(
-    BAPE_DfifoGroupHandle hDfifoGroup, 
+    BAPE_DfifoGroupHandle hDfifoGroup,
     BDSP_FmmBufferDescriptor *pDesc
     );
 
 /***************************************************************************
 Summary:
-Build the path between a DSP node and one consumer 
+Build the path between a DSP node and one consumer
 ***************************************************************************/
 BERR_Code BAPE_DSP_P_AllocatePathToOutput(
     BAPE_PathNode *pNode,
@@ -254,7 +281,7 @@ BERR_Code BAPE_DSP_P_AllocatePathToOutput(
 
 /***************************************************************************
 Summary:
-Configure the path between a DSP node and one consumer 
+Configure the path between a DSP node and one consumer
 ***************************************************************************/
 BERR_Code BAPE_DSP_P_ConfigPathToOutput(
     BAPE_PathNode *pNode,
@@ -263,7 +290,7 @@ BERR_Code BAPE_DSP_P_ConfigPathToOutput(
 
 /***************************************************************************
 Summary:
-Start the path from a DSP node to one consumer 
+Start the path from a DSP node to one consumer
 ***************************************************************************/
 BERR_Code BAPE_DSP_P_StartPathToOutput(
     BAPE_PathNode *pNode,
@@ -272,7 +299,7 @@ BERR_Code BAPE_DSP_P_StartPathToOutput(
 
 /***************************************************************************
 Summary:
-Stop the path from a DSP node to one consumer 
+Stop the path from a DSP node to one consumer
 ***************************************************************************/
 void BAPE_DSP_P_StopPathToOutput(
     BAPE_PathNode *pNode,

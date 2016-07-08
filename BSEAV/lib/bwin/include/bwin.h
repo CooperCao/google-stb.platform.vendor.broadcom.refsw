@@ -1,5 +1,5 @@
 /******************************************************************************
- * (c) 2004-2014 Broadcom Corporation
+ * (c) 2004-2016 Broadcom Corporation
  *
  * This program is the proprietary software of Broadcom Corporation and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -145,7 +145,7 @@ Handle for adding I/O events to the main event loop.
 Description:
 The code value of bwin_io_handle is any non-zero user-defined number.
 **/
-typedef uint32_t bwin_io_handle;
+typedef unsigned long bwin_io_handle;
 
 /**
 Summary:

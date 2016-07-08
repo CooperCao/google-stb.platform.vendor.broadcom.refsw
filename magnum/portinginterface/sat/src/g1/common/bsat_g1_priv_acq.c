@@ -1,7 +1,7 @@
 /******************************************************************************
-*    (c)2011-2014 Broadcom Corporation
+* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-* This program is the proprietary software of Broadcom Corporation and/or its licensors,
+* This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
 * conditions of a separate, written license agreement executed between you and Broadcom
 * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
 * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 * ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * Module Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 *****************************************************************************/
 #include "bstd.h"
@@ -59,7 +51,7 @@ BDBG_MODULE(bsat_g1_priv_acq);
 #define BSAT_DEBUG_ACQ(x) /* x */
 #define BSAT_DEBUG_OI(x) /* x */
 
-#define BSAT_G1_LOCK_FILTER_INCR 5000
+#define BSAT_G1_LOCK_FILTER_INCR 1250 /* orig: 5000 */
 
 
 /* local functions */
@@ -262,6 +254,7 @@ BERR_Code BSAT_g1_P_InitChannelHandle(BSAT_ChannelHandle h)
    hChn->configParam[BSAT_g1_CONFIG_EQ_CTL] = 0;
    hChn->configParam[BSAT_g1_CONFIG_ACQ_DAFE_CTL] = 0;
    hChn->configParam[BSAT_g1_CONFIG_TRK_DAFE_CTL] = 0;
+   hChn->configParam[BSAT_g1_CONFIG_ACM_DEBUG] = 0;
 #ifdef BSAT_HAS_WFE
    hChn->notchState = -1;
 #endif
@@ -1259,7 +1252,7 @@ void BSAT_g1_P_ResetLockFilter_isr(BSAT_ChannelHandle h)
    uint32_t P_hi, P_lo, Q_hi;
 
    hChn->stableLockTimeout = BSAT_MODE_IS_LEGACY_QPSK(hChn->actualMode) ? 3000 : 5000;
-   hChn->maxStableLockTimeout = 200000;
+   hChn->maxStableLockTimeout = 150000; /* orig: 200000 */
    hChn->lockFilterRamp = -2;
 
    if (hChn->acqSettings.symbolRate < 20000000)
@@ -2251,11 +2244,17 @@ BERR_Code BSAT_g1_P_ConfigOif_isr(BSAT_ChannelHandle h)
 
 #ifdef BCHP_SDS_OI_0_OIFCTL02_delh_bert_MASK
    val = BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_SDS_OI_OIFCTL02);
-   val &= ~BCHP_SDS_OI_0_OIFCTL02_delh_bert_MASK;
+   val &= ~(BCHP_SDS_OI_0_OIFCTL02_delh_bert_MASK | BCHP_SDS_OI_0_OIFCTL02_oifxb_xbert_MASK | BCHP_SDS_OI_0_OIFCTL02_delh_xbert_MASK);
 
-   if (/* (hChn->xportSettings.bDelHeader) &&*/ (hChn->acqSettings.options & BSAT_ACQ_ENABLE_BERT))
+   if (hChn->acqSettings.options & BSAT_ACQ_ENABLE_BERT)
    {
       val |= BCHP_SDS_OI_0_OIFCTL02_delh_bert_MASK;
+   }
+   if (hChn->xportSettings.bXbert)
+   {
+      val |= BCHP_SDS_OI_0_OIFCTL02_delh_xbert_MASK;
+      if (!(BSAT_MODE_IS_DTV(hChn->actualMode)))
+         val |= BCHP_SDS_OI_0_OIFCTL02_oifxb_xbert_MASK;
    }
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_OI_OIFCTL02, val);
 #endif
@@ -2363,6 +2362,7 @@ BERR_Code BSAT_g1_P_OnReacqTimerExpired_isr(BSAT_ChannelHandle h)
       {
          /* at least 1 stream is locked, so just declare lock */
          BSAT_DEBUG_ACQ(BDBG_ERR(("detected at least 1 stream is locked (AFEC_LOCK_STATUS=0x%X)", lock_status)));
+         BSAT_g1_P_GetAcquisitionTimerValue_isr(h, &(hChn->configParam[BSAT_g1_CONFIG_ACQ_TIME]));
          return BSAT_g1_P_OnStableLock_isr(h);
       }
    }
@@ -2383,9 +2383,7 @@ BERR_Code BSAT_g1_P_StartReacqTimer_isr(BSAT_ChannelHandle h)
    uint32_t reacquisition_timeout, P_hi, P_lo, Q_hi, min_timeout;
 
    /* compute the reacquisition timeout */
-   if (hChn->acqSettings.mode == BSAT_Mode_eDvbs2_ACM)
-      min_timeout = 1500000;
-   else if (BSAT_MODE_IS_TURBO(hChn->actualMode))
+   if (BSAT_MODE_IS_TURBO(hChn->actualMode))
       min_timeout = 500000;
    else
       min_timeout = 400000;
@@ -3063,6 +3061,9 @@ BERR_Code BSAT_g1_P_OnMonitorLock_isr(BSAT_ChannelHandle h)
    BSAT_g1_P_CheckSignalNotification_isr(h);
 
    hChn->timeSinceStableLock++;
+   if (hChn->timeSinceStableLock > 100)
+      BSAT_g1_P_ResetLockFilter_isr(h);
+
    retCode = BSAT_g1_P_EnableTimer_isr(h, BSAT_TimerSelect_eMonitorLockTimer, 100000, BSAT_g1_P_OnMonitorLock_isr);
 
    done:

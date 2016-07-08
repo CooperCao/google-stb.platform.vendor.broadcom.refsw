@@ -1,7 +1,7 @@
 /******************************************************************************
- * (c) 2006-2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -37,7 +37,6 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 
 
@@ -53,7 +52,7 @@
 #include "bdsp_raaga_fw_settings.h"
 #include "bdsp_raaga_fw.h"
 #include "bdsp_raaga_fw_status.h"
-#include "../src/raaga/bdsp_raaga_cmdresp_priv.h"
+#include "bdsp_raaga_cmdresp_priv.h"
 
 /* API for Host to route SCM commands into Firmware */
 BERR_Code BDSP_Scm_sendScmCommand(

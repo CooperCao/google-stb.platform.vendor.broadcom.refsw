@@ -1,7 +1,7 @@
 /******************************************************************************
- * (c) 2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -37,7 +37,6 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 
 /* base modules */
@@ -71,6 +70,8 @@ BDSP_DumpImage(
 
     BSTD_UNUSED( uiFirmwareId );
 
+    *pvCodeStart = NULL;
+    *puiCodeSize = 0;
 
     /* Find all the sizes for supported binaries */
 
@@ -98,13 +99,15 @@ BDSP_DumpImage(
     }
 
     BKNI_Memset( pBuffer, 0, uiFwBinSizeWithGuardBand );
-    BDSP_Raaga_P_PreLoadFwImages(
+    rc = BDSP_Raaga_P_PreLoadFwImages(
                 &BDSP_IMG_Interface,
                 (void **)BDSP_IMG_Context,
                 ImgCache,
                 pBuffer,
                 uiFwBinSize,
                 NULL);
+    if(rc != BERR_SUCCESS)
+        goto error;
 
     *pvCodeStart = pBuffer;
     *puiCodeSize = uiFwBinSizeWithGuardBand;

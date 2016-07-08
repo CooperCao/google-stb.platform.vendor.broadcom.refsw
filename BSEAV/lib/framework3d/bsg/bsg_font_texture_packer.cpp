@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -11,7 +11,7 @@
  * Software and all intellectual property rights therein.  IF YOU HAVE NO
  * AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
  * AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
- * SOFTWARE.  
+ * SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
@@ -52,13 +52,13 @@
 namespace bsg
 {
 
-class FontTextureNode 
+class FontTextureNode
 {
 public:
    FontTextureNode(uint32_t x, uint32_t y, uint32_t w, uint32_t h) :
       m_rect(x, y, w, h, 0)
    {
-      m_left = m_right = nullptr;
+      m_left = m_right = NULL;
    }
 
    ~FontTextureNode()
@@ -69,7 +69,7 @@ public:
 
    bool AssignRectangle(FontTextureRectangle *newRect, uint32_t tex)
    {
-      if (m_left != nullptr && m_right != nullptr)
+      if (m_left != NULL && m_right != NULL)
       {
          return m_left->AssignRectangle(newRect, tex)  ||
                 m_right->AssignRectangle(newRect, tex);
@@ -148,7 +148,7 @@ uint32_t FontTexturePacker::AssignCoords(std::vector<uint32_t> &width, std::vect
 
    while (retry)
    {
-      std::unique_ptr<FontTextureNode> top(new FontTextureNode(0, 0, width[tex], height[tex]));
+      std::auto_ptr<FontTextureNode> top(new FontTextureNode(0, 0, width[tex], height[tex]));
 
       bool  ok   = true;
 

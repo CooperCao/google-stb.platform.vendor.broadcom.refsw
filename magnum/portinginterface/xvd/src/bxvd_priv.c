@@ -1,24 +1,41 @@
-/***************************************************************************
- *     Copyright (c) 2004-2006, Broad-com Corporation
- *     All Rights Reserved
- *     Confidential Property of Broad-com Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROAD-COM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * Module Description:
- *   See Module Overview below.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * Revision History:
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- *
- ***************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
+
 #include "bstd.h"
 #include "bkni.h"          /* For malloc */
 #include "bmem.h"
@@ -93,7 +110,7 @@ static const BXVD_P_FWMemConfig_V2 sChannelFWMemCfg[BXVD_VideoProtocol_eMax][BXV
 
    /* BXVD_VideoProtocol_eVC1 */
    {
-      {154944,	917504,	103680, 3906176, 131072, BXVD_P_VideoAtomIndex_eM, 5}, /* VC1 HD */
+      {154944,  917504, 103680, 3906176, 131072, BXVD_P_VideoAtomIndex_eM, 5}, /* VC1 HD */
       {154944,  204800,  21632, 1562496,  65536, BXVD_P_VideoAtomIndex_eB, 5}, /* VC1 SD */
       {154944,  102400,   5888,  312448,  16384, BXVD_P_VideoAtomIndex_eC, 5}, /* VC1 CIF */
       {154944,  102400,   1792,   54656,  16384, BXVD_P_VideoAtomIndex_eD, 2}  /* VC1 QCIF */
@@ -104,7 +121,7 @@ static const BXVD_P_FWMemConfig_V2 sChannelFWMemCfg[BXVD_VideoProtocol_eMax][BXV
       {154944, 98304, 168960, 3906176, 131072, BXVD_P_VideoAtomIndex_eM, 5}, /* MPEG4/DivX HD */
       {154944, 98304,  34624, 1562496,  65536, BXVD_P_VideoAtomIndex_eB, 5}, /* MPEG4/DivX SD */
       {154944, 20480,   9024,  312448,  16384, BXVD_P_VideoAtomIndex_eC, 5}, /* MPEG4/DivX CIF */
-      {154944, 20480,	2560,   54656,  16384, BXVD_P_VideoAtomIndex_eD, 2}  /* MPEG4/DivX QCIF */
+      {154944, 20480,   2560,   54656,  16384, BXVD_P_VideoAtomIndex_eD, 2}  /* MPEG4/DivX QCIF */
    },
 
    /* BXVD_VideoProtocol_eAVS */
@@ -135,8 +152,13 @@ static const BXVD_P_FWMemConfig_V2 sChannelStillFWMemCfg[BXVD_VideoProtocol_eMax
 
    /* BXVD_VideoProtocol_eMPEG2 */
    {
+#if BXVD_P_CORE_REVISION_NUM >= 19
+      { 154944, 1024*2, 0, 921600, 8192, BXVD_P_VideoAtomIndex_eA, 1}, /* MPEG2 HD Still */
+      { 154944, 1024*2, 0, 204800, 8192, BXVD_P_VideoAtomIndex_eB, 1}  /* MPEG2 SD Still */
+#else
       { 154944, 1024, 0, 921600, 8192, BXVD_P_VideoAtomIndex_eA, 1}, /* MPEG2 HD Still */
       { 154944, 1024, 0, 204800, 8192, BXVD_P_VideoAtomIndex_eB, 1}  /* MPEG2 SD Still */
+#endif
    },
 
    /* BXVD_VideoProtocol_eVC1 */
@@ -166,10 +188,15 @@ static const BXVD_P_FWMemConfig_V2 sChannelStillFWMemCfg[BXVD_VideoProtocol_eMax
 
 static const BXVD_P_FWMemConfig_V2 sChannelStillFWMemCfg_HEVC[3] =
 {  /* Context, InnerLoop WL, DirectMode, Cabac bin,  Cabac WL,  Vid Blk (index),  Blk Cnt */
-   /* BXVD_VideoProtocol_eAVC */
+   /* BXVD_VideoProtocol_eHEVC */
    { 694892,  78196,        0,         921600,      22920, BXVD_P_VideoAtomIndex_eA, 1}, /* HEVC HD Still */
    { 694892,  32116,        0,         409600,      22920, BXVD_P_VideoAtomIndex_eB, 1}, /* HEVC SD Still */
    { 694892, 206196,        0,        3670016,     204800, BXVD_P_VideoAtomIndex_eJ, 1}  /* HEVC 4K Still */
+};
+
+static const BXVD_P_FWMemConfig_V2 sChannelStillFWMemCfg_AVC4K =
+{  /* Context, InnerLoop WL, DirectMode, Cabac bin,  Cabac WL,    Vid Blk (index),     Blk Cnt */
+   261440,      524288,         0,        1843200,    11264,    BXVD_P_VideoAtomIndex_eA, 1 /* AVC 4K Still */
 };
 
 static const BXVD_P_FWMemConfig_V2 sChannelFWMemCfg_BluRay[2] =
@@ -184,6 +211,11 @@ static const BXVD_P_FWMemConfig_V2 sChannelFWMemCfg_AVC41[1] =
 {
    /* BXVD_VideoProtocol_eAVC 4.1 */
    {261440, 3145728, 1638400, 13107200, 131072, BXVD_P_VideoAtomIndex_eM, 7} /* AVC 4.1 HD */
+};
+
+static const BXVD_P_FWMemConfig_V2 sChannelFWMemCfg_AVC4K[1] =
+{
+   {655360-(32*1024),  6598272,  6963200,   10485760,   1606400,   BXVD_P_VideoAtomIndex_eJ,    8}, /* AVC 4K  */
 };
 
 static const BXVD_P_FWMemConfig_V2 sChannelFWMemCfg_AVC51[1] =
@@ -821,6 +853,13 @@ BERR_Code BXVD_P_GetDecodeFWMemSize(BXVD_Handle hXvd,
                   }
                }
          }
+         else if ((eVideoProtocol_TableIndex == BXVD_VideoProtocol_eAVC) &&
+                  (eDecodeResolution == BXVD_DecodeResolution_e4K))
+         {
+            pChannelFWMemCfg = (BXVD_P_FWMemConfig_V2 *)&sChannelFWMemCfg_AVC4K;
+            vidBlkIndex = pChannelFWMemCfg->video_block_size_index;
+            vidBlkCountLookedUp = pChannelFWMemCfg->video_block_count;
+         }
 
          /* Normal memory configuration */
          else
@@ -1005,7 +1044,7 @@ BERR_Code BXVD_P_GetStillDecodeFWMemSize(BXVD_Handle hXvd,
 
    bool bNonHevcProtocolPresent = false;
 
-   BXVD_DecodeResolution temp_eDecodeResolution;
+   BXVD_DecodeResolution temp_eDecodeResolution = eDecodeResolution;
 
    uint32_t vidBlbSzIndx;
    BXVD_VideoProtocol eVideoProtocol;
@@ -1132,7 +1171,29 @@ BERR_Code BXVD_P_GetStillDecodeFWMemSize(BXVD_Handle hXvd,
             directModeMemReq = ((sChannelStillFWMemCfg_HEVC[temp_eDecodeResolution].direct_mode_size + 255) / 256) * 256;
          }
       }
-      else /* Not HEVC */
+      /* Not HEVC */
+      else if (( eVideoProtocol == BXVD_VideoProtocol_eAVC ) && ( eDecodeResolution == BXVD_DecodeResolution_e4K ))
+      {
+         if (sChannelStillFWMemCfg_AVC4K.general_memory_size > genMemReq)
+         {
+            genMemReq = sChannelStillFWMemCfg_AVC4K.general_memory_size;
+         }
+
+         if (sChannelStillFWMemCfg_AVC4K.inner_loop_wl_size > innerLoopWorklistMemReq)
+         {
+            innerLoopWorklistMemReq = sChannelStillFWMemCfg_AVC4K.inner_loop_wl_size;
+         }
+
+         cabacMemSizeLookedUp = sChannelStillFWMemCfg_AVC4K.cabac_bin_size;
+         cabacWorklistMemSizeLookedUp = sChannelStillFWMemCfg_AVC4K.cabac_wl_size;
+
+         if (sChannelStillFWMemCfg_AVC4K.direct_mode_size > directModeMemReq)
+         {
+            /* Align memory size to 256 bytes */
+            directModeMemReq = ((sChannelStillFWMemCfg_AVC4K.direct_mode_size + 255) / 256) * 256;
+         }
+      }
+      else
 #endif
       {
          if ( eDecodeResolution == BXVD_DecodeResolution_e4K)
@@ -1194,22 +1255,9 @@ BERR_Code BXVD_P_GetStillDecodeFWMemSize(BXVD_Handle hXvd,
          return BERR_TRACE(BERR_INVALID_PARAMETER);
       }
 
-      if (eVideoProtocol != BXVD_VideoProtocol_eHEVC)
-      {
-         vidBlbSzIndx = sChannelStillFWMemCfg[eVideoProtocol][temp_eDecodeResolution].video_block_size_index;
-
-         BXVD_P_GET_BUFFER_ATOM_SIZE(hXvd, pChSettings, vidBlbSzIndx, &lumaVidBlkSizeLookedUp, &chromaVidBlkSizeLookedUp);
-
-         if ( ((lumaVidBlkSizeLookedUp+chromaVidBlkSizeLookedUp)*
-               sChannelStillFWMemCfg[eVideoProtocol][temp_eDecodeResolution].video_block_count) >
-              (lumaVidBlkSizeReq * vidBlkCountReq))
-         {
-            lumaVidBlkSizeReq = lumaVidBlkSizeLookedUp + chromaVidBlkSizeLookedUp;
-            vidBlkCountReq =  sChannelStillFWMemCfg[eVideoProtocol][temp_eDecodeResolution].video_block_count;
-         }
-      }
 #if BXVD_P_HVD_PRESENT
-      else /* HEVC protocol */
+       /* HEVC protocol */
+      if (eVideoProtocol == BXVD_VideoProtocol_eHEVC)
       {
          vidBlbSzIndx = sChannelStillFWMemCfg_HEVC[temp_eDecodeResolution].video_block_size_index;
 
@@ -1228,7 +1276,41 @@ BERR_Code BXVD_P_GetStillDecodeFWMemSize(BXVD_Handle hXvd,
             chromaVidBlkSizeReq = chromaVidBlkSizeLookedUp;
          }
       }
+      else if ((eVideoProtocol == BXVD_VideoProtocol_eAVC ) && ( eDecodeResolution == BXVD_DecodeResolution_e4K ))
+      {
+         vidBlbSzIndx = sChannelStillFWMemCfg_AVC4K.video_block_size_index;
+
+         BXVD_P_GET_BUFFER_ATOM_SIZE(hXvd, pChSettings, vidBlbSzIndx, &lumaVidBlkSizeLookedUp, &chromaVidBlkSizeLookedUp);
+
+         if ( (lumaVidBlkSizeLookedUp *sChannelStillFWMemCfg_AVC4K.video_block_count) >
+              (lumaVidBlkSizeReq * vidBlkCountReq))
+         {
+            lumaVidBlkSizeReq = lumaVidBlkSizeLookedUp;
+            vidBlkCountReq =  sChannelStillFWMemCfg_AVC4K.video_block_count;
+         }
+
+         if ( (chromaVidBlkSizeLookedUp * sChannelStillFWMemCfg_AVC4K.video_block_count) >
+              (chromaVidBlkSizeReq * vidBlkCountReq))
+         {
+            chromaVidBlkSizeReq = chromaVidBlkSizeLookedUp;
+         }
+      }
+      else
 #endif
+      {
+         vidBlbSzIndx = sChannelStillFWMemCfg[eVideoProtocol][temp_eDecodeResolution].video_block_size_index;
+
+         BXVD_P_GET_BUFFER_ATOM_SIZE(hXvd, pChSettings, vidBlbSzIndx, &lumaVidBlkSizeLookedUp, &chromaVidBlkSizeLookedUp);
+
+         if ( ((lumaVidBlkSizeLookedUp+chromaVidBlkSizeLookedUp)*
+               sChannelStillFWMemCfg[eVideoProtocol][temp_eDecodeResolution].video_block_count) >
+              (lumaVidBlkSizeReq * vidBlkCountReq))
+         {
+            lumaVidBlkSizeReq = lumaVidBlkSizeLookedUp + chromaVidBlkSizeLookedUp;
+            vidBlkCountReq =  sChannelStillFWMemCfg[eVideoProtocol][temp_eDecodeResolution].video_block_count;
+         }
+      }
+
    }
 
 #if BXVD_P_PPB_EXTENDED
@@ -1425,8 +1507,8 @@ BERR_Code BXVD_P_AllocateFWMem(BXVD_Handle hXvd,
 
       if (pstDecodeFWBaseAddrs->uiFWPicBase == 0)
       {
-	 BXVD_DBG_ERR(hXvdCh, ("Picture memory allocation failure!"));
-	 return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+         BXVD_DBG_ERR(hXvdCh, ("Picture memory allocation failure!"));
+         return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
       }
 
       if (pstDecodeFWMemSize->uiFWInterLayerPicSize != 0)
@@ -1839,8 +1921,8 @@ BERR_Code BXVD_P_ChipInit(BXVD_Handle hXvd, uint32_t uDecoderInstance)
 
 #if FW_INIT
    rc = BXVD_P_HostCmdSendInit(hXvd,
-			       uDecoderInstance,
-			       hXvd->stSettings.eRaveEndianess
+                               uDecoderInstance,
+                               hXvd->stSettings.eRaveEndianess
                                );
 
    if (rc != BERR_SUCCESS)

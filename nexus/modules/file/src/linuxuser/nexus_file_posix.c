@@ -79,7 +79,7 @@ posix_read(bfile_io_read_t fd, void *buf, size_t length)
 
     if (rc<0 && file->direct==true) {
         int flags;
-        BDBG_WRN(("Error during O_DIRECT read; removing O_DIRECT flag. Performance will suffer greatly. buf=%p, length=%d", (void *)buf, length));
+        BDBG_WRN(("Error during O_DIRECT read; removing O_DIRECT flag. Performance will suffer greatly. buf=%p, length=%d", (void *)buf, (unsigned)length));
         file->direct = false;
         flags = fcntl(file->fd, F_GETFL);
         if (flags!=-1) {
@@ -206,7 +206,7 @@ posix_write(bfile_io_write_t fd, const void *buf, size_t length)
 
     if (rc<0 && file->direct==true) {
         int flags;
-        BDBG_WRN(("Error during O_DIRECT write; removing O_DIRECT flag. Performance will suffer greatly. buf=%p, length=%d", (void *)buf, length));
+        BDBG_WRN(("Error during O_DIRECT write; removing O_DIRECT flag. Performance will suffer greatly. buf=%p, length=%d", (void *)buf, (unsigned)length));
         file->direct = false;
         flags = fcntl(file->fd, F_GETFL);
         if (flags!=-1) {
@@ -532,7 +532,7 @@ b_file_io_mux_try_clear_odirect(struct bfile_io_mux_posix *file, const struct io
 {
     int flags;
     BSTD_UNUSED(vec);
-    BDBG_WRN(("Error during O_DIRECT I/O; removing O_DIRECT flag. Performance will suffer greatly. buf=%p, length=%d", vec[0].iov_base, vec[0].iov_len));
+    BDBG_WRN(("Error during O_DIRECT I/O; removing O_DIRECT flag. Performance will suffer greatly. buf=%p, length=%d", vec[0].iov_base, (unsigned)vec[0].iov_len));
     file->direct = false;
     flags = fcntl(file->fd, F_GETFL);
     if (flags!=-1) {

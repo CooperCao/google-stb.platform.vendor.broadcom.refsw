@@ -1,7 +1,7 @@
 /******************************************************************************
- * (c) 2004-2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -37,9 +37,7 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
- *****************************************************************************/
-
+ ******************************************************************************/
 
 #include "bdsp_raaga_fw.h"
 #include "bdsp_raaga_fw_cit.h"
@@ -91,26 +89,60 @@ const BDSP_AF_P_sNODE_INFO BDSP_sNodeInfo[BDSP_AF_P_AlgoId_eMax] =
 
     /*  BDSP_sNodeInfo[BDSP_AF_P_AlgoId_eAc3Decode] =  */
     {
-#ifdef BDSP_MS10_SUPPORT
-        BDSP_IMG_DOLBY_MS_DDP_DECODE_SIZE,              /*  ui32CodeSize */
-        BDSP_IMG_DOLBY_MS_DDP_DECODE_TABLES_SIZE,       /*  ui32RomTableSize */
-        /* Interframe size with Dolby MS 10 Changes */
-        BDSP_IMG_DOLBY_MS_DDP_DECODE_INTER_FRAME_SIZE,  /*  ui32InterFrameBuffSize */
-#else
-        BDSP_IMG_AC3_DECODE_SIZE,                       /*  ui32CodeSize */
-        BDSP_IMG_AC3_DECODE_TABLES_SIZE,                /*  ui32RomTableSize */
-        /* Interframe size with Dolby MS 10 Changes */
-        BDSP_IMG_AC3_DECODE_INTER_FRAME_SIZE,           /*  ui32InterFrameBuffSize */
-#endif
-        (2560+BDSP_AF_P_EXTRA_SAMPLES)*4*8,             /*  ui32InterStageIoBuffSize */
-        20000,                                          /*  ui32InterStageGenericBuffSize */
-        82600,                                          /*  ui32ScratchBuffSize */
-        sizeof(BDSP_Raaga_Audio_DDPMultiStreamConfigParams),    /*  ui32UserCfgBuffSize                   */
-        (2560+BDSP_AF_P_EXTRA_SAMPLES)*4,               /*  ui32MaxSizePerChan */
-        8,                                              /*  ui32MaxNumChansSupported */
-        BDSP_AF_P_InterFrameBuffType_ePresent,          /*  eInterFrameBuffType */
-        BDSP_AF_P_FwStatus_ePresent,                    /*  eFwStatusBuffType */
-        sizeof(BDSP_Raaga_Audio_MultiStreamDDPStreamInfo)   /*  FwStatusBuffSize */
+    #ifdef BDSP_DOLBY_DCV_SUPPORT
+
+        #ifdef BDSP_MS10_SUPPORT
+            BDSP_IMG_DOLBY_MS_DDP_DECODE_SIZE,              /*  ui32CodeSize */
+            BDSP_IMG_DOLBY_MS_DDP_DECODE_TABLES_SIZE,       /*  ui32RomTableSize */
+            /* Interframe size with Dolby MS 10 Changes */
+            BDSP_IMG_DOLBY_MS_DDP_DECODE_INTER_FRAME_SIZE,  /*  ui32InterFrameBuffSize */
+        #else
+            BDSP_IMG_AC3_DECODE_SIZE,                       /*  ui32CodeSize */
+            BDSP_IMG_AC3_DECODE_TABLES_SIZE,                /*  ui32RomTableSize */
+            /* Interframe size with Dolby MS 10 Changes */
+            BDSP_IMG_AC3_DECODE_INTER_FRAME_SIZE,           /*  ui32InterFrameBuffSize */
+        #endif
+            (2560+BDSP_AF_P_EXTRA_SAMPLES)*4*8,             /*  ui32InterStageIoBuffSize */
+            20000,                                          /*  ui32InterStageGenericBuffSize */
+            82600,                                          /*  ui32ScratchBuffSize */
+            sizeof(BDSP_Raaga_Audio_DDPMultiStreamConfigParams),    /*  ui32UserCfgBuffSize                   */
+            (2560+BDSP_AF_P_EXTRA_SAMPLES)*4,               /*  ui32MaxSizePerChan */
+            8,                                              /*  ui32MaxNumChansSupported */
+            BDSP_AF_P_InterFrameBuffType_ePresent,          /*  eInterFrameBuffType */
+            BDSP_AF_P_FwStatus_ePresent,                    /*  eFwStatusBuffType */
+            sizeof(BDSP_Raaga_Audio_MultiStreamDDPStreamInfo)   /*  FwStatusBuffSize */
+    #else
+
+        #ifdef BDSP_MS10_SUPPORT
+            BDSP_IMG_DOLBY_MS_DDP_DECODE_SIZE,              /*  ui32CodeSize */
+            BDSP_IMG_DOLBY_MS_DDP_DECODE_TABLES_SIZE,       /*  ui32RomTableSize */
+            /* Interframe size with Dolby MS 10 Changes */
+            BDSP_IMG_DOLBY_MS_DDP_DECODE_INTER_FRAME_SIZE,  /*  ui32InterFrameBuffSize */
+            (2560+BDSP_AF_P_EXTRA_SAMPLES)*4*8,             /*  ui32InterStageIoBuffSize */
+            20000,                                          /*  ui32InterStageGenericBuffSize */
+            82600,                                          /*  ui32ScratchBuffSize */
+            sizeof(BDSP_Raaga_Audio_DDPMultiStreamConfigParams),    /*  ui32UserCfgBuffSize                   */
+            (2560+BDSP_AF_P_EXTRA_SAMPLES)*4,               /*  ui32MaxSizePerChan */
+            8,                                              /*  ui32MaxNumChansSupported */
+            BDSP_AF_P_InterFrameBuffType_ePresent,          /*  eInterFrameBuffType */
+            BDSP_AF_P_FwStatus_ePresent,                    /*  eFwStatusBuffType */
+            sizeof(BDSP_Raaga_Audio_MultiStreamDDPStreamInfo)   /*  FwStatusBuffSize */
+        #else
+            BDSP_IMG_AC3_DECODE_SIZE,                       /*  ui32CodeSize */
+            BDSP_IMG_AC3_DECODE_TABLES_SIZE,                /*  ui32RomTableSize */
+            /* Interframe size with Dolby MS 10 Changes */
+            BDSP_IMG_AC3_DECODE_INTER_FRAME_SIZE,           /*  ui32InterFrameBuffSize */
+            (2560+BDSP_AF_P_EXTRA_SAMPLES)*4*8,             /*  ui32InterStageIoBuffSize */
+            20000,                                          /*  ui32InterStageGenericBuffSize */
+            462144,                                          /*  ui32ScratchBuffSize */
+            sizeof(BDSP_Raaga_Audio_UdcdecConfigParams),    /*  ui32UserCfgBuffSize                   */
+            (2560+BDSP_AF_P_EXTRA_SAMPLES)*4,               /*  ui32MaxSizePerChan */
+            8,                                              /*  ui32MaxNumChansSupported */
+            BDSP_AF_P_InterFrameBuffType_ePresent,          /*  eInterFrameBuffType */
+            BDSP_AF_P_FwStatus_ePresent,                    /*  eFwStatusBuffType */
+            sizeof(BDSP_Raaga_Audio_UdcStreamInfo)          /*  FwStatusBuffSize */
+        #endif
+    #endif
     },
 
     /*  BDSP_sNodeInfo[BDSP_AF_P_AlgoId_eAacDecode] =  */
@@ -134,26 +166,60 @@ const BDSP_AF_P_sNODE_INFO BDSP_sNodeInfo[BDSP_AF_P_AlgoId_eMax] =
 
     /*  BDSP_sNodeInfo[BDSP_AF_P_AlgoId_eDdpDecode] =  */
     {
-#ifdef BDSP_MS10_SUPPORT
-        BDSP_IMG_DOLBY_MS_DDP_DECODE_SIZE,              /*  ui32CodeSize */
-        BDSP_IMG_DOLBY_MS_DDP_DECODE_TABLES_SIZE,       /*  ui32RomTableSize */
-        /* Interframe size with Dolby MS 10 Changes */
-        BDSP_IMG_DOLBY_MS_DDP_DECODE_INTER_FRAME_SIZE,  /*  ui32InterFrameBuffSize */
-#else
-        BDSP_IMG_DDP_DECODE_SIZE,                       /*  ui32CodeSize */
-        BDSP_IMG_DDP_DECODE_TABLES_SIZE,                /*  ui32RomTableSize */
-        /* Interframe size with Dolby MS 10 Changes */
-        BDSP_IMG_DDP_DECODE_INTER_FRAME_SIZE,           /*  ui32InterFrameBuffSize */
-#endif
-        (2560+BDSP_AF_P_EXTRA_SAMPLES)*4*8,                                     /*  ui32InterStageIoBuffSize */
-        20000,                                          /*  ui32InterStageGenericBuffSize */
-        82600,                                          /*  ui32ScratchBuffSize */
-        sizeof(BDSP_Raaga_Audio_DDPMultiStreamConfigParams),    /*  ui32UserCfgBuffSize  */
-        (2560+BDSP_AF_P_EXTRA_SAMPLES)*4,                                           /*  ui32MaxSizePerChan */
-        8,                                              /*  ui32MaxNumChansSupported */
-        BDSP_AF_P_InterFrameBuffType_ePresent,          /*  eInterFrameBuffType */
-        BDSP_AF_P_FwStatus_ePresent,                    /*  eFwStatusBuffType */
-        sizeof(BDSP_Raaga_Audio_MultiStreamDDPStreamInfo)   /*  FwStatusBuffSize */
+    #ifdef BDSP_DOLBY_DCV_SUPPORT
+
+        #ifdef BDSP_MS10_SUPPORT
+            BDSP_IMG_DOLBY_MS_DDP_DECODE_SIZE,              /*  ui32CodeSize */
+            BDSP_IMG_DOLBY_MS_DDP_DECODE_TABLES_SIZE,       /*  ui32RomTableSize */
+            /* Interframe size with Dolby MS 10 Changes */
+            BDSP_IMG_DOLBY_MS_DDP_DECODE_INTER_FRAME_SIZE,  /*  ui32InterFrameBuffSize */
+        #else
+            BDSP_IMG_DDP_DECODE_SIZE,                       /*  ui32CodeSize */
+            BDSP_IMG_DDP_DECODE_TABLES_SIZE,                /*  ui32RomTableSize */
+            /* Interframe size with Dolby MS 10 Changes */
+            BDSP_IMG_DDP_DECODE_INTER_FRAME_SIZE,           /*  ui32InterFrameBuffSize */
+        #endif
+            (2560+BDSP_AF_P_EXTRA_SAMPLES)*4*8,                                     /*  ui32InterStageIoBuffSize */
+            20000,                                          /*  ui32InterStageGenericBuffSize */
+            82600,                                          /*  ui32ScratchBuffSize */
+            sizeof(BDSP_Raaga_Audio_DDPMultiStreamConfigParams),    /*  ui32UserCfgBuffSize  */
+            (2560+BDSP_AF_P_EXTRA_SAMPLES)*4,                                           /*  ui32MaxSizePerChan */
+            8,                                              /*  ui32MaxNumChansSupported */
+            BDSP_AF_P_InterFrameBuffType_ePresent,          /*  eInterFrameBuffType */
+            BDSP_AF_P_FwStatus_ePresent,                    /*  eFwStatusBuffType */
+            sizeof(BDSP_Raaga_Audio_MultiStreamDDPStreamInfo)   /*  FwStatusBuffSize */
+    #else
+
+        #ifdef BDSP_MS10_SUPPORT
+            BDSP_IMG_DOLBY_MS_DDP_DECODE_SIZE,              /*  ui32CodeSize */
+            BDSP_IMG_DOLBY_MS_DDP_DECODE_TABLES_SIZE,       /*  ui32RomTableSize */
+            /* Interframe size with Dolby MS 10 Changes */
+            BDSP_IMG_DOLBY_MS_DDP_DECODE_INTER_FRAME_SIZE,  /*  ui32InterFrameBuffSize */
+            (2560+BDSP_AF_P_EXTRA_SAMPLES)*4*8,                                     /*  ui32InterStageIoBuffSize */
+            20000,                                          /*  ui32InterStageGenericBuffSize */
+            82600,                                          /*  ui32ScratchBuffSize */
+            sizeof(BDSP_Raaga_Audio_DDPMultiStreamConfigParams),    /*  ui32UserCfgBuffSize  */
+            (2560+BDSP_AF_P_EXTRA_SAMPLES)*4,                                           /*  ui32MaxSizePerChan */
+            8,                                              /*  ui32MaxNumChansSupported */
+            BDSP_AF_P_InterFrameBuffType_ePresent,          /*  eInterFrameBuffType */
+            BDSP_AF_P_FwStatus_ePresent,                    /*  eFwStatusBuffType */
+            sizeof(BDSP_Raaga_Audio_MultiStreamDDPStreamInfo)   /*  FwStatusBuffSize */
+        #else
+            BDSP_IMG_DDP_DECODE_SIZE,                       /*  ui32CodeSize */
+            BDSP_IMG_DDP_DECODE_TABLES_SIZE,                /*  ui32RomTableSize */
+            /* Interframe size with Dolby MS 10 Changes */
+            BDSP_IMG_DDP_DECODE_INTER_FRAME_SIZE,           /*  ui32InterFrameBuffSize */
+            (2560+BDSP_AF_P_EXTRA_SAMPLES)*4*8,                                     /*  ui32InterStageIoBuffSize */
+            20000,                                          /*  ui32InterStageGenericBuffSize */
+            462144,                                          /*  ui32ScratchBuffSize */
+            sizeof(BDSP_Raaga_Audio_UdcdecConfigParams),    /*  ui32UserCfgBuffSize  */
+            (2560+BDSP_AF_P_EXTRA_SAMPLES)*4,                                           /*  ui32MaxSizePerChan */
+            8,                                              /*  ui32MaxNumChansSupported */
+            BDSP_AF_P_InterFrameBuffType_ePresent,          /*  eInterFrameBuffType */
+            BDSP_AF_P_FwStatus_ePresent,                    /*  eFwStatusBuffType */
+            sizeof(BDSP_Raaga_Audio_UdcStreamInfo)   /*  FwStatusBuffSize */
+        #endif
+    #endif
     },
 
     /*  BDSP_sNodeInfo[BDSP_AF_P_AlgoId_eDdLosslessDecode] =  */
@@ -594,6 +660,20 @@ const BDSP_AF_P_sNODE_INFO BDSP_sNodeInfo[BDSP_AF_P_AlgoId_eMax] =
       sizeof(BDSP_Raaga_Audio_ALSDecStreamInfo)         /*  FwStatusBuffSize */
     },
 
+    {
+      BDSP_IMG_AC4_DECODE_SIZE,                     /*  ui32CodeSize */
+      BDSP_IMG_AC4_DECODE_TABLES_SIZE,              /*  ui32RomTableSize */
+      BDSP_IMG_AC4_DECODE_INTER_FRAME_SIZE,         /*  ui32InterFrameBuffSize */
+      (4096+BDSP_AF_P_EXTRA_SAMPLES)*4*6,               /*  ui32InterStageIoBuffSize */
+      20000,                                            /*  ui32InterStageGenericBuffSize */
+      3250000,                                      /*  ui32ScratchBuffSize */
+      sizeof(BDSP_Raaga_Audio_AC4DecConfigParams),  /*  ui32UserCfgBuffSize */
+      (4096+BDSP_AF_P_EXTRA_SAMPLES)*4,             /*  ui32MaxSizePerChan */
+      6,                                                /*  ui32MaxNumChansSupported */
+      BDSP_AF_P_InterFrameBuffType_ePresent,            /*  eInterFrameBuffType */
+      BDSP_AF_P_FwStatus_ePresent,                  /*  eFwStatusBuffType */
+      sizeof(BDSP_Raaga_Audio_AC4StreamInfo)        /*  FwStatusBuffSize */
+    },
 
     /*  BDSP_sNodeInfo[BDSP_AF_P_AlgoId_eEndOfAudioDecodeAlgos] =  */
     { 0,0,0,0,0,0,0,0,0,0,0,0 },
@@ -626,7 +706,7 @@ const BDSP_AF_P_sNODE_INFO BDSP_sNodeInfo[BDSP_AF_P_AlgoId_eMax] =
         0,                                              /*  ui32InterStageIoBuffSize */
         20000,                                          /*  ui32InterStageGenericBuffSize */
         0,                                              /*  ui32ScratchBuffSize */
-        sizeof(BDSP_Raaga_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
+        sizeof(BDSP_P_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
         0,                                              /*  ui32MaxSizePerChan */
         2,                                              /*  ui32MaxNumChansSupported */
         BDSP_AF_P_InterFrameBuffType_ePresent,          /*  eInterFrameBuffType */
@@ -645,7 +725,7 @@ const BDSP_AF_P_sNODE_INFO BDSP_sNodeInfo[BDSP_AF_P_AlgoId_eMax] =
         0,                                              /*  ui32InterStageIoBuffSize */
         20000,                                          /*  ui32InterStageGenericBuffSize */
         0,                                              /*  ui32ScratchBuffSize */
-        sizeof(BDSP_Raaga_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
+        sizeof(BDSP_P_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
         0,                                              /*  ui32MaxSizePerChan */
         2,                                              /*  ui32MaxNumChansSupported */
         BDSP_AF_P_InterFrameBuffType_ePresent,          /*  eInterFrameBuffType */
@@ -661,7 +741,7 @@ const BDSP_AF_P_sNODE_INFO BDSP_sNodeInfo[BDSP_AF_P_AlgoId_eMax] =
         0,                                              /*  ui32InterStageIoBuffSize */
         20000,                                          /*  ui32InterStageGenericBuffSize */
         0,                                              /*  ui32ScratchBuffSize */
-        sizeof(BDSP_Raaga_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
+        sizeof(BDSP_P_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
         0,                                              /*  ui32MaxSizePerChan */
         2,                                              /*  ui32MaxNumChansSupported */
         BDSP_AF_P_InterFrameBuffType_ePresent,          /*  eInterFrameBuffType */
@@ -677,7 +757,7 @@ const BDSP_AF_P_sNODE_INFO BDSP_sNodeInfo[BDSP_AF_P_AlgoId_eMax] =
         0,                                              /*  ui32InterStageIoBuffSize */
         20000,                                          /*  ui32InterStageGenericBuffSize */
         0,                                              /*  ui32ScratchBuffSize */
-        sizeof(BDSP_Raaga_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
+        sizeof(BDSP_P_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
         0,                                              /*  ui32MaxSizePerChan */
         2,                                              /*  ui32MaxNumChansSupported */
         BDSP_AF_P_InterFrameBuffType_ePresent,          /*  eInterFrameBuffType */
@@ -693,7 +773,7 @@ const BDSP_AF_P_sNODE_INFO BDSP_sNodeInfo[BDSP_AF_P_AlgoId_eMax] =
         0,                                              /*  ui32InterStageIoBuffSize */
         20000,                                          /*  ui32InterStageGenericBuffSize */
         0,                                              /*  ui32ScratchBuffSize */
-        sizeof(BDSP_Raaga_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
+        sizeof(BDSP_P_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
         0,                                              /*  ui32MaxSizePerChan */
         2,                                              /*  ui32MaxNumChansSupported */
         BDSP_AF_P_InterFrameBuffType_ePresent,          /*  eInterFrameBuffType */
@@ -709,7 +789,7 @@ const BDSP_AF_P_sNODE_INFO BDSP_sNodeInfo[BDSP_AF_P_AlgoId_eMax] =
         0,                                              /*  ui32InterStageIoBuffSize */
         20000,                                          /*  ui32InterStageGenericBuffSize */
         0,                                              /*  ui32ScratchBuffSize */
-        sizeof(BDSP_Raaga_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
+        sizeof(BDSP_P_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
         0,                                              /*  ui32MaxSizePerChan */
         2,                                              /*  ui32MaxNumChansSupported */
         BDSP_AF_P_InterFrameBuffType_ePresent,          /*  eInterFrameBuffType */
@@ -725,7 +805,7 @@ const BDSP_AF_P_sNODE_INFO BDSP_sNodeInfo[BDSP_AF_P_AlgoId_eMax] =
         0,                                              /*  ui32InterStageIoBuffSize */
         20000,                                          /*  ui32InterStageGenericBuffSize */
         0,                                              /*  ui32ScratchBuffSize */
-        sizeof(BDSP_Raaga_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
+        sizeof(BDSP_P_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
         0,                                              /*  ui32MaxSizePerChan */
         2,                                              /*  ui32MaxNumChansSupported */
         BDSP_AF_P_InterFrameBuffType_ePresent,          /*  eInterFrameBuffType */
@@ -743,7 +823,7 @@ const BDSP_AF_P_sNODE_INFO BDSP_sNodeInfo[BDSP_AF_P_AlgoId_eMax] =
         0,                                              /*  ui32InterStageIoBuffSize */
         20000,                                          /*  ui32InterStageGenericBuffSize */
         0,                                              /*  ui32ScratchBuffSize */
-        sizeof(BDSP_Raaga_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
+        sizeof(BDSP_P_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
         0,                                              /*  ui32MaxSizePerChan */
         0,                                              /*  ui32MaxNumChansSupported */
         BDSP_AF_P_InterFrameBuffType_ePresent,          /*  eInterFrameBuffType */
@@ -759,7 +839,7 @@ const BDSP_AF_P_sNODE_INFO BDSP_sNodeInfo[BDSP_AF_P_AlgoId_eMax] =
           0,                                            /*  ui32InterStageIoBuffSize */
           20000,                                        /*  ui32InterStageGenericBuffSize */
           0,                                            /*  ui32ScratchBuffSize */
-          sizeof(BDSP_Raaga_Audio_FrameSyncTsmConfigParams),    /*  ui32UserCfgBuffSize */
+          sizeof(BDSP_P_Audio_FrameSyncTsmConfigParams),    /*  ui32UserCfgBuffSize */
           0,                                            /*  ui32MaxSizePerChan */
           0,                                            /*  ui32MaxNumChansSupported */
           BDSP_AF_P_InterFrameBuffType_ePresent,            /*  eInterFrameBuffType */
@@ -775,7 +855,7 @@ const BDSP_AF_P_sNODE_INFO BDSP_sNodeInfo[BDSP_AF_P_AlgoId_eMax] =
         0,                                              /*  ui32InterStageIoBuffSize */
         20000,                                          /*  ui32InterStageGenericBuffSize */
         0,                                              /*  ui32ScratchBuffSize */
-        sizeof(BDSP_Raaga_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
+        sizeof(BDSP_P_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
         0,                                              /*  ui32MaxSizePerChan */
         0,                                              /*  ui32MaxNumChansSupported */
         BDSP_AF_P_InterFrameBuffType_ePresent,          /*  eInterFrameBuffType */
@@ -794,7 +874,7 @@ const BDSP_AF_P_sNODE_INFO BDSP_sNodeInfo[BDSP_AF_P_AlgoId_eMax] =
             0,                                              /*  ui32InterStageIoBuffSize */
             20000 ,                                         /*  ui32InterStageGenericBuffSize */
             0,                                              /*  ui32ScratchBuffSize */
-            sizeof(BDSP_Raaga_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
+            sizeof(BDSP_P_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
             0,                                              /*  ui32MaxSizePerChan */
             0,                                              /*  ui32MaxNumChansSupported */
             BDSP_AF_P_InterFrameBuffType_ePresent,          /*  eInterFrameBuffType */
@@ -813,7 +893,7 @@ const BDSP_AF_P_sNODE_INFO BDSP_sNodeInfo[BDSP_AF_P_AlgoId_eMax] =
             0,                                              /*  ui32InterStageIoBuffSize */
             20000 ,                                         /*  ui32InterStageGenericBuffSize */
             0,                                              /*  ui32ScratchBuffSize */
-            sizeof(BDSP_Raaga_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
+            sizeof(BDSP_P_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
             0,                                              /*  ui32MaxSizePerChan */
             0,                                              /*  ui32MaxNumChansSupported */
             BDSP_AF_P_InterFrameBuffType_ePresent,          /*  eInterFrameBuffType */
@@ -833,7 +913,7 @@ const BDSP_AF_P_sNODE_INFO BDSP_sNodeInfo[BDSP_AF_P_AlgoId_eMax] =
         0,                                              /*  ui32InterStageIoBuffSize */
         20000,                                          /*  ui32InterStageGenericBuffSize */
         0,                                              /*  ui32ScratchBuffSize */
-        sizeof(BDSP_Raaga_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
+        sizeof(BDSP_P_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
         0,                                              /*  ui32MaxSizePerChan */
         0,                                              /*  ui32MaxNumChansSupported */
         BDSP_AF_P_InterFrameBuffType_ePresent,          /*  eInterFrameBuffType */
@@ -855,7 +935,7 @@ const BDSP_AF_P_sNODE_INFO BDSP_sNodeInfo[BDSP_AF_P_AlgoId_eMax] =
         0,                                              /*  ui32InterStageIoBuffSize */
         20000,                                          /*  ui32InterStageGenericBuffSize */
         0,                                              /*  ui32ScratchBuffSize */
-        sizeof(BDSP_Raaga_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
+        sizeof(BDSP_P_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
         0,                                              /*  ui32MaxSizePerChan */
         0,                                              /*  ui32MaxNumChansSupported */
         BDSP_AF_P_InterFrameBuffType_ePresent,          /*  eInterFrameBuffType */
@@ -875,7 +955,7 @@ const BDSP_AF_P_sNODE_INFO BDSP_sNodeInfo[BDSP_AF_P_AlgoId_eMax] =
         0,                                              /*  ui32InterStageIoBuffSize */
         20000,                                          /*  ui32InterStageGenericBuffSize */
         0,                                              /*  ui32ScratchBuffSize */
-        sizeof(BDSP_Raaga_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
+        sizeof(BDSP_P_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
         0,                                              /*  ui32MaxSizePerChan */
         0,                                              /*  ui32MaxNumChansSupported */
         BDSP_AF_P_InterFrameBuffType_ePresent,          /*  eInterFrameBuffType */
@@ -891,7 +971,7 @@ const BDSP_AF_P_sNODE_INFO BDSP_sNodeInfo[BDSP_AF_P_AlgoId_eMax] =
         0,                                              /*  ui32InterStageIoBuffSize */
         20000 ,                                         /*  ui32InterStageGenericBuffSize */
         0,                                              /*  ui32ScratchBuffSize */
-        sizeof(BDSP_Raaga_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
+        sizeof(BDSP_P_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
         0,                                              /*  ui32MaxSizePerChan */
         0,                                              /*  ui32MaxNumChansSupported */
         BDSP_AF_P_InterFrameBuffType_ePresent,          /*  eInterFrameBuffType */
@@ -906,7 +986,7 @@ const BDSP_AF_P_sNODE_INFO BDSP_sNodeInfo[BDSP_AF_P_AlgoId_eMax] =
         0,                                              /*  ui32InterStageIoBuffSize */
         20000 ,                                         /*  ui32InterStageGenericBuffSize */
         0,                                              /*  ui32ScratchBuffSize */
-        sizeof(BDSP_Raaga_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
+        sizeof(BDSP_P_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
         0,                                              /*  ui32MaxSizePerChan */
         0,                                              /*  ui32MaxNumChansSupported */
         BDSP_AF_P_InterFrameBuffType_ePresent,          /*  eInterFrameBuffType */
@@ -921,7 +1001,7 @@ const BDSP_AF_P_sNODE_INFO BDSP_sNodeInfo[BDSP_AF_P_AlgoId_eMax] =
         0,                                              /*  ui32InterStageIoBuffSize */
         20000 ,                                         /*  ui32InterStageGenericBuffSize */
         0,                                              /*  ui32ScratchBuffSize */
-        sizeof(BDSP_Raaga_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
+        sizeof(BDSP_P_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
         0,                                              /*  ui32MaxSizePerChan */
         0,                                              /*  ui32MaxNumChansSupported */
         BDSP_AF_P_InterFrameBuffType_ePresent,          /*  eInterFrameBuffType */
@@ -936,7 +1016,7 @@ const BDSP_AF_P_sNODE_INFO BDSP_sNodeInfo[BDSP_AF_P_AlgoId_eMax] =
         0,                                              /*  ui32InterStageIoBuffSize */
         20000,                                          /*  ui32InterStageGenericBuffSize */
         0,                                              /*  ui32ScratchBuffSize */
-        sizeof(BDSP_Raaga_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
+        sizeof(BDSP_P_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
         0,                                              /*  ui32MaxSizePerChan */
         0,                                              /*  ui32MaxNumChansSupported */
         BDSP_AF_P_InterFrameBuffType_ePresent,          /*  eInterFrameBuffType */
@@ -951,7 +1031,7 @@ const BDSP_AF_P_sNODE_INFO BDSP_sNodeInfo[BDSP_AF_P_AlgoId_eMax] =
         0,                                              /*  ui32InterStageIoBuffSize */
         20000 ,                                         /*  ui32InterStageGenericBuffSize */
         0,                                              /*  ui32ScratchBuffSize */
-        sizeof(BDSP_Raaga_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
+        sizeof(BDSP_P_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
         0,                                              /*  ui32MaxSizePerChan */
         0,                                              /*  ui32MaxNumChansSupported */
         BDSP_AF_P_InterFrameBuffType_ePresent,          /*  eInterFrameBuffType */
@@ -966,7 +1046,7 @@ const BDSP_AF_P_sNODE_INFO BDSP_sNodeInfo[BDSP_AF_P_AlgoId_eMax] =
         0,                                              /*  ui32InterStageIoBuffSize */
         20000 ,                                         /*  ui32InterStageGenericBuffSize */
         0,                                              /*  ui32ScratchBuffSize */
-        sizeof(BDSP_Raaga_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
+        sizeof(BDSP_P_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
         0,                                              /*  ui32MaxSizePerChan */
         0,                                              /*  ui32MaxNumChansSupported */
         BDSP_AF_P_InterFrameBuffType_ePresent,          /*  eInterFrameBuffType */
@@ -981,7 +1061,7 @@ const BDSP_AF_P_sNODE_INFO BDSP_sNodeInfo[BDSP_AF_P_AlgoId_eMax] =
         0,                                              /*  ui32InterStageIoBuffSize */
         20000 ,                                         /*  ui32InterStageGenericBuffSize */
         0,                                              /*  ui32ScratchBuffSize */
-        sizeof(BDSP_Raaga_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
+        sizeof(BDSP_P_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
         0,                                              /*  ui32MaxSizePerChan */
         0,                                              /*  ui32MaxNumChansSupported */
         BDSP_AF_P_InterFrameBuffType_ePresent,          /*  eInterFrameBuffType */
@@ -996,7 +1076,7 @@ const BDSP_AF_P_sNODE_INFO BDSP_sNodeInfo[BDSP_AF_P_AlgoId_eMax] =
         0,                                              /*  ui32InterStageIoBuffSize */
         20000 ,                                         /*  ui32InterStageGenericBuffSize */
         0,                                              /*  ui32ScratchBuffSize */
-        sizeof(BDSP_Raaga_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
+        sizeof(BDSP_P_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
         0,                                              /*  ui32MaxSizePerChan */
         0,                                              /*  ui32MaxNumChansSupported */
         BDSP_AF_P_InterFrameBuffType_ePresent,          /*  eInterFrameBuffType */
@@ -1011,7 +1091,7 @@ const BDSP_AF_P_sNODE_INFO BDSP_sNodeInfo[BDSP_AF_P_AlgoId_eMax] =
         0,                                              /*  ui32InterStageIoBuffSize */
         20000 ,                                         /*  ui32InterStageGenericBuffSize */
         0,                                              /*  ui32ScratchBuffSize */
-        sizeof(BDSP_Raaga_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
+        sizeof(BDSP_P_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
         0,                                              /*  ui32MaxSizePerChan */
         0,                                              /*  ui32MaxNumChansSupported */
         BDSP_AF_P_InterFrameBuffType_ePresent,          /*  eInterFrameBuffType */
@@ -1027,7 +1107,7 @@ const BDSP_AF_P_sNODE_INFO BDSP_sNodeInfo[BDSP_AF_P_AlgoId_eMax] =
         0,                                              /*  ui32InterStageIoBuffSize */
         20000 ,                                         /*  ui32InterStageGenericBuffSize */
         0,                                              /*  ui32ScratchBuffSize */
-        sizeof(BDSP_Raaga_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
+        sizeof(BDSP_P_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
         0,                                              /*  ui32MaxSizePerChan */
         0,                                              /*  ui32MaxNumChansSupported */
         BDSP_AF_P_InterFrameBuffType_ePresent,          /*  eInterFrameBuffType */
@@ -1043,7 +1123,7 @@ const BDSP_AF_P_sNODE_INFO BDSP_sNodeInfo[BDSP_AF_P_AlgoId_eMax] =
         0,                                              /*  ui32InterStageIoBuffSize */
         20000 ,                                         /*  ui32InterStageGenericBuffSize */
         0,                                              /*  ui32ScratchBuffSize */
-        sizeof(BDSP_Raaga_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
+        sizeof(BDSP_P_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
         0,                                              /*  ui32MaxSizePerChan */
         0,                                              /*  ui32MaxNumChansSupported */
         BDSP_AF_P_InterFrameBuffType_ePresent,          /*  eInterFrameBuffType */
@@ -1058,7 +1138,7 @@ const BDSP_AF_P_sNODE_INFO BDSP_sNodeInfo[BDSP_AF_P_AlgoId_eMax] =
         0,                                              /*  ui32InterStageIoBuffSize */
         20000 ,                                         /*  ui32InterStageGenericBuffSize */
         0,                                              /*  ui32ScratchBuffSize */
-        sizeof(BDSP_Raaga_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
+        sizeof(BDSP_P_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
         0,                                              /*  ui32MaxSizePerChan */
         0,                                              /*  ui32MaxNumChansSupported */
         BDSP_AF_P_InterFrameBuffType_ePresent,          /*  eInterFrameBuffType */
@@ -1072,7 +1152,7 @@ const BDSP_AF_P_sNODE_INFO BDSP_sNodeInfo[BDSP_AF_P_AlgoId_eMax] =
         0,                                              /*  ui32InterStageIoBuffSize */
         20000 ,                                         /*  ui32InterStageGenericBuffSize */
         0,                                              /*  ui32ScratchBuffSize */
-        sizeof(BDSP_Raaga_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
+        sizeof(BDSP_P_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
         0,                                              /*  ui32MaxSizePerChan */
         0,                                              /*  ui32MaxNumChansSupported */
         BDSP_AF_P_InterFrameBuffType_ePresent,          /*  eInterFrameBuffType */
@@ -1088,7 +1168,7 @@ const BDSP_AF_P_sNODE_INFO BDSP_sNodeInfo[BDSP_AF_P_AlgoId_eMax] =
         0,                                              /*  ui32InterStageIoBuffSize */
         20000 ,                                         /*  ui32InterStageGenericBuffSize */
         0,                                              /*  ui32ScratchBuffSize */
-        sizeof(BDSP_Raaga_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
+        sizeof(BDSP_P_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
         0,                                              /*  ui32MaxSizePerChan */
         0,                                              /*  ui32MaxNumChansSupported */
         BDSP_AF_P_InterFrameBuffType_ePresent,          /*  eInterFrameBuffType */
@@ -1103,7 +1183,35 @@ const BDSP_AF_P_sNODE_INFO BDSP_sNodeInfo[BDSP_AF_P_AlgoId_eMax] =
         0,                                              /*  ui32InterStageIoBuffSize */
         20000 ,                                         /*  ui32InterStageGenericBuffSize */
         0,                                              /*  ui32ScratchBuffSize */
-        sizeof(BDSP_Raaga_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
+        sizeof(BDSP_P_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
+        0,                                              /*  ui32MaxSizePerChan */
+        2,                                              /*  ui32MaxNumChansSupported */
+        BDSP_AF_P_InterFrameBuffType_ePresent,          /*  eInterFrameBuffType */
+        BDSP_AF_P_FwStatus_ePresent,                    /*  eFwStatusBuffType */
+        sizeof(BDSP_Raaga_Audio_IdsTsmInfo)             /*  FwStatusBuffSize */
+    },
+    {
+        BDSP_IMG_AC4_IDS_SIZE,                          /*  ui32CodeSize */
+        0,                                              /*  ui32RomTableSize */
+        BDSP_IMG_AC4_IDS_INTER_FRAME_SIZE ,             /*  ui32InterFrameBuffSize */
+        0,                                              /*  ui32InterStageIoBuffSize */
+        20000 ,                                         /*  ui32InterStageGenericBuffSize */
+        0,                                              /*  ui32ScratchBuffSize */
+        sizeof(BDSP_P_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
+        0,                                              /*  ui32MaxSizePerChan */
+        2,                                              /*  ui32MaxNumChansSupported */
+        BDSP_AF_P_InterFrameBuffType_ePresent,          /*  eInterFrameBuffType */
+        BDSP_AF_P_FwStatus_ePresent,                    /*  eFwStatusBuffType */
+        sizeof(BDSP_Raaga_Audio_IdsTsmInfo)             /*  FwStatusBuffSize */
+    },
+    {
+        BDSP_IMG_ALS_IDS_SIZE,                          /*  ui32CodeSize */
+        0,                                              /*  ui32RomTableSize */
+        BDSP_IMG_ALS_IDS_INTER_FRAME_SIZE ,             /*  ui32InterFrameBuffSize */
+        0,                                              /*  ui32InterStageIoBuffSize */
+        20000 ,                                         /*  ui32InterStageGenericBuffSize */
+        0,                                              /*  ui32ScratchBuffSize */
+        sizeof(BDSP_P_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
         0,                                              /*  ui32MaxSizePerChan */
         2,                                              /*  ui32MaxNumChansSupported */
         BDSP_AF_P_InterFrameBuffType_ePresent,          /*  eInterFrameBuffType */
@@ -1122,7 +1230,7 @@ const BDSP_AF_P_sNODE_INFO BDSP_sNodeInfo[BDSP_AF_P_AlgoId_eMax] =
         0,                                              /*  ui32InterStageIoBuffSize */
         20000 ,                                         /*  ui32InterStageGenericBuffSize */
         0,                                              /*  ui32ScratchBuffSize */
-        sizeof(BDSP_Raaga_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
+        sizeof(BDSP_P_Audio_FrameSyncTsmConfigParams),  /*  ui32UserCfgBuffSize */
         0,                                              /*  ui32MaxSizePerChan */
         0,                                              /*  ui32MaxNumChansSupported */
         BDSP_AF_P_InterFrameBuffType_ePresent,          /*  eInterFrameBuffType */
@@ -1448,6 +1556,20 @@ const BDSP_AF_P_sNODE_INFO BDSP_sNodeInfo[BDSP_AF_P_AlgoId_eMax] =
         BDSP_AF_P_FwStatus_ePresent,                    /* eFwStatusBuffType */
         sizeof(BDSP_Raaga_VideoX264EncoderInfo)         /* FwStatusBuffSize */
     },
+    {
+        BDSP_IMG_XVP8_ENCODE_SIZE,                      /* ui32CodeSize */
+        BDSP_IMG_XVP8_ENCODE_TABLES_SIZE,               /* ui32RomTableSize */
+        BDSP_IMG_XVP8_ENCODE_INTER_FRAME_SIZE,          /* ui32InterFrameBuffSize */
+        (2048+BDSP_AF_P_EXTRA_SAMPLES)*1,               /* ui32InterStageIoBuffSize */
+        1024,                                           /* ui32InterStageGenericBuffSize */
+        0,                                              /* ui32ScratchBuffSize */
+        sizeof(BDSP_Raaga_VideoBXVP8UserConfig),        /* ui32UserCfgBuffSize */
+        (2048+BDSP_AF_P_EXTRA_SAMPLES),                 /* ui32MaxSizePerChan */
+        1,                                              /* ui32MaxNumChansSupported */
+        BDSP_AF_P_InterFrameBuffType_ePresent,          /* eInterFrameBuffType */
+        BDSP_AF_P_FwStatus_ePresent,                    /* eFwStatusBuffType */
+        sizeof(BDSP_Raaga_VideoXVP8EncoderInfo)         /* FwStatusBuffSize */
+    },
     /*  BDSP_sNodeInfo[BDSP_AF_P_AlgoId_eEndOfEncodeAlgos] =  */
         { 0,0,0,0,0,0,0,0,0,0,0,0 },
 
@@ -1630,12 +1752,12 @@ const BDSP_AF_P_sNODE_INFO BDSP_sNodeInfo[BDSP_AF_P_AlgoId_eMax] =
         BDSP_IMG_DSOLA_CODE_SIZE,                       /*  ui32CodeSize */
         BDSP_IMG_DSOLA_TABLES_SIZE,                     /*  ui32RomTableSize */
         BDSP_IMG_DSOLA_INTER_FRAME_SIZE,                /*  ui32InterFrameBuffSize */
-        (6144+BDSP_AF_P_EXTRA_SAMPLES)*4*2,             /*  ui32InterStageIoBuffSize */
+        (6144+BDSP_AF_P_EXTRA_SAMPLES)*4*6,             /*  ui32InterStageIoBuffSize */
         20000,                                          /*  ui32InterStageGenericBuffSize */
-        60000,                                          /*  ui32ScratchBuffSize */
+        156000,                                          /*  ui32ScratchBuffSize */
         sizeof(BDSP_Raaga_Audio_DsolaConfigParams),     /*  ui32UserCfgBuffSize */
         (6144+BDSP_AF_P_EXTRA_SAMPLES)*4,               /*  ui32MaxSizePerChan */
-        2,                                              /*  ui32MaxNumChansSupported */
+        6,                                              /*  ui32MaxNumChansSupported */
         BDSP_AF_P_InterFrameBuffType_ePresent,          /*  eInterFrameBuffType */
         BDSP_AF_P_FwStatus_eAbsent,                     /*  eFwStatusBuffType */
         0                                               /*  FwStatusBuffSize */
@@ -3289,8 +3411,26 @@ static const BDSP_Raaga_P_AlgorithmSupportInfo BDSP_sAlgorithmSupportInfo[]=
         {
          2,  /* Number of nodes in ALS Decode */
          {
-            BDSP_AF_P_AlgoId_ePcmWavFrameSync,
+            BDSP_AF_P_AlgoId_eALSFrameSync,
             BDSP_AF_P_AlgoId_eALSDecode,
+            BDSP_AF_P_AlgoId_eInvalid,
+            BDSP_AF_P_AlgoId_eInvalid,
+            BDSP_AF_P_AlgoId_eInvalid,
+            BDSP_AF_P_AlgoId_eInvalid
+         },
+        }
+    },
+    {
+        BDSP_Algorithm_eAC4Decode,              /* Algorithm */
+        BDSP_AlgorithmType_eAudioDecode,
+        "AC4 Audio Decode",
+        true,                                   /* Dolby License Present */
+        BDSP_AudioDolbyCodecVersion_eMS12,      /* License Type */
+        {
+         2,  /* Number of nodes in AC4 Decode */
+         {
+            BDSP_AF_P_AlgoId_eAC4FrameSync,
+            BDSP_AF_P_AlgoId_eAC4Decode,
             BDSP_AF_P_AlgoId_eInvalid,
             BDSP_AF_P_AlgoId_eInvalid,
             BDSP_AF_P_AlgoId_eInvalid,
@@ -3804,6 +3944,24 @@ static const BDSP_Raaga_P_AlgorithmSupportInfo BDSP_sAlgorithmSupportInfo[]=
         }
     },
     {
+        BDSP_Algorithm_eXVP8Encode,             /* Algorithm */
+        BDSP_AlgorithmType_eVideoEncode,
+        "VP8 Video Encode",
+         false,                                  /* Dolby License Present */
+         BDSP_AudioDolbyCodecVersion_eMax,      /* License Type */
+         {
+            2,/* Number of nodes in VP8 Video Encode  */
+           {
+                BDSP_AF_P_AlgoId_eVidIDSCommonLib,
+                BDSP_VF_P_AlgoId_eXVP8Encode,
+                BDSP_AF_P_AlgoId_eInvalid,
+                BDSP_AF_P_AlgoId_eInvalid,
+                BDSP_AF_P_AlgoId_eInvalid,
+                BDSP_AF_P_AlgoId_eInvalid
+           },
+         }
+    },
+    {
         BDSP_Algorithm_eSecurityA,              /* Algorithm */
         BDSP_AlgorithmType_eSecurity,
         "Security SCM 1",
@@ -4077,9 +4235,15 @@ static const BDSP_Raaga_P_AlgorithmInfo BDSP_sAlgorithmInfo[] =
 #endif
 #ifdef BDSP_AC3_SUPPORT
     {
+        #if defined BDSP_MS10_SUPPORT || defined BDSP_DOLBY_DCV_SUPPORT
         BDSP_Algorithm_eAc3Decode, BDSP_AlgorithmType_eAudioDecode, "AC3 Decode", true,
         &BDSP_sDDPDefaultUserConfig, sizeof(BDSP_Raaga_Audio_DDPMultiStreamConfigParams),
         sizeof(BDSP_Raaga_Audio_MultiStreamDDPStreamInfo), BDSP_RAAGA_STREAMINFO_VALID_OFFSET(BDSP_Raaga_Audio_MultiStreamDDPStreamInfo, ui32StatusValid),
+        #else
+        BDSP_Algorithm_eUdcDecode, BDSP_AlgorithmType_eAudioDecode, "AC3 Decode", true,
+        &BDSP_sUdcdecDefaultUserConfig, sizeof(BDSP_Raaga_Audio_UdcdecConfigParams),
+        sizeof(BDSP_Raaga_Audio_UdcStreamInfo), BDSP_RAAGA_STREAMINFO_VALID_OFFSET(BDSP_Raaga_Audio_UdcStreamInfo, ui32StatusValid),
+        #endif
         &BDSP_sDefaultFrameSyncTsmSettings, sizeof(BDSP_sDefaultFrameSyncTsmSettings),
         #if defined BDSP_MS10_SUPPORT
         {
@@ -4125,7 +4289,11 @@ static const BDSP_Raaga_P_AlgorithmInfo BDSP_sAlgorithmInfo[] =
 #endif
 #ifdef BDSP_AC3_PASSTHRU_SUPPORT
     {
+        #if defined BDSP_MS10_SUPPORT || defined BDSP_DOLBY_DCV_SUPPORT
         BDSP_Algorithm_eAc3Passthrough, BDSP_AlgorithmType_eAudioPassthrough, "AC3 Passthrough", true,
+        #else
+        BDSP_Algorithm_eUdcPassthrough, BDSP_AlgorithmType_eAudioPassthrough, "AC3 Passthrough", true,
+        #endif
         &BDSP_sDefaultPassthruSettings, sizeof(BDSP_Raaga_Audio_PassthruConfigParams),
         0, 0xffffffff,
         &BDSP_sDefaultFrameSyncTsmSettings, sizeof(BDSP_sDefaultFrameSyncTsmSettings),
@@ -4192,9 +4360,15 @@ static const BDSP_Raaga_P_AlgorithmInfo BDSP_sAlgorithmInfo[] =
 #endif
 #ifdef BDSP_DDP_SUPPORT
     {
+        #if defined BDSP_MS10_SUPPORT || defined BDSP_DOLBY_DCV_SUPPORT
         BDSP_Algorithm_eAc3PlusDecode, BDSP_AlgorithmType_eAudioDecode, "AC3+ Decode", true,
         &BDSP_sDDPDefaultUserConfig, sizeof(BDSP_Raaga_Audio_DDPMultiStreamConfigParams),
         sizeof(BDSP_Raaga_Audio_MultiStreamDDPStreamInfo), BDSP_RAAGA_STREAMINFO_VALID_OFFSET(BDSP_Raaga_Audio_MultiStreamDDPStreamInfo, ui32StatusValid),
+        #else
+        BDSP_Algorithm_eUdcDecode, BDSP_AlgorithmType_eAudioDecode, "AC3+ Decode", true,
+        &BDSP_sUdcdecDefaultUserConfig, sizeof(BDSP_Raaga_Audio_UdcdecConfigParams),
+        sizeof(BDSP_Raaga_Audio_UdcStreamInfo), BDSP_RAAGA_STREAMINFO_VALID_OFFSET(BDSP_Raaga_Audio_UdcStreamInfo, ui32StatusValid),
+        #endif
         &BDSP_sDefaultFrameSyncTsmSettings, sizeof(BDSP_sDefaultFrameSyncTsmSettings),
         #if defined BDSP_MS10_SUPPORT
         {
@@ -4226,7 +4400,11 @@ static const BDSP_Raaga_P_AlgorithmInfo BDSP_sAlgorithmInfo[] =
 #endif
 #ifdef BDSP_DDP_PASSTHRU_SUPPORT
     {
+        #if defined BDSP_MS10_SUPPORT || defined BDSP_DOLBY_DCV_SUPPORT
         BDSP_Algorithm_eAc3PlusPassthrough, BDSP_AlgorithmType_eAudioPassthrough, "AC3+ Passthrough", true,
+        #else
+        BDSP_Algorithm_eUdcPassthrough, BDSP_AlgorithmType_eAudioPassthrough, "AC3+ Passthrough", true,
+        #endif
         &BDSP_sDefaultPassthruSettings, sizeof(BDSP_Raaga_Audio_PassthruConfigParams),
         0, 0xffffffff,
         &BDSP_sDefaultFrameSyncTsmSettings, sizeof(BDSP_sDefaultFrameSyncTsmSettings),
@@ -5019,7 +5197,7 @@ static const BDSP_Raaga_P_AlgorithmInfo BDSP_sAlgorithmInfo[] =
             }
     },
 #endif
-#ifdef BDSP_ALSDEC_SUPPORT
+#ifdef BDSP_ALS_SUPPORT
 {
     BDSP_Algorithm_eALSDecode, BDSP_AlgorithmType_eAudioDecode, "ALS Decode", true,
     &BDSP_sALSDecDefaultUserConfig, sizeof(BDSP_Raaga_Audio_ALSDecConfigParams),
@@ -5028,8 +5206,27 @@ static const BDSP_Raaga_P_AlgorithmInfo BDSP_sAlgorithmInfo[] =
     {
         2,
             {
-            BDSP_AF_P_AlgoId_ePcmWavFrameSync,
+            BDSP_AF_P_AlgoId_eALSFrameSync,
             BDSP_AF_P_AlgoId_eALSDecode,
+            BDSP_AF_P_AlgoId_eInvalid,
+            BDSP_AF_P_AlgoId_eInvalid,
+            BDSP_AF_P_AlgoId_eInvalid,
+            BDSP_AF_P_AlgoId_eInvalid
+            },
+    }
+},
+#endif
+#ifdef BDSP_AC4_SUPPORT
+{
+    BDSP_Algorithm_eAC4Decode, BDSP_AlgorithmType_eAudioDecode, "AC4 Decode", true,
+    &BDSP_sAC4DecDefaultUserConfig, sizeof(BDSP_Raaga_Audio_AC4DecConfigParams),
+    sizeof(BDSP_Raaga_Audio_AC4StreamInfo), BDSP_RAAGA_STREAMINFO_VALID_OFFSET(BDSP_Raaga_Audio_AC4StreamInfo, ui32StatusValid),
+    &BDSP_sDefaultFrameSyncTsmSettings, sizeof(BDSP_sDefaultFrameSyncTsmSettings),
+    {
+        2,
+            {
+            BDSP_AF_P_AlgoId_eAC4FrameSync,
+            BDSP_AF_P_AlgoId_eAC4Decode,
             BDSP_AF_P_AlgoId_eInvalid,
             BDSP_AF_P_AlgoId_eInvalid,
             BDSP_AF_P_AlgoId_eInvalid,
@@ -5579,6 +5776,27 @@ static const BDSP_Raaga_P_AlgorithmInfo BDSP_sAlgorithmInfo[] =
         }
     },
 #endif
+#ifdef BDSP_XVP8_ENCODE_SUPPORT
+    {
+        BDSP_Algorithm_eXVP8Encode, BDSP_AlgorithmType_eVideoEncode, "VP8 Encoder", true,
+        &BDSP_sBXVP8EncodeUserConfigSettings, sizeof(BDSP_sBXVP8EncodeUserConfigSettings),
+        sizeof(BDSP_Raaga_VideoXVP8EncoderInfo), BDSP_RAAGA_STREAMINFO_VALID_OFFSET(BDSP_Raaga_VideoXVP8EncoderInfo, ui32StatusValid),
+        &BDSP_sDefaultVideoEncodeFrameSyncSettings, sizeof(BDSP_VideoEncodeTaskDatasyncSettings),
+        {
+            2,  /* Number of nodes in VP8 Video Encode  */
+            {
+                BDSP_AF_P_AlgoId_eVidIDSCommonLib,
+                BDSP_VF_P_AlgoId_eXVP8Encode,
+                BDSP_AF_P_AlgoId_eInvalid,
+                BDSP_AF_P_AlgoId_eInvalid,
+                BDSP_AF_P_AlgoId_eInvalid,
+                BDSP_AF_P_AlgoId_eInvalid
+            },
+        }
+    },
+#endif
+
+
 #ifdef BDSP_SCM1_SUPPORT
     {
         BDSP_Algorithm_eSecurityA, BDSP_AlgorithmType_eSecurity, "Security SCM 1", true,

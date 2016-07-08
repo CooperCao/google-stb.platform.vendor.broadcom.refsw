@@ -1,7 +1,7 @@
-/***************************************************************************
- *     (c)2007-2014 Broadcom Corporation
+/******************************************************************************
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,18 +34,8 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
- **************************************************************************/
+
+ ******************************************************************************/
 
 #include "nexus_hdmi_input_module.h"
 #include "nexus_hdmi_input_hdcp_priv.h"
@@ -58,6 +48,7 @@ NEXUS_ModuleHandle g_NEXUS_hdmiInputModule;
 NEXUS_HdmiInputModuleSettings g_NEXUS_hdmiInputModuleSettings;
 #if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_RX_SUPPORT)
 NEXUS_HdmiInput_SageData g_NEXUS_hdmiInputSageData;
+NEXUS_HdmiInputMemoryBlock g_hdmiInputTABlock;
 #endif
 
 /* HdmiInput global state */
@@ -164,6 +155,8 @@ NEXUS_ModuleHandle NEXUS_HdmiInputModule_Init(const NEXUS_HdmiInputModuleSetting
 #if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_RX_SUPPORT)
     /* Delay the process of populating until Sage is up */
     BKNI_Memset(&g_NEXUS_hdmiInputSageData, 0, sizeof(g_NEXUS_hdmiInputSageData));
+    g_hdmiInputTABlock.buf = NULL;
+    g_hdmiInputTABlock.len = 0;
 #endif
 
     BDBG_MSG(("hdmiInput Module Init Complete...")) ;
@@ -183,6 +176,16 @@ void NEXUS_HdmiInputModule_Uninit()
     NEXUS_LockModule();
     BHDR_FE_Close(g_NEXUS_hdmiInput.fe);
     NEXUS_UnlockModule();
+
+#if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_RX_SUPPORT)
+    if (g_hdmiInputTABlock.buf != NULL)
+    {
+        NEXUS_Memory_Free(g_hdmiInputTABlock.buf);
+        g_hdmiInputTABlock.buf = NULL;
+        g_hdmiInputTABlock.len = 0;
+    }
+#endif
+
     NEXUS_Module_Destroy(g_NEXUS_hdmiInputModule);
     g_NEXUS_hdmiInputModule = NULL;
     BKNI_Memset(&g_NEXUS_hdmiInput, 0, sizeof(g_NEXUS_hdmiInput));
@@ -537,6 +540,14 @@ static void NEXUS_HdmiInput_P_Finalizer(NEXUS_HdmiInputHandle hdmiInput)
     }
 #endif
 
+#if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_RX_SUPPORT)
+    /* Do not uninit Hdcp22 during the hdmiInput module initialization process */
+    if (!g_NEXUS_hdmiInput.initInProgress) {
+        NEXUS_HdmiInput_P_UninitHdcp2x(hdmiInput);
+    }
+#endif
+
+
     /* now uninstall the HDMI Rx Frontend call backs */
     if (hdmiInput->frontend) {
         BHDR_FE_UnInstallHotPlugCallback(hdmiInput->frontend, NEXUS_HdmiInput_P_HotPlug_isr);
@@ -631,13 +642,6 @@ static void NEXUS_HdmiInput_P_Finalizer(NEXUS_HdmiInputHandle hdmiInput)
 
     NEXUS_HdmiInput_UnloadEdidData(hdmiInput) ;
 
-#if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_RX_SUPPORT)
-    /* Do not uninit Hdcp22 during the hdmiInput module initialization process */
-    if (!g_NEXUS_hdmiInput.initInProgress) {
-        NEXUS_HdmiInput_P_UninitHdcp2x(hdmiInput);
-    }
-#endif
-
     g_NEXUS_hdmiInput.handle[hdmiInput->index] = NULL;
 
     BDBG_OBJECT_DESTROY(hdmiInput, NEXUS_HdmiInput);
@@ -656,7 +660,5 @@ NEXUS_OBJECT_CLASS_MAKE_WITH_RELEASE(NEXUS_HdmiInput, NEXUS_HdmiInput_Close);
 void  Nexus_HdmiInput_P_SetHdmiVideoFormat_isr(
 	    NEXUS_HdmiVendorSpecificInfoFrame_HDMIVideoFormat hdmiVideoFormat)
 {
-    g_NEXUS_hdmiInput.hdmiVideoFormat = hdmiVideoFormat ;
+    g_NEXUS_hdmiInput.hdmiVideoFormat = hdmiVideoFormat;
 }
-
-

@@ -34,12 +34,8 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * Module Description:
- *
- * DRM Integration Framework
- *
- *****************************************************************************/
+
+ ******************************************************************************/
 #include "log.h" // to call wvcdm InitLogging
 #undef LOGE
 #undef LOGW
@@ -415,21 +411,18 @@ uint32_t WidevineDecryptor::DecryptSample(
     size_t clearSize = 0;
     size_t encSize = 0;
     for (i = 0; i < pSample->nbOfEntries; i++) {
+        // Transfer clear data: (SWSECDRM-1256)
+        // assuming clear data comes first in subsamples
+        if (pSample->entries[i].bytesOfClearData > 0)
+            output->Copy(clearSize + encSize,
+                input->GetPtr() + clearSize + encSize,
+                pSample->entries[i].bytesOfClearData);
+
         subsamples.push_back(cdm::SubsampleEntry(pSample->entries[i].bytesOfClearData, pSample->entries[i].bytesOfEncData));
         clearSize += pSample->entries[i].bytesOfClearData;
         encSize += pSample->entries[i].bytesOfEncData;
     }
     LOGD(("%s: sampleSize=%u clearSize=%u encSize=%u", __FUNCTION__, sampleSize, clearSize, encSize));
-
-    uint8_t *encrypted_buffer = NULL;
-
-    // Transfer to the destination buffer
-    output->Copy(0, input->GetPtr(), sampleSize);
-    if (output->IsSecure()) {
-        encrypted_buffer = (uint8_t*)output->GetPtr();
-    } else {
-        encrypted_buffer = input->GetPtr();
-    }
 
     if (encSize == 0) {
         // No decrypt needed - just return
@@ -452,7 +445,7 @@ LOGD(("keyId: %x %x %x %x %x %x %x %x", inputBuffer.key_id[0], inputBuffer.key_i
     // Data
     inputBuffer.data_size = sampleSize;
     inputBuffer.data_offset = 0;
-    inputBuffer.data = encrypted_buffer;
+    inputBuffer.data = input->GetPtr();
 
     CdmOutputBuffer outputBuffer((uint8_t*)output->GetPtr(), sampleSize);
     ProxyDecryptedBlock outputBlock;

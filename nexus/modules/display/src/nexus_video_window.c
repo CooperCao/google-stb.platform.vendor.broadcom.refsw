@@ -1,42 +1,39 @@
 /******************************************************************************
  * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  ******************************************************************************/
 #include "nexus_display_module.h"
 #include "priv/nexus_surface_priv.h"
@@ -165,7 +162,6 @@ static void NEXUS_VideoWindow_P_PredictSyncLock(NEXUS_VideoWindowHandle window)
                 {
                     foundSyncLockedWindow = true;
                     break;
-                    break;
                 }
             }
         }
@@ -231,8 +227,8 @@ static BERR_Code NEXUS_VideoWindow_P_SetCbSetting(NEXUS_VideoWindowHandle window
     BVDC_Window_CallbackSettings wcbs;
     BERR_Code rc;
 
-	rc = BVDC_Window_GetCallbackSettings(window->vdcState.window, &wcbs);
-	if (rc) return BERR_TRACE(rc);
+    rc = BVDC_Window_GetCallbackSettings(window->vdcState.window, &wcbs);
+    if (rc) return BERR_TRACE(rc);
 
     wcbs.stMask.bDriftDelay = true;
     wcbs.ulLipSyncTolerance = 1000; /* usec. hardcoded threshold for bDriftDelay. */
@@ -241,8 +237,8 @@ static BERR_Code NEXUS_VideoWindow_P_SetCbSetting(NEXUS_VideoWindowHandle window
     wcbs.stMask.bRectAdjust = true;
     wcbs.stMask.bCrc = (settings->crc.crcQueueSize != 0);
     wcbs.eCrcModule = (BVDC_VnetModule) settings->crc.bvnBlock;
-	rc = BVDC_Window_SetCallbackSettings(window->vdcState.window, &wcbs);
-	if (rc) return BERR_TRACE(rc);
+    rc = BVDC_Window_SetCallbackSettings(window->vdcState.window, &wcbs);
+    if (rc) return BERR_TRACE(rc);
 
     if (window->crc.size != settings->crc.crcQueueSize) {
         void *new_ptr = NULL, *old_ptr;
@@ -280,7 +276,7 @@ static void NEXUS_VideoWindow_P_UnsetCbSetting(NEXUS_VideoWindowHandle window)
         window->crc.queue = NULL;
         window->crc.size = 0;
         BKNI_LeaveCriticalSection();
-		BKNI_Free(old_ptr);
+        BKNI_Free(old_ptr);
     }
 }
 
@@ -757,51 +753,52 @@ bool NEXUS_VideoWindow_IsSmoothScaling_isrsafe(NEXUS_VideoWindowHandle window)
 {
     return g_pCoreHandles->boxConfig->stBox.ulBoxId &&
         (BBOX_Vdc_SclCapBias_eAutoDisable == g_pCoreHandles->boxConfig->stVdc.astDisplay[window->display->index].astWindow[window->index].eSclCapBias ||
-         BBOX_Vdc_SclCapBias_eSclBeforeCap == g_pCoreHandles->boxConfig->stVdc.astDisplay[window->display->index].astWindow[window->index].eSclCapBias);
+         BBOX_Vdc_SclCapBias_eSclBeforeCap == g_pCoreHandles->boxConfig->stVdc.astDisplay[window->display->index].astWindow[window->index].eSclCapBias ||
+         BBOX_Vdc_SclCapBias_eAutoDisable1080p == g_pCoreHandles->boxConfig->stVdc.astDisplay[window->display->index].astWindow[window->index].eSclCapBias);
 }
 
 #if BVDC_BUF_LOG
 typedef enum NEXUS_VideoBufLog_Trigger
 {
-	NEXUS_VideoBufLog_Trigger_eReset,
-	NEXUS_VideoBufLog_Trigger_eManual,
-	NEXUS_VideoBufLog_Trigger_eAutomatic,
-	NEXUS_VideoBufLog_Trigger_eAutomaticReduced
+    NEXUS_VideoBufLog_Trigger_eReset,
+    NEXUS_VideoBufLog_Trigger_eManual,
+    NEXUS_VideoBufLog_Trigger_eAutomatic,
+    NEXUS_VideoBufLog_Trigger_eAutomaticReduced
 } NEXUS_VideoBufLog_Trigger;
 
 static void
 NEXUS_VideoWindow_P_MultiBufLogCallBack( void *pParm1, int iParm2, void *pData )
 {
-	BSTD_UNUSED(pParm1);
-	BSTD_UNUSED(iParm2);
-	BSTD_UNUSED(pData);
+    BSTD_UNUSED(pParm1);
+    BSTD_UNUSED(iParm2);
+    BSTD_UNUSED(pData);
 
-	BVDC_DumpBufLog();
+    BVDC_DumpBufLog();
 }
 
 NEXUS_Error
 NEXUS_VideoWindow_P_EnableMultiBufLog( NEXUS_VideoWindowHandle window, NEXUS_VideoBufLog_Trigger trigger, bool enable )
 {
-	NEXUS_Error rc = NEXUS_SUCCESS;
+    NEXUS_Error rc = NEXUS_SUCCESS;
     BDBG_OBJECT_ASSERT(window, NEXUS_VideoWindow);
 
-	if (enable)
-	{
-		BDBG_MSG(("Start Multi-buffering Log"));
+    if (enable)
+    {
+        BDBG_MSG(("Start Multi-buffering Log"));
 
-		BVDC_SetBufLogStateAndDumpTrigger((BVDC_BufLogState)trigger,
-			NEXUS_VideoWindow_P_MultiBufLogCallBack, (void *)window, 0);
-	}
-	else
-	{
-		BDBG_MSG(("Stop Multi-buffering Log"));
-		BVDC_SetBufLogStateAndDumpTrigger((BVDC_BufLogState)NEXUS_VideoBufLog_Trigger_eReset,
-			NULL, NULL, 0);
-	}
+        BVDC_SetBufLogStateAndDumpTrigger((BVDC_BufLogState)trigger,
+            NEXUS_VideoWindow_P_MultiBufLogCallBack, (void *)window, 0);
+    }
+    else
+    {
+        BDBG_MSG(("Stop Multi-buffering Log"));
+        BVDC_SetBufLogStateAndDumpTrigger((BVDC_BufLogState)NEXUS_VideoBufLog_Trigger_eReset,
+            NULL, NULL, 0);
+    }
 
-	BVDC_Window_EnableBufLog(window->vdcState.window, enable);
+    BVDC_Window_EnableBufLog(window->vdcState.window, enable);
 
-	return rc;
+    return rc;
 }
 
 #endif /* BVDC_BUF_LOG */
@@ -828,8 +825,8 @@ NEXUS_VideoWindow_P_CreateVdcWindow(NEXUS_VideoWindowHandle window, const NEXUS_
     NEXUS_DisplayHandle display;
     BVDC_Window_Settings windowCfg;
     NEXUS_VideoInput_P_Link *link;
-    NEXUS_DisplayMemConfig memConfig;
     BVDC_WindowId windowId;
+    unsigned windowHeapIndex = NEXUS_MAX_HEAPS;
 
     BDBG_OBJECT_ASSERT(window->input, NEXUS_VideoInput);
     link = window->input->destination;
@@ -852,7 +849,6 @@ NEXUS_VideoWindow_P_CreateVdcWindow(NEXUS_VideoWindowHandle window, const NEXUS_
     }
     else
     {
-        unsigned windowHeapIndex;
         if (nexus_window_p_use_secure_picbuf(window, link)) {
             windowHeapIndex = pVideo->moduleSettings.secure.videoWindowHeapIndex[window->display->index][window->index];
         }
@@ -883,7 +879,8 @@ NEXUS_VideoWindow_P_CreateVdcWindow(NEXUS_VideoWindowHandle window, const NEXUS_
         else {
             deinterlacerHeapIndex = pVideo->moduleSettings.deinterlacerHeapIndex[window->display->index][window->index];
         }
-        if (deinterlacerHeapIndex < NEXUS_MAX_HEAPS && deinterlacerHeapIndex != pVideo->moduleSettings.primaryDisplayHeapIndex) {
+        /* this should only occur to the newer chips using platform memconfig which removed primary display heap */
+        if (deinterlacerHeapIndex < NEXUS_MAX_HEAPS && deinterlacerHeapIndex != windowHeapIndex) {
             window->vdcDeinterlacerHeap = windowCfg.hDeinterlacerHeap = NEXUS_Display_P_CreateHeap(g_pCoreHandles->heap[deinterlacerHeapIndex].nexus);
         }
     }
@@ -905,8 +902,7 @@ NEXUS_VideoWindow_P_CreateVdcWindow(NEXUS_VideoWindowHandle window, const NEXUS_
         windowCfg.pMinDspFmt = BFMT_GetVideoFormatInfoPtr(fmt);
     }
 
-    memConfig = g_NEXUS_DisplayModule_State.moduleSettings.memConfig[window->display->index];
-    if(memConfig.window[window->windowId].deinterlacer == NEXUS_DeinterlacerMode_eBestQuality)
+    if(g_NEXUS_DisplayModule_State.moduleSettings.memConfig[window->display->index].window[window->windowId].deinterlacer == NEXUS_DeinterlacerMode_eBestQuality)
     {
         /* This causes MAD to allocate 5 fields. This allows apps to be written using NEXUS_VideoWindowGameMode_e5Fields_ForceSpatial instead of having
         to dynamically learn how many buffers are in use in order to use game mode. */
@@ -945,8 +941,8 @@ NEXUS_VideoWindow_P_CreateVdcWindow(NEXUS_VideoWindowHandle window, const NEXUS_
     /* Do not apply any Nexus settings to the window here. See NEXUS_VideoWindow_P_SetVdcSettings for that code. */
 
 #if BVDC_BUF_LOG
-	rc = NEXUS_VideoWindow_P_EnableMultiBufLog(window, NEXUS_VideoBufLog_Trigger_eAutomatic, true);
-	if (rc != NEXUS_SUCCESS) goto err_postcreate;
+    rc = NEXUS_VideoWindow_P_EnableMultiBufLog(window, NEXUS_VideoBufLog_Trigger_eAutomatic, true);
+    if (rc != NEXUS_SUCCESS) goto err_postcreate;
 #endif
 
     BDBG_MSG(("<window:%p", (void *)window->vdcState.window));
@@ -976,8 +972,8 @@ NEXUS_VideoWindow_P_DestroyVdcWindow(NEXUS_VideoWindowHandle window)
     BDBG_ASSERT(window->vdcState.window);
 
 #if BVDC_BUF_LOG
-	rc = NEXUS_VideoWindow_P_EnableMultiBufLog(window, NEXUS_VideoBufLog_Trigger_eReset, false);
-	if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc); }
+    rc = NEXUS_VideoWindow_P_EnableMultiBufLog(window, NEXUS_VideoBufLog_Trigger_eReset, false);
+    if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc); }
 #endif
 
     rc = BVDC_Window_Destroy(window->vdcState.window);
@@ -2018,9 +2014,12 @@ bool NEXUS_VideoAdj_P_DefaultMadEnabled_priv(NEXUS_VideoWindowHandle window)
     else {
         BDBG_ASSERT(window->display->index < BBOX_VDC_DISPLAY_COUNT);
         BDBG_ASSERT(window->index < BBOX_VDC_WINDOW_COUNT_PER_DISPLAY);
-        return (g_pCoreHandles->boxConfig->stVdc.astDisplay[window->display->index].astWindow[window->index].stResource.ulMad != BBOX_Vdc_Resource_eInvalid);
+        /* default on if BBOX and Memconfig allow MAD */
+        return (g_pCoreHandles->boxConfig->stVdc.astDisplay[window->display->index].astWindow[window->index].stResource.ulMad != BBOX_Vdc_Resource_eInvalid) &&
+               (g_NEXUS_DisplayModule_State.moduleSettings.memConfig[window->display->index].window[window->index].deinterlacer != NEXUS_DeinterlacerMode_eNone);
     }
 }
+
 
 void NEXUS_VideoWindow_GetDefaultMinDisplayFormat_isrsafe(NEXUS_VideoWindowHandle window, NEXUS_VideoFormat *pMinDisplayFormat)
 {
@@ -2220,7 +2219,7 @@ NEXUS_Error NEXUS_VideoWindow_P_ConfigMasterFrameRate(NEXUS_VideoWindowHandle wi
         window->vdcState.masterFrameRate = masterFrameRate;
     }
 
-    window->syncStatus.masterFrameRateEnabled = masterFrameRate;
+    window->syncStatus.masterFrameRateEnabled = masterFrameRate && (pDisplaySettings->dropFrame == NEXUS_TristateEnable_eNotSet);
 
     return 0;
 }

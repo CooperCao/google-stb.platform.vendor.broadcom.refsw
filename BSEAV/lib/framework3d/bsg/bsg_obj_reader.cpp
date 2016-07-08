@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -11,7 +11,7 @@
  * Software and all intellectual property rights therein.  IF YOU HAVE NO
  * AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
  * AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
- * SOFTWARE.  
+ * SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
@@ -44,9 +44,9 @@
 //
 // The reader handles all the "v" (vertex), "vt" (vertex texture) and
 // "vn" (vertex normal) entries and the "f" face descriptions.
-// 
+//
 // It ignores all other directives in the source data.
-// 
+//
 // To read the data, simply define an object of ObjReader type and supply
 // the stream from which the data should be read.  The constructed object will
 // then contain the data which can be read via the accessor functions.
@@ -106,7 +106,7 @@ static uint32_t IndexOf(int32_t idx, uint32_t size)
 
 void ObjReader::ChangeMaterial(const string &name)
 {
-   auto entry = m_materialObjectIndex.find(name);
+   map<string, uint32_t>::const_iterator entry = m_materialObjectIndex.find(name);
 
    uint32_t index = 0;
 
@@ -177,13 +177,13 @@ public:
    {
       const char *ptr = m_ptr;
       const char *str = s;
-      
+
       while (*str == *ptr && *str != '\0' && *ptr != '\0')
       {
          ++str;
          ++ptr;
       }
-      
+
       return *str == '\0';
    }
 
@@ -218,7 +218,7 @@ public:
    }
 
 private:
-   const char	*m_ptr;
+   const char *m_ptr;
 };
 
 void ObjReader::ReadV(ObjTokenizer &tok)
@@ -270,7 +270,7 @@ void ObjReader::ReadF(ObjTokenizer &tok)
       Index indices;
 
       tok.NextToken();
- 
+
       indices.V() = IndexOf(tok.GetInt(), m_vertices.size());
 
       tok.SkipToWhiteOrDelim('/');
@@ -361,7 +361,7 @@ ObjReader::ObjReader(istream &is, const string &path, const ObjOptions &options)
 {
    std::stringstream ss;
    ss << is.rdbuf();
-   
+
    Initialise(ss.str().c_str(), path, options);
 }
 
@@ -421,7 +421,7 @@ void ObjReader::LoadMaterials(const string &file)
 
 const ObjMaterial &ObjReader::GetMaterial(const string &name) const
 {
-   auto iter = m_materials.find(name);
+   std::map<std::string, ObjMaterial>::const_iterator iter = m_materials.find(name);
 
    if (iter == m_materials.end())
       BSG_THROW("Cannot find material '" + name + "'");

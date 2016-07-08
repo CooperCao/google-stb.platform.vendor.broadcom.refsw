@@ -1,21 +1,41 @@
 /***************************************************************************
- *     Copyright (c) 2004-2014, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * [File Description:]
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ***************************************************************************/
 
@@ -93,121 +113,121 @@ BDBG_OBJECT_ID_DECLARE(BVDC_HST);
 #define BVDC_P_PEP_CMS_COLOR_REGION_NUM         6
 
 #define BVDC_P_PEP_ITOFIX(x) \
-	(int32_t)((x) << BVDC_P_PEP_FIX_FRACTIONAL_SHIFT)
+    (int32_t)((x) << BVDC_P_PEP_FIX_FRACTIONAL_SHIFT)
 
 #define BVDC_P_PEP_CMS_IS_ENABLE(sat, hue) \
-	(((sat)->lGreen   != 0 ) || \
-	 ((sat)->lYellow  != 0 ) || \
-	 ((sat)->lRed     != 0 ) || \
-	 ((sat)->lMagenta != 0 ) || \
-	 ((sat)->lBlue    != 0 ) || \
-	 ((sat)->lCyan    != 0 ) || \
-	 ((hue)->lGreen   != 0 ) || \
-	 ((hue)->lYellow  != 0 ) || \
-	 ((hue)->lRed     != 0 ) || \
-	 ((hue)->lMagenta != 0 ) || \
-	 ((hue)->lBlue    != 0 ) || \
-	 ((hue)->lCyan    != 0 ))
+    (((sat)->lGreen   != 0 ) || \
+     ((sat)->lYellow  != 0 ) || \
+     ((sat)->lRed     != 0 ) || \
+     ((sat)->lMagenta != 0 ) || \
+     ((sat)->lBlue    != 0 ) || \
+     ((sat)->lCyan    != 0 ) || \
+     ((hue)->lGreen   != 0 ) || \
+     ((hue)->lYellow  != 0 ) || \
+     ((hue)->lRed     != 0 ) || \
+     ((hue)->lMagenta != 0 ) || \
+     ((hue)->lBlue    != 0 ) || \
+     ((hue)->lCyan    != 0 ))
 
 #define BVDC_P_PEP_CMS_DISABLE(colorBar) \
-	{(colorBar)->lGreen   = 0;  \
-	 (colorBar)->lYellow  = 0;  \
-	 (colorBar)->lRed     = 0;  \
-	 (colorBar)->lMagenta = 0;  \
-	 (colorBar)->lBlue    = 0;  \
-	 (colorBar)->lCyan    = 0;}
+    {(colorBar)->lGreen   = 0;  \
+     (colorBar)->lYellow  = 0;  \
+     (colorBar)->lRed     = 0;  \
+     (colorBar)->lMagenta = 0;  \
+     (colorBar)->lBlue    = 0;  \
+     (colorBar)->lCyan    = 0;}
 
 #define BVDC_P_PEP_CMS_COMPARE_EQ(src, dst) \
-	(((src)->lGreen   == (dst)->lGreen  ) && \
-	 ((src)->lYellow  == (dst)->lYellow ) && \
-	 ((src)->lRed     == (dst)->lRed    ) && \
-	 ((src)->lMagenta == (dst)->lMagenta) && \
-	 ((src)->lBlue    == (dst)->lBlue   ) && \
-	 ((src)->lCyan    == (dst)->lCyan   ))
+    (((src)->lGreen   == (dst)->lGreen  ) && \
+     ((src)->lYellow  == (dst)->lYellow ) && \
+     ((src)->lRed     == (dst)->lRed    ) && \
+     ((src)->lMagenta == (dst)->lMagenta) && \
+     ((src)->lBlue    == (dst)->lBlue   ) && \
+     ((src)->lCyan    == (dst)->lCyan   ))
 
 #define BVDC_P_PEP_CMS_SAT_WITHIN_RANGE(sat) \
-	(((sat)->lGreen   >= BVDC_P_PEP_CMS_SAT_MIN_RANGE) && ((sat)->lGreen   <= BVDC_P_PEP_CMS_SAT_MAX_RANGE) && \
-	 ((sat)->lYellow  >= BVDC_P_PEP_CMS_SAT_MIN_RANGE) && ((sat)->lYellow  <= BVDC_P_PEP_CMS_SAT_MAX_RANGE) && \
-	 ((sat)->lRed     >= BVDC_P_PEP_CMS_SAT_MIN_RANGE) && ((sat)->lRed     <= BVDC_P_PEP_CMS_SAT_MAX_RANGE) && \
-	 ((sat)->lMagenta >= BVDC_P_PEP_CMS_SAT_MIN_RANGE) && ((sat)->lMagenta <= BVDC_P_PEP_CMS_SAT_MAX_RANGE) && \
-	 ((sat)->lBlue    >= BVDC_P_PEP_CMS_SAT_MIN_RANGE) && ((sat)->lBlue    <= BVDC_P_PEP_CMS_SAT_MAX_RANGE) && \
-	 ((sat)->lCyan    >= BVDC_P_PEP_CMS_SAT_MIN_RANGE) && ((sat)->lCyan    <= BVDC_P_PEP_CMS_SAT_MAX_RANGE))
+    (((sat)->lGreen   >= BVDC_P_PEP_CMS_SAT_MIN_RANGE) && ((sat)->lGreen   <= BVDC_P_PEP_CMS_SAT_MAX_RANGE) && \
+     ((sat)->lYellow  >= BVDC_P_PEP_CMS_SAT_MIN_RANGE) && ((sat)->lYellow  <= BVDC_P_PEP_CMS_SAT_MAX_RANGE) && \
+     ((sat)->lRed     >= BVDC_P_PEP_CMS_SAT_MIN_RANGE) && ((sat)->lRed     <= BVDC_P_PEP_CMS_SAT_MAX_RANGE) && \
+     ((sat)->lMagenta >= BVDC_P_PEP_CMS_SAT_MIN_RANGE) && ((sat)->lMagenta <= BVDC_P_PEP_CMS_SAT_MAX_RANGE) && \
+     ((sat)->lBlue    >= BVDC_P_PEP_CMS_SAT_MIN_RANGE) && ((sat)->lBlue    <= BVDC_P_PEP_CMS_SAT_MAX_RANGE) && \
+     ((sat)->lCyan    >= BVDC_P_PEP_CMS_SAT_MIN_RANGE) && ((sat)->lCyan    <= BVDC_P_PEP_CMS_SAT_MAX_RANGE))
 
 #define BVDC_P_PEP_CMS_HUE_WITHIN_RANGE(hue) \
-	(((hue)->lGreen   >= BVDC_P_PEP_CMS_HUE_MIN_RANGE) && ((hue)->lGreen   <= BVDC_P_PEP_CMS_HUE_MAX_RANGE) && \
-	 ((hue)->lYellow  >= BVDC_P_PEP_CMS_HUE_MIN_RANGE) && ((hue)->lYellow  <= BVDC_P_PEP_CMS_HUE_MAX_RANGE) && \
-	 ((hue)->lRed     >= BVDC_P_PEP_CMS_HUE_MIN_RANGE) && ((hue)->lRed     <= BVDC_P_PEP_CMS_HUE_MAX_RANGE) && \
-	 ((hue)->lMagenta >= BVDC_P_PEP_CMS_HUE_MIN_RANGE) && ((hue)->lMagenta <= BVDC_P_PEP_CMS_HUE_MAX_RANGE) && \
-	 ((hue)->lBlue    >= BVDC_P_PEP_CMS_HUE_MIN_RANGE) && ((hue)->lBlue    <= BVDC_P_PEP_CMS_HUE_MAX_RANGE) && \
-	 ((hue)->lCyan    >= BVDC_P_PEP_CMS_HUE_MIN_RANGE) && ((hue)->lCyan    <= BVDC_P_PEP_CMS_HUE_MAX_RANGE))
+    (((hue)->lGreen   >= BVDC_P_PEP_CMS_HUE_MIN_RANGE) && ((hue)->lGreen   <= BVDC_P_PEP_CMS_HUE_MAX_RANGE) && \
+     ((hue)->lYellow  >= BVDC_P_PEP_CMS_HUE_MIN_RANGE) && ((hue)->lYellow  <= BVDC_P_PEP_CMS_HUE_MAX_RANGE) && \
+     ((hue)->lRed     >= BVDC_P_PEP_CMS_HUE_MIN_RANGE) && ((hue)->lRed     <= BVDC_P_PEP_CMS_HUE_MAX_RANGE) && \
+     ((hue)->lMagenta >= BVDC_P_PEP_CMS_HUE_MIN_RANGE) && ((hue)->lMagenta <= BVDC_P_PEP_CMS_HUE_MAX_RANGE) && \
+     ((hue)->lBlue    >= BVDC_P_PEP_CMS_HUE_MIN_RANGE) && ((hue)->lBlue    <= BVDC_P_PEP_CMS_HUE_MAX_RANGE) && \
+     ((hue)->lCyan    >= BVDC_P_PEP_CMS_HUE_MIN_RANGE) && ((hue)->lCyan    <= BVDC_P_PEP_CMS_HUE_MAX_RANGE))
 
 /***************************************************************************
  * PEP private data structures
  ***************************************************************************/
 typedef struct BVDC_P_PepContext
 {
-	BDBG_OBJECT(BVDC_PEP)
+    BDBG_OBJECT(BVDC_PEP)
 
-	/* private fields. */
-	BVDC_P_WindowId                eId;
-	BREG_Handle                    hReg;
-	bool                           bInitial;
-	bool                           bHardStart;
-	BVDC_Backlight_CallbackData    stCallbackData;
+    /* private fields. */
+    BVDC_P_WindowId                eId;
+    BREG_Handle                    hReg;
+    bool                           bInitial;
+    bool                           bHardStart;
+    BVDC_Backlight_CallbackData    stCallbackData;
 
-	bool                           bLoadCabTable;
-	bool                           bLoadLabTable;
-	bool                           bProcessCab;
-	bool                           bProcessHist;
-	bool                           bLabTableValid;
-	bool                           bLabCtrlPending;
+    bool                           bLoadCabTable;
+    bool                           bLoadLabTable;
+    bool                           bProcessCab;
+    bool                           bProcessHist;
+    bool                           bLabTableValid;
+    bool                           bLabCtrlPending;
 
-	/* These variables are used in contrast stretch algorithm */
-	uint32_t                       aulLastBin[BVDC_P_HISTO_TABLE_SIZE];
-	uint32_t                       aulLastLastBin[BVDC_P_HISTO_TABLE_SIZE];
-	uint32_t                       aulBin[BVDC_P_HISTO_TABLE_SIZE];
+    /* These variables are used in contrast stretch algorithm */
+    uint32_t                       aulLastBin[BVDC_P_HISTO_TABLE_SIZE];
+    uint32_t                       aulLastLastBin[BVDC_P_HISTO_TABLE_SIZE];
+    uint32_t                       aulBin[BVDC_P_HISTO_TABLE_SIZE];
 
-	/* 24.8 notation */
-	int32_t                        lFixLastMin;
-	int32_t                        lFixLastMax;
-	int32_t                        lFixLastMid;
-	int32_t                        lFixBrtCur;
-	int32_t                        lFixBrtLast;
+    /* 24.8 notation */
+    int32_t                        lFixLastMin;
+    int32_t                        lFixLastMax;
+    int32_t                        lFixLastMid;
+    int32_t                        lFixBrtCur;
+    int32_t                        lFixBrtLast;
 
-	/* 16.16 notation */
-	int32_t                        lFixEstLuma[BVDC_P_LAB_TABLE_SIZE];
-	int32_t                        lFixHist_out[BVDC_P_PEP_LAB_GEN_SIZE];
+    /* 16.16 notation */
+    int32_t                        lFixEstLuma[BVDC_P_LAB_TABLE_SIZE];
+    int32_t                        lFixHist_out[BVDC_P_PEP_LAB_GEN_SIZE];
 
-	int32_t                        alDCTableTemp[BVDC_DC_TABLE_ROWS * BVDC_DC_TABLE_COLS];
+    int32_t                        alDCTableTemp[BVDC_DC_TABLE_ROWS * BVDC_DC_TABLE_COLS];
 
-	/* These are the output of dynamic contrast stretch algorithm */
-	uint32_t                       aulLabTable[BVDC_P_LAB_TABLE_SIZE];
+    /* These are the output of dynamic contrast stretch algorithm */
+    uint32_t                       aulLabTable[BVDC_P_LAB_TABLE_SIZE];
 
-	/* Histogram min and max value */
-	uint32_t                       ulHistSize;
-	BVDC_LumaStatus                stHistoData;
-	/* This is a temp histo data read every vsync */
-	BVDC_LumaStatus                stTmpHistoData;
-	uint32_t                       ulAvgAPL;
-	uint32_t                       ulFiltAPL;
-	uint32_t                       ulAvgLevelStats[BVDC_LUMA_HISTOGRAM_LEVELS];
-	int32_t                        lLastGain;
+    /* Histogram min and max value */
+    uint32_t                       ulHistSize;
+    BVDC_LumaStatus                stHistoData;
+    /* This is a temp histo data read every vsync */
+    BVDC_LumaStatus                stTmpHistoData;
+    uint32_t                       ulAvgAPL;
+    uint32_t                       ulFiltAPL;
+    uint32_t                       ulAvgLevelStats[BVDC_LUMA_HISTOGRAM_LEVELS];
+    int32_t                        lLastGain;
 
-	/* sharpness chroma gain, changed by source */
-	uint32_t                       ulLumaChromaGain;
+    /* sharpness chroma gain, changed by source */
+    uint32_t                       ulLumaChromaGain;
 
-	/* These variables are used in CMS algorithm */
-	int32_t                        alSatGain[BVDC_P_PEP_CMS_COLOR_REGION_NUM];
-	int32_t                        alHueGain[BVDC_P_PEP_CMS_COLOR_REGION_NUM];
-	int32_t                        alCr[BVDC_P_CAB_TABLE_SIZE];
-	int32_t                        alCb[BVDC_P_CAB_TABLE_SIZE];
-	int32_t                        tempCr[BVDC_P_CAB_TABLE_SIZE];
-	int32_t                        tempCb[BVDC_P_CAB_TABLE_SIZE];
+    /* These variables are used in CMS algorithm */
+    int32_t                        alSatGain[BVDC_P_PEP_CMS_COLOR_REGION_NUM];
+    int32_t                        alHueGain[BVDC_P_PEP_CMS_COLOR_REGION_NUM];
+    int32_t                        alCr[BVDC_P_CAB_TABLE_SIZE];
+    int32_t                        alCb[BVDC_P_CAB_TABLE_SIZE];
+    int32_t                        tempCr[BVDC_P_CAB_TABLE_SIZE];
+    int32_t                        tempCb[BVDC_P_CAB_TABLE_SIZE];
 
-	uint32_t                       ulPrevHSize;
-	uint32_t                       ulPrevVSize;
-	BFMT_Orientation               ePrevSrcOrientation;
-	BFMT_Orientation               ePrevDispOrientation;
+    uint32_t                       ulPrevHSize;
+    uint32_t                       ulPrevVSize;
+    BFMT_Orientation               ePrevSrcOrientation;
+    BFMT_Orientation               ePrevDispOrientation;
 
 } BVDC_P_PepContext;
 
@@ -216,81 +236,81 @@ typedef struct BVDC_P_PepContext
  * PEP private functions
  ***************************************************************************/
 BERR_Code BVDC_P_Pep_Create
-	( BVDC_P_Pep_Handle           *phPep,
-	  const BVDC_P_WindowId        eWinId,
-	  const BREG_Handle            hReg );
+    ( BVDC_P_Pep_Handle           *phPep,
+      const BVDC_P_WindowId        eWinId,
+      const BREG_Handle            hReg );
 
 void BVDC_P_Pep_Destroy
-	( BVDC_P_Pep_Handle            hPep );
+    ( BVDC_P_Pep_Handle            hPep );
 
 void BVDC_P_Pep_Init
-	( const BVDC_P_Pep_Handle      hPep );
+    ( const BVDC_P_Pep_Handle      hPep );
 
 void BVDC_P_Pep_BuildRul_isr
-	( const BVDC_Window_Handle     hWindow,
-	  BVDC_P_ListInfo             *pList,
-	  bool                         bInitial );
+    ( const BVDC_Window_Handle     hWindow,
+      BVDC_P_ListInfo             *pList,
+      bool                         bInitial );
 
 void BVDC_P_Pep_SetInfo_isr
-	( BVDC_P_Pep_Handle            hPep,
-	  BVDC_P_PictureNode          *pPicture );
+    ( BVDC_P_Pep_Handle            hPep,
+      BVDC_P_PictureNode          *pPicture );
 
 void BVDC_P_Tab_BuildRul_isr
-	( const BVDC_Window_Handle     hWindow,
-	  BVDC_P_ListInfo             *pList );
+    ( const BVDC_Window_Handle     hWindow,
+      BVDC_P_ListInfo             *pList );
 
 void BVDC_P_Pep_DynamicContrast_isr
-	( const BVDC_ContrastStretch  *pCS,
-	  BVDC_P_PepContext           *pPep,
-	  uint32_t                    *pulLabTable );
+    ( const BVDC_ContrastStretch  *pCS,
+      BVDC_P_PepContext           *pPep,
+      uint32_t                    *pulLabTable );
 
 BERR_Code BVDC_P_Pep_ComposeCabTable
-	( const uint32_t               ulFleshtone,
-	  const uint32_t               ulGreenBoost,
-	  const uint32_t               ulBlueBoost,
-	  uint32_t                    *pulCabTable );
+    ( const uint32_t               ulFleshtone,
+      const uint32_t               ulGreenBoost,
+      const uint32_t               ulBlueBoost,
+      uint32_t                    *pulCabTable );
 
 void BVDC_P_Pep_Cms
-	( BVDC_P_PepContext           *pPep,
-	  const BVDC_ColorBar         *pSatGain,
-	  const BVDC_ColorBar         *pHueGain,
-	  bool                         bIsHd,
-	  uint32_t                    *pulCabTable );
+    ( BVDC_P_PepContext           *pPep,
+      const BVDC_ColorBar         *pSatGain,
+      const BVDC_ColorBar         *pHueGain,
+      bool                         bIsHd,
+      uint32_t                    *pulCabTable );
 
 void BVDC_P_Sharpness_Calculate_Peak_Values
-	( const int16_t                sSharpness,
-	  uint32_t                    *ulPeakSetting,
-	  uint32_t                    *ulPeakScale );
+    ( const int16_t                sSharpness,
+      uint32_t                    *ulPeakSetting,
+      uint32_t                    *ulPeakScale );
 
 void BVDC_P_Sharpness_Calculate_Gain_Value_isr
-	( const int16_t                sSharpness,
-	  const int16_t                sMinGain,
-	  const int16_t                sCenterGain,
-	  const int16_t                sMaxGain,
-	  uint32_t                    *ulSharpnessGain );
+    ( const int16_t                sSharpness,
+      const int16_t                sMinGain,
+      const int16_t                sCenterGain,
+      const int16_t                sMaxGain,
+      uint32_t                    *ulSharpnessGain );
 
 void BVDC_P_Pep_GetLumaStatus
-	( const BVDC_Window_Handle     hWindow,
-	  BVDC_LumaStatus             *pLumaStatus );
+    ( const BVDC_Window_Handle     hWindow,
+      BVDC_LumaStatus             *pLumaStatus );
 
 void BVDC_P_Pep_GetRadialTable
-	( uint32_t                     ulColorId,
-	  bool                         bIsHd,
-	  const uint16_t             **ppRadialTable );
+    ( uint32_t                     ulColorId,
+      bool                         bIsHd,
+      const uint16_t             **ppRadialTable );
 
 void BVDC_P_Pep_GetAngleTable
-	( uint32_t                     ulColorId,
-	  bool                         bIsHd,
-	  const uint16_t             **ppAngleTable );
+    ( uint32_t                     ulColorId,
+      bool                         bIsHd,
+      const uint16_t             **ppAngleTable );
 
 void BVDC_P_Pep_GetHueAngleTable
-	( uint32_t                     ulColorId,
-	  bool                         bIsHd,
-	  const uint16_t             **ppHueAngleTable );
+    ( uint32_t                     ulColorId,
+      bool                         bIsHd,
+      const uint16_t             **ppHueAngleTable );
 
 #if(BVDC_P_SUPPORT_HIST && BVDC_P_SUPPORT_HIST_VER == BVDC_P_SUPPORT_HIST_VER_1)
 void BVDC_P_Histo_UpdateHistoData_isr
-	( BVDC_P_Pep_Handle            hPep );
+    ( BVDC_P_Pep_Handle            hPep );
 #endif
 
 #ifdef __cplusplus
@@ -299,4 +319,3 @@ void BVDC_P_Histo_UpdateHistoData_isr
 
 #endif /* #ifndef BVDC_PEP_PRIV_H__ */
 /* End of File */
-

@@ -1,32 +1,44 @@
-/***************************************************************************
- *     Copyright (c) 2003-2012, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c) 2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * Module Description: This file contains Broadcom smart card (OS/platform 
- *                     independent) porting interface public functions that
- *                     can support multiple Broadcom smart card interfaces.
- *                     Since smart card module supports multiple independent  
- *                     and identical interfaces/channels, most of the functions 
- *                     required a channel handle (BSCD_ChannelHandle),  
- *                     instead of module handle (BSCD_Handle).
- *                     This module can support the board with or without
- *                     TDA8004 chip.
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
  *
- * Revision History:
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- * 
- ***************************************************************************/
-
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ *
+ *****************************************************************************/
 
 /*================== Module Overview =====================================
 <verbatim>
@@ -1117,7 +1129,7 @@ BSCD_Channel_Receive
 ******************************************************************************/
 BERR_Code BSCD_Channel_ResetCard(
 		BSCD_ChannelHandle          in_channelHandle,
-		BSCD_ResetCardAction               in_iccAction   
+		BSCD_ResetCardAction               in_iccAction
 );
 
 
@@ -1295,80 +1307,6 @@ BERR_Code BSCD_Channel_Receive(
 
 /*****************************************************************************
 Summary:
-This function receives Answer To Reset (ATR) data from the smart card.
-
-Description:
-This function shall receive ATR data in the outp_ucRcvData from the smart card. ATR data 
-shall actually be received after calling BSCD_Channel_PowerICC. This function only 
-retrieve ATR data from the hardware receiving buffer.
-
-This function is recommended to be used to return ATR data since the time out period
-is more accurate. Use BSCD_Channel_Receive
-to read the data from the smart card after IFD transmits data to the smart card.
-
-For better performance, the caller is recommended to set in_unMaxReadBytes
-equal to the number of expected receiving bytes. If the caller set 
-in_unMaxReadBytes to a number that is greater than the outp_unNumRcvBytes
-(for example, MAX_ATR_SIZE), this function shall return outp_unNumRcvBytes 
-number of receiving bytes with an error. It is the responsibility of the 
-application to determine if this operation is succeed or not.
-
-This function shall be blocked until either
-
-1) The number of receiving data is equal to in_unMaxReadBytes.
-2) An error occurs.
-
-This function shall return an error either
-
-1) The number of receiving bytes is greater than in_unMaxReadBytes.
-2) One of the timer expired before in_unMaxReadBytes of bytes
-   has received.
-
-This function shall not interpret receiving data.
-
-For any parity error, the hardware shall retry the receiving for the 
-number of times specify in the setting. If IFD still reports receiving parity
-error after that, SC_INTR_STAT_1[retry_intr] will set to 1 and caller can call
-BSCD_Channel_GetStatus to check if this is a receiving parity error.
-
-Calling Context:
-The function shall be called from application level (for example in 
-VxWorks or no-os) or from driver level (for example in Linux,
-driver read )
-
-Performance and Synchronization:
-This is a synchronous function that will return when it is done. 
-
-Input:
-in_channelHandle  - BSCD_ChannelHandle, a ref/pointer to the smart card 
-					channel handle.
-in_unMaxReadBytes - unsigned long, a ref/pointer to the number of maximum receiving
-					bytes
-
-Output:
-outp_ucRcvData - uint8_t, a ref/pointer to the buffer for receive data
-outp_unNumRcvBytes - unsigned long a ref/pointer to the number of receiving bytes
-
-Returns:
-BERR_SUCCESS - success
-To Do: Need more error code
-
-
-See Also:
-BSCD_Channel_Transmit
-BSCD_Channel_Receive
-BSCD_Channel_GetStatus
-
-******************************************************************************/
-BERR_Code BSCD_Channel_ReceiveATR(
-		BSCD_ChannelHandle       in_channelHandle,
-		uint8_t                  		*outp_ucRcvData,
-		unsigned long                  *outp_ulNumRcvBytes,
-		unsigned long                	 in_ulMaxReadBytes 
-);
-
-/*****************************************************************************
-Summary:
 This function configures the Waiting Timer or General Purpose Timer.
 
 Description:
@@ -1398,46 +1336,7 @@ BERR_Code BSCD_Channel_ConfigTimer(
 		BSCD_ChannelHandle          in_channelHandle,    
 		BSCD_Timer 		            *inp_timer,
 		BSCD_TimerValue             *inp_unCount
- 		
 );
-
-
-
-/*****************************************************************************
-Summary:
-This function enables or disables the Waiting Timer or General Purpose Timer.
-
-Description:
-This function shall either
-
-1) Disable Waiting Timer or General Purpose Timer.
-2) Enable Waiting Timer in Work Waiting Time Mode or Block Waiting Time Mode.
-3) Enable General Purppose Timer in Start Timer Immediate mode or Start Timer
-   on Next Start Bit mode.
-
-Calling Context:
-The function shall be called from application level (for example in 
-VxWorks or no-os) or from driver level (for example in Linux,
-recommended ioctl: BSCD_IOCTL_ENABLE_DISABLE_TIMER).
-
-Performance and Synchronization:
-This is a synchronous function that will return when it is done. 
-
-Input:
-in_channelHandle  - BSCD_ChannelHandle, a ref/pointer to the smart card 
-					channel handle.
-inp_timer - BSCD_Timer, a ref/pointer to the smart card timer structure. 
-
-Returns:
-BERR_SUCCESS - success
-To Do: Need more error code
-
-******************************************************************************/
-BERR_Code BSCD_Channel_EnableDisableTimer_isr(
-		BSCD_ChannelHandle          in_channelHandle,
-		BSCD_Timer                  *inp_timer
-);
-
 
 /*****************************************************************************
 Summary:

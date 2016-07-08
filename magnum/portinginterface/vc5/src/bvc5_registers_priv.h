@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2014 Broadcom Corporation
+ *     Broadcom Proprietary and Confidential. (c)2014 Broadcom.  All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -40,20 +40,260 @@
 #define BVC5_REGISTERS_PRIV_H
 
 #ifdef BVC5_HARDWARE_REAL
-#include "bchp_v3d_qpudbg.h"
+
+/* This will define the start and end address defines for each register block */
+#include "bchp_common.h"
+
+/* Some useful macros to determine the V3D version at compile time */
+#define V3D_MAKE_VER(TECH_VERSION, REVISION, SUB_REV, HIDDEN_REV) \
+   (((TECH_VERSION) << 24) | ((REVISION) << 16) | ((SUB_REV) << 8) | (HIDDEN_REV))
+#define V3D_EXTRACT_TECH_VERSION(VER) ((VER) >> 24)
+#define V3D_EXTRACT_REVISION(VER) (((VER) >> 16) & 0xff)
+#define V3D_EXTRACT_SUB_REV(VER) (((VER) >> 8) & 0xff)
+#define V3D_EXTRACT_HIDDEN_REV(VER) ((VER) & 0xff)
+
+#define V3D_VER (V3D_MAKE_VER(V3D_TECH_VERSION, V3D_REVISION, V3D_SUB_REV, V3D_HIDDEN_REV))
+#define V3D_VER_AT_LEAST(TECH_VERSION, REVISION, SUB_REV, HIDDEN_REV) \
+   (V3D_VER >= V3D_MAKE_VER(TECH_VERSION, REVISION, SUB_REV, HIDDEN_REV))
+
+/* Determine the core revision */
+#ifdef BCHP_V3D_CTL_0_REG_START
+#include "bchp_v3d_ctl_0.h"
+#define V3D_TECH_VERSION   BCHP_V3D_CTL_0_IDENT0_TVER_DEFAULT
+#define V3D_REVISION       BCHP_V3D_CTL_0_IDENT1_REV_DEFAULT
+#define V3D_SUB_REV        BCHP_V3D_CTL_0_IDENT3_IPREV_DEFAULT
+#define V3D_HIDDEN_REV     0
+#else
 #include "bchp_v3d_ctl.h"
+#define V3D_TECH_VERSION   BCHP_V3D_CTL_IDENT0_TVER_DEFAULT
+#define V3D_REVISION       BCHP_V3D_CTL_IDENT1_REV_DEFAULT
+#define V3D_SUB_REV        BCHP_V3D_CTL_IDENT3_IPREV_DEFAULT
+#define V3D_HIDDEN_REV     0
+#endif
+
+#if V3D_VER_AT_LEAST(3,3,0,0)
+
+/* These files are now per core */
+#include "bchp_v3d_qpudbg_0.h"
+#include "bchp_v3d_cle_0.h"
+#include "bchp_v3d_gmp_0.h"
+#include "bchp_v3d_ptb_0.h"
+#include "bchp_v3d_qps_0.h"
+#include "bchp_v3d_vpm_0.h"
+#include "bchp_v3d_pctr_0.h"
+#include "bchp_v3d_err_0.h"
+#else
+/* These files were not per core */
+#include "bchp_v3d_qpudbg.h"
 #include "bchp_v3d_cle.h"
+#include "bchp_v3d_gmp.h"
 #include "bchp_v3d_ptb.h"
 #include "bchp_v3d_qps.h"
 #include "bchp_v3d_vpm.h"
-#include "bchp_v3d_gca.h"
 #include "bchp_v3d_pctr.h"
+#include "bchp_v3d_error.h"
+/* We only support legacy event tracks, so make sure they are active */
+#define INCLUDE_LEGACY_EVENT_TRACKS 1
+#endif
+
+/* These are not core specific */
+#include "bchp_v3d_gca.h"
 #include "bchp_v3d_tfu.h"
 #include "bchp_v3d_hub_ctl.h"
-#include "bchp_v3d_error.h"
-
 #include "bchp_v3d_top_gr_bridge.h"
 #include "bchp_hif_cpu_intr1.h"
+#include "bchp_sun_top_ctrl.h"
+#include "bchp_clkgen.h"
+
+#ifdef V3D_HAS_BPCM
+#if V3D_VER_AT_LEAST(3,3,0,0)
+#include "bchp_cfgctl.h"
+#include "bchp_zone0_fs.h"
+#else
+#include "bchp_v3d_bpcm.h"
+#endif
+#endif
+
+#if V3D_VER_AT_LEAST(3,3,0,0)
+/* Map the register names to core 0 addresses.
+ * Address arithmetic in Read & WriteRegister will then
+ * do the right thing. */
+#define BCHP_V3D_CLE_CT0CA     BCHP_V3D_CLE_0_CT0CA
+#define BCHP_V3D_CLE_CT0CS     BCHP_V3D_CLE_0_CT0CS
+#define BCHP_V3D_CLE_CT1EA     BCHP_V3D_CLE_0_CT1EA
+#define BCHP_V3D_CLE_CT0RA0    BCHP_V3D_CLE_0_CT0RA0
+#define BCHP_V3D_CLE_CT0PC     BCHP_V3D_CLE_0_CT0PC
+#define BCHP_V3D_CLE_CT1LC     BCHP_V3D_CLE_0_CT1LC
+#define BCHP_V3D_CLE_TFBC      BCHP_V3D_CLE_0_TFBC
+#define BCHP_V3D_CLE_CT1CFG    BCHP_V3D_CLE_0_CT1CFG
+#define BCHP_V3D_CLE_CT1TSKIP  BCHP_V3D_CLE_0_CT1TSKIP
+#define BCHP_V3D_CLE_CT0SYNC   BCHP_V3D_CLE_0_CT0SYNC
+#define BCHP_V3D_CLE_CT0QEA    BCHP_V3D_CLE_0_CT0QEA
+#define BCHP_V3D_CLE_CT1QBA    BCHP_V3D_CLE_0_CT1QBA
+#define BCHP_V3D_CLE_CT0QMA    BCHP_V3D_CLE_0_CT0QMA
+#define BCHP_V3D_CLE_CT1QCFG   BCHP_V3D_CLE_0_CT1QCFG
+#define BCHP_V3D_CLE_CT0CA     BCHP_V3D_CLE_0_CT0CA
+#define BCHP_V3D_CLE_CT1EA     BCHP_V3D_CLE_0_CT1EA
+#define BCHP_V3D_CLE_CT0RA0    BCHP_V3D_CLE_0_CT0RA0
+#define BCHP_V3D_CLE_CT0PC     BCHP_V3D_CLE_0_CT0PC
+#define BCHP_V3D_CLE_CT1LC     BCHP_V3D_CLE_0_CT1LC
+#define BCHP_V3D_CLE_TFBC      BCHP_V3D_CLE_0_TFBC
+#define BCHP_V3D_CLE_CT0EA     BCHP_V3D_CLE_0_CT0EA
+#define BCHP_V3D_CLE_CT1CA     BCHP_V3D_CLE_0_CT1CA
+#define BCHP_V3D_CLE_CT1CS     BCHP_V3D_CLE_0_CT1CS
+#define BCHP_V3D_CLE_CT0LC     BCHP_V3D_CLE_0_CT0LC
+#define BCHP_V3D_CLE_CT1RA0    BCHP_V3D_CLE_0_CT1RA0
+#define BCHP_V3D_CLE_CT1PC     BCHP_V3D_CLE_0_CT1PC
+#define BCHP_V3D_CLE_TFIT      BCHP_V3D_CLE_0_TFIT
+#define BCHP_V3D_CLE_CT1TILECT BCHP_V3D_CLE_0_CT1TILECT
+#define BCHP_V3D_CLE_CT1PTCT   BCHP_V3D_CLE_0_CT1PTCT
+#define BCHP_V3D_CLE_CT0QBA    BCHP_V3D_CLE_0_CT0QBA
+#define BCHP_V3D_CLE_CT1SYNC   BCHP_V3D_CLE_0_CT1SYNC
+#define BCHP_V3D_CLE_CT1QEA    BCHP_V3D_CLE_0_CT1QEA
+#define BCHP_V3D_CLE_CT0QMS    BCHP_V3D_CLE_0_CT0QMS
+#define BCHP_V3D_CLE_CT1QTSKIP BCHP_V3D_CLE_0_CT1QTSKIP
+#define BCHP_V3D_CLE_CT1QBASE0 BCHP_V3D_CLE_0_CT1QBASE0
+#define BCHP_V3D_CLE_CT1QBASE1 BCHP_V3D_CLE_0_CT1QBASE1
+#define BCHP_V3D_CLE_CT1QBASE2 BCHP_V3D_CLE_0_CT1QBASE2
+#define BCHP_V3D_CLE_CT1QBASE3 BCHP_V3D_CLE_0_CT1QBASE3
+#define BCHP_V3D_CLE_CT1QBASE4 BCHP_V3D_CLE_0_CT1QBASE4
+#define BCHP_V3D_CLE_CT1QBASE5 BCHP_V3D_CLE_0_CT1QBASE5
+#define BCHP_V3D_CLE_CT1QBASE6 BCHP_V3D_CLE_0_CT1QBASE6
+#define BCHP_V3D_CLE_CT1QBASE7 BCHP_V3D_CLE_0_CT1QBASE7
+#define BCHP_V3D_CLE_CT0QSYNC  BCHP_V3D_CLE_0_CT0QSYNC
+#define BCHP_V3D_CLE_CT1QSYNC  BCHP_V3D_CLE_0_CT1QSYNC
+#define BCHP_V3D_CLE_PCS       BCHP_V3D_CLE_0_PCS
+#define BCHP_V3D_CLE_BFC       BCHP_V3D_CLE_0_BFC
+#define BCHP_V3D_CLE_RFC       BCHP_V3D_CLE_0_RFC
+#define BCHP_V3D_CLE_CT0CA     BCHP_V3D_CLE_0_CT0CA
+#define BCHP_V3D_CLE_CT0QMA    BCHP_V3D_CLE_0_CT0QMA
+#define BCHP_V3D_CLE_CT0QMS    BCHP_V3D_CLE_0_CT0QMS
+#define BCHP_V3D_CLE_CT0QBA    BCHP_V3D_CLE_0_CT0QBA
+#define BCHP_V3D_CLE_CT0QEA    BCHP_V3D_CLE_0_CT0QEA
+#define BCHP_V3D_CLE_CT1QCFG   BCHP_V3D_CLE_0_CT1QCFG
+#define BCHP_V3D_CLE_CCNTCS    BCHP_V3D_CLE_0_CCNTCS
+
+#define V3D_CLE_CT1QCFG        V3D_CLE_0_CT1QCFG
+#define V3D_CLE_PCS            V3D_CLE_0_PCS
+#define V3D_CLE_CCNTCS         V3D_CLE_0_CCNTCS
+
+#define BCHP_V3D_CLE_CCBSLO    BCHP_V3D_CLE_0_CCBSLO
+#define BCHP_V3D_CLE_CCBSHI    BCHP_V3D_CLE_0_CCBSHI
+#define BCHP_V3D_CLE_CCBELO    BCHP_V3D_CLE_0_CCBELO
+#define BCHP_V3D_CLE_CCBEHI    BCHP_V3D_CLE_0_CCBEHI
+#define BCHP_V3D_CLE_CPBSLO    BCHP_V3D_CLE_0_CPBSLO
+#define BCHP_V3D_CLE_CPBSHI    BCHP_V3D_CLE_0_CPBSHI
+#define BCHP_V3D_CLE_CPBELO    BCHP_V3D_CLE_0_CPBELO
+#define BCHP_V3D_CLE_CPBEHI    BCHP_V3D_CLE_0_CPBEHI
+#define BCHP_V3D_CLE_CCRSLO    BCHP_V3D_CLE_0_CCRSLO
+#define BCHP_V3D_CLE_CCRSHI    BCHP_V3D_CLE_0_CCRSHI
+#define BCHP_V3D_CLE_CCRELO    BCHP_V3D_CLE_0_CCRELO
+#define BCHP_V3D_CLE_CCREHI    BCHP_V3D_CLE_0_CCREHI
+#define BCHP_V3D_CLE_CTRSLO    BCHP_V3D_CLE_0_CTRSLO
+#define BCHP_V3D_CLE_CTRSHI    BCHP_V3D_CLE_0_CTRSHI
+#define BCHP_V3D_CLE_CTRELO    BCHP_V3D_CLE_0_CTRELO
+#define BCHP_V3D_CLE_CTREHI    BCHP_V3D_CLE_0_CTREHI
+
+#define BCHP_V3D_PTB_BPCA BCHP_V3D_PTB_0_BPCA
+#define BCHP_V3D_PTB_BPCS BCHP_V3D_PTB_0_BPCS
+#define BCHP_V3D_PTB_BPOA BCHP_V3D_PTB_0_BPOA
+#define BCHP_V3D_PTB_BPOS BCHP_V3D_PTB_0_BPOS
+#define BCHP_V3D_PTB_BXCF BCHP_V3D_PTB_0_BXCF
+
+#define BCHP_V3D_CTL_L2CACTL     BCHP_V3D_CTL_0_L2CACTL
+#define BCHP_V3D_CTL_SLCACTL     BCHP_V3D_CTL_0_SLCACTL
+#define BCHP_V3D_CTL_SCRATCH     BCHP_V3D_CTL_0_SCRATCH
+#define BCHP_V3D_CTL_IDENT0      BCHP_V3D_CTL_0_IDENT0
+#define BCHP_V3D_CTL_IDENT1      BCHP_V3D_CTL_0_IDENT1
+#define BCHP_V3D_CTL_IDENT2      BCHP_V3D_CTL_0_IDENT2
+#define BCHP_V3D_CTL_IDENT3      BCHP_V3D_CTL_0_IDENT3
+#define BCHP_V3D_CTL_INT_STS     BCHP_V3D_CTL_0_INT_STS
+#define BCHP_V3D_CTL_INT_MSK_STS BCHP_V3D_CTL_0_INT_MSK_STS
+#define BCHP_V3D_CTL_L2TFLSTA    BCHP_V3D_CTL_0_L2TFLSTA
+#define BCHP_V3D_CTL_L2TFLEND    BCHP_V3D_CTL_0_L2TFLEND
+#define BCHP_V3D_CTL_L2TCACTL    BCHP_V3D_CTL_0_L2TCACTL
+#define BCHP_V3D_CTL_L2CACTL     BCHP_V3D_CTL_0_L2CACTL
+#define BCHP_V3D_CTL_SLCACTL     BCHP_V3D_CTL_0_SLCACTL
+#define V3D_CTL_INT_MSK_CLR_INT  V3D_CTL_0_INT_MSK_CLR_INT
+#define V3D_CTL_L2CACTL          V3D_CTL_0_L2CACTL
+#define V3D_CTL_SLCACTL          V3D_CTL_0_SLCACTL
+#define V3D_CTL_INT_STS_INT      V3D_CTL_0_INT_STS_INT
+#define V3D_CTL_INT_STS          V3D_CTL_0_INT_STS
+#define V3D_CTL_INT_CLR          V3D_CTL_0_INT_CLR
+#define BCHP_V3D_CTL_INT_MSK_SET BCHP_V3D_CTL_0_INT_MSK_SET
+#define BCHP_V3D_CTL_INT_CLR     BCHP_V3D_CTL_0_INT_CLR
+#define BCHP_V3D_CTL_INT_MSK_CLR BCHP_V3D_CTL_0_INT_MSK_CLR
+#define BCHP_V3D_CTL_MISCCFG     BCHP_V3D_CTL_0_MISCCFG
+
+#define BCHP_V3D_QPS_SQRSV0      BCHP_V3D_QPS_0_SQRSV0
+#define BCHP_V3D_QPS_SQRSV1      BCHP_V3D_QPS_0_SQRSV1
+#define BCHP_V3D_QPS_SQCNTL      BCHP_V3D_QPS_0_SQCNTL
+
+#define BCHP_V3D_VPM_VPACNTL     BCHP_V3D_VPM_0_ACNTL
+#define BCHP_V3D_VPM_VPMBASE     BCHP_V3D_VPM_0_MEMBASE
+
+#define BCHP_V3D_TFU_TFUCS          BCHP_V3D_TFU_CS
+#define BCHP_V3D_TFU_TFUICFG        BCHP_V3D_TFU_ICFG
+#define BCHP_V3D_TFU_TFUIIS         BCHP_V3D_TFU_IIS
+#define BCHP_V3D_TFU_TFUIIA         BCHP_V3D_TFU_IIA
+#define BCHP_V3D_TFU_TFUICA         BCHP_V3D_TFU_ICA
+#define BCHP_V3D_TFU_TFUSU          BCHP_V3D_TFU_SU
+#define BCHP_V3D_TFU_TFUIOA         BCHP_V3D_TFU_IOA
+#define BCHP_V3D_TFU_TFUIOS         BCHP_V3D_TFU_IOS
+#define BCHP_V3D_TFU_TFUCOEF0       BCHP_V3D_TFU_COEF0
+#define BCHP_V3D_TFU_TFUCOEF1       BCHP_V3D_TFU_COEF1
+#define BCHP_V3D_TFU_TFUCOEF2       BCHP_V3D_TFU_COEF2
+#define BCHP_V3D_TFU_TFUCOEF3       BCHP_V3D_TFU_COEF3
+#define BCHP_V3D_TFU_TFUCRC         BCHP_V3D_TFU_CRC
+#define BCHP_V3D_TFU_TFUINT_MSK_STS BCHP_V3D_TFU_INT_MSK_STS
+#define BCHP_V3D_TFU_TFUINT_STS     BCHP_V3D_TFU_INT_STS
+#define BCHP_V3D_TFU_TFUSYNC        BCHP_V3D_TFU_SYNC
+#define BCHP_V3D_TFU_TFUINT_CLR     BCHP_V3D_TFU_INT_CLR
+#define BCHP_V3D_TFU_TFUINT_MSK_STS BCHP_V3D_TFU_INT_MSK_STS
+#define BCHP_V3D_TFU_TFUICFG        BCHP_V3D_TFU_ICFG
+#define BCHP_V3D_TFU_TFUIIS         BCHP_V3D_TFU_IIS
+#define BCHP_V3D_TFU_TFUIIA         BCHP_V3D_TFU_IIA
+#define BCHP_V3D_TFU_TFUICA         BCHP_V3D_TFU_ICA
+#define BCHP_V3D_PTB_BPOA           BCHP_V3D_PTB_0_BPOA
+#define V3D_TFU_TFUINT_STS_INT      V3D_TFU_INT_STS_INT
+#define V3D_TFU_TFUIOS              V3D_TFU_IOS
+#define V3D_TFU_TFUINT_STS          V3D_TFU_INT_STS
+#define V3D_TFU_TFUICFG             V3D_TFU_ICFG
+#define V3D_TFU_TFUCOEF0            V3D_TFU_COEF0
+#define V3D_TFU_TFUCOEF1            V3D_TFU_COEF1
+#define V3D_TFU_TFUCOEF2            V3D_TFU_COEF2
+#define V3D_TFU_TFUCOEF3            V3D_TFU_COEF3
+#define V3D_TFU_TFUIOA              V3D_TFU_IOA
+#define V3D_TFU_TFUIIS              V3D_TFU_IIS
+#define V3D_TFU_TFUINT_CLR          V3D_TFU_INT_CLR
+#define BCHP_V3D_TFU_TFUIOA_OADDR_SHIFT BCHP_V3D_TFU_IOA_OADDR_SHIFT
+#define BCHP_V3D_TFU_TFUIOA_OADDR_MASK  BCHP_V3D_TFU_IOA_OADDR_MASK
+
+#define BCHP_V3D_ERROR_ERRSTAT BCHP_V3D_ERR_0_STAT
+#define BCHP_V3D_ERROR_DBGE    BCHP_V3D_ERR_0_DBGE
+#define BCHP_V3D_ERROR_FDBGR   BCHP_V3D_ERR_0_FDBGR
+#define BCHP_V3D_ERROR_FDBG0   BCHP_V3D_ERR_0_FDBG0
+#define BCHP_V3D_ERROR_FDBGS   BCHP_V3D_ERR_0_FDBGS
+#define BCHP_V3D_ERROR_FDBGB   BCHP_V3D_ERR_0_FDBGB
+
+#define BCHP_V3D_PCTR_PCTR0   BCHP_V3D_PCTR_0_PCTR0
+#define BCHP_V3D_PCTR_PCTRC   BCHP_V3D_PCTR_0_PCTRC
+#define BCHP_V3D_PCTR_PCTRS0  BCHP_V3D_PCTR_0_PCTRS0
+#define BCHP_V3D_PCTR_PCTRE   BCHP_V3D_PCTR_0_PCTRE
+#define V3D_PCTR_PCTRE        V3D_PCTR_0_PCTRE
+
+#define BCHP_V3D_GMP_CFG         BCHP_V3D_GMP_0_CFG
+#define BCHP_V3D_GMP_STATUS      BCHP_V3D_GMP_0_STATUS
+#define BCHP_V3D_GMP_TABLE_ADDR  BCHP_V3D_GMP_0_TABLE_ADDR
+#define BCHP_V3D_GMP_CLEAR_LOAD  BCHP_V3D_GMP_0_CLEAR_LOAD
+#define BCHP_V3D_GMP_VIO_TYPE    BCHP_V3D_GMP_0_VIO_TYPE
+#define BCHP_V3D_GMP_VIO_ADDR    BCHP_V3D_GMP_0_VIO_ADDR
+
+#define V3D_GMP_STATUS           V3D_GMP_0_STATUS
+#define V3D_GMP_CFG              V3D_GMP_0_CFG
+#define V3D_GMP_VIO_TYPE         V3D_GMP_0_VIO_TYPE
+
+#endif /* Ver 3.3 */
 
 #define BCHP_INT_ID_V3D_INTR              BCHP_INT_ID_CREATE(BCHP_V3D_CTL_INT_STS, 0)
 #define BCHP_INT_ID_V3D_HUB_INTR          BCHP_INT_ID_CREATE(BCHP_V3D_HUB_CTL_INT_STS, 0)

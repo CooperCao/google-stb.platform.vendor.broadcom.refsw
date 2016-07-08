@@ -1,13 +1,41 @@
-/*=============================================================================
-Copyright (c) 2010 Broadcom Europe Limited.
-All rights reserved.
-
-Project  :  Test framework
-Module   :  benchmark test
-
-FILE DESCRIPTION
-Test file for benchmark
-=============================================================================*/
+/***************************************************************************
+ *     Broadcom Proprietary and Confidential. (c)2010 Broadcom.  All rights reserved.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ *
+ **************************************************************************/
 
 #include <math.h>
 #include <string>
@@ -1565,7 +1593,7 @@ void RunTests(const Options &defaultOptions, std::istream &is, std::ostream &os)
 void Display(void)
 {
    std::ofstream  fs;
-   
+
    if (g_options.m_outFile != "")
    {
       fs.open(g_options.m_outFile.c_str());
@@ -1576,10 +1604,38 @@ void Display(void)
 
    if (g_options.m_showVersion)
    {
-      os << "Vendor, "     << glGetString(GL_VENDOR)                   << "\n";
-      os << "Version, "    << glGetString(GL_VERSION)                  << "\n";
-      os << "Renderer, "   << glGetString(GL_RENDERER)                 << "\n";
-      os << "SL version, " << glGetString(GL_SHADING_LANGUAGE_VERSION) << "\n";
+      GLint MAX_TEXTURE_SIZE, MAX_CUBE_MAP_TEXTURE_SIZE;
+      GLint MAX_RENDERBUFFER_SIZE, MAX_VERTEX_TEXTURE_IMAGE_UNITS;
+      GLint MAX_TEXTURE_IMAGE_UNITS, MAX_COMBINED_TEXTURE_IMAGE_UNITS;
+      GLint MAX_VERTEX_UNIFORM_VECTORS, MAX_FRAGMENT_UNIFORM_VECTORS;
+      GLint MAX_VERTEX_ATTRIBS, MAX_VARYING_VECTORS;
+      GLint MAX_VIEWPORT_DIMS[2];
+      glGetIntegerv(GL_MAX_TEXTURE_SIZE, &MAX_TEXTURE_SIZE);
+      glGetIntegerv(GL_MAX_CUBE_MAP_TEXTURE_SIZE, &MAX_CUBE_MAP_TEXTURE_SIZE);
+      glGetIntegerv(GL_MAX_RENDERBUFFER_SIZE, &MAX_RENDERBUFFER_SIZE);
+      glGetIntegerv(GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS, &MAX_VERTEX_TEXTURE_IMAGE_UNITS);
+      glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &MAX_TEXTURE_IMAGE_UNITS);
+      glGetIntegerv(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &MAX_COMBINED_TEXTURE_IMAGE_UNITS);
+      glGetIntegerv(GL_MAX_VERTEX_UNIFORM_VECTORS, &MAX_VERTEX_UNIFORM_VECTORS);
+      glGetIntegerv(GL_MAX_FRAGMENT_UNIFORM_VECTORS, &MAX_FRAGMENT_UNIFORM_VECTORS);
+      glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &MAX_VERTEX_ATTRIBS);
+      glGetIntegerv(GL_MAX_VARYING_VECTORS, &MAX_VARYING_VECTORS);
+      glGetIntegerv(GL_MAX_VIEWPORT_DIMS, MAX_VIEWPORT_DIMS);
+      os << "Vendor,                           " << glGetString(GL_VENDOR) << "\n";
+      os << "Version,                          " << glGetString(GL_VERSION) << "\n";
+      os << "Renderer,                         " << glGetString(GL_RENDERER) << "\n";
+      os << "SL version,                       " << glGetString(GL_SHADING_LANGUAGE_VERSION) << "\n";
+      os << "MAX_TEXTURE_SIZE,                 " << MAX_TEXTURE_SIZE << "\n";
+      os << "MAX_CUBE_MAP_TEXTURE_SIZE,        " << MAX_CUBE_MAP_TEXTURE_SIZE << "\n";
+      os << "MAX_RENDERBUFFER_SIZE,            " << MAX_RENDERBUFFER_SIZE << "\n";
+      os << "MAX_VERTEX_TEXTURE_IMAGE_UNITS,   " << MAX_VERTEX_TEXTURE_IMAGE_UNITS << "\n";
+      os << "MAX_TEXTURE_IMAGE_UNITS,          " << MAX_TEXTURE_IMAGE_UNITS << "\n";
+      os << "MAX_COMBINED_TEXTURE_IMAGE_UNITS, " << MAX_COMBINED_TEXTURE_IMAGE_UNITS << "\n";
+      os << "MAX_VERTEX_UNIFORM_VECTORS,       " << MAX_VERTEX_UNIFORM_VECTORS << "\n";
+      os << "MAX_FRAGMENT_UNIFORM_VECTORS,     " << MAX_FRAGMENT_UNIFORM_VECTORS << "\n";
+      os << "MAX_VERTEX_ATTRIBS,               " << MAX_VERTEX_ATTRIBS << "\n";
+      os << "MAX_VARYING_VECTORS,              " << MAX_VARYING_VECTORS << "\n";
+      os << "MAX_VIEWPORT_DIMS,                " << MAX_VIEWPORT_DIMS[0] << ", " << MAX_VIEWPORT_DIMS[1] << "\n";
    }
 
    // Batch mode reads options from file
@@ -2129,14 +2185,16 @@ bool InitEGL(NativeWindowType egl_win)
 
 bool InitDisplay(float *aspect)
 {
-   NXPL_NativeWindowInfo   win_info;
+   NXPL_NativeWindowInfoEXT   win_info;
 
-   eInitResult res = InitPlatformAndDefaultDisplay(&nexus_display, aspect, g_options.m_vpW, g_options.m_vpH);
+   eInitResult res = InitPlatformAndDefaultDisplay(&nexus_display, aspect, g_options.m_vpW, g_options.m_vpH, false);
    if (res != eInitSuccess)
       return false;
 
    /* Register with the platform layer */
    NXPL_RegisterNexusDisplayPlatform(&nxpl_handle, nexus_display);
+
+   NXPL_GetDefaultNativeWindowInfoEXT(&win_info);
 
    win_info.x = 0; 
    win_info.y = 0;
@@ -2144,7 +2202,8 @@ bool InitDisplay(float *aspect)
    win_info.height = g_options.m_vpH;
    win_info.stretch = g_options.m_stretchToFit;
    win_info.clientID = g_options.m_clientId;
-   native_window = NXPL_CreateNativeWindow(&win_info);
+
+   native_window = NXPL_CreateNativeWindowEXT(&win_info);
 
    /* Initialise EGL now we have a 'window' */
    if (!InitEGL(native_window))

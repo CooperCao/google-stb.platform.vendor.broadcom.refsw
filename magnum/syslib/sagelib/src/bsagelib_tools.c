@@ -96,13 +96,13 @@ BSAGElib_Tools_ContainerOffsetToAddress(
     /* convert physical addresse to virtual addresses */
     containerAddr = _iOffsetToAddr(containerOffset, sizeof(*containerAddr));
     if (!containerAddr) {
-        BDBG_ERR(("%s: Cannot convert container @ offset=%llu",
-                  __FUNCTION__, containerOffset));
+        BDBG_ERR(("%s: Cannot convert container @ offset=" BDBG_UINT64_FMT "",
+                  __FUNCTION__, BDBG_UINT64_ARG(containerOffset)));
         goto end;
     }
 
-    BDBG_MSG(("%s: container @ offset=%llu --> addr=%p",
-              __FUNCTION__, containerOffset, containerAddr));
+    BDBG_MSG(("%s: container @ offset=" BDBG_UINT64_FMT " --> addr=%p",
+              __FUNCTION__, BDBG_UINT64_ARG(containerOffset), (void *)containerAddr));
 
     /* force read from physical memory */
     i_memory_sync->invalidate((const void *)containerAddr, sizeof(*containerAddr));
@@ -113,8 +113,8 @@ BSAGElib_Tools_ContainerOffsetToAddress(
             uint8_t *addr;
             /* convert physical addresses to local (virtual) addresses */
             addr = (uint8_t *)_iOffsetToAddr(block->data.offset, block->len);
-            BDBG_MSG(("%s: #%i %d length block @ offset=%llu --> addr=%p",
-                      __FUNCTION__, i, block->len, block->data.offset, addr));
+            BDBG_MSG(("%s: #%i %d length block @ offset=" BDBG_UINT64_FMT " --> addr=%p",
+                      __FUNCTION__, i, block->len, BDBG_UINT64_ARG(block->data.offset), (void *)addr));
             block->data.ptr = addr;
             /* force read from physical memory */
             i_memory_sync->invalidate((const void *)block->data.ptr, block->len);
@@ -161,8 +161,8 @@ BSAGElib_Tools_ContainerAddressToOffset(
             i_memory_sync->flush((const void *)block->data.ptr, block->len);
 
             offset = _iAddrToOffset((const void *)block->data.ptr, block->len);
-            BDBG_MSG(("%s: #%i %d length block @ addr=%p --> offset=%llu",
-                      __FUNCTION__, i, block->len, block->data.ptr, offset));
+            BDBG_MSG(("%s: #%i %d length block @ addr=%p --> offset=" BDBG_UINT64_FMT "",
+                      __FUNCTION__, i, block->len, block->data.ptr, BDBG_UINT64_ARG(offset)));
             block->data.offset = offset;
         }
     }
@@ -170,8 +170,8 @@ BSAGElib_Tools_ContainerAddressToOffset(
     /* finally sync the container itself */
     i_memory_sync->flush(containerAddr, sizeof(*containerAddr));
     containerOffset = _iAddrToOffset(containerAddr, sizeof(*containerAddr));
-    BDBG_MSG(("%s: container @ addr=%p --> offset=%llu",
-              __FUNCTION__, containerAddr, containerOffset));
+    BDBG_MSG(("%s: container @ addr=%p --> offset=" BDBG_UINT64_FMT "",
+              __FUNCTION__, (void *)containerAddr, BDBG_UINT64_ARG(containerOffset)));
 
 end:
     BDBG_LEAVE(BSAGElib_Tools_ContainerAddressToOffset);
@@ -424,6 +424,17 @@ const char *BSAGElib_Tools_ReturnCodeToString(BERR_Code returnCode)
         return BSAGE_ERR_HDCP22_GLOBAL_KEY_OWN_ID_MSP1_MISMATCH_STRING;
     case BSAGE_ERR_HDCP22_INVALID_GLOBAL_KEY_OWN_ID:
         return BSAGE_ERR_HDCP22_INVALID_GLOBAL_KEY_OWN_ID_STRING;
+
+        /* SDL related */
+    case BSAGE_ERR_SDL_BAD_SLOT:
+        return BSAGE_ERR_SDL_BAD_SLOT_STRING;
+    case BSAGE_ERR_SDL_SLOT_IN_USE:
+        return BSAGE_ERR_SDL_SLOT_IN_USE_STRING;
+    case BSAGE_ERR_SDL_ALREADY_LOADED:
+        return BSAGE_ERR_SDL_ALREADY_LOADED_STRING;
+
+    case BSAGE_ERR_TA_TERMINATED:
+        return BSAGE_ERR_TA_TERMINATED_STRING;
 
     /* SVP error codes */
     case BSAGE_ERR_SVP_VIOLATION:

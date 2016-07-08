@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2008 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2008 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -23,7 +23,7 @@ Implementation of EGL contexts.
 #include <string.h>
 #include <stdlib.h>
 
-EGLBoolean egl_context_check_attribs(const EGLint *attrib_list, EGLint max_version, EGLint *version)
+EGLBoolean egl_context_check_attribs(const EGLint *attrib_list, EGLint max_version, EGLint *version, bool *secure)
 {
    if (!attrib_list)
       return EGL_TRUE;
@@ -43,13 +43,27 @@ EGLBoolean egl_context_check_attribs(const EGLint *attrib_list, EGLint max_versi
       }
       case EGL_NONE:
          return EGL_TRUE;
+#if EGL_EXT_protected_content
+      case EGL_PROTECTED_CONTENT_EXT:
+      {
+         EGLint value = *attrib_list++;
+
+         if (value != EGL_TRUE && value != EGL_FALSE)
+            return EGL_FALSE;
+         else
+            *secure = value == EGL_TRUE;
+
+         break;
+      }
+#endif
       default:
          return EGL_FALSE;
       }
    }
 }
 
-EGL_CONTEXT_T *egl_context_create(EGL_CONTEXT_T *share_context, EGLContext name, EGLDisplay display, EGLConfig configname, EGL_CONTEXT_TYPE_T type)
+EGL_CONTEXT_T *egl_context_create(EGL_CONTEXT_T *share_context, EGLContext name, EGLDisplay display,
+   EGLConfig config, EGL_CONTEXT_TYPE_T type, bool secure)
 {
    EGL_CONTEXT_T *context = (EGL_CONTEXT_T *)khrn_platform_malloc(sizeof(EGL_CONTEXT_T), "EGL_CONTEXT_T");
    if (!context)
@@ -57,7 +71,7 @@ EGL_CONTEXT_T *egl_context_create(EGL_CONTEXT_T *share_context, EGLContext name,
 
    context->name = name;
    context->display = display;
-   context->configname = configname;
+   context->config = config;
 
    context->type = type;
 
@@ -65,6 +79,8 @@ EGL_CONTEXT_T *egl_context_create(EGL_CONTEXT_T *share_context, EGLContext name,
 
    context->is_current = false;
    context->is_destroyed = false;
+
+   context->secure = secure;
 
    switch (type) {
 #ifndef NO_OPENVG
@@ -186,7 +202,7 @@ EGLBoolean egl_context_get_attrib(EGL_CONTEXT_T *context, EGLint attrib, EGLint 
 {
    switch (attrib) {
    case EGL_CONFIG_ID:
-      *value = (int)(intptr_t)context->configname;
+      *value = (int)(intptr_t)context->config;
       return EGL_TRUE;
    case EGL_CONTEXT_CLIENT_TYPE:
       switch (context->type) {

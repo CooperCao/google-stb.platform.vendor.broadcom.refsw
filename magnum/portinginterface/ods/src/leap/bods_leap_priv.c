@@ -1,49 +1,46 @@
 /******************************************************************************
-* (c) 2014 Broadcom Corporation
+* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-* This program is the proprietary software of Broadcom Corporation and/or its
-* licensors, and may only be used, duplicated, modified or distributed pursuant
-* to the terms and conditions of a separate, written license agreement executed
-* between you and Broadcom (an "Authorized License").  Except as set forth in
-* an Authorized License, Broadcom grants no license (express or implied), right
-* to use, or waiver of any kind with respect to the Software, and Broadcom
-* expressly reserves all rights in and to the Software and all intellectual
-* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+* This program is the proprietary software of Broadcom and/or its licensors,
+* and may only be used, duplicated, modified or distributed pursuant to the terms and
+* conditions of a separate, written license agreement executed between you and Broadcom
+* (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+* no license (express or implied), right to use, or waiver of any kind with respect to the
+* Software, and Broadcom expressly reserves all rights in and to the Software and all
+* intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
 * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
 * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
 *
 * Except as expressly set forth in the Authorized License,
 *
-* 1. This program, including its structure, sequence and organization,
-*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-*    reasonable efforts to protect the confidentiality thereof, and to use
-*    this information only in connection with your use of Broadcom integrated
-*    circuit products.
+* 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+* secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+* and to use this information only in connection with your use of Broadcom integrated circuit products.
 *
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+* 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+* AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+* WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+* THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+* OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+* LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+* OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+* USE OR PERFORMANCE OF THE SOFTWARE.
 *
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+* 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+* LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+* EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+* USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+* THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+* ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+* LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+* ANY LIMITED REMEDY.
 ******************************************************************************/
 #include "bstd.h"
 #include "bods.h"
 #include "bhab.h"
 #include "bods_priv.h"
 #include "bods_leap_priv.h"
-#if (BODS_CHIP == 7563) || (BODS_CHIP == 7364)
+#if (BODS_CHIP == 7563) || (BODS_CHIP == 7364) || (BODS_CHIP == 75525)
 #include "bchp_leap_ctrl.h"
 #elif(BODS_CHIP == 3472)
 #include "../../b0/bchp_leap_ctrl.h"
@@ -79,6 +76,12 @@ do {                                        \
 #elif (BODS_CHIP == 7364)
 #define MAX_DVBT_CHANNELS       (1)
 #define MAX_DVBT2_CHANNELS      (1)
+#define MAX_DVBC2_CHANNELS      (0)
+#define MAX_ISDBT_CHANNELS      (1)
+#define BODS_7563_BMEM_SIZE     4194304
+#elif (BODS_CHIP == 75525)
+#define MAX_DVBT_CHANNELS       (1)
+#define MAX_DVBT2_CHANNELS      (0)
 #define MAX_DVBC2_CHANNELS      (0)
 #define MAX_ISDBT_CHANNELS      (1)
 #define BODS_7563_BMEM_SIZE     4194304
@@ -1019,7 +1022,7 @@ BERR_Code BODS_Leap_GetCapabilities(
     pCapabilities->isdbt = false;
     pCapabilities->dvbt2 = true;
     pCapabilities->dvbc2 = false;
-#elif (BODS_CHIP == 3472)
+#elif (BODS_CHIP == 3472) || (BODS_CHIP == 75525)
     pCapabilities->dvbt = true;
     pCapabilities->isdbt = true;
     pCapabilities->dvbt2 = false;
@@ -1042,7 +1045,7 @@ BERR_Code BODS_Leap_OpenChannel(
     BODS_ChannelHandle hChnDev;
     unsigned int event=0;
     uint8_t i;
-#if (BODS_CHIP == 7563) || (BODS_CHIP == 7364)
+#if (BODS_CHIP == 7563) || (BODS_CHIP == 7364) || (BODS_CHIP == 75525)
     uint32_t bufSrc;
     uint8_t *pMemoryCached = NULL;
 #endif
@@ -1094,7 +1097,7 @@ BERR_Code BODS_Leap_OpenChannel(
             if( pChnDefSettings->channelNo >= MAX_ISDBT_CHANNELS )
                 retCode = BERR_TRACE(BODS_ERR_NOTAVAIL_CHN_NO);
             break;
-#elif (BODS_CHIP == 3472)
+#elif (BODS_CHIP == 3472)|| (BODS_CHIP == 75525)
         case BODS_Standard_eDvbt:
             if( pChnDefSettings->channelNo >= MAX_DVBT_CHANNELS )
                 retCode = BERR_TRACE(BODS_ERR_NOTAVAIL_CHN_NO);
@@ -1154,7 +1157,7 @@ BERR_Code BODS_Leap_OpenChannel(
                 hImplDev->hOdsChn[i] = hChnDev;
                 hImplChnDev->bPowerdown = true;
                 hChnDev->pImpl = hImplChnDev;
-#if (BODS_CHIP == 7563) || (BODS_CHIP == 7364)
+#if (BODS_CHIP == 7563) || (BODS_CHIP == 7364) || (BODS_CHIP == 75525)
                 if((pChnDefSettings->standard == BODS_Standard_eDvbt2) || (pChnDefSettings->standard == BODS_Standard_eIsdbt))
                 {
                     if ( hImplChnDev->pMemory == NULL) {
@@ -1192,7 +1195,7 @@ done:
             BKNI_Free( hImplChnDev );
         }
         *phChn = NULL;
-#if (BODS_CHIP == 7563) || (BODS_CHIP == 7364)
+#if (BODS_CHIP == 7563) || (BODS_CHIP == 7364) || (BODS_CHIP == 75525)
         if ( hImplChnDev->pMemory != NULL)
             BMEM_Free(pChnDefSettings->hHeap, hImplChnDev->pMemory);
 #endif
@@ -1223,7 +1226,7 @@ BERR_Code BODS_Leap_CloseChannel(
     hImplDev = (BODS_Leap_Handle) hOds->pImpl;
     BDBG_ASSERT( hImplDev );
 
-#if (BODS_CHIP == 7563) || (BODS_CHIP == 7364)
+#if (BODS_CHIP == 7563) || (BODS_CHIP == 7364) || (BODS_CHIP == 75525)
     if ( hImplChnDev->pMemory != NULL)
     {
         BMEM_Free(hImplChnDev->settings.hHeap, hImplChnDev->pMemory);
@@ -2027,6 +2030,10 @@ BERR_Code BODS_Leap_DisablePowerSaver(
                 break;
             case BODS_Standard_eIsdbt:
                 buf[2] = (buf[2] & 0xF0) | BODS_ISDBT_CORE_TYPE;
+                configParams[4] = BODS_DVBT2_CONFIG_PARAMS_BUF1;
+                configParams[5] = BODS_DVBT2_CONFIG_PARAMS_BUF2;
+                configParams[6] = BODS_DVBT2_CONFIG_PARAMS_BUF3;
+                configParams[2] = (configParams[2] & 0xF0) | BODS_ISDBT_CORE_TYPE;
                 /* set the bandwidth to an invalid value so that the acquire parameters get sent */
                 hImplChnDev->previousAcquireParams.acquireParams.isdbt.bandwidth = BODS_IsdbtBandwidth_eLast;
                 break;
@@ -2056,7 +2063,7 @@ BERR_Code BODS_Leap_DisablePowerSaver(
         hImplChnDev->bPowerdown = false;
     }
 
-    if(hImplChnDev->settings.standard != BODS_Standard_eIsdbt) {
+    if(1) {/* TODO Ashwin: Fix this for all chips as 3472 and 7364 dont need it??*/
         if(hImplChnDev->verInfo.majFwVer >= 5) {
             CHK_RETCODE(retCode, BHAB_SendHabCommand(hImplChnDev->hHab, configParams, 9, hImplChnDev->readBuf, 0, false, true, 9));
             }
@@ -2419,4 +2426,3 @@ BERR_Code BODS_Leap_GetSelectiveAsyncStatus(
     BDBG_LEAVE(BODS_Leap_GetSelectiveAsyncStatus);
     return retCode;
 }
-

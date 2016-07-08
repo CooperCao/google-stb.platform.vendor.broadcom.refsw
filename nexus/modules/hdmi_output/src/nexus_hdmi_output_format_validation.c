@@ -1,7 +1,7 @@
-/***************************************************************************
- *     (c)2007-2014 Broadcom Corporation
+/******************************************************************************
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,19 +34,8 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *                      HdmiOutput: Specific interfaces for an HDMI/DVI output.
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
- **************************************************************************/
+
+ ******************************************************************************/
 
 #include "nexus_hdmi_output_module.h"
 
@@ -494,7 +483,7 @@ NEXUS_Error NEXUS_HdmiOutput_ValidateVideoSettings4K_priv(
     }
 
     if (( localRequested.colorDepth > NEXUS_HdmiColorDepth_e8bit)
-    &&  (edid.hdmiForumVsdb.maxTMDSCharacterRate <= BHDM_CONFIG_HDMI_1_4_MAX_RATE))
+    &&  (edid.hdmiForumVsdb.maxTMDSCharacterRate <= BHDM_HDMI_1_4_MAX_RATE))
     {
         BDBG_WRN(("Attached Rx cannot support Color Depth %d; default to 8",
             requested->colorDepth)) ;
@@ -693,13 +682,6 @@ NEXUS_Error NEXUS_HdmiOutput_ValidateVideoSettingsNon4K_priv(
     &&  (requested->colorDepth > 8) && (!requestedColorDepthSupported))
     {
         BDBG_WRN(("Attached Rx cannot support Color Depth %d; default to 8", requested->colorDepth)) ;
-        preferred->colorDepth = 8 ;
-    }
-    /* current platform must support clock rates and bit depths > 8 */
-    else if (platformHdmiOutputSupport.MaxTmdsRateMHz == BHDM_CONFIG_HDMI_1_4_MAX_RATE)
-    {
-        BDBG_MSG(("Platform Supports Clock Rates below %d only",
-            BHDM_CONFIG_HDMI_1_4_MAX_RATE)) ;
         preferred->colorDepth = 8 ;
     }
     else

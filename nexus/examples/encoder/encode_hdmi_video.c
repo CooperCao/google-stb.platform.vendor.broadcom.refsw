@@ -219,7 +219,7 @@ int main(void)  {
         NEXUS_VideoEncoder_GetBuffer(videoEncoder, &desc[0], &size[0], &desc[1], &size[1]);
         if(size[0]==0 && size[1]==0) {
             fflush(fout);
-            fprintf(stderr, "written %u bytes....\t\r", bytes);
+            fprintf(stderr, "written %lu bytes....\t\r", (unsigned long)bytes);
             BKNI_Sleep(30);
             continue;
         }

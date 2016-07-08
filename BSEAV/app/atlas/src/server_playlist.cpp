@@ -1,7 +1,7 @@
 /******************************************************************************
- * (c) 2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -37,7 +37,6 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 #include "server_playlist.h"
 #include "atlas.h"
@@ -117,69 +116,69 @@ eRet CPlaylistGenerator::open(
     CServerPlaylist * pPlayListServer = NULL;
 
     /* Check whether the received request has  valid parameter so that the stream can start streaming.*/
-        const char *          pTmpUrlPath;
-        BIP_HttpRequestMethod method;
-        BIP_HttpHeaderHandle  hHeader     = NULL;
-        const char *          methodname  = NULL;
+    const char *          pTmpUrlPath;
+    BIP_HttpRequestMethod method;
+    BIP_HttpHeaderHandle  hHeader    = NULL;
+    const char *          methodname = NULL;
 
-        bool          iOSRequest = false;
-        const char * headerValue;
-        MString requestHeader;
-        MString urlPath;
+    bool         iOSRequest = false;
+    const char * headerValue;
+    MString      requestHeader;
+    MString      urlPath;
 
-        responseStatus = BIP_HttpResponseStatus_e400_BadRequest;
-        bipStatus      = BIP_HttpRequest_GetMethod(hHttpRequest, &method, &methodname);
-        CHECK_BIP_ERROR_GOTO("BIP_HttpRequest_GetMethod Failed", ret, bipStatus, error);
+    responseStatus = BIP_HttpResponseStatus_e400_BadRequest;
+    bipStatus      = BIP_HttpRequest_GetMethod(hHttpRequest, &method, &methodname);
+    CHECK_BIP_ERROR_GOTO("BIP_HttpRequest_GetMethod Failed", ret, bipStatus, error);
 
-        responseStatus = BIP_HttpResponseStatus_e501_NotImplemented;
-        if (method != BIP_HttpRequestMethod_eGet)
+    responseStatus = BIP_HttpResponseStatus_e501_NotImplemented;
+    if (method != BIP_HttpRequestMethod_eGet)
+    {
+        ret = eRet_InvalidParameter;
+        CHECK_ERROR_GOTO("PlaylistServer: Invalid request", ret, error);
+    }
+
+    /* Retrieve the requested URL */
+    responseStatus = BIP_HttpResponseStatus_e400_BadRequest;
+    bipStatus      = BIP_HttpRequest_GetTarget(hHttpRequest, &pTmpUrlPath);
+    CHECK_BIP_ERROR_GOTO("BIP_HttpRequest_GetTarget Failed", ret, bipStatus, error);
+
+    bipStatus     = BIP_HttpRequest_GetNextHeader(hHttpRequest, NULL, "User-Agent", &hHeader, &headerValue);
+    requestHeader = MString(headerValue);
+
+    /* If the streaming request is coming from any iOS device*/
+    if (requestHeader.findRev("Mac OS") != -1)
+    {
+        iOSRequest = true;
+    }
+    urlPath = MString(pTmpUrlPath);
+    /* validate request */
+    {   /* If it's not requested by another atlas client or if the request is not coming from allowed smart devices, then it's an invalid request*/
+        if ((urlPath.strncasecmp(ATLAS_PLAYLIST_FILE_NAME) != 0) && (iOSRequest != true))
         {
             ret = eRet_InvalidParameter;
-            CHECK_ERROR_GOTO("PlaylistServer: Invalid request", ret, error);
+            CHECK_ERROR_GOTO("PlaylistServer: Inavalid Playlist url", ret, error);
         }
+    }
 
-        /* Retrieve the requested URL */
-        responseStatus = BIP_HttpResponseStatus_e400_BadRequest;
-        bipStatus      = BIP_HttpRequest_GetTarget(hHttpRequest, &pTmpUrlPath);
-        CHECK_BIP_ERROR_GOTO("BIP_HttpRequest_GetTarget Failed", ret, bipStatus, error);
-
-        bipStatus = BIP_HttpRequest_GetNextHeader(hHttpRequest, NULL, "User-Agent", &hHeader, &headerValue);
-        requestHeader = MString(headerValue);
-
-        /* If the streaming request is coming from any iOS device*/
-        if( requestHeader.findRev("Mac OS") != -1 )
+    pPlayListServer = getPlayListServer();
+    if (pPlayListServer != NULL)
+    {
+        /* Generating the streaming playback list as per the client device request*/
+        if (iOSRequest == true)
         {
-           iOSRequest = true;
-        }
-        urlPath= MString(pTmpUrlPath);
-        /* validate request */
-        {   /* If it's not requested by another atlas client or if the request is not coming from allowed smart devices, then it's an invalid request*/
-            if ((urlPath.strncasecmp(ATLAS_PLAYLIST_FILE_NAME)!=0) && (iOSRequest != true))
-            {
-                ret = eRet_InvalidParameter;
-                CHECK_ERROR_GOTO("PlaylistServer: Inavalid Playlist url", ret, error);
-            }
-        }
-
-        pPlayListServer = getPlayListServer();
-        if (pPlayListServer != NULL)
-        {
-            /* Generating the streaming playback list as per the client device request*/
-            if (iOSRequest == true)
-            {
-                _playList = generateiOSPlaylist(pPlayListServer);
-            }
-            else
-            {
-                _playList = generateAtlasPlaylist(pPlayListServer);
-            }
+            _playList = generateiOSPlaylist(pPlayListServer);
         }
         else
         {
-            _playList = NULL;
+            _playList = generateAtlasPlaylist(pPlayListServer);
         }
+    }
+    else
+    {
+        _playList = NULL;
+    }
 
-        responseStatus = BIP_HttpResponseStatus_e500_InternalServerError;
+    responseStatus = BIP_HttpResponseStatus_e500_InternalServerError;
 
     if (_playList.length() == 0)
     {
@@ -234,21 +233,19 @@ error:
 } /* open */
 
 /* Function to generate the playlist for Atlas client */
-MString CPlaylistGenerator::generateAtlasPlaylist(
-             CServerPlaylist * pPlayListServer
-        )
+MString CPlaylistGenerator::generateAtlasPlaylist(CServerPlaylist * pPlayListServer)
 {
-    eRet              ret        = eRet_Ok;
-    CVideo *          pVideo     = NULL;
-    CChannelBip *     pCh             = NULL;
-    CChannelMgr *     pChannelMgr = NULL;
-    CChannel *        pChannel    = NULL;
+    eRet          ret         = eRet_Ok;
+    CVideo *      pVideo      = NULL;
+    CChannelBip * pCh         = NULL;
+    CChannelMgr * pChannelMgr = NULL;
+    CChannel *    pChannel    = NULL;
 
-    CModel *          pModel             = NULL;
-    CPlaybackList *   pPlaybackList      = NULL;
+    CModel *        pModel        = NULL;
+    CPlaybackList * pPlaybackList = NULL;
 
     uint16_t program;
-    MString playList;
+    MString  playList;
 
     pCh = new CChannelBip(_pCfg);
     CHECK_PTR_ERROR_GOTO("Error allocating HTTP IP channel", pCh, ret, eRet_OutOfMemory, error);
@@ -260,7 +257,6 @@ MString CPlaylistGenerator::generateAtlasPlaylist(
         uint32_t nIndex = 0;
         while (NULL != (pVideo = pPlaybackList->getVideo(nIndex++)))
         {
-
             MString temp = pVideo->getVideoName();
             program = pVideo->getProgram();
             pCh->setProgram(program);
@@ -299,22 +295,20 @@ MString CPlaylistGenerator::generateAtlasPlaylist(
 
         pChannel = pChannelMgr->getNextChannel(pChannel, false);
     }
- /* done with channel ip.*/
+    /* done with channel ip.*/
     DEL(pCh);
- error:
-    return playList;
+error:
+    return(playList);
 } /* generateAtlasPlaylist */
 
 /* Function to generate the playlist for iOS client */
-MString CPlaylistGenerator::generateiOSPlaylist(
-        CServerPlaylist * pPlayListServer
-        )
+MString CPlaylistGenerator::generateiOSPlaylist(CServerPlaylist * pPlayListServer)
 {
-    eRet              ret        = eRet_Ok;
-    CVideo *          pVideo     = NULL;
-    CChannelBip *     pCh             = NULL;
-    CModel *          pModel             = NULL;
-    CPlaybackList *   pPlaybackList      = NULL;
+    eRet            ret           = eRet_Ok;
+    CVideo *        pVideo        = NULL;
+    CChannelBip *   pCh           = NULL;
+    CModel *        pModel        = NULL;
+    CPlaybackList * pPlaybackList = NULL;
 
     MString playList;
 
@@ -417,74 +411,57 @@ MString CPlaylistGenerator::generateiOSPlaylist(
             uint16_t program;
             bool     isHevc = false;
             bool     is4k   = false;
-    #if NEXUS_HAS_VIDEO_ENCODER
+#if NEXUS_HAS_VIDEO_ENCODER
             bool playListItem = false;
-    #endif
+#endif
             /*
              * CChannelIp  *pCh1 = new CChannelIp(_pCfg);
              * Now reset params as per the CVideo object.
              */
-                MString temp = pVideo->getVideoName();
-                program = pVideo->getProgram();
-                pCh->setProgram(program);
-                BDBG_MSG((" Name of FILE %s,", temp.s()));
+            MString temp = pVideo->getVideoName();
+            program = pVideo->getProgram();
+            pCh->setProgram(program);
+            BDBG_MSG((" Name of FILE %s,", temp.s()));
 
-                int           i;
-                std::ifstream nfoFile;
-                MString       streamNfoName;
-                std::string   nfoStr;
-                std::string   restrictStr1("videotype=\"h265\"");
-                std::string   restrictStr2("width=\"3840\"");
+            int           i;
+            std::ifstream nfoFile;
+            MString       streamNfoName;
+            std::string   nfoStr;
+            std::string   restrictStr1("videotype=\"h265\"");
+            std::string   restrictStr2("width=\"3840\"");
 
-                streamNfoName = temp;
+            streamNfoName = temp;
 
-                if ((i = streamNfoName.findRev(".")) != -1)
+            if ((i = streamNfoName.findRev(".")) != -1)
+            {
+                streamNfoName.truncate(i);
+                streamNfoName = "videos/" + streamNfoName + ".nfo";
+            }
+
+            nfoFile.open(streamNfoName.s());
+            if (nfoFile)
+            {
+                while (!nfoFile.eof())
                 {
-                    streamNfoName.truncate(i);
-                    streamNfoName = "videos/" + streamNfoName + ".nfo";
-                }
-
-                nfoFile.open(streamNfoName.s());
-                if (nfoFile)
-                {
-                    while (!nfoFile.eof())
+                    nfoFile >> nfoStr;
+                    /* Check to see if the stream is HEVC*/
+                    if (nfoStr.find(restrictStr1) != std::string::npos)
                     {
-                        nfoFile >> nfoStr;
-                        /* Check to see if the stream is HEVC*/
-                        if (nfoStr.find(restrictStr1) != std::string::npos)
-                        {
-                            isHevc = true;
-                        }
-                         /* Check to see if the stream is 4K*/
-                        if (nfoStr.find(restrictStr2) != std::string::npos)
-                        {
-                            is4k = true;
-                        }
+                        isHevc = true;
+                    }
+                    /* Check to see if the stream is 4K*/
+                    if (nfoStr.find(restrictStr2) != std::string::npos)
+                    {
+                        is4k = true;
                     }
                 }
-                nfoFile.close();
-    #if NEXUS_HAS_VIDEO_ENCODER
-                 /* If the decoder/boxmode does not support 4K */
-                if ((decoderCapabilities.memory[0].maxFormat > 25) && (decoderCapabilities.memory[0].maxFormat < 43))
-                {
-                    if ((is4k == false) && (true == encoderCapabilities.videoEncoder[0].supported))
-                    {
-                        /* If the decoder/boxmode does support HEVC */
-                        if (decoderCapabilities.memory[0].supportedCodecs[19] == true)
-                        {
-                            pCh->setUrl(MString("http" + MString("://") + pPlayListServer->getHost() + ":" +  pPlayListServer->getHttpServerListeningPort() + "/" + temp.s() + ".m3u8" + "?program=" + MString(program)));
-                            playListItem = true;
-                        }
-                        /* If the decoder/boxmode does not support HEVC */
-                        else if ((decoderCapabilities.memory[0].supportedCodecs[19] == false) && (isHevc == false))
-                        {
-                            pCh->setUrl(MString("http" + MString("://") + pPlayListServer->getHost() + ":" +  pPlayListServer->getHttpServerListeningPort() + "/" + temp.s() + ".m3u8" + "?program=" + MString(program)));
-                            playListItem = true;
-                        }
-                    }
-                }
-                 /* If the decoder/boxmode does support 4K */
-                else if ((decoderCapabilities.memory[0].maxFormat > 43) && (true == encoderCapabilities.videoEncoder[0].supported))
+            }
+            nfoFile.close();
+#if NEXUS_HAS_VIDEO_ENCODER
+            /* If the decoder/boxmode does not support 4K */
+            if ((decoderCapabilities.memory[0].maxFormat > 25) && (decoderCapabilities.memory[0].maxFormat < 43))
+            {
+                if ((is4k == false) && (true == encoderCapabilities.videoEncoder[0].supported))
                 {
                     /* If the decoder/boxmode does support HEVC */
                     if (decoderCapabilities.memory[0].supportedCodecs[19] == true)
@@ -493,28 +470,48 @@ MString CPlaylistGenerator::generateiOSPlaylist(
                         playListItem = true;
                     }
                     /* If the decoder/boxmode does not support HEVC */
-                    else if ((decoderCapabilities.memory[0].supportedCodecs[19] == false) && (isHevc == false))
+                    else
+                    if ((decoderCapabilities.memory[0].supportedCodecs[19] == false) && (isHevc == false))
                     {
                         pCh->setUrl(MString("http" + MString("://") + pPlayListServer->getHost() + ":" +  pPlayListServer->getHttpServerListeningPort() + "/" + temp.s() + ".m3u8" + "?program=" + MString(program)));
                         playListItem = true;
                     }
                 }
-    #endif /* if NEXUS_HAS_VIDEO_ENCODER */
-            BDBG_MSG(("URL= %s", pCh->getUrl().s()));
-    #if NEXUS_HAS_VIDEO_ENCODER
-    /* We want to restrict few streams to be listed in HLS playlist as per the server's decoder/box mode capability and the transcode capability*/
-                if (playListItem == true)
+            }
+            /* If the decoder/boxmode does support 4K */
+            else
+            if ((decoderCapabilities.memory[0].maxFormat > 43) && (true == encoderCapabilities.videoEncoder[0].supported))
+            {
+                /* If the decoder/boxmode does support HEVC */
+                if (decoderCapabilities.memory[0].supportedCodecs[19] == true)
                 {
-                    playList += "add('"+ MString(pCh->getUrl().s()) +"'"+","+"'"+ temp.s() + "');";
+                    pCh->setUrl(MString("http" + MString("://") + pPlayListServer->getHost() + ":" +  pPlayListServer->getHttpServerListeningPort() + "/" + temp.s() + ".m3u8" + "?program=" + MString(program)));
+                    playListItem = true;
                 }
-    #endif /* if NEXUS_HAS_VIDEO_ENCODER */
+                /* If the decoder/boxmode does not support HEVC */
+                else
+                if ((decoderCapabilities.memory[0].supportedCodecs[19] == false) && (isHevc == false))
+                {
+                    pCh->setUrl(MString("http" + MString("://") + pPlayListServer->getHost() + ":" +  pPlayListServer->getHttpServerListeningPort() + "/" + temp.s() + ".m3u8" + "?program=" + MString(program)));
+                    playListItem = true;
+                }
+            }
+#endif /* if NEXUS_HAS_VIDEO_ENCODER */
+            BDBG_MSG(("URL= %s", pCh->getUrl().s()));
+#if NEXUS_HAS_VIDEO_ENCODER
+            /* We want to restrict few streams to be listed in HLS playlist as per the server's decoder/box mode capability and the transcode capability*/
+            if (playListItem == true)
+            {
+                playList += "add('"+ MString(pCh->getUrl().s()) +"'"+","+"'"+ temp.s() + "');";
+            }
+#endif /* if NEXUS_HAS_VIDEO_ENCODER */
         }
     }
     playList += "</script>";
     playList += "</html>";
 
 error:
-    return playList;
+    return(playList);
 } /* generateiOSPlaylist */
 
 void CPlaylistGenerator::close()
@@ -741,7 +738,7 @@ eRet CServerPlaylist::stop()
     {
         return(ret);
     }
-    BDBG_MSG((BIP_MSG_PRE_FMT " CServerHttp %p" BIP_MSG_PRE_ARG, this));
+    BDBG_MSG((BIP_MSG_PRE_FMT " CServerHttp %p" BIP_MSG_PRE_ARG, (void *)this));
 
     /* Stop the Server first, so that it doesn't accept any new connections. */
     BIP_HttpServer_Stop(_hHttpPlaylistServer);

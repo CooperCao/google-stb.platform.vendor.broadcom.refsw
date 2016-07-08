@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2010-2014 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,11 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  *****************************************************************************/
 #if NEXUS_HAS_INPUT_ROUTER && NEXUS_HAS_PLAYBACK && NEXUS_HAS_SIMPLE_DECODER
 #include "nexus_platform_client.h"
@@ -93,6 +88,7 @@ static void print_usage(const struct nxapps_cmdline *cmdline)
     "  -audio_primers           use primers for fast resumption of pcm and compressed audio\n"
     "  -initial_audio_primers   if audio decoder already in use, use primers\n"
     "  -timeshift               file is being recorded; playback will wait at end of file for more data to arrive.\n"
+    "  -pacing\n"
     );
     printf(
     "  -stcTrick off            use decoder trick modes\n"
@@ -249,6 +245,18 @@ static void process_input(struct client_state *client, b_remote_key key, bool re
         client->stopped = true;
         /* can't call media_player_stop here because we're in a callback */
         break;
+    case b_remote_key_chan_down: /* AC4 status */
+        media_player_ac4_status(client->player, 1);
+        break;
+    case b_remote_key_chan_up: /* AC4 presentation id increment */
+        media_player_ac4_status(client->player, 2);
+        break;
+    case b_remote_key_up: /* AC4 dialog enhancement level increment */
+        media_player_ac4_status(client->player, 3);
+        break;
+    case b_remote_key_down: /* AC4 dialog enhancement level decrement */
+        media_player_ac4_status(client->player, 4);
+        break;
     default:
         BDBG_MSG(("unknown key %#x", key));
         break;
@@ -308,6 +316,8 @@ int main(int argc, const char **argv)  {
     struct nxapps_cmdline cmdline;
     int n;
     struct binput_settings input_settings;
+    bool hdcp_flag = false;
+    bool hdcp_version_flag = false;
 
     memset(&pig_inc, 0, sizeof(pig_inc));
     memset(client, 0, sizeof(*client));
@@ -401,11 +411,32 @@ int main(int argc, const char **argv)  {
         }
         else if (!strcmp(argv[curarg], "-hdcp") && curarg+1 < argc) {
             curarg++;
+            hdcp_flag = true;
             if (argv[curarg][0] == 'm') {
                 start_settings.hdcp = NxClient_HdcpLevel_eMandatory;
             }
             else if (argv[curarg][0] == 'o') {
                 start_settings.hdcp = NxClient_HdcpLevel_eOptional;
+            }
+            else {
+                print_usage(&cmdline);
+                return -1;
+            }
+        }
+        else if (!strcmp(argv[curarg], "-hdcp_version") && curarg+1 < argc) {
+            curarg++;
+            hdcp_version_flag = true;
+            if (!strcmp(argv[curarg],"auto")) {
+                start_settings.hdcp_version = NxClient_HdcpVersion_eAuto;
+            }
+            else if (!strcmp(argv[curarg],"follow")) {
+                start_settings.hdcp_version = NxClient_HdcpVersion_eFollow;
+            }
+            else if (!strcmp(argv[curarg],"hdcp1x")) {
+                start_settings.hdcp_version = NxClient_HdcpVersion_eHdcp1x;
+            }
+            else if (!strcmp(argv[curarg],"hdcp22")) {
+                start_settings.hdcp_version = NxClient_HdcpVersion_eHdcp22;
             }
             else {
                 print_usage(&cmdline);
@@ -439,6 +470,9 @@ int main(int argc, const char **argv)  {
         }
         else if (!strcmp(argv[curarg], "-timeshift")) {
             start_settings.loopMode = NEXUS_PlaybackLoopMode_ePlay;
+        }
+        else if (!strcmp(argv[curarg], "-pacing")) {
+            start_settings.pacing = true;
         }
         else if (!strcmp(argv[curarg], "-stcTrick") && curarg+1 < argc) {
             start_settings.stcTrick = strcmp(argv[++curarg], "off");
@@ -563,6 +597,17 @@ int main(int argc, const char **argv)  {
         }
         if (pig_inc.x) {
             b_pig_init(video_sc);
+        }
+    }
+
+    if (!hdcp_flag || !hdcp_version_flag) {
+        NxClient_DisplaySettings displaySettings;
+        NxClient_GetDisplaySettings(&displaySettings);
+        if (hdcp_flag == false) {
+            start_settings.hdcp = displaySettings.hdmiPreferences.hdcp;
+        }
+        if (hdcp_version_flag == false) {
+            start_settings.hdcp_version = displaySettings.hdmiPreferences.version;
         }
     }
 

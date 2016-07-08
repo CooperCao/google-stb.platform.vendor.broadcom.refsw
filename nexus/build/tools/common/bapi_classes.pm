@@ -1,7 +1,7 @@
 #!/usr/bin/perl
-#     (c)2003-2013 Broadcom Corporation
+#  Broadcom Proprietary and Confidential. (c)2003-2016 Broadcom. All rights reserved.
 #
-#  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+#  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
 #  conditions of a separate, written license agreement executed between you and Broadcom
 #  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,19 +35,10 @@
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
 #
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
-# File Description:
-#
-# Revision History:
-#
-# $brcm_Log: $
-# 
 #############################################################################
 package bapi_classes;
 use strict;
+use bapi_util;
 use warnings FATAL => 'all';
 
 # generate hash of destructor functions mapped to their various destructors by attr
@@ -337,11 +328,13 @@ sub generate_meta
 
             # find arguments that are pointers to structures and scan them
             if ($param->{ISREF} && exists $structs->{$param->{BASETYPE}}) {
+                next if (exists $param->{ATTR}->{'nelem'}); # TODO Currently we can't process objects in variable size arrays
                 foreach (@$class_handles) {
                     # first, check if param is a struct which has a class handle field
                     my $handletype = $_;
                     my $struct_field;
                     for $struct_field (@{$structs->{$param->{BASETYPE}}}) {
+                        next if $struct_field->{NAME} =~ /\[/; # For now skip arrays, we don't verify data inside arrays
                         if ($struct_field->{TYPE} eq $handletype ) {
                             my $class_name = bapi_classes::get_class_name($handletype);
                             my @object;

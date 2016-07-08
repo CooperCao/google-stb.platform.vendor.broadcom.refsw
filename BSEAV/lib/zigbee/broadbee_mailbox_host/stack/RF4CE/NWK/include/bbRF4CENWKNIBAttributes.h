@@ -1,43 +1,43 @@
 /******************************************************************************
-* (c) 2014 Broadcom Corporation
-*
-* This program is the proprietary software of Broadcom Corporation and/or its
-* licensors, and may only be used, duplicated, modified or distributed pursuant
-* to the terms and conditions of a separate, written license agreement executed
-* between you and Broadcom (an "Authorized License").  Except as set forth in
-* an Authorized License, Broadcom grants no license (express or implied), right
-* to use, or waiver of any kind with respect to the Software, and Broadcom
-* expressly reserves all rights in and to the Software and all intellectual
-* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1. This program, including its structure, sequence and organization,
-*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-*    reasonable efforts to protect the confidentiality thereof, and to use
-*    this information only in connection with your use of Broadcom integrated
-*    circuit products.
-*
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-******************************************************************************/
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
+ *
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************
 /*****************************************************************************
  *
  * FILENAME: $Workfile: trunk/stack/RF4CE/NWK/include/bbRF4CENWKNIBAttributes.h $
@@ -102,8 +102,11 @@ typedef enum _RF4CE_NWK_NIB_Ids_t
     RF4CE_NWK_POWER_SOURCE,                    /*!< Node capabilities: If the node is powered from mains. */
     RF4CE_NWK_FA_SCAN_THRESHOLD,
     RF4CE_NWK_NUM_SUPPORTED_PROFILES,
-    RF4CE_NWK_SUPPORTED_PROFILES,
     RF4CE_NWK_ANTENNA_AVAILABLE,
+//#ifdef _PHY_TEST_HOST_INTERFACE_
+    RF4CE_NWK_SUPPORTED_PROFILES,
+    RF4CE_NWK_TX_POWER_KEY_EXCHANGE,           /*!< Tx Power for the key seed tranmission */
+//#endif
     RF4CE_NWK_ATTRIBUTE_MAXIMUM
 } RF4CE_NWK_NIB_Ids_t;
 
@@ -197,6 +200,9 @@ typedef struct _RF4CE_NIB_Attributes_t
         uint8_t nwkNodeCapabilities;                     /*!< Current node capabilities */
         uint8_t nwkDiscoveryLQIThreshold;                /*!< The LQI threshold below which discovery requests will be
                                                               rejected. */
+//#ifdef _PHY_TEST_HOST_INTERFACE_
+        int8_t  nwkTxPowerKeyExchange;                   /*!< Tx Power during Key Exchange. */
+//#endif //ifdef _PHY_TEST_HOST_INTERFACE_
     } storable;
 } RF4CE_NIB_Attributes_t;
 
@@ -244,10 +250,13 @@ typedef union _RF4CE_NIB_AttributesAll_t
     uint8_t nwkChannelNormalization;                 /*!< Node capabilities: If the node is channel normalization capable. */
     uint8_t nwkSecurityCapable;                      /*!< Node capabilities: If the node is security capable. */
     uint8_t nwkPowerSource;                          /*!< Node capabilities: If the node is powered from mains. */
-    uint8_t  nwkFaScanThreshold;                     /*!< Extension of constant RF4CE_NWKC_FA_SCAN_THRESHOLD */
+    uint8_t nwkFaScanThreshold;                      /*!< Extension of constant RF4CE_NWKC_FA_SCAN_THRESHOLD */
     uint8_t nwkNumSupportedProfiles;
-    uint8_t nwkSupportedProfiles[RF4CE_NWK_MAX_PROFILE_ID_LIST_LENGTH];
     uint8_t antennaAvailable;
+//#ifdef _PHY_TEST_HOST_INTERFACE_
+    uint8_t nwkSupportedProfiles[RF4CE_NWK_MAX_PROFILE_ID_LIST_LENGTH];
+    int8_t  nwkTxPowerKeyExchange;                   /*!< Tx Power during Key Exchange. */
+//#endif  //ifdef _PHY_TEST_HOST_INTERFACE_
 } RF4CE_NIB_AttributesAll_t;
 
 /**//**
@@ -361,6 +370,8 @@ typedef struct _RF4CE_NWK_GetReqDescr_t
     .nwkMaxDiscoveryRepetitions = 1, \
     .nwkMaxReportedNodeDescriptors = 3,\
     .nwkFaScanThreshold = RF4CE_NWKC_FA_SCAN_THRESHOLD,
+
+#if 0
 #define RF4CE_DEFAULT_STORABLE_NIB_VALUES() \
     .nwkActivePeriod = RF4CE_NWKC_MIN_ACTIVE_PERIOD, \
     .nwkDutyCycle = 0, \
@@ -371,6 +382,20 @@ typedef struct _RF4CE_NWK_GetReqDescr_t
     .nwkScanDuration = 6, \
     .nwkDiscoveryLQIThreshold = 0xff, \
     RF4CE_DEFAULT_NODE_CAPS,
+#else   //ifdef _PHY_TEST_HOST_INTERFACE_
+#define RF4CE_DEFAULT_STORABLE_NIB_VALUES() \
+    .nwkActivePeriod = RF4CE_NWKC_MIN_ACTIVE_PERIOD, \
+    .nwkDutyCycle = 0, \
+    .nwkResponseWaitTime = 0x00186a, \
+    .nwkMaxFirstAttemptFrameRetries = 3, \
+    .nwkIndicateDiscoveryRequests = 0, \
+    .nwkMaxFirstAttemptCSMABackoffs = 4, \
+    .nwkScanDuration = 6, \
+    .nwkDiscoveryLQIThreshold = 0xff, \
+    .nwkTxPowerKeyExchange = RF4CE_NWKC_SEC_CMD_TX_POWER, \
+    RF4CE_DEFAULT_NODE_CAPS,
+#endif  //ifdef _PHY_TEST_HOST_INTERFACE_
+
 #define RF4CE_DEFAULT_AUTO_NIB_VALUES() \
     .nwkBaseChannel = 15, \
     .nwkInPowerSave = 1,

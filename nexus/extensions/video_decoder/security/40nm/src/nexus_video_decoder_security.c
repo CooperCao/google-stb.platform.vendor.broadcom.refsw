@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2011-2015 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2011-2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,7 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
  *
  *****************************************************************************/
 
@@ -97,8 +96,8 @@ static NEXUS_Error startVideoDecoderUnSecure( unsigned deviceId );
 #if NEXUS_HAS_SECURITY
  NEXUS_Error verifyFirmwareVideoDecoder( BAFL_FirmwareInfo *pstArc, unsigned int deviceID );
  static NEXUS_Error getRegionId( NEXUS_SecurityRegverRegionID *pRegionId, unsigned deviceId, unsigned arch);
- #define LOCK_SECURITY()  NEXUS_Module_Lock(g_NEXUS_videoDecoderModuleSettings.security);
- #define UNLOCK_SECURITY() NEXUS_Module_Unlock(g_NEXUS_videoDecoderModuleSettings.security);
+ #define LOCK_SECURITY()  NEXUS_Module_Lock(g_NEXUS_videoDecoderModuleInternalSettings.security);
+ #define UNLOCK_SECURITY() NEXUS_Module_Unlock(g_NEXUS_videoDecoderModuleInternalSettings.security);
 #endif
 static NEXUS_Error secureFirmwareVideoDecoder(void *pPrivateData, BAFL_BootInfo *pstAVDBootInfo);
 
@@ -225,10 +224,12 @@ void NEXUS_VideoDecoder_P_GetSecurityCallbacks( BXVD_Settings *pSettings/*out*/,
     gVideoDecoderSecurityContext[deviceId].deviceID = deviceId;
     pSettings->pAVDBootCallback = secureFirmwareVideoDecoder;
     pSettings->pAVDBootCallbackData = &gVideoDecoderSecurityContext[deviceId];
+#if (BCHP_CHIP!=7445)&& (BCHP_CHIP!=7252) && (BCHP_CHIP!=7439) && (BCHP_CHIP!=74371)
    #if defined(NEXUS_HAS_SECURITY) && defined(NEXUS_ENABLE_VICH)
     pSettings->pAVDResetCallback = NEXUS_VideoDecoder_P_AVDResetCallback;
     pSettings->pAVDResetCallbackData = &gVideoDecoderSecurityContext[deviceId];
    #endif
+#endif
 
     BDBG_LEAVE(NEXUS_VideoDecoder_P_GetSecurityCallbacks);
     return;
@@ -311,8 +312,8 @@ NEXUS_Error verifyFirmwareVideoDecoder( BAFL_FirmwareInfo *pstArc, unsigned int 
 
             gVideoDecoderSecurityContext[deviceID].arch[pstArc->uiArcInstance].verifed = true;
 
-            BDBG_MSG(("Region[0x%02X] DeviceID[%x] ARC[%x] Addr[%x] size[%d]", regionId, deviceID, pstArc->uiArcInstance
-                                                                             , pstArc->stCode.pStartAddress, pstArc->stCode.uiSize ));
+            BDBG_MSG(("Region[0x%02X] DeviceID[%x] ARC[%x] Addr[%p] size[%d]", regionId, deviceID, pstArc->uiArcInstance,
+                      (void*)pstArc->stCode.pStartAddress, pstArc->stCode.uiSize ));
         }
         pstArc = pstArc->pNext;
     }

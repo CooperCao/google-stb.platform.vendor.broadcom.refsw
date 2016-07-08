@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2010 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2010 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -104,7 +104,7 @@ extern bool khrn_fmem_is_here(KHRN_FMEM_T *fmem, uint8_t *p);
 extern bool khrn_fmem_ramp(KHRN_FMEM_T *fmem, uint32_t *location, MEM_HANDLE_T handle, uint32_t offset, uint32_t ramp_i);
 extern bool khrn_fmem_fix_special_0(KHRN_FMEM_T *fmem, uint32_t *location, MEM_HANDLE_T handle, uint32_t offset);
 extern bool khrn_fmem_add_fix_special_0(KHRN_FMEM_T *fmem, uint8_t **p, MEM_HANDLE_T handle, uint32_t offset);
-extern bool khrn_fmem_add_fix_image(KHRN_FMEM_T *fmem, uint8_t **p, uint32_t render_i, MEM_HANDLE_T image_handle, uint32_t offset);
+extern bool khrn_fmem_add_fix_image(KHRN_FMEM_T *fmem, uint8_t **p, MEM_HANDLE_T image_handle, uint32_t offset);
 
 extern void khrn_fmem_prep_for_job(KHRN_FMEM_T *fmem, uint32_t bin_mem, uint32_t bin_mem_size);
 extern void khrn_fmem_prep_for_render_only_job(KHRN_FMEM_T *fmem);

@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2008 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2008 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -220,4 +220,4 @@ extern uint32_t khrn_platform_get_window_position(EGLNativeWindowType win);
 
 extern void khrn_platform_release_pixmap_info(EGLNativePixmapType pixmap, KHRN_IMAGE_WRAP_T *image);
 extern void khrn_platform_unbind_pixmap_from_egl_image(EGLImageKHR egl_image);
-extern uint32_t platform_get_color_format ( uint32_t format );
+extern uint32_t khrn_platform_get_color_format(KHRN_IMAGE_FORMAT_T format);

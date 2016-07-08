@@ -1,22 +1,42 @@
 /***************************************************************************
- *     Copyright (c) 2003-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2003-2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description:
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ***************************************************************************/
 
 #include "bstd.h"
@@ -62,15 +82,15 @@ struct BDBG_DebugModuleInst {
 typedef struct BDBG_P_LogEntry {
     unsigned long tag; /* tag is value of stack pointer and LSB  used to indicate header or body */
     int16_t rc; /* result from printf */
-    char str[256-sizeof(uint32_t)-sizeof(void *)-sizeof(int16_t)];
+    char str[256-sizeof(unsigned long)-sizeof(void *)-sizeof(int16_t)];
 } BDBG_P_LogEntry;
 
 typedef struct BDBG_P_Dequeue_Context {
     bool used;
     uint16_t hdr_len;
-    uint32_t tag;
+    unsigned header_buf_size;
+    unsigned long tag;
     char *header_buf;
-    size_t header_buf_size;
 } BDBG_P_Dequeue_Context;
 #define BDBG_P_DEQUEUE_MAX_CONTEXTS 16
 
@@ -92,7 +112,7 @@ static struct {
    BLST_S_INITIALIZER(BDBG_DebugModuleInst),
    BDBG_eWrn, /* default level is a warning level */
    NULL,
-   {0,0,{{false,0,0,NULL,0}}},
+   {0,0,{{false,0,0,0,NULL}}},
    ""
 };
 
@@ -404,11 +424,11 @@ BDBG_P_GetInstanceByName(const char *name)
     BDBG_DebugModule_Print module_print = dbg_module->module_print; \
     bool normal_print = instance || (module_print==NULL ? ((int)_level >= dbg_module->level) : ((int)_level >= -dbg_module->level)); \
     if(module_print) { module_print(kind, _level, dbg_module, fmt, ap); } \
-    else if(normal_print) { BDBG_P_Vprintf_Log(kind, fmt, ap); } \
+    else if(normal_print) { BDBG_P_Vprintf_Log_isrsafe(kind, fmt, ap); } \
 } while(0)
 
 void
-BDBG_P_Vprintf_Log(BDBG_ModulePrintKind kind, const char *fmt, va_list ap)
+BDBG_P_Vprintf_Log_isrsafe(BDBG_ModulePrintKind kind, const char *fmt, va_list ap)
 {
     BDBG_Fifo_Handle dbgLog = gDbgState.dbgLog;
     if(dbgLog) {
@@ -475,18 +495,18 @@ BDBG_P_PrintTrace(BDBG_pDebugModuleFile dbg_module, const char *fmt, ...)
 
 
 void /* only used externally if BDBG_P_UNWRAP is undefined */
-BDBG_P_PrintWithNewLine(const char *fmt, ...)
+BDBG_P_PrintWithNewLine_isrsafe(const char *fmt, ...)
 {
    va_list ap;
 
    va_start(ap, fmt);
-   BDBG_P_Vprintf_Log(BDBG_ModulePrintKind_eBody, fmt, ap);
+   BDBG_P_Vprintf_Log_isrsafe(BDBG_ModulePrintKind_eBody, fmt, ap);
    va_end( ap );
    return;
 }
 
 bool
-BDBG_P_TestAndPrint(BDBG_Level level, BDBG_pDebugModuleFile dbg_module, const char *fmt, ...)
+BDBG_P_TestAndPrint_isrsafe(BDBG_Level level, BDBG_pDebugModuleFile dbg_module, const char *fmt, ...)
 {
     if( BDBG_P_TestModule(dbg_module, level)) {
         union {
@@ -519,7 +539,7 @@ BDBG_P_TestAndPrint(BDBG_Level level, BDBG_pDebugModuleFile dbg_module, const ch
 }
 
 bool
-BDBG_P_TestAndPrint_BDBG_eWrn(BDBG_pDebugModuleFile dbg_module, const char *fmt, ...)
+BDBG_P_TestAndPrint_BDBG_eWrn_isrsafe(BDBG_pDebugModuleFile dbg_module, const char *fmt, ...)
 {
     if( BDBG_P_TestModule(dbg_module, BDBG_eWrn)) {
         union {
@@ -552,7 +572,7 @@ BDBG_P_TestAndPrint_BDBG_eWrn(BDBG_pDebugModuleFile dbg_module, const char *fmt,
 }
 
 bool
-BDBG_P_TestAndPrint_BDBG_eErr(BDBG_pDebugModuleFile dbg_module, const char *fmt, ...)
+BDBG_P_TestAndPrint_BDBG_eErr_isrsafe(BDBG_pDebugModuleFile dbg_module, const char *fmt, ...)
 {
     if( BDBG_P_TestModule(dbg_module, BDBG_eErr)) {
         union {
@@ -585,7 +605,7 @@ BDBG_P_TestAndPrint_BDBG_eErr(BDBG_pDebugModuleFile dbg_module, const char *fmt,
 }
 
 bool
-BDBG_P_TestAndPrint_BDBG_eLog(BDBG_pDebugModuleFile dbg_module, const char *fmt, ...)
+BDBG_P_TestAndPrint_BDBG_eLog_isrsafe(BDBG_pDebugModuleFile dbg_module, const char *fmt, ...)
 {
     if( BDBG_P_TestModule(dbg_module, BDBG_eLog)) {
         union {
@@ -619,7 +639,7 @@ BDBG_P_TestAndPrint_BDBG_eLog(BDBG_pDebugModuleFile dbg_module, const char *fmt,
 
 
 bool
-BDBG_P_InstTestAndPrint(BDBG_Level level, BDBG_pDebugModuleFile dbg_module, BDBG_Instance handle, const char *fmt, ...)
+BDBG_P_InstTestAndPrint_isrsafe(BDBG_Level level, BDBG_pDebugModuleFile dbg_module, BDBG_Instance handle, const char *fmt, ...)
 {
    struct BDBG_DebugInstModule *pInstanceModule = NULL;
    struct BDBG_DebugModuleInst *instance;
@@ -1184,7 +1204,7 @@ BDBG_Object_Init(void *ptr, size_t size, struct bdbg_obj *obj, const char *id)
 }
 
 void
-BDBG_Object_Assert(const void *ptr, size_t size, const struct bdbg_obj *obj, const char *id, const char *file, unsigned line) {
+BDBG_Object_Assert_isrsafe(const void *ptr, size_t size, const struct bdbg_obj *obj, const char *id, const char *file, unsigned line) {
 
     BSTD_UNUSED(size);
 
@@ -1290,7 +1310,7 @@ BDBG_SetModulePrintFunction(const char *name, BDBG_DebugModule_Print module_prin
 }
 
 
-#define BDBG_P_CONTEXT_THRESHOLD    256
+#define BDBG_P_CONTEXT_THRESHOLD    512
 
 static BDBG_P_Dequeue_Context *BDBG_P_Dequeue_FindContext(unsigned long tag)
 {
@@ -1307,7 +1327,7 @@ static BDBG_P_Dequeue_Context *BDBG_P_Dequeue_FindContext(unsigned long tag)
     return NULL;
 }
 
-static BDBG_P_Dequeue_Context *BDBG_P_Dequeue_FindFree(size_t hdr_len)
+static BDBG_P_Dequeue_Context *BDBG_P_Dequeue_FindFree(unsigned hdr_len)
 {
     unsigned i;
     BDBG_P_Dequeue_Context *context=NULL;
@@ -1468,7 +1488,7 @@ BDBG_Log_Dequeue(BDBG_FifoReader_Handle logReader, unsigned *timeout, char *str,
     BDBG_P_LogEntry logEntry;
     BDBG_P_Dequeue_Context *context;
     BDBG_P_StrBuf buf;
-    size_t hdr_len;
+    unsigned hdr_len;
 
     BDBG_ASSERT(timeout);
     BDBG_ASSERT(str);
@@ -1627,7 +1647,7 @@ const char *BDBG_P_Int64DecArg(int64_t x, char *buf, size_t buf_size)
 
 #if B_REFSW_DEBUG_COMPACT_ERR
 void
-BDBG_P_Assert(bool expr, const char *file, unsigned line)
+BDBG_P_Assert_isrsafe(bool expr, const char *file, unsigned line)
 {
     if (expr) return;
     BDBG_P_AssertFailed(NULL, file, line);

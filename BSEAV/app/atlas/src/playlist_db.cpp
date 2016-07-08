@@ -161,7 +161,10 @@ eRet CPlaylistDb::removePlaylist(
     return(ret);
 } /* removePlaylist */
 
-void CPlaylistDb::dump(bool bForce, int index)
+void CPlaylistDb::dump(
+        bool bForce,
+        int  index
+        )
 {
     BDBG_Level  level;
     CPlaylist * pPlaylist = NULL;
@@ -211,7 +214,7 @@ void CPlaylistDb::dump(bool bForce, int index)
         CPlaylist * pPlaylist = NULL;
 
         /* if requested index is > 0 then return corresponding 1 index based playlist
-           with notification */
+         * with notification */
         if (0 < index)
         {
             pPlaylist = _playlistList[index - 1];

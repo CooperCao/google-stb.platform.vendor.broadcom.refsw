@@ -1,45 +1,43 @@
 /******************************************************************************
- * (c) 2014 Broadcom Corporation
- *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
- *
- * Except as expressly set forth in the Authorized License,
- *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
- *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
- *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
- *****************************************************************************/
-
+* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*
+* This program is the proprietary software of Broadcom and/or its
+* licensors, and may only be used, duplicated, modified or distributed pursuant
+* to the terms and conditions of a separate, written license agreement executed
+* between you and Broadcom (an "Authorized License").  Except as set forth in
+* an Authorized License, Broadcom grants no license (express or implied), right
+* to use, or waiver of any kind with respect to the Software, and Broadcom
+* expressly reserves all rights in and to the Software and all intellectual
+* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*
+* Except as expressly set forth in the Authorized License,
+*
+* 1. This program, including its structure, sequence and organization,
+*    constitutes the valuable trade secrets of Broadcom, and you shall use all
+*    reasonable efforts to protect the confidentiality thereof, and to use
+*    this information only in connection with your use of Broadcom integrated
+*    circuit products.
+*
+* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+*
+* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+******************************************************************************/
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -64,15 +62,22 @@
 #include "nexus_platform.h"
 
 #define FILENAME_TAG "filename=\""
+#define SYSFS_SCB_FREQ_FILENAME "/sys/kernel/debug/clk/clk_summary"
 
 #ifdef USE_BOXMODES
-extern bmemperf_boxmode_info g_boxmodes[20];
+extern bmemperf_boxmode_info g_boxmodes[BMEMPERF_MAX_BOXMODES];
 #endif /* USE_BOXMODES */
 extern int   g_MegaBytes;
 extern int   g_MegaBytesDivisor[2];
 extern char *g_MegaBytesStr[2];
 
 #define UTILS_LOG_FILE_FULL_PATH_LEN 64
+#define MAX_LENGTH_DDR_FREQ 256
+#define MAX_LENGTH_SCB_FREQ 256
+
+static unsigned int g_bmemperf_ddr_freq_mhz[NEXUS_MAX_MEMC] = {0,0,0};
+static unsigned int g_bmemperf_scb_freq_mhz = 0;
+
 
 extern char         *g_client_name[BMEMPERF_MAX_NUM_CLIENT];
 extern bmemperf_info g_bmemperf_info;
@@ -221,7 +226,6 @@ int sendFileToBrowser(
     char        *contents = NULL;
     FILE        *fpInput  = NULL;
     struct stat  statbuf;
-    unsigned int newlen           = 0;
     char        *pFileNameDecoded = NULL;
     char        *pos              = NULL;
     char         tempFilename[TEMP_FILE_FULL_PATH_LEN];
@@ -260,7 +264,6 @@ int sendFileToBrowser(
         pos = (char *) tempFilename;
         PRINTF( "~pos 3 (%s)(%p); len %d\n~", pos, pos, strlen( pos )); fflush( stdout ); fflush( stderr );
     }
-    newlen = strlen( pos ) + 1 /* null string terminator */;
 
     if (statbuf.st_size == 0)
     {
@@ -605,20 +608,18 @@ int bmemperf_boxmode_init(
     unsigned int idx         = 0;
     bool         bMatchFound = false;
 
-    PRINTF( "~boxmode:%ld; before ... %u, %u, %u\n~", boxmode, g_bmemperf_info.num_memc, g_bmemperf_info.ddrFreqInMhz, g_bmemperf_info.scbFreqInMhz );
-
-    if (boxmode > 0)
+    if (boxmode >= 0) /* older chips (like 97425) only have boxmode 0 */
     {
         /* loop through all boxmodes to find the client names, MHz, and SCB freq for the current box mode */
-        for (idx = 0; idx<( sizeof( g_boxmodes )/sizeof( g_boxmodes[0] )); idx++)
+        for (idx = 0; idx<BMEMPERF_MAX_BOXMODES; idx++)
         {
-            if (( g_boxmodes[idx].boxmode > 0 ) && g_boxmodes[idx].g_bmemperf_info && g_boxmodes[idx].g_client_name)
+            if (( 0 < g_boxmodes[idx].boxmode ) && ( g_boxmodes[idx].boxmode < BMEMPERF_MAX_BOXMODES ) &&
+                ( g_boxmodes[idx].g_bmemperf_info ) && ( g_boxmodes[idx].g_client_name) )
             {
                 if (boxmode == (long int) g_boxmodes[idx].boxmode)
                 {
-                    printf( "~boxmode:%ld; copying from idx %u\n~", boxmode, idx );
+                    PRINTF( "~boxmode:%ld; copying from idx %u\n~", boxmode, idx );
                     memcpy( &g_bmemperf_info, g_boxmodes[idx].g_bmemperf_info, sizeof( g_bmemperf_info ));
-                    printf( "~boxmode:%ld; %u, %u, %u\n~", boxmode, g_bmemperf_info.num_memc, g_bmemperf_info.ddrFreqInMhz, g_bmemperf_info.scbFreqInMhz );
                     memcpy( &g_client_name, g_boxmodes[idx].g_client_name, sizeof( g_client_name ));
                     boxmode     = g_boxmodes[idx].boxmode;
                     bMatchFound = true;
@@ -672,7 +673,7 @@ int getBoxModeHtml(
     output    += written;
 
     /* loop through all boxmodes to find the client names, DDR freq, and SCB freq for the current box mode */
-    for (idx = 0; idx<( sizeof( g_boxmodes )/sizeof( g_boxmodes[0] )); idx++)
+    for (idx = 0; idx<BMEMPERF_MAX_BOXMODES; idx++)
     {
         if (g_boxmodes[idx].boxmode == boxmodeSource.boxmode)
         {
@@ -682,7 +683,8 @@ int getBoxModeHtml(
         {
             boxmodeSourceStr[0] = '\0';
         }
-        if (( g_boxmodes[idx].boxmode > 0 ) && g_boxmodes[idx].g_bmemperf_info && g_boxmodes[idx].g_client_name)
+        if (( g_boxmodes[idx].boxmode > 0 ) && ( g_boxmodes[idx].boxmode < BMEMPERF_MAX_BOXMODES ) &&
+            ( g_boxmodes[idx].g_bmemperf_info ) && ( g_boxmodes[idx].g_client_name) )
         {
             written = snprintf( output, remaining, "<option value=%d %s >BoxMode %d%s</option>", g_boxmodes[idx].boxmode,
                     ( boxmodePlatform == g_boxmodes[idx].boxmode ) ? "selected" : "", g_boxmodes[idx].boxmode, boxmodeSourceStr );
@@ -721,8 +723,10 @@ int overall_stats_html(
     unsigned int      numProcessorsOnline     = sysconf( _SC_NPROCESSORS_ONLN );
     float             averageCpuUtilization   = 0.0;
     bmemperf_irq_data irqData;
+    char              tempStr[16];
     char              irqTotalStr[64];
     unsigned int      numberOfMemc = g_bmemperf_info.num_memc;
+    char              warningHtml[256];
 
     PRINTF( "%s: numberOfMemc %u<br>\n", __FUNCTION__, numberOfMemc );
     printf( "~OVERALL~" );
@@ -754,7 +758,8 @@ int overall_stats_html(
         {
             printf( "<tr><td>Data BW&nbsp;(%s)</td>", g_MegaBytesStr[g_MegaBytes] );
         }
-        printf( "<td>%u</td>", pResponse->response.overallStats.systemStats[memc].dataBW / g_MegaBytesDivisor[g_MegaBytes] );
+        convert_to_string_with_commas( pResponse->response.overallStats.systemStats[memc].dataBW / g_MegaBytesDivisor[g_MegaBytes], tempStr, sizeof( tempStr ) );
+        printf( "<td>%s</td>", tempStr );
 
         /* last column */
         if (( memc+1 ) == numberOfMemc)
@@ -769,7 +774,8 @@ int overall_stats_html(
         {
             printf( "<tr><td>Transaction&nbsp;BW&nbsp;(%s)</td>", g_MegaBytesStr[g_MegaBytes] );
         }
-        printf( "<td>%u</td>", pResponse->response.overallStats.systemStats[memc].transactionBW / g_MegaBytesDivisor[g_MegaBytes] );
+        convert_to_string_with_commas( pResponse->response.overallStats.systemStats[memc].transactionBW / g_MegaBytesDivisor[g_MegaBytes], tempStr, sizeof( tempStr ) );
+        printf( "<td>%s</td>", tempStr );
 
         /* last column */
         if (( memc+1 ) == numberOfMemc)
@@ -784,7 +790,8 @@ int overall_stats_html(
         {
             printf( "<tr><td>Idle&nbsp;BW&nbsp;(%s)</td>", g_MegaBytesStr[g_MegaBytes] );
         }
-        printf( "<td>%u</td>", pResponse->response.overallStats.systemStats[memc].idleBW / g_MegaBytesDivisor[g_MegaBytes] );
+        convert_to_string_with_commas( pResponse->response.overallStats.systemStats[memc].idleBW / g_MegaBytesDivisor[g_MegaBytes], tempStr, sizeof( tempStr ) );
+        printf( "<td>%s</td>", tempStr );
 
         /* last column */
         if (( memc+1 ) == numberOfMemc)
@@ -809,10 +816,24 @@ int overall_stats_html(
     }
     for (memc = 0; memc<numberOfMemc; memc++)
     {
+        memset ( warningHtml, 0, sizeof(warningHtml) );
+
         /* first column */
         if (memc == 0)
         {
-            printf( "<tr><td>DDR&nbsp;Freq&nbsp;(MHz)</td>" );
+            unsigned idx;
+
+            /* if the frequency differs from the frequency read from the header file during compile time, show a warning */
+            for (idx = 0; idx<numberOfMemc; idx++)
+            {
+                if ( g_bmemperf_info.ddrFreqInMhz != pResponse->response.overallStats.systemStats[idx].ddrFreqMhz )
+                {
+                    snprintf( warningHtml, sizeof(warningHtml) - 1, "<span title=\"Compile-time header frequency (in red) does not match BOLT frequency (in black)!\" "
+                                                                    "style=\"font-size:8pt;color:red;\" > (%u)</span>", g_bmemperf_info.ddrFreqInMhz );
+                    break;
+                }
+            }
+            printf( "<tr><td>DDR&nbsp;Freq&nbsp;(MHz)%s</td>", warningHtml );
         }
         printf( "<td>%u</td>", pResponse->response.overallStats.systemStats[memc].ddrFreqMhz );
 
@@ -824,10 +845,24 @@ int overall_stats_html(
     }
     for (memc = 0; memc<numberOfMemc; memc++)
     {
+        memset ( warningHtml, 0, sizeof(warningHtml) );
+
         /* first column */
         if (memc == 0)
         {
-            printf( "<tr><td>SCB&nbsp;Freq&nbsp;(MHz)</td>" );
+            unsigned idx;
+
+            /* if the frequency differs from the frequency read from the header file during compile time, show a warning */
+            for (idx = 0; idx<numberOfMemc; idx++)
+            {
+                if ( g_bmemperf_info.scbFreqInMhz != pResponse->response.overallStats.systemStats[idx].scbFreqMhz )
+                {
+                    snprintf( warningHtml, sizeof(warningHtml) - 1, "<span title=\"Compile-time header frequency (in red) does not match BOLT frequency (in black)!\" "
+                                                                    "style=\"font-size:8pt;color:red;\" > (%u)</span>", g_bmemperf_info.scbFreqInMhz );
+                    break;
+                }
+            }
+            printf( "<tr><td>SCB&nbsp;Freq&nbsp;(MHz)%s</td>", warningHtml );
         }
         printf( "<td>%u</td>", pResponse->response.overallStats.systemStats[memc].scbFreqMhz );
 
@@ -1104,3 +1139,261 @@ bool hasNumeric(
     /*printf("string (%s) has no numbers\n", mystring );*/
     return( 0 );
 } /* hasNumeric */
+
+/**
+ *  Function: This function will open the "frequency" file and convert the string frequency value to an integer
+ *  value and set the global variable from the converted integer value.
+ **/
+static unsigned int bmemperf_read_ddrFreq( char * path_to_frequency_file )
+{
+    FILE * fp = NULL;
+    char strFrequency[12];
+    unsigned int frequency = 0;
+
+    if (path_to_frequency_file == NULL)
+    {
+        return ( frequency );
+    }
+
+    strcat ( path_to_frequency_file, "frequency" );
+    /*printf("%s: fullname (%s)\n", __FUNCTION__, path_to_frequency_file );*/
+    fp = fopen ( path_to_frequency_file, "r" );
+    if (fp)
+    {
+        fread ( strFrequency, 1, sizeof(strFrequency), fp);
+        if (strlen(strFrequency))
+        {
+            frequency = atoi( strFrequency );
+            /*printf("%s: frequency (%u)\n", __FUNCTION__, frequency );*/
+        }
+
+        fclose ( fp );
+    }
+    else
+    {
+        printf("%s: Unable to find the file (%s).\n", __FUNCTION__, path_to_frequency_file );
+        printf("%s: Make sure the kernel version is at least 3.14-1.12 and BOLT version is at least v1.11.\n", __FUNCTION__ );
+    }
+
+    return ( frequency );
+}
+
+/**
+ *  Function: This function will remove the carriage return character at the end of the
+ *            provided string ... if one is there.
+ **/
+static int trim_line ( char * line )
+{
+    unsigned int len = 0;
+
+    if ( line )
+    {
+        len = strlen(line);
+        if (line[len-1] == '\n')
+        {
+            line[len-1] = 0;
+        }
+    }
+
+    return 0;
+}
+/*
+   The cmdline:   find /sys/devices -name "uevent" | grep memory_controllers | grep memc-ddr | xargs grep FULLNAME
+   returns something like this:
+        /sys/devices/rdb.4/memory_controllers.6/memc.7/f1102000.memc-ddr/uevent:OF_FULLNAME=/rdb/memory_controllers/memc@0/memc-ddr@f1102000
+        /sys/devices/rdb.4/memory_controllers.6/memc.8/f1182000.memc-ddr/uevent:OF_FULLNAME=/rdb/memory_controllers/memc@1/memc-ddr@f1182000
+        /sys/devices/rdb.4/memory_controllers.6/memc.9/f1202000.memc-ddr/uevent:OF_FULLNAME=/rdb/memory_controllers/memc@2/memc-ddr@f1202000
+
+   The number after the first '@' character gives the MEMC index.
+   Replace "uevent" with "frequency" to get the frequency of the DDR for the particular MEMC. The frequency needs to be divided by 1000000 to be
+   compatible with the existing code.
+*/
+int bmemperf_init_ddrFreq( void )
+{
+    static bool  initDone = false;
+    unsigned int memc = 0;
+    FILE        *cmd = NULL;
+    FILE        *freq = NULL;
+    char         line[MAX_LENGTH_DDR_FREQ];
+
+    /* if we have already done the initialization, do not do it again. */
+    if (initDone == true)
+    {
+        return ( 0 );
+    }
+
+    initDone = true;
+
+    sprintf( line, "find /sys/devices -name \"uevent\" | grep memory_controllers | grep memc-ddr | xargs grep FULLNAME" );
+    PRINTF("attempting cmd (%s)\n", line);
+    cmd = popen( line, "r" );
+
+    do {
+        memset( line, 0, sizeof( line ));
+        fgets( line, MAX_LENGTH_DDR_FREQ, cmd );
+        trim_line ( line );
+        PRINTF("got line (%s)\n", line);
+        if (strlen( line ))
+        {
+            char *pos = strchr( line, '@' );
+            if (pos)
+            {
+                /* printf("found @ at idx %d\n", pos - line );*/
+                pos++;
+                memc = strtoul( pos, NULL, BMEMPERF_DDR_VALUE_LENGTH );
+                /* printf("memc is %d; NEXUS_MAX_MEMC %d\n", memc, NEXUS_MAX_MEMC );*/
+                if (memc < NEXUS_MAX_MEMC )
+                {
+                    /* some platforms do not respond with the full path file name in the string */
+                    if (strstr(line, "/uevent"))
+                    {
+                        /* find the start of the uevent filename so we can use the beginning path to find the frequency filename */
+                        pos = strstr( line, "uevent" );
+                        if (pos)
+                        {
+                            /* terminate the beginning of the path name so that we can append the "frequency" filename */
+                            *pos = 0;
+                        }
+                        g_bmemperf_ddr_freq_mhz[memc] = bmemperf_read_ddrFreq( line ) / 1000000;
+                        PRINTF("%s: for memc %u: BOLT ddrFreq %u; compile ddrFreq %u\n", __FUNCTION__, memc,
+                            g_bmemperf_ddr_freq_mhz[memc], g_bmemperf_info.ddrFreqInMhz );
+                    }
+                    else /* the line does not have the full path in it ... find the file that we just searched */
+                    {
+                        sprintf( line, "find /sys/devices -name \"uevent\" | grep memory_controllers | grep memc-ddr" );
+                        PRINTF("attempting cmd (%s)\n", line);
+                        freq = popen( line, "r" );
+
+                        do {
+                            memset( line, 0, sizeof( line ));
+                            fgets( line, MAX_LENGTH_DDR_FREQ, freq );
+                            if (strlen( line ))
+                            {
+                                trim_line ( line );
+
+                                PRINTF("got line (%s)\n", line);
+
+                                /* find the start of the uevent filename so we can use the beginning path to find the frequency filename */
+                                pos = strstr( line, "uevent" );
+                                if (pos)
+                                {
+                                    /* terminate the beginning of the path name to that we can append the "frequency" filename */
+                                    *pos = 0;
+                                }
+                                g_bmemperf_ddr_freq_mhz[memc] = bmemperf_read_ddrFreq( line ) / 1000000;
+                                PRINTF("%s: for memc %u: BOLT ddrFreq %u; compile ddrFreq %u\n", __FUNCTION__, memc, g_bmemperf_ddr_freq_mhz[memc], g_bmemperf_info.ddrFreqInMhz );
+                            }
+                        } while (strlen( line ));
+                    }
+                }
+            }
+        }
+    } while (strlen( line ));
+
+    return ( 0 );
+}
+
+/**
+ *  Function: This function will scan the file /sys/kernel/debug/clk/clk_summary to find the line that has the
+ *  sw_scb frequency on it. Once found, the frequency will be scanned to an integer value and set a global
+ *  variable with the scanned value.
+ **/
+int bmemperf_init_scbFreq( void )
+{
+    static bool  initDone = false;
+    FILE        *cmd = NULL;
+    char         line[MAX_LENGTH_SCB_FREQ];
+    bool         fileFound = false;
+
+    /* if we have already done the initialization, do not do it again. */
+    if (initDone == true)
+    {
+        return ( 0 );
+    }
+
+    initDone = true;
+
+    sprintf( line, "cat %s | grep -i sw_scb", SYSFS_SCB_FREQ_FILENAME );
+    cmd = popen( line, "r" );
+
+    do {
+        memset( line, 0, sizeof( line ));
+        fgets( line, MAX_LENGTH_SCB_FREQ, cmd );
+        /* the line should look something like this:sw_scb                         0           0            432000000  0 */
+        if (strlen( line ))
+        {
+            line[strlen(line)-1] = 0; /* get rid of the carriage return at the end of the line */
+            g_bmemperf_scb_freq_mhz = atoi( &line[57] ) / 1000000;
+            /*printf("%s: g_bmemperf_scb_freq_mhz (%u) from line (%s); compile scbFreq (%u) \n", __FUNCTION__, g_bmemperf_scb_freq_mhz, &line[57], g_bmemperf_info.scbFreqInMhz );*/
+            printf("%s: found SCB frequency of %u MHz in file (%s).\n", __FUNCTION__, g_bmemperf_scb_freq_mhz, SYSFS_SCB_FREQ_FILENAME );
+            fileFound = true;
+            break;
+        }
+    } while (strlen( line ));
+
+    if ( fileFound == false )
+    {
+        printf("%s: Unable to find the file (%s).\n", __FUNCTION__, SYSFS_SCB_FREQ_FILENAME );
+        printf("%s: Make sure the kernel version is at least 3.14-1.12 and BOLT version is at least v1.11.\n", __FUNCTION__ );
+    }
+
+    return ( 0 );
+}
+
+/**
+ *  Function: This function will return the DDR Frequency that is read from the "frequency" file in the /sys/
+ *  file system.
+ **/
+unsigned int bmemperf_get_ddrFreqInMhz(
+    unsigned int compileTimeDefault
+    )
+{
+    unsigned int freq = 0;
+
+    bmemperf_init_ddrFreq();
+
+    /* try to use the frequency read from the /sys/devices file system */
+    freq = g_bmemperf_ddr_freq_mhz[0];
+    /*printf("~%s: compileTimeDefault %u: BOLT ddrFreq %u \n~", __FUNCTION__, compileTimeDefault, freq );*/
+
+    #if 1
+    /* in case the DDR frequency could not be read from the /sys/devices file system, use the one scanned during compile time */
+    if ( freq == 0 )
+    {
+        freq = compileTimeDefault /* g_bmemperf_info.ddrFreqInMhz*/;
+        /*printf("%s: compileTimeDefault %u: sysfs value is 0; using compile time ddrFreq %u \n", __FUNCTION__, compileTimeDefault, freq );*/
+    }
+    #endif
+
+    /*printf("~%s: returning freq %u \n~", __FUNCTION__, freq );*/
+    return ( freq );
+}
+
+/**
+ *  Function: This function will return the SCB Frequency that is read from the clk_summary file in the /sys/
+ *  file system.
+ **/
+unsigned int bmemperf_get_scbFreqInMhz(
+    unsigned int compileTimeDefault
+    )
+{
+    unsigned int freq = 0;
+
+    bmemperf_init_scbFreq();
+
+    /* try to use the frequency read from the /sys/kernel/debug/clk/clk_summary file */
+    freq = g_bmemperf_scb_freq_mhz;
+    /*printf("~%s: compileTimeDefault %u; BOLT scbFreq %u \n~", __FUNCTION__, compileTimeDefault, freq );*/
+
+    #if 1
+    /* in case the SCB frequency could not be read from the /sys/kernel/debug/clk/clk_summary file, use the one scanned during compile time */
+    if ( freq == 0 )
+    {
+        freq = compileTimeDefault /*g_bmemperf_info.scbFreqInMhz*/;
+        /*printf("%s: compileTimeDefault %u: sysfs value is 0; using compile time scbFreq %u \n", __FUNCTION__, compileTimeDefault, freq );*/
+    }
+    #endif
+
+    /*printf("~%s: returning freq %u \n~", __FUNCTION__, freq );*/
+    return ( freq );
+}

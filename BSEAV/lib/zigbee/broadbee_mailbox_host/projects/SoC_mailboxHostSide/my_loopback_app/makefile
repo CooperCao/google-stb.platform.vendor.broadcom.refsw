@@ -1,3 +1,41 @@
+#############################################################################
+# Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+#
+# This program is the proprietary software of Broadcom and/or its licensors,
+# and may only be used, duplicated, modified or distributed pursuant to the terms and
+# conditions of a separate, written license agreement executed between you and Broadcom
+# (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+# no license (express or implied), right to use, or waiver of any kind with respect to the
+# Software, and Broadcom expressly reserves all rights in and to the Software and all
+# intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+# HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+# NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+#
+# Except as expressly set forth in the Authorized License,
+#
+# 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+# secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+# and to use this information only in connection with your use of Broadcom integrated circuit products.
+#
+# 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+# AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+# WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+# THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+# OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+# LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+# OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+# USE OR PERFORMANCE OF THE SOFTWARE.
+#
+# 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+# LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+# EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+# USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+# THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+# ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+# LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+# ANY LIMITED REMEDY.
+#############################################################################
+
 # This needs to be adjusted to match the tool chain for the kernel being used.
 #CROSS_COMPILE =/opt/toolchains/crosstools_hf-linux-2.6.18.0_gcc-4.2-10ts_uclibc-nptl-0.9.29-20070423_20080721/bin/mipsel-uclibc-
 #CROSS_COMPILE =/opt/toolchains/stbgcc-4.4.5-2.0/bin/mips-linux-uclibc-
@@ -27,8 +65,8 @@ OBJS = \
     $(OBJDIR)/$(EXES).o \
     $(OBJDIR)/bbMailClientTable.o \
     $(OBJDIR)/bbMailServerTable.o \
+    $(OBJDIR)/zigbee_api.o \
     $(OBJDIR)/zigbee_rpc.o \
-    $(OBJDIR)/zigbee_rpc_api.o \
     $(OBJDIR)/zigbee_rpc_client.o \
     $(OBJDIR)/zigbee_socket_client.o \
     $(OBJDIR)/bbSysPayload.o
@@ -45,7 +83,10 @@ PRJ_PATH = ../
 STACK_PATH = $(PRJ_PATH)../../stack
 
 INC_PATHS += $(STACK_PATH)
+INC_PATHS += $(PRJ_PATH)/common/include
+ifneq ($(BYPASS_RPC),y)
 INC_PATHS += $(PRJ_PATH)/rpc/include
+endif
 INC_PATHS += $(PRJ_PATH)/rf4ce_registration/include
 INC_PATHS += $(PRJ_PATH)/ha_registration/include
 INC_PATHS += $(STACK_PATH)/common/include
@@ -115,6 +156,10 @@ PRJ_FLAGS += _MAILBOX_WRAPPERS_PROFILE_=2
 PRJ_FLAGS += _MAILBOX_INTERFACE_=1
 PRJ_FLAGS += _MAC_BAN_TABLE_SIZE_=1
 
+ifeq ($(BYPASS_RPC),y)
+PRJ_FLAGS += BYPASS_RPC
+endif
+
 __PRJ_FLAGS = $(addprefix -D, $(PRJ_FLAGS))
 __PRJ_INCS  = $(addprefix -I, $(INC_PATHS))
 
@@ -123,6 +168,9 @@ CFLAGS += $(__PRJ_INCS) $(C99_FLAGS) $(__PRJ_FLAGS)
 #LDFLAGS += -m32
 LDFLAGS += -std=gnu99
 LDFLAGS += -g -Xlinker --no-enum-size-warning
+ifeq ($(BYPASS_RPC),y)
+LDFLAGS += -L../obj.$(NEXUS_PLATFORM) -L../rf4ce_registration -lzigbee -lsqlite3
+endif
 
 all:   prebuild $(OBJDIR) $(OBJDIR)/$(EXES)
 #	$(LD) $(OBJS) -lpthread
@@ -164,9 +212,15 @@ $(OBJDIR)/bbSysPayload.o: bbSysPayload.c
 	@echo --- C99: $@
 	$(SILENT)$(CC) $(CFLAGS)  $^ -c -o $@
 
+$(OBJDIR)/%.o: ../common/src/%.c
+	@echo --- C99: $@
+	$(SILENT)$(CC) $(CFLAGS) $^ -c -o $@
+
+#ifneq ($(BYPASS_RPC),y)
 $(OBJDIR)/%.o: ../rpc/src/%.c
 	@echo --- C99: $@
 	$(SILENT)$(CC) $(CFLAGS) $^ -c -o $@
+#endif
 
 $(OBJDIR)/%.o: ../../../stack/common/System/src/%.c
 	@echo --- C99: $@

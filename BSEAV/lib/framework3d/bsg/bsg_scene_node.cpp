@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -11,7 +11,7 @@
  * Software and all intellectual property rights therein.  IF YOU HAVE NO
  * AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
  * AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
- * SOFTWARE.  
+ * SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
@@ -90,7 +90,7 @@ SceneNodeHandle SceneNode::RemoveChild(uint32_t n)
    if (n >= NumChildren())
       BSG_THROW("Invalid index");
 
-   auto iter = m_children.begin() + n;
+   std::vector<SceneNodeHandle>::iterator iter = m_children.begin() + n;
 
    SceneNodeHandle   node = *iter;
 
@@ -156,7 +156,7 @@ GeometryHandle SceneNode::RemoveGeometry(uint32_t n)
    if (n >= NumGeometries())
       BSG_THROW("Invalid index");
 
-   auto iter = m_geometries.begin() + n;
+   std::vector<GeometryHandle>::iterator iter = m_geometries.begin() + n;
 
    GeometryHandle   geom = *iter;
 

@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2010-2013 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,16 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  *****************************************************************************/
 #if NEXUS_HAS_STREAM_MUX
@@ -86,8 +76,10 @@ int main(int argc, char **argv)
     NEXUS_PlatformStartServerSettings serverSettings;
     NEXUS_VideoDecoderHandle videoDecoder;
     NEXUS_SimpleVideoDecoderHandle simpleVideoDecoder;
+    NEXUS_SimpleVideoDecoderServerHandle videoServer;
     NEXUS_AudioDecoderHandle audioDecoder;
     NEXUS_SimpleAudioDecoderHandle simpleAudioDecoder;
+    NEXUS_SimpleAudioDecoderServerHandle audioServer;
     NEXUS_Error rc;
     int curarg = 1;
     NEXUS_ClientMode clientMode = NEXUS_ClientMode_eProtected;
@@ -119,10 +111,11 @@ int main(int argc, char **argv)
     /* create simple video decoder */
     {
         NEXUS_SimpleVideoDecoderServerSettings settings;
+        videoServer = NEXUS_SimpleVideoDecoderServer_Create();
         NEXUS_SimpleVideoDecoder_GetDefaultServerSettings(&settings);
         settings.videoDecoder = videoDecoder;
         settings.stcIndex = 0;
-        simpleVideoDecoder = NEXUS_SimpleVideoDecoder_Create(0, &settings);
+        simpleVideoDecoder = NEXUS_SimpleVideoDecoder_Create(videoServer, 0, &settings);
     }
 
     /* create audio decoder. any index will work, but use 2 to stay out of main decoder's way. */
@@ -131,10 +124,11 @@ int main(int argc, char **argv)
     /* create simple audio decoder */
     {
         NEXUS_SimpleAudioDecoderServerSettings settings;
+        audioServer = NEXUS_SimpleAudioDecoderServer_Create();
         NEXUS_SimpleAudioDecoder_GetDefaultServerSettings(&settings);
         settings.primary = audioDecoder;
-        settings.stcIndex = 0; /* same as video */
-        simpleAudioDecoder = NEXUS_SimpleAudioDecoder_Create(0, &settings);
+        simpleAudioDecoder = NEXUS_SimpleAudioDecoder_Create(audioServer, 0, &settings);
+        NEXUS_SimpleAudioDecoder_SetStcIndex(audioServer, simpleAudioDecoder, 0); /* same as video */
     }
 
     NEXUS_Platform_GetDefaultStartServerSettings(&serverSettings);
@@ -167,15 +161,20 @@ int main(int argc, char **argv)
     simple_encoder_destroy();
 
     NEXUS_SimpleVideoDecoder_Destroy(simpleVideoDecoder);
+    NEXUS_SimpleVideoDecoderServer_Destroy(videoServer);
     NEXUS_SimpleAudioDecoder_Destroy(simpleAudioDecoder);
+    NEXUS_SimpleAudioDecoderServer_Destroy(audioServer);
     NEXUS_VideoDecoder_Close(videoDecoder);
     NEXUS_AudioDecoder_Close(audioDecoder);
     NEXUS_Platform_Uninit();
     return 0;
 }
 
-static NEXUS_SimpleEncoderServerSettings g_encoderSettings;
-static NEXUS_SimpleEncoderHandle g_encoder;
+static struct {
+    NEXUS_SimpleEncoderServerSettings settings;
+    NEXUS_SimpleEncoderServerHandle server;
+    NEXUS_SimpleEncoderHandle client;
+} g_encoder;
 
 static int simple_encoder_create(NEXUS_AudioDecoderHandle audioDecoder)
 {
@@ -190,10 +189,11 @@ static int simple_encoder_create(NEXUS_AudioDecoderHandle audioDecoder)
 
     NEXUS_Platform_GetConfiguration(&platformConfig);
 
-    g_encoder = NEXUS_SimpleEncoder_Create(0);
+    g_encoder.server = NEXUS_SimpleEncoderServer_Create();
+    g_encoder.client = NEXUS_SimpleEncoder_Create(g_encoder.server, 0);
     NEXUS_GetVideoEncoderCapabilities(&videoEncoderCap);
 
-    NEXUS_SimpleEncoder_GetServerSettings(g_encoder, &g_encoderSettings);
+    NEXUS_SimpleEncoder_GetServerSettings(g_encoder.server, g_encoder.client, &g_encoder.settings);
 
     NEXUS_Display_GetDefaultSettings(&displaySettings);
 #ifdef NEXUS_NUM_DSP_VIDEO_ENCODERS
@@ -203,19 +203,19 @@ static int simple_encoder_create(NEXUS_AudioDecoderHandle audioDecoder)
     displaySettings.timingGenerator = NEXUS_DisplayTimingGenerator_eEncoder;
     displaySettings.frameRateMaster = NULL; /* disable frame rate tracking for now */
 #endif
-    g_encoderSettings.transcodeDisplay = NEXUS_Display_Open(videoEncoderCap.videoEncoder[0].displayIndex, &displaySettings);
+    g_encoder.settings.transcodeDisplayIndex = videoEncoderCap.videoEncoder[0].displayIndex;
     /* window is opened internally */
 
-    g_encoderSettings.audioMuxOutput = NEXUS_AudioMuxOutput_Create(NULL);
+    g_encoder.settings.audioMuxOutput = NEXUS_AudioMuxOutput_Create(NULL);
 
-    g_encoderSettings.videoEncoder = NEXUS_VideoEncoder_Open(0, NULL);
+    g_encoder.settings.videoEncoder = NEXUS_VideoEncoder_Open(0, NULL);
     for (i=0;i<NEXUS_SIMPLE_ENCODER_NUM_PLAYPUMPS;i++) {
         NEXUS_PlaypumpOpenSettings playpumpConfig;
         NEXUS_Playpump_GetDefaultOpenSettings(&playpumpConfig);
         playpumpConfig.fifoSize = 16384; /* reduce FIFO size allocated for playpump */
         playpumpConfig.numDescriptors = 64; /* set number of descriptors */
         playpumpConfig.streamMuxCompatible = true;
-        g_encoderSettings.playpump[i] = NEXUS_Playpump_Open(NEXUS_ANY_ID, &playpumpConfig);
+        g_encoder.settings.playpump[i] = NEXUS_Playpump_Open(NEXUS_ANY_ID, &playpumpConfig);
     }
 
     NEXUS_StreamMux_GetDefaultCreateSettings(&streamMuxCreateSettings);
@@ -224,31 +224,31 @@ static int simple_encoder_create(NEXUS_AudioDecoderHandle audioDecoder)
     streamMuxCreateSettings.finished.callback = transcoderFinishCallback;
     streamMuxCreateSettings.finished.context = pContext->finishEvent;
 #endif
-    g_encoderSettings.streamMux = NEXUS_StreamMux_Create(&streamMuxCreateSettings);
+    g_encoder.settings.streamMux = NEXUS_StreamMux_Create(&streamMuxCreateSettings);
 
     NEXUS_StcChannel_GetDefaultSettings(0, &stcSettings);
     stcSettings.stcIndex = 1; /* different from a/v */
     stcSettings.timebase = NEXUS_Timebase_e1; /* different from a/v */
     stcSettings.mode = NEXUS_StcChannelMode_eAuto;
     stcSettings.pcrBits = NEXUS_StcChannel_PcrBits_eFull42; /* ViCE2 requires 42-bit STC broadcast */
-    g_encoderSettings.stcChannelTranscode = NEXUS_StcChannel_Open(NEXUS_ANY_ID, &stcSettings);
-    g_encoderSettings.timebase = stcSettings.timebase;
+    g_encoder.settings.stcChannelTranscode = NEXUS_StcChannel_Open(NEXUS_ANY_ID, &stcSettings);
+    g_encoder.settings.timebase = stcSettings.timebase;
 
     NEXUS_AudioMixer_GetDefaultSettings(&mixerSettings);
     mixerSettings.mixUsingDsp = true;
-    g_encoderSettings.mixer = NEXUS_AudioMixer_Open(&mixerSettings);
-    rc = NEXUS_AudioMixer_AddInput(g_encoderSettings.mixer,
+    g_encoder.settings.mixer = NEXUS_AudioMixer_Open(&mixerSettings);
+    rc = NEXUS_AudioMixer_AddInput(g_encoder.settings.mixer,
         NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
     BDBG_ASSERT(!rc);
-    NEXUS_AudioMixer_GetSettings(g_encoderSettings.mixer, &mixerSettings);
+    NEXUS_AudioMixer_GetSettings(g_encoder.settings.mixer, &mixerSettings);
     mixerSettings.master = NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo);
-    rc = NEXUS_AudioMixer_SetSettings(g_encoderSettings.mixer, &mixerSettings);
+    rc = NEXUS_AudioMixer_SetSettings(g_encoder.settings.mixer, &mixerSettings);
     BDBG_ASSERT(!rc);
     rc = NEXUS_AudioOutput_AddInput(NEXUS_AudioDummyOutput_GetConnector(platformConfig.outputs.audioDummy[0]),
-        NEXUS_AudioMixer_GetConnector(g_encoderSettings.mixer));
+        NEXUS_AudioMixer_GetConnector(g_encoder.settings.mixer));
     BDBG_ASSERT(!rc);
 
-    rc = NEXUS_SimpleEncoder_SetServerSettings(g_encoder, &g_encoderSettings);
+    rc = NEXUS_SimpleEncoder_SetServerSettings(g_encoder.server, g_encoder.client, &g_encoder.settings);
     if (rc) {
         simple_encoder_destroy();
     }
@@ -259,19 +259,18 @@ static void simple_encoder_destroy(void)
 {
     unsigned i;
 
-    NEXUS_SimpleEncoder_Destroy(g_encoder);
-    g_encoder = NULL;
+    NEXUS_SimpleEncoder_Destroy(g_encoder.client);
+    NEXUS_SimpleEncoderServer_Destroy(g_encoder.server);
 
-    NEXUS_Display_Close(g_encoderSettings.transcodeDisplay);
-    NEXUS_AudioMuxOutput_Destroy(g_encoderSettings.audioMuxOutput);
-    NEXUS_AudioMixer_Close(g_encoderSettings.mixer);
-    NEXUS_VideoEncoder_Close(g_encoderSettings.videoEncoder);
+    NEXUS_AudioMuxOutput_Destroy(g_encoder.settings.audioMuxOutput);
+    NEXUS_AudioMixer_Close(g_encoder.settings.mixer);
+    NEXUS_VideoEncoder_Close(g_encoder.settings.videoEncoder);
     for (i=0;i<NEXUS_SIMPLE_ENCODER_NUM_PLAYPUMPS;i++) {
-        NEXUS_Playpump_Close(g_encoderSettings.playpump[i]);
+        NEXUS_Playpump_Close(g_encoder.settings.playpump[i]);
     }
-    NEXUS_StreamMux_Destroy(g_encoderSettings.streamMux);
-    NEXUS_StcChannel_Close(g_encoderSettings.stcChannelTranscode);
-    memset(&g_encoderSettings, 0, sizeof(g_encoderSettings));
+    NEXUS_StreamMux_Destroy(g_encoder.settings.streamMux);
+    NEXUS_StcChannel_Close(g_encoder.settings.stcChannelTranscode);
+    memset(&g_encoder.settings, 0, sizeof(g_encoder.settings));
 }
 #else
 #include <stdio.h>

@@ -1,52 +1,51 @@
 /******************************************************************************
-* (c) 2014 Broadcom Corporation
-*
-* This program is the proprietary software of Broadcom Corporation and/or its
-* licensors, and may only be used, duplicated, modified or distributed pursuant
-* to the terms and conditions of a separate, written license agreement executed
-* between you and Broadcom (an "Authorized License").  Except as set forth in
-* an Authorized License, Broadcom grants no license (express or implied), right
-* to use, or waiver of any kind with respect to the Software, and Broadcom
-* expressly reserves all rights in and to the Software and all intellectual
-* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1. This program, including its structure, sequence and organization,
-*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-*    reasonable efforts to protect the confidentiality thereof, and to use
-*    this information only in connection with your use of Broadcom integrated
-*    circuit products.
-*
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-******************************************************************************/
-/*****************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
+ *
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************
 *
 * FILENAME: $Workfile: trunk/stack/ZbPro/ZDO/include/private/bbZbProZdoCfgFsm.h $
 *
 * DESCRIPTION:
 *   ZDO layer Finite State Machines integral description.
 *
-* $Revision: 3955 $
-* $Date: 2014-10-08 12:45:05Z $
+* $Revision: 10479 $
+* $Date: 2016-03-16 07:13:43Z $
 *
 *****************************************************************************************/
 
@@ -61,7 +60,7 @@
 
 /************************* DEFINITIONS **************************************************/
 /**//**
- * \brief FSMs states enumeration.
+ * \brief   Enumeration of states of ZDO Dispatcher FSM and all ZDP Services FSMs.
  */
 enum
 {
@@ -108,6 +107,9 @@ enum
     S_SENDING_DEVICE_ANNCE,
     S_STOPING_APS,
 
+    /* Channel Manager */
+    S_SCANING,
+    S_CHANGING,
 
     ZDO_TRANSIENT_STATES,                           /*!< Start of the section of transient states. All the transient
                                                         states' identifiers must follow this identifier. */
@@ -143,7 +145,7 @@ enum
 };
 
 /*
- * Validate the total number of the FSMs states.
+ * Validate the total number of the FSM states.
  */
 #if !(STATES_NUMBER <= SYS_FSM_STATE_FLAG)
 # error The allowed number of FSM states is exceeded.
@@ -194,6 +196,13 @@ enum
     E_APS_STOP,
     E_NO_POSTPONED,
 
+    /* Channel Manager */
+    E_UPDATE,
+    E_SCAN_DONE,
+    E_CHANGE_OK,
+    E_CHANGE_ERR,
+    E_TIMER,
+
     EVENTS_NUMBER,      /*!< The total number of all signals. This item must be the last one in the list. */
 };
 
@@ -221,7 +230,7 @@ enum
     ZDO_G_IS_FAILURE,                               /*!< Is Bind_rsp or Unbind_rsp returned with one of failure
                                                         statuses. For the case of binding procedure, it will be
                                                         terminated on the first failure status received. For the case of
-                                                        unbinding procedureá status returned in the mentioned responses
+                                                        unbinding procedureÃ¡ status returned in the mentioned responses
                                                         is ignored. */
 
     ZDO_G_IS_CONTINUE,                              /*!< Is there are not processed but matched output clusters in the
@@ -230,7 +239,6 @@ enum
 
     /* Security Manager guards. */
     ZDO_G_IS_SECURITY_DISABLED,
-    ZDO_G_IS_TC_ADDRESS_INVALID,
     ZDO_G_IS_AUTHENTICATION_REQUIRED,
     ZDO_G_PRECONFIGURED_NETWORK_KEY,
     ZDO_G_PRECONFIGURED_TRUST_CENTER_LINK_KEY,
@@ -242,6 +250,7 @@ enum
     ZDO_G_IS_TRUSTED_SOURCE,
     ZDO_G_IS_LEAVE_ITSELF,
     ZDO_G_IS_TRUST_CENTER,
+    ZDO_G_IS_TC_ADDRESS_INVALID,
     ZDO_G_IS_SECURED_REJOIN,
     ZDO_G_IS_TRANSPORT_KEY_CMD,
     ZDO_G_IS_DEVICE_LEFT,
@@ -254,6 +263,7 @@ enum
     ZDO_G_IS_START_SERVICE_DISABLED,
     ZDO_G_IS_ANNCE_SERVICE_DISABLED,
     ZDO_G_IS_LEAVE_SERVICE_DISABLED,
+    ZDO_G_IS_SELF_IEEE_INVALID,
     ZDO_G_COMPOUSE_DESCRIPTORS,
     ZDO_G_IS_INVALID_STATUS,
     ZDO_G_NEED_TO_ENABLE_ROUTING,
@@ -263,11 +273,20 @@ enum
     ZDO_G_IS_CHILD_LEAVE,
     ZDO_G_IS_FINISH_PART_PENDING,
 
+    /* Channel Manager */
+    ZDO_G_IS_ONE_CHANNEL_ABLE,
+    ZDO_G_HAS_CANDIDATE,
+    ZDO_G_IS_ENOUGH_TIMES,
+    ZDO_G_IS_ENOUGH_HISTORY,
+    ZDO_G_CHECK_TIMER,
+    ZDO_G_START_TIMER,
+    ZDO_G_IS_SAME_CHANNEL,
+
     GUARDS_NUMBER,      /*!< The total number of all guards. This item must be the last one in the list. */
 };
 
 /*
- * Validate the total number of the FSMs guards.
+ * Validate the total number of the FSM guards.
  */
 #if !(GUARDS_NUMBER <= SYS_FSM_ILLEGAL_VALUE)
 # error The allowed number of FSM guards is exceeded.
@@ -386,6 +405,13 @@ enum
     ZDO_A_AUTHENTIFICATION_FAILED,
     ZDO_A_LEAVING_CALLBACK,
 
+    /* Channel Manager */
+    ZDO_A_NEXT_TRY,
+    ZDO_A_CONTINUE,
+    ZDO_A_ASK_ENERGY,
+    ZDO_A_CHANCHE_CHANNEL,
+    ZDO_A_CHANNEL_QUALITY_NOTIFY,
+
     ACTIONS_NUMBER,     /*!< The total number of all actions. This item must be the last one in the list. */
 };
 
@@ -396,4 +422,5 @@ enum
 # error The allowed number of FSM actions is exceeded.
 #endif
 
-#endif /* _BB_ZB_PRO_NWK_CFG_FSM_H */
+
+#endif /* _BB_ZBPRO_ZDO_CFG_FSM_H */

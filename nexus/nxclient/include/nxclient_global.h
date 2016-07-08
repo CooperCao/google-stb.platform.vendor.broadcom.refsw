@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2010-2014 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  *****************************************************************************/
 #ifndef NXCLIENT_GLOBAL_H__
@@ -70,27 +62,6 @@ typedef unsigned NEXUS_TruVolumeSettings;
 typedef unsigned NEXUS_DolbyDigitalReencodeSettings;
 typedef unsigned NEXUS_AudioMixerDolbySettings;
 typedef unsigned NEXUS_DolbyVolume258Settings;
-typedef void *NEXUS_AudioCaptureHandle;
-typedef void *NEXUS_AudioMixerHandle;
-#endif
-#if NEXUS_HAS_VIDEO_DECODER
-#else
-typedef void *NEXUS_VideoDecoderCapabilities;
-#endif
-
-#if NEXUS_HAS_SIMPLE_DECODER
-#else
-typedef void *NEXUS_SimpleAudioDecoderServerSettings;
-typedef void *NEXUS_SimpleVideoDecoderServerSettings;
-typedef void *NEXUS_SimpleAudioDecoderHandle;
-typedef void *NEXUS_SimpleAudioPlaybackHandle;
-typedef void *NEXUS_SimpleVideoDecoderHandle;
-typedef void *NEXUS_SimpleEncoderHandle;
-#endif
-
-#if NEXUS_HAS_TRANSPORT
-#else
-typedef void *NEXUS_PidChannelHandle;
 #endif
 
 #ifdef __cplusplus
@@ -152,6 +123,9 @@ typedef struct NxClient_AudioOutputSettings
     int32_t leftVolume;
     int32_t rightVolume;
     bool muted;
+
+    NEXUS_AudioChannelStatusInfo channelStatusInfo; /* only applies to hdmi and spdif */
+    NEXUS_AudioLoudnessDeviceMode loudnessDeviceMode; /* only applies to hdmi */
 } NxClient_AudioOutputSettings;
 
 /**
@@ -231,6 +205,18 @@ typedef enum NxClient_HdcpLevel
     NxClient_HdcpLevel_eMax
 } NxClient_HdcpLevel;
 
+typedef enum NxClient_HdcpVersion
+{
+    NxClient_HdcpVersion_eAuto,    /* Always authenticate using the highest version supported by HDMI receiver */
+    NxClient_HdcpVersion_eFollow,  /* If HDMI receiver is a Repeater, the HDCP_version depends on the Repeater downstream topology */
+                                   /* If Repeater downstream topology contains one or more HDCP 1.x device, then authenticate with Repeater using the HDCP 1.x */
+                                   /* If Repeater downstream topology contains only HDCP 2.2 devices, then authenticate with Repeater using HDCP 2.2 */
+                                   /* If HDMI Receiver is not a Repeater, then default to 'auto' selection */
+    NxClient_HdcpVersion_eHdcp1x,  /* Always authenticate using HDCP 1.x mode (regardless of HDMI Receiver capabilities) */
+    NxClient_HdcpVersion_eHdcp22,  /* Always authenticate using HDCP 2.2 mode (regardless of HDMI Receiver capabilities) */
+    NxClient_HdcpVersion_eMax
+} NxClient_HdcpVersion;
+
 /* subset of NEXUS_GraphicsSettings for NxClient */
 typedef struct NxClient_GraphicsSettings
 {
@@ -238,6 +224,7 @@ typedef struct NxClient_GraphicsSettings
     NEXUS_GraphicsFilterCoeffs verticalFilter;     /* GFD vertical  upscaler coefficients */
     unsigned horizontalCoeffIndex;                 /* if horizontalFilter == eSharp, then this index is used for table-driven coefficients for horizontal upscale. */
     unsigned verticalCoeffIndex;                   /* if verticalFilter == eSharp, then this index is used for table-driven coefficients for vertical upscale. */
+    uint8_t alpha;                                 /* GFD alpha, from 0 (transparent) to 0xFF (opaque). Applied in addition to per-pixel alpha. */
 } NxClient_GraphicsSettings;
 
 /**
@@ -259,6 +246,7 @@ typedef struct NxClient_DisplaySettings
     } sampleAspectRatio;         /* Valid if aspectRatio is NEXUS_DisplayAspectRatio_eSar */
     NEXUS_Pixel backgroundColor; /* surface compositor background color. fills graphics plane where no client surface is visible. */
     NxClient_GraphicsSettings graphicsSettings;
+    bool secure;
 
     struct {
         NEXUS_VideoFormat format;
@@ -279,9 +267,11 @@ typedef struct NxClient_DisplaySettings
         bool preventUnsupportedFormat;
         NxClient_HdcpLevel hdcp; /* Client sets its desired level. Server aggregates requests from all clients and drives
                       HDCP authentication. Check NxClient_DisplayStatus.hdmi.hdcp for status and hdmiOutputHdcpChanged for callback. */
+        NxClient_HdcpVersion version;
         NEXUS_ColorSpace colorSpace;
         unsigned colorDepth;
         NEXUS_HdmiDynamicRangeMasteringInfoFrame drmInfoFrame;
+        NEXUS_MatrixCoefficients matrixCoefficients;
     } hdmiPreferences;
     struct {
         bool enabled;

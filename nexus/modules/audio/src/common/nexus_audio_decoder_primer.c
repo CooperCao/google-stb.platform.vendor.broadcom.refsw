@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2012-2015 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,7 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- **************************************************************************/
+ ***************************************************************************/
 #include "nexus_audio_module.h"
 #include "priv/nexus_pid_channel_priv.h"
 
@@ -113,6 +113,14 @@ static unsigned nexus_audiodecoder_p_cdb_depth(NEXUS_AudioDecoderPrimerHandle pr
     valid = BREG_Read32(g_pCoreHandles->reg, primer->cx_map.CDB_Valid);
     read = BREG_Read32(g_pCoreHandles->reg, primer->cx_map.CDB_Read);
     return (valid>=read?valid-read:(valid-primer->cdb.base)+(primer->cdb.end-read)) * 100 / (primer->cdb.end-primer->cdb.base);
+}
+
+static unsigned nexus_audiodecoder_p_itb_depth(NEXUS_AudioDecoderPrimerHandle primer)
+{
+    uint32_t valid, read;
+    valid = BREG_Read32(g_pCoreHandles->reg, primer->cx_map.ITB_Valid);
+    read = BREG_Read32(g_pCoreHandles->reg, primer->cx_map.ITB_Read);
+    return (valid>=read?valid-read:(valid-primer->itb.base)+(primer->itb.end-read)) * 100 / (primer->itb.end-primer->itb.base);
 }
 
 #ifdef DEBUG_PRIMER
@@ -279,9 +287,14 @@ static void NEXUS_AudioDecoder_P_PrimerSetRave(NEXUS_AudioDecoderPrimerHandle pr
     }
 
     primer->consumed_gop = gop_index;
-    BDBG_MSG_TRACE(("%p: SetRave PTS=%08x STC=%08x (%08x %08x), diff %5d, CDB %#x ITB %#x", primer,
+    BDBG_MSG_TRACE(("%p: SetRave PTS=%08x STC=%08x (%08x %08x), diff %5d, CDB %u%% ITB %u%%", (void*)primer,
         primer->gops[primer->consumed_gop].pts, serialStc + primer->gops[primer->consumed_gop].pcr_offset, serialStc, primer->gops[primer->consumed_gop].pcr_offset, min_diff,
-        primer->gops[primer->consumed_gop].cdb_read, primer->gops[primer->consumed_gop].itb_read));
+        nexus_audiodecoder_p_cdb_depth(primer), nexus_audiodecoder_p_itb_depth(primer)));
+    if (min_diff/45 < -10000) {
+        BDBG_WRN(("%p: flush primer on very late PTS: %d", (void *)primer, min_diff));
+        NEXUS_AudioDecoderPrimer_Flush(primer);
+        return;
+    }
     /* update the rave read pointer */
     NEXUS_AudioDecoder_P_SetReadPtr(primer);
 
@@ -329,8 +342,13 @@ static void NEXUS_AudioDecoder_P_PrimerProcessItb(NEXUS_AudioDecoderPrimerHandle
         switch(type)
         {
         case 0x22: /* pcr offset */
-            primer->pcr_offset = pitb->word1;
-            primer->pcr_offset_set = true;
+            if (((pitb->word0 >> 23) & 0x1) == 0) {
+                BDBG_MSG(("%p: received invalid pcr offset : %#x", (void *)primer, pitb->word1));
+            }
+            else {
+                primer->pcr_offset = pitb->word1;
+                primer->pcr_offset_set = true;
+            }
             break;
 
         case 0x21: /* pts */
@@ -397,6 +415,13 @@ static void NEXUS_AudioDecoder_P_PrimerProcessItb(NEXUS_AudioDecoderPrimerHandle
         pitb++;
     }
 
+    /* need to ensure that we get a pcr offset if we have valid data we are processing */
+    if (!primer->playback && !primer->pcr_offset_set && (itb_valid - primer->sitb_read) > 0) {
+        LOCK_TRANSPORT();
+        NEXUS_StcChannel_SetPcrOffsetContextAcquireMode_priv(primer->startSettings.stcChannel);
+        UNLOCK_TRANSPORT();
+    }
+
 	primer->sitb_read = NEXUS_AddrToOffset(pitb);
 	if (!primer->sitb_read) {
 		 rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
@@ -418,10 +443,17 @@ static void NEXUS_AudioDecoder_P_PrimerCallback(void *context)
 
     /* fifo watchdog: if CDB fills, flush CDB and ITB */
     if (primer->playback) {
-        if (itb_valid == primer->stuck.itb_valid && nexus_audiodecoder_p_cdb_depth(primer) > 95) {
-            if (++primer->stuck.cnt == 16) {
-                BDBG_MSG(("flushing audio primer %p after stuck full for 500 msec", (void *)primer));
-                NEXUS_AudioDecoderPrimer_Flush(primer);
+        if (itb_valid == primer->stuck.itb_valid) {
+            unsigned cdb_depth = nexus_audiodecoder_p_cdb_depth(primer);
+            unsigned itb_depth = nexus_audiodecoder_p_itb_depth(primer);
+            if (cdb_depth > 95 || itb_depth > 95) {
+                if (++primer->stuck.cnt == 16) {
+                    BDBG_WRN(("flushing audio primer %p after stuck full for 500 msec: CDB %u%% ITB %u%%", (void *)primer, cdb_depth, itb_depth));
+                    NEXUS_AudioDecoderPrimer_Flush(primer);
+                }
+            }
+            else {
+                primer->stuck.cnt = 0;
             }
         }
         else {
@@ -645,12 +677,6 @@ static NEXUS_Error NEXUS_AudioDecoder_P_StartPrimer( NEXUS_AudioDecoderPrimerHan
         if (rc) return BERR_TRACE(rc);
     }
 
-    if (primer->startSettings.stcChannel) {
-        LOCK_TRANSPORT();
-        NEXUS_StcChannel_EnablePidChannel_priv(primer->startSettings.stcChannel, primer->startSettings.pidChannel);
-        UNLOCK_TRANSPORT();
-    }
-
     primer->cx_map    = raveStatus.xptContextMap;
     primer->itb.base  = BREG_Read32(g_pCoreHandles->reg, primer->cx_map.ITB_Base);
     primer->itb.end   = BREG_Read32(g_pCoreHandles->reg, primer->cx_map.ITB_End);
@@ -730,10 +756,20 @@ static void NEXUS_AudioDecoderPrimer_P_AcquireStartResources(NEXUS_AudioDecoderP
     {
         NEXUS_OBJECT_ACQUIRE(primer, NEXUS_StcChannel, primer->startSettings.stcChannel);
     }
+    if (primer->startSettings.stcChannel) {
+        LOCK_TRANSPORT();
+        NEXUS_StcChannel_EnablePidChannel_priv(primer->startSettings.stcChannel, primer->startSettings.pidChannel);
+        UNLOCK_TRANSPORT();
+    }
 }
 
 static void NEXUS_AudioDecoderPrimer_P_ReleaseStartResources(NEXUS_AudioDecoderPrimerHandle primer)
 {
+    if (primer->startSettings.stcChannel) {
+        LOCK_TRANSPORT();
+        NEXUS_StcChannel_DisablePidChannel_priv(primer->startSettings.stcChannel, primer->startSettings.pidChannel);
+        UNLOCK_TRANSPORT();
+    }
     NEXUS_OBJECT_RELEASE(primer, NEXUS_PidChannel, primer->startSettings.pidChannel);
     if (primer->startSettings.stcChannel)
     {
@@ -763,7 +799,6 @@ void NEXUS_AudioDecoderPrimer_Stop( NEXUS_AudioDecoderPrimerHandle primer )
     primer->active = false;
 
     NEXUS_AudioDecoderPrimer_P_DisableRave(primer);
-
     NEXUS_AudioDecoderPrimer_P_ReleaseStartResources(primer);
 
     if (primer->timer) {

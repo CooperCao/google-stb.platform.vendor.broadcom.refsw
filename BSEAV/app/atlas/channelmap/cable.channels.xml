@@ -37,5 +37,12 @@
         <pid audiopid="482" audiotype="mpeg"></pid>
       </stream>
     </channel>
+
+    <disabled>
+        <channel type="playback" filename="cnnticker.mpg"></channel>
+        <channel type="ip" url="http://192.168.0.3:8089/cnnticker.mpg?program=0"></channel>
+        <channel type="ip" url="udp://192.168.0.3:1234"></channel>
+        <channel type="ip" url="rtp://192.168.0.3:1235"></channel>
+    </disabled>
   </channellist>
 </atlas>

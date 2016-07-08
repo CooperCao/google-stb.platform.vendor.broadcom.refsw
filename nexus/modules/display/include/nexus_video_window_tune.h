@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2010 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
  **************************************************************************/
 #ifndef NEXUS_VIDEO_WINDOW_TUNE_H__
 #define NEXUS_VIDEO_WINDOW_TUNE_H__
@@ -48,29 +47,10 @@ extern "C" {
 
 /* deprecated and unused */
 
-NEXUS_Error NEXUS_VideoWindow_SetTuneParams(
-    NEXUS_VideoWindowHandle display,
-    const uint32_t * aFields, /* attr{nelem=num} parameter ids */
-    const uint32_t * aValues, /* attr{nelem=num} values */
-    int num /* count of params */
-    );
-
-NEXUS_Error NEXUS_VideoWindow_GetTuneParams(
-    NEXUS_VideoWindowHandle display,
-    const uint32_t * aFields, /* attr{nelem=num} parameter ids */
-    uint32_t * aValues, /* attr{nelem=num} [out] values */
-    int num /* count of params */
-    );
-
-NEXUS_Error NEXUS_VideoWindow_ResetTuneParams(
-    NEXUS_VideoWindowHandle window,
-    const uint32_t * aFields, /* attr{nelem=num} parameter ids */
-    int num /* count of params */
-    );
-
-NEXUS_Error NEXUS_VideoWindow_ResetAllTuneParams(
-    NEXUS_VideoWindowHandle window
-    );
+#define NEXUS_VideoWindow_SetTuneParams(display,aFields,aValues,num) NEXUS_NOT_SUPPORTED
+#define NEXUS_VideoWindow_GetTuneParams(display,aFields,aValues,num) NEXUS_NOT_SUPPORTED
+#define NEXUS_VideoWindow_ResetTuneParams(display,aFields,num) NEXUS_NOT_SUPPORTED
+#define NEXUS_VideoWindow_ResetAllTuneParams(window) NEXUS_NOT_SUPPORTED
 
 #ifdef __cplusplus
 }

@@ -44,7 +44,7 @@
 #include "bsagelib.h"
 #include "bsagelib_client.h"
 #include "bsagelib_rai.h"
-#include "bsagelib_shared_types.h"
+#include "priv/bsagelib_shared_types.h"
 #include "bsagelib_priv.h"
 
 #include "bhsm_keyladder.h"
@@ -63,7 +63,6 @@ static BSAGElib_eStandbyMode _currentMode = BSAGElib_eStandbyModeOn;
 static uint32_t _suspendAddr = BSAGElib_GlobalSram_GetRegister(BSAGElib_GlobalSram_eSuspend);
 
 /* Local functions */
-static BERR_Code BSAGElib_P_Standby_PMCommand(BSAGElib_ClientHandle hSAGElibClient, BSAGElib_InOutContainer *container);
 static BERR_Code BSAGElib_P_Standby_S2(BSAGElib_ClientHandle hSAGElibClient, bool enter);
 static BERR_Code BSAGElib_P_Standby_S3(BSAGElib_ClientHandle hSAGElibClient, bool enter);
 
@@ -74,49 +73,6 @@ BSAGElib_P_Standby_Reset_isrsafe(void)
     _currentMode = BSAGElib_eStandbyModeOn;
 }
 
-/* This private function is in charge of sending the PM command to SAGE
- * - add a remote
- * - prepare command
- * - send command
- * - cleanup remote */
-static BERR_Code
-BSAGElib_P_Standby_PMCommand(
-    BSAGElib_ClientHandle hSAGElibClient,
-    BSAGElib_InOutContainer *container)
-{
-    BERR_Code rc = BERR_SUCCESS;
-    BSAGElib_RpcCommand SAGElib_command;
-    BSAGElib_Handle hSAGElib = hSAGElibClient->hSAGElib;
-    BSAGElib_RpcRemoteHandle hRemote = hSAGElibClient->hSAGElib->hStandbyRemote;
-
-    BKNI_Memset(&SAGElib_command, 0, sizeof(SAGElib_command));
-    SAGElib_command.systemCommandId = BSAGElib_SystemCommandId_ePowerManagement;
-
-    if (container) {
-        SAGElib_command.containerOffset =
-            BSAGElib_Tools_ContainerAddressToOffset(container,
-                                                    &hSAGElib->i_memory_sync_isrsafe,
-                                                    &hSAGElib->i_memory_map);
-        if (!SAGElib_command.containerOffset) {
-            BDBG_ERR(("%s: Cannot convert container address %p to offset",
-                      __FUNCTION__, container));
-            rc = BERR_INVALID_PARAMETER;
-            goto end;
-        }
-    }
-
-    rc = BSAGElib_Rpc_SendCommand(hRemote, &SAGElib_command, NULL);
-    if (rc != BERR_SUCCESS) {
-        BDBG_ERR(("%s: BSAGElib_Rpc_SendCommand() failure %u", __FUNCTION__, rc));
-        rc = BERR_INVALID_PARAMETER;
-        BSAGElib_Rpc_RemoveRemote(hRemote);
-        goto end;
-    }
-
-end:
-    return rc;
-}
-
 /* Handles S2 transitions (in and out) */
 static BERR_Code
 BSAGElib_P_Standby_S2(
@@ -125,40 +81,77 @@ BSAGElib_P_Standby_S2(
 {
     BERR_Code rc = BERR_SUCCESS;
     BSAGElib_Handle hSAGElib = hSAGElibClient->hSAGElib;
+    BSAGElib_InOutContainer *container = NULL;
+    BSAGElib_RpcCommand command;
     BSAGElib_RpcRemoteHandle hRemote = NULL;
+    uint32_t suspendRegValue;
 
     if (enter) {
         BDBG_MSG(("%s/enter: S2 'passive sleep'", __FUNCTION__));
-        hRemote = BSAGElib_Rpc_AddRemote(hSAGElibClient, BSAGElib_eStandbyModePassive, 0, NULL);
+
+        hRemote = BSAGElib_Rpc_AddRemote(hSAGElibClient,
+                                         BSAGE_PLATFORM_ID_SYSTEM_CRIT,
+                                         SystemCrit_ModuleId_eFramework, NULL);
         if (!hRemote) {
             BDBG_ERR(("%s: cannot add remote", __FUNCTION__));
             rc = BERR_INVALID_PARAMETER;
             goto end;
         }
 
-        /* save the remote; will be cleared when leaving S2 */
-        hSAGElib->hStandbyRemote = hRemote;
-        hRemote = NULL;
-
-        BREG_Write32(hSAGElib->core_handles.hReg, _suspendAddr, SAGE_SUSPENDVAL_SLEEP);
-        rc = BSAGElib_P_Standby_PMCommand(hSAGElibClient, NULL);
-        if (rc != BERR_SUCCESS) {
-            BDBG_ERR(("%s/enter: failed to send Standby PM Command", __FUNCTION__));
-            BSAGElib_Rpc_RemoveRemote(hSAGElib->hStandbyRemote);
-            hSAGElib->hStandbyRemote = NULL;
+        container = BSAGElib_Rai_Container_Allocate(hSAGElibClient);
+        if(container == NULL) {
+            rc = BERR_OUT_OF_DEVICE_MEMORY;
+            BDBG_ERR(("%s/enter: BSAGElib_Rai_Container_Allocate() failure", __FUNCTION__));
             goto end;
         }
+
+        BDBG_MSG(("%s/enter: S2 'passive sleep' before write %x", __FUNCTION__, BREG_Read32(hSAGElib->core_handles.hReg, _suspendAddr)));
+        BREG_Write32(hSAGElib->core_handles.hReg, _suspendAddr, SAGE_SUSPENDVAL_SLEEP);
+        BDBG_MSG(("%s/enter: S2 'passive sleep' after write %x", __FUNCTION__, BREG_Read32(hSAGElib->core_handles.hReg, _suspendAddr)));
+
+        container->basicIn[1] = FrameworkModule_CommandId_eStandbyPassive;
+
+        command.containerOffset = BSAGElib_Tools_ContainerAddressToOffset(container,
+                                                                      &hSAGElib->i_memory_sync_isrsafe,
+                                                                      &hSAGElib->i_memory_map);
+        command.containerVAddr = container;
+        command.moduleCommandId = 0;
+        command.systemCommandId = BSAGElib_SystemCommandId_eModuleInit;
+
+        rc = BSAGElib_Rpc_SendCommand(hRemote, &command, NULL);
+        if (rc != BERR_SUCCESS) {
+            BSAGElib_Rpc_RemoveRemote(hRemote);
+            BDBG_ERR(("%s: BSAGElib_Rpc_SendCommand (%u)", __FUNCTION__, rc));
+            goto end;
+        }
+
     }
     else {
-        BDBG_MSG(("%s/leave: S2 'passive sleep'", __FUNCTION__));
+        suspendRegValue = BREG_Read32(hSAGElib->core_handles.hReg, _suspendAddr);
+        BDBG_MSG(("%s/leave: S2 'passive sleep' %x", __FUNCTION__, suspendRegValue));
+
+        if(suspendRegValue == SAGE_SUSPENDVAL_SLEEP){
+            BDBG_MSG(("%s/leave: Command sent, waiting for SAGE to be ready for S2", __FUNCTION__));
+            while (BREG_Read32(hSAGElib->core_handles.hReg, _suspendAddr) != SAGE_SUSPENDVAL_S2READY) {
+                BKNI_Sleep(1);
+            }
+        }
         BREG_Write32(hSAGElib->core_handles.hReg, _suspendAddr, SAGE_SUSPENDVAL_RESUME);
     }
 
 end:
+
+    if(container){
+        BSAGElib_Rai_Container_Free(hSAGElibClient,container);
+    }
+
+    if(hRemote){
+        BSAGElib_Rpc_RemoveRemote(hRemote);
+    }
     return rc;
 }
 
-/* Handles S2 transitions (in and out) */
+/* Handles S3 transitions (in and out) */
 static BERR_Code
 BSAGElib_P_Standby_S3(
     BSAGElib_ClientHandle hSAGElibClient,
@@ -169,22 +162,19 @@ BSAGElib_P_Standby_S3(
     BSAGElib_InOutContainer *container = NULL;
     BHSM_M2MKeySlotIO_t M2MKeySlotIO;
     bool allocatedKeyslot = false;
-    uint8_t *pMemoryBlock = NULL; /* need to go through a temporary variable for proper cleanup */
+    BSAGElib_RpcCommand command;
     BSAGElib_RpcRemoteHandle hRemote = NULL;
 
     if (enter) {
-
-        hRemote = BSAGElib_Rpc_AddRemote(hSAGElibClient, BSAGElib_eStandbyModeDeepSleep, 0, NULL);
+        BDBG_MSG(("%s/enter: S3 'deep sleep'", __FUNCTION__));
+        hRemote = BSAGElib_Rpc_AddRemote(hSAGElibClient,
+                                         BSAGE_PLATFORM_ID_SYSTEM_CRIT,
+                                         SystemCrit_ModuleId_eFramework, NULL);
         if (!hRemote) {
             BDBG_ERR(("%s: cannot add remote", __FUNCTION__));
             rc = BERR_INVALID_PARAMETER;
             goto end;
         }
-
-        hSAGElib->hStandbyRemote = hRemote;
-        hRemote = NULL;
-
-        BDBG_MSG(("%s/enter: S3 'deep sleep'", __FUNCTION__));
 
         container = BSAGElib_Rai_Container_Allocate(hSAGElibClient);
         if(container == NULL) {
@@ -215,20 +205,20 @@ BSAGElib_P_Standby_S3(
 
         /* Send the PM command to SAGE, associated the keyslot num and a memory block from CRR */
         container->basicIn[0] = M2MKeySlotIO.keySlotNum;
-        container->blocks[0].len = 1024;
-        pMemoryBlock = BSAGElib_Rai_Memory_Allocate(hSAGElibClient,
-                                                    container->blocks[0].len,
-                                                    BSAGElib_MemoryType_Restricted);
-        if (!pMemoryBlock) {
-            BDBG_ERR(("%s/enter: cannot allocate memory block for S3", __FUNCTION__));
-            rc = BERR_OUT_OF_DEVICE_MEMORY;
-            goto end;
-        }
-        container->blocks[0].data.ptr = pMemoryBlock;
+        container->basicIn[1] = FrameworkModule_CommandId_eStandbyDeepSleep;
 
-        rc = BSAGElib_P_Standby_PMCommand(hSAGElibClient, container);
+
+        command.containerOffset = BSAGElib_Tools_ContainerAddressToOffset(container,
+                                                                      &hSAGElib->i_memory_sync_isrsafe,
+                                                                      &hSAGElib->i_memory_map);
+        command.containerVAddr = container;
+        command.moduleCommandId = 0;
+        command.systemCommandId = BSAGElib_SystemCommandId_eModuleInit;
+
+        rc = BSAGElib_Rpc_SendCommand(hRemote, &command, NULL);
         if (rc != BERR_SUCCESS) {
-            BDBG_ERR(("%s/enter: failed to send Standby PM Command", __FUNCTION__));
+            BSAGElib_Rpc_RemoveRemote(hRemote);
+            BDBG_ERR(("%s: BSAGElib_Rpc_SendCommand (%u)", __FUNCTION__, rc));
             goto end;
         }
 
@@ -266,13 +256,14 @@ end:
             BDBG_WRN(("%s/enter: Cannot Free M2M keyslot, proceed", __FUNCTION__));
         }
     }
-    if (pMemoryBlock) {
-        BSAGElib_Rai_Memory_Free(hSAGElibClient, pMemoryBlock);
-    }
     if (container) {
         container->blocks[0].data.ptr = NULL;
         BSAGElib_Rai_Container_Free(hSAGElibClient, container);
     }
+    if(hRemote){
+        BSAGElib_Rpc_RemoveRemote(hRemote);
+    }
+
     return rc;
 }
 
@@ -294,6 +285,8 @@ BSAGElib_Standby(
     BDBG_ENTER(BSAGElib_Standby);
 
     BDBG_OBJECT_ASSERT(hSAGElibClient, BSAGElib_P_Client);
+
+    BDBG_MSG(("%s currentMode %d Mode %d",__FUNCTION__,_currentMode, mode));
 
     if((_currentMode != BSAGElib_eStandbyModeOn)&&(mode == BSAGElib_eStandbyModeOn))
     {

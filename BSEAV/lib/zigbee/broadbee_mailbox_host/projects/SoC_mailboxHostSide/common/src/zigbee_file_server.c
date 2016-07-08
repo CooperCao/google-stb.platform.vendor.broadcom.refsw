@@ -57,16 +57,22 @@ static char org_filename[256];
 static char tmp_filename[256];
 static char dirname[256];
 
+static int (*open_func)(const char *path, int oflag, ... );
+static int (*close_func)(int fildes);
+static ssize_t (*write_func)(int fildes, const void *buf, size_t nbyte);
+static ssize_t (*read_func)(int fildes, void *buf, size_t nbyte);
+static off_t (*lseek_func)(int fd, off_t offset, int whence);
+
 //#define FILE_TEST
 
 static void copyfile(int dst_fd, int src_fd)
 {
     char buf[8192];
     while (1) {
-        ssize_t result = read(src_fd, &buf[0], sizeof(buf));
+        ssize_t result = read_func(src_fd, &buf[0], sizeof(buf));
         if (!result) break;
         assert(result > 0);
-        assert(write(dst_fd, &buf[0], result) == result);
+        assert(write_func(dst_fd, &buf[0], result) == result);
     }
 }
 
@@ -89,23 +95,23 @@ void NVM_ReadFileInd( NVM_ReadFileIndDescr_t *readFileFromHostParam)
         goto read_file_error;
     }
 
-    sprintf(filename, "/etc/zigbee/dat%d.bin", readFileFromHostParam->params.fileIndex);
+    sprintf(filename, "/data/zigbee/dat%d.bin", readFileFromHostParam->params.fileIndex);
     //returnData.payload.size = 0;
 
-    if ((fd = open(filename, O_CREAT | O_RDONLY /*O_WRONLY*/)) == -1) {
+    if ((fd = open_func(filename, O_CREAT | O_RDONLY /*O_WRONLY*/)) == -1) {
         returnData.status = NVM_ACCESS_DENIED;
         printf("NVM_ReadFileInd:  error opening file... errno=%d\n", errno);
         goto read_file_error;
     }
 
-    if ((ret = lseek(fd, readFileFromHostParam->params.address, SEEK_SET)) == -1) {
+    if ((ret = lseek_func(fd, readFileFromHostParam->params.address, SEEK_SET)) == -1) {
         returnData.status = NVM_DATA_NOT_AVAILABLE;
         printf("NVM_ReadFileInd:  error lseek... errno=%d\n", errno);
         goto read_file_error_after_open;
     }
 
     pData = calloc(sizeof(char), readFileFromHostParam->params.length);
-    if ((ret = read(fd, pData, readFileFromHostParam->params.length)) != readFileFromHostParam->params.length) {
+    if ((ret = read_func(fd, pData, readFileFromHostParam->params.length)) != readFileFromHostParam->params.length) {
         returnData.status = NVM_DATA_NOT_AVAILABLE;
         printf("NVM_ReadFileInd:  error reading file... errno=%d, %s, buff=%p\n", errno, strerror(errno), pData);
         goto read_file_error_after_open;
@@ -121,7 +127,7 @@ read_file_error_after_open:
     if (fdatasync(fd)) {
         printf("fdatasync not successful\n");
     }
-    if (close(fd) == -1) {
+    if (close_func(fd) == -1) {
         printf("NVM_ReadFileInd:  error closing file... errno=%d\n", errno);
     }
 read_file_error:
@@ -242,12 +248,44 @@ void file_test(void)
 }
 #endif
 
-void Zigbee_NVM_Init()
+void Zigbee_NVM_Init(
+    int (*open_func_user)(const char *path, int oflag, ... ),
+    int (*close_func_user)(int fildes),
+    ssize_t (*write_func_user)(int fildes, const void *buf, size_t nbyte),
+    ssize_t (*read_func_user)(int fildes, void *buf, size_t nbyte),
+    off_t (*lseek_func_user)(int fd, off_t offset, int whence)
+    )
 {
     open_fd = -1;
     open_dir_fd = (DIR *)(-1);
-    sprintf(dirname, "/etc/zigbee");
+    sprintf(dirname, "/data/zigbee");
     open_dir_fd = opendir(dirname);
+
+    if (open_func_user) {
+        open_func = open_func_user;
+    } else {
+        open_func = open;
+    }
+    if (close_func_user) {
+        close_func = close_func_user;
+    } else {
+        close_func = close;
+    }
+    if (write_func_user) {
+        write_func = write_func_user;
+    } else {
+        write_func = write;
+    }
+    if (read_func_user) {
+        read_func = read_func_user;
+    } else {
+        read_func = read;
+    }
+    if (lseek_func_user) {
+        lseek_func = lseek_func_user;
+    } else {
+        lseek_func = lseek;
+    }
 
 #ifdef FILE_TEST
     file_test();    /* Do some file test */
@@ -272,7 +310,7 @@ void NVM_OpenFileInd( NVM_OpenFileIndDescr_t *openFileIndDescr)
         if (fdatasync(open_fd)) {
             printf("fdatasync not successful\n");
         }
-        close(open_fd);
+        close_func(open_fd);
         open_fd = -1;
     }
 
@@ -281,25 +319,25 @@ void NVM_OpenFileInd( NVM_OpenFileIndDescr_t *openFileIndDescr)
         goto open_file_error;
     }
 
-    sprintf(org_filename, "/etc/zigbee/dat%d.bin", openFileIndDescr->params.fileIndex);
-    sprintf(tmp_filename, "/etc/zigbee/dat%d.bin.tmp", openFileIndDescr->params.fileIndex);
+    sprintf(org_filename, "/data/zigbee/dat%d.bin", openFileIndDescr->params.fileIndex);
+    sprintf(tmp_filename, "/data/zigbee/dat%d.bin.tmp", openFileIndDescr->params.fileIndex);
 
-    if ((org_fd = open(org_filename, O_RDONLY)) == -1) {
+    if ((org_fd = open_func(org_filename, O_RDONLY)) == -1) {
         /* File does not already exist. */
-        if ((tmp_fd = open(tmp_filename, O_CREAT | O_WRONLY)) == -1) {
+        if ((tmp_fd = open_func(tmp_filename, O_CREAT | O_WRONLY)) == -1) {
             printf("NVM_OpenFileInd:  error opening file %s... errno=%d, %s\n", tmp_filename, errno, strerror(errno));
             returnData.status = BROADBEE_ACCESS_DENIED;
             goto open_file_error;
         }
     } else {
-        if ((tmp_fd = open(tmp_filename, O_CREAT | O_WRONLY)) != -1) {
+        if ((tmp_fd = open_func(tmp_filename, O_CREAT | O_WRONLY)) != -1) {
             copyfile(tmp_fd, org_fd);
 
             /* Close original file */
             if (fdatasync(org_fd)) {
                 printf("fdatasync not successful\n");
             }
-            if (close(org_fd) == -1) {
+            if (close_func(org_fd) == -1) {
                 printf("NVM_OpenFileInd:  error closing file... errno=%d\n", errno);
                 //returnData.status = BROADBEE_ACCESS_DENIED;
             }
@@ -330,12 +368,12 @@ void NVM_CloseFileInd( NVM_CloseFileIndDescr_t *closeFileIndDescr)
         goto close_file_error;
     }
 
-    //sprintf(filename, "/etc/zigbee/dat%d.bin", openFileIndDescr->params.id);
+    //sprintf(filename, "/data/zigbee/dat%d.bin", openFileIndDescr->params.id);
 
     if (fdatasync(open_fd)) {
         printf("fdatasync not successful\n");
     }
-    if (close(open_fd) == -1) {
+    if (close_func(open_fd) == -1) {
         printf("NVM_CloseFileInd:  error closing file... errno=%d\n", errno);
         returnData.status = BROADBEE_ACCESS_DENIED;
         goto close_file_error;
@@ -439,8 +477,8 @@ void NVM_WriteFileInd( NVM_WriteFileIndDescr_t *writeFileToHostParam)
         goto write_file_error;
     }
 
-    sprintf(org_filename, "/etc/zigbee/dat%d.bin", writeFileToHostParam->params.fileIndex);
-    sprintf(tmp_filename, "/etc/zigbee/dat%d.bin.tmp", writeFileToHostParam->params.fileIndex);
+    sprintf(org_filename, "/data/zigbee/dat%d.bin", writeFileToHostParam->params.fileIndex);
+    sprintf(tmp_filename, "/data/zigbee/dat%d.bin.tmp", writeFileToHostParam->params.fileIndex);
 
     /*
        To ensure no data integrity issue with file, during possible power-loss in the middle of update:
@@ -454,22 +492,22 @@ void NVM_WriteFileInd( NVM_WriteFileIndDescr_t *writeFileToHostParam)
     */
 
     if (open_fd == -1) {
-        if ((org_fd = open(org_filename, O_RDONLY)) == -1) {
+        if ((org_fd = open_func(org_filename, O_RDONLY)) == -1) {
             /* File does not already exist. */
-            if ((tmp_fd = open(tmp_filename, O_CREAT | O_WRONLY)) == -1) {
+            if ((tmp_fd = open_func(tmp_filename, O_CREAT | O_WRONLY)) == -1) {
                 printf("NVM_WriteFileInd:  error opening file %s... errno=%d, %s\n", tmp_filename, errno, strerror(errno));
                 returnData.status = BROADBEE_ACCESS_DENIED;
                 goto write_file_error;
             }
         } else {
-            if ((tmp_fd = open(tmp_filename, O_CREAT | O_WRONLY)) != -1) {
+            if ((tmp_fd = open_func(tmp_filename, O_CREAT | O_WRONLY)) != -1) {
                 copyfile(tmp_fd, org_fd);
 
                 /* Close original file */
                 if (fdatasync(org_fd)) {
                     printf("fdatasync not successful\n");
                 }
-                if (close(org_fd) == -1) {
+                if (close_func(org_fd) == -1) {
                     printf("NVM_WriteFileInd:  error closing file... errno=%d\n", errno);
                     //returnData.status = BROADBEE_ACCESS_DENIED;
                 }
@@ -482,7 +520,7 @@ void NVM_WriteFileInd( NVM_WriteFileIndDescr_t *writeFileToHostParam)
         tmp_fd = open_fd;
     }
 
-    if ((ret = lseek(tmp_fd, writeFileToHostParam->params.address, SEEK_SET)) == -1) {
+    if ((ret = lseek_func(tmp_fd, writeFileToHostParam->params.address, SEEK_SET)) == -1) {
         printf("NVM_WriteFileInd:  error lseek... errno=%d\n", errno);
         returnData.status = BROADBEE_ACCESS_DENIED;
         goto write_file_error_after_open;
@@ -490,7 +528,7 @@ void NVM_WriteFileInd( NVM_WriteFileIndDescr_t *writeFileToHostParam)
     int length = SYS_GetPayloadSize(&writeFileToHostParam->params.payload);
     pData = calloc(sizeof(char), length);
     SYS_CopyFromPayload(pData, &writeFileToHostParam->params.payload, 0, length);
-    if ((ret = write(tmp_fd, pData, length)) == -1) {
+    if ((ret = write_func(tmp_fd, pData, length)) == -1) {
         printf("NVM_WriteFileInd:  error writing file fd=%d... errno=%d, %s\n", tmp_fd, errno, strerror(errno));
         returnData.status = BROADBEE_ACCESS_DENIED;
         goto write_file_error_after_open;
@@ -500,12 +538,12 @@ void NVM_WriteFileInd( NVM_WriteFileIndDescr_t *writeFileToHostParam)
     if(writeFileToHostParam->params.fileIndex == CC_PROFILE_ID){
         dumpOutTestResult(pData, length);
         int appendFileFd = -1;
-        if ((appendFileFd = open("/etc/zigbee/datDirecTVReports.bin", O_WRONLY | O_CREAT | O_APPEND)) != -1) {
-            write(appendFileFd, pData, length);
+        if ((appendFileFd = open_func("/data/zigbee/datDirecTVReports.bin", O_WRONLY | O_CREAT | O_APPEND)) != -1) {
+            write_func(appendFileFd, pData, length);
             if (fdatasync(appendFileFd)) {
                 printf("fdatasync not successful\n");
             }
-            close(appendFileFd);
+            close_func(appendFileFd);
         }
     }
 #endif
@@ -516,7 +554,7 @@ write_file_error_after_open:
         if (fdatasync(tmp_fd)) {
             printf("fdatasync not successful\n");
         }
-        if (close(tmp_fd) == -1) {
+        if (close_func(tmp_fd) == -1) {
             printf("NVM_WriteFileInd:  error closing file... errno=%d\n", errno);
             returnData.status = BROADBEE_ACCESS_DENIED;
         }

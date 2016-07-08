@@ -1,12 +1,43 @@
-/***************************************************************************
- *     Copyright (c) 2005-2014, Broadcom Corporation
- *     All Rights Reserved
- *     Highly Confidential Property of Broadcom Corporation
- *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
- ***************************************************************************/
+/******************************************************************************
+* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*
+* This program is the proprietary software of Broadcom and/or its
+* licensors, and may only be used, duplicated, modified or distributed pursuant
+* to the terms and conditions of a separate, written license agreement executed
+* between you and Broadcom (an "Authorized License").  Except as set forth in
+* an Authorized License, Broadcom grants no license (express or implied), right
+* to use, or waiver of any kind with respect to the Software, and Broadcom
+* expressly reserves all rights in and to the Software and all intellectual
+* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*
+* Except as expressly set forth in the Authorized License,
+*
+* 1. This program, including its structure, sequence and organization,
+*    constitutes the valuable trade secrets of Broadcom, and you shall use all
+*    reasonable efforts to protect the confidentiality thereof, and to use
+*    this information only in connection with your use of Broadcom integrated
+*    circuit products.
+*
+* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+*
+* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. , WHICHEVER
+*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+******************************************************************************/
 
 #ifndef BSP_S_KEYCOMMON_H__
 #define BSP_S_KEYCOMMON_H__
@@ -296,7 +327,9 @@ typedef enum BCMD_KeyLadderType_e
     BCMD_KeyLadderType_e1DES = 0,
     BCMD_KeyLadderType_e3DESABA = 1,
     BCMD_KeyLadderType_eAES128 = 2,
-    BCMD_KeyLadderType_eMax = 3
+
+    BCMD_KeyLadderType_eReserved3 = 3,
+    BCMD_KeyLadderType_eMax = 4
 }BCMD_KeyLadderType_e;
 typedef enum BCMD_KeyLadderOp_e
 {
@@ -479,6 +512,11 @@ typedef enum BCMD_KeyPointer_InCmdCfg_e
     BCMD_KeyPointer_InCmdCfg_eMax
 }BCMD_KeyPointer_InCmdCfg_e;
 
+typedef enum BCMD_KeyPointer_OutCmdField_e
+{
+    BCMD_KeyPointer_OutCmdField_eStatus = (5 << 2) + 3,
+    BCMD_KeyPointer_OutCmdField_eMax
+}BCMD_KeyPointer_OutCmdField_e;
 
 typedef enum BCMD_InCmdCfgMulti2_e
 {
@@ -487,6 +525,12 @@ typedef enum BCMD_InCmdCfgMulti2_e
     BCMD_Multi2_InCmdCfg_eWhichSysKey = (14 << 2) + 3,
     BCMD_Multi2_InCmdCfg_eMax
 }BCMD_InCmdCfgMulti2_e;
+
+typedef enum BCMD_Multi2_OutCmdField_e
+{
+    BCMD_Multi2_OutCmdField_eStatus = (5 << 2) + 3,
+    BCMD_Multi2_OutCmdField_eMax
+}BCMD_Multi2_OutCmdField_e;
 
 
 typedef enum BCMD_GenKey_InCmd_e
@@ -536,6 +580,7 @@ typedef enum BCMD_GenKey_InCmd_e
     BCMD_GenKey_InCmd_eCtrlWord4 = (35 << 2),
     BCMD_GenKey_InCmd_eCtrlWord5 = (36 << 2),
     BCMD_GenKey_InCmd_eSTBOwnerIDSel = (37 << 2) + 3,
+	BCMD_GenKey_InCmd_eCAVendorIDExtension = (38 << 2) + 1,
     BCMD_GenKey_InCmd_eCAVendorID = (38 << 2) + 2,
     BCMD_GenKey_InCmd_eTestKeySel = (39 << 2) + 2,
     BCMD_GenKey_InCmd_eModuleID = (39 << 2) + 3,
@@ -657,6 +702,12 @@ typedef enum BCMD_LoadUseKey_InCmd_e
     BCMD_LoadUseKey_InCmd_eMax
 }BCMD_LoadUseKey_InCmd_e;
 
+typedef enum BCMD_LoadUseKey_OutCmdField_e
+{
+    BCMD_LoadUseKey_OutCmdField_eStatus = (5 << 2) + 3,
+    BCMD_LoadUseKey_OutCmdField_eMax
+}BCMD_LoadUseKey_OutCmdField_e;
+
 typedef enum BCMD_InvalidateKey_InCmd_e
 {
     BCMD_InvalidateKey_InCmd_eKeyFlag = (5 << 2) + 3,
@@ -673,6 +724,13 @@ typedef enum BCMD_InvalidateKey_InCmd_e
     BCMD_InvalidateKey_InCmd_eKeySlotNumber = (10 << 2) + 3,
     BCMD_InvalidateKey_InCmd_eMax
 }BCMD_InvalidateKey_InCmd_e;
+
+typedef enum BCMD_InvalidateKey_OutCmdField_e
+{
+    BCMD_InvalidateKey_OutCmdField_eStatus = (5 << 2) + 3,
+    BCMD_InvalidateKey_OutCmdField_eMax
+}BCMD_InvalidateKey_OutCmdField_e;
+
 
 
 typedef enum BCMD_AllocateKeySlot_InCmd_e

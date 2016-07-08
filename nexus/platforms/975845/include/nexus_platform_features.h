@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2015 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * Module Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 #ifndef NEXUS_PLATFORM_FEATURES_H__
@@ -74,12 +66,15 @@
 
 #define NEXUS_NUM_I2S_INPUTS 1
 #define NEXUS_NUM_I2S_OUTPUTS 1
-#define NEXUS_NUM_AUDIO_CAPTURE_CHANNELS 1
-#define NEXUS_NUM_AUDIO_CAPTURES 1
 #define NEXUS_NUM_AUDIO_PLAYBACKS 2
 #define NEXUS_NUM_AUDIO_INPUT_CAPTURES 2
 
 #define NEXUS_HAS_AUDIO_MUX_OUTPUT 1
+
+#ifdef NEXUS_NUM_AUDIO_CRCS
+#undef NEXUS_NUM_AUDIO_CRCS
+#define NEXUS_NUM_AUDIO_CRCS 0
+#endif
 
 /* Display Features */
 #define NEXUS_NUM_656_OUTPUTS 2
@@ -129,8 +124,8 @@ upon the chip usage. See below */
 #define NEXUS_MEMC0_PICTURE_BUFFER_HEAP 2
 #define NEXUS_MEMC0_GRAPHICS_HEAP       1
 
-#define NEXUS_SAGE_SECURE_HEAP 			3 /* optional secure heaps, can be left undefined if not used */
-#define NEXUS_VIDEO_SECURE_HEAP 		4
+#define NEXUS_SAGE_SECURE_HEAP          3 /* optional secure heaps, can be left undefined if not used */
+#define NEXUS_VIDEO_SECURE_HEAP         4
 #define NEXUS_PLATFORM_P_GET_FRAMEBUFFER_HEAP_INDEX 1
 
 /* Use memory beyond 256M */

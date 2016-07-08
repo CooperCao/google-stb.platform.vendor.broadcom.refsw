@@ -1,54 +1,43 @@
-/***************************************************************************
-*     (c)2004-2014 Broadcom Corporation
-*
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
-*  and may only be used, duplicated, modified or distributed pursuant to the terms and
-*  conditions of a separate, written license agreement executed between you and Broadcom
-*  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-*  no license (express or implied), right to use, or waiver of any kind with respect to the
-*  Software, and Broadcom expressly reserves all rights in and to the Software and all
-*  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-*  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-*  Except as expressly set forth in the Authorized License,
-*
-*  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-*  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-*  and to use this information only in connection with your use of Broadcom integrated circuit products.
-*
-*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-*  USE OR PERFORMANCE OF THE SOFTWARE.
-*
-*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-*  ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* API Description:
-*   API name: Platform linuxuser
-*    linuxuser OS routines
-*
-* Revision History:
-*
-* $brcm_Log: $
-*
-***************************************************************************/
-
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
+ *
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 #include "nexus_platform.h"
 #include "nexus_platform_priv.h"
 #include "bkni.h"
@@ -70,11 +59,17 @@
 #include <signal.h>
 #include "nexus_base_statistics.h"
 
+#if NEXUS_HAS_GPIO
+#include "nexus_platform_shared_gpio.h"
+#endif
+#include "nexus_platform_virtual_irq.h"
 
 #if !B_REFSW_SYSTEM_MODE_SERVER
 #include "nexus_platform_debug_log.h"
 #include "nexus_core_utils.h"
 #endif
+
+#define BDBG_TRACE_L2(x) /*BDBG_MSG(x)*/
 
 BDBG_MODULE(nexus_platform_os);
 BDBG_FILE_MODULE(nexus_statistics_isr);
@@ -126,6 +121,7 @@ typedef struct NEXUS_Platform_Os_State {
     int memFd;
     int memFdCached;
     pthread_mutex_t lockUpdate32;
+    int devZero;
 } NEXUS_Platform_Os_State;
 
 static NEXUS_Platform_Os_State g_NEXUS_Platform_Os_State;
@@ -569,6 +565,14 @@ void NEXUS_Platform_P_UninitOSMem(void)
     return;
 }
 
+static void NEXUS_Platform_P_InitSubmodules(void)
+{
+    NEXUS_Platform_P_InitVirtualIrqSubmodule();
+#if NEXUS_HAS_GPIO
+    NEXUS_Platform_P_InitSharedGpioSubmodule();
+#endif
+}
+
 NEXUS_Error NEXUS_Platform_P_InitOS(void)
 {
     int rc;
@@ -605,9 +609,11 @@ NEXUS_Error NEXUS_Platform_P_InitOS(void)
         rc = BERR_TRACE(BERR_OS_ERROR);
         goto err_bcmdriver_open;
     }
+    g_NEXUS_Platform_Os_State.devZero = -1;
 #if !B_REFSW_SYSTEM_MODE_CLIENT
     {
         struct bcmdriver_version get_version;
+        bcmdriver_os_config os_cfg;
         get_version.version = 0;
         rc = ioctl(g_NEXUS_driverFd, BRCM_IOCTL_GET_VERSION, &get_version);
         if (rc!=0 || get_version.version != BCMDRIVER_VERSION) {
@@ -615,6 +621,25 @@ NEXUS_Error NEXUS_Platform_P_InitOS(void)
             rc = BERR_TRACE(BERR_OS_ERROR);
 #if BCHP_CHIP != 11360
             return rc;
+#endif
+        }
+        rc = ioctl(g_NEXUS_driverFd, BRCM_IOCTL_GET_OS_CONFIG, &os_cfg);
+        if(rc==0) {
+#if !defined(NEXUS_CPU_ARM64)
+            if(os_cfg.os_64bit) {
+                void *addr;
+                size_t length = 128 * 1024 * 1024;
+                g_NEXUS_Platform_Os_State.devZero = open("/dev/zero", O_RDONLY);
+                if(g_NEXUS_Platform_Os_State.devZero == -1) {
+                    rc = BERR_TRACE(BERR_OS_ERROR);return rc;
+                }
+                addr = mmap64(0, length, PROT_NONE, MAP_PRIVATE, g_NEXUS_Platform_Os_State.devZero, 0);
+                if(addr==MAP_FAILED) {
+                    rc = BERR_TRACE(BERR_OS_ERROR);return rc;
+                }
+                g_NEXUS_P_CpuNotAccessibleRange.start = addr;
+                g_NEXUS_P_CpuNotAccessibleRange.length = length;
+            }
 #endif
         }
     }
@@ -643,6 +668,8 @@ NEXUS_Error NEXUS_Platform_P_InitOS(void)
         goto err_bcmdriver_setup;
     }
 #endif
+
+    NEXUS_Platform_P_InitSubmodules();
 
     /* Launch interrupt thread */
     pthread_attr_init(&threadAttr);
@@ -695,6 +722,14 @@ err_bcmdriver_open:
     return BERR_OS_ERROR;
 }
 
+static void NEXUS_Platform_P_UninitSubmodules(void)
+{
+#if NEXUS_HAS_GPIO
+    NEXUS_Platform_P_UninitSharedGpioSubmodule();
+#endif
+    NEXUS_Platform_P_UninitVirtualIrqSubmodule();
+}
+
 NEXUS_Error NEXUS_Platform_P_UninitOS(void)
 {
     NEXUS_Platform_Os_State *state = &g_NEXUS_Platform_Os_State;
@@ -704,6 +739,10 @@ NEXUS_Error NEXUS_Platform_P_UninitOS(void)
         NEXUS_Platform_P_UninitWakeupDriver();
     }
 #endif
+    if(g_NEXUS_Platform_Os_State.devZero>=0) {
+        close(g_NEXUS_Platform_Os_State.devZero);
+        g_NEXUS_Platform_Os_State.devZero = -1;
+    }
 
 #if !B_REFSW_SYSTEM_MODE_SERVER
     if(state->debugTimer) {
@@ -717,6 +756,8 @@ NEXUS_Error NEXUS_Platform_P_UninitOS(void)
     /* BRCM_IOCTL_CHANGE_REQUEST is needed to force BRCM_IOCTL_WAIT_FOR_INTERRUPTS to return immediately */
     NEXUS_Platform_P_InterruptUpdate_isrsafe();
     pthread_join(state->interruptThread, NULL);
+
+    NEXUS_Platform_P_UninitSubmodules();
 
     close(g_NEXUS_driverFd);
     NEXUS_Platform_P_DebugLog_Uninit(&state->debugLog);
@@ -1079,10 +1120,7 @@ int b_get_umdrv_fd(void)
 
 void NEXUS_Platform_P_Os_SystemUpdate32_isrsafe(const NEXUS_Core_PreInitState *preInitState, uint32_t reg, uint32_t mask, uint32_t value, bool systemRegister)
 {
-#if !NEXUS_CPU_ARM
-    systemRegister = true;
-#endif
-    if(systemRegister) {
+    if (systemRegister) {
         /* serialize magnum and the OS using an OS-specific lock */
         t_bcm_linux_dd_atomic_update data;
         int rc;
@@ -1352,3 +1390,13 @@ void NEXUS_Platform_P_UninitializeThermalMonitor(void)
     }
 #endif
 }
+
+#if NEXUS_HAS_GPIO
+#define NEXUS_PLATFORM_P_SHARED_GPIO_SUPPORTED() (NEXUS_Platform_P_SharedGpioSupported())
+#else
+#define NEXUS_PLATFORM_P_SHARED_GPIO_SUPPORTED() (false)
+#endif
+#include "nexus_platform_virtual_irq.inc"
+#if NEXUS_HAS_GPIO
+#include "nexus_platform_shared_gpio.inc"
+#endif

@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2014 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2014-2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,7 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 
 #include "nexus_platform.h"
@@ -441,7 +440,7 @@ int main(int argc, char **argv)
             uint32_t color = rand()|0xFF000000;
             unsigned x,y;
             for (y=0;y<createSettings.height;y++) {
-                uint32_t *ptr = (void*)((unsigned)mem.buffer + mem.pitch*y);
+                uint32_t *ptr = (void*)((uint8_t *)mem.buffer + mem.pitch*y);
                 for (x=0;x<createSettings.width;x++) {
                     ptr[x] = color;
                 }

@@ -1,7 +1,7 @@
 #############################################################################
-#    (c)2013 Broadcom Corporation
+#    Broadcom Proprietary and Confidential. (c)2013 Broadcom.  All rights reserved.
 #
-# This program is the proprietary software of Broadcom Corporation and/or its licensors,
+# This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
 # conditions of a separate, written license agreement executed between you and Broadcom
 # (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -81,14 +81,6 @@ ifeq ($(filter ${B_REFSW_ARCH}, mips-linux mips-uclibc mips-linux-uclibc), ${B_R
   CXXFLAGS += -DBSTD_CPU_ENDIAN=BSTD_ENDIAN_BIG
 else
   CXXFLAGS += -DBSTD_CPU_ENDIAN=BSTD_ENDIAN_LITTLE
-endif
-
-ifneq ($(filter ${B_REFSW_ARCH}, arm-linux), )
-ifeq ("$(GCCGTEQ_40800)", "1")
-  CXXFLAGS += -mcpu=cortex-a15 -mfloat-abi=hard -mfpu=neon
-else
-  CXXFLAGS += -march=armv7-a -mfloat-abi=softfp -mfpu=neon
-endif
 endif
 
 ifeq ($(NXCLIENT_SUPPORT),y)

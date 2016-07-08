@@ -1,7 +1,7 @@
 /******************************************************************************
- * (c) 2006-2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -37,7 +37,6 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 
 
@@ -221,7 +220,7 @@ BERR_Code BDSP_Raaga_P_PreLoadFwImages(const BIMG_Interface *pImageInterface,
         BDBG_ERR(("Used memory more than allocated memory.MemInfo size parameter might be corrupted.\
         Used till %p Allocated till %p -- exclusive", ptr, \
         (void *)((uint8_t *)ptrInit + ui32AllocatedSize)));
-        errCode = BERR_INVALID_PARAMETER;
+        errCode = BERR_TRACE(BERR_INVALID_PARAMETER);
         goto error;
     }
 

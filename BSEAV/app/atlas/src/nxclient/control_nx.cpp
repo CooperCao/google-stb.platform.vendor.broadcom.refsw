@@ -1,43 +1,39 @@
 /******************************************************************************
  * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 
 #include "nxclient.h"
@@ -45,6 +41,7 @@
 #include "output_nx.h"
 #include "video_decode_nx.h"
 #include "audio_decode_nx.h"
+#include "display_nx.h"
 
 BDBG_MODULE(atlas_control);
 
@@ -292,6 +289,7 @@ eRet CControlNx::swapPip()
 {
     CSimpleVideoDecodeNx *    pVideoDecodeMain = (CSimpleVideoDecodeNx *)_pModel->getSimpleVideoDecode(eWindowType_Main);
     CSimpleVideoDecodeNx *    pVideoDecodePip  = (CSimpleVideoDecodeNx *)_pModel->getSimpleVideoDecode(eWindowType_Pip);
+    CChannel *                pChannel         = (CChannel *)_pModel->getCurrentChannel();
     NxClient_ReconfigSettings reconfigSettings;
     eRet                      ret    = eRet_Ok;
     NEXUS_Error               nerror = NEXUS_SUCCESS;
@@ -308,6 +306,12 @@ eRet CControlNx::swapPip()
     if (false == _pModel->getPipEnabled())
     {
         BDBG_WRN(("PIP is disabled"));
+        goto error;
+    }
+
+    if (false == pChannel->isPipSwapSupported())
+    {
+        BDBG_WRN(("PIP swap is disabled by channel"));
         goto error;
     }
 
@@ -418,24 +422,28 @@ error:
 } /* setMute */
 
 eRet CControlNx::connectDecoders(
-    CSimpleVideoDecode * pVideoDecode,
-    CSimpleAudioDecode * pAudioDecode,
-    uint32_t             width,
-    uint32_t             height,
-    CPid *               pVideoPid,
-    eWindowType          winType)
+        CSimpleVideoDecode * pVideoDecode,
+        CSimpleAudioDecode * pAudioDecode,
+        uint32_t             width,
+        uint32_t             height,
+        CPid *               pVideoPid,
+        eWindowType          winType
+        )
 {
     eRet                     ret       = eRet_Ok;
     NEXUS_Error              nerror    = NEXUS_SUCCESS;
     unsigned                 connectId = 0;
     NxClient_ConnectSettings settings;
 
-    NxClient_GetDefaultConnectSettings(&settings);
-
     if (0 != _pModel->getConnectId(winType))
     {
-        BDBG_ERR(("connect id is invalid - possibly trying to connect more than once?!"));
+        BDBG_MSG(("ignore connectDecoders call for windowType:%d", winType));
+        return(ret);
     }
+
+    BDBG_MSG(("ACCEPT connectDecoders call for windowType:%d", winType));
+
+    NxClient_GetDefaultConnectSettings(&settings);
 
     /* call base class first */
     ret = CControl::connectDecoders(pVideoDecode, pAudioDecode, width, height, pVideoPid, winType);
@@ -443,17 +451,85 @@ eRet CControlNx::connectDecoders(
 
     if (NULL != pVideoDecode)
     {
-        ((CSimpleVideoDecodeNx *)pVideoDecode)->updateConnectSettings(&settings);
+        int index = 0;
+
+        if ((eWindowType_Mosaic1 <= winType) && (eWindowType_Max > winType))
+        {
+            CSimpleVideoDecode * pVideoDecodeMosaic1 = _pModel->getSimpleVideoDecode(eWindowType_Mosaic1);
+            CSimpleVideoDecode * pVideoDecodeMosaic2 = _pModel->getSimpleVideoDecode(eWindowType_Mosaic2);
+            CSimpleVideoDecode * pVideoDecodeMosaic3 = _pModel->getSimpleVideoDecode(eWindowType_Mosaic3);
+            CSimpleVideoDecode * pVideoDecodeMosaic4 = _pModel->getSimpleVideoDecode(eWindowType_Mosaic4);
+
+            /* disable closed caption routing in mosaic decoders */
+            {
+                CDisplayNx * pDisplayHD = (CDisplayNx *)_pModel->getDisplay(0);
+                CDisplayNx * pDisplaySD = (CDisplayNx *)_pModel->getDisplay(1);
+
+                if (NULL != pDisplayHD)
+                {
+                    CDisplayVbiData vbiData = pDisplayHD->getVbiSettings();
+                    vbiData.bClosedCaptions = false;
+                    ret = pDisplayHD->setVbiSettings(&vbiData);
+                    CHECK_ERROR_GOTO("unable set disable closed caption passthru for mosaic channel", ret, error);
+                }
+                if (NULL != pDisplaySD)
+                {
+                    CDisplayVbiData vbiData = pDisplaySD->getVbiSettings();
+                    vbiData.bClosedCaptions = false;
+                    ret = pDisplaySD->setVbiSettings(&vbiData);
+                    CHECK_ERROR_GOTO("unable set disable closed caption passthru for mosaic channel", ret, error);
+                }
+            }
+
+            if (NULL != pVideoDecodeMosaic1)
+            {
+                BDBG_MSG(("connecting MOSAIC1"));
+                ((CSimpleVideoDecodeNx *)pVideoDecodeMosaic1)->updateConnectSettings(&settings, index++);
+            }
+            if (NULL != pVideoDecodeMosaic2)
+            {
+                BDBG_MSG(("connecting MOSAIC2"));
+                ((CSimpleVideoDecodeNx *)pVideoDecodeMosaic2)->updateConnectSettings(&settings, index++);
+            }
+            if (NULL != pVideoDecodeMosaic3)
+            {
+                BDBG_MSG(("connecting MOSAIC3"));
+                ((CSimpleVideoDecodeNx *)pVideoDecodeMosaic3)->updateConnectSettings(&settings, index++);
+            }
+            if (NULL != pVideoDecodeMosaic4)
+            {
+                BDBG_MSG(("connecting MOSAIC4"));
+                ((CSimpleVideoDecodeNx *)pVideoDecodeMosaic4)->updateConnectSettings(&settings, index++);
+            }
+        }
+        else
+        {
+            BDBG_MSG(("connecting single video decoder"));
+            ((CSimpleVideoDecodeNx *)pVideoDecode)->updateConnectSettings(&settings, index++);
+        }
     }
-    if (NULL != pAudioDecode)
+    if (eWindowType_Mosaic1 > winType)
     {
-        ((CSimpleAudioDecodeNx *)pAudioDecode)->updateConnectSettings(&settings);
+        if (NULL != pAudioDecode)
+        {
+            ((CSimpleAudioDecodeNx *)pAudioDecode)->updateConnectSettings(&settings);
+        }
     }
 
     nerror = NxClient_Connect(&settings, &connectId);
-    CHECK_NEXUS_ERROR_GOTO("unable to connect to simple video decoder", nerror, ret, error);
+    CHECK_NEXUS_ERROR_GOTO("unable to connect to simple decoders", nerror, ret, error);
 
-    _pModel->setConnectId(connectId, winType);
+    if ((eWindowType_Mosaic1 <= winType) && (eWindowType_Max > winType))
+    {
+        _pModel->setConnectId(connectId, eWindowType_Mosaic1);
+        _pModel->setConnectId(connectId, eWindowType_Mosaic2);
+        _pModel->setConnectId(connectId, eWindowType_Mosaic3);
+        _pModel->setConnectId(connectId, eWindowType_Mosaic4);
+    }
+    else
+    {
+        _pModel->setConnectId(connectId, winType);
+    }
 
 error:
     return(ret);
@@ -461,11 +537,24 @@ error:
 
 void CControlNx::disconnectDecoders(eWindowType winType)
 {
-    if (0 == _pModel->getConnectId(winType))
+    uint32_t connectId = _pModel->getConnectId(winType);
+
+    if (0 == connectId)
     {
         return;
     }
 
-    NxClient_Disconnect(_pModel->getConnectId(winType));
-    _pModel->setConnectId(0, winType);
+    NxClient_Disconnect(connectId);
+
+    if ((eWindowType_Mosaic1 <= winType) && (eWindowType_Max > winType))
+    {
+        _pModel->setConnectId(0, eWindowType_Mosaic1);
+        _pModel->setConnectId(0, eWindowType_Mosaic2);
+        _pModel->setConnectId(0, eWindowType_Mosaic3);
+        _pModel->setConnectId(0, eWindowType_Mosaic4);
+    }
+    else
+    {
+        _pModel->setConnectId(0, winType);
+    }
 } /* disconnectDecoders() */

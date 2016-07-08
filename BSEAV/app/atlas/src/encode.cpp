@@ -1,7 +1,7 @@
-/***************************************************************************
- * (c) 2002-2015 Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -37,7 +37,6 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 
 #include "band.h"
@@ -75,7 +74,8 @@ CEncode::CEncode(
     _pStc(NULL),
     _pTranscodeStc(NULL),
     _pOutputAudioDummy(NULL),
-    _pPlaybackList(NULL)
+    _pPlaybackList(NULL),
+    _pModel(NULL)
 {
     /* Need to init */
 
@@ -130,11 +130,6 @@ void CEncode::simple_encoder_destroy(void)
 {
     unsigned i;
 
-    if (_encoderServerSettings.transcodeDisplay)
-    {
-        NEXUS_Display_Close(_encoderServerSettings.transcodeDisplay);
-        _encoderServerSettings.transcodeDisplay = NULL;
-    }
     if (_encoderServerSettings.audioMuxOutput)
     {
         NEXUS_AudioMuxOutput_Destroy(_encoderServerSettings.audioMuxOutput);
@@ -172,25 +167,24 @@ eRet CEncode::simple_encoder_create()
     unsigned                      i;
     eRet        ret    = eRet_Ok;
     NEXUS_Error nerror = NEXUS_SUCCESS;
+    NEXUS_VideoEncoderCapabilities cap;
 
     if (_encoder == NULL)
     {
-        _encoder = NEXUS_SimpleEncoder_Create(_number);
+        _encoder = NEXUS_SimpleEncoder_Create(_pModel->getSimpleEncoderServer(), _number);
         CHECK_PTR_ERROR_GOTO("cannot get encoder ", _encoder, ret, eRet_NotAvailable, error);
     }
 
-    NEXUS_SimpleEncoder_GetServerSettings(_encoder, &_encoderServerSettings);
+    NEXUS_SimpleEncoder_GetServerSettings(_pModel->getSimpleEncoderServer(), _encoder, &_encoderServerSettings);
 
     NEXUS_Display_GetDefaultSettings(&displaySettings);
 
     displaySettings.displayType     = NEXUS_DisplayType_eAuto;
     displaySettings.timingGenerator = NEXUS_DisplayTimingGenerator_eEncoder;
     displaySettings.frameRateMaster = NULL; /* disable frame rate tracking for now */
-    /* VICE0 maps to display 5 for 7435*/
-    BDBG_MSG(("Opening Display %d", NEXUS_ENCODER_DISPLAY_IDX - _number));
-    /* This does display 4 */
-    _encoderServerSettings.transcodeDisplay = NEXUS_Display_Open(NEXUS_ENCODER_DISPLAY_IDX - _number, &displaySettings);
-    CHECK_PTR_ERROR_GOTO("Cannot open Encoder Display ", _encoderServerSettings.transcodeDisplay, ret, eRet_NotAvailable, error);
+    NEXUS_GetVideoEncoderCapabilities(&cap);
+    _encoderServerSettings.transcodeDisplayIndex = cap.videoEncoder[_number].displayIndex;
+    BDBG_MSG(("Opening Display %d", _encoderServerSettings.transcodeDisplayIndex));
     /* window is opened internally */
 
 #if 0 /* DONOT */
@@ -247,7 +241,7 @@ eRet CEncode::simple_encoder_create()
 
     _encoderServerSettings.stcChannelTranscode = _pTranscodeStc->getStcChannel();
 
-    nerror = NEXUS_SimpleEncoder_SetServerSettings(_encoder, &_encoderServerSettings);
+    nerror = NEXUS_SimpleEncoder_SetServerSettings(_pModel->getSimpleEncoderServer(), _encoder, &_encoderServerSettings);
     CHECK_NEXUS_ERROR_GOTO("SimpleEncoder SetServer Settings failed", ret, nerror, error);
 
     BDBG_MSG(("Success in creating Encoder Server!!!"));

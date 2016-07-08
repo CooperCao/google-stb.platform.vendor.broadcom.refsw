@@ -1,7 +1,7 @@
 /******************************************************************************
- * (c) 2006-2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -37,7 +37,6 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 
 
@@ -201,7 +200,7 @@ BERR_Code BDSP_Raaga_Open(
     pRaaga->regHandle = regHandle;
     pRaaga->memHandle = memHandle;
     pRaaga->intHandle = intHandle;
-	pRaaga->boxHandle = boxHandle;
+    pRaaga->boxHandle = boxHandle;
 
 #ifdef BDSP_FW_RBUF_CAPTURE
     /* Specific to FW Ring Buffer capture required for their unit testing */
@@ -417,7 +416,7 @@ BERR_Code BDSP_Raaga_GetDebugBuffer(
     BERR_Code rc = BERR_SUCCESS ;
     BDSP_Raaga *pDevice;
 
-    raaga_dramaddr  ui32ReadAddr,ui32WriteAddr,
+    dramaddr_t  ui32ReadAddr,ui32WriteAddr,
                 ui32EndAddr, ui32DebugFifoOffset;
     size_t ui32ReadSize, uiOffset;
 
@@ -498,7 +497,7 @@ BERR_Code BDSP_Raaga_ConsumeDebugData(
     BERR_Code rc = BERR_SUCCESS;
     BDSP_Raaga *pDevice;
 
-    raaga_dramaddr  ui32BaseAddr, ui32ReadAddr,ui32WriteAddr,
+    dramaddr_t  ui32BaseAddr, ui32ReadAddr,ui32WriteAddr,
                     ui32EndAddr;
     size_t  ui32ReadSize, uiOffset,ui32DebugFifoOffset;
 
@@ -636,7 +635,7 @@ void BDSP_Raaga_GetCodecCapabilities(BDSP_CodecCapabilities *pSetting)
 #else
             pSetting->dolbyMs.dapv2 = false;
 #ifdef BDSP_AC3ENC_SUPPORT
-			pSetting->dolbyMs.ddEncode = true;
+            pSetting->dolbyMs.ddEncode = true;
 #else
             pSetting->dolbyMs.ddEncode = false;
 #endif

@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2013 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
  *  
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,16 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE 
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF 
  *  ANY LIMITED REMEDY.
- * 
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #ifndef NEXUS_TRANSPORT_CAPABILITIES_H__
@@ -121,6 +111,48 @@ void NEXUS_GetTransportStatus(
     NEXUS_TransportStatus *pStatus
     );
 
+typedef struct NEXUS_TransportModuleSettings {
+    NEXUS_CommonModuleSettings common;
+    bool dssSaveMptFlag; /* if true, the DSS MPT flag will be put in the front of the reconstructed message.
+                            this is a global setting. */
+    bool initVcxos;      /* If true, initialize the vcxo-pll rate managers.  If false, initialization must be done outside (e.g. platform layer) */
+
+    /* global TPIT filter settings. see NEXUS_RecpumpSettings.tpit for per-record TPIT settings. */
+    struct {
+        unsigned idleEventTimeout;   /* Number of 108 MHz clocks before triggering a record event timeout. See NEXUS_RecpumpSettings.tpit.idleEventEnabled. */
+        unsigned recordEventTimeout; /* Number of 108 MHz clocks before triggering a record packet timeout. See NEXUS_RecpumpSettings.tpit.recordEventEnabled. */
+    } tpit;
+
+    struct {
+        unsigned parserBand[NEXUS_MAX_PARSER_BANDS]; /* maximum data rate of RS and XC buffers in units of bits per second */
+        unsigned playback[NEXUS_MAX_PLAYPUMPS]; /* maximum data rate of XC buffers in units of bits per second */
+    } maxDataRate; /* this replaces NEXUS_ParserBandSettings.maxDataRate (65nm only) */
+
+    struct {
+        bool enabled;
+        unsigned rxInterfaceWidth; /* width of MTSIF bus. supported values are 1, 2, 4 and 8 bits. */
+    } mtsif[NEXUS_MAX_MTSIF];
+
+    /* Describes which transport components will receive data from each input and playback parser. Applications can reduce the
+       amount of memory required by setting unused paths to false. */
+    struct {
+        struct {
+            bool rave; /* decode/record */
+            bool message;
+            bool remux[NEXUS_MAX_REMUX];
+            bool mpodRs; /* if true, data is routed to MPOD RS buffer first, then to MPOD (if enabled). this affects RTS.
+                            if false, data is routed directly to MPOD (if enabled) */
+        } parserBand[NEXUS_MAX_PARSER_BANDS];
+        struct {
+            bool rave; /* decode/record */
+            bool message;
+            bool remux[NEXUS_MAX_REMUX];
+        } playback[NEXUS_MAX_PLAYPUMPS];
+    } clientEnabled;
+
+    unsigned syncInCount; /* see BXPT_DefaultSettings for details */
+    unsigned syncOutCount;
+} NEXUS_TransportModuleSettings;
 #ifdef __cplusplus
 }
 #endif

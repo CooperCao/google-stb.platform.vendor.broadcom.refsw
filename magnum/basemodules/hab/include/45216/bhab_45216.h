@@ -328,6 +328,45 @@ See Also:
 uint32_t BHAB_45216_InitHeader(uint8_t cmd, uint8_t chn, uint8_t dir, uint8_t module);
 
 
+/***************************************************************************
+Summary:
+   This function generates an I2C write transaction from the master I2C controller.
+Description:
+   This function generates an I2C write transaction from the master I2C controller.
+Returns:
+   BERR_Code
+See Also:
+   BHAB_Open()
+****************************************************************************/
+BERR_Code BHAB_45216_BscWrite(
+   BHAB_Handle h,        /* [in] BHAB handle */
+   uint8_t channel,      /* [in] BSC channel, 0=BSCA, 1=BSCB, 2=BSCC */
+   uint16_t slave_addr,  /* [in] for 7-bit address: bits[6:0]; for 10-bit address: bits[9:0], bit 15 is set  */
+   uint8_t *i2c_buf,     /* [in] specifies the data to transmit */
+   uint32_t n            /* [in] number of bytes to transmit after the i2c slave address, 0 to 8 */
+);
+
+
+/***************************************************************************
+Summary:
+   This function generates an I2C read transaction from the master I2C controller.
+Description:
+   This function generates an I2C read transaction from the master I2C controller.
+Returns:
+   BERR_Code
+See Also:
+   BHAB_Open()
+****************************************************************************/
+BERR_Code BHAB_45216_BscRead(
+   BHAB_Handle h,        /* [in] BHAB handle */
+   uint8_t channel,      /* [in] BSC channel, 0=BSCA, 1=BSCB, 2=BSCC */
+   uint16_t slave_addr,  /* [in] for 7-bit address: bits[6:0]; for 10-bit address: bits[9:0], bit 15 is set  */
+   uint8_t *out_buf,     /* [in] specifies the data to transmit before the i2c restart condition */
+   uint8_t out_n,        /* [in] number of bytes to transmit (<=8) before the i2c restart condition not including the i2c slave address */
+   uint8_t *in_buf,      /* [out] stores the data read */
+   uint32_t in_n         /* [in] number of bytes to read after the i2c restart condition */
+);
+
 #ifdef __cplusplus
 }
 #endif

@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2010-2013 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,6 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
  **************************************************************************/
 #ifndef NEXUS_SIMPLE_AUDIO_DECODER_SERVER_H__
 #define NEXUS_SIMPLE_AUDIO_DECODER_SERVER_H__
@@ -59,11 +49,13 @@
 #include "nexus_spdif_output.h"
 #include "nexus_audio_playback.h"
 #include "nexus_i2s_input.h"
+#include "nexus_audio_capture.h"
 #else
 #include "../../audio/include/nexus_audio_decoder.h"
 #include "../../audio/include/nexus_spdif_output.h"
 #include "../../audio/include/nexus_audio_playback.h"
 #include "../../audio/include/nexus_i2s_input.h"
+#include "../../audio/include/nexus_audio_capture.h"
 #endif
 #if NEXUS_HAS_HDMI_OUTPUT
 #include "nexus_hdmi_output.h"
@@ -76,16 +68,28 @@ extern "C" {
 #endif
 
 /**
-This server-side is semi-private. In multi-process systems, only server apps like nxserver will call it.
+This server-side API is semi-private. In multi-process systems, only server apps like nxserver will call it.
 Client apps will not call it. Therefore, this API is subject to non-backward compatible change.
 **/
 
 #define NEXUS_MAX_SIMPLE_DECODER_SPDIF_OUTPUTS 2
 #define NEXUS_MAX_SIMPLE_DECODER_HDMI_OUTPUTS 2
 
+/**
+Summary: Simple Audio Decoder Type
+**/
+typedef enum NEXUS_SimpleAudioDecoderType {
+    NEXUS_SimpleAudioDecoderType_eDynamic,
+    NEXUS_SimpleAudioDecoderType_ePersistent,
+    NEXUS_SimpleAudioDecoderType_eStandalone,
+    NEXUS_SimpleAudioDecoderType_eMax
+} NEXUS_SimpleAudioDecoderType;
+
+typedef struct NEXUS_SimpleAudioDecoderServer *NEXUS_SimpleAudioDecoderServerHandle;
+
 typedef struct NEXUS_SimpleAudioDecoderServerSettings
 {
-    bool enabled;
+    NEXUS_SimpleAudioDecoderType type;
     NEXUS_SimpleDecoderDisableMode disableMode;
     NEXUS_AudioDecoderHandle primary;   /* for decode and simul */
     NEXUS_AudioDecoderHandle secondary; /* for compressed passthrough */
@@ -93,7 +97,7 @@ typedef struct NEXUS_SimpleAudioDecoderServerSettings
     NEXUS_AudioPlaybackHandle passthroughPlayback; /* For passthroughBuffer mode */
 
     struct {
-        NEXUS_AudioMixerHandle stereo, multichannel;
+        NEXUS_AudioMixerHandle stereo, multichannel, persistent;
     } mixers;
 
     NEXUS_AudioConnectorType syncConnector; /* Connector to use for Sync Channel */
@@ -108,14 +112,26 @@ typedef struct NEXUS_SimpleAudioDecoderServerSettings
         NEXUS_AudioInput input[NEXUS_AudioCodec_eMax]; /* per codec, specify the final stage to be connected to hdmi. 
             use NEXUS_AudioCodec_eUnknown to specify default configuration for playback-only. */
     } hdmi;
-    int stcIndex; /* used for allocating stc channel once connected to simple stc channel */
+    struct {
+        NEXUS_AudioCaptureHandle output;
+        NEXUS_AudioInput input[NEXUS_AudioCodec_eMax]; /* per codec, specify the final stage to be connected to audio capture. */
+    } capture;
 } NEXUS_SimpleAudioDecoderServerSettings;
 
 void NEXUS_SimpleAudioDecoder_GetDefaultServerSettings(
     NEXUS_SimpleAudioDecoderServerSettings *pSettings /* [out] */
     );
 
+NEXUS_SimpleAudioDecoderServerHandle NEXUS_SimpleAudioDecoderServer_Create( /* attr{destructor=NEXUS_SimpleAudioDecoderServer_Destroy}  */
+    void
+    );
+
+void NEXUS_SimpleAudioDecoderServer_Destroy(
+    NEXUS_SimpleAudioDecoderServerHandle handle
+    );
+
 NEXUS_SimpleAudioDecoderHandle NEXUS_SimpleAudioDecoder_Create( /* attr{destructor=NEXUS_SimpleAudioDecoder_Destroy}  */
+    NEXUS_SimpleAudioDecoderServerHandle server,
     unsigned index,
     const NEXUS_SimpleAudioDecoderServerSettings *pSettings /* attr{null_allowed=y} */
     );
@@ -125,11 +141,13 @@ void NEXUS_SimpleAudioDecoder_Destroy(
     );
 
 void NEXUS_SimpleAudioDecoder_GetServerSettings(
+    NEXUS_SimpleAudioDecoderServerHandle server,
     NEXUS_SimpleAudioDecoderHandle handle,
     NEXUS_SimpleAudioDecoderServerSettings *pSettings /* [out] */
     );
 
 NEXUS_Error NEXUS_SimpleAudioDecoder_SetServerSettings(
+    NEXUS_SimpleAudioDecoderServerHandle server,
     NEXUS_SimpleAudioDecoderHandle handle,
     const NEXUS_SimpleAudioDecoderServerSettings *pSettings
     );
@@ -152,6 +170,7 @@ void NEXUS_SimpleAudioPlayback_GetDefaultServerSettings(
     );
     
 NEXUS_SimpleAudioPlaybackHandle NEXUS_SimpleAudioPlayback_Create( /* attr{destructor=NEXUS_SimpleAudioPlayback_Destroy}  */
+    NEXUS_SimpleAudioDecoderServerHandle server,
     unsigned index,
     const NEXUS_SimpleAudioPlaybackServerSettings *pSettings /* attr{null_allowed=y} */
     );
@@ -161,17 +180,20 @@ void NEXUS_SimpleAudioPlayback_Destroy(
     );
     
 void NEXUS_SimpleAudioPlayback_GetServerSettings(
+    NEXUS_SimpleAudioDecoderServerHandle server,
     NEXUS_SimpleAudioPlaybackHandle handle,
     NEXUS_SimpleAudioPlaybackServerSettings *pSettings /* [out] */
     );
 
 NEXUS_Error NEXUS_SimpleAudioPlayback_SetServerSettings(
+    NEXUS_SimpleAudioDecoderServerHandle server,
     NEXUS_SimpleAudioPlaybackHandle handle,
     const NEXUS_SimpleAudioPlaybackServerSettings *pSettings
     );    
     
 
 NEXUS_Error NEXUS_SimpleAudioDecoder_SwapServerSettings( 
+    NEXUS_SimpleAudioDecoderServerHandle server,
     NEXUS_SimpleAudioDecoderHandle decoder1, 
     NEXUS_SimpleAudioDecoderHandle decoder2
     );
@@ -181,8 +203,15 @@ void NEXUS_SimpleAudioDecoderModule_LoadDefaultSettings(
     );
 
 void NEXUS_SimpleAudioDecoder_GetStcIndex(
+    NEXUS_SimpleAudioDecoderServerHandle server,
     NEXUS_SimpleAudioDecoderHandle handle,
     int *pStcIndex /* returns -1 if StcChannel is unused */
+    );
+
+void NEXUS_SimpleAudioDecoder_SetStcIndex(
+    NEXUS_SimpleAudioDecoderServerHandle server,
+    NEXUS_SimpleAudioDecoderHandle handle,
+    int stcIndex
     );
 
 #ifdef __cplusplus

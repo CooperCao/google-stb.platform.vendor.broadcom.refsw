@@ -5005,7 +5005,7 @@ static uint32_t nPsdCandidates = 0;
 /******************************************************************************
  SATFE_Command_reboot()
 ******************************************************************************/
-BERR_Code SATFE_Command_reboot(SATFE_Chip *pChip, int argc, char **argv)
+bool SATFE_Command_reboot(SATFE_Chip *pChip, int argc, char **argv)
 {
    typedef void (*RESET_FUNC)();
    RESET_FUNC reset_func = (RESET_FUNC)0xBFC00000;
@@ -5017,15 +5017,16 @@ BERR_Code SATFE_Command_reboot(SATFE_Chip *pChip, int argc, char **argv)
    }
 
    reset_func();
-   return BERR_SUCCESS; /* never returns */
+   return true; /* never returns */
 }
 
 
 /******************************************************************************
  SATFE_Command_dft_debug() - make sure BAST_DUMP_BINS is defined in bast_g3_priv_dft.c
 ******************************************************************************/
-BERR_Code SATFE_Command_dft_debug(SATFE_Chip *pChip, int argc, char **argv)
+bool SATFE_Command_dft_debug(SATFE_Chip *pChip, int argc, char **argv)
 {
+#if 0
    extern BERR_Code BAST_g3_P_DumpBins(BAST_ChannelHandle h, uint32_t tunerFreq);
 
    uint32_t start_freq, stop_freq, step_freq, start_baud, stop_baud, freq;
@@ -5102,28 +5103,28 @@ BERR_Code SATFE_Command_dft_debug(SATFE_Chip *pChip, int argc, char **argv)
    if (retCode != BERR_SUCCESS)
    {
       printf("BAST_SetPeakScanSymbolRateRange() error 0x%X\n", retCode);
-      return retCode;
+      return false;
    }
 
    SATFE_MUTEX(retCode = BAST_ReadConfig(pChip->hAstChannel[pChip->currChannel], BAST_G3_CONFIG_MISC_CTL, &misc_ctl, BAST_G3_CONFIG_LEN_MISC_CTL));
    if (retCode != BERR_SUCCESS)
    {
       printf("BAST_ReadConfig() error 0x%X\n", retCode);
-      return retCode;
+      return false;
    }
    misc_ctl |= (BSAT_G3_CONFIG_MISC_CTL_PEAKSCAN_PSD | BAST_G3_CONFIG_MISC_CTL_DISABLE_SMART_TUNE);
    SATFE_MUTEX(retCode = BAST_WriteConfig(pChip->hAstChannel[pChip->currChannel], BAST_G3_CONFIG_MISC_CTL, &misc_ctl, BAST_G3_CONFIG_LEN_MISC_CTL));
    if (retCode != BERR_SUCCESS)
    {
       printf("BAST_WriteConfig() error 0x%X\n", retCode);
-      return retCode;
+      return false;
    }
 
    SATFE_MUTEX(retCode = BAST_WriteConfig(pChip->hAstChannel[pChip->currChannel], BAST_G3_CONFIG_DFT_MIN_N, &runTimes, BAST_G3_CONFIG_LEN_DFT_MIN_N));
    if (retCode != BERR_SUCCESS)
    {
       printf("BAST_WriteConfig() error 0x%X\n", retCode);
-      return retCode;
+      return false;
    }
 
    for (freq = start_freq; freq < stop_freq; freq += step_freq)
@@ -5149,7 +5150,7 @@ BERR_Code SATFE_Command_dft_debug(SATFE_Chip *pChip, int argc, char **argv)
       if (retCode != BERR_SUCCESS)
       {
          printf("peak scan event not received!\n");
-         return retCode;
+         return false;
       }
 
       /* get the results of the symbol rate scan */
@@ -5157,18 +5158,21 @@ BERR_Code SATFE_Command_dft_debug(SATFE_Chip *pChip, int argc, char **argv)
       if (retCode != BERR_SUCCESS)
       {
          printf("BAST_GetPeakScanStatus() error 0x%X\n", retCode);
-         return retCode;
+         return false;
       }
 
       /* verify that the peak scan finished successfully */
       if (peakStatus.status != 0)
       {
          printf("ERROR: peak scan status = %d\n", peakStatus.status);
-         return BERR_UNKNOWN;
+         return false;
       }
    }
 
    return true;
+#else
+   return false;
+#endif
 }
 
 

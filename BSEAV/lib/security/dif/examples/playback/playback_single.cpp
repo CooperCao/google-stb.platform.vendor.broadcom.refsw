@@ -46,23 +46,13 @@
 #include "nexus_component_output.h"
 #include "nexus_video_adj.h"
 
-//#define TEST_SECURE_COPY
-
 #include <unistd.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <signal.h>
 
-#ifdef ANDROID
-#define LOG_NDEBUG 0
 #define LOG_TAG "playback_dif"
-#include <utils/Log.h>
-#define LOGE(x) ALOGE x
-#define LOGW(x) ALOGW x
-#define LOGD(x) ALOGD x
-#define LOGV(x) ALOGV x
-#else
 BDBG_MODULE(playback_dif);
 #undef LOGE
 #undef LOGW
@@ -72,7 +62,6 @@ BDBG_MODULE(playback_dif);
 #define LOGW BDBG_WRN
 #define LOGD BDBG_MSG
 #define LOGV BDBG_MSG
-#endif
 
 // DRM Integration Framework
 //#include "secure_playback.h"
@@ -120,6 +109,7 @@ public:
 
     MediaParser* parser;
     IDecryptor* decryptor;
+    bool use_default_url;
     IStreamer* videoStreamer;
     IStreamer* audioStreamer;
 
@@ -129,6 +119,8 @@ public:
     uint8_t *pVideoHeaderBuf;
 
     FILE *fp_mp4;
+    char* file;
+    DrmType drmType;
     NEXUS_DisplayHandle display;
     NEXUS_VideoWindowHandle window;
     NEXUS_VideoDecoderHandle videoDecoder;
@@ -147,6 +139,7 @@ AppContext::AppContext()
 {
     parser = NULL;
     decryptor = NULL;
+    use_default_url = false;
     videoStreamer = NULL;
     audioStreamer = NULL;
 
@@ -156,6 +149,8 @@ AppContext::AppContext()
     pVideoHeaderBuf = NULL;
 
     fp_mp4 = NULL;
+    file = NULL;
+    drmType = drm_type_eUnknown;
     display = NULL;
     window = NULL;
     videoDecoder = NULL;
@@ -265,9 +260,8 @@ const std::string kGpClientOfflineReleaseQueryParameters =
     "&offline=true&release=true";
 
 int vc1_stream = 0;                        /* stream type */
-DrmType requestedDrmType = drm_type_eUnknown;
-static int video_decode_hdr=0;
-static bool secure_video=false;
+static int video_decode_hdr = 0;
+static bool secure_video = false;
 
 static AppContext s_app;
 
@@ -404,22 +398,14 @@ static int process_fragment(mp4_parse_frag_info *frag_info,
                 batom_cursor_skip(&frag_info->cursor, entryDataSize);
             } while (dst_offset < sampleSize);
 
-#ifdef TEST_SECURE_COPY
-            IBuffer* decOutput = BufferFactory::CreateBuffer(sampleSize, NULL, true);
-            numOfByteDecrypted = s_app.decryptor->DecryptSample(pSample,
-                input, decOutput, sampleSize);
-            if (numOfByteDecrypted != sampleSize)
-            {
-                LOGE(("%s Failed to decrypt sample, can't continue - %d", __FUNCTION__, __LINE__));
-                return -1;
-            }
-            SecureBuffer* output = (SecureBuffer*)streamer->GetBuffer(sampleSize);
-            // This is R2R copy
-            output->Copy(0, decOutput, sampleSize);
-#else
             IBuffer* decOutput = streamer->GetBuffer(sampleSize);
-            numOfByteDecrypted = s_app.decryptor->DecryptSample(pSample,
-                input, decOutput, sampleSize);
+            if (s_app.decryptor) {
+                numOfByteDecrypted = s_app.decryptor->DecryptSample(pSample,
+                    input, decOutput, sampleSize);
+            } else {
+                decOutput->Copy(0, input, sampleSize);
+                numOfByteDecrypted = sampleSize;
+            }
             if (numOfByteDecrypted != sampleSize)
             {
                 LOGE(("%s Failed to decrypt sample, can't continue - %d", __FUNCTION__, __LINE__));
@@ -427,7 +413,6 @@ static int process_fragment(mp4_parse_frag_info *frag_info,
                 BufferFactory::DestroyBuffer(decOutput);
                 return -1;
             }
-#endif
             BufferFactory::DestroyBuffer(input);
             BufferFactory::DestroyBuffer(decOutput);
             bytes_processed += numOfByteDecrypted;
@@ -453,13 +438,19 @@ static int process_fragment(mp4_parse_frag_info *frag_info,
                 streamer->GetBuffer(pes_header_len + BMEDIA_ADTS_HEADER_SIZE);
             output->Copy(0, s_app.pAudioHeaderBuf, pes_header_len + BMEDIA_ADTS_HEADER_SIZE);
             bytes_processed += pes_header_len + BMEDIA_ADTS_HEADER_SIZE;
+            BufferFactory::DestroyBuffer(output);
 
             IBuffer* input = BufferFactory::CreateBuffer(sampleSize, (uint8_t*)frag_info->cursor.cursor);
             batom_cursor_skip(&frag_info->cursor, sampleSize);
 
             IBuffer* decOutput = streamer->GetBuffer(sampleSize);
-            numOfByteDecrypted = s_app.decryptor->DecryptSample(pSample,
-                input, decOutput, sampleSize);
+            if (s_app.decryptor) {
+                numOfByteDecrypted = s_app.decryptor->DecryptSample(pSample,
+                    input, decOutput, sampleSize);
+            } else {
+                decOutput->Copy(0, input, sampleSize);
+                numOfByteDecrypted = sampleSize;
+            }
             if (numOfByteDecrypted != sampleSize)
             {
                 LOGE(("%s Failed to decrypt sample, can't continue - %d", __FUNCTION__, __LINE__));
@@ -504,6 +495,7 @@ static void wait_for_drain()
         }
         BKNI_Sleep(100);
     }
+    LOGW(("%s: video playpump was drained", __FUNCTION__));
 
     for (;;) {
         rc = NEXUS_Playpump_GetStatus(s_app.audioPlaypump, &playpumpStatus);
@@ -515,6 +507,7 @@ static void wait_for_drain()
 
         BKNI_Sleep(100);
     }
+    LOGW(("%s: audio playpump was drained", __FUNCTION__));
 
     if (s_app.videoDecoder) {
         for (;;) {
@@ -529,6 +522,7 @@ static void wait_for_drain()
             BKNI_Sleep(100);
         }
     }
+    LOGW(("%s: video decoder was drained", __FUNCTION__));
 
     if (s_app.audioDecoder) {
         for (;;) {
@@ -543,11 +537,107 @@ static void wait_for_drain()
             BKNI_Sleep(100);
         }
     }
+    LOGW(("%s: audio decoder was drained", __FUNCTION__));
+
+    // wait for 1 sec to stabilize
+    BKNI_Sleep(1000);
     return;
 }
 
-void playback_mp4(NEXUS_VideoDecoderHandle videoDecoder,
-    NEXUS_AudioDecoderHandle audioDecoder, char *mp4_file)
+static void setup_gui()
+{
+    NEXUS_Error rc;
+    NEXUS_VideoDecoderOpenSettings videoDecoderOpenSettings;
+    NEXUS_AudioDecoderOpenSettings audioDecoderOpenSettings;
+    NEXUS_PlatformConfiguration platformConfig;
+#if NEXUS_NUM_HDMI_OUTPUTS
+    NEXUS_HdmiOutputStatus hdmiStatus;
+    NEXUS_DisplaySettings displaySettings;
+#endif
+
+    NEXUS_Platform_GetConfiguration(&platformConfig);
+
+    /* Bring up video display and outputs */
+    s_app.display = NEXUS_Display_Open(0, NULL);
+    s_app.window = NEXUS_VideoWindow_Open(s_app.display, 0);
+
+#if NEXUS_NUM_COMPONENT_OUTPUTS
+    NEXUS_Display_AddOutput(s_app.display, NEXUS_ComponentOutput_GetConnector(platformConfig.outputs.component[0]));
+#endif
+#if NEXUS_NUM_COMPOSITE_OUTPUTS
+    NEXUS_Display_AddOutput(s_app.display, NEXUS_CompositeOutput_GetConnector(platformConfig.outputs.composite[0]));
+#endif
+#if NEXUS_NUM_HDMI_OUTPUTS
+    NEXUS_Display_AddOutput(s_app.display, NEXUS_HdmiOutput_GetVideoConnector(platformConfig.outputs.hdmi[0]));
+    rc = NEXUS_HdmiOutput_GetStatus(platformConfig.outputs.hdmi[0], &hdmiStatus);
+    if ( !rc && hdmiStatus.connected )
+    {
+        /* If current display format is not supported by monitor, switch to monitor's preferred format.
+           If other connected outputs do not support the preferred format, a harmless error will occur. */
+        NEXUS_Display_GetSettings(s_app.display, &displaySettings);
+        if ( !hdmiStatus.videoFormatSupported[displaySettings.format] ) {
+            displaySettings.format = hdmiStatus.preferredVideoFormat;
+            NEXUS_Display_SetSettings(s_app.display, &displaySettings);
+        }
+    }
+#endif
+
+#if NEXUS_NUM_COMPONENT_OUTPUTS
+    NEXUS_Display_AddOutput(s_app.display, NEXUS_ComponentOutput_GetConnector(platformConfig.outputs.component[0]));
+#endif
+#if NEXUS_NUM_COMPOSITE_OUTPUTS
+    NEXUS_Display_AddOutput(s_app.display, NEXUS_CompositeOutput_GetConnector(platformConfig.outputs.composite[0]));
+#endif
+#if NEXUS_NUM_HDMI_OUTPUTS
+    NEXUS_Display_AddOutput(s_app.display, NEXUS_HdmiOutput_GetVideoConnector(platformConfig.outputs.hdmi[0]));
+    rc = NEXUS_HdmiOutput_GetStatus(platformConfig.outputs.hdmi[0], &hdmiStatus);
+    if ( !rc && hdmiStatus.connected )
+    {
+        /* If current display format is not supported by monitor, switch to monitor's preferred format.
+           If other connected outputs do not support the preferred format, a harmless error will occur. */
+        NEXUS_Display_GetSettings(s_app.display, &displaySettings);
+        if ( !hdmiStatus.videoFormatSupported[displaySettings.format] ) {
+            displaySettings.format = hdmiStatus.preferredVideoFormat;
+            NEXUS_Display_SetSettings(s_app.display, &displaySettings);
+        }
+    }
+#endif
+
+    /* bring up decoder and connect to display */
+    NEXUS_VideoDecoder_GetDefaultOpenSettings(&videoDecoderOpenSettings);
+    videoDecoderOpenSettings.cdbHeap = platformConfig.heap[NEXUS_VIDEO_SECURE_HEAP];
+    s_app.videoDecoder = NEXUS_VideoDecoder_Open(0, &videoDecoderOpenSettings);
+    if (s_app.videoDecoder == NULL) {
+        exit(EXIT_FAILURE);
+    }
+    NEXUS_VideoWindow_AddInput(s_app.window, NEXUS_VideoDecoder_GetConnector(s_app.videoDecoder));
+
+    /* Bring up audio decoders and outputs */
+    NEXUS_AudioDecoder_GetDefaultOpenSettings(&audioDecoderOpenSettings);
+    audioDecoderOpenSettings.cdbHeap = platformConfig.heap[NEXUS_VIDEO_SECURE_HEAP];
+    s_app.audioDecoder = NEXUS_AudioDecoder_Open(0, &audioDecoderOpenSettings);
+    if (s_app.audioDecoder == NULL) {
+        exit(EXIT_FAILURE);
+    }
+#if NEXUS_NUM_AUDIO_DACS
+    NEXUS_AudioOutput_AddInput(
+        NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
+        NEXUS_AudioDecoder_GetConnector(s_app.audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+#endif
+#if NEXUS_NUM_SPDIF_OUTPUTS
+    NEXUS_AudioOutput_AddInput(
+        NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
+        NEXUS_AudioDecoder_GetConnector(s_app.audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+#endif
+#if NEXUS_NUM_HDMI_OUTPUTS
+    NEXUS_AudioOutput_AddInput(
+        NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
+        NEXUS_AudioDecoder_GetConnector(s_app.audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+#endif
+
+}
+
+static void setup_streamer()
 {
     NEXUS_MemoryAllocationSettings memSettings;
     NEXUS_StcChannelHandle stcChannel;
@@ -560,83 +650,11 @@ void playback_mp4(NEXUS_VideoDecoderHandle videoDecoder,
     s_app.videoStreamer = StreamerFactory::CreateStreamer();
     s_app.audioStreamer = StreamerFactory::CreateStreamer();
 
-    std::string license_server;
-    std::string key_response;
-
-    std::string cpsSpecificData;    /*content protection system specific data*/
-    std::string psshDataStr;
-    DrmType drmType;
-
-    mp4_parse_frag_info frag_info;
-    void *decoder_data;
-    size_t decoder_len;
-
-    bool use_default_url = false;
-
     if (s_app.videoStreamer == NULL || s_app.audioStreamer == NULL ) {
         exit(EXIT_FAILURE);
     }
     s_app.videoPlaypump = s_app.videoStreamer->OpenPlaypump(true);
     s_app.audioPlaypump = s_app.audioStreamer->OpenPlaypump(false);
-
-    LOGD(("%s - %d\n", __FUNCTION__, __LINE__));
-    if (mp4_file == NULL ) {
-        exit(EXIT_FAILURE);
-    }
-
-    LOGD(("MP4 file: %s\n",mp4_file));
-    fflush(stdout);
-
-    s_app.fp_mp4 = fopen(mp4_file, "rb");
-    if (s_app.fp_mp4 == NULL) {
-        LOGE(("failed to open %s", mp4_file));
-        exit(EXIT_FAILURE);
-    }
-
-    s_app.parser = new PiffParser(s_app.fp_mp4);
-    if (s_app.parser ==  NULL) {
-        LOGE(("failed to new a PiffParser instance"));
-        exit(EXIT_FAILURE);
-    }
-
-    if (s_app.parser->Initialize()) {
-        LOGW(("PiffParser was initialized for %s", mp4_file));
-        use_default_url = true;
-    } else {
-        LOGW(("failed to initialize the PiffParser for %s, try CencParser...", mp4_file));
-        delete s_app.parser;
-
-        s_app.parser = new CencParser(s_app.fp_mp4);
-        if (s_app.parser ==  NULL) {
-            LOGE(("failed to new a CencParser instance"));
-            exit(EXIT_FAILURE);
-        }
-
-        if (!s_app.parser->Initialize()) {
-            LOGE(("failed to initialize the CencParser for %s", mp4_file));
-            exit(EXIT_FAILURE);
-        }
-    }
-
-    if(requestedDrmType != drm_type_eUnknown){
-        bool drmMatch = false;
-        DrmType drmTypes[BMP4_MAX_DRM_SCHEMES];
-        uint8_t numOfDrmSchemes = s_app.parser->GetNumOfDrmSchemes(drmTypes, BMP4_MAX_DRM_SCHEMES);
-        for(int i = 0; i<numOfDrmSchemes; i++){
-            if(drmTypes[i] == requestedDrmType){
-                drmMatch = true;
-                s_app.parser-> SetDrmSchemes(i);
-            }
-        }
-        if(!drmMatch){
-            LOGE(("DRM Type: %d was not found in the stream.", requestedDrmType ));
-            LOGE(("Do you want to play it with its default DRM type: %d? [y/n]", drmTypes[0]));
-            char resp;
-            scanf("%c", &resp);
-            if(resp != 'y')
-                exit(EXIT_FAILURE);
-        }
-    }
 
     NEXUS_Memory_GetDefaultAllocationSettings(&memSettings);
     memSettings.heap = NEXUS_MEMC0_MAIN_HEAP;
@@ -721,14 +739,96 @@ void playback_mp4(NEXUS_VideoDecoderHandle videoDecoder,
 
     videoProgram.pidChannel = s_app.videoPidChannel;
     videoProgram.stcChannel = stcChannel;
-    NEXUS_VideoDecoder_Start(videoDecoder, &videoProgram);
+    NEXUS_VideoDecoder_Start(s_app.videoDecoder, &videoProgram);
 
     audioProgram.pidChannel = s_app.audioPidChannel;
     audioProgram.stcChannel = stcChannel;
-    NEXUS_AudioDecoder_Start(audioDecoder, &audioProgram);
+    NEXUS_AudioDecoder_Start(s_app.audioDecoder, &audioProgram);
+
+}
+
+static void setup_parser()
+{
+    LOGD(("%s - %d\n", __FUNCTION__, __LINE__));
+    if (s_app.file == NULL ) {
+        exit(EXIT_FAILURE);
+    }
+
+    LOGD(("MP4 file: %s\n",s_app.file));
+    fflush(stdout);
+
+    s_app.fp_mp4 = fopen(s_app.file, "rb");
+    if (s_app.fp_mp4 == NULL) {
+        LOGE(("failed to open %s", s_app.file));
+        exit(EXIT_FAILURE);
+    }
+
+    s_app.parser = new PiffParser(s_app.fp_mp4);
+    if (s_app.parser ==  NULL) {
+        LOGE(("failed to new a PiffParser instance"));
+        exit(EXIT_FAILURE);
+    }
+
+    if (s_app.parser->Initialize()) {
+        LOGW(("PiffParser was initialized for %s", s_app.file));
+        s_app.use_default_url = true;
+    } else {
+        LOGW(("failed to initialize the PiffParser for %s, try CencParser...", s_app.file));
+        delete s_app.parser;
+
+        s_app.parser = new CencParser(s_app.fp_mp4);
+        if (s_app.parser ==  NULL) {
+            LOGE(("failed to new a CencParser instance"));
+            exit(EXIT_FAILURE);
+        }
+
+        if (!s_app.parser->Initialize()) {
+            LOGE(("failed to initialize the CencParser for %s", s_app.file));
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    if(s_app.drmType != drm_type_eUnknown){
+        bool drmMatch = false;
+        DrmType drmTypes[BMP4_MAX_DRM_SCHEMES];
+        uint8_t numOfDrmSchemes = s_app.parser->GetNumOfDrmSchemes(drmTypes, BMP4_MAX_DRM_SCHEMES);
+        for(int i = 0; i<numOfDrmSchemes; i++){
+            if(drmTypes[i] == s_app.drmType){
+                drmMatch = true;
+                s_app.parser-> SetDrmSchemes(i);
+            }
+        }
+        if(!drmMatch){
+            LOGE(("DRM Type: %d was not found in the stream.", s_app.drmType ));
+            LOGE(("Do you want to play it with its default DRM type: %d? [y/n]", drmTypes[0]));
+            char resp;
+            scanf("%c", &resp);
+            if(resp != 'y')
+                exit(EXIT_FAILURE);
+        }
+    }
+}
+
+static void setup_decryptor()
+{
+    std::string license_server;
+    std::string key_response;
+
+    std::string cpsSpecificData;    /*content protection system specific data*/
+    std::string psshDataStr;
+    DrmType drmType;
 
     // New API - creating Decryptor
     drmType = s_app.parser->GetDrmType();
+    if (drmType == drm_type_eWidevine) {
+        LOGW(("Widevine for %s", s_app.file));
+    } else if (drmType == drm_type_ePlayready) {
+        LOGW(("Playready for %s", s_app.file));
+    } else {
+        LOGW(("Unknown DRM type for %s", s_app.file));
+        return;
+    }
+
     s_app.decryptor = DecryptorFactory::CreateDecryptor(drmType);
     if (s_app.decryptor == NULL) {
         LOGE(("Failed to create Decryptor"));
@@ -753,7 +853,7 @@ void playback_mp4(NEXUS_VideoDecoderHandle videoDecoder,
 
     dump_hex("message", s_app.decryptor->GetKeyMessage().data(), s_app.decryptor->GetKeyMessage().size());
 
-    if (use_default_url) {
+    if (s_app.use_default_url) {
         license_server.clear();
     } else {
 #if 1
@@ -780,6 +880,14 @@ void playback_mp4(NEXUS_VideoDecoderHandle videoDecoder,
     }
     dump_hex("key_response", key_response.data(), key_response.size());
 
+}
+
+void playback_loop()
+{
+    mp4_parse_frag_info frag_info;
+    void *decoder_data;
+    size_t decoder_len;
+
     for (;;) {
         decoder_data = s_app.parser->GetFragmentData(frag_info, s_app.pPayload, decoder_len);
         if (decoder_data == NULL || shouldExit)
@@ -790,7 +898,30 @@ void playback_mp4(NEXUS_VideoDecoderHandle videoDecoder,
         }
     }
 
+    if (!shouldExit) {
+        wait_for_drain();
+    }
+
     return;
+}
+
+static void rewind_parser()
+{
+    // FIXME: rewinding file pointer produces memory leaks in Parser
+    //rewind(s_app.fp_mp4);
+    delete s_app.parser;
+    s_app.parser = NULL;
+
+    setup_parser();
+}
+
+static void print_usage(char* command)
+{
+    LOGE(("Usage : %s <files> [OPTIONS]", command));
+    LOGE(("        -pr <file> Set DRM type as playready"));
+    LOGE(("        -wv <file> Set DRM type as widevine"));
+    LOGE(("        -loop N    Set # of playback loops"));
+    LOGE(("        -secure    Use secure video picture buffers (URR)"));
 }
 
 int main(int argc, char* argv[])
@@ -798,41 +929,59 @@ int main(int argc, char* argv[])
     signal(SIGINT, sigHandler);
     signal(SIGTERM, sigHandler);
 
+    unsigned num_files = 0;
+    unsigned num_loops = 1;
     NEXUS_Error rc;
-    NEXUS_VideoDecoderOpenSettings videoDecoderOpenSettings;
-    NEXUS_AudioDecoderOpenSettings audioDecoderOpenSettings;
     NEXUS_PlatformSettings platformSettings;
-    NEXUS_PlatformConfiguration platformConfig;
     NEXUS_MemoryConfigurationSettings memConfigSettings;
-#if NEXUS_NUM_HDMI_OUTPUTS
-    NEXUS_HdmiOutputStatus hdmiStatus;
-    NEXUS_DisplaySettings displaySettings;
-#endif
 
     if (argc < 2) {
-        LOGE(("Usage : %s <input_file> [OPTIONS]", argv[0]));
-        LOGE(("        -vc1         vc1 stream type"));
-        LOGE(("        -pr          set DRM type as playready"));
-        LOGE(("        -wv          set DRM type as widevine"));
-        LOGE(("        -noloop      no decrypt loop for testing"));
-        LOGE(("        -secure      Use secure video path"));
+        print_usage(argv[0]);
         exit(EXIT_FAILURE);
     }
 
-    for (int i=0; i<argc; i++){
-        if(strcmp(argv[i], "-vc1") == 0)
-            vc1_stream = 1;
-        if(strcmp(argv[i], "-pr") == 0)
-            requestedDrmType = drm_type_ePlayready;
-        if(strcmp(argv[i], "-wv") == 0)
-            requestedDrmType = drm_type_eWidevine;
-        if(strcmp(argv[i], "-noloop") == 0)
-            shouldExit = true;
-		if(strcmp(argv[i], "-secure") == 0)
-			secure_video = true;
+    for (int i = 1; i< argc; i++){
+        if (strcmp(argv[i], "-pr") == 0) {
+            if (i >= argc - 1) {
+                print_usage(argv[0]);
+                exit(EXIT_FAILURE);
+            }
+            s_app.drmType = drm_type_ePlayready;
+            s_app.file = argv[++i];
+            LOGW(("File PR: %s", s_app.file));
+            num_files++;
+        }
+        else if (strcmp(argv[i], "-wv") == 0) {
+            if (i >= argc - 1) {
+                print_usage(argv[0]);
+                exit(EXIT_FAILURE);
+            }
+            s_app.drmType = drm_type_eWidevine;
+            s_app.file = argv[++i];
+            LOGW(("File WV: %s", s_app.file));
+            num_files++;
+        }
+        else if (strcmp(argv[i], "-loop") == 0) {
+            if (i >= argc - 1) {
+                print_usage(argv[0]);
+                exit(EXIT_FAILURE);
+            }
+            num_loops = atoi(argv[++i]);
+            LOGW(("# of playback loops: %u", num_loops));
+        }
+        else if (strcmp(argv[i], "-secure") == 0)
+            secure_video = true;
+        else {
+            s_app.file = argv[i];
+            LOGW(("File: %s", s_app.file));
+            num_files++;
+        }
     }
 
-    LOGD(("@@@ Check Point #01"));
+    if (num_files != 1) {
+        print_usage(argv[0]);
+        exit(EXIT_FAILURE);
+    }
 
     NEXUS_Platform_GetDefaultSettings(&platformSettings);
     platformSettings.openFrontend = false;
@@ -840,7 +989,7 @@ int main(int argc, char* argv[])
     NEXUS_GetDefaultMemoryConfigurationSettings(&memConfigSettings);
     if (secure_video)
     {
-        int i,j;
+		int i,j;
 
         /* Request secure picture buffers, i.e. URR
         * Should only do this if SAGE is in use, and when SAGE_SECURE_MODE is NOT 1 */
@@ -864,92 +1013,26 @@ int main(int argc, char* argv[])
         LOGE(("NEXUS_Platform_Init failed"));
         exit(EXIT_FAILURE);
     }
-    NEXUS_Platform_GetConfiguration(&platformConfig);
 
-    /* Bring up video display and outputs */
-    s_app.display = NEXUS_Display_Open(0, NULL);
-    s_app.window = NEXUS_VideoWindow_Open(s_app.display, 0);
+    LOGD(("@@@ Check Point #01"));
 
-#if NEXUS_NUM_COMPONENT_OUTPUTS
-    NEXUS_Display_AddOutput(s_app.display, NEXUS_ComponentOutput_GetConnector(platformConfig.outputs.component[0]));
-#endif
-#if NEXUS_NUM_COMPOSITE_OUTPUTS
-    NEXUS_Display_AddOutput(s_app.display, NEXUS_CompositeOutput_GetConnector(platformConfig.outputs.composite[0]));
-#endif
-#if NEXUS_NUM_HDMI_OUTPUTS
-    NEXUS_Display_AddOutput(s_app.display, NEXUS_HdmiOutput_GetVideoConnector(platformConfig.outputs.hdmi[0]));
-    rc = NEXUS_HdmiOutput_GetStatus(platformConfig.outputs.hdmi[0], &hdmiStatus);
-    if ( !rc && hdmiStatus.connected )
-    {
-        /* If current display format is not supported by monitor, switch to monitor's preferred format.
-           If other connected outputs do not support the preferred format, a harmless error will occur. */
-        NEXUS_Display_GetSettings(s_app.display, &displaySettings);
-        if ( !hdmiStatus.videoFormatSupported[displaySettings.format] ) {
-            displaySettings.format = hdmiStatus.preferredVideoFormat;
-            NEXUS_Display_SetSettings(s_app.display, &displaySettings);
-        }
+    setup_gui();
+
+    setup_streamer();
+
+    setup_parser();
+
+    setup_decryptor();
+
+    for (int i = 0; i < num_loops; i++) {
+        LOGW(("Playback Loop: %d starting", i));
+        playback_loop();
+        if (shouldExit)
+            break;
+        LOGW(("Playback Loop: %d done", i));
+        if (i < num_loops - 1)
+            rewind_parser();
     }
-#endif
 
-#if NEXUS_NUM_COMPONENT_OUTPUTS
-    NEXUS_Display_AddOutput(s_app.display, NEXUS_ComponentOutput_GetConnector(platformConfig.outputs.component[0]));
-#endif
-#if NEXUS_NUM_COMPOSITE_OUTPUTS
-    NEXUS_Display_AddOutput(s_app.display, NEXUS_CompositeOutput_GetConnector(platformConfig.outputs.composite[0]));
-#endif
-#if NEXUS_NUM_HDMI_OUTPUTS
-    NEXUS_Display_AddOutput(s_app.display, NEXUS_HdmiOutput_GetVideoConnector(platformConfig.outputs.hdmi[0]));
-    rc = NEXUS_HdmiOutput_GetStatus(platformConfig.outputs.hdmi[0], &hdmiStatus);
-    if ( !rc && hdmiStatus.connected )
-    {
-        /* If current display format is not supported by monitor, switch to monitor's preferred format.
-           If other connected outputs do not support the preferred format, a harmless error will occur. */
-        NEXUS_Display_GetSettings(s_app.display, &displaySettings);
-        if ( !hdmiStatus.videoFormatSupported[displaySettings.format] ) {
-            displaySettings.format = hdmiStatus.preferredVideoFormat;
-            NEXUS_Display_SetSettings(s_app.display, &displaySettings);
-        }
-    }
-#endif
-
-    /* bring up decoder and connect to display */
-    NEXUS_VideoDecoder_GetDefaultOpenSettings(&videoDecoderOpenSettings);
-    videoDecoderOpenSettings.cdbHeap = platformConfig.heap[NEXUS_VIDEO_SECURE_HEAP];
-    s_app.videoDecoder = NEXUS_VideoDecoder_Open(0, &videoDecoderOpenSettings);
-    if (s_app.videoDecoder == NULL) {
-        exit(EXIT_FAILURE);
-    }
-    NEXUS_VideoWindow_AddInput(s_app.window, NEXUS_VideoDecoder_GetConnector(s_app.videoDecoder));
-
-    /* Bring up audio decoders and outputs */
-    NEXUS_AudioDecoder_GetDefaultOpenSettings(&audioDecoderOpenSettings);
-    audioDecoderOpenSettings.cdbHeap = platformConfig.heap[NEXUS_VIDEO_SECURE_HEAP];
-    s_app.audioDecoder = NEXUS_AudioDecoder_Open(0, &audioDecoderOpenSettings);
-    if (s_app.audioDecoder == NULL) {
-        exit(EXIT_FAILURE);
-    }
-#if NEXUS_NUM_AUDIO_DACS
-    NEXUS_AudioOutput_AddInput(
-        NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
-        NEXUS_AudioDecoder_GetConnector(s_app.audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
-#endif
-#if NEXUS_NUM_SPDIF_OUTPUTS
-    NEXUS_AudioOutput_AddInput(
-        NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
-        NEXUS_AudioDecoder_GetConnector(s_app.audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
-#endif
-#if NEXUS_NUM_HDMI_OUTPUTS
-    NEXUS_AudioOutput_AddInput(
-        NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
-        NEXUS_AudioDecoder_GetConnector(s_app.audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
-#endif
-
-    playback_mp4(s_app.videoDecoder, s_app.audioDecoder, argv[1]);
-
-    if (shouldExit) {
-        exit(2);
-    } else {
-        wait_for_drain();
-        exit(EXIT_SUCCESS);
-    }
+    exit(EXIT_SUCCESS);
 }

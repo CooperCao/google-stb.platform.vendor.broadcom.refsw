@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -11,7 +11,7 @@
  * Software and all intellectual property rights therein.  IF YOU HAVE NO
  * AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
  * AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
- * SOFTWARE.  
+ * SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
@@ -82,16 +82,16 @@ static const char *s_effectText =
    "                                                            \n"
    "   VERTEX_SHADER                                            \n"
    "   {                                                        \n"
-   "      uniform	   float	u_opacity;                           \n"
+   "      uniform    float u_opacity;                           \n"
    "      attribute  vec4  a_position;                          \n"
    "      attribute  vec2  a_tc;                                \n"
    "      varying    vec2  v_tc;                                \n"
    "      uniform    mat4  u_mvp;                               \n"
-   "      varying		float	v_opacity;                           \n"
+   "      varying    float v_opacity;                           \n"
    "                                                            \n"
    "      void main()                                           \n"
    "      {                                                     \n"
-   "         v_opacity = u_opacity;                             \n"
+   "         v_opacity   = u_opacity;                           \n"
    "         gl_Position = u_mvp * a_position;                  \n"
    "         v_tc        = a_tc;                                \n"
    "      }                                                     \n"
@@ -104,7 +104,7 @@ static const char *s_effectText =
    "      uniform sampler2D   u_textSampler;                    \n"
    "      uniform vec4        u_textColor;                      \n"
    "      varying vec2        v_tc;                             \n"
-   "      varying float		   v_opacity;                        \n"
+   "      varying float       v_opacity;                        \n"
    "                                                            \n"
    "      void main()                                           \n"
    "      {                                                     \n"
@@ -125,7 +125,6 @@ const float FULL_OPACITY = 1.0;                                   //!< Opacity v
 const float NO_OPACITY = 0.0;                                     //!< Opacity value hidding the help button or the help menu
 const Vec3 HIDE_SCALE(Vec3(0.0));                                 //!< Scale vector hidding the help button or the help menu
 const Vec3 SHOW_SCALE(Vec3(1.0));                                 //!< Scale vector showing the help button or the help menu
-const float ANIMATION_DURATION = 1.0;                             //!< Animation duration in second
 const unsigned int BACKGROUND_SORT_PRIORITY = 0;                  //!< Drawing priority of the background (should less than for the menu)
 const unsigned int MENU_SORT_PRIORITY = 100;                      //!< Drawing priority of the menu
 const Vec4 DEFAULT_MENU_BACKGROUND_COLOUR(0.0, 0.0, 0.0, 1.0);    //!< Default colour for the background of the menu
@@ -137,7 +136,7 @@ static uint32_t GetScreenWidth(const Application *app)
    if (app == 0)
       return 0;
 
-   return app->GetWindowWidth() * app->GetQuadRender().GetDimensions().X();
+   return app->GetWindowWidth();
 }
 
 static uint32_t GetScreenHeight(const Application *app)
@@ -145,16 +144,16 @@ static uint32_t GetScreenHeight(const Application *app)
    if (app == 0)
       return 0;
 
-   return app->GetWindowHeight() * app->GetQuadRender().GetDimensions().Y();
+   return app->GetWindowHeight();
 }
 
-HelpMenu::HelpMenu(Application *app, 
-                   eHELPBUTTON button, 
-                   const string &helpButtonText, 
-                   const string &fontName, 
+HelpMenu::HelpMenu(Application *app,
+                   eHELPBUTTON button,
+                   const string &helpButtonText,
+                   const string &fontName,
                    const Vec4 &colourText,
-                   float fontSizePercent, 
-                   float xPercentScreen, 
+                   float fontSizePercent,
+                   float xPercentScreen,
                    float yPercentScreen,
                    bool  useOverscan) :
    m_app(app),
@@ -186,8 +185,8 @@ HelpMenu::HelpMenu(Application *app,
    uint32_t screenWidth  = GetScreenWidth(m_app);
 
    InitMenuStructure(screenWidth, screenHeight, xPercentScreen, yPercentScreen);
-   
-   float fontSize = fontSizePercent * screenHeight / app->GetQuadRender().GetDimensions().Y();
+
+   float fontSize = fontSizePercent * screenHeight;
 
    //Set the default text sizes for the menu item
    m_menuItemTextSize   = fontSize;
@@ -198,21 +197,21 @@ HelpMenu::HelpMenu(Application *app,
 
    float imgWidth = 0;
    float textWidth = 0;
-   CreateColouredButtonNode(m_helpButtonNode, button, helpButtonText, 
+   CreateColouredButtonNode(m_helpButtonNode, button, helpButtonText,
                                  m_font, fontSize, colourText,
                                  imgWidth, textWidth);
 
 }
 
-HelpMenu::HelpMenu(Application *app, 
-                   const string &helpButtonHeaderText, 
-                   const string &helpButtonText, 
-                   const string &fontName, 
+HelpMenu::HelpMenu(Application *app,
+                   const string &helpButtonHeaderText,
+                   const string &helpButtonText,
+                   const string &fontName,
                    const Vec4 &colourHeader,
                    const Vec4 &colourText,
                    float fontSizePercentHeader,
-                   float fontSizePercentText, 
-                   float xPercentScreen, 
+                   float fontSizePercentText,
+                   float xPercentScreen,
                    float yPercentScreen,
                    bool useOverscan) :
    m_app(app),
@@ -244,9 +243,9 @@ HelpMenu::HelpMenu(Application *app,
    uint32_t screenWidth  = GetScreenWidth(m_app);
 
    InitMenuStructure(screenWidth, screenHeight, xPercentScreen, yPercentScreen);
-   
-   m_menuItemTextSize   = fontSizePercentText   * screenHeight / app->GetQuadRender().GetDimensions().Y();
-   m_menuItemHeaderSize = fontSizePercentHeader * screenHeight / app->GetQuadRender().GetDimensions().Y();
+
+   m_menuItemTextSize   = fontSizePercentText   * screenHeight;
+   m_menuItemHeaderSize = fontSizePercentHeader * screenHeight;
 
    // Create a font
    if (m_menuItemTextSize < m_menuItemHeaderSize)
@@ -256,7 +255,7 @@ HelpMenu::HelpMenu(Application *app,
 
    float headerWidth = 0;
    float textWidth = 0;
-   CreateHeaderAndTextNode(m_helpButtonNode, helpButtonHeaderText, helpButtonText, m_font, 
+   CreateHeaderAndTextNode(m_helpButtonNode, helpButtonHeaderText, helpButtonText, m_font,
                            m_menuItemHeaderSize, m_menuItemTextSize, colourHeader, colourText,
                            headerWidth, textWidth);
 }
@@ -278,7 +277,7 @@ void HelpMenu::InitMenuStructure(uint32_t screenWidth, uint32_t screenHeight, fl
    m_helpButtonNode->SetPosition(Vec3(helpBtnPos.X(), helpBtnPos.Y(), 0.0));
    // Set the default position of the menu to the help button position
    m_helpMenuNode->SetPosition(Vec3(helpBtnPos.X(), helpBtnPos.Y(), 0.0));
-     
+
    // Hide the menu
    m_helpMenuNode->SetOpacity(NO_OPACITY);
    // Show the help button
@@ -319,13 +318,13 @@ Vec2 HelpMenu::GetHelpButtonPosition(uint32_t screenWidth, uint32_t screenHeight
    return helpBtnPos;
 }
 
-void HelpMenu::SetMenuItemTextSize(float size) 
-{   
-   m_menuItemTextSize = size * GetScreenHeight(m_app);   
+void HelpMenu::SetMenuItemTextSize(float size)
+{
+   m_menuItemTextSize = size * GetScreenHeight(m_app);
 }
 
-void HelpMenu::SetMenuItemHeaderSize(float size) 
-{  
+void HelpMenu::SetMenuItemHeaderSize(float size)
+{
    m_menuItemHeaderSize = size * GetScreenHeight(m_app);
 }
 
@@ -348,13 +347,13 @@ void HelpMenu::SetCamera(uint32_t screenWidth, uint32_t screenHeight)
    m_rootNode->AppendChild(cameraNode);
 }
 
-void HelpMenu::CreateHeaderAndTextNode(SceneNodeHandle &buttonNode, 
-                                       const string &helpButtonHeaderText, 
-                                       const string &helpButtonText, 
-                                       const PrintFontHandle &font, 
-                                       float sizeHeader, 
-                                       float sizeText, 
-                                       const Vec4 &colourHeader, 
+void HelpMenu::CreateHeaderAndTextNode(SceneNodeHandle &buttonNode,
+                                       const string &helpButtonHeaderText,
+                                       const string &helpButtonText,
+                                       const PrintFontHandle &font,
+                                       float sizeHeader,
+                                       float sizeText,
+                                       const Vec4 &colourHeader,
                                        const Vec4 &colourText,
                                        float &headerWidth,
                                        float &textWidth)
@@ -369,7 +368,7 @@ void HelpMenu::CreateHeaderAndTextNode(SceneNodeHandle &buttonNode,
       headerGeom->SetText(helpButtonHeaderText, sizeHeader);
       headerGeom->SetUniform("u_textColor", colourHeader);
       headerGeom->SetSortPriority(MENU_SORT_PRIORITY);
-      
+
       // Store the max width to be able "tab" the description text
       headerWidth = headerGeom->GetWidth();
 
@@ -387,7 +386,7 @@ void HelpMenu::CreateHeaderAndTextNode(SceneNodeHandle &buttonNode,
    textGeom->SetText(helpButtonText, sizeText);
    textGeom->SetUniform("u_textColor", colourText);
    textGeom->SetSortPriority(MENU_SORT_PRIORITY);
- 
+
    SceneNodeHandle textNode(New);
    textNode->AppendGeometry(textGeom);
 
@@ -400,11 +399,11 @@ void HelpMenu::CreateHeaderAndTextNode(SceneNodeHandle &buttonNode,
    buttonNode->AppendChild(textNode);
 }
 
-void HelpMenu::CreateColouredButtonNode(SceneNodeHandle &buttonNode, 
-                                        eHELPBUTTON button, 
-                                        const string &text, 
-                                        const PrintFontHandle &font, 
-                                        float fontSize, 
+void HelpMenu::CreateColouredButtonNode(SceneNodeHandle &buttonNode,
+                                        eHELPBUTTON button,
+                                        const string &text,
+                                        const PrintFontHandle &font,
+                                        float fontSize,
                                         const Vec4 &colourText,
                                         float &imgSize,
                                         float &textWidth)
@@ -415,14 +414,14 @@ void HelpMenu::CreateColouredButtonNode(SceneNodeHandle &buttonNode,
    textGeom->SetText(text, fontSize);
    textGeom->SetUniform("u_textColor", colourText);
    textGeom->SetSortPriority(MENU_SORT_PRIORITY);
- 
+
    bsg::SceneNodeHandle buttonTextNode(New);
    buttonTextNode->AppendGeometry(textGeom);
 
    // Create the geometries for the textured button
    TextureHandle buttonTex(New);
    float adjustPosition = 0.0;
-   
+
    // Common operations for all the coloured button
    switch (button)
    {
@@ -434,7 +433,7 @@ void HelpMenu::CreateColouredButtonNode(SceneNodeHandle &buttonNode,
       case eHELP_BUTTON_RED:
          {
             MaterialHandle buttonMaterial(New);
-            buttonMaterial->SetEffect(m_buttonEffect); 
+            buttonMaterial->SetEffect(m_buttonEffect);
 
             buttonTex->SetAutoMipmap(true);
             buttonMaterial->SetTexture("u_tex", buttonTex);
@@ -451,7 +450,7 @@ void HelpMenu::CreateColouredButtonNode(SceneNodeHandle &buttonNode,
             textGeom->GetBounds(mn, mx);
             buttonImgNode->SetPosition(Vec3(imgSize/2.0f, mx.Y() / 2.0f, 0.0f));
 
-            buttonNode->AppendChild(buttonImgNode);            
+            buttonNode->AppendChild(buttonImgNode);
          }
          break;
       default:
@@ -601,7 +600,7 @@ Vec2 HelpMenu::GetMenuPositionFromRefPos()
    float menuHeight  = numberMenuItem * largestHeight;
    float paddingSize = largestHeight;
    float menuWidth   = maxHeaderWidth + DEFAULT_GAP_BETWEEN_HEADER_AND_DESCRIPTION + maxTextWidth;
-   
+
    float screenHeight = 0.0;
    float screenWidth = 0.0;
 
@@ -713,7 +712,7 @@ void HelpMenu::AddMenuItem(eHELPBUTTON button, const string &menuItemText, eMenu
    {
       //TODO: this should never happen
    }
-}  
+}
 
 void HelpMenu::AddMenuItem(const string &menuItemHeader, const string &menuItemText, eMenuID menu)
 {
@@ -726,7 +725,7 @@ void HelpMenu::AddMenuItem(const string &menuItemHeader, const string &menuItemT
 
       float headerWidth = 0;
       float textWidth = 0;
-      CreateHeaderAndTextNode(buttonNode, menuItemHeader, menuItemText, m_font, 
+      CreateHeaderAndTextNode(buttonNode, menuItemHeader, menuItemText, m_font,
                         m_menuItemHeaderSize, m_menuItemTextSize, m_menuItemHeaderColour, m_menuItemTextColour,
                         headerWidth, textWidth);
 
@@ -764,7 +763,7 @@ void HelpMenu::Resize()
 }
 
 void HelpMenu::SetMenuToDisplay(unsigned short menuToDisplay)
-{   
+{
    // If we already display the same menus
    if (menuToDisplay != m_menuToDisplay)
    {
@@ -812,7 +811,7 @@ void HelpMenu::AdjustMenuPositionAnimation()
             // Animation of the help menu to the new position
             AnimBindingHermiteVec3 *showMenuAnim3 = new AnimBindingHermiteVec3(&m_helpMenuNode->GetPosition());
             showMenuAnim3->Interpolator()->Init(now, now + 1.0f * m_app->GetRateMultiplier(), BaseInterpolator::eLIMIT);
-      
+
             showMenuAnim3->Evaluator()->Init(startMenuPos, Vec3(menuPos.X(), menuPos.Y(), 0.0));
 
             m_animList.Append(showMenuAnim3);
@@ -851,7 +850,7 @@ void HelpMenu::TabMenuItemDescriptions()
          Vec3 menuPos = menuPart->GetMenuNode()->GetPosition();
          menuPos.Y() = menuYOffset;
          menuPart->GetMenuNode()->SetPosition(menuPos);
-        
+
          // Going through all the menu items
          unsigned int numberItems = menuPart->GetNumberOfItems();
          for (unsigned int index = 0; index < numberItems; ++index)
@@ -894,9 +893,9 @@ void HelpMenu::CreateBackground()
    EffectHandle  backgroundEffect(New);
    MaterialHandle backgroundMaterial(New);
    backgroundEffect->Load("help_menu_background.bfx");
-   backgroundMaterial->SetEffect(backgroundEffect); 
+   backgroundMaterial->SetEffect(backgroundEffect);
    backgroundMaterial->SetUniformValue("u_color", m_menuBackgroundColour);
-             
+
    //TextureHandle backgroundTex(New);
    //backgroundTex->SetAutoMipmap(true);
    //backgroundTex->TexImage2D(Image("help_menu_background_glow", "png", Image::eRGBA8888));
@@ -922,7 +921,7 @@ void HelpMenu::CreateBackground()
 
    GeometryHandle backgroundQuad;
 
-   if (m_menuBackgroundRoundedCorners)   
+   if (m_menuBackgroundRoundedCorners)
       backgroundQuad = RoundedRectFactory (Vec3(0.0f), backgroundWidth + paddingSize, menuHeight + paddingSize, 10.0f, 50, eZ_AXIS).MakeGeometry(backgroundMaterial);
    else
       backgroundQuad = QuadFactory (backgroundWidth + paddingSize, menuHeight + paddingSize, 0.0, eZ_AXIS).MakeGeometry(backgroundMaterial);
@@ -932,7 +931,7 @@ void HelpMenu::CreateBackground()
    m_menuBackgroundNode->AppendGeometry(backgroundQuad);
 
    m_menuBackgroundNode->SetPosition(Vec3((backgroundWidth)/2.0f, -((menuHeight)/2.0f) + largestHeight, 0.0f));
-   
+
 }
 
 void HelpMenu::SetMenuBackgroundColour(const Vec4 &colour, bool roundedCorners)
@@ -953,7 +952,7 @@ void HelpMenu::UseMenuBackground()
 void HelpMenu::ToggleMenu()
 {
    if (!m_animationRunning)
-   {    
+   {
       if (m_menuDiplayed)
       {
          CreateAnimToHideMenu();
@@ -964,7 +963,7 @@ void HelpMenu::ToggleMenu()
       }
 
       m_menuDiplayed = !m_menuDiplayed;
-   }                           
+   }
 };
 
 void HelpMenu::CreateAnimToHideMenu()
@@ -979,7 +978,7 @@ void HelpMenu::CreateAnimToHideMenu()
       showMenuAnim->Evaluator()->Init(FULL_OPACITY, NO_OPACITY);
 
       m_animList.Append(showMenuAnim);
-      
+
       // Animate the help button
       AnimBindingHermiteFloat *showMenuAnim2 = new AnimBindingHermiteFloat(&m_helpButtonNode->GetOpacity());
       showMenuAnim2->Interpolator()->Init(now, now + 1.0f * m_app->GetRateMultiplier(), BaseInterpolator::eLIMIT);
@@ -996,7 +995,7 @@ void HelpMenu::CreateAnimToHideMenu()
       showMenuAnim->Evaluator()->Init(SHOW_SCALE, HIDE_SCALE);
 
       m_animList.Append(showMenuAnim);
-       
+
       // Animate the help button
 
       // Set the help button visible
@@ -1025,7 +1024,7 @@ void HelpMenu::CreateAnimToHideMenu()
       Vec2 menuPos(GetMenuPosition());
       showMenuAnim3->Evaluator()->Init(Vec3(menuPos.X(), menuPos.Y(), 0.0), Vec3(m_animationMenuHidePosition.X(), m_animationMenuHidePosition.Y(), 0.0));
 
-      m_animList.Append(showMenuAnim3);       
+      m_animList.Append(showMenuAnim3);
    }
 }
 
@@ -1049,7 +1048,7 @@ void HelpMenu::CreateAnimToDisplayMenu()
 
       m_animList.Append(showMenuAnim2);
    }
-   
+
    if (m_animationType & eMENU_ANIM_SCALE)
    {
       // Animate the menu
@@ -1062,7 +1061,7 @@ void HelpMenu::CreateAnimToDisplayMenu()
       showMenuAnim->Evaluator()->Init(HIDE_SCALE, SHOW_SCALE);
 
       m_animList.Append(showMenuAnim);
-      
+
       // Animate the help button
       AnimBindingHermiteVec3 *showMenuAnim2 = new AnimBindingHermiteVec3(&m_helpButtonNode->GetScale());
       showMenuAnim2->Interpolator()->Init(now, now + 1.0f * m_app->GetRateMultiplier(), BaseInterpolator::eLIMIT);
@@ -1070,7 +1069,7 @@ void HelpMenu::CreateAnimToDisplayMenu()
 
       m_animList.Append(showMenuAnim2);
    }
-   
+
    if ((m_animationType & eMENU_ANIM_MOVE_FROM_HELP_BTN) ||
       (m_animationType & eMENU_ANIM_MOVE_FROM_TOP_RIGHT) ||
       (m_animationType & eMENU_ANIM_MOVE_FROM_TOP_LEFT)  ||
@@ -1089,9 +1088,9 @@ void HelpMenu::CreateAnimToDisplayMenu()
    }
 }
 
-void HelpMenu::SetAnimationType(unsigned int type) 
-{ 
-   m_animationType = type; 
+void HelpMenu::SetAnimationType(unsigned int type)
+{
+   m_animationType = type;
 
    uint32_t screenWidth  = GetScreenWidth(m_app);
    uint32_t screenHeight = GetScreenHeight(m_app);
@@ -1130,34 +1129,34 @@ void HelpMenu::UpdateAnimationMenuHidePosition(uint32_t screenWidth, uint32_t sc
    {
       case eMENU_ANIM_MOVE_FROM_HELP_BTN:
          {
-            m_animationMenuHidePosition = GetHelpButtonPosition(screenWidth, screenHeight); 
+            m_animationMenuHidePosition = GetHelpButtonPosition(screenWidth, screenHeight);
          }
          break;
 
       case eMENU_ANIM_MOVE_FROM_TOP_RIGHT:
          {
-            m_animationMenuHidePosition.X() = screenWidth -  (screenWidth  / 2.0f); 
+            m_animationMenuHidePosition.X() = screenWidth -  (screenWidth  / 2.0f);
             m_animationMenuHidePosition.Y() = screenHeight - (screenHeight / 2.0f);
          }
          break;
 
       case eMENU_ANIM_MOVE_FROM_TOP_LEFT:
          {
-            m_animationMenuHidePosition.X() = - (screenWidth / 2.0f); 
+            m_animationMenuHidePosition.X() = - (screenWidth / 2.0f);
             m_animationMenuHidePosition.Y() = screenHeight - (screenHeight / 2.0f);
          }
          break;
 
       case eMENU_ANIM_MOVE_FROM_BOT_RIGHT:
          {
-            m_animationMenuHidePosition.X() = screenWidth - (screenWidth / 2.0f); 
+            m_animationMenuHidePosition.X() = screenWidth - (screenWidth / 2.0f);
             m_animationMenuHidePosition.Y() = - (screenHeight / 2.0f);
          }
          break;
 
       case eMENU_ANIM_MOVE_FROM_BOT_LEFT:
          {
-            m_animationMenuHidePosition.X() = - (screenWidth  / 2.0f); 
+            m_animationMenuHidePosition.X() = - (screenWidth  / 2.0f);
             m_animationMenuHidePosition.Y() = - (screenHeight / 2.0f);
          }
          break;

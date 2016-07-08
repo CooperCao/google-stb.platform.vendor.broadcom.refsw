@@ -1,21 +1,41 @@
 /***************************************************************************
- *     Copyright (c) 2003-2014, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * [File Description:]
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ***************************************************************************/
 
@@ -1090,15 +1110,15 @@ BVCE_P_Boot(
             );
 
    BDBG_MSG(("ARC[0] PC = %08x, STATUS32 = %08x",
-	     BREG_Read32(
-			 hVce->handles.hReg,
-			 hVce->stPlatformConfig.stDebug.uiPicArcPC
-			 ),
-	     BREG_Read32(
-			 hVce->handles.hReg,
-			 hVce->stPlatformConfig.stDebug.uiPicArcStatus32
-			 )
-	     ));
+         BREG_Read32(
+             hVce->handles.hReg,
+             hVce->stPlatformConfig.stDebug.uiPicArcPC
+             ),
+         BREG_Read32(
+             hVce->handles.hReg,
+             hVce->stPlatformConfig.stDebug.uiPicArcStatus32
+             )
+         ));
 #endif
 
    /* SW7445-581: Set the FW buffer MEMC register base address */
@@ -1212,52 +1232,52 @@ BVCE_P_Boot(
       for ( i = 0; i < BVCE_P_POLL_FW_COUNT; i++)
       {
 #if 1 /* Do not sleep in emulation */
-	 BKNI_Sleep(200);
+     BKNI_Sleep(200);
 #else
-	 {
-	   uint32_t uiTemp = 0xFFFFFFFF;
-	   volatile uint32_t uiFoo = uiTemp;
-	   while (uiFoo)
-	     {
-	       uiFoo = uiTemp;
-	       uiTemp--;
-	     };
-	 }
+     {
+       uint32_t uiTemp = 0xFFFFFFFF;
+       volatile uint32_t uiFoo = uiTemp;
+       while (uiFoo)
+         {
+           uiFoo = uiTemp;
+           uiTemp--;
+         };
+     }
 #endif
-	 {
-	   uint32_t uiHost2Vice = BREG_Read32(
-					      hVce->handles.hReg,
-					      hVce->stPlatformConfig.stMailbox.uiHost2ViceMailboxAddress
-					      );
+     {
+       uint32_t uiHost2Vice = BREG_Read32(
+                          hVce->handles.hReg,
+                          hVce->stPlatformConfig.stMailbox.uiHost2ViceMailboxAddress
+                          );
 
-	   BDBG_MSG(("ARC[0] PC = %08x, STATUS32 = %08x, L2 = %08x, Host2Vice %08x, Vice2Host %08x",
-	             BREG_Read32(
-	                         hVce->handles.hReg,
-	                         hVce->stPlatformConfig.stDebug.uiPicArcPC
-	                         ),
-	             BREG_Read32(
-	                         hVce->handles.hReg,
-	                         hVce->stPlatformConfig.stDebug.uiPicArcStatus32
-	                         ),
-	             BREG_Read32(
-	                      hVce->handles.hReg,
-	                      hVce->stPlatformConfig.stInterrupt.uiInterruptStatusRegister
-	                      ),
-	      uiHost2Vice,
-	      BREG_Read32(
-	         hVce->handles.hReg,
-	         hVce->stPlatformConfig.stMailbox.uiVice2HostMailboxAddress
-	      )
-		     ));
+       BDBG_MSG(("ARC[0] PC = %08x, STATUS32 = %08x, L2 = %08x, Host2Vice %08x, Vice2Host %08x",
+                 BREG_Read32(
+                             hVce->handles.hReg,
+                             hVce->stPlatformConfig.stDebug.uiPicArcPC
+                             ),
+                 BREG_Read32(
+                             hVce->handles.hReg,
+                             hVce->stPlatformConfig.stDebug.uiPicArcStatus32
+                             ),
+                 BREG_Read32(
+                          hVce->handles.hReg,
+                          hVce->stPlatformConfig.stInterrupt.uiInterruptStatusRegister
+                          ),
+          uiHost2Vice,
+          BREG_Read32(
+             hVce->handles.hReg,
+             hVce->stPlatformConfig.stMailbox.uiVice2HostMailboxAddress
+          )
+             ));
 
-	   /* Wait for zero value in Host2Vice Mailbox Register */
+       /* Wait for zero value in Host2Vice Mailbox Register */
 
-	   if ( 0 == uiHost2Vice )
-	   {
-	     rc = BERR_SUCCESS;
-	     break;
-	   }
-	 }
+       if ( 0 == uiHost2Vice )
+       {
+         rc = BERR_SUCCESS;
+         break;
+       }
+     }
       }
    }
 #else
@@ -1269,9 +1289,9 @@ BVCE_P_Boot(
    {
       /* Retrieve the boot sequence # */
      uint32_t uiHost2Vice = BREG_Read32(
-			       hVce->handles.hReg,
-			       hVce->stPlatformConfig.stMailbox.uiHost2ViceMailboxAddress
-			       );
+                   hVce->handles.hReg,
+                   hVce->stPlatformConfig.stMailbox.uiHost2ViceMailboxAddress
+                   );
 
       if ( BERR_SUCCESS != rc )
       {
@@ -1292,8 +1312,8 @@ BVCE_P_Boot(
             );
 
    BDBG_MSG(("ARC[0] Vice2Host = %08x",
-	     hVce->fw.dccm.uiCommandBufferBaseOffset
-	     ));
+         hVce->fw.dccm.uiCommandBufferBaseOffset
+         ));
 
    hVce->fw.dccm.uiCommandBufferBaseAddress = hVce->fw.dccm.uiRegisterBaseAddress[0] + hVce->fw.dccm.uiCommandBufferBaseOffset;
 
@@ -1367,10 +1387,10 @@ void BVCE_P_ValidateFrameRateEnum(void)
 BERR_Code
 BVCE_P_WriteRegistersNew_isrsafe(
          BVCE_Handle hVce,
-	 unsigned uiRegStartAddress,
-	 const uint32_t *pBuffer,
-	 size_t uiSize
-	 )
+     unsigned uiRegStartAddress,
+     const uint32_t *pBuffer,
+     size_t uiSize
+     )
 {
    size_t i;
 #if BDBG_DEBUG_BUILD
@@ -1414,10 +1434,10 @@ BVCE_P_WriteRegistersNew_isrsafe(
       }
 #endif
      BREG_Write32(
-		  hVce->handles.hReg,
-		  uiRegStartAddress + (i*sizeof( uint32_t )),
-		  pBuffer[i]
-		  );
+          hVce->handles.hReg,
+          uiRegStartAddress + (i*sizeof( uint32_t )),
+          pBuffer[i]
+          );
    }
 
    return BERR_TRACE( BERR_SUCCESS );
@@ -1429,10 +1449,10 @@ BVCE_P_WriteRegistersNew_isrsafe(
 BERR_Code
 BVCE_P_ReadRegistersNew_isrsafe(
          BVCE_Handle hVce,
-	 unsigned uiRegStartAddress,
-	 uint32_t *pBuffer,
-	 size_t uiSize /* In bytes (32-bit multiple) */
-	 )
+     unsigned uiRegStartAddress,
+     uint32_t *pBuffer,
+     size_t uiSize /* In bytes (32-bit multiple) */
+     )
 {
    size_t i;
 #if BDBG_DEBUG_BUILD
@@ -1447,9 +1467,9 @@ BVCE_P_ReadRegistersNew_isrsafe(
    for ( i = 0; i < ( uiSize / sizeof( uint32_t ) ); i++ )
    {
      pBuffer[i] = BREG_Read32(
-			      hVce->handles.hReg,
-			      uiRegStartAddress + (i*sizeof( uint32_t ))
-			      );
+                  hVce->handles.hReg,
+                  uiRegStartAddress + (i*sizeof( uint32_t ))
+                  );
 
 #if BDBG_DEBUG_BUILD
      /* Look up command */
@@ -1914,7 +1934,7 @@ BVCE_P_SendCommand_Init(
 
             if ( NULL != szVersionCached )
             {
-               BDBG_WRN(("%s", szVersionCached));
+               BDBG_WRN(("%s", (char *)szVersionCached));
             }
 
             BVCE_P_Buffer_UnlockAddress( hVce->fw.memory[0].hBuffer );
@@ -2215,6 +2235,7 @@ static const uint32_t BVCE_P_ErrorMaskLUT[32] =
  ( 1 << VICE_ERROR_RES_AND_FRAMERATE_NOT_SUPPORTED_IN_3_CH_MODE ), /* BVCE_CHANNEL_STATUS_FLAGS_ERROR_UNSUPPORTED_DISPLAY_FMT_IN_3_CH_MODE */
  ( 1 << VICE_ERROR_RES_AND_FRAMERATE_NOT_SUPPORTED_IN_2_CH_MODE ), /* BVCE_CHANNEL_STATUS_FLAGS_ERROR_UNSUPPORTED_DISPLAY_FMT_IN_2_CH_MODE */
  ( 1 << VICE_ERROR_RESOLUTION_IS_TOO_HIGH_FOR_THIS_LEVEL ), /* BVCE_CHANNEL_STATUS_FLAGS_ERROR_MAX_RESOLUTION_FOR_LEVEL_EXCEEDED */
+ ( 1 << VICE_ERROR_FW_INCREASED_BITRATE_TO_MINIMUM_SUPPORTED ), /* BVCE_CHANNEL_STATUS_FLAGS_ERROR_BITRATE_TOO_LOW */
 };
 
 static const uint32_t BVCE_P_EventMaskReverseLUT[32] =
@@ -2241,7 +2262,7 @@ static const uint32_t BVCE_P_EventMaskReverseLUT[32] =
  0, /* Reserved */
  0, /* Reserved */
  0, /* Reserved */
- 0,
+ 0, /* Reserved */
  0,
  0,
  0,
@@ -2277,7 +2298,7 @@ static const uint32_t BVCE_P_ErrorMaskReverseLUT[32] =
  BVCE_CHANNEL_STATUS_FLAGS_ERROR_UNSUPPORTED_DISPLAY_FMT_IN_3_CH_MODE, /* VICE_ERROR_RES_AND_FRAMERATE_NOT_SUPPORTED_IN_3_CH_MODE */
  BVCE_CHANNEL_STATUS_FLAGS_ERROR_UNSUPPORTED_DISPLAY_FMT_IN_2_CH_MODE, /* VICE_ERROR_RES_AND_FRAMERATE_NOT_SUPPORTED_IN_2_CH_MODE */
  BVCE_CHANNEL_STATUS_FLAGS_ERROR_MAX_RESOLUTION_FOR_LEVEL_EXCEEDED, /* VICE_ERROR_RESOLUTION_IS_TOO_HIGH_FOR_THIS_LEVEL */
- 0,
+ BVCE_CHANNEL_STATUS_FLAGS_ERROR_BITRATE_TOO_LOW, /* VICE_ERROR_FW_INCREASED_BITRATE_TO_MINIMUM_SUPPORTED */
  0,
  0,
  0,
@@ -2447,7 +2468,7 @@ BVCE_P_VerifyGopStructure(
             {
                if ((hVce->fw.stCommand.type.stConfigChannel.GopLength - 1) % 3)
                {
-                  BDBG_ERR(("GOP length (%d) invalid for IBBP Closed GOP Structure - must be 1 + 3*N"));
+                  BDBG_ERR(("GOP length (%d) invalid for IBBP Closed GOP Structure - must be 1 + 3*N", hVce->fw.stCommand.type.stConfigChannel.GopLength));
                   return BERR_TRACE(BERR_NOT_SUPPORTED);
                }
             }
@@ -2455,7 +2476,7 @@ BVCE_P_VerifyGopStructure(
             {
                if ((hVce->fw.stCommand.type.stConfigChannel.GopLength - 3) % 3)
                {
-                  BDBG_ERR(("GOP length (%d) invalid for IBBP Open GOP Structure - must be 3 + 3*N"));
+                  BDBG_ERR(("GOP length (%d) invalid for IBBP Open GOP Structure - must be 3 + 3*N", hVce->fw.stCommand.type.stConfigChannel.GopLength));
                   return BERR_TRACE(BERR_NOT_SUPPORTED);
                }
             }
@@ -2499,6 +2520,8 @@ BVCE_P_EncodeModeLUT(
    }
 }
 
+#define BVCE_P_DIMENSION_ALIGNMENT 16
+#define BVCE_P_ALIGN_DIMENSION(_x) ( ( ( ( _x ) + ( ( BVCE_P_DIMENSION_ALIGNMENT ) - 1 ) ) / ( BVCE_P_DIMENSION_ALIGNMENT ) ) * ( BVCE_P_DIMENSION_ALIGNMENT ) )
 void
 BVCE_P_GetMaxDimension(
    const BVCE_Channel_StartEncodeSettings *pstStartEncodeSettings,
@@ -2510,13 +2533,13 @@ BVCE_P_GetMaxDimension(
         || ( 0 == pstStartEncodeSettings->stBounds.stDimensions.stMaxInterlaced.uiWidth )
         || ( 0 == pstStartEncodeSettings->stBounds.stDimensions.stMaxInterlaced.uiHeight ) )
    {
-      *puiWidth = pstStartEncodeSettings->stBounds.stDimensions.stMax.uiWidth;
-      *puiHeight = pstStartEncodeSettings->stBounds.stDimensions.stMax.uiHeight;
+      *puiWidth = BVCE_P_ALIGN_DIMENSION(pstStartEncodeSettings->stBounds.stDimensions.stMax.uiWidth);
+      *puiHeight = BVCE_P_ALIGN_DIMENSION(pstStartEncodeSettings->stBounds.stDimensions.stMax.uiHeight);
    }
    else
    {
-      *puiWidth = pstStartEncodeSettings->stBounds.stDimensions.stMaxInterlaced.uiWidth;
-      *puiHeight = pstStartEncodeSettings->stBounds.stDimensions.stMaxInterlaced.uiHeight;
+      *puiWidth = BVCE_P_ALIGN_DIMENSION(pstStartEncodeSettings->stBounds.stDimensions.stMaxInterlaced.uiWidth);
+      *puiHeight = BVCE_P_ALIGN_DIMENSION(pstStartEncodeSettings->stBounds.stDimensions.stMaxInterlaced.uiHeight);
    }
 }
 
@@ -3085,25 +3108,25 @@ BVCE_P_SendCommand_ConfigChannel(
 
       if ( 100 < hVceCh->stStartEncodeSettings.stRateControl.stSegmentMode.stTargetBitRatePercentage.stUpper.uiTolerance )
       {
-         BDBG_ERR(("Segment Mode RC final upper target bitrate tolerance limit percentage must be <= 100%"));
+         BDBG_ERR(("Segment Mode RC final upper target bitrate tolerance limit percentage must be <= 100%%"));
          return BERR_TRACE( BERR_INVALID_PARAMETER );
       }
 
       if ( 100 < hVceCh->stStartEncodeSettings.stRateControl.stSegmentMode.stTargetBitRatePercentage.stUpper.uiSlopeFactor )
       {
-         BDBG_ERR(("Segment Mode RC initial upper target bitrate tolerance offset percentage must be <= 100%"));
+         BDBG_ERR(("Segment Mode RC initial upper target bitrate tolerance offset percentage must be <= 100%%"));
          return BERR_TRACE( BERR_INVALID_PARAMETER );
       }
 
       if ( 100 < hVceCh->stStartEncodeSettings.stRateControl.stSegmentMode.stTargetBitRatePercentage.stLower.uiTolerance)
       {
-         BDBG_ERR(("Segment Mode RC final lower target bitrate tolerance limit percentage must be <= 100%"));
+         BDBG_ERR(("Segment Mode RC final lower target bitrate tolerance limit percentage must be <= 100%%"));
          return BERR_TRACE( BERR_INVALID_PARAMETER );
       }
 
       if ( 100 > hVceCh->stStartEncodeSettings.stRateControl.stSegmentMode.stTargetBitRatePercentage.stLower.uiSlopeFactor)
       {
-         BDBG_ERR(("Segment Mode RC initial lower target bitrate tolerance offset percentage must be >= 100%"));
+         BDBG_ERR(("Segment Mode RC initial lower target bitrate tolerance offset percentage must be >= 100%%"));
          return BERR_TRACE( BERR_INVALID_PARAMETER );
       }
 
@@ -3117,6 +3140,12 @@ BVCE_P_SendCommand_ConfigChannel(
       /* Set lower limits (defaults to no lower limit) */
       hVce->fw.stCommand.type.stConfigChannel.RCSegmentModeParams |= ( ((uint32_t)hVceCh->stStartEncodeSettings.stRateControl.stSegmentMode.stTargetBitRatePercentage.stLower.uiTolerance) << CONFIG_LOWER_RC_SEGMENT_TOLERANCE_SHIFT ) & CONFIG_LOWER_RC_SEGMENT_TOLERANCE_MASK;
       hVce->fw.stCommand.type.stConfigChannel.RCSegmentModeParams |= ( ((uint32_t)hVceCh->stStartEncodeSettings.stRateControl.stSegmentMode.stTargetBitRatePercentage.stLower.uiSlopeFactor) << CONFIG_LOWER_LIMIT_SLOPE_FACTOR_SHIFT ) & CONFIG_LOWER_LIMIT_SLOPE_FACTOR_MASK;
+   }
+
+   /* SW7445-3434: Disable HRD picture drops */
+   if ( true == hVceCh->stStartEncodeSettings.stRateControl.stHrdMode.bDisableFrameDrop )
+   {
+      hVce->fw.stCommand.type.stConfigChannel.Flags |= (1 << CONFIG_FLAG_DISABLE_HRD_DROP_PICTURE);
    }
 
    rc = BVCE_P_SendCommand(
@@ -4108,8 +4137,8 @@ BVCE_Debug_SendCommand(
 
 void
 BVCE_Debug_P_DumpRegisters_impl(
-		BVCE_Handle hVce
-		)
+        BVCE_Handle hVce
+        )
 {
 #if BDBG_DEBUG_BUILD
     BVCE_Platform_P_DumpRegisterList(
@@ -5268,6 +5297,10 @@ static const BVCE_Channel_StartEncodeSettings s_stDefaultStartEncodeSettings =
  },
  /* stRateControl */
  {
+    /* stHrdMode */
+    {
+       false, /* bDisableFrameDrop */
+    },
     /* stSegmentMode */
     {
        false, /* bEnable */
@@ -6440,7 +6473,6 @@ static const uint16_t BVCE_P_UserData_PacketTypeLUT[BUDP_DCCparse_Format_LAST] =
    BVCE_FW_P_UserData_PacketType_eSCTE_21, /* BUDP_DCCparse_Format_DVS053 */
    BVCE_P_UserData_PacketType_UNSUPPORTED, /* BUDP_DCCparse_Format_SEI */
    BVCE_P_UserData_PacketType_UNSUPPORTED, /* BUDP_DCCparse_Format_SEI2 */
-   BVCE_P_UserData_PacketType_UNSUPPORTED, /* BUDP_DCCparse_Format_AFD53 */
 };
 
 static void
@@ -6943,6 +6975,11 @@ BVCE_GetA2PDelayInfo(
             uiGOPStructure &= GOP_STRUCTURE_MASK;
          }
 
+         if (pstChEncodeSettings->stFrameRate.eFrameRate == BAVC_FrameRateCode_eUnknown)
+         {
+            return BERR_TRACE( BERR_INVALID_PARAMETER );
+         }
+         else
          {
             unsigned uiWidth = 0, uiHeight = 0;
 
@@ -7155,8 +7192,8 @@ BVCE_Channel_GetMemoryConfig(
          BVCE_FW_P_GetDefaultNonSecureMemSettings( &stCoreSettings, &stNonSecureMemSettings );
 
          stNonSecureMemSettings.InputType = BVCE_P_InputTypeLUT[pstChMemoryBoundsSettings->eInputType];
-         stNonSecureMemSettings.MaxPictureHeightInPels = pstChMemoryBoundsSettings->stDimensions.stMax.uiHeight;
-         stNonSecureMemSettings.MaxPictureWidthInPels = pstChMemoryBoundsSettings->stDimensions.stMax.uiWidth;
+         stNonSecureMemSettings.MaxPictureHeightInPels = BVCE_P_ALIGN_DIMENSION(pstChMemoryBoundsSettings->stDimensions.stMax.uiHeight);
+         stNonSecureMemSettings.MaxPictureWidthInPels = BVCE_P_ALIGN_DIMENSION(pstChMemoryBoundsSettings->stDimensions.stMax.uiWidth);
 
          if ( NULL != pstChMemorySettings )
          {
@@ -7497,5 +7534,3 @@ BVCE_Channel_P_HandleEOSEvent(
    /* Detach from output */
    hVceCh->stStartEncodeSettings.hOutputHandle = NULL;
 }
-
-

@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -11,7 +11,7 @@
  * Software and all intellectual property rights therein.  IF YOU HAVE NO
  * AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
  * AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
- * SOFTWARE.  
+ * SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
@@ -57,8 +57,8 @@ namespace bsg
 //! The order of application is scale, then rotation, then position.
 //!
 //! The transform is used primarily by the SceneNode class to encode a node transform.
-//! 
-//! Transforms cannot be combined in the same way that matrices might. The reason for this is that 
+//!
+//! Transforms cannot be combined in the same way that matrices might. The reason for this is that
 //! we want transforms to be sensibly interpolated by animators; matrices cannot do this. There are
 //! some facilities for rotating, scaling and translating Transforms however.
 //!

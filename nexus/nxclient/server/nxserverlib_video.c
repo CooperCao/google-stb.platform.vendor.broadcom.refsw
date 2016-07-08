@@ -61,7 +61,7 @@ struct video_decoder_resource {
     struct b_connect *connect;
     NxClient_ConnectSettings connectSettings; /* copy of settings that were used when created */
     unsigned windowIndex; /* index into connect->client->session->window[] */
-    nxserver_t server; /* needed for cleanup after connect/clients are gone */
+    struct b_session *session; /* needed for cleanup after connect/clients are gone */
     struct video_decoder_resource *linked;
 };
 #define IS_MOSAIC(connect) ((connect)->settings.simpleVideoDecoder[1].id)
@@ -129,6 +129,17 @@ static enum b_cap video_decoder_p_meets_decoder_cap(struct b_connect *connect, u
     if (!server->settings.memConfigSettings.videoDecoder[index].maxFormat) {
         /* for non-memconfig platforms, we can't distiguish between decoders */
         return b_cap_preferred;
+    }
+
+    if (connect->settings.simpleVideoDecoder[0].windowCapabilities.type == NxClient_VideoWindowType_eNone) {
+        if (server->videoDecoder.cap.videoDecoder[index].feeder.index != (unsigned)-1) {
+            result = b_cap_possible;
+        }
+    }
+    else {
+        if (server->videoDecoder.cap.videoDecoder[index].feeder.index == (unsigned)-1) {
+            return b_cap_no;
+        }
     }
 
     if (server->settings.svp == nxserverlib_svp_type_none) {
@@ -224,18 +235,7 @@ static enum b_cap video_decoder_p_meets_decoder_cap(struct b_connect *connect, u
    return: next index, caller terminates with -1. */
 static int b_next_decoder_index(struct b_connect *connect, int index)
 {
-    /* for b_special_mode_linked_decoder and non-transcode, search 1,3,2,0 */
-    if (connect->client->server->videoDecoder.special_mode == b_special_mode_linked_decoder &&
-        !connect->settings.simpleVideoDecoder[0].windowCapabilities.encoder)
-    {
-        switch (index) {
-        case NEXUS_MAX_VIDEO_DECODERS: return 1;
-        case 1: return 3;
-        case 2: return 0;
-        default: return index-1;
-        }
-    }
-    else if (connect->client->server->videoDecoder.special_mode == b_special_mode_linked_decoder2)
+    if (connect->client->server->videoDecoder.special_mode == b_special_mode_linked_decoder2)
     {
         if (connect->settings.simpleVideoDecoder[0].windowCapabilities.encoder) {
             /* encoder uses 2,1 */
@@ -290,10 +290,10 @@ static void video_decoder_p_find_decoder(struct b_connect *connect, unsigned ass
 
 static const char * const eotfStrings[NEXUS_VideoEotf_eMax + 1] =
 {
-    "SDR (GAMMA)",
-    "HDR (GAMMA)",
-    "SMPTE 2084 (PQ)",
-    "Future (BBC/NHK)",
+    "SDR",
+    "HLG",
+    "HDR10",
+    "Invalid",
     "unspecified"
 };
 
@@ -309,12 +309,12 @@ static void video_decoder_stream_changed(void * context, int param)
     rc = NEXUS_VideoDecoder_GetStreamInformation(r->handle[0], &streamInfo);
     if (!rc)
     {
-        struct b_session * session = r->connect->client->session;
+        struct b_session *session = r->session;
         session->hdmi.drm.input.eotf = streamInfo.eotf;
         BKNI_Memcpy(&session->hdmi.drm.input.metadata.typeSettings.type1.contentLightLevel, &streamInfo.contentLightLevel, sizeof(session->hdmi.drm.input.metadata.typeSettings.type1.contentLightLevel));
         BKNI_Memcpy(&session->hdmi.drm.input.metadata.typeSettings.type1.masteringDisplayColorVolume, &streamInfo.masteringDisplayColorVolume, sizeof(session->hdmi.drm.input.metadata.typeSettings.type1.masteringDisplayColorVolume));
         session->hdmi.drm.inputValid = true;
-        nxserverlib_p_apply_hdmi_drm(session, NULL);
+        nxserverlib_p_apply_hdmi_drm(session, NULL, false);
     }
 
 }
@@ -323,7 +323,7 @@ static void video_decoder_stream_changed(void * context, int param)
 /* Because of RTS dependencies, we don't keep a cached decoder open beyond the next video_decoder_create.
 After that create, any cached decoder should be closed.
 For instance, if a 4K decoder is cached, it may prevent another 1080p decoder from running. */
-static void video_decoder_clear_cache(void)
+void nxserverlib_p_clear_video_cache(void)
 {
     unsigned i;
     for (i=0;i<TOTAL_DECODERS;i++) {
@@ -345,7 +345,7 @@ struct video_decoder_resource *nx_video_decoder_p_malloc(struct b_connect *conne
     BKNI_Memset(r, 0, sizeof(*r));
     g_decoders[index].r = r;
     r->index = index;
-    r->server = connect->client->server;
+    r->session = connect->client->session;
     r->connect = connect;
     r->connectSettings = connect->settings;
     r->used = true;
@@ -353,18 +353,49 @@ struct video_decoder_resource *nx_video_decoder_p_malloc(struct b_connect *conne
     return r;
 }
 
+#if NEXUS_HAS_SAGE
+static bool nxserver_p_urr_on(nxserver_t server)
+{
+    NEXUS_HeapRuntimeSettings heapSettings;
+#ifdef NEXUS_MEMC0_SECURE_PICTURE_BUFFER_HEAP
+    if (server->platformConfig.heap[NEXUS_MEMC0_SECURE_PICTURE_BUFFER_HEAP]) {
+        NEXUS_Platform_GetHeapRuntimeSettings(server->platformConfig.heap[NEXUS_MEMC0_SECURE_PICTURE_BUFFER_HEAP], &heapSettings);
+        return heapSettings.secure;
+    }
+#else
+    BSTD_UNUSED(heapSettings);
+    BSTD_UNUSED(rc);
+#endif
+#ifdef NEXUS_MEMC1_SECURE_PICTURE_BUFFER_HEAP
+    if (server->platformConfig.heap[NEXUS_MEMC1_SECURE_PICTURE_BUFFER_HEAP]) {
+        NEXUS_Platform_GetHeapRuntimeSettings(server->platformConfig.heap[NEXUS_MEMC1_SECURE_PICTURE_BUFFER_HEAP], &heapSettings);
+        return heapSettings.secure;
+    }
+#endif
+#ifdef NEXUS_MEMC2_SECURE_PICTURE_BUFFER_HEAP
+    if (server->platformConfig.heap[NEXUS_MEMC2_SECURE_PICTURE_BUFFER_HEAP]) {
+        NEXUS_Platform_GetHeapRuntimeSettings(server->platformConfig.heap[NEXUS_MEMC2_SECURE_PICTURE_BUFFER_HEAP], &heapSettings);
+        return heapSettings.secure;
+    }
+#endif
+    return false;
+}
+#endif
+
 static struct video_decoder_resource *video_decoder_create(struct b_connect *connect)
 {
     unsigned index = TOTAL_DECODERS;
     int rc;
     struct video_decoder_resource *r;
     nxserver_t server = connect->client->server;
+    struct b_session *session = connect->client->session;
     unsigned linked_decoder = 0;
     unsigned total_linked_decoders = 0;
+    NEXUS_HeapHandle cdbHeap = NULL;
 
     /* allow SimpleVideoDecoder to cache VideoDecoder/VideoWindow connections to
     minimize start time */
-    NEXUS_SimpleVideoDecoderModule_SetCacheEnabled(true);
+    NEXUS_SimpleVideoDecoderModule_SetCacheEnabled(session->video.server, true);
 
     /* window-only is only used with HDMI input */
     if (connect->settings.simpleVideoDecoder[0].decoderCapabilities.connectType == NxClient_VideoDecoderConnectType_eWindowOnly) {
@@ -422,22 +453,7 @@ static struct video_decoder_resource *video_decoder_create(struct b_connect *con
     }
 
     if (index == TOTAL_DECODERS) {
-        if (server->videoDecoder.special_mode == b_special_mode_linked_decoder &&
-            connect->settings.simpleVideoDecoder[3].id &&
-            connect->settings.simpleVideoDecoder[0].decoderCapabilities.maxHeight >= 480)
-        {
-            if ((!g_decoders[0].r || !g_decoders[0].r->used) && (!g_decoders[1].r || !g_decoders[1].r->used))
-            {
-                index = 0;
-                linked_decoder = 1;
-                total_linked_decoders = 6;
-            }
-            else {
-                BERR_TRACE(NEXUS_NOT_SUPPORTED);
-                return NULL;
-            }
-        }
-        else if (server->videoDecoder.special_mode == b_special_mode_linked_decoder2 &&
+        if (server->videoDecoder.special_mode == b_special_mode_linked_decoder2 &&
             connect->settings.simpleVideoDecoder[1].id &&
             connect->settings.simpleVideoDecoder[0].decoderCapabilities.maxHeight >= 720)
         {
@@ -478,10 +494,36 @@ static struct video_decoder_resource *video_decoder_create(struct b_connect *con
         BDBG_WRN(("no video decoder available"));
         return NULL;
     }
+
+#if NEXUS_HAS_SAGE
+    if(connect->settings.simpleVideoDecoder[0].decoderCapabilities.secureVideo) {
+        /* Use CRR for video CDB if secure decoder/heaps AND sage toggle on (URR=on) */
+        /* Otherwise use GLR for video CDB (CRR will NOT work) */
+        /* All secure picture buffer heaps are toggled at once, just need to check one */
+        if (nxserver_p_urr_on(server)) {
+            cdbHeap = server->settings.client.heap[NXCLIENT_VIDEO_SECURE_HEAP];
+            if (!cdbHeap) {
+                rc = BERR_TRACE(NEXUS_NOT_AVAILABLE);
+                goto error;
+            }
+        }
+    }
+#else
+    if(connect->settings.simpleVideoDecoder[0].decoderCapabilities.secureVideo) {
+        cdbHeap = server->settings.client.heap[NXCLIENT_VIDEO_SECURE_HEAP];
+        if (!cdbHeap) {
+            rc = BERR_TRACE(NEXUS_NOT_AVAILABLE);
+            goto error;
+        }
+    }
+#endif
+    BDBG_MSG(("VideoDecoder CDB in %s", cdbHeap ? "CRR" : "GLR"));
+
     if (g_decoders[index].r) {
         r = g_decoders[index].r;
         if (!r->used) {
             unsigned i;
+            NEXUS_VideoDecoderOpenSettings openSettings;
             /* compare decoder capabilities, # of mosaics */
             for (i=0;i<NXCLIENT_MAX_IDS;i++) {
                 if (linked_decoder) break; /* always recreate for linked_decoder configuration */
@@ -490,6 +532,10 @@ static struct video_decoder_resource *video_decoder_create(struct b_connect *con
                     if (BKNI_Memcmp(&connect->settings.simpleVideoDecoder[i].decoderCapabilities,
                         &r->connectSettings.simpleVideoDecoder[i].decoderCapabilities,
                         sizeof(connect->settings.simpleVideoDecoder[i].decoderCapabilities))) break;
+
+                        NEXUS_VideoDecoder_GetOpenSettings(r->handle[0], &openSettings);
+                        if(openSettings.cdbHeap != cdbHeap)
+                            break;
                 }
             }
             if (i < NXCLIENT_MAX_IDS) {
@@ -500,7 +546,7 @@ static struct video_decoder_resource *video_decoder_create(struct b_connect *con
                 r->used = true;
                 r->connect = connect;
                 BDBG_MSG(("video_decoder_create %p(recycled): connect %p, index %d", (void*)r, (void*)connect, index));
-                video_decoder_clear_cache();
+                nxserverlib_p_clear_video_cache();
                 return r;
             }
         }
@@ -526,7 +572,7 @@ static struct video_decoder_resource *video_decoder_create(struct b_connect *con
             goto err_malloc;
         }
     }
-    video_decoder_clear_cache();
+    nxserverlib_p_clear_video_cache();
 
     if (!IS_MOSAIC(connect)) {
         /* regular (non-mosaic) */
@@ -544,13 +590,8 @@ static struct video_decoder_resource *video_decoder_create(struct b_connect *con
         openSettings.avc51Enabled = connect->settings.simpleVideoDecoder[0].decoderCapabilities.avc51Enabled;
         openSettings.enhancementPidChannelSupported = connect->settings.simpleVideoDecoder[0].decoderCapabilities.supportedCodecs[NEXUS_VideoCodec_eH264_Mvc];
         openSettings.secureVideo = connect->settings.simpleVideoDecoder[0].decoderCapabilities.secureVideo;
-        if ((openSettings.secureVideo) || (server->settings.svp != nxserverlib_svp_type_none)) {
-            openSettings.cdbHeap = server->settings.client.heap[NXCLIENT_VIDEO_SECURE_HEAP];
-            if (!openSettings.cdbHeap) {
-                rc = BERR_TRACE(NEXUS_NOT_AVAILABLE);
-                goto error;
-            }
-        }
+        openSettings.cdbHeap = cdbHeap;
+
         r->handle[0] = NEXUS_VideoDecoder_Open(index, &openSettings);
         if (!r->handle[0]) {
             rc = BERR_TRACE(NEXUS_NOT_AVAILABLE);
@@ -561,12 +602,9 @@ static struct video_decoder_resource *video_decoder_create(struct b_connect *con
 
 #if NEXUS_HAS_HDMI_OUTPUT
         /* TODO: This is for dynamic range -- not sure how that applies to mosaic. */
-        if (server->settings.hdmi.drm && connect->client->session->hdmiOutput)
+        if (session->hdmiOutput)
         {
             NEXUS_VideoDecoderPrivateSettings privateSettings;
-
-            /* assumes 0 == input */
-            BKNI_Memset(&connect->client->session->hdmi.drm.selector, 0, sizeof(connect->client->session->hdmi.drm.selector));
             NEXUS_VideoDecoder_GetPrivateSettings(r->handle[0], &privateSettings);
             privateSettings.streamChanged.callback = video_decoder_stream_changed;
             privateSettings.streamChanged.context = r;
@@ -582,6 +620,7 @@ static struct video_decoder_resource *video_decoder_create(struct b_connect *con
     }
     else {
         unsigned i;
+
         for (i=0;i<connect->settings.simpleVideoDecoder[i].id;i++) {
             NEXUS_VideoDecoderOpenMosaicSettings openSettings;
             NEXUS_VideoDecoderSettings settings;
@@ -597,13 +636,8 @@ static struct video_decoder_resource *video_decoder_create(struct b_connect *con
                 openSettings.openSettings.fifoSize = connect->settings.simpleVideoDecoder[i].decoderCapabilities.fifoSize;
             }
             openSettings.openSettings.secureVideo = connect->settings.simpleVideoDecoder[0].decoderCapabilities.secureVideo;
-            if ((openSettings.openSettings.secureVideo) || (server->settings.svp != nxserverlib_svp_type_none)) {
-                openSettings.openSettings.cdbHeap = server->settings.client.heap[NXCLIENT_VIDEO_SECURE_HEAP];
-                if (!openSettings.openSettings.cdbHeap) {
-                    rc = BERR_TRACE(NEXUS_NOT_AVAILABLE);
-                    goto error;
-                }
-            }
+            openSettings.openSettings.cdbHeap = cdbHeap;
+
             if (r->linked && i >= (total_linked_decoders/2)) {
                 openSettings.linkedDevice.enabled = true;
                 openSettings.linkedDevice.avdIndex = 0;
@@ -641,7 +675,7 @@ err_malloc:
 
 static void video_decoder_release(struct video_decoder_resource *r)
 {
-    nxserver_t server = r->server;
+    nxserver_t server = r->session->server;
     BDBG_MSG(("video_decoder_release %p: connect %p, index %d", (void*)r, (void*)r->connect, r->index));
     BDBG_OBJECT_ASSERT(r->connect, b_connect);
     if (IS_MOSAIC(r->connect) || server->settings.externalApp.enableAllocIndex[nxserverlib_index_type_video_decoder] ||
@@ -661,7 +695,7 @@ static void video_decoder_release(struct video_decoder_resource *r)
 static void video_decoder_destroy(struct video_decoder_resource *r)
 {
     unsigned i;
-    nxserver_t server = r->server;
+    nxserver_t server = r->session->server;
 
     BDBG_MSG(("video_decoder_destroy %p: connect %p, index %d", (void*)r, (void*)r->connect, r->index));
 
@@ -672,7 +706,7 @@ static void video_decoder_destroy(struct video_decoder_resource *r)
     g_decoders[r->index].r = NULL;
     for (i=NXCLIENT_MAX_IDS-1;i<=NXCLIENT_MAX_IDS;i--) { /* reverse */
         if (r->handle[i]) {
-            NEXUS_SimpleVideoDecoderModule_CheckCache(NULL, r->handle[i]);
+            NEXUS_SimpleVideoDecoderModule_CheckCache(r->session->video.server, NULL, r->handle[i]);
             NEXUS_VideoDecoder_Close(r->handle[i]);
         }
     }
@@ -789,6 +823,9 @@ static int acquire_video_window(struct b_connect *connect, bool grab)
     if (has_window(connect)) {
         return 0;
     }
+    if (is_transcode_connect(connect)) {
+        return 0;
+    }
 
     switch (connect->settings.simpleVideoDecoder[0].windowCapabilities.type) {
     case NxClient_VideoWindowType_eMain: index = 0; break;
@@ -841,7 +878,7 @@ static int acquire_video_window(struct b_connect *connect, bool grab)
                 BDBG_ASSERT(!session->display[j].parentWindow[index]);
                 session->display[j].parentWindow[index] = session->display[j].window[index][0];
                 session->display[j].window[index][0] = NULL;
-                NEXUS_SimpleVideoDecoderModule_CheckCache(session->display[j].parentWindow[index], NULL);
+                NEXUS_SimpleVideoDecoderModule_CheckCache(session->video.server, session->display[j].parentWindow[index], NULL);
                 for (i=0;i<NXCLIENT_MAX_IDS;i++) {
                     if (!connect->settings.simpleVideoDecoder[i].id) break;
                     BDBG_ASSERT(!session->display[j].window[index][i]);
@@ -962,7 +999,7 @@ static void release_video_window(struct b_connect *connect, bool remainVisible)
 void uninit_session_video(struct b_session *session)
 {
     unsigned i, j, index;
-    NEXUS_SimpleVideoDecoderModule_CheckCache(NULL, NULL);
+    NEXUS_SimpleVideoDecoderModule_CheckCache(session->video.server, NULL, NULL);
     for (j=0;j<NXCLIENT_MAX_DISPLAYS;j++) {
         if (session->display[j].display) {
             for (index=0;index<NEXUS_NUM_VIDEO_WINDOWS;index++) {
@@ -1012,6 +1049,7 @@ int acquire_video_decoders(struct b_connect *connect, bool grab)
     int rc;
     struct video_decoder_resource *r;
     int stcIndex;
+    struct b_session *session = connect->client->session;
 
     if (!connect->settings.simpleVideoDecoder[0].id) {
         /* no request */
@@ -1038,7 +1076,7 @@ int acquire_video_decoders(struct b_connect *connect, bool grab)
                         continue;
                     }
                     if (grab_from->connect) {
-                        if (grab_from->connect->client->session != connect->client->session) {
+                        if (grab_from->connect->client->session != session) {
                             continue;
                         }
                         release_video_decoders(grab_from->connect);
@@ -1081,18 +1119,18 @@ int acquire_video_decoders(struct b_connect *connect, bool grab)
         videoDecoder = req->handles.simpleVideoDecoder[index].handle;
 
         /* connect regular decoder to simple decoder */
-        NEXUS_SimpleVideoDecoder_GetServerSettings(videoDecoder, &settings);
+        NEXUS_SimpleVideoDecoder_GetServerSettings(session->video.server, videoDecoder, &settings);
         settings.videoDecoder = r->handle[i];
         if (has_window(connect)) {
             unsigned j;
             for (j=0;j<NXCLIENT_MAX_DISPLAYS;j++) {
-                if (j>0 && nxserverlib_p_native_3d_active(connect->client->session)) {
+                if (j>0 && nxserverlib_p_native_3d_active(session)) {
                     continue;
                 }
-                settings.window[j] = connect->client->session->display[j].window[connect->windowIndex][i];
+                settings.window[j] = session->display[j].window[connect->windowIndex][i];
                 if (settings.window[j]) {
-                    NEXUS_SimpleVideoDecoderModule_CheckCache(settings.window[j], settings.videoDecoder);
-                    settings.display[j] = connect->client->session->display[j].display; /* closedCaptionRouting */
+                    NEXUS_SimpleVideoDecoderModule_CheckCache(session->video.server, settings.window[j], settings.videoDecoder);
+                    settings.display[j] = session->display[j].display; /* closedCaptionRouting */
                 }
             }
         }
@@ -1100,7 +1138,7 @@ int acquire_video_decoders(struct b_connect *connect, bool grab)
         settings.mosaic = IS_MOSAIC(connect);
 
         BDBG_MSG(("connect SimpleVideoDecoder %p to decoder %p, window0 %p, stcIndex %u", (void*)videoDecoder, (void*)settings.videoDecoder, (void*)settings.window[0], settings.stcIndex));
-        rc = NEXUS_SimpleVideoDecoder_SetServerSettings(videoDecoder, &settings);
+        rc = NEXUS_SimpleVideoDecoder_SetServerSettings(session->video.server, videoDecoder, &settings);
         if (rc) {
             rc = BERR_TRACE(rc);
             goto err_set;
@@ -1129,13 +1167,13 @@ void nxserverlib_video_disconnect_sd_display(struct b_session *session)
             for (i=0;i<NXCLIENT_MAX_IDS;i++) {
                 NEXUS_SimpleVideoDecoderServerSettings settings;
                 if (!req || !req->handles.simpleVideoDecoder[i].handle) continue;
-                NEXUS_SimpleVideoDecoder_GetServerSettings(req->handles.simpleVideoDecoder[i].handle, &settings);
+                NEXUS_SimpleVideoDecoder_GetServerSettings(session->video.server, req->handles.simpleVideoDecoder[i].handle, &settings);
                 /* skip j=0 */
                 for (j=1;j<NXCLIENT_MAX_DISPLAYS;j++) {
                     settings.window[j] = NULL;
                     settings.display[j] = NULL;
                 }
-                NEXUS_SimpleVideoDecoder_SetServerSettings(req->handles.simpleVideoDecoder[i].handle, &settings);
+                NEXUS_SimpleVideoDecoder_SetServerSettings(session->video.server, req->handles.simpleVideoDecoder[i].handle, &settings);
             }
         }
     }
@@ -1145,8 +1183,10 @@ void release_video_decoders(struct b_connect *connect)
 {
     struct b_req *req;
     bool remainVisible = false;
+    struct b_session * session;
 
     BDBG_OBJECT_ASSERT(connect, b_connect);
+    session = connect->client->session;
     req = connect->req[b_resource_simple_video_decoder];
 
     if (req && req->handles.simpleVideoDecoder[0].r) {
@@ -1175,7 +1215,7 @@ void release_video_decoders(struct b_connect *connect)
             }
 
             /* disconnect regular decoder from simple decoder */
-            NEXUS_SimpleVideoDecoder_GetServerSettings(videoDecoder, &settings);
+            NEXUS_SimpleVideoDecoder_GetServerSettings(session->video.server, videoDecoder, &settings);
             if (i == 0) {
                 stcIndex = settings.stcIndex;
             }
@@ -1188,7 +1228,7 @@ void release_video_decoders(struct b_connect *connect)
                     settings.window[j] = NULL;
                     settings.display[j] = NULL;
                 }
-                (void)NEXUS_SimpleVideoDecoder_SetServerSettings(videoDecoder, &settings);
+                (void)NEXUS_SimpleVideoDecoder_SetServerSettings(session->video.server, videoDecoder, &settings);
             }
         }
         video_decoder_release(req->handles.simpleVideoDecoder[0].r);
@@ -1208,10 +1248,7 @@ int video_init(nxserver_t server)
     int rc = NEXUS_SUCCESS;
 
 #if BCHP_CHIP == 7445
-    if (server->platformStatus.boxMode == 9) {
-        server->videoDecoder.special_mode = b_special_mode_linked_decoder;
-    }
-    else if (server->platformStatus.boxMode == 15) {
+    if (server->platformStatus.boxMode == 15) {
         server->videoDecoder.special_mode = b_special_mode_linked_decoder2;
     }
 #endif
@@ -1240,7 +1277,6 @@ done:
 
 void video_uninit(void)
 {
-    video_decoder_clear_cache();
 }
 
 /* Return the SimpleStcChannel's stcIndex currently in use.
@@ -1261,7 +1297,7 @@ int video_get_stc_index(struct b_connect *connect)
         }
 
         /* disconnect regular decoder from simple decoder */
-        NEXUS_SimpleVideoDecoder_GetStcIndex(req->handles.simpleVideoDecoder[index].handle, &stcIndex);
+        NEXUS_SimpleVideoDecoder_GetStcIndex(connect->client->session->video.server, req->handles.simpleVideoDecoder[index].handle, &stcIndex);
         if (stcIndex != -1) {
             return stcIndex;
         }
@@ -1273,8 +1309,13 @@ int nxserverlib_p_swap_video_windows(struct b_connect *connect1, struct b_connec
 {
     NEXUS_SurfaceClientHandle surfaceClient1, surfaceClient2;
     int rc;
+    struct b_session *session = connect1->client->session;
     bool connect1_has_video = has_window(connect1);
     bool connect2_has_video = has_window(connect2);
+
+    if (session != connect2->client->session) {
+        return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+    }
     if (IS_MOSAIC(connect1) || IS_MOSAIC(connect2)) {
         return BERR_TRACE(NEXUS_NOT_SUPPORTED);
     }
@@ -1293,7 +1334,7 @@ int nxserverlib_p_swap_video_windows(struct b_connect *connect1, struct b_connec
     {
         struct b_req *req1 = connect1->req[b_resource_simple_video_decoder];
         struct b_req *req2 = connect2->req[b_resource_simple_video_decoder];
-        NEXUS_SimpleVideoDecoder_SwapWindows(
+        NEXUS_SimpleVideoDecoder_SwapWindows(session->video.server,
             req1->handles.simpleVideoDecoder[0].handle,
             req2->handles.simpleVideoDecoder[0].handle);
     }
@@ -1307,15 +1348,15 @@ int nxserverlib_p_swap_video_windows(struct b_connect *connect1, struct b_connec
         connect2->settings.simpleVideoDecoder[0].windowCapabilities.type = connect1->settings.simpleVideoDecoder[0].windowCapabilities.type;
         connect1->settings.simpleVideoDecoder[0].windowCapabilities.type = temp;
     }
-    connect1->client->session->window[connect1->windowIndex].connect = connect1;
-    connect2->client->session->window[connect2->windowIndex].connect = connect2;
+    session->window[connect1->windowIndex].connect = connect1;
+    session->window[connect2->windowIndex].connect = connect2;
 
     rc = nxclient_get_surface_client(connect1, NULL, 0, &surfaceClient1);
     if (!rc) {
         rc = nxclient_get_surface_client(connect2, NULL, 0, &surfaceClient2);
     }
     if (!rc) {
-        NEXUS_SurfaceCompositor_SwapWindows(connect1->client->session->surfaceCompositor,
+        NEXUS_SurfaceCompositor_SwapWindows(session->surfaceCompositor,
             surfaceClient1, connect1->settings.simpleVideoDecoder[0].windowId,
             surfaceClient2, connect2->settings.simpleVideoDecoder[0].windowId);
     }
@@ -1339,6 +1380,7 @@ void nxserverlib_video_disconnect_sd_display(struct b_session *session) { }
 void release_video_decoders(struct b_connect *connect) { }
 int acquire_video_decoders(struct b_connect *connect, bool grab) { return 0; }
 int nxserverlib_p_swap_video_windows(struct b_connect *connect1, struct b_connect *connect2) { return 0; }
+void nxserverlib_p_clear_video_cache(void){ }
 void uninit_session_video(struct b_session *session) { }
 int video_init(nxserver_t server) { return 0; }
 void video_uninit(void) { }

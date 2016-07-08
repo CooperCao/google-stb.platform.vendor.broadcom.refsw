@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2013 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2013 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -134,6 +134,7 @@ void GraphOrder_Constr(GraphOrder *self)
 
 void GraphOrder_Destr(GraphOrder *self)
 {
+   UNUSED(self);
 }
 
 void GraphOrder_Visit(GraphOrder *self, DFlowNode *node)
@@ -219,7 +220,7 @@ static bool IsDependent(DFlowNode *node, DFlowRecursionOptimizer *opt)
    return isDependent;
 }
 
-static uint32_t SetupTextureDependencies(DFlowRecursionOptimizer *opt, const DFlowAnalyzeVisitor *analyzer, bool allowThread, bool isFragment, ResetHelper *rh)
+static uint32_t SetupTextureDependencies(DFlowRecursionOptimizer *opt, const DFlowAnalyzeVisitor *analyzer, bool allowThread, ResetHelper *rh)
 {
    #define MAX_NUM_TMUS 2
 
@@ -228,7 +229,7 @@ static uint32_t SetupTextureDependencies(DFlowRecursionOptimizer *opt, const DFl
    const bool     TMU_NO_QUEUE  = false;               // Set to true to issue one texture fetch at a time
 
    uint32_t numThreadSwitches    = 0;
-   int32_t  firstIssued          = 0;     // Index of the first of a batch of texture fetches.
+   uint32_t firstIssued          = 0;     // Index of the first of a batch of texture fetches.
    uint32_t writes[MAX_NUM_TMUS] = { 0 }; // Number of words written to TMU req FIFO, if this would overflow must start reading back.
    uint32_t reads[MAX_NUM_TMUS]  = { 0 }; // Number of fetches issued -- max outstanding is 4.
 
@@ -637,7 +638,7 @@ bool bcg_schedule(Dataflow *root, uint32_t type, bool *allow_thread, Scheduler_S
       *allow_thread = false;
 
    // We need to patch up ioDependencies for texture setups to prevent them interleaving
-   numThreadSwitch = SetupTextureDependencies(&recursionOpt, &analyzer, *allow_thread, isFragment, rh);
+   numThreadSwitch = SetupTextureDependencies(&recursionOpt, &analyzer, *allow_thread, rh);
 
    // Recalculate node depths
    DepthVisit(rootNode, &recursionOpt);

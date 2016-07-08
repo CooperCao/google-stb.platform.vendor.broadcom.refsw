@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2013 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2013 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -1294,6 +1294,7 @@ void QPUGenericInstr_Assign(QPUGenericInstr *self, const QPUGenericInstr *rhs)
 
 void QPUGenericInstr_Destr(QPUGenericInstr *self)
 {
+   UNUSED(self);
 }
 
 bool QPUGenericInstr_SetAdd(QPUGenericInstr *self, AOP_Enum op, const QPUOperand *leftOperand, const QPUOperand *rightOperand)

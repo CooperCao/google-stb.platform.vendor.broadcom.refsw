@@ -46,10 +46,18 @@
 //#include "zigbee_types.h"
 #include "bbMailService.h"
 #include "bbMailAPI.h"
-#include "bbMailClient.h"
+//#include "bbMailClient.h"
+#include "bbMailService.h"
+#include "private/bbMailPrivateService.h"
+//#include "private/bbMailPrivateAdapter.h"
+//#include "private/bbMailPrivateClient.h"
+//#include "private/bbMailPrivateServer.h"
+
 #include "zigbee_rf4ce_registration.h"
+#ifdef _ZBPRO_
 #include "ha_registration.h"
-#include "bbMailPowerFilterKey.h"
+#endif
+#include "bbExtPowerFilterKey.h"
 #include "bbSysDbg.h"
 #ifndef BYPASS_RPC
 #include "zigbee_rpc.h"
@@ -65,9 +73,9 @@
 #include "zigbee_ioctl.h"
 #endif
 //#include "bbHalSharedFifo.h"
-#include "bbMailTypes.h"
-#include "bbMailClientTable.h"
-#include "bbMailServerTable.h"
+//#include "bbMailTypes.h"
+//#include "bbMailClientTable.h"
+//#include "bbMailServerTable.h"
 #ifdef SERVER
 #ifdef BYPASS_RPC
     #include "zigbee.h"
@@ -217,7 +225,9 @@ typedef uint8_t NoAppropriateType_t;
         CREATE_SERVER_LOCAL_REQUEST_FUNCTION(fId, name, reqType, confType)
 
 
+extern int mailClientAvailablePendingTableEntry();
 
+#ifdef USE_RF4CE_PROFILE_ZRC2
 void rf4ce_ZRC2_Set_Default_Check_Validation_Period(uint8_t pairingRef)
 {
     uint8_t status = 0;
@@ -251,22 +261,10 @@ void rf4ce_ZRC2_Set_Default_Check_Validation_Period(uint8_t pairingRef)
     server_RF4CE_ZRC2_SetAttributesReq_local_call(&req);
     while(!status);
 }
-
+#endif
 
 //extern MailDescriptor_t *mailDescriptorPtr;
 extern void rpcRequestRepostHandler(SYS_SchedulerTaskDescriptor_t *const taskDescr);
-
-static int availablePendingTableEntry()
-{
-    MailDescriptor_t *mail = mailDescriptorPtr;
-
-    MailClientDescriptor_t *client = &mail->client;
-    int available = 0;
-    for (uint8_t i = 0; i < MAIL_CLIENT_MAX_AMOUNT_PENDING_CALLS; ++i)
-        if (INCORRECT_REQ_ID == client->pendingTable[i].fId)
-            available++;
-    return available;
-}
 
 static list_head serverRequestListHeader = {
                     .next = &serverRequestListHeader,
@@ -292,12 +290,12 @@ static SYS_SchedulerTaskDescriptor_t requestDispatcherTask = {
 
 void rpcRequestRepostHandler(SYS_SchedulerTaskDescriptor_t *const taskDescr)
 {
-    if(!list_empty(&serverPendingRequestListHeader) && availablePendingTableEntry()){
+    if(!list_empty(&serverPendingRequestListHeader) && mailClientAvailablePendingTableEntry()){
         list_head *pos = serverPendingRequestListHeader.next;
         list_del(pos);
         List_ServerReq_Info_t *info = GET_PARENT_BY_FIELD(List_ServerReq_Info_t, list, pos);
         list_add(pos, &serverRequestListHeader);
-        Mail_Serialize(mailDescriptorPtr, info->fId, (void*)info->serverRequest);
+        Mail_Serialize(info->fId, (void*)info->serverRequest);
     }
 }
 
@@ -311,7 +309,7 @@ void rpcRequestRepostHandler(SYS_SchedulerTaskDescriptor_t *const taskDescr)
         memcpy((char*)info->clientRequestData, (char*)request, sizeof(reqType));                                        \
         info->callback = (void*)request->callback;                                                                      \
         request->callback = server_##name##_local_callback;                                                             \
-        if(availablePendingTableEntry()){                                                                               \
+        if(mailClientAvailablePendingTableEntry()){                                                                               \
             list_add(&info->list, &serverRequestListHeader);                                                            \
             name##_Call(request);                                                                                       \
         }else                                                                                                           \
@@ -347,17 +345,17 @@ void rpcRequestRepostHandler(SYS_SchedulerTaskDescriptor_t *const taskDescr)
 #define CREATE_SERVER_REQUEST_FUNCTION(fId, name, reqType, confType)                                                   \
     void name(reqType *request)                                                                                         \
     {                                                                                                                   \
-        const MailClientParametersTableEntry_t *const reqInfo = mailClientTableGetAppropriateEntry(fId);                \
-        if(MAIL_INVALID_PAYLOAD_OFFSET != reqInfo->dataPointerOffset)                                                   \
+        const MailServiceFunctionInfo_t *const functionInfo = Mail_ServiceGetFunctionInfo(fId);                \
+        if(MAIL_INVALID_OFFSET != functionInfo->reqDataPointerOffset)                                                   \
         {                                                                                                               \
             printf("hanging\n"); while(1);                                                                              \
         }                                                                                                               \
         List_ServerReq_Info_t *info = malloc(sizeof(List_ServerReq_Info_t) + sizeof(reqType));                          \
         INIT_SERVER_LIST_INFO(info, 0, (unsigned int)request, fId, 7)                                                   \
         memcpy((char*)info->clientRequestData, (char*)request, sizeof(reqType));                                        \
-        if(reqInfo->callbackOffset != sizeof(reqType))                                                                  \
-            *(int*)((uint8_t *)request + reqInfo->callbackOffset) = (int)(void(*)(reqType*, confType*))server_##name##_callback;\
-        if(availablePendingTableEntry()){                                                                               \
+        if(functionInfo->reqCallbackOffset != sizeof(reqType))                                                                  \
+            *(int*)((uint8_t *)request + functionInfo->reqCallbackOffset) = (int)(void(*)(reqType*, confType*))server_##name##_callback;\
+        if(mailClientAvailablePendingTableEntry()){                                                                               \
             list_add(&info->list, &serverRequestListHeader);                                                            \
             name##_Call(request);                                                                                       \
         }else                                                                                                           \
@@ -369,11 +367,11 @@ void rpcRequestRepostHandler(SYS_SchedulerTaskDescriptor_t *const taskDescr)
     {                                                                                                                   \
         reqType *request = (reqType *)malloc(sizeof(reqType));                                                          \
         memcpy((char*)request, &buf[1], sizeof(reqType));                                                               \
-        const MailClientParametersTableEntry_t *const reqInfo = mailClientTableGetAppropriateEntry(fId);                \
-        if(MAIL_INVALID_PAYLOAD_OFFSET != reqInfo->dataPointerOffset)                                                   \
+        const MailServiceFunctionInfo_t *const functionInfo = Mail_ServiceGetFunctionInfo(fId);                \
+        if(MAIL_INVALID_OFFSET != functionInfo->reqDataPointerOffset)                                                   \
         {                                                                                                               \
             SYS_DataPointer_t *const dataPointer = (SYS_DataPointer_t *)(                                               \
-                (uint8_t *)request + reqInfo->paramOffset + reqInfo->dataPointerOffset);                                \
+                (uint8_t *)request + functionInfo->reqParametersOffset + functionInfo->reqDataPointerOffset);                                \
             int size_payload = SYS_GetPayloadSize(dataPointer);                                                         \
             SYS_SetEmptyPayload(dataPointer);                                                                           \
             SYS_MemAlloc(dataPointer, size_payload);                                                                    \
@@ -382,9 +380,9 @@ void rpcRequestRepostHandler(SYS_SchedulerTaskDescriptor_t *const taskDescr)
         List_ServerReq_Info_t *info = malloc(sizeof(List_ServerReq_Info_t) + sizeof(reqType));                          \
         INIT_SERVER_LIST_INFO(info, buf[0], (unsigned int)request, fId, socket)                                         \
         memcpy((char*)info->clientRequestData, (char*)request, sizeof(reqType));                                        \
-        if(reqInfo->callbackOffset != sizeof(reqType))                                                                  \
-            *(int*)((uint8_t *)request + reqInfo->callbackOffset) = (int)(void(*)(reqType*, confType*))server_##name##_callback;\
-        if(availablePendingTableEntry()){                                                                               \
+        if(functionInfo->reqCallbackOffset != sizeof(reqType))                                                                  \
+            *(int*)((uint8_t *)request + functionInfo->reqCallbackOffset) = (int)(void(*)(reqType*, confType*))server_##name##_callback;\
+        if(mailClientAvailablePendingTableEntry()){                                                                               \
             list_add(&info->list, &serverRequestListHeader);                                                            \
             name##_Call(request);                                                                                       \
         }else                                                                                                           \
@@ -423,13 +421,12 @@ void rpcRequestRepostHandler(SYS_SchedulerTaskDescriptor_t *const taskDescr)
             message_tx[0] = info->clientRequest;                                                                        \
             free(info);                                                                                                 \
             memcpy((char *)&request2, (char *)info->clientRequestData, sizeof(reqType));                                \
-            const MailServerParametersTableEntry_t *const confirmInfo = mailServerTableGetAppropriateEntry(fId);        \
-            if(MAIL_INVALID_PAYLOAD_OFFSET != confirmInfo->confDataPointerOffset){                                      \
+            const MailServiceFunctionInfo_t *functionInfo = Mail_ServiceGetFunctionInfo(fId);        \
+            if(MAIL_INVALID_OFFSET != functionInfo->confDataPointerOffset){                                      \
                 printf("hanging\n"); while(1);                                                                          \
             }                                                                                                           \
                                                                                                                         \
-            const MailClientParametersTableEntry_t *const reqInfo = mailClientTableGetAppropriateEntry(fId);            \
-            if(MAIL_INVALID_PAYLOAD_OFFSET != reqInfo->dataPointerOffset){                                              \
+            if(MAIL_INVALID_OFFSET != functionInfo->reqDataPointerOffset){                                              \
                 printf("hanging\n"); while(1);                                                                          \
             }                                                                                                           \
             request2.callback(request, conf);                                                                           \
@@ -468,10 +465,10 @@ void rpcRequestRepostHandler(SYS_SchedulerTaskDescriptor_t *const taskDescr)
             size += 1;                                                                                                  \
             memcpy((char *)&message_tx[size], (char *)conf, sizeof(confType));                                          \
             size += WORDALIGN(sizeof(confType));                                                                        \
-            const MailServerParametersTableEntry_t *const confirmInfo = mailServerTableGetAppropriateEntry(fId);        \
-            if(MAIL_INVALID_PAYLOAD_OFFSET != confirmInfo->confDataPointerOffset){                                      \
+            const MailServiceFunctionInfo_t *functionInfo = Mail_ServiceGetFunctionInfo(fId);        \
+            if(MAIL_INVALID_OFFSET != functionInfo->confDataPointerOffset){                                      \
                 SYS_DataPointer_t *const dataPointer = (SYS_DataPointer_t *)                                            \
-                                                    ((uint8_t *)conf + confirmInfo->confDataPointerOffset);             \
+                                                    ((uint8_t *)conf + functionInfo->confDataPointerOffset);             \
                 int size_payload = SYS_GetPayloadSize(dataPointer);                                                     \
                 SYS_CopyFromPayload((void*)&message_tx[size], dataPointer, 0, size_payload);                            \
                 size += WORDALIGN(size_payload);                                                                        \
@@ -479,10 +476,9 @@ void rpcRequestRepostHandler(SYS_SchedulerTaskDescriptor_t *const taskDescr)
                    SYS_FreePayload(dataPointer);                                                                        \
             }                                                                                                           \
                                                                                                                         \
-            const MailClientParametersTableEntry_t *const reqInfo = mailClientTableGetAppropriateEntry(fId);            \
-            if(MAIL_INVALID_PAYLOAD_OFFSET != reqInfo->dataPointerOffset){                                              \
+            if(MAIL_INVALID_OFFSET != functionInfo->reqDataPointerOffset){                                              \
                 SYS_DataPointer_t *const reqDataPointer = (SYS_DataPointer_t *)(                                        \
-                    (uint8_t *)request + reqInfo->paramOffset + reqInfo->dataPointerOffset);                            \
+                    (uint8_t *)request + functionInfo->reqParametersOffset + functionInfo->reqDataPointerOffset);                            \
                 if(SYS_CheckPayload(reqDataPointer))                                                                    \
                    SYS_FreePayload(reqDataPointer);                                                                     \
             }                                                                                                           \
@@ -507,11 +503,11 @@ void rpcRequestRepostHandler(SYS_SchedulerTaskDescriptor_t *const taskDescr)
         size_in_words += 1;                                                                                             \
         memcpy((char *)&buf[1], request, sizeof(reqType));                                                              \
         size_in_words += WORDALIGN(sizeof(reqType));                                                                    \
-        const MailClientParametersTableEntry_t *const reqInfo = mailClientTableGetAppropriateEntry(fId);                \
-        if(MAIL_INVALID_PAYLOAD_OFFSET != reqInfo->dataPointerOffset)                                                   \
+        const MailServiceFunctionInfo_t *const functionInfo = Mail_ServiceGetFunctionInfo(fId);                \
+        if(MAIL_INVALID_OFFSET != functionInfo->reqDataPointerOffset)                                                   \
         {                                                                                                               \
             SYS_DataPointer_t *const dataPointer = (SYS_DataPointer_t *)(                                               \
-                (uint8_t *)request + reqInfo->paramOffset + reqInfo->dataPointerOffset);                                \
+                (uint8_t *)request + functionInfo->reqParametersOffset + functionInfo->reqDataPointerOffset);                                \
             int size_payload = SYS_GetPayloadSize(dataPointer);                                                         \
             SYS_CopyFromPayload((char*)&buf[size_in_words], dataPointer, 0, size_payload);                              \
             size_in_words += WORDALIGN(size_payload);                                                                   \
@@ -531,10 +527,10 @@ void rpcRequestRepostHandler(SYS_SchedulerTaskDescriptor_t *const taskDescr)
         confType *conf = malloc(sizeof(confType));                                                                      \
         memcpy((char *)&req, (char *)&message_rx[1], sizeof(req));                                                      \
         memcpy((char *)conf, (char *)&message_rx[2 + WORDALIGN(sizeof(reqType))], sizeof(confType));                    \
-        const MailServerParametersTableEntry_t *const confirmInfo = mailServerTableGetAppropriateEntry(fId);            \
+        const MailServiceFunctionInfo_t *const functionInfo = Mail_ServiceGetFunctionInfo(fId);            \
         SYS_DataPointer_t *const dataPointer = (SYS_DataPointer_t *)                                                    \
-                                        ((uint8_t *)conf + confirmInfo->confDataPointerOffset);                         \
-        if(MAIL_INVALID_PAYLOAD_OFFSET != confirmInfo->confDataPointerOffset)                                           \
+                                        ((uint8_t *)conf + functionInfo->confDataPointerOffset);                         \
+        if(MAIL_INVALID_OFFSET != functionInfo->confDataPointerOffset)                                           \
         {                                                                                                               \
             int size_payload = SYS_GetPayloadSize(dataPointer);                                                         \
             SYS_SetEmptyPayload(dataPointer);                                                                           \
@@ -545,7 +541,7 @@ void rpcRequestRepostHandler(SYS_SchedulerTaskDescriptor_t *const taskDescr)
         if (req.callback) {                                                                                             \
             req.callback((reqType *)message_rx[0], conf);                                                               \
         }                                                                                                               \
-        if(MAIL_INVALID_PAYLOAD_OFFSET != confirmInfo->confDataPointerOffset)                                           \
+        if(MAIL_INVALID_OFFSET != functionInfo->confDataPointerOffset)                                           \
             SYS_FreePayload(dataPointer);                                                                               \
         free(conf);                                                                                                     \
     }
@@ -578,11 +574,11 @@ void rpcRequestRepostHandler(SYS_SchedulerTaskDescriptor_t *const taskDescr)
         int size = 0;                                                                                                   \
         int message_tx[MAX_MSG_SIZE_IN_WORDS];                                                                          \
         message_tx[0] = (int)indication;                                                                                \
-        const MailServerParametersTableEntry_t *const respInfo = mailServerTableGetAppropriateEntry(fId);               \
-        if(respInfo->callbackOffset != respInfo->reqLength){                                                            \
+        const MailServiceFunctionInfo_t *const functionInfo = Mail_ServiceGetFunctionInfo(fId);               \
+        if(functionInfo->reqCallbackOffset != functionInfo->reqParametersLength){                                                            \
             size = 1;                                                                                                   \
-            message_tx[size] = *(int*)((uint8_t*)indication + respInfo->callbackOffset);                                \
-            *(int*)((uint8_t*)indication + respInfo->callbackOffset) = (int)server_##name##_callback;                   \
+            message_tx[size] = *(int*)((uint8_t*)indication + functionInfo->reqCallbackOffset);                                \
+            *(int*)((uint8_t*)indication + functionInfo->reqCallbackOffset) = (int)server_##name##_callback;                   \
         }                                                                                                               \
         else{                                                                                                           \
             size = 1;                                                                                                   \
@@ -591,18 +587,17 @@ void rpcRequestRepostHandler(SYS_SchedulerTaskDescriptor_t *const taskDescr)
         size +=1;                                                                                                       \
         memcpy((char *)&message_tx[size], (char *)indication, sizeof(indType));                                         \
         size += WORDALIGN(sizeof(indType));                                                                             \
-        const MailClientParametersTableEntry_t *const clientInfo = mailClientTableGetAppropriateEntry(fId);             \
-        if(MAIL_INVALID_PAYLOAD_OFFSET != clientInfo->dataPointerOffset)                                                \
+        if(MAIL_INVALID_OFFSET != functionInfo->reqDataPointerOffset)                                                \
         {                                                                                                               \
                 SYS_DataPointer_t *const dataPointer = (SYS_DataPointer_t *)(                                           \
-            (uint8_t *)indication + clientInfo->paramOffset + clientInfo->dataPointerOffset);                           \
+            (uint8_t *)indication + functionInfo->reqParametersOffset + functionInfo->reqDataPointerOffset);                           \
                                                                                                                         \
             int size_payload = SYS_GetPayloadSize(dataPointer);                                                         \
             SYS_CopyFromPayload((void*)&message_tx[size], dataPointer, 0, size_payload);                                \
             size += WORDALIGN(size_payload);                                                                            \
             if(Zigbee_GetCallback()->name)                                                                              \
                 Zigbee_GetCallback()->name(indication);                                                                 \
-            if(respInfo->callbackOffset == respInfo->reqLength)                                                         \
+            if(functionInfo->reqCallbackOffset == functionInfo->reqParametersLength)                                                         \
                 if(SYS_CheckPayload(dataPointer))     SYS_FreePayload(dataPointer);                                     \
                                                                                                                         \
         }                                                                                                               \
@@ -614,11 +609,11 @@ void rpcRequestRepostHandler(SYS_SchedulerTaskDescriptor_t *const taskDescr)
         int size = 0;                                                                                                   \
         int message_tx[MAX_MSG_SIZE_IN_WORDS];                                                                          \
         message_tx[0] = (int)indication;                                                                                \
-        const MailServerParametersTableEntry_t *const respInfo = mailServerTableGetAppropriateEntry(fId);               \
-        if(respInfo->callbackOffset != respInfo->reqLength){                                                            \
+        const MailServiceFunctionInfo_t *const functionInfo = Mail_ServiceGetFunctionInfo(fId);               \
+        if(functionInfo->reqCallbackOffset != functionInfo->reqParametersLength){                                                            \
             size = 1;                                                                                                   \
-            message_tx[size] = *(int*)((uint8_t*)indication + respInfo->callbackOffset);                                \
-            *(int*)((uint8_t*)indication + respInfo->callbackOffset) = (int)server_##name##_callback;                   \
+            message_tx[size] = *(int*)((uint8_t*)indication + functionInfo->reqCallbackOffset);                                \
+            *(int*)((uint8_t*)indication + functionInfo->reqCallbackOffset) = (int)server_##name##_callback;                   \
         }                                                                                                               \
         else{                                                                                                           \
             size = 1;                                                                                                   \
@@ -627,16 +622,15 @@ void rpcRequestRepostHandler(SYS_SchedulerTaskDescriptor_t *const taskDescr)
         size +=1;                                                                                                       \
         memcpy((char *)&message_tx[size], (char *)indication, sizeof(indType));                                         \
         size += WORDALIGN(sizeof(indType));                                                                             \
-        const MailClientParametersTableEntry_t *const clientInfo = mailClientTableGetAppropriateEntry(fId);             \
-        if(MAIL_INVALID_PAYLOAD_OFFSET != clientInfo->dataPointerOffset)                                                \
+        if(MAIL_INVALID_OFFSET != functionInfo->reqDataPointerOffset)                                                \
         {                                                                                                               \
                 SYS_DataPointer_t *const dataPointer = (SYS_DataPointer_t *)(                                           \
-            (uint8_t *)indication + clientInfo->paramOffset + clientInfo->dataPointerOffset);                           \
+            (uint8_t *)indication + functionInfo->reqParametersOffset + functionInfo->reqDataPointerOffset);                           \
                                                                                                                         \
             int size_payload = SYS_GetPayloadSize(dataPointer);                                                         \
             SYS_CopyFromPayload((void*)&message_tx[size], dataPointer, 0, size_payload);                                \
             size += WORDALIGN(size_payload);                                                                            \
-            if(respInfo->callbackOffset == respInfo->reqLength)                                                         \
+            if(functionInfo->reqCallbackOffset == functionInfo->reqParametersLength)                                                         \
                 if(SYS_CheckPayload(dataPointer))     SYS_FreePayload(dataPointer);                                     \
                                                                                                                         \
         }                                                                                                               \
@@ -660,11 +654,11 @@ void rpcRequestRepostHandler(SYS_SchedulerTaskDescriptor_t *const taskDescr)
         size += 1;                                                                                                      \
         memcpy((char*)&resp, (char*)&buf[size], sizeof(respType));                                                      \
         size += WORDALIGN(sizeof(respType));                                                                            \
-        const MailServerParametersTableEntry_t *const respInfo = mailServerTableGetAppropriateEntry(fId);               \
-        if(MAIL_INVALID_PAYLOAD_OFFSET != respInfo->confDataPointerOffset)                                              \
+        const MailServiceFunctionInfo_t *const functionInfo = Mail_ServiceGetFunctionInfo(fId);               \
+        if(MAIL_INVALID_OFFSET != functionInfo->confDataPointerOffset)                                              \
         {                                                                                                               \
             SYS_DataPointer_t *const dataPointer = (SYS_DataPointer_t *)(                                               \
-            (uint8_t *)&resp + respInfo->confDataPointerOffset);                                                        \
+            (uint8_t *)&resp + functionInfo->confDataPointerOffset);                                                        \
                                                                                                                         \
             int size_payload = SYS_GetPayloadSize(dataPointer);                                                         \
             SYS_SetEmptyPayload(dataPointer);                                                                           \
@@ -701,11 +695,11 @@ void client_##name##_callback(indType *ind, respType *resp)                     
     size += 1;                                                                                                  \
     message_tx[size] = info->origIndCallback;                                                                   \
     size += 1;                                                                                                  \
-    const MailClientParametersTableEntry_t *const clientInfo = mailClientTableGetAppropriateEntry(fId);         \
-    if(MAIL_INVALID_PAYLOAD_OFFSET != clientInfo->dataPointerOffset)                                            \
+    const MailServiceFunctionInfo_t *const functionInfo = Mail_ServiceGetFunctionInfo(fId);         \
+    if(MAIL_INVALID_OFFSET != functionInfo->reqDataPointerOffset)                                            \
     {                                                                                                           \
         SYS_DataPointer_t *const data = (SYS_DataPointer_t *)(                                                  \
-                (uint8_t *)ind + clientInfo->paramOffset + clientInfo->dataPointerOffset);                      \
+                (uint8_t *)ind + functionInfo->reqParametersOffset + functionInfo->reqParametersOffset);                      \
                                                                                                                 \
         SYS_FreePayload(data);                                                                                  \
     }                                                                                                           \
@@ -713,11 +707,10 @@ void client_##name##_callback(indType *ind, respType *resp)                     
     free(info);                                                                                                 \
     memcpy((char *)&message_tx[size], (char *)resp, sizeof(respType));                                          \
     size += WORDALIGN(sizeof(respType));                                                                        \
-    const MailServerParametersTableEntry_t *const respInfo = mailServerTableGetAppropriateEntry(fId);           \
-    if(MAIL_INVALID_PAYLOAD_OFFSET != respInfo->confDataPointerOffset)                                          \
+    if(MAIL_INVALID_OFFSET != functionInfo->confDataPointerOffset)                                          \
     {                                                                                                           \
         SYS_DataPointer_t *const dataPointer = (SYS_DataPointer_t *)(                                           \
-        (uint8_t *)resp + respInfo->confDataPointerOffset);                                                     \
+        (uint8_t *)resp + functionInfo->confDataPointerOffset);                                                     \
         int size_payload = SYS_GetPayloadSize(dataPointer);                                                     \
         SYS_CopyFromPayload((void*)&message_tx[size], dataPointer, 0, size_payload);                            \
         size += WORDALIGN(size_payload);                                                                        \
@@ -735,13 +728,11 @@ void client_##name##_callback(indType *ind, respType *resp)                     
         serverind = (indType *)message_rx[0];                                                                           \
         void *origIndCallback = (void*)message_rx[1];                                                                   \
         memcpy((char*)clientInd, (char*)&message_rx[2], sizeof(indType));                                               \
-        const MailServerParametersTableEntry_t *const respInfo = mailServerTableGetAppropriateEntry(fId);               \
-                                                                                                                        \
-        const MailClientParametersTableEntry_t *const clientInfo = mailClientTableGetAppropriateEntry(fId);             \
-        if(MAIL_INVALID_PAYLOAD_OFFSET != clientInfo->dataPointerOffset)                                                \
+        const MailServiceFunctionInfo_t *const functionInfo = Mail_ServiceGetFunctionInfo(fId);                         \
+        if(MAIL_INVALID_OFFSET != functionInfo->reqDataPointerOffset)                                                \
         {                                                                                                               \
                     SYS_DataPointer_t *const dataPointer = (SYS_DataPointer_t *)(                                       \
-                (uint8_t *)clientInd + clientInfo->paramOffset + clientInfo->dataPointerOffset);                        \
+                (uint8_t *)clientInd + functionInfo->reqParametersOffset + functionInfo->reqDataPointerOffset);                        \
                                                                                                                         \
             int size_payload = SYS_GetPayloadSize(dataPointer);                                                         \
             SYS_SetEmptyPayload(dataPointer);                                                                           \
@@ -749,18 +740,18 @@ void client_##name##_callback(indType *ind, respType *resp)                     
             int offset = 2 + WORDALIGN(sizeof(indType));                                                                \
             SYS_CopyToPayload(dataPointer, 0, (const void*)&message_rx[offset], size_payload);                          \
         }                                                                                                               \
-        if(respInfo->callbackOffset != respInfo->reqLength){                                                            \
-            *(int*)((uint8_t*)clientInd + respInfo->callbackOffset) = (int)client_##name##_callback;                    \
+        if(functionInfo->reqCallbackOffset != functionInfo->reqParametersLength){                                                            \
+            *(int*)((uint8_t*)clientInd + functionInfo->reqCallbackOffset) = (int)client_##name##_callback;                    \
             List_ClientIndication_Info_t *info = malloc(sizeof(List_ClientIndication_Info_t));                          \
             INIT_CLIENT_LIST_INFO(info, (int)clientInd, (int)serverind, (int)origIndCallback)                           \
             list_add(&info->list, &clientIndicationListHeader);                                                         \
         }                                                                                                               \
         if(Zigbee_GetCallback()->name)                                                                                  \
             Zigbee_GetCallback()->name(clientInd);                                                                      \
-        if(respInfo->callbackOffset == respInfo->reqLength){                                                            \
-            if(MAIL_INVALID_PAYLOAD_OFFSET != clientInfo->dataPointerOffset){                                           \
+        if(functionInfo->reqCallbackOffset == functionInfo->reqParametersLength){                                                            \
+            if(MAIL_INVALID_OFFSET != functionInfo->reqDataPointerOffset){                                           \
                     SYS_DataPointer_t *const dataPointer = (SYS_DataPointer_t *)(                                       \
-                (uint8_t *)clientInd + clientInfo->paramOffset + clientInfo->dataPointerOffset);                        \
+                (uint8_t *)clientInd + functionInfo->reqParametersLength + functionInfo->reqDataPointerOffset);                        \
                                                                                                                         \
                 SYS_FreePayload(dataPointer);                                                                           \
             }                                                                                                           \
@@ -778,6 +769,8 @@ CREATE_SERVER_REQUEST_API_FUNCTION(RF4CE_MAC_REQ_SET_FID, RF4CE_MAC_SetReq, MAC_
 
 CREATE_SERVER_REQUEST_API_FUNCTION(RF4CE_PROFILE_REQ_RESET_FID, RF4CE_ResetReq, RF4CE_ResetReqDescr_t, RF4CE_StartResetConfParams_t, RPC_C2S_RF4CE_ResetReq)
 
+CREATE_SERVER_REQUEST_API_FUNCTION(RF4CE_PROFILE_REQ_SET_SUP_DEVICES_FID, RF4CE_SetSupportedDevicesReq, RF4CE_SetSupportedDevicesReqDescr_t, RF4CE_SetSupportedDevicesConfParams_t, RPC_C2S_RF4CE_SetSupportedDevicesReq)
+
 CREATE_SERVER_REQUEST_API_FUNCTION(RF4CE_PROFILE_REQ_START_FID, RF4CE_StartReq, RF4CE_StartReqDescr_t, RF4CE_StartResetConfParams_t, RPC_C2S_RF4CE_StartReq)
 
 CREATE_SERVER_REQUEST_API_FUNCTION(RF4CE_NWK_REQ_DATA_FID, RF4CE_NWK_DataReq, RF4CE_NWK_DataReqDescr_t, RF4CE_NWK_DataConfParams_t, RPC_C2S_RF4CE_DataReq)
@@ -793,20 +786,23 @@ CREATE_SERVER_REQUEST_API_FUNCTION(RF4CE_ZRC1_REQ_SET_FID, RF4CE_ZRC1_SetAttribu
 #ifndef BYPASS_RPC
 CREATE_SERVER_REQUEST_API_FUNCTION(TE_ECHO_FID, Mail_TestEngineEcho, TE_EchoCommandReqDescr_t, TE_EchoCommandConfParams_t, RPC_C2S_Mail_TestEngineEcho)
 
-CREATE_SERVER_REQUEST_API_FUNCTION(SYS_EVENT_SUBSCRIBE_FID, SYS_EventSubscribe, SYS_EventHandlerParams_t, NoAppropriateType_t, RPC_C2S_SYS_EventSubscribe)
+//CREATE_SERVER_REQUEST_API_FUNCTION(SYS_EVENT_SUBSCRIBE_FID, SYS_EventSubscribe, SYS_EventHandlerParams_t, NoAppropriateType_t, RPC_C2S_SYS_EventSubscribe)
+CREATE_SERVER_REQUEST_API_FUNCTION(SYS_EVENT_SUBSCRIBE_FID, sysEventSubscribeHostHandler, SYS_EventHandlerMailParams_t, NoAppropriateType_t, RPC_C2S_SYS_EventSubscribe)
 #endif
 
 CREATE_SERVER_INDICATION_API_FUNCTION(RF4CE_ZRC2_CHECK_VALIDATION_IND_FID, RF4CE_ZRC2_CheckValidationInd, RF4CE_ZRC2_CheckValidationIndParams_t, NoAppropriateType_t, RPC_S2C_RF4CE_ZRC2_CheckValidationInd)
 
+#ifdef USE_RF4CE_PROFILE_ZRC2
 CREATE_SERVER_REQUEST_API_FUNCTION(RF4CE_ZRC2_REQ_SET_FID, RF4CE_ZRC2_SetAttributesReq, RF4CE_ZRC2_SetAttributesReqDescr_t, RF4CE_ZRC2_SetAttributesConfParams_t, RPC_C2S_RF4CE_ZRC2_SetAttributesReq)
 
 CREATE_SERVER_LOCAL_REQUEST_API_FUNCTION(RF4CE_ZRC2_REQ_SET_FID, RF4CE_ZRC2_SetAttributesReq, RF4CE_ZRC2_SetAttributesReqDescr_t, RF4CE_ZRC2_SetAttributesConfParams_t)
+#endif
 
 CREATE_SERVER_INDICATION_API_FUNCTION(RF4CE_ZRC2_CONTROL_COMMAND_IND_FID, RF4CE_ZRC2_ControlCommandInd, RF4CE_ZRC2_ControlCommandIndParams_t, NoAppropriateType_t, RPC_S2C_RF4CE_ZRC2_ControlCommandInd)
 
 CREATE_SERVER_INDICATION_API_FUNCTION(RF4CE_ZRC1_IND_CONTROLCOMMAND_FID, RF4CE_ZRC1_ControlCommandInd, RF4CE_ZRC1_ControlCommandIndParams_t, NoAppropriateType_t, RPC_S2C_RF4CE_ZRC1_ControlCommandInd)
 
-CREATE_SERVER_REQUEST_API_FUNCTION(TE_ECHO_DELAY_FID, Mail_SetEchoDelay, TE_SetEchoDelayCommandReqDescr_t, TE_SetEchoDelayCommandConfParams_t, RPC_C2S_Mail_SetEchoDelay)
+//CREATE_SERVER_REQUEST_API_FUNCTION(TE_ECHO_DELAY_FID, Mail_SetEchoDelay, TE_SetEchoDelayCommandReqDescr_t, TE_SetEchoDelayCommandConfParams_t, RPC_C2S_Mail_SetEchoDelay)
 
 CREATE_SERVER_INDICATION_API_FUNCTION(RF4CE_PROFILE_IND_PAIR_FID, RF4CE_PairInd, RF4CE_PairingIndParams_t, NoAppropriateType_t, RPC_S2C_RF4CE_ZRC_PairInd)
 
@@ -822,7 +818,7 @@ CREATE_SERVER_REQUEST_API_FUNCTION(RF4CE_ZRC1_VENDORSPECIFIC_REQ_FID, RF4CE_ZRC1
 CREATE_SERVER_INDICATION_API_FUNCTION(RF4CE_ZRC1_VENDORSPECIFIC_IND_FID, RF4CE_ZRC1_VendorSpecificInd, RF4CE_ZRC1_VendorSpecificIndParams_t, NoAppropriateType_t, RPC_S2C_RF4CE_ZRC1_VendorSpecificInd)
 
 /* Virtual UART staff */
-CREATE_SERVER_REQUEST_API_FUNCTION(TE_HOST_TO_UART1_FID, Mail_Host2Uart1, TE_Host2Uart1ReqDescr_t,   NoAppropriateType_t, RPC_C2S_TE_Host2Uart1Req)
+//CREATE_SERVER_REQUEST_API_FUNCTION(TE_HOST_TO_UART1_FID, Mail_Host2Uart1, TE_Host2Uart1ReqDescr_t,   NoAppropriateType_t, RPC_C2S_TE_Host2Uart1Req)
 /* End of virtual UART staff */
 
 /* Phy test staff */
@@ -1001,6 +997,8 @@ CREATE_CLIENT_REQUEST_API_FUNCTION(RF4CE_MAC_REQ_SET_FID, RF4CE_MAC_SetReq, MAC_
 
 CREATE_CLIENT_REQUEST_API_FUNCTION(RF4CE_PROFILE_REQ_RESET_FID, RF4CE_ResetReq, RF4CE_ResetReqDescr_t, RF4CE_StartResetConfParams_t, RPC_C2S_RF4CE_ResetReq)
 
+CREATE_CLIENT_REQUEST_API_FUNCTION(RF4CE_PROFILE_REQ_SET_SUP_DEVICES_FID, RF4CE_SetSupportedDevicesReq, RF4CE_SetSupportedDevicesReqDescr_t, RF4CE_SetSupportedDevicesConfParams_t, RPC_C2S_RF4CE_SetSupportedDevicesReq)
+
 CREATE_CLIENT_REQUEST_API_FUNCTION(RF4CE_PROFILE_REQ_START_FID, RF4CE_StartReq, RF4CE_StartReqDescr_t, RF4CE_StartResetConfParams_t, RPC_C2S_RF4CE_StartReq)
 
 CREATE_CLIENT_REQUEST_API_FUNCTION(RF4CE_NWK_REQ_DATA_FID, RF4CE_NWK_DataReq, RF4CE_NWK_DataReqDescr_t, RF4CE_NWK_DataConfParams_t, RPC_C2S_RF4CE_DataReq)
@@ -1015,7 +1013,7 @@ CREATE_CLIENT_REQUEST_API_FUNCTION(RF4CE_ZRC1_REQ_SET_FID, RF4CE_ZRC1_SetAttribu
 
 CREATE_CLIENT_REQUEST_API_FUNCTION(TE_ECHO_FID, Mail_TestEngineEcho, TE_EchoCommandReqDescr_t, TE_EchoCommandConfParams_t, RPC_C2S_Mail_TestEngineEcho)
 
-CREATE_CLIENT_REQUEST_FUNCTION(SYS_EVENT_SUBSCRIBE_FID, SYS_EventSubscribe, SYS_EventHandlerParams_t, RPC_C2S_SYS_EventSubscribe)
+CREATE_CLIENT_REQUEST_FUNCTION(SYS_EVENT_SUBSCRIBE_FID, sysEventSubscribeHostHandler, SYS_EventHandlerMailParams_t, RPC_C2S_SYS_EventSubscribe)
 
 CREATE_CLIENT_INDICATION_API_FUNCTION(RF4CE_ZRC2_CHECK_VALIDATION_IND_FID, RF4CE_ZRC2_CheckValidationInd, RF4CE_ZRC2_CheckValidationIndParams_t, NoAppropriateType_t, RPC_S2C_RF4CE_ZRC2_CheckValidationInd)
 
@@ -1029,7 +1027,7 @@ CREATE_CLIENT_INDICATION_API_FUNCTION(RF4CE_ZRC1_IND_CONTROLCOMMAND_FID, RF4CE_Z
 
 CREATE_CLIENT_REQUEST_API_FUNCTION(RF4CE_ZRC1_REQ_TARGET_BIND_FID, RF4CE_ZRC1_TargetBindReq, RF4CE_ZRC1_BindReqDescr_t, RF4CE_ZRC1_BindConfParams_t, RPC_C2S_RF4CE_ZRC1_TargetBindReq)
 
-CREATE_CLIENT_REQUEST_API_FUNCTION(TE_ECHO_DELAY_FID, Mail_SetEchoDelay, TE_SetEchoDelayCommandReqDescr_t, TE_SetEchoDelayCommandConfParams_t, RPC_C2S_Mail_SetEchoDelay)
+//CREATE_CLIENT_REQUEST_API_FUNCTION(TE_ECHO_DELAY_FID, Mail_SetEchoDelay, TE_SetEchoDelayCommandReqDescr_t, TE_SetEchoDelayCommandConfParams_t, RPC_C2S_Mail_SetEchoDelay)
 
 CREATE_CLIENT_INDICATION_API_FUNCTION(RF4CE_PROFILE_IND_PAIR_FID, RF4CE_PairInd, RF4CE_PairingIndParams_t, NoAppropriateType_t, RPC_S2C_RF4CE_ZRC_PairInd)
 
@@ -1048,7 +1046,7 @@ CREATE_CLIENT_REQUEST_API_FUNCTION(RF4CE_ZRC2_ENABLE_BINDING_FID, RF4CE_ZRC2_Ena
 CREATE_CLIENT_REQUEST_API_FUNCTION(RF4CE_PROFILE_REQ_UNPAIR_FID, RF4CE_UnpairReq, RF4CE_UnpairReqDescr_t, RF4CE_UnpairConfParams_t, RPC_C2S_RF4CE_UnpairReq)
 
 /* Virtual UART staff */
-CREATE_CLIENT_REQUEST_API_FUNCTION(TE_HOST_TO_UART1_FID, Mail_Host2Uart1, TE_Host2Uart1ReqDescr_t,   NoAppropriateType_t, RPC_C2S_TE_Host2Uart1Req)
+//CREATE_CLIENT_REQUEST_API_FUNCTION(TE_HOST_TO_UART1_FID, Mail_Host2Uart1, TE_Host2Uart1ReqDescr_t,   NoAppropriateType_t, RPC_C2S_TE_Host2Uart1Req)
 /* End virtual UART staff */
 
 /* PHY test stuff */
@@ -1074,6 +1072,8 @@ CREATE_CLIENT_REQUEST_API_FUNCTION(RF4CE_CTRL_GET_DIAGNOSTIC_FID, RF4CE_Get_Diag
 
 CREATE_CLIENT_REQUEST_FUNCTION(TE_RESET_FID, Mail_TestEngineReset, TE_ResetCommandReqDescr_t, RPC_S2C_Mail_TestEngineReset)
 CREATE_CLIENT_INDICATION_API_FUNCTION(SYS_EVENT_NOTIFY_FID, SYS_EventNtfy, SYS_EventNotifyParams_t, NoAppropriateType_t, RPC_S2C_SYS_EVENTNTFY)
+
+#ifdef _ZBPRO_
 /* NWK staff */
 CREATE_CLIENT_REQUEST_API_FUNCTION(ZBPRO_NWK_REQ_PERMIT_JOINING_FID, ZBPRO_NWK_PermitJoiningReq, ZBPRO_NWK_PermitJoiningReqDescr_t, ZBPRO_NWK_PermitJoiningConfParams_t, RPC_C2S_ZBPRO_NWK_PermitJoiningReq)
 CREATE_CLIENT_REQUEST_API_FUNCTION(ZBPRO_NWK_REQ_LEAVE_FID, ZBPRO_NWK_LeaveReq, ZBPRO_NWK_LeaveReqDescr_t, ZBPRO_NWK_LeaveConfParams_t, RPC_C2S_ZBPRO_NWK_LeaveReq)
@@ -1205,6 +1205,7 @@ CREATE_CLIENT_REQUEST_API_FUNCTION(ZBPRO_ZHA_CIE_SET_PANEL_STATUS_REQ_FID, ZBPRO
 CREATE_CLIENT_REQUEST_API_FUNCTION(ZBPRO_ZHA_CIE_ZONE_SET_BYPASS_STATE_REQ_FID, ZBPRO_ZHA_CieZoneSetBypassStateReq, ZBPRO_ZHA_CieZoneSetBypassStateReqDescr_t, ZBPRO_ZHA_CieZoneSetBypassStateConfParams_t, RPC_C2S_ZBPRO_ZHA_CieZoneSetBypassStateReq)
 CREATE_CLIENT_INDICATION_API_FUNCTION(ZBPRO_ZHA_CIE_SET_PANEL_STATUS_IND_FID, ZBPRO_ZHA_CieDeviceSetPanelStatusInd, ZBPRO_ZHA_CieSetPanelStatusIndParams_t, NoAppropriateType_t, RPC_C2S_ZBPRO_ZHA_CieDeviceSetPanelStatusInd)
 /* End of ZCL staff */
+#endif
 
 #endif
 
@@ -1252,13 +1253,12 @@ void server_RF4CE_ZRC1_TargetBindReq_callback(RF4CE_ZRC1_BindReqDescr_t  *reques
 
     memcpy((char *)&request2, (char *)info->clientRequestData, sizeof(RF4CE_ZRC1_BindReqDescr_t));
 
-    const MailServerParametersTableEntry_t *const confirmInfo = mailServerTableGetAppropriateEntry(RF4CE_ZRC1_REQ_TARGET_BIND_FID);
-    if(MAIL_INVALID_PAYLOAD_OFFSET != confirmInfo->confDataPointerOffset){
+    const MailServiceFunctionInfo_t *const functionInfo = Mail_ServiceGetFunctionInfo(RF4CE_ZRC1_REQ_TARGET_BIND_FID);
+    if(MAIL_INVALID_OFFSET != functionInfo->confDataPointerOffset){
         printf("hanging\n"); while(1);
     }
 
-    const MailClientParametersTableEntry_t *const reqInfo = mailClientTableGetAppropriateEntry(RF4CE_ZRC1_REQ_TARGET_BIND_FID);
-    if(MAIL_INVALID_PAYLOAD_OFFSET != reqInfo->dataPointerOffset){
+    if(MAIL_INVALID_OFFSET != functionInfo->reqDataPointerOffset){
         printf("hanging\n"); while(1);
     }
     request2.callback(request, conf);
@@ -1299,10 +1299,10 @@ void server_RF4CE_ZRC1_TargetBindReq_callback(RF4CE_ZRC1_BindReqDescr_t  *reques
     size += 1;
     memcpy((char *)&message_tx[size], (char *)conf, sizeof(RF4CE_ZRC1_BindConfParams_t));
     size += WORDALIGN(sizeof(RF4CE_ZRC1_BindConfParams_t));
-    const MailServerParametersTableEntry_t *const confirmInfo = mailServerTableGetAppropriateEntry(RF4CE_ZRC1_REQ_TARGET_BIND_FID);
-    if(MAIL_INVALID_PAYLOAD_OFFSET != confirmInfo->confDataPointerOffset){
+    const MailServiceFunctionInfo_t *const functionInfo = Mail_ServiceGetFunctionInfo(RF4CE_ZRC1_REQ_TARGET_BIND_FID);
+    if(MAIL_INVALID_OFFSET != functionInfo->confDataPointerOffset){
         SYS_DataPointer_t *const dataPointer = (SYS_DataPointer_t *)
-                                            ((uint8_t *)conf + confirmInfo->confDataPointerOffset);
+                                            ((uint8_t *)conf + functionInfo->confDataPointerOffset);
         int size_payload = SYS_GetPayloadSize(dataPointer);
         SYS_CopyFromPayload((void*)&message_tx[size], dataPointer, 0, size_payload);
         size += WORDALIGN(size_payload);
@@ -1310,10 +1310,9 @@ void server_RF4CE_ZRC1_TargetBindReq_callback(RF4CE_ZRC1_BindReqDescr_t  *reques
            SYS_FreePayload(dataPointer);
     }
 
-    const MailClientParametersTableEntry_t *const reqInfo = mailClientTableGetAppropriateEntry(RF4CE_ZRC1_REQ_TARGET_BIND_FID);
-    if(MAIL_INVALID_PAYLOAD_OFFSET != reqInfo->dataPointerOffset){
+    if(MAIL_INVALID_OFFSET != functionInfo->reqDataPointerOffset){
         SYS_DataPointer_t *const reqDataPointer = (SYS_DataPointer_t *)(
-            (uint8_t *)request + reqInfo->paramOffset + reqInfo->dataPointerOffset);
+            (uint8_t *)request + functionInfo->reqParametersOffset + functionInfo->reqDataPointerOffset);
         if(SYS_CheckPayload(reqDataPointer))
            SYS_FreePayload(reqDataPointer);
     }
@@ -1357,10 +1356,10 @@ void server_RF4CE_UnpairReq_callback(RF4CE_UnpairReqDescr_t  *request, RF4CE_Unp
     size += 1;
     memcpy((char *)&message_tx[size], (char *)conf, sizeof(RF4CE_UnpairConfParams_t));
     size += WORDALIGN(sizeof(RF4CE_UnpairConfParams_t));
-    const MailServerParametersTableEntry_t *const confirmInfo = mailServerTableGetAppropriateEntry(RF4CE_PROFILE_REQ_UNPAIR_FID);
-    if(MAIL_INVALID_PAYLOAD_OFFSET != confirmInfo->confDataPointerOffset){
+    const MailServiceFunctionInfo_t *const functionInfo = Mail_ServiceGetFunctionInfo(RF4CE_PROFILE_REQ_UNPAIR_FID);
+    if(MAIL_INVALID_OFFSET != functionInfo->confDataPointerOffset){
         SYS_DataPointer_t *const dataPointer = (SYS_DataPointer_t *)
-                                            ((uint8_t *)conf + confirmInfo->confDataPointerOffset);
+                                            ((uint8_t *)conf + functionInfo->confDataPointerOffset);
         int size_payload = SYS_GetPayloadSize(dataPointer);
         SYS_CopyFromPayload((void*)&message_tx[size], dataPointer, 0, size_payload);
         size += WORDALIGN(size_payload);
@@ -1368,10 +1367,9 @@ void server_RF4CE_UnpairReq_callback(RF4CE_UnpairReqDescr_t  *request, RF4CE_Unp
            SYS_FreePayload(dataPointer);
     }
 
-    const MailClientParametersTableEntry_t *const reqInfo = mailClientTableGetAppropriateEntry(RF4CE_PROFILE_REQ_UNPAIR_FID);
-    if(MAIL_INVALID_PAYLOAD_OFFSET != reqInfo->dataPointerOffset){
+    if(MAIL_INVALID_OFFSET != functionInfo->reqDataPointerOffset){
         SYS_DataPointer_t *const reqDataPointer = (SYS_DataPointer_t *)(
-            (uint8_t *)request + reqInfo->paramOffset + reqInfo->dataPointerOffset);
+            (uint8_t *)request + functionInfo->reqParametersOffset + functionInfo->reqDataPointerOffset);
         if(SYS_CheckPayload(reqDataPointer))
            SYS_FreePayload(reqDataPointer);
     }
@@ -1390,8 +1388,8 @@ void RF4CE_ZRC1_TargetBindReq(RF4CE_ZRC1_BindReqDescr_t *request)
     RF4CE_ZRC1_BindReqDescr_t *request = (RF4CE_ZRC1_BindReqDescr_t *)malloc(sizeof(RF4CE_ZRC1_BindReqDescr_t));
     memcpy((char*)request, &buf[1], sizeof(RF4CE_ZRC1_BindReqDescr_t));
     */
-    const MailClientParametersTableEntry_t *const reqInfo = mailClientTableGetAppropriateEntry(RF4CE_ZRC1_REQ_TARGET_BIND_FID);
-    if(MAIL_INVALID_PAYLOAD_OFFSET != reqInfo->dataPointerOffset)
+    const MailServiceFunctionInfo_t *const functionInfo = Mail_ServiceGetFunctionInfo(RF4CE_ZRC1_REQ_TARGET_BIND_FID);
+    if(MAIL_INVALID_OFFSET != functionInfo->reqDataPointerOffset)
     {
         printf("hanging\n"); while(1);
     }
@@ -1399,7 +1397,7 @@ void RF4CE_ZRC1_TargetBindReq(RF4CE_ZRC1_BindReqDescr_t *request)
     INIT_SERVER_LIST_INFO(info, 0, (unsigned int)request, RF4CE_ZRC1_REQ_TARGET_BIND_FID, 7)
     memcpy((char*)info->clientRequestData, (char*)request, sizeof(RF4CE_ZRC1_BindReqDescr_t));
     request->callback = (void(*)(RF4CE_ZRC1_BindReqDescr_t*, RF4CE_ZRC1_BindConfParams_t*))server_RF4CE_ZRC1_TargetBindReq_callback;
-    if(availablePendingTableEntry()){
+    if(mailClientAvailablePendingTableEntry()){
         list_add(&info->list, &serverRequestListHeader);
         /* register this client for binding */
         if(!InsertClientInfoToWaitingPairQueue(7))
@@ -1418,11 +1416,11 @@ void server_RF4CE_ZRC1_TargetBindReq(unsigned int *buf, int socket)
 {
     RF4CE_ZRC1_BindReqDescr_t *request = (RF4CE_ZRC1_BindReqDescr_t *)malloc(sizeof(RF4CE_ZRC1_BindReqDescr_t));
     memcpy((char*)request, &buf[1], sizeof(RF4CE_ZRC1_BindReqDescr_t));
-    const MailClientParametersTableEntry_t *const reqInfo = mailClientTableGetAppropriateEntry(RF4CE_ZRC1_REQ_TARGET_BIND_FID);
-    if(MAIL_INVALID_PAYLOAD_OFFSET != reqInfo->dataPointerOffset)
+    const MailServiceFunctionInfo_t *const functionInfo = Mail_ServiceGetFunctionInfo(RF4CE_ZRC1_REQ_TARGET_BIND_FID);
+    if(MAIL_INVALID_OFFSET != functionInfo->reqDataPointerOffset)
     {
         SYS_DataPointer_t *const dataPointer = (SYS_DataPointer_t *)(
-            (uint8_t *)request + reqInfo->paramOffset + reqInfo->dataPointerOffset);
+            (uint8_t *)request + functionInfo->reqParametersOffset + functionInfo->reqDataPointerOffset);
         int size_payload = SYS_GetPayloadSize(dataPointer);
         SYS_SetEmptyPayload(dataPointer);
         SYS_MemAlloc(dataPointer, size_payload);
@@ -1432,7 +1430,7 @@ void server_RF4CE_ZRC1_TargetBindReq(unsigned int *buf, int socket)
     INIT_SERVER_LIST_INFO(info, buf[0], (unsigned int)request, RF4CE_ZRC1_REQ_TARGET_BIND_FID, socket)
     memcpy((char*)info->clientRequestData, (char*)request, sizeof(RF4CE_ZRC1_BindReqDescr_t));
     request->callback = (void(*)(RF4CE_ZRC1_BindReqDescr_t*, RF4CE_ZRC1_BindConfParams_t*))server_RF4CE_ZRC1_TargetBindReq_callback;
-    if(availablePendingTableEntry()){
+    if(mailClientAvailablePendingTableEntry()){
         list_add(&info->list, &serverRequestListHeader);
         /* register this client for binding */
         if(!InsertClientInfoToWaitingPairQueue(socket))
@@ -1448,15 +1446,16 @@ void server_RF4CE_ZRC1_TargetBindReq(unsigned int *buf, int socket)
 }
 #endif
 
+#ifdef USE_RF4CE_PROFILE_ZRC2
 void server_RF4CE_ZRC2_SetPushButtonStimulusReq(unsigned int *buf, int socket)
 {
     RF4CE_ZRC2_ButtonBindingReqDescr_t *request = (RF4CE_ZRC2_ButtonBindingReqDescr_t *)malloc(sizeof(RF4CE_ZRC2_ButtonBindingReqDescr_t));
     memcpy((char*)request, &buf[1], sizeof(RF4CE_ZRC2_ButtonBindingReqDescr_t));
-    const MailClientParametersTableEntry_t *const reqInfo = mailClientTableGetAppropriateEntry(RF4CE_ZRC2_SET_PUSH_BUTTON_STIMULUS_FID);
-    if(MAIL_INVALID_PAYLOAD_OFFSET != reqInfo->dataPointerOffset)
+    const MailServiceFunctionInfo_t *const functionInfo = Mail_ServiceGetFunctionInfo(RF4CE_ZRC2_SET_PUSH_BUTTON_STIMULUS_FID);
+    if(MAIL_INVALID_OFFSET != functionInfo->reqDataPointerOffset)
     {
         SYS_DataPointer_t *const dataPointer = (SYS_DataPointer_t *)(
-            (uint8_t *)request + reqInfo->paramOffset + reqInfo->dataPointerOffset);
+            (uint8_t *)request + functionInfo->reqParametersOffset + functionInfo->reqDataPointerOffset);
         int size_payload = SYS_GetPayloadSize(dataPointer);
         SYS_SetEmptyPayload(dataPointer);
         SYS_MemAlloc(dataPointer, size_payload);
@@ -1466,7 +1465,7 @@ void server_RF4CE_ZRC2_SetPushButtonStimulusReq(unsigned int *buf, int socket)
     INIT_SERVER_LIST_INFO(info, buf[0], (unsigned int)request, RF4CE_ZRC2_SET_PUSH_BUTTON_STIMULUS_FID, socket)
     memcpy((char*)info->clientRequestData, (char*)request, sizeof(RF4CE_ZRC2_ButtonBindingReqDescr_t));
     request->callback = (void(*)(RF4CE_ZRC2_ButtonBindingReqDescr_t*, RF4CE_ZRC2_BindingConfParams_t*))server_RF4CE_ZRC2_SetPushButtonStimulusReq_callback;
-    if(availablePendingTableEntry()){
+    if(mailClientAvailablePendingTableEntry()){
         list_add(&info->list, &serverRequestListHeader);
         /* register this client for binding */
         if(!InsertClientInfoToWaitingPairQueue(socket))
@@ -1481,16 +1480,15 @@ void server_RF4CE_ZRC2_SetPushButtonStimulusReq(unsigned int *buf, int socket)
         list_add(&info->list, &serverPendingRequestListHeader);
 }
 
-#if 1
 void server_RF4CE_ZRC2_EnableBindingReq(unsigned int *buf, int socket)
 {
     RF4CE_ZRC2_BindingReqDescr_t *request = (RF4CE_ZRC2_BindingReqDescr_t *)malloc(sizeof(RF4CE_ZRC2_BindingReqDescr_t));
     memcpy((char*)request, &buf[1], sizeof(RF4CE_ZRC2_BindingReqDescr_t));
-    const MailClientParametersTableEntry_t *const reqInfo = mailClientTableGetAppropriateEntry(RF4CE_ZRC2_ENABLE_BINDING_FID);
-    if(MAIL_INVALID_PAYLOAD_OFFSET != reqInfo->dataPointerOffset)
+    const MailServiceFunctionInfo_t *const functionInfo = Mail_ServiceGetFunctionInfo(RF4CE_ZRC2_ENABLE_BINDING_FID);
+    if(MAIL_INVALID_OFFSET != functionInfo->reqDataPointerOffset)
     {
         SYS_DataPointer_t *const dataPointer = (SYS_DataPointer_t *)(
-            (uint8_t *)request + reqInfo->paramOffset + reqInfo->dataPointerOffset);
+            (uint8_t *)request + functionInfo->reqParametersOffset + functionInfo->reqDataPointerOffset);
         int size_payload = SYS_GetPayloadSize(dataPointer);
         SYS_SetEmptyPayload(dataPointer);
         SYS_MemAlloc(dataPointer, size_payload);
@@ -1500,7 +1498,7 @@ void server_RF4CE_ZRC2_EnableBindingReq(unsigned int *buf, int socket)
     INIT_SERVER_LIST_INFO(info, buf[0], (unsigned int)request, RF4CE_ZRC2_ENABLE_BINDING_FID, socket)
     memcpy((char*)info->clientRequestData, (char*)request, sizeof(RF4CE_ZRC2_BindingReqDescr_t));
     request->callback = (void(*)(RF4CE_ZRC2_BindingReqDescr_t*, RF4CE_ZRC2_BindingConfParams_t*))server_RF4CE_ZRC2_EnableBindingReq_callback;
-    if(availablePendingTableEntry()){
+    if(mailClientAvailablePendingTableEntry()){
         list_add(&info->list, &serverRequestListHeader);
         /* register this client for binding */
         if(!InsertClientInfoToWaitingPairQueue(socket))
@@ -1514,7 +1512,6 @@ void server_RF4CE_ZRC2_EnableBindingReq(unsigned int *buf, int socket)
     }else
         list_add(&info->list, &serverPendingRequestListHeader);
 }
-#endif
 
 void server_RF4CE_ZRC2_CheckValidationResp(unsigned int *buf, int socket)
 {
@@ -1522,6 +1519,7 @@ void server_RF4CE_ZRC2_CheckValidationResp(unsigned int *buf, int socket)
     memcpy((char*)&request, &buf[1], sizeof(RF4CE_ZRC2_CheckValidationRespDescr_t));
     RF4CE_ZRC2_CheckValidationResp_Call(&request);
 }
+#endif
 
 
 /*
@@ -1602,11 +1600,11 @@ void server_ZBPRO_APS_EndpointRegisterReq(unsigned int *buf, int socket)
 {
     ZBPRO_APS_EndpointRegisterReqDescr_t *request = (ZBPRO_APS_EndpointRegisterReqDescr_t *)malloc(sizeof(ZBPRO_APS_EndpointRegisterReqDescr_t));
     memcpy((char*)request, &buf[1], sizeof(ZBPRO_APS_EndpointRegisterReqDescr_t));
-    const MailClientParametersTableEntry_t *const reqInfo = mailClientTableGetAppropriateEntry(ZBPRO_APS_REQ_ENDPOINTREGISTER_FID);
-    if(MAIL_INVALID_PAYLOAD_OFFSET != reqInfo->dataPointerOffset)
+    const MailServiceFunctionInfo_t *const functionInfo = Mail_ServiceGetFunctionInfo(ZBPRO_APS_REQ_ENDPOINTREGISTER_FID);
+    if(MAIL_INVALID_OFFSET != functionInfo->reqDataPointerOffset)
     {
         SYS_DataPointer_t *const dataPointer = (SYS_DataPointer_t *)(
-            (uint8_t *)request + reqInfo->paramOffset + reqInfo->dataPointerOffset);
+            (uint8_t *)request + functionInfo->reqParametersOffset + functionInfo->reqDataPointerOffset);
         int size_payload = SYS_GetPayloadSize(dataPointer);
         SYS_SetEmptyPayload(dataPointer);
         SYS_MemAlloc(dataPointer, size_payload);
@@ -1618,7 +1616,7 @@ void server_ZBPRO_APS_EndpointRegisterReq(unsigned int *buf, int socket)
     request->callback = (void(*)(ZBPRO_APS_EndpointRegisterReqDescr_t*, ZBPRO_APS_EndpointRegisterConfParams_t*))server_ZBPRO_APS_EndpointRegisterReq_callback;
     // Add this socket id to registration infomation
     HA_Register_Itself(socket, request->params.simpleDescriptor.endpoint);
-    if(availablePendingTableEntry()){
+    if(mailClientAvailablePendingTableEntry()){
         list_add(&info->list, &serverRequestListHeader);
         ZBPRO_APS_EndpointRegisterReq_Call(request);
     }else
@@ -1629,11 +1627,11 @@ void server_ZBPRO_APS_EndpointUnregisterReq(unsigned int *buf, int socket)
 {
     ZBPRO_APS_EndpointUnregisterReqDescr_t *request = (ZBPRO_APS_EndpointUnregisterReqDescr_t *)malloc(sizeof(ZBPRO_APS_EndpointUnregisterReqDescr_t));
     memcpy((char*)request, &buf[1], sizeof(ZBPRO_APS_EndpointUnregisterReqDescr_t));
-    const MailClientParametersTableEntry_t *const reqInfo = mailClientTableGetAppropriateEntry(ZBPRO_APS_REQ_ENDPOINTREGISTER_FID);
-    if(MAIL_INVALID_PAYLOAD_OFFSET != reqInfo->dataPointerOffset)
+    const MailServiceFunctionInfo_t *const functionInfo = Mail_ServiceGetFunctionInfo(ZBPRO_APS_REQ_ENDPOINTREGISTER_FID);
+    if(MAIL_INVALID_OFFSET != functionInfo->reqDataPointerOffset)
     {
         SYS_DataPointer_t *const dataPointer = (SYS_DataPointer_t *)(
-            (uint8_t *)request + reqInfo->paramOffset + reqInfo->dataPointerOffset);
+            (uint8_t *)request + functionInfo->reqParametersOffset + functionInfo->reqDataPointerOffset);
         int size_payload = SYS_GetPayloadSize(dataPointer);
         SYS_SetEmptyPayload(dataPointer);
         SYS_MemAlloc(dataPointer, size_payload);
@@ -1645,7 +1643,7 @@ void server_ZBPRO_APS_EndpointUnregisterReq(unsigned int *buf, int socket)
     request->callback = (void(*)(ZBPRO_APS_EndpointUnregisterReqDescr_t*, ZBPRO_APS_EndpointRegisterConfParams_t*))server_ZBPRO_APS_EndpointUnregisterReq_callback;
     // Add this socket id to registration infomation
     HA_Unregister_Itself(socket, request->params.endpoint);
-    if(availablePendingTableEntry()){
+    if(mailClientAvailablePendingTableEntry()){
         list_add(&info->list, &serverRequestListHeader);
         ZBPRO_APS_EndpointUnregisterReq_Call(request);
     }else

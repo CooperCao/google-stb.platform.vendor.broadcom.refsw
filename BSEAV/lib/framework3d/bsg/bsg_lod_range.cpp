@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -11,7 +11,7 @@
  * Software and all intellectual property rights therein.  IF YOU HAVE NO
  * AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
  * AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
- * SOFTWARE.  
+ * SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
@@ -56,12 +56,6 @@ bool LODRange::InRange(const SemanticData &semData, const Bound &bound) const
 
    const Application &app = *Application::Instance();
 
-   float aspect = 1.0f;
-   if (app.IsQuad())
-   {
-      aspect = sqrtf(app.GetQuadRender().GetAspectXoverY());
-   }
-
    float r = bound.GetRadius();
    Vec3  c = bound.GetCenter();
 
@@ -74,7 +68,7 @@ bool LODRange::InRange(const SemanticData &semData, const Bound &bound) const
    // The projected size tends to be an overestimate due to way bounding volumes grow
    // because of being conservative when transformed/calculated.
    // Thge factor of 3 attempts to address this issue for typical use cases.
-   float ndcSize = Length((bl1 - tr1) * (float)app.GetOptions().GetHeight() / 3.0f / aspect);
+   float ndcSize = Length((bl1 - tr1) * (float)app.GetOptions().GetHeight() / 3.0f);
 
    return ndcSize >= m_minSize && ndcSize < m_maxSize;
 }

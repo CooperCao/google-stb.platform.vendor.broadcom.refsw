@@ -1,27 +1,43 @@
-/*************************************************************************
-*     (c)2005-2014 Broadcom Corporation
-*
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
-*  and may only be used, duplicated, modified or distributed pursuant to the terms and
-*  conditions of a separate, written license agreement executed between you and Broadcom
-*  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-*  no license (express or implied), right to use, or waiver of any kind with respect to the
-*  Software, and Broadcom expressly reserves all rights in and to the Software and all
-*  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-*  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* [File Description:]
-*
-* Revision History:
-*
-* $brcm_Log: $
-*
-***************************************************************************/
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
+ *
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 
 /* BSRF (Broadcom Satellite Radio Frontend) porting interface (PI) */
 
@@ -105,8 +121,8 @@ See Also:
 typedef struct
 {
    uint32_t timeNs;
-   uint32_t threshold;
-   uint32_t step;
+   int32_t threshold;   /* tc16.16 */
+   int32_t step;        /* tc6.11 */
 } BSRF_AgcSettings;
 
 
@@ -181,6 +197,22 @@ typedef enum BSRF_OutputSelect
 
 /******************************************************************************
 Summary:
+   Enumeration to select a testport
+Description:
+   This enumeration specifies the testport to enable.
+See Also:
+   BSRF_ConfigOutput()
+******************************************************************************/
+typedef enum BSRF_TestportSelect
+{
+   BSRF_TestportSelect_eLoPll = 0,
+   BSRF_TestportSelect_eIfInput,
+   BSRF_TestportSelect_eIfOutput
+} BSRF_TestportSelect;
+
+
+/******************************************************************************
+Summary:
    Structure for API function table
 Description:
    This structure contains pointers to all public BSRF functions.
@@ -205,26 +237,32 @@ typedef struct BSRF_ApiFunctTable
    BERR_Code (*UnfreezeRfAgc)(BSRF_ChannelHandle);
    BERR_Code (*WriteRfAgc)(BSRF_ChannelHandle, uint32_t);
    BERR_Code (*ReadRfAgc)(BSRF_ChannelHandle, uint32_t*);
+   BERR_Code (*WriteRfGain)(BSRF_ChannelHandle, uint8_t);
+   BERR_Code (*ReadRfGain)(BSRF_ChannelHandle, uint8_t*);
    BERR_Code (*GetInputPower)(BSRF_ChannelHandle, uint32_t*);
    BERR_Code (*SetRfAgcSettings)(BSRF_ChannelHandle, BSRF_RfAgcSettings);
    BERR_Code (*GetRfAgcSettings)(BSRF_ChannelHandle, BSRF_RfAgcSettings*);
-   BERR_Code (*SetFastDecayGainThreshold)(BSRF_ChannelHandle, uint32_t);
-   BERR_Code (*GetFastDecayGainThreshold)(BSRF_ChannelHandle, uint32_t*);
+   BERR_Code (*EnableFastDecayMode)(BSRF_ChannelHandle, bool);
+   BERR_Code (*SetFastDecayGainThreshold)(BSRF_ChannelHandle, int8_t);
+   BERR_Code (*GetFastDecayGainThreshold)(BSRF_ChannelHandle, int8_t*);
    BERR_Code (*SetAntennaOverThreshold)(BSRF_ChannelHandle, uint8_t);
    BERR_Code (*GetAntennaOverThreshold)(BSRF_ChannelHandle, uint8_t*);
    BERR_Code (*SetAntennaDetectThreshold)(BSRF_ChannelHandle, uint8_t);
    BERR_Code (*GetAntennaDetectThreshold)(BSRF_ChannelHandle, uint8_t*);
    BERR_Code (*GetAntennaStatus)(BSRF_ChannelHandle, BSRF_AntennaStatus*);
-   BERR_Code (*Tune)(BSRF_ChannelHandle, int32_t);
+   BERR_Code (*Tune)(BSRF_ChannelHandle, uint32_t);
    BERR_Code (*GetTunerStatus)(BSRF_ChannelHandle, BSRF_TunerStatus*);
    BERR_Code (*ResetClipCount)(BSRF_ChannelHandle);
    BERR_Code (*GetClipCount)(BSRF_ChannelHandle, uint32_t*);
-   BERR_Code (*ConfigTestMode)(BSRF_ChannelHandle);
+   BERR_Code (*ConfigTestMode)(BSRF_ChannelHandle, BSRF_TestportSelect, bool);
    BERR_Code (*ConfigOutput)(BSRF_Handle, BSRF_OutputSelect, bool, uint8_t);
    BERR_Code (*ConfigTestDac)(BSRF_Handle, int32_t, int16_t*);
    BERR_Code (*EnableTestDac)(BSRF_Handle);
    BERR_Code (*DisableTestDac)(BSRF_Handle);
    BERR_Code (*EnableTestDacTone)(BSRF_Handle, bool, uint16_t);
+   BERR_Code (*RunDataCapture)(BSRF_Handle);
+   BERR_Code (*DeleteAgcLutCodes)(BSRF_Handle, uint32_t*, uint32_t);
+   BERR_Code (*ConfigOutputClockPhase)(BSRF_Handle, uint8_t, bool);
 } BSRF_ApiFunctTable;
 
 
@@ -441,6 +479,28 @@ BERR_Code BSRF_ReadRfAgc(BSRF_ChannelHandle h, uint32_t *pVal);
 
 /******************************************************************************
 Summary:
+   Write RF gain
+Description:
+   The function will overwrite the RF gain if frozen.
+Returns:
+   BERR_Code
+******************************************************************************/
+BERR_Code BSRF_WriteRfGain(BSRF_ChannelHandle h, uint8_t gain);
+
+
+/******************************************************************************
+Summary:
+   Read RF gain
+Description:
+   The function will read back the current RF gain value.
+Returns:
+   BERR_Code
+******************************************************************************/
+BERR_Code BSRF_ReadRfGain(BSRF_ChannelHandle h, uint8_t *pGain);
+
+
+/******************************************************************************
+Summary:
    Estimate input power at chip input
 Description:
    The function will return the input power estimate in dBm scaled by 256.
@@ -474,15 +534,25 @@ BERR_Code BSRF_GetRfAgcSettings(BSRF_ChannelHandle h, BSRF_RfAgcSettings *pSetti
 
 /******************************************************************************
 Summary:
-   Sets the fast decay gain threshold
+   Enables or disables fast decay operation
 Description:
-   The function will set the fast decay gain threshold, where the RFAGC switches from
-   fast decay settings to decay settings.  Setting a threshold of zero will disable fast
-   decay operation.
+   The function will enable/disable fast dcay operation.
 Returns:
    BERR_Code
 ******************************************************************************/
-BERR_Code BSRF_SetFastDecayGainThreshold(BSRF_ChannelHandle h, uint32_t threshold);
+BERR_Code BSRF_EnableFastDecayMode(BSRF_ChannelHandle h, bool bEnable);
+
+
+/******************************************************************************
+Summary:
+   Sets the fast decay gain threshold
+Description:
+   The function will set the fast decay gain threshold, where the RFAGC switches from
+   fast decay settings to decay settings.  The threshold ranges from -64 to 15.
+Returns:
+   BERR_Code
+******************************************************************************/
+BERR_Code BSRF_SetFastDecayGainThreshold(BSRF_ChannelHandle h, int8_t threshold);
 
 
 /******************************************************************************
@@ -493,7 +563,7 @@ Description:
 Returns:
    BERR_Code
 ******************************************************************************/
-BERR_Code BSRF_GetFastDecayGainThreshold(BSRF_ChannelHandle h, uint32_t *pThreshold);
+BERR_Code BSRF_GetFastDecayGainThreshold(BSRF_ChannelHandle h, int8_t *pThreshold);
 
 
 /******************************************************************************
@@ -561,7 +631,7 @@ Description:
 Returns:
    BERR_Code
 ******************************************************************************/
-BERR_Code BSRF_Tune(BSRF_ChannelHandle h, int32_t freqHz);
+BERR_Code BSRF_Tune(BSRF_ChannelHandle h, uint32_t freqHz);
 
 
 /******************************************************************************
@@ -599,13 +669,13 @@ BERR_Code BSRF_GetClipCount(BSRF_ChannelHandle h, uint32_t *pClipCount);
 
 /******************************************************************************
 Summary:
-   Configure test mode
+   Configure and enable test ports
 Description:
-   The function will configure the various test modes TBD.
+   The function will configure and enable the specified test port.
 Returns:
    BERR_Code
 ******************************************************************************/
-BERR_Code BSRF_ConfigTestMode(BSRF_ChannelHandle h);  /* TBD */
+BERR_Code BSRF_ConfigTestMode(BSRF_ChannelHandle h, BSRF_TestportSelect tp, bool bEnable);
 
 
 /******************************************************************************
@@ -663,6 +733,39 @@ Returns:
    BERR_Code
 ******************************************************************************/
 BERR_Code BSRF_EnableTestDacTone(BSRF_Handle h, bool bToneOn, uint16_t toneAmpl);
+
+
+/******************************************************************************
+Summary:
+   Runs diagnostic data capture
+Description:
+   The function will run one interation of the diagnostic data capture for 8192 data points.
+Returns:
+   BERR_Code
+******************************************************************************/
+BERR_Code BSRF_RunDataCapture(BSRF_Handle h);
+
+
+/******************************************************************************
+Summary:
+   Delete AGC LUT code
+Description:
+   The function will specify which AGC LUT codes to omit when initializing the RFAGC.
+Returns:
+   BERR_Code
+******************************************************************************/
+BERR_Code BSRF_DeleteAgcLutCodes(BSRF_Handle h, uint32_t *pIdx, uint32_t n);
+
+
+/******************************************************************************
+Summary:
+   Configures output clock phase
+Description:
+   The function will configure the output phase of the clock on the 32-bit digital interface.
+Returns:
+   BERR_Code
+******************************************************************************/
+BERR_Code BSRF_ConfigOutputClockPhase(BSRF_Handle h, uint8_t phase, bool bDisableOutput);
 
 
 #ifdef __cplusplus

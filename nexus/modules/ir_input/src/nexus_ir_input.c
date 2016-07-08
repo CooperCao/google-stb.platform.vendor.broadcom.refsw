@@ -508,7 +508,7 @@ NEXUS_Error NEXUS_IrInput_GetEvents(NEXUS_IrInputHandle irInput, NEXUS_IrInputEv
         numEvents--;
     }
     *pNumEventsRead = numEventsRead;
-    BDBG_MSG(("GetEvents returning %d events", numEventsRead));
+    BDBG_MSG(("GetEvents returning %u events", (unsigned)numEventsRead));
     return 0;
 }
 

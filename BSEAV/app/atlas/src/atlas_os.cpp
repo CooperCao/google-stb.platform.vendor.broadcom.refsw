@@ -1,7 +1,7 @@
-/***************************************************************************
- * (c) 2002-2015 Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -37,7 +37,6 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 
 #include "atlas_os.h"
@@ -136,11 +135,11 @@ MList <if_interface> * get_ifaddrs(void)
         rc = ioctl(fd, SIOCGIFADDR, &ifr);
         if (rc != 0)
         {
-            BDBG_WRN(("Unable to read ip address for %s", ifr.ifr_name));
+            BDBG_MSG(("Unable to read ip address for %s", ifr.ifr_name));
             continue;
         }
         sa = (sockaddr_in *)&ifr.ifr_addr;
-        BDBG_WRN(("Interface name:%s ip: "INET_ADDR_PRINTF_FMT "", pTempIfNameIndex->if_name, INET_ADDR_PRINTF_ARG(sa->sin_addr.s_addr)));
+        BDBG_MSG(("Interface name:%s ip: "INET_ADDR_PRINTF_FMT "", pTempIfNameIndex->if_name, INET_ADDR_PRINTF_ARG(sa->sin_addr.s_addr)));
         if ((sa->sin_addr.s_addr == 0x0100007f) || (sa->sin_addr.s_addr == 0))
         {
             continue;

@@ -1,51 +1,41 @@
 /******************************************************************************
- *    (c)2011-2014 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
- *****************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+
+ ******************************************************************************/
 #include "nexus_frontend_module.h"
 #include "nexus_platform_features.h"
 #include "nexus_spi.h"
@@ -60,8 +50,8 @@
 #include "btc2_3461.h"
 #include "bthd_3461.h"
 #include "bhab_3461_fw.h"
-#include "bchp_hsi.h"
-#include "../../b0/bchp_tm.h"
+#include "bchp_3461_hsi.h"
+#include "bchp_3461_tm.h"
 #include "bhab.h"
 #include "btc2.h"
 #if NEXUS_AMPLIFIER_SUPPORT
@@ -396,16 +386,16 @@ Summary:
 static void NEXUS_Frontend_P_3461_IsrControl_isr(bool enable, void *pParam)
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
-    int isrnumber = (int)pParam;
+    unsigned *isrnumber = (unsigned *)pParam;
 
     if ( enable )
     {
-        rc = NEXUS_Core_EnableInterrupt_isr(isrnumber);
+        rc = NEXUS_Core_EnableInterrupt_isr(*isrnumber);
         if(rc) BERR_TRACE(rc);
     }
     else
     {
-        NEXUS_Core_DisableInterrupt_isr(isrnumber);
+        NEXUS_Core_DisableInterrupt_isr(*isrnumber);
     }
 }
 
@@ -522,6 +512,8 @@ static void NEXUS_FrontendDevice_P_3461_GetCapabilities(void *handle, NEXUS_Fron
     BDBG_ASSERT(NULL != handle);
     pDevice = (NEXUS_3461 *)handle;
     BDBG_OBJECT_ASSERT(pDevice, NEXUS_3461);
+
+    BKNI_Memset(pCapabilities, 0, sizeof(*pCapabilities));
 
     pCapabilities->numTuners = pDevice->capabilities.totalTunerChannels;
     return;
@@ -816,7 +808,7 @@ NEXUS_Error NEXUS_FrontendDevice_P_Init3461(NEXUS_3461 *pDevice, const NEXUS_Fro
 
     if(pSettings->isrNumber) {
         stHabSettings.interruptEnableFunc = NEXUS_Frontend_P_3461_IsrControl_isr;
-        stHabSettings.interruptEnableFuncParam = (void*)pSettings->isrNumber;
+        stHabSettings.interruptEnableFuncParam = (void*)&pDevice->openSettings.isrNumber;
     }
     else if(pSettings->gpioInterrupt){
         stHabSettings.interruptEnableFunc = NEXUS_Frontend_P_3461_GpioIsrControl_isr;
@@ -861,11 +853,11 @@ NEXUS_Error NEXUS_FrontendDevice_P_Init3461(NEXUS_3461 *pDevice, const NEXUS_Fro
 
     /* Success opeining Hab.  Connect Interrupt */
     if(pSettings->isrNumber) {
-        rc = NEXUS_Core_ConnectInterrupt(pSettings->isrNumber, NEXUS_Frontend_P_3461_L1_isr, (void *)pDevice, (int)pDevice->hab);
+        rc = NEXUS_Core_ConnectInterrupt(pSettings->isrNumber, NEXUS_Frontend_P_3461_L1_isr, (void *)pDevice, 0);
         if(rc){rc = BERR_TRACE(rc); goto done;}
     }
     else if(pSettings->gpioInterrupt){
-        NEXUS_Gpio_SetInterruptCallback_priv(pSettings->gpioInterrupt, NEXUS_Frontend_P_3461_L1_isr, (void *)pDevice, (int)pDevice->hab);
+        NEXUS_Gpio_SetInterruptCallback_priv(pSettings->gpioInterrupt, NEXUS_Frontend_P_3461_L1_isr, (void *)pDevice, 0);
     }
 
     /* Get events and register callbacks */
@@ -1127,7 +1119,6 @@ NEXUS_FrontendDeviceHandle NEXUS_FrontendDevice_Open3461(unsigned index, const N
     NEXUS_Error rc = NEXUS_SUCCESS;
     NEXUS_3461 *pDevice = NULL;
     NEXUS_FrontendDevice *pFrontendDevice = NULL;
-    NEXUS_3461ProbeResults results;
 
     BSTD_UNUSED(index);
 
@@ -1165,7 +1156,7 @@ NEXUS_FrontendDeviceHandle NEXUS_FrontendDevice_Open3461(unsigned index, const N
         pDevice = BKNI_Malloc(sizeof(*pDevice));
         if (NULL == pDevice) {rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto err_create;}
 
-        BKNI_Memset(pDevice, 0, sizeof(NEXUS_3461));
+        BKNI_Memset(pDevice, 0, sizeof(*pDevice));
         BDBG_OBJECT_SET(pDevice, NEXUS_3461);
 
         pDevice->openSettings = *pSettings;
@@ -1199,7 +1190,7 @@ NEXUS_FrontendDeviceHandle NEXUS_FrontendDevice_Open3461(unsigned index, const N
     }
 
     pFrontendDevice->pDevice = pDevice;
-    pFrontendDevice->familyId = results.chip.familyId;
+    pFrontendDevice->familyId = 0x3461;
     pFrontendDevice->mode = NEXUS_StandbyMode_eOn;
     pFrontendDevice->bypassableFixedGain = pSettings->externalFixedGain.bypassable;
     pFrontendDevice->totalFixedBoardGain = pSettings->externalFixedGain.total;
@@ -1500,7 +1491,7 @@ static void NEXUS_Frontend_P_3461_UnInstallCallbacks(void *handle)
     NEXUS_Error  rc = NEXUS_SUCCESS;
     NEXUS_3461 *pDevice = (NEXUS_3461 *)handle;
 
-    BDBG_MSG(("1 NEXUS_Frontend_P_3461_UnInstallCallbacks: pDevice = 0x%x", pDevice));
+    BDBG_MSG(("1 NEXUS_Frontend_P_3461_UnInstallCallbacks: pDevice = %p", (void*)pDevice));
     BDBG_MSG(("Tuner is not powered down for now to decrease channel change time."));
 
     BDBG_OBJECT_ASSERT(pDevice, NEXUS_3461);
@@ -1581,7 +1572,7 @@ static NEXUS_Error NEXUS_Frontend_P_3461_TuneOfdm(void *handle, const NEXUS_Fron
 
     do{
         if(genericDeviceHandle->application != NEXUS_FrontendDeviceApplication_eTerrestrial){
-            BDBG_ERR(("Wrong Tuner application set for device 0x%x. Set NEXUS_TunerApplication_eTerrestrial as its tuner application", (unsigned int)pDevice->pGenericDeviceHandle));
+            BDBG_ERR(("Wrong Tuner application set for device %p. Set NEXUS_TunerApplication_eTerrestrial as its tuner application", (void *)pDevice->pGenericDeviceHandle));
             goto done;
         }
         genericDeviceHandle = genericDeviceHandle->parent;

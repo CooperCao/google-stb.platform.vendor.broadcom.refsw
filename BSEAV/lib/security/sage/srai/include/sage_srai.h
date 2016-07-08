@@ -1,44 +1,42 @@
 /******************************************************************************
- *    (c)2013 Broadcom Corporation
- * 
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.  
- *  
- * Except as expressly set forth in the Authorized License,
- *  
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
- *  
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS" 
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR 
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO 
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES 
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE, 
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION 
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF 
- * USE OR PERFORMANCE OF THE SOFTWARE.
- * 
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS 
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR 
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR 
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF 
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT 
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE 
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF 
- * ANY LIMITED REMEDY.
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- * 
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+
+ ******************************************************************************/
+/******************************************************************************
  * Module : SAGE - Sage Remote Application Interface (SRAI)
  *          API declaration.
  * 
@@ -49,10 +47,6 @@
  *          the Host SoC, in order to trigger routines (process commands).
  *          From the Host, a Common DRM modules remotely manage SAGE in order to initialize platforms,
  *          modules and process module commands.
- * 
- * Revision History:
- * 
- * $brcm_Log: $
  * 
  *****************************************************************************/
 
@@ -91,17 +85,18 @@ typedef struct SRAI_Module *SRAI_ModuleHandle;
 /*
  * Memory types
  *
- * bitwize mask of flags used to diferentiate
+ * bitwize mask of flags used to differentiate
  * shared memory blocks (accessible of the host and on SAGE)
  * with secure memory blocks (only accessible by SAGE)
- * SagePrivate 'secure' memory blocks aims at manipulating secrets on SAGE side,
- * using memory managed (allocated/free) on the Host.
+ *
  * See: SRAI_Memory_Allocate()
  */
 #define SRAI_MEMORY_SAGE_SIDE_ACCESS 0x1
 #define SRAI_MEMORY_HOST_SIDE_ACCESS 0x2
+#define SRAI_MEMOTY_SAGE_EXPORT_ACCESS 0x4
 #define SRAI_MemoryType_SagePrivate (SRAI_MEMORY_SAGE_SIDE_ACCESS)
 #define SRAI_MemoryType_Shared  (SRAI_MEMORY_HOST_SIDE_ACCESS | SRAI_MEMORY_SAGE_SIDE_ACCESS)
+#define SRAI_MemoryType_SageExport (SRAI_MEMOTY_SAGE_EXPORT_ACCESS)
 typedef uint32_t SRAI_MemoryType;
 
 /*
@@ -118,6 +113,12 @@ typedef struct SRAI_Settings {
      * this type of memory is only accessible from SAGE, decoders and M2M,
      * in order to implement a video secure path feature, preventing the Host CPU to access data in it */
     uint32_t videoSecureHeapIndex;
+
+    /* index to use in NEXUS_ClientConfiguration::heap[] array for export region (restricted) memory
+     * this type of memory is only accessible from SAGE and M2M,
+     * in order to implement a export region feature, preventing the Host CPU to access data in it */
+    uint32_t exportHeapIndex;
+
 } SRAI_Settings;
 
 /*
@@ -168,19 +169,28 @@ BERR_Code SRAI_SetSettings(SRAI_Settings *pSettings);
  * Memory/Container Allocation API
  */
 
-/***************************************************************************
+/**************************************************************************************************
 Summary:
 Allocate a memory block
 
 Description:
 This function allocates a memory block of given size.
-Memory block accessibility depends on memoryType parameter:
- - SRAI_MemoryType_Shared: memory block can be accessed from both the Host and the SAGE systems
- - SRAI_MemoryType_SagePrivate: memory block is only accessible on the SAGE system
+Memory block location and accessibility depend on memoryType parameter:
+
+ - SRAI_MemoryType_Shared: Memory block is allocated from GLR (GLobal Region).
+                           It is accessible from both the Host and the SAGE systems.
+
+ - SRAI_MemoryType_SagePrivate: Memory block is allocated from CRR (Compressed Restricted Region).
+                                It is accessible on the SAGE system only and is typically used
+                                to handle compressed content for display (without PVR and export).
+
+ - SRAI_MemoryType_SageExport: Memory block is allocated from XRR (eXport Restricted Region).
+                               It is accessible on the SAGE system only and is typically used
+                               to handle compressed content where PVR and export are allowed.
 
 See Also:
 SRAI_Memory_Free()
-***************************************************************************/
+**************************************************************************************************/
 uint8_t *SRAI_Memory_Allocate(uint32_t size, SRAI_MemoryType memoryType);
 
 /***************************************************************************
@@ -231,10 +241,43 @@ SRAI_Container_Allocate()
 ***************************************************************************/
 void SRAI_Container_Free(BSAGElib_InOutContainer *container);
 
-
 /*
  * SAGE communication API: platform
  */
+
+/***************************************************************************
+Summary:
+Insall a Platform/TA
+
+Description:
+SAGE side Platform/TA can by dynamically loaded from the Host.
+Host application can use this API to install any Platform/TA on the SAGE side.
+Once the Platform/TA has been installed on the SAGE side successfully, Host can then call:
+SRAI_Platform_XXX APIs to Open and Init the Platform and Modules in the Platform.
+
+
+See Also:
+SRAI_Platform_Open()
+SRAI_Platform_Init()
+SRAI_Module_Init()
+***************************************************************************/
+BERR_Code SRAI_Platform_Install(uint32_t platformId,
+                             uint8_t *binBuff,
+                             uint32_t binSize );
+
+/***************************************************************************
+Summary:
+UnInsall a platform/TA
+
+Description:
+This API is used to Un-install the Platform/TA that has been installed by SRAI_Platform_Install API
+
+
+See Also:
+SRAI_Platform_Close()
+***************************************************************************/
+BERR_Code SRAI_Platform_UnInstall(uint32_t platformId);
+
 
 /***************************************************************************
 Summary:
@@ -354,9 +397,11 @@ BERR_Code SRAI_Module_ProcessCommand(SRAI_ModuleHandle module,
  */
 
 typedef void (*SRAI_Callback)(void);
+typedef void (*SRAI_TATerminateCallback)(uint32_t platformId);
 
 typedef struct SRAI_ManagementInterface {
     SRAI_Callback watchdog_callback;
+    SRAI_TATerminateCallback ta_terminate_callback;
 } SRAI_ManagementInterface;
 
 BERR_Code SRAI_Management_Register(SRAI_ManagementInterface *interface);

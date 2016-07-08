@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2013 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2013 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -28,6 +28,7 @@ static INLINE void *bcg_glsl_malloc(uint32_t sz)
 
 static INLINE void bcg_glsl_free(void *ptr)
 {
+   UNUSED(ptr);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -409,11 +410,13 @@ static INLINE NodeList_const_iterator NodeList_const_begin(const NodeList *self)
 
 static INLINE NodeList_iterator NodeList_end(NodeList *self)
 {
+   UNUSED(self);
    return NULL;
 }
 
 static INLINE NodeList_const_iterator NodeList_const_end(const NodeList *self)
 {
+   UNUSED(self);
    return NULL;
 }
 

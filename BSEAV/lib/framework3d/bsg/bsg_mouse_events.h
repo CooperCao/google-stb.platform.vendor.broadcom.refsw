@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2011 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2011 Broadcom.
 All rights reserved.
 
 Project  :  BSG
@@ -109,18 +109,18 @@ public:
       eBTN_LAST_BTN
    };
 
-   MouseEvent() : 
+   MouseEvent() :
       m_type(eMOUSE_EVENT_UNKNOWN), m_code(eBTN_NONE), m_state(eMOUSE_STATE_UNKNOWN), m_timestamp(0.0f) {}
 
-   MouseEvent(eMouseButtonCode code, eMouseButtonState state, const IVec3 &absPos, Time t) : 
+   MouseEvent(eMouseButtonCode code, eMouseButtonState state, const IVec3 &absPos, Time t) :
       m_type(eMOUSE_EVENT_BUTTON), m_code(code), m_state(state), m_absPos(absPos), m_timestamp(t) {}
 
-   MouseEvent(const IVec3 &rel, const IVec3 &absPos, Time t) : 
-      m_type(eMOUSE_EVENT_MOVE), m_code(eBTN_NONE), m_state(eMOUSE_STATE_UNKNOWN), 
+   MouseEvent(const IVec3 &rel, const IVec3 &absPos, Time t) :
+      m_type(eMOUSE_EVENT_MOVE), m_code(eBTN_NONE), m_state(eMOUSE_STATE_UNKNOWN),
       m_relData(rel), m_absPos(absPos), m_timestamp(t) {}
 
-   MouseEvent(const IVec2 &wheelRel, const IVec3 &absPos, Time t) : 
-      m_type(eMOUSE_EVENT_WHEEL), m_code(eBTN_NONE), m_state(eMOUSE_STATE_UNKNOWN), 
+   MouseEvent(const IVec2 &wheelRel, const IVec3 &absPos, Time t) :
+      m_type(eMOUSE_EVENT_WHEEL), m_code(eBTN_NONE), m_state(eMOUSE_STATE_UNKNOWN),
       m_relData(wheelRel.X(), wheelRel.Y(), 0), m_absPos(absPos), m_timestamp(t) {}
 
    MouseEvent(const eMouseEventType type, const IVec3 &accel, Time t) :

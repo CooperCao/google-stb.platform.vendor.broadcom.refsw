@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2010-2013 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #ifndef NEXUS_STREAM_MUX_H__
@@ -153,6 +145,15 @@ typedef struct NEXUS_StreamMuxUserDataPid {
     NEXUS_MessageHandle message; /* The userdata is expected to arrive as PES packets encapsulated in TS packets. Application is responsible for calling NEXUS_Message_Start prior to calling NEXUS_StreamMux_Start and call NEXUS_Message_Stop after mux session was completed */
 } NEXUS_StreamMuxUserDataPid;
 
+typedef enum NEXUS_StreamMuxInterleaveMode
+{
+   NEXUS_StreamMuxInterleaveMode_eCompliant, /* Use the transmission timestamp provided in the NEXUS_[Video/Audio]EncoderDescriptor (required for HRD compliance) */
+   NEXUS_StreamMuxInterleaveMode_ePts, /* Use the DTS/PTS provided in the NEXUS_[Video/Audio]EncoderDescriptor to generate a new transmission timestamp (useful to minimize A/V buffering delay)
+                                        * Note: PCRs are NOT generated in this mode
+                                        */
+   NEXUS_StreamMuxInterleaveMode_eMax
+} NEXUS_StreamMuxInterleaveMode;
+
 /**
 Summary:
 **/
@@ -198,6 +199,7 @@ typedef struct NEXUS_StreamMuxStartSettings
                                  */
     bool supportTts;            /* Enables TTS support (MTU BPP insertion) to facilitate HW to generate
                                  * 4-byte timestamp in output TS */
+    NEXUS_StreamMuxInterleaveMode interleaveMode; /* Specifies A/V interleave timing mode */
 } NEXUS_StreamMuxStartSettings;
 
 typedef struct NEXUS_StreamMuxOutput

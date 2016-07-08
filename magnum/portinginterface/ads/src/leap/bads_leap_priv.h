@@ -1,23 +1,40 @@
-/***************************************************************************
- *     Copyright (c) 2005-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ *  Except as expressly set forth in the Authorized License,
  *
- * Module Description:
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * Revision History:
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- * 
- ***************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ ******************************************************************************/
 #ifndef BADS_leap_PRIV_H__
 #define BADS_leap_PRIV_H__
 
@@ -46,27 +63,34 @@ do {                                        \
         goto done;                          \
     }                                       \
 } while(0)
-    
-#define BADS_CORE_TYPE		0x1
-#define CORE_TYPE_GLOBAL	0x0
 
-#define MX_ADS_CHANNELS         (8)
-#define DEV_MAGIC_ID            ((BERR_ADS_ID<<16) | 0xFACE)
-#define CHIP_ID_3461            0x3461
-#define CHIP_ID_3462            0x3462
-#define CHIP_ID_3128            0x3128
-#define CHIP_ID_3127            0x3127
-#define CHIP_ID_3147            0x3147
-#define CHIP_ID_3145            0x3145
-#define CHIP_ID_3184            0x3184
-#define CHIP_ID_7584            0x7584
-#define CHIP_ID_7576            0x7576
-#define MAX_7576_ADS_CHANNELS   (4)
-#define MAX_3462_ADS_CHANNELS   (1)
-#define MAX_3127_ADS_CHANNELS   (4)
-#define MAX_3147_ADS_CHANNELS   (4)
-#define MAX_3145_ADS_CHANNELS   (3)
-#define MAX_3184_ADS_CHANNELS   (8)
+#define BADS_CORE_TYPE              0x1
+#define CORE_TYPE_GLOBAL            0x0
+#define BADS_SPECA_CORE_TYPE        0xE
+#define BADS_SPECA_CORE_ID          0x0
+
+
+#if BADS_CHIP==3158
+#define MX_ADS_CHANNELS             (16)
+#else
+#define MX_ADS_CHANNELS             (8)
+#endif
+#define DEV_MAGIC_ID                ((BERR_ADS_ID<<16) | 0xFACE)
+#define CHIP_ID_3461                0x3461
+#define CHIP_ID_3462                0x3462
+#define CHIP_ID_3128                0x3128
+#define CHIP_ID_3127                0x3127
+#define CHIP_ID_3147                0x3147
+#define CHIP_ID_3145                0x3145
+#define CHIP_ID_3184                0x3184
+#define CHIP_ID_7584                0x7584
+#define CHIP_ID_7576                0x7576
+#define MAX_7576_ADS_CHANNELS       (4)
+#define MAX_3462_ADS_CHANNELS       (1)
+#define MAX_3127_ADS_CHANNELS       (4)
+#define MAX_3147_ADS_CHANNELS       (4)
+#define MAX_3145_ADS_CHANNELS       (3)
+#define MAX_3184_ADS_CHANNELS       (8)
 
 /*******************************************************************************
 *
@@ -104,7 +128,7 @@ typedef struct BADS_P_Leap_ChannelHandle
     BKNI_MutexHandle mutex;             /* mutex to protect lock status*/
     BHAB_InterruptType event;
     BADS_InbandParam previousAcquireParams;
-    bool bPowerdown;    
+    bool bPowerdown;
 } BADS_P_Leap_ChannelHandle;
 
 
@@ -226,7 +250,7 @@ Summary:
     This function returns the version information.
 
 Description:
-    This function is responsible for returning the core driver version 
+    This function is responsible for returning the core driver version
     information. It return the majorVersion and minorVersion of the core
     driver.
 Returns:
@@ -235,12 +259,12 @@ Returns:
 See Also:
     BADS_Leap_Open()
 
-****************************************************************************/    
+****************************************************************************/
 BERR_Code BADS_Leap_GetVersionInfo(
     BADS_Handle hDev,                    /* [in] Device handle */
     BFEC_VersionInfo *pVersionInfo /* [out] Returns version Info */
     );
-    
+
 /***************************************************************************
 Summary:
     This function returns the total number of channels supported by
@@ -375,10 +399,10 @@ Summary:
 
 Description:
     This function is responsible for requesting the status to be calculated asynchronously for
-    a Qam In-Band Downstream module channel. The Qam frontend is responsible to inform 
+    a Qam In-Band Downstream module channel. The Qam frontend is responsible to inform
     the backend when the status is ready either through an interrupt or by any other predetermined
     method.
-    
+
 Returns:
     TODO:
 
@@ -410,7 +434,7 @@ BERR_Code BADS_Leap_GetAsyncStatus(
 
 /***************************************************************************
 Summary:
-    This function gets the scan status synchronously for a Qam In-Band 
+    This function gets the scan status synchronously for a Qam In-Band
     Downstream module channel.
 
 Description:
@@ -505,13 +529,13 @@ BERR_Code BADS_Leap_InstallCallback(
     void *pParam                        /* [in] Pointer to callback user data. */
     );
 
-    
+
 /***************************************************************************
 Summary:
 	This function returns the default settings for Qam In-Band Downstream module.
 
 Description:
-	This function is responsible for returns the default setting for 
+	This function is responsible for returns the default setting for
 	BADS module. The returning default setting should be when
 	opening the device.
 
@@ -525,8 +549,8 @@ See Also:
 BERR_Code BADS_Leap_GetDefaultAcquireParams(
     BADS_InbandParam *ibParams          /* [out] default Inband Parameters */
     );
-    
-    
+
+
 /***************************************************************************
 Summary:
     This function sends the acquire parameters for a specific ADS module.
@@ -546,7 +570,7 @@ BERR_Code BADS_Leap_SetAcquireParams(
     const BADS_InbandParam *ibParams          /* [in] Inband Parameters to use */
     );
 
-    
+
 /***************************************************************************
 Summary:
     This function retrieves the acquire parameters set for a specific ADS module.
@@ -559,12 +583,12 @@ Returns:
 
 See Also:
 
-****************************************************************************/ 
+****************************************************************************/
 BERR_Code BADS_Leap_GetAcquireParams(
     BADS_ChannelHandle hChn ,           /* [in] Device channel handle */
     BADS_InbandParam *ibParams          /* [out] Inband Parameters to use */
     );
-    
+
 
 /***************************************************************************
 Summary:
@@ -656,17 +680,17 @@ BERR_Code BADS_Leap_ProcessNotification(
 
 /***************************************************************************
 Summary:
-    This function opens configures (enables/disables) the leap device's 
+    This function opens configures (enables/disables) the leap device's
     RF out for daisy chaining.
 
 Description:
-    This function opens configures (enables/disables) the leap device's 
+    This function opens configures (enables/disables) the leap device's
     RF out for daisy chaining.
-    
+
 Returns:
     TODO:
 
-See Also:   
+See Also:
 ****************************************************************************/
 BERR_Code BADS_Leap_SetDaisyChain(
     BADS_Handle hDev,       /* [in] Device channel handle */
@@ -679,11 +703,11 @@ Summary:
 
 Description:
     This function opens tells if the leap device's RF out daisy chaining is enabled/disabled.
-    
+
 Returns:
     TODO:
 
-See Also:   
+See Also:
 ****************************************************************************/
 
 BERR_Code BADS_Leap_GetDaisyChain(
@@ -696,11 +720,11 @@ Summary:
     This function resets the leap device's FEC bit error and block counters.
 
 Description:
-    
+
 Returns:
     TODO:
 
-See Also:   
+See Also:
 ****************************************************************************/
 BERR_Code BADS_Leap_ResetStatus(
     BADS_ChannelHandle hChn             /* [in] Device channel handle */
@@ -711,11 +735,11 @@ Summary:
     This function performs an i2c read from the slave attached to the leap's i2c bus.
 
 Description:
-    
+
 Returns:
     TODO:
 
-See Also:   
+See Also:
 ****************************************************************************/
 BERR_Code BADS_Leap_ReadSlave(
     BADS_ChannelHandle hChn,     /* [in] Device channel handle */
@@ -731,11 +755,11 @@ Summary:
     This function performs an i2c write to the slave attached to the leap's i2c bus.
 
 Description:
-    
+
 Returns:
     TODO:
 
-See Also:   
+See Also:
 ****************************************************************************/
 BERR_Code BADS_Leap_WriteSlave(
     BADS_ChannelHandle hChn,     /* [in] Device channel handle */
@@ -751,45 +775,45 @@ Summary:
 	Set the Scan param
 
 Description:
-	
+
 Returns:
 	TODO:
 
-See Also:	
+See Also:
 ****************************************************************************/
 BERR_Code BADS_Leap_SetScanParam(
     BADS_ChannelHandle hChn,            /* [in] Device channel handle */
-    BADS_ChannelScanSettings *pChnScanSettings                 
+    BADS_ChannelScanSettings *pChnScanSettings
     );
-    
+
 /***************************************************************************
 Summary:
 	Get the Scan param
 
 Description:
-	
+
 Returns:
 	TODO:
 
-See Also:	
+See Also:
 ****************************************************************************/
 BERR_Code BADS_Leap_GetScanParam(
     BADS_ChannelHandle hChn,            /* [in] Device channel handle */
-    BADS_ChannelScanSettings *pChnScanSettings                 
+    BADS_ChannelScanSettings *pChnScanSettings
     );
 
 /******************************************************************************
 Summary:
    This function sends request for spectrum analyzer data to the LEAP.
 Description:
-  
+
 Returns:
    BERR_Code
 
-See Also: BADS_GetSpectrumAnalyzerData   
+See Also: BADS_GetSpectrumAnalyzerData
 ******************************************************************************/
 BERR_Code BADS_Leap_RequestSpectrumAnalyzerData(
-    BADS_ChannelHandle hChn,     /* [in] Device channel handle */ 
+    BADS_ChannelHandle hChn,     /* [in] Device channel handle */
     BADS_SpectrumSettings *pSettings /* [in] spectrum settings */
     );
 
@@ -797,17 +821,17 @@ BERR_Code BADS_Leap_RequestSpectrumAnalyzerData(
 Summary:
    This function gets spectrum analyzer data from the LEAP.
 Description:
-  
+
 Returns:
    BERR_Code
 
 See Also: BADS_RequestSpectrumAnalyzerData
-******************************************************************************/     
+******************************************************************************/
 BERR_Code BADS_Leap_GetSpectrumAnalyzerData(
-    BADS_ChannelHandle hChn,     /* [in] Device channel handle */ 
+    BADS_ChannelHandle hChn,     /* [in] Device channel handle */
     BADS_SpectrumData  *pSpectrumData /* [out] spectrum Data*/
-    );    
-   
+    );
+
 #ifdef __cplusplus
 }
 #endif

@@ -1,51 +1,42 @@
-/******************************************************************************
- *    (c)2008-2010 Broadcom Corporation
+/***************************************************************************
+ *     Broadcom Proprietary and Confidential. (c)2008-2016 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- * 
- *****************************************************************************/
+ **************************************************************************/
+
 
 #include <malloc.h>
 #include <assert.h>
@@ -57,6 +48,7 @@
 #include <math.h>
 
 #include <EGL/egl.h>
+#include <EGL/eglext.h>
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
 
@@ -77,6 +69,7 @@ typedef struct
    int   vpH;
    int   bpp;
    unsigned clientId;
+   bool  secure;
 } AppConfig;
 
 const unsigned int WIDTH             = 720;
@@ -1287,7 +1280,22 @@ bool InitEGL(NativeWindowType egl_win)
       Use the config picked in the previous step and the native window
       handle to create a window surface. 
    */
-   egl_surface = eglCreateWindowSurface(egl_display, egl_config[config_select], egl_win, NULL);
+   {
+      const int   NUM_ATTRIBS = 3;
+      EGLint      *attr = (EGLint *)malloc(NUM_ATTRIBS * sizeof(EGLint));
+      int         i = 0;
+
+#ifdef EGL_PROTECTED_CONTENT_EXT
+      if (config.secure)
+      {
+         attr[i++] = EGL_PROTECTED_CONTENT_EXT; attr[i++] = EGL_TRUE;
+      }
+#endif
+      attr[i++] = EGL_NONE;
+
+      egl_surface = eglCreateWindowSurface(egl_display, egl_config[config_select], egl_win, attr);
+   }
+
    if (egl_surface == EGL_NO_SURFACE)
    {
       eglGetError(); /* Clear error */
@@ -1306,18 +1314,28 @@ bool InitEGL(NativeWindowType egl_win)
       like textures will only be valid inside this context (or shared contexts)
    */
    {
-      EGLint     ctx_attrib_list[3] =
-      {
-           EGL_CONTEXT_CLIENT_VERSION, 2, /* For ES2 */
-           EGL_NONE
-      };
+      const int   NUM_ATTRIBS = 5;
+      EGLint      *attr = (EGLint *)malloc(NUM_ATTRIBS * sizeof(EGLint));
+      int         i = 0;
 
-      egl_context = eglCreateContext(egl_display, egl_config[config_select], EGL_NO_CONTEXT, ctx_attrib_list);
+#ifdef EGL_PROTECTED_CONTENT_EXT
+      if (config.secure)
+      {
+         attr[i++] = EGL_PROTECTED_CONTENT_EXT; attr[i++] = EGL_TRUE;
+      }
+#endif
+
+      attr[i++] = EGL_CONTEXT_CLIENT_VERSION; attr[i++] = 2;
+      attr[i++] = EGL_NONE;
+
+      egl_context = eglCreateContext(egl_display, egl_config[config_select], EGL_NO_CONTEXT, attr);
       if (egl_context == EGL_NO_CONTEXT)
       {
          printf("eglCreateContext() failed");
          return false;
       }
+
+      free(attr);
    }
 
    /*
@@ -1336,14 +1354,16 @@ bool InitEGL(NativeWindowType egl_win)
 
 bool InitDisplay(float *aspect)
 {
-   NXPL_NativeWindowInfo   win_info;
+   NXPL_NativeWindowInfoEXT   win_info;
 
-   eInitResult res = InitPlatformAndDefaultDisplay(&nexus_display, aspect, config.vpW, config.vpH);
+   eInitResult res = InitPlatformAndDefaultDisplay(&nexus_display, aspect, config.vpW, config.vpH, config.secure);
    if (res != eInitSuccess)
       return false;
 
    /* Register with the platform layer */
    NXPL_RegisterNexusDisplayPlatform(&nxpl_handle, nexus_display);
+
+   NXPL_GetDefaultNativeWindowInfoEXT(&win_info);
 
    win_info.x = config.x; 
    win_info.y = config.y;
@@ -1351,7 +1371,8 @@ bool InitDisplay(float *aspect)
    win_info.height = config.vpH;
    win_info.stretch = config.stretchToFit;
    win_info.clientID = config.clientId;
-   native_window = NXPL_CreateNativeWindow(&win_info);
+
+   native_window = NXPL_CreateNativeWindowEXT(&win_info);
 
    /* Initialise EGL now we have a 'window' */
    if (!InitEGL(native_window))
@@ -1373,6 +1394,7 @@ bool processArgs(int argc, const char *argv[])
    config.vpH               = HEIGHT;
    config.bpp               = BPP;
    config.clientId          = 0;
+   config.secure            = false;
 
    for (a = 1; a < argc; ++a)
    {
@@ -1404,6 +1426,8 @@ bool processArgs(int argc, const char *argv[])
          if (sscanf(arg, "client=%u", &config.clientId) != 1)
             return false;
       }
+      else if (strcmp(arg, "+secure") == 0)
+         config.secure = true;
       else
       {
          return false;
@@ -1426,7 +1450,7 @@ int CLIENT_MAIN(int argc, const char** argv)
    if (!processArgs(argc, argv))
    {
       const char  *progname = argc > 0 ? argv[0] : "";
-      fprintf(stderr, "Usage: %s [+m] [+p] [+s] [d=WxH] [o=XxY] [bpp=16/24/32]\n", progname);
+      fprintf(stderr, "Usage: %s [+m] [+p] [+s] [d=WxH] [o=XxY] [bpp=16/24/32] [+secure]\n", progname);
       return 0;
    }
 

@@ -1,22 +1,42 @@
 /***************************************************************************
- *     Copyright (c) 2002-2014, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description: Private types and prototypes for bcmindexer & bcmplayer
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ***************************************************************************/
 #ifndef BCMINDEXERPRIV_H
 #define BCMINDEXERPRIV_H
@@ -40,9 +60,9 @@ struct BNAV_Indexer_HandleImpl
                                                first I-slice */
     unsigned        seqHdrSize;             /* Number of bytes in the sequence
                                                header */
-    uint32_t        seqHdrStartOffset;      /* Sequence header offset (in bytes) relative to frame offset */
-    uint32_t        picStart;               /* Offset of start of picture */
-    uint32_t        picEnd;                 /* Offset of end of picture */
+    unsigned        seqHdrStartOffset;      /* Sequence header offset (in bytes) relative to frame offset */
+    uint64_t        picStart;               /* Offset of start of picture */
+    uint64_t        picEnd;                 /* Offset of end of picture */
     struct {
         unsigned count;      /* count of fields in a field encoded picture */
         unsigned lastField;
@@ -100,15 +120,15 @@ struct BNAV_Indexer_HandleImpl
         int is_reference_picture; /* if true, then this picture has at least one slice that is referenced by another slice.
             this picture is not dropppable. */
         struct {
-            uint32_t offset;
+            uint64_t offset;
             unsigned size;
             int sps_id;
         } pps[TOTAL_PPS_ID];
         struct {
-            uint32_t offset;
+            uint64_t offset;
             unsigned size;
         } sps[TOTAL_SPS_ID];
-        uint32_t current_sei;
+        uint64_t current_sei;
         bool current_sei_valid;
     } avc;
 
@@ -136,7 +156,7 @@ struct BNAV_Indexer_HandleImpl
 #define BCMINDEXER_TS_PACKET_SIZE 188
     uint8_t fullPacket[BCMINDEXER_TS_PACKET_SIZE];
     struct {
-        unsigned offset, offsetHi;
+        uint64_t offset;
     } lastPacketOffset;
     BNAV_Indexer_SVC_Info svc;
     struct {
@@ -150,12 +170,11 @@ struct BNAV_Indexer_HandleImpl
         bool frameTypeValid; /* set to true if frameType was set */
         bool newFrame;
         bool sliceStartSet;
-        uint32_t sliceStart;       /* Offset of first slice NAL */
-        uint32_t sliceStartHi;  /* Offset of first NAL after PTS */
-        uint32_t accessUnitStart;  /* Offset of first NAL after PTS */
+        uint64_t sliceStart;       /* Offset of first slice NAL */
+        uint64_t accessUnitStart;  /* Offset of first NAL after PTS */
     } hevc;
     struct {
-        unsigned last; /* last value seen from HW SCT */
+        uint64_t last; /* last value seen from HW SCT */
         unsigned cnt;  /* number of overflows */
     } hiOverflow;
 };
@@ -170,7 +189,7 @@ int BNAV_Indexer_completeFrameAux(BNAV_Indexer_Handle handle,
 void BNAV_Indexer_StampEntry(BNAV_Indexer_Handle handle, BNAV_Entry *entry);
 
 int BNAV_Indexer_P_AddFullPacketPayload(BNAV_Indexer_Handle handle, const BSCT_SixWord_Entry *next);
-void BNAV_Indexer_getOffset( BNAV_Indexer_Handle handle, const BSCT_Entry *p_entry, uint32_t *pHi, uint32_t *pLo );
+uint64_t BNAV_Indexer_getOffset( BNAV_Indexer_Handle handle, const BSCT_Entry *p_entry);
 
 /* If we offset two words into an SCT6 entry, it looks just like an SCT4 entry,
 ignoring the extra payload bytes */

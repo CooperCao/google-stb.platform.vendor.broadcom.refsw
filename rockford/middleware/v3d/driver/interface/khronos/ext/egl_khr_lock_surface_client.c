@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2009 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2009 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -73,7 +73,7 @@ EGLAPI EGLBoolean EGLAPIENTRY eglLockSurfaceKHR (EGLDisplay dpy, EGLSurface surf
             if (!lock_surface_check_attribs(attrib_list, &preserve_pixels, &lock_usage_hint)) {
                thread->error = EGL_BAD_ATTRIBUTE;
                result = EGL_FALSE;
-            } else if (!egl_config_is_lockable((int)(intptr_t)surface->config - 1)) {
+            } else if (!egl_config_is_lockable(egl_config_to_id(surface->config))) {
                /* Only lockable surfaces can be locked (obviously) */
                thread->error = EGL_BAD_ACCESS;
                result = EGL_FALSE;
@@ -124,7 +124,7 @@ EGLAPI EGLBoolean EGLAPIENTRY eglUnlockSurfaceKHR (EGLDisplay dpy, EGLSurface su
          } else {
             assert(surface->is_locked);
             if (surface->mapped_buffer) {
-               KHRN_IMAGE_FORMAT_T format = egl_config_get_mapped_format((int)(intptr_t)surface->config - 1);
+               KHRN_IMAGE_FORMAT_T format = egl_config_get_mapped_format(egl_config_to_id(surface->config));
                uint32_t stride = khrn_image_get_stride(format, surface->width);
                int lines, offset, height;
 

@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2008 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2008 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -44,7 +44,7 @@ typedef struct {
       formats[id].features is valid
 */
 
-static const FEATURES_AND_FORMATS_T formats_TFORMAT[EGL_MAX_CONFIGS] = {
+static const FEATURES_AND_FORMATS_T formats_TFORMAT[] = {
 /*                R  G  B  A   D  S  M  MASK
                                         |  LOCKABLE
                                         |  |  FRAMEBUFFER_TARGET_ANDROID
@@ -84,11 +84,11 @@ static const FEATURES_AND_FORMATS_T formats_TFORMAT[EGL_MAX_CONFIGS] = {
    {FEATURES_PACK(8, 8, 8, 0,  0, 0, 0, 8, 0, 0, 0), XBGR_8888_TF,IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID, A_8_RSO},
    {FEATURES_PACK(5, 6, 5, 0,  0, 0, 0, 8, 0, 0, 0), RGB_565_TF,  IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID, A_8_RSO},
 
-#ifdef EGL_ANDROID_framebuffer_target
+#if EGL_ANDROID_framebuffer_target
    {FEATURES_PACK(8, 8, 8, 8,  0, 0, 0, 0, 0, 1, 0), ABGR_8888_TF,IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID},
 #endif
 
-#ifdef EGL_ANDROID_recordable
+#if EGL_ANDROID_recordable
    {FEATURES_PACK(8, 8, 8, 8, 24, 8, 0, 0, 0, 0, 1), ABGR_8888_TF,DEPTH_32_TLBD,        IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID},
    {FEATURES_PACK(8, 8, 8, 8, 24, 0, 0, 0, 0, 0, 1), ABGR_8888_TF,DEPTH_32_TLBD,        IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID},
    {FEATURES_PACK(8, 8, 8, 8,  0, 8, 0, 0, 0, 0, 1), ABGR_8888_TF,DEPTH_32_TLBD,        IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID},
@@ -102,7 +102,7 @@ static const FEATURES_AND_FORMATS_T formats_TFORMAT[EGL_MAX_CONFIGS] = {
 };
 
 
-static const FEATURES_AND_FORMATS_T formats_RSO[EGL_MAX_CONFIGS] = {
+static const FEATURES_AND_FORMATS_T formats_RSO[] = {
 /*                R  G  B  A   D  S  M  MASK
                                         |  LOCKABLE
                                         |  |  FRAMEBUFFER_TARGET_ANDROID
@@ -142,11 +142,11 @@ static const FEATURES_AND_FORMATS_T formats_RSO[EGL_MAX_CONFIGS] = {
    {FEATURES_PACK(8, 8, 8, 0,  0, 0, 0, 8, 0, 0, 0), XBGR_8888_RSO,IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID, A_8_RSO},
    {FEATURES_PACK(5, 6, 5, 0,  0, 0, 0, 8, 0, 0, 0), RGB_565_RSO,  IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID, A_8_RSO},
 
-#ifdef EGL_ANDROID_framebuffer_target
+#if EGL_ANDROID_framebuffer_target
    {FEATURES_PACK(8, 8, 8, 8,  0, 0, 0, 0, 0, 1, 0), ABGR_8888_RSO,IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID},
 #endif
 
-#ifdef EGL_ANDROID_recordable
+#if EGL_ANDROID_recordable
    {FEATURES_PACK(8, 8, 8, 8, 24, 8, 0, 0, 0, 0, 1), ABGR_8888_RSO,DEPTH_32_TLBD,        IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID},
    {FEATURES_PACK(8, 8, 8, 8, 24, 0, 0, 0, 0, 0, 1), ABGR_8888_RSO,DEPTH_32_TLBD,        IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID},
    {FEATURES_PACK(8, 8, 8, 8,  0, 8, 0, 0, 0, 0, 1), ABGR_8888_RSO,DEPTH_32_TLBD,        IMAGE_FORMAT_INVALID, IMAGE_FORMAT_INVALID},
@@ -159,20 +159,565 @@ static const FEATURES_AND_FORMATS_T formats_RSO[EGL_MAX_CONFIGS] = {
 #endif
 };
 
+/* used anywhere we need the number of configs */
+int EGL_MAX_CONFIGS = 0;
 
 /* this table needs filling in from either the tables above, depending on what the platform supports */
-static FEATURES_AND_FORMATS_T formats[EGL_MAX_CONFIGS];
+static FEATURES_AND_FORMATS_T formats[sizeof(formats_RSO) / sizeof(FEATURES_AND_FORMATS_T)];
+vcos_static_assert(sizeof(formats_RSO) == sizeof(formats_TFORMAT));
+vcos_static_assert(sizeof(formats) == sizeof(formats_RSO));
 
 void egl_config_install_configs(int type)
 {
    /* 0 = RSO, 1 = TFORMAT */
+   EGL_MAX_CONFIGS = sizeof(formats) / sizeof(FEATURES_AND_FORMATS_T);
    memcpy(formats, (type == 0) ? formats_RSO : formats_TFORMAT, sizeof(formats));
 }
 
 static bool bindable_rgb(FEATURES_T features);
 static bool bindable_rgba(FEATURES_T features);
 
-#include "interface/khronos/egl/egl_client_config_cr.c"
+#define FEATURES_UNPACK_RED(c)                           ((EGLint)((c) >> 36 & 0xf))
+#define FEATURES_UNPACK_GREEN(c)                         ((EGLint)((c) >> 32 & 0xf))
+#define FEATURES_UNPACK_BLUE(c)                          ((EGLint)((c) >> 28 & 0xf))
+#define FEATURES_UNPACK_ALPHA(c)                         ((EGLint)((c) >> 24 & 0xf))
+#define FEATURES_UNPACK_DEPTH(c)                         ((EGLint)((c) >> 16 & 0xff))
+#define FEATURES_UNPACK_STENCIL(c)                       ((EGLint)((c) >> 12 & 0xf))
+#define FEATURES_UNPACK_MULTI(c)                         ((EGLint)((c) >> 4 & 0x1))
+#define FEATURES_UNPACK_MASK(c)                          ((EGLint)(((c) >> 3 & 0x1) << 3))
+#define FEATURES_UNPACK_LOCKABLE(c)                      ((EGLint)((c) >> 2 & 0x1))
+#define FEATURES_UNPACK_ANDROID_FRAMEBUFFER_TARGET(c)    ((EGLint)((c) >> 1 & 0x1))
+#define FEATURES_UNPACK_ANDROID_RECORDABLE(c)            ((EGLint)((c)      & 0x1))
+#define FEATURES_UNPACK_COLOR(c)                         (FEATURES_UNPACK_RED(c)+FEATURES_UNPACK_GREEN(c)+FEATURES_UNPACK_BLUE(c)+FEATURES_UNPACK_ALPHA(c))
+
+bool egl_config_check_attribs(const EGLint *attrib_list, bool *use_red, bool *use_green, bool *use_blue, bool *use_alpha)
+{
+   if (!attrib_list)
+      return true;
+
+   while (*attrib_list != EGL_NONE) {
+      EGLint name = *attrib_list++;
+      EGLint value = *attrib_list++;
+
+      if (name == EGL_RED_SIZE && value != 0 && value != EGL_DONT_CARE)
+         *use_red = true;
+
+      if (name == EGL_GREEN_SIZE && value != 0 && value != EGL_DONT_CARE)
+         *use_green = true;
+
+      if (name == EGL_BLUE_SIZE && value != 0 && value != EGL_DONT_CARE)
+         *use_blue = true;
+
+      if (name == EGL_ALPHA_SIZE && value != 0 && value != EGL_DONT_CARE)
+         *use_alpha = true;
+
+      switch (name) {
+      case EGL_BUFFER_SIZE:
+      case EGL_RED_SIZE:
+      case EGL_GREEN_SIZE:
+      case EGL_BLUE_SIZE:
+      case EGL_LUMINANCE_SIZE:
+      case EGL_ALPHA_SIZE:
+      case EGL_ALPHA_MASK_SIZE:
+         if (value != EGL_DONT_CARE && value < 0) return false;
+         break;
+      case EGL_BIND_TO_TEXTURE_RGB:
+      case EGL_BIND_TO_TEXTURE_RGBA:
+         if (value != EGL_DONT_CARE && value != EGL_FALSE && value != EGL_TRUE)
+            return false;
+         break;
+      case EGL_COLOR_BUFFER_TYPE:
+         if (value != EGL_DONT_CARE && value != EGL_RGB_BUFFER && value != EGL_LUMINANCE_BUFFER)
+            return false;
+         break;
+      case EGL_CONFIG_CAVEAT:
+         if (value != EGL_DONT_CARE && value != EGL_NONE && value != EGL_SLOW_CONFIG && value != EGL_NON_CONFORMANT_CONFIG)
+            return false;
+         break;
+      case EGL_CONFIG_ID:
+         if (value != EGL_DONT_CARE && value < 1)
+            return false;
+         break;
+      case EGL_CONFORMANT:
+         if (value != EGL_DONT_CARE && (value & ~(EGL_OPENGL_BIT | EGL_OPENGL_ES_BIT | EGL_OPENGL_ES2_BIT | EGL_OPENVG_BIT)))
+            return false;
+         break;
+      case EGL_DEPTH_SIZE:
+         if (value != EGL_DONT_CARE && value < 0) return false;
+         break;
+      case EGL_LEVEL:
+         break;
+      case EGL_MATCH_NATIVE_PIXMAP:
+         /* 1.4 Spec is poor here - says that value has to be a valid handle, but also says that any attribute
+         * value (other than EGL_LEVEL) can be EGL_DONT_CARE. It also says that the default value is EGL_NONE,
+         * but that doesn't really make sense - sensible to assume that the default is EGL_DONT_CARE, and don't
+         * support EGL_NONE as an explicit parameter. (Could theoretically collide with a real handle...)
+         */
+         if (value != EGL_DONT_CARE) {
+            KHRN_IMAGE_WRAP_T image;
+            if (!platform_get_pixmap_info((EGLNativePixmapType)(intptr_t)value, &image))
+               return false;
+            khrn_platform_release_pixmap_info((EGLNativePixmapType)(intptr_t)value, &image);
+         }
+         break;
+      case EGL_MAX_PBUFFER_WIDTH:
+      case EGL_MAX_PBUFFER_HEIGHT:
+      case EGL_MAX_PBUFFER_PIXELS:
+         break;
+      case EGL_MAX_SWAP_INTERVAL:
+      case EGL_MIN_SWAP_INTERVAL:
+         if (value != EGL_DONT_CARE && value < 0) return false;
+         break;
+      case EGL_NATIVE_RENDERABLE:
+         if (value != EGL_DONT_CARE && value != EGL_FALSE && value != EGL_TRUE)
+            return false;
+         break;
+      case EGL_NATIVE_VISUAL_ID:
+      case EGL_NATIVE_VISUAL_TYPE:
+         break;
+      case EGL_RENDERABLE_TYPE:
+         if (value != EGL_DONT_CARE && (value & ~(EGL_OPENGL_BIT | EGL_OPENGL_ES_BIT | EGL_OPENGL_ES2_BIT | EGL_OPENVG_BIT)))
+            return false;
+         break;
+      case EGL_SAMPLE_BUFFERS:
+      case EGL_SAMPLES:
+      case EGL_STENCIL_SIZE:
+         if (value != EGL_DONT_CARE && value < 0) return false;
+         break;
+      case EGL_SURFACE_TYPE:
+      {
+         int valid_bits = EGL_WINDOW_BIT | EGL_PIXMAP_BIT | EGL_PBUFFER_BIT |
+            EGL_MULTISAMPLE_RESOLVE_BOX_BIT | EGL_SWAP_BEHAVIOR_PRESERVED_BIT |
+            EGL_VG_COLORSPACE_LINEAR_BIT | EGL_VG_ALPHA_FORMAT_PRE_BIT;
+#if EGL_KHR_lock_surface
+         valid_bits |= EGL_LOCK_SURFACE_BIT_KHR | EGL_OPTIMAL_FORMAT_BIT_KHR;
+#endif
+         if (value != EGL_DONT_CARE && (value & ~valid_bits))
+            return false;
+         break;
+      }
+      case EGL_TRANSPARENT_TYPE:
+         if (value != EGL_DONT_CARE && value != EGL_NONE && value != EGL_TRANSPARENT_RGB)
+            return false;
+         break;
+      case EGL_TRANSPARENT_RED_VALUE:
+      case EGL_TRANSPARENT_GREEN_VALUE:
+      case EGL_TRANSPARENT_BLUE_VALUE:
+         if (value != EGL_DONT_CARE && value < 0) return false;
+         break;
+#if EGL_KHR_lock_surface
+      case EGL_MATCH_FORMAT_KHR:
+         switch (value) {
+         case EGL_DONT_CARE:
+         case EGL_NONE:
+         case EGL_FORMAT_RGB_565_EXACT_KHR:
+         case EGL_FORMAT_RGB_565_KHR:
+         case EGL_FORMAT_RGBA_8888_EXACT_KHR:
+         case EGL_FORMAT_RGBA_8888_KHR:
+            break;
+         default:
+            return false;
+         }
+         break;
+#endif
+#if EGL_ANDROID_recordable
+      case EGL_RECORDABLE_ANDROID:
+         switch (value) {
+         case EGL_DONT_CARE:
+         case EGL_TRUE:
+         case EGL_FALSE:
+            break;
+         default:
+            return false;
+         }
+         break;
+#endif
+#if EGL_ANDROID_framebuffer_target
+      case EGL_FRAMEBUFFER_TARGET_ANDROID:
+         switch (value) {
+         case EGL_DONT_CARE:
+         case EGL_TRUE:
+         case EGL_FALSE:
+            break;
+         default:
+            return false;
+         }
+         break;
+#endif
+      default:
+         return false;
+      }
+   }
+
+   return true;
+}
+
+static bool less_than(int id0, int id1, bool use_red, bool use_green, bool use_blue, bool use_alpha)
+{
+   FEATURES_T features0 = formats[id0].features;
+   FEATURES_T features1 = formats[id1].features;
+
+   EGLint all0 = FEATURES_UNPACK_COLOR(features0);
+   EGLint all1 = FEATURES_UNPACK_COLOR(features1);
+
+   EGLint multi0 = FEATURES_UNPACK_MULTI(features0);
+   EGLint multi1 = FEATURES_UNPACK_MULTI(features1);
+
+   EGLint depth0 = FEATURES_UNPACK_DEPTH(features0);
+   EGLint depth1 = FEATURES_UNPACK_DEPTH(features1);
+
+   EGLint stencil0 = FEATURES_UNPACK_STENCIL(features0);
+   EGLint stencil1 = FEATURES_UNPACK_STENCIL(features1);
+
+   EGLint mask0 = FEATURES_UNPACK_MASK(features0);
+   EGLint mask1 = FEATURES_UNPACK_MASK(features1);
+
+   int used0 = 0;
+   int used1 = 0;
+
+   if (use_red) {
+      used0 += FEATURES_UNPACK_RED(features0);
+      used1 += FEATURES_UNPACK_RED(features1);
+   }
+   if (use_green) {
+      used0 += FEATURES_UNPACK_GREEN(features0);
+      used1 += FEATURES_UNPACK_GREEN(features1);
+   }
+   if (use_blue) {
+      used0 += FEATURES_UNPACK_BLUE(features0);
+      used1 += FEATURES_UNPACK_BLUE(features1);
+   }
+   if (use_alpha) {
+      used0 += FEATURES_UNPACK_ALPHA(features0);
+      used1 += FEATURES_UNPACK_ALPHA(features1);
+   }
+
+   return used0 > used1 || (used0 == used1 &&
+      (all0 < all1 || (all0 == all1 &&
+      (multi0 < multi1 || (multi0 == multi1 &&
+      (depth0 < depth1 || (depth0 == depth1 &&
+      (stencil0 < stencil1 || (stencil0 == stencil1 &&
+      (mask0 < mask1))))))))));
+}
+
+void egl_config_sort(int *ids, bool use_red, bool use_green, bool use_blue, bool use_alpha)
+{
+   int i, j;
+
+   for (i = 1; i < EGL_MAX_CONFIGS; i++)
+      for (j = 0; j < EGL_MAX_CONFIGS - i; j++)
+         if (less_than(ids[j + 1], ids[j], use_red, use_green, use_blue, use_alpha)) {
+            int temp = ids[j];
+            ids[j] = ids[j + 1];
+            ids[j + 1] = temp;
+         }
+}
+
+bool egl_config_get_attrib(int id, EGLint attrib, EGLint *value)
+{
+   FEATURES_T features = formats[id].features;
+
+   switch (attrib) {
+   case EGL_BUFFER_SIZE:
+      *value = FEATURES_UNPACK_COLOR(features);
+      return true;
+   case EGL_RED_SIZE:
+      *value = FEATURES_UNPACK_RED(features);
+      return true;
+   case EGL_GREEN_SIZE:
+      *value = FEATURES_UNPACK_GREEN(features);
+      return true;
+   case EGL_BLUE_SIZE:
+      *value = FEATURES_UNPACK_BLUE(features);
+      return true;
+   case EGL_LUMINANCE_SIZE:
+      *value = 0;
+      return true;
+   case EGL_ALPHA_SIZE:
+      *value = FEATURES_UNPACK_ALPHA(features);
+      return true;
+   case EGL_ALPHA_MASK_SIZE:
+      *value = FEATURES_UNPACK_MASK(features);
+      return true;
+   case EGL_BIND_TO_TEXTURE_RGB:
+      *value = bindable_rgb(features);
+      return true;
+   case EGL_BIND_TO_TEXTURE_RGBA:
+      *value = bindable_rgba(features);
+      return true;
+   case EGL_COLOR_BUFFER_TYPE:
+      *value = EGL_RGB_BUFFER;
+      return true;
+   case EGL_CONFIG_CAVEAT:
+      *value = EGL_NONE;
+      return true;
+   case EGL_CONFIG_ID:
+      *value = (EGLint)(uintptr_t)egl_config_from_id(id);
+      return true;
+   case EGL_CONFORMANT:
+      *value = egl_config_get_api_conformance(id);
+      return true;
+   case EGL_DEPTH_SIZE:
+      *value = FEATURES_UNPACK_DEPTH(features);
+      return true;
+   case EGL_LEVEL:
+      *value = 0;
+      return true;
+   case EGL_MATCH_NATIVE_PIXMAP:
+      *value = 0;
+      return true;
+   case EGL_MAX_PBUFFER_WIDTH:
+      *value = EGL_CONFIG_MAX_WIDTH;
+      return true;
+   case EGL_MAX_PBUFFER_HEIGHT:
+      *value = EGL_CONFIG_MAX_HEIGHT;
+      return true;
+   case EGL_MAX_PBUFFER_PIXELS:
+      *value = EGL_CONFIG_MAX_WIDTH * EGL_CONFIG_MAX_HEIGHT;
+      return true;
+   case EGL_MAX_SWAP_INTERVAL:
+      *value = EGL_CONFIG_MAX_SWAP_INTERVAL;
+      return true;
+   case EGL_MIN_SWAP_INTERVAL:
+      *value = EGL_CONFIG_MIN_SWAP_INTERVAL;
+      return true;
+   case EGL_NATIVE_RENDERABLE:
+      *value = EGL_TRUE;
+      return true;
+   case EGL_NATIVE_VISUAL_ID:
+      *value = khrn_platform_get_color_format(egl_config_get_color_format(id));
+      return true;
+   case EGL_NATIVE_VISUAL_TYPE:
+      *value = EGL_NONE;
+      return true;
+   case EGL_RENDERABLE_TYPE:
+      *value = egl_config_get_api_support(id);
+      return true;
+   case EGL_SAMPLE_BUFFERS:
+      *value = FEATURES_UNPACK_MULTI(features);
+      return true;
+   case EGL_SAMPLES:
+      *value = FEATURES_UNPACK_MULTI(features) * 4;
+      return true;
+   case EGL_STENCIL_SIZE:
+      *value = FEATURES_UNPACK_STENCIL(features);
+      return true;
+   case EGL_SURFACE_TYPE:
+      *value = (EGLint)(EGL_PBUFFER_BIT |
+         EGL_PIXMAP_BIT |
+         EGL_WINDOW_BIT |
+         EGL_VG_COLORSPACE_LINEAR_BIT |
+         EGL_VG_ALPHA_FORMAT_PRE_BIT |
+         EGL_MULTISAMPLE_RESOLVE_BOX_BIT
+#ifndef ANDROID
+         /* VC5 doesn't expose a preserved swap at all - return feature parity on Android */
+         | EGL_SWAP_BEHAVIOR_PRESERVED_BIT
+#endif
+         );
+#if EGL_KHR_lock_surface
+      if (egl_config_is_lockable(id))
+      {
+         *value |= EGL_LOCK_SURFACE_BIT_KHR;
+         if (egl_config_get_mapped_format(id) == egl_config_get_color_format(id))
+            *value |= EGL_OPTIMAL_FORMAT_BIT_KHR;      /* Considered optimal if no format conversion needs doing. Currently all lockable surfaces are optimal */
+      }
+#endif
+      return true;
+   case EGL_TRANSPARENT_TYPE:
+      *value = EGL_NONE;
+      return true;
+   case EGL_TRANSPARENT_RED_VALUE:
+   case EGL_TRANSPARENT_GREEN_VALUE:
+   case EGL_TRANSPARENT_BLUE_VALUE:
+      *value = 0;
+      return true;
+#if EGL_KHR_lock_surface
+   case EGL_MATCH_FORMAT_KHR:
+      if (!egl_config_is_lockable(id))
+         *value = EGL_NONE;
+      else {
+         switch (egl_config_get_mapped_format(id))
+         {
+         case RGB_565_RSO:
+            *value = EGL_FORMAT_RGB_565_EXACT_KHR;
+            break;
+         case ARGB_8888_RSO:
+            *value = EGL_FORMAT_RGBA_8888_EXACT_KHR;
+            break;
+         default:
+            UNREACHABLE();
+         }
+      }
+      return true;
+#endif
+#if EGL_ANDROID_recordable
+   case EGL_RECORDABLE_ANDROID:
+      if (egl_config_is_recordable(id))
+         *value = EGL_TRUE;
+      else
+         *value = EGL_FALSE;
+      return true;
+#endif
+#if EGL_ANDROID_framebuffer_target
+   case EGL_FRAMEBUFFER_TARGET_ANDROID:
+      if (egl_config_is_framebuffer_target(id))
+         *value = EGL_TRUE;
+      else
+         *value = EGL_FALSE;
+      return true;
+#endif
+   default:
+      return false;
+   }
+}
+
+bool egl_config_filter(int id, const EGLint *attrib_list)
+{
+   if (!attrib_list)
+      return true;
+
+   while (*attrib_list != EGL_NONE) {
+      EGLint name = *attrib_list++;
+      EGLint value = *attrib_list++;
+      EGLint actual_value;
+
+      if (!egl_config_get_attrib(id, name, &actual_value))
+      {
+         UNREACHABLE();
+         return false;
+      }
+
+      switch (name) {
+         /* Selection Criteria: AtLeast */
+      case EGL_BUFFER_SIZE:
+      case EGL_RED_SIZE:
+      case EGL_GREEN_SIZE:
+      case EGL_BLUE_SIZE:
+      case EGL_LUMINANCE_SIZE:
+      case EGL_ALPHA_SIZE:
+      case EGL_ALPHA_MASK_SIZE:
+      case EGL_DEPTH_SIZE:
+      case EGL_SAMPLE_BUFFERS:
+      case EGL_SAMPLES:
+      case EGL_STENCIL_SIZE:
+         if (value != EGL_DONT_CARE && value > actual_value)
+            return false;
+         break;
+
+         /* Selection Criteria: Exact */
+         /*
+         Excluding EGL_TRANSPARENT_x_VALUE and EGL_MATCH_FORMAT_KHR which are listed in
+         the table as Exact, but seem to have special rules attached to them.
+
+         Excluding EGL_NATIVE_VISUAL_TYPE which is in the ignore list
+         Excluding EGL_LEVEL because EGL_DONT_CARE is not allowed
+         */
+      case EGL_BIND_TO_TEXTURE_RGB:
+      case EGL_BIND_TO_TEXTURE_RGBA:
+      case EGL_COLOR_BUFFER_TYPE:
+      case EGL_CONFIG_CAVEAT:
+      case EGL_CONFIG_ID:
+      case EGL_MAX_SWAP_INTERVAL:
+      case EGL_MIN_SWAP_INTERVAL:
+      case EGL_NATIVE_RENDERABLE:
+      case EGL_TRANSPARENT_TYPE:
+#if EGL_ANDROID_recordable
+      case EGL_RECORDABLE_ANDROID:
+#endif
+#if EGL_ANDROID_framebuffer_target
+      case EGL_FRAMEBUFFER_TARGET_ANDROID:
+#endif
+         if (value != EGL_DONT_CARE && value != actual_value)
+            return false;
+         break;
+
+      case EGL_LEVEL:
+         if (value != actual_value)
+            return false;
+         break;
+
+         /* Selection Criteria: Mask */
+      case EGL_CONFORMANT:
+      case EGL_RENDERABLE_TYPE:
+      case EGL_SURFACE_TYPE:
+         if (value != EGL_DONT_CARE && (value & ~actual_value))
+            return false;
+         break;
+
+         /* Selection Criteria: Special */
+      case EGL_MATCH_NATIVE_PIXMAP:
+         if (value != EGL_DONT_CARE) { /* see comments in egl_config_check_attribs */
+            EGLNativePixmapType pixmap = (EGLNativePixmapType)(intptr_t)value;
+            KHRN_IMAGE_WRAP_T image;
+            if (!platform_get_pixmap_info(pixmap, &image)) {
+               /*
+               Not actually unreachable in theory!
+               We should have detected this in egl_config_check_attribs
+               It's possible that the validity of pixmap has changed since then however...
+               */
+               UNREACHABLE();
+               return false;
+            }
+            if (!egl_config_match_pixmap_info(id, &image) ||
+               !platform_match_pixmap_api_support(pixmap, egl_config_get_api_support(id)))
+            {
+               khrn_platform_release_pixmap_info(pixmap, &image);
+               return false;
+            }
+
+            khrn_platform_release_pixmap_info(pixmap, &image);
+         }
+         break;
+#if EGL_KHR_lock_surface
+      case EGL_MATCH_FORMAT_KHR:
+         if (!(value == EGL_DONT_CARE || value == actual_value
+            || (value == EGL_FORMAT_RGB_565_KHR && actual_value == EGL_FORMAT_RGB_565_EXACT_KHR)
+            || (value == EGL_FORMAT_RGBA_8888_KHR && actual_value == EGL_FORMAT_RGBA_8888_EXACT_KHR)))
+         {
+            return false;
+         }
+         break;
+#endif
+
+         /* Attributes we can completely ignore */
+      case EGL_MAX_PBUFFER_WIDTH:
+      case EGL_MAX_PBUFFER_HEIGHT:
+      case EGL_MAX_PBUFFER_PIXELS:
+      case EGL_NATIVE_VISUAL_ID:
+         /*
+         "If EGL_MAX_PBUFFER_WIDTH, EGL_MAX_PBUFFER_HEIGHT,
+         EGL_MAX_PBUFFER_PIXELS, or EGL_NATIVE_VISUAL_ID are specified in
+         attrib_list, then they are ignored"
+         */
+
+      case EGL_NATIVE_VISUAL_TYPE:
+         /*
+         "if there are no native visual types, then the EGL NATIVE VISUAL TYPE attribute is
+         ignored."
+         */
+
+      case EGL_TRANSPARENT_BLUE_VALUE:
+      case EGL_TRANSPARENT_GREEN_VALUE:
+      case EGL_TRANSPARENT_RED_VALUE:
+         /*
+         "If EGL_TRANSPARENT_TYPE is set to EGL_NONE in attrib_list, then
+         the EGL_TRANSPARENT_RED_VALUE, EGL_TRANSPARENT_GREEN_VALUE, and
+         EGL_TRANSPARENT_BLUE_VALUE attributes are ignored."
+
+         Possible spec deviation if EGL_TRANSPARENT_TYPE is specified as EGL_DONT_CARE
+         and EGL_TRANSPARENT_*_VALUE is also specified?
+         */
+
+         break;
+
+      default:
+         UNREACHABLE();
+         break;
+      }
+   }
+
+   return true;
+}
 
 /*
    KHRN_IMAGE_FORMAT_T egl_config_get_color_format(int id)
@@ -470,21 +1015,20 @@ bool egl_config_is_lockable(int id)
    vcos_assert(id >= 0 && id < EGL_MAX_CONFIGS);
    return FEATURES_UNPACK_LOCKABLE(formats[id].features);
 }
+#endif /* EGL_KHR_lock_surface */
 
-#endif
-
-#ifdef EGL_ANDROID_framebuffer_target
+#if EGL_ANDROID_framebuffer_target
 bool egl_config_is_framebuffer_target(int id)
 {
    vcos_assert(id >= 0 && id < EGL_MAX_CONFIGS);
    return FEATURES_UNPACK_ANDROID_FRAMEBUFFER_TARGET(formats[id].features);
 }
-#endif
+#endif /* EGL_ANDROID_framebuffer_target */
 
-#ifdef EGL_ANDROID_recordable
+#if EGL_ANDROID_recordable
 bool egl_config_is_recordable(int id)
 {
    vcos_assert(id >= 0 && id < EGL_MAX_CONFIGS);
    return FEATURES_UNPACK_ANDROID_RECORDABLE(formats[id].features);
 }
-#endif
+#endif /* EGL_ANDROID_recordable */

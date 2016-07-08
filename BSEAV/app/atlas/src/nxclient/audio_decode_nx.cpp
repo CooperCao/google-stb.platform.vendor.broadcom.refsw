@@ -1,43 +1,39 @@
-/***************************************************************************
- * (c) 2002-2016 Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 
 #include "nexus_audio_decoder.h"
@@ -198,7 +194,7 @@ eHdmiAudioInput CSimpleAudioDecodeNx::getHdmiInput(NEXUS_AudioCodec codec)
     switch (statusAudio.hdmi.outputMode)
     {
     case NxClient_AudioOutputMode_eAuto:
-        BDBG_ERR(("TTTTTTTTTTTTTt not sure what to do with this hdmi output mode"));
+        BDBG_ERR(("not sure what to do with this hdmi output mode"));
         break;
     case NxClient_AudioOutputMode_ePcm:
         hdmiAudioType = eHdmiAudioInput_Pcm;
@@ -233,6 +229,143 @@ eHdmiAudioInput CSimpleAudioDecodeNx::getHdmiInput(NEXUS_AudioCodec codec)
 error:
     return(hdmiAudioType);
 } /* getHdmiInput */
+
+eRet CSimpleAudioDecodeNx::setHdmiInput(
+        eHdmiAudioInput                          hdmiInput,
+        NEXUS_SimpleAudioDecoderServerSettings * pSettings
+        )
+{
+    eRet ret = eRet_Ok;
+    NEXUS_Error nerror = NEXUS_SUCCESS;
+    NxClient_AudioSettings settings;
+
+    BSTD_UNUSED(pSettings);
+
+    NxClient_GetAudioSettings(&settings);
+    settings.hdmi.transcodeCodec = NEXUS_AudioCodec_eAc3;
+
+    switch (hdmiInput)
+    {
+    case eHdmiAudioInput_Multichannel:
+        settings.hdmi.outputMode = NxClient_AudioOutputMode_eMultichannelPcm;
+        break;
+
+    case eHdmiAudioInput_EncodeDts:
+        settings.hdmi.outputMode = NxClient_AudioOutputMode_eTranscode;
+        settings.hdmi.transcodeCodec = NEXUS_AudioCodec_eDts;
+        break;
+
+    case eHdmiAudioInput_EncodeAc3:
+        settings.hdmi.outputMode = NxClient_AudioOutputMode_eTranscode;
+        break;
+
+    case eHdmiAudioInput_Compressed:
+        settings.hdmi.outputMode = NxClient_AudioOutputMode_ePassthrough;
+        break;
+
+    case eHdmiAudioInput_Pcm:
+    default:
+        settings.hdmi.outputMode = NxClient_AudioOutputMode_ePcm;
+        break;
+    } /* switch */
+
+    nerror = NxClient_SetAudioSettings(&settings);
+    CHECK_NEXUS_ERROR_GOTO("unable to set hdmi output type", nerror, ret, error);
+error:
+    return(ret);
+}
+
+eSpdifInput CSimpleAudioDecodeNx::getSpdifInput(NEXUS_AudioCodec codec)
+{
+    eRet                 ret          = eRet_Ok;
+    NEXUS_Error          nerror       = NEXUS_SUCCESS;
+    eSpdifInput          spdifType    = eSpdifInput_None;
+    NxClient_AudioStatus statusAudio;
+
+    BDBG_ASSERT(NEXUS_AudioCodec_eMax > codec);
+
+    nerror = NxClient_GetAudioStatus(&statusAudio);
+    CHECK_NEXUS_ERROR_GOTO("unable to get audio status", ret, nerror, error);
+
+    switch (statusAudio.spdif.outputMode)
+    {
+    case NxClient_AudioOutputMode_eAuto:
+        BDBG_ERR(("not sure what to do with this spdif output mode"));
+        break;
+    case NxClient_AudioOutputMode_ePcm:
+        spdifType = eSpdifInput_Pcm;
+        break;
+    case NxClient_AudioOutputMode_ePassthrough:
+        spdifType = eSpdifInput_Compressed;
+        break;
+    case NxClient_AudioOutputMode_eTranscode:
+        if (NEXUS_AudioCodec_eAc3 == statusAudio.spdif.outputCodec)
+        {
+            spdifType = eSpdifInput_EncodeAc3;
+        }
+        else
+        if (NEXUS_AudioCodec_eDts == statusAudio.spdif.outputCodec)
+        {
+            spdifType = eSpdifInput_EncodeDts;
+        }
+        else
+        {
+            spdifType = eSpdifInput_Compressed;
+        }
+        break;
+    case NxClient_AudioOutputMode_eMultichannelPcm:
+    case NxClient_AudioOutputMode_eNone:
+    case NxClient_AudioOutputMode_eMax:
+    default:
+        break;
+    } /* switch */
+
+error:
+    return(spdifType);
+} /* getSpdifInput */
+
+
+eRet CSimpleAudioDecodeNx::setSpdifInput(
+        eSpdifInput                              spdifInput,
+        NEXUS_SimpleAudioDecoderServerSettings * pSettings
+        )
+{
+    eRet ret = eRet_Ok;
+    NEXUS_Error nerror = NEXUS_SUCCESS;
+    NxClient_AudioSettings settings;
+
+    BSTD_UNUSED(pSettings);
+
+    NxClient_GetAudioSettings(&settings);
+    settings.spdif.transcodeCodec = NEXUS_AudioCodec_eAc3;
+
+    switch (spdifInput)
+    {
+    case eSpdifInput_EncodeDts:
+        settings.spdif.outputMode = NxClient_AudioOutputMode_eTranscode;
+        settings.spdif.transcodeCodec = NEXUS_AudioCodec_eDts;
+        break;
+
+    case eSpdifInput_EncodeAc3:
+        settings.spdif.outputMode = NxClient_AudioOutputMode_eTranscode;
+        break;
+
+    case eSpdifInput_Compressed:
+        settings.spdif.outputMode = NxClient_AudioOutputMode_ePassthrough;
+        break;
+
+    case eSpdifInput_Pcm:
+    default:
+        settings.spdif.outputMode = NxClient_AudioOutputMode_ePcm;
+        break;
+    } /* switch */
+
+    nerror = NxClient_SetAudioSettings(&settings);
+    CHECK_NEXUS_ERROR_GOTO("unable to set spdif output type", nerror, ret, error);
+
+error:
+    return(ret);
+}
 
 CStc * CSimpleAudioDecodeNx::close()
 {
@@ -338,11 +471,11 @@ error:
 
 eRet CSimpleAudioDecodeNx::updateConnectSettings(NxClient_ConnectSettings * pSettings)
 {
-     eRet ret = eRet_Ok;
+    eRet ret = eRet_Ok;
 
-     pSettings->simpleAudioDecoder.id = getNumber();
-     /* set primer if we are connecting to a window that is not fullscreen. */
-     pSettings->simpleAudioDecoder.primer = (_pModel->getFullScreenWindowType() == getWindowType()) ? false : true;
+    pSettings->simpleAudioDecoder.id = getNumber();
+    /* set primer if we are connecting to a window that is not fullscreen. */
+    pSettings->simpleAudioDecoder.primer = (_pModel->getFullScreenWindowType() == getWindowType()) ? false : true;
 
-     return(ret);
+    return(ret);
 } /* updateConnectSettings */

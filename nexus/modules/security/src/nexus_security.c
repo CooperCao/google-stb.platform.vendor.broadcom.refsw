@@ -1,41 +1,43 @@
 /******************************************************************************
- *    (c)2007-2015 Broadcom Corporation
- *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
- *
- * Except as expressly set forth in the Authorized License,
- *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
- *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
- *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *
- *****************************************************************************/
+* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*
+* This program is the proprietary software of Broadcom and/or its
+* licensors, and may only be used, duplicated, modified or distributed pursuant
+* to the terms and conditions of a separate, written license agreement executed
+* between you and Broadcom (an "Authorized License").  Except as set forth in
+* an Authorized License, Broadcom grants no license (express or implied), right
+* to use, or waiver of any kind with respect to the Software, and Broadcom
+* expressly reserves all rights in and to the Software and all intellectual
+* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*
+* Except as expressly set forth in the Authorized License,
+*
+* 1. This program, including its structure, sequence and organization,
+*    constitutes the valuable trade secrets of Broadcom, and you shall use all
+*    reasonable efforts to protect the confidentiality thereof, and to use
+*    this information only in connection with your use of Broadcom integrated
+*    circuit products.
+*
+* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+*
+* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. , WHICHEVER
+*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+******************************************************************************/
 #include "nexus_security_module.h"
 #include "nexus_security_datatypes.h"
 #include "nexus_security.h"
@@ -49,67 +51,25 @@
 #include "bsp_s_hw.h"
 #include "bsp_s_keycommon.h"
 #include "bhsm_keyladder.h"
+#include "blst_slist.h"
+#include "bhsm_exception_status.h"
 
 #include "nexus_base.h"
 #include "nexus_pid_channel.h"
 #include "priv/nexus_pid_channel_priv.h"
 #include "priv/nexus_transport_priv.h"
 
-#if NEXUS_ZEUS_VERSION >= NEXUS_ZEUS_VERSION_CALC(1,0)
 #if NEXUS_SECURITY_IPLICENSING
-#include "bhsm_ip_licensing.h"
+ #include "bhsm_ip_licensing.h"
 #endif
 #include "priv/nexus_security_standby_priv.h"
-#endif
-
-#if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,2)
-#include "bhsm_exception_status.h"
-#endif
 
 
 BDBG_MODULE(nexus_security);
 
-/* Feature defines.  There should be NO #if BCHP_CHIP macros controlling features.
- * Instead, maintain the chip/version list here, and switch features via these defines. */
-
-
-/* DigitalTV chip like 3563 has only ONE HSM channel, no cancel cmd support */
-#if (BCHP_CHIP!=3563)
-#define HAS_TWO_HSM_CMD_CHANNELS 1
-#endif
-
-/* This define controls whether to include the AES, CSS, and C2 remapping in the functions.
- * The 3563 and 3548/3556 HSM PI has commented certain enums out, which has a ripple effect
- * in generic code. */
-#if (BCHP_CHIP != 3563) && (BCHP_CHIP != 3548) && (BCHP_CHIP != 3556)
-#define SUPPORT_NON_DTV_CRYPTO 1
-#endif
-
-/* A change requires AES to be broken out for these chips */
-#if (BCHP_CHIP == 3548) || (BCHP_CHIP == 3556)
-#define SUPPORT_AES_FOR_DTV 1
-#endif
-
-#if ((BCHP_CHIP == 7420) && (BCHP_VER >= BCHP_VER_A1)) || (BCHP_CHIP == 7340) || \
-     (BCHP_CHIP == 7342) || (BCHP_CHIP == 7125) || (BCHP_CHIP == 7468)
-#define HAS_TYPE7_KEYSLOTS 1
-#endif
-
-
-#if !HSM_IS_ASKM_40NM
-#define HAS_TYPE5_KEYSLOTS 1
-#include "bhsm_misc.h"
-#endif
-
-#if HSM_IS_ASKM_28NM_ZEUS_4_0
-#define HAS_TYPE5_KEYSLOTS 1
-#endif
-
 
 #define MIN(a,b) ((a)<(b)?(a):(b))
 
-
-#include "blst_slist.h"
 
 /* structure to capture the pidChannels that are associated with a keySlot */
 typedef struct NEXUS_Security_P_PidChannelListNode {
@@ -146,13 +106,16 @@ typedef struct NEXUS_Security_P_KeySlotData {
 NEXUS_ModuleHandle NEXUS_P_SecurityModule = NULL;
 static struct {
     NEXUS_SecurityModuleSettings settings;
+    NEXUS_SecurityModuleInternalSettings moduleSettings;
     BHSM_Handle hsm;
-    #if BHSM_ZEUS_VERSION < BHSM_ZEUS_VERSION_CALC(1,0)
-    BHSM_ChannelHandle hsmChannel[BHSM_HwModule_eMax];
-    #endif
     BLST_S_HEAD(NEXUS_Security_P_KeySlotList_t, NEXUS_KeySlot) keyslotList; /* cannot contain any "generic" keyslots */
 } g_security;
 
+static BCMD_XptSecKeySlot_e      mapNexus2Hsm_KeyslotType( NEXUS_SecurityKeySlotType nexusType, NEXUS_SecurityEngine engine );
+static BCMD_XptM2MSecCryptoAlg_e mapNexus2Hsm_Algorithm( NEXUS_SecurityAlgorithm algorithm );
+static BCMD_KeyDestEntryType_e   mapNexus2Hsm_keyEntryType( NEXUS_SecurityKeyType keytype );
+static BCMD_KeyDestIVType_e      mapNexus2Hsm_ivType( NEXUS_SecurityKeyIVType keyIVtype );
+static NEXUS_SecurityKeySlotType mapHsm2Nexus_keySlotType( BCMD_XptSecKeySlot_e hsmKeyslotType );
 static BERR_Code NEXUS_Security_P_InitHsm(const NEXUS_SecurityModuleSettings * pSettings);
 static void NEXUS_Security_P_UninitHsm(void);
 
@@ -177,7 +140,6 @@ static void NEXUS_Security_P_RemovePidchannel(NEXUS_KeySlotHandle keyslot, NEXUS
 
 void NEXUS_GetSecurityCapabilities( NEXUS_SecurityCapabilities *pCaps )
 {
-#if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(1,0)
     BERR_Code rc = BERR_SUCCESS;
     BHSM_Capabilities_t hsmCaps;
     unsigned x;
@@ -185,24 +147,15 @@ void NEXUS_GetSecurityCapabilities( NEXUS_SecurityCapabilities *pCaps )
 
     BDBG_ENTER(NEXUS_GetSecurityCapabilities);
 
-    if( pCaps == NULL )
-    {
-        /* illegal argument  */
-        (void)BERR_TRACE( NEXUS_INVALID_PARAMETER );
-        return;
-    }
+    if( pCaps == NULL ) { (void)BERR_TRACE( NEXUS_INVALID_PARAMETER ); return; }
 
     BKNI_Memset( pCaps, 0, sizeof(*pCaps) );
     BKNI_Memset( &hsmCaps, 0, sizeof(hsmCaps) );
 
-    if( ( rc = BHSM_GetCapabilities( g_security.hsm, &hsmCaps ) ) != BERR_SUCCESS )
-    {
-        BDBG_ERR(("BHSM_GetCapabilities failed [%d]", rc ));
-        return;
-    }
+    rc = BHSM_GetCapabilities( g_security.hsm, &hsmCaps );
+    if( rc != BERR_SUCCESS ) { (void)BERR_TRACE( NEXUS_INVALID_PARAMETER ); return; }
 
     pCaps->version.zeus = NEXUS_ZEUS_VERSION_CALC ( NEXUS_SECURITY_ZEUS_VERSION_MAJOR, NEXUS_SECURITY_ZEUS_VERSION_MINOR );
-
     pCaps->version.firmware =  ( ( ( hsmCaps.version.firmware.bseck.major & 0xFF ) << 16 )
                                 |  ( hsmCaps.version.firmware.bseck.minor & 0xFF ) );
 
@@ -210,19 +163,11 @@ void NEXUS_GetSecurityCapabilities( NEXUS_SecurityCapabilities *pCaps )
     numTypes = MIN( numTypes , sizeof( pCaps->keySlotTableSettings.numKeySlotsForType ) );
     numTypes = MIN( numTypes , sizeof( hsmCaps.keyslotTypes.numKeySlot ) );
 
-    for( x = 0; x < numTypes; x++)
+    for( x = 0; x < numTypes; x++ )
     {
         pCaps->keySlotTableSettings.numKeySlotsForType[x] = hsmCaps.keyslotTypes.numKeySlot[x];
     }
     pCaps->keySlotTableSettings.numMulti2KeySlots = hsmCaps.keyslotTypes.numMulti2KeySlots;
-
-#else
-    if( pCaps )
-    {
-        BKNI_Memset( pCaps, 0, sizeof(*pCaps) );
-    }
-    BERR_TRACE( NEXUS_NOT_SUPPORTED );
-#endif
 
     BDBG_LEAVE(NEXUS_GetSecurityCapabilities);
     return;
@@ -249,34 +194,28 @@ void NEXUS_Security_PrintArchViolation_priv( void )
     NEXUS_ASSERT_MODULE();
 
     NEXUS_Security_GetHsm_priv( &hHsm );
-    if(!hHsm )
-    {
-        BERR_TRACE( NEXUS_INVALID_PARAMETER );
-        return;
-    }
+    if( !hHsm ) { BERR_TRACE( NEXUS_INVALID_PARAMETER ); return; }
 
     BKNI_Memset( &memInfo, 0, sizeof( memInfo ) );
-    if( ( magnumRc = BCHP_GetMemoryInfo( g_pCoreHandles->reg, &memInfo ) ) !=  BERR_SUCCESS )
-    {
-        BERR_TRACE( magnumRc );
-        return;
-    }
+    magnumRc = BCHP_GetMemoryInfo( g_pCoreHandles->reg, &memInfo );
+    if( magnumRc != BERR_SUCCESS ) { BERR_TRACE( magnumRc ); return; }
 
     maxMemc = sizeof(memInfo.memc)/sizeof(memInfo.memc[0]);
 
     BKNI_Memset( &request, 0, sizeof(request) );
 
     request.deviceType = BHSM_ExceptionStatusDevice_eMemcArch;
+    request.keepStatus = false;
 
     for( memcIndex = 0; memcIndex < maxMemc; memcIndex++ )  /* iterate over mem controllers. */
     {
         if( memInfo.memc[memcIndex].size > 0 )              /* if the MEMC is in use. */
         {
-            request.u.memArch.unit = memcIndex;
+            request.u.memArch.memcIndex = memcIndex;
 
             for( archIndex = 0; archIndex < BHSM_MAX_ARCH_PER_MEMC; archIndex++ )   /* itterate over ARCHes. */
             {
-                request.u.memArch.subUnit = archIndex;
+                request.u.memArch.archIndex = archIndex;
 
                 magnumRc = BHSM_GetExceptionStatus( hHsm, &request, &status );
                 if( magnumRc != BERR_SUCCESS )
@@ -289,10 +228,17 @@ void NEXUS_Security_PrintArchViolation_priv( void )
 
                 if( status.u.memArch.endAddress ) /* if there has been a violation */
                 {
-                    BDBG_ERR(("MEMC ARCH Violation. MEMC[%u]ARCH[%u] Addr start [" BDBG_UINT64_FMT "] end[" BDBG_UINT64_FMT " ] numBlocks[%u] scbClientId[%u] requestType[%#x]",
-                               memcIndex, archIndex,
-                               BDBG_UINT64_ARG(status.u.memArch.startAddress), BDBG_UINT64_ARG(status.u.memArch.endAddress),
-                               status.u.memArch.numBlocks, status.u.memArch.scbClientId, status.u.memArch.requestType ));
+                    BDBG_ERR(("MEMC ARCH Violation. MEMC[%u]ARCH[%u] Addr start [" BDBG_UINT64_FMT  \
+                              "] end[" BDBG_UINT64_FMT "] numBlocks[%u] scbClientId[%u:%s] requestType[%#x:%s]",
+                              memcIndex,
+                              archIndex,
+                              BDBG_UINT64_ARG(status.u.memArch.startAddress),
+                              BDBG_UINT64_ARG(status.u.memArch.endAddress),
+                              status.u.memArch.numBlocks,
+                              status.u.memArch.scbClientId,
+                              BMRC_Checker_GetClientName(memcIndex, status.u.memArch.scbClientId),
+                              status.u.memArch.requestType,
+                              BMRC_Monitor_GetRequestTypeName_isrsafe(status.u.memArch.requestType) ));
                 }
             }
         }
@@ -301,6 +247,12 @@ void NEXUS_Security_PrintArchViolation_priv( void )
     BDBG_LEAVE(NEXUS_Security_PrintArchViolation_priv);
 #endif /* BHSM_ZEUS_VERSION .. */
 
+    return;
+}
+
+void NEXUS_SecurityModule_GetDefaultInternalSettings(NEXUS_SecurityModuleInternalSettings *pSettings)
+{
+    BKNI_Memset(pSettings, 0, sizeof(*pSettings));
     return;
 }
 
@@ -319,12 +271,8 @@ void NEXUS_SecurityModule_GetDefaultSettings(NEXUS_SecurityModuleSettings *pSett
     pSettings->numKeySlotsForType[4] = 7;
     pSettings->numKeySlotsForType[5] = 2;
     pSettings->numKeySlotsForType[6] = 8;
-    #if HAS_TYPE7_KEYSLOTS
-    pSettings->numKeySlotsForType[7] = 4;
-    #endif
 
     /*exceptions*/
-#if HSM_IS_ASKM_40NM
     #if (BHSM_ZEUS_VERSION == BHSM_ZEUS_VERSION_CALC(3,0))
     pSettings->numKeySlotsForType[3] = 0;
     #endif
@@ -369,11 +317,9 @@ void NEXUS_SecurityModule_GetDefaultSettings(NEXUS_SecurityModuleSettings *pSett
     #endif
   #endif /* NEXUS_HAS_NSK2HDI */
 
-#endif /* HSM_IS_ASKM_40NM */
     return;
 }
 
-#if (BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(1,0))
 /* Function to authenticate/verify rave firmware. */
 static NEXUS_Error secureFirmwareRave( void )
 {
@@ -397,40 +343,31 @@ static NEXUS_Error secureFirmwareRave( void )
     BDBG_LEAVE(secureFirmwareRave);
     return BERR_SUCCESS;
 }
-#endif
 
-NEXUS_ModuleHandle NEXUS_SecurityModule_Init(const NEXUS_SecurityModuleSettings *pSettings)
+NEXUS_ModuleHandle NEXUS_SecurityModule_Init(const NEXUS_SecurityModuleInternalSettings *pModuleSettings, const NEXUS_SecurityModuleSettings *pSettings)
 {
     NEXUS_ModuleSettings moduleSettings;
-    NEXUS_SecurityModuleSettings defaultSettings;
     BERR_Code rc;
 
     BDBG_ENTER(NEXUS_SecurityModule_Init);
 
     BDBG_ASSERT(!NEXUS_P_SecurityModule);
 
-    if (!pSettings) {
-        NEXUS_SecurityModule_GetDefaultSettings(&defaultSettings);
-        pSettings = &defaultSettings;
-    }
+    BDBG_ASSERT(pSettings);
 
 #if NEXUS_HAS_XPT_DMA
-    if (pSettings->transport==NULL) {
-        /* security module requires transport module */
-        rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
-        return NULL;
-    }
+    /* security module requires transport module */
+    if( pModuleSettings->transport == NULL ) { BERR_TRACE(NEXUS_INVALID_PARAMETER); return NULL; }
 #endif
 
     /* init global module handle */
     NEXUS_Module_GetDefaultSettings(&moduleSettings);
     moduleSettings.priority = NEXUS_AdjustModulePriority(NEXUS_ModulePriority_eLow, &pSettings->common);
     NEXUS_P_SecurityModule = NEXUS_Module_Create("security", &moduleSettings);
-    if (!NEXUS_P_SecurityModule) {
-        return NULL;
-    }
+    if( NEXUS_P_SecurityModule == NULL ) { BERR_TRACE(NEXUS_UNKNOWN);  return NULL; }
 
     g_security.settings = *pSettings;
+    g_security.moduleSettings = *pModuleSettings;
 
     NEXUS_LockModule();
     rc = NEXUS_Security_P_InitHsm(pSettings);
@@ -438,62 +375,43 @@ NEXUS_ModuleHandle NEXUS_SecurityModule_Init(const NEXUS_SecurityModuleSettings 
 
     BLST_S_INIT( &g_security.keyslotList );
 
-    #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(1,0)
     rc = NEXUS_Security_RegionVerification_Init_priv( );
     if (rc) { rc = BERR_TRACE(rc); goto err_init; }
-    #endif
 
-    if (pSettings->callTransportPostInit) {
-        NEXUS_Module_Lock(g_security.settings.transport);
+    if (pModuleSettings->callTransportPostInit) {
 
-        rc = NEXUS_TransportModule_PostInit_priv(
-           #if (BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(1,0))
-            secureFirmwareRave
-           #else
-            NULL
-           #endif
-        );
-        NEXUS_Module_Unlock(g_security.settings.transport);
-        if (rc) {
-            rc = BERR_TRACE(rc);
-            goto err_transport_postinit;
-        }
+        NEXUS_Module_Lock( g_security.moduleSettings.transport );
+        rc = NEXUS_TransportModule_PostInit_priv( secureFirmwareRave );
+        NEXUS_Module_Unlock( g_security.moduleSettings.transport );
+
+        if (rc) { rc = BERR_TRACE(rc); goto err_transport_postinit; }
     }
 
-	/* IP licensing is supported for Zeus1.0 and newer. */
-    #if NEXUS_ZEUS_VERSION >= NEXUS_ZEUS_VERSION_CALC(1,0)
-    #if NEXUS_SECURITY_IPLICENSING
+    /* IP licensing is supported for Zeus1.0 and newer. */
     if( pSettings->ipLicense.valid )
     {
       #if NEXUS_SECURITY_IPLICENSING
-		BHSM_Handle     hHsm;
+        BHSM_Handle     hHsm;
         BHSM_ipLicensingOp_t ipLicensingOp;
 
-		NEXUS_Security_GetHsm_priv ( &hHsm );
-
-		if ( !hHsm )
-		{
-			BERR_TRACE(NEXUS_NOT_AVAILABLE);
-			goto err_init;
-		}
+        NEXUS_Security_GetHsm_priv ( &hHsm );
+        if( !hHsm ) { BERR_TRACE(NEXUS_NOT_AVAILABLE); goto err_init; }
 
         BKNI_Memset( &ipLicensingOp, 0, sizeof(ipLicensingOp) );
 
-		ipLicensingOp.dataSize = NEXUS_SECURITY_IP_LICENCE_SIZE;
+        ipLicensingOp.dataSize = NEXUS_SECURITY_IP_LICENCE_SIZE;
 
-		BKNI_Memcpy ( ipLicensingOp.inputBuf, pSettings->ipLicense.data, NEXUS_SECURITY_IP_LICENCE_SIZE );
+        BKNI_Memcpy ( ipLicensingOp.inputBuf, pSettings->ipLicense.data, NEXUS_SECURITY_IP_LICENCE_SIZE );
 
         if ( BHSM_SetIpLicense ( hHsm, &ipLicensingOp ) != BERR_SUCCESS )
         {
-			BERR_TRACE(NEXUS_NOT_SUPPORTED);
-			goto err_init;
-		}
+            BERR_TRACE(NEXUS_NOT_SUPPORTED);
+            goto err_init;
+        }
       #else
        BDBG_WRN(("IP Licensing not enabled in build."));
       #endif
     }
-    #endif
-    #endif
 
     NEXUS_UnlockModule();
 
@@ -523,9 +441,7 @@ void NEXUS_SecurityModule_Uninit(void)
 
     NEXUS_SecurityModule_Sweep_priv();
 
-    #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(1,0)
     NEXUS_Security_RegionVerification_UnInit_priv( );
-    #endif
 
     NEXUS_Security_P_UninitHsm();
 
@@ -543,17 +459,12 @@ static BERR_Code NEXUS_Security_P_InitHsm(const NEXUS_SecurityModuleSettings * p
     BHSM_Settings hsmSettings;
     BHSM_InitKeySlotIO_t keyslot_io;
     BERR_Code rc;
-    #if BHSM_ZEUS_VERSION < BHSM_ZEUS_VERSION_CALC(1,0)
-    BHSM_ChannelSettings hsmChnlSetting;
-    #endif
 
     BDBG_ENTER(NEXUS_Security_P_InitHsm);
     NEXUS_PowerManagement_SetCoreState(NEXUS_PowerManagementCore_eHsm, true);
 
     BHSM_GetDefaultSettings(&hsmSettings, g_pCoreHandles->chp);
-#if HSM_IS_ASKM_40NM
     hsmSettings.hHeap = g_pCoreHandles->heap[g_pCoreHandles->defaultHeapIndex].mem;
-#endif
 
     #if NEXUS_HAS_SAGE
     hsmSettings.sageEnabled = true;
@@ -562,19 +473,6 @@ static BERR_Code NEXUS_Security_P_InitHsm(const NEXUS_SecurityModuleSettings * p
     rc = BHSM_Open(&g_security.hsm, g_pCoreHandles->reg, g_pCoreHandles->chp, g_pCoreHandles->bint, &hsmSettings);
     if (rc) { return BERR_TRACE(MAKE_HSM_ERR(rc)); }
 
-#if BHSM_ZEUS_VERSION < BHSM_ZEUS_VERSION_CALC(1,0)
-    rc = BHSM_GetChannelDefaultSettings(g_security.hsm, BHSM_HwModule_eCmdInterface1, &hsmChnlSetting);
-    if (rc) { return BERR_TRACE(MAKE_HSM_ERR(rc)); }
-
-    #if HAS_TWO_HSM_CMD_CHANNELS
-    rc = BHSM_Channel_Open(g_security.hsm, &g_security.hsmChannel[BHSM_HwModule_eCmdInterface1], BHSM_HwModule_eCmdInterface1, &hsmChnlSetting);
-    if (rc) { return BERR_TRACE(MAKE_HSM_ERR(rc)); }
-    #endif
-
-    rc = BHSM_Channel_Open(g_security.hsm, &g_security.hsmChannel[BHSM_HwModule_eCmdInterface2], BHSM_HwModule_eCmdInterface2, &hsmChnlSetting);
-    if (rc) { return BERR_TRACE(MAKE_HSM_ERR(rc)); }
-#endif
-
     BKNI_Memset(&keyslot_io, 0, sizeof(keyslot_io));
 
     keyslot_io.unKeySlotType0Num = pSettings->numKeySlotsForType[0];
@@ -582,17 +480,9 @@ static BERR_Code NEXUS_Security_P_InitHsm(const NEXUS_SecurityModuleSettings * p
     keyslot_io.unKeySlotType2Num = pSettings->numKeySlotsForType[2];
     keyslot_io.unKeySlotType3Num = pSettings->numKeySlotsForType[3];
     keyslot_io.unKeySlotType4Num = pSettings->numKeySlotsForType[4];
-#if HAS_TYPE5_KEYSLOTS
+    #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,0)
     keyslot_io.unKeySlotType5Num = pSettings->numKeySlotsForType[5];
-#if !HSM_IS_ASKM_28NM_ZEUS_4_0
-    keyslot_io.unKeySlotType6Num = pSettings->numKeySlotsForType[6];
-#endif
-#if HAS_TYPE7_KEYSLOTS
-    keyslot_io.unKeySlotType7Num = pSettings->numKeySlotsForType[7];
-#endif
-#endif
-
-    #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(1,0)
+    #endif
 
     keyslot_io.bMulti2SysKey     = pSettings->enableMulti2Key;
     keyslot_io.numMulti2KeySlots = pSettings->numMulti2KeySlots;
@@ -602,8 +492,6 @@ static BERR_Code NEXUS_Security_P_InitHsm(const NEXUS_SecurityModuleSettings * p
     {
         keyslot_io.numMulti2KeySlots = BCMD_MULTI2_MAXSYSKEY;
     }
-
-    #endif
 
     /* Disregard errors, as this can only be run once per board boot. */
     rc = BHSM_InitKeySlot(g_security.hsm, &keyslot_io);
@@ -621,31 +509,6 @@ static BERR_Code NEXUS_Security_P_InitHsm(const NEXUS_SecurityModuleSettings * p
         rc = BERR_SUCCESS;
     }
 
-#if NEXUS_SECURITY_ZEUS_VERSION_MAJOR < 1
-    {
-        BHSM_SetMiscBitsIO_t setMiscBitsIO;
-
-        setMiscBitsIO.setMiscBitsSubCmd = BCMD_SetMiscBitsSubCmd_eRaveBits;
-        setMiscBitsIO.bEnableWriteIMem = 1;
-        setMiscBitsIO.bEnableReadIMem = 1;
-        setMiscBitsIO.bEnableReadDMem = 1;
-        setMiscBitsIO.bDisableClear = 1;
-        setMiscBitsIO.bEnableEncBypass = 0; /* bRAVEEncryptionBypass for 40nm plus */
-        rc = BHSM_SetMiscBits(g_security.hsm, &setMiscBitsIO);
-        if (rc) {
-            BDBG_WRN(("**********************************************"));
-            BDBG_WRN(("If you see this warning and the HSM errors above, you need to perform some"));
-            BDBG_WRN(("board reconfiguration. This is not required. If you want, you can ignore them."));
-            BDBG_WRN(("Use BBS to check if BSP_GLB_NONSECURE_GLB_IRDY = 0x07."));
-            BDBG_WRN(("If not, BSP/Aegis is not ready to accept a command."));
-            BDBG_WRN(("SUN_TOP_CTRL_STRAP_VALUE[bit28:29 strap_test_debug_en] should be 0b'00 if you plan"));
-            BDBG_WRN(("to use BSP ROM code. If not, check with board designer on your strap pin."));
-            BDBG_WRN(("**********************************************"));
-            rc = BERR_SUCCESS;
-        }
-    }
-#endif
-
 #if NEXUS_HAS_XPT_DMA
     rc = BHSM_SetPidChannelBypassKeyslot(g_security.hsm, NEXUS_PidChannel_GetBypassKeySlotIndex_isrsafe(NEXUS_BypassKeySlot_eG2GR), NEXUS_BypassKeySlot_eG2GR);
     if (rc) {BERR_TRACE(rc);} /* keep going */
@@ -661,14 +524,6 @@ static BERR_Code NEXUS_Security_P_InitHsm(const NEXUS_SecurityModuleSettings * p
 
 void NEXUS_Security_P_UninitHsm()
 {
-
-#if BHSM_ZEUS_VERSION < BHSM_ZEUS_VERSION_CALC(1,0)
-    #if HAS_TWO_HSM_CMD_CHANNELS
-    (void)BHSM_Channel_Close(g_security.hsmChannel[BHSM_HwModule_eCmdInterface1]);
-    #endif
-    (void)BHSM_Channel_Close(g_security.hsmChannel[BHSM_HwModule_eCmdInterface2]);
-#endif
-
     BHSM_Close(g_security.hsm);
     g_security.hsm = NULL;
 
@@ -688,11 +543,7 @@ void NEXUS_Security_GetDefaultKeySlotSettings(NEXUS_SecurityKeySlotSettings *pSe
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
 
     pSettings->keySlotEngine = NEXUS_SecurityEngine_eCa;
-#if HSM_IS_ASKM
     pSettings->keySlotSource = NEXUS_SecurityKeySource_eFirstRamAskm;
-#else
-    pSettings->keySlotSource = NEXUS_SecurityKeySource_eFirstRam;
-#endif
     pSettings->keySlotType = NEXUS_SecurityKeySlotType_eAuto;
 
     BDBG_LEAVE(NEXUS_Security_GetDefaultKeySlotSettings);
@@ -714,52 +565,6 @@ static NEXUS_Error NEXUS_Security_P_GetInvalidateKeyFlag( const NEXUS_SecurityIn
     return NEXUS_SUCCESS;
 }
 
-static BCMD_KeyDestEntryType_e NEXUS_Security_MapNexusKeyDestToHsm(NEXUS_KeySlotHandle keyHandle, NEXUS_SecurityKeyType keydest)
-{
-    BCMD_KeyDestEntryType_e rv = BCMD_KeyDestEntryType_eOddKey;
-    BSTD_UNUSED(keyHandle);
-
-
-    switch( keydest )
-    {
-        case NEXUS_SecurityKeyType_eOddAndEven:
-        case NEXUS_SecurityKeyType_eOdd:
-        {
-            rv = BCMD_KeyDestEntryType_eOddKey;
-            break;
-        }
-        case NEXUS_SecurityKeyType_eEven:
-        {
-            rv = BCMD_KeyDestEntryType_eEvenKey;
-            break;
-        }
-        case NEXUS_SecurityKeyType_eClear:
-        {
-           #if HSM_IS_ASKM_40NM
-            rv = BCMD_KeyDestEntryType_eClearKey;
-           #else
-            rv = BCMD_KeyDestEntryType_eReserved0;
-           #endif
-            break;
-        }
-       #if BHSM_ZEUS_VERSION < BHSM_ZEUS_VERSION_CALC(1,0) /*for pre Zeus*/
-        case NEXUS_SecurityKeyType_eIv:
-        {
-            rv = BCMD_KeyDestEntryType_eIV;
-            break;
-        }
-       #endif
-        default:
-        {
-            BERR_TRACE( NEXUS_INVALID_PARAMETER ); /* return default */
-        }
-    }
-
-    BDBG_MSG(("NEXUS_Security_MapNexusKeyDestToHsm -- keydest NEX[%d] HSM[%d]" , keydest , rv ));
-
-    return rv;
-}
-
 #define NEXUS_SECURITY_CACP_INVALID_PIDCHANNEL 0xFFFFFFFF
 
 static NEXUS_Error NEXUS_Security_AllocateKeySlotForType(  NEXUS_KeySlotHandle *pKeyHandle
@@ -769,11 +574,7 @@ static NEXUS_Error NEXUS_Security_AllocateKeySlotForType(  NEXUS_KeySlotHandle *
 {
     BERR_Code rc;
     NEXUS_KeySlotHandle pHandle;
-   #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(1,0)
     BHSM_KeySlotAllocate_t  keySlotConf;
-   #else
-    unsigned int keyslotNumber = 0;
-   #endif
 
     BDBG_ENTER(NEXUS_Security_AllocateKeySlotForType);
 
@@ -784,7 +585,6 @@ static NEXUS_Error NEXUS_Security_AllocateKeySlotForType(  NEXUS_KeySlotHandle *
 
     pHandle->deferDestroy = true;
 
-   #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(1,0)
     BKNI_Memset(&keySlotConf, 0, sizeof(keySlotConf));
 
     keySlotConf.client = pSettings->client;
@@ -795,21 +595,12 @@ static NEXUS_Error NEXUS_Security_AllocateKeySlotForType(  NEXUS_KeySlotHandle *
     #else
     rc = BHSM_AllocateCAKeySlot_v2( g_security.hsm, &keySlotConf );
     #endif
-
-   #else
-    rc = BHSM_AllocateCAKeySlot( g_security.hsm, type, &keyslotNumber );
-   #endif
-
-    if (rc) goto error;
+    if( rc ) { BERR_TRACE( rc ); goto error; }
 
     pHandle->keyslotType = type;
     pHandle->settings = *pSettings;
 
-   #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(1,0)
     pHandle->keySlotNumber = keySlotConf.keySlotNum;
-   #else
-    pHandle->keySlotNumber = keyslotNumber;
-   #endif
 
     *pKeyHandle = pHandle;
 
@@ -848,11 +639,7 @@ static NEXUS_Security_P_PidChannelListNode *find_pid(NEXUS_KeySlotHandle keyslot
 
             /* retrieve actual HW pid Channel */
             rc = NEXUS_PidChannel_GetStatus( pidChannel, &status );
-            if( rc != NEXUS_SUCCESS )
-            {
-                 BERR_TRACE( rc );
-                 continue;
-            }
+            if( rc != NEXUS_SUCCESS ) { BERR_TRACE( rc ); continue; }
             /* update imput parameter. */
             pidChannelIndex = status.pidChannelIndex;
         }
@@ -861,11 +648,7 @@ static NEXUS_Security_P_PidChannelListNode *find_pid(NEXUS_KeySlotHandle keyslot
         {
             /* retrieve actual HW pid Channel */
             rc = NEXUS_PidChannel_GetStatus( pPidChannelNode->pidChannel, &status );
-            if( rc != NEXUS_SUCCESS )
-            {
-                 BERR_TRACE( rc );
-                 continue;
-            }
+            if( rc != NEXUS_SUCCESS ) { BERR_TRACE( rc ); continue; }
 
             pPidChannelNode->pidChannelIndex = status.pidChannelIndex;
         }
@@ -893,10 +676,8 @@ NEXUS_KeySlotHandle NEXUS_Security_LocateCaKeySlotAssigned(unsigned long pidchan
     NEXUS_SECURITY_DUMP_KEYSLOTS;
 
     rc = BHSM_LocateCAKeySlotAssigned(g_security.hsm, pidchannel, BHSM_PidChannelType_ePrimary, &keyslotType, &keyslotNumber);
-    if (rc) {
-        rc = BERR_TRACE(MAKE_HSM_ERR(rc));
-        goto error;
-    }
+    if (rc) { rc = BERR_TRACE(MAKE_HSM_ERR(rc)); goto error; }
+
     for (keyslot=BLST_S_FIRST(&g_security.keyslotList);keyslot;keyslot=BLST_S_NEXT(keyslot,next)) {
         NEXUS_Security_P_PidChannelListNode *pPidChannelNode = find_pid(keyslot, NULL, pidchannel);
         if (pPidChannelNode) {
@@ -934,13 +715,9 @@ static NEXUS_Error add_pid_channel(NEXUS_KeySlotHandle keyHandle, NEXUS_Security
     pidChannelConf.ucKeySlotType = keyHandle->keyslotType;
     pidChannelConf.unKeySlotNum = keyHandle->keySlotNumber;
     pidChannelConf.pidChannelType = BHSM_PidChannelType_ePrimary;
-   #if HSM_IS_ASKM_40NM
     pidChannelConf.spidProgType = BHSM_SPIDProg_ePIDPointerA;
     pidChannelConf.bResetPIDToDefault = false;
     pidChannelConf.unKeySlotBType = 0;
-   #else
-    pidChannelConf.unKeySlotB = 0;
-   #endif
     pidChannelConf.unKeySlotNumberB = 0;
     pidChannelConf.unKeyPointerSel = 0;
 
@@ -965,6 +742,7 @@ err_config:
 static NEXUS_Error verify_pid_channel( NEXUS_KeySlotHandle keyslot, NEXUS_PidChannelHandle pidChannel, unsigned pidChannelIndex )
 {
     NEXUS_KeySlotHandle hKeySlot;
+    NEXUS_PidChannelHandle previousPidChannel = NULL;
 
     BDBG_ENTER(verify_pid_channel);
 
@@ -983,10 +761,12 @@ static NEXUS_Error verify_pid_channel( NEXUS_KeySlotHandle keyslot, NEXUS_PidCha
             }
             BDBG_MSG(("pidchannel %p/%d already has keyslot %p associated, breaking association", (void *)pidChannel, pidChannelIndex, (void *)hKeySlot));
 
+            previousPidChannel = pPidChannelNode->pidChannel;
+
             NEXUS_Security_P_RemovePidchannel( hKeySlot,pPidChannelNode );
-            if( pidChannel )
+            if( previousPidChannel)
             {
-                NEXUS_OBJECT_RELEASE( hKeySlot, NEXUS_PidChannel, pidChannel );
+                NEXUS_OBJECT_RELEASE( hKeySlot, NEXUS_PidChannel, previousPidChannel);
             }
         }
     }
@@ -1062,21 +842,14 @@ static void remove_pid_channel(NEXUS_KeySlotHandle keyHandle, NEXUS_Security_P_P
     pidChannelConf.ucKeySlotType = keyHandle->keyslotType;
     pidChannelConf.unKeySlotNum = keyHandle->keySlotNumber;
     pidChannelConf.pidChannelType = BHSM_PidChannelType_ePrimary;
-    #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(1,0)
     pidChannelConf.spidProgType = BHSM_SPIDProg_ePIDPointerA;
     pidChannelConf.bResetPIDToDefault = false;
     pidChannelConf.unKeySlotBType = 0;
-    #else
-    pidChannelConf.unKeySlotB = 0;
-    #endif
     pidChannelConf.unKeySlotNumberB = 0;
     pidChannelConf.unKeyPointerSel = 0;
 
     rc = BHSM_ConfigPidChannelToDefaultKeySlot( g_security.hsm, &pidChannelConf );
-    if (rc)
-    {
-        rc = BERR_TRACE(rc); /* Internal error. Continue for best effort */
-    }
+    if( rc ) { rc = BERR_TRACE(rc); } /* Internal error. Continue for best effort */
 
     NEXUS_Security_P_RemovePidchannel( keyHandle, pPidChannelNode );
 
@@ -1122,202 +895,55 @@ void NEXUS_KeySlot_RemovePidChannel( NEXUS_KeySlotHandle keyslot, NEXUS_PidChann
     return;
 }
 
-static NEXUS_Error NEXUS_Security_MapHsmKeySlotTypeToNexus( BCMD_XptSecKeySlot_e hsmKeyslotType, NEXUS_SecurityKeySlotType *nexusSlotType)
+static NEXUS_SecurityKeySlotType mapHsm2Nexus_keySlotType( BCMD_XptSecKeySlot_e hsmKeyslotType )
 {
-    NEXUS_SecurityKeySlotType rvType = NEXUS_SecurityKeySlotType_eType0;
-
-    BDBG_ENTER(NEXUS_Security_MapHsmKeySlotTypeToNexus);
-
     /* It is a direct map */
-    switch (hsmKeyslotType)
+    switch( hsmKeyslotType )
     {
-        case BCMD_XptSecKeySlot_eType0:
-        {
-            rvType = NEXUS_SecurityKeySlotType_eType0;
-            break;
-        }
-        case BCMD_XptSecKeySlot_eType1:
-        {
-            rvType = NEXUS_SecurityKeySlotType_eType1;
-            break;
-        }
-        case BCMD_XptSecKeySlot_eType2:
-        {
-            rvType = NEXUS_SecurityKeySlotType_eType2;
-            break;
-        }
-        case BCMD_XptSecKeySlot_eType3:
-        {
-            rvType = NEXUS_SecurityKeySlotType_eType3;
-            break;
-        }
-        case BCMD_XptSecKeySlot_eType4:
-        {
-            rvType = NEXUS_SecurityKeySlotType_eType4;
-            break;
-        }
-
-       #if HAS_TYPE5_KEYSLOTS
-        case BCMD_XptSecKeySlot_eType5:
-        {
-            rvType = NEXUS_SecurityKeySlotType_eType5;
-            break;
-        }
-
-        #if !HSM_IS_ASKM_28NM_ZEUS_4_0
-        case BCMD_XptSecKeySlot_eType6:
-        {
-            rvType = NEXUS_SecurityKeySlotType_eType6;
-            break;
-        }
-        #endif
-
-       #endif /* HAS_TYPE5_KEYSLOTS */
-
-       #if HAS_TYPE7_KEYSLOTS
-        case BCMD_XptSecKeySlot_eType7:
-        {
-            rvType = NEXUS_SecurityKeySlotType_eType7;
-            break;
-        }
+        case BCMD_XptSecKeySlot_eType0: return NEXUS_SecurityKeySlotType_eType0;
+        case BCMD_XptSecKeySlot_eType1: return NEXUS_SecurityKeySlotType_eType1;
+        case BCMD_XptSecKeySlot_eType2: return NEXUS_SecurityKeySlotType_eType2;
+        case BCMD_XptSecKeySlot_eType3: return NEXUS_SecurityKeySlotType_eType3;
+        case BCMD_XptSecKeySlot_eType4: return NEXUS_SecurityKeySlotType_eType4;
+       #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,0)
+        case BCMD_XptSecKeySlot_eType5: return NEXUS_SecurityKeySlotType_eType5;
        #endif
-
-        default:
-        {
-            return BERR_TRACE(NEXUS_INVALID_PARAMETER);
-        }
+        default: BERR_TRACE(NEXUS_INVALID_PARAMETER); break;
     }
 
-    *nexusSlotType = rvType;
-
-    BDBG_MSG(("NEXUS_Security_MapHsmKeySlotTypeToNexus -- hsm slotType[%d] nexus slot type[%d]", hsmKeyslotType, rvType ));
-
-    BDBG_LEAVE(NEXUS_Security_MapHsmKeySlotTypeToNexus);
-    return 0;
+    return NEXUS_SecurityKeySlotType_eType0;
 }
 
-static NEXUS_Error NEXUS_Security_MapNexusKeySlotTypeToHsm(NEXUS_SecurityKeySlotType slotType, NEXUS_SecurityEngine engine, BCMD_XptSecKeySlot_e *pType)
+
+/* Map the NEXUS keyslot type to a HSM keyslot type. */
+static BCMD_XptSecKeySlot_e mapNexus2Hsm_KeyslotType( NEXUS_SecurityKeySlotType nexusType, /* the Nexus keyslot type */
+                                                      NEXUS_SecurityEngine engine )        /* the engine */
 {
-    BCMD_XptSecKeySlot_e rvType = BCMD_XptSecKeySlot_eType0;
-
-    BDBG_ENTER(NEXUS_Security_MapNexusKeySlotTypeToHsm);
-
-
-    if( slotType != NEXUS_SecurityKeySlotType_eAuto )
+    switch( nexusType )
     {
-        /* ... its a direct map */
-        switch( slotType )
+        case NEXUS_SecurityKeySlotType_eAuto:
         {
-            case NEXUS_SecurityKeySlotType_eType0:
+            switch( engine )   /* Determine the keyslot type based on engine */
             {
-                rvType = BCMD_XptSecKeySlot_eType0;
-                break;
+                case NEXUS_SecurityEngine_eM2m:  return BCMD_XptSecKeySlot_eType3;
+                case NEXUS_SecurityEngine_eCa:   return BCMD_XptSecKeySlot_eType0;
+                case NEXUS_SecurityEngine_eCaCp: return BCMD_XptSecKeySlot_eType0;
+                default: BERR_TRACE( NEXUS_INVALID_PARAMETER ); break;
             }
-            case NEXUS_SecurityKeySlotType_eType1:
-            {
-                rvType = BCMD_XptSecKeySlot_eType1;
-                break;
-            }
-            case NEXUS_SecurityKeySlotType_eType2:
-            {
-                rvType = BCMD_XptSecKeySlot_eType2;
-                break;
-            }
-            case NEXUS_SecurityKeySlotType_eType3:
-            {
-                rvType = BCMD_XptSecKeySlot_eType3;
-                break;
-            }
-            case NEXUS_SecurityKeySlotType_eType4:
-            {
-                rvType = BCMD_XptSecKeySlot_eType4;
-                break;
-            }
-         #if HAS_TYPE5_KEYSLOTS
-            case NEXUS_SecurityKeySlotType_eType5:
-            {
-                rvType = BCMD_XptSecKeySlot_eType5;
-                break;
-            }
-
-            #if !HSM_IS_ASKM_28NM_ZEUS_4_0
-            case NEXUS_SecurityKeySlotType_eType6:
-            {
-                rvType = BCMD_XptSecKeySlot_eType6;
-                break;
-            }
-            #endif
-         #endif /* HAS_TYPE5_KEYSLOTS */
-
-         #if HAS_TYPE7_KEYSLOTS
-            case NEXUS_SecurityKeySlotType_eType7:
-            {
-                rvType = BCMD_XptSecKeySlot_eType7;
-                break;
-            }
-         #endif
-            default:
-            {
-                return BERR_TRACE(NEXUS_INVALID_PARAMETER);
-            }
+            break;
         }
-
-    }
-    else /* slotType != NEXUS_SecurityKeySlotType_eAuto */
-    {
-        switch( engine )   /* Determine the keyslot type based on engine */
-        {
-            case NEXUS_SecurityEngine_eM2m:
-            {
-              #if HSM_IS_ASKM_40NM
-                rvType = BCMD_XptSecKeySlot_eType3;
-              #else
-                rvType = BCMD_XptSecKeySlot_eType1;
-              #endif
-                break;
-            }
-            case NEXUS_SecurityEngine_eCa:
-            {
-              #if HSM_IS_ASKM_40NM
-                rvType = BCMD_XptSecKeySlot_eType0;
-              #else
-                rvType = BCMD_XptSecKeySlot_eType1;
-              #endif
-                break;
-            }
-            case NEXUS_SecurityEngine_eCaCp:
-            case NEXUS_SecurityEngine_eRmx:
-            {
-              #if HSM_IS_ASKM_40NM
-                rvType = BCMD_XptSecKeySlot_eType0;
-              #else
-               #if HAS_TYPE7_KEYSLOTS
-                rvType = BCMD_XptSecKeySlot_eType7;
-               #elif !HAS_TYPE5_KEYSLOTS
-                rvType = BCMD_XptSecKeySlot_eType4;
-               #else
-                rvType = BCMD_XptSecKeySlot_eType6;
-               #endif
-              #endif
-                break;
-            }
-            case NEXUS_SecurityEngine_eCp:
-            default:
-            {
-                /* an unsupported or invalid security engine value was passed in. */
-                return BERR_TRACE(NEXUS_INVALID_PARAMETER);
-            }
-        }
+        case NEXUS_SecurityKeySlotType_eType0: return BCMD_XptSecKeySlot_eType0;
+        case NEXUS_SecurityKeySlotType_eType1: return BCMD_XptSecKeySlot_eType1;
+        case NEXUS_SecurityKeySlotType_eType2: return BCMD_XptSecKeySlot_eType2;
+        case NEXUS_SecurityKeySlotType_eType3: return BCMD_XptSecKeySlot_eType3;
+        case NEXUS_SecurityKeySlotType_eType4: return BCMD_XptSecKeySlot_eType4;
+       #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,0)
+        case NEXUS_SecurityKeySlotType_eType5: return BCMD_XptSecKeySlot_eType5;
+       #endif
+        default: BERR_TRACE( NEXUS_INVALID_PARAMETER ); break;
     }
 
-    *pType = rvType;
-
-
-    BDBG_MSG(("NEXUS_Security_MapNexusKeySlotTypeToHsm -- slotType[%d] polType[%d,%d]" , slotType  , engine , rvType ));
-
-
-    BDBG_LEAVE(NEXUS_Security_MapNexusKeySlotTypeToHsm);
-    return 0;
+    return BCMD_XptSecKeySlot_eType0;  /* default to Type0 */
 }
 
 NEXUS_Error NEXUS_Security_AllocateM2mKeySlot(NEXUS_KeySlotHandle * pKeyHandle,const NEXUS_SecurityKeySlotSettings *pSettings, BCMD_XptSecKeySlot_e type)
@@ -1365,8 +991,6 @@ err_create:
     return BERR_TRACE(MAKE_HSM_ERR(rc));
 }
 
-#if HSM_IS_ASKM
-
 void NEXUS_Security_GetDefaultAlgorithmSettings(NEXUS_SecurityAlgorithmSettings * pSettings)
 {
 
@@ -1393,7 +1017,7 @@ void NEXUS_Security_GetDefaultAlgorithmSettings(NEXUS_SecurityAlgorithmSettings 
     pSettings->enableExtKey = false;
     pSettings->mscBitSelect = false;
     pSettings->bDisallowGG = false;
-    #if HSM_IS_ASKM_40NM_ZEUS_3_0
+    #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(3,0)
     pSettings->bDisallowGR = true;
     pSettings->bDisallowRG = true;
     pSettings->bRestrictDropPktEnable = true;
@@ -1422,89 +1046,41 @@ void NEXUS_Security_GetDefaultAlgorithmSettings(NEXUS_SecurityAlgorithmSettings 
     return;
 }
 
-static BCMD_XptM2MSecCryptoAlg_e NEXUS_Security_MapNexusAlgorithmToHsm(NEXUS_SecurityAlgorithm algorithm)
+static BCMD_XptM2MSecCryptoAlg_e mapNexus2Hsm_Algorithm( NEXUS_SecurityAlgorithm algorithm )
 {
-    BCMD_XptM2MSecCryptoAlg_e rvAlgorithm = algorithm;
-
-    switch (algorithm)
+    switch( algorithm )
     {
-    case NEXUS_SecurityAlgorithm_eMulti2:
-        rvAlgorithm = BCMD_XptM2MSecCryptoAlg_eMulti2;
-        break;
-    case NEXUS_SecurityAlgorithm_eDes:
-        rvAlgorithm = BCMD_XptM2MSecCryptoAlg_eDes;
-        break;
-    case NEXUS_SecurityAlgorithm_e3DesAba:
-        rvAlgorithm = BCMD_XptM2MSecCryptoAlg_e3DesAba;
-        break;
-    case NEXUS_SecurityAlgorithm_e3DesAbc:
-        rvAlgorithm = BCMD_XptM2MSecCryptoAlg_e3DesAbc;
-        break;
-    case NEXUS_SecurityAlgorithm_eAes:
-        rvAlgorithm = BCMD_XptM2MSecCryptoAlg_eAes128;
-        break;
-    case NEXUS_SecurityAlgorithm_eAes192:
-        rvAlgorithm = BCMD_XptM2MSecCryptoAlg_eAes192;
-        break;
-    case NEXUS_SecurityAlgorithm_eC2:
-        rvAlgorithm = BCMD_XptM2MSecCryptoAlg_eC2;
-        break;
-    case NEXUS_SecurityAlgorithm_eCss:
-        rvAlgorithm = BCMD_XptM2MSecCryptoAlg_eCss;
-        break;
-    case NEXUS_SecurityAlgorithm_eM6Ke:
-        rvAlgorithm = BCMD_XptM2MSecCryptoAlg_eM6KE;
-        break;
-    case NEXUS_SecurityAlgorithm_eM6:
-        rvAlgorithm = BCMD_XptM2MSecCryptoAlg_eM6;
-        break;
-    case NEXUS_SecurityAlgorithm_eWMDrmPd:
-        rvAlgorithm = BCMD_XptM2MSecCryptoAlg_eWMDrmPd;
-        break;
-    #if HSM_IS_ASKM_40NM
-    case NEXUS_SecurityAlgorithm_eDvbCsa3:
-        rvAlgorithm = BCMD_XptM2MSecCryptoAlg_eDVBCSA3;
-        break;
-    case NEXUS_SecurityAlgorithm_eAesCounter:
-        rvAlgorithm = BCMD_XptM2MSecCryptoAlg_eAesCounter0;
-        break;
-    case NEXUS_SecurityAlgorithm_eMSMultiSwapMac:
-        rvAlgorithm = BCMD_XptM2MSecCryptoAlg_eMSMULTISWAPMAC;
-        break;
-     #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(2,0)
-    case NEXUS_SecurityAlgorithm_eAsa:
-       #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(1,0)
-        rvAlgorithm = BCMD_XptM2MSecCryptoAlg_eReserved19;
-       #else
-        rvAlgorithm =  BCMD_XptM2MSecCryptoAlg_eASA;
-       #endif
-        break;
-      #endif
+        case NEXUS_SecurityAlgorithm_eMulti2:         return BCMD_XptM2MSecCryptoAlg_eMulti2;
+        case NEXUS_SecurityAlgorithm_eDes:            return BCMD_XptM2MSecCryptoAlg_eDes;
+        case NEXUS_SecurityAlgorithm_e3DesAba:        return BCMD_XptM2MSecCryptoAlg_e3DesAba;
+        case NEXUS_SecurityAlgorithm_e3DesAbc:        return BCMD_XptM2MSecCryptoAlg_e3DesAbc;
+        case NEXUS_SecurityAlgorithm_eAes:            return BCMD_XptM2MSecCryptoAlg_eAes128;
+        case NEXUS_SecurityAlgorithm_eAes192:         return BCMD_XptM2MSecCryptoAlg_eAes192;
+        case NEXUS_SecurityAlgorithm_eC2:             return BCMD_XptM2MSecCryptoAlg_eC2;
+        case NEXUS_SecurityAlgorithm_eCss:            return BCMD_XptM2MSecCryptoAlg_eCss;
+        case NEXUS_SecurityAlgorithm_eM6Ke:           return BCMD_XptM2MSecCryptoAlg_eM6KE;
+        case NEXUS_SecurityAlgorithm_eM6:             return BCMD_XptM2MSecCryptoAlg_eM6;
+        case NEXUS_SecurityAlgorithm_eWMDrmPd:        return BCMD_XptM2MSecCryptoAlg_eWMDrmPd;
+        case NEXUS_SecurityAlgorithm_eDvbCsa3:        return BCMD_XptM2MSecCryptoAlg_eDVBCSA3;
+        case NEXUS_SecurityAlgorithm_eAesCounter:     return BCMD_XptM2MSecCryptoAlg_eAesCounter0;
+        case NEXUS_SecurityAlgorithm_eMSMultiSwapMac: return BCMD_XptM2MSecCryptoAlg_eMSMULTISWAPMAC;
+        case NEXUS_SecurityAlgorithm_eAsa:            return BCMD_XptM2MSecCryptoAlg_eReserved19;
 
-    #endif /*HSM_IS_ASKM_40NM*/
-
-    /* The _eReservedX values should pass the literal value X into HSM,
-     * allowing direct control of custom modes
-     * Macro trickery to avoid copy/paste errors */
-    #define NEXUS_REMAP_RESERVED(VAL) \
-    case NEXUS_SecurityAlgorithm_eReserved##VAL : \
-        rvAlgorithm = (BCMD_XptM2MSecCryptoAlg_e) VAL ; \
-        break;
-        NEXUS_REMAP_RESERVED(0)
-        NEXUS_REMAP_RESERVED(1)
-        NEXUS_REMAP_RESERVED(2)
-        NEXUS_REMAP_RESERVED(3)
-        NEXUS_REMAP_RESERVED(4)
-        NEXUS_REMAP_RESERVED(5)
-        NEXUS_REMAP_RESERVED(6)
-        NEXUS_REMAP_RESERVED(7)
-        NEXUS_REMAP_RESERVED(8)
-    #undef NEXUS_REMAP_RESERVED
-    default:
-        break;
+        case NEXUS_SecurityAlgorithm_eReserved0:       return (BCMD_XptM2MSecCryptoAlg_e)0;
+        case NEXUS_SecurityAlgorithm_eReserved1:       return (BCMD_XptM2MSecCryptoAlg_e)1;
+        case NEXUS_SecurityAlgorithm_eReserved2:       return (BCMD_XptM2MSecCryptoAlg_e)2;
+        case NEXUS_SecurityAlgorithm_eReserved3:       return (BCMD_XptM2MSecCryptoAlg_e)3;
+        case NEXUS_SecurityAlgorithm_eReserved4:       return (BCMD_XptM2MSecCryptoAlg_e)4;
+        case NEXUS_SecurityAlgorithm_eReserved5:       return (BCMD_XptM2MSecCryptoAlg_e)5;
+        case NEXUS_SecurityAlgorithm_eReserved6:       return (BCMD_XptM2MSecCryptoAlg_e)6;
+        case NEXUS_SecurityAlgorithm_eReserved7:       return (BCMD_XptM2MSecCryptoAlg_e)7;
+        case NEXUS_SecurityAlgorithm_eReserved8:       return (BCMD_XptM2MSecCryptoAlg_e)8;
+        case NEXUS_SecurityAlgorithm_eReserved9:       return (BCMD_XptM2MSecCryptoAlg_e)9;
+        default: break;
     }
 
-    return rvAlgorithm;
+    /* return input value.  */
+    return (BCMD_XptM2MSecCryptoAlg_e)algorithm;
 }
 
 static void NEXUS_Security_GetHsmAlgorithmKeySetting(
@@ -1517,7 +1093,7 @@ static void NEXUS_Security_GetHsmAlgorithmKeySetting(
 {
 
     /* fixups/remapping needed since the enums do not always agree across all platforms */
-    *pCryptAlg = NEXUS_Security_MapNexusAlgorithmToHsm(pSettings->algorithm);
+    *pCryptAlg = mapNexus2Hsm_Algorithm(pSettings->algorithm);
     *pCipherMode = (BCMD_CipherModeSelect_e)pSettings->algorithmVar;
     *pTerminationMode = (BCMD_TerminationMode_e)pSettings->terminationMode;
 
@@ -1547,7 +1123,7 @@ static void NEXUS_Security_GetHsmAlgorithmKeySetting(
                 /* overload termination mode for M2M to handle AESCounter                 */
                 /*  For Zeus 2.0 and earlier CounterMode and CounterSize are the same */
                 /*  For  Zeus 2.0, 3.0, and 4.x, they are different, and CounterSize is pisked up after this   */
-                #if HSM_IS_ASKM_40NM_ZEUS_3_0
+                #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(3,0)
                 *pTerminationMode = pSettings->aesCounterMode;
                 #else
                 *pTerminationMode = pSettings->aesCounterSize;
@@ -1557,373 +1133,79 @@ static void NEXUS_Security_GetHsmAlgorithmKeySetting(
     }
 }
 
-#else /* HSM_IS_ASKM  */
 
-void NEXUS_Security_GetDefaultAlgorithmSettings(NEXUS_SecurityAlgorithmSettings * pSettings)
+static BCMD_KeyDestBlockType_e mapNexus2Hsm_blockType( NEXUS_KeySlotHandle keyslot,
+                                                       NEXUS_SecurityAlgorithmConfigDestination dest )
 {
-    BDBG_ENTER(NEXUS_Security_GetDefaultAlgorithmSettings);
 
-    BKNI_Memset(pSettings, 0, sizeof(*pSettings));
-    pSettings->algorithm = NEXUS_SecurityAlgorithm_e3DesAba;
-    pSettings->algorithmVar = NEXUS_SecurityAlgorithmVariant_eEcb;
-    pSettings->terminationMode = NEXUS_SecurityTerminationMode_eCipherStealing;
-    pSettings->aesCounterSize = NEXUS_SecurityAesCounterSize_e32Bits;
-    pSettings->dvbScramLevel = NEXUS_SecurityDvbScrambleLevel_eTs;
-    pSettings->keyDestEntryType = NEXUS_SecurityKeyType_eOddAndEven;
-    pSettings->operation = NEXUS_SecurityOperation_ePassThrough;
-    pSettings->bRestrictEnable = true;
-    pSettings->bGlobalEnable = true;
-    pSettings->bScAtscMode = false;
-    pSettings->bAtscModEnable = false;
-    pSettings->bGlobalDropPktEnable = false;
-    pSettings->bRestrictDropPktEnable = false;
-    pSettings->bGlobalRegionOverwrite = false;
-    pSettings->enableExtIv = false;
-    pSettings->enableExtKey = false;
-    pSettings->mscBitSelect = false;
-    pSettings->bScPolarityEnable = false;
-    pSettings->bSynEnable = false;
-    pSettings->bCPDDisable = false;
-    pSettings->bCPSDisable = false;
-
-    BDBG_LEAVE(NEXUS_Security_GetDefaultAlgorithmSettings);
-    return;
-}
-
-static bool NEXUS_Security_GetHsmCaCpRmxAlgorithmKeySetting(const NEXUS_SecurityAlgorithmSettings * pSettings, unsigned int * pCryptAlg, BHSM_ResidueMode_e * pResidualMode)
-{
-    BDBG_ENTER(NEXUS_Security_GetHsmCaCpRmxAlgorithmKeySetting);
-
-    switch (pSettings->algorithm) {
-    case NEXUS_SecurityAlgorithm_eDvb: {
-        *pCryptAlg = BCMD_XptSecCryptoAlg_eDvb;
-        if (pSettings->dvbScramLevel == NEXUS_SecurityDvbScrambleLevel_eTs)
-            *pResidualMode = BHSM_DVBScrambleLevel_eTS;
-        else
-            *pResidualMode = BHSM_DVBScrambleLevel_ePes;
-    }
-        return true;
-
-    case NEXUS_SecurityAlgorithm_eDes: {
-        if (pSettings->algorithmVar == NEXUS_SecurityAlgorithmVariant_eEcb)
-            *pCryptAlg = BCMD_XptSecCryptoAlg_eDesEcb;
-        else
-            *pCryptAlg = BCMD_XptSecCryptoAlg_eDesCbc;
-    }
-        break;
-    case NEXUS_SecurityAlgorithm_e3DesAba: {
-        if (pSettings->algorithmVar == NEXUS_SecurityAlgorithmVariant_eEcb)
-            *pCryptAlg = BCMD_XptSecCryptoAlg_e3DesAbaEcb;
-        else
-            *pCryptAlg = BCMD_XptSecCryptoAlg_e3DesAbaCbc;
-    }
-        break;
-#if SUPPORT_NON_DTV_CRYPTO || SUPPORT_AES_FOR_DTV
-    case NEXUS_SecurityAlgorithm_eAes: {
-        if (pSettings->algorithmVar == NEXUS_SecurityAlgorithmVariant_eEcb)
-            *pCryptAlg = BCMD_XptSecCryptoAlg_eAesEcb;
-        else
-            *pCryptAlg = BCMD_XptSecCryptoAlg_eAesCbc;
-    }
-        break;
-#endif /* SUPPORT_NON_DTV_CRYPTO */
-    case NEXUS_SecurityAlgorithm_eMulti2: {
-        if (pSettings->algorithmVar == NEXUS_SecurityAlgorithmVariant_eEcb)
-            *pCryptAlg = BCMD_XptSecCryptoAlg_eMulti2Ecb;
-        else
-            *pCryptAlg = BCMD_XptSecCryptoAlg_eMulti2Cbc;
-        break;
-    }
-    default:
-#if SUPPORT_NON_DTV_CRYPTO
-        *pCryptAlg = BCMD_XptSecCryptoAlg_eAesEcb;
-#else
-        * pCryptAlg = BCMD_XptSecCryptoAlg_eDesEcb;
-#endif /* SUPPORT_NON_DTV_CRYPTO */
-        BDBG_WRN(("Unrecognized or unsupported algorithm"));
-        BERR_TRACE(BERR_INVALID_PARAMETER);
-        break;
-    }
-
-    BDBG_LEAVE(NEXUS_Security_GetHsmCaCpRmxAlgorithmKeySetting);
-    return false;
-}
-
-static bool NEXUS_Security_GetHsmM2MAlgorithmKeySetting(const NEXUS_SecurityAlgorithmSettings *pSettings, unsigned int * pCryptAlg, BHSM_ResidueMode_e * pResidualMode)
-{
-    BDBG_ENTER(NEXUS_Security_GetHsmM2MAlgorithmKeySetting);
-
-    switch (pSettings->algorithm) {
-    case NEXUS_SecurityAlgorithm_e3DesAba: {
-        if (pSettings->algorithmVar == NEXUS_SecurityAlgorithmVariant_eEcb)
-            *pCryptAlg = BCMD_M2MSecCryptoAlg_e3DesAbaEcb;
-        else
-            *pCryptAlg = BCMD_M2MSecCryptoAlg_e3DesAbaCbc;
-    }
-        break;
-    case NEXUS_SecurityAlgorithm_e3DesAbc: {
-        if (pSettings->algorithmVar == NEXUS_SecurityAlgorithmVariant_eEcb)
-            *pCryptAlg = BCMD_M2MSecCryptoAlg_e3DesAbcEcb;
-        else
-            *pCryptAlg = BCMD_M2MSecCryptoAlg_e3DesAbcCbc;
-    }
-        break;
-    case NEXUS_SecurityAlgorithm_eDes: {
-        if (pSettings->algorithmVar == NEXUS_SecurityAlgorithmVariant_eEcb)
-            *pCryptAlg = BCMD_M2MSecCryptoAlg_eDesEcb;
-        else
-            *pCryptAlg = BCMD_M2MSecCryptoAlg_eDesCbc;
-    }
-        break;
-#if SUPPORT_NON_DTV_CRYPTO
-    case NEXUS_SecurityAlgorithm_eC2: {
-        if (pSettings->algorithmVar == NEXUS_SecurityAlgorithmVariant_eEcb)
-            *pCryptAlg = BCMD_M2MSecCryptoAlg_eC2Ecb;
-        else
-            *pCryptAlg = BCMD_M2MSecCryptoAlg_eC2Cbc;
-    }
-        break;
-#endif /* SUPPORT_NON_DTV_CRYPTO */
-#if SUPPORT_NON_DTV_CRYPTO
-    case NEXUS_SecurityAlgorithm_eCss:
-        *pCryptAlg = BCMD_M2MSecCryptoAlg_eCss;
-        break;
-#endif /* SUPPORT_NON_DTV_CRYPTO */
-    case NEXUS_SecurityAlgorithm_eM6Ke:
-        *pCryptAlg = BCMD_M2MSecCryptoAlg_eM6KE;
-        break;
-    case NEXUS_SecurityAlgorithm_eM6: {
-        if (pSettings->algorithmVar == NEXUS_SecurityAlgorithmVariant_eEcb)
-            *pCryptAlg = BCMD_M2MSecCryptoAlg_eM6Ecb;
-        else
-            *pCryptAlg = BCMD_M2MSecCryptoAlg_eM6Cbc;
-    }
-        break;
-    case NEXUS_SecurityAlgorithm_eAes: {
-        if (pSettings->algorithmVar == NEXUS_SecurityAlgorithmVariant_eEcb)
-            *pCryptAlg = BCMD_M2MSecCryptoAlg_eAes128Ecb;
-        else if (pSettings->algorithmVar == NEXUS_SecurityAlgorithmVariant_eCbc)
-            *pCryptAlg = BCMD_M2MSecCryptoAlg_eAes128Cbc;
-        else
-            *pCryptAlg = BCMD_M2MSecCryptoAlg_eAesCounter;
-    }
-        break;
-    case NEXUS_SecurityAlgorithm_eAes192: {
-        if (pSettings->algorithmVar == NEXUS_SecurityAlgorithmVariant_eEcb)
-            *pCryptAlg = BCMD_M2MSecCryptoAlg_eAes192Ecb;
-        else if (pSettings->algorithmVar == NEXUS_SecurityAlgorithmVariant_eCbc)
-            *pCryptAlg = BCMD_M2MSecCryptoAlg_eAes192Cbc;
-        else
-            *pCryptAlg = BCMD_M2MSecCryptoAlg_eAes192Counter;
-    }
-        break;
-#if MSDRM_PD_SUPPORT
-        case NEXUS_SecurityAlgorithm_eWMDrmPd:
-        * pCryptAlg = BCMD_M2MSecCryptoAlg_eWMDrmPd;
-        break;
-        case NEXUS_SecurityAlgorithm_eRc4:
-        * pCryptAlg = BCMD_M2MSecCryptoAlg_eRc4;
-        break;
-#endif
-    default:
-        *pCryptAlg = BCMD_M2MSecCryptoAlg_eAes128Ecb;
-        break;
-    }
-
-    if ( (*pCryptAlg == BCMD_M2MSecCryptoAlg_eAesCounter) || (*pCryptAlg == BCMD_M2MSecCryptoAlg_eAes192Counter)) {
-        *pResidualMode = (BHSM_ResidueMode_e) pSettings->aesCounterSize;
-        return true;
-    }
-
-    BDBG_LEAVE(NEXUS_Security_GetHsmM2MAlgorithmKeySetting);
-    return false;
-}
-
-static void NEXUS_Security_GetHsmAlgorithmKeySetting( NEXUS_KeySlotHandle keyHandle,
-                                const NEXUS_SecurityAlgorithmSettings *pSettings,
-                                unsigned int * pCryptAlg,
-                                BHSM_ResidueMode_e * pResidualMode )
-{
-    BDBG_ENTER(NEXUS_Security_GetHsmAlgorithmKeySetting);
-
-    if( keyHandle->settings.keySlotEngine != NEXUS_SecurityEngine_eM2m )
+    switch( keyslot->settings.keySlotEngine )
     {
-        if (NEXUS_Security_GetHsmCaCpRmxAlgorithmKeySetting(pSettings, pCryptAlg, pResidualMode))
-        {
-            return;
-        }
-    }
-    else
-    {
-        if (NEXUS_Security_GetHsmM2MAlgorithmKeySetting(pSettings, pCryptAlg, pResidualMode))
-        {
-            return;
-        }
-    }
-
-    switch( pSettings->terminationMode )
-    {
-    case NEXUS_SecurityTerminationMode_eClear:
-        *pResidualMode = BHSM_ResidueMode_eUnscrambled;
-        break;
-    case NEXUS_SecurityTerminationMode_eBlock:
-        *pResidualMode = BHSM_ResidueMode_eResidueBlock;
-        break;
-    case NEXUS_SecurityTerminationMode_eCipherStealing:
-        *pResidualMode = BHSM_ResidueMode_eCipherTextStealing;
-        break;
-#if 0 /*RRLee BHSM_ResidueMode_eCipherStealingComcast is not defined???*/
-        case NEXUS_SecurityTerminationMode_eCipherStealingComcast:
-        * pResidualMode = BHSM_ResidueMode_eCipherStealingComcast;
-        break;
-#endif
-    default:
-        *pResidualMode = BHSM_ResidueMode_eUnscrambled;
-        break;
-   }
-
-    BDBG_LEAVE(NEXUS_Security_GetHsmAlgorithmKeySetting);
-    return;
-}
-#endif /* HSM_IS_ASKM */
-
-static NEXUS_Error NEXUS_Security_GetHsmDestBlkType( NEXUS_KeySlotHandle keyslot, NEXUS_SecurityAlgorithmConfigDestination dest, BCMD_KeyDestBlockType_e *pType )
-{
-    BDBG_ENTER(NEXUS_Security_GetHsmDestBlkType);
-
-    BDBG_MSG(("NEXUS_Security_GetHsmDestBlkType -- engine[%d] dest[%d] *pType[%d]" , keyslot->settings.keySlotEngine , dest , *pType ));
-
-    switch( keyslot->settings.keySlotEngine)
-    {
-        case NEXUS_SecurityEngine_eCa:
-        {
-            *pType = BCMD_KeyDestBlockType_eCA;
-            break;
-        }
-        case NEXUS_SecurityEngine_eM2m:
-        {
-            *pType = BCMD_KeyDestBlockType_eMem2Mem;
-            break;
-        }
+        case NEXUS_SecurityEngine_eCa:  { return BCMD_KeyDestBlockType_eCA; }
+        case NEXUS_SecurityEngine_eM2m: { return BCMD_KeyDestBlockType_eMem2Mem; }
         case NEXUS_SecurityEngine_eCaCp:
         {
-          #if HSM_IS_ASKM
-            if (dest == NEXUS_SecurityAlgorithmConfigDestination_eCa)
+            switch( dest )
             {
-                *pType = BCMD_KeyDestBlockType_eCA;
+                case NEXUS_SecurityAlgorithmConfigDestination_eCa:  return BCMD_KeyDestBlockType_eCA;
+                case NEXUS_SecurityAlgorithmConfigDestination_eCpd: return BCMD_KeyDestBlockType_eCPDescrambler;
+                case NEXUS_SecurityAlgorithmConfigDestination_eCps: return BCMD_KeyDestBlockType_eCPScrambler;
+                default:  BERR_TRACE( NEXUS_NOT_SUPPORTED ); break;
             }
-            else if (dest == NEXUS_SecurityAlgorithmConfigDestination_eCpd)
-            {
-                *pType = BCMD_KeyDestBlockType_eCPDescrambler;
-            }
-            else if (dest == NEXUS_SecurityAlgorithmConfigDestination_eCps)
-            {
-                *pType = BCMD_KeyDestBlockType_eCPScrambler;
-            }
-          #else
-                *pType = (dest==NEXUS_SecurityAlgorithmConfigDestination_eCa) ? BCMD_KeyDestBlockType_eCA : BCMD_KeyDestBlockType_eRmx;
-          #endif
             break;
         }
         case NEXUS_SecurityEngine_eCp:
         {
-          #if HSM_IS_ASKM
-            if (dest == NEXUS_SecurityAlgorithmConfigDestination_eCpd)
+            switch( dest )
             {
-                *pType = BCMD_KeyDestBlockType_eCPDescrambler;
+                case NEXUS_SecurityAlgorithmConfigDestination_eCpd: return BCMD_KeyDestBlockType_eCPDescrambler;
+                case NEXUS_SecurityAlgorithmConfigDestination_eCps: return BCMD_KeyDestBlockType_eCPScrambler;
+                default:  BERR_TRACE( NEXUS_NOT_SUPPORTED ); break;
             }
-            else if (dest == NEXUS_SecurityAlgorithmConfigDestination_eCps)
-            {
-                *pType = BCMD_KeyDestBlockType_eCPScrambler;
-            }
-          #else
-            *pType = BCMD_KeyDestBlockType_eRmx;
-          #endif
             break;
         }
-        case NEXUS_SecurityEngine_eRmx:
-        {
-          #if HSM_IS_ASKM_40NM
-            BDBG_ERR(("Remux is not supported on 40nm HSM"));
-            *pType = BCMD_KeyDestBlockType_eCA;
-            return BERR_TRACE(NEXUS_NOT_SUPPORTED);
-          #else
-            *pType = BCMD_KeyDestBlockType_eRmx;
-          #endif
-            break;
-        }
-        default:
-        {
-            return BERR_TRACE( NEXUS_NOT_SUPPORTED ); /* There is no meaningful default, error. */
-        }
+        default:  BERR_TRACE( NEXUS_NOT_SUPPORTED ); break;
     }
 
-    BDBG_MSG(("NEXUS_Security_GetHsmDestBlkType -- engine[%d] dest[%d] *pType[%d]" , keyslot->settings.keySlotEngine, dest , *pType ));
-
-    BDBG_LEAVE(NEXUS_Security_GetHsmDestBlkType);
-    return NEXUS_SUCCESS;
+    return BCMD_KeyDestBlockType_eCA;
 }
 
-static NEXUS_Error NEXUS_Security_GetHsmDestEntryType(NEXUS_SecurityKeyType keytype, BCMD_KeyDestEntryType_e *pType)
+static BCMD_KeyDestEntryType_e mapNexus2Hsm_keyEntryType( NEXUS_SecurityKeyType keytype )
 {
-    switch (keytype) {
-    case NEXUS_SecurityKeyType_eEven:
-        *pType = BCMD_KeyDestEntryType_eEvenKey;
-        break;
-    case NEXUS_SecurityKeyType_eOdd:
-        *pType = BCMD_KeyDestEntryType_eOddKey;
-        break;
-    case NEXUS_SecurityKeyType_eClear:
-       #if HSM_IS_ASKM_40NM
-        *pType = BCMD_KeyDestEntryType_eClearKey;
-       #else
-        *pType = BCMD_KeyDestEntryType_eReserved0;
-       #endif
-        break;
-   #if !HSM_IS_ASKM_40NM
-    case NEXUS_SecurityKeyType_eIv:
-        *pType = BCMD_KeyDestEntryType_eIV;
-        break;
-   #endif
-    default:
-        *pType = BCMD_KeyDestEntryType_eOddKey;
-        break;
+    switch( keytype )
+    {
+        case NEXUS_SecurityKeyType_eOddAndEven: return BCMD_KeyDestEntryType_eOddKey;
+        case NEXUS_SecurityKeyType_eEven:       return BCMD_KeyDestEntryType_eEvenKey;
+        case NEXUS_SecurityKeyType_eOdd:        return BCMD_KeyDestEntryType_eOddKey;
+        case NEXUS_SecurityKeyType_eClear:      return BCMD_KeyDestEntryType_eClearKey;
+        default: BERR_TRACE( NEXUS_INVALID_PARAMETER ); break; /* invalid type key entry/polarity.  */
     }
-    return NEXUS_SUCCESS;
+    return BCMD_KeyDestEntryType_eOddKey;
 }
 
-#if HSM_IS_ASKM_40NM
-static NEXUS_Error NEXUS_Security_GetHsmDestIVType(NEXUS_SecurityKeyIVType keyIVtype, BCMD_KeyDestIVType_e *pType)
+static  BCMD_KeyDestIVType_e mapNexus2Hsm_ivType( NEXUS_SecurityKeyIVType keyIVtype )
 {
-    switch (keyIVtype) {
-    case NEXUS_SecurityKeyIVType_eNoIV:
-        *pType = BCMD_KeyDestIVType_eNoIV;
-        break;
-    case NEXUS_SecurityKeyIVType_eIV:
-        *pType = BCMD_KeyDestIVType_eIV;
-        break;
-    case NEXUS_SecurityKeyIVType_eAesShortIV:
-        *pType = BCMD_KeyDestIVType_eAesShortIV;
-        break;
-    default:
-        *pType = BCMD_KeyDestIVType_eNoIV;
-        break;
+    switch (keyIVtype)
+    {
+        case NEXUS_SecurityKeyIVType_eNoIV:          return BCMD_KeyDestIVType_eNoIV;
+        case NEXUS_SecurityKeyIVType_eIV:            return BCMD_KeyDestIVType_eIV;
+        case NEXUS_SecurityKeyIVType_eAesShortIV:    return BCMD_KeyDestIVType_eAesShortIV;
+        default: BERR_TRACE(NEXUS_INVALID_PARAMETER); break;
     }
-    return NEXUS_SUCCESS;
+
+    return BCMD_KeyDestIVType_eNoIV;
 }
 
-#endif
-#ifdef NEXUS_SECURITY_SC_VALUE
 static int g_scValues[NEXUS_SecurityAlgorithmScPolarity_eMax] = { 0, 1, 2, 3 };
-#endif
 
 
-#if HSM_IS_ASKM_28NM_ZEUS_4_0
+#if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,0)
 
-/* HSM_IS_ASKM_28NM_ZEUS_4_0 */
-static void NEXUS_Security_P_SetScValues(BHSM_ConfigAlgorithmIO_t *pConfigAlgorithmIO, const NEXUS_SecurityAlgorithmSettings *pSettings, NEXUS_SecurityKeyType keyType) {
+/* Zeus 4 */
+static void NEXUS_Security_P_SetScValues( BHSM_ConfigAlgorithmIO_t *pConfigAlgorithmIO,
+                                          const NEXUS_SecurityAlgorithmSettings *pSettings,
+                                          NEXUS_SecurityKeyType keyType )
+{
 
-#ifdef NEXUS_SECURITY_SC_VALUE
     int keytypeScValues[NEXUS_SecurityKeyType_eMax] = { 3, 2, 0, 0, 0 };
 
     if (pSettings->modifyScValue[NEXUS_SecurityPacketType_eGlobal])
@@ -1942,15 +1224,10 @@ static void NEXUS_Security_P_SetScValues(BHSM_ConfigAlgorithmIO_t *pConfigAlgori
     {
         pConfigAlgorithmIO->cryptoAlg.RpipeSCVal = keytypeScValues[keyType];
     }
-#else
-    BSTD_UNUSED(pConfigAlgorithmIO);
-    BSTD_UNUSED(pSettings);
-    BSTD_UNUSED(keyType);
-#endif
 }
 
 
-/* HSM_IS_ASKM_28NM_ZEUS_4_0 */
+/* Zeus 4 */
 NEXUS_Error NEXUS_Security_ConfigAlgorithm(NEXUS_KeySlotHandle keyHandle, const NEXUS_SecurityAlgorithmSettings *pSettings)
 {
     BHSM_ConfigAlgorithmIO_t         configAlgorithmIO;
@@ -1977,13 +1254,13 @@ NEXUS_Error NEXUS_Security_ConfigAlgorithm(NEXUS_KeySlotHandle keyHandle, const 
 
     keyDestEntryType = pSettings->keyDestEntryType;
 
-#if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,0)
+   #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,0)
     if( keyHandle->keyslotType == BCMD_XptSecKeySlot_eType3 )
     {
         /* Clear key entry must be used for Type 3, m2m  */
         keyDestEntryType = NEXUS_SecurityKeyType_eClear;
     }
-#endif
+   #endif
 
     pKeySlotData = keyHandle->security.data;
 
@@ -2002,9 +1279,7 @@ NEXUS_Error NEXUS_Security_ConfigAlgorithm(NEXUS_KeySlotHandle keyHandle, const 
     solitarySelect = pSettings->solitarySelect;
     counterSize    = pSettings->aesCounterSize;
 
-    rc = NEXUS_Security_GetHsmDestBlkType(keyHandle, pSettings->dest, &blockType);
-    if (rc)  return BERR_TRACE(rc);
-
+    blockType = mapNexus2Hsm_blockType( keyHandle, pSettings->dest );
     bConfigOddAndEven = (keyDestEntryType == NEXUS_SecurityKeyType_eOddAndEven);
 
     /* if req. is for AV Keyladder, config only for KeyDestEntryType requested */
@@ -2015,7 +1290,7 @@ NEXUS_Error NEXUS_Security_ConfigAlgorithm(NEXUS_KeySlotHandle keyHandle, const 
     }
 
     configAlgorithmIO.keyDestBlckType = blockType;
-    configAlgorithmIO.keyDestEntryType = NEXUS_Security_MapNexusKeyDestToHsm( keyHandle, keyDestEntryType );
+    configAlgorithmIO.keyDestEntryType = mapNexus2Hsm_keyEntryType( keyDestEntryType );
     configAlgorithmIO.caKeySlotType = keySlotType;
     configAlgorithmIO.unKeySlotNum  = unKeySlotNum;
 
@@ -2101,15 +1376,12 @@ NEXUS_Error NEXUS_Security_ConfigAlgorithm(NEXUS_KeySlotHandle keyHandle, const 
     configAlgorithmIO.cryptoAlg.EsModEnable     = pSettings->EsModEnable;
 
     rc = BHSM_ConfigAlgorithm( g_security.hsm, &configAlgorithmIO );
-    if (rc)
-    {
-        return BERR_TRACE(MAKE_HSM_ERR(rc));
-    }
+    if (rc) { return BERR_TRACE(MAKE_HSM_ERR(rc)); }
 
     BKNI_Memset( &configKeySlotIDDataIO, 0, sizeof(configKeySlotIDDataIO) );
 
     configKeySlotIDDataIO.keyDestBlckType  = blockType;
-    configKeySlotIDDataIO.keyDestEntryType = NEXUS_Security_MapNexusKeyDestToHsm( keyHandle, keyDestEntryType );
+    configKeySlotIDDataIO.keyDestEntryType = mapNexus2Hsm_keyEntryType( keyDestEntryType );
     configKeySlotIDDataIO.keyDestIVType    = BCMD_KeyDestIVType_eNoIV;
     configKeySlotIDDataIO.unKeySlotNum     = unKeySlotNum;
     configKeySlotIDDataIO.caKeySlotType    = keySlotType;
@@ -2119,10 +1391,7 @@ NEXUS_Error NEXUS_Security_ConfigAlgorithm(NEXUS_KeySlotHandle keyHandle, const 
     configKeySlotIDDataIO.key2Select       = pSettings->key2Select;
 
     rc = BHSM_ConfigKeySlotIDData( g_security.hsm, &configKeySlotIDDataIO );
-    if( rc )
-    {
-        return BERR_TRACE(MAKE_HSM_ERR(rc));
-    }
+    if( rc ) { return BERR_TRACE(MAKE_HSM_ERR(rc)); }
 
     /* We must send a LRUK to pass keyslot configuraiton to BSP */
     if( keyHandle->settings.keySlotEngine == NEXUS_SecurityEngine_eM2m )
@@ -2148,10 +1417,7 @@ NEXUS_Error NEXUS_Security_ConfigAlgorithm(NEXUS_KeySlotHandle keyHandle, const 
             }
 
             rc = BHSM_LoadRouteUserKey (g_security.hsm, &loadRouteUserKeyIO);
-            if( rc )
-            {
-                return BERR_TRACE(MAKE_HSM_ERR(rc));
-            }
+            if( rc ) { return BERR_TRACE(MAKE_HSM_ERR(rc)); }
         }
     }
 
@@ -2163,17 +1429,12 @@ NEXUS_Error NEXUS_Security_ConfigAlgorithm(NEXUS_KeySlotHandle keyHandle, const 
             NEXUS_Security_P_SetScValues(&configAlgorithmIO, pSettings, NEXUS_SecurityKeyType_eEven );
         }
         rc = BHSM_ConfigAlgorithm(g_security.hsm, &configAlgorithmIO);
-        if (rc)
-        {
-            return BERR_TRACE(MAKE_HSM_ERR(rc));
-        }
+        if (rc) { return BERR_TRACE(MAKE_HSM_ERR(rc)); }
+
         /* Call BHSM_configKeySlotIDData() to set up ID part of  configuration odd key */
         configKeySlotIDDataIO.keyDestEntryType = BCMD_KeyDestEntryType_eEvenKey;
         rc = BHSM_ConfigKeySlotIDData(g_security.hsm, &configKeySlotIDDataIO);
-        if (rc)
-        {
-            return BERR_TRACE(MAKE_HSM_ERR(rc));
-        }
+        if (rc) { return BERR_TRACE(MAKE_HSM_ERR(rc)); }
     }
 
     BDBG_LEAVE(NEXUS_Security_ConfigAlgorithm);
@@ -2181,11 +1442,9 @@ NEXUS_Error NEXUS_Security_ConfigAlgorithm(NEXUS_KeySlotHandle keyHandle, const 
 }
 
 
-#else   /* HSM_IS_ASKM_28NM_ZEUS_4_0 */
-
-/* NOT HSM_IS_ASKM_28NM_ZEUS_4_0 */
+#else
+/* Zeus 4 */
 static void NEXUS_Security_P_SetScValues(BHSM_ConfigAlgorithmIO_t *pConfigAlgorithmIO, const NEXUS_SecurityAlgorithmSettings *pSettings, NEXUS_SecurityKeyType keyType) {
-#if HSM_IS_ASKM_40NM && defined(NEXUS_SECURITY_SC_VALUE)
     int keytypeScValues[NEXUS_SecurityKeyType_eMax] = { 3, 2, 0, 0, 0 };
     if (pSettings->modifyScValue[NEXUS_SecurityPacketType_eGlobal]) {
         pConfigAlgorithmIO->cryptoAlg.caCryptAlg.globalSCVal = g_scValues[pSettings->scValue[NEXUS_SecurityPacketType_eGlobal]];
@@ -2197,40 +1456,27 @@ static void NEXUS_Security_P_SetScValues(BHSM_ConfigAlgorithmIO_t *pConfigAlgori
     } else {
         pConfigAlgorithmIO->cryptoAlg.caCryptAlg.restrSCVal = keytypeScValues[keyType];
     }
-#else
-    BSTD_UNUSED(pConfigAlgorithmIO);
-    BSTD_UNUSED(pSettings);
-    BSTD_UNUSED(keyType);
-#endif
 }
 
-/* NOT HSM_IS_ASKM_28NM_ZEUS_4_0 */
+/* Zeus 4 */
 NEXUS_Error NEXUS_Security_ConfigAlgorithm(NEXUS_KeySlotHandle keyHandle, const NEXUS_SecurityAlgorithmSettings *pSettings)
 {
     BHSM_ConfigAlgorithmIO_t configAlgorithmIO;
     BCMD_XptSecKeySlot_e keySlotType;
     unsigned int unKeySlotNum = 0;
     bool bConfigOddAndEven = false;
-#if !HSM_IS_ASKM_40NM
-    bool bConfigClear = false;
-#endif
 
-#if HSM_IS_ASKM_40NM_ZEUS_3_0
+    #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(3,0)
     BCMD_Aes128_CounterSize_e        counterSize;
-#endif
+    #endif
     NEXUS_Error rc = NEXUS_SUCCESS;
     BCMD_KeyDestBlockType_e blockType = BCMD_KeyDestBlockType_eCA;
-#if HSM_IS_ASKM
     BHSM_ConfigKeySlotIDDataIO_t configKeySlotIDDataIO;
     BCMD_XptM2MSecCryptoAlg_e cryptAlg;
     BCMD_CipherModeSelect_e cipherMode;
     BCMD_TerminationMode_e terminationMode;
     BCMD_IVSelect_e ivModeSelect;
     BCMD_SolitarySelect_e solitarySelect;
-#else
-    unsigned int cryptAlg;
-    BHSM_ResidueMode_e residualMode = BHSM_ResidueMode_eUnscrambled;
-#endif
     NEXUS_SecurityKeySource keySrc;
     bool bAVKeyladder = false;
     NEXUS_Security_P_KeySlotData *pKeySlotData;
@@ -2250,38 +1496,24 @@ NEXUS_Error NEXUS_Security_ConfigAlgorithm(NEXUS_KeySlotHandle keyHandle, const 
     unKeySlotNum = keyHandle->keySlotNumber;
     keySrc = pSettings->keySource;
 
-#if HSM_IS_ASKM
     NEXUS_Security_GetHsmAlgorithmKeySetting(keyHandle, pSettings,
             &cryptAlg,
             &cipherMode,
             &terminationMode);
     ivModeSelect   = pSettings->ivMode;
     solitarySelect = pSettings->solitarySelect;
-#if HSM_IS_ASKM_40NM_ZEUS_3_0
+    #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(3,0)
     counterSize    = pSettings->aesCounterSize;
-#endif
-#else
-    NEXUS_Security_GetHsmAlgorithmKeySetting(keyHandle, pSettings, &cryptAlg, &residualMode);
-#endif
-
-    rc = NEXUS_Security_GetHsmDestBlkType(keyHandle, pSettings->dest, &blockType);
-    if (rc) return BERR_TRACE(rc);
+    #endif
+    blockType = mapNexus2Hsm_blockType( keyHandle, pSettings->dest );
 
     /* coverity[const] */
     switch (blockType) {
     case BCMD_KeyDestBlockType_eCA:
-#if HSM_IS_ASKM
     case BCMD_KeyDestBlockType_eCPScrambler:
     case BCMD_KeyDestBlockType_eCPDescrambler:
-#endif
         bConfigOddAndEven = (pSettings->keyDestEntryType == NEXUS_SecurityKeyType_eOddAndEven);
         break;
-#if !HSM_IS_ASKM_40NM
-    case BCMD_KeyDestBlockType_eRmx:
-        bConfigOddAndEven = (pSettings->keyDestEntryType == NEXUS_SecurityKeyType_eOddAndEven);
-        bConfigClear = true;
-        break;
-#endif
     default:
         break;
     }
@@ -2289,30 +1521,13 @@ NEXUS_Error NEXUS_Security_ConfigAlgorithm(NEXUS_KeySlotHandle keyHandle, const 
     /* if req. is for AV Keyladder, config only for KeyDestEntryType requested */
     if (keySrc == NEXUS_SecurityKeySource_eAvCPCW || keySrc == NEXUS_SecurityKeySource_eAvCW) {
         bConfigOddAndEven = false;
-#if !HSM_IS_ASKM_40NM
-        bConfigClear = false;
-#endif
         bAVKeyladder = true;
     }
 
-#if !HSM_IS_ASKM_40NM
-    if (!bAVKeyladder) /* keep the keySource setting for AV Keyladder */
-        configAlgorithmIO.keySource = BCMD_KeyRamBuf_eFirstRam; /*BCMD_KeyRamBuf_eKey5KeyLadder2; */
-    else {
-#if HSM_IS_ASKM
-        configAlgorithmIO.keySource = keySrc;
-#else
-        if (keySrc == NEXUS_SecurityKeySource_eAvCPCW)
-            configAlgorithmIO.keySource = BCMD_KeyRamBuf_eReserved0;
-        else
-            configAlgorithmIO.keySource = BCMD_KeyRamBuf_eReserved1;
-#endif
-    }
-#endif
     configAlgorithmIO.keyDestBlckType = blockType;
     if( bAVKeyladder ) /* keep the KeyDestEntryType as requested for AV Keyladder */
     {
-        configAlgorithmIO.keyDestEntryType = NEXUS_Security_MapNexusKeyDestToHsm(keyHandle, pSettings->keyDestEntryType);
+        configAlgorithmIO.keyDestEntryType = mapNexus2Hsm_keyEntryType( pSettings->keyDestEntryType );
     }
     else
     {
@@ -2322,7 +1537,7 @@ NEXUS_Error NEXUS_Security_ConfigAlgorithm(NEXUS_KeySlotHandle keyHandle, const 
         }
         else
         {
-            configAlgorithmIO.keyDestEntryType = NEXUS_Security_MapNexusKeyDestToHsm(keyHandle, pSettings->keyDestEntryType);
+            configAlgorithmIO.keyDestEntryType = mapNexus2Hsm_keyEntryType( pSettings->keyDestEntryType );
         }
     }
     configAlgorithmIO.caKeySlotType = keySlotType;
@@ -2332,10 +1547,9 @@ NEXUS_Error NEXUS_Security_ConfigAlgorithm(NEXUS_KeySlotHandle keyHandle, const 
         BKNI_Memset(&(configAlgorithmIO.cryptoAlg.m2mCryptAlg), 0, sizeof(configAlgorithmIO.cryptoAlg.m2mCryptAlg));
 
         configAlgorithmIO.cryptoAlg.m2mCryptAlg.m2mSecAlg = cryptAlg;
-#if HSM_IS_ASKM
         configAlgorithmIO.cryptoAlg.m2mCryptAlg.m2mCipherMode = cipherMode;
         configAlgorithmIO.cryptoAlg.m2mCryptAlg.TerminationAESCounterKeyMode = terminationMode;
-#if BHSM_ZEUS_VERSION == BHSM_ZEUS_VERSION_CALC(3,0)
+        #if BHSM_ZEUS_VERSION == BHSM_ZEUS_VERSION_CALC(3,0)
         configAlgorithmIO.cryptoAlg.m2mCryptAlg.counterSize  = counterSize;
 
         /* Counter modes 0, 2 and 4 do not support M2M on Zeus 3.0 */
@@ -2349,12 +1563,9 @@ NEXUS_Error NEXUS_Security_ConfigAlgorithm(NEXUS_KeySlotHandle keyHandle, const 
                 return BERR_TRACE(NEXUS_NOT_SUPPORTED);
             }
         }
-#endif
+        #endif
         configAlgorithmIO.cryptoAlg.m2mCryptAlg.IVModeSelect = ivModeSelect;
         configAlgorithmIO.cryptoAlg.m2mCryptAlg.SolitarySelect = solitarySelect;
-#else
-        configAlgorithmIO.cryptoAlg.m2mCryptAlg.ucAESCounterKeyMode = residualMode;
-#endif
         if (pSettings->operation == NEXUS_SecurityOperation_eEncrypt)
             configAlgorithmIO.cryptoAlg.m2mCryptAlg.ucAuthCtrl = BHSM_M2mAuthCtrl_eScramble;
         else if (pSettings->operation == NEXUS_SecurityOperation_eDecrypt)
@@ -2364,13 +1575,10 @@ NEXUS_Error NEXUS_Security_ConfigAlgorithm(NEXUS_KeySlotHandle keyHandle, const 
 
         configAlgorithmIO.cryptoAlg.m2mCryptAlg.bEnableTimestamp = pSettings->enableTimestamps;
         configAlgorithmIO.cryptoAlg.m2mCryptAlg.bMscCtrlSel = pSettings->mscBitSelect;
-
-#if HSM_IS_ASKM
         configAlgorithmIO.cryptoAlg.m2mCryptAlg.bDisallowGG = pSettings->bDisallowGG;
         configAlgorithmIO.cryptoAlg.m2mCryptAlg.bDisallowGR = pSettings->bDisallowGR;
         configAlgorithmIO.cryptoAlg.m2mCryptAlg.bDisallowRG = pSettings->bDisallowRG;
         configAlgorithmIO.cryptoAlg.m2mCryptAlg.bDisallowRR = pSettings->bDisallowRR;
-#endif
 
         /*set key & IV to external if the algorithm is WMDRMPD*/
         if ((pSettings->algorithm == NEXUS_SecurityAlgorithm_eWMDrmPd) || (pSettings->algorithm == NEXUS_SecurityAlgorithm_eRc4))
@@ -2389,27 +1597,13 @@ NEXUS_Error NEXUS_Security_ConfigAlgorithm(NEXUS_KeySlotHandle keyHandle, const 
         BKNI_Memset(&(configAlgorithmIO.cryptoAlg.caCryptAlg), 0, sizeof(configAlgorithmIO.cryptoAlg.caCryptAlg));
 
         configAlgorithmIO.cryptoAlg.caCryptAlg.caSecAlg = cryptAlg;
-#if HSM_IS_ASKM
-#if HSM_IS_ASKM_40NM
         configAlgorithmIO.cryptoAlg.caCryptAlg.cipherDVBCSA2Mode = cipherMode;
-#else
-        configAlgorithmIO.cryptoAlg.caCryptAlg.cipherDVBMode = cipherMode;
-#endif
         configAlgorithmIO.cryptoAlg.caCryptAlg.terminationMode = terminationMode;
         configAlgorithmIO.cryptoAlg.caCryptAlg.IVMode = ivModeSelect;
         configAlgorithmIO.cryptoAlg.caCryptAlg.solitaryMode = solitarySelect;
-
-#else
-        if (cryptAlg != BCMD_XptSecCryptoAlg_eDvb){
-            configAlgorithmIO.cryptoAlg.caCryptAlg.residueMode.residueMode = residualMode;
-        } else {
-            configAlgorithmIO.cryptoAlg.caCryptAlg.residueMode.dvbScrambleLevel = residualMode;
-        }
-#endif
         configAlgorithmIO.cryptoAlg.caCryptAlg.bRestrictEnable = pSettings->bRestrictEnable;
         configAlgorithmIO.cryptoAlg.caCryptAlg.bGlobalEnable = pSettings->bGlobalEnable;
         configAlgorithmIO.cryptoAlg.caCryptAlg.ucMulti2KeySelect = pSettings->multi2KeySelect;
-#if HSM_IS_ASKM_40NM
         configAlgorithmIO.cryptoAlg.caCryptAlg.keyOffset = pSettings->keyOffset;
         configAlgorithmIO.cryptoAlg.caCryptAlg.ivOffset = pSettings->ivOffset;
         configAlgorithmIO.cryptoAlg.caCryptAlg.ucMSCLengthSelect = pSettings->mscLengthSelect;
@@ -2420,56 +1614,21 @@ NEXUS_Error NEXUS_Security_ConfigAlgorithm(NEXUS_KeySlotHandle keyHandle, const 
         configAlgorithmIO.cryptoAlg.caCryptAlg.DVBCSA3dvbcsaVar = pSettings->dvbCsa3dvbcsaVar;
         configAlgorithmIO.cryptoAlg.caCryptAlg.DVBCSA3permutation = pSettings->dvbCsa3permutation;
         configAlgorithmIO.cryptoAlg.caCryptAlg.DVBCSA3modXRC = pSettings->dvbCsa3modXRC;
-
-                configAlgorithmIO.cryptoAlg.caCryptAlg.bUseExtKey = pSettings->enableExtKey;
+        configAlgorithmIO.cryptoAlg.caCryptAlg.bUseExtKey = pSettings->enableExtKey;
         configAlgorithmIO.cryptoAlg.caCryptAlg.bUseExtIV = pSettings->enableExtIv;
-
-#else
-        configAlgorithmIO.cryptoAlg.caCryptAlg.bAtscMod = pSettings->bAtscModEnable;
-        configAlgorithmIO.cryptoAlg.caCryptAlg.bAtscScrambleCtrl = pSettings->bScAtscMode;
-        configAlgorithmIO.cryptoAlg.caCryptAlg.bGlobalDropPktCtrl = pSettings->bGlobalDropPktEnable;
-        configAlgorithmIO.cryptoAlg.caCryptAlg.bRestrictDropPktCtrl = pSettings->bRestrictDropPktEnable;
-        configAlgorithmIO.cryptoAlg.caCryptAlg.bGlobalRegOverwrite = pSettings->bGlobalRegionOverwrite;
-        configAlgorithmIO.cryptoAlg.caCryptAlg.bRestrictScMod = pSettings->modifyScValue[NEXUS_SecurityPacketType_eRestricted];
-        configAlgorithmIO.cryptoAlg.caCryptAlg.bGlobalScMod = pSettings->modifyScValue[NEXUS_SecurityPacketType_eGlobal];
-#endif
-
-#if HSM_IS_ASKM
         configAlgorithmIO.cryptoAlg.caCryptAlg.bEncryptBeforeRave = pSettings->bEncryptBeforeRave;
-#else
-        configAlgorithmIO.cryptoAlg.caCryptAlg.bEncScPolarity = pSettings->bScPolarityEnable;
-        configAlgorithmIO.cryptoAlg.caCryptAlg.bSynEnable = pSettings->bSynEnable;
-        configAlgorithmIO.cryptoAlg.caCryptAlg.bCPDDisable = pSettings->bCPDDisable;
-        configAlgorithmIO.cryptoAlg.caCryptAlg.bCPSDisable = pSettings->bCPSDisable;
-#endif
-
-#if HSM_IS_ASKM_40NM_ZEUS_2_0
+        #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(2,0)
         configAlgorithmIO.cryptoAlg.caCryptAlg.bDropRregionPackets = pSettings->bRestrictSourceDropPktEnable;
         configAlgorithmIO.cryptoAlg.caCryptAlg.bGpipePackets2Rregion = pSettings->bRoutePipeToRestrictedRegion[NEXUS_SecurityPacketType_eGlobal];
         configAlgorithmIO.cryptoAlg.caCryptAlg.bRpipePackets2Rregion = pSettings->bRoutePipeToRestrictedRegion[NEXUS_SecurityPacketType_eRestricted];
-#endif
-#ifdef NEXUS_SECURITY_SC_VALUE
-#if !HSM_IS_ASKM_40NM
-        configAlgorithmIO.cryptoAlg.caCryptAlg.uScValue = g_scValues[pSettings->scValue[NEXUS_SecurityPacketType_eGlobal]];
-        if (pSettings->scValue[NEXUS_SecurityPacketType_eRestricted] != NEXUS_SecurityAlgorithmScPolarity_eClear) {
-            BDBG_WRN(("SC polarity cannot be differentiated by packet type on this chip.  Ignoring the attempt to set a non-global packet type."));
-        }
-#endif
-#else
-        if (pSettings->modifyScValue[NEXUS_SecurityPacketType_eGlobal] || pSettings->modifyScValue[NEXUS_SecurityPacketType_eRestricted]) {
-            BDBG_ERR(("You were trying to set SC value without turning on BSP_SC_VALUE_SUPPORT"));
-            BDBG_ERR(("Please rebuild nexus with BSP_SC_VALUE_SUPPORT=ON" ));
-            return BERR_TRACE(NEXUS_NOT_SUPPORTED);
-        }
-#endif
+        #endif
     }
 
-#if HSM_IS_ASKM
     /* Call BHSM_configKeySlotIDData() to set up ID part of  configuration odd key */
     configKeySlotIDDataIO.keyDestBlckType = blockType;
     if (bAVKeyladder)
     {   /* keep the KeyDestEntryType as requested for AV Keyladder */
-        configKeySlotIDDataIO.keyDestEntryType = NEXUS_Security_MapNexusKeyDestToHsm(keyHandle, pSettings->keyDestEntryType);
+        configKeySlotIDDataIO.keyDestEntryType = mapNexus2Hsm_keyEntryType( pSettings->keyDestEntryType );
     }
     else
     {
@@ -2479,23 +1638,16 @@ NEXUS_Error NEXUS_Security_ConfigAlgorithm(NEXUS_KeySlotHandle keyHandle, const 
         }
         else
         {
-            configKeySlotIDDataIO.keyDestEntryType = NEXUS_Security_MapNexusKeyDestToHsm(keyHandle, pSettings->keyDestEntryType);
+            configKeySlotIDDataIO.keyDestEntryType = mapNexus2Hsm_keyEntryType( pSettings->keyDestEntryType );
         }
     }
-#if HSM_IS_ASKM_40NM
     configKeySlotIDDataIO.keyDestIVType = BCMD_KeyDestIVType_eNoIV;
-#endif
-
     configKeySlotIDDataIO.unKeySlotNum = unKeySlotNum;
     configKeySlotIDDataIO.caKeySlotType = keySlotType;
     configKeySlotIDDataIO.CAVendorID = pSettings->caVendorID;
     configKeySlotIDDataIO.STBOwnerIDSelect = pSettings->otpId;
     configKeySlotIDDataIO.ModuleID = pSettings->askmModuleID;
-#if HSM_IS_ASKM_40NM
     configKeySlotIDDataIO.key2Select = pSettings->key2Select;
-#else
-    configKeySlotIDDataIO.TestKey2Select = pSettings->testKey2Select;
-#endif
 
     rc = BHSM_ConfigKeySlotIDData(g_security.hsm, &configKeySlotIDDataIO);
     if (rc)
@@ -2503,7 +1655,6 @@ NEXUS_Error NEXUS_Security_ConfigAlgorithm(NEXUS_KeySlotHandle keyHandle, const 
         return BERR_TRACE(MAKE_HSM_ERR(rc));
     }
 
-#endif
     if (keyHandle->settings.keySlotEngine != NEXUS_SecurityEngine_eM2m)
     {
         NEXUS_Security_P_SetScValues(&configAlgorithmIO, pSettings, bConfigOddAndEven ? NEXUS_SecurityKeyType_eOdd : pSettings->keyDestEntryType );
@@ -2511,7 +1662,6 @@ NEXUS_Error NEXUS_Security_ConfigAlgorithm(NEXUS_KeySlotHandle keyHandle, const 
     rc = BHSM_ConfigAlgorithm(g_security.hsm, &configAlgorithmIO);
     if (rc) { return BERR_TRACE(MAKE_HSM_ERR(rc)); }
 
-#if HSM_IS_ASKM
     /* We must send a dummy route key command for algorithm setting to take effect on 7420 family chips */
     if (keyHandle->settings.keySlotEngine == NEXUS_SecurityEngine_eM2m)
     {
@@ -2522,9 +1672,6 @@ NEXUS_Error NEXUS_Security_ConfigAlgorithm(NEXUS_KeySlotHandle keyHandle, const 
             BKNI_Memset(&loadRouteUserKeyIO, 0, sizeof(loadRouteUserKeyIO));
             loadRouteUserKeyIO.bIsRouteKeyRequired = true;
             loadRouteUserKeyIO.keyDestBlckType = BCMD_KeyDestBlockType_eMem2Mem;
-           #if !HSM_IS_ASKM_40NM
-            loadRouteUserKeyIO.keySource = BCMD_KeyRamBuf_eFirstRam;
-           #endif
             loadRouteUserKeyIO.keySize.eKeySize = BCMD_KeySize_e128;
             loadRouteUserKeyIO.bIsRouteKeyRequired = true;
             loadRouteUserKeyIO.keyDestEntryType = BCMD_KeyDestEntryType_eOddKey;
@@ -2532,26 +1679,20 @@ NEXUS_Error NEXUS_Security_ConfigAlgorithm(NEXUS_KeySlotHandle keyHandle, const 
             loadRouteUserKeyIO.unKeySlotNum = unKeySlotNum;
             loadRouteUserKeyIO.keyMode= BCMD_KeyMode_eRegular;
             rc = BHSM_LoadRouteUserKey (g_security.hsm, &loadRouteUserKeyIO);
-            if (rc)
-            {
+            if (rc) {
                 BDBG_ERR(("External Key/IV may not be enabled by OTP"));
                 return BERR_TRACE(MAKE_HSM_ERR(rc));
             }
         }
     }
-#endif
 
-    if (bConfigOddAndEven) {
-#if HSM_IS_ASKM
-        /* Call BHSM_configKeySlotIDData() to set up ID part of  configuration odd key */
+    if (bConfigOddAndEven)
+    {
         configKeySlotIDDataIO.keyDestEntryType = BCMD_KeyDestEntryType_eEvenKey;
-        rc = BHSM_ConfigKeySlotIDData(g_security.hsm, &configKeySlotIDDataIO);
-        if (rc)
-        {
-            return BERR_TRACE(MAKE_HSM_ERR(rc));
-        }
 
-#endif
+        rc = BHSM_ConfigKeySlotIDData(g_security.hsm, &configKeySlotIDDataIO);
+        if (rc) { return BERR_TRACE(MAKE_HSM_ERR(rc)); }
+
         configAlgorithmIO.keyDestEntryType = BCMD_KeyDestEntryType_eEvenKey;
         if (keyHandle->settings.keySlotEngine != NEXUS_SecurityEngine_eM2m)
         {
@@ -2562,100 +1703,12 @@ NEXUS_Error NEXUS_Security_ConfigAlgorithm(NEXUS_KeySlotHandle keyHandle, const 
         if (rc) { return BERR_TRACE(MAKE_HSM_ERR(rc)); }
     }
 
-#if !HSM_IS_ASKM_40NM
-    if (bConfigClear) {
-#if HSM_IS_ASKM
-        /* Call BHSM_configKeySlotIDData() to set up ID part of  configuration odd key */
-#if HSM_IS_ASKM_40NM
-        configKeySlotIDDataIO.keyDestEntryType = BCMD_KeyDestEntryType_eClearKey;
-#else
-        configKeySlotIDDataIO.keyDestEntryType = BCMD_KeyDestEntryType_eReserved0;
-#endif
-        rc = BHSM_ConfigKeySlotIDData(g_security.hsm, &configKeySlotIDDataIO);
-        if (rc)
-        {
-            return BERR_TRACE(MAKE_HSM_ERR(rc));
-        }
-
-        /* If destination block is CA and 65-nm platform, we need to alter mode word for clear key slot */
-        /* to configure the SC bit modification for CaCp and send out a dummy LRUK command.  This */
-        /* works only for 65-nm BSECK 2.0 and later.   */
-
-        if ( blockType == BCMD_KeyDestBlockType_eCA )
-        {
-            configAlgorithmIO.cryptoAlg.caCryptAlg.caSecAlg = BCMD_XptM2MSecCryptoAlg_eDes;
-            configAlgorithmIO.cryptoAlg.caCryptAlg.IVMode = BCMD_IVSelect_eRegular;
-#if HSM_IS_ASKM_40NM
-            configAlgorithmIO.cryptoAlg.caCryptAlg.cipherDVBCSA2Mode = BCMD_CipherModeSelect_eECB;
-            configAlgorithmIO.cryptoAlg.caCryptAlg.terminationMode = BCMD_TerminationMode_eCLEAR;
-            configAlgorithmIO.cryptoAlg.caCryptAlg.solitaryMode = BCMD_SolitarySelect_eCLEAR;
-#else
-            configAlgorithmIO.cryptoAlg.caCryptAlg.cipherDVBMode = BCMD_CipherModeSelect_eECB;
-            configAlgorithmIO.cryptoAlg.caCryptAlg.terminationMode = BCMD_TerminationMode_eClear;
-            configAlgorithmIO.cryptoAlg.caCryptAlg.solitaryMode = BCMD_SolitarySelect_eClear;
-#endif
-            /* The following 2 settings are needed so that FW won't reject the key routing command */
-            /* associated with this clear key slot for 65-nm platforms */
-#if !HSM_IS_ASKM_40NM
-            configAlgorithmIO.cryptoAlg.caCryptAlg.bRestrictEnable = false;
-            configAlgorithmIO.cryptoAlg.caCryptAlg.bGlobalEnable = false;
-#endif
-        }
-
-#endif
-
-       #if HSM_IS_ASKM_40NM
-        configAlgorithmIO.keyDestEntryType = BCMD_KeyDestEntryType_eClearKey;
-       #else
-        configAlgorithmIO.keyDestEntryType = BCMD_KeyDestEntryType_eReserved0;
-       #endif
-        NEXUS_Security_P_SetScValues(&configAlgorithmIO, pSettings, NEXUS_SecurityKeyType_eClear );
-
-        rc = BHSM_ConfigAlgorithm(g_security.hsm, &configAlgorithmIO);
-        if (rc)
-        {
-            return BERR_TRACE(MAKE_HSM_ERR(rc));
-        }
-#if HSM_IS_ASKM
-        /* Must call load key for algorithm setting to take effect */
-        if ( blockType==BCMD_KeyDestBlockType_eCA )
-        {
-            BHSM_LoadRouteUserKeyIO_t loadRouteUserKeyIO;
-            BKNI_Memset(&loadRouteUserKeyIO, 0, sizeof(loadRouteUserKeyIO));
-#if !HSM_IS_ASKM_40NM
-            loadRouteUserKeyIO.keySource = BCMD_KeyRamBuf_eFirstRam;
-#endif
-            loadRouteUserKeyIO.keySize.eKeySize = BCMD_KeySize_e128;
-            loadRouteUserKeyIO.bIsRouteKeyRequired = true;
-#if HSM_IS_ASKM_40NM
-            loadRouteUserKeyIO.keyDestEntryType = BCMD_KeyDestEntryType_eClearKey;
-            loadRouteUserKeyIO.keyDestIVType    = BCMD_KeyDestIVType_eNoIV;
-#else
-            loadRouteUserKeyIO.keyDestEntryType = BCMD_KeyDestEntryType_eReserved0;
-#endif
-            loadRouteUserKeyIO.caKeySlotType = keySlotType;
-            loadRouteUserKeyIO.unKeySlotNum = unKeySlotNum;
-            loadRouteUserKeyIO.keyMode= BCMD_KeyMode_eRegular;
-            loadRouteUserKeyIO.keyDestBlckType = blockType;
-            rc = BHSM_LoadRouteUserKey (g_security.hsm, &loadRouteUserKeyIO);
-        if (rc)
-        {
-                BDBG_ERR(("Configure Clear key failed.  You may need to update new versions of BSECK"));
-                /*return BERR_TRACE(MAKE_HSM_ERR(rc));*/
-                rc = NEXUS_SUCCESS; /* Ignore error for now */
-            }
-        }
-#endif
-
-    }
-#endif
-
     BDBG_LEAVE(NEXUS_Security_ConfigAlgorithm);
     return rc;
 }
 
 
-#endif /* HSM_IS_ASKM_28NM_ZEUS_4_0 */
+#endif
 
 NEXUS_Error NEXUS_KeySlot_GetExternalKeyData(
                                 NEXUS_KeySlotHandle keyslot,
@@ -2663,7 +1716,7 @@ NEXUS_Error NEXUS_KeySlot_GetExternalKeyData(
                                 NEXUS_SecurityKeyType  keyDestEntryType,       /*odd/eve/clear*/
                                 NEXUS_KeySlotExternalKeyData *pKeyData  )
 {
-#if HSM_IS_ASKM_40NM_ZEUS_3_0
+#if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(3,0)
     NEXUS_Error rc = NEXUS_SUCCESS;
 
     BHSM_KeyLocation_t keyLocation;
@@ -2688,30 +1741,15 @@ NEXUS_Error NEXUS_KeySlot_GetExternalKeyData(
         return BERR_TRACE( NEXUS_INVALID_PARAMETER );
     }
 
-    /* rc = NEXUS_Security_MapNexusKeySlotTypeToHsm( keyslot->keyslotType, keyslot->settings.keySlotEngine, &keyLocation.caKeySlotType );*/ /* 1,2,3,4,5, ... */
     keyLocation.caKeySlotType = keyslot->keyslotType;
-    if( rc != NEXUS_SUCCESS )
-    {
-        /* invalid destiantion specified.  */
-        return BERR_TRACE( NEXUS_INVALID_PARAMETER );
-    }
 
-    rc = NEXUS_Security_GetHsmDestBlkType( keyslot, dest, &keyLocation.keyDestBlckType ); /* CPD/CA/CPS/.../HDMI/...   */
-    if( rc != NEXUS_SUCCESS )
-    {
-        /* invalid destiantion specified.  */
-        return BERR_TRACE( NEXUS_INVALID_PARAMETER );
-    }
 
+    keyLocation.keyDestBlckType  = mapNexus2Hsm_blockType( keyslot, dest );
     keyLocation.unKeySlotNum     = keyslot->keySlotNumber;
-    keyLocation.keyDestEntryType = NEXUS_Security_MapNexusKeyDestToHsm( keyslot, keyDestEntryType );  /*odd/eve/clear*/
+    keyLocation.keyDestEntryType = mapNexus2Hsm_keyEntryType( keyDestEntryType );  /*odd/eve/clear*/
 
     rc = BHSM_GetExternalKeyIdentifier( g_security.hsm, &keyLocation, &extKey );
-    if( rc != NEXUS_SUCCESS )
-    {
-        /* failed to get exteral key information for sepcifed parameters */
-        return BERR_TRACE(MAKE_HSM_ERR(rc));
-    }
+    if( rc != NEXUS_SUCCESS ) { return BERR_TRACE(MAKE_HSM_ERR(rc)); }
 
     pKeyData->slotIndex = extKey.slotIndex;
 
@@ -2730,7 +1768,7 @@ NEXUS_Error NEXUS_KeySlot_GetExternalKeyData(
     BDBG_LEAVE( NEXUS_KeySlot_GetExternalKeyData );
     return rc;
 
-#else /* HSM_IS_ASKM_40NM_ZEUS_3_0 */
+#else
     BSTD_UNUSED( keyslot );
     BSTD_UNUSED( dest );
     BSTD_UNUSED( keyDestEntryType );
@@ -2755,20 +1793,13 @@ NEXUS_Error NEXUS_Security_LoadClearKey(NEXUS_KeySlotHandle keyHandle, const NEX
     BCMD_KeyDestEntryType_e   entryType = BCMD_KeyDestEntryType_eOddKey;
     BHSM_LoadRouteUserKeyIO_t loadRouteUserKeyIO;
     NEXUS_SecurityKeyType keyEntryType;
-
-#if HSM_IS_ASKM_40NM
     BCMD_KeyDestIVType_e      ivType;
-#endif
     NEXUS_Security_P_KeySlotData *pKeySlotData;
 
     BDBG_ENTER(NEXUS_Security_LoadClearKey);
 
     BDBG_OBJECT_ASSERT(keyHandle, NEXUS_KeySlot);
-#if HSM_IS_ASKM_40NM
     blockType = BCMD_KeyDestBlockType_eCA;
-#else
-    blockType = BCMD_KeyDestBlockType_eRmx;
-#endif
 
     BDBG_OBJECT_ASSERT(keyHandle, NEXUS_KeySlot);
     pKeySlotData = keyHandle->security.data;
@@ -2776,35 +1807,30 @@ NEXUS_Error NEXUS_Security_LoadClearKey(NEXUS_KeySlotHandle keyHandle, const NEX
 
     keyEntryType = pClearKey->keyEntryType;
 
-#if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,0)
+   #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,0)
     if( keyHandle->keyslotType == BCMD_XptSecKeySlot_eType3 )
     {
         /* Clear key entry must be used for Type 3, m2m  */
         keyEntryType = NEXUS_SecurityKeyType_eClear;
     }
-#endif
+   #endif
 
-    NEXUS_Security_GetHsmDestBlkType(keyHandle, pClearKey->dest, &blockType);
-    NEXUS_Security_GetHsmDestEntryType( keyEntryType, &entryType );
-#if HSM_IS_ASKM_40NM
-    NEXUS_Security_GetHsmDestIVType(pClearKey->keyIVType, &ivType);
-#endif
+    blockType = mapNexus2Hsm_blockType( keyHandle, pClearKey->dest );
+    entryType = mapNexus2Hsm_keyEntryType( keyEntryType );
+    ivType = mapNexus2Hsm_ivType( pClearKey->keyIVType );
 
     BKNI_Memset(&loadRouteUserKeyIO, 0, sizeof(loadRouteUserKeyIO));
     if (pClearKey->keySize) {
-#if !HSM_IS_ASKM_40NM
-        loadRouteUserKeyIO.keySource = BCMD_KeyRamBuf_eFirstRam;
-#endif
         if (pClearKey->keySize==8)
             loadRouteUserKeyIO.keySize.eKeySize = BCMD_KeySize_e64;
         else if (pClearKey->keySize==16)
             loadRouteUserKeyIO.keySize.eKeySize = BCMD_KeySize_e128;
         else if (pClearKey->keySize==24)
             loadRouteUserKeyIO.keySize.eKeySize = BCMD_KeySize_e192;
-#if HSM_IS_ASKM_40NM_ZEUS_2_0
+       #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(2,0)
         else if (pClearKey->keySize==32)
             loadRouteUserKeyIO.keySize.eKeySize = BCMD_KeySize_e256;
-#endif
+       #endif
         else {
             return BERR_TRACE(NEXUS_INVALID_PARAMETER);
         }
@@ -2817,11 +1843,9 @@ NEXUS_Error NEXUS_Security_LoadClearKey(NEXUS_KeySlotHandle keyHandle, const NEX
         loadRouteUserKeyIO.caKeySlotType = keyHandle->keyslotType;
         loadRouteUserKeyIO.unKeySlotNum = keyHandle->keySlotNumber;
         loadRouteUserKeyIO.keyMode= BCMD_KeyMode_eRegular;
-#if HSM_IS_ASKM_40NM
         loadRouteUserKeyIO.keyDestIVType = ivType;
-#endif
-#if HSM_IS_ASKM_40NM_ZEUS_2_0
-#ifdef NEXUS_SECURITY_SC_VALUE
+       #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(2,0)
+
         if ( pClearKey->sc01Polarity[NEXUS_SecurityPacketType_eGlobal] >= NEXUS_SecurityAlgorithmScPolarity_eMax ||
              pClearKey->sc01Polarity[NEXUS_SecurityPacketType_eRestricted] >= NEXUS_SecurityAlgorithmScPolarity_eMax)
         {
@@ -2829,12 +1853,9 @@ NEXUS_Error NEXUS_Security_LoadClearKey(NEXUS_KeySlotHandle keyHandle, const NEX
         }
         loadRouteUserKeyIO.GpipeSC01Val = g_scValues[pClearKey->sc01Polarity[NEXUS_SecurityPacketType_eGlobal]];
         loadRouteUserKeyIO.RpipeSC01Val = g_scValues[pClearKey->sc01Polarity[NEXUS_SecurityPacketType_eRestricted]];
-#endif
-#endif
+       #endif
         rc = BHSM_LoadRouteUserKey(g_security.hsm, &loadRouteUserKeyIO);
-        if (rc) {
-            return BERR_TRACE(MAKE_HSM_ERR(rc));
-        }
+        if (rc) { return BERR_TRACE(MAKE_HSM_ERR(rc)); }
     }
 
     BDBG_LEAVE(NEXUS_Security_LoadClearKey);
@@ -2854,33 +1875,18 @@ NEXUS_KeySlotHandle NEXUS_Security_AllocateKeySlot(const NEXUS_SecurityKeySlotSe
     if( pSettings->keySlotEngine == NEXUS_SecurityEngine_eGeneric )
     {
         keyHandle = NEXUS_KeySlot_Create();
-
-        if ( keyHandle == NULL )
-        {
-            (void)BERR_TRACE( NEXUS_NOT_AVAILABLE );
-        }
+        if( keyHandle == NULL ) { (void)BERR_TRACE( NEXUS_NOT_AVAILABLE ); }
 
         return keyHandle;
     }
 
     pKeySlotData = BKNI_Malloc(sizeof(*pKeySlotData));
-    if (!pKeySlotData)
-    {
-        BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY );
-        return NULL;
-    }
+    if( !pKeySlotData ) { BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY ); return NULL; }
 
     switch (pSettings->keySlotEngine)
     {
         case NEXUS_SecurityEngine_eM2m:
-            /* For Zeus 4.x pSettings->keySlotType has the setting needed by the app or NEXUS_SecurityKeySlotType_eAuto.  */
-            /* If set to NEXUS_SecurityKeySlotType_eAuto, Type3 will be used. */
-            rc = NEXUS_Security_MapNexusKeySlotTypeToHsm( pSettings->keySlotType, pSettings->keySlotEngine, &type );
-            if( rc )
-            {
-                rc = BERR_TRACE( rc );
-                goto err_alloc;
-            }
+            type = mapNexus2Hsm_KeyslotType( pSettings->keySlotType, pSettings->keySlotEngine );
 
            #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,0)
             if ( ( type != BCMD_XptSecKeySlot_eType0 ) &&
@@ -2894,29 +1900,17 @@ NEXUS_KeySlotHandle NEXUS_Security_AllocateKeySlot(const NEXUS_SecurityKeySlotSe
             }
            #endif
             rc = NEXUS_Security_AllocateM2mKeySlot(&keyHandle, pSettings, type);
-            if( rc )
-            {
-                rc = BERR_TRACE(rc);
-                goto err_alloc;
-            }
+            if( rc != NEXUS_SUCCESS ) { rc = BERR_TRACE( rc ); goto err_alloc; }
             break;
-        case NEXUS_SecurityEngine_eRmx:
+
         case NEXUS_SecurityEngine_eCaCp:
         case NEXUS_SecurityEngine_eCa:
-            rc = NEXUS_Security_MapNexusKeySlotTypeToHsm( pSettings->keySlotType, pSettings->keySlotEngine, &type );
-            if( rc )
-            {
-                rc = BERR_TRACE( rc );
-                goto err_alloc;
-            }
+            type = mapNexus2Hsm_KeyslotType( pSettings->keySlotType, pSettings->keySlotEngine );
 
             rc = NEXUS_Security_AllocateKeySlotForType( &keyHandle, pSettings, type );
-            if( rc )
-            {
-                rc = BERR_TRACE( rc );
-                goto err_alloc;
-            }
+            if( rc != NEXUS_SUCCESS ) { rc = BERR_TRACE( rc ); goto err_alloc; }
             break;
+
         default:
             BERR_TRACE(NEXUS_INVALID_PARAMETER);
             goto err_alloc;
@@ -2932,12 +1926,8 @@ NEXUS_KeySlotHandle NEXUS_Security_AllocateKeySlot(const NEXUS_SecurityKeySlotSe
 
     if (pSettings->keySlotType == NEXUS_SecurityKeySlotType_eAuto)
     {
-        rc = NEXUS_Security_MapHsmKeySlotTypeToNexus (keyHandle->keyslotType, &keyHandle->settings.keySlotType);
-	    if( rc )
-	    {
-	        rc = BERR_TRACE( rc );
-	    }
-	}
+        keyHandle->settings.keySlotType = mapHsm2Nexus_keySlotType( keyHandle->keyslotType );
+    }
 
     BLST_S_INIT( &pKeySlotData->pidChannelList );
     BLST_S_INSERT_HEAD( &g_security.keyslotList, keyHandle, next );
@@ -2946,9 +1936,9 @@ NEXUS_KeySlotHandle NEXUS_Security_AllocateKeySlot(const NEXUS_SecurityKeySlotSe
     if( pSettings->keySlotEngine == NEXUS_SecurityEngine_eM2m )
     {
         /* XPT-based DMA requires an internal pid channel. */
-        NEXUS_Module_Lock( g_security.settings.transport );
+        NEXUS_Module_Lock( g_security.moduleSettings.transport );
         pKeySlotData->dmaPidChannelHandle = NEXUS_PidChannel_OpenDma_Priv();
-        NEXUS_Module_Unlock( g_security.settings.transport );
+        NEXUS_Module_Unlock( g_security.moduleSettings.transport );
         if ( pKeySlotData->dmaPidChannelHandle == NULL ) {
             BERR_TRACE(NEXUS_NOT_AVAILABLE);
             BLST_S_REMOVE( &g_security.keyslotList, keyHandle, NEXUS_KeySlot, next );
@@ -2980,9 +1970,7 @@ static void NEXUS_Security_P_FreeKeySlot(NEXUS_KeySlotHandle keyHandle)
     NEXUS_Security_P_KeySlotData *pKeySlotData;
     NEXUS_Security_P_PidChannelListNode *pPidChannelNode;
     BHSM_M2MKeySlotIO_t  M2MKeySlotIO;
-   #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(1,0)
     BHSM_KeySlotAllocate_t  keySlotConf;
-   #endif
 
     BDBG_ENTER(NEXUS_Security_P_FreeKeySlot);
 
@@ -3005,7 +1993,6 @@ static void NEXUS_Security_P_FreeKeySlot(NEXUS_KeySlotHandle keyHandle)
         case NEXUS_SecurityEngine_eCaCp:
             BDBG_MSG(("Freeing CA keyslot (%d)", keyHandle->keySlotNumber));
             /* TODO: HSM should verify that no pid channels are associated */
-          #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(1,0)
             keySlotConf.client         = pKeySlotData->keySlotClient;
             keySlotConf.keySlotNum     = keyHandle->keySlotNumber;
             keySlotConf.keySlotType    = keyHandle->keyslotType;
@@ -3015,17 +2002,7 @@ static void NEXUS_Security_P_FreeKeySlot(NEXUS_KeySlotHandle keyHandle)
            #else
             rc = BHSM_FreeCAKeySlot_v2( g_security.hsm, &keySlotConf );
            #endif
-          #else
-            rc = BHSM_FreeCAKeySlot(  g_security.hsm
-                                    , NEXUS_SECURITY_CACP_INVALID_PIDCHANNEL
-                                    , BHSM_PidChannelType_ePrimary
-                                    , keyHandle->keyslotType
-                                    , keyHandle->keySlotNumber );
-          #endif
-            if( rc )
-            {
-                BDBG_ERR(("Error (%d) freeing CA keyslot", rc));
-            }
+            if( rc != NEXUS_SUCCESS ) { BERR_TRACE(MAKE_HSM_ERR(rc)); }
             break;
         case NEXUS_SecurityEngine_eM2m:
             BDBG_MSG(("Freeing m2m keyslot (%d)", keyHandle->keySlotNumber));
@@ -3033,40 +2010,10 @@ static void NEXUS_Security_P_FreeKeySlot(NEXUS_KeySlotHandle keyHandle)
             M2MKeySlotIO.keySlotType = keyHandle->keyslotType;
             M2MKeySlotIO.client      = pKeySlotData->keySlotClient;
             rc = BHSM_FreeM2MKeySlot(g_security.hsm, &M2MKeySlotIO);
-            if( rc )
-            {
-                BDBG_ERR(("Error (%d) freeing M2M keyslot", rc));
-            }
+            if( rc != NEXUS_SUCCESS ) { BERR_TRACE(MAKE_HSM_ERR(rc)); }
             break;
-        case NEXUS_SecurityEngine_eCp:
-            BDBG_MSG(("Freeing cp keyslot"));
-            BDBG_WRN(("CP keyslots are not currently supported"));
-            rc = NEXUS_INVALID_PARAMETER; /* set an error so we don't decrease the power management refcount */
-            break;
-        case NEXUS_SecurityEngine_eRmx:
-            BDBG_MSG(("Freeing rmx keyslot"));
-          #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(1,0)
-            keySlotConf.client = pKeySlotData->keySlotClient;
-            keySlotConf.keySlotNum = keyHandle->keySlotNumber;
-            keySlotConf.keySlotType = keyHandle->keyslotType;
-            keySlotConf.pidChannelType = BHSM_PidChannelType_ePrimary;
-           #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,0)
-            rc = BHSM_FreeCAKeySlot( g_security.hsm, &keySlotConf );
-           #else
-            rc = BHSM_FreeCAKeySlot_v2( g_security.hsm, &keySlotConf );
-           #endif
-          #else
-            rc = BHSM_FreeCAKeySlot(  g_security.hsm
-                                    , NEXUS_SECURITY_CACP_INVALID_PIDCHANNEL
-                                    , BHSM_PidChannelType_ePrimary
-                                    , keyHandle->keyslotType
-                                    , keyHandle->keySlotNumber );
-           #endif
-            if( rc )
-            {
-                BDBG_ERR(("Error (%d) freeing CA keyslot", rc));
-            }
-            break;
+        case NEXUS_SecurityEngine_eCp:  rc = BERR_TRACE( NEXUS_INVALID_PARAMETER ); break;
+        case NEXUS_SecurityEngine_eRmx: rc = BERR_TRACE( NEXUS_INVALID_PARAMETER ); break;
         case NEXUS_SecurityEngine_eGeneric:
         default:
             break;
@@ -3076,9 +2023,9 @@ static void NEXUS_Security_P_FreeKeySlot(NEXUS_KeySlotHandle keyHandle)
     if( keyHandle->settings.keySlotEngine==NEXUS_SecurityEngine_eM2m && pKeySlotData->dmaPidChannelHandle != NULL )
     {
         NEXUS_Security_RemovePidChannelFromKeySlot( keyHandle, keyHandle->dma.pidChannelIndex );
-        NEXUS_Module_Lock(g_security.settings.transport);
+        NEXUS_Module_Lock(g_security.moduleSettings.transport);
         NEXUS_PidChannel_CloseDma_Priv( pKeySlotData->dmaPidChannelHandle );
-        NEXUS_Module_Unlock(g_security.settings.transport);
+        NEXUS_Module_Unlock(g_security.moduleSettings.transport);
         pKeySlotData->dmaPidChannelHandle = NULL;
     }
 #endif
@@ -3127,9 +2074,9 @@ void NEXUS_SecurityModule_Sweep_priv(void)
     }
     while (1) {
         NEXUS_PidChannelHandle pidChannel;
-        NEXUS_Module_Lock(g_security.settings.transport);
+        NEXUS_Module_Lock(g_security.moduleSettings.transport);
         pidChannel = NEXUS_PidChannel_GetBypassKeyslotCleanup_priv();
-        NEXUS_Module_Unlock(g_security.settings.transport);
+        NEXUS_Module_Unlock(g_security.moduleSettings.transport);
         if (!pidChannel) break;
         NEXUS_SetPidChannelBypassKeyslot_priv(pidChannel, NEXUS_BypassKeySlot_eG2GR);
     }
@@ -3137,7 +2084,7 @@ void NEXUS_SecurityModule_Sweep_priv(void)
 
 void NEXUS_Security_GetDefaultMulti2Settings(NEXUS_SecurityMulti2Settings *pSettings /* [out] */ )
 {
-        BKNI_Memset(pSettings, 0, sizeof(*pSettings));
+    BKNI_Memset(pSettings, 0, sizeof(*pSettings));
 }
 
 NEXUS_Error NEXUS_Security_ConfigMulti2(NEXUS_KeySlotHandle keyHandle, const NEXUS_SecurityMulti2Settings *pSettings)
@@ -3169,11 +2116,7 @@ NEXUS_Error NEXUS_Security_ConfigMulti2(NEXUS_KeySlotHandle keyHandle, const NEX
 void NEXUS_Security_GetDefaultInvalidateKeySettings(NEXUS_SecurityInvalidateKeySettings *pSettings /* [out] */ )
 {
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
-#if HSM_IS_ASKM
     pSettings->keySrc = NEXUS_SecurityKeySource_eFirstRamAskm;
-#else
-    pSettings->keySrc = NEXUS_SecurityKeySource_eFirstRam; /* this is NEXUS_SecurityKeySource_eReserved0 for ASKM */
-#endif
 }
 
 static NEXUS_Error NEXUS_Security_P_InvalidateKey(NEXUS_KeySlotHandle keyHandle, const NEXUS_SecurityInvalidateKeySettings *pSettings)
@@ -3187,38 +2130,25 @@ static NEXUS_Error NEXUS_Security_P_InvalidateKey(NEXUS_KeySlotHandle keyHandle,
 
     BDBG_OBJECT_ASSERT(keyHandle, NEXUS_KeySlot);
     pKeySlotData = keyHandle->security.data;
-    if (!pKeySlotData) return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+    if (!pKeySlotData) { return  BERR_TRACE(NEXUS_INVALID_PARAMETER); }
 
     BDBG_MSG(("NEXUS_Security_P_InvalidateKey: %p(%d,%d)", (void *)keyHandle,keyHandle->keySlotNumber,keyHandle->keyslotType));
 
     BKNI_Memset(&invalidateKeyIO, 0, sizeof(invalidateKeyIO)); /* Coverity defect ID 35508; SW7435-1079 */
 
     nrc = NEXUS_Security_P_GetInvalidateKeyFlag(pSettings->invalidateKeyType, &invalidateKeyIO.invalidKeyType);
-    if( nrc )
-    {
-        return BERR_TRACE(nrc);
-    }
+    if( nrc ) { return BERR_TRACE(nrc); }
 
-    nrc = NEXUS_Security_GetHsmDestBlkType(keyHandle, pSettings->keyDestBlckType, &invalidateKeyIO.keyDestBlckType);
-    if( nrc )
-    {
-        return BERR_TRACE(nrc);
-    }
-
-    invalidateKeyIO.keyDestEntryType = NEXUS_Security_MapNexusKeyDestToHsm(keyHandle, pSettings->keyDestEntryType);
+    invalidateKeyIO.keyDestBlckType = mapNexus2Hsm_blockType( keyHandle, pSettings->keyDestBlckType );
+    invalidateKeyIO.keyDestEntryType = mapNexus2Hsm_keyEntryType( pSettings->keyDestEntryType );
     invalidateKeyIO.caKeySlotType = (BCMD_XptSecKeySlot_e)keyHandle->keyslotType;
     invalidateKeyIO.unKeySlotNum = keyHandle->keySlotNumber;
-   #if HSM_IS_ASKM
     invalidateKeyIO.virtualKeyLadderID = (BCMD_VKLID_e)pSettings->virtualKeyLadderID;
     invalidateKeyIO.keyLayer = (BCMD_KeyRamBuf_e)pSettings->keySrc;
-   #else
-    invalidateKeyIO.keySrc = (BCMD_KeyRamBuf_e)pSettings->keySrc;
-   #endif
 
-   #if HSM_IS_ASKM_28NM_ZEUS_4_0
+   #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,0)
     invalidateKeyIO.bInvalidateAllEntries = pSettings->invalidateAllEntries;
    #endif
-
 
     rc = BHSM_InvalidateKey(g_security.hsm, &invalidateKeyIO);
     if (rc) { return BERR_TRACE(MAKE_HSM_ERR(rc)); }
@@ -3243,13 +2173,13 @@ NEXUS_Error NEXUS_Security_InvalidateKey(NEXUS_KeySlotHandle keyHandle, const NE
     keyEntryType = pSettings->keyDestEntryType;
 
 
-#if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,0)
+   #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,0)
     if( keyHandle->keyslotType == BCMD_XptSecKeySlot_eType3 )
     {
         /* Clear key entry must be used for Type 3, m2m  */
         keyEntryType = NEXUS_SecurityKeyType_eClear;
     }
-#endif
+   #endif
 
     BKNI_Memcpy(&keySettings, pSettings, sizeof(keySettings));
 
@@ -3261,28 +2191,18 @@ NEXUS_Error NEXUS_Security_InvalidateKey(NEXUS_KeySlotHandle keyHandle, const NE
         keySettings.keyDestEntryType = NEXUS_SecurityKeyType_eOdd;
 
         rc = NEXUS_Security_P_InvalidateKey(keyHandle, &keySettings);
-        if (rc)
-        {
-            return BERR_TRACE(MAKE_HSM_ERR(rc));
-        }
+        if (rc) { return BERR_TRACE(MAKE_HSM_ERR(rc)); }
 
         keySettings.keyDestEntryType = NEXUS_SecurityKeyType_eEven;
 
         rc = NEXUS_Security_P_InvalidateKey(keyHandle, &keySettings);
-        if (rc)
-        {
-            return BERR_TRACE(MAKE_HSM_ERR(rc));
-        }
+        if (rc) { return BERR_TRACE(MAKE_HSM_ERR(rc)); }
 
-        if( (keyHandle->settings.keySlotEngine == NEXUS_SecurityEngine_eRmx) ||
-            (keyHandle->settings.keySlotEngine == NEXUS_SecurityEngine_eCaCp) )
+        if( keyHandle->settings.keySlotEngine == NEXUS_SecurityEngine_eCaCp )
         {
             keySettings.keyDestEntryType = NEXUS_SecurityKeyType_eClear;
             rc = NEXUS_Security_P_InvalidateKey(keyHandle, &keySettings);
-            if (rc)
-            {
-                return BERR_TRACE(MAKE_HSM_ERR(rc));
-            }
+            if (rc) { return BERR_TRACE(MAKE_HSM_ERR(rc)); }
         }
     }
     else
@@ -3290,10 +2210,7 @@ NEXUS_Error NEXUS_Security_InvalidateKey(NEXUS_KeySlotHandle keyHandle, const NE
         keySettings.keyDestEntryType = keyEntryType;
 
         rc = NEXUS_Security_P_InvalidateKey( keyHandle, &keySettings );
-        if (rc)
-        {
-            return BERR_TRACE( MAKE_HSM_ERR(rc) );
-        }
+        if (rc) { return BERR_TRACE( MAKE_HSM_ERR(rc) ); }
     }
 
     BDBG_LEAVE(NEXUS_Security_InvalidateKey);
@@ -3317,7 +2234,7 @@ NEXUS_Error NEXUS_SecurityModule_Standby_priv(bool enabled, const NEXUS_StandbyS
                in non-S3, this does not have to occur, so we power down as many times as the number of keyslots opened */
             if (BLST_S_FIRST(&g_security.keyslotList))
             {
-                   NEXUS_PowerManagement_SetCoreState(NEXUS_PowerManagementCore_eHsm, false);
+                NEXUS_PowerManagement_SetCoreState(NEXUS_PowerManagementCore_eHsm, false);
             }
         }
         else
@@ -3338,7 +2255,7 @@ NEXUS_Error NEXUS_SecurityModule_Standby_priv(bool enabled, const NEXUS_StandbyS
         { /* not S3 */
             if (BLST_S_FIRST(&g_security.keyslotList))
             {
-                    NEXUS_PowerManagement_SetCoreState(NEXUS_PowerManagementCore_eHsm, true);
+                NEXUS_PowerManagement_SetCoreState(NEXUS_PowerManagementCore_eHsm, true);
             }
         }
         else
@@ -3346,18 +2263,16 @@ NEXUS_Error NEXUS_SecurityModule_Standby_priv(bool enabled, const NEXUS_StandbyS
             rc = NEXUS_Security_P_InitHsm( &g_security.settings );
             if (rc) { return BERR_TRACE(NEXUS_NOT_SUPPORTED); }
 
-            #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(1,0)
             /* Reinitialise Region Verification module. */
             rc = NEXUS_Security_RegionVerification_Init_priv( );
             if (rc) { return BERR_TRACE(rc); }
-            #endif
         }
 
-        if( g_security.settings.callTransportPostInit )
+        if( g_security.moduleSettings.callTransportPostInit )
         {
-            NEXUS_Module_Lock(g_security.settings.transport);
+            NEXUS_Module_Lock(g_security.moduleSettings.transport);
             rc = NEXUS_TransportModule_PostResume_priv();
-            NEXUS_Module_Unlock(g_security.settings.transport);
+            NEXUS_Module_Unlock(g_security.moduleSettings.transport);
             if (rc) return BERR_TRACE(rc);
         }
     }
@@ -3399,7 +2314,7 @@ NEXUS_Error NEXUS_KeySlot_SetGlobalControlWordSettings(
     )
 {
     NEXUS_Error rc = NEXUS_NOT_SUPPORTED;
-#if HSM_IS_ASKM_28NM_ZEUS_4_0
+#if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,0)
     NEXUS_Security_P_KeySlotData *pKeySlotData;
     BHSM_KeySlotGlobalCntrlWord_t    keySlotControlWord;
 
@@ -3420,10 +2335,7 @@ NEXUS_Error NEXUS_KeySlot_SetGlobalControlWordSettings(
     keySlotControlWord.encryptBeforeRAVE = pSettings->encryptBeforeRave;
 
     rc = BHSM_ConfigKeySlotGlobalCntrlWord(g_security.hsm, &keySlotControlWord);
-    if (rc)
-    {
-        return BERR_TRACE(MAKE_HSM_ERR(rc));
-    }
+    if (rc) { return BERR_TRACE(MAKE_HSM_ERR(rc)); }
 
 #else
     BSTD_UNUSED(keyHandle);
@@ -3449,13 +2361,12 @@ static NEXUS_Error NEXUS_SetPidChannelBypassKeyslot_priv( NEXUS_PidChannelHandle
     BDBG_CASSERT( (int)NEXUS_BypassKeySlot_eGR2R     == (int)BHSM_BypassKeySlot_eGR2R );
     BDBG_CASSERT( (int)NEXUS_BypassKeySlot_eMax      == (int)BHSM_BypassKeySlot_eInvalid  );
 
-    if( ( rc = BHSM_SetPidChannelBypassKeyslot( g_security.hsm, NEXUS_PidChannel_GetIndex_isrsafe(pidChannel), bypassKeySlot ) ) != BERR_SUCCESS )
-    {
-        return BERR_TRACE( MAKE_HSM_ERR(rc) );
-    }
-    NEXUS_Module_Lock(g_security.settings.transport);
+    rc = BHSM_SetPidChannelBypassKeyslot( g_security.hsm, NEXUS_PidChannel_GetIndex_isrsafe(pidChannel), bypassKeySlot );
+    if( rc != BERR_SUCCESS ) { return BERR_TRACE( MAKE_HSM_ERR(rc) ); }
+
+    NEXUS_Module_Lock(g_security.moduleSettings.transport);
     NEXUS_PidChannel_SetBypassKeyslot_priv(pidChannel, bypassKeySlot != NEXUS_BypassKeySlot_eG2GR);
-    NEXUS_Module_Unlock(g_security.settings.transport);
+    NEXUS_Module_Unlock(g_security.moduleSettings.transport);
 #else
     BSTD_UNUSED( pidChannel );
     BSTD_UNUSED( bypassKeySlot );
@@ -3474,35 +2385,13 @@ void NEXUS_GetPidChannelBypassKeyslot( NEXUS_PidChannelHandle pidChannel, NEXUS_
 
     *pBypassKeySlot = NEXUS_BypassKeySlot_eMax;
 
-    if( ( rc = BHSM_GetPidChannelBypassKeyslot( g_security.hsm,
-                                                NEXUS_PidChannel_GetIndex_isrsafe(pidChannel),
-                                                (BHSM_BypassKeySlot_e*)pBypassKeySlot ) ) != BERR_SUCCESS )
-    {
-        BERR_TRACE( rc );
-        return;
-    }
+    rc = BHSM_GetPidChannelBypassKeyslot( g_security.hsm,
+                                          NEXUS_PidChannel_GetIndex_isrsafe(pidChannel),
+                                          (BHSM_BypassKeySlot_e*)pBypassKeySlot );
+    if( rc != BERR_SUCCESS ) { BERR_TRACE( rc ); return; }
 #else
     BSTD_UNUSED( pidChannel );
     BSTD_UNUSED( pBypassKeySlot );
 #endif
     return;
-}
-
-/* This function is dangerous and not meant for general use. It is needed for
- test code that needs the HSM handle. It must be extern'd. */
-void b_get_hsm(BHSM_Handle *hsm)
-{
-    *hsm = g_security.hsm;
-}
-void b_get_reg(BREG_Handle *reg)
-{
-    *reg = g_pCoreHandles->reg;
-}
-void b_get_int(BINT_Handle *bint)
-{
-    *bint = g_pCoreHandles->bint;
-}
-void b_get_chp(BCHP_Handle *chp)
-{
-    *chp = g_pCoreHandles->chp;
 }

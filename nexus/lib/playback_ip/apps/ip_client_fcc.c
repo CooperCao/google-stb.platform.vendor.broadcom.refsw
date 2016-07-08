@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2011-2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,13 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description: client example code to show fast channel change over IP
- *
- * $brcm_Log: $
  *
 ******************************************************************************/
 
@@ -311,7 +305,7 @@ IpPrimerSessionStart(int sessionIndex, IpChannel *ipChannel, DecodeSessionHandle
     /* start priming */
     rc = NEXUS_VideoDecoderPrimer_Start(ipSession->primer, &ipSession->videoProgram);
     BDBG_ASSERT(!rc);
-    BDBG_WRN(("############## primer %p started: pastTolerance=%d, futureTolerance=%d\n", ipSession->primer, primerSettings.pastTolerance, primerSettings.futureTolerance));
+    BDBG_WRN(("############## primer %p started: pastTolerance=%d, futureTolerance=%d\n", (void *)ipSession->primer, primerSettings.pastTolerance, primerSettings.futureTolerance));
 
     /* start IP session: all other modules (playpump, decoder, primer) must be started before this */
     /* update IP Session Settings */
@@ -363,7 +357,7 @@ IpPrimerSessionStop(IpSessionHandle ipSession, DecodeSessionHandle decodeSession
 
     NEXUS_VideoDecoderPrimer_Stop(ipSession->primer);
 
-    BDBG_WRN(("############## primer %p session stopped", ipSession->primer));
+    BDBG_WRN(("############## primer %p session stopped", (void *)ipSession->primer));
     NEXUS_VideoDecoderPrimer_Close(ipSession->primer);
 
     NEXUS_Playpump_CloseAllPidChannels(ipSession->playpump);

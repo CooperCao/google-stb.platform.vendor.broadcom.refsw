@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2008 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2008 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -301,6 +301,24 @@ static INLINE KHRN_IMAGE_FORMAT_T khrn_image_to_lt_format(KHRN_IMAGE_FORMAT_T fo
    return (KHRN_IMAGE_FORMAT_T)((format & ~IMAGE_FORMAT_MEM_LAYOUT_MASK) | IMAGE_FORMAT_LT);
 }
 
+static INLINE KHRN_IMAGE_FORMAT_T khrn_image_to_openvg_format(KHRN_IMAGE_FORMAT_T format)
+{
+   vcos_assert(format != IMAGE_FORMAT_INVALID);
+   return (KHRN_IMAGE_FORMAT_T)(format | IMAGE_FORMAT_OVG);
+}
+
+static INLINE KHRN_IMAGE_FORMAT_T khrn_image_to_linear_format(KHRN_IMAGE_FORMAT_T format)
+{
+   vcos_assert(format != IMAGE_FORMAT_INVALID);
+   return (KHRN_IMAGE_FORMAT_T)(format | IMAGE_FORMAT_LIN);
+}
+
+static INLINE KHRN_IMAGE_FORMAT_T khrn_image_to_premultiplied_format(KHRN_IMAGE_FORMAT_T format)
+{
+   vcos_assert(format != IMAGE_FORMAT_INVALID);
+   return (KHRN_IMAGE_FORMAT_T)(format | IMAGE_FORMAT_PRE);
+}
+
 static INLINE bool khrn_image_is_uncomp(KHRN_IMAGE_FORMAT_T format)
 {
    vcos_assert(format != IMAGE_FORMAT_INVALID);
@@ -353,154 +371,36 @@ static INLINE bool khrn_image_is_packed_mask(KHRN_IMAGE_FORMAT_T format)
    return (format & IMAGE_FORMAT_COMP_MASK) == IMAGE_FORMAT_PACKED_MASK;
 }
 
-#if 0
-static void khrn_image_print_info(KHRN_IMAGE_FORMAT_T format)
+static INLINE bool khrn_image_is_openvg(KHRN_IMAGE_FORMAT_T format)
 {
-	switch(format & IMAGE_FORMAT_MEM_LAYOUT_MASK)
-	{
-		case IMAGE_FORMAT_RSO:
-			printf("IMAGE_FORMAT_RSO\n");
-			break;
-
-		case IMAGE_FORMAT_TF:
-			printf("IMAGE_FORMAT_TF\n");
-			break;
-
-		case IMAGE_FORMAT_LT:
-			printf("IMAGE_FORMAT_LT\n");
-			break;
-
-		case IMAGE_FORMAT_RSOTF:
-			printf("IMAGE_FORMAT_RSOTF\n");
-			break;
-
-		case IMAGE_FORMAT_TLB_DUMP:
-			printf("IMAGE_FORMAT_TLB_DUMP\n");
-			break;
-	}
-
-	switch(format & IMAGE_FORMAT_PIXEL_SIZE_MASK)
-	{
-		case IMAGE_FORMAT_1:
-			printf("IMAGE_FORMAT_1\n");
-			break;
-
-		case IMAGE_FORMAT_4:
-			printf("IMAGE_FORMAT_4\n");
-			break;
-
-		case IMAGE_FORMAT_8:
-			printf("IMAGE_FORMAT_8\n");
-			break;
-
-		case IMAGE_FORMAT_16:
-			printf("IMAGE_FORMAT_16\n");
-			break;
-
-		case IMAGE_FORMAT_24:
-			printf("IMAGE_FORMAT_24\n");
-			break;
-
-		case IMAGE_FORMAT_32:
-			printf("IMAGE_FORMAT_32\n");
-			break;
-
-		case IMAGE_FORMAT_64:
-			printf("IMAGE_FORMAT_64\n");
-			break;
-	}
-
-	switch(format & IMAGE_FORMAT_COMP_MASK)
-	{
-		case IMAGE_FORMAT_UNCOMP:
-			printf("IMAGE_FORMAT_UNCOMP\n");
-			break;
-
-		case IMAGE_FORMAT_ETC1:
-			printf("IMAGE_FORMAT_ETC1\n");
-			break;
-
-		case IMAGE_FORMAT_PACKED_MASK:
-			printf("IMAGE_FORMAT_PACKED_MASK\n");
-			break;
-	}
-
-	switch(format & IMAGE_FORMAT_PIXEL_TYPE_MASK)
-	{
-		case IMAGE_FORMAT_COLOR:
-			printf("IMAGE_FORMAT_COLOR\n");
-			break;
-
-		case IMAGE_FORMAT_PALETTE:
-			printf("IMAGE_FORMAT_PALETTE\n");
-			break;
-
-		case IMAGE_FORMAT_SAMPLE:
-			printf("IMAGE_FORMAT_SAMPLE\n");
-			break;
-
-		case IMAGE_FORMAT_DEPTH:
-			printf("IMAGE_FORMAT_DEPTH\n");
-			break;
-	}
-
-	if (format & IMAGE_FORMAT_RGB)
-		printf("IMAGE_FORMAT_RGB\n");
-
-	if (format & IMAGE_FORMAT_L)
-		printf("IMAGE_FORMAT_L\n");
-
-	if (format & IMAGE_FORMAT_A)
-		printf("IMAGE_FORMAT_A\n");
-
-	if (format & IMAGE_FORMAT_XRGBX)
-		printf("IMAGE_FORMAT_XRGBX\n");
-	else
-		printf("IMAGE_FORMAT_XBGRX\n");
-
-	if (format & IMAGE_FORMAT_XA)
-		printf("IMAGE_FORMAT_XA\n");
-	else
-		printf("IMAGE_FORMAT_AX\n");
-
-	switch(format & IMAGE_FORMAT_PIXEL_LAYOUT_MASK)
-	{
-		case IMAGE_FORMAT_8888:
-			printf("IMAGE_FORMAT_8888\n");
-			break;
-
-		//case IMAGE_FORMAT_888:
-		//	printf("IMAGE_FORMAT_888\n");
-		//	break;
-
-		case IMAGE_FORMAT_4444:
-			printf("IMAGE_FORMAT_4444\n");
-			break;
-
-		case IMAGE_FORMAT_5551:
-			printf("IMAGE_FORMAT_5551\n");
-			break;
-
-		case IMAGE_FORMAT_565:
-			printf("IMAGE_FORMAT_565\n");
-			break;
-
-		case IMAGE_FORMAT_88:
-			printf("IMAGE_FORMAT_88\n");
-			break;
-
-		case IMAGE_FORMAT_64:
-			printf("IMAGE_FORMAT_64\n");
-			break;
-	}
-
-	if (format & IMAGE_FORMAT_PRE)
-		printf("IMAGE_FORMAT_PRE\n");
-
-	if (format & IMAGE_FORMAT_LIN)
-		printf("IMAGE_FORMAT_LIN\n");
+   vcos_assert(format != IMAGE_FORMAT_INVALID);
+   return (format & IMAGE_FORMAT_OVG) != 0;
 }
-#endif
+
+static INLINE bool khrn_image_is_linear(KHRN_IMAGE_FORMAT_T format)
+{
+   vcos_assert(format != IMAGE_FORMAT_INVALID);
+   return (format & IMAGE_FORMAT_LIN) != 0;
+}
+
+static INLINE bool khrn_image_is_premultiplied(KHRN_IMAGE_FORMAT_T format)
+{
+   vcos_assert(format != IMAGE_FORMAT_INVALID);
+   return (format & IMAGE_FORMAT_PRE) != 0;
+}
+
+/* returns the image stripped of its colorspace flags */
+static INLINE KHRN_IMAGE_FORMAT_T khrn_image_no_colorspace_format(KHRN_IMAGE_FORMAT_T format)
+{
+   vcos_assert(format != IMAGE_FORMAT_INVALID);
+   return (format & ~(IMAGE_FORMAT_PRE | IMAGE_FORMAT_LIN | IMAGE_FORMAT_OVG));
+}
+
+static INLINE KHRN_IMAGE_FORMAT_T khrn_image_no_layout_format(KHRN_IMAGE_FORMAT_T format)
+{
+   vcos_assert(format != IMAGE_FORMAT_INVALID);
+   return (format & ~IMAGE_FORMAT_MEM_LAYOUT_MASK);
+}
 
 extern uint32_t khrn_image_get_bpp(KHRN_IMAGE_FORMAT_T format);
 
@@ -530,9 +430,12 @@ typedef struct {
 
    uint16_t flags;
 
-   void *aux;
+   bool secure;
+
+   void *palette;
    void *storage;
    KHRN_INTERLOCK_T *interlock;
+
 } KHRN_IMAGE_WRAP_T;
 
 extern uint32_t khrn_image_pad_width(KHRN_IMAGE_FORMAT_T format, uint32_t width);
@@ -546,6 +449,8 @@ static INLINE uint32_t khrn_image_get_packed_mask_height(uint32_t height)
       _min(height & ((VG_Q_TILE_HEIGHT * 4) - 1), VG_Q_TILE_HEIGHT);
 }
 
-extern void khrn_image_interlock_wrap(KHRN_IMAGE_WRAP_T *wrap, KHRN_IMAGE_FORMAT_T format, uint32_t width, uint32_t height, int32_t stride, uint32_t flags, void *storage, KHRN_INTERLOCK_T *interlock);
+extern void khrn_image_interlock_wrap(KHRN_IMAGE_WRAP_T *wrap, KHRN_IMAGE_FORMAT_T format,
+   uint32_t width, uint32_t height, int32_t stride,
+   uint32_t flags, bool secure, void *storage, KHRN_INTERLOCK_T *interlock);
 
 #endif

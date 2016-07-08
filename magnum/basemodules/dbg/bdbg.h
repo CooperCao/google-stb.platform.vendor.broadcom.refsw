@@ -1,22 +1,42 @@
 /***************************************************************************
- *     Copyright (c) 2003-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2003-2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description:
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ***************************************************************************/
 
 #ifndef BDBG_H
@@ -877,7 +897,7 @@ See Also:
 
 
 #ifdef __GNUC__
-#if B_REFSW_STRICT_PRINTF_FORMAT
+#ifdef B_REFSW_STRICT_PRINTF_FORMAT
 #define BDBG_P_PRINTF_FORMAT(fmt,args) __attribute__((format (printf, fmt, args)))
 #else
 #define BDBG_P_PRINTF_FORMAT(fmt,args)
@@ -900,17 +920,23 @@ See Also:
 #endif
 
 #if defined(BDBG_P_UNWRAP)
-# define BDBG_P_PRINTMSG_PRIV(module,lvl, fmt) (((lvl) >= module.level)? (void)BDBG_P_TestAndPrint((lvl), &module, BDBG_P_UNWRAP fmt) : (void)0)
-# define BDBG_P_PRINTMSG_COMPACT_PRIV(module, lvl, fmt) (void)BDBG_P_TestAndPrint_##lvl(&module, BDBG_P_UNWRAP fmt)
-# define BDBG_P_INSTANCE_PRINTMSG_PRIV(module, lvl, instance, fmt) (void)BDBG_P_InstTestAndPrint((lvl), &module, (instance), BDBG_P_UNWRAP fmt)
+# define BDBG_P_PRINTMSG_PRIV(module,lvl, fmt) (((lvl) >= module.level)? (void)BDBG_P_TestAndPrint_isrsafe((lvl), &module, BDBG_P_UNWRAP fmt) : (void)0)
+# define BDBG_P_PRINTMSG_COMPACT_PRIV(module, lvl, fmt) (void)BDBG_P_TestAndPrint_##lvl##_isrsafe(&module, BDBG_P_UNWRAP fmt)
+# define BDBG_P_PRINTMSG_VERBOSE_PRIV(module, lvl, _file, _line_num, fmt) ((void)BDBG_P_TestAndPrint_##lvl##_isrsafe(&module, BDBG_P_UNWRAP fmt), \
+                                                                            BDBG_P_PrintString(">>>>>>>>>>>>>>>> %s(%d)", _file, _line_num))
+# define BDBG_P_INSTANCE_PRINTMSG_PRIV(module, lvl, instance, fmt) (void)BDBG_P_InstTestAndPrint_isrsafe((lvl), &module, (instance), BDBG_P_UNWRAP fmt)
 #else
-# define BDBG_P_PRINTMSG_PRIV(module, lvl, fmt) ((((lvl) >= module.level) && BDBG_P_TestAndPrint((lvl), &module, NULL)) ? BDBG_P_PrintWithNewLine fmt:(void)0)
-# define BDBG_P_PRINTMSG_COMPACT_PRIV(module, lvl, fmt) (BDBG_P_TestAndPrint_##lvl(&module, NULL) ? BDBG_P_PrintWithNewLine fmt:(void)0)
-# define BDBG_P_INSTANCE_PRINTMSG_PRIV(module, lvl, instance, fmt) ((BDBG_P_InstTestAndPrint((lvl), &module, (instance), NULL))? BDBG_P_PrintWithNewLine fmt:(void)0)
+# define BDBG_P_PRINTMSG_PRIV(module, lvl, fmt) ((((lvl) >= module.level) && BDBG_P_TestAndPrint_isrsafe((lvl), &module, NULL)) ? BDBG_P_PrintWithNewLine_isrsafe fmt:(void)0)
+# define BDBG_P_PRINTMSG_COMPACT_PRIV(module, lvl, fmt) (BDBG_P_TestAndPrint_##lvl##_isrsafe(&module, NULL) ? BDBG_P_PrintWithNewLine_isrsafe fmt:(void)0)
+# define BDBG_P_PRINTMSG_VERBOSE_PRIV(module, lvl, _file, _line_num, fmt) ((BDBG_P_TestAndPrint_##lvl##_isrsafe(&module, NULL)) ? \
+                                                                             (BDBG_P_PrintWithNewLine_isrsafe fmt ,\
+                                                                              BDBG_P_PrintString(">>>>>>>>>>>>>>>> %s(%d)", _file, _line_num)) : (void)0)
+# define BDBG_P_INSTANCE_PRINTMSG_PRIV(module, lvl, instance, fmt) ((BDBG_P_InstTestAndPrint_isrsafe((lvl), &module, (instance), NULL))? BDBG_P_PrintWithNewLine_isrsafe fmt:(void)0)
 #endif
 
 #define BDBG_P_PRINTMSG(lvl, fmt) BDBG_P_PRINTMSG_PRIV(b_dbg_module, lvl, fmt)
 #define BDBG_P_PRINTMSG_COMPACT(lvl, fmt) BDBG_P_PRINTMSG_COMPACT_PRIV(b_dbg_module, lvl, fmt)
+#define BDBG_P_PRINTMSG_VERBOSE(lvl, _file, _line_num, fmt) BDBG_P_PRINTMSG_VERBOSE_PRIV(b_dbg_module, lvl, _file, _line_num, fmt)
 #define BDBG_P_MODULE_PRINTMSG(module, lvl, fmt) BDBG_P_PRINTMSG_PRIV(b_dbg_module_##module, lvl, fmt)
 #define BDBG_P_MODULE_PRINTMSG_COMPACT(module, lvl, fmt) BDBG_P_PRINTMSG_COMPACT_PRIV(b_dbg_module_##module, lvl, fmt)
 #define BDBG_P_INSTANCE_PRINTMSG(lvl, instance, fmt) BDBG_P_INSTANCE_PRINTMSG_PRIV(b_dbg_module, lvl, instance, fmt)
@@ -924,8 +950,8 @@ See Also:
 #define BDBG_MODULE_UNREGISTER_INSTANCE(module, handle) BDBG_P_UnRegisterInstance(handle, &b_dbg_module_##module)
 #define BDBG_MODULE_RELEASE(module) BDBG_P_Release(&b_dbg_module__#module)
 
-#if B_REFSW_DEBUG_COMPACT_ERR || B_REFSW_STATIC_ANALYZER
-#define BDBG_ASSERT(expr) BDBG_P_Assert(expr, BSTD_FILE, BSTD_LINE)
+#if defined B_REFSW_DEBUG_COMPACT_ERR || defined B_REFSW_STATIC_ANALYZER
+#define BDBG_ASSERT(expr) BDBG_P_Assert_isrsafe(expr, BSTD_FILE, BSTD_LINE)
 #else
 #define BDBG_ASSERT(expr) (expr) ? (void) 0 : BDBG_P_AssertFailed(#expr, BSTD_FILE, BSTD_LINE)
 #endif
@@ -943,11 +969,11 @@ See Also:
 #define BDBG_OBJECT_SET(ptr,name) (ptr)->bdbg_object_##name.bdbg_obj_id=bdbg_id__##name
 #define BDBG_OBJECT_UNSET(ptr,name) (ptr)->bdbg_object_##name.bdbg_obj_id=NULL
 
-void BDBG_Object_Assert(const void *ptr, size_t size, const struct bdbg_obj *obj, const char *id, const char *file, unsigned line);
-#if B_REFSW_DEBUG_COMPACT_ERR
-#define BDBG_OBJECT_ASSERT(ptr,name) BDBG_Object_Assert(ptr, sizeof(*ptr), &(ptr)->bdbg_object_##name, bdbg_id__##name, BSTD_FILE, BSTD_LINE)
+void BDBG_Object_Assert_isrsafe(const void *ptr, size_t size, const struct bdbg_obj *obj, const char *id, const char *file, unsigned line);
+#ifdef B_REFSW_DEBUG_COMPACT_ERR
+#define BDBG_OBJECT_ASSERT(ptr,name) BDBG_Object_Assert_isrsafe(ptr, sizeof(*ptr), &(ptr)->bdbg_object_##name, bdbg_id__##name, BSTD_FILE, BSTD_LINE)
 #else
-#define BDBG_OBJECT_ASSERT(ptr,name) (((ptr) && (ptr)->bdbg_object_##name.bdbg_obj_id==bdbg_id__##name)? (void) 0 : BDBG_Object_Assert(ptr, sizeof(*ptr), &(ptr)->bdbg_object_##name, bdbg_id__##name, BSTD_FILE, BSTD_LINE))
+#define BDBG_OBJECT_ASSERT(ptr,name) (((ptr) && (ptr)->bdbg_object_##name.bdbg_obj_id==bdbg_id__##name)? (void) 0 : BDBG_Object_Assert_isrsafe(ptr, sizeof(*ptr), &(ptr)->bdbg_object_##name, bdbg_id__##name, BSTD_FILE, BSTD_LINE))
 #endif
 
 #define BDBG_OBJECT_INIT_INST(ptr,name,inst) BDBG_Object_Init(ptr,sizeof(*(ptr)),&(ptr)->bdbg_object_##name,bdbg_id__##name+(unsigned)(inst))
@@ -956,14 +982,14 @@ void BDBG_Object_Assert(const void *ptr, size_t size, const struct bdbg_obj *obj
 
 void BDBG_Object_Init(void *ptr, size_t size, struct bdbg_obj *obj, const char *id);
 
-bool BDBG_P_TestAndPrint_BDBG_eWrn(BDBG_pDebugModuleFile dbg_module, const char *fmt, ...) BDBG_P_PRINTF_FORMAT(2, 3);
-bool BDBG_P_TestAndPrint_BDBG_eErr(BDBG_pDebugModuleFile dbg_module, const char *fmt, ...) BDBG_P_PRINTF_FORMAT(2, 3);
-bool BDBG_P_TestAndPrint_BDBG_eLog(BDBG_pDebugModuleFile dbg_module, const char *fmt, ...) BDBG_P_PRINTF_FORMAT(2, 3);
-bool BDBG_P_TestAndPrint(BDBG_Level level, BDBG_pDebugModuleFile dbg_module, const char *fmt, ...) BDBG_P_PRINTF_FORMAT(3, 4);
-bool BDBG_P_InstTestAndPrint(BDBG_Level level, BDBG_pDebugModuleFile dbg_module, BDBG_Instance handle, const char *fmt, ...) BDBG_P_PRINTF_FORMAT(4, 5);
+bool BDBG_P_TestAndPrint_BDBG_eWrn_isrsafe(BDBG_pDebugModuleFile dbg_module, const char *fmt, ...) BDBG_P_PRINTF_FORMAT(2, 3);
+bool BDBG_P_TestAndPrint_BDBG_eErr_isrsafe(BDBG_pDebugModuleFile dbg_module, const char *fmt, ...) BDBG_P_PRINTF_FORMAT(2, 3);
+bool BDBG_P_TestAndPrint_BDBG_eLog_isrsafe(BDBG_pDebugModuleFile dbg_module, const char *fmt, ...) BDBG_P_PRINTF_FORMAT(2, 3);
+bool BDBG_P_TestAndPrint_isrsafe(BDBG_Level level, BDBG_pDebugModuleFile dbg_module, const char *fmt, ...) BDBG_P_PRINTF_FORMAT(3, 4);
+bool BDBG_P_InstTestAndPrint_isrsafe(BDBG_Level level, BDBG_pDebugModuleFile dbg_module, BDBG_Instance handle, const char *fmt, ...) BDBG_P_PRINTF_FORMAT(4, 5);
 void BDBG_P_RegisterInstance(BDBG_Instance handle, BDBG_pDebugModuleFile dbg_module);
 void BDBG_P_UnRegisterInstance(BDBG_Instance handle, BDBG_pDebugModuleFile dbg_module);
-void BDBG_P_PrintWithNewLine(const char *fmt, ...) BDBG_P_PRINTF_FORMAT(1, 2);
+void BDBG_P_PrintWithNewLine_isrsafe(const char *fmt, ...) BDBG_P_PRINTF_FORMAT(1, 2);
 void BDBG_P_Release(BDBG_pDebugModuleFile dbg_module);
 
 void BDBG_EnterFunction(BDBG_pDebugModuleFile dbg_module, const char *function);
@@ -1018,7 +1044,7 @@ they can be used to avoid unused code warnings. */
 #endif
 #endif /* BDBG_DEBUG_BUILD */
 
-#if BDBG_NO_MSG
+#ifdef BDBG_NO_MSG
 #define BDBG_ENTER(function) BDBG_NOP()
 #define BDBG_MODULE_ENTER(module,function) BDBG_NOP()
 #define BDBG_LEAVE(function) BDBG_NOP()
@@ -1038,7 +1064,7 @@ they can be used to avoid unused code warnings. */
 #define BDBG_MODULE_INSTANCE_MSG(module, instance, format) BDBG_P_MODULE_INSTANCE_PRINTMSG(module, BDBG_eMsg, instance, format)
 #endif
 
-#if BDBG_NO_WRN
+#ifdef BDBG_NO_WRN
 #define BDBG_WRN(format) BDBG_NOP()
 #define BDBG_MODULE_WRN(module,format) BDBG_NOP()
 #define BDBG_INSTANCE_WRN(instance, format) BDBG_NOP()
@@ -1050,24 +1076,28 @@ they can be used to avoid unused code warnings. */
 #define BDBG_MODULE_INSTANCE_WRN(module, instance, format) BDBG_P_MODULE_INSTANCE_PRINTMSG(module, BDBG_eWrn, instance, format)
 #endif
 
-#if BDBG_NO_ERR
+#ifdef BDBG_NO_ERR
 #define BDBG_ERR(format) BDBG_NOP()
 #define BDBG_MODULE_ERR(module,format) BDBG_NOP()
 #define BDBG_INSTANCE_ERR(instance, format) BDBG_NOP()
 #define BDBG_MODULE_INSTANCE_ERR(module, instance, format) BDBG_NOP()
-#elif B_REFSW_DEBUG_COMPACT_ERR
-#define BDBG_ERR(format)                                   BDBG_P_PrintErrorString_small(BSTD_FILE, BSTD_LINE)
+#elif defined B_REFSW_DEBUG_COMPACT_ERR
+#define BDBG_ERR(format)                                   BDBG_P_PrintErrorString_small_isrsafe(BSTD_FILE, BSTD_LINE)
 #define BDBG_MODULE_ERR(module,format)                     BDBG_ERR(format)
 #define BDBG_INSTANCE_ERR(instance, format)                BDBG_ERR(format)
 #define BDBG_MODULE_INSTANCE_ERR(module, instance, format) BDBG_ERR(format)
 #else
+#ifdef B_REFSW_DEBUG_VERBOSE_ERR
+#define BDBG_ERR(format) BDBG_P_PRINTMSG_VERBOSE(BDBG_eErr, __FILE__, __LINE__, format)
+#else
 #define BDBG_ERR(format) BDBG_P_PRINTMSG_COMPACT(BDBG_eErr, format)
+#endif
 #define BDBG_MODULE_ERR(module,format) BDBG_P_MODULE_PRINTMSG_COMPACT(module,BDBG_eErr, format)
 #define BDBG_INSTANCE_ERR(instance, format) BDBG_P_INSTANCE_PRINTMSG(BDBG_eErr, instance, format)
 #define BDBG_MODULE_INSTANCE_ERR(module, instance, format) BDBG_P_MODULE_INSTANCE_PRINTMSG(module,BDBG_eErr, instance, format)
 #endif
 
-#if BDBG_NO_LOG
+#ifdef BDBG_NO_LOG
 #define BDBG_LOG(format) BDBG_NOP()
 #define BDBG_MODULE_LOG(module,format) BDBG_NOP()
 #define BDBG_INSTANCE_LOG(instance, format) BDBG_NOP()
@@ -1083,7 +1113,7 @@ they can be used to avoid unused code warnings. */
 #define BDBG_DEBUG_WITH_STRINGS 1
 #endif
 extern const char BDBG_P_EmptyString[];
-#if BDBG_DEBUG_WITH_STRINGS
+#ifdef BDBG_DEBUG_WITH_STRINGS
 #define BDBG_STRING(X) X
 #define BDBG_STRING_INLINE(X) X
 #else

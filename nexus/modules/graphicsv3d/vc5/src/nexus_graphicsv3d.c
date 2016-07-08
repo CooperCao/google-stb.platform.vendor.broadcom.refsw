@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2014 Broadcom Corporation
+ *     Broadcom Proprietary and Confidential. (c)2014 Broadcom.  All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -49,6 +49,9 @@
 #include "nexus_graphicsv3d_module.h"
 #include "nexus_graphicsv3d_init.h"
 #include "priv/nexus_core.h"
+#if NEXUS_HAS_SAGE
+#include "priv/nexus_sage_priv.h"
+#endif
 
 #include "nexus_client_resources.h"
 
@@ -89,6 +92,10 @@ CHECK_DEFINE(NEXUS_GRAPHICSV3D_SYNC_TFU_WRITE,              BVC5_SYNC_TFU_WRITE)
 CHECK_DEFINE(NEXUS_GRAPHICSV3D_SYNC_CPU_READ,               BVC5_SYNC_CPU_READ);
 CHECK_DEFINE(NEXUS_GRAPHICSV3D_SYNC_CPU_WRITE,              BVC5_SYNC_CPU_WRITE);
 
+CHECK_DEFINE(NEXUS_GRAPHICSV3D_EMPTY_TILE_MODE_NONE,        BVC5_EMPTY_TILE_MODE_NONE);
+CHECK_DEFINE(NEXUS_GRAPHICSV3D_EMPTY_TILE_MODE_SKIP,        BVC5_EMPTY_TILE_MODE_SKIP);
+CHECK_DEFINE(NEXUS_GRAPHICSV3D_EMPTY_TILE_MODE_FILL,        BVC5_EMPTY_TILE_MODE_FILL);
+
 CHECK_DEFINE(NEXUS_GRAPHICSV3D_GFXH_1181,                   BVC5_GFXH_1181);
 
 /* Static sanity checks on enums */
@@ -101,7 +108,6 @@ CHECK_ENUM(NEXUS_Graphicsv3dJobType_eRender,       BVC5_JobType_eRender);
 CHECK_ENUM(NEXUS_Graphicsv3dJobType_eUser,         BVC5_JobType_eUser);
 CHECK_ENUM(NEXUS_Graphicsv3dJobType_eTFU,          BVC5_JobType_eTFU);
 CHECK_ENUM(NEXUS_Graphicsv3dJobType_eFenceWait,    BVC5_JobType_eFenceWait);
-CHECK_ENUM(NEXUS_Graphicsv3dJobType_eFenceSignal,  BVC5_JobType_eFenceSignal);
 CHECK_ENUM(NEXUS_Graphicsv3dJobType_eTest,         BVC5_JobType_eTest);
 CHECK_ENUM(NEXUS_Graphicsv3dJobType_eUsermode,     BVC5_JobType_eUsermode);
 CHECK_ENUM(NEXUS_Graphicsv3dJobType_eNumJobTypes,  BVC5_JobType_eNumJobTypes);
@@ -142,7 +148,6 @@ CHECK_STRUCT(NEXUS_Graphicsv3dJobBin,              BVC5_JobBin);
 CHECK_STRUCT(NEXUS_Graphicsv3dJobRender,           BVC5_JobRender);
 CHECK_STRUCT(NEXUS_Graphicsv3dJobUser,             BVC5_JobUser);
 CHECK_STRUCT(NEXUS_Graphicsv3dJobFenceWait,        BVC5_JobFenceWait);
-CHECK_STRUCT(NEXUS_Graphicsv3dJobFenceSignal,      BVC5_JobFenceSignal);
 CHECK_STRUCT(NEXUS_Graphicsv3dJobTFU,              BVC5_JobTFU);
 CHECK_STRUCT(NEXUS_Graphicsv3dJobTest,             BVC5_JobTest);
 CHECK_STRUCT(NEXUS_Graphicsv3dJobUsermode,         BVC5_JobUsermode);
@@ -163,6 +168,7 @@ CHECK_STRUCT(NEXUS_Graphicsv3dEventTrackDesc,      BVC5_EventTrackDesc);
 static void NEXUS_Graphicsv3d_P_FenceHandler(void *pVc5, void *pEvent);
 static void NEXUS_Graphicsv3d_P_UsermodeHandler(void *pVc5);
 static void NEXUS_Graphicsv3d_P_CompletionHandler(void *pVc5);
+static void NEXUS_Graphicsv3d_P_SecureToggleHandler(bool bEnter);
 
 /* Event Queue for Fence implementation */
 typedef struct NEXUS_P_EventQueue
@@ -354,6 +360,8 @@ NEXUS_ModuleHandle NEXUS_Graphicsv3dModule_Init(
    const char           *pcEnv;
    BVC5_OpenParameters  openParams;
    BVC5_Callbacks       callbacks;
+   BMEM_Heap_Handle     heapSecure    = NULL;
+   BMMA_Heap_Handle     heapSecureMma = NULL;
 
    BSTD_UNUSED(pSettings);
 
@@ -389,16 +397,29 @@ NEXUS_ModuleHandle NEXUS_Graphicsv3dModule_Init(
    pcEnv = NEXUS_GetEnv("V3D_MEM_DUMP_ON_STALL");
    openParams.bMemDumpOnStall = pcEnv != NULL ? (NEXUS_atoi(pcEnv) == 0 ? false : true) : openParams.bMemDumpOnStall;
 
-   callbacks.fpUsermodeHandler   = NEXUS_Graphicsv3d_P_UsermodeHandler;
-   callbacks.fpCompletionHandler = NEXUS_Graphicsv3d_P_CompletionHandler;
+   pcEnv = NEXUS_GetEnv("V3D_NO_BURST_SPLITTING");
+   openParams.bNoBurstSplitting = pcEnv != NULL ? (NEXUS_atoi(pcEnv) == 0 ? false : true) : openParams.bNoBurstSplitting;
 
-   g_NEXUS_Graphicsv3d_P_ModuleState.hHeap = pSettings->hHeap;
+   callbacks.fpUsermodeHandler     = NEXUS_Graphicsv3d_P_UsermodeHandler;
+   callbacks.fpCompletionHandler   = NEXUS_Graphicsv3d_P_CompletionHandler;
+   callbacks.fpSecureToggleHandler = NEXUS_Graphicsv3d_P_SecureToggleHandler;
+
+   g_NEXUS_Graphicsv3d_P_ModuleState.hHeap       = pSettings->hHeap;
+   g_NEXUS_Graphicsv3d_P_ModuleState.hHeapSecure = pSettings->hHeapSecure;
+
+   if (pSettings->hHeapSecure)
+   {
+      heapSecure    = NEXUS_Heap_GetMemHandle(g_NEXUS_Graphicsv3d_P_ModuleState.hHeapSecure);
+      heapSecureMma = NEXUS_Heap_GetMmaHandle(g_NEXUS_Graphicsv3d_P_ModuleState.hHeapSecure);
+   }
 
    err = BVC5_Open(&g_NEXUS_Graphicsv3d_P_ModuleState.hVc5,
                    g_pCoreHandles->chp,
                    g_pCoreHandles->reg,
                    NEXUS_Heap_GetMemHandle(g_NEXUS_Graphicsv3d_P_ModuleState.hHeap),
                    NEXUS_Heap_GetMmaHandle(g_NEXUS_Graphicsv3d_P_ModuleState.hHeap),
+                   heapSecure,
+                   heapSecureMma,
                    g_pCoreHandles->bint,
                    &openParams,
                    &callbacks);
@@ -706,24 +727,6 @@ NEXUS_Error NEXUS_Graphicsv3d_QueueNull(
    return berr ==  BERR_SUCCESS ? NEXUS_SUCCESS : NEXUS_UNKNOWN;
 }
 
-NEXUS_Error NEXUS_Graphicsv3d_QueueFenceSignal(
-   NEXUS_Graphicsv3dHandle                   hGfx,
-   const NEXUS_Graphicsv3dJobFenceSignal    *fenceSignal,
-   int                                      *fence
-   )
-{
-   BERR_Code            berr = 0;
-
-   BDBG_ENTER(NEXUS_Graphicsv3d_QueueFenceSignal);
-
-   berr = BVC5_FenceSignalJob(g_NEXUS_Graphicsv3d_P_ModuleState.hVc5, hGfx->uiClientId,
-                              (const BVC5_JobFenceSignal *)fenceSignal, fence);
-
-   BDBG_LEAVE(NEXUS_Graphicsv3d_QueueFenceSignal);
-
-   return berr ==  BERR_SUCCESS ? NEXUS_SUCCESS : NEXUS_UNKNOWN;
-}
-
 NEXUS_Error NEXUS_Graphicsv3d_QueueFenceWait(
    NEXUS_Graphicsv3dHandle                   hGfx,
    const NEXUS_Graphicsv3dJobFenceWait      *wait
@@ -798,6 +801,48 @@ NEXUS_Error NEXUS_Graphicsv3d_Query(
    return berr ==  BERR_SUCCESS ? NEXUS_SUCCESS : NEXUS_UNKNOWN;
 }
 
+NEXUS_Error NEXUS_Graphicsv3d_MakeFenceForJobs(
+   NEXUS_Graphicsv3dHandle                   hGfx,
+   const NEXUS_Graphicsv3dSchedDependencies *pCompletedDeps,
+   const NEXUS_Graphicsv3dSchedDependencies *pFinalizedDeps,
+   bool                                      bForceCreate,
+   int                                      *piFence
+   )
+{
+   BERR_Code berr;
+
+   BDBG_ENTER(NEXUS_Graphicsv3d_MakeFenceForJobs);
+
+   berr = BVC5_MakeFenceForJobs(
+      g_NEXUS_Graphicsv3d_P_ModuleState.hVc5, hGfx->uiClientId,
+      (const BVC5_SchedDependencies *)pCompletedDeps,
+      (const BVC5_SchedDependencies *)pFinalizedDeps,
+      bForceCreate,
+      piFence);
+
+   BDBG_LEAVE(NEXUS_Graphicsv3d_MakeFenceForJobs);
+
+   return berr == BERR_SUCCESS ? NEXUS_SUCCESS : NEXUS_UNKNOWN;
+}
+
+NEXUS_Error NEXUS_Graphicsv3d_MakeFenceForAnyNonFinalizedJob(
+   NEXUS_Graphicsv3dHandle hGfx,
+   int                    *piFence
+   )
+{
+   BERR_Code berr;
+
+   BDBG_ENTER(NEXUS_Graphicsv3d_MakeFenceForAnyNonFinalizedJob);
+
+   berr = BVC5_MakeFenceForAnyNonFinalizedJob(
+      g_NEXUS_Graphicsv3d_P_ModuleState.hVc5, hGfx->uiClientId,
+      piFence);
+
+   BDBG_LEAVE(NEXUS_Graphicsv3d_MakeFenceForAnyNonFinalizedJob);
+
+   return berr == BERR_SUCCESS ? NEXUS_SUCCESS : NEXUS_UNKNOWN;
+}
+
 static void NEXUS_Graphicsv3d_P_FenceHandler(
    void  *pVc5,
    void  *pEvent
@@ -806,7 +851,7 @@ static void NEXUS_Graphicsv3d_P_FenceHandler(
    NEXUS_Graphicsv3dHandle  hGfx    = (NEXUS_Graphicsv3dHandle)pVc5;
    NEXUS_TaskCallbackHandle handler = hGfx->hFenceDoneCallback;
 
-   BDBG_MSG(("%s: V3d handle %p, Event %p", __FUNCTION__, hGfx, pEvent));
+   BDBG_MSG(("%s: V3d handle %p, Event %p", __FUNCTION__, (void*)hGfx, pEvent));
 
    NEXUS_Graphicsv3d_P_TSEventQueuePush(&hGfx->sFenceEventQueue, pEvent);
 
@@ -980,6 +1025,29 @@ NEXUS_Error NEXUS_Graphicsv3d_GetCompletions(
    BDBG_LEAVE(NEXUS_Graphicsv3d_GetCompletions);
 
    return berr == BERR_SUCCESS ? NEXUS_SUCCESS : NEXUS_UNKNOWN;
+}
+
+/*************************************************************************************************/
+
+static void NEXUS_Graphicsv3d_P_SecureToggleHandler(bool bEnter)
+{
+#if NEXUS_HAS_SAGE
+   /* if nothing more to advance, check for mode switch */
+   BAVC_CoreList coreList;
+   int rc = 0;
+
+   BKNI_Memset(&coreList, 0, sizeof(coreList));
+   coreList.aeCores[BAVC_CoreId_eV3D_0] = true;
+   coreList.aeCores[BAVC_CoreId_eV3D_1] = true;
+   if (bEnter)
+      rc = NEXUS_Sage_AddSecureCores(&coreList);
+   else
+      NEXUS_Sage_RemoveSecureCores(&coreList);
+
+   if (rc) BERR_TRACE(rc);
+#else
+   BSTD_UNUSED(bEnter);
+#endif
 }
 
 /*************************************************************************************************/

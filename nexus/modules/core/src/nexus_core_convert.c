@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2008-2012 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 /* this file should not #include nexus_core_modules.h so that it can be used locally.
@@ -293,6 +285,10 @@ NEXUS_P_FrameRate_FromMagnum_isrsafe(BAVC_FrameRateCode magnumFramerate)
     BDBG_CASSERT(NEXUS_VideoFrameRate_e119_88 == (NEXUS_VideoFrameRate)BAVC_FrameRateCode_e119_88);
     BDBG_CASSERT(NEXUS_VideoFrameRate_e120 == (NEXUS_VideoFrameRate)BAVC_FrameRateCode_e120);
     BDBG_CASSERT(NEXUS_VideoFrameRate_e19_98 == (NEXUS_VideoFrameRate)BAVC_FrameRateCode_e19_98);
+    BDBG_CASSERT(NEXUS_VideoFrameRate_e7_5 == (NEXUS_VideoFrameRate)BAVC_FrameRateCode_e7_5);
+    BDBG_CASSERT(NEXUS_VideoFrameRate_e12 == (NEXUS_VideoFrameRate)BAVC_FrameRateCode_e12);
+    BDBG_CASSERT(NEXUS_VideoFrameRate_e11_988 == (NEXUS_VideoFrameRate)BAVC_FrameRateCode_e11_988);
+    BDBG_CASSERT(NEXUS_VideoFrameRate_e9_99 == (NEXUS_VideoFrameRate)BAVC_FrameRateCode_e9_99);
     BDBG_CWARNING(NEXUS_VideoFrameRate_eMax == (NEXUS_VideoFrameRate)BAVC_FrameRateCode_eMax);
 
     return (NEXUS_VideoFrameRate)magnumFramerate;
@@ -315,7 +311,11 @@ static const struct {
 } b_verticalfrequency[NEXUS_VideoFrameRate_eMax] = {
 /* array should be sorted by the frequency to facilitate implementations of NEXUS_P_RefreshRate_FromFrameRate_isrsafe and NEXUS_P_FrameRate_FromRefreshRate_isrsafe */
     { 7493, NEXUS_VideoFrameRate_e7_493},
+    { 7500, NEXUS_VideoFrameRate_e7_5},
+    { 9990, NEXUS_VideoFrameRate_e9_99},
     {10000, NEXUS_VideoFrameRate_e10},
+    {11988, NEXUS_VideoFrameRate_e11_988},
+    {12000, NEXUS_VideoFrameRate_e12},
     {12500, NEXUS_VideoFrameRate_e12_5},
     {14985, NEXUS_VideoFrameRate_e14_985},
     {15000, NEXUS_VideoFrameRate_e15},
@@ -660,12 +660,22 @@ BAVC_HDMI_DRM_EOTF NEXUS_P_VideoEotf_ToMagnum_isrsafe(NEXUS_VideoEotf eotf)
 {
     switch (eotf) {
     case NEXUS_VideoEotf_eSdr:         return BAVC_HDMI_DRM_EOTF_eSDR;
-    case NEXUS_VideoEotf_eHdr:         return BAVC_HDMI_DRM_EOTF_eHDR;
-    case NEXUS_VideoEotf_eSmpteSt2084: return BAVC_HDMI_DRM_EOTF_eSMPTE_ST_2084;
-    case NEXUS_VideoEotf_eFuture:      return BAVC_HDMI_DRM_EOTF_eFuture;
+    case NEXUS_VideoEotf_eHdr10:       return BAVC_HDMI_DRM_EOTF_eSMPTE_ST_2084;
+    case NEXUS_VideoEotf_eHlg:         return BAVC_HDMI_DRM_EOTF_eFuture;
     default: return BAVC_HDMI_DRM_EOTF_eMax;
     }
 }
+
+NEXUS_VideoEotf NEXUS_P_VideoEotf_FromMagnum_isrsafe(BAVC_HDMI_DRM_EOTF eotf)
+{
+    switch (eotf) {
+    case BAVC_HDMI_DRM_EOTF_eSDR:                 return NEXUS_VideoEotf_eSdr;
+    case BAVC_HDMI_DRM_EOTF_eSMPTE_ST_2084:       return NEXUS_VideoEotf_eHdr10;
+    case BAVC_HDMI_DRM_EOTF_eFuture:              return NEXUS_VideoEotf_eHlg;
+    default: return NEXUS_VideoEotf_eMax;
+    }
+}
+
 NEXUS_ColorRange NEXUS_P_ColorRange_FromMagnum_isrsafe(BAVC_ColorRange colorRange)
 {
     switch (colorRange) {
@@ -816,5 +826,115 @@ unsigned NEXUS_P_StripeWidth_FromMagnum_isrsafe(BAVC_StripeWidth stripeWidth)
     case BAVC_StripeWidth_e128Byte: return 128;
     case BAVC_StripeWidth_e256Byte: return 256;
     case BAVC_StripeWidth_e64Byte:  return 64;
+    }
+}
+
+NEXUS_VideoEotf NEXUS_P_TransferCharacteristicsToEotf_isrsafe(NEXUS_TransferCharacteristics tc, NEXUS_TransferCharacteristics preferredTc)
+{
+    NEXUS_VideoEotf eotf = NEXUS_VideoEotf_eMax;
+
+    switch (preferredTc)
+    {
+        case NEXUS_TransferCharacteristics_eArib_STD_B67:
+            eotf = NEXUS_VideoEotf_eHlg;
+            break;
+        default:
+            break;
+    }
+
+    if (eotf == NEXUS_VideoEotf_eMax)
+    {
+        switch (tc)
+        {
+            case NEXUS_TransferCharacteristics_eSmpte_ST_2084:
+                eotf = NEXUS_VideoEotf_eHdr10;
+                break;
+
+            case NEXUS_TransferCharacteristics_eArib_STD_B67: /* this should not be present in plain xfer chars */
+            default:
+                BDBG_WRN(("Unsupported transfer characteristics.  Assuming SDR."));
+                /* fall through */
+            case NEXUS_TransferCharacteristics_eUnknown:
+            case NEXUS_TransferCharacteristics_eItu_R_BT_709:
+            case NEXUS_TransferCharacteristics_eItu_R_BT_470_2_M:
+            case NEXUS_TransferCharacteristics_eItu_R_BT_470_2_BG:
+            case NEXUS_TransferCharacteristics_eSmpte_170M:
+            case NEXUS_TransferCharacteristics_eSmpte_240M:
+            case NEXUS_TransferCharacteristics_eLinear:
+            case NEXUS_TransferCharacteristics_eIec_61966_2_4:
+            case NEXUS_TransferCharacteristics_eItu_R_BT_2020_10bit:
+            case NEXUS_TransferCharacteristics_eItu_R_BT_2020_12bit:
+                eotf = NEXUS_VideoEotf_eSdr;
+                break;
+        }
+    }
+
+    return eotf;
+}
+
+void
+NEXUS_P_ContentLightLevel_FromMagnum_isrsafe(
+    NEXUS_ContentLightLevel * pCll,
+    uint32_t ulMaxContentLight,
+    uint32_t ulAvgContentLight)
+{
+    pCll->max = ulMaxContentLight;
+    pCll->maxFrameAverage = ulAvgContentLight;
+}
+
+void
+NEXUS_P_MasteringDisplayColorVolume_FromMagnum_isrsafe(
+    NEXUS_MasteringDisplayColorVolume * pMdcv,
+    const BAVC_Point * pstDisplayPrimaries,
+    const BAVC_Point * pstWhitePoint,
+    uint32_t ulMaxDispMasteringLuma,
+    uint32_t ulMinDispMasteringLuma)
+{
+    NEXUS_Point * primaries[3];
+    unsigned i = 0;
+
+    primaries[0] = &pMdcv->greenPrimary;
+    primaries[1] = &pMdcv->bluePrimary;
+    primaries[2] = &pMdcv->redPrimary;
+
+    for (i = 0; i < 3; i++)
+    {
+        primaries[i]->x = pstDisplayPrimaries[i].ulX;
+        if (primaries[i]->x > 50000)
+        {
+            primaries[i]->x = 0;
+        }
+
+        primaries[i]->y = pstDisplayPrimaries[i].ulY;
+        if (primaries[i]->y  > 50000)
+        {
+            primaries[i]->y  = 0;
+        }
+    }
+
+    pMdcv->whitePoint.x = pstWhitePoint->ulX;
+    if (pMdcv->whitePoint.x > 50000)
+    {
+        pMdcv->whitePoint.x = 0;
+    }
+
+    pMdcv->whitePoint.y = pstWhitePoint->ulY;
+    if (pMdcv->whitePoint.y > 50000)
+    {
+        pMdcv->whitePoint.y = 0;
+    }
+
+    pMdcv->luminance.max = ulMaxDispMasteringLuma;
+    if (pMdcv->luminance.max == 0xffffffff)
+    {
+        pMdcv->luminance.max = 0;
+    }
+    /* convert units from 0.0001 cd/m2 to 1 cd/m2 to match CEA */
+    pMdcv->luminance.max /= 10000;
+
+    pMdcv->luminance.min = ulMinDispMasteringLuma;
+    if (pMdcv->luminance.min == 0xffffffff)
+    {
+        pMdcv->luminance.min = 0;
     }
 }

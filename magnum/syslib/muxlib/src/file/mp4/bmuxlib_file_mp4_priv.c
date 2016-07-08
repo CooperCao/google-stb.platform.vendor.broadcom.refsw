@@ -1,17 +1,44 @@
-/***************************************************************************
- *     Copyright (c) 2010-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * [File Description:]
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
+ *
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************
+ *
  * Private functions for File-based MP4 software mux
  *
  * NOTE: MP4 is a big-endian format!
@@ -58,10 +85,6 @@
  *  (m) = once per file
  *  (t) = once per track
  *  (?) = optional or may not be needed
- *
- ***************************************************************************
- * [Revision History:]
- * $brcm_Log: $
  *
  ***************************************************************************/
 
@@ -132,10 +155,10 @@ static void PrintFinalizationPercentComplete(BMUXlib_File_MP4_Handle hMP4Mux);
     Static Definitions
 **************************/
 #define PrintVideoDescriptor(where, pDesc) \
-   BDBG_MODULE_MSG(BMUX_MP4_IN_DESC, ("Video (%s): %d @ %d, pts:%lld (%d), dts:%lld (%d) %s%s%s%s%s 0x%2.2x", \
-                  where, BMUXLIB_INPUT_DESCRIPTOR_LENGTH(pDesc), BMUXLIB_INPUT_DESCRIPTOR_OFFSET(pDesc), \
-                  BMUXLIB_INPUT_DESCRIPTOR_PTS(pDesc), (BMUXLIB_INPUT_DESCRIPTOR_IS_PTS_VALID(pDesc))?1:0, \
-                  BMUXLIB_INPUT_DESCRIPTOR_DTS(pDesc), (BMUXLIB_INPUT_DESCRIPTOR_IS_DTS_VALID(pDesc))?1:0, \
+   BDBG_MODULE_MSG(BMUX_MP4_IN_DESC, ("Video (%s): %d @ %d, pts:"BDBG_UINT64_FMT" (%d), dts:"BDBG_UINT64_FMT" (%d) %s%s%s%s%s 0x%2.2x", \
+                  where, (int)BMUXLIB_INPUT_DESCRIPTOR_LENGTH(pDesc), BMUXLIB_INPUT_DESCRIPTOR_OFFSET(pDesc), \
+                  BDBG_UINT64_ARG(BMUXLIB_INPUT_DESCRIPTOR_PTS(pDesc)), (BMUXLIB_INPUT_DESCRIPTOR_IS_PTS_VALID(pDesc))?1:0, \
+                  BDBG_UINT64_ARG(BMUXLIB_INPUT_DESCRIPTOR_DTS(pDesc)), (BMUXLIB_INPUT_DESCRIPTOR_IS_DTS_VALID(pDesc))?1:0, \
                   (BMUXLIB_INPUT_DESCRIPTOR_IS_FRAMESTART(pDesc))?"SOF ":"", \
                   (BMUXLIB_INPUT_DESCRIPTOR_IS_METADATA(pDesc))?"META ":"",      \
                   (BMUXLIB_INPUT_DESCRIPTOR_IS_EOS(pDesc))?"EOS ":"", \
@@ -143,10 +166,10 @@ static void PrintFinalizationPercentComplete(BMUXlib_File_MP4_Handle hMP4Mux);
                   (BMUXLIB_INPUT_DESCRIPTOR_VIDEO_IS_DATA_UNIT_START(pDesc))?"DU ":"", BMUXLIB_INPUT_DESCRIPTOR_VIDEO_DATA_UNIT_TYPE(pDesc)));
 
 #define PrintAudioDescriptor(where, pDesc) \
-   BDBG_MODULE_MSG(BMUX_MP4_IN_DESC, ("Audio (%s): %d @ %d (raw:%d @ %d), pts:%lld (%d) %s%s%s%s", \
-                  where, BMUXLIB_INPUT_DESCRIPTOR_LENGTH(pDesc), BMUXLIB_INPUT_DESCRIPTOR_OFFSET(pDesc), \
-                  BMUXLIB_INPUT_DESCRIPTOR_AUDIO_RAWLENGTH(pDesc), BMUXLIB_INPUT_DESCRIPTOR_AUDIO_RAWOFFSET(pDesc), \
-                  BMUXLIB_INPUT_DESCRIPTOR_PTS(pDesc), BMUXLIB_INPUT_DESCRIPTOR_IS_PTS_VALID(pDesc)?1:0, \
+   BDBG_MODULE_MSG(BMUX_MP4_IN_DESC, ("Audio (%s): %d @ %d (raw:%d @ %d), pts:"BDBG_UINT64_FMT" (%d) %s%s%s%s", \
+                  where, (int)BMUXLIB_INPUT_DESCRIPTOR_LENGTH(pDesc), BMUXLIB_INPUT_DESCRIPTOR_OFFSET(pDesc), \
+                  (int)BMUXLIB_INPUT_DESCRIPTOR_AUDIO_RAWLENGTH(pDesc), BMUXLIB_INPUT_DESCRIPTOR_AUDIO_RAWOFFSET(pDesc), \
+                  BDBG_UINT64_ARG(BMUXLIB_INPUT_DESCRIPTOR_PTS(pDesc)), BMUXLIB_INPUT_DESCRIPTOR_IS_PTS_VALID(pDesc)?1:0, \
                   BMUXLIB_INPUT_DESCRIPTOR_IS_FRAMESTART(pDesc)?"SOF ":"", \
                   BMUXLIB_INPUT_DESCRIPTOR_IS_METADATA(pDesc)?"META ":"", \
                   BMUXLIB_INPUT_DESCRIPTOR_IS_EMPTYFRAME(pDesc)?"EMPTY ":"", \
@@ -843,10 +866,10 @@ BERR_Code BMUXlib_File_MP4_P_ProcessInputDescriptors(BMUXlib_File_MP4_Handle hMP
                pCurrentInput->pTrack->uiTotalBytes += pCurrentSample->stMetadata.uiSampleSize;
                pCurrentInput->pTrack->uiDuration90kHz += pCurrentSample->uiDTSDelta90kHz;               /* track duration in 90kHz timescale */
 
-               BDBG_MSG(("*** %s Sample [%d]: %d bytes, PTS: %lld, DTS: %lld", DebugTrackTypeTable[pCurrentInput->pTrack->eType],
+               BDBG_MSG(("*** %s Sample [%d]: %d bytes, PTS: "BDBG_UINT64_FMT", DTS: "BDBG_UINT64_FMT, DebugTrackTypeTable[pCurrentInput->pTrack->eType],
                            pCurrentInput->pTrack->uiSampleCount,
                            pCurrentSample->stMetadata.uiSampleSize,
-                           pCurrentSample->uiDTS + pCurrentSample->stMetadata.uiCTSDTSDiff, pCurrentSample->uiDTS));
+                           BDBG_UINT64_ARG(pCurrentSample->uiDTS + pCurrentSample->stMetadata.uiCTSDTSDiff), BDBG_UINT64_ARG(pCurrentSample->uiDTS)));
 
                hMP4Mux->eInputState = BMUXlib_File_MP4_P_InputState_eFindNewSample;
                break;
@@ -990,9 +1013,9 @@ bool BMUXlib_File_MP4_P_IsOutputProcessingDone(BMUXlib_File_MP4_Handle hMP4Mux)
    }
    if (bDone)
    {
-      BDBG_MODULE_MSG(BMUX_MP4_FINISH, ("Output Done - %lld bytes written", (hMP4Mux->bMoovAtStart)?
+      BDBG_MODULE_MSG(BMUX_MP4_FINISH, ("Output Done - "BDBG_UINT64_FMT" bytes written", BDBG_UINT64_ARG((hMP4Mux->bMoovAtStart)?
                      (hMP4Mux->uiNewMdatOffset+BMUXlib_Output_GetEndOffset(hMP4Mux->pMdatOutput->hOutput)):
-                     (BMUXlib_Output_GetEndOffset(hMP4Mux->pMdatOutput->hOutput))));
+                     (BMUXlib_Output_GetEndOffset(hMP4Mux->pMdatOutput->hOutput)))));
    }
    BDBG_LEAVE(BMUXlib_File_MP4_P_IsOutputProcessingDone);
    return bDone;
@@ -1055,8 +1078,8 @@ void BMUXlib_File_MP4_P_OutputDescriptorAppend(BMUXlib_File_MP4_Handle hMP4Mux, 
       BDBG_ERR(("Unable to add descriptor to output"));
    }
 
-   BDBG_MODULE_MSG(BMUX_MP4_OUT_DESC, ("%-16.16s [W]: mem:%8.8x (%6.6d bytes)   to out:%8.8x @ off:%lld",
-                  pOutput->pDesc, pAddress, uiLength, pOutput, BMUXlib_Output_GetCurrentOffset(pOutput->hOutput) - uiLength));
+   BDBG_MODULE_MSG(BMUX_MP4_OUT_DESC, ("%-16.16s [W]: mem:%p (%6.6d bytes)   to out:%p @ off:"BDBG_UINT64_FMT,
+                  pOutput->pDesc, pAddress, uiLength, (void *)pOutput, BDBG_UINT64_ARG(BMUXlib_Output_GetCurrentOffset(pOutput->hOutput) - uiLength)));
 }
 
 /* Update the specified output with the data, at the requested location
@@ -1083,8 +1106,8 @@ void BMUXlib_File_MP4_P_OutputDescriptorUpdate(BMUXlib_File_MP4_Handle hMP4Mux, 
       BDBG_ERR(("Unable to add descriptor to output"));
    }
 
-   BDBG_MODULE_MSG(BMUX_MP4_OUT_DESC, ("%-16.16s [W]: mem:%8.8x (%6.6d bytes)   to out:%8.8x @ off:%lld",
-                  pOutput->pDesc, pAddress, uiLength, pOutput, uiOffset));
+   BDBG_MODULE_MSG(BMUX_MP4_OUT_DESC, ("%-16.16s [W]: mem:%p (%6.6d bytes)   to out:%p @ off:"BDBG_UINT64_FMT,
+                  pOutput->pDesc, pAddress, uiLength, (void *)pOutput, BDBG_UINT64_ARG(uiOffset)));
 }
 
 /* Set descriptor to read from the current location
@@ -1111,8 +1134,8 @@ void BMUXlib_File_MP4_P_OutputDescriptorRead(BMUXlib_File_MP4_Handle hMP4Mux, BM
       BDBG_ERR(("Unable to add descriptor to output"));
    }
 
-   BDBG_MODULE_MSG(BMUX_MP4_OUT_DESC, ("%-16.16s [R]: mem:%8.8x (%6.6d bytes) from out:%8.8x @ off:%lld",
-                  pOutput->pDesc, pAddress, uiLength, pOutput, BMUXlib_Output_GetCurrentOffset(pOutput->hOutput) - uiLength));
+   BDBG_MODULE_MSG(BMUX_MP4_OUT_DESC, ("%-16.16s [R]: mem:%p (%6.6d bytes) from out:%p @ off:"BDBG_UINT64_FMT,
+                  pOutput->pDesc, pAddress, uiLength, (void *)pOutput, BDBG_UINT64_ARG(BMUXlib_Output_GetCurrentOffset(pOutput->hOutput) - uiLength)));
 }
 
 BMUXlib_File_MP4_P_OutputCallbackData *BMUXlib_File_MP4_P_NewOutputCallbackData(BMUXlib_File_MP4_Handle hMP4Mux, void *pData, uint32_t uiSeqCount)
@@ -1251,7 +1274,7 @@ static BERR_Code CreateOutputs(BMUXlib_File_MP4_Handle hMP4Mux)
       uint32_t uiFrameRate = 30; /* FIXME: need the real frame rate for the input - what is it for audio??? */
       uint32_t uiExpectedSamples;
 
-      BDBG_MODULE_MSG(BMUX_MP4_OUTPUT, ("Track ID %d: %p", pTrack->uiTrackID, pTrack));
+      BDBG_MODULE_MSG(BMUX_MP4_OUTPUT, ("Track ID %d: %p", pTrack->uiTrackID, (void *)pTrack));
 
       if (0 == hMP4Mux->uiExpectedDurationMs)
       {
@@ -1280,7 +1303,7 @@ static BERR_Code CreateOutputs(BMUXlib_File_MP4_Handle hMP4Mux)
          stOutputSettings.uiCount = BMUXLIB_FILE_MP4_P_NUM_OUT_DESC_METADATA;
          stOutputSettings.stStorage = pMetadata->pOutput->stInterface;
          stOutputSettings.uiOutputID = (uiTrackIndex * BMUXlib_File_MP4_P_MetadataType_eMax) + (BMUXLIB_FILE_MP4_P_METADATA_START + i);
-         BDBG_MODULE_MSG(BMUX_MP4_OUTPUT, ("Creating Output[%d]: ID: %d, %p (metadata type: %d)", uiOutputIndex, stOutputSettings.uiOutputID, pMetadata->pOutput, i));
+         BDBG_MODULE_MSG(BMUX_MP4_OUTPUT, ("Creating Output[%d]: ID: %d, %p (metadata type: %d)", uiOutputIndex, stOutputSettings.uiOutputID, (void *)(pMetadata->pOutput), i));
          rc = BERR_TRACE(BMUXlib_Output_Create(&pMetadata->pOutput->hOutput, &stOutputSettings));
          if (BERR_SUCCESS != rc)
          {
@@ -1384,7 +1407,7 @@ static void InitializeSampleMetadata(BMUXlib_File_MP4_P_CurrentSample *pCurrentS
 
    if (/*uiCTSDTSDiff90kHz == 0 ||*/ uiResult > BMUXLIB_FILE_MP4_P_MODULO_33BITS_MID_RANGE)
    {
-      BDBG_WRN(("Input %d: Negative CTS/DTS diff detected (%d)", pCurrentInput->uiIndex, uiResult));
+      BDBG_WRN(("Input %d: Negative CTS/DTS diff detected ("BDBG_UINT64_FMT")", pCurrentInput->uiIndex, BDBG_UINT64_ARG(uiResult)));
       uiResult = BMUXLIB_FILE_MP4_P_MODULO_33BITS_MID_RANGE;   /* clip to max */
    }
 
@@ -1467,7 +1490,7 @@ static void UpdateSampleMetadata(BMUXlib_File_MP4_P_CurrentSample *pCurrentSampl
       => this is an invalid scenario (would indicate a bogus DTS or a discontinuity). */
    if (uiResult == 0 || uiResult > BMUXLIB_FILE_MP4_P_MODULO_33BITS_MID_RANGE)
    {
-      BDBG_WRN(("Input %d: Delta DTS should be positive and non-zero (%lld detected)", pCurrentInput->uiIndex, uiResult));
+      BDBG_WRN(("Input %d: Delta DTS should be positive and non-zero ("BDBG_UINT64_FMT" detected)", pCurrentInput->uiIndex, BDBG_UINT64_ARG(uiResult)));
       uiResult = BMUXLIB_FILE_MP4_P_MODULO_33BITS_MID_RANGE;   /* clip to max */
    }
 
@@ -2732,7 +2755,7 @@ static bool IsOutputQueueClear(BMUXlib_File_MP4_Handle hMP4Mux)
    resources in the correct order */
 static void ProcessCompletedOutputDescriptors_BoxBuffer(BMUXlib_File_MP4_Handle hMP4Mux, const BMUXlib_Output_Descriptor *pOutDesc)
 {
-   BDBG_MODULE_MSG(BMUX_MP4_RELEASEQ, ("Queueing box buffer entry (%d bytes @ %p) for release", pOutDesc->stStorage.uiLength, pOutDesc->stStorage.pBufferAddress));
+   BDBG_MODULE_MSG(BMUX_MP4_RELEASEQ, ("Queueing box buffer entry (%d bytes @ %p) for release", (int)pOutDesc->stStorage.uiLength, pOutDesc->stStorage.pBufferAddress));
 
    /* NOTE: Sequence ID not used (read pointer used to locate the entry to free) */
    ReleaseQAddEntry(hMP4Mux, &hMP4Mux->stBoxBufferReleaseQ, pOutDesc->stStorage.pBufferAddress, pOutDesc->stStorage.uiLength, 0);
@@ -2755,8 +2778,8 @@ static void ProcessCompletedOutputDescriptors_SizeEntry(BMUXlib_File_MP4_P_Outpu
    BSTD_UNUSED(pOutDesc);
 #endif
 
-   BDBG_MODULE_MSG(BMUX_MP4_RELEASEQ, ("Freeing Size Entry: pAddr = %p, size = %d @ %lld",
-         pOutDesc->stStorage.pBufferAddress, pOutDesc->stStorage.uiLength, pOutDesc->stStorage.uiOffset));
+   BDBG_MODULE_MSG(BMUX_MP4_RELEASEQ, ("Freeing Size Entry: pAddr = %p, size = %d @ "BDBG_UINT64_FMT,
+         pOutDesc->stStorage.pBufferAddress, (int)pOutDesc->stStorage.uiLength, BDBG_UINT64_ARG(pOutDesc->stStorage.uiOffset)));
    /* return the callback data entry to the free list */
    BMUXlib_File_MP4_P_FreeOutputCallbackData(hMP4Mux, pCallbackData);
    *pSizeEntry = BMUXLIB_FILE_MP4_P_SIZE_ENTRY_UNUSED;      /* this size entry no longer in use */
@@ -2781,7 +2804,7 @@ static void ProcessCompletedOutputDescriptors_Input(BMUXlib_File_MP4_P_OutputCal
    BMUXlib_File_MP4_P_Input *pInput = pCallbackData->pData;
 
    BDBG_MODULE_MSG(BMUX_MP4_RELEASEQ, ("Queueing input descriptors (%d bytes @ %p, seq: %d) for release",
-         pOutDesc->stStorage.uiLength, pOutDesc->stStorage.pBufferAddress, pCallbackData->uiSequenceID));
+         (int)pOutDesc->stStorage.uiLength, pOutDesc->stStorage.pBufferAddress, pCallbackData->uiSequenceID));
 
    /* return the callback data entry to the free list */
    BMUXlib_File_MP4_P_FreeOutputCallbackData(hMP4Mux, pCallbackData);
@@ -2840,8 +2863,8 @@ static void ProcessCompletedOutputDescriptors_MetadataCache(BMUXlib_File_MP4_P_M
 #ifndef BDBG_DEBUG_BUILD
    BSTD_UNUSED(pOutDesc);
 #endif
-   BDBG_MODULE_MSG(BMUX_MP4_RELEASEQ, ("Freeing Metadata: pAddr = %p, size = %d @ %lld",
-         pOutDesc->stStorage.pBufferAddress, pOutDesc->stStorage.uiLength, pOutDesc->stStorage.uiOffset));
+   BDBG_MODULE_MSG(BMUX_MP4_RELEASEQ, ("Freeing Metadata: pAddr = %p, size = %d @ "BDBG_UINT64_FMT,
+         pOutDesc->stStorage.pBufferAddress, (int)pOutDesc->stStorage.uiLength, BDBG_UINT64_ARG(pOutDesc->stStorage.uiOffset)));
    BMUXlib_File_MP4_P_FreeMetadataCache(pMetadataCache);
 }
 

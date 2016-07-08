@@ -492,7 +492,7 @@ static void Physical_Timer_Isr(BTMR_Handle device, int timerNumber)
     }
 #endif
 
-	/* Always do this even with the assert above so we won't have a Coverity issue for bounds check of Timers array */
+    /* Always do this even with the assert above so we won't have a Coverity issue for bounds check of Timers array */
     if (timerNumber < 0 || timerNumber >= NumberOfTimers) {
         BDBG_ERR(("ISR received an invalid timer number (=%d)", timerNumber));
         return;
@@ -1426,7 +1426,7 @@ static BERR_Code SetupForStandby(BTMR_Handle device)
         while (timer) {
             BTMR_TimerHandle next = BLST_D_NEXT(timer, link);
 #ifdef destructive_standby
-			TakeTimerOffTimeoutQueue_isr(device, timer);
+            TakeTimerOffTimeoutQueue_isr(device, timer);
 #endif
             timer = next;
             timerCount++;
@@ -1552,7 +1552,7 @@ static BERR_Code SetupForResume(BTMR_Handle device)
 #ifdef kill_utility_timers
 #if 1
     /* If we destroyed the utility timers on the stand-by, we can re-create them now */
-	/* Note: this isn't really necessary if all the other timers were destroyed before the stand-by as they will be created when needed. */
+    /* Note: this isn't really necessary if all the other timers were destroyed before the stand-by as they will be created when needed. */
     if (device->destroyed_utilities && CreateUtilityTimers(device) != BERR_SUCCESS)
 #else
     /* If using static utility timers, create the physical timers we need to handle virtual timers */
@@ -1691,10 +1691,11 @@ BERR_Code BTMR_Open(BTMR_Handle *phDevice,
         device->Settings.interruptNumber = 0;
     }
 
-    BDBG_MSG(("BTMR_Open: device=%p using MASK %#x (base=%p, pOpenSettings=%p)",
-	      (void*)device, device->Settings.timerMask, device->Settings.baseRegister, pOpenSettings));
+    BDBG_MSG(("BTMR_Open: device=%p using MASK %#x (base=%#x, pOpenSettings=%p)",
+        (void*)device, device->Settings.timerMask, device->Settings.baseRegister, (void*)pOpenSettings));
+
 #if (BCHP_CHIP != 11360)
-    BDBG_CASSERT(NumberOfTimers==4); /* note: you have to fix the table below when changing the number of timers */
+    BDBG_CASSERT(NumberOfTimers==4); /* note: you have to fix the switch table below when changing the number of timers */
 
 #ifdef BCHP_PWR_RESOURCE_TMR
     retCode = BCHP_PWR_AcquireResource(device->hChip, BCHP_PWR_RESOURCE_TMR);
@@ -1804,8 +1805,8 @@ BERR_Code BTMR_Open(BTMR_Handle *phDevice,
         retCode = BERR_TRACE(BTMR_ERR_NO_TIMERS_AVAILABLE);
         goto error1;
     }
+#endif /*(BCHP_CHIP != 11360)*/
 
-#endif
     BLST_D_INIT(&device->VirtualCreateList);
 
     *phDevice = device; /* here's your handle for creating timers! */
@@ -2098,7 +2099,7 @@ BERR_Code BTMR_CreateTimer(BTMR_Handle device, BTMR_TimerHandle *phTimer, const 
 
     /* Some say I shouldn't mess with the return variable unless I return success... */
     *phTimer = NULL; /* just to be sure caller doesn't use it -- you don't have a timer till I give you one! */
-    
+
     if (device->in_standby_mode) return BERR_TRACE(BTMR_ERR_STANBY_ACTIVE);
 
 #if 1
@@ -2123,8 +2124,8 @@ BERR_Code BTMR_CreateTimer(BTMR_Handle device, BTMR_TimerHandle *phTimer, const 
         }
     }
 #endif
-    
-    /* 
+
+    /*
     ** We have a re-entrancy issue with creating and destroying timers.
     ** Multiple processes can try to create/destroy a timer that can cause the Shared Timer and Virtual Timer counts to get stepped on.
     ** Because much of the work of creating a timer gets done at _isr level (in Critical Section) we have to block almost the entire
@@ -2134,12 +2135,13 @@ BERR_Code BTMR_CreateTimer(BTMR_Handle device, BTMR_TimerHandle *phTimer, const 
     BKNI_AcquireMutex(device->create_destroy_mutex);
 #if BDBG_DEBUG_BUILD
     errCode = _BTMR_CreateTimer(device, phTimer, pSettings, file, line);
+    BDBG_MSG(("BTMR_CreateTimer: returning handle=%p (f=%s,%d)", (void*)*phTimer, file, line));
 #else
     errCode = _BTMR_CreateTimer(device, phTimer, pSettings, NULL, 0);
+    BDBG_MSG(("BTMR_CreateTimer: returning handle=%p", (void*)*phTimer));
 #endif
     BKNI_ReleaseMutex(device->create_destroy_mutex);
 
-    BDBG_MSG(("BTMR_CreateTimer: returning handle=0x%x", *(int*)phTimer));
     BDBG_LEAVE(BTMR_CreateTimer);
     return errCode;
 }
@@ -2159,7 +2161,7 @@ static BERR_Code _BTMR_DestroyTimer(BTMR_TimerHandle timer, const char *file, in
     device = timer->device;
 
     /* Shared Free Run timers only get destroyed on last destroy */
-    if (timer->Settings.type == BTMR_Type_eSharedFreeRun && device->SharedCount > 1) 
+    if (timer->Settings.type == BTMR_Type_eSharedFreeRun && device->SharedCount > 1)
     {
         BDBG_MSG(("BTMR_DestroyTimer: NOT deleting THE shared timer [still in use by others, count=%d] (at: %s,%d)", device->SharedCount, file, line));
         device->SharedCount--;
@@ -2195,8 +2197,13 @@ BERR_Code BTMR_DestroyTimer(BTMR_TimerHandle timer)
     BTMR_Handle device;
 
     BDBG_ENTER(BTMR_DestroyTimer);
-    BDBG_MSG(("BTMR_DestroyTimer: handle=0x%x", timer));
     BDBG_OBJECT_ASSERT(timer, btmr_timer_t);
+
+#if BDBG_DEBUG_BUILD
+    BDBG_MSG(("BTMR_DestroyTimer: handle=%p (f=%s,%d)", (void*)timer, file, line));
+#else
+    BDBG_MSG(("BTMR_DestroyTimer: handle=%p", (void*)timer));
+#endif
 
     device = timer->device;
     if (device->in_standby_mode) return BERR_TRACE(BTMR_ERR_STANBY_ACTIVE);

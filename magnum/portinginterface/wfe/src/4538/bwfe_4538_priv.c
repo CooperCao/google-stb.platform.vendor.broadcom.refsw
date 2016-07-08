@@ -20,7 +20,7 @@
  ***************************************************************************/
 
 #include "bstd.h"
-#include "bchp_leap_host_irq.h"
+#include "bchp_4538_leap_host_irq.h"
 #include "bwfe.h"
 #include "bwfe_priv.h"
 #include "bwfe_4538_priv.h"

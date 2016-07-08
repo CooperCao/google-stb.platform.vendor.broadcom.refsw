@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2008 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2004-2016 Broadcom. All rights reserved.
 *  
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,19 +34,11 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE 
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF 
 *  ANY LIMITED REMEDY.
-* 
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
 *
 * API Description:
 *   API name: IrBlaster
 *    Specific APIs related to IR Blaster Control.
 *
-* Revision History:
-*
-* $brcm_Log: $
-* 
 ***************************************************************************/
 #ifndef NEXUS_IR_BLASTER_CUSTOM_H__
 #define NEXUS_IR_BLASTER_CUSTOM_H__
@@ -74,7 +66,7 @@ IR Blaster Custom Settings -- Please refer to the Hardware Data Module
  ***************************************************************************/
 typedef struct NEXUS_IrBlasterCustomSettings
 {
-    void *                  reserved;                       /* do not set */
+    unsigned                reserved;                       /* do not set */
     uint8_t                 masterClockDivisor;             /* pre-scaler for the primary IRB clock */
     uint8_t                 carrierClockDivisor;            /* pre-scaler for carrier counter clock */
     uint8_t                 indexClockDivisor;              /* pre-scaler for modulation counter clock */

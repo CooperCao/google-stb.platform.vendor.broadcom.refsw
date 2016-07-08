@@ -1,51 +1,40 @@
-/***************************************************************************
-*     (c)2003-2016 Broadcom Corporation
-*
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
-*  and may only be used, duplicated, modified or distributed pursuant to the terms and
-*  conditions of a separate, written license agreement executed between you and Broadcom
-*  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-*  no license (express or implied), right to use, or waiver of any kind with respect to the
-*  Software, and Broadcom expressly reserves all rights in and to the Software and all
-*  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-*  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-*  Except as expressly set forth in the Authorized License,
-*
-*  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-*  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-*  and to use this information only in connection with your use of Broadcom integrated circuit products.
-*
-*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-*  USE OR PERFORMANCE OF THE SOFTWARE.
-*
-*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-*  ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* Description: IP Applib Implementation
-*
-* Revision History:
-*
-* $brcm_Log: $
-*
-***************************************************************************/
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
 
  /**
  * Note this file is currently only compiled for LINUX platforms. Even though it
@@ -60,6 +49,7 @@
 #include "b_playback_ip_priv.h"
 #include "b_playback_ip_utils.h"
 #include "b_playback_ip_lm_helper.h"
+#include "b_playback_ip_psi.h"
 #include <sys/ioctl.h>
 #include <net/if.h>
 
@@ -87,7 +77,6 @@ Private handle for each Playback IP App Lib context
 #ifndef B_HAS_SMS_GATEWAY
 /* When SMS Gateway is configured, IP Applib is used only for receiving Live IP traffic which is mainly using UDP/RTP traffic. So we dont need any of the HTTP module. */
 extern B_PlaybackIpError B_PlaybackIp_HttpSessionOpen( B_PlaybackIpHandle playback_ip, B_PlaybackIpSessionOpenSettings *openSettings, B_PlaybackIpSessionOpenStatus *openStatus);
-extern B_PlaybackIpError B_PlaybackIp_HttpSessionSetup(B_PlaybackIpHandle playback_ip, B_PlaybackIpSessionSetupSettings *setupSettings, B_PlaybackIpSessionSetupStatus *setupStatus);
 extern B_PlaybackIpError B_PlaybackIp_HttpSessionSetup(B_PlaybackIpHandle playback_ip, B_PlaybackIpSessionSetupSettings *setupSettings, B_PlaybackIpSessionSetupStatus *setupStatus);
 extern B_PlaybackIpError B_PlaybackIp_HttpSessionStart(B_PlaybackIpHandle playback_ip, B_PlaybackIpSessionStartSettings *startSettings, B_PlaybackIpSessionStartStatus *startStatus);
 extern void B_PlaybackIp_HttpSessionStop(B_PlaybackIpHandle playback_ip);
@@ -209,7 +198,7 @@ B_PlaybackIp_SessionOpen(
     char *pValue = NULL;
 
     if (!playback_ip || !openSettings || !openStatus) {
-        BDBG_ERR(("%s: invalid params, playback_ip %p, openSettings %p, openStatus %p\n", __FUNCTION__, playback_ip, openSettings, openStatus));
+        BDBG_ERR(("%s: invalid params, playback_ip %p, openSettings %p, openStatus %p\n", __FUNCTION__, (void *)playback_ip, (void *)openSettings, (void *)openStatus));
         return B_ERROR_INVALID_PARAMETER;
     }
 
@@ -238,7 +227,7 @@ B_PlaybackIp_SessionOpen(
 
         /* So Api is not in progress, check if it is completed, them jump to returning results to app */
         if (playback_ip->apiCompleted) {
-            BDBG_MSG(("%s: previously started session open operation completed, playback_ip %p", __FUNCTION__, playback_ip));
+            BDBG_MSG(("%s: previously started session open operation completed, playback_ip %p", __FUNCTION__, (void *)playback_ip));
             goto apiDone;
         }
 
@@ -265,7 +254,7 @@ B_PlaybackIp_SessionOpen(
     playback_ip->playback_state = B_PlaybackIpState_eSessionOpenInProgress;
 
     BDBG_MSG(("%s: playback_ip %p, openSettings %p, openStatus %p, state %d, proto %d\n",
-                __FUNCTION__, playback_ip, openSettings, openStatus, playback_ip->playback_state, openSettings->socketOpenSettings.protocol));
+                __FUNCTION__, (void *)playback_ip, (void *)openSettings, (void *)openStatus, playback_ip->playback_state, openSettings->socketOpenSettings.protocol));
 
     playback_ip->openSettings = *openSettings;
     if (openSettings->networkTimeout) {
@@ -393,7 +382,7 @@ error:
     /* back to Opened state */
     playback_ip->playback_state = B_PlaybackIpState_eOpened;
     playback_ip->openSettings.eventCallback = NULL;
-    BDBG_ERR(("%s() ERRRO: playback_ip %p, errorCode %d, fd %d\n", __FUNCTION__, playback_ip, errorCode, playback_ip->socketState.fd));
+    BDBG_ERR(("%s() ERRRO: playback_ip %p, errorCode %d, fd %d\n", __FUNCTION__, (void *)playback_ip, errorCode, playback_ip->socketState.fd));
     return errorCode;
 }
 
@@ -406,9 +395,9 @@ B_PlaybackIp_SessionSetup(
 {
     B_PlaybackIpError errorCode = B_ERROR_PROTO;
 
-    BDBG_MSG(("%s: playback_ip %p, setupSettings %p, setupStatus %p\n", __FUNCTION__, playback_ip, setupSettings, setupStatus));
+    BDBG_MSG(("%s: playback_ip %p, setupSettings %p, setupStatus %p\n", __FUNCTION__, (void *)playback_ip, (void *)setupSettings, (void *)setupStatus));
     if (!playback_ip || !setupSettings || !setupStatus) {
-        BDBG_ERR(("%s: invalid params, playback_ip %p, setupSettings %p, setupStatus %p\n", __FUNCTION__, playback_ip, setupSettings, setupStatus));
+        BDBG_ERR(("%s: invalid params, playback_ip %p, setupSettings %p, setupStatus %p\n", __FUNCTION__, (void *)playback_ip, (void *)setupSettings, (void *)setupStatus));
         return B_ERROR_INVALID_PARAMETER;
     }
 
@@ -466,7 +455,7 @@ B_PlaybackIp_SessionSetup(
     return B_ERROR_SUCCESS;
 
 error:
-    BDBG_ERR(("%s() ERRRO: playback_ip %p, errorCode %d, fd %d\n", __FUNCTION__, playback_ip, errorCode, playback_ip->socketState.fd));
+    BDBG_ERR(("%s() ERRRO: playback_ip %p, errorCode %d, fd %d\n", __FUNCTION__, (void *)playback_ip, errorCode, playback_ip->socketState.fd));
     playback_ip->playback_state = B_PlaybackIpState_eSessionOpened;
     return errorCode;
 }
@@ -538,7 +527,7 @@ ptsErrorCallback(void *context, int param)
     playback_ip->getNewPtsAfterDiscontinuity = true;
 
 out:
-    if (playback_ip && playback_ip->appPtsError.callback)
+    if (playback_ip && playback_ip->appPtsError.callback && playback_ip->appPtsError.callback != ptsErrorCallback)
         playback_ip->appPtsError.callback(playback_ip->appPtsError.context, playback_ip->appPtsError.param);
     return;
 }
@@ -561,9 +550,21 @@ B_PlaybackIp_ResetVideoPtsCallback(
             BDBG_ERR(("%s: Failed to set the 1st pts callback for video decoder", __FUNCTION__));
             goto error;
         }
-        BDBG_MSG(("%s: ctx %p: reset video first pts callback!", __FUNCTION__, playback_ip));
-        errorCode = B_ERROR_SUCCESS;
     }
+    else if (playback_ip->nexusHandles.simpleVideoDecoder) {
+        NEXUS_VideoDecoderSettings videoDecoderSettings;
+        NEXUS_SimpleVideoDecoder_GetSettings(playback_ip->nexusHandles.simpleVideoDecoder, &videoDecoderSettings);
+        if (playback_ip->appFirstPts.callback)
+            videoDecoderSettings.firstPts = playback_ip->appFirstPts;
+        else
+            videoDecoderSettings.firstPts.callback = NULL;
+        if (NEXUS_SimpleVideoDecoder_SetSettings(playback_ip->nexusHandles.simpleVideoDecoder, &videoDecoderSettings) != NEXUS_SUCCESS) {
+            BDBG_ERR(("%s: Failed to set the 1st pts callback\n", __FUNCTION__));
+            goto error;
+        }
+    }
+    BDBG_MSG(("%s: ctx %p: reset video first pts callback!", __FUNCTION__, (void *)playback_ip));
+    errorCode = B_ERROR_SUCCESS;
 error:
     return errorCode;
 }
@@ -578,17 +579,39 @@ B_PlaybackIp_ResetAudioPtsCallback(
     if (playback_ip->nexusHandles.primaryAudioDecoder) {
         NEXUS_AudioDecoderSettings audioDecoderSettings;
         NEXUS_AudioDecoder_GetSettings(playback_ip->nexusHandles.primaryAudioDecoder, &audioDecoderSettings);
-        if (playback_ip->appFirstPts.callback)
-            audioDecoderSettings.firstPts = playback_ip->appFirstPts;
+        if (playback_ip->streamStatusAvailable.callback)
+            audioDecoderSettings.streamStatusAvailable = playback_ip->streamStatusAvailable;
         else
-            audioDecoderSettings.firstPts.callback = NULL;
+            audioDecoderSettings.streamStatusAvailable.callback = NULL;
         if (NEXUS_AudioDecoder_SetSettings(playback_ip->nexusHandles.primaryAudioDecoder, &audioDecoderSettings) != NEXUS_SUCCESS) {
             BDBG_ERR(("%s: Failed to set the 1st pts callback for audio decoder", __FUNCTION__));
             goto error;
         }
-        BDBG_MSG(("%s: ctx %p: reset audio first pts callback!", __FUNCTION__, playback_ip));
-        errorCode = B_ERROR_SUCCESS;
     }
+    else if (playback_ip->nexusHandles.simpleAudioDecoder) {
+        NEXUS_SimpleAudioDecoderSettings  * pAudioDecoderSettings;
+        NEXUS_Error                         errCode = NEXUS_SUCCESS;
+
+        pAudioDecoderSettings = BKNI_Malloc(sizeof(* pAudioDecoderSettings));
+         if (!pAudioDecoderSettings) {
+             BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+             goto error;
+         }
+        NEXUS_SimpleAudioDecoder_GetSettings(playback_ip->nexusHandles.simpleAudioDecoder, pAudioDecoderSettings);
+        if (playback_ip->streamStatusAvailable.callback)
+            pAudioDecoderSettings->primary.streamStatusAvailable = playback_ip->streamStatusAvailable;
+        else
+            pAudioDecoderSettings->primary.streamStatusAvailable.callback = NULL;
+
+        errCode = NEXUS_SimpleAudioDecoder_SetSettings(playback_ip->nexusHandles.simpleAudioDecoder, pAudioDecoderSettings);
+        BKNI_Free(pAudioDecoderSettings);
+        if (errCode != NEXUS_SUCCESS) {
+            BDBG_ERR(("%s: Failed to unset the 1st pts callback for simple audio decoder", __FUNCTION__));
+            goto error;
+        }
+    }
+    BDBG_MSG(("%s: ctx %p: reset audio first pts callback!", __FUNCTION__, (void *)playback_ip));
+    errorCode = B_ERROR_SUCCESS;
 error:
     return errorCode;
 }
@@ -628,7 +651,7 @@ firstPtsCallback(void *context, int param)
         playback_ip->streamDurationUntilLastDiscontinuity = 0;
 #else
         playback_ip->streamDurationUntilLastDiscontinuity += (playback_ip->lastUsedPts-playback_ip->firstPts)/45;
-        BDBG_MSG(("%s: first pts 0x%x, last pts 0x%x, additional duration %d, totoal dur %d", __FUNCTION__,
+        BDBG_MSG(("%s: first pts 0x%x, last pts 0x%x, additional duration %d, total dur %d", __FUNCTION__,
                     playback_ip->firstPts, playback_ip->lastUsedPts, (playback_ip->lastUsedPts-playback_ip->firstPts)/45, playback_ip->streamDurationUntilLastDiscontinuity));
 #endif
         /* if lastSeekPosition is not set, then we haven't yet done either pause/resume w/ disconnect/reconnect method, seek, or a trickplay */
@@ -669,13 +692,13 @@ firstPtsCallback(void *context, int param)
         if (positionDelta > MAX_POSITION_DELTA) {
             /* two positions are differ by over a max, so there must be PTS discontinuity. Reset 1st PTS. */
             playback_ip->streamDurationUntilLastDiscontinuity = playback_ip->lastSeekPosition;
-            BDBG_MSG(("%s: PTS discontinuity: Current Position %u after trickplay using PTS calculation is off from lastSeekedPosition %d by over %d msec, max position delta %d, reset first pts from 0x%x to 0x%x, streamDurationUntilLastDiscontinuity %d msec",
+            BDBG_MSG(("%s: PTS discontinuity: Current Position %lu after trickplay using PTS calculation is off from lastSeekedPosition %lu by over %d msec, max position delta %d, reset first pts from 0x%x to 0x%x, streamDurationUntilLastDiscontinuity %d msec",
                         __FUNCTION__, currentPositionUsingPts, playback_ip->lastSeekPosition, positionDelta, MAX_POSITION_DELTA, playback_ip->firstPts, currentPts, playback_ip->streamDurationUntilLastDiscontinuity));
             playback_ip->firstPts = currentPts;
             playback_ip->lastUsedPts = currentPts;
         }
         else {
-            BDBG_MSG(("%s: Current Position %u after trickplay using PTS calculation is more accurate than the one from lastSeekedPosition %d, not resetting first pts from 0x%x to 0x%x, streamDurationUntilLastDiscontinuity %d msec",
+            BDBG_MSG(("%s: Current Position %lu after trickplay using PTS calculation is more accurate than the one from lastSeekedPosition %lu, not resetting first pts from 0x%x to 0x%x, streamDurationUntilLastDiscontinuity %d msec",
                         __FUNCTION__, currentPositionUsingPts, playback_ip->lastSeekPosition, playback_ip->firstPts, currentPts, playback_ip->streamDurationUntilLastDiscontinuity));
             playback_ip->lastUsedPts = currentPts;
         }
@@ -693,8 +716,10 @@ firstPtsCallback(void *context, int param)
 
 out:
     if (playback_ip) {
-        if (playback_ip->appFirstPts.callback)
+        if (playback_ip->appFirstPts.callback && playback_ip->appFirstPts.callback != firstPtsCallback)
             playback_ip->appFirstPts.callback(playback_ip->appFirstPts.context, playback_ip->appFirstPts.param);
+        if (playback_ip->streamStatusAvailable.callback && playback_ip->streamStatusAvailable.callback != firstPtsCallback)
+            playback_ip->streamStatusAvailable.callback(playback_ip->streamStatusAvailable.context, playback_ip->streamStatusAvailable.param);
 #if 0
         /* commenting these out as this change breaks time position in server side trickmode case. */
         B_PlaybackIp_ResetAudioPtsCallback(playback_ip);
@@ -718,9 +743,13 @@ firstPtsPassedCallback(void *context, int param)
         goto out;
     }
 
-    BDBG_MSG(("%s: first passed pts 0x%x", __FUNCTION__, currentPts));
+    playback_ip->firstPtsPassed = true;
+#ifdef BDBG_DEBUG_BUILD
+    if (playback_ip->ipVerboseLog)
+        BDBG_WRN(("%s:%p first passed pts 0x%x", __FUNCTION__, (void *)playback_ip, currentPts));
+#endif
 out:
-    if (playback_ip && playback_ip->appFirstPtsPassed.callback)
+    if (playback_ip && playback_ip->appFirstPtsPassed.callback && playback_ip->appFirstPtsPassed.callback != firstPtsPassedCallback)
         playback_ip->appFirstPtsPassed.callback(playback_ip->appFirstPtsPassed.context, playback_ip->appFirstPtsPassed.param);
 }
 
@@ -750,7 +779,7 @@ sourceChangedCallback(void *context, int param)
 #ifdef NEXUS_HAS_SIMPLE_DECODER
     else if (playback_ip->nexusHandles.simpleVideoDecoder) {
         if (NEXUS_SimpleVideoDecoder_GetStatus(playback_ip->nexusHandles.simpleVideoDecoder, &status) != NEXUS_SUCCESS) {
-            BDBG_ERR(("%s: NEXUS_VideoDecoder_GetStatus() Failed", __FUNCTION__));
+            BDBG_ERR(("%s: NEXUS_SimpleVideoDecoder_GetStatus() Failed", __FUNCTION__));
             goto out;
         }
         BDBG_WRN(("%s: res: source %dx%d, coded %dx%d, display %dx%d, ar %d, fr %d, interlaced %d video format %d, muted %d", __FUNCTION__,
@@ -769,7 +798,7 @@ sourceChangedCallback(void *context, int param)
 
 out:
     /* now invoke this callback for app if it had registered for it */
-    if (playback_ip->appSourceChanged.callback)
+    if (playback_ip->appSourceChanged.callback && playback_ip->appSourceChanged.callback != sourceChangedCallback)
         playback_ip->appSourceChanged.callback(playback_ip->appSourceChanged.context, playback_ip->appSourceChanged.param);
 }
 
@@ -789,9 +818,19 @@ B_PlaybackIp_SetVideoPtsCallback(
             BDBG_ERR(("%s: Failed to set the 1st pts callback for video decoder", __FUNCTION__));
             goto error;
         }
-        BDBG_MSG(("%s: ctx %p: enabled the video first pts callback!", __FUNCTION__, playback_ip));
-        errorCode = B_ERROR_SUCCESS;
     }
+    else if (playback_ip->nexusHandles.simpleVideoDecoder) {
+        NEXUS_VideoDecoderSettings videoDecoderSettings;
+        NEXUS_SimpleVideoDecoder_GetSettings(playback_ip->nexusHandles.simpleVideoDecoder, &videoDecoderSettings);
+        videoDecoderSettings.firstPts.callback = firstPtsCallback;
+        videoDecoderSettings.firstPts.context = playback_ip;
+        if (NEXUS_SimpleVideoDecoder_SetSettings(playback_ip->nexusHandles.simpleVideoDecoder, &videoDecoderSettings) != NEXUS_SUCCESS) {
+            BDBG_ERR(("%s: Failed to set the 1st pts callback\n", __FUNCTION__));
+            goto error;
+        }
+    }
+    BDBG_MSG(("%s: ctx %p: enabled the video first pts callback!", __FUNCTION__, (void *)playback_ip));
+    errorCode = B_ERROR_SUCCESS;
 error:
     return errorCode;
 }
@@ -806,15 +845,36 @@ B_PlaybackIp_SetAudioPtsCallback(
     if (playback_ip->nexusHandles.primaryAudioDecoder) {
         NEXUS_AudioDecoderSettings audioDecoderSettings;
         NEXUS_AudioDecoder_GetSettings(playback_ip->nexusHandles.primaryAudioDecoder, &audioDecoderSettings);
-        audioDecoderSettings.firstPts.callback = firstPtsCallback;
-        audioDecoderSettings.firstPts.context = playback_ip;
+        audioDecoderSettings.streamStatusAvailable.callback = firstPtsCallback;
+        audioDecoderSettings.streamStatusAvailable.context = playback_ip;
         if (NEXUS_AudioDecoder_SetSettings(playback_ip->nexusHandles.primaryAudioDecoder, &audioDecoderSettings) != NEXUS_SUCCESS) {
             BDBG_ERR(("%s: Failed to set the 1st pts callback for audio decoder", __FUNCTION__));
             goto error;
         }
-        BDBG_MSG(("%s: ctx %p: enabled the audio first pts callback!", __FUNCTION__, playback_ip));
-        errorCode = B_ERROR_SUCCESS;
     }
+    else if (playback_ip->nexusHandles.simpleAudioDecoder) {
+        NEXUS_SimpleAudioDecoderSettings  * pAudioDecoderSettings;
+        NEXUS_Error                         errCode = NEXUS_SUCCESS;
+
+        /* Need to malloc pAudioDecoderSettings because Coverity will complain that
+         * NEXUS_SimpleAudioDecoderSettings is too big to go on the stack.*/
+        pAudioDecoderSettings = BKNI_Malloc(sizeof(* pAudioDecoderSettings));
+        if (!pAudioDecoderSettings) {
+            BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+            goto error;
+        }
+        NEXUS_SimpleAudioDecoder_GetSettings(playback_ip->nexusHandles.simpleAudioDecoder, pAudioDecoderSettings);
+        pAudioDecoderSettings->primary.streamStatusAvailable.callback = firstPtsCallback;
+        pAudioDecoderSettings->primary.streamStatusAvailable.context = playback_ip;
+        errCode = NEXUS_SimpleAudioDecoder_SetSettings(playback_ip->nexusHandles.simpleAudioDecoder, pAudioDecoderSettings);
+        BKNI_Free(pAudioDecoderSettings);
+        if (errCode != NEXUS_SUCCESS) {
+            BDBG_ERR(("%s: Failed to unset the 1st pts callback for simple audio decoder", __FUNCTION__));
+            goto error;
+        }
+    }
+    BDBG_MSG(("%s: ctx %p: enabled the audio first pts callback!", __FUNCTION__, (void *)playback_ip));
+    errorCode = B_ERROR_SUCCESS;
 error:
     return errorCode;
 }
@@ -829,9 +889,9 @@ B_PlaybackIp_SessionStart(
     B_PlaybackIpError errorCode = B_ERROR_PROTO;
     NEXUS_VideoDecoderSettings videoDecoderSettings;
 
-    BDBG_MSG(("%s: playback_ip %p, startSettings %p, startStatus %p\n", __FUNCTION__, playback_ip, startSettings, startStatus));
+    BDBG_MSG(("%s: playback_ip %p, startSettings %p, startStatus %p\n", __FUNCTION__, (void *)playback_ip, (void *)startSettings, (void *)startStatus));
     if (!playback_ip || !startSettings || !startStatus) {
-        BDBG_ERR(("%s: invalid params, playback_ip %p, startSettings %p, startStatus %p\n", __FUNCTION__, playback_ip, startSettings, startStatus));
+        BDBG_ERR(("%s: invalid params, playback_ip %p, startSettings %p, startStatus %p\n", __FUNCTION__, (void *)playback_ip, (void *)startSettings, (void *)startStatus));
         return B_ERROR_INVALID_PARAMETER;
     }
 
@@ -879,12 +939,18 @@ B_PlaybackIp_SessionStart(
     playback_ip->byte_count = 0;
     playback_ip->numRecvTimeouts = 0;
 
-    if (playback_ip->nexusHandles.videoDecoder) {
+    if (!playback_ip->startSettings.musicChannelWithVideoStills && playback_ip->nexusHandles.videoDecoder) {
         NEXUS_VideoDecoder_GetSettings(playback_ip->nexusHandles.videoDecoder, &videoDecoderSettings);
         /* save app's callback functions so that we can cacade them */
-        playback_ip->appSourceChanged = videoDecoderSettings.sourceChanged;
-        playback_ip->appFirstPts = videoDecoderSettings.firstPts;
-        playback_ip->appFirstPtsPassed = videoDecoderSettings.firstPtsPassed;
+        if (videoDecoderSettings.sourceChanged.callback != sourceChangedCallback) {
+            playback_ip->appSourceChanged = videoDecoderSettings.sourceChanged;
+        }
+        if (videoDecoderSettings.firstPts.callback != firstPtsCallback) {
+            playback_ip->appFirstPts = videoDecoderSettings.firstPts;
+        }
+        if (videoDecoderSettings.firstPtsPassed.callback != firstPtsPassedCallback) {
+            playback_ip->appFirstPtsPassed = videoDecoderSettings.firstPtsPassed;
+        }
         playback_ip->appPtsError = videoDecoderSettings.ptsError;
 
         videoDecoderSettings.firstPts.callback = firstPtsCallback;
@@ -901,12 +967,18 @@ B_PlaybackIp_SessionStart(
         }
     }
 #ifdef NEXUS_HAS_SIMPLE_DECODER
-    else if (playback_ip->nexusHandles.simpleVideoDecoder) {
+    else if (!playback_ip->startSettings.musicChannelWithVideoStills && playback_ip->nexusHandles.simpleVideoDecoder) {
         NEXUS_SimpleVideoDecoder_GetSettings(playback_ip->nexusHandles.simpleVideoDecoder, &videoDecoderSettings);
         /* save app's callback functions so that we can cacade them */
-        playback_ip->appSourceChanged = videoDecoderSettings.sourceChanged;
-        playback_ip->appFirstPts = videoDecoderSettings.firstPts;
-        playback_ip->appFirstPtsPassed = videoDecoderSettings.firstPtsPassed;
+        if (videoDecoderSettings.sourceChanged.callback != sourceChangedCallback) {
+            playback_ip->appSourceChanged = videoDecoderSettings.sourceChanged;
+        }
+        if (videoDecoderSettings.firstPts.callback != firstPtsCallback) {
+            playback_ip->appFirstPts = videoDecoderSettings.firstPts;
+        }
+        if (videoDecoderSettings.firstPtsPassed.callback != firstPtsPassedCallback) {
+            playback_ip->appFirstPtsPassed = videoDecoderSettings.firstPtsPassed;
+        }
         playback_ip->appPtsError = videoDecoderSettings.ptsError;
 
         videoDecoderSettings.firstPts.callback = firstPtsCallback;
@@ -926,9 +998,11 @@ B_PlaybackIp_SessionStart(
     else if (playback_ip->nexusHandles.primaryAudioDecoder) {
         NEXUS_AudioDecoderSettings audioDecoderSettings;
         NEXUS_AudioDecoder_GetSettings(playback_ip->nexusHandles.primaryAudioDecoder, &audioDecoderSettings);
-        playback_ip->appFirstPts = audioDecoderSettings.firstPts;
-        audioDecoderSettings.firstPts.callback = firstPtsCallback;
-        audioDecoderSettings.firstPts.context = playback_ip;
+        if (audioDecoderSettings.streamStatusAvailable.callback != firstPtsCallback) {
+            playback_ip->streamStatusAvailable = audioDecoderSettings.firstPts;
+        }
+        audioDecoderSettings.streamStatusAvailable.callback = firstPtsCallback;
+        audioDecoderSettings.streamStatusAvailable.context = playback_ip;
         if (NEXUS_AudioDecoder_SetSettings(playback_ip->nexusHandles.primaryAudioDecoder, &audioDecoderSettings) != NEXUS_SUCCESS) {
             BDBG_ERR(("%s: Failed to set the 1st pts callback for audio decoder", __FUNCTION__));
             goto error;
@@ -947,9 +1021,11 @@ B_PlaybackIp_SessionStart(
              goto error;
          }
         NEXUS_SimpleAudioDecoder_GetSettings(playback_ip->nexusHandles.simpleAudioDecoder, pAudioDecoderSettings);
-        playback_ip->appFirstPts = pAudioDecoderSettings->primary.firstPts;
-        pAudioDecoderSettings->primary.firstPts.callback = firstPtsCallback;
-        pAudioDecoderSettings->primary.firstPts.context = playback_ip;
+        if (pAudioDecoderSettings->primary.streamStatusAvailable.callback != firstPtsCallback) {
+            playback_ip->streamStatusAvailable = pAudioDecoderSettings->primary.streamStatusAvailable;
+        }
+        pAudioDecoderSettings->primary.streamStatusAvailable.callback = firstPtsCallback;
+        pAudioDecoderSettings->primary.streamStatusAvailable.context = playback_ip;
         errCode = NEXUS_SimpleAudioDecoder_SetSettings(playback_ip->nexusHandles.simpleAudioDecoder, pAudioDecoderSettings);
         BKNI_Free(pAudioDecoderSettings);
         if (errCode != NEXUS_SUCCESS) {
@@ -999,7 +1075,7 @@ checkStartStatus:
     else {
         playback_ip->playback_state = B_PlaybackIpState_ePlaying;
     }
-    BDBG_MSG(("%s() completed successfully, playback_ip %p\n", __FUNCTION__, playback_ip));
+    BDBG_MSG(("%s() completed successfully, playback_ip %p\n", __FUNCTION__, (void *)playback_ip));
     return B_ERROR_SUCCESS;
 
 error:
@@ -1034,7 +1110,7 @@ B_PlaybackIpError B_PlaybackIp_SessionStop(
     if (!playback_ip) return B_ERROR_INVALID_PARAMETER;
 
     currentState = playback_ip->playback_state;
-    BDBG_MSG(("%s:%p playback ip state %d\n", __FUNCTION__, playback_ip, playback_ip->playback_state));
+    BDBG_MSG(("%s:%p playback ip state %d\n", __FUNCTION__, (void *)playback_ip, playback_ip->playback_state));
     switch (playback_ip->playback_state) {
     case B_PlaybackIpState_eOpened:
     case B_PlaybackIpState_eSessionOpened:
@@ -1067,7 +1143,7 @@ B_PlaybackIpError B_PlaybackIp_SessionStop(
 
     /* change to stopping state as stopping the IP thread can take some time */
     playback_ip->playback_state = B_PlaybackIpState_eStopping;
-    BDBG_MSG(("%s:%p playback ip state changed to %d\n", __FUNCTION__, playback_ip, playback_ip->playback_state));
+    BDBG_MSG(("%s:%p playback ip state changed to %d\n", __FUNCTION__, (void *)playback_ip, playback_ip->playback_state));
 
     if (playback_ip->sessionOpenRetryEventHandle != NULL) {
         BKNI_SetEvent(playback_ip->sessionOpenRetryEventHandle);
@@ -1094,7 +1170,7 @@ B_PlaybackIpError B_PlaybackIp_SessionStop(
     BDBG_MSG(("%s: Playback IP thread is stopped \n", __FUNCTION__));
 
     if (currentState < B_PlaybackIpState_eSessionSetup) {
-        BDBG_ERR(("%s:%p Skipping remaining stop processing as session wasn't started! ", __FUNCTION__, playback_ip, playback_ip->playback_state));
+        BDBG_ERR(("%s:%p Skipping remaining stop processing as session wasn't started, state=%d ", __FUNCTION__, (void *)playback_ip, playback_ip->playback_state));
         goto out;
     }
     switch (playback_ip->openSettings.socketOpenSettings.protocol) {
@@ -1134,14 +1210,15 @@ B_PlaybackIpError B_PlaybackIp_SessionStop(
 #endif
     }
 
-    if (playback_ip->nexusHandles.videoDecoder) {
+    if (!playback_ip->startSettings.musicChannelWithVideoStills && playback_ip->nexusHandles.videoDecoder) {
         NEXUS_VideoDecoderSettings videoDecoderSettings;
         NEXUS_VideoDecoder_GetSettings(playback_ip->nexusHandles.videoDecoder, &videoDecoderSettings);
         videoDecoderSettings.firstPts = playback_ip->appFirstPts;
         playback_ip->appFirstPts.callback = NULL;
         videoDecoderSettings.firstPtsPassed = playback_ip->appFirstPtsPassed;
         playback_ip->appFirstPtsPassed.callback = NULL;
-        videoDecoderSettings.sourceChanged = playback_ip->appSourceChanged;
+        if (playback_ip->appSourceChanged.callback != sourceChangedCallback)
+            videoDecoderSettings.sourceChanged = playback_ip->appSourceChanged;
         playback_ip->appSourceChanged.callback = NULL;
         videoDecoderSettings.ptsError = playback_ip->appPtsError;
         playback_ip->appPtsError.callback = NULL;
@@ -1151,14 +1228,15 @@ B_PlaybackIpError B_PlaybackIp_SessionStop(
         }
     }
 #ifdef NEXUS_HAS_SIMPLE_DECODER
-    else if (playback_ip->nexusHandles.simpleVideoDecoder) {
+    else if (!playback_ip->startSettings.musicChannelWithVideoStills && playback_ip->nexusHandles.simpleVideoDecoder) {
         NEXUS_VideoDecoderSettings videoDecoderSettings;
         NEXUS_SimpleVideoDecoder_GetSettings(playback_ip->nexusHandles.simpleVideoDecoder, &videoDecoderSettings);
         videoDecoderSettings.firstPts = playback_ip->appFirstPts;
         playback_ip->appFirstPts.callback = NULL;
         videoDecoderSettings.firstPtsPassed = playback_ip->appFirstPtsPassed;
         playback_ip->appFirstPtsPassed.callback = NULL;
-        videoDecoderSettings.sourceChanged = playback_ip->appSourceChanged;
+        if (playback_ip->appSourceChanged.callback != sourceChangedCallback)
+            videoDecoderSettings.sourceChanged = playback_ip->appSourceChanged;
         playback_ip->appSourceChanged.callback = NULL;
         videoDecoderSettings.ptsError = playback_ip->appPtsError;
         playback_ip->appPtsError.callback = NULL;
@@ -1172,8 +1250,8 @@ B_PlaybackIpError B_PlaybackIp_SessionStop(
     else if (playback_ip->nexusHandles.primaryAudioDecoder) {
         NEXUS_AudioDecoderSettings audioDecoderSettings;
         NEXUS_AudioDecoder_GetSettings(playback_ip->nexusHandles.primaryAudioDecoder, &audioDecoderSettings);
-        audioDecoderSettings.firstPts = playback_ip->appFirstPts;
-        playback_ip->appFirstPts.callback = NULL;
+        audioDecoderSettings.streamStatusAvailable = playback_ip->streamStatusAvailable;
+        playback_ip->streamStatusAvailable.callback = NULL;
         if (NEXUS_AudioDecoder_SetSettings(playback_ip->nexusHandles.primaryAudioDecoder, &audioDecoderSettings) != NEXUS_SUCCESS) {
             BDBG_ERR(("%s: Failed to unset the 1st pts callback for audio decoder", __FUNCTION__));
             goto error;
@@ -1192,8 +1270,8 @@ B_PlaybackIpError B_PlaybackIp_SessionStop(
              goto error;
          }
         NEXUS_SimpleAudioDecoder_GetSettings(playback_ip->nexusHandles.simpleAudioDecoder, pAudioDecoderSettings);
-        pAudioDecoderSettings->primary.firstPts = playback_ip->appFirstPts;
-        playback_ip->appFirstPts.callback = NULL;
+        pAudioDecoderSettings->primary.streamStatusAvailable = playback_ip->streamStatusAvailable;
+        playback_ip->streamStatusAvailable.callback = NULL;
         errCode = NEXUS_SimpleAudioDecoder_SetSettings(playback_ip->nexusHandles.simpleAudioDecoder, pAudioDecoderSettings);
         BKNI_Free(pAudioDecoderSettings);
 
@@ -1444,6 +1522,10 @@ B_PlaybackIp_GetStatus(
     ipStatus->sessionInfo.url = (const char *)playback_ip->openSettings.socketOpenSettings.url;
     ipStatus->sessionInfo.ipAddr = (const char *)playback_ip->openSettings.socketOpenSettings.ipAddr;
 
+    BDBG_MSG(("%s:%p monitoPsi = %d", __FUNCTION__, (void *)playback_ip, playback_ip->startSettings.monitorPsi));
+    if (playback_ip->startSettings.monitorPsi) {
+        B_PlaybackIp_GetPsiStreamState(playback_ip->pPsiState, &ipStatus->stream);
+    }
     rc = B_ERROR_SUCCESS;
     return rc;
 }
@@ -1471,7 +1553,7 @@ void print_av_pipeline_buffering_status(
     }
     if (playback_ip->nexusHandles.playback) {
         if (NEXUS_Playback_GetStatus(playback_ip->nexusHandles.playback, &playbackStatus) == NEXUS_SUCCESS) {
-            BDBG_WRN(("Playback Status: PB buffer depth %d, size %d, fullness %d%%, played bytes %lld",
+            BDBG_WRN(("Playback Status: PB buffer depth %d, size %d, fullness %d%%, played bytes %" PRIu64,
                     playbackStatus.fifoDepth, playbackStatus.fifoSize, (playbackStatus.fifoDepth*100)/playbackStatus.fifoSize, playbackStatus.bytesPlayed));
         }
     }
@@ -1584,7 +1666,7 @@ B_PlaybackIpError B_PlaybackIp_SetSettings(
             playback_ip->nexusHandles.simpleStcChannel = pSettings->nexusHandles.simpleStcChannel;
     }
     if (pSettings->playPositionOffsetValid) {
-        BDBG_MSG(("%s:%p: Update current position=%u to new=%u", __FUNCTION__, playback_ip, playback_ip->lastPosition , pSettings->playPositionOffsetInMs));
+        BDBG_MSG(("%s:%p: Update current position=%lu to new=%lu", __FUNCTION__, (void *)playback_ip, playback_ip->lastPosition , pSettings->playPositionOffsetInMs));
         playback_ip->lastPosition = pSettings->playPositionOffsetInMs;
         playback_ip->reOpenSocket = true;
     }
@@ -1592,7 +1674,7 @@ B_PlaybackIpError B_PlaybackIp_SetSettings(
 #ifdef B_HAS_HLS_PROTOCOL_SUPPORT
     if (pSettings->stopAlternateAudio) {
         if (playback_ip->openSettings.socketOpenSettings.protocol == B_PlaybackIpProtocol_eHttp && playback_ip->hlsSessionEnabled) {
-            BDBG_MSG(("%s:%p: Calling B_PlaybackIp_HlsStopAlternateRendition", __FUNCTION__, playback_ip));
+            BDBG_MSG(("%s:%p: Calling B_PlaybackIp_HlsStopAlternateRendition", __FUNCTION__, (void *)playback_ip));
             B_PlaybackIp_HlsStopAlternateRendition(playback_ip);
         }
         rc = B_ERROR_SUCCESS;
@@ -1620,6 +1702,8 @@ B_PlaybackIpError B_PlaybackIp_SetSettings(
         }
         BDBG_MSG(("%s: Enabling AlternateAudio: language=%s groupId=%s pid=%d containerType=%d", __FUNCTION__,
                     pSettings->alternateAudio.language, pSettings->alternateAudio.groupId, pSettings->alternateAudio.pid, pSettings->alternateAudio.containerType));
+        /* coverity[stack_use_local_overflow] */
+        /* coverity[stack_use_overflow] */
         if (playback_ip->openSettings.socketOpenSettings.protocol == B_PlaybackIpProtocol_eHttp && playback_ip->hlsSessionEnabled) {
             if ((rc=B_PlaybackIp_HlsStartAlternateRendition(playback_ip, &pSettings->alternateAudio)) != B_ERROR_SUCCESS) {
                 BDBG_ERR(("%s: Failed to enable Alternate Rendition for HLS protocol: rc=%d", __FUNCTION__, rc));
@@ -1632,6 +1716,10 @@ B_PlaybackIpError B_PlaybackIp_SetSettings(
         }
     }
 #endif
+    BDBG_MSG(("%s:%p resumePsiMonitoring = %d", __FUNCTION__, (void *)playback_ip, pSettings->resumePsiMonitoring));
+    if (pSettings->resumePsiMonitoring) {
+        B_PlaybackIp_ResumePsiParsing(playback_ip->pPsiState);
+    }
     BDBG_MSG(("%s: preChargeBuffer %d, ipState %d", __FUNCTION__, pSettings->preChargeBuffer, playback_ip->playback_state));
     switch (playback_ip->playback_state) {
     case B_PlaybackIpState_ePlaying:
@@ -1738,7 +1826,7 @@ B_PlaybackIpError B_PlaybackIp_DetectTts(
     }
 #endif
 
-    BDBG_MSG(("%s: entering: %p", __FUNCTION__, playback_ip));
+    BDBG_MSG(("%s: entering: %p", __FUNCTION__, (void *)playback_ip));
 
     if( IN_MULTICAST(ntohl(playback_ip->socketState.local_addr.sin_addr.s_addr)) ) {
         from = (struct sockaddr *) &playback_ip->socketState.remote_addr;
@@ -1757,7 +1845,7 @@ B_PlaybackIpError B_PlaybackIp_DetectTts(
         }
         if(i>=20) {
             rc = B_ERROR_UNKNOWN;
-            BDBG_ERR(("%s: Failed to receive any data on this Live IP channel (playback_ip %p)", __FUNCTION__, playback_ip));
+            BDBG_ERR(("%s: Failed to receive any data on this Live IP channel (playback_ip %p)", __FUNCTION__, (void *)playback_ip));
             goto error;
         }
 

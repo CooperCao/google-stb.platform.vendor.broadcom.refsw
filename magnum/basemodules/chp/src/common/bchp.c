@@ -1,7 +1,7 @@
 /******************************************************************************
- * (c) 2003-2014 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -37,7 +37,6 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 
 
@@ -190,7 +189,7 @@ void *BCHP_GetAvsHandle(
     return( result );
 }
 
-#if BCHP_CHIP == 7325 || BCHP_CHIP == 7335 || BCHP_CHIP == 7336 || BCHP_CHIP == 7400 || BCHP_CHIP == 7403 || BCHP_CHIP == 7405
+#if BCHP_CHIP == 7405
 /* this silicon uses SUN_TOP_CTRL_STRAP_VALUE_0 and its strap_ddr_configuration, strap_ddr0_device_config, and
 strap_ddr1_device_config fields which are not generic. */
 BERR_Code BCHP_GetMemoryInfo(BREG_Handle hReg, BCHP_MemoryInfo *pInfo)
@@ -750,9 +749,9 @@ BERR_Code BCHP_GetMemoryInfo(BREG_Handle hReg, BCHP_MemoryInfo *pInfo)
     case 0x74490:
         pInfo->memc[2].width = 0; /* will short circuit for loop below */
         pInfo->memc[2].offset = 0;
-		break;
-	default:
-		break;
+        break;
+    default:
+        break;
     }
 #elif BCHP_CHIP==7439
     switch (BREG_Read32(hReg, BCHP_SUN_TOP_CTRL_PRODUCT_ID) >> 8) {
@@ -869,7 +868,9 @@ void BCHP_GetInfo( BCHP_Handle hChip, BCHP_Info *pInfo )
     if (!hChip->infoSet) {
         unsigned val;
         if (!hChip->regHandle) {
+#if BDBG_DEBUG_BUILD || B_REFSW_DEBUG_COMPACT_ERR
             BERR_TRACE(BERR_NOT_AVAILABLE);
+#endif
             BKNI_Memset(pInfo, 0, sizeof(*pInfo));
             return;
         }
@@ -988,7 +989,9 @@ BCHP_Handle BCHP_P_Open(const BCHP_OpenSettings *pSettings, const struct BCHP_P_
 
     pChip = BKNI_Malloc(sizeof(*pChip));
     if(!pChip) {
+#if BDBG_DEBUG_BUILD || B_REFSW_DEBUG_COMPACT_ERR
         BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+#endif
         return NULL;
     }
     BKNI_Memset(pChip, 0x0, sizeof(*pChip));
@@ -1003,7 +1006,9 @@ BCHP_Handle BCHP_P_Open(const BCHP_OpenSettings *pSettings, const struct BCHP_P_
     rc = BCHP_P_VerifyChip(pChip, pChipInfo);
     if (rc) {
         BKNI_Free(pChip);
+#if BDBG_DEBUG_BUILD || B_REFSW_DEBUG_COMPACT_ERR
         BERR_TRACE(rc);
+#endif
         return NULL;
     }
 

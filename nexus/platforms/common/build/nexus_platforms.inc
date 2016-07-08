@@ -1,7 +1,7 @@
 ############################################################
-#     (c)2003-2015 Broadcom Corporation
+#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 #
-#  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+#  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
 #  conditions of a separate, written license agreement executed between you and Broadcom
 #  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,18 +35,8 @@
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
 #
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
 # Module Description:
-#   This file defines the rules to build the 97400 platform
-#
-# Revision History:
-#
-# Created: 08/28/2007 by Jon Garrett
-#
-# $brcm_Log: $
+#   This file defines the rules to build the nexus platforms
 #
 ############################################################
 
@@ -61,27 +51,6 @@ endif
 # derive BCHP_CHIP from NEXUS_PLATFORM if not explicitly defined
 ifndef BCHP_CHIP
     # Define platform specifics
-    ifeq ($(filter $(NEXUS_PLATFORM),97400), $(NEXUS_PLATFORM))
-        BCHP_CHIP := 7400
-        ifndef BCHP_VER
-        $(warning Defaulting to BCHP_VER=D0)
-        BCHP_VER := D0
-        endif
-    endif
-    ifeq ($(filter $(NEXUS_PLATFORM),97405 97205), $(NEXUS_PLATFORM))
-        BCHP_CHIP := 7405
-        ifndef BCHP_VER
-        $(warning Defaulting to BCHP_VER=B0)
-        BCHP_VER := B0
-        endif
-    endif
-    ifeq ($(NEXUS_PLATFORM),97325)
-        BCHP_CHIP := 7325
-        ifndef BCHP_VER
-        $(warning Defaulting to BCHP_VER=A0)
-        BCHP_VER := A0
-        endif
-    endif
     ifeq ($(NEXUS_PLATFORM),97346)
         BCHP_CHIP := 7346
         ifndef BCHP_VER
@@ -101,13 +70,6 @@ ifndef BCHP_CHIP
         ifndef BCHP_VER
         $(warning Defaulting to BCHP_VER=B1)
         BCHP_VER := B1
-        endif
-    endif
-    ifeq ($(NEXUS_PLATFORM),97340)
-        BCHP_CHIP := 7340
-        ifndef BCHP_VER
-        $(warning Defaulting to BCHP_VER=B0)
-        BCHP_VER := B0
         endif
     endif
     ifeq ($(filter $(NEXUS_PLATFORM),97420), $(NEXUS_PLATFORM))
@@ -274,7 +236,7 @@ ifndef BCHP_CHIP
         endif
     endif
 
-	ifeq ($(NEXUS_PLATFORM),973625)
+    ifeq ($(NEXUS_PLATFORM),973625)
         BCHP_CHIP := 73625
         ifndef BCHP_VER
         $(warning Defaulting to BCHP_VER=A0)
@@ -312,10 +274,10 @@ ifndef BCHP_CHIP
         $(warning Defaulting to BCHP_VER=D0)
         BCHP_VER := D0
         endif
-	ifeq ($(BCHP_VER),D1)
-	BCHP_VER := D0
+    ifeq ($(BCHP_VER),D1)
+    BCHP_VER := D0
         $(warning Building with BCHP_VER=D1 is same as that with BCHP_VER=D0 )
-	endif
+    endif
     endif
 
     ifeq ($(NEXUS_PLATFORM),97252)
@@ -324,10 +286,10 @@ ifndef BCHP_CHIP
         $(warning Defaulting to BCHP_VER=D0)
         BCHP_VER := D0
         endif
-	ifeq ($(BCHP_VER),D1)
+    ifeq ($(BCHP_VER),D1)
         BCHP_VER := D0
         $(warning Building with BCHP_VER=D1 is same as that with BCHP_VER=D0 )
-	endif
+    endif
     endif
 
     ifeq ($(NEXUS_PLATFORM),97449)
@@ -336,10 +298,10 @@ ifndef BCHP_CHIP
         $(warning Defaulting to BCHP_VER=D0)
         BCHP_VER := D0
         endif
-	ifeq ($(BCHP_VER),D1)
+    ifeq ($(BCHP_VER),D1)
         BCHP_VER := D0
         $(warning Building with BCHP_VER=D1 is same as that with BCHP_VER=D0 )
-	endif
+    endif
     endif
 
     ifeq ($(NEXUS_PLATFORM),97563)

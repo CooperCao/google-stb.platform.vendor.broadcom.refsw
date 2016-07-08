@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -11,7 +11,7 @@
  * Software and all intellectual property rights therein.  IF YOU HAVE NO
  * AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
  * AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
- * SOFTWARE.  
+ * SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
@@ -60,11 +60,11 @@ namespace bsg
 //! The implementation uses an approximate method based on the size of the bounding volume.  This usually
 //! results in an overestimate of the objects screen size, but this is preferable to an underestimate
 //! which would lead to chunky looking models and visible transitions between LOD levels.
-//! 
+//!
 //! Applications can select the level of detail to be used when rendering an object via:
 //! \code
 //! LODGroup  lodGroup(GetOptions().GetHeight());
-//! 
+//!
 //! lodGroup.Begin();
 //! lodGroup.Add(geom1, 200.0f); // 200 and above
 //! lodGroup.Add(geom2, 50.0f);  // 50 to 200
@@ -72,7 +72,7 @@ namespace bsg
 //! lodGroup.Add(geom4);         // 0 to 12
 //! lodGroup.End();
 //! \endcode
-//! 
+//!
 //! This selects geom1 for projected sizes of 200 pixels, geom2 for 50 to 200 and so on.
 class LODGroup
 {

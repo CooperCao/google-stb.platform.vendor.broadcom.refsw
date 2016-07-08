@@ -1,7 +1,7 @@
 /******************************************************************************
- * (c) 2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -37,7 +37,6 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 
 #include "panel_display.h"
@@ -472,6 +471,7 @@ eRet CPanelDisplay::generateVideoFormatButtons(COutputHdmi * pOutputHdmi)
     CWidgetCheckButton * pButton   = NULL;
     CBoardFeatures *     pFeatures = getConfig()->getBoardFeatures();
     MRect                rectPopup = _FormatPopup->getGeometry();
+
     BDBG_ASSERT(NULL != pFeatures);
 
     for (int i = 0; i < NEXUS_VideoFormat_eMax; i++)
@@ -513,7 +513,7 @@ eRet CPanelDisplay::generateVideoFormatButtons(COutputHdmi * pOutputHdmi)
                 if ((1080 < nVideoFormatVertRes) || (0 == nVideoFormatVertRes))
                 {
                     /* formats greater than 1080i/p are not supported without hdmi
-                       also ignore unknown formats */
+                     * also ignore unknown formats */
                     continue;
                 }
                 else
@@ -534,7 +534,7 @@ eRet CPanelDisplay::generateVideoFormatButtons(COutputHdmi * pOutputHdmi)
     }
 
     return(ret);
-}
+} /* generateVideoFormatButtons */
 
 void CPanelDisplay::processNotification(CNotification & notification)
 {

@@ -1,7 +1,7 @@
 ############################################################
-#     (c)2003-2013 Broadcom Corporation
+#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 #
-#  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+#  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
 #  conditions of a separate, written license agreement executed between you and Broadcom
 #  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,8 @@
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
 #
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
 # Module Description:
 #   This file defines the OS-specific flags for building in linuxkernel mode.
-#
-# Revision History:
-#
-# $brcm_Log: $
 #
 ############################################################
 
@@ -58,7 +50,7 @@ LINUX_VERSION := $(shell grep -m 1 '^VERSION = ' ${LINUX}/Makefile | awk '{print
 LINUX_PATCHLEVEL := $(shell grep -m 1 '^PATCHLEVEL = ' ${LINUX}/Makefile | awk '{print $$3}')
 LINUX_SUBLEVEL := $(shell grep -m 1 '^SUBLEVEL = ' ${LINUX}/Makefile | awk '{print $$3}')
 
-LINUX_VER_GE_3 :=  $(shell test $(LINUX_VERSION) -eq 3 && echo y)
+LINUX_VER_GE_3 :=  $(shell test $(LINUX_VERSION) -ge 3 && echo y)
 ifeq ($(LINUX_VER_GE_3),y)
 	LINUX_VER_GE_2_6 = y
 	LINUX_VER_GE_2_6_31 = y
@@ -72,13 +64,6 @@ LINUX_VER_EQ_2_6_12 := $(shell test $(LINUX_SUBLEVEL) -eq 12 && echo 'y')
 endif
 endif
 
-# for linux 2.6.25 and earlier, we have logic to autoconfigure the kernel if LINUX_INC is not defined.
-# manual configuration required for 2.6.31 and beyond.
-ifeq ($(LINUX_INC),)
-ifneq ($(LINUX_VER_GE_2_6_31),y)
-include $(NEXUS_TOP)/../BSEAV/linux/driver/build/97400/Linux.make
-endif
-endif
 LINUX_INC ?= $(LINUX_OUT)/include
 
 ifeq ($(LINUX_VER_GE_2_6_31),y)
@@ -112,7 +97,7 @@ B_REFSW_OPTIMIZER_LEVEL = 2
 endif
 
 # Seperate MIPS and ARM here
-ifneq ($(filter ${B_REFSW_ARCH}, arm-linux), ${B_REFSW_ARCH})
+ifneq ($(filter ${B_REFSW_ARCH}, aarch64-linux arm-linux), ${B_REFSW_ARCH})
 NEXUS_CFLAGS += -fomit-frame-pointer -G 0 -mno-abicalls -fno-pic -Wa,--trap -DMODULE -mlong-calls
 NEXUS_CFLAGS += -msoft-float -pipe
 NEXUS_CFLAGS += -DLINUX -D__KERNEL__
@@ -162,34 +147,46 @@ NEXUS_LDFLAGS += -G 0 --warn-common
 else
 # ARM
 
+ifeq ($(filter ${B_REFSW_ARCH}, aarch64-linux), ${B_REFSW_ARCH})
+ARM_ARCH=arm64
+else
+ARM_ARCH=arm
+endif
+
 # CFLAGS only for OS abstraction files
 NEXUS_KERNEL_CFLAGS += \
         -DLINUX \
         -D__KERNEL__ \
         -I$(LINUX_OUT)/include\
         -I$(LINUX)/include\
-        -I$(LINUX_OUT)/arch/arm/include\
-        -I$(LINUX)/arch/arm/include\
+        -I$(LINUX_OUT)/arch/$(ARM_ARCH)/include\
+        -I$(LINUX)/arch/$(ARM_ARCH)/include\
         -include linux/kconfig.h\
-        -I$(LINUX_OUT)/arch/arm/include/generated\
-        -I$(LINUX_OUT)/arch/arm/include/uapi\
-        -I$(LINUX)/arch/arm/include/uapi\
-        -I$(LINUX_OUT)/arch/arm/include/generated/uapi\
-        -I$(LINUX)/arch/arm/include/generated/uapi\
+        -I$(LINUX_OUT)/arch/$(ARM_ARCH)/include/generated\
+        -I$(LINUX_OUT)/arch/$(ARM_ARCH)/include/uapi\
+        -I$(LINUX)/arch/$(ARM_ARCH)/include/uapi\
+        -I$(LINUX_OUT)/arch/$(ARM_ARCH)/include/generated/uapi\
+        -I$(LINUX)/arch/$(ARM_ARCH)/include/generated/uapi\
         -I$(LINUX_OUT)/include/uapi\
         -I$(LINUX)/include/uapi\
         -I$(LINUX_OUT)/include/generated/uapi
 
 # CFLAGS for all files compiled into linuxkernel
 ifeq ($(B_REFSW_DEBUG),y)
-NEXUS_CFLAGS  += $(filter-out -Wundef,$(BCM_KBUILD_CFLAGS))
+NEXUS_CFLAGS  += $(filter-out -Wundef -mgeneral-regs-only,$(BCM_KBUILD_CFLAGS))
 else
-NEXUS_CFLAGS  += $(filter-out -Wundef -Wall,$(BCM_KBUILD_CFLAGS))
+NEXUS_CFLAGS  += $(filter-out -Wundef -Wall -mgeneral-regs-only,$(BCM_KBUILD_CFLAGS))
 endif
 NEXUS_LDFLAGS += $(BCM_KBUILD_LDFLAGS)
 
+
+ifeq ($(filter ${B_REFSW_ARCH}, aarch64-linux), ${B_REFSW_ARCH})
+#TODO: -mfpu not avialble with aarch64 use -mcpu option disable NEON instructions
+#NEXUS_CFLAGS += -mfpu=fp-armv8
+else
 # We are using -mfpu=vfpv3-d16 to force off generation of NEON instructions for fixed point code, when compiler comes with default -mfpu=neon-vfpv4
 NEXUS_CFLAGS += -mfpu=vfpv3-d16
+endif
 endif
 
 NEXUS_CFLAGS += -DBSTD_CPU_ENDIAN=$(NEXUS_ENDIAN)

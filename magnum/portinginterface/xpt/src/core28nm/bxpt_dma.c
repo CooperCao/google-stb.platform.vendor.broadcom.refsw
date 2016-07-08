@@ -1,7 +1,7 @@
 /******************************************************************************
- * (c) 2003-2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -37,7 +37,6 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 
 #include "bxpt_capabilities.h"
@@ -242,7 +241,8 @@ BDBG_OBJECT_ID(BXPT_Dma_Context);
 #else
 #define BXPT_DMA_ADDRESS_LIMIT_SHIFT (32)
 #endif
-#define BXPT_DMA_PWR_BO_COUNT      0xffffff
+#define BXPT_DMA_PWR_BO_COUNT      0x3fffffff
+#define BXPT_DMA_DEF_BO_COUNT      0
 
 #define UINT32_V(value) ((uint32_t)(value & 0xFFFFFFFF))
 
@@ -251,14 +251,11 @@ BDBG_OBJECT_ID(BXPT_Dma_Context);
 #define BXPT_DMA_USE_RUN_VERSION 1
 
 #define BXPT_DMA_DESC_PROTECT      1 /* run-time check for transfers that corrupt descriptor memory location */
-#define BXPT_DMA_SUBMODULE_CLKGATE 0
 
 #define BXPT_DMA_RESERVE_SAGE_CH 1 /* hard-coded enabled for now */
 #define BXPT_DMA_SAGE_CH_NUM     (BXPT_DMA_NUM_CHANNELS-1)
 
-#if (BXPT_DMA_RESERVE_SAGE_CH && BXPT_DMA_SUBMODULE_CLKGATE)
-#error /* do not clockgate if sage is using a channel. this could be re-worked in the future */
-#endif
+#define BXPT_DMA_NUM_FRONT_SHARED_CH 2 /* assume channels 0 and 1 are shared with others */
 
 #if ((BCHP_CHIP==7445 && BCHP_VER<BCHP_VER_C0) || (BCHP_CHIP==7145 && BCHP_VER<BCHP_VER_B0))
 #define BXPT_DMA_WDMA_END_INVERT 1 /* SW7445-96 */
@@ -288,6 +285,11 @@ BDBG_OBJECT_ID(BXPT_Dma_Context);
 
 /* TODO: #if for affected platforms */
 #define BXPT_DMA_WDMA_DESC_APPEND_NULL 1 /* CRXPT-985 */
+
+/* TODO: #if for affected platforms */
+#if (!BXPT_DMA_HAS_MEMDMA_MCPB)
+#define BXPT_DMA_WDMA_ENDIAN_SWAP_CBIT 1
+#endif
 
 #define BXPT_DMA_DISABLE_WAKE_ON_OVERLAP 1
 
@@ -880,7 +882,6 @@ BERR_Code BXPT_Dma_P_Init(BXPT_Handle hXpt)
     bool doSoftInit = true;
     unsigned i, softInit = 0;
     BREG_Handle hReg = hXpt->hRegister;
-    uint32_t reg;
 
 #if (!BXPT_DMA_HAS_MEMDMA_MCPB)
     doSoftInit = false;
@@ -907,11 +908,9 @@ BERR_Code BXPT_Dma_P_Init(BXPT_Handle hXpt)
     }
 
     /* init BO_COUNT */
-    for (i=0; i<BXPT_DMA_NUM_CHANNELS; i++) {
+    for (i=BXPT_DMA_NUM_FRONT_SHARED_CH; i<BXPT_DMA_NUM_CHANNELS; i++) {
         uint32_t step = BCHP_XPT_MEMDMA_MCPB_CH1_DMA_DESC_CONTROL - BCHP_XPT_MEMDMA_MCPB_CH0_DMA_DESC_CONTROL;
-        reg = BREG_Read32(hReg, BCHP_XPT_MEMDMA_MCPB_CH0_TMEU_BLOCKOUT_CTRL + step*i);
-        BCHP_SET_FIELD_DATA(reg, XPT_MEMDMA_MCPB_CH0_TMEU_BLOCKOUT_CTRL, BO_COUNT, BXPT_DMA_PWR_BO_COUNT);
-        BREG_Write32(hReg, BCHP_XPT_MEMDMA_MCPB_CH0_TMEU_BLOCKOUT_CTRL + step*i, 0);
+        BREG_Write32(hReg, BCHP_XPT_MEMDMA_MCPB_CH0_TMEU_BLOCKOUT_CTRL + step*i, BXPT_DMA_PWR_BO_COUNT);
     }
 
     return 0;
@@ -1010,14 +1009,6 @@ BERR_Code BXPT_Dma_P_OpenChannel(
     BCHP_PWR_AcquireResource(dma->chp, BCHP_PWR_RESOURCE_DMA);
 #endif
 
-#if BXPT_DMA_SUBMODULE_CLKGATE
-    if (doSoftInit) {
-        reg = BREG_Read32(dma->reg, BCHP_XPT_PMU_CLK_CTRL);
-        BCHP_SET_FIELD_DATA(reg, XPT_PMU_CLK_CTRL, MEMDMA_DISABLE, 0);
-        BREG_Write32(dma->reg, BCHP_XPT_PMU_CLK_CTRL, reg);
-    }
-#endif
-
     /* see BXPT_Dma_P_Init() for global init routine */
 
     /* enforce RUN=0 for MCPB and WDMA */
@@ -1051,6 +1042,7 @@ BERR_Code BXPT_Dma_P_OpenChannel(
     BCHP_SET_FIELD_DATA(reg, XPT_MEMDMA_MCPB_CH0_SP_TS_CONFIG, INPUT_TEI_IGNORE, 1); /* ignore TEI */
     BREG_Write32(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_SP_TS_CONFIG + dma->mcpbRegOffset, reg);
 
+    BREG_Write32(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_TMEU_BLOCKOUT_CTRL + dma->mcpbRegOffset, BXPT_DMA_DEF_BO_COUNT);
 #if BXPT_DMA_RATE_TEST
     BREG_Write32(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_TMEU_BLOCKOUT_CTRL + dma->mcpbRegOffset, 0);
 #endif
@@ -1386,6 +1378,20 @@ static BERR_Code BXPT_Dma_Context_P_SetSettings(BXPT_Dma_ContextHandle ctx, cons
         case BXPT_Dma_SwapMode_eWord:
         default:
             return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+#endif
+
+#if BXPT_DMA_WDMA_ENDIAN_SWAP_CBIT
+    /* swapMode is per-Context, but the setting is per-channel. set it for the entire channel on first trigger */
+    if (pSettings->swapMode!=BXPT_Dma_SwapMode_eNone) {
+        unsigned setCbit = 1;
+        reg = BREG_Read32(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_DMA_DATA_CONTROL + dma->mcpbRegOffset);
+        BCHP_SET_FIELD_DATA(reg, XPT_MEMDMA_MCPB_CH0_DMA_DATA_CONTROL, ENDIAN_CONTROL, setCbit);
+        BREG_Write32(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_DMA_DATA_CONTROL + dma->mcpbRegOffset, reg);
+
+        reg = BREG_Read32(dma->reg, BCHP_XPT_WDMA_CH0_DATA_CONTROL + dma->wdmaRamOffset);
+        BCHP_SET_FIELD_DATA(reg, XPT_WDMA_CH0_DATA_CONTROL, INV_STRAP_ENDIAN_CTRL, setCbit);
+        BREG_Write32(dma->reg, BCHP_XPT_WDMA_CH0_DATA_CONTROL + dma->wdmaRamOffset, reg);
     }
 #endif
 
@@ -1833,7 +1839,9 @@ static BERR_Code BXPT_Dma_Context_P_PrepareBlocks(BXPT_Dma_ContextHandle ctx, co
     uint32_t *desc;
     uint32_t nextDescOffset;
     BXPT_Dma_ContextHandle context;
+#if (!BXPT_DMA_AVOID_WAKE)
     bool wakeDisabled = false;
+#endif
 #if 0
     bool sgStart = false;
 #endif
@@ -1909,7 +1917,11 @@ static BERR_Code BXPT_Dma_Context_P_PrepareBlocks(BXPT_Dma_ContextHandle ctx, co
                 {
                     BDBG_MSG(("Overlap between queued ctx dest (" BDBG_UINT64_FMT " - " BDBG_UINT64_FMT ") and current ctx src (" BDBG_UINT64_FMT " - " BDBG_UINT64_FMT ")",
                         BDBG_UINT64_ARG(dst_beg), BDBG_UINT64_ARG(dst_end), BDBG_UINT64_ARG(pSettings->src), BDBG_UINT64_ARG(pSettings->src+pSettings->size-1)));
-                    wakeDisabled = true; /* if there's overlap, then we turn off WAKE for this channel until it's idle again */
+#if (!BXPT_DMA_AVOID_WAKE)
+                    /* if there's overlap, then we turn off WAKE for this
+                     * channel until it's idle again */
+                    wakeDisabled = true;
+#endif
                 }
             }
         }
@@ -2348,6 +2360,19 @@ void BXPT_Dma_CloseChannel(
     BXPT_Dma_P_SetMcpbRun_isrsafe(hDma, 0);
     BXPT_Dma_P_SetWdmaRun_isrsafe(hDma, 0);
 
+#if BXPT_DMA_WDMA_ENDIAN_SWAP_CBIT
+    {
+        unsigned setCbit = 0;
+        reg = BREG_Read32(hDma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_DMA_DATA_CONTROL + hDma->mcpbRegOffset);
+        BCHP_SET_FIELD_DATA(reg, XPT_MEMDMA_MCPB_CH0_DMA_DATA_CONTROL, ENDIAN_CONTROL, setCbit);
+        BREG_Write32(hDma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_DMA_DATA_CONTROL + hDma->mcpbRegOffset, reg);
+
+        reg = BREG_Read32(hDma->reg, BCHP_XPT_WDMA_CH0_DATA_CONTROL + hDma->wdmaRamOffset);
+        BCHP_SET_FIELD_DATA(reg, XPT_WDMA_CH0_DATA_CONTROL, INV_STRAP_ENDIAN_CTRL, setCbit);
+        BREG_Write32(hDma->reg, BCHP_XPT_WDMA_CH0_DATA_CONTROL + hDma->wdmaRamOffset, reg);
+    }
+#endif
+
     if (isSageCh && hDma->bint==NULL) {
         goto postint;
     }
@@ -2376,30 +2401,13 @@ postint:
     BCHP_SET_FIELD_DATA(reg, XPT_MCPB_CH0_SP_PARSER_CTRL, MEMDMA_PIPE_EN, 0);
 #endif
     BREG_Write32(hDma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_SP_PARSER_CTRL + hDma->mcpbRegOffset, reg);
+    if (hDma->channelNum >= BXPT_DMA_NUM_FRONT_SHARED_CH) {
+        BREG_Write32(hDma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_TMEU_BLOCKOUT_CTRL + hDma->mcpbRegOffset, BXPT_DMA_PWR_BO_COUNT);
+    }
 
     if (!isSageCh) {
         hDma->xpt->dmaChannels[hDma->channelNum] = NULL;
     }
-
-#if BXPT_DMA_SUBMODULE_CLKGATE
-    if (!isSageCh)
-    {
-        unsigned i;
-        bool last = true;
-        for (i=0; i<BXPT_DMA_NUM_CHANNELS; i++) {
-            if (hDma->xpt->dmaChannels[i]!=NULL) {
-                last = false;
-                break;
-            }
-        }
-
-        if (last) {
-            reg = BREG_Read32(hDma->reg, BCHP_XPT_PMU_CLK_CTRL);
-            BCHP_SET_FIELD_DATA(reg, XPT_PMU_CLK_CTRL, MEMDMA_DISABLE, 1);
-            BREG_Write32(hDma->reg, BCHP_XPT_PMU_CLK_CTRL, reg);
-        }
-    }
-#endif
 
     BDBG_OBJECT_UNSET(hDma, BXPT_Dma_Handle_Tag);
     BKNI_Free(hDma);
@@ -2458,7 +2466,7 @@ void BXPT_P_Dma_Resume(BXPT_Handle hXpt)
         dma = hXpt->dmaChannels[i];
         if (!dma) { continue; }
 
-        rc = BXPT_Dma_P_SetSettings(dma, &dma->settings);
+        (void) BXPT_Dma_P_SetSettings(dma, &dma->settings);
 
 #if BXPT_DMA_USE_RUN_VERSION
         reg = BREG_Read32(dma->reg, BCHP_XPT_WDMA_REGS_MATCH_RUN_VERSION_CONFIG);

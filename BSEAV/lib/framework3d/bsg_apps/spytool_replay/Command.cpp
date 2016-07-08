@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2012 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2012 Broadcom.
 All rights reserved.
 
 Project  :  PPP
@@ -72,6 +72,7 @@ DESC
 #define GetUniform(param, program)        (m_replay->MapUniform((GLint)m_packet.Item(param + 1).GetInt32(), GetProgram(GLuint, program)))
 #define GetCurUniform(param)              (m_replay->MapUniform((GLint)m_packet.Item(param + 1).GetInt32(), GetCurProgram()))
 #define GetLocation(param, program)       (m_replay->MapLocation((GLint)m_packet.Item(param + 1).GetInt32(), GetProgram(GLuint, program)))
+#define GetUniformBlockIndex(param, program)(m_replay->MapUniformBlockIndex((GLint)m_packet.Item(param + 1).GetInt32(), GetProgram(GLuint, program)))
 #define GetCurLocation(param)             (m_replay->MapLocation((GLint)m_packet.Item(param + 1).GetInt32(), GetCurProgram()))
 #define GetQuery(type, param)             ((type)m_replay->MapQuery((GLuint)m_packet.Item(param + 1).GetUInt32()))
 #define GetVertexArray(type, param)       ((type)m_replay->MapVertexArray((GLuint)m_packet.Item(param + 1).GetUInt32()))
@@ -1255,7 +1256,7 @@ SPECIAL(eglCreateImageKHR)
       const EGLint *attrib_list = (const EGLint *)array[0];
       EGLImageKHR image = eglCreateImageKHR(display, context, target, buffer, attrib_list);
       m_replay->AddEGLImageMapping(m_retPacket.Item(1).GetUInt32(), image);
-}
+   }
 }
 
 SPECIAL(eglCreateImage)
@@ -1286,6 +1287,35 @@ SPECIAL(glRenderbufferStorage)
       comp = GL_DEPTH_COMPONENT24_OES; // We can't support 32, use 24 instead
 
    glRenderbufferStorage(GetU32(GLenum, 0), comp, GetI32(GLsizei, 2), GetI32(GLsizei, 3));
+}
+
+SPECIAL(glLinkProgram)
+{
+   GLuint program = GetProgram(GLuint, 0);
+   glLinkProgram(program);
+
+#if GL_ES_VERSION_3_0
+   // The latest captures contain mapping data for uniform block indices.
+   // Use the information to create mapping tables for the index data.
+   if (m_retPacket.NumItems() > 5)
+   {
+      uint32_t version = m_retPacket.Item(4).GetUInt32();
+      if (version != 1)
+         return;
+
+      uint32_t numBlocks = m_retPacket.Item(5).GetUInt32();
+      //uint32_t maxNameLen  = m_retPacket.Item(6).GetUInt32(); not used
+
+      uint32_t i = 7;
+
+      for (uint32_t b = 0; b < numBlocks; b++)
+      {
+         std::string name(m_retPacket.Item(i++).GetCharPtr());
+         GLuint bi = glGetUniformBlockIndex(program, name.c_str());
+         m_replay->AddUniformBlockIndexMapping(b, bi, program);
+      }
+   }
+#endif
 }
 
 #if GL_ES_VERSION_3_0
@@ -1742,6 +1772,7 @@ SPECIAL(glGenProgramPipelines)
          m_replay->AddProgramPipelineMapping(dummyGLint[si], dummyGLint[si]);
    }
 }
+
 #endif // GL_ES_VERSION_3_0
 
 #if GL_OES_mapbuffer
@@ -1772,7 +1803,6 @@ SPECIAL(glGetBufferPointervOES)
 {
    glGetBufferPointervOES(GetU32(GLenum, 0), GetU32(GLenum, 1), array);
 }
-
 #else
 // Emulate mapbuffer
 SPECIAL(glMapBufferOES) {}

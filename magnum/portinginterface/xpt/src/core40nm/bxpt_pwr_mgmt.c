@@ -1,21 +1,45 @@
-/***************************************************************************
- *     Copyright (c) 2003-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * Revision History:
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
  *
- * $brcm_Log: $
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- ***************************************************************************/
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ *
+ *****************************************************************************/
+
 #include "bstd.h"
 #include "bkni.h"
 #include "bxpt_priv.h"
@@ -2325,6 +2349,211 @@ const BXPT_P_RegisterRange XPT_REG_SAVE_LIST[] =
     { "XPT_FULL_PID_PARSER_PSG_ERR_MODE",        BCHP_XPT_FULL_PID_PARSER_PSG_ERR_MODE,             BCHP_XPT_FULL_PID_PARSER_PSG_ERR_MODE },
     {0, 0, 0}
 };
+#elif (BCHP_CHIP==7358)
+#include "bchp_xpt_bus_if.h"
+#include "bchp_xpt_dpcr0.h"
+#include "bchp_xpt_dpcr1.h"
+#include "bchp_xpt_dpcr2.h"
+#include "bchp_xpt_dpcr3.h"
+#include "bchp_xpt_dpcr_pp.h"
+#include "bchp_xpt_fe.h"
+#include "bchp_xpt_full_pid_parser.h"
+#include "bchp_xpt_gr.h"
+#include "bchp_xpt_mpod.h"
+#include "bchp_xpt_msg.h"
+#include "bchp_xpt_pb0.h"
+#include "bchp_xpt_pb1.h"
+#include "bchp_xpt_pb2.h"
+#include "bchp_xpt_pb3.h"
+#include "bchp_xpt_pcroffset.h"
+#include "bchp_xpt_pmu.h"
+#include "bchp_xpt_psub.h"
+#include "bchp_xpt_rave.h"
+#include "bchp_xpt_rmx0.h"
+#include "bchp_xpt_rmx0_io.h"
+#include "bchp_xpt_rmx1.h"
+#include "bchp_xpt_rmx1_io.h"
+#include "bchp_xpt_rsbuff.h"
+#include "bchp_xpt_wakeup.h"
+#include "bchp_xpt_xcbuff.h"
+#include "bchp_xpt_xmemif.h"
+#include "bchp_xpt_xpu.h"
+
+const BXPT_P_RegisterRange XPT_SRAM_LIST[] =
+{
+    { "WAKEUP_MEM",                              BCHP_XPT_WAKEUP_PKT_MEM_i_ARRAY_BASE,              (BCHP_XPT_WAKEUP_PKT_TYPE3_i_ARRAY_BASE+(BCHP_XPT_WAKEUP_PKT_TYPE3_i_ARRAY_END*4)) },
+    { "FE_PID_TABLE",                            BCHP_XPT_FE_PID_TABLE_i_ARRAY_BASE,                (BCHP_XPT_FE_PID_TABLE_i_ARRAY_BASE+(BCHP_XPT_FE_PID_TABLE_i_ARRAY_END*4)) },
+    { "FE_SPID_TABLE",                           BCHP_XPT_FE_SPID_TABLE_i_ARRAY_BASE,               (BCHP_XPT_FE_SPID_TABLE_i_ARRAY_BASE+(BCHP_XPT_FE_SPID_TABLE_i_ARRAY_END*4)) },
+    { "RSBUFF_IBP_PMEM",                         BCHP_XPT_RSBUFF_BASE_POINTER_IBP0,                 BCHP_XPT_RSBUFF_WATERMARK_IBP9 },
+    { "RSBUFF_PBP_PMEM",                         BCHP_XPT_RSBUFF_BASE_POINTER_PBP0,                 BCHP_XPT_RSBUFF_WATERMARK_PBP3 },
+    { "XCBUFF_RAVE_IBP_PMEM",                    BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_IBP0,            BCHP_XPT_XCBUFF_WATERMARK_RAVE_IBP9 },
+    { "XCBUFF_RAVE_PBP_PMEM",                    BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP0,            BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP3 },
+    { "XCBUFF_MSG_IBP_PMEM",                     BCHP_XPT_XCBUFF_BASE_POINTER_MSG_IBP0,             BCHP_XPT_XCBUFF_WATERMARK_MSG_IBP9 },
+    { "XCBUFF_MSG_PBP_PMEM",                     BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP0,             BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP3 },
+    { "XCBUFF_RMX0_IBP_PMEM",                    BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_IBP0,            BCHP_XPT_XCBUFF_WATERMARK_RMX0_IBP9 },
+    { "XCBUFF_RMX0_PBP_PMEM",                    BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP0,            BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP3 },
+    { "XCBUFF_RMX1_IBP_PMEM",                    BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_IBP0,            BCHP_XPT_XCBUFF_WATERMARK_RMX1_IBP9 },
+    { "XCBUFF_RMX1_PBP_PMEM",                    BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP0,            BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP3 },
+    { "RAVE_PMEM",                               BCHP_XPT_RAVE_CX0_AV_CDB_WRITE_PTR,                BCHP_XPT_RAVE_SCD32_RESERVED_STATE3 },
+    { "RAVE_CXMEM_LO",                           BCHP_XPT_RAVE_CXMEM_LOi_ARRAY_BASE,                (BCHP_XPT_RAVE_CXMEM_LOi_ARRAY_BASE+(BCHP_XPT_RAVE_CXMEM_LOi_ARRAY_END*4)) },
+    { "RAVE_CXMEM_HI",                           BCHP_XPT_RAVE_CXMEM_HIi_ARRAY_BASE,                (BCHP_XPT_RAVE_CXMEM_HIi_ARRAY_BASE+(BCHP_XPT_RAVE_CXMEM_HIi_ARRAY_END*4)) },
+    { "RAVE_DMEM",                               BCHP_XPT_RAVE_DMEMi_ARRAY_BASE,                    (BCHP_XPT_RAVE_DMEMi_ARRAY_BASE+(BCHP_XPT_RAVE_DMEMi_ARRAY_END*4)) },
+    { "RAVE_SMEM",                               BCHP_XPT_RAVE_TPIT0_PID_TABLEi_ARRAY_BASE,         BCHP_XPT_RAVE_TPIT_STATE_CONTEXT23 },
+    { "PCROFFSET_PID_TABLE",                     BCHP_XPT_PCROFFSET_PID_CONFIG_TABLE_i_ARRAY_BASE,  (BCHP_XPT_PCROFFSET_PID_CONFIG_TABLE_i_ARRAY_BASE+(BCHP_XPT_PCROFFSET_PID_CONFIG_TABLE_i_ARRAY_END*4)) },
+    { "PCROFFSET_CX_TABLE",                      BCHP_XPT_PCROFFSET_CONTEXT0_PCROFFSET_CTRL,        BCHP_XPT_PCROFFSET_CONTEXT15_RESERVED_CFG_4 },
+    { "MSG_PMEM",                                BCHP_XPT_MSG_BUF_CTRL1_TABLE_i_ARRAY_BASE,         (BCHP_XPT_MSG_DMA_VP_TABLE_i_ARRAY_BASE+(BCHP_XPT_MSG_DMA_VP_TABLE_i_ARRAY_END*4)) },
+    { "MSG_GEN_FILT1",                           BCHP_XPT_MSG_GEN_FILT_EN_i_ARRAY_BASE,             (BCHP_XPT_MSG_GEN_FILT_EN_i_ARRAY_BASE+(BCHP_XPT_MSG_GEN_FILT_EN_i_ARRAY_END*4)) },
+    { "MSG_GEN_FILT2",                           BCHP_XPT_MSG_MCAST_16_ADDR_i_ARRAY_BASE,           (BCHP_XPT_MSG_GEN_FILT_EXCL_i_ARRAY_BASE+(BCHP_XPT_MSG_GEN_FILT_EXCL_i_ARRAY_END*4)) },
+    { "MSG_PID2BUF",                             BCHP_XPT_MSG_PID2BUF_MAP_i_ARRAY_BASE,             (BCHP_XPT_MSG_PID2BUF_MAP_i_ARRAY_BASE+(BCHP_XPT_MSG_PID2BUF_MAP_i_ARRAY_END*4)) },
+    { "FPP_SCM0",                                BCHP_XPT_FULL_PID_PARSER_STATE_CONFIG_0_i_ARRAY_BASE, (BCHP_XPT_FULL_PID_PARSER_STATE_CONFIG_0_i_ARRAY_BASE+(BCHP_XPT_FULL_PID_PARSER_STATE_CONFIG_0_i_ARRAY_END*4)) },
+    { "FPP_SCM1",                                BCHP_XPT_FULL_PID_PARSER_STATE_CONFIG_1_i_ARRAY_BASE, (BCHP_XPT_FULL_PID_PARSER_STATE_CONFIG_1_i_ARRAY_BASE+(BCHP_XPT_FULL_PID_PARSER_STATE_CONFIG_1_i_ARRAY_END*4)) },
+    { "FPP_SCM2",                                BCHP_XPT_FULL_PID_PARSER_STATE_CONFIG_2_i_ARRAY_BASE, (BCHP_XPT_FULL_PID_PARSER_STATE_CONFIG_2_i_ARRAY_BASE+(BCHP_XPT_FULL_PID_PARSER_STATE_CONFIG_2_i_ARRAY_END*4)) },
+    { "FPP_SCM3",                                BCHP_XPT_FULL_PID_PARSER_STATE_CONFIG_3_i_ARRAY_BASE, (BCHP_XPT_FULL_PID_PARSER_STATE_CONFIG_3_i_ARRAY_BASE+(BCHP_XPT_FULL_PID_PARSER_STATE_CONFIG_3_i_ARRAY_END*4)) },
+    {0, 0, 0}
+};
+
+const BXPT_P_RegisterRange XPT_REG_SAVE_LIST[] =
+{
+    { "XPT_BUS_IF_MISC_CTRL0",                   BCHP_XPT_BUS_IF_MISC_CTRL0,                        BCHP_XPT_BUS_IF_TEST_MODE },
+    { "XPT_BUS_IF_INTR_STATUS_REG_EN",           BCHP_XPT_BUS_IF_INTR_STATUS_REG_EN,                -1 },
+    { "XPT_BUS_IF_INTR_STATUS2_REG_EN",          BCHP_XPT_BUS_IF_INTR_STATUS2_REG_EN,               -1 },
+    { "XPT_BUS_IF_INTR_STATUS3_REG_EN",          BCHP_XPT_BUS_IF_INTR_STATUS3_REG_EN,               -1 },
+    { "XPT_BUS_IF_INTR_STATUS4_REG_EN",          BCHP_XPT_BUS_IF_INTR_STATUS4_REG_EN,               -1 },
+    { "XPT_BUS_IF_INTR_STATUS5_REG_EN",          BCHP_XPT_BUS_IF_INTR_STATUS5_REG_EN,               -1 },
+    { "XPT_XMEMIF_SCB_WR_ARB_SEL_RSBUFF",        BCHP_XPT_XMEMIF_SCB_WR_ARB_SEL_RSBUFF,             BCHP_XPT_XMEMIF_SCB_RD_ARB_SEL_PB3 },
+    { "XPT_XMEMIF_SCB_RD_ARB_SEL_PSUB",          BCHP_XPT_XMEMIF_SCB_RD_ARB_SEL_PSUB,               BCHP_XPT_XMEMIF_SCB_RD_ARB_MODE },
+    { "XPT_XMEMIF_INTR_STATUS_REG_EN",           BCHP_XPT_XMEMIF_INTR_STATUS_REG_EN,                -1 },
+    { "XPT_PMU_CLK_CTRL",                        BCHP_XPT_PMU_CLK_CTRL,                             BCHP_XPT_PMU_RBUS_RSP_VAL },
+    { "XPT_WAKEUP_CTRL",                         BCHP_XPT_WAKEUP_CTRL,                              -1 },
+    { "XPT_WAKEUP_INTR_STATUS_REG_EN",           BCHP_XPT_WAKEUP_INTR_STATUS_REG_EN,                -1 },
+    { "XPT_RMX0_IO_FORMAT",                      BCHP_XPT_RMX0_IO_FORMAT,                           BCHP_XPT_RMX0_IO_PKT_DLY_CNT },
+    { "XPT_RMX1_IO_FORMAT",                      BCHP_XPT_RMX1_IO_FORMAT,                           BCHP_XPT_RMX1_IO_PKT_DLY_CNT },
+    { "XPT_RMX1_IO_TV_STATUS",                   BCHP_XPT_RMX1_IO_TV_STATUS,                        -1 },
+    { "XPT_FE_FE_CTRL",                          BCHP_XPT_FE_FE_CTRL,                               -1 },
+    { "XPT_FE_INTR_STATUS0_REG_EN",              BCHP_XPT_FE_INTR_STATUS0_REG_EN,                   BCHP_XPT_FE_PWR_CTRL },
+    { "XPT_FE_MAX_PID_CHANNEL",                  BCHP_XPT_FE_MAX_PID_CHANNEL,                       -1 },
+    { "XPT_FE_IB0_CTRL",                         BCHP_XPT_FE_IB0_CTRL,                              -1 },
+    { "XPT_FE_IB1_CTRL",                         BCHP_XPT_FE_IB1_CTRL,                              -1 },
+    { "XPT_FE_IB2_CTRL",                         BCHP_XPT_FE_IB2_CTRL,                              -1 },
+    { "XPT_FE_IB3_CTRL",                         BCHP_XPT_FE_IB3_CTRL,                              -1 },
+    { "XPT_FE_IB4_CTRL",                         BCHP_XPT_FE_IB4_CTRL,                              -1 },
+    { "XPT_FE_MINI_PID_PARSER0_CTRL1",           BCHP_XPT_FE_MINI_PID_PARSER0_CTRL1,                BCHP_XPT_FE_MINI_PID_PARSER0_CTRL2 },
+    { "XPT_FE_MINI_PID_PARSER1_CTRL1",           BCHP_XPT_FE_MINI_PID_PARSER1_CTRL1,                BCHP_XPT_FE_MINI_PID_PARSER1_CTRL2 },
+    { "XPT_FE_MINI_PID_PARSER2_CTRL1",           BCHP_XPT_FE_MINI_PID_PARSER2_CTRL1,                BCHP_XPT_FE_MINI_PID_PARSER2_CTRL2 },
+    { "XPT_FE_MINI_PID_PARSER3_CTRL1",           BCHP_XPT_FE_MINI_PID_PARSER3_CTRL1,                BCHP_XPT_FE_MINI_PID_PARSER3_CTRL2 },
+    { "XPT_FE_MINI_PID_PARSER4_CTRL1",           BCHP_XPT_FE_MINI_PID_PARSER4_CTRL1,                BCHP_XPT_FE_MINI_PID_PARSER4_CTRL2 },
+    { "XPT_FE_MINI_PID_PARSER5_CTRL1",           BCHP_XPT_FE_MINI_PID_PARSER5_CTRL1,                BCHP_XPT_FE_MINI_PID_PARSER5_CTRL2 },
+    { "XPT_FE_MINI_PID_PARSER6_CTRL1",           BCHP_XPT_FE_MINI_PID_PARSER6_CTRL1,                BCHP_XPT_FE_MINI_PID_PARSER6_CTRL2 },
+    { "XPT_FE_MINI_PID_PARSER7_CTRL1",           BCHP_XPT_FE_MINI_PID_PARSER7_CTRL1,                BCHP_XPT_FE_MINI_PID_PARSER7_CTRL2 },
+    { "XPT_FE_MINI_PID_PARSER8_CTRL1",           BCHP_XPT_FE_MINI_PID_PARSER8_CTRL1,                BCHP_XPT_FE_MINI_PID_PARSER8_CTRL2 },
+    { "XPT_FE_MINI_PID_PARSER9_CTRL1",           BCHP_XPT_FE_MINI_PID_PARSER9_CTRL1,                BCHP_XPT_FE_MINI_PID_PARSER9_CTRL2 },
+    { "XPT_FE_IB_SYNC_DETECT_CTRL",              BCHP_XPT_FE_IB_SYNC_DETECT_CTRL,                   -1 },
+    { "XPT_FE_TSMF0_CTRL",                       BCHP_XPT_FE_TSMF0_CTRL,                            BCHP_XPT_FE_TSMF0_SLOT_MAP_HI },
+    { "XPT_FE_TSMF1_CTRL",                       BCHP_XPT_FE_TSMF1_CTRL,                            BCHP_XPT_FE_TSMF1_SLOT_MAP_HI },
+    { "XPT_FE_MINI_PID_PARSER0_TO_PARSER3_BAND_ID", BCHP_XPT_FE_MINI_PID_PARSER0_TO_PARSER3_BAND_ID,   BCHP_XPT_FE_MINI_PID_PARSER8_TO_PARSER11_BAND_ID },
+    { "XPT_FE_ATS_COUNTER_CTRL",                 BCHP_XPT_FE_ATS_COUNTER_CTRL,                      BCHP_XPT_FE_ATS_TS_BINARY },
+    { "XPT_DPCR0_PID_CH",                        BCHP_XPT_DPCR0_PID_CH,                             BCHP_XPT_DPCR0_CTRL },
+    { "XPT_DPCR0_INTR_STATUS_REG_EN",            BCHP_XPT_DPCR0_INTR_STATUS_REG_EN,                 BCHP_XPT_DPCR0_STC_EXT_CTRL },
+    { "XPT_DPCR0_MAX_PCR_ERROR",                 BCHP_XPT_DPCR0_MAX_PCR_ERROR,                      -1 },
+    { "XPT_DPCR0_LOOP_CTRL",                     BCHP_XPT_DPCR0_LOOP_CTRL,                          BCHP_XPT_DPCR0_ACCUM_VALUE },
+    { "XPT_DPCR0_SOFT_PCR_CTRL",                 BCHP_XPT_DPCR0_SOFT_PCR_CTRL,                      BCHP_XPT_DPCR0_PHASE_ERROR_CLAMP },
+    { "XPT_DPCR1_PID_CH",                        BCHP_XPT_DPCR1_PID_CH,                             BCHP_XPT_DPCR1_CTRL },
+    { "XPT_DPCR1_INTR_STATUS_REG_EN",            BCHP_XPT_DPCR1_INTR_STATUS_REG_EN,                 BCHP_XPT_DPCR1_STC_EXT_CTRL },
+    { "XPT_DPCR1_MAX_PCR_ERROR",                 BCHP_XPT_DPCR1_MAX_PCR_ERROR,                      -1 },
+    { "XPT_DPCR1_LOOP_CTRL",                     BCHP_XPT_DPCR1_LOOP_CTRL,                          BCHP_XPT_DPCR1_ACCUM_VALUE },
+    { "XPT_DPCR1_SOFT_PCR_CTRL",                 BCHP_XPT_DPCR1_SOFT_PCR_CTRL,                      BCHP_XPT_DPCR1_PHASE_ERROR_CLAMP },
+    { "XPT_DPCR2_PID_CH",                        BCHP_XPT_DPCR2_PID_CH,                             BCHP_XPT_DPCR2_CTRL },
+    { "XPT_DPCR2_INTR_STATUS_REG_EN",            BCHP_XPT_DPCR2_INTR_STATUS_REG_EN,                 BCHP_XPT_DPCR2_STC_EXT_CTRL },
+    { "XPT_DPCR2_MAX_PCR_ERROR",                 BCHP_XPT_DPCR2_MAX_PCR_ERROR,                      -1 },
+    { "XPT_DPCR2_LOOP_CTRL",                     BCHP_XPT_DPCR2_LOOP_CTRL,                          BCHP_XPT_DPCR2_ACCUM_VALUE },
+    { "XPT_DPCR2_SOFT_PCR_CTRL",                 BCHP_XPT_DPCR2_SOFT_PCR_CTRL,                      BCHP_XPT_DPCR2_PHASE_ERROR_CLAMP },
+    { "XPT_DPCR3_PID_CH",                        BCHP_XPT_DPCR3_PID_CH,                             BCHP_XPT_DPCR3_CTRL },
+    { "XPT_DPCR3_INTR_STATUS_REG_EN",            BCHP_XPT_DPCR3_INTR_STATUS_REG_EN,                 BCHP_XPT_DPCR3_STC_EXT_CTRL },
+    { "XPT_DPCR3_MAX_PCR_ERROR",                 BCHP_XPT_DPCR3_MAX_PCR_ERROR,                      -1 },
+    { "XPT_DPCR3_LOOP_CTRL",                     BCHP_XPT_DPCR3_LOOP_CTRL,                          BCHP_XPT_DPCR3_ACCUM_VALUE },
+    { "XPT_DPCR3_SOFT_PCR_CTRL",                 BCHP_XPT_DPCR3_SOFT_PCR_CTRL,                      BCHP_XPT_DPCR3_PHASE_ERROR_CLAMP },
+    { "XPT_DPCR_PP_PP_CTRL",                     BCHP_XPT_DPCR_PP_PP_CTRL,                          BCHP_XPT_DPCR_PP_PP_FIXED_OFFSET },
+    { "XPT_PSUB_PSUB0_CTRL0",                    BCHP_XPT_PSUB_PSUB0_CTRL0,                         BCHP_XPT_PSUB_PSUB0_STAT0 },
+    { "XPT_PSUB_PSUB1_CTRL0",                    BCHP_XPT_PSUB_PSUB1_CTRL0,                         BCHP_XPT_PSUB_PSUB1_STAT0 },
+    { "XPT_PSUB_PSUB2_CTRL0",                    BCHP_XPT_PSUB_PSUB2_CTRL0,                         BCHP_XPT_PSUB_PSUB2_STAT0 },
+    { "XPT_PSUB_PSUB3_CTRL0",                    BCHP_XPT_PSUB_PSUB3_CTRL0,                         BCHP_XPT_PSUB_PSUB3_STAT0 },
+    { "XPT_PSUB_PSUB4_CTRL0",                    BCHP_XPT_PSUB_PSUB4_CTRL0,                         BCHP_XPT_PSUB_PSUB4_STAT0 },
+    { "XPT_PSUB_PSUB5_CTRL0",                    BCHP_XPT_PSUB_PSUB5_CTRL0,                         BCHP_XPT_PSUB_PSUB5_STAT0 },
+    { "XPT_PSUB_PSUB6_CTRL0",                    BCHP_XPT_PSUB_PSUB6_CTRL0,                         BCHP_XPT_PSUB_PSUB6_STAT0 },
+    { "XPT_PSUB_PSUB7_CTRL0",                    BCHP_XPT_PSUB_PSUB7_CTRL0,                         BCHP_XPT_PSUB_PSUB7_STAT0 },
+    { "XPT_PSUB_PR_FALLBACK_CTRL",               BCHP_XPT_PSUB_PR_FALLBACK_CTRL,                    -1 },
+    { "XPT_RSBUFF_BO_IBP0",                      BCHP_XPT_RSBUFF_BO_IBP0,                           BCHP_XPT_RSBUFF_BO_IBP9 },
+    { "XPT_RSBUFF_BO_PBP0",                      BCHP_XPT_RSBUFF_BO_PBP0,                           BCHP_XPT_RSBUFF_BO_PBP3 },
+    { "XPT_RSBUFF_IBP_BUFFER_ENABLE",            BCHP_XPT_RSBUFF_IBP_BUFFER_ENABLE,                 BCHP_XPT_RSBUFF_PBP_BUFFER_ENABLE },
+    { "XPT_RSBUFF_OVERFLOW_THRESHOLD",           BCHP_XPT_RSBUFF_OVERFLOW_THRESHOLD,                BCHP_XPT_RSBUFF_NO_RD_HANG_CTRL },
+    { "XPT_RSBUFF_PR_FALLBACK_CTRL",             BCHP_XPT_RSBUFF_PR_FALLBACK_CTRL,                  -1 },
+    { "XPT_PB0_CTRL1",                           BCHP_XPT_PB0_CTRL1,                                BCHP_XPT_PB0_FIRST_DESC_ADDR },
+    { "XPT_PB0_BLOCKOUT",                        BCHP_XPT_PB0_BLOCKOUT,                             BCHP_XPT_PB0_PARSER_CTRL2 },
+    { "XPT_PB0_INTR_EN",                         BCHP_XPT_PB0_INTR_EN,                              BCHP_XPT_PB0_PWR_CTRL },
+    { "XPT_PB0_ASF_CTRL",                        BCHP_XPT_PB0_ASF_CTRL,                             BCHP_XPT_PB0_PLAYBACK_PARSER_BAND_ID },
+    { "XPT_PB1_CTRL1",                           BCHP_XPT_PB1_CTRL1,                                BCHP_XPT_PB1_FIRST_DESC_ADDR },
+    { "XPT_PB1_BLOCKOUT",                        BCHP_XPT_PB1_BLOCKOUT,                             BCHP_XPT_PB1_PARSER_CTRL2 },
+    { "XPT_PB1_INTR_EN",                         BCHP_XPT_PB1_INTR_EN,                              BCHP_XPT_PB1_PWR_CTRL },
+    { "XPT_PB1_ASF_CTRL",                        BCHP_XPT_PB1_ASF_CTRL,                             BCHP_XPT_PB1_PLAYBACK_PARSER_BAND_ID },
+    { "XPT_PB2_CTRL1",                           BCHP_XPT_PB2_CTRL1,                                BCHP_XPT_PB2_FIRST_DESC_ADDR },
+    { "XPT_PB2_BLOCKOUT",                        BCHP_XPT_PB2_BLOCKOUT,                             BCHP_XPT_PB2_PARSER_CTRL2 },
+    { "XPT_PB2_INTR_EN",                         BCHP_XPT_PB2_INTR_EN,                              BCHP_XPT_PB2_PWR_CTRL },
+    { "XPT_PB2_ASF_CTRL",                        BCHP_XPT_PB2_ASF_CTRL,                             BCHP_XPT_PB2_PLAYBACK_PARSER_BAND_ID },
+    { "XPT_PB3_CTRL1",                           BCHP_XPT_PB3_CTRL1,                                BCHP_XPT_PB3_FIRST_DESC_ADDR },
+    { "XPT_PB3_BLOCKOUT",                        BCHP_XPT_PB3_BLOCKOUT,                             BCHP_XPT_PB3_PARSER_CTRL2 },
+    { "XPT_PB3_INTR_EN",                         BCHP_XPT_PB3_INTR_EN,                              BCHP_XPT_PB3_PWR_CTRL },
+    { "XPT_PB3_ASF_CTRL",                        BCHP_XPT_PB3_ASF_CTRL,                             BCHP_XPT_PB3_PLAYBACK_PARSER_BAND_ID },
+    { "XPT_MPOD_CFG",                            BCHP_XPT_MPOD_CFG,                                 BCHP_XPT_MPOD_ICTRL },
+    { "XPT_RMX0_CTRL",                           BCHP_XPT_RMX0_CTRL,                                BCHP_XPT_RMX0_FIXED_OFFSET },
+    { "XPT_RMX1_CTRL",                           BCHP_XPT_RMX1_CTRL,                                BCHP_XPT_RMX1_FIXED_OFFSET },
+    { "XPT_XCBUFF_RAVE_CTRL_BUFFER_EN_PBP",      BCHP_XPT_XCBUFF_RAVE_CTRL_BUFFER_EN_PBP,           BCHP_XPT_XCBUFF_PAUSE_THRESHOLD },
+    { "XPT_XCBUFF_OVERFLOW_THRESHOLD",           BCHP_XPT_XCBUFF_OVERFLOW_THRESHOLD,                -1 },
+    { "XPT_XCBUFF_BYTE_SWAP_CTRL",               BCHP_XPT_XCBUFF_BYTE_SWAP_CTRL,                    BCHP_XPT_XCBUFF_BO_RAVE_IBP9 },
+    { "XPT_XCBUFF_BO_RAVE_PBP0",                 BCHP_XPT_XCBUFF_BO_RAVE_PBP0,                      BCHP_XPT_XCBUFF_BO_RAVE_PBP3 },
+    { "XPT_XCBUFF_BO_MSG_IBP0",                  BCHP_XPT_XCBUFF_BO_MSG_IBP0,                       BCHP_XPT_XCBUFF_BO_MSG_IBP9 },
+    { "XPT_XCBUFF_BO_MSG_PBP0",                  BCHP_XPT_XCBUFF_BO_MSG_PBP0,                       BCHP_XPT_XCBUFF_BO_MSG_PBP3 },
+    { "XPT_XCBUFF_BO_RMX0_IBP0",                 BCHP_XPT_XCBUFF_BO_RMX0_IBP0,                      BCHP_XPT_XCBUFF_BO_RMX0_IBP9 },
+    { "XPT_XCBUFF_BO_RMX0_PBP0",                 BCHP_XPT_XCBUFF_BO_RMX0_PBP0,                      BCHP_XPT_XCBUFF_BO_RMX0_PBP3 },
+    { "XPT_XCBUFF_BO_RMX1_IBP0",                 BCHP_XPT_XCBUFF_BO_RMX1_IBP0,                      BCHP_XPT_XCBUFF_BO_RMX1_IBP9 },
+    { "XPT_XCBUFF_BO_RMX1_PBP0",                 BCHP_XPT_XCBUFF_BO_RMX1_PBP0,                      BCHP_XPT_XCBUFF_BO_RMX1_PBP3 },
+    { "XPT_XCBUFF_NO_RD_HANG_CTRL",              BCHP_XPT_XCBUFF_NO_RD_HANG_CTRL,                   -1 },
+    { "XPT_XCBUFF_PR_FALLBACK_CTRL",             BCHP_XPT_XCBUFF_PR_FALLBACK_CTRL,                  -1 },
+    { "XPT_RAVE_AVS_SCV_FILTER_MODE_CONTROL",    BCHP_XPT_RAVE_AVS_SCV_FILTER_MODE_CONTROL,         BCHP_XPT_RAVE_AVS_SCV_FILTER_VALUE_4_TO_7 },
+    { "XPT_RAVE_DATA_START_ADDR_A",              BCHP_XPT_RAVE_DATA_START_ADDR_A,                   BCHP_XPT_RAVE_WATCHDOG_TIMER_VALUE },
+    { "XPT_RAVE_MISC_CONTROL",                   BCHP_XPT_RAVE_MISC_CONTROL,                        BCHP_XPT_RAVE_BASE_ADDRESSES },
+    { "XPT_RAVE_MISC_CONTROL2",                  BCHP_XPT_RAVE_MISC_CONTROL2,                       BCHP_XPT_RAVE_MISC_CONTROL3 },
+    { "XPT_RAVE_RC0_SP_CONTROL",                 BCHP_XPT_RAVE_RC0_SP_CONTROL,                      BCHP_XPT_RAVE_RC8_SP_CONTROL },
+    { "XPT_RAVE_ATSOFFSET_MAX_ERROR",            BCHP_XPT_RAVE_ATSOFFSET_MAX_ERROR,                 -1 },
+    { "XPT_RAVE_TPIT_TIME_TICK",                 BCHP_XPT_RAVE_TPIT_TIME_TICK,                      BCHP_XPT_RAVE_TPIT_EVE_TIMEOUT },
+    { "XPT_RAVE_EMM_TID_MODE",                   BCHP_XPT_RAVE_EMM_TID_MODE,                        BCHP_XPT_RAVE_EMM_CTRL_ID },
+    { "XPT_RAVE_EMM_DATA_ID_1",                  BCHP_XPT_RAVE_EMM_DATA_ID_1,                       BCHP_XPT_RAVE_EMM_MASK_ID_8 },
+    { "XPT_PCROFFSET_INTERRUPT0_ENABLE",         BCHP_XPT_PCROFFSET_INTERRUPT0_ENABLE,              -1 },
+    { "XPT_PCROFFSET_INTERRUPT1_ENABLE",         BCHP_XPT_PCROFFSET_INTERRUPT1_ENABLE,              -1 },
+    { "XPT_PCROFFSET_INTERRUPT2_ENABLE",         BCHP_XPT_PCROFFSET_INTERRUPT2_ENABLE,              -1 },
+    { "XPT_PCROFFSET_INTERRUPT3_ENABLE",         BCHP_XPT_PCROFFSET_INTERRUPT3_ENABLE,              BCHP_XPT_PCROFFSET_STC3 },
+    { "XPT_PCROFFSET_STC_BROADCAST_SEL",         BCHP_XPT_PCROFFSET_STC_BROADCAST_SEL,              -1 },
+    { "XPT_PCROFFSET_STC_INTERRUPT_ENABLE",      BCHP_XPT_PCROFFSET_STC_INTERRUPT_ENABLE,           BCHP_XPT_PCROFFSET_STC3_MATCH },
+    { "XPT_MSG_MSG_CTRL1",                       BCHP_XPT_MSG_MSG_CTRL1,                            BCHP_XPT_MSG_DMA_BUFFER_INIT },
+    { "XPT_MSG_PHY_ADDR_LO",                     BCHP_XPT_MSG_PHY_ADDR_LO,                          BCHP_XPT_MSG_ID_REJECT },
+    { "XPT_MSG_C_MATCH0",                        BCHP_XPT_MSG_C_MATCH0,                             BCHP_XPT_MSG_C_MATCH4 },
+    { "XPT_MSG_BUF_DAT_RDY_INTR_EN_00_31",       BCHP_XPT_MSG_BUF_DAT_RDY_INTR_EN_00_31,            BCHP_XPT_MSG_BUF_DAT_RDY_INTR_EN_96_127 },
+    { "XPT_MSG_BUF_OVFL_INTR_EN_00_31",          BCHP_XPT_MSG_BUF_OVFL_INTR_EN_00_31,               BCHP_XPT_MSG_BUF_OVFL_INTR_EN_96_127 },
+    { "XPT_MSG_DAT_ERR_INTR_EN",                 BCHP_XPT_MSG_DAT_ERR_INTR_EN,                      -1 },
+    { "XPT_MSG_MSG_EVENT_CNT_CTRL",              BCHP_XPT_MSG_MSG_EVENT_CNT_CTRL,                   -1 },
+    { "XPT_GR_CTRL",                             BCHP_XPT_GR_CTRL,                                  -1 },
+    { "XPT_FULL_PID_PARSER_PARSER_CFG",          BCHP_XPT_FULL_PID_PARSER_PARSER_CFG,               BCHP_XPT_FULL_PID_PARSER_PBP_ACCEPT_ADAPT_00 },
+    { "XPT_FULL_PID_PARSER_IBP_PCC_INTR_STATUS_REG_EN", BCHP_XPT_FULL_PID_PARSER_IBP_PCC_INTR_STATUS_REG_EN, -1 },
+    { "XPT_FULL_PID_PARSER_PBP_PCC_INTR_STATUS_REG_EN", BCHP_XPT_FULL_PID_PARSER_PBP_PCC_INTR_STATUS_REG_EN, -1 },
+    { "XPT_FULL_PID_PARSER_IBP_SCC_INTR_STATUS_REG_EN", BCHP_XPT_FULL_PID_PARSER_IBP_SCC_INTR_STATUS_REG_EN, -1 },
+    { "XPT_FULL_PID_PARSER_PBP_SCC_INTR_STATUS_REG_EN", BCHP_XPT_FULL_PID_PARSER_PBP_SCC_INTR_STATUS_REG_EN, -1 },
+    { "XPT_FULL_PID_PARSER_IBP_PSG_PROTOCOL_INTR_STATUS_REG_EN", BCHP_XPT_FULL_PID_PARSER_IBP_PSG_PROTOCOL_INTR_STATUS_REG_EN, -1 },
+    { "XPT_FULL_PID_PARSER_PBP_PSG_PROTOCOL_INTR_STATUS_REG_EN", BCHP_XPT_FULL_PID_PARSER_PBP_PSG_PROTOCOL_INTR_STATUS_REG_EN, -1 },
+    { "XPT_FULL_PID_PARSER_IBP_TRANSPORT_ERROR_INTR_STATUS_REG_EN", BCHP_XPT_FULL_PID_PARSER_IBP_TRANSPORT_ERROR_INTR_STATUS_REG_EN, -1 },
+    { "XPT_FULL_PID_PARSER_PBP_TRANSPORT_ERROR_INTR_STATUS_REG_EN", BCHP_XPT_FULL_PID_PARSER_PBP_TRANSPORT_ERROR_INTR_STATUS_REG_EN, -1 },
+    { "XPT_FULL_PID_PARSER_PSG_ERR_MODE",        BCHP_XPT_FULL_PID_PARSER_PSG_ERR_MODE,             -1 },
+    {0, 0, 0}
+};
+
 #else
 
 /* 40nm Ax platforms */

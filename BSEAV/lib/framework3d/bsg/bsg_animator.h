@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -11,7 +11,7 @@
  * Software and all intellectual property rights therein.  IF YOU HAVE NO
  * AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
  * AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
- * SOFTWARE.  
+ * SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
@@ -58,7 +58,7 @@ namespace bsg
 {
 
 /** @addtogroup animation Animation
-The animation classes are designed to allow a wide range of animation effects to be simply 
+The animation classes are designed to allow a wide range of animation effects to be simply
 applied and managed. There are numerous animation interpolators to choose from, any of which
 can be 'bound' to any animatable suitable target object.
 
@@ -83,7 +83,7 @@ m_animList.Append(anim);
 ///////////////////////////////////////////////////////////////////////
 
 //! Notifier class used to inform the user's application that an animation has completed.
-//! The notifier will only be called if previously registered against an animation using 
+//! The notifier will only be called if previously registered against an animation using
 //! bsg::Interpolator::Init() or bsg::AnimBinding::Init()
 class AnimationDoneNotifier
 {
@@ -121,7 +121,7 @@ public:
 class BaseInterpolator;
 
 //! Base class for all animation bindings.
-//! 
+//!
 //! An animation binding ties an evaluator and interpolator to a target.
 class AnimBindingBase
 {
@@ -373,7 +373,7 @@ static Time Mirror(const Time &t, const Time &m)
 ///////////////////////////////////////////////////////////////////////
 //! Base class of all interpolators.
 //! An interpolator is used to vary the time-step sequence during an animation.
-//! So, instead of just a linear interpolation from start to end position, the 
+//! So, instead of just a linear interpolation from start to end position, the
 //! interpolator classes allow easing curves, hermite curves etc.
 class BaseInterpolator
 {
@@ -402,10 +402,10 @@ public:
 
    //! Interpolators have a start time, end time and can optionally extrapolate outside of that range.
    //! \deprecated Use the constructor taking eMode instead
-   BaseInterpolator(const Time &start, const Time &end, bool extrapolate) : 
+   BaseInterpolator(const Time &start, const Time &end, bool extrapolate) :
       m_mode(extrapolate ? eEXTRAPOLATE : eLIMIT),
       m_startTime(start), m_endTime(end), m_duration(end - start),
-      m_notifier(0) 
+      m_notifier(0)
    {
       eMode mode = extrapolate ? eEXTRAPOLATE : eLIMIT;
       Initialise(mode, start, end, 0);
@@ -415,7 +415,7 @@ public:
 
    //! Init the extrapolation mode only.
    //! If a notifier is given, it will be notified when the animation is complete.
-   virtual void Init(eMode mode, AnimationDoneNotifier *notifier = nullptr)
+   virtual void Init(eMode mode, AnimationDoneNotifier *notifier = NULL)
    {
       m_mode     = mode;
       m_notifier = notifier;
@@ -423,7 +423,7 @@ public:
 
    //! Init the start, end and extrapolation.
    //! If a notifier is given, it will be notified when the animation is complete.
-   virtual void Init(const Time &start, const Time &end, eMode mode = LIMIT, AnimationDoneNotifier *notifier = nullptr)
+   virtual void Init(const Time &start, const Time &end, eMode mode = LIMIT, AnimationDoneNotifier *notifier = NULL)
    {
       Initialise(mode, start, end, notifier);
    }
@@ -441,11 +441,11 @@ public:
    }
 
    //! Sets the done notifier explicitly
-   virtual void SetAnimationDoneNotifier(AnimationDoneNotifier *notifier) 
+   virtual void SetAnimationDoneNotifier(AnimationDoneNotifier *notifier)
    {
-      m_notifier = notifier; 
+      m_notifier = notifier;
       if (m_notifier)
-         m_notifier->Reset(); 
+         m_notifier->Reset();
    }
 
    //! Sets whether to extrapolate or not.
@@ -496,7 +496,7 @@ public:
    //! Returns the time difference from time until start of interpolation.
    //! Returns 0 if already started (but not finished)
    //! Returns -1 if finished.
-   virtual int64_t TimeToStartMs(const Time &time) const 
+   virtual int64_t TimeToStartMs(const Time &time) const
    {
       if (m_mode != eLIMIT)
          return 0;
@@ -567,7 +567,7 @@ public:
 class LinearModuloInterpolator : public BaseInterpolator
 {
 public:
-   //! Return 0 at start time, 1 at end time, and linear interpolation in between. 
+   //! Return 0 at start time, 1 at end time, and linear interpolation in between.
    //! Values outside range will wrap to still return 0 to 1 results.
    virtual float GetInternalParamValue(const Time &time) const
    {
@@ -627,8 +627,8 @@ public:
       if (t < 1.0f)
       {
          return 0.5f * t * t * t;
-      } 
-      else 
+      }
+      else
       {
          t = t - 2.0f;
          return 0.5f * (t * t * t + 2.0f);
@@ -681,8 +681,8 @@ public:
       if (t < 1.0f)
       {
          return -0.5f * (sqrtf(1.0f - t * t) - 1.0f);
-      } 
-      else 
+      }
+      else
       {
          t = t - 2.0f;
          return 0.5f * (sqrtf(1.0f - t * t) + 1.0f);
@@ -731,7 +731,7 @@ public:
 
    //! Set the overshoot factor. Defaults to 1.7
    virtual void SetOvershoot(float oshoot) { m_overshoot = oshoot; }
-   
+
    //! Return 0 at start time, 1 at end time, and overshoot-out interpolation in between
    virtual float GetInternalParamValue(const Time &time) const
    {
@@ -769,7 +769,7 @@ public:
       {
          return 0.5f * (t * t * ((m_overshoot + 1.0f) * t - m_overshoot));
       }
-      else 
+      else
       {
          t = t - 2.0f;
          return 0.5f * (t * t * ((m_overshoot + 1.0f) * t + m_overshoot) + 2.0f);
@@ -818,7 +818,7 @@ public:
          a = 1.0f;
          s = m_period / 4.0f;
       }
-      else 
+      else
       {
          s = m_period / (2.0f * (float)M_PI) * asinf(1.0f / a);
       }
@@ -891,10 +891,10 @@ public:
    virtual BaseInterpolator *GetBaseInterpolator() = 0;
 
    //! Shortcut initializer for standard cases
-   void Init(const typename E::Type &startValue, const Time &start, 
+   void Init(const typename E::Type &startValue, const Time &start,
              const typename E::Type &endValue, const Time &end,
              BaseInterpolator::eMode mode = BaseInterpolator::eLIMIT, 
-             AnimationDoneNotifier *notifier = nullptr)
+             AnimationDoneNotifier *notifier = NULL)
    {
       GetBaseInterpolator()->Init(start, end, mode, notifier);
       m_evaluator->Init(startValue, endValue);
@@ -984,7 +984,7 @@ public:
       // Assign the new value via the Set function
       AnimBindingEval<E>::m_animAdaptor->Set(AnimBindingEval<E>::m_evaluator->Evaluate(m_interpolator->GetParamValue(time)));
 
-      if (finished && m_interpolator->Notifier() != nullptr)
+      if (finished && m_interpolator->Notifier() != NULL)
       {
          if (!m_interpolator->Notifier()->HasBeenNotified())
             m_interpolator->Notifier()->NotifyNow(time);
@@ -1019,7 +1019,7 @@ private:
 
 ////////////////////////////////////////////////////////////////////////////
 
-//   typedef AnimBinding<E, LinearModuloInterpolator>   AnimBindingLerpMod##T;        
+//   typedef AnimBinding<E, LinearModuloInterpolator>   AnimBindingLerpMod##T;
 
 #define DEFINE_BINDINGS(T, E) \
    typedef AnimBinding<E, LinearInterpolator>         AnimBindingLerp##T;           \

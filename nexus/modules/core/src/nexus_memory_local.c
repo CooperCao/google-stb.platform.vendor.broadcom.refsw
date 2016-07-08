@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,17 +35,9 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   API name: Memory
 *    Specific APIs related to device memory allocation
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 /* can't include nexus_core_modules.h */
@@ -206,7 +198,7 @@ void NEXUS_P_MemoryMap_Unmap(struct NEXUS_MemoryMapNode *node, size_t size)
 }
 
 
-void NEXUS_Memory_FlushCache( void *pMemory, size_t numBytes )
+void NEXUS_Memory_FlushCache( const void *pMemory, size_t numBytes )
 {
     BDBG_ASSERT(NULL != pMemory);
     NEXUS_FlushCache(pMemory, numBytes);
@@ -520,6 +512,10 @@ static NEXUS_Error NEXUS_MemoryBlock_Lock_locked(NEXUS_MemoryBlockHandle memoryB
             return BERR_TRACE(rc);
         }
         if( (memoryBlockLocal->properties.memoryType & NEXUS_MEMORY_TYPE_ONDEMAND_MAPPED) == NEXUS_MEMORY_TYPE_ONDEMAND_MAPPED) {
+            if( (memoryBlockLocal->properties.memoryType & (NEXUS_MEMORY_TYPE_SECURE|NEXUS_MEMORY_TYPE_SECURE_OFF)) == NEXUS_MEMORY_TYPE_SECURE) {
+                *ppMemory = NULL;
+                return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+            }
             rc = NEXUS_P_MemoryMap_Map(&memoryBlockLocal->memoryMap, addr, memoryBlockLocal->properties.size);
             if(rc!=NEXUS_SUCCESS) {
                 rc = BERR_TRACE(rc);

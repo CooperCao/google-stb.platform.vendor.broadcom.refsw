@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2012 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,7 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 #include "nexus_platform.h"
 #include <stdio.h>
@@ -330,7 +329,7 @@ int main(int argc, char **argv)
         pes_header_len = bmedia_pes_header_init(buffer, pes_payload_len, &pes_info);
         BKNI_Memcpy(buffer+pes_header_len, bmedia_eos_bcmv.base, bmedia_eos_bcmv.len);
         feed_data(playpump, buffer, pes_header_len+pes_payload_len);
-        feed_data(playpump, buffer, pes_header_len+pes_payload_len);
+        feed_data(playpump, buffer, pes_header_len+pes_payload_len); /* send a second time */
 
         /* feeding 256 bytes of zeros is required to flush the last packet of data through transport */
         BMEDIA_PES_UNSET_PTS(&pes_info);

@@ -460,7 +460,7 @@ BERR_Code BMUXlib_File_MP4_P_ProcessBoxes(BMUXlib_File_MP4_Handle hMP4Mux)
       {
          case BMUXlib_File_MP4_P_BoxState_eCreateBox:
             /* create the fixed part of this box in memory */
-            BDBG_MSG(("Creating %s @ offset: %lld", DebugBoxTypeTable[hMP4Mux->eCurrentBox], BMUXlib_Output_GetEndOffset(pCurrentOutput->hOutput)));
+            BDBG_MSG(("Creating %s @ offset: "BDBG_UINT64_FMT, DebugBoxTypeTable[hMP4Mux->eCurrentBox], BDBG_UINT64_ARG(BMUXlib_Output_GetEndOffset(pCurrentOutput->hOutput))));
 
             if (!(*pBoxInfo->pfCreateBox)(hMP4Mux))
             {
@@ -736,7 +736,7 @@ BERR_Code BMUXlib_File_MP4_P_ProcessBoxes(BMUXlib_File_MP4_Handle hMP4Mux)
                   the stack is not empty */
                OffsetStackModify(&hMP4Mux->stOffsetStack, uiMdatStartOffset);
                hMP4Mux->uiMdatSize = uiMdatSize;
-               BDBG_MSG(("Updating Mdat Size (%lld) at offset %lld", uiMdatSize, uiMdatStartOffset));
+               BDBG_MSG(("Updating Mdat Size ("BDBG_UINT64_FMT") at offset "BDBG_UINT64_FMT, BDBG_UINT64_ARG(uiMdatSize), BDBG_UINT64_ARG(uiMdatStartOffset)));
             }
             CalculateFinalizationSteps(hMP4Mux);
             hMP4Mux->pCurrentTrack = &hMP4Mux->aTracks[0];  /* start with the first track */
@@ -850,8 +850,8 @@ BERR_Code BMUXlib_File_MP4_P_ProcessBoxes(BMUXlib_File_MP4_Handle hMP4Mux)
                      pTrack->uiAvgBitrate = (pTrack->uiTotalBytes * BMUXLIB_FILE_MP4_P_TIMESCALE_90KHZ * 8) / pTrack->uiDuration90kHz;
                   /* ensure that all the necessary metadata has been provided by the codecs ... */
                   VerifyTrackMetadata(pTrack);
-                  BDBG_MSG(("Track %d: Bytes: %lld, Duration: %lld (90kHz), Avg Bitrate: %d, Initial Offset: %d",
-                        pTrack->uiTrackID, pTrack->uiTotalBytes, pTrack->uiDuration90kHz, pTrack->uiAvgBitrate, pTrack->uiInitialOffset90kHz));
+                  BDBG_MSG(("Track %d: Bytes: "BDBG_UINT64_FMT", Duration: "BDBG_UINT64_FMT" (90kHz), Avg Bitrate: %d, Initial Offset: %d",
+                        pTrack->uiTrackID, BDBG_UINT64_ARG(pTrack->uiTotalBytes), BDBG_UINT64_ARG(pTrack->uiDuration90kHz), pTrack->uiAvgBitrate, pTrack->uiInitialOffset90kHz));
 
                   if (0 == pTrack->uiSampleCount)
                      BDBG_ERR(("Track %d: No Samples processed - output likely to be unplayable", uiTrackIndex));
@@ -2885,7 +2885,7 @@ static bool OffsetStackPop(BMUXlib_File_MP4_P_OffsetStack *pStack, uint64_t *pui
       return false;
    }
    *puiOffset = pStack->aData[--pStack->uiTopStack];
-   BDBG_MODULE_MSG(BMUX_MP4_STACK, ("Popping %lld from Offset Stack @ %d", *puiOffset, pStack->uiTopStack));
+   BDBG_MODULE_MSG(BMUX_MP4_STACK, ("Popping "BDBG_UINT64_FMT" from Offset Stack @ %d", BDBG_UINT64_ARG(*puiOffset), pStack->uiTopStack));
    return true;
 }
 
@@ -2898,7 +2898,7 @@ static bool OffsetStackPush(BMUXlib_File_MP4_P_OffsetStack *pStack, uint64_t uiO
       BDBG_ERR(("Offset Stack Full"));
       return false;
    }
-   BDBG_MODULE_MSG(BMUX_MP4_STACK, ("Storing %lld to Offset Stack @ %d", uiOffset, pStack->uiTopStack));
+   BDBG_MODULE_MSG(BMUX_MP4_STACK, ("Storing "BDBG_UINT64_FMT" to Offset Stack @ %d", BDBG_UINT64_ARG(uiOffset), pStack->uiTopStack));
    pStack->aData[pStack->uiTopStack++] = uiOffset;
    return true;
 }

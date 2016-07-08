@@ -1,51 +1,43 @@
 /******************************************************************************
-*    (c)2011-2013 Broadcom Corporation
-*
-* This program is the proprietary software of Broadcom Corporation and/or its licensors,
-* and may only be used, duplicated, modified or distributed pursuant to the terms and
-* conditions of a separate, written license agreement executed between you and Broadcom
-* (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-* no license (express or implied), right to use, or waiver of any kind with respect to the
-* Software, and Broadcom expressly reserves all rights in and to the Software and all
-* intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-* secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-* and to use this information only in connection with your use of Broadcom integrated circuit products.
-*
-* 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-* AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-* WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-* THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-* OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-* LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-* OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-* USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-* LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-* EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-* USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-* THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-* ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-* LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-* ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* Module Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
-*
-*****************************************************************************/
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
+ *
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 #include "bhab_45308_priv.h"
 #include "bchp_45308_leap_ctrl.h"
 #include "bchp_45308_leap_hab_mem.h"
@@ -147,8 +139,6 @@ BERR_Code BHAB_45308_P_Open(
    BDBG_ASSERT(retCode == BERR_SUCCESS);
    retCode = BKNI_CreateEvent(&(h45308Dev->hHabDoneEvent));
    BDBG_ASSERT(retCode == BERR_SUCCESS);
-   retCode = BKNI_CreateEvent(&(h45308Dev->hFlashDoneEvent));
-   BDBG_ASSERT(retCode == BERR_SUCCESS);
 
    h45308Dev->habBaseAddr = BCHP_LEAP_HAB_MEM_WORDi_ARRAY_BASE;
 
@@ -178,7 +168,6 @@ BERR_Code BHAB_45308_P_Close(BHAB_Handle handle)
    retCode = BHAB_45308_P_Reset(handle);
 
    /* clean up */
-   BKNI_DestroyEvent(p45308->hFlashDoneEvent);
    BKNI_DestroyEvent(p45308->hInitDoneEvent);
    BKNI_DestroyEvent(p45308->hHabDoneEvent);
    BKNI_DestroyEvent(p45308->hInterruptEvent);
@@ -324,7 +313,7 @@ BERR_Code BHAB_45308_P_InitAp(
                  n = fw_size % chunk_size;
              } else
                  n = chunk_size;
-             BHAB_CHK_RETCODE(pImgInterface->next(pImg, chunk, (const void **)&pImage, n));
+             BHAB_CHK_RETCODE(pImgInterface->next(pImg, chunk, (const void **)&pImage, (uint16_t)n));
 
             for (retries = 0; retries < 3; retries++)
             {
@@ -333,7 +322,7 @@ BERR_Code BHAB_45308_P_InitAp(
                if (retCode == BERR_SUCCESS)
                {
 #ifdef BHAB_VERIFY_DOWNLOAD
-                  if (BHAB_45308_VerifyMemory(h, fwAddr + chunk*chunk_size, pDataBuf, n))
+                  if (BHAB_45308_VerifyMemory(h, fwAddr + chunk*chunk_size, pImage, n))
                      break;
                   BDBG_ERR(("data read back does not match\n"));
 #else
@@ -569,6 +558,7 @@ BERR_Code BHAB_45308_P_WriteMemory(BHAB_Handle h, uint32_t start_addr, const uin
    uint32_t i, addr = start_addr, nWords, nWordsLeft, leftover, len, hab[128];
    bool bIsRunning;
    uint8_t i2c_buf[5], *pBuf = (uint8_t *)buf;
+   BREG_SPI_Data spiData[2];
 
    /* make sure memory address is 32-bit aligned */
    if ((n == 0) || (start_addr & 0x03) || (start_addr < 0x40000UL) ||
@@ -650,12 +640,14 @@ BERR_Code BHAB_45308_P_WriteMemory(BHAB_Handle h, uint32_t start_addr, const uin
             }
             else
             {
-               BREG_SPI_SetContinueAfterCommand(((BHAB_45308_P_Handle*)h->pImpl)->hSpiRegister, true); /* assert and hold the chip select until the completion of BREG_SPI_WriteAlls */
                i2c_buf[0] = BHAB_SPI_WRITE_COMMAND;
                i2c_buf[1] = BCHP_CSR_RBUS_DATA0;
-               BHAB_CHK_RETCODE(BREG_SPI_WriteAll(((BHAB_45308_P_Handle*)h->pImpl)->hSpiRegister, i2c_buf, 2)); /* Write chip address and sub address as part of first write of two bytes*/
-               BHAB_CHK_RETCODE(BREG_SPI_WriteAll(((BHAB_45308_P_Handle*)h->pImpl)->hSpiRegister, buf, nWords<<2));
-               BREG_SPI_SetContinueAfterCommand(((BHAB_45308_P_Handle*)h->pImpl)->hSpiRegister, false);
+
+               spiData[0].data = (void *)i2c_buf;
+               spiData[0].length = 2;
+               spiData[1].data = (void *)buf;
+               spiData[1].length = nWords<<2;
+               BHAB_CHK_RETCODE(BREG_SPI_Multiple_Write(((BHAB_45308_P_Handle*)h->pImpl)->hSpiRegister, spiData, 2));
             }
             break;
          }
@@ -1210,7 +1202,7 @@ BERR_Code BHAB_45308_P_DecodeInterrupt(BHAB_Handle h)
 
       if (fstatus0 & BHAB_45308_HIRQ0_FLASH_DONE)
       {
-         BKNI_SetEvent(pImpl->hFlashDoneEvent);
+         /* BKNI_SetEvent(pImpl->hFlashDoneEvent); */
          mask_set0 |= BHAB_45308_HIRQ0_FLASH_DONE;
       }
 
@@ -1800,6 +1792,6 @@ void BHAB_45308_P_DumpGpRegisters(BHAB_Handle h, uint32_t startReg, uint32_t end
    {
       reg = BCHP_LEAP_CTRL_GP0 + (i << 2);
       BHAB_45308_P_ReadRegister(h, reg, &val);
-      BDBG_ERR(("GP%d=0x%08", i, val));
+      BDBG_ERR(("GP%d=0x%08X", i, val));
    }
 }

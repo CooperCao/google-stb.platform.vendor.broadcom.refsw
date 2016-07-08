@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2015 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,6 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
  **************************************************************************/
 #include "nexus_transport_module.h"
 #include "bxpt_spid.h"
@@ -58,12 +48,20 @@ static void NEXUS_P_HwPidChannel_RemoveSlavePidChannel( NEXUS_P_HwPidChannel *ma
 static void NEXUS_P_HwPidChannel_P_Close(NEXUS_P_HwPidChannel *hwPidChannel); /* this function should only be called from NEXUS_PidChannel_P_Finalizer */
 static NEXUS_Error NEXUS_P_HwPidChannel_SetEnabled( NEXUS_P_HwPidChannel *pidChannel, bool enabled );
 
+#if NEXUS_MAX_INPUT_BANDS
+static bool NEXUS_P_InputBandIsSupported(NEXUS_InputBand inputBand)
+{
+    /* BXPT_P_InputBandIsSupported truncates inputBand to 32 bits, so we must guard against 64 bit overrun */
+    return inputBand < NEXUS_MAX_INPUT_BANDS && BXPT_P_InputBandIsSupported( inputBand );
+}
+#endif
+
 void NEXUS_InputBand_GetSettings(NEXUS_InputBand inputBand, NEXUS_InputBandSettings *pSettings)
 {
 #if NEXUS_MAX_INPUT_BANDS
     BERR_Code rc=0;
     /* this code assumes Nexus holds the default state, not the PI or HW */
-    if ( !BXPT_P_InputBandIsSupported( inputBand ) ) {
+    if ( !NEXUS_P_InputBandIsSupported( inputBand ) ) {
         rc=BERR_TRACE(NEXUS_INVALID_PARAMETER);
         return;
     }
@@ -81,7 +79,7 @@ NEXUS_Error NEXUS_InputBand_SetSettings(NEXUS_InputBand inputBand, const NEXUS_I
     BXPT_InputBandConfig  config;
 
     NEXUS_ASSERT_MODULE(); /* make sure init was called */
-    if (!BXPT_P_InputBandIsSupported( inputBand )) {
+    if (!NEXUS_P_InputBandIsSupported( inputBand )) {
         return BERR_TRACE(NEXUS_INVALID_PARAMETER);
     }
 
@@ -122,7 +120,7 @@ NEXUS_Error NEXUS_InputBand_P_SetTransportType(NEXUS_InputBand inputBand, NEXUS_
 {
 #if NEXUS_MAX_INPUT_BANDS
     NEXUS_InputBandSettings settings;
-    if (!BXPT_P_InputBandIsSupported( inputBand )) {
+    if (!NEXUS_P_InputBandIsSupported( inputBand )) {
         return BERR_TRACE(NEXUS_INVALID_PARAMETER);
     }
     pTransport->inputBand[inputBand].transportType = transportType;
@@ -283,7 +281,7 @@ NEXUS_PidChannelHandle NEXUS_PidChannel_Open(NEXUS_ParserBand parserBand, uint16
         }
     }
     else {
-        BDBG_ERR(("unable to resolve %#x", parserBand));
+        BDBG_ERR(("unable to resolve %lu", parserBand));
         (void)BERR_TRACE(NEXUS_INVALID_PARAMETER);
     }
     return handle;

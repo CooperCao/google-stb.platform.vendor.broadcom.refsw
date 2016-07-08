@@ -1,7 +1,7 @@
 #!/usr/bin/perl
-#     (c)2003-2011 Broadcom Corporation
+#  Broadcom Proprietary and Confidential. (c)2003-2016 Broadcom. All rights reserved.
 #
-#  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+#  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
 #  conditions of a separate, written license agreement executed between you and Broadcom
 #  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -92,7 +92,7 @@ sub generate
     print FILE "\n\n";
     print FILE "#define " . (bapi_common::version_define $module) . (bapi_common::version_value $version) . "\n";
 
-    print FILE "#define B_IPC_DATA_ALIGN(size) (size+(sizeof(unsigned)-1)-(size + sizeof(unsigned) - 1)%sizeof(unsigned))\n";
+    print FILE "#define B_IPC_DATA_ALIGN(size) (size+(sizeof(NEXUS_Ipc_Unit)-1)-(size + sizeof(NEXUS_Ipc_Unit) - 1)%sizeof(NEXUS_Ipc_Unit))\n";
 
     $cnt++;
 
@@ -116,9 +116,9 @@ sub generate
             }
         }
         if(scalar @var_in) {
-            push @members, "  unsigned variable_params["  . join('+', (map {"B_IPC_DATA_ALIGN($_)/sizeof(unsigned)"} @var_in)) . "];";
+            push @members, "  NEXUS_Ipc_Unit variable_params["  . join('+', (map {"B_IPC_DATA_ALIGN($_)/sizeof(NEXUS_Ipc_Unit)"} @var_in)) . "];";
         } else {
-            push @members, "  unsigned variable_params[1];";
+            push @members, "  NEXUS_Ipc_Unit variable_params[1];";
         }
         push @members, "} in;";
 
@@ -142,9 +142,9 @@ sub generate
             }
         }
         if(scalar @var_out) {
-            push @members, "  unsigned variable_params["  . join('+', (map {"B_IPC_DATA_ALIGN($_)"} @var_out)) . "];";
+            push @members, "  NEXUS_Ipc_Unit variable_params["  . join('+', (map {"B_IPC_DATA_ALIGN($_)"} @var_out)) . "];";
         } else {
-            push @members, "  unsigned variable_params[1];";
+            push @members, "  NEXUS_Ipc_Unit variable_params[1];";
         }
 
         push @members, "} out;";

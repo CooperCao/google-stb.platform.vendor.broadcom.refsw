@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -96,7 +96,7 @@ public:
 
    virtual void OnThread()
    {
-      m_image = std::unique_ptr<typename Worker::ImageType>(m_worker.Load());
+      m_image = std::auto_ptr<typename Worker::ImageType>(m_worker.Load());
    }
 
    virtual void OnCallback(bool finished)
@@ -106,7 +106,7 @@ public:
 
 private:
    GLTexture                                 *m_texture;
-   std::unique_ptr<typename Worker::ImageType> m_image;
+   std::auto_ptr<typename Worker::ImageType> m_image;
    Worker                                    m_worker;
 };
 
@@ -356,7 +356,7 @@ public:
          else
             BSG_THROW("Multisample FBO is only support for TEXTURE_2D");
 
-         if (m_glFramebufferTexture2DMultisampleEXT != nullptr)
+         if (m_glFramebufferTexture2DMultisampleEXT != NULL)
             m_glFramebufferTexture2DMultisampleEXT(GL_FRAMEBUFFER, attachment, texTarget, m_id, level, samples);
          else
             BSG_THROW("glFramebufferTexture2DMultisampleEXT not supported");
@@ -431,8 +431,8 @@ protected:
    GLTexture() :
       m_hasData(false),
       m_genMipmap(false),
-      m_currentPixmap(nullptr),
-      m_eglImage(nullptr)
+      m_currentPixmap(NULL),
+      m_eglImage(NULL)
    {
       InitExtensions();
       glGenTextures(1, &m_id);

@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2011 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2011 Broadcom.
 All rights reserved.
 
 Project  :  PPP
@@ -15,11 +15,17 @@ DESC
 #include "remote.h"
 #include "platform.h"
 
-#include <stdio.h>
+#include <condition_variable>
+#include <fstream>
+#include <mutex>
+#include <queue>
+#include <streambuf>
+#include <string>
+#include <thread>
+#include <vector>
+#include <algorithm>
 
-#ifndef WIN32
-#include <pthread.h>
-#endif
+#include <stdio.h>
 
 class Archive : public Remote
 {
@@ -33,19 +39,20 @@ public:
    virtual void Send(uint8_t *data, uint32_t size, bool isArray = false);
    virtual void Flush();
 
-   FILE        *FilePointer() { return m_fp; }
    uint64_t    BytesWritten() const { return m_bytesWritten; }
 
 private:
-   std::string m_filename;
-   FILE        *m_fp;
-   uint8_t     *m_buffer;
-   uint8_t     *m_curPtr;
-   uint64_t    m_bytesWritten;
-
-#ifndef WIN32
-   pthread_t   m_ioThread;
-#endif
+   void BufferForWrite(uint8_t *data, uint32_t numBytes);
+   void worker();
+   std::string                         m_filename;
+   FILE                                *m_fp;
+   std::mutex                          m_mutex;
+   std::condition_variable             m_condition;
+   std::queue<std::vector<uint8_t>>    m_queue;
+   std::vector<uint8_t>                m_buffer;
+   uint64_t                            m_bytesWritten;
+   std::thread                         m_thread;
+   bool                                m_done;
 };
 
 #endif /* __ARCHIVE_H__ */

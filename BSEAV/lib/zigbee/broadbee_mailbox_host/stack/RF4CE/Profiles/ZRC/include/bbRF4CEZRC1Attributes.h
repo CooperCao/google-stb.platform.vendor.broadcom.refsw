@@ -1,43 +1,43 @@
 /******************************************************************************
-* (c) 2014 Broadcom Corporation
-*
-* This program is the proprietary software of Broadcom Corporation and/or its
-* licensors, and may only be used, duplicated, modified or distributed pursuant
-* to the terms and conditions of a separate, written license agreement executed
-* between you and Broadcom (an "Authorized License").  Except as set forth in
-* an Authorized License, Broadcom grants no license (express or implied), right
-* to use, or waiver of any kind with respect to the Software, and Broadcom
-* expressly reserves all rights in and to the Software and all intellectual
-* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1. This program, including its structure, sequence and organization,
-*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-*    reasonable efforts to protect the confidentiality thereof, and to use
-*    this information only in connection with your use of Broadcom integrated
-*    circuit products.
-*
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-******************************************************************************/
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
+ *
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************
 /*****************************************************************************
  *
  * FILENAME: $Workfile: trunk/stack/RF4CE/Profiles/ZRC/include/bbRF4CEZRC1Attributes.h $
@@ -74,7 +74,7 @@ typedef enum _RF4CE_ZRC1_AttributesID_t
                                                           /* Overlapped with GDP2.0 POWER_STATUS -wzz 2016.01.27*/
     RF4CE_ZRC1_APL_AUTODISCOVERY_PAIR_TIMEOUT     = 0x84, /*!< Custom attribute. */
                                                           /* Overlapped with RF4CE_ZRC2_POLL_CONSTRAINTS -wzz 2016.01.27*/
-#ifdef _PHY_TEST_HOST_INTERFACE_
+//#ifdef _PHY_TEST_HOST_INTERFACE_
     /* A self-defined attribute is created here for customer requirement.
         Max auto-discovery duration is a constant in ZRC1.1 spec.
         ZRC2.0 has aplcBindWindowDuration(RF4CE_GDP_APLC_BIND_WINDOW_DURATION).
@@ -82,14 +82,8 @@ typedef enum _RF4CE_ZRC1_AttributesID_t
         Besides, we may consider to merge common attributes currently in ZRC1 and ZRC2 systematically to GDP module.
         -wzz 2016.01.27
     */
-    GDP_AUTO_DISC_DURATION                        = 0x8C,
-
-    /* A self-defined attribute is created here for customer requirement.
-        This attribute will be used to set the TX Power during the Key Exchange time only.
-        Currently, we have this in ZRC1 attribute section, but it should be on GDP to combine with ZRC 2.0.
-    */
-    GDP_TX_POWER_KEY_EXCHANGE                     = 0x8D
-#endif
+    GDP_AUTO_DISC_DURATION                        = 0x8C
+//#endif
 } RF4CE_ZRC1_AttributesID_t;
 
 /**//**
@@ -112,7 +106,7 @@ typedef enum _RF4CE_ZRC_AttributeStatus_t
 /**//**
  * \brief RF4CE ZRC on board attributes initialization.
  */
-#if (!defined(_PHY_TEST_HOST_INTERFACE_))
+#if (0)
 #define INIT_ZRC1_ATTRIBUTES \
 { \
     .aplZRC1KeyRepeatInterval = RF4CE_ZRC1_APLC_MAX_KEY_REPEAT_INTERVAL >> 1, \
@@ -130,7 +124,6 @@ typedef enum _RF4CE_ZRC_AttributeStatus_t
     .aplZRC1CommandDiscovery = RF4CE_ZRC_DEFAULT_HDMI_BANK, \
     .aplZRC1AutodiscoveryPairTimeout = RF4CE_ZRC1_MAX_PAIR_INDICATION_WAIT_TIME, \
     .aplGDPAutoDiscoveryDuration = RF4CE_ZRC1_AUTO_DISCOVERY_DURATION, \
-    .aplGDPTxPowerKeyExchange = RF4CE_GDP1_TX_POWER_KEY_EXCHANGE \
 }
 #endif
 
@@ -145,15 +138,14 @@ typedef struct _RF4CE_ZRC1_Attributes_t
     uint32_t aplZRC1KeyRepeatWaitTime;            /*!< ZRC 1. The duration that a recipient of a user control
                                                        repeated command frame waits before terminating a
                                                        repeated operation. */
-    uint8_t aplZRC1KeyExchangeTransferCount;      /*!< ZRC 1. The value of the KeyExTransferCount parameter
+    uint8_t     aplZRC1KeyExchangeTransferCount;    /*!< ZRC 1. The value of the KeyExTransferCount parameter
                                                        passed to the pair request primitive during the push
                                                        button pairing procedure. */
-    uint8_t aplZRC1CommandDiscovery[32];          /*!< ZRC 1. Command discovery bitmap. */
-    uint16_t aplZRC1AutodiscoveryPairTimeout;
-#ifdef _PHY_TEST_HOST_INTERFACE_
-    uint32_t aplGDPAutoDiscoveryDuration;         /*!< Self-defined attribute for total Binding Timeout. */
-    int8_t aplGDPTxPowerKeyExchange;              /*!< Self-defined attribute for Tx Power during Key Exchange. */
-#endif
+    uint8_t     aplZRC1CommandDiscovery[32];        /*!< ZRC 1. Command discovery bitmap. */
+    uint16_t    aplZRC1AutodiscoveryPairTimeout;
+//#ifdef _PHY_TEST_HOST_INTERFACE_
+    uint32_t    aplGDPAutoDiscoveryDuration;        /*!< Self-defined attribute for total Binding Timeout. */
+//#endif
 } RF4CE_ZRC1_Attributes_t;
 
 /**//**
@@ -166,15 +158,14 @@ typedef union _RF4CE_ZRC1_Attribute_t
     uint32_t aplZRC1KeyRepeatWaitTime;            /*!< ZRC 1. The duration that a recipient of a user control
                                                        repeated command frame waits before terminating a
                                                        repeated operation. */
-    uint8_t aplZRC1KeyExchangeTransferCount;      /*!< ZRC 1. The value of the KeyExTransferCount parameter
+    uint8_t     aplZRC1KeyExchangeTransferCount;    /*!< ZRC 1. The value of the KeyExTransferCount parameter
                                                        passed to the pair request primitive during the push
                                                        button pairing procedure. */
-    uint8_t aplZRC1CommandDiscovery[32];          /*!< ZRC 1. Command discovery bitmap. */
-    uint16_t aplZRC1AutodiscoveryPairTimeout;
-#ifdef _PHY_TEST_HOST_INTERFACE_
-    uint32_t aplGDPAutoDiscoveryDuration;         /*!< Self-defined attribute for total Binding Timeout. */
-    int8_t aplGDPTxPowerKeyExchange;              /*!< Self-defined attribute for Tx Power during Key Exchange. */
-#endif
+    uint8_t     aplZRC1CommandDiscovery[32];        /*!< ZRC 1. Command discovery bitmap. */
+    uint16_t    aplZRC1AutodiscoveryPairTimeout;
+//#ifdef _PHY_TEST_HOST_INTERFACE_
+    uint32_t    aplGDPAutoDiscoveryDuration;        /*!< Self-defined attribute for total Binding Timeout. */
+//#endif
 } RF4CE_ZRC1_Attribute_t;
 
 /**//**

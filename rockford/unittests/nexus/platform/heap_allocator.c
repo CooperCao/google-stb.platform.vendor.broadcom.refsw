@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2015-2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,16 +34,6 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-*
-* Revision History:
-*
-* $brcm_Log: $
-*
 ***************************************************************************/
 #include "bstd.h"
 #include "bkni.h"
@@ -155,6 +145,8 @@ typedef struct NEXUS_PlatformMemory
 #define NEXUS_MEMORY_TYPE_HIGH_MEMORY           0x0100
 #define NEXUS_MEMORY_TYPE_DRIVER_UNCACHED       0x0001
 #define NEXUS_MEMORY_TYPE_DRIVER_CACHED         0x0002
+#define NEXUS_MEMORY_TYPE_APPLICATION_CACHED    0x0004
+#define NEXUS_MEMORY_TYPE_SECURE                0x0008
 
 typedef struct NEXUS_Core_MemoryRegion
 {
@@ -504,7 +496,7 @@ static const struct board bcm97250_1GB = {
 };
 
 static const struct heap_size_entry default_7250[] = {
-    {"NEXUS_MEMC0_PICTURE_BUFFER_HEAP", 0x877e000},
+    {"NEXUS_MEMC0_PICTURE_BUFFER_HEAP", 0x87c0000},
     {NULL,0}
 };
 
@@ -657,12 +649,93 @@ static void nexus_p_memory_info_init(nexus_p_memory_info *info, const struct boa
     return;
 }
 
+static void test_97250_1GB_custom_1(NEXUS_PlatformHeapSettings *heap)
+{
+    /*
+     --- 00:00:00.492 nexus_platform_cma: MEMC0 Placed HEAP[1] 32MBytes(0x2000000 Bytes) with alignment 0x1000000 SAGE at 0x010000000 (256 MByte)
+     --- 00:00:00.492 nexus_platform_cma: MEMC0 Placed HEAP[3] 112MBytes(0x7000000 Bytes) with alignment 0x1000000 SAGE at 0x039000000 (912 MByte)
+     --- 00:00:00.492 nexus_platform_cma: MEMC0 Placed HEAP[0] 272MBytes(0x11000000 Bytes) with alignment 0x1000000 SAGE at 0x028000000 (640 MByte)
+     --- 00:00:00.492 nexus_platform_cma: MEMC0 Placed HEAP[5] 128MBytes(0x8000000 Bytes) with alignment 0 at 0x020000000 (512 MByte)
+     --- 00:00:00.492 nexus_platform_cma: MEMC0 Placed HEAP[4] 135MBytes(0x87c0000 Bytes) with alignment 0 at 0x017840000 (376 MByte)
+     --- 00:00:00.492 nexus_platform_cma: MEMC0 Placed HEAP[2] 4MBytes(0x400000 Bytes) with alignment 0 at 0x017440000 (372 MByte)
+    */
+    heap[1].size = 0x2000000; heap[1].alignment = 0x1000000; heap[1].placement.sage = true;
+    heap[3].size = 0x7000000; heap[3].alignment = 0x1000000; heap[3].placement.sage = true;
+    heap[0].size = 0x11000000; heap[0].alignment = 0x1000000; heap[0].placement.sage = true;
+    heap[5].size = 0x8000000;
+    heap[4].size = 0x87c0000;
+    heap[2].size = 0x87c0000;
+    return;
+}
+
+static void test_97250_1GB_custom_2(NEXUS_PlatformHeapSettings *heap)
+{
+    /*
+     --- 00:00:00.008 nexus_platform_cma: MEMC0 Placed HEAP[3] 112MBytes(0x7000000 Bytes) with alignment 0x1000000 at 0x039000000 (912 MByte)
+     --- 00:00:00.008 nexus_platform_cma: MEMC0 Placed HEAP[5] 128MBytes(0x8000000 Bytes) with alignment 0 at 0x031000000 (784 MByte)
+     --- 00:00:00.008 nexus_platform_cma: MEMC0 Placed HEAP[4] 135MBytes(0x87c0000 Bytes) with alignment 0 at 0x028840000 (648 MByte)
+     --- 00:00:00.008 nexus_platform_cma: MEMC0 Placed HEAP[2] 4MBytes(0x400000 Bytes) with alignment 0 at 0x028440000 (644 MByte)
+     --- 00:00:00.008 nexus_platform_cma: MEMC0 Placed HEAP[1] 8MBytes(0x800000 Bytes) with alignment 0x1000000 at 0x02
+     --- 00:00:00.008 nexus_platform_cma: MEMC0 Can't place HEAP[0] 380MBytes(398721024 Bytes) with alignment 0x1000000
+    */
+    heap[3].size = 0x7000000; heap[3].alignment = 0x1000000; heap[3].placement.sage = true;
+    heap[5].size = 0x8000000;
+    heap[4].size = 0x87c0000;
+    heap[1].size = 0x800000; heap[1].alignment = 0x1000000; heap[1].placement.sage = true;
+    heap[0].size = 398721024; heap[0].alignment = 0x1000000; heap[0].placement.sage = true;
+    heap[2].size = 0x400000;
+    return;
+}
+struct custom_test {
+    const char *name;
+    const struct board *board;
+    void (*heap_settings)(NEXUS_PlatformHeapSettings *);
+};
+
+
+static const struct custom_test custom_tests[] = {
+    {"Test 1", &bcm97250_1GB, test_97250_1GB_custom_1},
+    {"Test 2", &bcm97250_1GB, test_97250_1GB_custom_2}
+};
+
+static NEXUS_Error test_one(const char *name, const struct board *board, NEXUS_PlatformHeapSettings *heaps)
+{
+    struct NEXUS_Platform_P_AllocatorState state;
+    NEXUS_PlatformMemory memory;
+    NEXUS_Core_Settings coreSettings;
+    unsigned max_dcache_line_size = 1024;
+    NEXUS_Error rc;
+
+    BKNI_Memset(&state, 0, sizeof(state));
+    nexus_p_memory_info_init(&state.bmem_hint.info, board);
+    rc = NEXUS_Platform_P_CalculateBootParams(&state, heaps, max_dcache_line_size);
+    if(rc!=NEXUS_SUCCESS) {
+        BDBG_ERR(("Can't size BMEM for %s on %s", name, board->name));
+        return BERR_TRACE(rc);
+    }
+    NEXUS_Platform_P_GetVmallocSize(heaps, &state.bmem_hint.info);
+
+    BKNI_Memset(&memory, 0, sizeof(memory));
+    BDBG_CASSERT(sizeof(memory.osRegion) == sizeof(state.bmem_hint.osMemory));
+    BKNI_Memcpy(memory.osRegion, state.bmem_hint.osMemory, sizeof(memory.osRegion));
+    memory.max_dcache_line_size = max_dcache_line_size;
+    NEXUS_Platform_P_PrintBmemBootOptions(state.bmem_hint.osMemory, "suggested", "", state.bmem_hint.buf, sizeof(state.bmem_hint.buf));
+    rc = NEXUS_Platform_P_SetCoreCmaSettings_allocateBmem(&state, heaps, &memory, &coreSettings);
+    if(rc!=NEXUS_SUCCESS) {
+        BDBG_ERR(("Can't place heaps for %s on %s", name, board->name));
+        return BERR_TRACE(rc);
+    }
+    rc = NEXUS_Platform_P_SetCoreCmaSettings_Verify(&state.bmem_hint.info, heaps, &coreSettings, &memory);
+    if(rc!=NEXUS_SUCCESS) { return BERR_TRACE(rc);}
+    return NEXUS_SUCCESS;
+}
+
 
 int main(int argc, const char *argv[])
 {
     NEXUS_Error rc;
-    unsigned max_dcache_line_size = 1024;
     unsigned platformIndex;
+    unsigned i;
     BSTD_UNUSED(argc);
     BSTD_UNUSED(argv);
     BKNI_Init();
@@ -671,6 +744,17 @@ int main(int argc, const char *argv[])
     if(0) {
         BDBG_SetModuleLevel("heap_allocator", BDBG_eMsg);
         if(0) BDBG_SetModuleLevel("BMMA_Range", BDBG_eMsg);
+    }
+
+    BDBG_LOG(("Testing %u custom tests", sizeof(custom_tests)/sizeof(custom_tests[0]) ));
+    for(i=0;i<sizeof(custom_tests)/sizeof(custom_tests[0]);i++) {
+        const struct custom_test *test = &custom_tests[i];
+        NEXUS_PlatformHeapSettings heaps[NEXUS_MAX_HEAPS];
+
+        BDBG_LOG(("Testing %s", test->name));
+        BKNI_Memset(heaps,0,sizeof(heaps));
+        test->heap_settings(heaps);
+        test_one(test->name, test->board, heaps);
     }
 
     for(platformIndex=0;;platformIndex++) {
@@ -709,10 +793,8 @@ int main(int argc, const char *argv[])
                     unsigned boxMode = boxModes[i];
                     unsigned j;
                     int heapNo;
-                    struct NEXUS_Platform_P_AllocatorState state;
+                    char test[128];
                     NEXUS_PlatformHeapSettings heaps[NEXUS_MAX_HEAPS];
-                    NEXUS_PlatformMemory memory;
-                    NEXUS_Core_Settings coreSettings;
 
                     BDBG_MSG(("Using box MODE %u (%u/%u)", boxMode, i, nBoxModes));
                     BKNI_Memset(heaps,0,sizeof(heaps));
@@ -729,22 +811,14 @@ int main(int argc, const char *argv[])
                         }
                         heaps[heapNo].size = picture_heaps[j].size;
                     }
-
-                    BKNI_Memset(&state, 0, sizeof(state));
-                    nexus_p_memory_info_init(&state.bmem_hint.info, board);
-                    NEXUS_Platform_P_CalculateBootParams(&state, heaps, max_dcache_line_size);
-                    NEXUS_Platform_P_GetVmallocSize(heaps, &state.bmem_hint.info);
-
-                    BKNI_Memset(&memory, 0, sizeof(memory));
-                    BDBG_CASSERT(sizeof(memory.osRegion) == sizeof(state.bmem_hint.osMemory));
-                    BKNI_Memcpy(memory.osRegion, state.bmem_hint.osMemory, sizeof(memory.osRegion));
-                    memory.max_dcache_line_size = max_dcache_line_size;
-                    NEXUS_Platform_P_PrintBmemBootOptions(state.bmem_hint.osMemory, "suggested", "", state.bmem_hint.buf, sizeof(state.bmem_hint.buf));
-                    NEXUS_Platform_P_SetCoreCmaSettings_allocateBmem(&state, heaps, &memory, &coreSettings);
+                    BKNI_Snprintf(test, sizeof(test),"%s %s BOX mode %u", config->name, picture_buffers->name, boxMode);
+                    test_one(test, board, heaps);
                 }
             }
         }
     }
+
+
 
     BDBG_Uninit();
     BKNI_Uninit();

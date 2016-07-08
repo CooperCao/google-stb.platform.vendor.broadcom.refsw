@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2010-2014 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,17 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
  *****************************************************************************/
 #include "nexus_platform.h"
 #include <stdio.h>
@@ -99,9 +88,11 @@ int main(int argc, char **argv)
     NEXUS_DisplayHandle display;
     NEXUS_VideoWindowHandle window;
     NEXUS_VideoDecoderHandle videoDecoder;
+    NEXUS_SimpleVideoDecoderServerHandle videoServer;
     NEXUS_SimpleVideoDecoderHandle simpleVideoDecoder[NUM_VIDEO_DECODES];
     NEXUS_AudioDecoderHandle audioDecoder0, audioDecoder1;
     NEXUS_AudioMixerHandle audioMixer;
+    NEXUS_SimpleAudioDecoderServerHandle audioServer;
     NEXUS_SimpleAudioDecoderHandle simpleAudioDecoder;
     NEXUS_AudioPlaybackHandle audioPlayback[2];
     NEXUS_SimpleAudioPlaybackHandle simpleAudioPlayback[2];
@@ -179,16 +170,17 @@ int main(int argc, char **argv)
     videoDecoder = NEXUS_VideoDecoder_Open(0, NULL);
 
     /* create simple video decoder */
+    videoServer = NEXUS_SimpleVideoDecoderServer_Create();
     for (i=0;i<NUM_VIDEO_DECODES;i++) {
         NEXUS_SimpleVideoDecoderServerSettings settings;
         NEXUS_SimpleVideoDecoder_GetDefaultServerSettings(&settings);
         settings.videoDecoder = videoDecoder;
         settings.window[0] = window; /* SimpleVideoDecoder will do the connection */
         settings.stcIndex = i;
-        simpleVideoDecoder[i] = NEXUS_SimpleVideoDecoder_Create(i, &settings);
+        simpleVideoDecoder[i] = NEXUS_SimpleVideoDecoder_Create(videoServer, i, &settings);
     }
     /* SetCacheEnabled allows fcc_client to move between simple decoder instances without breaking the video/display connection. */
-    NEXUS_SimpleVideoDecoderModule_SetCacheEnabled(true);
+    NEXUS_SimpleVideoDecoderModule_SetCacheEnabled(videoServer, true);
 
     /* create audio decoders */
     audioDecoder0 = NEXUS_AudioDecoder_Open(0, NULL);
@@ -203,6 +195,7 @@ int main(int argc, char **argv)
     }
 
     /* create simple audio decoder */
+    audioServer = NEXUS_SimpleAudioDecoderServer_Create();
     {
         NEXUS_SimpleAudioDecoderServerSettings settings;
         unsigned i;
@@ -246,7 +239,7 @@ If you enable this, HDMI/SPDIF will get compressed for ac3, mixed pcm for all ot
 #if NEXUS_NUM_SPDIF_OUTPUTS
         settings.spdif.outputs[0] = platformConfig.outputs.spdif[0];
 #endif
-        simpleAudioDecoder = NEXUS_SimpleAudioDecoder_Create(0, &settings);
+        simpleAudioDecoder = NEXUS_SimpleAudioDecoder_Create(audioServer, 0, &settings);
     }
 
     /* create simple audio playback. it is linked to the audio decoder for timebase.
@@ -258,12 +251,12 @@ If you enable this, HDMI/SPDIF will get compressed for ac3, mixed pcm for all ot
         NEXUS_SimpleAudioPlayback_GetDefaultServerSettings(&settings);
         settings.decoder = simpleAudioDecoder;
         settings.playback = audioPlayback[0];
-        simpleAudioPlayback[0] = NEXUS_SimpleAudioPlayback_Create(0, &settings);
+        simpleAudioPlayback[0] = NEXUS_SimpleAudioPlayback_Create(audioServer, 0, &settings);
 
         NEXUS_SimpleAudioPlayback_GetDefaultServerSettings(&settings);
         settings.decoder = simpleAudioDecoder;
         settings.playback = audioPlayback[1];
-        simpleAudioPlayback[1] = NEXUS_SimpleAudioPlayback_Create(1, &settings);
+        simpleAudioPlayback[1] = NEXUS_SimpleAudioPlayback_Create(audioServer, 1, &settings);
     }
 
     NEXUS_Platform_GetDefaultStartServerSettings(&serverSettings);
@@ -293,13 +286,15 @@ If you enable this, HDMI/SPDIF will get compressed for ac3, mixed pcm for all ot
     check and could kill the server. */
     NEXUS_Platform_StopServer();
 
-    NEXUS_SimpleVideoDecoderModule_SetCacheEnabled(false);
+    NEXUS_SimpleVideoDecoderModule_SetCacheEnabled(videoServer, false);
     for (i=0;i<NUM_VIDEO_DECODES;i++) {
         NEXUS_SimpleVideoDecoder_Destroy(simpleVideoDecoder[i]);
     }
+    NEXUS_SimpleVideoDecoderServer_Destroy(videoServer);
     NEXUS_SimpleAudioPlayback_Destroy(simpleAudioPlayback[0]);
     NEXUS_SimpleAudioPlayback_Destroy(simpleAudioPlayback[1]);
     NEXUS_SimpleAudioDecoder_Destroy(simpleAudioDecoder);
+    NEXUS_SimpleAudioDecoderServer_Destroy(audioServer);
     NEXUS_VideoDecoder_Close(videoDecoder);
     NEXUS_VideoWindow_Close(window);
     NEXUS_Display_Close(display);

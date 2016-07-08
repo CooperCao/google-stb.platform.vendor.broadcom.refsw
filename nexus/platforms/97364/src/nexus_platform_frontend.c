@@ -1,7 +1,7 @@
  /***************************************************************************
-*     (c)2004-2014 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2004-2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,20 +34,6 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
-*
-* Module Description:
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* API Description:
-*   API name: Platform linuxuser
-*    linuxuser OS routines
-*
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 #include "nexus_types.h"
@@ -120,11 +106,12 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
                 NEXUS_Frontend_GetUserParameters(pConfig->frontend[i], &userParams);
                 userParams.isMtsif = true;
                 userParams.param1 = userParams.isMtsif ? channelSettings.channelNumber + NEXUS_PLATFORM_7364_SATELLITE_MTSIF_OFFSET : NEXUS_InputBand_e0 + i;
-                userParams.pParam2 = NULL;
+                userParams.pParam2 = 0;
                 NEXUS_Frontend_SetUserParameters(pConfig->frontend[i], &userParams);
             }
         }
 
+#if BCHP_VER < BCHP_VER_C0
         channelSettings.device = device;
         channelSettings.channelNumber = i;
         channelSettings.type = NEXUS_FrontendChannelType_eTerrestrial;
@@ -139,8 +126,9 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
         NEXUS_Frontend_GetUserParameters(pConfig->frontend[i], &userParams);
         userParams.isMtsif = true;
         userParams.param1 = 5; /* HARDCODING*/
-        userParams.pParam2 = NULL;
+        userParams.pParam2 = 0;
         NEXUS_Frontend_SetUserParameters(pConfig->frontend[i], &userParams);
+#endif
     } else {
         BDBG_ERR(("Unable to open 7364 device"));
         rc = BERR_TRACE(NEXUS_NOT_AVAILABLE);

@@ -1,54 +1,43 @@
-/***************************************************************************
-* Broadcom Proprietary and Confidential. (c)2004-2016 Broadcom. All rights reserved.
-*
-*  This program is the proprietary software of Broadcom and/or its licensors,
-*  and may only be used, duplicated, modified or distributed pursuant to the terms and
-*  conditions of a separate, written license agreement executed between you and Broadcom
-*  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-*  no license (express or implied), right to use, or waiver of any kind with respect to the
-*  Software, and Broadcom expressly reserves all rights in and to the Software and all
-*  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-*  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-*  Except as expressly set forth in the Authorized License,
-*
-*  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-*  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-*  and to use this information only in connection with your use of Broadcom integrated circuit products.
-*
-*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-*  USE OR PERFORMANCE OF THE SOFTWARE.
-*
-*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-*  ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* API Description:
-*   API name: Platform
-*    Specific APIs to initialize the a board.
-*
-* Revision History:
-*
-* $brcm_Log: $
-*
-***************************************************************************/
-
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
+ *
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 #include "nexus_base.h"
 #include "nexus_platform_priv.h"
 #include "b_objdb.h"
@@ -142,6 +131,7 @@
 #if NEXUS_HAS_GPIO
 #include "nexus_gpio_init.h"
 #include "priv/nexus_gpio_standby_priv.h"
+#include "nexus_platform_shared_gpio.h"
 #endif
 #if NEXUS_HAS_SPI
 #include "nexus_spi_init.h"
@@ -303,10 +293,10 @@ static void NEXUS_Platform_P_UninitModules(void)
 #if NEXUS_HAS_VIDEO_DECODER
 static void NEXUS_Platform_P_InitVideoDecoder(void *context)
 {
-    NEXUS_VideoDecoderModuleSettings videoDecoderSettings;
+    NEXUS_VideoDecoderModuleInternalSettings videoDecoderSettings;
     BSTD_UNUSED(context);
     BDBG_MSG((">VIDEO_DECODER"));
-    videoDecoderSettings = g_NEXUS_platformSettings.videoDecoderModuleSettings;
+    NEXUS_VideoDecoderModule_GetDefaultInternalSettings(&videoDecoderSettings);
     BDBG_ASSERT(g_NEXUS_platformHandles.transport);
     videoDecoderSettings.transport = g_NEXUS_platformHandles.transport;
     videoDecoderSettings.core = g_NEXUS_platformHandles.core;
@@ -324,10 +314,7 @@ static void NEXUS_Platform_P_InitVideoDecoder(void *context)
     BDBG_ASSERT(g_NEXUS_platformHandles.pictureDecoder);
     videoDecoderSettings.pictureDecoder = g_NEXUS_platformHandles.pictureDecoder;
 #endif
-    if (NEXUS_GetEnv("avd_monitor")) {
-        videoDecoderSettings.debugLogBufferSize = 10 * 1024;
-    }
-    g_NEXUS_platformHandles.videoDecoder = NEXUS_VideoDecoderModule_Init(&videoDecoderSettings);
+    g_NEXUS_platformHandles.videoDecoder = NEXUS_VideoDecoderModule_Init(&videoDecoderSettings, &g_NEXUS_platformSettings.videoDecoderModuleSettings);
     if (!g_NEXUS_platformHandles.videoDecoder) {
         BDBG_ERR(("Unable to init VideoDecoder"));
     }
@@ -515,10 +502,10 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
     struct {
         NEXUS_Base_Settings baseSettings;
 #if NEXUS_HAS_TRANSPORT
-        NEXUS_TransportModuleSettings transportSettings;
+        NEXUS_TransportModuleInternalSettings transportSettings;
 #endif
 #if NEXUS_HAS_SECURITY
-        NEXUS_SecurityModuleSettings securitySettings;
+        NEXUS_SecurityModuleInternalSettings securitySettings;
 #endif
 #if NEXUS_HAS_FRONTEND
         NEXUS_FrontendModuleSettings frontendSettings;
@@ -530,7 +517,7 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
         NEXUS_RecordModuleSettings recordSettings;
 #endif
 #if NEXUS_HAS_GRAPHICS2D
-        NEXUS_Graphics2DModuleSettings graphics2DSettings;
+        NEXUS_Graphics2DModuleInternalSettings graphics2DSettings;
 #endif
 #if NEXUS_HAS_DMA
         NEXUS_DmaModuleSettings dmaSettings;
@@ -577,9 +564,6 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
 #if NEXUS_HAS_UART
         NEXUS_UartModuleSettings uartSettings;
 #endif
-#if NEXUS_HAS_PWM
-        NEXUS_PwmModuleSettings pwmSettings;
-#endif
 #if NEXUS_HAS_TEMP_MONITOR
         NEXUS_TempMonitorModuleSettings tempMonitorSettings;
 #endif
@@ -611,10 +595,13 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
         NEXUS_FileModuleSettings fileModuleSettings;
 #endif
 #if NEXUS_HAS_DISPLAY
-        NEXUS_DisplayModuleSettings displaySettings;
+        NEXUS_DisplayModuleInternalSettings displaySettings;
 #endif
 #if NEXUS_HAS_SURFACE_COMPOSITOR
         NEXUS_SurfaceCompositorModuleSettings surfaceCompositorSettings;
+#endif
+#if NEXUS_HAS_SMARTCARD
+        NEXUS_SmartcardModuleInternalSettings smartcardSettings;
 #endif
         NEXUS_ModuleSettings moduleSettings;
     } *state = NULL;
@@ -798,7 +785,7 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
 
 #if NEXUS_HAS_TRANSPORT
     BDBG_MSG((">TRANSPORT"));
-    state->transportSettings = g_NEXUS_platformSettings.transportModuleSettings;
+    NEXUS_TransportModule_GetDefaultInternalSettings(&state->transportSettings);
     state->transportSettings.dma = g_NEXUS_platformHandles.dma;
     state->transportSettings.core = g_NEXUS_platformHandles.core;
 #ifdef NEXUS_VIDEO_SECURE_HEAP
@@ -806,29 +793,29 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
 #else
     state->transportSettings.secureHeap = NULL;
 #endif
-    state->transportSettings.common.enabledDuringActiveStandby = true;
+    g_NEXUS_platformSettings.transportModuleSettings.common.enabledDuringActiveStandby = true;
     state->transportSettings.mainHeapIndex = g_pCoreHandles->defaultHeapIndex;
 #if !NEXUS_TRANSPORT_BEFORE_SECURITY && NEXUS_HAS_SECURITY
     state->transportSettings.postInitCalledBySecurity = true;
 #endif
-    g_NEXUS_platformHandles.transport = NEXUS_TransportModule_PreInit(&state->transportSettings);
+    g_NEXUS_platformHandles.transport = NEXUS_TransportModule_PreInit(&state->transportSettings, &g_NEXUS_platformSettings.transportModuleSettings);
     if (!g_NEXUS_platformHandles.transport) {
         BDBG_ERR(("Unable to init Transport"));
         errCode = BERR_TRACE(NEXUS_NOT_SUPPORTED);
         goto err;
     }
-    NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.transport, state->transportSettings.common.enabledDuringActiveStandby?NEXUS_PlatformStandbyLockMode_ePassiveOnly:NEXUS_PlatformStandbyLockMode_eAlways,
+    NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.transport, g_NEXUS_platformSettings.transportModuleSettings.common.enabledDuringActiveStandby?NEXUS_PlatformStandbyLockMode_ePassiveOnly:NEXUS_PlatformStandbyLockMode_eAlways,
                    NEXUS_TransportModule_Uninit, NEXUS_TransportModule_Standby_priv);
 #endif
 
 #if NEXUS_HAS_SECURITY
     BDBG_MSG((">SECURITY"));
 
-    state->securitySettings = g_NEXUS_platformSettings.securitySettings;
+    NEXUS_SecurityModule_GetDefaultInternalSettings(&state->securitySettings);
     state->securitySettings.transport = g_NEXUS_platformHandles.transport;
     state->securitySettings.callTransportPostInit = state->transportSettings.postInitCalledBySecurity;
 
-    g_NEXUS_platformHandles.security = NEXUS_SecurityModule_Init(&state->securitySettings);
+    g_NEXUS_platformHandles.security = NEXUS_SecurityModule_Init(&state->securitySettings, &g_NEXUS_platformSettings.securitySettings);
     if (!g_NEXUS_platformHandles.security) {
         BDBG_ERR(("Unable to init security"));
         errCode = BERR_TRACE(BERR_NOT_SUPPORTED);
@@ -837,7 +824,7 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
     NEXUS_Module_Lock(g_NEXUS_platformHandles.security);
     NEXUS_Security_PrintArchViolation_priv(); /* print (and clear) any outstanding ARCH violations on boot */
     NEXUS_Module_Unlock(g_NEXUS_platformHandles.security);
-    NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.security, state->securitySettings.common.enabledDuringActiveStandby?NEXUS_PlatformStandbyLockMode_ePassiveOnly:NEXUS_PlatformStandbyLockMode_eAlways,
+    NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.security, g_NEXUS_platformSettings.securitySettings.common.enabledDuringActiveStandby?NEXUS_PlatformStandbyLockMode_ePassiveOnly:NEXUS_PlatformStandbyLockMode_eAlways,
                    NEXUS_SecurityModule_Uninit, NEXUS_SecurityModule_Standby_priv);
 #endif
 
@@ -994,7 +981,7 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
 
 #if NEXUS_HAS_SURFACE
     BDBG_MSG((">SURFACE"));
-    state->surfaceSettings = g_NEXUS_platformSettings.surfacePlatformSettings;
+    NEXUS_SurfaceModule_GetDefaultSettings(&state->surfaceSettings);
     state->surfaceSettings.heapIndex = g_pCoreHandles->defaultHeapIndex;
     state->surfaceSettings.core = g_NEXUS_platformHandles.core;
     g_NEXUS_platformHandles.surface = NEXUS_SurfaceModule_Init(&state->surfaceSettings);
@@ -1043,7 +1030,7 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
         errCode=BERR_TRACE(errCode);
         goto err;
     }
-    NEXUS_Platform_P_AddModule(handle, NEXUS_PlatformStandbyLockMode_eAlways, NEXUS_InputCaptureModule_Uninit, NULL);
+    NEXUS_Platform_P_AddModule(handle, NEXUS_PlatformStandbyLockMode_eNone, NEXUS_InputCaptureModule_Uninit, NULL);
 #endif
 
 #if NEXUS_HAS_IR_BLASTER
@@ -1075,6 +1062,7 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
     BDBG_MSG((">GPIO"));
     NEXUS_GpioModule_GetDefaultSettings(&state->gpioSettings);
     state->gpioSettings.common.enabledDuringActiveStandby = true;
+    NEXUS_Platform_P_GetGpioModuleOsSharedBankSettings(&state->gpioSettings.osSharedBankSettings);
     g_NEXUS_platformHandles.gpio = NEXUS_GpioModule_Init(&state->gpioSettings);
     if ( !g_NEXUS_platformHandles.gpio ) {
         BDBG_ERR(("Unable to init Gpio"));
@@ -1249,9 +1237,9 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
 
 #if NEXUS_HAS_GRAPHICS2D
     BDBG_MSG((">GRAPHICS2D"));
-    state->graphics2DSettings = g_NEXUS_platformSettings.graphics2DModuleSettings;
+    NEXUS_Graphics2DModule_GetDefaultInternalSettings(&state->graphics2DSettings);
     state->graphics2DSettings.surface = g_NEXUS_platformHandles.surface;
-    handle = NEXUS_Graphics2DModule_Init(&state->graphics2DSettings);
+    handle = NEXUS_Graphics2DModule_Init(&state->graphics2DSettings, &g_NEXUS_platformSettings.graphics2DModuleSettings);
     if (!handle) {
         BDBG_ERR(("Unable to init Graphics2D"));
         errCode = BERR_TRACE(NEXUS_NOT_SUPPORTED);
@@ -1262,7 +1250,8 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
 
 #if NEXUS_HAS_SMARTCARD
     BDBG_MSG((">SMARTCARD"));
-    handle = NEXUS_SmartcardModule_Init(&g_NEXUS_platformSettings.smartCardSettings);
+    NEXUS_SmartcardModule_GetDefaultInternalSettings(&state->smartcardSettings);
+    handle = NEXUS_SmartcardModule_Init(&state->smartcardSettings, &g_NEXUS_platformSettings.smartCardSettings);
     if (!handle) {
         BDBG_ERR(("Unable to init SmartCard"));
         errCode = BERR_TRACE(NEXUS_NOT_SUPPORTED);
@@ -1274,15 +1263,13 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
 
 #if NEXUS_HAS_PWM
     BDBG_MSG((">PWM"));
-    NEXUS_PwmModule_GetDefaultSettings(&state->pwmSettings);
-    state->pwmSettings.common.enabledDuringActiveStandby = false;
-    g_NEXUS_platformHandles.pwm = NEXUS_PwmModule_Init(&state->pwmSettings);
+    g_NEXUS_platformHandles.pwm = NEXUS_PwmModule_Init(&g_NEXUS_platformSettings.pwmSettings);
     if (!g_NEXUS_platformHandles.pwm) {
         BDBG_ERR(("NEXUS_PwmModule_Init failed"));
         errCode = BERR_TRACE(BERR_NOT_SUPPORTED);
         goto err;
     }
-    NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.pwm, state->pwmSettings.common.enabledDuringActiveStandby?NEXUS_PlatformStandbyLockMode_ePassiveOnly:NEXUS_PlatformStandbyLockMode_eAlways, NEXUS_PwmModule_Uninit, NEXUS_PwmModule_Standby_priv);
+    NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.pwm, g_NEXUS_platformSettings.pwmSettings.common.enabledDuringActiveStandby?NEXUS_PlatformStandbyLockMode_ePassiveOnly:NEXUS_PlatformStandbyLockMode_eAlways, NEXUS_PwmModule_Uninit, NEXUS_PwmModule_Standby_priv);
 #endif
 
 #if NEXUS_HAS_TEMP_MONITOR
@@ -1316,8 +1303,11 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
     BDBG_MSG((">GRAPHICSV3D"));
     NEXUS_Graphicsv3dModule_GetDefaultSettings(&state->graphicsv3dSettings);
     state->graphicsv3dSettings.hHeap = NEXUS_Platform_GetFramebufferHeap(NEXUS_OFFSCREEN_SURFACE);
+#if NEXUS_PLATFORM_P_GET_FRAMEBUFFER_HEAP_INDEX
+    state->graphicsv3dSettings.hHeapSecure = NEXUS_Platform_GetFramebufferHeap(NEXUS_OFFSCREEN_SECURE_GRAPHICS_SURFACE);
+#endif
     handle = NEXUS_Graphicsv3dModule_Init(&state->graphicsv3dSettings);
-    if ( !handle ) {
+    if (!handle) {
         BDBG_ERR(("Unable to initialize V3D graphics"));
         errCode = BERR_TRACE(NEXUS_NOT_SUPPORTED);
         goto err;
@@ -1327,7 +1317,7 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
 
 #if NEXUS_HAS_DISPLAY
     BDBG_MSG((">DISPLAY"));
-    state->displaySettings = g_NEXUS_platformSettings.displayModuleSettings;
+    NEXUS_DisplayModule_GetDefaultInternalSettings(&state->displaySettings);
     state->displaySettings.modules.surface = g_NEXUS_platformHandles.surface;
     /* don't set pDisplaySettings->modules.videoDecoder here */
 #if NEXUS_HAS_HDMI_OUTPUT
@@ -1346,7 +1336,7 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
     state->displaySettings.modules.pwm = g_NEXUS_platformHandles.pwm;
 #endif
     state->displaySettings.modules.transport = g_NEXUS_platformHandles.transport;
-    g_NEXUS_platformHandles.display = NEXUS_DisplayModule_Init(&state->displaySettings);
+    g_NEXUS_platformHandles.display = NEXUS_DisplayModule_Init(&state->displaySettings, &g_NEXUS_platformSettings.displayModuleSettings);
     if (!g_NEXUS_platformHandles.display) {
         BDBG_ERR(("Unable to init Display"));
         errCode = BERR_TRACE(NEXUS_NOT_SUPPORTED);
@@ -1908,10 +1898,10 @@ void NEXUS_Platform_P_ReleaseObject(const NEXUS_InterfaceName *type, void *objec
             /* release it twice, first to compensate for acquire in b_objdb and then to release it */
 #if BDBG_DEBUG_BUILD
             NEXUS_BaseObject_P_Release_Tagged(NULL, object, base_object->descriptor, NEXUS_MODULE_SELF, BSTD_FILE, BSTD_LINE);
-            NEXUS_BaseObject_P_Release_Tagged(NULL, object, base_object->descriptor, NEXUS_MODULE_SELF, BSTD_FILE, BSTD_LINE);
+            NEXUS_BaseObject_P_Release_Tagged(NULL, object, base_object->descriptor, NEXUS_MODULE_SELF, BSTD_FILE, BSTD_LINE); /* second required */
 #else
             NEXUS_BaseObject_P_Release(NULL, object, base_object->descriptor, NEXUS_MODULE_SELF);
-            NEXUS_BaseObject_P_Release(NULL, object, base_object->descriptor, NEXUS_MODULE_SELF);
+            NEXUS_BaseObject_P_Release(NULL, object, base_object->descriptor, NEXUS_MODULE_SELF); /* second required */
 #endif
             return ;
         }
@@ -2061,6 +2051,8 @@ static void nexus_p_api_release_object(const struct b_objdb_client *client, NEXU
             handle = NULL;
         }
     }
+#else
+    BSTD_UNUSED(client);
 #endif
     if(handle) {
 #if BDBG_DEBUG_BUILD
@@ -2147,8 +2139,8 @@ void nexus_p_api_call_completed(const struct b_objdb_client *client, NEXUS_Modul
         void *out_data = in_data;
 #endif
         if(!object->inparam) {
-            void **handle = (void **)((uint8_t *)out_data + object->offset);
 #if NEXUS_HAS_TRANSPORT
+            void **handle = (void **)((uint8_t *)out_data + object->offset);
             if(object->descriptor == &NEXUS_OBJECT_DESCRIPTOR(NEXUS_Timebase)) {
                 if(client->mode >= NEXUS_ClientMode_eProtected && *(NEXUS_Timebase*)handle == NEXUS_Timebase_eInvalid) {
                     *handle = NULL;
@@ -2158,6 +2150,8 @@ void nexus_p_api_call_completed(const struct b_objdb_client *client, NEXUS_Modul
                     *handle = NULL;
                 }
             }
+#else
+    BSTD_UNUSED(out_data);
 #endif
             continue;
         }
@@ -2250,12 +2244,91 @@ void NEXUS_Platform_GetHeapRuntimeSettings( NEXUS_HeapHandle heap, NEXUS_HeapRun
     NEXUS_Heap_GetRuntimeSettings_priv(heap, pSettings);
     NEXUS_Module_Unlock(g_NEXUS_platformHandles.core);
 }
+static NEXUS_Error NEXUS_Platform_P_SetPictureBufferSecure( bool secure )
+{
+    NEXUS_MemoryStatus status;
+    NEXUS_HeapRuntimeSettings settings;
+    int i;
+    NEXUS_Error rc;
+
+    for (i = 0;i < NEXUS_MAX_HEAPS;i++) {
+        if (!g_pCoreHandles->heap[i].nexus) {
+            continue;
+        }
+
+        rc = NEXUS_Heap_GetStatus_driver_priv(g_pCoreHandles->heap[i].nexus, &status);
+        if (rc != NEXUS_SUCCESS) {
+            return BERR_TRACE(rc);
+        }
+
+        if(!(status.heapType & NEXUS_HEAP_TYPE_PICTURE_BUFFERS) || !(status.memoryType & NEXUS_MEMORY_TYPE_SECURE)) {
+            continue;
+        }
+
+        NEXUS_Heap_GetRuntimeSettings_priv(g_pCoreHandles->heap[i].nexus, &settings);
+        settings.secure = secure;
+
+        rc = NEXUS_Heap_SetRuntimeSettings_priv(g_pCoreHandles->heap[i].nexus, &settings);
+        if (rc != NEXUS_SUCCESS) {
+            return BERR_TRACE(rc);
+        }
+    }
+
+    return NEXUS_SUCCESS;
+}
 
 NEXUS_Error NEXUS_Platform_SetHeapRuntimeSettings( NEXUS_HeapHandle heap, const NEXUS_HeapRuntimeSettings *pSettings )
 {
-    NEXUS_Error rc;
+    NEXUS_Error rc = NEXUS_SUCCESS;
+    NEXUS_HeapRuntimeSettings settings;
+    bool callSage = false;
+
     NEXUS_Module_Lock(g_NEXUS_platformHandles.core);
+
+    NEXUS_Heap_GetRuntimeSettings_priv(heap, &settings);
+
+    if(pSettings->secure!=settings.secure) {
+        NEXUS_MemoryStatus status;
+
+        rc = NEXUS_Heap_GetStatus_driver_priv(heap, &status);
+        if (rc != NEXUS_SUCCESS) {
+            rc = BERR_TRACE(rc);
+            goto EXIT; /* will not execute sage call, rc != NEXUS_SUCCESS */
+        }
+
+        /* For any secure picture buffers, a "secure" toggle on/off must be passed up to SAGE */
+        /* Note that any 1 picture heap secure status should reflect ALL secure picture heaps */
+        if((status.heapType & NEXUS_HEAP_TYPE_PICTURE_BUFFERS) && (status.memoryType & NEXUS_MEMORY_TYPE_SECURE)) {
+            callSage=true;
+            /* Make sure this transition is reflected in all other secure picture buffer heaps */
+            rc = NEXUS_Platform_P_SetPictureBufferSecure(pSettings->secure);
+            if (rc != NEXUS_SUCCESS) {
+                rc = BERR_TRACE(rc);
+                /* Attempt to restore any previous state information */
+                NEXUS_Platform_P_SetPictureBufferSecure(settings.secure);
+                goto EXIT; /* will not execute sage call, rc != NEXUS_SUCCESS */
+            }
+        }
+    }
+
     rc = NEXUS_Heap_SetRuntimeSettings_priv(heap, pSettings);
+
+EXIT:
     NEXUS_Module_Unlock(g_NEXUS_platformHandles.core);
+
+#if NEXUS_HAS_SAGE
+    if((rc==NEXUS_SUCCESS) && (callSage)) {
+        rc = NEXUS_Sage_UrrToggle(pSettings->secure);
+        if(rc != NEXUS_SUCCESS) {
+            rc = BERR_TRACE(rc);
+            /* Attempt to keep nexus/sage in sync */
+            NEXUS_Module_Lock(g_NEXUS_platformHandles.core);
+            NEXUS_Platform_P_SetPictureBufferSecure(settings.secure);
+            NEXUS_Heap_SetRuntimeSettings_priv(heap, &settings);
+            NEXUS_Module_Unlock(g_NEXUS_platformHandles.core);
+        }
+    }
+#endif
+
     return rc;
 }

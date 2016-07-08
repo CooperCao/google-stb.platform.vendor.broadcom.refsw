@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2012 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,18 +35,10 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   API name: AudioDecoder
 *    API for audio decoder management.
 *
-* Revision History:
-*
-* $brcm_Log: $
-* 
 ***************************************************************************/
 #ifndef NEXUS_AUDIO_DECODER_H__
 #define NEXUS_AUDIO_DECODER_H__
@@ -234,6 +226,18 @@ NEXUS_Error NEXUS_AudioDecoder_GetStatus(
 
 /***************************************************************************
 Summary:
+    Get the Program status for specified program index. This API only applies
+    to codecs that support multiple programs in a single PID. When applicable,
+    use NEXUS_AudioDecoder_GetStatus() to retrieve the number of presentations.
+***************************************************************************/
+NEXUS_Error NEXUS_AudioDecoder_GetPresentationStatus(
+    NEXUS_AudioDecoderHandle handle,
+    unsigned presentationIndex,
+    NEXUS_AudioDecoderPresentationStatus *pStatus
+    );
+
+/***************************************************************************
+Summary:
     Get raw channel status information from the decoder
 
 Description:
@@ -252,18 +256,18 @@ NEXUS_Error NEXUS_AudioDecoder_GetRawChannelStatus(
 
 /***************************************************************************
 Summary:
-Audio decoder connection type 
- 
-Description: 
-These are legacy macros for backward compatibility.  Please refer to 
-NEXUS_AudioConnectorType defined in nexus_audio_types.h. 
- 
-See Also: 
-NEXUS_AudioConnectorType 
+Audio decoder connection type
+
+Description:
+These are legacy macros for backward compatibility.  Please refer to
+NEXUS_AudioConnectorType defined in nexus_audio_types.h.
+
+See Also:
+NEXUS_AudioConnectorType
 ***************************************************************************/
 #define NEXUS_AudioDecoderConnectorType                 NEXUS_AudioConnectorType
 #define NEXUS_AudioDecoderConnectorType_eStereo         NEXUS_AudioConnectorType_eStereo       /* two channel PCM audio */
-#define NEXUS_AudioDecoderConnectorType_eMultichannel   NEXUS_AudioConnectorType_eMultichannel /* multichannel PCM audio 
+#define NEXUS_AudioDecoderConnectorType_eMultichannel   NEXUS_AudioConnectorType_eMultichannel /* multichannel PCM audio
                                                             (e.g. 5.1 or 7.1). see NEXUS_AudioDecoderOpenSettings.multichannelFormat for
                                                             required open-time settings to enable multichannel output. */
 #define NEXUS_AudioDecoderConnectorType_eCompressed     NEXUS_AudioConnectorType_eCompressed   /* compressed audio (may be stereo or multichannel) */
@@ -274,7 +278,7 @@ NEXUS_AudioConnectorType
 Summary:
     Get an audio connector for use in the audio mixer
 ***************************************************************************/
-NEXUS_AudioInput NEXUS_AudioDecoder_GetConnector( 
+NEXUS_AudioInput NEXUS_AudioDecoder_GetConnector(
     NEXUS_AudioDecoderHandle handle,
     NEXUS_AudioConnectorType type
     );
@@ -312,17 +316,17 @@ Summary:
 Get ancillary data from a digital stream.
 
 Description:
-Ancillary data for audio streams can contain additional per-frame metadata, 
-including information about the encoder used and track information.  This 
-interface allows the application to capture and process that data. The format 
+Ancillary data for audio streams can contain additional per-frame metadata,
+including information about the encoder used and track information.  This
+interface allows the application to capture and process that data. The format
 of the data is stream-dependent.
 
-The format of the data stream is NEXUS_AudioAncillaryDataHeader, followed by 
-a whole ancillary data packet.  Ringbuffer wraps are handled internally, so 
-NEXUS_AudioDecoder_GetAncillaryDataBuffer will always return whole packets 
+The format of the data stream is NEXUS_AudioAncillaryDataHeader, followed by
+a whole ancillary data packet.  Ringbuffer wraps are handled internally, so
+NEXUS_AudioDecoder_GetAncillaryDataBuffer will always return whole packets
 including headers.
 
-You must specify the NEXUS_AudioDecoderSettings.ancillaryDataEnabled to enable 
+You must specify the NEXUS_AudioDecoderSettings.ancillaryDataEnabled to enable
 data flow to this interface.
 
 NEXUS_AudioDecoder_GetUserDataBuffer can be called multiple times in a row and is non-destructive.
@@ -341,10 +345,10 @@ Summary:
 Tell the audio decoder how much data was consumed from the last NEXUS_AudioDecoder_GetAncillaryDataBuffer call.
 
 Description:
-NEXUS_AudioDecoder_AncillaryDataReadComplete can only be called once 
-after NEXUS_AudioDecoder_GetAncillaryDataBuffer. After calling 
-NEXUS_AudioDecoder_AncillaryDataReadComplete, you must call 
-NEXUS_AudioDecoder_GetAncillaryDataBuffer again before processing any 
+NEXUS_AudioDecoder_AncillaryDataReadComplete can only be called once
+after NEXUS_AudioDecoder_GetAncillaryDataBuffer. After calling
+NEXUS_AudioDecoder_AncillaryDataReadComplete, you must call
+NEXUS_AudioDecoder_GetAncillaryDataBuffer again before processing any
 more data.
 
 See Also:
@@ -368,4 +372,3 @@ void NEXUS_AudioDecoder_FlushAncillaryData(
 #endif
 
 #endif
-

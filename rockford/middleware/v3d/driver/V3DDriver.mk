@@ -23,6 +23,8 @@ endif
 CC = $(B_REFSW_CROSS_COMPILE)gcc
 C++ = $(B_REFSW_CROSS_COMPILE)g++
 
+GCCGTEQ_40800 := $(shell expr `$(CC) -dumpversion | awk 'BEGIN { FS = "." }; { printf("%d%02d%02d", $$1, $$2, $$3) }'` \>= 40800)
+
 ifeq ($(findstring mips, ${B_REFSW_ARCH}), mips)
 CFLAGS += \
 	-mips32
@@ -44,7 +46,17 @@ CFLAGS += \
 	-DV3D_LEAN \
 	-DMUST_SET_ALPHA \
 	-DBCG_VC4_FAST_ATOMICS \
-	-DBCG_MULTI_THREADED
+	-DBCG_MULTI_THREADED \
+	-Wunused-parameter \
+	-Wsign-compare \
+	-Wclobbered \
+	-Wmissing-braces \
+	-Wparentheses
+
+ifeq ("$(GCCGTEQ_40800)", "1")
+CFLAGS += \
+	-Wmaybe-uninitialized
+endif
 
 ifeq ($(NO_OPENVG),1)
 CFLAGS += \

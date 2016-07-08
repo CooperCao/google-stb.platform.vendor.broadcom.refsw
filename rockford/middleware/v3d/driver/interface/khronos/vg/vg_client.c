@@ -1,7 +1,7 @@
 //#define VG_NO_STROKING
 
 /*=============================================================================
-Copyright (c) 2008 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2008 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -900,7 +900,6 @@ static bool get_parameter_iv_server(
 }
 
 static void set_ifv(
-   CLIENT_THREAD_STATE_T *thread,
    VG_CLIENT_STATE_T *state,
    VGParamType param_type,
    VGuint count,
@@ -1055,7 +1054,6 @@ static void set_ifv(
 }
 
 static void get_ifv(
-   CLIENT_THREAD_STATE_T *thread,
    VG_CLIENT_STATE_T *state,
    VGParamType param_type,
    VGint count,
@@ -1169,7 +1167,6 @@ static void get_ifv(
 }
 
 static void set_parameter_ifv(
-   CLIENT_THREAD_STATE_T *thread,
    VG_CLIENT_STATE_T *state,
    VGHandle vg_handle,
    VGint param_type,
@@ -1416,7 +1413,6 @@ static void set_parameter_ifv(
 }
 
 static void get_parameter_ifv(
-   CLIENT_THREAD_STATE_T *thread,
    VG_CLIENT_STATE_T *state,
    VGHandle vg_handle,
    VGint param_type,
@@ -1654,7 +1650,7 @@ VG_API_CALL void VG_API_ENTRY vgSetf(
       return;
    }
 
-   set_ifv(thread, state, param_type, 1, true, &value);
+   set_ifv(state, param_type, 1, true, &value);
 }
 
 VG_API_CALL void VG_API_ENTRY vgSeti(
@@ -1672,7 +1668,7 @@ VG_API_CALL void VG_API_ENTRY vgSeti(
       return;
    }
 
-   set_ifv(thread, state, param_type, 1, false, &value);
+   set_ifv(state, param_type, 1, false, &value);
 }
 
 VG_API_CALL void VG_API_ENTRY vgSetfv(
@@ -1712,7 +1708,7 @@ VG_API_CALL void VG_API_ENTRY vgSetfv(
    }
 
    /* already checked for count < 0 (above).  we are safe to cast to VGuint */
-   set_ifv(thread, state, param_type, (VGuint)count, true, values);
+   set_ifv(state, param_type, (VGuint)count, true, values);
 }
 
 VG_API_CALL void VG_API_ENTRY vgSetiv(
@@ -1746,7 +1742,7 @@ VG_API_CALL void VG_API_ENTRY vgSetiv(
    }
 
    /* already checked for count < 0 (above).  we are safe to cast to VGuint */
-   set_ifv(thread, state, param_type, (VGuint)count, false, values);
+   set_ifv(state, param_type, (VGuint)count, false, values);
 }
 
 VG_API_CALL VGfloat VG_API_ENTRY vgGetf(
@@ -1765,7 +1761,7 @@ VG_API_CALL VGfloat VG_API_ENTRY vgGetf(
       return 0.0f;
    }
 
-   get_ifv(thread, state, param_type, 1, true, &value);
+   get_ifv(state, param_type, 1, true, &value);
    return value;
 }
 
@@ -1785,7 +1781,7 @@ VG_API_CALL VGint VG_API_ENTRY vgGeti(
       return 0;
    }
 
-   get_ifv(thread, state, param_type, 1, false, &value);
+   get_ifv(state, param_type, 1, false, &value);
    return value;
 }
 
@@ -1870,7 +1866,7 @@ VG_API_CALL void VG_API_ENTRY vgGetfv(
       return;
    }
 
-   get_ifv(thread, state, param_type, count, true, values);
+   get_ifv(state, param_type, count, true, values);
 }
 
 VG_API_CALL void VG_API_ENTRY vgGetiv(
@@ -1889,7 +1885,7 @@ VG_API_CALL void VG_API_ENTRY vgGetiv(
       return;
    }
 
-   get_ifv(thread, state, param_type, count, false, values);
+   get_ifv(state, param_type, count, false, values);
 }
 
 VG_API_CALL void VG_API_ENTRY vgSetParameterf(
@@ -1908,7 +1904,7 @@ VG_API_CALL void VG_API_ENTRY vgSetParameterf(
       return;
    }
 
-   set_parameter_ifv(thread, state, vg_handle, param_type, 1, true, &value);
+   set_parameter_ifv(state, vg_handle, param_type, 1, true, &value);
 }
 
 VG_API_CALL void VG_API_ENTRY vgSetParameteri(
@@ -1927,7 +1923,7 @@ VG_API_CALL void VG_API_ENTRY vgSetParameteri(
       return;
    }
 
-   set_parameter_ifv(thread, state, vg_handle, param_type, 1, false, &value);
+   set_parameter_ifv(state, vg_handle, param_type, 1, false, &value);
 }
 
 VG_API_CALL void VG_API_ENTRY vgSetParameterfv(
@@ -1962,7 +1958,7 @@ VG_API_CALL void VG_API_ENTRY vgSetParameterfv(
    }
 
    /* already checked for count < 0 (above).  we are safe to cast to VGuint */
-   set_parameter_ifv(thread, state, vg_handle, param_type, (VGuint)count, true, values);
+   set_parameter_ifv(state, vg_handle, param_type, (VGuint)count, true, values);
 }
 
 VG_API_CALL void VG_API_ENTRY vgSetParameteriv(
@@ -1997,7 +1993,7 @@ VG_API_CALL void VG_API_ENTRY vgSetParameteriv(
    }
 
    /* already checked for count < 0 (above).  we are safe to cast to VGuint */
-   set_parameter_ifv(thread, state, vg_handle, param_type, (VGuint)count, false, values);
+   set_parameter_ifv(state, vg_handle, param_type, (VGuint)count, false, values);
 }
 
 VG_API_CALL VGfloat VG_API_ENTRY vgGetParameterf(
@@ -2017,7 +2013,7 @@ VG_API_CALL VGfloat VG_API_ENTRY vgGetParameterf(
       return 0.0f;
    }
 
-   get_parameter_ifv(thread, state, vg_handle, param_type, 1, true, &value);
+   get_parameter_ifv(state, vg_handle, param_type, 1, true, &value);
    return value;
 }
 
@@ -2038,7 +2034,7 @@ VG_API_CALL VGint VG_API_ENTRY vgGetParameteri(
       return 0;
    }
 
-   get_parameter_ifv(thread, state, vg_handle, param_type, 1, false, &value);
+   get_parameter_ifv(state, vg_handle, param_type, 1, false, &value);
    return value;
 }
 
@@ -2244,7 +2240,7 @@ VG_API_CALL void VG_API_ENTRY vgGetParameterfv(
       return;
    }
 
-   get_parameter_ifv(thread, state, vg_handle, param_type, count, true, values);
+   get_parameter_ifv(state, vg_handle, param_type, count, true, values);
 }
 
 VG_API_CALL void VG_API_ENTRY vgGetParameteriv(
@@ -2264,7 +2260,7 @@ VG_API_CALL void VG_API_ENTRY vgGetParameteriv(
       return;
    }
 
-   get_parameter_ifv(thread, state, vg_handle, param_type, count, false, values);
+   get_parameter_ifv(state, vg_handle, param_type, count, false, values);
 }
 
 /******************************************************************************

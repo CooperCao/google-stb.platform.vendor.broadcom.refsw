@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2014 Broadcom Corporation
+ *     Broadcom Proprietary and Confidential. (c)2014 Broadcom.  All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -122,9 +122,7 @@ BERR_Code BVC5_P_ClientCreate(
    BKNI_Memset(hClient, 0, sizeof(BVC5_P_Client));
 
    hClient->uiClientId = uiClientId;
-
    hClient->uiMaxJobId = 0;
-   hClient->uiOldestNotFinalized = 1;
 
    BVC5_P_JobQCreate(&hClient->hWaitQ);
    if (hClient->hWaitQ == NULL)
@@ -381,23 +379,16 @@ uint32_t BVC5_P_ClientMapSize(
 void BVC5_P_ClientJobToWaiting(
    BVC5_Handle          hVC5,
    BVC5_ClientHandle    hClient,
-   BVC5_P_InternalJob  *pJob
+   BVC5_P_InternalJob  *psJob
 )
 {
    BSTD_UNUSED(hVC5);
 
-   BVC5_P_ActiveQInsert(hClient->hActiveJobs, pJob);
-   BVC5_P_JobQInsert(hClient->hWaitQ, pJob);
+   if (hClient->psOldestNotFinalized == NULL)
+      hClient->psOldestNotFinalized = psJob;
 
-   /* A CPU cache-flush must precede this and any subsequent job. */
-   if (pJob->pBase->uiSyncFlags & BVC5_SYNC_CPU_WRITE)
-      hClient->uiFlushCpuCacheReq += 1;
-
-   /* Since no subsequent CPU writes can affect this job, it is safe to capture
-    * uiFlushCpuCacheReq here. If proxy jobs are added, then uiFlushCpuCacheReq would
-    * need to to captured for dependent jobs when they become runnable. The proxy
-    * job would need to signal to increment hClient->uiFlushCpuCacheReq first. */
-   pJob->uiFlushCpuCacheReq = hClient->uiFlushCpuCacheReq;
+   BVC5_P_ActiveQInsert(hClient->hActiveJobs, psJob);
+   BVC5_P_JobQInsert(hClient->hWaitQ, psJob);
 }
 
 static BVC5_JobQHandle BVC5_P_RunQ(
@@ -416,14 +407,12 @@ static BVC5_JobQHandle BVC5_P_RunQ(
 }
 
 void BVC5_P_ClientJobWaitingToRunnable(
-   BVC5_Handle          hVC5,
    BVC5_ClientHandle    hClient,
    BVC5_P_InternalJob  *psJob
 )
 {
    BVC5_JobQHandle   hRunQ = BVC5_P_RunQ(hClient, psJob->pBase->eType);
 
-   BSTD_UNUSED(hVC5);
    BDBG_ASSERT(hRunQ != NULL);
 
    /* Add to client runnable list and remove from waitq */
@@ -431,13 +420,27 @@ void BVC5_P_ClientJobWaitingToRunnable(
    BVC5_P_JobQInsert(hRunQ, psJob);
 }
 
+static void BVC5_P_SignalAndFreeOrAddToJob(
+   BVC5_Handle                hVC5,
+   BVC5_ClientHandle          hClient,
+   BVC5_P_JobDependentFence  *psFence
+);
+
 void BVC5_P_ClientJobRunningToCompleted(
+   BVC5_Handle          hVC5,
    BVC5_ClientHandle    hClient,
    BVC5_P_InternalJob  *psJob
 )
 {
    BVC5_P_JobQInsert(hClient->hCompletedQ, psJob);
    BVC5_P_ActiveQRemove(hClient->hActiveJobs, psJob);
+
+   while (psJob->psOnCompletedFenceList)
+   {
+      BVC5_P_JobDependentFence *psFence = psJob->psOnCompletedFenceList;
+      psJob->psOnCompletedFenceList = psFence->psNext;
+      BVC5_P_SignalAndFreeOrAddToJob(hVC5, hClient, psFence);
+   }
 }
 
 void BVC5_P_ClientJobCompletedToFinalizable(
@@ -458,49 +461,53 @@ void BVC5_P_ClientJobFinalizableToFinalizing(
    BVC5_P_JobQInsert(hClient->hFinalizingQ, psJob);
 }
 
-static uint64_t BVC5_P_OldestInCache(
-   BVC5_ActiveQHandle  hActive,
-   uint64_t            uiLowestSoFar
-   )
-{
-   BVC5_P_InternalJob  *psJob = BVC5_P_ActiveQFirst(hActive);
-
-   if (psJob == NULL || psJob->uiJobId > uiLowestSoFar)
-      return uiLowestSoFar;
-
-   return psJob->uiJobId;
-}
-
-static uint64_t BVC5_P_OldestInList(
-   BVC5_JobQHandle   hJobQ,
-   uint64_t          uiLowestSoFar
+static BVC5_P_InternalJob *BVC5_P_Oldest(
+   BVC5_P_InternalJob   *psJobA,
+   BVC5_P_InternalJob   *psJobB
 )
 {
-   BVC5_P_InternalJob  *psJob = BVC5_P_JobQFirst(hJobQ);
-
-   if (psJob == NULL || psJob->uiJobId > uiLowestSoFar)
-      return uiLowestSoFar;
-
-   return psJob->uiJobId;
+   if (psJobA == NULL)
+      return psJobB;
+   if (psJobB == NULL)
+      return psJobA;
+   return (psJobA->uiJobId < psJobB->uiJobId) ? psJobA : psJobB;
 }
 
-static void BVC5_P_UpdateOldestId(
-   BVC5_ClientHandle hClient,
-   uint64_t          uiFinalizedJobId
+static void BVC5_P_UpdateOldestNotFinalized(
+   BVC5_ClientHandle    hClient,
+   BVC5_P_InternalJob  *psFinalizedJob
 )
 {
-   /* If its not the oldest id, so we can keep the current oldest id, otherwise recalculate it */
-   if (uiFinalizedJobId == hClient->uiOldestNotFinalized || hClient->uiOldestNotFinalized == 0)
+   /* If its not the oldest, we can keep the current oldest, otherwise recalculate it */
+   if (hClient->psOldestNotFinalized == psFinalizedJob)
    {
-      uint64_t uiLowest = ~((uint64_t)0);
-
-      uiLowest = BVC5_P_OldestInCache(hClient->hActiveJobs,  uiLowest);
-      uiLowest = BVC5_P_OldestInList(hClient->hCompletedQ,   uiLowest);
-      uiLowest = BVC5_P_OldestInList(hClient->hFinalizableQ, uiLowest);
-      uiLowest = BVC5_P_OldestInList(hClient->hFinalizingQ,  uiLowest);
-
-      hClient->uiOldestNotFinalized = (uiLowest != ~((uint64_t)0) ? uiLowest : (hClient->uiMaxJobId + 1));
+      hClient->psOldestNotFinalized = BVC5_P_ActiveQFirst(hClient->hActiveJobs);
+      hClient->psOldestNotFinalized = BVC5_P_Oldest(hClient->psOldestNotFinalized,
+         BVC5_P_JobQFirst(hClient->hCompletedQ));
+      hClient->psOldestNotFinalized = BVC5_P_Oldest(hClient->psOldestNotFinalized,
+         BVC5_P_JobQFirst(hClient->hFinalizableQ));
+      hClient->psOldestNotFinalized = BVC5_P_Oldest(hClient->psOldestNotFinalized,
+         BVC5_P_JobQFirst(hClient->hFinalizingQ));
    }
+}
+
+static void BVC5_P_ClientJobFinalized(
+   BVC5_Handle          hVC5,
+   BVC5_ClientHandle    hClient,
+   BVC5_P_InternalJob  *psJob
+)
+{
+   BVC5_P_UpdateOldestNotFinalized(hClient, psJob);
+
+   while (psJob->psOnFinalizedFenceList)
+   {
+      BVC5_P_JobDependentFence *psFence = psJob->psOnFinalizedFenceList;
+      psJob->psOnFinalizedFenceList = psFence->psNext;
+      BVC5_P_SignalAndFreeOrAddToJob(hVC5, hClient, psFence);
+   }
+
+   /* Destroy it -- it's finished */
+   BVC5_P_JobDestroy(hVC5, psJob);
 }
 
 /* Move a job to finalized state - should only be used if the job has no callback fn */
@@ -510,15 +517,8 @@ void BVC5_P_ClientJobCompletedToFinalized(
    BVC5_P_InternalJob  *psJob
    )
 {
-   uint64_t jobId = psJob->uiJobId;
-
    BVC5_P_JobQRemove(hClient->hCompletedQ, psJob);
-
-   /* And destroy it -- its finished */
-   if (psJob != NULL)
-      BVC5_P_JobDestroy(hVC5, psJob);
-
-   BVC5_P_UpdateOldestId(hClient, jobId);
+   BVC5_P_ClientJobFinalized(hVC5, hClient, psJob);
 }
 
 void BVC5_P_ClientJobFinalizingToFinalized(
@@ -528,12 +528,21 @@ void BVC5_P_ClientJobFinalizingToFinalized(
 )
 {
    BVC5_P_InternalJob *psJob = BVC5_P_JobQRemoveById(hClient->hFinalizingQ, uiJobId);
+   BVC5_P_ClientJobFinalized(hVC5, hClient, psJob);
+}
 
-   /* And destroy it -- its finished */
-   if (psJob != NULL)
-      BVC5_P_JobDestroy(hVC5, psJob);
+static BVC5_P_InternalJob *BVC5_P_ClientGetJobIfNotComplete(
+   BVC5_ClientHandle hClient,
+   uint64_t          uiJobId
+)
+{
+   /* If this job id is lower than the oldest not finalized then it must have
+    * left the system */
+   if ((hClient->psOldestNotFinalized == NULL) || (uiJobId < hClient->psOldestNotFinalized->uiJobId))
+      return NULL;
 
-   BVC5_P_UpdateOldestId(hClient, uiJobId);
+   /* Otherwise we can check if the job is still not completed */
+   return BVC5_P_ActiveQFindById(hClient->hActiveJobs, uiJobId);
 }
 
 bool BVC5_P_ClientIsJobComplete(
@@ -541,10 +550,23 @@ bool BVC5_P_ClientIsJobComplete(
    uint64_t          uiJobId
 )
 {
-   /* If this job id is lower than the oldest not finalized then it must have left the system,
-      otherwise we can check if the job is still not completed */
-   return uiJobId < hClient->uiOldestNotFinalized ||
-          !BVC5_P_ActiveQContainsId(hClient->hActiveJobs, uiJobId);
+   return BVC5_P_ClientGetJobIfNotComplete(hClient, uiJobId) == NULL;
+}
+
+static BVC5_P_InternalJob *BVC5_P_ClientGetJobIfFinishing(
+   BVC5_ClientHandle hClient,
+   uint64_t          uiJobId
+)
+{
+   BVC5_P_InternalJob *psJob = BVC5_P_JobQFindById(hClient->hCompletedQ, uiJobId);
+   if (psJob)
+      return psJob;
+
+   psJob = BVC5_P_JobQFindById(hClient->hFinalizableQ, uiJobId);
+   if (psJob)
+      return psJob;
+
+   return BVC5_P_JobQFindById(hClient->hFinalizingQ, uiJobId);
 }
 
 bool BVC5_P_ClientIsJobFinishing(
@@ -552,9 +574,19 @@ bool BVC5_P_ClientIsJobFinishing(
    uint64_t          uiJobId
 )
 {
-   return BVC5_P_JobQContainsId(hClient->hCompletedQ,   uiJobId)  ||
-          BVC5_P_JobQContainsId(hClient->hFinalizableQ, uiJobId)  ||
-          BVC5_P_JobQContainsId(hClient->hFinalizingQ,  uiJobId);
+   return BVC5_P_ClientGetJobIfFinishing(hClient, uiJobId) != NULL;
+}
+
+static BVC5_P_InternalJob *BVC5_P_ClientGetJobIfNotFinalized(
+   BVC5_ClientHandle hClient,
+   uint64_t          uiJobId
+)
+{
+   BVC5_P_InternalJob *psJob = BVC5_P_ClientGetJobIfNotComplete(hClient, uiJobId);
+   if (psJob)
+      return psJob;
+
+   return BVC5_P_ClientGetJobIfFinishing(hClient, uiJobId);
 }
 
 bool BVC5_P_ClientIsJobFinalized(
@@ -562,8 +594,7 @@ bool BVC5_P_ClientIsJobFinalized(
    uint64_t          uiJobId
 )
 {
-   return BVC5_P_ClientIsJobComplete(hClient, uiJobId) &&
-         !BVC5_P_ClientIsJobFinishing(hClient, uiJobId);
+   return BVC5_P_ClientGetJobIfNotFinalized(hClient, uiJobId) == NULL;
 }
 
 bool BVC5_P_ClientSetMaxJobId(
@@ -577,11 +608,179 @@ bool BVC5_P_ClientSetMaxJobId(
    return true;
 }
 
-uint64_t BVC5_P_ClientGetOldestNotFinalized(
+uint64_t BVC5_P_ClientGetOldestNotFinalizedId(
    BVC5_ClientHandle hClient
 )
 {
-   return hClient->uiOldestNotFinalized;
+   return hClient->psOldestNotFinalized ? hClient->psOldestNotFinalized->uiJobId :
+      hClient->uiMaxJobId + 1;
+}
+
+static BVC5_P_InternalJob *BVC5_P_PopUntilNotCompletedFinalizedJob(
+   BVC5_ClientHandle       hClient,
+   BVC5_SchedDependencies *psDeps,
+   bool                    bCompleted /* else finalised */
+)
+{
+   BDBG_ASSERT(psDeps->uiNumDeps <= (sizeof(psDeps->uiDep) / sizeof(*psDeps->uiDep)));
+   while (psDeps->uiNumDeps)
+   {
+      uint64_t uiJobId = psDeps->uiDep[--psDeps->uiNumDeps];
+      BVC5_P_InternalJob *psJob = bCompleted ?
+         BVC5_P_ClientGetJobIfNotComplete(hClient, uiJobId) :
+         BVC5_P_ClientGetJobIfNotFinalized(hClient, uiJobId);
+      if (psJob)
+         return psJob;
+   }
+   return NULL;
+}
+
+static BVC5_P_InternalJob *BVC5_P_PopUntilNotCompletedJob(
+   BVC5_ClientHandle       hClient,
+   BVC5_SchedDependencies *psDeps
+)
+{
+   return BVC5_P_PopUntilNotCompletedFinalizedJob(hClient, psDeps, true);
+}
+
+static BVC5_P_InternalJob *BVC5_P_PopUntilNotFinalizedJob(
+   BVC5_ClientHandle       hClient,
+   BVC5_SchedDependencies *psDeps
+)
+{
+   return BVC5_P_PopUntilNotCompletedFinalizedJob(hClient, psDeps, false);
+}
+
+static BVC5_P_JobDependentFence *BVC5_P_AllocJobDependentFence(
+   BVC5_Handle                   hVC5,
+   BVC5_ClientHandle             hClient,
+   const BVC5_SchedDependencies *psNotCompleted,
+   const BVC5_SchedDependencies *psNotFinalized,
+   int                          *piFence
+)
+{
+   BVC5_P_JobDependentFence *psFence = BKNI_Malloc(sizeof(*psFence));
+   if (psFence == NULL)
+      return NULL;
+
+   *piFence = BVC5_P_FenceCreate(hVC5->hFences, hClient->uiClientId, &psFence->pFenceSignalData);
+   if (*piFence == -1)
+   {
+      BKNI_Free(psFence);
+      return NULL;
+   }
+
+   psFence->sNotCompleted = *psNotCompleted;
+   psFence->sNotFinalized = *psNotFinalized;
+
+   return psFence;
+}
+
+static void BVC5_P_SignalAndFreeOrAddToJob(
+   BVC5_Handle                hVC5,
+   BVC5_ClientHandle          hClient,
+   BVC5_P_JobDependentFence  *psFence
+)
+{
+   BVC5_P_InternalJob *psJob = BVC5_P_PopUntilNotCompletedJob(hClient, &psFence->sNotCompleted);
+   if (psJob)
+   {
+      psFence->psNext = psJob->psOnCompletedFenceList;
+      psJob->psOnCompletedFenceList = psFence;
+      return;
+   }
+
+   psJob = BVC5_P_PopUntilNotFinalizedJob(hClient, &psFence->sNotFinalized);
+   if (psJob)
+   {
+      psFence->psNext = psJob->psOnFinalizedFenceList;
+      psJob->psOnFinalizedFenceList = psFence;
+      return;
+   }
+
+   BVC5_P_FenceSignalAndCleanup(hVC5->hFences, psFence->pFenceSignalData);
+   BKNI_Free(psFence);
+}
+
+BERR_Code BVC5_P_ClientMakeFenceForJobs(
+   BVC5_Handle                   hVC5,
+   BVC5_ClientHandle             hClient,
+   const BVC5_SchedDependencies *pCompletedDeps,
+   const BVC5_SchedDependencies *pFinalizedDeps,
+   bool                          bForceCreate,
+   int                          *piFence
+)
+{
+   BVC5_SchedDependencies sNotCompleted = *pCompletedDeps,
+                          sNotFinalized = *pFinalizedDeps;
+
+   BVC5_P_InternalJob *psJob = BVC5_P_PopUntilNotCompletedJob(hClient, &sNotCompleted);
+   if (psJob)
+   {
+      BVC5_P_JobDependentFence *psFence = BVC5_P_AllocJobDependentFence(
+         hVC5, hClient, &sNotCompleted, &sNotFinalized, piFence);
+      if (psFence == NULL)
+         return BERR_OUT_OF_SYSTEM_MEMORY;
+      psFence->psNext = psJob->psOnCompletedFenceList;
+      psJob->psOnCompletedFenceList = psFence;
+      return BERR_SUCCESS;
+   }
+
+   psJob = BVC5_P_PopUntilNotFinalizedJob(hClient, &sNotFinalized);
+   if (psJob)
+   {
+      BVC5_P_JobDependentFence *psFence = BVC5_P_AllocJobDependentFence(
+         hVC5, hClient, &sNotCompleted, &sNotFinalized, piFence);
+      if (psFence == NULL)
+         return BERR_OUT_OF_SYSTEM_MEMORY;
+      psFence->psNext = psJob->psOnFinalizedFenceList;
+      psJob->psOnFinalizedFenceList = psFence;
+      return BERR_SUCCESS;
+   }
+
+   /* All deps satisfied. Unless forced to create a fence, just return "null"
+    * fence which behaves like a fence that has been signalled already. */
+   if (!bForceCreate)
+   {
+      *piFence = -1;
+      return BERR_SUCCESS;
+   }
+
+   {
+      void *pFenceSignalData;
+      *piFence = BVC5_P_FenceCreate(hVC5->hFences, hClient->uiClientId, &pFenceSignalData);
+      if (*piFence == -1)
+         return BERR_OUT_OF_SYSTEM_MEMORY;
+      BVC5_P_FenceSignalAndCleanup(hVC5->hFences, pFenceSignalData);
+      return BERR_SUCCESS;
+   }
+}
+
+BERR_Code BVC5_P_ClientMakeFenceForAnyNonFinalizedJob(
+   BVC5_Handle       hVC5,
+   BVC5_ClientHandle hClient,
+   int              *piFence
+)
+{
+   BVC5_SchedDependencies sNoDeps;
+   BVC5_P_JobDependentFence *psFence;
+
+   if (hClient->psOldestNotFinalized == NULL)
+   {
+      /* All jobs have been finalized. Just return "null" fence which behaves
+       * like a fence that has been signalled already. */
+      *piFence = -1;
+      return BERR_SUCCESS;
+   }
+
+   sNoDeps.uiNumDeps = 0;
+   psFence = BVC5_P_AllocJobDependentFence(
+      hVC5, hClient, &sNoDeps, &sNoDeps, piFence);
+   if (psFence == NULL)
+      return BERR_OUT_OF_SYSTEM_MEMORY;
+   psFence->psNext = hClient->psOldestNotFinalized->psOnFinalizedFenceList;
+   hClient->psOldestNotFinalized->psOnFinalizedFenceList = psFence;
+   return BERR_SUCCESS;
 }
 
 void BVC5_P_ClientMarkJobsFlushedV3D(
@@ -604,10 +803,7 @@ void BVC5_P_ClientMarkJobsFlushedV3D(
          pJob != NULL;
          pJob = BVC5_P_JobQNext(pJob))
       {
-         /* V3D flush is not valid unless CPU flush was done. */
-         /* Handle case where uiFlushCpuCacheDone wraps eg 0x4 - 0xFFFFFFFA = 0xA, so is still OK. */
-         if ((int32_t)(hClient->uiFlushCpuCacheDone - pJob->uiFlushCpuCacheReq) >= 0)
-            pJob->bFlushedV3D = true;
+         pJob->bFlushedV3D = true;
       }
    }
 }

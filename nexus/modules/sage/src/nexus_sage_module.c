@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2013-2015 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
  **************************************************************************/
 
 #include "nexus_sage_module.h"
@@ -62,59 +61,33 @@ BDBG_MODULE(nexus_sage_module);
 #define NEXUS_SAGE_RSA2048_SIZE    256
 
 
-typedef struct NEXUS_SageMemoryBlock {
-    size_t len;
-    void *buf;
-} NEXUS_SageMemoryBlock;
-
-typedef struct NEXUS_SageImageHolder {
-    const char *name;         /* printable name */
-    SAGE_IMAGE_FirmwareID id; /* SAGE_IMAGE_FirmwareID_eOS_App or SAGE_IMAGE_FirmwareID_eBootLoader */
-    NEXUS_SageMemoryBlock *raw;
-} NEXUS_SageImageHolder;
-
+#define _REGION_MAP_MAX_NUM 8
 
 static struct {
     NEXUS_SageModuleSettings settings;    /* Nexus sage module settings, given in NEXUS_SageModule_Init */
 
     /* Memory blocks */
-    NEXUS_SageMemoryBlock sageSecureHeap; /* whole SAGE heap to reserve memory for SAGE side */
+    NEXUS_MemoryBlockHandle sageSecureHeap; /* whole SAGE heap to reserve memory for SAGE side */
     NEXUS_SageMemoryBlock bl;             /* raw bootloader binary in memory (during SAGE boot) */
-    NEXUS_SageMemoryBlock kernel;         /* raw kernel binary in memory (during SAGE boot) */
+    NEXUS_SageMemoryBlock framework;      /* raw framework binary in memory (during SAGE boot) */
 
-    /* Restricted Region */
-    uint32_t restricted1Offset;
-    uint32_t restricted1Len;
-    uint32_t restricted2Offset;
-    uint32_t restricted2Len;
-    uint32_t restricted3Offset;
-    uint32_t restricted3Len;
-    uint32_t restricted4Offset;
-    uint32_t restricted4Len;
-    uint32_t restricted5Offset;
-    uint32_t restricted5Len;
-    uint32_t restricted6Offset;
-    uint32_t restricted6Len;
-    uint32_t restricted7Offset;
-    uint32_t restricted7Len;
+    /* region map contains all the regions informations (offset, size) */
+    BSAGElib_RegionInfo *pRegionMap;
+    uint32_t regionMapNum; /* <= _REGION_MAP_MAX_NUM */
 
-    uint32_t generalHeapOffset;
-    uint32_t generalHeapLen;
-
-    uint32_t clientHeapOffset;
-    uint32_t clientHeapLen;
-
-    uint32_t logBufferHeapOffset;
+    uint64_t logBufferHeapOffset;
     uint32_t logBufferHeapLen;
+
+    BSAGElib_SageLogBuffer *pSageLogBuffer;
 } g_sage_module;
 
 
 /****************************************
  * Local functions
  ****************************************/
-static NEXUS_Error NEXUS_SageModule_P_GetHeapBoundaries(int heapid, uint32_t *offset, uint32_t *len, uint32_t *max_free);
+static NEXUS_Error NEXUS_SageModule_P_GetHeapBoundaries(int heapid, NEXUS_Addr *offset, uint32_t *len, uint32_t *max_free);
 #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,1)
-static NEXUS_Error NEXUS_SageModule_P_CheckHeapOverlap(uint32_t offset, uint32_t len, uint32_t boundary);
+static NEXUS_Error NEXUS_SageModule_P_CheckHeapOverlap(NEXUS_Addr offset, uint32_t len, NEXUS_Addr boundary);
 #endif
 static NEXUS_Error NEXUS_SageModule_P_ConfigureSecureRegions(void);
 static NEXUS_Error NEXUS_SageModule_P_InitializeTimer(void);
@@ -122,9 +95,6 @@ static void NEXUS_SageModule_P_MemoryBlockFree(NEXUS_SageMemoryBlock *block, int
 static NEXUS_Error NEXUS_SageModule_P_MemoryBlockAllocate(NEXUS_SageMemoryBlock *block, size_t size, NEXUS_MemoryAllocationSettings *allocSettings);
 static void NEXUS_Sage_P_CleanBootVars(void);
 static void NEXUS_Sage_P_MonitorBoot(void);
-static NEXUS_Error Nexus_SageModule_P_Img_Create(const char *id, void **ppContext, BIMG_Interface  *pInterface);
-static void Nexus_SageModule_P_Img_Destroy(void *pContext);
-static NEXUS_Error NEXUS_SageModule_P_Load(NEXUS_SageImageHolder *holder, BIMG_Interface *img_interface, void *img_context);
 
 /****************************************
  * Macros
@@ -179,16 +149,16 @@ void NEXUS_SageModule_Print(void)
 {
 #if BDBG_DEBUG_BUILD
     int SageBooted;
-    char *pBLStr;
-    char *pOSAppStr;
     NEXUS_SageStatus status;
 
     if ( &g_NEXUS_sageModule.hSAGElib != NULL) {
-        BSAGElib_Boot_GetBinariesVersion(g_NEXUS_sageModule.hSAGElib, &pBLStr, &pOSAppStr);
-        if (pBLStr[0] != 0)
-            BDBG_LOG(("%s", pBLStr));
-        if (pOSAppStr[0] != 0)
-            BDBG_LOG(("%s", pOSAppStr));
+        BSAGElib_ImageInfo bootloaderInfo, frameworkInfo;
+        BSAGElib_Boot_GetBinariesInfo(g_NEXUS_sageModule.hSAGElib,
+                                      &bootloaderInfo, &frameworkInfo);
+        if (bootloaderInfo.versionString[0] != 0)
+            BDBG_LOG(("%s", bootloaderInfo.versionString));
+        if (frameworkInfo.versionString[0] != 0)
+            BDBG_LOG(("%s", frameworkInfo.versionString));
     }
 
     SageBooted = NEXUS_Sage_P_CheckSageBooted();
@@ -201,6 +171,7 @@ void NEXUS_SageModule_Print(void)
     if (NEXUS_Sage_P_Status(&status) == NEXUS_SUCCESS) {
        BDBG_LOG(("Uncompressed Restricted Region is %s.", status.urr.secured ? "SECURED" : "OPEN"));
     }
+    NEXUS_Sage_P_PrintSvp();
 #endif
 }
 
@@ -223,7 +194,7 @@ NEXUS_Error NEXUS_Sage_P_SAGElibUpdateHsm(bool set)
 
     SAGElib_rc = BSAGElib_GetDynamicSettings(g_NEXUS_sageModule.hSAGElib, &settings);
     if (SAGElib_rc != BERR_SUCCESS) {
-        BDBG_ERR(("%s: Cannot get SAGElib instance settings (error=%u)", SAGElib_rc));
+        BDBG_ERR(("%s: Cannot get SAGElib instance settings (error=%d)", __FUNCTION__, (int)SAGElib_rc));
         rc = NEXUS_INVALID_PARAMETER;
         goto end;
     }
@@ -231,7 +202,7 @@ NEXUS_Error NEXUS_Sage_P_SAGElibUpdateHsm(bool set)
     settings.hHsm = hHsm;
     SAGElib_rc = BSAGElib_SetDynamicSettings(g_NEXUS_sageModule.hSAGElib, &settings);
     if (SAGElib_rc != BERR_SUCCESS) {
-        BDBG_ERR(("%s: Cannot set SAGElib instance settings (error=%u)", SAGElib_rc));
+        BDBG_ERR(("%s: Cannot set SAGElib instance settings (error=%d)", __FUNCTION__, (int)SAGElib_rc));
         rc = NEXUS_INVALID_PARAMETER;
         goto end;
     }
@@ -245,9 +216,9 @@ void NEXUS_Sage_P_SAGELogUninit(void)
     BSAGElib_SageLogBuffer *pSageLogBuffer = NULL;
     uint8_t *pCRRBuffer = NULL,*pEncAESKeyBuffer = NULL;
 
-    if(g_sage_module.logBufferHeapOffset != 0)
+    if(g_sage_module.pSageLogBuffer)
     {
-        pSageLogBuffer = NEXUS_Sage_P_OffsetToAddr(g_sage_module.logBufferHeapOffset);
+        pSageLogBuffer = g_sage_module.pSageLogBuffer;
         pCRRBuffer = NEXUS_Sage_P_OffsetToAddr(pSageLogBuffer->crrBufferOffset);
         pEncAESKeyBuffer = NEXUS_Sage_P_OffsetToAddr(pSageLogBuffer->encAESKeyOffset);
 
@@ -260,11 +231,9 @@ void NEXUS_Sage_P_SAGELogUninit(void)
         {
             NEXUS_Memory_Free(pCRRBuffer);
         }
-        if(pSageLogBuffer != NULL)
-        {
-            NEXUS_Memory_Free(pSageLogBuffer);
-        }
+        NEXUS_Memory_Free(pSageLogBuffer);
         g_sage_module.logBufferHeapOffset = 0;
+        g_sage_module.pSageLogBuffer = NULL;
     }
     return;
 }
@@ -283,10 +252,29 @@ static NEXUS_Error NEXUS_Sage_P_SAGELogInit(void)
     }
 
     pSageLogBuffer = NEXUS_Sage_P_Malloc( sizeof(BSAGElib_SageLogBuffer));
+    if(pSageLogBuffer == NULL)
+    {
+        BDBG_ERR(("%s - Error allocating pSageLogBuffer", __FUNCTION__));
+        rc = NEXUS_OUT_OF_SYSTEM_MEMORY;
+        goto handle_err;
+    }
+    g_sage_module.pSageLogBuffer = pSageLogBuffer;
     pSageLogBuffer->crrBufferSize = NEXUS_SAGE_LOGBUFFERSIZE;
     pCRRBuffer = NEXUS_Sage_P_MallocRestricted(pSageLogBuffer->crrBufferSize + 16); /*Extra 16bytes for AES enc alignment*/
+    if(pCRRBuffer == NULL)
+    {
+        BDBG_ERR(("%s - Error allocating pCRRBuffer", __FUNCTION__));
+        rc = NEXUS_OUT_OF_SYSTEM_MEMORY;
+        goto handle_err;
+    }
     pSageLogBuffer->encAESKeySize = NEXUS_SAGE_RSA2048_SIZE;
     pEncAESKeyBuffer = NEXUS_Sage_P_Malloc(pSageLogBuffer->encAESKeySize);
+    if(pEncAESKeyBuffer == NULL)
+    {
+        BDBG_ERR(("%s - Error allocating pEncAESKeyBuffer", __FUNCTION__));
+        rc = NEXUS_OUT_OF_SYSTEM_MEMORY;
+        goto handle_err;
+    }
 
     NEXUS_Security_GetDefaultKeySlotSettings(&keyslotSettings);
     keyslotSettings.client = NEXUS_SecurityClientType_eSage;
@@ -322,6 +310,7 @@ handle_err:
     if(pSageLogBuffer != NULL)
     {
         NEXUS_Memory_Free(pSageLogBuffer);
+        g_sage_module.pSageLogBuffer = NULL;
     }
     return rc;
 }
@@ -372,7 +361,7 @@ static NEXUS_Error NEXUS_Sage_P_SAGElibInit(void)
 
     SAGElib_rc = BSAGElib_Open(&g_NEXUS_sageModule.hSAGElib, &settings);
     if (SAGElib_rc != BERR_SUCCESS) {
-        BDBG_ERR(("%s: Cannot open SAGElib instance (error=%u)", SAGElib_rc));
+        BDBG_ERR(("%s: Cannot open SAGElib instance (error=%d)", __FUNCTION__, (int)SAGElib_rc));
         rc = NEXUS_INVALID_PARAMETER;
         goto end;
     }
@@ -457,7 +446,7 @@ static NEXUS_Error NEXUS_SageModule_P_MemoryBlockAllocate(
     rc = NEXUS_Memory_Allocate(size, allocSettings, &pMem);
     if (rc != NEXUS_SUCCESS) {
         BDBG_ERR(("%s - Error, allocating (%u bytes)",
-                  __FUNCTION__, size));
+                  __FUNCTION__, (unsigned)size));
         goto err;
     }
     block->buf = pMem;
@@ -468,7 +457,7 @@ err:
 }
 
 /* Retrieve heap's offset and length parameters */
-static NEXUS_Error NEXUS_SageModule_P_GetHeapBoundaries(int heapid, uint32_t *offset, uint32_t *len, uint32_t *max_free)
+static NEXUS_Error NEXUS_SageModule_P_GetHeapBoundaries(int heapid, NEXUS_Addr *offset, uint32_t *len, uint32_t *max_free)
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
 
@@ -478,7 +467,7 @@ static NEXUS_Error NEXUS_SageModule_P_GetHeapBoundaries(int heapid, uint32_t *of
         rc = NEXUS_Heap_GetStatus(g_pCoreHandles->heap[heapid].nexus, &memoryStatus);
         if (rc != NEXUS_SUCCESS) {
             BDBG_ERR(("%s: NEXUS_Heap_GetStatus( heapId == %d , handle == %p) failure (%u)",
-                      __FUNCTION__, heapid, g_pCoreHandles->heap[heapid].nexus, rc));
+                      __FUNCTION__, heapid, (void *)g_pCoreHandles->heap[heapid].nexus, rc));
             goto end;
         }
 
@@ -490,8 +479,8 @@ static NEXUS_Error NEXUS_SageModule_P_GetHeapBoundaries(int heapid, uint32_t *of
         }
 
 #if 0
-        BDBG_LOG(("%s - heap[%d] physical offset %p, size %u, maxfree %d",
-                  __FUNCTION__, heapid, *offset, *len, memoryStatus.largestFreeBlock));
+        BDBG_LOG(("%s - heap[%d] physical offset " BDBG_UINT64_FMT ", size %u, maxfree %d",
+                  __FUNCTION__, heapid, BDBG_UINT64_ARG(*offset), *len, memoryStatus.largestFreeBlock));
 #endif
 
 #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,1)
@@ -510,7 +499,7 @@ static NEXUS_Error NEXUS_SageModule_P_GetHeapBoundaries(int heapid, uint32_t *of
 #endif
     }
     else {
-        BDBG_ERR(("%s - Error, heap[%d].nexus NOT available", __FUNCTION__, heapid));
+        BDBG_WRN(("%s - heap[%d].nexus NOT available", __FUNCTION__, heapid));
         rc = NEXUS_NOT_AVAILABLE;
     }
 
@@ -520,7 +509,7 @@ end:
 
 #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,1)
 /* Check if heap overlap a certain boundary */
-static NEXUS_Error NEXUS_SageModule_P_CheckHeapOverlap(uint32_t offset, uint32_t len, uint32_t boundary)
+static NEXUS_Error NEXUS_SageModule_P_CheckHeapOverlap(NEXUS_Addr offset, uint32_t len, NEXUS_Addr boundary)
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
 
@@ -528,13 +517,48 @@ static NEXUS_Error NEXUS_SageModule_P_CheckHeapOverlap(uint32_t offset, uint32_t
     if (boundary > offset && boundary < offset + len) {
         rc = NEXUS_INVALID_PARAMETER;
 
-        BDBG_ERR(("%s - Error, heap (offset: 0x%x, size: %u bytes) can't cross address 0x%x)",
-                  __FUNCTION__, offset, len, boundary));
+        BDBG_ERR(("%s - Error, heap (offset: " BDBG_UINT64_FMT ", size: %u bytes) can't cross address " BDBG_UINT64_FMT ")",
+                  __FUNCTION__, BDBG_UINT64_ARG(offset), len, BDBG_UINT64_ARG(boundary)));
     }
 
     return rc;
 }
 #endif
+
+BERR_Code
+NEXUS_SageModule_P_AddRegion(
+    uint32_t id,
+    NEXUS_Addr offset,
+    uint32_t size)
+{
+    uint32_t offset32 = (uint32_t)offset;
+    BERR_Code rc = BERR_SUCCESS;
+
+    if ((NEXUS_Addr)offset32 != offset) {
+        BDBG_ERR(("%s - Error, out of band offset for region 0x%02x",
+                  __FUNCTION__, id));
+        rc = NEXUS_INVALID_PARAMETER;
+        goto end;
+    }
+
+    if (g_sage_module.regionMapNum >= _REGION_MAP_MAX_NUM) {
+        BDBG_ERR(("%s: cannot add new heap (%u); increase _REGION_MAP_MAX_NUM",
+                  __FUNCTION__, id));
+        rc = BERR_INVALID_PARAMETER;
+        goto end;
+    }
+
+    BDBG_MSG(("%s: Adding region 0x%02x [.offset=0x%08x, .size=%u]",
+              __FUNCTION__, id, offset32, size));
+
+    g_sage_module.pRegionMap[g_sage_module.regionMapNum].id = id;
+    g_sage_module.pRegionMap[g_sage_module.regionMapNum].offset = offset32;
+    g_sage_module.pRegionMap[g_sage_module.regionMapNum].size = size;;
+    g_sage_module.regionMapNum++;
+
+end:
+    return rc;
+}
 
 /* Get Secure heap boundaries
  * Allocate the full SAGE secure heap to reserve memory for SAGE-side
@@ -542,33 +566,22 @@ static NEXUS_Error NEXUS_SageModule_P_CheckHeapOverlap(uint32_t offset, uint32_t
 static NEXUS_Error NEXUS_SageModule_P_ConfigureSecureRegions(void)
 {
     NEXUS_Error rc;
-    NEXUS_MemoryAllocationSettings allocSettings;
     uint32_t sage_max_free = 0;
-    uint32_t secure_video_max_free = 0;
+    NEXUS_Addr offset, offset2;
+    uint32_t size;
 
-    rc = NEXUS_SageModule_P_GetHeapBoundaries(NEXUS_SAGE_SECURE_HEAP,
-                                              &g_sage_module.restricted1Offset,
-                                              &g_sage_module.restricted1Len,
-                                              &sage_max_free);
+    /* Add SRR */
+    rc = NEXUS_SageModule_P_GetHeapBoundaries(NEXUS_SAGE_SECURE_HEAP, &offset, &size, &sage_max_free);
     if (rc != NEXUS_SUCCESS) { goto err; }
 
-    rc = NEXUS_SageModule_P_GetHeapBoundaries(NEXUS_VIDEO_SECURE_HEAP,
-                                              &g_sage_module.restricted2Offset,
-                                              &g_sage_module.restricted2Len,
-                                              &secure_video_max_free);
-    if (rc != NEXUS_SUCCESS) { goto err; }
+    /* Allocate the whole SAGE heap (for monitor Address Range Checker) */
+    g_sage_module.sageSecureHeap = NEXUS_MemoryBlock_Allocate(g_pCoreHandles->heap[NEXUS_SAGE_SECURE_HEAP].nexus, sage_max_free, 0, NULL);
+    if (!g_sage_module.sageSecureHeap) { rc = BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY); goto err; }
 
-    /* Allocate the whole SAGE heap (for monitor Adresse Range Checker) */
-    NEXUS_Memory_GetDefaultAllocationSettings(&allocSettings);
-    allocSettings.heap = g_pCoreHandles->heap[NEXUS_SAGE_SECURE_HEAP].nexus;
-
-    BDBG_LOG(("alloc sageSecureHeap %u bytes", sage_max_free));
-    rc = NEXUS_SageModule_P_MemoryBlockAllocate(&g_sage_module.sageSecureHeap, sage_max_free, &allocSettings);
-    if (rc != NEXUS_SUCCESS) {  goto err; }
-
-    if (NEXUS_AddrToOffset(g_sage_module.sageSecureHeap.buf) != g_sage_module.restricted1Offset) {
+    rc = NEXUS_MemoryBlock_LockOffset(g_sage_module.sageSecureHeap, &offset2);
+    if (rc || offset2 != offset) {
         BDBG_ERR(("%s - Error, returned block does not start at 0x%08x",
-                  __FUNCTION__, g_sage_module.restricted1Offset));
+                  __FUNCTION__, (uint32_t)offset));
         rc = NEXUS_NOT_AVAILABLE;
         goto err;
     }
@@ -576,11 +589,35 @@ static NEXUS_Error NEXUS_SageModule_P_ConfigureSecureRegions(void)
     /* TODO: Add a check to verify that memory allocated is bigger than a threshold necessary for SAGE usage */
     BDBG_MSG(("%s - SAGE secure heap[%d].nexus %d bytes @ 0x%08x",
               __FUNCTION__, NEXUS_SAGE_SECURE_HEAP,
-              sage_max_free, NEXUS_AddrToOffset(g_sage_module.sageSecureHeap.buf)));
+              sage_max_free, (unsigned)offset));
+
+    rc = NEXUS_SageModule_P_AddRegion(BSAGElib_RegionId_Srr, offset, size);
+    if (rc != NEXUS_SUCCESS) { goto err; }
+
+    /* Add CRR */
+    rc = NEXUS_SageModule_P_GetHeapBoundaries(NEXUS_VIDEO_SECURE_HEAP, &offset, &size, NULL);
+    if (rc != NEXUS_SUCCESS) { goto err; }
+
+    rc = NEXUS_SageModule_P_AddRegion(BSAGElib_RegionId_Crr, offset, size);
+    if (rc != NEXUS_SUCCESS) { goto err; }
+
+    /* Add XRR */
+    rc = NEXUS_SageModule_P_GetHeapBoundaries(NEXUS_EXPORT_HEAP, &offset, &size, NULL);
+    if (rc == NEXUS_SUCCESS) {
+        if (offset && size) {
+            rc = NEXUS_SageModule_P_AddRegion(BSAGElib_RegionId_Xrr, offset, size);
+            if (rc != NEXUS_SUCCESS) { goto err; }
+        }
+    }
+    else {
+        BDBG_WRN(("%s: No Export heap available", __FUNCTION__));
+        rc = BERR_SUCCESS; /* this is not fatal */
+    }
 
 err:
     return rc;
 }
+
 
 
 /* Initialize Sage Module. This is called during platform initialication. */
@@ -588,8 +625,9 @@ NEXUS_ModuleHandle NEXUS_SageModule_Init(const NEXUS_SageModuleSettings *pSettin
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
     NEXUS_ModuleSettings moduleSettings;
-    unsigned heapIndex;
-    unsigned clientHeapIndex = 0;
+    int booted = 0;
+    NEXUS_Addr offset;
+    uint32_t size;
 
     BDBG_ASSERT(!g_NEXUS_sageModule.moduleHandle);
     BDBG_ASSERT(pSettings);
@@ -597,6 +635,12 @@ NEXUS_ModuleHandle NEXUS_SageModule_Init(const NEXUS_SageModuleSettings *pSettin
     BKNI_Memset(&g_NEXUS_sageModule, 0, sizeof(g_NEXUS_sageModule));
     g_NEXUS_sageModule.reset = 1;
 
+    rc = BKNI_CreateEvent(&g_NEXUS_sageModule.sageReadyEvent);
+    if (rc != BERR_SUCCESS) {
+        BDBG_ERR(( "Error creating sage sageReadyEvent" ));
+        rc = NEXUS_NOT_AVAILABLE;
+        goto err_unlocked;
+    }
     /* init global module handle */
     NEXUS_Module_GetDefaultSettings(&moduleSettings);
     moduleSettings.priority = NEXUS_ModulePriority_eDefault;
@@ -622,62 +666,20 @@ NEXUS_ModuleHandle NEXUS_SageModule_Init(const NEXUS_SageModuleSettings *pSettin
     rc = NEXUS_SageModule_P_InitializeTimer();
     if (rc != NEXUS_SUCCESS) { goto err; }
 
-    /* get general heap boundaries */
-    rc = NEXUS_SageModule_P_GetHeapBoundaries(SAGE_FULL_HEAP,
-                                              &g_sage_module.generalHeapOffset,
-                                              &g_sage_module.generalHeapLen,
-                                              NULL);
+    g_sage_module.regionMapNum = 0;
+    g_sage_module.pRegionMap = NEXUS_Sage_P_Malloc(sizeof(*g_sage_module.pRegionMap) * _REGION_MAP_MAX_NUM);
+    if (g_sage_module.pRegionMap == NULL) {
+        BDBG_ERR(("%s: cannot allocate memory for region map", __FUNCTION__));
+        rc = NEXUS_OUT_OF_DEVICE_MEMORY;
+        goto err;
+    }
+
+    /* GLR: get general heap boundaries */
+    rc = NEXUS_SageModule_P_GetHeapBoundaries(SAGE_FULL_HEAP, &offset, &size, NULL);
+    if (rc != NEXUS_SUCCESS) { goto err; }
+    rc = NEXUS_SageModule_P_AddRegion(BSAGElib_RegionId_Glr, offset, size);
     if (rc != NEXUS_SUCCESS) { goto err; }
 
-    /* Retrieves picture heap buffer boundaries. */
-    for (heapIndex=0;heapIndex<NEXUS_MAX_HEAPS;heapIndex++) {
-        NEXUS_MemoryStatus status;
-        __typeof__(g_sage_module.restricted3Len) *pLen = NULL;
-        __typeof__(g_sage_module.restricted3Offset) *pOffset = NULL;
-        NEXUS_HeapHandle heap = g_pCoreHandles->heap[heapIndex].nexus;
-
-        if (!heap) continue;
-        NEXUS_Heap_GetStatus(heap, &status);
-
-        if ((status.heapType & NEXUS_HEAP_TYPE_PICTURE_BUFFERS) &&
-            (status.memoryType & NEXUS_MEMORY_TYPE_SECURE))
-        {
-            switch(status.memcIndex)
-            {
-                case 0:
-                    pLen = &g_sage_module.restricted3Len;
-                    pOffset = &g_sage_module.restricted3Offset;
-                    break;
-                case 1:
-                    pLen = &g_sage_module.restricted4Len;
-                    pOffset = &g_sage_module.restricted4Offset;
-                    break;
-                case 2:
-                    pLen = &g_sage_module.restricted5Len;
-                    pOffset = &g_sage_module.restricted5Offset;
-                    break;
-                default:
-                    break;
-            }
-
-            if((!pLen)||(*pLen))
-            {
-                /* Either unsupported memc or multiple heaps per memc */
-                rc = NEXUS_NOT_AVAILABLE;
-                BDBG_ERR(("%s - Invalid secure picture heap settings", __FUNCTION__));
-                goto err;
-            }
-
-            *pLen = status.size;
-            *pOffset = status.offset;
-        }
-    }
-
-    if (clientHeapIndex == NEXUS_MAX_HEAPS) {
-        BDBG_ERR(("%s: invalid heap index %u",
-                  __FUNCTION__, g_sage_module.settings.clientHeapIndex));
-        g_sage_module.settings.clientHeapIndex = NEXUS_MAX_HEAPS;
-    }
     switch (g_sage_module.settings.clientHeapIndex) {
     case NEXUS_SAGE_SECURE_HEAP:
     case NEXUS_VIDEO_SECURE_HEAP:
@@ -688,16 +690,21 @@ NEXUS_ModuleHandle NEXUS_SageModule_Init(const NEXUS_SageModuleSettings *pSettin
         break;
     default:
         rc = NEXUS_SageModule_P_GetHeapBoundaries(g_sage_module.settings.clientHeapIndex,
-                                                  &g_sage_module.clientHeapOffset,
-                                                  &g_sage_module.clientHeapLen,
-                                                  NULL);
+                                                  &offset, &size, NULL);
+        if (rc != NEXUS_SUCCESS) { goto err; }
+        rc = NEXUS_SageModule_P_AddRegion(BSAGElib_RegionId_Glr2, offset, size);
         if (rc != NEXUS_SUCCESS) { goto err; }
         break;
     }
 
-    /* Get secure heaps info and allocate all Sage memory */
+    /* SRR/CRR/... Get secure heaps info and allocate all Sage memory */
     rc = NEXUS_SageModule_P_ConfigureSecureRegions();
     if(rc != NEXUS_SUCCESS) {  goto err; }
+
+    /* Set URR regions (accounting for adjacent buffers) */
+    rc = NEXUS_Sage_P_SvpInit();
+    if (rc != NEXUS_SUCCESS) { goto err; }
+    NEXUS_Sage_P_SvpSetRegions();
 
     rc = NEXUS_Sage_P_SAGElibInit();
     if (rc != NEXUS_SUCCESS) { goto err; }
@@ -709,6 +716,9 @@ NEXUS_ModuleHandle NEXUS_SageModule_Init(const NEXUS_SageModuleSettings *pSettin
 
     rc = NEXUS_SageModule_P_Start();
     if (rc != NEXUS_SUCCESS) { goto err; }
+
+    booted = NEXUS_Sage_P_CheckSageBooted();
+    if (!booted) { rc = NEXUS_INVALID_PARAMETER; goto err; }
 
     /* success */
 err:
@@ -722,7 +732,7 @@ err_unlocked:
     return g_NEXUS_sageModule.moduleHandle;
 }
 
-static NEXUS_Error Nexus_SageModule_P_Img_Create(
+NEXUS_Error Nexus_SageModule_P_Img_Create(
     const char *id,             /* Image Name */
     void **ppContext,           /* [out] Context */
     BIMG_Interface  *pInterface /* [out] Pointer to Image interface */
@@ -740,7 +750,7 @@ static NEXUS_Error Nexus_SageModule_P_Img_Create(
     return rc;
 }
 
-static void Nexus_SageModule_P_Img_Destroy(
+void Nexus_SageModule_P_Img_Destroy(
     void *pContext              /* Context returned by previous call */
     )
 {
@@ -758,24 +768,25 @@ NEXUS_Error NEXUS_SageModule_P_Start(void)
 {
     NEXUS_Error rc;
     NEXUS_SageMemoryBlock bl = {0, NULL}; /* raw bootloader binary in memory */
-    NEXUS_SageImageHolder kernelImg =
-        {"OS/APP image", SAGE_IMAGE_FirmwareID_eOS_App,     NULL};
+    NEXUS_SageImageHolder frameworkImg =
+        {"Framework image", SAGE_IMAGE_FirmwareID_eFramework,     NULL};
     NEXUS_SageImageHolder blImg     =
         {"Bootloader",   SAGE_IMAGE_FirmwareID_eBootLoader, NULL};
     /* Image Interface */
     void * img_context = NULL;
     BIMG_Interface img_interface;
 
-    kernelImg.raw = &g_sage_module.kernel;
+    frameworkImg.raw = &g_sage_module.framework;
     blImg.raw = &bl;
 
-    /* Init SVP */
-    NEXUS_Sage_P_SvpInit();
+    /* Start SVP */
+    rc = NEXUS_Sage_P_SvpStart();
+    if(rc != NEXUS_SUCCESS) { goto err; }
 
     /* If chip type is ZB or customer specific, then the default IDs stand */
     if (g_NEXUS_sageModule.chipInfo.chipType == BSAGElib_ChipType_eZS) {
         blImg.id = SAGE_IMAGE_FirmwareID_eBootLoader_Development;
-        kernelImg.id = SAGE_IMAGE_FirmwareID_eOS_App_Development;
+        frameworkImg.id = SAGE_IMAGE_FirmwareID_eFramework_Development;
     }
 
     /* Initialize IMG interface; used to pull out an image on the file system from the kernel. */
@@ -789,8 +800,8 @@ NEXUS_Error NEXUS_SageModule_P_Start(void)
     rc = NEXUS_SageModule_P_Load(&blImg, &img_interface, img_context);
     if(rc != NEXUS_SUCCESS) { goto err; }
 
-    /* Load SAGE kernel into memory */
-    rc = NEXUS_SageModule_P_Load(&kernelImg, &img_interface, img_context);
+    /* Load SAGE framework into memory */
+    rc = NEXUS_SageModule_P_Load(&frameworkImg, &img_interface, img_context);
     if(rc != NEXUS_SUCCESS) { goto err; }
 
     /* Get start timer */
@@ -808,23 +819,11 @@ NEXUS_Error NEXUS_SageModule_P_Start(void)
 
         bootSettings.pBootloader = bl.buf;
         bootSettings.bootloaderSize = bl.len;
-        bootSettings.pOsApp = g_sage_module.kernel.buf;
-        bootSettings.osAppSize = g_sage_module.kernel.len;
-        bootSettings.GLR0Offset = g_sage_module.generalHeapOffset;
-        bootSettings.GLR0Size = g_sage_module.generalHeapLen;
-        bootSettings.GLR1Offset = g_sage_module.clientHeapOffset;
-        bootSettings.GLR1Size = g_sage_module.clientHeapLen;
-        bootSettings.SRROffset = g_sage_module.restricted1Offset;
-        bootSettings.SRRSize = g_sage_module.restricted1Len;
-        bootSettings.CRROffset = g_sage_module.restricted2Offset;
-        bootSettings.CRRSize = g_sage_module.restricted2Len;
-        bootSettings.URR0Offset = g_sage_module.restricted3Offset;
-        bootSettings.URR0Size = g_sage_module.restricted3Len;
-        bootSettings.URR1Offset = g_sage_module.restricted4Offset;
-        bootSettings.URR1Size = g_sage_module.restricted4Len;
-        bootSettings.URR2Offset = g_sage_module.restricted5Offset;
-        bootSettings.URR2Size = g_sage_module.restricted5Len;
-        bootSettings.logBufferOffset = g_sage_module.logBufferHeapOffset;
+        bootSettings.pFramework = g_sage_module.framework.buf;
+        bootSettings.frameworkSize = g_sage_module.framework.len;
+        bootSettings.pRegionMap = g_sage_module.pRegionMap;
+        bootSettings.regionMapNum = g_sage_module.regionMapNum;
+        bootSettings.logBufferOffset = (uint32_t)g_sage_module.logBufferHeapOffset;
         bootSettings.logBufferSize = g_sage_module.logBufferHeapLen;
 
         magnum_rc = BSAGElib_Boot_Launch(g_NEXUS_sageModule.hSAGElib, &bootSettings);
@@ -835,10 +834,19 @@ NEXUS_Error NEXUS_SageModule_P_Start(void)
         }
     }
 
+
     /* success */
     g_NEXUS_sageModule.reset = 0;
-
     /* end of init is deferred in first NEXUS_Sage_Open() call */
+
+    /* Check if SAGE BOOT happened and unblock BSageLib */
+    NEXUS_Sage_P_MonitorBoot();
+
+    /* Init AR */
+    NEXUS_Sage_P_ARInit();
+
+    /* Set this event so that everybody else knows SAGE is booted up */
+    BKNI_SetEvent(g_NEXUS_sageModule.sageReadyEvent);
 
 err:
     if (img_context) {
@@ -847,10 +855,6 @@ err:
 
     /* Wipe Bootloader */
     NEXUS_SageModule_P_MemoryBlockFree(&bl, false);
-
-    /* in case of error, g_sage_module.kernel, g_sage_module.sage_bl_second_tier_key
-       and g_sage_module.sage_os_app_second_tier_key are freed in
-       NEXUS_SageModule_Uninit()->NEXUS_Sage_P_CleanBootVars() */
 
     return rc;
 }
@@ -868,7 +872,7 @@ static void NEXUS_Sage_P_CleanBootVars(void)
     if (g_NEXUS_sageModule.hSAGElib) {
         BSAGElib_Boot_Clean(g_NEXUS_sageModule.hSAGElib);
     }
-    NEXUS_SageModule_P_MemoryBlockFree(&g_sage_module.kernel, false); /* kernel header freed here as well */
+    NEXUS_SageModule_P_MemoryBlockFree(&g_sage_module.framework, false); /* framework header freed here as well */
 }
 
 /* Uninitialize Sage Module and wipe associated resources. */
@@ -885,7 +889,10 @@ void NEXUS_SageModule_Uninit(void)
 
     NEXUS_LockModule();
 
-    NEXUS_Sage_P_SvpUninit(false);
+    NEXUS_Sage_P_ARUninit();
+
+    NEXUS_Sage_P_SvpStop(false);
+    NEXUS_Sage_P_SvpUninit();
 
     NEXUS_Sage_P_CleanBootVars();
 
@@ -904,7 +911,12 @@ void NEXUS_SageModule_Uninit(void)
         BCHP_SAGE_Reset(g_pCoreHandles->reg);
     }
 
-    NEXUS_SageModule_P_MemoryBlockFree(&g_sage_module.sageSecureHeap, false);
+    NEXUS_MemoryBlock_Free(g_sage_module.sageSecureHeap);
+
+    if (g_sage_module.pRegionMap != NULL) {
+        NEXUS_Memory_Free(g_sage_module.pRegionMap);
+        g_sage_module.pRegionMap = NULL;
+    }
 
     if (g_NEXUS_sageModule.hTimer) {
         BTMR_DestroyTimer(g_NEXUS_sageModule.hTimer);
@@ -914,12 +926,14 @@ void NEXUS_SageModule_Uninit(void)
     NEXUS_Sage_P_VarCleanup();
     NEXUS_UnlockModule();
 
+    BKNI_DestroyEvent(g_NEXUS_sageModule.sageReadyEvent);
+
     NEXUS_Module_Destroy(g_NEXUS_sageModule.moduleHandle);
     g_NEXUS_sageModule.moduleHandle = NULL;
 }
 
-/* Load a Sage binary (bootloader or kernel) located on the file system into memory */
-static NEXUS_Error NEXUS_SageModule_P_Load(
+/* Load a Sage binary (bootloader or framework) located on the file system into memory */
+NEXUS_Error NEXUS_SageModule_P_Load(
     NEXUS_SageImageHolder *holder,
     BIMG_Interface *img_interface,
     void *img_context)
@@ -934,7 +948,7 @@ static NEXUS_Error NEXUS_SageModule_P_Load(
         /* Open file */
         rc = img_interface->open(img_context, &image, holder->id);
         if(rc != NEXUS_SUCCESS) {
-            BDBG_ERR(("%s - Error opening SAGE '%s' file",
+            BDBG_LOG(("%s - Error opening SAGE '%s' file",
                       __FUNCTION__, holder->name));
             goto err;
         }
@@ -1000,8 +1014,8 @@ static NEXUS_Error NEXUS_SageModule_P_Load(
 
     /* Sync physical memory for all areas */
     NEXUS_Memory_FlushCache(holder->raw->buf, holder->raw->len);
-    BDBG_MSG(("%s - '%s' Raw@0x%08x,  size=%d", __FUNCTION__,
-              holder->name, holder->raw->buf, holder->raw->len));
+    BDBG_MSG(("%s - '%s' Raw@%p,  size=%u", __FUNCTION__,
+              holder->name, (void *)holder->raw->buf, (unsigned)holder->raw->len));
 
 err:
     /* in case of error, Memory block is freed in NEXUS_SageModule_Uninit() */
@@ -1013,11 +1027,15 @@ err:
 }
 
 /* SAGE boot timing */
-#define SAGE_MAX_BOOT_TIME_US (5 * 1000 * 1000)
+#define SAGE_MAX_BOOT_TIME_US (15 * 1000 * 1000)
 #define SAGE_STEP_BOOT_TIME_US (50 * 1000)
 /* Check is SAGE software is ready.
- * If not, waits for 5 seconds max to see if it becomes ready. */
+ * If not, waits for 15 seconds max to see if it becomes ready. */
 /* prototype must be compatible with NEXUS_Thread_Create::pThreadFunc parameter */
+
+/* SAGE ARC Prescreen error codes */
+#define SAGE_SECUREBOOT_ARC_PRESCREEN_NUMBER_BAD_BIT_EXCEEDED  (0x60D)
+#define SAGE_SECUREBOOT_ARC_PRESCREEN_MSP_PROG_FAILURE         (0x60E)
 
 static void
 NEXUS_Sage_P_MonitorBoot(void)
@@ -1096,27 +1114,42 @@ NEXUS_Sage_P_MonitorBoot(void)
         }
     }
 
-    g_NEXUS_sageModule.booted = 1;
+    BDBG_MSG(("SAGE Boot done"));
 
 err:
-    if (!g_NEXUS_sageModule.booted) {
+    if (bootState.status != BSAGElibBootStatus_eStarted) {
+        char *_flavor = (g_NEXUS_sageModule.chipInfo.chipType == BSAGElib_ChipType_eZS) ? "_dev" : "";
         BDBG_ERR(("*******  SAGE ERROR  >>>>>"));
         BDBG_ERR(("* The SAGE side software cannot boot."));
         if (lastStatus == BSAGElibBootStatus_eBlStarted) {
-            BDBG_ERR(("* SAGE OS/Application hangs"));
-            BDBG_ERR(("* Please check your sage_os_app.bin"));
+            BDBG_ERR(("* SAGE Framework hangs"));
+            BDBG_ERR(("* Please check your sage_framework%s.bin", _flavor));
         }
         else if (lastStatus == BSAGElibBootStatus_eError) {
             BDBG_ERR(("* SAGE Bootloader error: 0x%08x", bootState.lastError));
-            BDBG_ERR(("* Please check your sage_bl.bin and sage_os_app.bin"));
+            switch(bootState.lastError)
+            {
+                case SAGE_SECUREBOOT_ARC_PRESCREEN_NUMBER_BAD_BIT_EXCEEDED:
+                    BDBG_ERR(("* DO NOT USE THIS CHIP!!"));
+                    BDBG_ERR(("* SAGE ARC Bad Bit Management: More than 2 SAGE ARC Bad bits"));
+                    BDBG_ERR(("* DO NOT USE THIS CHIP!!"));
+                    break;
+                case SAGE_SECUREBOOT_ARC_PRESCREEN_MSP_PROG_FAILURE:
+                    BDBG_ERR(("* DO NOT USE THIS CHIP!!"));
+                    BDBG_ERR(("* SAGE ARC Bad Bit Management: MSP OTP programming error"));
+                    BDBG_ERR(("* DO NOT USE THIS CHIP!!"));
+                    break;
+                default:
+                    BDBG_ERR(("* Please check your sage_bl%s.bin and sage_framework%s.bin", _flavor, _flavor));
+            }
+
         }
         else {
             BDBG_ERR(("* Reboot the system and try again."));
             BDBG_ERR(("* SAGE Bootloader status: 0x%08x", lastStatus));
             BDBG_ERR(("* SAGE Bootloader hangs"));
-            BDBG_ERR(("* Please check your sage_bl.bin"));
+            BDBG_ERR(("* Please check your sage_bl%s.bin", _flavor));
         }
-        BDBG_ERR(("* Contact a SAGE team representative."));
         BDBG_ERR(("*******  SAGE ERROR  <<<<<"));
         BKNI_Sleep(200);
         BDBG_ASSERT(false && "SAGE CANNOT BOOT");
@@ -1127,8 +1160,14 @@ err:
 
 int NEXUS_Sage_P_CheckSageBooted(void)
 {
+    BERR_Code rc;
+
     if (!g_NEXUS_sageModule.booted) {
-        NEXUS_Sage_P_MonitorBoot();
+        BDBG_MSG(("BKNI_WaitForEvent"));
+        rc = BKNI_WaitForEvent(g_NEXUS_sageModule.sageReadyEvent, BKNI_INFINITE);
+        if (rc == BERR_SUCCESS) {
+            g_NEXUS_sageModule.booted = 1;
+        }
     }
     return g_NEXUS_sageModule.booted;
 }
@@ -1149,6 +1188,14 @@ NEXUS_Error NEXUS_Sage_P_Status(NEXUS_SageStatus *pStatus)
     }
 
     pStatus->urr.secured = sageStatus.urr.secured;
+    {
+        BSAGElib_ImageInfo frameworkInfo;
+        BSAGElib_Boot_GetBinariesInfo(g_NEXUS_sageModule.hSAGElib, NULL, &frameworkInfo);
+        pStatus->framework.THLShortSig = frameworkInfo.THLShortSig;
+        BDBG_ASSERT(sizeof(pStatus->framework.version) == sizeof(frameworkInfo.version));
+        BKNI_Memcpy(pStatus->framework.version, frameworkInfo.version, sizeof(pStatus->framework.version));;
+    }
+
     return NEXUS_SUCCESS;
 }
 static void CompleteCallback ( void *pParam, int iParam )

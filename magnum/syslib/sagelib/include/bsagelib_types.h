@@ -1,42 +1,39 @@
 /******************************************************************************
- * (c) 2014 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
  ******************************************************************************/
 
 #ifndef BSAGELIB_TYPES_H_
@@ -56,12 +53,43 @@ Summary:
 Platform IDs are allocated by Broadcom
 The two following are the only standard ones present in all systems.
 **/
-#define BSAGE_PLATFORM_ID_UNKNOWN       (0)
-#define BSAGE_PLATFORM_ID_COMMONDRM     (0x100)
-#define BSAGE_PLATFORM_ID_HDCP22        (0x101)
-#define BSAGE_PLATFORM_ID_MANUFACTURING (0x102)
-#define BSAGE_PLATFORM_ID_UTILITY       (0x103)
-#define BSAGE_PLATFORM_ID_SECURE_VIDEO  (0x107)
+#define BSAGE_PLATFORM_ID_UNKNOWN        (0)
+#define BSAGE_PLATFORM_ID_COMMONDRM      (0x100)
+#define BSAGE_PLATFORM_ID_HDCP22         (0x101)
+#define BSAGE_PLATFORM_ID_MANUFACTURING  (0x102)
+#define BSAGE_PLATFORM_ID_UTILITY        (0x103)
+#define BSAGE_PLATFORM_ID_PLAYREADY_30   (0x105)
+#define BSAGE_PLATFORM_ID_ANTIROLLBACK   (0x106)
+#define BSAGE_PLATFORM_ID_SECURE_VIDEO   (0x107)
+#define BSAGE_PLATFORM_ID_SYSTEM         (0x108)
+#define BSAGE_PLATFORM_ID_SECURE_LOGGING (0x109)
+#define BSAGE_PLATFORM_ID_ADOBE_DRM      (0x10A)
+#define BSAGE_PLATFORM_ID_PLAYREADY_25   (0x10B)
+#define BSAGE_PLATFORM_ID_NETFLIX_ANNEXB (0x10C)
+#define BSAGE_PLATFORM_ID_NETFLIX        (0x10D)
+#define BSAGE_PLATFORM_ID_WIDEVINE       (0x10E)
+#define BSAGE_PLATFORM_ID_PLAYBACK       (0x10F)
+#define BSAGE_PLATFORM_ID_DTCP_IP        (0x110)
+#define BSAGE_PLATFORM_ID_MIRACAST       (0x111)
+#define BSAGE_PLATFORM_ID_MARLIN         (0x112)
+#define BSAGE_PLATFORM_ID_RESERVED1      (0x113)
+#define BSAGE_PLATFORM_ID_RESERVED2      (0x114)
+#define BSAGE_PLATFORM_ID_RESERVED3      (0x115)
+#define BSAGE_PLATFORM_ID_RESERVED4      (0x116)
+#define BSAGE_PLATFORM_ID_RESERVED5      (0x117)
+#define BSAGE_PLATFORM_ID_RESERVED6      (0x118)
+#define BSAGE_PLATFORM_ID_RESERVED7      (0x119)
+#define BSAGE_PLATFORM_ID_RESERVED8      (0x11A)
+#define BSAGE_PLATFORM_ID_RESERVED9      (0x11B)
+#define BSAGE_PLATFORM_ID_RESERVED10     (0x11C)
+#define BSAGE_PLATFORM_ID_RESERVED11     (0x11D)
+#define BSAGE_PLATFORM_ID_RESERVED12     (0x11E)
+#define BSAGE_PLATFORM_ID_RESERVED13     (0x11F)
+#define BSAGE_PLATFORM_ID_RESERVED14     (0x120)
+#define BSAGE_PLATFORM_ID_RESERVED15     (0x121)
+#define BSAGE_PLATFORM_ID_RESERVED16     (0x122)
+#define BSAGE_PLATFORM_ID_RESERVED17     (0x123)
+#define BSAGE_PLATFORM_ID_SYSTEM_CRIT    (0x130)
 
 /**
 Summary:
@@ -123,13 +151,20 @@ Description:
 #define BSAGE_ERR_SVP_VIOLATION                   BERR_MAKE_CODE(BERR_SAGElib_ID, 38) /* SVP violation has occurred */
 #define BSAGE_ERR_SVP_INVALID_URR                   BERR_MAKE_CODE(BERR_SAGElib_ID, 39) /* Invalid URR specified, SVP not possible */
 
+/* SDL-TA error codes */
+#define BSAGE_ERR_SDL_BAD_SLOT                          BERR_MAKE_CODE(BERR_SAGElib_ID, 40)
+#define BSAGE_ERR_SDL_SLOT_IN_USE                       BERR_MAKE_CODE(BERR_SAGElib_ID, 41)
+#define BSAGE_ERR_SDL_ALREADY_LOADED                    BERR_MAKE_CODE(BERR_SAGElib_ID, 42)
+
+#define BSAGE_ERR_TA_TERMINATED                    BERR_MAKE_CODE(BERR_SAGElib_ID, 43)
+
 #define BSAGE_INSUFFICIENT_HDCP_VERSION            BERR_MAKE_CODE(BERR_SAGElib_ID, 100)
 
 
 
 /* String definitions of return codes*/
 #define BSAGE_ERR_HSM_STRING                   "An error has occurred in HSM"
-#define BSAGE_ERR_ALREADY_INITIALIZED_STRING   "Module is already initialized"
+#define BSAGE_ERR_ALREADY_INITIALIZED_STRING   "Platform/Module is already initialized"
 #define BSAGE_ERR_INSTANCE_STRING              "Given instance does not exist"
 #define BSAGE_ERR_INTERNAL_STRING              "An internal error occurred on the SAGE side (see SAGE-side logs)"
 #define BSAGE_ERR_SHI_STRING                   "SHI (transport, sage-side) error"
@@ -179,6 +214,13 @@ Description:
 /* SVP error codes */
 #define BSAGE_ERR_SVP_VIOLATION_STRING                     "SVP Violation has occurred"
 #define BSAGE_ERR_SVP_INVALID_URR_STRING                   "Invalid URR(s) specified for SVP"
+
+/* SDL-TA error codes */
+#define BSAGE_ERR_SDL_BAD_SLOT_STRING                      "SDL Slot Type is not valid"
+#define BSAGE_ERR_SDL_SLOT_IN_USE_STRING                   "SDL Slot Type is already used"
+#define BSAGE_ERR_SDL_ALREADY_LOADED_STRING                "SDL is already loaded"
+
+#define BSAGE_ERR_TA_TERMINATED_STRING                     "TA had been Terminated by SAGE Framework because of an error"
 
 #define BSAGE_INSUFFICIENT_HDCP_VERSION_STRING              "Insufficient HDCP version."
 
@@ -268,6 +310,42 @@ typedef struct {
     void * keySlotHandle;
     uint32_t reserved[8];/*Reserved for future use*/
 } BSAGElib_SageLogBuffer;
+
+/* system module IDs */
+typedef enum SystemCrit_ModuleId_e {
+    SystemCrit_ModuleId_eFramework = 0x1
+} SystemCrit_ModuleId_e;
+
+/* system module IDs */
+typedef enum System_ModuleId_e {
+    System_ModuleId_eDynamicLoad = 0x2
+} System_ModuleId_e;
+
+
+enum {
+    /* Framework command IDs */
+    FrameworkModule_CommandId_eStandbyPassive     = 0x1,
+    FrameworkModule_CommandId_eStandbyDeepSleep,
+    FrameworkModule_CommandId_eEnableSvp, /* TODO: Need to decide hwo to send this command */
+    FrameworkModule_CommandId_eMax
+};
+
+enum {
+    DynamicLoadModule_CommandId_eLoadSDL        = 0x1,
+    DynamicLoadModule_CommandId_eUnLoadSDL,
+
+    DynamicLoadModule_CommandId_eMax
+};
+
+
+/* Used by TA Terminate Callbacks inside magnum */
+#define BSAGELIB_TERMINATE_REASON_EXCEPTION 0x1
+#define BSAGELIB_TERMINATE_REASON_HANG 0x2
+#define BSAGELIB_SOURCE_HOST 0x1
+#define BSAGELIB_SOURCE_HDCP22 0x2
+#define BSAGELIB_SOURCE_TIMER 0x3
+#define BSAGELIB_SOURCE_GENERIC 0x4
+
 #ifdef __cplusplus
 }
 #endif

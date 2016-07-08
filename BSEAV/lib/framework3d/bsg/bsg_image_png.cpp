@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -98,7 +98,7 @@ public:
    ~DestroyReadStruct()
    {
       if (*m_pngPtr != 0)
-         png_destroy_read_struct(m_pngPtr, m_infoPtr, nullptr);
+         png_destroy_read_struct(m_pngPtr, m_infoPtr, NULL);
    }
 
 private:
@@ -110,8 +110,8 @@ private:
 
 ImagePNG::ImagePNG(const string &fileName, Image::eFormat format)
 {
-   png_structp png_ptr  = nullptr;
-   png_infop   info_ptr = nullptr;
+   png_structp png_ptr  = NULL;
+   png_infop   info_ptr = NULL;
    png_bytep   *row_pointers;
    char        header[8];                          // 8 is the maximum size that can be checked
 
@@ -132,7 +132,7 @@ ImagePNG::ImagePNG(const string &fileName, Image::eFormat format)
       BSG_THROW("File " << fileName << "is not a valid PNG file");
 
    // initialize stuff
-   png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
+   png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 
    if (!png_ptr)
       BSG_THROW("Cannot create png read structure");
@@ -576,10 +576,10 @@ ImagePNG::~ImagePNG()
 void ImagePNG::Save(const std::string &fileName)
 {
    int y;
-   png_structp png_ptr = nullptr;
-   png_infop info_ptr = nullptr;
+   png_structp png_ptr = NULL;
+   png_infop info_ptr = NULL;
    FILE *fp;
-   static png_bytepp row_pointers = nullptr;
+   static png_bytepp row_pointers = NULL;
    int hasAlpha = 1;
 
    /* create file */
@@ -590,7 +590,7 @@ void ImagePNG::Save(const std::string &fileName)
    try
    {
       /* initialize stuff */
-      png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
+      png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
       if (!png_ptr)
          BSG_THROW("png_create_write_struct failed");
 
@@ -651,29 +651,29 @@ void ImagePNG::Save(const std::string &fileName)
       if (setjmp(png_ptr->jmpbuf))
          BSG_THROW("setjmp() failed");
 #endif
-      png_write_end(png_ptr, nullptr);
+      png_write_end(png_ptr, NULL);
    }
    catch (Exception e)
    {
-      if (row_pointers != nullptr)
+      if (row_pointers != NULL)
          free(row_pointers);
 
-      if (png_ptr != nullptr)
+      if (png_ptr != NULL)
          png_destroy_write_struct(&png_ptr, &info_ptr);
 
-      if (fp != nullptr)
+      if (fp != NULL)
          fclose(fp);
 
       throw(e);
    }
 
-   if (row_pointers != nullptr)
+   if (row_pointers != NULL)
       free(row_pointers);
 
-   if (png_ptr != nullptr)
+   if (png_ptr != NULL)
       png_destroy_write_struct(&png_ptr, &info_ptr);
 
-   if (fp != nullptr)
+   if (fp != NULL)
       fclose(fp);
 }
 

@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2011-2013 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #include "nxclient.h"
@@ -58,37 +50,38 @@
 
 BDBG_MODULE(playback);
 
-/* for this example, use two files: primary and description. */
-#define FILE0_NAME "videos/cnnticker.mpg"
-#if 1
-#define FILE1_NAME "videos/spider_cc.mpg"
-#else
-/* use this for one file with two pids */
-#define FILE1_NAME NULL
-#endif
-#define AUDIO0_CODEC NEXUS_AudioCodec_eMpeg
-#define AUDIO0_PID 0x22
-#define AUDIO1_CODEC NEXUS_AudioCodec_eAc3
-#define AUDIO1_PID 0x14
+#define MPEG_DESCRIPTION 0
 
+/* For this example, use 1 files: primary and description. */
+#if MPEG_DESCRIPTION
+#define FILE_NAME "videos/UK-DTT-MUXC-20070706.trp"
+#define AUDIO_CODEC NEXUS_AudioCodec_eMpeg
+#define AUDIO0_PID 0x1F6
+#define AUDIO1_PID 0x1F8
+#else
+#define FILE_NAME "videos/Dual_m51_a1_ddp_29.97fps.trp"
+#define AUDIO_CODEC NEXUS_AudioCodec_eAc3Plus
+#define AUDIO0_PID 0x30
+#define AUDIO1_PID 0x31
+#endif
 int main(void)
 {
     NxClient_AllocSettings allocSettings;
     NxClient_AllocResults allocResults;
     NxClient_ConnectSettings connectSettings;
     unsigned connectId;
-    NEXUS_PlaypumpHandle playpump[2];
+    NEXUS_PlaypumpHandle playpump;
     NEXUS_PlaypumpOpenSettings playpumpOpenSettings;
-    NEXUS_PlaybackHandle playback[2];
+    NEXUS_PlaybackHandle playback;
     NEXUS_PlaybackSettings playbackSettings;
     NEXUS_PlaybackPidChannelSettings playbackPidSettings;
-    NEXUS_FilePlayHandle file[2];
+    NEXUS_FilePlayHandle file;
     NEXUS_SimpleAudioDecoderHandle audioDecoder;
     NEXUS_SimpleAudioDecoderStartSettings audioProgram;
     NEXUS_SimpleStcChannelHandle stcChannel;
     NEXUS_Error rc;
-    unsigned i;
-    const char *filename[2] = {FILE0_NAME, FILE1_NAME};
+
+    const char *filename = FILE_NAME;
 
     rc = NxClient_Join(NULL);
     if (rc) return -1;
@@ -100,24 +93,24 @@ int main(void)
 
     stcChannel = NEXUS_SimpleStcChannel_Create(NULL);
     BDBG_ASSERT(stcChannel);
-    for (i=0;i<2;i++) {
-        if (!filename[i]) {
-            playback[i] = NULL;
-            continue;
-        }
-        file[i] = NEXUS_FilePlay_OpenPosix(filename[i], NULL);
 
-        NEXUS_Playpump_GetDefaultOpenSettings(&playpumpOpenSettings);
-        playpump[i] = NEXUS_Playpump_Open(NEXUS_ANY_ID, &playpumpOpenSettings);
-        playback[i] = NEXUS_Playback_Create();
-        BDBG_ASSERT(playback[i]);
-
-        NEXUS_Playback_GetSettings(playback[i], &playbackSettings);
-        playbackSettings.playpump = playpump[i];
-        playbackSettings.simpleStcChannel = stcChannel;
-        rc = NEXUS_Playback_SetSettings(playback[i], &playbackSettings);
-        BDBG_ASSERT(!rc);
+    file = NEXUS_FilePlay_OpenPosix(filename, NULL);
+    if ( !file )
+    {
+        BDBG_ERR(("Unable to open file %s", filename));
+        return -1;
     }
+
+    NEXUS_Playpump_GetDefaultOpenSettings(&playpumpOpenSettings);
+    playpump = NEXUS_Playpump_Open(NEXUS_ANY_ID, &playpumpOpenSettings);
+    playback = NEXUS_Playback_Create();
+    BDBG_ASSERT(playback);
+
+    NEXUS_Playback_GetSettings(playback, &playbackSettings);
+    playbackSettings.playpump = playpump;
+    playbackSettings.simpleStcChannel = stcChannel;
+    rc = NEXUS_Playback_SetSettings(playback, &playbackSettings);
+    BDBG_ASSERT(!rc);
 
     if (allocResults.simpleAudioDecoder.id) {
         audioDecoder = NEXUS_SimpleAudioDecoder_Acquire(allocResults.simpleAudioDecoder.id);
@@ -133,34 +126,28 @@ int main(void)
     NEXUS_Playback_GetDefaultPidChannelSettings(&playbackPidSettings);
     playbackPidSettings.pidSettings.pidType = NEXUS_PidType_eAudio;
     playbackPidSettings.pidTypeSettings.audio.simpleDecoder = audioDecoder;
-    audioProgram.primary.pidChannel = NEXUS_Playback_OpenPidChannel(playback[0], AUDIO0_PID, &playbackPidSettings);
-    audioProgram.primary.codec = AUDIO0_CODEC;
-    audioProgram.description.pidChannel = NEXUS_Playback_OpenPidChannel(playback[1]?playback[1]:playback[0], AUDIO1_PID, &playbackPidSettings);
-    audioProgram.description.codec = AUDIO1_CODEC;
+    audioProgram.primary.pidChannel = NEXUS_Playback_OpenPidChannel(playback, AUDIO0_PID, &playbackPidSettings);
+    audioProgram.primary.codec = AUDIO_CODEC;
+    audioProgram.description.pidChannel = NEXUS_Playback_OpenPidChannel(playback, AUDIO1_PID, &playbackPidSettings);
+    audioProgram.description.codec = AUDIO_CODEC;
 
     if (audioProgram.primary.pidChannel) {
         NEXUS_SimpleAudioDecoder_SetStcChannel(audioDecoder, stcChannel);
     }
     rc = NEXUS_SimpleAudioDecoder_Start(audioDecoder, &audioProgram);
     BDBG_ASSERT(!rc);
-    rc = NEXUS_Playback_Start(playback[0], file[0], NULL);
+    rc = NEXUS_Playback_Start(playback, file, NULL);
     BDBG_ASSERT(!rc);
-    if (playback[1]) {
-        rc = NEXUS_Playback_Start(playback[1], file[1], NULL);
-        BDBG_ASSERT(!rc);
-    }
+
 
     BDBG_WRN(("Press ENTER to exit"));
     getchar();
 
-    for (i=0;i<2;i++) {
-        if (playback[i]) {
-            NEXUS_Playback_Stop(playback[i]);
-            NEXUS_Playback_Destroy(playback[i]);
-            NEXUS_Playpump_Close(playpump[i]);
-            NEXUS_FilePlay_Close(file[i]);
-        }
-    }
+
+    NEXUS_Playback_Stop(playback);
+    NEXUS_Playback_Destroy(playback);
+    NEXUS_Playpump_Close(playpump);
+    NEXUS_FilePlay_Close(file);
     NxClient_Disconnect(connectId);
     NxClient_Free(&allocResults);
     NxClient_Uninit();

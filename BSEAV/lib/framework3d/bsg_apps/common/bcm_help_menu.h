@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -11,7 +11,7 @@
  * Software and all intellectual property rights therein.  IF YOU HAVE NO
  * AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
  * AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
- * SOFTWARE.  
+ * SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
@@ -100,7 +100,7 @@ enum eMenuID {
    eMENU_NOT_FINILISED = 0xFF,
 };
 
-//! Helper class used to store information about 
+//! Helper class used to store information about
 //! a particular menu
 class MenuPart
 {
@@ -111,14 +111,13 @@ public:
    MenuPart(eMenuID menuID) :
       m_menuNode(bsg::New),
       m_numberItems(0),
-      m_menuID(menuID),
       m_maxHeaderWidth(0),
       m_maxTextWidth(0)
    {
    }
 
    //! Returns the scene node for this menu
-   //! 
+   //!
    //! @return the scene node for this menu
    const bsg::SceneNodeHandle GetMenuNode() const { return m_menuNode; }
 
@@ -138,9 +137,9 @@ public:
    //!
    //! @param headerWidth width of the menu item header
    //! @param textWdith width of the menu item description text
-   void AppendItem(bsg::SceneNodeHandle menuItem, float headerWidth, float textWidth) 
-   { 
-      m_menuNode->AppendChild(menuItem); 
+   void AppendItem(bsg::SceneNodeHandle menuItem, float headerWidth, float textWidth)
+   {
+      m_menuNode->AppendChild(menuItem);
       m_numberItems++;
       if (m_maxHeaderWidth < headerWidth)
          m_maxHeaderWidth = headerWidth;
@@ -159,7 +158,6 @@ public:
 private:
    bsg::SceneNodeHandle m_menuNode;             //!< Scene node containing the menu items
    unsigned int         m_numberItems;          //!< Number of menu item in this menu
-   eMenuID              m_menuID;               //!< ID for this menu
    float                m_maxHeaderWidth;       //!< Store the width of the larger header and used to tab the menu description
    float                m_maxTextWidth;         //!< Maximum size of the description texts used to create the menu background
 
@@ -171,11 +169,11 @@ public:
    //! Constructor
    //!
    //! Creates one menu item describing the button to be pressed to display the full menu
-   //! 
+   //!
    //! @param app[in] The Pointer to the BSG application
-   //! @param button[in] The type of the coloured 
+   //! @param button[in] The type of the coloured
    //! @param helpButtonText[in] The text to display next to the button image
-   //! @param fontName[in] The font name 
+   //! @param fontName[in] The font name
    //! @param colourText[in] The colour of the help button text
    //! @param fontSizePercent[in] The percentage of the screen height (range between 0.0 and 1.0)
    //! @param xPercentScreen[in] The position of the top corners as a percentage of the screen width (range between 0.0 and 1.0)
@@ -183,7 +181,7 @@ public:
    //! @param useOverscan if true only percentage of the screen will be used to display the menu
    //!
    //! The menu item characteristics are setup by default with the value passed in the constructor (e.g. colour of the menu item header)
-   HelpMenu(bsg::Application *app, 
+   HelpMenu(bsg::Application *app,
             eHELPBUTTON button,
             const std::string &helpButtonText,
             const std::string &fontName,
@@ -210,7 +208,7 @@ public:
    //! @param useOverscan if true only percentage of the screen will be used to display the menu
    //!
    //! The menu item characteristics are setup by default with the value passed in the constructor (e.g. colour of the menu item header)
-   HelpMenu(bsg::Application *app, 
+   HelpMenu(bsg::Application *app,
             const std::string &helpButtonHeaderText,
             const std::string &helpButtonText,
             const std::string &fontName,
@@ -227,7 +225,7 @@ public:
 
    //! Return the scene node graph
    //! @return The scene node graph
-   const bsg::SceneNodeHandle GetRootNode() const { return m_rootNode; }; 
+   const bsg::SceneNodeHandle GetRootNode() const { return m_rootNode; };
 
    //! Adds an item into the menu
    //!
@@ -248,7 +246,7 @@ public:
    void SetMenuPosition(float xPercentScreen, float yPercentScreen);
 
    //! Set the position on the screen where the full menu should be displayed
-   //! NOTE: This function should only be called after all the menu items 
+   //! NOTE: This function should only be called after all the menu items
    //!       have been added
    //!
    //! @param[in] menuPosition One of the predefined positions
@@ -257,13 +255,13 @@ public:
 
    //! Set the colour of the text describing the function of the buttons
    //! NOTE: This function should be called before adding any menu items
-   //! 
+   //!
    //! @param[in] colour The colour of the text
    void SetMenuItemTextColour(const bsg::Vec4 &colour) {  m_menuItemTextColour =  colour; };
 
    //! Set the colour of the header i.e. button names
    //! NOTE: This function should be called before adding any menu items
-   //! 
+   //!
    //! @param[in] colour The colour of the text
    void SetMenuItemHeaderColour(const bsg::Vec4 &colour) {  m_menuItemHeaderColour =  colour; };
 
@@ -279,7 +277,7 @@ public:
    //! @param[in] size The size of the text
    void SetMenuItemHeaderSize(float size);
 
-   //! Toggle on and off the display of the full menu but only 
+   //! Toggle on and off the display of the full menu but only
    //! if the menu is not animated
    void ToggleMenu();
 
@@ -288,32 +286,32 @@ public:
 
    //! Create a background for the menu (i.e. the list of menu item)
    //! and set the colour of this background
-   //! NOTE: This function should only be called after all the menu items 
+   //! NOTE: This function should only be called after all the menu items
    //!       have been added
    //! @param[in] colour Colour of the menu background
    //! @param[in] m_menuBackgroundRoundedCorners if true the background will be a rect with rounded corners
    void SetMenuBackgroundColour(const bsg::Vec4 &colour, bool roundedCorners);
 
    //! Create a background for the menu (i.e. the list of menu item)
-   //! NOTE: This function should only be called after all the menu items 
+   //! NOTE: This function should only be called after all the menu items
    //!       have been added
    void UseMenuBackground();
 
-   //! Change the type of animation 
-   //! 
+   //! Change the type of animation
+   //!
    //! @param[in] type The type of animation
    void SetAnimationType(unsigned int type);
 
    //! Update the time for the menu animation
    void UpdateTime();
-   
+
    //! Set which menu should be displayed and recalculte the background and position
    //!
    //! @param menuToDisplay combination of eMenuToDisplay bits indicating the menu to display
    void SetMenuToDisplay(unsigned short menuToDisplay);
 
    //! Layout the menu, position of the menu, background
-   //! NOTE: This function should only be called after all the menu items 
+   //! NOTE: This function should only be called after all the menu items
    //!       have been added
    void FinaliseMenuLayout();
 
@@ -334,16 +332,16 @@ private:
    //! @param[in] buttonNode The node where the menu item should be created
    //! @param[in] button The colour of the button
    //! @param[in] text  The text describing the function of the button
-   //! @param[in] font The font 
+   //! @param[in] font The font
    //! @param[in] fontSize The size of the font
    //! @param[in] colourText The colour of the text describing the button
    //! @param[out] imgSize Width of the menu item header
    //! @param[out] textWidth Width of the menu item description text
-   void CreateColouredButtonNode(bsg::SceneNodeHandle &buttonNode, 
-                                 eHELPBUTTON button, 
-                                 const std::string &text, 
-                                 const bsg::PrintFontHandle &font, 
-                                 float fontSize, 
+   void CreateColouredButtonNode(bsg::SceneNodeHandle &buttonNode,
+                                 eHELPBUTTON button,
+                                 const std::string &text,
+                                 const bsg::PrintFontHandle &font,
+                                 float fontSize,
                                  const bsg::Vec4 &colourText,
                                  float &imgSize,
                                  float &textWidth);
@@ -351,7 +349,7 @@ private:
    //! Create a header (text of coloured button) and a text to
    //!   describing the function of the button
    //!
-   //! @param[in] buttonNode The node where the menu item should be created 
+   //! @param[in] buttonNode The node where the menu item should be created
    //! @param[in] helpButtonHeaderText Text of the menu item header
    //! @param[in] helpButtonText Text of the menu item description
    //! @param[in] font The font
@@ -359,13 +357,13 @@ private:
    //! @param[in] sizeText Text size of the menu item description
    //! @param[out] headerWidth Width of the menu item header
    //! @param[out] textWidth Width of the menu item description text
-   void CreateHeaderAndTextNode(bsg::SceneNodeHandle &buttonNode, 
-                                const std::string &helpButtonHeaderText, 
-                                const std::string &helpButtonText, 
-                                const bsg::PrintFontHandle &font, 
-                                float sizeHeader, 
-                                float sizeText, 
-                                const bsg::Vec4 &colourHeader, 
+   void CreateHeaderAndTextNode(bsg::SceneNodeHandle &buttonNode,
+                                const std::string &helpButtonHeaderText,
+                                const std::string &helpButtonText,
+                                const bsg::PrintFontHandle &font,
+                                float sizeHeader,
+                                float sizeText,
+                                const bsg::Vec4 &colourHeader,
                                 const bsg::Vec4 &colourText,
                                 float &headerWidth,
                                 float &textWidth);
@@ -403,7 +401,7 @@ private:
    //! @return the position of the menu
    bsg::Vec2 GetMenuPosition();
 
-   //! Calculate the position of the menu using percentages of the 
+   //! Calculate the position of the menu using percentages of the
    //! screen sizes
    //!
    //! @return the position of the menu
@@ -415,7 +413,7 @@ private:
    bsg::Vec2 GetMenuPositionFromRefPos();
 
    //! Indent the menu description
-   //! NOTE: This function should only be called after all the menu items 
+   //! NOTE: This function should only be called after all the menu items
    //!       have been added
    void TabMenuItemDescriptions();
 
@@ -437,22 +435,22 @@ private:
 
    //! Creates an animation to reposition the menu
    void AdjustMenuPositionAnimation();
-   
+
    //! Map containing a menu ID and a pointer to MenuPart
    typedef std::map<eMenuID, MenuPart *> MenuMap;
-   
-   bsg::Application        *m_app;              
+
+   bsg::Application        *m_app;
    bsg::SceneNodeHandle    m_rootNode;                   //!< Root node of the whole help menu
    bsg::SceneNodeHandle    m_helpButtonNode;             //!< Node containing the button to press to get the help menu displayed
    bsg::SceneNodeHandle    m_helpMenuNode;               //!< Node containing the menu to be displayed
    bsg::SceneNodeHandle    m_menuBackgroundNode;         //!< Node containing the background of the menu
    bsg::CameraHandle       m_camera;                     //!< BSG camera used to display the menu
    MenuMap                 m_menuMap;                    //!< Map of menu IDs and menu part objects
-                           
+
    bsg::PrintFontHandle    m_font;                       //!< The text font used for menu texts
-                           
+
    bsg::EffectHandle       m_buttonEffect;               //!< Effect used for all the coloured button
-                           
+
    bsg::Vec4               m_menuItemHeaderColour;       //!< Colour for the header: i.e. the name of the button
    bsg::Vec4               m_menuItemTextColour;         //!< Colour of the text describing the function of the button
    float                   m_menuItemHeaderSize;         //!< Size of the text for the header: i.e. the name of the button

@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2013 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2013 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -16,6 +16,7 @@ FILE DESCRIPTION
 
 static void Destroy(void *me)
 {
+   UNUSED(me);
 }
 
 static void Accept(void *me, DFlowNode *node)
@@ -60,5 +61,8 @@ void DFlowValidateVisitor_Visit(DFlowValidateVisitor *self, DFlowNode *node)
 {
 #ifndef NDEBUG
    DFlowVisitor_VisitTopDown(self, node);
+#else
+   UNUSED(self);
+   UNUSED(node);
 #endif
 }

@@ -1,7 +1,7 @@
 /******************************************************************************
-*    (c)2011-2013 Broadcom Corporation
+* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-* This program is the proprietary software of Broadcom Corporation and/or its licensors,
+* This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
 * conditions of a separate, written license agreement executed between you and Broadcom
 * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
 * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 * ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * Module Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 *****************************************************************************/
 #include "bhab.h"
@@ -163,104 +155,67 @@ BERR_Code BHAB_45308_PrintUart(BHAB_Handle h, char *pStr)
 
 
 /******************************************************************************
- BHAB_45308_GetFlashEventHandle()
+ BHAB_45308_BscWrite()
 ******************************************************************************/
-BERR_Code BHAB_45308_GetFlashEventHandle(
-   BHAB_Handle handle,            /* [in] BHAB handle */
-   BKNI_EventHandle *hEvent       /* [out] flash operation done event handle */
-)
-{
-   *hEvent = ((BHAB_45308_P_Handle *)(handle->pImpl))->hFlashDoneEvent;
-   return BERR_SUCCESS;
-}
-
-
-/******************************************************************************
- BHAB_45308_WriteFlashSector()
-******************************************************************************/
-BERR_Code BHAB_45308_WriteFlashSector(
-   BHAB_Handle h,    /* [in] BHAB handle */
-   uint32_t    addr, /* [in] sector address in flash to program */
-   uint8_t     *pData /* [in] 4096 bytes of data to write to sector */
+BERR_Code BHAB_45308_BscWrite(
+   BHAB_Handle h,        /* [in] BHAB handle */
+   uint8_t channel,      /* [in] BSC channel, 0=BSCA, 1=BSCB, 2=BSCC */
+   uint16_t slave_addr,  /* [in] for 7-bit address: bits[6:0]; for 10-bit address: bits[9:0], bit 15 is set  */
+   uint8_t *i2c_buf,     /* [in] specifies the data to transmit */
+   uint32_t n            /* [in] number of bytes to transmit after the i2c slave address, 0 to 8 */
 )
 {
    BERR_Code retCode;
-   uint32_t mask, hab[4], bufAddr, i;
-   uint8_t sectorBuf[4<<10];
+   uint32_t hab[13], i;
 
-   if (addr >= (512<<10))
+   if ((n > 8) || (i2c_buf == NULL) || (channel > 2))
       return BERR_INVALID_PARAMETER;
 
-   /* get the address of the flash sector buf in LEAP memory */
-   hab[0] = BHAB_45308_InitHeader(0x05, 0, BHAB_45308_READ, BHAB_45308_MODULE_LEAP);
-   hab[1] = 6; /* FLASH_BUF_ADDR */
-   BHAB_CHK_RETCODE(BHAB_45308_P_SendCommand(h, hab, 4));
-   bufAddr = hab[2];
+   BKNI_Memset(hab, 0, 13*sizeof(uint32_t));
+   hab[0] = BHAB_45308_InitHeader(0x40, channel, 0, 0);
+   hab[2] = slave_addr | (n << 16);
+   for (i = 0; i < n; i++)
+      hab[3+i] = (uint32_t)i2c_buf[i];
+   retCode = BHAB_45308_P_SendCommand(h, hab, 4+n);
+   if (retCode == BERR_SUCCESS)
+      retCode = hab[1];
 
-   /* write sector data */
-   for (i = 0; i < (4<<10); i += 4)
+   return retCode;
+}
+
+
+/******************************************************************************
+ BHAB_45308_BscRead()
+******************************************************************************/
+BERR_Code BHAB_45308_BscRead(
+   BHAB_Handle h,        /* [in] BHAB handle */
+   uint8_t channel,      /* [in] BSC channel, 0=BSCA, 1=BSCB, 2=BSCC */
+   uint16_t slave_addr,  /* [in] for 7-bit address: bits[6:0]; for 10-bit address: bits[9:0], bit 15 is set  */
+   uint8_t *out_buf,     /* [in] specifies the data to transmit before the i2c restart condition */
+   uint8_t out_n,        /* [in] number of bytes to transmit (<=8) before the i2c restart condition not including the i2c slave address */
+   uint8_t *in_buf,      /* [out] stores the data read */
+   uint32_t in_n         /* [in] number of bytes to read after the i2c restart condition */
+)
+{
+   BERR_Code retCode = BERR_SUCCESS;
+   uint32_t hab[21], i;
+
+   if ((in_n > 8) || (in_n == 0) || (in_buf == NULL) || (out_n > 8) || ((out_buf == NULL) && out_n) || (channel > 2))
+      return BERR_INVALID_PARAMETER;
+
+   BKNI_Memset(hab, 0, 21*sizeof(uint32_t));
+   hab[0] = BHAB_45308_InitHeader(0x41, channel, 0, 0);
+   hab[2] = slave_addr | (out_n << 16) | (in_n << 24);
+   for (i = 0; i < out_n; i++)
+      hab[3+i] = (uint32_t)out_buf[i];
+
+   retCode = BHAB_45308_P_SendCommand(h, hab, 4+in_n+out_n);
+   if (retCode == BERR_SUCCESS)
    {
-      sectorBuf[i+0] = pData[i+3];
-      sectorBuf[i+1] = pData[i+2];
-      sectorBuf[i+2] = pData[i+1];
-      sectorBuf[i+3] = pData[i+0];
+      retCode = hab[1];
+      for (i = 0; i < in_n; i++)
+         in_buf[i] = (uint8_t)(hab[3+out_n+i] & 0xFF);
    }
-   BHAB_CHK_RETCODE(BHAB_45308_P_WriteMemory(h, bufAddr, (const uint8_t*)sectorBuf, (4<<10)));
 
-   /* enable the flash done interrupt */
-   mask = BHAB_45308_HIRQ0_FLASH_DONE;
-   BHAB_CHK_RETCODE(BHAB_45308_P_WriteRegister(h, BCHP_LEAP_HOST_L2_MASK_CLEAR0, &mask));
-
-   /* initiate write to flash */
-   hab[0] = BHAB_45308_InitHeader(0x08, 0, 0, 0);
-   hab[1] = addr;
-   retCode = BHAB_45308_P_SendCommand(h, hab, 3);
-
-   done:
    return retCode;
-}
-
-
-/******************************************************************************
- BHAB_45308_ReadFlash()
-******************************************************************************/
-BERR_Code BHAB_45308_ReadFlash(
-   BHAB_Handle h,    /* [in] BHAB handle */
-   uint32_t    addr, /* [in] offset in flash */
-   uint32_t    n,    /* [in] number of bytes to read */
-   uint8_t     *pBuf /* [out] bytes read from flash */
-)
-{
-   BERR_Code retCode;
-   uint32_t val, flashStatus;
-
-   /* check if flash is busy */
-   BHAB_CHK_RETCODE(BHAB_45308_P_ReadRegister(h, BCHP_LEAP_CTRL_GP27, &flashStatus));
-   if (flashStatus == 0x02000008)
-      return BHAB_ERR_HAB_RESOURCE_BUSY;
-
-   /* set BSPI to control SPI bus */
-   val = 0;
-   BHAB_CHK_RETCODE(BHAB_45308_P_WriteRegister(h, BCHP_BSPI_MAST_N_BOOT_CTRL, &val));
-
-   retCode = BHAB_45308_P_ReadMemory(h, 0xC0000000 | addr, pBuf, n);
-
-   done:
-   return retCode;
-}
-
-
-/******************************************************************************
- BHAB_45308_SelectUart()
-******************************************************************************/
-BERR_Code BHAB_45308_SelectUart(
-   BHAB_Handle h,    /* [in] BHAB handle */
-   bool bLeap        /* selects which CPU in 45308 has the UART output: false=AVS CPU, true=LEAP */
-)
-{
-   uint32_t hab[4];
-
-   hab[0] = BHAB_45308_InitHeader(0x3D, 0, 0, 0);
-   hab[1] = bLeap ? 0 : 1;
-   return BHAB_45308_P_SendCommand(h, hab, 3);
 }

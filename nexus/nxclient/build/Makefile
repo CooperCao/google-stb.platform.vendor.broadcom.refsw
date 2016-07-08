@@ -1,7 +1,7 @@
-############################################################
-#     (c)2013-2014 Broadcom Corporation
+##############################################################################
+#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 #
-#  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+#  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
 #  conditions of a separate, written license agreement executed between you and Broadcom
 #  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,11 +35,7 @@
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
 #
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
-############################################################
+##############################################################################
 
 PHONY=all clean install nexus_headers
 .PHONY: $(PHONY)
@@ -79,23 +75,32 @@ LDFLAGS += $(NEXUS_CLIENT_LD_LIBRARIES)
 ifeq ($(B_REFSW_ANDROID),y)
 LDFLAGS += -nostdlib \
 	-Wl,--gc-sections -Wl,-shared,-Bsymbolic \
-	-L$(ANDROID_LIB) \
-	-Wl,--no-whole-archive -lcutils -lc -lm \
+	-L$(B_REFSW_ANDROID_LIB) \
+	-Wl,--no-whole-archive -lcutils -lc -lm -ldl \
 	-Wl,--whole-archive
 ifeq ($(B_REFSW_USES_CLANG),y)
-LDFLAGS += ${ANDROID_TOP}/prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9/lib/gcc/arm-linux-androideabi/4.9.x-google/libgcc.a \
-	-target arm-linux-androideabi \
-	-B${ANDROID_TOP}/prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9/bin
+ifeq ($(B_REFSW_ARCH), aarch64-linux)
+LDFLAGS += \
+   ${ANDROID_TOP}/${ANDROID_PREBUILT_LIBGCC} \
+   -target aarch64-linux-android \
+   -B${ANDROID_TOP}/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/bin
+else
+LDFLAGS += \
+   ${ANDROID_TOP}/${ANDROID_PREBUILT_LIBGCC} \
+   -target arm-linux-androideabi \
+   -B${ANDROID_TOP}/prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9/bin
+endif
 endif
 else
 LDFLAGS += -Wl,-Map,$(NEXUS_BIN_DIR)/libnxclient.map
 endif
 
 IPC_LIB=$(NEXUS_BIN_DIR)/libnxclient.so
+IPC_LIB_STATIC=$(NEXUS_BIN_DIR)/libnxclient_static.a
 LOCAL_LIB=$(NEXUS_BIN_DIR)/libnxclient_local.so
 Q_?=@
 
-all: $(IPC_LIB) $(LOCAL_LIB)
+all: $(IPC_LIB) $(IPC_LIB_STATIC) $(LOCAL_LIB)
 ifeq ($(NEXUS_HEADERS),y)
 all: nexus_headers
 endif
@@ -144,9 +149,15 @@ $(NXCLIENT_MODE_CHECK):
 	@touch $@
 endif
 
-$(IPC_LIB): nxclient_ipc.o nxclient_common.o $(patsubst %.c,%.o,$(notdir $(NXCLIENT_SOCKET_INTF))) bipc_util.o bipc_client.o $(NXCLIENT_MODE_CHECK)
+IPC_LIB_OBJS := nxclient_ipc.o nxclient_common.o $(patsubst %.c,%.o,$(notdir $(NXCLIENT_SOCKET_INTF))) bipc_util.o bipc_client.o $(NXCLIENT_MODE_CHECK)
+
+$(IPC_LIB): $(IPC_LIB_OBJS)
 	${Q_}echo "[Linking $(notdir $@)]"
 	${Q_}$(B_LINKER) ${LDFLAGS} -shared -Wl,--cref -Wl,-x -o $@ -Wl,-soname,libnxclient.so $(filter %.o,$^)
+
+$(IPC_LIB_STATIC): $(IPC_LIB_OBJS)
+	${Q_}echo "[Archive... $(notdir $@)]"
+	$(Q_)$(AR) rcs $@ $^
 
 $(LOCAL_LIB): nxclient_local.o nxclient_common.o
 	${Q_}echo "[Linking $(notdir $@)]"
@@ -156,7 +167,7 @@ $(LOCAL_LIB): nxclient_local.o nxclient_common.o
 	${Q_}$(CC) -c -o $@ $(filter %.c %.s %.o, $<) ${CFLAGS}
 
 clean:
-	$(RM) -r $(IPC_LIB) $(LOCAL_LIB) $(NEXUS_BIN_DIR)/libnxclient.map *.o stubs
+	$(RM) -r $(IPC_LIB) $(IPC_LIB_STATIC) $(LOCAL_LIB) $(NEXUS_BIN_DIR)/libnxclient.map *.o stubs
 
 install: all
 

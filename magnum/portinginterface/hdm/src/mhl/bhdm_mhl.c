@@ -22,11 +22,11 @@
 #include "breg_mem.h"   /* Chip register access. */
 #include "bkni.h"       /* Kernel Interface */
 #include "bint.h"       /* Interrupt */
-#include "btmr.h"   	/* Timer Handle  */
+#include "btmr.h"       /* Timer Handle  */
 
 #include "berr_ids.h"   /* Error codes */
 #include "bdbg.h"       /* Debug Support */
-#include "bhdm_priv.h"
+#include "../common/bhdm_priv.h"
 #include "bhdm_mhl.h"
 
 

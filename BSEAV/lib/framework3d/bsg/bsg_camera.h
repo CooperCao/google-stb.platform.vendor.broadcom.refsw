@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -11,7 +11,7 @@
  * Software and all intellectual property rights therein.  IF YOU HAVE NO
  * AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
  * AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
- * SOFTWARE.  
+ * SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
@@ -175,19 +175,19 @@ public:
    void SetClippingPlanes(float nr, float fr)          { SetNearClippingPlane(nr); SetFarClippingPlane(fr); }
 
    //! Return the focal plane distance from the camera.
-   //! The focal plane is the distance which will appear to be in the plane of the display (neither in front nor behind) 
+   //! The focal plane is the distance which will appear to be in the plane of the display (neither in front nor behind)
    //! when viewing in stereo.
    //! The focal plane is animatable.
    const AnimatableFloat &GetFocalPlane() const        { return m_focalPlane; }
 
    //! Return the focal plane distance from the camera.
-   //! The focal plane is the distance which will appear to be in the plane of the display (neither in front nor behind) 
+   //! The focal plane is the distance which will appear to be in the plane of the display (neither in front nor behind)
    //! when viewing in stereo.
    //! The focal plane is animatable.
    AnimatableFloat &GetFocalPlane()                    { return m_focalPlane; }
 
    //! Set the focal plane distance from the camera.
-   //! The focal plane is the distance which will appear to be in the plane of the display (neither in front nor behind) 
+   //! The focal plane is the distance which will appear to be in the plane of the display (neither in front nor behind)
    //! when viewing in stereo.
    void SetFocalPlane(float val)                       { m_focalPlane.Set(val); }
 
@@ -211,10 +211,6 @@ public:
    //! Calculates and returns a projection matrix for the right eye of a stereo view for this camera.
    void MakeRightEyeProjectionMatrix(Mat4 *proj) const;
 
-   //! Calculates and returns a projection matrix for the four panels in a quad display
-   //! quadAspect is x panels / y panels
-   void MakeQuadProjectionMatrix(Mat4 *proj, float left, float right, float bottom, float top, float quadAspect) const;
-
    //! Returns a view volume for the frustum used by this camera.
    void GetViewVolume(ViewVolume *frustumPtr) const;
 
@@ -222,7 +218,7 @@ public:
    CameraCallback *GetCallback() const                { return m_callback;                   }
 
    //! Sets a bsg::CameraCallback on this node it is now ownded by the node.
-   void SetCallback(CameraCallback *callback)         { if (m_callback != nullptr) delete m_callback; m_callback = callback; }
+   void SetCallback(CameraCallback *callback)         { if (m_callback != NULL) delete m_callback; m_callback = callback; }
 
 protected:
    Camera();
@@ -250,7 +246,7 @@ private:
 //! @addtogroup math
 //! @{
 
-//! A helper class used to generate a Transform to be used in a scene node (or an animation), based on a 
+//! A helper class used to generate a Transform to be used in a scene node (or an animation), based on a
 //! camera position, target position and up-vector.
 class CameraTransformHelper
 {

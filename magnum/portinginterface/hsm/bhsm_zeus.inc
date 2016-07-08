@@ -62,6 +62,32 @@ endif
 
 BHSM_DEFINES += BHSM_AEGIS_SUPPORT
 
+
+ifeq ($(BHSM_TEST_INCLUDE_ALL),ON)
+    BHSM_SUPPORT_CARLSBAD=ON
+    BHSM_SUPPORT_IRDETO=ON
+    BHSM_SUPPORT_RESTRICTED_REG_VER=ON
+    BHSM_SUPPORT_KEYLADDER_VISTA=ON
+    BHSM_SUPPORT_USER_AESDES=ON
+    BHSM_SUPPORT_KKC=ON
+    BHSM_SUPPORT_HDCP22=ON
+    BHSM_MISC_BITS_SAGE=ON
+    BHSM_SECURE_PKL=ON
+    BHSM_NSKCMD=ON
+    BHSM_SUPPORT_ALPINE=ON
+    BHSM_IP_LICENSING=ON
+    BHSM_SECURE_ACCESS=ON
+    BHSM_SECURE_RSA=ON
+    BHSM_SAGE_ANTI_ROLLBACK_COUNTER=ON
+    BHSM_WEB_CPU=ON
+    BHSM_PWR_MGMT=ON
+    BHSM_BSECK=ON
+    BHSM_GEN_ROOT_KEY=ON
+    BHSM_CHALLENGE_RESPONSE=ON
+    # BHSM_AV_CMD=ON
+endif
+
+
 ifeq (${BHSM_DEBUG_DUMP_RAW_BSP_COMMAND},y)
     BHSM_DEFINES += BHSM_DEBUG_DUMP_RAW_BSP_COMMAND=1
 endif
@@ -72,7 +98,6 @@ endif
 
 # Support uScValue definition for newer chip (7400C0 and later)
 BHSM_DEFINES += BHSM_SC_VALUE
-BSP_SC_VALUE_SUPPORT := ON
 
 BHSM_DEFINES += BSP_REFORMATTED_FOR_URSR_15_1    # Scheduled to be removed for URSR 16.2
 
@@ -182,22 +207,6 @@ ifeq ($(MSDRM_PD_SUPPORT),y)
 endif
 
 
-## Secure Miscellaneous API
-#-----------------------------------------------------------------------------------#
-
-
-ifeq ($(BHSM_MISC),ON)
-    BHSM_DEFINES += BHSM_SECURE_PI_SUPPORT_MISC=1
-    #$(warning  ..........Secure Misc Feature is built in with BHSM_MISC = $(BHSM_MISC) )
-    ifneq ($(HSM_SOURCE_AVAILABLE),n)
-        BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/src/user_misc_cmd/bhsm_misc_enc.c
-    endif
-    BHSM_INCLUDES += $(MAGNUM)/portinginterface/hsm/include/user_misc_cmd
-else
-    BHSM_DEFINES += BHSM_SECURE_PI_SUPPORT_MISC=0
-endif
-
-
 ## Power Management Support
 #----------------------------------------------------------------------------#
 
@@ -234,46 +243,38 @@ else
 endif
 
 
-## Interface to SAGE Global SRAM Support
-#----------------------------------------------------------------------------#
-
-ifeq ($(findstring $(ZEUSVER), Zeus30 Zeus40 Zeus41 Zeus42), $(ZEUSVER))
-    BHSM_SAGE_INTF ?= ON
+ifeq ($(BHSM_SAGE_SETARCH),ON)
+    ifneq ($(HSM_SOURCE_AVAILABLE),n)
+        BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/src/common/bhsm_restricted_arch_sage.c
+    endif
 endif
-
-ifeq ($(BHSM_SAGE_INTF),ON)
-    BHSM_DEFINES += BHSM_SAGE_INTF_SUPPORT=1
-    BHSM_DEFINES += SCPU_SECURE=1
-    #$(warning  ..........Host-Sage Global SRAM Feature is built in with BHSM_SAGE_INTF= $(BHSM_SAGE_INTF) )
-else
-    BHSM_DEFINES += BHSM_SAGE_INTF_SUPPORT=0
-    #BHSM_DEFINES += SCPU_SECURE=0
-endif
-
-
 
 ## HSM PI On SAGE Support
 #  To prepare HSM PI code for SAGE compilation (running on SAGE)
 #----------------------------------------------------------------------------#
 
 
-ifeq ($(BHSM_SAGE_BSP_PI),ON)
-    BHSM_DEFINES += BHSM_SAGE_BSP_PI_SUPPORT=1
-    BHSM_DEFINES += SCPU_SECURE=1
-    #$(warning  ..........Power Management Feature is built in with BHSM_SAGE_BSP_PI= $(BHSM_SAGE_BSP_PI) )
+ifeq ($(BHSM_SAGE_BSP_PI),ON)  #BHSM_SAGE_BSP_PI is DEPRECATED. Use BHSM_BUILD_HSM_FOR_SAGE
+    BHSM_BUILD_HSM_FOR_SAGE=ON
+endif
+
+ifeq ($(BHSM_BUILD_HSM_FOR_SAGE),ON)
+    BHSM_DEFINES += BHSM_BUILD_HSM_FOR_SAGE=1
     BHSM_INCLUDES += $(MAGNUM)/portinginterface/hsm/include/sage_bsp_cmd
     ifneq ($(HSM_SOURCE_AVAILABLE),n)
         BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/src/sage_bsp_cmd/bhsm_sage_cmds.c
     endif
-else
-    BHSM_DEFINES += BHSM_SAGE_BSP_PI_SUPPORT=0
-    #BHSM_DEFINES += SCPU_SECURE=0
 endif
 
 ## SAGE_ANTI_ROLLBACK_COUNTER_RAW support
 #-----------------------------------------------------------------------------------#
 
-ifeq ($(BHSM_SAGE_ANTI_ROLLBACK_COUNTER_RAW),ON)
+
+ifeq ($(BHSM_SAGE_ANTI_ROLLBACK_COUNTER_RAW),ON) # BHSM_SAGE_ANTI_ROLLBACK_COUNTER_RAW is DEPRECATED. use BHSM_SAGE_ANTI_ROLLBACK_COUNTER
+    BHSM_SAGE_ANTI_ROLLBACK_COUNTER=ON
+endif
+
+ifeq ($(BHSM_SAGE_ANTI_ROLLBACK_COUNTER),ON)
 
     BHSM_INCLUDES += $(MAGNUM)/portinginterface/hsm/include/sage_anti_rollback
 
@@ -441,7 +442,6 @@ BHSM_INCLUDES += $(MAGNUM)/portinginterface/hsm/include/aegis/${ZEUSVER}
 # Public Module Sources
 ifneq ($(HSM_SOURCE_AVAILABLE),n)
     BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/src/common/bhsm.c
-    BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/src/common/bhsm_bsp_interface_legacy.c
     BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/src/common/bhsm_bsp_msg.c
     BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/src/common/bhsm_misc.c
     BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/src/common/bhsm_usercmd_common.c

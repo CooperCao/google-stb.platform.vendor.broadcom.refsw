@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2010-2013 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,31 +34,20 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
  **************************************************************************/
 #ifndef NEXUS_SIMPLE_ENCODER_SERVER_H__
 #define NEXUS_SIMPLE_ENCODER_SERVER_H__
 
 #include "nexus_simple_encoder.h"
 #include "nexus_playpump.h"
-#if NEXUS_HAS_AUDIO
+#ifdef NEXUS_HAS_AUDIO
 #include "nexus_audio_mux_output.h"
 #include "nexus_audio_mixer.h"
 #else
 typedef void *NEXUS_AudioMuxOutputHandle;
 typedef void *NEXUS_AudioMixerHandle;
 #endif
-#if NEXUS_HAS_STREAM_MUX
+#ifdef NEXUS_HAS_STREAM_MUX
 #include "nexus_video_encoder.h"
 #include "nexus_stream_mux.h"
 #else
@@ -71,14 +60,25 @@ extern "C" {
 #endif
 
 /**
-This server-side is semi-private. In multi-process systems, only server apps like nxserver will call it.
+This server-side API is semi-private. In multi-process systems, only server apps like nxserver will call it.
 Client apps will not call it. Therefore, this API is subject to non-backward compatible change.
 **/
+
+typedef struct NEXUS_SimpleEncoderServer *NEXUS_SimpleEncoderServerHandle;
+
+NEXUS_SimpleEncoderServerHandle NEXUS_SimpleEncoderServer_Create( /* attr{destructor=NEXUS_SimpleEncoderServer_Destroy}  */
+    void
+    );
+
+void NEXUS_SimpleEncoderServer_Destroy(
+    NEXUS_SimpleEncoderServerHandle handle
+    );
 
 /**
 Summary:
 **/
 NEXUS_SimpleEncoderHandle NEXUS_SimpleEncoder_Create( /* attr{destructor=NEXUS_SimpleEncoder_Destroy} */
+    NEXUS_SimpleEncoderServerHandle server,
     unsigned id
     );
 
@@ -94,7 +94,8 @@ Video and audio encode resources are opened externally so they can be passed bet
 **/
 typedef struct NEXUS_SimpleEncoderServerSettings
 {
-    NEXUS_DisplayHandle transcodeDisplay;
+    unsigned transcodeDisplayIndex;
+    bool headless;
     NEXUS_AudioMuxOutputHandle audioMuxOutput;
     NEXUS_VideoEncoderHandle videoEncoder;
 #define NEXUS_SIMPLE_ENCODER_NUM_PLAYPUMPS 3
@@ -119,6 +120,7 @@ typedef struct NEXUS_SimpleEncoderServerSettings
 Summary:
 **/
 void NEXUS_SimpleEncoder_GetServerSettings(
+    NEXUS_SimpleEncoderServerHandle server,
     NEXUS_SimpleEncoderHandle handle,
     NEXUS_SimpleEncoderServerSettings *pSettings
     );
@@ -127,6 +129,7 @@ void NEXUS_SimpleEncoder_GetServerSettings(
 Summary:
 **/
 NEXUS_Error NEXUS_SimpleEncoder_SetServerSettings(
+    NEXUS_SimpleEncoderServerHandle server,
     NEXUS_SimpleEncoderHandle handle,
     const NEXUS_SimpleEncoderServerSettings *pSettings
     );

@@ -1,23 +1,43 @@
-/***************************************************************************
- *     Copyright (c) 2002-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * Module Description:
- * User mode driver with 128 bit interrupt support.
- * Revision History:
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
  *
- * $brcm_Log: $
- * 
- ***************************************************************************/
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 #include <linux/version.h>
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 37)
 #elif ( LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,30) ) && ( LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 37) )
@@ -42,11 +62,14 @@
 #include <linux/seq_file.h>
 #include <linux/uidgid.h>
 #endif
-#include <stdbool.h>
 #include "b_memory_regions.h"
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,1)
 #include <linux/brcmstb/brcmstb.h>
 #endif
+#include "b_virtual_irq.h"
+#include "b_virtual_irq_usermode.h"
+#include "b_shared_gpio.h"
+#include "b_shared_gpio_usermode.h"
 
 /*
 * Macros to help debugging
@@ -157,7 +180,7 @@ static irqreturn_t brcm_interrupt(int irq, void *dev_id);
 #else
 static irqreturn_t brcm_interrupt(int irq, void *dev_id, struct pt_regs *regs);
 #endif
-static void brcm_enable_irq(intmgr_t *p_intmgr, unsigned long Mask[]);
+static void brcm_enable_irq(intmgr_t *p_intmgr, const uint32_t *Mask);
 
 static unsigned vmalloc_size(unsigned required_vmalloc, uint64_t highest_installed_dram, unsigned lowest_bmem_addr);
 
@@ -226,6 +249,46 @@ MODULE_PARM(gBcmDebug,"0-1i");
 
 static DEFINE_MUTEX(gBcmLock);
 
+#ifdef CONFIG_COMPAT
+
+typedef struct s_bcm_linux_mem_addr_range_32
+{
+    unsigned address; /* Virtual memory address */
+    unsigned length;       /* Length of range (in bytes) */
+} t_bcm_linux_mem_addr_range_32;
+
+#define BRCM_IOCTL_FLUSH_DCACHE_RANGE_32       _IOW(101, 29, t_bcm_linux_mem_addr_range_32) /* use t_bcm_linux_mem_addr_range with this IOCTL */
+
+static long  brcm_compat_ioctl(struct file * file, unsigned int cmd, unsigned long arg)
+{
+    int result=0;
+    switch(cmd) {
+    case BRCM_IOCTL_FLUSH_DCACHE_RANGE_32:
+#if defined(CONFIG_ARM) || defined(CONFIG_ARM64)
+        {
+            t_bcm_linux_mem_addr_range_32 mem_addr_range;
+
+            if (copy_from_user(&mem_addr_range, (void*)arg, sizeof(mem_addr_range))) {
+                result = -EFAULT;
+                PERR("copy_from_user failed!\n");
+                break;
+            }
+
+           /* address would get validated inside brcm_cpu_dcache_flush */
+           /* coverity[tainted_data] */
+           result = brcm_cpu_dcache_flush((void *)(unsigned long)mem_addr_range.address, mem_addr_range.length);
+        }
+#else
+        PERR("Not implemented for this platfrom\n");
+#endif
+        break;
+    default:
+        result = brcm_ioctl(file, cmd, arg);
+    }
+    return result;
+}
+#endif
+
 static struct file_operations brcm_fops = {
     owner:      THIS_MODULE,
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 37)
@@ -233,12 +296,24 @@ static struct file_operations brcm_fops = {
 #else
     ioctl:      brcm_ioctl,
 #endif
+#ifdef CONFIG_COMPAT
+    compat_ioctl: brcm_compat_ioctl,
+#endif
     open:       brcm_open,
     release:    brcm_close,
     mmap:       brcm_mmap
 };
 
-static void brcm_enable_irq(intmgr_t *p_intmgr, unsigned long Mask[])
+/* sub-module support */
+static int g_virtual_irq_supported; /* bool */
+static int g_shared_gpio_supported; /* bool */
+static void brcm_init_submodules(void);
+static void brcm_uninit_submodules(void);
+static int brcm_open_submodules(void);
+static void brcm_close_submodules(void);
+static void brcm_virtualize_l1s(void);
+
+static void brcm_enable_irq(intmgr_t *p_intmgr, const uint32_t *Mask)
 {
     unsigned i, irq;
     unsigned long flags;
@@ -255,8 +330,18 @@ static void brcm_enable_irq(intmgr_t *p_intmgr, unsigned long Mask[])
             }
         }
     }
+    if (g_virtual_irq_supported)
+    {
+        b_virtual_irq_enable_irqs();
+    }
+    if (g_shared_gpio_supported)
+    {
+        b_shared_gpio_enable_irqs();
+    }
     spin_unlock_irqrestore(&gSpinLock, flags);
+    return;
 }
+
 
 /**
 Reenable all interrupts which we manage where status is cleared.
@@ -265,10 +350,10 @@ status bits. */
 static void brcm_reenable_irq(intmgr_t *p_intmgr)
 {
     int irq;
+    unsigned long flags;
 
     for (irq = 1; irq < g_sChipConfig.maxNumIrq; ++irq)
     {
-        unsigned long flags;
         spin_lock_irqsave(&gSpinLock, flags);
         if (g_sChipConfig.pIntTable[irq].disabled) {
             if(gBcmDebug)
@@ -278,6 +363,15 @@ static void brcm_reenable_irq(intmgr_t *p_intmgr)
         }
         spin_unlock_irqrestore(&gSpinLock, flags);
     }
+    if (g_virtual_irq_supported)
+    {
+        b_virtual_irq_reenable_irqs();
+    }
+    if (g_shared_gpio_supported)
+    {
+        b_shared_gpio_reenable_irqs();
+    }
+    return;
 }
 
 static int g_jiffies_isr = 0;   /* time when an L1 top half was received */
@@ -386,9 +480,9 @@ static int proc_read_interrupts(struct seq_file *m, void *v)
 }
 
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(3,10,0)
-static int proc_write_interrupts(struct file *file,const char *buffer,unsigned long count,void *data)
+static ssize_t proc_write_interrupts(struct file *file,const char *buffer,unsigned long count,void *data)
 #else
-static int proc_write_interrupts(struct file *file, const char __user *buffer, size_t count, loff_t *data)
+static ssize_t proc_write_interrupts(struct file *file, const char __user *buffer, size_t count, loff_t *data)
 #endif
 {
     int irq;
@@ -424,9 +518,9 @@ static int proc_read_latency(struct seq_file *m, void *v)
 }
 
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(3,10,0)
-static int proc_write_latency(struct file *file,const char *buffer,unsigned long count,void *data)
+static ssize_t proc_write_latency(struct file *file,const char *buffer,unsigned long count,void *data)
 #else
-static int proc_write_latency(struct file *file, const char __user *buffer,
+static ssize_t proc_write_latency(struct file *file, const char __user *buffer,
 				size_t count, loff_t *_pos)
 #endif
 {
@@ -519,9 +613,9 @@ static int proc_read_debug(struct seq_file *m, void *v)
 }
 
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(3,10,0)
-static int proc_write_debug(struct file *file, const char *buffer, unsigned long count, void *data)
+static ssize_t proc_write_debug(struct file *file, const char *buffer, unsigned long count, void *data)
 #else
-static int proc_write_debug(struct file *file, const char __user *buffer, size_t count, loff_t *data)
+static ssize_t proc_write_debug(struct file *file, const char __user *buffer, size_t count, loff_t *data)
 #endif
 {
     if(count>=DEBUG_INFO_LEN) {
@@ -563,6 +657,8 @@ static unsigned b_get_euid(void)
 #endif
 }
 
+static int brcm_open_count = 0;
+
 /****************************************************************
 * brcm_open(struct inode *inode, struct file *file)
 ****************************************************************/
@@ -570,6 +666,8 @@ static int brcm_open(struct inode *inode, struct file *file)
 {
     int err = 0;
     unsigned int devnum, devmode;
+    unsigned long flags;
+    int open_count;
 
     /* This must be the first operation to avoid auto-unload */
 
@@ -583,7 +681,15 @@ static int brcm_open(struct inode *inode, struct file *file)
         return -EFAULT;
     }
 
-    file->private_data = (void*)((b_get_euid() == 0) ? 0 : -1);
+    file->private_data = (void*)(unsigned long)((b_get_euid() == 0) ? 0 : -1);
+
+    spin_lock_irqsave(&gSpinLock, flags);
+    open_count = brcm_open_count++;
+    spin_unlock_irqrestore(&gSpinLock, flags);
+    if (!open_count)
+    {
+        err = brcm_open_submodules();
+    }
 
     return err;
 }
@@ -593,10 +699,24 @@ static int brcm_open(struct inode *inode, struct file *file)
 ****************************************************************/
 static int brcm_close(struct inode *inode, struct file *file)
 {
+    int final_close = 0;
+    unsigned long flags;
+
     if (file == g_interrupt_file) {
         g_interrupt_file = NULL;
     }
     wake_up_interruptible(&g_WaitQueue);
+    spin_lock_irqsave(&gSpinLock, flags);
+    if (brcm_open_count > 0)
+    {
+        --brcm_open_count;
+        final_close = (brcm_open_count == 0) ? 1 : 0;
+    }
+    spin_unlock_irqrestore(&gSpinLock, flags);
+    if (final_close)
+    {
+        brcm_close_submodules();
+    }
     return 0;
 }
 
@@ -830,7 +950,7 @@ static int brcm_ioctl(struct inode *inode, struct file * file, unsigned int cmd,
             if(gBcmDebug) {
                 char buf[64], *ptr = buf;
                 for (i=0;i<g_sChipConfig.IntcSize;i++) {
-                    ptr += snprintf(ptr, 64, " W%d=0x%08lX", i, intStruct.interruptmask[i]);
+                    ptr += snprintf(ptr, 64, " W%d=0x%08X", i, (unsigned)intStruct.interruptmask[i]);
                 }
                 PWARN("waitfor%s with timeOut=%d\n", buf, intStruct.timeout);
             }
@@ -843,7 +963,7 @@ static int brcm_ioctl(struct inode *inode, struct file * file, unsigned int cmd,
                     if( (g_intmgr.reportedInvalidWait[i] & difference) != difference)
                     {
                         g_intmgr.reportedInvalidWait[i] |= difference;
-                        PERR("Invalid wait irpt mask[%d]=0x%08lX,global mask[%d]=0x%08lX\n",i,intStruct.interruptmask[i],i,g_intmgr.globalmask[i]);
+                        PERR("Invalid wait irpt mask[%d]=0x%08X,global mask[%d]=0x%08X\n",i,(unsigned)intStruct.interruptmask[i],i,(unsigned)g_intmgr.globalmask[i]);
                     }
                     /* mask off the invalid bits */
                     intStruct.interruptmask[i] &= g_intmgr.globalmask[i];
@@ -871,10 +991,13 @@ static int brcm_ioctl(struct inode *inode, struct file * file, unsigned int cmd,
                 init_waitqueue_entry(&wq_entry, current);
                 add_wait_queue(&g_WaitQueue, &wq_entry);
 
+                b_virtual_irq_test();
+
                 /* Be sure to go half asleep before checking condition. */
                 /* Otherwise we have a race condition between when we   */
                 /* check the condition and when we call schedule().     */
                 set_current_state(TASK_INTERRUPTIBLE);
+
 
                 spin_lock_irqsave(&gSpinLock, flags);
                 pending = 0;
@@ -917,7 +1040,7 @@ static int brcm_ioctl(struct inode *inode, struct file * file, unsigned int cmd,
             if(gBcmDebug) {
                 char buf[64], *ptr = buf;
                 for (i=0;i<g_sChipConfig.IntcSize;i++) {
-                    ptr += snprintf(ptr, 64, " W%d=0x%08lX", i, intStruct.interruptstatus[i]);
+                    ptr += snprintf(ptr, 64, " W%d=0x%08X", i, (unsigned)intStruct.interruptstatus[i]);
                 }
                 PWARN("returning interrupt%s\n", buf);
             }
@@ -973,21 +1096,34 @@ static int brcm_ioctl(struct inode *inode, struct file * file, unsigned int cmd,
 
     case BRCM_IOCTL_ATOMIC_UPDATE:
         {
-            unsigned long flags = 0;
-            uint32_t value;
             t_bcm_linux_dd_atomic_update atomic_update_data;
             retValue = copy_from_user(&atomic_update_data, (void*)arg, sizeof(atomic_update_data));
+#if defined(CONFIG_BRCMSTB_NEXUS_API) && BRCMSTB_H_VERSION >= 5
+            retValue = brcmstb_update32(atomic_update_data.reg, atomic_update_data.mask, atomic_update_data.value);
+            if (retValue)
+            {
+                printk("brcmstb_update32(%#x,%#x,%#x) failed with %d\n",
+                    atomic_update_data.reg,
+                    atomic_update_data.mask,
+                    atomic_update_data.value,
+                    (int)retValue);
+            }
+#else
+            {
+                unsigned long flags = 0;
+                uint32_t value;
+                /* this spinlock synchronizes with any kernel use of a set of shared registers.
+                see BREG_P_CheckAtomicRegister in magnum/basemodules/reg/breg_mem.c for the list of registers. */
+                spin_lock_irqsave(&brcm_magnum_spinlock, flags);
 
-            /* this spinlock synchronizes with any kernel use of a set of shared registers.
-            see BREG_P_CheckAtomicRegister in magnum/basemodules/reg/breg_mem.c for the list of registers. */
-            spin_lock_irqsave(&brcm_magnum_spinlock, flags);
-
-            /* read/modify/write */
-            value = *(volatile uint32_t*) BVIRTADDR(atomic_update_data.reg);
-            value &= ~atomic_update_data.mask;
-            value |= atomic_update_data.value;
-            *(volatile uint32_t*) BVIRTADDR(atomic_update_data.reg) = value;
-            spin_unlock_irqrestore(&brcm_magnum_spinlock, flags);
+                /* read/modify/write */
+                value = *(volatile uint32_t*) (unsigned long)BVIRTADDR(atomic_update_data.reg);
+                value &= ~atomic_update_data.mask;
+                value |= atomic_update_data.value;
+                *(volatile uint32_t*) (unsigned long)BVIRTADDR(atomic_update_data.reg) = value;
+                spin_unlock_irqrestore(&brcm_magnum_spinlock, flags);
+            }
+#endif
         }
         break;
 #if BICM_ICAM2
@@ -1009,10 +1145,10 @@ static int brcm_ioctl(struct inode *inode, struct file * file, unsigned int cmd,
                 if (data.set[i].reg) {
                     uint32_t value;
                     /* read/modify/write */
-                    value = *(volatile uint32_t*) BVIRTADDR(data.set[i].reg);
+                    value = *(volatile uint32_t*) (unsigned long)BVIRTADDR(data.set[i].reg);
                     value &= ~data.set[i].mask;
                     value |= data.set[i].value;
-                    *(volatile uint32_t*) BVIRTADDR(data.set[i].reg) = value;
+                    *(volatile uint32_t*) (unsigned long)BVIRTADDR(data.set[i].reg) = value;
                 }
                 }
             spin_unlock_irqrestore(&brcm_magnum_spinlock, flags);
@@ -1209,7 +1345,7 @@ static int brcm_ioctl(struct inode *inode, struct file * file, unsigned int cmd,
                 PERR("BRCM_IOCTL_PM_MEM_EXCLUDE copy_from_user failed!\n");
                 break;
             }
-            PWARN("brcmstb_pm_mem_exclude(0x%llx, %zu)\n", s.addr, s.len);
+            PWARN("brcmstb_pm_mem_exclude(0x%llx, %llu)\n", s.addr, s.len);
             result = brcmstb_pm_mem_exclude(s.addr, s.len);
             if (result) {
                 PERR("brcmstb_pm_mem_exclude failed: %d\n", result);
@@ -1405,6 +1541,124 @@ static int brcm_ioctl(struct inode *inode, struct file * file, unsigned int cmd,
         result = 0;
         break;
     }
+    case BRCM_IOCTL_IRQ_CONTROL:
+    {
+        bcmdriver_irq_control irq_control;
+
+        if (!g_virtual_irq_supported) { result = -ENOSYS; BERR_TRACE(result); break; }
+
+        result = copy_from_user(&irq_control, (void*)arg, sizeof(irq_control));
+        if (result) {BERR_TRACE(result); break;}
+        switch(irq_control.command)
+        {
+            case bcmdriver_irq_command_status:
+            {
+                b_virtual_irq_get_status(&irq_control.data.status);
+                result = copy_to_user( &(((bcmdriver_irq_control*)arg)->data.status.status_word), &irq_control.data.status.status_word, sizeof(irq_control.data.status.status_word) );
+                if (result) {BERR_TRACE(result); break;}
+                break;
+            }
+            case bcmdriver_irq_command_clear:
+            {
+                result = b_virtual_irq_clear(irq_control.data.clear.line);
+                if (result) { BERR_TRACE(result); break; }
+                break;
+            }
+            case bcmdriver_irq_command_mask:
+            {
+                result = b_virtual_irq_set_mask(irq_control.data.mask.line, irq_control.data.mask.disable);
+                if (result) { BERR_TRACE(result); break; }
+                break;
+            }
+            default:
+                result = -EINVAL; BERR_TRACE(result);
+                break;
+        }
+        break;
+    }
+    case BRCM_IOCTL_IRQ_MAKE_GROUP:
+    {
+        b_virtual_irq_group group;
+        if (!g_virtual_irq_supported) { result = -ENOSYS; BERR_TRACE(result); break; }
+        result = copy_from_user(&group, (void*)arg, sizeof(group));
+        if (result) { BERR_TRACE(result); break;}
+        result = b_virtual_irq_make_group(&group);
+        if (result) { BERR_TRACE(result); break; }
+        break;
+    }
+    case BRCM_IOCTL_SHARED_GPIO_CONTROL:
+    {
+        bcmdriver_shared_gpio_control gpio_control;
+
+        if (!g_shared_gpio_supported) { result = -ENOSYS; BERR_TRACE(result); break; }
+
+        result = copy_from_user(&gpio_control, (void*)arg, sizeof(gpio_control));
+        if (result) {BERR_TRACE(result); break;}
+        switch(gpio_control.command)
+        {
+            case bcmdriver_shared_gpio_command_init_banks:
+            {
+                b_shared_gpio_init_banks(&gpio_control.data.init_banks);
+                break;
+            }
+            case bcmdriver_shared_gpio_command_open_pin:
+            {
+                result = b_shared_gpio_open_pin(&gpio_control.data.open_pin.pin, gpio_control.data.open_pin.irq_type);
+                if (result) { BERR_TRACE(result); break; }
+                break;
+            }
+            case bcmdriver_shared_gpio_command_close_pin:
+            {
+                b_shared_gpio_close_pin(&gpio_control.data.close_pin.pin);
+                break;
+            }
+            case bcmdriver_shared_gpio_command_get_int_status:
+            {
+                memset(&gpio_control.data.get_int_status, 0, sizeof(gpio_control.data.get_int_status));
+                b_shared_gpio_get_int_status(&gpio_control.data.get_int_status);
+                result = copy_to_user(&((bcmdriver_shared_gpio_control *)arg)->data.get_int_status, &gpio_control.data.get_int_status, sizeof(gpio_control.data.get_int_status));
+                if (result) {BERR_TRACE(result); break;}
+                break;
+            }
+            case bcmdriver_shared_gpio_command_clear_int:
+            {
+                result = b_shared_gpio_clear_int(&gpio_control.data.clear_int.pin);
+                if (result) { BERR_TRACE(result); break; }
+                break;
+            }
+            case bcmdriver_shared_gpio_command_set_int_mask:
+            {
+                result = b_shared_gpio_set_int_mask(&gpio_control.data.set_int_mask.pin, gpio_control.data.set_int_mask.disable);
+                if (result) { BERR_TRACE(result); break; }
+                break;
+            }
+            case bcmdriver_shared_gpio_command_set_standby:
+            {
+                result = b_shared_gpio_set_standby(&gpio_control.data.set_standby.pin, gpio_control.data.set_standby.enable);
+                if (result) { BERR_TRACE(result); break; }
+                break;
+            }
+            default:
+                BERR_TRACE(-EINVAL); result = -EINVAL; break;
+        }
+
+        break;
+    }
+    case BRCM_IOCTL_GET_OS_CONFIG:
+    {
+        bcmdriver_os_config os_cfg;
+        result = copy_from_user(&os_cfg, (void*)arg, sizeof(os_cfg));
+        if (result) {BERR_TRACE(result); break;}
+        os_cfg.virtual_irq_supported = g_virtual_irq_supported;
+        os_cfg.shared_gpio_supported = g_shared_gpio_supported;
+        os_cfg.os_64bit = false;
+#if defined(CONFIG_64BIT)
+        os_cfg.os_64bit = true;
+#endif
+        result = copy_to_user((void*)arg, &os_cfg, sizeof(os_cfg));
+        if (result) {BERR_TRACE(result); break;}
+        break;
+    }
     default:
         result = -ENOSYS;
         break;
@@ -1447,7 +1701,6 @@ BUILD_RO_FOPS(meminfo);
 
 #endif
 
-
 /****************************************************************
 * brcm_stb_init(void)
 ****************************************************************/
@@ -1475,7 +1728,12 @@ static int brcm_stb_init(void)
     /* Make sure to init this first, as we may get an interrupt as soon as we request it */
     init_waitqueue_head(&g_WaitQueue);
 
+    /* init submodules */
+    brcm_init_submodules();
+
     PINFO("Total intc words=%d,Total Irqs=%d\n",g_sChipConfig.IntcSize,g_sChipConfig.maxNumIrq);
+
+    brcm_virtualize_l1s();
 
     /* Request interrupts that we manage */
     for (i=0,irq=1;i<g_sChipConfig.IntcSize;i++) {
@@ -1501,7 +1759,7 @@ static int brcm_stb_init(void)
                 new_flags |= IRQF_TRIGGER_HIGH;
 #endif
                 /* Last parameter is don't care */
-                if (request_irq( make_linux_irq(irq), brcm_interrupt, new_flags, g_sChipConfig.pIntTable[irq].name, (void*)irq+1))
+                if (request_irq( make_linux_irq(irq), brcm_interrupt, new_flags, g_sChipConfig.pIntTable[irq].name, (void*)(unsigned long)(irq+1)))
                 {
                     PERR("request_irq failed, irq:%d name:%s\n", make_linux_irq(irq) , g_sChipConfig.pIntTable[irq].name);
                 }
@@ -1671,9 +1929,11 @@ static void __exit __cleanup_module(void)
             if(g_sChipConfig.pIntTable[i].mask_func)
                 g_sChipConfig.pIntTable[i].mask_func(0,NULL);
 
-            free_irq(make_linux_irq(i), (void*)i+1);
+            free_irq(make_linux_irq(i), (void*)(unsigned long)(i+1));
         }
     }
+
+    brcm_uninit_submodules();
 
     unregister_chrdev(BRCM_MAJOR, "brcm");
 
@@ -1702,6 +1962,137 @@ module_exit(__cleanup_module);
 
 #include "b_memory_regions.inc"
 #include "b_vmalloc.inc"
+
+static void brcm_setmask_l1(unsigned l1, unsigned disable)
+{
+    unsigned index = l1 / 32;
+    unsigned bit = l1 % 32;
+    if (disable)
+    {
+        g_intmgr.globalmask[index] &= ~(1 << bit);
+    }
+    else
+    {
+        g_intmgr.globalmask[index] |= 1 << bit;
+    }
+}
+
+static void brcm_set_l1_status(unsigned l1)
+{
+    unsigned index = l1 / 32;
+    unsigned bit = l1 % 32;
+    g_intmgr.status[index] |= 1 << bit;
+}
+
+static void brcm_fire_gpio_l2(int aon)
+{
+    if (g_virtual_irq_supported)
+    {
+        b_virtual_irq_software_l2_isr(aon ? b_virtual_irq_line_gio_aon : b_virtual_irq_line_gio);
+    }
+}
+
+#if B_VIRTUAL_IRQ_OS_SUPPORT && !defined(B_VIRTUAL_IRQ_DISABLED)
+static void brcm_close_submodules(void)
+{
+    b_shared_gpio_close_submodule();
+    b_virtual_irq_close_submodule();
+}
+
+static int brcm_open_submodules(void)
+{
+    int rc = 0;
+    rc = b_virtual_irq_open_submodule();
+    if (rc) goto err;
+    rc = b_shared_gpio_open_submodule();
+    if (rc) goto err;
+err:
+    return rc;
+}
+
+static void brcm_uninit_submodules(void)
+{
+    b_shared_gpio_uninit_submodule();
+    b_virtual_irq_uninit_submodule();
+}
+
+static void brcm_init_submodules(void)
+{
+    b_shared_gpio_module_init_settings gio_settings;
+    b_shared_gpio_capabilities gio_caps;
+    b_virtual_irq_capabilities irq_caps;
+
+    b_virtual_irq_init_submodule();
+    b_virtual_irq_get_capabilities(&irq_caps);
+    g_virtual_irq_supported = irq_caps.feature_supported;
+    if (g_virtual_irq_supported)
+    {
+        gio_settings.gio_linux_irq = b_virtual_irq_get_linux_irq(b_virtual_irq_line_gio);
+        gio_settings.gio_aon_linux_irq = b_virtual_irq_get_linux_irq(b_virtual_irq_line_gio_aon);
+    }
+    else
+    {
+        gio_settings.gio_linux_irq = 0;
+        gio_settings.gio_aon_linux_irq = 0;
+    }
+    b_shared_gpio_init_submodule(&gio_settings);
+    b_shared_gpio_get_capabilities(&gio_caps);
+    g_shared_gpio_supported = gio_caps.feature_supported;
+}
+
+static void brcm_virtualize_l1s(void)
+{
+    unsigned i;
+
+    if (!g_virtual_irq_supported) return;
+
+    /* mark virtual L1s as virtual */
+    for (i = 0; i < 32 * g_sChipConfig.IntcSize; i++) {
+        const char *irqName = g_sChipConfig.pIntTable[i].name;
+        int flags = g_sChipConfig.pIntTable[i].manageInt;
+        if (irqName == NULL) {
+            continue;
+        }
+        if ((flags & INT_ENABLE_MASK) == 0) {
+            continue;
+        }
+        if (b_virtual_irq_l1_is_virtual(irqName))
+        {
+            flags &= ~INT_ENABLE_MASK;
+            flags |= INT_VIRTUAL_MASK;
+            g_sChipConfig.pIntTable[i].manageInt = flags;
+        }
+    }
+}
+#else
+static void brcm_init_submodules(void)
+{
+    g_virtual_irq_supported = 0;
+    g_shared_gpio_supported = 0;
+}
+
+static void brcm_uninit_submodules(void) {}
+static void brcm_close_submodules(void) {}
+static int brcm_open_submodules(void) { return 0; }
+static void brcm_virtualize_l1s(void) {}
+#endif
+
+#define B_VIRTUAL_IRQ_SPIN_LOCK(flags) spin_lock_irqsave(&gSpinLock, flags)
+#define B_VIRTUAL_IRQ_SPIN_UNLOCK(flags) spin_unlock_irqrestore(&gSpinLock, flags)
+#define B_VIRTUAL_IRQ_GET_L1_WORD_COUNT() (g_sChipConfig.IntcSize)
+#define B_VIRTUAL_IRQ_MASK_L1(L1) brcm_setmask_l1(L1, 1)
+#define B_VIRTUAL_IRQ_UNMASK_L1(L1) brcm_setmask_l1(L1, 0)
+#define B_VIRTUAL_IRQ_SET_L1_STATUS(L1) brcm_set_l1_status(L1)
+#define B_VIRTUAL_IRQ_INC_L1(L1) (g_sChipConfig.pIntTable[(L1)+1].numInter++)
+#define B_VIRTUAL_IRQ_WAKE_L1_LISTENERS() wake_up_interruptible(&g_WaitQueue)
+#include "b_virtual_irq.inc"
+#include "b_virtual_irq_usermode.inc"
+#define B_SHARED_GPIO_FIRE_GPIO_L2(AON) brcm_fire_gpio_l2(AON)
+#define B_SHARED_GPIO_SPIN_LOCK(flags) spin_lock_irqsave(&gSpinLock, flags)
+#define B_SHARED_GPIO_SPIN_UNLOCK(flags) spin_unlock_irqrestore(&gSpinLock, flags)
+#include "b_shared_gpio.inc"
+#include "b_shared_gpio_usermode.inc"
+
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,4,18)
 MODULE_LICENSE("Proprietary");
 #endif

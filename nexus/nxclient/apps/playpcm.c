@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2010-2013 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  *****************************************************************************/
 #if NEXUS_HAS_SIMPLE_DECODER
@@ -108,6 +100,7 @@ int main(int argc, char **argv)  {
     struct wave_header wave_header;
     bool quiet = false;
     int vol = -1;
+    int startOffset = 0;
 
     while (argc > curarg) {
         if (!strcmp(argv[curarg], "-h") || !strcmp(argv[curarg], "--help")) {
@@ -199,6 +192,8 @@ int main(int argc, char **argv)  {
         startSettings.sampleRate = wave_header.samplesSec;
         startSettings.bitsPerSample = wave_header.bps;
         startSettings.stereo = wave_header.channels == 2;
+        startOffset = wave_header.dataStart;
+        startSettings.endian = NEXUS_EndianMode_eLittle;
     }
     else {
         startSettings.sampleRate = sampleRate;
@@ -227,21 +222,60 @@ int main(int argc, char **argv)  {
             BKNI_WaitForEvent(event, 1000);
             continue;
         }
-        n = fread(buffer, 1, size, file);
-        if (n < 0) {
-            break;
-        }
-        else if (n == 0) {
-            if (loop) {
-                fseek(file, 0, SEEK_SET);
-                continue;
-            }
-            else {
-                /* eof */
+        if(startSettings.bitsPerSample == 24) {
+            size_t calculatedBufferSize = (size/4)*3;
+            uint8_t *pCopyBuffer;
+            uint16_t *pBuffer;
+            int i=0;
+            int bufferSize=0;
+
+            pCopyBuffer = BKNI_Malloc(calculatedBufferSize*sizeof(uint8_t));
+            BDBG_ASSERT((pCopyBuffer));
+            bufferSize = fread(pCopyBuffer, 1, calculatedBufferSize, file);
+            if (bufferSize < 0) {
                 break;
             }
+            else if(bufferSize==0) {
+                BKNI_Free(pCopyBuffer);
+                if (loop) {
+                    fseek(file,startOffset,SEEK_SET);
+                    continue;
+                }
+                else {
+                    /* eof */
+                    break;
+                }
+            }
+            n=0;
+            pBuffer = (uint16_t *)buffer;
+            for (i = 0; i < (bufferSize/3); i++) {
+#if BSTD_CPU_ENDIAN == BSTD_ENDIAN_BIG
+                pBuffer[(i*2)] = pCopyBuffer[(i*3)] << 8 | pCopyBuffer[(i*3)+1];
+                pBuffer[(i*2)+1] = pCopyBuffer[(i*3)+2] << 8 | 0x00;
+#else
+                pBuffer[(i*2)] = pCopyBuffer[(i*3)] << 8 | 0x0;
+                pBuffer[(i*2)+1] = pCopyBuffer[(i*3)+2] << 8 | pCopyBuffer[(i*3)+1];
+#endif
+                n+=4;
+            }
+            BKNI_Free(pCopyBuffer);
         }
-
+        else {
+            n = fread(buffer, 1, size, file);
+            if (n < 0) {
+                break;
+            }
+            else if (n == 0) {
+                if (loop) {
+                    fseek(file,startOffset,SEEK_SET);
+                    continue;
+                }
+                else {
+                    /* eof */
+                    break;
+                 }
+            }
+        }
         rc = NEXUS_SimpleAudioPlayback_WriteComplete(audioPlayback, n);
         BDBG_ASSERT(!rc);
         BDBG_MSG(("play %d bytes", n));

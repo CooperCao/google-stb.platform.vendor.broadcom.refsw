@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2003-2015 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * Description: This file implements the RTSP Wrapper to the Live Media RTSP library.
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 #if defined ( LINUX ) || defined ( __vxworks )
@@ -178,7 +170,7 @@ static void bFeedRtpPayloadToPlaypump(
                     {
                         break;
                     }
-                    BDBG_MSG(( "playpump buffer size is %d, sleeping and retrying ", buffer_size ));
+                    BDBG_MSG(( "playpump buffer size is %zu, sleeping and retrying ", buffer_size ));
                     //print_av_pipeline_buffering_status(playback_ip);
                     BKNI_Sleep( 60 );
                 }
@@ -286,7 +278,7 @@ B_PlaybackIpError B_PlaybackIp_RtspSessionOpen(
 
     if (!playback_ip || !openSettings || !openStatus)
     {
-        BDBG_ERR(( "%s: invalid params, playback_ip %p, openSettings %p, openStatus %p\n", __FUNCTION__, playback_ip, openSettings, openStatus ));
+        BDBG_ERR(( "%s: invalid params, playback_ip %p, openSettings %p, openStatus %p\n", __FUNCTION__, (void *)playback_ip, (void *)openSettings, (void *)openStatus ));
         return( B_ERROR_INVALID_PARAMETER );
     }
 
@@ -299,7 +291,7 @@ B_PlaybackIpError B_PlaybackIp_RtspSessionOpen(
     /* if SessionOpen is completed, return results to app */
     if (playback_ip->apiCompleted)
     {
-        BDBG_WRN(( "%s: previously started session setup operation completed, playback_ip %p\n", __FUNCTION__, playback_ip ));
+        BDBG_WRN(( "%s: previously started session setup operation completed, playback_ip %p\n", __FUNCTION__, (void *)playback_ip ));
         goto done;
     }
 
@@ -355,7 +347,7 @@ static void b_pkt_free(
     )
 {
     BSTD_UNUSED( source_cntx );
-    BDBG_MSG(( "%s: freeing pkt %p", __FUNCTION__, pkt ));
+    BDBG_MSG(( "%s: freeing pkt %p", __FUNCTION__, (void *)pkt ));
     BKNI_Free( pkt );
     return;
 }
@@ -366,7 +358,7 @@ static void bRtpStoptRtpParser(
 {
     if (chn->parser == NULL)
         return;
-    BDBG_WRN(( "%s: ch %p parser %p, rtp %p", __FUNCTION__, chn, chn->parser, chn->rtp ));
+    BDBG_WRN(( "%s: ch %p parser %p, rtp %p", __FUNCTION__, (void *)chn, (void *)chn->parser, (void *)chn->rtp ));
 
     chn->parser->stop( chn->parser );
     brtp_stop( chn->rtp );
@@ -391,7 +383,7 @@ static void bRtpStartRtpParser(
     BDBG_ASSERT( chn->parser );
     BDBG_ASSERT( chn->stream==NULL );
 
-    BDBG_WRN(( "%s: starting stream %#lx[0x%02x] parser %p offset %u", __FUNCTION__, (unsigned long)chn, chn->stream_cfg.pes_id, chn->parser, timestamp_offset ));
+    BDBG_WRN(( "%s: starting stream %#lx[0x%02x] parser %p offset %u", __FUNCTION__, (unsigned long)chn, chn->stream_cfg.pes_id, (void *)chn->parser, timestamp_offset ));
 
     brtp_default_session_cfg( chn->rtp, &session_cfg );
     session_cfg.pt_mask  = 0xFF;
@@ -671,7 +663,7 @@ static int bRtpSessionSetup(
 
     playback_ip->lm        = lm;
     playback_ip->lmSession = session;
-    BDBG_WRN(( "lm %p, lmSession %p setup done", playback_ip->lm, playback_ip->lmSession ));
+    BDBG_WRN(( "lm %p, lmSession %p setup done", (void *)playback_ip->lm, (void *)playback_ip->lmSession ));
     return 0;
 error:
     if (lm) lm_shutdown(lm);
@@ -695,7 +687,7 @@ B_PlaybackIpError B_PlaybackIp_RtspSessionSetup(
 
     if (!playback_ip || !setupSettings || !setupStatus)
     {
-        BDBG_ERR(( "%s: invalid params, playback_ip %p, setupSettings %p, setupStatus %p\n", __FUNCTION__, playback_ip, setupSettings, setupStatus ));
+        BDBG_ERR(( "%s: invalid params, playback_ip %p, setupSettings %p, setupStatus %p\n", __FUNCTION__, (void *)playback_ip, (void *)setupSettings, (void *)setupStatus ));
         return( B_ERROR_INVALID_PARAMETER );
     }
 
@@ -715,7 +707,7 @@ B_PlaybackIpError B_PlaybackIp_RtspSessionSetup(
     /* if SessionSetup is completed, return results to app */
     if (playback_ip->apiCompleted)
     {
-        BDBG_WRN(( "%s: previously started session setup operation completed, playback_ip %p\n", __FUNCTION__, playback_ip ));
+        BDBG_WRN(( "%s: previously started session setup operation completed, playback_ip %p\n", __FUNCTION__, (void *)playback_ip ));
         /* Note: since this api was run in a separate thread, we defer thread cleanup until the Ip_Start */
         /* as this call to read up the session status may be invoked in the context of this thread via the callback */
         goto done;
@@ -728,7 +720,7 @@ B_PlaybackIpError B_PlaybackIp_RtspSessionSetup(
 
     if (bRtpSessionSetup( playback_ip ) < 0)
     {
-        BDBG_WRN(( "%s: Failed to setup RTSP session for playback_ip %p\n", __FUNCTION__, playback_ip ));
+        BDBG_WRN(( "%s: Failed to setup RTSP session for playback_ip %p\n", __FUNCTION__, (void *)playback_ip ));
         return (B_ERROR_PROTO);
     }
 done:
@@ -832,7 +824,7 @@ void B_PlaybackIp_RtpEsProcessing(
     int                rc          = 0;
     B_PlaybackIpHandle playback_ip = (B_PlaybackIpHandle)data;
 
-    BDBG_WRN(( "%s: lm %p, lmSession %p, lmStop %d", __FUNCTION__, playback_ip->lm, playback_ip->lmSession, playback_ip->lmStop ));
+    BDBG_WRN(( "%s: lm %p, lmSession %p, lmStop %d", __FUNCTION__, (void *)playback_ip->lm, (void *)playback_ip->lmSession, playback_ip->lmStop ));
 
     // lmStop might already be set to 1 before execution gets here if user keeps pressing start and stop. Check it before proceeding.
     if (playback_ip->lmStop != 0)
@@ -892,7 +884,7 @@ B_PlaybackIpError B_PlaybackIp_RtspSessionStart(
 
     if (!playback_ip || !startSettings || !startStatus)
     {
-        BDBG_ERR(( "%s: invalid params, playback_ip %p, startSettings %p, startStatus %p\n", __FUNCTION__, playback_ip, startSettings, startStatus ));
+        BDBG_ERR(( "%s: invalid params, playback_ip %p, startSettings %p, startStatus %p\n", __FUNCTION__, (void *)playback_ip, (void *)startSettings, (void *)startStatus ));
         return( B_ERROR_INVALID_PARAMETER );
     }
 
@@ -905,7 +897,7 @@ B_PlaybackIpError B_PlaybackIp_RtspSessionStart(
     /* if SessionStart is completed, return results to app */
     if (playback_ip->apiCompleted)
     {
-        BDBG_WRN(( "%s: previously started session start operation completed, playback_ip %p\n", __FUNCTION__, playback_ip ));
+        BDBG_WRN(( "%s: previously started session start operation completed, playback_ip %p\n", __FUNCTION__, (void *)playback_ip ));
         /* Note: since this api was run in a separate thread, we defer thread cleanup until the Ip_Start */
         /* as this call to read up the session status may be invoked in the context of this thread via the callback */
         goto done;
@@ -913,8 +905,8 @@ B_PlaybackIpError B_PlaybackIp_RtspSessionStart(
 
     BDBG_MSG(( "%s: RTSP Media Transport Protocol: %s, position start %d, end %d, keepAliveInterval %d",
                __FUNCTION__, startSettings->u.rtsp.mediaTransportProtocol == B_PlaybackIpProtocol_eUdp ? "UDP" : "RTP",
-               startSettings->u.rtsp.start,
-               startSettings->u.rtsp.end,
+               (int)startSettings->u.rtsp.start,
+               (int)startSettings->u.rtsp.end,
                startSettings->u.rtsp.keepAliveInterval
                ));
     /* Neither SessionStart is in progress nor it is completed, so start session */

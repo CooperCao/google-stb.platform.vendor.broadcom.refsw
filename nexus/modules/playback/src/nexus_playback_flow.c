@@ -99,7 +99,7 @@ b_test_buffer(NEXUS_PlaybackHandle p, uint8_t **addr, size_t *size)
     BDBG_ASSERT(p->params.playpump);
     if (*size > 0 && (void *)(*addr) > p->buf_limit) {
         NEXUS_Error rc;
-        BDBG_MSG(("Throwing away useless buffer %p(%u), recycling", (void*)(*addr), *size));
+        BDBG_MSG(("Throwing away useless buffer %p(%u), recycling", (void*)(*addr), (unsigned)*size));
         rc = NEXUS_Playpump_WriteComplete(p->params.playpump, *size, 0);
         BDBG_ASSERT(rc == NEXUS_SUCCESS);
 #if NEXUS_PLAYBACK_BLOCKAUTH
@@ -262,9 +262,9 @@ static void bplay_p_filter_frame(NEXUS_PlaybackHandle p, unsigned filteredPid, u
         uint8_t *ts_hdr = buf+hdr_offset+packet_offset;
 
         if(ts_hdr[0] != 0x47) {
-            BDBG_WRN(("%u", block_size));
-            BDBG_WRN(("%u", packet_offset));
-            BDBG_WRN(("bplay_p_filter_frame:%p out of sync at %u %#x(%u,%u)", (void*)p, packet_offset, ts_hdr[0], block_size, frame_offset));
+            BDBG_WRN(("%u", (unsigned)block_size));
+            BDBG_WRN(("%u", (unsigned)packet_offset));
+            BDBG_WRN(("bplay_p_filter_frame:%p out of sync at %u %#x(%u,%u)", (void*)p, packet_offset, ts_hdr[0], (unsigned)block_size, frame_offset));
             break;
         }
         pid = ((unsigned)(ts_hdr[1]&0x1F))<<8 | ts_hdr[2];
@@ -275,7 +275,7 @@ static void bplay_p_filter_frame(NEXUS_PlaybackHandle p, unsigned filteredPid, u
             filtered_packets++;
         }
     }
-    BDBG_MSG(("bplay_p_filter_frame:%p pid %#x filtered %u/%u packets frame:%u/%u", (void*)p, filteredPid, packets, filtered_packets, block_size, frame_offset));
+    BDBG_MSG(("bplay_p_filter_frame:%p pid %#x filtered %u/%u packets frame:%u/%u", (void*)p, filteredPid, packets, filtered_packets, (unsigned)block_size, frame_offset));
     return;
 }
 
@@ -323,7 +323,7 @@ b_play_frame_data(void *playback_, ssize_t size)
             point because we always record in 4K aligned pages. But for imported streams, especially stills, where getting every byte is important,
             this can be a problem. This technique gives us consistency. We may need to address non-4K aligned files with additional Settop API
             configurability. */
-            BDBG_WRN(("Guarantee that we stay block aligned in O_DIRECT mode. Seek back %d, truncating read to %d", B_IO_ALIGN_REST(size), B_IO_ALIGN_TRUNC(size)));
+            BDBG_WRN(("Guarantee that we stay block aligned in O_DIRECT mode. Seek back %lu, truncating read to %lu", (long unsigned int)B_IO_ALIGN_REST(size), (long unsigned int)B_IO_ALIGN_TRUNC(size)));
             size = B_IO_ALIGN_TRUNC(size);
             seek_off = p->state.io.last_file_offset+size;
             seek_result = p->file->file.data->seek(p->file->file.data, seek_off, SEEK_SET);
@@ -362,8 +362,8 @@ b_play_frame_data(void *playback_, ssize_t size)
 
     BDBG_MSG_FLOW(("bplay_frame_data read_complete skip=%u, size=%u frame:last %u size %u", read_skip, read_size, last, p->state.frame.size));
     if (read_size > BMEDIA_PLAYER_MAX_BLOCK) {
-        BDBG_ERR(("%d, %d, %d, %d", size, p->state.io.next_data,
-            p->state.io.junk_data,p->state.io.file_behind));
+        BDBG_ERR(("%d, %u, %u, %u", (int)size, (unsigned)p->state.io.next_data,
+            (unsigned)p->state.io.junk_data,(unsigned)p->state.io.file_behind));
         BDBG_ASSERT(false);
     }
 #else /* DIRECT_IO_SUPPORT */

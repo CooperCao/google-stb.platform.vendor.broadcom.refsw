@@ -4,47 +4,46 @@
    CLKGEN_PLL_SYS0_PLL_DIV: This RDB field is not accessable by software; PDIV:reset value is 1; NDIV_INT:Reset value is 60.
 */
 /******************************************************************************
- * (c) 2015 Broadcom Corporation
- *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
- *
- * Except as expressly set forth in the Authorized License,
- *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
- *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
- *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
- *****************************************************************************/
-
+* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*
+* This program is the proprietary software of Broadcom and/or its
+* licensors, and may only be used, duplicated, modified or distributed pursuant
+* to the terms and conditions of a separate, written license agreement executed
+* between you and Broadcom (an "Authorized License").  Except as set forth in
+* an Authorized License, Broadcom grants no license (express or implied), right
+* to use, or waiver of any kind with respect to the Software, and Broadcom
+* expressly reserves all rights in and to the Software and all intellectual
+* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*
+* Except as expressly set forth in the Authorized License,
+*
+* 1. This program, including its structure, sequence and organization,
+*    constitutes the valuable trade secrets of Broadcom, and you shall use all
+*    reasonable efforts to protect the confidentiality thereof, and to use
+*    this information only in connection with your use of Broadcom integrated
+*    circuit products.
+*
+* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+*
+* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+******************************************************************************/
+#include "bmemperf_types64.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -56,7 +55,6 @@
 #include <signal.h>
 #include <stdint.h>
 #include <assert.h>
-#include <sys/types.h>
 #include <fcntl.h>
 #include <sys/mman.h>
 
@@ -72,7 +70,7 @@ static unsigned int                LEVEL                     = 0;
 static unsigned char               WalkTreeStructure1stPass  = 0; /* if 0 don't add 40 to beginning of block's Y coord */
 static unsigned long int           mallocCount               = 0;
 static unsigned long int           freeCount                 = 0;
-static volatile unsigned long int *g_pMem                    = NULL;
+static volatile unsigned int      *g_pMem                    = NULL;
 static unsigned long int           blockHasAtLeastOnePowerOn = 0; /* used to determine if all of the lower-level clocks are turned off for a particular logic block */
 static CLK_TREE_NODE              *g_freqMult                = NULL;
 static CLK_TREE_NODE              *g_freqPreDiv              = NULL;
@@ -284,7 +282,7 @@ static char *ReadFileContents(
         return( NULL );
     }
     numBytes = fread( contents, 1, statbuf.st_size, fpText );
-    if (numBytes != statbuf.st_size)
+    if (numBytes != (unsigned long int) statbuf.st_size)
     {
         fprintf( outputHtml, "tried to fread %lu bytes but got %lu\n", (unsigned long int) statbuf.st_size, numBytes );
         fclose( fpText );
@@ -504,17 +502,21 @@ static unsigned int GetRegisterData(
  *  specified register mask.
  **/
 static unsigned int read_reg_value(
+    volatile unsigned int *pMemTemp,
     unsigned long int regOffset,
     unsigned long int regMask
     )
 {
-    volatile long unsigned int *pMemTemp;
+    /*volatile unsigned int *lMemTemp = pMemTemp;*/
     unsigned long int           temp1 = 0;
     unsigned long int           temp2 = 0;
     unsigned long int           temp3 = 0;
 
-    pMemTemp  = (unsigned long int *) g_pMem;
-    pMemTemp += (( regOffset )>>2 );
+    /*printf("%s: lMemTemp 0x%lx; regOffset 0x%08lx; regMask 0x%08lx; BCHP_REGISTER_START %x \n", __FUNCTION__,
+        (long unsigned int) lMemTemp, regOffset, regMask, BCHP_REGISTER_START );*/
+    pMemTemp += (( regOffset - BCHP_REGISTER_START )>>2 ); /* adding UINT32 to long unsigned int * results in addand being multiplied by 4 before the addition */
+    /*printf("%s: pMemTemp 2 0x%08lx; (after regOffset 0x%08lx - BCHP_REGISTER_START >> 2) ... += 0x%08lx \n", __FUNCTION__, (unsigned long int) pMemTemp, regOffset, (( regOffset - BCHP_REGISTER_START )>>2 ) );*/
+
     temp1     = (unsigned long int) pMemTemp;
     temp2     = *pMemTemp & regMask;
     temp3     = *pMemTemp;
@@ -546,7 +548,7 @@ static unsigned int read_reg_field(
     {
         if (( strcmp( regName, registerInfo[idx].name ) == 0 ) && ( strcmp( fieldName, registerInfo[idx].field ) == 0 ))
         {
-            pOutputs->regValue = read_reg_value( registerInfo[idx].regOffset, registerInfo[idx].regMask ) >> registerInfo[idx].shiftCount /**/;
+            pOutputs->regValue = read_reg_value( g_pMem, registerInfo[idx].regOffset, registerInfo[idx].regMask ) >> registerInfo[idx].shiftCount /**/;
             pOutputs->polarity = registerInfo[idx].polarity;
             break;
         }
@@ -1087,19 +1089,19 @@ char *get_clock_tree(
     char  htmlFilename[CLOCK_FILE_FULL_PATH_LEN];
 
 
-    /* Open /dev/mem for memory mapping */
-    g_memFd = open( "/dev/mem", O_RDWR|O_SYNC );  /*O_SYNC for uncached address */
+    /* Open driver for memory mapping */
+    g_memFd = bmemperfOpenDriver();
 
     fcntl( g_memFd, F_SETFD, FD_CLOEXEC );
 
-    PRINTF( "%s: mmap64(NULL, mapped_size 0x%x, PROT_READ %u, MAP_SHARED %u, fd %u, addr %x)\n", __FUNCTION__,
-        ( BCHP_REGISTER_SIZE<<2 ), PROT_READ|PROT_WRITE, MAP_SHARED, g_memFd, BCHP_PHYSICAL_OFFSET  );
-    g_pMem = mmap64( 0, ( BCHP_REGISTER_SIZE<<2 ), PROT_READ|PROT_WRITE, MAP_SHARED, g_memFd, BCHP_PHYSICAL_OFFSET  );
+    /* PRINTF( "%s: bmemperfMmap(NULL, mapped_size 0x%x, PROT_READ %u, MAP_SHARED %u, fd %u, addr %x)\n", __FUNCTION__,
+        ( BCHP_REGISTER_SIZE<<2 ), PROT_READ|PROT_WRITE, MAP_SHARED, g_memFd, BCHP_PHYSICAL_OFFSET  ); */
+    g_pMem = bmemperfMmap( g_memFd );
 
     /*printf("%s: g_pMem %p\n", __FUNCTION__, (void*) g_pMem );*/
     if (!g_pMem)
     {
-        printf( "Failed to mmap64 fd=%d, addr 0x%08x\n", g_memFd, BCHP_PHYSICAL_OFFSET );
+        printf( "Failed to bmemperfMmap() fd=%d, addr 0x%08x\n", g_memFd, BCHP_PHYSICAL_OFFSET );
         return( NULL );
     }
     FPRINTF( stderr, "g_pMem 0x%08lX\n", (unsigned long int) g_pMem );
@@ -1229,7 +1231,7 @@ char *get_shrink_list(
                 {
                     snprintf( buffer1, sizeof( buffer1 ), "&shr=%s", node->name );
                     strncat( buffer, buffer1, bufferLen-1 );
-                    fprintf( stderr, "%s: appended (%s) to big buffer; big buffer len (%u)\n", __FUNCTION__, buffer1, strlen( buffer ));
+                    fprintf( stderr, "%s: appended (%s) to big buffer; big buffer len (%u)\n", __FUNCTION__, buffer1, (unsigned int) strlen( buffer ));
                 }
                 node = node->sameLevel;
             }

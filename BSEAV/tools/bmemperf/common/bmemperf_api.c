@@ -1,51 +1,44 @@
 /******************************************************************************
- *    (c)2013-2014 Broadcom Corporation
- *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELYn
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
- *
- * Except as expressly set forth in the Authorized License,
- *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
- *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
- *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
- ******************************************************************************/
+* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*
+* This program is the proprietary software of Broadcom and/or its
+* licensors, and may only be used, duplicated, modified or distributed pursuant
+* to the terms and conditions of a separate, written license agreement executed
+* between you and Broadcom (an "Authorized License").  Except as set forth in
+* an Authorized License, Broadcom grants no license (express or implied), right
+* to use, or waiver of any kind with respect to the Software, and Broadcom
+* expressly reserves all rights in and to the Software and all intellectual
+* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*
+* Except as expressly set forth in the Authorized License,
+*
+* 1. This program, including its structure, sequence and organization,
+*    constitutes the valuable trade secrets of Broadcom, and you shall use all
+*    reasonable efforts to protect the confidentiality thereof, and to use
+*    this information only in connection with your use of Broadcom integrated
+*    circuit products.
+*
+* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+*
+* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+******************************************************************************/
+#include "bmemperf_types64.h"
 #include <stdio.h>
 #include <termios.h>
 #include <unistd.h>
@@ -55,7 +48,6 @@
 #include <stdint.h>
 #include <assert.h>
 #include <errno.h>
-#include <sys/types.h>
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <pthread.h>
@@ -277,7 +269,6 @@ static void getTopBWConsumerClientStats(
     int                   array_range;
     int                   memc_index  = 0;
     int                   rc          = 0;
-    volatile unsigned int arb_reg_val = 0;
 
     for (k = 0; k<BMEMPERF_NUM_MEMC; k++)
     {
@@ -310,9 +301,9 @@ static void getTopBWConsumerClientStats(
     }
     array_range = BMEMPERF_MAX_NUM_CLIENT;
     /** sort the data  **/
-    qsort( g_client_cas_data_index_for_m0, array_range, sizeof( g_client_cas_data_index_for_m0[0] ), comapare_cas_data );
-    qsort( g_client_cas_data_index_for_m1, array_range, sizeof( g_client_cas_data_index_for_m1[0] ), comapare_cas_data );
-    qsort( g_client_cas_data_index_for_m2, array_range, sizeof( g_client_cas_data_index_for_m2[0] ), comapare_cas_data );
+    qsort( g_client_cas_data_index_for_m0, array_range, sizeof( g_client_cas_data_index_for_m0[0] ), compare_cas_data );
+    qsort( g_client_cas_data_index_for_m1, array_range, sizeof( g_client_cas_data_index_for_m1[0] ), compare_cas_data );
+    qsort( g_client_cas_data_index_for_m2, array_range, sizeof( g_client_cas_data_index_for_m2[0] ), compare_cas_data );
 
     for (k = 0; k<BMEMPERF_NUM_MEMC; k++)
     {
@@ -341,12 +332,11 @@ static void getTopBWConsumerClientStats(
 
             temp = ( g_interval*BMEMPERF_DDR0_CLOCK_FREQ_UNIT );
 
-            /**  Important:The consumption count is in units of DRAM clock
-             *   cycles. Note that all supported DRAM devices are BL=8 DDR
-             *   devices, so a CAS is always equal to (4) DRAM clock
-             *   cycles**/
+            /**  Important:The consumption count is in units of DRAM clock cycles.
+             *   Note that all supported DRAM devices are BL=8 DDR, devices, so a
+             *   CAS is always equal to (4) DRAM clock cycles; LPDDR4 BL=16 **/
 
-            value = ( value *( BLOCK_LENGTH>>1 ));
+            value = value * bmemperf_cas_to_cycle( memc_index, bmemperf_get_g_pMem() );
 
             bw = bmemperf_computeBWinMbps( value, temp, memc_index );
 
@@ -360,7 +350,7 @@ static void getTopBWConsumerClientStats(
             }
 
             /* Get rr and block_Outval */
-            arb_reg_val = bmemperf_collect_arb_details( client_index, memc_index ); /* In this case client_index is same as client_id */
+            bmemperf_collect_arb_details( client_index, memc_index ); /* In this case client_index is same as client_id */
 
             ptrClientData = &( globalStats.overallStats.clientOverallStats[memc_index].clientData[i] );
 
@@ -413,16 +403,15 @@ void getOverAllSystemBW(
         ptrSystemStats->dataUtil      = bmemperfData[memc_index].dataUtil;
         ptrSystemStats->idleBW        = bmemperfData[memc_index].idleBW;
         ptrSystemStats->transactionBW = bmemperfData[memc_index].transactionBW;
-        ptrSystemStats->ddrFreqMhz    = g_bmemperf_info.ddrFreqInMhz;
-        ptrSystemStats->scbFreqMhz    = g_bmemperf_info.scbFreqInMhz;
+        ptrSystemStats->ddrFreqMhz    = bmemperf_get_ddrFreqInMhz( g_bmemperf_info.ddrFreqInMhz );
+        ptrSystemStats->scbFreqMhz    = bmemperf_get_scbFreqInMhz( g_bmemperf_info.scbFreqInMhz );
 
 #ifdef  BMEMPERF_CGI_DEBUG
         printf( "\n %s ", __FUNCTION__ );
-        printf( "%3u  %6u %6u %6u %6.2f\n",  memc_index, ptrSystemStats->dataBW,
-            ptrSystemStats->transactionBW,
-            ptrSystemStats->idleBW,
-            ptrSystemStats->dataUtil );
+        printf( "%3u  %6u %6u %6u %6.2f\n",  memc_index, ptrSystemStats->dataBW, ptrSystemStats->transactionBW,
+            ptrSystemStats->idleBW, ptrSystemStats->dataUtil );
 #endif /* ifdef  BMEMPERF_CGI_DEBUG */
+
         pthread_mutex_unlock( &globalStats.lock );
     }
 } /* getOverAllSystemBW */
@@ -631,7 +620,7 @@ int reset_error_counts(
 {
     unsigned int memc = 0;
 
-    printf( "%s: resetting ARB errors\n", __FUNCTION__ );
+    PRINTF( "%s: resetting ARB errors\n", __FUNCTION__ );
 
     /* reset any residual errors back to zero */
     for (memc = 0; memc<BMEMPERF_NUM_MEMC; memc++)
@@ -712,7 +701,6 @@ void *dataFetchThread(
 
                 if (tempClientId < BMEMPERF_MAX_NUM_CLIENT)
                 {
-                    /*printf("%s: valid ... memc %u; clientId %u\n", __FUNCTION__, i, tempClientId );*/
                     bmemperf_configure_stat_control_reg( tempClientId, memc_index );
                 }
                 else
@@ -721,7 +709,6 @@ void *dataFetchThread(
                     clientLoop[memc_index] = 0;
                     tempClientId           = client_list_info.client_list[memc_index][clientLoop[memc_index]];
                     bmemperf_configure_stat_control_reg( tempClientId, memc_index );
-                    /*printf("%s: invalid ... memc %u; clientId %u\n", __FUNCTION__, i, tempClientId );*/
                 }
 #ifdef BMEMPERF_CGI_DEBUG
 
@@ -788,29 +775,30 @@ int bmemperf_getClientStats(
     }
 
 #ifdef BMEMPERF_CGI_DEBUG
-
-    unsigned int idx = 0, jdx = 0;
-    for (jdx = 0; jdx<3; jdx++)
+    extern char *g_client_name[BMEMPERF_MAX_NUM_CLIENT];
     {
-        for (idx = 0; idx<3; idx++)
+        unsigned int details_idx = 0, memc = 0;
+        for (memc= 0; memc<BMEMPERF_NUM_MEMC; memc++)
         {
-            if (globalStats.clientDetailStats.clientStats[jdx].perClientStats[idx].clientId == 201)
+            for (details_idx = 0; details_idx<BMEMPERF_MAX_SUPPORTED_CLIENTS; details_idx++)
             {
-                printf( "MEMC %u %u; %u; %u; %u; %u; %5.2f\n", jdx,
-                    globalStats.clientDetailStats.clientStats[jdx].perClientStats[idx].clientId,
-                    globalStats.clientDetailStats.clientStats[jdx].perClientStats[idx].clientDataBW,
-                    globalStats.clientDetailStats.clientStats[jdx].perClientStats[idx].clientRdTransInPerc,
-                    globalStats.clientDetailStats.clientStats[jdx].perClientStats[idx].clientWrTransInPerc,
-                    globalStats.clientDetailStats.clientStats[jdx].perClientStats[idx].avgClientDataSizeInBits/8,
-                    globalStats.clientDetailStats.clientStats[jdx].perClientStats[idx].clientDataUtil );
+                unsigned client_id = globalStats.clientDetailStats.clientStats[memc].perClientStats[details_idx].clientId;
+
+                if ( 200 <= client_id && client_id <= 202 )
+                {
+                    printf( "%s:%u: MEMC %u %u; DataBW %u; TransBW %u; Rps %u; Wps %u; bytes %u; utilization %5.2f\n", __FILE__, __LINE__, memc,
+                            globalStats.clientDetailStats.clientStats[memc].perClientStats[details_idx].clientId,
+                            globalStats.clientDetailStats.clientStats[memc].perClientStats[details_idx].clientDataBW,
+                            globalStats.clientDetailStats.clientStats[memc].perClientStats[details_idx].clientTransBW,
+                            globalStats.clientDetailStats.clientStats[memc].perClientStats[details_idx].clientRdTransInPerc,
+                            globalStats.clientDetailStats.clientStats[memc].perClientStats[details_idx].clientWrTransInPerc,
+                            globalStats.clientDetailStats.clientStats[memc].perClientStats[details_idx].avgClientDataSizeInBits/8,
+                            globalStats.clientDetailStats.clientStats[memc].perClientStats[details_idx].clientDataUtil );
+                }
             }
+            printf( "\n\n" );
         }
     }
-
-    printf( "%s: globalStats.clientDetailStats.clientStats[0].perClientStats[0].clientId = %d\n", __FUNCTION__,
-        globalStats.clientDetailStats.clientStats[0].perClientStats[0].clientId );
-    printf( "%s: globalStats.clientDetailStats.clientStats[0].perClientStats[0].clientDataBW = %d\n", __FUNCTION__,
-        globalStats.clientDetailStats.clientStats[0].perClientStats[0].clientDataBW );
 #endif /* ifdef BMEMPERF_CGI_DEBUG */
 
     memcpy( clientDetailStats, &( globalStats.clientDetailStats ), sizeof( bmemperf_client_stats ));

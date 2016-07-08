@@ -1,21 +1,42 @@
 /***************************************************************************
-  * Copyright (c) 2004-2010, Broadcom Corporation
-  * All Rights Reserved
-  * Confidential Property of Broadcom Corporation
-  *
-  * THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
-  * AGREEMENT BETWEEN THE USER AND BROADCOM. YOU HAVE NO RIGHT TO USE OR
-  * EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
-  *
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *
   * Module Description: SAP Library Implementation
   *
-  * $brcm_Workfile: $
-  * $brcm_Revision: $
-  * $brcm_Date: $
-  *
-  * Revision History:
-  * $brcm_Log: $
-  * 
    ************************************************************************/
 
 #include <stdio.h>
@@ -41,7 +62,7 @@
 #include "blive_ext.h"
 #include "bsap.h"
 
-BDBG_MODULE(blive_ext); 
+BDBG_MODULE(blive_ext);
 
 int bSapInitDone = 0;
 
@@ -64,13 +85,13 @@ static time_t getTimeInSeconds()
 
 //
 // Function to check if the input IPv4 address is defined on one of local interfaces
-static int 
+static int
 isIpAddrLocal(bSapCtx_t *bSapCtx, char *addr)
 {
   struct ifreq ifr;
   sockaddr_in *ifaddr;
   struct in_addr inp;
-  
+
   // convert IP Address from ASCII to binary
   if (inet_aton(addr, &inp) == 0)
   {
@@ -101,7 +122,7 @@ isIpAddrLocal(bSapCtx_t *bSapCtx, char *addr)
   struct in_addr sin_addr = ifaddr->sin_addr;
   if (strcmp(addr, inet_ntoa(sin_addr)) != 0)
   {
-           BDBG_MSG(("Received non-local Unicast Announcement: our address %s, session address %s", 
+           BDBG_MSG(("Received non-local Unicast Announcement: our address %s, session address %s",
         inet_ntoa(sin_addr), addr));
     return (-1);
   }
@@ -133,7 +154,7 @@ static int verifySDPHeaderFields(bSapCtx_t *bSapCtx, MediaSession *newSession)
   }
 
   // if c field (connection info) is present at the session level, and it contains
-  // a unicast address (instead of a multicast address), ensure that the 
+  // a unicast address (instead of a multicast address), ensure that the
   // unicast IP addresses matches one of our local IP address. i.e. accept only
   // those session announcements that will be unicast to our local address.
   sessionIpAddr = newSession->connectionEndpointName();
@@ -159,7 +180,7 @@ static int verifySDPHeaderFields(bSapCtx_t *bSapCtx, MediaSession *newSession)
   }
 
   // check sub-session level fields
-  while ((subSession = iter.next()) != NULL) 
+  while ((subSession = iter.next()) != NULL)
   {
     //
     // verify that essential m fields are present
@@ -172,29 +193,29 @@ static int verifySDPHeaderFields(bSapCtx_t *bSapCtx, MediaSession *newSession)
       BDBG_WRN(("Media Type ""%s"" is NOT Supported", subSession->mediumName()));
       return (-1);
     }
-    
+
     if (subSession->protocolName() == NULL)
     {
       BDBG_WRN(("Incomplete SDP header: missing protocolName field"));
       return (-1);
     }
-    
+
     if (subSession->clientPortNum() == 0)
     {
       BDBG_WRN(("Incomplete SDP header: missing clientPortNum field"));
       return (-1);
     }
 
-    // verify that either c field is present part of sub-session. if not, it must be 
+    // verify that either c field is present part of sub-session. if not, it must be
     // present at the session level.
-    if (subSession->connectionEndpointName() == NULL && newSession->connectionEndpointName() == NULL) 
+    if (subSession->connectionEndpointName() == NULL && newSession->connectionEndpointName() == NULL)
     {
       BDBG_WRN(("Incomplete SDP header: missing c field (connection Info)"));
       return (-1);
     }
 
     // if c field (connection info) is present at the sub-session level, and it contains
-    // a unicast address (instead of a multicast address), ensure that the 
+    // a unicast address (instead of a multicast address), ensure that the
     // unicast IP addresses matches one of our local IP address. i.e. accept only
     // those session announcements that will be unicast to our local address.
     sessionIpAddr = subSession->connectionEndpointName();
@@ -275,7 +296,7 @@ int notifyNewChannelToApp(bSapCtx_t *bSapCtx, MediaSession *newSession, bSession
   // e.g. one sub-session can be for video session & other can be for audio only.
   //
   memset(&chMapInfo, 0, sizeof(bIpChannelMapInfo_t));
-  while ((subSession = iter.next()) != NULL) 
+  while ((subSession = iter.next()) != NULL)
   {
     if (strncmp(subSession->mediumName(), "video", strlen("video")) == 0)
     {
@@ -331,14 +352,14 @@ static void printSessionInfoList(bSapCtx_t *bSapCtx)
     BDBG_MSG(("\t%0x Source IP Address", ntohl(sessionInfoEntry->srcIpAddr[0])));
     BDBG_MSG(("\t%0x msgidHash", ntohs(sessionInfoEntry->msgidHash)));
     BDBG_MSG(("\t%d addressType", sessionInfoEntry->addressType));
-    BDBG_MSG(("\t%d timeout", sessionInfoEntry->timeout));
+    BDBG_MSG(("\t%ld timeout", sessionInfoEntry->timeout));
     session = sessionInfoEntry->sessionInfo;
     BDBG_MSG(("\t%s Session Names", session->sessionName()));
     BDBG_MSG(("\t%s Session Descriptions", session->sessionDescription()));
     BDBG_MSG(("\t%s Session Types", session->mediaSessionType()));
     BDBG_MSG(("\t%s Session Connection Name/IP", session->connectionEndpointName()));
 
-    sessionInfoEntry = sessionInfoEntry->nextSessionInfoEntry; 
+    sessionInfoEntry = sessionInfoEntry->nextSessionInfoEntry;
   }
 #ifndef B_REFSW_DEBUG
   BSTD_UNUSED (session);
@@ -410,8 +431,8 @@ static void addListEntry(bSapCtx_t *bSapCtx, bSessionInfoEntry_t *sessionInfoEnt
 }
 
 //
-// Function to reset the timeout of a cached entry. It updates the timeout value and also moves 
-// the entry to the end of list. This is because the session entry list is maintained in the 
+// Function to reset the timeout of a cached entry. It updates the timeout value and also moves
+// the entry to the end of list. This is because the session entry list is maintained in the
 // ascending announcement timeout order. If no repeat announcement is received in 1 hour, session
 // entry will be removed from this cache.
 //
@@ -434,7 +455,7 @@ static void restartSessionInfoEntryTimeout(bSapCtx_t *bSapCtx, bSessionInfoEntry
 }
 
 //
-// Function to delete a session cache entry and notify application 
+// Function to delete a session cache entry and notify application
 //
 static void deleteSessionInfoEntry(bSapCtx_t *bSapCtx, bSessionInfoEntry_t *prev)
 {
@@ -478,7 +499,7 @@ static int lookupUsingSapFields(bSapCtx_t *bSapCtx, SAPHeader_t *sapHeader, bSes
       return (1);
     }
     *prev = sessionInfoEntry;
-    sessionInfoEntry = sessionInfoEntry->nextSessionInfoEntry; 
+    sessionInfoEntry = sessionInfoEntry->nextSessionInfoEntry;
   }
 
   // no match
@@ -514,7 +535,7 @@ static int addSessionInfoEntry(bSapCtx_t *bSapCtx, SAPHeader_t *sapHeader, Media
   // set the entry timeout value
   sessionInfoEntry->timeout = getTimeInSeconds() + bSapCtx->sapTimeout;
 
-  // save a reference to the parsed SDP fields 
+  // save a reference to the parsed SDP fields
   // Note: sessionInfo object is built by Live Media Library
   sessionInfoEntry->sessionInfo = sessionInfo;
 
@@ -534,7 +555,7 @@ static int addSessionInfoEntry(bSapCtx_t *bSapCtx, SAPHeader_t *sapHeader, Media
 }
 
 //
-// Function to do session cache timeout processing : it checks if any of the 
+// Function to do session cache timeout processing : it checks if any of the
 // session entries have timed out. If so, it deleted those entries.
 //
 static void timeoutSessionInfoCache(bSapCtx_t *bSapCtx)
@@ -556,20 +577,20 @@ static void timeoutSessionInfoCache(bSapCtx_t *bSapCtx)
   // has not yet expired, rest of entries haven't either.
   while (sessionInfoEntry != NULL && now > sessionInfoEntry->timeout)
   {
-    BDBG_MSG(("Cached Session Info entry timed out (now = %d)*************************", now));
-    // delete the timedout entry 
+    BDBG_MSG(("Cached Session Info entry timed out (now = %ld)*************************", now));
+    // delete the timedout entry
     deleteSessionInfoEntry(bSapCtx, prevSessionInfoEntry);
 
     // also check the next entry for possible timeout
     prevSessionInfoEntry = sessionInfoEntry;
-    sessionInfoEntry = sessionInfoEntry->nextSessionInfoEntry; 
+    sessionInfoEntry = sessionInfoEntry->nextSessionInfoEntry;
 
     bSapCtx->bSapStats.totalSessionTimeouts++;
     bSapCtx->bSapStats.currentlyAnnouncedSessions--;
   }
 
   // print SAP stats
-  if(getenv("blive_stats")) 
+  if(getenv("blive_stats"))
   {
     if((strcasecmp(getenv("blive_stats"), "y"))==0)
     {
@@ -587,7 +608,7 @@ static void printSAPHeader(SAPHeader_t *sapHeader)
 {
   struct in_addr announcerIpAddr;
 
-  BDBG_MSG(("version %x, authLen %d, msgId %x", 
+  BDBG_MSG(("version %x, authLen %d, msgId %x",
         sapHeader->version, sapHeader->authLen, ntohs(sapHeader->msgidHash)));
   announcerIpAddr.s_addr = ntohl(sapHeader->srcIpAddr[0]);
   BDBG_MSG(("Source IPv4 Address %s", inet_ntoa(announcerIpAddr)));
@@ -595,7 +616,7 @@ static void printSAPHeader(SAPHeader_t *sapHeader)
   BSTD_UNUSED (announcerIpAddr);
 #endif
 }
-  
+
 //
 // Function to process a SAP Message (both SAP & SDP Processing)
 //
@@ -604,7 +625,7 @@ static void processSAPMsg(bSapCtx_t *bSapCtx, char *rcvBuffer, int rcvLen)
   char *nextHeader;
   SAPHeader_t *sapHeader;
   MediaSession *newSession = NULL;
-  int found = 0; 
+  int found = 0;
   bSessionInfoEntry_t *prevSessionInfoEntry;
 
   BDBG_MSG(("*************** Received a SAP Messages *************** "));
@@ -620,7 +641,7 @@ static void processSAPMsg(bSapCtx_t *bSapCtx, char *rcvBuffer, int rcvLen)
   //
   bSapCtx->bSapStats.totalSapMulticastsPkts++;
 
-  // verify that we received minimum SAP Header 
+  // verify that we received minimum SAP Header
   if (rcvLen < BIP_CHANNEL_MAP_MIN_SAP_HDR_LEN)
   {
     BDBG_WRN(("Incomplete SAP Header received"));
@@ -628,7 +649,7 @@ static void processSAPMsg(bSapCtx_t *bSapCtx, char *rcvBuffer, int rcvLen)
     return;
   }
 
-  // verfiy the fixed SAP Header: 
+  // verfiy the fixed SAP Header:
   sapHeader = (SAPHeader_t *)rcvBuffer;
   if (sapHeader->version != BIP_CHANNEL_MAP_SUPPORTED_SAP_VERSION)
   {
@@ -663,7 +684,7 @@ static void processSAPMsg(bSapCtx_t *bSapCtx, char *rcvBuffer, int rcvLen)
   //TODO: add strict mode parsing
   // e.g. if in strict mode, drop SAP message if msgidHash == 0
 
-  // Validate & store the Source Address 
+  // Validate & store the Source Address
   if (sapHeader->addressType == 0)
   {
     // Source has IPv4 address
@@ -674,7 +695,7 @@ static void processSAPMsg(bSapCtx_t *bSapCtx, char *rcvBuffer, int rcvLen)
       return;
     }
   }
-  else if (sapHeader->addressType == 1) 
+  else if (sapHeader->addressType == 1)
   {
     // Source has IPv6 address
     if (rcvLen < BIP_CHANNEL_MAP_MIN_SAP_HDR_LEN + 16)
@@ -689,12 +710,12 @@ static void processSAPMsg(bSapCtx_t *bSapCtx, char *rcvBuffer, int rcvLen)
 
   //
   // go to next header (beyond SAP fixed Header, IP Addr, Auth Hdr)
-  // it can be either 
+  // it can be either
   //    a) the optional payload type ("application/sdp), or
-  //    b) just a '\0', or 
+  //    b) just a '\0', or
   //    c) start of SDP Header (v=0)
   //
-  nextHeader = rcvBuffer + 
+  nextHeader = rcvBuffer +
     BIP_CHANNEL_MAP_MIN_SAP_HDR_LEN +
     ( (sapHeader->addressType == 1) ? 16 : 4 ) +
     sapHeader->authLen;
@@ -745,12 +766,12 @@ static void processSAPMsg(bSapCtx_t *bSapCtx, char *rcvBuffer, int rcvLen)
   {
     BDBG_WRN(("Received incorrect SDP packet"));
     BDBG_WRN((" 0: %c, 1: %c, 2:%c", nextHeader[0], nextHeader[1], nextHeader[2]));
-    BDBG_WRN(("nextHeader %x, recvBuffer %x, rcvLen %d", nextHeader, rcvBuffer, rcvLen));
+    BDBG_WRN(("nextHeader %p, recvBuffer %p, rcvLen %d", (void *)nextHeader, (void *)rcvBuffer, rcvLen));
     bSapCtx->bSapStats.totalIncorrectSdpPkts++;
     return;
   }
 
-  // now we can process SDP payload. We use Live Media's 
+  // now we can process SDP payload. We use Live Media's
   // SDP implementation to parse a SDP payload.
   BDBG_MSG(("SDP payload: \n%s", nextHeader));
 
@@ -769,13 +790,13 @@ static void processSAPMsg(bSapCtx_t *bSapCtx, char *rcvBuffer, int rcvLen)
 
   //
   // if this a SAP messages to delete an announcement, delete the cached session
-  // from the session entry list. Also, inform application to remove this session 
+  // from the session entry list. Also, inform application to remove this session
   // from its Channel Map.
   //
   // Else it can be either a new annoucement or a duplicate announcement. Duplicate
   // annoucements simply refresh the timeout period of the cached entry and are dropped.
   // For new annoucements, a new session info entry is created and cached. Then
-  // application is informed about the new channel map information. 
+  // application is informed about the new channel map information.
   //
 
   // search for the matching cached session info entry
@@ -872,7 +893,7 @@ static void processSAPMsg(bSapCtx_t *bSapCtx, char *rcvBuffer, int rcvLen)
 static void onSourceClosureCB(void *ctx)
 {
   bSapListenerCtx_t *listener;
-  
+
   if (bSapInitDone == 0)
       return;
 
@@ -895,7 +916,7 @@ static void newSAPMsgCB(void *ctx, unsigned rcvLen, unsigned , struct timeval , 
 {
   bSapCtx_t *sapCtx;
   bSapListenerCtx_t *listener;
-  
+
   if (bSapInitDone == 0)
       return;
 
@@ -912,11 +933,11 @@ static void newSAPMsgCB(void *ctx, unsigned rcvLen, unsigned , struct timeval , 
   processSAPMsg(sapCtx, listener->rcvBuffer, (int)rcvLen);
 
   // and re-register the callback function w/ the scheduler
-  listener->source->getNextFrame((unsigned char *)listener->rcvBuffer, 
+  listener->source->getNextFrame((unsigned char *)listener->rcvBuffer,
                                  B_IP_CHANNEL_MAP_RCV_BUF_SIZE,
-                                newSAPMsgCB, 
-                                listener, 
-                                onSourceClosureCB, 
+                                newSAPMsgCB,
+                                listener,
+                                onSourceClosureCB,
                                 listener);
   return;
 }
@@ -973,18 +994,18 @@ static void addSAPListenerCB(void *ctx)
     BDBG_ASSERT(0);
     return;
   }
-  
+
   // register a callback with Live Media Library when this socket has data to read or is being closed
   listener->source->getNextFrame(
-      (unsigned char *)listener->rcvBuffer, 
+      (unsigned char *)listener->rcvBuffer,
       B_IP_CHANNEL_MAP_RCV_BUF_SIZE,
-      newSAPMsgCB, listener, 
+      newSAPMsgCB, listener,
       onSourceClosureCB, listener);
 
   // now increment the listener Count
   bSapCtx->listenerCnt++;
 
-  // now wakeup the waiting application thread indicating task completion 
+  // now wakeup the waiting application thread indicating task completion
   blive_scheduler_signal(&params->waitCtx);
 }
 
@@ -1020,7 +1041,7 @@ static int joinMcastGroup(
   // for now, let kernel figure out the default interface
   sapMreq.imr_interface.s_addr = INADDR_ANY;
 
-  if ( setsockopt(bSapCtx->listeners[bSapCtx->listenerCnt-1].fd, 
+  if ( setsockopt(bSapCtx->listeners[bSapCtx->listenerCnt-1].fd,
         IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *)&sapMreq, sizeof(sapMreq)) == -1 )
   {
     BDBG_ERR(("IP_ADD_MEMBERSHIP failed\n"));
@@ -1040,13 +1061,13 @@ static void startSAPListener(bSapCtx_t* bSapCtx, char *ipAddr)
   // schedule a task (callback function) to register the SAP Listener w/ Live Media Library
   params.ipAddr = ipAddr;
 
-  // set timeout to 0 to indicate scheduler to immediately run this callback function 
-  timeout = 0; 
+  // set timeout to 0 to indicate scheduler to immediately run this callback function
+  timeout = 0;
 
-  // now call scheduler function to register the callback 
+  // now call scheduler function to register the callback
   params.ctx = bSapCtx;
-  blive_scheduler_queue_delayed_task(timeout, 
-      (TaskFunc *)addSAPListenerCB, 
+  blive_scheduler_queue_delayed_task(timeout,
+      (TaskFunc *)addSAPListenerCB,
       &params);
 
   // now wait until the callback function gets to run
@@ -1065,8 +1086,8 @@ bSapCtx_t *bSapCtx = NULL;
 //
 void blive_sap_print_stats()
 {
-  bSapStats_t *bSapStats = &bSapCtx->bSapStats; 
-  
+  bSapStats_t *bSapStats = &bSapCtx->bSapStats;
+
   printf("SAP Stats ------------------------------------------------------->\n");
   printf("%10d totalSapMulticastsPkts\n", bSapStats->totalSapMulticastsPkts);
   printf("%10d totalIncompleteSapPkts\n", bSapStats->totalIncompleteSapPkts);
@@ -1121,7 +1142,7 @@ int blive_sap_add_listener_addr(char *sapMulticastGroupAddr, bIpChMapAddrType_t 
 }
 
 //
-// SAP API to de-initialize the IP Channel Map Library 
+// SAP API to de-initialize the IP Channel Map Library
 //
 void blive_sap_exit(void)
 {
@@ -1156,7 +1177,7 @@ void blive_sap_exit(void)
 }
 
 //
-// SAP API to initialize the IP Channel Map Library 
+// SAP API to initialize the IP Channel Map Library
 //
 int blive_sap_init(
     void *appCtx,                           //Input: app specific context ptr
@@ -1219,7 +1240,7 @@ int blive_sap_init(
   }
 
 
-  // using IPv4 Link Local Scope Multicast Group Address (224.0.0.0 - 224.0.0.255) 
+  // using IPv4 Link Local Scope Multicast Group Address (224.0.0.0 - 224.0.0.255)
   if (joinMcastGroup(bSapCtx, (char *)SAP_IPV4_LINK_LOCAL_SCOPE_MULTICAST_ADDR) != 0)
   {
     BDBG_ERR(("Failed to start the SAP Listener for Address %s\n", SAP_IPV4_LINK_LOCAL_SCOPE_MULTICAST_ADDR));

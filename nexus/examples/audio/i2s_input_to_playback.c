@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2014 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  *****************************************************************************/
 #include "nexus_platform.h"
@@ -79,6 +71,13 @@ NEXUS_AudioPlaybackHandle g_playbackHandle = NULL;
 static bool enable_capture_thread = true;
 BKNI_EventHandle event = NULL;
 
+typedef struct captureCallbackParameters
+{
+    NEXUS_AudioCaptureHandle capture;
+    BKNI_EventHandle event;
+} captureCallbackParameters;
+
+
 void mclock_init( void )
 {
     gettimeofday( &__mclock_start, NULL );
@@ -105,11 +104,13 @@ long int mclock( void )
 
 static void capture_callback(void *pParam1, int param2)
 {
+    captureCallbackParameters *captureCBParams;
     /**
-    printf("Data callback - channel 0x%08x\n", (unsigned)pParam1);
+    printf("Data callback - channel 0x%08x\n", *
+    (unsigned)captureCBParams->capture); *
     **/
     pParam1=pParam1;    /*unused*/
-    BKNI_SetEvent((BKNI_EventHandle)param2);
+    BKNI_SetEvent(captureCBParams->event);
 }
 
 static void* capture_thread(void *pParam);
@@ -237,6 +238,7 @@ int main(int argc, char *argv[])
     NEXUS_AudioPlaybackOpenSettings pbOpenSettings;
     NEXUS_AudioPlaybackStartSettings settings;
 
+    captureCallbackParameters captureCBParams;
     NEXUS_AudioOutputSettings outputSettings;
 
     NEXUS_Platform_Init(NULL);
@@ -313,7 +315,7 @@ int main(int argc, char *argv[])
 
     #if NEXUS_NUM_I2S_OUTPUTS > 0
     NEXUS_AudioOutput_AddInput(
-	NEXUS_I2sOutput_GetConnector(platformConfig.outputs.i2s[0]),
+    NEXUS_I2sOutput_GetConnector(platformConfig.outputs.i2s[0]),
         NEXUS_AudioPlayback_GetConnector(g_playbackHandle));
     #endif
 
@@ -364,8 +366,9 @@ int main(int argc, char *argv[])
     /** start Audio Capture **/
     NEXUS_AudioCapture_GetDefaultStartSettings(&ocStartSettings);
     ocStartSettings.dataCallback.callback = capture_callback;
-    ocStartSettings.dataCallback.context = outputCapture;
-    ocStartSettings.dataCallback.param = (int)event;
+    captureCBParams.capture = outputCapture;
+    captureCBParams.event = event;
+    ocStartSettings.dataCallback.context = &captureCBParams;
     NEXUS_AudioCapture_Start(outputCapture, &ocStartSettings);
 
     /** Start I2s Input **/

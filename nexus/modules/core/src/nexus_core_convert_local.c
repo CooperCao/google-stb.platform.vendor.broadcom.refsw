@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 
@@ -70,10 +62,10 @@ static const struct {
     {NEXUS_VideoCodec_eAvs, BAVC_VideoCompressionStd_eAVS},
     {NEXUS_VideoCodec_eRv40, BAVC_VideoCompressionStd_eRV9}, /* Codec ID used by Real is RV40, Real Video 9 is just a version of software first introduced implementation of RV40 video codec */
     {NEXUS_VideoCodec_eVp6, BAVC_VideoCompressionStd_eVP6},  /* Codec most often used in Flash Video */
-    {NEXUS_VideoCodec_eVp7, BAVC_VideoCompressionStd_eVP7}, 
+    {NEXUS_VideoCodec_eVp7, BAVC_VideoCompressionStd_eVP7},
     {NEXUS_VideoCodec_eVp8, BAVC_VideoCompressionStd_eVP8},  /* WebM video codec */
     {NEXUS_VideoCodec_eVp9, BAVC_VideoCompressionStd_eVP9},  /* WebM video codec */
-    {NEXUS_VideoCodec_eMotionJpeg, BAVC_VideoCompressionStd_eMOTION_JPEG},  
+    {NEXUS_VideoCodec_eMotionJpeg, BAVC_VideoCompressionStd_eMOTION_JPEG},
     {NEXUS_VideoCodec_eSpark, BAVC_VideoCompressionStd_eSPARK},  /* Another codec for Flash Video */
     {NEXUS_VideoCodec_eMpeg2, BAVC_VideoCompressionStd_eMPEG2},
     {NEXUS_VideoCodec_eMpeg2, BAVC_VideoCompressionStd_eMPEG2DTV},
@@ -197,6 +189,8 @@ BAVC_AudioCompressionStd NEXUS_P_AudioCodec_ToMagnum(NEXUS_AudioCodec codec)
         return BAVC_AudioCompressionStd_eOpus;
     case NEXUS_AudioCodec_eAls:
         return BAVC_AudioCompressionStd_eAls;
+    case NEXUS_AudioCodec_eAc4:
+        return BAVC_AudioCompressionStd_eAc4;
     default:
         return BAVC_AudioCompressionStd_eMax;
     }
@@ -279,6 +273,8 @@ NEXUS_AudioCodec NEXUS_P_AudioCodec_FromMagnum(BAVC_AudioCompressionStd std)
         return NEXUS_AudioCodec_eOpus;
     case BAVC_AudioCompressionStd_eAls:
         return NEXUS_AudioCodec_eAls;
+    case BAVC_AudioCompressionStd_eAc4:
+        return NEXUS_AudioCodec_eAc4;
     default:
         return NEXUS_AudioCodec_eMax;
     }
@@ -299,6 +295,9 @@ void NEXUS_Heap_ToString(const NEXUS_MemoryStatus *pStatus, char *buf, unsigned 
     }
     else if (pStatus->heapType & NEXUS_HEAP_TYPE_COMPRESSED_RESTRICTED_REGION) {
         n+= BKNI_Snprintf(buf, buf_size, "CRR");
+    }
+    else if (pStatus->heapType & NEXUS_HEAP_TYPE_EXPORT_REGION) {
+        n+= BKNI_Snprintf(buf, buf_size, "XRR");
     }
     else if (pStatus->heapType & NEXUS_HEAP_TYPE_GRAPHICS) {
         n+= BKNI_Snprintf(buf, buf_size, "GFX");

@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2014 Broadcom Corporation
+ *     Broadcom Proprietary and Confidential. (c)2014 Broadcom.  All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -66,7 +66,8 @@ typedef struct NEXUS_Graphicsv3d_P_ModuleState {
    BVC5_Handle          hVc5;                /* Magnum module handle                      */
    NEXUS_ThreadHandle   hSchedulerThread;    /* Thread for magnum job scheduler           */
    BKNI_EventHandle     hSchedulerSyncEvent; /* Synchronises worker start-up & shut-down  */
-   NEXUS_HeapHandle     hHeap;               /* Handle of the graphics heap               */
+   NEXUS_HeapHandle     hHeap;               /* Handle of the unsecure graphics heap      */
+   NEXUS_HeapHandle     hHeapSecure;         /* Handle of the secure graphics heap        */
 } NEXUS_Graphicsv3d_P_ModuleState;
 
 extern NEXUS_Graphicsv3d_P_ModuleState g_NEXUS_Graphicsv3d_P_ModuleState;

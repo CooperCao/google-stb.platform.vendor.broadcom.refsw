@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2012 Broadcom Corporation
+ *     Broadcom Proprietary and Confidential. (c)2012 Broadcom.  All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -51,6 +51,7 @@ typedef struct BV3D_P_IQHandle
 {
    BLST_Q_HEAD(sQueue, BV3D_P_IQInstruction) sQueue;
    bool              bWaiting;
+   bool              bSecure;
    uint32_t          uiSize;              /* queue size */
 } BV3D_P_IQHandle;
 
@@ -72,6 +73,7 @@ BERR_Code BV3D_P_IQCreate(
 
    hIQ->uiSize = 0;
    hIQ->bWaiting = false;
+   hIQ->bSecure = false;
 
    *phIQ = hIQ;
 
@@ -186,6 +188,31 @@ BERR_Code BV3D_P_IQSetWaiting(
 }
 
 /***************************************************************************/
+bool BV3D_P_IQGetSecure(
+   BV3D_IQHandle hIQ
+)
+{
+   if (hIQ == NULL)
+      return false;
+
+   return hIQ->bSecure;
+}
+
+/***************************************************************************/
+BERR_Code BV3D_P_IQSetSecure(
+   BV3D_IQHandle hIQ,
+   bool bSecure
+)
+{
+   if (hIQ == NULL)
+      return BERR_INVALID_PARAMETER;
+
+   hIQ->bSecure = bSecure;
+
+   return BERR_SUCCESS;
+}
+
+/***************************************************************************/
 uint32_t BV3D_P_IQGetSize(
    BV3D_IQHandle hIQ
 )
@@ -197,7 +224,7 @@ uint32_t BV3D_P_IQGetSize(
 }
 
 /***************************************************************************/
-bool BV3D_P_JobQFindBinOrWaitBinAndMoveToTop(BV3D_IQHandle hIQ)
+bool BV3D_P_JobQFindBinOrWaitBinAndMoveToTop(BV3D_IQHandle hIQ, bool secure)
 {
    BV3D_P_IQInstruction * pIQInstruction;
    BV3D_Instruction *psInstruction = NULL;
@@ -216,9 +243,12 @@ bool BV3D_P_JobQFindBinOrWaitBinAndMoveToTop(BV3D_IQHandle hIQ)
          BLST_Q_REMOVE(&hIQ->sQueue, pIQInstruction, sChain);
          BLST_Q_INSERT_HEAD(&hIQ->sQueue, pIQInstruction, sChain);
       }
-      else if ((pIQInstruction->psInstruction->eOperation != BV3D_Operation_eRenderInstr) &&
-               (pIQInstruction->psInstruction->eOperation != BV3D_Operation_eNotifyInstr) &&
-               (pIQInstruction->psInstruction->eOperation != BV3D_Operation_eFenceInstr))
+      else if ((pIQInstruction->psInstruction->eOperation == BV3D_Operation_eEndInstr) ||
+               (pIQInstruction->psInstruction->eOperation == BV3D_Operation_eUserInstr) ||
+               (pIQInstruction->psInstruction->eOperation == BV3D_Operation_eWaitInstr) ||
+               (pIQInstruction->psInstruction->eOperation == BV3D_Operation_eSyncInstr) ||
+               ((pIQInstruction->psInstruction->eOperation == BV3D_Operation_eSecureInstr) &&
+                (secure != !!(pIQInstruction->psInstruction->uiArg1))))
       {
          break;
       }

@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2014 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  *****************************************************************************/
 
@@ -51,6 +43,7 @@
 #include "cmdline.h"
 #include "pmlib.h"
 #include "util.h"
+
 
 BDBG_MODULE(standby);
 
@@ -182,7 +175,7 @@ void transportWakeupCallback(void *pParam, int iParam)
 
     /* g_DeviceState.power_mode = ePowerModeS0; */
     /* if(g_StandbyNexusHandles.event) */
-    /* 	BKNI_SetEvent(g_StandbyNexusHandles.event); */
+    /*  BKNI_SetEvent(g_StandbyNexusHandles.event); */
     if(g_StandbyNexusHandles.s1Event)
         BKNI_SetEvent(g_StandbyNexusHandles.s1Event);
 }
@@ -257,6 +250,8 @@ void postResume(void)
             }
         }
     }
+
+    /* Uninitialize SAGE system platform */
 
     /* For everything else we can mount after decode has started */
     mount_all();
@@ -364,6 +359,8 @@ int passiveStandbyMode(void)
     uint32_t wolopts;
 
     printf("\n\nEntering S2 Mode\n\n");
+
+    /* Initialize SAGE system platform */
 
     BKNI_AcquireMutex(mutex);
 
@@ -490,6 +487,7 @@ int deepStandbyMode(void)
     unsigned timeout = g_DeviceState.timer_wake?g_cmd_options.timeout:0;
 
     printf("\n\nEntering S3 Mode\n\n");
+
 
     BKNI_AcquireMutex(mutex);
 
@@ -630,7 +628,7 @@ int initialize_state(int argc, char **argv)
     g_cmd_options.xpt_wakeup=true;
     g_cmd_options.cec_wakeup=true;
     g_cmd_options.gpio_wakeup=true;
-    g_cmd_options.kpd_wakeup=true;
+    g_cmd_options.kpd_wakeup=false;
     g_cmd_options.eth_wol_wakeup=true;
     g_cmd_options.moca_wol_wakeup=true;
     g_cmd_options.ethoff=false;

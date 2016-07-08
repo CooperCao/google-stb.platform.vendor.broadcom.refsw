@@ -1,52 +1,51 @@
 /******************************************************************************
-* (c) 2014 Broadcom Corporation
-*
-* This program is the proprietary software of Broadcom Corporation and/or its
-* licensors, and may only be used, duplicated, modified or distributed pursuant
-* to the terms and conditions of a separate, written license agreement executed
-* between you and Broadcom (an "Authorized License").  Except as set forth in
-* an Authorized License, Broadcom grants no license (express or implied), right
-* to use, or waiver of any kind with respect to the Software, and Broadcom
-* expressly reserves all rights in and to the Software and all intellectual
-* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1. This program, including its structure, sequence and organization,
-*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-*    reasonable efforts to protect the confidentiality thereof, and to use
-*    this information only in connection with your use of Broadcom integrated
-*    circuit products.
-*
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-******************************************************************************/
-/*****************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
+ *
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************
 *
 * FILENAME: $Workfile: trunk/stack/IEEE/PHY/include/bbPhySapPib.h $
 *
 * DESCRIPTION:
 *   PHY-PIB for PHY-SAP definitions.
 *
-* $Revision: 3367 $
-* $Date: 2014-08-21 15:57:21Z $
+* $Revision: 10530 $
+* $Date: 2016-03-18 00:29:29Z $
 *
 *****************************************************************************************/
 
@@ -56,7 +55,7 @@
 
 
 /************************* INCLUDES *****************************************************/
-#include "bbPhySapDefs.h"           /* PHY-SAP common definitions. */
+#include "bbPhyBasics.h"
 
 
 /************************* DEFINITIONS **************************************************/
@@ -107,20 +106,17 @@ typedef enum _PhyPibAttributeId_t
  *  \c PhyPibAttributeId_t.
  */
 typedef PhyPibAttributeId_t  PHY_PibAttributeId_t;
+SYS_DbgAssertStatic(sizeof(PHY_PibAttributeId_t) == sizeof(uint8_t));
 
 
 /*
  * Data types for private PHY-PIB attributes.
  */
-typedef PHY_LogicalChannelId_t  PHY_CurrentChannel_t;       /*!< Data type for phyCurrentChannel. */
 typedef SYS_DataPointer_t       PHY_ChannelsSupported_t;    /*!< Data type for phyChannelsSupported. */
 /* Defined here below:          PHY_TransmitPower_t;           < Data type for phyTransmitPower. */
-/* Defined here below:          PHY_CcaMode_t;                 < Data type for phyCcaMode. */
-typedef PHY_ChannelPageId_t     PHY_CurrentPage_t;          /*!< Data type for phyCurrentPage. */
 typedef uint16_t                PHY_MaxFrameDuration_t;     /*!< Data type for phyMaxFrameDuration. */
 typedef uint8_t                 PHY_ShrDuration_t;          /*!< Data type for phyShrDuration. */
 typedef uint8_t                 PHY_SymbolsPerOctetX10_t;   /*!< Data type for phySymbolsPerOctet times 10. */
-typedef int8_t                  PHY_Rssi_t;                 /*!< Data type for phyRssi. */
 
 /**//**
  * \brief   Data type for a single row of phyChannelsSupported.
@@ -129,11 +125,10 @@ typedef int8_t                  PHY_Rssi_t;                 /*!< Data type for p
  */
 typedef struct _PHY_ChannelsSupportedOnPage_t
 {
-    PHY_ChannelsSet_t    validChannels : PHY_MAX_NUMBER_OF_LOGICAL_CHANNELS_ON_PAGE;
-                                                    /*!< Status for each of up to 27 channels
-                                                        supported by this channel page. */
+    PHY_ChannelMask_t       validChannels : PHY_CHANNELS_NUM;       /*!< Status for each of up to 27 channels
+                                                                        supported by this channel page. */
 
-    PHY_ChannelPageId_t  channelPage   :  5;        /*!< Identifier of the channel page. */
+    PHY_Page_t              channelPage   : 5;                      /*!< Identifier of the channel page. */
 
 } PHY_ChannelsSupportedOnPage_t;
 
@@ -173,16 +168,6 @@ typedef struct _PHY_ChannelsSupportedOnPage_t
 
 
 /**//**
- * \brief   Data type for the PHY nominal transmit power value.
- * \details Nominal transmit power is measured in decibels relative to 1 mW.
- * \details The valid range is from -32 dBm to +31 dBm.
- * \par     Documentation
- *  See IEEE 802.15.4-2006, subclause 6.4.2, table 23.
- */
-typedef int8_t  PHY_TxPowerValue_t;
-
-
-/**//**
  * \brief   Macro used to obtain the IEEE-Code-of-Tolerance from the numeric value of
  *  Transmit Power Tolerance, measured in dBm.
  * \param[in]   tolDbm      Value of tolerance, in dBm.
@@ -214,30 +199,12 @@ typedef enum _PHY_TxPowerTolerance_t
  */
 typedef struct _PHY_TransmitPower_t
 {
-    PHY_TxPowerValue_t      txPower   : 6;          /*!< The nominal transmit power of the device
+    PHY_TXPower_t           txPower   : 6;          /*!< The nominal transmit power of the device
                                                         in decibels relative to 1 mW. */
 
     PHY_TxPowerTolerance_t  tolerance : 2;          /*!< Tolerance on the transmit power. */
 
 } PHY_TransmitPower_t;
-
-
-/**//**
- * \brief   Data type for phyCcaMode.
- * \par     Documentation
- *  See IEEE 802.15.4-2006, subclauses 6.4.2, 6.9.9, table 23.
- */
-typedef enum _PHY_CcaMode_t
-{
-    PHY_CCA_MODE_3OR  = 0,      /*!< CCA Mode 3-OR: Carrier sense OR-with energy above threshold. */
-
-    PHY_CCA_MODE_1    = 1,      /*!< CCA Mode 1: Energy above threshold. */
-
-    PHY_CCA_MODE_2    = 2,      /*!< CCA Mode 2: Carrier sense only. */
-
-    PHY_CCA_MODE_3AND = 3,      /*!< CCA Mode 3-AND: Carrier sense AND-with energy above threshold. */
-
-} PHY_CcaMode_t;
 
 
 /**//**
@@ -248,14 +215,14 @@ typedef enum _PHY_CcaMode_t
 #define PHY_PIB_PRIVATE_VARIANT\
     union\
     {\
-        PHY_CurrentChannel_t      phyCurrentChannel;\
+        PHY_Channel_t             phyCurrentChannel;\
         PHY_TransmitPower_t       phyTransmitPower;\
-        PHY_CcaMode_t             phyCcaMode;\
-        PHY_CurrentPage_t         phyCurrentPage;\
+        enum PHY_CCAMode_t        phyCcaMode;\
+        PHY_Page_t                phyCurrentPage;\
         PHY_MaxFrameDuration_t    phyMaxFrameDuration;\
         PHY_ShrDuration_t         phyShrDuration;\
         PHY_SymbolsPerOctetX10_t  phySymbolsPerOctetX10;\
-        PHY_Rssi_t                phyRssi;\
+        PHY_RSSI_t                phyRssi;\
     }
 
 

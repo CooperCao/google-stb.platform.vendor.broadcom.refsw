@@ -122,6 +122,9 @@ ifneq (${B_REFSW_SYSTEM_MODE},CLIENT)
 ifeq  ($(filter $(B_REFSW_ARCH), arm-linux aarch64-linux), $(B_REFSW_ARCH))
 NEXUS_BASE_DEFINES += NEXUS_CPU_ARM=1
 NEXUS_BASE_PRIVATE_INCLUDES += $(NEXUS_TOP)/../BSEAV/linux/driver/usermode
+ifeq  ($(filter $(B_REFSW_ARCH), aarch64-linux), $(B_REFSW_ARCH))
+NEXUS_BASE_DEFINES += NEXUS_CPU_ARM64=1
+endif
 endif
 endif
 

@@ -208,10 +208,40 @@ static NEXUS_Error NEXUS_Platform_P_SetHostMemoryFromInfo(const nexus_p_memory_i
             }
         }
     }
+    for(i=0;i<last_region;i++) {
+        BDBG_MSG(("raw MEMC%u.%u %uMBytes(%#x) at " BDBG_UINT64_FMT "", osRegion[i].memcIndex, i, (unsigned)(osRegion[i].length/(1024*1024)), (unsigned)(osRegion[i].length), BDBG_UINT64_ARG(osRegion[i].base)));
+    }
+
+    /* filter out small regions */
+    for(i=0;i<NEXUS_MAX_MEMC;i++) {
+        int maxLength = -1;
+        int minLength = -1;
+
+        for(j=0;j<last_region;j++) {
+            if(osRegion[j].memcIndex != i) {
+                continue;
+            }
+            if(osRegion[j].length==0) {
+                continue;
+            }
+            if(maxLength<0 || osRegion[j].length > osRegion[maxLength].length) {
+                maxLength=j;
+            }
+            if(minLength<0 || osRegion[j].length < osRegion[minLength].length) {
+                minLength=j;
+            }
+        }
+        if(minLength>=0 && maxLength>=0) {
+            if(osRegion[minLength].length < osRegion[maxLength].length / 8) {
+                BDBG_MSG(("rewoving MEMC%u.%u %uMBytes(%#x) at " BDBG_UINT64_FMT "", osRegion[minLength].memcIndex, j, (unsigned)(osRegion[minLength].length/(1024*1024)), (unsigned)(osRegion[minLength].length), BDBG_UINT64_ARG(osRegion[minLength].base)));
+                osRegion[minLength].length = 0; /* remove too small region */
+            }
+        }
+    }
     for(i=0;i<NEXUS_MAX_MEMC;i++) {
         unsigned maxAlignment = alignment;
         for(j=0; j<NEXUS_MAX_HEAPS;j++) {
-            if(heap[i].size==0) {
+            if(heap[j].size==0) {
                 continue;
             }
             if(heap[j].memcIndex != i) {
@@ -501,7 +531,7 @@ static NEXUS_Error NEXUS_Platform_P_AllocateInRange(unsigned memcIndex, BMMA_Ran
     result->region.length = heap_size;
     result->unused = false;
     result->heapIndex = heapIndex;
-    BDBG_MSG(("MEMC%u Placed HEAP[%u] %uMBytes(%#zx Bytes) with alignment %#x at " BDBG_UINT64_FMT " (%u MByte)", memcIndex, heapIndex, (unsigned)(heap_size/(1024*1024)),heap_size,heap[heapIndex].alignment, BDBG_UINT64_ARG(heap_offset), (unsigned)(heap_offset/(1024*1024))));
+    BDBG_MSG(("MEMC%u Placed HEAP[%u] %uMBytes(%#x Bytes) with alignment %#x at " BDBG_UINT64_FMT " (%u MByte)", memcIndex, heapIndex, (unsigned)(heap_size/(1024*1024)), (unsigned)heap_size,heap[heapIndex].alignment, BDBG_UINT64_ARG(heap_offset), (unsigned)(heap_offset/(1024*1024))));
 
     return NEXUS_SUCCESS;
 }
@@ -591,7 +621,6 @@ static NEXUS_Error NEXUS_Platform_P_AllocateBmemHeaps(struct NEXUS_Platform_P_Al
                 settings.size = osMemory[i].length;
                 settings.minAlignment = max_dcache_line_size;
                 settings.allocationHeader = sizeof(unsigned);
-                settings.silent = true;
                 settings.context = state;
                 settings.allocator = NEXUS_Platform_P_AllocateInRegion;
                 rc = BMMA_RangeAllocator_Create(&allocator, &settings);
@@ -628,7 +657,7 @@ static NEXUS_Error NEXUS_Platform_P_AllocateBmemHeaps(struct NEXUS_Platform_P_Al
                 continue;
             }
             if(stage!=3 && heap[heapIndex].size<0) {
-                break;
+                continue;
             }
             if(realAllocation) {
                 if(stage == 0 && !heap[heapIndex].placement.first) {
@@ -761,13 +790,14 @@ static NEXUS_Error NEXUS_Platform_P_SetCoreCmaSettings_allocateBmem(struct NEXUS
                 }
             }
         }
-        if(unused>maxAlignment*allocations) {
+        if(allocations || unused) {
             BDBG_MSG(("MEMC%u unused %uMBytes of BMEM memory", memcIndex, (unsigned)(unused/(1024*1024))));
+            totalUnused += unused;
+            totalAllocations += allocations;
         }
-        totalUnused += unused;
-        totalAllocations += allocations;
     }
-    if(totalUnused>maxAlignment*totalAllocations && totalUnused>1024*1024*totalAllocations) {
+    BDBG_MSG(("unused %uMBytes of BMEM memory (used %uMBytes), thresholds (%u,%u)MBytes ", (unsigned)(totalUnused/(1024*1024)), (unsigned)(totalUsed/(1024*1024)), (unsigned)((maxAlignment*totalAllocations)/(1024*1024)), (unsigned)((1024*1024*totalAllocations)/(1024*1024)) ));
+    if(totalUnused>maxAlignment*totalAllocations && totalUnused>(1024*1024*totalAllocations)) {
         state->extraMemory = true;
         BDBG_WRN(("unused %uMBytes of BMEM memory (used %uMBytes)", (unsigned)(totalUnused/(1024*1024)), (unsigned)(totalUsed/(1024*1024))));
     }
@@ -1030,12 +1060,12 @@ static bool NEXUS_Platform_P_RangeTestIntersect(const nexus_p_memory_range *oute
 
 
 
-static NEXUS_Error NEXUS_Platform_P_SetCoreCmaSettings_Verify(const nexus_p_memory_info *info, const NEXUS_PlatformSettings *pSettings, const NEXUS_Core_Settings *pCoreSettings, const NEXUS_PlatformMemory *pMemory)
+static NEXUS_Error NEXUS_Platform_P_SetCoreCmaSettings_Verify(const nexus_p_memory_info *info, const NEXUS_PlatformHeapSettings *heapSettings, const NEXUS_Core_Settings *pCoreSettings, const NEXUS_PlatformMemory *pMemory)
 {
     unsigned i;
 
     for (i=0;i<NEXUS_MAX_HEAPS;i++) {
-        const NEXUS_PlatformHeapSettings *heap = &pSettings->heap[i];
+        const NEXUS_PlatformHeapSettings *heap = &heapSettings[i];
         const NEXUS_Core_MemoryRegion *region;
         size_t size;
         unsigned j;
@@ -1072,13 +1102,15 @@ static NEXUS_Error NEXUS_Platform_P_SetCoreCmaSettings_Verify(const nexus_p_memo
             for(j=0;j<(unsigned)info->lowmem.count;j++) {
                 if(NEXUS_Platform_P_RangeTestIntersect(&info->lowmem.range[j], region->offset, region->length)) {
                     BDBG_ERR(("SECURE heap[%u] at " BDBG_UINT64_FMT ".." BDBG_UINT64_FMT " intersects with lowmem %uMBytes(%u) at " BDBG_UINT64_FMT "", i, BDBG_UINT64_ARG(region->offset), BDBG_UINT64_ARG(region->offset+region->length), (unsigned)(info->lowmem.range[j].size/(1024*1024)), (unsigned)info->lowmem.range[j].size, BDBG_UINT64_ARG(info->lowmem.range[j].addr)));
+#if !NEXUS_CPU_ARM64
                     return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+#endif
                 }
             }
         }
         for (j=0;j<NEXUS_MAX_HEAPS;j++) {
             const NEXUS_Core_MemoryRegion *testRegion = &pCoreSettings->heapRegion[j];
-            if(pSettings->heap[j].size==0) {
+            if(heapSettings[j].size==0) {
                 continue;
             }
             if(i==j) {

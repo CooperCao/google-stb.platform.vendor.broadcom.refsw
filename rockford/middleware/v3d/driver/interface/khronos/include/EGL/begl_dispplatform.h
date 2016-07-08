@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2010 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2010 Broadcom.
 All rights reserved.
 
 Project  :  EGL driver
@@ -91,6 +91,7 @@ typedef struct
    uint32_t            totalByteSize; /* Actual bytes allocated for the entire image */
    uint32_t            alignment;     /* Buffer alignment specified as a power of 2. 1 = 2 bytes, 2 = 4 bytes etc. */
    uint32_t            openvg;        /* used to signal whether the buffer is used by VG or not */
+   uint32_t            secure;        /* used to signal whether the buffer is allocated in the secure heap or not */
    BEGL_BufferFormat   format;        /* Pixel format of the buffer */
    BEGL_ColorFormat    colorFormat;   /* Color space of the output buffer (only used for VG) */
    BEGL_BufferUsage    usage;         /* States whether the buffer will be used as a pixmap or swap-chain buffer */
@@ -125,6 +126,18 @@ typedef struct
    BEGL_BufferFormat   format;        /* Pixel format of the pixmap */
    BEGL_ColorFormat    colorFormat;   /* Color space of the output buffer (only used for VG) */
 } BEGL_PixmapInfo;
+
+#define BEGL_PIXMAPINFOEXT
+typedef struct
+{
+   uint32_t            width;         /* Visible width of pixmap in pixels */
+   uint32_t            height;        /* Visible height of pixmap in pixels */
+   uint32_t            openvg;        /* used to signal whether the buffer is used by VG or not */
+   uint32_t            secure;        /* used to signal whether the buffer is allocated from secure heap or not */
+   BEGL_BufferFormat   format;        /* Pixel format of the pixmap */
+   BEGL_ColorFormat    colorFormat;   /* Color space of the output buffer (only used for VG) */
+   uint32_t            magic;
+} BEGL_PixmapInfoEXT;
 
 typedef struct
 {
@@ -246,11 +259,11 @@ typedef struct
     * However, we must still keep pixmap rendering functional, and thus need this API call.
     *
     * The buffer should be destroyed using BEGL_DisplayInterface->BufferDestroy() */
-   BEGL_BufferHandle (*PixmapCreateCompatiblePixmap)(BEGL_PixmapInfo *pixmapInfo);
+   BEGL_BufferHandle (*PixmapCreateCompatiblePixmap)(BEGL_PixmapInfoEXT *pixmapInfo);
 
    /* Function to return the requirements of a given buffer size, so the application can make its own swap
     * chain and provide it back to GL */
-   void (*BufferGetRequirements)(BEGL_PixmapInfo *bufferRequirements, BEGL_BufferSettings * bufferConstrainedRequirements);
+   void (*BufferGetRequirements)(BEGL_PixmapInfoEXT *bufferRequirements, BEGL_BufferSettings * bufferConstrainedRequirements);
 
 } BEGL_DisplayCallbacks;
 

@@ -73,12 +73,9 @@ endif
 
 ifeq ($(B_REFSW_CROSS_COMPILE),)
 
-    ifeq ($(filter ${B_REFSW_ARCH}, arm-linux), ${B_REFSW_ARCH})
-    B_REFSW_CROSS_COMPILE = arm-linux-
+    ifeq ($(filter ${B_REFSW_ARCH},  aarch64-linux arm-linux), ${B_REFSW_ARCH})
+    B_REFSW_CROSS_COMPILE = ${B_REFSW_ARCH}-
     else
-    ifeq ($(filter ${B_REFSW_ARCH}, aarch64-linux), ${B_REFSW_ARCH})
-    B_REFSW_CROSS_COMPILE = aarch64-linux-
-    endif
     # set default B_REFSW_CROSS_COMPILE based on B_REFSW_ARCH
     ifdef NEXUS_ANDROID_SUPPORT
     B_REFSW_CROSS_COMPILE=mipsel-linux-uclibc-

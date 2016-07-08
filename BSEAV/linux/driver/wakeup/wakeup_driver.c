@@ -1,22 +1,43 @@
-/*
- * Copyright (C) 2015 Broadcom
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This library is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation; either version 2.1 of the
- * License, or (at your option) any later version.
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
+ * Except as expressly set forth in the Authorized License,
  *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, you may obtain a copy at
- * http://www.broadcom.com/licenses/LGPLv2.1.php or by writing to the Free
- * Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301  USA
- */
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
+ *
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 
 #define pr_fmt(fmt)	KBUILD_MODNAME ": " fmt
 
@@ -92,7 +113,6 @@ static struct wakeup_source sources[] = {
 	{ WAKEUP_CEC,		"CEC" },
 	{ WAKEUP_IRR,		"IRR" },
 	{ WAKEUP_KPD,		"KPD" },
-	{ WAKEUP_GPIO,		"GPIO" },
 	{ WAKEUP_UHFR,		"UHFR" },
 	{ WAKEUP_XPT_PMU,	"XPT_PMU" },
 };
@@ -201,7 +221,6 @@ static uint32_t struct_to_mask(wakeup_devices *wakeups)
     if(wakeups->ir) mask |= WAKEUP_IRR;
     if(wakeups->uhf) mask |= WAKEUP_UHFR;
     if(wakeups->keypad) mask |= WAKEUP_KPD;
-    if(wakeups->gpio) mask |= WAKEUP_GPIO;
     if(wakeups->cec) mask |= WAKEUP_CEC;
     if(wakeups->transport) mask |= WAKEUP_XPT_PMU;
 
@@ -213,7 +232,6 @@ static int mask_to_struct(uint32_t mask, wakeup_devices *wakeups)
     if(mask & WAKEUP_IRR) wakeups->ir = 1;
     if(mask & WAKEUP_UHFR) wakeups->uhf = 1;
     if(mask & WAKEUP_KPD) wakeups->keypad = 1;
-    if(mask & WAKEUP_GPIO) wakeups->gpio = 1;
     if(mask & WAKEUP_CEC) wakeups->cec = 1;
     if(mask & WAKEUP_XPT_PMU) wakeups->transport = 1;
 
@@ -393,9 +411,9 @@ static int __init wakeup_init(void)
 				  info);
 
 		if (ret) {
+            pr_err("request_irq failed for '%s'\n", resources[i].name);
             info->irq_masks[i] = 0;
             info->wakeups_present &= ~mask;
-			goto out_free;
         }
 	}
 
@@ -462,5 +480,4 @@ static void __exit wakeup_exit(void)
 module_exit(wakeup_exit);
 
 MODULE_LICENSE("GPL");
-MODULE_AUTHOR("Broadcom Corporation");
 MODULE_DESCRIPTION("Wake-up driver shim for Nexus");

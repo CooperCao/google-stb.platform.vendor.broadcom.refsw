@@ -1,7 +1,7 @@
-############################################################
-#     (c)2010-2013 Broadcom Corporation
+##############################################################################
+#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 #
-#  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+#  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
 #  conditions of a separate, written license agreement executed between you and Broadcom
 #  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,18 +35,7 @@
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
 #
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
-# Module Description:
-#   This file defines the Android flags for building in linuxuser mode.
-#
-# Revision History:
-#
-# $brcm_Log: $
-#
-############################################################
+##############################################################################
 
 ############################################################
 # Overview:
@@ -54,10 +43,6 @@
 # This file should only be included by os_flags.inc
 #
 ############################################################
-ifeq ($(ANDROID_OUT_DIR),)
-ANDROID_OUT_DIR = $(ANDROID)/out
-endif
-ANDROID_LIB = $(ANDROID_OUT_DIR)/target/product/${ANDROID_PRODUCT_OUT}/obj/lib
 
 # cflags - generic.
 NEXUS_CFLAGS := -DBDBG_DEBUG_BUILD=1 \
@@ -88,18 +73,26 @@ NEXUS_CFLAGS += -Os \
 	-fstrict-aliasing \
 	-funswitch-loops
 
-# cflags arch specific - only arm supported.
+# cflags arch specific - only arm/aarch64 supported.
+NEXUS_CFLAGS += -fPIE \
+	-pie
+ifeq ($(B_REFSW_ARCH), aarch64-linux)
+NEXUS_CFLAGS += -mcpu=cortex-a53
+else
 NEXUS_CFLAGS += -msoft-float \
-        -fPIE \
-	-pie \
-        -mfloat-abi=softfp \
+	-mfloat-abi=softfp \
 	-mcpu=cortex-a15 \
 	-mfpu=neon
+endif
 
 ifeq ($(B_REFSW_USES_CLANG),y)
 NEXUS_CFLAGS += -nostdlibinc \
-	-target arm-linux-androideabi \
 	-B${ANDROID_TOP}/prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9/bin
+ifeq ($(B_REFSW_ARCH), aarch64-linux)
+NEXUS_CFLAGS += -target aarch64-linux-android
+else
+NEXUS_CFLAGS += -target arm-linux-androideabi
+endif
 else
 NEXUS_CFLAGS += -frerun-cse-after-loop
 endif
@@ -126,25 +119,39 @@ NEXUS_CFLAGS += -I$(ANDROID)/system/core/include \
 	-I$(ANDROID)/frameworks/native/include \
 	-I$(ANDROID)/bionic/libc/kernel/uapi
 
-# includes - arch specific - only arm supported.
+# includes - arch specific - only arm/aarch64 supported.
+ifeq ($(B_REFSW_ARCH), aarch64-linux)
+NEXUS_CFLAGS += -I$(ANDROID)/bionic/libc/arch-arm64/include \
+	-I$(ANDROID)/bionic/libm/arm64 \
+	-I$(ANDROID)/bionic/libc/kernel/uapi/asm-arm64
+else
 NEXUS_CFLAGS += -I$(ANDROID)/bionic/libc/arch-arm/include \
 	-I$(ANDROID)/bionic/libm/arm \
 	-I$(ANDROID)/bionic/libc/kernel/uapi/asm-arm
+endif
 
 # ldflags - generic.
 NEXUS_LDFLAGS := -nostdlib  \
 	-Wl,--gc-sections \
 	-Wl,-shared,-Bsymbolic \
-	-L$(ANDROID_LIB)
+	-L$(B_REFSW_ANDROID_LIB)
 
 ifeq ($(B_REFSW_USES_CLANG),y)
 NEXUS_LDFLAGS += -Wl,--no-whole-archive \
-	-lc -lm -lcutils -lc++ \
+	-lc -lm -lcutils -lc++ -ldl \
 	-Wl,--no-undefined \
-	-Wl,--whole-archive \
-	${ANDROID_TOP}/prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9/lib/gcc/arm-linux-androideabi/4.9.x-google/libgcc.a \
+	-Wl,--whole-archive
+ifeq ($(B_REFSW_ARCH), aarch64-linux)
+NEXUS_LDFLAGS += \
+	${ANDROID_TOP}/${ANDROID_PREBUILT_LIBGCC} \
+	-target aarch64-linux-android \
+	-B${ANDROID_TOP}/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/bin
+else
+NEXUS_LDFLAGS += \
+	${ANDROID_TOP}/${ANDROID_PREBUILT_LIBGCC} \
 	-target arm-linux-androideabi \
 	-B${ANDROID_TOP}/prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9/bin
+endif
 else
 NEXUS_LDFLAGS += -Wl,--no-whole-archive \
 	-lcutils -lc -lm -lgcc \
@@ -152,5 +159,7 @@ NEXUS_LDFLAGS += -Wl,--no-whole-archive \
 	-Wl,--whole-archive
 endif
 
+ifneq ($(B_REFSW_ARCH), aarch64-linux)
 # ldflags - arch specific - only arm supported.
 NEXUS_LDFLAGS += -Wl,--fix-cortex-a8
+endif

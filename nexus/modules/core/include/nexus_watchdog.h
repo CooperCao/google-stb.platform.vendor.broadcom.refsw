@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2010 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,18 +35,6 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* API Description:
-*   API name: Watchdog
-*    Specific APIs related to HW watchdog
-*
-* Revision History:
-*
-* $brcm_Log: $
-* 
 ***************************************************************************/
 
 #ifndef NEXUS_WATCHDOG_H__
@@ -116,26 +104,43 @@ Summary:
 This function returns pStatus = true if the last chip reset was triggered by the watchdog timer.
 
 Description:
-Calling this function resets that status to false.
+This function does not work on ARM systems with the BOLT bootloader.
+BOLT reads and clears reset status, so this function will always return false.
+The reset status captured by BOLT can be retrieved from Device Tree as follows:
+
+    cat /proc/device-tree/bolt/reset-list
+
 ***************************************************************************/
 void NEXUS_Watchdog_GetLastResetStatus(
     bool *pStatus /* [out] */
     );
 
-typedef struct NEXUS_WatchdogSettings
+typedef struct NEXUS_WatchdogCallback *NEXUS_WatchdogCallbackHandle;
+
+typedef struct NEXUS_WatchdogCallbackSettings
 {
     NEXUS_CallbackDesc midpointCallback; /* callback is fired when watchdog is at the midpoint. chip is reset when watchdog expires. */
-} NEXUS_WatchdogSettings;
+} NEXUS_WatchdogCallbackSettings;
 
-void NEXUS_Watchdog_GetSettings(
-    NEXUS_WatchdogSettings *pSettings
+void NEXUS_WatchdogCallback_GetDefaultSettings(
+    NEXUS_WatchdogCallbackSettings *pSettings
     );
 
 /**
-New settings applied on next call to NEXUS_Watchdog_SetTimeout.
+Summary:
+Create a callback which fires at the midpoint of the watchdog.
+In the callback you can pet the watchdog by calling StartTimer again.
+If the callback does not fire, something has gone wrong inside Nexus, the watchdog will expire and the system will reset.
 **/
-NEXUS_Error NEXUS_Watchdog_SetSettings(
-    const NEXUS_WatchdogSettings *pSettings
+NEXUS_WatchdogCallbackHandle NEXUS_WatchdogCallback_Create( /* attr{destructor=NEXUS_WatchdogCallback_Destroy} */
+    const NEXUS_WatchdogCallbackSettings *pSettings
+    );
+
+/**
+Summary:
+**/
+void NEXUS_WatchdogCallback_Destroy(
+    NEXUS_WatchdogCallbackHandle handle
     );
 
 #ifdef __cplusplus

@@ -1,7 +1,7 @@
 #!/usr/bin/perl
-#     (c)2003-2014 Broadcom Corporation
+#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 #
-#  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+#  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
 #  conditions of a separate, written license agreement executed between you and Broadcom
 #  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,16 +34,6 @@
 #  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
-#
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
-# File Description:
-#
-# Revision History:
-#
-# $brcm_Log: $
 #
 #############################################################################
 
@@ -199,7 +189,7 @@ sub print_status_funcs
         my $params = $func->{PARAMS};
         my $param;
         my $name = $func->{FUNCNAME};
-        if ($name =~ /(.+)_GetStatus$/ ) {
+        if ($name =~ /(.+)_GetStatus$/ || $name =~ /(.+)_GetFastStatus$/) {
             my $base_name = $1;
             my $status_name = $base_name."Status";
             my $handle_name;
@@ -207,6 +197,9 @@ sub print_status_funcs
                 $handle_name =  $base_name;
             }
             else {
+                if ($base_name eq "NEXUS_Frontend") {
+                    $status_name = $base_name."FastStatus";
+                }
                 $handle_name =  $base_name."Handle";
             }
 
@@ -227,7 +220,7 @@ sub print_status_funcs
             print "/* $base_name */\n";
             if (defined $fields && scalar(@$params)==2 && !defined $blacklisted) {
 
-                push @status_array, $base_name;
+                push @status_array, [$base_name, $name];
 
                 print "NEXUS_Error print_".$name."(const char *module)\n";
                 print "{\n";
@@ -235,7 +228,7 @@ sub print_status_funcs
                 print "    unsigned i;\n";
                 print "    NEXUS_InterfaceName interfaceName;\n";
                 print "    NEXUS_PlatformObjectInstance objects[MAX_OBJECTS];\n";
-                print "    unsigned num;\n";
+                print "    size_t num;\n";
                 print "\n";
                 print "    strcpy(interfaceName.name, module);\n";
                 print "    rc = NEXUS_Platform_GetObjects(&interfaceName, objects, MAX_OBJECTS, &num);\n";
@@ -269,8 +262,8 @@ sub print_status_funcs
                         print "(\%d,\%d)\\n\", ";
                         print "status.$field->{NAME}.width,status.$field->{NAME}.height";
                     } elsif ($field->{TYPE} eq "NEXUS_CallbackDesc") {
-                        print "(\%#x,\%p,\%d)\\n\", ";
-                        print "(unsigned)status.$field->{NAME}.callback,status.$field->{NAME}.context,status.$field->{NAME}.param";
+                        print "(\%#lx,\%p,\%d)\\n\", ";
+                        print "(unsigned long)status.$field->{NAME}.callback,status.$field->{NAME}.context,status.$field->{NAME}.param";
                     } elsif ($field->{TYPE} eq "uint64_t") {
                         print "\%u\\n\", ";
                         print "(unsigned)status.$field->{NAME}";
@@ -291,10 +284,10 @@ sub print_status_funcs
                         print "\\n\"";
                     } elsif ($field->{TYPE} eq "NEXUS_DebugFifoInfo") {
                         print "\%p(%u,%#x)\\n\", ";
-                        print "(void *)status.$field->{NAME}.buffer, status.$field->{NAME}.elementSize,status.$field->{NAME}.offset";
+                        print "(void *)status.$field->{NAME}.buffer, (unsigned)status.$field->{NAME}.elementSize,status.$field->{NAME}.offset";
                     } else {
-                        print "\%d\\n\", ";
-                        print "status.$field->{NAME}";
+                        print "\%ld\\n\", ";
+                        print "(unsigned long)status.$field->{NAME}";
                     }
                     print ");\n";
                 }
@@ -317,7 +310,7 @@ sub print_status_array
     print "\n";
     print "const status_func_entry status_functions[] = {\n";
     foreach (@status_array) {
-        print "    { print_".$_."_GetStatus, \"".$_."\", \"".$_."_GetStatus\" },\n";
+        print "    { print_".@{$_}[1].", \"".@{$_}[0]."\", \"".@{$_}[1]."\" },\n";
     }
     print "};\n";
 }
@@ -360,6 +353,7 @@ sub parse_headers
             push @funcs, bapi_parse_c::get_func_prototypes $file;
         }
     }
+    bapi_parse_c::expand_structs(\%preload_structs,{});
     @func_refs = bapi_parse_c::parse_funcs @funcs;
 
     #print_enums;

@@ -285,7 +285,7 @@ int main(void)  {
 
             NEXUS_VideoDecoder_GetStatus(videoDecoder, &vstatus);
             fflush(fout);
-            fprintf(stderr, "written %u bytes.... decode:%u\t\r", bytes, vstatus.pts);
+            fprintf(stderr, "written %lu bytes.... decode:%u\t\r", (unsigned long)bytes, vstatus.pts);
             BKNI_Sleep(30);
             continue;
         }
@@ -297,10 +297,10 @@ int main(void)  {
                 if((desc[j][i].flags & NEXUS_VIDEOENCODERDESCRIPTOR_FLAG_METADATA) ==0) {/* ignore metadata descriptor in es capture */
                     fwrite((const uint8_t *)pDataBuffer + desc[j][i].offset, desc[j][i].length, 1, fout);
                 }
-                fprintf(fdesc, "%8x %8x   %x%08x   %x%08x %08x     %5u   %5d   %8x %8x %#x %u %x%08x\n", desc[j][i].flags, desc[j][i].originalPts,
+                fprintf(fdesc, "%8x %8x   %x%08x   %x%08x %08x     %5u   %5d   %8x %lux %#x %u %x%08x\n", desc[j][i].flags, desc[j][i].originalPts,
                     (uint32_t)(desc[j][i].pts>>32), (uint32_t)(desc[j][i].pts & 0xffffffff),
                     (uint32_t)(desc[j][i].stcSnapshot>>32), (uint32_t)(desc[j][i].stcSnapshot & 0xffffffff), desc[j][i].escr,
-                    desc[j][i].ticksPerBit, desc[j][i].shr, desc[j][i].offset, desc[j][i].length, desc[j][i].videoFlags, desc[j][i].dataUnitType,
+                    desc[j][i].ticksPerBit, desc[j][i].shr, desc[j][i].offset, (unsigned long)desc[j][i].length, desc[j][i].videoFlags, desc[j][i].dataUnitType,
                     (uint32_t)(desc[j][i].dts>>32), (uint32_t)(desc[j][i].dts & 0xffffffff));
                 bytes+= desc[j][i].length;
                 if(desc[j][i].length > 0x100000)

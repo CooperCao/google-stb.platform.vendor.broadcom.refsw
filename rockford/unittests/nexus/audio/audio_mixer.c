@@ -123,20 +123,26 @@ BDBG_MODULE(audio_playback);
 
 static void data_callback(void *pParam1, int param2)
 {
-    /*
-    printf("Data callback - channel 0x%08x\n", (unsigned)pParam1);
-    */
-    pParam1=pParam1;    /*unused*/
-    BKNI_SetEvent((BKNI_EventHandle)param2);
+    BSTD_UNUSED(param2);
+    BKNI_SetEvent(*(BKNI_EventHandle*)pParam1);
 }
+
+struct hotplug_context {
+    NEXUS_HdmiOutputHandle hdmi;
+    NEXUS_DisplayHandle display;
+};
 
 #if NEXUS_NUM_HDMI_OUTPUTS
     /* HDMI Hotplug Callback */
     static void hotplug_callback(void *pParam, int iParam)
     {
+
+        struct hotplug_context *context = pParam;
+        NEXUS_HdmiOutputHandle hdmi = context->hdmi;
+        NEXUS_DisplayHandle display = context->display;
         NEXUS_HdmiOutputStatus status;
-        NEXUS_HdmiOutputHandle hdmi = pParam;
-        NEXUS_DisplayHandle display = (NEXUS_DisplayHandle)iParam;
+
+	BSTD_UNUSED(iParam);
     
         NEXUS_HdmiOutput_GetStatus(hdmi, &status);
         fprintf(stderr, "HDMI hotplug event: %s\n", status.connected?"connected":"not connected");
@@ -178,6 +184,8 @@ int main(int argc, char **argv)
     NEXUS_ParserBand parserBand;
     NEXUS_ParserBandSettings parserBandSettings;
     NEXUS_StcChannelSettings stcSettings;
+
+    struct hotplug_context hotplug_context;
 
     size_t bytesToPlay = 48000*4*20;    /* 48 kHz, 4 bytes/sample, 20 seconds */
     size_t bytesPlayed=0;
@@ -225,16 +233,18 @@ int main(int argc, char **argv)
         /* Install hotplug callback -- video only for now */
         {
             NEXUS_HdmiOutputSettings hdmiSettings;
+            hotplug_context.hdmi = config.outputs.hdmi[0];
+            hotplug_context.display = display;
+
     
             NEXUS_HdmiOutput_GetSettings(config.outputs.hdmi[0], &hdmiSettings);
             hdmiSettings.hotplugCallback.callback = hotplug_callback;
-            hdmiSettings.hotplugCallback.context = config.outputs.hdmi[0];
-            hdmiSettings.hotplugCallback.param = (int)display;
+            hdmiSettings.hotplugCallback.context = &hotplug_context;
             NEXUS_HdmiOutput_SetSettings(config.outputs.hdmi[0], &hdmiSettings);
         }
     
         /* Force a hotplug to switch to preferred format */
-        hotplug_callback(config.outputs.hdmi[0], (int)display);
+        hotplug_callback(&hotplug_context, 0);
     #endif  /* NEXUS_NUM_HDMI_OUTPUTS */
 
     BKNI_CreateEvent(&event);
@@ -386,8 +396,7 @@ int main(int argc, char **argv)
     playbackSettings.signedData = true;
     playbackSettings.stereo = true;
     playbackSettings.dataCallback.callback = data_callback;
-    playbackSettings.dataCallback.context = playback;
-    playbackSettings.dataCallback.param = (int)event;
+    playbackSettings.dataCallback.context = &event;
 
     /* If we have a wav file, get the sample rate from it */
     if ( pFile )
@@ -556,8 +565,43 @@ int main(int argc, char **argv)
         }
     } while ( BERR_SUCCESS == errCode && bytesPlayed < bytesToPlay );
 
+
     printf("Stopping playback\n");
+    NEXUS_AudioDecoder_Stop(decoder);
+    NEXUS_AudioMixer_Stop(mixer);
     NEXUS_AudioPlayback_Stop(playback);
+
+#if NEXUS_NUM_AUDIO_DACS
+    NEXUS_AudioOutput_RemoveInput(NEXUS_AudioDac_GetConnector(config.outputs.audioDacs[0]),
+                                  NEXUS_AudioMixer_GetConnector(mixer));
+#endif
+
+
+#if NEXUS_NUM_SPDIF_OUTPUTS
+    NEXUS_AudioOutput_RemoveInput(NEXUS_SpdifOutput_GetConnector(config.outputs.spdif[0]),
+                                  NEXUS_AudioMixer_GetConnector(mixer));
+#endif
+
+
+#if NEXUS_NUM_HDMI_OUTPUTS
+    NEXUS_AudioOutput_RemoveInput(NEXUS_HdmiOutput_GetAudioConnector(config.outputs.hdmi[0]),
+                                  NEXUS_AudioMixer_GetConnector(mixer));
+#endif
+
+#if NEXUS_NUM_I2S_OUTPUTS
+    NEXUS_AudioOutput_RemoveInput(NEXUS_I2sOutput_GetConnector(config.outputs.i2s[0]),
+                                  NEXUS_AudioMixer_GetConnector(mixer));
+#endif
+
+    NEXUS_AudioMixer_Close(mixer);
+    NEXUS_AudioDecoder_Close(decoder);
+    NEXUS_AudioPlayback_Close(playback);
+
+    BKNI_DestroyEvent(event);
+
+    NEXUS_VideoWindow_Close(window);
+    NEXUS_Display_Close(display);
+    NEXUS_Platform_Uninit();
 
     printf("Done\n");
     return 0;

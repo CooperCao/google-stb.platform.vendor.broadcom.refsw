@@ -57,7 +57,7 @@
 BDBG_MODULE(bsat_g1_priv_tfec);
 
 #define BSAT_DEBUG_TFEC(x) /* x */
-#define EFREN_DEBUG
+/* #define BSAT_DEBUG_ACQ_TIME */
 
 /* local functions */
 bool BSAT_g1_P_TfecScanTryNextMode_isr(BSAT_ChannelHandle h);
@@ -72,7 +72,7 @@ BERR_Code BSAT_g1_P_TfecUpdateBlockCount_isrsafe(BSAT_ChannelHandle h);
 BSAT_ChannelHandle BSAT_g1_P_TfecGetOtherChannelHandle_isrsafe(BSAT_ChannelHandle h);
 #endif
 
-#ifdef EFREN_DEBUG
+#ifdef BSAT_DEBUG_ACQ_TIME
 static uint32_t t0, t1, max_t = 0;
 static BSAT_Mode lastMode = 0;
 #endif
@@ -183,6 +183,7 @@ BERR_Code BSAT_g1_P_TfecEnableLockInterrupts_isr(BSAT_ChannelHandle h, bool bEna
       BINT_DisableCallback_isr(hChn->hTfecLockCb);
       BINT_DisableCallback_isr(hChn->hTfecNotLockCb);
    }
+
    return BERR_SUCCESS;
 }
 
@@ -413,7 +414,7 @@ void BSAT_g1_P_TfecSync_isr(void *p, int int_id)
 
    BSAT_g1_P_IncrementInterruptCounter_isr(h, int_id);
 
-#ifdef EFREN_DEBUG
+#ifdef BSAT_DEBUG_ACQ_TIME
 BSAT_g1_P_GetAcquisitionTimerValue_isr(h, &t1);
 if (lastMode == hChn->actualMode)
 {
@@ -1052,7 +1053,17 @@ BERR_Code BSAT_g1_P_TfecConfig_isr(BSAT_ChannelHandle h)
    if (hChn->turboSettings.ctl & BSAT_TURBO_CTL_OVERRIDE_TZSY)
       val = hChn->turboSettings.tzsyOverride;
    else
-      val = 0x0420040F;
+   {
+      if (hChn->acqSettings.mode == BSAT_Mode_eTurbo_scan)
+      {
+         if (BSAT_MODE_IS_TURBO_8PSK(hChn->actualMode))
+            val = 0x00140810;
+         else
+            val = 0x00080810;
+      }
+      else
+        val = 0x00180810; /* 0/24 acquire lock, 8/16 retain lock, orig=0x0420040F */
+   }
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_TFEC_TZSY, val); /* orig: 0x00020E0F */
 
 #ifndef BSAT_HAS_DUAL_TFEC
@@ -1085,7 +1096,7 @@ BERR_Code BSAT_g1_P_TfecOnSyncTimeout_isr(BSAT_ChannelHandle h)
    if (hChn->turboScanState & BSAT_TURBO_SCAN_STATE_SYNC_ACQUIRED)
       hChn->turboScanLockedModeFailures++;
 
-#ifdef EFREN_DEBUG
+#ifdef BSAT_DEBUG_ACQ_TIME
 BSAT_g1_P_GetAcquisitionTimerValue_isr(h, &t1);
 BDBG_ERR(("TfecOnSyncTimeout: t=%d, actualMode=0x%X", t1-t0, hChn->actualMode));
 #endif
@@ -1120,21 +1131,22 @@ BDBG_ERR(("TfecOnSyncTimeout: t=%d, actualMode=0x%X", t1-t0, hChn->actualMode));
 ******************************************************************************/
 BERR_Code BSAT_g1_P_TfecRun_isr(BSAT_ChannelHandle h)
 {
-   BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
-   uint32_t timeout, Fb, mode_idx, Fb_idx;
+   static const uint16_t non_scan_timeout[10] =
+   {
+      1400, 1350, 1300, 1250, 1200, 1150, 1150, 1150, 1150, 1150
+   };
+
    static const uint16_t scan_timeout[5][10] =
    {
-      /* Fb >= 30Msps */
-      {3690, 2760, 2460, 1950, 1890, 1650, 1590, 1590, 1380, 1380},
-      /* Fb >= 21.5Msps */
-      {2645, 2451, 2451, 2086, 1871, 1634, 1591, 1591, 1441, 1312},
-      /* Fb >= 15Msps */
-      {4230, 2595, 2190, 2100, 1980, 1620, 1620, 1575, 1455, 1305},
-      /* Fb >= 10Msps */
-      {3050, 2750, 2590, 2090, 1890, 1630, 1620, 1530, 1530, 1390},
-      /* Fb < 10Msps */
-      {3880, 2455, 2455, 2085, 1825, 1585, 1900, 1660, 1420, 1275}
+      {990, 743, 715, 688, 660, 770, 759, 715, 688, 660}, /* Fb >= 30Msps */
+      {990, 743, 715, 688, 660, 770, 759, 715, 688, 660}, /* Fb >= 21.5Msps */
+      {770, 743, 715, 688, 660, 880, 759, 798, 688, 660}, /* Fb >= 15Msps */
+      {770, 743, 715, 688, 660, 880, 759, 715, 688, 660}, /* Fb >= 10Msps */
+      {770, 743, 715, 688, 660, 770, 759, 715, 688, 660}  /* Fb < 10Msps */
    };
+
+   BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
+   uint32_t timeout, Fb, mode_idx, Fb_idx;
 
    /* clear turbo interrupts */
    BINT_ClearCallback_isr(hChn->hTfecSyncCb);
@@ -1146,29 +1158,32 @@ BERR_Code BSAT_g1_P_TfecRun_isr(BSAT_ChannelHandle h)
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_TFEC_TFECTL, 0x61); /* clear error counter reset */
 #endif
 
-#ifdef EFREN_DEBUG
+#ifdef BSAT_DEBUG_ACQ_TIME
 BSAT_g1_P_GetAcquisitionTimerValue_isr(h, &t0);
 #endif
 
    Fb = hChn->acqSettings.symbolRate;
    mode_idx = hChn->actualMode - BSAT_Mode_eTurbo_Qpsk_1_2;
 
-   /* set timeout based on (mode, Fb) */
-   if (Fb >= 30000000)
-      Fb_idx = 0;
-   else if (Fb >= 21500000)
-      Fb_idx = 1;
-   else if (Fb >= 15000000)
-      Fb_idx = 2;
-   else if (Fb >= 10000000)
-      Fb_idx = 3;
+   if (hChn->acqSettings.mode == BSAT_Mode_eTurbo_scan)
+   {
+      /* set timeout based on (mode, Fb) */
+      if (Fb >= 30000000)
+         Fb_idx = 0;
+      else if (Fb >= 21500000)
+         Fb_idx = 1;
+      else if (Fb >= 15000000)
+         Fb_idx = 2;
+      else if (Fb >= 10000000)
+         Fb_idx = 3;
+      else
+         Fb_idx = 4;
+      timeout = (uint32_t)scan_timeout[Fb_idx][mode_idx];
+   }
    else
-      Fb_idx = 4;
-   timeout = (uint32_t)scan_timeout[Fb_idx][mode_idx] * 1000;
+      timeout = (uint32_t)non_scan_timeout[mode_idx];
 
-   if (hChn->acqSettings.mode != BSAT_Mode_eTurbo_scan)
-      timeout += 800000;
-
+   timeout *= 1000;
    return BSAT_g1_P_EnableTimer_isr(h, BSAT_TimerSelect_eBaud, timeout, BSAT_g1_P_TfecOnSyncTimeout_isr);
 }
 

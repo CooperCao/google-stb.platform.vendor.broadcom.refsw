@@ -1,7 +1,7 @@
 #############################################################################
-#    (c)2008-2013 Broadcom Corporation
+#  Broadcom Proprietary and Confidential. (c)2008-2016 Broadcom. All rights reserved.
 #
-# This program is the proprietary software of Broadcom Corporation and/or its licensors,
+# This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
 # conditions of a separate, written license agreement executed between you and Broadcom
 # (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -91,7 +91,7 @@ foreach $moduleUpper (@ARGV) {
         print OUTFILE "\$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_thunks.c : \$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_thunks.h\n";
         print OUTFILE "\$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_thunks.h: \$(wildcard \$(addsuffix /*.h,\$(NEXUS_$moduleUpper\_PUBLIC_INCLUDES))) \$(NEXUS_SYNCTHUNK_DIR)/exists\n";
         print OUTFILE "\t\@echo \"[Thunk..... $moduleLower]\"\n";
-        print OUTFILE "\t\$(Q_)\$(PERL) -I \$(NEXUS_TOP)/build/tools/common -I \$(NEXUS_TOP)/build/tools/syncthunk \$(NEXUS_TOP)/build/tools/syncthunk/bapi_build.pl $moduleUpper \$(NEXUS_SYNCTHUNK_DIR) \$(CLASS_LIST) \$(addsuffix /*.preload,\$(NEXUS_$moduleUpper\_PUBLIC_INCLUDES)) \$(addsuffix /*.h,\$(NEXUS_$moduleUpper\_PUBLIC_INCLUDES))\n";
+        print OUTFILE "\t\$(Q_)\$(CC) -MM \$(NEXUS_CFLAGS) \$(NEXUS_CFLAGS_BPROFILE) \$(NEXUS_$moduleUpper\_CFLAGS) \$(filter-out %_init.h,\$(wildcard \$(addsuffix /*.h,\$(NEXUS_$moduleUpper\_PUBLIC_INCLUDES)))) | \$(PERL) -I \$(NEXUS_TOP)/build/tools/common -I \$(NEXUS_TOP)/build/tools/syncthunk \$(NEXUS_TOP)/build/tools/syncthunk/bapi_build.pl -stdin $moduleUpper \$(NEXUS_SYNCTHUNK_DIR) \$(wildcard \$(addsuffix /*.h,\$(NEXUS_$moduleUpper\_PUBLIC_INCLUDES)))\n";
         print OUTFILE "\n";
     }
     else {
@@ -111,7 +111,7 @@ foreach $moduleUpper (@ARGV) {
         print OUTFILE "\n";
         print OUTFILE "\$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_ioctl.h: \$(NEXUS_SYNCTHUNK_DIR)/exists \$(wildcard \$(addsuffix /*.h,\$(NEXUS_$moduleUpper\_PUBLIC_INCLUDES))) \$(CLASS_LIST)\n";
         print OUTFILE "\t\@echo \"[Proxy..... $moduleLower]\"\n";
-        print OUTFILE "\t\$(Q_)\$(PERL) -I \$(NEXUS_TOP)/build/tools/common -I \$(NEXUS_TOP)/build/tools/kernelproxy \$(NEXUS_TOP)/build/tools/kernelproxy/bapi_build.pl $moduleUpper $cnt \$(NEXUS_SYNCTHUNK_DIR) \$(CLASS_LIST) \$(addsuffix /*.preload,\$(NEXUS_$moduleUpper\_PUBLIC_INCLUDES)) \$(addsuffix /*.h,\$(NEXUS_$moduleUpper\_PUBLIC_INCLUDES))\n";
+        print OUTFILE "\t\$(Q_)\$(CC) -MM \$(NEXUS_CFLAGS) \$(NEXUS_CFLAGS_BPROFILE) \$(NEXUS_$moduleUpper\_CFLAGS) \$(filter-out %_init.h,\$(wildcard \$(addsuffix /*.h,\$(NEXUS_$moduleUpper\_PUBLIC_INCLUDES)))) | \$(PERL) -I \$(NEXUS_TOP)/build/tools/common -I \$(NEXUS_TOP)/build/tools/kernelproxy \$(NEXUS_TOP)/build/tools/kernelproxy/bapi_build.pl --class_list \$(CLASS_LIST) --stdin --module_number $cnt $moduleUpper \$(NEXUS_SYNCTHUNK_DIR) \$(wildcard \$(addsuffix /*.h,\$(NEXUS_$moduleUpper\_PUBLIC_INCLUDES)))\n";
         print OUTFILE "\n";
     }
     else {

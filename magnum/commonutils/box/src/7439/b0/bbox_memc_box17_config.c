@@ -1,38 +1,72 @@
-/***************************************************************************
- *     Copyright (c) 2003-2014, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c) 2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ ******************************************************************************
  *
  * $brcm_Workfile: $
  * $brcm_Revision: $
  * $brcm_Date: $
  *
- * Module Description:
+ * API Description:
  *
  * Revision History:
  *
  * $brcm_Log: $
  *
- ***************************************************************************/
-/*******************************************************************
-*               Do Not Edit Directly
-* Auto-Generated from RTS environment:
-*   at: Tue Aug 18 19:27:31 2015 GMT
-*   by: robinc
-*   for: Box 7251_stb1t
-*         MemC 0 (32-bit DDR3@1066MHz) w/432MHz clock
-*******************************************************************/
+ ******************************************************************************
+ *
+ *                            Do Not Edit Directly
+ * Auto-Generated from RTS environment:
+ *   at: Fri Apr 29 00:23:14 2016 GMT
+ *   by: robinc
+ *   for: Box 7251_stb1t
+ *         MemC 0 (32-bit DDR3@1066MHz) w/432MHz clock
+ *
+ *   Run from /projects/dvt_chip_arch/RealTimeScheduling/rts/rts_code/rts_shell_v3.pl
+ *     /projects/dvt_chip_arch/RealTimeScheduling/rts/7439B0_Robin/BCM7439B0_triple1080p.cfg
+ *     /projects/dvt_chip_arch/RealTimeScheduling/rts/rts_code/timing_model/library_tools.cfg
+ *
+ *****************************************************************************/
 
 #include "bchp_memc_gen_0.h"  /* located in /TBD directory */
 
 #include "bbox.h"  /* located in /magnum/commonutils/box/include directory */
 
-static const uint32_t aulMemc0_20150818192731_7251_stb1t[] = {
-           0x003ce002,  /*   0: XPT_WR_RS 2260ns */
+static const uint32_t aulMemc0_20160429002314_7251_stb1t[] = {
+           0x003ce003,  /*   0: XPT_WR_RS 2260ns */
            0x8074804c,  /*   1: XPT_WR_XC RR 4580ns */
            0x80923022,  /*   2: XPT_WR_CDB RR 5420ns */
            0x8172305b,  /*   3: XPT_WR_ITB_MSG RR 14540ns */
@@ -72,7 +106,7 @@ static const uint32_t aulMemc0_20150818192731_7251_stb1t[] = {
            0x80ae104f,  /*  37: USB_X_CTRL_0 RR 6840ns */
            0x3ffff0ff,  /*  38: UNASSIGNED off */
            0x3ffff0ff,  /*  39: UNASSIGNED off */
-           0x0050e008,  /*  40: RAAGA 3000ns */
+           0x0050e009,  /*  40: RAAGA 3000ns */
            0x001ae000,  /*  41: RAAGA_1 1000ns */
            0x3ffff0ff,  /*  42: UNASSIGNED off */
            0x3ffff0ff,  /*  43: UNASSIGNED off */
@@ -109,7 +143,7 @@ static const uint32_t aulMemc0_20150818192731_7251_stb1t[] = {
            0x80000067,  /*  74: HVD0_DBLK_1 RR 0ns */
            0x80270046,  /*  75: HVD0_ILCPU RR 1451ns */
            0x8070a04a,  /*  76: HVD0_OLCPU RR 4427ns */
-           0x00714011,  /*  77: HVD0_CAB 4200ns */
+           0x0044f006,  /*  77: HVD0_CAB 2559ns */
            0x00739013,  /*  78: HVD0_ILSI 4287ns */
            0x825d105e,  /*  79: HVD0_ILCPU_p2 RR 22416ns */
            0x00739014,  /*  80: HVD0_ILSI_p2 4287ns */
@@ -117,7 +151,7 @@ static const uint32_t aulMemc0_20150818192731_7251_stb1t[] = {
            0x8000006b,  /*  82: HVD1_DBLK_1 RR 0ns */
            0x80270047,  /*  83: HVD1_ILCPU RR 1451ns */
            0x80d9b051,  /*  84: HVD1_OLCPU RR 8553ns */
-           0x007de015,  /*  85: HVD1_CAB 4667ns */
+           0x00744015,  /*  85: HVD1_CAB 4311ns */
            0x0071a012,  /*  86: HVD1_ILSI 4214ns */
            0xbffff0ff,  /*  87: SID RR */
            0x3ffff0ff,  /*  88: UNASSIGNED off */
@@ -126,7 +160,7 @@ static const uint32_t aulMemc0_20150818192731_7251_stb1t[] = {
            0x3ffff0ff,  /*  91: UNASSIGNED off */
            0x3ffff0ff,  /*  92: UNASSIGNED off */
            0x3ffff0ff,  /*  93: UNASSIGNED off */
-           0x005e2010,  /*  94: BVN_MAD_PIX_FD 3493ns */
+           0x005e2011,  /*  94: BVN_MAD_PIX_FD 3493ns */
            0x00848019,  /*  95: BVN_MAD_QUANT 4914ns */
            0x00bc7028,  /*  96: BVN_MAD_PIX_CAP 6986ns */
            0x008d501f,  /*  97: BVN_MAD1_PIX_FD 5240ns */
@@ -139,13 +173,13 @@ static const uint32_t aulMemc0_20150818192731_7251_stb1t[] = {
            0x3ffff0ff,  /* 104: UNASSIGNED off */
            0x3ffff0ff,  /* 105: UNASSIGNED off */
            0x0085301a,  /* 106: BVN_MFD0 4938ns */
-           0x0058c00c,  /* 107: BVN_MFD0_1 3292ns */
+           0x0058c00d,  /* 107: BVN_MFD0_1 3292ns */
            0x0085301b,  /* 108: BVN_MFD1 4938ns */
-           0x0058c00d,  /* 109: BVN_MFD1_1 3292ns */
+           0x0058c00e,  /* 109: BVN_MFD1_1 3292ns */
            0x0085301c,  /* 110: BVN_MFD2 4938ns */
-           0x0058c00e,  /* 111: BVN_MFD2_1 3292ns */
+           0x0058c00f,  /* 111: BVN_MFD2_1 3292ns */
            0x0085301d,  /* 112: BVN_MFD3 4938ns */
-           0x0058c00f,  /* 113: BVN_MFD3_1 3292ns */
+           0x0058c010,  /* 113: BVN_MFD3_1 3292ns */
            0x3ffff0ff,  /* 114: UNASSIGNED off */
            0x3ffff0ff,  /* 115: UNASSIGNED off */
            0x3ffff0ff,  /* 116: UNASSIGNED off */
@@ -158,7 +192,7 @@ static const uint32_t aulMemc0_20150818192731_7251_stb1t[] = {
            0x00951024,  /* 123: BVN_VFD5 5527.3631840796ns */
            0x3ffff0ff,  /* 124: UNASSIGNED off */
            0x3ffff0ff,  /* 125: UNASSIGNED off */
-           0x003f8003,  /* 126: BVN_CAP0 2358.20895522388ns */
+           0x003ca002,  /* 126: BVN_CAP0 2251.78147268409ns */
            0x007f3018,  /* 127: BVN_CAP1 4716.41791044776ns */
            0x01747033,  /* 128: BVN_CAP2 13800ns */
            0x01747034,  /* 129: BVN_CAP3 13800ns */
@@ -168,15 +202,15 @@ static const uint32_t aulMemc0_20150818192731_7251_stb1t[] = {
            0x3ffff0ff,  /* 133: UNASSIGNED off */
            0x0031d001,  /* 134: BVN_GFD0 1851ns */
            0x0167c032,  /* 135: BVN_GFD1 13330ns */
-           0x00559009,  /* 136: BVN_GFD2 3174ns */
-           0x0055900a,  /* 137: BVN_GFD3 3174ns */
+           0x0055900a,  /* 136: BVN_GFD2 3174ns */
+           0x0055900b,  /* 137: BVN_GFD3 3174ns */
            0x3ffff0ff,  /* 138: UNASSIGNED off */
            0x3ffff0ff,  /* 139: UNASSIGNED off */
            0x3ffff0ff,  /* 140: UNASSIGNED off */
-           0x004b5007,  /* 141: BVN_MCVP0 2794ns */
-           0x004b5006,  /* 142: BVN_MCVP1 2794ns */
+           0x004b5008,  /* 141: BVN_MCVP0 2794ns */
+           0x004b5007,  /* 142: BVN_MCVP1 2794ns */
            0x00d3d02e,  /* 143: BVN_MCVP2 7850ns */
-           0x0057100b,  /* 144: BVN_RDC 3230ns */
+           0x0057100c,  /* 144: BVN_RDC 3230ns */
            0x03526039,  /* 145: VEC_VBI_ENC0 31500ns */
            0x0352603a,  /* 146: VEC_VBI_ENC1 31500ns */
            0xbffff0ff,  /* 147: M2MC_0 RR */
@@ -291,7 +325,7 @@ static const uint32_t aulMemc0_20150818192731_7251_stb1t[] = {
          };
 
 
-static const BBOX_Rts_PfriClient stBoxRts_PfriClient_20150818192731_7251_stb1t[] = {
+static const BBOX_Rts_PfriClient stBoxRts_PfriClient_20160429002314_7251_stb1t[] = {
   {BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_CONFIG,      0x80700802}, /* HVD0_PFRI (gHvd0) 490080.00 ns/40 */
   {BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_FILTER_CTRL, 0x4000052b}, /* d: 4; p: 1323.2125 */
   {BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_THRESH0,     0x000015e5}, /* 5605 */
@@ -306,15 +340,15 @@ static const BBOX_Rts_PfriClient stBoxRts_PfriClient_20150818192731_7251_stb1t[]
   {BCHP_MEMC_GEN_0_PFRI_2_THROTTLE_THRESH1,     0x000000f9}  /* 60% * 416 */
 };
 
-static const uint32_t* const paulMemc_box17[] = { &aulMemc0_20150818192731_7251_stb1t[0]};
+static const uint32_t* const paulMemc_box17[] = { &aulMemc0_20160429002314_7251_stb1t[0]};
 
 const BBOX_Rts stBoxRts_7251_stb1t_box17 = {
-  "20150818192731_7251_stb1t_box17",
+  "20160429002314_7251_stb1t_box17",
   7439,
   17,
   1,
   256,
   (const uint32_t**)&paulMemc_box17[0],
   12,
-  stBoxRts_PfriClient_20150818192731_7251_stb1t
+  stBoxRts_PfriClient_20160429002314_7251_stb1t
 };

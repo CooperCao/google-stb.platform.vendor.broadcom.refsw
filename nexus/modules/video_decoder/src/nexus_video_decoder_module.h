@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2014 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #ifndef NEXUS_VIDEO_DECODER_MODULE_H__
@@ -516,6 +508,7 @@ struct NEXUS_VideoDecoderDevice {
     unsigned numWatchdogs;
     struct NEXUS_VideoDecoder *channel[NEXUS_NUM_XVD_CHANNELS];
     BMMA_Heap_Handle mem; /* heap used by AVD */
+    struct NEXUS_VideoDecoderDevice *slaveLinkedDevice; /* crosslink to device which has set device->linkedDevice to this one */
 
     /* image interface */
     void * img_context;
@@ -529,10 +522,11 @@ struct NEXUS_VideoDecoderDevice {
 /* global instance data */
 extern NEXUS_ModuleHandle g_NEXUS_videoDecoderModule;
 extern NEXUS_VideoDecoderModuleSettings g_NEXUS_videoDecoderModuleSettings;
+extern NEXUS_VideoDecoderModuleInternalSettings g_NEXUS_videoDecoderModuleInternalSettings;
 extern struct NEXUS_VideoDecoderDevice g_NEXUS_videoDecoderXvdDevices[NEXUS_MAX_XVD_DEVICES];
 
-#define LOCK_TRANSPORT()    NEXUS_Module_Lock(g_NEXUS_videoDecoderModuleSettings.transport)
-#define UNLOCK_TRANSPORT()  NEXUS_Module_Unlock(g_NEXUS_videoDecoderModuleSettings.transport)
+#define LOCK_TRANSPORT()    NEXUS_Module_Lock(g_NEXUS_videoDecoderModuleInternalSettings.transport)
+#define UNLOCK_TRANSPORT()  NEXUS_Module_Unlock(g_NEXUS_videoDecoderModuleInternalSettings.transport)
 
 /**
 Priv functions
@@ -624,7 +618,7 @@ NEXUS_Error NEXUS_VideoDecoder_P_FrameAdvance_Avd(NEXUS_VideoDecoderHandle video
 void NEXUS_VideoDecoder_P_GetPlaybackSettings_Common( NEXUS_VideoDecoderHandle handle, NEXUS_VideoDecoderPlaybackSettings *pSettings);
 NEXUS_Error NEXUS_VideoDecoder_P_SetPlaybackSettings_Common( NEXUS_VideoDecoderHandle handle, const NEXUS_VideoDecoderPlaybackSettings *pSettings);
 
-NEXUS_ModuleHandle NEXUS_VideoDecoderModule_P_Init_Avd(const NEXUS_VideoDecoderModuleSettings *pSettings);
+NEXUS_ModuleHandle NEXUS_VideoDecoderModule_P_Init_Avd(const NEXUS_VideoDecoderModuleInternalSettings *pModuleSettings, const NEXUS_VideoDecoderModuleSettings *pSettings);
 void NEXUS_VideoDecoderModule_P_Uninit_Avd(void);
 
 void NEXUS_VideoDecoder_GetDisplayConnection_priv_Avd( NEXUS_VideoDecoderHandle handle, NEXUS_VideoDecoderDisplayConnection *pConnection);

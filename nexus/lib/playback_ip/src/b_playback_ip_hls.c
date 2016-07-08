@@ -1,43 +1,39 @@
 /******************************************************************************
- * (c) 2016 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 
 #include "../include/b_playback_ip_lib.h"
@@ -72,6 +68,7 @@ BDBG_MODULE(b_playback_ip_hls);
 #define HLS_M3U8_VERSION_TAG                    "#EXT-X-VERSION:"           /* version of the playlist file, if missing, assumed 1 */
 #define HLS_M3U8_MEDIA_SEGMENT_SEQUENCE_TAG     "#EXT-X-MEDIA-SEQUENCE:"    /* sequence number of the 1st URI in a playlist, if missing, then 1st URI has seq # of 0 */
 #define HLS_M3U8_STREAM_INFO_TAG                "#EXT-X-STREAM-INF:"        /* preceeds URI of a playlist file */
+#define HLS_M3U8_I_FRAME_STREAM_INFO_TAG        "#EXT-X-I-FRAME-STREAM-INF:"        /* I-Frame Media Playlist tag entry. */
 #define HLS_M3U8_MEDIA_TAG                      "#EXT-X-MEDIA:"             /* media tag containing alternate rendition of a variant. */
 #define HLS_M3U8_DISCONTINUITY_TAG              "#EXT-X-DISCONTINUITY"      /* indicates discontinuity between the media file that follows this tag to the one before it */
 #define HLS_M3U8_ENCRYPTION_KEY_TAG             "#EXT-X-KEY:"               /* indicates following segments are encrypted using this key & IV */
@@ -91,6 +88,7 @@ BDBG_MODULE(b_playback_ip_hls);
 #define HLS_M3U8_TAG_ATTRIBUTE_ENC_URI      "URI"
 #define HLS_M3U8_TAG_ATTRIBUTE_ENC_IV       "IV"
 #define HLS_M3U8_TAG_ATTRIBUTE_AUDIO        "AUDIO"
+#define HLS_M3U8_TAG_ATTRIBUTE_URI          "URI"
 #define HLS_M3U8_TAG_ATTRIBUTE_VIDEO        "VIDEO"
 #define HLS_M3U8_TAG_ATTRIBUTE_SUBTITILES   "SUBTITLES"
 
@@ -207,7 +205,7 @@ convertDurationAttributeToMsec(char *duration)
         /* now convert fractional part to msec */
         msec += convertStringToMsec(tmp1+1);
     }
-    BDBG_MSG(("%s: msec is %u", __FUNCTION__, msec));
+    BDBG_MSG(("%s: msec is %lu", __FUNCTION__, msec));
     return msec;
 }
 
@@ -326,7 +324,7 @@ B_PlaybackIp_HlsDownloadFile(B_PlaybackIpHandle playback_ip, int *pFd, char *buf
         if (playback_ip->contentLength > 0 && *totalBytesRead == (int)playback_ip->contentLength) {
             /* we have read all the bytes that server had indicated via contentLength, so instead of trying another read and waiting for server to close the connection */
             /* consider this as server closed event and break out of the read loop */
-            BDBG_MSG(("%s: breaking out of read loop as we have read %d upto the content length %lld", __FUNCTION__, *totalBytesRead, playback_ip->contentLength));
+            BDBG_MSG(("%s: breaking out of read loop as we have read %d upto the content length %"PRId64 "", __FUNCTION__, *totalBytesRead, playback_ip->contentLength));
             serverClosed = true;
             break;
         }
@@ -339,8 +337,8 @@ B_PlaybackIp_HlsDownloadFile(B_PlaybackIpHandle playback_ip, int *pFd, char *buf
 
         if ((bytesRead = playback_ip_read_socket(playback_ip, playback_ip->securityHandle, fd, buffer+*totalBytesRead, bytesToRead, playback_ip->networkTimeout)) <= 0) {
             if (playback_ip->selectTimeout) {
-                BDBG_MSG(("%s:%p socket error, retry read: size %d, errno :%d, state %d, select timeout %d, server closed %d",
-                    __FUNCTION__, playback_ip, *totalBytesRead+bytesRead, errno, playbackIpState(playback_ip), playback_ip->selectTimeout, playback_ip->serverClosed));
+                BDBG_MSG(("%s:%p socket error, retry read: size %zu, errno :%d, state %d, select timeout %d, server closed %d",
+                    __FUNCTION__, (void *)playback_ip, *totalBytesRead+bytesRead, errno, playbackIpState(playback_ip), playback_ip->selectTimeout, playback_ip->serverClosed));
                 if ( timeoutRetryCount > 1 ) {
                     serverClosed = true;
                     BDBG_ERR(("!!! %s: timeoutRetryCount = %d, timing out while downloading the file, breaking out!", __FUNCTION__, timeoutRetryCount));
@@ -351,7 +349,7 @@ B_PlaybackIp_HlsDownloadFile(B_PlaybackIpHandle playback_ip, int *pFd, char *buf
             }
 #ifdef BDBG_DEBUG_BUILD
             if (playback_ip->ipVerboseLog)
-                BDBG_ERR(("%s: Network Read Error, rc %d, playback ip state %d", __FUNCTION__, bytesRead, playbackIpState(playback_ip)));
+                BDBG_ERR(("%s: Network Read Error, rc %zu, playback ip state %d", __FUNCTION__, bytesRead, playbackIpState(playback_ip)));
 #endif
             serverClosed = true;
             break;
@@ -360,7 +358,7 @@ B_PlaybackIp_HlsDownloadFile(B_PlaybackIpHandle playback_ip, int *pFd, char *buf
         /* read some data, increament the index count and make sure there is space left in the index cache for the next read */
         *totalBytesRead += bytesRead;
     }
-    BDBG_MSG(("%s:%p finished downloading playlist: errno %d, size %d, state %d, server closed %d on socket %d", __FUNCTION__, playback_ip, errno, *totalBytesRead, playbackIpState(playback_ip), serverClosed, fd));
+    BDBG_MSG(("%s:%p finished downloading playlist: errno %d, size %d, state %d, server closed %d on socket %d", __FUNCTION__, (void *)playback_ip, errno, *totalBytesRead, playbackIpState(playback_ip), serverClosed, fd));
     if (serverClosed) {
         /* close security context and socket */
         if (playback_ip->securityHandle) {
@@ -483,7 +481,7 @@ B_PlaybackIp_HlsDownloadMediaSegment(
         return false;
     }
     *serverClosed = false;
-    BDBG_MSG(("%s:%p download %d bytes for fd %d, bufferSize %d", __FUNCTION__, playback_ip, bytesToRead, fd, bufferSize));
+    BDBG_MSG(("%s:%p download %d bytes for fd %d, bufferSize %d", __FUNCTION__, (void *)playback_ip, bytesToRead, fd, bufferSize));
     /* start a timer to note the n/w b/w */
     B_Time_Get(&beginTime);
     while (true) {
@@ -497,20 +495,20 @@ B_PlaybackIp_HlsDownloadMediaSegment(
         /* futher limit the readSize to HLS read chunk size */
         bytesLeftToRead = min(bytesLeftToRead, HLS_READ_CHUNK_SIZE);
         if (bytesLeftToRead <= 0) {
-            BDBG_MSG(("%s:%p breaking out of read loop as we have no more to read: bytesToRead %d, bytesRead %d, bufferSize %d, bytesLeftToRead %d", __FUNCTION__, playback_ip,  bytesToRead, *totalBytesRead, bufferSize, bytesLeftToRead));
+            BDBG_MSG(("%s:%p breaking out of read loop as we have no more to read: bytesToRead %d, bytesRead %d, bufferSize %d, bytesLeftToRead %d", __FUNCTION__, (void *)playback_ip,  bytesToRead, *totalBytesRead, bufferSize, bytesLeftToRead));
             break;
         }
 
-        BDBG_MSG(("%s:%p: before playback_ip_read_socket: networkTimeout %d", __FUNCTION__, playback_ip, playback_ip->networkTimeout));
+        BDBG_MSG(("%s:%p: before playback_ip_read_socket: networkTimeout %d", __FUNCTION__, (void *)playback_ip, playback_ip->networkTimeout));
         if ((bytesRead = playback_ip_read_socket(playback_ip, playback_ip->securityHandle, fd, buffer+*totalBytesRead, bytesLeftToRead, playback_ip->networkTimeout)) <= 0) {
             if (playback_ip->selectTimeout) {
-                BDBG_WRN(("%s: select timeout, giving up reading on this segment: size %d, errno :%d, state %d, select timeout %d, server closed %d",
+                BDBG_WRN(("%s: select timeout, giving up reading on this segment: size %zu, errno :%d, state %d, select timeout %d, server closed %d",
                             __FUNCTION__, *totalBytesRead+bytesRead, errno, playbackIpState(playback_ip), playback_ip->selectTimeout, playback_ip->serverClosed));
             }
             else {
 #ifdef BDBG_DEBUG_BUILD
                 if (playback_ip->ipVerboseLog)
-                    BDBG_ERR(("%s:%p: Network Read Error, errno %d, serverClosed %d, bytesRead %d, playback ip state %d", __FUNCTION__, playback_ip, errno, playback_ip->serverClosed, bytesRead, playbackIpState(playback_ip)));
+                    BDBG_ERR(("%s:%p: Network Read Error, errno %d, serverClosed %d, bytesRead %zu, playback ip state %d", __FUNCTION__, (void *)playback_ip, errno, playback_ip->serverClosed, bytesRead, playbackIpState(playback_ip)));
 #endif
                 *serverClosed = true;
             }
@@ -520,13 +518,13 @@ B_PlaybackIp_HlsDownloadMediaSegment(
         /* read some data, increament the index count and make sure there is space left in the index cache for the next read */
         *totalBytesRead += bytesRead;
         B_Time_Get(&curTime);
-        BDBG_MSG_FLOW(("%s:%p total bytesToRead %d, totalbytesRead %d, bytesToRead %d, bytes read %d", __FUNCTION__, playback_ip,
+        BDBG_MSG_FLOW(("%s:%p total bytesToRead %d, totalbytesRead %d, bytesToRead %d, bytes read %zu", __FUNCTION__, (void *)playback_ip,
                     bytesToRead, *totalBytesRead, bytesLeftToRead, bytesRead));
         totalDownloadTime = B_Time_Diff(&curTime, &beginTime);
         if (totalDownloadTime > MAX_SEGMENT_DOWNLOAD_TIME) {
             /* we have read all the bytes that server had indicated via contentLength, so instead of trying another read and waiting for server to close the connection */
             /* consider this as server closed event and break out of the read loop */
-            BDBG_MSG(("%s: breaking out of read loop as download time (msec) %u exceeded %d, total read %ld", __FUNCTION__, totalDownloadTime, MAX_SEGMENT_DOWNLOAD_TIME, *totalBytesRead));
+            BDBG_MSG(("%s: breaking out of read loop as download time (msec) %u exceeded %d, total read %d", __FUNCTION__, totalDownloadTime, MAX_SEGMENT_DOWNLOAD_TIME, *totalBytesRead));
             break;
         }
     }
@@ -540,11 +538,11 @@ B_PlaybackIp_HlsDownloadMediaSegment(
         *networkBandwidth = ((int)((*totalBytesRead*8.)/(totalDownloadTime))*1000);
         modifiedNetworkBandwidth = (*networkBandwidth * 80)/100;
         /* 1000 for convering msec to sec, 80/100 for taking 80% of current n/w b/w */
-        BDBG_MSG(("%s:%p download time (msec) %u, total read %ld, b/w %u, modified b/w %u", __FUNCTION__, playback_ip, totalDownloadTime, *totalBytesRead, *networkBandwidth, modifiedNetworkBandwidth));
+        BDBG_MSG(("%s:%p download time (msec) %u, total read %d, b/w %u, modified b/w %u", __FUNCTION__, (void *)playback_ip, totalDownloadTime, *totalBytesRead, *networkBandwidth, modifiedNetworkBandwidth));
         *networkBandwidth = modifiedNetworkBandwidth;
     }
     BDBG_MSG(("%s:%p finished downloading file (fd %d): n/w bandwidth %d, errno %d, size %d, state %d, select timeout %d, server closed %d",
-            __FUNCTION__, playback_ip, fd, *networkBandwidth, errno, *totalBytesRead, playbackIpState(playback_ip), playback_ip->selectTimeout, *serverClosed));
+            __FUNCTION__, (void *)playback_ip, fd, *networkBandwidth, errno, *totalBytesRead, playbackIpState(playback_ip), playback_ip->selectTimeout, *serverClosed));
 
     if (*totalBytesRead)
         return true;
@@ -601,7 +599,7 @@ B_PlaybackIp_FreeMediaFileSegmentInfo(MediaFileSegmentInfo *mediaFileSegmentInfo
         BKNI_Free(mediaFileSegmentInfo->server);
         mediaFileSegmentInfo->server = NULL;
     }
-    BDBG_MSG(("%s: freed mediaFileSegmentInfo entry %p", __FUNCTION__, mediaFileSegmentInfo));
+    BDBG_MSG(("%s: freed mediaFileSegmentInfo entry %p", __FUNCTION__, (void *)mediaFileSegmentInfo));
     BKNI_Free(mediaFileSegmentInfo);
 }
 
@@ -640,7 +638,7 @@ B_PlaybackIp_FreePlaylistInfo(PlaylistFileInfo *playlistFileInfo)
         playlistFileInfo->altAudioRenditionGroupId= NULL;
     }
 
-    BDBG_MSG(("%s: freed playlistFileInfo entry %p", __FUNCTION__, playlistFileInfo));
+    BDBG_MSG(("%s: freed playlistFileInfo entry %p", __FUNCTION__, (void *)playlistFileInfo));
     BKNI_Free(playlistFileInfo);
 }
 
@@ -673,7 +671,7 @@ B_PlaybackIp_FreeAltRenditionInfo(AltRenditionInfo *altRenditionInfo)
         altRenditionInfo->assocLanguage= NULL;
     }
 
-    BDBG_MSG(("%s: freed altRenditionInfo entry %p", __FUNCTION__, altRenditionInfo));
+    BDBG_MSG(("%s: freed altRenditionInfo entry %p", __FUNCTION__, (void *)altRenditionInfo));
     BKNI_Free(altRenditionInfo);
 }
 
@@ -732,6 +730,14 @@ B_PlaybackIp_FreePlaylistInfoAll(B_PlaybackIpHandle playback_ip)
         B_PlaybackIp_FreeAltRenditionInfo(altRenditionInfo);
     }
 
+    for (playlistFileInfo = BLST_Q_FIRST(&hlsSession->iFramePlaylistFileInfoQueueHead);
+         playlistFileInfo;
+         playlistFileInfo = BLST_Q_FIRST(&hlsSession->iFramePlaylistFileInfoQueueHead))
+    {
+        BLST_Q_REMOVE_HEAD(&hlsSession->iFramePlaylistFileInfoQueueHead, next);
+        B_PlaybackIp_FreePlaylistInfo(playlistFileInfo);
+    }
+
     if (hlsSession->playlistBuffer) {
         BKNI_Free(hlsSession->playlistBuffer);
         hlsSession->playlistBuffer = NULL;
@@ -764,7 +770,7 @@ hls_parse_url(B_PlaybackIpProtocol *protocol, char **server, unsigned *portPtr, 
     tmp2 = strstr(tmp1, "/");
     if (tmp2) {
         if ((*server = (char *)BKNI_Malloc(tmp2-tmp1+1)) == NULL) {
-            BDBG_ERR(("%s: ERROR: failed to allocate %d bytes of memory at %d\n", __FUNCTION__, (tmp2-tmp1), __LINE__));
+            BDBG_ERR(("%s: ERROR: failed to allocate %ld bytes of memory at %d\n", __FUNCTION__, (long)(tmp2-tmp1), __LINE__));
             return false;
         }
         strncpy(*server, tmp1, tmp2-tmp1);
@@ -844,12 +850,12 @@ hls_build_get_req(B_PlaybackIpHandle playback_ip, char *write_buf, int write_buf
         char *rangeString;
         rangeString = "Range:";
         if (byteRangeEnd > byteRangeStart)
-            bytesWrote = snprintf(header, bytesLeft, "%s bytes=%lld-%lld\r\n", rangeString, (long long)byteRangeStart, (long long)byteRangeEnd);
+            bytesWrote = snprintf(header, bytesLeft, "%s bytes=%"PRId64 "-%"PRId64 "\r\n", rangeString, byteRangeStart, byteRangeEnd);
         else {
             if (playback_ip->contentLength != 0)
-                bytesWrote = snprintf(header, bytesLeft, "%s bytes=%lld-%lld\r\n", rangeString, (long long)byteRangeStart, (long long)playback_ip->contentLength-1);
+                bytesWrote = snprintf(header, bytesLeft, "%s bytes=%"PRId64 "-%"PRId64 "\r\n", rangeString, byteRangeStart, playback_ip->contentLength-1);
             else
-                bytesWrote = snprintf(header, bytesLeft, "%s bytes=%lld-\r\n", rangeString, (long long)byteRangeStart);
+                bytesWrote = snprintf(header, bytesLeft, "%s bytes=%"PRId64 "-\r\n", rangeString, byteRangeStart);
         }
         bytesLeft -= bytesWrote;
         header += bytesWrote;
@@ -904,35 +910,39 @@ B_Playback_HlsCreatePlaybackIpSession(
     void *initialSecurityContext
     )
 {
-    B_PlaybackIpSessionOpenSettings ipSessionOpenSettings;
+    B_PlaybackIpSessionOpenSettings *pIpSessionOpenSettings = NULL;
     B_PlaybackIpSessionOpenStatus ipSessionOpenStatus;
     NEXUS_Error rc = NEXUS_UNKNOWN;
     B_PlaybackIpHandle playbackIp;
 
     playbackIp = B_PlaybackIp_Open(NULL);
     if (!playbackIp) {BDBG_ERR(("%s: Failed to open a Playback Ip Session", __FUNCTION__)); return NULL;}
-    BDBG_MSG(("%s:%p -> %p server %s, port %d, uri %s, protocol %d", __FUNCTION__, playback_ip, playbackIp, server, port, *uri, protocol));
+    BDBG_MSG(("%s:%p -> %p server %s, port %d, uri %s, protocol %d", __FUNCTION__, (void *)playback_ip, (void *)playbackIp, server, port, *uri, protocol));
 
-    memset(&ipSessionOpenSettings, 0, sizeof(ipSessionOpenSettings));
+    pIpSessionOpenSettings = B_Os_Calloc( 1, sizeof(B_PlaybackIpSessionOpenSettings));
+    if (pIpSessionOpenSettings == NULL) {
+        BDBG_ERR(("%s: Failed to allocated %zu bytes", __FUNCTION__, sizeof(B_PlaybackIpSessionOpenSettings)));
+        goto error;
+    }
     memset(&ipSessionOpenStatus, 0, sizeof(ipSessionOpenStatus));
-    ipSessionOpenSettings.security.initialSecurityContext = initialSecurityContext;
-    ipSessionOpenSettings.security.dmaHandle = playback_ip->openSettings.security.dmaHandle;
+    pIpSessionOpenSettings->security.initialSecurityContext = initialSecurityContext;
+    pIpSessionOpenSettings->security.dmaHandle = playback_ip->openSettings.security.dmaHandle;
     if (protocol == B_PlaybackIpProtocol_eHttps) {
         if (initialSecurityContext == NULL) {
-            BDBG_ERR(("%s: ERROR: App needs to call B_PlaybackIp_SslInit() and pass in the returned context in ipSessionOpenSettings.security.initialSecurityContext", __FUNCTION__));
+            BDBG_ERR(("%s: ERROR: App needs to call B_PlaybackIp_SslInit() and pass in the returned context in initialSecurityContext", __FUNCTION__));
             goto error;
         }
-        ipSessionOpenSettings.security.securityProtocol = B_PlaybackIpSecurityProtocol_Ssl;
+        pIpSessionOpenSettings->security.securityProtocol = B_PlaybackIpSecurityProtocol_Ssl;
     }
     /* Set IP Address, Port, and Protocol used to receive the AV stream */
-    strncpy(ipSessionOpenSettings.socketOpenSettings.ipAddr, server, sizeof(ipSessionOpenSettings.socketOpenSettings.ipAddr)-1);
-    ipSessionOpenSettings.socketOpenSettings.port = port;
-    ipSessionOpenSettings.socketOpenSettings.protocol = B_PlaybackIpProtocol_eHttp;
-    ipSessionOpenSettings.socketOpenSettings.useProxy = playback_ip->openSettings.socketOpenSettings.useProxy;
-    ipSessionOpenSettings.networkTimeout = playback_ip->settings.networkTimeout;
-    ipSessionOpenSettings.socketOpenSettings.url = *uri; /* pointer to the url only */
-    ipSessionOpenSettings.u.http.userAgent = playback_ip->openSettings.u.http.userAgent; /* pointer only */
-    ipSessionOpenSettings.u.http.additionalHeaders = playback_ip->openSettings.u.http.additionalHeaders;
+    strncpy(pIpSessionOpenSettings->socketOpenSettings.ipAddr, server, sizeof(pIpSessionOpenSettings->socketOpenSettings.ipAddr)-1);
+    pIpSessionOpenSettings->socketOpenSettings.port = port;
+    pIpSessionOpenSettings->socketOpenSettings.protocol = B_PlaybackIpProtocol_eHttp;
+    pIpSessionOpenSettings->socketOpenSettings.useProxy = playback_ip->openSettings.socketOpenSettings.useProxy;
+    pIpSessionOpenSettings->networkTimeout = playback_ip->settings.networkTimeout;
+    pIpSessionOpenSettings->socketOpenSettings.url = *uri; /* pointer to the url only */
+    pIpSessionOpenSettings->u.http.userAgent = playback_ip->openSettings.u.http.userAgent; /* pointer only */
+    pIpSessionOpenSettings->u.http.additionalHeaders = playback_ip->openSettings.u.http.additionalHeaders;
     /* SessionOpen to the Server. */
     {
         int nRetry = 0;
@@ -945,11 +955,11 @@ B_Playback_HlsCreatePlaybackIpSession(
             if ( breakFromLoop(playback_ip)) {
                 goto error;
             }
-            rc = B_PlaybackIp_SessionOpen(playbackIp, &ipSessionOpenSettings, &ipSessionOpenStatus);
+            rc = B_PlaybackIp_SessionOpen(playbackIp, pIpSessionOpenSettings, &ipSessionOpenStatus);
             if ((rc == B_ERROR_PROTO) && (ipSessionOpenStatus.u.http.statusCode == B_PLAYBACK_IP_HTTP_STATUS_SERVICE_UNAVAILABLE)) {
                 /* Server is temporarily unavailable, lets retry it again upto certain times!. */
                 if (nRetry++ > B_PLAYBACK_IP_MAX_SESSION_OPEN_RETRY) {
-                    BDBG_ERR(("%s:%p:%d max retries exceeded on B_PlaybackIp_SessionOpen: retry =%d session", __FUNCTION__, playback_ip, playbackIpState(playback_ip), nRetry ));
+                    BDBG_ERR(("%s:%p:%d max retries exceeded on B_PlaybackIp_SessionOpen: retry =%d session", __FUNCTION__, (void *)playback_ip, playbackIpState(playback_ip), nRetry ));
                     goto error;
                 }
                 err = BKNI_WaitForEvent(playback_ip->sessionOpenRetryEventHandle, nWaitTimeout);
@@ -969,20 +979,24 @@ B_Playback_HlsCreatePlaybackIpSession(
             }
         }
     }
+    if (pIpSessionOpenSettings) { B_Os_Free(pIpSessionOpenSettings); pIpSessionOpenSettings = NULL; }
     if (rc != B_ERROR_SUCCESS) {
         BDBG_ERR(("Session Open call failed: rc %d, HTTP Status %d\n", rc, ipSessionOpenStatus.u.http.statusCode));
         goto error;
     }
-    BDBG_MSG(("%s:%p Session Open call succeeded, HTTP status code %d, server %s, port %d, uri %s, protocol %d", __FUNCTION__, playback_ip, ipSessionOpenStatus.u.http.statusCode, server, port, uri, protocol));
+    BDBG_MSG(("%s:%p Session Open call succeeded, HTTP status code %d, server %s, port %d, uri %s, protocol %d", __FUNCTION__, (void *)playback_ip, ipSessionOpenStatus.u.http.statusCode, server, port, *uri, protocol));
 
     playbackIp->parentPlaybackIpState = playback_ip->parentPlaybackIpState? playback_ip->parentPlaybackIpState: &playback_ip->playback_state;
     return playbackIp;
 
 error:
+    if (pIpSessionOpenSettings) {
+        B_Os_Free(pIpSessionOpenSettings);
+    }
     if (B_PlaybackIp_Close(playbackIp)) {
         BDBG_ERR(("%s: B_PlaybackIp_Close() Failed", __FUNCTION__));
     }
-    BDBG_ERR(("%s:%p:%d error in creating new PBIP session", __FUNCTION__, playback_ip, playbackIpState(playback_ip)));
+    BDBG_ERR(("%s:%p:%d error in creating new PBIP session", __FUNCTION__, (void *)playback_ip, playbackIpState(playback_ip)));
     return NULL;
 }
 
@@ -1032,7 +1046,7 @@ B_PlaybackIp_HlsSetupHttpSessionToServer(
     uri = &mediaFileSegmentInfo->uri;
 #ifdef BDBG_DEBUG_BUILD
     if (playback_ip->ipVerboseLog)
-        BDBG_WRN(("%s:%p URI: http://%s:%d%s, sec protocol %d", __FUNCTION__, playback_ip, server, port, *uri, mediaFileSegmentInfo->securityProtocol));
+        BDBG_WRN(("%s:%p URI: http://%s:%d%s, sec protocol %d", __FUNCTION__, (void *)playback_ip, server, port, *uri, mediaFileSegmentInfo->securityProtocol));
 #endif
 
     /* reset previous content length */
@@ -1056,7 +1070,7 @@ B_PlaybackIp_HlsSetupHttpSessionToServer(
         byteRangeStart = 0;
         byteRangeEnd = 0;
 
-        BDBG_MSG(("%s:%p Media Segment length %u, offset %lld", __FUNCTION__, playback_ip, mediaFileSegmentInfo->segmentLength, mediaFileSegmentInfo->segmentStartByteOffset));
+        BDBG_MSG(("%s:%p Media Segment length %u, offset %"PRId64 "", __FUNCTION__, (void *)playback_ip, mediaFileSegmentInfo->segmentLength, mediaFileSegmentInfo->segmentStartByteOffset));
         useConnectionClosingFlag = persistentHttpSession ? 0 : 1;
         if (mediaFileSegmentInfo->segmentLength) {
             byteRangeStart = mediaFileSegmentInfo->segmentStartByteOffset;
@@ -1100,7 +1114,7 @@ B_PlaybackIp_HlsSetupHttpSessionToServer(
             }
 
             BDBG_MSG(("%s:%p successfully connected to server (fd %d, local ip:port = %s:%d)",
-                        __FUNCTION__, playback_ip, *socketFd, inet_ntoa(local_addr.sin_addr), ntohs(local_addr.sin_port)));
+                        __FUNCTION__, (void *)playback_ip, *socketFd, inet_ntoa(local_addr.sin_addr), ntohs(local_addr.sin_port)));
             /* now setup security context prior to downloading the media segment */
             /* currently, supported security protocols are: HTTPS (SSL/TLS), AES128, and Clear (no encryption) */
             /* Note: security protocol can change from segment to segment, so this function is called prior to each segment download */
@@ -1108,7 +1122,7 @@ B_PlaybackIp_HlsSetupHttpSessionToServer(
 #if defined NEXUS_HAS_DMA || defined NEXUS_HAS_XPT_DMA
             openSettings.security.dmaHandle = playback_ip->openSettings.security.dmaHandle;
 #endif
-            BDBG_MSG(("%s: security: protocol %d, ctx %p", __FUNCTION__, openSettings.security.securityProtocol, openSettings.security.initialSecurityContext));
+            BDBG_MSG(("%s: security: protocol %d, ctx %p", __FUNCTION__, openSettings.security.securityProtocol, (void *)openSettings.security.initialSecurityContext));
             switch (openSettings.security.securityProtocol) {
                 case B_PlaybackIpSecurityProtocol_Aes128:
                     /* setup the new key & iv */
@@ -1139,7 +1153,7 @@ B_PlaybackIp_HlsSetupHttpSessionToServer(
                 goto error;
             }
         }
-        BDBG_MSG(("%s:%p Sent HTTP Get Request (socket %d) --->:\n %s", __FUNCTION__, playback_ip, *socketFd, requestMessage));
+        BDBG_MSG(("%s:%p Sent HTTP Get Request (socket %d) --->:\n %s", __FUNCTION__, (void *)playback_ip, *socketFd, requestMessage));
 
         playback_ip->chunkEncoding = false;
         playback_ip->serverClosed = false;
@@ -1166,7 +1180,7 @@ B_PlaybackIp_HlsSetupHttpSessionToServer(
                 BDBG_ERR(("%s: Incorrect HTTP Redirect response or parsing error", __FUNCTION__));
                 goto error;
             }
-            BDBG_MSG(("%s: allocated cookie %x, its addr %p", __FUNCTION__, playback_ip->cookieFoundViaHttpRedirect, playback_ip->cookieFoundViaHttpRedirect));
+            BDBG_MSG(("%s: allocated cookie %s", __FUNCTION__, playback_ip->cookieFoundViaHttpRedirect));
             /* previous iteration gets the new URL & server information and we send another GET request to this server */
             if (playback_ip->securityHandle)
                 playback_ip->netIo.close(playback_ip->securityHandle);
@@ -1186,7 +1200,7 @@ B_PlaybackIp_HlsSetupHttpSessionToServer(
         }
         else {
             /* actual content URL, get the content attributes from HTTP response header */
-            BDBG_MSG(("%s:%p GOT ACTUAL CONTENT: sock fd %d", __FUNCTION__, playback_ip, *socketFd));
+            BDBG_MSG(("%s:%p GOT ACTUAL CONTENT: sock fd %d", __FUNCTION__, (void *)playback_ip, *socketFd));
             break;
         }
     }
@@ -1200,14 +1214,14 @@ B_PlaybackIp_HlsSetupHttpSessionToServer(
             BDBG_ERR(("%s: ERROR: failed to enable the security decryption", __FUNCTION__));
             goto error;
         }
-        BDBG_MSG(("%s:%p security context is enabled for media segment %p, seq # %d, sec protocol %d, initial encrypted bytes %d", __FUNCTION__, playback_ip, mediaFileSegmentInfo, mediaFileSegmentInfo->mediaSequence, openSettings.security.securityProtocol, initialLen));
+        BDBG_MSG(("%s:%p security context is enabled for media segment %p, seq # %d, sec protocol %d, initial encrypted bytes %d", __FUNCTION__, (void *)playback_ip, (void *)mediaFileSegmentInfo, mediaFileSegmentInfo->mediaSequence, openSettings.security.securityProtocol, initialLen));
         playback_ip->initial_data_len = 0; /* initial payload is now given to security layer for later decryption during the read call */
         initialLen = 0; /* initial payload is now given to security layer for later decryption during the read call */
     }
     if (initialLen) {
         *bufferDepth = initialLen;
         BKNI_Memcpy(buffer, http_payload, *bufferDepth);
-        BDBG_MSG(("%s:%p completed, %d bytes of initial playlist read", __FUNCTION__, playback_ip, *bufferDepth));
+        BDBG_MSG(("%s:%p completed, %d bytes of initial playlist read", __FUNCTION__, (void *)playback_ip, *bufferDepth));
     }
     rc = true;
 
@@ -1228,7 +1242,7 @@ error:
         close(*socketFd);
         *socketFd = -1;
     }
-    BDBG_MSG(("%s:%p Done ", __FUNCTION__, playback_ip));
+    BDBG_MSG(("%s:%p Done ", __FUNCTION__, (void *)playback_ip));
     return rc;
 }
 
@@ -1251,7 +1265,7 @@ hls_downloadEncryptionKey(
     bool status = false;
     B_PlaybackIpHandle playbackIp = NULL;
 
-    BDBG_MSG(("%s:%p downloading key from uri %s", __FUNCTION__, playback_ip, encryptionKeyUri));
+    BDBG_MSG(("%s:%p downloading key from uri %s", __FUNCTION__, (void *)playback_ip, encryptionKeyUri));
     if (hls_parse_url(&protocol, &server, &port, &uri, encryptionKeyUri) == false) {
         BDBG_ERR(("Failed to parse URI at %s:%d", __FUNCTION__, __LINE__));
         goto error;
@@ -1387,7 +1401,7 @@ B_PlaybackIp_ParsePlaylistFile(
         else if ((tag = B_PlaybackIp_UtilsStristr(nextLine, HLS_M3U8_MAX_MEDIA_SEGMENT_DURATION_TAG)) != NULL) {
             tag += strlen(HLS_M3U8_MAX_MEDIA_SEGMENT_DURATION_TAG);
             playlistFileInfo->maxMediaSegmentDuration = 1000 * strtol(tag, NULL, 10);
-            BDBG_MSG(("%s: Max Media Segment Duration %d msec", __FUNCTION__, playlistFileInfo->maxMediaSegmentDuration));
+            BDBG_MSG(("%s: Max Media Segment Duration %ld msec", __FUNCTION__, playlistFileInfo->maxMediaSegmentDuration));
         }
         else if ( (tag = B_PlaybackIp_UtilsStristr(nextLine, HLS_M3U8_MEDIA_SEGMENT_SEQUENCE_TAG)) != NULL) {
             if (seqTagFound) {
@@ -1403,11 +1417,11 @@ B_PlaybackIp_ParsePlaylistFile(
             tag += strlen(HLS_M3U8_PROGRAM_RECORD_TAG);
             if (B_PlaybackIp_UtilsStristr(tag, "YES") != NULL) {
                 playlistFileInfo->allowCaching = true;
-                BDBG_MSG(("%s: Media Stream Caching (recording) is allowed (TODO: handle this value!!!!)", __FUNCTION__, tag));
+                BDBG_MSG(("%s: Media Stream Caching (recording) is allowed (TODO: handle this value!!!!)", __FUNCTION__));
             }
             else {
                 playlistFileInfo->allowCaching = false;
-                BDBG_MSG(("%s: Media Stream Caching (recording) is NOT allowed (TODO: handle this value!!!!)", __FUNCTION__, tag));
+                BDBG_MSG(("%s: Media Stream Caching (recording) is NOT allowed (TODO: handle this value!!!!)", __FUNCTION__));
             }
         }
         else if ( (tag = B_PlaybackIp_UtilsStristr(nextLine, HLS_M3U8_URL_TAG)) != NULL) {
@@ -1416,7 +1430,7 @@ B_PlaybackIp_ParsePlaylistFile(
 
             /* allocate/initialize media file segment info structure */
             if ((mediaFileSegmentInfo = (MediaFileSegmentInfo *)BKNI_Malloc(sizeof(MediaFileSegmentInfo))) == NULL) {
-                BDBG_ERR(("%s: Failed to allocate %d bytes of memory for media segment info structure", __FUNCTION__, sizeof(MediaFileSegmentInfo)));
+                BDBG_ERR(("%s: Failed to allocate %zu bytes of memory for media segment info structure", __FUNCTION__, sizeof(MediaFileSegmentInfo)));
                 goto error;
             }
             memset(mediaFileSegmentInfo, 0, sizeof(MediaFileSegmentInfo));
@@ -1434,7 +1448,7 @@ B_PlaybackIp_ParsePlaylistFile(
                     mediaFileSegmentInfo->mediaSequence = 0;
                 }
                 nextSeq = mediaFileSegmentInfo->mediaSequence + 1;
-                BDBG_MSG(("%s: initialized head for the media segment info queue, base seq# %d, mediaFileSegmentInfo entry %p", __FUNCTION__, playlistFileInfo->mediaSegmentBaseSequence, mediaFileSegmentInfo));
+                BDBG_MSG(("%s: initialized head for the media segment info queue, base seq# %d, mediaFileSegmentInfo entry %p", __FUNCTION__, playlistFileInfo->mediaSegmentBaseSequence, (void *)mediaFileSegmentInfo));
             }
             else {
                 mediaFileSegmentInfo->mediaSequence = nextSeq++;
@@ -1444,7 +1458,7 @@ B_PlaybackIp_ParsePlaylistFile(
                 mediaFileSegmentInfo->markedDiscontinuity = true;
                 markedDiscontinuity = false;
             }
-            BDBG_MSG(("%s: allocated %d bytes of memory for media segment info: %p, seq# %d", __FUNCTION__, sizeof(MediaFileSegmentInfo), mediaFileSegmentInfo, mediaFileSegmentInfo->mediaSequence));
+            BDBG_MSG(("%s: allocated %zu bytes of memory for media segment info: %p, seq# %d", __FUNCTION__, sizeof(MediaFileSegmentInfo), (void *)mediaFileSegmentInfo, mediaFileSegmentInfo->mediaSequence));
 
             /* syntax of the EXTINF line is: #EXTINF:<duration>,<title> */
             /* parse the duration attribute: it can be in integer or floating-point number in decimal notation */
@@ -1453,15 +1467,15 @@ B_PlaybackIp_ParsePlaylistFile(
                 *tmp = '\0';
                 /* duration can be either decimal or floating point, convert it into msec */
                 mediaFileSegmentInfo->duration = convertDurationAttributeToMsec(tag);
-                BDBG_MSG(("%s: Media Segment Duration %d", __FUNCTION__, mediaFileSegmentInfo->duration));
+                BDBG_MSG(("%s: Media Segment Duration %ld", __FUNCTION__, mediaFileSegmentInfo->duration));
                 if (mediaFileSegmentInfo->duration > playlistFileInfo->maxMediaSegmentDuration) {
-                    BDBG_MSG(("%s: Invalid Media Segment Duration %d, Max %d, ignoring it", __FUNCTION__, mediaFileSegmentInfo->duration, playlistFileInfo->maxMediaSegmentDuration));
+                    BDBG_MSG(("%s: Invalid Media Segment Duration %ld, Max %ld, ignoring it", __FUNCTION__, mediaFileSegmentInfo->duration, playlistFileInfo->maxMediaSegmentDuration));
                 }
                 playlistFileInfo->totalDuration += mediaFileSegmentInfo->duration;
                 playlistFileInfo->initialMinimumReloadDelay = mediaFileSegmentInfo->duration/1000; /* incase this happens to be the last URI */
             }
             else {
-                BDBG_ERR(("%s: Invalid Media Segment Duration tag: missing field separate , ", __FUNCTION__, tag));
+                BDBG_ERR(("%s: Invalid Media Segment Duration tag: missing field separate , ", __FUNCTION__));
                 goto error;
             }
             urlTagFound = true;
@@ -1605,7 +1619,7 @@ B_PlaybackIp_ParsePlaylistFile(
                 /* now get the length of segment sub-range */
                 mediaFileSegmentInfo->segmentLength = strtol(tag, NULL, 10);
                 nextSegmentOffset += mediaFileSegmentInfo->segmentLength;
-                BDBG_MSG(("%s: Media Segment length %u, offset %lld", __FUNCTION__, mediaFileSegmentInfo->segmentLength, mediaFileSegmentInfo->segmentStartByteOffset));
+                BDBG_MSG(("%s: Media Segment length %u, offset %"PRId64 "", __FUNCTION__, mediaFileSegmentInfo->segmentLength, mediaFileSegmentInfo->segmentStartByteOffset));
                 /* now go back to read the next line which must be actual segment URI */
                 continue;
             }
@@ -1615,7 +1629,7 @@ B_PlaybackIp_ParsePlaylistFile(
                 /* mediaSegment URI is absolute uri */
                 BDBG_MSG(("%s: media segment URI is absolute", __FUNCTION__));
                 if ((mediaFileSegmentInfo->absoluteUri = B_PlaybackIp_UtilsStrdup(nextLine)) == NULL) {
-                    BDBG_ERR(("%s: Failed to allocate %d bytes of memory for absolute URI ", __FUNCTION__, strlen(nextLine)));
+                    BDBG_ERR(("%s: Failed to allocate %zu bytes of memory for absolute URI ", __FUNCTION__, strlen(nextLine)));
                     goto error;
                 }
             }
@@ -1660,7 +1674,7 @@ B_PlaybackIp_ParsePlaylistFile(
             BLST_Q_INSERT_TAIL(&playlistFileInfo->mediaFileSegmentInfoQueueHead, mediaFileSegmentInfo, next);
             urlTagFound = false;
             mediaFileSegmentInfo = NULL; /* as this entry is now already inserted into the list of segment URIs */
-            if (parseOnlyOneMediaEntry) {BDBG_WRN(("%s:%p: parseOnlyOneMediaEntry is set, so NOT parsing rest of the entries", __FUNCTION__, playback_ip)); break;}
+            if (parseOnlyOneMediaEntry) {BDBG_WRN(("%s:%p: parseOnlyOneMediaEntry is set, so NOT parsing rest of the entries", __FUNCTION__, (void *)playback_ip)); break;}
         }
         else if (B_PlaybackIp_UtilsStristr(nextLine, HLS_M3U8_END_TAG) != NULL) {
             playlistFileInfo->bounded = true;
@@ -1694,7 +1708,7 @@ B_PlaybackIp_ParsePlaylistFile(
     if (playback_ip->ipVerboseLog) {
         BDBG_WRN(("%s: finished parsing playlist file w/ uri %s",
                 __FUNCTION__, playlistFileInfo->absoluteUri));
-        BDBG_WRN(("%s: finished parsing playlist file: total duration %d, bounded %s, numMediaSegments %d",
+        BDBG_WRN(("%s: finished parsing playlist file: total duration %ld, bounded %s, numMediaSegments %d",
                 __FUNCTION__, playlistFileInfo->totalDuration, playlistFileInfo->bounded ? "YES" : "NO", playlistFileInfo->numMediaSegments));
     }
 #endif
@@ -1709,7 +1723,7 @@ error:
     }
     /* free up resources */
     if (mediaFileSegmentInfo) {
-        BDBG_MSG(("%s: freeing mediaFileSegmentInfo entry %p", __FUNCTION__, mediaFileSegmentInfo));
+        BDBG_MSG(("%s: freeing mediaFileSegmentInfo entry %p", __FUNCTION__, (void *)mediaFileSegmentInfo));
         B_PlaybackIp_FreeMediaFileSegmentInfo(mediaFileSegmentInfo);
     }
     if (encryptionKeyUri)
@@ -1763,18 +1777,18 @@ void
 B_PlaybackIp_HlsRemovePlaylistInfoEntry(HlsSessionState *hlsSession, PlaylistFileInfo *currentPlaylistFileInfo)
 {
     PlaylistFileInfo *playlistFileInfo;
-    BDBG_MSG(("%s: remove playlist entry %p", __FUNCTION__, currentPlaylistFileInfo));
-    for (playlistFileInfo = BLST_Q_FIRST(&hlsSession->playlistFileInfoQueueHead);
+    BDBG_MSG(("%s: remove playlist entry %p", __FUNCTION__, (void *)currentPlaylistFileInfo));
+    for (playlistFileInfo = BLST_Q_FIRST(hlsSession->useIFrameTrickmodes ? &hlsSession->iFramePlaylistFileInfoQueueHead:&hlsSession->playlistFileInfoQueueHead);
          playlistFileInfo && playlistFileInfo != currentPlaylistFileInfo;
          playlistFileInfo = BLST_Q_NEXT(playlistFileInfo, next))
     { ; }
     if (playlistFileInfo) {
         /* entry found, remove it */
-        BDBG_MSG(("%s: removing playlist entry: current %p, entry %p", __FUNCTION__, currentPlaylistFileInfo, playlistFileInfo));
-        BLST_Q_REMOVE(&hlsSession->playlistFileInfoQueueHead, playlistFileInfo, next);
+        BDBG_MSG(("%s: removing playlist entry: current %p, entry %p", __FUNCTION__, (void *)currentPlaylistFileInfo, (void *)playlistFileInfo));
+        BLST_Q_REMOVE(hlsSession->useIFrameTrickmodes ? &hlsSession->iFramePlaylistFileInfoQueueHead:&hlsSession->playlistFileInfoQueueHead, playlistFileInfo, next);
     }
     else {
-        BDBG_ERR(("%s: SW BUG: entry to be removed %p not found in the list, current entry %p", __FUNCTION__, currentPlaylistFileInfo, playlistFileInfo));
+        BDBG_ERR(("%s: SW BUG: entry to be removed %p not found in the list, current entry %p", __FUNCTION__, (void *)currentPlaylistFileInfo, (void *)playlistFileInfo));
         BDBG_ASSERT(NULL);
     }
 }
@@ -1785,27 +1799,27 @@ void
 B_PlaybackIp_HlsInsertPlaylistInfoEntry(HlsSessionState *hlsSession, PlaylistFileInfo *newPlaylistFileInfo)
 {
     PlaylistFileInfo *playlistFileInfo;
-    BDBG_MSG(("%s: insert playlist entry %p in the ascending order of bandwidth (%d)", __FUNCTION__, newPlaylistFileInfo, newPlaylistFileInfo->bandwidth));
-    for (playlistFileInfo = BLST_Q_FIRST(&hlsSession->playlistFileInfoQueueHead);
+    BDBG_MSG(("%s: insert playlist entry %p in the ascending order of bandwidth (%d)", __FUNCTION__, (void *)newPlaylistFileInfo, newPlaylistFileInfo->bandwidth));
+    for (playlistFileInfo = BLST_Q_FIRST(hlsSession->useIFrameTrickmodes ? &hlsSession->iFramePlaylistFileInfoQueueHead:&hlsSession->playlistFileInfoQueueHead);
          playlistFileInfo;
          playlistFileInfo = BLST_Q_NEXT(playlistFileInfo, next))
     {
 
         BDBG_MSG(("%s: playlist file: uri %s, b/w %d", __FUNCTION__, playlistFileInfo->uri, playlistFileInfo->bandwidth));
         if (newPlaylistFileInfo->bandwidth < playlistFileInfo->bandwidth) {
-            BDBG_MSG(("%s: new playlistInfo entry %p has bandwidth %d smaller than previous entry's %p bandwidth %d", __FUNCTION__, newPlaylistFileInfo, newPlaylistFileInfo->bandwidth, playlistFileInfo, playlistFileInfo->bandwidth));
+            BDBG_MSG(("%s: new playlistInfo entry %p has bandwidth %d smaller than previous entry's %p bandwidth %d", __FUNCTION__, (void *)newPlaylistFileInfo, newPlaylistFileInfo->bandwidth, (void *)playlistFileInfo, playlistFileInfo->bandwidth));
             break;
         }
     }
     if (playlistFileInfo) {
         /* new entry's b/w is smaller than this entry's b/w, so insert it before this entry */
-        BDBG_MSG(("%s: inserting playlist entry %p before entry %p", __FUNCTION__, newPlaylistFileInfo, playlistFileInfo));
-        BLST_Q_INSERT_BEFORE(&hlsSession->playlistFileInfoQueueHead, playlistFileInfo, newPlaylistFileInfo, next);
+        BDBG_MSG(("%s: inserting playlist entry %p before entry %p", __FUNCTION__, (void *)newPlaylistFileInfo, (void *)playlistFileInfo));
+        BLST_Q_INSERT_BEFORE(hlsSession->useIFrameTrickmodes ? &hlsSession->iFramePlaylistFileInfoQueueHead:&hlsSession->playlistFileInfoQueueHead, playlistFileInfo, newPlaylistFileInfo, next);
     }
     else {
         /* insert it at the tail */
-        BDBG_MSG(("%s: inserting playlist entry %p at the tail", __FUNCTION__, newPlaylistFileInfo));
-        BLST_Q_INSERT_TAIL(&hlsSession->playlistFileInfoQueueHead, newPlaylistFileInfo, next);
+        BDBG_MSG(("%s: inserting playlist entry %p at the tail", __FUNCTION__, (void *)newPlaylistFileInfo));
+        BLST_Q_INSERT_TAIL(hlsSession->useIFrameTrickmodes ? &hlsSession->iFramePlaylistFileInfoQueueHead:&hlsSession->playlistFileInfoQueueHead, newPlaylistFileInfo, next);
     }
 }
 
@@ -1819,7 +1833,7 @@ B_PlaybackIp_HlsConnectDownloadAndParsePlaylistFile(
 {
     B_PlaybackIpHandle playbackIp; /* temp playback ip session */
 
-    BDBG_MSG(("%s:p Calling B_Playback_HlsCreatePlaybackIpSession ", __FUNCTION__, playback_ip));
+    BDBG_MSG(("%s:%p Calling B_Playback_HlsCreatePlaybackIpSession ", __FUNCTION__, (void *)playback_ip));
     /* Need to create a new temporary playback IP session as playlist may be downloaded using a different security parameters */
     /* than the current playback ip session (which corresponds to top level m3u8 URL) */
     playbackIp = B_Playback_HlsCreatePlaybackIpSession(playback_ip, playlistFileInfo->server, playlistFileInfo->port, &playlistFileInfo->uri, playlistFileInfo->protocol, playback_ip->openSettings.security.initialSecurityContext);
@@ -1830,7 +1844,7 @@ B_PlaybackIp_HlsConnectDownloadAndParsePlaylistFile(
     playbackIp->playback_state = B_PlaybackIpState_ePlaying;
     playbackIp->hlsSessionState = hlsSession;
     /* allocate hls session state first */
-    BDBG_MSG(("%s:%p: Connected to the server using the new URL, now download the playlist, initial data %d", __FUNCTION__, playbackIp, playbackIp->initial_data_len));
+    BDBG_MSG(("%s:%p: Connected to the server using the new URL, now download the playlist, initial data %d", __FUNCTION__, (void *)playbackIp, playbackIp->initial_data_len));
     if (playbackIp->initial_data_len) {
         BKNI_Memcpy(hlsSession->playlistBuffer, playbackIp->temp_buf, playbackIp->initial_data_len);
         hlsSession->playlistBufferDepth = playbackIp->initial_data_len;
@@ -1905,7 +1919,7 @@ B_PlaybackIp_HlsNetIndexSeek(bfile_io_read_t self, off_t offset, int whence)
     }
     file->offset = offset;
     /* since we want to probe live channels, seek doesn't mean much, just update the offset and return */
-    BDBG_MSG(("%s: mediaProbe %p, file %p, offset %lld", __FUNCTION__, (B_PlaybackIpMediaProbeState *)file->playback_ip, file, offset));
+    BDBG_MSG(("%s: mediaProbe %p, file %p, offset %"PRId64 "", __FUNCTION__, (void *)(B_PlaybackIpMediaProbeState *)file->playback_ip, (void *)file, offset));
     return offset;
 }
 
@@ -1917,7 +1931,7 @@ B_PlaybackIp_HlsNetIndexRead(bfile_io_read_t self, void *buf, size_t length)
     ssize_t bytesToRead = 0;
 
     if (!file) {
-        BDBG_MSG(("%s: returning error (-1) due to invalid file handle %p ", __FUNCTION__, file));
+        BDBG_MSG(("%s: returning error (-1) due to invalid file handle %p ", __FUNCTION__, (void *)file));
         return -1;
     }
     /* just casting here, ProbeCreate had correctly set the mediaProbe pointer here */
@@ -1926,15 +1940,15 @@ B_PlaybackIp_HlsNetIndexRead(bfile_io_read_t self, void *buf, size_t length)
     if (mediaProbe->quickMediaProbe) {
         /* While doing quick probe, we only look in the first two TS packets. HLS Spec requires servers to encode PAT/PMT at the start of each segment. */
         if (file->offset >= 2 * TS_PKT_SIZE) {
-            BDBG_MSG(("%s: forcing EOF to complate probe faster for HLS %d, offset %lld", __FUNCTION__, length, file->offset));
+            BDBG_MSG(("%s: forcing EOF to complate probe faster for HLS %zu, offset %"PRId64 "", __FUNCTION__, length, file->offset));
             return 0;
         }
         length = 2 * TS_PKT_SIZE; /* forcing the read length to only 1st two MPEG2 TS packets */
-        BDBG_MSG(("%s: trimming index read request to complate probe faster for HLS, offset %lld", __FUNCTION__, file->offset));
+        BDBG_MSG(("%s: trimming index read request to complate probe faster for HLS, offset %"PRId64 "", __FUNCTION__, file->offset));
     }
 
     if (file->offset >= mediaProbe->segmentBuffer->bufferDepth) {
-        BDBG_MSG(("%s: returned enough data to allow media probe to promptly return basic PSI for HLS sessions (offset %lld, length %u, buffer depth %d)", __FUNCTION__, file->offset, length, mediaProbe->segmentBuffer->bufferDepth));
+        BDBG_MSG(("%s: returned enough data to allow media probe to promptly return basic PSI for HLS sessions (offset %"PRId64 ", length %zu, buffer depth %d)", __FUNCTION__, file->offset, length, mediaProbe->segmentBuffer->bufferDepth));
         return -1;
     }
     else if ( file->offset+(int)length >= mediaProbe->segmentBuffer->bufferDepth)
@@ -1943,7 +1957,7 @@ B_PlaybackIp_HlsNetIndexRead(bfile_io_read_t self, void *buf, size_t length)
         bytesToRead = length;
 
     BKNI_Memcpy(buf, mediaProbe->segmentBuffer->buffer+file->offset, bytesToRead);
-    BDBG_MSG(("%s: returning %d bytes at offst %lld", __FUNCTION__, bytesToRead, file->offset));
+    BDBG_MSG(("%s: returning %zd bytes at offst %"PRId64 "", __FUNCTION__, bytesToRead, file->offset));
     return bytesToRead;
 }
 
@@ -1965,7 +1979,7 @@ B_PlaybackIp_HlsMediaProbeStop(
         bmedia_probe_stream_free(mediaProbe->probe, mediaProbe->stream);
         mediaProbe->stream = NULL;
     }
-    BDBG_MSG(("%s: Done, hlsCtx %p", __FUNCTION__, mediaProbe));
+    BDBG_MSG(("%s: Done, hlsCtx %p", __FUNCTION__, (void *)mediaProbe));
 }
 
 bool
@@ -2147,7 +2161,7 @@ B_PlaybackIp_HlsMediaProbeDestroy(
         BKNI_Free(mediaProbe->segmentBuffer);
         mediaProbe->segmentBuffer = NULL;
     }
-    BDBG_MSG(("%s: Done, hlsCtx %p", __FUNCTION__, mediaProbe));
+    BDBG_MSG(("%s: Done, hlsCtx %p", __FUNCTION__, (void *)mediaProbe));
 }
 
 int
@@ -2217,7 +2231,7 @@ B_PlaybackIp_HlsConnectDownloadAndParsePlaylistFileAnd1stSegment(
     /*
      * Download the playlist first.
      */
-    BDBG_MSG(("%s:p Calling B_Playback_HlsCreatePlaybackIpSession ", __FUNCTION__, playback_ip));
+    BDBG_MSG(("%s:%p Calling B_Playback_HlsCreatePlaybackIpSession ", __FUNCTION__, (void *)playback_ip));
     /* Need to create a new temporary playback IP session as playlist may be downloaded using a different security parameters */
     /* than the current playback ip session (which corresponds to top level m3u8 URL) */
     playbackIp = B_Playback_HlsCreatePlaybackIpSession(playback_ip, playlistFileInfo->server, playlistFileInfo->port, &playlistFileInfo->uri, playlistFileInfo->protocol, playback_ip->openSettings.security.initialSecurityContext);
@@ -2338,7 +2352,7 @@ printVariantPlaylistFile(HlsSessionState *hlsSession)
     /* parse the common info first */
     PlaylistFileInfo *playlistFileInfo;
 
-    BDBG_MSG(("%s: playlist file q head %p, current playlist file %p", __FUNCTION__, &hlsSession->playlistFileInfoQueueHead, hlsSession->currentPlaylistFile));
+    BDBG_MSG(("%s: playlist file q head %p, current playlist file %p", __FUNCTION__, (void *)&hlsSession->playlistFileInfoQueueHead, (void *)hlsSession->currentPlaylistFile));
     for (playlistFileInfo = BLST_Q_FIRST(&hlsSession->playlistFileInfoQueueHead);
          playlistFileInfo;
          playlistFileInfo = BLST_Q_NEXT(playlistFileInfo, next))
@@ -2346,7 +2360,7 @@ printVariantPlaylistFile(HlsSessionState *hlsSession)
 
         BDBG_MSG(("%s: playlist file entry %p: uri %s, version %d, program id %d, b/w %d, duration (msec): total %d, max %d, cur seq %d, bounded %d, playlist file downloaded %s",
                 __FUNCTION__,
-                playlistFileInfo,
+                (void *)playlistFileInfo,
                 playlistFileInfo->uri,
                 playlistFileInfo->version,
                 playlistFileInfo->programId,
@@ -2359,6 +2373,42 @@ printVariantPlaylistFile(HlsSessionState *hlsSession)
                 ));
         /* verify the playlist file */
         printPlaylistFile(playlistFileInfo);
+    }
+
+    BDBG_MSG(("%s: finished printing variant playlist file", __FUNCTION__));
+
+    return true;
+}
+
+static bool
+printVariantIFramePlaylistFile(HlsSessionState *hlsSession)
+{
+    /* parse the common info first */
+    PlaylistFileInfo *playlistFileInfo;
+
+    BDBG_WRN(("%s: playlist file q head %p, current playlist file %p", __FUNCTION__, (void *)&hlsSession->iFramePlaylistFileInfoQueueHead, (void *)hlsSession->currentPlaylistFile));
+    for (playlistFileInfo = BLST_Q_FIRST(&hlsSession->iFramePlaylistFileInfoQueueHead);
+         playlistFileInfo;
+         playlistFileInfo = BLST_Q_NEXT(playlistFileInfo, next))
+    {
+
+        BDBG_WRN(("%s: playlist file entry %p: uri %s, version %d, program id %d, b/w %d, duration (msec): total %lu, max %lu, cur seq %d, bounded %d, playlist file downloaded %s",
+                __FUNCTION__,
+                (void *)playlistFileInfo,
+                playlistFileInfo->uri,
+                playlistFileInfo->version,
+                playlistFileInfo->programId,
+                playlistFileInfo->bandwidth,
+                playlistFileInfo->totalDuration,
+                playlistFileInfo->maxMediaSegmentDuration,
+                playlistFileInfo->mediaSegmentBaseSequence,
+                playlistFileInfo->bounded,
+                playlistFileInfo->currentMediaFileSegment ? "YES":"NO"
+                ));
+#if 0
+        /* verify the playlist file */
+        printPlaylistFile(playlistFileInfo);
+#endif
     }
 
     BDBG_MSG(("%s: finished printing variant playlist file", __FUNCTION__));
@@ -2512,7 +2562,7 @@ B_PlaybackIp_ParsePlaylistVariantFile(B_PlaybackIpHandle playback_ip, bool *pars
 
         /* allocate/initialize playlist file structure and return */
         if ( (playlistFileInfo = (PlaylistFileInfo *)BKNI_Malloc(sizeof(PlaylistFileInfo))) == NULL) {
-            BDBG_ERR(("%s: Failed to allocate %d bytes of memory for playlistInfo file structure", __FUNCTION__, sizeof(PlaylistFileInfo)));
+            BDBG_ERR(("%s: Failed to allocate %zu bytes of memory for playlistInfo file structure", __FUNCTION__, sizeof(PlaylistFileInfo)));
             return NULL;
         }
         memset(playlistFileInfo, 0, sizeof(PlaylistFileInfo));
@@ -2536,7 +2586,7 @@ B_PlaybackIp_ParsePlaylistVariantFile(B_PlaybackIpHandle playback_ip, bool *pars
         /* in the case of simple playlist file, it will only have element */
         BLST_Q_INSERT_TAIL(&hlsSession->playlistFileInfoQueueHead, playlistFileInfo, next);
         hlsSession->currentPlaylistFile = playlistFileInfo;
-        BDBG_MSG(("%s: given uri (%s) is not a variant playlist file (%p)", __FUNCTION__, playlistFileInfo->absoluteUri, playlistFileInfo));
+        BDBG_MSG(("%s: given uri (%s) is not a variant playlist file (%p)", __FUNCTION__, playlistFileInfo->absoluteUri, (void *)playlistFileInfo));
         BKNI_Free(nextLine);
         *parsingSuccess = true;
         return playlistFileInfo;
@@ -2546,6 +2596,7 @@ B_PlaybackIp_ParsePlaylistVariantFile(B_PlaybackIpHandle playback_ip, bool *pars
         BKNI_Free(nextLine);
 
     BLST_Q_INIT(&hlsSession->altRenditionInfoQueueHead);
+    BLST_Q_INIT(&hlsSession->iFramePlaylistFileInfoQueueHead);
     /* parse the variant playlist file */
     for (
             (nextLine = NULL);
@@ -2559,7 +2610,7 @@ B_PlaybackIp_ParsePlaylistVariantFile(B_PlaybackIpHandle playback_ip, bool *pars
             char *tmp, *attribute;
             /* variant stream info tag: allocate & initialize another playlistInfo entry */
             if ((playlistFileInfo = (PlaylistFileInfo *)BKNI_Malloc(sizeof(PlaylistFileInfo))) == NULL) {
-                BDBG_ERR(("%s: Failed to allocate %d bytes of memory for playlistInfo file structure", __FUNCTION__, sizeof(PlaylistFileInfo)));
+                BDBG_ERR(("%s: Failed to allocate %d bytes of memory for playlistInfo file structure", __FUNCTION__, (int)sizeof(PlaylistFileInfo)));
                 return NULL;
             }
             memset(playlistFileInfo, 0, sizeof(PlaylistFileInfo));
@@ -2628,7 +2679,7 @@ B_PlaybackIp_ParsePlaylistVariantFile(B_PlaybackIpHandle playback_ip, bool *pars
                 else if (B_PlaybackIp_UtilsStristr(attribute, HLS_M3U8_TAG_ATTRIBUTE_AUDIO) != NULL) {
                     playlistFileInfo->altAudioRenditionsEnabled = true;
                     if ((playlistFileInfo->altAudioRenditionGroupId = B_PlaybackIp_UtilsStrdup(value)) == NULL) {
-                        BDBG_ERR(("%s: Failed to allocate %d bytes of memory for absolute URI ", __FUNCTION__, strlen(value)));
+                        BDBG_ERR(("%s: Failed to allocate %zu bytes of memory for absolute URI ", __FUNCTION__, strlen(value)));
                         goto error;
                     }
                     BDBG_MSG(("%s: AUDIO attribute %s=%s", __FUNCTION__, HLS_M3U8_TAG_ATTRIBUTE_CODECS, playlistFileInfo->altAudioRenditionGroupId));
@@ -2636,7 +2687,7 @@ B_PlaybackIp_ParsePlaylistVariantFile(B_PlaybackIpHandle playback_ip, bool *pars
                 else {
                     BDBG_ERR(("%s: unsupported/unknown attribute %s=%s, ignoring it for now!!", __FUNCTION__, attribute, value));
                 }
-                BDBG_MSG(("%s: tmp %p, attribute %p, %s", __FUNCTION__, tmp, attribute, attribute));
+                BDBG_MSG(("%s: tmp %p, attribute %p, %s", __FUNCTION__, (void *)tmp, (void *)attribute, attribute));
             }
 
             /* finished parsing the STREAM_INFO TAG & its attributes, next line is the uri of the playlist file, parse that */
@@ -2648,7 +2699,7 @@ B_PlaybackIp_ParsePlaylistVariantFile(B_PlaybackIpHandle playback_ip, bool *pars
                     /* playlist contains the absolute uri, copy it */
                     BDBG_MSG(("%s: absolute URI: %s", __FUNCTION__, nextLine));
                     if ((playlistFileInfo->absoluteUri = B_PlaybackIp_UtilsStrdup(nextLine)) == NULL) {
-                        BDBG_ERR(("%s: Failed to allocate %d bytes of memory for absolute URI ", __FUNCTION__, strlen(nextLine)));
+                        BDBG_ERR(("%s: Failed to allocate %zu bytes of memory for absolute URI ", __FUNCTION__, strlen(nextLine)));
                         goto error;
                     }
                 }
@@ -2676,12 +2727,12 @@ B_PlaybackIp_ParsePlaylistVariantFile(B_PlaybackIpHandle playback_ip, bool *pars
                 BLST_Q_INIT(&hlsSession->playlistFileInfoQueueHead);
                 hlsSession->currentPlaylistFile = playlistFileInfo;
                 smallestBandwidth = playlistFileInfo->bandwidth;
-                BDBG_MSG(("%s: initialized head for the playlist info queue, playlistInfo entry %p, bandwidth %d", __FUNCTION__, playlistFileInfo, playlistFileInfo->bandwidth));
+                BDBG_MSG(("%s: initialized head for the playlist info queue, playlistInfo entry %p, bandwidth %d", __FUNCTION__, (void *)playlistFileInfo, playlistFileInfo->bandwidth));
             }
             else {
                 /* bitrate check here */
                 if (smallestBandwidth > playlistFileInfo->bandwidth) {
-                    BDBG_MSG(("%s: playlistInfo entry %p has bandwidth %d smaller than previous one %d", __FUNCTION__, playlistFileInfo, playlistFileInfo->bandwidth, smallestBandwidth));
+                    BDBG_MSG(("%s: playlistInfo entry %p has bandwidth %d smaller than previous one %d", __FUNCTION__, (void *)playlistFileInfo, playlistFileInfo->bandwidth, smallestBandwidth));
                     smallestBandwidth = playlistFileInfo->bandwidth;
                     hlsSession->currentPlaylistFile = playlistFileInfo;
                 }
@@ -2698,7 +2749,7 @@ B_PlaybackIp_ParsePlaylistVariantFile(B_PlaybackIpHandle playback_ip, bool *pars
 
             /* media tag: allocate & initialize another altRenditionInfo entry. */
             if ((altRenditionInfo = (AltRenditionInfo *)BKNI_Malloc(sizeof(AltRenditionInfo))) == NULL) {
-                BDBG_ERR(("%s: Failed to allocate %d bytes of memory for altRenditionInfo structure", __FUNCTION__, sizeof(AltRenditionInfo)));
+                BDBG_ERR(("%s: Failed to allocate %d bytes of memory for altRenditionInfo structure", __FUNCTION__, (int)sizeof(AltRenditionInfo)));
                 return NULL;
             }
             memset(altRenditionInfo, 0, sizeof(AltRenditionInfo));
@@ -2748,7 +2799,7 @@ B_PlaybackIp_ParsePlaylistVariantFile(B_PlaybackIpHandle playback_ip, bool *pars
                     value += 1; /* skip past the initial " char */
                     value[strlen(value)-1] = '\0';
                     if ((altRenditionInfo->groupId = B_PlaybackIp_UtilsStrdup(value)) == NULL) {
-                        BDBG_ERR(("%s: Failed to allocate %d bytes of memory for GroupId attribute", __FUNCTION__, strlen(value)));
+                        BDBG_ERR(("%s: Failed to allocate %zu bytes of memory for GroupId attribute", __FUNCTION__, strlen(value)));
                         goto error;
                     }
                     BDBG_MSG(("%s: GroupId attribute %s=%s", __FUNCTION__, HLS_M3U8_TAG_ATTRIBUTE_GROUP_ID, altRenditionInfo->groupId));
@@ -2758,7 +2809,7 @@ B_PlaybackIp_ParsePlaylistVariantFile(B_PlaybackIpHandle playback_ip, bool *pars
                     value += 1; /* skip past the initial " char */
                     value[strlen(value)-1] = '\0';
                     if ((altRenditionInfo->name = B_PlaybackIp_UtilsStrdup(value)) == NULL) {
-                        BDBG_ERR(("%s: Failed to allocate %d bytes of memory for Name attribute ", __FUNCTION__, strlen(value)));
+                        BDBG_ERR(("%s: Failed to allocate %zu bytes of memory for Name attribute ", __FUNCTION__, strlen(value)));
                         goto error;
                     }
                     BDBG_MSG(("%s: Name attribute %s=%s", __FUNCTION__, HLS_M3U8_TAG_ATTRIBUTE_NAME, altRenditionInfo->name));
@@ -2768,7 +2819,7 @@ B_PlaybackIp_ParsePlaylistVariantFile(B_PlaybackIpHandle playback_ip, bool *pars
                     value += 1; /* skip past the initial " char */
                     value[strlen(value)-1] = '\0';
                     if ((altRenditionInfo->language = B_PlaybackIp_UtilsStrdup(value)) == NULL) {
-                        BDBG_ERR(("%s: Failed to allocate %d bytes of memory for Language attribute ", __FUNCTION__, strlen(value)));
+                        BDBG_ERR(("%s: Failed to allocate %zu bytes of memory for Language attribute ", __FUNCTION__, strlen(value)));
                         goto error;
                     }
                     BDBG_MSG(("%s: language attribute %s=%s", __FUNCTION__, HLS_M3U8_TAG_ATTRIBUTE_LANGUAGE, altRenditionInfo->language));
@@ -2795,7 +2846,7 @@ B_PlaybackIp_ParsePlaylistVariantFile(B_PlaybackIpHandle playback_ip, bool *pars
                         /* alternateRendition URI tag contains the absolute uri, copy it */
                         BDBG_MSG(("%s: absolute URI: %s", __FUNCTION__, value));
                         if ((altRenditionInfo->absoluteUri = B_PlaybackIp_UtilsStrdup(value)) == NULL) {
-                            BDBG_ERR(("%s: Failed to allocate %d bytes of memory for absolute URI ", __FUNCTION__, strlen(value)));
+                            BDBG_ERR(("%s: Failed to allocate %zu bytes of memory for absolute URI ", __FUNCTION__, strlen(value)));
                             goto error;
                         }
                     }
@@ -2820,8 +2871,124 @@ B_PlaybackIp_ParsePlaylistVariantFile(B_PlaybackIpHandle playback_ip, bool *pars
 
             /* now insert this entry into the queue of alternateRenditionInfo entries. */
             BLST_Q_INSERT_TAIL(&hlsSession->altRenditionInfoQueueHead, altRenditionInfo, next);
-            BDBG_MSG(("%s: altRenditionInfo=%p uri=%s entry is inserted into the list", __FUNCTION__, altRenditionInfo, altRenditionInfo->absoluteUri));
+            BDBG_MSG(("%s: altRenditionInfo=%p uri=%s entry is inserted into the list", __FUNCTION__, (void *)altRenditionInfo, altRenditionInfo->absoluteUri));
             altRenditionInfo = NULL; /* reset pointer as this playlist is successfully inserted into the hlsSession */
+        }
+        else if ( (tag = B_PlaybackIp_UtilsStristr(nextLine, HLS_M3U8_I_FRAME_STREAM_INFO_TAG)) != NULL) {
+            char *tmp, *attribute;
+            /* variant stream info tag: allocate & initialize another playlistInfo entry */
+            if ((playlistFileInfo = (PlaylistFileInfo *)BKNI_Malloc(sizeof(PlaylistFileInfo))) == NULL) {
+                BDBG_ERR(("%s: Failed to allocate %d bytes of memory for playlistInfo file structure", __FUNCTION__, (int)sizeof(PlaylistFileInfo)));
+                return NULL;
+            }
+            memset(playlistFileInfo, 0, sizeof(PlaylistFileInfo));
+            playlistFileInfo->version = PLAYLIST_FILE_COMPATIBILITY_VERSION;
+            /* parse the attributes of this tag, its format is:
+                EXT-X-I-FRAME-STREAM-INF:[attribute=value][,attribute=value]*
+                E.g.
+                #EXT-X-I-FRAME-STREAM-INF:BANDWIDTH=297056,CODECS="avc1.4d401f",URI="gear3/iframe_index.m3u8"
+             */
+            for (
+                    (tmp = attribute = tag + strlen(HLS_M3U8_I_FRAME_STREAM_INFO_TAG));    /* points to 1st attribute */
+                    (tmp && ((tmp = strstr(attribute, "=")) != NULL));
+                    (attribute = tmp+1)
+                )
+            {
+                char *value;
+                *tmp = '\0'; /* null terminate attribute to convert it into a string */
+                value = tmp+1;
+                /* multiple attributes are separate by , */
+                if ((tmp = strstr(value, ",")) != NULL) {
+                    /* another attribute is present following this attribute=value pair */
+                    *tmp = '\0';    /* null terminate value to convert it into a string */
+                }
+                if (B_PlaybackIp_UtilsStristr(attribute, HLS_M3U8_TAG_ATTRIBUTE_PROGRAM_ID) != NULL) {
+                    playlistFileInfo->programId = strtol(value, NULL, 10);
+                    if (programId == -1)
+                        programId = playlistFileInfo->programId;
+                    else {
+                        if (programId != playlistFileInfo->programId) {
+                            BDBG_ERR(("%s: no support for multiple programs yet: Program ID current %d, new %d", __FUNCTION__, programId, playlistFileInfo->programId));
+                            /* TODO: goto free up current entry and move to the next program entry */
+                            goto error;
+                        }
+                    }
+                    BDBG_MSG(("%s: Program ID %d", __FUNCTION__, playlistFileInfo->programId));
+                }
+                else if (B_PlaybackIp_UtilsStristr(attribute, HLS_M3U8_TAG_ATTRIBUTE_BANDWIDTH) != NULL) {
+                    playlistFileInfo->bandwidth = strtol(value, NULL, 10);
+                    if (playlistFileInfo->bandwidth == 0) {
+                        BDBG_ERR(("%s: invalid bandwidth (%d) in the variant playlist, ignoring it", __FUNCTION__, playlistFileInfo->bandwidth));
+                    }
+                    BDBG_MSG(("%s: Bandwidth %d", __FUNCTION__, playlistFileInfo->bandwidth));
+                }
+                else if (B_PlaybackIp_UtilsStristr(attribute, HLS_M3U8_TAG_ATTRIBUTE_CODECS) != NULL) {
+                    if (tmp)
+                        /* codec attribute can have 1 or more values, each value is separated by a comma, replace this comma is present w/ \0 , and then look for ending " */
+                        *tmp = ',';
+                    BDBG_MSG(("%s: TODO: need to parse attribute %s=%s", __FUNCTION__, HLS_M3U8_TAG_ATTRIBUTE_CODECS, value));
+                    /* The syntax for CODECS attribute is: CODECS="[format][,format]" */
+                    /* so we need to skip the initial " char & then jump to the next " char */
+                    value += 1; /* skips starting " char */
+                    if ((tmp = strstr(value, "\"")) != NULL) {
+                        *tmp = '\0';
+                        playlistFileInfo->segmentCodecType = parseCodecString(playback_ip, value);
+                        BDBG_MSG(("Codec string: %s, segmentCodecType %d", value, playlistFileInfo->segmentCodecType));
+                    }
+                    else {
+                        /* missing ending " char, so it an error as CODECS attribute is enclosed in the " " */
+                        BDBG_ERR(("%s: missing ending \" char, so it an error as CODECS attribute is enclosed in the \" \", attribute: %s", __FUNCTION__, value));
+                        goto error;
+                    }
+                }
+                else if (B_PlaybackIp_UtilsStristr(attribute, HLS_M3U8_TAG_ATTRIBUTE_RESOLUTION) != NULL) {
+                    BDBG_MSG(("%s: TODO: need to parse attribute %s=%s", __FUNCTION__, HLS_M3U8_TAG_ATTRIBUTE_RESOLUTION, value));
+                    /* TODO: Add parsing of VIDEO, & SUB-TITLES attributes. */
+                }
+                else if (B_PlaybackIp_UtilsStristr(attribute, HLS_M3U8_TAG_ATTRIBUTE_URI) != NULL) {
+                    BDBG_MSG(("%s: URI attribute %s=%s", __FUNCTION__, HLS_M3U8_TAG_ATTRIBUTE_URI, value));
+                    if (http_absolute_uri(value)) {
+                        /* playlist contains the absolute uri, copy it */
+                        BDBG_MSG(("%s: absolute URI: %s", __FUNCTION__, value));
+                        if ((playlistFileInfo->absoluteUri = B_PlaybackIp_UtilsStrdup(value)) == NULL) {
+                            BDBG_ERR(("%s: Failed to allocate %zu bytes of memory for absolute URI ", __FUNCTION__, strlen(value)));
+                            goto error;
+                        }
+                    }
+                    else {
+                        /* relative url, build complete uri using server ip address & port # */
+                        /* uri is encapsulated in "", skip them */
+                        char *tmp1;
+                        value += 1; /* skip the 1st " char */
+                        if ((tmp1 = strstr(value, "\"")) != NULL) {
+                            *tmp1 = '\0'; /* leave out the last " char */
+                        }
+                        BDBG_MSG(("%s: %s is not absolute URI", __FUNCTION__, value));
+                        if ((playlistFileInfo->absoluteUri = B_PlaybackIp_HlsBuildAbsoluteUri(playback_ip->openSettings.socketOpenSettings.ipAddr, playback_ip->openSettings.socketOpenSettings.port, playback_ip->openSettings.socketOpenSettings.url, value)) == NULL) {
+                            BDBG_ERR(("Failed to build URI at %s:%d", __FUNCTION__, __LINE__));
+                            goto error;
+                        }
+                    }
+                    if (hls_parse_url(&playlistFileInfo->protocol, &playlistFileInfo->server, &playlistFileInfo->port, &playlistFileInfo->uri, playlistFileInfo->absoluteUri) == false) {
+                        BDBG_ERR(("Failed to parse URI at %s:%d", __FUNCTION__, __LINE__));
+                        goto error;
+                    }
+                    BDBG_MSG(("%s: I-Frame URI: server %s, port %d, protocol %d, uri %s, b/w %d, program id %d", __FUNCTION__, playlistFileInfo->server, playlistFileInfo->port, playlistFileInfo->protocol, playlistFileInfo->uri, playlistFileInfo->bandwidth, playlistFileInfo->programId));
+                }
+                else {
+                    BDBG_ERR(("%s: unsupported/unknown attribute %s=%s, ignoring it for now!!", __FUNCTION__, attribute, value));
+                }
+            }
+
+            BKNI_AcquireMutex(hlsSession->lock);
+            hlsSession->useIFrameTrickmodes = true; /* set so that InsertPlaylistInfoEntry function inserts it in the iFrame related playlist. */
+            B_PlaybackIp_HlsInsertPlaylistInfoEntry(hlsSession, playlistFileInfo);
+            hlsSession->useIFrameTrickmodes = false;
+            BKNI_ReleaseMutex(hlsSession->lock);
+            playlistFileInfo = NULL; /* reset pointer as this playlist is successfully inserted into the hlsSession */
+            BDBG_MSG(("%s: iFrame playlistFileInfo=%p entry is inserted into the list", __FUNCTION__, (void *)playlistFileInfo));
+            playlistFileInfo = NULL; /* reset pointer as this playlist is successfully inserted into the hlsSession */
+
         }
         else {
             BDBG_MSG(("%s: Comment line %s, ignore it", __FUNCTION__, tag));
@@ -2831,6 +2998,9 @@ B_PlaybackIp_ParsePlaylistVariantFile(B_PlaybackIpHandle playback_ip, bool *pars
         BKNI_Free(nextLine);
     BDBG_MSG(("%s: finished parsing variant playlist file", __FUNCTION__));
     *parsingSuccess = true;
+#if 0
+    printVariantIFramePlaylistFile(hlsSession);
+#endif
     return NULL;
 
 error:
@@ -2904,7 +3074,7 @@ B_PlaybackIp_HlsSelectDownloadAndParsePlaylist(
 
 #ifdef BDBG_DEBUG_BUILD
     if (playback_ip->ipVerboseLog)
-        BDBG_WRN(("%s: using playlist file entry %p, uri %s, b/w %d", __FUNCTION__, playlistFileInfo, playlistFileInfo->absoluteUri, playlistFileInfo->bandwidth));
+        BDBG_WRN(("%s: using playlist file entry %p, uri %s, b/w %d", __FUNCTION__, (void *)playlistFileInfo, playlistFileInfo->absoluteUri, playlistFileInfo->bandwidth));
 #endif
     hlsSession->currentPlaylistFile = playlistFileInfo;
     return playlistFileInfo;
@@ -2947,7 +3117,7 @@ B_PlaybackIp_HlsSegmentBufferCreate(
     BDBG_MSG(("%s: using index & data cache for downloading the consecutive media segments", __FUNCTION__));
     if (playback_ip->startSettings.audioOnlyPlayback) {
         hlsSegmentBufferSize = HLS_NUM_SEGMENT_BUFFER_SIZE/8;
-        BDBG_MSG(("%s: Lowered the HLS Segment Buffer Size from %u to %u", __FUNCTION__, HLS_NUM_SEGMENT_BUFFER_SIZE, hlsSegmentBufferSize));
+        BDBG_MSG(("%s: Lowered the HLS Segment Buffer Size from %u to %zu", __FUNCTION__, HLS_NUM_SEGMENT_BUFFER_SIZE, hlsSegmentBufferSize));
     }
     for (i=0; i<HLS_NUM_SEGMENT_BUFFERS; i++) {
         /* coverity[missing_lock] */
@@ -2958,13 +3128,13 @@ B_PlaybackIp_HlsSegmentBufferCreate(
             BDBG_ERR(("%s: Failed to create BKNI mutex at %d", __FUNCTION__, __LINE__));
             goto error;
         }
-        if ((hlsSession->segmentBuffer[i].bufferOrig = BKNI_Malloc(hlsSegmentBufferSize + BTP_BUFFERS_SIZE)) == NULL) {
-            BDBG_ERR(("%s: Failed to allocate HLS Segment Download buffer[%d] of %d size", __FUNCTION__, i, hlsSegmentBufferSize));
+        if ((hlsSession->segmentBuffer[i].bufferOrig = BKNI_Malloc(hlsSegmentBufferSize + BTP_BUFFERS_SIZE + BMEDIA_PES_HEADER_MAX_SIZE)) == NULL) {
+            BDBG_ERR(("%s: Failed to allocate HLS Segment Download buffer[%d] of %zu size", __FUNCTION__, i, hlsSegmentBufferSize));
             goto error;
         }
         /* Note: we keep the BTP_BUFFERS_SIZE hidden from the buffer usage as this space is used to insert BTPs and thus we dont want it be used for AV data. */
         hlsSession->segmentBuffer[i].buffer = hlsSession->segmentBuffer[i].bufferOrig;
-        BDBG_MSG(("%s: Allocate HLS Segment Download buffer[%d] %p of %d size", __FUNCTION__, i, hlsSession->segmentBuffer[i].bufferOrig, hlsSegmentBufferSize));
+        BDBG_MSG(("%s: Allocate HLS Segment Download buffer[%d] %p of %zu size", __FUNCTION__, i, (void *)hlsSession->segmentBuffer[i].bufferOrig, hlsSegmentBufferSize));
     }
 
     return 0;
@@ -2979,7 +3149,7 @@ B_PlaybackIp_HlsSessionDestroy(B_PlaybackIpHandle playback_ip)
     HlsSessionState *hlsSession = playback_ip->hlsSessionState;
     B_PlaybackIp_FreePlaylistInfoAll(playback_ip);
 
-    BDBG_WRN(("hlsSession = %p", hlsSession));
+    BDBG_WRN(("hlsSession = %p", (void *)hlsSession));
     if (!hlsSession)
         return;
 
@@ -3037,7 +3207,7 @@ B_PlaybackIp_HlsSessionDestroy(B_PlaybackIpHandle playback_ip)
 
     BKNI_Free(hlsSession);
     playback_ip->hlsSessionState = NULL;
-    BDBG_MSG(("%s: Done"));
+    BDBG_MSG(("%s: Done", __FUNCTION__));
 }
 
 bool
@@ -3091,18 +3261,18 @@ doMediaProbeOnAltRenditions(B_PlaybackIpHandle playback_ip)
         )
     {
         if (altRenditionInfo->type == HlsAltRenditionType_eAudio) {
-            if (altRenditionInfo->language == NULL) { BDBG_WRN(("%s:%p: skipping audio alternate rendition entry as its language is NULL", __FUNCTION__, playback_ip)); continue;}
+            if (altRenditionInfo->language == NULL) { BDBG_WRN(("%s:%p: skipping audio alternate rendition entry as its language is NULL", __FUNCTION__, (void *)playback_ip)); continue;}
             if (altRenditionInfo->absoluteUri == NULL) {
                 if (altRenditionInfo->defaultRendition == true) {
                     /* Since this AUDIO rendition doesn't contain URI attribute & DEFAULT attribute is set, */
                     /* set a flag to indicate to app that it can use the audio from the main variant unless it has a different language expectation. */
                     playback_ip->psi.defaultAudioIsMuxedWithVideo = true;
                     playback_ip->psi.mainAudioLanguage = altRenditionInfo->language;
-                    BDBG_MSG(("%s: AUDIO altRenditionInfo=%p doesn't contain URI attribute & this audio is part of main variant!", __FUNCTION__, altRenditionInfo));
+                    BDBG_MSG(("%s: AUDIO altRenditionInfo=%p doesn't contain URI attribute & this audio is part of main variant!", __FUNCTION__, (void *)altRenditionInfo));
                     continue; /* we are done w/ this rendition as this is part of the main variant. */
                 }
                 else {
-                    BDBG_ERR(("%s: playback_ip=%p: Invalid Media Tag in the variant playlist: AUDIO type entry doesn't have URI attribute set & is not the default entry!", __FUNCTION__, playback_ip));
+                    BDBG_ERR(("%s: playback_ip=%p: Invalid Media Tag in the variant playlist: AUDIO type entry doesn't have URI attribute set & is not the default entry!", __FUNCTION__, (void *)playback_ip));
                     goto error;
                 }
             }
@@ -3116,12 +3286,12 @@ doMediaProbeOnAltRenditions(B_PlaybackIpHandle playback_ip)
                 playback_ip->psi.hlsAltAudioRenditionInfo[playback_ip->psi.hlsAltAudioRenditionCount].requiresPlaypump2 = true;
                 playback_ip->psi.hlsAltAudioRenditionInfo[playback_ip->psi.hlsAltAudioRenditionCount].language = altRenditionInfo->language;
                 /* Since URI attribute is set, so do probe on it and set its audio codec, language, & pid values (we do this below). */
-                BDBG_WRN(("%s: Do MediaProbe on AUDIO altRenditionInfo=%p URI=%s", __FUNCTION__, altRenditionInfo, altRenditionInfo->absoluteUri));
+                BDBG_WRN(("%s: Do MediaProbe on AUDIO altRenditionInfo=%p URI=%s", __FUNCTION__, (void *)altRenditionInfo, altRenditionInfo->absoluteUri));
             }
         }
         else {
             /* Other types such as sub-titles are not yet supported. */
-            BDBG_WRN(("%s: playback_ip=%p: Type %s is not yet supported!", __FUNCTION__, playback_ip,
+            BDBG_WRN(("%s: playback_ip=%p: Type %s is not yet supported!", __FUNCTION__, (void *)playback_ip,
                         altRenditionInfo->type==HlsAltRenditionType_eVideo?"Video":
                         altRenditionInfo->type==HlsAltRenditionType_eSubtitles?"Subtitles":
                         "Closed-Captions"
@@ -3142,7 +3312,7 @@ doMediaProbeOnAltRenditions(B_PlaybackIpHandle playback_ip)
 
         /* allocate/initialize playlist file structure so that we download & parse this alternate rendition playlist. */
         if ( (playlistFileInfo = (PlaylistFileInfo *)BKNI_Malloc(sizeof(PlaylistFileInfo))) == NULL) {
-            BDBG_ERR(("%s: Failed to allocate %d bytes of memory for playlistInfo file structure", __FUNCTION__, sizeof(PlaylistFileInfo)));
+            BDBG_ERR(("%s: Failed to allocate %d bytes of memory for playlistInfo file structure", __FUNCTION__, (int)sizeof(PlaylistFileInfo)));
             goto error;
         }
         memset(playlistFileInfo, 0, sizeof(PlaylistFileInfo));
@@ -3222,7 +3392,7 @@ B_PlaybackIp_HlsSessionSetup(B_PlaybackIpHandle playback_ip, char *http_hdr)
 
     /* allocate hls session state */
     if ((playback_ip->hlsSessionState = (HlsSessionState *)BKNI_Malloc(sizeof(HlsSessionState))) == NULL) {
-        BDBG_ERR(("%s: failed to allocate %d bytes for HLS Session state", __FUNCTION__, sizeof(HlsSessionState)));
+        BDBG_ERR(("%s: failed to allocate %d bytes for HLS Session state", __FUNCTION__, (int)sizeof(HlsSessionState)));
         goto error;
     }
     hlsSession = playback_ip->hlsSessionState;
@@ -3417,7 +3587,7 @@ B_PlaybackIp_HlsSessionSetup(B_PlaybackIpHandle playback_ip, char *http_hdr)
          * This way app has PSI information about all available alternate renditions and can thus pick the appropriate one.
          */
         if ( doMediaProbeOnAltRenditions(playback_ip) == false ) {
-            BDBG_ERR(("%s: playback_ip=%p: MediaProbe on Alternate Renditions Failed", __FUNCTION__));
+            BDBG_ERR(("%s: playback_ip=%p: MediaProbe on Alternate Renditions Failed", __FUNCTION__, (void *)playback_ip));
             goto error;
         }
     }
@@ -3470,7 +3640,7 @@ B_PlaybackIp_HlsSessionSetup(B_PlaybackIpHandle playback_ip, char *http_hdr)
     playback_ip->hlsSessionEnabled = true;
 #ifdef BDBG_DEBUG_BUILD
     if (playback_ip->ipVerboseLog)
-        BDBG_WRN(("%s:%p SessionSetup including Media Probing is complete!", __FUNCTION__, playback_ip));
+        BDBG_WRN(("%s:%p SessionSetup including Media Probing is complete!", __FUNCTION__, (void *)playback_ip));
 #endif
 
     /* the actual media probe operation happens in the caller function of http module */
@@ -3493,19 +3663,19 @@ B_PlaybackIp_HlsAllocateDownloadAndParsePlaylistFile(
     B_PlaybackIpProtocol protocol;
 
     if (currentPlaylistFileInfo == NULL) {
-        BDBG_ERR(("%s: currentPlaylistInfo is NULL, SW bug!", __FUNCTION__, sizeof(PlaylistFileInfo)));
+        BDBG_ERR(("%s: currentPlaylistInfo is NULL, SW bug!", __FUNCTION__));
         goto error;
     }
 
-    BDBG_MSG(("%s: playlist %p, uri %p", __FUNCTION__, currentPlaylistFileInfo, currentPlaylistFileInfo->uri));
+    BDBG_MSG(("%s: playlist %p, uri %p", __FUNCTION__, (void *)currentPlaylistFileInfo, (void *)currentPlaylistFileInfo->uri));
     /* allocate/initialize the new playlist file structure */
     if ((newPlaylistFileInfo = (PlaylistFileInfo *)BKNI_Malloc(sizeof(PlaylistFileInfo))) == NULL) {
-        BDBG_ERR(("%s: Failed to allocate %d bytes of memory for playlistInfo file structure", __FUNCTION__, sizeof(PlaylistFileInfo)));
+        BDBG_ERR(("%s: Failed to allocate %d bytes of memory for playlistInfo file structure", __FUNCTION__, (int)sizeof(PlaylistFileInfo)));
         goto error;
     }
     memset(newPlaylistFileInfo, 0, sizeof(PlaylistFileInfo));
     if ((newPlaylistFileInfo->absoluteUri = B_PlaybackIp_UtilsStrdup(currentPlaylistFileInfo->absoluteUri)) == NULL) {
-        BDBG_ERR(("%s: Failed to allocate %d bytes of memory for absolute URI ", __FUNCTION__, strlen(currentPlaylistFileInfo->absoluteUri)));
+        BDBG_ERR(("%s: Failed to allocate %zu bytes of memory for absolute URI ", __FUNCTION__, strlen(currentPlaylistFileInfo->absoluteUri)));
         goto error;
     }
     newPlaylistFileInfo->protocol = currentPlaylistFileInfo->protocol;
@@ -3526,7 +3696,7 @@ B_PlaybackIp_HlsAllocateDownloadAndParsePlaylistFile(
     /* verify the playlist file */
     printPlaylistFile(newPlaylistFileInfo);
 #endif
-    BDBG_MSG(("%s: done playlist %p, uri %s", __FUNCTION__, newPlaylistFileInfo, newPlaylistFileInfo->uri));
+    BDBG_MSG(("%s: done playlist %p, uri %s", __FUNCTION__, (void *)newPlaylistFileInfo, newPlaylistFileInfo->uri));
     return newPlaylistFileInfo;
 
 error:
@@ -3570,6 +3740,7 @@ B_PlaybackIp_HlsGetNextMediaSegmentEntry(
     PlaylistFileInfo *playlistFileInfo = NULL;
     PlaylistFileInfo *prevPlaylistFileInfo = NULL;
     MediaFileSegmentInfo *mediaFileSegmentInfo = NULL;
+
     *pUseDifferentPlaylist = false;
     if (hlsSession->resetPlaylist) {
         /* resetting a playlist, start from the 1st media segment */
@@ -3583,7 +3754,7 @@ B_PlaybackIp_HlsGetNextMediaSegmentEntry(
     if (hlsSession->downloadedAllSegmentsInCurrentPlaylist && B_PlaybackIp_HlsBoundedStream(playback_ip)) {
 #ifdef BDBG_DEBUG_BUILD
         if (playback_ip->ipVerboseLog)
-            BDBG_WRN(("%s: Done downloading all the segments for a bounded playlist %p, %s...", __FUNCTION__,  hlsSession->currentPlaylistFile, hlsSession->currentPlaylistFile->uri));
+            BDBG_WRN(("%s: Done downloading all the segments for a bounded playlist %p, %s...", __FUNCTION__,  (void *)hlsSession->currentPlaylistFile, hlsSession->currentPlaylistFile->uri));
 #endif
         return NULL;
     }
@@ -3595,7 +3766,7 @@ B_PlaybackIp_HlsGetNextMediaSegmentEntry(
 #ifdef BDBG_DEBUG_BUILD
         if (playback_ip->ipVerboseLog)
             BDBG_WRN(("%s: Fwd case, already downloaded all segments, waiting for app to play: %p, %s...",
-                        __FUNCTION__,  hlsSession->currentPlaylistFile, hlsSession->currentPlaylistFile->uri));
+                        __FUNCTION__,  (void *)hlsSession->currentPlaylistFile, hlsSession->currentPlaylistFile->uri));
 #endif
         return NULL;
     }
@@ -3620,7 +3791,7 @@ B_PlaybackIp_HlsGetNextMediaSegmentEntry(
     }
 
     /* find a playlist entry whose b/w matches the current n/w b/w */
-    for (prevPlaylistFileInfo = playlistFileInfo = BLST_Q_FIRST(&hlsSession->playlistFileInfoQueueHead);
+    for (prevPlaylistFileInfo = playlistFileInfo = BLST_Q_FIRST(hlsSession->useIFrameTrickmodes ? &hlsSession->iFramePlaylistFileInfoQueueHead:&hlsSession->playlistFileInfoQueueHead);
          playlistFileInfo;
          prevPlaylistFileInfo=playlistFileInfo, playlistFileInfo = BLST_Q_NEXT(playlistFileInfo, next))
     {
@@ -3688,7 +3859,7 @@ B_PlaybackIp_HlsGetNextMediaSegmentEntry(
     if (playlistFileInfo == NULL) {
         /* we have reached the end of playlists and all of them have b/w < than the n/w b/w, so just use the last one */
         playlistFileInfo = prevPlaylistFileInfo;
-        BDBG_MSG(("%s: using last playlist file entry (%p) with b/w %d, network b/w %d", __FUNCTION__, playlistFileInfo, playlistFileInfo->bandwidth, networkBandwidth));
+        BDBG_MSG(("%s: using last playlist file entry (%p) with b/w %d, network b/w %d", __FUNCTION__, (void *)playlistFileInfo, playlistFileInfo->bandwidth, networkBandwidth));
     }
 afterPlaylistSelection:
     if (playlistFileInfo == NULL) {
@@ -3704,7 +3875,7 @@ afterPlaylistSelection:
 #ifdef BDBG_DEBUG_BUILD
         if (playback_ip->ipVerboseLog)
             BDBG_WRN(("%s: switch playlist due to n/w b/w change, playlist file entry %p, uri %s, b/w %d, network b/w %d, bounded %d",
-                    __FUNCTION__, playlistFileInfo, playlistFileInfo->uri, playlistFileInfo->bandwidth, networkBandwidth, playlistFileInfo->bounded));
+                    __FUNCTION__, (void *)playlistFileInfo, playlistFileInfo->uri, playlistFileInfo->bandwidth, networkBandwidth, playlistFileInfo->bounded));
 #endif
         /* since all playlists are not downloaded upfront, anytime we change the playlist (whether for live or bounded streams), we have to download this playlist */
         if ((newPlaylistFileInfo = B_PlaybackIp_HlsAllocateDownloadAndParsePlaylistFile(playback_ip, hlsSession, playlistFileInfo)) == NULL) {
@@ -3731,7 +3902,7 @@ afterPlaylistSelection:
             }
 #ifdef BDBG_DEBUG_BUILD
             if (playback_ip->ipVerboseLog)
-                BDBG_WRN(("%s: base seq#: new %d, cur %d, segmentsRemovedCount %u, segmentsRemovedDuration %u",
+                BDBG_WRN(("%s: base seq#: new %d, cur %d, segmentsRemovedCount %u, segmentsRemovedDuration %lu",
                             __FUNCTION__, newPlaylistFileInfo->mediaSegmentBaseSequence, hlsSession->currentPlaylistFile->mediaSegmentBaseSequence,
                             segmentsRemovedCount, hlsSession->segmentsRemovedDuration ));
 #endif
@@ -3820,7 +3991,7 @@ afterPlaylistSelection:
             else {
                 segmentDuration = 0;
             }
-            BDBG_MSG(("%s: segmentDuration %u, desired downloadedSegmentsDuration %u", __FUNCTION__, segmentDuration, downloadedSegmentsDuration));
+            BDBG_MSG(("%s: segmentDuration %lu, desired downloadedSegmentsDuration %lu", __FUNCTION__, segmentDuration, downloadedSegmentsDuration));
             for (mediaFileSegmentInfo = BLST_Q_FIRST(&playlistFileInfo->mediaFileSegmentInfoQueueHead);
                     mediaFileSegmentInfo;
                     mediaFileSegmentInfo = BLST_Q_NEXT(mediaFileSegmentInfo, next))
@@ -3830,7 +4001,7 @@ afterPlaylistSelection:
                 if (downloadedSegmentsDuration < segmentDuration) {
 #ifdef BDBG_DEBUG_BUILD
                     if (playback_ip->ipVerboseLog) {
-                        BDBG_MSG(("%s: Found next media segment using segment position: downloadedSegmentsDuration %u, next downloadSegmentDuration %u, uri %s", __FUNCTION__, downloadedSegmentsDuration, segmentDuration, mediaFileSegmentInfo->uri));
+                        BDBG_MSG(("%s: Found next media segment using segment position: downloadedSegmentsDuration %lu, next downloadSegmentDuration %lu, uri %s", __FUNCTION__, downloadedSegmentsDuration, segmentDuration, mediaFileSegmentInfo->uri));
                         BDBG_MSG(("uriReq %s", mediaFileSegmentInfo->uri));
                     }
 #endif
@@ -3877,7 +4048,7 @@ afterPlaylistSelection:
                 hlsSession->downloadedAllSegmentsInCurrentPlaylist = true;
 #ifdef BDBG_DEBUG_BUILD
                 if (playback_ip->ipVerboseLog) {
-                    BDBG_MSG(("%s: last media segment: setting downloadedAllSegmentsInCurrentPlaylist to true!", __FUNCTION__, playback_ip->speedNumerator));
+                    BDBG_MSG(("%s: last media segment: setting downloadedAllSegmentsInCurrentPlaylist to true!", __FUNCTION__));
                     BDBG_MSG(("uriReq %s", mediaFileSegmentInfo->uri));
                 }
 #endif
@@ -4076,7 +4247,7 @@ updateVideoDecoderTrickModeState(
         else
         {
             videoDecoderTrickSettings.reverseFields = false;
-            if (speedNumerator < 10)
+            if (speedNumerator < 10 && !playback_ip->hlsSessionState->useIFrameTrickmodes)
             {
                 /* At lower +ve speeds, we decode both IP to provide smoother trickmode experience at lower rates. */
                 videoDecoderTrickSettings.decodeMode = NEXUS_VideoDecoderDecodeMode_eIP;
@@ -4244,16 +4415,16 @@ B_PlaybackIp_SeekHls(
     int i;
     B_PlaybackIpState origCurrentState = playbackIpState(playback_ip);
 
-    BDBG_MSG(("%s: seekPosition = %d, state cur %d, orig %d ", __FUNCTION__, seekPosition, currentState, origCurrentState));
+    BDBG_MSG(("%s: seekPosition = %lu, state cur %d, orig %d ", __FUNCTION__, seekPosition, currentState, origCurrentState));
 
     if (seekPosition > hlsSession->currentPlaylistFile->totalDuration) {
-        BDBG_ERR(("%s: Incorrect seekPosition %d, total media duration %d", __FUNCTION__, seekPosition, hlsSession->currentPlaylistFile->totalDuration));
+        BDBG_ERR(("%s: Incorrect seekPosition %lu, total media duration %lu", __FUNCTION__, seekPosition, hlsSession->currentPlaylistFile->totalDuration));
         brc = B_ERROR_INVALID_PARAMETER;
         goto error;
     }
 
     if (hlsSession->hlsPlaybackThreadDone == true) {
-        BDBG_ERR(("%s: Playback is already done, can't seek to %d at this time, app should call stop & start again!", __FUNCTION__, seekPosition));
+        BDBG_ERR(("%s: Playback is already done, can't seek to %lu at this time, app should call stop & start again!", __FUNCTION__, seekPosition));
         brc = B_ERROR_INVALID_PARAMETER;
         goto error;
     }
@@ -4328,14 +4499,14 @@ B_PlaybackIp_SeekHls(
     {
         currentDuration += mediaFileSegmentInfo->duration;
         if (currentDuration > seekPosition) {
-            BDBG_MSG(("%s: Found next media segment (# %d) with correct seekPosition %d, currentDuration %d, uri %s",
+            BDBG_MSG(("%s: Found next media segment (# %d) with correct seekPosition %lu, currentDuration %lu, uri %s",
                         __FUNCTION__, mediaFileSegmentInfo->mediaSequence, seekPosition, currentDuration, mediaFileSegmentInfo->uri));
             break;
         }
     }
     if (!mediaFileSegmentInfo) {
         if (B_PlaybackIp_HlsBoundedStream(playback_ip)) {
-            BDBG_ERR(("%s: Failed to find a segment matching with seekPosition %d, currentDuration %d", __FUNCTION__, seekPosition, currentDuration));
+            BDBG_ERR(("%s: Failed to find a segment matching with seekPosition %lu, currentDuration %lu", __FUNCTION__, seekPosition, currentDuration));
             brc = B_ERROR_UNKNOWN;
             goto error;
         }
@@ -4378,7 +4549,7 @@ B_PlaybackIp_SeekHls(
 
 #ifdef BDBG_DEBUG_BUILD
     if (playback_ip->ipVerboseLog)
-        BDBG_WRN(("%s: Seeking to URI %s (one behind than actual one!) at position %u", __FUNCTION__, playlistFileInfo->currentMediaFileSegment->uri, seekPosition));
+        BDBG_WRN(("%s: Seeking to URI %s (one behind than actual one!) at position %lu", __FUNCTION__, playlistFileInfo->currentMediaFileSegment->uri, seekPosition));
 #endif
 
     /* For seeks during normal play, flush the current pipeline so we resume from the new seek location */
@@ -4434,7 +4605,7 @@ B_PlaybackIp_SeekHls(
         }
 #ifdef BDBG_DEBUG_BUILD
         if (playback_ip->ipVerboseLog)
-            BDBG_WRN(("%s: seekPosition %d msec, seekPts 0x%x, absolutefirst pts 0x%x, firstPts 0x%x, extrapoluatedLastPts 0x%x, useAccurateSeek %d, durtion until last discontinuity %d msec", __FUNCTION__,
+            BDBG_WRN(("%s: seekPosition %lu msec, seekPts 0x%x, absolutefirst pts 0x%x, firstPts 0x%x, extrapoluatedLastPts 0x%x, useAccurateSeek %d, durtion until last discontinuity %d msec", __FUNCTION__,
                         seekPosition, seekPts, playback_ip->originalFirstPts, playback_ip->firstPts, playback_ip->lastPtsExtrapolated, useAccurateSeek, playback_ip->streamDurationUntilLastDiscontinuity));
 #endif
         if (useAccurateSeek)
@@ -4447,7 +4618,7 @@ B_PlaybackIp_SeekHls(
             }
             if (rc != NEXUS_SUCCESS)
             {
-                BDBG_ERR(("%s: ERROR: Failed to Set the PTS to %x, seekPosition %d msec", __FUNCTION__, seekPts, seekPosition ));
+                BDBG_ERR(("%s: ERROR: Failed to Set the PTS to %x, seekPosition %lu msec", __FUNCTION__, seekPts, seekPosition ));
                 brc = B_ERROR_UNKNOWN;
                 goto error;
             }
@@ -4522,7 +4693,7 @@ B_PlaybackIp_PauseHls(
     rc = updateStcRate(playback_ip, 0);
 #ifdef BDBG_DEBUG_BUILD
     if (playback_ip->ipVerboseLog)
-        BDBG_WRN(("%s: playback_ip %p: current state %d, PAUSED", __FUNCTION__, playback_ip, currentState));
+        BDBG_WRN(("%s: playback_ip %p: current state %d, PAUSED", __FUNCTION__, (void *)playback_ip, currentState));
 #endif
 error:
     return (rc);
@@ -4566,6 +4737,7 @@ B_PlaybackIp_PlayHls(
         /* Flush Playpump buffer as once we return from Seek, feeder & playpback threads would start their work. */
         flushNexusPlaypump(playback_ip);
 
+        playback_ip->hlsSessionState->useIFrameTrickmodes = false;
         brc = B_PlaybackIp_SeekHls( playback_ip, currentState, currentPosition, true /* enableAccurateSeek */, true /* flushPipeline */ );
         if (brc != BERR_SUCCESS)
         {
@@ -4586,6 +4758,7 @@ B_PlaybackIp_PlayHls(
         }
 
         /* Configure AudioDecoders back to normal play mode. */
+        /* TODO: need to add simple decoder support */
         brc = updateAudioDecoderTrickModeState(playback_ip, playback_ip->nexusHandles.primaryAudioDecoder);
         if (brc != B_ERROR_SUCCESS)
         {
@@ -4610,7 +4783,7 @@ B_PlaybackIp_PlayHls(
 
 #ifdef BDBG_DEBUG_BUILD
     if (playback_ip->ipVerboseLog)
-        BDBG_WRN(("%s: Going back to Play State: rc %d, playback_ip %p, current state %d", __FUNCTION__, brc, playback_ip, currentState));
+        BDBG_WRN(("%s: Going back to Play State: rc %d, playback_ip %p, current state %d", __FUNCTION__, brc, (void *)playback_ip, currentState));
 #endif
 
 error:
@@ -4661,6 +4834,11 @@ B_PlaybackIpError B_PlaybackIp_TrickModeHls(
                     playback_ip->speedNumerator/playback_ip->speedDenominator, currentPosition/1000.));
 #endif
 
+    hlsSession->useIFrameTrickmodes = BLST_Q_FIRST(&hlsSession->iFramePlaylistFileInfoQueueHead) ? true : false;
+#ifdef BDBG_DEBUG_BUILD
+    if (playback_ip->ipVerboseLog)
+        BDBG_WRN(("%s: Using %s trickmodes", __FUNCTION__, hlsSession->useIFrameTrickmodes ? "Server-side (IFrame)" : "Client-side"));
+#endif
 
     if (pIpTrickModeSettings->adaptiveStreamingTrickmodeMethod == B_PlaybackIpAdaptiveStreamingTrickModeMethod_eUseSegmentWithLowestBandwidth)
     {
@@ -4674,6 +4852,7 @@ B_PlaybackIpError B_PlaybackIp_TrickModeHls(
 
         /* TODO: add logic to use adjustedRate if requested rate can't be played at the current network conditions. */
         hlsSession->useLowestBitRateSegmentOnly = true;
+        playlistFileInfo = BLST_Q_FIRST(hlsSession->useIFrameTrickmodes ? &hlsSession->iFramePlaylistFileInfoQueueHead:&hlsSession->playlistFileInfoQueueHead);
     }
     else
     {
@@ -4687,7 +4866,7 @@ B_PlaybackIpError B_PlaybackIp_TrickModeHls(
          */
         playbackRate = playback_ip->speedNumerator;
         networkBandwidth = B_PlaybackIp_HlsGetCurrentBandwidth(&hlsSession->bandwidthContext);
-        for (prevPlaylistFileInfo = NULL, playlistFileInfo = BLST_Q_FIRST(&hlsSession->playlistFileInfoQueueHead);
+        for (prevPlaylistFileInfo = NULL, playlistFileInfo = BLST_Q_FIRST(hlsSession->useIFrameTrickmodes ? &hlsSession->iFramePlaylistFileInfoQueueHead:&hlsSession->playlistFileInfoQueueHead);
                 playlistFileInfo;
                 playlistFileInfo = BLST_Q_NEXT(playlistFileInfo, next))
         {
@@ -4702,7 +4881,7 @@ B_PlaybackIpError B_PlaybackIp_TrickModeHls(
                 /* Using this playlist at requested rate will exceed the current network bandwidth, so we will use the previous playlist. */
                 /* Note that the list of playlist file entries are maintained in the ascending order of their bandwidth value. */
                 BDBG_WRN(("%s: requiredNetworkBandwidth %d at %d rate exceeds the network b/w %d of playlist w/ b/w %d, use previous playlist entry %p",
-                            __FUNCTION__, requiredNetworkBandwidth, playbackRate, networkBandwidth, playlistFileInfo->bandwidth, prevPlaylistFileInfo));
+                            __FUNCTION__, requiredNetworkBandwidth, playbackRate, networkBandwidth, playlistFileInfo->bandwidth, (void *)prevPlaylistFileInfo));
                 break;
             }
             else
@@ -4723,7 +4902,7 @@ B_PlaybackIpError B_PlaybackIp_TrickModeHls(
         else {
             /* Found no playlists that can be played at the request playback rate for the current n/w b/w. */
             /* In this case, we take the smallest AV b/w playlist and play it at the highest possible rate for the current n/w b/w. */
-            for (playlistFileInfo = BLST_Q_FIRST(&hlsSession->playlistFileInfoQueueHead);
+            for (playlistFileInfo = BLST_Q_FIRST(hlsSession->useIFrameTrickmodes ? &hlsSession->iFramePlaylistFileInfoQueueHead:&hlsSession->playlistFileInfoQueueHead);
                     playlistFileInfo;
                     playlistFileInfo = BLST_Q_NEXT(playlistFileInfo, next))
             {
@@ -4734,7 +4913,7 @@ B_PlaybackIpError B_PlaybackIp_TrickModeHls(
             }
             if (playlistFileInfo == NULL)
             {
-                playlistFileInfo = BLST_Q_FIRST(&hlsSession->playlistFileInfoQueueHead);
+                playlistFileInfo = BLST_Q_FIRST(hlsSession->useIFrameTrickmodes ? &hlsSession->iFramePlaylistFileInfoQueueHead:&hlsSession->playlistFileInfoQueueHead);
                 if (playlistFileInfo == NULL)
                 {
                     BDBG_ERR(("%s: SW Bug: playlist list seems to be corrupted", __FUNCTION__));
@@ -4752,6 +4931,12 @@ B_PlaybackIpError B_PlaybackIp_TrickModeHls(
             playback_ip->speedNumerator = adjustedPlaybackRate;
         }
         hlsSession->playlistBandwidthToUseInTrickmode = playlistFileInfo->bandwidth;
+    }
+    if (hlsSession->useIFrameTrickmodes) {
+        hlsSession->currentPlaylistFile = playlistFileInfo;
+        if (B_PlaybackIp_HlsConnectDownloadAndParsePlaylistFile(playback_ip, hlsSession, playlistFileInfo) < 0) {
+            BDBG_ERR(("%s: Failed to download & parse playlist file entry w/ uri %s", __FUNCTION__, playlistFileInfo->uri));
+        }
     }
 
     /* We may want to drop every a segment every so often, experimenting w/ it. */
@@ -4822,7 +5007,7 @@ B_PlaybackIpError B_PlaybackIp_TrickModeHls(
     }
 #ifdef BDBG_DEBUG_BUILD
     if (playback_ip->ipVerboseLog)
-        BDBG_WRN(("%s: %p TrickMode started", __FUNCTION__, playback_ip));
+        BDBG_WRN(("%s: %p TrickMode started", __FUNCTION__, (void *)playback_ip));
 #endif
     return brc;
 
@@ -4837,13 +5022,13 @@ processId3v2HeaderAndConvertToPes(B_PlaybackIpHandle playback_ip, HlsSessionStat
     batom_t atom;
     batom_cursor cursor;
     bid3v2_header id3v2Header;
-    bmedia_pes_info pesInfo;
     size_t pesHeaderLen;
     size_t pesPayloadLen;
     uint8_t pesHeader[64];
     size_t totalId3v2HeaderSize;
     static int cnt = 0;
     unsigned timestamp=0;
+    bool segmentContainsId3Header = false;
 
     /*
      * ID3v2 tag/header format:
@@ -4858,67 +5043,79 @@ processId3v2HeaderAndConvertToPes(B_PlaybackIpHandle playback_ip, HlsSessionStat
         00000030  74 53 74 72 65 61 6d 54  69 6d 65 73 74 61 6d 70  |tStreamTimestamp|
         00000040  00 00 00 00 00 05 66 76  00
      */
-    if (segmentBuffer->buffer[0] != 'I' && segmentBuffer->buffer[1] != 'D' && segmentBuffer->buffer[2] != '3') {
-        BDBG_ERR(("%s: ID3v2 identifier (ID3) is missing, instead found %c %c %c", __FUNCTION__, segmentBuffer->buffer[0], segmentBuffer->buffer[1], segmentBuffer->buffer[2]));
-        return false;
+    if (segmentBuffer->buffer[0] == 'I' && segmentBuffer->buffer[1] == 'D' && segmentBuffer->buffer[2] == '3') {
+        BDBG_MSG(("%s: ID3v2 identifier (ID3) is present, found %c %c %c", __FUNCTION__, segmentBuffer->buffer[0], segmentBuffer->buffer[1], segmentBuffer->buffer[2]));
+        segmentContainsId3Header = true;
     }
-    if (!playback_ip->factory) {
-        playback_ip->factory = batom_factory_create(bkni_alloc, 16);
-        if (playback_ip->factory == NULL) {
-            BDBG_ERR(("%s: Failed to Create batom_factory for converting HLS ES to PES", __FUNCTION__));
+    else {
+        BDBG_MSG(("%s: ID3v2 identifier (ID3) is missing, must be continuation of the current ID3 segment", __FUNCTION__));
+        segmentContainsId3Header = false;
+    }
+    if (segmentContainsId3Header) {
+        if (!playback_ip->factory) {
+            playback_ip->factory = batom_factory_create(bkni_alloc, 16);
+            if (playback_ip->factory == NULL) {
+                BDBG_ERR(("%s: Failed to Create batom_factory for converting HLS ES to PES", __FUNCTION__));
+                return false;
+            }
+            BDBG_MSG(("%s: Created batom_factory %p for converting HLS ES to PES", __FUNCTION__, (void *)playback_ip->factory));
+        }
+        atom = batom_from_range(playback_ip->factory, segmentBuffer->buffer, segmentBuffer->bufferDepth, NULL, NULL);
+        batom_cursor_from_atom(&cursor, atom);
+        if (bid3v2_parse_header(&cursor, &id3v2Header) == false) {
+            BDBG_ERR(("%s: Failed to parse ID3v2 header for playback_ip %p, hlsSession %p", __FUNCTION__, (void *)playback_ip, (void *)hlsSession));
             return false;
         }
-        BDBG_MSG(("%s: Created batom_factory %p for converting HLS ES to PES", __FUNCTION__, playback_ip->factory));
-    }
-    atom = batom_from_range(playback_ip->factory, segmentBuffer->buffer, segmentBuffer->bufferDepth, NULL, NULL);
-    batom_cursor_from_atom(&cursor, atom);
-    if (bid3v2_parse_header(&cursor, &id3v2Header) == false) {
-        BDBG_ERR(("%s: Failed to parse ID3v2 header for playback_ip %p, hlsSession %p", __FUNCTION__, playback_ip, hlsSession));
-        return false;
-    }
-    batom_release(atom);
+        batom_release(atom);
 #define ID3V2_HEADER_LEN 10
-    /* ID3 tag header doesn't include the length of the ID3v2 header itself. */
-    totalId3v2HeaderSize = id3v2Header.size + ID3V2_HEADER_LEN;
-    BDBG_MSG(("%s: ID3v2 id3v2Header: version %#x, size %u total size %u %s %s", __FUNCTION__, (unsigned)id3v2Header.version, (unsigned)id3v2Header.size, totalId3v2HeaderSize, id3v2Header.flags.unsynchronisation?"unsynchronisation":"", id3v2Header.flags.extended_header?"extended_id3v2Header":"", id3v2Header.flags.experimental_indicator?"experimental_indicator":"", id3v2Header.flags.footer_present?"footer_present":""));
-    /* Get the timestamp from the value of PRIV frame which must be the only frame in the ID3 tag. */
-    {
+        /* ID3 tag header doesn't include the length of the ID3v2 header itself. */
+        totalId3v2HeaderSize = id3v2Header.size + ID3V2_HEADER_LEN;
+        BDBG_MSG(("%s: ID3v2 id3v2Header: version %#x, size %u total size %zu %s %s %s %s", __FUNCTION__, (unsigned)id3v2Header.version, (unsigned)id3v2Header.size, totalId3v2HeaderSize, id3v2Header.flags.unsynchronisation?"unsynchronisation":"", id3v2Header.flags.extended_header?"extended_id3v2Header":"", id3v2Header.flags.experimental_indicator?"experimental_indicator":"", id3v2Header.flags.footer_present?"footer_present":""));
+        /* Get the timestamp from the value of PRIV frame which must be the only frame in the ID3 tag. */
+        {
+            /*
+             * From HLS Spec:
+             * Each Packed Audio segment MUST signal the timestamp of its first sample with an ID3 PRIV tag [ID3] at the beginning of the segment.
+             * The ID3 PRIV owner identifier MUST be "com.apple.streaming.transportStreamTimestamp".
+             * The ID3 payload MUST be a 33-bit MPEG-2 Program Elementary Stream timestamp expressed as a
+             * big-endian eight-octet number, with the upper 31 bits set to zero
+             */
+
+            /* For now, we just find the right position of the timestamp dword. */
+            uint8_t *tsBuffer = (uint8_t *)(segmentBuffer->buffer) + totalId3v2HeaderSize - 4;
+
+            timestamp = tsBuffer[0]<<24 |tsBuffer[1]<<16 |tsBuffer[2]<<8 |tsBuffer[3]<<0 ;
+            BDBG_MSG(("timestamp bytes: 0x%x 0x%x 0x%x 0x%x ts=0x%x", tsBuffer[0], tsBuffer[1], tsBuffer[2], tsBuffer[3], timestamp));
+        }
+
         /*
-         * From HLS Spec:
-         * Each Packed Audio segment MUST signal the timestamp of its first sample with an ID3 PRIV tag [ID3] at the beginning of the segment.
-         * The ID3 PRIV owner identifier MUST be "com.apple.streaming.transportStreamTimestamp".
-         * The ID3 payload MUST be a 33-bit MPEG-2 Program Elementary Stream timestamp expressed as a
-         * big-endian eight-octet number, with the upper 31 bits set to zero
+         * Setup the PES header that will be used for all buffers containing 1 audio HLS segment. This happens when
+         * an Audio Segment length is > 65K, length of a PES header.
+         * Prepare PES header w/ the corret timestamp from the ID3 header and cache it.
          */
+        bmedia_pes_info_init(&hlsSession->pesInfo, HLS_PES_AUDIO_ES_ID);
+        BMEDIA_PES_SET_PTS(&hlsSession->pesInfo, (timestamp/2)); /* in 45Khz units, the PES timestamp is provided in the 90Khz units. */
+        pesPayloadLen = segmentBuffer->bufferDepth - totalId3v2HeaderSize;
+        pesHeaderLen = bmedia_pes_header_init(pesHeader, pesPayloadLen, &hlsSession->pesInfo);
 
-        /* For now, we just find the right position of the timestamp dword. */
-        uint8_t *tsBuffer = (uint8_t *)(segmentBuffer->buffer) + totalId3v2HeaderSize - 4;
-
-        timestamp = tsBuffer[0]<<24 |tsBuffer[1]<<16 |tsBuffer[2]<<8 |tsBuffer[3]<<0 ;
-        BDBG_MSG(("timestamp bytes: 0x%x 0x%x 0x%x 0x%x ts=0x%x", tsBuffer[0], tsBuffer[1], tsBuffer[2], tsBuffer[3], timestamp));
+        /* Before feeding to the audio decoder, we will remove the ID3 header & replace it w/ the PES header. */
+        segmentBuffer->buffer += totalId3v2HeaderSize;  /* Skip past the ID3 header */
+        segmentBuffer->bufferDepth -= totalId3v2HeaderSize;
+    }
+    else {
+        /* Not the 1st buffer containing the current HLS Audio segment, so it is the continuation of the ID3 frame. */
+        pesPayloadLen = segmentBuffer->bufferDepth;
+        hlsSession->pesInfo.pts_valid = false; /* Let decoder interpolate the PTS for the trailing PES packets corresponding to a segment. */
+        pesHeaderLen = bmedia_pes_header_init(pesHeader, pesPayloadLen, &hlsSession->pesInfo);
     }
 
-    /*
-     * Before feedint to the audio decoder, we will remove the ID3 header & all of its frames.
-     * And then encapsulate the Audio Segment with segment with one PES header.
-     * TODO: will need to split this into multiple PES packets as one audio segment is most likely > 64K of max PES packet length.
-     */
-    bmedia_pes_info_init(&pesInfo, HLS_PES_AUDIO_ES_ID);
-    BMEDIA_PES_SET_PTS(&pesInfo, (timestamp/2)); /* in 45Khz units, the PES timestamp is provided in the 90Khz units. */
-    pesPayloadLen = segmentBuffer->bufferDepth - totalId3v2HeaderSize;
-    pesHeaderLen = bmedia_pes_header_init(pesHeader, pesPayloadLen, &pesInfo);
-
-    /* now prefix the PES header into the segment */
-    /* first, we skip the ID3 tag in the segment buffer. */
-    segmentBuffer->buffer += totalId3v2HeaderSize;
-    segmentBuffer->bufferDepth -= totalId3v2HeaderSize;
-
-    /* then, since we leave space for the PES header in the start of each segment, goback that many bytes and then copy the PES header. */
+    /* Now prefix the PES header into the segment */
+    /* Note: since we leave space for the PES header in the start of each segment, goback that many bytes and then copy the PES header. */
     segmentBuffer->buffer -= pesHeaderLen;
     BKNI_Memcpy(segmentBuffer->buffer, pesHeader, pesHeaderLen);
     segmentBuffer->bufferDepth += pesHeaderLen;
+    BDBG_MSG(("%s: buffer=%p cnt %d, pes header len %zu, pes payload len %zu, pts %d, total buffer size %d", __FUNCTION__, (void *)segmentBuffer->buffer, ++cnt, pesHeaderLen, pesPayloadLen, timestamp/2, segmentBuffer->bufferDepth));
 
-    BDBG_MSG(("%s: cnt %d, pes header len %d, pes payload len %d, pts %d, total buffer size %d", __FUNCTION__, ++cnt, pesHeaderLen, pesPayloadLen, timestamp/2, segmentBuffer->bufferDepth));
     return true;
 }
 
@@ -4959,20 +5156,20 @@ B_PlaybackIp_HlsMediaSegmentDownloadThread(
     if (playback_ip->psi.psiValid == true && playback_ip->psi.mpegType == NEXUS_TransportType_eMpeg2Pes) {
         wrapEsWithPes = true;
     }
-    BDBG_MSG(("%s:%p: wrapEsWithPes =%d psiValid=%d mpegType=%d", __FUNCTION__, playback_ip, wrapEsWithPes, playback_ip->psi.psiValid, playback_ip->psi.mpegType));
+    BDBG_MSG(("%s:%p: wrapEsWithPes =%d psiValid=%d mpegType=%d", __FUNCTION__, (void *)playback_ip, wrapEsWithPes, playback_ip->psi.psiValid, playback_ip->psi.mpegType));
     while (true) {
         unsigned controlBytesLength = 0;    /* keeps track of any control bytes that get inserted into the stream. */
 
         gotoTopOfLoop = false;
-        BDBG_MSG(("%s:%p:%d At the top of the loop", __FUNCTION__, playback_ip, playbackIpState(playback_ip)));
+        BDBG_MSG(("%s:%p:%d At the top of the loop", __FUNCTION__, (void *)playback_ip, playbackIpState(playback_ip)));
         if (playback_ip->playback_state == B_PlaybackIpState_eStopping || playback_ip->playback_state == B_PlaybackIpState_eStopped) {
-            BDBG_MSG(("%s:%p breaking out of HLS Media Segment Download loop due to state (%d) change", __FUNCTION__, playback_ip, playbackIpState(playback_ip)));
+            BDBG_MSG(("%s:%p breaking out of HLS Media Segment Download loop due to state (%d) change", __FUNCTION__, (void *)playback_ip, playbackIpState(playback_ip)));
             break;
         }
         if (hlsSession->hlsPlaybackThreadDone) {
 #ifdef BDBG_DEBUG_BUILD
             if (playback_ip->ipVerboseLog)
-                BDBG_WRN(("%s:%p HLS Playback thread is done, so stopping the HLS Segment Download thread", __FUNCTION__, playback_ip));
+                BDBG_WRN(("%s:%p HLS Playback thread is done, so stopping the HLS Segment Download thread", __FUNCTION__, (void *)playback_ip));
 #endif
             goto error;
         }
@@ -5010,7 +5207,7 @@ B_PlaybackIp_HlsMediaSegmentDownloadThread(
                 close(playback_ip->socketState.fd);
                 playback_ip->socketState.fd = -1;
             }
-            BDBG_MSG(("%s: resuming seg download thread after trickmode command, downloadedSegmentsDuration %u", __FUNCTION__, downloadedSegmentsDuration));
+            BDBG_MSG(("%s: resuming seg download thread after trickmode command, downloadedSegmentsDuration %lu", __FUNCTION__, downloadedSegmentsDuration));
         }
 
 #ifdef BITRATE_SWITCH_LATENCY_PROTOTYPE
@@ -5029,7 +5226,7 @@ B_PlaybackIp_HlsMediaSegmentDownloadThread(
         while (!segmentBuffer) {
             if (playback_ip->playback_state == B_PlaybackIpState_eStopping || playback_ip->playback_state == B_PlaybackIpState_eStopped) {
                 /* user changed the channel, so return */
-                BDBG_MSG(("%s:%p breaking out of HLS Download Media Segment Download loop due to state (%d) change", __FUNCTION__, playback_ip, playback_ip->playback_state));
+                BDBG_MSG(("%s:%p breaking out of HLS Download Media Segment Download loop due to state (%d) change", __FUNCTION__, (void *)playback_ip, playback_ip->playback_state));
                 goto error;
             }
             if (playback_ip->playback_state == B_PlaybackIpState_eWaitingToEnterTrickMode || playback_ip->playback_state == B_PlaybackIpState_eEnteringTrickMode) {
@@ -5041,8 +5238,8 @@ B_PlaybackIp_HlsMediaSegmentDownloadThread(
                 if (!hlsSession->segmentBuffer[nextSegmentBufferIndex].filled) {
                     segmentBuffer = &hlsSession->segmentBuffer[nextSegmentBufferIndex];
                     segmentBuffer->bufferDepth = 0;
-                    segmentBuffer->buffer = segmentBuffer->bufferOrig;
-                    BDBG_MSG(("%s: using download buffer [%d] %p", __FUNCTION__, nextSegmentBufferIndex, segmentBuffer));
+                    segmentBuffer->buffer = wrapEsWithPes? segmentBuffer->bufferOrig+BMEDIA_PES_HEADER_MAX_SIZE : segmentBuffer->bufferOrig; /* When wrapping ES w/ PES, leave space for the PES header. */
+                    BDBG_MSG(("%s:%p using download buffer [%d] %p buffer=%p", __FUNCTION__, (void *)playback_ip, nextSegmentBufferIndex, (void *)segmentBuffer, (void *)segmentBuffer->buffer));
                 }
                 BKNI_ReleaseMutex(hlsSession->segmentBuffer[nextSegmentBufferIndex].lock);
             }
@@ -5053,7 +5250,7 @@ B_PlaybackIp_HlsMediaSegmentDownloadThread(
                     goto error;
                 }
                 /* wait on signal from playback thread to consume and free up one of the buffers */
-                BDBG_MSG(("%s:%p Waiting before the event", __FUNCTION__, playback_ip));
+                BDBG_MSG(("%s:%p Waiting before the event", __FUNCTION__, (void *)playback_ip));
                 rc = BKNI_WaitForEvent(hlsSession->bufferEmptiedEvent, HLS_EVENT_BUFFER_TIMEOUT_MSEC);
                 if (rc == BERR_TIMEOUT) {
                     BDBG_MSG(("%s: EVENT timeout: failed to receive event from HLS Playback thread indicating buffer availability, continue waiting", __FUNCTION__));
@@ -5069,7 +5266,7 @@ B_PlaybackIp_HlsMediaSegmentDownloadThread(
 
         if (previousMediaSegmentCompletelyDownloaded == true) {
             /* now download the next segment */
-            BDBG_MSG(("%s:%p:%d before lock", __FUNCTION__, playback_ip, playback_ip->playback_state));
+            BDBG_MSG(("%s:%p:%d before lock", __FUNCTION__, (void *)playback_ip, playback_ip->playback_state));
             BKNI_AcquireMutex(hlsSession->lock);
             /* set flag to indicate that the buffer contains the start of the next segment */
             bufferContainsNextSegment = true;
@@ -5077,17 +5274,17 @@ B_PlaybackIp_HlsMediaSegmentDownloadThread(
             hlsSession->segmentCounter++; /* increment the segment counter. */
             /* now we have a buffer, pick the next media segment to download, it may be from a different playlist file if our n/w b/w has changed */
             networkBandwidth = B_PlaybackIp_HlsGetCurrentBandwidth(&hlsSession->bandwidthContext);
-            BDBG_MSG(("%s:%p network bandwidth %lu, position %u", __FUNCTION__, playback_ip, networkBandwidth, downloadedSegmentsDuration));
+            BDBG_MSG(("%s:%p network bandwidth %u, position %lu", __FUNCTION__, (void *)playback_ip, networkBandwidth, downloadedSegmentsDuration));
             if ((mediaFileSegmentInfo = B_PlaybackIp_HlsGetNextMediaSegmentEntry(playback_ip, hlsSession, hlsSession->resetPlaylist ? -1:currentMediaSegmentSequenceNumber, downloadedSegmentsDuration, networkBandwidth, &playlistSwitched)) == NULL) {
                 /* no more segments to download, we keep looping in this thread until playback thread is done feeding and playing all data */
                 /* this is done so that if the user wants to re-seek to a previously played position, we can still support it */
 #ifdef BDBG_DEBUG_BUILD
                 if (playback_ip->ipVerboseLog)
-                    BDBG_WRN(("%s:%p:%d No More Media Segment URI left in the Playlist URI %s, we keep looping !!", __FUNCTION__, playback_ip, playback_ip->playback_state, hlsSession->currentPlaylistFile->uri));
+                    BDBG_WRN(("%s:%p:%d No More Media Segment URI left in the Playlist URI %s, we keep looping !!", __FUNCTION__, (void *)playback_ip, playback_ip->playback_state, hlsSession->currentPlaylistFile->uri));
 #endif
                 hlsSession->downloadedAllSegmentsInCurrentPlaylist = true;
                 BKNI_ReleaseMutex(hlsSession->lock);
-                BDBG_MSG(("%s:%p:%d after lock", __FUNCTION__, playback_ip, playback_ip->playback_state));
+                BDBG_MSG(("%s:%p:%d after lock", __FUNCTION__, (void *)playback_ip, playback_ip->playback_state));
                 BKNI_Sleep(200); /* allow the playlist redownload thread to refetch the playlist and then retry or playback thread to finish playing */
                 continue;
             }
@@ -5104,7 +5301,7 @@ B_PlaybackIp_HlsMediaSegmentDownloadThread(
                     downloadedSegmentsDuration = 0;
                 }
             }
-            BDBG_MSG(("%s:%p seg pos %u, position %u", __FUNCTION__, playback_ip, mediaFileSegmentInfo->duration, downloadedSegmentsDuration));
+            BDBG_MSG(("%s:%p seg pos %lu, position %lu", __FUNCTION__, (void *)playback_ip, mediaFileSegmentInfo->duration, downloadedSegmentsDuration));
 
             /* determine if server is using HTTP persistent connection, we know based on the EXT-X-BYTERANGE tag before a URL */
             /* if it is specified, then this segment is a sub-range of the URI of the media segment and thus we can reuse the */
@@ -5119,7 +5316,7 @@ B_PlaybackIp_HlsMediaSegmentDownloadThread(
             }
 #ifdef BDBG_DEBUG_BUILD
             if (playback_ip->ipVerboseLog)
-                BDBG_WRN(("%s:%p next media segment: uri %s, seq# %d, prev fd %d, persistentHttpSession %d, reOpenSocketConnection %d", __FUNCTION__, playback_ip, mediaFileSegmentInfo->absoluteUri, mediaFileSegmentInfo->mediaSequence, playback_ip->socketState.fd, persistentHttpSession, reOpenSocketConnection));
+                BDBG_WRN(("%s:%p next media segment: uri %s, seq# %d, prev fd %d, persistentHttpSession %d, reOpenSocketConnection %d", __FUNCTION__, (void *)playback_ip, mediaFileSegmentInfo->absoluteUri, mediaFileSegmentInfo->mediaSequence, playback_ip->socketState.fd, persistentHttpSession, reOpenSocketConnection));
 #endif
             if (playback_ip->speedNumerator < 0)
             {
@@ -5147,7 +5344,7 @@ B_PlaybackIp_HlsMediaSegmentDownloadThread(
                     controlBytesLength += BTP_BUFFER_SIZE;
 #ifdef BDBG_DEBUG_BUILD
                     if (playback_ip->ipVerboseLog)
-                        BDBG_WRN(("%s: hlsSession %p, built PictureCount %d BTP for pid %d at 0x%x", __FUNCTION__, hlsSession, pictureCount, playback_ip->psi.videoPid, pkt));
+                        BDBG_WRN(("%s: hlsSession %p, built PictureCount %d BTP for pid %d at %p", __FUNCTION__, (void *)hlsSession, pictureCount, playback_ip->psi.videoPid, (void *)pkt));
 #endif
                 }
 
@@ -5162,7 +5359,7 @@ B_PlaybackIp_HlsMediaSegmentDownloadThread(
                     controlBytesLength += BTP_BUFFER_SIZE;
 #ifdef BDBG_DEBUG_BUILD
                     if (playback_ip->ipVerboseLog)
-                        BDBG_WRN(("%s: hlsSession %p, built PictureTag %d BTP for pid %d at 0x%x", __FUNCTION__, hlsSession, pictureTag, playback_ip->psi.videoPid, pkt));
+                        BDBG_WRN(("%s: hlsSession %p, built PictureTag %d BTP for pid %d at %p", __FUNCTION__, (void *)hlsSession, pictureTag, playback_ip->psi.videoPid, (void *)pkt));
 #endif
                 }
             }
@@ -5170,13 +5367,13 @@ B_PlaybackIp_HlsMediaSegmentDownloadThread(
             B_Time_Get(&hlsSession->lastSegmentDownloadStartTime);
             hlsSession->lastPartialSegmentDownloadTime = 0;
             if (B_PlaybackIp_HlsSetupHttpSessionToServer(playback_ip, mediaFileSegmentInfo, persistentHttpSession, reOpenSocketConnection, &playback_ip->socketState.fd, segmentBuffer->buffer+controlBytesLength, &segmentBuffer->bufferDepth) == false) {
-                BDBG_ERR(("%s:%p ERROR: Socket setup or HTTP request/response failed for downloading next Media Segment, skip to next uri", __FUNCTION__, playback_ip));
+                BDBG_ERR(("%s:%p ERROR: Socket setup or HTTP request/response failed for downloading next Media Segment, skip to next uri", __FUNCTION__, (void *)playback_ip));
                 BKNI_ReleaseMutex(hlsSession->lock);
-                BDBG_MSG(("%s:%p:%d after lock", __FUNCTION__, playback_ip, playback_ip->playback_state));
+                BDBG_MSG(("%s:%p:%d after lock", __FUNCTION__, (void *)playback_ip, playback_ip->playback_state));
                 BKNI_Sleep(10);
                 continue;
             }
-            BDBG_MSG(("%s:%p:%d after SetupHttpSessionToServer ", __FUNCTION__, playback_ip, playback_ip->playback_state));
+            BDBG_MSG(("%s:%p:%d after SetupHttpSessionToServer ", __FUNCTION__, (void *)playback_ip, playback_ip->playback_state));
             if (hlsSession->currentPlaylistFile) {
                 hlsSession->lastSegmentBitrate = hlsSession->currentPlaylistFile->bandwidth;
                 hlsSession->lastSegmentUrl = hlsSession->currentPlaylistFile->absoluteUri;
@@ -5191,6 +5388,10 @@ B_PlaybackIp_HlsMediaSegmentDownloadThread(
                 /* Instead, we will use the segmentLength to download only that many bytes from the server */
                 bytesToReadInSegment = mediaFileSegmentInfo->segmentLength;
             }
+            else if (wrapEsWithPes) {
+                /* Since we have to wrap ES w/ PES & each PES packet can atmost be 65K in length, we only read that much Audio Segment data into the Buffer. */
+                bytesToReadInSegment = 65535;
+            }
             else if (playback_ip->contentLength > 0) {
                 /* we try to download that many bytes or until server closes the connection */
                 bytesToReadInSegment = (int) playback_ip->contentLength;
@@ -5200,22 +5401,22 @@ B_PlaybackIp_HlsMediaSegmentDownloadThread(
                 bytesToReadInSegment = segmentBuffer->bufferSize;
             }
             BKNI_ReleaseMutex(hlsSession->lock);
-            BDBG_MSG(("%s:%p:%d after releasing lock", __FUNCTION__, playback_ip, playback_ip->playback_state));
+            BDBG_MSG(("%s:%p:%d after releasing lock", __FUNCTION__, (void *)playback_ip, playback_ip->playback_state));
         }
         else {
             /* previous media segment wasn't completely downloaded due to bytesToReadInSegment being larger than segment buffer */
-            BDBG_MSG(("%s:%p previous media segment wasn't completely downloaded (%d bytes remaining) due to segment buffer being smaller than the content length", __FUNCTION__, playback_ip, bytesToReadInSegment));
+            BDBG_MSG(("%s:%p previous media segment wasn't completely downloaded (%d bytes remaining) due to segment buffer being smaller than the content length", __FUNCTION__, (void *)playback_ip, bytesToReadInSegment));
             bufferContainsNextSegment = false;
             /* note time: start */
             B_Time_Get(&hlsSession->lastSegmentDownloadStartTime);
             /* note the time delta as partialSegmentDownloadTime */
         }
 
-        BDBG_MSG(("%s:%p now download the media segment at buffer offset 0x%p, bytesToReadInSegment %d", __FUNCTION__, playback_ip, segmentBuffer->buffer+controlBytesLength, bytesToReadInSegment));
+        BDBG_MSG(("%s:%p now download the media segment at buffer offset 0x%p, bytesToReadInSegment %d", __FUNCTION__, (void *)playback_ip, (void *)(segmentBuffer->buffer+controlBytesLength), bytesToReadInSegment));
         /* now download the actual media segment */
         serverClosed = false;
         if (B_PlaybackIp_HlsDownloadMediaSegment(playback_ip, playback_ip->socketState.fd, segmentBuffer->buffer+controlBytesLength, segmentBuffer->bufferSize, bytesToReadInSegment, &segmentBuffer->bufferDepth, &networkBandwidth, &serverClosed) != true) {
-            BDBG_ERR(("%s:%p failed to download the current media segment, skip to next media segment", __FUNCTION__, playback_ip));
+            BDBG_ERR(("%s:%p failed to download the current media segment, skip to next media segment", __FUNCTION__, (void *)playback_ip));
             previousMediaSegmentCompletelyDownloaded = true;
             reOpenSocketConnection = true;
             if (playback_ip->securityHandle) {
@@ -5228,10 +5429,10 @@ B_PlaybackIp_HlsMediaSegmentDownloadThread(
             continue;
         }
 
-        BDBG_MSG(("%s:%p Downloaded current media segment", __FUNCTION__, playback_ip));
+        BDBG_MSG(("%s:%p Downloaded current media segment", __FUNCTION__, (void *)playback_ip));
         if (playback_ip->playback_state == B_PlaybackIpState_eWaitingToEnterTrickMode && hlsSession->seekOperationStarted) {
             /* go back to top as it will have a check there to handle this seek operation properly */
-            BDBG_MSG(("%s:%p state %d: Going back to top as seek operation is in progress!", __FUNCTION__, playback_ip, playback_ip->playback_state));
+            BDBG_MSG(("%s:%p state %d: Going back to top as seek operation is in progress!", __FUNCTION__, (void *)playback_ip, playback_ip->playback_state));
             continue;
         }
 
@@ -5242,7 +5443,7 @@ B_PlaybackIp_HlsMediaSegmentDownloadThread(
             B_Time_Get(&lastSegmentDownloadEndTime);
             hlsSession->lastSegmentDownloadTime = hlsSession->lastPartialSegmentDownloadTime + B_Time_Diff(&lastSegmentDownloadEndTime, &hlsSession->lastSegmentDownloadStartTime);
             hlsSession->lastPartialSegmentDownloadTime = 0;
-            BDBG_MSG(("%s:%p downloaded complete media segment bytesDownloaded %d, serverClosed %d, last byte 0x%x, lastSegmentDownloadTime %u", __FUNCTION__, playback_ip, segmentBuffer->bufferDepth, serverClosed, segmentBuffer->buffer[segmentBuffer->bufferDepth-1], hlsSession->lastSegmentDownloadTime));
+            BDBG_MSG(("%s:%p downloaded complete media segment bytesDownloaded %d, serverClosed %d, last byte 0x%x, lastSegmentDownloadTime %u", __FUNCTION__, (void *)playback_ip, segmentBuffer->bufferDepth, serverClosed, segmentBuffer->buffer[segmentBuffer->bufferDepth-1], hlsSession->lastSegmentDownloadTime));
 #if 1
             if (currentMediaSegmentSecurityProtocol == B_PlaybackIpSecurityProtocol_Aes128)
 #else
@@ -5256,10 +5457,10 @@ B_PlaybackIp_HlsMediaSegmentDownloadThread(
                 int padBytes = segmentBuffer->buffer[segmentBuffer->bufferDepth-1];
                 char *padBuffer = segmentBuffer->buffer + segmentBuffer->bufferDepth-padBytes;
                 segmentBuffer->bufferDepth -= padBytes;
-                BDBG_MSG(("%s:%p ############## removed %d padBytes, updated segment size %d", __FUNCTION__, playback_ip, padBytes, segmentBuffer->bufferDepth));
+                BDBG_MSG(("%s:%p ############## removed %d padBytes, updated segment size %d", __FUNCTION__, (void *)playback_ip, padBytes, segmentBuffer->bufferDepth));
                 for (i=0;i < padBytes; i++) {
                     if (padBuffer[i] != padBytes) {
-                        BDBG_ERR(("%s:%p PKCS7 padding error, padByte %d, byte[%d] 0x%x, bufferDepth %d", __FUNCTION__, playback_ip, padBytes, i, padBuffer[i], segmentBuffer->bufferDepth));
+                        BDBG_ERR(("%s:%p PKCS7 padding error, padByte %d, byte[%d] 0x%x, bufferDepth %d", __FUNCTION__, (void *)playback_ip, padBytes, i, padBuffer[i], segmentBuffer->bufferDepth));
                         goto error;
                     }
                 }
@@ -5269,8 +5470,8 @@ B_PlaybackIp_HlsMediaSegmentDownloadThread(
                 reOpenSocketConnection = true;
             else
                 reOpenSocketConnection = false;
-            if (!persistentHttpSession) {
-                BDBG_MSG(("%s:%p Downloaded the full segment, so close the socket %d", __FUNCTION__, playback_ip, playback_ip->socketState.fd));
+            if (!persistentHttpSession && !wrapEsWithPes) {
+                BDBG_MSG(("%s:%p Downloaded the full segment, so close the socket %d", __FUNCTION__, (void *)playback_ip, playback_ip->socketState.fd));
                 /* if we are not doing persistent HTTP connections ( e.g. for HTTPS protocol (see previous comment above by searching eHttps)) */
                 /* we close security context and socket */
                 if (playback_ip->securityHandle) {
@@ -5295,7 +5496,7 @@ B_PlaybackIp_HlsMediaSegmentDownloadThread(
                     segmentBuffer->bufferDepth += controlBytesLength; /* add these extra control bytes into the segment buffer depth. */
 #ifdef BDBG_DEBUG_BUILD
                     if (playback_ip->ipVerboseLog)
-                        BDBG_WRN(("%s: hlsSession %p, built InLineFlush BTP for pid %d at 0x%x, controlBytesAdded %d, bytesDepth %d", __FUNCTION__, hlsSession, playback_ip->psi.videoPid, pkt, controlBytesLength, segmentBuffer->bufferDepth ));
+                        BDBG_WRN(("%s: hlsSession %p, built InLineFlush BTP for pid %d at %p, controlBytesAdded %d, bytesDepth %d", __FUNCTION__, (void *)hlsSession, playback_ip->psi.videoPid, (void *)pkt, controlBytesLength, segmentBuffer->bufferDepth ));
 #endif
                 }
             }
@@ -5305,7 +5506,7 @@ B_PlaybackIp_HlsMediaSegmentDownloadThread(
             /* note time: stop & calculate lastSegmentDownloadTime */
             B_Time_Get(&lastSegmentDownloadEndTime);
             hlsSession->lastPartialSegmentDownloadTime = B_Time_Diff(&lastSegmentDownloadEndTime, &hlsSession->lastSegmentDownloadStartTime);
-            BDBG_MSG(("%s:%p didn't download all bytes (%d) of current media segment: bytesDownloaded %d, lastPartialSegmentDownloadTime %u", __FUNCTION__, playback_ip, bytesToReadInSegment, segmentBuffer->bufferDepth, hlsSession->lastPartialSegmentDownloadTime));
+            BDBG_MSG(("%s:%p didn't download all bytes (%d) of current media segment: bytesDownloaded %d, lastPartialSegmentDownloadTime %u", __FUNCTION__, (void *)playback_ip, bytesToReadInSegment, segmentBuffer->bufferDepth, hlsSession->lastPartialSegmentDownloadTime));
             previousMediaSegmentCompletelyDownloaded = false;
             reOpenSocketConnection = false;
             bytesToReadInSegment -= segmentBuffer->bufferDepth;
@@ -5331,8 +5532,8 @@ B_PlaybackIp_HlsMediaSegmentDownloadThread(
         }
 #endif
 
-        /* for audio ES streams, we need to process the ID3v2 header and convert to PES by wrapping the whole segment w/ 1 PES header */
-        if (bufferContainsNextSegment && wrapEsWithPes) {
+        /* for audio ES streams, we need to process the ID3v2 header and convert to PES by wrapping the current segment buffer w/ 1 PES header */
+        if (wrapEsWithPes) {
             /* For ES streams, HLS protocol requires each segment to start w/ ID3 header w/ PRIV header */
             /* so far, we haven't found a proper usage of the data contained in this header (some timing info) */
             /* and thus are going to parse and remove ID3 from the stream. In addition, we will package */
@@ -5340,6 +5541,22 @@ B_PlaybackIp_HlsMediaSegmentDownloadThread(
             if (processId3v2HeaderAndConvertToPes(playback_ip, hlsSession, segmentBuffer) == false) {
                 BDBG_ERR(("%s: failed to parse and strip ID3v2 header from the start of HLS ES segment", __FUNCTION__));
                 goto error;
+            }
+            if (serverClosed) {
+                BDBG_MSG(("%s:%p Downloaded the full segment, so close the socket %d", __FUNCTION__, (void *)playback_ip, playback_ip->socketState.fd));
+                /* if we are not doing persistent HTTP connections ( e.g. for HTTPS protocol (see previous comment above by searching eHttps)) */
+                /* we close security context and socket */
+                if (playback_ip->securityHandle) {
+                    playback_ip->netIo.close(playback_ip->securityHandle);
+                    playback_ip->securityHandle = NULL;
+                }
+                close(playback_ip->socketState.fd);
+                playback_ip->socketState.fd = -1;
+                previousMediaSegmentCompletelyDownloaded = true;
+            }
+            else {
+                BDBG_MSG(("%s:%p Still haven't fully downloaded the current segment, so continue w/ the same segment!, socket=%d", __FUNCTION__, (void *)playback_ip, playback_ip->socketState.fd));
+                previousMediaSegmentCompletelyDownloaded = false;
             }
         }
 
@@ -5360,15 +5577,15 @@ B_PlaybackIp_HlsMediaSegmentDownloadThread(
         if (previousMediaSegmentCompletelyDownloaded == true)
             currentDownloadPosition += mediaFileSegmentInfo->duration;
 #endif
-        BDBG_MSG(("%s: playback_ip=%p: informed HLS playback thread that buffer %p: depth %d is filled , current network bandwidth %d", __FUNCTION__, playback_ip, segmentBuffer, segmentBuffer->bufferDepth, networkBandwidth));
+        BDBG_MSG(("%s: playback_ip=%p: informed HLS playback thread that buffer %p: depth %d is filled , current network bandwidth %d", __FUNCTION__, (void *)playback_ip, (void *)segmentBuffer, segmentBuffer->bufferDepth, networkBandwidth));
     }
 error:
-    BDBG_ERR(("%s: playback_ip=%p: Done", __FUNCTION__, playback_ip));
+    BDBG_ERR(("%s: playback_ip=%p: Done", __FUNCTION__, (void *)playback_ip));
 
     hlsSession->hlsSegmentDownloadThreadDone = true;
 #ifdef BDBG_DEBUG_BUILD
     if (playback_ip->ipVerboseLog)
-        BDBG_WRN(("%s:%p HLS Media Segment Download thread is exiting...", __FUNCTION__, playback_ip));
+        BDBG_WRN(("%s:%p HLS Media Segment Download thread is exiting...", __FUNCTION__, (void *)playback_ip));
 #endif
     return;
 }
@@ -5382,16 +5599,16 @@ B_PlaybackIp_HlsPrintAvStats(B_PlaybackIpHandle playback_ip)
     NEXUS_Error rc;
     rc = NEXUS_Playpump_GetStatus(playback_ip->nexusHandles.playpump, &ppStatus);
     if (rc) {BDBG_ERR(("NEXUS Error (%d) at %d, returning...\n", rc, __LINE__)); return;}
-    BDBG_WRN(("%s: before playpump fifo size %d, depth %d, bytesPlayed %d", __FUNCTION__, ppStatus.fifoSize, ppStatus.fifoDepth, ppStatus.bytesPlayed));
+    BDBG_WRN(("%s: before playpump fifo size %zu, depth %zu, bytesPlayed %"PRIu64 "", __FUNCTION__, ppStatus.fifoSize, ppStatus.fifoDepth, ppStatus.bytesPlayed));
     if (playback_ip->nexusHandles.videoDecoder) {
         rc = NEXUS_VideoDecoder_GetStatus(playback_ip->nexusHandles.videoDecoder, &videoStatus);
         if (rc) {BDBG_ERR(("NEXUS Error (%d) at %d, returning...\n", rc, __LINE__)); return;}
-        BDBG_WRN(("before decode %.4dx%.4d, pts %#x, fifo size %d, depth %d, fullness %d%%\n",
+        BDBG_WRN(("before decode %.4dx%.4d, pts %#x, fifo size %u, depth %u, fullness %d%%\n",
                     videoStatus.source.width, videoStatus.source.height, videoStatus.pts, videoStatus.fifoSize, videoStatus.fifoDepth, videoStatus.fifoSize?(videoStatus.fifoDepth*100)/videoStatus.fifoSize:0));
     }
     if (playback_ip->nexusHandles.primaryAudioDecoder) {
         rc = NEXUS_AudioDecoder_GetStatus(playback_ip->nexusHandles.primaryAudioDecoder, &audioStatus);
-        BDBG_WRN(("before audio0            pts %#x, fifo size %d, depth %d, fullness %d%%\n",
+        BDBG_WRN(("before audio0            pts %#x, fifo size %u, depth %u, fullness %d%%\n",
                     audioStatus.pts, audioStatus.fifoSize, audioStatus.fifoDepth, audioStatus.fifoSize?(audioStatus.fifoDepth*100)/audioStatus.fifoSize:0));
     }
 }
@@ -5440,7 +5657,7 @@ B_PlaybackIp_HlsPlaylistReDownloadThread(
             BDBG_MSG(("%s: resuming Playlist ReDownload loop after trickmode command", __FUNCTION__));
         }
 
-        BDBG_MSG(("%s: playback_ip=%p WaitingForEvent", __FUNCTION__, playback_ip));
+        BDBG_MSG(("%s: playback_ip=%p WaitingForEvent", __FUNCTION__, (void *)playback_ip));
         rc = BKNI_WaitForEvent(hlsSession->reDownloadPlaylistEvent, reloadTimer);
         if (rc!=BERR_SUCCESS && rc != BERR_TIMEOUT) {
             BDBG_ERR(("%s: failed to wait for event indicating playlist reload timer, rc = %d", __FUNCTION__, rc));
@@ -5474,19 +5691,19 @@ B_PlaybackIp_HlsPlaylistReDownloadThread(
             BDBG_ERR(("%s: media playback hasn't started for this long, so breaking out", __FUNCTION__));
             break;
         }
-        BDBG_MSG(("%s:%p:%d before acquring lock Redownload playlist as %s, rc %d, reloadTimer %d", __FUNCTION__,playback_ip, playback_ip->playback_state, rc != BERR_TIMEOUT? "we've downloaded all segments in current playlist":"reload timer expired", rc, reloadTimer));
+        BDBG_MSG(("%s:%p:%d before acquring lock Redownload playlist as %s, rc %d, reloadTimer %d", __FUNCTION__,(void *)playback_ip, playback_ip->playback_state, rc != BERR_TIMEOUT? "we've downloaded all segments in current playlist":"reload timer expired", rc, reloadTimer));
 
         BKNI_AcquireMutex(hlsSession->lock);
-        BDBG_MSG(("%s:%p after acquiring lock", __FUNCTION__, playback_ip));
+        BDBG_MSG(("%s:%p after acquiring lock", __FUNCTION__, (void *)playback_ip));
         playlistFileInfo = hlsSession->currentPlaylistFile; /* Segment Download Thread can change the playlist due to n/w b/w change */
         if ((newPlaylistFileInfo = B_PlaybackIp_HlsAllocateDownloadAndParsePlaylistFile(playback_ip, hlsSession, playlistFileInfo)) == NULL) {
             ++playlistDownloadErrCnt;
             reloadTimer = 1000;    /* retry playlist download after sec */
             BKNI_ReleaseMutex(hlsSession->lock);
-            BDBG_ERR(("%s:%p B_PlaybackIp_HlsAllocateDownloadAndParsePlaylistFile() failed, retry, # of attempts %d, released lock ", __FUNCTION__, playback_ip, playlistDownloadErrCnt));
+            BDBG_ERR(("%s:%p B_PlaybackIp_HlsAllocateDownloadAndParsePlaylistFile() failed, retry, # of attempts %d, released lock ", __FUNCTION__, (void *)playback_ip, playlistDownloadErrCnt));
             continue;
         }
-        BDBG_MSG(("%s:%p after DwnNParse Playlist", __FUNCTION__, playback_ip));
+        BDBG_MSG(("%s:%p after DwnNParse Playlist", __FUNCTION__, (void *)playback_ip));
         playlistDownloadErrCnt = 0;
         if (newPlaylistFileInfo->mediaSegmentBaseSequence != -1) {
             /* seq # of the 1st segment in this playlist is specified, makes it quite easy to determine whether server has updated the playlist or not */
@@ -5501,7 +5718,7 @@ B_PlaybackIp_HlsPlaylistReDownloadThread(
                 }
                 /* just playlist hasn't changed, try to fetch it faster next time */
                 reloadTimer = playlistFileInfo->maxMediaSegmentDuration/2;
-                BDBG_MSG(("%s: new playlist has not changed yet, restart the timer by %d msec (1/2 of target duration %d) and retry it", __FUNCTION__, reloadTimer, playlistFileInfo->maxMediaSegmentDuration));
+                BDBG_MSG(("%s: new playlist has not changed yet, restart the timer by %d msec (1/2 of target duration %lu) and retry it", __FUNCTION__, reloadTimer, playlistFileInfo->maxMediaSegmentDuration));
             }
             else if (newPlaylistFileInfo->mediaSegmentBaseSequence < playlistFileInfo->mediaSegmentBaseSequence && !hlsSession->downloadedAllSegmentsInCurrentPlaylist) {
 #ifdef BDBG_DEBUG_BUILD
@@ -5516,14 +5733,14 @@ B_PlaybackIp_HlsPlaylistReDownloadThread(
 #ifdef BDBG_DEBUG_BUILD
                 if (playback_ip->ipVerboseLog)
                     BDBG_WRN(("%s:%p:%d playlist has changed (base seq: cur %d, new %d, # of seg: cur %d, new %d), remove %p playlist and insert %p playlist", __FUNCTION__,
-                                playback_ip, playback_ip->playback_state, playlistFileInfo->mediaSegmentBaseSequence, newPlaylistFileInfo->mediaSegmentBaseSequence,
+                                (void *)playback_ip, playback_ip->playback_state, playlistFileInfo->mediaSegmentBaseSequence, newPlaylistFileInfo->mediaSegmentBaseSequence,
                                 playlistFileInfo->numMediaSegments, newPlaylistFileInfo->numMediaSegments,
-                                playlistFileInfo, newPlaylistFileInfo));
+                                (void *)playlistFileInfo, (void *)newPlaylistFileInfo));
 #endif
                 if (hlsSession->downloadedAllSegmentsInCurrentPlaylist && newPlaylistFileInfo->mediaSegmentBaseSequence < playlistFileInfo->mediaSegmentBaseSequence) {
                     /* we have downloaded all segments in the current playlist and new playlist has wrapped around (new base seq < cur base seq) */
                     /* set a flag to indicate starting from the 1st segment of this playlist */
-                    BDBG_MSG(("%s:%p playlist base seq has wrapped around: & we've downloaed all segments in the current playlist, so resetting to use new playlist from starting seq # %d, old playlist seq# %d", __FUNCTION__, playback_ip, newPlaylistFileInfo->mediaSegmentBaseSequence, playlistFileInfo->mediaSegmentBaseSequence));
+                    BDBG_MSG(("%s:%p playlist base seq has wrapped around: & we've downloaed all segments in the current playlist, so resetting to use new playlist from starting seq # %d, old playlist seq# %d", __FUNCTION__, (void *)playback_ip, newPlaylistFileInfo->mediaSegmentBaseSequence, playlistFileInfo->mediaSegmentBaseSequence));
                     hlsSession->resetPlaylist = true;
                 }
                 if (newPlaylistFileInfo->mediaSegmentBaseSequence > playlistFileInfo->mediaSegmentBaseSequence) {
@@ -5542,8 +5759,8 @@ B_PlaybackIp_HlsPlaylistReDownloadThread(
                     }
 #ifdef BDBG_DEBUG_BUILD
                     if (playback_ip->ipVerboseLog)
-                        BDBG_WRN(("%s:%p base seq#: new %d, cur %d, segmentsRemovedCount %u, segmentsRemovedDuration %u",
-                                    __FUNCTION__, playback_ip, newPlaylistFileInfo->mediaSegmentBaseSequence, playlistFileInfo->mediaSegmentBaseSequence,
+                        BDBG_WRN(("%s:%p base seq#: new %d, cur %d, segmentsRemovedCount %u, segmentsRemovedDuration %lu",
+                                    __FUNCTION__, (void *)playback_ip, newPlaylistFileInfo->mediaSegmentBaseSequence, playlistFileInfo->mediaSegmentBaseSequence,
                                     segmentsRemovedCount, hlsSession->segmentsRemovedDuration ));
 #endif
                 }
@@ -5565,9 +5782,9 @@ B_PlaybackIp_HlsPlaylistReDownloadThread(
             BDBG_WRN(("%s: TODO: base media sequence is not explicitly specified in the playlist, need to manually compare the uris to determine if the new playlist has changed", __FUNCTION__));
         }
         BKNI_ReleaseMutex(hlsSession->lock);
-        BDBG_MSG(("%s: playback_ip=%p Done", __FUNCTION__, playback_ip));
+        BDBG_MSG(("%s: playback_ip=%p Done", __FUNCTION__, (void *)playback_ip));
     }
-    BDBG_MSG(("%s: playback_ip=%p Done", __FUNCTION__, playback_ip));
+    BDBG_MSG(("%s: playback_ip=%p Done", __FUNCTION__, (void *)playback_ip));
 
 bounded:
     if(playlistFileInfo && playlistFileInfo->bounded)
@@ -5661,7 +5878,7 @@ setupPlaybackIpSessionForAltAudio(B_PlaybackIpHandle playback_ip, B_PlaybackIpHl
     unsigned port;
     char *uri;
     B_PlaybackIpProtocol protocol;
-    B_PlaybackIpSessionStartSettings startSettings;
+    B_PlaybackIpSessionStartSettings *pStartSettings = NULL;
     B_PlaybackIpSessionStartStatus startStatus;
 
     /*
@@ -5693,7 +5910,7 @@ setupPlaybackIpSessionForAltAudio(B_PlaybackIpHandle playback_ip, B_PlaybackIpHl
         BDBG_ERR(("Failed to parse sub-fields at %s:%d of URI=%s", __FUNCTION__, __LINE__, altRenditionInfo->absoluteUri));
         goto error;
     }
-    BDBG_MSG(("%s:p calling IpSessionOpen ", __FUNCTION__, playback_ip));
+    BDBG_MSG(("%s:%p calling IpSessionOpen ", __FUNCTION__, (void *)playback_ip));
     playback_ip->playbackIp2 = B_Playback_HlsCreatePlaybackIpSession(playback_ip, server, port, &uri, protocol, playback_ip->openSettings.security.initialSecurityContext);
     if (!playback_ip->playbackIp2) {
         BDBG_ERR(("%s: Failed to Open/Setup PlaybackIpSession for Alternate Audio", __FUNCTION__));
@@ -5734,23 +5951,31 @@ setupPlaybackIpSessionForAltAudio(B_PlaybackIpHandle playback_ip, B_PlaybackIpHl
             goto error;
         }
     }
-    memset(&startSettings, 0, sizeof(startSettings));
-    memset(&startStatus, 0, sizeof(startStatus));
-    startSettings.nexusHandles.playpump = playpump2;
-    startSettings.nexusHandles.primaryAudioDecoder = playback_ip->nexusHandles.primaryAudioDecoder;
-    startSettings.nexusHandles.simpleAudioDecoder = playback_ip->nexusHandles.simpleAudioDecoder;
-    startSettings.nexusHandlesValid = true;
-    startSettings.mediaPositionUsingWallClockTime = true;
-    startSettings.mpegType = altAudioRenditionInfo->containerType;
-    startSettings.audioOnlyPlayback = true;
-    if (B_PlaybackIp_SessionStart(playback_ip->playbackIp2, &startSettings, &startStatus) != B_ERROR_SUCCESS) {
-        BDBG_ERR(("%s: Failed to Start PlaybackIpSession for Alternate Audio", __FUNCTION__));
-        goto error;
+    {
+        pStartSettings = B_Os_Calloc( 1, sizeof(B_PlaybackIpSessionStartSettings));
+        if (pStartSettings == NULL) {
+            BDBG_ERR(("%s: Failed to allocate %d bytes for B_PlaybackIpSessionStartSettings", __FUNCTION__, (int)sizeof(B_PlaybackIpSessionStartSettings)));
+            goto error;
+        }
+        memset(&startStatus, 0, sizeof(startStatus));
+        pStartSettings->nexusHandles.playpump = playpump2;
+        pStartSettings->nexusHandles.primaryAudioDecoder = playback_ip->nexusHandles.primaryAudioDecoder;
+        pStartSettings->nexusHandles.simpleAudioDecoder = playback_ip->nexusHandles.simpleAudioDecoder;
+        pStartSettings->nexusHandlesValid = true;
+        pStartSettings->mediaPositionUsingWallClockTime = true;
+        pStartSettings->mpegType = altAudioRenditionInfo->containerType;
+        pStartSettings->audioOnlyPlayback = true;
+        if (B_PlaybackIp_SessionStart(playback_ip->playbackIp2, pStartSettings, &startStatus) != B_ERROR_SUCCESS) {
+            BDBG_ERR(("%s: Failed to Start PlaybackIpSession for Alternate Audio", __FUNCTION__));
+            B_Os_Free(pStartSettings);
+            goto error;
+        }
+        B_Os_Free(pStartSettings);
     }
     BDBG_WRN(("%s: Successfully setup the alternate audio rendition: playback_ip=%p playbackIp2=%p language=%s groupId=%s containerType=%d, plapump2=%p", __FUNCTION__,
-                playback_ip, playback_ip->playbackIp2,
+                (void *)playback_ip, (void *)playback_ip->playbackIp2,
                 altAudioRenditionInfo->language, altAudioRenditionInfo->groupId,
-                altAudioRenditionInfo->containerType, playpump2));
+                altAudioRenditionInfo->containerType, (void *)playpump2));
     if (server) BKNI_Free(server);
     server=NULL;
     return true;
@@ -5769,18 +5994,18 @@ error:
 void B_PlaybackIp_HlsStopAlternateRendition(B_PlaybackIpHandle playback_ip)
 {
     if (playback_ip && playback_ip->playbackIp2) {
-        BDBG_MSG(("%s:%p: Stopping altRenditionSession: playbackIp2=%p", __FUNCTION__, playback_ip, playback_ip->playbackIp2));
+        BDBG_MSG(("%s:%p: Stopping altRenditionSession: playbackIp2=%p", __FUNCTION__, (void *)playback_ip, (void *)playback_ip->playbackIp2));
         if (B_PlaybackIp_SessionStop(playback_ip->playbackIp2)) {
             BDBG_ERR(("%s: B_PlaybackIp_Stop() Failed", __FUNCTION__));
         }
 #if (BCHP_CHIP != 7408)
         NEXUS_StopCallbacks(playback_ip->playbackIp2->nexusHandles.playpump);
 #endif
-        BDBG_MSG(("%s:%p: Stopped altRenditionSession: playbackIp2=%p", __FUNCTION__, playback_ip, playback_ip->playbackIp2));
+        BDBG_MSG(("%s:%p: Stopped altRenditionSession: playbackIp2=%p", __FUNCTION__, (void *)playback_ip, (void *)playback_ip->playbackIp2));
         if (B_PlaybackIp_Close(playback_ip->playbackIp2)) {
             BDBG_ERR(("%s: B_PlaybackIp_Close() Failed", __FUNCTION__));
         }
-        BDBG_WRN(("%s:%p: Stopped & Closed altRenditionSession", __FUNCTION__, playback_ip));
+        BDBG_WRN(("%s:%p: Stopped & Closed altRenditionSession", __FUNCTION__, (void *)playback_ip));
         playback_ip->playbackIp2 = NULL;
     }
 }
@@ -5788,14 +6013,14 @@ void B_PlaybackIp_HlsStopAlternateRendition(B_PlaybackIpHandle playback_ip)
 B_Error B_PlaybackIp_HlsStartAlternateRendition(B_PlaybackIpHandle playback_ip, B_PlaybackIpHlsAltAudioRenditionInfo *altAudioRenditionInfo)
 {
     if (playback_ip->playbackIp2) {
-        BDBG_WRN(("%s:%p App is trying to start another audio rendition playback without stopping the previous one!. Use B_PlyabackIpSettings.stopAlternateAudio to stop it first. ", __FUNCTION__, playback_ip));
+        BDBG_WRN(("%s:%p App is trying to start another audio rendition playback without stopping the previous one!. Use B_PlyabackIpSettings.stopAlternateAudio to stop it first. ", __FUNCTION__, (void *)playback_ip));
         return (B_ERROR_INVALID_PARAMETER);
     }
     if (setupPlaybackIpSessionForAltAudio(playback_ip, altAudioRenditionInfo, playback_ip->nexusHandles.playpump2) != true) {
-        BDBG_ERR(("%s:%p Failed to setupPlaybackIpSessionForAltAudio!", __FUNCTION__, playback_ip));
+        BDBG_ERR(("%s:%p Failed to setupPlaybackIpSessionForAltAudio!", __FUNCTION__, (void *)playback_ip));
         return (B_ERROR_PROTO);
     }
-    BDBG_MSG(("%s:%p Started!", __FUNCTION__, playback_ip));
+    BDBG_MSG(("%s:%p Started!", __FUNCTION__, (void *)playback_ip));
     return (B_ERROR_SUCCESS);
 }
 
@@ -5836,7 +6061,7 @@ B_PlaybackIp_HlsPlaybackThread(
         playback_ip->networkTimeout = HTTP_SELECT_TIMEOUT/20;
         playback_ip->settings.networkTimeout = playback_ip->networkTimeout;
     }
-    BDBG_MSG(("%s:%p Starting (n/w timeout %d secs)", __FUNCTION__, playback_ip, playback_ip->networkTimeout));
+    BDBG_MSG(("%s:%p Starting (n/w timeout %d secs)", __FUNCTION__, (void *)playback_ip, playback_ip->networkTimeout));
 
     /* close the previous security handle and socket used for downloading the 1st media segment during media probe */
     if (playback_ip->securityHandle) {
@@ -5884,7 +6109,7 @@ B_PlaybackIp_HlsPlaybackThread(
         nSettings.dataCallback.callback = B_PlaybackIp_ReadCallback;
         nSettings.dataCallback.context = playback_ip;
         if (NEXUS_Playpump_SetSettings(playback_ip->nexusHandles.playpump, &nSettings)) {
-            BDBG_ERR(("%s:%d Nexus Error: %d\n", __FUNCTION__, __LINE__, rc));
+            BDBG_ERR(("%s:%d Nexus Error: %zd\n", __FUNCTION__, __LINE__, rc));
             goto error;
         }
     }
@@ -5977,7 +6202,7 @@ B_PlaybackIp_HlsPlaybackThread(
                 BKNI_AcquireMutex(hlsSession->segmentBuffer[nextSegmentBufferIndex].lock);
                 if (hlsSession->segmentBuffer[nextSegmentBufferIndex].filled) {
                     segmentBuffer = &hlsSession->segmentBuffer[nextSegmentBufferIndex];
-                    BDBG_MSG(("%s: buffer[%d] %p is filled up", __FUNCTION__, nextSegmentBufferIndex, segmentBuffer));
+                    BDBG_MSG(("%s: buffer[%d] %p is filled up", __FUNCTION__, nextSegmentBufferIndex, (void *)segmentBuffer));
                 }
                 else
                     BDBG_MSG(("%s: still no filled buffer, wait for signal from download thread, nextSegmentBufferIndex %d", __FUNCTION__, nextSegmentBufferIndex));
@@ -5995,7 +6220,7 @@ B_PlaybackIp_HlsPlaybackThread(
                                 /* Rewind case w/ callback defined: send begin of stream event & wait for app to resume or stop the playback. */
 #ifdef BDBG_DEBUG_BUILD
                                 if (playback_ip->ipVerboseLog)
-                                    BDBG_WRN(("%s: Rewind case & eventCallback defined: Reached BeginOfStream, wait for App to Stop or Resume Play: (state %d), total fed %lld", __FUNCTION__, playback_ip->playback_state, playback_ip->totalConsumed));
+                                    BDBG_WRN(("%s: Rewind case & eventCallback defined: Reached BeginOfStream, wait for App to Stop or Resume Play: (state %d), total fed %"PRId64 "", __FUNCTION__, playback_ip->playback_state, playback_ip->totalConsumed));
 #endif
                                 if (!playback_ip->beginningOfStreamCallbackIssued) {
                                     playback_ip->openSettings.eventCallback(playback_ip->openSettings.appCtx, B_PlaybackIpEvent_eClientBeginOfStream);
@@ -6013,7 +6238,7 @@ B_PlaybackIp_HlsPlaybackThread(
                                 /* Fwd case w/ callback defined: send end of currentBuffer event & wait for app to resume or stop the playback. */
 #ifdef BDBG_DEBUG_BUILD
                                 if (playback_ip->ipVerboseLog)
-                                    BDBG_WRN(("%s: Fwd case, eventCallback defined & Event type playlist w/ not EOF yet: send endOfBuffer event, wait for App to Stop or Resume Play: (state %d), total fed %lld", __FUNCTION__, playback_ip->playback_state, playback_ip->totalConsumed));
+                                    BDBG_WRN(("%s: Fwd case, eventCallback defined & Event type playlist w/ not EOF yet: send endOfBuffer event, wait for App to Stop or Resume Play: (state %d), total fed %"PRId64 "", __FUNCTION__, playback_ip->playback_state, playback_ip->totalConsumed));
 #endif
                                 if (!playback_ip->endOfClientBufferCallbackIssued) {
                                     playback_ip->openSettings.eventCallback(playback_ip->openSettings.appCtx, B_PlaybackIpEvent_eClientEndofSegmentsReached);
@@ -6030,7 +6255,7 @@ B_PlaybackIp_HlsPlaybackThread(
                                 /* trickmode with no callback defined case: in either case, we treat this as end-of-stream, so we are done! */
 #ifdef BDBG_DEBUG_BUILD
                                 if (playback_ip->ipVerboseLog)
-                                    BDBG_WRN(("%s: Fwd case or Rewind case w/ no eventCallback defined (Reached BeginOfStream): We are done w/ playback!! (state %d), total fed %lld", __FUNCTION__, playback_ip->playback_state, playback_ip->totalConsumed));
+                                    BDBG_WRN(("%s: Fwd case or Rewind case w/ no eventCallback defined (Reached BeginOfStream): We are done w/ playback!! (state %d), total fed %"PRId64 "", __FUNCTION__, playback_ip->playback_state, playback_ip->totalConsumed));
 #endif
                                 B_PlaybackIp_HttpGetCurrentPlaybackPosition(playback_ip, &playback_ip->lastPosition);
                                 playback_ip->mediaEndTimeNoted = true;
@@ -6042,7 +6267,7 @@ B_PlaybackIp_HlsPlaybackThread(
                             /* We are done if we are playing bounded streams in the normal playing state. */
 #ifdef BDBG_DEBUG_BUILD
                             if (playback_ip->ipVerboseLog)
-                                BDBG_WRN(("%s: Normal Play State for Bounded Streamer: Reached EndOfStream: We are done w/ playback!! (state %d), total fed %lld", __FUNCTION__, playback_ip->playback_state, playback_ip->totalConsumed));
+                                BDBG_WRN(("%s: Normal Play State for Bounded Streamer: Reached EndOfStream: We are done w/ playback!! (state %d), total fed %"PRId64 "", __FUNCTION__, playback_ip->playback_state, playback_ip->totalConsumed));
 #endif
                             B_PlaybackIp_HttpGetCurrentPlaybackPosition(playback_ip, &playback_ip->lastPosition);
                             playback_ip->mediaEndTimeNoted = true;
@@ -6067,15 +6292,15 @@ B_PlaybackIp_HlsPlaybackThread(
                     BDBG_MSG(("%s: EVENT timeout: failed to receive event from HLS Download thread indicating buffer availability, continue waiting", __FUNCTION__));
                     continue;
                 } else if (rc!=0) {
-                    BDBG_ERR(("%s: failed to wait for event indicating buffer availability from HLS Download thread, rc = %d", __FUNCTION__, rc));
+                    BDBG_ERR(("%s: failed to wait for event indicating buffer availability from HLS Download thread, rc = %zd", __FUNCTION__, rc));
                     goto error;
                 }
-                BDBG_MSG(("%s: got a signal from download thread, rc %d", __FUNCTION__, rc));
+                BDBG_MSG(("%s: got a signal from download thread, rc %zd", __FUNCTION__, rc));
             }
         }
         if (gotoTopOfLoop)
             continue;
-        BDBG_MSG(("%s: Read from segment buffer %p", __FUNCTION__, segmentBuffer));
+        BDBG_MSG(("%s: Read from segment buffer %p", __FUNCTION__, (void *)segmentBuffer));
 
         bytesFed = 0;
         BDBG_MSG(("%s: Feed %d bytes to Playpump, discontinuity flag %d", __FUNCTION__, segmentBuffer->bufferDepth, segmentBuffer->markedDiscontinuity));
@@ -6126,7 +6351,7 @@ B_PlaybackIp_HlsPlaybackThread(
             bytesFed += bytesToCopy;
             playback_ip->totalConsumed += bytesToCopy;
             segmentBuffer->bufferDepth -= bytesToCopy;
-            BDBG_MSG_FLOW(("%s: Fed %d bytes to Playpump, total fed %d, remaining %d\n", __FUNCTION__, bytesToCopy, bytesFed, segmentBuffer->bufferDepth));
+            BDBG_MSG_FLOW(("%s: Fed %zu bytes to Playpump, total fed %d, remaining %d\n", __FUNCTION__, bytesToCopy, bytesFed, segmentBuffer->bufferDepth));
         }
 
         if (fclear && playback_ip->enableRecording && enableSegmentedRecording && segmentBuffer->containsEndOfSegment) {
@@ -6139,7 +6364,7 @@ B_PlaybackIp_HlsPlaybackThread(
 
         if (gotoTopOfLoop)
             continue;
-        BDBG_MSG(("%s: playback_ip=%p: Finished feeding %d bytes to Playpump", __FUNCTION__, playback_ip, bytesFed));
+        BDBG_MSG(("%s: playback_ip=%p: Finished feeding %zu bytes to Playpump", __FUNCTION__, (void *)playback_ip, bytesFed));
 
         /* inform HLS Download thread that buffer is emptied and fed to the playback h/w */
         BKNI_AcquireMutex(segmentBuffer->lock);
@@ -6152,18 +6377,18 @@ B_PlaybackIp_HlsPlaybackThread(
 
 error:
     if (playback_ip->playbackIp2) {
-        BDBG_WRN(("%s: playback_ip=%p: Stopping altRenditionSession: playbackIp2=%p", __FUNCTION__, playback_ip, playback_ip->playbackIp2));
+        BDBG_WRN(("%s: playback_ip=%p: Stopping altRenditionSession: playbackIp2=%p", __FUNCTION__, (void *)playback_ip, (void *)playback_ip->playbackIp2));
         if (B_PlaybackIp_SessionStop(playback_ip->playbackIp2)) {
             BDBG_ERR(("%s: B_PlaybackIp_Stop() Failed", __FUNCTION__));
         }
 #if (BCHP_CHIP != 7408)
         NEXUS_StopCallbacks(playback_ip->playbackIp2->nexusHandles.playpump);
 #endif
-        BDBG_WRN(("%s: playback_ip=%p: Stopped altRenditionSession: playbackIp2=%p", __FUNCTION__, playback_ip, playback_ip->playbackIp2));
+        BDBG_WRN(("%s: playback_ip=%p: Stopped altRenditionSession: playbackIp2=%p", __FUNCTION__, (void *)playback_ip, (void *)playback_ip->playbackIp2));
         if (B_PlaybackIp_Close(playback_ip->playbackIp2)) {
             BDBG_ERR(("%s: B_PlaybackIp_Close() Failed", __FUNCTION__));
         }
-        BDBG_WRN(("%s: playback_ip=%p: Closed altRenditionSession", __FUNCTION__, playback_ip));
+        BDBG_WRN(("%s: playback_ip=%p: Closed altRenditionSession", __FUNCTION__, (void *)playback_ip));
         playback_ip->playbackIp2 = NULL;
     }
     hlsSession->hlsPlaybackThreadDone = true;
@@ -6175,10 +6400,10 @@ error:
         maxCount = (2*playback_ip->networkTimeout*1000) / sleepIntervalInMsec;
         while (hlsSession->hlsSegmentDownloadThread && !hlsSession->hlsSegmentDownloadThreadDone) {
             if (count++ > maxCount) {
-                BDBG_ERR(("%s:%p Failed to wait for HLS Media Segment Download thread to finish for over %d attempts in %d duration", __FUNCTION__, playback_ip, count, sleepIntervalInMsec));
+                BDBG_ERR(("%s:%p Failed to wait for HLS Media Segment Download thread to finish for over %d attempts in %d duration", __FUNCTION__, (void *)playback_ip, count, sleepIntervalInMsec));
                 break;
             }
-            BDBG_WRN(("%s:%p: HLS Playback thread ran into some error, wait for Download thread to finish: cur waitAttempts=%d, maxCount=%d", __FUNCTION__, playback_ip, count, maxCount));
+            BDBG_WRN(("%s:%p: HLS Playback thread ran into some error, wait for Download thread to finish: cur waitAttempts=%d, maxCount=%d", __FUNCTION__, (void *)playback_ip, count, maxCount));
             BKNI_Sleep(sleepIntervalInMsec);
         }
         if (hlsSession->hlsPlaylistReDownloadThread && !hlsSession->hlsPlaylistReDownloadThreadDone) {
@@ -6189,7 +6414,7 @@ error:
                     BDBG_ERR(("%s: Failed to wait for HLS Playlist ReDownload thread to finish for over %d attempts", __FUNCTION__, count));
                     break;
                 }
-                BDBG_WRN(("%s:%p: HLS Playback thread ran into some error, wait for Playlist Download thread to finish: cur waitAttempts=%d, maxCount=%d", __FUNCTION__, playback_ip, count, maxCount));
+                BDBG_WRN(("%s:%p: HLS Playback thread ran into some error, wait for Playlist Download thread to finish: cur waitAttempts=%d, maxCount=%d", __FUNCTION__, (void *)playback_ip, count, maxCount));
                 BKNI_Sleep(sleepIntervalInMsec);
             }
         }
@@ -6223,7 +6448,7 @@ error:
     }
 #ifdef BDBG_DEBUG_BUILD
     if (playback_ip->ipVerboseLog)
-        BDBG_WRN(("%s:%p HLS Playback thread is exiting...", __FUNCTION__, playback_ip));
+        BDBG_WRN(("%s:%p HLS Playback thread is exiting...", __FUNCTION__, (void *)playback_ip));
 #endif
     BKNI_SetEvent(playback_ip->playback_halt_event);
 }

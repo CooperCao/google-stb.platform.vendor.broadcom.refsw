@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2008 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2008 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -210,10 +210,10 @@ MEM_HANDLE_T vg_be_prepare_paint_pattern(VG_PAINT_T *paint, VG_MAT3X3_T *surface
 
    *bilinear = convert_allowed_quality(image->allowed_quality);
 
-   if (image->image_format & IMAGE_FORMAT_LIN) {
+   if (khrn_image_is_linear(image->image_format)) {
       *tile_fill_rgba = khrn_color_rgba_s_to_lin(*tile_fill_rgba);
    }
-   if (!(image->image_format & IMAGE_FORMAT_A) || (image->image_format & IMAGE_FORMAT_PRE)) { /* avoid pre in shader for unpre images without alpha */
+   if (!(image->image_format & IMAGE_FORMAT_A) || khrn_image_is_premultiplied(image->image_format)) { /* avoid pre in shader for unpre images without alpha */
       *tile_fill_rgba = khrn_color_rgba_pre(*tile_fill_rgba);
    }
 

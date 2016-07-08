@@ -1,7 +1,7 @@
 ############################################################
-#     (c)2003-2013 Broadcom Corporation
+#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 #
-#  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+#  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
 #  conditions of a separate, written license agreement executed between you and Broadcom
 #  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
 #
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
 # Module Description:
-#
-# Revision History:
-#
-# $brcm_Log: $
 #
 ############################################################
 
@@ -57,11 +49,6 @@
 # Define this module #
 ######################
 NEXUS_MODULES += CORE
-
-##################
-# Module Options #
-##################
-NEXUS_CORE_OPTIONS := BCHP_CHIP BCHP_VER
 
 ###################
 # Module Includes #
@@ -114,7 +101,7 @@ endif
 ##################
 # Module Defines #
 ##################
-NEXUS_CORE_DEFINES := BCHP_CHIP=$(BCHP_CHIP) BCHP_VER=BCHP_VER_$(BCHP_VER) BMEM_REENTRANT_CONFIG=BMEM_REENTRANT BINT_REENTRANT_CONFIG=BINT_REENTRANT $(MAGNUM_SYSTEM_DEFINES)
+NEXUS_CORE_DEFINES := BCHP_CHIP=$(BCHP_CHIP) BCHP_VER=BCHP_VER_$(BCHP_VER) $(MAGNUM_SYSTEM_DEFINES)
 
 
 #######################

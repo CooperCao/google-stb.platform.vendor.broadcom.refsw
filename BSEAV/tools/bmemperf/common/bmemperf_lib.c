@@ -1,52 +1,44 @@
 /******************************************************************************
- *    (c)2013-2014 Broadcom Corporation
- *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELYn
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
- *
- * Except as expressly set forth in the Authorized License,
- *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
- *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
- *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
- ******************************************************************************/
-#include <sys/types.h>
+* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*
+* This program is the proprietary software of Broadcom and/or its
+* licensors, and may only be used, duplicated, modified or distributed pursuant
+* to the terms and conditions of a separate, written license agreement executed
+* between you and Broadcom (an "Authorized License").  Except as set forth in
+* an Authorized License, Broadcom grants no license (express or implied), right
+* to use, or waiver of any kind with respect to the Software, and Broadcom
+* expressly reserves all rights in and to the Software and all intellectual
+* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*
+* Except as expressly set forth in the Authorized License,
+*
+* 1. This program, including its structure, sequence and organization,
+*    constitutes the valuable trade secrets of Broadcom, and you shall use all
+*    reasonable efforts to protect the confidentiality thereof, and to use
+*    this information only in connection with your use of Broadcom integrated
+*    circuit products.
+*
+* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+*
+* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+******************************************************************************/
+#include "bmemperf_types64.h"
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -62,7 +54,6 @@
 #include <math.h>
 #include <sys/stat.h>
 #include <errno.h>
-
 #include <termios.h>
 #include <signal.h>
 #include <stdint.h>
@@ -76,8 +67,13 @@
 #include "bmemperf_utils.h"
 
 #include "bstd.h"
+#include "bkni.h"
 #include "bchp_sun_top_ctrl.h"
+#if BCHP_MEMC_DDR23_SHIM_ADDR_CNTL_0_REG_START
+#include "bchp_memc_ddr23_shim_addr_cntl_0.h"
+#endif
 
+#define PRINTFLOG noprintf
 static bmemperf_cpu_percent g_cpuData;
 
 const char *noprintf(
@@ -323,7 +319,7 @@ int send_request_read_response(
     struct sockaddr_in from;
     int                fromlen;
 
-    PRINTF("%s: reqlen %d; reslen %d; server_port %d\n", __FUNCTION__, request_len, response_len, server_port );
+    PRINTF( "%s: reqlen %d; reslen %d; server_port %d\n", __FUNCTION__, request_len, response_len, server_port );
     /*   Create socket on which to send and receive */
     sd = socket( AF_INET, SOCK_STREAM, 0 );
 
@@ -470,9 +466,9 @@ int setUptime(
     void
     )
 {
-    long int numBytes     = 0;
-    FILE    *fpProcUptime = NULL;
-    char     bufProcStat[256];
+    size_t numBytes     = 0;
+    FILE  *fpProcUptime = NULL;
+    char   bufProcStat[256];
 
     fpProcUptime = fopen( "/proc/uptime", "r" );
     if (fpProcUptime==NULL)
@@ -508,7 +504,7 @@ char *GetFileContents(
 
     if (lstat( filename, &statbuf ) == -1)
     {
-        printf( "%s: Could not stat (%s)\n", __FUNCTION__, filename );
+        /*printf( "%s: Could not stat (%s)\n", __FUNCTION__, filename );*/
         return( NULL );
     }
 
@@ -654,7 +650,7 @@ int get_interrupt_counts(
 {
     struct stat       statbuf;
     char             *contents      = NULL;
-    unsigned long     numBytes      = 0;
+    size_t            numBytes      = 0;
     FILE             *fpText        = NULL;
     char             *posstart      = NULL;
     char             *posend        = NULL;
@@ -712,9 +708,9 @@ int get_interrupt_counts(
     /* we are done with the temp file; delete it. */
     remove( tempFilename );
 
-    if (numBytes != statbuf.st_size)
+    if (numBytes != (unsigned int) statbuf.st_size)
     {
-        printf( "tried to fread %lu bytes but got %lu\n", (unsigned long int) statbuf.st_size, numBytes );
+        printf( "tried to fread %lu bytes but got %lu\n", (unsigned long int) statbuf.st_size, (unsigned long int) numBytes );
         return( -1 );
     }
 
@@ -1043,46 +1039,149 @@ int P_getCpuUtilization(
     return( 0 );
 }                                                          /* P_getCpuUtilization */
 
+/**
+ *  Function: This function will copy the tail end of the /tmp/boa_error.log file to
+ *  send the error messages back to the browser to let the user know as much about
+ *  run-time errors as possible.
+ **/
+char *bmemperf_get_boa_error_log(
+    const char *appname
+    )
+{
+    char *contents     = NULL;
+    char *contentsTail = NULL;
+    char  tagLine[64];
+    char  tempFilename[TEMP_FILE_FULL_PATH_LEN];
 
-#ifdef BMEMCONFIG_READ32_SUPPORTED
-static uint32_t *memory_base = NULL; /* pointer to base of main memory */
-#define REG_SIZE 0x01f7fffc
-#define MEM_SIZE 0x10000000 /* 256 MB */
+    PrependTempDirectory( tempFilename, sizeof( tempFilename ), "boa_error.log" );
+
+    printf( "%s: appname (%s); boa_error (%s)\n", __FUNCTION__, appname, tempFilename );
+    contents = GetFileContents( tempFilename );
+
+    if (contents)
+    {
+        char *pos              = (char *) appname;
+        char *prevAppNameFound = NULL;
+        char  appnameNoExtention[32];
+
+        if (( appname[0] == '.' ) && ( appname[1] == '/' ))
+        {
+            pos = (char *) &appname[2];
+        }
+        strncpy( appnameNoExtention, pos, sizeof( appnameNoExtention ));
+
+        /* determine if the appname has an extention to it */
+        pos = strchr( appnameNoExtention, '.' );
+        if (pos)
+        {
+            *pos = 0;                                      /* we do not want the appname to include the extention */
+        }
+        sprintf( tagLine, "%s: argc ", appnameNoExtention );
+        /*printf("%s: tagLine is (%s)\n", __FUNCTION__, tagLine );*/
+        /* search through the file to find the LAST mention of the appname */
+
+        pos = contents;
+
+        /* look for a line like this: ### 00:00:00.000 bboxreport: argc 1; */
+        do
+        {
+            pos = strstr( pos, tagLine );
+            if (pos)
+            {
+                prevAppNameFound = pos;
+                pos++;
+            }
+            /*printf("%s: bottom while ... pos (%p); prev (%p)\n", __FUNCTION__, pos, prevAppNameFound );*/
+        } while (pos);
+
+        /* if we found the last mention of appname */
+        if (prevAppNameFound)
+        {
+            if (strlen( prevAppNameFound ))
+            {
+                int len = strlen( prevAppNameFound ) + 20; /* we want space to back up 17 characters to include the BDBG time */
+                /* allocate enough space to hold the tail end of the log file */
+                contentsTail = (char *) malloc( len );
+
+                if (contentsTail)
+                {
+                    prevAppNameFound -= 17;
+                    strncpy( contentsTail, prevAppNameFound, len );
+                }
+            }
+        }
+        else
+        {
+            contentsTail = (char *) malloc( 32 );
+
+            if (contentsTail)
+            {
+                sprintf( contentsTail, "No error details found." );
+            }
+        }
+
+        free( contents );
+    }
+
+    return( contentsTail );
+} /* bmemperf_get_boa_error_log */
 
 /**
- *  Function: This function initializes the specified BREG_Handle so that we can perform BREG_Read32() API calls
- *  later on. Someone needs to call BKNI_Init() and BDBG_Init() before calling this function.
+ *  Function: This function will return a count of the number of carriage returns found in the specified string.
  **/
-static int openRegMem(BREG_Handle *reg, void **mem_ptr)
+unsigned int bmemperf_get_boa_error_log_line_count(
+    const char *errorLogContents
+    )
 {
-	void *addr;
-	int fd = open("/dev/mem", O_RDWR|O_SYNC);
-	if (fd < 0)
-	{
-		printf("Unable to open /dev/mem: %d\n", errno);
-		return -1;
-	}
+    unsigned int line_count = 0;
+    char        *pos        = NULL;
 
-	/* map register space */
-	addr = mmap64(0, REG_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, fd, BCHP_PHYSICAL_OFFSET);
-	if (!addr)
-	{
-		printf("Unable to mmap64 chip: %d \n", errno);
-		return -1;
-	}
-	BREG_Open(reg, addr, REG_SIZE, NULL);
+    pos = (char *) errorLogContents;                       /* start looking for carriage returns at the beginning of the contents */
+    do
+    {
+        line_count++;
+        pos = strchr( ++pos, '\n' );
+    } while (pos);
 
-	/* map all of memory */
-	*mem_ptr = (void *)mmap64(0, MEM_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0/*all mem */);
-	if (!*mem_ptr)
-	{
-		printf("Unable to mmap64 heap: %d \n", errno);
-		return -1;
-	}
-
-	return 0;
+    return( line_count );
 }
 
+static volatile unsigned int *g_pMem  = NULL;
+
+/**
+ *  Function: This function will read the specified register offset. If it hasn't been done prior to this call,
+ *  the function will also open the driver and mmap to the register space.
+ **/
+unsigned int bmemperf_readReg32( unsigned int offset )
+{
+    volatile unsigned int *pMemTemp = NULL;
+    unsigned int           returnValue = 0;
+
+    if (g_pMem == NULL)
+    {
+        g_pMem = (volatile unsigned int*) bmemperf_openDriver_and_mmap();
+    }
+
+    pMemTemp  = (unsigned int *) g_pMem;
+    /*printf("%s:%u g_pMem %p; offset 0x%x; \n", __FILE__, __LINE__, (void*) g_pMem, offset );
+    fflush(stdout);fflush(stderr);*/
+    if (BCHP_REGISTER_START & offset)
+    {
+        offset -= BCHP_REGISTER_START;
+        PRINTFLOG( "bmemperf_lib.c:%u - (offset 0x%x); g_pMem %p \n", __LINE__, offset, g_pMem );
+    }
+    pMemTemp += offset >>2;
+    /*printf("%s:%u pMemTemp %p \n", __FILE__, __LINE__, (void*) pMemTemp );
+    fflush(stdout);fflush(stderr);*/
+
+    returnValue = *pMemTemp;
+    /*printf("%s:%u returnValue 0x%x \n", __FILE__, __LINE__, (unsigned int ) returnValue );
+    fflush(stdout);fflush(stderr);*/
+
+    return ( returnValue );
+} /* bmemperf_readReg32 */
+
+#ifdef BMEMCONFIG_READ32_SUPPORTED
 /*
 Product ID for this chip (7252 ... SUN_TOP_CTRL.html#SUN_TOP_CTRL_PRODUCT_ID)
 [31: 8] chip ID. May contain either a four digit ID or a five digit chip ID. If the bits found at 31:28 are zero,
@@ -1098,43 +1197,370 @@ then the bits from 31:16 represent a four digit chip IC. Each group of four bits
  *  way to determine how many MEMCs were supported on the platform. My method uses the SUN_TOP_CTRL_PRODUCT_ID
  *  register to do this.
  **/
-char * getProductIdStr( void )
+char *getProductIdStr(
+    void
+    )
 {
-    uint32_t     productId = 0;
-    uint32_t     familyId = 0;
-    static char  lProductIdStr[8] = "";
-	BREG_Handle  reg;
+    uint32_t    productId        = 0;
+    uint32_t    familyId         = 0;
+    static char lProductIdStr[8] = "";
 
     /* if the product id string has not yet been initialized, do it now. */
-    if ( strlen(lProductIdStr) == 0 )
+    if (strlen( lProductIdStr ) == 0)
     {
-        memset ( &lProductIdStr, 0, sizeof(lProductIdStr) );
-        memset ( &reg, 0, sizeof(reg) );
-        openRegMem(&reg, (void*) &memory_base);
+        memset( &lProductIdStr, 0, sizeof( lProductIdStr ));
 
-        familyId = BREG_Read32(reg, BCHP_SUN_TOP_CTRL_CHIP_FAMILY_ID );
-        productId = BREG_Read32(reg, BCHP_SUN_TOP_CTRL_PRODUCT_ID );
-        if (productId&0xF0000000) /* if upper nibble is non-zero, this value contains a 4-digit product id in bits 31:16 */
+        g_pMem = bmemperf_openDriver_and_mmap();
+        /*printf("%s:%u - g_pMem %p\n", __FILE__, __LINE__, (void*) g_pMem );fflush(stdout);fflush(stderr);*/
+
+        if ( g_pMem )
         {
-            snprintf ( lProductIdStr, sizeof(lProductIdStr) - 1, "%x", productId>>16 );
+            /*printf("%s:%u\n", __FILE__, __LINE__ );fflush(stdout);fflush(stderr);*/
+            familyId = bmemperf_readReg32( BCHP_SUN_TOP_CTRL_CHIP_FAMILY_ID );
+            productId = bmemperf_readReg32( BCHP_SUN_TOP_CTRL_PRODUCT_ID );
+
+            if (productId&0xF0000000)                          /* if upper nibble is non-zero, this value contains a 4-digit product id in bits 31:16 */
+            {
+                snprintf( lProductIdStr, sizeof( lProductIdStr ) - 1, "%x", productId>>16 );
+            }
+            else
+            {
+                snprintf( lProductIdStr, sizeof( lProductIdStr ) - 1, "%x", productId>>8 );
+                if (strcmp( lProductIdStr, "72521" ) == 0)
+                {
+                    strncpy( lProductIdStr, "7252S", sizeof( lProductIdStr ) - 1 );
+                }
+                else if (strcmp( lProductIdStr, "72525" ) == 0)
+                {
+                    strncpy( lProductIdStr, "7252L", sizeof( lProductIdStr ) - 1 );
+                }
+            }
+            PRINTFLOG( "~DEBUG~productId %x (%s) ... familyId %x~", productId, lProductIdStr, familyId );
         }
         else
         {
-            snprintf ( lProductIdStr, sizeof(lProductIdStr) - 1, "%x", productId>>8 );
-            if ( strcmp ( lProductIdStr, "72521" ) == 0 )
-            {
-                strncpy ( lProductIdStr, "7252S", sizeof(lProductIdStr) - 1 );
-            }
-            else if ( strcmp ( lProductIdStr, "72525" ) == 0 )
-            {
-                strncpy ( lProductIdStr, "7252L", sizeof(lProductIdStr) - 1 );
-            }
+            printf("~FATAL~could not open driver\n~");
         }
-        printf("~DEBUG~productId %x (%s) ... familyId %x~", productId, lProductIdStr, familyId );
-
-        munmap ( memory_base, MEM_SIZE );
     }
 
-    return ( lProductIdStr );
-}
+    return( lProductIdStr );
+} /* getProductIdStr */
+
 #endif /* BMEMCONFIG_READ32_SUPPORTED */
+
+#ifdef NEXUS_MODE_proxy
+#endif
+
+/**
+ *  Function: This function will open the device used for reading and writing registers.
+ *            The device name is configurable by modifying the file "device_node.cfg".
+ *            The Android system is doing away with access to /dev/mem because of
+ *            security holes. This mechanism will allow Android to specify whatever
+ *            device name they need to allow access to the register space.
+ **/
+int bmemperfOpenDriver( void )
+{
+    int   fd           = 0;
+    char *contents     = NULL;
+    char  device_name[32];
+    char  tempFilename[TEMP_FILE_FULL_PATH_LEN];
+
+    memset(device_name, 0, sizeof(device_name));
+    memset(tempFilename, 0, sizeof(tempFilename));
+
+    strncpy( tempFilename, "device_node.cfg", sizeof( tempFilename ) - 1 );
+
+    /*printf( "%s: device node configuration file is (%s)\n", __FUNCTION__, tempFilename );*/
+    /* attempt to open and read the contents of the configuration file (Android use) */
+    contents = GetFileContents( tempFilename );
+
+    /* if the file existed and has some contents to it */
+    if (contents)
+    {
+        /* use the contents to override the device driver name */
+        strcpy( device_name, contents );
+        free( contents );
+
+        /* if the last character is a new-line character */
+        if (strlen(device_name) && device_name[strlen(device_name)-1] == '\n' )
+        {
+            device_name[strlen(device_name)-1] = 0;
+        }
+        /*printf( "%s: read device name (%s) from configuration file \n", __FUNCTION__, device_name );*/
+    }
+    else
+    {
+        strcpy( device_name, "/dev/mem" );
+    }
+
+    fd = open( device_name, O_RDWR|O_SYNC );  /*O_SYNC for uncached address */
+
+    /* if the open failed */
+    if ( fd < 0 )
+    {
+        /*printf("%s: open (%s) failed (%s); \n", __FUNCTION__, device_name, strerror(errno) );*/
+    }
+
+
+    /*printf("%s: returning fd %d\n", __FUNCTION__, fd );*/
+    return ( fd );
+}
+
+void *bmemperfMmap( int g_memFd )
+{
+    void *pMem = NULL;
+    #if 0
+    PRINTFLOG( "%s: mmap64(NULL, mapped_size 0x%x, PROT_READ %u, MAP_SHARED %u, g_memFd %u, BCHP_PYHS_OFF %x; BCHP_REG_START %x)\n",
+        __FUNCTION__, ( BCHP_REGISTER_SIZE<<2 ), PROT_READ|PROT_WRITE, MAP_SHARED, g_memFd, BCHP_PHYSICAL_OFFSET, BCHP_REGISTER_START );
+    #endif
+
+    pMem = mmap64( 0, ( BCHP_REGISTER_SIZE<<2 ), PROT_READ|PROT_WRITE, MAP_SHARED, g_memFd, BCHP_PHYSICAL_OFFSET + BCHP_REGISTER_START );
+
+    return ( pMem );
+}
+/**
+ *  Function: This function will compute several characteristics for the specified MEMC:
+ *            1) the bus width (either 16-bit bus or 32-bit bus)
+ *            2) the CAS burst length (either 4 bytes, 8 bytes, or 16 bytes
+ *            The results are returned to the user in the specified structure.
+ **/
+static BMEMPERF_BUS_BURST_INFO bus_burst_info[BMEMPERF_NUM_MEMC];
+static unsigned int bmemperf_bus_burst_info( /* needs g_pMem */
+    unsigned int memc_index,
+    volatile unsigned int *g_pMem
+    )
+{
+    static bool           info_retrieved[BMEMPERF_NUM_MEMC];
+    volatile unsigned int arb_reg_val    = 0;
+    volatile unsigned int device_type    = 0;
+    volatile unsigned int *pTempReg = NULL;
+
+    /*printf("%s: memc %u; g_pMem %p \n", __FUNCTION__, memc_index, (void*) g_pMem );
+    fflush(stdout);fflush(stderr);*/
+    /* if the registers have already been read, do not repeat the reads */
+    if ( (memc_index >= BMEMPERF_NUM_MEMC) || (info_retrieved[memc_index]) )
+    {
+        return( 1 );
+    }
+
+    if (g_pMem)
+    {
+        info_retrieved[memc_index] = true;
+
+#ifdef BCHP_MEMC_DDR23_SHIM_ADDR_CNTL_0_CONFIG
+        /* older 40-nm chips */
+        pTempReg = (volatile unsigned int *)((unsigned long int)g_pMem + BCHP_MEMC_DDR23_SHIM_ADDR_CNTL_0_CONFIG );
+
+        /* read the current value of the register */
+        arb_reg_val = device_type = *pTempReg;
+
+        arb_reg_val = ( BCHP_MEMC_DDR23_SHIM_ADDR_CNTL_0_CONFIG_DRAM_WIDTH_MASK & arb_reg_val ) >> BCHP_MEMC_DDR23_SHIM_ADDR_CNTL_0_CONFIG_DRAM_WIDTH_SHIFT;
+        /* DRAM Width.
+           00: DDR32BIT
+           01: DDR16BIT
+           10 - reserved
+           11 - reserved
+        */
+        device_type = ( BCHP_MEMC_DDR23_SHIM_ADDR_CNTL_0_CONFIG_DDR_MODE_MASK & arb_reg_val ) >> BCHP_MEMC_DDR23_SHIM_ADDR_CNTL_0_CONFIG_DDR_MODE_SHIFT;
+        /* DDR Mode.
+           0: DDR3 mode
+           1: DDR2 mode
+        */
+
+        if (arb_reg_val == 1)
+        {
+            bus_burst_info[memc_index].interface_bit_width = 16;
+        }
+        else /* DRAM_WIDTH_32 ... default */
+        {
+            bus_burst_info[memc_index].interface_bit_width = 32;
+        }
+
+        if ( device_type == 1 /* DDR2 */ )
+        {
+            bus_burst_info[memc_index].burst_length = 4;
+            strncpy( bus_burst_info[memc_index].ddr_type, "DDR2", sizeof( bus_burst_info[memc_index].ddr_type ) -1 );
+        }
+        else /* DDR3 ... default */
+        {
+            bus_burst_info[memc_index].burst_length = 8;
+            strncpy( bus_burst_info[memc_index].ddr_type, "DDR3", sizeof( bus_burst_info[memc_index].ddr_type ) -1 );
+        }
+#else
+        /* newer 28-nm chips */
+        pTempReg = (volatile unsigned int *)((unsigned long int)g_pMem + (BCHP_MEMC_DDR_0_CNTRLR_CONFIG  - BCHP_REGISTER_START ) );
+
+        /* read the current value of the register */
+        arb_reg_val = device_type = *pTempReg;
+
+        arb_reg_val = ( BCHP_MEMC_DDR_0_CNTRLR_CONFIG_DRAM_TOTAL_WIDTH_MASK & arb_reg_val ) >> BCHP_MEMC_DDR_0_CNTRLR_CONFIG_DRAM_TOTAL_WIDTH_SHIFT;
+        device_type = ( BCHP_MEMC_DDR_0_CNTRLR_CONFIG_DRAM_DEVICE_TYPE_MASK & device_type ) >> BCHP_MEMC_DDR_0_CNTRLR_CONFIG_DRAM_DEVICE_TYPE_SHIFT;
+
+        if (arb_reg_val == MEMC_DRAM_WIDTH_16)
+        {
+            bus_burst_info[memc_index].interface_bit_width = 16;
+        }
+        else /* MEMC_DRAM_WIDTH_32 ... default */
+        {
+            bus_burst_info[memc_index].interface_bit_width = 32;
+        }
+
+        if ( device_type == MEMC_DRAM_TYPE_LPDDR4 )
+        {
+            bus_burst_info[memc_index].burst_length = 16;
+            strncpy( bus_burst_info[memc_index].ddr_type, "LPDDR4", sizeof( bus_burst_info[memc_index].ddr_type ) -1 );
+        }
+        else if ( device_type == MEMC_DRAM_TYPE_DDR2 )
+        {
+            bus_burst_info[memc_index].burst_length = 4;
+            strncpy( bus_burst_info[memc_index].ddr_type, "DDR2", sizeof( bus_burst_info[memc_index].ddr_type ) -1 );
+        }
+        else if ( device_type == MEMC_DRAM_TYPE_DDR4 )
+        {
+            bus_burst_info[memc_index].burst_length = 8;
+            strncpy( bus_burst_info[memc_index].ddr_type, "DDR4", sizeof( bus_burst_info[memc_index].ddr_type ) -1 );
+        }
+        else /* MEMC_DRAM_TYPE_DDR3 ... default */
+        {
+            bus_burst_info[memc_index].burst_length = 8;
+            strncpy( bus_burst_info[memc_index].ddr_type, "DDR3", sizeof( bus_burst_info[memc_index].ddr_type ) -1 );
+        }
+#endif
+#ifdef  BMEMPERF_DEBUG
+        printf( "%s: arb_reg_val %x; interface_bit_width [%u] (%u); device_type %d\n", __FUNCTION__, arb_reg_val, memc_index,
+                bus_burst_info[memc_index].interface_bit_width, device_type );
+        printf( "%s: arb_reg_val %x; burst_length [%u] (%u)\n", __FUNCTION__, arb_reg_val, memc_index, bus_burst_info[memc_index].interface_bit_width );
+#endif
+    }
+    else
+    {
+        printf( "FATAL ERROR: g_pMem %p; \n", (void *) (intptr_t) g_pMem );
+        bus_burst_info[memc_index].interface_bit_width = 32;
+        bus_burst_info[memc_index].burst_length = 4;
+    }
+
+    return( 0 );
+}
+
+/**
+ *  Function: This function will return the width of the DDR bus: either 16 or 32 bits.
+ **/
+unsigned int bmemperf_bus_width(
+    unsigned int memc_index,
+    volatile unsigned int *g_pMem
+    )
+{
+    /* if the index is invalid, return a commonly valid value */
+    if ( memc_index >= BMEMPERF_NUM_MEMC )
+    {
+        return( 32 );
+    }
+
+    bmemperf_bus_burst_info( memc_index, g_pMem );
+
+    return( bus_burst_info[memc_index].interface_bit_width );
+} /* bmemperf_bus_width */
+
+/**
+ *  Function: This function will return the CAS burst length: either 4 bytes (DDR2), 8 bytes (DDR3), or 16 bytes
+ *  (LPDDR4).
+ **/
+unsigned int bmemperf_burst_length(
+    unsigned int memc_index,
+    volatile unsigned int *g_pMem
+    )
+{
+    /* if the index is invalid, return a commonly valid value */
+    if ( memc_index >= BMEMPERF_NUM_MEMC )
+    {
+        return( 8 );
+    }
+
+    bmemperf_bus_burst_info( memc_index, g_pMem );
+
+    return( bus_burst_info[memc_index].burst_length );
+} /* bmemperf_burst_length */
+
+/**
+ *  Function: This function will return a string description of the DDR type used in the system.
+ **/
+char *bmemperf_get_ddrType(
+    unsigned int memc_index,
+    volatile unsigned int *g_pMem
+    )
+{
+    if ( memc_index >= BMEMPERF_NUM_MEMC )
+    {
+        return ( "UNKNOWN" );
+    }
+
+    bmemperf_bus_burst_info( memc_index, g_pMem );
+
+    return ( bus_burst_info[ memc_index ].ddr_type );
+} /* bmemperf_get_ddrType */
+
+/**
+ *  Function: This function will convert a CAS cycle count to a normal cycle count. There is a specific way to
+ *  do this using the burst length. The burst length differs between DDR2, DDR3/DDR4, and LPDDR4.
+ **/
+int bmemperf_cas_to_cycle(
+    unsigned int memc_index,
+    volatile unsigned int *g_pMem
+    )
+{
+    return ( bmemperf_burst_length(memc_index, g_pMem ) / 2 );
+}
+
+/**
+ *  Function: This function will open the memory device that will be used to read and write registers in the
+ *  system. Once the memory device has been successfylly opened, this function will also memory map the memory
+ *  device.
+ **/
+volatile unsigned int *bmemperf_openDriver_and_mmap(
+    void
+    )
+{
+    volatile unsigned int *l_pMem = NULL;
+    int                    l_memFd = 0;
+
+    /* Open driver for memory mapping */
+    l_memFd = bmemperfOpenDriver();
+
+    if (l_memFd == -1)
+    {
+        printf( "Failed to bmemperfOpenDriver() ... fd %d \n", l_memFd );
+        return( NULL );
+    }
+
+    fcntl( l_memFd, F_SETFD, FD_CLOEXEC );
+
+    l_pMem = bmemperfMmap( l_memFd );
+
+    /*printf("%s: l_pMem %p\n", __FUNCTION__, (void*) l_pMem );*/
+    if (!l_pMem)
+    {
+        printf( "Failed to bmemperfMmap() fd=%d, addr 0x%08x\n", l_memFd, BCHP_PHYSICAL_OFFSET );
+        return( NULL );
+    }
+
+    return( l_pMem );
+} /* bmemperf_openDriver_and_mmap */
+
+/**
+ *  Function: This function will convert from a millisecond counter to a one-second counter taking care to use
+ *  64-bit arithmetic to prevent overflow of large numbers.
+ **/
+unsigned int convert_from_msec (
+    unsigned int msec_value,
+    unsigned int g_interval
+    )
+{
+    unsigned int        temp;
+    unsigned long long  ulltemp; /* the trans_read counts can be ~ 7 million; need space to multiply by 1000 */
+
+    ulltemp = msec_value;
+    ulltemp = ulltemp * 1000 / g_interval;
+    temp = ulltemp;
+
+    return ( temp );
+}

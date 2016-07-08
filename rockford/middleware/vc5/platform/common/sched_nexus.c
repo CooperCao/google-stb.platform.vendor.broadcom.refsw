@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2014 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2014 Broadcom.
 All rights reserved.
 =============================================================================*/
 
@@ -71,10 +71,13 @@ CHECK_ENUM(BCM_SCHED_JOB_TYPE_V3D_RENDER,       NEXUS_Graphicsv3dJobType_eRender
 CHECK_ENUM(BCM_SCHED_JOB_TYPE_V3D_USER,         NEXUS_Graphicsv3dJobType_eUser);
 CHECK_ENUM(BCM_SCHED_JOB_TYPE_V3D_TFU,          NEXUS_Graphicsv3dJobType_eTFU);
 CHECK_ENUM(BCM_SCHED_JOB_TYPE_FENCE_WAIT,       NEXUS_Graphicsv3dJobType_eFenceWait);
-CHECK_ENUM(BCM_SCHED_JOB_TYPE_FENCE_SIGNAL,     NEXUS_Graphicsv3dJobType_eFenceSignal);
 CHECK_ENUM(BCM_SCHED_JOB_TYPE_TEST,             NEXUS_Graphicsv3dJobType_eTest);
 CHECK_ENUM(BCM_SCHED_JOB_TYPE_USERMODE,         NEXUS_Graphicsv3dJobType_eUsermode);
 CHECK_ENUM(BCM_SCHED_JOB_TYPE_NUM_JOB_TYPES,    NEXUS_Graphicsv3dJobType_eNumJobTypes);
+
+CHECK_ENUM(V3D_EMPTY_TILE_MODE_NONE, NEXUS_GRAPHICSV3D_EMPTY_TILE_MODE_NONE);
+CHECK_ENUM(V3D_EMPTY_TILE_MODE_SKIP, NEXUS_GRAPHICSV3D_EMPTY_TILE_MODE_SKIP);
+CHECK_ENUM(V3D_EMPTY_TILE_MODE_FILL, NEXUS_GRAPHICSV3D_EMPTY_TILE_MODE_FILL);
 
 CHECK_ENUM(BEGL_CtrAcquire,   NEXUS_Graphicsv3dCtrAcquire);
 CHECK_ENUM(BEGL_CtrRelease,   NEXUS_Graphicsv3dCtrRelease);
@@ -198,13 +201,7 @@ static void CopyJobBase(NEXUS_Graphicsv3dJobBase *to, const struct bcm_sched_job
    to->pfnCompletion = (NEXUS_Graphicsv3dCompletionFn)from->completion_fn;
    to->pCompletionData = from->completion_data;
    to->uiSyncFlags = from->sync_list.flags;
-
-   // If there have been any CPU writes since the last call into the kernel, then add this information
-   // to the job. If the kernel re-orders the jobs, then it'll have to handle this. Any CPU writes after
-   // job submission that need to be flushed (e.g. by proxy-jobs) would need to signal this to the kernel
-   // as well. There is no proxy-job mechanism yet.
-   if (from->sync_list.sync_cpu_write && __atomic_exchange_n(from->sync_list.sync_cpu_write, 0, __ATOMIC_ACQUIRE))
-      to->uiSyncFlags |= NEXUS_GRAPHICSV3D_SYNC_CPU_WRITE;
+   to->bSecure = from->secure;
 }
 
 static void CopyTFUJob(NEXUS_Graphicsv3dJobTFU *to, const struct bcm_tfu_job *from)
@@ -282,6 +279,7 @@ static unsigned QueueJobBatch(void *session, const struct bcm_sched_job *jobs, u
       memcpy(&nexusRender.uiEnd,   &jobs->driver.render.end,   sizeof(nexusRender.uiEnd));
 
       nexusRender.uiFlags = jobs->driver.render.workaround_gfxh_1181 ? NEXUS_GRAPHICSV3D_GFXH_1181 : 0;
+      nexusRender.uiEmptyTileMode = jobs->driver.render.empty_tile_mode;
 
       /* Render jobs are a bit special because they control the throttling semaphore. When their completion
        * handler is run, the semaphore is pushed. This means that ALL render jobs we submit MUST have
@@ -335,16 +333,6 @@ static unsigned QueueJobBatch(void *session, const struct bcm_sched_job *jobs, u
       nexusWait.iFence = jobs->driver.fence_wait.fence;
 
       err = NEXUS_Graphicsv3d_QueueFenceWait(session, &nexusWait);
-      break;
-   }
-
-   case BCM_SCHED_JOB_TYPE_FENCE_SIGNAL:
-   {
-      NEXUS_Graphicsv3dJobFenceSignal nexusSignal;
-
-      CopyJobBase(&nexusSignal.sBase, jobs);
-
-      err = NEXUS_Graphicsv3d_QueueFenceSignal(session, &nexusSignal, jobs->driver.fence_signal.fence);
       break;
    }
 
@@ -417,6 +405,7 @@ static BEGL_SchedStatus QueueBinRender(void *context, void *session, const struc
    memcpy(nexusRender.uiStart, render->driver.render.start, sizeof(nexusRender.uiStart));
    memcpy(nexusRender.uiEnd,   render->driver.render.end,   sizeof(nexusRender.uiEnd));
    nexusRender.uiFlags      = render->driver.render.workaround_gfxh_1181 ? NEXUS_GRAPHICSV3D_GFXH_1181 : 0;
+   nexusRender.uiEmptyTileMode = render->driver.render.empty_tile_mode;
 
    /* Render jobs are a bit special because they control the throttling semaphore. When their completion
     * handler is run, the semaphore is pushed. This means that ALL render jobs we submit MUST have
@@ -458,6 +447,33 @@ static BEGL_SchedStatus Query(
    return err == NEXUS_SUCCESS ? BEGL_SchedSuccess : BEGL_SchedFail;
 }
 
+static int MakeFenceForJobs(void *session,
+   const struct bcm_sched_dependencies *completed_deps,
+   const struct bcm_sched_dependencies *finalised_deps,
+   bool force_create)
+{
+   int fence;
+   if (NEXUS_Graphicsv3d_MakeFenceForJobs(session,
+      (const NEXUS_Graphicsv3dSchedDependencies *)completed_deps,
+      (const NEXUS_Graphicsv3dSchedDependencies *)finalised_deps,
+      force_create,
+      &fence) != NEXUS_SUCCESS)
+   {
+      if (!force_create)
+         abort();
+      return -1;
+   }
+   return fence;
+}
+
+static int MakeFenceForAnyNonFinalizedJob(void *session)
+{
+   int fence;
+   NEXUS_Error err = NEXUS_Graphicsv3d_MakeFenceForAnyNonFinalizedJob(session, &fence);
+   if (err != NEXUS_SUCCESS)
+      abort();
+   return fence;
+}
 
 static void UsermodeHandler(void *context, int param)
 {
@@ -510,13 +526,32 @@ static void RunCompletionHandler(void *context)
       if (!ctx->runCallbackExit)
       {
          NEXUS_Graphicsv3dCompletionInfo   info;
-         uint32_t                          numCompletions;
+         uint32_t                          numCompletions = 0;
          NEXUS_Graphicsv3dCompletion       completions[MAX_COMPLETIONS];
          uint64_t                          finalized[MAX_COMPLETIONS];
 
-         NEXUS_Graphicsv3d_GetCompletions(ctx->session, 0, NULL, MAX_COMPLETIONS, &info, &numCompletions, completions);
-         do
+         for (;;)
          {
+            // We are about to poll for completed jobs again, so we can ignore any
+            // completion callbacks that have occurred recently.
+            BKNI_ResetEvent(ctx->hRunCallback);
+
+            // Tell Nexus that we have finalized the last list it gave us, and to tell us about any more.
+            NEXUS_Graphicsv3d_GetCompletions(ctx->session,
+                                             numCompletions, numCompletions > 0 ? finalized : NULL,
+                                             MAX_COMPLETIONS, &info,
+                                             &numCompletions, completions);
+
+            // Let the driver know about latest "oldest not finalized job id".
+            // Note: we must do this even if there were no completed jobs in the list.
+            // The Magnum code doesn't pass out jobs that don't have completion handlers,
+            // but will still hit this handler to update the oldest non-finalized id.
+            if (ctx->pfnUpdateOldestNFID != NULL)
+               ctx->pfnUpdateOldestNFID(info.uiOldestNotFinalized);
+
+            if (numCompletions == 0)
+               break;
+
             for (uint32_t i = 0; i < numCompletions; i++)
             {
                if (completions[i].eType == NEXUS_Graphicsv3dJobType_eRender)
@@ -527,24 +562,7 @@ static void RunCompletionHandler(void *context)
 
                finalized[i] = completions[i].uiJobId;
             }
-
-            // Let the driver know about latest "oldest not finalized job id".
-            // Note: we must do this even if there were no completed jobs in the list.
-            // The Magnum code doesn't pass out jobs that don't have completion handlers,
-            // but will still hit this handler to update the oldest non-finalized id.
-            if (ctx->pfnUpdateOldestNFID != NULL)
-               ctx->pfnUpdateOldestNFID(info.uiOldestNotFinalized);
-
-            // We are about to poll for completed jobs again, so we can ignore any
-            // completion callbacks that have occurred recently.
-            BKNI_ResetEvent(ctx->hRunCallback);
-
-            // Tell Nexus that we have finalized the list it gave us, and to tell us about any more.
-            NEXUS_Graphicsv3d_GetCompletions(ctx->session, numCompletions,
-                                             numCompletions > 0 ? finalized : NULL,
-                                             MAX_COMPLETIONS, &info, &numCompletions, completions);
          }
-         while (numCompletions > 0);
       }
    }
    while (!ctx->runCallbackExit);
@@ -812,6 +830,8 @@ BEGL_SchedInterface *CreateSchedInterface(BEGL_MemoryInterface *memIface)
    iface->QueueBinRender   = QueueBinRender;
    /* iface->PollComplete     = PollComplete; */
    iface->Query            = Query;
+   iface->MakeFenceForJobs = MakeFenceForJobs;
+   iface->MakeFenceForAnyNonFinalizedJob = MakeFenceForAnyNonFinalizedJob;
    iface->WaitFence        = WaitFence;
    iface->WaitFenceTimeout = WaitFenceTimeout;
    iface->CloseFence       = CloseFence;

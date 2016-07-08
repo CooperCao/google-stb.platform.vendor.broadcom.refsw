@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2008 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2008 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -23,6 +23,7 @@ Server-side implementation of the EGLImage extensions for EGL:
 #ifndef NO_OPENVG
 #include "middleware/khronos/vg/vg_server.h"
 #endif /* NO_OPENVG */
+#include "interface/khronos/common/khrn_client_platform.h"
 #include "interface/khronos/include/EGL/egl.h"
 #include "interface/khronos/include/EGL/eglext.h"
 #include "interface/khronos/include/EGL/eglext_brcm.h"
@@ -589,7 +590,7 @@ int eglCreateImageKHR_impl (
          ((EGL_IMAGE_WRAP_BRCM_BCG_IMAGE_T *)buffer)->width,
          ((EGL_IMAGE_WRAP_BRCM_BCG_IMAGE_T *)buffer)->height,
          ((EGL_IMAGE_WRAP_BRCM_BCG_IMAGE_T *)buffer)->stride,
-         MEM_INVALID_HANDLE, handle, 0, IMAGE_CREATE_FLAG_DISPLAY);
+         MEM_INVALID_HANDLE, handle, 0, IMAGE_CREATE_FLAG_DISPLAY, false);
       himage_acquired = true;
 
       mem_release(handle);
@@ -615,7 +616,7 @@ int eglCreateImageKHR_impl (
 
       himage = khrn_image_create_from_storage(format,
          w, h, stride,
-         MEM_INVALID_HANDLE, handle, 0, IMAGE_CREATE_FLAG_TEXTURE | IMAGE_CREATE_FLAG_RSO_TEXTURE);
+         MEM_INVALID_HANDLE, handle, 0, IMAGE_CREATE_FLAG_TEXTURE | IMAGE_CREATE_FLAG_RSO_TEXTURE, false);
       himage_acquired = true;
 
       mem_release(handle);

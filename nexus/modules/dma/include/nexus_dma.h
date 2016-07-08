@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,17 +35,9 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   API name: Dma
 *    Specific APIs related to memory to memory DMA.
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 
@@ -325,39 +317,9 @@ void NEXUS_DmaJob_GetDefaultBlockSettings(
     NEXUS_DmaJobBlockSettings *pSettings /* [out] */
     );
 
-/***************************************************************************
-Summary:
-DEPRECATED: Set a DMA block descriptor settings
-This functionality has been removed.
-
-Description:
-Random-access configuration of blocks. Used in conjuction with NEXUS_DmaJob_Start.
-
-This function is deprecated. Use NEXUS_DmaJob_ProcessBlocks instead.
-***************************************************************************/
-NEXUS_Error NEXUS_DmaJob_SetBlockSettings(
-    NEXUS_DmaJobHandle handle,
-    unsigned blockIndex,            /* Must be < NEXUS_DmaJobSettings.numBlocks */
-    const NEXUS_DmaJobBlockSettings *pSettings
-    );
-
-
-/***************************************************************************
-Summary:
-DEPRECATED: Start a DMA Job
-This functionality has been removed.
-
-Description:
-This function starts a DMA job operation using blocks configured by NEXUS_DmaJob_SetBlockSettings.
-
-The caller should wait for the completion callback or poll the current status with
-NEXUS_DmaJob_GetStatus to ensure the transfer is complete before starting the same job a second time.
-
-This function is deprecated. Use NEXUS_DmaJob_ProcessBlocks instead.
-***************************************************************************/
-NEXUS_Error NEXUS_DmaJob_Start(
-    NEXUS_DmaJobHandle handle
-    );
+/* deprecated */
+#define NEXUS_DmaJob_SetBlockSettings(handle,blockIndex,pSettings) NEXUS_NOT_SUPPORTED
+#define NEXUS_DmaJob_Start(handle) NEXUS_NOT_SUPPORTED
 
 #define NEXUS_DMA_QUEUED NEXUS_MAKE_ERR_CODE(0x100, 1)
 

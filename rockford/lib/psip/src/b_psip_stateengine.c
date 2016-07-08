@@ -116,7 +116,7 @@ void B_PSIP_StateEngine(
 {
     BDBG_ASSERT(NULL != pJob);
     BDBG_MSG(("job:%p ---> %s:%d - sending event:%d to state:%d",
-              (pJob), func, line, event, pJob->state));
+              (void*)pJob, func, line, event, pJob->state));
 
     if (B_PSIP_StateFunction[pJob->state])
     {
@@ -124,6 +124,6 @@ void B_PSIP_StateEngine(
     }
     else
     {
-        BDBG_ERR(("job:%p ---> NULL state encountered - ignoring!", (pJob), func, line));
+        BDBG_ERR(("job:%p ---> NULL state encountered - ignoring!", (void*)pJob));
     }
 }

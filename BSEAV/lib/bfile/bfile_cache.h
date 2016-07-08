@@ -69,6 +69,7 @@ typedef struct bfile_cached_segment {
 	struct {
 		size_t accum_size;
 		size_t load_size;
+        size_t reserve_size;
 		void *cntx;
 		void (*read_complete)(void *, bfile_segment_async_result result);
 	} async;

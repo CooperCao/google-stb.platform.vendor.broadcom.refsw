@@ -111,7 +111,7 @@ int main(int argc, const char **argv)
     int n;
     struct { int x, y; } pig_inc = {0,0};
     NEXUS_SurfaceComposition comp;
-    
+
     nxapps_cmdline_init(&cmdline);
     nxapps_cmdline_allow(&cmdline, nxapps_cmdline_type_SurfaceComposition);
 
@@ -142,6 +142,7 @@ int main(int argc, const char **argv)
 
     /* connect to server and nexus */
     NxClient_GetDefaultJoinSettings(&joinSettings);
+    joinSettings.ignoreStandbyRequest = true;
     snprintf(joinSettings.name, NXCLIENT_MAX_NAME, "%s", argv[0]);
     rc = NxClient_Join(&joinSettings);
     if (rc) return -1;
@@ -155,21 +156,21 @@ int main(int argc, const char **argv)
     allocSettings.surfaceClient = 1;
     rc = NxClient_Alloc(&allocSettings, &allocResults);
     if (rc) return BERR_TRACE(rc);
-    
+
     /* No NxClient_Connect needed for SurfaceClient */
-    
+
     blit_client = NEXUS_SurfaceClient_Acquire(allocResults.surfaceClient[0].id);
     if (!blit_client) {
         BDBG_ERR(("NEXUS_SurfaceClient_Acquire failed"));
         return -1;
     }
-    
+
     NEXUS_SurfaceClient_GetSettings(blit_client, &client_settings);
     client_settings.displayed.callback = complete;
     client_settings.displayed.context = displayedEvent;
     rc = NEXUS_SurfaceClient_SetSettings(blit_client, &client_settings);
     BDBG_ASSERT(!rc);
-    
+
     if (pig_inc.x && !nxapps_cmdline_is_set(&cmdline, nxapps_cmdline_type_SurfaceComposition)) {
         const char *argv[] = {"-rect","0,0,400,300"};
         nxapps_cmdline_parse(0, 2, argv, &cmdline);
@@ -187,7 +188,7 @@ int main(int argc, const char **argv)
     openSettings.packetFifoSize = 4*1024; /* minimal fifo */
     gfx = NEXUS_Graphics2D_Open(NEXUS_ANY_ID, &openSettings);
     }
-    
+
     NEXUS_Graphics2D_GetSettings(gfx, &gfxSettings);
     gfxSettings.checkpointCallback.callback = complete;
     gfxSettings.checkpointCallback.context = checkpointEvent;
@@ -208,7 +209,7 @@ int main(int argc, const char **argv)
     createSettings.height = 480/divisor;
     createSettings.heap = clientConfig.heap[NXCLIENT_SECONDARY_GRAPHICS_HEAP]; /* if NULL, will use NXCLIENT_DEFAULT_HEAP */
     surface = NEXUS_Surface_Create(&createSettings);
-    
+
     /* draw gradient on left side of black framebuffer using synchronous blits */
 #define SIDEBAR_WIDTH (100/divisor)
     NEXUS_Graphics2D_GetDefaultFillSettings(&fillSettings);
@@ -261,12 +262,12 @@ int main(int argc, const char **argv)
         void *buffer, *next;
         size_t size;
         unsigned j;
-        BM2MC_PACKET_Plane surfacePlane;    
+        BM2MC_PACKET_Plane surfacePlane;
         static const BM2MC_PACKET_Blend copyColor = {BM2MC_PACKET_BlendFactor_eSourceColor, BM2MC_PACKET_BlendFactor_eOne, false,
             BM2MC_PACKET_BlendFactor_eZero, BM2MC_PACKET_BlendFactor_eZero, false, BM2MC_PACKET_BlendFactor_eZero};
         static const BM2MC_PACKET_Blend copyAlpha = {BM2MC_PACKET_BlendFactor_eSourceAlpha, BM2MC_PACKET_BlendFactor_eOne, false,
             BM2MC_PACKET_BlendFactor_eZero, BM2MC_PACKET_BlendFactor_eZero, false, BM2MC_PACKET_BlendFactor_eZero};
-            
+
         NEXUS_Surface_InitPlane(surface, &surfacePlane);
 
         rc = NEXUS_Graphics2D_GetPacketBuffer(gfx, &buffer, &size, 2048);
@@ -281,7 +282,7 @@ int main(int argc, const char **argv)
 
         {
         BM2MC_PACKET_PacketSourceFeeder *pPacket = next;
-        /* if your app crashes here, your NEXUS_Graphics2DOpenSettings.heap (or default heap) is likely 
+        /* if your app crashes here, your NEXUS_Graphics2DOpenSettings.heap (or default heap) is likely
         not CPU-accessible by the application. */
         BM2MC_PACKET_INIT(pPacket, SourceFeeder, false );
         pPacket->plane = surfacePlane;
@@ -322,7 +323,7 @@ int main(int argc, const char **argv)
         }
 
         rc = NEXUS_Graphics2D_PacketWriteComplete(gfx, (uint8_t*)next - (uint8_t*)buffer);
-        BDBG_ASSERT(!rc);    
+        BDBG_ASSERT(!rc);
 #else
         unsigned j;
         for (j=0;j<50;j++) {
@@ -368,12 +369,12 @@ int main(int argc, const char **argv)
         rc = NEXUS_SurfaceClient_UpdateSurface(blit_client, NULL);
         BDBG_ASSERT(!rc);
         rc = BKNI_WaitForEvent(displayedEvent, 5000);
-        BDBG_ASSERT(!rc);
+        if (rc) BERR_TRACE(rc);
         if (i && i%50000==0) {
             BDBG_WRN(("%u blits completed", i));
         }
         /* no flush is needed because we're not using the CPU */
-        
+
         if (pig_inc.x) {
             comp.position.x += pig_inc.x;
             comp.position.y += pig_inc.y;

@@ -1,51 +1,44 @@
 /******************************************************************************
- *    (c)2013-2014 Broadcom Corporation
- *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELYn
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
- *
- * Except as expressly set forth in the Authorized License,
- *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
- *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
- *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
- ******************************************************************************/
+* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*
+* This program is the proprietary software of Broadcom and/or its
+* licensors, and may only be used, duplicated, modified or distributed pursuant
+* to the terms and conditions of a separate, written license agreement executed
+* between you and Broadcom (an "Authorized License").  Except as set forth in
+* an Authorized License, Broadcom grants no license (express or implied), right
+* to use, or waiver of any kind with respect to the Software, and Broadcom
+* expressly reserves all rights in and to the Software and all intellectual
+* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*
+* Except as expressly set forth in the Authorized License,
+*
+* 1. This program, including its structure, sequence and organization,
+*    constitutes the valuable trade secrets of Broadcom, and you shall use all
+*    reasonable efforts to protect the confidentiality thereof, and to use
+*    this information only in connection with your use of Broadcom integrated
+*    circuit products.
+*
+* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+*
+* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+******************************************************************************/
+#include "bmemperf_types64.h"
 #include <stdio.h>
 #include <termios.h>
 #include <unistd.h>
@@ -55,13 +48,13 @@
 #include <stdint.h>
 #include <assert.h>
 #include <errno.h>
-#include <sys/types.h>
 #include <fcntl.h>
 #include <sys/mman.h>
 
 #include "bmemperf.h"
 #include "bmemperf_info.h"
 #include "bmemperf_utils.h"
+#include "bmemperf_lib.h"
 
 #if BCHP_MEMC_GEN_0_REG_START
 #include "bchp_memc_gen_0.h"
@@ -75,6 +68,7 @@
 
 static unsigned long int unique_addr[10];
 static unsigned long int unique_addr_count = 0;
+
 int add_to_unique(
     unsigned long int *addr
     )
@@ -102,7 +96,7 @@ int add_to_unique(
     }
 
     return( 0 );
-} /* add_to_unique */
+}                                                          /* add_to_unique */
 
 /**TODO : Need to add in the init code ***/
 /*volatile unsigned int g_client_id ;*/
@@ -113,9 +107,8 @@ extern unsigned int g_ddr_clock_frequency;
 unsigned int        g_timer_Count_inDDR_cycles = 0;
 extern unsigned int g_memc_max_min_mode;
 
-extern unsigned int           g_interval;   /**g_interval is in msec unit*/
-volatile unsigned int         g_clock_time; /**1msec in scb frequency , since time is in msec unit**/
-int                           g_memFd;
+extern unsigned int           g_interval;                  /**g_interval is in msec unit*/
+volatile unsigned int         g_clock_time;                /**1msec in scb frequency , since time is in msec unit**/
 static volatile unsigned int *g_pMem = NULL;
 
 unsigned int g_memc_arb_reg_offset[BMEMPERF_NUM_MEMC];
@@ -133,10 +126,12 @@ unsigned int bmemperf_read_ddr_stat_value(
     unsigned int           memc_index
     )
 {
-    volatile long unsigned int *pMemTemp;
+    volatile unsigned int *pMemTemp;
 
-    pMemTemp  = (unsigned long int *) g_pMem;
+    pMemTemp = (unsigned int *) g_pMem;
+    /*printf("%s:%u g_pMem %p; g_memc_ddr_stat_reg_offset[%u] 0x%x; reg 0x%x \n", __FILE__, __LINE__, (void*) g_pMem, memc_index, g_memc_ddr_stat_reg_offset[memc_index], reg );*/
     pMemTemp += (( g_memc_ddr_stat_reg_offset[memc_index] + reg )>>2 );
+    /*printf("%s:%u pMemTemp 0x%lx \n", __FILE__, __LINE__, (unsigned long int ) pMemTemp );*/
     add_to_unique((long unsigned int *) pMemTemp );
 
     return( *pMemTemp );
@@ -149,12 +144,17 @@ void    bmemperf_write_ddr_stat_value(
     unsigned int           memc_index
     )
 {
-    volatile long unsigned int *pMemTemp;
+    volatile unsigned int *pMemTemp;
 
-    pMemTemp  = (unsigned long int *) g_pMem;
+    pMemTemp = (unsigned int *) g_pMem;
+    /*printf("%s:%u g_pMem %p; g_memc_ddr_stat_reg_offset[%u] 0x%x; reg 0x%x \n", __FILE__, __LINE__, (void*) g_pMem, memc_index, g_memc_ddr_stat_reg_offset[memc_index], reg );*/
     pMemTemp += (( g_memc_ddr_stat_reg_offset[memc_index] + reg )>>2 );
     add_to_unique((long unsigned int *) pMemTemp );
+    /*printf("%s:%u pMemTemp 0x%lx; sizeof(pMemTemp) %lu; \n", __FILE__, __LINE__, (unsigned long int ) pMemTemp, sizeof(pMemTemp) );
+    fflush(stdout);fflush(stderr);*/
     *pMemTemp = value;
+    /*printf("%s:%u done \n", __FILE__, __LINE__ );
+    fflush(stdout);fflush(stderr);*/
 }
 
 unsigned int bmemperf_read_ddr_stat_client_cas_value(
@@ -163,9 +163,9 @@ unsigned int bmemperf_read_ddr_stat_client_cas_value(
     unsigned int           memc_index
     )
 {
-    volatile long unsigned int *pMemTemp;
+    volatile unsigned int *pMemTemp;
 
-    pMemTemp  = (unsigned long int *) g_pMem;
+    pMemTemp  = (unsigned int *) g_pMem;
     pMemTemp += (( g_memc_ddr_stat_cas_client_offset[memc_index] + reg )>>2 );
     add_to_unique((long unsigned int *) pMemTemp );
     return( *pMemTemp );
@@ -178,9 +178,9 @@ void    bmemperf_write_ddr_stat_client_cas_value(
     unsigned int           memc_index
     )
 {
-    volatile long unsigned int *pMemTemp;
+    volatile unsigned int *pMemTemp;
 
-    pMemTemp  = (unsigned long int *) g_pMem;
+    pMemTemp  = (unsigned int *) g_pMem;
     pMemTemp += (( g_memc_ddr_stat_cas_client_offset[memc_index] + reg )>>2 );
     add_to_unique((long unsigned int *) pMemTemp );
     *pMemTemp = value;
@@ -192,9 +192,9 @@ unsigned int bmemperf_read_arb_reg_value(
     unsigned int           memc_index
     )
 {
-    volatile long unsigned int *pMemTemp;
+    volatile unsigned int *pMemTemp;
 
-    pMemTemp  = (unsigned long int *) g_pMem;
+    pMemTemp  = (unsigned int *) g_pMem;
     pMemTemp += (( g_memc_arb_reg_offset[memc_index] + reg )>>2 );
     add_to_unique((long unsigned int *) pMemTemp );
     /*printf("%s: g_memc_arb_reg_offset[%u]: 0x%x; addr 0x%x\n", __FUNCTION__, memc_index, g_memc_arb_reg_offset[memc_index], pMemTemp );*/
@@ -208,9 +208,9 @@ void    bmemperf_write_arb_reg_value(
     unsigned int           memc_index
     )
 {
-    volatile long unsigned int *pMemTemp;
+    volatile unsigned int *pMemTemp;
 
-    pMemTemp = (unsigned long int *) g_pMem;
+    pMemTemp = (unsigned int *) g_pMem;
     /*printf("%s: writing 0x%x to addr %p; ", __FUNCTION__, value, (void*) pMemTemp);*/
     pMemTemp += (( g_memc_arb_reg_offset[memc_index] + reg )>>2 );
     /*printf("+ offset 0x%x + reg 0x%x => %p\n", g_memc_arb_reg_offset[memc_index], reg, (void*) pMemTemp);*/
@@ -224,11 +224,13 @@ unsigned int bmemperf_read_ddr_reg_value(
     unsigned int           memc_index
     )
 {
-    volatile long unsigned int *pMemTemp;
+    volatile unsigned int *pMemTemp;
 
-    pMemTemp  = (unsigned long int *) g_pMem;
+    pMemTemp = (unsigned int *) g_pMem;
+    /*printf("%s:%u g_pMem %p; g_memc_ddr_stat_reg_offset[%u] 0x%x; reg 0x%x \n", __FILE__, __LINE__, (void*) g_pMem, memc_index, g_memc_ddr_stat_reg_offset[memc_index], reg );*/
     pMemTemp += (( g_memc_ddr_reg_offset[memc_index] + reg )>>2 );
     add_to_unique((long unsigned int *) pMemTemp );
+
     return( *pMemTemp );
 }
 
@@ -247,13 +249,13 @@ unsigned int bmemperf_get_ddr_stat_cas_client_data(
     return( cas_count );
 }
 
-void bmemperf_configure_stat_control_reg(
+void bmemperf_configure_stat_control_reg( /* needs g_pMem */
     unsigned int client_id,
     unsigned int memc_index
     )
 {
     /*** configuring STAT_CONTROL ****/
-    volatile unsigned int max_min_mode = 0; /**1 enable max_min_mode , 0 disable max_min_mode **/
+    volatile unsigned int max_min_mode = 0;                /**1 enable max_min_mode , 0 disable max_min_mode **/
     /** PER_CLIENT_MODE Controls the operating mode of the per-client counters:
         0: CAS command mode: Each counter counts the number of issued CAS commands for that client.
         1: Consumption mode: Each counter contains the sum of the cycles consumed by the client, either from transferring data, waiting for penalties between data bursts, or waiting for */
@@ -288,67 +290,16 @@ void bmemperf_configure_stat_control_reg(
      *  If we support transaction count then we need to set the
      *  bit as 1*/
 #if 0
-    per_client_mode = 1;
-    value1         |= (( per_client_mode<< BCHP_MEMC_DDR_0_STAT_CONTROL_PER_CLIENT_MODE_SHIFT )& BCHP_MEMC_DDR_0_STAT_CONTROL_PER_CLIENT_MODE_MASK );
-#endif
+    {
+        unsigned int per_client_mode = 1;
+        value1 |= (( per_client_mode<< BCHP_MEMC_DDR_0_STAT_CONTROL_PER_CLIENT_MODE_SHIFT )& BCHP_MEMC_DDR_0_STAT_CONTROL_PER_CLIENT_MODE_MASK );
+    }
+#endif /* if 0 */
 
-    /*  printf(" MEMC_DDR_0_STAT_CONTROL value is %u\n", value1);   **/
+    /*printf("%s:%u: %-3d client_id ... switching ... MEMC_DDR_0_STAT_CONTROL value is %x \n", __FILE__, __LINE__, client_id, value1 );*/
     /** writel_relaxed(value1, (memc0_base + BCHP_MEMC_DDR_0_STAT_CONTROL));    **/
     bmemperf_write_ddr_stat_value( g_pMem, BMEMPERF_MEMC_DDR_STAT_CONTROL, value1, memc_index );
-} /* bmemperf_configure_stat_control_reg */
-
-/**
- *  Function: This function will return the width of the DDR bus: either 16 or 32 bits.
- **/
-unsigned int bmemperf_bus_width(
-    unsigned int memc_index
-    )
-{
-    volatile unsigned int arb_reg_val  = 0;
-    static unsigned int   bus_width[3] = {0, 0, 0};
-
-    if (g_pMem)
-    {
-        /* if the bus width has not be determined yet, read the register now */
-        if (( memc_index < BMEMPERF_NUM_MEMC ) && ( bus_width[memc_index] == 0 ))
-        {
-#ifdef BCHP_MEMC_DDR23_SHIM_ADDR_CNTL_0_CONFIG
-            /* older 40-nm chips */
-            volatile unsigned long int *pTempReg = (volatile unsigned long int *)((unsigned long int)g_pMem + BCHP_MEMC_DDR23_SHIM_ADDR_CNTL_0_CONFIG );
-
-            /* read the current value of the register */
-            arb_reg_val = *pTempReg;
-
-            arb_reg_val = ( BCHP_MEMC_DDR23_SHIM_ADDR_CNTL_0_CONFIG_DRAM_WIDTH_MASK & arb_reg_val ) >> BCHP_MEMC_DDR23_SHIM_ADDR_CNTL_0_CONFIG_DRAM_WIDTH_SHIFT;
-#else
-            /* newer 28-nm chips */
-            volatile unsigned long int *pTempReg = (volatile unsigned long int *)((unsigned long int)g_pMem + BCHP_MEMC_DDR_0_CNTRLR_CONFIG );
-
-            /* read the current value of the register */
-            arb_reg_val = *pTempReg;
-
-            arb_reg_val = ( BCHP_MEMC_DDR_0_CNTRLR_CONFIG_DRAM_TOTAL_WIDTH_MASK & arb_reg_val ) >> BCHP_MEMC_DDR_0_CNTRLR_CONFIG_DRAM_TOTAL_WIDTH_SHIFT;
-#endif
-
-            if (arb_reg_val == 1)
-            {
-                bus_width[memc_index] = 16;
-            }
-            else
-            {
-                bus_width[memc_index] = 32;
-            }
-            printf( "%s: arb_reg_val %x; bus_width[%u] (%u)\n", __FUNCTION__, arb_reg_val, memc_index, bus_width[memc_index] );
-        }
-    }
-    else
-    {
-        printf( "FATAL ERROR: g_pMem %p; g_memc_arb_reg_offset[%u] %p\n", (void *) g_pMem, memc_index, (void *) g_memc_arb_reg_offset[memc_index] );
-        return( 32 );
-    }
-
-    return( bus_width[memc_index] );
-} /* bmemperf_bus_width */
+}                                                          /* bmemperf_configure_stat_control_reg */
 
 int bmemperf_init(
     void
@@ -360,22 +311,26 @@ int bmemperf_init(
     get_boxmode( &boxmodeSource );
     bmemperf_boxmode_init( boxmodeSource.boxmode );
 
-    /* Open /dev/mem for memory mapping */
-    g_memFd = open( "/dev/mem", O_RDWR|O_SYNC );  /*O_SYNC for uncached address */
+    /* Open driver for memory mapping and mmap() it */
+    g_pMem = bmemperf_openDriver_and_mmap();
 
-    fcntl( g_memFd, F_SETFD, FD_CLOEXEC );
-
-    #if 0
-    printf( "%s: mmap64(NULL, mapped_size 0x%x, PROT_READ %u, MAP_SHARED %u, fd %u, addr %x)\n", __FUNCTION__,
-        ( BCHP_REGISTER_SIZE<<2 ), PROT_READ|PROT_WRITE, MAP_SHARED, g_memFd, BCHP_PHYSICAL_OFFSET  );
-    #endif
-    g_pMem = mmap64( 0, ( BCHP_REGISTER_SIZE<<2 ), PROT_READ|PROT_WRITE, MAP_SHARED, g_memFd, BCHP_PHYSICAL_OFFSET  );
-
-    /*printf("%s: g_pMem %p\n", __FUNCTION__, (void*) g_pMem );*/
-    if (!g_pMem)
+    if (g_pMem == NULL)
     {
-        printf( "Failed to mmap64 fd=%d, addr 0x%08x\n", g_memFd, BCHP_PHYSICAL_OFFSET );
+        printf( "Failed to bmemperfOpenDriver() ... g_pMem %p \n", (void *) g_pMem );
         return( -1 );
+    }
+
+    PRINTF( "g_ddr_clock_frequency 1 %u \n", g_ddr_clock_frequency );
+
+    if (g_ddr_clock_frequency == 0)
+    {
+        /* if we are able to read a more accurate freq from the /sys file system */
+        if (bmemperf_get_ddrFreqInMhz( 0 ))
+        {
+            g_bmemperf_info.ddrFreqInMhz =  bmemperf_get_ddrFreqInMhz( 0 );
+        }
+        g_ddr_clock_frequency =  g_bmemperf_info.ddrFreqInMhz;
+        PRINTF( "g_ddr_clock_frequency 2 %u \n", g_ddr_clock_frequency );
     }
 
     /********** For memc_0  *****************/
@@ -385,8 +340,8 @@ int bmemperf_init(
         g_ddr_clock_frequency = g_bmemperf_info.ddrFreqInMhz;
     }
 
-    printf( "%s: num_memc %d; ddrFreqInMhz %d; scb %d\n", __FUNCTION__, g_bmemperf_info.num_memc, g_bmemperf_info.ddrFreqInMhz, g_bmemperf_info.scbFreqInMhz );
-    g_clock_time = ( g_bmemperf_info.scbFreqInMhz*1000 ); /**1msec in scb frequency , since time is in msec unit**/
+    PRINTF( "%s: num_memc %d; ddrFreqInMhz %d; scb %d\n", __FUNCTION__, g_bmemperf_info.num_memc, g_bmemperf_info.ddrFreqInMhz, g_bmemperf_info.scbFreqInMhz );
+    g_clock_time = ( g_bmemperf_info.scbFreqInMhz*1000 );  /**1msec in scb frequency , since time is in msec unit**/
 
     g_clock_time *= g_interval;
 
@@ -400,28 +355,29 @@ int bmemperf_init(
         g_refresh_delay[i] = 0;
     }
 
-        #if 0
-    printf( "%s: NEXUS_NUM_MEMC %u\n", __FUNCTION__, NEXUS_NUM_MEMC );
-        #endif
     for (i = 0; i < BMEMPERF_NUM_MEMC; i++)
     {
         /** deriving the offsets for all possible memc's **/
-        g_memc_ddr_reg_offset[i] = BMEMPERF_MEMC_BASE + ( i*BMEMPERF_MEMC_REGISTER_SIZE );
+        g_memc_ddr_reg_offset[i]  = BMEMPERF_MEMC_BASE + ( i*BMEMPERF_MEMC_REGISTER_SIZE );
+        g_memc_ddr_reg_offset[i] -= BCHP_REGISTER_START;
         #if 0
         printf( "%s: memc %u: base 0x%x; g_memc_ddr_reg_offset 0x%x\n", __FUNCTION__, i, BMEMPERF_MEMC_BASE, g_memc_ddr_reg_offset[i] );
         #endif
 
-        g_memc_ddr_stat_reg_offset[i] = BMEMPERF_MEMC_BASE + BMEMPERF_MEMC_DDR_STATS_REGISTER_OFFSET + ( i *BMEMPERF_MEMC_REGISTER_SIZE );
+        g_memc_ddr_stat_reg_offset[i]  = BMEMPERF_MEMC_BASE + BMEMPERF_MEMC_DDR_STATS_REGISTER_OFFSET + ( i *BMEMPERF_MEMC_REGISTER_SIZE );
+        g_memc_ddr_stat_reg_offset[i] -= BCHP_REGISTER_START;
         #if 0
         printf( "%s: memc %u: base 0x%x; g_memc_ddr_stat_reg_offset 0x%x\n", __FUNCTION__, i, BMEMPERF_MEMC_BASE, g_memc_ddr_stat_reg_offset[i] );
         #endif
 
-        g_memc_arb_reg_offset[i] = BMEMPERF_MEMC_BASE + BMEMPERF_MEMC_ARB_CLIENT_INFO_OFFSET + ( i *BMEMPERF_MEMC_REGISTER_SIZE );
+        g_memc_arb_reg_offset[i]  = BMEMPERF_MEMC_BASE + BMEMPERF_MEMC_ARB_CLIENT_INFO_OFFSET + ( i *BMEMPERF_MEMC_REGISTER_SIZE );
+        g_memc_arb_reg_offset[i] -= BCHP_REGISTER_START;
         #if 0
         printf( "%s: memc %u: base 0x%x; g_memc_arb_reg_offset 0x%x\n", __FUNCTION__, i, BMEMPERF_MEMC_BASE, g_memc_arb_reg_offset[i] );
         #endif
 
-        g_memc_ddr_stat_cas_client_offset[i] = BMEMPERF_MEMC_BASE + BMEMPERF_MEMC_DDR_STAT_CAS_CLIENT_OFFSET + ( i *BMEMPERF_MEMC_REGISTER_SIZE );
+        g_memc_ddr_stat_cas_client_offset[i]  = BMEMPERF_MEMC_BASE + BMEMPERF_MEMC_DDR_STAT_CAS_CLIENT_OFFSET + ( i *BMEMPERF_MEMC_REGISTER_SIZE );
+        g_memc_ddr_stat_cas_client_offset[i] -= BCHP_REGISTER_START;
         #if 0
         printf( "%s: memc %u: base 0x%x; cas_client_offset 0x%x\n", __FUNCTION__, i, BMEMPERF_MEMC_BASE, BMEMPERF_MEMC_DDR_STAT_CAS_CLIENT_OFFSET );
         #endif
@@ -429,7 +385,6 @@ int bmemperf_init(
         /*** First stop the stats before programing control register  *****/
 
         /*** get g_refresh_delay **/
-        /** g_refresh_delay = readl_relaxed((memc0_base + BCHP_MEMC_DDR_0_DRAM_TIMING_4));  **/
         g_refresh_delay[i] = bmemperf_read_ddr_reg_value( g_pMem, BMEMPERF_MEMC_DDR_DRAM_TIMING_4, i );
 
         /** We use same MASK and SHIFT value for all the memc , since their bit defination are same **/
@@ -443,98 +398,148 @@ int bmemperf_init(
     printf( "%s: done\n", __FUNCTION__ );
     #endif
     return( ret );
-} /* bmemperf_init */
+}                                                          /* bmemperf_init */
+
+/**
+ *  Function: This function will return the bits accessed per DDR cycle. For a 32-bit bus width, the value
+ *  returned will be 64; for a 16-bit bus width, the value returned will be 32.
+ **/
+static int BitsPerCycle(
+    unsigned int memc_index
+    )
+{
+    int bits = 64;                                         /* common value for 32-bit systems */
+
+    if (memc_index < BMEMPERF_NUM_MEMC)
+    {
+        bits = bmemperf_bus_width( memc_index, g_pMem ) * 2 /* DDR-accesses per cycle */;
+    }
+    return( bits );
+}
 
 /** g_interval is = time*1000000 , this is for the sake of computaion and since we want result in Mbps **/
+/*
+Chris P. described the depth in time of the a CAS burst:
+     A 32-bit interface at each DDR cycle moves 32 bits / 8 bits per byte * 2 = 8 bytes of data per cycle.
+     For DDR3, the burst length is 4 cycles           --> 8 bytes/cycle * 4 cycles = 32 bytes on a 32-bit interface per CAS.
+     For LPDDR4, CAS burst is 8 cycles long (in time) --> 8 bytes/cycle * 8 cycles = 64 bytes on a 32-bit interface per CAS.
+*/
 float bmemperf_computeBWinMbps(
     unsigned int cycles,
     unsigned int interval_in_MHZ,
     unsigned int memc_index
     )
 {
-    float ftemp;
-
+    float              ftemp;
     unsigned long long k;
 
-    /** we do this since we cdon't have 64bit operation on arm v7 else this causes overflow and wrong result ,
-    we will loose precision with this **/
+    /** We convert to long long since we don't have 64bit operation on arm v7. Otherwise, this operation causes overflow
+        and wrong result. We will loose precision with this **/
     k     = (unsigned long long)( cycles );
-    k     = (unsigned long long)( k* bmemperf_bus_width( memc_index ) * 2 );
+    k     = (unsigned long long)( k * BitsPerCycle( memc_index ));
     ftemp = k/interval_in_MHZ;
 
-#ifdef  BMEMPERF_DEBUG
-    printf( "\n cycles = %u, interval_in_MHZ = %u, k= %15lld, ftemp = %f \n", cycles, interval_in_MHZ, k, ftemp );
-#endif
-
     return( ftemp );
-} /* bmemperf_computeBWinMbps */
+}                                                          /* bmemperf_computeBWinMbps */
 
-void bmemperf_normalmode_system_data(
+void bmemperf_normalmode_system_data( /* needs g_pMem */
     unsigned int memc_index
     )
 {
-    volatile unsigned int value1, value2;
-    volatile unsigned int penalty_all_cycles      = 0;
-    volatile unsigned int refresh_cycles          = 0;
-    volatile unsigned int idle_nop_cycles         = 0;
-    unsigned int          async_fifo_empty_cycles = 0;
-    unsigned int          ddr_bus_idle_cycles     = 0;
-    unsigned int          transaction_cycles      = 0;
-    unsigned int          dataCycles              = 0;
-    unsigned int          temp;
-    float                 ftemp1;
+    volatile unsigned int REG_DDR_STAT_CAS_ALL     = 0;
+    volatile unsigned int REG_DDR_STAT_PENALTY_ALL = 0;
+    volatile unsigned int penalty_all_cycles       = 0;
+    volatile unsigned int refresh_cycles           = 0;
+    volatile unsigned int idle_nop_cycles          = 0;
+    unsigned int          async_fifo_empty_cycles  = 0;
+    unsigned int          ddr_bus_idle_cycles      = 0;
+    unsigned int          transaction_cycles       = 0;
+    unsigned int          data_cycles              = 0;
+    unsigned int          temp                     = 0;
+    float                 ftemp1                   = 0.0;
 
-    /*value1 = readl_relaxed((memc0_base + BCHP_MEMC_DDR_0_STAT_CAS_ALL));*/
-
-    value1 = bmemperf_read_ddr_stat_value( g_pMem, BMEMPERF_MEMC_DDR_STAT_CAS_ALL, memc_index );
-
-    dataCycles = ( value1 *( BLOCK_LENGTH>>1 ));
+    REG_DDR_STAT_CAS_ALL = bmemperf_read_ddr_stat_value( g_pMem, BMEMPERF_MEMC_DDR_STAT_CAS_ALL, memc_index );
+    data_cycles          = REG_DDR_STAT_CAS_ALL * bmemperf_cas_to_cycle( memc_index, g_pMem );
 
 #ifdef  BMEMPERF_DEBUG
-    printf( "\n %s: Overall system data cycles %d \n", __FUNCTION__, dataCycles );
-#endif
+    if (memc_index==0)
+    {
+        printf( "%s:%u: Overall data_cycles    (%8d) = MEMC_DDR_STAT_CAS_ALL     (%9d) * bmemperf_cas_to_cycle(%d) \n",
+            __FILE__, __LINE__, data_cycles, REG_DDR_STAT_CAS_ALL, bmemperf_cas_to_cycle( memc_index, g_pMem ));
+    }
+#endif /* ifdef  BMEMPERF_DEBUG */
 
-    /*  refresh_cycles = readl_relaxed((memc0_base + BCHP_MEMC_DDR_0_STAT_REFRESH));    **/
-    refresh_cycles = bmemperf_read_ddr_stat_value( g_pMem, BMEMPERF_MEMC_DDR_STAT_REFRESH, memc_index );
-
+    refresh_cycles  = temp = bmemperf_read_ddr_stat_value( g_pMem, BMEMPERF_MEMC_DDR_STAT_REFRESH, memc_index );
     refresh_cycles *= g_refresh_delay[memc_index];
+#ifdef  BMEMPERF_DEBUG
+    if (memc_index==0)
+    {
+        printf( "%s:%u: Overall refresh_cycles (%8d) = MEMC_DDR_STAT_REFRESH     (%9d) * refresh_delay (%d) \n",
+            __FILE__, __LINE__, refresh_cycles, temp, g_refresh_delay[memc_index] );
+    }
+#endif /* ifdef  BMEMPERF_DEBUG */
 
-    /** value2 = readl_relaxed((memc0_base + BCHP_MEMC_DDR_0_STAT_PENALTY_ALL));    **/
-    value2 = bmemperf_read_ddr_stat_value( g_pMem, BMEMPERF_MEMC_DDR_STAT_PENALTY_ALL, memc_index );
+    REG_DDR_STAT_PENALTY_ALL = bmemperf_read_ddr_stat_value( g_pMem, BMEMPERF_MEMC_DDR_STAT_PENALTY_ALL, memc_index );
+    if (REG_DDR_STAT_PENALTY_ALL > ( data_cycles + refresh_cycles ))
+    {
+        penalty_all_cycles = REG_DDR_STAT_PENALTY_ALL - data_cycles - refresh_cycles;
+    }
+#ifdef  BMEMPERF_DEBUG
+    if (memc_index==0)
+    {
+        printf( "%s:%u: Overall penalty_cycles (%8d) = MEMC_DDR_STAT_PENALTY_ALL (%9d) - data_cycles (%d) - refresh_cycles (%d)\n",
+            __FILE__, __LINE__, penalty_all_cycles, REG_DDR_STAT_PENALTY_ALL, data_cycles, refresh_cycles );
+    }
+#endif /* ifdef  BMEMPERF_DEBUG */
 
-    penalty_all_cycles = value2 - ( value1*(( BLOCK_LENGTH>>1 ) - 1 )) - refresh_cycles;
-
-    /** idle_nop_cycles = readl_relaxed((memc0_base + BCHP_MEMC_DDR_0_STAT_IDLE_NOP));  **/
     idle_nop_cycles = bmemperf_read_ddr_stat_value( g_pMem, BMEMPERF_MEMC_DDR_STAT_IDLE_NOP, memc_index );
 
 #ifdef  BMEMPERF_DEBUG
     printf( "g_timer_Count_inDDR_cycles is %u\n", g_timer_Count_inDDR_cycles );
 #endif
 
-    async_fifo_empty_cycles = g_timer_Count_inDDR_cycles -( value1 + value2 + idle_nop_cycles );
+    async_fifo_empty_cycles = g_timer_Count_inDDR_cycles -( REG_DDR_STAT_CAS_ALL + REG_DDR_STAT_PENALTY_ALL + idle_nop_cycles );
     ddr_bus_idle_cycles     = async_fifo_empty_cycles + idle_nop_cycles;
-    transaction_cycles      = dataCycles + refresh_cycles + penalty_all_cycles;
+    transaction_cycles      = data_cycles + refresh_cycles + penalty_all_cycles;
 
     temp = ( g_interval*BMEMPERF_DDR0_CLOCK_FREQ_UNIT );
 
-    bmemperfData[memc_index].dataBW = bmemperf_computeBWinMbps( dataCycles, temp, memc_index );
+    bmemperfData[memc_index].dataBW = bmemperf_computeBWinMbps( data_cycles, temp, memc_index );
 
 #ifdef  BMEMPERF_DEBUG
-    printf( "\n %s: bmemperfData[%d].dataBW %d \n", __FUNCTION__, memc_index, bmemperfData[memc_index].dataBW );
-#endif
+    if (memc_index==0)
+    {
+        printf( "%s:%u: bmemperfData[%d].dataBW (%8d) = data_cycles (%10u) * BitsPerCycle (%d) / interval (%d) \n", /* XLS column C */
+            __FILE__, __LINE__, memc_index, bmemperfData[memc_index].dataBW, data_cycles, BitsPerCycle( memc_index ), temp );
+    }
+#endif /* ifdef  BMEMPERF_DEBUG */
 
     bmemperfData[memc_index].refreshBW = bmemperf_computeBWinMbps( refresh_cycles, temp, memc_index );
 
-    bmemperfData[memc_index].transactionBW =  bmemperf_computeBWinMbps( transaction_cycles, temp, memc_index );
+    bmemperfData[memc_index].transactionBW = bmemperf_computeBWinMbps( transaction_cycles, temp, memc_index );
+#ifdef  BMEMPERF_DEBUG
+    if (memc_index==0)
+    {
+        printf( "%s:%u: bmemperfData[%d].transBW(%8d) = tran_cycles (%10u) * BitsPerCycle (%d) / interval (%d) \n", /* XLS column C */
+            __FILE__, __LINE__, memc_index, bmemperfData[memc_index].transactionBW, transaction_cycles, BitsPerCycle( memc_index ), temp );
+    }
+#endif /* ifdef  BMEMPERF_DEBUG */
 
-    bmemperfData[memc_index].idleBW =  bmemperf_computeBWinMbps( ddr_bus_idle_cycles, temp, memc_index );
+    bmemperfData[memc_index].idleBW = bmemperf_computeBWinMbps( ddr_bus_idle_cycles, temp, memc_index );
+#ifdef  BMEMPERF_DEBUG
+    if (memc_index==0)
+    {
+        printf( "%s:%u: bmemperfData[%d].idleBW (%8d) = idle_cycles (%10u) * BitsPerCycle (%d) / interval (%d) \n", /* XLS column C */
+            __FILE__, __LINE__, memc_index, bmemperfData[memc_index].idleBW, ddr_bus_idle_cycles, BitsPerCycle( memc_index ), temp );
+    }
+#endif /* ifdef  BMEMPERF_DEBUG */
 
-    ftemp1 = ( dataCycles );
+    ftemp1 = ( data_cycles );
     bmemperfData[memc_index].dataUtil  = ftemp1/g_timer_Count_inDDR_cycles;
-    bmemperfData[memc_index].dataUtil *= 100; /**percentage **/
-}                                             /* bmemperf_normalmode_system_data */
+    bmemperfData[memc_index].dataUtil *= 100;              /**percentage **/
+}                                                          /* bmemperf_normalmode_system_data */
 
-void bmemperf_set_arb_vals(
+void bmemperf_set_arb_vals( /* needs g_pMem */
     unsigned int client_id,
     unsigned int memc_index,
     unsigned int bo_val,
@@ -576,9 +581,9 @@ void bmemperf_set_arb_vals(
     }
 
     bmemperf_write_arb_reg_value( g_pMem, tempReg, arb_reg_val, memc_index );
-} /* bmemperf_set_arb_vals */
+}                                                          /* bmemperf_set_arb_vals */
 
-unsigned int  bmemperf_collect_arb_details(
+unsigned int  bmemperf_collect_arb_details( /* needs g_pMem */
     unsigned int client_id,
     unsigned int memc_index
     )
@@ -601,7 +606,7 @@ unsigned int  bmemperf_collect_arb_details(
  *  Function: This function will return a true or false based on whether or not the specified client id on the
  *  specified memc has it RTS_ERR bit set. There are error bits for 32 clients in each register.
  **/
-unsigned int  bmemperf_get_arb_err(
+unsigned int  bmemperf_get_arb_err( /* needs g_pMem */
     unsigned int client_id,
     unsigned int memc_index
     )
@@ -611,8 +616,8 @@ unsigned int  bmemperf_get_arb_err(
     unsigned long int     bitmask      = 0;
 
     /* there are 32 client values per register (1 bit each); each addr is 4 bytes long */
-    volatile unsigned long int *pTempReg = (volatile unsigned long int *)((unsigned long int)g_pMem +  g_memc_arb_reg_offset[memc_index] +
-                                                                          BCHP_MEMC_ARB_0_RTS_ERR_0 - BCHP_MEMC_ARB_0_CLIENT_INFO_0 + ( client_id/32*4 ));
+    volatile unsigned int *pTempReg = (volatile unsigned int *)((unsigned long int)g_pMem +  g_memc_arb_reg_offset[memc_index] +
+                                                                BCHP_MEMC_ARB_0_RTS_ERR_0 - BCHP_MEMC_ARB_0_CLIENT_INFO_0 + ( client_id/32*4 ));
 
     /* read the current value of the register (contains error bits for 32 clients) */
     arb_reg_val = arb_reg_val2 = *pTempReg;
@@ -624,18 +629,18 @@ unsigned int  bmemperf_get_arb_err(
     arb_reg_val &= bitmask;
 
     return(( arb_reg_val ) ? 1 : 0 );
-} /* bmemperf_get_arb_err */
+}                                                          /* bmemperf_get_arb_err */
 
 /**
  *  Function: This function will cause all RTS_ERR bits to be cleared for the specified memc. This is
  *  accomplished by writing a 1 to the RTS_ERR_INFO_WRITE_CLEAR register for the specified memc.
  **/
-unsigned int  bmemperf_clear_arb_err(
+unsigned int  bmemperf_clear_arb_err( /* needs g_pMem */
     unsigned int memc_index
     )
 {
-    volatile unsigned long int *pTempReg = (volatile unsigned long int *)((unsigned long int)g_pMem +  g_memc_arb_reg_offset[memc_index] +
-                                                                          BCHP_MEMC_ARB_0_RTS_ERR_INFO_WRITE_CLEAR - BCHP_MEMC_ARB_0_CLIENT_INFO_0 );
+    volatile unsigned int *pTempReg = (volatile unsigned int *)((unsigned long int)g_pMem +  g_memc_arb_reg_offset[memc_index] +
+                                                                BCHP_MEMC_ARB_0_RTS_ERR_INFO_WRITE_CLEAR - BCHP_MEMC_ARB_0_CLIENT_INFO_0 );
 
     if (g_pMem)
     {
@@ -643,86 +648,124 @@ unsigned int  bmemperf_clear_arb_err(
     }
     else
     {
-        printf( "FATAL ERROR: g_pMem %p; g_memc_arb_reg_offset[%u] %p\n", (void *) g_pMem, memc_index, (void *) g_memc_arb_reg_offset[memc_index] );
+        printf( "FATAL ERROR: g_pMem %p; g_memc_arb_reg_offset[%u] %p\n", (void *) (intptr_t) g_pMem, memc_index, (void *) (intptr_t) g_memc_arb_reg_offset[memc_index] );
     }
 
     return( 0 );
 }
 
-void bmemperf_normalmode_client_service_data(
+void bmemperf_normalmode_client_service_data( /* needs g_pMem */
     unsigned int memc_index
     )
 {
-    volatile unsigned int value1, value2;
-    unsigned int          client_data_cycles         = 0;
-    unsigned int          client_Intr_penalty_cycles = 0;
-    volatile unsigned int client_post_penalty_cycles = 0;
-    unsigned int          client_penalty_cycles      = 0;
-    unsigned int          client_transaction_cycles  = 0;
+    volatile unsigned int REG_STAT_CLIENT_SERVICE_CAS          = 0;
+    volatile unsigned int REG_STAT_CLIENT_SERVICE_INTR_PENALTY = 0;
+    unsigned int          client_data_cycles                   = 0;
+    unsigned int          client_Intr_penalty_cycles           = 0;
+    volatile unsigned int client_post_penalty_cycles           = 0;
+    unsigned int          client_penalty_cycles                = 0;
+    unsigned int          client_transaction_cycles            = 0;
+    volatile unsigned int number_of_trans_read                 = 0;
+    volatile unsigned int number_of_trans_write                = 0;
+    unsigned int          temp                                 = 0;
+    float                 ftemp1                               = 0.0;
 
-    volatile unsigned int number_of_trans_read  = 0;
-    volatile unsigned int number_of_trans_write = 0;
-    unsigned int          temp;
-    float                 ftemp1;
+    REG_STAT_CLIENT_SERVICE_CAS = bmemperf_read_ddr_stat_value( g_pMem, BMEMPERF_MEMC_DDR_STAT_CLIENT_SERVICE_CAS, memc_index );
+    client_data_cycles          = REG_STAT_CLIENT_SERVICE_CAS * bmemperf_cas_to_cycle( memc_index, g_pMem );
 
-    /**  value1 = readl_relaxed((memc0_base + BCHP_MEMC_DDR_0_STAT_CLIENT_SERVICE_CAS)); **/
-    value1 = bmemperf_read_ddr_stat_value( g_pMem, BMEMPERF_MEMC_DDR_STAT_CLIENT_SERVICE_CAS, memc_index );
+    REG_STAT_CLIENT_SERVICE_INTR_PENALTY = bmemperf_read_ddr_stat_value( g_pMem, BMEMPERF_MEMC_DDR_STAT_CLIENT_SERVICE_INTR_PENALTY, memc_index );
 
-    client_data_cycles = value1*( BLOCK_LENGTH>>1 );
+    number_of_trans_read  = bmemperf_read_ddr_stat_value( g_pMem, BMEMPERF_MEMC_DDR_STAT_CLIENT_SERVICE_TRANS_READ, memc_index );
+    number_of_trans_write = bmemperf_read_ddr_stat_value( g_pMem, BMEMPERF_MEMC_DDR_STAT_CLIENT_SERVICE_TRANS_WRITE, memc_index );
 
-    /** value2 = readl_relaxed((memc0_base + BCHP_MEMC_DDR_0_STAT_CLIENT_SERVICE_INTR_PENALTY));    **/
-    value2 = bmemperf_read_ddr_stat_value( g_pMem, BMEMPERF_MEMC_DDR_STAT_CLIENT_SERVICE_INTR_PENALTY, memc_index );
+    /* New equation (Chris P) 2016-04-14:
+       Client_Intr_Penalty_Cycles = STAT_CLIENT_SERVICE_INTR_PENALTY -((STAT_CLIENT_SERVICE_CAS -STAT_CLIENT_TRANS) * (BL/2-1))
+       Where STAT_CLIENT_TRANS is the number of transactions for the client in the sample period.
+       This could be read from the TRANS_READ or TRANS_WRITE counters, or calculated from the number of CAS commands if the burst size is fixed.
+    */
+    client_Intr_penalty_cycles = REG_STAT_CLIENT_SERVICE_INTR_PENALTY;
 
-    client_Intr_penalty_cycles = value2 - ( value1*(( BLOCK_LENGTH>>1 ) - 1 ));
+    if (REG_STAT_CLIENT_SERVICE_CAS > ( number_of_trans_read + number_of_trans_write )) /* make sure the difference does not go negative */
+    {
+        client_Intr_penalty_cycles -= (( REG_STAT_CLIENT_SERVICE_CAS - number_of_trans_read - number_of_trans_write ) *
+                                       (( bmemperf_burst_length( memc_index, g_pMem ) / 2 ) - 1 ));
+        /*printf("%s:%u: Intr (%d) = INTR (%d) - ( ( CL_SERVICE_CAS (%d) - RD (%d) - WR (%d) ) * ( ( BL (%d) / 2 ) -1 ) ) \n",
+            __FILE__, __LINE__, client_Intr_penalty_cycles, REG_STAT_CLIENT_SERVICE_INTR_PENALTY, REG_STAT_CLIENT_SERVICE_CAS,
+            number_of_trans_read, number_of_trans_write, bmemperf_burst_length(memc_index, g_pMem ) );*/
+    }
 
-    /**     client_post_penalty_cycles = readl_relaxed((memc0_base + BCHP_MEMC_DDR_0_STAT_CLIENT_SERVICE_POST_PENALTY));    **/
     client_post_penalty_cycles = bmemperf_read_ddr_stat_value( g_pMem, BMEMPERF_MEMC_DDR_STAT_CLIENT_SERVICE_POST_PENALTY, memc_index );
 
     client_penalty_cycles     = client_Intr_penalty_cycles + client_post_penalty_cycles;
     client_transaction_cycles = client_data_cycles + client_penalty_cycles;
-
-    /*printf("\n client_transaction_cycles = %u \n", client_transaction_cycles);*/
-
-    /*  number_of_trans_read = readl_relaxed((memc0_base + BCHP_MEMC_DDR_0_STAT_CLIENT_SERVICE_TRANS_READ));    */
-    number_of_trans_read = bmemperf_read_ddr_stat_value( g_pMem, BMEMPERF_MEMC_DDR_STAT_CLIENT_SERVICE_TRANS_READ, memc_index );
-
-    /** number_of_trans_write = readl_relaxed((memc0_base + BCHP_MEMC_DDR_0_STAT_CLIENT_SERVICE_TRANS_WRITE));  **/
-    number_of_trans_write = bmemperf_read_ddr_stat_value( g_pMem, BMEMPERF_MEMC_DDR_STAT_CLIENT_SERVICE_TRANS_WRITE, memc_index );
 
     temp = ( g_interval*BMEMPERF_DDR0_CLOCK_FREQ_UNIT );
 
     bmemperfData[memc_index].clientDataBW = bmemperf_computeBWinMbps( client_data_cycles, temp, memc_index );
 
     bmemperfData[memc_index].clientTransBW = bmemperf_computeBWinMbps( client_transaction_cycles, temp, memc_index );
+#ifdef  BMEMPERF_DEBUG
+    {
+        unsigned int client_index   = 0;
+        static bool  bHeaderPrinted = false;
+        client_index = ( bmemperf_readReg32( BCHP_MEMC_DDR_0_STAT_CONTROL ) & BCHP_MEMC_DDR_0_STAT_CONTROL_CLIENT_ID_MASK ) >> BCHP_MEMC_DDR_0_STAT_CONTROL_CLIENT_ID_SHIFT;
+
+        if (( memc_index == 0 ) && client_data_cycles && ( client_index != 10 ))                                                                              /* 7445 bvn_mfd0_1 runs in MEMC 1 */
+        {
+            printf( "%s:%u: %-3d clientDataBw (%6d) = REG_STAT_CLIENT_SERVICE_CAS (%10u) * bmemperf_cas_to_cycle(%d) * BitsPerCycle (%d) / interval (%d) \n", /* XLS column C */
+                __FILE__, __LINE__, client_index, bmemperfData[memc_index].clientDataBW, REG_STAT_CLIENT_SERVICE_CAS, bmemperf_cas_to_cycle( memc_index, g_pMem ),
+                BitsPerCycle( memc_index ), temp );
+            if (bHeaderPrinted == false)
+            {
+                bHeaderPrinted = true;
+                printf( "%s:%u:     Intr_penalty INTR_PENALTY SERVICE_CAS TRANS_READ TRANS_WRITE BL (ZZZ) \n", __FILE__, __LINE__ );
+            }
+            printf( "%s:%u: %-3d %9d    %9u  %9d  %10d %10d     %2d (ZZZ) \n", __FILE__, __LINE__, client_index, client_Intr_penalty_cycles,
+                REG_STAT_CLIENT_SERVICE_INTR_PENALTY, REG_STAT_CLIENT_SERVICE_CAS, number_of_trans_read, number_of_trans_write, bmemperf_burst_length( memc_index, g_pMem ));
+            printf( "%s:%u: %-3d client_post_penalty_cycles (%6d) = STAT_CLIENT_SERVICE_POST_PENALTY (%3d) \n",
+                __FILE__, __LINE__, client_index, client_post_penalty_cycles, client_post_penalty_cycles );
+            printf( "%s:%u: %-3d client_penalty_cycles      (%6d) = client_Intr_penalty_cycles (%d) + client_post_penalty_cycles (%d) \n",
+                __FILE__, __LINE__, client_index, client_penalty_cycles, client_Intr_penalty_cycles, client_post_penalty_cycles );
+            printf( "%s:%u: %-3d clientTransBW (%6d) = (data_cycles (%d) + intr_penalty (%10u) + post_penalty (%u) ) * BitsPerCycle (%d) / interval (%d) \n",
+                __FILE__, __LINE__, client_index, bmemperfData[memc_index].clientTransBW, client_data_cycles, client_Intr_penalty_cycles,
+                client_post_penalty_cycles, BitsPerCycle( memc_index ), temp );
+            printf( "\n\n" );
+        }
+    }
+#endif /* ifdef  BMEMPERF_DEBUG */
 
     ftemp1 = ( client_data_cycles );
     bmemperfData[memc_index].clientDataUtil  = ftemp1/g_timer_Count_inDDR_cycles;
-    bmemperfData[memc_index].clientDataUtil *= 100; /**percentage **/
+    bmemperfData[memc_index].clientDataUtil *= 100;        /**percentage **/
 
-    /**since g_interval is in msec , so approximating the
-     * TransactionCount for 1 sec interval  */
-    bmemperfData[memc_index].clientRdTransInPerc = ( number_of_trans_read * 1000 )/( g_interval );
-    bmemperfData[memc_index].clientWrTransInPerc = ( number_of_trans_write * 1000 )/( g_interval );
+    /**since g_interval is in msec, so approximating the TransactionCount for 1 sec interval  */
+    bmemperfData[memc_index].clientRdTransInPerc = convert_from_msec( number_of_trans_read, g_interval );
+    bmemperfData[memc_index].clientWrTransInPerc = convert_from_msec( number_of_trans_write, g_interval );
 
-    /** computing avgClientDataSizeInBits **/
+    /** computing avgClientDataSizeInBits (data) **/
     if (( number_of_trans_read + number_of_trans_write ) != 0)
     {
         ftemp1  = client_data_cycles;
         ftemp1 /= ( number_of_trans_read + number_of_trans_write );
-        ftemp1 *= bmemperf_bus_width( memc_index ) * 2;
+        ftemp1 *= bmemperf_bus_width( memc_index, g_pMem ) * 2;
         bmemperfData[memc_index].avgClientDataSizeInBits = ftemp1;
+#ifdef  BMEMPERF_DEBUG
+        printf( "%s:%d: avgClientDataSizeInBytes (%5.1f) = %d / (rd %d + wr %d) * (bus_w %d) * 2 / 8 \n", __FILE__, __LINE__, ftemp1/8.0,
+            client_data_cycles, number_of_trans_read, number_of_trans_write, bmemperf_bus_width( memc_index, g_pMem ));
+        printf( "%s:%u:\n\n\n", __FILE__, __LINE__ );
+#endif
     }
     else
     {
         bmemperfData[memc_index].avgClientDataSizeInBits = 0;
     }
 
-    /** computing avgClientTransSizeInBits **/
+    /** computing avgClientTransSizeInBits (trans) **/
     if (( number_of_trans_read + number_of_trans_write ) != 0)
     {
         ftemp1  = client_transaction_cycles;
         ftemp1 /= ( number_of_trans_read + number_of_trans_write );
-        ftemp1 *= bmemperf_bus_width( memc_index ) * 2;
+        ftemp1 *= bmemperf_bus_width( memc_index, g_pMem ) * 2;
         bmemperfData[memc_index].avgClientTransSizeInBits = ftemp1;
     }
     else
@@ -743,9 +786,9 @@ void bmemperf_normalmode_client_service_data(
     /** approx total transaction count in a second,
      *  g_timeinterval is in msec unit  **/
     bmemperfData[memc_index].totalTrxnCount = (( number_of_trans_read + number_of_trans_write )*1000 )/( g_interval );
-} /* bmemperf_normalmode_client_service_data */
+}                                                          /* bmemperf_normalmode_client_service_data */
 
-void bmemperf_maxminmode_system_data(
+void bmemperf_maxminmode_system_data( /* needs g_pMem */
     unsigned int memc_index
     )
 {
@@ -761,11 +804,10 @@ void bmemperf_maxminmode_system_data(
 
     /*************** Overall system data ****************/
     max_data_cycles = bmemperf_read_ddr_stat_value( g_pMem, BMEMPERF_MEMC_DDR_STAT_MAX_CAS_ALL, memc_index );
-
-    max_data_cycles = max_data_cycles*( BLOCK_LENGTH>>1 );
+    max_data_cycles = max_data_cycles * bmemperf_cas_to_cycle( memc_index, g_pMem );
 
     min_data_cycles = bmemperf_read_ddr_stat_value( g_pMem, BMEMPERF_MEMC_DDR_STAT_MIN_CAS_ALL, memc_index );
-    min_data_cycles = min_data_cycles*( BLOCK_LENGTH>>1 );
+    min_data_cycles = min_data_cycles * bmemperf_cas_to_cycle( memc_index, g_pMem );
 
     max_txn_cycles = bmemperf_read_ddr_stat_value( g_pMem, BMEMPERF_MEMC_DDR_STAT_MAX_TRANS_CYCLES_ALL, memc_index );
 
@@ -778,11 +820,11 @@ void bmemperf_maxminmode_system_data(
 
     ftemp1 = ( max_data_cycles );
     bmemperfData[memc_index].max_data_util  = ftemp1/g_timer_Count_inDDR_cycles;
-    bmemperfData[memc_index].max_data_util *= 100; /**percentage **/
+    bmemperfData[memc_index].max_data_util *= 100;         /**percentage **/
 
     ftemp1 = ( min_data_cycles );
     bmemperfData[memc_index].min_data_util  = ftemp1/g_timer_Count_inDDR_cycles;
-    bmemperfData[memc_index].min_data_util *= 100; /**percentage **/
+    bmemperfData[memc_index].min_data_util *= 100;         /**percentage **/
 
     temp = ( g_interval*BMEMPERF_DDR0_CLOCK_FREQ_UNIT );
 
@@ -797,9 +839,9 @@ void bmemperf_maxminmode_system_data(
     bmemperfData[memc_index].min_idle_bw = bmemperf_computeBWinMbps( min_ddr_bus_idle_cycles, temp, memc_index );
 
     bmemperfData[memc_index].max_idle_bw = bmemperf_computeBWinMbps( max_ddr_bus_idle_cycles, temp, memc_index );
-} /* bmemperf_maxminmode_system_data */
+}                                                          /* bmemperf_maxminmode_system_data */
 
-void bmemperf_maxminmode_client_service_data(
+void bmemperf_maxminmode_client_service_data( /* needs g_pMem */
     unsigned int memc_index
     )
 {
@@ -814,24 +856,24 @@ void bmemperf_maxminmode_client_service_data(
     float ftemp1;
 
     client_max_data_cycle = bmemperf_read_ddr_stat_value( g_pMem, BMEMPERF_MEMC_DDR_STAT_MAX_CLIENT_SERVICE_CAS, memc_index );
-    client_max_data_cycle = client_max_data_cycle*( BLOCK_LENGTH>>1 );
+    client_max_data_cycle = client_max_data_cycle * bmemperf_cas_to_cycle( memc_index, g_pMem );
 
     client_min_data_cycle = bmemperf_read_ddr_stat_value( g_pMem, BMEMPERF_MEMC_DDR_STAT_MIN_CLIENT_SERVICE_CAS, memc_index );
 
 #ifdef  BMEMPERF_DEBUG
     printf( "\n ----------------- Client Min data cycle = %x\n", client_min_data_cycle );
 #endif
-    if (client_min_data_cycle == -1) /** this is done since min numbers are initialized to -1 **/
+    if (client_min_data_cycle == -1)                       /** this is done since min numbers are initialized to -1 **/
     {
         client_min_data_cycle = 0;
     }
-    client_min_data_cycle = client_min_data_cycle*( BLOCK_LENGTH>>1 );
+    client_min_data_cycle = client_min_data_cycle * bmemperf_cas_to_cycle( memc_index, g_pMem );
 
     client_max_txn_cycle = bmemperf_read_ddr_stat_value( g_pMem, BMEMPERF_MEMC_DDR_STAT_MAX_CLIENT_SERVICE_CYCLES, memc_index );
 
     client_min_txn_cycle = bmemperf_read_ddr_stat_value( g_pMem, BMEMPERF_MEMC_DDR_STAT_MIN_CLIENT_SERVICE_CYCLES, memc_index );
 
-    if (client_min_txn_cycle == -1) /** this is done since min numbers are initialized to -1 **/
+    if (client_min_txn_cycle == -1)                        /** this is done since min numbers are initialized to -1 **/
     {
         client_min_txn_cycle = 0;
     }
@@ -847,11 +889,11 @@ void bmemperf_maxminmode_client_service_data(
 
     ftemp1 = ( client_max_data_cycle );
     bmemperfData[memc_index].max_client_data_util  = ftemp1/g_timer_Count_inDDR_cycles;
-    bmemperfData[memc_index].max_client_data_util *= 100; /**percentage **/
+    bmemperfData[memc_index].max_client_data_util *= 100;  /**percentage **/
 
     ftemp1 = ( client_min_data_cycle );
     bmemperfData[memc_index].min_client_data_util  = ftemp1/g_timer_Count_inDDR_cycles;
-    bmemperfData[memc_index].min_client_data_util *= 100; /**percentage **/
+    bmemperfData[memc_index].min_client_data_util *= 100;  /**percentage **/
 
     temp = ( g_interval*BMEMPERF_DDR0_CLOCK_FREQ_UNIT );
 
@@ -862,9 +904,9 @@ void bmemperf_maxminmode_client_service_data(
     bmemperfData[memc_index].max_client_txn_bw = bmemperf_computeBWinMbps( client_max_txn_cycle, temp, memc_index );
 
     bmemperfData[memc_index].min_client_txn_bw = bmemperf_computeBWinMbps( client_min_txn_cycle, temp, memc_index );
-} /* bmemperf_maxminmode_client_service_data */
+}                                                          /* bmemperf_maxminmode_client_service_data */
 
-int comapare_cas_data(
+int compare_cas_data(
     const void *a,
     const void *b
     )
@@ -884,4 +926,16 @@ int comapare_cas_data(
     {
         return( -1 );
     }
-} /* comapare_cas_data */
+}                                                          /* compare_cas_data */
+
+volatile unsigned int *bmemperf_get_g_pMem(
+    void
+    )
+{
+    if (g_pMem == NULL)
+    {
+        g_pMem = bmemperf_openDriver_and_mmap();
+    }
+
+    return( g_pMem );
+}

@@ -597,7 +597,7 @@ NEXUS_Error NEXUS_AudioMuxOutput_GetBuffer(
     *pBuffer = (const NEXUS_AudioMuxOutputFrame *)pDesc1;
     *pBuffer2 = (const NEXUS_AudioMuxOutputFrame *)pDesc2;
 
-    BDBG_MSG(("GetBuffer: Returning %lu descriptors (%lu+%lu)", *pSize+*pSize2, *pSize, *pSize2));
+    BDBG_MSG(("GetBuffer: Returning %lu descriptors (%lu+%lu)", (unsigned long)*pSize+*pSize2, (unsigned long)*pSize, (unsigned long)*pSize2));
 
     return BERR_SUCCESS;
 }

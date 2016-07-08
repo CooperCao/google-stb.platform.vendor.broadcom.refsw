@@ -1,43 +1,39 @@
 /******************************************************************************
  * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 
 #include "atlas_main_nx.h"
@@ -83,7 +79,7 @@ error:
 
 CGraphics * CAtlasNx::graphicsCreate()
 {
-    eRet         ret        = eRet_Ok;
+    eRet          ret       = eRet_Ok;
     CGraphicsNx * pGraphics = NULL;
 
     pGraphics = (CGraphicsNx *)_pBoardResources->checkoutResource(this, eBoardResource_graphics);
@@ -95,12 +91,81 @@ error:
     return(pGraphics);
 }
 
+eRet CAtlasNx::mosaicInitialize()
+{
+    eRet                 ret                = eRet_Ok;
+    CStc *               pStcMosaic         = NULL;
+    CSimpleVideoDecode * pVideoDecodeMosaic = NULL;
+
+    ATLAS_MEMLEAK_TRACE("BEGIN");
+
+    for (int winType = eWindowType_Mosaic1; winType < eWindowType_Max; winType++)
+    {
+        pStcMosaic = stcInitialize((eWindowType)winType);
+        CHECK_PTR_ERROR_GOTO("unable to initialize mosaic simple stc", pStcMosaic, ret, eRet_NotAvailable, error);
+
+        pVideoDecodeMosaic = videoDecodeInitialize(pStcMosaic, (eWindowType)winType);
+        CHECK_PTR_WARN("unable to initialize mosaic video decode", pVideoDecodeMosaic, ret, eRet_NotAvailable);
+
+        if (NULL == pVideoDecodeMosaic)
+        {
+            stcUninitialize(&pStcMosaic, (eWindowType)winType);
+            if (winType > eWindowType_Mosaic1)
+            {
+                /* at least one mosiac initialized so return success */
+                ret = eRet_Ok;
+            }
+            break;
+        }
+    }
+
+    goto done;
+error:
+    mosaicUninitialize();
+done:
+    ATLAS_MEMLEAK_TRACE("END");
+    return(ret);
+}
+
+void CAtlasNx::mosaicUninitialize()
+{
+    CStc *               pStcMosaic         = NULL;
+    CSimpleVideoDecode * pVideoDecodeMosaic = NULL;
+
+    for (int winType = eWindowType_Mosaic1; winType < eWindowType_Max; winType++)
+    {
+        CSimpleVideoDecode * pVideoDecodeMosaic = _model.getSimpleVideoDecode((eWindowType)winType);
+        CStc *               pStcMosaic         = _model.getStc((eWindowType)winType);
+
+        videoDecodeUninitialize(&pVideoDecodeMosaic);
+        stcUninitialize(&pStcMosaic, (eWindowType)winType);
+    }
+}
+
 CSimpleVideoDecode * CAtlasNx::videoDecodeCreate(eWindowType windowType)
 {
     eRet                   ret          = eRet_Ok;
     CSimpleVideoDecodeNx * pVideoDecode = NULL;
 
-    pVideoDecode = (CSimpleVideoDecodeNx *)_pBoardResources->checkoutResource(this, eBoardResource_simpleDecodeVideo);
+    if (eWindowType_Pip == windowType)
+    {
+        CConfigNx * pConfig = (CConfigNx *)_pConfig;
+        NxClient_AllocResults *pAllocResults = pConfig->getAllocResultsPip();
+
+        /* must use a particular video decoder for pip based on alloc results.
+           nxclient pip decoder alloc id must match checked out decoder resource number
+           to ensure we are checking out the correct pip decoder. */
+        pVideoDecode =
+            (CSimpleVideoDecodeNx *)_pBoardResources->checkoutResource(
+                this,
+                eBoardResource_simpleDecodeVideo,
+                ANY_INDEX,
+                pAllocResults->simpleVideoDecoder[0].id);
+    }
+    else
+    {
+        pVideoDecode =  (CSimpleVideoDecodeNx *)_pBoardResources->checkoutResource(this, eBoardResource_simpleDecodeVideo);
+    }
     CHECK_PTR_ERROR_GOTO("unable to checkout simple video decoder", pVideoDecode, ret, eRet_NotAvailable, error);
 
     _model.addSimpleVideoDecode(pVideoDecode, windowType);
@@ -124,8 +189,8 @@ error:
 
 COutputHdmi * CAtlasNx::outputHdmiInitialize(CDisplay * pDisplay)
 {
-    eRet                     ret         = eRet_Ok;
-    COutputHdmi *            pOutputHdmi = NULL;
+    eRet          ret         = eRet_Ok;
+    COutputHdmi * pOutputHdmi = NULL;
 
     if (NULL == pDisplay)
     {
@@ -145,7 +210,7 @@ error:
     outputHdmiUninitialize(pDisplay, &pOutputHdmi);
 done:
     return(pOutputHdmi);
-}
+} /* outputHdmiInitialize */
 
 #ifdef NETAPP_SUPPORT
 CBluetooth * CAtlasNx::bluetoothCreate()
@@ -159,10 +224,13 @@ CBluetooth * CAtlasNx::bluetoothCreate()
 error:
     return(pBluetooth);
 }
+
 CAudioCapture * CAtlasNx::audioCaptureInitialize(CBluetooth * pBluetooth)
 {
     eRet              ret           = eRet_Ok;
     CAudioCaptureNx * pAudioCapture = NULL;
+
+    ATLAS_MEMLEAK_TRACE("BEGIN");
 
     if (NULL == pBluetooth)
     {
@@ -182,8 +250,9 @@ CAudioCapture * CAtlasNx::audioCaptureInitialize(CBluetooth * pBluetooth)
     goto done;
 error:
 done:
+    ATLAS_MEMLEAK_TRACE("END");
     return(pAudioCapture);
-}
+} /* audioCaptureInitialize */
 
 void CAtlasNx::audioCaptureUninitialize()
 {
@@ -199,9 +268,14 @@ void CAtlasNx::audioCaptureUninitialize()
     _model.setAudioCapture(NULL);
     DEL(pAudioCapture);
 }
+
 #endif /* NETAPP_SUPPORT */
 
-CVideoWindow * CAtlasNx::videoWindowInitialize(CDisplay * pDisplay, CSimpleVideoDecode * pVideoDecode, eWindowType windowType)
+CVideoWindow * CAtlasNx::videoWindowInitialize(
+        CDisplay *           pDisplay,
+        CSimpleVideoDecode * pVideoDecode,
+        eWindowType          windowType
+        )
 {
     BSTD_UNUSED(pDisplay);
     BSTD_UNUSED(pVideoDecode);
@@ -210,7 +284,11 @@ CVideoWindow * CAtlasNx::videoWindowInitialize(CDisplay * pDisplay, CSimpleVideo
     return(NULL);
 }
 
-void CAtlasNx::videoWindowUninitialize(CDisplay * pDisplay, CSimpleVideoDecode * pVideoDecode, CVideoWindow * pVideoWindow)
+void CAtlasNx::videoWindowUninitialize(
+        CDisplay *           pDisplay,
+        CSimpleVideoDecode * pVideoDecode,
+        CVideoWindow *       pVideoWindow
+        )
 {
     BSTD_UNUSED(pDisplay);
     BSTD_UNUSED(pVideoDecode);
@@ -223,7 +301,10 @@ COutputComponent * CAtlasNx::outputComponentInitialize(CDisplay * pDisplay)
     return(NULL);
 }
 
-void CAtlasNx::outputComponentUninitialize(CDisplay * pDisplay, COutputComponent ** pOutputComponent)
+void CAtlasNx::outputComponentUninitialize(
+        CDisplay *          pDisplay,
+        COutputComponent ** pOutputComponent
+        )
 {
     BSTD_UNUSED(pDisplay);
     BSTD_UNUSED(pOutputComponent);
@@ -235,7 +316,10 @@ COutputComposite * CAtlasNx::outputCompositeInitialize(CDisplay * pDisplay)
     return(NULL);
 }
 
-void CAtlasNx::outputCompositeUninitialize(CDisplay * pDisplay, COutputComposite ** pOutputComposite)
+void CAtlasNx::outputCompositeUninitialize(
+        CDisplay *          pDisplay,
+        COutputComposite ** pOutputComposite
+        )
 {
     BSTD_UNUSED(pDisplay);
     BSTD_UNUSED(pOutputComposite);
@@ -247,19 +331,23 @@ COutputRFM * CAtlasNx::outputRfmInitialize(CDisplay * pDisplay)
     return(NULL);
 }
 
-void CAtlasNx::outputRfmUninitialize(CDisplay * pDisplay, COutputRFM ** pOutputRfm)
+void CAtlasNx::outputRfmUninitialize(
+        CDisplay *    pDisplay,
+        COutputRFM ** pOutputRfm
+        )
 {
     BSTD_UNUSED(pDisplay);
     BSTD_UNUSED(pOutputRfm);
 }
 
 CSimpleAudioDecode * CAtlasNx::audioDecodeInitializePip(
-            COutputHdmi *     pOutputHdmi,
-            COutputSpdif *    pOutputSpdif,
-            COutputAudioDac * pOutputAudioDac,
-            COutputRFM *      pOutputRFM,
-            CStc *            pStc,
-            eWindowType       winType)
+        COutputHdmi *     pOutputHdmi,
+        COutputSpdif *    pOutputSpdif,
+        COutputAudioDac * pOutputAudioDac,
+        COutputRFM *      pOutputRFM,
+        CStc *            pStc,
+        eWindowType       winType
+        )
 {
-    return(CAtlas::audioDecodeInitialize(pOutputHdmi, pOutputSpdif, pOutputAudioDac, pOutputRFM, pStc,  winType));
+    return(CAtlas::audioDecodeInitialize(pOutputHdmi, pOutputSpdif, pOutputAudioDac, pOutputRFM, pStc, winType));
 }

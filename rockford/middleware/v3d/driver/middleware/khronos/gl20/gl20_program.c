@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2008 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2008 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -244,7 +244,7 @@ static void unlock_bindings_for_compiler(MEM_HANDLE_T hbindings)
    mem_unlock(hbindings);
 }
 
-void gl20_program_link(GLXX_SERVER_STATE_T *state, GL20_PROGRAM_T *program)
+void gl20_program_link(GL20_PROGRAM_T *program)
 {
    glsl_fastmem_init();
 

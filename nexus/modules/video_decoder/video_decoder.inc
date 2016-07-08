@@ -1,7 +1,7 @@
-############################################################
-#     (c)2007-2015 Broadcom Corporation
+##############################################################################
+#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 #
-#  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+#  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
 #  conditions of a separate, written license agreement executed between you and Broadcom
 #  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,18 +34,7 @@
 #  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
-#
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
-# Module Description:
-#
-# Revision History:
-#
-# $brcm_Log: $
-#
-############################################################
+##############################################################################
 
 #
 # Conditional Options for this Makefile
@@ -163,10 +152,13 @@ endif
 # These modules will be excluded from app-only builds
 NEXUS_VIDEO_DECODER_MAGNUM_MODULES :=  \
     $(MAGNUM)/portinginterface/xvd/bxvd.inc \
+    $(MAGNUM)/portinginterface/xvd/bxvd_auth.inc \
     $(MAGNUM)/commonutils/img/bimg.inc \
     $(MAGNUM)/commonutils/xdm/bxdm.inc \
     $(MAGNUM)/commonutils/udp/budp.inc \
     $(MAGNUM)/commonutils/vlc/bvlc.inc 
+
+NEXUS_FW_SIGN_MODULES += BXVD
 
 ifeq ($(filter $(BCHP_CHIP), 7125 7340 7420 7468 7405 7400 7325 7335 7408 7550), $(BCHP_CHIP))
 NEXUS_VIDEO_FW_CHECKING_FAMILY := 65nm

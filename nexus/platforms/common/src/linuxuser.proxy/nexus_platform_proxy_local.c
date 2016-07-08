@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2011-2013 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description: code that is common for linuxuser.client and linuxuser.proxy client libraries
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 #include "nexus_platform_local_priv.h"
@@ -117,10 +109,10 @@ NEXUS_Platform_P_ModulesInit(const NEXUS_PlatformSettings *pSettings)
 #endif
 #if NEXUS_HAS_RECORD
     NEXUS_RecordModuleSettings recordSettings;
+    NEXUS_ModuleHandle record;
 #endif
 #if NEXUS_HAS_FILE
     NEXUS_ModuleHandle file;
-    NEXUS_ModuleHandle record;
     NEXUS_FileModuleSettings  fileModuleSettings;
 #endif
 

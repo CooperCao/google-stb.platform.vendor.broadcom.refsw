@@ -1,21 +1,41 @@
 /***************************************************************************
- *     Copyright (c) 2003-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * [File Description:]
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ***************************************************************************/
 
@@ -141,6 +161,10 @@ static const char * const s_aBAVCFrameRateToStrLUT[BXDM_PictureProvider_P_MAX_FR
    "119.88",
    "120",
    "19.98",    /* SWSTB-378: add support for BAVC_FrameRateCode_e19_98 */
+   "7.5",      /* SWSTB-1401: add support for BAVC_FrameRateCode_e7_5 */
+   "12",       /* SWSTB-1401: add support for BAVC_FrameRateCode_e12 */
+   "11.988",   /* SWSTB-1401: add support for BAVC_FrameRateCode_e11_988 */
+   "9.99",     /* SWSTB-1401: add support for BAVC_FrameRateCode_e9_99 */
 };
 
 static const char * const s_aFrameRateTypeToStrLUT[BXDM_PictureProvider_P_FrameRateType_eMax] =
@@ -192,19 +216,26 @@ static const char * const s_aAspectRatioToStrLUT[BFMT_AspectRatio_eSAR+1] =
 static const char * const s_aMonitorRefreshRateToStrLUT[BXDM_PictureProvider_MonitorRefreshRate_eMax] =
 {
    "Ukn",      /* BXDM_PictureProvider_MonitorRefreshRate_eUnknown */
-   "12.5",    /* BXDM_PictureProvider_MonitorRefreshRate_e12_5Hz */
-   "14.985",    /* BXDM_PictureProvider_MonitorRefreshRate_e14_985Hz */
-   "15",    /* BXDM_PictureProvider_MonitorRefreshRate_e15Hz */
-   "20",    /* BXDM_PictureProvider_MonitorRefreshRate_e20Hz */
+   "7.493",    /* BXDM_PictureProvider_MonitorRefreshRate_e7_493Hz */
+   "7.5",      /* BXDM_PictureProvider_MonitorRefreshRate_e7_5Hz */
+   "9.99",     /* BXDM_PictureProvider_MonitorRefreshRate_e9_99Hz */
+   "10",       /* BXDM_PictureProvider_MonitorRefreshRate_e10Hz */
+   "11.988",   /* BXDM_PictureProvider_MonitorRefreshRate_e11_988Hz */
+   "12",       /* BXDM_PictureProvider_MonitorRefreshRate_e12Hz */
+   "12.5",     /* BXDM_PictureProvider_MonitorRefreshRate_e12_5Hz */
+   "14.985",   /* BXDM_PictureProvider_MonitorRefreshRate_e14_985Hz */
+   "15",       /* BXDM_PictureProvider_MonitorRefreshRate_e15Hz */
+   "19.98",    /* BXDM_PictureProvider_MonitorRefreshRate_e19_98Hz */
+   "20",       /* BXDM_PictureProvider_MonitorRefreshRate_e20Hz */
    "23.97",    /* BXDM_PictureProvider_MonitorRefreshRate_e23_976Hz */
    "24",       /* BXDM_PictureProvider_MonitorRefreshRate_e24Hz */
    "25",       /* BXDM_PictureProvider_MonitorRefreshRate_e25Hz */
    "29.97",    /* BXDM_PictureProvider_MonitorRefreshRate_e29_97Hz */
    "30",       /* BXDM_PictureProvider_MonitorRefreshRate_e30Hz */
+   "48",       /* BXDM_PictureProvider_MonitorRefreshRate_e48Hz */
    "50",       /* BXDM_PictureProvider_MonitorRefreshRate_e50Hz */
    "59.94",    /* BXDM_PictureProvider_MonitorRefreshRate_e59_94Hz */
    "60",       /* BXDM_PictureProvider_MonitorRefreshRate_e60Hz */
-   "48",       /* BXDM_PictureProvider_MonitorRefreshRate_e48Hz */
    "100",      /* BXDM_PictureProvider_MonitorRefreshRate_e100Hz */
    "119.88",   /* BXDM_PictureProvider_MonitorRefreshRate_e119_88Hz */
    "120"       /* BXDM_PictureProvider_MonitorRefreshRate_e120Hz */
@@ -383,6 +414,13 @@ static const char * const s_aBFMTRefreshRateToStrLUT[BFMT_Vert_eLast]=
    "100",
    "119.88",
    "120"
+   "7.493",    /* BFMT_Vert_e7_493Hz */
+   "7.5",      /* BFMT_Vert_e7_5Hz */
+   "9.99",     /* BFMT_Vert_e9_99Hz */
+   "10",       /* BFMT_Vert_e10Hz */
+   "11.988",   /* BFMT_Vert_e11_988Hz */
+   "12",       /* BFMT_Vert_e12Hz */
+   "19.98",    /* BFMT_Vert_e19_98Hz */
 };
 
 /*

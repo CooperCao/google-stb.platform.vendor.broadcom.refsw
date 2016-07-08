@@ -1,25 +1,44 @@
-/***************************************************************************
- *     Copyright (c) 2003-2012, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c) 2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * Module Description: This file contains common Broadcom smart card data
- *                     structures, enums and definitions that are
- *                     recommended to be used in different layers.
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
  *
- * Revision History:
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- * 
- ***************************************************************************/
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ *
+ *****************************************************************************/
 #ifndef BSCD_DATATYPES_H__
 #define BSCD_DATATYPES_H__
 
@@ -252,9 +271,14 @@ typedef enum  BSCD_IntrType {
 #define BSCD_MIN_DELAY_BEFORE_TZERO_SEND          16
 
 /**
+  Minimum ETU allowed per ATR byte
+**/
+#define BSCD_MIN_ETU_PER_ATR_BYTE                    12
+
+/**
   Maximum ETU allowed per ATR byte
 **/
-#define BSCD_MAX_ETU_PER_ATR_BYTE                    9600
+#define BSCD_MAX_ETU_PER_ATR_BYTE                    9610
 #define BSCD_MAX_ETU_PER_ATR_BYTE_EMV2000                    10081
 
 /**
@@ -344,11 +368,8 @@ typedef enum  BSCD_IntrType {
 #define BSCD_MAX_RX_PARITY_RETRIES      7
 
  /* Default work waiting time in ETUs */
-#define BSCD_DEFAULT_WORK_WAITING_TIME      9600
+#define BSCD_DEFAULT_WORK_WAITING_TIME      9610
 #define BSCD_DEFAULT_EXTRA_WORK_WAITING_TIME_EMV2000        480
-
-/* default CardSim ATR min etu */
-#define BSCD_CARDSIM_DEFAULT_ATR_MIN_ETU 12
 
  /*
     Default block waiting time in ETUs = 11 + 960 etus, where bwi = 0
@@ -635,7 +656,6 @@ typedef enum BSCD_Standard {
         BSCD_Standard_eES,              /* ES, T=1.  Obsolete. Use ISO */
         BSCD_Standard_eNDS_NO_FLOWCRTL,          /* NDS. T=0 without flow control. */
 	BSCD_Standard_eNordig      ,             /* for Nordig smartcard */
-	BSCD_Standard_eCardSim, 				/* for CardSim test suite */
 	BSCD_Standard_eMax 
 
 } BSCD_Standard;
@@ -761,7 +781,11 @@ See Also:
 ****************************************************************************/
 typedef enum BSCD_TimerType {
         BSCD_TimerType_eGPTimer = 0,  /* General Purpose Timer */
-        BSCD_TimerType_eWaitTimer     /* Wait Timer */
+        BSCD_TimerType_eWaitTimer,    /* Wait Timer */
+        BSCD_TimerType_eEvent1Timer,  /* Event 1 Timer */
+        BSCD_TimerType_eEvent2Timer,  /* Event 2 Timer */
+        BSCD_TimerType_eCharWaitingTime, /* Char Waiting timer Timer */
+        BSCD_TimerType_eMax
 } BSCD_TimerType;
 
 
@@ -802,7 +826,6 @@ typedef enum BSCD_WaitTimerMode {
         BSCD_WaitTimerMode_eWorkWaitTime = 0,   /* Work Waiting Time Mode */
         BSCD_WaitTimerMode_eBlockWaitTime       /* Block Waiting Time Mode */
 } BSCD_WaitTimerMode;
-
 
 /***************************************************************************
 Summary:
@@ -877,7 +900,26 @@ typedef enum BSCD_ResetWaitCycles {
 
 
 /* Smart Card Public Data Structures */
+/***************************************************************************
+Summary:
+This struct contains the information on how to program the events timers.
 
+Description:
+This struct contains the information on how to program the events timers.
+
+See Also:
+
+
+****************************************************************************/
+typedef struct {
+    bool  int_after_reset;        /* interrupt after reset condition*/
+    bool  int_after_compare;      /* interrupt after compare condition*/
+    bool  run_after_reset;        /* timer has to run after reset condition*/
+    bool  run_after_compare;      /* timer has to run after cmp condition*/
+    uint32_t start_event;         /* timer start event*/
+    uint32_t incr_event;          /* timer increment event*/
+    uint32_t reset_event;         /* timer stop event*/
+} BSCD_EventTimerMode;
 /***************************************************************************
 Summary:
 This struct specifies if we are intereseted in General-Purpose timer
@@ -899,6 +941,7 @@ typedef struct BSCD_Timer
                 BSCD_GPTimerMode         eGPTimerMode;  /* General-purpose
                                                                     Timer Start Mode */
                 BSCD_WaitTimerMode       eWaitTimerMode;  /* Waiting Timer Mode */
+                BSCD_EventTimerMode      *eEventTimerMode;  /* Waiting Timer Mode */
         } timerMode;   /* timer mode */
 
         bool    bIsTimerEnable;                 /* enable or disable */
@@ -1066,7 +1109,7 @@ See Also:
 BSCD_ChannelSettings, BSCD_Open()
 
 ****************************************************************************/
-typedef void (* BCSD_CallbackFunc)( void * inp_parm1);
+typedef void (* BSCD_CallbackFunc)( void * inp_parm1);
 struct BSCD_Settings
 {
         BSCD_ClockFreq  moduleClkFreq;   /* This attribute indicates
@@ -1075,12 +1118,8 @@ struct BSCD_Settings
         unsigned char       ucMaxChannels;   /* maximum SCD channels supported */
 
 
-        BCSD_CallbackFunc   SetClockCb;
+        BSCD_CallbackFunc   SetClockCb;
 } ;
-
-typedef void (* BCSD_Channel_CallbackFunc)( void * inp_parm1, unsigned int channel_number);
-
-
 
 /***************************************************************************
 Summary:

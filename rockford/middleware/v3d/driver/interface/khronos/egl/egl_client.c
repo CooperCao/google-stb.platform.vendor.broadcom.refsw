@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2008 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2008 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -118,12 +118,11 @@ by an attribute value"
 #include "interface/khronos/common/khrn_client.h"
 #include "interface/khronos/egl/egl_int_impl.h"
 
+#include "interface/khronos/common/khrn_client_platform.h"
+
 #include <stdlib.h>
 #include <string.h>
-
-#include "interface/khronos/egl/egl_client_cr.c"
-
-#include "interface/khronos/common/khrn_client_platform.h"
+#include <malloc.h>
 
 #ifdef KHRONOS_CLIENT_LOGGING
 #include <stdio.h>
@@ -131,6 +130,173 @@ extern FILE *xxx_vclog;
 #endif
 
 void egl_current_release_surfaces(CLIENT_PROCESS_STATE_T *process, EGL_CURRENT_T *current);
+
+EGLAPI EGLint EGLAPIENTRY eglGetError(void)
+{
+   CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
+
+   if (thread)
+   {
+      EGLint result;
+
+      vcos_assert(thread != NULL);
+
+      result = thread->error;
+      thread->error = EGL_SUCCESS;
+
+      return result;
+   }
+   else
+      return EGL_SUCCESS;
+}
+
+EGLAPI EGLDisplay EGLAPIENTRY eglGetDisplay(EGLNativeDisplayType display_id)
+{
+   CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
+   if (thread)
+      thread->error = EGL_SUCCESS;
+
+   return khrn_platform_set_display_id(display_id);
+}
+
+EGLAPI EGLBoolean EGLAPIENTRY eglGetConfigs(EGLDisplay dpy, EGLConfig *configs, EGLint config_size, EGLint *num_config)
+{
+   CLIENT_THREAD_STATE_T *thread;
+   CLIENT_PROCESS_STATE_T *process;
+   EGLBoolean result;
+
+   if (CLIENT_LOCK_AND_GET_STATES(dpy, &thread, &process))
+   {
+      if (!num_config) {
+         thread->error = EGL_BAD_PARAMETER;
+         result = EGL_FALSE;
+      }
+      else if (!configs) {
+         thread->error = EGL_SUCCESS;
+         *num_config = EGL_MAX_CONFIGS;
+         result = EGL_TRUE;
+      }
+      else {
+         int i;
+         for (i = 0; i < EGL_MAX_CONFIGS && i < config_size; i++)
+            configs[i] = egl_config_from_id(i);
+
+         thread->error = EGL_SUCCESS;
+         *num_config = i;
+         result = EGL_TRUE;
+      }
+      CLIENT_UNLOCK();
+   }
+   else
+      result = EGL_FALSE;
+
+   return result;
+}
+
+EGLAPI EGLBoolean EGLAPIENTRY eglChooseConfig(EGLDisplay dpy, const EGLint *attrib_list, EGLConfig *configs, EGLint config_size, EGLint *num_config)
+{
+   CLIENT_THREAD_STATE_T *thread;
+   CLIENT_PROCESS_STATE_T *process;
+   EGLBoolean result;
+
+   if (CLIENT_LOCK_AND_GET_STATES(dpy, &thread, &process))
+   {
+      if (!num_config) {
+         thread->error = EGL_BAD_PARAMETER;
+         result = EGL_FALSE;
+      }
+      else {
+         /*
+         check for invalid attributes, and find color components for which
+         we have expressed a preference
+         */
+
+         bool use_red = false;
+         bool use_green = false;
+         bool use_blue = false;
+         bool use_alpha = false;
+
+         if (!egl_config_check_attribs(attrib_list, &use_red, &use_green, &use_blue, &use_alpha)) {
+            thread->error = EGL_BAD_ATTRIBUTE;
+            result = EGL_FALSE;
+         }
+         else {
+
+            /*
+            sort configs
+            */
+            int i, j;
+            int *ids = (int *)alloca(EGL_MAX_CONFIGS * sizeof(int));
+
+            for (i = 0; i < EGL_MAX_CONFIGS; i++)
+               ids[i] = i;
+
+            egl_config_sort(ids, use_red, use_green, use_blue, use_alpha);
+
+            /*
+            return configs
+            */
+
+            j = 0;
+            for (i = 0; i < EGL_MAX_CONFIGS; i++) {
+               if (egl_config_filter(ids[i], attrib_list)) {
+                  if (configs && j < config_size) {
+                     configs[j] = egl_config_from_id(ids[i]);
+                     j++;
+                  }
+                  else if (!configs) {
+                     // If configs==NULL then we count all configs
+                     // Otherwise we only count the configs we return
+                     j++;
+                  }
+               }
+            }
+
+            thread->error = EGL_SUCCESS;
+            *num_config = j;
+            result = EGL_TRUE;
+         }
+      }
+
+      CLIENT_UNLOCK();
+   }
+   else
+      result = EGL_FALSE;
+
+   return result;
+}
+
+EGLAPI EGLBoolean EGLAPIENTRY eglGetConfigAttrib(EGLDisplay dpy, EGLConfig config, EGLint attribute, EGLint *value)
+{
+   CLIENT_THREAD_STATE_T *thread;
+   CLIENT_PROCESS_STATE_T *process;
+   EGLBoolean result;
+
+   if (CLIENT_LOCK_AND_GET_STATES(dpy, &thread, &process))
+   {
+      if (!value) {
+         thread->error = EGL_BAD_PARAMETER;
+         result = EGL_FALSE;
+      }
+      else if (egl_config_to_id(config) < 0 || egl_config_to_id(config) >= EGL_MAX_CONFIGS) {
+         thread->error = EGL_BAD_CONFIG;
+         result = EGL_FALSE;
+      }
+      else if (!egl_config_get_attrib(egl_config_to_id(config), attribute, value)) {
+         thread->error = EGL_BAD_ATTRIBUTE;
+         result = EGL_FALSE;
+      }
+      else {
+         thread->error = EGL_SUCCESS;
+         result = EGL_TRUE;
+      }
+      CLIENT_UNLOCK();
+   }
+   else
+      result = EGL_FALSE;
+
+   return result;
+}
 
 /*
 TODO: do an RPC call to make sure the Khronos vll is loaded (and that it stays loaded until eglTerminate)
@@ -187,6 +353,7 @@ Also affects global image (and possibly others?)
 EGLAPI EGLBoolean EGLAPIENTRY eglInitialize(EGLDisplay dpy, EGLint *major, EGLint *minor)
 {
    CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
+   UNUSED(dpy);
 
    CLIENT_LOCK();
 
@@ -380,13 +547,13 @@ EGLAPI const char EGLAPIENTRY * eglQueryString(EGLDisplay dpy, EGLint name)
 #ifdef ANDROID
             "EGL_ANDROID_image_native_buffer "
 #endif
-#ifdef EGL_KHR_fence_sync
+#if EGL_KHR_fence_sync
             "EGL_KHR_fence_sync "
 #endif
-#ifdef EGL_BRCM_image_update_control
+#if EGL_BRCM_image_update_control
             "EGL_BRCM_image_update_control "
 #endif
-#ifdef EGL_ANDROID_framebuffer_target
+#if EGL_ANDROID_framebuffer_target
             "EGL_ANDROID_framebuffer_target "
 #endif
             ;
@@ -569,11 +736,16 @@ EGLAPI EGLSurface EGLAPIENTRY eglCreateWindowSurface(EGLDisplay dpy, EGLConfig c
          bool linear = false;
          bool premult = false;
          bool single = false;
+         bool secure = false;
+         bool openvg = false;
 #ifndef NO_OPENVG
-         bool is_openvg = (thread->bound_api == EGL_OPENVG_API);
+         openvg = (thread->bound_api == EGL_OPENVG_API);
 #endif /* NO_OPENVG */
 
-         if (!egl_surface_check_attribs(WINDOW, attrib_list, &linear, &premult, &single, 0, 0, 0, 0, 0, 0)) {
+         if (!egl_surface_check_attribs(WINDOW, attrib_list, &linear,
+            &premult, &single, 0, 0, 0,
+            0, 0, 0,
+            &secure)) {
             thread->error = EGL_BAD_ATTRIBUTE;
             result = EGL_NO_SURFACE;
          } else {
@@ -617,9 +789,8 @@ EGLAPI EGLSurface EGLAPIENTRY eglCreateWindowSurface(EGLDisplay dpy, EGLConfig c
                                    WINDOW,
                                    linear ? LINEAR : SRGB,
                                    premult ? PRE : NONPRE,
-#ifndef NO_OPENVG
-                                   is_openvg,
-#endif /* NO_OPENVG */
+                                   openvg,
+                                   secure,
                                    (uint32_t)(single ? 1 : num_buffers),
                                    client_info.width, client_info.height,
                                    client_info.swapchain_count,
@@ -822,17 +993,22 @@ EGLAPI EGLSurface EGLAPIENTRY eglCreatePbufferSurface(EGLDisplay dpy, EGLConfig 
          bool mipmap_texture = false;
          bool linear = false;
          bool premult = false;
+         bool secure = false;
+         bool openvg = false;
 #ifndef NO_OPENVG
-         bool is_openvg = (thread->bound_api == EGL_OPENVG_API);
+         openvg = (thread->bound_api == EGL_OPENVG_API);
 #endif /* NO_OPENVG */
 
-         if (!egl_surface_check_attribs(PBUFFER, attrib_list, &linear, &premult, 0, &width, &height, &largest_pbuffer, &texture_format, &texture_target, &mipmap_texture)) {
+         if (!egl_surface_check_attribs(PBUFFER, attrib_list, &linear, &premult, 0, &width, &height,
+            &largest_pbuffer, &texture_format,
+            &texture_target, &mipmap_texture,
+            &secure)) {
             thread->error = EGL_BAD_ATTRIBUTE;
             result = EGL_NO_SURFACE;
          } else if (
             (texture_format != EGL_NO_TEXTURE && (width == 0 || height == 0)) ||
             ((texture_format == EGL_NO_TEXTURE) != (texture_target == EGL_NO_TEXTURE)) ||
-            !egl_config_bindable((int)(size_t)config - 1, texture_format)
+            !egl_config_bindable(egl_config_to_id(config), texture_format)
          ) {
 
          /*
@@ -869,9 +1045,8 @@ EGLAPI EGLSurface EGLAPIENTRY eglCreatePbufferSurface(EGLDisplay dpy, EGLConfig 
                              PBUFFER,
                              linear ? LINEAR : SRGB,
                              premult ? PRE : NONPRE,
-#ifndef NO_OPENVG
-                             is_openvg,
-#endif /* NO_OPENVG */
+                             openvg,
+                             secure,
                              1,
                              width, height,
                              0,
@@ -955,11 +1130,13 @@ EGLAPI EGLSurface EGLAPIENTRY eglCreatePixmapSurface(EGLDisplay dpy, EGLConfig c
       } else {
          bool linear = false;
          bool premult = false;
+         bool secure = false;
+         bool openvg = false;
 #ifndef NO_OPENVG
-         bool is_openvg = (thread->bound_api == EGL_OPENVG_API);
+         openvg = (thread->bound_api == EGL_OPENVG_API);
 #endif /* NO_OPENVG */
 
-         if (!egl_surface_check_attribs(PIXMAP, attrib_list, &linear, &premult, 0, 0, 0, 0, 0, 0, 0)) {
+         if (!egl_surface_check_attribs(PIXMAP, attrib_list, &linear, &premult, 0, 0, 0, 0, 0, 0, 0, &secure)) {
             thread->error = EGL_BAD_ATTRIBUTE;
             result = EGL_NO_SURFACE;
          } else {
@@ -972,15 +1149,15 @@ EGLAPI EGLSurface EGLAPIENTRY eglCreatePixmapSurface(EGLDisplay dpy, EGLConfig c
             } else {
                uint32_t server_handle[2] = {(uint32_t)pixmap, (uint32_t)-1 };
 
-               if (server_handle[1] != -1) {
+               if (server_handle[1] != (uint32_t)-1) {
                   thread->error = EGL_BAD_PARAMETER;
                   result = EGL_NO_SURFACE;
                } else if (image.width > EGL_CONFIG_MAX_WIDTH || image.height > EGL_CONFIG_MAX_HEIGHT) {
                   /* Maybe EGL_BAD_ALLOC might be more appropriate? */
                   thread->error = EGL_BAD_NATIVE_WINDOW;
                   result = EGL_NO_SURFACE;
-               } else if (!egl_config_match_pixmap_info((int)(size_t)config - 1, &image) ||
-                  !platform_match_pixmap_api_support(pixmap, egl_config_get_api_support((int)(size_t)config - 1))) {
+               } else if (!egl_config_match_pixmap_info(egl_config_to_id(config), &image) ||
+                  !platform_match_pixmap_api_support(pixmap, egl_config_get_api_support(egl_config_to_id(config)))) {
                   thread->error = EGL_BAD_MATCH;
                   result = EGL_NO_SURFACE;
                } else {
@@ -1006,9 +1183,8 @@ EGLAPI EGLSurface EGLAPIENTRY eglCreatePixmapSurface(EGLDisplay dpy, EGLConfig c
                                    PIXMAP,
                                    linear ? LINEAR : SRGB,
                                    premult ? PRE : NONPRE,
-#ifndef NO_OPENVG
-                                   is_openvg,
-#endif /* NO_OPENVG */
+                                   openvg,
+                                   secure,
                                    1,
                                    image.width, image.height,
                                    0,
@@ -1237,16 +1413,20 @@ EGLAPI EGLSurface EGLAPIENTRY eglCreatePbufferFromClientBuffer(
          bool largest_pbuffer = 0;
          EGLenum texture_format = EGL_NO_TEXTURE;
          EGLenum texture_target = EGL_NO_TEXTURE;
-         bool mipmap_texture = EGL_FALSE;
+         bool mipmap_texture = false;
+         bool secure = false;
 
          /* Ignore the width and height as specified by attrib_list */
          /* Also ignore linear and premult */
-         if (!egl_surface_check_attribs(PBUFFER, attrib_list, 0, 0, 0, 0, 0, &largest_pbuffer, &texture_format, &texture_target, &mipmap_texture)) {
+         if (!egl_surface_check_attribs(PBUFFER, attrib_list, 0, 0, 0, 0, 0,
+            &largest_pbuffer, &texture_format,
+            &texture_target, &mipmap_texture,
+            &secure)) {
             thread->error = EGL_BAD_ATTRIBUTE;
             result = EGL_NO_SURFACE;
          } else if (
             (texture_format == EGL_NO_TEXTURE) != (texture_target == EGL_NO_TEXTURE) ||
-            !egl_config_bindable((int)(size_t)config - 1, texture_format)
+            !egl_config_bindable(egl_config_to_id(config), texture_format)
          ) {
 
          /*
@@ -1484,11 +1664,12 @@ KHRONOS_CLIENT_LOG("eglCreateContext start\n");
       } else {
          EGLint max_version = (EGLint) (thread->bound_api == EGL_OPENGL_ES_API ? 2 : 1);
          EGLint version = 1;
+         bool secure = false;
 
-         if (!egl_context_check_attribs(attrib_list, max_version, &version)) {
+         if (!egl_context_check_attribs(attrib_list, max_version, &version, &secure)) {
             thread->error = EGL_BAD_ATTRIBUTE;
             result = EGL_NO_CONTEXT;
-         } else if (!(egl_config_get_api_support((int)(intptr_t)config - 1) &
+         } else if (!(egl_config_get_api_support(egl_config_to_id(config)) &
             ((thread->bound_api == EGL_OPENVG_API) ? EGL_OPENVG_BIT :
             ((version == 1) ? EGL_OPENGL_ES_BIT : EGL_OPENGL_ES2_BIT)))) {
             thread->error = EGL_BAD_CONFIG;
@@ -1529,7 +1710,8 @@ KHRONOS_CLIENT_LOG("eglCreateContext start\n");
                context = egl_context_create(
                                 share_context,
                                 (EGLContext)(size_t)process->next_context,
-                                dpy, config, type);
+                                dpy, config, type,
+                                secure);
 
                if (context) {
                   if (khrn_pointer_map_insert(&process->contexts, process->next_context, context)) {
@@ -1682,9 +1864,12 @@ static bool context_and_surface_are_compatible(EGL_CONTEXT_T *context, EGL_SURFA
    default:           UNREACHABLE();
    }
 
+   uint32_t context_configid = egl_config_to_id(context->config);
+   uint32_t surface_configid = egl_config_to_id(surface->config);
+
    return
-      egl_config_bpps_match((int)(intptr_t)context->configname - 1, (int)(intptr_t)surface->config - 1) && /* (2) */
-      (egl_config_get_api_support((int)(intptr_t)surface->config - 1) & api_type); /* (3) */
+      egl_config_bpps_match(context_configid, surface_configid) && /* (2) */
+      (egl_config_get_api_support(context_configid) & api_type); /* (3) */
 }
 
 static bool egl_current_set_surfaces(CLIENT_PROCESS_STATE_T *process, CLIENT_THREAD_STATE_T *thread, EGL_CURRENT_T *current, EGL_CONTEXT_T *context, EGL_SURFACE_T *draw, EGL_SURFACE_T *read)
@@ -2115,7 +2300,6 @@ EGLAPI EGLBoolean EGLAPIENTRY eglSwapBuffers(EGLDisplay dpy, EGLSurface surf)
                eglIntSwapBuffers_impl(surface->serverbuffer,
                                       surface->width,
                                       surface->height,
-                                      surface->swapchainc,
                                       surface->internal_handle,
                                       surface->swap_behavior == EGL_BUFFER_PRESERVED ? 1 : 0,
                                       khrn_platform_get_window_position(surface->win));

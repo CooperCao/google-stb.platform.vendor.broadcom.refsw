@@ -1,21 +1,41 @@
 /***************************************************************************
- *     Copyright (c) 2003-2014, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ***************************************************************************/
 #ifndef BBOX_VCE_H__
@@ -23,92 +43,54 @@
 
 #include "bstd.h"
 #include "berr_ids.h"    /* Error codes */
+#include "bfmt.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#define BBOX_VCE_CHANNEL_INFO_V1( _instance, _channels, _memcIndex, _input_type_default, _input_type_default_memory, _bounds_int_width, _bounds_int_height, _bounds_int_fr_default, _bounds_int_fr_min, _bounds_int_fr_max, _bounds_prog_width, _bounds_prog_height, _bounds_prog_fr_default, _bounds_prog_fr_min, _bounds_prog_fr_max ) \
+#define BBOX_VCE_CHANNEL_INFO_V1( _instance, _channels, _memcIndex, _videoFormat ) \
 {\
    _instance, /* uiInstance */\
    _channels, /* uiChannels */\
    _memcIndex, /* uiMemcIndex */\
-   _input_type_default, /* eDefaultInputType */\
-   _input_type_default_memory, /* eDefaultInputTypeMemory */\
-   {\
-   BBOX_VCE_CHANNEL_BOUNDS_INFO_V1( _bounds_int_width, _bounds_int_height, _bounds_int_fr_default, _bounds_int_fr_min, _bounds_int_fr_max ), \
-   BBOX_VCE_CHANNEL_BOUNDS_INFO_V1( _bounds_prog_width, _bounds_prog_height, _bounds_prog_fr_default, _bounds_prog_fr_min, _bounds_prog_fr_max ), \
-   } /* stBounds[2] */\
+   _videoFormat, /* eVideoFormat */\
+   16, /* uiPixelAlignment */\
 }
-
-#define BBOX_VCE_CHANNEL_BOUNDS_INFO_V1( _width, _height, _fr_default, _fr_min, _fr_max ) \
-   {\
-      _width, /* uiWidth */\
-      _height, /* uiHeight */\
-      BBOX_VCE_CHANNEL_FRAME_RATE_INFO_V1( _fr_default, _fr_min, _fr_max ),\
-   } /* stBounds */
-
-#define BBOX_VCE_CHANNEL_FRAME_RATE_INFO_V1( _default, _min, _max ) \
-   {\
-      _default, /* eDefault */\
-      _min, /* eMin */\
-      _max /* eMax */\
-   } /* stFrameRate */
 
 #define BBOX_VCE_CHANNEL_INFO_NO_TRANSCODE( _instance, _channels, _memcIndex )\
    BBOX_VCE_CHANNEL_INFO_V1(\
-      0, 0x00, 0,\
-      BAVC_ScanType_eProgressive, BAVC_ScanType_eProgressive, /* Instance[0] */\
-      0, 0, BAVC_FrameRateCode_e30, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e30, /* Bounds[eInterlaced] */\
-      0, 0, BAVC_FrameRateCode_e30, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e60 /* Bounds[eProgressive] */\
+      0, 0x00, 0, 0\
    )
 
 #define BBOX_VCE_CHANNEL_INFO_720p25( _instance, _channels, _memcIndex )\
    BBOX_VCE_CHANNEL_INFO_V1(\
-      _instance, _channels, _memcIndex,\
-      BAVC_ScanType_eProgressive, BAVC_ScanType_eProgressive, /* Instance[0] */\
-      720, 576, BAVC_FrameRateCode_e25, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e25, /* Bounds[eInterlaced] */\
-      1280, 720, BAVC_FrameRateCode_e25, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e50 /* Bounds[eProgressive] */\
+      _instance, _channels, _memcIndex, BFMT_VideoFmt_e720p_25Hz\
    )
 
 #define BBOX_VCE_CHANNEL_INFO_720p30( _instance, _channels, _memcIndex )\
    BBOX_VCE_CHANNEL_INFO_V1(\
-      _instance, _channels, _memcIndex,\
-      BAVC_ScanType_eProgressive, BAVC_ScanType_eProgressive, /* Instance[0] */\
-      720, 576, BAVC_FrameRateCode_e30, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e30, /* Bounds[eInterlaced] */\
-      1280, 720, BAVC_FrameRateCode_e30, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e60 /* Bounds[eProgressive] */\
+      _instance, _channels, _memcIndex, BFMT_VideoFmt_e720p_30Hz\
    )
 
 #define BBOX_VCE_CHANNEL_INFO_720p60( _instance, _channels, _memcIndex )\
    BBOX_VCE_CHANNEL_INFO_V1(\
-      _instance, _channels, _memcIndex,\
-      BAVC_ScanType_eProgressive, BAVC_ScanType_eProgressive, /* Instance[0] */\
-      720, 576, BAVC_FrameRateCode_e30, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e30, /* Bounds[eInterlaced] */\
-      1280, 720, BAVC_FrameRateCode_e60, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e60 /* Bounds[eProgressive] */\
+      _instance, _channels, _memcIndex, BFMT_VideoFmt_e720p\
    )
 
 #define BBOX_VCE_CHANNEL_INFO_1080p25( _instance, _channels, _memcIndex )\
    BBOX_VCE_CHANNEL_INFO_V1(\
-      _instance, _channels, _memcIndex,\
-      BAVC_ScanType_eProgressive, BAVC_ScanType_eInterlaced, /* Instance[0] */\
-      1920, 1088, BAVC_FrameRateCode_e25, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e50, /* Bounds[eInterlaced] */\
-      1920, 1088, BAVC_FrameRateCode_e25, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e50 /* Bounds[eProgressive] */\
+      _instance, _channels, _memcIndex, BFMT_VideoFmt_e1080p_25Hz\
    )
 
 #define BBOX_VCE_CHANNEL_INFO_1080p30( _instance, _channels, _memcIndex )\
    BBOX_VCE_CHANNEL_INFO_V1(\
-      _instance, _channels, _memcIndex,\
-      BAVC_ScanType_eProgressive, BAVC_ScanType_eInterlaced, /* Instance[0] */\
-      1920, 1088, BAVC_FrameRateCode_e30, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e30, /* Bounds[eInterlaced] */\
-      1920, 1088, BAVC_FrameRateCode_e30, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e60 /* Bounds[eProgressive] */\
+      _instance, _channels, _memcIndex, BFMT_VideoFmt_e1080p_30Hz\
    )
 
 #define BBOX_VCE_CHANNEL_INFO_1080p60( _instance, _channels, _memcIndex )\
    BBOX_VCE_CHANNEL_INFO_V1(\
-      _instance, _channels, _memcIndex,\
-      BAVC_ScanType_eProgressive, BAVC_ScanType_eInterlaced, /* Instance[0] */\
-      1920, 1088, BAVC_FrameRateCode_e30, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e30, /* Bounds[eInterlaced] */\
-      1920, 1088, BAVC_FrameRateCode_e60, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e60 /* Bounds[eProgressive] */\
+   _instance, _channels, _memcIndex, BFMT_VideoFmt_e1080p\
    )
 
 typedef struct BBOX_Vce_Channel_Capabilities
@@ -116,20 +98,8 @@ typedef struct BBOX_Vce_Channel_Capabilities
    uint8_t uiInstance;
    uint8_t uiChannels; /* A bit mask indicating which channels are valid */
    uint8_t uiMemcIndex;
-
-   BAVC_ScanType eDefaultInputType;
-   BAVC_ScanType eDefaultInputTypeMemory;
-   struct
-   {
-      unsigned uiWidth;
-      unsigned uiHeight;
-      struct
-      {
-         BAVC_FrameRateCode eDefault;
-         BAVC_FrameRateCode eMin;
-         BAVC_FrameRateCode eMax;
-      } stFrameRate;
-   } stBounds[2]; /* Bounds for each BAVC_ScanType. The 1st entry is the default settings */
+   BFMT_VideoFmt eVideoFormat;
+   uint8_t uiPixelAlignment; /* height and width must me a multiple of uiPixelAlignment */
 } BBOX_Vce_Channel_Capabilities;
 
 #define BBOX_VCE_MAX_INSTANCE_COUNT 2

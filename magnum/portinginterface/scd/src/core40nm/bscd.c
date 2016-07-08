@@ -1,23 +1,44 @@
-/***************************************************************************
- *     Copyright (c) 2003-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c) 2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * Module Description:
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
  *
- * Revision History:
- * $brcm_Log: $
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- ************************************************************************/
-
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ *
+ *****************************************************************************/
 #include "bstd.h"
 #include "bkni.h"
 #include "bchp_pm.h"
@@ -43,8 +64,6 @@
 #endif
 
 #define BCHP_SCA_SC_CLK_CMD_clk_en_MASK BCHP_SCA_SC_CLK_CMD_1_clk_en_MASK
-
-
 
 #if 1
 #undef BDBG_ENTER
@@ -183,7 +202,7 @@ static const BSCD_ChannelSettings BSCD_defScdChannelSettings =
         BSCD_MAX_RESET_IN_CLK_CYCLES,
         true,
         false,
-        false  /*digital interface */
+        false,  /*digital interface */
 };
 
 
@@ -515,7 +534,7 @@ BERR_Code BSCD_Channel_Open(
 
 
     BDBG_MSG(("in_channelNo = %d\n", in_channelNo));
-    BDBG_MSG(("channelHandle->ulRegStartAddr = 0x%x\n", channelHandle->ulRegStartAddr));
+    BDBG_MSG(("channelHandle->ulRegStartAddr = 0x%x\n", (unsigned int)channelHandle->ulRegStartAddr));
 
 	if (inp_channelDefSettings != NULL){
                 BSCD_Channel_P_SetSrcClock(
@@ -1227,10 +1246,8 @@ BERR_Code BSCD_Channel_Open(
     BSCD_P_CHECK_ERR_CODE_FUNC(errCode,
         BKNI_CreateEvent( &(channelHandle->channelWaitEvent.timerWait)));
 
-#ifdef BSCD_EMV2000_CWT_PLUS_4_EVENT_INTR
     BSCD_P_CHECK_ERR_CODE_FUNC(errCode,
         BKNI_CreateEvent( &(channelHandle->channelWaitEvent.event1Wait)));
-#endif
 
     BSCD_P_CHECK_ERR_CODE_FUNC(errCode,
         BKNI_CreateEvent( &(channelHandle->channelWaitEvent.event2Wait)));
@@ -1268,10 +1285,8 @@ BSCD_P_DONE_LABEL:
                 BKNI_DestroyEvent( channelHandle->channelWaitEvent.atrStart );
             if (channelHandle->channelWaitEvent.timerWait != NULL)
                 BKNI_DestroyEvent( channelHandle->channelWaitEvent.timerWait );
-#ifdef BSCD_EMV2000_CWT_PLUS_4_EVENT_INTR
             if (channelHandle->channelWaitEvent.event1Wait != NULL)
                 BKNI_DestroyEvent( channelHandle->channelWaitEvent.event1Wait );
-#endif
             if (channelHandle->channelWaitEvent.event2Wait != NULL)
                 BKNI_DestroyEvent( channelHandle->channelWaitEvent.event2Wait );
 
@@ -1349,9 +1364,7 @@ BSCD_P_DONE_LABEL:
     BKNI_DestroyEvent( inout_channelHandle->channelWaitEvent.rcvWait );
     BKNI_DestroyEvent( inout_channelHandle->channelWaitEvent.atrStart );
     BKNI_DestroyEvent( inout_channelHandle->channelWaitEvent.timerWait );
-#ifdef BSCD_EMV2000_CWT_PLUS_4_EVENT_INTR
     BKNI_DestroyEvent( inout_channelHandle->channelWaitEvent.event1Wait );
-#endif
     BKNI_DestroyEvent( inout_channelHandle->channelWaitEvent.event2Wait );
 
     BSCD_Channel_Deactivate(inout_channelHandle);
@@ -1601,7 +1614,7 @@ BERR_Code BSCD_Channel_SetParameters(
 
     /* Set maximum IFSD */
     in_channelHandle->currentChannelSettings.unMaxIFSD =  BSCD_MAX_TX_SIZE ;
-    BDBG_MSG(("unMaxIFSD = %d", in_channelHandle->currentChannelSettings.unMaxIFSD));
+    BDBG_MSG(("unMaxIFSD = %d", (unsigned int)in_channelHandle->currentChannelSettings.unMaxIFSD));
 
     /* Set current IFSD */
     BSCD_P_CHECK_ERR_CODE_CONDITION( errCode, BSCD_STATUS_FAILED,
@@ -1612,7 +1625,7 @@ BERR_Code BSCD_Channel_SetParameters(
     else {
         in_channelHandle->currentChannelSettings.unCurrentIFSD =  inp_sSettings->unCurrentIFSD ;
     }
-    BDBG_MSG(("unCurrentIFSD = %d", in_channelHandle->currentChannelSettings.unCurrentIFSD));
+    BDBG_MSG(("unCurrentIFSD = %d",(unsigned int) in_channelHandle->currentChannelSettings.unCurrentIFSD));
 
     BSCD_P_CHECK_ERR_CODE_FUNC(errCode, BSCD_Channel_P_SetEdcParity(
         in_channelHandle, inp_sSettings));
@@ -1667,7 +1680,7 @@ BERR_Code BSCD_Channel_SetParameters(
         in_channelHandle->moduleHandle->regHandle,
         (in_channelHandle->ulRegStartAddr + BSCD_P_PRESCALE),
         in_channelHandle->currentChannelSettings.unPrescale);
-    BDBG_MSG(("New BSCD_P_PRESCALE = 0x%x\n", in_channelHandle->currentChannelSettings.unPrescale));
+    BDBG_MSG(("New BSCD_P_PRESCALE = 0x%x\n", (unsigned int)in_channelHandle->currentChannelSettings.unPrescale));
 
 #if 1
     /* Don't enable clock here since auto_clk need to be set first in ResetIFD before
@@ -1703,8 +1716,8 @@ BERR_Code BSCD_Channel_SetParameters(
     }
 #endif
 
-    BDBG_MSG(("address  = 0x%x\n", in_channelHandle->ulRegStartAddr));
-    BDBG_MSG(("BSCD_P_UART_CMD_2 address  = 0x%x\n", (in_channelHandle->ulRegStartAddr + BSCD_P_UART_CMD_2)));
+    BDBG_MSG(("address  = 0x%x\n", (unsigned int)in_channelHandle->ulRegStartAddr));
+    BDBG_MSG(("BSCD_P_UART_CMD_2 address  = 0x%x\n", (unsigned int)(in_channelHandle->ulRegStartAddr + BSCD_P_UART_CMD_2)));
     /* Update the BSCD_P_UART_CMD_2 */
     ulValue = BREG_Read32(
         in_channelHandle->moduleHandle->regHandle,
@@ -1756,8 +1769,6 @@ BERR_Code BSCD_Channel_SetParameters(
     else {
         ulValue &=  ~BCHP_SCA_SC_PROTO_CMD_edc_en_MASK;
     }
-
-    ulValue |= in_channelHandle->currentChannelSettings.ulCharacterWaitTimeInteger;
 
     BREG_Write32(
         in_channelHandle->moduleHandle->regHandle,
@@ -2180,10 +2191,10 @@ BERR_Code BSCD_Channel_ResetIFD(
     }
 
     BDBG_MSG(("Inside Reset: After Cold Reset ulIFCmdVal = 0x%x\n", ulIFCmdVal));
-	ulIFCmdVal = BREG_Read32(
+	ulValue = BREG_Read32(
 				in_channelHandle->moduleHandle->regHandle,
 				(in_channelHandle->ulRegStartAddr + BSCD_P_STATUS_1));
-	BDBG_MSG(("Inside Reset: After Cold Reset STATUS 1 = 0x%x\n", ulIFCmdVal));
+	BDBG_MSG(("Inside Reset: After Cold Reset STATUS 1 = 0x%x\n", ulValue));
     /* Use Auto Deactivation instead of TDA8004 */
     if (in_channelHandle->currentChannelSettings.bAutoDeactiveReq == true) {
 
@@ -2233,7 +2244,7 @@ if(in_channelHandle->currentChannelSettings.bConnectDirectly == true){
                 ((in_channelHandle->currentChannelSettings.ucEtuClkDiv - 1) << 1)  |
                 ((in_channelHandle->currentChannelSettings.ucBaudDiv == 31) ? 0 : 1);
 
-    BDBG_MSG(("Reset: BCM_SC_CLK_CMD = 0x%lx\n", ulValue));
+    BDBG_MSG(("Reset: BCM_SC_CLK_CMD = 0x%x\n", ulValue));
 
     BREG_Write32(
         in_channelHandle->moduleHandle->regHandle,
@@ -2317,7 +2328,7 @@ if(in_channelHandle->currentChannelSettings.bConnectDirectly == true){
     timer.bIsTimerInterruptEnable = false;
     timer.bIsTimerEnable = false;
     BSCD_P_CHECK_ERR_CODE_FUNC(errCode,
-        BSCD_Channel_EnableDisableTimer_isr(in_channelHandle, &timer));
+            BSCD_Channel_ConfigTimer(in_channelHandle, &timer, NULL));
 
     ulValue = BREG_Read32(
         in_channelHandle->moduleHandle->regHandle,
@@ -2459,6 +2470,8 @@ BERR_Code BSCD_Channel_SetVccLevel(
 
     BKNI_EnterCriticalSection();
         in_channelHandle->currentChannelSettings.vcc = in_vccLevel;
+			/* set pin muxing */
+	if( in_channelHandle->currentChannelSettings.setPinmux){
 
 #if (BCHP_CHIP==7422) || (BCHP_CHIP==7425)|| (BCHP_CHIP==7435)
     ulValue = BREG_Read32 (in_channelHandle->moduleHandle->regHandle,
@@ -2467,9 +2480,7 @@ BERR_Code BSCD_Channel_SetVccLevel(
 
     BREG_Write32 (in_channelHandle->moduleHandle->regHandle, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_14,ulValue );
 
-    ulValue = BREG_Read32 (in_channelHandle->moduleHandle->regHandle,  BCHP_GIO_IODIR_EXT);
-                ulValue &=  ~(1<<(74-64+6));     /* include sgpio */
-                BREG_Write32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_IODIR_EXT, ulValue );
+    BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle,BCHP_GIO_IODIR_EXT, 1 << (74 - 64 + 6), 0);
 #elif ((BCHP_CHIP == 7346) || (BCHP_CHIP==73465))
         switch( in_channelHandle->ucChannelNumber){
                 case 0:
@@ -2498,9 +2509,7 @@ BERR_Code BSCD_Channel_SetVccLevel(
                         BREG_Write32 (in_channelHandle->moduleHandle->regHandle,
                                 BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_10, ulValue);
 
-                        ulValue = BREG_Read32 (in_channelHandle->moduleHandle->regHandle,  BCHP_GIO_IODIR_EXT);
-                        ulValue &=      ~(1<<(86-64+6));
-                        BREG_Write32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_IODIR_EXT, ulValue );
+                        BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_IODIR_EXT, 1 << (86 - 64 + 6), 0);
                         break;
                 case 1:
                         BDBG_WRN(("Slot 1 not supported in BRCM reference board, please use customer callback function to set the correct voltage\n"));
@@ -2515,10 +2524,7 @@ BERR_Code BSCD_Channel_SetVccLevel(
                                 BREG_Write32 (in_channelHandle->moduleHandle->regHandle,
                                         BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_11, ulValue);
 
-                                ulValue = BREG_Read32 (in_channelHandle->moduleHandle->regHandle,  BCHP_GIO_IODIR_EXT);
-                                ulValue &=      ~(1<<(86-64));
-
-                                BREG_Write32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_IODIR_EXT, ulValue );
+                                BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_IODIR_EXT, 1 << ( 86 - 64), 0);
                                 break;
                         case 1:
                                 BDBG_WRN(("Slot 1 not supported in BRCM reference board, please use customer callback function to set the correct voltage\n"));
@@ -2531,10 +2537,7 @@ BERR_Code BSCD_Channel_SetVccLevel(
                                                                 BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_1);
                                                 ulValue &= ~BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_1_aon_gpio_08_MASK ;
 
-                                                BREG_Write32 (in_channelHandle->moduleHandle->regHandle, BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_1,ulValue );
-                                                ulValue = BREG_Read32 (in_channelHandle->moduleHandle->regHandle,  BCHP_GIO_AON_IODIR_LO);
-                                                ulValue &=      ~(1<<(8));
-                                                BREG_Write32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_AON_IODIR_LO,ulValue );
+                                                BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_AON_IODIR_LO, 1 << 8, 0);
                                                 break;
                                         case 1:
                                                 BDBG_WRN(("Slot 1 not supported in BRCM reference board, please use customer callback function to set the correct voltage\n"));
@@ -2548,10 +2551,7 @@ BERR_Code BSCD_Channel_SetVccLevel(
                                                                 BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_10);
                                                 ulValue &= ~BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_10_gpio_086_MASK ;
 
-                                                BREG_Write32 (in_channelHandle->moduleHandle->regHandle, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_10,ulValue );
-                                                ulValue = BREG_Read32 (in_channelHandle->moduleHandle->regHandle,  BCHP_GIO_IODIR_EXT);
-                                                ulValue &=      ~(1<<(86-64+4));
-                                                BREG_Write32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_IODIR_EXT,ulValue );
+                                                BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_IODIR_EXT, 1 << (86 - 64 + 4), 0);
                                                 break;
                                         case 1:
                                                 BDBG_WRN(("Slot 1 not supported in BRCM reference board, please use customer callback function to set the correct voltage\n"));
@@ -2572,9 +2572,7 @@ BERR_Code BSCD_Channel_SetVccLevel(
 
                                                 BREG_Write32 (in_channelHandle->moduleHandle->regHandle, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_17,ulValue );
                 #endif
-                                                ulValue = BREG_Read32 (in_channelHandle->moduleHandle->regHandle,  BCHP_GIO_IODIR_EXT_HI);
-                                                ulValue &=      ~(1<<(93-88));
-                                                BREG_Write32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_IODIR_EXT_HI,ulValue );
+                                                BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_IODIR_EXT_HI, 1 << (93 - 88), 0);
                                                 break;
                                         case 0:
                                                 BDBG_WRN(("Slot 0 not supported in BRCM reference board, please use customer callback function to set the correct voltage\n"));
@@ -2678,17 +2676,15 @@ BERR_Code BSCD_Channel_SetVccLevel(
                                                 ulValue &= ~BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_6_onoff_gpio_092_MASK ;
                                                 BREG_Write32 (in_channelHandle->moduleHandle->regHandle, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_6,ulValue );
 
-                                                ulValue = BREG_Read32 (in_channelHandle->moduleHandle->regHandle,  BCHP_GIO_IODIR_EXT_HI);
-                                                ulValue &= ~(1<<(92-64));
-                                                BREG_Write32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_IODIR_EXT_HI,ulValue );
-
-                                                ulValue = BREG_Read32 (in_channelHandle->moduleHandle->regHandle,  BCHP_GIO_DATA_EXT_HI);
-                                                ulValue |=      (1<<(92-64));
-                                                BREG_Write32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_DATA_EXT_HI,ulValue );
+                                                BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_IODIR_EXT_HI, 1 << (92 - 64), 0);
+                                                BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_IODIR_EXT_HI, 1 << (92 - 64), 1 << (92 - 64));
                                                 break;
                                         case 1:
-                                                BDBG_WRN(("Channel is not supported!\n"));
-                                                break;
+											ulValue = BREG_Read32 (in_channelHandle->moduleHandle->regHandle,BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_1);
+											ulValue &= ~BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_1_aon_gpio_13_MASK ;
+											ulValue |=(0x00000006<<BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_1_aon_gpio_13_SHIFT);
+											BREG_Write32 (in_channelHandle->moduleHandle->regHandle, BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_1,ulValue );
+											break;
                                 }
 #elif (BCHP_CHIP == 7271) || (BCHP_CHIP == 7268)
 							switch( in_channelHandle->ucChannelNumber){
@@ -2718,102 +2714,94 @@ BERR_Code BSCD_Channel_SetVccLevel(
         case BSCD_VccLevel_e3V:
 
 #if (BCHP_CHIP==7422) || (BCHP_CHIP==7425)|| (BCHP_CHIP==7435)
-            ulValue = BREG_Read32 (in_channelHandle->moduleHandle->regHandle,  BCHP_GIO_DATA_EXT);
-            ulValue &=  ~(1<<(74-64+6));
-            BREG_Write32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_DATA_EXT, ulValue );
+            BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_DATA_EXT, 1 << (74 - 64 + 6), 0);
 #elif (BCHP_CHIP==7231)
-            ulValue = BREG_Read32 (in_channelHandle->moduleHandle->regHandle,  BCHP_GIO_DATA_EXT);
-            ulValue &=  ~(1<<(86-64+6));
-            BREG_Write32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_DATA_EXT, ulValue );
+            BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_DATA_EXT, 1 << (86 - 64 + 6), 0);
 #elif (BCHP_CHIP==7358) ||(BCHP_CHIP==7552)||(BCHP_CHIP==7360)||(BCHP_CHIP==7584)||(BCHP_CHIP==75845)||(BCHP_CHIP==7362)||(BCHP_CHIP==7228) || (BCHP_CHIP==73625)||(BCHP_CHIP==75525)
-                                                ulValue = BREG_Read32 (in_channelHandle->moduleHandle->regHandle,  BCHP_GIO_DATA_EXT);
-                                                ulValue &=      ~(1<<(86-64));
-                                                BREG_Write32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_DATA_EXT, ulValue );
+            BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_DATA_EXT, 1 << (86 - 64), 0);
 #elif (BCHP_CHIP==7429)||(BCHP_CHIP==7241)||(BCHP_CHIP==74295)
-                        ulValue = BREG_Read32 (in_channelHandle->moduleHandle->regHandle,  BCHP_GIO_DATA_EXT);
-                        ulValue &=      ~(1<<(86-64+4));
-                        BREG_Write32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_DATA_EXT, ulValue );
+            BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_DATA_EXT, 1 << (86 - 64 + 4), 0);
 #elif (BCHP_CHIP==7445)
-                        ulValue = BREG_Read32 (in_channelHandle->moduleHandle->regHandle,  BCHP_GIO_DATA_EXT_HI);
-                        ulValue &=      ~(1<<(93-88));
-                        BREG_Write32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_DATA_EXT_HI, ulValue );
+            BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_DATA_EXT_HI, 1 << (93 - 88), 0);
 #elif (BCHP_CHIP==7344)
-                        ulValue = BREG_Read32 (in_channelHandle->moduleHandle->regHandle,  BCHP_GIO_AON_DATA_LO);
-                        ulValue &=      ~(1<<(8));
-                        BREG_Write32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_AON_DATA_LO, ulValue );
+            BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_AON_DATA_LO, 1 << 8, 0);
 #elif (BCHP_CHIP==7145)||(BCHP_CHIP==7366)||(BCHP_CHIP==7439)||(BCHP_CHIP==7364)||(BCHP_CHIP==7250)|| (BCHP_CHIP==7586)||(BCHP_CHIP==7563)|| (BCHP_CHIP==75635)||(BCHP_CHIP == 7346) || (BCHP_CHIP==73465)
-                        ulValue =  BREG_Read32(
-                                in_channelHandle->moduleHandle->regHandle,
-                                (in_channelHandle->ulRegStartAddr + BSCD_P_IF_CMD_3)) ;
-                        ulValue &=~BCHP_SCA_SC_IF_CMD_3_vpp_MASK;
-                        BREG_Write32(
-                                in_channelHandle->moduleHandle->regHandle,
-                                (in_channelHandle->ulRegStartAddr + BSCD_P_IF_CMD_3),
-                                 ulValue);
-
+            ulValue =  BREG_Read32(
+                    in_channelHandle->moduleHandle->regHandle,
+                    (in_channelHandle->ulRegStartAddr + BSCD_P_IF_CMD_3)) ;
+            ulValue &=~BCHP_SCA_SC_IF_CMD_3_vpp_MASK;
+            BREG_Write32(
+                    in_channelHandle->moduleHandle->regHandle,
+                    (in_channelHandle->ulRegStartAddr + BSCD_P_IF_CMD_3),
+                    ulValue);
 #else
-                                BDBG_WRN(("Chip is not supported!\n"));
+            BDBG_WRN(("Chip is not supported!\n"));
 #endif
             break;
 
         case BSCD_VccLevel_e5V:
 #if (BCHP_CHIP==7422) || (BCHP_CHIP==7425)|| (BCHP_CHIP==7435)
-            ulValue = BREG_Read32 (in_channelHandle->moduleHandle->regHandle,  BCHP_GIO_DATA_EXT);
-            ulValue |=  (1<<(74-64+6));
-            BREG_Write32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_DATA_EXT, ulValue );
+            BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_DATA_EXT, 1 << (74 - 64 + 6), 1 << (74 - 64 + 6));
 #elif (BCHP_CHIP==7231)
-                        ulValue = BREG_Read32 (in_channelHandle->moduleHandle->regHandle,  BCHP_GIO_DATA_EXT);
-                        ulValue |=      1<<(86-64+6);
-                        BREG_Write32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_DATA_EXT, ulValue );
+            BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_DATA_EXT, 1 << (86 - 64 + 6), 1 << (86 - 64 + 6));
 #elif (BCHP_CHIP==7358) ||(BCHP_CHIP==7552)||(BCHP_CHIP==7360)||(BCHP_CHIP==7584)||(BCHP_CHIP==75845)||(BCHP_CHIP==7362)||(BCHP_CHIP==7228) || (BCHP_CHIP==73625)||(BCHP_CHIP==75525)
-                                                                        ulValue = BREG_Read32 (in_channelHandle->moduleHandle->regHandle,  BCHP_GIO_DATA_EXT);
-                                                                        ulValue |=      1<<(86-64);
-                                                                        BREG_Write32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_DATA_EXT, ulValue );
+            BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_DATA_EXT, 1 << (86 - 64), 1 << (86 - 64));
 #elif (BCHP_CHIP==7344)
-                        ulValue = BREG_Read32 (in_channelHandle->moduleHandle->regHandle,  BCHP_GIO_AON_DATA_LO);
-                        ulValue |=      (1<<(8));
-                        BREG_Write32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_AON_DATA_LO, ulValue );
+            BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_AON_DATA_LO, 1 << 8, 1 << 8);
 #elif (BCHP_CHIP==7445)
-                        ulValue = BREG_Read32 (in_channelHandle->moduleHandle->regHandle,  BCHP_GIO_DATA_EXT_HI);
-                        ulValue |=      (1<<(93-88));
-                        BREG_Write32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_DATA_EXT_HI, ulValue );
-
+            BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_DATA_EXT_HI, 1 << (93 - 88), 1 << (93 - 88));
 #elif (BCHP_CHIP==7429)||(BCHP_CHIP==7241)||(BCHP_CHIP==74295)
-            ulValue = BREG_Read32 (in_channelHandle->moduleHandle->regHandle,  BCHP_GIO_DATA_EXT);
-            ulValue |=  (1<<(86-64+4));
-            BREG_Write32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_DATA_EXT, ulValue );
+            BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_DATA_EXT, 1 << (86 - 64 + 4), 1 << (86 - 64 + 4));
 #elif (BCHP_CHIP==7439)||(BCHP_CHIP==7366)||(BCHP_CHIP==7145)||(BCHP_CHIP==7364)||(BCHP_CHIP==7250)|| (BCHP_CHIP==7586)||(BCHP_CHIP==7563)|| (BCHP_CHIP==75635)||(BCHP_CHIP == 7346) || (BCHP_CHIP==73465)||(BCHP_CHIP==7271)||(BCHP_CHIP==7268)
-                        ulValue =  BCHP_SCA_SC_IF_CMD_3_vpp_MASK | BREG_Read32(
-                in_channelHandle->moduleHandle->regHandle,
-                (in_channelHandle->ulRegStartAddr + BSCD_P_IF_CMD_3)) ;
-                        BREG_Write32(
+            ulValue =  BCHP_SCA_SC_IF_CMD_3_vpp_MASK | BREG_Read32(
+                    in_channelHandle->moduleHandle->regHandle,
+                    (in_channelHandle->ulRegStartAddr + BSCD_P_IF_CMD_3)) ;
+            BREG_Write32(
                     in_channelHandle->moduleHandle->regHandle,
                     (in_channelHandle->ulRegStartAddr + BSCD_P_IF_CMD_3),
                     ulValue);
-
 #else
-                                BDBG_WRN(("Chip is not supported!\n"));
-
+            BDBG_WRN(("Chip is not supported!\n"));
 #endif
             break;
 
-                case  BSCD_VccLevel_e1P8V:
-                #if (BCHP_CHIP==7250)
-                        ulValue = BREG_Read32 (in_channelHandle->moduleHandle->regHandle,  BCHP_GIO_DATA_EXT_HI);
-                        ulValue &=      ~(1<<(92-64));
-                        BREG_Write32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_DATA_EXT_HI,ulValue );
-                #else
-                        BDBG_WRN(("1.8V is not supported in BRCM ref board, please add customer code here.\n"));
-                #endif
-                        break;
+        case  BSCD_VccLevel_e1P8V:
+#if (BCHP_CHIP==7250)
+            BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_DATA_EXT_HI, 1 << (92 - 64), 0);
+#else
+            BDBG_WRN(("1.8V is not supported in BRCM ref board, please add customer code here.\n"));
+#endif
+            break;
 
-                default:
+        default:
             errCode = BERR_TRACE(BSCD_STATUS_FAILED);
             BDBG_ERR(("BSCD_Channel_SetVccLevel: Do not support VCC Level switch = 0x%x, \n", in_vccLevel));
             goto BSCD_P_DONE_LABEL;
-    }
+        }
 
+		}else{
+			/* Need to set pin to sc_vpp */
+			switch (in_vccLevel) {
+				case BSCD_VccLevel_e3V:
+					ulValue =  BREG_Read32(in_channelHandle->moduleHandle->regHandle,
+										(in_channelHandle->ulRegStartAddr + BSCD_P_IF_CMD_3)) ;
+					ulValue &=~BCHP_SCA_SC_IF_CMD_3_vpp_MASK;
+					BREG_Write32(in_channelHandle->moduleHandle->regHandle,
+								(in_channelHandle->ulRegStartAddr + BSCD_P_IF_CMD_3),ulValue);
+					break;
 
+				case BSCD_VccLevel_e5V:
+					ulValue =  BREG_Read32(in_channelHandle->moduleHandle->regHandle,
+										(in_channelHandle->ulRegStartAddr + BSCD_P_IF_CMD_3)) ;
+					ulValue |=BCHP_SCA_SC_IF_CMD_3_vpp_MASK;
+					BREG_Write32(in_channelHandle->moduleHandle->regHandle,
+								(in_channelHandle->ulRegStartAddr + BSCD_P_IF_CMD_3),ulValue);
+					break;
+				case BSCD_VccLevel_e1P8V:
+					BDBG_WRN(("1.8V is not supported in BRCM ref board, please set your own pin mux.\n"));
+					break;
+			}
+		}
 
 
 
@@ -2962,6 +2950,100 @@ BSCD_P_DONE_LABEL:
 
 }
 
+
+static BERR_Code BSCD_startATRTimers (BSCD_ChannelHandle  in_channelHandle)
+{
+    BERR_Code               errCode = BERR_SUCCESS;
+    BSCD_EventTimerMode      eEventTimerMode;
+    BSCD_Timer              timer;
+    BSCD_TimerValue timeValue= {BSCD_MIN_ETU_PER_ATR_BYTE + 1, BSCD_TimerUnit_eETU};
+
+    eEventTimerMode.int_after_reset = false;
+    eEventTimerMode.int_after_compare = true;
+    eEventTimerMode.run_after_reset = false;
+    eEventTimerMode.run_after_compare = true;
+    eEventTimerMode.start_event = BSCD_P_RX_START_BIT_EVENT_SRC;
+    eEventTimerMode.incr_event = BSCD_P_RX_ETU_TICK_EVENT_SRC;
+    eEventTimerMode.reset_event = BSCD_P_NO_EVENT_EVENT_SRC;
+
+    timer.eTimerType = BSCD_TimerType_eEvent1Timer;
+    timer.timerMode.eEventTimerMode = &eEventTimerMode;
+    timer.bIsTimerEnable = true;
+    timer.bIsTimerInterruptEnable = false;
+
+    BDBG_MSG(("Activating: Event1 timer \n"));
+    if(BERR_SUCCESS != BSCD_Channel_ConfigTimer(in_channelHandle, &timer, &timeValue))
+    {
+        BDBG_ERR(("not able to configure BSCD_TimerType_eEvent1Timer Timer\n"));
+        return BSCD_STATUS_FAILED;
+    }
+
+    timer.eTimerType = BSCD_TimerType_eEvent2Timer;
+    timeValue.ulValue = 0xff;
+    eEventTimerMode.int_after_reset = false;
+    eEventTimerMode.int_after_compare = false;
+    eEventTimerMode.run_after_reset = false;
+    eEventTimerMode.run_after_compare = false;
+    eEventTimerMode.start_event = BSCD_P_EVENT1_INTR_EVENT_SRC;
+    eEventTimerMode.incr_event = BSCD_P_EVENT1_INTR_EVENT_SRC;
+
+    BDBG_MSG(("Activating: Event2 timer \n"));
+    if(BERR_SUCCESS != BSCD_Channel_ConfigTimer(in_channelHandle, &timer, &timeValue))
+    {
+        BDBG_ERR(("not able to configure BSCD_TimerType_eEvent1Timer Timer\n"));
+    }
+
+    timer.eTimerType = BSCD_TimerType_eWaitTimer;
+    timer.timerMode.eWaitTimerMode = BSCD_WaitTimerMode_eWorkWaitTime;
+    timer.bIsTimerEnable = true;
+    timer.bIsTimerInterruptEnable = true;
+
+    /* Enable WWT to ensure the max interval between 2 consecutive ATR chars of 10080 ETU */
+    BDBG_MSG(("Activating: Set WWT timer \n"));
+    if (in_channelHandle->currentChannelSettings.scStandard == BSCD_Standard_eEMV2000)
+        timeValue.ulValue = BSCD_MAX_ETU_PER_ATR_BYTE_EMV2000;
+    else /* EMV 96 or the rest */
+        timeValue.ulValue = BSCD_MAX_ETU_PER_ATR_BYTE;
+
+    BSCD_P_CHECK_ERR_CODE_FUNC(errCode,
+                    BSCD_Channel_ConfigTimer(in_channelHandle, &timer, &timeValue));
+
+BSCD_P_DONE_LABEL:
+
+    return BERR_SUCCESS;
+}
+
+static BERR_Code BSCD_stopATRTimers(BSCD_ChannelHandle  in_channelHandle)
+{
+    BSCD_Timer              timer;
+    BERR_Code       errCode = BERR_SUCCESS;
+
+    timer.eTimerType = BSCD_TimerType_eEvent1Timer;
+    timer.timerMode.eEventTimerMode = NULL;
+    timer.bIsTimerEnable = false;
+    timer.bIsTimerInterruptEnable = false;
+
+    if(BSCD_Channel_ConfigTimer(in_channelHandle, &timer, NULL) != BERR_SUCCESS)
+    {
+        errCode = BSCD_STATUS_FAILED;
+    }
+
+    timer.eTimerType = BSCD_TimerType_eEvent2Timer;
+    if(BSCD_Channel_ConfigTimer(in_channelHandle, &timer, NULL) != BERR_SUCCESS)
+    {
+        errCode = BSCD_STATUS_FAILED;
+    }
+
+    timer.eTimerType = BSCD_TimerType_eWaitTimer;
+    timer.timerMode.eWaitTimerMode = BSCD_WaitTimerMode_eWorkWaitTime;
+    if(BSCD_Channel_ConfigTimer(in_channelHandle, &timer, NULL) != BERR_SUCCESS)
+    {
+        errCode = BSCD_STATUS_FAILED;
+    }
+
+    return errCode;
+}
+
 BERR_Code BSCD_Channel_ResetCard(
         BSCD_ChannelHandle          in_channelHandle,
         BSCD_ResetCardAction               in_iccAction
@@ -2986,13 +3068,21 @@ BERR_Code BSCD_Channel_ResetCard(
                                 return BERR_UNKNOWN;
                                 };
         }
+
+
+    if ((errCode = BSCD_startATRTimers(in_channelHandle)) != BERR_SUCCESS) {
+        errCode = BERR_TRACE(errCode);
+        goto BSCD_P_DONE_LABEL;
+    }
+    in_channelHandle->bOnAtr = true;
+
     switch (in_iccAction) {
         case BSCD_ResetCardAction_eNoAction:
             if (  (errCode = BSCD_Channel_P_Activating(in_channelHandle)) != BERR_SUCCESS) {
                    errCode = BERR_TRACE(errCode);
                 goto BSCD_P_DONE_LABEL;
             }
-            break;
+           break;
         case BSCD_ResetCardAction_eReceiveAndDecode:
             BDBG_MSG(("BSCD_ResetCardAction_eReceiveAndDecode \n"));
             if (  ((errCode = BSCD_Channel_P_Activating(in_channelHandle)) != BERR_SUCCESS) ||
@@ -3009,7 +3099,6 @@ BERR_Code BSCD_Channel_ResetCard(
 
 
 BSCD_P_DONE_LABEL:
-
 
     BDBG_LEAVE(BSCD_Channel_ResetCard);
         if(errCode == BSCD_STATUS_DEACTIVATE){
@@ -3071,9 +3160,6 @@ BERR_Code BSCD_Channel_Receive(
 )
 {
     BERR_Code       errCode = BSCD_STATUS_READ_SUCCESS;
-#ifndef BSCD_DSS_ICAM
-    BSCD_Timer      timer = {BSCD_TimerType_eWaitTimer, {BSCD_WaitTimerMode_eWorkWaitTime}, false, false};
-#endif
 
     BDBG_ENTER(BSCD_Channel_Receive);
     BDBG_ASSERT( in_channelHandle );
@@ -3091,29 +3177,45 @@ BERR_Code BSCD_Channel_Receive(
     if ((in_channelHandle->currentChannelSettings.eProtocolType == BSCD_AsyncProtocolType_e0) ||
         (in_channelHandle->currentChannelSettings.eProtocolType == BSCD_AsyncProtocolType_e14_IRDETO) ) {
 
-        BSCD_P_CHECK_ERR_CODE_FUNC(errCode,
-                    BSCD_Channel_P_T0ReadData(in_channelHandle, outp_ucRcvData, outp_ulNumRcvBytes,
-                            in_ulMaxReadBytes));
 
-        /*
-            The Work Wait Timer is enabled in BSCD_Channel_P_T0T1Transmit. We cannot disable
-            it in BSCD_Channel_P_T0ReadData since BSCD_Channel_P_T0ReadData is also used
-            by reading ATR, which is one byte at a time.
-        */
-
-#ifndef BSCD_DSS_ICAM   /* BSYT leave this WWT enabled. We only disable WWT in transmit. */
-        /*
-            I assume all standards, other than EMV, will read all the bytes in BSCD_Channel_P_T0ReadData,
-            therefore we couold safely disable the WWT here.  EMV only read 1 bytes at a time, therefore
-            we have to disable WWT in the application
-        */
-        if ((in_channelHandle->currentChannelSettings.scStandard != BSCD_Standard_eEMV1996) &&
-            (in_channelHandle->currentChannelSettings.scStandard != BSCD_Standard_eEMV2000) &&(in_channelHandle->currentChannelSettings.scStandard != BSCD_Standard_eNDS))
-        BSCD_P_CHECK_ERR_CODE_FUNC2(errCode, BSCD_STATUS_READ_FAILED,
-            BSCD_Channel_EnableDisableTimer_isr(in_channelHandle, &timer));
-#endif
+        /* you could have a timeout when receiving the ATR
+         * only parsing ATR will tell if it correct */
+        errCode = BSCD_Channel_P_T0ReadData(in_channelHandle, outp_ucRcvData, outp_ulNumRcvBytes,
+                            in_ulMaxReadBytes);
 
 
+        if(in_channelHandle->bOnAtr)
+        {
+            /* only standard that retrieve ATR in a single shot can
+             * check the 12 ETU intra-char delay
+             */
+            if(in_channelHandle->currentChannelSettings.scStandard != BSCD_Standard_eNDS)
+            {
+                unsigned int ev2cnt;
+
+                /* wait for a while, otherwise the counter will not be increased
+                 * after the last char
+                 */
+                if(*outp_ulNumRcvBytes == in_ulMaxReadBytes)
+                {
+                    BKNI_Delay(20);
+                }
+                ev2cnt = BREG_Read32(
+                        in_channelHandle->moduleHandle->regHandle,
+                        (in_channelHandle->ulRegStartAddr + BSCD_P_EVENT2_CNT));
+                if(ev2cnt != *outp_ulNumRcvBytes) {
+                    BDBG_ERR(("events 2 counter %d != atr len %d\n",  ev2cnt, (unsigned int)*outp_ulNumRcvBytes));
+                    *outp_ulNumRcvBytes = 0;
+                    errCode = BSCD_STATUS_FAILED;
+                }
+            }
+            in_channelHandle->bOnAtr = false;
+            if (BSCD_stopATRTimers(in_channelHandle) != BERR_SUCCESS)
+            {
+                *outp_ucRcvData = 0;
+                errCode = BSCD_STATUS_FAILED;
+            }
+        }
     }/* BSCD_AsyncProtocolType_e0 */
 
     else { /* BSCD_AsyncProtocolType_e1 */
@@ -3144,348 +3246,14 @@ BSCD_P_DONE_LABEL:
     return( errCode );
 }
 
-BERR_Code BSCD_Channel_ReceiveATR(
-        BSCD_ChannelHandle       in_channelHandle,
-        uint8_t                         *outp_ucRcvData,
-        unsigned long                  *outp_ulNumRcvBytes,
-        unsigned long                    in_ulMaxReadBytes
-)
-{
-    BERR_Code       errCode = BSCD_STATUS_READ_SUCCESS;
-
-    BDBG_ENTER(BSCD_Channel_ReceiveATR);
-    BDBG_ASSERT( in_channelHandle );
-
-    BSCD_P_CHECK_ERR_CODE_CONDITION( errCode, BSCD_STATUS_FAILED,
-        (in_channelHandle->ulMagicNumber != BSCD_P_CHANNEL_HANDLE_MAGIC_NUMBER ) );
-
-    *outp_ulNumRcvBytes = 0;
-
-    if(outp_ucRcvData == NULL) {
-        BSCD_P_CHECK_ERR_CODE_CONDITION( errCode, BSCD_STATUS_FAILED, true);
-    }
-
-    BSCD_P_CHECK_ERR_CODE_FUNC(errCode,
-                BSCD_Channel_P_T0ReadData(in_channelHandle, outp_ucRcvData, outp_ulNumRcvBytes,
-                        in_ulMaxReadBytes));
-
-    if (*outp_ulNumRcvBytes > 0) {
-
-        /*
-        For T=0, we depend on timeout to
-        identify that there is no more byte to be received
-        */
-
-        /* Ignore the ReadTimeOut error returned by SmartCardByteRead */
-        /* BDBG_MSG (("success in SmartCardReadCmd\n")); */
-    }
-
-    else {
-        BDBG_MSG (("No Response detected...deactivating, scerr = %02x\n",errCode));
-        BSCD_P_CHECK_ERR_CODE_CONDITION( errCode, BSCD_STATUS_FAILED, true);
-    }
-
-
-
-BSCD_P_DONE_LABEL:
-
-    BDBG_LEAVE(BSCD_Channel_ReceiveATR);
-    /* BDBG_MSG(("Leave BSCD_Channel_ReceiveATR = 0x%x\n", errCode)); */
-    return( errCode );
-}
 
 BERR_Code BSCD_Channel_ConfigTimer(
-        BSCD_ChannelHandle          in_channelHandle,
+        BSCD_ChannelHandle   in_channelHandle,
         BSCD_Timer                  *inp_timer,
         BSCD_TimerValue             *inp_unCount
-
 )
 {
-    BERR_Code errCode = BERR_SUCCESS;
-    uint32_t            ulTimerCmdVal, ulTimerCmpVal;
-
-    BDBG_ENTER(BSCD_Channel_ConfigTimer);
-    BDBG_ASSERT( in_channelHandle );
-
-    BSCD_P_CHECK_ERR_CODE_CONDITION( errCode, BSCD_STATUS_FAILED,
-        (in_channelHandle->ulMagicNumber != BSCD_P_CHANNEL_HANDLE_MAGIC_NUMBER ) );
-
-    if (inp_timer->eTimerType == BSCD_TimerType_eGPTimer) {
-
-        /* Always disbale timer first before we change timer_cmd */
-        ulTimerCmdVal = BREG_Read32(
-                    in_channelHandle->moduleHandle->regHandle,
-                    (in_channelHandle->ulRegStartAddr + BSCD_P_TIMER_CMD));
-
-        ulTimerCmdVal &= (~BCHP_SCA_SC_TIMER_CMD_timer_en_MASK);
-
-        BREG_Write32(
-                    in_channelHandle->moduleHandle->regHandle,
-                    (in_channelHandle->ulRegStartAddr + BSCD_P_TIMER_CMD),
-                    ulTimerCmdVal);
-
-        BKNI_EnterCriticalSection();
-        in_channelHandle->ulIntrStatus1  &= ~BCHP_SCA_SC_INTR_STAT_1_timer_intr_MASK;
-        BKNI_LeaveCriticalSection();
-
-        /* Set timer_cmp registers */
-
-#ifndef SMARTCARD_32_BIT_REGISTER
-
-        ulTimerCmpVal = ((inp_unCount->ulValue & 0xFF00) >> 8);
-        BREG_Write32(
-                    in_channelHandle->moduleHandle->regHandle,
-                    (in_channelHandle->ulRegStartAddr + BSCD_P_TIMER_CMP_2),
-                    ulTimerCmpVal);
-
-        ulTimerCmpVal = inp_unCount->ulValue & 0x00FF;
-        BREG_Write32(
-                    in_channelHandle->moduleHandle->regHandle,
-                    (in_channelHandle->ulRegStartAddr + BSCD_P_TIMER_CMP_1),
-                    ulTimerCmpVal);
-#else
-                ulTimerCmpVal = inp_unCount->ulValue;
-                BREG_Write32(
-                    in_channelHandle->moduleHandle->regHandle,
-                    (in_channelHandle->ulRegStartAddr + BSCD_P_TIMER_CMP_1),
-                    ulTimerCmpVal);
-#endif
-
-
-        /* Set the timer unit and mode */
-        if ( inp_unCount->unit == BSCD_TimerUnit_eCLK) {
-            ulTimerCmdVal |= BCHP_SCA_SC_TIMER_CMD_timer_src_MASK;
-        }
-        else if (inp_unCount->unit  == BSCD_TimerUnit_eETU) {
-            ulTimerCmdVal &= (~BCHP_SCA_SC_TIMER_CMD_timer_src_MASK);
-        }
-        else {
-            BSCD_P_CHECK_ERR_CODE_CONDITION( errCode, BSCD_STATUS_FAILED, true);
-        }
-
-        if (inp_timer->timerMode.eGPTimerMode == BSCD_GPTimerMode_eNEXT_START_BIT ) {
-            ulTimerCmdVal |= BCHP_SCA_SC_TIMER_CMD_timer_mode_MASK;
-        }
-        else {  /* BSCD_GPTimerMode_eIMMEDIATE */
-            ulTimerCmdVal &= (~BCHP_SCA_SC_TIMER_CMD_timer_mode_MASK);
-        }
-
-        /* Check if we need to invoke an interrupt when the time expires */
-        if (inp_timer->bIsTimerInterruptEnable == true) {  /* inp_timer->bIsTimerInterruptEnable == true && BSCD_TimerType_eGPTimer */
-            BSCD_P_CHECK_ERR_CODE_FUNC(errCode,
-                    BSCD_Channel_EnableIntrCallback_isr (
-                        in_channelHandle, BSCD_IntType_eTimerInt,
-                                BSCD_Channel_P_TimerCB_isr));
-        }
-        else { /* inp_timer->bIsTimerInterruptEnable == false && BSCD_TimerType_eGPTimer */
-            BSCD_P_CHECK_ERR_CODE_FUNC(errCode,
-                    BSCD_Channel_DisableIntrCallback_isr (
-                        in_channelHandle, BSCD_IntType_eTimerInt));
-        }
-
-        if (inp_timer->bIsTimerEnable == true) {
-            ulTimerCmdVal    |= BCHP_SCA_SC_TIMER_CMD_timer_en_MASK;
-        } /* inp_timer->bIsTimerEnable == true && BSCD_TimerType_eGPTimer */
-
-        else { /* inp_timer->bIsTimerEnable == false && BSCD_TimerType_eGPTimer */
-            ulTimerCmdVal    &= ~BCHP_SCA_SC_TIMER_CMD_timer_en_MASK;
-
-        }
-
-    }  /* if (inp_timer->eTimerType == BSCD_TimerType_eGPTimer) */
-
-    else {  /* BSCD_TimerType_eWaitTimer */
-
-        /* Always disable timer first before we change timer_cmd */
-        ulTimerCmdVal = BREG_Read32(
-                    in_channelHandle->moduleHandle->regHandle,
-                    (in_channelHandle->ulRegStartAddr + BSCD_P_TIMER_CMD));
-
-        ulTimerCmdVal &= (~BCHP_SCA_SC_TIMER_CMD_wait_en_MASK);
-
-        BREG_Write32(
-                    in_channelHandle->moduleHandle->regHandle,
-                    (in_channelHandle->ulRegStartAddr + BSCD_P_TIMER_CMD),
-                    ulTimerCmdVal);
-
-        BKNI_EnterCriticalSection();
-        in_channelHandle->ulIntrStatus2  &= ~BCHP_SCA_SC_INTR_STAT_2_wait_intr_MASK;
-        BKNI_LeaveCriticalSection();
-
-        /* Set sc_wait registers */
-#ifndef SMARTCARD_32_BIT_REGISTER
-
-                ulTimerCmpVal = ((inp_unCount->ulValue  & 0xFF0000) >> 16);
-        BREG_Write32(
-                    in_channelHandle->moduleHandle->regHandle,
-                    (in_channelHandle->ulRegStartAddr + BSCD_P_WAIT_3),
-                    ulTimerCmpVal);
-
-        ulTimerCmpVal = ((inp_unCount->ulValue & 0x00FF00) >> 8);
-        BREG_Write32(
-                    in_channelHandle->moduleHandle->regHandle,
-                    (in_channelHandle->ulRegStartAddr + BSCD_P_WAIT_2),
-                    ulTimerCmpVal);
-
-        ulTimerCmpVal = (inp_unCount->ulValue & 0x0000FF);
-        BREG_Write32(
-                    in_channelHandle->moduleHandle->regHandle,
-                    (in_channelHandle->ulRegStartAddr + BSCD_P_WAIT_1),
-                    ulTimerCmpVal);
-#else
-                ulTimerCmpVal = inp_unCount->ulValue;
-                BREG_Write32(
-                    in_channelHandle->moduleHandle->regHandle,
-                    (in_channelHandle->ulRegStartAddr + BSCD_P_WAIT_1),
-                    ulTimerCmpVal);
-#endif
-
-        /* Check if we need to invoke an interrupt when the time expires */
-        if (inp_timer->bIsTimerInterruptEnable == true) {
-            BSCD_P_CHECK_ERR_CODE_FUNC(errCode,
-                    BSCD_Channel_EnableIntrCallback_isr (
-                        in_channelHandle, BSCD_IntType_eWaitInt,
-                                BSCD_Channel_P_WaitCB_isr));
-        }
-        else {
-            BSCD_P_CHECK_ERR_CODE_FUNC(errCode,
-                    BSCD_Channel_DisableIntrCallback_isr (
-                        in_channelHandle, BSCD_IntType_eWaitInt));
-        }
-
-        if (inp_timer->bIsTimerEnable == true) {
-
-            /* Set the wait mode */
-            if (inp_timer->eTimerType == BSCD_TimerType_eWaitTimer) {
-                if (inp_timer->timerMode.eWaitTimerMode == BSCD_WaitTimerMode_eBlockWaitTime) {
-                    ulTimerCmdVal |= BCHP_SCA_SC_TIMER_CMD_wait_mode_MASK;
-                }
-                else { /* BSCD_WaitTimerMode_eWorkWaitTime */
-                    ulTimerCmdVal &= ~ BCHP_SCA_SC_TIMER_CMD_wait_mode_MASK;
-                }
-
-                ulTimerCmdVal |= BCHP_SCA_SC_TIMER_CMD_wait_en_MASK;
-            }
-
-        }/* BSCD_TimerType_eWaitTimer && inp_timer->bIsTimerEnable == true */
-
-        else { /* inp_timer->bIsTimerEnable == false && BSCD_TimerType_eWaitTimer */
-                ulTimerCmdVal &= ~BCHP_SCA_SC_TIMER_CMD_wait_en_MASK;
-        }
-
-
-    }  /* else  BSCD_TimerType_eWaitTimer */
-    BREG_Write32(
-                    in_channelHandle->moduleHandle->regHandle,
-                    (in_channelHandle->ulRegStartAddr + BSCD_P_TIMER_CMD),
-                    ulTimerCmdVal);
-
-    BDBG_MSG (("*** BSCD_Channel_ConfigTimer: Timer cmd = 0x%08x\n", ulTimerCmdVal));
-
-BSCD_P_DONE_LABEL:
-
-    BDBG_LEAVE(BSCD_Channel_ConfigTimer);
-    return( errCode );
-}
-
-BERR_Code BSCD_Channel_EnableDisableTimer_isr(
-        BSCD_ChannelHandle   in_channelHandle,
-        BSCD_Timer                  *inp_timer
-)
-{
-    BERR_Code errCode = BERR_SUCCESS;
-    uint32_t         ulTimerCmdVal;
-
-    BDBG_ENTER(BSCD_Channel_EnableDisableTimer_isr);
-    BDBG_ASSERT( in_channelHandle );
-
-    BSCD_P_CHECK_ERR_CODE_CONDITION( errCode, BSCD_STATUS_FAILED,
-        (in_channelHandle->ulMagicNumber != BSCD_P_CHANNEL_HANDLE_MAGIC_NUMBER ) );
-
-
-    ulTimerCmdVal = BREG_Read32(
-                    in_channelHandle->moduleHandle->regHandle,
-                    (in_channelHandle->ulRegStartAddr + BSCD_P_TIMER_CMD));
-
-    if (inp_timer->eTimerType == BSCD_TimerType_eGPTimer) {
-
-        in_channelHandle->ulIntrStatus1  &= ~BCHP_SCA_SC_INTR_STAT_1_timer_intr_MASK;
-
-        /* Check if we need to invoke an interrupt when the time expires */
-        if (inp_timer->bIsTimerInterruptEnable == true) {  /* inp_timer->bIsTimerInterruptEnable == true && BSCD_TimerType_eGPTimer */
-            BSCD_P_CHECK_ERR_CODE_FUNC(errCode,
-                    BSCD_Channel_EnableIntrCallback_isr (
-                        in_channelHandle, BSCD_IntType_eTimerInt,
-                                BSCD_Channel_P_TimerCB_isr));
-        }
-        else { /* inp_timer->bIsTimerInterruptEnable == false && BSCD_TimerType_eGPTimer */
-            BSCD_P_CHECK_ERR_CODE_FUNC(errCode,
-                    BSCD_Channel_DisableIntrCallback_isr (
-                        in_channelHandle, BSCD_IntType_eTimerInt));
-        }
-
-        if (inp_timer->bIsTimerEnable == true) {
-            ulTimerCmdVal    |= BCHP_SCA_SC_TIMER_CMD_timer_en_MASK;
-        } /* inp_timer->bIsTimerEnable == true && BSCD_TimerType_eGPTimer */
-
-        else { /* inp_timer->bIsTimerEnable == false && BSCD_TimerType_eGPTimer */
-            ulTimerCmdVal    &= ~BCHP_SCA_SC_TIMER_CMD_timer_en_MASK;
-        }
-
-
-    }  /* if (inp_timer->eTimerType == BSCD_TimerType_eGPTimer) */
-
-    else {  /* BSCD_TimerType_eWaitTimer */
-
-        in_channelHandle->ulIntrStatus2  &= ~BCHP_SCA_SC_INTR_STAT_2_wait_intr_MASK;
-
-        /* Check if we need to invoke an interrupt when the time expires */
-        if (inp_timer->bIsTimerInterruptEnable == true) {
-            BSCD_P_CHECK_ERR_CODE_FUNC(errCode,
-                    BSCD_Channel_EnableIntrCallback_isr (
-                        in_channelHandle, BSCD_IntType_eWaitInt,
-                                BSCD_Channel_P_WaitCB_isr));
-        }
-        else {
-            BSCD_P_CHECK_ERR_CODE_FUNC(errCode,
-                    BSCD_Channel_DisableIntrCallback_isr (
-                        in_channelHandle, BSCD_IntType_eWaitInt));
-        }
-
-        if (inp_timer->bIsTimerEnable == true) {
-
-            /* Set the wait mode */
-            if (inp_timer->eTimerType == BSCD_TimerType_eWaitTimer) {
-                if (inp_timer->timerMode.eWaitTimerMode == BSCD_WaitTimerMode_eBlockWaitTime) {
-                    ulTimerCmdVal |= BCHP_SCA_SC_TIMER_CMD_wait_mode_MASK;
-                }
-                else { /* BSCD_WaitTimerMode_eWorkWaitTime */
-                    ulTimerCmdVal &= ~ BCHP_SCA_SC_TIMER_CMD_wait_mode_MASK;
-                }
-
-                ulTimerCmdVal |= BCHP_SCA_SC_TIMER_CMD_wait_en_MASK;
-            }
-
-        }/* BSCD_TimerType_eWaitTimer && inp_timer->bIsTimerEnable == true */
-
-        else { /* inp_timer->bIsTimerEnable == false && BSCD_TimerType_eWaitTimer */
-                ulTimerCmdVal &= ~BCHP_SCA_SC_TIMER_CMD_wait_en_MASK;
-        }
-
-
-    }  /* else  BSCD_TimerType_eWaitTimer */
-
-    BREG_Write32(
-                    in_channelHandle->moduleHandle->regHandle,
-                    (in_channelHandle->ulRegStartAddr + BSCD_P_TIMER_CMD),
-                    ulTimerCmdVal);
-
-    BDBG_MSG (("*** BSCD_Channel_EnableDisableTimer_isr: Timer cmd = 0x%08x\n", ulTimerCmdVal));
-
-BSCD_P_DONE_LABEL:
-
-    BDBG_LEAVE(BSCD_Channel_EnableDisableTimer_isr);
-    return( errCode );
+    return BSCD_Channel_P_ConfigTimer_generic(in_channelHandle, inp_timer, inp_unCount, true);
 }
 
 BERR_Code BSCD_Channel_EnableIntrCallback_isr(
@@ -3978,16 +3746,12 @@ BERR_Code BSCD_Channel_ResetBlockWaitTimer(
 )
 {
     BERR_Code errCode = BERR_SUCCESS;
-    BSCD_Timer      timer = {BSCD_TimerType_eWaitTimer, {BSCD_GPTimerMode_eIMMEDIATE},
+    BSCD_Timer      timer = {BSCD_TimerType_eWaitTimer, {BSCD_WaitTimerMode_eBlockWaitTime},
                             false, true};
     BSCD_TimerValue    timeValue= {BSCD_DEFAULT_BLOCK_WAITING_TIME, BSCD_TimerUnit_eETU};
 
     BDBG_ENTER(BSCD_Channel_ResetBlockWaitTimer);
     BDBG_ASSERT( in_channelHandle );
-
-    /* Need this for MetroWerks */
-    timer.eTimerType = BSCD_TimerType_eWaitTimer;
-    timer.timerMode.eWaitTimerMode = BSCD_WaitTimerMode_eBlockWaitTime;
 
     timeValue.ulValue = in_channelHandle->currentChannelSettings.blockWaitTime.ulValue ;
     BSCD_P_CHECK_ERR_CODE_FUNC(errCode,
@@ -4134,7 +3898,6 @@ void BSCD_Channel_DumpRegisters(
             (in_channelHandle->ulRegStartAddr + BSCD_P_TGUARD));
     BDBG_MSG(("TGUARD = %02x \n",ulVal));
 
-#ifdef BSCD_EMV2000_CWT_PLUS_4_EVENT_INTR
     ulVal = BREG_Read32(
             in_channelHandle->moduleHandle->regHandle,
             (in_channelHandle->ulRegStartAddr + BSCD_P_EVENT1_CMD_1));
@@ -4185,7 +3948,6 @@ void BSCD_Channel_DumpRegisters(
             (in_channelHandle->ulRegStartAddr + BSCD_P_EVENT2_CMP));
     BDBG_MSG(("BSCD_P_EVENT2_CMP = %02x \n",ulVal));
 
-#endif
     /*
     bcmDeviceRead(inp_device, eSize8, BCM_SC_TRANSMIT, (void *)&ulVal);
     BDBG_MSG(("TRANSMIT = %02x \n",ulVal));

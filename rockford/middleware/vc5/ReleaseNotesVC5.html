@@ -1,4 +1,4 @@
-﻿<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
           "http://www.w3.org/TR/html4/loose.dtd">
 
 <head>
@@ -8,6 +8,29 @@
 
 <body>
    <h1>VC5 Driver & Tools - Release Notes</h1>
+
+   <h2>16.2</h2>
+   <h3>New features</h3>
+   <ul>
+      <li>This driver contains a beta release of OpenGL ES3.1 support
+         <ul>
+            <li>Compute shaders</li>
+            <li>Separate shader objects</li>
+            <li>Indirect draw commands</li>
+            <li>Enhanced texturing functionality</li>
+            <li>Enhanced shading language functionality</li>
+            <li>Program interface queries</li>
+         </ul>
+      </li>
+      <li>Support for 7271 &amp; 7268 platforms</li>
+      <li>Driver source files have been re-organised somewhat into a more sensible layout</li>
+   </ul>
+   <h3>Bug fixes</h3>
+   <ul>
+      <li>Transform feedback of structs no longer crashes the GLSL compiler</li>
+      <li>Fixed intermittent failures in dEQP-GLES3.functional.fence_sync.client_wait_sync_time</li>
+      <li>Various GLSL compiler improvements</li>
+   </ul>
 
    <h2>16.1</h2>
 

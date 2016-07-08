@@ -58,12 +58,13 @@ typedef enum{
 typedef struct BHSM_ExceptionStatusRequest_t{
 
     BHSM_ExceptionStatusDevice_e deviceType;
+    bool keepStatus;  /*true: keep the status, false: clear the status on read. */
 
     union{
         struct
         {
-            unsigned unit;
-            unsigned subUnit;
+            unsigned memcIndex;  /* identify the MEMC */
+            unsigned archIndex;  /* identify arch for that MEMC*/
         }memArch;
         /* add other devices */
     }u;
@@ -85,7 +86,6 @@ typedef struct BHSM_ExceptionStatus_t{
             uint16_t numBlocks;
             uint16_t requestType;
         }memArch;
-
         /* add other devices */
     }u;
 

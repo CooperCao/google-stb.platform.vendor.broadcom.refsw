@@ -1,53 +1,40 @@
-/***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
-*
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
-*  and may only be used, duplicated, modified or distributed pursuant to the terms and
-*  conditions of a separate, written license agreement executed between you and Broadcom
-*  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-*  no license (express or implied), right to use, or waiver of any kind with respect to the
-*  Software, and Broadcom expressly reserves all rights in and to the Software and all
-*  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-*  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-*  Except as expressly set forth in the Authorized License,
-*
-*  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-*  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-*  and to use this information only in connection with your use of Broadcom integrated circuit products.
-*
-*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-*  USE OR PERFORMANCE OF THE SOFTWARE.
-*
-*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-*  ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* API Description:
-*   API name: Platform
-*    Specific APIs to initialize the a board.
-*
-* Revision History:
-*
-* $brcm_Log: $
-*
-***************************************************************************/
+/******************************************************************************
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ ******************************************************************************/
 #ifndef NEXUS_PLATFORM_INIT_H__
 #define NEXUS_PLATFORM_INIT_H__
 
@@ -61,73 +48,74 @@
 #include "nexus_platform_version.h"
 #include "nexus_platform_standby.h"
 #include "nexus_platform_memconfig.h"
-#if NEXUS_HAS_SURFACE
+#ifdef NEXUS_HAS_SURFACE
 #include "nexus_surface_init.h"
 #endif
-#if NEXUS_HAS_TRANSPORT
+#ifdef NEXUS_HAS_TRANSPORT
 #include "nexus_transport_init.h"
 #endif
-#if NEXUS_HAS_DISPLAY
+#ifdef NEXUS_HAS_DISPLAY
 #include "nexus_display_init.h"
 #endif
-#if NEXUS_HAS_AUDIO
+#ifdef NEXUS_HAS_AUDIO
 #include "nexus_audio_init.h"
 #include "nexus_audio_dac.h"
 #include "nexus_spdif_output.h"
-#if NEXUS_NUM_AUDIO_DUMMY_OUTPUTS
 #include "nexus_audio_dummy_output.h"
-#endif
-#if NEXUS_NUM_I2S_OUTPUTS
 #include "nexus_i2s_output.h"
 #endif
-#endif
-#if NEXUS_HAS_VIDEO_DECODER
+#ifdef NEXUS_HAS_VIDEO_DECODER
 #include "nexus_video_decoder_init.h"
 #endif
-#if NEXUS_HAS_I2C
+#ifdef NEXUS_HAS_I2C
 #include "nexus_i2c.h"
 #endif
-#if NEXUS_HAS_SPI
+#ifdef NEXUS_HAS_SPI
 #include "nexus_spi.h"
 #endif
-#if NEXUS_HAS_FRONTEND
+#ifdef NEXUS_HAS_FRONTEND
 #include "nexus_frontend.h"
 #else
 typedef void *NEXUS_FrontendHandle; /* stub */
 #endif
-#if NEXUS_HAS_DISPLAY
+#ifdef NEXUS_HAS_DISPLAY
 #include "nexus_component_output.h"
 #include "nexus_composite_output.h"
 #include "nexus_svideo_output.h"
 #include "nexus_ccir656_output.h"
 #endif
-#if NEXUS_HAS_RFM
+#ifdef NEXUS_HAS_RFM
 #include "nexus_rfm.h"
 #endif
-#if NEXUS_HAS_HDMI_OUTPUT
+#ifdef NEXUS_HAS_HDMI_OUTPUT
 #include "nexus_hdmi_output.h"
 #endif
-#if NEXUS_HAS_HDMI_DVO
+#ifdef NEXUS_HAS_HDMI_DVO
 #include "nexus_hdmi_dvo.h"
 #endif
-#if NEXUS_HAS_CEC
+#ifdef NEXUS_HAS_CEC
 #include "nexus_cec.h"
 #endif
-#if NEXUS_HAS_SMARTCARD
+#ifdef NEXUS_HAS_SMARTCARD
 #include "nexus_smartcard_init.h"
 #endif
-#if NEXUS_HAS_VIDEO_ENCODER
+#ifdef NEXUS_HAS_VIDEO_ENCODER
 #include "nexus_video_encoder_init.h"
 #endif
-#if NEXUS_HAS_SECURITY
+#ifdef NEXUS_HAS_SECURITY
 #include "nexus_security_init.h"
 #endif
-#if NEXUS_HAS_GRAPHICS2D
+#ifdef NEXUS_HAS_GRAPHICS2D
 #include "nexus_graphics2d_init.h"
 #endif
-#if NEXUS_HAS_SAGE
+#ifdef NEXUS_HAS_SAGE
 #include "nexus_sage_init.h"
 #endif
+#ifdef NEXUS_HAS_PWM
+#include "nexus_pwm_init.h"
+#endif
+
+#include "nexus_platform_compat.h"
 
 /* The following macros are for internal use, but are included in this public header file so that
 we can provide a tagged NEXUS_Platform_Init to ensure binary compatibility because the nexus binary
@@ -155,10 +143,14 @@ typedef struct NEXUS_FileModulePlatformSettings {
     NEXUS_ThreadSettings schedulerSettings[NEXUS_FILE_MAX_IOWORKERS];
 } NEXUS_FileModulePlatformSettings;
 
+typedef NEXUS_Error (*NEXUS_PlatformImgInterface_Open)(const char *context, void **image, unsigned image_id);
+typedef void (*NEXUS_PlatformImgInterface_Close)(void *image);
+typedef NEXUS_Error (*NEXUS_PlatformImgInterface_Next)(void *image, unsigned chunk, const void **data, uint16_t length);
+
 typedef struct NEXUS_PlatformImgInterface {
-    NEXUS_Error (*open)(const char *context, void **image, unsigned image_id);
-    void (*close)(void *image);
-    NEXUS_Error (*next)(void *image, unsigned chunk, const void **data, uint16_t length);
+    NEXUS_PlatformImgInterface_Open open; /* attr{kind=null_ptr} */
+    NEXUS_PlatformImgInterface_Close close; /* attr{kind=null_ptr} */
+    NEXUS_PlatformImgInterface_Next next; /* attr{kind=null_ptr} */
 } NEXUS_PlatformImgInterface;
 
 /***************************************************************************
@@ -234,39 +226,19 @@ typedef struct NEXUS_PlatformSettings
 
     /* The reference platform exposes some module settings here for application configuration.
     Customer boards and applications may use this, or may implement their own custom platform code. */
-#if NEXUS_HAS_TRANSPORT
     NEXUS_TransportModuleSettings transportModuleSettings;
-#endif
-#if NEXUS_HAS_DISPLAY
     NEXUS_DisplayModuleSettings displayModuleSettings;
-#endif
-#if NEXUS_HAS_AUDIO
     NEXUS_AudioModuleSettings audioModuleSettings;
-#endif
-#if NEXUS_HAS_VIDEO_DECODER
     NEXUS_VideoDecoderModuleSettings videoDecoderModuleSettings;
-#endif
-#if NEXUS_HAS_SURFACE
-    NEXUS_SurfaceModuleSettings surfacePlatformSettings;
-#endif
-#if NEXUS_HAS_SMARTCARD
     NEXUS_SmartcardModuleSettings smartCardSettings;
-#endif
-#if NEXUS_HAS_VIDEO_ENCODER
     NEXUS_VideoEncoderModuleSettings videoEncoderSettings;
-#endif
-#if NEXUS_HAS_SECURITY
     NEXUS_SecurityModuleSettings securitySettings;
-#endif
-#if NEXUS_HAS_GRAPHICS2D
     NEXUS_Graphics2DModuleSettings graphics2DModuleSettings;
-#endif
     NEXUS_PlatformStandbySettings standbySettings;
 
     NEXUS_FileModulePlatformSettings fileModuleSettings;
-#if NEXUS_HAS_SAGE
     NEXUS_SageModuleSettings sageModuleSettings;
-#endif
+    NEXUS_PwmModuleSettings pwmSettings;
 } NEXUS_PlatformSettings;
 
 
@@ -311,7 +283,7 @@ NEXUS_Error NEXUS_Platform_Init_tagged(
     unsigned structSizeCheck                     /* set by NEXUS_Platform_Init macro */
     );
 
-#if NEXUS_PLATFORM_NON_NUMERIC
+#ifdef NEXUS_PLATFORM_NON_NUMERIC
 #define NEXUS_Platform_Init(PSETTINGS) \
     NEXUS_Platform_Init_tagged((PSETTINGS), NULL, 0, NEXUS_P_GET_VERSION(NEXUS_PLATFORM), NEXUS_P_GET_STRUCT_SIZES())
 #define NEXUS_Platform_MemConfigInit(PSETTINGS, PMEMCONFIG) \
@@ -334,6 +306,9 @@ close all handles that you have opened.
 
 After calling NEXUS_Platform_Uninit, you can all NEXUS_Platform_Init to bring up Nexus
 again.
+
+NEXUS_Platform_Uninit will also clean up pre-init proxy state from NEXUS_Platform_GetDefaultSettings
+even if NEXUS_Platform_Init was never called.
 ***************************************************************************/
 /*
 void NEXUS_Platform_Uninit(void) is defined in nexus_platform_client.h, which is included by nexus_platform.h

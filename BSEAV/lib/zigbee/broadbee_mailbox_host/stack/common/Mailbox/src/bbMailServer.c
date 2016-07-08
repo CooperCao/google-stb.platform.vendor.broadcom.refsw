@@ -1,43 +1,43 @@
 /******************************************************************************
-* (c) 2014 Broadcom Corporation
-*
-* This program is the proprietary software of Broadcom Corporation and/or its
-* licensors, and may only be used, duplicated, modified or distributed pursuant
-* to the terms and conditions of a separate, written license agreement executed
-* between you and Broadcom (an "Authorized License").  Except as set forth in
-* an Authorized License, Broadcom grants no license (express or implied), right
-* to use, or waiver of any kind with respect to the Software, and Broadcom
-* expressly reserves all rights in and to the Software and all intellectual
-* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1. This program, including its structure, sequence and organization,
-*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-*    reasonable efforts to protect the confidentiality thereof, and to use
-*    this information only in connection with your use of Broadcom integrated
-*    circuit products.
-*
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-******************************************************************************/
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
+ *
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************
 /*****************************************************************************
 *
 * FILENAME: $Workfile: trunk/stack/common/Mailbox/src/bbMailServer.c $
@@ -50,30 +50,30 @@
 *
 ****************************************************************************************/
 /************************* INCLUDES ****************************************************/
-#include "private/bbMailPrivateService.h"
 #include "private/bbMailPrivateServer.h"
 #include "private/bbMailPrivateAdapter.h"
 
 /************************* STATIC FUNCTIONS PROTOTYPES *********************************/
-INLINE void freeServerBuffer(MailServerBuffer_t *const buffer);
-INLINE MailServerBuffer_t *findEmptyServerBuffer(MailServerDescriptor_t *const server);
-INLINE MailServerBuffer_t *findAppropriateServerBuffer(MailServerDescriptor_t *const server, uint8_t *reqParam);
 
-static void mailServerSendMessage(MailDescriptor_t *const mail, MailServerBuffer_t *const buffer,
-                                  const bool isServiceParcel);
-static bool mailServerQueuePollCommon(MailDescriptor_t *const mail, bool isServiceQueue);
+INLINE void freeServerBuffer(MailServerBuffer_t *const buffer);
+INLINE MailServerBuffer_t *findEmptyServerBuffer(void);
+INLINE MailServerBuffer_t *findAppropriateServerBuffer(uint8_t *reqParam);
+
+static void mailServerSendMessage(MailServerBuffer_t *const buffer, const bool isServiceParcel);
+static bool mailServerQueuePollCommon(bool isServiceQueue);
 /************************* IMPLEMENTATION **********************************************/
+static MailServerDescriptor_t serverMemory;
 /************************************************************************************//**
     \brief initializes mailbox server module
     \param[in] server - server module descriptor.
 
 ****************************************************************************************/
-void mailServerInit(MailDescriptor_t *const mail)
+void mailServerInit()
 {
-    SYS_QueueResetQueue(&mail->server.finishedQueue);
-    SYS_QueueResetQueue(&mail->server.serviceQueue);
+    SYS_QueueResetQueue(&serverMemory.finishedQueue);
+    SYS_QueueResetQueue(&serverMemory.serviceQueue);
 
-    memset(mail->server.buffer, 0U, sizeof(mail->server.buffer[0]) * MAIL_SERVER_MAX_AMOUNT_PROCESSED_REQUESTS);
+    memset(serverMemory.buffer, 0U, sizeof(serverMemory.buffer[0]) * MAIL_SERVER_MAX_AMOUNT_PROCESSED_REQUESTS);
 }
 
 /************************************************************************************//**
@@ -82,12 +82,12 @@ void mailServerInit(MailDescriptor_t *const mail)
 
     \return a pointer to the free buffer.
 ****************************************************************************************/
-INLINE MailServerBuffer_t *findEmptyServerBuffer(MailServerDescriptor_t *const server)
+INLINE MailServerBuffer_t *findEmptyServerBuffer(void)
 {
     for (uint8_t i = 0; i < MAIL_SERVER_MAX_AMOUNT_PROCESSED_REQUESTS; i++)
     {
-        if (!server->buffer[i].isBusy)
-            return &server->buffer[i];
+        if (!serverMemory.buffer[i].isBusy)
+            return &serverMemory.buffer[i];
     }
     SYS_DbgLogId(MAILSERVER_FINDEMPTYSERVERBUFFER_0);
     return NULL;
@@ -99,35 +99,19 @@ INLINE MailServerBuffer_t *findEmptyServerBuffer(MailServerDescriptor_t *const s
 ****************************************************************************************/
 INLINE void freeServerBuffer(MailServerBuffer_t *const buffer)
 {
-    SYS_DbgAssertComplex(buffer, MAILSERVER_FREESERVERBUFFER_0);
     buffer->isBusy = false;
-}
-
-INLINE void mailServerFreeBufferPayload(MailWrappedReqHeader_t *const header, uint8_t *const parcel)
-{
-    if (header->dataLength && MAIL_INVALID_PAYLOAD_OFFSET != header->dataPointerOffset)
-    {
-        SYS_DataPointer_t *const dataPointer = (SYS_DataPointer_t *)(
-                parcel + header->dataPointerOffset);
-        SYS_FreePayload(dataPointer);
-    }
 }
 
 /************************************************************************************//**
     \brief Helper function. Parses the header of a parcel and allocates memory for a parcel.
-    \param[in] adapter - adapter module descriptor.
-    \param[in] header - request header pointer.
 ****************************************************************************************/
-uint8_t *mailServerGetMemory(MailAdapterDescriptor_t *const adapter,
-                             MailFifoHeader_t *fifoHeader,
-                             MailWrappedReqHeader_t *const header)
+uint8_t *mailServerGetMemory(MailFifoHeader_t *fifoHeader, MailWrappedReqHeader_t *const header)
 {
     (void)header;
-    MailServerDescriptor_t *const server = &GET_PARENT_BY_FIELD(MailDescriptor_t, adapter, adapter)->server;
-    MailServerBuffer_t *buffer = findEmptyServerBuffer(server);
+    MailServerBuffer_t *buffer = findEmptyServerBuffer();
     if (NULL != buffer)
     {
-        const MailServerParametersTableEntry_t *const reqInfo = mailServerTableGetAppropriateEntry(fifoHeader->msgId);
+        const MailServiceFunctionInfo_t *const reqInfo = Mail_ServiceGetFunctionInfo(fifoHeader->msgId);
         buffer->isBusy = true;
         return (uint8_t *)&buffer->parcel + reqInfo->reqParametersOffset;
     }
@@ -136,15 +120,11 @@ uint8_t *mailServerGetMemory(MailAdapterDescriptor_t *const adapter,
 
 /************************************************************************************//**
     \brief Helper function. Free given buffer.
-    \param[in] adapter - adapter module descriptor.
     \param[in] param - parameter pointer.
 ****************************************************************************************/
-void mailFreeServerBuffer(MailAdapterDescriptor_t *const adapter,
-                          uint8_t *param)
+void mailFreeServerBuffer(uint8_t *param)
 {
-    MailDescriptor_t *const mail = GET_PARENT_BY_FIELD(MailDescriptor_t, adapter, adapter);
-    MailServerDescriptor_t *const server = &mail->server;
-    MailServerBuffer_t *const buffer = findAppropriateServerBuffer(server, param);
+    MailServerBuffer_t *const buffer = findAppropriateServerBuffer(param);
     if (buffer)
         freeServerBuffer(buffer);
 }
@@ -156,52 +136,17 @@ void mailFreeServerBuffer(MailAdapterDescriptor_t *const adapter,
 
     \return a pointer to the found buffer or NULL if buffer is absent.
 ****************************************************************************************/
-INLINE MailServerBuffer_t *findAppropriateServerBuffer(MailServerDescriptor_t *const server, uint8_t *reqParam)
+INLINE MailServerBuffer_t *findAppropriateServerBuffer(uint8_t *reqParam)
 {
     for (uint8_t i = 0; i < MAIL_SERVER_MAX_AMOUNT_PROCESSED_REQUESTS; i++)
     {
-        if (server->buffer[i].isBusy)
-            if (reqParam >= (uint8_t *)&server->buffer[i]
-                    && reqParam <= ((uint8_t *)&server->buffer[i].parcel + sizeof(server->buffer[i].parcel)))
-                return &server->buffer[i];
+        if (serverMemory.buffer[i].isBusy)
+            if (reqParam >= (uint8_t *)&serverMemory.buffer[i].parcel
+                    && reqParam <= ((uint8_t *)&serverMemory.buffer[i].parcel + sizeof(serverMemory.buffer[i].parcel)))
+                return &serverMemory.buffer[i];
     }
     SYS_DbgLogId(MAILSERVER_FINDAPPROPRIATESERVERBUFFER_0);
     return NULL;
-}
-
-/************************************************************************************//**
-    \brief This function called by mailbox adapter when It has some data to the server.
-    \param[in] adapter - adapter module descriptor.
-    \param[in] fifoHeader - FIFO header pointer.
-    \param[in] header - request header pointer.
-    \param[in] req - request pointer.
-****************************************************************************************/
-void mailServerDataInd(MailAdapterDescriptor_t *const adapter,
-                       MailFifoHeader_t *fifoHeader,
-                       MailWrappedReqHeader_t *header,
-                       uint8_t *reqParam)
-{
-    MailDescriptor_t *const mail = GET_PARENT_BY_FIELD(MailDescriptor_t, adapter, adapter);
-    MailServerDescriptor_t *const server = &mail->server;
-    MailServerBuffer_t *const buffer = findAppropriateServerBuffer(server, reqParam);
-    const MailServerParametersTableEntry_t *const reqInfo = mailServerTableGetAppropriateEntry(fifoHeader->msgId);
-
-    memcpy(&buffer->header, header, sizeof(*header));
-    memcpy(&buffer->fifoHeader, fifoHeader, sizeof(*fifoHeader));
-
-    /* set callback */
-    if (reqInfo->callbackOffset < reqInfo->reqLength)
-    {
-        ConfirmCall_t *const callbackPlace = (ConfirmCall_t *)(void *)((uint8_t *)&buffer->parcel
-                                             + reqInfo->callbackOffset);
-        *callbackPlace = mail->fakeCallback;
-    }
-
-    /* send ack */
-    {
-        buffer->serviceParcel.conf.ack.status = MAIL_SUCCESSFUL_RECEIVED;
-        mailServerSendMessage(mail, buffer, true);
-    }
 }
 
 /************************************************************************************//**
@@ -209,14 +154,14 @@ void mailServerDataInd(MailAdapterDescriptor_t *const adapter,
     \param[in] server - server module descriptor.
     \param[in] confirm - a pointer to structure with confirmation.
 ****************************************************************************************/
-void mailServerFakeCallback(MailServerDescriptor_t *const server, void *req, void *confirm)
+void mailServerFakeCallback(void *req, void *confirm)
 {
-    MailDescriptor_t *const mail = GET_PARENT_BY_FIELD(MailDescriptor_t, server, server);
     MailServerBuffer_t *const buffer = GET_PARENT_BY_FIELD(MailServerBuffer_t, parcel.req, req);
-    const MailServerParametersTableEntry_t *const reqInfo =
-        mailServerTableGetAppropriateEntry(buffer->fifoHeader.msgId);
+    const MailServiceFunctionInfo_t *const reqInfo = Mail_ServiceGetFunctionInfo(buffer->fifoHeader.msgId);
 
-    mailServerFreeBufferPayload(&buffer->header, (uint8_t *)&buffer->parcel + reqInfo->reqParametersOffset);
+    if (buffer->header.dataLength && MAIL_INVALID_OFFSET != reqInfo->reqDataPointerOffset)
+        SYS_FreePayload((SYS_DataPointer_t *)((uint8_t *)&buffer->parcel
+                                              + reqInfo->reqParametersOffset + reqInfo->reqDataPointerOffset));
 
     /* save confirmation instead of request */
     memcpy(&buffer->parcel.conf, confirm, reqInfo->confParametersLength);
@@ -224,7 +169,36 @@ void mailServerFakeCallback(MailServerDescriptor_t *const server, void *req, voi
     memset(&buffer->parcel.dbgConfirmOffset, 0xFD, sizeof(buffer->parcel.dbgConfirmOffset));
 #endif
     /* send message to the client side */
-    mailServerSendMessage(mail, buffer, false);
+    mailServerSendMessage(buffer, false);
+}
+
+/************************************************************************************//**
+    \brief This function called by mailbox adapter when It has some data to the server.
+    \param[in] fifoHeader - FIFO header pointer.
+    \param[in] header - request header pointer.
+    \param[in] req - request pointer.
+****************************************************************************************/
+void mailServerDataInd(MailFifoHeader_t *fifoHeader, MailWrappedReqHeader_t *header, uint8_t *reqParam)
+{
+    MailServerBuffer_t *const buffer = findAppropriateServerBuffer(reqParam);
+    const MailServiceFunctionInfo_t *const reqInfo = Mail_ServiceGetFunctionInfo(fifoHeader->msgId);
+
+    memcpy(&buffer->header, header, sizeof(*header));
+    memcpy(&buffer->fifoHeader, fifoHeader, sizeof(*fifoHeader));
+
+    /* set callback */
+    if (MAIL_INVALID_OFFSET != reqInfo->reqCallbackOffset)
+    {
+        ConfirmCall_t *const callbackPlace = (ConfirmCall_t *)(void *)((uint8_t *)&buffer->parcel
+                                             + reqInfo->reqCallbackOffset);
+        *callbackPlace = mailServerFakeCallback;
+    }
+
+    /* send ack */
+    {
+        buffer->serviceParcel.conf.ack.status = MAIL_SUCCESSFUL_RECEIVED;
+        mailServerSendMessage(buffer, true);
+    }
 }
 
 /************************************************************************************//**
@@ -232,22 +206,22 @@ void mailServerFakeCallback(MailServerDescriptor_t *const server, void *req, voi
     \param[in] mail - mailbox descriptor.
     \return true if service is busy otherwise false.
 ****************************************************************************************/
-bool mailServerIsBusy(MailDescriptor_t *const mail)
+bool mailServerIsBusy(void)
 {
-    return !(SYS_QueueIsEmpty(&mail->server.finishedQueue)
-             && SYS_QueueIsEmpty(&mail->server.serviceQueue));
+    return !(SYS_QueueIsEmpty(&serverMemory.finishedQueue)
+             && SYS_QueueIsEmpty(&serverMemory.serviceQueue));
 }
 
-static void mailServerSendMessage(MailDescriptor_t *const mail, MailServerBuffer_t *const buffer,
+static void mailServerSendMessage(MailServerBuffer_t *const buffer,
                                   const bool isServiceParcel)
 {
-    const bool wasBusy = mailServerIsBusy(mail);
+    const bool wasBusy = mailServerIsBusy();
     SYS_QueueDescriptor_t *const queue = (isServiceParcel) ?
-                                         &mail->server.serviceQueue :
-                                         &mail->server.finishedQueue;
+                                         &serverMemory.serviceQueue :
+                                         &serverMemory.finishedQueue;
     SYS_QueuePutQueueElementToTail(queue, &buffer->elem);
     if (!wasBusy)
-        mailServerQueuePollCommon(mail, isServiceParcel);
+        mailServerQueuePollCommon(isServiceParcel);
 }
 
 /************************************************************************************//**
@@ -257,23 +231,28 @@ static void mailServerSendMessage(MailDescriptor_t *const mail, MailServerBuffer
 
     \return true if the server's queue is not empty and false otherwise.
 ****************************************************************************************/
-bool mailServerQueuePoll(MailDescriptor_t *const mail)
+bool mailServerQueuePoll(void)
 {
-    if (!mailServerQueuePollCommon(mail, true))
-        return mailServerQueuePollCommon(mail, false);
+    if (!mailServerQueuePollCommon(true))
+        return mailServerQueuePollCommon(false);
     return true;
 }
 
 INLINE void mailServerComposeHeaders(MailFifoHeader_t *const fifoHeader, MailWrappedReqHeader_t *const header,
                                      uint8_t *const parcel, MailFifoHeader_t *const originalFifoHeader, const uint16_t fId, const uint8_t uId)
 {
-    const MailServerParametersTableEntry_t *const reqInfo = mailServerTableGetAppropriateEntry(fId);
+    const MailServiceFunctionInfo_t *const reqInfo = Mail_ServiceGetFunctionInfo(fId);
     /* compose fifo header */
     {
         memcpy(fifoHeader, originalFifoHeader, sizeof(*fifoHeader));
-        fifoHeader->msgType.type    = (REQUEST_MSG_TYPE == originalFifoHeader->msgType.type) ?
-                                      CONFIRM_MSG_TYPE : RESPONSE_MSG_TYPE;
         fifoHeader->msgId = fId;
+        fifoHeader->msgType.isConfirm = 1;
+
+#ifdef MAILBOX_HOST_SIDE
+        fifoHeader->msgType.fromStackSide = 0;
+#else
+        fifoHeader->msgType.fromStackSide = 1;
+#endif
     }
 
     /* compose wrapped header */
@@ -281,9 +260,8 @@ INLINE void mailServerComposeHeaders(MailFifoHeader_t *const fifoHeader, MailWra
         /*  header->uId same for all confirmations */
         header->uId                 = uId;
         header->paramLength         = reqInfo->confParametersLength;
-        header->dataPointerOffset   = reqInfo->confDataPointerOffset;
 
-        if (MAIL_INVALID_PAYLOAD_OFFSET != reqInfo->confDataPointerOffset)
+        if (MAIL_INVALID_OFFSET != reqInfo->confDataPointerOffset)
         {
             header->paramLength     -= sizeof(SYS_DataPointer_t);
             header->dataLength      = SYS_GetPayloadSize((SYS_DataPointer_t *)(
@@ -295,11 +273,11 @@ INLINE void mailServerComposeHeaders(MailFifoHeader_t *const fifoHeader, MailWra
     }
 }
 
-static bool mailServerQueuePollCommon(MailDescriptor_t *const mail, bool isServiceQueue)
+static bool mailServerQueuePollCommon(bool isServiceQueue)
 {
     SYS_QueueDescriptor_t *const queueToPoll = (isServiceQueue) ?
-            &mail->server.serviceQueue :
-            &mail->server.finishedQueue;
+            &serverMemory.serviceQueue :
+            &serverMemory.finishedQueue;
 
     if (!SYS_QueueIsEmpty(queueToPoll))
     {
@@ -308,33 +286,31 @@ static bool mailServerQueuePollCommon(MailDescriptor_t *const mail, bool isServi
         MailServerBuffer_t *const buffer = GET_PARENT_BY_FIELD(MailServerBuffer_t, elem,
                                            SYS_QueueGetQueueHead(queueToPoll));
         const uint16_t fId = (isServiceQueue) ?
-                             MAIL_ACK_FID :
+                             TE_MAILBOX_ACK_FID :
                              buffer->fifoHeader.msgId;
         uint8_t *const parcel = (isServiceQueue) ?
                                 (uint8_t *)&buffer->serviceParcel :
                                 (uint8_t *)&buffer->parcel.conf;
         mailServerComposeHeaders(&fifoHeader, &header, parcel, &buffer->fifoHeader, fId, buffer->header.uId);
-        if (mailAdapterSend(&mail->adapter, &fifoHeader, &header, parcel))
+        if (mailAdapterSend(&fifoHeader, &header, parcel))
         {
+            const MailServiceFunctionInfo_t *const reqInfo = Mail_ServiceGetFunctionInfo(buffer->fifoHeader.msgId);
             SYS_QueueRemoveHeadElement(queueToPoll);
             if (isServiceQueue)
             {
-                const MailServerParametersTableEntry_t *const reqInfo =
-                    mailServerTableGetAppropriateEntry(buffer->fifoHeader.msgId);
                 MailPublicFunction_t publicFunction = reqInfo->function;
-                mailServiceCallRequestHandler(mail, publicFunction, &buffer->parcel);
+                Mail_RequestHandler(buffer->fifoHeader.msgId, publicFunction, &buffer->parcel);
 
-                if (reqInfo->callbackOffset == reqInfo->reqLength)
+                if (MAIL_INVALID_OFFSET == reqInfo->reqCallbackOffset)
                 {
                     /* NOTE: In this case application should clear payload. */
-                    // mailServerFreeBufferPayload(&buffer->header,
-                    //                             (uint8_t *)&buffer->parcel + reqInfo->reqParametersOffset);
                     freeServerBuffer(buffer);
                 }
             }
             else
             {
-                mailServerFreeBufferPayload(&header, parcel);
+                if (header.dataLength && MAIL_INVALID_OFFSET != reqInfo->confDataPointerOffset)
+                    SYS_FreePayload((SYS_DataPointer_t *)((uint8_t *)parcel + reqInfo->confDataPointerOffset));
                 freeServerBuffer(buffer);
             }
         }

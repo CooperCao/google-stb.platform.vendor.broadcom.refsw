@@ -34,13 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * Module Description:
- *
- * DRM Integration Framework
- *
- *****************************************************************************/
-
+ ******************************************************************************/
 #undef LOGE
 #undef LOGW
 #undef LOGD
@@ -51,21 +45,22 @@
 #define LOGV BDBG_MSG
 
 #include <stdio.h>
+#include <string.h>
 #include "nexus_platform.h"
 #include "bfile_stdio.h"
-#include "string_conversions.h"
 #include "media_parser.h"
 
 #define BMP4_ISML BMP4_TYPE('i','s','m','l')
 #define BMP4_DASH BMP4_TYPE('d','a','s','h')
 
 BDBG_MODULE(media_parser);
+#include "dump_hex.h"
 
 using namespace media_parser;
-using namespace wvcdm;
 
-const std::string kWidevineSystemId = "edef8ba979d64acea3c827dcd51d21ed";
-const std::string kPlayreadySystemId = "9A04F07998404286AB92E65BE0885F95";
+const uint8_t kWidevineUUID[] = {0xed, 0xef, 0x8b, 0xa9, 0x79, 0xd6, 0x4a, 0xce, 0xa3, 0xc8, 0x27, 0xdc, 0xd5, 0x1d, 0x21, 0xed};
+const uint8_t kPlayreadyUUID[] = {0x9A, 0x04, 0xF0, 0x79, 0x98, 0x40, 0x42, 0x86, 0xAB, 0x92, 0xE6, 0x5B, 0xE0, 0x88, 0x5F, 0x95};
+
 const int kBufSize = (1024 * 1024 * 2);      /* 2MB */
 
 MediaParser::MediaParser(FILE* filePtr):m_drmSchemeIndex(0),
@@ -130,7 +125,7 @@ bool MediaParser::InitParser()
         m_mediaType = media_type_eCenc;
         LOGD(("CENC(dash) detected in major brand"));
     }else{
-        for (int i = 0; i < parser_context->filetype.ncompatible_brands; i++) {
+        for (unsigned i = 0; i < parser_context->filetype.ncompatible_brands; i++) {
             if (BMP4_DASH == parser_context->filetype.compatible_brands[i]) {
                 m_mediaType = media_type_eCenc;
                 LOGD(("CENC(dash) detected in compatible brands"));
@@ -168,7 +163,7 @@ bool MediaParser::InitParser()
     if (m_psshLen) {
         m_psshDataStr = std::string(m_psshLen, (char)0);
         BKNI_Memcpy((void*)m_psshDataStr.data(), m_psshData, m_psshLen);
-        LOGD(("pssh in the file: %s", b2a_hex(m_psshDataStr).c_str()));
+        dump_hex("pssh in the file", m_psshDataStr.data(), m_psshDataStr.size());
 
         LOGD(("Detecting system ID"));
         std::string system_id;
@@ -177,14 +172,15 @@ bool MediaParser::InitParser()
             parser_context->mp4_mp4.psshSystemId[0].systemId.data,
             BMP4_UUID_LENGTH); /*fetch first systemID by default*/
 
-        if (system_id.compare(a2bs_hex(kWidevineSystemId)) == 0) {
+        if (memcmp(system_id.data(), kWidevineUUID, sizeof(kWidevineUUID)) == 0) {
             m_drmType = drm_type_eWidevine;
             LOGD(("Widevine System Id was detected"));
-        }else if(system_id.compare(a2bs_hex(kPlayreadySystemId)) == 0){
+        } else if (memcmp(system_id.data(), kPlayreadyUUID, sizeof(kWidevineUUID)) == 0) {
+
             m_drmType = drm_type_ePlayready;
             LOGD(("Playready System Id was detected"));
-        }else{
-            LOGE(("Unknown System ID is detected: %s", b2a_hex(system_id).c_str()));
+        } else {
+            dump_hex("Unknown System ID is detected", system_id.data(), system_id.size(), true);
             return false;
         }
     }
@@ -211,13 +207,13 @@ uint8_t MediaParser::GetNumOfDrmSchemes(DrmType drmTypes[], uint8_t arySize) con
     for(int i=0; i< m_numOfDrmSchemes && i< arySize; i++ ){
         BKNI_Memcpy((void*)system_id.data(),
             parser_context->mp4_mp4.psshSystemId[i].systemId.data, BMP4_UUID_LENGTH);
-        if (system_id.compare(a2bs_hex(kWidevineSystemId)) == 0) {
+        if (memcmp(system_id.data(), kWidevineUUID, sizeof(kWidevineUUID)) == 0) {
             drmTypes[i] = drm_type_eWidevine;
             LOGD(("Widevine System Id was detected"));
-        }else if(system_id.compare(a2bs_hex(kPlayreadySystemId)) == 0){
+        } else if (memcmp(system_id.data(), kPlayreadyUUID, sizeof(kWidevineUUID)) == 0) {
             drmTypes[i] = drm_type_ePlayready;
             LOGD(("Playready System Id was detected"));
-        }else{
+        } else {
             drmTypes[i] = drm_type_eUnknown;
             LOGE(("Unknown System ID is detected"));
         }
@@ -245,7 +241,7 @@ bool MediaParser::SetDrmSchemes(uint8_t index)
 
         m_psshDataStr = std::string(m_psshLen, (char)0);
         BKNI_Memcpy((void*)m_psshDataStr.data(), m_psshData, m_psshLen);
-        LOGD(("pssh in the file: %s", b2a_hex(m_psshDataStr).c_str()));
+        dump_hex("pssh in the file", m_psshDataStr.data(), m_psshDataStr.size());
 
 
         LOGD(("Detecting No. %d system ID", index));
@@ -255,14 +251,15 @@ bool MediaParser::SetDrmSchemes(uint8_t index)
 
         parser_context->mp4_mp4.psshSystemId[index].systemId.data, BMP4_UUID_LENGTH);
 
-        if (system_id.compare(a2bs_hex(kWidevineSystemId)) == 0) {
+        if (memcmp(system_id.data(), kWidevineUUID, sizeof(kWidevineUUID)) == 0) {
             m_drmType = drm_type_eWidevine;
                 LOGD(("Widevine System Id was detected"));
-        }else if(system_id.compare(a2bs_hex(kPlayreadySystemId)) == 0){
+        } else if (memcmp(system_id.data(), kPlayreadyUUID, sizeof(kWidevineUUID)) == 0) {
+
             m_drmType = drm_type_ePlayready;
             LOGD(("Playready System Id was detected"));
-        }else{
-            LOGE(("Unknown System ID is detected: %s", b2a_hex(system_id).c_str()));
+        } else {
+            dump_hex("Unknown System ID is detected", system_id.data(), system_id.size(), true);
             return false;
         }
 

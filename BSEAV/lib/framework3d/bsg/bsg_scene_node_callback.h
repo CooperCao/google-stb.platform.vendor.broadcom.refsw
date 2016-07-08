@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -11,7 +11,7 @@
  * Software and all intellectual property rights therein.  IF YOU HAVE NO
  * AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
  * AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
- * SOFTWARE.  
+ * SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
@@ -120,8 +120,8 @@ class SceneNodeCallbackList : public NoCopy
 public:
    ~SceneNodeCallbackList()
    {
-      for (auto cb : m_callbacks)
-         delete cb;
+      for (std::list<SceneNodeCallback *>::iterator i = m_callbacks.begin(); i != m_callbacks.end(); ++i)
+         delete *i;
    }
 
    void Add(SceneNodeCallback *callback)
@@ -134,27 +134,27 @@ public:
    {
       bool  render = true;
 
-      for (auto cb : m_callbacks)
-         render = render && cb->OnRenderData(semData);
+      for (std::list<SceneNodeCallback *>::const_iterator i = m_callbacks.begin(); i != m_callbacks.end(); ++i)
+         render = render && (*i)->OnRenderData(semData);
 
       return render;
    }
 
    void OnModelMatrix(const Mat4 &xform) const
    {
-      for (auto cb : m_callbacks)
-         cb->OnModelMatrix(xform);
+      for (std::list<SceneNodeCallback *>::const_iterator i = m_callbacks.begin(); i != m_callbacks.end(); ++i)
+         (*i)->OnModelMatrix(xform);
    }
 
    void OnModelViewMatrix(const Mat4 &xform) const
    {
-      for (auto cb : m_callbacks)
-         cb->OnModelViewMatrix(xform);
+      for (std::list<SceneNodeCallback *>::const_iterator i = m_callbacks.begin(); i != m_callbacks.end(); ++i)
+         (*i)->OnModelViewMatrix(xform);
    }
 
    void Remove(SceneNodeCallback *callback)
    {
-      auto i = std::find(m_callbacks.begin(), m_callbacks.end(), callback);
+      std::list<SceneNodeCallback *>::iterator  i = std::find(m_callbacks.begin(), m_callbacks.end(), callback);
 
       if (i != m_callbacks.end())
       {

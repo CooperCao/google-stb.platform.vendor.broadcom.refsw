@@ -87,5 +87,5 @@ BEGIN {
 }
 END {
     split(ddr_string,ddr_string2,")"); # separate out the parenthesis at the end of the string
-    printf(",\""ddr_string2[1]" SCB@"scb_string"\",\""platform"\"}\n\n");
+    printf(",\""ddr_string2[1]" SCB@"scb_string"\",\""platform"\","a1[1]","a3[1]"}\n\n");
 }

@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2012-2013 Broadcom Corporation
+ *     Broadcom Proprietary and Confidential. (c)2012-13 Broadcom.  All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -61,6 +61,7 @@ Summary:
 typedef struct NEXUS_Graphicsv3dModuleSettings
 {
    NEXUS_HeapHandle    hHeap;
+   NEXUS_HeapHandle    hHeapSecure;
 } NEXUS_Graphicsv3dModuleSettings;
 
 /**

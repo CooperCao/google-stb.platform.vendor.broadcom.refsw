@@ -85,13 +85,15 @@ static struct NEXUS_ImgState {
 int
 nexus_img_interfaces_init(void)
 {
+    int rc;
     BDBG_MSG(("initializing kernel image interface"));
     BDBG_OBJECT_SET(&b_interfaces, NEXUS_ImgState);
     BLST_S_INIT(&b_interfaces.active);
     BKNI_CreateEvent(&b_interfaces.started);
     BKNI_CreateEvent(&b_interfaces.req);
     BKNI_CreateEvent(&b_interfaces.ack);
-    BKNI_CreateMutex(&b_interfaces.lock);
+    rc = BKNI_CreateMutex(&b_interfaces.lock);
+    if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY); return -rc; }
     b_interfaces.ready = false;
     b_interfaces.stopped = false;
     return 0;

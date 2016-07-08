@@ -21,11 +21,15 @@
 
 #include "bchp_pwr_resources_priv.h"
 #include "bchp_sun_top_ctrl.h"
+#include "bchp_common.h"
 
 #ifdef BCHP_PWR_HW_HDMI_TX0_PHY
+#ifdef BCHP_HDMI_TX_PHY_REG_START
 #include "bchp_hdmi_tx_phy.h"
+#endif
 static void BCHP_PWR_P_HW_HDMI_TX0_PHY_Control(BCHP_Handle handle, bool activate)
 {
+#ifdef BCHP_HDMI_TX_PHY_POWERDOWN_CTL
     uint32_t mask, reg;
 
     BDBG_MSG(("HW_HDMI_TX0_PHY: %s", activate?"on":"off"));
@@ -41,13 +45,20 @@ static void BCHP_PWR_P_HW_HDMI_TX0_PHY_Control(BCHP_Handle handle, bool activate
     reg &= ~mask;
     reg |= activate?0:mask;
     BREG_Write32(handle->regHandle, BCHP_HDMI_TX_PHY_POWERDOWN_CTL, reg);
+#else
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(activate);
+#endif
 }
 #endif
 
 #ifdef BCHP_PWR_HW_HDMI_TX1_PHY
+#ifdef BCHP_HDMI_TX_PHY_1_REG_START
 #include "bchp_hdmi_tx_phy_1.h"
+#endif
 static void BCHP_PWR_P_HW_HDMI_TX1_PHY_Control(BCHP_Handle handle, bool activate)
 {
+#ifdef BCHP_HDMI_TX_PHY_1_POWERDOWN_CTL
     uint32_t mask, reg;
 
     BDBG_MSG(("HW_HDMI_TX_1_PHY: %s", activate?"on":"off"));
@@ -63,18 +74,28 @@ static void BCHP_PWR_P_HW_HDMI_TX1_PHY_Control(BCHP_Handle handle, bool activate
     reg &= ~mask;
     reg |= activate?0:mask;
     BREG_Write32(handle->regHandle, BCHP_HDMI_TX_PHY_1_POWERDOWN_CTL, reg) ;
+#else
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(activate);
+#endif
 }
 #endif
 
 #ifdef BCHP_PWR_HW_HDMI_RX0_PHY
+#ifdef BCHP_DVP_HR_REG_START
 #include "bchp_dvp_hr.h"
+#endif
+#ifdef BCHP_HDMI_RX_FE_0_REG_START
 #include "bchp_hdmi_rx_fe_0.h"
+#endif
 static void BCHP_PWR_P_HW_HDMI_RX0_PHY_Control(BCHP_Handle handle, bool activate)
 {
+#if BCHP_HDMI_RX_FE_0_RESET_CONTROL || BCHP_DVP_HR_POWER_CONTROL
     uint32_t mask, reg;
 
     BDBG_MSG(("HW_HDMI_RX0_PHY: %s", activate?"on":"off"));
 
+#ifdef BCHP_HDMI_RX_FE_0_RESET_CONTROL
     reg = BREG_Read32(handle->regHandle, BCHP_HDMI_RX_FE_0_RESET_CONTROL);
     mask = ( BCHP_HDMI_RX_FE_0_RESET_CONTROL_ANALOG_PLL_POWER_DOWN_MASK |
              BCHP_HDMI_RX_FE_0_RESET_CONTROL_ANALOG_CHANNEL_CLOCK_POWER_DOWN_MASK |
@@ -89,12 +110,19 @@ static void BCHP_PWR_P_HW_HDMI_RX0_PHY_Control(BCHP_Handle handle, bool activate
     reg &= ~mask;
     reg |= activate?0:mask;
     BREG_Write32(handle->regHandle, BCHP_HDMI_RX_FE_0_RESET_CONTROL, reg);
+#endif
 
+#if BCHP_DVP_HR_POWER_CONTROL
     reg = BREG_Read32(handle->regHandle, BCHP_DVP_HR_POWER_CONTROL);
     mask = ( BCHP_DVP_HR_POWER_CONTROL_RX_PHY_0_POWER_DOWN_MASK );
     reg &= ~mask;
     reg |= activate?0:mask;
     BREG_Write32(handle->regHandle, BCHP_DVP_HR_POWER_CONTROL, reg);
+#endif
+#else
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(activate);
+#endif
 }
 #endif
 
@@ -419,29 +447,58 @@ static void BCHP_PWR_P_HW_AUD_PLL2_Control(BCHP_Handle handle, bool activate)
 #ifdef BCHP_PWR_HW_AUD_DAC
 #include "bchp_aud_fmm_iop_out_dac_ctrl_0.h"
 #include "bchp_aud_misc.h"
+
+#ifdef BCHP_AUD_MISC_CTRL_STB_power_rail_OK_MASK
+#define BCHP_STB_power_rail_OK_REG    BCHP_AUD_MISC_CTRL
+#define BCHP_STB_power_rail_OK_MASK   BCHP_AUD_MISC_CTRL_STB_power_rail_OK_MASK
+#elif BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_ANALOG_CTRL_REG_2_STB_power_rail_OK_MASK
+#define BCHP_STB_power_rail_OK_REG    BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_ANALOG_CTRL_REG_2
+#define BCHP_STB_power_rail_OK_MASK   BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_ANALOG_CTRL_REG_2_STB_power_rail_OK_MASK
+#endif
+
+#ifdef BCHP_AUD_MISC_CTRL_STB_ready4sample_MASK
+#define BCHP_STB_ready4sample_REG     BCHP_AUD_MISC_CTRL
+#define BCHP_STB_ready4sample_MASK    BCHP_AUD_MISC_CTRL_STB_ready4sample_MASK
+#elif BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_ANALOG_CTRL_REG_3_STB_ready4sample_MASK
+#define BCHP_STB_ready4sample_REG     BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_ANALOG_CTRL_REG_3
+#define BCHP_STB_ready4sample_MASK    BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_ANALOG_CTRL_REG_3_STB_ready4sample_MASK
+#endif
+
+#ifdef BCHP_AUD_MISC_CTRL_STB_ready4pwdn_MASK
+#define BCHP_STB_ready4pwdn_REG       BCHP_AUD_MISC_CTRL
+#define BCHP_STB_ready4pwdn_MASK      BCHP_AUD_MISC_CTRL_STB_ready4pwdn_MASK
+#elif BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_ANALOG_CTRL_REG_3_STB_ready4pwdn_MASK
+#define BCHP_STB_ready4pwdn_REG       BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_ANALOG_CTRL_REG_3
+#define BCHP_STB_ready4pwdn_MASK      BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_ANALOG_CTRL_REG_3_STB_ready4pwdn_MASK
+#endif
+
+#define BCHP_REG(Reg) BCHP_##Reg
+
 static void BCHP_PWR_P_HW_AUD_DAC_Control(BCHP_Handle handle, bool activate)
 {
     uint32_t mask, reg;
 
     BDBG_MSG(("HW_AUD_DAC: %s", activate?"on":"off"));
 
-#ifdef BCHP_AUD_MISC_CTRL_STB_power_rail_OK_MASK
+#ifdef BCHP_STB_power_rail_OK_MASK
     if (activate)
     {
-        reg = BREG_Read32(handle->regHandle, BCHP_AUD_MISC_CTRL);
-        reg &= ~BCHP_AUD_MISC_CTRL_STB_power_rail_OK_MASK;
-        reg |= BCHP_AUD_MISC_CTRL_STB_power_rail_OK_MASK;
-        BREG_Write32(handle->regHandle, BCHP_AUD_MISC_CTRL, reg);
+        reg = BREG_Read32(handle->regHandle, BCHP_STB_power_rail_OK_REG);
+        reg &= ~BCHP_STB_power_rail_OK_MASK;
+        reg |= BCHP_STB_power_rail_OK_MASK;
+        BREG_Write32(handle->regHandle, BCHP_STB_power_rail_OK_REG, reg);
         /* Delay > 50 us */
         BKNI_Delay(100);
     }
 #endif
 
+#ifdef BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_ANALOG_CTRL_REG_2_STB_pu_MASK
     reg = BREG_Read32(handle->regHandle, BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_ANALOG_CTRL_REG_2);
     mask = BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_ANALOG_CTRL_REG_2_STB_pu_MASK ;
     reg &= ~mask;
     reg |= activate?mask:0;
     BREG_Write32(handle->regHandle, BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_ANALOG_CTRL_REG_2, reg);
+#endif
 
 #ifdef BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_ANALOG_CTRL_REG_1_STB_CP_ext_pok_en_MASK
     reg = BREG_Read32(handle->regHandle, BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_ANALOG_CTRL_REG_1);
@@ -458,13 +515,13 @@ static void BCHP_PWR_P_HW_AUD_DAC_Control(BCHP_Handle handle, bool activate)
     BREG_Write32(handle->regHandle, BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_ANALOG_CTRL_REG_1, reg);
 #endif
 
-#ifdef BCHP_AUD_MISC_CTRL_STB_ready4sample_MASK
+#ifdef BCHP_STB_ready4sample_MASK
     {
         unsigned i, count = 100000; /* up to 100 milliseconds */
         for ( i = 0 ; i < count; i++ )
         {
-            uint32_t ready = BREG_Read32(handle->regHandle, BCHP_AUD_MISC_CTRL);
-            mask = activate ? BCHP_AUD_MISC_CTRL_STB_ready4sample_MASK : BCHP_AUD_MISC_CTRL_STB_ready4pwdn_MASK;
+            uint32_t ready = BREG_Read32(handle->regHandle, BCHP_STB_ready4pwdn_REG);
+            mask = activate ? BCHP_STB_ready4sample_MASK : BCHP_STB_ready4pwdn_MASK;
             if ( (ready & mask) > 0 )
             {
                 break;
@@ -478,21 +535,24 @@ static void BCHP_PWR_P_HW_AUD_DAC_Control(BCHP_Handle handle, bool activate)
     }
 #endif
 
-#ifdef BCHP_AUD_MISC_CTRL_STB_power_rail_OK_MASK
+#ifdef BCHP_STB_power_rail_OK_MASK
     if (!activate)
     {
-        reg = BREG_Read32(handle->regHandle, BCHP_AUD_MISC_CTRL);
-        reg &= ~BCHP_AUD_MISC_CTRL_STB_power_rail_OK_MASK;
-        BREG_Write32(handle->regHandle, BCHP_AUD_MISC_CTRL, reg);
+        reg = BREG_Read32(handle->regHandle, BCHP_STB_power_rail_OK_REG);
+        reg &= ~BCHP_STB_power_rail_OK_MASK;
+        BREG_Write32(handle->regHandle, BCHP_STB_power_rail_OK_REG, reg);
     }
 #endif
 }
 #endif
 
 #ifdef BCHP_PWR_HW_RFM_PHY
+#ifdef BCHP_RFM_SYSCLK_REG_START
 #include "bchp_rfm_sysclk.h"
+#endif
 static void BCHP_PWR_P_HW_RFM_PHY_Control(BCHP_Handle handle, bool activate)
 {
+#ifdef BCHP_RFM_SYSCLK_CLKCTL
     uint32_t mask, reg;
 
 #ifdef BCHP_SUN_TOP_CTRL_OTP_OPTION_STATUS_1_otp_option_rfm_disable_MASK
@@ -560,5 +620,9 @@ static void BCHP_PWR_P_HW_RFM_PHY_Control(BCHP_Handle handle, bool activate)
         reg |= BCHP_RFM_SYSCLK_CLKCTL_RFMCLK_OFF_MASK;
         BREG_Write32(handle->regHandle, BCHP_RFM_SYSCLK_CLKCTL, reg);
     }
+#else
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(activate);
+#endif
 }
 #endif

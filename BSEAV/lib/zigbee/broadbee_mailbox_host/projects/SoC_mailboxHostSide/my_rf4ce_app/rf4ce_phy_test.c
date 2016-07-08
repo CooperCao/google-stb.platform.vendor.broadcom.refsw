@@ -1,42 +1,39 @@
 /******************************************************************************
  * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  ******************************************************************************/
 /* Simple RF4CE app */
 
@@ -49,7 +46,7 @@
 #include "bbMailAPI.h"
 #include "zigbee_api.h"
 #include "zigbee.h"
-#include "bbMailTestEngine.h"
+//#include "bbMailTestEngine.h"
 #include "bbSysPayload.h"
 #include "zigbee_rf4ce_registration.h"
 #define SYS_DBG_LOG_BUFFER_SIZE     256
@@ -582,17 +579,17 @@ static void rf4ce_Set_TX_Power_Key_Exchange(uint32_t power)
 {
     uint8_t status_Set_TX_Power_Key_Exchange = 0;
 
-    RF4CE_ZRC1_SetAttributeDescr_t req = {0};
+    RF4CE_NWK_SetReqDescr_t req = {0};
 
-    void rf4ce_Set_TX_Power_Key_Exchange_Callback(RF4CE_ZRC1_SetAttributeDescr_t *request, RF4CE_ZRC1_SetAttributeConfParams_t *conf)
+    void rf4ce_Set_TX_Power_Key_Exchange_Callback(RF4CE_NWK_SetReqDescr_t *request, RF4CE_NWK_SetConfParams_t *conf)
     {
         status_Set_TX_Power_Key_Exchange = 1;
     }
-    req.params.attributeId = GDP_TX_POWER_KEY_EXCHANGE;
-    req.params.data.aplGDPTxPowerKeyExchange = power;
+    req.params.attrId.attrId = RF4CE_NWK_TX_POWER_KEY_EXCHANGE;
+    req.params.data.nwkTxPowerKeyExchange = power;
     req.callback = rf4ce_Set_TX_Power_Key_Exchange_Callback;
 
-    RF4CE_ZRC1_SetAttributesReq(&req);
+    RF4CE_NWK_SetReq(&req);
     while(!status_Set_TX_Power_Key_Exchange);
 }
 
@@ -628,7 +625,7 @@ static int rf4ce_Test_Get_Num_Paired_Devices()
     RF4CE_PairingTableEntry_t entry;
     printf("rf4ce_Get_pairingTableEntriesMax ing ...............\n");
     int numEntries = rf4ce_Get_pairingTableEntriesMax();
-    printf("rf4ce_Get_pairingTableEntriesMax\n");
+    printf("rf4ce_Get_pairingTableEntriesMax : %d\n", numEntries);
     for(int i = 0; i < numEntries; i++){
         if(rf4ce_Test_Get_PairingEntry(i, &entry))
             numPairedDevice++;
@@ -1002,31 +999,99 @@ static void rf4ce_Test_RF4CE_Get_Diag_Caps()
     printf("rf4ce_Test_RF4CE_Get_Diag_Caps successfully\r\n");
 }
 
-void rf4ce_Test_RF4CE_Get_Diag()
+static void rf4ce_Test_RF4CE_Get_Diag_Agility()
 {
-    uint8_t status_rf4ce_Test_RF4CE_Get_Diag = 0;
+    uint8_t status_rf4ce_Test_RF4CE_Get_Diag_Agility = 0;
 
     RF4CE_Diag_ReqDescr_t req = {0};
-    void rf4ce_Test_RF4CE_Get_Diag_Callback(RF4CE_Diag_ReqDescr_t *request, RF4CE_Diag_ConfParams_t *conf)
+    req.params.constant = RF4CE_CTRL_CONSTANT_DIAGNOSTICS_AGILITY;
+    void rf4ce_Test_RF4CE_Get_Diag_Agility_Callback(RF4CE_Diag_ReqDescr_t *request, RF4CE_Diag_ConfParams_t *conf)
     {
-        status_rf4ce_Test_RF4CE_Get_Diag = 1;
+        printf("rf4ce_Test_RF4CE_Get_Diag_Agility_Callback got called\r\n");
+        printf("agilityThreshold=%d\n", conf->u.agility.agilityThreshold);
+        printf("currentChannel = %d\n", conf->u.agility.operational.logicalChannel);
+        printf("bkChan1        = %d\n", conf->u.agility.bkChan1.logicalChannel);
+        printf("bkChan2        = %d\n", conf->u.agility.bkChan2.logicalChannel);
+        status_rf4ce_Test_RF4CE_Get_Diag_Agility = 1;
     }
-    req.callback = rf4ce_Test_RF4CE_Get_Diag_Callback;
+    req.callback = rf4ce_Test_RF4CE_Get_Diag_Agility_Callback;
 
     RF4CE_Get_Diag_Req(&req);
-    while(!status_rf4ce_Test_RF4CE_Get_Diag);
+    while(!status_rf4ce_Test_RF4CE_Get_Diag_Agility);
 
-    printf("rf4ce_Test_RF4CE_Get_Diag successfully\r\n");
+    printf("rf4ce_Test_RF4CE_Get_Diag_Agility successfully\r\n");
+}
+
+static void rf4ce_Test_RF4CE_Get_Diag_LinkQuality(uint8_t pairRef)
+{
+    uint8_t status_rf4ce_Test_RF4CE_Get_Diag_LinkQuality = 0;
+
+    RF4CE_Diag_ReqDescr_t req = {0};
+    req.params.constant = RF4CE_CTRL_CONSTANT_DIAGNOSTICS_LINK_QUALITY;
+    req.params.u.linkQuality.pairingRef = pairRef;
+    void rf4ce_Test_RF4CE_Get_Diag_LinkQuality_Callback(RF4CE_Diag_ReqDescr_t *request, RF4CE_Diag_ConfParams_t *conf)
+    {
+        printf("Link Quality of last received packet for pairRef(%d) = %d\n", pairRef, conf->u.linkQuality.linkQuality);
+        status_rf4ce_Test_RF4CE_Get_Diag_LinkQuality = 1;
+    }
+    req.callback = rf4ce_Test_RF4CE_Get_Diag_LinkQuality_Callback;
+
+    RF4CE_Get_Diag_Req(&req);
+    while(!status_rf4ce_Test_RF4CE_Get_Diag_LinkQuality);
+
+    printf("rf4ce_Test_RF4CE_Get_Diag_LinkQuality successfully\r\n");
+}
+
+static void rf4ce_Test_RF4CE_Get_Diag_TxPower()
+{
+    uint8_t status_rf4ce_Test_RF4CE_Get_Diag_TxPower = 0;
+
+    RF4CE_Diag_ReqDescr_t req = {0};
+    req.params.constant = RF4CE_CTRL_CONSTANT_DIAGNOSTICS_TX_POWER;
+    void rf4ce_Test_RF4CE_Get_Diag_TxPower_Callback(RF4CE_Diag_ReqDescr_t *request, RF4CE_Diag_ConfParams_t *conf)
+    {
+        printf("powerMax = %d\n", conf->u.txPower.powerMax);
+        printf("powerMin = %d\n", conf->u.txPower.powerMin);
+        printf("power    = %d\n", conf->u.txPower.power);
+        status_rf4ce_Test_RF4CE_Get_Diag_TxPower = 1;
+    }
+    req.callback = rf4ce_Test_RF4CE_Get_Diag_TxPower_Callback;
+
+    RF4CE_Get_Diag_Req(&req);
+    while(!status_rf4ce_Test_RF4CE_Get_Diag_TxPower);
+
+    printf("rf4ce_Test_RF4CE_Get_Diag_TxPower successfully\r\n");
+}
+
+static void rf4ce_Test_RF4CE_Get_Diag_TxPower_KeyExchange()
+{
+    uint8_t rf4ce_Test_RF4CE_Get_Diag_TxPower_KeyExchange = 0;
+
+    RF4CE_Diag_ReqDescr_t req = {0};
+    req.params.constant = RF4CE_CTRL_CONSTANT_DIAGNOSTICS_TX_POWER_KEY_EXCHANGE;
+    void rf4ce_Test_RF4CE_Get_Diag_TxPower_KeyExchange_Callback(RF4CE_Diag_ReqDescr_t *request, RF4CE_Diag_ConfParams_t *conf)
+    {
+        printf("powerMax = %d\n", conf->u.txPowerKeyExchange.powerMax);
+        printf("powerMin = %d\n", conf->u.txPowerKeyExchange.powerMin);
+        printf("power    = %d\n", conf->u.txPowerKeyExchange.power);
+        rf4ce_Test_RF4CE_Get_Diag_TxPower_KeyExchange = 1;
+    }
+    req.callback = rf4ce_Test_RF4CE_Get_Diag_TxPower_KeyExchange_Callback;
+
+    RF4CE_Get_Diag_Req(&req);
+    while(!rf4ce_Test_RF4CE_Get_Diag_TxPower_KeyExchange);
+
+    printf("rf4ce_Test_RF4CE_Get_Diag_TxPower_KeyExchange successfully\r\n");
 }
 
 
 static void rf4ce_Test_Subscribe_Event()
 {
-    SYS_EventHandlerParams_t eventMap = {0};
+    SYS_EventHandlerMailParams_t eventMap = {0};
     printf("size of SYS_EventHandlerParams_t is %d %d\n", sizeof(SYS_EventHandlerMailParams_t), sizeof(eventMap.subscribedEventsMap));
     BITMAP_SET(eventMap.subscribedEventsMap, RF4CE_CTRL_EVENT_PAIRING_DEVICE_PAIRED);
 
-    SYS_EventSubscribe(&eventMap);
+    sysEventSubscribeHostHandler(&eventMap);
 }
 
 typedef struct
@@ -1131,14 +1196,62 @@ void My_RF4CE_ZRC1_ControlCommandInd(RF4CE_ZRC1_ControlCommandIndParams_t *comma
     }
 }
 
+static void My_SYS_EventNtfy(SYS_EventNotifyParams_t *event)
+{
+    //Sys_DbgPrint("\nSYS_EventNtfy : EventId(%d)\n", event->id);
+    switch(event->id){
+        case RF4CE_CTRL_EVENT_PAIRING_DEVICE_PAIRED:
+            printf("RF4CE_CTRL_EVENT_PAIRING_DEVICE_PAIRED\n");
+            break;
+        case RF4CE_CTRL_EVENT_PAIRING_DEVICE_NOT_FOUND:
+            printf("RF4CE_CTRL_EVENT_PAIRING_DEVICE_NOT_FOUND\n");
+            break;
+        case RF4CE_CTRL_EVENT_PAIRING_MULTIPLE_DEVICES_FOUND:
+            printf("RF4CE_CTRL_EVENT_PAIRING_MULTIPLE_DEVICES_FOUND\n");
+            break;
+        case RF4CE_CTRL_EVENT_PAIRING_DUPLICATE_PAIR_FOUND:
+            printf("RF4CE_CTRL_EVENT_PAIRING_DUPLICATE_PAIR_FOUND\n");
+            break;
+        case RF4CE_CTRL_EVENT_UNPAIRING_DEVICE_UNPAIRED:
+            printf("RF4CE_CTRL_EVENT_UNPAIRING_DEVICE_UNPAIRED\n");
+            break;
+        case RF4CE_CTRL_EVENT_VENDOR_FRAME_RECEIVED:
+            printf("RF4CE_CTRL_EVENT_VENDOR_FRAME_RECEIVED\n");
+            break;
+        case RF4CE_CTRL_EVENT_VENDOR_FRAME_SEND_OK:
+            printf("RF4CE_CTRL_EVENT_VENDOR_FRAME_SEND_OK\n");
+            break;
+        case RF4CE_CTRL_EVENT_VENDOR_FRAME_SEND_FAILED:
+            printf("RF4CE_CTRL_EVENT_VENDOR_FRAME_SEND_FAILED\n");
+            break;
+        case RF4CE_CTRL_EVENT_BAD_VENDOR_FRAME:
+            printf("RF4CE_CTRL_EVENT_BAD_VENDOR_FRAME\n");
+            break;
+        case RF4CE_CTRL_EVENT_PAIRING_GENERAL_FAILURE:
+            printf("RF4CE_CTRL_EVENT_PAIRING_GENERAL_FAILURE\n");
+            break;
+        case RF4CE_CTRL_EVENT_TEST_TRANSMIT_END:
+            printf("RF4CE_CTRL_EVENT_TEST_TRANSMIT_END\n");
+            break;
+        default:
+            printf("Unknown event\n");
+            break;
+    }
+}
 
 int main(int argc, char *argv[])
 {
     struct zigbeeCallback zcb;
 
+#ifdef BYPASS_RPC
+    extern int zigbee_init(int argc, char *argv[]);
+    zigbee_init(argc, argv);
+#endif
+
     /* Register the callback functions you are interested in.  Ones that are not filled out, won't be called back. */
     /* Calling Zigbee_GetDefaultSettings will initialize the callback structure */
     Zigbee_GetDefaultSettings(&zcb);
+    zcb.SYS_EventNtfy = My_SYS_EventNtfy;
     zcb.RF4CE_PairInd = My_RF4CE_ZRC_PairInd;
     zcb.RF4CE_ZRC2_CheckValidationInd = My_RF4CE_ZRC_CheckValidationInd;
     zcb.RF4CE_ZRC2_ControlCommandInd = My_RF4CE_ZRC_ControlCommandInd;
@@ -1204,7 +1317,10 @@ int main(int argc, char *argv[])
     phy_Test_Set_TX_Power(10);
     phy_Test_Select_Antenna();
     rf4ce_Test_RF4CE_Get_Diag_Caps();
-    rf4ce_Test_RF4CE_Get_Diag();
+    rf4ce_Test_RF4CE_Get_Diag_Agility();
+    rf4ce_Test_RF4CE_Get_Diag_LinkQuality(0);
+    rf4ce_Test_RF4CE_Get_Diag_TxPower();
+    rf4ce_Test_RF4CE_Get_Diag_TxPower_KeyExchange();
     printf("PHY_TEST_APP:  closing...\n");
 
     Zigbee_Close();

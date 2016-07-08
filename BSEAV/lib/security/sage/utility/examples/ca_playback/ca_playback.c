@@ -73,6 +73,7 @@
 
 #include <stdio.h>
 #include <assert.h>
+#include <string.h>
 #include "bstd.h"
 #include "bkni.h"
 
@@ -107,6 +108,7 @@ int main(int argc, char **argv)
     int status = 0;
 
     NEXUS_PlatformSettings platformSettings;
+    NEXUS_MemoryConfigurationSettings memConfigSettings;
     NEXUS_PlatformConfiguration platformConfig;
     NEXUS_StcChannelHandle stcChannel;
     NEXUS_StcChannelSettings stcSettings;
@@ -135,12 +137,26 @@ int main(int argc, char **argv)
 
     unsigned int videoPID, audioPID;
     int action;
+    unsigned i,j;
 
     NEXUS_PidChannelStatus pidStatus;
 
     NEXUS_Platform_GetDefaultSettings(&platformSettings);
     platformSettings.openFrontend = false;
-    NEXUS_Platform_Init(&platformSettings);
+    NEXUS_GetDefaultMemoryConfigurationSettings(&memConfigSettings);
+    /* Request secure picture buffers, i.e. URR
+    * Only needed if SAGE is in use, and when SAGE_SECURE_MODE is NOT 1 */
+    /* For now default to SVP2.0 type configuration (i.e. ALL buffers are
+    * secure ONLY */
+    for (i=0;i<NEXUS_NUM_VIDEO_DECODERS;i++) {
+        memConfigSettings.videoDecoder[i].secure = NEXUS_SecureVideo_eSecure;
+    }
+    for (i=0;i<NEXUS_NUM_DISPLAYS;i++) {
+        for (j=0;j<NEXUS_NUM_VIDEO_WINDOWS;j++) {
+            memConfigSettings.display[i].window[j].secure = NEXUS_SecureVideo_eSecure;
+        }
+    }
+    rc = NEXUS_Platform_MemConfigInit(&platformSettings, &memConfigSettings);
     NEXUS_Platform_GetConfiguration(&platformConfig);
 
     /*-----------------------------------------------------------------------------
@@ -219,13 +235,14 @@ int main(int argc, char **argv)
         if ( !hdmiStatus.videoFormatSupported[displaySettings.format] ) {
             displaySettings.format = hdmiStatus.preferredVideoFormat;
             NEXUS_Display_SetSettings(display, &displaySettings);
-		}
+        }
     }
 #endif
 
     /* bring up decoder and connect to display */
     NEXUS_VideoDecoder_GetDefaultOpenSettings(&videoDecoderOpenSettings);
     videoDecoderOpenSettings.cdbHeap = platformConfig.heap[NEXUS_VIDEO_SECURE_HEAP];
+    videoDecoderOpenSettings.secureVideo = true;
     videoDecoder = NEXUS_VideoDecoder_Open(0, &videoDecoderOpenSettings);
     NEXUS_VideoWindow_AddInput(window, NEXUS_VideoDecoder_GetConnector(videoDecoder));
 
@@ -291,52 +308,52 @@ int main(int argc, char **argv)
     /* Start playback */
     NEXUS_Playback_Start(playback, file, NULL);
 
-	NEXUS_VideoDecoderStatus videoStatus;
-	NEXUS_AudioDecoderStatus audioStatus;
+    NEXUS_VideoDecoderStatus videoStatus;
+    NEXUS_AudioDecoderStatus audioStatus;
 
     /* Playback state machine is driven from inside Nexus. */
-	if (argc > 1)
-	{
-		if ((strcmp("--odt", argv[1]) != 0))
-		{
-			printf("The only parameter allowed for now is \"--odt\"\n");
-			status = -1;
-			goto handle_error;
-		}
-		else
-		{
-			sleep(15);
-			/* verify video has worked */
-			NEXUS_VideoDecoder_GetStatus(videoDecoder, &videoStatus);
-			printf("'%d' pictures displayed\n", videoStatus.numDecoded);
-			if (videoStatus.numDecoded < 200)		{
-				status = -1;
-			}
-			/* verify audio has worked */
-			NEXUS_AudioDecoder_GetStatus(audioDecoder, &audioStatus);
-			printf("'%d' audio frames decoded\n", audioStatus.framesDecoded);
-			if (audioStatus.framesDecoded < 200)		{
-				status = -1;
-			}
-		}
-	}
-	else
-	{
-		printf("Press S to show the decoder status, Q to quit\n");
-		do
-		{
-			action = toupper(getchar());
+    if (argc > 1)
+    {
+        if ((strcmp("--odt", argv[1]) != 0))
+        {
+            printf("The only parameter allowed for now is \"--odt\"\n");
+            status = -1;
+            goto handle_error;
+        }
+        else
+        {
+            sleep(15);
+            /* verify video has worked */
+            NEXUS_VideoDecoder_GetStatus(videoDecoder, &videoStatus);
+            printf("'%d' pictures displayed\n", videoStatus.numDecoded);
+            if (videoStatus.numDecoded < 200)       {
+                status = -1;
+            }
+            /* verify audio has worked */
+            NEXUS_AudioDecoder_GetStatus(audioDecoder, &audioStatus);
+            printf("'%d' audio frames decoded\n", audioStatus.framesDecoded);
+            if (audioStatus.framesDecoded < 200)        {
+                status = -1;
+            }
+        }
+    }
+    else
+    {
+        printf("Press S to show the decoder status, Q to quit\n");
+        do
+        {
+            action = toupper(getchar());
 
-			if('S' == action)
-			{
-				NEXUS_VideoDecoder_GetStatus(videoDecoder, &videoStatus);
-				printf("Main - VIDEO - numDecoded = '%u'   numDecodeErrors = '%u'   ptsErrorCount = '%u'\n", videoStatus.numDecoded, videoStatus.numDecodeErrors, videoStatus.ptsErrorCount);
-				NEXUS_AudioDecoder_GetStatus(audioDecoder, &audioStatus);
-				printf("Main - AUDIO - framesDecoded = '%u'   frameErrors = '%u'   dummyFrames = '%u'\n", audioStatus.framesDecoded, audioStatus.frameErrors, audioStatus.dummyFrames);
+            if('S' == action)
+            {
+                NEXUS_VideoDecoder_GetStatus(videoDecoder, &videoStatus);
+                printf("Main - VIDEO - numDecoded = '%u'   numDecodeErrors = '%u'   ptsErrorCount = '%u'\n", videoStatus.numDecoded, videoStatus.numDecodeErrors, videoStatus.ptsErrorCount);
+                NEXUS_AudioDecoder_GetStatus(audioDecoder, &audioStatus);
+                printf("Main - AUDIO - framesDecoded = '%u'   frameErrors = '%u'   dummyFrames = '%u'\n", audioStatus.framesDecoded, audioStatus.frameErrors, audioStatus.dummyFrames);
 
-			}
-		} while('Q' != action);
-	}
+            }
+        } while('Q' != action);
+    }
 
 
 handle_error:
@@ -388,12 +405,12 @@ handle_error:
     KeyLoaderTl_Uninit(hKeyLoader);
 
     NEXUS_Platform_Uninit();
-	return status;
+    return status;
 }
 
 static BERR_Code Utility_LoadKey(KeyLoaderTl_Handle hKeyLoader)
 {
-	BERR_Code rc = BERR_SUCCESS;
+    BERR_Code rc = BERR_SUCCESS;
     KeyLoader_KeySlotConfigSettings keyslotConfigSettings;
     KeyLoader_WrappedKeySettings wrappedKeySettings;
 
@@ -428,6 +445,8 @@ static BERR_Code Utility_LoadKey(KeyLoaderTl_Handle hKeyLoader)
 
     wrappedKeySettings.keyladderAlg = BSAGElib_Crypto_Algorithm_eAes;
     wrappedKeySettings.keyladderDepth = BSAGElib_Crypto_KeyLadderLevel_eKey5;
+    wrappedKeySettings.engine = BSAGElib_Crypto_Engine_eCa;
+    wrappedKeySettings.operation = BSAGElib_Crypto_Operation_eDecrypt;
     wrappedKeySettings.keyType = BSAGElib_Crypto_KeyType_eEven;
     BKNI_Memcpy(wrappedKeySettings.procInForKey3, ca_procInForKey3, 16);
     BKNI_Memcpy(wrappedKeySettings.procInForKey4, ca_procInForKey4, 16);

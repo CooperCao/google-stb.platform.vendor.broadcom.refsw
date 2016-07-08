@@ -1,43 +1,43 @@
 /******************************************************************************
-* (c) 2014 Broadcom Corporation
-*
-* This program is the proprietary software of Broadcom Corporation and/or its
-* licensors, and may only be used, duplicated, modified or distributed pursuant
-* to the terms and conditions of a separate, written license agreement executed
-* between you and Broadcom (an "Authorized License").  Except as set forth in
-* an Authorized License, Broadcom grants no license (express or implied), right
-* to use, or waiver of any kind with respect to the Software, and Broadcom
-* expressly reserves all rights in and to the Software and all intellectual
-* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1. This program, including its structure, sequence and organization,
-*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-*    reasonable efforts to protect the confidentiality thereof, and to use
-*    this information only in connection with your use of Broadcom integrated
-*    circuit products.
-*
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-******************************************************************************/
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
+ *
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************
 /*****************************************************************************
 *
 * FILENAME: $Workfile: trunk/stack/common/HAL/src/bbHalUartMailbox.c $
@@ -66,9 +66,9 @@ static void halUartMailboxReceiveData(HAL_UsartDescriptor_t *const usart);
 ****************************************************************************************/
 void HAL_UartMailboxInit(HAL_UartMailboxDescriptor_t *const descr)
 {
-    SYS_DbgAssert(descr->offlineCallback, HALUARTMAILBOX_HALFIFOPROXYINIT_0);
-    SYS_DbgAssert(descr->rtsCallback, HALUARTMAILBOX_HALFIFOPROXYINIT_1);
-    SYS_DbgAssert(descr->rxCallback, HALUARTMAILBOX_HALFIFOPROXYINIT_2);
+    SYS_DbgAssertComplex(descr->offlineCallback, HALUARTMAILBOX_HALFIFOPROXYINIT_0);
+    SYS_DbgAssertComplex(descr->rtsCallback, HALUARTMAILBOX_HALFIFOPROXYINIT_1);
+    SYS_DbgAssertComplex(descr->rxCallback, HALUARTMAILBOX_HALFIFOPROXYINIT_2);
 
     /* Initialize TX/RX buffers. */
     memset(&descr->txBuffer, 0U, sizeof(descr->txBuffer));
@@ -105,7 +105,7 @@ void HAL_UartMailboxClose(HAL_UartMailboxDescriptor_t *const descr)
 ****************************************************************************************/
 void HAL_UartMailboxTx(HAL_UartMailboxDescriptor_t *const descr, const uint8_t *data, uint8_t dataLength)
 {
-    SYS_DbgAssert(HAL_UART_MAILBOX_IDLE == descr->txBuffer.state
+    SYS_DbgAssertComplex(HAL_UART_MAILBOX_IDLE == descr->txBuffer.state
                   || HAL_UART_MAILBOX_COMPILE_MESSAGE == descr->txBuffer.state,
                   HALUARTMAILBOX_SEND_0);
 
@@ -117,7 +117,7 @@ void HAL_UartMailboxTx(HAL_UartMailboxDescriptor_t *const descr, const uint8_t *
         descr->txBuffer.messageLength = 0;
     }
 
-    SYS_DbgAssert(HAL_UART_MAILBOX_MAX_DATA_LENGTH >= (descr->txBuffer.messageLength + dataLength),
+    SYS_DbgAssertComplex(HAL_UART_MAILBOX_MAX_DATA_LENGTH >= (descr->txBuffer.messageLength + dataLength),
                   HALUARTMAILBOX_SEND_1);
 
     memcpy(descr->txBuffer.message + descr->txBuffer.messageLength, data, dataLength);
@@ -131,7 +131,7 @@ void HAL_UartMailboxTx(HAL_UartMailboxDescriptor_t *const descr, const uint8_t *
 ****************************************************************************************/
 uint8_t HAL_UartMailboxTxFifoAvailableSize(HAL_UartMailboxDescriptor_t *const descr)
 {
-    SYS_DbgAssert(HAL_UART_MAILBOX_MAX_DATA_LENGTH >= descr->txBuffer.messageLength,
+    SYS_DbgAssertComplex(HAL_UART_MAILBOX_MAX_DATA_LENGTH >= descr->txBuffer.messageLength,
                   HALUARTMAILBOX_AVATXFIFOILABLESIZE_0);
 
     return HAL_UART_MAILBOX_MAX_DATA_LENGTH - descr->txBuffer.messageLength;
@@ -144,7 +144,7 @@ uint8_t HAL_UartMailboxTxFifoAvailableSize(HAL_UartMailboxDescriptor_t *const de
 ****************************************************************************************/
 void HAL_UartMailboxTxEnd(HAL_UartMailboxDescriptor_t *const descr, HAL_HostId_t destSubsystem)
 {
-    SYS_DbgAssert(HAL_UART_MAILBOX_COMPILE_MESSAGE == descr->txBuffer.state, HALUARTMAILBOX_TXEND_0);
+    SYS_DbgAssertComplex(HAL_UART_MAILBOX_COMPILE_MESSAGE == descr->txBuffer.state, HALUARTMAILBOX_TXEND_0);
 
     /* Calculate CRC. */
     descr->txBuffer.crc = SYS_Crc16(0, &descr->txBuffer.messageLength, sizeof(descr->txBuffer.messageLength));
@@ -197,7 +197,7 @@ static void halUartMailboxSendNextChunk(HAL_UsartDescriptor_t *const usart)
     if (HAL_UART_MAILBOX_TX_FINISHED == descr->txBuffer.state)
     {
         descr->txBuffer.state = HAL_UART_MAILBOX_IDLE;
-        SYS_DbgAssert(descr->rtsCallback, HALUARTMAILBOX_SENDNEXTCHUNK_1);
+        SYS_DbgAssertComplex(descr->rtsCallback, HALUARTMAILBOX_SENDNEXTCHUNK_1);
         descr->rtsCallback(descr);
     }
     else if (HAL_UART_MAILBOX_TX_STARTED == descr->txBuffer.state
@@ -255,8 +255,8 @@ static void halUartMailboxReceiveData(HAL_UsartDescriptor_t *const usart)
             uint8_t read;
             do
             {
-                SYS_DbgAssert(sizeof(descr->rxBuffer.message) >= descr->rxBuffer.offset, HALUARTMAILBOX_RECEIVEDATA_0);
-                SYS_DbgAssert(descr->rxBuffer.messageLength >= descr->rxBuffer.offset, HALUARTMAILBOX_RECEIVEDATA_1);
+                SYS_DbgAssertComplex(sizeof(descr->rxBuffer.message) >= descr->rxBuffer.offset, HALUARTMAILBOX_RECEIVEDATA_0);
+                SYS_DbgAssertComplex(descr->rxBuffer.messageLength >= descr->rxBuffer.offset, HALUARTMAILBOX_RECEIVEDATA_1);
                 uint8_t toRead = descr->rxBuffer.messageLength - descr->rxBuffer.offset;
                 read = HAL_UsartRead(&descr->usart,
                                      &(descr->rxBuffer.message[descr->rxBuffer.offset]),
@@ -302,7 +302,7 @@ static void halUartMailboxReceiveData(HAL_UsartDescriptor_t *const usart)
         {
             descr->rxBuffer.state = HAL_UART_MAILBOX_WAIT_FOR_RX_END;
 
-            SYS_DbgAssert(descr->rxCallback, HALUARTMAILBOX_RECEIVEDATA_3);
+            SYS_DbgAssertComplex(descr->rxCallback, HALUARTMAILBOX_RECEIVEDATA_3);
             descr->rxCallback(descr);
         }
         case (HAL_UART_MAILBOX_WAIT_FOR_RX_END):
@@ -312,7 +312,7 @@ static void halUartMailboxReceiveData(HAL_UsartDescriptor_t *const usart)
         case HAL_UART_MAILBOX_TX_STARTED:
         case HAL_UART_MAILBOX_TX_FINISHED:
         default:
-            SYS_DbgAssert(false, HALUARTMAILBOX_RECEIVEDATA_4);
+            SYS_DbgAssertComplex(false, HALUARTMAILBOX_RECEIVEDATA_4);
     }
 }
 
@@ -325,8 +325,8 @@ static void halUartMailboxReceiveData(HAL_UsartDescriptor_t *const usart)
 ****************************************************************************************/
 void HAL_UartMailboxRx(HAL_UartMailboxDescriptor_t *const descr, uint8_t *buffer, uint8_t length)
 {
-    SYS_DbgAssert(HAL_UART_MAILBOX_WAIT_FOR_RX_END == descr->rxBuffer.state, HALUARTMAILBOX_RX_0);
-    SYS_DbgAssert((descr->rxBuffer.messageLength - descr->rxBuffer.offset) >= length, HALUARTMAILBOX_RX_1);
+    SYS_DbgAssertComplex(HAL_UART_MAILBOX_WAIT_FOR_RX_END == descr->rxBuffer.state, HALUARTMAILBOX_RX_0);
+    SYS_DbgAssertComplex((descr->rxBuffer.messageLength - descr->rxBuffer.offset) >= length, HALUARTMAILBOX_RX_1);
 
     memcpy(buffer, descr->rxBuffer.message + descr->rxBuffer.offset, length);
     descr->rxBuffer.offset += length;
@@ -340,8 +340,8 @@ void HAL_UartMailboxRx(HAL_UartMailboxDescriptor_t *const descr, uint8_t *buffer
 ****************************************************************************************/
 void HAL_UartMailboxRxEnd(HAL_UartMailboxDescriptor_t *const descr)
 {
-    SYS_DbgAssert(HAL_UART_MAILBOX_WAIT_FOR_RX_END == descr->rxBuffer.state, HALUARTMAILBOX_RXEND_0);
-    SYS_DbgAssert(descr->rxBuffer.messageLength == descr->rxBuffer.offset, HALUARTMAILBOX_RXEND_1);
+    SYS_DbgAssertComplex(HAL_UART_MAILBOX_WAIT_FOR_RX_END == descr->rxBuffer.state, HALUARTMAILBOX_RXEND_0);
+    SYS_DbgAssertComplex(descr->rxBuffer.messageLength == descr->rxBuffer.offset, HALUARTMAILBOX_RXEND_1);
 
     descr->rxBuffer.state = HAL_UART_MAILBOX_IDLE;
 #if defined(_DEBUG_COMPLEX_)

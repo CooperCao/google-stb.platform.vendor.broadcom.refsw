@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2014 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  *****************************************************************************/
 /* xcode lib example app */
@@ -82,20 +74,27 @@ static const struct {
     double frequency;
     NEXUS_VideoFrameRate nexusFramerate;
 } BTST_P_Verticalfrequency[NEXUS_VideoFrameRate_eMax] = {
-    {0, NEXUS_VideoFrameRate_eUnknown},
-    {10, NEXUS_VideoFrameRate_e10},
-    {12.5, NEXUS_VideoFrameRate_e12_5},
-    {15, NEXUS_VideoFrameRate_e15},
-    {20, NEXUS_VideoFrameRate_e20},
-    {23.976, NEXUS_VideoFrameRate_e23_976},
-    {24, NEXUS_VideoFrameRate_e24},
-    {25, NEXUS_VideoFrameRate_e25},
-    {29.970, NEXUS_VideoFrameRate_e29_97},
-    {30, NEXUS_VideoFrameRate_e30},
-    {50, NEXUS_VideoFrameRate_e50},
-    {59.940, NEXUS_VideoFrameRate_e59_94},
-    {60, NEXUS_VideoFrameRate_e60},
-    {14.985, NEXUS_VideoFrameRate_e14_985}};
+   {0, NEXUS_VideoFrameRate_eUnknown},
+   {7.493, NEXUS_VideoFrameRate_e7_493},
+   {7.5, NEXUS_VideoFrameRate_e7_5},
+   {9.99, NEXUS_VideoFrameRate_e9_99},
+   {10, NEXUS_VideoFrameRate_e10},
+   {12, NEXUS_VideoFrameRate_e12},
+   {11.988, NEXUS_VideoFrameRate_e11_988},
+   {12.5, NEXUS_VideoFrameRate_e12_5},
+   {14.985, NEXUS_VideoFrameRate_e14_985},
+   {15, NEXUS_VideoFrameRate_e15},
+   {19.98, NEXUS_VideoFrameRate_e19_98},
+   {20, NEXUS_VideoFrameRate_e20},
+   {23.976, NEXUS_VideoFrameRate_e23_976},
+   {24, NEXUS_VideoFrameRate_e24},
+   {25, NEXUS_VideoFrameRate_e25},
+   {29.970, NEXUS_VideoFrameRate_e29_97},
+   {30, NEXUS_VideoFrameRate_e30},
+   {50, NEXUS_VideoFrameRate_e50},
+   {59.940, NEXUS_VideoFrameRate_e59_94},
+   {60, NEXUS_VideoFrameRate_e60},
+};
 
 /**
 Private functions:

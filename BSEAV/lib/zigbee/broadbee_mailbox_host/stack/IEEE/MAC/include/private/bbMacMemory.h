@@ -1,52 +1,51 @@
 /******************************************************************************
-* (c) 2014 Broadcom Corporation
-*
-* This program is the proprietary software of Broadcom Corporation and/or its
-* licensors, and may only be used, duplicated, modified or distributed pursuant
-* to the terms and conditions of a separate, written license agreement executed
-* between you and Broadcom (an "Authorized License").  Except as set forth in
-* an Authorized License, Broadcom grants no license (express or implied), right
-* to use, or waiver of any kind with respect to the Software, and Broadcom
-* expressly reserves all rights in and to the Software and all intellectual
-* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1. This program, including its structure, sequence and organization,
-*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-*    reasonable efforts to protect the confidentiality thereof, and to use
-*    this information only in connection with your use of Broadcom integrated
-*    circuit products.
-*
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-******************************************************************************/
-/*****************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
+ *
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************
 *
 * FILENAME: $Workfile: trunk/stack/IEEE/MAC/include/private/bbMacMemory.h $
 *
 * DESCRIPTION:
 *   MAC Memory interface.
 *
-* $Revision: 3536 $
-* $Date: 2014-09-11 07:21:52Z $
+* $Revision: 10805 $
+* $Date: 2016-03-31 16:26:19Z $
 *
 *****************************************************************************************/
 
@@ -84,21 +83,44 @@ typedef struct _MacMemoryQueueDescr_t
 SYS_DbgAssertStatic(256 == MAC_MEMORY_PENDING_DEST_ADDR_HASH_SET_SIZE);
 
 
+#if defined(_MAC_CONTEXT_ZBPRO_)
+/**//**
+ * \brief   Structure for the MLME-ASSOCIATE.request Processor extended state.
+ */
+typedef struct _MacFeAssocExtState_t
+{
+    /* 64-bit data. */
+    MAC_ExtendedAddress_t   coordExtendedAddress;       /*!< Extended address of coordinator that issued the Association
+                                                            Response. */
+    /* 16-bit data. */
+    MAC_ShortAddress_t      assocShortAddress;          /*!< Short address assigned to this device in the Association
+                                                            Response. */
+    /* 8-bit data. */
+    MAC_Status_t            associationStatus;          /*!< Status returned in the received Association Response. Value
+                                                            is valid only if assocRespReceived equals TRUE. */
+
+    Bool8_t                 dataReqConfirmed;           /*!< TRUE if Data Request was already confirmed while waiting
+                                                            for Association Response indication. Initially set to
+                                                            FALSE. */
+
+    Bool8_t                 assocRespReceived;          /*!< TRUE if Association Response was already received, and it
+                                                            coincides with the MLME-ASSOCIATE.request parameters, while
+                                                            waiting for Data Response confirmation. Initially set to
+                                                            FALSE. */
+} MacFeAssocExtState_t;
+#endif /* _MAC_CONTEXT_ZBPRO_ */
+
+
 #if !defined(_MAC_CONTEXT_RF4CE_CONTROLLER_)
 /**//**
  * \brief   Structure for the MLME-SCAN.request Processor extended state.
- * \note    The MAC-FE Pending Requests Queue is not implemented for single-context MAC
- *  for RF4CE, because RF4CE stack does not use indirect transmission.
- * \note    The MAC-PIB attributes for Beacons support are not implemented by
- *  single-context MAC for RF4CE-Controller, because RF4CE-Controller does not support
- *  beacon frames.
  */
 typedef struct _MacFeScanExtState_t
 {
     /* 32-bit data. */
-    PHY_ChannelsSet_t      scanChannels;                /*!< Set of channels to be scanned. */
+    PHY_ChannelMask_t      scanChannels;                /*!< Set of channels to be scanned. */
 
-    PHY_ChannelsSet_t      unscannedChannels;           /*!< Set of channels that were not or left not scanned. */
+    PHY_ChannelMask_t      unscannedChannels;           /*!< Set of channels that were not or left not scanned. */
 
     /* 32-bit data. */
     union
@@ -111,14 +133,13 @@ typedef struct _MacFeScanExtState_t
     };
 
     /* 16-bit data. */
-    MAC_PanId_t            originalPanId;               /*!< Original value of MAC-PIB attribute macPanId. */
-
-    /* 2(1)x8-bit data. */
-    PHY_ChannelOnPage_t    originalChannelOnPage;       /*!< Original Channel Page and Logical Channel. */
-
-    PHY_ChannelOnPage_t    currentChannelOnPage;        /*!< Currently scanned Channel Page and Logical Channel. */
+    MAC_PanId_t            originalPanId;               /*!< Original value of MAC-PIB attribute macPANId. */
 
     /* 8-bit data. */
+    PHY_PageChannel_t      originalChannelOnPage;       /*!< Original Channel Page and Logical Channel. */
+
+    PHY_PageChannel_t      currentChannelOnPage;        /*!< Currently scanned Channel Page and Logical Channel. */
+
     MAC_RxOnWhenIdle_t     originalRxOnWhenIdle;        /*!< Original value of MAC-PIB attribute macRxOnWhenIdle. */
 
     uint8_t                resultsCounter;              /*!< Counter for Result List Size. */
@@ -161,18 +182,6 @@ typedef struct _MacMemoryFeData_t
     MacServiceField_t             *macFeActiveReq;                              /*!< Pointer to the service field of
                                                                                     the descriptor of the MAC-FE
                                                                                     Active Request/Response. */
-    /* 32-bit data. */
-    MacMpduConstructor_t          *macFeMpduConstructor;                        /*!< Entry-point to the callback
-                                                                                    function that will construct
-                                                                                    MPDU Surrogate for the MAC-FE
-                                                                                    Active Request/Response. */
-#if defined(_MAC_CONTEXT_ZBPRO_)
-    /* 32-bit data. */
-    HAL_SymbolTimestamp_t          macFeLastZbProDataTxTimestamp;               /*!< Timestamp of the last Data frame
-                                                                                    transmission on ZigBee PRO
-                                                                                    context, in symbol quotients. */
-#endif
-
 #if defined(_MAC_CONTEXT_ZBPRO_)
     /* Array / 32x8-bit data. */
     BITMAP_DECLARE(macFePendingDestAddrHashSet, MAC_MEMORY_PENDING_DEST_ADDR_HASH_SET_SIZE);
@@ -182,7 +191,7 @@ typedef struct _MacMemoryFeData_t
 
 #if defined(_MAC_CONTEXT_ZBPRO_)
     /* Array / 16x8-bit data. */
-    PHY_Octet_t                    macPibBeaconPayloadZBPRO[MAC_ATTR_MAXALLOWED_VALUE_BEACON_PAYLOAD_LENGTH_ZBPRO];
+    Octet_t                        macPibBeaconPayloadZBPRO[MAC_ATTR_MAXALLOWED_VALUE_BEACON_PAYLOAD_LENGTH_ZBPRO];
                                                                                 /*!< Value of the macBeaconPayload
                                                                                     attribute of the ZigBee PRO
                                                                                     MAC Context. */
@@ -190,7 +199,7 @@ typedef struct _MacMemoryFeData_t
 
 #if defined(_MAC_CONTEXT_RF4CE_TARGET_)
     /* Array / 4x8-bit data. */
-    PHY_Octet_t                    macPibBeaconPayloadRF4CE[MAC_ATTR_MAXALLOWED_VALUE_BEACON_PAYLOAD_LENGTH_RF4CE];
+    Octet_t                        macPibBeaconPayloadRF4CE[MAC_ATTR_MAXALLOWED_VALUE_BEACON_PAYLOAD_LENGTH_RF4CE];
                                                                                 /*!< Value of the macBeaconPayload
                                                                                     attribute of the RF4CE-Target
                                                                                     MAC Context. */
@@ -218,11 +227,26 @@ typedef struct _MacMemoryFeData_t
                                                                                     MAC-PIB. */
 #endif
 
-#if !defined(_MAC_CONTEXT_RF4CE_CONTROLLER_)
-    /* Structured data. */
-    MacFeScanExtState_t            macFeScanExtState;                           /*!< Currently active MLME-SCAN.request
-                                                                                    processor extended state. */
-#endif
+#if !defined(_MAC_CONTEXT_RF4CE_CONTROLLER_) || defined(_MAC_CONTEXT_ZBPRO_)
+
+    /* Extended state for different MAC-FE processors. Notice that there may be only one active processor at the same
+     * time. */
+
+    union {
+
+# if defined(_MAC_CONTEXT_ZBPRO_)
+        /* Structured data. */
+        MacFeAssocExtState_t       macFeAssocExtState;      /*!< Currently active MLME-ASSOCIATE.request processor
+                                                                extended state. */
+# endif
+
+# if !defined(_MAC_CONTEXT_RF4CE_CONTROLLER_)
+        /* Structured data. */
+        MacFeScanExtState_t        macFeScanExtState;       /*!< Currently active MLME-SCAN.request processor extended
+                                                                state. */
+# endif
+    };
+#endif /* !defined(_MAC_CONTEXT_RF4CE_CONTROLLER_) || defined(_MAC_CONTEXT_ZBPRO_) */
 
     /* Structured data. */
     SYS_SchedulerTaskDescriptor_t  macFeTasksDescriptor;                        /*!< The MAC Tasks Descriptor. */
@@ -370,6 +394,14 @@ typedef struct _MacMemoryFeData_t
 #endif /* _MAC_CONTEXT_ZBPRO_ */
 
 
+#if defined(_MAC_CONTEXT_ZBPRO_)
+/**//**
+ * \brief   Reference to the currently active MLME-ASSOCIATE.request processor extended state.
+ */
+# define MAC_MEMORY_FE_ASSOC_EXT_STATE()                (macMemoryFeData.macFeAssocExtState)
+#endif
+
+
 #if !defined(_MAC_CONTEXT_RF4CE_CONTROLLER_)
 /**//**
  * \brief   Reference to the currently active MLME-SCAN.request processor extended state.
@@ -410,6 +442,7 @@ typedef struct _MacMemoryFeData_t
  * \param[in]   context     Context index macro.
  */
 # define MAC_MEMORY_FE_CONTEXT_PRNG_DESCR(context)      (&(macMemoryFeData.macFePrngDescr[context]))
+
 #else /* _HAL_USE_TRNG_ */
 /**//**
  * \brief   Stub for pointer to the PRNG Descriptor in the case of build using TRGN.
@@ -434,159 +467,6 @@ typedef struct _MacMemoryFeData_t
 #endif /* _HAL_USE_TRNG_ */
 
 
-#if defined(_MAC_CONTEXT_ZBPRO_)
-/**//**
- * \brief   Reference to the MAC-FE Timestamp of the last Data frame transmission on
- *  ZigBee PRO context, in symbol quotients.
- */
-# define MAC_MEMORY_FE_LAST_ZBPRO_DATA_TX_TIMESTAMP()       (macMemoryFeData.macFeLastZbProDataTxTimestamp)
-
-#endif /* _HAL_USE_TRNG_ */
-
-
-/**//**
- * \brief   Structure for the MAC-LE Real-Time Dispatcher and MAC-LE Real-Time Frame
- *  Filter memory.
- */
-typedef struct _MacMemoryLeData_t
-{
-    /* 32-bit data. */
-    HAL_SymbolTimestamp_t   rxStartTime;            /*!< Last PPDU reception start timestamp; reported to the MAC-FE
-                                                        with the received PPDU. */
-
-    HAL_SymbolTimestamp_t   txStartTime;            /*!< Last PPDU transmission start timestamp; reported to the MAC-FE
-                                                        in confirmation on completed transmission. */
-
-    HAL_SymbolTimestamp_t   trxEndTime;             /*!< Last communication (RX or TX) end timestamp; used by the MAC-LE
-                                                        internally to establish IFS and acknowledgment periods. */
-
-#if !defined(_MAC_CONTEXT_RF4CE_CONTROLLER_)
-    HAL_SymbolTimeshift_t   edScanDuration;         /*!< Duration of the requested ED Scan, in symbol quotients;
-                                                        specified by the MAC-FE. */
-#endif
-
-    /* 16-bit data. */
-    PHY_ChannelOnPagePlain_t  switchToChannelOnPage;    /*!< Channel-on-Page of the requested Channel Switching;
-                                                            specified by the MAC-FE. */
-
-    /* 8-bit data. */
-    SYS_FSM_StateId_t       currentState;           /*!< Current state of the FSM of the MAC-LE Real-Time Dispatcher. */
-
-    Bool8_t                 trigReset;              /*!< RESET trigger. */
-
-    Bool8_t                 trigStartTx;            /*!< START_TX trigger. */
-
-#if !defined(_MAC_CONTEXT_RF4CE_CONTROLLER_)
-    Bool8_t                 trigStartEd;            /*!< START_ED trigger. */
-#endif
-
-    Bool8_t                 trigSetChannel;         /*!< SET_CHANNEL trigger. */
-
-    Bool8_t                 trxOnWhenIdle;          /*!< TRX_ON/OFF_WHEN_IDLE switch. */
-
-#if !defined(_MAC_CONTEXT_RF4CE_CONTROLLER_)
-    /* TODO: Replace with Channel-on-Page. */
-    PHY_LogicalChannelId_t  rxLogicalChannel;       /*!< Last PPDU reception logical channel; reported to the MAC-FE
-                                                        with the received PPDU. */
-
-    PHY_ChannelPageId_t     rxChannelPage;          /*!< Last PPDU reception channel page; reported to the MAC-FE with
-                                                        the received PPDU. */
-#endif
-
-    Bool8_t                 performLifs;            /*!< Insert LIFS (but not SIFS) after the last PPDU transmission. */
-
-    MAC_MaxCsmaBackoffs_t   csmaNbValue;            /*!< Counter of backoffs periods performed. */
-
-    MAC_MaxBe_t             csmaBeValue;            /*!< Current value of the backoff exponent. */
-
-    MAC_Status_t            csmaCcaStatus;          /*!< Status returned by the last CCA cycle. */
-
-    PHY_Status_t            setChannelStatus;       /*!< Status returned by the last PHY-SET-CHANNEL.confirm. */
-
-    MacMpduAckRequest_t     txWaitAck;              /*!< Wait for the ACK frame after transmission. */
-
-    MAC_MaxFrameRetries_t   txAttempts;             /*!< Initial number and down-counter of attempts to transmit. */
-
-    MAC_Status_t            status;                 /*!< Confirmation status; reported to the MAC-FE in confirmation on
-                                                        completed transmission or channel switch request. */
-
-#if defined(_MAC_CONTEXT_ZBPRO_)
-    MacMpduFramePending_t   txAckWithFp;            /*!< Value of the received ACK frame FramePending subfield; reported
-                                                        to the MAC-FE in confirmation on completed transmission. */
-#endif
-
-#if !defined(_MAC_CONTEXT_RF4CE_CONTROLLER_)
-    Bool8_t                 edCompleted;            /*!< The ED scanning is completed internal flag. */
-
-    PHY_Ed_t                edPhyValue;             /*!< Value of EnergyLevel returned by the last ED measurement. */
-
-    PHY_Ed_t                edMaxValue;             /*!< Maximum value of the EnergyLevel measured; reported to the
-                                                        MAC-FE in confirmation on completed ED Scan. */
-#endif
-
-    Bool8_t                 signalRxPpdu;           /*!< The received PPDU is to be indicated to the MAC-FE. */
-
-    MacMpduAckRequest_t     rxPpduWithAckReq;       /*!< Shall acknowledge reception of the just received MPDU. */
-
-#if !defined(_MAC_CONTEXT_RF4CE_CONTROLLER_)
-    Bool8_t                 rxBeaconSimple;         /*!< A Beacon frame without payload is received and read completely
-                                                        from the Radio Frame RX-Buffer at the preread phase. */
-#endif
-
-    MAC_Dsn_t               rxAckWithDsn;           /*!< Value of the DNS field of the received PPDU that shall be sent
-                                                        to the PPDU originator in the ACK Response frame; or value of
-                                                        the DSN field of the just transmitted PPDU that is being waited
-                                                        in the ACK Response frame from the PPDU recipient. */
-
-/* TODO: Think, how to prohibit acknowledgment and indication of frames other than beacons for both contexts independently. */
-#if !defined(_MAC_CONTEXT_RF4CE_CONTROLLER_)
-    Bool8_t                 rxAllowBeaconsOnly;     /*!< MAC-LE is currently waiting only for BEACON frames. */
-#endif
-
-#if defined(_MAC_CONTEXT_ZBPRO_)
-    MacMpduFramePending_t   rxAckWithFp;            /*!< The ACK frame received on the previously transmitted PPDU has
-                                                        the FramePending subfield set to one. */
-
-    MacMpduFramePending_t   txSendAckWithFp;        /*!< Value for the FramePending subfield of the ACK Response frame
-                                                        that shall be sent on the just received PPDU. */
-
-    MacAddrHash_t           thatAddrHash;           /*!< The hash value of the requester device Address and PAN Id. */
-
-#endif
-
-} MacMemoryLeData_t;
-
-
-/**//**
- * \brief   Reference to the MAC-LE Real-Time Dispatcher and MAC-LE Real-Time Frame Filter
- *  memory.
- */
-#define MAC_MEMORY_LE_DATA()                (macMemoryLeData)
-
-
-#if defined(__ML507__)
-/**//**
- * \brief   Static memory for the PPDU image stored during retransmissions.
- */
-typedef struct _MacMemoryLeStoredPpdu_t
-{
-    /* 32-bit data. */
-    uint32_t          psdu[HAL_RADIO_TX_BUFFER_WORDS_MAX];      /* Image of the PPDU.PSDU field. */
-
-    /* 8-bit data. */
-    PHY_PsduLength_t  phr;                                      /* Image of the PPDU.PHR field. */
-
-} MacMemoryLeStoredPpdu_t;
-
-
-/**//**
- * \brief   Reference to the PPDU image stored during retransmissions.
- */
-# define MAC_MEMORY_LE_STORED_PPDU()        (macMemoryLeStoredPpdu)
-
-#endif /* __ML507__ */
-
-
 /**//**
  * \brief   Structure for the set of reasons to hold transceiver in the TRX_ON_WHEN_IDLE
  *  state.
@@ -607,10 +487,10 @@ typedef struct _MacMemoryLeTrxOnReasons_t
  */
 typedef struct _MacMemoryLeTrxModeDisp_t
 {
-    HAL_SymbolTimestamp_t  timeoutSap[MAC_CONTEXTS_NUMBER];     /*!< Timestamps of TRX_ON_WHEN_IDLE timeout after
+    HAL_Symbol__Tstamp_t   timeoutSap[MAC_CONTEXTS_NUMBER];     /*!< Timestamps of TRX_ON_WHEN_IDLE timeout after
                                                                     MLME-RX-ENABLE.request for two contexts. */
 #if defined(_MAC_CONTEXT_ZBPRO_)
-    HAL_SymbolTimestamp_t  timeoutFsmZBPRO;         /*!< Timestamp of TRX_ON_WHEN_IDLE timeout after
+    HAL_Symbol__Tstamp_t   timeoutFsmZBPRO;         /*!< Timestamp of TRX_ON_WHEN_IDLE timeout after
                                                         MAC-LE Real-Time Dispatcher FSM for ZigBee PRO context. */
 #endif
 
@@ -638,20 +518,6 @@ typedef struct _MacMemoryLeTrxModeDisp_t
  * \brief   Memory of the MAC-FE and the MAC-PIB.
  */
 MAC_MEMDECL( MacMemoryFeData_t  macMemoryFeData );
-
-
-/**//**
- * \brief   Memory for the MAC-LE Real-Time Dispatcher and MAC-LE Real-Time Frame Filter.
- */
-MAC_MEMDECL( volatile MacMemoryLeData_t  macMemoryLeData );
-
-
-#if defined(__ML507__)
-/**//**
- * \brief   Memory for the PPDU image stored during retransmissions.
- */
-MAC_MEMDECL( MacMemoryLeStoredPpdu_t  macMemoryLeStoredPpdu );
-#endif /* __ML507__ */
 
 
 /**//**
@@ -764,26 +630,33 @@ MAC_PRIVATE bool macMemoryMainReqQueueIsNotEmpty(void);
 
 
 /*************************************************************************************//**
- * \brief   Designates the MAC-FE Active Request/Response MPDU Surrogate constructor.
- * \param[in]   mpduConstructor     Entry-point to the callback function that shall be
- *  called to construct new MPDU Surrogate when transmission is ready to start.
-*****************************************************************************************/
-MAC_PRIVATE void macMemorySetFeMpduConstructor(MacMpduConstructor_t *const mpduConstructor);
-
-
-/*************************************************************************************//**
- * \brief   Returns and resets the MAC-FE Active Request/Response MPDU Surrogate
- *  constructor callback function.
- * \return  Entry-point to the callback function that constructs MPDU Surrogate.
-*****************************************************************************************/
-MAC_PRIVATE MacMpduConstructor_t* macMemoryGetFeMpduConstructor(void);
-
-
-/*************************************************************************************//**
  * \brief   Resets MAC-PIB attributes to their default values for the specified context.
  * \param[in]   __givenContextId    Identifier of the specified MAC Context.
 *****************************************************************************************/
 MAC_PRIVATE void macMemoryPibReset(MAC_WITHIN_GIVEN_CONTEXT);
+
+
+#if defined(_MAC_CONTEXT_ZBPRO_)
+# include "private/bbMacSecurityDefs.h"
+// FIXME: These variables shall be integrated into the MAC-FE memory structure.
+extern MAC_DeviceTableEntries_t macDeviceTableEntries;
+extern MM_ChunkId_t idMacDeviceTableLink;
+
+extern MAC_SecurityLevelTableEntries_t macSecurityLevelTableEntries;
+extern MM_ChunkId_t idMacSecurityLevelTableLink;
+
+extern MAC_KeyTableEntries_t macKeyTableEntries;
+extern MM_ChunkId_t idMacKeyTableLink;
+
+extern MAC_FrameCounter_t macFrameCounter;
+extern MAC_SecurityLevel_t macAutoRequestSecurityLevel;
+extern MAC_KeyIdMode_t macAutoRequestIdMode;
+extern MAC_KeySource_t macAutoRequestKeySource;
+extern MAC_KeyIndex_t macAutoRequestKeyIndex;
+extern MAC_KeySource_t macDefaultKeySource;
+extern MAC_ExtendedAddress_t macPANCoordExtendedAddress;
+extern MAC_ShortAddress_t macPANCoordShortAddress;
+#endif
 
 
 #endif /* _BB_MAC_MEMORY_H */

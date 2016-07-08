@@ -1,0 +1,5 @@
+<udpStreamer version="1.0">
+<--sample entries to send out udp or rtp streams using bip UDP/RTP streamer>
+<--stream url="udp://10.14.80.123:1234/AbcMPEG2HD.mpg"></stream>
+<--stream url="udp://10.14.80.123:1236/avatar_AVC_15M.ts"></stream>
+</udpStreamer>

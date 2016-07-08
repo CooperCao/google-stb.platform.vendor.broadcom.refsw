@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2013 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #include "nexus_hdmi_input_module.h"
@@ -55,6 +47,7 @@
 #endif
 
 #if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_RX_SUPPORT)
+#include "nexus_sage.h"
 #include "bsagelib.h"
 #include "bsagelib_client.h"
 #include "priv/nexus_sage_priv.h" /* get access to NEXUS_Sage_GetSageLib_priv() */
@@ -439,9 +432,14 @@ NEXUS_Error NEXUS_HdmiInput_HdcpGetStatus(
         }
         pStatus->hdcp2xContentStreamControl = stAuthenticationStatus.eContentStreamTypeFromUpstream;
 
-        pStatus->hdcpState =
-            hdmiInput->hdcpState == BHDCPlib_State_eEncryptionEnabled?
-            NEXUS_HdmiInputHdcpState_eAuthenticated:NEXUS_HdmiInputHdcpState_eUnauthenticated;
+        if ((stAuthenticationStatus.eHdcpState == BHDCPlib_State_eEncryptionEnabled)
+            || (stAuthenticationStatus.eHdcpState == BHDCPlib_State_eLinkAuthenticated))
+        {
+            pStatus->hdcpState = NEXUS_HdmiInputHdcpState_eAuthenticated;
+        }
+        else {
+            pStatus->hdcpState = NEXUS_HdmiInputHdcpState_eUnauthenticated;
+        }
     }
 #endif
 
@@ -491,7 +489,8 @@ NEXUS_Error NEXUS_HdmiInput_HdcpLoadKsvFifo(
 #if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_RX_SUPPORT)
 NEXUS_Error NEXUS_HdmiInput_LoadHdcp2xReceiverIdList_priv(
     NEXUS_HdmiInputHandle hdmiInput,
-    NEXUS_Hdcp2xReceiverIdListData *pData
+    NEXUS_Hdcp2xReceiverIdListData *pData,
+    bool downstreamIsRepeater
 )
 {
     NEXUS_Error errCode = NEXUS_SUCCESS ;
@@ -504,8 +503,24 @@ NEXUS_Error NEXUS_HdmiInput_LoadHdcp2xReceiverIdList_priv(
 	hdcp2xReceiverIdListData.maxCascadeExceeded = (uint8_t) pData->maxCascadeExceeded;
 	hdcp2xReceiverIdListData.hdcp2LegacyDeviceDownstream = (uint8_t) pData->hdcp2xLegacyDeviceDownstream;
 	hdcp2xReceiverIdListData.hdcp1DeviceDownstream = (uint8_t) pData->hdcp1DeviceDownstream;
-	BKNI_Memcpy(hdcp2xReceiverIdListData.rxIdList, &pData->rxIdList,
-		pData->deviceCount*BHDCPLIB_HDCP2X_RECEIVERID_LENGTH);
+	hdcp2xReceiverIdListData.downstreamIsRepeater = (uint8_t) downstreamIsRepeater;
+
+	if (pData->deviceCount + hdcp2xReceiverIdListData.downstreamIsRepeater >= BHDCPLIB_HDCP2X_MAX_DEVICE_COUNT)
+	{
+		/* ignore the rest of the list, if any */
+		BKNI_Memcpy(hdcp2xReceiverIdListData.rxIdList, &pData->rxIdList,
+					BHDCPLIB_HDCP2X_MAX_DEVICE_COUNT * BHDCPLIB_HDCP2X_RECEIVERID_LENGTH);
+	}
+	else
+	{
+		/*****************
+		* If downstream device is repeater device, the ReceiverIdList will
+		* contain 1 additional entry, which is the ReceiverId of the repeater device.
+		* This additional entry is not accounted in the device count
+		*******************/
+		BKNI_Memcpy(hdcp2xReceiverIdListData.rxIdList, &pData->rxIdList,
+			(pData->deviceCount + hdcp2xReceiverIdListData.downstreamIsRepeater)*BHDCPLIB_HDCP2X_RECEIVERID_LENGTH);
+	}
 
 	/* upload receiverId List */
     errCode = BHDCPlib_Hdcp2x_Rx_UploadReceiverIdList(hdmiInput->hdcpHandle, &hdcp2xReceiverIdListData);
@@ -521,43 +536,75 @@ done:
     return errCode ;
 }
 
+
+NEXUS_Error NEXUS_HdmiInput_UpdateHdcp2xRxCaps_priv(
+    NEXUS_HdmiInputHandle hdmiInput,
+    bool downstreamDeviceAttached
+   )
+{
+    NEXUS_Error errCode = NEXUS_SUCCESS ;
+    BDBG_OBJECT_ASSERT(hdmiInput, NEXUS_HdmiInput);
+
+	/* Set RxCaps HW register to use later in the authentication process */
+	errCode = BHDR_HDCP_SetHdcp2xRxCaps(hdmiInput->hdr, BHDCPLIB_HDCP22_RXCAPS_VERSION,
+						BHDCPLIB_HDCP22_RXCAPS_RECEIVER_CAPABILITY_MASK, downstreamDeviceAttached?1:0);
+	if (errCode != BERR_SUCCESS)
+	{
+		BDBG_ERR(("Error setting RxCaps"));
+		errCode = BERR_TRACE(errCode);
+		goto done;
+	}
+
+done:
+
+	return errCode;
+}
+
+
+NEXUS_Error NEXUS_HdmiInput_LoadHdcpTA_priv(
+    void *buf, size_t length
+)
+{
+    NEXUS_Error rc = BERR_SUCCESS ;
+
+    /* initialize */
+    g_hdmiInputTABlock.buf = NULL;
+    g_hdmiInputTABlock.len = 0;
+
+    BDBG_LOG(("%s: allocate %u bytes for HDCP_TA buffer", __FUNCTION__, (unsigned)length));
+    rc = NEXUS_Memory_Allocate((uint32_t) length, NULL, &g_hdmiInputTABlock.buf);
+    if(rc != NEXUS_SUCCESS) {
+        BDBG_ERR(("%s - Error allocating %u bytes memory for HDCP22_TA buffer",
+                  __FUNCTION__, (unsigned)length));
+        BERR_TRACE(rc);
+        goto done;
+    }
+
+    /* copy the TA buffer and save for later use */
+    g_hdmiInputTABlock.len = length;
+    BKNI_Memcpy(g_hdmiInputTABlock.buf, buf, length);
+
+done:
+
+    return rc;
+}
+
+
 NEXUS_Error NEXUS_HdmiInput_P_InitHdcp2x(NEXUS_HdmiInputHandle hdmiInput)
 {
     BHDCPlib_Dependencies hdcpDependencies;
     NEXUS_Error errCode = NEXUS_SUCCESS;
 
+    NEXUS_SageStatus sageStatus;
     BSAGElib_Handle sagelibHandle;
     BSAGElib_ClientSettings sagelibClientSettings;
     BKNI_EventHandle hdcplibEvent;
 
     BDBG_OBJECT_ASSERT(hdmiInput, NEXUS_HdmiInput);
 
-    /* Blocking call waiting for SAGE to be fully up & running */
-    {
-        int max_tries = 2;
-        for (;;) {
-            LOCK_SAGE();
-            errCode = NEXUS_Sage_WaitSage_priv();
-            UNLOCK_SAGE();
-            if (errCode == NEXUS_SUCCESS)
-            {
-                break;
-            }
-            if (errCode == NEXUS_NOT_AVAILABLE)
-            {
-                /* maybe there is a race condition between watchdog interrupt and event handling, retry once */
-                if (--max_tries > 0)
-                {
-                    BDBG_WRN(("%s: SAGE is not ready, retry once", __FUNCTION__));
-                    BKNI_Sleep(10);
-                    continue;
-                }
-            }
-            /* error condition */
-            BERR_TRACE(errCode);
-            goto err_hdcp;
-        }
-    }
+    /* get status so we block until Sage is running */
+    errCode = NEXUS_Sage_GetStatus(&sageStatus);
+    if (errCode) return BERR_TRACE(errCode);
 
     /* retrieve Sagelib Handle */
     LOCK_SAGE();
@@ -649,14 +696,18 @@ NEXUS_Error NEXUS_HdmiInput_P_InitHdcp2x(NEXUS_HdmiInputHandle hdmiInput)
 
     /* Open HDCPlib */
     BHDCPlib_GetDefaultDependencies(&hdcpDependencies);
+#if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_RX_SUPPORT)
     hdcpDependencies.hHdr = hdmiInput->hdr;
+#endif
     hdcpDependencies.hSagelibClientHandle = g_NEXUS_hdmiInputSageData.sagelibClientHandle;
     hdcpDependencies.eVersion = BHDM_HDCP_Version_e2_2;
     hdcpDependencies.eCoreType = BHDCPlib_CoreType_eRx;
+    hdcpDependencies.pHdcpTA = g_hdmiInputTABlock.buf;
+    hdcpDependencies.hdcpTASize = g_hdmiInputTABlock.len;
     hdcpDependencies.sageResponseReceivedEvent = g_NEXUS_hdmiInputSageData.eventResponseRecv;
 
     errCode = BHDCPlib_Open(&hdmiInput->hdcpHandle, &hdcpDependencies);
-    BDBG_MSG(("BHDCPlib_Open (for HDCP2.2) <<< RX(%x)", hdmiInput->hdcpHandle));
+    BDBG_MSG(("BHDCPlib_Open (for HDCP2.2) <<< RX(%p)", (void *)(hdmiInput->hdcpHandle)));
     if (errCode != BERR_SUCCESS)
     {
         errCode = BERR_TRACE(errCode);
@@ -787,17 +838,14 @@ static void NEXUS_HdmiInput_P_Hdcp2xAuthenticationStatusUpdate(void *pContext)
         goto done;
     }
 
-    BDBG_MSG(("Hdcp2x Authentication status: %s",
+    BDBG_LOG(("Hdcp2x Authentication status: %s",
         stAuthenticationStatus.linkAuthenticated?"AUTHENTICATED":"NOT AUTHENTICATED"));
 
-    if (stAuthenticationStatus.linkAuthenticated) {
-        hdmiInput->hdcpState = BHDCPlib_State_eEncryptionEnabled;
-        hdmiInput->hdcpError = BHDCPlib_HdcpError_eSuccess;
-    }
-    else {
-        hdmiInput->hdcpState = BHDCPlib_State_eUnauthenticated;
-        hdmiInput->hdcpError = BHDCPlib_HdcpError_eReceiverAuthenticationError;
-    }
+    /* fire callback */
+    BKNI_EnterCriticalSection();
+    NEXUS_IsrCallback_Fire_isr(hdmiInput->hdcpRxChanged);
+    BKNI_LeaveCriticalSection();
+
 
 done:
 	return;
@@ -822,33 +870,6 @@ static void NEXUS_HdmiInput_P_SageWatchdogEventhandler(void *pContext)
     NEXUS_Error errCode = NEXUS_SUCCESS;
 
     BDBG_WRN(("%s: SAGE Reset - Reopen/initialize HDCPlib and sage rpc handles", __FUNCTION__));
-
-    /* Blocking call waiting for SAGE to be fully up & running */
-    {
-        int max_tries = 2;
-        for (;;) {
-            LOCK_SAGE();
-            errCode = NEXUS_Sage_WaitSage_priv();
-            UNLOCK_SAGE();
-            if (errCode == NEXUS_SUCCESS)
-            {
-                break;
-            }
-            if (errCode == NEXUS_NOT_AVAILABLE)
-            {
-                /* maybe there is a race condition between watchdog interrupt and event handling, retry once */
-                if (--max_tries > 0)
-                {
-                    BDBG_WRN(("%s: SAGE is not ready, retry once", __FUNCTION__));
-                    BKNI_Sleep(10);
-                    continue;
-                }
-            }
-            /* error condition */
-            BERR_TRACE(errCode);
-            goto done;
-        }
-    }
 
     /* Reinitialized SAGE RPC handles (now invalid) */
     errCode = BHDCPlib_Hdcp2x_ProcessWatchDog(hdmiInput->hdcpHandle);
@@ -942,7 +963,6 @@ done:
 
     return errCode;
 }
-
 #endif		/* NEXUS_HAS_SAGE */
 
 

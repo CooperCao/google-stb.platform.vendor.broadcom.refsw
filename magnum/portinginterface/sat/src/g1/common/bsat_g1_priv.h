@@ -139,7 +139,8 @@ typedef enum BSAT_ReacqCause
    BSAT_ReacqCause_eCodeRateChanged,             /* 15=legacy qpsk mode: detected code rate changed */
    BSAT_ReacqCause_eDftTimeout,                  /* 16=DFT done timeout */
    BSAT_ReacqCause_eInvalidCondition,            /* 17=invalid condition (sanity check failed) */
-   BSAT_ReacqCause_eAfecFlushFailed              /* 18=AFEC flush timeout */
+   BSAT_ReacqCause_eAfecFlushFailed,             /* 18=AFEC flush timeout */
+   BSAT_ReacqCause_eFrameLengthCannotMix         /* 19=dual AFEC core cannot mix normal/short frames */
 } BSAT_ReacqCause;
 
 

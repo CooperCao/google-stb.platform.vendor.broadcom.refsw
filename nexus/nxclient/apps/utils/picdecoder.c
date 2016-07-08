@@ -292,7 +292,7 @@ NEXUS_SurfaceHandle picdecoder_decode(picdecoder_t handle, const char *pictureFi
                     bytesRemain -= size;
                 }
                 else {
-                    BDBG_ERR(("couldn't read in any more data: rc=%d bytesRemain=%d" , rc, bytesRemain  ));
+                    BDBG_ERR(("couldn't read in any more data: rc=%d bytesRemain=%d" , rc, (unsigned)bytesRemain  ));
                     cnt = 999;
                 }
             }
@@ -389,7 +389,7 @@ NEXUS_SurfaceHandle picdecoder_decode(picdecoder_t handle, const char *pictureFi
                 bytesRemain -= size;
             }
             else {
-                BDBG_WRN(("couldn't read any more data: size=%d", size ));
+                BDBG_WRN(("couldn't read any more data: size=%d", (unsigned)size ));
                 rc = -1;
                 goto error;
             }

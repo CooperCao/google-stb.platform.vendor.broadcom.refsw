@@ -21,9 +21,8 @@ BEGIN {
     idx=$3;
     client_name=$4;
     ddr=$5;
-    spb=$6
     total++;
-    ### printf "/* arg1 is " $1 " */\n";
+    ### printf "/* arg5 is " $5 " and arg6 is " $6 " */\n";
     if ( ($1 == "static" && $2 == "const" && $3 == "uint32_t") || ($1 == "const" && $2 == "uint32_t") || ($1 == "uint32_t") )
     {
         ### printf "/* found uint32_t */\n";
@@ -33,6 +32,17 @@ BEGIN {
     {
         ### printf "/* found DDR " $5 " " $6" */\n";
         ddr = substr($5,9,99);
+        split(ddr,a1,"M");
+        split($6,a2,"/");
+        split(a2[2],a3,"M");
+        ### printf "/* DDR is " a1[1]"; SCB is "a3[1]" */\n";
+        memc_count++;
+    }
+    ### some of the newer boxmode files have LPDDR4@1067MHz
+    else if ( substr($5,1,6) == "LPDDR4" )
+    {
+        ### printf "/* found DDR " $5 " " $6" */\n";
+        ddr = substr($5,8,99);
         split(ddr,a1,"M");
         split($6,a2,"/");
         split(a2[2],a3,"M");

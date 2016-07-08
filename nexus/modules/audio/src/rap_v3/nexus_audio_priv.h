@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2014 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,8 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   Private routines internal to the audio module
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 #ifndef NEXUS_AUDIO_PRIV_H__
@@ -1099,7 +1091,7 @@ BRAP_RfAudioStandard NEXUS_RfAudioDecoder_P_GetAasdRapMode(
 #endif
 #endif
 
-#if NEXUS_NUM_AUDIO_CAPTURE_CHANNELS
+#if NEXUS_NUM_AUDIO_CAPTURES
 
 /***************************************************************************
 Summary:
@@ -1237,4 +1229,3 @@ BRAP_ProcessingType NEXUS_Audio_P_CodecToProcessingType(NEXUS_AudioCodec codec);
 NEXUS_Error NEXUS_AudioDecoder_P_ConfigureRave(NEXUS_AudioDecoderHandle handle, NEXUS_RaveHandle rave, const NEXUS_AudioDecoderStartSettings *pProgram, NEXUS_PidChannelStatus *pPidChannelStatus);
 
 #endif /* #ifndef NEXUS_AUDIO_PRIV_H__ */
-

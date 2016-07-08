@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2012-2014 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2012-2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,14 +35,6 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* Revision History:
-*
-* $brcm_Log: $
-*
 ***************************************************************************/
 #ifndef NEXUS_BASE_OBJECT_H
 #define NEXUS_BASE_OBJECT_H
@@ -54,6 +46,7 @@
 #define NEXUS_P_BASE_OBJECT_USE_REFCNT  1
 
 BLST_AA_TREE_HEAD(NEXUS_P_BaseObjectTree, NEXUS_BaseObject);
+BLST_AA_TREE_HEAD(NEXUS_P_BaseObjectIdTree, NEXUS_BaseObject);
 
 typedef struct NEXUS_BaseClassDescriptor {
     unsigned offset;  /* used to convert from the NEXUS_BaseClass to the object  */
@@ -91,6 +84,7 @@ typedef enum NEXUS_Object_P_RegisterUnregister {
 } NEXUS_Object_P_RegisterUnregister;
 
 BDBG_OBJECT_ID_DECLARE(NEXUS_BaseObject);
+typedef unsigned NEXUS_BaseObjectId;
 
 typedef struct NEXUS_BaseObject {
     BDBG_OBJECT(NEXUS_BaseObject)
@@ -100,6 +94,8 @@ typedef struct NEXUS_BaseObject {
     int ref_cnt;
 #endif
     const NEXUS_BaseClassDescriptor *descriptor;
+    NEXUS_BaseObjectId id; /* each object has an unique integer ID, this ID used as the object handle by 32-bit code, if 'driver' is 64-bit */
+    BLST_AA_TREE_ENTRY(NEXUS_P_BaseObjectIdTree) nodeId;
     struct {
         const struct b_objdb_client *client; /* each object is owned by one client. destroy must match. verify must match client or acquired_client. */
         const struct b_objdb_client *acquired_client; /* each object can be acquired by one client. release must match. verify must match client or acquired_client. */
@@ -252,6 +248,7 @@ Description:
 NEXUS_Error NEXUS_BaseObject_P_RegisterUnregister(void *object, const NEXUS_BaseClassDescriptor *descriptor, NEXUS_Object_P_RegisterUnregister operation, NEXUS_ModuleHandle origin, NEXUS_ModuleHandle destination);
 #define NEXUS_OBJECT_REGISTER(type, object, operation) type##_BaseObject_P_RegisterUnregister(object, NEXUS_Object_P_RegisterUnregister_eRegister##operation, NEXUS_MODULE_SELF)
 #define NEXUS_OBJECT_UNREGISTER(type, object, operation) type##_BaseObject_P_RegisterUnregister(object, NEXUS_Object_P_RegisterUnregister_eUnregister##operation, NEXUS_MODULE_SELF)
+NEXUS_BaseObject *NEXUS_BaseObject_FromId(NEXUS_BaseObjectId id);
 
 #endif /* !defined NEXUS_BASE_OBJECT_H */
 

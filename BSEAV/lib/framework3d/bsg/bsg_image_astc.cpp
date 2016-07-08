@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -167,7 +167,7 @@ ImageASTC::ImageASTC(const string &fileName)
    if (fileName.find("sRGBA") != string::npos)
       nonlinearValues = true;
 
-   if (fp == nullptr)
+   if (fp == NULL)
       BSG_THROW("Cannot open file " << fileName);
 
    // Mark fp for closure

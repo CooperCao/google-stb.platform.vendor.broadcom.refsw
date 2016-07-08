@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2008 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2008 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -292,8 +292,11 @@ typedef enum {
    */
    MEM_FLAG_256BIT_PAD = 1 << 11,
 
-   /* There is currently room in MEM_HEADER_X_T for 12 flags */
-   MEM_FLAG_ALL = 0xfff
+   /*
+      If the SECURE flag is set then allocate the memory in the protected region
+   */
+   MEM_FLAG_SECURE = 1 << 12,
+
 } MEM_FLAG_T;
 
 /*
@@ -680,46 +683,7 @@ extern int mem_resize_ex(
 
 extern void * mem_lock(MEM_HANDLE_T handle, MEM_LOCK_T *lbh);
 
-
-/*
-   Lock a number of memory handles and store the results in an array of pointers.
-   May be faster than calling mem_lock repeatedly as we only need to acquire the
-   memory mutex once.
-   For convenience you can also pass invalid handles in, and get out either null pointers or
-   valid pointers (depending on the associated offset field)
-
-   Preconditions:
-
-   pointers is a valid pointer to n elements
-   handles is a valid pointer to n elements
-   For all 0 <= i < n
-   - handles[i].mh_handle is MEM_HANDLE_INVALID or a valid MEM_HANDLE_T.
-   - If handles[i].mh_handle is locked, the previous lock must have been by mem_lock.
-   - If handles[i] != MEM_HANDLE_INVALID then handles[i].offset <= handles[i].size
-
-   Postconditions:
-
-   For all 0 <= i < n
-      If handles[i] == MEM_HANDLE_INVALID:
-      - pointers[i] is set to offsets[i]
-
-      Else if handles[i].mh_handle.size == 0:
-      - pointers[i] is set to 0.
-      - handles[i].mh_handle is completely unchanged.
-
-      Otherwise:
-      - pointers[i] is set to a pointer which is valid until handles[i].lockcount reaches 0
-      - pointers[i] points to a block of size (handles[i].size - handles[i].offset)
-      - handles[i].mh_handle.lockcount is incremented.
-      - MEM_FLAG_ABANDONED is cleared in handles[i].mh_handle.x.flags
-*/
-
-extern void mem_lock_multiple(
-   void **pointers,
-   MEM_LOCK_T *lbh,
-   MEM_HANDLE_OFFSET_T *handles,
-   uint32_t n);
-
+extern uintptr_t mem_lock_offset(MEM_HANDLE_T handle);
 
 /*
    Preconditions:
@@ -737,15 +701,6 @@ extern void mem_lock_multiple(
 */
 
 extern void mem_unlock(MEM_HANDLE_T handle);
-
-/*
-   Like mem_unlock_multiple, but will unretain handles if they are discardable.
-   Also releases handles.
-*/
-
-extern void mem_unlock_unretain_release_multiple(
-   MEM_HANDLE_OFFSET_T *handles,
-   uint32_t n);
 
 /*
    A discardable MEM_HANDLE_T with a retain count greater than 0 is

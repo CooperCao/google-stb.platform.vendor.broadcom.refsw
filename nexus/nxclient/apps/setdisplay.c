@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2010-2014 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  *****************************************************************************/
 #include "nexus_platform_client.h"
@@ -119,9 +111,12 @@ static void print_usage(void)
     print_list_option("colorSpace",g_colorSpaceStrs);
     printf(
         "  -colorDepth {0|8|10}      0 is auto\n"
+        "  -alpha X                  GFD alpha\n"
+        "  -secure {on|off}\n"
         );
     print_list_option("macrovision",g_macrovisionStrs);
     print_list_option("eotf",g_videoEotfStrs);
+    print_list_option("matrixCoeffs",g_matrixCoeffStrs);
     printf(
         "  -cll MAX_CLL         max content light level, units 1 cd/m^2, -1 means from input\n"
         "  -fal MAX_FAL         max frame average light level, units 1 cd/m^2, -1 means from input\n"
@@ -182,9 +177,10 @@ static void print_settings(const char *name, const NxClient_DisplaySettings *pSe
         n += snprintf(&buf[n], sizeof(buf)-n, " composite");
     }
     if (pSettings->hdmiPreferences.enabled) {
-        n += snprintf(&buf[n], sizeof(buf)-n, " hdmi(%d bit,%s",
+        n += snprintf(&buf[n], sizeof(buf)-n, " hdmi(%d bit,%s,%s",
             pSettings->hdmiPreferences.colorDepth,
-            lookup_name(g_colorSpaceStrs, pSettings->hdmiPreferences.colorSpace));
+            lookup_name(g_colorSpaceStrs, pSettings->hdmiPreferences.colorSpace),
+            lookup_name(g_matrixCoeffStrs, pSettings->hdmiPreferences.matrixCoefficients));
         if (drm_configured(&pSettings->hdmiPreferences.drmInfoFrame)) {
             n += snprintf(&buf[n], sizeof(buf)-n, ",DRM{%s,mdcv{rgbw=(%d,%d),(%d,%d),(%d,%d),(%d,%d),luma=(%d,%d)},cll={%d,%d}}",
             lookup_name(g_videoEotfStrs, pSettings->hdmiPreferences.drmInfoFrame.eotf),
@@ -345,6 +341,15 @@ int main(int argc, char **argv)  {
             change = true;
             displaySettings.hdmiPreferences.colorDepth = atoi(argv[++curarg]);
         }
+        else if (!strcmp(argv[curarg], "-alpha") && argc>curarg+1) {
+            change = true;
+            if (sd) {
+                displaySettings.slaveDisplay[0].graphicsSettings.alpha = strtoul(argv[++curarg], NULL, 0);
+            }
+            else {
+                displaySettings.graphicsSettings.alpha = strtoul(argv[++curarg], NULL, 0);
+            }
+        }
         else if (!strcmp(argv[curarg], "-component") && argc>curarg+1) {
             change = true;
             displaySettings.componentPreferences.enabled = parse_boolean(argv[++curarg]);
@@ -433,6 +438,10 @@ int main(int argc, char **argv)  {
             change = true;
             displaySettings.hdmiPreferences.drmInfoFrame.eotf = lookup(g_videoEotfStrs, argv[++curarg]);
         }
+        else if (!strcmp(argv[curarg], "-matrixCoeffs") && argc>curarg+1) {
+            change = true;
+            displaySettings.hdmiPreferences.matrixCoefficients = lookup(g_matrixCoeffStrs, argv[++curarg]);
+        }
         else if (!strcmp(argv[curarg], "-mdcv.red") && argc>curarg+1) {
             int x,y;
             if (sscanf(argv[++curarg], "%d,%d", &x, &y) == 2) {
@@ -480,6 +489,10 @@ int main(int argc, char **argv)  {
         else if (!strcmp(argv[curarg], "-fal") && argc>curarg+1) {
             change = true;
             displaySettings.hdmiPreferences.drmInfoFrame.metadata.typeSettings.type1.contentLightLevel.maxFrameAverage = atoi(argv[++curarg]);
+        }
+        else if (!strcmp(argv[curarg], "-secure") && argc>curarg+1) {
+            change = true;
+            displaySettings.secure = parse_boolean(argv[++curarg]);
         }
         else {
             print_usage();

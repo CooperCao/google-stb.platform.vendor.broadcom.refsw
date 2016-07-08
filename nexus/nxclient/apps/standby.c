@@ -366,6 +366,8 @@ static void set_power_state(struct appcontext *pContext)
         }
     }
 
+    print_wakeup(pContext);
+
     NxClient_GetStandbyStatus(&standbyStatus);
     if(rc == NEXUS_TIMEOUT || standbyStatus.status.wakeupStatus.timeout) {
         pContext->mode = NEXUS_PlatformStandbyMode_eOn;
@@ -528,9 +530,6 @@ int main(int argc, const char **argv)
             break;
 
         set_power_state(pContext);
-        if(pContext->mode == NEXUS_PlatformStandbyMode_eOn) {
-            print_wakeup(pContext);
-        }
     }
 
     if(pContext->cmdline_thread_id) {

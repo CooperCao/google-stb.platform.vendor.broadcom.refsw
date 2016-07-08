@@ -1,7 +1,7 @@
 ############################################################
-#     (c)2003-2014 Broadcom Corporation
+#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 #
-#  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+#  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
 #  conditions of a separate, written license agreement executed between you and Broadcom
 #  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,18 +35,8 @@
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
 #
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
 # Module Description:
 #   This file defines basic library rules for nexus systems
-#
-# Revision History:
-#
-# Created: 03/05/2007 by Jon Garrett
-#
-# $brcm_Log: $
 #
 ############################################################
 
@@ -81,7 +71,8 @@ B_LIB_CFLAGS += -Os
 # Identify object directory
 B_REFSW_OBJ_DIR ?= obj.${NEXUS_PLATFORM}
 B_REFSW_OBJ_ROOT ?= ${NEXUS_TOP}/../${B_REFSW_OBJ_DIR}
-B_LIB_OBJ_DIR := ${B_REFSW_OBJ_ROOT}/nexus/lib/$(B_LIB_OUTPUT_NAME)
+B_LIB_OBJ_PREFIX ?= nexus/lib/
+B_LIB_OBJ_DIR := ${B_REFSW_OBJ_ROOT}/$(B_LIB_OBJ_PREFIX)$(B_LIB_OUTPUT_NAME)
 
 # Handle static vs. shared library differences
 ifneq ($(findstring $(B_REFSW_OS),linuxuser vxworks),)
@@ -231,4 +222,3 @@ B_LIB_DEP_FILES := $(wildcard $(B_LIB_OBJ_DIR)/*.d)
 ifneq ($(B_LIB_DEP_FILES),)
 -include $(B_LIB_DEP_FILES)
 endif
-

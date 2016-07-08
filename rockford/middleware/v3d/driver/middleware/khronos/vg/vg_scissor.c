@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2008 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2008 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -39,7 +39,7 @@ static void vg_scissor_gen(
    bounds[2] = 0;
    bounds[3] = 0;
 
-   khrn_image_interlock_wrap(&wrap, format, width, height, stride, 0, data, NULL);
+   khrn_image_interlock_wrap(&wrap, format, width, height, stride, 0, false, data, NULL);
    for (i = 0; i != rects_count; i += 4) {
       int32_t rect_x      = rects[i];
       int32_t rect_y      = rects[i + 1];

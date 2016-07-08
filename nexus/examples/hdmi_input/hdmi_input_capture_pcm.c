@@ -1,41 +1,40 @@
-/***************************************************************************
-*     (c)2004-2014 Broadcom Corporation
-*
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
-*  and may only be used, duplicated, modified or distributed pursuant to the terms and
-*  conditions of a separate, written license agreement executed between you and Broadcom
-*  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-*  no license (express or implied), right to use, or waiver of any kind with respect to the
-*  Software, and Broadcom expressly reserves all rights in and to the Software and all
-*  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-*  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-*  Except as expressly set forth in the Authorized License,
-*
-*  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-*  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-*  and to use this information only in connection with your use of Broadcom integrated circuit products.
-*
-*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-*  USE OR PERFORMANCE OF THE SOFTWARE.
-*
-*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-*  ANY LIMITED REMEDY.
-*
-***************************************************************************/
+/******************************************************************************
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ ******************************************************************************/
 #if NEXUS_HAS_HDMI_OUTPUT && NEXUS_HAS_HDMI_INPUT
 #include <getopt.h>
 
@@ -350,9 +349,10 @@ void hdmi_source_changed(void *context, int param)
     NEXUS_HdmiInputHandle hdmiInput;
     NEXUS_HdmiInputStatus hdmiInputStatus;
     NEXUS_DisplaySettings displaySettings;
-    app_configuration *config = (app_configuration *)param;
 
-    hdmiInput = (NEXUS_HdmiInputHandle)context;
+    app_configuration *config = (app_configuration *)context;
+    hdmiInput = config->hdmiInput;
+
     NEXUS_HdmiInput_GetStatus(hdmiInput, &hdmiInputStatus);
     fprintf(stderr, "HDMI input status (callback):\n");
     fprintf(stderr, "attached %d,  audio valid %d,  Type %d,  wordlength %d,  freq %d\n",
@@ -375,9 +375,9 @@ void avmute_changed(void *context, int param)
 {
     NEXUS_HdmiInputHandle hdmiInput;
     NEXUS_HdmiInputStatus hdmiInputStatus;
-    app_configuration *config = (app_configuration *)param;
+    app_configuration *config = (app_configuration *)context;
 
-    hdmiInput = (NEXUS_HdmiInputHandle)context;
+    hdmiInput = config->hdmiInput;
     NEXUS_HdmiInput_GetStatus(hdmiInput, &hdmiInputStatus);
 
     if (!hdmiInputStatus.validHdmiStatus)
@@ -533,11 +533,15 @@ static void mute_audio(NEXUS_HdmiOutputHandle hdmiOutput)
 }
 
 
-static void hotplug_callback(void *pParam, int iParam)
+static void hotplug_callback(void *pContext, int iParam)
 {
     NEXUS_HdmiOutputStatus status;
-    NEXUS_HdmiOutputHandle hdmiOutput = pParam;
-    NEXUS_DisplayHandle display = (NEXUS_DisplayHandle)iParam;
+    NEXUS_HdmiOutputHandle hdmiOutput ;
+    NEXUS_DisplayHandle display ;
+
+    app_configuration *config = (app_configuration *)pContext;
+    hdmiOutput = config->hdmiOutput ;
+    display = config->display ;
 
     NEXUS_HdmiOutput_GetStatus(hdmiOutput, &status);
     BDBG_LOG(("hotplug_callback: %s\n", status.connected ? "DEVICE CONNECTED" : "DEVICE REMOVED")) ;
@@ -974,11 +978,14 @@ static app_configuration *config_init(int argc, char **argv)
     config->display = NEXUS_Display_Open(0, &displaySettings);
 
     NEXUS_HdmiInput_GetSettings(config->hdmiInput, &hdmiInputSettings);
+
     hdmiInputSettings.avMuteChanged.callback = avmute_changed;
-    hdmiInputSettings.avMuteChanged.context  = config->hdmiInput;
+    hdmiInputSettings.avMuteChanged.context  = config;
+    hdmiInputSettings.avMuteChanged.param    = 0;
+
     hdmiInputSettings.sourceChanged.callback = hdmi_source_changed;
-    hdmiInputSettings.sourceChanged.context  = config->hdmiInput;
-    hdmiInputSettings.sourceChanged.param    = (int)config;
+    hdmiInputSettings.sourceChanged.context  = config ;
+    hdmiInputSettings.sourceChanged.param = 0 ;
     NEXUS_HdmiInput_SetSettings(config->hdmiInput, &hdmiInputSettings);
 
     if (config->dumpfilename)
@@ -1078,9 +1085,8 @@ static app_configuration *config_init(int argc, char **argv)
 
     /* Install hotplug callback -- video only for now */
     NEXUS_HdmiOutput_GetSettings(config->hdmiOutput, &hdmiOutputSettings);
-    hdmiOutputSettings.hotplugCallback.callback = hotplug_callback;
-    hdmiOutputSettings.hotplugCallback.context  = config->hdmiOutput;
-    hdmiOutputSettings.hotplugCallback.param    = (int)config->display;
+        hdmiOutputSettings.hotplugCallback.callback = hotplug_callback;
+        hdmiOutputSettings.hotplugCallback.context = config ;
     NEXUS_HdmiOutput_SetSettings(config->hdmiOutput, &hdmiOutputSettings);
 
 #if 1

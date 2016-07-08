@@ -1,7 +1,7 @@
 ############################################################
-#     (c)2003-2014 Broadcom Corporation
+#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 #
-#  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+#  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
 #  conditions of a separate, written license agreement executed between you and Broadcom
 #  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,18 +35,8 @@
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
 #
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
 # Module Description:
-#   This file defines the rules to build the 97400 platform
-#
-# Revision History:
-#
-# Created: 08/28/2007 by Jon Garrett
-#
-# $brcm_Log: $
+#   This file defines the rules to build the Nexus platform
 #
 ############################################################
 
@@ -134,16 +124,30 @@ endif
 
 ####################################################
 
+# Pull in astra for kernel builds
+ifeq ($(NEXUS_MODE),driver)
+ifeq ($(NEXUS_ASTRA_SUPPORT),y)
+EXTRA_CLEAN += astra_drv_clean
+NEXUS_DRIVER_EXTRADEPS += astra_drv_install
+NEXUS_DRIVER_KBUILD_ARGS += KBUILD_EXTRA_SYMBOLS=$(realpath $(NEXUS_OBJ_DIR))/bcm_astra.symvers
+endif
+endif
+
 ifeq ($(B_REFSW_OS),linuxuser)
 ifneq ($(PLATFORM_CYGNUS),y)
 ifeq ($(NEXUS_MODE),)
 ifneq  (${B_REFSW_SYSTEM_MODE},CLIENT)
 # user mode is a one pass build which also builds bcmdriver
-EXTRA_CLEAN := bcmdriver_clean
-EXTRA_INSTALL := bcmdriver_install
+EXTRA_CLEAN += bcmdriver_clean
+EXTRA_INSTALL += bcmdriver_install
+ifeq ($(NEXUS_ASTRA_SUPPORT),y)
+EXTRA_CLEAN += astra_clean astra_drv_clean
+EXTRA_INSTALL += astra_install astra_drv_install
+NEXUS_EXTRALIBS += $(ASTRA_LIB)
 endif
-endif
-endif
+endif # client
+endif # NEXUS_MODE
+endif # cygnus
 ifneq ($(NEXUS_MODE),client)
 ifneq (${B_REFSW_SYSTEM_MODE},SERVER)
 ifneq ($(NEXUS_LOGGER_EXTERNAL),y) # Defined by some systems such as android that have their own loggger implementation
@@ -152,7 +156,16 @@ EXTRA_INSTALL += logger_install
 endif
 endif
 endif
+ifeq ($(NEXUS_MODE),proxy)
+ifeq ($(NEXUS_ASTRA_SUPPORT),y)
+EXTRA_CLEAN += astra_clean
+EXTRA_INSTALL += astra_install
+NEXUS_EXTRALIBS += $(ASTRA_LIB)
 endif
+endif
+endif
+
+
 
 ifeq ($(SAGE_SUPPORT),y)
 ifneq ($(NEXUS_MODE),client)
@@ -180,21 +193,16 @@ endif
 
 ifneq ($(PLATFORM_CYGNUS),y)
 ifneq  (${B_REFSW_SYSTEM_MODE},CLIENT)
-ifeq ($(findstring arm, ${B_REFSW_ARCH}),arm)
+ifeq ($(filter ${B_REFSW_ARCH},arm-linux aarch64-linux),${B_REFSW_ARCH})
 EXTRA_CLEAN += wakeupdriver_clean
 EXTRA_INSTALL += wakeupdriver_install
 ifeq ($(RF4CE_SUPPORT),y)
 EXTRA_CLEAN += zigbeedriver_clean zigbeeprocess_clean
 EXTRA_INSTALL += zigbeedriver_install zigbeeprocess_install
 endif
-ifeq ($(findstring aarch64, ${B_REFSW_ARCH}),aarch64)
-EXTRA_CLEAN += wakeupdriver_clean
-EXTRA_INSTALL += wakeupdriver_install
 endif
 endif
 endif
-endif
-
 
 # bcmdriver rules
 .PHONY: bcmdriver
@@ -213,7 +221,39 @@ bcmdriver_install: bcmdriver
 bcmdriver_clean:
 	${Q_}$(MAKE) -C $(BSEAV)/linux/driver/build B_REFSW_DEBUG=$(B_REFSW_DEBUG) clean --no-print-directory > /dev/null
 
-# bcmdriver rules
+# astra rules
+.PHONY: astra astra_drv
+ASTRA_LIB:=${B_REFSW_OBJ_ROOT}/astra/linux/libbcm_astra/libbcm_astra.a
+ASTRA_DRV:=${B_REFSW_OBJ_ROOT}/astra/linux/bcm_astra/$(B_REFSW_ARCH)/bcm_astra.ko
+ASTRA_SYMVERS:=${B_REFSW_OBJ_ROOT}/astra/linux/bcm_astra/$(B_REFSW_ARCH)/Module.symvers
+
+astra_drv:
+	@echo "[Build..... astra driver]"
+	${Q_}$(MAKE) -C $(NEXUS_TOP)/platforms/common/build -f Makefile.bcm_astra --no-print-directory
+
+astra: $(ASTRA_LIB)
+
+$(ASTRA_LIB):
+	@echo "[Build..... astra]"
+	${Q_}$(MAKE) -C $(NEXUS_TOP)/platforms/common/build -f Makefile.libbcm_astra --no-print-directory
+
+.PHONY: astra_clean astra_install astra_drv_clean astra_drv_install
+astra_install: astra
+	@echo "[Install... astra]"
+	${Q_}$(CP) ${ASTRA_LIB} ${NEXUS_BIN_DIR}
+
+astra_clean:
+	${Q_}$(MAKE) -C $(NEXUS_TOP)/platforms/common/build -f Makefile.libbcm_astra clean > /dev/null
+
+astra_drv_install: astra_drv
+	@echo "[Install... astra driver]"
+	${Q_}$(CP) ${ASTRA_DRV} ${NEXUS_BIN_DIR}
+	${Q_}$(CP) $(ASTRA_SYMVERS) ${NEXUS_OBJ_DIR}/bcm_astra.symvers
+
+astra_drv_clean:
+	${Q_}$(MAKE) -C $(NEXUS_TOP)/platforms/common/build -f Makefile.bcm_astra clean > /dev/null
+
+# wakeupdriver rules
 .PHONY: wakeupdriver
 WAKEUPDRIVER:=${B_REFSW_OBJ_ROOT}/BSEAV/linux/driver/wakeup/$(B_REFSW_ARCH)/wakeup_drv.ko
 wakeupdriver: ${WAKEUPDRIVER}
@@ -259,6 +299,18 @@ zigbeedriver_install: zigbeedriver
 zigbeedriver_clean:
 	${Q_}$(MAKE) -C $(BSEAV)/linux/driver/zigbee B_REFSW_DEBUG=$(B_REFSW_DEBUG) clean --no-print-directory > /dev/null
 
+.PHONY: fw_img_sign_clean fw_signature_clean
+fw_img_sign_clean:
+	-${Q_}$(MAKE) -C $(BSEAV)/lib/security/fw_img_sign clean --no-print-directory > /dev/null 2>&1
+
+ifeq ($(NEXUS_SECURITY_FW_SIGN),y)
+EXTRA_CLEAN += fw_img_sign_clean
+endif
+
+fw_signature_clean:
+	-${Q_}${RM} ${NEXUS_SECURITY_REGVER_SIGNATURES} ${NEXUS_SECURITY_REGVER_KEY}
+EXTRA_CLEAN += fw_signature_clean
+
 # generic install and clean rules
 ifeq ($(NEXUS_P_START_MULTIPASS),y)
 install:
@@ -284,6 +336,29 @@ prep_dir:
 
 # Include Nexus build last -- This defines nexus_install, nexus_clean, etc.
 include $(NEXUS_TOP)/build/nexus.inc
+
+# security region verification
+ifeq ($(NEXUS_SECURITY_FW_SIGN),y)
+
+# this dependency ensures that the signature file is generated before trying to compile the security module
+$(NEXUS_SECURITY_SOURCES): $(NEXUS_SECURITY_REGVER_SIGNATURES)
+
+NEXUS_FW_SIGN_SRC = $(foreach module, $(NEXUS_FW_SIGN_MODULES), $($(module)_AUTH_SOURCES))
+NEXUS_FW_SIGN_FAIL_MESSAGE = "Warning: Firmware region verification signing process failed. Using stub..."
+
+${NEXUS_SECURITY_REGVER_SIGNATURES}: $(NEXUS_FW_SIGN_SRC)
+	@echo "[Build..... fw_img_sign]"
+	${Q_}$(MAKE) -C $(BSEAV)/lib/security/fw_img_sign sign --no-print-directory MAKEFLAGS= B_REFSW_OBJ_ROOT=$(abspath $(B_REFSW_OBJ_ROOT)) > /dev/null 2>&1 || (echo $(NEXUS_FW_SIGN_FAIL_MESSAGE); cp $(NEXUS_SECURITY_REGVER_SIGNATURES_STUB) $(NEXUS_SECURITY_REGVER_SIGNATURES); cp $(NEXUS_SECURITY_REGVER_KEY_STUB) $(NEXUS_SECURITY_REGVER_KEY))
+
+${NEXUS_SECURITY_REGVER_KEY}: ${NEXUS_SECURITY_REGVER_SIGNATURES}
+endif
+
+$(NEXUS_GPIO_TABLE):
+	${Q_}cat $(NEXUS_TOP)/modules/gpio/src/nexus_gpio_table_prologue.c >$@
+	${Q_}$(PERL) $(NEXUS_TOP)/modules/gpio/generate_nexus_gpio_mapping.pl $(NEXUS_TOP)/../magnum/basemodules/chp/include/${BCHP_CHIP}/rdb/${BCHP_VER_LOWER}/bchp_aon_pin_ctrl.h >>$@
+	${Q_}$(PERL) $(NEXUS_TOP)/modules/gpio/generate_nexus_gpio_mapping.pl $(NEXUS_TOP)/../magnum/basemodules/chp/include/${BCHP_CHIP}/rdb/${BCHP_VER_LOWER}/bchp_sun_top_ctrl.h >>$@
+	${Q_}cat $(NEXUS_TOP)/modules/gpio/src/nexus_gpio_table_epilogue.c >>$@
+	${Q_}cat $(NEXUS_TOP)/modules/gpio/src/${BCHP_CHIP}/nexus_gpio_table_epilogue_${BCHP_CHIP}.c >>$@
 
 .PHONY: logger_clean logger_install
 logger_clean:

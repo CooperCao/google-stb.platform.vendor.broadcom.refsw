@@ -152,7 +152,7 @@ static int check_format(buserdata_t handle, unsigned format)
 int buserdata_parse(buserdata_t handle, NEXUS_SimpleVideoDecoderHandle videoDecoder, NEXUS_ClosedCaptionData *pData, unsigned totalEntries, unsigned *pNumRead)
 {
     unsigned char *bufferPtr;
-    unsigned size;
+    size_t size;
     const NEXUS_UserDataHeader *pHeader;
     unsigned total;
     int rc;
@@ -168,7 +168,7 @@ int buserdata_parse(buserdata_t handle, NEXUS_SimpleVideoDecoderHandle videoDeco
         unsigned offset = 0;
         pHeader = (const NEXUS_UserDataHeader *)bufferPtr;
         if (size < sizeof(*pHeader) || size < pHeader->blockSize) {
-            BDBG_WRN(("unable to process %d bytes", size));
+            BDBG_WRN(("unable to process %d bytes", (unsigned)size));
             break;
         }
 

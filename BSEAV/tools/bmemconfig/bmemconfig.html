@@ -3,13 +3,13 @@
     <script type="text/javascript" src="bmemconfig.js" ></script>
     </head>
 <body onload="MyLoad();" id=bodymemconfig link=blue vlink=blue alink=blue >
-<table cols=2 border=0 >
-    <tr><td><img src="brcm-logo-white.jpg" width="100" id="brcmlogo" onclick="MyClick(event);" /></td><td>
-        <table cols=1 border=0 >
-            <tr><td><h1><span id=h2broadcom onclick="MyClick(event);" >Broadcom </span><span id=h2memory onclick="MyClick(event);" >Memory </span>Configuration GUI</h1></td></tr>
-        </table></td></tr>
-        <tr><td colspan=2><hr></td></tr>
-            <tr><td colspan=2 >Platform: <span id=platform >xxxxx</span>&nbsp;<span id=platver>YY</span>&nbsp;&nbsp;
+<table cols=2 border=0 width=80% style="border-collapse:collapse;" >
+    <tr><td width=220 ><img src="brcm-logo-white.jpg" width="200" id="brcmlogo" onclick="MyClick(event);" /></td>
+        <td valign=middle style="font-size:28pt;" ><b id=h2broadcom onclick="MyClick(event);" >Broadcom</span>
+            <span id=h2memory onclick="MyClick(event);" >Memory </span>Configuration GUI</h1></td>
+    </tr>
+    <tr><td colspan=2><hr></td></tr>
+        <tr><td colspan=2 >Platform: <span id=platform >xxxxx</span>&nbsp;<span id=platver>YY</span>&nbsp;&nbsp;
             <select id="boxmode" onchange="MyClick(event);" ></select><!-- onselect does not work for some reason -->
             </td></tr>
     <tr><th valign=top ><span id=stbtime >00:00:00</span><br><br>

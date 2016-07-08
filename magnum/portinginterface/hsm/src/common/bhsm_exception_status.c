@@ -42,50 +42,12 @@
 #include "bhsm_private.h"
 #include "bhsm_exception_status.h"
 #include "bhsm_bsp_msg.h"
+#include "bsp_s_misc.h"
 
 BDBG_MODULE(BHSM);
 
 #define UINT64_WORD_HI(a) ((uint32_t)((a)>>32))
 #define UINT64_WORD_LO(a) ((uint32_t)((a)&0xFFFFFFFF))
-
-
-/* TODO .. these will be made available from BSP header. Delete when they are. */
-typedef enum BCMD_ExceptionStatus_InCmdField_e
-{
-    BCMD_ExceptionStatus_InCmdField_eSubCommand = (5 << 2) + 3,
-    BCMD_ExceptionStatus_InCmdField_eDevice = (6 << 2) + 1,
-    BCMD_ExceptionStatus_InCmdField_eUnit = (6 << 2) + 2,
-    BCMD_ExceptionStatus_InCmdField_eSubUnit = (6 << 2) + 3,
-    BCMD_ExceptionStatus_InCmdField_eMax
-} BCMD_ExceptionStatus_InCmdField_e;
-
-typedef enum BCMD_ExceptionStatus_OutCmdField_e
-{
-    BCMD_ExceptionStatus_OutCmdField_eStatus = (5 << 2) + 3,
-    BCMD_ExceptionStatus_OutCmdField_eDevice = (6 << 2) + 1,
-    BCMD_ExceptionStatus_OutCmdField_eUnit = (6 << 2) + 2,
-    BCMD_ExceptionStatus_OutCmdField_eSubUnit = (6 << 2) + 3,
-    BCMD_ExceptionStatus_OutCmdField_eNumRegs = (7 << 2) + 3,
-    BCMD_ExceptionStatus_OutCmdField_eRegister0 = (8 << 2) + 0,
-    BCMD_ExceptionStatus_OutCmdField_eMax
-} BCMD_ExceptionStatus_OutCmdField_e;
-
-typedef enum BCMD_ExceptionStatus_Operation_e
-{
-    BCMD_ExceptionStatus_Operation_eDefault = 0x00,
-    BCMD_ExceptionStatus_Operation_eCaptureReg = 0x55,
-    BCMD_ExceptionStatus_Operation_eMax
-} BCMD_ExceptionStatus_Operation_e;
-
-typedef enum BCMD_ExceptionStatus_Device_e
-{
-    BCMD_ExceptionStatus_Device_eMemcARCH     = 0x02,
-    BCMD_ExceptionStatus_Device_eMax
-} BCMD_ExceptionStatus_Device_e;
-
-/**************************************************************************** */
-
-
 
 
 
@@ -121,19 +83,19 @@ BERR_Code  BHSM_GetExceptionStatus(
     }
 
     BHSM_BspMsg_GetDefaultHeader( &header );
-    header.hChannel = hHsm->channelHandles[BSP_CmdInterface];
-    #define BCMD_cmdType_eEXCEPTION_STATUS 0x2a
-    BHSM_BspMsg_Header( hMsg, BCMD_cmdType_eEXCEPTION_STATUS, &header );
+    BHSM_BspMsg_Header( hMsg, BCMD_cmdType_eREAD_EXCEPTION_STATUS, &header );
 
-    BHSM_BspMsg_Pack8( hMsg, BCMD_ExceptionStatus_InCmdField_eSubCommand, BCMD_ExceptionStatus_Operation_eCaptureReg );
-    BHSM_BspMsg_Pack8( hMsg, BCMD_ExceptionStatus_InCmdField_eDevice, pRequest->deviceType );
+    BHSM_BspMsg_Pack8( hMsg, BCMD_ReadExceptionStatus_InCmdField_eKeepStatus, pRequest->keepStatus ? BCMD_ExceptionStatus_KeepStatus_eDoNotClear :
+                                                                                                     BCMD_ExceptionStatus_KeepStatus_eClearRegs );
+    BHSM_BspMsg_Pack8( hMsg, BCMD_ReadExceptionStatus_InCmdField_eSubCommand, BCMD_ExceptionStatus_Operation_eCaptureReg );
+    BHSM_BspMsg_Pack8( hMsg, BCMD_ReadExceptionStatus_InCmdField_eDevice, pRequest->deviceType );
 
     switch( pRequest->deviceType )
     {
         case BHSM_ExceptionStatusDevice_eMemcArch:
         {
-            BHSM_BspMsg_Pack8( hMsg, BCMD_ExceptionStatus_InCmdField_eUnit,    pRequest->u.memArch.unit    );
-            BHSM_BspMsg_Pack8( hMsg, BCMD_ExceptionStatus_InCmdField_eSubUnit, pRequest->u.memArch.subUnit );
+            BHSM_BspMsg_Pack8( hMsg, BCMD_ReadExceptionStatus_InCmdField_eUnit,    pRequest->u.memArch.memcIndex );
+            BHSM_BspMsg_Pack8( hMsg, BCMD_ReadExceptionStatus_InCmdField_eSubUnit, pRequest->u.memArch.archIndex );
             break;
         }
         default:
@@ -164,20 +126,20 @@ BERR_Code  BHSM_GetExceptionStatus(
             uint32_t regLsb  = 0;   /* address bits[3..34]  are read into this variable */
             uint32_t regMsb  = 0;   /* address bits[35..39] are read into this variable ... 6 bits valid*/
 
-            BHSM_BspMsg_Get8( hMsg, BCMD_ExceptionStatus_OutCmdField_eNumRegs, &numRegs );
+            BHSM_BspMsg_Get8( hMsg, BCMD_ReadExceptionStatus_OutCmdField_eNumRegs, &numRegs );
 
             /* start address */
-            BHSM_BspMsg_Get32( hMsg, BCMD_ExceptionStatus_OutCmdField_eRegister0+(4*0), &regLsb );
-            BHSM_BspMsg_Get32( hMsg, BCMD_ExceptionStatus_OutCmdField_eRegister0+(4*1), &regMsb );
+            BHSM_BspMsg_Get32( hMsg, BCMD_ReadExceptionStatus_OutCmdField_eRegister0+(4*0), &regLsb );
+            BHSM_BspMsg_Get32( hMsg, BCMD_ReadExceptionStatus_OutCmdField_eRegister0+(4*1), &regMsb );
             pStatus->u.memArch.startAddress = ((uint64_t)(regMsb & 0x3F) << 35) + ((uint64_t)regLsb << 3);
 
             /* end address */
-            BHSM_BspMsg_Get32( hMsg, BCMD_ExceptionStatus_OutCmdField_eRegister0+(4*2), &regLsb );
-            BHSM_BspMsg_Get32( hMsg, BCMD_ExceptionStatus_OutCmdField_eRegister0+(4*3), &regMsb );
+            BHSM_BspMsg_Get32( hMsg, BCMD_ReadExceptionStatus_OutCmdField_eRegister0+(4*2), &regLsb );
+            BHSM_BspMsg_Get32( hMsg, BCMD_ReadExceptionStatus_OutCmdField_eRegister0+(4*3), &regMsb );
             pStatus->u.memArch.endAddress   = ((uint64_t)(regMsb & 0x3F) << 35) + ((uint64_t)regLsb << 3);
 
             /* control */
-            BHSM_BspMsg_Get32( hMsg, BCMD_ExceptionStatus_OutCmdField_eRegister0+(4*4), &reg );
+            BHSM_BspMsg_Get32( hMsg, BCMD_ReadExceptionStatus_OutCmdField_eRegister0+(4*4), &reg );
             pStatus->u.memArch.scbClientId = ((reg >> 24) & 0xFF ); /* bits[31:24]  */
             pStatus->u.memArch.numBlocks   = ((reg >> 12) & 0x3FF); /* bits[21:12]  */
             pStatus->u.memArch.requestType = ( reg        & 0x1FF); /* bits[8:0]    */

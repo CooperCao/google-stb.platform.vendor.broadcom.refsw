@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2014 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,18 +35,10 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   API name: AudioCapture
 *    Specific APIs related to PCM audio capture.  This supports capture
 *    of data into memory from a decoder or other source.
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 
@@ -229,6 +221,7 @@ NEXUS_AudioCaptureHandle NEXUS_AudioCapture_Open(     /* attr{destructor=NEXUS_A
         switch ( pSettings->format )
         {
         case NEXUS_AudioCaptureFormat_e16BitStereo:
+        case NEXUS_AudioCaptureFormat_eCompressed:
             openSettings.watermarkThreshold = (pSettings->threshold * 2) & (~255);
             break;
         case NEXUS_AudioCaptureFormat_e24BitStereo:
@@ -436,6 +429,7 @@ NEXUS_Error NEXUS_AudioCapture_SetSettings(
         switch ( handle->settings.format )
         {
         case NEXUS_AudioCaptureFormat_e16BitStereo:
+        case NEXUS_AudioCaptureFormat_eCompressed:
             captureSettings.watermark = (handle->settings.threshold * 2) & (~255);
             break;
         case NEXUS_AudioCaptureFormat_e24BitStereo:
@@ -758,6 +752,7 @@ NEXUS_Error NEXUS_AudioCapture_P_GetBuffer(
         NEXUS_AudioCapture_P_ConvertStereo24(handle);
         break;
     case NEXUS_AudioCaptureFormat_e16BitStereo:
+    case NEXUS_AudioCaptureFormat_eCompressed:
         NEXUS_AudioCapture_P_ConvertStereo16(handle);
         break;
     case NEXUS_AudioCaptureFormat_e16BitMonoLeft:
@@ -793,7 +788,7 @@ NEXUS_Error NEXUS_AudioCapture_P_GetBuffer(
         *pSize = handle->bufferSize - (4*handle->rptr);
     }
 
-    BDBG_MSG(("After conversion depth %d rptr %d wptr %d size %lu words (%lu bytes)", handle->bufferDepth, handle->rptr, handle->wptr, (*pSize)/4, *pSize));
+    BDBG_MSG(("After conversion depth %d rptr %d wptr %d size %lu words (%lu bytes)", handle->bufferDepth, handle->rptr, handle->wptr, (unsigned long)(*pSize)/4, (unsigned long)*pSize));
 
     return BERR_SUCCESS;
 }
@@ -843,7 +838,7 @@ NEXUS_Error NEXUS_AudioCapture_P_ReadComplete(
         }
     }
 
-    BDBG_MSG(("Read Complete - %lu bytes written, moving rptr from %d to %d (size %d)", amountWritten, handle->rptr, newRptr, handle->bufferSize/4));
+    BDBG_MSG(("Read Complete - %lu bytes written, moving rptr from %d to %d (size %d)", (unsigned long)amountWritten, handle->rptr, newRptr, handle->bufferSize/4));
 
     /* Update read pointer of our buffer */
     handle->rptr = newRptr;
@@ -946,6 +941,8 @@ static void NEXUS_AudioCapture_P_ConvertStereo24(NEXUS_AudioCaptureProcessorHand
     }
 }
 
+#define SWAP16( a )  do{a=((a&0xFF)<<8|(a&0xFF00)>>8);}while(0)
+
 static void NEXUS_AudioCapture_P_ConvertStereo16(NEXUS_AudioCaptureProcessorHandle handle)
 {
     BERR_Code errCode;
@@ -994,8 +991,19 @@ static void NEXUS_AudioCapture_P_ConvertStereo16(NEXUS_AudioCaptureProcessorHand
             {
                 uint32_t sample;
 #if BSTD_CPU_ENDIAN == BSTD_ENDIAN_BIG
-                sample = (*pSource++)&0xffff0000;  /* Right */
-                sample |= (*pSource++)>>16;          /* Left */
+                if ( handle->format == NEXUS_AudioCaptureFormat_eCompressed) {
+                    uint16_t temp;
+                    temp = (*pSource++)>>16;
+                    SWAP16 (temp);
+                    sample = temp << 16; /* Right */
+                    temp = (*pSource++)>>16;
+                    SWAP16(temp);
+                    sample |= temp;      /* Left */
+                }
+                else {
+                    sample = (*pSource++)&0xffff0000;  /* Right */
+                    sample |= (*pSource++)>>16;          /* Left */
+                }
 #else
                 sample = (*pSource++)>>16;          /* Left */
                 sample |= (*pSource++)&0xffff0000;  /* Right */

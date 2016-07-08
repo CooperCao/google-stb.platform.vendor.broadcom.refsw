@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2010-2014 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,17 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
  **************************************************************************/
 #ifndef NEXUS_SIMPLE_VIDEO_DECODER_SERVER_H__
 #define NEXUS_SIMPLE_VIDEO_DECODER_SERVER_H__
@@ -59,9 +48,11 @@ extern "C" {
 #endif
 
 /**
-This server-side is semi-private. In multi-process systems, only server apps like nxserver will call it.
+This server-side API is semi-private. In multi-process systems, only server apps like nxserver will call it.
 Client apps will not call it. Therefore, this API is subject to non-backward compatible change.
 **/
+
+typedef struct NEXUS_SimpleVideoDecoderServer *NEXUS_SimpleVideoDecoderServerHandle;
 
 /**
 Summary:
@@ -81,6 +72,14 @@ typedef struct NEXUS_SimpleVideoDecoderServerSettings
     bool mosaic;
 } NEXUS_SimpleVideoDecoderServerSettings;
 
+NEXUS_SimpleVideoDecoderServerHandle NEXUS_SimpleVideoDecoderServer_Create( /* attr{destructor=NEXUS_SimpleVideoDecoderServer_Destroy}  */
+    void
+    );
+
+void NEXUS_SimpleVideoDecoderServer_Destroy(
+    NEXUS_SimpleVideoDecoderServerHandle handle
+    );
+
 /**
 Summary:
 **/
@@ -94,6 +93,7 @@ Server could set up multiple SimpleVideoDecoders for one VideoDecoder.
 This would allow it to create multiple ways of using the same decoder.
 **/
 NEXUS_SimpleVideoDecoderHandle NEXUS_SimpleVideoDecoder_Create( /* attr{destructor=NEXUS_SimpleVideoDecoder_Destroy}  */
+    NEXUS_SimpleVideoDecoderServerHandle server,
     unsigned index,
     const NEXUS_SimpleVideoDecoderServerSettings *pSettings
     );
@@ -112,6 +112,7 @@ void NEXUS_SimpleVideoDecoder_Destroy(
 Summary:
 **/
 void NEXUS_SimpleVideoDecoder_GetServerSettings(
+    NEXUS_SimpleVideoDecoderServerHandle server,
     NEXUS_SimpleVideoDecoderHandle handle,
     NEXUS_SimpleVideoDecoderServerSettings *pSettings /* [out] */
     );
@@ -122,6 +123,7 @@ This might cause a stop/start, unbeknownst to the client
 Even the VideoDecoder could be taken away while Simple is acquired and even started
 **/
 NEXUS_Error NEXUS_SimpleVideoDecoder_SetServerSettings(
+    NEXUS_SimpleVideoDecoderServerHandle server,
     NEXUS_SimpleVideoDecoderHandle handle,
     const NEXUS_SimpleVideoDecoderServerSettings *pSettings
     );
@@ -131,6 +133,7 @@ Allow simple decoder module to cache handles passed in with NEXUS_SimpleVideoDec
 Must set to false before destroying those handles.
 **/
 void NEXUS_SimpleVideoDecoderModule_SetCacheEnabled(
+    NEXUS_SimpleVideoDecoderServerHandle server,
     bool enabled
     );
 
@@ -143,6 +146,7 @@ If window and videoDecoder are set, then any connection with that window or vide
 By implication, if neither are set then all connections must be broken.
 **/
 void NEXUS_SimpleVideoDecoderModule_CheckCache(
+    NEXUS_SimpleVideoDecoderServerHandle server,
     NEXUS_VideoWindowHandle window, /* attr{null_allowed=y} */
     NEXUS_VideoDecoderHandle videoDecoder /* attr{null_allowed=y} */
     );
@@ -160,11 +164,13 @@ Summary:
 Return StcIndex being used by started video decoder or primer.
 **/
 void NEXUS_SimpleVideoDecoder_GetStcIndex(
+    NEXUS_SimpleVideoDecoderServerHandle server,
     NEXUS_SimpleVideoDecoderHandle handle,
     int *pStcIndex /* returns -1 if StcChannel is unused */
     );
 
 NEXUS_Error NEXUS_SimpleVideoDecoder_SwapWindows(
+    NEXUS_SimpleVideoDecoderServerHandle server,
     NEXUS_SimpleVideoDecoderHandle decoder1,
     NEXUS_SimpleVideoDecoderHandle decoder2
     );

@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2014 Broadcom Corporation
+ *     Broadcom Proprietary and Confidential. (c)2014 Broadcom.  All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -57,7 +57,7 @@
 typedef struct BVC5_P_Client
 {
    uint32_t          uiClientId;
-   void             *pContext;              /* Pointer to calling context (e.g. a Nexusv3d handle) */
+   void             *pContext;      /* Pointer to calling context (e.g. a Nexusv3d handle) */
 
    /* Lifetime of a job:
     *
@@ -78,7 +78,7 @@ typedef struct BVC5_P_Client
     * be assumed to have left the system and to have released all their resources.
     *
     */
-   BVC5_ActiveQHandle   hActiveJobs;            /* Accelerated lookup for active jobs */
+   BVC5_ActiveQHandle   hActiveJobs;            /* Accelerated lookup for active jobs  */
 
    BVC5_JobQHandle      hWaitQ;                 /* Waiting for dependencies            */
    BVC5_JobQHandle      hRunnableSoftQ;         /* Software jobs ready to run          */
@@ -91,12 +91,9 @@ typedef struct BVC5_P_Client
    BVC5_JobQHandle      hFinalizableQ;          /* Ready to launch finalizers          */
    BVC5_JobQHandle      hFinalizingQ;           /* Finalizers are running              */
 
-   uint64_t             uiOldestNotFinalized;
+   BVC5_P_InternalJob  *psOldestNotFinalized;   /* NULL if all jobs finalised          */
 
-   uint64_t             uiMaxJobId;             /* max job ID submitted */
-
-   uint32_t             uiFlushCpuCacheReq;     /* Incremented when a CPU cache flush is outstanding. */
-   uint32_t             uiFlushCpuCacheDone;    /* Set to uiFlushCpuCacheReq when a CPU cache flush is done. */
+   uint64_t             uiMaxJobId;             /* max job ID submitted                */
 
    BLST_S_ENTRY(BVC5_P_Client) sChain;
 } BVC5_P_Client;
@@ -241,13 +238,13 @@ void BVC5_P_ClientJobToWaiting(
 
 /* Move a job to the runnable state */
 void BVC5_P_ClientJobWaitingToRunnable(
-   BVC5_Handle          hVC5,
    BVC5_ClientHandle    hClient,
    BVC5_P_InternalJob  *psJob
 );
 
 /* Move a job to completed state */
 void BVC5_P_ClientJobRunningToCompleted(
+   BVC5_Handle          hVC5,
    BVC5_ClientHandle    hClient,
    BVC5_P_InternalJob  *psJob
 );
@@ -306,8 +303,23 @@ bool BVC5_P_ClientIsJobFinishing(
    uint64_t          uiJobId
 );
 
-uint64_t BVC5_P_ClientGetOldestNotFinalized(
+uint64_t BVC5_P_ClientGetOldestNotFinalizedId(
    BVC5_ClientHandle hClient
+);
+
+BERR_Code BVC5_P_ClientMakeFenceForJobs(
+   BVC5_Handle                   hVC5,
+   BVC5_ClientHandle             hClient,
+   const BVC5_SchedDependencies *pCompletedDeps,
+   const BVC5_SchedDependencies *pFinalizedDeps,
+   bool                          bForceCreate,
+   int                          *piFence
+);
+
+BERR_Code BVC5_P_ClientMakeFenceForAnyNonFinalizedJob(
+   BVC5_Handle       hVC5,
+   BVC5_ClientHandle hClient,
+   int              *piFence
 );
 
 /***************************************************************************/

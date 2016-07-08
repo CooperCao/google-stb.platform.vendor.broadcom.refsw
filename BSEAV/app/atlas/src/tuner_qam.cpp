@@ -1,7 +1,7 @@
-/***************************************************************************
- * (c) 2002-2015 Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -37,7 +37,6 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 
 #if NEXUS_HAS_FRONTEND
@@ -166,16 +165,16 @@ eRet CTunerQam::tune(NEXUS_FrontendQamSettings settings)
     {
         BDBG_MSG(("TUNE mode:            %s", modeToString(settings.mode).s()));
         BDBG_MSG(("TUNE annex:           %s", annexToString(settings.annex).s()));
-        BDBG_MSG(("TUNE freq:            %lu", settings.frequency));
-        BDBG_MSG(("TUNE sym rate:        %lu", settings.symbolRate));
+        BDBG_MSG(("TUNE freq:            %u", settings.frequency));
+        BDBG_MSG(("TUNE sym rate:        %u", settings.symbolRate));
         BDBG_MSG(("TUNE fastQcq:         %s", (0 == settings.fastAcquisition) ? "false" : "true"));
         BDBG_MSG(("TUNE terrestrial:     %s", (0 == settings.terrestrial) ? "false" : "true"));
         BDBG_MSG(("TUNE autoAcq:         %s", (0 == settings.autoAcquire) ? "false" : "true"));
-        BDBG_MSG(("TUNE bandwidth:       %lu", settings.bandwidth));
+        BDBG_MSG(("TUNE bandwidth:       %u", settings.bandwidth));
         BDBG_MSG(("TUNE pwr measurement: %s", (0 == settings.enablePowerMeasurement) ? "false" : "true"));
         BDBG_MSG(("TUNE spectrum mode:   %s", (NEXUS_FrontendQamSpectrumMode_eAuto == settings.spectrumMode) ? "auto" : "manual"));
         BDBG_MSG(("TUNE spectral inv:    %s", (NEXUS_FrontendQamSpectralInversion_eNormal == settings.spectralInversion) ? "normal" : "inverted"));
-        BDBG_MSG(("TUNE freq offset:     %lu", settings.frequencyOffset));
+        BDBG_MSG(("TUNE freq offset:     %u", settings.frequencyOffset));
         BDBG_MSG(("TUNE enable null pkts:%s", (0 == settings.enableNullPackets) ? "false" : "true"));
         BDBG_MSG(("TUNE acq mode:        %s", acquisitionModeToString(settings.acquisitionMode).s()));
     }

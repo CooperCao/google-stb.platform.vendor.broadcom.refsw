@@ -1,17 +1,44 @@
-/***************************************************************************
- *     Copyright (c) 2010-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * [File Description:]
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
+ *
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************
+ *
  * Private Functions to provide VBI Userdata pass-thru
  *
  * Userdata processing:
@@ -25,9 +52,6 @@
  *    => while space for packets
  *          - process userdata
  *          - process system data
- *
- * [Revision History:]
- * $brcm_Log: $
  *
  ***************************************************************************/
 
@@ -298,7 +322,7 @@ bool BMUXlib_TS_P_Userdata_FindTargetPTS(BMUXlib_TS_Handle hMuxTS, BMUXlib_TS_P_
 bool BMUXLIB_P_Userdata_CheckResources(BMUXlib_TS_Handle hMuxTS)
 {
    unsigned uiRequiredPendingEntries = 0;
-   unsigned uiAvailablePendingEntries;
+   size_t uiAvailablePendingEntries;
    unsigned uiUserdataIndex;
    unsigned uiNumUserdataPIDs = hMuxTS->status.stUserdataStatus.uiNumInputs;
 
@@ -391,46 +415,38 @@ BERR_Code BMUXlib_TS_P_Userdata_ProcessInputs(BMUXlib_TS_Handle hMuxTS)
       }
 
       /* NOTE: initial data from this interface should always start on a TS boundary - no need to do sync search */
+      if (BERR_SUCCESS != (pInterface->fGetUserDataBuffer)(pInterface->pContext, &pUserdataInfo->hBlock, &stInputData.uiOffset0, &stInputData.uiBytes0, &stInputData.uiOffset1, &stInputData.uiBytes1))
       {
-         BMMA_Block_Handle hBlock;
-         size_t uiBlockOffset0, uiBlockOffset1;
+         BDBG_ERR(("Userdata Input[%d]: Unable to obtain userdata from input ... skipping", uiUserdataIndex));
+         continue;   /* skip this input */
+      }
+      stInputData.uiBytesTotal = stInputData.uiBytes0 + stInputData.uiBytes1;
+      if (0 == stInputData.uiBytesTotal)
+            /* no data to process, so skip this input (block handle will be invalid if this is the case) */
+            continue;
 
-         if (BERR_SUCCESS != (pInterface->fGetUserDataBuffer)(pInterface->pContext, &hBlock, &uiBlockOffset0, &stInputData.uiBytes0, &uiBlockOffset1, &stInputData.uiBytes1))
+      if (pUserdataInfo->hBlock)
+      {
+         pUserdataInfo->pBlockBase = BMMA_Lock(pUserdataInfo->hBlock);
+         if (NULL == pUserdataInfo->pBlockBase)
          {
-            BDBG_ERR(("Userdata Input[%d]: Unable to obtain userdata from input ... skipping", uiUserdataIndex));
+            BDBG_ERR(("Userdata Input[%d]: Unable to lock block for userdata input ... skipping", uiUserdataIndex));
             continue;   /* skip this input */
          }
-
-         if (hBlock) {
-            void *pBlockBase = BMMA_Lock( hBlock );
-            BSTD_DeviceOffset uiBlockBase = BMMA_LockOffset( hBlock );
-
-            if ( false == pUserdataInfo->bUserDataAddressToOffsetDeltaValid )
-            {
-               pUserdataInfo->uiUserDataAddressToOffsetDelta = uiBlockBase - (unsigned) pBlockBase;
-               pUserdataInfo->bUserDataAddressToOffsetDeltaValid = true;
-            }
-            else
-            {
-               BDBG_ASSERT( pUserdataInfo->uiUserDataAddressToOffsetDelta == (uiBlockBase - (unsigned) pBlockBase) );
-            }
-
-            stInputData.pData0 = (void*) ((unsigned)pBlockBase + uiBlockOffset0);
-            stInputData.pData1 = (void*) ((unsigned)pBlockBase + uiBlockOffset1);
-
-            BMMA_UnlockOffset( hBlock, uiBlockBase );
-            BMMA_Unlock( hBlock, pBlockBase );
-         }
+      }
+      else
+      {
+         BDBG_ERR(("Userdata Input[%d]: Unable to obtain block handle for userdata input ... skipping", uiUserdataIndex));
+         continue;   /* skip this input */
       }
 
-      stInputData.uiBytesTotal = stInputData.uiBytes0 + stInputData.uiBytes1;
       /* skip over bytes pending (those already processed) */
       SkipInputBytes(&stInputData, pUserdataInfo->uiPendingBytes);
 
       /* if this input is disabled, add all bytes to release Q (i.e. ignore all data) and continue to next input */
       if (pUserdataInfo->bDisabled)
       {
-         BDBG_MODULE_MSG(BMUXLIB_TS_UD_RQ, ("UD[%d]: Input Disabled: Dropping %d bytes", pUserdataInfo->uiIndex, stInputData.uiBytesTotal));
+         BDBG_MODULE_MSG(BMUXLIB_TS_UD_RQ, ("UD[%d]: Input Disabled: Dropping %d bytes", pUserdataInfo->uiIndex, (int)stInputData.uiBytesTotal));
          BMUXlib_TS_P_Userdata_AddToReleaseQ(hMuxTS, pUserdataInfo->uiIndex, stInputData.uiBytesTotal, pUserdataInfo->uiSequenceCount++, 1);
          continue;
       }
@@ -455,12 +471,12 @@ BERR_Code BMUXlib_TS_P_Userdata_ProcessInputs(BMUXlib_TS_Handle hMuxTS)
                (would imply buffer overflow) */
             BDBG_ASSERT(!pUserdataInfo->bUnwrapInUse);
             /* unwrap buffer into local storage.*/
-            BKNI_Memcpy(pUserdataInfo->pUnwrap, stInputData.pData0, uiBytesToEnd);
-            BKNI_Memcpy(pUserdataInfo->pUnwrap+uiBytesToEnd, stInputData.pData1, BMUXLIB_TS_PACKET_LENGTH-uiBytesToEnd);
+            BKNI_Memcpy(pUserdataInfo->pUnwrap, (uint8_t *)pUserdataInfo->pBlockBase+stInputData.uiOffset0, uiBytesToEnd);
+            BKNI_Memcpy(pUserdataInfo->pUnwrap+uiBytesToEnd, (uint8_t *)pUserdataInfo->pBlockBase+stInputData.uiOffset1, BMUXLIB_TS_PACKET_LENGTH-uiBytesToEnd);
             pUserdataInfo->pCurrentPacket = pUserdataInfo->pUnwrap;
          }
          else
-            pUserdataInfo->pCurrentPacket = stInputData.pData0;
+            pUserdataInfo->pCurrentPacket = (uint8_t *)pUserdataInfo->pBlockBase + stInputData.uiOffset0;
 
          if (!pPacketInfo->bParsed)
             bDropPacket = ParsePacket(pUserdataInfo);
@@ -501,7 +517,7 @@ BERR_Code BMUXlib_TS_P_Userdata_ProcessInputs(BMUXlib_TS_Handle hMuxTS)
             if (pPacketInfo->bDTSPresent)
             {
                /* verify we have sufficient resources to process the DTS as well (we require 2 free PTS entries) */
-               uint32_t uiEntriesAvail;
+               size_t uiEntriesAvail;
                BMUXlib_List_GetNumFree(hMuxTS->hUserdataPTSFreeList, &uiEntriesAvail);
                if (uiEntriesAvail < 2)
                {
@@ -641,6 +657,11 @@ BERR_Code BMUXlib_TS_P_Userdata_ProcessInputs(BMUXlib_TS_Handle hMuxTS)
          => for now, assert this since this should not happen */
 
       DropPackets(hMuxTS, pUserdataInfo, uiDroppedCount);
+      if (NULL != pUserdataInfo->hBlock && NULL != pUserdataInfo->pBlockBase)
+      {
+         BMMA_Unlock(pUserdataInfo->hBlock, pUserdataInfo->pBlockBase);
+         pUserdataInfo->pBlockBase = NULL;
+      }
    } /* end: for each userdata input */
 
    BDBG_LEAVE(BMUXlib_TS_P_Userdata_ProcessInputs);
@@ -679,6 +700,10 @@ void BMUXlib_TS_P_Userdata_AddToReleaseQ(BMUXlib_TS_Handle hMuxTS, uint32_t uiUs
    BDBG_LEAVE(BMUXlib_TS_P_Userdata_AddToReleaseQ);
 }
 
+/* This function frees up bytes from the input userdata buffer (total bytes to be
+   freed is the sum total of the bytes that make up the source packet, regardless
+   of where they actually came from when sent to transport; e.g. PTS can be replaced
+   yet the same number of bytes must be freed when the packet is done) */
 BERR_Code BMUXlib_TS_P_Userdata_ProcessReleaseQueues(BMUXlib_TS_Handle hMuxTS)
 {
    BERR_Code rc = BERR_SUCCESS;
@@ -701,6 +726,7 @@ BERR_Code BMUXlib_TS_P_Userdata_ProcessReleaseQueues(BMUXlib_TS_Handle hMuxTS)
       while (!bDone)
       {
          BMUXlib_TS_P_UserdataReleaseQEntry *pEntry = pReleaseQ->pHead;
+         BMUXlib_TS_P_UserdataReleaseQEntry *pPrev = NULL;
          BMUXlib_TS_P_UserdataReleaseQEntry **ppPrevNext = &pReleaseQ->pHead;
 
          /* traverse the list to find an entry that matches the expected sequence count
@@ -709,20 +735,27 @@ BERR_Code BMUXlib_TS_P_Userdata_ProcessReleaseQueues(BMUXlib_TS_Handle hMuxTS)
          {
             /*BDBG_MODULE_MSG(BMUXLIB_TS_UD_RQ, ("UD[%d]: Current SeqCount: %d", uiUserdataIndex, pEntry->uiSequenceID));*/
             ppPrevNext = &pEntry->pNext;
+            pPrev = pEntry;
             pEntry = pEntry->pNext;
          }
          if (pEntry != NULL)
          {
             /* descriptor to be freed found */
             BDBG_MODULE_MSG(BMUXLIB_TS_UD_RQ, ("UD[%d]: Freeing %d bytes, seq: %d, count: %d",
-               uiUserdataIndex, pEntry->uiDataLength, pEntry->uiSequenceID, pEntry->uiDescCount));
+               uiUserdataIndex, (int)pEntry->uiDataLength, pEntry->uiSequenceID, (int)pEntry->uiDescCount));
 
             uiTotalBytesToFree += pEntry->uiDataLength;
             /* SW7425-3250: update expected sequence ID to account for coalesced transport descriptors */
             pReleaseQ->uiExpectedSeqID += pEntry->uiDescCount;
 
             /* unlink the segment and return it to the free list */
+            /* NOTE: if Entry is the head of the Q, then the following also updates the Head pointer */
             *ppPrevNext = pEntry->pNext;
+            if (pEntry == pReleaseQ->pTail)
+            {
+               /* we are removing the tail, so update the Tail pointer */
+               pReleaseQ->pTail = pPrev;  /* NOTE: if removing the only node in the Q, this will set pTail to NULL */
+            }
             pEntry->pNext = hMuxTS->pUserdataReleaseQFreeList;
             hMuxTS->pUserdataReleaseQFreeList = pEntry;
          }
@@ -744,9 +777,7 @@ BERR_Code BMUXlib_TS_P_Userdata_ProcessReleaseQueues(BMUXlib_TS_Handle hMuxTS)
             /* SW7425-2271: Dummy Get() call to work around API pairing requirement in nexus API */
             BMUXlib_TS_P_UserdataInput stInputData;
             BMMA_Block_Handle hBlock;
-            size_t uiBlockOffset0, uiBlockOffset1;
-
-            (pInterface->fGetUserDataBuffer)(pInterface->pContext, &hBlock, &uiBlockOffset0, &stInputData.uiBytes0, &uiBlockOffset1, &stInputData.uiBytes1);
+            (pInterface->fGetUserDataBuffer)(pInterface->pContext, &hBlock, &stInputData.uiOffset0, &stInputData.uiBytes0, &stInputData.uiOffset1, &stInputData.uiBytes1);
          }
       } /* end: segments to free */
    } /* end: for each active userdata release Q */
@@ -797,8 +828,8 @@ void BMUXlib_TS_P_Userdata_SchedulePackets(BMUXlib_TS_Handle hMuxTS)
             {
                /* there is userdata waiting for this input ... */
                BMUXlib_TS_P_UserdataPending *pUserdata;
-               uint32_t uiSpaceInPendingList;
-               uint32_t uiNumAvailableDescriptors;
+               size_t uiSpaceInPendingList;
+               size_t uiNumAvailableDescriptors;
 
                /* look at the pending entry ...*/
                BMUXlib_List_GetHead(hPending, (void **)&pUserdata);
@@ -860,8 +891,14 @@ void BMUXlib_TS_P_Userdata_SchedulePackets(BMUXlib_TS_Handle hMuxTS)
                         BMUXlib_TS_TransportDescriptor *pDesc = NULL;
                         BMUXlib_TS_P_TransportDescriptorMetaData *pMetaDesc = NULL;
 
-                        BDBG_MODULE_MSG(BMUXLIB_TS_UD_SCHED, ("Adding Segment[%d]: %d bytes from %p", uiSegment, pUserdata->aSegments[uiSegment].uiLength, pUserdata->aSegments[uiSegment].pData));
-
+                        if (BMUXlib_TS_P_DataType_eCDB == pUserdata->aSegments[uiSegment].eDataType)
+                        {
+                           BDBG_MODULE_MSG(BMUXLIB_TS_UD_SCHED, ("Adding Segment[%d]: %d bytes from CDB @ offset: %d", uiSegment, pUserdata->aSegments[uiSegment].uiLength, pUserdata->aSegments[uiSegment].uiOffset));
+                        }
+                        else
+                        {
+                           BDBG_MODULE_MSG(BMUXLIB_TS_UD_SCHED, ("Adding Segment[%d]: %d bytes from local buffer @ %p", uiSegment, pUserdata->aSegments[uiSegment].uiLength, pUserdata->aSegments[uiSegment].pData));
+                        }
                         /* fetch a free descriptor and meta-descriptor */
                         rc = BERR_TRACE(BMUXlib_List_Remove(hMuxTS->hTransportDescriptorFreeList, (void **)&pDesc));
                         /* this should be successful, since we check for available descriptors up-front */
@@ -874,6 +911,7 @@ void BMUXlib_TS_P_Userdata_SchedulePackets(BMUXlib_TS_Handle hMuxTS)
                         /* Populate Transport Meta Data */
                         BKNI_Memset(pMetaDesc, 0, sizeof(BMUXlib_TS_P_TransportDescriptorMetaData));
                         pMetaDesc->eDataType = pUserdata->aSegments[uiSegment].eDataType;
+                        pMetaDesc->uiTimestamp = pUserdata->aSegments[uiSegment].uiTimestamp;
                         /* the following ensures that no matter where the data is from when passed to the transport,
                            the corresponding number of bytes are released/consumed from the relevant userdata input */
                         pMetaDesc->eSourceType = BMUXlib_TS_P_SourceType_eUserdata;
@@ -891,23 +929,33 @@ void BMUXlib_TS_P_Userdata_SchedulePackets(BMUXlib_TS_Handle hMuxTS)
                         pDesc->stTsMuxDescriptorConfig.uiPacket2PacketTimestampDelta = hMuxTS->status.stSystemDataInfo.uiPacket2PacketTimestampDelta;
 
                         /* Set Buffer Info */
-                        pMetaDesc->pBufferAddress = (void *) pUserdata->aSegments[uiSegment].pData;
                         if ( BMUXlib_TS_P_DataType_eCDB == pMetaDesc->eDataType )
                         {
-                           BDBG_ASSERT( hMuxTS->status.stUserdataInfo[uiUserdataIndex].bUserDataAddressToOffsetDeltaValid );
-                           pMetaDesc->hBufferBaseBlock = NULL;
-                           pDesc->uiBufferOffset = (unsigned) pMetaDesc->pBufferAddress;
-                           pDesc->uiBufferOffset += hMuxTS->status.stUserdataInfo[uiUserdataIndex].uiUserDataAddressToOffsetDelta;
+                           BMUXlib_TS_P_UserdataInfo *pUserdataInfo = &hMuxTS->status.stUserdataInfo[uiUserdataIndex];
+
+                           BSTD_DeviceOffset uiBlockBase = BMMA_LockOffset( pUserdataInfo->hBlock );
+                           BDBG_ASSERT(pUserdata->aSegments[uiSegment].pData == NULL);
+
+                           pMetaDesc->hBufferBaseBlock = pUserdataInfo->hBlock;
+                           pMetaDesc->pBufferAddress = NULL; /* Not used for userdata input data */
+                           pDesc->uiBufferOffset = uiBlockBase + pUserdata->aSegments[uiSegment].uiOffset;
+                           /* NOTE: This block will be unlocked when the data is returned from transport */
                         }
                         else
                         {
+                           /* this is PTS or unwrap buffer.  Since these are in shared memory from BMEM, we do not lock the block
+                              and we store the pointer in metadata so the PTS entry can be returned to the free list */
+                           /* FIXME: when we move to MMA for sub-heaps, then we need to lock/unlock offset same as for all
+                              other memory before passing to transport */
+                           BDBG_ASSERT(pUserdata->aSegments[uiSegment].uiOffset == BMUXLIB_TS_P_INVALID_OFFSET);
                            pMetaDesc->hBufferBaseBlock = hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].hBlock;
-                           pDesc->uiBufferOffset = (unsigned) pMetaDesc->pBufferAddress - (unsigned) hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].pBuffer;
+                           pMetaDesc->pBufferAddress = (void *) pUserdata->aSegments[uiSegment].pData;
+                           pDesc->uiBufferOffset = (uint8_t *) pMetaDesc->pBufferAddress - (uint8_t *) hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].pBuffer;
                            pDesc->uiBufferOffset += hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].uiBufferOffset;
                         }
                         pDesc->uiBufferLength = pUserdata->aSegments[uiSegment].uiLength;
 
-                        BDBG_MODULE_MSG(BMUXLIB_TS_UD_RQ, ("UD[%d]: Adding Transport Desc: %d bytes, seq %d", uiUserdataIndex, pDesc->uiBufferLength, uiSequenceCount+uiSegment));
+                        BDBG_MODULE_MSG(BMUXLIB_TS_UD_RQ, ("UD[%d]: Adding Transport Desc: %d bytes, seq %d", uiUserdataIndex, (int)pDesc->uiBufferLength, uiSequenceCount+uiSegment));
                         rc = BERR_TRACE(BMUXlib_TS_P_AddTransportDescriptor(
                            hMuxTS,
                            uiTransportChannelIndex,
@@ -971,7 +1019,7 @@ void BMUXlib_TS_P_Userdata_SchedulePackets(BMUXlib_TS_Handle hMuxTS)
    Skip the specified number of bytes in the input data buffer, and adjust the
    total number of bytes available
    NOTE: if all of the first segment in a wrapped-buffer scenario are skipped
-   then the second segment is returned as the first (i.e. pData1 will be NULL
+   then the second segment is returned as the first (i.e. uiOffset1 will be invalid
    and uiBytes1 will be 0)
 */
 static void SkipInputBytes(BMUXlib_TS_P_UserdataInput *pInputData, uint32_t uiByteCount)
@@ -982,7 +1030,7 @@ static void SkipInputBytes(BMUXlib_TS_P_UserdataInput *pInputData, uint32_t uiBy
    if (pInputData->uiBytes0 > uiByteCount)
    {
       pInputData->uiBytes0 -= uiByteCount;
-      pInputData->pData0 += uiByteCount;
+      pInputData->uiOffset0 += uiByteCount;
    }
    else
    {
@@ -993,9 +1041,9 @@ static void SkipInputBytes(BMUXlib_TS_P_UserdataInput *pInputData, uint32_t uiBy
 
       /* all data in first fragment has been processed, so return the second fragment as the first (and only) fragment ... */
       pInputData->uiBytes0 = pInputData->uiBytes1 - uiAdjustBytes;
-      pInputData->pData0 = pInputData->pData1 + uiAdjustBytes;
+      pInputData->uiOffset0 = pInputData->uiOffset1 + uiAdjustBytes;
       pInputData->uiBytes1 = 0;
-      pInputData->pData1 = NULL;
+      pInputData->uiOffset1 = BMUXLIB_TS_P_INVALID_OFFSET;
    }
    pInputData->uiBytesTotal = pInputData->uiBytes0 + pInputData->uiBytes1;
 }
@@ -1186,6 +1234,9 @@ static void QueuePacket(BMUXlib_TS_Handle hMuxTS, BMUXlib_TS_P_UserdataInfo *pUs
    uint8_t *pTSPacket = pUserdataInfo->pCurrentPacket;
    bool bLocal = (pTSPacket == pUserdataInfo->pUnwrap);
    BMUXlib_TS_P_DataType eDataType = (bLocal)?BMUXlib_TS_P_DataType_eUserdataLocal:BMUXlib_TS_P_DataType_eCDB;
+   /* NOTE: The following is only valid if the packet is from userdata input
+      (i.e. DataType is CDB) NOT from PTS or local unwrap buffer */
+   size_t uiPacketOffset = (bLocal)?BMUXLIB_TS_P_INVALID_OFFSET:(pUserdataInfo->pCurrentPacket - (uint8_t *)pUserdataInfo->pBlockBase);
    BMUXlib_TS_P_UserdataPending *pEntry;
 
    /* queue the packet for transport (pTSPacket points to the start of the packet) */
@@ -1229,7 +1280,11 @@ static void QueuePacket(BMUXlib_TS_Handle hMuxTS, BMUXlib_TS_P_UserdataInfo *pUs
       pEntry->bESCRValid = true;
       pEntry->uiESCR = uiESCR;
       /* First segment is packet from start up to beginning of PTS */
-      pEntry->aSegments[pEntry->uiNumSegments].pData = pTSPacket;
+      /* NOTE: for userdata input data, the offset is used, not the pointer to the data
+         (the virtual pointer becomes invalid once this packet is queued)
+         for local, we still need the pointer and not the offset */
+      pEntry->aSegments[pEntry->uiNumSegments].uiOffset = uiPacketOffset;
+      pEntry->aSegments[pEntry->uiNumSegments].pData = (bLocal)?pTSPacket:NULL;
       pEntry->aSegments[pEntry->uiNumSegments].uiLength = pPacketInfo->uiBytesProcessed;
       uiInitialLength += pPacketInfo->uiBytesProcessed;
       pEntry->aSegments[pEntry->uiNumSegments].eDataType = eDataType;
@@ -1244,9 +1299,11 @@ static void QueuePacket(BMUXlib_TS_Handle hMuxTS, BMUXlib_TS_P_UserdataInfo *pUs
       BMUXLIB_TS_USERDATA_SET_PTS_DTS(pPTS, uiNewPTS);
       /* Second segment is the PTS */
       pEntry->aSegments[pEntry->uiNumSegments].pData = pPTS;
+      pEntry->aSegments[pEntry->uiNumSegments].uiOffset = BMUXLIB_TS_P_INVALID_OFFSET;
       pEntry->aSegments[pEntry->uiNumSegments].uiLength = BMUXLIB_PES_PTS_LENGTH;
       uiInitialLength += BMUXLIB_PES_PTS_LENGTH;
       pEntry->aSegments[pEntry->uiNumSegments].eDataType = BMUXlib_TS_P_DataType_eUserdataPTS;
+      pEntry->aSegments[pEntry->uiNumSegments].uiTimestamp = uiNewPTS;
       pEntry->uiNumSegments++;
 
       if (pPacketInfo->bDTSPresent)
@@ -1259,15 +1316,18 @@ static void QueuePacket(BMUXlib_TS_Handle hMuxTS, BMUXlib_TS_P_UserdataInfo *pUs
          /* write updated DTS ...*/
          BMUXLIB_TS_USERDATA_SET_PTS_DTS(pDTS, uiNewDTS);
          pEntry->aSegments[pEntry->uiNumSegments].pData = pDTS;
+         pEntry->aSegments[pEntry->uiNumSegments].uiOffset = BMUXLIB_TS_P_INVALID_OFFSET;
          pEntry->aSegments[pEntry->uiNumSegments].uiLength = BMUXLIB_PES_PTS_LENGTH;
          uiInitialLength += BMUXLIB_PES_PTS_LENGTH;
          pEntry->aSegments[pEntry->uiNumSegments].eDataType = BMUXlib_TS_P_DataType_eUserdataPTS;
+         pEntry->aSegments[pEntry->uiNumSegments].uiTimestamp = uiNewDTS;
          pEntry->uiNumSegments++;
       }
 
       /* Last chunk is the data after the PTS/DTS */
       BDBG_ASSERT(uiInitialLength <= BMUXLIB_TS_PACKET_LENGTH);
-      pEntry->aSegments[pEntry->uiNumSegments].pData = pTSPacket + uiInitialLength;
+      pEntry->aSegments[pEntry->uiNumSegments].uiOffset = (bLocal)?BMUXLIB_TS_P_INVALID_OFFSET:(uiPacketOffset + uiInitialLength);
+      pEntry->aSegments[pEntry->uiNumSegments].pData = (bLocal)?(pTSPacket+uiInitialLength):NULL;
       pEntry->aSegments[pEntry->uiNumSegments].uiLength = BMUXLIB_TS_PACKET_LENGTH - uiInitialLength;
       pEntry->aSegments[pEntry->uiNumSegments].eDataType = eDataType;
       pEntry->uiNumSegments++;
@@ -1276,9 +1336,10 @@ static void QueuePacket(BMUXlib_TS_Handle hMuxTS, BMUXlib_TS_P_UserdataInfo *pUs
    {
       /* there is no PTS in this packet, so that packet goes thru as-is
          (insert it without a valid ESCR and let the scheduler insert it
-         on a space-availability basis */
+         on a space-availability basis) */
       BDBG_MODULE_MSG(BMUXLIB_TS_UD_PES, ("[%d]: Packet without PTS", pUserdataInfo->uiIndex));
-      pEntry->aSegments[0].pData = pTSPacket;
+      pEntry->aSegments[0].pData = (bLocal)?pTSPacket:NULL;
+      pEntry->aSegments[0].uiOffset = uiPacketOffset;
       pEntry->aSegments[0].uiLength = BMUXLIB_TS_PACKET_LENGTH;
       pEntry->aSegments[0].eDataType = eDataType;
       pEntry->uiNumSegments = 1;

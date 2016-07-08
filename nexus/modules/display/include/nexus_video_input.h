@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2013 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #ifndef NEXUS_VIDEO_INPUT_H__
@@ -180,20 +172,9 @@ typedef enum
     NEXUS_VideoInputResumeMode_eFreezeRts
 } NEXUS_VideoInputResumeMode;
 
-/**
-Deprecated
-**/
-NEXUS_Error NEXUS_VideoInput_SetResumeMode(
-    NEXUS_VideoInputHandle videoInput,
-    NEXUS_VideoInputResumeMode resumeMode
-    );
-
-/**
-Deprecated
-**/
-NEXUS_Error NEXUS_VideoInput_ForcePending(
-    NEXUS_VideoInputHandle videoInput
-    );
+/* deprecated */
+#define NEXUS_VideoInput_SetResumeMode(videoInput,resumeMode) NEXUS_NOT_SUPPORTED
+#define NEXUS_VideoInput_ForcePending(videoInput) NEXUS_NOT_SUPPORTED
 
 #ifdef __cplusplus
 }

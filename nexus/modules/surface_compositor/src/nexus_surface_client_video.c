@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2011-2014 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #include "nexus_surface_compositor_module.h"
@@ -452,7 +444,7 @@ void nexus_surface_compositor_p_update_video(NEXUS_SurfaceCompositorHandle serve
     NEXUS_Time begin, end;
 
     /* at least one needs to be set, and none have to be in process. */
-    if (!server->set_video_pending.set || server->set_video_pending.windowMoved) return;
+    if (!server->state.active) return;
 
     if (!g_NEXUS_SurfaceCompositorModuleSettings.modules.display) return;
     NEXUS_Module_Lock(g_NEXUS_SurfaceCompositorModuleSettings.modules.display);
@@ -461,13 +453,12 @@ void nexus_surface_compositor_p_update_video(NEXUS_SurfaceCompositorHandle serve
     for (client = BLST_Q_FIRST(&server->clients); client; client = BLST_Q_NEXT(client, link)) {
         NEXUS_SurfaceClientHandle child;
         BDBG_ASSERT(!client->set_video_pending.set); /* parent never has video */
-        BDBG_ASSERT(!client->set_video_pending.windowMoved);
         for (child = BLST_S_FIRST(&client->children); child; child = BLST_S_NEXT(child, child_link)) {
             if (child->set_video_pending.set) {
-                if (nexus_surfaceclient_p_setvideo(child)) {
-                    client->set_video_pending.windowMoved = true; /* callback handled from top-level client, not video window child */
-                    server->set_video_pending.windowMoved = 1;
-                }
+                nexus_surfaceclient_p_setvideo(child);
+                /* must fire windowMoved, even if nexus_surfaceclient_p_setvideo did not move it. app may be waiting. */
+                client->set_video_pending.windowMoved = true; /* callback handled from top-level client, not video window child */
+                server->set_video_pending.windowMoved = 1;    /* callback handled from top-level client, not video window child */
                 child->set_video_pending.set = false;
             }
         }

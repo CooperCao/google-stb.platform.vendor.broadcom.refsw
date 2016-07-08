@@ -1,23 +1,43 @@
-/***************************************************************************
- *     Copyright (c) 2010-2012, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * [File Description:]
- * Public API functions for File-based MP4 software mux
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
  *
- * [Revision History:]
- * $brcm_Log: $
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- ***************************************************************************/
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 
 #include "bstd.h" /* also includes berr, bdbg, etc */
 #include "bkni.h"
@@ -154,7 +174,7 @@ BERR_Code BMUXlib_File_MP4_Create(BMUXlib_File_MP4_Handle *phMP4Mux, const BMUXl
 
    /* Allocate MP4 context from system memory */
    hMux = (BMUXlib_File_MP4_Handle)BKNI_Malloc(sizeof(struct BMUXlib_File_MP4_P_Context));
-   BDBG_MODULE_MSG(BMUX_MP4_MEMORY, ("Context: Allocating %d bytes", sizeof(struct BMUXlib_File_MP4_P_Context)));
+   BDBG_MODULE_MSG(BMUX_MP4_MEMORY, ("Context: Allocating %d bytes", (int)sizeof(struct BMUXlib_File_MP4_P_Context)));
    if (NULL != hMux)
    {
       bool bCachesOk = true;
@@ -186,12 +206,12 @@ BERR_Code BMUXlib_File_MP4_Create(BMUXlib_File_MP4_Handle *phMP4Mux, const BMUXl
                 actual usable space) */
       pCreateData->uiBoxBufferSize = pCreateSettings->uiBoxHeapSizeBytes + BMUXLIB_FILE_MP4_P_BOX_BUFFER_RESERVED + 1;
       pCreateData->pBoxBuffer = (uint8_t *)BKNI_Malloc(pCreateData->uiBoxBufferSize * sizeof(uint8_t));
-      BDBG_MODULE_MSG(BMUX_MP4_MEMORY, ("Box Buffer: Allocating %d bytes", pCreateData->uiBoxBufferSize * sizeof(uint8_t)));
+      BDBG_MODULE_MSG(BMUX_MP4_MEMORY, ("Box Buffer: Allocating %d bytes", (int)(pCreateData->uiBoxBufferSize * sizeof(uint8_t))));
 
       /* create the storage for the sizes used in box creation or NALU sizes, etc ... */
       pCreateData->uiSizeBufferEntryCount = pCreateSettings->uiNumSizeEntries;
       pCreateData->pSizeBuffer = (uint32_t *)BKNI_Malloc(pCreateData->uiSizeBufferEntryCount * sizeof(uint32_t));
-      BDBG_MODULE_MSG(BMUX_MP4_MEMORY, ("Size Entry Storage: Allocating %d bytes", pCreateData->uiSizeBufferEntryCount * sizeof(uint32_t)));
+      BDBG_MODULE_MSG(BMUX_MP4_MEMORY, ("Size Entry Storage: Allocating %d bytes", (int)(pCreateData->uiSizeBufferEntryCount * sizeof(uint32_t))));
 
       /* create the storage for the relocation buffer (only used if progressive download support enabled) */
       pCreateData->uiRelocationBufferSize = pCreateSettings->uiRelocationBufferSizeBytes;
@@ -199,20 +219,20 @@ BERR_Code BMUXlib_File_MP4_Create(BMUXlib_File_MP4_Handle *phMP4Mux, const BMUXl
          pCreateData->pRelocationBuffer = (uint8_t *)BKNI_Malloc(pCreateData->uiRelocationBufferSize * sizeof(uint8_t));
       else
          pCreateData->pRelocationBuffer = NULL;
-      BDBG_MODULE_MSG(BMUX_MP4_MEMORY, ("Relocation Buffer: Allocating %d bytes", pCreateData->uiRelocationBufferSize * sizeof(uint8_t)));
+      BDBG_MODULE_MSG(BMUX_MP4_MEMORY, ("Relocation Buffer: Allocating %d bytes", (int)(pCreateData->uiRelocationBufferSize * sizeof(uint8_t))));
 
       /* NOTE: the release queue free list has enough entries to allow for the worst-case completion of all descriptors from all
          outputs (note: this excludes the metadata outputs, since only metadata goes to these outputs) */
       pCreateData->uiReleaseQFreeCount = BMUXLIB_FILE_MP4_P_NUM_FREELIST_ENTRIES;
       pCreateData->pReleaseQFreeList = (BMUXlib_File_MP4_P_ReleaseQEntry *)BKNI_Malloc(BMUXLIB_FILE_MP4_P_NUM_FREELIST_ENTRIES * sizeof(BMUXlib_File_MP4_P_ReleaseQEntry));
-      BDBG_MODULE_MSG(BMUX_MP4_MEMORY, ("Release Q free nodes: Allocating %d bytes", BMUXLIB_FILE_MP4_P_NUM_FREELIST_ENTRIES * sizeof(BMUXlib_File_MP4_P_ReleaseQEntry)));
+      BDBG_MODULE_MSG(BMUX_MP4_MEMORY, ("Release Q free nodes: Allocating %d bytes", (int)(BMUXLIB_FILE_MP4_P_NUM_FREELIST_ENTRIES * sizeof(BMUXlib_File_MP4_P_ReleaseQEntry))));
 
       /* the callback data storage has enough entries to allow for one entry for each callback
          that can happen on any output that handles input descriptors, or boxes (i.e. on the
          non-metadata outputs).  */
       pCreateData->uiOutputCBDataFreeCount = BMUXLIB_FILE_MP4_P_NUM_FREELIST_ENTRIES;
       pCreateData->pOutputCBDataFreeList = (BMUXlib_File_MP4_P_OutputCallbackData *)BKNI_Malloc(BMUXLIB_FILE_MP4_P_NUM_FREELIST_ENTRIES * sizeof(BMUXlib_File_MP4_P_OutputCallbackData));
-      BDBG_MODULE_MSG(BMUX_MP4_MEMORY, ("Output callback data: Allocating %d bytes", BMUXLIB_FILE_MP4_P_NUM_FREELIST_ENTRIES * sizeof(BMUXlib_File_MP4_P_OutputCallbackData)));
+      BDBG_MODULE_MSG(BMUX_MP4_MEMORY, ("Output callback data: Allocating %d bytes", (int)(BMUXLIB_FILE_MP4_P_NUM_FREELIST_ENTRIES * sizeof(BMUXlib_File_MP4_P_OutputCallbackData))));
 
       /* fill in the signature in the context */
       pCreateData->uiSignature = BMUXLIB_FILE_MP4_P_SIGNATURE_CONTEXT;
@@ -494,8 +514,8 @@ BERR_Code BMUXlib_File_MP4_Start(BMUXlib_File_MP4_Handle hMP4Mux, const BMUXlib_
          }
 
          BDBG_MSG(("Assigning Input %d (%p), Video: %d (%s), Track ID: %d, to Track %d (%p)", uiNumActiveInputs,
-                  pInput, pVideo->stInterface.stBufferInfo.eProtocol, DebugCodingTypeTable[eCoding],
-                  pVideo->uiTrackID, hMP4Mux->uiNumTracks, pTrack));
+                  (void *)pInput, pVideo->stInterface.stBufferInfo.eProtocol, DebugCodingTypeTable[eCoding],
+                  pVideo->uiTrackID, hMP4Mux->uiNumTracks, (void *)pTrack));
 
          /* fill in the track information for this input */
          pInput->hInput = hInput;
@@ -562,9 +582,9 @@ BERR_Code BMUXlib_File_MP4_Start(BMUXlib_File_MP4_Handle hMP4Mux, const BMUXlib_
             break;
          }
 
-         BDBG_MSG(("Assigning Input %d (%p), [Audio: %d (%s)], Track ID: %d, to Track %d (%p)", uiNumActiveInputs,
-                  pAudio->stInterface.stBufferInfo.eProtocol, DebugCodingTypeTable[eCoding], pInput, pAudio->uiTrackID,
-                  hMP4Mux->uiNumTracks, pTrack));
+         BDBG_MSG(("Assigning Input %d (%p), [Audio: %d (%s)], Track ID: %d, to Track %d (%p)", uiNumActiveInputs, (void *)pInput,
+                  pAudio->stInterface.stBufferInfo.eProtocol, DebugCodingTypeTable[eCoding], pAudio->uiTrackID,
+                  hMP4Mux->uiNumTracks, (void *)pTrack));
 
          /* fill in the track information for this input */
          pInput->hInput = hInput;

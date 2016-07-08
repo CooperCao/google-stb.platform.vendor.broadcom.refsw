@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
 ******************************************************************************/
 
@@ -88,6 +80,41 @@ int APP_ApplyColorSettings(APP_AppHandle app)
     NEXUS_HdmiOutput_GetSettings(app->hdmi, &hdmiSettings);
     hdmiSettings.colorSpace = app->args.colorSpace;
     hdmiSettings.colorDepth = app->args.colorDepth;
+    if (app->args.colorRange == APP_CMD_eAuto)
+    {
+        hdmiSettings.overrideColorRange = false;
+        hdmiSettings.colorRange = NEXUS_ColorRange_eLimited;
+    }
+    else
+    {
+        hdmiSettings.overrideColorRange = true;
+        hdmiSettings.colorRange = app->args.colorRange;
+    }
+    if (app->args.matrixCoefficients == APP_CMD_eAuto)
+    {
+            hdmiSettings.overrideMatrixCoefficients = false;
+            hdmiSettings.matrixCoefficients = NEXUS_MatrixCoefficients_eItu_R_BT_2020_NCL;
+    }
+    else if (app->args.matrixCoefficients == APP_CMD_eInput)
+    {
+        if ((app->lastStreamInfoValid) &&
+            (app->lastStreamInfo.matrixCoefficients != NEXUS_MatrixCoefficients_eItu_R_BT_2020_NCL) &&
+            (app->lastStreamInfo.matrixCoefficients != NEXUS_MatrixCoefficients_eItu_R_BT_2020_CL))
+        {
+            hdmiSettings.overrideMatrixCoefficients = true;
+            hdmiSettings.matrixCoefficients = NEXUS_MatrixCoefficients_eItu_R_BT_709;
+        }
+        else
+        {
+            hdmiSettings.overrideMatrixCoefficients = false;
+            hdmiSettings.matrixCoefficients = NEXUS_MatrixCoefficients_eItu_R_BT_2020_NCL;
+        }
+    }
+    else
+    {
+        hdmiSettings.overrideMatrixCoefficients = true;
+        hdmiSettings.matrixCoefficients = app->args.matrixCoefficients;
+    }
     rc = NEXUS_HdmiOutput_SetSettings(app->hdmi, &hdmiSettings);
     if (rc) { fprintf(stderr, "Error setting colorspace/colordepth\n"); rc = BERR_TRACE(rc); }
     return rc;
@@ -174,6 +201,14 @@ void APP_StreamChangedCallback(void * context, int param)
     rc = NEXUS_VideoDecoder_GetStreamInformation(app->videoDecoder, &streamInfo);
     if (!rc)
     {
+        if (!app->lastStreamInfoValid || (app->lastStreamInfo.matrixCoefficients != streamInfo.matrixCoefficients))
+        {
+            fprintf(stdout, "Stream matrixCoefficients changed %s -> %s\n",
+                    !app->lastStreamInfoValid ? "unspecified" :
+                    APP_GetMatrixCoefficientsName(app->lastStreamInfo.matrixCoefficients),
+                    APP_GetMatrixCoefficientsName(streamInfo.matrixCoefficients));
+            streamInfoChanged = true;
+        }
         if (!app->lastStreamInfoValid || (app->lastStreamInfo.eotf != streamInfo.eotf))
         {
             fprintf(stdout, "Stream EOTF changed %s -> %s\n",
@@ -232,6 +267,12 @@ void APP_StreamChangedCallback(void * context, int param)
 
         app->lastStreamInfo = streamInfo;
         app->lastStreamInfoValid = true;
+
+        if (streamInfoChanged)
+        {
+            rc = APP_ApplyColorSettings(app);
+            if (rc) { rc = BERR_TRACE(rc); }
+        }
 
         rc = APP_UpdateOsd(app);
         if (rc) { BERR_TRACE(rc); }
@@ -310,14 +351,11 @@ OSD_Eotf APP_NexusEotfToOsd(NEXUS_VideoEotf nxEotf)
         case NEXUS_VideoEotf_eSdr:
             eotf = OSD_Eotf_eSdr;
             break;
-        case NEXUS_VideoEotf_eHdr:
-            eotf = OSD_Eotf_eHdr;
+        case NEXUS_VideoEotf_eHlg:
+            eotf = OSD_Eotf_eHlg;
             break;
-        case NEXUS_VideoEotf_eFuture:
-            eotf = OSD_Eotf_eArib;
-            break;
-        case NEXUS_VideoEotf_eSmpteSt2084:
-            eotf = OSD_Eotf_eSmpte;
+        case NEXUS_VideoEotf_eHdr10:
+            eotf = OSD_Eotf_eHdr10;
             break;
         default:
             eotf = OSD_Eotf_eUnknown;
@@ -1127,6 +1165,12 @@ int APP_SetupShell(APP_AppHandle app)
     rc = APP_SetupEotfCommand(app);
     if (rc) { rc = BERR_TRACE(rc); goto end; }
 
+    rc = APP_SetupMatrixCoefficientsCommand(app);
+    if (rc) { rc = BERR_TRACE(rc); goto end; }
+
+    rc = APP_SetupGfxSdr2HdrCommand(app);
+    if (rc) { rc = BERR_TRACE(rc); goto end; }
+
     rc = APP_SetupSmdCommand(app);
     if (rc) { rc = BERR_TRACE(rc); goto end; }
 
@@ -1263,8 +1307,7 @@ APP_AppHandle APP_Create(const ARGS_Args * args)
     rc = SMD_GetMetadata(app->smd, &app->drmInfoFrame.metadata);
     if (rc) { rc = BERR_TRACE(rc); /* continue */ }
 
-    /* track the stream by default */
-    rc = APP_SetEotf(app, APP_Eotf_eInput);
+    rc = APP_SetEotf(app, (APP_Eotf) app->args.eotf);
     if (rc) { rc = BERR_TRACE(rc); /* continue */ }
 
     app->window = NEXUS_VideoWindow_Open(app->display, 0);
@@ -1285,6 +1328,9 @@ APP_AppHandle APP_Create(const ARGS_Args * args)
     /* graphicsCompositorSettings.position will default to the display size */
     graphicsCompositorSettings.clip.width = videoFormatInfo.width;
     graphicsCompositorSettings.clip.height = videoFormatInfo.height;
+    graphicsCompositorSettings.sdrToHdr.y = app->args.gfxSdr2Hdr.y;
+    graphicsCompositorSettings.sdrToHdr.cb = app->args.gfxSdr2Hdr.cb;
+    graphicsCompositorSettings.sdrToHdr.cr = app->args.gfxSdr2Hdr.cr;
     rc = NEXUS_Display_SetGraphicsSettings(app->display, &graphicsCompositorSettings);
     if (rc) { rc = BERR_TRACE(rc); /* continue */ }
 

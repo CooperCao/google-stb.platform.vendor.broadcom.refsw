@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,7 +34,6 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
-* 
 ***************************************************************************/
 
 /* Programming note:
@@ -138,7 +137,7 @@ int main(int argc, char **argv)
 /* intentionally make it larger than encoder queue to show flow control */
 #define NUM_TT_DATA 50
         NEXUS_TeletextLine ttData[NUM_TT_DATA];
-        unsigned num;
+        size_t num;
         unsigned i;
         unsigned total = 0;
 
@@ -163,7 +162,7 @@ int main(int argc, char **argv)
 /* intentionally make it larger than encoder queue to show flow control */
 #define NUM_CC_DATA 50
         NEXUS_ClosedCaptionData ccData[NUM_CC_DATA];
-        unsigned num;
+        size_t num;
         unsigned i;
         unsigned total = 0;
 
@@ -185,7 +184,7 @@ int main(int argc, char **argv)
 
     if (displayVbiSettings.gemStarEnabled) {
         NEXUS_GemStarData gsData;
-        unsigned num;
+        size_t num;
 
         gsData.topField = true;
         gsData.lineMask = 0xF << 15;
@@ -223,7 +222,8 @@ int main(int argc, char **argv)
 
     if (displayVbiSettings.amolEnabled) {
         NEXUS_AmolData amolData[3];
-        unsigned i, num;
+        unsigned i;
+        size_t num;
 
         for (i=0;i<3;i++) {
             amolData[i].topField = rand()%2;

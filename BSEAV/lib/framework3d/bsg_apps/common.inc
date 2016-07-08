@@ -1,7 +1,7 @@
 #############################################################################
-#    (c)2012-2016 Broadcom Corporation
+#    Broadcom Proprietary and Confidential. (c)2012-2016 Broadcom.  All rights reserved.
 #
-# This program is the proprietary software of Broadcom Corporation and/or its licensors,
+# This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
 # conditions of a separate, written license agreement executed between you and Broadcom
 # (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -60,8 +60,10 @@ TARGET_DIR       := $(NEXUS_BIN_DIR)/bsg
 TARGET_APP       := $(TARGET_DIR)/$(TARGET)
 
 # Includes for most BSG files
-INCLUDES       += $(BSG_DIR)                            \
-                  $(V3D_DIR)/interface/khronos/include
+# The commandmap.inc is located in vc5/tools/gpumon_hook and is valid for vc4 and vc5
+INCLUDES       += $(BSG_DIR)                                                \
+                  $(V3D_DIR)/interface/khronos/include                      \
+                  $(NEXUS_TOP)/../rockford/middleware/vc5/tools/gpumon_hook
 
 LDFLAGS += -L$(NEXUS_BIN_DIR) -L$(B_REFSW_OBJ_ROOT)/BSEAV/lib/libpng -L$(B_REFSW_OBJ_ROOT)/BSEAV/lib/zlib/$(B_REFSW_ARCH)
 LDFLAGS += -lbsg -lrt -lm -lpng -lz -lfreetype -lnxpl -lv3ddriver -ldl
@@ -97,13 +99,12 @@ info:
 	echo "                                                            "; \
 	echo "************************************************************"
 
+B_REFSW_DEBUG ?= y
 
 # Create the app
 $(info Objects = $(OBJECTS))
 $(BSG_OBJ_DIR)/$(TARGET):	$(OBJECTS)
 	$(CXX) $(CFLAGS) $(CXXFLAGS) $(OBJECTS) $(LDFLAGS) -o $(BSG_OBJ_DIR)/$(TARGET)
-
-B_REFSW_DEBUG ?= y
 ifneq ($(B_REFSW_DEBUG),y)
 	$(STRIP) $(BSG_OBJ_DIR)/$(TARGET)
 endif

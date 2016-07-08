@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2010 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2010 Broadcom.
 All rights reserved.
 
 Project  :  Default Nexus platform API for EGL driver
@@ -26,6 +26,8 @@ DESC
 #error "V3D & Nexus mismatch : NEXUS_GRAPHICSV3D_JOB_MAX_INSTRUCTIONS != BEGL_HW_JOB_MAX_INSTRUCTIONS"
 #endif
 
+#define UNUSED(X) X
+
 typedef void (*CallbackFunc)(void);
 
 typedef struct
@@ -41,6 +43,7 @@ typedef struct
 static void JobCallbackHandler(void *context, int param)
 {
    NXPL_HWData *data = (NXPL_HWData*)context;
+   UNUSED(param);
 
    if (data && data->callback)
       data->callback();
@@ -51,6 +54,8 @@ static bool GetInfo(void *context, BEGL_HWInfo *info)
 {
    NEXUS_Graphicsv3dInfo  nInfo;
    NEXUS_Error            err;
+   UNUSED(context);
+
    err = NEXUS_Graphicsv3d_GetInfo(&nInfo);
 
    if (err == NEXUS_SUCCESS)
@@ -87,6 +92,7 @@ bool SendJob(void *context, BEGL_HWJob *job)
       }
 
       nJob.uiBinMemory      = job->binMemory;
+      nJob.bBinMemorySecure = job->binMemorySecure;
       nJob.uiUserVPM        = job->userVPM;
       nJob.bCollectTimeline = job->collectTimeline;
       nJob.uiJobSequence    = job->jobSequence;
@@ -165,7 +171,7 @@ static bool GetBinMemory(void *context, const BEGL_HWBinMemorySettings *settings
    if (settings == NULL || memory == NULL)
       return false;
 
-   /* Currently nothing in setting, so nothing to copy */
+   nexusMemorySettings.bSecure = settings->secure;
 
    rc = NEXUS_Graphicsv3d_GetBinMemory(data->nexusHandle, &nexusMemorySettings, &nexusMemory);
 

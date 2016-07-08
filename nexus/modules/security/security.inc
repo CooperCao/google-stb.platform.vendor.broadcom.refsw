@@ -1,7 +1,7 @@
-############################################################
-#     (c)2007-2015 Broadcom Corporation
+#############################################################
+#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 #
-#  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+#  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
 #  conditions of a separate, written license agreement executed between you and Broadcom
 #  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,8 +34,6 @@
 #  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
-#
-#
 ############################################################
 
 #
@@ -56,12 +54,11 @@ NEXUS_MODULES += SECURITY
 # Module Features #
 ###################
 
+include ${NEXUS_TOP}/modules/security/security_defs.inc
 
 NEXUS_SECURITY_EXTENSION := $(NEXUS_TOP)/extensions/security
 BHSM_SRC                 := $(MAGNUM)/portinginterface/hsm/src
-
-include ${NEXUS_TOP}/modules/security/security_defs.inc
-
+BSP_INCLUDE              := $(MAGNUM)/portinginterface/hsm/include/aegis/${ZEUSVER}
 
 # Compile-time variables to cover specific features
 
@@ -76,11 +73,28 @@ NEXUS_SECURITY_PUBLIC_INCLUDES = $(NEXUS_TOP)/modules/security/include
 # Module Sources #
 ##################
 ifneq ($(HSM_SOURCE_AVAILABLE),n)
-  NEXUS_SECURITY_SOURCES := $(NEXUS_TOP)/modules/security/src/nexus_security.c
+  ifeq ($(filter $(CORETECH), core65nmASKM core65nm), $(CORETECH))
+    NEXUS_SECURITY_SOURCES := $(NEXUS_TOP)/modules/security/src/nexus_security_65nm.c
+  else
+    NEXUS_SECURITY_SOURCES := $(NEXUS_TOP)/modules/security/src/nexus_security.c
+  endif
   NEXUS_SECURITY_SOURCES += $(NEXUS_TOP)/modules/security/src/nexus_security_misc.c
   ifeq ($(filter $(CORETECH), core40nm core28nm ),$(CORETECH))
     NEXUS_SECURITY_SOURCES += $(NEXUS_TOP)/modules/security/src/nexus_security_regver.c
+    NEXUS_SECURITY_FW_SIGN := y
   endif
+endif
+
+ifeq ($(NEXUS_SECURITY_FW_SIGN),y)
+# use presence of key2 file to determine whether to generate fw signatures
+ifneq ($(wildcard $(NEXUS_TOP)/../BSEAV/lib/security/fw_img_sign/key2/$(BCHP_CHIP)_nexus_security_regver_key.h),)
+NEXUS_SECURITY_REGVER_SIGNATURES := $(NEXUS_BUILD_DIR)/nexus_security_regver_signatures.inc
+NEXUS_SECURITY_REGVER_SIGNATURES_STUB := $(NEXUS_TOP)/modules/security/src/nexus_security_regver_signatures_stub.c
+NEXUS_SECURITY_REGVER_KEY := $(NEXUS_BUILD_DIR)/nexus_security_regver_key.inc
+NEXUS_SECURITY_REGVER_KEY_STUB := $(NEXUS_TOP)/modules/security/src/nexus_security_regver_key_stub.c
+NEXUS_SECURITY_PRIVATE_INCLUDES += $(NEXUS_BUILD_DIR)
+NEXUS_SECURITY_DEFINES += NEXUS_SECURITY_FW_SIGN=1
+endif
 endif
 
 # thunk layer
@@ -108,6 +122,7 @@ BHSM_BSECK ?= OFF
 BHSM_GEN_ROOT_KEY ?=OFF
 BHSM_NSKCMD ?=OFF
 BHSM_SECURE_PKL ?=OFF
+AVKEYLADDER_SUPPORT ?= n
 
 
 NEXUS_SECURITY_MAGNUM_MODULES = $(MAGNUM)/portinginterface/hsm/bhsm.inc
@@ -117,7 +132,6 @@ NEXUS_SECURITY_DEFINES += NEXUS_SECURITY_ZEUS_VERSION_MINOR=$(NEXUS_SECURITY_ZEU
 
 ifeq ($(filter $(CORETECH), core65nmASKM core40nm core28nm), $(CORETECH))
     # Make these default for 65-nm ASKM, 40-nm, and 26-nm chips
-    NEXUS_SECURITY_DEFINES += NEXUS_SECURITY_SC_VALUE
     NEXUS_SECURITY_DEFINES += NEXUS_SECURITY_EXT_KEY_IV
 endif
 
@@ -127,10 +141,6 @@ endif
 
 ifeq ($(BSP_DS2_KEY_ROUTING),ON)
     NEXUS_SECURITY_DEFINES += NEXUS_SECURITY_DS2_ROUTING
-endif
-
-ifeq ($(BSP_SC_VALUE_SUPPORT),ON)
-    NEXUS_SECURITY_DEFINES += NEXUS_SECURITY_SC_VALUE
 endif
 
 ifeq ($(BSP_M2M_EXT_KEY_IV_SUPPORT),ON)
@@ -404,7 +414,7 @@ ifeq ($(SECURITY_MSIPTV_SUPPORT),)
         ifeq ($(filter $(CORETECH), core65nm core65nmASKM), $(CORETECH))
             SECURITY_MSIPTV_SUPPORT := $(shell test -e ${NEXUS_SECURITY_EXTENSION}/msiptv/msiptv_ext.inc && test -e ${BHSM_SRC}/${CORETECH}/iptv/bhsm_iptv.c && echo y)
         else
-            SECURITY_MSIPTV_SUPPORT := $(shell test -e ${NEXUS_SECURITY_EXTENSION}/msiptv/msiptv_ext.inc && test -e ${BHSM_SRC}/msiptv/bhsm_iptv.c && echo y)
+            SECURITY_MSIPTV_SUPPORT := $(shell test -e ${NEXUS_SECURITY_EXTENSION}/msiptv/msiptv_ext.inc && test -e ${BHSM_SRC}/msiptv/bhsm_iptv.c && test -e ${BSP_INCLUDE}/bsp_s_msiptv.h && echo y)
         endif
     endif
 endif

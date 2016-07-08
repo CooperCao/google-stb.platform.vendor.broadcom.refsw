@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2010 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2010 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -13,8 +13,8 @@ BCG abstraction layer for GL driver
 #include "middleware/khronos/egl/egl_platform.h"
 #include "middleware/khronos/common/2708/khrn_prod_4.h"
 #include "middleware/khronos/common/khrn_hw.h"
-#include "helpers/vc_image/vc_image.h"
 #include "interface/khronos/common/khrn_client_platform.h"
+#include "interface/khronos/common/abstract/khrn_client_platform_abstract.h"
 
 #include <stdio.h>
 #include <assert.h>
@@ -23,7 +23,50 @@ BCG abstraction layer for GL driver
 #include <cutils/log.h>
 #endif
 
-void BEGLint_intBufferGetRequirements(BEGL_PixmapInfo *bufferRequirements, BEGL_BufferSettings * bufferConstrainedRequirements)
+KHRN_IMAGE_FORMAT_T abstract_colorformat_to_format(KHRN_IMAGE_FORMAT_T format, BEGL_ColorFormat colorformat)
+{
+   switch (colorformat)
+   {
+   case BEGL_ColorFormat_eLinear:
+      format = khrn_image_to_linear_format(format);
+      break;
+   case BEGL_ColorFormat_eSRGB:
+      /* nothing */
+      break;
+   case BEGL_ColorFormat_eLinear_Pre:
+      format = khrn_image_to_linear_format(format);
+      format = khrn_image_to_premultiplied_format(format);
+      break;
+   case BEGL_ColorFormat_eSRGB_Pre:
+      format = khrn_image_to_premultiplied_format(format);
+      break;
+   default:
+      UNREACHABLE();
+      break;
+   }
+
+   return format;
+}
+
+BEGL_ColorFormat format_to_abstract_colorformat(KHRN_IMAGE_FORMAT_T format)
+{
+   BEGL_ColorFormat colorformat;
+   uint32_t code = (khrn_image_is_linear(format) ? 1 : 0) | (khrn_image_is_premultiplied(format) ? 2 : 0);
+   switch (code)
+   {
+   case 0:  colorformat = BEGL_ColorFormat_eSRGB;         break;
+   case 1:  colorformat = BEGL_ColorFormat_eLinear;       break;
+   case 2:  colorformat = BEGL_ColorFormat_eSRGB_Pre;     break;
+   case 3:  colorformat = BEGL_ColorFormat_eLinear_Pre;   break;
+   default:
+      UNREACHABLE();
+      break;
+   }
+
+   return colorformat;
+}
+
+void BEGLint_intBufferGetRequirements(BEGL_PixmapInfoEXT *bufferRequirements, BEGL_BufferSettings * bufferConstrainedRequirements)
 {
    KHRN_IMAGE_CREATE_FLAG_T flags = 0;
    KHRN_IMAGE_FORMAT_T format;
@@ -78,17 +121,8 @@ void BEGLint_intBufferGetRequirements(BEGL_PixmapInfo *bufferRequirements, BEGL_
 
    if (bufferRequirements->openvg)
    {
-      switch (bufferRequirements->colorFormat)
-      {
-         case BEGL_ColorFormat_eLinear:  format |= IMAGE_FORMAT_LIN;                            break;
-         case BEGL_ColorFormat_eSRGB:  /* nothing */                                            break;
-         case BEGL_ColorFormat_eLinear_Pre: format |= (IMAGE_FORMAT_LIN | IMAGE_FORMAT_PRE);    break;
-         case BEGL_ColorFormat_eSRGB_Pre: format |= IMAGE_FORMAT_PRE;                           break;
-         default:
-            UNREACHABLE();
-         break;
-      }
-      format |= IMAGE_FORMAT_OVG;
+      format = abstract_colorformat_to_format(format, bufferRequirements->colorFormat);
+      format = khrn_image_to_openvg_format(format);
    }
 
    wd = bufferRequirements->width;
@@ -110,7 +144,7 @@ void BEGLint_intBufferGetRequirements(BEGL_PixmapInfo *bufferRequirements, BEGL_
    bufferConstrainedRequirements->totalByteSize = (bufferConstrainedRequirements->totalByteSize + (cacheline_size - 1)) & ~(cacheline_size - 1);
 }
 
-EGLAPI void EGLAPIENTRY BEGLint_BufferGetRequirements(BEGL_PixmapInfo *bufferRequirements, BEGL_BufferSettings * bufferConstrainedRequirements)
+EGLAPI void EGLAPIENTRY BEGLint_BufferGetRequirements(BEGL_PixmapInfoEXT *bufferRequirements, BEGL_BufferSettings * bufferConstrainedRequirements)
 {
    BEGLint_intBufferGetRequirements(bufferRequirements, bufferConstrainedRequirements);
 }
@@ -210,17 +244,8 @@ MEM_HANDLE_T egl_server_platform_create_pixmap_info(uint32_t pixmap, EGLint *err
 
          if (bufferSettings.openvg)
          {
-            switch (bufferSettings.colorFormat)
-            {
-               case BEGL_ColorFormat_eLinear:  format |= IMAGE_FORMAT_LIN;                            break;
-               case BEGL_ColorFormat_eSRGB:  /* nothing */                                            break;
-               case BEGL_ColorFormat_eLinear_Pre: format |= (IMAGE_FORMAT_LIN | IMAGE_FORMAT_PRE);    break;
-               case BEGL_ColorFormat_eSRGB_Pre: format |= IMAGE_FORMAT_PRE;                           break;
-               default:
-                  UNREACHABLE();
-               break;
-            }
-            format |= IMAGE_FORMAT_OVG;
+            format = abstract_colorformat_to_format(format, bufferSettings.colorFormat);
+            format = khrn_image_to_openvg_format(format);
          }
 
          if ((((uint32_t)bufferSettings.cachedAddr & ~0xFFF) == (uint32_t)bufferSettings.cachedAddr) &&
@@ -229,10 +254,10 @@ MEM_HANDLE_T egl_server_platform_create_pixmap_info(uint32_t pixmap, EGLint *err
          {
             khrn_image_platform_fudge(&format, &w, &h, &align, flags);
 
-            wrapHandle = mem_wrap(bufferSettings.cachedAddr,
+            wrapHandle = mem_wrap(bufferSettings.secure ? NULL : bufferSettings.cachedAddr,
                                   bufferSettings.physOffset,
                                   bufferSettings.pitchBytes * h,
-                                  align, MEM_FLAG_DIRECT,
+                                  align, MEM_FLAG_DIRECT | (bufferSettings.secure ? MEM_FLAG_SECURE : 0),
                                   "wrapped pixmap");
 
 #ifdef ANDROID
@@ -243,9 +268,10 @@ MEM_HANDLE_T egl_server_platform_create_pixmap_info(uint32_t pixmap, EGLint *err
             bufferSettings.pitchBytes,
             khrn_image_get_stride(format, w),format);
 #endif
-            handle = khrn_image_create_from_storage(format, bufferSettings.width, bufferSettings.height, bufferSettings.pitchBytes,
-                                                   MEM_INVALID_HANDLE, wrapHandle, 0,
-                                                   flags);
+            handle = khrn_image_create_from_storage(format,
+               bufferSettings.width, bufferSettings.height, bufferSettings.pitchBytes,
+               MEM_INVALID_HANDLE, wrapHandle, 0,
+               flags, bufferSettings.secure);
 
             /* Note: Don't store the opaque buffer handle here, as we may not always want to destroy it.
                * We'll store it explicitly for our swap chain created buffers. Remember, this is used for pixmaps too.*/
@@ -341,7 +367,8 @@ uint32_t egl_server_platform_create_buffer(
    uint32_t width, uint32_t height,
    KHRN_IMAGE_CREATE_FLAG_T flags,
    BEGL_WindowState *platformState,
-   BEGL_BufferUsage usage)
+   BEGL_BufferUsage usage,
+   bool secure)
 {
    BEGL_BufferHandle bufHandle = 0;
    BEGL_DriverInterfaces * driverInterfaces = BEGL_GetDriverInterfaces();
@@ -355,7 +382,7 @@ uint32_t egl_server_platform_create_buffer(
       uint32_t align = 64;
       uint32_t overrun;
       BEGL_BufferSettings bufferSettings;
-      bool rso_image;
+      bool rso;
       /* needs to be max of CPU cache line and the GCACHE on the v3d */
       uint32_t cacheline_size = mem_cacheline_size();
       cacheline_size = (cacheline_size > BCG_GCACHE_LINE_SIZE) ? cacheline_size : BCG_GCACHE_LINE_SIZE;
@@ -363,7 +390,7 @@ uint32_t egl_server_platform_create_buffer(
       vcos_assert(format != IMAGE_FORMAT_INVALID);
 
       khrn_image_platform_fudge(&format, &padded_width, &padded_height, &align, flags);
-      rso_image = khrn_image_is_rso(format);
+      rso = khrn_image_is_rso(format);
 
       memset(&bufferSettings, 0, sizeof(BEGL_BufferSettings));
 
@@ -383,35 +410,25 @@ uint32_t egl_server_platform_create_buffer(
       /* align to a cache line */
       bufferSettings.totalByteSize = (bufferSettings.totalByteSize + (cacheline_size - 1)) & ~(cacheline_size - 1);
 #if defined(BIG_ENDIAN_CPU)
-      bufferSettings.format = (rso_image) ? BEGL_BufferFormat_eR8G8B8A8 : BEGL_BufferFormat_eA8B8G8R8_TFormat;
+      bufferSettings.format = (rso) ? BEGL_BufferFormat_eR8G8B8A8 : BEGL_BufferFormat_eA8B8G8R8_TFormat;
 #else
-      bufferSettings.format = (rso_image) ? BEGL_BufferFormat_eA8B8G8R8 : BEGL_BufferFormat_eA8B8G8R8_TFormat;
+      bufferSettings.format = (rso) ? BEGL_BufferFormat_eA8B8G8R8 : BEGL_BufferFormat_eA8B8G8R8_TFormat;
 #endif
 
       if (khrn_image_get_bpp(format) == 16)
-         bufferSettings.format = (rso_image) ? BEGL_BufferFormat_eR5G6B5 : BEGL_BufferFormat_eR5G6B5_TFormat;
+         bufferSettings.format = (rso) ? BEGL_BufferFormat_eR5G6B5 : BEGL_BufferFormat_eR5G6B5_TFormat;
       else if (khrn_image_get_alpha_size(format) == 0)
       {
 #if defined(BIG_ENDIAN_CPU)
-         bufferSettings.format = (rso_image) ? BEGL_BufferFormat_eR8G8B8X8 : BEGL_BufferFormat_eX8B8G8R8_TFormat;
+         bufferSettings.format = (rso) ? BEGL_BufferFormat_eR8G8B8X8 : BEGL_BufferFormat_eX8B8G8R8_TFormat;
 #else
-         bufferSettings.format = (rso_image) ? BEGL_BufferFormat_eX8B8G8R8 : BEGL_BufferFormat_eX8B8G8R8_TFormat;
+         bufferSettings.format = (rso) ? BEGL_BufferFormat_eX8B8G8R8 : BEGL_BufferFormat_eX8B8G8R8_TFormat;
 #endif
       }
 
-      if (format & IMAGE_FORMAT_OVG)
+      if (khrn_image_is_openvg(format))
       {
-         uint32_t code = ((format & IMAGE_FORMAT_LIN) != 0) | (((format & IMAGE_FORMAT_PRE) != 0) << 1);
-         switch (code)
-         {
-            case 0:  bufferSettings.colorFormat = BEGL_ColorFormat_eSRGB;         break;
-            case 1:  bufferSettings.colorFormat = BEGL_ColorFormat_eLinear;       break;
-            case 2:  bufferSettings.colorFormat = BEGL_ColorFormat_eSRGB_Pre;     break;
-            case 3:  bufferSettings.colorFormat = BEGL_ColorFormat_eLinear_Pre;   break;
-            default:
-               UNREACHABLE();
-               break;
-         }
+         bufferSettings.colorFormat = format_to_abstract_colorformat(format);
          bufferSettings.openvg = 1;
       }
       else
@@ -419,6 +436,8 @@ uint32_t egl_server_platform_create_buffer(
          bufferSettings.colorFormat = BEGL_ColorFormat_eLinear;
          bufferSettings.openvg = 0;
       }
+
+      bufferSettings.secure = secure;
 
       bufHandle = driverInterfaces->displayInterface->BufferCreate(driverInterfaces->displayInterface->context,
                                                                    &bufferSettings);
@@ -428,12 +447,12 @@ uint32_t egl_server_platform_create_buffer(
 }
 
 uint32_t egl_server_platform_get_buffer(
-   EGLNativeWindowType win,
    KHRN_IMAGE_FORMAT_T format,
    uint32_t width, uint32_t height,
    KHRN_IMAGE_CREATE_FLAG_T flags,
    BEGL_WindowState *platformState,
-   BEGL_BufferUsage usage)
+   BEGL_BufferUsage usage,
+   bool secure)
 {
    BEGL_BufferHandle bufHandle = 0;
    BEGL_DriverInterfaces * driverInterfaces = BEGL_GetDriverInterfaces();
@@ -487,19 +506,9 @@ uint32_t egl_server_platform_get_buffer(
 #endif
       }
 
-      if (format & IMAGE_FORMAT_OVG)
+      if (khrn_image_is_openvg(format))
       {
-         uint32_t code = ((format & IMAGE_FORMAT_LIN) != 0) | (((format & IMAGE_FORMAT_PRE) != 0) << 1);
-         switch (code)
-         {
-            case 0:  bufferSettings.colorFormat = BEGL_ColorFormat_eSRGB;         break;
-            case 1:  bufferSettings.colorFormat = BEGL_ColorFormat_eLinear;       break;
-            case 2:  bufferSettings.colorFormat = BEGL_ColorFormat_eSRGB_Pre;     break;
-            case 3:  bufferSettings.colorFormat = BEGL_ColorFormat_eLinear_Pre;   break;
-            default:
-               UNREACHABLE();
-               break;
-         }
+         bufferSettings.colorFormat = format_to_abstract_colorformat(format);
          bufferSettings.openvg = 1;
       }
       else
@@ -507,6 +516,8 @@ uint32_t egl_server_platform_get_buffer(
          bufferSettings.colorFormat = BEGL_ColorFormat_eLinear;
          bufferSettings.openvg = 0;
       }
+
+      bufferSettings.secure = secure;
 
       bufHandle = driverInterfaces->displayInterface->BufferGet(driverInterfaces->displayInterface->context,
                                                                 &bufferSettings);

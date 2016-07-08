@@ -84,7 +84,7 @@ int NEXUS_Sage_P_IsHeapValid(NEXUS_HeapHandle heap, NEXUS_MemoryType memoryType)
         && status.memcIndex == 0                    /* on Zeus30 chips, SAGE-side can only access MEMC0 */
 #endif
         ) {
-        BDBG_MSG(("%s: VALID heap=%p [offset=%u, size=%u]\n", __FUNCTION__, heap, status.offset, status.size));
+        BDBG_MSG(("%s: VALID heap=%p [offset=" BDBG_UINT64_FMT ", size=%u]\n", __FUNCTION__, (void *)heap, BDBG_UINT64_ARG(status.offset), status.size));
         return 1; /* the heap is valid */
     }
 

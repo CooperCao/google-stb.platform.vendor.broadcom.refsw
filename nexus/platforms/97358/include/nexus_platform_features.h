@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,16 +34,8 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
+*
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
 ***************************************************************************/
 #ifndef NEXUS_PLATFORM_FEATURES_H__
@@ -51,7 +43,7 @@
 
 #include "nexus_platform_generic_features_priv.h"
 
-#if NEXUS_PLATFORM_7218TC2RSFF
+#if defined NEXUS_PLATFORM_7218TC2RSFF
 
 /* Not all 3416 frontend interface is via SPI */
 #ifndef NEXUS_FRONTEND_3461_USES_I2C
@@ -86,9 +78,11 @@
 
 #define NEXUS_NUM_I2S_INPUTS 0
 #define NEXUS_NUM_I2S_OUTPUTS 1
-#define NEXUS_NUM_AUDIO_CAPTURE_CHANNELS 1
-#define NEXUS_NUM_AUDIO_CAPTURES 1
 #define NEXUS_NUM_AUDIO_PLAYBACKS 3
+#ifdef NEXUS_NUM_AUDIO_CRCS
+#undef NEXUS_NUM_AUDIO_CRCS
+#define NEXUS_NUM_AUDIO_CRCS 0
+#endif
 
 /* Display Features */
 #define NEXUS_NUM_656_OUTPUTS 0
@@ -108,7 +102,7 @@ upon the chip usage. See below */
 #define NEXUS_MAX_FRONTENDS 2
 #define NEXUS_MAX_3255_ADSCHN 0
 #define NEXUS_3255_OOB_TUNER_IFFREQ (1250000)/* 1.25 MHz */
-#define NEXUS_ENABLE_EXTERNAL_LNA	 0
+#define NEXUS_ENABLE_EXTERNAL_LNA    0
 
 
 
@@ -134,4 +128,3 @@ upon the chip usage. See below */
 #define NEXUS_AVS_MONITOR 1
 
 #endif /* #ifndef NEXUS_PLATFORM_FEATURES_H__ */
-

@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2009 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2009 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -63,7 +63,7 @@ typedef struct {
 #endif
 
 #ifndef EGL_BRCM_image_update_control
-#define EGL_BRCM_image_update_control 1
+#define EGL_BRCM_image_update_control 0
 #define EGL_IMAGE_UPDATE_CONTROL_SET_MODE_BRCM           0x3260
 #define EGL_IMAGE_UPDATE_CONTROL_CHANGED_REGION_BRCM     0x3261
 #define EGL_IMAGE_UPDATE_CONTROL_SET_LOCK_STATE_BRCM     0x3262
@@ -72,15 +72,12 @@ typedef struct {
 #define EGL_IMAGE_UPDATE_CONTROL_LOCK_BRCM               0x3265
 #define EGL_IMAGE_UPDATE_CONTROL_UNLOCK_BRCM             0x3266
 
-
 #ifdef EGL_EGLEXT_PROTOTYPES
 EGLAPI EGLBoolean EGLAPIENTRY eglImageUpdateParameterivBRCM(EGLDisplay dpy, EGLImageKHR image, EGLenum pname, const EGLint *params);
 EGLAPI EGLBoolean EGLAPIENTRY eglImageUpdateParameteriBRCM(EGLDisplay dpy, EGLImageKHR image, EGLenum pname, EGLint param);
 #endif /* EGL_EGLEXT_PROTOTYPES */
-
 typedef EGLBoolean (EGLAPIENTRYP PFNEGLIMAGEUPDATEPARAMETERIVBRCMPROC) (EGLDisplay dpy, EGLImageKHR image, EGLenum pname, const EGLint *params);
 typedef EGLBoolean (EGLAPIENTRYP PFNEGLIMAGEUPDATEPARAMETERIBRCMPROC) (EGLDisplay dpy, EGLImageKHR image, EGLenum pname, EGLint param);
-
 #endif
 
 #ifdef __cplusplus

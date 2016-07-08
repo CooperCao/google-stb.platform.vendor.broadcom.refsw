@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2003-2015 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,8 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * Description: IP Applib Implementation for IP_RTP Protocols in which
 *              rtp payload contains MPEG2 TS packets.
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 
@@ -287,7 +279,7 @@ B_PlaybackIp_ReadRtpPackets(
         BDBG_ERR(("%s: out of items\n", __FUNCTION__));
         goto error;
     }
-    BDBG_MSG_FLOW(("%s: item %p, item->data 0x%p\n", __FUNCTION__, item, item->data));
+    BDBG_MSG_FLOW(("%s: item %p, item->data 0x%p\n", __FUNCTION__, (void *)item, (void *)item->data));
 
     do {
         memset((int *)playback_ip->bytesRecvPerPkt, 0, PKTS_PER_CHUNK * sizeof(int));
@@ -678,7 +670,7 @@ B_PlaybackIp_RtpSessionOpen(
     bool ipAddressIsUnicast = false;
 
     if (!playback_ip || !openSettings || !openStatus) {
-        BDBG_ERR(("%s: invalid params, playback_ip %p, openSettings %p, openStatus %p\n", __FUNCTION__, playback_ip, openSettings, openStatus));
+        BDBG_ERR(("%s: invalid params, playback_ip %p, openSettings %p, openStatus %p\n", __FUNCTION__, (void *)playback_ip, (void *)openSettings, (void *)openStatus));
         return B_ERROR_INVALID_PARAMETER;
     }
     socketState = &openStatus->socketState;
@@ -734,7 +726,7 @@ B_PlaybackIp_RtpSessionOpen(
         goto error;
     }
     memset(playback_ip->item, 0, IP_MAX_ITEMS * sizeof(struct B_PlaybackIpItem));
-    BDBG_MSG(("%s: allocated %d bytes for %d items\n", __FUNCTION__, IP_MAX_ITEMS * sizeof(struct B_PlaybackIpItem), IP_MAX_ITEMS));
+    BDBG_MSG(("%s: allocated %d bytes for %d items\n", __FUNCTION__, IP_MAX_ITEMS * (int)sizeof(struct B_PlaybackIpItem), IP_MAX_ITEMS));
     /* setup the item->data pointer: this is where AV data is copied in the recv calls */
     playback_ip->item_mem = (uint8_t *)BKNI_Malloc(IP_MAX_ITEMS * IP_MAX_PKT_SIZE);
     if (!playback_ip->item_mem) {
@@ -742,8 +734,8 @@ B_PlaybackIp_RtpSessionOpen(
         errorCode = B_ERROR_OUT_OF_MEMORY;
         goto error;
     }
-    BDBG_MSG(("item_mem 0x%p, item size %d, data size %d\n",
-        playback_ip->item_mem, sizeof(struct B_PlaybackIpItem), (IP_MAX_ITEMS * IP_MAX_PKT_SIZE)));
+    BDBG_MSG(("item_mem %p, item size %d, data size %d\n",
+              (void *)playback_ip->item_mem, (int)sizeof(struct B_PlaybackIpItem), (IP_MAX_ITEMS * IP_MAX_PKT_SIZE)));
     /* now setup the items data pointer */
     for (i=0; i < IP_MAX_ITEMS; i++) {
         playback_ip->item[i].data = playback_ip->item_mem + i*IP_MAX_PKT_SIZE;
@@ -773,7 +765,7 @@ B_PlaybackIp_RtpSessionOpen(
     playback_ip->bytesRecvPerPkt = (int *)BKNI_Malloc(PKTS_PER_CHUNK * sizeof(int));
     playback_ip->discard_buf = (char *)BKNI_Malloc(DISCARD_BUFFER_SIZE * sizeof(char));
     if (playback_ip->bytesRecvPerPkt == NULL || playback_ip->discard_buf == NULL) {
-        BDBG_ERR(("%s: BKNI_Malloc failed: recv buff %p, discard_buf %p\n", __FUNCTION__, playback_ip->bytesRecvPerPkt, playback_ip->discard_buf));
+        BDBG_ERR(("%s: BKNI_Malloc failed: recv buff %p, discard_buf %p\n", __FUNCTION__, (void *)playback_ip->bytesRecvPerPkt, (void *)playback_ip->discard_buf));
         errorCode = B_ERROR_OUT_OF_MEMORY;
         goto error;
     }
@@ -907,7 +899,7 @@ B_PlaybackIp_RtpSessionSetup(
     B_PlaybackIpPsiInfo *psi;
 
     if (!playback_ip || !setupSettings || !setupStatus) {
-        BDBG_ERR(("%s: invalid params, playback_ip %p, setupSettings %p, setupStatus %p\n", __FUNCTION__, playback_ip, setupSettings, setupStatus));
+        BDBG_ERR(("%s: invalid params, playback_ip %p, setupSettings %p, setupStatus %p\n", __FUNCTION__, (void *)playback_ip, (void *)setupSettings, (void *)setupStatus));
         errorCode = B_ERROR_INVALID_PARAMETER;
         return errorCode;
     }
@@ -918,7 +910,7 @@ B_PlaybackIp_RtpSessionSetup(
 
     /* if SessionSetup is completed, return results to app */
     if (playback_ip->apiCompleted) {
-        BDBG_MSG(("%s: previously started session setup operation completed, playback_ip %p", __FUNCTION__, playback_ip));
+        BDBG_MSG(("%s: previously started session setup operation completed, playback_ip %p", __FUNCTION__, (void *)playback_ip));
         /* Note: since this api was run in a separate thread, we defer thread cleanup until the Ip_Start */
         /* as this call to read up the session status may be invoked in the context of this thread via the callback */
         goto done;
@@ -935,7 +927,7 @@ B_PlaybackIp_RtpSessionSetup(
     }
 
     psi = &playback_ip->psi;
-    BDBG_MSG(("%s: psiParsingTimeLimit %d", __FUNCTION__, playback_ip->setupSettings.u.udp.psiParsingTimeLimit));
+    BDBG_MSG(("%s: psiParsingTimeLimit %ld", __FUNCTION__, playback_ip->setupSettings.u.udp.psiParsingTimeLimit));
     if (playback_ip->openSettings.nonBlockingMode) {
         /* do PSI parsing in a thread and return back to app */
         playback_ip->sessionSetupThread = B_Thread_Create("SessionSetupThread", (B_ThreadFunc)B_PlaybackIp_UtilsMediaProbeCreate, (void *)playback_ip, NULL);
@@ -946,7 +938,7 @@ B_PlaybackIp_RtpSessionSetup(
         }
 #ifdef BDBG_DEBUG_BUILD
         if (playback_ip->ipVerboseLog)
-            BDBG_WRN(("%s: Non blocking media probe operation started: playback_ip %p\n", __FUNCTION__, playback_ip));
+            BDBG_WRN(("%s: Non blocking media probe operation started: playback_ip %p\n", __FUNCTION__, (void *)playback_ip));
 #endif
         errorCode = B_ERROR_IN_PROGRESS;
         goto error;
@@ -1018,7 +1010,7 @@ B_PlaybackIp_RtpSessionStart(
     NEXUS_PlaypumpSettings nSettings;
 
     if (!playback_ip || !startSettings || !startStatus) {
-        BDBG_ERR(("%s: invalid params, playback_ip %p, startSettings %p, startStatus %p\n", __FUNCTION__, playback_ip, startSettings, startStatus));
+        BDBG_ERR(("%s: invalid params, playback_ip %p, startSettings %p, startStatus %p\n", __FUNCTION__, (void *)playback_ip, (void *)startSettings, (void *)startStatus));
         errorCode = B_ERROR_INVALID_PARAMETER;
         return errorCode;
     }

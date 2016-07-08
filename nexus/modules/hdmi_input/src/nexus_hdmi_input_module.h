@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2014 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,6 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
  **************************************************************************/
 #ifndef NEXUS_HDMI_INPUT_MODULE_H__
 #define NEXUS_HDMI_INPUT_MODULE_H__
@@ -70,7 +60,12 @@
 #include "priv/nexus_core_audio.h"
 #endif
 
-#if NEXUS_HAS_SAGE
+/* HDCP 2.x defaults on where available. 3 things determine it:
+1) HW capability - checked via bchp_common.h RDB test
+2) SAGE support - can be turned off with SAGE_SUPPORT=n. tested with #if NEXUS_HAS_SAGE.
+3) user flag - can be turned off with NEXUS_HDCP_SUPPORT=n. tested with #if NEXUS_HAS_HDCP_2X_SUPPORT.
+*/
+#if NEXUS_HAS_SAGE && NEXUS_HAS_HDCP_2X_SUPPORT
 #include "bchp_common.h"
 #ifdef BCHP_HDCP2_RX_HAE_INTR2_0_REG_START
 #define NEXUS_HAS_HDCP_2X_RX_SUPPORT 1
@@ -183,6 +178,11 @@ struct NEXUS_HdmiInputFrontend
 };
 
 #if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_RX_SUPPORT)
+typedef struct NEXUS_HdmiInputMemoryBlock {
+    size_t len;
+    void *buf;
+} NEXUS_HdmiInputMemoryBlock;
+
 typedef struct NEXUS_HdmiInput_SageData
 {
     BSAGElib_ClientHandle sagelibClientHandle;
@@ -204,6 +204,8 @@ typedef struct NEXUS_HdmiInput_SageData
 } NEXUS_HdmiInput_SageData;
 
 extern NEXUS_HdmiInput_SageData g_NEXUS_hdmiInputSageData;
+extern NEXUS_HdmiInputMemoryBlock g_hdmiInputTABlock;
+
 #endif
 
 

@@ -1,51 +1,42 @@
-/******************************************************************************
-*    (c)2011-2012 Broadcom Corporation
-*
-* This program is the proprietary software of Broadcom Corporation and/or its licensors,
-* and may only be used, duplicated, modified or distributed pursuant to the terms and
-* conditions of a separate, written license agreement executed between you and Broadcom
-* (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-* no license (express or implied), right to use, or waiver of any kind with respect to the
-* Software, and Broadcom expressly reserves all rights in and to the Software and all
-* intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-* secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-* and to use this information only in connection with your use of Broadcom integrated circuit products.
-*
-* 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-* AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-* WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-* THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-* OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-* LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-* OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-* USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-* LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-* EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-* USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-* THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-* ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-* LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-* ANY LIMITED REMEDY.
-*
-* $brcm_Workfile
-* $brcm_Revision
-* $brcm_Date
-*
-* Module Description:
-*
-* Revision History:
-*
-* $brcm_Log
-* 
-*****************************************************************************/
+/***************************************************************************
+ *     Broadcom Proprietary and Confidential. (c)2011-2016 Broadcom.  All rights reserved.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ *
+ **************************************************************************/
+
 
 /* NOTE:
  * SWVC4-472 : Add a NxClient video texturing sample to rockford/applications
@@ -124,6 +115,7 @@ typedef struct
    bool         showbackgroundvideo;
    int          texW;
    int          texH;
+   bool         secure;
 } AppConfig;
 
 typedef struct
@@ -244,7 +236,7 @@ static EGLDisplay             egl_display = EGL_NO_DISPLAY;
 static PFNGLEGLIMAGETARGETTEXTURE2DOESPROC    s_glEGLImageTargetTexture2DOES = NULL;
 static PFNEGLCREATEIMAGEKHRPROC               s_eglCreateImageKHR = NULL;
 static PFNEGLDESTROYIMAGEKHRPROC              s_eglDestroyImageKHR = NULL;
-#ifdef EGL_BRCM_image_update_control
+#if EGL_BRCM_image_update_control
 static PFNEGLIMAGEUPDATEPARAMETERIVBRCMPROC   s_eglImageUpdateParameterivBRCM = NULL;
 static PFNEGLIMAGEUPDATEPARAMETERIBRCMPROC    s_eglImageUpdateParameteriBRCM = NULL;
 #define NUM_TEX  1
@@ -715,6 +707,7 @@ static void ConfigureVideoStream(VideoStream *stream, const MediaData *mediaData
       printf("No pid channel\n");
    }
 
+   connectSettings.simpleVideoDecoder[0].decoderCapabilities.secureVideo = config.secure;
    rc = NxClient_Connect(&connectSettings, &stream->connectId);
    if (rc != NEXUS_SUCCESS)
    {
@@ -731,6 +724,8 @@ static void ConfigureVideoStream(VideoStream *stream, const MediaData *mediaData
 #endif
    createSettings.width  = stream->outputWidth;
    createSettings.height = stream->outputHeight;
+   if (config.secure)
+      createSettings.heap = NEXUS_Platform_GetFramebufferHeap(NEXUS_OFFSCREEN_SECURE_GRAPHICS_SURFACE);
 
    NEXUS_SimpleVideoDecoder_GetDefaultStartCaptureSettings(&videoCaptureSettings);
    for (i = 0; i < NEXUS_SIMPLE_DECODER_MAX_SURFACES; i++)
@@ -739,6 +734,7 @@ static void ConfigureVideoStream(VideoStream *stream, const MediaData *mediaData
       videoCaptureSettings.surface[i] = stream->videoSurfaces[i];
    }
    videoCaptureSettings.displayEnabled = config.showbackgroundvideo;
+   videoCaptureSettings.secure = config.secure;
 
    /* Start decode */
    NEXUS_SimpleVideoDecoder_Start(stream->videoDecoder, &videoProgram);
@@ -825,9 +821,11 @@ static void CleanupVideoStream(VideoStream *stream)
 
 /* Create a native pixmap (Nexus surface) with appropriate constraints for use as a texture */
 static bool MakeNativePixmap(EGLNativePixmapType *retEglPixmap, NEXUS_SurfaceHandle *retNexusSurface,
-                             uint32_t w, uint32_t h)
+                             uint32_t w, uint32_t h, bool secure)
 {
-   BEGL_PixmapInfo   pixInfo;
+   BEGL_PixmapInfoEXT   pixInfo;
+
+   NXPL_GetDefaultPixmapInfoEXT(&pixInfo);
 
    pixInfo.width = w;
    pixInfo.height = h;
@@ -838,7 +836,9 @@ static bool MakeNativePixmap(EGLNativePixmapType *retEglPixmap, NEXUS_SurfaceHan
    pixInfo.format = BEGL_BufferFormat_eA8B8G8R8;
 #endif
 
-   return NXPL_CreateCompatiblePixmap(nxpl_handle, retEglPixmap, retNexusSurface, &pixInfo);
+   pixInfo.secure = secure;
+
+   return NXPL_CreateCompatiblePixmapEXT(nxpl_handle, retEglPixmap, retNexusSurface, &pixInfo);
 }
 
 static void InitGLState(void)
@@ -889,7 +889,8 @@ static void InitGLState(void)
    for (unsigned int pixmap_index = 0; pixmap_index < NUM_TEX; pixmap_index++)
    {
       if (!MakeNativePixmap(&eglPixmaps[pixmap_index], &nativePixmaps[pixmap_index],
-                            videoStream.outputWidth, videoStream.outputHeight))
+                            videoStream.outputWidth, videoStream.outputHeight,
+                            config.secure))
       {
          fprintf(stderr, "Failed to create native pixmap\n");
          exit(0);
@@ -932,7 +933,7 @@ static void InitGLState(void)
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
    }
 
-#ifdef EGL_BRCM_image_update_control
+#if EGL_BRCM_image_update_control
    if (s_eglImageUpdateParameteriBRCM)
    {
       /* Tell GL we will be using explicit EGL image updates */
@@ -1183,7 +1184,7 @@ static void Display(void)
       glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, BUFFER_OFFSET(v * 6 * sizeof(short)));
    }
 
-#ifndef EGL_BRCM_image_update_control
+#if !EGL_BRCM_image_update_control
    if (m_fences[current_tex] != EGL_NO_SYNC_KHR)
       eglDestroySyncKHR(egl_display, m_fences[current_tex]);
 
@@ -1358,7 +1359,22 @@ static bool InitEGL(NativeWindowType egl_win, const AppConfig *config)
       Use the config picked in the previous step and the native window
       handle to create a window surface. 
    */
-   egl_surface = eglCreateWindowSurface(egl_display, egl_config[config_select], egl_win, NULL);
+   {
+      const int   NUM_ATTRIBS = 3;
+      EGLint      *attr = (EGLint *)malloc(NUM_ATTRIBS * sizeof(EGLint));
+      int         i = 0;
+
+#ifdef EGL_PROTECTED_CONTENT_EXT
+      if (config->secure)
+      {
+         attr[i++] = EGL_PROTECTED_CONTENT_EXT; attr[i++] = EGL_TRUE;
+      }
+#endif
+      attr[i++] = EGL_NONE;
+
+      egl_surface = eglCreateWindowSurface(egl_display, egl_config[config_select], egl_win, attr);
+   }
+
    if (egl_surface == EGL_NO_SURFACE)
    {
       eglGetError(); /* Clear error */
@@ -1377,18 +1393,28 @@ static bool InitEGL(NativeWindowType egl_win, const AppConfig *config)
       like textures will only be valid inside this context (or shared contexts)
    */
    {
-      EGLint     ctx_attrib_list[3] =
-      {
-           EGL_CONTEXT_CLIENT_VERSION, 2, /* For ES2 */
-           EGL_NONE
-      };
+      const int   NUM_ATTRIBS = 5;
+      EGLint      *attr = (EGLint *)malloc(NUM_ATTRIBS * sizeof(EGLint));
+      int         i = 0;
 
-      egl_context = eglCreateContext(egl_display, egl_config[config_select], EGL_NO_CONTEXT, ctx_attrib_list);
+#ifdef EGL_PROTECTED_CONTENT_EXT
+      if (config->secure)
+      {
+         attr[i++] = EGL_PROTECTED_CONTENT_EXT; attr[i++] = EGL_TRUE;
+      }
+#endif
+
+      attr[i++] = EGL_CONTEXT_CLIENT_VERSION; attr[i++] = 2;
+      attr[i++] = EGL_NONE;
+
+      egl_context = eglCreateContext(egl_display, egl_config[config_select], EGL_NO_CONTEXT, attr);
       if (egl_context == EGL_NO_CONTEXT)
       {
          printf("eglCreateContext() failed");
          return false;
       }
+
+      free(attr);
    }
 
    /*
@@ -1409,14 +1435,16 @@ static bool InitEGL(NativeWindowType egl_win, const AppConfig *config)
 
 static bool InitDisplay(float *aspect, const AppConfig *config)
 {
-   NXPL_NativeWindowInfo   win_info;
+   NXPL_NativeWindowInfoEXT   win_info;
 
-   eInitResult res = InitPlatformAndDefaultDisplay(&nexus_display, aspect, config->vpW, config->vpH);
+   eInitResult res = InitPlatformAndDefaultDisplay(&nexus_display, aspect, config->vpW, config->vpH, config->secure);
    if (res != eInitSuccess)
       return false;
 
    /* Register the Nexus display with the platform layer. The platform layer then controls the display. */
    NXPL_RegisterNexusDisplayPlatform(&nxpl_handle, nexus_display);
+
+   NXPL_GetDefaultNativeWindowInfoEXT(&win_info);
 
    win_info.x        = config->vpX; 
    win_info.y        = config->vpY;
@@ -1425,7 +1453,7 @@ static bool InitDisplay(float *aspect, const AppConfig *config)
    win_info.stretch  = config->stretchToFit;
    win_info.clientID = config->clientId;
 
-   native_window = NXPL_CreateNativeWindow(&win_info);
+   native_window = NXPL_CreateNativeWindowEXT(&win_info);
 
    /* Initialise EGL now we have a 'window' */
    if (!InitEGL(native_window, config))
@@ -1441,16 +1469,19 @@ static void complete(void *data, int unused)
    BKNI_SetEvent((BKNI_EventHandle)data);
 }
 
-static void InitVideo(void)
+static void InitVideo(bool secure)
 {
    MediaData                  mediaData;
    NEXUS_Graphics2DSettings   gfxSettings;
+   NEXUS_Graphics2DOpenSettings graphics2dOpenSettings;
 
    /* We'll need an event that will be triggered when the blit/fill is complete */
    BKNI_CreateEvent(&blitTextureDone);
 
+   NEXUS_Graphics2D_GetDefaultOpenSettings(&graphics2dOpenSettings);
+   graphics2dOpenSettings.secure = secure;
    /* Prepare the graphics2D module */
-   gfx2d = NEXUS_Graphics2D_Open(0, NULL);
+   gfx2d = NEXUS_Graphics2D_Open(0, &graphics2dOpenSettings);
    if (gfx2d == NULL)
    {
       printf("NEXUS_Graphics2D_Open failed\n");
@@ -1501,7 +1532,7 @@ static void TermVideo(void)
    updating it until it's unlocked */
 static void LockTexture(void)
 {
-#ifdef EGL_BRCM_image_update_control
+#if EGL_BRCM_image_update_control
    if (s_eglImageUpdateParameteriBRCM)
    {
       s_eglImageUpdateParameteriBRCM(eglGetCurrentDisplay(), eglImages[current_tex],
@@ -1515,7 +1546,7 @@ static void LockTexture(void)
    update it */
 static void UnlockTexture(void)
 {
-#ifdef EGL_BRCM_image_update_control
+#if EGL_BRCM_image_update_control
    if (s_eglImageUpdateParameteriBRCM)
    {
       s_eglImageUpdateParameteriBRCM(eglGetCurrentDisplay(), eglImages[current_tex],
@@ -1528,7 +1559,7 @@ static void UnlockTexture(void)
 /* This tells the 3D driver that a portion (or all) of the texture has been modified */
 static void SetUpdatedTextureRegion(uint32_t x, uint32_t y, uint32_t w, uint32_t h)
 {
-#ifdef EGL_BRCM_image_update_control
+#if EGL_BRCM_image_update_control
    if (s_eglImageUpdateParameterivBRCM)
    {
       EGLint rect[4];
@@ -1572,7 +1603,7 @@ static void UpdateVideoTexture(void)
       /*Lock the destination buffer for writing. This might take some time if the 3D core is using it right now.*/
       LockTexture();
 
-#ifndef EGL_BRCM_image_update_control
+#if !EGL_BRCM_image_update_control
       current_tex++;
 
       if (current_tex >= NUM_TEX)
@@ -1630,6 +1661,7 @@ static bool ProcessArgs(int argc, const char *argv[], AppConfig *config)
    config->clientId             = 0;
    config->swapInterval         = 1;
    config->showbackgroundvideo  = false;
+   config->secure               = false;
 
    for (a = 1; a < argc; ++a)
    {
@@ -1687,6 +1719,8 @@ static bool ProcessArgs(int argc, const char *argv[], AppConfig *config)
          if (sscanf(arg, "t=%dx%d", &config->texW, &config->texH) != 2)
             return false;
       }
+      else if (strcmp(arg, "+secure") == 0)
+         config->secure = true;
       else
       {
          return false;
@@ -1702,7 +1736,7 @@ static bool ProcessArgs(int argc, const char *argv[], AppConfig *config)
 
 void Usage(const char *progname)
 {
-   fprintf(stderr, "Usage: %s video=<filename> [+backgroundvideo] [+m] [+p] [+s] [+fps] [+bench] [d=WxH] [o=XxY] [swap=N] [bpp=16/24/32] [f=frames] [t=WxH]\n", progname);
+   fprintf(stderr, "Usage: %s video=<filename> [+backgroundvideo] [+m] [+p] [+s] [+fps] [+bench] [d=WxH] [o=XxY] [swap=N] [bpp=16/24/32] [f=frames] [t=WxH] [+secure]\n", progname);
 }
 
 int CLIENT_MAIN(int argc, const char** argv)
@@ -1717,6 +1751,12 @@ int CLIENT_MAIN(int argc, const char** argv)
       Usage(progname);
       return 0;
    }
+
+#ifndef EGL_PROTECTED_CONTENT_EXT
+   if (config.secure)
+      printf("+secure selected, but headers not available in this driver version. defaulting off\n");
+   config.secure = false;
+#endif
 
    if (config.benchmark)
    {
@@ -1734,7 +1774,7 @@ int CLIENT_MAIN(int argc, const char** argv)
    {
       /* Setup the local state for this demo */
       InitGLExtensions();
-      InitVideo();
+      InitVideo(config.secure);
 
       InitGLState();
       InitGLViewPort(config.vpW, config.vpH, panelAspect, config.stretchToFit);

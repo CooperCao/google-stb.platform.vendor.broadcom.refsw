@@ -1,23 +1,40 @@
-/***************************************************************************
- *     Copyright (c) 2003-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ *  Except as expressly set forth in the Authorized License,
  *
- * Module Description:
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * Revision History:
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- *
- ***************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ ******************************************************************************/
 
 #include "bstd.h"
 #include "bchp.h"
@@ -49,7 +66,7 @@ BDBG_MODULE(bmxt_fe);
 #define STEP(res) (handle->platform.stepsize[res])
 #define EXIST(reg) (handle->platform.regoffsets[reg] != BMXT_NOREG)
 
-const char* const BMXT_CHIP_STR[] = {"3128", "3158", "3383", "3384", "3472", "4517", "4528", "4538", "4548", "45216", "45308", "7145", "7366", "7364"};
+const char* const BMXT_CHIP_STR[] = {"3128", "3158", "3383", "3384", "3390", "3472", "4517", "4528", "4538", "4548", "45216", "45308", "7145", "7366", "7364"};
 const char* const BMXT_PLATFORM_TYPE_STR[] = {"HAB", "RPC", "REG"};
 
 #define VIRTUAL_HANDLE_REG_OFFSET 0x80000000 /* hard-coded for now */
@@ -160,7 +177,7 @@ static BERR_Code BMXT_Open_PreOpen(BMXT_Handle *pHandle, BCHP_Handle hChp, BREG_
 
     BDBG_CASSERT(sizeof(BMXT_CHIP_STR)/sizeof(*BMXT_CHIP_STR)==BMXT_Chip_eMax);
     BDBG_MSG(("Open: %p, platform %s (%u), type %s, regbase 0x%08x",
-        mxt, BMXT_CHIP_STR[mxt->settings.chip], mxt->settings.chip, BMXT_PLATFORM_TYPE_STR[mxt->platform.type], mxt->platform.regbase));
+        (void*)mxt, BMXT_CHIP_STR[mxt->settings.chip], mxt->settings.chip, BMXT_PLATFORM_TYPE_STR[mxt->platform.type], mxt->platform.regbase));
     BDBG_MSG(("Open: resources: %u %u %u %u %u",
         mxt->platform.num[BMXT_RESOURCE_IB0_CTRL], mxt->platform.num[BMXT_RESOURCE_MINI_PID_PARSER0_CTRL1],
         mxt->platform.num[BMXT_RESOURCE_TSMF0_CTRL], mxt->platform.num[BMXT_RESOURCE_MTSIF_RX0_CTRL1], mxt->platform.num[BMXT_RESOURCE_MTSIF_TX0_CTRL1]));
@@ -288,7 +305,7 @@ static void BMXT_Open_PostOpen(BMXT_Handle mxt)
         for (i=0; i<mxt->platform.num[BMXT_RESOURCE_IB0_CTRL]; i++) {
             BMXT_GetInputBandConfig(mxt, i, &ibConfig);
             ibConfig.DssMode = false;
-            BMXT_GetInputBandConfig(mxt, i, &ibConfig);
+            BMXT_SetInputBandConfig(mxt, i, &ibConfig);
         }
     }
 
@@ -593,7 +610,7 @@ BERR_Code BMXT_SetParserConfig(BMXT_Handle handle, unsigned parserNum, const BMX
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
     if (pConfig->mtsifTxSelect >= handle->platform.num[BMXT_RESOURCE_MTSIF_TX0_CTRL1]) {
-        BDBG_ERR(("SetParserConfig%u: MTSIF_TX %lu is out of range!", parserNum, pConfig->mtsifTxSelect));
+        BDBG_ERR(("SetParserConfig%u: MTSIF_TX %u is out of range!", parserNum, pConfig->mtsifTxSelect));
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
     if (pConfig->virtualParserNum >= BMXT_MAX_NUM_PARSERS) { /* sanity check */
@@ -614,6 +631,17 @@ BERR_Code BMXT_SetParserConfig(BMXT_Handle handle, unsigned parserNum, const BMX
     BCHP_SET_FIELD_DATA(Reg, DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL1, PARSER_INPUT_SEL_MSB, (pConfig->InputBandNumber > PARSER_INPUT_SEL_MASK) ? 1 : 0);
     BCHP_SET_FIELD_DATA(Reg, DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL1, PARSER_INPUT_SEL, (pConfig->InputBandNumber & PARSER_INPUT_SEL_MASK));
     BCHP_SET_FIELD_DATA(Reg, DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL1, PARSER_ENABLE, pConfig->Enable ? 1 : 0);
+
+    /* PARSER_ENABLE workaround */
+    if ((handle->settings.chip==BMXT_Chip_e45308) && (handle->settings.chipRev<BMXT_ChipRev_eC0)) {
+        if (!pConfig->Enable) {
+            unsigned unusedInputBandNumber = 20;
+            BCHP_SET_FIELD_DATA(Reg, DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL1, PARSER_ENABLE, 1);
+            BCHP_SET_FIELD_DATA(Reg, DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL1, PARSER_INPUT_SEL_MSB, (unusedInputBandNumber > PARSER_INPUT_SEL_MASK) ? 1 : 0);
+            BCHP_SET_FIELD_DATA(Reg, DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL1, PARSER_INPUT_SEL, (unusedInputBandNumber & PARSER_INPUT_SEL_MASK));
+        }
+    }
+
     BMXT_RegWrite32(handle, RegAddr, Reg);
 
     if (BMXT_IS_45308_FAMILY()) {
@@ -721,6 +749,7 @@ BERR_Code BMXT_SetParserConfig(BMXT_Handle handle, unsigned parserNum, const BMX
 }
 #endif
 
+#if 0 /* PARSER_VERSION feature disabled for now */
     if (!rc && BMXT_IS_45308_FAMILY()) {
         /* increment PARSER_VERSION *after* changing config, regardless of whether we enable or disable parser */
         unsigned parserVersion;
@@ -734,6 +763,7 @@ BERR_Code BMXT_SetParserConfig(BMXT_Handle handle, unsigned parserNum, const BMX
         /* TODO: implement DROP_TILL_LAST feature, once available.
            don't bother using DATA_RDY, since we're not that dependent on speed */
     }
+#endif
 
 done:
     BDBG_MSG(("SetParserConfig%u: enable%u, IB%2u, BAND_ID%2u, MTSIF%u, DSS%u", parserNum, pConfig->Enable, pConfig->InputBandNumber, pConfig->virtualParserNum, pConfig->mtsifTxSelect, pConfig->DssMode));
@@ -760,7 +790,7 @@ BERR_Code BMXT_GetInputBandConfig(BMXT_Handle handle, unsigned bandNum, BMXT_Inp
     BDBG_ASSERT(pConfig);
 
     if (bandNum>=handle->platform.num[BMXT_RESOURCE_IB0_CTRL]) {
-        BDBG_ERR(("BandNum %lu is out of range!", bandNum));
+        BDBG_ERR(("BandNum %u is out of range!", bandNum));
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
@@ -771,6 +801,7 @@ BERR_Code BMXT_GetInputBandConfig(BMXT_Handle handle, unsigned bandNum, BMXT_Inp
     pConfig->ParallelInputSel = BCHP_GET_FIELD_DATA(Reg, DEMOD_XPT_FE_IB0_CTRL, IB_PARALLEL_INPUT_SEL);
     if (BMXT_IS_45308_FAMILY()) {
         pConfig->streamIdExtractEn = BCHP_GET_FIELD_DATA(Reg, DEMOD_XPT_FE_IB0_CTRL, STREAM_ID_EXTRACT_EN);
+        pConfig->packetEndDetectEn = BCHP_GET_FIELD_DATA(Reg, DEMOD_XPT_FE_IB0_CTRL, PKT_END_DETECT_EN);
     }
 
     return BERR_SUCCESS;
@@ -782,7 +813,7 @@ BERR_Code BMXT_SetInputBandConfig(BMXT_Handle handle, unsigned bandNum, const BM
     BDBG_ASSERT(pConfig);
 
     if (bandNum>=handle->platform.num[BMXT_RESOURCE_IB0_CTRL]) {
-        BDBG_ERR(("BandNum %lu is out of range!", bandNum));
+        BDBG_ERR(("BandNum %u is out of range!", bandNum));
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
@@ -790,10 +821,23 @@ BERR_Code BMXT_SetInputBandConfig(BMXT_Handle handle, unsigned bandNum, const BM
     Reg = BMXT_RegRead32(handle, RegAddr);
     BCHP_SET_FIELD_DATA(Reg, DEMOD_XPT_FE_IB0_CTRL, IB_PKT_LENGTH, pConfig->DssMode ? 130 : 188);
     BCHP_SET_FIELD_DATA(Reg, DEMOD_XPT_FE_IB0_CTRL, IB_PARALLEL_INPUT_SEL, pConfig->ParallelInputSel ? 1 : 0);
-
     if (BMXT_IS_45308_FAMILY()) {
         BCHP_SET_FIELD_DATA(Reg, DEMOD_XPT_FE_IB0_CTRL, STREAM_ID_EXTRACT_EN, pConfig->streamIdExtractEn ? 1 : 0);
+        BCHP_SET_FIELD_DATA(Reg, DEMOD_XPT_FE_IB0_CTRL, PKT_END_DETECT_EN, pConfig->packetEndDetectEn ? 1 : 0);
     }
+
+    /* SWSTB-1353: C7 syncbyte corruption workaround */
+    switch (handle->settings.chip) {
+        case BMXT_Chip_e7366:
+        case BMXT_Chip_e7364:
+        case BMXT_Chip_e45216:
+        case BMXT_Chip_e45308:
+        case BMXT_Chip_e4538:
+        case BMXT_Chip_e4548:
+            BCHP_SET_FIELD_DATA(Reg, DEMOD_XPT_FE_IB0_CTRL, IB_ERROR_INPUT_EN, 1); break;
+        default: break;
+    }
+
     BMXT_RegWrite32(handle, RegAddr, Reg);
 
     return BERR_SUCCESS;
@@ -835,7 +879,7 @@ BERR_Code BMXT_TSMF_GetFldVerifyConfig(BMXT_Handle handle, unsigned tsmfNum, BMX
     BERR_Code rc = BERR_SUCCESS;
 
     if (tsmfNum>=handle->platform.num[BMXT_RESOURCE_TSMF0_CTRL]) {
-        BDBG_ERR(("TSMFNum %lu is out of range!", tsmfNum));
+        BDBG_ERR(("TSMFNum %u is out of range!", tsmfNum));
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
@@ -863,7 +907,7 @@ BERR_Code BMXT_TSMF_SetFldVerifyConfig(BMXT_Handle handle, unsigned tsmfNum, con
     BERR_Code rc = BERR_SUCCESS;
 
     if (tsmfNum>=handle->platform.num[BMXT_RESOURCE_TSMF0_CTRL]) {
-        BDBG_ERR(("TSMFNum %lu is out of range!", tsmfNum));
+        BDBG_ERR(("TSMFNum %u is out of range!", tsmfNum));
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
@@ -892,7 +936,7 @@ BERR_Code BMXT_TSMF_EnableAutoMode(BMXT_Handle handle, BMXT_TSMFInputSel input, 
     BERR_Code rc = BERR_SUCCESS;
     BDBG_MSG(("TSMF_EnableAutoMode: IB%u -> TSMF%u, rel%u", input, tsmfNum, relativeTsNum));
     if (tsmfNum>=handle->platform.num[BMXT_RESOURCE_TSMF0_CTRL]) {
-        BDBG_ERR(("TSMFNum %lu is out of range!", tsmfNum));
+        BDBG_ERR(("TSMFNum %u is out of range!", tsmfNum));
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
@@ -912,7 +956,7 @@ BERR_Code BMXT_TSMF_EnableSemiAutoMode(BMXT_Handle handle, BMXT_TSMFInputSel inp
     uint32_t Reg, RegAddr, RegOffset;
     BERR_Code rc = BERR_SUCCESS;
     if (tsmfNum>=handle->platform.num[BMXT_RESOURCE_TSMF0_CTRL]) {
-        BDBG_ERR(("TSMFNum %lu is out of range!", tsmfNum));
+        BDBG_ERR(("TSMFNum %u is out of range!", tsmfNum));
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
     BDBG_MSG(("TSMF_EnableSemiAutoMode: IB%u -> TSMF%u, slot%u:%u, rel%u", input, tsmfNum, slotMapLo, slotMapHi, relativeTsNum));
@@ -938,7 +982,7 @@ BERR_Code BMXT_TSMF_DisableTsmf(BMXT_Handle handle, unsigned tsmfNum)
     BERR_Code rc = BERR_SUCCESS;
     BDBG_MSG(("TSMF_DisableTsmf: TSMF%u", tsmfNum));
     if (tsmfNum>=handle->platform.num[BMXT_RESOURCE_TSMF0_CTRL]) {
-        BDBG_ERR(("TSMFNum %lu is out of range!", tsmfNum));
+        BDBG_ERR(("TSMFNum %u is out of range!", tsmfNum));
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
@@ -1036,7 +1080,7 @@ BERR_Code BMXT_Tbg_GetParserConfig(BMXT_Handle handle, unsigned parserNum, BMXT_
     BDBG_ASSERT(pConfig);
 
     if (parserNum >= handle->platform.num[BMXT_RESOURCE_MINI_PID_PARSER0_TB_CTRL1]) {
-        BDBG_ERR(("ParserNum %lu is out of range!", parserNum));
+        BDBG_ERR(("ParserNum %u is out of range!", parserNum));
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
@@ -1056,7 +1100,7 @@ BERR_Code BMXT_Tbg_SetParserConfig(BMXT_Handle handle, unsigned parserNum, const
     BDBG_ASSERT(pConfig);
 
     if (parserNum >= handle->platform.num[BMXT_RESOURCE_MINI_PID_PARSER0_TB_CTRL1]) {
-        BDBG_ERR(("ParserNum %lu is out of range!", parserNum));
+        BDBG_ERR(("ParserNum %u is out of range!", parserNum));
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 

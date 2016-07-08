@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2011-2014 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #include "nexus_surface_compositor_module.h"
@@ -72,7 +64,7 @@ void NEXUS_SurfaceCompositorModule_P_Print(void)
         for (i=0;i<NEXUS_MAX_DISPLAYS;i++) {
             struct NEXUS_SurfaceCompositorDisplay *display = server->display[i];
             if (display && display->display) {
-                BDBG_LOG(("display %d: %p, %dx%d, %d compositions, %d fills", display->index, (void *)display->display, display->formatInfo.canvas.width, display->formatInfo.canvas.height,
+                BDBG_LOG(("display %d: %p, canvas %dx%d, %d compositions, %d fills", display->index, (void *)display->display, display->formatInfo.canvas.width, display->formatInfo.canvas.height,
                     display->stats.compose, display->stats.fill));
             }
         }
@@ -144,7 +136,6 @@ void NEXUS_SurfaceCompositorModule_P_Print(void)
 #endif
 }
 
-static NEXUS_Error nexus_surfaceclient_p_update_display_cache(NEXUS_SurfaceClientHandle client, bool force);
 static void nexus_surface_compositor_p_dealloc_displays(NEXUS_SurfaceCompositorHandle server);
 static void nexus_p_surface_compositor_update_all_clients(NEXUS_SurfaceCompositorHandle server, unsigned flags);
 static void nexus_surface_compositor_p_update_dirty_client(NEXUS_SurfaceClientHandle client);
@@ -215,12 +206,29 @@ static void nexus_surface_compositor_p_destroy_display(struct NEXUS_SurfaceCompo
     BKNI_Free(display);
 }
 
+static NEXUS_Error nexus_p_open_blitter(NEXUS_SurfaceCompositorHandle server, bool secure)
+{
+    NEXUS_Graphics2DOpenSettings settings;
+    NEXUS_Graphics2DSettings gfxSettings;
+    int rc;
+    BDBG_ASSERT(!server->gfx);
+    NEXUS_Graphics2D_GetDefaultOpenSettings(&settings);
+    settings.secure = secure;
+    server->gfx = NEXUS_Graphics2D_Open(0, &settings);
+    if (!server->gfx) return BERR_TRACE(NEXUS_UNKNOWN);
+    NEXUS_Graphics2D_GetSettings(server->gfx, &gfxSettings);
+    NEXUS_CallbackHandler_PrepareCallback(server->checkpointCallback, gfxSettings.checkpointCallback);
+    NEXUS_CallbackHandler_PrepareCallback(server->packetSpaceAvailableCallback, gfxSettings.packetSpaceAvailable);
+    rc = NEXUS_Graphics2D_SetSettings(server->gfx, &gfxSettings);
+    if (rc) return BERR_TRACE(rc);
+    return NEXUS_SUCCESS;
+}
+
 NEXUS_SurfaceCompositorHandle NEXUS_SurfaceCompositor_Create( unsigned server_id )
 {
     NEXUS_SurfaceCompositorHandle server;
     NEXUS_Error rc;
     unsigned i;
-    NEXUS_Graphics2DSettings gfxSettings;
 
     server = BKNI_Malloc(sizeof(*server));
     if (!server) {
@@ -250,26 +258,15 @@ NEXUS_SurfaceCompositorHandle NEXUS_SurfaceCompositor_Create( unsigned server_id
         goto error;
     }
 
-    server->gfx = NEXUS_Graphics2D_Open(0, NULL);
-    if (!server->gfx) {
-        BERR_TRACE(NEXUS_UNKNOWN);
-        goto error;
-    }
-    server->state.update_flags = 0;
-    NEXUS_Graphics2D_GetCapabilities(server->gfx, &server->bounceBuffer.capabilities);
-    NEXUS_Graphics2D_GetSettings(server->gfx, &gfxSettings);
-
     NEXUS_CallbackHandler_Init(server->packetSpaceAvailableCallback, nexus_surface_compositor_p_packetspaceavailable, server);
     NEXUS_CallbackHandler_Init(server->checkpointCallback, nexus_surface_compositor_p_checkpoint, server);
-
-    NEXUS_CallbackHandler_PrepareCallback(server->checkpointCallback, gfxSettings.checkpointCallback);
-    NEXUS_CallbackHandler_PrepareCallback(server->packetSpaceAvailableCallback, gfxSettings.packetSpaceAvailable);
-
-    rc = NEXUS_Graphics2D_SetSettings(server->gfx, &gfxSettings);
+    rc = nexus_p_open_blitter(server, false);
     if (rc) {
         rc = BERR_TRACE(rc);
         goto error;
     }
+    server->state.update_flags = 0;
+    NEXUS_Graphics2D_GetCapabilities(server->gfx, &server->bounceBuffer.capabilities);
 
     for (i=0;i<NEXUS_MAX_DISPLAYS;i++) {
         /* default settings per display */
@@ -555,13 +552,89 @@ NEXUS_Error nexus_surface_compositor_p_realloc_framebuffers(NEXUS_SurfaceComposi
     return NEXUS_SUCCESS;
 }
 
+#define COPY_STRUCT_FIELD(TO, FROM, FIELD) do {if ((TO)->FIELD != (FROM)->FIELD) { (TO)->FIELD = (FROM)->FIELD; change = true; }}while(0)
+
+static NEXUS_Error nexus_surface_compositor_p_update_graphics_settings( NEXUS_SurfaceCompositorHandle server, const NEXUS_SurfaceCompositorSettings *pSettings )
+{
+    unsigned i;
+    NEXUS_Error rc;
+    BSTD_UNUSED(server);
+    for (i=0;i<NEXUS_MAX_DISPLAYS;i++) {
+        NEXUS_GraphicsSettings graphicsSettings;
+        bool change = false;
+        if (!pSettings->display[i].display) continue;
+        NEXUS_Display_GetGraphicsSettings(pSettings->display[i].display, &graphicsSettings);
+        /* update only those members which NSC does not calculate */
+        COPY_STRUCT_FIELD(&graphicsSettings, &pSettings->display[i].graphicsSettings, horizontalFilter);
+        COPY_STRUCT_FIELD(&graphicsSettings, &pSettings->display[i].graphicsSettings, verticalFilter);
+        COPY_STRUCT_FIELD(&graphicsSettings, &pSettings->display[i].graphicsSettings, horizontalCoeffIndex);
+        COPY_STRUCT_FIELD(&graphicsSettings, &pSettings->display[i].graphicsSettings, verticalCoeffIndex);
+        COPY_STRUCT_FIELD(&graphicsSettings, &pSettings->display[i].graphicsSettings, alpha);
+        if (change) {
+            rc = NEXUS_Display_SetGraphicsSettings(pSettings->display[i].display, &graphicsSettings);
+            if (rc) return BERR_TRACE(rc);
+        }
+    }
+    return 0;
+}
+
+static bool nexus_p_is_secure_heap(NEXUS_HeapHandle heap)
+{
+    NEXUS_MemoryStatus status;
+    NEXUS_Heap_GetStatus_driver(heap, &status);
+    return status.memoryType & NEXUS_MEMORY_TYPE_SECURE && !(status.memoryType & NEXUS_MEMORY_TYPE_SECURE_OFF);
+}
+
+static void nexus_surfacemp_p_release_all_display_framebuffers(NEXUS_SurfaceCompositorHandle server)
+{
+    unsigned i;
+    for (i=0;i<NEXUS_MAX_DISPLAYS;i++) {
+        if (server->display[i]) {
+            nexus_surfacemp_p_release_display_framebuffers(server->display[i]);
+        }
+    }
+}
+
+static NEXUS_Error nexus_p_switch_secure(NEXUS_SurfaceCompositorHandle server, bool secure)
+{
+    NEXUS_SurfaceClientHandle client;
+    int rc;
+    struct NEXUS_SurfaceCompositorDisplay *cmpDisplay = server->display[0];
+
+    if (!cmpDisplay) return -1;
+
+    BDBG_MSG(("GFD0 secure %u -> %u", !secure, secure));
+    nexus_surfacemp_p_release_all_display_framebuffers(server);
+    if (server->bounceBufferMasterFramebuffer.buffer) {
+        NEXUS_Surface_Destroy(server->bounceBufferMasterFramebuffer.buffer);
+        server->bounceBufferMasterFramebuffer.buffer = NULL;
+    }
+    NEXUS_Graphics2D_Close(server->gfx);
+    server->gfx = NULL;
+    rc = nexus_p_open_blitter(server, secure);
+    if (rc) return BERR_TRACE(rc);
+    for (client=BLST_Q_FIRST(&server->clients); client; client = BLST_Q_NEXT(client, link)) {
+        NEXUS_SurfaceClient_Clear(client);
+    }
+
+    return NEXUS_SUCCESS;
+}
+
 static NEXUS_Error nexus_surface_compositor_p_update_display( NEXUS_SurfaceCompositorHandle server, const NEXUS_SurfaceCompositorSettings *pSettings )
 {
     unsigned i;
     NEXUS_GraphicsSettings graphicsSettings;
     NEXUS_Error rc;
+    bool secureFramebuffer;
 
     BDBG_ASSERT(!server->state.active);
+
+    secureFramebuffer = nexus_p_is_secure_heap(pSettings->display[0].framebuffer.heap);
+
+    if (secureFramebuffer != server->secureFramebuffer) {
+        rc = nexus_p_switch_secure(server, secureFramebuffer);
+        if (rc) {BERR_TRACE(rc); goto err_switch_secure;}
+    }
 
     for (i=0;i<NEXUS_MAX_DISPLAYS;i++) {
         struct NEXUS_SurfaceCompositorDisplay *cmpDisplay = server->display[i];
@@ -576,7 +649,8 @@ static NEXUS_Error nexus_surface_compositor_p_update_display( NEXUS_SurfaceCompo
             /* try to create new display */
             cmpDisplay = nexus_surface_compositor_p_create_display(server);
             if(cmpDisplay==NULL) {
-                return BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+                rc = BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+                goto err_create_display;
             }
             server->display[i] = cmpDisplay;
         }
@@ -590,7 +664,8 @@ static NEXUS_Error nexus_surface_compositor_p_update_display( NEXUS_SurfaceCompo
             if (pSettings->display[i].framebuffer.number > NEXUS_SURFACECMP_MAX_FRAMEBUFFERS ||
                 pSettings->display[i].framebuffer.number < 1)
             {
-                return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+                rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+                goto err_create_display;
             }
             cmpDisplay->num_framebuffers = pSettings->display[i].framebuffer.number;
 
@@ -710,7 +785,7 @@ static NEXUS_Error nexus_surface_compositor_p_update_display( NEXUS_SurfaceCompo
                 nexus_surfacemp_p_release_display_3dframebuffers(cmpDisplay);
             }
 
-            if(i==0 && pSettings->display[i].framebuffer.pixelFormat==NEXUS_PixelFormat_eCompressed_A8_R8_G8_B8) {
+            if(i==0 && pSettings->display[i].framebuffer.pixelFormat==NEXUS_PixelFormat_eCompressed_A8_R8_G8_B8 && !server->bounceBufferMasterFramebuffer.buffer) {
                 NEXUS_SurfaceCreateSettings createSettings;
                 NEXUS_Surface_GetDefaultCreateSettings(&createSettings);
                 createSettings.width = pSettings->display[i].framebuffer.width;
@@ -732,6 +807,9 @@ static NEXUS_Error nexus_surface_compositor_p_update_display( NEXUS_SurfaceCompo
             }
 
             NEXUS_CallbackHandler_PrepareCallback(cmpDisplay->frameBufferCallback, graphicsSettings.frameBufferCallback);
+            if (i == 0) {
+                graphicsSettings.secure = secureFramebuffer;
+            }
             rc = NEXUS_Display_SetGraphicsSettings(pSettings->display[i].display, &graphicsSettings);
             if (rc) {
                 rc = BERR_TRACE(rc);
@@ -756,23 +834,27 @@ static NEXUS_Error nexus_surface_compositor_p_update_display( NEXUS_SurfaceCompo
     }
 
     server->settings = *pSettings;
+    server->secureFramebuffer = secureFramebuffer;
 
     rc = nexus_surface_compositor_p_verify_tunnel(server);
-    if (rc) return BERR_TRACE(rc);
+    if (rc) {
+        rc = BERR_TRACE(rc);
+        /* TODO: does not unwind server->settings. */
+        goto err_verify_tunnel;
+    }
 
     nexus_p_surface_compositor_update_all_clients(server, NEXUS_P_SURFACECLIENT_UPDATE_DISPLAY);
 
     return 0;
 
+err_verify_tunnel:
 error:
-    /* destroy all framebuffers that were created */
-    for (i=0;i<NEXUS_MAX_DISPLAYS;i++) {
-        struct NEXUS_SurfaceCompositorDisplay *cmpDisplay = server->display[i];
-        if(cmpDisplay==NULL) {
-            continue;
-        }
-        nexus_surfacemp_p_release_display_framebuffers(cmpDisplay);
+    nexus_surfacemp_p_release_all_display_framebuffers(server);
+err_create_display:
+    if (secureFramebuffer != server->secureFramebuffer) {
+        nexus_p_switch_secure(server, server->secureFramebuffer);
     }
+err_switch_secure:
     return rc;
 }
 
@@ -793,6 +875,7 @@ static void nexus_surface_compositor_inactive_timer(void *context)
             }
             if (client->pending_displayed_callback) {
                 client->pending_displayed_callback = false;
+                client->process_pending_displayed_callback = false;
                 NEXUS_TaskCallback_Fire(client->displayedCallback);
             }
         }
@@ -853,6 +936,9 @@ NEXUS_Error NEXUS_SurfaceCompositor_SetSettings( NEXUS_SurfaceCompositorHandle s
                 break;
             }
         }
+        rc = nexus_surface_compositor_p_update_graphics_settings(server, pSettings);
+        if (rc) return BERR_TRACE(rc);
+
         /* if active, the only possible change is the enabled flag. */
         server->settings = *pSettings;
 
@@ -1111,68 +1197,6 @@ void nexus_surfacemp_scale_clipped_rect(const NEXUS_Rect *pSrcRect, const NEXUS_
     }
 
     return;
-}
-
-/* NOTE: displayCache is deprecated */
-static void nexus_surfaceclient_p_realloc_display_cache(NEXUS_SurfaceClientHandle client)
-{
-    struct NEXUS_SurfaceCompositorDisplay *cmpDisplay;
-    bool required;
-    NEXUS_PixelFormat framebufferFormat;
-
-    BDBG_OBJECT_ASSERT(client, NEXUS_SurfaceClient);
-    BDBG_OBJECT_ASSERT(client->server, NEXUS_SurfaceCompositor);
-
-    cmpDisplay = client->server->display[0];
-    framebufferFormat = client->server->settings.display[0].framebuffer.pixelFormat;
-    required = cmpDisplay->display && client->serverSettings.composition.displayCache && client->state.client_type == client_type_set;
-    if(client->state.cache.surface) {
-        if(!required ||  !(client->state.framebufferRect.width == client->state.cache.width) || (client->state.framebufferRect.height == client->state.cache.height) || (client->state.cache.format == framebufferFormat)) {
-            NEXUS_Surface_Destroy(client->state.cache.surface);
-            client->state.cache.surface = NULL;
-        }
-    }
-    if(required && client->state.cache.surface==NULL) {
-        NEXUS_SurfaceCreateSettings createSettings;
-        NEXUS_Surface_GetDefaultCreateSettings(&createSettings);
-        createSettings.width = client->state.framebufferRect.width;
-        createSettings.height = client->state.framebufferRect.height;
-        createSettings.pixelFormat = framebufferFormat;
-
-        BDBG_MSG_TRACE(("create display cache [%p] %dx%d -> %dx%d", (void *)client,
-            client->set.serverCreateSettings.width, client->set.serverCreateSettings.height,
-            createSettings.width, createSettings.height));
-        client->state.cache.surface = NEXUS_Surface_Create(&createSettings);
-        client->state.cache.needs_update = true;
-    }
-    return ;
-}
-
-static NEXUS_Error nexus_surfaceclient_p_update_display_cache(NEXUS_SurfaceClientHandle client, bool force)
-{
-    NEXUS_Graphics2DBlitSettings *pBlitSettings = &client->server->renderState.blitSettings;
-    NEXUS_Error rc;
-
-    BDBG_OBJECT_ASSERT(client, NEXUS_SurfaceClient);
-    if (!client->serverSettings.composition.displayCache || !client->set.serverSurface) {
-        return 0;
-    }
-
-    NEXUS_Graphics2D_GetDefaultBlitSettings(pBlitSettings);
-    if (client->state.cache.surface) {
-        if (force || client->state.cache.needs_update) {
-            pBlitSettings->source.surface = client->set.serverSurface;
-            pBlitSettings->output.surface = client->state.cache.surface;
-            /* always a full-surface blit to update the display cache */
-            BDBG_MSG_TRACE(("blit [%p] to display.cache.surface %p->%p", (void *)client,
-                (void *)pBlitSettings->source.surface, (void *)pBlitSettings->output.surface));
-            rc = NEXUS_Graphics2D_Blit(client->server->gfx, pBlitSettings);
-            if (rc) return BERR_TRACE(rc);
-
-            client->state.cache.needs_update = false;
-        }
-    }
-    return NEXUS_SUCCESS;
 }
 
 NEXUS_Error nexus_surface_compositor_p_verify_tunnel(NEXUS_SurfaceCompositorHandle server)
@@ -1842,7 +1866,6 @@ static void nexus_surface_compositor_p_update_dirty_client(NEXUS_SurfaceClientHa
         in the packetSpaceAvailable callback, resume work.
         }
    */
-    rc = nexus_surfaceclient_p_update_display_cache(client, false);
     client->set.updating = true;
     return;
 }
@@ -1934,7 +1957,6 @@ static void nexus_p_surface_compositor_update_single_client(NEXUS_SurfaceClientH
             }
         }
 
-        nexus_surfaceclient_p_realloc_display_cache(client);
         if(!client->serverSettings.composition.visible || client->state.client_type == client_type_idle ||
                 ((client->state.client_type == client_type_tunnel || client->state.client_type == client_type_tunnel_emulated)&& !client->tunnel.visible) ) {
             client->state.left.visible = false;
@@ -2020,17 +2042,21 @@ NEXUS_Error NEXUS_SurfaceCompositor_GetStatus( NEXUS_SurfaceCompositorHandle ser
         }
     }
 
+    return 0;
+}
+
+NEXUS_Error NEXUS_SurfaceCompositor_GetCurrentFramebuffer( NEXUS_SurfaceCompositorHandle server, NEXUS_SurfaceHandle *pSurface )
+{
     if (server->display[0]) {
         unsigned i;
-        for (i=0;i<server->display[0]->num_framebuffers && sizeof(pStatus->display[0].framebuffer)/sizeof(pStatus->display[0].framebuffer[0]);i++) {
-            pStatus->display[0].framebuffer[i] = server->display[0]->framebuffer[i].surface;
+        for (i=0;i<server->display[0]->num_framebuffers;i++) {
             if ((&server->display[0]->framebuffer[i] == server->display[0]->displaying)) {
-                pStatus->display[0].currentFramebuffer = i;
+                *pSurface = server->display[0]->framebuffer[i].surface;
+                return NEXUS_SUCCESS;
             }
         }
     }
-
-    return 0;
+    return BERR_TRACE(NEXUS_NOT_AVAILABLE);
 }
 
 void nexus_p_surface_compositor_check_inactive(NEXUS_SurfaceCompositorHandle server)

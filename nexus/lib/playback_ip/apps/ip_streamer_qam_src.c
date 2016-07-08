@@ -1,14 +1,14 @@
 /******************************************************************************
- *    (c)2008-2014 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
  * no license (express or implied), right to use, or waiver of any kind with respect to the
  * Software, and Broadcom expressly reserves all rights in and to the Software and all
  * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELYn
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
@@ -35,16 +35,8 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
  *  main test app for ip_streamer
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ******************************************************************************/
 #include <stdio.h>
@@ -240,7 +232,7 @@ qamLockCallback(void *context, int param)
             NEXUS_FrontendQamStatus qamStatus;
 
             if(NEXUS_Frontend_GetQamStatus(frontendHandle, &qamStatus) != NEXUS_SUCCESS ) {
-                BDBG_ERR(("%s: Failed to get QAM status, frontend %p", __FUNCTION__, frontendHandle));
+                BDBG_ERR(("%s: Failed to get QAM status, frontend %p", __FUNCTION__, (void *)frontendHandle));
                 return;
             }
             else
@@ -251,22 +243,22 @@ qamLockCallback(void *context, int param)
         }
         else
         {
-            BDBG_ERR(("%s: unrecognized NEXUS_Frontend_GetFastStatus, frontend %p", __FUNCTION__, frontendHandle));
+            BDBG_ERR(("%s: unrecognized NEXUS_Frontend_GetFastStatus, frontend %p", __FUNCTION__, (void *)frontendHandle));
             return;
         }
     }
     if (fastStatus.lockStatus == NEXUS_FrontendLockStatus_eLocked) {
-        BDBG_MSG(("%s: QAM frontent locked: frontend %p",  __FUNCTION__, frontendHandle));
+        BDBG_MSG(("%s: QAM frontent locked: frontend %p",  __FUNCTION__, (void *)frontendHandle));
         BKNI_SetEvent(qamSrc->signalLockedEvent);
     }
     else if (fastStatus.lockStatus == NEXUS_FrontendLockStatus_eUnlocked) {
-        BDBG_MSG(("%s: frontend %p is unlocked", __FUNCTION__, frontendHandle));
+        BDBG_MSG(("%s: frontend %p is unlocked", __FUNCTION__, (void *)frontendHandle));
     }
     else if (fastStatus.lockStatus == NEXUS_FrontendLockStatus_eNoSignal) {
-        BDBG_ERR(("%s: no signal at this freq for frontend %p", __FUNCTION__, frontendHandle));
+        BDBG_ERR(("%s: no signal at this freq for frontend %p", __FUNCTION__, (void *)frontendHandle));
     }
     else {
-        BDBG_ERR(("%s: unrecognized NEXUS_Frontend_GetFastStatus, frontend %p", __FUNCTION__, frontendHandle));
+        BDBG_ERR(("%s: unrecognized NEXUS_Frontend_GetFastStatus, frontend %p", __FUNCTION__, (void *)frontendHandle));
     }
 }
 
@@ -311,9 +303,9 @@ openNexusQamSrc(
                 /* if so, let that thread finish getting PSI and then proceed */
                 BKNI_ReleaseMutex(ipStreamerCtx->globalCtx->qamSrcMutex);
                 BKNI_ReleaseMutex(ipStreamerCtx->globalCtx->transcoderDstMutex);
-                BDBG_MSG(("CTX %p: Another thread is acquiring the PSI info, waiting for its completion...", ipStreamerCtx));
+                BDBG_MSG(("CTX %p: Another thread is acquiring the PSI info, waiting for its completion...", (void *)ipStreamerCtx));
                 if (BKNI_WaitForEvent(qamSrcList[i].psiAcquiredEvent, 30000)) {
-                    BDBG_WRN(("%s: CTX %p: timed out while waiting for other thread to finish acquiring PSI info...", __FUNCTION__, ipStreamerCtx));
+                    BDBG_WRN(("%s: CTX %p: timed out while waiting for other thread to finish acquiring PSI info...", __FUNCTION__, (void *)ipStreamerCtx));
                     rc = -1;
                 }
                 if (ipStreamerCfg->transcodeEnabled && qamSrcList[i].transcodeEnabled) {
@@ -386,7 +378,7 @@ openNexusQamSrc(
             }
         }
         BKNI_ReleaseMutex(qamSrc->lock);
-        BDBG_MSG(("CTX %p: Found a free Qam Frontend %p, index %d, qamSrc %p, use it for %dhz frequency, refCount %d", ipStreamerCtx, qamSrc->frontendHandle, frontendIndex, qamSrc, ipStreamerCfg->frequency, qamSrc->refCount));
+        BDBG_MSG(("CTX %p: Found a free Qam Frontend %p, index %d, qamSrc %p, use it for %dhz frequency, refCount %d", (void *)ipStreamerCtx, (void *)qamSrc->frontendHandle, frontendIndex, (void *)qamSrc, ipStreamerCfg->frequency, qamSrc->refCount));
     }
     BKNI_ReleaseMutex(ipStreamerCtx->globalCtx->qamSrcMutex);
     if (!qamSrc) {
@@ -439,13 +431,13 @@ openNexusQamSrc(
 #endif
         rc = NEXUS_ParserBand_SetSettings(parserBandPtr->parserBand, &parserBandSettings);
         if (rc) {
-            BDBG_ERR(("Failed to set the Nexus Parser band settings for band # %d", parserBandPtr->parserBand));
+            BDBG_ERR(("Failed to set the Nexus Parser band settings for band # %d", (int)parserBandPtr->parserBand));
             BKNI_ReleaseMutex(parserBandPtr->lock);
             goto error;
         }
     }
     else {
-        BDBG_MSG(("Nexus Parser band band # %d is already setup (ref cnt %d)", parserBandPtr->parserBand, parserBandPtr->refCount));
+        BDBG_MSG(("Nexus Parser band band # %d is already setup (ref cnt %d)", (int)parserBandPtr->parserBand, parserBandPtr->refCount));
     }
     parserBandPtr->refCount++;
     BKNI_ReleaseMutex(parserBandPtr->lock);
@@ -464,6 +456,8 @@ openNexusQamSrc(
 
         }
         else {
+            /* coverity[stack_use_local_overflow] */
+            /* coverity[stack_use_overflow] */
             if ((parserBandPtr->transcoderDst = openNexusTranscoderPipe(ipStreamerCfg, ipStreamerCtx)) == NULL) {
                 BDBG_ERR(("%s: Failed to open the transcoder pipe", __FUNCTION__));
                 goto error;
@@ -480,7 +474,7 @@ openNexusQamSrc(
         ipStreamerCtx->parserBandPtr = parserBandPtr;
     }
     BDBG_MSG(("CTX %p: QAM Frontend Src %p (ref count %d), Input Band %d & Parser Band %d (ref count %d) are opened",
-                ipStreamerCtx, qamSrc, qamSrc->refCount, userParams.param1, ipStreamerCtx->parserBandPtr->parserBand, ipStreamerCtx->parserBandPtr->refCount));
+                (void *)ipStreamerCtx, (void *)qamSrc, qamSrc->refCount, userParams.param1, (int)ipStreamerCtx->parserBandPtr->parserBand, ipStreamerCtx->parserBandPtr->refCount));
     if (ipStreamerCfg->transcodeEnabled) {
         BKNI_ReleaseMutex(ipStreamerCtx->globalCtx->transcoderDstMutex);
     }
@@ -801,7 +795,7 @@ closeNexusQamSrc(
         BKNI_AcquireMutex(ipStreamerCtx->parserBandPtr->lock);
         ipStreamerCtx->parserBandPtr->refCount--;
         BKNI_ReleaseMutex(ipStreamerCtx->parserBandPtr->lock);
-        BDBG_MSG(("CTX %p: Closed a parser band src %p, refCount %d", ipStreamerCtx, ipStreamerCtx->parserBandPtr, ipStreamerCtx->parserBandPtr->refCount));
+        BDBG_MSG(("CTX %p: Closed a parser band src %p, refCount %d", (void *)ipStreamerCtx, (void *)ipStreamerCtx->parserBandPtr, ipStreamerCtx->parserBandPtr->refCount));
     }
 
     if (!qamSrc || !qamSrc->refCount)
@@ -813,7 +807,7 @@ closeNexusQamSrc(
     if (qamSrc->psiAcquiredEvent)
         BKNI_ResetEvent(qamSrc->psiAcquiredEvent);
     BKNI_ReleaseMutex(qamSrc->lock);
-    BDBG_MSG(("CTX %p: Closed a qam src %p, refCount %d", ipStreamerCtx, qamSrc, qamSrc->refCount));
+    BDBG_MSG(("CTX %p: Closed a qam src %p, refCount %d", (void *)ipStreamerCtx, (void *)qamSrc, qamSrc->refCount));
 }
 
 /* Obtain PSI info */
@@ -840,7 +834,7 @@ setupAndAcquirePsiInfoQamSrc(
 
     if (qamSrc->numProgramsFound == 0) {
         /* PSI hasn't yet been acquired */
-        BDBG_MSG(("CTX %p: Acquire Psi Info...", ipStreamerCtx));
+        BDBG_MSG(("CTX %p: Acquire Psi Info...", (void *)ipStreamerCtx));
 
         /* get the PSI, this can take several seconds ... */
         acquirePsiInfo(&collectionData, &qamSrc->psi[0], &qamSrc->numProgramsFound);
@@ -856,7 +850,7 @@ setupAndAcquirePsiInfoQamSrc(
         }
     }
     else {
-        BDBG_MSG(("CTX %p: Psi Info is already acquired...", ipStreamerCtx));
+        BDBG_MSG(("CTX %p: Psi Info is already acquired...", (void *)ipStreamerCtx));
     }
 
     if (ipStreamerCfg->subChannel > qamSrc->numProgramsFound) {
@@ -864,7 +858,7 @@ setupAndAcquirePsiInfoQamSrc(
         i = 0;
     }
     else {
-        BDBG_MSG(("CTX %p: Requested sub-channel # (%d) is found in the total channels (%d) ", ipStreamerCtx, ipStreamerCfg->subChannel, qamSrc->numProgramsFound));
+        BDBG_MSG(("CTX %p: Requested sub-channel # (%d) is found in the total channels (%d) ", (void *)ipStreamerCtx, ipStreamerCfg->subChannel, qamSrc->numProgramsFound));
         i = ipStreamerCfg->subChannel - 1; /* sub-channels start from 1, where as psi table starts from 0 */
         if (i < 0) i = 0;
     }
@@ -881,11 +875,11 @@ startNexusQamSrc(
     QamSrc *qamSrc = ipStreamerCtx->qamSrc;
     int rc = -1;
 
-    BDBG_MSG(("%s: CTX %p: QAM Src %p, refCount %d", __FUNCTION__, ipStreamerCtx, qamSrc, qamSrc->refCount));
+    BDBG_MSG(("%s: CTX %p: QAM Src %p, refCount %d", __FUNCTION__, (void *)ipStreamerCtx, (void *)qamSrc, qamSrc->refCount));
 
     BKNI_AcquireMutex(qamSrc->lock);
     if (qamSrc->started) {
-        BDBG_MSG(("%s: CTX %p: QAM Src %p is already started, refCount %d", __FUNCTION__, ipStreamerCtx, qamSrc, qamSrc->refCount));
+        BDBG_MSG(("%s: CTX %p: QAM Src %p is already started, refCount %d", __FUNCTION__, (void *)ipStreamerCtx, (void *)qamSrc, qamSrc->refCount));
         rc = 0;
         goto out;
     }
@@ -894,20 +888,20 @@ startNexusQamSrc(
     BKNI_ResetEvent(qamSrc->signalLockedEvent);
     NEXUS_StartCallbacks(qamSrc->frontendHandle);
     if (NEXUS_Frontend_TuneQam(qamSrc->frontendHandle, &ipStreamerCtx->qamSettings) != NEXUS_SUCCESS) {
-        BDBG_WRN(("CTX %p: QAM Src %p Failed to Tune QAM Frontend", ipStreamerCtx, qamSrc));
+        BDBG_WRN(("CTX %p: QAM Src %p Failed to Tune QAM Frontend", (void *)ipStreamerCtx, (void *)qamSrc));
         rc = -1;
         goto out;
     }
 #define QAM_LOCK_TIMEOUT 5000
-    BDBG_MSG(("%s: waiting to lock frontend %p for %d msec", __FUNCTION__, qamSrc->frontendHandle, QAM_LOCK_TIMEOUT));
+    BDBG_MSG(("%s: waiting to lock frontend %p for %d msec", __FUNCTION__, (void *)qamSrc->frontendHandle, QAM_LOCK_TIMEOUT));
     if (BKNI_WaitForEvent(qamSrc->signalLockedEvent, QAM_LOCK_TIMEOUT)) {
-        BDBG_WRN(("%s: CTX %p: failed to lock frontend %p...", __FUNCTION__, ipStreamerCtx, qamSrc->frontendHandle));
+        BDBG_WRN(("%s: CTX %p: failed to lock frontend %p...", __FUNCTION__, (void *)ipStreamerCtx, (void *)qamSrc->frontendHandle));
         rc = -1;
     }
     else {
-        BDBG_MSG(("%s: frontend %p is locked", __FUNCTION__, qamSrc->frontendHandle));
+        BDBG_MSG(("%s: frontend %p is locked", __FUNCTION__, (void *)qamSrc->frontendHandle));
         qamSrc->started = true;
-        BDBG_MSG(("%s: CTX %p: QAM Src %p is started ...", __FUNCTION__, ipStreamerCtx, qamSrc));
+        BDBG_MSG(("%s: CTX %p: QAM Src %p is started ...", __FUNCTION__, (void *)ipStreamerCtx, (void *)qamSrc));
         rc = 0;
     }
 out:
@@ -930,10 +924,10 @@ stopNexusQamSrc(
         NEXUS_StopCallbacks(qamSrc->frontendHandle);
         NEXUS_Frontend_Untune(qamSrc->frontendHandle);
         qamSrc->started = false;
-        BDBG_MSG(("CTX %p: QAM Frontend Src is stopped ...", ipStreamerCtx));
+        BDBG_MSG(("CTX %p: QAM Frontend Src is stopped ...", (void *)ipStreamerCtx));
     }
     else {
-        BDBG_MSG(("CTX %p: QAM Frontend Src %p is not stopped, ref count %d ...", ipStreamerCtx, qamSrc, refCount));
+        BDBG_MSG(("CTX %p: QAM Frontend Src %p is not stopped, ref count %d ...", (void *)ipStreamerCtx, (void *)qamSrc, refCount));
     }
     BKNI_ReleaseMutex(qamSrc->lock);
 }

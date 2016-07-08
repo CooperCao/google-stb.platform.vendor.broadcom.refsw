@@ -1,51 +1,44 @@
-/***************************************************************************
- *     (c)2007-2013 Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c) 2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- *  Except as expressly set forth in the Authorized License,
+ * Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
- **************************************************************************/
+ *****************************************************************************/
 #include "nexus_smartcard_module.h"
 #include "bscd.h"
 #include "bscd_datatypes.h"
@@ -67,26 +60,26 @@ struct {
 
 void NEXUS_SmartcardModule_GetDefaultSettings(NEXUS_SmartcardModuleSettings *pSettings)
 {
-    if ( pSettings == NULL )
-    {
-        BERR_TRACE(NEXUS_INVALID_PARAMETER);
-        return;
-    }
+    BDBG_ASSERT(pSettings);
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
     NEXUS_GetDefaultCommonModuleSettings(&pSettings->common);
     pSettings->common.enabledDuringActiveStandby = true;
 }
 
-NEXUS_ModuleHandle NEXUS_SmartcardModule_Init(const NEXUS_SmartcardModuleSettings *pSettings)
+void NEXUS_SmartcardModule_GetDefaultInternalSettings(NEXUS_SmartcardModuleInternalSettings *pSettings)
+{
+    BDBG_ASSERT(pSettings);
+    BKNI_Memset(pSettings, 0, sizeof(*pSettings));
+}
+
+NEXUS_ModuleHandle NEXUS_SmartcardModule_Init( const NEXUS_SmartcardModuleInternalSettings *pModuleSettings, const NEXUS_SmartcardModuleSettings *pSettings)
 {
     BSCD_Settings scdSettings;
     NEXUS_Error errCode;
     NEXUS_ModuleSettings moduleSettings;
-    if ( pSettings == NULL )
-    {
-        BERR_TRACE(NEXUS_INVALID_PARAMETER);
-        return NULL;
-    }
+
+    BDBG_ASSERT(pModuleSettings);
+    BDBG_ASSERT(pSettings);
 
     BDBG_ASSERT(!g_NEXUS_smartcardModule);
     NEXUS_Module_GetDefaultSettings(&moduleSettings);
@@ -157,7 +150,7 @@ void NEXUS_Smartcard_GetDefaultSettings(NEXUS_SmartcardSettings *pSettings)
     pSettings->blockWaitTime.value = 971;
     pSettings->extraGuardTime.value= 2;
     pSettings->blockGuardTime.value = 22;
-    pSettings->timeOut.value= 5000;
+    pSettings->timeOut.value= BSCD_DEFAULT_TIME_OUT;
     pSettings->timeOut.unit= NEXUS_TimerUnit_eMilliSec;
     pSettings->scPresDbInfo.dbWidth = 7;
     pSettings->scPresDbInfo.scPresMode = NEXUS_ScPresMode_eMask;
@@ -337,6 +330,7 @@ NEXUS_Error NEXUS_Smartcard_P_Open(NEXUS_SmartcardHandle smartcard, unsigned ind
     smartcard->channelSettings.ucTxRetries = pSettings->txRetries;
     smartcard->channelSettings.ucRxRetries = pSettings->rxRetries;
     smartcard->channelSettings.ucBaudDiv = pSettings->baudDiv;
+    BDBG_CASSERT(NEXUS_ResetCardAction_eReceiveAndDecode == (NEXUS_ResetCardAction)BSCD_ResetCardAction_eReceiveAndDecode);
     smartcard->channelSettings.resetCardAction = pSettings->resetCardAction;
     smartcard->channelSettings.unCurrentIFSD = pSettings->currentIFSD;
 
@@ -617,15 +611,12 @@ NEXUS_Error NEXUS_Smartcard_DetectCard(NEXUS_SmartcardHandle smartcard)
 
 NEXUS_Error NEXUS_Smartcard_ResetCard(NEXUS_SmartcardHandle smartcard, void *pData, size_t numBytes, size_t *pBytesRead)
 {
-    NEXUS_Error errCode;
-    bool inverseConvention;
-    bool tckPresesnt = false;
-    uint8_t size = 0, n=0;
-    unsigned char k=0;
-    char y=0;
-    char * pAtr;
-    char * pAtrTemp;
-    unsigned long readCount=0, errCount=0;
+    uint8_t size = 0;
+    unsigned long readCount=0;
+    unsigned char TD1 = 0;
+    unsigned char check_TD1 = 0, current_td = 0;
+    unsigned char history_bytes = 0;
+    BERR_Code rc;
 
     BDBG_OBJECT_ASSERT(smartcard, NEXUS_Smartcard);
     smartcard->state = NEXUS_SmartcardState_eUnknown;
@@ -633,95 +624,87 @@ NEXUS_Error NEXUS_Smartcard_ResetCard(NEXUS_SmartcardHandle smartcard, void *pDa
     /* The requirement is that the minimum interval between two card reset is 10ms. Hence we force it. */
     BKNI_Sleep(10);
 
-    if (BSCD_Channel_ResetCard(smartcard->channelHandle, BSCD_ResetCardAction_eNoAction)) {
+    rc = BSCD_Channel_ResetCard(smartcard->channelHandle, smartcard->channelSettings.resetCardAction);
+    if(rc == BSCD_STATUS_DEACTIVATE)
+        return BERR_TRACE(NEXUS_SMARTCARD_DEACTIVATED);
+    else if(rc)
         return BERR_TRACE(NEXUS_UNKNOWN);
-    }
 
     if(numBytes == 0){
         return NEXUS_SUCCESS;
     }
 
-     if (pData) {
+    if (pData) {
         BSCD_Channel_Receive(smartcard->channelHandle, pData, &readCount, numBytes);
-
-        *pBytesRead = readCount;
-        pAtr = (char *)pData;
-        pAtrTemp = (char *)pData;
 
         if(readCount < 2){
             BDBG_ERR(("Minimum ATR size is two bytes. Data read (%u bytes) is less than minimum ATR size of two bytes.", (unsigned)readCount));
             return BERR_TRACE(NEXUS_UNKNOWN);
         }
 
-        if(*pAtr == 0x3f) inverseConvention=true;
-        else inverseConvention=false;
-        size ++;
-        pAtr ++;
+        current_td = ((unsigned char*)pData)[1]; /* T0 */
+        history_bytes = current_td & 0xf;
+        size = 2;
 
-        k = (*pAtr) & 0x0f;
-        y = (*pAtr) & 0xf0;
-        size ++;
+        do{
+            if (current_td  & 0x10 ) {
+                size++;
+            }
 
-        if((!k && !y) && (readCount == 2)){
-            BDBG_WRN(("The requested ATR size = %d bytes, received ATR size = %d bytes and decoded ATR size = %d bytes.", numBytes, *pBytesRead, size));
-            return NEXUS_SUCCESS;
-        }
+            if (current_td  & 0x20 ) {
+                size++;
+            }
 
+            if (current_td  & 0x40 ) {
+                size++;
+            }
 
-        while ((y = ((*pAtr) & 0xf0))) {
-            if((*pAtr) & 0x10) n++;
-            if((*pAtr) & 0x20) n++;
-            if((*pAtr) & 0x40) n++;
-            if((*pAtr) & 0x80) n++;
-            if(((*pAtr) & 0x0f) && (size != 2)) tckPresesnt = true; /* TCK*/
-
-            size += n;
-
-            if((size > *pBytesRead) && (numBytes > *pBytesRead)) { /*because TS is also accounted for in pBytesRead*/
-                readCount = 0;
-                errCode = BSCD_Channel_Receive(smartcard->channelHandle, (void *)(pAtrTemp + *pBytesRead), &readCount, (numBytes - *pBytesRead));
-                if(errCode != BSCD_STATUS_READ_SUCCESS) break;
-                *pBytesRead += readCount;
-                if(!readCount) {
-                    errCount++;
-                    /* Trying forty times(Max ATR size is 32 bytes) to get the complete ATR. If not, error out. */
-                    if (errCount > 40){
-                        BDBG_WRN(("The requested ATR of size = %d bytes could not be received, received ATR size = %d bytes and decoded ATR size = %d bytes.", numBytes, *pBytesRead, size));
+            if (current_td  & 0x80 ) {
+                {
+                    if(readCount > size) {
+                        current_td = ((unsigned char*)pData)[size];
+                        size++;
+                    } else {
+                        BDBG_WRN(("The requested ATR of size = %u bytes could not be received, received ATR size = %u bytes and decoded ATR size = %d bytes.", (unsigned) numBytes, (unsigned) *pBytesRead, size));
                         return BERR_TRACE(NEXUS_UNKNOWN);
                     }
-                    size -= n;
-                    continue;
+                }
+
+                if(check_TD1 == 0)
+                {
+                    TD1 = current_td;
                 }
             }
-            else if(numBytes <= *pBytesRead){
-                pAtr += n;
-                break;
+            else
+            {
+                current_td =0;
             }
-            pAtr += n;
-            n=0;
-        }
+            check_TD1 = 1;
+        } while(current_td != 0);
 
-        if(((*pAtr) & 0x0f) || tckPresesnt) size++;
+        size += history_bytes;
 
-        size += k;
-
-        if ((*pBytesRead == numBytes) && (*pBytesRead == size)) {
-            smartcard->state = NEXUS_SmartcardState_eResetDone;
-            return NEXUS_SUCCESS;
-        }
-
-        if (*pBytesRead <= 0) {
-            return BERR_TRACE(NEXUS_UNKNOWN);
-        }
-        else {
-            BDBG_WRN(("The requested ATR size = %d bytes, received ATR size = %d bytes and decoded ATR size = %d bytes.", numBytes, *pBytesRead, size));
-            smartcard->state = NEXUS_SmartcardState_eResetDone;
-            return NEXUS_SUCCESS;
+        /* TCK */
+        if( (TD1 & 0xF) != 0)
+        {
+            size++;
         }
     } else {
         BDBG_ERR(("Null Pointer passed for pData."));
         return BERR_TRACE(NEXUS_INVALID_PARAMETER);
     }
+
+        if(readCount >= size)
+        {
+            BDBG_WRN(("The requested ATR size = %u bytes, received ATR size = %u bytes and decoded ATR size = %d bytes.", (unsigned) numBytes, (unsigned) readCount, size));
+        } else
+        {
+        BDBG_WRN(("The requested ATR of size = %u bytes could not be received, received ATR size = %u bytes and decoded ATR size = %d bytes.", (unsigned) numBytes, (unsigned) readCount, size));
+            return BERR_TRACE(NEXUS_UNKNOWN);
+        }
+
+    *pBytesRead = readCount;
+    smartcard->state = NEXUS_SmartcardState_eResetDone;
 
     return NEXUS_SUCCESS;
 }

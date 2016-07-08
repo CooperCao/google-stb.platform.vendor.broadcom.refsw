@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2014 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,17 +35,9 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   API name: AudioDecoder
 *    API for audio decoder management.
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 
@@ -333,8 +325,8 @@ NEXUS_AudioDecoderHandle NEXUS_AudioDecoder_Open( /* attr{destructor=NEXUS_Audio
 
     if (NEXUS_GetEnv("softaudio_log"))
     {
-	    handle->debugLogTimer = NEXUS_ScheduleTimer(150, NEXUS_AudioDecoder_P_DebugLogger, handle);
-	}
+        handle->debugLogTimer = NEXUS_ScheduleTimer(150, NEXUS_AudioDecoder_P_DebugLogger, handle);
+    }
 
     /* Open APE decoder */
     BAPE_Decoder_GetDefaultOpenSettings(&decoderOpenSettings);
@@ -2243,17 +2235,17 @@ NEXUS_Error NEXUS_AudioModule_Standby_priv(bool enabled, const NEXUS_StandbySett
     BSTD_UNUSED(pSettings);
 
     for(i=0 ; i<NEXUS_NUM_AUDIO_DECODERS; i++) {
-	NEXUS_AudioDecoderHandle handle = &g_decoders[i];
-	if ( handle->started ) {
-	    BDBG_WRN(("Audio decoder %d needs to be stopped before entering standby", i));
-	    return NEXUS_NOT_SUPPORTED;
-	}
+    NEXUS_AudioDecoderHandle handle = &g_decoders[i];
+    if ( handle->started ) {
+        BDBG_WRN(("Audio decoder %d needs to be stopped before entering standby", i));
+        return NEXUS_NOT_SUPPORTED;
+    }
     }
 
     if(enabled) {
-	rc = BAPE_Standby(g_NEXUS_audioModuleData.apeHandle);
+    rc = BAPE_Standby(g_NEXUS_audioModuleData.apeHandle);
     } else {
-	rc = BAPE_Resume(g_NEXUS_audioModuleData.apeHandle);
+    rc = BAPE_Resume(g_NEXUS_audioModuleData.apeHandle);
     }
 
     return rc;
@@ -2344,6 +2336,18 @@ void NEXUS_AudioDecoder_FlushAncillaryData(
     )
 {
     BSTD_UNUSED(handle);
+}
+
+NEXUS_Error NEXUS_AudioDecoder_GetPresentationStatus(
+    NEXUS_AudioDecoderHandle handle,
+    unsigned presentationIndex,
+    NEXUS_AudioDecoderPresentationStatus *pStatus
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(presentationIndex);
+    BSTD_UNUSED(pStatus);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
 }
 
 #if NEXUS_HAS_SIMPLE_DECODER

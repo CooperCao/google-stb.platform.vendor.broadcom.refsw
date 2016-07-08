@@ -1,42 +1,39 @@
 /******************************************************************************
- * (c) 2014 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  ******************************************************************************/
 
 #ifndef BSAGELIB_CLIENT_H_
@@ -89,15 +86,29 @@ typedef void (*BSAGElib_Rpc_IndicationRecvCallback)(BSAGElib_RpcRemoteHandle han
  * Note: this callback is called under interrupt hence it's treatment should be very quick and non-blocking */
 typedef void (*BSAGElib_Rpc_ResponseRecvCallback)(BSAGElib_RpcRemoteHandle handle, void *async_argument);
 
+/* Rpc callback request received callback is fired when a SAGE-->Host callback request is received
+ * a Host->SAGE callback response message is expected and shall provide the callback_sequence_id as the reference
+ * Note: this callback is called under interrupt hence it's treatment should be very quick and non-blocking */
+typedef void (*BSAGElib_Rpc_CallbackRequestRecvCallback)(BSAGElib_RpcRemoteHandle handle, uint32_t callback_sequence_id, uint32_t callback_command_id, BSAGElib_InOutContainer *container);
+
 /* Semi-private. Rpc response ISR (can only be used if user API is manipulating SAGElib_Rpc API direcrly)
  * Note: this callback is called under interrupt hence it's treatment should be very quick and non-blocking */
 typedef void (*BSAGElib_Rpc_ResponseISRCallback)(BSAGElib_RpcRemoteHandle handle, void *async_argument, uint32_t async_id, BERR_Code error);
+
+/* Semi-private. Rpc callback request ISR (callbacks from SAGE)
+ * Note: this callback is called under interrupt hence it's treatment should be very quick and non-blocking */
+typedef BERR_Code (*BSAGElib_Rpc_CallbackRequestISRCallback)(BSAGElib_RpcRemoteHandle handle, void *async_argument);
+
+/* see bsagelib_types.h for reason and source possible values */
+typedef void (*BSAGElib_Rpc_TATerminateCallback)(BSAGElib_RpcRemoteHandle handle, void *async_argument, uint32_t reason, uint32_t source);
 
 typedef struct {
     /* Called under ISR */
     BSAGElib_Rpc_IndicationRecvCallback indicationRecv_isr;
     BSAGElib_Rpc_ResponseRecvCallback responseRecv_isr;
     BSAGElib_Rpc_ResponseISRCallback response_isr;/* should not be used - semi-private API , replaces responseRecv_isr if set. */
+    BSAGElib_Rpc_CallbackRequestISRCallback callbackRequest_isr;/* should not be used - semi-private API for two ways communication */
+    BSAGElib_Rpc_TATerminateCallback taTerminate_isr; /* received if TA is terminated uppon error on SAGE-side */
 } BSAGElib_RpcInterface;
 
 /* ---------------------------------------- */

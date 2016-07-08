@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -11,7 +11,7 @@
  * Software and all intellectual property rights therein.  IF YOU HAVE NO
  * AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
  * AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
- * SOFTWARE.  
+ * SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
@@ -60,16 +60,18 @@ AnimationList::~AnimationList()
    Clear();
 }
 
-void AnimationList::Append(AnimBindingBase *anim)
+void AnimationList::Append(AnimBindingBase *binding)
 {
-   m_set.insert(anim);
+   m_set.insert(binding);
 }
 
 void AnimationList::Clear()
 {
-   for (auto anim : m_set)
-      if (anim->DeleteWhenDone())
-         delete anim;
+   std::set<AnimBindingBase *>::iterator iter;
+
+   for (iter = m_set.begin(); iter != m_set.end(); ++iter)
+      if ((*iter)->DeleteWhenDone())
+         delete *iter;
 
    m_set.clear();
 }
@@ -77,21 +79,21 @@ void AnimationList::Clear()
 bool AnimationList::UpdateTime(Time time)
 {
    bool anyLive = false;
+
+   std::set<AnimBindingBase *>::iterator iter;
    std::list<AnimBindingBase *>          deleteList;
 
-   for (auto anim : m_set)
+   for (iter = m_set.begin(); iter != m_set.end(); ++iter)
    {
-      bool isLive = anim->UpdateTime(time.Seconds());
-
-      anyLive = anyLive || isLive;
-
-      if (anim->Finished(time.Seconds()))
-         deleteList.push_back(anim);
+      anyLive = (*iter)->UpdateTime(time.Seconds()) || anyLive;
+      if ((*iter)->Finished(time.Seconds()))
+         deleteList.push_back(*iter);
    }
 
-   for (auto anim : deleteList)
+   std::list<AnimBindingBase *>::iterator delIter;
+   for (delIter = deleteList.begin(); delIter != deleteList.end(); ++delIter)
    {
-      auto iter = m_set.find(anim);
+      iter = m_set.find(*delIter);
       if ((*iter)->DeleteWhenDone())
          delete *iter;
       m_set.erase(iter);
@@ -102,7 +104,7 @@ bool AnimationList::UpdateTime(Time time)
 
 void AnimationList::Delete(AnimBindingBase *item)
 {
-   auto iter = m_set.find(item);
+   std::set<AnimBindingBase *>::iterator iter = m_set.find(item);
 
    if (iter != m_set.end())
    {
@@ -115,10 +117,11 @@ void AnimationList::Delete(AnimBindingBase *item)
 int64_t AnimationList::TimeToStartMs(Time time) const
 {  
    int64_t                               minMs = -1;
+   std::set<AnimBindingBase *>::iterator iter;
 
-   for (auto anim : m_set)
+   for (iter = m_set.begin(); iter != m_set.end(); ++iter)
    {
-      int64_t ms = anim->TimeToStartMs(time);
+      int64_t ms = (*iter)->TimeToStartMs(time);
       if (ms == 0)
          return 0;
       else if (ms > 0)

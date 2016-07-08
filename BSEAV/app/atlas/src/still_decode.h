@@ -1,7 +1,7 @@
-/***************************************************************************
- * (c) 2002-2015 Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -37,7 +37,6 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 
 #ifndef STILL_DECODE_H__
@@ -70,9 +69,9 @@ public:
     virtual eRet stop(void);
 
     void                     setWidgetEngine(CWidgetEngine * pWidgetEngine) { _pWidgetEngine = pWidgetEngine; }
-    bool                     isOpened(void)                              { return(_stillDecode ? true : false); }
-    CWidgetEngine *          getWidgetEngine(void)                       { return(_pWidgetEngine); }
-    NEXUS_StillDecoderHandle getStillVideoDecode(void)                   { return(_stillDecode); }
+    bool                     isOpened(void)                                 { return(_stillDecode ? true : false); }
+    CWidgetEngine *          getWidgetEngine(void)                          { return(_pWidgetEngine); }
+    NEXUS_StillDecoderHandle getStillVideoDecode(void)                      { return(_stillDecode); }
     void                     stillDecodeCallback(void);
     void                     stillDecodePictureReadyCallback(void);
 

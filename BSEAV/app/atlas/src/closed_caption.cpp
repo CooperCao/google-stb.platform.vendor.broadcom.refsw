@@ -1,7 +1,7 @@
-/***************************************************************************
- * (c) 2002-2015 Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -37,7 +37,6 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 
 #ifdef DCC_SUPPORT
@@ -75,6 +74,7 @@ static void * mainLoop(void * param)
 {
     digitalCC *             dcc = (digitalCC *)param;
     uint32_t                numEntries, numValidEntries, i;
+    /* coverity[stack_use_local_overflow] */
     NEXUS_ClosedCaptionData captionData[CC_DATA_BUF_SIZE];
     CCTest_Caption_Triplets cc708UserData[CC_DATA_BUF_SIZE];
 
@@ -85,7 +85,7 @@ static void * mainLoop(void * param)
     {
         /*
         ** Wait for new CC data or "x" milliseconds.
-        ** The timeout allows B_Dcc_Process() to be called on a periodic
+        ** The timeout allows B_Dcc_Process() t/o be called on a periodic
         ** basis, which in turn drives the time dependent actions (scrolling, flashing).
         */
         BKNI_WaitForEvent(dcc->ccDataEvent, 10);
@@ -476,12 +476,7 @@ eRet CClosedCaption::dcc_init(
 
     goto done;
 error:
-    if (dcc)
-    {
-        BKNI_Free(dcc);
-    }
-    dcc = NULL;
-
+   FRE(dcc);
 done:
     return(ret);
 } /* dcc_init */

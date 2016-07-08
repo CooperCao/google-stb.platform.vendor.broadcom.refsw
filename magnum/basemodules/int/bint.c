@@ -1,23 +1,43 @@
-/***************************************************************************
- *     Copyright (c) 2003-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * Module Description:
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
  *
- * Revision History:
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- *
- ***************************************************************************/
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 #include "bstd.h"
 #include "bint_plat.h"  /* include other interrupt interface headers */
 #include "bint_stats.h"
@@ -150,15 +170,9 @@ typedef struct BINT_P_Context
 #define BINT_LOCK(h)
 #define BINT_UNLOCK(h)
 #endif
-    const BINT_P_IntMap *pIntMap; /* ptr to the interrupt map, REQUIRED */
     int callbackCount; /* Number of callbacks installed in InterruptInterface */
     unsigned numInts; /* Number of L2 interrupts managed by this instance of the InterruptInterface */
     BREG_Handle regHandle; /* regHandle for accessing interrupt registers */
-    BINT_SetIntFunc pSetInt; /* ptr to Set Interrupt, NULL if none */
-    BINT_ClearIntFunc pClearInt; /* ptr to Clear Interrupt, NULL if none */
-    BINT_SetMaskFunc pSetMask; /* ptr to Set Interrupt Mask, REQUIRED */
-    BINT_ClearMaskFunc pClearMask; /* ptr to Clear Interrupt Mask, REQUIRED */
-    BINT_ReadStatusFunc pReadStatus; /* ptr to Read Status, REQUIRED */
     BINT_P_cblHead allCbList; /* list of all callbacks registered */
     BINT_Settings settings; /* BINT_Settings */
     BTMR_TimerHandle hTimer; /* timer used for stats tracking */
@@ -206,7 +220,7 @@ static void BINT_P_ClearInt_isrsafe(BINT_Handle intHandle, const BINT_P_L2Regist
     if(L2Reg->standard) {
         BREG_Write32(intHandle->regHandle, L2Reg->intMapEntry.L2RegOffset+BINT_P_STD_CLEAR, 1<<L2Shift);
     } else {
-        intHandle->pClearInt( intHandle->regHandle, L2Reg->intMapEntry.L2RegOffset, L2Shift);
+        intHandle->settings.pClearInt( intHandle->regHandle, L2Reg->intMapEntry.L2RegOffset, L2Shift);
     }
     return;
 }
@@ -216,7 +230,7 @@ static void BINT_P_SetMask_isrsafe(BINT_Handle intHandle, bool standard, uint32_
     if(standard) {
         BREG_Write32(intHandle->regHandle, L2RegOffset+BINT_P_STD_MASK_SET, 1<<L2Shift);
     } else {
-        intHandle->pSetMask(intHandle->regHandle, L2RegOffset, L2Shift);
+        intHandle->settings.pSetMask(intHandle->regHandle, L2RegOffset, L2Shift);
     }
     return;
 }
@@ -226,7 +240,7 @@ static void BINT_P_ClearMask_isrsafe(BINT_Handle intHandle, bool standard, uint3
     if(standard) {
         BREG_Write32( intHandle->regHandle, L2RegOffset+BINT_P_STD_MASK_CLEAR, 1<<L2Shift);
     } else {
-        intHandle->pClearMask(intHandle->regHandle, L2RegOffset, L2Shift);
+        intHandle->settings.pClearMask(intHandle->regHandle, L2RegOffset, L2Shift);
     }
     return;
 }
@@ -326,7 +340,7 @@ static BERR_Code BINT_P_AddL3Interrupts(BINT_Handle intHandle, BINT_P_L2Register
     BINT_P_L2Aggregator *L2Aggregator;
 
     for(i=first;i<first+count;i++) {
-        const BINT_P_IntMap *intMapEntry = &intHandle->pIntMap[i];
+        const BINT_P_IntMap *intMapEntry = &intHandle->settings.pIntMap[i];
         BINT_P_L2Register *L2Reg = &intHandle->L2RegisterData[i];
         unsigned L2Shift = (intMapEntry->L1Shift >> BINT_P_MAP_L2_SHIFT) & 0x0F;
         BERR_Code rc;
@@ -403,13 +417,8 @@ BERR_Code BINT_Open( BINT_Handle *pHandle, BREG_Handle regHandle, const BINT_Set
 
     intHandle->numInts = 0;
     intHandle->callbackCount = 0;
-    intHandle->pIntMap = pDefSettings->pIntMap;
-    intHandle->pSetInt = pDefSettings->pSetInt;
-    intHandle->pClearInt = pDefSettings->pClearInt ? pDefSettings->pClearInt : BINT_P_ClearIntNoOp_isrsafe;
-    intHandle->pSetMask = pDefSettings->pSetMask;
-    intHandle->pClearMask = pDefSettings->pClearMask;
-    intHandle->pReadStatus = pDefSettings->pReadStatus;
     intHandle->settings = *pDefSettings;
+    intHandle->settings.pClearInt = intHandle->settings.pClearInt ? intHandle->settings.pClearInt : BINT_P_ClearIntNoOp_isrsafe;
     intHandle->L2RegisterData = NULL;
     intHandle->L2AggregatorData = NULL;
     intHandle->hTimer = NULL;
@@ -417,9 +426,9 @@ BERR_Code BINT_Open( BINT_Handle *pHandle, BREG_Handle regHandle, const BINT_Set
 
     intHandle->regHandle = regHandle;
 
-    if( intHandle->pReadStatus == NULL ||
-        intHandle->pSetMask == NULL ||
-        intHandle->pClearMask == NULL )
+    if( intHandle->settings.pReadStatus == NULL ||
+        intHandle->settings.pSetMask == NULL ||
+        intHandle->settings.pClearMask == NULL )
     {
         BDBG_ERR(("Invalid function points passed into BINT_Open()"));
         rc = BERR_TRACE(BERR_INVALID_PARAMETER);
@@ -439,7 +448,7 @@ BERR_Code BINT_Open( BINT_Handle *pHandle, BREG_Handle regHandle, const BINT_Set
     /* Clear all L2 interrupts */
     for( i=0;;i++) {
         unsigned bit;
-        const BINT_P_IntMap *L2Register = &intHandle->pIntMap[i];
+        const BINT_P_IntMap *L2Register = &intHandle->settings.pIntMap[i];
         if (L2Register->L1Shift<0) {
             break;
         }
@@ -462,10 +471,10 @@ BERR_Code BINT_Open( BINT_Handle *pHandle, BREG_Handle regHandle, const BINT_Set
     }
     /* count number of L2/L3 Registers */
     for( i=0,l3count=0;;i++) {
-        if(intHandle->pIntMap[i].L1Shift<0) {
+        if(intHandle->settings.pIntMap[i].L1Shift<0) {
             break;
         }
-        if(intHandle->pIntMap[i].L1Shift & BINT_P_MAP_MISC_L3_MASK) {
+        if(intHandle->settings.pIntMap[i].L1Shift & BINT_P_MAP_MISC_L3_MASK) {
             l3count++;
         }
     }
@@ -477,7 +486,7 @@ BERR_Code BINT_Open( BINT_Handle *pHandle, BREG_Handle regHandle, const BINT_Set
     }
 
     for(i=0;;i++) {
-        const BINT_P_IntMap *intMapEntry = &intHandle->pIntMap[i];
+        const BINT_P_IntMap *intMapEntry = &intHandle->settings.pIntMap[i];
         BINT_P_L2Register *L2Reg = &intHandle->L2RegisterData[i];
         int L1Shift = BINT_MAP_GET_L1SHIFT(intMapEntry);
 
@@ -516,7 +525,7 @@ BERR_Code BINT_Open( BINT_Handle *pHandle, BREG_Handle regHandle, const BINT_Set
                 (void)BERR_TRACE(BERR_NOT_SUPPORTED); /* L2 must be standard interrupt */
                 BDBG_ASSERT(0);
             }
-            if(L1Shift != BINT_MAP_GET_L1SHIFT(&intHandle->pIntMap[i])) {
+            if(L1Shift != BINT_MAP_GET_L1SHIFT(&intHandle->settings.pIntMap[i])) {
                 (void)BERR_TRACE(BERR_NOT_SUPPORTED); /* L1 Shift should match for all L3 interrupts */
             }
         }
@@ -692,7 +701,7 @@ static void BINT_P_ProcessL2Reg_isr(BINT_Handle intHandle, BINT_P_L2Register *L2
     if( L2Reg->intMapEntry.L2InvalidMask!=BINT_DONT_PROCESS_L2 ) { /* non-standard interrupts */
         unsigned L2Shift;
 
-        intStatus = intHandle->pReadStatus(regHandle, L2BaseRegister);
+        intStatus = intHandle->settings.pReadStatus(regHandle, L2BaseRegister);
         intStatus &= ~L2Reg->intMapEntry.L2InvalidMask; /* only handle interrupts that are known */
         if(intStatus==0) {
             return; /* short-circuit loop over L2 interrupts */
@@ -708,7 +717,7 @@ static void BINT_P_ProcessL2Reg_isr(BINT_Handle intHandle, BINT_P_L2Register *L2
                 intStatus &= ~L2Bit; /* clear status bits */
                 L2Handle->count++; /* DumpInfo accounting */
                 /* Since L2 interrupts are edge triggered they must be cleared before processing!! */
-                intHandle->pClearInt( regHandle, L2BaseRegister, L2Shift);
+                intHandle->settings.pClearInt( regHandle, L2BaseRegister, L2Shift);
                 /* Call all callbacks that are enabled */
                 for(cbHandle=BLST_S_FIRST(&(L2Handle->callbackList)); cbHandle ; cbHandle=BLST_S_NEXT(cbHandle, link)) {
                     if( cbHandle->enabled ) {
@@ -718,14 +727,14 @@ static void BINT_P_ProcessL2Reg_isr(BINT_Handle intHandle, BINT_P_L2Register *L2
                 if( L2Handle->enableCount ) { /* interrupt could be disabled by the interrupt handler */
                     /* Shared L1 interrupts require that the L2 be masked in bcmdriver.ko, so BINT unmasks
                     here to reverse that. For unshared L1's, this is harmless. */
-                    intHandle->pClearMask(regHandle, L2BaseRegister, L2Shift);
+                    intHandle->settings.pClearMask(regHandle, L2BaseRegister, L2Shift);
                 }
             }
         }
         if( intStatus && L2Reg->weakMask) {
             for(L2Shift=0;L2Shift<32;L2Shift++) {
                 if(intStatus&(1<<L2Shift)) {
-                    intHandle->pClearInt( regHandle, L2BaseRegister, L2Shift);
+                    intHandle->settings.pClearInt( regHandle, L2BaseRegister, L2Shift);
                 }
             }
         }
@@ -1115,8 +1124,8 @@ BERR_Code BINT_TriggerInterruptByHandle_isr( BINT_CallbackHandle cbHandle )
 
     if(L2Reg->standard) {
         BREG_Write32_isr(intHandle->regHandle, BCHP_INT_ID_GET_REG(cbHandle->L2Handle->intId)+BINT_P_STD_SET, 1<<BCHP_INT_ID_GET_SHIFT(cbHandle->L2Handle->intId) );
-    } else if(intHandle->pSetInt != NULL) {
-        intHandle->pSetInt( intHandle->regHandle, BCHP_INT_ID_GET_REG(cbHandle->L2Handle->intId), BCHP_INT_ID_GET_SHIFT(cbHandle->L2Handle->intId) );
+    } else if(intHandle->settings.pSetInt != NULL) {
+        intHandle->settings.pSetInt( intHandle->regHandle, BCHP_INT_ID_GET_REG(cbHandle->L2Handle->intId), BCHP_INT_ID_GET_SHIFT(cbHandle->L2Handle->intId) );
     } else {
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
@@ -1471,7 +1480,7 @@ static BERR_Code BINT_P_Stats_ComputeStats_isr( BINT_CallbackHandle cbHandle, ui
         if (ulAvgPeriod < BINT_P_STATS_AVG_PERIOD_MIN_THRESHOLD)
         {
             BDBG_WRN(("BINT_Isr(%s) overflow, %d msec between hits",
-            cbHandle->L2Handle->intHandle->pIntMap[cbHandle->L2Handle->intMapIndex].L2Name,
+            cbHandle->L2Handle->intHandle->settings.pIntMap[cbHandle->L2Handle->intMapIndex].L2Name,
             ulAvgPeriod/1000));
         }
 #endif

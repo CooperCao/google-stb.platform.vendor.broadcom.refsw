@@ -1,12 +1,41 @@
-############################################################################
-#     Copyright (c) 2011-2014, Broadcom Corporation
-#     All Rights Reserved
-#     Confidential Property of Broadcom Corporation
+###############################################################################################
+#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 #
-#  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
-#  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
-#  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+#  This program is the proprietary software of Broadcom and/or its licensors,
+#  and may only be used, duplicated, modified or distributed pursuant to the terms and
+#  conditions of a separate, written license agreement executed between you and Broadcom
+#  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+#  no license (express or implied), right to use, or waiver of any kind with respect to the
+#  Software, and Broadcom expressly reserves all rights in and to the Software and all
+#  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+#  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+#  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
 #
+#  Except as expressly set forth in the Authorized License,
+#
+#  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+#  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+#  and to use this information only in connection with your use of Broadcom integrated circuit products.
+#
+#  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+#  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+#  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+#  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+#  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+#  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+#  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+#  USE OR PERFORMANCE OF THE SOFTWARE.
+#
+#  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+#  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+#  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+#  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+#  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+#  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+#  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+#  ANY LIMITED REMEDY.
+#
+###############################################################################################
 ############################################################################
 #
 # DESCRIPTION:
@@ -17,55 +46,43 @@
 MAGNUM_TOP := $(shell cd ../../../magnum; pwd)
 NEXUS_TOP := $(shell cd ../../../nexus; pwd)
 
-
-ifeq ($(NEXUS_MODE),proxy)
-PUBLIC_LIBS    += libdrmrootfs.a
-else
 PUBLIC_LIBS    += libdrmrootfs.a libdrmrootfs.so
-endif
 
 #include drmrootfs_libdir.inc to see which directory the lib will be installed in $(DRMROOTFS_LIBDIR)
 include drmrootfs_libdir.inc
 
-
 # Include nexus definitions
+include $(NEXUS_TOP)/platforms/common/build/nexus_platforms.inc
+include $(NEXUS_TOP)/platforms/common/build/platform_app.inc
 include $(NEXUS_TOP)/build/nexus_defs.inc
-include $(NEXUS_TOP)/build/os/linuxuser/os_tools.inc
 
-
-#Note, Nexus's platform_app.inc will take care of loading magnum base module paths
-include $(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
-
+# Variables and directories for out-of-source build
+B_REFSW_OBJ_DIR ?= obj.${NEXUS_PLATFORM}
+B_REFSW_OBJ_ROOT ?= $(abspath ${NEXUS_TOP}/../${B_REFSW_OBJ_DIR})
+DRMROOTFS_OBJ_ROOT := ${B_REFSW_OBJ_ROOT}/BSEAV/lib/drmrootfs
+D_FOR_LIB_INSTALL = ${DRMROOTFS_OBJ_ROOT}/${DRMROOTFS_LIBDIR}
 
 # Convert include paths into single variable
 NEXUS_APP_INCLUDE_PATHS := $(foreach module, $(NEXUS_MODULES), $(NEXUS_$(module)_PUBLIC_INCLUDES))
 NEXUS_APP_DEFINES := $(foreach module, $(NEXUS_MODULES), $(NEXUS_$(module)_DEFINES))
 NEXUS_APP_DEFINES += $(foreach module, $(NEXUS_MODULES),NEXUS_HAS_$(module))
 
-include $(NEXUS_TOP)/base/base.inc
-include $(NEXUS_TOP)/modules/dma/dma.inc
-include $(NEXUS_TOP)/modules/core/core.inc
-
-include $(MAGNUM_TOP)/basemodules/mem/bmem.inc
-include $(MAGNUM_TOP)/portinginterface/hsm/bhsm.inc
-
 # Convert magnum includes into the same variable
 NEXUS_APP_INCLUDE_PATHS += $(foreach module, $(MAGNUM_MODULES), $($(module)_INCLUDES))
 NEXUS_APP_DEFINES += $(foreach module, $(MAGNUM_MODULES), $($(module)_DEFINES))
 
+# Custom include paths
+CFLAGS += -g -fshort-wchar -fpic
 CFLAGS += -DBSTD_CPU_ENDIAN=${NEXUS_ENDIAN}
 CFLAGS += $(addprefix -I, $(foreach module, $(MAGNUM_MODULES), $($(module)_INCLUDES)))
 CFLAGS += $(addprefix -D, $(foreach module, $(MAGNUM_MODULES), $($(module)_DEFINES)))
 CFLAGS += $(addprefix -I,$(NEXUS_APP_INCLUDE_PATHS)) $(addprefix -D,$(NEXUS_APP_DEFINES))
-
 
 TOOLCHAIN_DIR=$(TOOLCHAIN)
 
 ifeq ($(ANDROID_BUILD),y)
 ARCH ?= $(B_REFSW_ARCH)
 endif
-
-SYSTEM ?= linux
 
 ifeq ($(ARCH),mipsel-linux)
 TOOLCHAIN_DIR=/opt/toolchains/mipsel
@@ -77,112 +94,69 @@ else
 TOOLCHAIN_DIR=$(shell dirname $(shell dirname $(shell which mipsel-linux-uclibc-gcc)))
 endif
 
-ifeq ($(B_REFSW_OS),linuxkernel)
-USE_KERNEL_TIME ?= n  
-ifeq ($(USE_KERNEL_TIME), y)
-CFLAGS += -DKERNEL_TIME_DEFINE
-endif
-CFLAGS += -DMODULE -DLINUX -D__KERNEL__ #-DDRM_NO_NATIVE_64_TYPES 
-CFLAGS += -nostdinc -msoft-float -fshort-wchar -O3 -fno-pic -G0 -mno-abicalls -mlong-calls
-CFLAGS += -I$(MAGNUM)/basemodules/std/types/linuxkernel 
-ifeq ($(SMP), y)
-CFLAGS += -I$(LINUX)/include.mipsel-uclibc.$(PLATFORM)-smp
-CFLAGS += -I$(LINUX)/include.mipsel-uclibc.$(PLATFORM)-smp/asm-mips/mach-brcmstb
-CFLAGS += -I$(LINUX)/include.mipsel-uclibc.$(PLATFORM)-smp/asm/mach-generic/
-else
-CFLAGS += -I$(LINUX)/include
-CFLAGS += -I$(LINUX)/arch/mips/include
-CFLAGS += -I$(LINUX)/arch/mips/include/asm-generic
-CFLAGS += -I$(LINUX)/arch/mips/include/asm/mach-rm
-CFLAGS += -I$(LINUX)/arch/mips/include/asm/brcmceg
-CFLAGS += -I$(LINUX)/arch/mips/include/asm/brcmceg/common
-CFLAGS += -I$(LINUX)/arch/mips/include/asm/mach-generic
-endif 
-CFLAGS += -I$(TOOLCHAIN_DIR)/$(ARCH)/include
-CFLAGS += -I$(TOOLCHAIN_DIR)/lib/gcc/$(ARCH)/4.5.3/include
-endif
-
-ifeq ($(ANDROID_BUILD),y)
-CFLAGS += $(NEXUS_CFLAGS)
-endif
-
-ifeq ($(findstring arm-linux, ${B_REFSW_ARCH}), arm-linux)
-CFLAGS +=-marm -march=armv7-a
-endif
-
-
-F_INSTALLED_LIBS	:= $(addprefix ${DRMROOTFS_LIBDIR}/, ${PUBLIC_LIBS})
+# Must export MSDRM_PRDY_SUPPORT to build the lib with playready support.
+CFLAGS += -DB_HAS_MSDRM_PRDY=1
 
 ############################################################################
 #                              
 #vvvv#####################vvvvvvvvvvvvvvvvvvvvvvv#####################vvvv##
+
+F_PUBLIC_LIBS           += $(addprefix ${DRMROOTFS_OBJ_ROOT}/,${PUBLIC_LIBS})
+
 SRCS	+= $(wildcard *.c )
 OBJS 	+= $(patsubst %.c,%.o, ${SRCS})
-CFLAGS  += -g -fshort-wchar  -fpic
+END_OBJS   := $(addprefix ${DRMROOTFS_OBJ_ROOT}/,${OBJS})
+F_INSTALLED_LIBS := $(addprefix ${D_FOR_LIB_INSTALL}/, ${PUBLIC_LIBS})
 
 PUBLIC_INCS    += drm_data.h
-
-ifeq ($(ANDROID_BUILD),y)
-LDFLAGS	+= $(NEXUS_LD_LIBRARIES)
-LDFLAGS += --sysroot=$(ANDROID)/out/target/product/bcm_platform/system
-LDFLAGS += $(NEXUS_LDFLAGS)
-endif
-#^^^^#####################^^^^^^^^^^^^^^^^^^^^^^^#####################^^^^##
-
-
-
-# Must export MSDRM_PRDY_SUPPORT to build the lib with playready support. 
-ifeq ($(MSDRM_PRDY_SUPPORT), y)
-CFLAGS += -DB_HAS_MSDRM_PRDY=1
-endif
 
 ############################################################################
 #                              MAIN TARGETS
 #vvvv#####################vvvvvvvvvvvvvvvvvvvvvvv#####################vvvv##
 install: all ${F_INSTALLED_LIBS} 
 
-all: ${PUBLIC_LIBS}
-
-.c.o: 
-	@echo [Compile... $<]
-	${Q_}$(CC) -c $< $(CFLAGS) 
+all: prep_folder ${F_PUBLIC_LIBS}
 
 clean: 
-	rm -f *.o *.d 
-	ls *.a | xargs rm -f
-	ls *.so | xargs rm -f
+	${RM} -fr ${F_INSTALLED_LIBS} ${DRMROOTFS_OBJ_ROOT}
 	
-#^^^^#####################^^^^^^^^^^^^^^^^^^^^^^^#####################^^^^##
-
-${DRMROOTFS_LIBDIR}/%.a : %.a
-	install -m 0755 $< $@ 
-
-${DRMROOTFS_LIBDIR}/%.so : %.so
-	install -m 0755 $< $@ 
-
-
 ############################################################################
 #                             BUILD RULES
 #vvvv#####################vvvvvvvvvvvvvvvvvvvvvvv#####################vvvv##
-libdrmrootfs.so: ${OBJS}
+prep_folder:
+	@ mkdir -p ${DRMROOTFS_OBJ_ROOT}
+	@ mkdir -p ${D_FOR_LIB_INSTALL}
+
+${DRMROOTFS_OBJ_ROOT}/libdrmrootfs.so: ${END_OBJS}
+ifeq ($(B_REFSW_ARCH),arm-linux)
+
 ifeq ($(B_REFSW_CROSS_COMPILE),arm-linux-androideabi-)
 	${CC} -shared -o $@  ${LDFLAGS}  $^ -Wl,-Bdynamic
-else
+else # B_REFSW_CROSS_COMPILE is not arm-linux-androideabi-
+	${CC} -shared -o $@  ${LDFLAGS}  $^ -Wl,-dy,--no-wchar-size-warning
+endif # End B_REFSW_CROSS_COMPILE
+
+else # B_REFSW_ARCH is not arm-linux
 	${CC} -shared -o $@  ${LDFLAGS}  $^ -Wl,-dy
-endif
+endif # End B_REFSW_ARCH
 
-libdrmrootfs.a: ${OBJS} 
-	${AR} rc  $@  $^ 
+${DRMROOTFS_OBJ_ROOT}/libdrmrootfs.a: ${END_OBJS}
+	${AR} rc $@  $^
 
+${DRMROOTFS_OBJ_ROOT}/%.o: %.c
+	@echo [Compile... $<]
+	${Q_}$(CC) -c -o $@ $< $(CFLAGS)
+
+${D_FOR_LIB_INSTALL}/%.a : ${DRMROOTFS_OBJ_ROOT}/%.a
+	install -m 0755 $< $@
+
+${D_FOR_LIB_INSTALL}/%.so : ${DRMROOTFS_OBJ_ROOT}/%.so
+	install -m 0755 $< $@
 
 ############################################################################
 #                             DEP FILES, PHONY
 #vvvv#####################vvvvvvvvvvvvvvvvvvvvvvv#####################vvvv##
 -include *.d
-.PHONY: all install clean distclean 
+.PHONY: all install clean distclean prep_folder
 #^^^^#####################^^^^^^^^^^^^^^^^^^^^^^^#####################^^^^##
-
-
-
-
 

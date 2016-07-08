@@ -1087,7 +1087,7 @@ static void NEXUS_Frontend_P_7563_UnTune(void *handle)
     NEXUS_7563 *pDevice = (NEXUS_7563 *)handle;
     BODS_PowerSaverSettings pwrSettings;
 
-    BDBG_MSG(("Untune: pDevice = 0x%x", pDevice));
+    BDBG_MSG(("Untune: pDevice = %p", pDevice));
     BDBG_MSG(("Tuner is not powered down for now to decrease channel change time."));
 
     BDBG_OBJECT_ASSERT(pDevice, NEXUS_7563);

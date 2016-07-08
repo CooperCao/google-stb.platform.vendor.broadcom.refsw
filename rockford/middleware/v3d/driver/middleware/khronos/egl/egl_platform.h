@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2008 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2008 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -31,9 +31,11 @@ void egl_server_platform_init(void);
 
 extern void egl_server_platform_set_position(uint32_t handle, uint32_t position, uint32_t width, uint32_t height);
 extern uint32_t egl_server_platform_create_buffer(KHRN_IMAGE_FORMAT_T format, uint32_t width, uint32_t height,
-                                                  KHRN_IMAGE_CREATE_FLAG_T flags, BEGL_WindowState *windowState, BEGL_BufferUsage usage);
-extern uint32_t egl_server_platform_get_buffer(EGLNativeWindowType win, KHRN_IMAGE_FORMAT_T format, uint32_t width, uint32_t height,
-                                               KHRN_IMAGE_CREATE_FLAG_T flags, BEGL_WindowState *windowState, BEGL_BufferUsage usage);
+                                                  KHRN_IMAGE_CREATE_FLAG_T flags, BEGL_WindowState *windowState,
+                                                  BEGL_BufferUsage usage, bool secure);
+extern uint32_t egl_server_platform_get_buffer(KHRN_IMAGE_FORMAT_T format, uint32_t width, uint32_t height,
+                                               KHRN_IMAGE_CREATE_FLAG_T flags, BEGL_WindowState *windowState,
+                                               BEGL_BufferUsage usage, bool secure);
 extern bool egl_server_platform_create_window_state(BEGL_WindowState **windowState, uint32_t window);
 extern void egl_server_platform_destroy_buffer(uint32_t bufHandle, BEGL_WindowState *windowState);
 

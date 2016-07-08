@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2013 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #ifndef NEXUS_PICTURE_CTRL_H__
@@ -216,21 +208,9 @@ NEXUS_Error NEXUS_PictureCtrl_SetCustomContrastStretch(
     unsigned numTableEntries
     );
 
-/***************************************************************************
-Deprecated. Use NEXUS_PictureCtrlCommonSettings.sharpness instead.
-****************************************************************************/
-void NEXUS_PictureCtrl_GetSharpnessValue(
-    NEXUS_VideoWindowHandle window,
-    NEXUS_PictureCtrlSharpnessValue *pData /* [out] */
-    );
-
-/***************************************************************************
-Deprecated. Use NEXUS_PictureCtrlCommonSettings.sharpness instead.
-****************************************************************************/
-NEXUS_Error NEXUS_PictureCtrl_SetSharpnessValue(
-    NEXUS_VideoWindowHandle window,
-    const NEXUS_PictureCtrlSharpnessValue *pData
-    );
+/* Deprecated. Use NEXUS_PictureCtrlCommonSettings.sharpness instead. */
+#define NEXUS_PictureCtrl_GetSharpnessValue(window,pData)
+#define NEXUS_PictureCtrl_SetSharpnessValue(window,pData) NEXUS_NOT_SUPPORTED
 
 /***************************************************************************
 Summary:

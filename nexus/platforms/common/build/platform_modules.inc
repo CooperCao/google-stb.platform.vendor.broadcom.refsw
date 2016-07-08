@@ -1,7 +1,7 @@
 ############################################################
-#     (c)2003-2014 Broadcom Corporation
+#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 #
-#  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+#  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
 #  conditions of a separate, written license agreement executed between you and Broadcom
 #  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,8 @@
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
 #
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
 # Module Description:
 #   This file defines a list of nexus modules that will be included in the build.
-#
-# Revision History:
-#
-# $brcm_Log: $
 #
 ############################################################
 
@@ -148,7 +140,7 @@ include $(NEXUS_TOP)/modules/hdmi_input/hdmi_input.inc
 endif
 
 ifeq ($(V3D_SUPPORT),)
-BCHP_HAS_V3D := $(shell test -e ${BCHP_RDB_PATH}/bchp_v3d_vpm.h && echo y)
+BCHP_HAS_V3D := $(shell test -e ${BCHP_RDB_PATH}/bchp_v3d_vpm*.h && echo y)
 ifeq ($(BCHP_HAS_V3D),y)
 V3D_SUPPORT := $(shell test -e $(NEXUS_TOP)/modules/graphicsv3d/graphicsv3d.inc && echo y)
 endif

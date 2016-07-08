@@ -1,7 +1,7 @@
 #############################################################################
-#    (c)2013-2014 Broadcom Corporation
-# 
-# This program is the proprietary software of Broadcom Corporation and/or its licensors,
+# Broadcom Proprietary and Confidential. (c)2013-2016 Broadcom. All rights reserved.
+#
+# This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
 # conditions of a separate, written license agreement executed between you and Broadcom
 # (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -107,6 +107,7 @@ endif
 
 VIDEO_ENCODER_SUPPORT ?= y
 NEXUS_POWER_MANAGEMENT ?= y
+B_REFSW_STRICT_PRINTF_FORMAT ?= y
 
 #
 # by default, we include the following

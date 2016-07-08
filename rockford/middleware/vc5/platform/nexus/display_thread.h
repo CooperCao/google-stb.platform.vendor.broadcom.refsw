@@ -1,12 +1,12 @@
 /*=============================================================================
-Copyright (c) 2015 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2015 Broadcom.
 All rights reserved.
 =============================================================================*/
 
 #ifndef __DISPLAY_THREAD_H__
 #define __DISPLAY_THREAD_H__
 
-#include "egl_platform_abstract.h"
+#include <EGL/begl_displayplatform.h>
 #include "sched_abstract.h"
 
 #include "display_nexus.h"
@@ -16,17 +16,15 @@ void *CreateWorkerThread(void *nw,
                          BEGL_SchedInterface *schedIface,
                          int numSurfaces,
                          int *bound,
-                         NXPL_NativeWindowInfo *windowInfo,
+                         NXPL_NativeWindowInfoEXT *windowInfo,
                          BEGL_BufferFormat format,
                          NEXUS_DISPLAYHANDLE display,
                          NXPL_DisplayType displayType);
-#endif
-
-#ifdef NXPL_PLATFORM_NSC
+#else
 void *CreateWorkerThread(void *nw,
                          BEGL_SchedInterface *schedIface,
                          int numSurfaces,
-                         NXPL_NativeWindowInfo *windowInfo,
+                         NXPL_NativeWindowInfoEXT *windowInfo,
                          BEGL_BufferFormat format,
                          uint32_t clientID,
                          NEXUS_SurfaceClientHandle surfaceClient,

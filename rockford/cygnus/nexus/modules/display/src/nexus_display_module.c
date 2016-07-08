@@ -1,51 +1,40 @@
-/***************************************************************************
- *     (c)2007-2014 Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- *  Except as expressly set forth in the Authorized License,
+ * Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
- **************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
 #include "nexus_base.h"
 #include "nexus_display_module.h"
 #include "priv/nexus_core.h"
@@ -60,6 +49,15 @@ NEXUS_DisplayModule_State g_NEXUS_DisplayModule_State;
 
 static void NEXUS_P_SetDisplayCapabilities(void);
 #define pVideo (&g_NEXUS_DisplayModule_State)
+#define NEXUS_P_GET_MAX_PIXEL(format_info) \
+	(((format_info.verticalFreq)/100)*(format_info.width)*(format_info.height) >> (format_info.interlaced))
+
+void
+NEXUS_DisplayModule_GetDefaultInternalSettings(NEXUS_DisplayModuleInternalSettings *pSettings)
+{
+    BKNI_Memset(pSettings, 0, sizeof(*pSettings));
+    return;
+}
 
 void
 NEXUS_DisplayModule_GetDefaultSettings(const struct NEXUS_Core_PreInitState *preInitState, NEXUS_DisplayModuleSettings *pSettings)
@@ -464,7 +462,7 @@ void NEXUS_DisplayModule_Print(void)
 }
 
 NEXUS_ModuleHandle
-NEXUS_DisplayModule_Init(const NEXUS_DisplayModuleSettings *pSettings)
+NEXUS_DisplayModule_Init( const NEXUS_DisplayModuleInternalSettings *pModuleSettings, const NEXUS_DisplayModuleSettings *pSettings)
 {
     NEXUS_ModuleSettings moduleSettings;
     BERR_Code rc;
@@ -483,18 +481,18 @@ NEXUS_DisplayModule_Init(const NEXUS_DisplayModuleSettings *pSettings)
     state->moduleSettings = *pSettings;
     state->pqDisabled = NEXUS_GetEnv("pq_disabled")!=NULL;
 
-    if (pSettings->modules.surface == NULL) {
+    if (pModuleSettings->modules.surface == NULL) {
         rc = BERR_TRACE(BERR_INVALID_PARAMETER);
         goto err_settings;
     }
 #if NEXUS_HAS_HDMI_INPUT
-    if (pSettings->modules.hdmiInput == NULL) {
+    if (pModuleSettings->modules.hdmiInput == NULL) {
         rc = BERR_TRACE(BERR_INVALID_PARAMETER);
         goto err_settings;
     }
 #endif
 #if NEXUS_HAS_TRANSPORT
-    if (pSettings->modules.transport == NULL) {
+    if (pModuleSettings->modules.transport == NULL) {
         rc = BERR_TRACE(BERR_INVALID_PARAMETER);
         goto err_settings;
     }
@@ -508,7 +506,7 @@ NEXUS_DisplayModule_Init(const NEXUS_DisplayModuleSettings *pSettings)
     if(!g_NEXUS_displayModuleHandle) { rc = BERR_TRACE(BERR_OS_ERROR); goto err_module; }
     NEXUS_LockModule();
 
-    if (pSettings->modules.videoDecoder) {
+    if (pModuleSettings->modules.videoDecoder) {
         NEXUS_UseModule(pSettings->modules.videoDecoder);
     }
     NEXUS_UseModule(pSettings->modules.surface);
@@ -527,7 +525,7 @@ NEXUS_DisplayModule_Init(const NEXUS_DisplayModuleSettings *pSettings)
     BLST_S_INIT(&state->inputs);
     state->updateMode = NEXUS_DisplayUpdateMode_eAuto;
     state->lastUpdateFailed = false;
-    state->modules = pSettings->modules;
+    state->modules = pModuleSettings->modules;
     for(i=0;i<sizeof(state->displays)/sizeof(state->displays[0]);i++) {
         state->displays[i] = NULL;
     }
@@ -539,7 +537,7 @@ NEXUS_DisplayModule_Init(const NEXUS_DisplayModuleSettings *pSettings)
         if (rc) {rc = BERR_TRACE(rc); goto err_tmr;}
     }
 
-    /* get heap settings from NEXUS_DisplayModuleSettings and apply to individual nexus heaps */
+    /* get heap settings from NEXUS_DisplayModuleInternalSettings and apply to individual nexus heaps */
     for (i=0;i<NEXUS_MAX_HEAPS;i++) {
         NEXUS_HeapHandle heap = g_pCoreHandles->heap[i].nexus;
         if (heap) {
@@ -553,73 +551,77 @@ NEXUS_DisplayModule_Init(const NEXUS_DisplayModuleSettings *pSettings)
     vdcCfg.bVecSwap = pSettings->vecSwap;
 
     /*
-     * For platforms with single VDC heap,check for the  HD and SD buffers count.
+     * For legacy platforms with single VDC heap,check for the  HD and SD buffers count.
      * If all the buffer counts are zero, then the platform uses multiple VDC heaps.
      */
-    if(pSettings->fullHdBuffers.count || pSettings->hdBuffers.count || pSettings->sdBuffers.count ||
-       pSettings->fullHdBuffers.pipCount || pSettings->hdBuffers.pipCount || pSettings->sdBuffers.pipCount){
-        (void)NEXUS_P_PixelFormat_ToMagnum_isrsafe(pSettings->fullHdBuffers.pixelFormat, &mPixelFormat);
-        (void)NEXUS_P_VideoFormat_ToMagnum_isrsafe(pSettings->fullHdBuffers.format, &mVideoFormat);
-        vdcCfg.stHeapSettings.ulBufferCnt_2HD = pSettings->fullHdBuffers.count;
-        vdcCfg.stHeapSettings.ulBufferCnt_2HD_Pip = pSettings->fullHdBuffers.pipCount;
-        vdcCfg.stHeapSettings.ePixelFormat_2HD = mPixelFormat;
-        vdcCfg.stHeapSettings.eBufferFormat_2HD = mVideoFormat;
+    if(NEXUS_MAX_HEAPS != pSettings->primaryDisplayHeapIndex) {
+        if(pSettings->fullHdBuffers.count || pSettings->hdBuffers.count || pSettings->sdBuffers.count ||
+           pSettings->fullHdBuffers.pipCount || pSettings->hdBuffers.pipCount || pSettings->sdBuffers.pipCount){
+            (void)NEXUS_P_PixelFormat_ToMagnum_isrsafe(pSettings->fullHdBuffers.pixelFormat, &mPixelFormat);
+            (void)NEXUS_P_VideoFormat_ToMagnum_isrsafe(pSettings->fullHdBuffers.format, &mVideoFormat);
+            vdcCfg.stHeapSettings.ulBufferCnt_2HD = pSettings->fullHdBuffers.count;
+            vdcCfg.stHeapSettings.ulBufferCnt_2HD_Pip = pSettings->fullHdBuffers.pipCount;
+            vdcCfg.stHeapSettings.ePixelFormat_2HD = mPixelFormat;
+            vdcCfg.stHeapSettings.eBufferFormat_2HD = mVideoFormat;
 
-        (void)NEXUS_P_PixelFormat_ToMagnum_isrsafe(pSettings->hdBuffers.pixelFormat, &mPixelFormat);
-        (void)NEXUS_P_VideoFormat_ToMagnum_isrsafe(pSettings->hdBuffers.format, &mVideoFormat);
-        vdcCfg.stHeapSettings.ulBufferCnt_HD = pSettings->hdBuffers.count;
-        vdcCfg.stHeapSettings.ulBufferCnt_HD_Pip = pSettings->hdBuffers.pipCount;
-        vdcCfg.stHeapSettings.ePixelFormat_HD = mPixelFormat;
-        vdcCfg.stHeapSettings.eBufferFormat_HD = mVideoFormat;
+            (void)NEXUS_P_PixelFormat_ToMagnum_isrsafe(pSettings->hdBuffers.pixelFormat, &mPixelFormat);
+            (void)NEXUS_P_VideoFormat_ToMagnum_isrsafe(pSettings->hdBuffers.format, &mVideoFormat);
+            vdcCfg.stHeapSettings.ulBufferCnt_HD = pSettings->hdBuffers.count;
+            vdcCfg.stHeapSettings.ulBufferCnt_HD_Pip = pSettings->hdBuffers.pipCount;
+            vdcCfg.stHeapSettings.ePixelFormat_HD = mPixelFormat;
+            vdcCfg.stHeapSettings.eBufferFormat_HD = mVideoFormat;
 
-        /* set default format based on hdBuffer format */
-        vdcCfg.eVideoFormat = mVideoFormat;
+            /* set default format based on hdBuffer format */
+            vdcCfg.eVideoFormat = mVideoFormat;
 
-        (void)NEXUS_P_PixelFormat_ToMagnum_isrsafe(pSettings->sdBuffers.pixelFormat, &mPixelFormat);
-        (void)NEXUS_P_VideoFormat_ToMagnum_isrsafe(pSettings->sdBuffers.format, &mVideoFormat);
-        vdcCfg.stHeapSettings.ulBufferCnt_SD = pSettings->sdBuffers.count;
-        vdcCfg.stHeapSettings.ulBufferCnt_SD_Pip = pSettings->sdBuffers.pipCount;
-        vdcCfg.stHeapSettings.ePixelFormat_SD = mPixelFormat;
-        vdcCfg.stHeapSettings.eBufferFormat_SD = mVideoFormat;
+            (void)NEXUS_P_PixelFormat_ToMagnum_isrsafe(pSettings->sdBuffers.pixelFormat, &mPixelFormat);
+            (void)NEXUS_P_VideoFormat_ToMagnum_isrsafe(pSettings->sdBuffers.format, &mVideoFormat);
+            vdcCfg.stHeapSettings.ulBufferCnt_SD = pSettings->sdBuffers.count;
+            vdcCfg.stHeapSettings.ulBufferCnt_SD_Pip = pSettings->sdBuffers.pipCount;
+            vdcCfg.stHeapSettings.ePixelFormat_SD = mPixelFormat;
+            vdcCfg.stHeapSettings.eBufferFormat_SD = mVideoFormat;
+        }
+        else {
+            unsigned heapIndex = pSettings->primaryDisplayHeapIndex;
+
+            (void)NEXUS_P_PixelFormat_ToMagnum_isrsafe(pSettings->displayHeapSettings[heapIndex].quadHdBuffers.pixelFormat, &mPixelFormat);
+            (void)NEXUS_P_VideoFormat_ToMagnum_isrsafe(pSettings->displayHeapSettings[heapIndex].quadHdBuffers.format, &mVideoFormat);
+            vdcCfg.stHeapSettings.ulBufferCnt_4HD = pSettings->displayHeapSettings[heapIndex].quadHdBuffers.count;
+            vdcCfg.stHeapSettings.ulBufferCnt_4HD_Pip = pSettings->displayHeapSettings[heapIndex].quadHdBuffers.pipCount;
+            vdcCfg.stHeapSettings.ePixelFormat_4HD = mPixelFormat;
+            vdcCfg.stHeapSettings.eBufferFormat_4HD = mVideoFormat;
+            (void)NEXUS_P_PixelFormat_ToMagnum_isrsafe(pSettings->displayHeapSettings[heapIndex].fullHdBuffers.pixelFormat, &mPixelFormat);
+            (void)NEXUS_P_VideoFormat_ToMagnum_isrsafe(pSettings->displayHeapSettings[heapIndex].fullHdBuffers.format, &mVideoFormat);
+            vdcCfg.stHeapSettings.ulBufferCnt_2HD = pSettings->displayHeapSettings[heapIndex].fullHdBuffers.count;
+            vdcCfg.stHeapSettings.ulBufferCnt_2HD_Pip = pSettings->displayHeapSettings[heapIndex].fullHdBuffers.pipCount;
+            vdcCfg.stHeapSettings.ePixelFormat_2HD = mPixelFormat;
+            vdcCfg.stHeapSettings.eBufferFormat_2HD = mVideoFormat;
+            (void)NEXUS_P_PixelFormat_ToMagnum_isrsafe(pSettings->displayHeapSettings[heapIndex].hdBuffers.pixelFormat, &mPixelFormat);
+            (void)NEXUS_P_VideoFormat_ToMagnum_isrsafe(pSettings->displayHeapSettings[heapIndex].hdBuffers.format, &mVideoFormat);
+            vdcCfg.stHeapSettings.ulBufferCnt_HD = pSettings->displayHeapSettings[heapIndex].hdBuffers.count;
+            vdcCfg.stHeapSettings.ulBufferCnt_HD_Pip =pSettings->displayHeapSettings[heapIndex].hdBuffers.pipCount;
+            vdcCfg.stHeapSettings.ePixelFormat_HD = mPixelFormat;
+            vdcCfg.stHeapSettings.eBufferFormat_HD = mVideoFormat;
+
+            /* set default format based on hdBuffer format */
+            vdcCfg.eVideoFormat = mVideoFormat;
+
+            (void)NEXUS_P_PixelFormat_ToMagnum_isrsafe(pSettings->displayHeapSettings[heapIndex].sdBuffers.pixelFormat, &mPixelFormat);
+            (void)NEXUS_P_VideoFormat_ToMagnum_isrsafe(pSettings->displayHeapSettings[heapIndex].sdBuffers.format, &mVideoFormat);
+            vdcCfg.stHeapSettings.ulBufferCnt_SD = pSettings->displayHeapSettings[heapIndex].sdBuffers.count;
+            vdcCfg.stHeapSettings.ulBufferCnt_SD_Pip = pSettings->displayHeapSettings[heapIndex].sdBuffers.pipCount;
+            vdcCfg.stHeapSettings.ePixelFormat_SD = mPixelFormat;
+            vdcCfg.stHeapSettings.eBufferFormat_SD = mVideoFormat;
+        }
+
+        state->heap = g_pCoreHandles->heap[pSettings->primaryDisplayHeapIndex].nexus;
+
+        BDBG_MSG(("Creating main VDC heap: SD %u, HD %u, 2HD %u, 4HD %u, SD_PIP %u, HD_PIP %u, 2HD_PIP %u ,4HD_PIP %u",
+                  vdcCfg.stHeapSettings.ulBufferCnt_SD, vdcCfg.stHeapSettings.ulBufferCnt_HD,
+                  vdcCfg.stHeapSettings.ulBufferCnt_2HD,vdcCfg.stHeapSettings.ulBufferCnt_4HD,
+                  vdcCfg.stHeapSettings.ulBufferCnt_SD_Pip, vdcCfg.stHeapSettings.ulBufferCnt_HD_Pip,
+                  vdcCfg.stHeapSettings.ulBufferCnt_2HD_Pip, vdcCfg.stHeapSettings.ulBufferCnt_4HD_Pip));
     }
-    else{
-        unsigned heapIndex = pSettings->primaryDisplayHeapIndex;
-
-        (void)NEXUS_P_PixelFormat_ToMagnum_isrsafe(pSettings->displayHeapSettings[heapIndex].quadHdBuffers.pixelFormat, &mPixelFormat);
-        (void)NEXUS_P_VideoFormat_ToMagnum_isrsafe(pSettings->displayHeapSettings[heapIndex].quadHdBuffers.format, &mVideoFormat);
-        vdcCfg.stHeapSettings.ulBufferCnt_4HD = pSettings->displayHeapSettings[heapIndex].quadHdBuffers.count;
-        vdcCfg.stHeapSettings.ulBufferCnt_4HD_Pip = pSettings->displayHeapSettings[heapIndex].quadHdBuffers.pipCount;
-        vdcCfg.stHeapSettings.ePixelFormat_4HD = mPixelFormat;
-        vdcCfg.stHeapSettings.eBufferFormat_4HD = mVideoFormat;
-        (void)NEXUS_P_PixelFormat_ToMagnum_isrsafe(pSettings->displayHeapSettings[heapIndex].fullHdBuffers.pixelFormat, &mPixelFormat);
-        (void)NEXUS_P_VideoFormat_ToMagnum_isrsafe(pSettings->displayHeapSettings[heapIndex].fullHdBuffers.format, &mVideoFormat);
-        vdcCfg.stHeapSettings.ulBufferCnt_2HD = pSettings->displayHeapSettings[heapIndex].fullHdBuffers.count;
-        vdcCfg.stHeapSettings.ulBufferCnt_2HD_Pip = pSettings->displayHeapSettings[heapIndex].fullHdBuffers.pipCount;
-        vdcCfg.stHeapSettings.ePixelFormat_2HD = mPixelFormat;
-        vdcCfg.stHeapSettings.eBufferFormat_2HD = mVideoFormat;
-        (void)NEXUS_P_PixelFormat_ToMagnum_isrsafe(pSettings->displayHeapSettings[heapIndex].hdBuffers.pixelFormat, &mPixelFormat);
-        (void)NEXUS_P_VideoFormat_ToMagnum_isrsafe(pSettings->displayHeapSettings[heapIndex].hdBuffers.format, &mVideoFormat);
-        vdcCfg.stHeapSettings.ulBufferCnt_HD = pSettings->displayHeapSettings[heapIndex].hdBuffers.count;
-        vdcCfg.stHeapSettings.ulBufferCnt_HD_Pip =pSettings->displayHeapSettings[heapIndex].hdBuffers.pipCount;
-        vdcCfg.stHeapSettings.ePixelFormat_HD = mPixelFormat;
-        vdcCfg.stHeapSettings.eBufferFormat_HD = mVideoFormat;
-
-        /* set default format based on hdBuffer format */
-        vdcCfg.eVideoFormat = mVideoFormat;
-
-        (void)NEXUS_P_PixelFormat_ToMagnum_isrsafe(pSettings->displayHeapSettings[heapIndex].sdBuffers.pixelFormat, &mPixelFormat);
-        (void)NEXUS_P_VideoFormat_ToMagnum_isrsafe(pSettings->displayHeapSettings[heapIndex].sdBuffers.format, &mVideoFormat);
-        vdcCfg.stHeapSettings.ulBufferCnt_SD = pSettings->displayHeapSettings[heapIndex].sdBuffers.count;
-        vdcCfg.stHeapSettings.ulBufferCnt_SD_Pip = pSettings->displayHeapSettings[heapIndex].sdBuffers.pipCount;
-        vdcCfg.stHeapSettings.ePixelFormat_SD = mPixelFormat;
-        vdcCfg.stHeapSettings.eBufferFormat_SD = mVideoFormat;
-    }
-
-    BDBG_MSG(("Creating main VDC heap: SD %u, HD %u, 2HD %u, 4HD %u, SD_PIP %u, HD_PIP %u, 2HD_PIP %u ,4HD_PIP %u",
-              vdcCfg.stHeapSettings.ulBufferCnt_SD, vdcCfg.stHeapSettings.ulBufferCnt_HD,
-              vdcCfg.stHeapSettings.ulBufferCnt_2HD,vdcCfg.stHeapSettings.ulBufferCnt_4HD,
-              vdcCfg.stHeapSettings.ulBufferCnt_SD_Pip, vdcCfg.stHeapSettings.ulBufferCnt_HD_Pip,
-              vdcCfg.stHeapSettings.ulBufferCnt_2HD_Pip, vdcCfg.stHeapSettings.ulBufferCnt_4HD_Pip));
 
     vdcCfg.eDisplayFrameRate = pSettings->dropFrame ? BAVC_FrameRateCode_e59_94 : BAVC_FrameRateCode_e60;
 
@@ -628,24 +630,48 @@ NEXUS_DisplayModule_Init(const NEXUS_DisplayModuleSettings *pSettings)
         vdcCfg.aulDacBandGapAdjust[i] = pSettings->dacBandGapAdjust[i];
     }
     vdcCfg.eDacDetection = pSettings->dacDetection;
+    vdcCfg.bDisableMosaic = !pSettings->memconfig.mosaic;
+    vdcCfg.bDisable656Input = !pSettings->memconfig.ccir656;
+    vdcCfg.bDisableHddviInput = !pSettings->memconfig.hdDvi;
 
-    if (pSettings->primaryDisplayHeapIndex >= NEXUS_MAX_HEAPS || !g_pCoreHandles->heap[pSettings->primaryDisplayHeapIndex].nexus) {
-        rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
-        goto err_vdc;
-    }
 
-    state->heap = g_pCoreHandles->heap[pSettings->primaryDisplayHeapIndex].nexus;
-
-#if !NEXUS_NUM_MOSAIC_DECODES
-    vdcCfg.bDisableMosaic = true;
-#endif
-#if !NEXUS_NUM_656_INPUTS
-    vdcCfg.bDisable656Input = true;
-#endif
-#if !NEXUS_NUM_HDDVI_INPUTS && !NEXUS_NUM_HDMI_INPUTS
-    vdcCfg.bDisableHddviInput = true;
-#endif
     NEXUS_P_SetDisplayCapabilities();
+#if NEXUS_VBI_SUPPORT
+    {
+        BVBIlib_List_Settings vbilistsettings;
+        BVBI_Settings vbiSettings;
+
+        BVBI_GetDefaultSettings(&vbiSettings);
+        vbiSettings.tteShiftDirMsb2Lsb = pSettings->vbi.tteShiftDirMsb2Lsb;
+        vbiSettings.in656bufferSize = pSettings->vbi.ccir656InputBufferSize;
+        BDBG_MSG(("BVBI_Open"));
+        rc = BVBI_Open(&state->vbi, g_pCoreHandles->chp, g_pCoreHandles->reg, g_pCoreHandles->heap[g_pCoreHandles->defaultHeapIndex].mem, &vbiSettings);
+        if(rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc); goto err_vbi; }
+
+        rc = BVBIlib_Open (&state->vbilib, state->vbi);
+        if(rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc); goto err_vbilib; }
+
+        BVBIlib_List_GetDefaultSettings(&vbilistsettings);
+        vbilistsettings.bAllowTeletext = pSettings->vbi.allowTeletext;
+        vbilistsettings.bAllowVPS = pSettings->vbi.allowVps;
+        vbilistsettings.bAllowGemstar = pSettings->vbi.allowGemStar;
+        vbilistsettings.bAllowCgmsB = pSettings->vbi.allowCgmsB;
+        vbilistsettings.bAllowAmol = pSettings->vbi.allowAmol;
+        rc = BVBIlib_List_Create(&state->vbilist, state->vbi,
+            (NEXUS_VBI_ENCODER_QUEUE_SIZE+1)*pVideo->cap.numDisplays, /* number of entries.
+                The +1 is because of vbilib internal resource management.
+                The *NEXUS_NUM_DISPLAYS is for each BVBIlib_Encode_Create */
+            &vbilistsettings);
+        if(rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc); goto err_vbilist; }
+    }
+#endif
+
+#if NEXUS_NUM_MOSAIC_DECODES
+    for (i=0;i<NEXUS_NUM_MOSAIC_DECODE_SETS;i++) {
+        NEXUS_VIDEO_INPUT_INIT(&state->mosaicInput[i].input, NEXUS_VideoInputType_eDecoder, NULL);
+    }
+#endif
+
     NEXUS_UnlockModule();
     return g_NEXUS_displayModuleHandle;
 
@@ -657,10 +683,6 @@ err_vbilib:
 err_vbi:
 #endif
     BVDC_Close(state->vdc);
-err_vdc:
-    BRDC_Close(state->rdc);
-err_rdc:
-    BTMR_DestroyTimer(state->tmr);
 err_tmr:
     NEXUS_UnlockModule();
     NEXUS_Module_Destroy(g_NEXUS_displayModuleHandle);
@@ -680,6 +702,7 @@ void NEXUS_DisplayModule_Uninit(void)
     BERR_Code rc;
     unsigned i;
 
+    BSTD_UNUSED(rc);
     /* auto cleanup must run with module lock held */
     NEXUS_LockModule();
     for (i=0;i<sizeof(state->displays)/sizeof(state->displays[0]);i++) {
@@ -707,7 +730,6 @@ void NEXUS_DisplayModule_Uninit(void)
     rc = NEXUS_CustomPq_Uninit();
     if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);}
 #endif
-    rc = BERR_SUCCESS;
 
     BTMR_DestroyTimer(state->tmr);
 
@@ -879,7 +901,9 @@ void BVideoTool_GetDisplayHandles(BVideoToolDisplayHandles *pDisplayHandles)
     pDisplayHandles->vdc = g_NEXUS_DisplayModule_State.vdc;
     pDisplayHandles->rdc = g_NEXUS_DisplayModule_State.rdc;
     pDisplayHandles->reg = g_pCoreHandles->reg;
-    pDisplayHandles->heap = g_pCoreHandles->heap[g_NEXUS_DisplayModule_State.moduleSettings.primaryDisplayHeapIndex].mem;
+    if(NEXUS_MAX_HEAPS != g_NEXUS_DisplayModule_State.moduleSettings.primaryDisplayHeapIndex) {
+        pDisplayHandles->heap = g_pCoreHandles->heap[g_NEXUS_DisplayModule_State.moduleSettings.primaryDisplayHeapIndex].mem;
+    }
 }
 
 /**
@@ -913,12 +937,6 @@ void NEXUS_DisplayModule_SetVideoDecoderModule( NEXUS_ModuleHandle videoDecoder 
     g_NEXUS_DisplayModule_State.modules.videoDecoder = videoDecoder;
 }
 
-NEXUS_Error NEXUS_DisplayModule_SetConfigurationId( unsigned configurationId )
-{
-    BSTD_UNUSED(configurationId);
-    return BERR_TRACE(NEXUS_NOT_SUPPORTED);
-}
-
 const char *g_videoOutputStr[NEXUS_VideoOutputType_eMax] = {"composite", "svideo", "component", "rfm", "hdmi", "hdmi_dvo", "ccir656"};
 const char *g_videoInputStr[NEXUS_VideoInputType_eMax] = {"decoder", "ccir656", "hdmi", "image", "hddvi"};
 
@@ -943,12 +961,13 @@ static void NEXUS_P_SetDisplayCapabilities(void)
 {
     NEXUS_DisplayCapabilities *pCapabilities = &pVideo->cap;
     BVDC_Display_Capabilities vdcDisplayCap;
-    BVDC_Capabilities vdcCap;
     const NEXUS_DisplayModuleSettings *pSettings = &pVideo->moduleSettings;
     int rc;
     unsigned i, j;
+    uint32_t maxPixel; /* max pixel of a given format */
 
     if (!g_pCoreHandles->boxConfig->stBox.ulBoxId) {
+        maxPixel = UINT32_MAX; /* Whatever maximum HW support */
         if(pSettings->fullHdBuffers.count || pSettings->hdBuffers.count || pSettings->sdBuffers.count ||
            pSettings->fullHdBuffers.pipCount || pSettings->hdBuffers.pipCount || pSettings->sdBuffers.pipCount){
             /* for non-memconfig platforms */
@@ -977,21 +996,36 @@ static void NEXUS_P_SetDisplayCapabilities(void)
             }
 #else
             /* no box modes, so just put in 40nm max numbers */
-            pCapabilities->display[j].graphics.width = 720;
+            pCapabilities->display[j].graphics.width = 640;
             pCapabilities->display[j].graphics.height = 480;
 #endif
         }
     }
     else {
         /* report based on box modes */
+        maxPixel = 0;
         for (j=0;j<NEXUS_MAX_DISPLAYS;j++) {
             const BBOX_Vdc_Source_Capabilities *sourceCap;
+            const BBOX_Vdc_Display_Capabilities *displayCap;
             for (i=0;i<NEXUS_NUM_VIDEO_WINDOWS;i++) {
                 if (!g_pCoreHandles->boxConfig->stVdc.astDisplay[j].astWindow[i].bAvailable) break;
                 pCapabilities->display[j].numVideoWindows++;
             }
             if (i > 0) pCapabilities->numDisplays++;
             sourceCap = &g_pCoreHandles->boxConfig->stVdc.astSource[BAVC_SourceId_eGfx0 + j];
+            displayCap = &g_pCoreHandles->boxConfig->stVdc.astDisplay[j];
+            if (displayCap->bAvailable) {
+                if (displayCap->eMaxVideoFmt != BBOX_VDC_DISREGARD) {
+                    NEXUS_VideoFormatInfo maxFormat;
+                    NEXUS_VideoFormat_GetInfo(NEXUS_P_VideoFormat_FromMagnum_isrsafe(displayCap->eMaxVideoFmt), &maxFormat);
+                    if(NEXUS_P_GET_MAX_PIXEL(maxFormat) > maxPixel)
+                    {
+                        maxPixel = NEXUS_P_GET_MAX_PIXEL(maxFormat);
+                        BDBG_MSG(("display[%d] max output format (%dx%d%c%d) for boxmode[%d].", j,
+                            maxFormat.width, maxFormat.height, maxFormat.interlaced ? 'i' : 'p', maxFormat.verticalFreq, g_pCoreHandles->boxConfig->stBox.ulBoxId));
+                    }
+                }
+            }
             if (sourceCap->bAvailable) {
                 if (sourceCap->stSizeLimits.ulWidth == BBOX_VDC_DISREGARD) {
                     /* BBOX_VDC_DISREGARD means "BBOX doesn't have info", so use hardcoded max numbers */
@@ -1009,7 +1043,18 @@ static void NEXUS_P_SetDisplayCapabilities(void)
     if (!rc) {
         unsigned i;
         for (i=0;i<BFMT_VideoFmt_eMaxCount;i++) {
-            pCapabilities->displayFormatSupported[NEXUS_P_VideoFormat_FromMagnum_isrsafe(i)] = vdcDisplayCap.pfIsVidfmtSupported(i);
+            NEXUS_VideoFormat format = NEXUS_P_VideoFormat_FromMagnum_isrsafe(i);
+            pCapabilities->displayFormatSupported[format] = vdcDisplayCap.pfIsVidfmtSupported(i);
+            if(g_pCoreHandles->boxConfig->stBox.ulBoxId && format != NEXUS_VideoFormat_eCustom2)
+            {
+                NEXUS_VideoFormatInfo info;
+                NEXUS_VideoFormat_GetInfo(format, &info);
+                if(NEXUS_P_GET_MAX_PIXEL(info) > maxPixel) {
+                    pCapabilities->displayFormatSupported[format] = false;
+                    BDBG_MSG(("Output format (%dx%d%c%d) exceeds boxmode[%d] capability.",
+                        info.width, info.height, info.interlaced ? 'i' : 'p', info.verticalFreq, g_pCoreHandles->boxConfig->stBox.ulBoxId));
+                }
+            }
         }
     }
 }

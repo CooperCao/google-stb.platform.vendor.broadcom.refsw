@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2009 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2009 Broadcom.
 All rights reserved.
 
 Project  :  vcfw
@@ -10,8 +10,8 @@ Revision :  $Revision: $
 Types and API for khronos client - direct based platform
 =============================================================================*/
 
-#ifndef KHRN_CLIENT_PLATFORM_ABSTRACT_H
-#define KHRN_CLIENT_PLATFORM_ABSTRACT_H
+#ifndef KHRN_CLIENT_PLATFORM_FILLER_ABSTRACT_H
+#define KHRN_CLIENT_PLATFORM_FILLER_ABSTRACT_H
 
 #include "interface/vcos/vcos.h"
 
@@ -93,4 +93,4 @@ extern void platform_tls_set(PLATFORM_TLS_T tls, void *v);
 extern void *platform_tls_get(PLATFORM_TLS_T tls);
 extern void platform_tls_remove(PLATFORM_TLS_T tls);
 
-#endif
+#endif /* KHRN_CLIENT_PLATFORM_FILLER_ABSTRACT_H */

@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2015 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,8 +34,8 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- *
+
+
  **************************************************************************/
 
 #include "bstd.h"
@@ -43,6 +43,7 @@
 #include "nexus_base_os.h"
 
 #include "drm_common.h"
+#include "drm_data.h"
 #include "drm_common_tl.h"
 #include "drm_common_command_ids.h"
 #include "drm_dtcp_ip_tl.h"
@@ -82,6 +83,7 @@ DRM_DtcpIpTl_Initialize(
     DrmCommonInit_t drmCmnInit = {NULL};
     DRM_DrmDtcpIpTl_P_Context_t        *handle=NULL;
     BSAGElib_InOutContainer *container = NULL;
+    ChipType_e chip_type;
 
     BDBG_ENTER(DRM_DtcpIpTl_Initialize);
     if ( !hDtcpIpTl || !key_file )
@@ -104,6 +106,13 @@ DRM_DtcpIpTl_Initialize(
         BDBG_ERR(("%s -  Error Allocating drm Memory for context", __FUNCTION__));
         goto ErrorExit;
     }
+    chip_type = DRM_Common_GetChipType();
+    if(chip_type == ChipType_eZS)
+        drmCmnInit.ta_bin_file_path = bdrm_get_ta_dev_bin_file_path();
+    else
+        drmCmnInit.ta_bin_file_path = bdrm_get_ta_bin_file_path();
+
+    BDBG_MSG(("%s TA bin file %s ",__FUNCTION__, drmCmnInit.ta_bin_file_path));
 
     rc = DRM_Common_TL_Initialize(&drmCmnInit);
     if (rc != Drm_Success)
@@ -457,7 +466,7 @@ DrmRC DtcpIpTl_EncDecOperation(
     if ( !dtcpIpDmaHandle || !dtcpIpKeyHandle || !pSrc || !pDst || !src_length )
     {
         rc = Drm_InvalidParameter;
-        BDBG_ERR(("Invalid Parameter during Enc/Dec operation %u %u %u %u %u",dtcpIpDmaHandle,dtcpIpKeyHandle, pSrc, pDst, src_length  ));
+        BDBG_ERR(("Invalid Parameter during Enc/Dec operation %p %p %p %p %u",(void *)dtcpIpDmaHandle,(void *)dtcpIpKeyHandle, (void *)pSrc, (void *)pDst, src_length));
         goto ErrorExit;
     }
 

@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2013-2014 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,17 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
  *****************************************************************************/
 #include "bfont.h"
 #include "bstd.h"
@@ -52,6 +41,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#ifdef FREETYPE_SUPPORT
+#include <ft2build.h>
+#include FT_FREETYPE_H
+#endif
 
 BDBG_MODULE(bfont);
 
@@ -68,6 +61,38 @@ BDBG_MODULE(bfont);
 *
 **********************************/
 #define BWIN_FONT_VERSION 1
+struct bwin_font_glyph_32bit {
+    int top;
+    int left;
+    unsigned width; /* in pixels */
+    unsigned height; /* in pixels */
+    unsigned pitch; /* linesize, in bytes */
+    unsigned advance; /* in pixels, x axis */
+    unsigned mem; /* 32 bit pointer into bwin_font.glyph_mem */
+};
+
+struct bfont_32bit {
+    int version;
+    int refcnt; /* for the bwin_engine cache */
+    unsigned win; /* 32 bit pointer included for binary compat */
+    unsigned size;
+    int antialiased; /* 0 is mono, 1 is antialiased,
+        2 is quasi-mono. see bwin_font.c for an explanation of this. */
+    unsigned height; /* max height, in pixels */
+    unsigned face; /* 32 bit pointer */
+    int ascender; /* in pixels */
+    int descender; /* in pixels */
+    unsigned cache_size; /* number of glyphs and chars in glyph_cache and char_map */
+    int cache_maxsize; /* maximum number of entries in glyph_cache and char_map. corresponds to mem allocated */
+    unsigned glyph_cache; /* points to array of size cache_size */
+    unsigned char_map; /* points to array of size cache_size */
+};
+/*********************************
+*
+* end bwin_font binary format
+*
+**********************************/
+
 typedef struct {
     int top;
     int left;
@@ -86,7 +111,11 @@ struct bfont {
     int antialiased; /* 0 is mono, 1 is antialiased,
         2 is quasi-mono. see bwin_font.c for an explanation of this. */
     unsigned height; /* max height, in pixels */
+#ifdef FREETYPE_SUPPORT
+    FT_Face face;
+#else
     void *face; /* included for binary compat */
+#endif
     int ascender; /* in pixels */
     int descender; /* in pixels */
     unsigned cache_size; /* number of glyphs and chars in glyph_cache and char_map */
@@ -94,11 +123,10 @@ struct bfont {
     bwin_font_glyph *glyph_cache; /* points to array of size cache_size */
     bfont_char *char_map; /* points to array of size cache_size */
 };
-/*********************************
-*
-* end bwin_font binary format
-*
-**********************************/
+
+
+static void bfont_p_close_freetype_font(bfont_t font);
+static bwin_font_glyph *bfont_p_get_freetype_glyph(bfont_t font, bfont_char);
 
 #define VERT_SPACING 3
 
@@ -192,17 +220,27 @@ bfont_t bfont_callback_open(bfont_readfn_t readfn, void *context)
 {
     unsigned i, s;
     bfont_t font;
+    struct bfont_32bit font_32bit;
+    struct bwin_font_glyph_32bit *glyph_cache_32bit;
 
     font = BKNI_Malloc(sizeof(*font));
     if (!font) {
         return NULL;
     }
 
-    if (readfn(font, sizeof(*font), 1, context) != 1) {
+    if (readfn(&font_32bit, sizeof(font_32bit), 1, context) != 1) {
         BDBG_ERR(("Font read error(1)"));
         goto error;
     }
-    swap(font, sizeof(*font));
+    swap(&font_32bit, sizeof(font_32bit));
+
+    font->version = font_32bit.version;
+    font->size = font_32bit.size;
+    font->antialiased = font_32bit.antialiased;
+    font->height = font_32bit.height;
+    font->ascender = font_32bit.ascender;
+    font->descender = font_32bit.descender;
+    font->cache_size = font_32bit.cache_size;
 
     if (font->version != BWIN_FONT_VERSION) {
         BDBG_ERR(("Incorrect font version %d. Code supports %d", font->version, BWIN_FONT_VERSION));
@@ -213,13 +251,25 @@ bfont_t bfont_callback_open(bfont_readfn_t readfn, void *context)
     font->cache_maxsize = font->cache_size;
     font->refcnt = 0;
 
-    s = sizeof(bwin_font_glyph) * font->cache_size;
-    font->glyph_cache = (bwin_font_glyph*)BKNI_Malloc(s);
-    if (readfn(font->glyph_cache, s, 1, context) != 1) {
+    s = sizeof(struct bwin_font_glyph_32bit) * font->cache_size;
+    glyph_cache_32bit = (struct bwin_font_glyph_32bit*)BKNI_Malloc(s);
+    if (readfn(glyph_cache_32bit, s, 1, context) != 1) {
         BDBG_ERR(("Font read error(2)"));
         goto error;
     }
-    swap(font->glyph_cache, s);
+    swap(glyph_cache_32bit, s);
+
+    s = sizeof(bwin_font_glyph) * font->cache_size;
+    font->glyph_cache = (bwin_font_glyph*)BKNI_Malloc(s);
+    for (i=0;i<font->cache_size;i++) {
+        font->glyph_cache[i].top = glyph_cache_32bit[i].top;
+        font->glyph_cache[i].left = glyph_cache_32bit[i].left;
+        font->glyph_cache[i].width = glyph_cache_32bit[i].width;
+        font->glyph_cache[i].height = glyph_cache_32bit[i].height;
+        font->glyph_cache[i].pitch = glyph_cache_32bit[i].pitch;
+        font->glyph_cache[i].advance = glyph_cache_32bit[i].advance;
+    }
+    BKNI_Free(glyph_cache_32bit);
 
     s = sizeof(bfont_char) * font->cache_size;
     font->char_map = (bfont_char*)BKNI_Malloc(s);
@@ -278,6 +328,7 @@ void bfont_close(bfont_t font)
     }
     BKNI_Free(font->glyph_cache);
     BKNI_Free(font->char_map);
+    bfont_p_close_freetype_font(font);
     BKNI_Free(font);
 }
 
@@ -368,7 +419,7 @@ static unsigned short antialias_argb1555_pixels(unsigned short bg_pixel, unsigne
     return COMPOSE_ARGB1555(a1,r1,g1,b1);
 }
 
-static unsigned long antialias_argb8888_pixels(unsigned long bg_pixel, unsigned long fg_pixel,
+static unsigned int antialias_argb8888_pixels(unsigned int bg_pixel, unsigned int fg_pixel,
     int alpha)
 {
     int a1,r1,g1,b1;
@@ -392,7 +443,7 @@ static unsigned long antialias_argb8888_pixels(unsigned long bg_pixel, unsigned 
     return COMPOSE_ARGB8888(a1,r1,g1,b1);
 }
 
-static unsigned long antialias_palette8_pixels(unsigned long bg_pixel, unsigned long fg_pixel,
+static unsigned int antialias_palette8_pixels(unsigned int bg_pixel, unsigned int fg_pixel,
     int alpha)
 {
 #if 1
@@ -475,11 +526,11 @@ static void bwin_p_fb_draw_font_bitmap(struct bfont_surface_desc *pSurfaceDesc, 
                     b += 2;
                     break;
                 case NEXUS_PixelFormat_eA8_R8_G8_B8:
-                    *(unsigned long *)b = antialias_argb8888_pixels(*(unsigned long *)b, color, src[j]);
+                    *(unsigned int *)b = antialias_argb8888_pixels(*(unsigned int *)b, color, src[j]);
                     b += 4;
                     break;
                 case NEXUS_PixelFormat_ePalette8:
-                    *(unsigned char *)b = antialias_palette8_pixels(*(unsigned long *)b, color, src[j]);
+                    *(unsigned char *)b = antialias_palette8_pixels(*(unsigned int *)b, color, src[j]);
                     b += 1;
                     break;
                 default:
@@ -512,7 +563,7 @@ static void bwin_p_fb_draw_font_bitmap(struct bfont_surface_desc *pSurfaceDesc, 
                     break;
                 case NEXUS_PixelFormat_eA8_R8_G8_B8:
                     if (src[j] >= 128)
-                        *(unsigned long *)b = color;
+                        *(unsigned int *)b = color;
                     b += 4;
                     break;
                 case NEXUS_PixelFormat_ePalette8:
@@ -554,7 +605,7 @@ static void bwin_p_fb_draw_font_bitmap(struct bfont_surface_desc *pSurfaceDesc, 
                     break;
                 case NEXUS_PixelFormat_eA8_R8_G8_B8:
                     if (isset)
-                        *(unsigned long *)b = color;
+                        *(unsigned int *)b = color;
                     b += 4;
                     break;
                 case NEXUS_PixelFormat_ePalette8:
@@ -776,7 +827,7 @@ static bwin_font_glyph *bwin_p_get_glyph(bfont_t font, bfont_char ch)
             high = mid;
         }
     }
-    return NULL;
+    return bfont_p_get_freetype_glyph(font, ch);
 }
 
 void bfont_get_surface_desc(NEXUS_SurfaceHandle surface, struct bfont_surface_desc *pDesc)
@@ -844,3 +895,149 @@ int bfont_draw_text_ex(struct bfont_surface_desc *desc, bfont_t font, const NEXU
     
     return bfont_p_draw_text(desc, font, x, y, text, len, color, pRect, psettings->text_type);
 }
+
+void bfont_get_default_open_freetype_settings(struct bfont_open_freetype_settings *psettings)
+{
+    memset(psettings, 0, sizeof(*psettings));
+}
+
+#ifdef FREETYPE_SUPPORT
+bfont_t bfont_open_freetype(const struct bfont_open_freetype_settings *psettings)
+{
+    int rc;
+    bfont_t font;
+    FT_Library lib;
+
+    font = malloc(sizeof(*font));
+    if (!font) {
+        return NULL;
+    }
+    memset(font, 0, sizeof(*font));
+    if (FT_Init_FreeType(&lib)) {
+        BDBG_ERR(("FT_Init_FreeType failed"));
+        return NULL;
+    }
+    font->size = psettings->size;
+    font->antialiased = psettings->antialiased;
+
+    rc = FT_New_Face(lib, psettings->filename, 0, &font->face);
+    if (rc) {
+        BDBG_ERR(("FT_New_Face failed"));
+        free(font);
+        return NULL;
+    }
+
+    if (FT_Set_Pixel_Sizes(font->face, 0, font->size)) {
+        BDBG_ERR(("FT_Set_Pixel_Sizes failed"));
+        free(font);
+        return NULL;
+    }
+
+    if (psettings->italics) {
+        FT_Matrix  matrix;
+        matrix.xx = 0x10000L;
+        matrix.xy = 0.3 * 0x10000L;
+        matrix.yx = 0;
+        matrix.yy = 0x10000L;
+        FT_Set_Transform(font->face, &matrix, 0 );
+    }
+
+    /* convert all metrics to units of pixels */
+    font->height = psettings->size + VERT_SPACING; /* add a little for spacing */
+    font->ascender = font->face->ascender * psettings->size / font->face->height;
+    font->descender = font->face->descender * psettings->size / font->face->height;
+
+    return font;
+}
+
+static void bfont_p_close_freetype_font(bfont_t font)
+{
+    if (font->face) {
+        FT_Done_Face(font->face);
+    }
+}
+
+static bwin_font_glyph *bfont_p_get_freetype_glyph(bfont_t font, bfont_char ch)
+{
+    bwin_font_glyph *glyph;
+
+    FT_UInt glyph_index = FT_Get_Char_Index(font->face, ch);
+    FT_GlyphSlot slot = font->face->glyph;
+    if (!glyph_index)
+        return NULL;
+    if (FT_Load_Glyph(font->face, glyph_index, FT_LOAD_DEFAULT))
+        return NULL;
+    if (FT_Render_Glyph(font->face->glyph,
+        font->antialiased?FT_RENDER_MODE_NORMAL:FT_RENDER_MODE_MONO )) {
+
+        if (FT_Render_Glyph(font->face->glyph,
+            (!font->antialiased)?FT_RENDER_MODE_NORMAL:FT_RENDER_MODE_MONO )) {
+            BDBG_ERR(("Unable to render"));
+            return NULL;
+        }
+        else {
+            if (font->antialiased) {
+                /* can't antialias. have to use mono */
+                BDBG_ERR(("Can't antialias. Using mono instead."));
+                font->antialiased = 0;
+            }
+            else {
+                /* switch into quasi-mono mode. see above for details. */
+                font->antialiased = 2;
+            }
+        }
+    }
+
+    /* now save it to the cache */
+    if ((int)font->cache_size == font->cache_maxsize) {
+        bwin_font_glyph *temp_glyph_cache;
+        bfont_char *temp_char_map;
+
+        /* extend the cache by 10. This doesn't have to be terribly efficient
+        because production systems will run with prerendered fonts. */
+        font->cache_maxsize += 10;
+
+        temp_glyph_cache = (bwin_font_glyph *)malloc(font->cache_maxsize * sizeof(bwin_font_glyph));
+        temp_char_map = (bfont_char *)malloc(font->cache_maxsize * sizeof(bfont_char));
+        memcpy(temp_glyph_cache, font->glyph_cache, font->cache_size * sizeof(bwin_font_glyph));
+        memcpy(temp_char_map, font->char_map, font->cache_size * sizeof(bfont_char));
+        free(font->glyph_cache);
+        free(font->char_map);
+        font->glyph_cache = temp_glyph_cache;
+        font->char_map = temp_char_map;
+    }
+
+    /* store the glyph and all its metrics */
+    font->char_map[font->cache_size] = ch;
+    glyph = &font->glyph_cache[font->cache_size];
+    font->cache_size++;
+    glyph->left = slot->bitmap_left;
+    glyph->top = slot->bitmap_top;
+    glyph->width = slot->bitmap.width;
+    glyph->height = slot->bitmap.rows;
+    glyph->pitch = slot->bitmap.pitch;
+    glyph->advance = slot->advance.x >> 6;
+    glyph->mem = malloc(slot->bitmap.rows * slot->bitmap.pitch);
+    memcpy(glyph->mem, slot->bitmap.buffer, slot->bitmap.rows * slot->bitmap.pitch);
+
+    BDBG_MSG(("font cache add: %c, %d", ch, font->cache_size));
+    return glyph;
+}
+#else
+bfont_t bfont_open_freetype(const struct bfont_open_freetype_settings *psettings)
+{
+    BSTD_UNUSED(psettings);
+    BERR_TRACE(NEXUS_NOT_SUPPORTED);
+    return NULL;
+}
+static void bfont_p_close_freetype_font(bfont_t font)
+{
+    BSTD_UNUSED(font);
+}
+static bwin_font_glyph *bfont_p_get_freetype_glyph(bfont_t font, bfont_char ch)
+{
+    BSTD_UNUSED(font);
+    BSTD_UNUSED(ch);
+    return NULL;
+}
+#endif

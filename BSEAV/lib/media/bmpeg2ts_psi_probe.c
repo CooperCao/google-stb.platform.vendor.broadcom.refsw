@@ -1,24 +1,44 @@
 /***************************************************************************
- *     Copyright (c) 2007-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description:
  *
  * MPEG-2 TS Parser/Demux library
- * 
- * Revision History:
- 
- * $brcm_Log: $
- * 
+ *
  *******************************************************************************/
 #include "bstd.h"
 #include "bmpeg2ts_psi_probe.h"
@@ -39,7 +59,7 @@ BDBG_MODULE(bmpeg2ts_psi_probe);
 
 BDBG_OBJECT_ID(bmpeg2ts_psi_probe_t);
 
-typedef struct bmpeg2ts_psi_probe *bmpeg2ts_psi_probe_t; 
+typedef struct bmpeg2ts_psi_probe *bmpeg2ts_psi_probe_t;
 
 typedef struct b_mpeg2ts_psi_pid {
     bmpeg2ts_parser_pid ts; /* must be first */
@@ -75,11 +95,11 @@ struct bmpeg2ts_psi_probe {
     unsigned done_pmt_pids;
     BLST_S_HEAD(b_mpeg2ts_pcr_pids, b_mpeg2ts_pcr_pid) pcr_pids;
     uint8_t section_buf[1021]; /* section_length to not exceed 1021 bytes */
-    unsigned pkt_len;    
+    unsigned pkt_len;
 };
 
 
-static bmpeg2ts_parser_action 
+static bmpeg2ts_parser_action
 b_mpeg2ts_psi_probe_ts_payload(bmpeg2ts_parser_pid *pid, unsigned flags, batom_accum_t src, batom_cursor *cursor, size_t len)
 {
     b_mpeg2ts_psi_pid *psi_pid= (b_mpeg2ts_psi_pid *)pid;
@@ -94,7 +114,7 @@ b_mpeg2ts_psi_probe_ts_payload(bmpeg2ts_parser_pid *pid, unsigned flags, batom_a
     return action;
 }
 
-static bmpeg2ts_parser_action 
+static bmpeg2ts_parser_action
 b_mpeg2ts_psi_probe_pcr_payload(bmpeg2ts_parser_pid *pid, unsigned flags, batom_accum_t src, batom_cursor *cursor, size_t len)
 {
     b_mpeg2ts_pcr_pid *pcr_pid= (b_mpeg2ts_pcr_pid *)pid;
@@ -181,7 +201,7 @@ b_mpeg2ts_psi_check_format_identifier(bmpeg2ts_psi_probe_t probe, size_t section
         case TS_PSI_DT_Registration:
             /* calculate and check format_identifier */
             {
-                uint32_t identifier = (reg_desc[2] << 24) + (reg_desc[3] << 16) + (reg_desc[4] << 8) + reg_desc[5];                
+                uint32_t identifier = (reg_desc[2] << 24) + (reg_desc[3] << 16) + (reg_desc[4] << 8) + reg_desc[5];
                 if (identifier == format_identifier) {
                     return true;
                 }
@@ -190,7 +210,7 @@ b_mpeg2ts_psi_check_format_identifier(bmpeg2ts_psi_probe_t probe, size_t section
         default:
             break;
         }
-    }    
+    }
     return false;
 }
 
@@ -321,8 +341,8 @@ b_mpeg2ts_psi_parse_pmt(bmpeg2ts_psi_probe_t probe, size_t section_length, unsig
         case TS_PSI_ST_AVS_Video: /* AVS */
             video_codec = bvideo_codec_avs;
             break;
-        case 0x27:
-        case 0x24:
+        case TS_PSI_ST_23008_2_Video_brcm:
+        case TS_PSI_ST_23008_2_Video:
             video_codec = bvideo_codec_h265;
             break;
         case TS_PSI_ST_SMPTE_VC1:      /* VC-1 */
@@ -352,7 +372,7 @@ b_mpeg2ts_psi_parse_pmt(bmpeg2ts_psi_probe_t probe, size_t section_length, unsig
                 }
             }
             break;
-        
+
         /* audio formats */
         case TS_PSI_ST_11172_3_Audio: /* MPEG-1 */
             audio_codec = baudio_format_mpeg;
@@ -381,14 +401,10 @@ b_mpeg2ts_psi_parse_pmt(bmpeg2ts_psi_probe_t probe, size_t section_length, unsig
             audio_substreams[1].id = 0x72;
             break;
 
-        case TS_PSI_ST_ATSC_DTS:     /* This can be DTS-HD MA (BD) or DTS (ATSC?) */
+        case TS_PSI_ST_BD_DTS_HD_MA:     /* This can be DTS-HD MA (BD). */
             if ( b_mpeg2ts_psi_check_format_identifier(probe,section_length,B_FORMAT_IDENTIFIER_HDMV) )
             {
                 audio_codec = baudio_format_dts_hd;
-            }
-            else
-            {
-                audio_codec = baudio_format_dts;
             }
             break;
         case TS_PSI_ST_ATSC_DTS_HD:
@@ -419,7 +435,7 @@ b_mpeg2ts_psi_parse_pmt(bmpeg2ts_psi_probe_t probe, size_t section_length, unsig
         case TS_PSI_ST_DRA_Audio:
             audio_codec = baudio_format_dra;
             break;
-            
+
         /* video or audio */
         case TS_PSI_ST_ATSC_Video:   /* 0x80 (user-defined) is ATSC MPEG-2, Digicypher II video or BD-LPCM audio */
             if ( b_mpeg2ts_psi_check_format_identifier(probe,section_length,B_FORMAT_IDENTIFIER_HDMV) )
@@ -497,6 +513,18 @@ b_mpeg2ts_psi_parse_pmt(bmpeg2ts_psi_probe_t probe, size_t section_length, unsig
                     dvb_subtitle.compositionPageId = B_MEDIA_LOAD_UINT16_BE(desc,6);
                     dvb_subtitle.ancillaryPageId = B_MEDIA_LOAD_UINT16_BE(desc,8);
                     BDBG_MSG(("subtitle language code: %s type:%d composition page:%u ancillary page:%u", dvb_subtitle.languageCode, dvb_subtitle.type, dvb_subtitle.compositionPageId, dvb_subtitle.ancillaryPageId));
+                    break;
+                case TS_PSI_DT_DVB_Extension:
+                    /* DVB Document A038
+                     * 6.2.16 Extension descriptor */
+                    BDBG_MSG(("PMT: pid:%#x private_pes desc[0]:%#x extension:%#x", pmt_stream.elementary_PID,desc[0], desc[2]));
+                    switch(desc[2]) {
+                    case TS_PSI_DT_DVB_Extension_AC4:
+                        /* DVB Document A038
+                         * D.7 AC-4 descriptor syntax and semantics */
+                        audio_codec = baudio_format_ac4;
+                        break;
+                    }
                     break;
                 default:
                     BDBG_MSG(("private descriptor %x",desc[0]));
@@ -629,7 +657,7 @@ error:
 }
 
 
-static void 
+static void
 b_mpeg2ts_psi_probe_pmt(void *section_cnxt, batom_t atom)
 {
     b_mpeg2ts_psi_pid *psi_pid = section_cnxt;
@@ -656,7 +684,7 @@ b_mpeg2ts_psi_probe_pmt(void *section_cnxt, batom_t atom)
     return;
 }
 
-static void 
+static void
 b_mpeg2ts_psi_probe_pat(void *section_cnxt, batom_t atom)
 {
     b_mpeg2ts_psi_pid *psi_pid = section_cnxt;
@@ -743,7 +771,7 @@ error:
     goto done;
 }
 
-static bmedia_probe_base_t 
+static bmedia_probe_base_t
 b_mpeg2ts_psi_probe_create_len(batom_factory_t factory, unsigned header_size)
 {
     bmpeg2ts_psi_probe_t probe;
@@ -781,19 +809,19 @@ err_alloc:
 }
 
 
-static bmedia_probe_base_t 
+static bmedia_probe_base_t
 b_mpeg2ts_psi_probe_create(batom_factory_t factory)
 {
     return b_mpeg2ts_psi_probe_create_len(factory, 0);
 }
 
-static bmedia_probe_base_t 
+static bmedia_probe_base_t
 b_mpeg2ts192_psi_probe_create(batom_factory_t factory)
 {
     return b_mpeg2ts_psi_probe_create_len(factory, 4);
 }
 
-static void 
+static void
 b_mpeg2ts_psi_probe_destroy(bmedia_probe_base_t probe_)
 {
     bmpeg2ts_psi_probe_t probe = (bmpeg2ts_psi_probe_t)probe_;

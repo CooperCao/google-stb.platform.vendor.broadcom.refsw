@@ -1,22 +1,40 @@
 /***************************************************************************
- *     Copyright (c) 2003-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2003-2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ *  Except as expressly set forth in the Authorized License,
  *
- * Module Description:
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * Revision History:
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- * 
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ *
  ***************************************************************************/
 #ifndef BERR_H__
 #define BERR_H__
@@ -26,7 +44,7 @@ The purpose of this module is to define error codes returned by all
 modules, including the porting interface and syslib modules.
 
 It is recommended that all functions should return a BERR_Code. 
-It is required that APIs must propogate unhandled error codes. Therefore,
+It is required that APIs must propagate unhandled error codes. Therefore,
 if a function calls another function that returns and error code, it must
 be able to return an error code. 
 
@@ -107,14 +125,14 @@ Returns:
 	The error code specified is returned without modification.
 ****************************************************************************/
 #if BDBG_DEBUG_BUILD
-#if B_REFSW_DEBUG_COMPACT_ERR
-#define BERR_TRACE(code) (BDBG_P_PrintError_inline(BSTD_FILE, BSTD_LINE, code))
+#ifdef B_REFSW_DEBUG_COMPACT_ERR
+#define BERR_TRACE(code) (BDBG_P_PrintError_inline_isrsafe(BSTD_FILE, BSTD_LINE, code))
 #else
-#define BERR_TRACE(code) (BDBG_P_PrintError_inline(BSTD_FILE, BSTD_LINE, #code, code))
+#define BERR_TRACE(code) (BDBG_P_PrintError_inline_isrsafe(BSTD_FILE, BSTD_LINE, #code, code))
 #endif
 #else
-#if B_REFSW_DEBUG_COMPACT_ERR
-#define BERR_TRACE(code) (BDBG_P_PrintError_inline(BSTD_FILE, BSTD_LINE, code))
+#ifdef B_REFSW_DEBUG_COMPACT_ERR
+#define BERR_TRACE(code) (BDBG_P_PrintError_inline_isrsafe(BSTD_FILE, BSTD_LINE, code))
 #else
 #define BERR_TRACE(code) (code)
 #endif
@@ -122,19 +140,19 @@ Returns:
 
 #ifdef __GNUC__
 BERR_Code BDBG_P_PrintError(const char *file, unsigned lineno, const char *error, BERR_Code error_no);
-BERR_Code BDBG_P_PrintError_small(const char *file, unsigned lineno, BERR_Code error_no);
+BERR_Code BDBG_P_PrintError_small_isrsafe(const char *file, unsigned lineno, BERR_Code error_no);
 
-#if B_REFSW_DEBUG_COMPACT_ERR
-static __inline__ BERR_Code BDBG_P_PrintError_inline(const char *file, unsigned lineno, BERR_Code error_no) {
+#ifdef B_REFSW_DEBUG_COMPACT_ERR
+static __inline__ BERR_Code BDBG_P_PrintError_inline_isrsafe(const char *file, unsigned lineno, BERR_Code error_no) {
     if(__builtin_constant_p(error_no)) {
         if(error_no==BERR_SUCCESS) {
             return BERR_SUCCESS;
         }
     }
-    return BDBG_P_PrintError_small(file, lineno, error_no);
+    return BDBG_P_PrintError_small_isrsafe(file, lineno, error_no);
 }
 #else
-static __inline__ BERR_Code BDBG_P_PrintError_inline(const char *file, unsigned lineno, const char *error, BERR_Code error_no) {
+static __inline__ BERR_Code BDBG_P_PrintError_inline_isrsafe(const char *file, unsigned lineno, const char *error, BERR_Code error_no) {
     if(__builtin_constant_p(error_no)) {
         if(error_no==BERR_SUCCESS) {
             return BERR_SUCCESS;
@@ -143,11 +161,11 @@ static __inline__ BERR_Code BDBG_P_PrintError_inline(const char *file, unsigned 
             return BDBG_P_PrintError(file, lineno, error, error_no);
         }
     }
-    return BDBG_P_PrintError_small(file, lineno, error_no);
+    return BDBG_P_PrintError_small_isrsafe(file, lineno, error_no);
 }
 #endif /* B_REFSW_DEBUG_COMPACT_ERR */
 #else /* __GNUC__ */
-#if B_REFSW_DEBUG_COMPACT_ERR
+#ifdef B_REFSW_DEBUG_COMPACT_ERR
 #define BDBG_P_PrintError_inline BDBG_P_PrintError_small
 #else
 #define BDBG_P_PrintError_inline BDBG_P_PrintError

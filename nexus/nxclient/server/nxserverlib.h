@@ -133,7 +133,7 @@ struct nxserver_settings
             bool hd, sd, encode;
             bool encode_video_only; /* if encode && encode_video_only, then full-screen video and no graphics */
         } output; /* if per-display settings grow, refactor into output[nxserver_display_type] */
-#define IS_SESSION_DISPLAY_ENABLED(nxserver_session_settings)	(nxserver_session_settings.output.hd || nxserver_session_settings.output.sd)
+#define IS_SESSION_DISPLAY_ENABLED(nxserver_session_settings)   (nxserver_session_settings.output.hd || nxserver_session_settings.output.sd)
 #if NEXUS_HAS_IR_INPUT
         NEXUS_IrInputMode ir_input_mode;
 #endif
@@ -143,16 +143,16 @@ struct nxserver_settings
         bool avl;
         bool truVolume;
         enum nxserverlib_dolby_ms_type dolbyMs; /* Dolby Multi Stream (MS11, MS12, ...) */
-#if NEXUS_NUM_AUDIO_CAPTURES
-        NEXUS_AudioCaptureFormat audioCapture;
-#endif
         bool karaoke;
+        bool persistentDecoderSupport;
+        bool keypad;
     } session[NXCLIENT_MAX_SESSIONS];
 
     NxClient_DisplaySettings display; /* only session 0 */
     struct {
         struct {
             bool initialFormat; /* use user-specified display format at init, but follow HDMI EDID preferred format for any hotplug after that. */
+            NEXUS_TristateEnable dropFrame;
         } hd;
         struct {
             NEXUS_Rect graphicsPosition;
@@ -176,6 +176,9 @@ struct nxserver_settings
         /* if callback returns non-zero, client's change is not made. */
         int  (*nxclient_setSurfaceComposition)(nxclient_t client, unsigned surfaceClientId, NEXUS_SurfaceComposition *pSettings);
     } client;
+    struct {
+        unsigned clientFullHeap, dynamicHeap;
+    } heaps;
 
 #if NEXUS_HAS_HDMI_OUTPUT
     struct {
@@ -184,9 +187,10 @@ struct nxserver_settings
         char *hdcp2xBinFile;
         char *hdcp1xBinFile;
         NxClient_HdcpLevel alwaysLevel;
+        NxClient_HdcpVersion versionSelect;
     } hdcp;
     struct {
-        bool drm;
+        bool noDrm;
         bool ignoreVideoEdid; /* use HDMI EDID for audio, but not video */
         struct {
             char vendorName[NEXUS_HDMI_SPD_VENDOR_NAME_MAX+1];
@@ -199,9 +203,7 @@ struct nxserver_settings
     struct {
         bool enabled;
         struct {
-            NEXUS_DisplayHandle handle; /* by passing display, external app gives up ability to call NEXUS_Display_Close, SetGraphicsSettings,
-                                           SetGraphicsFramebuffer, and SetSettings (format change).
-                                           Graphics must be done using nxclient and SurfaceCompositor. */
+            NEXUS_DisplayHandle handle; /* see NxClient.pdf for restrictions on use of display handle after passing to nxserver */
         } display[NEXUS_MAX_DISPLAYS];
 
         /* set true we must alloc index externally */
@@ -233,6 +235,9 @@ struct nxserver_cmdline_settings
         bool dacDetection;
         bool mtgOff;
     } video;
+    struct {
+        unsigned userId, groupId; /* drop to this user and group id after connecting to driver */
+    } permissions;
 };
 
 
@@ -256,7 +261,7 @@ int nxserver_parse_cmdline(int argc, char **argv,
     struct nxserver_cmdline_settings *cmdline_settings
     );
 int nxserver_modify_platform_settings(
-    const struct nxserver_settings *settings,
+    struct nxserver_settings *settings,
     const struct nxserver_cmdline_settings *cmdline_settings,
     NEXUS_PlatformSettings *pPlatformSettings,
     NEXUS_MemoryConfigurationSettings *pMemConfigSettings

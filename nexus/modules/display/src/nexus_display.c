@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2015 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #include "nexus_base.h"
@@ -200,6 +192,8 @@ NEXUS_Display_P_SetSettings(NEXUS_DisplayHandle display, const NEXUS_DisplaySett
             if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);goto err_setformat;}
         }
 
+        nexus_p_check_macrovision(display, pSettings->format);
+
         /* actual display refresh rate should come from the display rate change callback */
         if(display->status.refreshRate == 0) {/* initialize if not updated by display callback */
             display->status.refreshRate = B_REFRESH_RATE_10_TO_1000(video_format_info.ulVertFreq);
@@ -322,7 +316,6 @@ static void NEXUS_Display_GetCaptureBuffer_isr(NEXUS_DisplayHandle display)
     for (;;) {
         BKNI_Memset_isr(&picture, 0, sizeof(BAVC_EncodePictureBuffer));
         BVDC_Display_GetBuffer_isr(display->displayVdc, &picture);
-        BDBG_MSG(("GET %p %u", (void *)picture.hLumaBlock, picture.ulPictureId));
 
         if (picture.hLumaBlock == NULL) {
             if(!BLST_SQ_FIRST(&display->encoder.free)) {
@@ -361,7 +354,6 @@ static void NEXUS_Display_GetCaptureBuffer_isr(NEXUS_DisplayHandle display)
             rc = BERR_SUCCESS;
         }
         if (drop || rc) {
-            BDBG_ERR(("RET1 %p %u", (uint32_t)picture.hLumaBlock, picture.ulPictureId));
             BVDC_Display_ReturnBuffer_isr(display->displayVdc, &picture);
         }
         display->encoder.framesEnqueued++;
@@ -397,7 +389,6 @@ static void NEXUS_Display_ReturnCaptureBuffer_isr(NEXUS_DisplayHandle display)
 
         if (pImage)
         {
-            BDBG_MSG(("RET2 %p %u", (void *)picture.hLumaBlock, picture.ulPictureId));
             BVDC_Display_ReturnBuffer_isr(display->displayVdc, &picture);
             pImage->hImage = NULL;
             BLST_SQ_REMOVE(&display->encoder.queued, pImage , NEXUS_Display_P_Image, link);
@@ -427,7 +418,6 @@ static void NEXUS_Display_GetCaptureBuffer_isr(NEXUS_DisplayHandle display,
     }
 
     BVDC_Test_Window_GetBuffer_isr(display->encoder.window->vdcState.window, &capture);
-    BDBG_MSG(("GET %#x", (uint32_t)capture.hPicBlock));
     if(capture.hPicBlock) {
         if (pEncPicId)
         {
@@ -473,7 +463,6 @@ static void NEXUS_Display_GetCaptureBuffer_isr(NEXUS_DisplayHandle display,
             rc = BERR_SUCCESS;
         }
         if(drop || rc) {
-            BDBG_MSG(("RET1 %#x", (uint32_t)capture.hPicBlock));
             BVDC_Test_Window_ReturnBuffer_isr(display->encoder.window->vdcState.window, &capture);
 
         }
@@ -503,7 +492,6 @@ static void NEXUS_Display_ReturnCaptureBuffer_isr(NEXUS_DisplayHandle display)
         if(image.hImage==NULL) {
             break;
         }
-        BDBG_MSG(("RET2 %p", (void *)image.hImage));
         for(pImage = BLST_SQ_FIRST(&display->encoder.queued); pImage;  pImage= BLST_SQ_NEXT(pImage, link)) {
             if(pImage->hImage==image.hImage && pImage->offset == image.offset) {
                 break;
@@ -653,7 +641,7 @@ static BERR_Code nexus_p_install_display_cb(NEXUS_DisplayHandle display)
     if( display->encodeUserData )
     {
         settings.stMask.bStgPictureId = 1;
-        BDBG_MSG(("Display %p enables STG display callback.", (void *)display->index));
+        BDBG_MSG(("Display %u enables STG display callback.", display->index));
     }
 #endif
 
@@ -1401,6 +1389,20 @@ NEXUS_Display_SetSettings(NEXUS_DisplayHandle display, const NEXUS_DisplaySettin
                     rc = NEXUS_VideoWindow_P_SetVdcSettings(window, &window->cfg, true);
                     if (rc!=BERR_SUCCESS) {rc = BERR_TRACE(rc);goto err_windowsettings;}
                 }
+#if NEXUS_NUM_MOSAIC_DECODES
+                if (BLST_S_FIRST(&window->mosaic.children)) {
+                    NEXUS_VideoWindowHandle mosaicChild;
+                    /* mosaics cannot exceed parent window. the preceding code assumes app will reposition window, so
+                    just park mosaic size and position to safe spot until that is done. */
+                    for (mosaicChild = BLST_S_FIRST(&window->mosaic.children);mosaicChild;mosaicChild = BLST_S_NEXT(mosaicChild, mosaic.link)) {
+                        mosaicChild->cfg.position.x = 0;
+                        mosaicChild->cfg.position.y = 0;
+                        mosaicChild->cfg.position.width = 100;
+                        mosaicChild->cfg.position.height = 100;
+                    }
+                    NEXUS_VideoWindow_P_ApplyMosaic(window);
+                }
+#endif
             }
             if(window->input) {
                 NEXUS_Display_P_VideoInputDisplayUpdate(NULL, window, pSettings);
@@ -1582,6 +1584,23 @@ err_applychanges:
     return rc;
 }
 
+NEXUS_Error
+NEXUS_DisplayModule_SetBarDataEncodeMode_priv(NEXUS_DisplayHandle display, bool encodeBarData)
+{
+    NEXUS_Error rc = BERR_SUCCESS;
+
+    NEXUS_OBJECT_ASSERT(NEXUS_Display, display);
+    if(!encodeBarData) {
+        /* It's a switch for now. TODO: add option to override display bar data type and values; */
+        rc = BVDC_Display_SetBarData(display->displayVdc, BVDC_Mode_eOff, BAVC_BarDataType_eInvalid, 0, 0);
+        if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc); goto err_applychanges; }
+        rc = NEXUS_Display_P_ApplyChanges();
+        if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc); goto err_applychanges; }
+    }/* by default, display will send bar data */
+
+err_applychanges:
+    return rc;
+}
 #ifndef NEXUS_NUM_DSP_VIDEO_ENCODERS
 NEXUS_Error
 NEXUS_DisplayModule_SetStgResolutionRamp_priv(

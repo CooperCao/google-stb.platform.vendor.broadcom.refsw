@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2009 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2009 Broadcom.
 All rights reserved.
 
 Project  :  vcfw
@@ -430,6 +430,8 @@ VCOS_STATUS_T vcos_mutex_trylock(VCOS_MUTEX_T *m) {
 VCOS_INLINE_IMPL
 VCOS_STATUS_T vcos_event_create(VCOS_EVENT_T *event, const char *debug_name)
 {
+   VCOS_UNUSED(debug_name);
+
    if (pthread_mutex_init(&event->mutex, NULL) != 0)
       goto error0;
    if (pthread_cond_init(&event->cond, NULL) != 0)
@@ -550,6 +552,7 @@ VCOS_STATUS_T vcos_atomic_flags_create(VCOS_ATOMIC_FLAGS_T *atomic_flags)
 VCOS_INLINE_IMPL
 void vcos_atomic_flags_delete(VCOS_ATOMIC_FLAGS_T *atomic_flags)
 {
+   VCOS_UNUSED(atomic_flags);
 }
 
 VCOS_INLINE_IMPL

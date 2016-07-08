@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,15 +34,6 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* Revision History:
-*
-* $brcm_Log: $
-*
 ***************************************************************************/
 #ifndef NEXUS_AUDIO_DECODER_TYPES__
 #define NEXUS_AUDIO_DECODER_TYPES__
@@ -70,10 +61,10 @@ typedef enum NEXUS_AudioDecoderMixingMode
                                                    volume coefficients contained in the secondary audio
                                                    program.  This is typically used in audio services for
                                                    the visually impaired (as described in DTG D-Book section 4.5),
-                                                   where a voice over track can be mixed with the primary 
+                                                   where a voice over track can be mixed with the primary
                                                    audio track. */
     NEXUS_AudioDecoderMixingMode_eSoundEffects, /* In this mixing mode, channels will be mixed using static
-                                                   coefficients in the mixer as opposed to stream-based 
+                                                   coefficients in the mixer as opposed to stream-based
                                                    coefficients. Sound Effects audio is intended to be used for
                                                    short duration system sounds to be mixed with Dolby MS usage cases */
     NEXUS_AudioDecoderMixingMode_eApplicationAudio, /* In this mixing mode, channels will be mixed using static
@@ -101,7 +92,7 @@ typedef enum NEXUS_AudioDecoderLatencyMode
                                                    in this mode. */
     NEXUS_AudioDecoderLatencyMode_eLowest,      /* Lowest Variable delay. This is a lowest possible, variable delay that
                                                    varies by codec. In this mode, the decoder will operate with a minimal
-                                                   output delay based on the input format.  This can be useful for very 
+                                                   output delay based on the input format.  This can be useful for very
                                                    low delay applications such as receiving from HDMI input, game mode
                                                    processing, or voice conferencing. */
     NEXUS_AudioDecoderLatencyMode_eMax
@@ -130,14 +121,14 @@ typedef struct NEXUS_AudioDecoderStartSettings
                                            bit-exact certification testing that requires all data to be rendered even with TSM enabled. */
     NEXUS_AudioDecoderMixingMode mixingMode;    /* Mixing mode to be used when multiple decoders are mixed. */
     NEXUS_AudioDecoderLatencyMode latencyMode;  /* Delay mode to be used while decoding.  Default is NEXUS_AudioDecoderLatencyMode_eAuto. */
-    unsigned maxOutputRate;             /* Max output rate we support from the decoder - 
+    unsigned maxOutputRate;             /* Max output rate we support from the decoder -
                                            Valid values are 48000 or 96000. Units are Hz. Default is 48000.
                                            Content above the maxOutputRate will be downsampled within its rate family.
                                            For example - if the content is 88200Hz and maxOutputRate = 48000, decoder
-                                           will output 44100Hz for that content.  Similarly, if the content is 
-                                           176,400Hz and maxOutputRate = 96000, decoder will output 88200Hz. 
-                                           
-                                           Note, setting maxOutputRate = 96000 requires NEXUS_AudioModuleSettings->maxPcmSampleRate to 
+                                           will output 44100Hz for that content.  Similarly, if the content is
+                                           176,400Hz and maxOutputRate = 96000, decoder will output 88200Hz.
+
+                                           Note, setting maxOutputRate = 96000 requires NEXUS_AudioModuleSettings->maxPcmSampleRate to
                                            also be increased to 96000 at Init time. */
     bool karaokeModeEnabled;            /* If true, karaoke postprocess is enabled. */
 } NEXUS_AudioDecoderStartSettings;
@@ -200,10 +191,10 @@ typedef enum NEXUS_AudioAc3Acmod
 
 /***************************************************************************
 Summary:
-AC3 Center Mix Level (cmixlev) 
- 
-Description: 
-Expressed as dB attenuation 
+AC3 Center Mix Level (cmixlev)
+
+Description:
+Expressed as dB attenuation
 ***************************************************************************/
 typedef enum NEXUS_AudioAc3CenterMixLevel
 {
@@ -215,10 +206,10 @@ typedef enum NEXUS_AudioAc3CenterMixLevel
 
 /***************************************************************************
 Summary:
-AC3 Surround Mix Level (surmixlev) 
- 
-Description: 
-Expressed as dB attenuation 
+AC3 Surround Mix Level (surmixlev)
+
+Description:
+Expressed as dB attenuation
 ***************************************************************************/
 typedef enum NEXUS_AudioAc3SurroundMixLevel
 {
@@ -256,26 +247,58 @@ typedef enum NEXUS_AudioAc3DependentFrameChannelMap
     NEXUS_AudioAc3DependentFrameChannelMap_eL_C_R_l_r,
     NEXUS_AudioAc3DependentFrameChannelMap_eL_C_R_Cvh,
     NEXUS_AudioAc3DependentFrameChannelMap_eL_R_l_r_Ts,
-    NEXUS_AudioAc3DependentFrameChannelMap_eL_C_R_l_r_Ts,                
-    NEXUS_AudioAc3DependentFrameChannelMap_eL_C_R_l_r_Cvh,            
+    NEXUS_AudioAc3DependentFrameChannelMap_eL_C_R_l_r_Ts,
+    NEXUS_AudioAc3DependentFrameChannelMap_eL_C_R_l_r_Cvh,
     NEXUS_AudioAc3DependentFrameChannelMap_eL_C_R_Lc_Rc,
     NEXUS_AudioAc3DependentFrameChannelMap_eL_R_l_r_Lw_Rw,
     NEXUS_AudioAc3DependentFrameChannelMap_eL_R_l_r_Lvh_Rvh,
-    NEXUS_AudioAc3DependentFrameChannelMap_eL_R_l_r_Lsd_rsd,            
+    NEXUS_AudioAc3DependentFrameChannelMap_eL_R_l_r_Lsd_rsd,
     NEXUS_AudioAc3DependentFrameChannelMap_eL_R_l_r_Lrs_Rrs,
     NEXUS_AudioAc3DependentFrameChannelMap_eL_C_R_l_r_Lc_Rc,
     NEXUS_AudioAc3DependentFrameChannelMap_eL_C_R_l_r_Lw_Rw,
-    NEXUS_AudioAc3DependentFrameChannelMap_eL_C_R_l_r_Lvh_Rvh,            
+    NEXUS_AudioAc3DependentFrameChannelMap_eL_C_R_l_r_Lvh_Rvh,
     NEXUS_AudioAc3DependentFrameChannelMap_eL_C_R_l_r_Lsg_Rsd,
     NEXUS_AudioAc3DependentFrameChannelMap_eL_C_R_l_r_Lrs_Rrs,
     NEXUS_AudioAc3DependentFrameChannelMap_eL_C_R_l_r_Ts_Cvh,
-    NEXUS_AudioAc3DependentFrameChannelMap_eL_R_l_r_Cs,            
+    NEXUS_AudioAc3DependentFrameChannelMap_eL_R_l_r_Cs,
     NEXUS_AudioAc3DependentFrameChannelMap_eL_C_R_l_r_Cs,
-    NEXUS_AudioAc3DependentFrameChannelMap_eL_R_l_r_Cs_Ts,           
+    NEXUS_AudioAc3DependentFrameChannelMap_eL_R_l_r_Cs_Ts,
     NEXUS_AudioAc3DependentFrameChannelMap_eL_C_R_l_r_Cs_Cvh,
     NEXUS_AudioAc3DependentFrameChannelMap_eL_C_R_l_r_Cs_Ts,
-    NEXUS_AudioAc3DependentFrameChannelMap_eMax    
+    NEXUS_AudioAc3DependentFrameChannelMap_eMax
 }NEXUS_AudioAc3DependentFrameChannelMap;
+
+/***************************************************************************
+Summary:
+AC4 ACMOD values
+***************************************************************************/
+typedef enum NEXUS_AudioAc4Acmod
+{
+    NEXUS_AudioAc4Acmod_eTwoMono_1_ch1_ch2,
+    NEXUS_AudioAc4Acmod_eOneCenter_1_0_C,
+    NEXUS_AudioAc4Acmod_eTwoChannel_2_0_L_R,
+    NEXUS_AudioAc4Acmod_eThreeChannel_3_0_L_C_R,
+    NEXUS_AudioAc4Acmod_eThreeChannel_2_1_L_R_S,
+    NEXUS_AudioAc4Acmod_eFourChannel_3_1_L_C_R_S,
+    NEXUS_AudioAc4Acmod_eFourChannel_2_2_L_R_LS_RS,
+    NEXUS_AudioAc4Acmod_eFiveChannel_3_2_L_C_R_LS_RS,
+    NEXUS_AudioAc4Acmod_eFourChannel_2_2_L_C_R_CVH,
+    NEXUS_AudioAc4Acmod_eFiveChannel_2_3_L_R_LS_RS_TS,
+    NEXUS_AudioAc4Acmod_eSixChannel_3_3_L_R_C_LS_RS_TS,
+    NEXUS_AudioAc4Acmod_eSixChannel_3_3_L_R_C_LS_RS_CVH,
+    NEXUS_AudioAc4Acmod_eFiveChannel_3_2_L_R_C_LC_RC,
+    NEXUS_AudioAc4Acmod_eSixChannel_2_4_L_R_LS_RS_LW_RW,
+    NEXUS_AudioAc4Acmod_eSixChannel_2_4_L_R_LS_RS_LVH_RVH,
+    NEXUS_AudioAc4Acmod_eSixChannel_2_4_L_R_LS_RS_LSD_RSD,
+    NEXUS_AudioAc4Acmod_eSixChannel_2_4_L_R_LS_RS_LRS_RRS,
+    NEXUS_AudioAc4Acmod_eSevenChannel_3_4_L_R_C_LS_RS_LC_RC,
+    NEXUS_AudioAc4Acmod_eSevenChannel_3_4_L_R_C_LS_RS_LW_RW,
+    NEXUS_AudioAc4Acmod_eSevenChannel_3_4_L_R_C_LS_RS_LVH_RVH,
+    NEXUS_AudioAc4Acmod_eSevenChannel_3_4_L_R_C_LS_RS_LSD_RSD,
+    NEXUS_AudioAc4Acmod_eSevenChannel_3_4_L_R_C_LS_RS_LRS_RRS,
+    NEXUS_AudioAc4Acmod_eSevenChannel_3_4_L_R_C_LS_RS_TS_CVH,
+    NEXUS_AudioAc4Acmod_eMax
+} NEXUS_AudioAc4Acmod;
 
 /***************************************************************************
 Summary:
@@ -469,14 +492,35 @@ typedef struct NEXUS_AudioDecoderStatus
             bool lfe;
             bool copyright;                                                    /* true if the copyright bit is asserted */
             NEXUS_AudioAc3DependentFrameChannelMap dependentFrameChannelMap;   /* Dependent Frame channel map for 7.1 streams */
-            unsigned dialnorm;                                                 /* Current Dialog Normalization value - 
-                                                                                  Possible range 0 to 31 which corresponds to 0 to -31 dB level. 
+            unsigned dialnorm;                                                 /* Current Dialog Normalization value -
+                                                                                  Possible range 0 to 31 which corresponds to 0 to -31 dB level.
                                                                                   Values outside of this range should be ignored */
-            unsigned previousDialnorm;                                         /* Previous Dialog Normalization value - 
-                                                                                  Possible range 0 to 31 which corresponds to 0 to -31 dB level. 
+            unsigned previousDialnorm;                                         /* Previous Dialog Normalization value -
+                                                                                  Possible range 0 to 31 which corresponds to 0 to -31 dB level.
                                                                                   Values outside of this range should be ignored */
 
-         } ac3;  /* Applies to both AC3 and AC3+ */
+        } ac3;  /* Applies to both AC3 and AC3+ */
+        struct
+        {
+            NEXUS_AudioAc4Acmod acmod;
+            bool lfe;
+            unsigned bitrate;                                                  /* bitrate in Kbps */
+            unsigned dialnorm;                                                 /* Current Dialog Normalization value -
+                                                                                  Possible range 0 to 31 which corresponds to 0 to -31 dB level.
+                                                                                  Values outside of this range should be ignored */
+            unsigned previousDialnorm;                                         /* Previous Dialog Normalization value -
+                                                                                  Possible range 0 to 31 which corresponds to 0 to -31 dB level.
+                                                                                  Values outside of this range should be ignored */
+
+            /* AC-4 specific stream info */
+            unsigned streamInfoVersion;                                        /* Identifies which version of the decoder stream info is being provided */
+            unsigned numPresentations;                                         /* Identifies the number of presentations present in compressed bitstream.
+                                                                                   Values greater than NEXUS_AUDIO_AC4_MAX_PRESENTATIONS should be ignored. */
+            unsigned currentPresentationIndex;                                 /* Index to the current Presentation that is being decoded. */
+            unsigned dialogEnhanceMax;                                         /* Specifies the maximum value that will be honored as
+                                                                                  a Dialog Enhance Amount Value. Possible range 0 to 12.
+                                                                                  Values outside of this range should be ignored */
+        } ac4;
         struct
         {
             NEXUS_AudioMpegChannelMode channelMode;
@@ -502,10 +546,10 @@ typedef struct NEXUS_AudioDecoderStatus
             unsigned numBackChannels;
             unsigned numSideChannels;
             unsigned numFrontChannels;
-            unsigned dialnorm;                                                 /* Current Dialog Normalization value - 
+            unsigned dialnorm;                                                 /* Current Dialog Normalization value -
                                                                                   Dialnorm value in steps of 0.25 dB. Range: 0-127 (0 to -31.75dB).
                                                                                   Values outside of this range should be ignored */
-            unsigned previousDialnorm;                                         /* Previous Dialog Normalization value - 
+            unsigned previousDialnorm;                                         /* Previous Dialog Normalization value -
                                                                                   Dialnorm value in steps of 0.25 dB. Range: 0-127 (0 to -31.75dB).
                                                                                   Values outside of this range should be ignored */
         } aac;  /* Applies to AAC, AAC-HE (SBR), and Dolby Pulse */
@@ -591,6 +635,47 @@ typedef struct NEXUS_AudioDecoderStatus
     uint8_t algorithmVersionId[4];  /* Version ID of the current decode algorithm */
     uint8_t firmwareVersionId;      /* Firmware Version ID of the current decode algorithm */
 } NEXUS_AudioDecoderStatus;
+
+
+/***************************************************************************
+Summary:
+AC4 Presentation type
+***************************************************************************/
+typedef enum NEXUS_AudioAc4PresentationType
+{
+    NEXUS_AudioAc4PresentationType_eNotSpecified,
+    NEXUS_AudioAc4PresentationType_eMainOnly,
+    NEXUS_AudioAc4PresentationType_eAssociateOnly,
+    NEXUS_AudioAc4PresentationType_eMainAndAssociate,
+    NEXUS_AudioAc4PresentationType_eCustom,
+    NEXUS_AudioAc4PresentationType_eMax
+} NEXUS_AudioAc4PresentationType;
+
+/***************************************************************************
+Summary:
+AC4 Presentation Status
+***************************************************************************/
+#define NEXUS_AUDIO_AC4_PRESENTATION_LANGUAGE_NAME_LENGTH      64
+#define NEXUS_AUDIO_AC4_PRESENTATION_NAME_LENGTH               255
+typedef struct NEXUS_AudioDecoderAc4PresentationStatus
+{
+    unsigned id;                                                        /* Identifier for this Presentation */
+    NEXUS_AudioAc4PresentationType type;                                /* Describes the contents of the Presentation */
+    char name[NEXUS_AUDIO_AC4_PRESENTATION_NAME_LENGTH];                /* Name/Title of the Presentation */
+    char language[NEXUS_AUDIO_AC4_PRESENTATION_LANGUAGE_NAME_LENGTH];   /* Language of the Presentation */
+} NEXUS_AudioDecoderAc4PresentationStatus;
+
+/***************************************************************************
+Summary:
+Audio Presentation Status
+***************************************************************************/
+typedef struct NEXUS_AudioDecoderPresentationStatus
+{
+    NEXUS_AudioCodec codec;
+    union {
+        NEXUS_AudioDecoderAc4PresentationStatus ac4;
+    } status;
+} NEXUS_AudioDecoderPresentationStatus;
 
 /**
 Summary:
@@ -731,14 +816,14 @@ typedef struct NEXUS_AudioDecoderSettings
     NEXUS_CallbackDesc dialnormChanged;     /* This callack fires when Dialog Norm Values change. */
 
     int32_t volumeMatrix[NEXUS_AudioChannel_eMax][NEXUS_AudioChannel_eMax]; /* Entries in this table reflect the contribution into an output channel from input
-                                                                               channels.  The first index is the output channel and the second index is the input 
-                                                                               channel.  Default is to have NEXUS_AUDIO_VOLUME_LINEAR_NORMAL for each [n][n] 
-                                                                               coefficient and NEXUS_AUDIO_VOLUME_LINEAR_MIN for all others.  This maps input 
-                                                                               channels to the same output channel with no scaling.  You can achieve effects such 
-                                                                               as a mono mix with these coefficients if desired by setting [Left][Left] to 
+                                                                               channels.  The first index is the output channel and the second index is the input
+                                                                               channel.  Default is to have NEXUS_AUDIO_VOLUME_LINEAR_NORMAL for each [n][n]
+                                                                               coefficient and NEXUS_AUDIO_VOLUME_LINEAR_MIN for all others.  This maps input
+                                                                               channels to the same output channel with no scaling.  You can achieve effects such
+                                                                               as a mono mix with these coefficients if desired by setting [Left][Left] to
                                                                                NEXUS_AUDIO_VOLUME_LINEAR_NORMAL/2 and [Left][Right] to NEXUS_AUDIO_VOLUME_LINEAR_NORMAL/2,
-                                                                               etc.  Mixing is only permitted between channels in the same channel pair, so for example 
-                                                                               you can blend left and right, but not left and center.  Values are ignored for 
+                                                                               etc.  Mixing is only permitted between channels in the same channel pair, so for example
+                                                                               you can blend left and right, but not left and center.  Values are ignored for
                                                                                compressed inputs. */
 
     bool muted;     /* This will affect stereo and multichannel PCM outputs only for all chips and compressed for RAAGA and RAP V3. */
@@ -759,16 +844,8 @@ typedef struct NEXUS_AudioDecoderSettings
 
 /***************************************************************************
 Summary:
-Dynamic Range Compression Mode
-
-Description:
-This corresponds to the eCompMode field of BRAP_DSPCHN_Ac3*ConfigParams.  The
-original is an enum with four possibilities: Custom A, Custom D, Rf, and Line.
-All four values can cause changes in the output volume level.  The most
-noticeable change is the difference between Line and Rf.  With the compression
-mode set to Rf, input PCM samples are scaled up by 12 dB.  In Line mode, input
-PCM samples are not scaled up at all.  The two most commonly used modes are line
-and Rf, in that order.
+    Dolby Dynamic Range Compression Modes
+    Some modes may not be supported by all Dolby Codecs.
 ***************************************************************************/
 typedef enum NEXUS_AudioDecoderDolbyDrcMode
 {
@@ -887,7 +964,7 @@ typedef struct NEXUS_AudioDecoderAacSettings
                             Not supported for Dolby Pulse (MS10). */
 
     bool  mpegConformanceMode;  /* Enable MPEG Conformance mode.  This should
-                                   only be set for Dolby Pulse (MS10) 
+                                   only be set for Dolby Pulse (MS10)
                                    certification testing */
 
     bool  enableSbrDecoding;   /* If set to true, AAC HE decoding is enabled.
@@ -1029,8 +1106,8 @@ Summary:
 ***************************************************************************/
 typedef enum NEXUS_AudioDecoderStereoDownmixMode
 {
-    NEXUS_AudioDecoderStereoDownmixMode_eLtRt,     /* LtRt */
-    NEXUS_AudioDecoderStereoDownmixMode_eLoRo,     /* LoRo*/
+    NEXUS_AudioDecoderStereoDownmixMode_eLtRt,     /* Pro-Logic */
+    NEXUS_AudioDecoderStereoDownmixMode_eLoRo,     /* LoRo */
     NEXUS_AudioDecoderStereoDownmixMode_eArib,     /* ARIB Compatible */
     NEXUS_AudioDecoderStereoDownmixMode_eMatrix,
     NEXUS_AudioDecoderStereoDownmixMode_eAuto,
@@ -1049,7 +1126,40 @@ typedef struct NEXUS_AudioDecoderAlsSettings
 {
     NEXUS_AudioDecoderStereoDownmixMode stereoMode; /* ALS Downmix Mode. Only ARIB and LtRt supported. Default is ARIB. */
     uint8_t aribMatrixMixdownIndex;                 /* Arib Matrix downmix index.  Valid values 1-3. Default Value 1.*/
-    } NEXUS_AudioDecoderAlsSettings;
+} NEXUS_AudioDecoderAlsSettings;
+
+/***************************************************************************
+Summary:
+AC-4 audio decoder settings
+
+Description:
+These settings control the parameters involved in the decode of AC-4.
+They only apply when the audio type is AC-4
+***************************************************************************/
+typedef struct NEXUS_AudioDecoderAc4Settings
+{
+    NEXUS_AudioDecoderDolbyDrcMode drcMode;         /* DRC (Dynamic Range Compression) Mode */
+    NEXUS_AudioDecoderDolbyDrcMode drcModeDownmix;  /* DRC (Dynamic Range Compression) Mode for stereo downmix path */
+
+    NEXUS_AudioDecoderStereoDownmixMode stereoMode; /* Stereo Downmix Mode */
+
+    unsigned programSelection;      /* Program Selection for embedded description (substream) program.
+                                       0 (Default) - decode main + description program,
+                                       1 - decode main program only,
+                                       2 - decode description program only. */
+    int programBalance;             /* Program balance adjusts the balance between the main and description
+                                       programs. This control is for embedded description program only.
+                                       Valid values are -32 to 32. -32 is main only, 32 is description only.
+                                       Default is -32 */
+
+    unsigned presentationId;        /* Multiple "presentation" groups can exist within a single PID.
+                                       Use this field to pick the desired presentation. Valid values
+                                       are 0 - 511. Default value is 0 */
+
+    int dialogEnhancerAmount;       /* Valid values are -12 to +12, in 1dB steps. Default value is 0 */
+
+    unsigned certificationMode;     /* for internal use only */
+} NEXUS_AudioDecoderAc4Settings;
 
 /***************************************************************************
 Summary:
@@ -1070,6 +1180,7 @@ typedef struct NEXUS_AudioDecoderCodecSettings
         NEXUS_AudioDecoderIlbcSettings ilbc;
         NEXUS_AudioDecoderIsacSettings isac;
         NEXUS_AudioDecoderAlsSettings als;
+        NEXUS_AudioDecoderAc4Settings ac4;
     } codecSettings;
 } NEXUS_AudioDecoderCodecSettings;
 

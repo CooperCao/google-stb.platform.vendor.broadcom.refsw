@@ -1,21 +1,41 @@
 /***************************************************************************
- *     Copyright (c) 2003-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * [File Description:]
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ***************************************************************************/
 
@@ -33,23 +53,29 @@ BDBG_MODULE(BXDM_PPTMR);
 const uint32_t BXDM_PPTMR_lutVsyncsPersSecond[BXDM_PictureProvider_MonitorRefreshRate_eMax]=
 {
    60,   /* BXDM_PictureProvider_MonitorRefreshRate_eUnknown */
+   7,   /* BXDM_PictureProvider_MonitorRefreshRate_e7_493Hz */
+   7,   /* BXDM_PictureProvider_MonitorRefreshRate_e7_5Hz */
+   10,   /* BXDM_PictureProvider_MonitorRefreshRate_e9_99Hz */
+   10,   /* BXDM_PictureProvider_MonitorRefreshRate_e10Hz */
+   12,   /* BXDM_PictureProvider_MonitorRefreshRate_e11_988Hz */
+   12,   /* BXDM_PictureProvider_MonitorRefreshRate_e12Hz */
    12,   /* BXDM_PictureProvider_MonitorRefreshRate_e12_5Hz */
    15,   /* BXDM_PictureProvider_MonitorRefreshRate_e14_985Hz */
    15,   /* BXDM_PictureProvider_MonitorRefreshRate_e15Hz */
+   20,   /* BXDM_PictureProvider_MonitorRefreshRate_e19_98Hz */
    20,   /* BXDM_PictureProvider_MonitorRefreshRate_e20Hz */
    24,   /* BXDM_PictureProvider_MonitorRefreshRate_e23_97 */
    24,   /* BXDM_PictureProvider_MonitorRefreshRate_e24 */
    25,   /* BXDM_PictureProvider_MonitorRefreshRate_e25 */
    30,   /* BXDM_PictureProvider_MonitorRefreshRate_e29_97 */
    30,   /* BXDM_PictureProvider_MonitorRefreshRate_e30 */
+   48,   /* BXDM_PictureProvider_MonitorRefreshRate_e48 */
    50,   /* BXDM_PictureProvider_MonitorRefreshRate_e50 */
    60,   /* BXDM_PictureProvider_MonitorRefreshRate_e59_94 */
    60,   /* BXDM_PictureProvider_MonitorRefreshRate_e60 */
-   48,   /* BXDM_PictureProvider_MonitorRefreshRate_e48 */
-  100,    /* BXDM_PictureProvider_MonitorRefreshRate_e100 */
-  120,    /* BXDM_PictureProvider_MonitorRefreshRate_e119_88 */
-  120    /* BXDM_PictureProvider_MonitorRefreshRate_e120 */
-
+  100,   /* BXDM_PictureProvider_MonitorRefreshRate_e100 */
+  120,   /* BXDM_PictureProvider_MonitorRefreshRate_e119_88 */
+  120,   /* BXDM_PictureProvider_MonitorRefreshRate_e120 */
 }; /* end of BXDM_PPTMR_lutVsyncsPersSecond */
 
 #if BDBG_DEBUG_BUILD

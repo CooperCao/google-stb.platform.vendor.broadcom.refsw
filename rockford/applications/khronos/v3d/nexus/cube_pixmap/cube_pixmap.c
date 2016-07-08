@@ -1,51 +1,41 @@
-/******************************************************************************
- *    (c)2008-2010 Broadcom Corporation
+/***************************************************************************
+ *     Broadcom Proprietary and Confidential. (c)2008-2016 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- * 
- *****************************************************************************/
+ **************************************************************************/
 
 #include <malloc.h>
 #include <assert.h>
@@ -54,6 +44,7 @@
 #include <string.h>
 
 #include <EGL/egl.h>
+#include <EGL/eglext.h>
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>  /* For access to the GL_EXT_discard_framebuffer extension */
 
@@ -114,6 +105,8 @@ GLint alpha_loc;
 GLint program_object;
 
 GLuint vbo[2];
+
+bool secure;
 
 static const GLfloat cube[] = {
    /*          POSITION                            COLOR                */
@@ -275,7 +268,7 @@ void InitGLViewPort(unsigned int width, unsigned int height)
    esScale(&modelview_matrix, 100, 100, 100);
 }
 
-int InitEGL(unsigned int w, unsigned int h)
+bool InitEGL(unsigned int w, unsigned int h)
 {
    EGLDisplay egl_display		= 0;
    EGLSurface egl_surface		= 0;
@@ -286,10 +279,7 @@ int InitEGL(unsigned int w, unsigned int h)
    EGLint     minor_version;
    int        i = 0;
    int        configs;
-   EGLint     ctx_attrib_list[3] = {EGL_CONTEXT_CLIENT_VERSION, 0, EGL_NONE};
-   BEGL_PixmapInfo pix_info;
-
-   ctx_attrib_list[1] = 2; /* For ES2 */
+   BEGL_PixmapInfoEXT pix_info = { 0 };
 
    /*
       Step 1 - Get the default display.
@@ -306,7 +296,7 @@ int InitEGL(unsigned int w, unsigned int h)
    if (!eglInitialize(egl_display, &major_version, &minor_version))
    {
       printf("eglInitialize() failed");
-      return 0;
+      return false;
    }
 
    /*
@@ -358,7 +348,7 @@ int InitEGL(unsigned int w, unsigned int h)
    if (!eglGetConfigs(egl_display, NULL, 0, &configs))
    {
       printf("eglGetConfigs() failed");
-      return 0;
+      return false;
    }
 
    egl_config = (EGLConfig *)alloca(configs * sizeof(EGLConfig));
@@ -372,7 +362,7 @@ int InitEGL(unsigned int w, unsigned int h)
    if (!eglChooseConfig(egl_display, config_attribs, egl_config, configs, &configs) || (configs == 0))
    {
       printf("eglChooseConfig() failed");
-      return 0;
+      return false;
    }
 
    for (i = 0; i < configs; i++)
@@ -414,25 +404,26 @@ int InitEGL(unsigned int w, unsigned int h)
       Make a Nexus surface to render into.
       NOTE: We use a function from the 3D library to ensure the surface is valid for rendering 3D.
    */
-   memset(&pix_info, 0, sizeof(BEGL_PixmapInfo));
+   NXPL_GetDefaultPixmapInfoEXT(&pix_info);
    pix_info.width = w;
    pix_info.height = h;
+   pix_info.secure = secure;
 #if BSTD_CPU_ENDIAN == BSTD_ENDIAN_BIG
    pix_info.format = BEGL_BufferFormat_eR8G8B8A8;
 #else
    pix_info.format = BEGL_BufferFormat_eA8B8G8R8;
 #endif
-   if (!NXPL_CreateCompatiblePixmap(nxpl_handle, &nxpl_pixmap_handle, &nexus_gl_surface, &pix_info))
+   if (!NXPL_CreateCompatiblePixmapEXT(nxpl_handle, &nxpl_pixmap_handle, &nexus_gl_surface, &pix_info))
    {
       printf("NXPL_CreateCompatiblePixmap() failed\n");
-      return 0;
+      return false;
    }
 
    egl_surface = eglCreatePixmapSurface(egl_display, egl_config[configs], nxpl_pixmap_handle, NULL);
    if (egl_surface == EGL_NO_SURFACE)
    {
       printf("eglCreatePixmapSurface() failed\n");
-      return 0;
+      return false;
    }
 
    /*
@@ -440,11 +431,29 @@ int InitEGL(unsigned int w, unsigned int h)
       EGL has to create a context for OpenGL ES. Our OpenGL ES resources
       like textures will only be valid inside this context (or shared contexts)
    */
-   egl_context = eglCreateContext(egl_display, egl_config[configs], EGL_NO_CONTEXT, ctx_attrib_list);
-   if (egl_context == EGL_NO_CONTEXT)
    {
-      printf("eglCreateContext() failed");
-      return 0;
+      const int   NUM_ATTRIBS = 5;
+      EGLint      *attr = (EGLint *)malloc(NUM_ATTRIBS * sizeof(EGLint));
+      int         i = 0;
+
+#ifdef EGL_PROTECTED_CONTENT_EXT
+      if (secure)
+      {
+         attr[i++] = EGL_PROTECTED_CONTENT_EXT; attr[i++] = EGL_TRUE;
+      }
+#endif
+
+      attr[i++] = EGL_CONTEXT_CLIENT_VERSION; attr[i++] = 2;
+      attr[i++] = EGL_NONE;
+
+      egl_context = eglCreateContext(egl_display, egl_config[configs], EGL_NO_CONTEXT, attr);
+      if (egl_context == EGL_NO_CONTEXT)
+      {
+         printf("eglCreateContext() failed");
+         return false;
+      }
+
+      free(attr);
    }
 
    /*
@@ -456,7 +465,7 @@ int InitEGL(unsigned int w, unsigned int h)
    */
    eglMakeCurrent(egl_display, egl_surface, egl_surface, egl_context);
 
-   return 1;
+   return true;
 }
 
 #define BUFFER_OFFSET(i) ((char *)NULL + (i))
@@ -592,20 +601,20 @@ void Display(unsigned int xpos, unsigned int ypos, float bg_alpha, float cube_al
       cur_fb = 0;
 }
 
-void InitDisplay(unsigned int width, unsigned int height)
+void InitDisplay(unsigned int width, unsigned int height, bool secure)
 {
    NEXUS_SurfaceCreateSettings   create_settings;
    NEXUS_Graphics2DOpenSettings  openSettings;
    NEXUS_GraphicsSettings        graphicsSettings;
    NEXUS_Graphics2DSettings      gfxSettings;
 
-   if (!InitPlatform())
+   if (!InitPlatform(secure))
    {
       fprintf(stderr, "Error: This example was not designed to run in multi-process mode\n");
       exit(0);
    }
 
-   nexus_display = OpenDisplay(0, width, height);
+   nexus_display = OpenDisplay(0, width, height, secure);
    InitCompositeOutput(nexus_display, width, height);
    InitComponentOutput(nexus_display);
    InitHDMIOutput(nexus_display);
@@ -615,7 +624,7 @@ void InitDisplay(unsigned int width, unsigned int height)
     * providing we don't call eglSwapBuffers(), which we wouldn't work for pixmaps anyway. */
    NXPL_RegisterNexusDisplayPlatform(&nxpl_handle, NULL);
 
-   heap = NEXUS_Platform_GetFramebufferHeap(0);
+   heap = NEXUS_Platform_GetFramebufferHeap(secure ? NEXUS_OFFSCREEN_SECURE_GRAPHICS_SURFACE : 0);
 
    /* Initialise EGL with a smaller 3D window */
    InitEGL(GL_WIDTH, GL_HEIGHT);
@@ -639,6 +648,7 @@ void InitDisplay(unsigned int width, unsigned int height)
    NEXUS_Graphics2D_GetDefaultOpenSettings(&openSettings);
    openSettings.preAllocPacketMemory = true;
    openSettings.maxOperations = MAX_OPERATIONS;
+   openSettings.secure = secure;
    nexus_gfx = NEXUS_Graphics2D_Open(0, &openSettings);
 
    /* Set the vsync initially triggered to prevent block */
@@ -653,6 +663,7 @@ void InitDisplay(unsigned int width, unsigned int height)
    graphicsSettings.clip.height = height;
    graphicsSettings.frameBufferCallback.callback = vsync;
    graphicsSettings.frameBufferCallback.context = vsync_event;
+   graphicsSettings.secure = secure;
    NEXUS_Display_SetGraphicsSettings(nexus_display, &graphicsSettings);
 
    /* Setup a blit finished callback */
@@ -702,12 +713,31 @@ int main(int argc, char** argv)
    unsigned int frame = 1;
    float        px, py;
    const char  *extStr = NULL;
+   int          a;
 
-   BSTD_UNUSED(argc);
-   BSTD_UNUSED(argv);
+   secure = false;
+   for (a = 1; a < argc; ++a)
+   {
+      const char  *arg = argv[a];
+
+      if (strcmp(arg, "+secure") == 0)
+         secure = true;
+      else
+      {
+         const char  *progname = argc > 0 ? argv[0] : "";
+         fprintf(stderr, "Usage: %s [+secure]\n", progname);
+         exit(0);
+      }
+   }
+
+#ifndef EGL_PROTECTED_CONTENT_EXT
+   if (secure)
+      printf("+secure selected, but headers not available in this driver version. defaulting off\n");
+   secure = false;
+#endif
 
    /* Setup the display and EGL */
-   InitDisplay(WIDTH_2D, HEIGHT_2D);
+   InitDisplay(WIDTH_2D, HEIGHT_2D, secure);
 
    /* Setup the local state for this demo */
    InitGLState();
@@ -719,7 +749,7 @@ int main(int argc, char** argv)
       myDiscardFramebufferExt = (PFNGLDISCARDFRAMEBUFFEREXTPROC)eglGetProcAddress("glDiscardFramebufferEXT");
 
    printf("Press CTRL+C to terminate early\n");
-   
+
    px = py = 0.0f;
 
    printf("OpenGL-ES pixmap composited on Nexus fills (background alpha = 1.0, cube alpha = 1.0) ...\n");
@@ -774,7 +804,7 @@ int main(int argc, char** argv)
    /* Destroy the nexus surfaces */
    NEXUS_Surface_Destroy(nexus_framebuffer[0]);
    NEXUS_Surface_Destroy(nexus_framebuffer[1]);
-   
+
    /* Terminate EGL */
    eglTerminate(eglDisplay);
 

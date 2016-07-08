@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2010-2013 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2010-2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,16 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #include "nexus_simple_decoder_module.h"
@@ -235,6 +225,7 @@ static void destroy_astm(NEXUS_SimpleStcChannelHandle handle)
 }
 #endif
 
+#if NEXUS_HAS_SYNC_CHANNEL
 static NEXUS_Error set_sync_mode(NEXUS_SimpleStcChannelHandle handle, NEXUS_SimpleStcChannelSyncMode sync)
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
@@ -259,7 +250,6 @@ static NEXUS_Error set_sync_mode(NEXUS_SimpleStcChannelHandle handle, NEXUS_Simp
     return rc;
 }
 
-#if NEXUS_HAS_SYNC_CHANNEL
 static void create_sync(NEXUS_SimpleStcChannelHandle handle)
 {
     unsigned i = 0;
@@ -477,7 +467,7 @@ static void configureHighJitterTimebase(NEXUS_Timebase highJitterTimebase, const
     timebaseSettings->sourceSettings.pcr.maxPcrError = pSettings->modeSettings.highJitter.threshold * 183/2;    /* in milliseconds: based on 90Khz clock */
     timebaseSettings->sourceSettings.pcr.trackRange = NEXUS_TimebaseTrackRange_e244ppm;
     timebaseSettings->sourceSettings.pcr.jitterCorrection = NEXUS_TristateEnable_eDisable;
-    BDBG_MSG(("Configured timebase %d for highJtter value of %d msec", highJitterTimebase, pSettings->modeSettings.highJitter.threshold));
+    BDBG_MSG(("Configured timebase %lu for highJtter value of %d msec", highJitterTimebase, pSettings->modeSettings.highJitter.threshold));
 }
 
 static void configureHighJitterStc(NEXUS_Timebase highJitterTimebase, const NEXUS_SimpleStcChannelSettings *pSettings, NEXUS_StcChannelSettings *stcChannelSettings)
@@ -503,7 +493,7 @@ static void printTimebaseSettings(NEXUS_Timebase timebase)
 {
     NEXUS_TimebaseSettings timebaseSettings;
     NEXUS_Timebase_GetSettings(timebase, &timebaseSettings);
-    BDBG_MSG(("timebase %d: source type %d, freeze %d, maxPcrError %d, trackRange %d, jitterCorrection %d",
+    BDBG_MSG(("timebase %lu: source type %d, freeze %d, maxPcrError %d, trackRange %d, jitterCorrection %d",
                 timebase,
                 timebaseSettings.sourceType,
                 timebaseSettings.freeze,
@@ -522,7 +512,7 @@ static void printStcChannelSettings(NEXUS_SimpleStcChannelHandle handle)
     if (handle->stcChannel) {
         NEXUS_StcChannelSettings stcChannelSettings;
         NEXUS_StcChannel_GetSettings(handle->stcChannel, &stcChannelSettings);
-        BDBG_MSG(("stc: timebase %d, mode %d, offsetThreshold %d, maxPcrError %d disableJitterAdjustment %d disableTimestampCorrection %d, autoConfigTimebase %d",
+        BDBG_MSG(("stc: timebase %lu, mode %d, offsetThreshold %d, maxPcrError %d disableJitterAdjustment %d disableTimestampCorrection %d, autoConfigTimebase %d",
                     stcChannelSettings.timebase,
                     stcChannelSettings.mode,
                     stcChannelSettings.modeSettings.pcr.offsetThreshold,

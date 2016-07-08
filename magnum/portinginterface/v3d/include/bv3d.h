@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2012 Broadcom Corporation
+ *     Broadcom Proprietary and Confidential. (c)2012 Broadcom.  All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -213,7 +213,7 @@ See Also:
 ****************************************************************************/
 typedef struct BV3D_BinMemorySettings
 {
-   uint32_t    uiSize;     /* Size in bytes */
+   bool        bSecure;
 } BV3D_BinMemorySettings;
 
 /***************************************************************************
@@ -265,16 +265,20 @@ See Also:
    BV3D_UnregisterClient
 ****************************************************************************/
 BERR_Code BV3D_Open(
-   BV3D_Handle *pv3d,            /* [out] Pointer to returned V3D handle.  */
-   BCHP_Handle hChp,             /* [in] Chip handle.                      */
-   BREG_Handle hReg,             /* [in] Register access handle.           */
-   BMMA_Heap_Handle hMma,        /* [in] Memory allocation handle.         */
-   uint64_t    uiHeapOffset,     /* [in] Used to patch the top two bits    */
-   BINT_Handle bint,             /* [in] Interrupt handle.                 */
-   uint32_t    uiBinMemMegs,     /* [in] Amount of memory for binning      */
-   uint32_t    uiBinMemChunkPow, /* [in] (1 << pow) * 256k                 */
-   bool        bDisableAQA,      /* [in] Disable adaptive QPU assignment   */
-   uint32_t    uiClockFreq       /* [in] Clock freq <= requested,0=default */
+   BV3D_Handle *pv3d,               /* [out] Pointer to returned V3D handle.     */
+   BCHP_Handle hChp,                /* [in] Chip handle.                         */
+   BREG_Handle hReg,                /* [in] Register access handle.              */
+   BMMA_Heap_Handle hMma,           /* [in] Memory allocation handle.            */
+   uint64_t    uiHeapOffset,        /* [in] Used to patch the top two bits       */
+   BMMA_Heap_Handle hMmaSecure,     /* [in] Secure memory allocation handle.     */
+   uint64_t    uiHeapOffsetSecure,  /* [in] Used to patch the top two bits       */
+   BINT_Handle bint,                /* [in] Interrupt handle.                    */
+   uint32_t    uiBinMemMegs,        /* [in] Amount of memory for binning         */
+   uint32_t    uiBinMemChunkPow,    /* [in] (1 << pow) * 256k                    */
+   uint32_t    uiBinMemMegsSecure,  /* [in] Amount of memory for binning secure  */
+   void (*pfnSecureToggle)(bool),   /* [in] Callback up the stack for toggle     */
+   bool        bDisableAQA,         /* [in] Disable adaptive QPU assignment      */
+   uint32_t    uiClockFreq          /* [in] Clock freq <= requested,0=default    */
 );
 
 /***************************************************************************
@@ -327,7 +331,8 @@ typedef enum BV3D_Operation
    BV3D_Operation_eWaitInstr,      /* Args waitFlags                       */
    BV3D_Operation_eSyncInstr,      /* Args none                            */
    BV3D_Operation_eNotifyInstr,    /* Args notify flags                    */
-   BV3D_Operation_eFenceInstr      /* Args fence                           */
+   BV3D_Operation_eFenceInstr,     /* Args fence                           */
+   BV3D_Operation_eSecureInstr     /* Args is the job secure               */
 } BV3D_Operation;
 
 /***************************************************************************
@@ -370,21 +375,22 @@ See Also:
 ****************************************************************************/
 typedef struct BV3D_Job
 {
-   BV3D_Instruction  sProgram[V3D_JOB_MAX_INSTRUCTIONS]; /* The list of instructions                 */
-   uint32_t          uiCurrentInstr;         /* Index of current running instruction                 */
-   uint32_t          uiClientId;             /* Unique id of client that submitted the job           */
-   uint32_t          uiBinMemory;            /* Initial bin memory offset for tasks in this program  */
-   uint32_t          uiUserVPM;              /* Settings for the V3D VPM for this job                */
-   uint32_t          uiAbandon;              /* Set when job must be abandoned                       */
-   uint32_t          uiOutOfMemory;          /* Set when job is abandoned due to out of memory       */
-   uint32_t          uiInstrCount;           /* Count of currently unexecuted instructions           */
-   uint32_t          uiOverspill;            /* Last overspill block used (recycled if out of mem)   */
-   uint64_t          uiSequence;             /* Unique sequence number for this job                  */
-   bool              bCollectTimeline;       /* Set when timeline data is wanted                     */
-   uint32_t          uiNotifyCallbackParam;  /* Set internally for notify instruction implementation */
-   uint64_t          uiNotifySequenceNum;    /* Set internally for notify instruction implementation */
-   BV3D_TimelineData sTimelineData;          /* The timeline data that is being collected            */
-   void              *psClientJob;           /* Opaque pointer to a client's view of the job         */
+   BV3D_Instruction  sProgram[V3D_JOB_MAX_INSTRUCTIONS]; /* The list of instructions                     */
+   uint32_t          uiCurrentInstr;         /* Index of current running instruction                     */
+   uint32_t          uiClientId;             /* Unique id of client that submitted the job               */
+   uint32_t          uiBinMemory;            /* Initial bin memory offset for tasks in this program      */
+   bool              bBinMemorySecure;       /* Bin memory came from secure pool, so it can be attached  */
+   uint32_t          uiUserVPM;              /* Settings for the V3D VPM for this job                    */
+   uint32_t          uiAbandon;              /* Set when job must be abandoned                           */
+   uint32_t          uiOutOfMemory;          /* Set when job is abandoned due to out of memory           */
+   uint32_t          uiInstrCount;           /* Count of currently unexecuted instructions               */
+   uint32_t          uiOverspill;            /* Last overspill block used (recycled if out of mem)       */
+   uint64_t          uiSequence;             /* Unique sequence number for this job                      */
+   bool              bCollectTimeline;       /* Set when timeline data is wanted                         */
+   uint32_t          uiNotifyCallbackParam;  /* Set internally for notify instruction implementation     */
+   uint64_t          uiNotifySequenceNum;    /* Set internally for notify instruction implementation     */
+   BV3D_TimelineData sTimelineData;          /* The timeline data that is being collected                */
+   void              *psClientJob;           /* Opaque pointer to a client's view of the job             */
 } BV3D_Job;
 
 /***************************************************************************

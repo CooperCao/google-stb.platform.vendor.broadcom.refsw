@@ -1,22 +1,39 @@
 /***************************************************************************
- *     Copyright (c) 2003-2014, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * Porting interface code for the data transport core.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * Revision History:
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  ***************************************************************************/
 
 #include "bstd.h"
@@ -168,6 +185,7 @@ BERR_Code BXPT_Playback_OpenChannel(
     hPb->IsParserInAllPass = false;
     hPb->CcConfigBeforeAllPass = DefaultCcConfig;
     hPb->ForceResync = 0;
+    hPb->maxTsError = 1024;
 
     /* If they've got a separate heap for playback, use it */
     if( hXpt->hPbHeap )
@@ -224,6 +242,11 @@ BERR_Code BXPT_Playback_OpenChannel(
     #endif
 
     BXPT_Playback_P_WriteReg( hPb, BCHP_XPT_PB0_CTRL1, Reg );
+
+    Reg = BXPT_Playback_P_ReadReg( hPb, BCHP_XPT_PB0_CTRL2 );
+    Reg |= BCHP_FIELD_DATA( XPT_PB0_CTRL2, PACING_AUTOSTART_ON_TS_ERROR, 1 );
+    Reg &= ~( BCHP_MASK( XPT_PB0_CTRL2, PACING_EN ) );
+    BXPT_Playback_P_WriteReg( hPb, BCHP_XPT_PB0_CTRL2, Reg );
 
     /* Now load the defaults they passed in. */
     BXPT_Playback_SetChannelSettings( hPb, ChannelSettings );
@@ -1382,51 +1405,8 @@ BERR_Code BXPT_Playback_GetTimestampUserBits(
     return( ExitCode );
 }
 
-BERR_Code BXPT_Playback_ConfigPacing(
-    BXPT_Playback_Handle hPb,   /* [in] Handle for the playback channel */
-    BXPT_PacingControl Mode                 /* [in] New mode for pacing. */
-    )
-{
-    uint32_t Reg;
 
-    BERR_Code ExitCode = BERR_SUCCESS;
-
-    BDBG_ASSERT( hPb );
-
-    Reg = BXPT_Playback_P_ReadReg( hPb, BCHP_XPT_PB0_CTRL2 );
-
-    /*
-    ** Init the Pacing bitfields to 0. The PB_PACING_START bit must transistion from 0 to 1
-    ** later on in order to arm the pacing logic.
-    */
-    Reg &= ~(
-        BCHP_MASK( XPT_PB0_CTRL2, PACING_START ) |
-        BCHP_MASK( XPT_PB0_CTRL2, PACING_EN ) |
-        BCHP_MASK( XPT_PB0_CTRL2, PACING_AUTOSTART_EN )
-        );
-
-    BXPT_Playback_P_WriteReg( hPb, BCHP_XPT_PB0_CTRL2, Reg );
-
-    if( Mode == BXPT_PacingControl_eStart )
-    {
-        Reg |= (
-            BCHP_FIELD_DATA( XPT_PB0_CTRL2, PACING_START, 1 ) |
-            BCHP_FIELD_DATA( XPT_PB0_CTRL2, PACING_EN, 1 ) |
-
-            /*
-            ** Autostart will re-arm the pacing logic automatically if a
-            ** force-resync condition occurrs.
-            */
-            BCHP_FIELD_DATA( XPT_PB0_CTRL2, PACING_AUTOSTART_EN, 1 )
-        );
-    }
-
-    BXPT_Playback_P_WriteReg( hPb, BCHP_XPT_PB0_CTRL2, Reg );
-
-    return( ExitCode );
-}
-
-BERR_Code BXPT_Playback_SetPacingErrorBound(
+BERR_Code BXPT_Playback_SetPacingErrorBound_impl(
     BXPT_Playback_Handle hPb,       /* [in] Handle for the playback channel */
     unsigned long MaxTsError        /* [in] Maximum timestamp error. */
     )
@@ -1457,6 +1437,43 @@ BERR_Code BXPT_Playback_SetPacingErrorBound(
     BXPT_Playback_P_WriteReg( hPb, BCHP_XPT_PB0_TS_ERR_BOUND_LATE, Reg );
 
     return( ExitCode );
+}
+
+BERR_Code BXPT_Playback_ConfigPacing(
+    BXPT_Playback_Handle hPb,   /* [in] Handle for the playback channel */
+    BXPT_PacingControl Mode                 /* [in] New mode for pacing. */
+    )
+{
+    uint32_t Reg;
+
+    BERR_Code ExitCode = BERR_SUCCESS;
+
+    BDBG_ASSERT( hPb );
+
+    if( Mode == BXPT_PacingControl_eStart )
+    {
+        Reg = BXPT_Playback_P_ReadReg( hPb, BCHP_XPT_PB0_CTRL2 );
+        Reg |= (
+            BCHP_FIELD_DATA( XPT_PB0_CTRL2, PACING_EN, 1 )
+        );
+        BXPT_Playback_P_WriteReg( hPb, BCHP_XPT_PB0_CTRL2, Reg );
+        BXPT_Playback_SetPacingErrorBound_impl(hPb, hPb->maxTsError);
+    }
+    else
+    {
+        BXPT_Playback_SetPacingErrorBound_impl(hPb, 0);
+    }
+
+    return( ExitCode );
+}
+
+BERR_Code BXPT_Playback_SetPacingErrorBound(
+    BXPT_Playback_Handle hPb,       /* [in] Handle for the playback channel */
+    unsigned long MaxTsError        /* [in] Maximum timestamp error. */
+    )
+{
+    hPb->maxTsError = MaxTsError;
+    return BXPT_Playback_SetPacingErrorBound_impl(hPb, MaxTsError);
 }
 
 void BXPT_Playback_GetPacketizerDefaults(
@@ -2222,4 +2239,3 @@ void BXPT_Playback_GetLTSID(
     *ltsid = hPb->ChannelNo + 0x40;
 #endif
 }
-

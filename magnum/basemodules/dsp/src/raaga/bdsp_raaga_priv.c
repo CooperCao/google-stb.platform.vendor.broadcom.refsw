@@ -1,7 +1,7 @@
 /******************************************************************************
- * (c) 2006-2016 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -37,8 +37,7 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
- *****************************************************************************/
+ ******************************************************************************/
 
 
 /* #define RAAGA_UART_ENABLE */
@@ -49,12 +48,11 @@
 #include "bdsp_raaga_fwdownload_priv.h"
 #include "bdsp_raaga_int_priv.h"
 #include "bdsp_raaga_fw.h"
-#include "bdsp_common_priv.h"
-#include "bdsp_common_mm_priv.h"
 #include "bchp_sun_top_ctrl.h"
 #include "bchp_aud_fmm_bf_ctrl.h"
 #include "bdsp.h"
 #include "bdsp_raaga_version.h"
+#include "bchp_raaga_dsp_timers.h"
 
 #ifdef RAAGA_UART_ENABLE
 #include "bchp.h"
@@ -98,82 +96,6 @@ const BDSP_Version BDSP_sRaagaVersion = {BDSP_RAAGA_MAJOR_VERSION, BDSP_RAAGA_MI
 
 #define FRAMESYNC_TSM_NODE_INDEX                0
 
-static void BDSP_Raaga_P_GetDistinctOpTypeAndNumChans(
-    BDSP_DataType dataType, /* [in] */
-    unsigned *numChans, /* [out] */
-    BDSP_AF_P_DistinctOpType *distinctOp /* [out] */
-    )
-{
-    switch(dataType)
-    {
-        case BDSP_DataType_ePcmMono:
-            *distinctOp = BDSP_AF_P_DistinctOpType_eMono_PCM;
-            *numChans = 1;
-            break;
-        case BDSP_DataType_eIec61937:
-            *distinctOp = BDSP_AF_P_DistinctOpType_eCompressed;
-            *numChans = 1;
-            break;
-        case BDSP_DataType_eIec61937x16:
-            *distinctOp = BDSP_AF_P_DistinctOpType_eCompressedHBR;
-            *numChans = 1;
-            break;
-        case BDSP_DataType_eIec61937x4:
-            *distinctOp = BDSP_AF_P_DistinctOpType_eCompressed4x;
-            *numChans = 1;
-            break;
-        case BDSP_DataType_eCompressedRaw:
-            *distinctOp = BDSP_AF_P_DistinctOpType_eCdb;
-            *numChans = 1;
-            break;
-        case BDSP_DataType_ePcmRf:
-            *distinctOp = BDSP_AF_P_DistinctOpType_eCompressed4x;
-            *numChans = 1;
-            break;
-        case BDSP_DataType_eRave:
-            *distinctOp = BDSP_AF_P_DistinctOpType_eCdb;
-            *numChans = 1;
-            break;
-        case BDSP_DataType_ePcm5_1:
-            *distinctOp = BDSP_AF_P_DistinctOpType_e5_1_PCM;
-            *numChans = 6;
-            break;
-        case BDSP_DataType_eDolbyTranscodeData:
-            *distinctOp = BDSP_AF_P_DistinctOpType_eDolbyReEncodeAuxDataOut;
-            *numChans = 6;
-#if (BDSP_MS12_SUPPORT == 65)
-            *numChans = 8;
-#endif
-            break;
-        case BDSP_DataType_ePcm7_1:
-            *distinctOp = BDSP_AF_P_DistinctOpType_e7_1_PCM;
-            *numChans = 8;
-            break;
-        case BDSP_DataType_eRdbCdb:
-            *distinctOp = BDSP_AF_P_DistinctOpType_eCdb;
-            *numChans = 1;
-            break;
-        case BDSP_DataType_eRdbItb:
-            *distinctOp = BDSP_AF_P_DistinctOpType_eItb;
-            *numChans = 1;
-            break;
-        case BDSP_DataType_eRdbAnc:
-            *distinctOp = BDSP_AF_P_DistinctOpType_eAncillaryData;
-            *numChans = 1;
-            break;
-        case BDSP_DataType_eRDBPool:
-            *distinctOp = BDSP_AF_P_DistinctOpType_eDescriptorQueue;
-            *numChans = 1;
-            break;
-        case BDSP_DataType_ePcmStereo:
-        default:
-            *distinctOp = BDSP_AF_P_DistinctOpType_eStereo_PCM;
-            *numChans = 2;
-            break;
-    }
-
-    return;
-}
 /***********************************************************************
 Name        :   BDSP_Raaga_P_GetDefaultClkRate
 
@@ -335,9 +257,6 @@ void BDSP_Raaga_P_Close(
         Rbuf_Setting.rbuf_uninit();
     }
 #endif
-
-    BKNI_AcquireMutex(pDevice->captureMutex);
-
     /* Destroy any contexts left open */
     while ( (pRaagaContext = BLST_S_FIRST(&pDevice->contextList)) )
     {
@@ -408,8 +327,6 @@ void BDSP_Raaga_P_Close(
     }
     BKNI_DestroyMutex((pDevice->watchdogMutex));
     BDSP_Raaga_P_FreeInitMemory(pDeviceHandle);
-
-    BKNI_ReleaseMutex(pDevice->captureMutex);
 
     BKNI_DestroyMutex((pDevice->taskDetails.taskIdMutex));
     BKNI_DestroyMutex((pDevice->captureMutex));
@@ -569,8 +486,14 @@ BERR_Code BDSP_Raaga_P_PopulateGateOpenFMMStages(
     unsigned ui32NumPorts = 0, channel, ui32FMMContentType, ui32FMMDstType;
     unsigned ui32BufferDepthThreshold;
     BDSP_RaagaStage *pRaagaPrimaryStage = (BDSP_RaagaStage *)pPrimaryStageHandle;
+    BDSP_AF_P_sIO_BUFFER *pIOBuffer_Source;
+    BDSP_AF_P_sIO_BUFFER *pIOBuffer_Destination;
+
+    BDBG_ENTER(BDSP_Raaga_P_PopulateGateOpenFMMStages);
 
     BDBG_ASSERT(NULL != pRaagaPrimaryStage);
+
+    pIOBuffer_Destination = (BDSP_AF_P_sIO_BUFFER *)pRaagaPrimaryStage->pRaagaTask->taskMemGrants.sTaskGateOpenBufInfo.pBaseAddr;
 
     BDSP_STAGE_TRAVERSE_LOOP_BEGIN(pRaagaPrimaryStage, pRaagaConnectStage)
     BSTD_UNUSED(macroBrId);
@@ -642,7 +565,16 @@ BERR_Code BDSP_Raaga_P_PopulateGateOpenFMMStages(
                     sTaskFmmGateOpenConfig->sFmmGateOpenConfig[ui32NumPorts].uin32RingBufStartWrPointAddr[channel] = pRaagaConnectStage->sStageOutput[output].IoBuffer.sCircBuffer[channel].ui32ReadAddr + 20;
                 }
 
-                sTaskFmmGateOpenConfig->sFmmGateOpenConfig[ui32NumPorts].uin32DramIoConfigAddr = pRaagaConnectStage->sStageOutput[output].ui32StageIOBuffCfgAddr;
+                BDSP_MEM_P_ConvertOffsetToCacheAddr(pRaagaPrimaryStage->pContext->pDevice->memHandle,
+                                    pRaagaConnectStage->sStageOutput[output].ui32StageIOBuffCfgAddr,
+                                    (void **)&pIOBuffer_Source);
+
+                BKNI_Memcpy((void *)pIOBuffer_Destination, (void *)pIOBuffer_Source,sizeof(BDSP_AF_P_sIO_BUFFER));
+                BDSP_MEM_P_FlushCache(pRaagaPrimaryStage->pContext->pDevice->memHandle, (void *)pIOBuffer_Destination, sizeof(*pIOBuffer_Destination));
+                BDSP_MEM_P_ConvertAddressToOffset(pRaagaPrimaryStage->pContext->pDevice->memHandle,
+                                    (void *)pIOBuffer_Destination,
+                                    &sTaskFmmGateOpenConfig->sFmmGateOpenConfig[ui32NumPorts].uin32DramIoConfigAddr);
+                pIOBuffer_Destination++;
                 sTaskFmmGateOpenConfig->sFmmGateOpenConfig[ui32NumPorts].ui32IndepDelay= pRaagaConnectStage->sStageOutput[output].connectionDetails.fmm.descriptor.delay;
                 sTaskFmmGateOpenConfig->sFmmGateOpenConfig[ui32NumPorts].eFMMContentType = ui32FMMContentType;
                 sTaskFmmGateOpenConfig->sFmmGateOpenConfig[ui32NumPorts].eFmmDstFsRate = ui32FMMDstType;
@@ -656,6 +588,7 @@ BERR_Code BDSP_Raaga_P_PopulateGateOpenFMMStages(
     sTaskFmmGateOpenConfig->ui32NumPorts = ui32NumPorts;
     sTaskFmmGateOpenConfig->ui32MaxIndepDelay = ui32MaxIndepDelay;
 
+    BDBG_LEAVE(BDSP_Raaga_P_PopulateGateOpenFMMStages);
     return errCode;
 }
 
@@ -667,6 +600,11 @@ BERR_Code BDSP_Raaga_P_RetrieveGateOpenSettings(
     BERR_Code errCode = BERR_SUCCESS;
     BDSP_RaagaTask *pRaagaTask = (BDSP_RaagaTask *)pTaskHandle;
     BDSP_AF_P_TASK_sFMM_GATE_OPEN_CONFIG sTaskFmmGateOpenConfig;
+    int32_t index, index2;
+    BDSP_AF_P_sFMM_GATE_OPEN_CONFIG *psFmmGateOpenConfig;
+    BDSP_AF_P_sIO_BUFFER *pIOBuffer;
+
+    BDBG_ENTER(BDSP_Raaga_P_RetrieveGateOpenSettings);
 
     if(pRaagaTask->startSettings.gateOpenReqd == true)
     {
@@ -685,11 +623,41 @@ BERR_Code BDSP_Raaga_P_RetrieveGateOpenSettings(
         return errCode;
     }
 
+    /* Modify the Addresses to be returned to Generic Address*/
+    psFmmGateOpenConfig = (BDSP_AF_P_sFMM_GATE_OPEN_CONFIG *)&sTaskFmmGateOpenConfig.sFmmGateOpenConfig;
+    for(index = 0; index < (int32_t)sTaskFmmGateOpenConfig.ui32NumPorts; index++)
+    {
+        for(index2 = 0; index2 < (int32_t)BDSP_AF_P_MAX_CHANNELS; index2++)
+        {
+            psFmmGateOpenConfig->uin32RingBufStartWrPointAddr[index2]=BDSP_ADDR_FOR_HOSTCPU_FROM_RAAGA_REGSET(psFmmGateOpenConfig->uin32RingBufStartWrPointAddr[index2]);
+        }
+
+        BDSP_MEM_P_ConvertOffsetToCacheAddr(pRaagaTask->pContext->pDevice->memHandle,
+                            psFmmGateOpenConfig->uin32DramIoConfigAddr,
+                            (void **)&pIOBuffer);
+        for(index2=0;index2 < (int32_t)pIOBuffer->ui32NumBuffers; index2++)/*audio channels*/
+        {   /*ensure that the descriptors for FMM and RAVE that are passed are physical address*/
+           pIOBuffer->sCircBuffer[index2].ui32BaseAddr = BDSP_ADDR_FOR_HOSTCPU_FROM_RAAGA_REGSET(pIOBuffer->sCircBuffer[index2].ui32BaseAddr);
+           pIOBuffer->sCircBuffer[index2].ui32EndAddr  = BDSP_ADDR_FOR_HOSTCPU_FROM_RAAGA_REGSET(pIOBuffer->sCircBuffer[index2].ui32EndAddr);
+           pIOBuffer->sCircBuffer[index2].ui32ReadAddr = BDSP_ADDR_FOR_HOSTCPU_FROM_RAAGA_REGSET(pIOBuffer->sCircBuffer[index2].ui32ReadAddr);
+           pIOBuffer->sCircBuffer[index2].ui32WrapAddr = BDSP_ADDR_FOR_HOSTCPU_FROM_RAAGA_REGSET(pIOBuffer->sCircBuffer[index2].ui32WrapAddr);
+           pIOBuffer->sCircBuffer[index2].ui32WriteAddr= BDSP_ADDR_FOR_HOSTCPU_FROM_RAAGA_REGSET(pIOBuffer->sCircBuffer[index2].ui32WriteAddr);
+        }
+
+        BDSP_MEM_P_FlushCache(pRaagaTask->pContext->pDevice->memHandle,
+            (void *)pIOBuffer,
+            sizeof(*pIOBuffer));
+
+        psFmmGateOpenConfig++;
+    }
+
     pSettings->ui32NumPorts      = sTaskFmmGateOpenConfig.ui32NumPorts;
     pSettings->ui32MaxIndepDelay = sTaskFmmGateOpenConfig.ui32MaxIndepDelay;
     BKNI_Memcpy(pSettings->psFmmGateOpenConfig,
         (void *)&sTaskFmmGateOpenConfig.sFmmGateOpenConfig[0],
         (sTaskFmmGateOpenConfig.ui32NumPorts*sizeof(BDSP_AF_P_sFMM_GATE_OPEN_CONFIG)));
+
+    BDBG_LEAVE(BDSP_Raaga_P_RetrieveGateOpenSettings);
 
     return errCode;
 }
@@ -1230,7 +1198,7 @@ BERR_Code BDSP_Raaga_P_InterTaskBuffer_Create(
     BDSP_AF_P_DistinctOpType distinctOp;
     BDSP_RaagaContext *pContext;
     unsigned memReqd, channels, i;
-    raaga_dramaddr physAddr;
+    dramaddr_t physAddr;
     void *pIoAddress, *pIoGenAddress;
     BDSP_AF_P_sIO_BUFFER *pIoBuffDesc_Cached = NULL;
     BDSP_AF_P_sIO_GENERIC_BUFFER *pIoGenBuffDesc_Cached = NULL;
@@ -1266,7 +1234,7 @@ BERR_Code BDSP_Raaga_P_InterTaskBuffer_Create(
     pInterTaskBuffer->dstIndex = -1;
     pInterTaskBuffer->pContext = pContextHandle;
     /* Allocate the IO buffer and populate the IO buffer descriptor */
-    BDSP_Raaga_P_GetDistinctOpTypeAndNumChans(dataType, &channels, &distinctOp);
+    BDSP_P_GetDistinctOpTypeAndNumChans(dataType, &channels, &distinctOp);
     pInterTaskBuffer->numChans = channels;
     pInterTaskBuffer->distinctOp = distinctOp;
 
@@ -1284,7 +1252,7 @@ BERR_Code BDSP_Raaga_P_InterTaskBuffer_Create(
 
 
     /* Allocate the IO Generic buffer and populate the IO generic buffer descriptor */
-    BDSP_Raaga_P_GetDistinctOpTypeAndNumChans(dataType, &channels, &distinctOp);
+    BDSP_P_GetDistinctOpTypeAndNumChans(dataType, &channels, &distinctOp);
     memReqd = BDSP_AF_P_INTERTASK_IOGENBUFFER_SIZE;
 
     pIoGenAddress = BDSP_MEM_P_AllocateAlignedMemory(pContext->pDevice->memHandle, memReqd, 5, 0);    /* 32 bit aligned*/
@@ -1637,7 +1605,7 @@ void BDSP_Raaga_P_InterTaskBuffer_Flush(
     BDSP_RaagaContext *pRaagaContext;
     BDSP_AF_P_sIO_BUFFER *pIoBuffDesc = NULL;
     BDSP_AF_P_sIO_GENERIC_BUFFER *pIoGenBuffDesc = NULL;
-    raaga_dramaddr ui32BaseAddr;
+    dramaddr_t ui32BaseAddr;
 
     BDBG_ENTER(BDSP_Raaga_P_InterTaskBuffer_Flush);
 
@@ -1774,8 +1742,8 @@ BERR_Code BDSP_Raaga_P_CreateMsgQueueHandle(
 
     BERR_Code err=BERR_SUCCESS;
 
-    raaga_dramaddr  ui32BaseAddr=0;
-    raaga_dramaddr  ui32EndAddr=0;
+    dramaddr_t  ui32BaseAddr=0;
+    dramaddr_t  ui32EndAddr=0;
     BDSP_Raaga_P_MsgQueueHandle  hHandle = NULL;
     uint32_t    ui32RegOffset = 0;
 
@@ -1939,7 +1907,7 @@ BERR_Code BDSP_Raaga_P_Queue_Create( void *pContextHandle,
     pQueue->numBuf   = pSettings->numBuffers;
     pQueue->dspIndex = dspIndex;
 
-    BDSP_Raaga_P_GetDistinctOpTypeAndNumChans(pSettings->dataType, &channels, &distinctOp);
+    BDSP_P_GetDistinctOpTypeAndNumChans(pSettings->dataType, &channels, &distinctOp);
     pQueue->numChans = channels;
     pQueue->distinctOp = distinctOp;
 
@@ -2196,7 +2164,7 @@ BERR_Code BDSP_Raaga_P_AddRaveInput(
 
     BDBG_ENTER(BDSP_Raaga_P_AddRaveInput);
 
-    BDSP_Raaga_P_GetFreeInputPortIndex(pRaagaStage, &ipIndex);
+    BDSP_P_GetFreeInputPortIndex(&(pRaagaStage->sStageInput[0]), &ipIndex);
     BDBG_ASSERT(ipIndex < BDSP_AF_P_MAX_IP_FORKS);
 
     pRaagaStage->sStageInput[ipIndex].eNodeValid=BDSP_AF_P_eValid;
@@ -2285,10 +2253,10 @@ BERR_Code BDSP_Raaga_P_AddFmmOutput(
 
     BDBG_ENTER(BDSP_Raaga_P_AddFmmOutput);
 
-    BDSP_Raaga_P_GetFreeOutputPortIndex(pRaagaStage, &opIndex);
+    BDSP_P_GetFreeOutputPortIndex(&(pRaagaStage->sStageOutput[0]), &opIndex);
     BDBG_ASSERT(opIndex < BDSP_AF_P_MAX_OP_FORKS);
 
-    BDSP_Raaga_P_GetDistinctOpTypeAndNumChans(dataType, &channels, &pRaagaStage->eStageOpBuffDataType[opIndex]);
+    BDSP_P_GetDistinctOpTypeAndNumChans(dataType, &channels, &pRaagaStage->eStageOpBuffDataType[opIndex]);
     if(channels!=pDescriptor->numBuffers)
     {
         errCode=BERR_TRACE(BERR_INVALID_PARAMETER);
@@ -2390,7 +2358,7 @@ BERR_Code BDSP_Raaga_P_AddRaveOutput(
     pRaagaContext = (BDSP_RaagaContext   *)pRaagaStage->pContext; /*src or dest*/
     pDevice = (BDSP_Raaga *)pRaagaContext->pDevice;
 
-    BDSP_Raaga_P_GetFreeOutputPortIndex(pRaagaStage, &opIndex);
+    BDSP_P_GetFreeOutputPortIndex(&(pRaagaStage->sStageOutput[0]), &opIndex);
     BDBG_ASSERT(opIndex < BDSP_AF_P_MAX_OP_FORKS);
 
     /* CDB output */
@@ -2425,7 +2393,7 @@ BERR_Code BDSP_Raaga_P_AddRaveOutput(
     pRaagaStage->totalOutputs+=1;
 
     /* ITB is a different output */
-    BDSP_Raaga_P_GetFreeOutputPortIndex(pRaagaStage, &opIndex);
+    BDSP_P_GetFreeOutputPortIndex(&(pRaagaStage->sStageOutput[0]), &opIndex);
     BDBG_ASSERT(opIndex < BDSP_AF_P_MAX_OP_FORKS);
 
     /* ITB output */
@@ -2510,7 +2478,7 @@ BERR_Code BDSP_Raaga_P_AddQueueInput(
     pRaagaContext = (BDSP_RaagaContext *)pRaagaStage->pContext; /*src or dest*/
     pDevice = (BDSP_Raaga *)pRaagaContext->pDevice;
 
-    BDSP_Raaga_P_GetFreeInputPortIndex(pRaagaStage, &ipIndex);
+    BDSP_P_GetFreeInputPortIndex(&(pRaagaStage->sStageInput[0]), &ipIndex);
     BDBG_ASSERT(ipIndex < BDSP_AF_P_MAX_IP_FORKS);
 
     /* Note CDB and ITB are separate Index/Queue Handle - Needs to be taken care */
@@ -2597,7 +2565,7 @@ BERR_Code BDSP_Raaga_P_AddQueueOutput(
     pRaagaContext = (BDSP_RaagaContext *)pRaagaStage->pContext; /*src or dest*/
     pDevice = (BDSP_Raaga *)pRaagaContext->pDevice;
 
-    BDSP_Raaga_P_GetFreeOutputPortIndex(pRaagaStage, &opIndex);
+    BDSP_P_GetFreeOutputPortIndex(&(pRaagaStage->sStageOutput[0]), &opIndex);
     BDBG_ASSERT(opIndex < BDSP_AF_P_MAX_OP_FORKS);
 
     /* Note CDB and ITB are separate Index/Queue Handle - Needs to be taken care */
@@ -2830,10 +2798,10 @@ BERR_Code BDSP_Raaga_P_AddFmmInput(
 
     BDBG_ENTER(BDSP_Raaga_P_AddFmmInput);
 
-    BDSP_Raaga_P_GetFreeInputPortIndex(pRaagaStage, &ipIndex);
+    BDSP_P_GetFreeInputPortIndex(&(pRaagaStage->sStageInput[0]), &ipIndex);
     BDBG_ASSERT(ipIndex < BDSP_AF_P_MAX_IP_FORKS);
 
-    BDSP_Raaga_P_GetDistinctOpTypeAndNumChans(dataType, &numBuffers, &distinctOp);
+    BDSP_P_GetDistinctOpTypeAndNumChans(dataType, &numBuffers, &distinctOp);
     BDBG_ASSERT(numBuffers == pDescriptor->numBuffers);
 
     pRaagaStage->sStageInput[ipIndex].eNodeValid = BDSP_AF_P_eValid;
@@ -2896,7 +2864,7 @@ BERR_Code BDSP_Raaga_P_AddFmmInput(
     {
         BDSP_RaagaTask *pRaagaTask = pRaagaStage->pRaagaTask;
         BDSP_AF_P_sNODE_CONFIG  *psNodeConfig;
-        raaga_dramaddr  ui32NodeIpBuffCfgAddr, ui32NodeIpGenericDataBuffCfgAddr;
+        dramaddr_t  ui32NodeIpBuffCfgAddr, ui32NodeIpGenericDataBuffCfgAddr;
         BDSP_AF_P_sTASK_CONFIG  *psWorkingTaskCitBuffAddr_Cached = NULL;
 
 
@@ -3164,7 +3132,7 @@ BERR_Code BDSP_Raaga_P_AddInterTaskBufferInput(
     BDBG_ASSERT(NULL != pInputIndex);
     BDBG_ASSERT(dataType == pRaagaInterTaskBuffer->dataType);
 
-    BDSP_Raaga_P_GetFreeInputPortIndex(pRaagaStage, &ipIndex);
+    BDSP_P_GetFreeInputPortIndex(&(pRaagaStage->sStageInput[0]), &ipIndex);
     BDBG_ASSERT(ipIndex < BDSP_AF_P_MAX_IP_FORKS);
 
     /* Connect the inter-task buffer to the destination stage's input */
@@ -3198,7 +3166,7 @@ BERR_Code BDSP_Raaga_P_AddInterTaskBufferInput(
 
 
         BDSP_AF_P_sNODE_CONFIG  *psNodeConfig;
-        raaga_dramaddr  ui32NodeIpBuffCfgAddr, ui32NodeIpGenericDataBuffCfgAddr;
+        dramaddr_t  ui32NodeIpBuffCfgAddr, ui32NodeIpGenericDataBuffCfgAddr;
         BDSP_AF_P_sTASK_CONFIG  *psWorkingTaskCitBuffAddr_Cached = NULL;
 
         BDBG_OBJECT_ASSERT(pRaagaTask, BDSP_RaagaTask);
@@ -3304,7 +3272,7 @@ BERR_Code BDSP_Raaga_P_AddInterTaskBufferOutput(
     BDBG_ASSERT(NULL != pOutputIndex);
     BDBG_ASSERT(dataType == pRaagaInterTaskBuffer->dataType);
 
-    BDSP_Raaga_P_GetFreeOutputPortIndex(pRaagaStage, &opIndex);
+    BDSP_P_GetFreeOutputPortIndex(&(pRaagaStage->sStageOutput[0]), &opIndex);
     BDBG_ASSERT(opIndex < BDSP_AF_P_MAX_OP_FORKS);
 
     /* Connect the inter-task buffer to the source stage's output */
@@ -3366,7 +3334,7 @@ BERR_Code BDSP_Raaga_P_SendCitReconfigCommand(
     BERR_Code err = BERR_SUCCESS;
     BDSP_Raaga  *pDevice;
     BDSP_Raaga_P_Command sCommand;
-    BDSP_Raaga_P_MsgType eMsgType;
+    BDSP_P_MsgType eMsgType;
     BDSP_Raaga_P_Response sRsp;
 
 
@@ -3381,11 +3349,13 @@ BERR_Code BDSP_Raaga_P_SendCitReconfigCommand(
     BDSP_MEM_P_FlushCache(pDevice->memHandle, (void *)psWorkingTaskCitBuffAddr_Cached, sizeof(*psWorkingTaskCitBuffAddr_Cached));
 
     /*Prepare command to stop the task */
-    sCommand.sCommandHeader.ui32CommandID = BDSP_RAAGA_RECONFIGURATION_COMMAND_ID;
+    sCommand.sCommandHeader.ui32CommandID = BDSP_RECONFIGURATION_COMMAND_ID;
     sCommand.sCommandHeader.ui32CommandCounter = 0;
     sCommand.sCommandHeader.ui32TaskID = pRaagaTask->taskId;
-    sCommand.sCommandHeader.eResponseType = BDSP_Raaga_P_ResponseType_eResponseRequired;
+    sCommand.sCommandHeader.eResponseType = BDSP_P_ResponseType_eResponseRequired;
     sCommand.sCommandHeader.ui32CommandSizeInBytes =  sizeof(BDSP_Raaga_P_Command);
+    sCommand.sCommandHeader.ui32CommandTimeStamp =  BREG_Read32(pDevice->regHandle,
+                                                                BCHP_RAAGA_DSP_TIMERS_TSM_TIMER_VALUE);
 
     BDSP_MEM_P_ConvertAddressToOffset(pDevice->memHandle, (void *)(psWorkingTaskCitBuffAddr_Cached),
         &(sCommand.uCommand.sCitReconfigCommand.ui32ModifiedCitAddr));
@@ -3415,7 +3385,7 @@ BERR_Code BDSP_Raaga_P_SendCitReconfigCommand(
         goto end;
     }
 
-    eMsgType = BDSP_Raaga_P_MsgType_eSyn;
+    eMsgType = BDSP_P_MsgType_eSyn;
     err = BDSP_Raaga_P_GetMsg(pRaagaTask->hSyncMsgQueue, (void *)&sRsp,eMsgType);
 
     if (BERR_SUCCESS != err)
@@ -3476,64 +3446,6 @@ err_malloc_initFmmBuffer:
 }
 
 /***********************************************************************
-Name        :   BDSP_Raaga_P_GetFreeInputPortIndex
-
-Type        :   BDSP Internal
-
-Input       :   pStage      -   Handle of the Stage for which we need to return the Input port index
-                index              -    Index returned back.
-
-Return      :   Error Code to return SUCCESS or FAILURE
-
-Functionality   :   Following are the operations performed.
-        1)  Return the first free input index for the stage and return the same to the caller.
-***********************************************************************/
-
-void BDSP_Raaga_P_GetFreeInputPortIndex(BDSP_RaagaStage *pStage, unsigned *index)
-{
-    unsigned i;
-
-    for (i = 0; i < BDSP_AF_P_MAX_IP_FORKS; i++)
-    {
-        if (pStage->sStageInput[i].eNodeValid != BDSP_AF_P_eValid)
-        {
-            break;
-        }
-    }
-
-    *index = i;
-}
-
-/***********************************************************************
-Name        :   BDSP_Raaga_P_GetFreeOutputPortIndex
-
-Type        :   BDSP Internal
-
-Input       :   pStage      -   Handle of the Stage for which we need to return the Output port index
-                index              -    Index returned back.
-
-Return      :   Error Code to return SUCCESS or FAILURE
-
-Functionality   :   Following are the operations performed.
-        1)  Return the first free output index for the stage and return the same to the caller.
-***********************************************************************/
-
-void BDSP_Raaga_P_GetFreeOutputPortIndex(BDSP_RaagaStage *pStage, unsigned *index)
-{
-    unsigned i;
-
-    for (i = 0; i < BDSP_AF_P_MAX_OP_FORKS; i++)
-    {
-        if (pStage->sStageOutput[i].eNodeValid != BDSP_AF_P_eValid)
-        {
-            break;
-        }
-    }
-
-    *index = i;
-}
-
-/***********************************************************************
 Name        :   BDSP_Raaga_P_AddOutputStage
 
 Type        :   PI Interface
@@ -3578,14 +3490,14 @@ BERR_Code BDSP_Raaga_P_AddOutputStage(
     pDevice = (BDSP_Raaga *)pRaagaContext->pDevice;
     BDBG_ASSERT(pDevice);
 
-    BDSP_Raaga_P_GetFreeInputPortIndex(pRaagaDstStage, &ipIndex);
+    BDSP_P_GetFreeInputPortIndex(&(pRaagaDstStage->sStageInput[0]), &ipIndex);
     BDBG_ASSERT(ipIndex < BDSP_AF_P_MAX_IP_FORKS);
 
-    BDSP_Raaga_P_GetFreeOutputPortIndex(pRaagaSrcStage, &opIndex);
+    BDSP_P_GetFreeOutputPortIndex(&(pRaagaSrcStage->sStageOutput[0]), &opIndex);
     BDBG_ASSERT(opIndex < BDSP_AF_P_MAX_OP_FORKS);
 
     /*Populate the distinct output type which can be used to prepare node configuration*/
-    BDSP_Raaga_P_GetDistinctOpTypeAndNumChans(dataType, &numBuffers, &pRaagaSrcStage->eStageOpBuffDataType[opIndex]);
+    BDSP_P_GetDistinctOpTypeAndNumChans(dataType, &numBuffers, &pRaagaSrcStage->eStageOpBuffDataType[opIndex]);
 
     pRaagaSrcStage->sStageOutput[opIndex].eNodeValid=BDSP_AF_P_eValid;
     pRaagaSrcStage->sStageOutput[opIndex].eConnectionType=BDSP_ConnectionType_eStage;
@@ -3861,63 +3773,7 @@ void BDSP_Raaga_P_GetDefaultTaskSettings(
     pSettings->masterTask = false;
 }
 
-/***********************************************************************
-Name        :   BDSP_DSP_P_InterframeRunLengthDecode
-
-Type        :   PI Interface
-
-Input       :   pSrc                    -   Pointer to Source Array which is encoded using Run Length Algorithm
-                pDst                    -   Pointer to Memory Location in DRAM where the uncompressed array needs to be copied.
-                ui32IfBuffEncodedSize   -   Size of encoded Inter-Frame array
-                ui32AllocatedBufferSize -   Size of Memory Allocated in Dram.
-
-Return      :   BERR_Code
-
-Functionality   :   Following are the operations performed.
-        1)  Uncompress the Inter-Frame Array using the Run Length Decode Algorithm
-        2)  Confirm that enough size has been allocated in DRAM by BDSP.
-        3)  Copy the original uncompressed opcodes into DRAM
-***********************************************************************/
-
-static BERR_Code BDSP_DSP_P_InterframeRunLengthDecode(void *pSrc, void *pDst, uint32_t ui32IfBuffEncodedSize, uint32_t ui32AllocatedBufferSize)
-{
-    BERR_Code   rc = BERR_SUCCESS;
-    uint32_t ui32IfBuffActualSize = 0;
-    uint32_t i =0, j =0;
-    uint32_t * pTempSrc = (uint32_t *) pSrc;
-    uint32_t * pTempDest = (uint32_t *) pDst;
-
-    BDBG_ENTER(BDSP_DSP_P_InterframeRunLengthDecode);
-    BDBG_ASSERT(( ui32IfBuffEncodedSize % 8 == 0)); /* Any array that has been encoded using the run length encode has to be in multiples of 8. Otherwise something has gone wrong */
-
-    for (i = 0; i < (ui32IfBuffEncodedSize >> 3); i++)
-    {
-        ui32IfBuffActualSize += pTempSrc[2*i + 1];
-    }
-
-    /* Size has already been allocated in DRAM. Confirm whether it is big enough. */
-    if (ui32AllocatedBufferSize < ui32IfBuffActualSize)
-    {
-        BDBG_ERR(("Allocated memory (%d) for interframe buffer is less than required (%d)",
-                    ui32AllocatedBufferSize,
-                    ui32IfBuffActualSize
-                 ));
-        return BERR_TRACE(BERR_INVALID_PARAMETER);
-    }
-
-    /* Then start copying in chunks element by element */
-    for (i = 0; i < (ui32IfBuffEncodedSize >> 3); i++)
-    {
-        for (j = 0; j < pTempSrc[2*i + 1]; j++)
-        {
-            *pTempDest++ = pTempSrc[2*i];
-        }
-    }
-    BDBG_LEAVE(BDSP_DSP_P_InterframeRunLengthDecode);
-    return rc;
-}
-
-static BERR_Code BDSP_DSP_P_InitInterframeBuffer(void *pStageHandle)
+static BERR_Code BDSP_Raaga_P_InitInterframeBuffer(void *pStageHandle)
 {
     BERR_Code   rc = BERR_SUCCESS;
     uint32_t ui32ImgId;
@@ -3932,7 +3788,7 @@ static BERR_Code BDSP_DSP_P_InitInterframeBuffer(void *pStageHandle)
     const BDSP_Raaga_P_AlgorithmInfo *pAlgoInfo;
 
     uint32_t ui32IfBuffEncodedSize = 0;
-    BDBG_ENTER(BDSP_DSP_P_InitInterframeBuffer);
+    BDBG_ENTER(BDSP_Raaga_P_InitInterframeBuffer);
 
     BDBG_ASSERT(NULL != pStageHandle);
     pRaagaStage = (BDSP_RaagaStage *)pStageHandle;
@@ -3999,7 +3855,7 @@ static BERR_Code BDSP_DSP_P_InitInterframeBuffer(void *pStageHandle)
     }
     BDSP_STAGE_TRAVERSE_LOOP_END(pStageIterator)
 
-    BDBG_LEAVE(BDSP_DSP_P_InitInterframeBuffer);
+    BDBG_LEAVE(BDSP_Raaga_P_InitInterframeBuffer);
     return rc;
 }
 
@@ -4009,7 +3865,7 @@ static BERR_Code BDSP_DSPCHN_P_SendVOMChangeCommand(
 {
     BDSP_Raaga_P_Command sCommand;
     BDSP_VOM_Table  *pVOMTableInDRAM = NULL;
-    raaga_dramaddr    physAddress = 0;
+    dramaddr_t    physAddress = 0;
     unsigned int i,j,index = 0;
     BERR_Code err = BERR_SUCCESS;
     BDSP_RaagaTask *pRaagaTask = (BDSP_RaagaTask *)pTaskHandle;
@@ -4122,8 +3978,10 @@ static BERR_Code BDSP_DSPCHN_P_SendVOMChangeCommand(
     sCommand.sCommandHeader.ui32CommandID = BDSP_RAAGA_GET_VOM_TABLE_COMMAND_ID;
     sCommand.sCommandHeader.ui32CommandCounter = pRaagaTask->commandCounter++;
     sCommand.sCommandHeader.ui32TaskID = pRaagaTask->taskId;
-    sCommand.sCommandHeader.eResponseType = BDSP_Raaga_P_ResponseType_eNone;
+    sCommand.sCommandHeader.eResponseType = BDSP_P_ResponseType_eNone;
     sCommand.sCommandHeader.ui32CommandSizeInBytes =  sizeof(BDSP_Raaga_P_Command);
+    sCommand.sCommandHeader.ui32CommandTimeStamp =  BREG_Read32(pDevice->regHandle,
+                                                                BCHP_RAAGA_DSP_TIMERS_TSM_TIMER_VALUE);
 
     sCommand.uCommand.sGetVomTable.ui32NumEntries = index;
     sCommand.uCommand.sGetVomTable.ui32HostVomTableAddr = physAddress;
@@ -4551,9 +4409,7 @@ static BERR_Code   BDSP_Raaga_P_InitParams_StartTask(
     BDBG_OBJECT_ASSERT(pRaagaContext, BDSP_RaagaContext);
     BDBG_OBJECT_ASSERT(pRaagaTask, BDSP_RaagaTask);
 
-    BKNI_Memcpy(&pRaagaTask->startSettings, pStartSettings, sizeof(*pStartSettings));
-
-    pRaagaTask->masterTaskId = BDSP_RAAGA_P_INVALID_TASK_ID;
+    pRaagaTask->masterTaskId = BDSP_P_INVALID_TASK_ID;
     pRaagaTask->schedulingMode = pStartSettings->schedulingMode;
 
     if ( pStartSettings->schedulingMode != BDSP_TaskSchedulingMode_eSlave && pStartSettings->masterTask != NULL )
@@ -4572,7 +4428,7 @@ static BERR_Code   BDSP_Raaga_P_InitParams_StartTask(
     }
     else if (pStartSettings->schedulingMode == BDSP_TaskSchedulingMode_eMaster)
     {
-        pRaagaTask->masterTaskId = BDSP_RAAGA_P_INVALID_TASK_ID;
+        pRaagaTask->masterTaskId = BDSP_P_INVALID_TASK_ID;
         /*feedback buffer allocated during create task time*/
     }
 
@@ -4615,6 +4471,66 @@ end:
     return err;
 }
 
+static BERR_Code BDSP_Raaga_P_CopyStartTaskParams(
+    BDSP_RaagaTask         *pRaagaTask,
+    BDSP_TaskStartSettings *pStartSettings
+    )
+{
+    BERR_Code   err=BERR_SUCCESS;
+    BDSP_RaagaContext *pRaagaContext = (BDSP_RaagaContext *)pRaagaTask->pContext;
+
+    /* Directly Copy whole structure first provided by PI*/
+    pRaagaTask->startSettings = *pStartSettings;
+
+    /*Pointers provided by PI are allocated by them respectively and should not hold them*/
+    pRaagaTask->startSettings.pSampleRateMap      = NULL;
+    pRaagaTask->startSettings.psVDecoderIPBuffCfg = NULL;
+    pRaagaTask->startSettings.psVEncoderIPConfig  = NULL;
+
+    if(BDSP_ContextType_eVideo == pRaagaContext->settings.contextType )
+    {
+        if(NULL == pStartSettings->psVDecoderIPBuffCfg)
+        {
+            BDBG_ERR(("BDSP_Raaga_P_CopyStartTaskParams: Input Config structure not provided for Video Decode Task by PI"));
+            err = BERR_TRACE(BERR_INVALID_PARAMETER);
+            return err;
+        }
+        pRaagaTask->startSettings.psVDecoderIPBuffCfg = (BDSP_sVDecoderIPBuffCfg *)BKNI_Malloc(sizeof(BDSP_sVDecoderIPBuffCfg));
+        BKNI_Memcpy((void*)pRaagaTask->startSettings.psVDecoderIPBuffCfg,
+            (void *)pStartSettings->psVDecoderIPBuffCfg,
+            sizeof(BDSP_sVDecoderIPBuffCfg));
+        goto end;
+    }
+
+    if(BDSP_ContextType_eVideoEncode == pRaagaContext->settings.contextType )
+    {
+        if(NULL == pStartSettings->psVEncoderIPConfig)
+        {
+            BDBG_ERR(("BDSP_Raaga_P_CopyStartTaskParams: Input Config structure not provided for Video Encode Task by PI"));
+            err = BERR_TRACE(BERR_INVALID_PARAMETER);
+            return err;
+        }
+        pRaagaTask->startSettings.psVEncoderIPConfig = (BDSP_sVEncoderIPConfig *)BKNI_Malloc(sizeof(BDSP_sVEncoderIPConfig));
+        BKNI_Memcpy((void*)pRaagaTask->startSettings.psVEncoderIPConfig,
+            (void *)pStartSettings->psVEncoderIPConfig,
+            sizeof(BDSP_sVEncoderIPConfig));
+        goto end;
+    }
+    if(BDSP_ContextType_eAudio == pRaagaContext->settings.contextType )
+    {
+        /* If APE doesnt provide the Sample Rate Map table then BDSP will internally fill it. No error handling required*/
+        if(NULL != pStartSettings->pSampleRateMap)
+        {
+            pRaagaTask->startSettings.pSampleRateMap = (BDSP_AF_P_sOpSamplingFreq *)BKNI_Malloc(sizeof(BDSP_AF_P_sOpSamplingFreq));
+            BKNI_Memcpy((void*)pRaagaTask->startSettings.pSampleRateMap,
+                (void *)pStartSettings->pSampleRateMap,
+                sizeof(BDSP_AF_P_sOpSamplingFreq));
+        }
+    }
+end:
+    return BERR_SUCCESS;
+}
+
 static BERR_Code   BDSP_Raaga_P_FreeAndInvalidateTask(
     void *pTaskHandle
     )
@@ -4639,7 +4555,7 @@ static BERR_Code   BDSP_Raaga_P_FreeAndInvalidateTask(
 
 static BERR_Code BDSP_Raaga_P_FindSlaveTaskSchedulingBuffer(
             const BDSP_TaskStartSettings *pStartSettings,
-            raaga_dramaddr   *pui32DramSchedulingBuffCfgAddr,
+            dramaddr_t   *pui32DramSchedulingBuffCfgAddr,
             BDSP_AF_P_BufferType    *pBufferType)
 {
     BERR_Code   err = BERR_SUCCESS;
@@ -5008,10 +4924,10 @@ BERR_Code BDSP_Raaga_P_StartTask(
     BDSP_RaagaContext *pRaagaContext = (BDSP_RaagaContext *)pRaagaTask->pContext;
     BDSP_Raaga  *pDevice= pRaagaContext->pDevice;
     BDSP_RaagaStage *pRaagaPrimaryStage;
-    BDSP_Raaga_P_TaskParamInfo *pTaskParams = NULL;
-    BDSP_Raaga_P_MsgType      eMsgType;
+    BDSP_P_TaskParamInfo *pTaskParams = NULL;
+    BDSP_P_MsgType      eMsgType;
     unsigned ui32RbufOffset, uiSchedulingBufId, uiSchedulingBufDelay;
-    raaga_dramaddr    ui32PhysAddr, i = 0;
+    dramaddr_t      ui32PhysAddr, i = 0;
     unsigned int    uiSchedulingBufferThreshold = 0;
     unsigned int    ui32BlockTime = 0;
     unsigned        uiOffset = 0;
@@ -5033,7 +4949,13 @@ BERR_Code BDSP_Raaga_P_StartTask(
     BDBG_MSG(("Start task: DSP %d",pRaagaTask->settings.dspIndex));
 
     dspIndex = pRaagaTask->settings.dspIndex;
-    pRaagaTask->startSettings = *pStartSettings;
+    err = BDSP_Raaga_P_CopyStartTaskParams(pRaagaTask, pStartSettings);
+    if (BERR_SUCCESS != err)
+    {
+        BDBG_ERR(("BDSP_Raaga_P_StartTask: Unable to Copy the Start Task params provided by PI"));
+        err = BERR_TRACE(err);
+        return err;
+    }
 
     pRaagaPrimaryStage = (BDSP_RaagaStage *)pStartSettings->primaryStage->pStageHandle;
 
@@ -5055,6 +4977,7 @@ BERR_Code BDSP_Raaga_P_StartTask(
     {
         BDBG_ERR(("BDSP_Raaga_P_StartTask: Sync Queue Init failed!"));
         err = BERR_TRACE(err);
+        goto end;
     }
 
     err = BDSP_Raaga_P_InitMsgQueue(&(pRaagaTask->taskMemGrants.sTaskQueue.sTaskAsyncQueue),
@@ -5063,6 +4986,7 @@ BERR_Code BDSP_Raaga_P_StartTask(
     {
         BDBG_ERR(("BDSP_Raaga_P_StartTask: ASync Queue Init failed!"));
         err = BERR_TRACE(err);
+        goto end;
     }
     if (pRaagaContext->settings.contextType == BDSP_ContextType_eVideo)
     {
@@ -5073,6 +4997,7 @@ BERR_Code BDSP_Raaga_P_StartTask(
         {
             BDBG_ERR(("BDSP_Raaga_P_StartTask: Picture delivery queue Init failed!"));
             err = BERR_TRACE(err);
+            goto end;
         }
 
         /*Picture release queue*/
@@ -5082,6 +5007,7 @@ BERR_Code BDSP_Raaga_P_StartTask(
         {
             BDBG_ERR(("BDSP_Raaga_P_StartTask: Picture release queue Init failed!"));
             err = BERR_TRACE(err);
+            goto end;
         }
 
         /*Display  queue*/
@@ -5091,6 +5017,7 @@ BERR_Code BDSP_Raaga_P_StartTask(
         {
             BDBG_ERR(("BDSP_Raaga_P_StartTask: display queue Init failed!"));
             err = BERR_TRACE(err);
+            goto end;
         }
     }
     if (pRaagaContext->settings.contextType == BDSP_ContextType_eVideoEncode)
@@ -5101,6 +5028,7 @@ BERR_Code BDSP_Raaga_P_StartTask(
         {
             BDBG_ERR(("BDSP_Raaga_P_StartTask: Raw Picture delivery queue Init failed!"));
             err = BERR_TRACE(err);
+            goto end;
         }
 
         /* Raw Picture release queue*/
@@ -5110,6 +5038,7 @@ BERR_Code BDSP_Raaga_P_StartTask(
         {
             BDBG_ERR(("BDSP_Raaga_P_StartTask: Raw Picture release queue Init failed!"));
             err = BERR_TRACE(err);
+            goto end;
         }
 
         /* RRQ should start with full buffer capacity */
@@ -5126,17 +5055,22 @@ BERR_Code BDSP_Raaga_P_StartTask(
         {
             BDBG_ERR(("BDSP_Raaga_P_StartTask: CCD queue Init failed!"));
             err = BERR_TRACE(err);
+            goto end;
         }
     }
     /* RESETTING THE QUEUE ADDRESS  for WATCHDOG RECOVER - END */
 
-    BDSP_Raaga_P_InitParams_StartTask((void *)pRaagaContext, (void *)pRaagaTask, pStartSettings);
+    err = BDSP_Raaga_P_InitParams_StartTask((void *)pRaagaContext, (void *)pRaagaTask, pStartSettings);
+    if ( BERR_SUCCESS !=err )
+    {
+        BDBG_ERR(("BDSP_Raaga_P_StartTask: Error in Initiazing the Task parameters!"));
+        err = BERR_TRACE(err);
+        goto end;
+    }
 
     /* Populate the branch and stage id */
     BDBG_ASSERT(NULL != pRaagaPrimaryStage);
     BDSP_STAGE_TRAVERSE_LOOP_V1_BEGIN(pRaagaPrimaryStage, pStageIterator, branchId, stageId)
-    BSTD_UNUSED(branchId);
-    BSTD_UNUSED(stageId);
     {
         pStageIterator->ui32BranchId = branchId;
         pStageIterator->ui32StageId = stageId;
@@ -5272,7 +5206,7 @@ BERR_Code BDSP_Raaga_P_StartTask(
 
     /* Initialize interframe buffers for all the nodes */
 
-    err = BDSP_DSP_P_InitInterframeBuffer((void *)pStartSettings->primaryStage->pStageHandle);
+    err = BDSP_Raaga_P_InitInterframeBuffer((void *)pStartSettings->primaryStage->pStageHandle);
 
     if (BERR_SUCCESS != err)
     {
@@ -5369,7 +5303,7 @@ BERR_Code BDSP_Raaga_P_StartTask(
         }
 
         /* Initialize interframe buffers for all the nodes */
-        err = BDSP_DSP_P_InitInterframeBuffer((void *)pStartSettings->primaryStage->pStageHandle);
+        err = BDSP_Raaga_P_InitInterframeBuffer((void *)pStartSettings->primaryStage->pStageHandle);
 
         if (BERR_SUCCESS != err)
         {
@@ -5463,7 +5397,7 @@ BERR_Code BDSP_Raaga_P_StartTask(
         }
 
         /* Initialize interframe buffers for all the nodes */
-        err = BDSP_DSP_P_InitInterframeBuffer((void *)pStartSettings->primaryStage->pStageHandle);
+        err = BDSP_Raaga_P_InitInterframeBuffer((void *)pStartSettings->primaryStage->pStageHandle);
 
         if (BERR_SUCCESS != err)
         {
@@ -5530,14 +5464,18 @@ BERR_Code BDSP_Raaga_P_StartTask(
     BDBG_MSG(("Context Type = %d",pRaagaContext->settings.contextType));
     BDBG_MSG(("Task Id = %d",pRaagaTask->taskId));
 
+    sCommand.sCommandHeader.ui32CommandTimeStamp =  BREG_Read32(pDevice->regHandle,
+                                                                BCHP_RAAGA_DSP_TIMERS_TSM_TIMER_VALUE);
+
     if (pRaagaContext->settings.contextType  == BDSP_ContextType_eAudio)
     {
         /* Send Start Task Command */
-        sCommand.sCommandHeader.ui32CommandID = BDSP_RAAGA_START_TASK_COMMAND_ID;
+        sCommand.sCommandHeader.ui32CommandID = BDSP_START_TASK_COMMAND_ID;
         sCommand.sCommandHeader.ui32CommandCounter = pRaagaTask->commandCounter++;
         sCommand.sCommandHeader.ui32TaskID = pRaagaTask->taskId;
-        sCommand.sCommandHeader.eResponseType = BDSP_Raaga_P_ResponseType_eResponseRequired;
+        sCommand.sCommandHeader.eResponseType = BDSP_P_ResponseType_eResponseRequired;
         sCommand.sCommandHeader.ui32CommandSizeInBytes =  sizeof(BDSP_Raaga_P_Command);
+
         /*SWRAA-154: Add ZeroPhase enable flag-default is true*/
         sCommand.uCommand.sStartTask.eZeroPhaseCorrEnable = pStartSettings->eZeroPhaseCorrEnable;
 
@@ -5546,20 +5484,20 @@ BERR_Code BDSP_Raaga_P_StartTask(
             default:
             case BDSP_AlgorithmType_eAudioMixer:
             case BDSP_AlgorithmType_eAudioDecode:
-                sCommand.uCommand.sStartTask.eTaskAlgoType = BDSP_Raaga_P_AlgoType_eDecode;
+                sCommand.uCommand.sStartTask.eTaskAlgoType = BDSP_P_AlgoType_eDecode;
                 sCommand.uCommand.sStartTask.ePPMCorrEnable = pStartSettings->ppmCorrection;
                 break;
             case BDSP_AlgorithmType_eAudioPassthrough:
                 /*Till FW adds proper programming */
-                /*                sCommand.uCommand.sStartTask.eTaskAlgoType = BDSP_Raaga_P_AlgoType_ePassThru; */
+                /*                sCommand.uCommand.sStartTask.eTaskAlgoType = BDSP_P_AlgoType_ePassThru; */
                 /*                sCommand.uCommand.sStartTask.eDeadlineComputationFuncType =
-                                BDSP_Raaga_P_DeadLineComputeFuncType_ePassthrough;*/
-                sCommand.uCommand.sStartTask.eTaskAlgoType = BDSP_Raaga_P_AlgoType_eDecode;
+                                BDSP_P_DeadLineComputeFuncType_ePassthrough;*/
+                sCommand.uCommand.sStartTask.eTaskAlgoType = BDSP_P_AlgoType_eDecode;
                 sCommand.uCommand.sStartTask.ePPMCorrEnable = BDSP_AF_P_eDisable;
                 break;
             case BDSP_AlgorithmType_eAudioProcessing:
             case BDSP_AlgorithmType_eAudioEchoCanceller:
-                sCommand.uCommand.sStartTask.eTaskAlgoType = BDSP_Raaga_P_AlgoType_eDecode;
+                sCommand.uCommand.sStartTask.eTaskAlgoType = BDSP_P_AlgoType_eDecode;
                 sCommand.uCommand.sStartTask.ePPMCorrEnable = BDSP_AF_P_eDisable;
                 break;
         }
@@ -5576,46 +5514,46 @@ BERR_Code BDSP_Raaga_P_StartTask(
 
 
         /* Fill up start task parameters */
-        pTaskParams = (BDSP_Raaga_P_TaskParamInfo *)(pRaagaTask->taskMemGrants.sTaskInfo.pBaseAddr);
+        pTaskParams = (BDSP_P_TaskParamInfo *)(pRaagaTask->taskMemGrants.sTaskInfo.pBaseAddr);
 
         if (pRaagaTask->startSettings.realtimeMode== BDSP_TaskRealtimeMode_eNonRealTime)
         {
             sCommand.uCommand.sStartTask.eDeadlineComputationFuncType =
-                BDSP_Raaga_P_DeadLineComputeFuncType_eNonRealtimeDecode;
-            sCommand.uCommand.sStartTask.eTaskType = BDSP_Raaga_P_TaskType_eNonRealtime;
+                BDSP_P_DeadLineComputeFuncType_eNonRealtimeDecode;
+            sCommand.uCommand.sStartTask.eTaskType = BDSP_P_TaskType_eNonRealtime;
 
             pTaskParams->sNonRealTimeTaskParams.ui32MaxTimeSlice = 1350;
             pTaskParams->sNonRealTimeTaskParams.ui32MinTimeThreshold = 45;
         }
         else if(pRaagaTask->startSettings.realtimeMode== BDSP_TaskRealtimeMode_eOnDemand)
         {
-            sCommand.uCommand.sStartTask.eTaskType = BDSP_Raaga_P_TaskType_eOnDemand;
+            sCommand.uCommand.sStartTask.eTaskType = BDSP_P_TaskType_eOnDemand;
             sCommand.uCommand.sStartTask.eDeadlineComputationFuncType =
-                BDSP_Raaga_P_DeadLineComputeFuncType_eOnDemand;
+                BDSP_P_DeadLineComputeFuncType_eOnDemand;
         }
         else
         {
-            sCommand.uCommand.sStartTask.eTaskType = BDSP_Raaga_P_TaskType_eRealtime;
+            sCommand.uCommand.sStartTask.eTaskType = BDSP_P_TaskType_eRealtime;
             sCommand.uCommand.sStartTask.eDeadlineComputationFuncType =
-                BDSP_Raaga_P_DeadLineComputeFuncType_eRealtimeDecode;
+                BDSP_P_DeadLineComputeFuncType_eRealtimeDecode;
         }
 
         if (pRaagaTask->startSettings.schedulingMode == BDSP_TaskSchedulingMode_eSlave)
         {
-            sCommand.uCommand.sStartTask.eSchedulingMode = BDSP_Raaga_P_SchedulingMode_eSlave;
+            sCommand.uCommand.sStartTask.eSchedulingMode = BDSP_P_SchedulingMode_eSlave;
         }
         else
         {
-            sCommand.uCommand.sStartTask.eSchedulingMode = BDSP_Raaga_P_SchedulingMode_eMaster;
+            sCommand.uCommand.sStartTask.eSchedulingMode = BDSP_P_SchedulingMode_eMaster;
         }
 
-        if ((pRaagaTask->startSettings.schedulingMode== BDSP_TaskSchedulingMode_eSlave)&&(pRaagaTask->masterTaskId != BDSP_RAAGA_P_INVALID_TASK_ID))
+        if ((pRaagaTask->startSettings.schedulingMode== BDSP_TaskSchedulingMode_eSlave)&&(pRaagaTask->masterTaskId != BDSP_P_INVALID_TASK_ID))
         {
             sCommand.uCommand.sStartTask.ui32MasterTaskId = pRaagaTask->masterTaskId;
         }
         else
         {
-            sCommand.uCommand.sStartTask.ui32MasterTaskId = BDSP_RAAGA_P_INVALID_TASK_ID;
+            sCommand.uCommand.sStartTask.ui32MasterTaskId = BDSP_P_INVALID_TASK_ID;
         }
 
         BDSP_MEM_P_ConvertAddressToOffset(pDevice->memHandle,
@@ -5739,17 +5677,17 @@ BERR_Code BDSP_Raaga_P_StartTask(
                 (void *)(pRaagaTask->pFeedbackBuffer),
                 &(pTaskParams->ui32MasterTaskFeedbackBuffCfgAddr));
             pTaskParams->ui32MasterTaskFeedbackBuffValid = 1;
-            BDBG_MSG(("%s: pTaskParams->ui32MasterTaskFeedbackBuffCfgAddr = 0x%x",(sCommand.uCommand.sStartTask.eSchedulingMode == BDSP_Raaga_P_SchedulingMode_eSlave)?"slave":"master", pTaskParams->ui32MasterTaskFeedbackBuffCfgAddr));
+            BDBG_MSG(("%s: pTaskParams->ui32MasterTaskFeedbackBuffCfgAddr = 0x%x",(sCommand.uCommand.sStartTask.eSchedulingMode == BDSP_P_SchedulingMode_eSlave)?"slave":"master", pTaskParams->ui32MasterTaskFeedbackBuffCfgAddr));
         }
         /* Feedback buffer setting */
         else
         {
             pTaskParams->ui32MasterTaskFeedbackBuffCfgAddr = 0;
             pTaskParams->ui32MasterTaskFeedbackBuffValid = 0;
-            BDBG_MSG(("%s: pTaskParams->ui32MasterTaskFeedbackBuffCfgAddr = 0x%x",(sCommand.uCommand.sStartTask.eSchedulingMode == BDSP_Raaga_P_SchedulingMode_eSlave)?"slave":"master", pTaskParams->ui32MasterTaskFeedbackBuffCfgAddr));
+            BDBG_MSG(("%s: pTaskParams->ui32MasterTaskFeedbackBuffCfgAddr = 0x%x",(sCommand.uCommand.sStartTask.eSchedulingMode == BDSP_P_SchedulingMode_eSlave)?"slave":"master", pTaskParams->ui32MasterTaskFeedbackBuffCfgAddr));
         }
 
-        BDSP_MEM_P_FlushCache(pDevice->memHandle, pTaskParams, sizeof(BDSP_Raaga_P_TaskParamInfo));
+        BDSP_MEM_P_FlushCache(pDevice->memHandle, pTaskParams, sizeof(BDSP_P_TaskParamInfo));
         sCommand.uCommand.sStartTask.ui32EventEnableMask = pRaagaTask->eventEnabledMask ;
 
         pRaagaTask->lastEventType = sCommand.sCommandHeader.ui32CommandID;
@@ -5795,7 +5733,7 @@ BERR_Code BDSP_Raaga_P_StartTask(
         /* Send command for the task , Only if the ack for the Start of the task is recieved */
         pRaagaTask->isStopped = false;
 
-        eMsgType = BDSP_Raaga_P_MsgType_eSyn;
+        eMsgType = BDSP_P_MsgType_eSyn;
         err = BDSP_Raaga_P_GetMsg(pRaagaTask->hSyncMsgQueue, (void *)&sRsp,eMsgType);
 
         if (BERR_SUCCESS != err)
@@ -5819,25 +5757,25 @@ BERR_Code BDSP_Raaga_P_StartTask(
     else if (pRaagaContext->settings.contextType  == BDSP_ContextType_eVideo)
     {
         /* Send Start Task Command */
-        sCommand.sCommandHeader.ui32CommandID = BDSP_RAAGA_START_TASK_COMMAND_ID;
+        sCommand.sCommandHeader.ui32CommandID = BDSP_START_TASK_COMMAND_ID;
         sCommand.sCommandHeader.ui32CommandCounter = 0;
         sCommand.sCommandHeader.ui32TaskID = pRaagaTask->taskId;
-        sCommand.sCommandHeader.eResponseType = BDSP_Raaga_P_ResponseType_eResponseRequired;
+        sCommand.sCommandHeader.eResponseType = BDSP_P_ResponseType_eResponseRequired;
         sCommand.sCommandHeader.ui32CommandSizeInBytes =  sizeof(BDSP_Raaga_P_Command);
 
-        sCommand.uCommand.sStartTask.eTaskAlgoType = BDSP_Raaga_P_AlgoType_eVideoDecode;
-        sCommand.uCommand.sStartTask.eDeadlineComputationFuncType =  BDSP_Raaga_P_DeadLineComputeFuncType_eNonRealtimeDecode;
+        sCommand.uCommand.sStartTask.eTaskAlgoType = BDSP_P_AlgoType_eVideoDecode;
+        sCommand.uCommand.sStartTask.eDeadlineComputationFuncType =  BDSP_P_DeadLineComputeFuncType_eNonRealtimeDecode;
 
         if (pRaagaTask->startSettings.schedulingMode == BDSP_TaskSchedulingMode_eSlave)
         {
-            sCommand.uCommand.sStartTask.eSchedulingMode = BDSP_Raaga_P_SchedulingMode_eSlave;
+            sCommand.uCommand.sStartTask.eSchedulingMode = BDSP_P_SchedulingMode_eSlave;
         }
         else
         {
-            sCommand.uCommand.sStartTask.eSchedulingMode = BDSP_Raaga_P_SchedulingMode_eMaster;
+            sCommand.uCommand.sStartTask.eSchedulingMode = BDSP_P_SchedulingMode_eMaster;
         }
 
-        sCommand.uCommand.sStartTask.eTaskType = BDSP_Raaga_P_TaskType_eSoftRealtime;
+        sCommand.uCommand.sStartTask.eTaskType = BDSP_P_TaskType_eSoftRealtime;
 
         BDSP_MEM_P_ConvertAddressToOffset(pDevice->memHandle,
             pRaagaTask->taskMemGrants.sTaskInfo.pBaseAddr,
@@ -5859,7 +5797,7 @@ BERR_Code BDSP_Raaga_P_StartTask(
         sCommand.uCommand.sStartTask.sDramStackBuffer.ui32BufferSizeInBytes = pRaagaTask->taskMemGrants.sStackSwapBuff.ui32Size;
 
         /* Fill up start task parameters */
-        pTaskParams = (BDSP_Raaga_P_TaskParamInfo *)(pRaagaTask->taskMemGrants.sTaskInfo.pBaseAddr);
+        pTaskParams = (BDSP_P_TaskParamInfo *)(pRaagaTask->taskMemGrants.sTaskInfo.pBaseAddr);
 
         pTaskParams->ui32SchedulingBufferThreshold = uiSchedulingBufferThreshold;
         pTaskParams->ui32BlockTime = ui32BlockTime;
@@ -5884,7 +5822,7 @@ BERR_Code BDSP_Raaga_P_StartTask(
         pTaskParams->sDspSchedulingBuffInfo.sRdbBasedSchedulingBuffer.ui32ReadAddr = BDSP_RAAGA_REGSET_ADDR_FOR_DSP( ui32RbufOffset + BDSP_RAAGA_P_FIFO_READ_OFFSET );
         pTaskParams->sDspSchedulingBuffInfo.sRdbBasedSchedulingBuffer.ui32WriteAddr = BDSP_RAAGA_REGSET_ADDR_FOR_DSP( ui32RbufOffset + BDSP_RAAGA_P_FIFO_WRITE_OFFSET );
         pTaskParams->sDspSchedulingBuffInfo.sRdbBasedSchedulingBuffer.ui32WrapAddr = BDSP_RAAGA_REGSET_ADDR_FOR_DSP( ui32RbufOffset + BDSP_RAAGA_P_FIFO_END_OFFSET );
-        BDSP_MEM_P_FlushCache(pDevice->memHandle, pTaskParams, sizeof(BDSP_Raaga_P_TaskParamInfo));
+        BDSP_MEM_P_FlushCache(pDevice->memHandle, pTaskParams, sizeof(BDSP_P_TaskParamInfo));
 
         sCommand.uCommand.sStartTask.ui32EventEnableMask = pRaagaTask->eventEnabledMask ;
 
@@ -5930,7 +5868,7 @@ BERR_Code BDSP_Raaga_P_StartTask(
         /* Send command for the task , Only if the ack for the Start of the task is recieved */
         pRaagaTask->isStopped = false;
 
-        eMsgType = BDSP_Raaga_P_MsgType_eSyn;
+        eMsgType = BDSP_P_MsgType_eSyn;
         err = BDSP_Raaga_P_GetMsg(pRaagaTask->hSyncMsgQueue, (void *)&sRsp,eMsgType);
 
         if (BERR_SUCCESS != err)
@@ -5954,16 +5892,16 @@ BERR_Code BDSP_Raaga_P_StartTask(
     else if (BDSP_ContextType_eVideoEncode == pRaagaContext->settings.contextType )
     {
         /* Send Start Task Command */
-        sCommand.sCommandHeader.ui32CommandID = BDSP_RAAGA_START_TASK_COMMAND_ID;
+        sCommand.sCommandHeader.ui32CommandID = BDSP_START_TASK_COMMAND_ID;
         sCommand.sCommandHeader.ui32CommandCounter = 0;
         sCommand.sCommandHeader.ui32TaskID = pRaagaTask->taskId;
-        sCommand.sCommandHeader.eResponseType = BDSP_Raaga_P_ResponseType_eResponseRequired;
+        sCommand.sCommandHeader.eResponseType = BDSP_P_ResponseType_eResponseRequired;
         sCommand.sCommandHeader.ui32CommandSizeInBytes =  sizeof(BDSP_Raaga_P_Command);
 
-        sCommand.uCommand.sStartTask.eTaskAlgoType = BDSP_Raaga_P_AlgoType_eVideoEncode;
-        sCommand.uCommand.sStartTask.eDeadlineComputationFuncType =  BDSP_Raaga_P_DeadLineComputeFuncType_eNonRealtimeDecode;
+        sCommand.uCommand.sStartTask.eTaskAlgoType = BDSP_P_AlgoType_eVideoEncode;
+        sCommand.uCommand.sStartTask.eDeadlineComputationFuncType =  BDSP_P_DeadLineComputeFuncType_eNonRealtimeDecode;
 
-        sCommand.uCommand.sStartTask.eTaskType = BDSP_Raaga_P_TaskType_eSoftRealtime;
+        sCommand.uCommand.sStartTask.eTaskType = BDSP_P_TaskType_eSoftRealtime;
 
         BDSP_MEM_P_ConvertAddressToOffset(pDevice->memHandle,
             pRaagaTask->taskMemGrants.sTaskInfo.pBaseAddr,
@@ -5985,7 +5923,7 @@ BERR_Code BDSP_Raaga_P_StartTask(
         sCommand.uCommand.sStartTask.sDramStackBuffer.ui32BufferSizeInBytes = pRaagaTask->taskMemGrants.sStackSwapBuff.ui32Size;
 
         /* Fill up start task parameters */
-        pTaskParams = (BDSP_Raaga_P_TaskParamInfo *)(pRaagaTask->taskMemGrants.sTaskInfo.pBaseAddr);
+        pTaskParams = (BDSP_P_TaskParamInfo *)(pRaagaTask->taskMemGrants.sTaskInfo.pBaseAddr);
 
         pTaskParams->ui32SchedulingBufferThreshold = uiSchedulingBufferThreshold;
         pTaskParams->ui32BlockTime = ui32BlockTime;
@@ -6010,7 +5948,7 @@ BERR_Code BDSP_Raaga_P_StartTask(
         pTaskParams->sDspSchedulingBuffInfo.sRdbBasedSchedulingBuffer.ui32WriteAddr = BDSP_RAAGA_REGSET_ADDR_FOR_DSP( ui32RbufOffset + BDSP_RAAGA_P_FIFO_WRITE_OFFSET );
         pTaskParams->sDspSchedulingBuffInfo.sRdbBasedSchedulingBuffer.ui32WrapAddr = BDSP_RAAGA_REGSET_ADDR_FOR_DSP( ui32RbufOffset + BDSP_RAAGA_P_FIFO_END_OFFSET );
 
-        BDSP_MEM_P_FlushCache(pDevice->memHandle, pTaskParams, sizeof(BDSP_Raaga_P_TaskParamInfo));
+        BDSP_MEM_P_FlushCache(pDevice->memHandle, pTaskParams, sizeof(BDSP_P_TaskParamInfo));
         sCommand.uCommand.sStartTask.ui32EventEnableMask = pRaagaTask->eventEnabledMask ;
 
         pRaagaTask->lastEventType = sCommand.sCommandHeader.ui32CommandID;
@@ -6056,7 +5994,7 @@ BERR_Code BDSP_Raaga_P_StartTask(
         /* Send command for the task , Only if the ack for the Start of the task is recieved */
         pRaagaTask->isStopped = false;
 
-        eMsgType = BDSP_Raaga_P_MsgType_eSyn;
+        eMsgType = BDSP_P_MsgType_eSyn;
         err = BDSP_Raaga_P_GetMsg(pRaagaTask->hSyncMsgQueue, (void *)&sRsp,eMsgType);
 
         if (BERR_SUCCESS != err)
@@ -6091,16 +6029,16 @@ BERR_Code BDSP_Raaga_P_StartTask(
     else if (BDSP_ContextType_eScm == pRaagaContext->settings.contextType )
     {
         /* Send Start Task Command */
-        sCommand.sCommandHeader.ui32CommandID = BDSP_RAAGA_START_TASK_COMMAND_ID;
+        sCommand.sCommandHeader.ui32CommandID = BDSP_START_TASK_COMMAND_ID;
         sCommand.sCommandHeader.ui32CommandCounter = 0;
         sCommand.sCommandHeader.ui32TaskID = pRaagaTask->taskId;
-        sCommand.sCommandHeader.eResponseType = BDSP_Raaga_P_ResponseType_eResponseRequired;
+        sCommand.sCommandHeader.eResponseType = BDSP_P_ResponseType_eResponseRequired;
         sCommand.sCommandHeader.ui32CommandSizeInBytes =  sizeof(BDSP_Raaga_P_Command);
 
-        sCommand.uCommand.sStartTask.eTaskAlgoType = BDSP_Raaga_P_AlgoType_eScm;
-        sCommand.uCommand.sStartTask.eDeadlineComputationFuncType =  BDSP_Raaga_P_DeadLineComputeFuncType_eScmTask;
+        sCommand.uCommand.sStartTask.eTaskAlgoType = BDSP_P_AlgoType_eScm;
+        sCommand.uCommand.sStartTask.eDeadlineComputationFuncType =  BDSP_P_DeadLineComputeFuncType_eScmTask;
 
-        sCommand.uCommand.sStartTask.eTaskType = BDSP_Raaga_P_TaskType_eRealtime;
+        sCommand.uCommand.sStartTask.eTaskType = BDSP_P_TaskType_eRealtime;
 
         BDSP_MEM_P_ConvertAddressToOffset(pDevice->memHandle,
             pRaagaTask->taskMemGrants.sTaskInfo.pBaseAddr,
@@ -6122,7 +6060,7 @@ BERR_Code BDSP_Raaga_P_StartTask(
         sCommand.uCommand.sStartTask.sDramStackBuffer.ui32BufferSizeInBytes =  pRaagaTask->taskMemGrants.sStackSwapBuff.ui32Size;
 
         /* Fill up start task parameters */
-        pTaskParams = (BDSP_Raaga_P_TaskParamInfo *)(pRaagaTask->taskMemGrants.sTaskInfo.pBaseAddr);
+        pTaskParams = (BDSP_P_TaskParamInfo *)(pRaagaTask->taskMemGrants.sTaskInfo.pBaseAddr);
 
         /* just an init..this variable is not used for scm */
         pTaskParams->ui32SamplingFrequency = 48000;
@@ -6149,7 +6087,7 @@ BERR_Code BDSP_Raaga_P_StartTask(
         pTaskParams->sDspSchedulingBuffInfo.sRdbBasedSchedulingBuffer.ui32WriteAddr = BDSP_RAAGA_REGSET_ADDR_FOR_DSP( ui32RbufOffset + BDSP_RAAGA_P_FIFO_WRITE_OFFSET );
         pTaskParams->sDspSchedulingBuffInfo.sRdbBasedSchedulingBuffer.ui32WrapAddr = BDSP_RAAGA_REGSET_ADDR_FOR_DSP( ui32RbufOffset + BDSP_RAAGA_P_FIFO_END_OFFSET );
 
-        BDSP_MEM_P_FlushCache(pDevice->memHandle, pTaskParams, sizeof(BDSP_Raaga_P_TaskParamInfo));
+        BDSP_MEM_P_FlushCache(pDevice->memHandle, pTaskParams, sizeof(BDSP_P_TaskParamInfo));
 
         sCommand.uCommand.sStartTask.ui32EventEnableMask = pRaagaTask->eventEnabledMask ;
 
@@ -6196,7 +6134,7 @@ BERR_Code BDSP_Raaga_P_StartTask(
         /* Send command for the task , Only if the ack for the Start of the task is recieved */
         pRaagaTask->isStopped = false;
 
-        eMsgType = BDSP_Raaga_P_MsgType_eSyn;
+        eMsgType = BDSP_P_MsgType_eSyn;
         err = BDSP_Raaga_P_GetMsg(pRaagaTask->hSyncMsgQueue, (void *)&sRsp,eMsgType);
 
         if (BERR_SUCCESS != err)
@@ -6237,6 +6175,12 @@ BERR_Code BDSP_Raaga_P_StartTask(
 end:
 err_gen_citinput:
 err_download_fw:
+    if(pRaagaTask->startSettings.pSampleRateMap)
+        BKNI_Free(pRaagaTask->startSettings.pSampleRateMap);
+    if(pRaagaTask->startSettings.psVDecoderIPBuffCfg)
+        BKNI_Free(pRaagaTask->startSettings.psVDecoderIPBuffCfg);
+    if(pRaagaTask->startSettings.psVEncoderIPConfig)
+        BKNI_Free(pRaagaTask->startSettings.psVEncoderIPConfig);
     pDevice->taskDetails.numActiveTasks[dspIndex]--;
 
 ret_success:
@@ -6271,7 +6215,7 @@ BERR_Code BDSP_Raaga_P_StopTask(
     BDSP_RaagaContext *pRaagaContext = (BDSP_RaagaContext *)pRaagaTask->pContext;
     BDSP_RaagaStage *pRaagaPrimaryStage = (BDSP_RaagaStage *)pRaagaTask->startSettings.primaryStage->pStageHandle;
     BDSP_Raaga  *pDevice= pRaagaContext->pDevice;
-    BDSP_Raaga_P_MsgType      eMsgType;
+    BDSP_P_MsgType      eMsgType;
     unsigned i = 0, dspIndex =0, lowerDspClkRate = 0;
     BERR_Code   err=BERR_SUCCESS;
 
@@ -6323,35 +6267,37 @@ BERR_Code BDSP_Raaga_P_StopTask(
         BDSP_STAGE_TRAVERSE_LOOP_END(pStageIterator)
         BKNI_ReleaseMutex(pDevice->captureMutex);
 
+        sCommand.sCommandHeader.ui32CommandTimeStamp =  BREG_Read32(pDevice->regHandle,
+                                                                    BCHP_RAAGA_DSP_TIMERS_TSM_TIMER_VALUE);
         if (pRaagaContext->contextWatchdogFlag== false)
         {
 
             /* Send stop Task Command */
-            sCommand.sCommandHeader.ui32CommandID = BDSP_RAAGA_STOP_TASK_COMMAND_ID;
+            sCommand.sCommandHeader.ui32CommandID = BDSP_STOP_TASK_COMMAND_ID;
             sCommand.sCommandHeader.ui32CommandCounter = pRaagaTask->commandCounter++;
             sCommand.sCommandHeader.ui32TaskID = pRaagaTask->taskId;
-            sCommand.sCommandHeader.eResponseType = BDSP_Raaga_P_ResponseType_eResponseRequired;
+            sCommand.sCommandHeader.eResponseType = BDSP_P_ResponseType_eResponseRequired;
             sCommand.sCommandHeader.ui32CommandSizeInBytes =  sizeof(BDSP_Raaga_P_Command);
 
 
-            if (pRaagaTask->masterTaskId != BDSP_RAAGA_P_INVALID_TASK_ID)
+            if (pRaagaTask->masterTaskId != BDSP_P_INVALID_TASK_ID)
             {
-                sCommand.uCommand.sStopTask.eSchedulingMode = BDSP_Raaga_P_SchedulingMode_eSlave;
+                sCommand.uCommand.sStopTask.eSchedulingMode = BDSP_P_SchedulingMode_eSlave;
                 sCommand.uCommand.sStopTask.ui32MasterTaskId = pRaagaTask->masterTaskId;
             }
             else
             {
-                sCommand.uCommand.sStopTask.eSchedulingMode = BDSP_Raaga_P_SchedulingMode_eMaster;
-                sCommand.uCommand.sStopTask.ui32MasterTaskId = BDSP_RAAGA_P_INVALID_TASK_ID;
+                sCommand.uCommand.sStopTask.eSchedulingMode = BDSP_P_SchedulingMode_eMaster;
+                sCommand.uCommand.sStopTask.ui32MasterTaskId = BDSP_P_INVALID_TASK_ID;
             }
 
             if (pRaagaTask->startSettings.realtimeMode == BDSP_TaskRealtimeMode_eNonRealTime)
             {
-                sCommand.uCommand.sStopTask.eTaskType = BDSP_Raaga_P_TaskType_eNonRealtime;
+                sCommand.uCommand.sStopTask.eTaskType = BDSP_P_TaskType_eNonRealtime;
             }
             else
             {
-                sCommand.uCommand.sStopTask.eTaskType = BDSP_Raaga_P_TaskType_eRealtime;
+                sCommand.uCommand.sStopTask.eTaskType = BDSP_P_TaskType_eRealtime;
             }
 
             pRaagaTask->lastEventType = sCommand.sCommandHeader.ui32CommandID;
@@ -6382,7 +6328,7 @@ BERR_Code BDSP_Raaga_P_StopTask(
 
             /* Send command for the task , Only if the ack for the Start of the task is recieved */
 
-            eMsgType = BDSP_Raaga_P_MsgType_eSyn;
+            eMsgType = BDSP_P_MsgType_eSyn;
             err = BDSP_Raaga_P_GetMsg(pRaagaTask->hSyncMsgQueue, (void *)&sRsp,eMsgType);
 
             if (BERR_SUCCESS != err)
@@ -6414,31 +6360,31 @@ BERR_Code BDSP_Raaga_P_StopTask(
         {
 
             /* Send stop Task Command */
-            sCommand.sCommandHeader.ui32CommandID = BDSP_RAAGA_STOP_TASK_COMMAND_ID;
+            sCommand.sCommandHeader.ui32CommandID = BDSP_STOP_TASK_COMMAND_ID;
             sCommand.sCommandHeader.ui32CommandCounter = pRaagaTask->commandCounter++;
             sCommand.sCommandHeader.ui32TaskID = pRaagaTask->taskId;
-            sCommand.sCommandHeader.eResponseType = BDSP_Raaga_P_ResponseType_eResponseRequired;
+            sCommand.sCommandHeader.eResponseType = BDSP_P_ResponseType_eResponseRequired;
             sCommand.sCommandHeader.ui32CommandSizeInBytes =  sizeof(BDSP_Raaga_P_Command);
 
 
             if (pRaagaTask->startSettings.realtimeMode == BDSP_TaskRealtimeMode_eNonRealTime)
             {
-                sCommand.uCommand.sStopTask.eTaskType = BDSP_Raaga_P_TaskType_eNonRealtime;
+                sCommand.uCommand.sStopTask.eTaskType = BDSP_P_TaskType_eNonRealtime;
             }
             else
             {
-                sCommand.uCommand.sStopTask.eTaskType = BDSP_Raaga_P_TaskType_eRealtime;
+                sCommand.uCommand.sStopTask.eTaskType = BDSP_P_TaskType_eRealtime;
             }
 
-            if (pRaagaTask->masterTaskId != BDSP_RAAGA_P_INVALID_TASK_ID)
+            if (pRaagaTask->masterTaskId != BDSP_P_INVALID_TASK_ID)
             {
-                sCommand.uCommand.sStopTask.eSchedulingMode = BDSP_Raaga_P_SchedulingMode_eSlave;
+                sCommand.uCommand.sStopTask.eSchedulingMode = BDSP_P_SchedulingMode_eSlave;
                 sCommand.uCommand.sStopTask.ui32MasterTaskId = pRaagaTask->masterTaskId;
             }
             else
             {
-                sCommand.uCommand.sStopTask.eSchedulingMode = BDSP_Raaga_P_SchedulingMode_eMaster;
-                sCommand.uCommand.sStopTask.ui32MasterTaskId = BDSP_RAAGA_P_INVALID_TASK_ID;
+                sCommand.uCommand.sStopTask.eSchedulingMode = BDSP_P_SchedulingMode_eMaster;
+                sCommand.uCommand.sStopTask.ui32MasterTaskId = BDSP_P_INVALID_TASK_ID;
             }
 
             pRaagaTask->lastEventType = sCommand.sCommandHeader.ui32CommandID;
@@ -6469,7 +6415,7 @@ BERR_Code BDSP_Raaga_P_StopTask(
 
             /* Send command for the task , Only if the ack for the Start of the task is recieved */
 
-            eMsgType = BDSP_Raaga_P_MsgType_eSyn;
+            eMsgType = BDSP_P_MsgType_eSyn;
             err = BDSP_Raaga_P_GetMsg(pRaagaTask->hSyncMsgQueue, (void *)&sRsp,eMsgType);
 
             if (BERR_SUCCESS != err)
@@ -6516,31 +6462,31 @@ BERR_Code BDSP_Raaga_P_StopTask(
             }
 
             /* Send stop Task Command */
-            sCommand.sCommandHeader.ui32CommandID = BDSP_RAAGA_STOP_TASK_COMMAND_ID;
+            sCommand.sCommandHeader.ui32CommandID = BDSP_STOP_TASK_COMMAND_ID;
             sCommand.sCommandHeader.ui32CommandCounter = pRaagaTask->commandCounter++;
             sCommand.sCommandHeader.ui32TaskID = pRaagaTask->taskId;
-            sCommand.sCommandHeader.eResponseType = BDSP_Raaga_P_ResponseType_eResponseRequired;
+            sCommand.sCommandHeader.eResponseType = BDSP_P_ResponseType_eResponseRequired;
             sCommand.sCommandHeader.ui32CommandSizeInBytes =  sizeof(BDSP_Raaga_P_Command);
 
 
             if (pRaagaTask->startSettings.realtimeMode == BDSP_TaskRealtimeMode_eNonRealTime)
             {
-                sCommand.uCommand.sStopTask.eTaskType = BDSP_Raaga_P_TaskType_eNonRealtime;
+                sCommand.uCommand.sStopTask.eTaskType = BDSP_P_TaskType_eNonRealtime;
             }
             else
             {
-                sCommand.uCommand.sStopTask.eTaskType = BDSP_Raaga_P_TaskType_eRealtime;
+                sCommand.uCommand.sStopTask.eTaskType = BDSP_P_TaskType_eRealtime;
             }
 
-            if (pRaagaTask->masterTaskId != BDSP_RAAGA_P_INVALID_TASK_ID)
+            if (pRaagaTask->masterTaskId != BDSP_P_INVALID_TASK_ID)
             {
-                sCommand.uCommand.sStopTask.eSchedulingMode = BDSP_Raaga_P_SchedulingMode_eSlave;
+                sCommand.uCommand.sStopTask.eSchedulingMode = BDSP_P_SchedulingMode_eSlave;
                 sCommand.uCommand.sStopTask.ui32MasterTaskId = pRaagaTask->masterTaskId;
             }
             else
             {
-                sCommand.uCommand.sStopTask.eSchedulingMode = BDSP_Raaga_P_SchedulingMode_eMaster;
-                sCommand.uCommand.sStopTask.ui32MasterTaskId = BDSP_RAAGA_P_INVALID_TASK_ID;
+                sCommand.uCommand.sStopTask.eSchedulingMode = BDSP_P_SchedulingMode_eMaster;
+                sCommand.uCommand.sStopTask.ui32MasterTaskId = BDSP_P_INVALID_TASK_ID;
             }
 
             pRaagaTask->lastEventType = sCommand.sCommandHeader.ui32CommandID;
@@ -6571,7 +6517,7 @@ BERR_Code BDSP_Raaga_P_StopTask(
 
             /* Send command for the task , Only if the ack for the Start of the task is recieved */
 
-            eMsgType = BDSP_Raaga_P_MsgType_eSyn;
+            eMsgType = BDSP_P_MsgType_eSyn;
             err = BDSP_Raaga_P_GetMsg(pRaagaTask->hSyncMsgQueue, (void *)&sRsp,eMsgType);
 
             if (BERR_SUCCESS != err)
@@ -6608,31 +6554,31 @@ BERR_Code BDSP_Raaga_P_StopTask(
         {
 
             /* Send stop Task Command */
-            sCommand.sCommandHeader.ui32CommandID = BDSP_RAAGA_STOP_TASK_COMMAND_ID;
+            sCommand.sCommandHeader.ui32CommandID = BDSP_STOP_TASK_COMMAND_ID;
             sCommand.sCommandHeader.ui32CommandCounter = pRaagaTask->commandCounter++;
             sCommand.sCommandHeader.ui32TaskID = pRaagaTask->taskId;
-            sCommand.sCommandHeader.eResponseType = BDSP_Raaga_P_ResponseType_eResponseRequired;
+            sCommand.sCommandHeader.eResponseType = BDSP_P_ResponseType_eResponseRequired;
             sCommand.sCommandHeader.ui32CommandSizeInBytes =  sizeof(BDSP_Raaga_P_Command);
 
 
             if (pRaagaTask->startSettings.realtimeMode == BDSP_TaskRealtimeMode_eNonRealTime)
             {
-                sCommand.uCommand.sStopTask.eTaskType = BDSP_Raaga_P_TaskType_eNonRealtime;
+                sCommand.uCommand.sStopTask.eTaskType = BDSP_P_TaskType_eNonRealtime;
             }
             else
             {
-                sCommand.uCommand.sStopTask.eTaskType = BDSP_Raaga_P_TaskType_eRealtime;
+                sCommand.uCommand.sStopTask.eTaskType = BDSP_P_TaskType_eRealtime;
             }
 
-            if (pRaagaTask->masterTaskId != BDSP_RAAGA_P_INVALID_TASK_ID)
+            if (pRaagaTask->masterTaskId != BDSP_P_INVALID_TASK_ID)
             {
-                sCommand.uCommand.sStopTask.eSchedulingMode = BDSP_Raaga_P_SchedulingMode_eSlave;
+                sCommand.uCommand.sStopTask.eSchedulingMode = BDSP_P_SchedulingMode_eSlave;
                 sCommand.uCommand.sStopTask.ui32MasterTaskId = pRaagaTask->masterTaskId;
             }
             else
             {
-                sCommand.uCommand.sStopTask.eSchedulingMode = BDSP_Raaga_P_SchedulingMode_eMaster;
-                sCommand.uCommand.sStopTask.ui32MasterTaskId = BDSP_RAAGA_P_INVALID_TASK_ID;
+                sCommand.uCommand.sStopTask.eSchedulingMode = BDSP_P_SchedulingMode_eMaster;
+                sCommand.uCommand.sStopTask.ui32MasterTaskId = BDSP_P_INVALID_TASK_ID;
             }
 
             pRaagaTask->lastEventType = sCommand.sCommandHeader.ui32CommandID;
@@ -6663,7 +6609,7 @@ BERR_Code BDSP_Raaga_P_StopTask(
 
             /* Send command for the task , Only if the ack for the Start of the task is recieved */
 
-            eMsgType = BDSP_Raaga_P_MsgType_eSyn;
+            eMsgType = BDSP_P_MsgType_eSyn;
             err = BDSP_Raaga_P_GetMsg(pRaagaTask->hSyncMsgQueue, (void *)&sRsp,eMsgType);
 
             if (BERR_SUCCESS != err)
@@ -6692,9 +6638,18 @@ BERR_Code BDSP_Raaga_P_StopTask(
 
     pRaagaTask->commandCounter     = 0;
 
-    if(pRaagaContext->contextWatchdogFlag == false)
+    /* Release the Memory used to store the input Configuration*/
+    if(pRaagaTask->startSettings.pSampleRateMap)
+        BKNI_Free(pRaagaTask->startSettings.pSampleRateMap);
+    if(pRaagaTask->startSettings.psVDecoderIPBuffCfg)
+        BKNI_Free(pRaagaTask->startSettings.psVDecoderIPBuffCfg);
+    if(pRaagaTask->startSettings.psVEncoderIPConfig)
+        BKNI_Free(pRaagaTask->startSettings.psVEncoderIPConfig);
+
+    if((pRaagaContext->contextWatchdogFlag == false)||(pDevice->settings.authenticationEnabled == true))
     {
         /* During normal scenario, unregister the task from the device where it is running on and clear the start settings*/
+        /* When authentication is enabled  we don't do a code download sequence again for Watchdog recovery in Raaga Open, hence we can cleanup the taskid here itself*/
         pDevice->taskDetails.pRaagaTask[dspIndex][BDSP_RAAGA_GET_TASK_INDEX(pRaagaTask->taskId)]  = NULL;
         BKNI_AcquireMutex(pDevice->taskDetails.taskIdMutex);
         pDevice->taskDetails.taskId[dspIndex][BDSP_RAAGA_GET_TASK_INDEX(pRaagaTask->taskId)]   = true;
@@ -6704,7 +6659,7 @@ BERR_Code BDSP_Raaga_P_StopTask(
 
     pRaagaTask->isStopped = true;
     pRaagaTask->lastEventType= 0xFFFF;
-    pRaagaTask->masterTaskId= BDSP_RAAGA_P_INVALID_TASK_ID;
+    pRaagaTask->masterTaskId= BDSP_P_INVALID_TASK_ID;
     pRaagaTask->commandCounter =0;
     pRaagaTask->paused=false;
     pRaagaTask->decLocked=false;
@@ -7537,7 +7492,7 @@ BERR_Code BDSP_Raaga_P_DwnldResidentCode( void *pDeviceHandle,
 
     uint32_t    size;
     uint8_t     dmaDataType, swapType;
-    raaga_dramaddr  physAddress;
+    dramaddr_t  physAddress;
     uint32_t    ui32ImemAddr = 0;
     unsigned uiOffset = 0;
 
@@ -7748,7 +7703,7 @@ BERR_Code BDSP_Raaga_P_Open(
 {
     BERR_Code ret = BERR_SUCCESS;
     unsigned uiOffset=0, index=0,dspCfgRamSize=0,i=0;
-    raaga_dramaddr  ui32PhysicalAddr=0;
+    dramaddr_t  ui32PhysicalAddr=0;
     uint8_t *pFifoPtr=0;
     int32_t i32DspIndex = 0;
     uint32_t    ui32DebugFifoOffset=0,ui32DebugType=0;
@@ -7989,8 +7944,10 @@ BERR_Code BDSP_Raaga_P_Open(
         sCommand.sCommandHeader.ui32CommandID           = BDSP_RAAGA_GET_SYSTEM_SWAP_MEMORY_COMMAND_ID;
         sCommand.sCommandHeader.ui32CommandCounter      = 0;
         sCommand.sCommandHeader.ui32TaskID              = 0;
-        sCommand.sCommandHeader.eResponseType           = BDSP_Raaga_P_ResponseType_eNone;
+        sCommand.sCommandHeader.eResponseType           = BDSP_P_ResponseType_eNone;
         sCommand.sCommandHeader.ui32CommandSizeInBytes  =  sizeof(BDSP_Raaga_P_Command);
+        sCommand.sCommandHeader.ui32CommandTimeStamp =  BREG_Read32(pDevice->regHandle,
+                                                                    BCHP_RAAGA_DSP_TIMERS_TSM_TIMER_VALUE);
 
         BDSP_MEM_P_ConvertAddressToOffset(pDevice->memHandle,(void *)pDevice->memInfo.sRaagaSwapMemoryBuf[i32DspIndex].pAddr, &ui32PhysicalAddr);
         sCommand.uCommand.sSystemSwapMemCommand.ui32SystemSwapDramMemAddr           = ui32PhysicalAddr;
@@ -8071,21 +8028,21 @@ Functionality   :   Following are the operations performed.
 static BERR_Code BDSP_Raaga_P_GetNumberOfDsp( BBOX_Handle boxHandle, unsigned *pNumDsp )
 {
     BBOX_Config *pConfig;
-	BERR_Code ret = BERR_SUCCESS;
+    BERR_Code ret = BERR_SUCCESS;
 
-	pConfig = BKNI_Malloc(sizeof(BBOX_Config));
+    pConfig = BKNI_Malloc(sizeof(BBOX_Config));
     BKNI_Memset(pConfig, 0 , sizeof(BBOX_Config));
 
-	ret = BBOX_GetConfig(boxHandle, pConfig);
-	if(BERR_SUCCESS != ret)
-	{
-		BDBG_ERR(("BDSP_Raaga_P_GetNumberOfDsp: Error in retrieving the Num DSP from BOX MODE"));
-	}
-	else
-	{
-		*pNumDsp = pConfig->stAudio.numDsps;
-	}
-	BKNI_Free(pConfig);
+    ret = BBOX_GetConfig(boxHandle, pConfig);
+    if(BERR_SUCCESS != ret)
+    {
+        BDBG_ERR(("BDSP_Raaga_P_GetNumberOfDsp: Error in retrieving the Num DSP from BOX MODE"));
+    }
+    else
+    {
+        *pNumDsp = pConfig->stAudio.numDsps;
+    }
+    BKNI_Free(pConfig);
     return ret;
 }
 
@@ -8111,7 +8068,7 @@ Functionality   :   Following are the operations performed.
 BERR_Code BDSP_Raaga_P_GetMemoryEstimate(
     const BDSP_RaagaSettings     *pSettings,
     const BDSP_RaagaUsageOptions *pUsage,
-	BBOX_Handle                   boxHandle,
+    BBOX_Handle                   boxHandle,
     BDSP_RaagaMemoryEstimate     *pEstimate /*[out]*/
 )
 {
@@ -8182,7 +8139,7 @@ BERR_Code BDSP_Raaga_P_GetMemoryEstimate(
     pEstimate->GeneralMemory += (TaskMemory * BDSP_RAAGA_MAX_FW_TASK_PER_DSP);
 
     /* Memory Allocation for Inter-task buffer */
-    BDSP_Raaga_P_GetDistinctOpTypeAndNumChans(pUsage->IntertaskBufferDataType, &NumChannels, &distinctOp);
+    BDSP_P_GetDistinctOpTypeAndNumChans(pUsage->IntertaskBufferDataType, &NumChannels, &distinctOp);
     ret = BDSP_Raaga_P_CalculateInterTaskBufferMemory(&IntertaskBufferMemory, NumChannels);
 
     /* Memory Allocation associated with Decoder */
@@ -8330,7 +8287,7 @@ BERR_Code BDSP_Raaga_P_SetStageSettings(
     unsigned int  uiConfigBufSize;
     BDSP_Raaga_P_Command sCommand;
     BDSP_Raaga_P_Response sRsp;
-    BDSP_Raaga_P_MsgType      eMsgType;
+    BDSP_P_MsgType      eMsgType;
     void *pAddress;
 
     pRaagaStage = (BDSP_RaagaStage *)pStageHandle;
@@ -8371,11 +8328,13 @@ BERR_Code BDSP_Raaga_P_SetStageSettings(
     if (pRaagaStage->running)
     {
         /*Send CFG Change Command to FW*/
-        sCommand.sCommandHeader.ui32CommandID = BDSP_RAAGA_ALGO_PARAMS_CFG_COMMAND_ID;
+        sCommand.sCommandHeader.ui32CommandID = BDSP_ALGO_PARAMS_CFG_COMMAND_ID;
         sCommand.sCommandHeader.ui32CommandCounter = pRaagaStage->pRaagaTask->commandCounter++;
         sCommand.sCommandHeader.ui32TaskID = pRaagaStage->pRaagaTask->taskId;
-        sCommand.sCommandHeader.eResponseType = BDSP_Raaga_P_ResponseType_eResponseRequired;
+        sCommand.sCommandHeader.eResponseType = BDSP_P_ResponseType_eResponseRequired;
         sCommand.sCommandHeader.ui32CommandSizeInBytes =  sizeof(BDSP_Raaga_P_Command);
+        sCommand.sCommandHeader.ui32CommandTimeStamp =  BREG_Read32(pDevice->regHandle,
+                                                                    BCHP_RAAGA_DSP_TIMERS_TSM_TIMER_VALUE);
 
         sCommand.uCommand.sCfgChange.ui32HostConfigParamBuffAddr = uiConfigBufAddr;
         sCommand.uCommand.sCfgChange.ui32DspConfigParamBuffAddr = pRaagaStage->sDramUserConfigBuffer.ui32DramBufferAddress;
@@ -8401,7 +8360,7 @@ BERR_Code BDSP_Raaga_P_SetStageSettings(
             goto end;
         }
 
-        eMsgType = BDSP_Raaga_P_MsgType_eSyn;
+        eMsgType = BDSP_P_MsgType_eSyn;
         err = BDSP_Raaga_P_GetMsg(pRaagaStage->pRaagaTask->hSyncMsgQueue, (void *)&sRsp,eMsgType);
 
         if (BERR_SUCCESS != err)
@@ -8508,7 +8467,7 @@ BERR_Code BDSP_Raaga_P_GetDatasyncSettings_isr(
     void *pUserCfg;
     BERR_Code       err = BERR_SUCCESS;
     BDSP_RaagaStage *pRaagaStage = (BDSP_RaagaStage *)pStageHandle;
-    BDSP_Raaga_Audio_FrameSyncTsmConfigParams  sFrameSyncTsmConfigParams;
+    BDSP_P_Audio_FrameSyncTsmConfigParams  sFrameSyncTsmConfigParams;
 
 
     BDBG_OBJECT_ASSERT(pRaagaStage, BDSP_RaagaStage);
@@ -8567,13 +8526,13 @@ BERR_Code BDSP_Raaga_P_SetDatasyncSettings_isr(
     BDSP_Raaga  *pDevice;
     BERR_Code err = BERR_SUCCESS;
     void            *pConfigBuf;
-    raaga_dramaddr  ui32ConfigBufAddr;
+    dramaddr_t      ui32ConfigBufAddr;
     unsigned int    uiConfigBufSize=0;
     BDSP_Raaga_P_Command sCommand;
-    BDSP_Raaga_Audio_FrameSyncTsmConfigParams   sFrameSyncTsmConfigParams;
+    BDSP_P_Audio_FrameSyncTsmConfigParams   sFrameSyncTsmConfigParams;
 
     void            *pTsmUserCfg;
-    raaga_dramaddr  TsmBufAddr;
+    dramaddr_t      TsmBufAddr;
     uint32_t        fsTsmUserCfgSize;
 
     pRaagaStage = (BDSP_RaagaStage *)pStageHandle;
@@ -8619,14 +8578,16 @@ BERR_Code BDSP_Raaga_P_SetDatasyncSettings_isr(
                        pRaagaStage->sFrameSyncOffset.ui32UserCfgOffset;
 
         /*Send CFG Change Command to FW*/
-        sCommand.sCommandHeader.ui32CommandID = BDSP_RAAGA_ALGO_PARAMS_CFG_COMMAND_ID;
+        sCommand.sCommandHeader.ui32CommandID = BDSP_ALGO_PARAMS_CFG_COMMAND_ID;
         sCommand.sCommandHeader.ui32CommandCounter = pRaagaStage->pRaagaTask->commandCounter++;
         sCommand.sCommandHeader.ui32TaskID = pRaagaStage->pRaagaTask->taskId;
-        sCommand.sCommandHeader.eResponseType = BDSP_Raaga_P_ResponseType_eNone;
+        sCommand.sCommandHeader.eResponseType = BDSP_P_ResponseType_eNone;
         sCommand.sCommandHeader.ui32CommandSizeInBytes =  sizeof(BDSP_Raaga_P_Command);
+        sCommand.sCommandHeader.ui32CommandTimeStamp =  BREG_Read32(pDevice->regHandle,
+                                                                    BCHP_RAAGA_DSP_TIMERS_TSM_TIMER_VALUE);
         sCommand.uCommand.sCfgChange.ui32HostConfigParamBuffAddr = ui32ConfigBufAddr;
         sCommand.uCommand.sCfgChange.ui32DspConfigParamBuffAddr = TsmBufAddr;
-        sCommand.uCommand.sCfgChange.ui32SizeInBytes = sizeof(BDSP_Raaga_Audio_FrameSyncTsmConfigParams);
+        sCommand.uCommand.sCfgChange.ui32SizeInBytes = sizeof(BDSP_P_Audio_FrameSyncTsmConfigParams);
 
         pRaagaStage->pRaagaTask->lastEventType = sCommand.sCommandHeader.ui32CommandID;
         err = BDSP_Raaga_P_SendCommand_isr(pDevice->hCmdQueue[pRaagaStage->pRaagaTask->settings.dspIndex], &sCommand,(void *)pRaagaStage->pRaagaTask);
@@ -8675,7 +8636,7 @@ BERR_Code BDSP_Raaga_P_GetTsmSettings_isr(
     uint32_t       fsTsmUserCfgSize;
     BERR_Code       err = BERR_SUCCESS;
     BDSP_RaagaStage *pRaagaStage = (BDSP_RaagaStage *)pStageHandle;
-    BDSP_Raaga_Audio_FrameSyncTsmConfigParams   sFrameSyncTsmConfigParams;
+    BDSP_P_Audio_FrameSyncTsmConfigParams   sFrameSyncTsmConfigParams;
 
 
     BDBG_OBJECT_ASSERT(pRaagaStage, BDSP_RaagaStage);
@@ -8734,10 +8695,10 @@ BERR_Code BDSP_Raaga_P_SetTsmSettings_isr(
     BDSP_Raaga  *pDevice;
     BERR_Code err = BERR_SUCCESS;
     void *pConfigBuf =0;
-    raaga_dramaddr  ui32ConfigBufAddr, ui32TsmUserCfgAddr;
+    dramaddr_t  ui32ConfigBufAddr, ui32TsmUserCfgAddr;
     unsigned int            uiConfigBufSize=0;
     BDSP_Raaga_P_Command sCommand;
-    BDSP_Raaga_Audio_FrameSyncTsmConfigParams   sFrameSyncTsmConfigParams;
+    BDSP_P_Audio_FrameSyncTsmConfigParams   sFrameSyncTsmConfigParams;
 
 
     void  *pTsmUserCfgr=0;
@@ -8784,15 +8745,17 @@ BERR_Code BDSP_Raaga_P_SetTsmSettings_isr(
         ui32ConfigBufAddr = pRaagaStage->sDramUserConfigSpareBuffer.ui32DramBufferAddress + pRaagaStage->sFrameSyncOffset.ui32UserCfgOffset;
 
         /*Send CFG Change Command to FW*/
-        sCommand.sCommandHeader.ui32CommandID = BDSP_RAAGA_ALGO_PARAMS_CFG_COMMAND_ID;
+        sCommand.sCommandHeader.ui32CommandID = BDSP_ALGO_PARAMS_CFG_COMMAND_ID;
         sCommand.sCommandHeader.ui32CommandCounter = pRaagaStage->pRaagaTask->commandCounter++;
         sCommand.sCommandHeader.ui32TaskID = pRaagaStage->pRaagaTask->taskId;
-        sCommand.sCommandHeader.eResponseType = BDSP_Raaga_P_ResponseType_eNone;
+        sCommand.sCommandHeader.eResponseType = BDSP_P_ResponseType_eNone;
         sCommand.sCommandHeader.ui32CommandSizeInBytes =  sizeof(BDSP_Raaga_P_Command);
+        sCommand.sCommandHeader.ui32CommandTimeStamp =  BREG_Read32(pDevice->regHandle,
+                                                                    BCHP_RAAGA_DSP_TIMERS_TSM_TIMER_VALUE);
         sCommand.uCommand.sCfgChange.ui32HostConfigParamBuffAddr = ui32ConfigBufAddr;
         sCommand.uCommand.sCfgChange.ui32DspConfigParamBuffAddr = ui32TsmUserCfgAddr;
 
-        sCommand.uCommand.sCfgChange.ui32SizeInBytes = sizeof(BDSP_Raaga_Audio_FrameSyncTsmConfigParams);
+        sCommand.uCommand.sCfgChange.ui32SizeInBytes = sizeof(BDSP_P_Audio_FrameSyncTsmConfigParams);
 
         pRaagaStage->pRaagaTask->lastEventType = sCommand.sCommandHeader.ui32CommandID;
         err = BDSP_Raaga_P_SendCommand_isr(pDevice->hCmdQueue[pRaagaStage->pRaagaTask->settings.dspIndex], &sCommand,(void *)pRaagaStage->pRaagaTask);
@@ -8971,7 +8934,7 @@ BERR_Code BDSP_Raaga_P_SetVideoEncodeDatasyncSettings_isr(
 
     void *pTsmUserCfg;
     uint32_t fsTsmUserCfgSize;
-    raaga_dramaddr  ui32TsmUserCfgAddr,ui32ConfigBufAddr;
+    dramaddr_t  ui32TsmUserCfgAddr,ui32ConfigBufAddr;
 
     BDBG_ENTER( BDSP_Raaga_P_SetVideoEncodeDatasyncSettings_isr );
 
@@ -9008,11 +8971,13 @@ BERR_Code BDSP_Raaga_P_SetVideoEncodeDatasyncSettings_isr(
         ui32ConfigBufAddr = pRaagaStage->sDramUserConfigSpareBuffer.ui32DramBufferAddress + pRaagaStage->sFrameSyncOffset.ui32UserCfgOffset;
 
         /*Send CFG Change Command to FW*/
-        sCommand.sCommandHeader.ui32CommandID = BDSP_RAAGA_ALGO_PARAMS_CFG_COMMAND_ID;
+        sCommand.sCommandHeader.ui32CommandID = BDSP_ALGO_PARAMS_CFG_COMMAND_ID;
         sCommand.sCommandHeader.ui32CommandCounter = pRaagaStage->pRaagaTask->commandCounter++;
         sCommand.sCommandHeader.ui32TaskID = pRaagaStage->pRaagaTask->taskId;
-        sCommand.sCommandHeader.eResponseType = BDSP_Raaga_P_ResponseType_eNone;
+        sCommand.sCommandHeader.eResponseType = BDSP_P_ResponseType_eNone;
         sCommand.sCommandHeader.ui32CommandSizeInBytes =  sizeof(BDSP_Raaga_P_Command);
+        sCommand.sCommandHeader.ui32CommandTimeStamp =  BREG_Read32(pDevice->regHandle,
+                                                                    BCHP_RAAGA_DSP_TIMERS_TSM_TIMER_VALUE);
         sCommand.uCommand.sCfgChange.ui32HostConfigParamBuffAddr = ui32ConfigBufAddr;
         sCommand.uCommand.sCfgChange.ui32DspConfigParamBuffAddr = ui32TsmUserCfgAddr;
         sCommand.uCommand.sCfgChange.ui32SizeInBytes = sizeof(BDSP_VideoEncodeTaskDatasyncSettings);
@@ -9167,7 +9132,7 @@ BERR_Code BDSP_Raaga_P_Pause(void *pTaskHandle)
     BDSP_RaagaTask *pRaagaTask = (BDSP_RaagaTask *)pTaskHandle;
     BDSP_Raaga  *pDevice= pRaagaTask->pContext->pDevice;
     BERR_Code err=BERR_SUCCESS;
-    BDSP_Raaga_P_MsgType      eMsgType;
+    BDSP_P_MsgType      eMsgType;
     BDSP_Raaga_P_Command sCommand;
     BDSP_Raaga_P_Response sRsp;
 
@@ -9191,11 +9156,13 @@ BERR_Code BDSP_Raaga_P_Pause(void *pTaskHandle)
             BKNI_Memset((void *)&sRsp,0,sizeof(BDSP_Raaga_P_Response));
             BKNI_Memset((void *)&sCommand,0,sizeof(BDSP_Raaga_P_Command));
 
-            sCommand.sCommandHeader.ui32CommandID = BDSP_RAAGA_PAUSE_COMMAND_ID;
+            sCommand.sCommandHeader.ui32CommandID = BDSP_PAUSE_COMMAND_ID;
             sCommand.sCommandHeader.ui32CommandCounter =  pRaagaTask->commandCounter++;
             sCommand.sCommandHeader.ui32TaskID =  pRaagaTask->taskId;
-            sCommand.sCommandHeader.eResponseType = BDSP_Raaga_P_ResponseType_eAckRequired;
+            sCommand.sCommandHeader.eResponseType = BDSP_P_ResponseType_eAckRequired;
             sCommand.sCommandHeader.ui32CommandSizeInBytes =  sizeof(BDSP_Raaga_P_Command);
+            sCommand.sCommandHeader.ui32CommandTimeStamp =  BREG_Read32(pDevice->regHandle,
+                                                                        BCHP_RAAGA_DSP_TIMERS_TSM_TIMER_VALUE);
 
             pRaagaTask->lastEventType = sCommand.sCommandHeader.ui32CommandID;
             BKNI_ResetEvent(pRaagaTask->hEvent);
@@ -9218,7 +9185,7 @@ BERR_Code BDSP_Raaga_P_Pause(void *pTaskHandle)
                 goto end;
             }
 
-            eMsgType = BDSP_Raaga_P_MsgType_eSyn;
+            eMsgType = BDSP_P_MsgType_eSyn;
             err = BDSP_Raaga_P_GetMsg(pRaagaTask->hSyncMsgQueue, (void *)&sRsp, eMsgType);
             if (BERR_SUCCESS != err)
             {
@@ -9262,7 +9229,7 @@ BERR_Code BDSP_Raaga_P_Resume(void *pTaskHandle)
     BDSP_RaagaTask *pRaagaTask = (BDSP_RaagaTask *)pTaskHandle;
     BDSP_Raaga  *pDevice= pRaagaTask->pContext->pDevice;
     BERR_Code err=BERR_SUCCESS;
-    BDSP_Raaga_P_MsgType      eMsgType;
+    BDSP_P_MsgType      eMsgType;
     BDSP_Raaga_P_Command sCommand;
     BDSP_Raaga_P_Response sRsp;
 
@@ -9286,11 +9253,13 @@ BERR_Code BDSP_Raaga_P_Resume(void *pTaskHandle)
             BKNI_Memset((void *)&sRsp,0,sizeof(BDSP_Raaga_P_Response));
             BKNI_Memset((void *)&sCommand,0,sizeof(BDSP_Raaga_P_Command));
 
-            sCommand.sCommandHeader.ui32CommandID = BDSP_RAAGA_RESUME_COMMAND_ID;
+            sCommand.sCommandHeader.ui32CommandID = BDSP_RESUME_COMMAND_ID;
             sCommand.sCommandHeader.ui32CommandCounter =  pRaagaTask->commandCounter++;
             sCommand.sCommandHeader.ui32TaskID =  pRaagaTask->taskId;
-            sCommand.sCommandHeader.eResponseType = BDSP_Raaga_P_ResponseType_eAckRequired;
+            sCommand.sCommandHeader.eResponseType = BDSP_P_ResponseType_eAckRequired;
             sCommand.sCommandHeader.ui32CommandSizeInBytes =  sizeof(BDSP_Raaga_P_Command);
+            sCommand.sCommandHeader.ui32CommandTimeStamp =  BREG_Read32(pDevice->regHandle,
+                                                                        BCHP_RAAGA_DSP_TIMERS_TSM_TIMER_VALUE);
 
             pRaagaTask->lastEventType = sCommand.sCommandHeader.ui32CommandID;
             BKNI_ResetEvent(pRaagaTask->hEvent);
@@ -9313,7 +9282,7 @@ BERR_Code BDSP_Raaga_P_Resume(void *pTaskHandle)
                 goto end;
             }
 
-            eMsgType = BDSP_Raaga_P_MsgType_eSyn;
+            eMsgType = BDSP_P_MsgType_eSyn;
             err = BDSP_Raaga_P_GetMsg(pRaagaTask->hSyncMsgQueue, (void *)&sRsp, eMsgType);
             if (BERR_SUCCESS != err)
             {
@@ -9360,7 +9329,7 @@ BERR_Code BDSP_Raaga_P_Advance(
     BDSP_RaagaTask *pRaagaTask = (BDSP_RaagaTask *)pTaskHandle;
     BDSP_Raaga  *pDevice= pRaagaTask->pContext->pDevice;
     BERR_Code err=BERR_SUCCESS;
-    BDSP_Raaga_P_MsgType      eMsgType;
+    BDSP_P_MsgType      eMsgType;
     BDSP_Raaga_P_Command sCommand;
     BDSP_Raaga_P_Response sRsp;
 
@@ -9384,11 +9353,13 @@ BERR_Code BDSP_Raaga_P_Advance(
             BKNI_Memset((void *)&sRsp,0,sizeof(BDSP_Raaga_P_Response));
             BKNI_Memset((void *)&sCommand,0,sizeof(BDSP_Raaga_P_Command));
 
-            sCommand.sCommandHeader.ui32CommandID = BDSP_RAAGA_FRAME_ADVANCE_COMMAND_ID;
+            sCommand.sCommandHeader.ui32CommandID = BDSP_FRAME_ADVANCE_COMMAND_ID;
             sCommand.sCommandHeader.ui32CommandCounter =  pRaagaTask->commandCounter++;
             sCommand.sCommandHeader.ui32TaskID =  pRaagaTask->taskId;
-            sCommand.sCommandHeader.eResponseType = BDSP_Raaga_P_ResponseType_eAckRequired;
+            sCommand.sCommandHeader.eResponseType = BDSP_P_ResponseType_eAckRequired;
             sCommand.sCommandHeader.ui32CommandSizeInBytes =  sizeof(BDSP_Raaga_P_Command);
+            sCommand.sCommandHeader.ui32CommandTimeStamp =  BREG_Read32(pDevice->regHandle,
+                                                                        BCHP_RAAGA_DSP_TIMERS_TSM_TIMER_VALUE);
 
             sCommand.uCommand.sFrameAdvance.ui32DurationOfFrameAdv = ms * 45;
 
@@ -9413,7 +9384,7 @@ BERR_Code BDSP_Raaga_P_Advance(
                 goto end;
             }
 
-            eMsgType = BDSP_Raaga_P_MsgType_eSyn;
+            eMsgType = BDSP_P_MsgType_eSyn;
             err = BDSP_Raaga_P_GetMsg(pRaagaTask->hSyncMsgQueue, (void *)&sRsp, eMsgType);
             if (BERR_SUCCESS != err)
             {
@@ -9445,10 +9416,10 @@ BERR_Code BDSP_Raaga_P_GetPictureQueueCount_isr(
 {
     BDSP_RaagaTask *pRaagaTask = (BDSP_RaagaTask *)pTaskHandle;
     BERR_Code err=BERR_SUCCESS;
-    raaga_dramaddr  dramReadAddr=0;
-    raaga_dramaddr  dramWriteAddr=0;
-    raaga_dramaddr  maskReadAddr=0;
-    raaga_dramaddr  maskWriteAddr=0;
+    dramaddr_t  dramReadAddr=0;
+    dramaddr_t  dramWriteAddr=0;
+    dramaddr_t  maskReadAddr=0;
+    dramaddr_t  maskWriteAddr=0;
 
 
     BDBG_OBJECT_ASSERT(pRaagaTask, BDSP_RaagaTask);
@@ -9548,16 +9519,16 @@ BERR_Code BDSP_Raaga_P_GetPictureCount_isr(
 BERR_Code BDSP_Raaga_P_PeekAtPicture_isr(
     void *pTaskHandle,
     unsigned index,
-    raaga_dramaddr   **pUnifiedPictureAddr)
+    dramaddr_t   **pUnifiedPictureAddr)
 {
     BDSP_RaagaTask *pRaagaTask = (BDSP_RaagaTask *)pTaskHandle;
     BERR_Code err=BERR_SUCCESS;
     unsigned long ulTemp = 0;
-    raaga_dramaddr  uiUPBPhysicalAddr=0;
-    raaga_dramaddr  ui32dramReadAddr=0;
-    raaga_dramaddr  ui32dramWriteAddr=0;
-    raaga_dramaddr  ui32maskReadAddr=0;
-    raaga_dramaddr  ui32maskWriteAddr=0;
+    dramaddr_t  uiUPBPhysicalAddr=0;
+    dramaddr_t  ui32dramReadAddr=0;
+    dramaddr_t  ui32dramWriteAddr=0;
+    dramaddr_t  ui32maskReadAddr=0;
+    dramaddr_t  ui32maskWriteAddr=0;
     int32_t i32BytesToBeRead=0;
     void *pvMsgQueueReadAddr=NULL;
 
@@ -9693,12 +9664,12 @@ BERR_Code BDSP_Raaga_P_GetNextPicture_isr(
     BDSP_RaagaTask *pRaagaTask = (BDSP_RaagaTask *)pTaskHandle;
     BERR_Code err=BERR_SUCCESS;
     bool bReadUpdate = true;
-    raaga_dramaddr  uiUPBPhysicalAddr=0;
+    dramaddr_t  uiUPBPhysicalAddr=0;
     unsigned long   ulTemp = 0;
-    raaga_dramaddr  ui32dramReadAddr=0;
-    raaga_dramaddr  ui32dramWriteAddr=0;
-    raaga_dramaddr  ui32maskReadAddr=0;
-    raaga_dramaddr  ui32maskWriteAddr=0;
+    dramaddr_t  ui32dramReadAddr=0;
+    dramaddr_t  ui32dramWriteAddr=0;
+    dramaddr_t  ui32maskReadAddr=0;
+    dramaddr_t  ui32maskWriteAddr=0;
     int32_t i32BytesToBeRead=0;
     void *pvMsgQueueReadAddr=NULL;
 
@@ -9942,12 +9913,14 @@ BERR_Code BDSP_Raaga_P_RequestPictureDrop_isr(
         goto end;
     }
 
-    /* Create Pause command */
+    /* Send Picture Drop Command */
     sCommand.sCommandHeader.ui32CommandID = BDSP_RAAGA_NUM_PIC_TO_DROP_COMMAND_ID;
     /* TODO: Need to check the use of it!!! */
     sCommand.sCommandHeader.ui32CommandCounter =  pRaagaTask->commandCounter++;
     sCommand.sCommandHeader.ui32TaskID =  pRaagaTask->taskId;
-    sCommand.sCommandHeader.eResponseType = BDSP_Raaga_P_ResponseType_eNone;
+    sCommand.sCommandHeader.ui32CommandTimeStamp =  BREG_Read32(pDevice->regHandle,
+                                                                BCHP_RAAGA_DSP_TIMERS_TSM_TIMER_VALUE);
+    sCommand.sCommandHeader.eResponseType = BDSP_P_ResponseType_eNone;
     sCommand.uCommand.sNumPicToDropCommand.ui32NumPicToDrop = *pPictureDropRequestCount;
 
     pRaagaTask->lastEventType = sCommand.sCommandHeader.ui32CommandID;
@@ -9976,7 +9949,7 @@ BERR_Code BDSP_Raaga_P_DisplayInterruptEvent_isr(
     unsigned int    uiBuffSize = 4;
     uint32_t puiPictureCount=0;
     uint32_t pGetUPB=0;
-    raaga_dramaddr physaddr=0;
+    dramaddr_t physaddr=0;
 
     BDBG_ENTER(BDSP_Raaga_P_DisplayInterruptEvent_isr);
     BDBG_OBJECT_ASSERT(pRaagaTask, BDSP_RaagaTask);
@@ -10011,10 +9984,10 @@ BERR_Code BDSP_Raaga_P_InputPictureBufferCount_isr(
 {
         BDSP_RaagaTask *pRaagaTask = (BDSP_RaagaTask *)pTaskHandle;
         BERR_Code err = BERR_SUCCESS;
-        raaga_dramaddr  ui32dramReadAddr=0;
-        raaga_dramaddr  ui32dramWriteAddr=0;
-        raaga_dramaddr  ui32maskReadAddr=0;
-        raaga_dramaddr  ui32maskWriteAddr=0;
+        dramaddr_t  ui32dramReadAddr=0;
+        dramaddr_t  ui32dramWriteAddr=0;
+        dramaddr_t  ui32maskReadAddr=0;
+        dramaddr_t  ui32maskWriteAddr=0;
         int32_t i32BytesToBeRead=0;
 
         BDBG_OBJECT_ASSERT(pRaagaTask, BDSP_RaagaTask);
@@ -10117,16 +10090,16 @@ BERR_Code BDSP_Raaga_P_InputPictureBufferCount_isr(
 
 BERR_Code BDSP_Raaga_P_GetPictureBuffer_isr(
     void *pTaskHandle,
-    raaga_dramaddr  *pPictureParmBuf)
+    dramaddr_t  *pPictureParmBuf)
 {
     BDSP_RaagaTask *pRaagaTask = (BDSP_RaagaTask *)pTaskHandle;
     BERR_Code err=BERR_SUCCESS;
     bool bReadUpdate = true;
-    raaga_dramaddr  uiPPBPhysicalAddr=0;
-    raaga_dramaddr  ui32dramReadAddr=0;
-    raaga_dramaddr  ui32dramWriteAddr=0;
-    raaga_dramaddr  ui32ReadAddr=0;
-    raaga_dramaddr  ui32WriteAddr=0;
+    dramaddr_t  uiPPBPhysicalAddr=0;
+    dramaddr_t  ui32dramReadAddr=0;
+    dramaddr_t  ui32dramWriteAddr=0;
+    dramaddr_t  ui32ReadAddr=0;
+    dramaddr_t  ui32WriteAddr=0;
     int32_t i32BytesToBeRead=0;
     void *pvMsgQueueReadAddr=NULL;
 
@@ -10276,16 +10249,16 @@ BERR_Code BDSP_Raaga_P_GetPictureBuffer_isr(
 /* This one is not needed as BVN will scale and write the picture in DRAM buffer and directly interrupt DSP which in turn will update RDQ */
 BERR_Code BDSP_Raaga_P_PutPicture_isr(
     void        *pTaskHandle,
-    raaga_dramaddr  pPPBAddr
+    dramaddr_t  pPPBAddr
     )
 {
     BDSP_RaagaTask *pRaagaTask = (BDSP_RaagaTask *)pTaskHandle;
     BERR_Code err=BERR_SUCCESS;
     bool bWriteUpdate = true;
-    raaga_dramaddr  ui32dramReadAddr=0;
-    raaga_dramaddr  ui32dramWriteAddr=0;
-    raaga_dramaddr  ui32maskReadAddr=0;
-    raaga_dramaddr  ui32maskWriteAddr=0;
+    dramaddr_t  ui32dramReadAddr=0;
+    dramaddr_t  ui32dramWriteAddr=0;
+    dramaddr_t  ui32maskReadAddr=0;
+    dramaddr_t  ui32maskWriteAddr=0;
     int32_t i32BytesToBeRead=0;
 
     BDBG_OBJECT_ASSERT(pRaagaTask, BDSP_RaagaTask);
@@ -10430,12 +10403,12 @@ BERR_Code BDSP_Raaga_P_Put_CC_Data_isr(
 {
     BDSP_RaagaTask *pRaagaTask = (BDSP_RaagaTask *)(pTask);
     BERR_Code err=BERR_SUCCESS;
-    raaga_dramaddr  ui32dramReadAddr=0;
-    raaga_dramaddr  ui32dramWriteAddr=0;
+    dramaddr_t  ui32dramReadAddr=0;
+    dramaddr_t  ui32dramWriteAddr=0;
     uint32_t ui32dramBasePtr=0;
     uint32_t ui32dramEndPtr=0;
-    raaga_dramaddr  ui32maskReadAddr=0;
-    raaga_dramaddr  ui32maskWriteAddr=0;
+    dramaddr_t  ui32maskReadAddr=0;
+    dramaddr_t  ui32maskWriteAddr=0;
     int32_t i32BytesToWrite=0;
     void *pCcdAddr_Cached = 0;
 
@@ -10775,15 +10748,17 @@ BERR_Code BDSP_Raaga_P_AudioGapFill(void *pTaskHandle)
         }
         else
         {
-            /* Create Pause command */
+            /* Send Fill Audio Gap Command */
             BKNI_Memset((void *)&sRsp,0,sizeof(BDSP_Raaga_P_Response));
             BKNI_Memset((void *)&sCommand,0,sizeof(BDSP_Raaga_P_Command));
 
             sCommand.sCommandHeader.ui32CommandID = BDSP_RAAGA_AUDIO_GAP_FILL_COMMAND_ID;
             sCommand.sCommandHeader.ui32CommandCounter =  pRaagaTask->commandCounter++;
             sCommand.sCommandHeader.ui32TaskID =  pRaagaTask->taskId;
-            sCommand.sCommandHeader.eResponseType = BDSP_Raaga_P_ResponseType_eNone;
+            sCommand.sCommandHeader.eResponseType = BDSP_P_ResponseType_eNone;
             sCommand.sCommandHeader.ui32CommandSizeInBytes =  sizeof(BDSP_Raaga_P_Command);
+            sCommand.sCommandHeader.ui32CommandTimeStamp =  BREG_Read32(pDevice->regHandle,
+                                                                        BCHP_RAAGA_DSP_TIMERS_TSM_TIMER_VALUE);
 
             pRaagaTask->lastEventType = sCommand.sCommandHeader.ui32CommandID;
             BKNI_ResetEvent(pRaagaTask->hEvent);
@@ -11151,7 +11126,7 @@ BERR_Code BDSP_Raaga_P_SendScmCommand(
     BDSP_Raaga_P_Response sRsp;
     BDSP_RaagaContext *pRaagaContext = pRaagaTask->pContext;
     BDSP_Raaga *pDevice = pRaagaContext->pDevice;
-    BDSP_Raaga_P_MsgType eMsgType;
+    BDSP_P_MsgType eMsgType;
 
     BDBG_ENTER(BDSP_Raaga_P_SendScmCommand);
     BDBG_ASSERT(pTaskHandle);
@@ -11173,8 +11148,10 @@ BERR_Code BDSP_Raaga_P_SendScmCommand(
         sCommand.sCommandHeader.ui32CommandID = BDSP_RAAGA_BSP_SCM_COMMAND_ID;
         sCommand.sCommandHeader.ui32CommandCounter = pRaagaTask->commandCounter++;
         sCommand.sCommandHeader.ui32TaskID =  pRaagaTask->taskId;
-        sCommand.sCommandHeader.eResponseType = BDSP_Raaga_P_ResponseType_eResponseRequired;
+        sCommand.sCommandHeader.eResponseType = BDSP_P_ResponseType_eResponseRequired;
         sCommand.sCommandHeader.ui32CommandSizeInBytes =  sizeof(BDSP_Raaga_P_Command);
+        sCommand.sCommandHeader.ui32CommandTimeStamp =  BREG_Read32(pDevice->regHandle,
+                                                                    BCHP_RAAGA_DSP_TIMERS_TSM_TIMER_VALUE);
         /*One command is going to come at a time...App is doing the buffering if even it comes*/
         sCommand.uCommand.sScmCmd.sCmdBufferInfo.ui32DramCmdBufAddress = pScmCmdPayload->ui32DramCmdBufAddress;
         sCommand.uCommand.sScmCmd.sCmdBufferInfo.ui32DramRespBufAddress = pScmCmdPayload->ui32DramRespBufAddress;
@@ -11226,7 +11203,7 @@ BERR_Code BDSP_Raaga_P_SendScmCommand(
 
                 /* TODO: Ashok watchdog enable write above !! */
 
-        eMsgType = BDSP_Raaga_P_MsgType_eSyn;
+        eMsgType = BDSP_P_MsgType_eSyn;
 
         if(pRaagaContext->contextWatchdogFlag == false)
         {
@@ -11462,7 +11439,7 @@ static bool BDSP_Raaga_P_CheckAudioCaptureIsReady(
     BDSP_RaagaCapture *pRaagaCapture = pCapHandle;
     bool retval = false;
     int j;
-    raaga_dramaddr  ui32WriteAddr, ui32StartWriteAddr;
+    dramaddr_t  ui32WriteAddr, ui32StartWriteAddr;
 
     j = pRaagaCapture->numBuffers - 1;
 
@@ -11764,7 +11741,7 @@ uint32_t BDSP_Raaga_P_GetAudioBufferDepthLinear(
     BREG_Handle hReg)
 {
     uint32_t depth;
-    raaga_dramaddr ui32BaseAddr, ui32EndAddr, ui32ReadAddr, ui32WriteAddr, ui32WrapAddr;
+    dramaddr_t ui32BaseAddr, ui32EndAddr, ui32ReadAddr, ui32WriteAddr, ui32WrapAddr;
 
     switch (eType)
     {
@@ -11871,7 +11848,7 @@ bool BDSP_Raaga_P_DetectAudioCaptureError(
     BREG_Handle hReg)
 {
     bool retval = false;
-    raaga_dramaddr ui32WriteAddr;
+    dramaddr_t ui32WriteAddr;
 
     switch (eType)
     {
@@ -11929,14 +11906,14 @@ bool BDSP_Raaga_P_DetectAudioCaptureError(
 
 void BDSP_Raaga_P_GetUpdatedShadowReadAndLastWrite(
     BDSP_AF_P_sDRAM_CIRCULAR_BUFFER *pBuffer,
-    raaga_dramaddr *pShadowRead,
-    raaga_dramaddr *pLastWrite,
+    dramaddr_t *pShadowRead,
+    dramaddr_t *pLastWrite,
     BDSP_AF_P_BufferType eType,
     uint32_t bytesRead,
     BREG_Handle hReg)
 {
-    raaga_dramaddr shadowReadAddr;
-    raaga_dramaddr baseAddr, endAddr;
+    dramaddr_t shadowReadAddr;
+    dramaddr_t baseAddr, endAddr;
 
     shadowReadAddr = *pShadowRead + bytesRead;
 
@@ -11999,7 +11976,7 @@ void BDSP_Raaga_P_GetUpdatedShadowReadAndLastWrite(
 void BDSP_Raaga_P_UpdateReadPointer(
     BDSP_AF_P_sDRAM_CIRCULAR_BUFFER *pBuffer,
     BDSP_AF_P_BufferType eType,
-    raaga_dramaddr ui32ReadAddr,
+    dramaddr_t ui32ReadAddr,
     BREG_Handle hReg)
 {
     switch (eType)
@@ -12170,7 +12147,7 @@ BERR_Code BDSP_Raaga_P_Freeze(
     BDSP_RaagaTask *pRaagaTask = (BDSP_RaagaTask *)hTask;
     BDSP_Raaga  *pDevice= pRaagaTask->pContext->pDevice;
     BERR_Code err=BERR_SUCCESS;
-    BDSP_Raaga_P_MsgType      eMsgType;
+    BDSP_P_MsgType      eMsgType;
     BDSP_Raaga_P_Command sCommand;
     BDSP_Raaga_P_Response sRsp;
     BDSP_AudioTaskTsmSettings sTsmSettings;
@@ -12196,11 +12173,13 @@ BERR_Code BDSP_Raaga_P_Freeze(
             BKNI_Memset((void *)&sCommand,0,sizeof(BDSP_Raaga_P_Command));
 
             /* Populate command headers */
-            sCommand.sCommandHeader.ui32CommandID = BDSP_RAAGA_AUDIO_OUTPUT_FREEZE_COMMAND_ID;
+            sCommand.sCommandHeader.ui32CommandID = BDSP_AUDIO_OUTPUT_FREEZE_COMMAND_ID;
             sCommand.sCommandHeader.ui32CommandCounter =  pRaagaTask->commandCounter++;
             sCommand.sCommandHeader.ui32TaskID =  pRaagaTask->taskId;
-            sCommand.sCommandHeader.eResponseType = BDSP_Raaga_P_ResponseType_eAckRequired;
+            sCommand.sCommandHeader.eResponseType = BDSP_P_ResponseType_eAckRequired;
             sCommand.sCommandHeader.ui32CommandSizeInBytes =  sizeof(BDSP_Raaga_P_Command);
+            sCommand.sCommandHeader.ui32CommandTimeStamp =  BREG_Read32(pDevice->regHandle,
+                                                                        BCHP_RAAGA_DSP_TIMERS_TSM_TIMER_VALUE);
 
             /* Populate command payload */
             sCommand.uCommand.sFreezeCommand.ui32AudFmmOutputPortAddr = pSettings->fmmOutputAddress;
@@ -12241,7 +12220,7 @@ BERR_Code BDSP_Raaga_P_Freeze(
                 goto end;
             }
 
-            eMsgType = BDSP_Raaga_P_MsgType_eSyn;
+            eMsgType = BDSP_P_MsgType_eSyn;
             err = BDSP_Raaga_P_GetMsg(pRaagaTask->hSyncMsgQueue, (void *)&sRsp, eMsgType);
             if (BERR_SUCCESS != err)
             {
@@ -12293,7 +12272,7 @@ BERR_Code BDSP_Raaga_P_UnFreeze(
     BDSP_RaagaTask *pRaagaTask = (BDSP_RaagaTask *)hTask;
     BDSP_Raaga  *pDevice= pRaagaTask->pContext->pDevice;
     BERR_Code err=BERR_SUCCESS;
-    BDSP_Raaga_P_MsgType      eMsgType;
+    BDSP_P_MsgType      eMsgType;
     BDSP_Raaga_P_Command sCommand;
     BDSP_Raaga_P_Response sRsp;
     BDSP_AudioTaskTsmSettings sTsmSettings;
@@ -12320,11 +12299,13 @@ BERR_Code BDSP_Raaga_P_UnFreeze(
             BKNI_Memset((void *)&sCommand,0,sizeof(BDSP_Raaga_P_Command));
 
             /* Populate command headers */
-            sCommand.sCommandHeader.ui32CommandID = BDSP_RAAGA_AUDIO_OUTPUT_UNFREEZE_COMMAND_ID;
+            sCommand.sCommandHeader.ui32CommandID = BDSP_AUDIO_OUTPUT_UNFREEZE_COMMAND_ID;
             sCommand.sCommandHeader.ui32CommandCounter =  pRaagaTask->commandCounter++;
             sCommand.sCommandHeader.ui32TaskID =  pRaagaTask->taskId;
-            sCommand.sCommandHeader.eResponseType = BDSP_Raaga_P_ResponseType_eAckRequired;
+            sCommand.sCommandHeader.eResponseType = BDSP_P_ResponseType_eAckRequired;
             sCommand.sCommandHeader.ui32CommandSizeInBytes =  sizeof(BDSP_Raaga_P_Command);
+            sCommand.sCommandHeader.ui32CommandTimeStamp =  BREG_Read32(pDevice->regHandle,
+                                                                        BCHP_RAAGA_DSP_TIMERS_TSM_TIMER_VALUE);
 
             /* Populate command payload */
             sCommand.uCommand.uUnFreezeCommand.sUnFreezeHostToDspCmd.ui32AudFmmOutputPortAddr = pSettings->fmmOutputAddress;
@@ -12383,7 +12364,7 @@ BERR_Code BDSP_Raaga_P_UnFreeze(
                 goto end;
             }
 
-            eMsgType = BDSP_Raaga_P_MsgType_eSyn;
+            eMsgType = BDSP_P_MsgType_eSyn;
             err = BDSP_Raaga_P_GetMsg(pRaagaTask->hSyncMsgQueue, (void *)&sRsp, eMsgType);
             if (BERR_SUCCESS != err)
             {
@@ -12451,7 +12432,7 @@ BERR_Code BDSP_Raaga_P_Queue_GetBuffer(
     BDSP_RaagaQueue *pRaagaQueue;
     BERR_Code errCode=BERR_SUCCESS;
     BDSP_Raaga_P_MsgQueueHandle hAncDataMsgQueue;
-    raaga_dramaddr ui32BaseAddr, ui32EndAddr, ui32ReadAddr, ui32WriteAddr = 0;
+    dramaddr_t ui32BaseAddr, ui32EndAddr, ui32ReadAddr, ui32WriteAddr = 0;
     uint32_t ui32Size, ui32WrapSize = 0;
     BDBG_ENTER(BDSP_Raaga_P_Queue_GetBuffer);
 
@@ -12640,10 +12621,10 @@ void BDSP_Raaga_P_InitDeviceSettings(void * pDeviceHandle)
     }
 
     err = BDSP_Raaga_P_GetNumberOfDsp( pRaaga->boxHandle, &pRaaga->numDsp );
-	if(err != BERR_SUCCESS)
-	{
-		BDBG_ERR(("INIT: Error in retreiving the Number of RAAGA DSP from BOX MODE, hence using the default value"));
-	}
+    if(err != BERR_SUCCESS)
+    {
+        BDBG_ERR(("INIT: Error in retreiving the Number of RAAGA DSP from BOX MODE, hence using the default value"));
+    }
 
     for (dspIndex=0 ; dspIndex < pRaaga->numDsp; dspIndex++)
     {

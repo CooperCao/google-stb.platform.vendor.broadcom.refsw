@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2011 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2011 Broadcom.
 All rights reserved.
 
 Project  :  PPP
@@ -455,7 +455,7 @@ bool Remote::ReceivePacket(Packet *p)
          int n = ReadAll(m_socket, buffer, numBytes);
          if (n == (int)numBytes)
          {
-            p->AddItem(PacketItem((eDataType)itemType, (uint32_t)buffer, numBytes));
+            p->AddItem(PacketItem((eDataType)itemType, (uintptr_t)buffer, numBytes));
          }
          else
          {

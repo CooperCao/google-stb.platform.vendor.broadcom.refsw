@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2008 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2008 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -670,9 +670,9 @@ void vg_compute_mask_clip_rec(MEM_HANDLE_T handle, VGMaskOperation operation,
    }
 }
 
-bool vg_computer_rendertomask_clip(VG_SERVER_STATE_T *state, uint32_t *paint_modes, VG_PATH_T *path, MEM_HANDLE_T handle,
+bool vg_computer_rendertomask_clip(VG_SERVER_STATE_T *state, uint32_t *paint_modes, VG_PATH_T *path,
                                     VGMaskOperation operation, uint32_t *clip_rect,
-                                    MEM_HANDLE_T  *scissor_handle, float *clip, float *scale_max)
+                                    MEM_HANDLE_T *scissor_handle, float *clip, float *scale_max)
 {
    float stroke_clip[4];
    bool bounds_valid = vg_path_are_bounds_valid(path);
@@ -949,6 +949,7 @@ void vgGetfv_impl(
    VGfloat *values)
 {
    VG_SERVER_STATE_T *state = VG_LOCK_SERVER_STATE();
+   UNUSED(count);
 
    switch (param_type) {
    /*
@@ -982,6 +983,7 @@ void vgSetParameteriv_impl(
    const VGint *values)
 {
    VG_SERVER_STATE_T *state = VG_LOCK_SERVER_STATE();
+   UNUSED(count);
 
    switch (client_object_type) {
    case VG_CLIENT_OBJECT_TYPE_PAINT:
@@ -1153,6 +1155,7 @@ bool vgGetParameteriv_impl(
    VGint *values)
 {
    VG_SERVER_STATE_T *state = VG_LOCK_SERVER_STATE();
+   UNUSED(count);
 
    switch (client_object_type) {
    case VG_CLIENT_OBJECT_TYPE_PATH:
@@ -2201,7 +2204,7 @@ VGfloat vgPathLength_impl(
    }
 
    length = -1.0f;
-   if (!vg_path_get_length(handle, path, &length, segments_i, segments_count)) {
+   if (!vg_path_get_length(path, &length, segments_i, segments_count)) {
       set_error(state, VG_OUT_OF_MEMORY_ERROR);
    }
    mem_unlock(handle);
@@ -2255,7 +2258,7 @@ bool vgPointAlongPath_impl(
    }
 
    success = true;
-   if (!vg_path_get_p_t_along(handle, path, (mask & 0x1) ? values : NULL, (mask & 0x2) ? (values + 2) : NULL, segments_i, segments_count, distance)) {
+   if (!vg_path_get_p_t_along(path, (mask & 0x1) ? values : NULL, (mask & 0x2) ? (values + 2) : NULL, segments_i, segments_count, distance)) {
       set_error(state, VG_OUT_OF_MEMORY_ERROR);
       success = false;
    }
@@ -2287,7 +2290,7 @@ bool vgPathBounds_impl(
       return false;
    }
 
-   if (!vg_path_read_tight_bounds_immediate(handle, path)) {
+   if (!vg_path_read_tight_bounds_immediate(path)) {
       set_error(state, VG_OUT_OF_MEMORY_ERROR);
       mem_unlock(handle);
       VG_UNLOCK_SERVER_STATE();
@@ -2349,7 +2352,7 @@ bool vgPathTransformedBounds_impl(
       return false;
    }
 
-   if (!vg_path_read_tight_bounds_immediate(handle, path)) { /* todo: we don't actually need tight bounds here */
+   if (!vg_path_read_tight_bounds_immediate(path)) { /* todo: we don't actually need tight bounds here */
       set_error(state, VG_OUT_OF_MEMORY_ERROR);
       mem_unlock(handle);
       VG_UNLOCK_SERVER_STATE();
@@ -2443,7 +2446,7 @@ void vgDrawPath_impl(
       return;
    }
 
-   if (!vg_be_draw_path(state, handle, path, paint_modes, clip_rect, scissor_handle, clip, scale_max, stroke_clip)) {
+   if (!vg_be_draw_path(state, handle, path, paint_modes, clip_rect, scissor_handle, clip, scale_max)) {
       set_error(state, VG_OUT_OF_MEMORY_ERROR);
    }
    VG_UNLOCK_SERVER_STATE();
@@ -2655,7 +2658,7 @@ void vgImageSubData_impl(
       VG_UNLOCK_SERVER_STATE();
       return;
    }
-   khrn_image_interlock_wrap(&src_wrap, get_external_format(data_format), src_x + width, height, data_stride, 0, (void *)data, &tmp_interlock);
+   khrn_image_interlock_wrap(&src_wrap, get_external_format(data_format), src_x + width, height, data_stride, 0, false, (void *)data, &tmp_interlock);
    khrn_interlock_init(&tmp_interlock);
    /* src/dst rects clipped on client side */
 
@@ -2713,7 +2716,7 @@ bool vgGetImageSubData_impl(
       return false;
    }
 
-   khrn_image_interlock_wrap(&dst_wrap, get_external_format(data_format), dst_x + width, height, data_stride, 0, data, &tmp_interlock);
+   khrn_image_interlock_wrap(&dst_wrap, get_external_format(data_format), dst_x + width, height, data_stride, 0, false, data, &tmp_interlock);
    khrn_interlock_init(&tmp_interlock);
 
    /* src/dst rects clipped on client side */
@@ -3040,7 +3043,7 @@ void vgWritePixels_impl(
    KHRN_IMAGE_WRAP_T dst_wrap;
    KHRN_INTERLOCK_T tmp_interlock;
 
-   khrn_image_interlock_wrap(&src_wrap, get_external_format(data_format), src_x + width, height, data_stride, 0, (void *)data, &tmp_interlock);
+   khrn_image_interlock_wrap(&src_wrap, get_external_format(data_format), src_x + width, height, data_stride, 0, false, (void *)data, &tmp_interlock);
    khrn_interlock_init(&tmp_interlock);
 
    /* src/dst rects clipped on client side */
@@ -3115,7 +3118,7 @@ void vgReadPixels_impl(
    KHRN_IMAGE_WRAP_T src_wrap;
    KHRN_INTERLOCK_T tmp_interlock;
 
-   khrn_image_interlock_wrap(&dst_wrap, get_external_format(data_format), dst_x + width, height, data_stride, 0, data, &tmp_interlock);
+   khrn_image_interlock_wrap(&dst_wrap, get_external_format(data_format), dst_x + width, height, data_stride, 0, false, data, &tmp_interlock);
    khrn_interlock_init(&tmp_interlock);
 
    /* src/dst rects clipped on client side */
@@ -3569,14 +3572,14 @@ static uint32_t get_filter_channel_mask(VG_SERVER_STATE_T *state, KHRN_IMAGE_FOR
    return _bitrev(channel_mask, 4);
 }
 
-static INLINE KHRN_IMAGE_FORMAT_T get_filter_format(VG_SERVER_STATE_T *state)
+static INLINE KHRN_IMAGE_FORMAT_T get_filter_format(bool output_pre, bool output_linear)
 {
-   return (KHRN_IMAGE_FORMAT_T)((state->filter_format_pre ? IMAGE_FORMAT_PRE : 0) | (state->filter_format_linear ? IMAGE_FORMAT_LIN : 0));
-}
-
-static INLINE KHRN_IMAGE_FORMAT_T get_filter_output_format(bool output_pre, bool output_linear)
-{
-   return (KHRN_IMAGE_FORMAT_T)((output_pre ? IMAGE_FORMAT_PRE : 0) | (output_linear ? IMAGE_FORMAT_LIN : 0));
+   KHRN_IMAGE_FORMAT_T format = (KHRN_IMAGE_FORMAT_T)0;
+   if (output_pre)
+      format = khrn_image_to_premultiplied_format(format);
+   if (output_linear)
+      format = khrn_image_to_linear_format(format);
+   return format;
 }
 
 static uint32_t get_filter_tile_fill_rgba(VG_SERVER_STATE_T *state)
@@ -3667,7 +3670,8 @@ void vgColorMatrix_impl(
       dst->image, dst_child_x, dst_child_y,
       dst_child_width, dst_child_height,
       src->image, src_child_x, src_child_y,
-      get_filter_channel_mask(state, dst->image_format), get_filter_format(state),
+      get_filter_channel_mask(state, dst->image_format),
+      get_filter_format(state->filter_format_pre, state->filter_format_linear),
       matrix);
 
    mem_unlock(src_handle);
@@ -3727,7 +3731,8 @@ void vgConvolve_impl(
    vg_bf_conv(
       dst->image, dst_child_x, dst_child_y, dst_child_width, dst_child_height,
       src->image, src_child_x, src_child_y, src_child_width, src_child_height,
-      get_filter_channel_mask(state, dst->image_format), get_filter_format(state),
+      get_filter_channel_mask(state, dst->image_format),
+      get_filter_format(state->filter_format_pre, state->filter_format_linear),
       tiling_mode, get_filter_tile_fill_rgba(state),
       shift_x, shift_y,
       kernel, kernel_width, kernel_height,
@@ -3790,7 +3795,8 @@ void vgSeparableConvolve_impl(
    vg_bf_sconv(
       dst->image, dst_child_x, dst_child_y, dst_child_width, dst_child_height,
       src->image, src_child_x, src_child_y, src_child_width, src_child_height,
-      get_filter_channel_mask(state, dst->image_format), get_filter_format(state),
+      get_filter_channel_mask(state, dst->image_format),
+      get_filter_format(state->filter_format_pre, state->filter_format_linear),
       tiling_mode, get_filter_tile_fill_rgba(state),
       shift_x, shift_y,
       kernel_x, kernel_width, kernel_y, kernel_height,
@@ -3850,7 +3856,8 @@ void vgGaussianBlur_impl(
    vg_bf_gblur(
       dst->image, dst_child_x, dst_child_y, dst_child_width, dst_child_height,
       src->image, src_child_x, src_child_y, src_child_width, src_child_height,
-      get_filter_channel_mask(state, dst->image_format), get_filter_format(state),
+      get_filter_channel_mask(state, dst->image_format),
+      get_filter_format(state->filter_format_pre, state->filter_format_linear),
       tiling_mode, get_filter_tile_fill_rgba(state),
       std_dev_x, std_dev_y,
       VG_GET_SERVER_STATE_HANDLE());
@@ -3905,9 +3912,10 @@ void vgLookup_impl(
       dst->image, dst_child_x, dst_child_y,
       dst_child_width, dst_child_height,
       src->image, src_child_x, src_child_y,
-      get_filter_channel_mask(state, dst->image_format), get_filter_format(state),
+      get_filter_channel_mask(state, dst->image_format),
+      get_filter_format(state->filter_format_pre, state->filter_format_linear),
       red_lut, green_lut, blue_lut, alpha_lut,
-      get_filter_output_format(output_pre, output_linear));
+      get_filter_format(output_pre, output_linear));
 
    mem_unlock(src_handle);
    mem_unlock(dst_handle);
@@ -3960,9 +3968,10 @@ void vgLookupSingle_impl(
       dst->image, dst_child_x, dst_child_y,
       dst_child_width, dst_child_height,
       src->image, src_child_x, src_child_y,
-      get_filter_channel_mask(state, dst->image_format), get_filter_format(state),
+      get_filter_channel_mask(state, dst->image_format),
+      get_filter_format(state->filter_format_pre, state->filter_format_linear),
       3 - _msb(source_channel), lut,
-      get_filter_output_format(output_pre, output_linear));
+      get_filter_format(output_pre, output_linear));
 
    mem_unlock(src_handle);
    mem_unlock(dst_handle);

@@ -1,7 +1,7 @@
 /******************************************************************************
-*    (c)2011-2013 Broadcom Corporation
+* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-* This program is the proprietary software of Broadcom Corporation and/or its licensors,
+* This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
 * conditions of a separate, written license agreement executed between you and Broadcom
 * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
 * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 * ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * Module Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 *****************************************************************************/
 #include "bstd.h"
@@ -199,7 +191,7 @@ BERR_Code BSAT_g1_P_AfecOnHpLock_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    BERR_Code retCode;
-   uint32_t val;
+   uint32_t val, val2;
 
    if (hChn->actualMode >= BSAT_Mode_eDvbs2_16apsk_2_3)
    {
@@ -210,6 +202,30 @@ BERR_Code BSAT_g1_P_AfecOnHpLock_isr(BSAT_ChannelHandle h)
    BSAT_CHK_RETCODE(BSAT_g1_P_AfecPowerUp_isr(h));
    BSAT_CHK_RETCODE(BSAT_g1_P_AfecEnableChannel_isrsafe(h, false));
    BSAT_CHK_RETCODE(BSAT_g1_P_GetAfecClock_isrsafe(h, &(hChn->fecFreq)));
+
+   if (BSAT_g1_P_AfecIsOtherChannelBusy_isrsafe(h))
+   {
+      BSAT_ChannelHandle hOther = BSAT_g1_P_AfecGetOtherChannelHandle_isrsafe(h);
+      BSAT_g1_P_ChannelHandle *hOtherChn = (BSAT_g1_P_ChannelHandle *)hOther->pImpl;
+
+      if (hChn->bShortFrame != hOtherChn->bShortFrame)
+      {
+         BDBG_WRN(("Cannot mix normal/short frames in dual AFEC"));
+         hChn->reacqCause = BSAT_ReacqCause_eFrameLengthCannotMix;
+         return BSAT_g1_P_AfecReacquire_isr(h);
+      }
+   }
+
+   /* set AFECNX_GLOBAL_CONFIG.SHORT_CODE if necessary */
+   val = BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_AFECNX_GLOBAL_CONFIG);
+   val2 = val;
+   if ((val & BCHP_AFECNX_0_GLOBAL_CONFIG_SHORT_CODE_MASK) && !hChn->bShortFrame)
+      val2 &= ~BCHP_AFECNX_0_GLOBAL_CONFIG_SHORT_CODE_MASK; /* normal frames */
+   else if (((val & BCHP_AFECNX_0_GLOBAL_CONFIG_SHORT_CODE_MASK) == 0) && hChn->bShortFrame)
+      val2 |= BCHP_AFECNX_0_GLOBAL_CONFIG_SHORT_CODE_MASK;
+   if (val != val2)
+      BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_AFECNX_GLOBAL_CONFIG, val2);
+
    BSAT_CHK_RETCODE(BSAT_g1_P_AfecGeneratePdTable_isr(h));
 
    if (hChn->dvbs2ScanState & BSAT_DVBS2_SCAN_STATE_ENABLED)
@@ -1550,7 +1566,7 @@ BERR_Code BSAT_g1_P_AfecSetMpcfg_isr(BSAT_ChannelHandle h)
       val |= 0x10;
 
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_AFEC_BCH_MPCFG, val);
-   BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_AFEC_BCH_MPLCK, 0x030F0E0F);
+   BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_AFEC_BCH_MPLCK, 0x03040E0F);
 
    return BERR_SUCCESS;
 }
@@ -1874,7 +1890,7 @@ BERR_Code BSAT_g1_P_AfecConfig_isr(BSAT_ChannelHandle h)
    val = BSAT_sigma_scale[modcod-1] | (max_iter << 20);
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_AFEC_MODCOD_PARAM_1, val);
 
-   BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_AFEC_LDPC_CONFIG, 0x01000B02);
+   BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_AFEC_LDPC_CONFIG, 0x01000B01);
 
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_AFEC_BCH_CTRL, 0x00000001);
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_AFEC_BCH_BBHDR4, 0x000005E0);
@@ -1882,7 +1898,12 @@ BERR_Code BSAT_g1_P_AfecConfig_isr(BSAT_ChannelHandle h)
 
    val = (out_pfill & 0x3FFF) | 0xE0000000;
    if (hChn->xportSettings.bTei)
+   {
+      /* software workaround for DVB-S2 sync byte corruption: disable TEI */
+#if ((BCHP_CHIP==7364) || (BCHP_CHIP==7374))
       val |= 0x8000;
+#endif
+   }
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_AFEC_BCH_SMCFG, val);
 
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_AFEC_MODCOD_STATS_CONFIG, 0x00000000);

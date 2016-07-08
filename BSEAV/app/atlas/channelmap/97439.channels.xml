@@ -1,11 +1,13 @@
 <!-- XML Grammer for this file can be found in the Atlas Users Guide -->
 <atlas version="3.0">
     <channellist name="default">
-        <channel type="streamer" >
-	 <stream number="0" type="ts">
-           <pid videopid="49" videotype="mpeg2"></pid>
-           <pid audiopid="52" audiotype="ac3"></pid>
-         </stream>
-        </channel>
+        <channel type="streamer"></channel>
+
+        <disabled>
+            <channel type="playback" filename="cnnticker.mpg"></channel>
+            <channel type="ip" url="http://192.168.0.3:8089/cnnticker.mpg?program=0"></channel>
+            <channel type="ip" url="udp://192.168.0.3:1234"></channel>
+            <channel type="ip" url="rtp://192.168.0.3:1235"></channel>
+        </disabled>
     </channellist>
 </atlas>

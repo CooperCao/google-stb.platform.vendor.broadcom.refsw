@@ -1,23 +1,43 @@
-/***************************************************************************
- *     Copyright (c) 2005-2014, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * [File Description:]
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
  *
- * Revision History:
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- * 
- ***************************************************************************/
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 
 #include "bstd.h"
 #include "bwfe.h"
@@ -66,17 +86,17 @@ BERR_Code BWFE_g3_Corr_P_SetCorrParams(BWFE_ChannelHandle h, uint32_t freqHz, ui
    uint32_t P_hi, P_lo, Q_hi, Q_lo;
    uint32_t fcw, thr, Q;
    uint8_t maxbitpos = 0;
-   
+
    if (binSizeHz > 0)
    {
       /* calculate FCW = (2^32)*Fc/Fs_adc for SA mode */
-      BMTH_HILO_32TO64_Mul(freqHz << 1, 2147483648UL, &P_hi, &P_lo);  /* 2*Fc*(2^31) */
-      BMTH_HILO_64TO64_Div32(P_hi, P_lo, (hChn->adcSampleFreqKhz / BWFE_LIC_L) * 1000, &Q_hi, &Q_lo);  /* div by (Fs_adc/LIC_L) */
+      BMTH_HILO_32TO64_Mul(freqHz, 2147483648UL, &P_hi, &P_lo);  /* Fc*(2^31) */
+      BMTH_HILO_64TO64_Div32(P_hi, P_lo, (hChn->adcSampleFreqKhz / BWFE_LIC_L) * 500, &Q_hi, &Q_lo);  /* div by (Fs_adc/LIC_L) / 2 */
       fcw = Q_lo;
-      
+
       /* zero threshold for SA mode */
       thr = 0;
-      
+
       /* set correlator duration, correlator clock is Fadc/LIC_L */
       BMTH_HILO_32TO64_Mul(hChn->adcSampleFreqKhz, 1000, &P_hi, &P_lo);
       BMTH_HILO_64TO64_Div32(P_hi, P_lo, BWFE_LIC_L * binSizeHz, &Q_hi, &Q_lo);   /* corr_len = (Fadc/LIC_L) / Fb */
@@ -85,29 +105,29 @@ BERR_Code BWFE_g3_Corr_P_SetCorrParams(BWFE_ChannelHandle h, uint32_t freqHz, ui
    {
       BWFE_DEBUG_CORR(BDBG_MSG(("QDDFS_M=%d", hChn->dpmQddfsM)));
       BWFE_DEBUG_CORR(BDBG_MSG(("QDDFS_N=%d", hChn->dpmQddfsN)));
-      
+
       BMTH_HILO_32TO64_Mul(2147483648UL, 2, &P_hi, &P_lo);    /* 2^intbw where intbw=32 matches rtl word length */
       BMTH_HILO_64TO64_Div32(P_hi, P_lo, hChn->dpmQddfsN, &Q_hi, &Q_lo);  /* QDDFS_N is positive */
       Q = Q_lo;      /* Q = floor(2^intbw / QDDFS_N) where intbw=32 */
-      
+
       BMTH_HILO_32TO64_Mul(hChn->dpmQddfsM, Q, &P_hi, &P_lo);
       fcw = P_lo;    /* fcw = QDDFS_M * Q */
-      
+
       BMTH_HILO_32TO64_Mul(hChn->dpmQddfsN, Q, &P_hi, &P_lo);
       thr = P_lo;    /* thr = QDDFS_N * Q mod 2^intbw where intbw=32 */
-      
+
       /* corr_len = floor(2^24/N_Q) * N_Q */
       BMTH_HILO_32TO64_Mul(BWFE_DPM_CORR_LEN / hChn->dpmQddfsN, hChn->dpmQddfsN, &Q_hi, &Q_lo);
    }
-   
+
    BWFE_P_WriteRegister(h, BCHP_WFE_CORE_CORRFCW, fcw);
    BWFE_P_WriteRegister(h, BCHP_WFE_CORE_CORRTHR, thr);
    /* BDBG_MSG(("corr: freq=%u, fcw=0x%08X, thresh=0x%08X\n", freqHz, fcw, thr)); */
-   
+
    BWFE_P_WriteRegister(h, BCHP_WFE_CORE_CORRLEN1, Q_hi & 0xF);
    BWFE_P_WriteRegister(h, BCHP_WFE_CORE_CORRLEN0, Q_lo);
    /* BWFE_DEBUG_CORR(BDBG_MSG(("len_hi=0x%08X | len_lo=0x%08X", Q_hi, Q_lo))); */
-   
+
    /* determine 2^k accumulation limit based on corr interval to simplify 64-bit correlator values to 32-bit */
 	/* per Pete: for non-power-of-2 intervals, round up to the nearest 2^k */
    if (Q_hi > 0)
@@ -122,10 +142,10 @@ BERR_Code BWFE_g3_Corr_P_SetCorrParams(BWFE_ChannelHandle h, uint32_t freqHz, ui
    }
    /* BWFE_DEBUG_CORR(BDBG_MSG(("maxbitpos=%d\n", maxbitpos))); */
    hChn->corrMaxBit = 23 + maxbitpos + 1;    /* add 1 to round up */
-   
+
    BWFE_P_WriteRegister(h, BCHP_WFE_CORE_CORRFCWEN, 0x00000000);   /* load fcw and thr */
    BWFE_P_ToggleBit(h, BCHP_WFE_CORE_CORRFCWEN, 0x00000001);
-   
+
    return retCode;
 }
 

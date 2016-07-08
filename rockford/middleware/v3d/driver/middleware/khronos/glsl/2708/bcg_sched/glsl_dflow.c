@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2013 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2013 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -160,7 +160,7 @@ typedef struct InstrState_s
    int32_t               m_pendingVarying;
 } InstrState;
 
-void InstrState_Constr(InstrState *self, QPUGenericInstr *origInstr, Scheduler *sched, DFlowNode *node)
+void InstrState_Constr(InstrState *self, QPUGenericInstr *origInstr, Scheduler *sched)
 {
    self->m_scheduler               = sched;
    self->m_slot                    = Scheduler_FirstEmptySlot(sched);
@@ -323,10 +323,10 @@ void InstrState_AddUniformRead(InstrState *self, DFlowNode *from)
       //val = from->m_uniform.m_indexedUniformSampler.m_size << 16 | from->m_args[DFlowNode_ARG_UNIFORM]->m_uniform.m_linkableValue.m_row;
       break;
    case DATAFLOW_UNIFORM_OFFSET :
-      vcos_assert(0); // TODO?
+      UNREACHABLE(); // TODO?
       break;
    default:
-      vcos_assert(0);
+      UNREACHABLE();
       return;
    }
 
@@ -547,7 +547,7 @@ static DFlowNode_ScheduleStatus DFlowNode_InsertExtraMov(DFlowNode *self, const 
 static void DFlowNode_AddChildren(DFlowNode *self, Dataflow *dataFlow);
 static void DFlowNode_AddChild(DFlowNode *self, DFlowNode_ArgIndex ix, Dataflow *dataFlow);
 
-static bool DFlowNode_LooksSchedulable(DFlowNode *self, Scheduler *sched, QPUGenericInstr *genericInstr);
+static bool DFlowNode_LooksSchedulable(DFlowNode *self, QPUGenericInstr *genericInstr);
 
 static DFlowNode_ScheduleStatus DFlowNode_SetupForTwoOperands(DFlowNode *self, QPUOperand *leftOp, QPUOperand *rightOp, InstrState *state);
 
@@ -563,7 +563,7 @@ static DFlowNode_ScheduleStatus DFlowNode_TextureWrite(DFlowNode *self, InstrSta
 static DFlowNode_ScheduleStatus DFlowNode_ReadSpecialRegister(DFlowNode *self, InstrState *state, Register_Enum from);
 static void DFlowNode_RetireOurChildren(DFlowNode *self, InstrState *state);
 
-static bool DFlowNode_ExtraMovNeeded(DFlowNode *self, const QPUOperand *leftOp, const QPUOperand *rightOp);
+static bool DFlowNode_ExtraMovNeeded(const QPUOperand *leftOp, const QPUOperand *rightOp);
 
 static bool DFlowNode_SetPackedMov(DFlowNode *self, InstrState *state, const QPUOperand *from, const QPUOperand *to);
 
@@ -1111,7 +1111,7 @@ VirtualUnpack_Enum DFlowNode_GetUnpackCode(const DFlowNode *self)
    }
 }
 
-bool DFlowNode_CheckPackUnpackClash(DFlowNode *self, const QPUOperand *from, const QPUOperand *to)
+bool DFlowNode_CheckPackUnpackClash(DFlowNode *self, const QPUOperand *from)
 {
    if (QPUOperand_IsRegister(from) && QPUOperand_GetUnpack(from) != VirtualUnpack_NONE)
    {
@@ -1473,7 +1473,7 @@ DFlowNode_ScheduleStatus DFlowNode_DoConstFloat(DFlowNode *self, InstrState *sta
 
 // Do some early checks to see if this looks schedulable in the given gi.
 // Will save us having to copy the state only to find something later.
-bool DFlowNode_LooksSchedulable(DFlowNode *self, Scheduler *sched, QPUGenericInstr *gi)
+bool DFlowNode_LooksSchedulable(DFlowNode *self, QPUGenericInstr *gi)
 {
    switch (self->m_flavour)
    {
@@ -1546,7 +1546,7 @@ DFlowNode_ScheduleStatus DFlowNode_DoDelayedACC5Move(DFlowNode *self, Scheduler 
    InstrState state;
    QPUOperand acc5;
 
-   InstrState_Constr(&state, gi, sched, self);
+   InstrState_Constr(&state, gi, sched);
    QPUOperand_ConstrReg(&acc5, Register_ACC5);
 
    return DFlowNode_InsertExtraMov(self, &acc5, &state, DFlowNode_FULLY_RETIRE, QPUResources_PREFER_ACC);
@@ -1616,11 +1616,11 @@ DFlowNode_ScheduleStatus DFlowNode_AddToInstruction(DFlowNode *self, Scheduler *
    }
 
    // Check for early exit conditions
-   if (!self->m_delayedLoadc && !DFlowNode_LooksSchedulable(self, sched, genericInstr))
+   if (!self->m_delayedLoadc && !DFlowNode_LooksSchedulable(self, genericInstr))
       return DFlowNode_NOT_SCHEDULABLE;
 
    // Take a working copy of the instruction and the register state so we can easily restore the original after a failure
-   InstrState_Constr(&state, genericInstr, sched, self);
+   InstrState_Constr(&state, genericInstr, sched);
 
    // Have we delayed a loadc that now needs to be processed before we can schedule this node?
    if (self->m_delayedLoadc)
@@ -2333,7 +2333,7 @@ DFlowNode_ScheduleStatus DFlowNode_AddToInstruction(DFlowNode *self, Scheduler *
             QPUOperand_ConstrReg(&dest, QPUResource_Name(output));
 
             // If the src has an unpack, check that it won't clash with the pack we need. If it does, we'll need an extra move.
-            if (!DFlowNode_CheckPackUnpackClash(self, src, &dest))
+            if (!DFlowNode_CheckPackUnpackClash(self, src))
             {
                DFlowNode *unpackNode = InstrState_GetOwner(&state, src->m_reg);
                return DFlowNode_InsertExtraMov(unpackNode, src, &state, DFlowNode_FULLY_RETIRE, QPUResources_PREFER_ACC);
@@ -2367,7 +2367,7 @@ DFlowNode_ScheduleStatus DFlowNode_AddToInstruction(DFlowNode *self, Scheduler *
             }
 
             // If the src has an unpack, check that it won't clash with the pack we need. If it does, we'll need an extra move.
-            if (!DFlowNode_CheckPackUnpackClash(self, src, dest))
+            if (!DFlowNode_CheckPackUnpackClash(self, src))
             {
                DFlowNode *unpackNode = InstrState_GetOwner(&state, src->m_reg);
                return DFlowNode_InsertExtraMov(unpackNode, src, &state, DFlowNode_FULLY_RETIRE, QPUResources_PREFER_ACC);
@@ -3027,7 +3027,7 @@ DFlowNode_ScheduleStatus DFlowNode_SetupForTwoOperands(DFlowNode *self, QPUOpera
    if (!InstrState_IsReadableOp(state, leftOp) || !InstrState_IsReadableOp(state, rightOp))
       return DFlowNode_NOT_SCHEDULABLE;
 
-   if (DFlowNode_ExtraMovNeeded(self, leftOp, rightOp))
+   if (DFlowNode_ExtraMovNeeded(leftOp, rightOp))
    {
       if (reverse)
          return SetupForTwoOperandsInsertExtraMov(self, rightOp, leftOp, state);
@@ -3061,7 +3061,7 @@ bool DFlowNode_SetupForSingleOperand(DFlowNode *self, QPUOperand *operand, Instr
    return true;
 }
 
-bool DFlowNode_ExtraMovNeeded(DFlowNode *self, const QPUOperand *leftOp, const QPUOperand *rightOp)
+bool DFlowNode_ExtraMovNeeded(const QPUOperand *leftOp, const QPUOperand *rightOp)
 {
    Register_File    leftFile;
    Register_File    rightFile;

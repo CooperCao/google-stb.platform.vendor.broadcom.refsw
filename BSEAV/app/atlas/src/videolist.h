@@ -1,7 +1,7 @@
-/***************************************************************************
- * (c) 2002-2015 Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -37,7 +37,6 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 
 #ifndef VIDEOLIST_H__
@@ -84,26 +83,26 @@ public:
     CPlaybackList(CConfiguration * pCfg);
     virtual ~CPlaybackList();
 
-    void             directoryToStringList(const char * strDir, const char * strExtension, MStringList * pStrList);
-    void             refreshFromDisk(void);
-    void             removeVideo(CVideo * video);
-    void             removeVideo(int index);
-    void             addVideo(CVideo * video, int index = -1);
-    eRet             readXML(MXmlElement * xmlElemInfoFile, const char * strInfoName, const char * strPath);
-    eRet             readInfo(const char * infoName, const char * path);
-    eRet             createInfo(const char * mediafile, const char * indexfile, const char * path, bool bAddToVideoList = true);
-    void             createInfo(CVideo * video = NULL, CPidMgr * pPidMgr = NULL, bool bAddToVideoList = true);
-    void             sync(void);
-    CVideo *         getVideo(uint32_t index);
-    MString          getNextAtlasName(void);
-    void             generateVideoName(MString path);
-    CVideo *         getVideo(MString name);
-    CVideo *         find(const char * name, int16_t nProgram = -1);
-    bool             hasIndex(void);
-    void             destroyThreadGenerateIndexes(void);
-    void             doGenerateIndexes(void);
-    eRet             generateIndexes(void);
-    void             dump(bool bForce = false);
+    void     directoryToStringList(const char * strDir, const char * strExtension, MStringList * pStrList);
+    void     refreshFromDisk(void);
+    void     removeVideo(CVideo * video);
+    void     removeVideo(int index);
+    void     addVideo(CVideo * video, int index = -1);
+    eRet     readXML(MXmlElement * xmlElemInfoFile, const char * strInfoName, const char * strPath);
+    eRet     readInfo(const char * infoName, const char * path);
+    eRet     createInfo(const char * mediafile, const char * indexfile, const char * path, bool bAddToVideoList = true);
+    void     createInfo(CVideo * video = NULL, CPidMgr * pPidMgr = NULL, bool bAddToVideoList = true);
+    void     sync(void);
+    CVideo * getVideo(uint32_t index);
+    MString  getNextAtlasName(void);
+    void     generateVideoName(MString path);
+    CVideo * getVideo(MString name);
+    CVideo * find(const char * name, int16_t nProgram = -1);
+    bool     hasIndex(void);
+    void     destroyThreadGenerateIndexes(void);
+    void     doGenerateIndexes(void);
+    eRet     generateIndexes(void);
+    void     dump(bool bForce = false);
 
 protected:
     eRet createInfo(MString &mediafile, bmedia_probe_t probe, CVideo * video);
@@ -167,20 +166,20 @@ public:
     MString           getVideoName(void)                   { return(_mediaName); }
     MString           getVideoNamePath(void)               { return(_videosPath + MString("/") + _mediaName); }
     MString           getVideoNamePathAbsolute(void);
-    void              setVideoName(const char * strName)   { _mediaName = strName; }
-    MString           getIndexName(void)                   { return(_indexName); }
-    MString           getIndexNamePath(void)               { return(_indexPath + MString("/") + _indexName); }
-    void              setIndexName(const char * strName)   { _indexName = strName; }
-    MString           getVideosPath(void)                  { return(_videosPath); }
-    void              setVideosPath(const char * strName)  { _videosPath = strName; }
-    MString           getInfoPath(void)                    { return(_infoPath); }
-    void              setInfoPath(const char * strName)    { _infoPath = strName; }
-    MString           getIndexPath(void)                   { return(_indexPath); }
-    void              setIndexPath(const char * strName)   { _indexPath = strName; }
-    bool              isTimestampEnabled(void)             { return(_timestamp_enabled); }
-    void              enableTimestamp(bool bEnable)        { _timestamp_enabled = bEnable; }
-    bool              isForPurchase(void)                  { return(_isForPurchase); }
-    void              setForPurchase(bool bPurchase)       { _isForPurchase = bPurchase; }
+    void              setVideoName(const char * strName)  { _mediaName = strName; }
+    MString           getIndexName(void)                  { return(_indexName); }
+    MString           getIndexNamePath(void)              { return(_indexPath + MString("/") + _indexName); }
+    void              setIndexName(const char * strName)  { _indexName = strName; }
+    MString           getVideosPath(void)                 { return(_videosPath); }
+    void              setVideosPath(const char * strName) { _videosPath = strName; }
+    MString           getInfoPath(void)                   { return(_infoPath); }
+    void              setInfoPath(const char * strName)   { _infoPath = strName; }
+    MString           getIndexPath(void)                  { return(_indexPath); }
+    void              setIndexPath(const char * strName)  { _indexPath = strName; }
+    bool              isTimestampEnabled(void)            { return(_timestamp_enabled); }
+    void              enableTimestamp(bool bEnable)       { _timestamp_enabled = bEnable; }
+    bool              isForPurchase(void)                 { return(_isForPurchase); }
+    void              setForPurchase(bool bPurchase)      { _isForPurchase = bPurchase; }
     bool              isPlaybackActive(void);
     bool              isRecordActive(void)           { return(_isRecordActive); }
     void              setRecordState(bool bActive)   { _isRecordActive = bActive; }
@@ -194,7 +193,7 @@ public:
     void              dump(bool bForce = false);
     bool              isEncrypted(void);
     eRet              generateIndex(void);
-    bool              isIndexGenerationNeeded(void) { return(_isIndexGenerationNeeded); }
+    bool              isIndexGenerationNeeded(void)                           { return(_isIndexGenerationNeeded); }
     void              setIndexGenerationNeeded(bool isIndexGenerationNeeded)  { _isIndexGenerationNeeded = isIndexGenerationNeeded; }
     bool              isAudioOnly(void)                                       { return((NULL == getPid(0, ePidType_Video)) ? true : false); }
     eServerIndexState getServerIndexState(void)                               { return(_serverIndexState); }

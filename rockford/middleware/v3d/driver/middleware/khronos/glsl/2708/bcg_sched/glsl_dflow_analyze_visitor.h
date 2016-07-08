@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2013 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2013 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -45,6 +45,7 @@ static INLINE void TextureSetup_Constr(TextureSetup *self)
 
 static INLINE void TextureSetup_Destr(TextureSetup *self)
 {
+   UNUSED(self);
 }
 
 static INLINE void TextureSetup_SetRequest(TextureSetup *self, DFlowNode *node)

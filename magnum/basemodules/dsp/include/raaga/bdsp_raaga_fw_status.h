@@ -1,7 +1,7 @@
 /******************************************************************************
- * (c) 2004-2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -37,9 +37,7 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
- *****************************************************************************/
-
+ ******************************************************************************/
 
 #ifndef BRAAGA_FWSTATUS_PRIV_H__
 
@@ -112,6 +110,7 @@
 #define BDSP_Raaga_UdcStatus                BDSP_Raaga_Audio_UdcStreamInfo
 #define BDSP_Raaga_OpusDecStatus            BDSP_Raaga_Audio_OpusDecStreamInfo
 #define BDSP_Raaga_ALSDecStatus             BDSP_Raaga_Audio_ALSDecStreamInfo
+#define BDSP_Raaga_AC4Status                BDSP_Raaga_Audio_AC4StreamInfo
 
 /* BDSP_AudioProcessing */
 #define BDSP_Raaga_DdbmStatus                   BDSP_Raaga_Audio_ProcessingStreamInfo
@@ -424,9 +423,9 @@ typedef struct BDSP_Raaga_Audio_WmaStreamInfo
 */
     uint32_t    ui32OriginalCopy;
 /*
-    The field tells the presence of copyright
-    0 = Copyright_Absent
-    1 = Copyright_Present
+    The field tells the presence of cpyright
+    0 = Cpyright_Absent
+    1 = Cpyright_Present
 */
     uint32_t    ui32Copyright;
 /*
@@ -525,9 +524,9 @@ typedef struct BDSP_Raaga_Audio_WmaProStreamInfo
 */
     uint32_t    ui32OriginalCopy;
 /*
-    The field tells the presence of copyright
-    0 = Copyright_Absent
-    1 = Copyright_Present
+    The field tells the presence of cpyright
+    0 = Cpyright_Absent
+    1 = Cpyright_Present
 */
     uint32_t    ui32Copyright;
 /*
@@ -691,9 +690,9 @@ typedef struct BDSP_Raaga_Audio_Ac3StreamInfo
 */
     uint32_t    ui32RoomType2Value;
 /*
-    This field indicates that stream is protected by copyright.
-    0 = stream_not_copyright
-    1 = stream_copyright
+    This field indicates that stream is protected by cpyright.
+    0 = stream_not_cpyright
+    1 = stream_cpyright
 */
     uint32_t    ui32CopyrightBit;
 /*
@@ -886,9 +885,9 @@ typedef struct BDSP_Raaga_Audio_DdpStreamInfo
 */
     uint32_t    ui32RoomType2Value;
 /*
-    This field indicates that stream is protected by copyright.
-    0 = stream_not_copyright
-    1 = stream_copyright
+    This field indicates that stream is protected by cpyright.
+    0 = stream_not_cpyright
+    1 = stream_cpyright
 */
     uint32_t    ui32CopyrightBit;
 /*
@@ -1026,9 +1025,9 @@ typedef struct BDSP_Raaga_Audio_MpegStreamInfo
 */
     uint32_t    ui32OriginalCopy;
 /*
-    The field tells the presence of copyright
-    0 = Copyright_Absent
-    1 = Copyright_Present
+    The field tells the presence of cpyright
+    0 = Cpyright_Absent
+    1 = Cpyright_Present
 */
     uint32_t    ui32Copyright;
 /*
@@ -1394,7 +1393,7 @@ typedef struct BDSP_Raaga_Audio_DtsCoreStreamInfo
     */
     uint32_t ui32SourcePcm;
     /*
-    This field indicates the copy history of the audio.
+    This field indicates the cpy history of the audio.
     0 = Copy_prohibited
     1 = First_generation
     2 = Second_generation
@@ -2145,9 +2144,9 @@ typedef struct BDSP_Raaga_Audio_UdcStreamInfo
 */
     uint32_t    ui32RoomType2Value;
 /*
-    This field indicates that stream is protected by copyright.
-    0 = stream_not_copyright
-    1 = stream_copyright
+    This field indicates that stream is protected by cpyright.
+    0 = stream_not_cpyright
+    1 = stream_cpyright
 */
     uint32_t    ui32CopyrightBit;
 /*
@@ -2288,6 +2287,200 @@ represents the time in 8 seconds increments.
     uint32_t   ui32BitRate;
 
 }BDSP_Raaga_Audio_UdcStreamInfo;
+
+
+
+#define AC4_DEC_NUM_OF_PRESENTATIONS                         128
+#define AC4_DEC_EXT_PRESENTATION_MD_LENGTH                   (64>>2)
+#define AC4_DEC_EXT_BITSTREAM_MD_LENGTH                      (64>>2)
+#define AC4_DEC_PRESENTATION_NAME_LENGTH                     (36>>2)
+#define AC4_DEC_PRESENTATION_LANGUAGE_LENGTH                 (8>>2)
+#define AC4_DEC_PROGRAM_IDENTIFIER_LENGTH                    (20>>2)
+typedef struct BDSP_Raaga_Audio_AC4PresentationInfo
+{
+    /*  Presentation index of the presentation */
+    uint32_t    ui32PresentationIndex;
+
+    /*  Boolean flag indicating the presence of a presentation Group in Stream : 0 = Absent, 1 = Present*/
+    uint32_t    ui32BPresentationGroupIndex;
+
+    /*  Presentation Group index */
+    uint32_t    ui32PresentationGroupIndex;
+
+    /*  Main language of the presentation */
+    uint32_t    ui32MainLanguage[ AC4_DEC_PRESENTATION_LANGUAGE_LENGTH];
+
+    /*  Associate decoded type
+        0 = Undefined
+        1 = Visually impaired
+        2 = Hearing impaired
+        3 = Commentary */
+    uint32_t    ui32AssociateType;
+
+    /*  Name of the presentation */
+    uint32_t    ui32PresentationName[AC4_DEC_PRESENTATION_NAME_LENGTH];
+
+    /* Indicates the program identifier for the presentation.
+	The Personalized-program universal unique ID is populated in the array in big endian fashion */
+    int32_t     i32ProgramIdentifier[AC4_DEC_PROGRAM_IDENTIFIER_LENGTH];
+
+    /*  Extended presentation metadata is availability */
+    uint32_t    ui32ExtPresentationMdAvailable;
+
+    /*  Extended presentation metadata length */
+    uint32_t    ui32ExtPresentationMdLength;
+
+    /*  Extended presentation metadata payload Id */
+    uint32_t    ui32ExtPresentationMdPayloadId;
+
+    /*  Extended presentation metadata payloads */
+    uint32_t    ui32ExtPresentationMd[AC4_DEC_EXT_PRESENTATION_MD_LENGTH];
+}BDSP_Raaga_Audio_AC4PresentationInfo;
+
+
+typedef struct BDSP_Raaga_Audio_AC4StreamInfo
+{
+    /* Active channel configuration */
+    uint32_t ui32ActiveChannelConfig;
+
+
+    /* Downmix applied to the output channels
+        0 = Decoder outputs stereo or a LoRo downmix of multichannel content.
+        1 = Decoder outputs stereo or a Dolby ProLogic compatible LtRt downmix of multichannel content.
+        2 = Decoder outputs stereo or a Dolby ProLogic II compatible LtRt downmix of multichannel content.
+        3 = Decoder outputs multichannel (no downmix) */
+    uint32_t ui32DownmixConfig;
+
+    /* Output sampling rate */
+    uint32_t ui32EffectiveSamplingRate;
+
+    /* Presentation frame rate according to table 83 and 84 in the ETSI spec */
+    uint32_t ui32EffectiveFrameRateIndex;
+
+    /* Dialog enhancement data available
+        1 = Available
+        0 = Not Available */
+    uint32_t ui32DialogEnhancementAvailable;
+
+
+    /* DRC EAC-3 profile */
+    uint32_t ui32DrcEac3Profile;
+
+    /*
+    Output LFE Channel Configuration
+    1 = LFE_ON
+    0 = LFE_OFF
+    */
+    uint32_t    ui32OutputLfeMode;
+
+    /*
+    0   = Dual Mono L, R
+    1   = C
+    2   = L, R
+    3   = L, C, R
+    4   = L, R, Ls
+    5   = L, C, R, Ls
+    6   = L, R, Ls, Rs
+    7       = L, R, C, Ls, Rs
+    8       = L, C, R, Cvh
+    9       = L, R, Ls, Rs, Ts
+    10  = L, R, C, Ls, Rs, Ts
+    11  = L, R, C, Ls, Rs, Cvh
+    12  = L, R, C, Lc, Rc
+    13  = L, R, Ls, Rs, Lw, Rw
+    14  = L, R, Ls, Rs, Lvh, Rvh
+    15  = L, R, Ls, Rs, Lsd, Rsd
+    16  = L, R, Ls, Rs, Lrs, Rrs
+    17  = L, R, C, Ls, Rs, Lc, Rc
+    18  = L, R, C, Ls, Rs, Lw, Rw
+    19  = L, R, C, Ls, Rs, Lvh, Rvh
+    20  = L, R, C, Ls, Rs, Lsd, Rsd
+    21  = L, R, C, Ls, Rs, Lrs, Rrs
+    22  = L, R, C, Ls, Rs, Ts, Cvh
+    */
+    uint32_t    ui32OutputMode;
+
+    /*
+    This is the cumulative number of samples decoded by any decoder from the
+    channel open time. Decoder should accumulate number of samples decoded for
+    every frame. Dummy samples are not included.
+    */
+    uint32_t    ui32NumSamplesDecoded;
+
+    /*
+    This is the cumulative count for number of Valid frames decoded
+    */
+    uint32_t    ui32TotalFramesDecoded;
+    /*
+    This is the cumulative count for number of Dummy decodes done by decoder
+    */
+
+    uint32_t    ui32TotalFramesDummy;
+    /*
+   This is the cumulative count for number of erroneous frames detected by decoder.
+    */
+
+    uint32_t    ui32TotalFramesInError;
+
+    /*
+    Dialog Normalization information extracted from bit stream.
+    Possible range 0 to 31 which corresponds to 0 to -31 dB level.
+    */
+    uint32_t    ui32CurrentDialNorm;
+
+    /*
+    Dialog Normalization information extracted from bit stream.
+    Possible range 0 to 31 which corresponds to 0 to -31 dB level.
+    */
+    uint32_t    ui32PreviousDialNorm;
+
+
+    /*  This field tells whether the stream info fields are valid or not */
+    uint32_t    ui32StatusValid;
+
+    /*
+    Bit rate of the input stream
+    */
+    uint32_t   ui32BitRate;
+
+    /*  Stream info version */
+    uint32_t    ui32StreamInfoVersion;
+
+    /*  Indicates if the stream info has changed during the current frame decode */
+    uint32_t    ui32StreamInfoChanged;
+
+    /*  Decoded presentation index in the current frame */
+    uint32_t    ui32DecodedPresentationIndex;
+
+    /*  Maximum dialog gain of the decoded presentation */
+    uint32_t    ui32DecodedPresentationMaxDialogGain;
+
+    /*  Id type */
+    uint32_t    ui32IdType;
+
+    /* Program Identifier of the Current decoded presentation */
+    int32_t     i32ProgramIdentifier[AC4_DEC_PROGRAM_IDENTIFIER_LENGTH];
+
+    /* Number of presentations in the stream */
+    uint32_t    ui32NumPresentations;
+
+    /*  Presentations Infos in the stream */
+    BDSP_Raaga_Audio_AC4PresentationInfo                AC4DECPresentationInfo[AC4_DEC_NUM_OF_PRESENTATIONS];
+
+    /*  Extended Bitstream Metadata availability indication */
+    uint32_t    ui32ExtBitstreamMdAvailable;
+
+    /*  Extended Bitstream Metadata length */
+    uint32_t    ui32ExtBitstreamMdLength;
+
+    /*  Extended Bitstream Metadata Payload Id */
+    uint32_t    ui32ExtBitstreamMdPayloadId;
+
+    /*  Extended Bitstream Metadata payload */
+    uint32_t    ui32ExtBitstreamMd[AC4_DEC_EXT_BITSTREAM_MD_LENGTH];
+
+}BDSP_Raaga_Audio_AC4StreamInfo;
+
 
 
 
@@ -2981,9 +3174,9 @@ typedef struct BDSP_Raaga_Audio_DDPMS10StreamInfo
 */
     uint32_t    ui32RoomType2Value;
 /*
-    This field indicates that stream is protected by copyright.
-    0 = stream_not_copyright
-    1 = stream_copyright
+    This field indicates that stream is protected by cpyright.
+    0 = stream_not_cpyright
+    1 = stream_cpyright
 */
     uint32_t    ui32CopyrightBit;
 /*
@@ -3257,9 +3450,9 @@ typedef struct BDSP_Raaga_Audio_MultiStreamDDPStreamInfo
 */
     uint32_t    ui32RoomType2Value;
 /*
-    This field indicates that stream is protected by copyright.
-    0 = stream_not_copyright
-    1 = stream_copyright
+    This field indicates that stream is protected by cpyright.
+    0 = stream_not_cpyright
+    1 = stream_cpyright
 */
     uint32_t    ui32CopyrightBit;
 /*
@@ -4053,6 +4246,12 @@ typedef struct BDSP_Raaga_Audio_ALSDecStreamInfo
 */
     uint32_t    ui32StatusValid;
 
+ /*
+    This field tells the input sample bit width. Used only inside MPEG-4 ALS decoder.
+*/
+
+    uint32_t    bit_width;
+
 }BDSP_Raaga_Audio_ALSDecStreamInfo;
 
 
@@ -4102,6 +4301,19 @@ typedef struct BDSP_Raaga_VideoX264EncoderInfo
     uint32_t                        ui32StcValue;
     uint32_t                        ui32StatusValid;
 }BDSP_Raaga_VideoX264EncoderInfo;
+typedef struct BDSP_Raaga_VideoXVP8EncoderInfo
+{
+    uint32_t                        ui32TotalFramesRecvd;
+    uint32_t                        ui32TotalFramesEncoded;
+    uint32_t                        ui32TotalFramesDropedForFRC;
+    uint32_t                        ui32TotalFramesDropedForLipSynch;
+    uint32_t                        ui32CdbFullCounter;
+    uint32_t                        ui32RelinquishCounter;
+    uint32_t                        ui32EncodedPTS;
+    uint32_t                        ui32StcValue;
+    uint32_t                        ui32FrameRateConvError;
+    uint32_t                        ui32StatusValid;
+}BDSP_Raaga_VideoXVP8EncoderInfo;
 /*********************************************************************
 Summary:
     This union  holds all the stream info related field values for all

@@ -10,7 +10,7 @@ else
   kill -9 $RUNNING
 fi
 
-DATE=`date +"%m%d%Y_%H%M%S"`
+DATE=`date +"%Y%m%d_%H%M%S"`
 TEMPDIR=$B_ANDROID_TEMP
 
 if [[ -z "$TEMPDIR" ]]; then

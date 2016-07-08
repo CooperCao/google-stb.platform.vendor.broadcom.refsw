@@ -1,7 +1,7 @@
 /******************************************************************************
- * (c) 2006-2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -37,7 +37,6 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 
 
@@ -102,7 +101,7 @@ bool BDSP_Raaga_P_AlgoHasTables(
 
 #define BDSP_Raaga_P_LookupAlgorithmInfo BDSP_Raaga_P_LookupAlgorithmInfo_isrsafe
 
-extern  const BDSP_Raaga_Audio_FrameSyncTsmConfigParams     BDSP_sDefaultFrameSyncTsmSettings;
+extern  const BDSP_P_Audio_FrameSyncTsmConfigParams         BDSP_sDefaultFrameSyncTsmSettings;
 extern  const BDSP_VideoEncodeTaskDatasyncSettings          BDSP_sDefaultVideoEncodeFrameSyncSettings;
 extern  const BDSP_AF_P_sNODE_INFO                          BDSP_sNodeInfo [BDSP_AF_P_AlgoId_eMax];
 extern  const uint32_t                                      BDSP_SystemID_MemoryReqd[BDSP_SystemImgId_eMax];

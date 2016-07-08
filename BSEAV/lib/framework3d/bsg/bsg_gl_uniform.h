@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -352,12 +352,12 @@ public:
    typedef typename Traits::Data_t    Data_t;
    typedef typename Traits::Param_t   Param_t;
 
-   GLUniform() : GLUniformBase(""), m_location(-1), m_progAddr(nullptr) {}
+   GLUniform() : GLUniformBase(""), m_location(-1), m_progAddr(NULL) {}
 
    GLUniform(const std::string &name) : GLUniformBase(name)
    {
       m_location = -1;
-      m_progAddr = nullptr;
+      m_progAddr = NULL;
    }
 
    void SetProgram(const GLProgram &prog)
@@ -413,8 +413,8 @@ public:
    GLArrayUniform(const std::string &name) : GLUniformBase(name)
    {
       m_location = -1;
-      m_progAddr = nullptr;
-      m_value = nullptr;
+      m_progAddr = NULL;
+      m_value = NULL;
       m_count = 0;
    }
 
@@ -443,7 +443,7 @@ public:
 
    void SetValue(Param_t value, uint32_t count)
    {
-      if (m_value == nullptr || m_count != count)
+      if (m_value == NULL || m_count != count)
       {
          // Resize if necessary
          m_count = count;

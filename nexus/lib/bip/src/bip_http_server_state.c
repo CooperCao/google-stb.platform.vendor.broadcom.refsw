@@ -1,43 +1,39 @@
 /******************************************************************************
- * (c) 2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 
 #include "b_os_lib.h"
@@ -98,11 +94,11 @@ static void connectedCallbackFromListener (
     BIP_HttpServerHandle hHttpServer = context;
 
     BSTD_UNUSED(param);
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpServer %p, state %s -------------------->" BIP_MSG_PRE_ARG, hHttpServer, BIP_HTTP_SERVER_START_STATE(hHttpServer->startState) ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Enter: hHttpServer %p, state %s -------------------->" BIP_MSG_PRE_ARG, (void *)hHttpServer, BIP_HTTP_SERVER_START_STATE(hHttpServer->startState) ));
 
     processHttpServerState( hHttpServer, NULL, 0, BIP_Arb_ThreadOrigin_eBipCallback);
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpServer %p: state %s <--------------------" BIP_MSG_PRE_ARG, hHttpServer, BIP_HTTP_SERVER_START_STATE(hHttpServer->startState) ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "Exit: hHttpServer %p: state %s <--------------------" BIP_MSG_PRE_ARG, (void *)hHttpServer, BIP_HTTP_SERVER_START_STATE(hHttpServer->startState) ));
     return;
 }
 
@@ -110,11 +106,11 @@ void processHttpServerState_RecvRequestArb(
     BIP_HttpServerHandle hHttpServer
     )
 {
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpServer %p: ENTER ----->" BIP_MSG_PRE_ARG, hHttpServer ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpServer %p: ENTER ----->" BIP_MSG_PRE_ARG, (void *)hHttpServer ));
 
     processHttpServer_ServerSocket_ReceivedRequest( hHttpServer );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpServer %p: EXIT  <-----" BIP_MSG_PRE_ARG, hHttpServer));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpServer %p: EXIT  <-----" BIP_MSG_PRE_ARG, (void *)hHttpServer));
 }
 
 static void
@@ -240,7 +236,7 @@ void processHttpServerState_Listener(
     BIP_Status completionStatus = BIP_INF_IN_PROGRESS;
 
     BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpServer:state %p: %s Queued: Cur %u, Max %u, Total: Accepted %u, ReqTimedout %u, ReqRcvd %u, RespSent %u, StreamerStarted %u, Stopped %u: ENTER ----->"
-                BIP_MSG_PRE_ARG, hHttpServer, BIP_HTTP_SERVER_LISTENER_STATE(hHttpServer->listener.state),
+                BIP_MSG_PRE_ARG, (void *)hHttpServer, BIP_HTTP_SERVER_LISTENER_STATE(hHttpServer->listener.state),
                 hHttpServer->stats.numConcurrentRequestsQueued, hHttpServer->startSettings.maxConcurrentRequestsToQueue,
                 hHttpServer->stats.numAcceptedConnections, hHttpServer->stats.numRequestTimeouts,
                 hHttpServer->stats.numRcvdRequests, hHttpServer->stats.numSentResponses,
@@ -264,7 +260,7 @@ void processHttpServerState_Listener(
              /* Gotback to Listening state as we have now fallen below the maxConcurrentRequests limit. */
              hHttpServer->listener.state = BIP_HttpServerListenerState_eListening;
              BDBG_WRN(( BIP_MSG_PRE_FMT "hHttpServer %p: httpServerListenerState %s: request Queue is no longer Full (%d), resuming to Listening state.."
-                         BIP_MSG_PRE_ARG, hHttpServer, BIP_HTTP_SERVER_LISTENER_STATE(hHttpServer->listener.state), hHttpServer->stats.numConcurrentRequestsQueued ));
+                         BIP_MSG_PRE_ARG, (void *)hHttpServer, BIP_HTTP_SERVER_LISTENER_STATE(hHttpServer->listener.state), hHttpServer->stats.numConcurrentRequestsQueued ));
          }
      }
 
@@ -276,19 +272,19 @@ void processHttpServerState_Listener(
           * We remain in this state until we exceed the maxConcurrentRequests or BIP_HttpServer_Stop is called!
           */
          completionStatus = BIP_INF_IN_PROGRESS;
-         BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpServer %p: Calling BIP_Listener_Accept to see if new connectionRequest is pending " BIP_MSG_PRE_ARG, hHttpServer));
+         BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpServer %p: Calling BIP_Listener_Accept to see if new connectionRequest is pending " BIP_MSG_PRE_ARG, (void *)hHttpServer));
 
          hHttpServer->listener.hSocket = BIP_Listener_Accept( hHttpServer->listener.hListener, 0 /* timeout */); /* non-blocking accept call */
          if (hHttpServer->listener.hSocket)
          {
              completionStatus = BIP_SUCCESS;
-             BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpServer %p: BIP_Listener_Accept returned hSocket %p" BIP_MSG_PRE_ARG, hHttpServer, hHttpServer->listener.hSocket));
+             BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpServer %p: BIP_Listener_Accept returned hSocket %p" BIP_MSG_PRE_ARG, (void *)hHttpServer, (void *)hHttpServer->listener.hSocket));
          }
          else
          {
              /* No new connection available to accept at this time, we remain in the same state! */
              BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpServer %p: BIP_Listener_Accept returned nothing, no new connection available at this time"
-                         BIP_MSG_PRE_ARG, hHttpServer ));
+                         BIP_MSG_PRE_ARG, (void *)hHttpServer ));
          }
      }
 
@@ -312,7 +308,7 @@ void processHttpServerState_Listener(
              {
                  /* Ran into an error while starting to recv request, clean up. */
                  BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpServer %p, hHttpServerSocket %p: Destroying ServerSocket object & EXIT "
-                             BIP_MSG_PRE_ARG, hHttpServer, hHttpServerSocket ));
+                             BIP_MSG_PRE_ARG, (void *)hHttpServer, (void *)hHttpServerSocket ));
                  BIP_HttpServerSocket_Destroy(hHttpServer, hHttpServerSocket);
                  hHttpServerSocket = NULL;
              }
@@ -332,8 +328,8 @@ void processHttpServerState_Listener(
                  if ( hHttpServer->stats.numConcurrentRequestsQueued >= hHttpServer->startSettings.maxConcurrentRequestsToQueue )
                  {
                      hHttpServer->listener.state = BIP_HttpServerListenerState_eRequestQueueFull;
-                     BDBG_WRN(( BIP_MSG_PRE_FMT "hHttpServer %p: httpServerListenerState %s: Request Queue is now Full: Queued %u, Total: accepted %lld, ReqRcvd %lld"
-                                 BIP_MSG_PRE_ARG, hHttpServer, BIP_HTTP_SERVER_LISTENER_STATE(hHttpServer->listener.state), hHttpServer->stats.numConcurrentRequestsQueued, hHttpServer->stats.numAcceptedConnections, hHttpServer->stats.numRcvdRequests ));
+                     BDBG_WRN(( BIP_MSG_PRE_FMT "hHttpServer %p: httpServerListenerState %s: Request Queue is now Full: Queued %u, Total: accepted %u, ReqRcvd %u"
+                                 BIP_MSG_PRE_ARG, (void *)hHttpServer, BIP_HTTP_SERVER_LISTENER_STATE(hHttpServer->listener.state), hHttpServer->stats.numConcurrentRequestsQueued, hHttpServer->stats.numAcceptedConnections, hHttpServer->stats.numRcvdRequests ));
                  }
              }
          }
@@ -342,19 +338,19 @@ void processHttpServerState_Listener(
              /* Memory allocation failed, destroy the bip socket! */
              BIP_Socket_Destroy( hHttpServer->listener.hSocket );
              hHttpServer->listener.hSocket = NULL;
-             BDBG_ERR(( BIP_MSG_PRE_FMT "hHttpServer %p: Failed to allocate memory (%d bytes) for HttpServerSocket Object, Destroyed the incoming BIP_Socket connection"
-                         BIP_MSG_PRE_ARG, hHttpServer, sizeof(BIP_HttpServerSocket) ));
+             BDBG_ERR(( BIP_MSG_PRE_FMT "hHttpServer %p: Failed to allocate memory (%zu bytes) for HttpServerSocket Object, Destroyed the incoming BIP_Socket connection"
+                         BIP_MSG_PRE_ARG, (void *)hHttpServer, sizeof(BIP_HttpServerSocket) ));
          }
      } /* SUCCESS case */
      else if (completionStatus == BIP_INF_IN_PROGRESS)
      {
          BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpServer %p: httpServerListenerState %s: nothing to accept at this time! "
-                     BIP_MSG_PRE_ARG, hHttpServer, BIP_HTTP_SERVER_LISTENER_STATE(hHttpServer->listener.state)));
+                     BIP_MSG_PRE_ARG, (void *)hHttpServer, BIP_HTTP_SERVER_LISTENER_STATE(hHttpServer->listener.state)));
      }
      else
      {
          BDBG_ERR(( BIP_MSG_PRE_FMT "hHttpServer %p: httpServerListenerState %s: Error in ListeningState, we keep listening!, completionStatus 0x%x "
-                     BIP_MSG_PRE_ARG, hHttpServer, BIP_HTTP_SERVER_LISTENER_STATE(hHttpServer->listener.state), completionStatus ));
+                     BIP_MSG_PRE_ARG, (void *)hHttpServer, BIP_HTTP_SERVER_LISTENER_STATE(hHttpServer->listener.state), completionStatus ));
      }
 
      /*
@@ -395,15 +391,15 @@ void processHttpServerState_Listener(
              {
                  /* Just need to log the error for now */
                  BDBG_ERR((BIP_MSG_PRE_FMT "hHttpServer %p: state %s: ERROR: BIP_Listener_SetSettings Failed: completionStatus 0x%x"
-                             BIP_MSG_PRE_ARG, hHttpServer, BIP_HTTP_SERVER_START_STATE(hHttpServer->startState), completionStatus ));
+                             BIP_MSG_PRE_ARG, (void *)hHttpServer, BIP_HTTP_SERVER_START_STATE(hHttpServer->startState), completionStatus ));
              }
          }
          BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpServer %p: BIP_Listener Settings, httpServerState %s, connectedCallback %s, updated %s"
-                     BIP_MSG_PRE_ARG, hHttpServer, BIP_HTTP_SERVER_START_STATE(hHttpServer->startState),
+                     BIP_MSG_PRE_ARG, (void *)hHttpServer, BIP_HTTP_SERVER_START_STATE(hHttpServer->startState),
                      hHttpServer->listener.callbackState ? "Enabled":"Disabled", updateSettings? "Yes":"No"));
      }
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpServer:state %p: %s : EXIT   <-----" BIP_MSG_PRE_ARG, hHttpServer, BIP_HTTP_SERVER_LISTENER_STATE(hHttpServer->listener.state)));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpServer:state %p: %s : EXIT   <-----" BIP_MSG_PRE_ARG, (void *)hHttpServer, BIP_HTTP_SERVER_LISTENER_STATE(hHttpServer->listener.state)));
 } /* processHttpServerState_Listener */
 
 void processHttpServerState(
@@ -472,7 +468,7 @@ void processHttpServerState(
     {
         reRunProcessState = false;
         BDBG_MSG(( BIP_MSG_PRE_FMT "ENTRY ---> hHttpServer %p: state %s, hHttpServerSocket %p: threadOrigin %d "
-                    BIP_MSG_PRE_ARG, hHttpServer, BIP_HTTP_SERVER_START_STATE(hHttpServer->startState), hHttpServerSocket , threadOrigin ));
+                    BIP_MSG_PRE_ARG, (void *)hHttpServer, BIP_HTTP_SERVER_START_STATE(hHttpServer->startState), (void *)hHttpServerSocket , threadOrigin ));
         /*
          ***************************************************************************************************************
          * First, we check API Arbs to see if state processing is being run thru any of these APIs.
@@ -489,7 +485,7 @@ void processHttpServerState(
             hHttpServer->completionStatus = BIP_SUCCESS;
             /* We are done this API Arb, so set its completion status. */
             BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpServer %p: GetSettings Arb request is complete: state %s!"
-                        BIP_MSG_PRE_ARG, hHttpServer, BIP_HTTP_SERVER_START_STATE(hHttpServer->startState) ));
+                        BIP_MSG_PRE_ARG, (void *)hHttpServer, BIP_HTTP_SERVER_START_STATE(hHttpServer->startState) ));
             BIP_Arb_CompleteRequest( hHttpServer->getSettingsApi.hArb, hHttpServer->completionStatus);
         }
         else if (BIP_Arb_IsNew(hArb = hHttpServer->setSettingsApi.hArb))
@@ -514,7 +510,7 @@ void processHttpServerState(
             }
 
             BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpServer %p: SetSettings Arb request is complete : state %s!"
-                        BIP_MSG_PRE_ARG, hHttpServer, BIP_HTTP_SERVER_START_STATE(hHttpServer->startState) ));
+                        BIP_MSG_PRE_ARG, (void *)hHttpServer, BIP_HTTP_SERVER_START_STATE(hHttpServer->startState) ));
             hHttpServer->completionStatus = BIP_SUCCESS;
             BIP_Arb_CompleteRequest( hHttpServer->setSettingsApi.hArb, hHttpServer->completionStatus);
         }
@@ -524,7 +520,7 @@ void processHttpServerState(
             if (hHttpServer->startState != BIP_HttpServerStartState_eReadyToStart)
             {
                 BDBG_ERR(( BIP_MSG_PRE_FMT "hServer %p: Calling BIP_Arb_RejectRequest(): BIP_HttpServer_Start not allowed in this state: %s, BIP_HttpServer_SetSettings() must be called to set the Server settings!"
-                            BIP_MSG_PRE_ARG, hHttpServer, BIP_HTTP_SERVER_START_STATE(hHttpServer->startState)));
+                            BIP_MSG_PRE_ARG, (void *)hHttpServer, BIP_HTTP_SERVER_START_STATE(hHttpServer->startState)));
                 hHttpServer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
                 BIP_Arb_RejectRequest(hArb, hHttpServer->completionStatus);
             }
@@ -540,7 +536,7 @@ void processHttpServerState(
                 hHttpServer->startSettings = hHttpServer->startApi.settings;
 
                 BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpServer %p: Accepted _Start Arb: state %s!"
-                            BIP_MSG_PRE_ARG, hHttpServer, BIP_HTTP_SERVER_START_STATE(hHttpServer->startState) ));
+                            BIP_MSG_PRE_ARG, (void *)hHttpServer, BIP_HTTP_SERVER_START_STATE(hHttpServer->startState) ));
 
                 /* Start dtcp/ip server if enabled. */
                 if (hHttpServer->startSettings.enableDtcpIp)
@@ -571,7 +567,7 @@ void processHttpServerState(
                 BIP_Arb_CompleteRequest( hHttpServer->startApi.hArb, hHttpServer->completionStatus);
 
                 BIP_CHECK_GOTO(( hHttpServer->completionStatus == BIP_SUCCESS ),
-                        ( "hHttpServer %p, state %s: status %s, Failed to Start the HttpServer", hHttpServer, BIP_HTTP_SERVER_START_STATE(hHttpServer->startState), BIP_StatusGetText(hHttpServer->completionStatus)),
+                        ( "hHttpServer %p, state %s: status %s, Failed to Start the HttpServer", (void *)hHttpServer, BIP_HTTP_SERVER_START_STATE(hHttpServer->startState), BIP_StatusGetText(hHttpServer->completionStatus)),
                         error, hHttpServer->completionStatus, hHttpServer->completionStatus );
 
                 /* We have successfully started the BIP_Listener at this point, so we switch to the Started state! */
@@ -582,7 +578,7 @@ void processHttpServerState(
                               BIP_MSG_PRE_ARG, BIP_HTTP_SERVER_PRINTF_ARG(hHttpServer)));
 
                 BIP_MSG_SUM(( BIP_MSG_PRE_FMT "hHttpServer %p, state %s: BIP_HttpServer Started on Port %s -----<>"
-                              BIP_MSG_PRE_ARG, hHttpServer, BIP_HTTP_SERVER_START_STATE(hHttpServer->startState), hHttpServer->startSettings.pPort));
+                              BIP_MSG_PRE_ARG, (void *)hHttpServer, BIP_HTTP_SERVER_START_STATE(hHttpServer->startState), hHttpServer->startSettings.pPort));
             }
         }
         else if (BIP_Arb_IsNew(hArb = hHttpServer->stopApi.hArb))
@@ -590,7 +586,7 @@ void processHttpServerState(
             if (hHttpServer->startState != BIP_HttpServerStartState_eStarted)
             {
                 BDBG_ERR(( BIP_MSG_PRE_FMT "hHttpServer %p: Calling BIP_Arb_RejectRequest(): BIP_HttpServer_Sttop not allowed in this state: %s, we must be in BIP_HttpServerStartState_eStarted state! "
-                            BIP_MSG_PRE_ARG, hHttpServer, BIP_HTTP_SERVER_START_STATE(hHttpServer->startState)));
+                            BIP_MSG_PRE_ARG, (void *)hHttpServer, BIP_HTTP_SERVER_START_STATE(hHttpServer->startState)));
                 hHttpServer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
                 BIP_Arb_RejectRequest(hArb, hHttpServer->completionStatus);
             }
@@ -602,7 +598,7 @@ void processHttpServerState(
                 BIP_Arb_AcceptRequest(hArb);
 
                 BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpServer %p: Accepted _Stop Arb: state %s!"
-                            BIP_MSG_PRE_ARG, hHttpServer, BIP_HTTP_SERVER_START_STATE(hHttpServer->startState) ));
+                            BIP_MSG_PRE_ARG, (void *)hHttpServer, BIP_HTTP_SERVER_START_STATE(hHttpServer->startState) ));
                 /*
                  * We may have associated httpServerSockets either in the RcvdRequest state or
                  * in SendingResponse or later states (streaming etc.).
@@ -613,7 +609,7 @@ void processHttpServerState(
                  */
                 hHttpServer->completionStatus = BIP_Listener_Stop( hHttpServer->listener.hListener );
                 BIP_Arb_CompleteRequest( hHttpServer->stopApi.hArb, hHttpServer->completionStatus);
-                BIP_CHECK_GOTO(( hHttpServer->completionStatus == BIP_SUCCESS ), ( "hHttpServer %p, state %s: BIP_Listener_Stop Failed", hHttpServer, BIP_HTTP_SERVER_START_STATE(hHttpServer->startState) ),
+                BIP_CHECK_GOTO(( hHttpServer->completionStatus == BIP_SUCCESS ), ( "hHttpServer %p, state %s: BIP_Listener_Stop Failed", (void *)hHttpServer, BIP_HTTP_SERVER_START_STATE(hHttpServer->startState) ),
                     error, hHttpServer->completionStatus, hHttpServer->completionStatus );
 
                 stopDtcpIpServer(hHttpServer);
@@ -622,7 +618,7 @@ void processHttpServerState(
                 hHttpServer->startState = BIP_HttpServerStartState_eReadyToStart;
 
                 BIP_MSG_SUM(( BIP_MSG_PRE_FMT "hHttpServer %p, state %s: BIP_HttpServer Stopped on Port %s -----<>"
-                              BIP_MSG_PRE_ARG, hHttpServer, BIP_HTTP_SERVER_START_STATE(hHttpServer->startState), hHttpServer->startSettings.pPort));
+                              BIP_MSG_PRE_ARG, (void *)hHttpServer, BIP_HTTP_SERVER_START_STATE(hHttpServer->startState), hHttpServer->startSettings.pPort));
             }
         }
         else if (BIP_Arb_IsNew(hArb = hHttpServer->recvRequestApi.hArb))
@@ -632,7 +628,7 @@ void processHttpServerState(
                 /* should we allow recvReq if we have them in the pending list even though server has been stopped!? */
             {
                 BDBG_ERR(( BIP_MSG_PRE_FMT "hHttpServer %p: Calling BIP_Arb_RejectRequest(): BIP_HttpServer_RecvRequest() is not allowed in this state: %s (May need to call BIP_HttpServer_Start() first!"
-                            BIP_MSG_PRE_ARG, hHttpServer, BIP_HTTP_SERVER_START_STATE(hHttpServer->startState)));
+                            BIP_MSG_PRE_ARG, (void *)hHttpServer, BIP_HTTP_SERVER_START_STATE(hHttpServer->startState)));
                 hHttpServer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
                 BIP_Arb_RejectRequest(hArb, hHttpServer->completionStatus);
             }
@@ -650,7 +646,7 @@ void processHttpServerState(
                  * So run the recvRequestApi related state machine.
                  */
                 BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpServer %p: Accepted RecvRequest Arb request: state %s"
-                            BIP_MSG_PRE_ARG, hHttpServer, BIP_HTTP_SERVER_START_STATE(hHttpServer->startState) ));
+                            BIP_MSG_PRE_ARG, (void *)hHttpServer, BIP_HTTP_SERVER_START_STATE(hHttpServer->startState) ));
                 processHttpServerState_RecvRequestArb( hHttpServer );
             }
         }
@@ -659,7 +655,7 @@ void processHttpServerState(
             if ( hHttpServer->startState != BIP_HttpServerStartState_eStarted )
             {
                 BDBG_ERR(( BIP_MSG_PRE_FMT "hHttpServer %p: Calling BIP_Arb_RejectRequest(): BIP_HttpServer_RejectRequest() not allowed in this state: %s "
-                            BIP_MSG_PRE_ARG, hHttpServer, BIP_HTTP_SERVER_START_STATE(hHttpServer->startState)));
+                            BIP_MSG_PRE_ARG, (void *)hHttpServer, BIP_HTTP_SERVER_START_STATE(hHttpServer->startState)));
                 hHttpServer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
                 BIP_Arb_RejectRequest(hArb, hHttpServer->completionStatus );
             }
@@ -677,7 +673,7 @@ void processHttpServerState(
                 if ( hHttpServerSocket == NULL )
                 {
                     BDBG_ERR(( BIP_MSG_PRE_FMT "hHttpServer %p: hHttpServerSocket is NULL, invalid API sequence!"
-                                BIP_MSG_PRE_ARG, hHttpServer ));
+                                BIP_MSG_PRE_ARG, (void *)hHttpServer ));
                     hHttpServer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
                     BIP_Arb_RejectRequest( hArb, hHttpServer->completionStatus );
                 }
@@ -689,7 +685,7 @@ void processHttpServerState(
                     BIP_Arb_AcceptRequest(hArb);
                     hHttpServer->completionStatus = BIP_INF_IN_PROGRESS;
                     BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpServer:state %p:%s: Accepted AbortResponse Arb request, hHttpServerSocket:state %p"
-                                BIP_MSG_PRE_ARG, hHttpServer, BIP_HTTP_SERVER_START_STATE(hHttpServer->startState), hHttpServerSocket ));
+                                BIP_MSG_PRE_ARG, (void *)hHttpServer, BIP_HTTP_SERVER_START_STATE(hHttpServer->startState), (void *)hHttpServerSocket ));
                     /* This request will be further processed in the processHttpServerSocket state below! */
                 }
             }
@@ -716,13 +712,13 @@ void processHttpServerState(
 
                 hHttpServer->completionStatus = BIP_SUCCESS;
                 BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpServer %p: BIP_HttpServer_CreateStreamer Arb request is complete : hHttpStreamer %p"
-                            BIP_MSG_PRE_ARG, hHttpServer, *hHttpServer->createStreamerApi.hHttpStreamer ));
+                            BIP_MSG_PRE_ARG, (void *)hHttpServer, (void *)*hHttpServer->createStreamerApi.hHttpStreamer ));
             }
             else
             {
                 hHttpServer->completionStatus = BIP_ERR_OUT_OF_SYSTEM_MEMORY;
                 BDBG_ERR(( BIP_MSG_PRE_FMT "hHttpServer %p: BIP_HttpServer_CreateStreamer Failed "
-                            BIP_MSG_PRE_ARG, hHttpServer ));
+                            BIP_MSG_PRE_ARG, (void *)hHttpServer ));
             }
 
             BIP_Arb_CompleteRequest( hHttpServer->createStreamerApi.hArb, hHttpServer->completionStatus);
@@ -732,7 +728,7 @@ void processHttpServerState(
             BIP_Arb_AcceptRequest(hArb);
 
             BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpServer %p: BIP_HttpServer_DestroyStreamer Arb request is accepted : hHttpStreamer %p"
-                        BIP_MSG_PRE_ARG, hHttpServer, hHttpServer->destroyStreamerApi.hHttpStreamer ));
+                        BIP_MSG_PRE_ARG, (void *)hHttpServer, (void *)hHttpServer->destroyStreamerApi.hHttpStreamer ));
 
             /* Destroy the Streamer */
             BLST_Q_REMOVE( &hHttpServer->httpStreamerListHead, hHttpServer->destroyStreamerApi.hHttpStreamer, httpStreamerListNext);
@@ -754,7 +750,7 @@ void processHttpServerState(
             if ( hHttpServer->startState != BIP_HttpServerStartState_eStarted )
             {
                 BDBG_ERR(( BIP_MSG_PRE_FMT "hHttpServer %p: Calling BIP_Arb_RejectRequest(): BIP_HttpServer_StartStreamer() Api not allowed in this state: %s "
-                            BIP_MSG_PRE_ARG, hHttpServer, BIP_HTTP_SERVER_START_STATE(hHttpServer->startState)));
+                            BIP_MSG_PRE_ARG, (void *)hHttpServer, BIP_HTTP_SERVER_START_STATE(hHttpServer->startState)));
                 hHttpServer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
                 BIP_Arb_RejectRequest(hArb, hHttpServer->completionStatus );
             }
@@ -769,8 +765,8 @@ void processHttpServerState(
 
                 if ( hHttpServerSocket == NULL )
                 {
-                    BDBG_ERR(( BIP_MSG_PRE_FMT "hHttpServer %p: hHttpServerSocket is %s NULL, BIP_HttpServer_StartStreamer() invoked in correct sequence!"
-                                BIP_MSG_PRE_ARG, hHttpServer, hHttpServerSocket ));
+                    BDBG_ERR(( BIP_MSG_PRE_FMT "hHttpServer %p: hHttpServerSocket is %p NULL, BIP_HttpServer_StartStreamer() invoked in correct sequence!"
+                                BIP_MSG_PRE_ARG, (void *)hHttpServer, (void *)hHttpServerSocket ));
                     hHttpServer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
                     BIP_Arb_RejectRequest( hArb, hHttpServer->completionStatus );
                 }
@@ -784,7 +780,7 @@ void processHttpServerState(
                     hHttpServerSocket->hHttpStreamer = hHttpServer->startStreamerApi.hHttpStreamer;
                     hHttpServerSocket->completionStatus = BIP_INF_IN_PROGRESS;
                     BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpServer:state %p:%s: hHttpStreamer %p: Accepted StartStreamer Arb request"
-                                BIP_MSG_PRE_ARG, hHttpServer, BIP_HTTP_SERVER_START_STATE(hHttpServer->startState), hHttpServerSocket->hHttpStreamer));
+                                BIP_MSG_PRE_ARG, (void *)hHttpServer, BIP_HTTP_SERVER_START_STATE(hHttpServer->startState), (void *)hHttpServerSocket->hHttpStreamer));
                 }
             }
         }
@@ -804,7 +800,7 @@ void processHttpServerState(
 
             hHttpServer->completionStatus = BIP_HttpStreamer_Stop( hHttpServer->stopStreamerApi.hHttpStreamer);
             hHttpServer->stats.numStoppedStreamers++;
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer %p: Streamer is Stopped" BIP_MSG_PRE_ARG, hHttpServer->stopStreamerApi.hHttpStreamer));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpStreamer %p: Streamer is Stopped" BIP_MSG_PRE_ARG, (void *)hHttpServer->stopStreamerApi.hHttpStreamer));
             BIP_Arb_CompleteRequest( hHttpServer->stopStreamerApi.hArb, hHttpServer->completionStatus);
         }
         else if (BIP_Arb_IsNew(hArb = hHttpServer->destroyApi.hArb))
@@ -816,7 +812,7 @@ void processHttpServerState(
             BIP_Arb_AcceptRequest(hArb);
 
             hHttpServerSocket = NULL;
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpServer %p: BIP_HttpServer_Destroy() in progress..." BIP_MSG_PRE_ARG, hHttpServer ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hHttpServer %p: BIP_HttpServer_Destroy() in progress..." BIP_MSG_PRE_ARG, (void *)hHttpServer ));
         }
 
         /*
@@ -853,7 +849,7 @@ error:
     } /* while reRunProcessState */
 
     BDBG_MSG(( BIP_MSG_PRE_FMT "Finished Processing HTTP State for hHttpServer %p: state %s"
-            BIP_MSG_PRE_ARG, hHttpServer, BIP_HTTP_SERVER_START_STATE(hHttpServer->startState) ));
+            BIP_MSG_PRE_ARG, (void *)hHttpServer, BIP_HTTP_SERVER_START_STATE(hHttpServer->startState) ));
 
     /*
      * Done with state processing. We have to unlock state machine before issuing callbacks!
@@ -867,7 +863,7 @@ error:
     brc = BIP_Arb_DoDeferred( hHttpServer->recvRequestApi.hArb, threadOrigin );
     BDBG_ASSERT( brc == BIP_SUCCESS );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "EXIT <--- hHttpServer %p" BIP_MSG_PRE_ARG, hHttpServer ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "EXIT <--- hHttpServer %p" BIP_MSG_PRE_ARG, (void *)hHttpServer ));
     return;
 }
 

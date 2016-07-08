@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -11,7 +11,7 @@
  * Software and all intellectual property rights therein.  IF YOU HAVE NO
  * AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
  * AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
- * SOFTWARE.  
+ * SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
@@ -70,45 +70,12 @@ void Camera::MakeProjectionMatrix(Mat4 *proj) const
    if (m_type == Camera::eORTHOGRAPHIC)
    {
       float xFov = XFovOrtho();
-      *proj = Ortho(-xFov * 0.5f, xFov * 0.5f, -m_yFov * 0.5f, m_yFov * 0.5f, 
+      *proj = Ortho(-xFov * 0.5f, xFov * 0.5f, -m_yFov * 0.5f, m_yFov * 0.5f,
                     m_nearClippingPlane, m_farClippingPlane);
    }
    else if (m_type == Camera::ePERSPECTIVE)
    {
       *proj = Perspective(m_yFov, m_aspectRatio, m_nearClippingPlane, m_farClippingPlane);
-   }
-}
-
-static float lerp(float s, float e, float a)
-{
-   return s * (1.0f - a) + e * a;
-}
-
-void Camera::MakeQuadProjectionMatrix(Mat4 *proj, float left, float right, float bottom, float top, float quadAspect) const
-{
-   if (m_type == Camera::eORTHOGRAPHIC)
-   {
-      float tb = m_yFov * 0.5f;
-      float lr = tb * m_aspectRatio;
-
-      float l = lerp(-lr, lr, left);
-      float r = lerp(-lr, lr, right);
-      float b = lerp(-tb, tb, bottom);
-      float t = lerp(-tb, tb, top);
-
-      *proj = Ortho(l, r, b, t, m_nearClippingPlane, m_farClippingPlane);
-   }
-   else if (m_type == Camera::ePERSPECTIVE)
-   {
-      float tb = m_nearClippingPlane * tan(0.5f * m_yFov * DEGTORAD);
-      float lr = tb * m_aspectRatio * quadAspect;
-
-      float l = lerp(-lr, lr, left);
-      float r = lerp(-lr, lr, right);
-      float b = lerp(-tb, tb, bottom);
-      float t = lerp(-tb, tb, top);
-
-      *proj = Frustum(l, r, b, t, m_nearClippingPlane, m_farClippingPlane);
    }
 }
 
@@ -136,7 +103,7 @@ void Camera::MakeLeftEyeProjectionMatrix(Mat4 *proj) const
    if (m_type == Camera::eORTHOGRAPHIC)
    {
       float xFov = XFovOrtho();
-      *proj = Ortho(-xFov * 0.5f, xFov * 0.5f, -m_yFov * 0.5f, m_yFov * 0.5f, 
+      *proj = Ortho(-xFov * 0.5f, xFov * 0.5f, -m_yFov * 0.5f, m_yFov * 0.5f,
                     m_nearClippingPlane, m_farClippingPlane);
    }
    else if (m_type == Camera::ePERSPECTIVE)
@@ -161,7 +128,7 @@ void Camera::MakeRightEyeProjectionMatrix(Mat4 *proj) const
    if (m_type == Camera::eORTHOGRAPHIC)
    {
       float xFov = XFovOrtho();
-      *proj = Ortho(-xFov * 0.5f, xFov * 0.5f, -m_yFov * 0.5f, m_yFov * 0.5f, 
+      *proj = Ortho(-xFov * 0.5f, xFov * 0.5f, -m_yFov * 0.5f, m_yFov * 0.5f,
                      m_nearClippingPlane, m_farClippingPlane);
    }
    else if (m_type == Camera::ePERSPECTIVE)
@@ -230,10 +197,6 @@ void Camera::GetViewVolume(ViewVolume *frustumPtr) const
 
    // TODO: This view volume is based on a whole screen viewport.  By rights it should
    // use the viewport to adjust the view volume.
-   // The qa factor is used to compensate for a non square viewport when in quad mode
-   // with NxM, N>M tiles.
-
-   float qa = Application::Instance()->GetQuadRender().GetAspectXoverY();
 
    ViewVolume &frustum = *frustumPtr;
 
@@ -241,17 +204,16 @@ void Camera::GetViewVolume(ViewVolume *frustumPtr) const
    {
       float yFov2 = m_yFov * 0.5f;
       float xFov2 = XFovOrtho() * 0.5f;
-      float one   = 1.0f * qa;
 
-      frustum[ViewVolume::eLEFT]   = Plane( one,   0.0f,  0.0f, xFov2, true);
-      frustum[ViewVolume::eRIGHT]  = Plane(-one,   0.0f,  0.0f, xFov2, true);
+      frustum[ViewVolume::eLEFT]   = Plane( 1.0f,  0.0f,  0.0f, xFov2, true);
+      frustum[ViewVolume::eRIGHT]  = Plane(-1.0f,  0.0f,  0.0f, xFov2, true);
       frustum[ViewVolume::eBOTTOM] = Plane( 0.0f,  1.0f,  0.0f, yFov2, true);
       frustum[ViewVolume::eTOP]    = Plane( 0.0f, -1.0f,  0.0f, yFov2, true);
    }
    else
    {
       float yFov2 = tan(m_yFov * 0.5f * DEGTORAD) * m_nearClippingPlane;
-      float xFov2 = yFov2 * m_aspectRatio * qa;
+      float xFov2 = yFov2 * m_aspectRatio;
 
       float farOverNear = m_farClippingPlane / m_nearClippingPlane;
 

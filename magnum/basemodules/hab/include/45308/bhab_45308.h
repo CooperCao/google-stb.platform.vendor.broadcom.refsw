@@ -1,21 +1,41 @@
 /***************************************************************************
- *     Copyright (c) 2003-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * [File Description:]
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ***************************************************************************/
 #ifndef _BHAB_45308_H_
@@ -247,60 +267,6 @@ BERR_Code BHAB_45308_GetDefaultSettings(
 
 /***************************************************************************
 Summary:
-   This function returns the handle to the flash done event.
-Description:
-   The flash done event is set when the flash sector write operation that
-   was initiated by BHAB_45308_WriteFlashSector() has completed.
-Returns:
-   BERR_Code
-See Also:
-   BHAB_45308_WriteFlashSector()
-****************************************************************************/
-BERR_Code BHAB_45308_GetFlashEventHandle(
-   BHAB_Handle handle,            /* [in] BHAB handle */
-   BKNI_EventHandle *hEvent       /* [out] flash operation done event handle */
-);
-
-
-/***************************************************************************
-Summary:
-   This function programs a given sector in flash.
-Description:
-   This function starts writing a specified sector in flash.  This function
-   will return before the sector has been written.  The flash event will be
-   set when the sector programming has completed.
-Returns:
-   BERR_Code
-See Also:
-   BHAB_45308_GetFlashEventHandle()
-****************************************************************************/
-BERR_Code BHAB_45308_WriteFlashSector(
-   BHAB_Handle h,     /* [in] BHAB handle */
-   uint32_t    addr,  /* [in] sector address in flash to program */
-   uint8_t     *pData /* [in] pointer to 4KB buffer containing data to program to flash sector */
-);
-
-
-/***************************************************************************
-Summary:
-   This function reads the flash.
-Description:
-   This function reads the flash.
-Returns:
-   BERR_Code
-See Also:
-   BHAB_45308_WriteFlashSector()
-****************************************************************************/
-BERR_Code BHAB_45308_ReadFlash(
-   BHAB_Handle h,    /* [in] BHAB handle */
-   uint32_t    addr, /* [in] offset in flash */
-   uint32_t    n,    /* [in] number of bytes to read */
-   uint8_t     *pBuf /* [out] bytes read from flash */
-);
-
-
-/***************************************************************************
-Summary:
    This function transmits the given string from the 45308 LEAP UART.
 Description:
    This function transmits the given string from the 45308 LEAP UART.
@@ -317,22 +283,6 @@ BERR_Code BHAB_45308_PrintUart(
 
 /***************************************************************************
 Summary:
-   This function selects the CPU from which the UART is routed.
-Description:
-   This function selects the CPU from which the UART is routed.
-Returns:
-   BERR_Code
-See Also:
-   none
-****************************************************************************/
-BERR_Code BHAB_45308_SelectUart(
-   BHAB_Handle h,    /* [in] BHAB handle */
-   bool bLeap        /* false=AVS CPU, true=LEAP */
-);
-
-
-/***************************************************************************
-Summary:
    This function initializes the first 32-bit word of an HAB command.
 Description:
    This function initializes the first 32-bit word of an HAB command.
@@ -343,6 +293,45 @@ See Also:
 ****************************************************************************/
 uint32_t BHAB_45308_InitHeader(uint8_t cmd, uint8_t chn, uint8_t dir, uint8_t module);
 
+
+/***************************************************************************
+Summary:
+   This function generates an I2C write transaction from the master I2C controller.
+Description:
+   This function generates an I2C write transaction from the master I2C controller.
+Returns:
+   BERR_Code
+See Also:
+   BHAB_Open()
+****************************************************************************/
+BERR_Code BHAB_45308_BscWrite(
+   BHAB_Handle h,        /* [in] BHAB handle */
+   uint8_t channel,      /* [in] BSC channel, 0=BSCA, 1=BSCB, 2=BSCC */
+   uint16_t slave_addr,  /* [in] for 7-bit address: bits[6:0]; for 10-bit address: bits[9:0], bit 15 is set  */
+   uint8_t *i2c_buf,     /* [in] specifies the data to transmit */
+   uint32_t n            /* [in] number of bytes to transmit after the i2c slave address, 0 to 8 */
+);
+
+
+/***************************************************************************
+Summary:
+   This function generates an I2C read transaction from the master I2C controller.
+Description:
+   This function generates an I2C read transaction from the master I2C controller.
+Returns:
+   BERR_Code
+See Also:
+   BHAB_Open()
+****************************************************************************/
+BERR_Code BHAB_45308_BscRead(
+   BHAB_Handle h,        /* [in] BHAB handle */
+   uint8_t channel,      /* [in] BSC channel, 0=BSCA, 1=BSCB, 2=BSCC */
+   uint16_t slave_addr,  /* [in] for 7-bit address: bits[6:0]; for 10-bit address: bits[9:0], bit 15 is set  */
+   uint8_t *out_buf,     /* [in] specifies the data to transmit before the i2c restart condition */
+   uint8_t out_n,        /* [in] number of bytes to transmit (<=8) before the i2c restart condition not including the i2c slave address */
+   uint8_t *in_buf,      /* [out] stores the data read */
+   uint32_t in_n         /* [in] number of bytes to read after the i2c restart condition */
+);
 
 #ifdef __cplusplus
 }

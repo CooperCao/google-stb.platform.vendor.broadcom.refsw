@@ -1,51 +1,41 @@
 /******************************************************************************
- *    (c)2008-2013 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
- *****************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ ******************************************************************************/
+
 #include "namevalue.h"
 #include "nexus_types.h"
 #if NEXUS_HAS_TRANSPORT
@@ -124,7 +114,11 @@ const namevalue_t g_videoFormatStrs[] = {
 const namevalue_t g_videoFrameRateStrs[] = {
     {"0",      NEXUS_VideoFrameRate_eUnknown},
     {"7.493",  NEXUS_VideoFrameRate_e7_493},
+    {"7.5",    NEXUS_VideoFrameRate_e7_5},
+    {"9.99",   NEXUS_VideoFrameRate_e9_99},
     {"10",     NEXUS_VideoFrameRate_e10},
+    {"11.988",  NEXUS_VideoFrameRate_e11_988},
+    {"12",     NEXUS_VideoFrameRate_e12},
     {"12.5",   NEXUS_VideoFrameRate_e12_5},
     {"14.985", NEXUS_VideoFrameRate_e14_985},
     {"15",     NEXUS_VideoFrameRate_e15},
@@ -245,6 +239,7 @@ const namevalue_t g_audioCodecStrs[] = {
     {"mp3", NEXUS_AudioCodec_eMp3},
     {"ac3", NEXUS_AudioCodec_eAc3},
     {"ac3plus", NEXUS_AudioCodec_eAc3Plus},
+    {"ac4", NEXUS_AudioCodec_eAc4},
     {"aac", NEXUS_AudioCodec_eAac},
     {"aac_loas", NEXUS_AudioCodec_eAacLoas},
     {"aacplus", NEXUS_AudioCodec_eAacPlus},
@@ -281,6 +276,7 @@ const namevalue_t g_audioCodecStrs[] = {
     {"isac", NEXUS_AudioCodec_eIsac},
     {"opus", NEXUS_AudioCodec_eOpus},
 	{"als", NEXUS_AudioCodec_eAls},
+	{"ac4", NEXUS_AudioCodec_eAc4},
     {"none", NEXUS_AudioCodec_eUnknown},
     {NULL, 0}
 };
@@ -514,6 +510,17 @@ const namevalue_t g_colorSpaceStrs[] = {
     {NULL, 0}
 };
 
+const namevalue_t g_matrixCoeffStrs[] = {
+    {"709", NEXUS_MatrixCoefficients_eItu_R_BT_709},
+    {"bt709", NEXUS_MatrixCoefficients_eItu_R_BT_709},
+    {"2020", NEXUS_MatrixCoefficients_eItu_R_BT_2020_NCL},
+    {"bt2020", NEXUS_MatrixCoefficients_eItu_R_BT_2020_NCL},
+    {"2020ncl", NEXUS_MatrixCoefficients_eItu_R_BT_2020_NCL},
+    {"2020cl", NEXUS_MatrixCoefficients_eItu_R_BT_2020_CL},
+    {"input", NEXUS_MatrixCoefficients_eMax},
+    {NULL, 0}
+};
+
 const namevalue_t g_audioLoudnessStrs[] = {
 	{"none", NEXUS_AudioLoudnessEquivalenceMode_eNone},
 	{"atsc", NEXUS_AudioLoudnessEquivalenceMode_eAtscA85},
@@ -523,13 +530,15 @@ const namevalue_t g_audioLoudnessStrs[] = {
 
 const namevalue_t g_videoEotfStrs[] = {
 	{"sdr", NEXUS_VideoEotf_eSdr},
-	{"hdr-gamma", NEXUS_VideoEotf_eHdr},
-	{"gmhdr", NEXUS_VideoEotf_eHdr},
-	{"pqhdr", NEXUS_VideoEotf_eSmpteSt2084},
-	{"smpte2084", NEXUS_VideoEotf_eSmpteSt2084},
-	{"smpte", NEXUS_VideoEotf_eSmpteSt2084},
-	{"2084", NEXUS_VideoEotf_eSmpteSt2084},
-	{"future", NEXUS_VideoEotf_eFuture},
+	{"hdr10", NEXUS_VideoEotf_eHdr10},
+	{"pqhdr", NEXUS_VideoEotf_eHdr10},
+	{"smpte2084", NEXUS_VideoEotf_eHdr10},
+	{"smpte", NEXUS_VideoEotf_eHdr10},
+	{"2084", NEXUS_VideoEotf_eHdr10},
+	{"hlg", NEXUS_VideoEotf_eHlg},
+	{"aribb67", NEXUS_VideoEotf_eHlg},
+	{"arib", NEXUS_VideoEotf_eHlg},
+	{"b67", NEXUS_VideoEotf_eHlg},
 	{"input", NEXUS_VideoEotf_eMax},
 	{NULL, 0}
 };
@@ -637,6 +646,7 @@ struct {
    {NEXUS_AudioCodec_eAacPlusLoas, baudio_format_aac_plus_loas},
    {NEXUS_AudioCodec_eAc3, baudio_format_ac3},
    {NEXUS_AudioCodec_eAc3Plus, baudio_format_ac3_plus},
+   {NEXUS_AudioCodec_eAc4, baudio_format_ac4},
    {NEXUS_AudioCodec_eDts, baudio_format_dts},
    {NEXUS_AudioCodec_eDtsHd, baudio_format_dts_hd},
    {NEXUS_AudioCodec_eDtsLegacy, baudio_format_dts_cd},
@@ -661,7 +671,8 @@ struct {
    {NEXUS_AudioCodec_eMlp, baudio_format_mlp},
    {NEXUS_AudioCodec_eG711, baudio_format_g711},
    {NEXUS_AudioCodec_eOpus, baudio_format_opus},
-   {NEXUS_AudioCodec_eAls,	baudio_format_als}
+   {NEXUS_AudioCodec_eAls,	baudio_format_als},
+   {NEXUS_AudioCodec_eAc4,	baudio_format_ac4}
 };
 
 const namevalue_t g_audioChannelModeStrs[] = {

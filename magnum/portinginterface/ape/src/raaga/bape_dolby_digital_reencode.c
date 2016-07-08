@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2010 Broadcom Corporation
-*  
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -9,44 +9,36 @@
 *  Software, and Broadcom expressly reserves all rights in and to the Software and all
 *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
 *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.  
-*   
+*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*
 *  Except as expressly set forth in the Authorized License,
-*   
+*
 *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
 *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
 *  and to use this information only in connection with your use of Broadcom integrated circuit products.
-*   
-*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS" 
-*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR 
-*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO 
-*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES 
-*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE, 
-*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION 
-*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF 
+*
+*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
 *  USE OR PERFORMANCE OF THE SOFTWARE.
-*  
-*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS 
-*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR 
-*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR 
-*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF 
-*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT 
-*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE 
-*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF 
+*
+*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
-* 
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
 *
 * API Description:
 *   API name: DolbyDigitalReencode
 *    Specific APIs related to Dolby Digital Reencoding used in Dolby MS11
 *
-* Revision History:
-*
-* $brcm_Log: $
-* 
 ***************************************************************************/
 
 #include "bape.h"
@@ -56,6 +48,7 @@
 BDBG_MODULE(bape_ddre);
 
 BDBG_OBJECT_ID(BAPE_DolbyDigitalReencode);
+
 
 typedef struct BAPE_DolbyDigitalReencode
 {
@@ -68,8 +61,15 @@ typedef struct BAPE_DolbyDigitalReencode
     BDSP_StageHandle hRendererStage, hTranscodeStage;
     BAPE_DolbyMSVersion version;
     BAPE_DolbyMs12Config config;
-
     BAPE_Handle deviceHandle;
+
+    /* multi-device architecture */
+    bool encoderTaskRequired;
+    bool encoderMixerRequired;
+    unsigned encoderDeviceIndex;
+    BDSP_TaskHandle hEncoderTask;
+    BDSP_StageHandle hMixerStage;
+    bool taskStarted;
 } BAPE_DolbyDigitalReencode;
 
 static BERR_Code BAPE_DolbyDigitalReencode_P_InputFormatChange(struct BAPE_PathNode *pNode, struct BAPE_PathConnection *pConnection, const BAPE_FMT_Descriptor *pNewFormat);
@@ -178,6 +178,8 @@ BERR_Code BAPE_DolbyDigitalReencode_Create(
     BERR_Code errCode;
     BDSP_StageCreateSettings stageCreateSettings;
     BDSP_Algorithm encodeAlgo, rendererAlgo;
+    BDSP_ContextHandle bdspEncoderContext = NULL;
+    BDSP_ContextHandle bdspRendererContext = NULL;
 
     BDBG_OBJECT_ASSERT(deviceHandle, BAPE_Device);
     BDBG_ASSERT(NULL != pHandle);
@@ -187,7 +189,7 @@ BERR_Code BAPE_DolbyDigitalReencode_Create(
         pSettings = &defaults;
         BAPE_DolbyDigitalReencode_GetDefaultSettings(&defaults);
     }
-    
+
     handle = BKNI_Malloc(sizeof(BAPE_DolbyDigitalReencode));
     if ( NULL == handle )
     {
@@ -225,7 +227,7 @@ BERR_Code BAPE_DolbyDigitalReencode_Create(
     handle->node.connectors[BAPE_ConnectorFormat_eMultichannel].pName = "multichannel";
     handle->node.connectors[BAPE_ConnectorFormat_eMultichannel].useBufferPool = true;
     handle->node.connectors[BAPE_ConnectorFormat_eCompressed].pName = "compressed";
-    handle->node.connectors[BAPE_ConnectorFormat_eCompressed].useBufferPool = true;    
+    handle->node.connectors[BAPE_ConnectorFormat_eCompressed].useBufferPool = true;
     if (handle->version == BAPE_DolbyMSVersion_eMS12)
     {
         handle->node.connectors[BAPE_ConnectorFormat_eCompressed4x].pName = "compressed4x";
@@ -301,21 +303,93 @@ BERR_Code BAPE_DolbyDigitalReencode_Create(
         rendererAlgo = BDSP_Algorithm_eDdre;
     }
 
+    if ( handle->version == BAPE_DolbyMSVersion_eMS12 )
+    {
+        if ( pSettings->encoderTaskRequired )
+        {
+            handle->encoderTaskRequired = true;
+            handle->encoderMixerRequired = pSettings->encoderMixerRequired;
+            handle->encoderDeviceIndex = pSettings->encoderDeviceIndex;
+        }
+    }
+
+    if ( handle->encoderTaskRequired )
+    {
+        BDSP_TaskCreateSettings taskCreateSettings;
+        BDSP_StageCreateSettings stageCreateSettings;
+
+        if ( handle->encoderDeviceIndex <= BAPE_CHIP_DSP_LAST && deviceHandle->dspContext != NULL )
+        {
+            bdspEncoderContext = deviceHandle->dspContext;
+        }
+        else if ( handle->encoderDeviceIndex <= BAPE_CHIP_ARM_LAST && deviceHandle->armContext != NULL )
+        {
+            bdspEncoderContext = deviceHandle->armContext;
+        }
+        else
+        {
+            BDBG_ERR(("Invalid BDSP device index %lu, or context not available - Raaga (%p), Arm (%p). Use %lu to %lu for Raaga and %lu to %lu for Arm.",
+                      (unsigned long)handle->encoderDeviceIndex, (void*)deviceHandle->dspContext, (void*)deviceHandle->armContext,
+                      (unsigned long)BAPE_CHIP_DSP_FIRST, (unsigned long)BAPE_CHIP_DSP_LAST,
+                      (unsigned long)BAPE_CHIP_ARM_FIRST, (unsigned long)BAPE_CHIP_ARM_LAST));
+            errCode = BERR_TRACE(BERR_INVALID_PARAMETER);
+            goto err_task_create;
+        }
+        /* create mixer task for dsp n */
+        BDSP_Task_GetDefaultCreateSettings(bdspEncoderContext, &taskCreateSettings);
+        taskCreateSettings.masterTask = true;
+        taskCreateSettings.numSrc = 3;
+        taskCreateSettings.dspIndex = handle->encoderDeviceIndex;
+        errCode = BDSP_Task_Create(bdspEncoderContext, &taskCreateSettings, &handle->hEncoderTask);
+        if ( errCode )
+        {
+            errCode = BERR_TRACE(errCode);
+            goto err_task_create;
+        }
+
+        if ( handle->encoderMixerRequired )
+        {
+            BDSP_Stage_GetDefaultCreateSettings(bdspEncoderContext, BDSP_AlgorithmType_eAudioMixer, &stageCreateSettings);
+            BKNI_Memset(&stageCreateSettings.algorithmSupported, 0, sizeof(stageCreateSettings.algorithmSupported));
+            stageCreateSettings.algorithmSupported[BAPE_P_GetCodecMixer()] = true;
+            errCode = BDSP_Stage_Create(bdspEncoderContext, &stageCreateSettings, &handle->hMixerStage);
+            if ( errCode )
+            {
+                errCode = BERR_TRACE(errCode);
+                goto err_mixer_stage;
+            }
+
+            errCode = BDSP_Stage_SetAlgorithm(handle->hMixerStage, BAPE_P_GetCodecMixer());
+            if ( errCode )
+            {
+                errCode = BERR_TRACE(errCode);
+                goto err_mixer_stage;
+            }
+        }
+    }
+    else
+    {
+        bdspEncoderContext = deviceHandle->dspContext;
+    }
+
+    /* renderer is always on the dsp for now */
+    bdspRendererContext = deviceHandle->dspContext;
+
     /* Create Stages */
-    BDSP_Stage_GetDefaultCreateSettings(deviceHandle->dspContext, BDSP_AlgorithmType_eAudioProcessing, &stageCreateSettings);
+    BDSP_Stage_GetDefaultCreateSettings(bdspRendererContext, BDSP_AlgorithmType_eAudioProcessing, &stageCreateSettings);
     BKNI_Memset(&stageCreateSettings.algorithmSupported, 0, sizeof(stageCreateSettings.algorithmSupported));
     stageCreateSettings.algorithmSupported[rendererAlgo] = true;
-    errCode = BDSP_Stage_Create(deviceHandle->dspContext, &stageCreateSettings, &handle->hRendererStage);
+    errCode = BDSP_Stage_Create(bdspRendererContext, &stageCreateSettings, &handle->hRendererStage);
     if ( errCode )
     {
         errCode = BERR_TRACE(errCode);
         goto err_stage_create;
     }
 
-    BDSP_Stage_GetDefaultCreateSettings(deviceHandle->dspContext, BDSP_AlgorithmType_eAudioEncode, &stageCreateSettings);
+    BDSP_Stage_GetDefaultCreateSettings(bdspEncoderContext, BDSP_AlgorithmType_eAudioEncode, &stageCreateSettings);
     BKNI_Memset(&stageCreateSettings.algorithmSupported, 0, sizeof(stageCreateSettings.algorithmSupported));
     stageCreateSettings.algorithmSupported[encodeAlgo] = true;
-    errCode = BDSP_Stage_Create(deviceHandle->dspContext, &stageCreateSettings, &handle->hTranscodeStage);
+    errCode = BDSP_Stage_Create(bdspEncoderContext, &stageCreateSettings, &handle->hTranscodeStage);
     if ( errCode )
     {
         errCode = BERR_TRACE(errCode);
@@ -325,6 +399,8 @@ BERR_Code BAPE_DolbyDigitalReencode_Create(
     *pHandle = handle;
     return BERR_SUCCESS;
 
+err_mixer_stage:
+err_task_create:
 err_stage_create:
 err_connector_format:
 err_caps:
@@ -339,13 +415,28 @@ void BAPE_DolbyDigitalReencode_Destroy(
     BDBG_OBJECT_ASSERT(handle, BAPE_DolbyDigitalReencode);
     BDBG_ASSERT(false == BAPE_PathNode_P_IsActive(&handle->node));
     BDBG_ASSERT(NULL == handle->input);
+
+    if (handle->hMixerStage)
+    {
+        BDSP_Stage_Destroy(handle->hMixerStage);
+        handle->hMixerStage = NULL;
+    }
+
+    if (handle->hEncoderTask)
+    {
+        BDSP_Task_Destroy(handle->hEncoderTask);
+        handle->hEncoderTask = NULL;
+    }
+
     if ( handle->hRendererStage )
     {
         BDSP_Stage_Destroy(handle->hRendererStage);
+        handle->hRendererStage = NULL;
     }
     if ( handle->hTranscodeStage )
     {
         BDSP_Stage_Destroy(handle->hTranscodeStage);
+        handle->hTranscodeStage = NULL;
     }
     BDBG_OBJECT_DESTROY(handle, BAPE_DolbyDigitalReencode);
     BKNI_Free(handle);
@@ -550,7 +641,9 @@ static BERR_Code BAPE_DolbyDigitalReencode_P_AllocatePathFromInput(struct BAPE_P
     BDBG_ASSERT(NULL != pConnection->pSource->hStage);
     handle = pNode->pHandle;
     BDBG_OBJECT_ASSERT(handle, BAPE_DolbyDigitalReencode);
-    errCode = BDSP_Stage_AddOutputStage(pConnection->pSource->hStage, 
+
+    /* connect upstream -> Renderer */
+    errCode = BDSP_Stage_AddOutputStage(pConnection->pSource->hStage,
                                         BAPE_DSP_P_GetDataTypeFromConnector(handle->input),
                                         handle->hRendererStage,
                                         &output, &input);
@@ -558,23 +651,173 @@ static BERR_Code BAPE_DolbyDigitalReencode_P_AllocatePathFromInput(struct BAPE_P
     {
         return BERR_TRACE(errCode);
     }
+
+    /* Set PCM connections to source data from Renderer */
     pNode->connectors[BAPE_ConnectorFormat_eStereo].hStage = handle->hRendererStage;
     pNode->connectors[BAPE_ConnectorFormat_eMultichannel].hStage = handle->hRendererStage;
-    
+
     /* Determine number of outputs on compressed connector */
     BAPE_PathNode_P_GetOutputStatus(pNode, &handle->outputStatus);
     /* If we have at least one compressed consumer, add the transcoder */
     if ( BAPE_DolbyDigitalReencode_P_Has4xCompressedOutput(handle) ||
          BAPE_DolbyDigitalReencode_P_HasCompressedOutput(handle) )
     {
-        errCode = BDSP_Stage_AddOutputStage(handle->hRendererStage,
-                                            BDSP_DataType_eDolbyTranscodeData,
-                                            handle->hTranscodeStage,
-                                            &output, &input);
+#define BAPE_DSP_TRANSCODE_TYPE_FOR_INTERTASK   1
+        if ( handle->encoderTaskRequired )
+        {
+            unsigned index, input, output;
+            /* connect renderer -> intertask buffer -> mixer */
+            BDBG_MSG(("Multiple Device Architecture - Create Intertask buffer DspDataType %d", BAPE_FMT_P_GetDspDataType_isrsafe(&pConnection->pSource->format)));
+            errCode = BDSP_InterTaskBuffer_Create(handle->deviceHandle->dspContext,
+                                                  #if BAPE_DSP_TRANSCODE_TYPE_FOR_INTERTASK
+                                                  BDSP_DataType_eDolbyTranscodeData,
+                                                  #else
+                                                  BAPE_DSP_P_GetDataTypeFromConnector(pConnection->pSource),
+                                                  #endif
+                                                  BDSP_BufferType_eRDB,
+                                                  &pConnection->hInterTaskBuffer);
+            if ( errCode )
+            {
+                return BERR_TRACE(errCode);
+            }
+
+            /* BDSP_InterTaskBuffer_Flush(pConnection->hInterTaskBuffer); */
+
+            /* render -> intertask */
+            BDBG_MSG(("Multiple Device Architecture - connect Render -> Intertask"));
+            #if BAPE_DSP_TRANSCODE_TYPE_FOR_INTERTASK
+            errCode = BDSP_Stage_AddInterTaskBufferOutput(handle->hRendererStage, BDSP_DataType_eDolbyTranscodeData, pConnection->hInterTaskBuffer, &index);
+            #else
+            errCode = BDSP_Stage_AddInterTaskBufferOutput(handle->hRendererStage, BAPE_DSP_P_GetDataTypeFromConnector(pConnection->pSource), pConnection->hInterTaskBuffer, &index);
+            #endif
+            if ( errCode )
+            {
+                BERR_TRACE(errCode);
+                goto err_intertask;
+            }
+            if ( handle->encoderMixerRequired )
+            {
+                /* intertask -> mixer */
+                BDBG_MSG(("Multiple Device Architecture - connect Intertask -> Mixer"));
+                #if BAPE_DSP_TRANSCODE_TYPE_FOR_INTERTASK
+                errCode = BDSP_Stage_AddInterTaskBufferInput(handle->hMixerStage, BDSP_DataType_eDolbyTranscodeData, pConnection->hInterTaskBuffer, &index);
+                #else
+                errCode = BDSP_Stage_AddInterTaskBufferInput(handle->hMixerStage, BAPE_DSP_P_GetDataTypeFromConnector(pConnection->pSource), pConnection->hInterTaskBuffer, &index);
+                #endif
+                if ( errCode )
+                {
+                    BERR_TRACE(errCode);
+                    goto err_intertask;
+                }
+
+                /* mixer -> transcoder */
+                BDBG_MSG(("Multiple Device Architecture - connect Mixer -> Transcoder"));
+                #if BAPE_DSP_TRANSCODE_TYPE_FOR_INTERTASK
+                errCode = BDSP_Stage_AddOutputStage(handle->hMixerStage, BDSP_DataType_eDolbyTranscodeData, handle->hTranscodeStage, &output, &input);
+                #else
+                errCode = BDSP_Stage_AddOutputStage(handle->hMixerStage, BAPE_DSP_P_GetDataTypeFromConnector(pConnection->pSource), handle->hTranscodeStage, &output, &input);
+                #endif
+                if ( errCode )
+                {
+                    BERR_TRACE(errCode);
+                    goto err_stage;
+                }
+            }
+            else
+            {
+                /* intertask -> transcoder */
+                BDBG_MSG(("Multiple Device Architecture - connect Intertask -> Transcoder"));
+                #if BAPE_DSP_TRANSCODE_TYPE_FOR_INTERTASK
+                errCode = BDSP_Stage_AddInterTaskBufferInput(handle->hTranscodeStage, BDSP_DataType_eDolbyTranscodeData, pConnection->hInterTaskBuffer, &index);
+                #else
+                errCode = BDSP_Stage_AddInterTaskBufferInput(handle->hTranscodeStage, BAPE_DSP_P_GetDataTypeFromConnector(pConnection->pSource), pConnection->hInterTaskBuffer, &index);
+                #endif
+                if ( errCode )
+                {
+                    BERR_TRACE(errCode);
+                    goto err_intertask;
+                }
+            }
+        }
+        else /* MS11, Single Raaga Mode */
+        {
+            errCode = BDSP_Stage_AddOutputStage(handle->hRendererStage,
+                                                BDSP_DataType_eDolbyTranscodeData,
+                                                handle->hTranscodeStage,
+                                                &output, &input);
+            if ( errCode )
+            {
+                BERR_TRACE(errCode);
+                goto err_stage_connections;
+            }
+        }
         pNode->connectors[BAPE_ConnectorFormat_eCompressed].hStage = handle->hTranscodeStage;
         if ( handle->version == BAPE_DolbyMSVersion_eMS12 )
         {
             pNode->connectors[BAPE_ConnectorFormat_eCompressed4x].hStage = handle->hTranscodeStage;
+        }
+
+        errCode = BAPE_DolbyDigitalReencode_P_ApplyDspSettings(handle);
+        if ( errCode )
+        {
+            BERR_TRACE(errCode);
+            goto err_apply_settings;
+        }
+
+        if ( handle->encoderTaskRequired )
+        {
+            BDSP_TaskStartSettings taskStartSettings;
+
+            /* Prepare subnodes */
+            errCode = BAPE_PathNode_P_AcquirePathResources(&handle->node);
+            if ( errCode )
+            {
+                errCode = BERR_TRACE(errCode);
+                goto err_acquire_resources;
+            }
+
+            /* Link the path resources */
+            errCode = BAPE_PathNode_P_ConfigurePathResources(&handle->node);
+            if ( errCode )
+            {
+                errCode = BERR_TRACE(errCode);
+                goto err_config_path;
+            }
+
+            /* Start the consumers */
+            errCode = BAPE_PathNode_P_StartPaths(&handle->node);
+            if ( errCode )
+            {
+                errCode = BERR_TRACE(errCode);
+                goto err_start_path;
+            }
+
+            /* Setup Task and Start */
+            BDSP_Task_GetDefaultStartSettings(handle->hEncoderTask, &taskStartSettings);
+            if ( handle->encoderMixerRequired )
+            {
+                taskStartSettings.primaryStage = handle->hMixerStage;
+            }
+            else
+            {
+                taskStartSettings.primaryStage = handle->hTranscodeStage;
+            }
+            taskStartSettings.openGateAtStart = false;
+            taskStartSettings.timeBaseType = BDSP_AF_P_TimeBaseType_e45Khz;
+            taskStartSettings.schedulingMode = BDSP_TaskSchedulingMode_eStandalone;
+            taskStartSettings.maxIndependentDelay = handle->deviceHandle->settings.maxIndependentDelay;
+            taskStartSettings.gateOpenReqd = false; /* tells the BDSP task whether or not to start the FMM outputs during task start */
+
+            /* Start the DSP Task */
+            BDBG_MSG(("Multiple Device Architecture - Starting Mixer/Encoder task"));
+            errCode = BDSP_Task_Start(handle->hEncoderTask, &taskStartSettings);
+            if ( errCode )
+            {
+                BERR_TRACE(errCode);
+                goto err_task_start;
+            }
+
+            handle->taskStarted = true;
         }
     }
     errCode = BAPE_DolbyDigitalReencode_P_ApplyDspSettings(handle);
@@ -583,6 +826,27 @@ static BERR_Code BAPE_DolbyDigitalReencode_P_AllocatePathFromInput(struct BAPE_P
         return BERR_TRACE(errCode);
     }
     return BERR_SUCCESS;
+
+err_task_start:
+err_start_path:
+err_config_path:
+err_acquire_resources:
+    BAPE_PathNode_P_ReleasePathResources(&handle->node);
+err_apply_settings:
+err_stage_connections:
+err_stage:
+err_intertask:
+    if (pConnection->hInterTaskBuffer)
+    {
+        if ( handle->hMixerStage )
+        {
+            BDSP_Stage_RemoveAllInputs(handle->hMixerStage);
+        }
+        BDSP_Stage_RemoveAllOutputs(handle->hRendererStage);
+        BDSP_InterTaskBuffer_Destroy(pConnection->hInterTaskBuffer);
+        pConnection->hInterTaskBuffer = NULL;
+    }
+    return errCode;
 }
 
 static void BAPE_DolbyDigitalReencode_P_ApplyAc3DecoderSettings(
@@ -644,6 +908,31 @@ static void BAPE_DolbyDigitalReencode_P_ApplyAacDecoderSettings(
     ddreSettings->drcScaleLow = pSettings->drcScaleLow;
     ddreSettings->drcScaleHiDownmix = pSettings->drcScaleHi;
     ddreSettings->drcScaleLowDownmix = pSettings->drcScaleLow;
+}
+
+static void BAPE_DolbyDigitalReencode_P_ApplyAc4DecoderSettings(
+    BAPE_DolbyDigitalReencodeHandle handle,
+    BAPE_DolbyDigitalReencodeSettings *ddreSettings,
+    const BAPE_Ac4Settings *pSettings)
+{
+    BDBG_ASSERT(NULL != ddreSettings);
+    BDBG_ASSERT(NULL != pSettings);
+    BDBG_MSG(("Applying master decoder AC4 settings"));
+    BDBG_CASSERT((int)BAPE_DolbyDrcMode_eLine==(int)BAPE_DolbyDigitalReencodeDrcMode_eLine);
+    BDBG_CASSERT((int)BAPE_DolbyDrcMode_eRf==(int)BAPE_DolbyDigitalReencodeDrcMode_eRf);
+    ddreSettings->drcMode = pSettings->drcMode;
+    ddreSettings->drcModeDownmix = pSettings->drcModeDownmix;
+    ddreSettings->dualMonoMode = handle->masterDecoder->settings.dualMonoMode;
+    switch ( pSettings->stereoMode )
+    {
+    default:
+    case BAPE_DolbyStereoMode_eLtRt:
+        ddreSettings->stereoMode = BAPE_DolbyDigitalReencodeStereoMode_eLtRt;
+        break;
+    case BAPE_DolbyStereoMode_eLoRo:
+        ddreSettings->stereoMode = BAPE_DolbyDigitalReencodeStereoMode_eLoRo;
+        break;
+    }
 }
 
 #if BDSP_MS12_SUPPORT
@@ -752,6 +1041,18 @@ static void BAPE_DolbyDigitalReencode_P_TranslateDdreToBdspSettings(
     BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sMultiChannelOutputPort[0].ui32DrcBoost, ddreSettings->drcScaleLow);
     BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sStereoDownmixedPort.ui32DrcCut, ddreSettings->drcScaleHiDownmix);
     BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sStereoDownmixedPort.ui32DrcBoost, ddreSettings->drcScaleLowDownmix);
+
+    /* if Config A MS12, but the encoder only has legacy compressed consumer, limit PCMR output to 6 chs */
+    if ( BAPE_P_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eMS12 &&
+         BAPE_P_GetDolbyMS12Config() == BAPE_DolbyMs12Config_eA &&
+         BAPE_DolbyDigitalReencode_P_Has4xCompressedOutput(handle) )
+    {
+        BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), ui32NumRawMcChannels, 8);
+    }
+    else
+    {
+        BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), ui32NumRawMcChannels, 6);
+    }
 }
 #else
 static void BAPE_DolbyDigitalReencode_P_TranslateDdreToBdspSettings(
@@ -938,7 +1239,7 @@ static BERR_Code BAPE_DolbyDigitalReencode_P_ApplyDspSettings(BAPE_DolbyDigitalR
             externalPcmMode = true;
         }
     }
-    else 
+    else
     {
         bool msDecoder=false;
         BAVC_AudioCompressionStd codec;
@@ -946,6 +1247,7 @@ static BERR_Code BAPE_DolbyDigitalReencode_P_ApplyDspSettings(BAPE_DolbyDigitalR
         codec = handle->masterDecoder->startSettings.codec;
         switch ( codec )
         {
+        case BAVC_AudioCompressionStd_eAc4:
         case BAVC_AudioCompressionStd_eAc3:
         case BAVC_AudioCompressionStd_eAc3Plus:
         case BAVC_AudioCompressionStd_eAacAdts:
@@ -987,6 +1289,10 @@ static BERR_Code BAPE_DolbyDigitalReencode_P_ApplyDspSettings(BAPE_DolbyDigitalR
             BAPE_DecoderCodecSettings decoderSettings;
             BAPE_Decoder_GetCodecSettings(handle->masterDecoder, handle->masterDecoder->startSettings.codec, &decoderSettings);
             /* Would prefer a switch statement but coverity will flag dead code based on the msdecoder flag. */
+            if ( codec == BAVC_AudioCompressionStd_eAc4 )
+            {
+                BAPE_DolbyDigitalReencode_P_ApplyAc4DecoderSettings(handle, &localRendererSettings, &decoderSettings.codecSettings.ac4);
+            }
             if ( codec == BAVC_AudioCompressionStd_eAc3 )
             {
                 BAPE_DolbyDigitalReencode_P_ApplyAc3DecoderSettings(handle, &localRendererSettings, &decoderSettings.codecSettings.ac3);
@@ -1022,7 +1328,7 @@ static BERR_Code BAPE_DolbyDigitalReencode_P_ApplyDspSettings(BAPE_DolbyDigitalR
     {
         return BERR_TRACE(errCode);
     }
-    
+
     if ( BAPE_DolbyDigitalReencode_P_HasCompressedOutput(handle) )
     {
         errCode = BDSP_Stage_GetSettings(handle->hTranscodeStage, &encodeStageSettings, sizeof(encodeStageSettings));
@@ -1037,7 +1343,7 @@ static BERR_Code BAPE_DolbyDigitalReencode_P_ApplyDspSettings(BAPE_DolbyDigitalR
         BAPE_DSP_P_SET_VARIABLE(encodeStageSettings, eTranscodeEnable, handle->settings.encodeSettings.certificationMode ? BDSP_AF_P_eDisable : BDSP_AF_P_eEnable);
         BAPE_DSP_P_SET_VARIABLE(encodeStageSettings, eSpdifHeaderEnable, handle->settings.encodeSettings.spdifHeaderEnabled ? BDSP_AF_P_eEnable : BDSP_AF_P_eDisable);
         #endif
-    
+
         errCode = BDSP_Stage_SetSettings(handle->hTranscodeStage, &encodeStageSettings, sizeof(encodeStageSettings));
         if ( errCode )
         {
@@ -1050,15 +1356,47 @@ static BERR_Code BAPE_DolbyDigitalReencode_P_ApplyDspSettings(BAPE_DolbyDigitalR
 
 static void BAPE_DolbyDigitalReencode_P_StopPathFromInput(struct BAPE_PathNode *pNode, struct BAPE_PathConnection *pConnection)
 {
+    BERR_Code errCode;
     BAPE_DolbyDigitalReencodeHandle handle;
     BDBG_OBJECT_ASSERT(pNode, BAPE_PathNode);
     BSTD_UNUSED(pConnection);
     handle = pNode->pHandle;
     BDBG_OBJECT_ASSERT(handle, BAPE_DolbyDigitalReencode);
+
+    /* MDA mode teardown */
+    if ( handle->hEncoderTask && handle->taskStarted )
+    {
+        /* Start the DSP Task */
+        errCode = BDSP_Task_Stop(handle->hEncoderTask);
+        if ( errCode )
+        {
+            BERR_TRACE(errCode);
+        }
+
+        handle->taskStarted = false;
+
+        if ( handle->hMixerStage )
+        {
+            BDSP_Stage_RemoveAllInputs(handle->hMixerStage);
+            BDSP_Stage_RemoveAllOutputs(handle->hMixerStage);
+        }
+
+        /* Stop the consumers */
+        BAPE_PathNode_P_StopPaths(&handle->node);
+    }
+
+    /* MS11, Single Raaga Mode */
     BDSP_Stage_RemoveAllInputs(handle->hRendererStage);
     BDSP_Stage_RemoveAllOutputs(handle->hRendererStage);
     BDSP_Stage_RemoveAllInputs(handle->hTranscodeStage);
     BDSP_Stage_RemoveAllOutputs(handle->hTranscodeStage);
+
+    /* MDA mode teardown */
+    if ( pConnection->hInterTaskBuffer )
+    {
+        BDSP_InterTaskBuffer_Destroy(pConnection->hInterTaskBuffer);
+        pConnection->hInterTaskBuffer = NULL;
+    }
 }
 
 static void BAPE_DolbyDigitalReencode_P_RemoveInputCallback(struct BAPE_PathNode *pNode, BAPE_PathConnector *pConnector)
@@ -1091,7 +1429,7 @@ static void BAPE_DolbyDigitalReencode_P_InputSampleRateChange_isr(struct BAPE_Pa
 }
 
 BERR_Code BAPE_DolbyDigitalReencode_P_SettingsChanged(
-    BAPE_DolbyDigitalReencodeHandle handle, 
+    BAPE_DolbyDigitalReencodeHandle handle,
     BAPE_DecoderHandle decoder
     )
 {
@@ -1124,3 +1462,23 @@ BAPE_MultichannelFormat BAPE_DolbyDigitalReencode_P_GetMultichannelFormat(
     return handle->settings.multichannelFormat;
 }
 
+void * BAPE_DolbyDigitalReencode_P_GetEncoderTaskHandle(
+    BAPE_DolbyDigitalReencodeHandle handle
+    )
+{
+    return (void*)handle->hEncoderTask;
+}
+
+bool BAPE_DolbyDigitalReencode_P_HasCompressedConsumers(
+    BAPE_DolbyDigitalReencodeHandle handle
+    )
+{
+    return BAPE_DolbyDigitalReencode_P_Has4xCompressedOutput(handle) || BAPE_DolbyDigitalReencode_P_HasCompressedOutput(handle);
+}
+
+unsigned BAPE_DolbyDigitalReencode_P_GetDeviceIndex(
+    BAPE_DolbyDigitalReencodeHandle handle
+    )
+{
+    return handle->encoderDeviceIndex;
+}

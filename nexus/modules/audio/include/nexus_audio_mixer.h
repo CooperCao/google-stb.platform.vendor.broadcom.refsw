@@ -1,59 +1,47 @@
-/***************************************************************************
-*     (c)2004-2012 Broadcom Corporation
-*
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
-*  and may only be used, duplicated, modified or distributed pursuant to the terms and
-*  conditions of a separate, written license agreement executed between you and Broadcom
-*  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-*  no license (express or implied), right to use, or waiver of any kind with respect to the
-*  Software, and Broadcom expressly reserves all rights in and to the Software and all
-*  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-*  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-*  Except as expressly set forth in the Authorized License,
-*
-*  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-*  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-*  and to use this information only in connection with your use of Broadcom integrated circuit products.
-*
-*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-*  USE OR PERFORMANCE OF THE SOFTWARE.
-*
-*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-*  ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* API Description:
-*   API name: AudioMixer
-*    APIs for an audio mixer.  Allows one or more inputs to be
-*    connected, and provides input volume control for mixing.
-*
-* Revision History:
-*
-* $brcm_Log: $
-* 
-***************************************************************************/
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
 #ifndef NEXUS_AUDIO_MIXER_H__
 #define NEXUS_AUDIO_MIXER_H__
 
 #include "nexus_types.h"
 #include "nexus_audio_types.h"
+#include "blst_slist.h"
+#include "blst_queue.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -127,10 +115,15 @@ Audio Mixer Settings
 ***************************************************************************/
 typedef struct NEXUS_AudioMixerSettings
 {
-    bool mixUsingDsp;           /* If true, mix contents in the DSP as opposed to the mixer hardware.  
+    bool mixUsingDsp;           /* If true, mix contents in the DSP as opposed to the mixer hardware.
                                    This requires the masterInput field to be set below prior to starting
                                    any input.  This field should be set prior to NEXUS_AudioMixer_Open
                                    and not changed on the fly. */
+
+    bool intermediate;          /* if intermediate is true, an "intermediate" HW mixer will be created,
+                                   to support custom routing through a HW mixer. This allows for special
+                                   usage cases such as decoder/playback->hwMixer->loopback->dsp.
+                                   This field is only valid for HW mixers (ignored if mixUsingDsp=true) */
 
     int multiStreamBalance;     /* If this is a DSP mixer and you are mixing multi-stream content, this
                                    value controls the relative volume between the main and associated
@@ -140,10 +133,10 @@ typedef struct NEXUS_AudioMixerSettings
                                    associated audio. */
 
     unsigned dspIndex;          /* If mixUsingDsp is true, this selects the DSP to use.  When mixing decoder
-                                   inputs from the DSP, all inputs must run on the same DSP as the mixer.  
+                                   inputs from the DSP, all inputs must run on the same DSP as the mixer.
                                    This is not changeable on the fly. */
 
-    NEXUS_AudioInput master;    /* This field will determine what input is deemed to be the master for mixing 
+    NEXUS_AudioInput master;    /* This field will determine what input is deemed to be the master for mixing
                                    purposes.  The master will determine the output timing, and if mixing multi-stream
                                    content such as audio descriptors it will determine the primary trach as opposed to
                                    the description track. */
@@ -210,12 +203,12 @@ NEXUS_Error NEXUS_AudioMixer_SetSettings(
 
 /***************************************************************************
 Summary:
-Start a mixer 
+Start a mixer
 
 Description:
 This call is optional.  By default, mixers will automatically start when
 The first input starts, but if you want to explicitly enable the mixer
-earlier call this function prior to starting any inputs.   Currently, this 
+earlier call this function prior to starting any inputs.   Currently, this
 is only supported if mixUsingDsp is set to true.
 ***************************************************************************/
 NEXUS_Error NEXUS_AudioMixer_Start(
@@ -227,7 +220,7 @@ Summary:
 Stop a mixer
 
 Description:
-This call is required only if you call NEXUS_AudioMixer_Start().  By default, 
+This call is required only if you call NEXUS_AudioMixer_Start().  By default,
 mixers will automatically stop when the last input stops, but if you
 have explicitly started the mixer via NEXUS_AudioMixer_Start() you must call
 this routine to stop it after all inputs have stopped.
@@ -270,9 +263,38 @@ NEXUS_AudioInput NEXUS_AudioMixer_GetConnector(
     NEXUS_AudioMixerHandle mixer
     );
 
+
+typedef struct NEXUS_AudioMixerInputNode
+{
+    NEXUS_AudioMixerInputSettings inputSettings;
+    NEXUS_AudioInput input;
+    BLST_Q_ENTRY(NEXUS_AudioMixerInputNode) inputNode;
+} NEXUS_AudioMixerInputNode;
+
+/***************************************************************************
+Summary:
+    Acquire mixer input volume into a mixer object in nexus
+ ***************************************************************************/
+NEXUS_Error NEXUS_AudioMixer_GetInputSettings(
+    NEXUS_AudioMixerHandle handle,
+    NEXUS_AudioInput input,
+    NEXUS_AudioMixerInputSettings *pSettings
+    );
+
+
+
+/***************************************************************************
+Summary:
+    Propagate mixer input volume into a mixer object in nexus
+ ***************************************************************************/
+NEXUS_Error NEXUS_AudioMixer_SetInputSettings(
+    NEXUS_AudioMixerHandle handle,
+    NEXUS_AudioInput input,
+    const NEXUS_AudioMixerInputSettings *pSettings
+    );
+
 #ifdef __cplusplus
 }
 #endif
 
 #endif /* #ifndef NEXUS_AUDIO_MIXER_H__ */
-

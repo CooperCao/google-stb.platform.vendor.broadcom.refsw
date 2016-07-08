@@ -1,62 +1,88 @@
+/******************************************************************************
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+
+ ******************************************************************************/
 #include <linux/linkage.h>
 #include <linux/init.h>
 #include <asm/assembler.h>
 #include <asm/errno.h>
 
+
 /*
  * ARMv8 Cache Maintenance
  */
 
-/*
- * _dcache_line_size - get the minimum D-cache line size from the CTR register
- * on ARMv7.
-/
-    .macro  _dcache_line_size, reg, tmp
-    mrc p15, 0, \tmp, c0, c0, 1     @ read ctr
-    lsr \tmp, \tmp, #16
-    and \tmp, \tmp, #0xf            @ cache line size encoding
-    mov \reg, #4                    @ bytes per word
-    mov \reg, \reg, lsl \tmp        @ actual cache line size
-    .endm
-*/
-/*
- * dcache_line_size - Gets the D-cache line size from CP15
- *
- * r0: pointer to line size variable
- * r1: pointer to line size shift
- */
-ENTRY(dcache_line_size)
-/*
- UNWIND(.fnstart)
-    _dcache_line_size r2, r3        @ put line size in r2 using r3 as temp
-    str r2, [r0]
-    str r3, [r1]
-    bx lr
- UNWIND(.fnend)
-*/
-ENDPROC(dcache_line_size)
+ENTRY(__brcm_cache_line_size)
+/* ARM Cortex-A53 MPCore Processor Technical Reference Manual */
 
-/*
- * dcache_clean_inval_line - Cleans + invalidates address range from D-cache
- *
- * r0: start address
- */
-ENTRY(dcache_clean_inval_line)
-/*
- UNWIND(.fnstart)
-  USER( mcr p15, 0, r0, c7, c14, 1 )     @ DCCIMVAC
-    mov r0, #0                          @ Clear return code
-    bx lr                               @ Return to caller
-*/
-    /*
-     * Fault handling for the cache operation above. (Label 9001 jumped to by
-     * USER macro.)
+    mrs     x2, ctr_el0         /*  4.3.26. Cache Type Register */
+    ubfm    x2, x2, #16, #19    /* Table 4.59. CTR_EL0 bit assignments */
+    mov     x3, #4              /* word size, yes 32-bit on 64-bit CPU */
+    lsl     x0, x3, x2          /* shift word */
+    ret
+ENDPROC(__brcm_cache_line_size)
+
+ENTRY(brcm_cpu_dcache_flush)
+    /* x0 - addr , x1 size */
+    add     x1, x0, x1          /* x1 - end addr */
+/* ARM Cortex-A53 MPCore Processor Technical Reference Manual */
+
+    mrs     x2, ctr_el0         /* 4.3.26. Cache Type Register */
+    ubfm    x2, x2, #16, #19    /* Table 4.59. CTR_EL0 bit assignments */
+    mov     x3, #4              /* word size, yes 32-bit on 64-bit CPU */
+    lsl     x2, x3, x2          /* shift word */
+    sub     x3, x2, #1          /* make mask */
+    bic     x0, x0, x3          /* align start address */
+
+9002:
+    /* 4.2.5. AArch64 cache maintenance operations
+     * DC CIVAC Data cache clean and invalidate by VA to PoC
      */
-/*
+    USER(9001f, dc civac, x0)
+    add     x0, x0, x2          /* next line */
+    cmp     x0, x1
+    b.lo    9002b
+    dsb     sy                  /*  DSB - Data Synchronization Barrier , SY  - Full system DSB operation. */
+    mov     x0, #0
+    ret
+
+    /* if failed */
 9001:
-    dsb                                 @ Data sync barrier
-    mov r0, #-EFAULT                    @ Set return code
-    bx lr                               @ Return to caller
- UNWIND(.fnend)
-*/
-ENDPROC(dcache_clean_inval_line)
+    mov     x0, #-EFAULT
+    ret
+
+ENDPROC(brcm_cpu_dcache_flush)

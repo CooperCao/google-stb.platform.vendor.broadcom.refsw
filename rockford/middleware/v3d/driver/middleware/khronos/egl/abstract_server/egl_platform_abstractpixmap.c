@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2010 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2010 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -13,12 +13,13 @@ with OpenGL-ES rendering.
 #include "interface/khronos/include/EGL/egl.h"
 #include "interface/khronos/common/khrn_int_image.h"
 #include "interface/khronos/common/khrn_client.h"
+#include "interface/khronos/common/abstract/khrn_client_platform_abstract.h"
 #include "middleware/khronos/common/khrn_image.h"
 
 #include <malloc.h>
 #include <assert.h>
 
-BEGL_BufferHandle BEGLint_PixmapCreateCompatiblePixmap(BEGL_PixmapInfo *pixmapInfo)
+BEGL_BufferHandle BEGLint_PixmapCreateCompatiblePixmap(BEGL_PixmapInfoEXT *pixmapInfo)
 {
    BEGL_BufferSettings bufferSettings;
    BEGL_BufferHandle   buffer = NULL;
@@ -70,23 +71,15 @@ BEGL_BufferHandle BEGLint_PixmapCreateCompatiblePixmap(BEGL_PixmapInfo *pixmapIn
 
    if (bufferSettings.openvg)
    {
-      switch (bufferSettings.colorFormat)
-      {
-         case BEGL_ColorFormat_eLinear:  format |= IMAGE_FORMAT_LIN;                            break;
-         case BEGL_ColorFormat_eSRGB:  /* nothing */                                            break;
-         case BEGL_ColorFormat_eLinear_Pre: format |= (IMAGE_FORMAT_LIN | IMAGE_FORMAT_PRE);    break;
-         case BEGL_ColorFormat_eSRGB_Pre: format |= IMAGE_FORMAT_PRE;                           break;
-         default:
-            UNREACHABLE();
-         break;
-      }
-      format |= IMAGE_FORMAT_OVG;
+      format = abstract_colorformat_to_format(format, bufferSettings.colorFormat);
+      format = khrn_image_to_openvg_format(format);
    }
 
    bufferSettings.usage = BEGL_BufferUsage_ePixmap;
    bufferSettings.format = pixmapInfo->format;
    bufferSettings.width = pixmapInfo->width;
    bufferSettings.height = pixmapInfo->height;
+   bufferSettings.secure = pixmapInfo->secure;
 
    wd = pixmapInfo->width;
    ht = pixmapInfo->height;

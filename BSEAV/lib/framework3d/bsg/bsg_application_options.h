@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -11,7 +11,7 @@
  * Software and all intellectual property rights therein.  IF YOU HAVE NO
  * AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
  * AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
- * SOFTWARE.  
+ * SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
@@ -79,7 +79,7 @@ public:
 
 //! Encapsulates all of the application level options that can be used during initialization of
 //! Application.
-//! 
+//!
 //! The options can be initialized by parsing the standard command line options using ParseCommandLine.
 //! Any overrides your application wants to make should be done after parsing the command line.
 class ApplicationOptions
@@ -89,7 +89,7 @@ public:
 
    //! Parse command line. Any unrecognized arguments will be sent via the extraParser (if given)
    //! for the application to process itself.
-   bool ParseCommandLine(int argc, char **argv, ArgumentParser *extraParser = nullptr);
+   bool ParseCommandLine(int argc, char **argv, ArgumentParser *extraParser = NULL);
 
    //! Tests the argument string for a match against the given str.
    static bool ArgMatch(const char *arg, const char *str);
@@ -113,7 +113,7 @@ public:
    void AddResourcePath(const std::string &path);
 
    //! Shortcut for setting width, height and, optionally, x & y
-   void SetDisplayDimensions(uint32_t w, uint32_t h, int32_t x = 0, int32_t y = 0)  
+   void SetDisplayDimensions(uint32_t w, uint32_t h, int32_t x = 0, int32_t y = 0)
    {
       m_vpW = w;
       m_vpH = h;
@@ -174,17 +174,13 @@ public:
    void SetSwapInterval(uint32_t i) { m_swapInterval = i;               }
    uint32_t GetSwapInterval() const { return m_swapInterval;            }
 
-   //! Turns on stereoscopic display mode. 
+   //! Turns on stereoscopic display mode.
    //! Each scene is rendered twice, once for the left eye, once for the right, and displayed
    //! side-by-side. On a 3DTV, stereo mode is invoked and with appropriate glasses, the depth effect can be seen.
    //!
    //! This mode can also be changed in the live head-up-display.
    void SetStereo(bool set)         { m_stereo = set;                   }
    bool GetStereo() const           { return m_stereo;                  }
-
-   //! Quad display mode (for constructing high-resolution displays on low-res devices)
-   //! Each scene is rendered X x Y times in successive frames.
-   IVec2 GetQuad() const            { return m_quad;                    }
 
    //! Sets the display to stretch the content to fit, rather than displayed a 1:1 pixel ratio.
    void SetStretch(bool set)        { m_stretchToFit = set;             }
@@ -253,7 +249,7 @@ public:
 
    uint32_t GetBandwidth() const    { return m_bandwidth;               }
    uint32_t GetMemFrequency() const { return m_memcFrequency;           }
-   
+
    bool GetNoAutoContext() const    { return m_noAutoContext;           }
    void SetNoAutoContext(bool val)  { m_noAutoContext = val;            }
 
@@ -321,6 +317,12 @@ public:
    void SetFinalAlpha(float colour)       { m_finalAlpha = colour; }
    void SetZOrder(uint32_t order)         { m_zOrder = order;      }
 
+   bool GetConformant() const { return m_conformant; }
+   void SetConformant(bool conformant) { m_conformant = conformant; }
+
+   bool GetSecure() const { return m_secure; }
+   void SetSecure(bool secure) { m_secure = secure; }
+
 private:
    bool ProcessArg(char *arg);
    void PrintUsage(const char *progName, const char *badArg, ArgumentParser *extraParser);
@@ -339,7 +341,6 @@ private:
    bool           m_showRuntime;
    bool           m_perfMonitoring;
    bool           m_stereo;
-   IVec2          m_quad;
    eBSGAPIVersion m_apiVersion;
    bool           m_noAutoContext;
    bool           m_forceHDMI;
@@ -370,6 +371,8 @@ private:
    Vec4           m_bgColour;
    float          m_finalAlpha;
    uint32_t       m_zOrder;
+   bool           m_conformant;
+   bool           m_secure;
 
    std::vector<std::string>   m_resourcePaths;
    std::vector<std::string>   m_defaultResourcePaths;

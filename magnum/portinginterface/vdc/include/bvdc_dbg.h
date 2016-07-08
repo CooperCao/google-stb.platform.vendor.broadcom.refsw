@@ -1,22 +1,42 @@
 /***************************************************************************
- *     Copyright (c) 2006-2014, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description:
  *   This module print out helpful information to debug BVN
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ***************************************************************************/
 #ifndef BVDC_DBG_H__
@@ -29,185 +49,185 @@
 
 /***************************************************************************
 Summary:
-	List of BVN errors.
+    List of BVN errors.
 
 Description:
-	This is the enumerated list of BVN module errors.
+    This is the enumerated list of BVN module errors.
 
 See Also:
 ****************************************************************************/
 typedef enum
 {
-	BVDC_Bvn_eRdc,
-	BVDC_Bvn_eMfd,
-	BVDC_Bvn_eVfd,
-	BVDC_Bvn_eScl,
-	BVDC_Bvn_eDnr,
-	BVDC_Bvn_eMad,
-	BVDC_Bvn_eMvp,
-	BVDC_Bvn_eMcdi,
-	BVDC_Bvn_eMctf,
-	BVDC_Bvn_eHscl,
-	BVDC_Bvn_eCap,
-	BVDC_Bvn_eGfd,
-	BVDC_Bvn_eCmp_V0,
-	BVDC_Bvn_eCmp_V1,
-	BVDC_Bvn_eCmp_G0,
-	BVDC_Bvn_eMaxCount
+    BVDC_Bvn_eRdc,
+    BVDC_Bvn_eMfd,
+    BVDC_Bvn_eVfd,
+    BVDC_Bvn_eScl,
+    BVDC_Bvn_eDnr,
+    BVDC_Bvn_eMad,
+    BVDC_Bvn_eMvp,
+    BVDC_Bvn_eMcdi,
+    BVDC_Bvn_eMctf,
+    BVDC_Bvn_eHscl,
+    BVDC_Bvn_eCap,
+    BVDC_Bvn_eGfd,
+    BVDC_Bvn_eCmp_V0,
+    BVDC_Bvn_eCmp_V1,
+    BVDC_Bvn_eCmp_G0,
+    BVDC_Bvn_eMaxCount
 } BVDC_BvnModule;
 
 typedef struct
 {
-	uint32_t ulNumErr;
+    uint32_t ulNumErr;
 } BVDC_Source_DebugStatus;
 
 typedef struct
 {
-	uint32_t ulNumErr;
+    uint32_t ulNumErr;
     uint32_t ulVsyncCnt; /* Vsync heartbeat */
     uint32_t ulLineNumber; /* Raster line number for non-STG displays. Not applicable for STG-based displays */
 } BVDC_Window_DebugStatus;
 
 typedef struct
 {
-	bool bEnableError;
+    bool bEnableError;
 } BVDC_Scaler_DebugStatus;
 
 BERR_Code BVDC_Dbg_InstallCallback
-	( BVDC_Handle                      hVdc,
-	  const BVDC_CallbackFunc_isr      pfCallback,
-	  void                            *pvParm1,
-	  int                              iParm2 );
+    ( BVDC_Handle                      hVdc,
+      const BVDC_CallbackFunc_isr      pfCallback,
+      void                            *pvParm1,
+      int                              iParm2 );
 
 /***************************************************************************
 Summary:
-	This function clears the BVN error counter.
+    This function clears the BVN error counter.
 
 Description:
 
 Input:
-	hVdc - The VDC handle that application created earlier.
+    hVdc - The VDC handle that application created earlier.
 
 Returns:
     None.
 
 See Also:
-	BVDC_Dbg_GetBvnErrorStatus
+    BVDC_Dbg_GetBvnErrorStatus
 **************************************************************************/
 
 void BVDC_Dbg_ClearBvnError
-	( BVDC_Handle                  hVdc );
+    ( BVDC_Handle                  hVdc );
 
 /***************************************************************************
 Summary:
-	This function prints the accumulated BVN errors that occurred since
-	the system started or since BVDC_Dbg_ClearBvnError was invoked.
+    This function prints the accumulated BVN errors that occurred since
+    the system started or since BVDC_Dbg_ClearBvnError was invoked.
 
 Description:
-	The errors can come from any active BVN component.
+    The errors can come from any active BVN component.
 
 Input:
-	hVdc - The VDC handle that application created earlier.
+    hVdc - The VDC handle that application created earlier.
 
 Returns:
     None.
 
 See Also:
-	BVDC_Dbg_ClearBvnError
+    BVDC_Dbg_ClearBvnError
 **************************************************************************/
 void BVDC_Dbg_GetBvnErrorStatus
-	( BVDC_Handle                  hVdc );
+    ( BVDC_Handle                  hVdc );
 
 /***************************************************************************
 Summary:
-	This function prints the accumulated BVN errors that occurred since
-	the system started or since BVDC_Dbg_ClearBvnError was invoked.
-	This function is safe to call from ISR context.
+    This function prints the accumulated BVN errors that occurred since
+    the system started or since BVDC_Dbg_ClearBvnError was invoked.
+    This function is safe to call from ISR context.
 
 Description:
-	The errors can come from any active BVN component.
+    The errors can come from any active BVN component.
 
 Input:
-	hVdc - The VDC handle that application created earlier.
+    hVdc - The VDC handle that application created earlier.
 
 Returns:
     None.
 
 See Also:
-	BVDC_Dbg_ClearBvnError
+    BVDC_Dbg_ClearBvnError
 **************************************************************************/
 void BVDC_Dbg_GetBvnErrorStatus_isr
-	( BVDC_Handle                  hVdc );
+    ( BVDC_Handle                  hVdc );
 
 /***************************************************************************
 Summary:
-	This function gets a information that would aid in debugging window-based
-	errors.
+    This function gets a information that would aid in debugging window-based
+    errors.
 
 Description:
-	Currently this function returns the number of errors (contained in the
-	struct) that occurred since	the window was created. The errors may come
-	from different BVN modules associated with the given window.
+    Currently this function returns the number of errors (contained in the
+    struct) that occurred since the window was created. The errors may come
+    from different BVN modules associated with the given window.
 
 Input:
-	hWindow - The window handle that application created earlier.
+    hWindow - The window handle that application created earlier.
 
 Output:
-	pDbgInfo - struct that contains the error count
+    pDbgInfo - struct that contains the error count
 
 Returns:
     None.
 
 See Also:
-	BVDC_Window_DebugStatus
+    BVDC_Window_DebugStatus
 **************************************************************************/
 
 void BVDC_Dbg_Window_GetDebugStatus
-	( const BVDC_Window_Handle         hWindow,
-	  BVDC_Window_DebugStatus         *pDbgInfo );
+    ( const BVDC_Window_Handle         hWindow,
+      BVDC_Window_DebugStatus         *pDbgInfo );
 
 /***************************************************************************
 Summary:
-	This function gets a information that would aid in debugging source-based
-	errors.
+    This function gets a information that would aid in debugging source-based
+    errors.
 
 Description:
-	Currently this function returns the number of errors (contained in the
-	struct) that occurred since	the source was created. Source here means
-	that it is one of the available MFD, VFD, or GFD modules.
+    Currently this function returns the number of errors (contained in the
+    struct) that occurred since the source was created. Source here means
+    that it is one of the available MFD, VFD, or GFD modules.
 
 Input:
-	hSource - The source handle that application created earlier.
+    hSource - The source handle that application created earlier.
 
 Output:
-	pDbgInfo - struct that contains the error count
+    pDbgInfo - struct that contains the error count
 
 Returns:
     None.
 
 See Also:
-	BVDC_Source_DebugStatus
+    BVDC_Source_DebugStatus
 **************************************************************************/
 void BVDC_Dbg_Source_GetDebugStatus
-	( const BVDC_Source_Handle         hSource,
-	  BVDC_Source_DebugStatus         *pDbgInfo );
+    ( const BVDC_Source_Handle         hSource,
+      BVDC_Source_DebugStatus         *pDbgInfo );
 
 /***************************************************************************
 Summary:
-	This masks/unmasks a BVN error.
+    This masks/unmasks a BVN error.
 
 Description:
-	By default all BVN errors are unmasked.
+    By default all BVN errors are unmasked.
 
 Input:
-	hVdc - The VDC handle that application created earlier.
+    hVdc - The VDC handle that application created earlier.
     eBvnModule - the BVN module eg., MFD, MFD, SCL, MAD, etc
     ulModuleIdx - the specific BVN module, eg., MFD0, SCL1, etc
                 - Note that this must be an integer
     bMaskOff - this masks or unmasks the given BVN module
 
 Output:
-	pDbgInfo - struct that contains the error count
+    pDbgInfo - struct that contains the error count
 
 Returns:
     BERR_SUCCESS, BERR_INVALID_PARAMETER.
@@ -217,176 +237,176 @@ See Also:
 **************************************************************************/
 
 BERR_Code BVDC_Dbg_MaskBvnErrorCb
-	( BVDC_Handle                  hVdc,
-	  BVDC_BvnModule               eBvnModule,
-	  uint32_t                     ulModuleIdx,
-	  bool                         bMaskOff );
+    ( BVDC_Handle                  hVdc,
+      BVDC_BvnModule               eBvnModule,
+      uint32_t                     ulModuleIdx,
+      bool                         bMaskOff );
 
 
 /***************************************************************************
 Summary:
-	This function gets a source handle.
+    This function gets a source handle.
 
 Description:
-	Get the current active source by id.
+    Get the current active source by id.
 
-	DBG function for VTLib (Video Tool Library) getting vdc handles
-	that was created _bsp_ software that already abstract these handles from
-	VTLib but only expose thru hVdc main handle.  For eId there are eAuto, but
-	these are for the _Create() function.  BVDC_Dbg_GetXXXHandle functions will
-	accept these and treat them as invalid parameter.  If the handle is not
-	active it will return NULL.
+    DBG function for VTLib (Video Tool Library) getting vdc handles
+    that was created _bsp_ software that already abstract these handles from
+    VTLib but only expose thru hVdc main handle.  For eId there are eAuto, but
+    these are for the _Create() function.  BVDC_Dbg_GetXXXHandle functions will
+    accept these and treat them as invalid parameter.  If the handle is not
+    active it will return NULL.
 
-	WARNING: It's expected that APPLICATION/DRIVER does not call of any of these
-	get handle function.  These get handle function only return what the current
-	state VDC.  Caller expted to be VTLib equivalent, and caller must ensure
-	the synchronization between APPLICATION/DRIVER and VTLib.
+    WARNING: It's expected that APPLICATION/DRIVER does not call of any of these
+    get handle function.  These get handle function only return what the current
+    state VDC.  Caller expted to be VTLib equivalent, and caller must ensure
+    the synchronization between APPLICATION/DRIVER and VTLib.
 
 Input:
-	hVdc - The VDC handle that application created earlier.
+    hVdc - The VDC handle that application created earlier.
 
-	eSourceId - Specify what source Id should VDC tries to get. eId must
-	be a valid source id for this chip set.
+    eSourceId - Specify what source Id should VDC tries to get. eId must
+    be a valid source id for this chip set.
 
 Returns:
-	Return current active handle if success.  Otherwise return NULL.
+    Return current active handle if success.  Otherwise return NULL.
 
 See Also:
-	BVDC_Source_Create.
+    BVDC_Source_Create.
 **************************************************************************/
 BVDC_Source_Handle BVDC_Dbg_GetSourceHandle
-	( const BVDC_Handle                hVdc,
-	  BAVC_SourceId                    eSourceId );
+    ( const BVDC_Handle                hVdc,
+      BAVC_SourceId                    eSourceId );
 
 /***************************************************************************
 Summary:
-	This function gets a compositor handle.
+    This function gets a compositor handle.
 
 Description:
-	Get the current active compositor by id.
+    Get the current active compositor by id.
 
 Input:
-	hVdc - The VDC handle that application created earlier.
+    hVdc - The VDC handle that application created earlier.
 
-	eCompositorId - Specify what compositor Id should VDC tries to get.
-	eCompositorId must be a valid compositor id for this chip set.
+    eCompositorId - Specify what compositor Id should VDC tries to get.
+    eCompositorId must be a valid compositor id for this chip set.
 
 Returns:
-	Return current active handle if success.  Otherwise return NULL.
+    Return current active handle if success.  Otherwise return NULL.
 
 See Also:
-	BVDC_Compositor_Create.
+    BVDC_Compositor_Create.
 **************************************************************************/
 BVDC_Compositor_Handle BVDC_Dbg_GetCompositorHandle
-	( const BVDC_Handle                hVdc,
-	  BVDC_CompositorId                eCompositorId );
+    ( const BVDC_Handle                hVdc,
+      BVDC_CompositorId                eCompositorId );
 
 /***************************************************************************
 Summary:
-	This function gets a window handle.
+    This function gets a window handle.
 
 Description:
-	Get the current active window by id.
+    Get the current active window by id.
 
 Input:
-	hVdc - The VDC handle that application created earlier.
+    hVdc - The VDC handle that application created earlier.
 
-	eCompositorId - Specify what compositor Id should VDC tries to get the
-	window from.
+    eCompositorId - Specify what compositor Id should VDC tries to get the
+    window from.
 
-	eWindowId - Specify what compositor Id should VDC tries to get.  eWindowId
-	must be a valid window id for this chip set.
+    eWindowId - Specify what compositor Id should VDC tries to get.  eWindowId
+    must be a valid window id for this chip set.
 
 Returns:
-	Return current active handle if success.  Otherwise return NULL.
+    Return current active handle if success.  Otherwise return NULL.
 
 See Also:
-	BVDC_Window_Create.
+    BVDC_Window_Create.
 **************************************************************************/
 BVDC_Window_Handle BVDC_Dbg_GetWindowHandle
-	( const BVDC_Handle                hVdc,
-	  BVDC_CompositorId                eCompositorId,
-	  BVDC_WindowId                    eWindowId );
+    ( const BVDC_Handle                hVdc,
+      BVDC_CompositorId                eCompositorId,
+      BVDC_WindowId                    eWindowId );
 
 /***************************************************************************
 Summary:
-	This function gets a source handle.
+    This function gets a source handle.
 
 Description:
-	Get the current active source from a given window.
+    Get the current active source from a given window.
 
 Input:
-	hWindow - The VDC handle that application created earlier.
+    hWindow - The VDC handle that application created earlier.
 
 Returns:
-	Return current active handle if success.  Otherwise return NULL.
+    Return current active handle if success.  Otherwise return NULL.
 
 See Also:
-	BVDC_Dbg_GetWindowHandle.
+    BVDC_Dbg_GetWindowHandle.
 **************************************************************************/
 BVDC_Source_Handle BVDC_Dbg_Window_GetSourceHandle
-	( const BVDC_Window_Handle         hWindow );
+    ( const BVDC_Window_Handle         hWindow );
 
 /***************************************************************************
 Summary:
-	This function gets a compositor handle.
+    This function gets a compositor handle.
 
 Description:
-	Get the current active compositor from a given window.
+    Get the current active compositor from a given window.
 
 Input:
-	hWindow - The VDC handle that application created earlier.
+    hWindow - The VDC handle that application created earlier.
 
 Returns:
-	Return current active handle if success.  Otherwise return NULL.
+    Return current active handle if success.  Otherwise return NULL.
 
 See Also:
-	BVDC_Dbg_GetWindowHandle.
+    BVDC_Dbg_GetWindowHandle.
 **************************************************************************/
 BVDC_Compositor_Handle BVDC_Dbg_Window_GetCompositorHandle
-	( const BVDC_Window_Handle         hWindow );
+    ( const BVDC_Window_Handle         hWindow );
 
 /***************************************************************************
 Summary:
-	This function gets Scaler Status.
+    This function gets Scaler Status.
 
 Description:
-	Get the status register value of the Scaler associate with the current
-	window.
+    Get the status register value of the Scaler associate with the current
+    window.
 
 Input:
-	hWindow - The VDC handle that application created earlier.
+    hWindow - The VDC handle that application created earlier.
 
 Output:
-	pStatus - structure to return scaler error status
+    pStatus - structure to return scaler error status
 
 Returns:
-	Return the SCL BVB status register value.  0 if window not created.
+    Return the SCL BVB status register value.  0 if window not created.
 
 See Also:
 **************************************************************************/
 uint32_t BVDC_Dbg_Window_GetScalerStatus
-	( const BVDC_Window_Handle         hWindow,
-	  BVDC_Scaler_DebugStatus         *pStatus );
+    ( const BVDC_Window_Handle         hWindow,
+      BVDC_Scaler_DebugStatus         *pStatus );
 
 /***************************************************************************
 Summary:
-	This function gets a display handle.
+    This function gets a display handle.
 
 Description:
-	Get the current active display from a given compositor.
+    Get the current active display from a given compositor.
 
 Input:
-	hCompositor - The VDC handle that application created earlier.
+    hCompositor - The VDC handle that application created earlier.
 
 Returns:
-	Return current active handle if success.  Otherwise return NULL.
+    Return current active handle if success.  Otherwise return NULL.
 
 See Also:
-	BVDC_Dbg_GetCompositorHandle.
+    BVDC_Dbg_GetCompositorHandle.
 **************************************************************************/
 BVDC_Display_Handle BVDC_Dbg_Compositor_GetDisplayHandle
-	( const BVDC_Compositor_Handle     hCompositor );
+    ( const BVDC_Compositor_Handle     hCompositor );
 
 #if (BVDC_BUF_LOG == 1)
 /*****************************************************************************
@@ -407,42 +427,42 @@ typedef enum    {
 
 /***************************************************************************
 Summary:
-	Set when to start logging multi-buffering events and how to notify user
-	the log can be dumped.
+    Set when to start logging multi-buffering events and how to notify user
+    the log can be dumped.
 
 Description:
-	This function allows user to specify how the log can be dumped.
-	If BVDC_BufLogState_eAutomatic or BVDC_BufLogState_eAutomaticReduced is
-	chosen, a user callback function must be registered.
+    This function allows user to specify how the log can be dumped.
+    If BVDC_BufLogState_eAutomatic or BVDC_BufLogState_eAutomaticReduced is
+    chosen, a user callback function must be registered.
 
 Inputs:
-	eLogState		- Log and dump trigger state
-	pfCallback      - User callback function
-	pvParam1        - User defined data structure casted to void.
-	iParam2         - Additional user defined value.
+    eLogState       - Log and dump trigger state
+    pfCallback      - User callback function
+    pvParam1        - User defined data structure casted to void.
+    iParam2         - Additional user defined value.
 
 Returns:
 
-	BERR_SUCCESS			  - The function call succeeded.
-	BERR_INVALID_PARAMETER	  - A supplied parameter was invalid,
-								possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - A supplied parameter was invalid,
+                                possibly NULL.
 
 See Also:
-	BVDC_P_BufLogState
+    BVDC_P_BufLogState
 ****************************************************************************/
 BERR_Code BVDC_SetBufLogStateAndDumpTrigger
-	( BVDC_BufLogState                 eLogState,
-  	  const BVDC_CallbackFunc_isr 	   pfCallback,
-	  void							   *pvParm1,
-	  int 							   iParm2 );
+    ( BVDC_BufLogState                 eLogState,
+      const BVDC_CallbackFunc_isr      pfCallback,
+      void                             *pvParm1,
+      int                              iParm2 );
 
 
 /***************************************************************************
 Summary:
-	Print out the captured multi-buffering events log.
+    Print out the captured multi-buffering events log.
 
 Description:
-	This function dumps the captured multi-buffering events log.
+    This function dumps the captured multi-buffering events log.
 
 Inputs:
 
@@ -455,10 +475,10 @@ void BVDC_DumpBufLog (void );
 
 /***************************************************************************
 Summary:
-	Prepares the manual trigger of the multi-buffering event log
+    Prepares the manual trigger of the multi-buffering event log
 
 Description:
-	This function prepares the multi-buffering log internals such that
+    This function prepares the multi-buffering log internals such that
     the next BVDC_DumpBufLog() dumps up to the most recent events,
     regardless any skip/repeat event have been logged in the recent past.
 
@@ -473,29 +493,29 @@ void BVDC_SetBufLogManualTrigger(void);
 
 /***************************************************************************
 Summary:
-	Enable/Disable multi-buffering logging for a specific window
+    Enable/Disable multi-buffering logging for a specific window
 
 Description:
-	This function allows user to specify whether to enable or disable
-	multi-buffering logging for a specific window. Multi-buffering logging
-	is enabled for all video window by default.
+    This function allows user to specify whether to enable or disable
+    multi-buffering logging for a specific window. Multi-buffering logging
+    is enabled for all video window by default.
 
 Inputs:
-	hWindow      - The VDC handle that application created earlier.
-	bEnable      - flag to indicate whether to enable or disable multi-buffering
-	               logging.
+    hWindow      - The VDC handle that application created earlier.
+    bEnable      - flag to indicate whether to enable or disable multi-buffering
+                   logging.
 
 Returns:
 
-	BERR_SUCCESS			  - The function call succeeded.
+    BERR_SUCCESS              - The function call succeeded.
 
 See Also:
-	BVDC_P_BufLogState
+    BVDC_P_BufLogState
 
 ****************************************************************************/
 BERR_Code BVDC_Window_EnableBufLog
-	( const BVDC_Window_Handle         hWindow,
-	  bool                             bEnable );
+    ( const BVDC_Window_Handle         hWindow,
+      bool                             bEnable );
 
 #endif
 

@@ -37,23 +37,23 @@ CFLAGS += \
 	-I. \
 	-I../common \
 	-I$(V3D_DIR)/interface/khronos/include \
-	-I$(V3D_DIR)/v3d_platform \
-	-I$(V3D_DIR)/v3d_platform/bcg_abstract \
-	-I$(V3D_DIR)/v3d_platform/bcg_abstract/egl \
+	-I$(V3D_DIR)/libs/platform \
+	-I$(V3D_DIR)/libs/platform/bcg_abstract \
+	-I$(V3D_DIR)/libs/khrn/egl/platform/bcg_abstract \
 	-I$(V3D_DIR) \
-	-I$(V3D_DIR)/vcos \
-	-I$(V3D_DIR)/vcos/include \
-	-I$(V3D_DIR)/vcos/pthreads \
+	-I$(V3D_DIR)/libs/core/vcos \
+	-I$(V3D_DIR)/libs/core/vcos/include \
+	-I$(V3D_DIR)/libs/core/vcos/pthreads \
 	-I$(V3D_NEXUS_TOP)/include \
 	-I$(V3D_PLATFORM_DIR)/nexus \
 	-I${DIRECTFB_INSTALL_DIRECTFB_INCLUDE_DIR} \
 	-I../nexus \
+	-I../magnum/basemodules/chp/include/$(BCHP_CHIP)/rdb/$(BCHP_VER_LOWER) \
 	-DBCHP_CHIP=$(BCHP_CHIP) \
 	-D_POSIX_C_SOURCE=200112 \
 	-D_GNU_SOURCE \
 	-DHAVE_ZLIB \
-	-DV3D_TECH_VERSION=3 \
-	-DV3D_REVISION=2 \
+	-DEMBEDDED_SETTOP_BOX=1 \
 	-DGFX_UIF_PAGE_SIZE=4096 \
 	-DGFX_UIF_NUM_BANKS=8 \
 	-DGFX_UIF_XOR_ADDR=16 \

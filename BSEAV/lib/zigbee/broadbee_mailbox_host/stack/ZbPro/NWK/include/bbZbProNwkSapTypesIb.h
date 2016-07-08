@@ -1,43 +1,43 @@
 /******************************************************************************
-* (c) 2014 Broadcom Corporation
-*
-* This program is the proprietary software of Broadcom Corporation and/or its
-* licensors, and may only be used, duplicated, modified or distributed pursuant
-* to the terms and conditions of a separate, written license agreement executed
-* between you and Broadcom (an "Authorized License").  Except as set forth in
-* an Authorized License, Broadcom grants no license (express or implied), right
-* to use, or waiver of any kind with respect to the Software, and Broadcom
-* expressly reserves all rights in and to the Software and all intellectual
-* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1. This program, including its structure, sequence and organization,
-*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-*    reasonable efforts to protect the confidentiality thereof, and to use
-*    this information only in connection with your use of Broadcom integrated
-*    circuit products.
-*
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-******************************************************************************/
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
+ *
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************
 /*****************************************************************************
 *
 * FILENAME: $Workfile: trunk/stack/ZbPro/NWK/include/bbZbProNwkSapTypesIb.h $
@@ -211,7 +211,6 @@ typedef enum _ZbProNwkNibAttributeId_t
     ZBPRO_NWK_NIB_AUTHORIZED_FLAG                     = 0xB7,
     ZBPRO_NWK_NIB_CONCENTRATOR_NO_ROUTE_CACHE         = 0xB8,
 
-    ZBPRO_NWK_NIB_FRAME_COUNTER         = 0xB9,
     /* Water mark. */
     ZBPRO_NWK_NIB_ATTRIBUTES_ID_END
 
@@ -301,8 +300,6 @@ typedef uint8_t       *ZBPRO_NWK_NIB_AddressMap_t;                        /*!<  
  */
 typedef uint8_t        ZBPRO_NWK_NIB_RouteRequestId_t;                    /*!<  Data type for nwkRouteRequestId. */
 typedef uint8_t        ZBPRO_NWK_NIB_MaxLinkRouteCost_t;                  /*!<  Data type for nwkMaxLinkRouteCost. */
-typedef PHY_CurrentChannel_t ZBPRO_NWK_NIB_NetworkChannel_t;              /*!<  Data type for nwkNetworkChannel. */
-typedef PHY_CurrentPage_t ZBPRO_NWK_NIB_NetworkPage_t;                    /*!<  Data type for nwkNetworkPage. */
 typedef ZBPRO_NWK_DeviceType_t ZBPRO_NWK_NIB_DeviceType_t;                /*!<  Data type for nwkDeviceType. */
 typedef uint8_t        ZBPRO_NWK_NIB_ScanAttempts_t;                      /* required by ZDO */
 typedef uint16_t       ZBPRO_NWK_NIB_TimeBtwnScans_t;                     /* required by ZDO */
@@ -349,15 +346,14 @@ typedef ZBPRO_NWK_ExtAddr_t ZBPRO_NWK_NIB_ExtAddr_t;                      /* req
         ZBPRO_NWK_NIB_LeaveRequestAllowed_t               nwkLeaveRequestAllowed;               \
         ZBPRO_NWK_NIB_RouteRequestId_t                    nwkRouteRequestId;                    \
         ZBPRO_NWK_NIB_MaxLinkRouteCost_t                  nwkMaxLinkRouteCost;                  \
-        ZBPRO_NWK_NIB_NetworkChannel_t                    nwkNetworkChannel;                    \
-        ZBPRO_NWK_NIB_NetworkPage_t                       nwkNetworkPage;                       \
+        PHY_Channel_t                                     nwkNetworkChannel;                    \
+        PHY_Page_t                                        nwkNetworkPage;                       \
         ZBPRO_NWK_NIB_DeviceType_t                        nwkDeviceType;                        \
         ZBPRO_NWK_NIB_MaxDepth_t                          nwkDepth;                             \
         ZBPRO_NWK_NIB_ScanAttempts_t                      nwkScanAttempts;                      \
         ZBPRO_NWK_NIB_TimeBtwnScans_t                     nwkTimeBtwnScans;                     \
         Bool8_t                                           nwkAuthorizedFlag;                    \
         Bool8_t                                           nwkConcentratorNoRouteCache;          \
-        ZbProSspFrameCnt_t                                nwkFrameCounter;                      \
     }
 
 

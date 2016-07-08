@@ -1,3 +1,43 @@
+////////////////////////////////////////////////////////////////////////////////
+// Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+//
+// This program is the proprietary software of Broadcom and/or its
+// licensors, and may only be used, duplicated, modified or distributed pursuant
+// to the terms and conditions of a separate, written license agreement executed
+// between you and Broadcom (an "Authorized License").  Except as set forth in
+// an Authorized License, Broadcom grants no license (express or implied), right
+// to use, or waiver of any kind with respect to the Software, and Broadcom
+// expressly reserves all rights in and to the Software and all intellectual
+// property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+// HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+// NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+//
+// Except as expressly set forth in the Authorized License,
+//
+// 1. This program, including its structure, sequence and organization,
+//    constitutes the valuable trade secrets of Broadcom, and you shall use all
+//    reasonable efforts to protect the confidentiality thereof, and to use
+//    this information only in connection with your use of Broadcom integrated
+//    circuit products.
+//
+// 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+//    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+//    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+//    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+//    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+//    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+//    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+//    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+//
+// 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+//    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+//    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+//    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+//    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+//    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+//    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+//    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+////////////////////////////////////////////////////////////////////////////////
 var MasterDebug=0;
 
 var REFRESH_IN_MILLISECONDS=1000;
@@ -45,6 +85,17 @@ var GetPerfCacheCountdown = 0;
 var GetPerfDeep =  {Value: 0, Duration:0, StartReportNow:0 };
 var GetPerfDeepResults =  {Value: false };
 var GetPerfDeepCountdown = 0;
+var GetPerfFlame =  {State:0, Value: 0, Stop:0 };
+var GetPerfFlameResults =  {Value: false };
+var GetPerfFlameRecordingSeconds = 0;
+var GetPerfFlamePidCount = 0;
+
+//  GetPerfFlameState needs to match the enum Bsysperf_PerfFlame_State in bsysperf.c
+var GetPerfFlameState = { UNINIT:0, INIT:1, IDLE:2, START:3, RECORDING:4, STOP:5, CREATESCRIPTOUT:6, GETSVG:7, DELETEOUTFILE:8 };
+
+var GetPerfFlameSvgCount = 1;
+var PerfRecordUuid = "";
+var FlameWindow = 0;
 var validResponseReceived = 0;
 var GlobalDebug = 0;
 var CountdownSeconds = 0;
@@ -84,7 +135,7 @@ function getNumEntries ( arrayname )
 {
     var num_entries = arrayname.length-1;
     if (userAgent.indexOf("MSIE") >= 0 ) {
-        num_entries++; /* for ie9, length is one less than firefox, chrome, safari */
+        num_entries++; // for ie9, length is one less than firefox, chrome, safari
     }
     //if (numlines==1) alert("1 coords (" + coords + "); num points" + num_entries );
 
@@ -276,7 +327,7 @@ function MyLoad()
 
         var newpoints = "";
         var newheight = 0;
-        for (polylinenumber=1; polylinenumber<(gNumCpus-1)+1 /*once for all CPUs */; polylinenumber++) {
+        for (polylinenumber=1; polylinenumber<(gNumCpus-1)+1 ; polylinenumber++) { //once for all CPUs
             newpoints = "20,100 "; // 100% idle
             lineid = "polyline0" + polylinenumber;
             //alert("lineid " + lineid );
@@ -299,6 +350,7 @@ function MyLoad()
         SetInternalCheckboxStatus ( "checkboxnets", GetNetStats );
         SetInternalCheckboxStatus ( "checkboxirqs", GetIrqInfo );
         SetInternalCheckboxStatus ( "checkboxprofiling", GetProfiling );
+        SetInternalCheckboxStatus ( "checkboxPerfFlame", GetPerfFlame);
 
         GetSataUsb.Stop = 1; // tell the server to stop any SATA/USB data collection that may have been started earlier
 
@@ -308,7 +360,7 @@ function MyLoad()
         if (objCheckboxCpus && objCheckboxCpus.checked ) {
             var adjusted_poly = [0,0,0,0];
             var irqIdx = 0;
-            for (polylinenumber=1; polylinenumber<(gNumCpus-1)+1 /*once for all CPUs */; polylinenumber++) {
+            for (polylinenumber=1; polylinenumber<(gNumCpus-1)+1 ; polylinenumber++) { //once for all CPUs
                 AppendPolylineXY ( polylinenumber, gCpuData[polylinenumber-1] );
             }
         }
@@ -318,7 +370,11 @@ function MyLoad()
     //alert("prev_hgt " + previous_height);
     if ( previous_height > 100) previous_height = 0;
 
-    svgobj = document.getElementById('svg001');
+    //var svgid = 'svg' + GetPerfFlameSvgCount.padZero(4);
+    var svgid = 'svg001';
+    svgid = 'svg' + GetPerfFlameSvgCount.padZero(4);
+    //alert("MyLoad - svgid:" + svgid );
+    svgobj = document.getElementById( svgid );
     if (svgobj) {
         svgobj.addEventListener("click", SvgClickHandler, false);
     }
@@ -460,6 +516,47 @@ function checkboxPerfCacheDoit( fieldValue )
     SetCheckboxDisabled ( "checkboxPerfDeep", fieldValue );
 }
 
+function GetPerfFlameSetState( newstate )
+{
+    //alert("GetPerfFlameSetState:" + newstate );
+    GetPerfFlame.State = newstate;
+    var objstate = document.getElementById('PerfFlameState');
+    if (objstate) {
+        if (newstate == GetPerfFlameState.INIT) {
+            objstate.innerHTML = "INIT";
+        } else if (newstate == GetPerfFlameState.IDLE) {
+            objstate.innerHTML = "IDLE";
+        } else if (newstate == GetPerfFlameState.START) {
+            objstate.innerHTML = "START";
+        } else if (newstate == GetPerfFlameState.RECORDING) {
+            objstate.innerHTML = "RECORDING";
+        } else if (newstate == GetPerfFlameState.STOP) {
+            objstate.innerHTML = "STOP";
+        } else if (newstate == GetPerfFlameState.CREATESCRIPTOUT) {
+            objstate.innerHTML = "CREATESCRIPTOUT";
+        } else if (newstate == GetPerfFlameState.GETSVG) {
+            objstate.innerHTML = "GETSVG";
+        } else if (newstate == GetPerfFlameState.DELETEOUTFILE) {
+            objstate.innerHTML = "DELETEOUTFILE";
+        } else {
+            objstate.innerHTML = "UNKNOWN";
+        }
+    }
+}
+
+function GetPerfFlameSetStop()
+{
+    GetPerfFlameSetState( GetPerfFlameState.STOP ); // Stop recording and send back report
+    var objButton = document.getElementById('PerfFlameStartStop');
+    if (objButton) {
+        objButton.value = "Start";
+    }
+    objButton = document.getElementById('checkboxPerfFlame');
+    if (objButton) {
+        objButton.disabled = false;
+    }
+}
+
 function setVariable(fieldName)
 {
     var debug=0;
@@ -590,6 +687,28 @@ function setVariable(fieldName)
             } else if (fieldName == "checkboxContextSwitch" ) {
                 SetInternalCheckboxStatus ( "checkboxContextSwitch", GetContextSwitch );
                 hideOrShow("row_profiling_html", fieldValue);
+            } else if (fieldName == "checkboxPerfFlame" ) {
+
+                // when hiding flame graphs, tell server to stop all data collection that might be going on
+                if (fieldValue == false) {
+                    if ( GetPerfFlame.State == GetPerfFlameState.IDLE ) { // if the flame graph is not recording presently
+                        GetPerfFlame.Value = false;
+                        GetPerfFlameSetStop();
+                        SetInternalCheckboxStatus ( "checkboxPerfFlame", GetPerfFlame);
+                        hideOrShow("row_PerfFlame", fieldValue);
+                        var objspan = document.getElementById('PerfFlameContents');
+                        if (objspan) {
+                            objspan.innerHTML = ""; // clear out the contents element so old stuff does not display when we check the box in the future
+                        }
+                    } else {
+                        alert("Please stop any recording before hiding the Flame Graph.");
+                    }
+                } else {
+                    GetPerfFlame.Value = true;
+                    GetPerfFlameSetState( GetPerfFlameState.INIT ); // Init
+                    SetInternalCheckboxStatus ( "checkboxPerfFlame", GetPerfFlame);
+                    hideOrShow("row_PerfFlame", fieldValue);
+                }
             }
 
             if (obj.checked) {
@@ -599,6 +718,39 @@ function setVariable(fieldName)
         } else if ( obj.type == "text" ) {
             fieldValue = obj.value;
         } else if ( obj.type == "radio" ) {
+        } else if ( obj.type == "button" ) {
+            //alert("button:" + fieldName);
+            if (fieldName == "PerfFlameStartStop") {
+                if (GetPerfFlame.State == GetPerfFlameState.IDLE) { // state is Idle
+                    var objCmdLine = document.getElementById('PerfFlameCmdLine');
+                    if (objCmdLine) {
+                        if (objCmdLine.value.length > 0) {
+                            GetPerfFlameSetState( GetPerfFlameState.START ); // Start (send over cmdline contents)
+                            // change the text on the button from Start to Stop
+                            var objButton = document.getElementById('PerfFlameStartStop');
+                            if (objButton) {
+                                objButton.value = "Stop";
+                            }
+                            var local = new Date();
+                            GetPerfFlameRecordingSeconds = Math.floor(local.getTime() / 1000);
+                            // disable the checkbox until the user stops the perf record
+                            objButton = document.getElementById('checkboxPerfFlame');
+                            if (objButton) {
+                                objButton.disabled = true;
+                            }
+                            // clear out the SVG container
+                            objButton = document.getElementById('PerfFlameSvg');
+                            if (objButton) {
+                                objButton.innerHTML = "";
+                            }
+                        } else {
+                            alert("The contents of the CmdLine box cannot be empty!");
+                        }
+                    }
+                } else if (GetPerfFlame.State == GetPerfFlameState.RECORDING) { // state is Running/Recording
+                    GetPerfFlameSetStop();
+                }
+            }
         } else if ( obj.type == "select-one" ) {
         } else if (fieldName.indexOf("ChangeCpuState") == 0 ) { // user clicked disable/enable CPU
             ChangeCpuState = fieldName;
@@ -773,6 +925,40 @@ function sendCgiRequest( )
         }
     }
 
+    // if flame is displayed and kernel has been compiled with perf enabled
+    if (GetCheckboxStatus ( "checkboxPerfFlame" ) && PerfError == false ) {
+
+        // states are: Init:1, Idle:2, Start:3, Recording:4, Stop:5
+        if (GetPerfFlame.State != GetPerfFlameState.IDLE ) { // if NOT idle
+            url += "&PerfFlame=" + GetPerfFlame.State;
+
+            if (GetPerfFlame.State == GetPerfFlameState.START) {
+                var objCmdLine = document.getElementById('PerfFlameCmdLine');
+                if (objCmdLine) {
+                    url += "&PerfFlameCmdLine=" + encodeURIComponent(objCmdLine.value);
+                    GetPerfFlameSetState( GetPerfFlameState.RECORDING );
+                }
+                GetPerfFlameSvgCount++;
+            }
+
+            if (GetPerfFlame.State == GetPerfFlameState.DELETEOUTFILE) {
+                url += "&PerfFlameSvgCount=" + GetPerfFlameSvgCount;
+                url += "&perf_out=" + PerfRecordUuid;
+            }
+
+            if (GetPerfFlame.State == GetPerfFlameState.CREATESCRIPTOUT) {
+                url += "&perf_out=" + PerfRecordUuid;
+            }
+        }
+
+        if (GetPerfFlame.State == GetPerfFlameState.INIT ) {
+            GetPerfFlameSetState( GetPerfFlameState.IDLE );
+        }
+    } else if (GetPerfFlame.State == GetPerfFlameState.STOP) { // if we hid the flame graph window while a record was in progress
+        url += "&PerfFlame=" + GetPerfFlame.State;
+        GetPerfFlameSetState( GetPerfFlameState.IDLE );
+    }
+
     if (ChangeCpuState.length > 0) {
         url += "&" + ChangeCpuState;
         //alert("sendCgiRequest: ChangeCpuState (" + ChangeCpuState + ")" );
@@ -791,11 +977,9 @@ function sendCgiRequest( )
 
 function MsIeCrFix ( newstring )
 {
-    /*
-    if (userAgent.indexOf("MSIE") >= 0 ) { // for ie9, must replace carriage returns with <br>
-        return newstring.replace(/\n/g, "<br>");
-    }
-/**/
+    //if (userAgent.indexOf("MSIE") >= 0 ) { // for ie9, must replace carriage returns with <br>
+    //    return newstring.replace(/\n/g, "<br>");
+    //}
     return newstring;
 }
 
@@ -917,6 +1101,38 @@ function ComputeTotalCpuLongAverage()
     return averageUtilization;
 }
 
+// This function runs after the SVG iframe has been loaded with the contents from the Perl script.
+// It gives us a chance to do any follow-up work once the SVG had rendered.
+function iframeLoad ()
+{
+    GetPerfFlameSetState( GetPerfFlameState.DELETEOUTFILE );
+
+    //alert("iframeLoad");
+    //var iframe = document.getElementById('iframe123');
+}
+
+function GetSvgContents ()
+{
+    var ipaddr = window.location.hostname;
+    var perl_server = 'http://home.irv.broadcom.com/~detrick';
+    var fg_script = 'fg_generator.cgi'
+    var perf_out = PerfRecordUuid + '.out';
+    var url = perl_server + '/' +fg_script+ '?ipaddr=' + ipaddr + '&perf_out=' + perf_out;
+    var targetDiv = document.getElementById('PerfFlameSvg'); // div002
+
+    if ( targetDiv ) {
+        targetDiv.innerHTML = "";
+        var newFrame = document.createElement("iframe");
+        newFrame.setAttribute("src", url );
+        newFrame.setAttribute("id", "iframe123" );
+        newFrame.setAttribute("onload", "iframeLoad()" );
+        newFrame.style.width="100%";
+        newFrame.style.height="800px";
+        newFrame.style.border="thick solid #ffffff"; // green #00cc00
+        targetDiv.appendChild(newFrame);
+    }
+}
+
 // This function runs as an asynchronous response to a previous server request
 function serverHttpResponse ()
 {
@@ -1032,7 +1248,7 @@ function serverHttpResponse ()
                                     var numlines = 0;
                                     gNumCpus = tempNumCpus;
                                     //alert("CPUINFO: gNumCpus " + gNumCpus );
-                                    for (numlines=1; numlines<(gNumCpus-1)+1 /*once for all CPUs */; numlines++) {
+                                    for (numlines=1; numlines<(gNumCpus-1)+1 ; numlines++) { //once for all CPUs
                                         showRow(numlines);
                                     }
                                 }
@@ -1200,7 +1416,7 @@ function serverHttpResponse ()
                                                 // NetBytesSeconds is subtracted by one because we need at least two-second's worth of data to compute a delta
                                                 // convert bytes to megabits
                                                 // instead of multiplying by 8 and then dividing by 1024 ... reduce it simply to dividing by 128
-                                                objRx.innerHTML = Mbps.toFixed(0) + "&nbsp;&nbsp;(" + ComputeNetBytes10SecondsAverage ( idx, 0 /* 0 for RX and 1 for TX */ ) + ")";
+                                                objRx.innerHTML = Mbps.toFixed(0) + "&nbsp;&nbsp;(" + ComputeNetBytes10SecondsAverage ( idx, 0 ) + ")"; // 0 for RX and 1 for TX
                                             }
                                         } else {
                                             objRx.innerHTML = 0;
@@ -1236,7 +1452,7 @@ function serverHttpResponse ()
                                                 // NetBytesSeconds is subtracted by one because we need at least two-second's worth of data to compute a delta
                                                 // convert bytes to megabits
                                                 // instead of multiplying by 8 and then dividing by 1024 ... reduce it simply to dividing by 128
-                                                objTx.innerHTML = Mbps.toFixed(0) + "&nbsp;&nbsp;(" + ComputeNetBytes10SecondsAverage ( idx, 1 /* 0 for RX and 1 for TX */ ) + ")";
+                                                objTx.innerHTML = Mbps.toFixed(0) + "&nbsp;&nbsp;(" + ComputeNetBytes10SecondsAverage ( idx, 1 ) + ")"; // 0 for RX and 1 for TX
                                             }
                                         } else {
                                             objTx.innerHTML = 0;
@@ -1465,13 +1681,13 @@ function serverHttpResponse ()
                                     }
 
                                     // these have to be after the setting of innerHTML; otherwise the checkboxes won't be defined yet
-                                    SetCheckboxDisabled ( "checkboxPerfTop", GetLinuxTop.Value /* if LinuxTop is true -> disable PerfTop; else Enable it */ );
-                                    SetCheckboxDisabled ( "checkboxPerfDeep", GetLinuxTop.Value /* if LinuxTop is true -> disable PerfDeep */ );
+                                    SetCheckboxDisabled ( "checkboxPerfTop", GetLinuxTop.Value ); // if LinuxTop is true -> disable PerfTop; else Enable it
+                                    SetCheckboxDisabled ( "checkboxPerfDeep", GetLinuxTop.Value ); // if LinuxTop is true -> disable PerfDeep
                                 } else { // the LinuxTop command failed to provide data, try again in this many milliseconds
                                     setTimeout ('RetryLinuxTop()', 500 );
                                 }
                             } else {
-                                if ( (entry == "PerfTop") /* && (GetCheckboxStatus("checkboxPerfTop" ) ) */ ) {
+                                if ( (entry == "PerfTop") ) {
                                     objPerfTop.innerHTML = MsIeCrFix ( oResponses[i+1] );
 
                                     // these have to be after the setting of innerHTML; otherwise the checkboxes won't be defined yet
@@ -1549,6 +1765,91 @@ function serverHttpResponse ()
                             //alert ( entry + ": box not checked");
                         }
                         i++;
+                    } else if (entry == "PerfFlameInit") {
+                        //AddToDebugOutput ( entry + ":" + oResponses[i+1] + eol );
+                        var checkbox = document.getElementById('checkboxPerfFlame');
+                        if ( checkbox && checkbox.checked ) {
+                            var objspan = document.getElementById('PerfFlameContents');
+                            if (objspan) {
+                                objspan.innerHTML = oResponses[i+1];
+                            } else {
+                                alert ( entry + ": object PerfFlameContents not found");
+                            }
+                            var objtemp = document.getElementById('PerfFlameDuration');
+                            if ( objtemp ) {
+                                objtemp.innerHTML = "";
+                            }
+                        } else {
+                            //alert ( entry + ": box not checked");
+                        }
+                        i++;
+                    } else if (entry == "PERFFLAMESTATUS") {
+                        AddToDebugOutput ( entry + ":" + oResponses[i+1] + eol );
+                        if (GetPerfFlame.State > GetPerfFlameState.IDLE) {
+                            var objtemp = document.getElementById('PerfFlameSize');
+                            if ( objtemp ) {
+                                var sizeBytes = oResponses[i+1]; // update the size of the perf.data file
+                                if ( sizeBytes > 1024*1024) { // megabytes
+                                    var megabytes = sizeBytes / 1024 / 1024;
+                                    objtemp.innerHTML = megabytes.toFixed(1) + "MB";
+                                } else if ( sizeBytes > 1024) { // kilobytes
+                                    var kilobytes = sizeBytes / 1024;
+                                    objtemp.innerHTML = kilobytes.toFixed(1) + "KB";
+                                } else {
+                                    objtemp.innerHTML = sizeBytes;
+                                }
+                            }
+                            var local = new Date();
+                            var epochSeconds = Math.floor(local.getTime() / 1000) - GetPerfFlameRecordingSeconds;
+                            objtemp = document.getElementById('PerfFlameDuration');
+                            if ( objtemp ) {
+                                var minutes = Math.floor( epochSeconds / 60 );
+                                var seconds = epochSeconds - (minutes * 60 );
+                                if (minutes > 0) {
+                                    objtemp.innerHTML = minutes + "m" + seconds + "s";
+                                } else {
+                                    objtemp.innerHTML = epochSeconds + "s";
+                                }
+                            }
+                            if (GetPerfFlame.State == GetPerfFlameState.STOP) { // oce the record has stopped, proceed to next state ... CREATESCRIPTOUT
+                                GetPerfFlameSetState( GetPerfFlameState.CREATESCRIPTOUT);
+                            }
+                        }
+                        i++;
+                    } else if (entry == "PERFFLAMEPIDCOUNT") {
+                        var pidCountNow = oResponses[i+1];
+                        AddToDebugOutput ( entry + ": pidCountNow:" + pidCountNow + "; GetPerfFlamePidCount:" + GetPerfFlamePidCount + "; State:" + GetPerfFlame.State + eol );
+                        //alert("PidCount:" + GetPerfFlamePidCount + "; Now:" + pidCountNow );
+                        if (GetPerfFlame.State == GetPerfFlameState.RECORDING) {
+                            // if the server reported that the 'perf record' pids are no longer active, something caused the record to end
+                            if ( pidCountNow == 0 && GetPerfFlamePidCount > 0 ) {
+                                //alert("ALERT ... looks like perf record is over"); // either the app it was monitoring exited or something unexpected caused it to exit prematurely
+                                GetPerfFlameSetStop();
+                            }
+                        }
+                        GetPerfFlamePidCount = pidCountNow;
+                        i++;
+                    } else if (entry == "PERFRECORDUUID") {
+                        PerfRecordUuid = oResponses[i+1];
+                        //alert( entry + ":" + PerfRecordUuid );
+                    } else if (entry == "PERFSCRIPTDONE") {
+                        //alert( entry + ":" + oResponses[i+1] );
+                        GetPerfFlameSetState( GetPerfFlameState.GETSVG);
+                        GetSvgContents();
+                        i++;
+                    } else if (entry == "PerfFlameSvgContents") {
+                        var svglength = oResponses[i+1].length;
+                        var objtemp = document.getElementById('PerfFlameSvg');
+                        if ( objtemp ) {
+                            objtemp.innerHTML = oResponses[i+1];
+                            //alert("svg:" + objtemp.innerHTML.substr(0,300) );
+                        }
+                        i++;
+                        GetPerfFlameSetState( GetPerfFlameState.IDLE );
+                    } else if (entry == "PERFFLAME_DELETEOUTFILE_DONE") {
+                        //alert(entry + ":" + oResponses[i+1] );
+                        GetPerfFlameSetState( GetPerfFlameState.IDLE );
+                        i++;
                     } else {
                         if (entry.length > 1 ) {
                             AddToDebugOutput ( entry + eol );
@@ -1572,7 +1873,7 @@ function serverHttpResponse ()
                 AddToDebugOutput ( msg + eol );
                 //alert( msg );
 
-                CgiRetryTimeoutId = setTimeout ('sendCgiRequestRetry()', REFRESH_IN_MILLISECONDS/4 /*10*/ );
+                CgiRetryTimeoutId = setTimeout ('sendCgiRequestRetry()', REFRESH_IN_MILLISECONDS/4 );
                 //AddToDebugOutput ( "calling setTimeout(); ID (" + CgiRetryTimeoutId + ")" + eol );
             } else {
                 msg = "There was a problem retrieving the XML data:" + eol + eol + xmlhttp.statusText;

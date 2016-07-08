@@ -1,7 +1,7 @@
 #############################################################################
-#    (c)2010-2016 Broadcom Corporation
+# Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 #
-# This program is the proprietary software of Broadcom Corporation and/or its licensors,
+# This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
 # conditions of a separate, written license agreement executed between you and Broadcom
 # (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -21,7 +21,7 @@
 # AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
 # WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
 # THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-# OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTLIBCURLLAR PURPOSE,
+# OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
 # LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
 # OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
 # USE OR PERFORMANCE OF THE SOFTWARE.
@@ -34,7 +34,6 @@
 # ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 # LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 # ANY LIMITED REMEDY.
-#
 #############################################################################
 
 B_REFSW_DEBUG ?= y
@@ -48,7 +47,7 @@ endif
 #  Define the OpenSSL's Makefile directory... probably the same dir that this file is in.
 B_OPENSSL_BUILD_DIR := $(abspath $(NEXUS_TOP)/../BSEAV/lib/openssl)
 
-B_OPENSSL_VER?=1.0.1r
+B_OPENSSL_VER?=1.0.1t
 B_OPENSSL_NAME?=openssl-${B_OPENSSL_VER}
 
 B_OPENSSL_SOURCE_DEST:=$(abspath $(B_REFSW_OBJ_ROOT)/BSEAV/lib/openssl/$(B_REFSW_ARCH).$(DEBUG_SUFFIX))

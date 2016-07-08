@@ -1,43 +1,43 @@
 /******************************************************************************
-* (c) 2014 Broadcom Corporation
-*
-* This program is the proprietary software of Broadcom Corporation and/or its
-* licensors, and may only be used, duplicated, modified or distributed pursuant
-* to the terms and conditions of a separate, written license agreement executed
-* between you and Broadcom (an "Authorized License").  Except as set forth in
-* an Authorized License, Broadcom grants no license (express or implied), right
-* to use, or waiver of any kind with respect to the Software, and Broadcom
-* expressly reserves all rights in and to the Software and all intellectual
-* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1. This program, including its structure, sequence and organization,
-*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-*    reasonable efforts to protect the confidentiality thereof, and to use
-*    this information only in connection with your use of Broadcom integrated
-*    circuit products.
-*
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-******************************************************************************/
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
+ *
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************
 /*****************************************************************************
  *
  * FILENAME: $Workfile: trunk/stack/common/System/include/bbSysMemMan.h $
@@ -77,6 +77,60 @@ typedef uint32_t  MM_Size_t;
  */
 #define MM_BLOCK_SIZE  (16)
 
+/************************* VALIDATIONS ********************************************************************************/
+/* Validate definition of the single dynamic memory block size, in bytes.
+ */
+#if (MM_BLOCK_SIZE != 16)
+# error The single dynamic memory block size given with MM_BLOCK_SIZE must be equal to 16 and must not be redefined.
+# undef  MM_BLOCK_SIZE
+# define MM_BLOCK_SIZE    (16)
+#endif
+
+/* Validate definition of the dynamic memory pool size, in bytes.
+ */
+#if !defined(_MEMORY_MANAGER_)
+# define MM_POOL_SIZE   (MM_BLOCK_SIZE)
+#endif
+#if !defined(MM_POOL_SIZE)
+# error Missed definition of the dynamic memory pool size. Define it with MM_POOL_SIZE in the project configuration.
+# define MM_POOL_SIZE   (MM_BLOCK_SIZE)
+#elif DEFINED_EMPTY(MM_POOL_SIZE)
+# error The MM_POOL_SIZE must be assigned with a numeric value giving the dynamic memory pool size, in bytes.
+# undef  MM_POOL_SIZE
+# define MM_POOL_SIZE   (MM_BLOCK_SIZE)
+#elif ((MM_POOL_SIZE) / (MM_BLOCK_SIZE) < 1)
+# error The dynamic memory pool size given with MM_POOL_SIZE, in bytes, must be at least one block size (16 bytes).
+# undef  MM_POOL_SIZE
+# define MM_POOL_SIZE   (MM_BLOCK_SIZE)
+#elif ((MM_POOL_SIZE) > (MM_BLOCK_SIZE) * (UINT16_MAX))
+# warning The dynamic memory pool size given with MM_POOL_SIZE, in bytes, was limited to 1048560 bytes.
+#elif ((MM_POOL_SIZE) != (MM_POOL_SIZE) / (MM_BLOCK_SIZE) * (MM_BLOCK_SIZE))
+# warning The dynamic memory pool size given with MM_POOL_SIZE, in bytes, was reduced to the nearest multiple of 16.
+#endif
+
+/************************* DEFINITIONS ********************************************************************************/
+/**//**
+ * \brief   Macro defining the total number of memory blocks in the dynamic memory pool and the maximum value for the
+ *  identifier of a dynamic memory block.
+ * \details Dynamic memory blocks are enumerated in the range from 1 to MM_MAX_BLOCK_ID. Zero value is used for Null
+ *  Block that is not used for storing data.
+ * \details For all cases the MM_MAX_BLOCK_ID is limited at least to 65535.
+ */
+#define MM_MAX_BLOCK_ID    (MIN(((MM_POOL_SIZE) / (MM_BLOCK_SIZE)), UINT16_MAX))
+
+/**//**
+ * \brief   Data type representing the packed value of the identifier of a dynamic memory block.
+ * \details This data type is used by Memory Manager for linking blocks sequentially into chunks of arbitrary size.
+ * \details The last block in a chain points to the Null Block.
+ */
+#if ((MM_MAX_BLOCK_ID) <= (UINT8_MAX))
+typedef uint8_t   MM_Link_t;
+#else
+typedef uint16_t  MM_Link_t;
+SYS_DbgAssertStatic((MM_MAX_BLOCK_ID) <= (UINT16_MAX));
+#endif
+
+/************************* DEFINITIONS ********************************************************************************/
 /**//**
  * \brief   Enumeration of directions to copy data between a dynamic memory chunk and a plain array of bytes.
  */
@@ -135,6 +189,7 @@ SYS_PUBLIC MM_ChunkId_t SYS_MemoryManagerDuplicate(const MM_ChunkId_t  chunkId);
  * \brief   Frees the given memory chunk.
  * \param[in]   chunkId     Identifier of the memory chunk to be freed.
  * \return  TRUE if operation was performed successfully; FALSE otherwise.
+ * \details The \c chunkId must be the leading block of the chunk.
  */
 SYS_PUBLIC bool SYS_MemoryManagerFree(const MM_ChunkId_t  chunkId);
 
@@ -145,6 +200,10 @@ SYS_PUBLIC bool SYS_MemoryManagerFree(const MM_ChunkId_t  chunkId);
  *  preserved tail part.
  * \param[in]       headSize    Size of the head part of the chunk to be freed, in bytes.
  * \return  TRUE if operation was performed successfully; FALSE otherwise.
+ * \details The \c chunkId must be the leading block of the chunk.
+ * \details If the \p headSize equals zero, nothing is deleted.
+ * \details If the \p headSize is equal to or greater than the chunk size, the whole chunk is frees. In this case the
+ *  \c chunkId is assigned with the Null Block Id.
  */
 SYS_PUBLIC bool SYS_MemoryManagerFreeHead(MM_ChunkId_t *const  pChunkId, const MM_Size_t  headSize);
 
@@ -153,6 +212,12 @@ SYS_PUBLIC bool SYS_MemoryManagerFreeHead(MM_ChunkId_t *const  pChunkId, const M
  * \param[in]   chunkId     Identifier of the memory chunk to be partially freed.
  * \param[in]   headSize    Size of the head part of the chunk to be preserved, in bytes.
  * \return  TRUE if operation was performed successfully; FALSE otherwise.
+ * \details If the \p headSize equals zero, the whole chunk is freed. In this case the \p chunkId must be the leading
+ *  block of the chunk.
+ * \details If the \p headSize is greater than zero, the \p chunkId does not need necessarily to be the leading block
+ *  of the chunk.
+ * \details If the \p headSize is equal to or greater than the chunk size (starting with the block \p chunkId), nothing
+ *  is deleted.
  */
 SYS_PUBLIC bool SYS_MemoryManagerFreeTail(const MM_ChunkId_t  chunkId, const MM_Size_t  headSize);
 
@@ -236,8 +301,8 @@ SYS_PUBLIC MM_Size_t SYS_MemoryManagerCopyArray(void *const  pArray, const MM_Ch
  * \details If a memory chunk includes blocks that were allocated partially, this function takes into account the
  *  actually allocated size of each particular block in the chain - i.e., this function preserves the chunks' structure.
  * \details If the total size of either of two memory chunks is less than the number of bytes to be copied, the copy
- * operation is performed partially until the memory chunk size allows copying. In this case the actual number of bytes
- * returned by this function will be less than the \p count.
+ *  operation is performed partially until the memory chunk size allows copying. In this case the actual number of bytes
+ *  returned by this function will be less than the \p count.
  */
 SYS_PUBLIC MM_Size_t SYS_MemoryManagerCopyChunk(const MM_ChunkId_t  dstChunkId, const MM_ChunkId_t  srcChunkId,
         const MM_Size_t  count);
@@ -249,5 +314,11 @@ SYS_PUBLIC MM_Size_t SYS_MemoryManagerCopyChunk(const MM_ChunkId_t  dstChunkId, 
  * \details The \p blockId must be valid block Id and must not be the Null Block Id; otherwise NULL is returned.
  */
 SYS_PUBLIC void* SYS_MemoryManagerGetMapBlockIdMemory(const MM_ChunkId_t  blockId);
+
+/**//**
+ * \brief   Get number of available free memory blocks
+ * \return  number of available free memory blocks
+ */
+SYS_PUBLIC uint32_t SYS_MemoryManagerAvailableBlocks(void);
 
 #endif /* _BB_SYS_MEM_MAN_H */

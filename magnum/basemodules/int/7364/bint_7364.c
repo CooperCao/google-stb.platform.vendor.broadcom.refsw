@@ -1,7 +1,7 @@
 /******************************************************************************
- * (c) 2003-2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -37,7 +37,6 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 
 #include "bstd.h"
@@ -65,9 +64,13 @@
 #include "bchp_bvnf_intr2_18.h"
 #include "bchp_bvnm_intr2_0.h"
 #include "bchp_clkgen_intr2.h"
+#if BCHP_VER <= BCHP_VER_B0
 #include "bchp_dvp_hr_intr2.h"
+#endif
 #include "bchp_m2mc_l2.h"
+#if BCHP_VER <= BCHP_VER_B0
 #include "bchp_hdmi_rx_intr2_0.h"
+#endif
 #include "bchp_hdmi_tx_intr2.h"
 #include "bchp_memc_l2_0_0.h"
 #include "bchp_memc_l2_0_1.h"
@@ -204,7 +207,9 @@
 #include "bchp_xpt_wdma_overflow_intr_l2.h"
 #include "bchp_xpt_wdma_desc_done_intr_l2.h"
 
+#if BCHP_VER <= BCHP_VER_B0
 #include "bchp_rfm_l2.h"
+#endif
 
 #include "bchp_leap_l2.h"
 #include "bchp_leap_host_l2.h"
@@ -433,14 +438,14 @@ static const BINT_P_IntMap bint_7364[] =
     BINT_MAP_STD(2, XPT_MSG, XPT_MSG_BUF_DAT_RDY_INTR_192_223_L2_W6_CPU ),
     BINT_MAP_STD(2, XPT_MSG, XPT_MSG_BUF_DAT_RDY_INTR_224_255_L2_W7_CPU ),
 
-    BINT_MAP_STD(2, XPT_MSG, XPT_MSG_BUF_OVFL_INTR_00_31_L2_W8_CPU ),
-    BINT_MAP_STD(2, XPT_MSG, XPT_MSG_BUF_OVFL_INTR_32_63_L2_W9_CPU ),
-    BINT_MAP_STD(2, XPT_MSG, XPT_MSG_BUF_OVFL_INTR_64_95_L2_W10_CPU ),
-    BINT_MAP_STD(2, XPT_MSG, XPT_MSG_BUF_OVFL_INTR_96_127_L2_W11_CPU ),
-    BINT_MAP_STD(2, XPT_MSG, XPT_MSG_BUF_OVFL_INTR_128_159_L2_W12_CPU ),
-    BINT_MAP_STD(2, XPT_MSG, XPT_MSG_BUF_OVFL_INTR_160_191_L2_W13_CPU ),
-    BINT_MAP_STD(2, XPT_MSG, XPT_MSG_BUF_OVFL_INTR_192_223_L2_W14_CPU ),
-    BINT_MAP_STD(2, XPT_MSG, XPT_MSG_BUF_OVFL_INTR_224_255_L2_W15_CPU ),
+    BINT_MAP_STD(2, XPT_OVFL, XPT_MSG_BUF_OVFL_INTR_00_31_L2_W8_CPU ),
+    BINT_MAP_STD(2, XPT_OVFL, XPT_MSG_BUF_OVFL_INTR_32_63_L2_W9_CPU ),
+    BINT_MAP_STD(2, XPT_OVFL, XPT_MSG_BUF_OVFL_INTR_64_95_L2_W10_CPU ),
+    BINT_MAP_STD(2, XPT_OVFL, XPT_MSG_BUF_OVFL_INTR_96_127_L2_W11_CPU ),
+    BINT_MAP_STD(2, XPT_OVFL, XPT_MSG_BUF_OVFL_INTR_128_159_L2_W12_CPU ),
+    BINT_MAP_STD(2, XPT_OVFL, XPT_MSG_BUF_OVFL_INTR_160_191_L2_W13_CPU ),
+    BINT_MAP_STD(2, XPT_OVFL, XPT_MSG_BUF_OVFL_INTR_192_223_L2_W14_CPU ),
+    BINT_MAP_STD(2, XPT_OVFL, XPT_MSG_BUF_OVFL_INTR_224_255_L2_W15_CPU ),
 
     BINT_MAP(2, XPT_FE, "_STATUS0", XPT_FE_INTR_STATUS0_REG, REGULAR, ALL, 0),
     BINT_MAP(2, XPT_FE, "_STATUS1", XPT_FE_INTR_STATUS1_REG, REGULAR, ALL, 0),
@@ -542,7 +547,9 @@ static const BINT_P_IntMap bint_7364[] =
     BINT_MAP_STD(2, XPT_WMDMA, XPT_WDMA_DESC_DONE_INTR_L2_CPU),
     BINT_MAP_STD(2, XPT_EXTCARD, XPT_TSIO_INTR_L2_CPU),
     /* RFM interrupt */
+#if BCHP_VER <= BCHP_VER_B0
     BINT_MAP_STD(3, RFM, RFM_L2_CPU),
+#endif
     /* Route the frontend interrupts to the host when SAT is running on the host and not the LEAP */
     BINT_MAP_STD(3,LEAP, LEAP_HOST_L1_INTR_W0),
     BINT_MAP_STD(3,LEAP, AFEC_GLOBAL_INTR_0_CPU),

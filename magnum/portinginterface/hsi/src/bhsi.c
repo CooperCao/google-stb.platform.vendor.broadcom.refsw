@@ -1,7 +1,7 @@
 /***************************************************************************
  *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom and/or its
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -133,7 +133,7 @@ static void BHSI_P_OloadIntHandler_isr(
     }
     if (!hHsi->bIsOpen) {
         BDBG_WRN(("%s: HSI=%p closed",
-                  __FUNCTION__, hHsi));
+                  __FUNCTION__, (void*)hHsi));
         goto end;
     }
 
@@ -161,7 +161,7 @@ static void BHSI_P_DrdyIntHandler_isr(
     }
     if (!hHsi->bIsOpen) {
         BDBG_WRN(("%s: HSI=%p closed",
-                  __FUNCTION__, hHsi));
+                  __FUNCTION__, (void*)hHsi));
         goto end;
     }
 
@@ -220,7 +220,7 @@ static void BHSI_P_CleanupContext(BHSI_Handle hHsi)
 {
     BERR_Code errCode;
 
-    BDBG_MSG(("%s(%p)", __FUNCTION__, hHsi));
+    BDBG_MSG(("%s(%p)", __FUNCTION__, (void*)hHsi));
 
     if (NULL == hHsi) {
         return;
@@ -343,19 +343,22 @@ BERR_Code BHSI_Open(
     BDBG_ASSERT( pSettings );
 
     BDBG_ASSERT( pSettings->timeOutMsec );
-    BDBG_ASSERT( pSettings->ackBuf );
-    BDBG_ASSERT( pSettings->ackBufLen );
     BDBG_ASSERT( pSettings->requestBuf );
     BDBG_ASSERT( pSettings->requestBufLen );
+    BDBG_ASSERT( pSettings->requestAckBuf );
+    BDBG_ASSERT( pSettings->requestAckBufLen );
     BDBG_ASSERT( pSettings->responseBuf );
     BDBG_ASSERT( pSettings->responseBufLen );
+    BDBG_ASSERT( pSettings->responseAckBuf );
+    BDBG_ASSERT( pSettings->responseAckBufLen );
+
     BDBG_ASSERT( pSettings->responseCallback_isr );
 
     /* Alloc memory from the system heap */
     hsiHandle = (BHSI_Handle) BKNI_Malloc(sizeof(BHSI_P_Handle));
     if( hsiHandle == NULL )
     {
-        BDBG_ERR(( "BKNI_Malloc(%d) failed!", sizeof(BHSI_P_Handle)));
+        BDBG_ERR(( "BKNI_Malloc(%u) failed!", (unsigned)sizeof(BHSI_P_Handle)));
         errCode = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
         goto BHSI_P_DONE_LABEL;
     }
@@ -367,7 +370,7 @@ BERR_Code BHSI_Open(
     hsiHandle->interruptHandle = hInt;
     hsiHandle->settings = *pSettings;
 
-    BDBG_MSG(("%s: timeout %d ms", __FUNCTION__, hsiHandle->settings.timeOutMsec));
+    BDBG_MSG(("%s: timeout %u ms", __FUNCTION__, (unsigned)hsiHandle->settings.timeOutMsec));
 
     /* save */
     *hHsi = hsiHandle;
@@ -474,9 +477,6 @@ BERR_Code BHSI_Send(
 
     BDBG_ASSERT( sendBuf );
     BDBG_ASSERT( sendBufLen );
-    BDBG_ASSERT( ackBuf );
-    BDBG_ASSERT( maxAckBufLen );
-    BDBG_ASSERT( pAckBufLen );
 
     if (NULL == hHsi) {
         BDBG_ERR(("%s: NULL HSI Handle",
@@ -588,41 +588,45 @@ BERR_Code BHSI_Send(
         goto BHSI_P_DONE_LABEL;
     }
 
-    /* Call Callback function provided by High Layer software */
-    if (hHsi->settings.invalidateCallback_isrsafe != NULL) {
-        hHsi->settings.invalidateCallback_isrsafe((const void *)hHsi->settings.ackBuf,
-                                                  (size_t)hHsi->settings.ackBufLen);
+    if (ackBuf) {
+        BDBG_ASSERT(pAckBufLen);
+
+        /* Call Callback function provided by High Layer software */
+        if (hHsi->settings.invalidateCallback_isrsafe != NULL) {
+            hHsi->settings.invalidateCallback_isrsafe((const void *)hHsi->settings.requestAckBuf,
+                                                      (size_t)hHsi->settings.requestAckBufLen);
+        }
+        /* NOTE: do not access .ackBuf after this call!
+         * see 'Note about invalidate' */
+
+        /* Read output buffer [size][... payload ...] */
+        _msg = (BHSI_Msg *)hHsi->settings.requestAckBuf;
+        if (_msg->size < BHSI_HEAD_SIZE ||
+            _msg->size > hHsi->settings.requestAckBufLen) {
+            BDBG_ERR(("%s: Received Message is %u bytes length.\n"
+                      "\tACK buffer: %u <= authorized size <= %u",
+                      __FUNCTION__, _msg->size,
+                      (unsigned)BHSI_HEAD_SIZE, hHsi->settings.requestAckBufLen));
+            errCode = BERR_TRACE(BERR_NOT_SUPPORTED);
+            goto BHSI_P_DONE_LABEL;
+        }
+
+        rcvLen = _msg->size - BHSI_HEAD_SIZE;
+
+        if (rcvLen > maxAckBufLen) {
+            BDBG_ERR(("%s: The length of ackowledge message ( %d ) < allocated buffer legnth",
+                      __FUNCTION__, maxAckBufLen));
+            errCode = BERR_TRACE(BERR_NOT_SUPPORTED);
+            goto BHSI_P_DONE_LABEL;
+        }
+
+        *pAckBufLen = rcvLen;
+        BKNI_Memcpy(ackBuf, &_msg->payload, *pAckBufLen);
+        _msg = NULL; /* for flush: invalidate _msg to force segmentation fault if used. */
+
+        BHSI_DUMP(ackBuf, *pAckBufLen,
+                  "MIPS <----------------------------------- Sage(Request ACK)");
     }
-    /* NOTE: do not access .ackBuf after this call!
-     * see 'Note about invalidate' */
-
-    /* Read output buffer [size][... payload ...] */
-    _msg = (BHSI_Msg *)hHsi->settings.ackBuf;
-    if (_msg->size < BHSI_HEAD_SIZE ||
-        _msg->size > hHsi->settings.ackBufLen) {
-        BDBG_ERR(("%s: Received Message is %u bytes length.\n"
-                  "\tACK buffer: %u <= authorized size <= %u",
-                   __FUNCTION__, _msg->size,
-                   BHSI_HEAD_SIZE, hHsi->settings.ackBufLen));
-        errCode = BERR_TRACE(BERR_NOT_SUPPORTED);
-        goto BHSI_P_DONE_LABEL;
-    }
-
-    rcvLen = _msg->size - BHSI_HEAD_SIZE;
-
-    if (rcvLen > maxAckBufLen) {
-        BDBG_ERR(("%s: The length of ackowledge message ( %d ) < allocated buffer legnth",
-                  __FUNCTION__, maxAckBufLen));
-        errCode = BERR_TRACE(BERR_NOT_SUPPORTED);
-        goto BHSI_P_DONE_LABEL;
-    }
-
-    *pAckBufLen = rcvLen;
-    BKNI_Memcpy(ackBuf, &_msg->payload, *pAckBufLen);
-    _msg = NULL; /* for flush: invalidate _msg to force segmentation fault if used. */
-
-    BHSI_DUMP(ackBuf, *pAckBufLen,
-              "MIPS <----------------------------------- Sage(ACK)");
 
 BHSI_P_DONE_LABEL:
 
@@ -683,7 +687,7 @@ BERR_Code BHSI_Receive_isrsafe(
         _msg->size > hHsi->settings.responseBufLen) {
         BDBG_ERR(("%s: Received Message is %u bytes length.\n"
                   "Response buffer: %u <= authorized size <= %u",
-                  __FUNCTION__, _msg->size, BHSI_HEAD_SIZE, hHsi->settings.responseBufLen));
+                  __FUNCTION__, _msg->size, (unsigned)BHSI_HEAD_SIZE, hHsi->settings.responseBufLen));
         errCode = BERR_TRACE(BERR_NOT_SUPPORTED);
         goto BHSI_P_DONE_LABEL;
     }
@@ -704,14 +708,78 @@ BERR_Code BHSI_Receive_isrsafe(
               "MIPS <----------------------------------- Sage(Response)");
 
 BHSI_P_DONE_LABEL:
-    /* Set DDone bit */
+    BDBG_LEAVE(BHSI_Receive_isrsafe);
+    return( errCode );
+}
+
+/* Send ACK to SAGE acknowledging received response */
+BERR_Code BHSI_Ack_isrsafe (
+    BHSI_Handle hHsi,
+    const uint8_t *ackBuf,
+    uint32_t ackBufLen
+    )
+{
+    BERR_Code errCode = BERR_SUCCESS;
+
+    BDBG_ENTER(BHSI_Ack_isrsafe);
+    BDBG_ASSERT(hHsi);
+
+    if (hHsi == NULL) {
+        BDBG_ERR(("%s: bad HSI Handle", __FUNCTION__));
+        errCode = BERR_TRACE(BERR_INVALID_PARAMETER) ;
+        goto BHSI_P_DONE_LABEL;
+    }
+
+    if(!hHsi->bIsOpen) {
+        BDBG_WRN(("%s: HSI=%p is closed",
+                  __FUNCTION__, (void*)hHsi));
+        errCode = BERR_TRACE(BERR_INVALID_PARAMETER) ;
+        goto BHSI_P_DONE_LABEL;
+    }
+
+    if (ackBuf != NULL) {
+        BHSI_Msg * _msg;
+        uint32_t totalLen = BHSI_HEAD_SIZE + ackBufLen;
+
+        /* check ack size */
+        if (totalLen > hHsi->settings.responseAckBufLen) {
+            errCode = BERR_TRACE(BERR_INVALID_PARAMETER) ;
+            BDBG_ERR(("%s: (Ack Message + HSI header) is %u bytes length.\n"
+                      "Ack buffer: %u <= authorized size <= %u",
+                      __FUNCTION__, totalLen,
+                      (unsigned)BHSI_HEAD_SIZE, hHsi->settings.responseAckBufLen));
+            goto BHSI_P_DONE_LABEL;
+        }
+
+        /* get data in ackBuf */
+        _msg = (BHSI_Msg *)hHsi->settings.responseAckBuf;
+        _msg->size = totalLen;
+        BKNI_Memcpy(&_msg->payload, ackBuf, ackBufLen);
+        _msg = NULL; /* for flush: invalidate _msg to force segmentation fault if used. */
+
+        /* Call Callback function provided by High Layer software */
+        if (hHsi->settings.flushCallback_isrsafe != NULL) {
+            hHsi->settings.flushCallback_isrsafe((const void *)hHsi->settings.responseAckBuf,
+                                                 (size_t)hHsi->settings.responseAckBufLen);
+        }
+        /* NOTE: do not access .ackBuf after the flush!
+         * see 'Note about flush' */
+
+        BHSI_DUMP(ackBuf, ackBufLen,
+                  "MIPS -----------------------------------> Sage(Response ACK)");
+    }
+
     /* TODO update CPU STATUS instead of replacing it */
     /* ? BREG_Read32(hHsi->regHandle, BCHP_CPU_IPI_INTR2_CPU_STATUS); */
-    if (hHsi != NULL){
-        BREG_Write32(hHsi->regHandle,
+    /* Set DDone bit */
+    _REG_LOG(hHsi->regHandle, BCHP_SCPU_HOST_INTR2_CPU_STATUS, "preddone");
+    BREG_Write32(hHsi->regHandle,
                  BCHP_CPU_IPI_INTR2_CPU_SET,
                  BCHP_CPU_IPI_INTR2_CPU_SET_HOST_SCPU_DDONE_MASK);
-    }
-    BDBG_LEAVE(BHSI_Receive_isrsafe);
+    _REG_LOG(hHsi->regHandle, BCHP_SCPU_HOST_INTR2_CPU_STATUS, "postddone");
+
+BHSI_P_DONE_LABEL:
+
+    BDBG_LEAVE(BHSI_Ack_isrsafe);
     return( errCode );
 }

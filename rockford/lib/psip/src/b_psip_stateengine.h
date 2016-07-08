@@ -75,7 +75,7 @@ Macro to change the current state in the state machine.
                                         (pJob)->stateLast = (pJob)->state; \
                                         (pJob)->state = (newState); \
                                         BDBG_MSG(("job:%p ---> %s:%d - change from state:%d to state:%d", \
-                                                  (pJob), __FUNCTION__, __LINE__, (pJob)->stateLast, (pJob)->state)); \
+                                                  (void*)pJob, __FUNCTION__, __LINE__, (pJob)->stateLast, (pJob)->state)); \
                                     }while(0)
 
 /* #define CHANGE_STATE(pJob,newState) ((pJob)->state = (newState)) */

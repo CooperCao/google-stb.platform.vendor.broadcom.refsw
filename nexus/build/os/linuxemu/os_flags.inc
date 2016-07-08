@@ -1,7 +1,7 @@
 ############################################################
-#     (c)2003-2012 Broadcom Corporation
+#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 #
-#  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+#  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
 #  conditions of a separate, written license agreement executed between you and Broadcom
 #  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,17 +35,9 @@
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
 #
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
 # Module Description:
 #   This file defines the OS-specific flags for building in linuxemu mode.
 #
-# Revision History:
-#
-# $brcm_Log: $
-# 
 ############################################################
 
 NEXUS_CFLAGS += -D_GNU_SOURCE=1 -DLINUX -pipe
@@ -61,7 +53,7 @@ NEXUS_CFLAGS += -DBSTD_CPU_ENDIAN=${NEXUS_ENDIAN}
 ifeq ($(NEXUS_C_STD),)
 NEXUS_C_STD=c89
 endif
-NEXUS_CFLAGS += -std=$(NEXUS_C_STD)
+NEXUS_INTERNAL_CFLAGS += -std=$(NEXUS_C_STD)
 
 ifeq ($(NEXUS_C_WARNINGS),)
 NEXUS_C_WARNINGS += -Wall -pedantic
@@ -72,8 +64,8 @@ endif
 # Release builds generate unused values. We suppress this warning.
 NEXUS_C_WARNINGS += -Wno-unused-value
 endif
-
-NEXUS_CFLAGS += ${NEXUS_C_WARNINGS} -m32
+NEXUS_INTERNAL_CFLAGS += $(NEXUS_C_WARNINGS)
+NEXUS_CFLAGS += $(NEXUS_INTERNAL_CFLAGS) -m32
 
 # signal address defaults to 32-bit somehow
 NEXUS_LDFLAGS += -m32

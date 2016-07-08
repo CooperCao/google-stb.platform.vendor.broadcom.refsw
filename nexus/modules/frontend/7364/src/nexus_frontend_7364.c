@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2014 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,18 +35,10 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   API name: Frontend 7364
 *    APIs to open, close, and setup initial settings for a BCM7364
 *    Dual-Channel Satellite Tuner/Demodulator Device.
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 /* General includes */
@@ -296,7 +288,6 @@ NEXUS_FrontendDeviceHandle NEXUS_FrontendDevice_P_Open7364(unsigned index, const
     }
 
     pFrontendDevice->pDevice = pDevice;
-    pFrontendDevice->getCapabilities = NEXUS_FrontendDevice_P_7364_GetCapabilities;
     pFrontendDevice->getCapabilities = NEXUS_FrontendDevice_P_7364_GetCapabilities;
     pFrontendDevice->getInternalGain = NEXUS_FrontendDevice_P_7364_GetInternalGain;
     pFrontendDevice->getExternalGain = NEXUS_FrontendDevice_P_7364_GetExternalGain;

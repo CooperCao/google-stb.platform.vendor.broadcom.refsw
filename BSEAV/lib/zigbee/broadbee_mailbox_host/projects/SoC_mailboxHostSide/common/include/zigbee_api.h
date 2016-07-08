@@ -393,6 +393,7 @@ typedef struct zigbeeCallback {
     void (*RF4CE_ZRC1_VendorSpecificInd)(RF4CE_ZRC1_VendorSpecificIndParams_t *indication);
 #endif
     void (*SYS_EventNtfy)(SYS_EventNotifyParams_t *event);
+#ifdef _ZBPRO_
     void (*ZBPRO_ZDO_MgmtNwkUpdateUnsolInd)(ZBPRO_ZDO_MgmtNwkUpdateUnsolIndParams_t *indication);
     void (*ZBPRO_ZCL_IdentifyInd)(ZBPRO_ZCL_IdentifyIndParams_t *indication);
     void (*ZBPRO_ZCL_ProfileWideCmdReportAttributesInd)(ZBPRO_ZCL_ProfileWideCmdReportAttributesIndParams_t *indication);
@@ -411,6 +412,7 @@ typedef struct zigbeeCallback {
     void (*ZBPRO_ZCL_SapIasAceGetBypassedZoneListInd)(ZBPRO_ZCL_SapIasAceGetBypassedZoneListIndParams_t *indication);
     void (*ZBPRO_ZCL_SapIasAceGetZoneStatusInd)(ZBPRO_ZCL_SapIasAceGetZoneStatusIndParams_t *indication);
     void (*ZBPRO_ZHA_CieDeviceSetPanelStatusInd)(ZBPRO_ZHA_CieSetPanelStatusIndParams_t *indication);
+#endif
     void (*ServerLoopbackInd)(unsigned int *tx_buffer, unsigned int *rx_buffer, unsigned int num_of_words, void (*callback)(unsigned int *tx_buffer, unsigned int *rx_buffer, unsigned int num_of_words));
     void (*BufferCompare)(unsigned int *buf, unsigned int num_of_words);
     void (*ZigbeeError)(void);
@@ -452,6 +454,8 @@ DECLARE_SERVER_REQUEST_API_FUNCTION(RF4CE_RegisterVirtualDevice, RF4CE_RegisterV
 
 DECLARE_SERVER_REQUEST_API_FUNCTION(RF4CE_StartReq, RF4CE_StartReqDescr_t, RF4CE_StartResetConfParams_t)
 
+DECLARE_SERVER_REQUEST_API_FUNCTION(RF4CE_SetSupportedDevicesReq, RF4CE_SetSupportedDevicesReqDescr_t, RF4CE_SetSupportedDevicesConfParams_t)
+
 DECLARE_SERVER_REQUEST_API_FUNCTION(RF4CE_NWK_DataReq, RF4CE_NWK_DataReqDescr_t, RF4CE_NWK_DataConfParams_t)
 
 DECLARE_SERVER_REQUEST_API_FUNCTION(RF4CE_NWK_GetReq, RF4CE_NWK_GetReqDescr_t, RF4CE_NWK_GetConfParams_t)
@@ -464,9 +468,9 @@ DECLARE_SERVER_REQUEST_API_FUNCTION(RF4CE_ZRC1_SetAttributesReq, RF4CE_ZRC1_SetA
 
 DECLARE_SERVER_REQUEST_API_FUNCTION(Mail_TestEngineEcho, TE_EchoCommandReqDescr_t, TE_EchoCommandConfParams_t)
 
-DECLARE_SERVER_REQUEST_API_FUNCTION(SYS_EventSubscribe, SYS_EventHandlerParams_t, NoAppropriateType_t)
+DECLARE_SERVER_REQUEST_API_FUNCTION(sysEventSubscribeHostHandler, SYS_EventHandlerMailParams_t, NoAppropriateType_t)
 
-DECLARE_SERVER_REQUEST_API_FUNCTION(Mail_SetEchoDelay, TE_SetEchoDelayCommandReqDescr_t, TE_SetEchoDelayCommandConfParams_t)
+//DECLARE_SERVER_REQUEST_API_FUNCTION(Mail_SetEchoDelay, TE_SetEchoDelayCommandReqDescr_t, TE_SetEchoDelayCommandConfParams_t)
 
 DECLARE_SERVER_REQUEST_API_FUNCTION(RF4CE_ZRC_SetWakeUpActionCodeReq, RF4CE_ZRC_SetWakeUpActionCodeReqDescr_t, RF4CE_ZRC_SetWakeUpActionCodeConfParams_t)
 
@@ -498,7 +502,7 @@ DECLARE_SERVER_REQUEST_API_FUNCTION(RF4CE_ZRC1_TargetBindReq, RF4CE_ZRC1_BindReq
 
 DECLARE_SERVER_REQUEST_API_FUNCTION(RF4CE_UnpairReq, RF4CE_UnpairReqDescr_t, RF4CE_UnpairConfParams_t)
 
-DECLARE_SERVER_REQUEST_API_FUNCTION(Mail_Host2Uart1, TE_Host2Uart1ReqDescr_t,   NoAppropriateType_t)
+//DECLARE_SERVER_REQUEST_API_FUNCTION(Mail_Host2Uart1, TE_Host2Uart1ReqDescr_t,   NoAppropriateType_t)
 
 DECLARE_SERVER_REQUEST_API_FUNCTION(Phy_Test_Get_Caps_Req,                             Phy_Test_Get_Caps_ReqDescr_t,   Phy_Test_Get_Caps_ConfParams_t)
 
@@ -786,6 +790,8 @@ DECLARE_CLIENT_REQUEST_API_FUNCTION(RF4CE_MAC_SetReq, MAC_SetReqDescr_t, MAC_Set
 
 DECLARE_CLIENT_REQUEST_API_FUNCTION(RF4CE_ResetReq, RF4CE_ResetReqDescr_t, RF4CE_StartResetConfParams_t)
 
+DECLARE_CLIENT_REQUEST_API_FUNCTION(RF4CE_SetSupportedDevicesReq, RF4CE_SetSupportedDevicesReqDescr_t, RF4CE_SetSupportedDevicesConfParams_t)
+
 DECLARE_CLIENT_REQUEST_API_FUNCTION(RF4CE_RegisterVirtualDevice, RF4CE_RegisterVirtualDeviceReqDescr_t, RF4CE_RegisterVirtualDeviceConfParams_t)
 
 DECLARE_CLIENT_REQUEST_API_FUNCTION(RF4CE_StartReq, RF4CE_StartReqDescr_t, RF4CE_StartResetConfParams_t)
@@ -802,9 +808,9 @@ DECLARE_CLIENT_REQUEST_API_FUNCTION(RF4CE_ZRC1_SetAttributesReq, RF4CE_ZRC1_SetA
 
 DECLARE_CLIENT_REQUEST_API_FUNCTION(Mail_TestEngineEcho, TE_EchoCommandReqDescr_t, TE_EchoCommandConfParams_t)
 
-DECLARE_CLIENT_REQUEST_API_FUNCTION(SYS_EventSubscribe, SYS_EventHandlerParams_t, NoAppropriateType_t)
+DECLARE_CLIENT_REQUEST_API_FUNCTION(sysEventSubscribeHostHandler, SYS_EventHandlerMailParams_t, NoAppropriateType_t)
 
-DECLARE_CLIENT_REQUEST_API_FUNCTION(Mail_SetEchoDelay, TE_SetEchoDelayCommandReqDescr_t, TE_SetEchoDelayCommandConfParams_t)
+//DECLARE_CLIENT_REQUEST_API_FUNCTION(Mail_SetEchoDelay, TE_SetEchoDelayCommandReqDescr_t, TE_SetEchoDelayCommandConfParams_t)
 
 DECLARE_CLIENT_REQUEST_API_FUNCTION(RF4CE_ZRC_SetWakeUpActionCodeReq, RF4CE_ZRC_SetWakeUpActionCodeReqDescr_t, RF4CE_ZRC_SetWakeUpActionCodeConfParams_t)
 
@@ -832,7 +838,7 @@ DECLARE_CLIENT_REQUEST_API_FUNCTION(RF4CE_ZRC1_TargetBindReq, RF4CE_ZRC1_BindReq
 
 DECLARE_CLIENT_REQUEST_API_FUNCTION(RF4CE_UnpairReq, RF4CE_UnpairReqDescr_t, RF4CE_UnpairConfParams_t)
 
-DECLARE_CLIENT_REQUEST_API_FUNCTION(Mail_Host2Uart1, TE_Host2Uart1ReqDescr_t,   NoAppropriateType_t)
+//DECLARE_CLIENT_REQUEST_API_FUNCTION(Mail_Host2Uart1, TE_Host2Uart1ReqDescr_t,   NoAppropriateType_t)
 DECLARE_CLIENT_REQUEST_API_FUNCTION(Phy_Test_Get_Caps_Req,                             Phy_Test_Get_Caps_ReqDescr_t,   Phy_Test_Get_Caps_ConfParams_t)
 DECLARE_CLIENT_REQUEST_API_FUNCTION(Phy_Test_Set_Channel_Req,                       Phy_Test_Set_Channel_ReqDescr_t,   Phy_Test_Set_Channel_ConfParams_t)
 DECLARE_CLIENT_REQUEST_API_FUNCTION(Phy_Test_Continuous_Wave_Start_Req,   Phy_Test_Continuous_Wave_Start_ReqDescr_t,   Phy_Test_Continuous_Wave_StartStop_ConfParams_t)
@@ -855,6 +861,7 @@ DECLARE_CLIENT_REQUEST_API_FUNCTION(Mail_TestEngineReset, TE_ResetCommandReqDesc
 
 DECLARE_CLIENT_INDICATION_API_FUNCTION(SYS_EventNtfy, SYS_EventNotifyParams_t, NoAppropriateType_t)
 
+#ifdef _ZBPRO_
 DECLARE_CLIENT_REQUEST_API_FUNCTION(ZBPRO_NWK_PermitJoiningReq, ZBPRO_NWK_PermitJoiningReqDescr_t, ZBPRO_NWK_PermitJoiningConfParams_t)
 
 DECLARE_CLIENT_REQUEST_API_FUNCTION(ZBPRO_NWK_LeaveReq, ZBPRO_NWK_LeaveReqDescr_t, ZBPRO_NWK_LeaveConfParams_t)
@@ -1094,6 +1101,7 @@ DECLARE_CLIENT_REQUEST_API_FUNCTION(ZBPRO_ZHA_CieDeviceSetPanelStatusReq, ZBPRO_
 DECLARE_CLIENT_REQUEST_API_FUNCTION(ZBPRO_ZHA_CieZoneSetBypassStateReq, ZBPRO_ZHA_CieZoneSetBypassStateReqDescr_t, ZBPRO_ZHA_CieZoneSetBypassStateConfParams_t)
 
 DECLARE_CLIENT_INDICATION_API_FUNCTION(ZBPRO_ZHA_CieDeviceSetPanelStatusInd, ZBPRO_ZHA_CieSetPanelStatusIndParams_t, NoAppropriateType_t)
+#endif
 
 #endif
 

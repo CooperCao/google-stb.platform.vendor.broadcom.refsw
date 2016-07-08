@@ -291,7 +291,7 @@ bwidget_move_focus(bwidget_engine_t engine, int vertical, int horizontal)
 
     BDBG_ASSERT(NULL != engine);
 
-    BDBG_MSG(("bwidget_move_focus %p: %d %d", engine->focus, vertical, horizontal));
+    BDBG_MSG(("bwidget_move_focus %p: %d %d", (void*)engine->focus, vertical, horizontal));
     if (!engine->focus) {
         /* no focus, so just find one */
         for (widget = BLST_D_FIRST(&engine->widgets); widget; widget = BLST_D_NEXT(widget, link)) {

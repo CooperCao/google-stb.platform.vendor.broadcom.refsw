@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2013 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  *************************************************************************/
 #include "nexus_video_decoder_module.h"
@@ -388,6 +380,23 @@ NEXUS_VideoDecoder_P_DataReady_Generic_Epilogue_isr(NEXUS_VideoDecoderHandle vid
     return;
 }
 
+static NEXUS_VideoDecoderHandle nexus_p_find_mosaic_channel(struct NEXUS_VideoDecoderDevice *device, unsigned mosaicIndex)
+{
+    unsigned i;
+    NEXUS_VideoDecoderHandle videoDecoder;
+    for (i=0;i<NEXUS_NUM_XVD_CHANNELS;i++) {
+        videoDecoder = device->channel[i];
+        if (videoDecoder && videoDecoder->dec && videoDecoder->mosaicMode && videoDecoder->mosaicIndex == mosaicIndex) return videoDecoder;
+    }
+    if (device->slaveLinkedDevice) {
+        BDBG_ASSERT(!device->slaveLinkedDevice->slaveLinkedDevice); /* assert one level of recursion */
+        videoDecoder = nexus_p_find_mosaic_channel(device->slaveLinkedDevice, mosaicIndex);
+        if (videoDecoder && videoDecoder->linkedDevice == device) return videoDecoder;
+    }
+
+    return NULL;
+}
+
 void
 NEXUS_VideoDecoder_P_DataReady_isr(void *data, int unused, void *field)
 {
@@ -415,14 +424,10 @@ NEXUS_VideoDecoder_P_DataReady_isr(void *data, int unused, void *field)
         The pFieldData linked list maps to channel[], but the matrix is sparse. */
         for (pNext = pFieldData; pNext; pNext = pNext->pNext) {
             NEXUS_VideoDecoderHandle v;
-            if (pNext->ulChannelId >= NEXUS_NUM_XVD_CHANNELS) continue;
-            v = videoDecoder->device->channel[pNext->ulChannelId];
-            if (v && v->dec && v->mosaicMode) {
+            /* pNext->ulChannelId is uiVDCRectangleNum, which is assigned to videoDecoder->mosaicIndex at start time */
+            v = nexus_p_find_mosaic_channel(videoDecoder->device, pNext->ulChannelId);
+            if (v) {
                 NEXUS_VideoDecoder_P_DataReady_Generic_Prologue_isr(v, pNext);
-            }
-            else {
-                /* TODO: look up handle and run prologue */
-                BDBG_MSG(("linked channel %u", pNext->ulChannelId));
             }
         }
     }
@@ -606,40 +611,7 @@ NEXUS_VideoDecoder_P_FnrtChunkDone_isr(void *data, int unused, void *unused2)
     NEXUS_IsrCallback_Fire_isr(videoDecoder->fnrtChunkDoneCallback);
 }
 
-static NEXUS_VideoEotf NEXUS_VideoDecoder_P_TransferCharacteristicsToEotf_isrsafe(NEXUS_TransferCharacteristics tc)
-{
-    NEXUS_VideoEotf eotf = NEXUS_VideoEotf_eSdr;
 
-    switch (tc)
-    {
-        case NEXUS_TransferCharacteristics_eSmpte_ST_2084:
-            eotf = NEXUS_VideoEotf_eSmpteSt2084;
-            break;
-
-        case NEXUS_TransferCharacteristics_eArib_STD_B67:
-            eotf = NEXUS_VideoEotf_eFuture;
-            break;
-
-        case NEXUS_TransferCharacteristics_eUnknown:
-        case NEXUS_TransferCharacteristics_eItu_R_BT_709:
-        case NEXUS_TransferCharacteristics_eItu_R_BT_470_2_M:
-        case NEXUS_TransferCharacteristics_eItu_R_BT_470_2_BG:
-        case NEXUS_TransferCharacteristics_eSmpte_170M:
-        case NEXUS_TransferCharacteristics_eSmpte_240M:
-        case NEXUS_TransferCharacteristics_eLinear:
-        case NEXUS_TransferCharacteristics_eIec_61966_2_4:
-        case NEXUS_TransferCharacteristics_eItu_R_BT_2020_10bit:
-        case NEXUS_TransferCharacteristics_eItu_R_BT_2020_12bit:
-            eotf = NEXUS_VideoEotf_eSdr;
-            break;
-
-        default:
-            BDBG_WRN(("Unsupported EOTF.  Assuming SDR."));
-            break;
-    }
-
-    return eotf;
-}
 
 void
 NEXUS_VideoDecoder_P_PictureParams_isr(void *data, int unused, void *info_)
@@ -651,7 +623,6 @@ NEXUS_VideoDecoder_P_PictureParams_isr(void *data, int unused, void *info_)
     BERR_Code rc;
     BAVC_PTSInfo apts;
     BXVD_PTSInfo xpts;
-    unsigned i;
     BXVD_DecodeSettings DecodeSettings;
 
     BSTD_UNUSED(unused);
@@ -670,6 +641,7 @@ NEXUS_VideoDecoder_P_PictureParams_isr(void *data, int unused, void *info_)
     streamInfo.aspectRatio = NEXUS_P_AspectRatio_FromMagnum_isrsafe(info->eAspectRatio);
     streamInfo.sampleAspectRatioX = info->uiSampleAspectRatioX;
     streamInfo.sampleAspectRatioY = info->uiSampleAspectRatioY;
+    streamInfo.colorDepth = (info->eBitDepth == BAVC_VideoBitDepth_e10Bit) ? 10 : 8;
 
     /* pick 4 values to help assure Nexus and Magnum enums stay in sync */
     BDBG_CASSERT(NEXUS_MatrixCoefficients_eSmpte_240M == (NEXUS_MatrixCoefficients)BAVC_MatrixCoefficients_eSmpte_240M);
@@ -684,53 +656,15 @@ NEXUS_VideoDecoder_P_PictureParams_isr(void *data, int unused, void *info_)
     streamInfo.matrixCoefficients = NEXUS_P_MatrixCoefficients_FromMagnum_isrsafe(info->eMatrixCoefficients);
 
     /* HDR stuff */
-    /* convert xfer chars to EOTF */
-    streamInfo.eotf = NEXUS_VideoDecoder_P_TransferCharacteristicsToEotf_isrsafe(streamInfo.transferCharacteristics);
-
-    /* copy CLL */
-    streamInfo.contentLightLevel.max = info->ulMaxContentLight;
-    streamInfo.contentLightLevel.maxFrameAverage = info->ulAvgContentLight;
-
-    /* sanitize MDCV before copy */
-    for (i = 0; i < 3; i++)
-    {
-        if (info->stDisplayPrimaries[i].ulX > 50000)
-        {
-            info->stDisplayPrimaries[i].ulX = 0;
-        }
-        if (info->stDisplayPrimaries[i].ulY > 50000)
-        {
-            info->stDisplayPrimaries[i].ulY = 0;
-        }
-    }
-    if (info->stWhitePoint.ulX > 50000)
-    {
-        info->stWhitePoint.ulX = 0;
-    }
-    if (info->stWhitePoint.ulY > 50000)
-    {
-        info->stWhitePoint.ulY = 0;
-    }
-    if (info->ulMaxDispMasteringLuma == 0xffffffff)
-    {
-        info->ulMaxDispMasteringLuma = 0;
-    }
-    if (info->ulMinDispMasteringLuma == 0xffffffff)
-    {
-        info->ulMinDispMasteringLuma = 0;
-    }
-
-    /* copy MDCV */
-    streamInfo.masteringDisplayColorVolume.greenPrimary.x = info->stDisplayPrimaries[0].ulX;
-    streamInfo.masteringDisplayColorVolume.greenPrimary.y = info->stDisplayPrimaries[0].ulY;
-    streamInfo.masteringDisplayColorVolume.bluePrimary.x = info->stDisplayPrimaries[1].ulX;
-    streamInfo.masteringDisplayColorVolume.bluePrimary.y = info->stDisplayPrimaries[1].ulY;
-    streamInfo.masteringDisplayColorVolume.redPrimary.x = info->stDisplayPrimaries[2].ulX;
-    streamInfo.masteringDisplayColorVolume.redPrimary.y = info->stDisplayPrimaries[2].ulY;
-    streamInfo.masteringDisplayColorVolume.whitePoint.x = info->stWhitePoint.ulX;
-    streamInfo.masteringDisplayColorVolume.whitePoint.y = info->stWhitePoint.ulY;
-    streamInfo.masteringDisplayColorVolume.luminance.max = info->ulMaxDispMasteringLuma;
-    streamInfo.masteringDisplayColorVolume.luminance.min = info->ulMinDispMasteringLuma;
+    /* grab preferred xfer chars */
+    streamInfo.preferredTransferCharacteristics = NEXUS_P_TransferCharacteristics_FromMagnum_isrsafe(info->ePreferredTransferCharacteristics);
+    /* convert xfer chars + preferred xfer chars to EOTF */
+    streamInfo.eotf = NEXUS_P_TransferCharacteristicsToEotf_isrsafe(streamInfo.transferCharacteristics, streamInfo.preferredTransferCharacteristics);
+    /* convert CLL */
+    NEXUS_P_ContentLightLevel_FromMagnum_isrsafe(&streamInfo.contentLightLevel, info->ulMaxContentLight, info->ulAvgContentLight);
+    /* convert MDCV */
+    NEXUS_P_MasteringDisplayColorVolume_FromMagnum_isrsafe(&streamInfo.masteringDisplayColorVolume,
+        info->stDisplayPrimaries, &info->stWhitePoint, info->ulMaxDispMasteringLuma, info->ulMinDispMasteringLuma);
 
     /* other stuff */
     streamInfo.streamProgressive = info->bStreamProgressive; /* don't use the bStreamProgressive_7411 flavor. it could lock onto a false value. */
@@ -1682,6 +1616,30 @@ NEXUS_VideoDecoder_P_ApplyDisplayInformation( NEXUS_VideoDecoderHandle videoDeco
     if (videoDecoder->dec) {
         uint32_t refreshRate;
         switch(videoDecoder->displayInformation.refreshRate) {
+        case 749:
+           refreshRate = BXVD_MONITOR_REFRESH_RATE_7_493Hz; break;
+        case 750:
+           refreshRate = BXVD_MONITOR_REFRESH_RATE_7_5Hz; break;
+        case 999:
+           refreshRate = BXVD_MONITOR_REFRESH_RATE_9_99Hz; break;
+        case 1000:
+           refreshRate = BXVD_MONITOR_REFRESH_RATE_10Hz; break;
+        case 1198:
+        case 1199: /* real value is 11.988 */
+           refreshRate = BXVD_MONITOR_REFRESH_RATE_11_988Hz; break;
+        case 1200:
+           refreshRate = BXVD_MONITOR_REFRESH_RATE_12Hz; break;
+        case 1250:
+           refreshRate = BXVD_MONITOR_REFRESH_RATE_12_5Hz; break;
+        case 1498:
+        case 1499:
+           refreshRate = BXVD_MONITOR_REFRESH_RATE_14_985Hz; break;
+        case 1500:
+           refreshRate = BXVD_MONITOR_REFRESH_RATE_15Hz; break;
+        case 1998:
+           refreshRate = BXVD_MONITOR_REFRESH_RATE_19_98Hz; break;
+        case 2000:
+           refreshRate = BXVD_MONITOR_REFRESH_RATE_20Hz; break;
         case 2398:
         case 2397: /* real value is 23.976 */
             refreshRate = BXVD_MONITOR_REFRESH_RATE_23_976Hz; break;
@@ -1699,15 +1657,8 @@ NEXUS_VideoDecoder_P_ApplyDisplayInformation( NEXUS_VideoDecoderHandle videoDeco
             refreshRate = BXVD_MONITOR_REFRESH_RATE_50Hz; break;
         case 5994:
             refreshRate = BXVD_MONITOR_REFRESH_RATE_59_94Hz; break;
-        case 1250:
-            refreshRate = BXVD_MONITOR_REFRESH_RATE_12_5Hz; break;
-        case 1498:
-        case 1499:
-            refreshRate = BXVD_MONITOR_REFRESH_RATE_14_985Hz; break;
-        case 1500:
-            refreshRate = BXVD_MONITOR_REFRESH_RATE_15Hz; break;
-        case 2000:
-            refreshRate = BXVD_MONITOR_REFRESH_RATE_20Hz; break;
+        case 6000:
+            refreshRate = BXVD_MONITOR_REFRESH_RATE_60Hz; break;
         case 10000:
             refreshRate = BXVD_MONITOR_REFRESH_RATE_100Hz; break;
         case 11988:
@@ -1715,7 +1666,6 @@ NEXUS_VideoDecoder_P_ApplyDisplayInformation( NEXUS_VideoDecoderHandle videoDeco
         case 12000:
             refreshRate = BXVD_MONITOR_REFRESH_RATE_120Hz; break;
         default:
-        case 6000:
             refreshRate = BXVD_MONITOR_REFRESH_RATE_60Hz; break;
         }
         BDBG_MSG(("ch[%d] BXVD_SetMonitorRefreshRate %d.%02d", videoDecoder->parentIndex,
@@ -2020,6 +1970,19 @@ BXDM_PictureProvider_MonitorRefreshRate NEXUS_VideoDecoder_P_GetXdmMonitorRefres
 {
     BXDM_PictureProvider_MonitorRefreshRate refreshRate;
     switch(nexusRefreshRate) {
+    case 749:
+       refreshRate = BXDM_PictureProvider_MonitorRefreshRate_e7_493Hz; break;
+    case 750:
+       refreshRate = BXDM_PictureProvider_MonitorRefreshRate_e7_5Hz; break;
+    case 999:
+       refreshRate = BXDM_PictureProvider_MonitorRefreshRate_e9_99Hz; break;
+    case 100:
+       refreshRate = BXDM_PictureProvider_MonitorRefreshRate_e10Hz; break;
+    case 1198:
+    case 1199:
+       refreshRate = BXDM_PictureProvider_MonitorRefreshRate_e11_988Hz; break;
+    case 1200:
+       refreshRate = BXDM_PictureProvider_MonitorRefreshRate_e12Hz; break;
     case 1250:
        refreshRate = BXDM_PictureProvider_MonitorRefreshRate_e12_5Hz; break;
     case 1498:
@@ -2027,6 +1990,8 @@ BXDM_PictureProvider_MonitorRefreshRate NEXUS_VideoDecoder_P_GetXdmMonitorRefres
        refreshRate = BXDM_PictureProvider_MonitorRefreshRate_e14_985Hz; break;
     case 1500:
        refreshRate = BXDM_PictureProvider_MonitorRefreshRate_e15Hz; break;
+    case 1998:
+       refreshRate = BXDM_PictureProvider_MonitorRefreshRate_e19_98Hz; break;
     case 2000:
        refreshRate = BXDM_PictureProvider_MonitorRefreshRate_e20Hz; break;
     case 2398:

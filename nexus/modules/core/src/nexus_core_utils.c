@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,18 +35,10 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   API name: Base
 *   It also initializes the magnum base modules. And provides system level
 *   interrupt routing
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 #include "nexus_core_module.h"
@@ -64,9 +56,9 @@ void NEXUS_P_VideoFormat_SetInfo( NEXUS_VideoFormat videoFormat, const NEXUS_Vid
     g_NEXUS_customVideoFormatInfo = *pInfo;
 }
 
-void NEXUS_VideoFormat_GetInfo_priv(NEXUS_VideoFormat videoFormat, NEXUS_VideoFormatInfo *pInfo)
+void NEXUS_VideoFormat_GetInfo_isrsafe(NEXUS_VideoFormat videoFormat, NEXUS_VideoFormatInfo *pInfo)
 {
-    BFMT_VideoInfo fmtInfo;
+    const BFMT_VideoInfo *fmtInfo;
     BERR_Code rc = BERR_SUCCESS;
     BFMT_VideoFmt fmt;
 
@@ -81,24 +73,25 @@ void NEXUS_VideoFormat_GetInfo_priv(NEXUS_VideoFormat videoFormat, NEXUS_VideoFo
     rc = NEXUS_P_VideoFormat_ToMagnum_isrsafe(videoFormat, &fmt);
     if (rc) {BERR_TRACE(rc); return;}
 
-    rc = BFMT_GetVideoFormatInfo(fmt, &fmtInfo);
-    if (rc) {BERR_TRACE(rc); return;}
+    /* TODO: could be _isrsafe */
+    fmtInfo = BFMT_GetVideoFormatInfoPtr_isr(fmt);
+    if (!fmtInfo) {BERR_TRACE(NEXUS_INVALID_PARAMETER); return;}
 
-    BDBG_MSG(("NEXUS_VideoFormat_GetInfo %d->%d: %dx%d", videoFormat, fmt, fmtInfo.ulWidth, fmtInfo.ulHeight));
+    BDBG_MSG(("NEXUS_VideoFormat_GetInfo %d->%d: %dx%d", videoFormat, fmt, fmtInfo->ulWidth, fmtInfo->ulHeight));
 
-    pInfo->width = fmtInfo.ulWidth;
-    pInfo->height = fmtInfo.ulHeight;
-    pInfo->digitalWidth = fmtInfo.ulDigitalWidth;
-    pInfo->digitalHeight = fmtInfo.ulDigitalHeight;
-    pInfo->scanWidth = fmtInfo.ulScanWidth;
-    pInfo->scanHeight = fmtInfo.ulScanHeight;
-    pInfo->topActive = fmtInfo.ulTopActive;
-    pInfo->topMaxVbiPassThru = fmtInfo.ulTopMaxVbiPassThru;
-    pInfo->bottomMaxVbiPassThru = fmtInfo.ulBotMaxVbiPassThru;
-    pInfo->verticalFreq = fmtInfo.ulVertFreq;
-    pInfo->interlaced = fmtInfo.bInterlaced;
-    pInfo->aspectRatio = fmtInfo.eAspectRatio;
-    pInfo->pixelFreq = fmtInfo.ulPxlFreq;
+    pInfo->width = fmtInfo->ulWidth;
+    pInfo->height = fmtInfo->ulHeight;
+    pInfo->digitalWidth = fmtInfo->ulDigitalWidth;
+    pInfo->digitalHeight = fmtInfo->ulDigitalHeight;
+    pInfo->scanWidth = fmtInfo->ulScanWidth;
+    pInfo->scanHeight = fmtInfo->ulScanHeight;
+    pInfo->topActive = fmtInfo->ulTopActive;
+    pInfo->topMaxVbiPassThru = fmtInfo->ulTopMaxVbiPassThru;
+    pInfo->bottomMaxVbiPassThru = fmtInfo->ulBotMaxVbiPassThru;
+    pInfo->verticalFreq = fmtInfo->ulVertFreq;
+    pInfo->interlaced = fmtInfo->bInterlaced;
+    pInfo->aspectRatio = fmtInfo->eAspectRatio;
+    pInfo->pixelFreq = fmtInfo->ulPxlFreq;
 
     pInfo->isFullRes3d = BFMT_IS_3D_MODE(fmt);
     return;
@@ -106,7 +99,7 @@ void NEXUS_VideoFormat_GetInfo_priv(NEXUS_VideoFormat videoFormat, NEXUS_VideoFo
 
 void NEXUS_VideoFormat_GetInfo(NEXUS_VideoFormat videoFormat, NEXUS_VideoFormatInfo *pInfo)
 {
-    NEXUS_VideoFormat_GetInfo_priv(videoFormat, pInfo);
+    NEXUS_VideoFormat_GetInfo_isrsafe(videoFormat, pInfo);
 }
 
 void NEXUS_PixelFormat_GetInfo( NEXUS_PixelFormat pixelFormat, NEXUS_PixelFormatInfo *pInfo )
@@ -125,6 +118,12 @@ NEXUS_LookupFrameRate(unsigned frameRateInteger, NEXUS_VideoFrameRate *pNexusFra
 {
     NEXUS_P_FrameRate_FromRefreshRate_isrsafe(frameRateInteger, pNexusFrameRate);
     return;
+}
+
+NEXUS_Error NEXUS_VideoFrameRate_GetRefreshRate( NEXUS_VideoFrameRate frameRate, unsigned *pRefreshRate )
+{
+    *pRefreshRate = NEXUS_P_RefreshRate_FromFrameRate_isrsafe(frameRate);
+    return (!frameRate || *pRefreshRate) ? NEXUS_SUCCESS : NEXUS_INVALID_PARAMETER;
 }
 
 struct NEXUS_FrontendConnector

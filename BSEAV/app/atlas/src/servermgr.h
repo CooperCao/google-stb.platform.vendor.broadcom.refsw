@@ -1,7 +1,7 @@
-/***************************************************************************
- * (c) 2002-2015 Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -37,13 +37,13 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 #ifndef SERVERMGR_H__
 #define SERVERMGR_H__
 
 #include "resource.h"
 #include "server_http.h"
+#include "server_udp.h"
 #include "server_playlist.h"
 
 #ifdef __cplusplus
@@ -52,6 +52,7 @@ extern "C" {
 
 class CWidgetEngine;
 class CServerHttp;
+class CServerUdp;
 
 class CServerMgr : public CMvcModel
 {
@@ -74,6 +75,9 @@ public:
     eRet            startHttpServer(void);
     eRet            stopHttpServer(void);
     bool            isHttpServerStarted(void);
+    eRet            startUdpServer(void);
+    eRet            stopUdpServer(void);
+    bool            isUdpServerStarted(void);
 
     eRet startPlaylistServer(void);
     eRet stopPlaylistServer(void);
@@ -85,6 +89,7 @@ protected:
     CWidgetEngine *  _pWidgetEngine; /* open will set this*/
 
     CServerHttp *     _pServerHttp;
+    CServerUdp  *     _pServerUdp;
     CServerPlaylist * _pServerPlaylist;
 };
 

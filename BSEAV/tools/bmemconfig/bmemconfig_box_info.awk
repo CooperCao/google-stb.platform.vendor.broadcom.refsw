@@ -22,7 +22,6 @@ BEGIN {
     uint_tag=$1
     idx=$3;
     ddr=$5;
-    spb=$6
     total++;
     ### printf "/* line is " $1 $2 $3 " */\n";
     if ($2 == "for:" && $3 == "Box" )
@@ -62,6 +61,26 @@ BEGIN {
         ### printf "/* DDR is " a1[1]"; SCB is "a3[1]" */\n";
         memc_count++;
     }
+    ### some of the newer boxmode files have LPDDR4@1067MHz
+    ### $1        $2   $3$4      $5              $6       $7
+    ### *         MemC 0 (32-bit LPDDR4@1067MHz) w/432MHz clock
+
+    else if ( substr($5,1,6) == "LPDDR4" )
+    {
+        ### printf "/* found DDR " $5 " " $6" */\n";
+        ddr_string = $5;
+        if ( substr($6,0,2) == "w/" ) {
+            scb_string = substr($6,3,99);
+        } else {
+            scb_string = $6;
+        }
+        ddr = substr($5,8,99);
+        split(ddr,a1,"M");
+        split($6,a2,"/");
+        split(a2[2],a3,"M");
+        ### printf "/* DDR is " a1[1]"; SCB is "a3[1]" */\n";
+        memc_count++;
+    }
     ### some of the newer boxmode files do not have DDRDDR3@1067 ... they just have DDR3@1067 or DDR4@1200
     else if ( substr($5,1,4) == "DDR3" || substr($5,1,4) == "DDR4" )
     {
@@ -84,7 +103,7 @@ BEGIN {
         if (found_beginning_of_names == 1) {
            if (name_count==0 && boxmode>0) { # skip boxmode 0 because it is pre-initialized in bmemconfig_box_info_pre.awk
               split(ddr_string,ddr_string2,")"); # separate out the parenthesis at the end of the string
-              printf(",{"boxmode","memc_count",\""ddr_string2[1]" SCB@"scb_string"\",\""platform"\"}\n\n");
+              printf(",{"boxmode","memc_count",\""ddr_string2[1]" SCB@"scb_string"\",\""platform"\","a1[1]","a3[1]"}\n\n");
            }
            name_count++;
         }

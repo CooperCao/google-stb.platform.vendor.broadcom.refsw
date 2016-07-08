@@ -1,51 +1,43 @@
 /******************************************************************************
-*    (c)2011-2013 Broadcom Corporation
-*
-* This program is the proprietary software of Broadcom Corporation and/or its licensors,
-* and may only be used, duplicated, modified or distributed pursuant to the terms and
-* conditions of a separate, written license agreement executed between you and Broadcom
-* (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-* no license (express or implied), right to use, or waiver of any kind with respect to the
-* Software, and Broadcom expressly reserves all rights in and to the Software and all
-* intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-* secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-* and to use this information only in connection with your use of Broadcom integrated circuit products.
-*
-* 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-* AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-* WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-* THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-* OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-* LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-* OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-* USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-* LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-* EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-* USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-* THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-* ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-* LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-* ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* Module Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
-*
-*****************************************************************************/
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
+ *
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 #include "bstd.h"
 #include "bmth.h"
 #include "bsat.h"
@@ -321,6 +313,19 @@ BERR_Code BSAT_g1_P_AfecAcquire1_isr(BSAT_ChannelHandle h)
    else
       BSAT_g1_P_OrRegister_isrsafe(h, BCHP_AFEC_ACM_MISC_0, BCHP_AFEC_0_ACM_MISC_0_INTERFACE_OUT_MASK);
 
+   if (hChn->bShortFrame)
+   {
+      BSAT_g1_P_OrRegister_isrsafe(h, BCHP_AFEC_ACM_MISC_0, BCHP_AFEC_0_ACM_MISC_0_SHORT_CODE_MASK);
+      BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_AFEC_ACM_SYM_CNT_0, 0x15181FA4);
+      BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_AFEC_ACM_SYM_CNT_1, 0x0FD20CA8);
+   }
+   else
+   {
+      BSAT_g1_P_AndRegister_isrsafe(h, BCHP_AFEC_ACM_MISC_0, ~BCHP_AFEC_0_ACM_MISC_0_SHORT_CODE_MASK);
+      BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_AFEC_ACM_SYM_CNT_0, 0x54607E90);
+      BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_AFEC_ACM_SYM_CNT_1, 0x3F4832A0);
+   }
+
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_AFEC_RST, 0x00070100);
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_AFEC_INTR_CTRL2_CPU_CLEAR, 0xFFFFFFFF);
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_AFEC_RST, 0);
@@ -329,6 +334,16 @@ BERR_Code BSAT_g1_P_AfecAcquire1_isr(BSAT_ChannelHandle h)
 
    done:
    return retCode;
+}
+
+/******************************************************************************
+ BSAT_g1_P_AfecReacquire1_isr()
+******************************************************************************/
+BERR_Code BSAT_g1_P_AfecReacquire1_isr(BSAT_ChannelHandle h)
+{
+   BSAT_g1_P_AfecResetChannel_isr(h);
+   BSAT_g1_P_AfecPowerDown_isrsafe(h);
+   return BSAT_g1_P_Reacquire_isr(h);
 }
 
 
@@ -349,7 +364,10 @@ BERR_Code BSAT_g1_P_AfecReacquire_isr(BSAT_ChannelHandle h)
       if (hChn->reacqCount >= hChn->miscSettings.maxReacqs)
       {
          if (hChn->miscSettings.bPreserveState)
-            goto reacquire;
+         {
+            reacquire:
+            return BSAT_g1_P_Reacquire_isr(h);
+         }
       }
    }
 
@@ -366,11 +384,9 @@ BERR_Code BSAT_g1_P_AfecReacquire_isr(BSAT_ChannelHandle h)
    }
 #endif
 
-   BSAT_g1_P_AfecResetChannel_isr(h);
-   BSAT_g1_P_AfecPowerDown_isrsafe(h);
-
-   reacquire:
-   return BSAT_g1_P_Reacquire_isr(h);
+   /* per Hiroshi: reset HP first, wait a while (say 5 msec), then reset FEC and OI.  5ms should be long enough to flush out the FEC to avoid partial XPT packets */
+   BSAT_g1_P_HpEnable_isr(h, false);
+   return BSAT_g1_P_EnableTimer_isr(h, BSAT_TimerSelect_eBaudUsec, 5000, BSAT_g1_P_AfecReacquire1_isr);
 }
 
 
@@ -463,6 +479,7 @@ BERR_Code BSAT_g1_P_AfecOnLock_isr(BSAT_ChannelHandle h)
    BSTD_UNUSED(h);
 
 #ifdef BSAT_DEBUG_ACM
+   BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    if (hChn->acqSettings.mode == BSAT_Mode_eDvbs2_ACM)
    {
       uint32_t ldpc_status, lock_status;
@@ -1158,27 +1175,32 @@ void BSAT_g1_P_AfecSetCmaModulus_isr(BSAT_ChannelHandle h)
 ******************************************************************************/
 BERR_Code BSAT_g1_P_AfecSetAcmVlcGain_isr(BSAT_ChannelHandle h)
 {
+   BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    BSAT_g1_P_Handle *hDevImpl = (BSAT_g1_P_Handle*)(h->pDevice->pImpl);
    int i;
 
    static const uint8_t vcm_vlc_gain[96] =
    {
-      64, 53, 49, 47, 54, 71, 79, 76, 75, 74, 72, 71,
-      73, 71, 69, 68, 76, 75, 77, 76, 67, 67, 66, 74,
-      74, 74, 66, 65, 65, 64, 64, 64, 64, 64, 52, 45,
-      42, 47, 74, 81, 79, 79, 72, 71, 71, 70, 70, 79,
-      69, 69, 77, 77, 76, 76, 66, 67, 91, 67, 66, 66,
+      /* from Xiaofen 4/24/2016 */
+      64, 92, 92, 80, 94, 116, 134, 134, 134, 134, 134, 134,
+      80, 80, 80, 80, 80, 80, 77, 76, 67, 67, 66, 74,
+      74, 74, 66, 65, 65, 64, 64, 64, 64, 64, 134, 70,
+      70, 52, 80, 84, 84, 84, 80, 80, 80, 72, 72, 84,
+      72, 72, 84, 82, 82, 82, 70, 68, 91, 68, 68, 68,
       66, 66, 66, 65, 66, 65, 66, 65, 65, 65, 65, 65,
       65, 65, 65, 65, 54, 53, 50, 55, 84, 77, 77, 75,
       73, 70, 72, 71, 70, 69, 68, 67, 66, 69, 66, 65
    };
 
-   BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_EQ_MGAINA, BCHP_SDS_EQ_0_MGAINA_mgain_acc_en_MASK);
-   for (i = 0; i < 96; i++)
+   if ((hChn->configParam[BSAT_g1_CONFIG_ACM_DEBUG] & BSAT_g1_CONFIG_ACM_DEBUG_DONT_WRITE_VLC) == 0)
    {
-      BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_EQ_MGAIND, (uint32_t)vcm_vlc_gain[i]);
+      BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_EQ_MGAINA, BCHP_SDS_EQ_0_MGAINA_mgain_acc_en_MASK);
+      for (i = 0; i < 96; i++)
+      {
+         BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_EQ_MGAIND, (uint32_t)vcm_vlc_gain[i]);
+      }
+      BSAT_g1_P_AndRegister_isrsafe(h, BCHP_SDS_EQ_MGAINA, ~BCHP_SDS_EQ_0_MGAINA_mgain_acc_en_MASK);
    }
-   BSAT_g1_P_AndRegister_isrsafe(h, BCHP_SDS_EQ_MGAINA, ~BCHP_SDS_EQ_0_MGAINA_mgain_acc_en_MASK);
 
    BSAT_g1_P_AndRegister_isrsafe(h, BCHP_SDS_EQ_VLCTL, ~BCHP_SDS_EQ_0_VLCTL_vlc_soft_insel_MASK);
    BSAT_g1_P_OrRegister_isrsafe(h, BCHP_SDS_EQ_VLCTL, BCHP_SDS_EQ_0_VLCTL_vgain_sel_MASK);
@@ -1344,6 +1366,23 @@ BERR_Code BSAT_g1_P_AfecSetVlcGain_isr(BSAT_ChannelHandle h)
       case BSAT_Mode_eDvbs2x_32apsk_11_15:  /* pls=180 */
       case BSAT_Mode_eDvbs2x_32apsk_7_9:    /* pls=182 */
          vlc_gain = 8704;
+         break;
+
+      case BSAT_Mode_eDvbs2_Qpsk_1_4:
+      case BSAT_Mode_eDvbs2_Qpsk_1_3:
+         vlc_gain = 0x2E00;
+         break;
+
+      case BSAT_Mode_eDvbs2_Qpsk_2_5:
+         vlc_gain = 0x2800;
+         break;
+
+      case BSAT_Mode_eDvbs2_Qpsk_1_2:
+         vlc_gain = 0x2F00;
+         break;
+
+      case BSAT_Mode_eDvbs2_Qpsk_3_5:
+         vlc_gain = 0x3A00;
          break;
 
       default:
@@ -1567,7 +1606,7 @@ BERR_Code BSAT_g1_P_AfecConfigSnr_isr(BSAT_ChannelHandle h)
       if (hChn->acmSettings.snr.filterMode == BSAT_AcmSnrFilter_eMode)
       {
          uint8_t plscode;
-         retCode = BSAT_g1_P_GetDvbs2Plscode_isrsafe(hChn->acmSettings.softDecisions.param.mode, &plscode);
+         retCode = BSAT_g1_P_GetDvbs2Plscode_isrsafe(hChn->acmSettings.snr.param.mode, &plscode);
          if (retCode == BERR_SUCCESS)
          {
             val |= (1 << BCHP_SDS_SNR_0_SNRCTL_snr_filter_mode_SHIFT);
@@ -1607,7 +1646,7 @@ BERR_Code BSAT_g1_P_AfecSetMpcfg_isr(BSAT_ChannelHandle h)
       val |= 0x10;
 
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_AFEC_BCH_MPCFG, val);
-   BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_AFEC_BCH_MPLCK, 0x030F0E0F);
+   BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_AFEC_BCH_MPLCK, 0x03040E0F);
 
    return BERR_SUCCESS;
 }
@@ -1634,10 +1673,14 @@ BERR_Code BSAT_g1_P_AfecConfig_isr(BSAT_ChannelHandle h)
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_AFEC_BCH_CTRL, 0x00000001);
 
    val = BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_AFEC_BCH_SMCFG);
+   val &= ~0x8000;
    if (hChn->xportSettings.bTei)
+   {
+      /* software workaround for DVB-S2 sync byte corruption: disable TEI */
+#if 0
       val |= 0x8000;
-   else
-      val &= ~0x8000;
+#endif
+   }
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_AFEC_BCH_SMCFG, val);
 
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_AFEC_CNTR_CTRL, 0x00000003); /* clear counters */
@@ -1645,10 +1688,22 @@ BERR_Code BSAT_g1_P_AfecConfig_isr(BSAT_ChannelHandle h)
    BSAT_CHK_RETCODE(BSAT_g1_P_AfecSetMpcfg_isr(h));
 
    BSAT_g1_P_AndRegister_isrsafe(h, BCHP_AFEC_BCH_BBHDR3, ~(BCHP_AFEC_0_BCH_BBHDR3_sel_stream_id_MASK | BCHP_AFEC_0_BCH_BBHDR3_use_prev_on_illegal_MASK));
+   BSAT_g1_P_OrRegister_isrsafe(h, BCHP_AFEC_BCH_BBHDR3, BCHP_AFEC_0_BCH_BBHDR3_sel_upl_MASK);
+   if (hChn->acqSettings.mode == BSAT_Mode_eDvbs2_ACM)
+   {
+      /* ACM */
+      BSAT_g1_P_ReadModifyWriteRegister_isrsafe(h, BCHP_AFEC_BCH_BBHDR3, ~(BCHP_AFEC_0_BCH_BBHDR3_sel_stream_id_MASK | BCHP_AFEC_0_BCH_BBHDR3_use_prev_on_illegal_MASK), BCHP_AFEC_0_BCH_BBHDR3_sel_upl_MASK);
+   }
+   else
+   {
+      /* CCM */
+      BSAT_g1_P_ReadModifyWriteRegister_isrsafe(h, BCHP_AFEC_BCH_BBHDR3, ~BCHP_AFEC_0_BCH_BBHDR3_sel_stream_id_MASK,
+         BCHP_AFEC_0_BCH_BBHDR3_sel_upl_SHIFT | BCHP_AFEC_0_BCH_BBHDR3_use_prev_on_illegal_MASK | (1 << BCHP_AFEC_0_BCH_BBHDR3_sel_stream_id_SHIFT));
+   }
    BSAT_g1_P_ToggleBit_isrsafe(h, BCHP_AFEC_CNTR_CTRL, 0x00000006); /* clear counters */
    BSAT_g1_P_ToggleBit_isrsafe(h, BCHP_AFEC_RST, 0x100); /* reset data path */
 
-   BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_AFEC_LDPC_CONFIG_0, 0x05000B02);
+   BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_AFEC_LDPC_CONFIG_0, 0x05000B01);
 
    done:
    return retCode;

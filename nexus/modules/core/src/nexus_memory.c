@@ -80,7 +80,7 @@ void NEXUS_Heap_GetDefaultMemcSettings( unsigned memcIndex, NEXUS_Core_MemoryReg
     pSettings->memcIndex = memcIndex;
     /* by default full access allowed */
     pSettings->memoryType = NEXUS_MemoryType_eFull;
-    
+
     /* driver must set pSettings->alignment based on OS report of max dcache line size */
 
 #if BCHP_CHIP == 7405 || BCHP_CHIP == 7400 || BCHP_CHIP == 7325 || BCHP_CHIP == 7335 || \
@@ -204,6 +204,12 @@ static void NEXUS_CoreModule_P_TraceFree(void *context, BMMA_DeviceOffset base, 
 }
 #endif /* BMMA_USE_STUB */
 
+/* export custom_arc=y tells Nexus to not set up or change ARC settings. Just leave it alone. */
+static bool nexus_p_custom_arc(void)
+{
+    return NEXUS_GetEnv("custom_arc") != NULL;
+}
+
 NEXUS_HeapHandle NEXUS_Heap_Create_priv( unsigned index, const NEXUS_Core_MemoryRegion *pSettings )
 {
     NEXUS_HeapHandle heap = NULL;
@@ -300,7 +306,7 @@ NEXUS_HeapHandle NEXUS_Heap_Create_priv( unsigned index, const NEXUS_Core_Memory
     }
     BDBG_ASSERT(heap->memHeap);
     heap->mmaHeap = (BMMA_Heap_Handle)heap->memHeap;
-    if (!NEXUS_GetEnv("custom_arc")) {
+    if (!nexus_p_custom_arc()) {
         rc = BMEM_InstallMonitor(heap->memHeap, &g_NexusCore.publicHandles.memc[pSettings->memcIndex].mem_monitor);
         if (rc!=BERR_SUCCESS) { rc=BERR_TRACE(rc); goto error; }
     }
@@ -1213,17 +1219,23 @@ NEXUS_Error NEXUS_Heap_SetRuntimeSettings_priv( NEXUS_HeapHandle heap, const NEX
         BMRC_Monitor_HwBlock_eBSP,
         BMRC_Monitor_HwBlock_eBVN,
         BMRC_Monitor_HwBlock_eMEMC,
+        BMRC_Monitor_HwBlock_eM2MC,
+        BMRC_Monitor_HwBlock_e3D,
         BMRC_Monitor_HwBlock_ePREFETCH,
         BMRC_Monitor_HwBlock_eSCPU,
         BMRC_Monitor_HwBlock_eVICE,
         BMRC_Monitor_HwBlock_eXPT
     };
 
+    if (nexus_p_custom_arc()) {
+        return NEXUS_SUCCESS;
+    }
+
     if (!g_NexusCore.publicHandles.memc[heap->settings.memcIndex].rmm) {
         return BERR_TRACE(NEXUS_NOT_AVAILABLE);
     }
     if (pSettings->secure == (heap->secureMonitorRegion != NULL)) {
-        return BERR_TRACE(NEXUS_NOT_AVAILABLE);
+        return NEXUS_SUCCESS;
     }
     BMRC_MonitorRegion_GetDefaultSettings(&regionSettings);
     regionSettings.blockWrite = false;
@@ -1249,4 +1261,21 @@ NEXUS_Error NEXUS_Heap_SetRuntimeSettings_priv( NEXUS_HeapHandle heap, const NEX
 
     heap->runtimeSettings = *pSettings;
     return NEXUS_SUCCESS;
+}
+
+NEXUS_HeapHandle NEXUS_Heap_Lookup(NEXUS_HeapLookupType lookupType)
+{
+    unsigned i, heapType;
+    switch (lookupType) {
+    case NEXUS_HeapLookupType_eMain: heapType = NEXUS_HEAP_TYPE_MAIN; break;
+    case NEXUS_HeapLookupType_eCompressedRegion: heapType = NEXUS_HEAP_TYPE_COMPRESSED_RESTRICTED_REGION; break;
+    case NEXUS_HeapLookupType_eExportRegion: heapType = NEXUS_HEAP_TYPE_EXPORT_REGION; break;
+    default: return NULL;
+    }
+    for (i=0;i<NEXUS_MAX_HEAPS;i++) {
+        if (g_pCoreHandles->heap[i].nexus && g_pCoreHandles->heap[i].nexus->settings.heapType == heapType) {
+            return g_pCoreHandles->heap[i].nexus;
+        }
+    }
+    return NULL;
 }

@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2016 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,14 +34,17 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
-*
 ***************************************************************************/
 
 #include "nexus_platform_priv.h"
 
 #if NEXUS_TEE_SUPPORT
 
+#ifdef NEXUS_BASE_OS_linuxuser
 #include "libastra_api.h"
+#else
+#include "astra_api.h"
+#endif
 
 BDBG_OBJECT_ID(NEXUS_TeeClient);
 BDBG_MODULE(nexus_platform_tee);
@@ -54,7 +57,7 @@ typedef struct NEXUS_TeeClient
     void *pEventPrivateData;
 } NEXUS_TeeClient;
 
-static void NEXUS_Platform_P_TeeEventHandler(astra_event event, void *pPrivateData, void *pCallbackData)
+static void NEXUS_Platform_P_TeeEventHandler(astra_event event, void *pCallbackData, void *pPrivateData)
 {
     NEXUS_TeeClient *pClient = (NEXUS_TeeClient *)pPrivateData;
 
@@ -321,6 +324,36 @@ static void NEXUS_Platform_P_TeeConnectionClose(void *pConnectionPrivate)
     astra_peer_close(pConnectionPrivate);
 }
 
+static BERR_Code NEXUS_Platform_P_TeeGetStatus(BTEE_InstanceStatus *pStatus)
+{
+    astra_status astraStatus;
+    astra_version astraVersion;
+
+    if ( NULL == pStatus )
+    {
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+
+    BKNI_Memset(pStatus, 0, sizeof(*pStatus));
+    if (astra_status_get(&astraStatus) != 0)
+    {
+        BDBG_WRN(("Unable to query Astra status"));
+        return BERR_TRACE(BERR_NOT_INITIALIZED);
+    }
+    if (astra_version_get(&astraVersion) != 0)
+    {
+        BDBG_WRN(("Unable to query Astra version"));
+        return BERR_TRACE(BERR_NOT_INITIALIZED);
+    }
+
+    pStatus->enabled = astraStatus.up;
+    pStatus->version.major = astraVersion.major;
+    pStatus->version.minor = astraVersion.minor;
+    pStatus->version.build = astraVersion.build;
+    return BERR_SUCCESS;
+}
+
+
 BTEE_InstanceHandle NEXUS_Platform_P_CreateTeeInstance(void)
 {
     BERR_Code rc;
@@ -348,6 +381,7 @@ BTEE_InstanceHandle NEXUS_Platform_P_CreateTeeInstance(void)
     createSettings.ConnectionOpen = NEXUS_Platform_P_TeeConnectionOpen;
     createSettings.ConnectionSendMessage = NEXUS_Platform_P_TeeConnectionSendMessage;
     createSettings.ConnectionClose = NEXUS_Platform_P_TeeConnectionClose;
+    createSettings.GetStatus = NEXUS_Platform_P_TeeGetStatus;
 
     rc = BTEE_Instance_Create(&createSettings, &hInstance);
     if ( rc )

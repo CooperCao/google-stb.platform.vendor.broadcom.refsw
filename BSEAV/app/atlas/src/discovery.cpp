@@ -1,43 +1,39 @@
 /******************************************************************************
- * (c) 2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 #include "atlas.h"
 #include "atlas_os.h"
@@ -121,6 +117,7 @@ CAutoDiscoveryServer::CAutoDiscoveryServer(
     _bEnabled(GET_BOOL(pCfg, ATLAS_SERVER_ENABLED) && GET_BOOL(pCfg, AUTO_DISCOVERY_SERVER_ENABLED)),
     _pIfInterfaceList(NULL)
 {
+    BKNI_Memset(_beacon, 0, sizeof(_beacon));
     BKNI_Memset(&_beacon_addr, 0, sizeof(_beacon_addr));
     if (_bEnabled)
     {
@@ -202,10 +199,19 @@ void CAutoDiscoveryServer::close()
     }
 } /* close */
 
+
 void CAutoDiscoveryServer::timerCallback(void * pTimer)
 {
     BSTD_UNUSED(pTimer);
     int beacon_size;
+    static int ifRefreshInterval =0;
+    const int minute = 15000;
+    ifRefreshInterval += _beaconIntervalMsec;
+    if(ifRefreshInterval > minute )
+    {
+        ifRefreshInterval=0;
+        updateIfAddrs();
+    }
     /* _beacon_version++; */
 
     if_interface * pIfInterface = NULL;
@@ -321,6 +327,9 @@ void CDiscoveredServer::httpClientFinishedCallback()
                 break;
             }
             pIpChannel->setUrl(url);
+            /* discovered channels are not in the channel list so they can be stopped.
+               bip channels in the channel list cannot be stopped - user must tune away instead. */
+            pIpChannel->setStopAllowed(true);
             BDBG_MSG(("adding channel:%s", url));
             addChannel(pIpChannel);
 
@@ -376,7 +385,7 @@ static void HttpClientThread(void * pParam)
 
     if (getaddrinfo(pServer->getIpAddress().s(), pServer->getIpPort().s(), &hints, &addrInfo) != 0)
     {
-        BDBG_ERR(("getaddrinfo failed for server:port: %s:%d\n", pServer->getIpAddress().s(), pServer->getIpPort().s()));
+        BDBG_ERR(("getaddrinfo failed for server:port: %s:%s\n", pServer->getIpAddress().s(), pServer->getIpPort().s()));
         perror("getaddrinfo");
         goto error;
     }
@@ -588,6 +597,7 @@ eRet CDiscoveredServer::open(
         goto error;
     }
 
+    memset(&localAddr, 0, sizeof(localAddr));
     localAddr.sin_family      = AF_INET;
     localAddr.sin_addr.s_addr = htonl(INADDR_ANY);
     localAddr.sin_port        = htons(0);
@@ -619,8 +629,8 @@ eRet CDiscoveredServer::open(
     {
         BDBG_ERR(("Failed to start http client thread"));
         ::close(_socket);
-        goto error;
         ret = eRet_ExternalError;
+        goto error;
     }
     return(ret);
 
@@ -751,12 +761,12 @@ CAutoDiscoveryClient::~CAutoDiscoveryClient()
         return;
     }
 
-    free_ifaddrs(_pIfInterfaceList);
-
     if (_bAutoDiscoveryClientStarted)
     {
         stop();
     }
+
+    free_ifaddrs(_pIfInterfaceList);
 
     close();
 }
@@ -770,14 +780,21 @@ eRet CAutoDiscoveryClient::updateIfAddrs()
         return(ret);
     }
 
+    bool started = _bAutoDiscoveryClientStarted;
+
+    if (started)
+    {
+        stop();
+    }
+
     free_ifaddrs(_pIfInterfaceList);
     _pIfInterfaceList = get_ifaddrs();
 
-    if (_bAutoDiscoveryClientStarted)
+    if (started)
     {
-        stop();
         start();
     }
+
     return(ret);
 } /* updateIfAddrs */
 
@@ -813,12 +830,17 @@ eRet CAutoDiscoveryClient::open(CWidgetEngine * pWidgetEngine)
 
     if (bind(_beacon_fd, (struct sockaddr *)&_beacon_addr, sizeof(_beacon_addr)) < 0)
     {
-        BDBG_ERR(("Failed to bind client socket port %s", _beaconMcastPort));
+        BDBG_ERR(("Failed to bind client socket port %u", _beaconMcastPort));
         ret = eRet_ExternalError;
         goto error_exit;
     }
     /* make this non blocking socket  */
-    fcntl(_beacon_fd, F_SETFL, O_NONBLOCK);
+    if (fcntl(_beacon_fd, F_SETFL, O_NONBLOCK) < 0)
+    {
+        BDBG_ERR(("Failed to set nonblocking client socket port %u", _beaconMcastPort));
+        ret = eRet_ExternalError;
+        goto error_exit;
+    }
     return(ret);
 
 error_exit:
@@ -883,7 +905,7 @@ eRet CAutoDiscoveryClient::start()
         BDBG_MSG(("adding %s on %s", _beaconMcastAddress.s(), inet_ntoa(_beacon_mreq.imr_interface)));
         if (setsockopt(_beacon_fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, &_beacon_mreq, sizeof(_beacon_mreq)) < 0)
         {
-            BDBG_ERR(("Failed to add %s on ", _beaconMcastAddress.s(), inet_ntoa(_beacon_mreq.imr_interface)));
+            BDBG_ERR(("Failed to add %s on %s", _beaconMcastAddress.s(), inet_ntoa(_beacon_mreq.imr_interface)));
             ret = eRet_ExternalError;
             goto error_exit;
         }
@@ -913,7 +935,7 @@ eRet CAutoDiscoveryClient::stop()
         BDBG_MSG(("removing %s on %s", _beaconMcastAddress.s(), inet_ntoa(_beacon_mreq.imr_interface)));
         if (setsockopt(_beacon_fd, IPPROTO_IP, IP_DROP_MEMBERSHIP, &_beacon_mreq, sizeof(_beacon_mreq)) < 0)
         {
-            BDBG_ERR(("Failed to drop %s on ", _beaconMcastAddress.s(), inet_ntoa(_beacon_mreq.imr_interface)));
+            BDBG_ERR(("Failed to drop %s on %s", _beaconMcastAddress.s(), inet_ntoa(_beacon_mreq.imr_interface)));
             ret = eRet_ExternalError;
             goto error_exit;
         }

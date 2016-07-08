@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2014 Broadcom Corporation
+ *     Broadcom Proprietary and Confidential. (c)2014 Broadcom.  All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -173,7 +173,7 @@ void BVC5_P_JobQRemove(
 /***************************************************************************/
 
 /* BVC5_P_JobQFindById
- * Removes a job given its id.  Returns the job.
+ * Finds a job given its id.  Returns the job.
  */
 BVC5_P_InternalJob *BVC5_P_JobQFindById(
    BVC5_JobQHandle   hJobQ,
@@ -224,18 +224,7 @@ bool BVC5_P_JobQContainsId(
    uint64_t          uiJobId
 )
 {
-   BVC5_P_InternalJob  *psJob;
-
-   for (psJob = BLST_Q_FIRST(&hJobQ->sQueue); psJob != NULL; psJob = BLST_Q_NEXT(psJob, sJobqChain))
-   {
-      if (psJob->uiJobId == uiJobId)
-         return true;
-
-      if (psJob->uiJobId > uiJobId)
-         return false;
-   }
-
-   return false;
+   return BVC5_P_JobQFindById(hJobQ, uiJobId) != NULL;
 }
 
 /***************************************************************************/

@@ -1,5 +1,5 @@
 /******************************************************************************
-* (c) 2014 Broadcom Corporation
+* (c) 2016 Broadcom Corporation
 *
 * This program is the proprietary software of Broadcom Corporation and/or its
 * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -38,7 +38,6 @@
 *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
 *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
 ******************************************************************************/
-
 #include "bhdm_priv.h"
 
 
@@ -160,7 +159,7 @@ void BHDM_AudioVideoRateChangeCB_isr(
 			BDBG_MSG(("************************************")) ;
 			BDBG_MSG(("**** Video Rate Manager Updated ****")) ;
 			BDBG_MSG(("************************************")) ;
-			BDBG_MSG(("")) ;
+			BDBG_MSG((" ")) ;
 			BDBG_MSG(("------------ Tx%d Video Change Callback Parameters ------------", hHDMI->eCoreId)) ;
 			BDBG_MSG(("PxlClkRateMask " BDBG_UINT64_FMT " ", BDBG_UINT64_ARG(ulPixelClkRate64BitMask) ));
 			BDBG_MSG(("Color Space : %d; Color Depth %d", eColorSpace, eBitsPerPixel)) ;

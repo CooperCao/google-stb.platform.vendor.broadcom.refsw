@@ -1,23 +1,44 @@
 /***************************************************************************
- *     Copyright (c) 2004-2010, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Module Description: bscheduler.cpp: Provides Single Threaded Access to 
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *
+ * Module Description: bscheduler.cpp: Provides Single Threaded Access to
  *                     Live Media Library.
  *
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Revision History:
- * $brcm_Log: $
- * 
  ***************************************************************************/
 
 #include <stdio.h>
@@ -44,30 +65,30 @@ static unsigned lm_refCnt = 0;
 
 //
 // This class extends the Basic Scheduler provided by Live Media. The main idea
-// is to allow other threads to registers functions that can be run in 
+// is to allow other threads to registers functions that can be run in
 // the Live Media's Thread context. This is needed becaused the Live Media
 // library is *NOT* Thread Safe.
 //
-StepableTaskScheduler::StepableTaskScheduler() 
+StepableTaskScheduler::StepableTaskScheduler()
     : delayedTaskQueueCount(0), totalTasksQueued(0), totalTasksScheduled(0), totalTasksRun(0)
 {
         // initialize the mutex to synchronize access between application & LM Scheduler Thread
         pthread_mutexattr_init(&mutexAttr);
         pthread_mutexattr_settype(&mutexAttr, PTHREAD_MUTEX_RECURSIVE);
-    if (pthread_mutex_init(&mutex, &mutexAttr) !=0) 
+    if (pthread_mutex_init(&mutex, &mutexAttr) !=0)
         {
         BDBG_ERR(("mutex init failed"));
                 BDBG_ASSERT(0);
     }
 
         // reset the task queue
-    for(int i=0;i<B_LM_TASK_QUEUE_SIZE;i++) 
-        { 
+    for(int i=0;i<B_LM_TASK_QUEUE_SIZE;i++)
+        {
         delayedTaskQueue[i].schedule = false;
     }
 }
 
-StepableTaskScheduler::~StepableTaskScheduler() 
+StepableTaskScheduler::~StepableTaskScheduler()
 {
 
     pthread_mutexattr_destroy(&mutexAttr);
@@ -75,14 +96,14 @@ StepableTaskScheduler::~StepableTaskScheduler()
 }
 
 // Function to schedule delayed tasks and execute them one by one
-void StepableTaskScheduler::doSingleStep(void) 
+void StepableTaskScheduler::doSingleStep(void)
 {
     doScheduleDelayedTasks();
     SingleStep(B_LM_SINGLE_STEP_USEC);
 }
 
 #ifdef SS_DEBUG
-typedef struct 
+typedef struct
 {
   void *appCtx;
   TaskFunc *func;
@@ -120,14 +141,14 @@ void doDelayedTaskHandler(void *ctx)
 // Function to schedule the delayed tasks w/ the Live Media so that they can be run
 // part of the SingleStep() call in a Single Threaded manner.
 //
-void StepableTaskScheduler::doScheduleDelayedTasks(void) 
+void StepableTaskScheduler::doScheduleDelayedTasks(void)
 {
         taskHandlerCtx_t *handlerCtx;
     lock();
 
-    for(int i=0;i<B_LM_TASK_QUEUE_SIZE;i++) 
+    for(int i=0;i<B_LM_TASK_QUEUE_SIZE;i++)
         {
-        if(delayedTaskQueue[i].schedule) 
+        if(delayedTaskQueue[i].schedule)
                 {
                         // get space to save the taskHandlerCtx
                         if ( (handlerCtx = (taskHandlerCtx_t *)malloc(sizeof(taskHandlerCtx_t))) == NULL )
@@ -136,16 +157,14 @@ void StepableTaskScheduler::doScheduleDelayedTasks(void)
                         }
                         handlerCtx->func = delayedTaskQueue[i].delayedTask;
                         handlerCtx->appCtx = delayedTaskQueue[i].context;
-                                                                                          
-                        // schedule the task w/ Live Media Library, it gets to run 
+
+                        // schedule the task w/ Live Media Library, it gets to run
                         // when delayInUsec timeout expires.
                         BasicTaskScheduler:: scheduleDelayedTask(delayedTaskQueue[i].delayInUsec,
                                                                 (TaskFunc *)doDelayedTaskHandler,
                                                                 handlerCtx);
-            BDBG_MSG(("@@@ scheduled delayed task: delayInUsec: %d, context: 0x%x, func: 0x%x\n", 
-                   (unsigned)delayedTaskQueue[i].delayInUsec,
-                   (unsigned long)&delayedTaskQueue[i].context,
-                   (unsigned long)delayedTaskQueue[i].delayedTask));
+            BDBG_MSG(("@@@ scheduled delayed task: delayInUsec: %d, context: %p",
+                   (int)delayedTaskQueue[i].delayInUsec, (void *)&delayedTaskQueue[i].context));
                         // mark the queue entry as free as it has been scheduled to run
             delayedTaskQueue[i].schedule = false;
                         totalTasksScheduled++;
@@ -163,20 +182,20 @@ void StepableTaskScheduler::doScheduleDelayedTasks(void)
 // Function to schedule the delayed tasks w/ the Live Media so that they can be run
 // part of the SingleStep() call in a Single Threaded manner.
 //
-void StepableTaskScheduler::doScheduleDelayedTasks(void) 
+void StepableTaskScheduler::doScheduleDelayedTasks(void)
 {
     lock();
 
-    for(int i=0;i<B_LM_TASK_QUEUE_SIZE;i++) 
+    for(int i=0;i<B_LM_TASK_QUEUE_SIZE;i++)
         {
-        if(delayedTaskQueue[i].schedule) 
+        if(delayedTaskQueue[i].schedule)
                 {
-                        // schedule the task w/ Live Media Library, it gets to run 
+                        // schedule the task w/ Live Media Library, it gets to run
                         // when delayInUsec timeout expires.
                         BasicTaskScheduler:: scheduleDelayedTask(delayedTaskQueue[i].delayInUsec,
                                                                 delayedTaskQueue[i].delayedTask,
                                                                 delayedTaskQueue[i].context);
-            BDBG_MSG(("@@@ scheduled delayed task: delayInUsec: %d, context: 0x%x, func: 0x%x\n", 
+            BDBG_MSG(("@@@ scheduled delayed task: delayInUsec: %d, context: 0x%x, func: 0x%x\n",
                    (unsigned)delayedTaskQueue[i].delayInUsec,
                    (unsigned)&delayedTaskQueue[i].context,
                    (unsigned)delayedTaskQueue[i].delayedTask));
@@ -222,22 +241,22 @@ void StepableTaskScheduler::queueDelayedTask(int64_t microseconds, TaskFunc* fun
 //
 // This is the main function that runs the Live Media Scheduler Thread.
 //
-static void *schedulerFunc(void *data) 
+static void *schedulerFunc(void *data)
 {
         //
-        // this is the Live Media Scheduler thread function that is constantly running the 
+        // this is the Live Media Scheduler thread function that is constantly running the
         // queued tasks and also monitoring & invoking callbacks on sockets w/ rd/wr events.
         //
         printf("Live Media Scheduler Thread is running (Scheduler PID = %d)\n", getpid());
-    while(lm_scheduler_thread_stop == false) 
+    while(lm_scheduler_thread_stop == false)
         {
                 StepableTaskScheduler* scheduler = (StepableTaskScheduler*)data;
         scheduler->doSingleStep();
     }
 
-        // here lm_scheduler_thread_stop == true 
+        // here lm_scheduler_thread_stop == true
         // which means Live Media Scheduler Thread is being stopped
-    delete lm_scheduler; 
+    delete lm_scheduler;
         lm_scheduler = NULL;
 
         // note: also need to free lm_env
@@ -257,28 +276,28 @@ static void *schedulerFunc(void *data)
 //
 #define DEFAULT_STACK_SIZE (64*1024*8)
 
-UsageEnvironment* blive_scheduler_open(void) 
+UsageEnvironment* blive_scheduler_open(void)
 {
     int ret;
     pthread_attr_t threadAttr;
 
     lm_scheduler_thread_stop = false;
 
-    if(lm_scheduler == NULL) 
-        { 
+    if(lm_scheduler == NULL)
+        {
                 // create the LM Scheduler object
         lm_scheduler = StepableTaskScheduler::createNew();
                 BDBG_ASSERT( lm_scheduler != NULL );
 
                 // create the LM UsageEnvironment object
-                lm_env = BasicUsageEnvironment::createNew(*lm_scheduler); 
+                lm_env = BasicUsageEnvironment::createNew(*lm_scheduler);
                 BDBG_ASSERT( lm_env != NULL );
 
                 // create the Live Media Scheduler Thread
                 pthread_attr_init(&threadAttr);
                 pthread_attr_setstacksize(&threadAttr, DEFAULT_STACK_SIZE);
 
-        		ret = pthread_create(&lm_scheduler_thread, &threadAttr, schedulerFunc, lm_scheduler);
+                ret = pthread_create(&lm_scheduler_thread, &threadAttr, schedulerFunc, lm_scheduler);
 #ifdef B_REFSW_DEBUG
                 BDBG_ASSERT( ret == 0 );
 #else
@@ -295,7 +314,7 @@ UsageEnvironment* blive_scheduler_open(void)
         // release the mutex
     lm_scheduler->unlock();
 
-        // return the UsageEnvironment object pointer, caller uses it to access the 
+        // return the UsageEnvironment object pointer, caller uses it to access the
         // Live Media functions/classess/objects.
         return lm_env;
 }
@@ -303,15 +322,15 @@ UsageEnvironment* blive_scheduler_open(void)
 //
 // API to close the LM Scheduler Thread, it only frees the context on the last call.
 //
-void blive_scheduler_close(void) 
+void blive_scheduler_close(void)
 {
-    if(lm_scheduler == NULL) 
+    if(lm_scheduler == NULL)
                 return;
 
         // synchronize with the LM Scheduler Thread
     lm_scheduler->lock();
 
-        //only close when all users are gone 
+        //only close when all users are gone
         lm_refCnt--;
 
         if (lm_refCnt > 0)
@@ -331,17 +350,17 @@ void blive_scheduler_close(void)
 //
 // API to queue a task for delayed execution in the LM Scheduler Thread.
 //
-void blive_scheduler_queue_delayed_task(int64_t microseconds, TaskFunc* func, void *context) 
+void blive_scheduler_queue_delayed_task(int64_t microseconds, TaskFunc* func, void *context)
 {
-        //BDBG_MSG(("scheduling delayed task: func ptr 0x%x, timeout %lld, context 0x%x\n", 
+        //BDBG_MSG(("scheduling delayed task: func ptr 0x%x, timeout %lld, context 0x%x\n",
         //      func, microseconds, context));
 
     lm_scheduler->queueDelayedTask(microseconds, func, context);
 }
 
 //
-// API to wait for completion of a queued task. Caller is required to define a 
-// blive_scheduler_task_wait_ctx_t variable & pass a pointer to it. This 
+// API to wait for completion of a queued task. Caller is required to define a
+// blive_scheduler_task_wait_ctx_t variable & pass a pointer to it. This
 // varible is used by the callback function to wake up the waiting app thread.
 //
 void blive_scheduler_wait(blive_scheduler_task_wait_ctx_t* wait_ctx)
@@ -349,14 +368,14 @@ void blive_scheduler_wait(blive_scheduler_task_wait_ctx_t* wait_ctx)
         // initialize the pthread mutex (needed to avoid a race described below)
         pthread_mutexattr_init(&wait_ctx->mutex_attr);
         pthread_mutexattr_settype(&wait_ctx->mutex_attr, PTHREAD_MUTEX_RECURSIVE);
-    if (pthread_mutex_init(&wait_ctx->mutex, &wait_ctx->mutex_attr) !=0) 
+    if (pthread_mutex_init(&wait_ctx->mutex, &wait_ctx->mutex_attr) !=0)
         {
         BDBG_ERR(("blive_scheduler_wait(): mutex init failed"));
                 BDBG_ASSERT(0);
     }
 
         // initialize the pthread condition variable
-    if (pthread_cond_init(&wait_ctx->cond, NULL) !=0) 
+    if (pthread_cond_init(&wait_ctx->cond, NULL) !=0)
         {
         BDBG_ERR(("blive_scheduler_wait(): cond init failed"));
                 BDBG_ASSERT(0);
@@ -407,4 +426,3 @@ void blive_scheduler_print_stats()
 {
   lm_scheduler->printStats();
 }
-

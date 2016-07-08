@@ -1,7 +1,7 @@
 ############################################################
-#     (c)2007-2013 Broadcom Corporation
+#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 #
-#  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+#  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
 #  conditions of a separate, written license agreement executed between you and Broadcom
 #  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,16 +34,6 @@
 #  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
-#
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
-# Module Description:
-#
-# Revision History:
-#
-# $brcm_Log: $
 #
 ############################################################
 
@@ -91,6 +81,12 @@ NEXUS_SAGE_SOURCES += $(NEXUS_TOP)/modules/sage/src/nexus_sage_svp_bvn.c
 NEXUS_CFLAGS += -DNEXUS_SAGE_SVP_TEST
 endif
 
+######################
+# AR Interface #
+######################
+NEXUS_SAGE_SOURCES += $(NEXUS_TOP)/modules/sage/src/nexus_sage_ar.c
+NEXUS_SAGE_PRIVATE_INCLUDES += $(BSEAV)/lib/security/sage/platforms/include
+
 ###############
 # thunk layer #
 ###############
@@ -108,6 +104,9 @@ NEXUS_SAGE_SOURCES += $(NEXUS_TOP)/modules/sage/src/nexus_sage_priv.c
 # Module Dependencies #
 #######################
 NEXUS_SAGE_DEPENDENCIES := BASE CORE SECURITY
+
+# XPT DMA use for scrubbing, so it cannot be limited by Magnum ARCs
+BMRC_ALLOW_XPT_TO_ACCESS_KERNEL ?= y
 
 ##################
 # Magnum Modules #

@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2008-2014 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2008-2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -672,6 +672,51 @@ This error code is used to pass HSM error codes to the application.
 The value from HSM is embedded in the lowest byte via OR.
 **/
 #define NEXUS_SECURITY_HSM_ERROR NEXUS_MAKE_ERR_CODE(0x109, 0)
+
+#define NEXUS_SECURITY_MAX_KEYSLOT_TYPES 8
+
+#define NEXUS_SECURITY_IP_LICENCE_SIZE     (64)
+
+/**
+Summary:
+Settings used to configure customer mode for the Security module.
+
+Description:
+This enum describes modes available for the security system.  Not all modes are supported on all chips, nor do all chips require this to be set.
+
+See Also:
+NEXUS_SecurityModule_GetDefaultInternalSettings
+NEXUS_SecurityModule_Init
+**/
+typedef enum NEXUS_SecurityCustomerMode {
+    NEXUS_SecurityCustomerMode_eGeneric,
+    NEXUS_SecurityCustomerMode_eDvs042,
+    NEXUS_SecurityCustomerMode_eDesCts,
+    NEXUS_SecurityCustomerMode_eDvbCsa
+} NEXUS_SecurityCustomerMode;
+
+/**
+Summary:
+Settings used to configure the Security module.
+
+Description:
+
+See Also:
+NEXUS_SecurityModule_GetDefaultInternalSettings
+NEXUS_SecurityModule_Init
+**/
+typedef struct NEXUS_SecurityModuleSettings
+{
+    NEXUS_CommonModuleSettings common;
+    NEXUS_SecurityCustomerMode customerMode;
+    unsigned int numKeySlotsForType[NEXUS_SECURITY_MAX_KEYSLOT_TYPES];
+    bool enableMulti2Key;           /* DEPRECATED, replaced by numMulti2KeySlots. If set true and numMulti2KeySlots is 0, numMulti2KeySlots will be treated as 8. */
+    unsigned numMulti2KeySlots;     /* Number of Multi2 KeySlots */
+    struct {
+        bool valid;
+        uint8_t data[NEXUS_SECURITY_IP_LICENCE_SIZE];
+    }ipLicense;
+} NEXUS_SecurityModuleSettings;
 
 
 

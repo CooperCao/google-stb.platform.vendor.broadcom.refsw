@@ -1,23 +1,42 @@
-/***************************************************************************
- *     Copyright (c) 2003-2014, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ *  Except as expressly set forth in the Authorized License,
  *
- * [File Description:]
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * Revision History:
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- *
- ***************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+
+******************************************************************************/
+
  #include "bstd.h"
  #include "bkni.h"
  #include "bvee.h"
@@ -54,7 +73,6 @@ static const uint16_t BVEE_P_UserData_PacketTypeLUT[BUDP_DCCparse_Format_LAST + 
     BVEE_FW_P_UserData_PacketType_eSCTE_21, /* BUDP_DCCparse_Format_DVS053 */
     BVEE_P_UserData_PacketType_UNSUPPORTED, /* BUDP_DCCparse_Format_SEI */
     BVEE_P_UserData_PacketType_UNSUPPORTED, /* BUDP_DCCparse_Format_SEI2 */
-    BVEE_P_UserData_PacketType_UNSUPPORTED, /* BUDP_DCCparse_Format_AFD53 */
     BVEE_P_UserData_PacketType_UNSUPPORTED, /* BUDP_DCCparse_Format_LAST */
 };
  static const  BAVC_VideoCompressionStd  g_codeclist [] =
@@ -310,7 +328,7 @@ static const uint16_t BVEE_P_UserData_PacketTypeLUT[BUDP_DCCparse_Format_LAST + 
 
     if (handle->opensettings.bufferHeap!= NULL)
     {
-        BDBG_MSG(("%s Frame buffer from %#x (Opensettings)",__FUNCTION__, handle->opensettings.bufferHeap));
+        BDBG_MSG(("%s Frame buffer from %p (Opensettings)",__FUNCTION__, (void*)handle->opensettings.bufferHeap));
         mmaHandle = handle->opensettings.bufferHeap;
     }
     else
@@ -416,7 +434,7 @@ static const uint16_t BVEE_P_UserData_PacketTypeLUT[BUDP_DCCparse_Format_LAST + 
 
     if (handle->opensettings.bufferHeap!= NULL)
     {
-        BDBG_MSG(("%s Frame buffer from %#x (Opensettings)",__FUNCTION__, handle->opensettings.bufferHeap));
+        BDBG_MSG(("%s Frame buffer from %p (Opensettings)",__FUNCTION__, (void*)handle->opensettings.bufferHeap));
         mmaHandle = handle->opensettings.bufferHeap;
     }
     else
@@ -455,7 +473,7 @@ BERR_Code BVEE_Channel_P_AllocateOutputBuffers(BVEE_ChannelHandle handle)
 
     if (handle->opensettings.bufferHeap!= NULL)
     {
-        BDBG_MSG(("%s CDB ITB buffers from %#x (Opensettings)",__FUNCTION__, handle->opensettings.bufferHeap));
+        BDBG_MSG(("%s CDB ITB buffers from %p (Opensettings)",__FUNCTION__, (void*)handle->opensettings.bufferHeap));
         mmaHandle = handle->opensettings.bufferHeap;
     }
     else
@@ -501,7 +519,7 @@ BERR_Code BVEE_Channel_P_DeAllocateOutputBuffers(BVEE_ChannelHandle handle)
 
     if (handle->opensettings.bufferHeap!= NULL)
     {
-        BDBG_MSG(("%s CDB ITB buffers from %#x (Opensettings)",__FUNCTION__, handle->opensettings.bufferHeap));
+        BDBG_MSG(("%s CDB ITB buffers from %p (Opensettings)",__FUNCTION__, (void*)handle->opensettings.bufferHeap));
         mmaHandle = handle->opensettings.bufferHeap;
     }
     else
@@ -921,12 +939,12 @@ static void BVEE_Channel_P_LinkStages(BVEE_ChannelHandle handle)
      uint8_t *pTemp;
 	 BCHP_MemoryInfo stMemoryInfo;
 
-     BDBG_MSG(("BVEE_Channel_P_Start(%#x) [index %u]", handle, handle->index));
+         BDBG_MSG(("BVEE_Channel_P_Start(%p) [index %u]", (void*)handle, handle->index));
 
      pSettings = &handle->startsettings;
      if (handle->opensettings.bufferHeap!= NULL)
      {
-         BDBG_MSG(("%s Frame buffer from %#x (Opensettings)",__FUNCTION__, handle->opensettings.bufferHeap));
+         BDBG_MSG(("%s Frame buffer from %p (Opensettings)",__FUNCTION__, (void*)handle->opensettings.bufferHeap));
          mmaHandle = handle->opensettings.bufferHeap;
      }
      else
@@ -1079,7 +1097,6 @@ static void BVEE_Channel_P_LinkStages(BVEE_ChannelHandle handle)
      userConfig.ui32EncodPicWidth = handle->startsettings.ui32EncodPicWidth; /*320*/
      userConfig.ui32End2EndDelay = handle->startsettings.ui32End2EndDelay;
      userConfig.eSendCC = handle->startsettings.bSendCC;
-
      errCode = BDSP_Stage_SetSettings(handle->hPrimaryStage, &userConfig, sizeof(userConfig));
      if(errCode != BERR_SUCCESS)
      {
@@ -1100,7 +1117,8 @@ static void BVEE_Channel_P_LinkStages(BVEE_ChannelHandle handle)
 	BDBG_ERR((" userConfig.sRCConfig.RCMinQP[0]:%d\n", userConfig.sRCConfig.RCMinQP[0]));
 	BDBG_ERR(("userConfig.ui32IntraPeriod:%d\n",userConfig.ui32IntraPeriod));
 	BDBG_ERR(("userConfig.sRCConfig.SeinitialQp:%d\n",userConfig.sRCConfig.SeinitialQp));
-	BDBG_ERR(("strpe width :%d ui32DDR3Width :%d\n", psVencCfg->StripeWidth, ui32DDR3Width ));*/
+	BDBG_ERR(("strpe width :%d ui32DDR3Width :%d\n", psVencCfg->StripeWidth, ui32DDR3Width ));
+	BDBG_ERR(("-------------------------------------------------userConfig.eSendCC:%d", userConfig.eSendCC));*/
 
     errCode = BVEE_Channel_SetInterruptHandlers(handle, &handle->interrupts);
     if(errCode != BERR_SUCCESS)
@@ -1143,7 +1161,7 @@ static void BVEE_Channel_P_LinkStages(BVEE_ChannelHandle handle)
     BDBG_OBJECT_ASSERT(handle, BVEE_Channel);
     BDBG_ASSERT(NULL != pSettings);
 
-    BDBG_MSG(("BVEE_Channel_Start(%#x) [index %u]", handle, handle->index));
+    BDBG_MSG(("BVEE_Channel_Start(%p) [index %u]", (void*)handle, handle->index));
 
     if ( NULL == handle->devicehandle->dspContext )
     {
@@ -1229,7 +1247,7 @@ static void BVEE_Channel_P_LinkStages(BVEE_ChannelHandle handle)
  {
     BDBG_OBJECT_ASSERT(handle, BVEE_Channel);
 
-    BDBG_MSG(("BVEE_Channel_Stop(%#x) [index %u]", handle, handle->index));
+    BDBG_MSG(("BVEE_Channel_Stop(%p) [index %u]", (void*)handle, handle->index));
 
     switch ( handle->state )
     {
@@ -1318,7 +1336,7 @@ static void BVEE_Channel_P_LinkStages(BVEE_ChannelHandle handle)
 
     if (handle->opensettings.bufferHeap!= NULL)
     {
-        BDBG_MSG(("%s Frame buffer from %#x (Opensettings)",__FUNCTION__, handle->opensettings.bufferHeap));
+        BDBG_MSG(("%s Frame buffer from %p (Opensettings)",__FUNCTION__, (void*)handle->opensettings.bufferHeap));
         mmaHandle = handle->opensettings.bufferHeap;
     }
     else
@@ -1367,10 +1385,12 @@ static void BVEE_Channel_P_LinkStages(BVEE_ChannelHandle handle)
               pPicture->frameRate,pPicture->originalPts.ui32CurrentPTS,pPicture->height,pPicture->width,pPicture->polarity
               ,pPicture->sarHorizontal,pPicture->sarVertical,pPicture->repeat,pPicture->ignore,pPicture->bIgnorePicture,pPicture->bStallStc));
 
-	if (pPicture->hImageMmaBlock)
-	    BuffYAddr = (uint32_t)(BMMA_GetOffset_isr(pPicture->hImageMmaBlock)+pPicture->offset);
-	else
-		BuffYAddr = (uint32_t)NULL;
+    if (pPicture->hImageMmaBlock) {
+        BuffYAddr = BMMA_GetOffset_isr(pPicture->hImageMmaBlock)+pPicture->offset;
+    }
+    else {
+        BuffYAddr = 0;
+    }
 
     pPpb_Cached->ui32CaptureTimeStamp = pPicture->STC_Lo;
     pPpb_Cached->ui32BuffAddrY = BuffYAddr;
@@ -1818,7 +1838,7 @@ BERR_Code BVEE_Channel_DequeuePicture_isr(
 
              /* Decoder is stopped and we have run out of data. Fill the EOS entry in Video descriptor */
              pVideoDescriptor->stCommon.uiFlags = BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_EOS;
-             BDBG_MSG(("EOS %#x", pVideoDescriptor));
+             BDBG_MSG(("EOS %p", (void*)pVideoDescriptor));
              handle->startsettings.sendEos = false;
          }
      }
@@ -2092,7 +2112,7 @@ BVEE_Channel_UserData_AddBuffers_isr(
    BERR_Code rc = BERR_SUCCESS;
    unsigned i;
    BVEE_CCInfo *pstCCInfo;
-   void *pTemp;
+   void *pTemp;  /* temp ptr to point to the previously stored CC data */
 
    BDBG_ENTER( BVEE_Channel_UserData_AddBuffers_isr );
 
@@ -2107,6 +2127,28 @@ BVEE_Channel_UserData_AddBuffers_isr(
    /* if CC is not enabled then return */
    if (!hVeeCh->startsettings.bSendCC)
       return BERR_SUCCESS;
+#if BVEE_P_DUMP_USERDATA_LOG
+{
+	BVEE_FW_UserData_PacketType ePacketType;
+	unsigned uiSourceDescNum = 0;
+	BDBG_ERR(("Start Packet Type %d", hVeeCh->startsettings.ccPacketType));
+	for ( ePacketType = 0; ePacketType < BVEE_FW_P_UserData_PacketType_eMax; ePacketType++ )
+	{
+	   for ( uiSourceDescNum = 0; uiSourceDescNum < pstUserDataFieldInfo->uiNumDescriptors; uiSourceDescNum++ )
+	   {
+			 const BUDP_Encoder_PacketDescriptor *pPacketDescriptor = &pstUserDataFieldInfo->stPacketDescriptor[uiSourceDescNum];
+			 for ( i = 0; i < pstUserDataFieldInfo->stPacketDescriptor[uiSourceDescNum].data.stDvs157.stCC.uiNumLines; i++ )
+			 {
+				 BDBG_ERR(("From XUD: Fmt %d %d %d:%d", \
+				 pstUserDataFieldInfo->stPacketDescriptor[uiSourceDescNum].ePacketFormat,
+				 pPacketDescriptor->data.stDvs157.stCC.astLine[i].seq.field_number,
+				 pPacketDescriptor->data.stDvs157.stCC.astLine[i].cc_data_1,
+				 pPacketDescriptor->data.stDvs157.stCC.astLine[i].cc_data_2));
+			 }
+		}
+	}
+}
+#endif
 
    if ( BVEE_ChannelState_eStarted == hVeeCh->state )
    {
@@ -2204,16 +2246,21 @@ BVEE_Channel_UserData_AddBuffers_isr(
              pstCCInfo = &hVeeCh->userdata.savebuffer_cc;
              for ( ePacketType = 0; ePacketType < BVEE_FW_P_UserData_PacketType_eMax; ePacketType++)
              {
+                 /* Intialize to the start of the cached CC descriptor buffer */
+                 pTemp = pstCCInfo->pDescriptorBufferCached;
                  for ( uiSourceDescNum = 0; uiSourceDescNum < pstCCInfo->uiNumDescriptors; uiSourceDescNum++ )
                  {
 					/* skip the CC packet types that does not match the required one */
                     if (hVeeCh->startsettings.ccPacketType != BVEE_P_UserData_PacketTypeLUT[pstCCInfo->ePacketFormat[uiSourceDescNum]])
+					{
+						/* move the cached CC ptr accordingly */
+                        pTemp = (uint8_t *)pstCCInfo->pDescriptorBufferCached + (pstCCInfo->uiNumCCLines[uiSourceDescNum] * sizeof(BUDP_DCCparse_ccdata));
                         continue;
+					}
 
                      /* Only add packet types that FW understands */
                      if ( ePacketType == BVEE_P_UserData_PacketTypeLUT[pstCCInfo->ePacketFormat[uiSourceDescNum]])
                      {
-                         pTemp = pstCCInfo->pDescriptorBufferCached;
                          for ( i = 0; i < pstCCInfo->uiNumCCLines[uiSourceDescNum]; i++ )
                          {
                            const BUDP_DCCparse_ccdata *pCCData = (BUDP_DCCparse_ccdata *)pTemp;
@@ -2252,6 +2299,8 @@ BVEE_Channel_UserData_AddBuffers_isr(
                             pTemp = (uint8_t *)pTemp + sizeof(BUDP_DCCparse_ccdata);
                         }
                     }
+					/* move the cached CC ptr accordingly */
+                    pTemp = (uint8_t *)pstCCInfo->pDescriptorBufferCached + (pstCCInfo->uiNumCCLines[uiSourceDescNum] * sizeof(BUDP_DCCparse_ccdata));
                  }
              }
 

@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2014 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,16 +34,8 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
+*
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ***************************************************************************/
 #ifndef NEXUS_PLATFORM_FEATURES_H__
@@ -57,7 +49,7 @@
 /* 7364 Single memory controller configuration starts here
    This is useful to do emulation for other single memory controller chips */
 /* Transport Features */
-#if(NEXUS_USE_73649_SFF)|| (NEXUS_USE_7364_SFF)
+#if defined(NEXUS_USE_73649_SFF)|| defined(NEXUS_USE_7364_SFF)
 #define NEXUS_NUM_PARSER_BANDS 12
 #define NEXUS_NUM_PID_CHANNELS 768
 #define NEXUS_NUM_VCXOS 2
@@ -77,7 +69,7 @@
 #endif
 
 /* Audio Features */
-#if(NEXUS_USE_73649_SFF)  || (NEXUS_USE_7364_SFF)
+#if defined(NEXUS_USE_73649_SFF)  || defined(NEXUS_USE_7364_SFF)
 #define NEXUS_NUM_AUDIO_DECODERS 3
 #define NEXUS_NUM_AUDIO_INPUT_CAPTURES 0 /* Number of external inputs active at a time */
 #define NEXUS_NUM_AUDIO_DACS 1
@@ -86,7 +78,7 @@
 #define NEXUS_NUM_AUDIO_MIXERS 2
 #define NEXUS_NUM_I2S_INPUTS 0
 #define NEXUS_NUM_I2S_OUTPUTS 1
-#define NEXUS_NUM_AUDIO_CAPTURE_CHANNELS 0
+#undef  NEXUS_NUM_AUDIO_CAPTURES
 #define NEXUS_NUM_AUDIO_CAPTURES 0
 #define NEXUS_NUM_AUDIO_PLAYBACKS 2
 #define NEXUS_HAS_AUDIO_MUX_OUTPUT 1
@@ -97,15 +89,10 @@
 #define NEXUS_NUM_SPDIF_INPUTS 0
 #define NEXUS_NUM_SPDIF_OUTPUTS 1
 #define NEXUS_NUM_AUDIO_MIXERS 8
-
 #define NEXUS_NUM_I2S_INPUTS 1
 #define NEXUS_NUM_I2S_OUTPUTS 1
-#define NEXUS_NUM_AUDIO_CAPTURE_CHANNELS 1
-#define NEXUS_NUM_AUDIO_CAPTURES 1
 #define NEXUS_NUM_AUDIO_PLAYBACKS 3
-
 #define NEXUS_HAS_AUDIO_MUX_OUTPUT 1
-
 #endif
 
 /* Display Features */
@@ -125,11 +112,10 @@ upon the chip usage. See below */
 #define NEXUS_NUM_SPI_CHANNELS 3
 
 /* Satellite Frontend */
-#if (NEXUS_USE_73649_SFF)
-#define NEXUS_MAX_FRONTENDS 0
+#if defined(NEXUS_USE_73649_SFF)
 #else
 #define NEXUS_MAX_FRONTENDS 8
-#if NEXUS_USE_FRONTEND_DAUGHTER_CARD
+#if defined NEXUS_USE_FRONTEND_DAUGHTER_CARD
 #define NEXUS_NUM_FRONTEND_CARD_SLOTS 1
 #endif
 #endif
@@ -137,9 +123,6 @@ upon the chip usage. See below */
 #define NEXUS_MAX_3255_ADSCHN 8
 #define NEXUS_3255_OOB_TUNER_IFFREQ (1250000)/* 1.25 MHz */
 #define NEXUS_SHARED_FRONTEND_INTERRUPT 1
-
-
-
 
 /* I2C Channels. Although, BSC-B shouldn't be used in 7364. Hence, there are 4 BSC cores, but only 3 are useable. */
 #define NEXUS_NUM_I2C_CHANNELS 4
@@ -166,6 +149,7 @@ upon the chip usage. See below */
 #define NEXUS_MEMC0_PICTURE_BUFFER_HEAP 4 /* XVD/VDC buffers for 2 decode/encode*/
 #define NEXUS_SAGE_SECURE_HEAP          5 /* SAGE HEAP - 32 MB */
 #define NEXUS_MEMC0_SECURE_PICTURE_BUFFER_HEAP 6
+#define NEXUS_EXPORT_HEAP 7
 
 #define NEXUS_PLATFORM_P_GET_FRAMEBUFFER_HEAP_INDEX 1
 

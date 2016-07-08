@@ -1,25 +1,44 @@
-/***************************************************************************
- *     Copyright (c) 2003-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c) 2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * Module Description: This file contains Broadcom smart card Porting 
- *                     Interface private data structures, enums, 
- *                     definitions and functions prototypes.           
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
  *
- * Revision History:
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- * 
- ***************************************************************************/
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ *
+ *****************************************************************************/
 #ifndef BSCD_PRIV_H__
 #define BSCD_PRIV_H__
 
@@ -29,7 +48,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
 
 /* Definitions */
 
@@ -87,7 +105,6 @@ typedef struct
 #define BSCD_P_TLEN_1			0x24 /* SMART CARD TRANSMIT LENGTH REGISTER */
 #define BSCD_P_RLEN_2			0x2c /* SMART CARD RECEIVE LENGTH REGISTER */
 #define BSCD_P_RLEN_1			0x30 /* SMART CARD RECEIVE LENGTH REGISTER */
-#ifdef BSCD_EMV2000_CWT_PLUS_4_EVENT_INTR
 #define BSCD_P_EVENT1_CNT		0x80 /* SMART CARD EVENT 1 COUNT REGISTER */
 #define BSCD_P_EVENT1_CMP 		0x88 /* SMART CARD EVENT 1 COMPARE REGISTER  */
 #define BSCD_P_EVENT1_CMD_1 	0x90 /* SMART CARD EVENT 1 COMMAND 1 REGISTER */ 
@@ -100,7 +117,6 @@ typedef struct
 #define BSCD_P_EVENT2_CMD_2	0xb4 /* SMART CARD EVENT 2 COMMAND 2 REGISTER  */
 #define BSCD_P_EVENT2_CMD_3	0xb8 /* SMART CARD EVENT 2 COMMAND 3 REGISTER  */
 #define BSCD_P_EVENT2_CMD_4	0xbc /* SMART CARD EVENT 2 COMMAND 4 REGISTER  */
-#endif
 
 #else
 #define BSCD_P_UART_CMD_1		0x00 /* SMART CARD UART COMMAND REGISTER */
@@ -138,7 +154,6 @@ typedef struct
 #define BSCD_P_RLEN_1			0x30 /* SMART CARD RECEIVE LENGTH REGISTER */
 #define BSCD_P_RLEN_2			BSCD_P_RLEN_1 /* SMART CARD RECEIVE LENGTH REGISTER */
 
-#ifdef BSCD_EMV2000_CWT_PLUS_4_EVENT_INTR
 #define BSCD_P_EVENT1_CNT		0x80 /* SMART CARD EVENT 1 COUNT REGISTER */
 #define BSCD_P_EVENT1_CMP 		0x88 /* SMART CARD EVENT 1 COMPARE REGISTER  */
 #define BSCD_P_EVENT1_CMD_1 	0x90 /* SMART CARD EVENT 1 COMMAND 1 REGISTER */
@@ -153,14 +168,12 @@ typedef struct
 #define BSCD_P_EVENT2_CMD_4		BSCD_P_EVENT2_CMD_1 /* SMART CARD EVENT 2 COMMAND 4 REGISTER  */
 
 
-#endif
 #define BSCD_P_IOIF_TICK 		0xc4
 #define BSCD_P_AFE_CMD_1		0xcc
 #define BSCD_P_AFE_CMD_2		0xd0
 #endif
 
 /* Smart Card Module Event source for Event interrupt */
-#ifdef BSCD_EMV2000_CWT_PLUS_4_EVENT_INTR
 #define  BSCD_P_EVENT1_INTR_EVENT_SRC		0x00
 #define  BSCD_P_TEMPTY_INTR_EVENT_SRC		0x01
 #define  BSCD_P_RETRY_INTR_EVENT_SRC		0x02
@@ -188,7 +201,6 @@ typedef struct
 #define  BSCD_P_START_IMMEDIATE_EVENT_SRC	0x1f
 #define  BSCD_P_DISABLE_COUNTING_EVENT_SRC	0x1f
 #define  BSCD_P_NO_EVENT_EVENT_SRC	0x1f
-#endif
 
 /* Smart Card Module magic number used to check if opaque handle is corrupt */
 #define BSCD_P_HANDLE_MAGIC_NUMBER           0xdeadbeef
@@ -273,7 +285,7 @@ typedef struct
 #define BCHP_SCA_SC_UART_CMD_1_inv_par_MASK BCHP_SCA_UART_CMD_inv_par_MASK
 #define BCHP_SCA_SC_IF_CMD_3_vpp_MASK BCHP_SCA_IF_CMD_vpp_MASK
 #define BCHP_SCA_SC_CLK_CMD_1_bauddiv0_MASK BCHP_SCA_CLK_CMD_bauddiv0_MASK
-#ifdef BSCD_EMV2000_CWT_PLUS_4_EVENT_INTR
+
 #define BCHP_SCA_SC_EVENT2_CMD_4_event_en_MASK BCHP_SCA_EVENT2_CMD_event_en_MASK
 #define BCHP_SCA_SC_EVENT2_CMD_4_run_after_reset_MASK BCHP_SCA_EVENT2_CMD_run_after_reset_MASK
 #define BCHP_SCA_SC_EVENT2_CMD_4_run_after_compare_MASK BCHP_SCA_EVENT2_CMD_run_after_compare_MASK
@@ -285,8 +297,6 @@ typedef struct
 #define BCHP_SCA_SC_EVENT1_CMD_4_run_after_compare_MASK BCHP_SCA_EVENT1_CMD_run_after_compare_MASK
 #define BCHP_SCA_SC_EVENT1_CMD_4_intr_after_reset_MASK BCHP_SCA_EVENT1_CMD_intr_after_reset_MASK
 #define BCHP_SCA_SC_EVENT1_CMD_4_intr_after_compare_MASK BCHP_SCA_EVENT1_CMD_intr_after_compare_MASK
-
-#endif
 
 #endif
 
@@ -447,7 +457,9 @@ typedef struct BSCD_P_ChannelHandle
 #endif
 
 	bool					bIsCardRemoved;    /* Is the Card removed ? */
-				
+
+    bool                    bOnAtr; /*on ATR? */
+
 } BSCD_P_ChannelHandle;
 
 
@@ -616,12 +628,10 @@ void BSCD_Channel_P_TDoneCB_isr(
       void       *inp_data 
 );
 
-#ifdef BSCD_EMV2000_CWT_PLUS_4_EVENT_INTR
 void BSCD_Channel_P_Event1CB_isr( 
       BSCD_ChannelHandle	in_channelHandle,
       void       *inp_data 
 );
-#endif
 
 void BSCD_Channel_P_Event2CB_isr( 
       BSCD_ChannelHandle	in_channelHandle,
@@ -710,6 +720,18 @@ BERR_Code BSCD_Channel_P_T14IrdetoTransmit(
 		unsigned long                    in_ulNumXmitBytes
 );
 
+BERR_Code BSCD_Channel_P_ConfigTimer_generic(
+        BSCD_ChannelHandle   in_channelHandle,
+        BSCD_Timer                  *inp_timer,
+        BSCD_TimerValue             *inp_unCount,
+        bool outOfCriticalSection
+);
+
+BERR_Code BSCD_Channel_P_ConfigTimer_isr(
+        BSCD_ChannelHandle   in_channelHandle,
+        BSCD_Timer                  *inp_timer,
+        BSCD_TimerValue             *inp_unCount
+);
 
 /*****************************************************************************
 Summary:

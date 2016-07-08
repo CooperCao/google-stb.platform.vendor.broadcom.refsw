@@ -47,6 +47,7 @@
 #include "nexus_memory.h"
 #include "nexus_platform_client.h"
 #include "nexus_random_number.h"
+#include "nexus_otpmsp.h"
 
 #include "drm_common_tl.h"
 #include "drm_wvoemcrypto_tl.h"
@@ -61,7 +62,10 @@
 #define MAX_USAGE_TABLE_SIZE         (6544)
 #define OVERWRITE_USAGE_TABLE_ON_ROOTFS  (1)
 
-#define MAX_NUMBER_SESSIONS  (8)
+#define MAX_NUMBER_SESSIONS  (12)
+
+#define INVALID_KEYSLOT_ID   (-1)
+
 static Drm_WVOemCryptoHostSessionCtx_t gHostSessionCtx[MAX_NUMBER_SESSIONS];
 
 /* #define DEBUG 1 */
@@ -111,6 +115,17 @@ static uint8_t *gPadding = NULL;
 #define USAGE_TABLE_BACKUP_FILE_PATH "UsageTable.bkp"
 #endif
 
+/* BTP buffer size for external iv support */
+#define BTP_SIZE 188
+
+/* Scatter/gather definitions */
+static DmaBlockInfo_t *gWvDmaBlockInfoList[MAX_NUMBER_SESSIONS];
+#define MAX_SG_DMA_BLOCKS DRM_COMMON_TL_MAX_DMA_BLOCKS
+#define WV_OEMCRYPTO_FIRST_SUBSAMPLE 1
+#define WV_OEMCRYPTO_LAST_SUBSAMPLE 2
+
+/* Enable Scatter/gather by default */
+static bool scatterGatherEnabled = true;
 
 static DrmRC DRM_WvOemCrypto_P_ReadUsageTable(uint8_t *pUsageTableSharedMemory,
                                               uint32_t *pUsageTableSharedMemorySize);
@@ -137,13 +152,20 @@ BDBG_MODULE(drm_wvoemcrypto_tl);
 void DRM_WVOEMCrypto_GetDefaultParamSettings(Drm_WVOemCryptoParamSettings_t *pOemCryptoParamSettings)
 {
     BDBG_ENTER(DRM_WVOEMCrypto_GetDefaultParamSettings);
+    ChipType_e chip_type;
 
     BKNI_Memset((uint8_t*)pOemCryptoParamSettings, 0x00, sizeof(Drm_WVOemCryptoParamSettings_t));
     DRM_Common_GetDefaultStructSettings(&pOemCryptoParamSettings->drmCommonOpStruct);
     pOemCryptoParamSettings->drmCommonInit.heap = NULL;
 
     pOemCryptoParamSettings->drm_bin_file_path = bdrm_get_drm_bin_file_path();
+    chip_type = DRM_Common_GetChipType();
+    if(chip_type == ChipType_eZS)
+        pOemCryptoParamSettings->drmCommonInit.ta_bin_file_path = bdrm_get_ta_dev_bin_file_path();
+    else
+        pOemCryptoParamSettings->drmCommonInit.ta_bin_file_path = bdrm_get_ta_bin_file_path();
 
+    BDBG_MSG(("%s DRM %s TA %s ",__FUNCTION__,pOemCryptoParamSettings->drm_bin_file_path, pOemCryptoParamSettings->drmCommonInit.ta_bin_file_path));
 
     BDBG_LEAVE(DRM_WVOEMCrypto_GetDefaultParamSettings);
     return;
@@ -169,6 +191,7 @@ void DRM_WVOemCrypto_SetParamSettings(Drm_WVOemCryptoParamSettings_t *pWvOemCryp
     BDBG_ENTER(DRM_WVOemCrypto_SetParamSettings);
 
     gWvOemCryptoParamSettings.drmCommonInit.heap = pWvOemCryptoParamSettings->drmCommonInit.heap;
+    gWvOemCryptoParamSettings.drmCommonInit.ta_bin_file_path= pWvOemCryptoParamSettings->drmCommonInit.ta_bin_file_path;
     gWvOemCryptoParamSettings.drm_bin_file_path = pWvOemCryptoParamSettings->drm_bin_file_path;
     BKNI_Memcpy(&gWvOemCryptoParamSettings.drmCommonOpStruct,&pWvOemCryptoParamSettings->drmCommonOpStruct,sizeof(DrmCommonOperationStruct_t));
 
@@ -420,7 +443,8 @@ DrmRC DRM_WVOemCrypto_OpenSession(uint32_t* session,int *wvRc)
     *wvRc = container->basicOut[2];
     if(sage_rc != BERR_SUCCESS)
     {
-        BDBG_MSG(("%s - Operation failed. Setting session context to NULL", __FUNCTION__));
+        BDBG_MSG(("%s - Operation failed. Setting session context to NULL, wvRC = %d",
+                                                                __FUNCTION__, *wvRc));
         rc =Drm_Err;
         goto ErrorExit;
     }
@@ -498,7 +522,8 @@ DrmRC drm_WVOemCrypto_CloseSession(uint32_t session,int *wvRc)
 
     if(container->basicOut[0] != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Operation failed. Setting session context to NULL (0x%08x)", __FUNCTION__, container->basicOut[0]));
+        BDBG_ERR(("%s - Operation failed. Setting session context to NULL sage rc = (0x%08x), wvRc = %d",
+                                          __FUNCTION__, container->basicOut[0], container->basicOut[2]));
     }
 
     /*free the keyslot*/
@@ -511,6 +536,11 @@ DrmRC drm_WVOemCrypto_CloseSession(uint32_t session,int *wvRc)
             gHostSessionCtx[session].keySlot.hSwKeySlot[i] = NULL;
             gHostSessionCtx[session].drmCommonOpStruct.keyConfigSettings.keySlot=NULL;
         }
+    }
+
+    if (scatterGatherEnabled && (gWvDmaBlockInfoList[session] != NULL)) {
+        SRAI_Memory_Free((uint8_t*)gWvDmaBlockInfoList[session]);
+        gWvDmaBlockInfoList[session] = NULL;
     }
 
 ErrorExit:
@@ -592,8 +622,9 @@ DrmRC drm_WVOemCrypto_GenerateNonce(uint32_t session,
     if(sage_rc != BERR_SUCCESS)
     {
 
-        BDBG_MSG(("%s - Operation failed. Setting session context to NULL", __FUNCTION__));
-        *wvRc = container->basicOut[2];
+        BDBG_MSG(("%s - Operation failed. Setting session context to NULL with wvRC = %d ",
+                                             __FUNCTION__, container->basicOut[2], *wvRc));
+         rc =  Drm_Err;
         goto ErrorExit;
     }
 
@@ -709,7 +740,8 @@ DrmRC drm_WVOemCrypto_GenerateDerivedKeys(uint32_t session,
      *wvRc = container->basicOut[2];
     if (sage_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Command to GenerateDerivedKeys failed (0x%08x/ 0x%08x)", __FUNCTION__, sage_rc, container->basicOut[2]));
+        BDBG_ERR(("%s - Command to GenerateDerivedKeys failed (0x%08x/ wcRc = %d)",
+                                    __FUNCTION__, sage_rc, container->basicOut[2]));
         rc = Drm_Err;
         goto ErrorExit;
     }
@@ -855,7 +887,8 @@ DrmRC drm_WVOemCrypto_GenerateSignature(uint32_t session,
     *wvRc = container->basicOut[2];
     if (sage_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Command was sent succuessfully to GenerateSignature but actual operation failed (0x%08x)", __FUNCTION__, sage_rc));
+        BDBG_ERR(("%s - Command was sent succuessfully to GenerateSignature but actual operation ailed (0x%08x), wvRC = %d ",
+                                                   __FUNCTION__, sage_rc, *wvRc));
         rc = Drm_Err;
         goto ErrorExit;
     }
@@ -1435,7 +1468,7 @@ DrmRC drm_WVOemCrypto_RefreshKeys(uint32_t session,
         }
     }
     container->blocks[4].len = j;
-    BDBG_MSG(("%s: container->blocks[4].data.ptr is 0x%x",__FUNCTION__, container->blocks[4].data.ptr));
+    BDBG_MSG(("%s: container->blocks[4].data.ptr is %p",__FUNCTION__, (void *)container->blocks[4].data.ptr));
 
 
     /* allocate for sending key object data*/
@@ -1458,16 +1491,16 @@ DrmRC drm_WVOemCrypto_RefreshKeys(uint32_t session,
             pKeyObj[i].key_id = &container->blocks[4].data.ptr[(i*container->blocks[4].len)/num_keys];
             dump(pKeyObj[i].key_id,keyArray[i].key_id_length,"KeyID in sage mem:");
 
-            BDBG_MSG(("key_id ptr = 0x%x,offset=%d",pKeyObj[i].key_id,(i*container->blocks[4].len)/num_keys));
+            BDBG_MSG(("key_id ptr = %p,offset=%d",(void *)pKeyObj[i].key_id,(i*container->blocks[4].len)/num_keys));
             pKeyObj[i].key_id_length = keyArray[i].key_id_length;
 
             BDBG_MSG(("key_id len =0x%x",pKeyObj[i].key_id_length));
             pKeyObj[i].key_control_iv = &container->blocks[4].data.ptr[(i*container->blocks[4].len)/num_keys + keyArray[i].key_id_length];
 
-            BDBG_MSG(("key_control_iv ptr =0x%x, offset=%d",pKeyObj[i].key_control_iv, (i*container->blocks[4].len)/num_keys + keyArray[i].key_id_length));
+            BDBG_MSG(("key_control_iv ptr =%p, offset=%d",(void *)pKeyObj[i].key_control_iv, (i*container->blocks[4].len)/num_keys + keyArray[i].key_id_length));
             pKeyObj[i].key_control = &container->blocks[4].data.ptr[(i*container->blocks[4].len)/num_keys +keyArray[i].key_id_length+WVCDM_KEY_IV_SIZE];
 
-            BDBG_MSG(("key_control ptr =0x%x",pKeyObj[i].key_control));
+            BDBG_MSG(("key_control ptr =%p",(void *)pKeyObj[i].key_control));
         }
         else
         {
@@ -1510,7 +1543,8 @@ DrmRC drm_WVOemCrypto_RefreshKeys(uint32_t session,
     *wvRc   = container->basicOut[2];
     if (sage_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Command was sent succuessfully to Refreshkeys but actual operation failed (0x%08x)", __FUNCTION__, sage_rc));
+        BDBG_ERR(("%s - Command was sent succuessfully to Refreshkeys but actual operation failed (0x%08x), wvRc = %d ",
+                         __FUNCTION__, sage_rc, *wvRc));
         rc = Drm_Err;
         goto ErrorExit;
     }
@@ -1628,13 +1662,13 @@ DrmRC drm_WVOemCrypto_SelectKey(const uint32_t session,
                 goto ErrorExit;
             }
 
-            BDBG_MSG(("%s: ======Allocated nexus key slot for index %d, keyslot handle=0x08%x=======",
-                __FUNCTION__, i, gHostSessionCtx[session].keySlot.hSwKeySlot[i]));
+            BDBG_MSG(("%s: ======Allocated nexus key slot for index %d, keyslot handle=%p =======",
+                __FUNCTION__, i, (void *)gHostSessionCtx[session].keySlot.hSwKeySlot[i]));
         }
 
         NEXUS_Security_GetKeySlotInfo(gHostSessionCtx[session].keySlot.hSwKeySlot[i], &keyslotInfo);
 
-        BDBG_MSG(("%s - Keyslot index = '%u'", __FUNCTION__, keyslotInfo.keySlotNumber));
+        BDBG_MSG(("%s - keyslotID[%d] Keyslot number = '%u'", __FUNCTION__, i, keyslotInfo.keySlotNumber));
 
         gHostSessionCtx[session].keySlot.keySlotID[i] = keyslotInfo.keySlotNumber;
     }
@@ -1685,6 +1719,9 @@ DrmRC drm_WVOemCrypto_SelectKey(const uint32_t session,
     container->basicIn[1] = key_id_length;
     container->basicIn[2] = DRM_WVOEMCRYPTO_NUM_KEY_SLOT;
 
+    /* Set to an invalid value to see if key slot was selected */
+    container->basicOut[3] = INVALID_KEYSLOT_ID;
+
     sage_rc = SRAI_Module_ProcessCommand(gmoduleHandle, DrmWVOEMCrypto_CommandId_eSelectKey, container);
     if (sage_rc != BERR_SUCCESS)
     {
@@ -1706,7 +1743,16 @@ DrmRC drm_WVOemCrypto_SelectKey(const uint32_t session,
         goto ErrorExit;
     }
 
+    if (container->basicOut[3] == INVALID_KEYSLOT_ID)
+    {
+        /* If key slot was not selected but a successful operation, an AES decryption key was not selected.
+         * Key slot is expected to not be selected in this scenario.
+         */
+        goto IgnoreKeySlot;
+    }
+
     keySlotSelected = container->basicOut[3];
+
     for(i = 0; i < DRM_WVOEMCRYPTO_NUM_KEY_SLOT; i++)
     {
         if(keySlotSelected == gHostSessionCtx[session].keySlot.keySlotID[i])
@@ -1721,7 +1767,9 @@ DrmRC drm_WVOemCrypto_SelectKey(const uint32_t session,
         rc = Drm_Err;
         goto ErrorExit;
     }
+    BDBG_MSG(("%s - Selected by Sage: keyslotID[%d] Keyslot number = '%u'", __FUNCTION__, i, keyslotInfo.keySlotNumber));
 
+IgnoreKeySlot:
   ErrorExit:
 
     BDBG_MSG(("%s: free container block 0:",__FUNCTION__));
@@ -1763,16 +1811,28 @@ void DRM_WVOemcrypto_EndianSwap(unsigned int *x)
 }
 
 static DrmRC drm_WVOemCrypto_P_DecryptCTR_Secure(uint8_t* data_buffer,
+                                                uint8_t *out_buffer,
                                                 uint32_t data_length,
                                                 uint32_t* out_sz,
                                                 uint32_t *block_offset,
                                                 uint32_t session)
 {
     DrmRC  rc = Drm_Success;
-    DmaBlockInfo_t dmaBlock[2];
+    DmaBlockInfo_t dmaBlock[3];
     int nb_blks = 0;
 
     BDBG_MSG(("%s - Entered", __FUNCTION__));
+
+    if ( gHostSessionCtx[session].btp_info.btp_sage_buffer != NULL )
+    {
+        /* BTP block */
+        dmaBlock[nb_blks].pDstData = gHostSessionCtx[session].btp_info.btp_sage_buffer;
+        dmaBlock[nb_blks].pSrcData = gHostSessionCtx[session].btp_info.btp_sage_buffer;
+        dmaBlock[nb_blks].uiDataSize = gHostSessionCtx[session].btp_info.btp_sage_size;
+        dmaBlock[nb_blks].sg_start = true;
+        dmaBlock[nb_blks].sg_end = true;
+        nb_blks ++;
+    }
 
     if(*block_offset != 0)
     {
@@ -1785,7 +1845,7 @@ static DrmRC drm_WVOemCrypto_P_DecryptCTR_Secure(uint8_t* data_buffer,
     }
 
     /* set DMA parameters */
-    dmaBlock[nb_blks].pDstData = data_buffer;
+    dmaBlock[nb_blks].pDstData = out_buffer;
     dmaBlock[nb_blks].pSrcData = data_buffer;
     dmaBlock[nb_blks].uiDataSize = data_length;
     dmaBlock[nb_blks].sg_start = false;
@@ -1797,11 +1857,12 @@ static DrmRC drm_WVOemCrypto_P_DecryptCTR_Secure(uint8_t* data_buffer,
     gHostSessionCtx[session].drmCommonOpStruct.pDmaBlock = dmaBlock;
     gHostSessionCtx[session].drmCommonOpStruct.num_dma_block = nb_blks;
 
-    BDBG_MSG(("nb_blks=%d",nb_blks));
-    BDBG_MSG(("padding=0x%x blkOff=%d", gPadding, *block_offset));
-    BDBG_MSG(("data_buffer=0x%x length=%d", data_buffer, data_length));
+    BDBG_MSG(("%s nb_blks=%d",__FUNCTION__, nb_blks));
+    BDBG_MSG(("%s padding=0x%x blkOff=%d", __FUNCTION__, gPadding, *block_offset));
+    BDBG_MSG(("%s data_buffer=0x%x length=%d", __FUNCTION__, data_buffer, data_length));
+
     /*start M2M transfer*/
-    rc = DRM_Common_TL_M2mOperation(&gHostSessionCtx[session].drmCommonOpStruct, true);
+    rc = DRM_Common_TL_M2mOperation(&gHostSessionCtx[session].drmCommonOpStruct, true, true );
     if(rc != Drm_Success)
     {
         BDBG_ERR(("%s - Call to 'DRM_Common_TL_M2mOperation' failed 0x%x", __FUNCTION__, rc));
@@ -1814,6 +1875,89 @@ ErrorExit:
 
 }
 
+static DrmRC drm_WVOemCrypto_P_DecryptCTR_Secure_SG(uint8_t *data_addr,
+                                                    uint8_t *out_addr,
+                                                    uint32_t data_length,
+                                                    uint32_t subsample_flags,
+                                                    uint32_t session)
+{
+    bool isFirstSubsample = false;
+    bool isLastSubsample = false;
+    DmaBlockInfo_t *blockInfo;
+    uint32_t dmaBlockIdx;
+    DrmRC rc;
+
+    BDBG_ASSERT(scatterGatherEnabled); /* this is a programming error */
+    isFirstSubsample = subsample_flags & WV_OEMCRYPTO_FIRST_SUBSAMPLE;
+    isLastSubsample = subsample_flags & WV_OEMCRYPTO_LAST_SUBSAMPLE;
+
+    /* Allocate the dma block memory if it doesn't exist yet */
+    blockInfo = gWvDmaBlockInfoList[session];
+    if (blockInfo == NULL) {
+        blockInfo = (DmaBlockInfo_t *)SRAI_Memory_Allocate(sizeof(DmaBlockInfo_t) * MAX_SG_DMA_BLOCKS, SRAI_MemoryType_Shared);
+        if (blockInfo == NULL) {
+            BDBG_ERR(("%s: error allocating dma blockinfo memory", __FUNCTION__));
+            return Drm_Err;
+        }
+        gWvDmaBlockInfoList[session] = blockInfo;
+    }
+
+    BDBG_MSG(("%s  session=%d, data_addr=0x%08x, len=%d, isFirstSubsample=%d, isLast=%d",  __FUNCTION__, session, data_addr,data_length, isFirstSubsample, isLastSubsample ));
+    if (isFirstSubsample) {
+        dmaBlockIdx = 0;
+
+        if ( gHostSessionCtx[session].btp_info.btp_sage_buffer != NULL )
+        {
+            /* BTP block */
+            blockInfo[dmaBlockIdx].pDstData = gHostSessionCtx[session].btp_info.btp_sage_buffer;
+            blockInfo[dmaBlockIdx].pSrcData = gHostSessionCtx[session].btp_info.btp_sage_buffer;
+            blockInfo[dmaBlockIdx].uiDataSize = gHostSessionCtx[session].btp_info.btp_sage_size;
+            blockInfo[dmaBlockIdx].sg_start = true;
+            blockInfo[dmaBlockIdx].sg_end = true;
+            ++dmaBlockIdx;
+        }
+        gHostSessionCtx[session].drmCommonOpStruct.num_dma_block = dmaBlockIdx;
+    }
+
+    /* Fill up sg structure */
+    dmaBlockIdx = gHostSessionCtx[session].drmCommonOpStruct.num_dma_block;
+    if (dmaBlockIdx == MAX_SG_DMA_BLOCKS) {
+        BDBG_ERR(("%s: exceeded maximum number (%d) of blocks per dma s/g job", __FUNCTION__, MAX_SG_DMA_BLOCKS));
+        return Drm_Err;
+    }
+
+    blockInfo[dmaBlockIdx].pDstData = out_addr;
+    blockInfo[dmaBlockIdx].pSrcData = data_addr;
+    blockInfo[dmaBlockIdx].uiDataSize = data_length;
+    blockInfo[dmaBlockIdx].sg_start = (dmaBlockIdx == 1);
+    blockInfo[dmaBlockIdx].sg_end = isLastSubsample;
+    ++gHostSessionCtx[session].drmCommonOpStruct.num_dma_block;
+
+    if (!isLastSubsample)
+    {
+       /* only have the dma blocks built */
+        return Drm_Success;
+    }
+    else
+    {
+        /*start M2M transfer only when it is the last subsample*/
+        gHostSessionCtx[session].drmCommonOpStruct.pDmaBlock = gWvDmaBlockInfoList[session];
+
+        BDBG_MSG(("%s  session[%d] , nb_blks=%d",  __FUNCTION__, session, gHostSessionCtx[session].drmCommonOpStruct.num_dma_block));
+
+        rc = DRM_Common_TL_M2mOperation(&gHostSessionCtx[session].drmCommonOpStruct, true, true);
+        if(rc != Drm_Success)
+        {
+            BDBG_ERR(("%s - Call to 'DRM_Common_TL_M2mOperation' failed 0x%x", __FUNCTION__, rc));
+            return rc;
+        }
+        BDBG_MSG(("%s - Decrypted %d dma blocks", __FUNCTION__,
+               gHostSessionCtx[session].drmCommonOpStruct.num_dma_block ));
+        }
+
+    return rc;
+}
+
 static DrmRC drm_WVOemCrypto_P_DecryptCTR(const uint8_t* cipher_data,
                                  void* clear_data,
                                  uint32_t cipher_data_length,
@@ -1824,9 +1968,10 @@ static DrmRC drm_WVOemCrypto_P_DecryptCTR(const uint8_t* cipher_data,
 
     uint32_t cipher_data_len_aligned = 0;
     DrmRC  rc = Drm_Success;
-    DmaBlockInfo_t dmaBlock;
+    DmaBlockInfo_t dmaBlock[2];
     uint8_t *output1 = NULL;
     uint8_t *pInputData = NULL;
+    uint32_t dmaBlockIdx = 0;
 
     BDBG_MSG(("%s - Entered", __FUNCTION__));
 
@@ -1875,19 +2020,32 @@ static DrmRC drm_WVOemCrypto_P_DecryptCTR(const uint8_t* cipher_data,
     }
 
     BDBG_MSG(("%s:successfully allocated memory to output",__FUNCTION__));
-
     /* set DMA parameters */
-    dmaBlock.pDstData = output1;
-    dmaBlock.pSrcData = pInputData;
-    dmaBlock.uiDataSize = cipher_data_len_aligned;
-    dmaBlock.sg_start = true;
-    dmaBlock.sg_end = true;
 
-    gHostSessionCtx[session].drmCommonOpStruct.pDmaBlock = &dmaBlock;
-    gHostSessionCtx[session].drmCommonOpStruct.num_dma_block = 1;
+    BDBG_MSG(("%s: blk0 btp buff 0x%08x, size=%d",__FUNCTION__,gHostSessionCtx[session].btp_info.btp_sage_buffer,gHostSessionCtx[session].btp_info.btp_sage_size));
+
+    if ( gHostSessionCtx[session].btp_info.btp_sage_buffer != NULL )
+    {
+        dmaBlock[dmaBlockIdx].pDstData = gHostSessionCtx[session].btp_info.btp_sage_buffer;
+        dmaBlock[dmaBlockIdx].pSrcData = gHostSessionCtx[session].btp_info.btp_sage_buffer;
+        dmaBlock[dmaBlockIdx].uiDataSize = gHostSessionCtx[session].btp_info.btp_sage_size;
+        dmaBlock[dmaBlockIdx].sg_start = true;
+        dmaBlock[dmaBlockIdx].sg_end = true;
+        ++dmaBlockIdx;
+    }
+
+    dmaBlock[dmaBlockIdx].pDstData = output1;
+    dmaBlock[dmaBlockIdx].pSrcData = pInputData;
+    dmaBlock[dmaBlockIdx].uiDataSize = cipher_data_len_aligned;
+    dmaBlock[dmaBlockIdx].sg_start = true;
+    dmaBlock[dmaBlockIdx].sg_end = true;
+    ++dmaBlockIdx;
+
+    gHostSessionCtx[session].drmCommonOpStruct.pDmaBlock = dmaBlock;
+    gHostSessionCtx[session].drmCommonOpStruct.num_dma_block = dmaBlockIdx;
 
     /*start M2M transfer*/
-    rc = DRM_Common_TL_M2mOperation(&gHostSessionCtx[session].drmCommonOpStruct, true);
+    rc = DRM_Common_TL_M2mOperation(&gHostSessionCtx[session].drmCommonOpStruct, true, true);
     if(rc != Drm_Success)
     {
         BDBG_ERR(("%s - Call to 'DRM_Common_TL_M2mOperation' failed", __FUNCTION__));
@@ -1967,10 +2125,11 @@ DrmRC drm_WVOemCrypto_DecryptCTR(uint32_t session,
     DrmRC rc = Drm_Success;
     BERR_Code sage_rc = BERR_SUCCESS;
     *wvRc = SAGE_OEMCrypto_SUCCESS;
-    BSTD_UNUSED(subsample_flags);
+    bool isSecureDecrypt = (buffer_type == Drm_WVOEMCrypto_BufferType_Secure);
 
     BDBG_ENTER(drm_WVOemCrypto_DecryptCTR);
-    BDBG_MSG(("%s:input data len=%d,is_encrypted=%d, buffertype=%d",__FUNCTION__, data_length,is_encrypted,buffer_type));
+    BDBG_MSG(("%s:input data len=%d,is_encrypted=%d, sf:%d, secure:%d",
+                __FUNCTION__, data_length,is_encrypted,subsample_flags, isSecureDecrypt));
 
     if(data_addr == NULL)
     {
@@ -2001,7 +2160,7 @@ DrmRC drm_WVOemCrypto_DecryptCTR(uint32_t session,
 
     if (!is_encrypted)
     {
-        if (buffer_type == Drm_WVOEMCrypto_BufferType_Secure) {
+        if (isSecureDecrypt) {
             BDBG_ERR(("%s: clear data came with secure setting!!", __FUNCTION__));
             *wvRc = SAGE_OEMCrypto_ERROR_UNKNOWN_FAILURE;
             goto ErrorExit;
@@ -2010,87 +2169,127 @@ DrmRC drm_WVOemCrypto_DecryptCTR(uint32_t session,
         return Drm_Success;
     }
 
-    container = SRAI_Container_Allocate();
-    if(container == NULL)
-    {
-        BDBG_ERR(("%s - Error allocating container", __FUNCTION__));
-        rc = Drm_Err;
-        *wvRc = SAGE_OEMCrypto_ERROR_UNKNOWN_FAILURE;
-        goto ErrorExit;
-    }
 
-    /* allocate buffers accessible by Sage*/
-    if(iv != NULL)
+    /* For s/g, we only need to load the iv for the first subsample */
+    if(!scatterGatherEnabled || !isSecureDecrypt || (subsample_flags & WV_OEMCRYPTO_FIRST_SUBSAMPLE))
     {
-        container->blocks[0].data.ptr = SRAI_Memory_Allocate(WVCDM_KEY_IV_SIZE, SRAI_MemoryType_Shared);
-        if(container->blocks[0].data.ptr == NULL)
+        container = SRAI_Container_Allocate();
+        if(container == NULL)
         {
-            BDBG_ERR(("%s: Out of memory for IV (%u bytes)", __FUNCTION__, WVCDM_KEY_IV_SIZE));
+            BDBG_ERR(("%s - Error allocating container", __FUNCTION__));
+            rc = Drm_Err;
+            *wvRc = SAGE_OEMCrypto_ERROR_UNKNOWN_FAILURE;
+            goto ErrorExit;
+        }
+
+        /* allocate buffers accessible by Sage*/
+        if(iv != NULL)
+        {
+            container->blocks[0].data.ptr = SRAI_Memory_Allocate(WVCDM_KEY_IV_SIZE, SRAI_MemoryType_Shared);
+            if(container->blocks[0].data.ptr == NULL)
+            {
+                BDBG_ERR(("%s: Out of memory for IV (%u bytes)", __FUNCTION__, WVCDM_KEY_IV_SIZE));
+                *wvRc = SAGE_OEMCrypto_ERROR_INSUFFICIENT_RESOURCES;
+                rc = Drm_Err;
+                goto ErrorExit;
+            }
+            container->blocks[0].len = WVCDM_KEY_IV_SIZE;
+            BKNI_Memcpy(container->blocks[0].data.ptr, iv, WVCDM_KEY_IV_SIZE);
+        }
+
+        /* map to parameters into srai_inout_container */
+        container->basicIn[0] = session;
+        container->basicIn[1] =  WVCDM_KEY_IV_SIZE;
+        container->basicIn[2]= buffer_type;
+
+        container->basicIn[3]= BTP_SIZE;
+        container->blocks[1].data.ptr = SRAI_Memory_Allocate(BTP_SIZE, SRAI_MemoryType_SagePrivate);
+        if(container->blocks[1].data.ptr == NULL)
+        {
+            BDBG_ERR(("%s: Out of memory for BTP (%u bytes)", __FUNCTION__, BTP_SIZE));
             *wvRc = SAGE_OEMCrypto_ERROR_INSUFFICIENT_RESOURCES;
             rc = Drm_Err;
             goto ErrorExit;
         }
-        container->blocks[0].len = WVCDM_KEY_IV_SIZE;
-        BKNI_Memcpy(container->blocks[0].data.ptr, iv, WVCDM_KEY_IV_SIZE);
-    }
+        container->blocks[1].len = BTP_SIZE;
+        gHostSessionCtx[session].btp_info.btp_sage_size = BTP_SIZE;
+        gHostSessionCtx[session].btp_info.btp_sage_buffer = container->blocks[1].data.ptr;
+        BDBG_MSG(("%s: Allocated btp_sage_buffer 0x%08x", __FUNCTION__, gHostSessionCtx[session].btp_info.btp_sage_buffer ));
 
-    /* map to parameters into srai_inout_container */
-    container->basicIn[0] = session;
-    container->basicIn[1] =  WVCDM_KEY_IV_SIZE;
-    container->basicIn[2]= buffer_type;
-    BDBG_MSG(("%s:send sage command",__FUNCTION__));
+        BDBG_MSG(("%s:send sage command",__FUNCTION__));
 
-    /* this command loads the IV and validates key control */
-    sage_rc = SRAI_Module_ProcessCommand(gmoduleHandle, DrmWVOEMCrypto_CommandId_eDecryptCTR, container);
-    if (sage_rc != BERR_SUCCESS)
-    {
-        BDBG_ERR(("%s - Error in DrmWVOEMCrypto_CommandId_eDecryptCTR", __FUNCTION__));
-        rc = Drm_Err;
-        *wvRc = SAGE_OEMCrypto_ERROR_UNKNOWN_FAILURE;
-        goto ErrorExit;
-    }
+        /* this command loads the IV and validates key control */
+        sage_rc = SRAI_Module_ProcessCommand(gmoduleHandle, DrmWVOEMCrypto_CommandId_eDecryptCTR, container);
+        if (sage_rc != BERR_SUCCESS)
+        {
+            BDBG_ERR(("%s - Error in DrmWVOEMCrypto_CommandId_eDecryptCTR", __FUNCTION__));
+            rc = Drm_Err;
+            *wvRc = SAGE_OEMCrypto_ERROR_UNKNOWN_FAILURE;
+            goto ErrorExit;
+        }
 
-     *wvRc = container->basicOut[2];
-    if (container->basicOut[0] != BERR_SUCCESS)
-    {
-        BDBG_ERR(("%s - Command was sent succuessfully to load iv in decryptCTR but actual operation failed (0x%08x)", __FUNCTION__, container->basicOut[0]));
-        rc = Drm_Err;
-        goto ErrorExit;
-    }
+        *wvRc = container->basicOut[2];
+        if (container->basicOut[0] != BERR_SUCCESS)
+        {
+        BDBG_ERR(("%s - Command was sent succuessfully to load iv in decryptCTR but actual operation failed (0x%08x), wvRc = %d ",
+                         __FUNCTION__, container->basicOut[0], *wvRc));
+            rc = Drm_Err;
+            goto ErrorExit;
+        }
 
-    BDBG_MSG(("%s:extract wv error code",__FUNCTION__));
-    if(*wvRc != SAGE_OEMCrypto_SUCCESS)
-    {
-        BDBG_ERR(("%s:WVRC error",__FUNCTION__));
-        rc = Drm_Err;
-        goto ErrorExit;
+        BDBG_MSG(("%s:extract wv error code",__FUNCTION__));
+        if(*wvRc != SAGE_OEMCrypto_SUCCESS)
+        {
+            BDBG_ERR(("%s:WVRC error",__FUNCTION__));
+            rc = Drm_Err;
+            goto ErrorExit;
+        }
     }
 
     /* Now kickoff dma */
-     BDBG_MSG(("%s:now call drm_WVOemCrypto_P_DecryptCTR ",__FUNCTION__));
-     if(buffer_type == Drm_WVOEMCrypto_BufferType_Secure)
-     {
-        if(drm_WVOemCrypto_P_DecryptCTR_Secure(out_buffer,data_length, out_sz, &block_offset,session) != Drm_Success)
+    BDBG_MSG(("%s:now call drm_WVOemCrypto_P_DecryptCTR ",__FUNCTION__));
+    if(isSecureDecrypt)
+    {
+        if(scatterGatherEnabled &&
+            drm_WVOemCrypto_P_DecryptCTR_Secure_SG((uint8_t *)data_addr, out_buffer, data_length, subsample_flags, session) != Drm_Success)
+        {
+            BDBG_ERR(("%s: decryption failed for SG Secure Buffer Type",__FUNCTION__));
+            rc = Drm_Err;
+            *wvRc = SAGE_OEMCrypto_ERROR_DECRYPT_FAILED;
+            goto ErrorExit;
+        }
+        else if(!scatterGatherEnabled &&
+             drm_WVOemCrypto_P_DecryptCTR_Secure((uint8_t *)data_addr, out_buffer, data_length, out_sz, &block_offset,session) != Drm_Success)
         {
             BDBG_ERR(("%s: decryption failed for Secure Buffer Type",__FUNCTION__));
             rc = Drm_Err;
             *wvRc = SAGE_OEMCrypto_ERROR_DECRYPT_FAILED;
             goto ErrorExit;
         }
-     }
-     else
-     {
-         if (drm_WVOemCrypto_P_DecryptCTR(data_addr,out_buffer,data_length, out_sz, &block_offset,session)  != Drm_Success)
-         {
-             BDBG_ERR(("%s: decryption failed for non-Secure Buffer Type",__FUNCTION__));
+    }
+    else
+    {
+        if (drm_WVOemCrypto_P_DecryptCTR(data_addr,out_buffer,data_length, out_sz, &block_offset,session)  != Drm_Success)
+        {
+            BDBG_ERR(("%s: decryption failed for non-Secure Buffer Type",__FUNCTION__));
             rc = Drm_Err;
             *wvRc = SAGE_OEMCrypto_ERROR_DECRYPT_FAILED;
             goto ErrorExit;
-         }
-     }
+        }
+    }
 
-
+    if (subsample_flags & WV_OEMCRYPTO_LAST_SUBSAMPLE)
+    {
+        /* M2m Dma transfer happens at the last subsample */
+        if ( gHostSessionCtx[session].btp_info.btp_sage_buffer )
+        {
+            BDBG_MSG(("%s  Freeing btp buffer 0x%08x", __FUNCTION__, gHostSessionCtx[session].btp_info.btp_sage_buffer ));
+            SRAI_Memory_Free( gHostSessionCtx[session].btp_info.btp_sage_buffer );
+            gHostSessionCtx[session].btp_info.btp_sage_buffer = NULL;
+        }
+    }
     dump(out_buffer,*out_sz,"clear buffer from :");
+
 ErrorExit:
     BDBG_MSG(("%s:free the container",__FUNCTION__));
 
@@ -2256,7 +2455,8 @@ DrmRC drm_WVOemCrypto_IsKeyboxValid(int *wvRc)
     /* if success, extract status from container */
     if (container->basicOut[0] != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Command was sent succuessfully to validate keybox but actual operation failed (0x%08x)", __FUNCTION__, container->basicOut[0]));
+        BDBG_ERR(("%s:Command was sent successfully to validate keybox but actual operation failed (0x%08x), wvRc = %d",
+                            __FUNCTION__, container->basicOut[0], *wvRc));
         rc = Drm_Err;
         goto ErrorExit;
     }
@@ -2345,9 +2545,10 @@ DrmRC drm_WVOemCrypto_GetDeviceID(uint8_t* deviceID,
     }
 
     sage_rc = SRAI_Module_ProcessCommand(gmoduleHandle, DrmWVOEMCrypto_CommandId_eGetDeviceID, container);
+    *wvRc=container->basicOut[2];
     if (sage_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Error Getting DeviceID", __FUNCTION__));
+        BDBG_ERR(("%s - Error Getting DeviceID with wvRC=%d", __FUNCTION__,*wvRc));
         rc = Drm_Err;
         goto ErrorExit;
     }
@@ -2356,7 +2557,7 @@ DrmRC drm_WVOemCrypto_GetDeviceID(uint8_t* deviceID,
     *idLength = container->basicOut[1];
     BDBG_MSG(("%s: idlength=%d",__FUNCTION__,*idLength));
 
-    *wvRc=container->basicOut[2];
+
     if (*wvRc!= SAGE_OEMCrypto_SUCCESS)
     {
         rc =  Drm_Err;
@@ -2500,7 +2701,7 @@ DrmRC drm_WVOemCrypto_GetKeyData(uint8_t* keyData,
 
     if (container->basicOut[0] != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Command was sent succuessfully to GetKeyData but actual operation failed (0x%08x)", __FUNCTION__, container->basicOut[0]));
+        BDBG_ERR(("%s - Command was sent succuessfully to GetKeyData but actual operation failed (0x%08x), wvRc=%d", __FUNCTION__, container->basicOut[0],*wvRc));
         rc = Drm_Err;
         goto ErrorExit;
     }
@@ -2979,7 +3180,7 @@ DrmRC drm_WVOemCrypto_RewrapDeviceRSAKey(uint32_t session,
         if(*wvRc == SAGE_OEMCrypto_ERROR_SHORT_BUFFER)
             BDBG_WRN(("%s - Command was sent succuessfully, and SHORT_BUFFER was returned", __FUNCTION__));
         else
-            BDBG_ERR(("%s - Command was sent succuessfully to RewrapDeviceRSAKey but actual operation failed (0x%08x)", __FUNCTION__, container->basicOut[0]));
+            BDBG_ERR(("%s - Command was sent succuessfully to RewrapDeviceRSAKey but actual operation failed (0x%08x), wvRC=%d", __FUNCTION__, container->basicOut[0], container->basicOut[2]));
         rc = Drm_Err;
         goto ErrorExit;
     }
@@ -3112,7 +3313,7 @@ DrmRC drm_WVOemCrypto_LoadDeviceRSAKey(uint32_t session,
 
     if(container->basicOut[0] != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Command sent to SAGE but actual operation failed (0x%08x)", __FUNCTION__, container->basicOut[0]));
+        BDBG_ERR(("%s - Command sent to SAGE but actual operation failed (0x%08x), wvRc = %d", __FUNCTION__, container->basicOut[0], container->basicOut[2]));
     }
 
 ErrorExit:
@@ -3254,7 +3455,7 @@ DrmRC drm_WVOemCrypto_GenerateRSASignature(uint32_t session,
         }
         else
         {
-            BDBG_ERR(("%s - Command was sent succuessfully to generate rsa signature but actual operation failed (0x%08x)", __FUNCTION__, container->basicOut[0]));
+            BDBG_ERR(("%s - Command was sent succuessfully to generate rsa signature but actual operation failed (0x%08x), wvRc = %d", __FUNCTION__, container->basicOut[0], container->basicOut[2]));
         }
         rc = Drm_Err;
         goto ErrorExit;
@@ -3441,7 +3642,7 @@ DrmRC drm_WVOemCrypto_DeriveKeysFromSessionKey(
 
     if (container->basicOut[0] != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Command was sent succuessfully to DeriveKeysFromSessionKey but actual operation failed (0x%08x/%u)", __FUNCTION__, container->basicOut[0], *wvRc));
+        BDBG_ERR(("%s - Command was sent succuessfully to DeriveKeysFromSessionKey but actual operation failed (0x%08x),wvRC = %d", __FUNCTION__, container->basicOut[0], *wvRc));
         rc = Drm_Err;
         goto ErrorExit;
     }
@@ -3477,7 +3678,7 @@ ErrorExit:
 
 
 
-DrmRC drm_WVOemCrypto_GetHDCPCapability(uint8_t *current, uint8_t *maximum, int *wvRc)
+DrmRC drm_WVOemCrypto_GetHDCPCapability(uint32_t *current, uint32_t *maximum, int *wvRc)
 {
     DrmRC rc = Drm_Success;
     BERR_Code sage_rc = BERR_SUCCESS;
@@ -3510,7 +3711,7 @@ DrmRC drm_WVOemCrypto_GetHDCPCapability(uint8_t *current, uint8_t *maximum, int 
 
     if (container->basicOut[0] != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Error in SAGE command. (0x%08x)", __FUNCTION__, container->basicOut[0]));
+        BDBG_ERR(("%s - Error in SAGE command. (0x%08x), wvRC = %d", __FUNCTION__, container->basicOut[0], container->basicOut[2]));
         rc = Drm_Err;
         goto ErrorExit;
     }
@@ -3523,8 +3724,8 @@ DrmRC drm_WVOemCrypto_GetHDCPCapability(uint8_t *current, uint8_t *maximum, int 
         goto ErrorExit;
     }
 
-    *current = (uint8_t)(container->basicOut[1] & 0xFF);
-    *maximum = (uint8_t)(container->basicOut[3] & 0xFF);
+    *current = (uint32_t)container->basicOut[1];
+    *maximum = (uint32_t)container->basicOut[3];
 
     BDBG_MSG(("%s - current: %d, max: %d.", __FUNCTION__, *current, *maximum));
 
@@ -3645,16 +3846,16 @@ DrmRC drm_WVOemCrypto_Generic_Encrypt(uint32_t session,
     container->blocks[1].len =  WVCDM_KEY_IV_SIZE ;
 
     /*out buffer*/
-    container->blocks[2].data.ptr = SRAI_Memory_Allocate( 2*buffer_length, SRAI_MemoryType_Shared);
+    container->blocks[2].data.ptr = SRAI_Memory_Allocate(buffer_length, SRAI_MemoryType_Shared);
     if(container->blocks[2].data.ptr == NULL)
     {
-        BDBG_ERR(("%s - Error allocating memory for large buffer (%u bytes)", __FUNCTION__, 2*buffer_length));
+        BDBG_ERR(("%s - Error allocating memory for large buffer (%u bytes)", __FUNCTION__, buffer_length));
         *wvRc = SAGE_OEMCrypto_ERROR_UNKNOWN_FAILURE;
         rc = Drm_Err;
         goto ErrorExit;
     }
-    container->blocks[2].len =2*buffer_length;
-    BKNI_Memcpy(container->blocks[2].data.ptr, out_buffer,  2*buffer_length);
+    container->blocks[2].len = buffer_length;
+    BKNI_Memcpy(container->blocks[2].data.ptr, out_buffer,  buffer_length);
 
     /* map to parameters into srai_inout_container */
     container->basicIn[0] = session;
@@ -3686,7 +3887,7 @@ DrmRC drm_WVOemCrypto_Generic_Encrypt(uint32_t session,
 
     if (container->basicOut[0] != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Command was sent succuessfully to Generic_Encrypt but actual operation failed (0x%08x)", __FUNCTION__, container->basicOut[0]));
+        BDBG_ERR(("%s - Command was sent succuessfully to Generic_Encrypt but actual operation failed (0x%08x), wvRC = %d", __FUNCTION__, container->basicOut[0],container->basicOut[2]));
         rc = Drm_Err;
         goto ErrorExit;
     }
@@ -3697,7 +3898,7 @@ DrmRC drm_WVOemCrypto_Generic_Encrypt(uint32_t session,
         goto ErrorExit;
     }
     /*extract the outBuffer*/
-    BKNI_Memcpy(out_buffer, container->blocks[2].data.ptr,  2*buffer_length);
+    BKNI_Memcpy(out_buffer, container->blocks[2].data.ptr, buffer_length);
 
 ErrorExit:
 
@@ -3841,9 +4042,9 @@ DrmRC drm_WVOemCrypto_Generic_Decrypt(uint32_t session,
 
     /*out buffer*/
 
-    container->blocks[2].data.ptr = SRAI_Memory_Allocate( 2*buffer_length, SRAI_MemoryType_Shared);
-    container->blocks[2].len =2*buffer_length;
-    BKNI_Memcpy(container->blocks[2].data.ptr,out_buffer,  2*buffer_length);
+    container->blocks[2].data.ptr = SRAI_Memory_Allocate(buffer_length, SRAI_MemoryType_Shared);
+    container->blocks[2].len = buffer_length;
+    BKNI_Memcpy(container->blocks[2].data.ptr,out_buffer, buffer_length);
 
     /* map to parameters into srai_inout_container */
     container->basicIn[0] = session;
@@ -3867,7 +4068,7 @@ DrmRC drm_WVOemCrypto_Generic_Decrypt(uint32_t session,
 
     if (sage_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Command was sent succuessfully to DeriveKeysFromSessionKey but actual operation failed (0x%08x)", __FUNCTION__, sage_rc));
+        BDBG_ERR(("%s - Command was sent succuessfully to DeriveKeysFromSessionKey but actual operation failed (0x%08x), wvRC = %d", __FUNCTION__, sage_rc,container->basicOut[2]));
         rc = Drm_Err;
         goto ErrorExit;
     }
@@ -3880,7 +4081,7 @@ DrmRC drm_WVOemCrypto_Generic_Decrypt(uint32_t session,
     }
     BDBG_MSG(("%s:extract outbuffer from container",__FUNCTION__));
     /*extract the outBuffer*/
-    BKNI_Memcpy(out_buffer, container->blocks[2].data.ptr,  buffer_length);
+    BKNI_Memcpy(out_buffer, container->blocks[2].data.ptr, buffer_length);
 
 ErrorExit:
     BDBG_MSG(("%s:free container blks",__FUNCTION__));
@@ -4024,7 +4225,7 @@ DrmRC drm_WVOemCrypto_Generic_Sign(uint32_t session,
 
     if (sage_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Command was sent succuessfully generic sign but actual operation failed (0x%08x)", __FUNCTION__, sage_rc));
+        BDBG_ERR(("%s - Command was sent succuessfully generic sign but actual operation failed (0x%08x), wvRC = %d", __FUNCTION__, sage_rc, container->basicOut[2]));
         rc = Drm_Err;
         goto ErrorExit;
     }
@@ -4184,7 +4385,7 @@ DrmRC drm_WVOemCrypto_Generic_Verify(uint32_t session,
     *wvRc = container->basicOut[2];
     if (container->basicOut[0] != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Command was sent succuessfully to DeriveKeysFromSessionKey but actual operation failed (0x%08x)", __FUNCTION__, container->basicOut[0]));
+        BDBG_ERR(("%s - Command was sent succuessfully to DeriveKeysFromSessionKey but actual operation failed (0x%08x), wvRC = %d ", __FUNCTION__, container->basicOut[0],container->basicOut[2]));
         rc = Drm_Err;
         goto ErrorExit;
     }
@@ -4309,7 +4510,7 @@ DrmRC DRM_WVOemCrypto_UpdateUsageTable(int *wvRc)
 
     current_epoch_time = time(NULL);
     container->basicIn[0] = current_epoch_time;
-    BDBG_MSG(("%s - current Epoch time = %u <<<<<<", __FUNCTION__, current_epoch_time));
+    BDBG_MSG(("%s - current Epoch time = %u <<<<<<", __FUNCTION__, (unsigned)current_epoch_time));
 
     /* send command to SAGE */
     sage_rc = SRAI_Module_ProcessCommand(gmoduleHandle, DrmWVOEMCrypto_CommandId_eUpdateUsageTable, container);
@@ -4326,7 +4527,7 @@ DrmRC DRM_WVOemCrypto_UpdateUsageTable(int *wvRc)
     /* if success, extract status from container */
     if (container->basicOut[0] != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Command '%u' was sent succuessfully but SAGE specific error occured (0x%08x)", __FUNCTION__, DrmWVOEMCrypto_CommandId_eDeactivateUsageEntry, container->basicOut[0]));
+        BDBG_ERR(("%s - Command '%u' was sent succuessfully but SAGE specific error occured (0x%08x), wvRC = %d ", __FUNCTION__, DrmWVOEMCrypto_CommandId_eDeactivateUsageEntry, container->basicOut[0],container->basicOut[2]));
         rc = Drm_Err;
         goto ErrorExit;
     }
@@ -4478,7 +4679,7 @@ DrmRC DRM_WVOemCrypto_DeactivateUsageEntry(uint8_t *pst,
         rc = DRM_WvOemCrypto_P_OverwriteUsageTable(container->blocks[1].data.ptr, container->blocks[1].len);
         if (rc != BERR_SUCCESS)
         {
-            BDBG_ERR(("%s - Error overwriting Usage Table in rootfs (%s)", __FUNCTION__, strerror(errno)));
+            BDBG_ERR(("%s - Error overwriting Usage Table in rootfs (%s), wvRC = %d", __FUNCTION__, strerror(errno),container->basicOut[2]));
             goto ErrorExit;
         }
     }
@@ -4648,7 +4849,7 @@ DrmRC DRM_WVOemCrypto_ReportUsage(uint32_t sessionContext,
     /* if success, extract status from container */
     *wvRc = container->basicOut[2];
 
-    BDBG_MSG(("%s - Copying (*buffer_length) = %u   *** container->blocks[1].len (%u bytes)", __FUNCTION__, (*buffer_length), container->blocks[1].len));
+    BDBG_MSG(("%s - Copying (*buffer_length) = %u   *** container->blocks[1].len (%u bytes) wvRC =  %d", __FUNCTION__, (*buffer_length), container->blocks[1].len, container->basicOut[2]));
     BKNI_Memcpy(buffer, container->blocks[1].data.ptr, container->blocks[1].len);
 
     /* if success, extract status from container */
@@ -4781,7 +4982,7 @@ DrmRC DRM_WVOemCrypto_DeleteUsageEntry(uint32_t sessionContext,
 
     /* fetch current epoch time */
     current_epoch_time = time(NULL);
-    BDBG_MSG(("%s - current Epoch time = '%u' <<<<<<", __FUNCTION__, current_epoch_time));
+    BDBG_MSG(("%s - current Epoch time = '%u' <<<<<<", __FUNCTION__, (unsigned)current_epoch_time));
     container->basicIn[1] = current_epoch_time;
 
     /*
@@ -4888,8 +5089,8 @@ DrmRC DRM_WVOemCrypto_DeleteUsageEntry(uint32_t sessionContext,
     /* if success, extract status from container */
     if (container->basicOut[0] != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Command '%u' was sent succuessfully but SAGE specific error occured (0x%08x)",
-                    __FUNCTION__, DrmWVOEMCrypto_CommandId_eReportUsage, container->basicOut[0]));
+        BDBG_ERR(("%s - Command '%u' was sent succuessfully but SAGE specific error occured (0x%08x), wvRc = %d ",
+                    __FUNCTION__, DrmWVOEMCrypto_CommandId_eReportUsage, container->basicOut[0], container->basicOut[2]));
         rc = Drm_Err;
         goto ErrorExit;
     }
@@ -5022,7 +5223,7 @@ DrmRC DRM_WVOemCrypto_DeleteUsageTable(int *wvRc)
     /* if success, extract status from container */
     if (container->basicOut[0] != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Command '%u' was sent succuessfully but SAGE specific error occured (0x%08x)", __FUNCTION__, DrmWVOEMCrypto_CommandId_eDeleteUsageTable, container->basicOut[0]));
+        BDBG_ERR(("%s - Command '%u' was sent succuessfully but SAGE specific error occured (0x%08x), wvRC = %d ", __FUNCTION__, DrmWVOEMCrypto_CommandId_eDeleteUsageTable, container->basicOut[0], container->basicOut[2]));
         rc = Drm_Err;
         goto ErrorExit;
     }
@@ -5319,7 +5520,7 @@ DrmRC DRM_WVOemCrypto_GetNumberOfOpenSessions(uint32_t* noOfOpenSessions,int *wv
     *wvRc = container->basicOut[2];
     if(sage_rc != BERR_SUCCESS)
     {
-        BDBG_MSG(("%s - Command was sent sucessfully but failed to GetNumberOfOpenSessions with err (0x%08x)", __FUNCTION__,*wvRc));
+        BDBG_MSG(("%s - Command was sent sucessfully but failed to GetNumberOfOpenSessions with err wvRC = %d", __FUNCTION__,*wvRc));
         rc = Drm_Err;
         goto ErrorExit;
     }
@@ -5375,7 +5576,7 @@ DrmRC DRM_WVOemCrypto_GetMaxNumberOfSessions(uint32_t* noOfMaxSessions,int *wvRc
     *wvRc = container->basicOut[2];
     if(sage_rc != BERR_SUCCESS)
     {
-        BDBG_MSG(("%s - command sent successfully, but actual operation failed with err -(0x%08x)", __FUNCTION__,*wvRc));
+        BDBG_MSG(("%s - command sent successfully, but actual operation failed with err -(wvRC = %d)", __FUNCTION__,*wvRc));
         rc =Drm_Err;
         goto ErrorExit;
     }
@@ -5510,7 +5711,7 @@ DrmRC Drm_WVOemCrypto_QueryKeyControl(uint32_t session,
     container->blocks[1].data.ptr = SRAI_Memory_Allocate(*key_control_block_length, SRAI_MemoryType_Shared);
         if(container->blocks[1].data.ptr == NULL)
         {
-            BDBG_ERR(("%s - Error allocating memory for Message (%u bytes)", __FUNCTION__, key_control_block_length));
+            BDBG_ERR(("%s - Error allocating memory for Message (%u bytes)", __FUNCTION__, *key_control_block_length));
             rc = Drm_Err;
             goto ErrorExit;
         }
@@ -5534,7 +5735,7 @@ DrmRC Drm_WVOemCrypto_QueryKeyControl(uint32_t session,
      *wvRc =    container->basicOut[2];
     if (sage_rc != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Command was sent succuessfully to QueryControlBlock but actual operation failed (0x%08x)", __FUNCTION__, sage_rc));
+        BDBG_ERR(("%s - Command was sent succuessfully to QueryControlBlock but actual operation failed (0x%08x), wvRC = %d ", __FUNCTION__, sage_rc, container->basicOut[2]));
         rc = Drm_Err;
         goto ErrorExit;
     }
@@ -5605,7 +5806,7 @@ DrmRC DRM_WVOemCrypto_ForceDeleteUsageEntry( const uint8_t* pst,
 
     /* fetch current epoch time */
     current_epoch_time = time(NULL);
-    BDBG_MSG(("%s - current Epoch time = '%u' <<<<<<", __FUNCTION__, current_epoch_time));
+    BDBG_MSG(("%s - current Epoch time = '%lu' <<<<<<", __FUNCTION__, current_epoch_time));
     container->basicIn[0] = current_epoch_time;
 
     /*
@@ -5684,8 +5885,8 @@ DrmRC DRM_WVOemCrypto_ForceDeleteUsageEntry( const uint8_t* pst,
     /* if success, extract status from container */
     if (container->basicOut[0] != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Command '%u' was sent succuessfully but SAGE specific error occured (0x%08x)",
-                    __FUNCTION__, DrmWVOEMCrypto_CommandId_eReportUsage, container->basicOut[0]));
+        BDBG_ERR(("%s - Command '%u' was sent succuessfully but SAGE specific error occured (0x%08x), wvRc = %d",
+                    __FUNCTION__, DrmWVOEMCrypto_CommandId_eReportUsage, container->basicOut[0], container->basicOut[2]));
         rc = Drm_Err;
         goto ErrorExit;
     }

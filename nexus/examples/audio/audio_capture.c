@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2014 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  *****************************************************************************/
 #include "nexus_platform.h"
@@ -68,11 +60,22 @@
 
 #define CAPTURE_I2S_INPUT       0
 
+typedef struct captureCallbackParameters
+{
+    NEXUS_AudioCaptureHandle capture;
+    FILE *pFile;
+} captureCallbackParameters;
+
 static void capture_callback(void *pParam, int param)
 {
-    NEXUS_AudioCaptureHandle capture = pParam;
-    FILE *pFile = (FILE *)param;
+    NEXUS_AudioCaptureHandle capture;
+    FILE *pFile;
     NEXUS_Error errCode;
+    captureCallbackParameters *captureCBParams;
+
+    captureCBParams = (captureCallbackParameters *) pParam ;
+    capture = captureCBParams->capture ;
+    pFile = captureCBParams->pFile ;
 
     for ( ;; )
     {
@@ -137,6 +140,7 @@ int main(int argc, char **argv)
     NEXUS_AudioCaptureHandle capture;
     NEXUS_AudioCaptureStartSettings captureStartSettings;
     NEXUS_AudioCaptureOpenSettings captureOpenSettings;
+    captureCallbackParameters captureCBParams;
 
     NEXUS_Platform_Init(NULL);
     NEXUS_Platform_GetConfiguration(&config);
@@ -217,36 +221,36 @@ int main(int argc, char **argv)
     {
         fwrite("RIFF", 4, 1, pFile);    /* Byte 0..3 RIFF */
         fputc(0, pFile);                /* Byte 4..7 file size - 4*/
-        fputc(0, pFile);
-        fputc(0, pFile);
-        fputc(0, pFile);
+        fputc(0, pFile);                /* Byte 5 */
+        fputc(0, pFile);                /* Byte 6 */
+        fputc(0, pFile);                /* Byte 7 */
         fwrite("WAVE", 4, 1, pFile);    /* Byte 8..11 WAVE */
         fwrite("fmt ", 4, 1, pFile);    /* Byte 12..15 fmt */
         fputc(16, pFile);               /* Byte 16..19 format chunk length (16 bytes) */
-        fputc(0, pFile);
-        fputc(0, pFile);
-        fputc(0, pFile);
+        fputc(0, pFile);                /* Byte 17 */
+        fputc(0, pFile);                /* Byte 18 */
+        fputc(0, pFile);                /* Byte 19 */
         fputc(1, pFile);                /* Byte 20..21 compression code (1=PCM) */
-        fputc(0, pFile);
+        fputc(0, pFile);                /* Byte 21 */
         fputc(2, pFile);                /* Byte 22..23 Number of channels (2) */
-        fputc(0, pFile);
+        fputc(0, pFile);                /* Byte 23 */
         fputc(0, pFile);                /* Byte 24..27 Sample Rate (actual value later from decoder) */
-        fputc(0, pFile);
-        fputc(0, pFile);
-        fputc(0, pFile);
+        fputc(0, pFile);                /* Byte 25 */
+        fputc(0, pFile);                /* Byte 26 */
+        fputc(0, pFile);                /* Byte 27 */
         fputc(0, pFile);                /* Byte 28..31 Average Bytes/Second (actual value later from decder) */
-        fputc(0, pFile);
-        fputc(0, pFile);
-        fputc(0, pFile);
+        fputc(0, pFile);                /* Byte 29 */
+        fputc(0, pFile);                /* Byte 30 */
+        fputc(0, pFile);                /* Byte 31 */
         fputc(2, pFile);                /* Byte 32..33 Block Align (4 -- 2 bytes/channel * 2 channels) */
         fputc(0, pFile);
         fputc(16, pFile);               /* Byte 34..35 Bits Per Sample (16) */
         fputc(0, pFile);
         fwrite("data", 4, 1, pFile);    /* Byte 36..39 data */
         fputc(0, pFile);                /* Byte 40..43 data size - 4*/
-        fputc(0, pFile);
-        fputc(0, pFile);
-        fputc(0, pFile);
+        fputc(0, pFile);                /* Byte 41 */
+        fputc(0, pFile);                /* Byte 42 */
+        fputc(0, pFile);                /* Byte 43 */
     }
 
     #if CAPTURE_I2S_INPUT
@@ -271,8 +275,9 @@ int main(int argc, char **argv)
     /* Start the capture -- no data will be received until the decoder starts */
     NEXUS_AudioCapture_GetDefaultStartSettings(&captureStartSettings);
     captureStartSettings.dataCallback.callback = capture_callback;
-    captureStartSettings.dataCallback.context = capture;
-    captureStartSettings.dataCallback.param = (int)pFile;
+    captureCBParams.capture = capture;
+    captureCBParams.pFile = pFile;
+    captureStartSettings.dataCallback.context = &captureCBParams;
     NEXUS_AudioCapture_Start(capture, &captureStartSettings);
 
     #if CAPTURE_I2S_INPUT

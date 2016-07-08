@@ -1,7 +1,7 @@
-/***************************************************************************
- * (c) 2002-2015 Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -37,7 +37,6 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 
 #include "atlas.h"
@@ -385,8 +384,8 @@ static void do_copy_rect(
     NEXUS_Rect ndestrect = bwinToNexusRect(*destrect);
 
     BDBG_WRN(("do_copy_rect() src surface:%p x:%d y:%d w:%d h:%d  dest surface:%p x:%d y:%d w:%d h:%d",
-              pGraphicsDataSrc->_surface, nsrcrect.x, nsrcrect.y, nsrcrect.width, nsrcrect.height,
-              pGraphicsDataDest->_surface, ndestrect.x, ndestrect.y, ndestrect.width, ndestrect.height));
+              (void *)pGraphicsDataSrc->_surface, nsrcrect.x, nsrcrect.y, nsrcrect.width, nsrcrect.height,
+              (void *)pGraphicsDataDest->_surface, ndestrect.x, ndestrect.y, ndestrect.width, ndestrect.height));
 
     BDBG_ASSERT((NULL != pGraphicsDataSrc->_surface) && (NULL != pGraphicsDataDest->_surface));
     {

@@ -1,14 +1,14 @@
 /******************************************************************************
- *    (c)2008-2012 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
  * no license (express or implied), right to use, or waiver of any kind with respect to the
  * Software, and Broadcom expressly reserves all rights in and to the Software and all
  * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELYn
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
@@ -35,17 +35,9 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description: 
  *  main test app for ip_streamer
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ******************************************************************************/
 #include <stdio.h>
 #include <assert.h>
@@ -176,7 +168,7 @@ initNexusHdmiSrcList(
             BDBG_ERR(("%s: ERROR: Failed to open %d HDMI Input Handle", __FUNCTION__, hdmiSrc->hdmiInputId));
             goto error;
         }
-        BDBG_MSG(("%s: NEXUS_HdmiInput_OpenWithEdid() is successful, timebase %d ...", __FUNCTION__, hdmiSrc->timebase));
+        BDBG_MSG(("%s: NEXUS_HdmiInput_OpenWithEdid() is successful, timebase %d ...", __FUNCTION__, (int)hdmiSrc->timebase));
     }
 
     BDBG_MSG(("%s: %d HDMI Src Initialized", __FUNCTION__, NEXUS_NUM_HDMI_INPUTS));
@@ -232,7 +224,7 @@ closeNexusHdmiSrc(
     BKNI_ReleaseMutex(ipStreamerCtx->globalCtx->hdmiSrcMutex);
     ipStreamerCtx->hdmiSrc = NULL;
 
-    BDBG_MSG(("CTX %p: HDMI Src %p is closed (ref cnt %d)", ipStreamerCtx, hdmiSrc, hdmiSrc->refCount));
+    BDBG_MSG(("CTX %p: HDMI Src %p is closed (ref cnt %d)", (void *)ipStreamerCtx, (void *)hdmiSrc, hdmiSrc->refCount));
 }
 int
 openNexusHdmiSrc(
@@ -248,7 +240,7 @@ openNexusHdmiSrc(
     for (i = 0; i < NEXUS_NUM_HDMI_INPUTS; i++) {
         if (ipStreamerCtx->globalCtx->hdmiSrcList[i].hdmiInputId == ipStreamerCfg->hdmiInputId) {
             hdmiSrc = &ipStreamerCtx->globalCtx->hdmiSrcList[i];
-            BDBG_MSG(("%s: Found Matching HDMI Src entry: idx %d, addr %p, total HDMI Src entries %d", __FUNCTION__, i, hdmiSrc, NEXUS_NUM_HDMI_INPUTS));
+            BDBG_MSG(("%s: Found Matching HDMI Src entry: idx %d, addr %p, total HDMI Src entries %d", __FUNCTION__, i, (void *)hdmiSrc, NEXUS_NUM_HDMI_INPUTS));
             break;
         }
     }
@@ -288,4 +280,3 @@ error:
     return status;
 }
 #endif /* defined(NEXUS_HAS_VIDEO_ENCODER) && defined(NEXUS_HAS_HDMI_INPUT) */
-

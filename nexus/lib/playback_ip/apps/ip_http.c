@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2016 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,8 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description: http server module
  *
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  *************************************************************/
 #include <stdio.h>
@@ -830,7 +822,7 @@ parseSatIpOptionsUrl (  IpStreamerConfig *cfg, const char * url )
     }
     freqMHzInFixedPoint = strtof(tmpBuf, (char **)NULL);
     freqKHz = freqMHzInFixedPoint * 1000;
-    BDBG_MSG(("freq in Mhz %f, freq in Khz %lu", freqMHzInFixedPoint, freqKHz));
+    BDBG_MSG(("freq in Mhz %f, freq in Khz %u", freqMHzInFixedPoint, freqKHz));
 #ifdef NEXUS_USE_7425_SATIPSW
     /* 7425/4528 based SAT>IP platform required special freq conversion */
     if (freqKHz < 11700000) {
@@ -1044,7 +1036,7 @@ getRequestInfoFromUrl(
             /*trellis or bcmmserver handling the request*/
             urlLength = strlen(url);
             if ((urlCopy = BKNI_Malloc(urlLength+2)) == NULL) { /* one extra char for & to be added and other one for the null char */
-                BDBG_ERR(("%s: Failed to allocate %d bytes of memory for url copy", urlLength+2));
+                BDBG_ERR(("%s: Failed to allocate %d bytes of memory for url copy",__FUNCTION__ , urlLength+2));
                 return -1;
             }
             strncpy(urlCopy, url, urlLength);
@@ -1052,7 +1044,7 @@ getRequestInfoFromUrl(
             urlCopy[urlLength] = '&';
             urlCopy[urlLength+1] = '\0';
             if (parseSatIpOptions(openSettings, cfg)) {
-                BDBG_ERR(("%s: Failed to parse sat-ip related parameters"));
+                BDBG_ERR(("%s: Failed to parse sat-ip related parameters",__FUNCTION__));
                 BKNI_Free(urlCopy);
                 return -1;
             }
@@ -1076,7 +1068,7 @@ getRequestInfoFromUrl(
             *tmpPtr = '&';
             *(tmpPtr+1) = '\0';
             if (parseSatIpOptions(openSettings, cfg)) {
-                BDBG_ERR(("%s: Failed to parse sat-ip related parameters"));
+                BDBG_ERR(("%s: Failed to parse sat-ip related parameters",__FUNCTION__));
                 return -1;
             }
             return 0;
@@ -1256,7 +1248,7 @@ getRequestInfoFromUrl(
         else if (strcmp(tmpBuf, "TURBO") == 0)
             cfg->satMode = NEXUS_FrontendSatelliteMode_eTurbo;
         else {
-            BDBG_MSG(("%s: TODO: Sat Modulation type %s is not yet supported", __FUNCTION__, cfg->satMode));
+            BDBG_MSG(("%s: TODO: Sat Modulation type %d is not yet supported", __FUNCTION__, cfg->satMode));
             return -1;
         }
         BDBG_MSG(("Sat Modulation type set to %d", cfg->satMode));
@@ -1523,7 +1515,7 @@ getRequestInfoFromUrl(
     }
     /* Transcoding String */
     if (parseTranscodeOptions(openSettings, cfg)) {
-        BDBG_ERR(("%s: Failed to parse transcode related parameters"));
+        BDBG_ERR(("%s: Failed to parse transcode related parameters",__FUNCTION__));
         return -1;
     }
 #if NEXUS_HAS_VIDEO_ENCODER
@@ -1654,7 +1646,7 @@ fileParsing:
         }
 
         if (parseTranscodeOptions(openSettings, cfg)) {
-            BDBG_ERR(("%s: Failed to parse transcode related parameters"));
+            BDBG_ERR(("%s: Failed to parse transcode related parameters",__FUNCTION__));
             return -1;
         }
 #if NEXUS_HAS_VIDEO_ENCODER

@@ -1,22 +1,42 @@
 /***************************************************************************
- *     Copyright (c) 2003-2012, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description:
  *   See Module Overview below
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ***************************************************************************/
 
@@ -40,7 +60,7 @@ extern "C" {
 
 /* TODO: change description of ALL parity variables to refer to the content
          of the associated BVBI_Field_Handle, not to the interrupt that caused
-	 the function to be called. */
+     the function to be called. */
 
 
 /*=************************ Module Overview ********************************
@@ -51,8 +71,8 @@ extern "C" {
   Tested:
   (Nothing)
 
-									Overview
-									--------
+                                    Overview
+                                    --------
 
   The BVBI module controls access to the chip's core VBI registers.  It
   permits both encoding and decoding data in the Closed Captioning,
@@ -60,8 +80,8 @@ extern "C" {
   not) permit HD output of CGMS data in 1080i, 720p and 480p HD video
   format.
 
-									Design
-									------
+                                    Design
+                                    ------
 
 The usage of the VBI API can be divided into three parts:
  o Initializing the VBI module
@@ -229,7 +249,7 @@ and BVBI_Field_SetWSSData().  There is BVBI_Field_GetErrorInfo_isr(),
 for obtaining detailed information about a failure to encode or
 decode VBI data.
 
-			            Usage/Sample Code
+                        Usage/Sample Code
                         -----------------
 
 
@@ -324,7 +344,7 @@ the start of active video for incoming (decoded) video.
         polarity = BAVC_Polarity_eBottomField;
     else if (polarity == BAVC_Polarity_eBottomField)
         polarity = BAVC_Polarity_eTopField;
-	// If polarity == BAVC_Polarity_eFrame, let it be.
+    // If polarity == BAVC_Polarity_eFrame, let it be.
 
     // Pull closed caption data and CGMS data from VDEC hardware
     eErr = BVBI_Decode_Data_isr (vbiHandle, fieldHandle[index], polarity);
@@ -365,7 +385,7 @@ the start of active video for outgoing (encoded) video.
         polarity = BAVC_Polarity_eBottomField;
     else if (polarity == BAVC_Polarity_eBottomField)
         polarity = BAVC_Polarity_eTopField;
-	// If polarity == BAVC_Polarity_eFrame, let it be.
+    // If polarity == BAVC_Polarity_eFrame, let it be.
 
     // Encode VBI data.  For this example, assume that the provided
     // BVBI_Field_Handle (argument 2) was filled in by a previous call
@@ -374,15 +394,15 @@ the start of active video for outgoing (encoded) video.
     eErr = BVBI_Encode_Data_isr (vbiHandle, fieldHandle[index], polarity);
 
 
-							Miscellaneous
-							-------------
+                            Miscellaneous
+                            -------------
 
 When teletext is used with PAL video, the porting interface supports ETSI 300
 706 "Enhanced" teletext. In particular, the teletext data may be placed on
 lines 6-22 on the top field, and lines 318 through 335 on the bottom field.
 This is relevant when calling these functions:
-	BVBI_Field_GetTTData_isr()
-	BVBI_Field_SetTTData_isr()
+    BVBI_Field_GetTTData_isr()
+    BVBI_Field_SetTTData_isr()
 
 </verbatim>
 ***************************************************************************/
@@ -402,10 +422,10 @@ This is relevant when calling these functions:
 
 /* The framing codes for teletext lines, for NTSC and PAL.  The final symbol is
    to indicate that no valid data is on the line. */
-#define BVBI_TT_NABTS_FRAMING_CODE		0xE7
-#define BVBI_TT_ETS_FRAMING_CODE		0x27
-#define BVBI_TT_ETS_INVERTED_FRAMING_CODE	0xE4
-#define BVBI_TT_INVALID_FRAMING_CODE		0xFF
+#define BVBI_TT_NABTS_FRAMING_CODE      0xE7
+#define BVBI_TT_ETS_FRAMING_CODE        0x27
+#define BVBI_TT_ETS_INVERTED_FRAMING_CODE   0xE4
+#define BVBI_TT_INVALID_FRAMING_CODE        0xFF
 
 /* The maximum number of lines of Gemstar data that is supported.  Also
    determines the space required to get and set Gemstar data by certain
@@ -421,7 +441,7 @@ This is relevant when calling these functions:
   Description:
     The BVBI_Settings structure is used by the VBI API to set up
     a VBI Handle initially.  It is initialized with
-	BVBI_GetDefaultSettings, and passed to BVBI_Open().
+    BVBI_GetDefaultSettings, and passed to BVBI_Open().
 
   TODO:  document how interrupts work, VPS format, List of display formats
     for each VBI format, EIA document numbers
@@ -431,52 +451,52 @@ This is relevant when calling these functions:
  *****************************************************************************/
 typedef struct BVBI_Settings
 {
-	size_t   in656bufferSize;	/* Size of capture buffer (in bytes) for
-	                               ancillary data packets captured from
-								   incoming ITU-R 656 digital video.         */
-	bool  tteShiftDirMsb2Lsb;   /* If true, teletext encoder shift direction
-	                               will be set to MSBToLSB. Otherwise, it
-								   will be set to LSBToMSB. The default
-								   value is FALSE.                           */
+    size_t   in656bufferSize;   /* Size of capture buffer (in bytes) for
+                                   ancillary data packets captured from
+                                   incoming ITU-R 656 digital video.         */
+    bool  tteShiftDirMsb2Lsb;   /* If true, teletext encoder shift direction
+                                   will be set to MSBToLSB. Otherwise, it
+                                   will be set to LSBToMSB. The default
+                                   value is FALSE.                           */
 }
 BVBI_Settings;
 
 /***************************************************************************
 Summary:
-	This structure describes the capabilities of a BVBI
+    This structure describes the capabilities of a BVBI
 
 Description:
-	BVBI_Capabilities is a structure that contains the capabilities of BVBI.
+    BVBI_Capabilities is a structure that contains the capabilities of BVBI.
 
 See Also:
-	BVBI_GetCapabilities
+    BVBI_GetCapabilities
 ***************************************************************************/
 typedef struct BVBI_Capabilities
 {
-	uint32_t ulNumAmole;     /* Number of AMOL encoder cores, not including
-							    ITU-R 656. */
-	uint32_t ulNumAmole656;  /* Number of AMOL encoder cores that are
-	                            specifically ITU-R 656. */
-	uint32_t ulNumCce;       /* Number of closed caption encoder cores, not
-							    including ITU-R 656. */
-	uint32_t ulNumCce656;    /* Number of closed caption encoder cores that are
-							    specifically for ITU-R 656 output. */
-	uint32_t ulNumCgmse;     /* Number of CGMS encoder cores, not including
-	                            ITU-R 656. */
-	uint32_t ulNumCgmse656;  /* Number of CGMS encoder cores that are
-	                            specifically for ITU-R 656 output. */
-	uint32_t ulNumGse;       /* Number of Gemstar encoder cores, not including
-							    ITU-R 656. */
-	uint32_t ulNumGse656;    /* Number of Gemstar encoder cores that are
-							    specifically for ITU-R 656 output. */
-	uint32_t ulNumTte;       /* Number of teletext encoder cores. Does not
-							    include 656 (bypass) cores. */
-	uint32_t ulNumTte656;    /* Number of 656 teletext encoder cores. */
-	uint32_t ulNumWssE;      /* Number of WSS/VPS cores, not including
-	                            ITU-R 656. */
-	uint32_t ulNumWssE_656;  /* Number of WSS/VPS cores that are specifically
-	                            for ITU-R 656 output. */
-	bool bTteHasSerO;        /* TTX core has serial output capability. */
+    uint32_t ulNumAmole;     /* Number of AMOL encoder cores, not including
+                                ITU-R 656. */
+    uint32_t ulNumAmole656;  /* Number of AMOL encoder cores that are
+                                specifically ITU-R 656. */
+    uint32_t ulNumCce;       /* Number of closed caption encoder cores, not
+                                including ITU-R 656. */
+    uint32_t ulNumCce656;    /* Number of closed caption encoder cores that are
+                                specifically for ITU-R 656 output. */
+    uint32_t ulNumCgmse;     /* Number of CGMS encoder cores, not including
+                                ITU-R 656. */
+    uint32_t ulNumCgmse656;  /* Number of CGMS encoder cores that are
+                                specifically for ITU-R 656 output. */
+    uint32_t ulNumGse;       /* Number of Gemstar encoder cores, not including
+                                ITU-R 656. */
+    uint32_t ulNumGse656;    /* Number of Gemstar encoder cores that are
+                                specifically for ITU-R 656 output. */
+    uint32_t ulNumTte;       /* Number of teletext encoder cores. Does not
+                                include 656 (bypass) cores. */
+    uint32_t ulNumTte656;    /* Number of 656 teletext encoder cores. */
+    uint32_t ulNumWssE;      /* Number of WSS/VPS cores, not including
+                                ITU-R 656. */
+    uint32_t ulNumWssE_656;  /* Number of WSS/VPS cores that are specifically
+                                for ITU-R 656 output. */
+    bool bTteHasSerO;        /* TTX core has serial output capability. */
 
 } BVBI_Capabilities;
 
@@ -489,26 +509,26 @@ typedef struct BVBI_Capabilities
 
   Description:
     The BVBI_GSoptions structure contains options controlling Gemstar
-	waveforms.
+    waveforms.
 
   See Also:
-	BVBI_Encode_SetGemstarOptions
+    BVBI_Encode_SetGemstarOptions
  *****************************************************************************/
 typedef struct BVBI_GSOptions
 {
-	bool           bTvg2x; /* If true, the TVG2X waveform specified in
-	                          CEA-2020 will be used. If false, the waveform
-							  specified in the proprietary Gemstar standard
-							  will be used.                                  */
-	uint16_t baseline_top; /* The video line number corresponding to the
-	                          first bit in the following bit mask.           */
-	uint16_t linemask_top; /* Bit mask that indicates which video lines
-							  carry Gemstar data in top video fields.        */
-	uint16_t baseline_bot; /* The video line number corresponding to the
-							  first bit in the following bit mask. Must be
-							  greater than 256.                              */
-	uint16_t linemask_bot; /* Bit mask that indicates which video lines
-							  carry Gemstar data in bottom video fields.     */
+    bool           bTvg2x; /* If true, the TVG2X waveform specified in
+                              CEA-2020 will be used. If false, the waveform
+                              specified in the proprietary Gemstar standard
+                              will be used.                                  */
+    uint16_t baseline_top; /* The video line number corresponding to the
+                              first bit in the following bit mask.           */
+    uint16_t linemask_top; /* Bit mask that indicates which video lines
+                              carry Gemstar data in top video fields.        */
+    uint16_t baseline_bot; /* The video line number corresponding to the
+                              first bit in the following bit mask. Must be
+                              greater than 256.                              */
+    uint16_t linemask_bot; /* Bit mask that indicates which video lines
+                              carry Gemstar data in bottom video fields.     */
 }
 BVBI_GSOptions;
 #define BVBI_GSOptions_Version (1)
@@ -528,9 +548,9 @@ BVBI_GSOptions;
     kind on the part of the system.  Usually it indicates that VBI
     registers are being set and that VBI output is occurring for at
     least one output.  It can be allocated with a call to BVBI_Open.
-	It is passed as the first argument to a number of BVBI
-	functions, and a BVBI_Encode_Handle or BVBI_Decode_Handle
-	may be opened from it.
+    It is passed as the first argument to a number of BVBI
+    functions, and a BVBI_Encode_Handle or BVBI_Decode_Handle
+    may be opened from it.
 
   See Also:
     BVBI_Open, BVBI_Encode_Create, BVBI_Decode_Create
@@ -545,13 +565,13 @@ typedef struct BVBI_P_Handle *BVBI_Handle;  /* Opaque */
   Description:
     The BVBI_Encode_Handle is used to control how VBI encoding is done,
     and in what formats.  It is used by a number of encoding-related
-    functions.	It is allocated by BVBI_Encode_Create.	Encoding
-	of specific data is controlled by BVBI_Encode_Data_isr.  Format
-	output is controlled by BVBI_Encode_SetCC and related functions.
+    functions.  It is allocated by BVBI_Encode_Create.  Encoding
+    of specific data is controlled by BVBI_Encode_Data_isr.  Format
+    output is controlled by BVBI_Encode_SetCC and related functions.
 
   See Also:
     BVBI_Encode_Create, BVBI_Decode_Create, BVBI_Encode_Data_isr,
-	BVBI_Encode_SetCC
+    BVBI_Encode_SetCC
  *****************************************************************************/
 typedef struct BVBI_P_Encode_Handle *BVBI_Encode_Handle;  /* Opaque */
 
@@ -562,22 +582,22 @@ typedef struct BVBI_P_Encode_Handle *BVBI_Encode_Handle;  /* Opaque */
 
   Description:
     The BVBI_Encode_Settings is used to select options that will always
-	be in effect for a specified BVBI Encoder object.
+    be in effect for a specified BVBI Encoder object.
 
   See Also:
     BVBI_Encode_Create, BVBI_Encode_GetDefaultSettings
  *****************************************************************************/
  typedef struct
  {
-	bool bArib480p;	  /* 480I and 480P video output will follow ARIB
-	                     convention. This sestting must agree with the
-						 equivalent setting in the BVDC porting interface
-						 module. Default is "false."                         */
-	bool bSupportTeletext;
-	                  /* It true, the BVBI encoder object will support
-					     teletext output. This has a cost: two teletext
-					     data structures of maximal size are allocated
-					     immediately. Default is "true."                     */
+    bool bArib480p;   /* 480I and 480P video output will follow ARIB
+                         convention. This sestting must agree with the
+                         equivalent setting in the BVDC porting interface
+                         module. Default is "false."                         */
+    bool bSupportTeletext;
+                      /* It true, the BVBI encoder object will support
+                         teletext output. This has a cost: two teletext
+                         data structures of maximal size are allocated
+                         immediately. Default is "true."                     */
  }
  BVBI_Encode_Settings;
 
@@ -588,14 +608,14 @@ typedef struct BVBI_P_Encode_Handle *BVBI_Encode_Handle;  /* Opaque */
 
   Description:
     The BVBI_Decode_Handle is used to control how VBI decoding is done, and in
-	what formats.  It is used by a number of decoding-related functions.
-	It is allocated by BVBI_Decode_Create.  Decoding of specific data is
-	controlled by BVBI_Decode_Data_isr.  Format output is controlled by
-	BVBI_Decode_SetCC and related functions.
+    what formats.  It is used by a number of decoding-related functions.
+    It is allocated by BVBI_Decode_Create.  Decoding of specific data is
+    controlled by BVBI_Decode_Data_isr.  Format output is controlled by
+    BVBI_Decode_SetCC and related functions.
 
   See Also:
     BVBI_Encode_Create, BVBI_Decode_Create, BVBI_Decode_Data_isr,
-	BVBI_Decode_SetCC
+    BVBI_Decode_SetCC
  *****************************************************************************/
 typedef struct BVBI_P_Decode_Handle *BVBI_Decode_Handle;  /* Opaque */
 
@@ -606,24 +626,24 @@ typedef struct BVBI_P_Decode_Handle *BVBI_Decode_Handle;  /* Opaque */
 
   Description:
     BVBI_Field_Handle can be created by BVBI_Field_Create and filled
-	in by BVBI_Decode_Data_isr or BVBI_Field_Set_*Data.  The data
-	can be read by functions like BVBI_Field_Get*Data.	It can be
-	passed to BVBI_Encode_Data_isr to set the current output for the
-	formats that it represents.
+    in by BVBI_Decode_Data_isr or BVBI_Field_Set_*Data.  The data
+    can be read by functions like BVBI_Field_Get*Data.  It can be
+    passed to BVBI_Encode_Data_isr to set the current output for the
+    formats that it represents.
 
     Note that the BVBI_Field_Handle is not related to any
-	BVBI_Decode_Handle it may have been read from.	The data
-	may be used with other handles and read and written freely
-	no matter what BVBI_Encode_Handle or BVBI_Decode_Handle
-	may have been opened or closed.
+    BVBI_Decode_Handle it may have been read from.  The data
+    may be used with other handles and read and written freely
+    no matter what BVBI_Encode_Handle or BVBI_Decode_Handle
+    may have been opened or closed.
 
-	Note also that the BVBI_Field_Handle is not related to any
-	BVBI_Handles.  A BVBI_Field_Handle is simply a container for VBI
-	data that can occur in a single field of video.
+    Note also that the BVBI_Field_Handle is not related to any
+    BVBI_Handles.  A BVBI_Field_Handle is simply a container for VBI
+    data that can occur in a single field of video.
 
   See Also:
     BVBI_Encode_Data_isr, BVBI_Decode_Data_isr, BVBI_Field_SetCCData,
-	BVBI_Field_GetCCData.
+    BVBI_Field_GetCCData.
  *****************************************************************************/
 typedef struct BVBI_P_Field_Handle *BVBI_Field_Handle;  /* Opaque */
 
@@ -633,10 +653,10 @@ typedef struct BVBI_P_Field_Handle *BVBI_Field_Handle;  /* Opaque */
 /* Identifies which variant of the AMOL specification to use */
 typedef enum BVBI_AMOL_Type
 {
-	BVBI_AMOL_Type_None=0,		/* No AMOL. Used to disable a feature, etc. */
-	BVBI_AMOL_Type_I,			/* AMOL I                                   */
-	BVBI_AMOL_Type_II_Lowrate,	/* AMOL II, 1 Mbit/s.                       */
-	BVBI_AMOL_Type_II_Highrate	/* AMOL II, 2 Mbit/s.                       */
+    BVBI_AMOL_Type_None=0,      /* No AMOL. Used to disable a feature, etc. */
+    BVBI_AMOL_Type_I,           /* AMOL I                                   */
+    BVBI_AMOL_Type_II_Lowrate,  /* AMOL II, 1 Mbit/s.                       */
+    BVBI_AMOL_Type_II_Highrate  /* AMOL II, 2 Mbit/s.                       */
 
 } BVBI_AMOL_Type;
 
@@ -648,56 +668,56 @@ typedef enum BVBI_AMOL_Type
 /* Identifies which variant of the SCTE specification to use */
 typedef enum BVBI_SCTE_Type
 {
-	BVBI_SCTE_Type_NONE=0,		/* No SCTE. Used to disable a feature, etc. */
-	BVBI_SCTE_Type_CCONLY,      /* Closed caption like data only.           */
-	BVBI_SCTE_Type_CCNRTV,      /* Closed caption like and NRTV data.       */
-	BVBI_SCTE_Type_CCPAM,       /* Closed caption like and PAM data.        */
-	BVBI_SCTE_Type_CCMONO,      /* Closed caption like and monochrome data. */
-	BVBI_SCTE_Type_LAST			/* Do not use this!                         */
+    BVBI_SCTE_Type_NONE=0,      /* No SCTE. Used to disable a feature, etc. */
+    BVBI_SCTE_Type_CCONLY,      /* Closed caption like data only.           */
+    BVBI_SCTE_Type_CCNRTV,      /* Closed caption like and NRTV data.       */
+    BVBI_SCTE_Type_CCPAM,       /* Closed caption like and PAM data.        */
+    BVBI_SCTE_Type_CCMONO,      /* Closed caption like and monochrome data. */
+    BVBI_SCTE_Type_LAST         /* Do not use this!                         */
 
 } BVBI_SCTE_Type;
 
 /* The SCTE encoder core must "know" what colorspace is in use. */
 typedef enum BVBI_CSC {
-	BVBI_CSC_SCTE_MYIQ=0,
-	BVBI_CSC_SCTE_NTSCYIQ=1,
-	BVBI_CSC_SCTE_YUV=2,
-	BVBI_CSC_SCTE_CO=3,
-	BVBI_CSC_NONE=4
+    BVBI_CSC_SCTE_MYIQ=0,
+    BVBI_CSC_SCTE_NTSCYIQ=1,
+    BVBI_CSC_SCTE_YUV=2,
+    BVBI_CSC_SCTE_CO=3,
+    BVBI_CSC_NONE=4
 } BVBI_CSC;
 
 #define BVBI_SCTE_MAX_ITEMS 32
 
 typedef struct BVBI_SCTE_CC_Data
 {
-	uint8_t valid;
-	uint8_t priority;
-	uint8_t line_number;	/* Between 10 and 41, inclusive. */
-	uint8_t cc_data_1;
-	uint8_t cc_data_2;
+    uint8_t valid;
+    uint8_t priority;
+    uint8_t line_number;    /* Between 10 and 41, inclusive. */
+    uint8_t cc_data_1;
+    uint8_t cc_data_2;
 
 } BVBI_SCTE_CC_Data;
 
 typedef struct BVBI_SCTE_NRTV_Data
 {
-	uint8_t valid;
-	uint8_t priority;
-	uint8_t line_number;	/* Between 10 and 41, inclusive. */
-	uint8_t sequence_number;
-	uint8_t segment_number;
-	uint8_t y_data[32];
-	uint8_t cbcr_data[32];
+    uint8_t valid;
+    uint8_t priority;
+    uint8_t line_number;    /* Between 10 and 41, inclusive. */
+    uint8_t sequence_number;
+    uint8_t segment_number;
+    uint8_t y_data[32];
+    uint8_t cbcr_data[32];
 
 } BVBI_SCTE_NRTV_Data;
 
 typedef struct BVBI_SCTE_Mono_Data
 {
-	bool first_segment_flag;
-	bool last_segment_flag;
-	uint8_t line_number;	/* Between 10 and 41, inclusive. */
-	uint16_t first_pixel_position;
-	uint8_t n_pixels;
-	uint8_t Y_data[256];
+    bool first_segment_flag;
+    bool last_segment_flag;
+    uint8_t line_number;    /* Between 10 and 41, inclusive. */
+    uint16_t first_pixel_position;
+    uint8_t n_pixels;
+    uint8_t Y_data[256];
 
 } BVBI_SCTE_Mono_Data;
 
@@ -708,106 +728,106 @@ typedef struct BVBI_SCTE_Mono_Data
 
   Description:
     The BVBI_SCTE_Data structure is a container for an entire field of
-	SCTE data.
+    SCTE data.
 
     The BVBI_SCTE_Data structure contains _size elements, _count
     elements, and data pointers.
 
-	The user is responsible for setting the data pointers to
-	reasonable values. However, if the corresponding _count
-	element is zero, then BVBI software will not make use of
-	the data pointer. BVBI software does not allocate or free
-	memory indicated by the data pointers in any case.
+    The user is responsible for setting the data pointers to
+    reasonable values. However, if the corresponding _count
+    element is zero, then BVBI software will not make use of
+    the data pointer. BVBI software does not allocate or free
+    memory indicated by the data pointers in any case.
 
-	The _size elements are for the convenience of the user,
-	they are not used by BVBI software.
+    The _size elements are for the convenience of the user,
+    they are not used by BVBI software.
 
-	The _count elements indicate the amount of data contained
-	in the corresponding data pointers. The units of the _count
-	elements vary, but they are defined below.
+    The _count elements indicate the amount of data contained
+    in the corresponding data pointers. The units of the _count
+    elements vary, but they are defined below.
 
   See Also:
     BVBI_Field_GetSCTEData_isr, BVBI_Field_SetSCTEData_isr
  *****************************************************************************/
 typedef struct BVBI_SCTE_Data
 {
-	size_t cc_count;                 /* Number of meaningful entries in the
-	                                    following cc_data array.             */
-	size_t cc_size;                  /* Capacity of following cc_data array,
-	                                    in units of BVBI_SCTE_CC_Data.       */
-	BVBI_SCTE_CC_Data* cc_data;      /* The closed caption data. If zero,
-	                                    then no space has been allocated.    */
-	size_t nrtv_count;               /* Number of meaningful entries in the
-	                                    following nrtv_data array. Must be
-									    zero or one.                         */
-	size_t nrtv_size;                /* Capacity of following nrtv_data
-	                                    array, in units of
-										BVBI_SCTE_NRTV_Data                  */
-	BVBI_SCTE_NRTV_Data* nrtv_data;  /* The NRTV data. If zero, then no
-	                                    space has been allocated.            */
-	size_t pam_count;                /* Number of meaningful bytes in the
-	                                    following luma_PAM_data buffer. The
-										maximum value allowed is 4095.       */
-	size_t pam_size;                 /* Capacity of following luma_PAM_data
-	                                    buffer, in bytes. If zero, then no
-										space has been allocated.            */
-	uint8_t* luma_PAM_data;          /* Buffer containing one piece of
-	                                    luma_PAM_data, as defined in SCTE-21
-										section 5.5.                         */
-	size_t mono_count;               /* Number of meaningful entries in the
-	                                    following mono_data array. Must be
-									    zero, one, or two.                   */
-	size_t mono_size;                /* Capacity of following mono_data
-	                                    array, in units of
-										BVBI_SCTE_Mono_Data                  */
-	BVBI_SCTE_Mono_Data* mono_data;  /* The monochrome data. If zero, then
-	                                    no space has been allocated.         */
-	uint8_t field_number;            /* Field number, from SCTE data
-	                                    structure. In the case of SCTE 20
-										ATSC CC data, it is field_type. In
-										the case of monochrome data, this is
-										the field_parity element.            */
+    size_t cc_count;                 /* Number of meaningful entries in the
+                                        following cc_data array.             */
+    size_t cc_size;                  /* Capacity of following cc_data array,
+                                        in units of BVBI_SCTE_CC_Data.       */
+    BVBI_SCTE_CC_Data* cc_data;      /* The closed caption data. If zero,
+                                        then no space has been allocated.    */
+    size_t nrtv_count;               /* Number of meaningful entries in the
+                                        following nrtv_data array. Must be
+                                        zero or one.                         */
+    size_t nrtv_size;                /* Capacity of following nrtv_data
+                                        array, in units of
+                                        BVBI_SCTE_NRTV_Data                  */
+    BVBI_SCTE_NRTV_Data* nrtv_data;  /* The NRTV data. If zero, then no
+                                        space has been allocated.            */
+    size_t pam_count;                /* Number of meaningful bytes in the
+                                        following luma_PAM_data buffer. The
+                                        maximum value allowed is 4095.       */
+    size_t pam_size;                 /* Capacity of following luma_PAM_data
+                                        buffer, in bytes. If zero, then no
+                                        space has been allocated.            */
+    uint8_t* luma_PAM_data;          /* Buffer containing one piece of
+                                        luma_PAM_data, as defined in SCTE-21
+                                        section 5.5.                         */
+    size_t mono_count;               /* Number of meaningful entries in the
+                                        following mono_data array. Must be
+                                        zero, one, or two.                   */
+    size_t mono_size;                /* Capacity of following mono_data
+                                        array, in units of
+                                        BVBI_SCTE_Mono_Data                  */
+    BVBI_SCTE_Mono_Data* mono_data;  /* The monochrome data. If zero, then
+                                        no space has been allocated.         */
+    uint8_t field_number;            /* Field number, from SCTE data
+                                        structure. In the case of SCTE 20
+                                        ATSC CC data, it is field_type. In
+                                        the case of monochrome data, this is
+                                        the field_parity element.            */
 } BVBI_SCTE_Data;
 
 /* The supported methods for encapsulating VBI data into ITU-R 656
    (digital) bitstreams */
 typedef enum BVBI_656Fmt
 {
-	BVBI_656Fmt_SAA7113 = 0,
-	BVBI_656Fmt_Modified_SAA7113,
-	BVBI_656Fmt_SAA7114,
-	BVBI_656Fmt_SAA7114A,
-	BVBI_656Fmt_SAA7114B,
-	BVBI_656Fmt_SAA7114C,
-	BVBI_656Fmt_SAA7115,
-	BVBI_656Fmt_SMPTE291,
-	BVBI_656Fmt_LAST
+    BVBI_656Fmt_SAA7113 = 0,
+    BVBI_656Fmt_Modified_SAA7113,
+    BVBI_656Fmt_SAA7114,
+    BVBI_656Fmt_SAA7114A,
+    BVBI_656Fmt_SAA7114B,
+    BVBI_656Fmt_SAA7114C,
+    BVBI_656Fmt_SAA7115,
+    BVBI_656Fmt_SMPTE291,
+    BVBI_656Fmt_LAST
 
 } BVBI_656Fmt;
 
 /* An enum specifying type of VBI data encountered */
 typedef enum BVBI_656_VbiType
 {
-	BVBI_656_VbiType_None = 0,	/* No VBI data present */
-	BVBI_656_VbiType_EuroCC,	/* European closed caption data */
-	BVBI_656_VbiType_WSS,		/* WSS data */
-	BVBI_656_VbiType_USCC,		/* U.S. Closed caption data */
-	BVBI_656_VbiType_TT,		/* (European) Teletext data */
-	BVBI_656_VbiType_NABTS,		/* (U.S.) NABTS data */
-	BVBI_656_VbiType_VPS,		/* VPS data */
-	BVBI_656_VbiType_GS,		/* Gemstar data */
-	BVBI_656_VbiType_AMOL,		/* AMOL data */
-	BVBI_656_VbiType_MCC,		/* Multi-line, closed caption data */
-	BVBI_656_VbiType_SCTE		/* SCTE data */
+    BVBI_656_VbiType_None = 0,  /* No VBI data present */
+    BVBI_656_VbiType_EuroCC,    /* European closed caption data */
+    BVBI_656_VbiType_WSS,       /* WSS data */
+    BVBI_656_VbiType_USCC,      /* U.S. Closed caption data */
+    BVBI_656_VbiType_TT,        /* (European) Teletext data */
+    BVBI_656_VbiType_NABTS,     /* (U.S.) NABTS data */
+    BVBI_656_VbiType_VPS,       /* VPS data */
+    BVBI_656_VbiType_GS,        /* Gemstar data */
+    BVBI_656_VbiType_AMOL,      /* AMOL data */
+    BVBI_656_VbiType_MCC,       /* Multi-line, closed caption data */
+    BVBI_656_VbiType_SCTE       /* SCTE data */
 
 } BVBI_656_VbiType;
 
 /* Information necessary to use parsed SMPTE 291M data */
 typedef struct
 {
-	BVBI_656_VbiType vbiType;	/* Defined above */
-	BAVC_Polarity polarity;
-	int lineNumber;				/* Video line, enter 0 for "don't care" */
+    BVBI_656_VbiType vbiType;   /* Defined above */
+    BAVC_Polarity polarity;
+    int lineNumber;             /* Video line, enter 0 for "don't care" */
 
 } BVBI_SMPTE291M_Description;
 
@@ -826,15 +846,15 @@ typedef struct
 typedef enum BVBI_XSER_DataContent
 {
     BVBI_TTserialDataContent_None,         /* No data. Disable the serial
-	                                          port feature. */
+                                              port feature. */
     BVBI_TTserialDataContent_DataOnly,     /* Output only the teletext data. */
     BVBI_TTserialDataContent_DataMag,      /* Output teletext data and
-	                                          magazine. */
+                                              magazine. */
     BVBI_TTserialDataContent_DataMagFrm,   /* Output teletext data  magazine
-	                                          and frame code. */
+                                              and frame code. */
     BVBI_TTserialDataContent_DataMagFrmRun /* Output teletext data magazine
-	                                          frame code  and run-in
-											  sequence. */
+                                              frame code  and run-in
+                                              sequence. */
 } BVBI_XSER_DataContent;
 
 /*****************************************************************************
@@ -878,7 +898,7 @@ typedef struct BVBI_XSER_Settings
 {
     BVBI_XSER_DataContent
         xsSerialDataContent;    /* Specify serial output of data.  Ignored
-		                           if chipset does not have this capability. */
+                                   if chipset does not have this capability. */
     BVBI_TTserialDataSync
         ttSerialDataSync;       /* Specify timing of serial output of
                                    teletext data. Ignored if chipset does
@@ -894,52 +914,52 @@ BVBI_XSER_Settings;
 /*****************************************************************************
   Summary:
     Prototype for callback that provides the parsing mechanism for incoming
-	SMPTE 291M packets.
+    SMPTE 291M packets.
 
   Description:
     SMPTE 291M is a standard for encapsulating user data in
     ancillary data packets for inclusion in an ITU-R 656 bitstream.
-	SMPTE 291M is an "open" standard that allows the user
-	data to be expressed in a variety of ways.  The user must
-	provide a callback function to parse incoming data
-	according to the user's method.  This is the function prototype
-	for such a callback function.
+    SMPTE 291M is an "open" standard that allows the user
+    data to be expressed in a variety of ways.  The user must
+    provide a callback function to parse incoming data
+    according to the user's method.  This is the function prototype
+    for such a callback function.
 
   Returns:
     BERR_SUCCESS for success; any other value will cause data to be ignored.
 
  *****************************************************************************/
 typedef BERR_Code (*BVBI_Decode_656_SMPTE291M_Cb) (
-	void*         arg0, /*  [in] The "arg0"value provided to
-	                             BVBI_Decode_656_SetSMPTE291Moptions().      */
-	BFMT_VideoFmt
-		  eVideoFormat, /*  [in] Video format of input 656 port              */
-	BAVC_Polarity
-	          polarity, /*  [in] The field polarity according to BVBI
-			                     interrupts.                                 */
-	uint8_t    data_id, /*  [in] The first identification field in the
-	                             SMPTE 291M packet header.                   */
-	uint8_t  second_id, /*  [in] The second identification field in the
-	                             SMPTE 291M packet header.                   */
-	uint8_t data_count, /*  [in] The DATA COUNT field in the SMPTE 291M
-	                             packet header.                              */
-	uint8_t*    packet, /*  [in] The SMPTE 291M ancillary data packet,
-	                             starting with the first byte of the
-								 payload.  Note that the three header bytes
-								 have already been parsed by the BVBI
-								 software when this callback function is
-								 called.  The final checksum byte has also
-								 been read and verified by the BVBI
-								 software and is not available to this
-								 callback function.                          */
+    void*         arg0, /*  [in] The "arg0"value provided to
+                                 BVBI_Decode_656_SetSMPTE291Moptions().      */
+    BFMT_VideoFmt
+          eVideoFormat, /*  [in] Video format of input 656 port              */
+    BAVC_Polarity
+              polarity, /*  [in] The field polarity according to BVBI
+                                 interrupts.                                 */
+    uint8_t    data_id, /*  [in] The first identification field in the
+                                 SMPTE 291M packet header.                   */
+    uint8_t  second_id, /*  [in] The second identification field in the
+                                 SMPTE 291M packet header.                   */
+    uint8_t data_count, /*  [in] The DATA COUNT field in the SMPTE 291M
+                                 packet header.                              */
+    uint8_t*    packet, /*  [in] The SMPTE 291M ancillary data packet,
+                                 starting with the first byte of the
+                                 payload.  Note that the three header bytes
+                                 have already been parsed by the BVBI
+                                 software when this callback function is
+                                 called.  The final checksum byte has also
+                                 been read and verified by the BVBI
+                                 software and is not available to this
+                                 callback function.                          */
     uint8_t**  vbiData, /* [out] The parsed VBI data.  For example, if the
-	                             SMPTE 291M packet contains closed caption
-								 data, then this argument should be returned
-								 with the two bytes of closed caption data.
-								 This data can overwrite the data provided
-								 as the argument "packet" if desired.        */
+                                 SMPTE 291M packet contains closed caption
+                                 data, then this argument should be returned
+                                 with the two bytes of closed caption data.
+                                 This data can overwrite the data provided
+                                 as the argument "packet" if desired.        */
     BVBI_SMPTE291M_Description*
-		pktDesc         /* [out] Describes the above argument vbiData.       */
+        pktDesc         /* [out] Describes the above argument vbiData.       */
 );
 
 /*****************************************************************************
@@ -951,41 +971,41 @@ typedef BERR_Code (*BVBI_Decode_656_SMPTE291M_Cb) (
  *****************************************************************************/
 typedef struct BVBI_StandbySettings
 {
-	bool dummy; /* placeholder */
+    bool dummy; /* placeholder */
 } BVBI_StandbySettings;
 
 /*****************************************************************************
-	Module specific standard BERR codes
+    Module specific standard BERR codes
  *****************************************************************************/
 /* This error indicates that field data has a problem */
-#define BVBI_ERR_FIELD_BADDATA			BERR_MAKE_CODE(BERR_VBI_ID, 0x0000)
+#define BVBI_ERR_FIELD_BADDATA          BERR_MAKE_CODE(BERR_VBI_ID, 0x0000)
 /* This error field data does not exist */
-#define BVBI_ERR_FIELD_NODATA			BERR_MAKE_CODE(BERR_VBI_ID, 0x0001)
+#define BVBI_ERR_FIELD_NODATA           BERR_MAKE_CODE(BERR_VBI_ID, 0x0001)
 /* This error indicates that the the user attempted to use multiple handles to
    control a single encoder or decoder core */
-#define BVBI_ERR_HW_CONFLICT			BERR_MAKE_CODE(BERR_VBI_ID, 0x0002)
+#define BVBI_ERR_HW_CONFLICT            BERR_MAKE_CODE(BERR_VBI_ID, 0x0002)
 /* This error indicates that the user attempted to set/get data from a field
    handle that does not have the right allocation */
-#define BVBI_ERR_FLDH_CONFLICT			BERR_MAKE_CODE(BERR_VBI_ID, 0x0003)
+#define BVBI_ERR_FLDH_CONFLICT          BERR_MAKE_CODE(BERR_VBI_ID, 0x0003)
 /* This error indicates that the video format in use is not supported */
-#define BVBI_ERR_VFMT_CONFLICT			BERR_MAKE_CODE(BERR_VBI_ID, 0x0004)
+#define BVBI_ERR_VFMT_CONFLICT          BERR_MAKE_CODE(BERR_VBI_ID, 0x0004)
 /* This error indicates that the user attempted to encode VBI data with the
    wrong field polarity */
-#define BVBI_ERR_INVALID_FIELD_POLARITY	BERR_MAKE_CODE(BERR_VBI_ID, 0x0005)
+#define BVBI_ERR_INVALID_FIELD_POLARITY BERR_MAKE_CODE(BERR_VBI_ID, 0x0005)
 /* This error indicates unrecognizable ITU-R 656 ancillary packet data */
-#define BVBI_ERR_656_PARSE				BERR_MAKE_CODE(BERR_VBI_ID, 0x0006)
+#define BVBI_ERR_656_PARSE              BERR_MAKE_CODE(BERR_VBI_ID, 0x0006)
 /* This error indicates that the user attempted to use a single VBI encoder
    or decoder core to do two different jobs. Example: closed caption and
    multi-line, closed caption data. */
 #define BVBI_ERR_CORE_CONFLICT          BERR_MAKE_CODE(BERR_VBI_ID, 0x0007)
 /* This error indicates that the user attempted to use a feature that is
  * not supported by the chip hardware. */
-#define BVBI_ERR_HW_UNSUPPORTED			BERR_MAKE_CODE(BERR_VBI_ID, 0x0008)
+#define BVBI_ERR_HW_UNSUPPORTED         BERR_MAKE_CODE(BERR_VBI_ID, 0x0008)
 
 /*****************************************************************************
     Error constants for BVBI_Field_GetErrorInfo_isr
 
-	Note that these are NOT standard BERR codes.
+    Note that these are NOT standard BERR codes.
  *****************************************************************************/
 #define BVBI_LINE_ERROR_CC_NODATA                      0x00000001
 #define BVBI_LINE_ERROR_CC_OVERRUN                     0x00000002
@@ -1003,8 +1023,8 @@ typedef struct BVBI_StandbySettings
 #define BVBI_LINE_ERROR_VPS_NODATA                     0x00002000
 #define BVBI_LINE_ERROR_VPS_OVERRUN                    0x00004000
 #define BVBI_LINE_ERROR_VPS_BIPHASE                    0x00008000
-#define BVBI_LINE_ERROR_FLDH_CONFLICT				   0x00010000
-#define BVBI_LINE_ERROR_PARITY_CONFLICT				   0x00020000
+#define BVBI_LINE_ERROR_FLDH_CONFLICT                  0x00010000
+#define BVBI_LINE_ERROR_PARITY_CONFLICT                0x00020000
 #define BVBI_LINE_ERROR_GEMSTAR_NODATA                 0x00040000
 #define BVBI_LINE_ERROR_GEMSTAR_PARITY                 0x00080000
 #define BVBI_LINE_ERROR_GEMSTAR_OVERRUN                0x00100000
@@ -1017,40 +1037,40 @@ typedef struct BVBI_StandbySettings
 
 /* These combinations express conditions of a field handle
    which prevent encoding of the VBI data contained within. */
-#define BVBI_LINE_ERROR_CC_NOENCODE			(	\
-	BVBI_LINE_ERROR_FLDH_CONFLICT			|	\
-	BVBI_LINE_ERROR_CC_NODATA				|	\
-	BVBI_LINE_ERROR_CC_PARITY				)
-#define BVBI_LINE_ERROR_CGMS_NOENCODE		(	\
-	BVBI_LINE_ERROR_FLDH_CONFLICT			|	\
-	BVBI_LINE_ERROR_CGMS_NODATA			    |	\
-	BVBI_LINE_ERROR_CGMS_CRC				)
-#define BVBI_LINE_ERROR_WSS_NOENCODE		(	\
-	BVBI_LINE_ERROR_FLDH_CONFLICT			|	\
-	BVBI_LINE_ERROR_WSS_NODATA				|	\
-	BVBI_LINE_ERROR_WSS_PARITY				)
-#define BVBI_LINE_ERROR_TELETEXT_NOENCODE	(	\
-	BVBI_LINE_ERROR_FLDH_CONFLICT			|	\
-	BVBI_LINE_ERROR_TELETEXT_NODATA		    |	\
-	BVBI_LINE_ERROR_TELETEXT_INCOMPLETE		|	\
-	BVBI_LINE_ERROR_TELETEXT_INVALIDLINES	)
-#define BVBI_LINE_ERROR_VPS_NOENCODE		(	\
-	BVBI_LINE_ERROR_FLDH_CONFLICT			|	\
-	BVBI_LINE_ERROR_VPS_BIPHASE			    |	\
-	BVBI_LINE_ERROR_VPS_NODATA				)
-#define BVBI_LINE_ERROR_GEMSTAR_NOENCODE	(	\
-	BVBI_LINE_ERROR_FLDH_CONFLICT			|	\
-	BVBI_LINE_ERROR_GEMSTAR_NODATA		    |   \
-	BVBI_LINE_ERROR_GEMSTAR_PARITY		        )
-#define BVBI_LINE_ERROR_AMOL_NOENCODE	    (	\
-	BVBI_LINE_ERROR_FLDH_CONFLICT			|	\
-	BVBI_LINE_ERROR_AMOL_NODATA		            )
-#define BVBI_LINE_ERROR_MCC_NOENCODE	    (	\
-	BVBI_LINE_ERROR_FLDH_CONFLICT			|	\
-	BVBI_LINE_ERROR_MCC_NODATA		            )
-#define BVBI_LINE_ERROR_SCTE_NOENCODE	    (	\
-	BVBI_LINE_ERROR_FLDH_CONFLICT			|	\
-	BVBI_LINE_ERROR_SCTE_NODATA		            )
+#define BVBI_LINE_ERROR_CC_NOENCODE         (   \
+    BVBI_LINE_ERROR_FLDH_CONFLICT           |   \
+    BVBI_LINE_ERROR_CC_NODATA               |   \
+    BVBI_LINE_ERROR_CC_PARITY               )
+#define BVBI_LINE_ERROR_CGMS_NOENCODE       (   \
+    BVBI_LINE_ERROR_FLDH_CONFLICT           |   \
+    BVBI_LINE_ERROR_CGMS_NODATA             |   \
+    BVBI_LINE_ERROR_CGMS_CRC                )
+#define BVBI_LINE_ERROR_WSS_NOENCODE        (   \
+    BVBI_LINE_ERROR_FLDH_CONFLICT           |   \
+    BVBI_LINE_ERROR_WSS_NODATA              |   \
+    BVBI_LINE_ERROR_WSS_PARITY              )
+#define BVBI_LINE_ERROR_TELETEXT_NOENCODE   (   \
+    BVBI_LINE_ERROR_FLDH_CONFLICT           |   \
+    BVBI_LINE_ERROR_TELETEXT_NODATA         |   \
+    BVBI_LINE_ERROR_TELETEXT_INCOMPLETE     |   \
+    BVBI_LINE_ERROR_TELETEXT_INVALIDLINES   )
+#define BVBI_LINE_ERROR_VPS_NOENCODE        (   \
+    BVBI_LINE_ERROR_FLDH_CONFLICT           |   \
+    BVBI_LINE_ERROR_VPS_BIPHASE             |   \
+    BVBI_LINE_ERROR_VPS_NODATA              )
+#define BVBI_LINE_ERROR_GEMSTAR_NOENCODE    (   \
+    BVBI_LINE_ERROR_FLDH_CONFLICT           |   \
+    BVBI_LINE_ERROR_GEMSTAR_NODATA          |   \
+    BVBI_LINE_ERROR_GEMSTAR_PARITY              )
+#define BVBI_LINE_ERROR_AMOL_NOENCODE       (   \
+    BVBI_LINE_ERROR_FLDH_CONFLICT           |   \
+    BVBI_LINE_ERROR_AMOL_NODATA                 )
+#define BVBI_LINE_ERROR_MCC_NOENCODE        (   \
+    BVBI_LINE_ERROR_FLDH_CONFLICT           |   \
+    BVBI_LINE_ERROR_MCC_NODATA                  )
+#define BVBI_LINE_ERROR_SCTE_NOENCODE       (   \
+    BVBI_LINE_ERROR_FLDH_CONFLICT           |   \
+    BVBI_LINE_ERROR_SCTE_NODATA                 )
 
 /*****************************************************************************
  * Public API
@@ -1067,15 +1087,15 @@ typedef struct BVBI_StandbySettings
     success or failure.  These settings may be used with BVBI_Open.
 
   Returns:
-	BERR_SUCCESS           - Success.
-	BERR_INVALID_PARAMETER - Function argument was NULL.
+    BERR_SUCCESS           - Success.
+    BERR_INVALID_PARAMETER - Function argument was NULL.
 
   See Also:
     BVBI_Open
  *****************************************************************************/
 BERR_Code BVBI_GetDefaultSettings(
-	BVBI_Settings *pSettings	/* [out] Pointer to an allocated
-										 BVBI_Settings object    */
+    BVBI_Settings *pSettings    /* [out] Pointer to an allocated
+                                         BVBI_Settings object    */
 );
 
 
@@ -1090,24 +1110,24 @@ BERR_Code BVBI_GetDefaultSettings(
     NULL is passed for pSettings, the defaults are assumed.
 
   Returns:
-	BERR_SUCCESS              - The handle was successfully created.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
-	BERR_OUT_OF_SYSTEM_MEMORY - Memory allocation failed.
+    BERR_SUCCESS              - The handle was successfully created.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
+    BERR_OUT_OF_SYSTEM_MEMORY - Memory allocation failed.
 
   See Also:
     BVBI_Close, BVBI_GetDefaultSettings
  *****************************************************************************/
 BERR_Code BVBI_Open(
-	BVBI_Handle  *pVbiHandle,	/* [out] A pointer to an allocated
-										 BVBI_Handle                     */
-	BCHP_Handle   chipHandle,	/*  [in] A handle to the chip            */
-	BREG_Handle    regHandle,	/*  [in] A handle to the chip's register
-										 settings                        */
-	BMEM_Handle    memHandle,	/*  [in] The local memory heap handle    */
-	const BVBI_Settings*
-		           pSettings    /*  [in] A pointer to a BVBI_Settings
-										 structure, or NULL              */
+    BVBI_Handle  *pVbiHandle,   /* [out] A pointer to an allocated
+                                         BVBI_Handle                     */
+    BCHP_Handle   chipHandle,   /*  [in] A handle to the chip            */
+    BREG_Handle    regHandle,   /*  [in] A handle to the chip's register
+                                         settings                        */
+    BMEM_Handle    memHandle,   /*  [in] The local memory heap handle    */
+    const BVBI_Settings*
+                   pSettings    /*  [in] A pointer to a BVBI_Settings
+                                         structure, or NULL              */
 );
 
 
@@ -1117,37 +1137,37 @@ BERR_Code BVBI_Open(
 
   Description:
     This function frees the BVBI_Handle structure and all associated data.
-	It also shuts down the VBI operations of the specified handle.  If no
-	other handles are active, or none are active for a given output, no VBI
-	data will be sent on that output.  Closing a BVBI_Handle assumes that
-	any associated BVBI_Encode_Handle or BVBI_Decode_Handle objects are
-	closed as well.  If not, a BDBG_ASSERT error occurs.
+    It also shuts down the VBI operations of the specified handle.  If no
+    other handles are active, or none are active for a given output, no VBI
+    data will be sent on that output.  Closing a BVBI_Handle assumes that
+    any associated BVBI_Encode_Handle or BVBI_Decode_Handle objects are
+    closed as well.  If not, a BDBG_ASSERT error occurs.
 
  *****************************************************************************/
 void BVBI_Close(
-	BVBI_Handle vbiHandle	/* [in] A valid BVBI_Handle object */
+    BVBI_Handle vbiHandle   /* [in] A valid BVBI_Handle object */
 );
 
 /***************************************************************************
 Summary:
-	Get the BVBI's capabilities.
+    Get the BVBI's capabilities.
 
 Description:
-	This function gets the BVBI's capabilities.
+    This function gets the BVBI's capabilities.
 
 Input:
-	vbiHandle - A valid BVBI handle created earlier.
+    vbiHandle - A valid BVBI handle created earlier.
 
 Output:
-	pCapabilities - point to the capabilities structure.
+    pCapabilities - point to the capabilities structure.
 
 Returns:
-	BERR_INVALID_PARAMETER - Invalid function parameters.
-	BERR_SUCCESS - Function succeed
+    BERR_INVALID_PARAMETER - Invalid function parameters.
+    BERR_SUCCESS - Function succeed
 **************************************************************************/
 BERR_Code BVBI_GetCapabilities
-	( BVBI_Handle                      vbiHandle,
-	  BVBI_Capabilities               *pCapabilities );
+    ( BVBI_Handle                      vbiHandle,
+      BVBI_Capabilities               *pCapabilities );
 
 /*****************************************************************************
   Summary:
@@ -1219,23 +1239,23 @@ BERR_Code BVBI_Resume
     is called.
 
   Returns:
-	BERR_SUCCESS              - The handle was successfully created.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
-	BERR_OUT_OF_SYSTEM_MEMORY - Memory allocation failed.
-	BVBI_ERR_HW_CONFLICT      - A BVBI_Decode_Handle already exists, and
-								controls the same eSource that is passed in.
-								It is not possible for two BVBI_Decode_Handles
-								to control the same video source.
+    BERR_SUCCESS              - The handle was successfully created.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
+    BERR_OUT_OF_SYSTEM_MEMORY - Memory allocation failed.
+    BVBI_ERR_HW_CONFLICT      - A BVBI_Decode_Handle already exists, and
+                                controls the same eSource that is passed in.
+                                It is not possible for two BVBI_Decode_Handles
+                                to control the same video source.
  *****************************************************************************/
 BERR_Code BVBI_Decode_Create(
-	BVBI_Handle             vbiHandle,	/*  [in] A valid BVBI_Handle object */
-	BAVC_SourceId             eSource,	/*  [in] A BAVC_SourceId object
-												 specifying the source of
-												 data                       */
-	BVBI_Decode_Handle *pDecodeHandle	/* [out] A pointer to a
-												 BVBI_Decode_Handle to be
-												 initialized                */
+    BVBI_Handle             vbiHandle,  /*  [in] A valid BVBI_Handle object */
+    BAVC_SourceId             eSource,  /*  [in] A BAVC_SourceId object
+                                                 specifying the source of
+                                                 data                       */
+    BVBI_Decode_Handle *pDecodeHandle   /* [out] A pointer to a
+                                                 BVBI_Decode_Handle to be
+                                                 initialized                */
 );
 
 
@@ -1252,33 +1272,33 @@ BERR_Code BVBI_Decode_Create(
     BFMT_VideoFmt_eNTSC will be imposed when BVBI_Decode_Create
 
   Returns:
-	BERR_SUCCESS              - The handle was successfully created.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
-	BERR_OUT_OF_SYSTEM_MEMORY - Memory allocation failed.
-	BVBI_ERR_HW_CONFLICT      - A BVBI_Encode_Handle already exists, and
-								controls the same eDestination that is passed
-								in.  It is not possible for two
-								BVBI_Encode_Handles to control the same video
-								destination.
+    BERR_SUCCESS              - The handle was successfully created.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
+    BERR_OUT_OF_SYSTEM_MEMORY - Memory allocation failed.
+    BVBI_ERR_HW_CONFLICT      - A BVBI_Encode_Handle already exists, and
+                                controls the same eDestination that is passed
+                                in.  It is not possible for two
+                                BVBI_Encode_Handles to control the same video
+                                destination.
 
   See Also:
-	BVBI_Encode_GetDefaultSettings
+    BVBI_Encode_GetDefaultSettings
  *****************************************************************************/
 BERR_Code BVBI_Encode_Create(
-	BVBI_Handle             vbiHandle,	/*  [in] A valid BVBI_Handle object  */
-	BAVC_VbiPath         eDestination,	/*  [in] An enum specifying the
-											     destination (VEC) of the
-												 VBI data                    */
-	const BVBI_Encode_Settings
-	                       *pSettings,  /*  [in] Settings to apply to BVBI
-	                                             Encode_Handle being
-												 created. If NULL, then
-												 default settings will be
-												 applied.                    */
-	BVBI_Encode_Handle *pEncodeHandle	/* [out] A pointer to a
-												 BVBI_Encode_Handle to be
-												 initialized.                */
+    BVBI_Handle             vbiHandle,  /*  [in] A valid BVBI_Handle object  */
+    BAVC_VbiPath         eDestination,  /*  [in] An enum specifying the
+                                                 destination (VEC) of the
+                                                 VBI data                    */
+    const BVBI_Encode_Settings
+                           *pSettings,  /*  [in] Settings to apply to BVBI
+                                                 Encode_Handle being
+                                                 created. If NULL, then
+                                                 default settings will be
+                                                 applied.                    */
+    BVBI_Encode_Handle *pEncodeHandle   /* [out] A pointer to a
+                                                 BVBI_Encode_Handle to be
+                                                 initialized.                */
 );
 
 
@@ -1288,22 +1308,22 @@ BERR_Code BVBI_Encode_Create(
 
   Description:
     This function copies out default settings for the creation of a BVBI
-	Encoder object. These default settings can be modified by the user, and
-	then passed in to BVBI_Encode_Create().
+    Encoder object. These default settings can be modified by the user, and
+    then passed in to BVBI_Encode_Create().
 
   Returns:
-	BERR_SUCCESS              - The handle was successfully created.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The handle was successfully created.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
 
   See Also:
-	BVBI_Encode_Creaete
+    BVBI_Encode_Creaete
  *****************************************************************************/
 BERR_Code BVBI_Encode_GetDefaultSettings (
-	BAVC_VbiPath         eDestination,	/*  [in] An enum specifying the
-											     destination (VEC) of the
-												 VBI data.                   */
-	BVBI_Encode_Settings   *pSettings   /* [out] Default settings.           */
+    BAVC_VbiPath         eDestination,  /*  [in] An enum specifying the
+                                                 destination (VEC) of the
+                                                 VBI data.                   */
+    BVBI_Encode_Settings   *pSettings   /* [out] Default settings.           */
 );
 
 
@@ -1318,12 +1338,12 @@ BERR_Code BVBI_Encode_GetDefaultSettings (
     prior to the BVBI_Decode_ApplyChanges call, if any.
 
   Returns:
-	BERR_SUCCESS              - The hardware was successfully programmed.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-								possibly NULL.
+    BERR_SUCCESS              - The hardware was successfully programmed.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Decode_ApplyChanges(
-	BVBI_Decode_Handle decodeHandle	/* [in] A valid BVBI_Handle object */
+    BVBI_Decode_Handle decodeHandle /* [in] A valid BVBI_Handle object */
 );
 
 
@@ -1334,17 +1354,17 @@ BERR_Code BVBI_Decode_ApplyChanges(
   Description:
     This function sets the video display format to use with the supplied
     BVBI_Decode_Handle.  The change to video format will be programmed into
-	hardware when BVBI_Decode_ApplyChanges is next called.
+    hardware when BVBI_Decode_ApplyChanges is next called.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Decode_SetVideoFormat(
-	BVBI_Decode_Handle decodeHandle,	/* [in] A valid BVBI_Decode_Handle
-												object                     */
-	BFMT_VideoFmt      eVideoFormat		/* [in] The desired display format */
+    BVBI_Decode_Handle decodeHandle,    /* [in] A valid BVBI_Decode_Handle
+                                                object                     */
+    BFMT_VideoFmt      eVideoFormat     /* [in] The desired display format */
 );
 
 
@@ -1357,15 +1377,15 @@ BERR_Code BVBI_Decode_SetVideoFormat(
     BVBI_Decode_Handle.
 
   Returns:
-	BERR_SUCCESS              - The information was successfully retrieved.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The information was successfully retrieved.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Decode_GetVideoFormat(
-	BVBI_Decode_Handle decodeHandle,	/*  [in] A valid BVBI_Decode_Handle
-												 object                     */
-	BFMT_VideoFmt    *peVideoFormat		/* [out] The display format in use
-												 with the above object      */
+    BVBI_Decode_Handle decodeHandle,    /*  [in] A valid BVBI_Decode_Handle
+                                                 object                     */
+    BFMT_VideoFmt    *peVideoFormat     /* [out] The display format in use
+                                                 with the above object      */
 );
 
 
@@ -1376,91 +1396,91 @@ BERR_Code BVBI_Decode_GetVideoFormat(
   Description:
     If a VBI decoder is created to support input via the ITU-R 656
     port, then this call will cause the decoder to expect the
-	encapsulated VBI data to occur in a specific format.  Only
-	one specific format can be used at a time.  The requested
-	change is implemented the next time BVBI_Decode_ApplyChanges
-	is called on the associated BVBI_Decode_Handle.
+    encapsulated VBI data to occur in a specific format.  Only
+    one specific format can be used at a time.  The requested
+    change is implemented the next time BVBI_Decode_ApplyChanges
+    is called on the associated BVBI_Decode_Handle.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Decode_656_SetFormat (
-	BVBI_Decode_Handle decodeHandle,	/* [in] A valid BVBI_Decode_Handle
-												object                       */
-	BVBI_656Fmt       anci656Fmt		/* [in] The encapsulation format to
-												be expected.                 */
+    BVBI_Decode_Handle decodeHandle,    /* [in] A valid BVBI_Decode_Handle
+                                                object                       */
+    BVBI_656Fmt       anci656Fmt        /* [in] The encapsulation format to
+                                                be expected.                 */
 );
 
 
 /*****************************************************************************
   Summary:
     Callback that provides the default parsing mechanism for incoming SMPTE
-	291M packets.
+    291M packets.
 
   Description:
     SMPTE 291M is a standard for encapsulating user data in ancillary
     data packets for inclusion in an ITU-R 656 bitstream.  SMPTE 291M
-	is an "open" standard that allows the user data to be expressed in
-	a variety of ways.  The user must provide a callback function to
-	parse incoming data according to the user's method.  This callback
-	function is the default function used by the porting interface.
-	It expects the incoming SMPTE 291M packets to be in the proprietary
-	Broadcom format.
+    is an "open" standard that allows the user data to be expressed in
+    a variety of ways.  The user must provide a callback function to
+    parse incoming data according to the user's method.  This callback
+    function is the default function used by the porting interface.
+    It expects the incoming SMPTE 291M packets to be in the proprietary
+    Broadcom format.
 
-	Because the SMPTE 291M standard is so flexible, it is
-	necessary that this callback function make a specific
-	assumption about the incoming ancillary data packets.
-	It assumes that the DATA ID field of the packet identifies
-	the packet content as follows:
-		- 0x30 indicates closed caption data is in the packet.
-		- 0x31 indicates teletext or NABTS data is in the packet.
-		- 0x32 indicates WSS data is in the packet.
-		- 0x33 indicates VPS data is in the packet.
+    Because the SMPTE 291M standard is so flexible, it is
+    necessary that this callback function make a specific
+    assumption about the incoming ancillary data packets.
+    It assumes that the DATA ID field of the packet identifies
+    the packet content as follows:
+        - 0x30 indicates closed caption data is in the packet.
+        - 0x31 indicates teletext or NABTS data is in the packet.
+        - 0x32 indicates WSS data is in the packet.
+        - 0x33 indicates VPS data is in the packet.
 
-	In addition, this function does not choose a video line number for
-	the VBI data, which causes the BVBI module to choose a default.
+    In addition, this function does not choose a video line number for
+    the VBI data, which causes the BVBI module to choose a default.
 
-	The above assumptions are completely arbitrary.  In most applications, the
-	user will write his own callback function to replace this one, and install
-	it by calling BVBI_Decode_656_SetSMPTE291Moptions().
+    The above assumptions are completely arbitrary.  In most applications, the
+    user will write his own callback function to replace this one, and install
+    it by calling BVBI_Decode_656_SetSMPTE291Moptions().
 
   Returns:
     BERR_SUCCESS
-	TODO
+    TODO
 
  *****************************************************************************/
 BERR_Code BVBI_Decode_656_SMPTE291MbrcmCb_isr (
-	void*         arg0, /*  [in] Not used.                                   */
-	BFMT_VideoFmt
-	      eVideoFormat, /*  [in] Video format of input 656 port              */
-	BAVC_Polarity
-	          polarity, /*  [in] The field polarity according to BVBI
-			                     interrupts.                                 */
-	uint8_t    data_id, /*  [in] The first identification field in the
-	                             SMPTE 291M packet header.                   */
-	uint8_t  second_id, /*  [in] The second identification field in the
-	                             SMPTE 291M packet header.                   */
-	uint8_t data_count, /*  [in] The DATA COUNT field in the SMPTE 291M
-	                             packet header.                              */
-	uint8_t*    packet, /*  [in] The SMPTE 291M ancillary data packet,
-	                             starting with the first byte of the
-								 payload.  Note that the three header bytes
-								 have already been parsed by the BVBI
-								 software when this callback function is
-								 called.  The final checksum byte has also
-								 been read and verified by the BVBI
-								 software and is not available to this
-								 callback function.                          */
+    void*         arg0, /*  [in] Not used.                                   */
+    BFMT_VideoFmt
+          eVideoFormat, /*  [in] Video format of input 656 port              */
+    BAVC_Polarity
+              polarity, /*  [in] The field polarity according to BVBI
+                                 interrupts.                                 */
+    uint8_t    data_id, /*  [in] The first identification field in the
+                                 SMPTE 291M packet header.                   */
+    uint8_t  second_id, /*  [in] The second identification field in the
+                                 SMPTE 291M packet header.                   */
+    uint8_t data_count, /*  [in] The DATA COUNT field in the SMPTE 291M
+                                 packet header.                              */
+    uint8_t*    packet, /*  [in] The SMPTE 291M ancillary data packet,
+                                 starting with the first byte of the
+                                 payload.  Note that the three header bytes
+                                 have already been parsed by the BVBI
+                                 software when this callback function is
+                                 called.  The final checksum byte has also
+                                 been read and verified by the BVBI
+                                 software and is not available to this
+                                 callback function.                          */
     uint8_t**  vbiData, /* [out] The parsed VBI data.  For example, if the
-	                             SMPTE 291M packet contains closed caption
-								 data, then this argument will be the
-								 two bytes of closed caption data.  This
-								 function will overwrite the data pointed
-								 to by the above argument "packet."          */
-	BVBI_SMPTE291M_Description*
-	    pktDesc         /* [out] Describes the above argument vbiData.       */
+                                 SMPTE 291M packet contains closed caption
+                                 data, then this argument will be the
+                                 two bytes of closed caption data.  This
+                                 function will overwrite the data pointed
+                                 to by the above argument "packet."          */
+    BVBI_SMPTE291M_Description*
+        pktDesc         /* [out] Describes the above argument vbiData.       */
 );
 
 
@@ -1470,52 +1490,52 @@ BERR_Code BVBI_Decode_656_SMPTE291MbrcmCb_isr (
 
   Description:
     If a VBI decoder is created to support input via the ITU-R 656
-	port, and if BVBI_Decode_656_SetFormat() has been called to
-	set the expected format of encapsulated data to SMPTE 291M,
-	then this function will allow the user to specify how exactly
-	to decode the SMPTE 291M data packets.	SMPTE 291M is an
-	"open" standard that does not specify exactly what to do
-	with the "payload" of the  packet.  This function allows
-	the user to do so.
+    port, and if BVBI_Decode_656_SetFormat() has been called to
+    set the expected format of encapsulated data to SMPTE 291M,
+    then this function will allow the user to specify how exactly
+    to decode the SMPTE 291M data packets.  SMPTE 291M is an
+    "open" standard that does not specify exactly what to do
+    with the "payload" of the  packet.  This function allows
+    the user to do so.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Decode_656_SetSMPTE291Moptions (
-	BVBI_Decode_Handle decodeHandle,	/* [in] A valid BVBI_Decode_Handle
-												object.                      */
-	BVBI_Decode_656_SMPTE291M_Cb
-		       fParserCb_isr,           /* [in] The parsing function for the
-		                                        SMPTE 291M packet.  Note
-												that the default callback is
-									BVBI_Decode_656_SMPTE291MbrcmCb_isr().   */
-	void*               arg0,           /* [in] First argument passed to
-	                                            the above callback function.
-												Note that the defaut is 0x0. */
-	bool         bLongHeader,           /* [in] If true, then incomping
-	                                            SMPTE 291M packets are
-												expected to have the three
-												byte "component stream"
-												header 00 FF FF.  Otherwise,
-												packets are expected to have
-												the one byte "composite
-												stream" header FF.  Note
-												that the default for the
-												decode handle is "false."    */
-	bool    bBrokenDataCount            /* [in] If true, then the incoming
-	                                            SMPTE 291M packets are
-												expected to be in the
-												historical, incorrect format
-												produced by Broadcom ITU-R
-												656 encoders.  In particular,
-												the packet DATA COUNT field
-												counts bytes instead of
-												DWORDs, and the accompanying
-												parity bits are not present.
-												Note that the default for
-												the decode handle is "true." */
+    BVBI_Decode_Handle decodeHandle,    /* [in] A valid BVBI_Decode_Handle
+                                                object.                      */
+    BVBI_Decode_656_SMPTE291M_Cb
+               fParserCb_isr,           /* [in] The parsing function for the
+                                                SMPTE 291M packet.  Note
+                                                that the default callback is
+                                    BVBI_Decode_656_SMPTE291MbrcmCb_isr().   */
+    void*               arg0,           /* [in] First argument passed to
+                                                the above callback function.
+                                                Note that the defaut is 0x0. */
+    bool         bLongHeader,           /* [in] If true, then incomping
+                                                SMPTE 291M packets are
+                                                expected to have the three
+                                                byte "component stream"
+                                                header 00 FF FF.  Otherwise,
+                                                packets are expected to have
+                                                the one byte "composite
+                                                stream" header FF.  Note
+                                                that the default for the
+                                                decode handle is "false."    */
+    bool    bBrokenDataCount            /* [in] If true, then the incoming
+                                                SMPTE 291M packets are
+                                                expected to be in the
+                                                historical, incorrect format
+                                                produced by Broadcom ITU-R
+                                                656 encoders.  In particular,
+                                                the packet DATA COUNT field
+                                                counts bytes instead of
+                                                DWORDs, and the accompanying
+                                                parity bits are not present.
+                                                Note that the default for
+                                                the decode handle is "true." */
 );
 
 
@@ -1525,19 +1545,19 @@ BERR_Code BVBI_Decode_656_SetSMPTE291Moptions (
 
   Description:
     This function returns the format in use for extracting VBI data from
-	ancillary data packets in the ITU-R 656 bitstream input by the supplied
+    ancillary data packets in the ITU-R 656 bitstream input by the supplied
     BVBI_Decode_Handle.
 
   Returns:
-	BERR_SUCCESS              - The information was successfully retrieved.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The information was successfully retrieved.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Decode_656_GetFormat(
-	BVBI_Decode_Handle decodeHandle,	/*  [in] A valid BVBI_Decode_Handle
-												 object                     */
-	BVBI_656Fmt*        pAnci656Fmt		/* [out] The format in use
-												 with the above object      */
+    BVBI_Decode_Handle decodeHandle,    /*  [in] A valid BVBI_Decode_Handle
+                                                 object                     */
+    BVBI_656Fmt*        pAnci656Fmt     /* [out] The format in use
+                                                 with the above object      */
 );
 
 
@@ -1547,17 +1567,17 @@ BERR_Code BVBI_Decode_656_GetFormat(
 
   Description:
     This function applies any pending Set operations to the
-    BVBI_Encode_Handle, such as BVBI_Encode_SetVideoFormat.	On failure
+    BVBI_Encode_Handle, such as BVBI_Encode_SetVideoFormat. On failure
     it will attempt to fully restore the settings that existed
     prior to the BVBI_Encode_ApplyChanges call, if any.
 
   Returns:
-	BERR_SUCCESS              - The chip hardware was successfully programmed.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The chip hardware was successfully programmed.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Encode_ApplyChanges(
-	BVBI_Encode_Handle encodeHandle	/* [in] A valid BVBI_Handle object */
+    BVBI_Encode_Handle encodeHandle /* [in] A valid BVBI_Handle object */
 );
 
 
@@ -1570,14 +1590,14 @@ BERR_Code BVBI_Encode_ApplyChanges(
     BVBI_Encode_Handle.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Encode_SetVideoFormat(
-	BVBI_Encode_Handle encodeHandle,	/*  [in] A valid BVBI_Encode_Handle
-												 object                      */
-	BFMT_VideoFmt      eVideoFormat		/*  [in] The desired display format  */
+    BVBI_Encode_Handle encodeHandle,    /*  [in] A valid BVBI_Encode_Handle
+                                                 object                      */
+    BFMT_VideoFmt      eVideoFormat     /*  [in] The desired display format  */
 );
 
 
@@ -1587,32 +1607,32 @@ BERR_Code BVBI_Encode_SetVideoFormat(
 
   Description:
     This function sets the video display pixel repetition to use with the
-	supplied BVBI_Encode_Handle.
+    supplied BVBI_Encode_Handle.
 
-	This function is only needed in a fairly limited environment. If ALL
-	of the following conditions hold, then the user must call this function
-	to indicate how HDMI output is configured:
-	 - The chipset does NOT have orthogonal VEC architecture.
-	 - The VEC path relevant to the supplied BVBI_Encode_Handle also provides
-	   HDMI output.
-	 - The VEC path relevant to the supplied BVBI_Encode_Handle will be used
-	   for 480P analog output (in addition to HDMI output).
-	 - The VEC path relevant to the supplied BVBI_Encode_Handle will be used
-	   to output CGMS-A or CGMS-B waveforms in the VBI.
+    This function is only needed in a fairly limited environment. If ALL
+    of the following conditions hold, then the user must call this function
+    to indicate how HDMI output is configured:
+     - The chipset does NOT have orthogonal VEC architecture.
+     - The VEC path relevant to the supplied BVBI_Encode_Handle also provides
+       HDMI output.
+     - The VEC path relevant to the supplied BVBI_Encode_Handle will be used
+       for 480P analog output (in addition to HDMI output).
+     - The VEC path relevant to the supplied BVBI_Encode_Handle will be used
+       to output CGMS-A or CGMS-B waveforms in the VBI.
 
     This function has no effect on chipsets that have orthogonal VEC
-	architecture.
+    architecture.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Encode_SetHdmiPixelRepetition(
-	BVBI_Encode_Handle encodeHandle,	/*  [in] A valid BVBI_Encode_Handle
-												 object                      */
-	BAVC_HDMI_PixelRepetition ePixRep   /*  [in] The desired HDMI pixel
-	                                             repetition value            */
+    BVBI_Encode_Handle encodeHandle,    /*  [in] A valid BVBI_Encode_Handle
+                                                 object                      */
+    BAVC_HDMI_PixelRepetition ePixRep   /*  [in] The desired HDMI pixel
+                                                 repetition value            */
 );
 
 
@@ -1627,19 +1647,14 @@ BERR_Code BVBI_Encode_SetHdmiPixelRepetition(
     data encoding function independendly of color space.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Encode_SetCSC(
-	BVBI_Encode_Handle encodeHandle,	/*  [in] A valid BVBI_Encode_Handle
-												 object                      */
-	BVBI_CSC                   eCsc,    /*  [in] The desired color space.    */
-	BVBI_CSC                 eCoCsc     /*  [in] The desired color space for
-	                                             the "component only" DACS,
-												 if the VEC path supports
-												 this. Use BVBI_CSC_NONE
-												 otherwise.                  */
+    BVBI_Encode_Handle encodeHandle,    /*  [in] A valid BVBI_Encode_Handle
+                                                 object                      */
+    BVBI_CSC                   eCsc     /*  [in] The desired color space.    */
 );
 
 
@@ -1652,15 +1667,15 @@ BERR_Code BVBI_Encode_SetCSC(
     BVBI_Encode_Handle.
 
   Returns:
-	BERR_SUCCESS              - The information was successfully retrieved.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The information was successfully retrieved.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Encode_GetVideoFormat(
-	BVBI_Encode_Handle encodeHandle,	/*  [in] A valid BVBI_Encode_Handle
-												 object                     */
-	BFMT_VideoFmt    *peVideoFormat		/* [out] The display format in use
-												 with the above object      */
+    BVBI_Encode_Handle encodeHandle,    /*  [in] A valid BVBI_Encode_Handle
+                                                 object                     */
+    BFMT_VideoFmt    *peVideoFormat     /* [out] The display format in use
+                                                 with the above object      */
 );
 
 
@@ -1670,23 +1685,23 @@ BERR_Code BVBI_Encode_GetVideoFormat(
 
   Description:
     This function returns the video display HDMI pixel repetition value in
-	use with the supplied BVBI_Encode_Handle.
+    use with the supplied BVBI_Encode_Handle.
 
-	If the chipset has orthogonal VEC architecture, then this function will
-	always return BAVC_HDMI_PixelRepetition_eNone. This is because for such
-	chipsets, function # (see which) is a no-op.
+    If the chipset has orthogonal VEC architecture, then this function will
+    always return BAVC_HDMI_PixelRepetition_eNone. This is because for such
+    chipsets, function # (see which) is a no-op.
 
   Returns:
-	BERR_SUCCESS              - The information was successfully retrieved.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The information was successfully retrieved.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Encode_GetHdmiPixelRepetition(
-	BVBI_Encode_Handle encodeHandle,	/*  [in] A valid BVBI_Encode_Handle
-												 object                     */
-	BAVC_HDMI_PixelRepetition* pePixRep	/* [out] The display HDMI pixel
-	                                             repetition value in use
-												 with the above object      */
+    BVBI_Encode_Handle encodeHandle,    /*  [in] A valid BVBI_Encode_Handle
+                                                 object                     */
+    BAVC_HDMI_PixelRepetition* pePixRep /* [out] The display HDMI pixel
+                                                 repetition value in use
+                                                 with the above object      */
 );
 
 
@@ -1700,20 +1715,15 @@ BERR_Code BVBI_Encode_GetHdmiPixelRepetition(
     function affected by this setting is SCTE data encoding.
 
   Returns:
-	BERR_SUCCESS              - The information was successfully retrieved.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The information was successfully retrieved.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Encode_GetCSC(
-	BVBI_Encode_Handle encodeHandle,	/*  [in] A valid BVBI_Encode_Handle
-												 object.                     */
-	BVBI_CSC                 *peCsc,	/* [out] The color space in use
-												 with the above object.      */
-	BVBI_CSC               *peCoCsc		/* [out] The color space in use, for
-	                                             the "component only" DACs,
-												 if they exist for the VEC
-												 path. BVBI_CSC_NONE
-												 otherwise.                  */
+    BVBI_Encode_Handle encodeHandle,    /*  [in] A valid BVBI_Encode_Handle
+                                                 object.                     */
+    BVBI_CSC                 *peCsc     /* [out] The color space in use
+                                                 with the above object.      */
 );
 
 
@@ -1724,16 +1734,16 @@ BERR_Code BVBI_Encode_GetCSC(
 
   Description:
     This function destroys a valid BVBI_Decode_Handle created by
-	BVBI_Decode_Create.
+    BVBI_Decode_Create.
 
   Returns:
-	BERR_SUCCESS              - The handle was successfully destroyed.
-	BERR_INVALID_PARAMETER    - The supplied parameter was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The handle was successfully destroyed.
+    BERR_INVALID_PARAMETER    - The supplied parameter was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Decode_Destroy(
-	BVBI_Decode_Handle decodeHandle	/* [in] A BVBI_Decode_Handle to be
-											destroyed                        */
+    BVBI_Decode_Handle decodeHandle /* [in] A BVBI_Decode_Handle to be
+                                            destroyed                        */
 );
 
 
@@ -1743,16 +1753,16 @@ BERR_Code BVBI_Decode_Destroy(
 
   Description:
     This function destroys a valid BVBI_Encode_Handle created by
-	BVBI_Encode_Create.
+    BVBI_Encode_Create.
 
   Returns:
-	BERR_SUCCESS              - The handle was successfully destroyed.
-	BERR_INVALID_PARAMETER    - The supplied parameter was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The handle was successfully destroyed.
+    BERR_INVALID_PARAMETER    - The supplied parameter was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Encode_Destroy(
-	BVBI_Encode_Handle encodeHandle	/* [in] A BVBI_Encode_Handle to be
-											destroyed                        */
+    BVBI_Encode_Handle encodeHandle /* [in] A BVBI_Encode_Handle to be
+                                            destroyed                        */
 );
 
 
@@ -1769,15 +1779,15 @@ BERR_Code BVBI_Encode_Destroy(
     decode is disabled.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Decode_SetCC(
-	BVBI_Decode_Handle decodeHandle, /* [in] A valid BVBI_Decode_Handle
-											 object                       */
-	bool                   bEnabled	 /* [in] Whether to enable or disable
-											 decode                       */
+    BVBI_Decode_Handle decodeHandle, /* [in] A valid BVBI_Decode_Handle
+                                             object                       */
+    bool                   bEnabled  /* [in] Whether to enable or disable
+                                             decode                       */
 );
 
 
@@ -1794,15 +1804,15 @@ BERR_Code BVBI_Decode_SetCC(
     CGMS decode is disabled.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Decode_SetCGMS(
-	BVBI_Decode_Handle decodeHandle,	/* [in] A valid BVBI_Decode_Handle
-												object                       */
-	bool                   bEnabled		/* [in] Whether to enable or disable
-												decode                       */
+    BVBI_Decode_Handle decodeHandle,    /* [in] A valid BVBI_Decode_Handle
+                                                object                       */
+    bool                   bEnabled     /* [in] Whether to enable or disable
+                                                decode                       */
 );
 
 
@@ -1819,15 +1829,15 @@ BERR_Code BVBI_Decode_SetCGMS(
     decode is disabled.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Decode_SetWSS(
-	BVBI_Decode_Handle decodeHandle,	/* [in] A valid BVBI_Decode_Handle
-												object                       */
-	bool                   bEnabled		/* [in] Whether to enable or disable
-												decode                       */
+    BVBI_Decode_Handle decodeHandle,    /* [in] A valid BVBI_Decode_Handle
+                                                object                       */
+    bool                   bEnabled     /* [in] Whether to enable or disable
+                                                decode                       */
 );
 
 
@@ -1844,15 +1854,15 @@ BERR_Code BVBI_Decode_SetWSS(
     decode is disabled.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Decode_SetVPS(
-	BVBI_Decode_Handle decodeHandle,	/* [in] A valid BVBI_Decode_Handle
-												object                       */
-	bool                   bEnabled		/* [in] Whether to enable or disable
-												decode                       */
+    BVBI_Decode_Handle decodeHandle,    /* [in] A valid BVBI_Decode_Handle
+                                                object                       */
+    bool                   bEnabled     /* [in] Whether to enable or disable
+                                                decode                       */
 );
 
 
@@ -1869,15 +1879,15 @@ BERR_Code BVBI_Decode_SetVPS(
     If bEnabled is false, Teletext decode is disabled.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Decode_SetTeletext(
-	BVBI_Decode_Handle decodeHandle,	/* [in] A valid BVBI_Decode_Handle
-												object                       */
-	bool                   bEnabled		/* [in] Whether to enable or disable
-												decode                       */
+    BVBI_Decode_Handle decodeHandle,    /* [in] A valid BVBI_Decode_Handle
+                                                object                       */
+    bool                   bEnabled     /* [in] Whether to enable or disable
+                                                decode                       */
 );
 
 
@@ -1892,15 +1902,15 @@ BERR_Code BVBI_Decode_SetTeletext(
     pbEnabled will be set to 1 if input is enabled and 0 if it isn't.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Decode_GetCC(
-	BVBI_Decode_Handle decodeHandle,	/*  [in] A valid BVBI_Decode_Handle
-												 object                      */
-	bool*                 pbEnabled		/* [out] Whether encode is enabled
-												 or disabled                 */
+    BVBI_Decode_Handle decodeHandle,    /*  [in] A valid BVBI_Decode_Handle
+                                                 object                      */
+    bool*                 pbEnabled     /* [out] Whether encode is enabled
+                                                 or disabled                 */
 );
 
 
@@ -1916,15 +1926,15 @@ BERR_Code BVBI_Decode_GetCC(
     0 if it isn't.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Decode_GetCGMS(
-	BVBI_Decode_Handle decodeHandle,	/*  [in] A valid BVBI_Decode_Handle
-												 object                      */
-	bool*                 pbEnabled		/* [out] Whether encode is enabled
-												 or disabled                 */
+    BVBI_Decode_Handle decodeHandle,    /*  [in] A valid BVBI_Decode_Handle
+                                                 object                      */
+    bool*                 pbEnabled     /* [out] Whether encode is enabled
+                                                 or disabled                 */
 );
 
 
@@ -1939,15 +1949,15 @@ BERR_Code BVBI_Decode_GetCGMS(
     pbEnabled will be set to 1 if input is enabled and 0 if it isn't.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Decode_GetWSS(
-	BVBI_Decode_Handle decodeHandle,	/*  [in] A valid BVBI_Decode_Handle
-												 object                      */
-	bool*                 pbEnabled		/* [out] Whether encode is enabled
-												 or disabled                 */
+    BVBI_Decode_Handle decodeHandle,    /*  [in] A valid BVBI_Decode_Handle
+                                                 object                      */
+    bool*                 pbEnabled     /* [out] Whether encode is enabled
+                                                 or disabled                 */
 );
 
 
@@ -1962,15 +1972,15 @@ BERR_Code BVBI_Decode_GetWSS(
     pbEnabled will be set to 1 if input is enabled and 0 if it isn't.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Decode_GetVPS(
-	BVBI_Decode_Handle decodeHandle,	/*  [in] A valid BVBI_Decode_Handle
-												 object                      */
-	bool*                 pbEnabled		/* [out] Whether encode is enabled
-												 or disabled                 */
+    BVBI_Decode_Handle decodeHandle,    /*  [in] A valid BVBI_Decode_Handle
+                                                 object                      */
+    bool*                 pbEnabled     /* [out] Whether encode is enabled
+                                                 or disabled                 */
 );
 
 
@@ -1986,15 +1996,15 @@ BERR_Code BVBI_Decode_GetVPS(
     0 if it isn't.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Decode_GetTeletext(
-	BVBI_Decode_Handle decodeHandle,	/*  [in] A valid BVBI_Decode_Handle
-												 object                      */
-	bool*                 pbEnabled		/* [out] Whether encode is enabled
-												 or disabled                 */
+    BVBI_Decode_Handle decodeHandle,    /*  [in] A valid BVBI_Decode_Handle
+                                                 object                      */
+    bool*                 pbEnabled     /* [out] Whether encode is enabled
+                                                 or disabled                 */
 );
 
 /*****************************************************************************
@@ -2058,15 +2068,15 @@ BERR_Code BVBI_Decode_GetGemstar(
     encode is disabled.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Encode_SetCC(
-	BVBI_Encode_Handle encodeHandle,	/* [in] A valid BVBI_Encode_Handle
-												object                       */
-	bool                   bEnabled		/* [in] Whether to enable or disable
-												encode                       */
+    BVBI_Encode_Handle encodeHandle,    /* [in] A valid BVBI_Encode_Handle
+                                                object                       */
+    bool                   bEnabled     /* [in] Whether to enable or disable
+                                                encode                       */
 );
 
 
@@ -2083,17 +2093,17 @@ BERR_Code BVBI_Encode_SetCC(
     CGMS-A encode is disabled.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
     BVBI_ERR_HW_CONFLICT      - User attempted to activate CGMS-A and CGMS-B
-	                            on the same VEC.
+                                on the same VEC.
  *****************************************************************************/
 BERR_Code BVBI_Encode_SetCGMSA(
-	BVBI_Encode_Handle encodeHandle,	/* [in] A valid BVBI_Encode_Handle
-												object                       */
-	bool                   bEnabled		/* [in] Whether to enable or disable
-												encode                       */
+    BVBI_Encode_Handle encodeHandle,    /* [in] A valid BVBI_Encode_Handle
+                                                object                       */
+    bool                   bEnabled     /* [in] Whether to enable or disable
+                                                encode                       */
 );
 /* Backwards compatibility, DEPRECATED! */
 #define BVBI_Encode_SetCGMS BVBI_Encode_SetCGMSA
@@ -2112,17 +2122,17 @@ BERR_Code BVBI_Encode_SetCGMSA(
     CGMS-B encode is disabled.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
     BVBI_ERR_HW_CONFLICT      - User attempted to activate CGMS-A and CGMS-B
-	                            on the same VEC.
+                                on the same VEC.
  *****************************************************************************/
 BERR_Code BVBI_Encode_SetCGMSB(
-	BVBI_Encode_Handle encodeHandle,	/* [in] A valid BVBI_Encode_Handle
-												object                       */
-	bool                   bEnabled		/* [in] Whether to enable or disable
-												encode                       */
+    BVBI_Encode_Handle encodeHandle,    /* [in] A valid BVBI_Encode_Handle
+                                                object                       */
+    bool                   bEnabled     /* [in] Whether to enable or disable
+                                                encode                       */
 );
 
 
@@ -2134,30 +2144,30 @@ BERR_Code BVBI_Encode_SetCGMSB(
     This call changes the output style for CGMS-B data on the supplied active
     BVBI_Encode_Handle.  Change takes effect on the
     given BVBI_Encode_Handle the next time
-	1. CGMS-B output is enabled.
-	2. BVBI_Encode_ApplyChanges is called on the associated BVBI encode handle.
+    1. CGMS-B output is enabled.
+    2. BVBI_Encode_ApplyChanges is called on the associated BVBI encode handle.
 
-	Note: older chipsets are not capable of CEA-805-D "new style"
-	----  output. For these chipsets, this API function is not provided.
+    Note: older chipsets are not capable of CEA-805-D "new style"
+    ----  output. For these chipsets, this API function is not provided.
 
-	Note: For newer chipsets that support "new style" output, this is the
-	----  default. Since "new style" output is recommended, this function
-	      will not be needed by most applications.
+    Note: For newer chipsets that support "new style" output, this is the
+    ----  default. Since "new style" output is recommended, this function
+          will not be needed by most applications.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Encode_SetCGMSBstyle(
-	BVBI_Encode_Handle encodeHandle,	/* [in] A valid BVBI_Encode_Handle
-												object                       */
-	bool              bCea805dStyle		/* [in] Whether to enable the newer
-	                                            CRC computation ("method 2")
-												defined in CEA-805-D. If
-												true, the bit order is also
-												changed from "LSB first" to
-												"MSB first."                 */
+    BVBI_Encode_Handle encodeHandle,    /* [in] A valid BVBI_Encode_Handle
+                                                object                       */
+    bool              bCea805dStyle     /* [in] Whether to enable the newer
+                                                CRC computation ("method 2")
+                                                defined in CEA-805-D. If
+                                                true, the bit order is also
+                                                changed from "LSB first" to
+                                                "MSB first."                 */
 );
 
 
@@ -2169,21 +2179,21 @@ BERR_Code BVBI_Encode_SetCGMSBstyle(
     This reports the output style for CGMS-B data on the supplied active
     BVBI_Encode_Handle.
 
-	Note: older chipsets are not capable of CEA-805-D "new style"
-	----  output. For these chipsets, this API function is not provided.
+    Note: older chipsets are not capable of CEA-805-D "new style"
+    ----  output. For these chipsets, this API function is not provided.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Encode_GetCGMSBstyle(
-	BVBI_Encode_Handle encodeHandle,	/*  [in] A valid BVBI_Encode_Handle
-												 object                      */
-	bool*            pbCea805dStyle		/* [out] Whether the newer CRC
-	                                             computation ("method 2")
-												 defined in CEA-805-D is in
-												 use.                        */
+    BVBI_Encode_Handle encodeHandle,    /*  [in] A valid BVBI_Encode_Handle
+                                                 object                      */
+    bool*            pbCea805dStyle     /* [out] Whether the newer CRC
+                                                 computation ("method 2")
+                                                 defined in CEA-805-D is in
+                                                 use.                        */
 );
 
 
@@ -2200,15 +2210,15 @@ BERR_Code BVBI_Encode_GetCGMSBstyle(
     encode is disabled.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Encode_SetWSS(
-	BVBI_Encode_Handle encodeHandle,	/* [in] A valid BVBI_Encode_Handle
-												object                       */
-	bool                   bEnabled		/* [in] Whether to enable or disable
-												encode                       */
+    BVBI_Encode_Handle encodeHandle,    /* [in] A valid BVBI_Encode_Handle
+                                                object                       */
+    bool                   bEnabled     /* [in] Whether to enable or disable
+                                                encode                       */
 );
 
 
@@ -2225,17 +2235,17 @@ BERR_Code BVBI_Encode_SetWSS(
     If bEnabled is false, Teletext encode is disabled.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL. Teletext could not be activated
-								because BVBI_Encode_Handle was created with
-								teletext disabled.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL. Teletext could not be activated
+                                because BVBI_Encode_Handle was created with
+                                teletext disabled.
  *****************************************************************************/
 BERR_Code BVBI_Encode_SetTeletext(
-	BVBI_Encode_Handle encodeHandle,	/* [in] A valid BVBI_Encode_Handle
-												object                       */
-	bool                   bEnabled		/* [in] Whether to enable or disable
-												encode                       */
+    BVBI_Encode_Handle encodeHandle,    /* [in] A valid BVBI_Encode_Handle
+                                                object                       */
+    bool                   bEnabled     /* [in] Whether to enable or disable
+                                                encode                       */
 );
 
 
@@ -2249,18 +2259,18 @@ BERR_Code BVBI_Encode_SetTeletext(
     given BVBI_Encode_Handle the next time BVBI_Encode_ApplyChanges
     is called on the associated BVBI_Encode_Handle. If bEnabled is true
     (nonzero), VPS encode is enabled.  If bEnabled is false, VPS
-	encode is disabled.
+    encode is disabled.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Encode_SetVPS (
-	BVBI_Encode_Handle encodeHandle,	/* [in] A valid BVBI_Encode_Handle
-												object                       */
-	bool                   bEnabled		/* [in] Whether to enable or disable
-												encode                       */
+    BVBI_Encode_Handle encodeHandle,    /* [in] A valid BVBI_Encode_Handle
+                                                object                       */
+    bool                   bEnabled     /* [in] Whether to enable or disable
+                                                encode                       */
 );
 
 
@@ -2274,18 +2284,18 @@ BERR_Code BVBI_Encode_SetVPS (
     given BVBI_Encode_Handle the next time BVBI_Encode_ApplyChanges
     is called on the associated BVBI_Encode_Handle. If bEnabled is true
     (nonzero), Gemstar encode is enabled.  If bEnabled is false, Gemstar
-	encode is disabled.
+    encode is disabled.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Encode_SetGemstar (
-	BVBI_Encode_Handle encodeHandle,	/* [in] A valid BVBI_Encode_Handle
-												object                       */
-	bool                   bEnabled		/* [in] Whether to enable or disable
-												encode                       */
+    BVBI_Encode_Handle encodeHandle,    /* [in] A valid BVBI_Encode_Handle
+                                                object                       */
+    bool                   bEnabled     /* [in] Whether to enable or disable
+                                                encode                       */
 );
 
 
@@ -2300,15 +2310,15 @@ BERR_Code BVBI_Encode_SetGemstar (
     is called on the associated BVBI_Encode_Handle.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Encode_SetAMOL (
-	BVBI_Encode_Handle encodeHandle,	/* [in] A valid BVBI_Encode_Handle
-												object                       */
-	bool                   bEnabled		/* [in] Whether to enable or disable
-												encode                       */
+    BVBI_Encode_Handle encodeHandle,    /* [in] A valid BVBI_Encode_Handle
+                                                object                       */
+    bool                   bEnabled     /* [in] Whether to enable or disable
+                                                encode                       */
 );
 
 
@@ -2318,21 +2328,21 @@ BERR_Code BVBI_Encode_SetAMOL (
 
   Description:
     This call enables or disables multi-line closed caption encode on
-	the supplied active BVBI_Encode_Handle.  multi-line closed caption
-	encode is enabled or disabled for the given BVBI_Encode_Handle the
-	next time BVBI_Encode_ApplyChanges is called on the associated
-	BVBI_Encode_Handle.
+    the supplied active BVBI_Encode_Handle.  multi-line closed caption
+    encode is enabled or disabled for the given BVBI_Encode_Handle the
+    next time BVBI_Encode_ApplyChanges is called on the associated
+    BVBI_Encode_Handle.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Encode_SetMCC (
-	BVBI_Encode_Handle encodeHandle,	/* [in] A valid BVBI_Encode_Handle
-												object                       */
-	bool                   bEnabled		/* [in] Whether to enable or disable
-												encode                       */
+    BVBI_Encode_Handle encodeHandle,    /* [in] A valid BVBI_Encode_Handle
+                                                object                       */
+    bool                   bEnabled     /* [in] Whether to enable or disable
+                                                encode                       */
 );
 
 
@@ -2347,15 +2357,15 @@ BERR_Code BVBI_Encode_SetMCC (
     is called on the associated BVBI_Encode_Handle.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Encode_SetSCTE (
-	BVBI_Encode_Handle encodeHandle,	/* [in] A valid BVBI_Encode_Handle
-												object                       */
-	bool                   bEnabled		/* [in] Whether to enable or disable
-												encode                       */
+    BVBI_Encode_Handle encodeHandle,    /* [in] A valid BVBI_Encode_Handle
+                                                object                       */
+    bool                   bEnabled     /* [in] Whether to enable or disable
+                                                encode                       */
 );
 
 
@@ -2371,15 +2381,15 @@ BERR_Code BVBI_Encode_SetSCTE (
     and 0 if it isn't.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Encode_GetCC(
-	BVBI_Encode_Handle encodeHandle,	/*  [in] A valid BVBI_Encode_Handle
-												 object                     */
-	bool*                 pbEnabled		/* [out] Whether encode is enabled
-												 or disabled                */
+    BVBI_Encode_Handle encodeHandle,    /*  [in] A valid BVBI_Encode_Handle
+                                                 object                     */
+    bool*                 pbEnabled     /* [out] Whether encode is enabled
+                                                 or disabled                */
 );
 
 
@@ -2395,15 +2405,15 @@ BERR_Code BVBI_Encode_GetCC(
     and 0 if it isn't.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Encode_GetCGMSA(
-	BVBI_Encode_Handle encodeHandle,	/*  [in] A valid BVBI_Encode_Handle
-												 object                     */
-	bool*                 pbEnabled		/* [out] Whether encode is enabled
-												 or disabled                */
+    BVBI_Encode_Handle encodeHandle,    /*  [in] A valid BVBI_Encode_Handle
+                                                 object                     */
+    bool*                 pbEnabled     /* [out] Whether encode is enabled
+                                                 or disabled                */
 );
 /* Backwards compatibility, DEPRECATED! */
 #define BVBI_Encode_GetCGMS BVBI_Encode_GetCGMSA
@@ -2421,15 +2431,15 @@ BERR_Code BVBI_Encode_GetCGMSA(
     and 0 if it isn't.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Encode_GetCGMSB(
-	BVBI_Encode_Handle encodeHandle,	/*  [in] A valid BVBI_Encode_Handle
-												 object                     */
-	bool*                 pbEnabled		/* [out] Whether encode is enabled
-												 or disabled                */
+    BVBI_Encode_Handle encodeHandle,    /*  [in] A valid BVBI_Encode_Handle
+                                                 object                     */
+    bool*                 pbEnabled     /* [out] Whether encode is enabled
+                                                 or disabled                */
 );
 
 
@@ -2445,15 +2455,15 @@ BERR_Code BVBI_Encode_GetCGMSB(
     and 0 if it isn't.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Encode_GetWSS(
-	BVBI_Encode_Handle encodeHandle,	/*  [in] A valid BVBI_Encode_Handle
-												 object                     */
-	bool*                 pbEnabled		/* [out] Whether encode is enabled
-												 or disabled                */
+    BVBI_Encode_Handle encodeHandle,    /*  [in] A valid BVBI_Encode_Handle
+                                                 object                     */
+    bool*                 pbEnabled     /* [out] Whether encode is enabled
+                                                 or disabled                */
 );
 
 
@@ -2469,15 +2479,15 @@ BERR_Code BVBI_Encode_GetWSS(
     and 0 if it isn't.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Encode_GetTeletext(
-	BVBI_Encode_Handle encodeHandle,	/*  [in] A valid BVBI_Encode_Handle
-												 object                     */
-	bool*                 pbEnabled		/* [out] Whether encode is enabled
-												 or disabled                */
+    BVBI_Encode_Handle encodeHandle,    /*  [in] A valid BVBI_Encode_Handle
+                                                 object                     */
+    bool*                 pbEnabled     /* [out] Whether encode is enabled
+                                                 or disabled                */
 );
 
 
@@ -2493,15 +2503,15 @@ BERR_Code BVBI_Encode_GetTeletext(
     and 0 if it isn't.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Encode_GetVPS (
-	BVBI_Encode_Handle encodeHandle,	/*  [in] A valid BVBI_Encode_Handle
-												 object                     */
-	bool*                 pbEnabled		/* [out] Whether encode is enabled
-												 or disabled                */
+    BVBI_Encode_Handle encodeHandle,    /*  [in] A valid BVBI_Encode_Handle
+                                                 object                     */
+    bool*                 pbEnabled     /* [out] Whether encode is enabled
+                                                 or disabled                */
 );
 
 
@@ -2517,15 +2527,15 @@ BERR_Code BVBI_Encode_GetVPS (
     and 0 if it isn't.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Encode_GetGemstar (
-	BVBI_Encode_Handle encodeHandle,	/*  [in] A valid BVBI_Encode_Handle
-												 object                     */
-	bool*                 pbEnabled		/* [out] Whether encode is enabled
-												 or disabled                */
+    BVBI_Encode_Handle encodeHandle,    /*  [in] A valid BVBI_Encode_Handle
+                                                 object                     */
+    bool*                 pbEnabled     /* [out] Whether encode is enabled
+                                                 or disabled                */
 );
 
 
@@ -2536,42 +2546,42 @@ BERR_Code BVBI_Encode_GetGemstar (
   Description:
     This call determines what type of AMOL (if any) is currently enabled
     on the current handle.  Any pending change of status will not be returned
-	by this call until BVBI_Encode_ApplyChanges is called.
+    by this call until BVBI_Encode_ApplyChanges is called.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Encode_GetAMOL (
-	BVBI_Encode_Handle encodeHandle,	/*  [in] A valid BVBI_Encode_Handle
-												 object                     */
-	bool*                 pbEnabled		/* [out] Whether encode is enabled
-												 or disabled                */
+    BVBI_Encode_Handle encodeHandle,    /*  [in] A valid BVBI_Encode_Handle
+                                                 object                     */
+    bool*                 pbEnabled     /* [out] Whether encode is enabled
+                                                 or disabled                */
 );
 
 
 /*****************************************************************************
   Summary:
     Gets the status of multi-line closed caption data output on the
-	given handle
+    given handle
 
   Description:
     This call determines what type of multi-line closed caption data
-	(if any) is currently enabled on the current handle.  Any pending
-	change of status will not be returned by this call until
-	BVBI_Encode_ApplyChanges is called.
+    (if any) is currently enabled on the current handle.  Any pending
+    change of status will not be returned by this call until
+    BVBI_Encode_ApplyChanges is called.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Encode_GetMCC (
-	BVBI_Encode_Handle encodeHandle,	/*  [in] A valid BVBI_Encode_Handle
-												 object                     */
-	bool*                 pbEnabled		/* [out] Whether encode is enabled
-												 or disabled                */
+    BVBI_Encode_Handle encodeHandle,    /*  [in] A valid BVBI_Encode_Handle
+                                                 object                     */
+    bool*                 pbEnabled     /* [out] Whether encode is enabled
+                                                 or disabled                */
 );
 
 
@@ -2582,18 +2592,18 @@ BERR_Code BVBI_Encode_GetMCC (
   Description:
     This call determines what type of SCTE (if any) is currently enabled
     on the current handle.  Any pending change of status will not be returned
-	by this call until BVBI_Encode_ApplyChanges is called.
+    by this call until BVBI_Encode_ApplyChanges is called.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Encode_GetSCTE (
-	BVBI_Encode_Handle encodeHandle,	/*  [in] A valid BVBI_Encode_Handle
-												 object                     */
-	bool*                 pbEnabled		/* [out] Whether encode is enabled
-												 or disabled                */
+    BVBI_Encode_Handle encodeHandle,    /*  [in] A valid BVBI_Encode_Handle
+                                                 object                     */
+    bool*                 pbEnabled     /* [out] Whether encode is enabled
+                                                 or disabled                */
 );
 
 
@@ -2611,15 +2621,15 @@ BERR_Code BVBI_Encode_GetSCTE (
     closed caption encode is disabled.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Encode_656_SetCC(
-	BVBI_Encode_Handle encodeHandle,	/* [in] A valid BVBI_Encode_Handle
-												object                       */
-	bool                   bEnabled		/* [in] Whether to enable or disable
-												encode                       */
+    BVBI_Encode_Handle encodeHandle,    /* [in] A valid BVBI_Encode_Handle
+                                                object                       */
+    bool                   bEnabled     /* [in] Whether to enable or disable
+                                                encode                       */
 );
 
 
@@ -2637,15 +2647,15 @@ BERR_Code BVBI_Encode_656_SetCC(
     encode is disabled.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Encode_656_SetTeletext(
-	BVBI_Encode_Handle encodeHandle,	/* [in] A valid BVBI_Encode_Handle
-												object                       */
-	bool                   bEnabled		/* [in] Whether to enable or disable
-												encode                       */
+    BVBI_Encode_Handle encodeHandle,    /* [in] A valid BVBI_Encode_Handle
+                                                object                       */
+    bool                   bEnabled     /* [in] Whether to enable or disable
+                                                encode                       */
 );
 
 
@@ -2663,15 +2673,15 @@ BERR_Code BVBI_Encode_656_SetTeletext(
     encode is disabled.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Encode_656_SetWSS(
-	BVBI_Encode_Handle encodeHandle,	/* [in] A valid BVBI_Encode_Handle
-												object                       */
-	bool                   bEnabled		/* [in] Whether to enable or disable
-												encode                       */
+    BVBI_Encode_Handle encodeHandle,    /* [in] A valid BVBI_Encode_Handle
+                                                object                       */
+    bool                   bEnabled     /* [in] Whether to enable or disable
+                                                encode                       */
 );
 
 
@@ -2689,15 +2699,15 @@ BERR_Code BVBI_Encode_656_SetWSS(
     encode is disabled.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Encode_656_SetGemstar(
-	BVBI_Encode_Handle encodeHandle,	/* [in] A valid BVBI_Encode_Handle
-												object                       */
-	bool                   bEnabled		/* [in] Whether to enable or disable
-												encode                       */
+    BVBI_Encode_Handle encodeHandle,    /* [in] A valid BVBI_Encode_Handle
+                                                object                       */
+    bool                   bEnabled     /* [in] Whether to enable or disable
+                                                encode                       */
 );
 
 
@@ -2713,15 +2723,15 @@ BERR_Code BVBI_Encode_656_SetGemstar(
     BVBI_Encode_Handle.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Encode_656_SetAMOL (
-	BVBI_Encode_Handle encodeHandle,	/* [in] A valid BVBI_Encode_Handle
-												object                       */
-	bool                   bEnabled		/* [in] Whether to enable or disable
-												encode                       */
+    BVBI_Encode_Handle encodeHandle,    /* [in] A valid BVBI_Encode_Handle
+                                                object                       */
+    bool                   bEnabled     /* [in] Whether to enable or disable
+                                                encode                       */
 );
 
 
@@ -2731,21 +2741,21 @@ BERR_Code BVBI_Encode_656_SetAMOL (
 
   Description:
     This call enables or disables ITU-R 656 multi-line closed caption
-	encode on the supplied active BVBI_Encode_Handle.  multi-line
-	closed caption encode is enabled or disabled for the given
-	BVBI_Encode_Handle the next time BVBI_Encode_ApplyChanges is
-	called on the associated BVBI_Encode_Handle.
+    encode on the supplied active BVBI_Encode_Handle.  multi-line
+    closed caption encode is enabled or disabled for the given
+    BVBI_Encode_Handle the next time BVBI_Encode_ApplyChanges is
+    called on the associated BVBI_Encode_Handle.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Encode_656_SetMCC (
-	BVBI_Encode_Handle encodeHandle,	/* [in] A valid BVBI_Encode_Handle
-												object                       */
-	bool                   bEnabled		/* [in] Whether to enable or disable
-												encode                       */
+    BVBI_Encode_Handle encodeHandle,    /* [in] A valid BVBI_Encode_Handle
+                                                object                       */
+    bool                   bEnabled     /* [in] Whether to enable or disable
+                                                encode                       */
 );
 
 
@@ -2761,15 +2771,15 @@ BERR_Code BVBI_Encode_656_SetMCC (
     BVBI_Encode_Handle.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Encode_656_SetSCTE (
-	BVBI_Encode_Handle encodeHandle,	/* [in] A valid BVBI_Encode_Handle
-												object                       */
-	bool                   bEnabled		/* [in] Whether to enable or disable
-												encode                       */
+    BVBI_Encode_Handle encodeHandle,    /* [in] A valid BVBI_Encode_Handle
+                                                object                       */
+    bool                   bEnabled     /* [in] Whether to enable or disable
+                                                encode                       */
 );
 
 
@@ -2786,15 +2796,15 @@ BERR_Code BVBI_Encode_656_SetSCTE (
     set to 1 if output is enabled and 0 if it isn't.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Encode_656_GetCC (
-	BVBI_Encode_Handle encodeHandle,	/*  [in] A valid BVBI_Encode_Handle
-												 object                     */
-	bool*                 pbEnabled		/* [out] Whether encode is enabled
-												 or disabled                */
+    BVBI_Encode_Handle encodeHandle,    /*  [in] A valid BVBI_Encode_Handle
+                                                 object                     */
+    bool*                 pbEnabled     /* [out] Whether encode is enabled
+                                                 or disabled                */
 );
 
 
@@ -2810,15 +2820,15 @@ BERR_Code BVBI_Encode_656_GetCC (
     1 if output is enabled and 0 if it isn't.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Encode_656_GetTeletext (
-	BVBI_Encode_Handle encodeHandle,	/*  [in] A valid BVBI_Encode_Handle
-												 object                     */
-	bool*                 pbEnabled		/* [out] Whether encode is enabled
-												 or disabled                */
+    BVBI_Encode_Handle encodeHandle,    /*  [in] A valid BVBI_Encode_Handle
+                                                 object                     */
+    bool*                 pbEnabled     /* [out] Whether encode is enabled
+                                                 or disabled                */
 );
 
 
@@ -2834,15 +2844,15 @@ BERR_Code BVBI_Encode_656_GetTeletext (
     1 if output is enabled and 0 if it isn't.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Encode_656_GetWSS (
-	BVBI_Encode_Handle encodeHandle,	/*  [in] A valid BVBI_Encode_Handle
-												 object                     */
-	bool*                 pbEnabled		/* [out] Whether encode is enabled
-												 or disabled                */
+    BVBI_Encode_Handle encodeHandle,    /*  [in] A valid BVBI_Encode_Handle
+                                                 object                     */
+    bool*                 pbEnabled     /* [out] Whether encode is enabled
+                                                 or disabled                */
 );
 
 
@@ -2858,15 +2868,15 @@ BERR_Code BVBI_Encode_656_GetWSS (
     1 if output is enabled and 0 if it isn't.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Encode_656_GetGemstar (
-	BVBI_Encode_Handle encodeHandle,	/*  [in] A valid BVBI_Encode_Handle
-												 object                     */
-	bool*                 pbEnabled		/* [out] Whether encode is enabled
-												 or disabled                */
+    BVBI_Encode_Handle encodeHandle,    /*  [in] A valid BVBI_Encode_Handle
+                                                 object                     */
+    bool*                 pbEnabled     /* [out] Whether encode is enabled
+                                                 or disabled                */
 );
 
 
@@ -2877,42 +2887,42 @@ BERR_Code BVBI_Encode_656_GetGemstar (
   Description:
     This call determines what type of ITU-R 656 AMOL (if any) is currently
     enabled on the current handle.  Any pending change of status will not be
-	returned by this call until BVBI_Encode_ApplyChanges is called.
+    returned by this call until BVBI_Encode_ApplyChanges is called.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Encode_656_GetAMOL (
-	BVBI_Encode_Handle encodeHandle,	/*  [in] A valid BVBI_Encode_Handle
-												 object                     */
-	bool*                 pbEnabled		/* [out] Whether encode is enabled
-												 or disabled                */
+    BVBI_Encode_Handle encodeHandle,    /*  [in] A valid BVBI_Encode_Handle
+                                                 object                     */
+    bool*                 pbEnabled     /* [out] Whether encode is enabled
+                                                 or disabled                */
 );
 
 
 /*****************************************************************************
   Summary:
     Gets the status of ITU-R 656 multi-line closed caption output on
-	the given handle
+    the given handle
 
   Description:
     This call determines what type of ITU-R 656 multi-line closed
-	caption data (if any) is currently enabled on the current handle.
-	Any pending change of status will not be returned by this call
-	until BVBI_Encode_ApplyChanges is called.
+    caption data (if any) is currently enabled on the current handle.
+    Any pending change of status will not be returned by this call
+    until BVBI_Encode_ApplyChanges is called.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Encode_656_GetMCC (
-	BVBI_Encode_Handle encodeHandle,	/*  [in] A valid BVBI_Encode_Handle
-												 object                     */
-	bool*                 pbEnabled		/* [out] Whether encode is enabled
-												 or disabled                */
+    BVBI_Encode_Handle encodeHandle,    /*  [in] A valid BVBI_Encode_Handle
+                                                 object                     */
+    bool*                 pbEnabled     /* [out] Whether encode is enabled
+                                                 or disabled                */
 );
 
 
@@ -2923,18 +2933,18 @@ BERR_Code BVBI_Encode_656_GetMCC (
   Description:
     This call determines what type of ITU-R 656 SCTE (if any) is currently
     enabled on the current handle.  Any pending change of status will not be
-	returned by this call until BVBI_Encode_ApplyChanges is called.
+    returned by this call until BVBI_Encode_ApplyChanges is called.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Encode_656_GetSCTE (
-	BVBI_Encode_Handle encodeHandle,	/*  [in] A valid BVBI_Encode_Handle
-												 object                     */
-	bool*                 pbEnabled		/* [out] Whether encode is enabled
-												 or disabled                */
+    BVBI_Encode_Handle encodeHandle,    /*  [in] A valid BVBI_Encode_Handle
+                                                 object                     */
+    bool*                 pbEnabled     /* [out] Whether encode is enabled
+                                                 or disabled                */
 );
 
 /*****************************************************************************
@@ -2944,27 +2954,27 @@ BERR_Code BVBI_Encode_656_GetSCTE (
   Description:
     This call determines which format is used to encapsulate VBI data
     into ancillary data packets within an ITU-R 656 bitstream output
-	by the device.	An active VBI encoder handle is required.
+    by the device.  An active VBI encoder handle is required.
     The requested change is implemented the next time
     BVBI_Encode_ApplyChanges is called on the associated BVBI_Encode_Handle.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Encode_656_SetFormat (
-	BVBI_Encode_Handle encodeHandle,  /* [in] A valid BVBI_Encode_Handle
-											  object                         */
-	BVBI_656Fmt          anci656Fmt,  /* [in] The encapsulation format to
-											  be used.  Note that the
-											  default is
-											  BVBI_656Fmt_SAA7113.           */
-	uint8_t                    sdid   /* [in] The value to be encoded in
-	                                          the SDID field of the
-											  packet header.  Only the least
-											  significant 6 bits are used.
-											  Note that the default is 0.    */
+    BVBI_Encode_Handle encodeHandle,  /* [in] A valid BVBI_Encode_Handle
+                                              object                         */
+    BVBI_656Fmt          anci656Fmt,  /* [in] The encapsulation format to
+                                              be used.  Note that the
+                                              default is
+                                              BVBI_656Fmt_SAA7113.           */
+    uint8_t                    sdid   /* [in] The value to be encoded in
+                                              the SDID field of the
+                                              packet header.  Only the least
+                                              significant 6 bits are used.
+                                              Note that the default is 0.    */
 );
 
 
@@ -2975,24 +2985,24 @@ BERR_Code BVBI_Encode_656_SetFormat (
 
   Description:
     This function returns the format in use for encapsulating VBI data into
-	ancillary data packets in the ITU-R 656 bitstream output by the supplied
+    ancillary data packets in the ITU-R 656 bitstream output by the supplied
     BVBI_Encode_Handle.
 
   Returns:
-	BERR_SUCCESS              - The information was successfully retrieved.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The information was successfully retrieved.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Encode_656_GetFormat(
-	BVBI_Encode_Handle encodeHandle,	/*  [in] A valid BVBI_Encode_Handle
-												 object                      */
-	BVBI_656Fmt*        pAnci656Fmt,	/* [out] The format in use
-												 with the above object       */
-	uint8_t*                  psdid     /* [out] The value to be encoded in
-	                                             the SDID field of the
-											     packet header.  The two most
-											     significant bits are are
-											     parity bits.                */
+    BVBI_Encode_Handle encodeHandle,    /*  [in] A valid BVBI_Encode_Handle
+                                                 object                      */
+    BVBI_656Fmt*        pAnci656Fmt,    /* [out] The format in use
+                                                 with the above object       */
+    uint8_t*                  psdid     /* [out] The value to be encoded in
+                                                 the SDID field of the
+                                                 packet header.  The two most
+                                                 significant bits are are
+                                                 parity bits.                */
 );
 
 /*****************************************************************************
@@ -3093,18 +3103,18 @@ BERR_Code BVBI_Encode_XSER_GetOptions(
 
   Description:
     This function takes an active BVBI_Encode_Handle and sets options
-	related to Gemstar encoding. These options take effect at the next call to
-	BVBI_Encode_ApplyChanges.
+    related to Gemstar encoding. These options take effect at the next call to
+    BVBI_Encode_ApplyChanges.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Encode_SetGemstarOptions(
-	BVBI_Encode_Handle  encodeHandle,	/* [in] A valid BVBI_Encode_Handle
-												object                       */
-	const BVBI_GSOptions* pGsOptions    /* [in] Options for Gemstar output.  */
+    BVBI_Encode_Handle  encodeHandle,   /* [in] A valid BVBI_Encode_Handle
+                                                object                       */
+    const BVBI_GSOptions* pGsOptions    /* [in] Options for Gemstar output.  */
 );
 
 
@@ -3114,18 +3124,18 @@ BERR_Code BVBI_Encode_SetGemstarOptions(
 
   Description:
     This function takes an active BVBI_Encode_Handle and retrieves options
-	related to Gemstar encoding.  Any pending change of status will not be
-	returned by this call until BVBI_Encode_ApplyChanges is called.
+    related to Gemstar encoding.  Any pending change of status will not be
+    returned by this call until BVBI_Encode_ApplyChanges is called.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Encode_GetGemstarOptions(
-	BVBI_Encode_Handle encodeHandle,   /*  [in] A valid BVBI_Encode_Handle
-												object                       */
-	BVBI_GSOptions*      pGsOptions    /* [out] Options for Gemstar output.  */
+    BVBI_Encode_Handle encodeHandle,   /*  [in] A valid BVBI_Encode_Handle
+                                                object                       */
+    BVBI_GSOptions*      pGsOptions    /* [out] Options for Gemstar output.  */
 );
 
 
@@ -3135,19 +3145,19 @@ BERR_Code BVBI_Encode_GetGemstarOptions(
 
   Description:
     This function takes an active BVBI_Encode_Handle and sets options
-	related to AMOL encoding. These options take effect at the next call to
-	BVBI_Encode_ApplyChanges.
+    related to AMOL encoding. These options take effect at the next call to
+    BVBI_Encode_ApplyChanges.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Encode_SetAMOLOptions(
-	BVBI_Encode_Handle encodeHandle,	/* [in] A valid BVBI_Encode_Handle
-												object                       */
-	BVBI_AMOL_Type         amolType     /* [in] Which variant of AMOL to
-	                                            be output.                   */
+    BVBI_Encode_Handle encodeHandle,    /* [in] A valid BVBI_Encode_Handle
+                                                object                       */
+    BVBI_AMOL_Type         amolType     /* [in] Which variant of AMOL to
+                                                be output.                   */
 );
 
 
@@ -3157,19 +3167,19 @@ BERR_Code BVBI_Encode_SetAMOLOptions(
 
   Description:
     This function takes an active BVBI_Encode_Handle and sets options
-	related to SCTE encoding. These options take effect at the next call to
-	BVBI_Encode_ApplyChanges.
+    related to SCTE encoding. These options take effect at the next call to
+    BVBI_Encode_ApplyChanges.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Encode_SetSCTEOptions(
-	BVBI_Encode_Handle encodeHandle,	/* [in] A valid BVBI_Encode_Handle
-												object                       */
-	BVBI_SCTE_Type         scteType     /* [in] Which type of SCTE data to
-	                                            output.                      */
+    BVBI_Encode_Handle encodeHandle,    /* [in] A valid BVBI_Encode_Handle
+                                                object                       */
+    BVBI_SCTE_Type         scteType     /* [in] Which type of SCTE data to
+                                                output.                      */
 );
 
 
@@ -3179,19 +3189,19 @@ BERR_Code BVBI_Encode_SetSCTEOptions(
 
   Description:
     This function takes an active BVBI_Encode_Handle and retrieves options
-	related to AMOL encoding.  Any pending change of status will not be
-	returned by this call until BVBI_Encode_ApplyChanges is called.
+    related to AMOL encoding.  Any pending change of status will not be
+    returned by this call until BVBI_Encode_ApplyChanges is called.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Encode_GetAMOLOptions(
-	BVBI_Encode_Handle encodeHandle,   /*  [in] A valid BVBI_Encode_Handle
-												object                       */
-	BVBI_AMOL_Type*       pAmolType    /* [out] Which type of AMOL encoding
-	                                            is being output.             */
+    BVBI_Encode_Handle encodeHandle,   /*  [in] A valid BVBI_Encode_Handle
+                                                object                       */
+    BVBI_AMOL_Type*       pAmolType    /* [out] Which type of AMOL encoding
+                                                is being output.             */
 );
 
 
@@ -3201,19 +3211,19 @@ BERR_Code BVBI_Encode_GetAMOLOptions(
 
   Description:
     This function takes an active BVBI_Encode_Handle and retrieves options
-	related to SCTE encoding.  Any pending change of status will not be
-	returned by this call until BVBI_Encode_ApplyChanges is called.
+    related to SCTE encoding.  Any pending change of status will not be
+    returned by this call until BVBI_Encode_ApplyChanges is called.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Encode_GetSCTEOptions(
-	BVBI_Encode_Handle encodeHandle,   /*  [in] A valid BVBI_Encode_Handle
-												object                       */
-	BVBI_SCTE_Type*       pScteType    /* [out] Which type of SCTE data
-	                                            is being output.             */
+    BVBI_Encode_Handle encodeHandle,   /*  [in] A valid BVBI_Encode_Handle
+                                                object                       */
+    BVBI_SCTE_Type*       pScteType    /* [out] Which type of SCTE data
+                                                is being output.             */
 );
 
 
@@ -3231,43 +3241,43 @@ BERR_Code BVBI_Encode_GetSCTEOptions(
     BVBI_Encode_Create.  A valid (but empty) BVBI_Field_Handle may
     be acquired from BVBI_Field_Create.  A BVBI_Field_Handle can
     be made non-empty by calling BVBI_Decode_Data_isr or one of the
-	functions BVBI_Field_Set*Data.
+    functions BVBI_Field_Set*Data.
 
-	This function is intended to be called from the interrupt
-	that marks the beginning of a field of encoded active video.
+    This function is intended to be called from the interrupt
+    that marks the beginning of a field of encoded active video.
 
-	Setting the polarity parameter is a bit tricky.  The parameter
-	itself refers to the VBI data that is to be encoded into a
-	video field.  This field will be either even or odd, but it has
-	not been created yet.  Also, this function is called at the
-	start of active video for an even or odd field.  But almost
-	certainly, the parity of these two fields will be opposite.
-	For example, if this function was called from the interrupt for
-	start of active video in odd field, the VBI data will be encoded
-	soonest if the user specifies even parity.  As a special case,
-	if the video being encoded is progressive, then this function
-	parameter should always be set to BAVC_Polarity_eFrame.
+    Setting the polarity parameter is a bit tricky.  The parameter
+    itself refers to the VBI data that is to be encoded into a
+    video field.  This field will be either even or odd, but it has
+    not been created yet.  Also, this function is called at the
+    start of active video for an even or odd field.  But almost
+    certainly, the parity of these two fields will be opposite.
+    For example, if this function was called from the interrupt for
+    start of active video in odd field, the VBI data will be encoded
+    soonest if the user specifies even parity.  As a special case,
+    if the video being encoded is progressive, then this function
+    parameter should always be set to BAVC_Polarity_eFrame.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
-	BVBI_ERR_FLDH_CONFLICT    - The encode handle is configured to encode a
-								bulky data format such as teletext, but the
-								field handle is not properly sized for this.
-	BVBI_ERR_INVALID_FIELD_POLARITY
-							  - The field polarity of the supplied field handle
-							    conflicts with the function's polarity argument.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
+    BVBI_ERR_FLDH_CONFLICT    - The encode handle is configured to encode a
+                                bulky data format such as teletext, but the
+                                field handle is not properly sized for this.
+    BVBI_ERR_INVALID_FIELD_POLARITY
+                              - The field polarity of the supplied field handle
+                                conflicts with the function's polarity argument.
  *****************************************************************************/
 BERR_Code BVBI_Encode_Data_isr(
-	BVBI_Encode_Handle encodeHandle,	/* [in] A valid BVBI_Encode_Handle
-												object                       */
-	BVBI_Field_Handle   fieldHandle,	/* [in] A valid BVBI_Field_Handle
-												object.  If NULL, then the VBI
-												encoders will be disabled for
-												one field.                   */
-	BAVC_Polarity          polarity		/* [in] Which field (even, odd or
-	                                            frame) to encode data into   */
+    BVBI_Encode_Handle encodeHandle,    /* [in] A valid BVBI_Encode_Handle
+                                                object                       */
+    BVBI_Field_Handle   fieldHandle,    /* [in] A valid BVBI_Field_Handle
+                                                object.  If NULL, then the VBI
+                                                encoders will be disabled for
+                                                one field.                   */
+    BAVC_Polarity          polarity     /* [in] Which field (even, odd or
+                                                frame) to encode data into   */
 );
 
 
@@ -3277,18 +3287,18 @@ BERR_Code BVBI_Encode_Data_isr(
 
   Description:
     This function returns the interrupt name required by the BVBI_Encode_
-	submodule, from which context BVBI_Encode_Data_isr() must be called.
+    submodule, from which context BVBI_Encode_Data_isr() must be called.
 
-	Example;
-	  BVDC_Display_Handle hDisplay;
+    Example;
+      BVDC_Display_Handle hDisplay;
       BAVC_VbiPath eVbiPath;
-	  BINT_Id interruptName;
-	  BAVC_Polarity eFieldPolarity,
-	  hDisplay = ...
-	  BVDC_Display_GetVbiPath (hDisplay, &eVbiPath);
-	  eFieldPolarity = ...
-	  BVBI_Encode_GetInterruptName (eVbiPath, eFieldPolarity, &interruptName);
-	  BINT_CreateCallback (..., interruptName, ...);
+      BINT_Id interruptName;
+      BAVC_Polarity eFieldPolarity,
+      hDisplay = ...
+      BVDC_Display_GetVbiPath (hDisplay, &eVbiPath);
+      eFieldPolarity = ...
+      BVBI_Encode_GetInterruptName (eVbiPath, eFieldPolarity, &interruptName);
+      BINT_CreateCallback (..., interruptName, ...);
 
   Returns:
     BERR_INVALID_PARAMETER - Some parameter is invalid.
@@ -3299,13 +3309,13 @@ BERR_Code BVBI_Encode_Data_isr(
  *****************************************************************************/
 BERR_Code BVBI_Encode_GetInterruptName(
     BAVC_VbiPath  eVbiPath,       /*  [in] The VEC path to program
-	                                       interrupts for, obtained from BVDC
-										   porting interface module          */
+                                           interrupts for, obtained from BVDC
+                                           porting interface module          */
     BAVC_Polarity eFieldPolarity, /*  [in] The video field polarity to
-	                                       program interrupts for.           */
-	BINT_Id*      pInterruptName  /* [out] The interrupt to use for VEC/VBI
-	                                       operations with the above VEC
-										   path and video field polarity.    */
+                                           program interrupts for.           */
+    BINT_Id*      pInterruptName  /* [out] The interrupt to use for VEC/VBI
+                                           operations with the above VEC
+                                           path and video field polarity.    */
 );
 
 
@@ -3320,35 +3330,35 @@ BERR_Code BVBI_Encode_GetInterruptName(
     allocated but need not already be filled with  VBI data.  If it
     contains VBI data, that data is lost.
 
-	This function is intended to be called from the interrupt that
-	marks the beginning of a field of decoded active video.
+    This function is intended to be called from the interrupt that
+    marks the beginning of a field of decoded active video.
 
-	Setting the polarity parameter is a bit tricky.  The parameter
-	itself refers to the VBI data that was collected.  This VBI
-	data was collected from either an even or odd field.  Also,
-	this function was called at the start of active video for an
-	even or odd field.  But almost certainly, the parity of these
-	two fields will be opposite.  For example, if this function was
-	called from the interrupt for start of active video in odd field,
-	then almost certainly, the most recent VBI data available is
-	from the previous even field.  As a special case, if the video
-	being decoded is progressive, then this function parameter should
-	always be set to BAVC_Polarity_eFrame.
+    Setting the polarity parameter is a bit tricky.  The parameter
+    itself refers to the VBI data that was collected.  This VBI
+    data was collected from either an even or odd field.  Also,
+    this function was called at the start of active video for an
+    even or odd field.  But almost certainly, the parity of these
+    two fields will be opposite.  For example, if this function was
+    called from the interrupt for start of active video in odd field,
+    then almost certainly, the most recent VBI data available is
+    from the previous even field.  As a special case, if the video
+    being decoded is progressive, then this function parameter should
+    always be set to BAVC_Polarity_eFrame.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
-	BVBI_ERR_FLDH_CONFLICT    - The decode handle is configured to decode a
-								bulky data format such as teletext, but the
-								field handle is not properly sized for this.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
+    BVBI_ERR_FLDH_CONFLICT    - The decode handle is configured to decode a
+                                bulky data format such as teletext, but the
+                                field handle is not properly sized for this.
  *****************************************************************************/
 BERR_Code BVBI_Decode_Data_isr(
-	BVBI_Decode_Handle decodeHandle,	/* [in] A valid BVBI_Decode_Handle
-												object                       */
-	BVBI_Field_Handle   fieldHandle,	/* [in] A BVBI_Field_Handle object   */
-	BAVC_Polarity          polarity		/* [in] Which field (even, odd, or
-	                                            frame) to extract data for   */
+    BVBI_Decode_Handle decodeHandle,    /* [in] A valid BVBI_Decode_Handle
+                                                object                       */
+    BVBI_Field_Handle   fieldHandle,    /* [in] A BVBI_Field_Handle object   */
+    BAVC_Polarity          polarity     /* [in] Which field (even, odd, or
+                                                frame) to extract data for   */
 );
 
 
@@ -3360,27 +3370,27 @@ BERR_Code BVBI_Decode_Data_isr(
     This creates new, empty field data for the specified BVBI_Handle.
     This BVBI_Field_Handle structure can be filled with data by
     functions like BVBI_Field_SetCCData, and encoded using
-	BVBI_Encode_Data_isr.
+    BVBI_Encode_Data_isr.
 
-	A BVBI_Field_Handle is a container that holds VBI data.
-	It has the capacity to simultaneously hold all the closed
-	caption data, WSS data, and CGMS data that can occur in a
-	single field of video.	However, all other types of VBI
-	data are so bulky that by default, a BVBI_Field_Handle
-	will not hold them.  The user must call a function such
-	as BVBI_Field_TT_Allocate() in order to change the holding
-	capacity of his BVBI_Field_Handle to match his application.
+    A BVBI_Field_Handle is a container that holds VBI data.
+    It has the capacity to simultaneously hold all the closed
+    caption data, WSS data, and CGMS data that can occur in a
+    single field of video.  However, all other types of VBI
+    data are so bulky that by default, a BVBI_Field_Handle
+    will not hold them.  The user must call a function such
+    as BVBI_Field_TT_Allocate() in order to change the holding
+    capacity of his BVBI_Field_Handle to match his application.
 
   Returns:
-	BERR_SUCCESS              - The handle was successfully created.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The handle was successfully created.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Field_Create(
-	BVBI_Field_Handle* pFieldHandle,	/* [out] A pointer to a
-												 BVBI_Field_Handle object */
-	BVBI_Handle vbiHandle		        /*  [in] A valid BVBI_Field_Handle
-											     object                    */
+    BVBI_Field_Handle* pFieldHandle,    /* [out] A pointer to a
+                                                 BVBI_Field_Handle object */
+    BVBI_Handle vbiHandle               /*  [in] A valid BVBI_Field_Handle
+                                                 object                    */
 );
 
 
@@ -3390,270 +3400,270 @@ BERR_Code BVBI_Field_Create(
 
   Description:
     fieldHandle should be a valid, allocated BVBI_Field_Handle structure
-	created by BVBI_Field_Create.  This function frees the structure and all
-	associated data.
+    created by BVBI_Field_Create.  This function frees the structure and all
+    associated data.
 
   Returns:
-	BERR_SUCCESS              - The handle was successfully destroyed.
-	BERR_INVALID_PARAMETER    - The supplied parameter was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The handle was successfully destroyed.
+    BERR_INVALID_PARAMETER    - The supplied parameter was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Field_Destroy(
-	BVBI_Field_Handle fieldHandle	/* [in] A BVBI_Field_Handle object */
+    BVBI_Field_Handle fieldHandle   /* [in] A BVBI_Field_Handle object */
 );
 
 
 /*****************************************************************************
   Summary:
     Changes how much teletext data a field data structure is capable
-	of holding.
+    of holding.
 
   Description:
     fieldHandle should be a valid, allocated BVBI_Field_Handle
     structure created by BVBI_Field_Create. This function changes the
-	internal properties of the structure so that it is capable
-	of holding a specific amount of teletext data.
+    internal properties of the structure so that it is capable
+    of holding a specific amount of teletext data.
 
-	When a BVBI_Field_Handle is first created (by calling
-	BVBI_Field_Create()), it is not capable of holding any
-	teletext data at all.  before it is capable of holding
-	teletext data, BVBI_Field_TT_Allocate() must be called.
+    When a BVBI_Field_Handle is first created (by calling
+    BVBI_Field_Create()), it is not capable of holding any
+    teletext data at all.  before it is capable of holding
+    teletext data, BVBI_Field_TT_Allocate() must be called.
 
-	Calling this function will cause any teletext data contained in
-	the BVBI_Field_Handle to be lost!
+    Calling this function will cause any teletext data contained in
+    the BVBI_Field_Handle to be lost!
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Field_TT_Allocate(
-	BVBI_Field_Handle fieldHandle,	/* [in] A BVBI_Field_Handle object       */
-	uint8_t            ucMaxLines,	/* [in] The maximum number of lines of
-											teletext data that the above
-											fieldHandle will be capable of
-										    holding.  Set this to zero to
-											make the fieldHandle as small as
-											possible (no teletext data may
-											be stored within).  For NTSC
-											video, this number never needs
-											to be any larger than 11.  For
-											PAL video, this number never
-											needs to be any larger than 18.  */
-	uint8_t            ucLineSize   /* [in] The number of characters per
-											line of teletext data that the
-											above fieldHandle will be hold.
-											For NTSC video, this must be 34.
-											For PAL video, this must be 43.
-											Special case: if the above
-											parameter ulMaxLines is zero,
-											then this parameter is ignored   */
+    BVBI_Field_Handle fieldHandle,  /* [in] A BVBI_Field_Handle object       */
+    uint8_t            ucMaxLines,  /* [in] The maximum number of lines of
+                                            teletext data that the above
+                                            fieldHandle will be capable of
+                                            holding.  Set this to zero to
+                                            make the fieldHandle as small as
+                                            possible (no teletext data may
+                                            be stored within).  For NTSC
+                                            video, this number never needs
+                                            to be any larger than 11.  For
+                                            PAL video, this number never
+                                            needs to be any larger than 18.  */
+    uint8_t            ucLineSize   /* [in] The number of characters per
+                                            line of teletext data that the
+                                            above fieldHandle will be hold.
+                                            For NTSC video, this must be 34.
+                                            For PAL video, this must be 43.
+                                            Special case: if the above
+                                            parameter ulMaxLines is zero,
+                                            then this parameter is ignored   */
 );
 
 /*****************************************************************************
   Summary:
     Changes whether or not a field data structure is capable
-	of of holding VPS data.
+    of of holding VPS data.
 
   Description:
     fieldHandle should be a valid, allocated BVBI_Field_Handle
     structure created by BVBI_Field_Create. This function changes the
-	internal properties of the structure so that it is capable
-	(or not) of holding VPS data.
+    internal properties of the structure so that it is capable
+    (or not) of holding VPS data.
 
-	When a BVBI_Field_Handle is first created (by calling
-	BVBI_Field_Create()), it is not capable of holding VPS
-	data.  before it is capable of holding
-	VPS data, BVBI_Field_VPS_Allocate() must be called.
+    When a BVBI_Field_Handle is first created (by calling
+    BVBI_Field_Create()), it is not capable of holding VPS
+    data.  before it is capable of holding
+    VPS data, BVBI_Field_VPS_Allocate() must be called.
 
-	Calling this function will cause any VPS data contained in
-	the BVBI_Field_Handle to be lost!
+    Calling this function will cause any VPS data contained in
+    the BVBI_Field_Handle to be lost!
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Field_VPS_Allocate(
-	BVBI_Field_Handle fieldHandle,	/* [in] A BVBI_Field_Handle object       */
-	bool                  bEnable	/* [in] If true, the BVBI_Field_Handle
-											object will be made capable of
-											holding VPS data.  If false, the
-											object will lose this
-											capability, thus saving memory.  */
+    BVBI_Field_Handle fieldHandle,  /* [in] A BVBI_Field_Handle object       */
+    bool                  bEnable   /* [in] If true, the BVBI_Field_Handle
+                                            object will be made capable of
+                                            holding VPS data.  If false, the
+                                            object will lose this
+                                            capability, thus saving memory.  */
 );
 
 /*****************************************************************************
   Summary:
     Changes whether or not a field data structure is capable
-	of of holding Gemstar data.
+    of of holding Gemstar data.
 
   Description:
     fieldHandle should be a valid, allocated BVBI_Field_Handle
     structure created by BVBI_Field_Create. This function changes the
-	internal properties of the structure so that it is capable
-	(or not) of holding Gemstar data.
+    internal properties of the structure so that it is capable
+    (or not) of holding Gemstar data.
 
-	When a BVBI_Field_Handle is first created (by calling
-	BVBI_Field_Create()), it is not capable of holding Gemstar
-	data.  before it is capable of holding
-	Gemstar data, BVBI_Field_GS_Allocate() must be called.
+    When a BVBI_Field_Handle is first created (by calling
+    BVBI_Field_Create()), it is not capable of holding Gemstar
+    data.  before it is capable of holding
+    Gemstar data, BVBI_Field_GS_Allocate() must be called.
 
-	Calling this function will cause any Gemstar data contained in
-	the BVBI_Field_Handle to be lost!
+    Calling this function will cause any Gemstar data contained in
+    the BVBI_Field_Handle to be lost!
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Field_GS_Allocate(
-	BVBI_Field_Handle fieldHandle,	/* [in] A BVBI_Field_Handle object       */
-	bool                  bEnable	/* [in] If true, the BVBI_Field_Handle
-											object will be made capable of
-											holding Gemstar data.  If false,
-											the object will lose this
-											capability, thus saving memory.  */
+    BVBI_Field_Handle fieldHandle,  /* [in] A BVBI_Field_Handle object       */
+    bool                  bEnable   /* [in] If true, the BVBI_Field_Handle
+                                            object will be made capable of
+                                            holding Gemstar data.  If false,
+                                            the object will lose this
+                                            capability, thus saving memory.  */
 );
 
 /*****************************************************************************
   Summary:
     Changes what type of AMOL data (if any) a field handle is capable of
-	holding.
+    holding.
 
   Description:
     fieldHandle should be a valid, allocated BVBI_Field_Handle
     structure created by BVBI_Field_Create. This function changes the
-	internal properties of the structure so that it is capable
-	(or not) of holding AMOL data. Depending on its arguments, the field
-	handle will then be capable of holding AMOL I, AMOL II 1 Mbit/s., or
-	AMOL II 2 Mbit/s. data. Or, none at all (returns allocated memory).
+    internal properties of the structure so that it is capable
+    (or not) of holding AMOL data. Depending on its arguments, the field
+    handle will then be capable of holding AMOL I, AMOL II 1 Mbit/s., or
+    AMOL II 2 Mbit/s. data. Or, none at all (returns allocated memory).
 
-	When a BVBI_Field_Handle is first created (by calling
-	BVBI_Field_Create()), it is not capable of holding AMOL
-	data.  before it is capable of holding AMOL data,
-	BVBI_Field_AMOL_Allocate() must be called.
+    When a BVBI_Field_Handle is first created (by calling
+    BVBI_Field_Create()), it is not capable of holding AMOL
+    data.  before it is capable of holding AMOL data,
+    BVBI_Field_AMOL_Allocate() must be called.
 
-	Calling this function will cause any AMOL data contained in
-	the BVBI_Field_Handle to be lost!
+    Calling this function will cause any AMOL data contained in
+    the BVBI_Field_Handle to be lost!
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Field_AMOL_Allocate(
-	BVBI_Field_Handle fieldHandle,	/* [in] A BVBI_Field_Handle object       */
-	BVBI_AMOL_Type       amolType   /* [in] Which type of AMOL to allocate
-	                                        space for. As a special case,
-											BVBI_AMOL_Type_None removes all
-											capability, thus saving memory.  */
+    BVBI_Field_Handle fieldHandle,  /* [in] A BVBI_Field_Handle object       */
+    BVBI_AMOL_Type       amolType   /* [in] Which type of AMOL to allocate
+                                            space for. As a special case,
+                                            BVBI_AMOL_Type_None removes all
+                                            capability, thus saving memory.  */
 );
 
 /*****************************************************************************
   Summary:
     Adds or removes space in a field handle to store multi-line closed caption
-	data.
+    data.
 
   Description:
     fieldHandle should be a valid, allocated BVBI_Field_Handle
     structure created by BVBI_Field_Create. This function changes the
-	internal properties of the structure so that it is capable
-	(or not) of holding multi-line closed caption data. Depending
-	on its arguments, the field handle will then be capable of
-	holding this data, or not.
+    internal properties of the structure so that it is capable
+    (or not) of holding multi-line closed caption data. Depending
+    on its arguments, the field handle will then be capable of
+    holding this data, or not.
 
-	When a BVBI_Field_Handle is first created (by calling
-	BVBI_Field_Create()), it is not capable of holding multi-line
-	closed caption data.  before it is capable of holding this
-	data, BVBI_Field_MCC_Allocate() must be called.
+    When a BVBI_Field_Handle is first created (by calling
+    BVBI_Field_Create()), it is not capable of holding multi-line
+    closed caption data.  before it is capable of holding this
+    data, BVBI_Field_MCC_Allocate() must be called.
 
-	Calling this function will cause any multi-line closed
-	caption data contained in the BVBI_Field_Handle to be lost!
+    Calling this function will cause any multi-line closed
+    caption data contained in the BVBI_Field_Handle to be lost!
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Field_MCC_Allocate(
-	BVBI_Field_Handle fieldHandle,	/* [in] A BVBI_Field_Handle object       */
-	bool                    alloc   /* [in] If true, space for the MCC
-	                                        data is allocated. If false,
-											this space (capability) is
-											removed, thus saving memory.     */
+    BVBI_Field_Handle fieldHandle,  /* [in] A BVBI_Field_Handle object       */
+    bool                    alloc   /* [in] If true, space for the MCC
+                                            data is allocated. If false,
+                                            this space (capability) is
+                                            removed, thus saving memory.     */
 );
 
 /*****************************************************************************
   Summary:
     Changes what type of SCTE data (if any) a field handle is capable of
-	holding.
+    holding.
 
   Description:
     fieldHandle should be a valid, allocated BVBI_Field_Handle
     structure created by BVBI_Field_Create. This function changes the
-	internal properties of the structure so that it is capable
-	(or not) of holding SCTE data. Depending on its arguments, the field
-	handle will then be capable of holding closed caption (like) data only,
-	closed caption plus NRTV, closed caption plus PAM, or closed caption plus
-	monochrome. Or, none at all (returns allocated memory).
+    internal properties of the structure so that it is capable
+    (or not) of holding SCTE data. Depending on its arguments, the field
+    handle will then be capable of holding closed caption (like) data only,
+    closed caption plus NRTV, closed caption plus PAM, or closed caption plus
+    monochrome. Or, none at all (returns allocated memory).
 
-	Calling this routine is destructive. Regardless of the arguments supplied,
-	all SCTE data contained in the field handle will be destroyed.
+    Calling this routine is destructive. Regardless of the arguments supplied,
+    all SCTE data contained in the field handle will be destroyed.
 
-	When a BVBI_Field_Handle is first created (by calling
-	BVBI_Field_Create()), it is not capable of holding SCTE
-	data.  before it is capable of holding SCTE data,
-	BVBI_Field_SCTE_Allocate() must be called.
+    When a BVBI_Field_Handle is first created (by calling
+    BVBI_Field_Create()), it is not capable of holding SCTE
+    data.  before it is capable of holding SCTE data,
+    BVBI_Field_SCTE_Allocate() must be called.
 
-	Calling this function will cause any SCTE data contained in
-	the BVBI_Field_Handle to be lost!
+    Calling this function will cause any SCTE data contained in
+    the BVBI_Field_Handle to be lost!
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Field_SCTE_Allocate(
-	BVBI_Field_Handle fieldHandle,	/* [in] A BVBI_Field_Handle object       */
-	size_t                cc_size,  /* [in] Number of pieces of closed
-	                                        caption data to make room for.   */
+    BVBI_Field_Handle fieldHandle,  /* [in] A BVBI_Field_Handle object       */
+    size_t                cc_size,  /* [in] Number of pieces of closed
+                                            caption data to make room for.   */
     bool           scteEnableNrtv,  /* [in] Whether to allocate space to
-	                                        make SCTE NRTV data processing
-											possible.                        */
-	size_t               pam_size,  /* [in] Number of bytes of luma_PAM_data
-	                                        to make room for.                */
+                                            make SCTE NRTV data processing
+                                            possible.                        */
+    size_t               pam_size,  /* [in] Number of bytes of luma_PAM_data
+                                            to make room for.                */
     bool           scteEnableMono   /* [in] Whether to allocate space to
-	                                        make ETSI EN 301 775 monochrome
-											data processing possible.        */
+                                            make ETSI EN 301 775 monochrome
+                                            data processing possible.        */
 );
 
 /*****************************************************************************
   Summary:
     Changes whether or not a field data structure is capable
-	of of holding CGMS-B data.
+    of of holding CGMS-B data.
 
   Description:
     fieldHandle should be a valid, allocated BVBI_Field_Handle
     structure created by BVBI_Field_Create. This function changes the
-	internal properties of the structure so that it is capable
-	(or not) of holding CGMS-B data.
+    internal properties of the structure so that it is capable
+    (or not) of holding CGMS-B data.
 
-	When a BVBI_Field_Handle is first created (by calling
-	BVBI_Field_Create()), it is not capable of holding CGMS-B
-	data.  before it is capable of holding
-	CGMS-B data, BVBI_Field_CGMSB_Allocate() must be called.
+    When a BVBI_Field_Handle is first created (by calling
+    BVBI_Field_Create()), it is not capable of holding CGMS-B
+    data.  before it is capable of holding
+    CGMS-B data, BVBI_Field_CGMSB_Allocate() must be called.
 
-	Calling this function will cause any Gemstar data contained in
-	the BVBI_Field_Handle to be lost!
+    Calling this function will cause any Gemstar data contained in
+    the BVBI_Field_Handle to be lost!
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Field_CGMSB_Allocate(
-	BVBI_Field_Handle fieldHandle,	/* [in] A BVBI_Field_Handle object       */
-	bool                  bEnable	/* [in] If true, the BVBI_Field_Handle
-											object will be made capable of
-											holding CGMS-B data.  If false,
-											the object will lose this
-											capability, thus saving memory.  */
+    BVBI_Field_Handle fieldHandle,  /* [in] A BVBI_Field_Handle object       */
+    bool                  bEnable   /* [in] If true, the BVBI_Field_Handle
+                                            object will be made capable of
+                                            holding CGMS-B data.  If false,
+                                            the object will lose this
+                                            capability, thus saving memory.  */
 );
 
 
@@ -3663,22 +3673,22 @@ BERR_Code BVBI_Field_CGMSB_Allocate(
 
   Description:
     This function takes an active BVBI_Decode_Handle and sets options
-	related to WSS decoding. These options take effect at the next call to
-	BVBI_Decode_ApplyChanges.
+    related to WSS decoding. These options take effect at the next call to
+    BVBI_Decode_ApplyChanges.
 
-	This function allows the user to decode WSS data from a non-standard
-	video line number.
+    This function allows the user to decode WSS data from a non-standard
+    video line number.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Decode_SetWssOptions(
-	BVBI_Decode_Handle decodeHandle,	/* [in] A valid BVBI_Decode_Handle
-												object                       */
-	uint16_t              vline576i	    /* [in] The video line number to use
-	                                            for 576I/PAL decoding.       */
+    BVBI_Decode_Handle decodeHandle,    /* [in] A valid BVBI_Decode_Handle
+                                                object                       */
+    uint16_t              vline576i     /* [in] The video line number to use
+                                                for 576I/PAL decoding.       */
 );
 
 
@@ -3688,18 +3698,18 @@ BERR_Code BVBI_Decode_SetWssOptions(
 
   Description:
     This function takes an active BVBI_Decode_Handle and reports the options
-	related to WSS decoding.
+    related to WSS decoding.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Decode_GetWssOptions(
-	BVBI_Decode_Handle decodeHandle,   /*  [in] A valid BVBI_Decode_Handle
-												object                       */
-	uint16_t*            pVline576i    /* [out] The video line number used
-	                                            for 576I/PAL decoding.       */
+    BVBI_Decode_Handle decodeHandle,   /*  [in] A valid BVBI_Decode_Handle
+                                                object                       */
+    uint16_t*            pVline576i    /* [out] The video line number used
+                                                for 576I/PAL decoding.       */
 );
 
 
@@ -3709,18 +3719,18 @@ BERR_Code BVBI_Decode_GetWssOptions(
 
   Description:
     This function takes an active BVBI_Decode_Handle and sets options
-	related to Gemstar decoding. These options take effect at the next call to
-	BVBI_Decode_ApplyChanges.
+    related to Gemstar decoding. These options take effect at the next call to
+    BVBI_Decode_ApplyChanges.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Decode_SetGemstarOptions(
-	BVBI_Decode_Handle  decodeHandle,	/* [in] A valid BVBI_Decode_Handle
-												object                       */
-	const BVBI_GSOptions* pGsOptions    /* [in] Options for Gemstar input.   */
+    BVBI_Decode_Handle  decodeHandle,   /* [in] A valid BVBI_Decode_Handle
+                                                object                       */
+    const BVBI_GSOptions* pGsOptions    /* [in] Options for Gemstar input.   */
 );
 
 
@@ -3730,18 +3740,18 @@ BERR_Code BVBI_Decode_SetGemstarOptions(
 
   Description:
     This function takes an active BVBI_Decode_Handle and sets options
-	related to Gemstar decoding. These options take effect at the next call to
-	BVBI_Decode_ApplyChanges.
+    related to Gemstar decoding. These options take effect at the next call to
+    BVBI_Decode_ApplyChanges.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Decode_GetGemstarOptions(
-	BVBI_Decode_Handle decodeHandle,	/* [in] A valid BVBI_Decode_Handle
-												object                       */
-	BVBI_GSOptions*      pGsOptions    /* [out] Options for Gemstar input.   */
+    BVBI_Decode_Handle decodeHandle,    /* [in] A valid BVBI_Decode_Handle
+                                                object                       */
+    BVBI_GSOptions*      pGsOptions    /* [out] Options for Gemstar input.   */
 );
 
 
@@ -3750,24 +3760,24 @@ BERR_Code BVBI_Decode_GetGemstarOptions(
     Gets field parity attribute of VBI field data handle
 
   Description:
-	This function returns the "field parity" attribute of a BVBI_Field_Handle.
-	The attribute is a bitfield, and it will be one of: zero,
-	(1<<BAVC_Polarity_eTopField), (1<<BAVC_Polarity_eBotField), or
-	((1<<BAVC_Polarity_eTopField) | (1<<BAVC_Polarity_eBotField)).  The last
-	value indicates that the VBI data is suitable for encoding in either a top
-	field or a bottom field.  Other values will cause encoding of this VBI data
-	to fail.
+    This function returns the "field parity" attribute of a BVBI_Field_Handle.
+    The attribute is a bitfield, and it will be one of: zero,
+    (1<<BAVC_Polarity_eTopField), (1<<BAVC_Polarity_eBotField), or
+    ((1<<BAVC_Polarity_eTopField) | (1<<BAVC_Polarity_eBotField)).  The last
+    value indicates that the VBI data is suitable for encoding in either a top
+    field or a bottom field.  Other values will cause encoding of this VBI data
+    to fail.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Field_GetPolarity_isr(
-	BVBI_Field_Handle vbiHandle,	/*  [in] A valid BVBI_Field_Handle
-											 object                    */
-	uint32_t      *pPolarityMask	/* [out] The bitmask indicating
-											 field polarity            */
+    BVBI_Field_Handle vbiHandle,    /*  [in] A valid BVBI_Field_Handle
+                                             object                    */
+    uint32_t      *pPolarityMask    /* [out] The bitmask indicating
+                                             field polarity            */
 );
 
 
@@ -3776,31 +3786,31 @@ BERR_Code BVBI_Field_GetPolarity_isr(
     Sets field parity attribute of VBI field data handle
 
   Description:
-	This function sets the "field parity" attribute of a BVBI_Field_Handle.
-	The attribute is a bitfield, and it should be one of:
-	(1<<BAVC_Polarity_eTopField), (1<<BAVC_Polarity_eBotField), or
-	((1<<BAVC_Polarity_eTopField) | (1<<BAVC_Polarity_eBotField)).  The last
-	value indicates that the VBI data is suitable for encoding in either a top
-	field or a bottom field.  Other values will cause encoding of this VBI data
-	to fail.
+    This function sets the "field parity" attribute of a BVBI_Field_Handle.
+    The attribute is a bitfield, and it should be one of:
+    (1<<BAVC_Polarity_eTopField), (1<<BAVC_Polarity_eBotField), or
+    ((1<<BAVC_Polarity_eTopField) | (1<<BAVC_Polarity_eBotField)).  The last
+    value indicates that the VBI data is suitable for encoding in either a top
+    field or a bottom field.  Other values will cause encoding of this VBI data
+    to fail.
 
     A BVBI_Field_Handle "filled" by calling BVBI_Decode_Data_isr will have this
-	attribute set already.  However, the user may still wish to use
-	BVBI_Field_SetPolarity_isr in this case.  For example, setting the
-	attribute to ((1<<BAVC_Polarity_eTopField) | (1<<BAVC_Polarity_eBotField))
-	will cause the BVBI_Field_Handle to be encoded as quickly as possible;
-	the user will not have to wait for a field of the desired polarity to occur.
+    attribute set already.  However, the user may still wish to use
+    BVBI_Field_SetPolarity_isr in this case.  For example, setting the
+    attribute to ((1<<BAVC_Polarity_eTopField) | (1<<BAVC_Polarity_eBotField))
+    will cause the BVBI_Field_Handle to be encoded as quickly as possible;
+    the user will not have to wait for a field of the desired polarity to occur.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Field_SetPolarity_isr(
-	BVBI_Field_Handle vbiHandle,	/*  [in] A valid BVBI_Field_Handle
-											 object                    */
-	uint32_t        polarityMask	/*  [in] The bitmask indicating
-											 field polarity            */
+    BVBI_Field_Handle vbiHandle,    /*  [in] A valid BVBI_Field_Handle
+                                             object                    */
+    uint32_t        polarityMask    /*  [in] The bitmask indicating
+                                             field polarity            */
 );
 
 /*****************************************************************************
@@ -3811,23 +3821,23 @@ BERR_Code BVBI_Field_SetPolarity_isr(
     This function returns more information for the most recent encode
     or decode error on the specified BVBI_Field_Handle.  pErrInfo has
     a bit set for each of the various error types that has occurred
-	on it.	See the earlier parts of this header for the error
-	constants.
+    on it.  See the earlier parts of this header for the error
+    constants.
 
     Calling BVBI_Encode_Data_isr or BVBI_Decode_Data_isr on the
     BVBI_Field_Handle will clear the BVBI_Field_Handle's error data
     and replace it with data for the most recent call.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Field_GetErrorInfo_isr(
-	BVBI_Field_Handle fieldHandle,	/*  [in] A valid BVBI_Field_Handle
-											 object                    */
-	uint32_t            *pErrInfo	/* [out] The bitmask to use for
-											 returning line errors     */
+    BVBI_Field_Handle fieldHandle,  /*  [in] A valid BVBI_Field_Handle
+                                             object                    */
+    uint32_t            *pErrInfo   /* [out] The bitmask to use for
+                                             returning line errors     */
 );
 
 
@@ -3840,38 +3850,38 @@ BERR_Code BVBI_Field_GetErrorInfo_isr(
     BVBI_Field_Handle structure.  That field data may come from
     BVBI_Decode_Data_isr or BVBI_Field_Create originally.
 
-	If the function returns an error, the user may immediately
-	call BVBI_Field_GetErrorInfo_isr() to determine the cause of the error.
+    If the function returns an error, the user may immediately
+    call BVBI_Field_GetErrorInfo_isr() to determine the cause of the error.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
-	BVBI_ERR_FIELD_BADDATA    - Requested data has a problem.  Call
-								BVBI_Field_GetErrorInfo_isr for further info.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
+    BVBI_ERR_FIELD_BADDATA    - Requested data has a problem.  Call
+                                BVBI_Field_GetErrorInfo_isr for further info.
  *****************************************************************************/
 BERR_Code BVBI_Field_GetCCData_isr(
-	BVBI_Field_Handle fieldHandle,	/*  [in] A valid BVBI_Field_Handle
-											 object                          */
-	uint8_t           *pucLowByte,	/* [out] A pointer to an 8-bit int for
-											 CC data.  This is the "low
-											 byte" of closed caption data,
-											 as defined in the spec.  For
-											 some applications, the user
-											 could "AND" this data with the
-											 value 0x7F in order to clear
-											 the parity bits.  As an aid to
-											 troubleshooting, this function
-											 will return data even if there
-											 is a parity error.  For all
-											 other cases, 0x00 is returned.  */
-	uint8_t          *pucHighByte	/* [out] A pointer to an 8-bit int for
-											 CC data.  This is the "high
-											 byte" of closed caption data,
-											 as defined in the spec.  The
-											 comments regarding the above
-											 argument hold for this one as
-											 well.                           */
+    BVBI_Field_Handle fieldHandle,  /*  [in] A valid BVBI_Field_Handle
+                                             object                          */
+    uint8_t           *pucLowByte,  /* [out] A pointer to an 8-bit int for
+                                             CC data.  This is the "low
+                                             byte" of closed caption data,
+                                             as defined in the spec.  For
+                                             some applications, the user
+                                             could "AND" this data with the
+                                             value 0x7F in order to clear
+                                             the parity bits.  As an aid to
+                                             troubleshooting, this function
+                                             will return data even if there
+                                             is a parity error.  For all
+                                             other cases, 0x00 is returned.  */
+    uint8_t          *pucHighByte   /* [out] A pointer to an 8-bit int for
+                                             CC data.  This is the "high
+                                             byte" of closed caption data,
+                                             as defined in the spec.  The
+                                             comments regarding the above
+                                             argument hold for this one as
+                                             well.                           */
 );
 
 
@@ -3886,21 +3896,21 @@ BERR_Code BVBI_Field_GetCCData_isr(
     encoded using BVBI_Encode_Data_isr.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Field_SetCCData_isr(
-	BVBI_Field_Handle fieldHandle,	/*  [in] A valid BVBI_Field_Handle
-											 object                          */
-	 uint8_t             cLowByte,	/*  [in] 8 bits of closed caption data
-											 to insert.  This is the "low
-											 byte" of closed caption data,
-											 as defined in the spec.         */
-	uint8_t             cHighByte	/*  [in] 8 bits of closed caption data
-											 to insert.  This is the "high
-											 byte" of closed caption data,
-											 as defined in the spec.         */
+    BVBI_Field_Handle fieldHandle,  /*  [in] A valid BVBI_Field_Handle
+                                             object                          */
+     uint8_t             cLowByte,  /*  [in] 8 bits of closed caption data
+                                             to insert.  This is the "low
+                                             byte" of closed caption data,
+                                             as defined in the spec.         */
+    uint8_t             cHighByte   /*  [in] 8 bits of closed caption data
+                                             to insert.  This is the "high
+                                             byte" of closed caption data,
+                                             as defined in the spec.         */
 );
 
 
@@ -3910,15 +3920,15 @@ BERR_Code BVBI_Field_SetCCData_isr(
 
   Description:
     This function flags a field data structure as having no closed caption
-	data.  It effectively undoes the action of BVBI_Field_SetCCData_isr().
+    data.  It effectively undoes the action of BVBI_Field_SetCCData_isr().
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - The supplied parameter was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - The supplied parameter was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Field_ClearCCData_isr(
-	BVBI_Field_Handle fieldHandle	/* [in] A valid BVBI_Field_Handle object */
+    BVBI_Field_Handle fieldHandle   /* [in] A valid BVBI_Field_Handle object */
 );
 
 
@@ -3932,17 +3942,17 @@ BERR_Code BVBI_Field_ClearCCData_isr(
     BVBI_Decode_Data_isr or BVBI_Field_Create originally.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
-	BVBI_ERR_FIELD_BADDATA    - Requested data has a problem.  Call
-								BVBI_Field_GetErrorInfo_isr for further info.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
+    BVBI_ERR_FIELD_BADDATA    - Requested data has a problem.  Call
+                                BVBI_Field_GetErrorInfo_isr for further info.
  *****************************************************************************/
 BERR_Code BVBI_Field_GetCGMSAData_isr(
-	BVBI_Field_Handle fieldHandle,	/*  [in] A valid BVBI_Field_Handle
-											 object                        */
-	uint32_t         *pulCGMSData	/* [out] A pointer to a 32-bit int for
-											 CGMS-A data                   */
+    BVBI_Field_Handle fieldHandle,  /*  [in] A valid BVBI_Field_Handle
+                                             object                        */
+    uint32_t         *pulCGMSData   /* [out] A pointer to a 32-bit int for
+                                             CGMS-A data                   */
 );
 /* Backward compatibility, DEPRECATED! */
 #define BVBI_Field_GetCGMSData_isr BVBI_Field_GetCGMSAData_isr
@@ -3958,16 +3968,16 @@ BERR_Code BVBI_Field_GetCGMSAData_isr(
     BVBI_Decode_Data_isr or BVBI_Field_Create originally.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
-	BVBI_ERR_FIELD_BADDATA    - Requested data has a problem.  Call
-								BVBI_Field_GetErrorInfo_isr for further info.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
+    BVBI_ERR_FIELD_BADDATA    - Requested data has a problem.  Call
+                                BVBI_Field_GetErrorInfo_isr for further info.
  *****************************************************************************/
 BERR_Code BVBI_Field_GetCGMSBData_isr(
-	BVBI_Field_Handle fieldHandle,	/*  [in] A valid BVBI_Field_Handle
-											 object                        */
-	BAVC_VBI_CGMSB_Datum*  pDatum   /* [out] CGMS-B data contained in
+    BVBI_Field_Handle fieldHandle,  /*  [in] A valid BVBI_Field_Handle
+                                             object                        */
+    BAVC_VBI_CGMSB_Datum*  pDatum   /* [out] CGMS-B data contained in
                                              the above field handle.       */
 );
 
@@ -3983,14 +3993,14 @@ BERR_Code BVBI_Field_GetCGMSBData_isr(
     encoded using BVBI_Encode_Data_isr.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Field_SetCGMSAData_isr(
-	BVBI_Field_Handle fieldHandle,	/* [in] A valid BVBI_Field_Handle object */
-	uint32_t           ulCGMSData	/* [in] A 32-bit int containing CGMS-A
-											data                             */
+    BVBI_Field_Handle fieldHandle,  /* [in] A valid BVBI_Field_Handle object */
+    uint32_t           ulCGMSData   /* [in] A 32-bit int containing CGMS-A
+                                            data                             */
 );
 /* Backward compatibility, DEPRECATED! */
 #define BVBI_Field_SetCGMSData_isr BVBI_Field_SetCGMSAData_isr
@@ -4007,14 +4017,14 @@ BERR_Code BVBI_Field_SetCGMSAData_isr(
     encoded using BVBI_Encode_Data_isr.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Field_SetCGMSBData_isr(
-	BVBI_Field_Handle fieldHandle,	/* [in] A valid BVBI_Field_Handle object */
-	BAVC_VBI_CGMSB_Datum*  pDatum   /* [in] CGMS-B data to copy in to the
-	                                         above field handle.             */
+    BVBI_Field_Handle fieldHandle,  /* [in] A valid BVBI_Field_Handle object */
+    BAVC_VBI_CGMSB_Datum*  pDatum   /* [in] CGMS-B data to copy in to the
+                                             above field handle.             */
 );
 
 
@@ -4024,15 +4034,15 @@ BERR_Code BVBI_Field_SetCGMSBData_isr(
 
   Description:
     This function flags a field data structure as having no closed caption
-	data.  It effectively undoes the action of BVBI_Field_SetCGMSAData_isr().
+    data.  It effectively undoes the action of BVBI_Field_SetCGMSAData_isr().
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - The supplied parameter was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - The supplied parameter was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Field_ClearCGMSAData_isr(
-	BVBI_Field_Handle fieldHandle	/* [in] A valid BVBI_Field_Handle object */
+    BVBI_Field_Handle fieldHandle   /* [in] A valid BVBI_Field_Handle object */
 );
 /* Backward compatibility, DEPRECATED! */
 #define BVBI_Field_ClearCGMSData_isr BVBI_Field_ClearCGMSAData_isr
@@ -4044,15 +4054,15 @@ BERR_Code BVBI_Field_ClearCGMSAData_isr(
 
   Description:
     This function flags a field data structure as having no closed caption
-	data.  It effectively undoes the action of BVBI_Field_SetCGMSBData_isr().
+    data.  It effectively undoes the action of BVBI_Field_SetCGMSBData_isr().
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - The supplied parameter was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - The supplied parameter was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Field_ClearCGMSBData_isr(
-	BVBI_Field_Handle fieldHandle	/* [in] A valid BVBI_Field_Handle object */
+    BVBI_Field_Handle fieldHandle   /* [in] A valid BVBI_Field_Handle object */
 );
 
 
@@ -4066,16 +4076,16 @@ BERR_Code BVBI_Field_ClearCGMSBData_isr(
     BVBI_Decode_Data_isr or BVBI_Field_Create originally.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
-	BVBI_ERR_FIELD_BADDATA    - Requested data has a problem.  Call
-								BVBI_Field_GetErrorInfo_isr for further info.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
+    BVBI_ERR_FIELD_BADDATA    - Requested data has a problem.  Call
+                                BVBI_Field_GetErrorInfo_isr for further info.
  *****************************************************************************/
 BERR_Code BVBI_Field_GetWSSData_isr(
-	BVBI_Field_Handle fieldHandle,	/* [in] A valid BVBI_Field_Handle object */
-	uint16_t          *pusWSSData	/* [in] A pointer to a 16-bit int for
-											WSS data                         */
+    BVBI_Field_Handle fieldHandle,  /* [in] A valid BVBI_Field_Handle object */
+    uint16_t          *pusWSSData   /* [in] A pointer to a 16-bit int for
+                                            WSS data                         */
 );
 
 
@@ -4090,13 +4100,13 @@ BERR_Code BVBI_Field_GetWSSData_isr(
     encoded using BVBI_Encode_Data_isr.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Field_SetWSSData_isr(
-	BVBI_Field_Handle fieldHandle,	/* [in] A valid BVBI_Field_Handle object */
-	uint16_t            usWSSData	/* [in] A 16-bit int containing WSS data */
+    BVBI_Field_Handle fieldHandle,  /* [in] A valid BVBI_Field_Handle object */
+    uint16_t            usWSSData   /* [in] A 16-bit int containing WSS data */
 );
 
 
@@ -4106,15 +4116,15 @@ BERR_Code BVBI_Field_SetWSSData_isr(
 
   Description:
     This function flags a field data structure as having no closed caption
-	data.  It effectively undoes the action of BVBI_Field_SetWSSData_isr().
+    data.  It effectively undoes the action of BVBI_Field_SetWSSData_isr().
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - The supplied parameter was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - The supplied parameter was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Field_ClearWSSData_isr(
-	BVBI_Field_Handle fieldHandle	/* [in] A valid BVBI_Field_Handle object */
+    BVBI_Field_Handle fieldHandle   /* [in] A valid BVBI_Field_Handle object */
 );
 
 
@@ -4128,32 +4138,32 @@ BERR_Code BVBI_Field_ClearWSSData_isr(
     BVBI_Decode_Data_isr or BVBI_Field_Create originally.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.  In particular, if there are
-								more than ttLine's of teletext data waiting for
-								the caller, then this function will fail
-								completely and return this error code.
-	BVBI_ERR_FLDH_CONFLICT    - The field handle does not have the proper
-								allocation to call this function.  The
-								allocation should have been done by calling
-								BVBI_Field_TT_Allocate.
-	BVBI_ERR_FIELD_BADDATA    - Requested data has a problem.  Call
-								BVBI_Field_GetErrorInfo_isr for further info.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.  In particular, if there are
+                                more than ttLine's of teletext data waiting for
+                                the caller, then this function will fail
+                                completely and return this error code.
+    BVBI_ERR_FLDH_CONFLICT    - The field handle does not have the proper
+                                allocation to call this function.  The
+                                allocation should have been done by calling
+                                BVBI_Field_TT_Allocate.
+    BVBI_ERR_FIELD_BADDATA    - Requested data has a problem.  Call
+                                BVBI_Field_GetErrorInfo_isr for further info.
  *****************************************************************************/
 BERR_Code BVBI_Field_GetTTData_isr (
-	BVBI_Field_Handle fieldHandle, /*  [in] A valid BVBI_Field_Handle object */
-	int                    nLines, /*  [in] The number of entries in the
-											following array                  */
-	BAVC_VBI_TT_Line *    ttLines  /* [out] An array of teletext data
-											structures..  Each element of
-											the array is a line of teletext
-											data.  If an element has a
-											ucFramingCode attribute equal
-											to
-											BVBI_TT_INVALID_FRAMING_CODE,
-											then that line of data is
-											invalid or not present.          */
+    BVBI_Field_Handle fieldHandle, /*  [in] A valid BVBI_Field_Handle object */
+    int                    nLines, /*  [in] The number of entries in the
+                                            following array                  */
+    BAVC_VBI_TT_Line *    ttLines  /* [out] An array of teletext data
+                                            structures..  Each element of
+                                            the array is a line of teletext
+                                            data.  If an element has a
+                                            ucFramingCode attribute equal
+                                            to
+                                            BVBI_TT_INVALID_FRAMING_CODE,
+                                            then that line of data is
+                                            invalid or not present.          */
 );
 
 
@@ -4167,23 +4177,23 @@ BERR_Code BVBI_Field_GetTTData_isr (
     BVBI_Decode_Data_isr or BVBI_Field_Create originally.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.  In particular, if there are
-								more than ttLine's of Gemstar data waiting for
-								the caller, then this function will fail
-								completely and return this error code.
-	BVBI_ERR_FLDH_CONFLICT    - The field handle does not have the proper
-								allocation to call this function.  The
-								allocation should have been done by calling
-								BVBI_Field_GS_Allocate.
-	BVBI_ERR_FIELD_BADDATA    - Requested data has a problem.  Call
-								BVBI_Field_GetErrorInfo_isr for further info.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.  In particular, if there are
+                                more than ttLine's of Gemstar data waiting for
+                                the caller, then this function will fail
+                                completely and return this error code.
+    BVBI_ERR_FLDH_CONFLICT    - The field handle does not have the proper
+                                allocation to call this function.  The
+                                allocation should have been done by calling
+                                BVBI_Field_GS_Allocate.
+    BVBI_ERR_FIELD_BADDATA    - Requested data has a problem.  Call
+                                BVBI_Field_GetErrorInfo_isr for further info.
  *****************************************************************************/
 BERR_Code BVBI_Field_GetGSData_isr (
-	BVBI_Field_Handle fieldHandle, /*  [in] A valid BVBI_Field_Handle object */
-	BAVC_VBI_GSData *      pGSData /* [out] One field's worth of Gemstar
-	                                        data.                            */
+    BVBI_Field_Handle fieldHandle, /*  [in] A valid BVBI_Field_Handle object */
+    BAVC_VBI_GSData *      pGSData /* [out] One field's worth of Gemstar
+                                            data.                            */
 );
 
 
@@ -4198,29 +4208,29 @@ BERR_Code BVBI_Field_GetGSData_isr (
     encoded using BVBI_Encode_Data_isr.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
-	BVBI_ERR_FLDH_CONFLICT    - The field handle does not have the proper
-								allocation to call this function.  The
-								allocation should have been done by calling
-								BVBI_Field_TT_Allocate.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
+    BVBI_ERR_FLDH_CONFLICT    - The field handle does not have the proper
+                                allocation to call this function.  The
+                                allocation should have been done by calling
+                                BVBI_Field_TT_Allocate.
  *****************************************************************************/
 BERR_Code BVBI_Field_SetTTData_isr (
-	BVBI_Field_Handle fieldHandle, /*  [in] A valid BVBI_Field_Handle object */
-	BFMT_VideoFmt    eVideoFormat, /*  [in] The video standard in use.
-											Determines line width.           */
-	int                    nLines, /*  [in] The number of entries in the
-											following array                  */
-	BAVC_VBI_TT_Line *    ttLines  /*  [in] An array of teletext data
-											structures..  Each element of
-											the array is a line of teletext
-											data.  If an element has a
-											ucFramingCode attribute equal
-											to
-											BVBI_TT_INVALID_FRAMING_CODE,
-											then that line of data will not
-											be encoded.                      */
+    BVBI_Field_Handle fieldHandle, /*  [in] A valid BVBI_Field_Handle object */
+    BFMT_VideoFmt    eVideoFormat, /*  [in] The video standard in use.
+                                            Determines line width.           */
+    int                    nLines, /*  [in] The number of entries in the
+                                            following array                  */
+    BAVC_VBI_TT_Line *    ttLines  /*  [in] An array of teletext data
+                                            structures..  Each element of
+                                            the array is a line of teletext
+                                            data.  If an element has a
+                                            ucFramingCode attribute equal
+                                            to
+                                            BVBI_TT_INVALID_FRAMING_CODE,
+                                            then that line of data will not
+                                            be encoded.                      */
 );
 
 
@@ -4235,18 +4245,18 @@ BERR_Code BVBI_Field_SetTTData_isr (
     encoded using BVBI_Encode_Data_isr.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
-	BVBI_ERR_FLDH_CONFLICT    - The field handle does not have the proper
-								allocation to call this function.  The
-								allocation should have been done by calling
-								BVBI_Field_TT_Allocate.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
+    BVBI_ERR_FLDH_CONFLICT    - The field handle does not have the proper
+                                allocation to call this function.  The
+                                allocation should have been done by calling
+                                BVBI_Field_TT_Allocate.
  *****************************************************************************/
 BERR_Code BVBI_Field_SetGSData_isr (
-	BVBI_Field_Handle fieldHandle, /*  [in] A valid BVBI_Field_Handle object */
-	BAVC_VBI_GSData *      pGSData /*  [in] One field's worth of Gemstar
-	                                        data.                            */
+    BVBI_Field_Handle fieldHandle, /*  [in] A valid BVBI_Field_Handle object */
+    BAVC_VBI_GSData *      pGSData /*  [in] One field's worth of Gemstar
+                                            data.                            */
 );
 
 
@@ -4256,15 +4266,15 @@ BERR_Code BVBI_Field_SetGSData_isr (
 
   Description:
     This function flags a field data structure as having no teletext
-	data.  It effectively undoes the action of BVBI_Field_SetTTData_isr().
+    data.  It effectively undoes the action of BVBI_Field_SetTTData_isr().
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - The supplied parameter was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - The supplied parameter was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Field_ClearTTData_isr(
-	BVBI_Field_Handle fieldHandle	/* [in] A valid BVBI_Field_Handle object */
+    BVBI_Field_Handle fieldHandle   /* [in] A valid BVBI_Field_Handle object */
 );
 
 
@@ -4274,15 +4284,15 @@ BERR_Code BVBI_Field_ClearTTData_isr(
 
   Description:
     This function flags a field data structure as having no Gemstar
-	data.  It effectively undoes the action of BVBI_Field_SetGSData_isr().
+    data.  It effectively undoes the action of BVBI_Field_SetGSData_isr().
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - The supplied parameter was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - The supplied parameter was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Field_ClearGSData_isr(
-	BVBI_Field_Handle fieldHandle	/* [in] A valid BVBI_Field_Handle object */
+    BVBI_Field_Handle fieldHandle   /* [in] A valid BVBI_Field_Handle object */
 );
 
 
@@ -4296,20 +4306,20 @@ BERR_Code BVBI_Field_ClearGSData_isr(
     BVBI_Decode_Data_isr or BVBI_Field_Create originally.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
-	BVBI_ERR_FLDH_CONFLICT    - The field handle does not have the proper
-								allocation to call this function.  The
-								allocation should have been done by calling
-								BVBI_Field_VPS_Allocate.
-	BVBI_ERR_FIELD_BADDATA    - Requested data has a problem.  Call
-								BVBI_Field_GetErrorInfo_isr for further info.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
+    BVBI_ERR_FLDH_CONFLICT    - The field handle does not have the proper
+                                allocation to call this function.  The
+                                allocation should have been done by calling
+                                BVBI_Field_VPS_Allocate.
+    BVBI_ERR_FIELD_BADDATA    - Requested data has a problem.  Call
+                                BVBI_Field_GetErrorInfo_isr for further info.
  *****************************************************************************/
 BERR_Code BVBI_Field_GetVPSData_isr(
-	BVBI_Field_Handle fieldHandle,	/*  [in] A valid BVBI_Field_Handle
-											 object                      */
-	BAVC_VBI_VPSData    *pVPSData	/* [out] A pointer to a the VPS data */
+    BVBI_Field_Handle fieldHandle,  /*  [in] A valid BVBI_Field_Handle
+                                             object                      */
+    BAVC_VBI_VPSData    *pVPSData   /* [out] A pointer to a the VPS data */
 );
 
 
@@ -4324,18 +4334,18 @@ BERR_Code BVBI_Field_GetVPSData_isr(
     encoded using BVBI_Encode_Data_isr.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
-	BVBI_ERR_FLDH_CONFLICT    - The field handle does not have the proper
-								allocation to call this function.  The
-								allocation should have been done by calling
-								BVBI_Field_VPS_Allocate.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
+    BVBI_ERR_FLDH_CONFLICT    - The field handle does not have the proper
+                                allocation to call this function.  The
+                                allocation should have been done by calling
+                                BVBI_Field_VPS_Allocate.
  *****************************************************************************/
 BERR_Code BVBI_Field_SetVPSData_isr(
-	BVBI_Field_Handle fieldHandle,	/*  [in] A valid BVBI_Field_Handle
-											 object                      */
-	BAVC_VBI_VPSData    *pVPSData	/* [out] A pointer to a the VPS data */
+    BVBI_Field_Handle fieldHandle,  /*  [in] A valid BVBI_Field_Handle
+                                             object                      */
+    BAVC_VBI_VPSData    *pVPSData   /* [out] A pointer to a the VPS data */
 );
 
 
@@ -4345,15 +4355,15 @@ BERR_Code BVBI_Field_SetVPSData_isr(
 
   Description:
     This function flags a field data structure as having no closed caption
-	data.  It effectively undoes the action of BVBI_Field_SetVPSData_isr().
+    data.  It effectively undoes the action of BVBI_Field_SetVPSData_isr().
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - The supplied parameter was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - The supplied parameter was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Field_ClearVPSData_isr(
-	BVBI_Field_Handle fieldHandle	/* [in] A valid BVBI_Field_Handle object */
+    BVBI_Field_Handle fieldHandle   /* [in] A valid BVBI_Field_Handle object */
 );
 
 
@@ -4366,36 +4376,36 @@ BERR_Code BVBI_Field_ClearVPSData_isr(
     BVBI_Field_Handle structure.  That field data may come from
     BVBI_Decode_Data_isr or BVBI_Field_Create originally.
 
-	The AMOL data byte array is converted to a waveform as follows.
-	 - 0x01 0x00 0x00 ...
-	   This is the pulse that occurs earliest in time.
-	 - 0x80 0x00 0x00 ...
-	   This is a pulse that occurs later in time than above.
-	 - 0x00 0x01 0x00 ...
-	   This is a pulse that occurs later in time than above.
-	 - and so forth.
+    The AMOL data byte array is converted to a waveform as follows.
+     - 0x01 0x00 0x00 ...
+       This is the pulse that occurs earliest in time.
+     - 0x80 0x00 0x00 ...
+       This is a pulse that occurs later in time than above.
+     - 0x00 0x01 0x00 ...
+       This is a pulse that occurs later in time than above.
+     - and so forth.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
-	BVBI_ERR_FLDH_CONFLICT    - The field handle does not have the proper
-								allocation to call this function.  The
-								allocation should have been done by calling
-								BVBI_Field_AMOL_Allocate.
-	BVBI_ERR_FIELD_BADDATA    - Requested data has a problem.  Call
-								BVBI_Field_GetErrorInfo_isr for further info.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
+    BVBI_ERR_FLDH_CONFLICT    - The field handle does not have the proper
+                                allocation to call this function.  The
+                                allocation should have been done by calling
+                                BVBI_Field_AMOL_Allocate.
+    BVBI_ERR_FIELD_BADDATA    - Requested data has a problem.  Call
+                                BVBI_Field_GetErrorInfo_isr for further info.
  *****************************************************************************/
 BERR_Code BVBI_Field_GetAMOLData_isr(
-	BVBI_Field_Handle fieldHandle,	/*  [in] A valid BVBI_Field_Handle
-											 object                          */
-	BVBI_AMOL_Type     *pAmolType,  /* [out] Which type of AMOL data is
-	                                         returned.                       */
-	uint8_t            *pAMOLData,	/* [out] A pointer to up to 24 bytes
-	                                         of AMOL data. See Description
-											 section for details.            */
-    unsigned int*         pLength	/* [out] size of data pointed to by
-	                                         pAMOLData in bytes              */
+    BVBI_Field_Handle fieldHandle,  /*  [in] A valid BVBI_Field_Handle
+                                             object                          */
+    BVBI_AMOL_Type     *pAmolType,  /* [out] Which type of AMOL data is
+                                             returned.                       */
+    uint8_t            *pAMOLData,  /* [out] A pointer to up to 24 bytes
+                                             of AMOL data. See Description
+                                             section for details.            */
+    unsigned int*         pLength   /* [out] size of data pointed to by
+                                             pAMOLData in bytes              */
 );
 
 
@@ -4405,21 +4415,21 @@ BERR_Code BVBI_Field_GetAMOLData_isr(
 
   Description:
     This function extracts one field's worth of multi-line closed
-	caption data from a BVBI_Field_Handle structure.  That field data
-	may come from BVBI_Decode_Data_isr or BVBI_Field_Create originally.
+    caption data from a BVBI_Field_Handle structure.  That field data
+    may come from BVBI_Decode_Data_isr or BVBI_Field_Create originally.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
-	BVBI_ERR_FIELD_BADDATA    - Requested data has a problem.  Call
-								BVBI_Field_GetErrorInfo_isr for further info.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
+    BVBI_ERR_FIELD_BADDATA    - Requested data has a problem.  Call
+                                BVBI_Field_GetErrorInfo_isr for further info.
  *****************************************************************************/
 BERR_Code BVBI_Field_GetMCCData_isr(
-	BVBI_Field_Handle fieldHandle,	/*  [in] A valid BVBI_Field_Handle
-											 object                          */
-	BAVC_VBI_MCCData*   pMCCData	/* [out] A pointer to multi-line closed
-	                                           caption data.                 */
+    BVBI_Field_Handle fieldHandle,  /*  [in] A valid BVBI_Field_Handle
+                                             object                          */
+    BAVC_VBI_MCCData*   pMCCData    /* [out] A pointer to multi-line closed
+                                               caption data.                 */
 );
 
 
@@ -4433,30 +4443,30 @@ BERR_Code BVBI_Field_GetMCCData_isr(
     BVBI_Decode_Data_isr or BVBI_Field_Create originally.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
-	BVBI_ERR_FLDH_CONFLICT    - The supplied BVBI_SCTE_Data does not have
-	                            room to hold the SCTE data in the field
-								handle.
-	BVBI_ERR_FIELD_NODATA     - No SCTE data in the field handle.
-	BVBI_ERR_FIELD_BADDATA    - Requested data has a problem.  Call
-								BVBI_Field_GetErrorInfo_isr for further info.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
+    BVBI_ERR_FLDH_CONFLICT    - The supplied BVBI_SCTE_Data does not have
+                                room to hold the SCTE data in the field
+                                handle.
+    BVBI_ERR_FIELD_NODATA     - No SCTE data in the field handle.
+    BVBI_ERR_FIELD_BADDATA    - Requested data has a problem.  Call
+                                BVBI_Field_GetErrorInfo_isr for further info.
  *****************************************************************************/
 BERR_Code BVBI_Field_GetSCTEData_isr(
-	BVBI_Field_Handle fieldHandle,	/*  [in] A valid BVBI_Field_Handle
-											 object                          */
-	BVBI_SCTE_Data     *pScteData   /* [out] A pointer to SCTE data. For
-	                                         each data pointer element in
-											 this stuct, if the
-											 corresponding _size element is
-											 checcked to determine if there
-											 is room to copy out the data.
-											 Because of this complexity, it
-											 is probably required to call
-											 BVBI_Field_GetSCTEData_Size_isr
-											 prior to calling
-											 BVBI_Field_GetSCTEData_isr.     */
+    BVBI_Field_Handle fieldHandle,  /*  [in] A valid BVBI_Field_Handle
+                                             object                          */
+    BVBI_SCTE_Data     *pScteData   /* [out] A pointer to SCTE data. For
+                                             each data pointer element in
+                                             this stuct, if the
+                                             corresponding _size element is
+                                             checcked to determine if there
+                                             is room to copy out the data.
+                                             Because of this complexity, it
+                                             is probably required to call
+                                             BVBI_Field_GetSCTEData_Size_isr
+                                             prior to calling
+                                             BVBI_Field_GetSCTEData_isr.     */
 );
 
 
@@ -4467,32 +4477,32 @@ BERR_Code BVBI_Field_GetSCTEData_isr(
   Description:
     This function discloses how much SCTE data is contained in a
     BVBI_Field_Handle structure.  The information returned is the
-	amount of useful data, NOT the maximum holding capacity of
-	the structure.
+    amount of useful data, NOT the maximum holding capacity of
+    the structure.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
-	BVBI_ERR_FIELD_BADDATA    - Requested data has a problem.  Call
-								BVBI_Field_GetErrorInfo_isr for further info.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
+    BVBI_ERR_FIELD_BADDATA    - Requested data has a problem.  Call
+                                BVBI_Field_GetErrorInfo_isr for further info.
  *****************************************************************************/
 BERR_Code BVBI_Field_GetSCTEData_Count_isr(
-	BVBI_Field_Handle fieldHandle,	/*  [in] A valid BVBI_Field_Handle
-											 object                          */
-	size_t*   pcc_count,            /* [out] Number of meaningful SCTE
-	                                         closed caption data entries in
-											 the field handle.               */
-	size_t* pnrtv_count,            /* [out] Number of meaningful SCTE
-	                                         NRTV data entries in the field
-											 handle.                         */
-	size_t*  ppam_count,            /* [out] Number of meaningful SCTE PAM
-	                                         data bytes in the field handle. */
-	size_t* pmono_count             /* [out] Number of meaningful SCTE
-	                                         monochrome bytes contained in
-											 each of the two monochrome data
-											 line stores, in the field
-											 handle.                         */
+    BVBI_Field_Handle fieldHandle,  /*  [in] A valid BVBI_Field_Handle
+                                             object                          */
+    size_t*   pcc_count,            /* [out] Number of meaningful SCTE
+                                             closed caption data entries in
+                                             the field handle.               */
+    size_t* pnrtv_count,            /* [out] Number of meaningful SCTE
+                                             NRTV data entries in the field
+                                             handle.                         */
+    size_t*  ppam_count,            /* [out] Number of meaningful SCTE PAM
+                                             data bytes in the field handle. */
+    size_t* pmono_count             /* [out] Number of meaningful SCTE
+                                             monochrome bytes contained in
+                                             each of the two monochrome data
+                                             line stores, in the field
+                                             handle.                         */
 );
 
 
@@ -4503,31 +4513,31 @@ BERR_Code BVBI_Field_GetSCTEData_Count_isr(
   Description:
     This function discloses the capacity to hold SCTE data in a
     BVBI_Field_Handle structure.  The information returned is the
-	amount of space available, NOT the amount of useful data currently in
-	the structure.
+    amount of space available, NOT the amount of useful data currently in
+    the structure.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
-	BVBI_ERR_FIELD_BADDATA    - Requested data has a problem.  Call
-								BVBI_Field_GetErrorInfo_isr for further info.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
+    BVBI_ERR_FIELD_BADDATA    - Requested data has a problem.  Call
+                                BVBI_Field_GetErrorInfo_isr for further info.
  *****************************************************************************/
 BERR_Code BVBI_Field_GetSCTEData_Size_isr(
-	BVBI_Field_Handle fieldHandle,	/*  [in] A valid BVBI_Field_Handle
-											 object                          */
-	size_t*    pcc_size,            /* [out] Number of meaningful SCTE
-	                                         closed caption data entries
+    BVBI_Field_Handle fieldHandle,  /*  [in] A valid BVBI_Field_Handle
+                                             object                          */
+    size_t*    pcc_size,            /* [out] Number of meaningful SCTE
+                                             closed caption data entries
                                              that the field handle can hold. */
-	size_t*  pnrtv_size,            /* [out] Number of SCTE NRTV data
-	                                         entries that the field handle
-											 can hold.                       */
-	size_t*   ppam_size,            /* [out] Number of SCTE PAM data bytes
-	                                         that the field handle can hold. */
-	size_t*  pmono_size             /* [out] Number of SCTE monochrome bytes
-	                                         contained in each of the two
-											 monochrome data line stores,
-											 that the field handle can hold. */
+    size_t*  pnrtv_size,            /* [out] Number of SCTE NRTV data
+                                             entries that the field handle
+                                             can hold.                       */
+    size_t*   ppam_size,            /* [out] Number of SCTE PAM data bytes
+                                             that the field handle can hold. */
+    size_t*  pmono_size             /* [out] Number of SCTE monochrome bytes
+                                             contained in each of the two
+                                             monochrome data line stores,
+                                             that the field handle can hold. */
 );
 
 
@@ -4542,25 +4552,25 @@ BERR_Code BVBI_Field_GetSCTEData_Size_isr(
     encoded using BVBI_Encode_Data_isr.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
-	BVBI_ERR_FLDH_CONFLICT    - The field handle does not have the proper
-								allocation to call this function.  The
-								allocation should have been done by calling
-								BVBI_Field_AMOL_Allocate.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
+    BVBI_ERR_FLDH_CONFLICT    - The field handle does not have the proper
+                                allocation to call this function.  The
+                                allocation should have been done by calling
+                                BVBI_Field_AMOL_Allocate.
  *****************************************************************************/
 BERR_Code BVBI_Field_SetAMOLData_isr(
-	BVBI_Field_Handle fieldHandle,	/*  [in] A valid BVBI_Field_Handle
-											 object                          */
-	BVBI_AMOL_Type        amolType, /*  [in] Which type of AMOL data is
-	                                         supplied.                       */
-	uint8_t             *pAMOLData,	/*  [in] A pointer to up to 24 bytes
-	                                         of AMOL data. See
-											 BVBI_Field_GetAMOLData_isr()
-											 for details about this data.    */
-    unsigned int            length	/*  [in] size of data pointed to by
-	                                         pAMOLData in bytes              */
+    BVBI_Field_Handle fieldHandle,  /*  [in] A valid BVBI_Field_Handle
+                                             object                          */
+    BVBI_AMOL_Type        amolType, /*  [in] Which type of AMOL data is
+                                             supplied.                       */
+    uint8_t             *pAMOLData, /*  [in] A pointer to up to 24 bytes
+                                             of AMOL data. See
+                                             BVBI_Field_GetAMOLData_isr()
+                                             for details about this data.    */
+    unsigned int            length  /*  [in] size of data pointed to by
+                                             pAMOLData in bytes              */
 );
 
 
@@ -4570,20 +4580,20 @@ BERR_Code BVBI_Field_SetAMOLData_isr(
 
   Description:
     This function writes one field's worth of multi-line closed
-	caption data to a BVBI_Field_Handle structure.  That field data
-	may come from BVBI_Decode_Data_isr or BVBI_Field_Create
-	originally.  It may be encoded using BVBI_Encode_Data_isr.
+    caption data to a BVBI_Field_Handle structure.  That field data
+    may come from BVBI_Decode_Data_isr or BVBI_Field_Create
+    originally.  It may be encoded using BVBI_Encode_Data_isr.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Field_SetMCCData_isr(
-	BVBI_Field_Handle fieldHandle,	/*  [in] A valid BVBI_Field_Handle
-											 object                          */
-	BAVC_VBI_MCCData*    pMCCData	/*  [in] A pointer to multi-line closed
-	                                         caption data.                   */
+    BVBI_Field_Handle fieldHandle,  /*  [in] A valid BVBI_Field_Handle
+                                             object                          */
+    BAVC_VBI_MCCData*    pMCCData   /*  [in] A pointer to multi-line closed
+                                             caption data.                   */
 );
 
 
@@ -4598,18 +4608,18 @@ BERR_Code BVBI_Field_SetMCCData_isr(
     encoded using BVBI_Encode_Data_isr.
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-							    possibly NULL.
-	BVBI_ERR_FLDH_CONFLICT    - The field handle does not have the proper
-								allocation to call this function.  The
-								allocation should have been done by calling
-								BVBI_Field_SCTE_Allocate.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
+                                possibly NULL.
+    BVBI_ERR_FLDH_CONFLICT    - The field handle does not have the proper
+                                allocation to call this function.  The
+                                allocation should have been done by calling
+                                BVBI_Field_SCTE_Allocate.
  *****************************************************************************/
 BERR_Code BVBI_Field_SetSCTEData_isr(
-	BVBI_Field_Handle fieldHandle,	/*  [in] A valid BVBI_Field_Handle
-											 object                      */
-	BVBI_SCTE_Data      *pScteData  /*  [in] SCTE data to apply.         */
+    BVBI_Field_Handle fieldHandle,  /*  [in] A valid BVBI_Field_Handle
+                                             object                      */
+    BVBI_SCTE_Data      *pScteData  /*  [in] SCTE data to apply.         */
 );
 
 
@@ -4619,15 +4629,15 @@ BERR_Code BVBI_Field_SetSCTEData_isr(
 
   Description:
     This function flags a field data structure as having no closed caption
-	data.  It effectively undoes the action of BVBI_Field_SetAMOLData_isr().
+    data.  It effectively undoes the action of BVBI_Field_SetAMOLData_isr().
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - The supplied parameter was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - The supplied parameter was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Field_ClearAMOLData_isr(
-	BVBI_Field_Handle fieldHandle	/* [in] A valid BVBI_Field_Handle object */
+    BVBI_Field_Handle fieldHandle   /* [in] A valid BVBI_Field_Handle object */
 );
 
 
@@ -4637,15 +4647,15 @@ BERR_Code BVBI_Field_ClearAMOLData_isr(
 
   Description:
     This function flags a field data structure as having no closed caption
-	data.  It effectively undoes the action of BVBI_Field_SetMCCData_isr().
+    data.  It effectively undoes the action of BVBI_Field_SetMCCData_isr().
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - The supplied parameter was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - The supplied parameter was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Field_ClearMCCData_isr(
-	BVBI_Field_Handle fieldHandle	/* [in] A valid BVBI_Field_Handle object */
+    BVBI_Field_Handle fieldHandle   /* [in] A valid BVBI_Field_Handle object */
 );
 
 
@@ -4655,15 +4665,15 @@ BERR_Code BVBI_Field_ClearMCCData_isr(
 
   Description:
     This function flags a field data structure as having no closed caption
-	data.  It effectively undoes the action of BVBI_Field_SetSCTEData_isr().
+    data.  It effectively undoes the action of BVBI_Field_SetSCTEData_isr().
 
   Returns:
-	BERR_SUCCESS              - The function call succeeded.
-	BERR_INVALID_PARAMETER    - The supplied parameter was invalid,
-							    possibly NULL.
+    BERR_SUCCESS              - The function call succeeded.
+    BERR_INVALID_PARAMETER    - The supplied parameter was invalid,
+                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Field_ClearSCTEData_isr(
-	BVBI_Field_Handle fieldHandle	/* [in] A valid BVBI_Field_Handle object */
+    BVBI_Field_Handle fieldHandle   /* [in] A valid BVBI_Field_Handle object */
 );
 
 
@@ -4682,27 +4692,27 @@ BERR_Code BVBI_Field_ClearSCTEData_isr(
 
   Returns:
     true if the field handle is null according to the above definition. False,
-	otherwise.
+    otherwise.
  *****************************************************************************/
 bool BVBI_Field_IsNull (
-	BVBI_Field_Handle fieldHandle	/* [in] A valid BVBI_Field_Handle object */
+    BVBI_Field_Handle fieldHandle   /* [in] A valid BVBI_Field_Handle object */
 );
 
 
 /*****************************************************************************
   Summary:
     Determines whether a field handle contains only null data. ISR-safe
-	version.
+    version.
 
   Description:
     ISR-safe version of BVBI_Field_IsNull().
 
   Returns:
     true if the field handle is null according to the above definition. False,
-	otherwise.
+    otherwise.
  *****************************************************************************/
 bool BVBI_Field_IsNull_isr (
-	BVBI_Field_Handle fieldHandle	/* [in] A valid BVBI_Field_Handle object */
+    BVBI_Field_Handle fieldHandle   /* [in] A valid BVBI_Field_Handle object */
 );
 
 

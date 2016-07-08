@@ -1,23 +1,40 @@
-/***************************************************************************
-*     Copyright (c) 2006-2014, Broadcom Corporation*
-*     All Rights Reserved*
-*     Confidential Property of Broadcom Corporation*
-*
-*  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
-*  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
-*  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* Module Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
-*
-***************************************************************************/
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
 /***************************************************************
 *
 * This file maps the power resource control to register writes.
@@ -815,77 +832,125 @@ static void BCHP_PWR_P_HW_RFM_Control(BCHP_Handle handle, bool activate)
 
 static void BCHP_PWR_P_HW_PLL_HVD_CH0_Control(BCHP_Handle handle, bool activate)
 {
-    uint32_t mask;
+    uint32_t mask, reg;
 
     BDBG_MSG(("HW_PLL_HVD_CH0: %s", activate?"on":"off"));
 
     if(activate) {
-	mask = ( BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_0_CLOCK_DIS_CH0_MASK );
-	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_0, mask, 0);
-	mask = ( BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_0_POST_DIVIDER_HOLD_CH0_MASK );
-	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_0, mask, 0);
+        reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_0);
+        mask = ( BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_0_CLOCK_DIS_CH0_MASK );
+        reg &= ~mask;
+        BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_0, reg);
+
+        reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_0);
+        mask = ( BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_0_POST_DIVIDER_HOLD_CH0_MASK );
+        reg &= ~mask;
+        BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_0, reg);
     } else {
-	mask = ( BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_0_POST_DIVIDER_HOLD_CH0_MASK );
-	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_0, mask, mask);
-	mask = ( BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_0_CLOCK_DIS_CH0_MASK );
-	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_0, mask, mask);
+        reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_0);
+        mask = ( BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_0_POST_DIVIDER_HOLD_CH0_MASK );
+        reg &= ~mask;
+        reg |= mask;
+        BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_0, reg);
+
+        reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_0);
+        mask = ( BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_0_CLOCK_DIS_CH0_MASK );
+        reg &= ~mask;
+        reg |= mask;
+        BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_0, reg);
     }
 }
 
 static void BCHP_PWR_P_HW_PLL_HVD_CH1_Control(BCHP_Handle handle, bool activate)
 {
-    uint32_t mask;
+    uint32_t mask, reg;
 
     BDBG_MSG(("HW_PLL_HVD_CH1: %s", activate?"on":"off"));
 
     if(activate) {
-	mask = ( BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_1_CLOCK_DIS_CH1_MASK );
-	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_1, mask, 0);
-	mask = ( BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_1_POST_DIVIDER_HOLD_CH1_MASK );
-	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_1, mask, 0);
+        reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_1);
+        mask = ( BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_1_CLOCK_DIS_CH1_MASK );
+        reg &= ~mask;
+        BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_1, reg);
+
+        reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_1);
+        mask = ( BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_1_POST_DIVIDER_HOLD_CH1_MASK );
+        reg &= ~mask;
+        BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_1, reg);
     } else {
-	mask = ( BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_1_POST_DIVIDER_HOLD_CH1_MASK );
-	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_1, mask, mask);
-	mask = ( BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_1_CLOCK_DIS_CH1_MASK );
-	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_1, mask, mask);
+        reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_1);
+        mask = ( BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_1_POST_DIVIDER_HOLD_CH1_MASK );
+        reg &= ~mask;
+        reg |= mask;
+        BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_1, reg);
+
+        reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_1);
+        mask = ( BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_1_CLOCK_DIS_CH1_MASK );
+        reg &= ~mask;
+        reg |= mask;
+        BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_1, reg);
     }
 }
 
 static void BCHP_PWR_P_HW_PLL_HVD_CH2_Control(BCHP_Handle handle, bool activate)
 {
-    uint32_t mask;
+    uint32_t mask, reg;
 
     BDBG_MSG(("HW_PLL_HVD_CH2: %s", activate?"on":"off"));
 
     if(activate) {
-	mask = ( BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_2_CLOCK_DIS_CH2_MASK );
-	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_2, mask, 0);
-	mask = ( BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_2_POST_DIVIDER_HOLD_CH2_MASK );
-	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_2, mask, 0);
+        reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_2);
+        mask = ( BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_2_CLOCK_DIS_CH2_MASK );
+        reg &= ~mask;
+        BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_2, reg);
+
+        reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_2);
+        mask = ( BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_2_POST_DIVIDER_HOLD_CH2_MASK );
+        reg &= ~mask;
+        BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_2, reg);
     } else {
-	mask = ( BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_2_POST_DIVIDER_HOLD_CH2_MASK );
-	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_2, mask, mask);
-	mask = ( BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_2_CLOCK_DIS_CH2_MASK );
-	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_2, mask, mask);
+        reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_2);
+        mask = ( BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_2_POST_DIVIDER_HOLD_CH2_MASK );
+        reg &= ~mask;
+        reg |= mask;
+        BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_2, reg);
+
+        reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_2);
+        mask = ( BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_2_CLOCK_DIS_CH2_MASK );
+        reg &= ~mask;
+        reg |= mask;
+        BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_2, reg);
     }
 }
 
 static void BCHP_PWR_P_HW_PLL_HVD_CH3_Control(BCHP_Handle handle, bool activate)
 {
-    uint32_t mask;
+    uint32_t mask, reg;
 
     BDBG_MSG(("HW_PLL_HVD_CH3: %s", activate?"on":"off"));
 
     if(activate) {
-	mask = ( BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_3_CLOCK_DIS_CH3_MASK );
-	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_3, mask, 0);
-	mask = ( BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_3_POST_DIVIDER_HOLD_CH3_MASK );
-	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_3, mask, 0);
+        reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_3);
+        mask = ( BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_3_CLOCK_DIS_CH3_MASK );
+        reg &= ~mask;
+        BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_3, reg);
+
+        reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_3);
+        mask = ( BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_3_POST_DIVIDER_HOLD_CH3_MASK );
+        reg &= ~mask;
+        BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_3, reg);
     } else {
-	mask = ( BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_3_POST_DIVIDER_HOLD_CH3_MASK );
-	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_3, mask, mask);
-	mask = ( BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_3_CLOCK_DIS_CH3_MASK );
-	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_3, mask, mask);
+        reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_3);
+        mask = ( BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_3_POST_DIVIDER_HOLD_CH3_MASK );
+        reg &= ~mask;
+        reg |= mask;
+        BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_3, reg);
+
+        reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_3);
+        mask = ( BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_3_CLOCK_DIS_CH3_MASK );
+        reg &= ~mask;
+        reg |= mask;
+        BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_HVD_PLL_CHANNEL_CTRL_CH_3, reg);
     }
 }
 
@@ -1239,39 +1304,63 @@ static void BCHP_PWR_P_HW_PLL_VCXO_PLL2_Control(BCHP_Handle handle, bool activat
 
 static void BCHP_PWR_P_HW_PLL_MOCA_CH3_Control(BCHP_Handle handle, bool activate)
 {
-    uint32_t mask;
+    uint32_t mask, reg;
 
     BDBG_MSG(("HW_PLL_MOCA_CH3: %s", activate?"on":"off"));
 
     if(activate) {
-	mask = ( BCHP_CLKGEN_PLL_MOCA_PLL_CHANNEL_CTRL_CH_3_CLOCK_DIS_CH3_MASK );
-	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_MOCA_PLL_CHANNEL_CTRL_CH_3, mask, 0);
-	mask = ( BCHP_CLKGEN_PLL_MOCA_PLL_CHANNEL_CTRL_CH_3_POST_DIVIDER_HOLD_CH3_MASK );
-	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_MOCA_PLL_CHANNEL_CTRL_CH_3, mask, 0);
+        reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_MOCA_PLL_CHANNEL_CTRL_CH_3);
+        mask = ( BCHP_CLKGEN_PLL_MOCA_PLL_CHANNEL_CTRL_CH_3_CLOCK_DIS_CH3_MASK );
+        reg &= ~mask;
+        BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_MOCA_PLL_CHANNEL_CTRL_CH_3, reg);
+
+        reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_MOCA_PLL_CHANNEL_CTRL_CH_3);
+        mask = ( BCHP_CLKGEN_PLL_MOCA_PLL_CHANNEL_CTRL_CH_3_POST_DIVIDER_HOLD_CH3_MASK );
+        reg &= ~mask;
+        BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_MOCA_PLL_CHANNEL_CTRL_CH_3, reg);
     } else {
-	mask = ( BCHP_CLKGEN_PLL_MOCA_PLL_CHANNEL_CTRL_CH_3_POST_DIVIDER_HOLD_CH3_MASK );
-	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_MOCA_PLL_CHANNEL_CTRL_CH_3, mask, mask);
-	mask = ( BCHP_CLKGEN_PLL_MOCA_PLL_CHANNEL_CTRL_CH_3_CLOCK_DIS_CH3_MASK );
-	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_MOCA_PLL_CHANNEL_CTRL_CH_3, mask, mask);
+        reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_MOCA_PLL_CHANNEL_CTRL_CH_3);
+        mask = ( BCHP_CLKGEN_PLL_MOCA_PLL_CHANNEL_CTRL_CH_3_POST_DIVIDER_HOLD_CH3_MASK );
+        reg &= ~mask;
+        reg |= mask;
+        BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_MOCA_PLL_CHANNEL_CTRL_CH_3, reg);
+
+        reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_MOCA_PLL_CHANNEL_CTRL_CH_3);
+        mask = ( BCHP_CLKGEN_PLL_MOCA_PLL_CHANNEL_CTRL_CH_3_CLOCK_DIS_CH3_MASK );
+        reg &= ~mask;
+        reg |= mask;
+        BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_MOCA_PLL_CHANNEL_CTRL_CH_3, reg);
     }
 }
 
 static void BCHP_PWR_P_HW_PLL_MOCA_CH4_Control(BCHP_Handle handle, bool activate)
 {
-    uint32_t mask;
+    uint32_t mask, reg;
 
     BDBG_MSG(("HW_PLL_MOCA_CH4: %s", activate?"on":"off"));
 
     if(activate) {
-	mask = ( BCHP_CLKGEN_PLL_MOCA_PLL_CHANNEL_CTRL_CH_4_CLOCK_DIS_CH4_MASK );
-	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_MOCA_PLL_CHANNEL_CTRL_CH_4, mask, 0);
-	mask = ( BCHP_CLKGEN_PLL_MOCA_PLL_CHANNEL_CTRL_CH_4_POST_DIVIDER_HOLD_CH4_MASK );
-	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_MOCA_PLL_CHANNEL_CTRL_CH_4, mask, 0);
+        reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_MOCA_PLL_CHANNEL_CTRL_CH_4);
+        mask = ( BCHP_CLKGEN_PLL_MOCA_PLL_CHANNEL_CTRL_CH_4_CLOCK_DIS_CH4_MASK );
+        reg &= ~mask;
+        BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_MOCA_PLL_CHANNEL_CTRL_CH_4, reg);
+
+        reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_MOCA_PLL_CHANNEL_CTRL_CH_4);
+        mask = ( BCHP_CLKGEN_PLL_MOCA_PLL_CHANNEL_CTRL_CH_4_POST_DIVIDER_HOLD_CH4_MASK );
+        reg &= ~mask;
+        BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_MOCA_PLL_CHANNEL_CTRL_CH_4, reg);
     } else {
-	mask = ( BCHP_CLKGEN_PLL_MOCA_PLL_CHANNEL_CTRL_CH_4_POST_DIVIDER_HOLD_CH4_MASK );
-	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_MOCA_PLL_CHANNEL_CTRL_CH_4, mask, mask);
-	mask = ( BCHP_CLKGEN_PLL_MOCA_PLL_CHANNEL_CTRL_CH_4_CLOCK_DIS_CH4_MASK );
-	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_MOCA_PLL_CHANNEL_CTRL_CH_4, mask, mask);
+        reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_MOCA_PLL_CHANNEL_CTRL_CH_4);
+        mask = ( BCHP_CLKGEN_PLL_MOCA_PLL_CHANNEL_CTRL_CH_4_POST_DIVIDER_HOLD_CH4_MASK );
+        reg &= ~mask;
+        reg |= mask;
+        BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_MOCA_PLL_CHANNEL_CTRL_CH_4, reg);
+
+        reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_MOCA_PLL_CHANNEL_CTRL_CH_4);
+        mask = ( BCHP_CLKGEN_PLL_MOCA_PLL_CHANNEL_CTRL_CH_4_CLOCK_DIS_CH4_MASK );
+        reg &= ~mask;
+        reg |= mask;
+        BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_MOCA_PLL_CHANNEL_CTRL_CH_4, reg);
     }
 }
 

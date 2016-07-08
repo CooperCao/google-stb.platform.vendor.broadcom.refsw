@@ -1,7 +1,7 @@
 /******************************************************************************
-*    (c)2011-2013 Broadcom Corporation
+* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-* This program is the proprietary software of Broadcom Corporation and/or its licensors,
+* This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
 * conditions of a separate, written license agreement executed between you and Broadcom
 * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,21 +35,14 @@
 * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 * ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * Module Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 *****************************************************************************/
 #include "bstd.h"
 #include "bsat.h"
 #include "bsat_45216.h"
 #include "bsat_45216_priv.h"
+#include "bchp_45216_leap_ctrl.h"
 
 
 BDBG_MODULE(bsat_45216);
@@ -126,7 +119,8 @@ static const BSAT_Settings defDevSettings =
       NULL, /* BSAT_SetAcmSettings */
       NULL, /* BSAT_GetAcmSettings */
       NULL, /* BSAT_GetStreamList */
-      NULL  /* BSAT_GetStreamStatus */
+      NULL,  /* BSAT_GetStreamStatus */
+      BSAT_45216_P_GetFastChannelStatus
    }
 };
 

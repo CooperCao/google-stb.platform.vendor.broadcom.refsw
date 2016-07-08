@@ -1,41 +1,43 @@
 /******************************************************************************
- *    (c)2008-2015 Broadcom Corporation
- *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
- *
- * Except as expressly set forth in the Authorized License,
- *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
- *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
- *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *
- *****************************************************************************/
+* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*
+* This program is the proprietary software of Broadcom and/or its
+* licensors, and may only be used, duplicated, modified or distributed pursuant
+* to the terms and conditions of a separate, written license agreement executed
+* between you and Broadcom (an "Authorized License").  Except as set forth in
+* an Authorized License, Broadcom grants no license (express or implied), right
+* to use, or waiver of any kind with respect to the Software, and Broadcom
+* expressly reserves all rights in and to the Software and all intellectual
+* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*
+* Except as expressly set forth in the Authorized License,
+*
+* 1. This program, including its structure, sequence and organization,
+*    constitutes the valuable trade secrets of Broadcom, and you shall use all
+*    reasonable efforts to protect the confidentiality thereof, and to use
+*    this information only in connection with your use of Broadcom integrated
+*    circuit products.
+*
+* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+*
+* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+******************************************************************************/
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -133,7 +135,6 @@ static int DrawRect(
     int  offset            = 0;
     int  leftX             = X + width;
     int  bottomY           = Y + height;
-    int  spacingX          = 20;
     int  spacingY          = 0;
     char mouseActions[256] = "";
 
@@ -151,10 +152,6 @@ static int DrawRect(
     }
     printf( "<polygon points=\"%u,%u %u,%u %u,%u %u,%u \" class=%s id=rect%u onclick='MyClick(event)' %s />\n",
         X, Y, leftX, Y, leftX, bottomY, X, bottomY, class, RectCount, mouseActions );
-    if (strlen( multiline->line[0] ) > 7)
-    {
-        spacingX = -20;                                    /* for 3840x2160p60, shift text to the left */
-    }
 
     if (strstr( rectTitle, "DECODE" ) || strstr( rectTitle, "DISPLAY" ) || strstr( rectTitle, "ENCODE" ))
     {
@@ -223,7 +220,9 @@ static int DrawWindow(
 static unsigned int gfxIdx     = 0;
 static unsigned int windowIdx  = 0;
 static unsigned int displayIdx = 0;
+#if NEXUS_HAS_VIDEO_ENCODER
 static unsigned int encoderIdx = 0;
+#endif /* NEXUS_HAS_VIDEO_ENCODER */
 
 static int DrawWindowDisplay(
     int                 X,
@@ -238,7 +237,6 @@ static int DrawWindowDisplay(
     int   new_bottom         = 0;
     int   display_box_height = ( g_pip_used && decoder<=1 ) ? height * 3 + WINDOW_PAD : height * 2; /* if pip used, the display box needs to be taller to allow for extra window */
     bool  isMain             = false;
-    bool  isPip              = false;
     bool  showSdDisplay      = false;
     char *description        = malloc( strlen( tag ) + 24 );
     char *description2       = NULL;                       /* used for graphics resolution */
@@ -247,12 +245,17 @@ static int DrawWindowDisplay(
     memset( &multiline, 0, sizeof( multiline ));
 
     isMain        = decoder==0 && g_main_used;
-    isPip         = decoder==1 && g_pip_used;
     showSdDisplay = (( displayIdx==1 ) && ( svgPlot->display[displayIdx].numVideoWindows>0 ));
 
+    /* for 97445 boxmode 15, there are two windows connected to display0 (for HD pip), but there is no SD pip. */
+    if ( displayIdx == 0 && svgPlot->display[displayIdx].numVideoWindows == 2 )
+    {
+        display_box_height = height * 3 + WINDOW_PAD;
+    }
+
 #if 0
-    printf( "<text x=%u y=%u >X:%03u; Y:%03u; wid:%04u; hgt:%u; dec:%u; pip:%u; isMain:%u; isPip:%u</text>\n",
-        textX, textY, X, Y, width, height, decoder, g_pip_used, isMain, isPip );
+    printf( "<text x=%u y=%u >X:%03u; Y:%03u; wid:%04u; hgt:%u; dec:%u; pip:%u; isMain:%u; </text>\n",
+        textX, textY, X, Y, width, height, decoder, g_pip_used, isMain );
     textY += 20;
 #endif
 
@@ -291,10 +294,12 @@ static int DrawWindowDisplay(
         {
             description2 = svgPlot->videoDecoder[decoder].str_gfx_resolution;
         }
+#if NEXUS_HAS_VIDEO_ENCODER
         else
         {
             description2 = svgPlot->encoder_gfx_resolution;
         }
+#endif /* NEXUS_HAS_VIDEO_ENCODER */
         DrawWindow( X + COLUMN_GAP, new_bottom + WINDOW_PAD, width, height, description, description2, "graphicsbox" );                                                 /*graphics */
         DrawArrow( X + COLUMN_GAP + width, new_bottom + ( height + WINDOW_PAD ) / 2, X + COLUMN_GAP + COLUMN_GAP - 100, new_bottom + ( height + WINDOW_PAD ) / 2, "" ); /*connect window with display */
         gfxIdx++;
@@ -308,11 +313,20 @@ static int DrawWindowDisplay(
 
     if (isMain || showSdDisplay)
     {
-        strncpy( multiline.line[0], svgPlot->display[displayIdx].str_max_format, sizeof( multiline.line[0] ) - 1 );
+        /* SD displays typically have a max_format of "pal" even when the main display is NTSC-based. If the main display is NTSC-based, show "ntsc" instead of "pal" */
+        if ( ( showSdDisplay ) && ( strstr(svgPlot->display[displayIdx].str_max_format, "pal") /* SD description has "pal" in it */ ) &&
+             ( ( strstr(svgPlot->display[displayIdx-1].str_max_format, "p60") /* main description has p60 in it */ ) ||
+               ( strstr(svgPlot->display[displayIdx-1].str_max_format, "p30") /* main description has p30 in it */ ) ||
+               ( strcmp(svgPlot->display[displayIdx-1].str_max_format, "720p") == 0 /* main description has 720p in it */ ) ) )
+        {
+            strncpy( multiline.line[0], "ntsc", sizeof( multiline.line[0] ) - 1 );
+        }
+        else
+        {
+            strncpy( multiline.line[0], svgPlot->display[displayIdx].str_max_format, sizeof( multiline.line[0] ) - 1 );
+        }
         DrawRect( X + COLUMN_GAP + COLUMN_GAP - 100, Y, width, display_box_height, description, "displaybox", &multiline ); /*display */
 
-        strncpy( multiline.line[0], svgPlot->display[displayIdx].str_max_format, sizeof( multiline.line[0] ) - 1 );
-        DrawRect( X + COLUMN_GAP + COLUMN_GAP - 100, Y, width, display_box_height, description, "displaybox", &multiline ); /*display */
         if (isMain)
         {
             DrawArrow( X + 2* COLUMN_GAP + BOX_WIDTH - 100, Y + height / 2,      X + 2*COLUMN_GAP + COMPONENT_LINE_LENGTH, Y + height / 2, "marker-end=\"url(#Arrow)\"" ); /* HDMI out */
@@ -328,6 +342,7 @@ static int DrawWindowDisplay(
             DrawText( X + 2* COLUMN_GAP + BOX_WIDTH - 75, Y + WINDOW_PAD + 15, 20, "OUTPUTS", "start" );
         }
     }
+#if NEXUS_HAS_VIDEO_ENCODER
     else                                                   /* must be encoder */
     {
         /* the encoders tell us which display index to use */
@@ -350,6 +365,7 @@ static int DrawWindowDisplay(
         DrawArrow( X + 2*COLUMN_GAP + 100, Y + 40, X + 2*COLUMN_GAP + 30,  Y + 40, "" );                         /*connect encoder window with display */
         encoderIdx++;
     }
+#endif /* NEXUS_HAS_VIDEO_ENCODER */
 
     displayIdx++;
 
@@ -470,7 +486,7 @@ int Create_SvgPlot(
     {
         return( 0 );
     }
-    g_main_used            = ( svgPlot->num_decoders - svgPlot->num_encoders )>=1;
+    g_main_used            = ( svgPlot->num_decoders - svgPlot->num_encoders - svgPlot->num_decoders_graphics_pip )>=1;
     g_pip_used             = ( svgPlot->display[1].numVideoWindows > 1 );
 #if NEXUS_HAS_HDMI_INPUT
     g_num_hdmi_inputs      = svgPlot->num_hdmi_inputs;

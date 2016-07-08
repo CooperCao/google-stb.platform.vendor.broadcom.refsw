@@ -1,43 +1,39 @@
 /******************************************************************************
- * (c) 2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 #include "blst_queue.h"
 #include "bip.h"
@@ -88,6 +84,7 @@ typedef struct AppCtx
     char                        *xcodeProfile;
     bool                        printStatus;
     bool                        disableAvHeadersInsertion;
+    bool                        enableAllPass;
     BLST_Q_HEAD( streamerListHead, AppStreamerCtx ) streamerListHead; /* List of Streamer Ctx */
 } AppCtx;
 
@@ -117,6 +114,7 @@ typedef struct AppStreamerCtx
     bool                        enableHls;
     bool                        enableMpegDash;
     bool                        enableTransportTimestamp;
+    bool                        enableAllPass;
 } AppStreamerCtx;
 
 #define USER_INPUT_BUF_SIZE 64
@@ -181,10 +179,10 @@ void stopAndDestroyStreamer(
 {
     if (!pAppStreamerCtx->hHttpStreamer)
         return;
-    BDBG_MSG(( BIP_MSG_PRE_FMT " Stopping Streamer %p" BIP_MSG_PRE_ARG, pAppStreamerCtx->hHttpStreamer));
+    BDBG_MSG(( BIP_MSG_PRE_FMT " Stopping Streamer %p" BIP_MSG_PRE_ARG, (void *)pAppStreamerCtx->hHttpStreamer));
     BIP_HttpServer_StopStreamer( pAppStreamerCtx->pAppCtx->hHttpServer, pAppStreamerCtx->hHttpStreamer );
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT " Destroying Streamer %p" BIP_MSG_PRE_ARG, pAppStreamerCtx->hHttpStreamer));
+    BDBG_MSG(( BIP_MSG_PRE_FMT " Destroying Streamer %p" BIP_MSG_PRE_ARG, (void *)pAppStreamerCtx->hHttpStreamer));
     BIP_HttpServer_DestroyStreamer( pAppStreamerCtx->pAppCtx->hHttpServer,  pAppStreamerCtx->hHttpStreamer );
 
     return;
@@ -207,7 +205,7 @@ bool stopAndDestroyInactiveStreamer(
         {
             if ( status.inactivityTimeInMs >= HTTP_STREAMER_MAX_INACTIVITY_TIME_IN_MSEC )
             {
-                BDBG_WRN(( BIP_MSG_PRE_FMT "Destroy inactive (=%dmsec) HttpStreamer=%p so as to Free-up Nexus Resources for the next request. " BIP_MSG_PRE_ARG, status.inactivityTimeInMs, pAppStreamerCtx->hHttpStreamer ));
+                BDBG_WRN(( BIP_MSG_PRE_FMT "Destroy inactive (=%dmsec) HttpStreamer=%p so as to Free-up Nexus Resources for the next request. " BIP_MSG_PRE_ARG, status.inactivityTimeInMs, (void *)pAppStreamerCtx->hHttpStreamer ));
                 BLST_Q_REMOVE( &pAppCtx->streamerListHead, pAppStreamerCtx, streamerListNext );
                 stopAndDestroyStreamer( pAppStreamerCtx);
                 destroyAppStreamerCtx(pAppStreamerCtx);
@@ -262,7 +260,7 @@ static BIP_Status rejectRequestAndSetResponseHeaders(
     bipStatus = BIP_HttpServer_RejectRequest( pAppCtx->hHttpServer, hHttpRequest, &rejectSettings );
     BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "BIP_HttpServer_RejectRequest Failed" ), error, bipStatus, bipStatus );
 
-    BDBG_ERR(( BIP_MSG_PRE_FMT "BIP_HttpServer_RejectRequest() for hHttpRequest %p" BIP_MSG_PRE_ARG, hHttpRequest));
+    BDBG_ERR(( BIP_MSG_PRE_FMT "BIP_HttpServer_RejectRequest() for hHttpRequest %p" BIP_MSG_PRE_ARG, (void *)hHttpRequest));
 
 error:
     return (bipStatus);
@@ -299,7 +297,7 @@ static BIP_Status startStreamer(
         pAppStreamerCtx->hHttpStreamer = BIP_HttpServer_CreateStreamer( pAppStreamerCtx->pAppCtx->hHttpServer, &createStreamerSettings );
         responseStatus = BIP_HttpResponseStatus_e500_InternalServerError;
         BIP_CHECK_GOTO(( pAppStreamerCtx->hHttpStreamer ), ( "BIP_HttpServer_CreateStreamer Failed" ), rejectRequest, BIP_ERR_CREATE_FAILED, bipStatus );
-        BDBG_MSG(( BIP_MSG_PRE_FMT " BIP_HttpStreamer created: %p" BIP_MSG_PRE_ARG, pAppStreamerCtx->hHttpStreamer ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT " BIP_HttpStreamer created: %p" BIP_MSG_PRE_ARG, (void *)pAppStreamerCtx->hHttpStreamer ));
     }
 
     /* Get BIP_MediaInfoStream from hMediaInfo object.*/
@@ -392,7 +390,7 @@ static BIP_Status startStreamer(
 
                 pAppStreamerCtx->dlnaTimeSeekRangePresent = true;
 
-                BDBG_MSG(( BIP_MSG_PRE_FMT "fileInputSettings: beginTimeOffsetInMs=%lu, endTimeOffsetInMs=%lu"
+                BDBG_MSG(( BIP_MSG_PRE_FMT "fileInputSettings: beginTimeOffsetInMs=%u, endTimeOffsetInMs=%u"
                            BIP_MSG_PRE_ARG, fileInputSettings.beginTimeOffsetInMs, fileInputSettings.endTimeOffsetInMs));
             }
         }
@@ -408,6 +406,10 @@ static BIP_Status startStreamer(
             fileInputSettings.enableHwPacing = true;
         }
 
+        if (pAppStreamerCtx->enableAllPass)
+        {
+            fileInputSettings.enableAllPass = true;
+        }
         /* Set File input Settings */
         bipStatus = BIP_HttpStreamer_SetFileInputSettings( pAppStreamerCtx->hHttpStreamer, pAppStreamerCtx->pMediaFileAbsolutePathName, &(pAppStreamerCtx->streamerStreamInfo), &fileInputSettings );
         responseStatus = BIP_HttpResponseStatus_e500_InternalServerError;
@@ -427,7 +429,7 @@ static BIP_Status startStreamer(
      * This allows streamer to insert the PSI information in the HTTP Response. In addition, this is
      * required if app enables HW pacing or doesn't set the enableAllPass flag in the FileInputSettings above.
      */
-    if ( pMediaInfoStream->transportType != NEXUS_TransportType_eUnknown )
+    if ( !pAppStreamerCtx->enableAllPass && pMediaInfoStream->transportType != NEXUS_TransportType_eUnknown )
     {
         BIP_MediaInfoTrackGroup *pMediaInfoTrackGroup = NULL;
         BIP_MediaInfoTrack      *pMediaInfoTrack = NULL;
@@ -605,7 +607,7 @@ static BIP_Status startStreamer(
         bipStatus = BIP_HttpStreamer_SetResponseHeader( pAppStreamerCtx->hHttpStreamer, "Content-Type", "text/html" );
         responseStatus = BIP_HttpResponseStatus_e500_InternalServerError;
         BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS || bipStatus == BIP_INF_HTTP_MESSAGE_HEADER_ALREADY_SET),
-                ( "BIP_HttpStreamer_SetResponseHeader Failed: hHttpStreamer %p", pAppStreamerCtx->hHttpStreamer ), rejectRequest, bipStatus, bipStatus );
+                ( "BIP_HttpStreamer_SetResponseHeader Failed: hHttpStreamer %p", (void *)pAppStreamerCtx->hHttpStreamer ), rejectRequest, bipStatus, bipStatus );
 
     }
 
@@ -614,7 +616,7 @@ static BIP_Status startStreamer(
         bipStatus = BIP_HttpStreamer_SetResponseHeader( pAppStreamerCtx->hHttpStreamer, "transferMode.dlna.org", "Streaming" );
         responseStatus = BIP_HttpResponseStatus_e500_InternalServerError;
         BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS || bipStatus == BIP_INF_HTTP_MESSAGE_HEADER_ALREADY_SET),
-                ( "BIP_HttpStreamer_SetResponseHeader Failed: hHttpStreamer %p", pAppStreamerCtx->hHttpStreamer ), rejectRequest, bipStatus, bipStatus );
+                ( "BIP_HttpStreamer_SetResponseHeader Failed: hHttpStreamer %p", (void *)pAppStreamerCtx->hHttpStreamer ), rejectRequest, bipStatus, bipStatus );
 
         /* App can add more custom headers here using this example above! */
     }
@@ -640,7 +642,7 @@ static BIP_Status startStreamer(
         else break; /* Some other error, so no point in destroying the inactive streamers. */
     }
     responseStatus = BIP_HttpResponseStatus_e500_InternalServerError;
-    BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "BIP_HttpServer_StartStreamer Failed: hHttpStreamer %p", pAppStreamerCtx->hHttpStreamer ), rejectRequest, bipStatus, bipStatus );
+    BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "BIP_HttpServer_StartStreamer Failed: hHttpStreamer %p", (void *)pAppStreamerCtx->hHttpStreamer ), rejectRequest, bipStatus, bipStatus );
     return (bipStatus);
 
 rejectRequest:
@@ -650,7 +652,7 @@ rejectRequest:
 
     if (pAppStreamerCtx->hHttpStreamer)
     {
-        BDBG_MSG(( BIP_MSG_PRE_FMT " Destroying Streamer %p" BIP_MSG_PRE_ARG, pAppStreamerCtx->hHttpStreamer));
+        BDBG_MSG(( BIP_MSG_PRE_FMT " Destroying Streamer %p" BIP_MSG_PRE_ARG, (void *)pAppStreamerCtx->hHttpStreamer));
         /* Note: App doesn't need to destroy the streamer & can maintain a free-list of them. */
         BIP_HttpServer_DestroyStreamer( pAppStreamerCtx->pAppCtx->hHttpServer,  pAppStreamerCtx->hHttpStreamer );
         pAppStreamerCtx->hHttpStreamer = NULL;
@@ -791,7 +793,7 @@ static void processHttpRequestEvent(
             BIP_CHECK_GOTO(( pAppStreamerCtx ), ( "Memory Allocation Failed" ), rejectRequest, BIP_ERR_OUT_OF_SYSTEM_MEMORY, bipStatus );
 
             pAppStreamerCtx->pAppCtx = pAppCtx;
-            BDBG_MSG(( BIP_MSG_PRE_FMT "AppStreamerCtx %p: Setting up Streamer" BIP_MSG_PRE_ARG, pAppStreamerCtx));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "AppStreamerCtx %p: Setting up Streamer" BIP_MSG_PRE_ARG, (void *)pAppStreamerCtx));
 
             /* Copy Global Settings into Streamer instance. */
             pAppStreamerCtx->enableContinousPlay = pAppCtx->enableContinousPlay;
@@ -802,6 +804,7 @@ static void processHttpRequestEvent(
             pAppStreamerCtx->enableXcode = pAppCtx->enableXcode;
             pAppStreamerCtx->enableHls = pAppCtx->enableHls;
             pAppStreamerCtx->enableMpegDash = pAppCtx->enableMpegDash;
+            pAppStreamerCtx->enableAllPass = pAppCtx->enableAllPass;
             /*Initialize trackGroupId from pAppCtx->trackGroupId, if URL provides trackGroupId, then parseUrl will overwrite it.*/
             pAppStreamerCtx->trackGroupId = pAppCtx->trackGroupId;
 
@@ -925,7 +928,7 @@ static void processHttpRequestEvent(
             /* Streamer is started, now track this streamer context. */
             BLST_Q_INSERT_TAIL( &pAppCtx->streamerListHead, pAppStreamerCtx, streamerListNext );
 
-            BDBG_MSG(( BIP_MSG_PRE_FMT "AppStreamerCtx %p: Streaming is started!" BIP_MSG_PRE_ARG, pAppStreamerCtx));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "AppStreamerCtx %p: Streaming is started!" BIP_MSG_PRE_ARG, (void *)pAppStreamerCtx));
         }
         continue;
 
@@ -1213,7 +1216,7 @@ static void unInitHttpServer(
 
     if (!pAppCtx)
         return;
-    BDBG_MSG(( BIP_MSG_PRE_FMT " appCtx %p" BIP_MSG_PRE_ARG, pAppCtx ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT " appCtx %p" BIP_MSG_PRE_ARG, (void *)pAppCtx ));
 
     /* Stop the Server first, so that it doesn't accept any new connections. */
     if (pAppCtx->httpServerStarted)
@@ -1356,6 +1359,7 @@ static void printUsage(
             "  -xcodeProfile    #   Pre-defined xcode profile string: 720pAvc (default), 480pAvc, \n"
             "  -stats           #   Print Periodic stats. \n"
             "  -hls             #   Enable HLS Output. \n"
+            "  -enableAllPass   #   Enable streaming of all AV Tracks. \n"
           );
     printf( "To enable some of the above options at runtime via the URL Request, add following suffix extension to the URL: \n");
     printf(
@@ -1449,6 +1453,10 @@ BIP_Status parseOptions(
         else if ( !strcmp(argv[i], "-dontAddAvInfo") )
         {
             pAppCtx->disableAvHeadersInsertion = true;
+        }
+        else if ( !strcmp(argv[i], "-enableAllPass") )
+        {
+            pAppCtx->enableAllPass = true;
         }
         else
         {

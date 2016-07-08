@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2004-2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,18 +34,8 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
- ***************************************************************************/
+*
+***************************************************************************/
 #include "nexus_types.h"
 #include "priv/nexus_core.h"
 #include "nexus_platform_features.h"
@@ -132,7 +122,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
 
     NEXUS_Frontend_GetUserParameters(pConfig->frontend[0], &userParams);
     userParams.param1 = NEXUS_InputBand_e6;
-    userParams.pParam2 = NULL;
+    userParams.pParam2 = 0;
     NEXUS_Frontend_SetUserParameters(pConfig->frontend[0], &userParams);
 
 done:
@@ -248,7 +238,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
         BDBG_MSG(("pConfig->frontend[%d] = 0x%x", index, pConfig->frontend[index]));
         NEXUS_Frontend_GetUserParameters(pConfig->frontend[index], &userParams);
         userParams.param1 = NEXUS_InputBand_e1;
-        userParams.pParam2 = NULL;
+        userParams.pParam2 = 0;
         NEXUS_Frontend_SetUserParameters(pConfig->frontend[index], &userParams);
     
         index++;
@@ -270,7 +260,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
 
         NEXUS_Frontend_GetUserParameters(pConfig->frontend[index], &userParams);
         userParams.param1 = NEXUS_InputBand_e0;
-        userParams.pParam2 = NULL;
+        userParams.pParam2 = 0;
         NEXUS_Frontend_SetUserParameters(pConfig->frontend[index], &userParams);
 
         index++;
@@ -289,7 +279,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
         
         NEXUS_Frontend_GetUserParameters(pConfig->frontend[index], &userParams);
         userParams.param1 = NEXUS_InputBand_e9;
-        userParams.pParam2 = NULL;
+        userParams.pParam2 = 0;
         NEXUS_Frontend_SetUserParameters(pConfig->frontend[index], &userParams);
 
         index++;
@@ -327,7 +317,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
         NEXUS_Frontend_GetUserParameters(pConfig->frontend[index], &userParams);
         userParams.isMtsif = st3128Settings.isMtsif;
         userParams.param1 = st3128Settings.isMtsif ? st3128Settings.channelNumber : NEXUS_InputBand_e0 + i;
-        userParams.pParam2 = NULL;
+        userParams.pParam2 = 0;
         userParams.chipId = 0x3128;
         NEXUS_Frontend_SetUserParameters(pConfig->frontend[index], &userParams);
         index++;

@@ -1,49 +1,54 @@
 /******************************************************************************
- *    (c)2007-2015 Broadcom Corporation
- *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
- *
- * Except as expressly set forth in the Authorized License,
- *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
- *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
- *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *
- *****************************************************************************/
+* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*
+* This program is the proprietary software of Broadcom and/or its
+* licensors, and may only be used, duplicated, modified or distributed pursuant
+* to the terms and conditions of a separate, written license agreement executed
+* between you and Broadcom (an "Authorized License").  Except as set forth in
+* an Authorized License, Broadcom grants no license (express or implied), right
+* to use, or waiver of any kind with respect to the Software, and Broadcom
+* expressly reserves all rights in and to the Software and all intellectual
+* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*
+* Except as expressly set forth in the Authorized License,
+*
+* 1. This program, including its structure, sequence and organization,
+*    constitutes the valuable trade secrets of Broadcom, and you shall use all
+*    reasonable efforts to protect the confidentiality thereof, and to use
+*    this information only in connection with your use of Broadcom integrated
+*    circuit products.
+*
+* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+*
+* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. , WHICHEVER
+*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+******************************************************************************/
 
 
 #include "bhsm.h"
+#include "bchp_bsp_cmdbuf.h"
+#include "bsp_s_hw.h"
 #include "bchp_bsp_control_intr2.h"
 #include "bchp_bsp_glb_control.h"
 #include "bsp_s_commands.h"
 #include "bhsm_private.h"
 #include "bhsm_bsp_msg.h"
+#include "bchp_int_id_bsp.h"
 
 /* special support for  HSM ISR  vs. HSM Polling  */
 #if BHSM_DEBUG_POLLING
@@ -58,13 +63,37 @@ BDBG_MODULE(BHSMa);
 
 #define MAX(a,b) (((a)>(b))?(a):(b))
 #define MIN(a,b) (((a)<(b))?(a):(b))
-
-#define BHSM_CTRL_SET_ISR       (0)
-#define BHSM_CTRL_SET_POLLING   (1)
-
 #define BHSM_P_BSP_MSG_HANDLE_MAGIC_NUMBER (0x12435687)
 
-#define BSP_S_DRV_VERSION           (0x10)
+#define MAILBOX_IREADY                            BCHP_BSP_GLB_CONTROL_GLB_IRDY
+#if BHSM_BUILD_HSM_FOR_SAGE
+    /* SAGE Context */
+    #define MAILBOX_OLOAD_INTERRUPT_ID            BCHP_INT_ID_BSP_OLOAD1_INTR
+    #define MAILBOX_OLOAD_INTERRUPT_STATUS_MASK   BCHP_BSP_GLB_CONTROL_GLB_HOST_INTR_STATUS_OLOAD1_INT_MASK
+    #define MAILBOX_OLOAD_CONTROL                 BCHP_BSP_GLB_CONTROL_GLB_OLOAD1
+    #define MAILBOX_OLOAD_CONTROL_MASK            BCHP_BSP_GLB_CONTROL_GLB_OLOAD1_CMD_OLOAD1_MASK
+    #define MAILBOX_ILOAD_CONTROL                 BCHP_BSP_GLB_CONTROL_GLB_ILOAD1
+    #define MAILBOX_ILOAD_CONTROL_MASK            BCHP_BSP_GLB_CONTROL_GLB_ILOAD1_CMD_ILOAD1_MASK
+    #define MAILBOX_ADDRESS_IN                    BHSM_IN_BUF1_ADDR
+    #define MAILBOX_ADDRESS_OUT                   BHSM_OUT_BUF1_ADDR
+    #define MAILBOX_IREADY_MASK                   BCHP_BSP_GLB_CONTROL_GLB_IRDY_CMD_IDRY1_MASK
+#else
+    /* HOST Context */
+    #define MAILBOX_OLOAD_INTERRUPT_ID            BCHP_INT_ID_BSP_OLOAD2_INTR
+    #define MAILBOX_OLOAD_INTERRUPT_STATUS_MASK   BCHP_BSP_GLB_CONTROL_GLB_HOST_INTR_STATUS_OLOAD2_INT_MASK
+    #define MAILBOX_OLOAD_CONTROL                 BCHP_BSP_GLB_CONTROL_GLB_OLOAD2
+    #define MAILBOX_OLOAD_CONTROL_MASK            BCHP_BSP_GLB_CONTROL_GLB_OLOAD2_CMD_OLOAD2_MASK
+    #define MAILBOX_ILOAD_CONTROL                 BCHP_BSP_GLB_CONTROL_GLB_ILOAD2
+    #define MAILBOX_ILOAD_CONTROL_MASK            BCHP_BSP_GLB_CONTROL_GLB_ILOAD2_CMD_ILOAD2_MASK
+    #define MAILBOX_ADDRESS_IN                    BHSM_IN_BUF2_ADDR
+    #define MAILBOX_ADDRESS_OUT                   BHSM_OUT_BUF2_ADDR
+    #define MAILBOX_IREADY_MASK                   BCHP_BSP_GLB_CONTROL_GLB_IRDY_CMD_IDRY2_MASK
+#endif
+
+
+static void mailboxInterruptHandler_isr( void* pHsm, int unused );
+static char* cropStr( char* pStr );
+
 
 /* BSP Message Module data. */
 typedef struct BHSM_P_BspMsg_Module_s
@@ -78,7 +107,9 @@ typedef struct BHSM_P_BspMsg_Module_s
     BHSM_BspMsgConfigure_t conf;
 
     uint32_t *pSecureWord;            /* Pointer to memory location (the size of a uint32_t) that is secure. */
-    uint32_t unSecureWord;            /* When there is no secure memory loaction availabe/required, pSecureWord will point to this value. */
+    uint32_t insecureWord;            /* When there is no secure memory loaction availabe/required, pSecureWord will point to this value. */
+
+    BKNI_EventHandle   oLoadWait;
 
 }BHSM_P_BspMsg_Module_t;
 
@@ -104,62 +135,15 @@ typedef struct BHSM_P_BspMsg_s
 }BHSM_P_BspMsg_t;
 
 
-/* return pointer to last underscore in a string. */
-char* cropStr( char* pStr )
-{
-    char* pUnderScore = pStr;
-    unsigned withinBoundry = 120; /*stop run away*/
-
-    if(!pStr) return pStr;
-
-    while( *pStr && --withinBoundry )
-    {
-        if(*pStr == '_')
-        {
-            pUnderScore = pStr;
-        }
-        pStr++;
-    }
-
-    if( !withinBoundry ) return NULL;  /*gone out of bounds*/
-
-    return pUnderScore;
-}
-
 /* macros to read and write to the mailbox.  */
-#define writeOutbox(pModuleData,wordOffset,value) BREG_Write32(((pModuleData)->hRegister), ((pModuleData)->conf.ulInCmdBufAddr +(wordOffset)*4), (value) )
-#define readOutbox(pModuleData,wordOffset)        BREG_Read32(((pModuleData)->hRegister),  ((pModuleData)->conf.ulInCmdBufAddr +(wordOffset)*4) )
-#define readInbox(pModuleData,wordOffset)         BREG_Read32(((pModuleData)->hRegister),  ((pModuleData)->conf.ulOutCmdBufAddr+(wordOffset)*4) )
-
-
-void BHSM_BspMsg_DumpOutbox( BHSM_BspMsg_h hMsg )
-{
-    unsigned wordOffset;
-    uint32_t value;
-
-    for( wordOffset = 0; wordOffset < BCMD_BUFFER_BYTE_SIZE/sizeof(uint32_t); wordOffset++ )
-    {
-        value = readOutbox( hMsg->pMod, wordOffset );
-        BDBG_LOG(("> %3d 0x%08X", wordOffset, value ));
-    }
-}
-
-void BHSM_BspMsg_DumpInbox( BHSM_BspMsg_h hMsg )
-{
-    unsigned wordOffset;
-    uint32_t value;
-
-    for( wordOffset = 0; wordOffset < BCMD_BUFFER_BYTE_SIZE/sizeof(uint32_t); wordOffset++ )
-    {
-        value = readInbox( hMsg->pMod, wordOffset );
-        BDBG_LOG(("< %3d 0x%08X", wordOffset, value ));
-    }
-}
-
+#define writeOutbox(pModuleData,wordOffset,value) BREG_Write32(((pModuleData)->hRegister), ( MAILBOX_ADDRESS_IN  +(wordOffset)*4), (value) )
+#define readOutbox(pModuleData,wordOffset)        BREG_Read32(((pModuleData)->hRegister),  ( MAILBOX_ADDRESS_IN  +(wordOffset)*4) )
+#define readInbox(pModuleData,wordOffset)         BREG_Read32(((pModuleData)->hRegister),  ( MAILBOX_ADDRESS_OUT +(wordOffset)*4) )
 
 BERR_Code BHSM_BspMsg_Init( BHSM_Handle hHsm, BHSM_BspMsgConfigure_t *pConfig )
 {
     BHSM_P_BspMsg_Module_t *pModuleData;
+    BERR_Code rc = BERR_SUCCESS;
 
     BDBG_ENTER( BHSM_BspMsg_Init );
 
@@ -181,13 +165,48 @@ BERR_Code BHSM_BspMsg_Init( BHSM_Handle hHsm, BHSM_BspMsgConfigure_t *pConfig )
 
     hHsm->pBspMessageModule = pModuleData;
 
+    BDBG_CASSERT( BHSM_SECURE_MEMORY_SIZE >= sizeof(uint32_t) );
     if( pConfig->secureMemory.p && pConfig->secureMemory.size >= sizeof(uint32_t) )
     {
         pModuleData->pSecureWord = pConfig->secureMemory.p;
     }
     else
     {
-        pModuleData->pSecureWord = &pModuleData->unSecureWord;
+        pModuleData->pSecureWord = &pModuleData->insecureWord;
+    }
+
+
+    /* initialise mailbox interface registers. */
+    BREG_Write32( hHsm->regHandle, MAILBOX_OLOAD_CONTROL, 0 );
+    BREG_Write32( hHsm->regHandle, MAILBOX_ILOAD_CONTROL, 0 );
+
+   #ifndef BHSM_BUILD_HSM_FOR_SAGE
+    BREG_Write32( hHsm->regHandle, BCHP_BSP_GLB_CONTROL_GLB_HOST_INTR_EN, 0);
+    BREG_Write32( hHsm->regHandle, BCHP_BSP_GLB_CONTROL_GLB_HOST_INTR_STATUS, 0);
+    #ifdef BCHP_BSP_GLB_CONTROL_GLB_RAAGA_INTR_STATUS /* define may not be available/relevant on legacy platforms */
+    BREG_Write32( hHsm->regHandle, BCHP_BSP_GLB_CONTROL_GLB_RAAGA_INTR_STATUS, 0xFFFFFFFFL );
+    #endif
+   #endif
+
+    rc = BINT_CreateCallback( &(hHsm->IntCallback),
+                                hHsm->interruptHandle,
+                                MAILBOX_OLOAD_INTERRUPT_ID,
+                                mailboxInterruptHandler_isr,
+                                (void*)hHsm,
+                                0x00 );
+    if( rc != BERR_SUCCESS )
+    {
+        return  BERR_TRACE( rc );
+    }
+
+    if( ( rc = BINT_EnableCallback( hHsm->IntCallback ) ) != BERR_SUCCESS )
+    {
+        return BERR_TRACE( rc );
+    }
+
+    if( ( rc = BKNI_CreateEvent( &(pModuleData->oLoadWait) ) ) != BERR_SUCCESS )
+    {
+        return  BERR_TRACE( rc );
     }
 
     BDBG_LEAVE( BHSM_BspMsg_Init );
@@ -199,6 +218,20 @@ void BHSM_BspMsg_Uninit( BHSM_Handle hHsm )
 {
     if( hHsm->pBspMessageModule )
     {
+        BHSM_P_BspMsg_Module_t *pModuleData = hHsm->pBspMessageModule;
+
+        BKNI_DestroyEvent( pModuleData->oLoadWait );
+
+        if( BINT_DisableCallback( hHsm->IntCallback ) != BERR_SUCCESS )
+        {
+            (void)BERR_TRACE( BHSM_STATUS_FAILED );  /* continue, best effort */
+        }
+
+        if( BINT_DestroyCallback( hHsm->IntCallback ) != BERR_SUCCESS )
+        {
+            (void)BERR_TRACE( BHSM_STATUS_FAILED );
+        }
+
         BKNI_Free( hHsm->pBspMessageModule );
         hHsm->pBspMessageModule = NULL;
     }
@@ -222,7 +255,7 @@ BERR_Code BHSM_BspMsg_Create( BHSM_Handle hHsm,  BHSM_BspMsg_h *phMsg )
     hMsg = (BHSM_BspMsg_h) BKNI_Malloc( sizeof(BHSM_P_BspMsg_t) );
     if( hMsg == NULL)
     {
-        BDBG_ERR(( "Failed to allocate mem for Mail [%d]", sizeof(BHSM_P_BspMsg_t) ));
+        BDBG_ERR(( "Failed to allocate mem for Mail [%d]", (unsigned)sizeof(BHSM_P_BspMsg_t) ));
         return BERR_OUT_OF_SYSTEM_MEMORY;
     }
 
@@ -705,8 +738,8 @@ BERR_Code BHSM_BspMsg_Header_impl( BHSM_BspMsg_h hMsg, BCMD_cmdType_e bspCommand
     /* Wait until BSP can accept input */
     for( i = 0; i < (hMsg->hHsm->currentSettings.ulTimeOutInMilSecs * 500); i++ )
     {
-        iReady = BREG_Read32( hMsg->hRegister, hMsg->pMod->conf.ulIReadyRegAddr );
-        if( iReady & hMsg->pMod->conf.ulIReadyVal )
+        iReady = BREG_Read32( hMsg->hRegister, MAILBOX_IREADY );
+        if( iReady & MAILBOX_IREADY_MASK )
         {
             break;
         }
@@ -716,7 +749,7 @@ BERR_Code BHSM_BspMsg_Header_impl( BHSM_BspMsg_h hMsg, BCMD_cmdType_e bspCommand
     if( i == (hMsg->hHsm->currentSettings.ulTimeOutInMilSecs * 500) )
     {
         hMsg->packErrorCount++;
-        BDBG_ERR(( "%s TIMEOUT iREADY[%08X] command[0x%X]", iReady, bspCommand ));
+        BDBG_ERR(( "TIMEOUT iREADY[%08X] command[0x%X]", iReady, bspCommand ));
         return BERR_TRACE( BHSM_STATUS_IRDY_ERR );
     }
 
@@ -752,7 +785,7 @@ BERR_Code BHSM_BspMsg_Header_impl( BHSM_BspMsg_h hMsg, BCMD_cmdType_e bspCommand
     if( hMsg->isRaw == false )
     {
         /* Compile Header */
-        BHSM_BspMsg_Pack8 ( hMsg, BCMD_CommonBufferFields_eVerNum+3  , BSP_S_DRV_VERSION );
+        BHSM_BspMsg_Pack8 ( hMsg, BCMD_CommonBufferFields_eVerNum+3  , 0x10 );
         BHSM_BspMsg_Pack8 ( hMsg, BCMD_CommonBufferFields_eOwnerId   , hMsg->pMod->sequenceNumber );
         BHSM_BspMsg_Pack8 ( hMsg, BCMD_CommonBufferFields_eContMode  , pHeader->continualMode  );
         BHSM_BspMsg_Pack24( hMsg, BHSM_BSP_OFFSET_ABCDEF,              0xABCDEF );
@@ -826,38 +859,30 @@ BERR_Code BHSM_BspMsg_SubmitCommand( BHSM_BspMsg_h hMsg )
     for( i = 0; i < hMsg->cmdLength; i += sizeof(uint32_t) )
     {
         uint32_t regVal;
-        regVal = readOutbox( hMsg->pMod, i );
+        regVal = readOutbox( hMsg->pMod, i/4 );
         BDBG_ERR(("MSG> %.3d - %08X", (i/4), regVal ));
     }
     #endif
 
-    BKNI_ResetEvent( hMsg->pMod->conf.oLoadWait ); /* CTRL-C or any system level signal*/
+    BKNI_ResetEvent( hMsg->pMod->oLoadWait ); /* CTRL-C or any system level signal*/
 
     /* indicate that message is loaded. */
-    BREG_Write32( hRegister,  hMsg->pMod->conf.ulILoadRegAddr, hMsg->pMod->conf.ulILoadVal );
+    BREG_Write32( hRegister, MAILBOX_ILOAD_CONTROL, MAILBOX_ILOAD_CONTROL_MASK );
 
-    rc = BKNI_WaitForEvent( hMsg->pMod->conf.oLoadWait, hHsm->currentSettings.ulTimeOutInMilSecs );
+    rc = BKNI_WaitForEvent( hMsg->pMod->oLoadWait, hHsm->currentSettings.ulTimeOutInMilSecs );
     /* If event fails, retry by polling the registers. */
     if( rc != BERR_SUCCESS )
     {
         uint32_t registerValue = 0;
         unsigned timeout;
 
-        #if BHSM_SAGE_BSP_PI_SUPPORT /* if  we're on SAGE */
-         #define LOCAL_BCHP_BSP_GLB_CONTROL_GLB_OLOADx                           BCHP_BSP_GLB_CONTROL_GLB_OLOAD1
-         #define LOCAL_BCHP_BSP_GLB_CONTROL_GLB_OLOADx_CMD_OLOADx_MASK           BCHP_BSP_GLB_CONTROL_GLB_OLOAD1_CMD_OLOAD1_MASK
-        #else
-         #define LOCAL_BCHP_BSP_GLB_CONTROL_GLB_OLOADx                           BCHP_BSP_GLB_CONTROL_GLB_OLOAD2
-         #define LOCAL_BCHP_BSP_GLB_CONTROL_GLB_OLOADx_CMD_OLOADx_MASK           BCHP_BSP_GLB_CONTROL_GLB_OLOAD2_CMD_OLOAD2_MASK
-        #endif
-
         for( timeout = 2000; timeout > 0; timeout-- )
         {
             BKNI_Sleep( 5 /*ms*/);
 
-            registerValue = BREG_Read32( hRegister, LOCAL_BCHP_BSP_GLB_CONTROL_GLB_OLOADx );
+            registerValue = BREG_Read32( hRegister, MAILBOX_OLOAD_CONTROL );
 
-            if( registerValue & LOCAL_BCHP_BSP_GLB_CONTROL_GLB_OLOADx_CMD_OLOADx_MASK )
+            if( registerValue & MAILBOX_OLOAD_CONTROL_MASK )
             {
                 break;
             }
@@ -869,10 +894,10 @@ BERR_Code BHSM_BspMsg_SubmitCommand( BHSM_BspMsg_h hMsg )
             return BERR_TRACE( BHSM_STATUS_TIME_OUT );
         }
 
-        BDBG_WRN(("BKNI_WaitForEvent FAILED[%d] [%d] command[0x%02X]. Polled[%d]", rc, hHsm->currentSettings.ulTimeOutInMilSecs, hMsg->bspCommand, timeout ));
+        BDBG_WRN(("BKNI_WaitForEvent FAILED[%d] [%ld] command[0x%02X]. Polled[%d]", rc, (unsigned long)hHsm->currentSettings.ulTimeOutInMilSecs, hMsg->bspCommand, timeout ));
 
         /* Reset the register. */
-        BREG_Write32( hRegister, LOCAL_BCHP_BSP_GLB_CONTROL_GLB_OLOADx, registerValue & (~LOCAL_BCHP_BSP_GLB_CONTROL_GLB_OLOADx_CMD_OLOADx_MASK) );
+        BREG_Write32( hRegister, MAILBOX_OLOAD_CONTROL, registerValue & (~MAILBOX_OLOAD_CONTROL_MASK) );
     }
 
     BHSM_BspMsg_Get16( hMsg, BCMD_CommonBufferFields_eParamLen, &(hMsg->responceLength) );
@@ -891,4 +916,117 @@ BERR_Code BHSM_BspMsg_SubmitCommand( BHSM_BspMsg_h hMsg )
 
     BDBG_LEAVE( BHSM_BspMsg_SubmitCommand );
     return BERR_SUCCESS;
+}
+
+
+
+/* callback called when BSP responds to command. */
+static void mailboxInterruptHandler_isr( void* pHsm, int unused )
+{
+    BHSM_Handle  hHsm;
+    uint32_t interruptStatus = 0;
+    uint32_t controlStatus = 0;
+    uint32_t oLoadRegister = 0;
+
+    BSTD_UNUSED( unused );
+
+    if( pHsm == NULL )
+    {
+        BERR_TRACE( BHSM_STATUS_INPUT_PARM_ERR );
+        return;
+    }
+    hHsm = (BHSM_Handle)pHsm;
+
+    interruptStatus = BREG_Read32( hHsm->regHandle, BCHP_BSP_GLB_CONTROL_GLB_HOST_INTR_STATUS );
+
+    if( interruptStatus & MAILBOX_OLOAD_INTERRUPT_STATUS_MASK )
+    {
+        oLoadRegister = BREG_Read32( hHsm->regHandle, MAILBOX_OLOAD_CONTROL );
+
+        /* Clear OLOADx bit */
+        BREG_Write32( hHsm->regHandle, MAILBOX_OLOAD_CONTROL, ( oLoadRegister & (~MAILBOX_OLOAD_CONTROL_MASK) ) );
+
+        /* Clear OLOADx Interrupt. */
+        BREG_Write32( hHsm->regHandle, BCHP_BSP_GLB_CONTROL_GLB_HOST_INTR_STATUS, (~MAILBOX_OLOAD_INTERRUPT_STATUS_MASK) );
+
+        if( hHsm->bIsOpen == true )
+        {
+            BHSM_P_BspMsg_Module_t *pModuleData = (BHSM_P_BspMsg_Module_t*)hHsm->pBspMessageModule;
+            BKNI_SetEvent( pModuleData->oLoadWait );
+        }
+    }
+
+    controlStatus = BREG_Read32( hHsm->regHandle, BCHP_BSP_CONTROL_INTR2_CPU_STATUS );
+
+    #if BHSM_DEBUG_BSP_INTERRUPT
+    {
+        uint32_t oLoadRegisterCheck;
+        uint32_t cpuIntrMask;
+
+        oLoadRegisterCheck = BREG_Read32( hHsm->regHandle, MAILBOX_OLOAD_CONTROL );
+        cpuIntrMask = BREG_Read32( hHsm->regHandle, BCHP_BSP_GLB_CONTROL_GLB_HOST_INTR_EN );
+
+        BDBG_LOG(("BSP interupt STATUS[%08x] oLoad[%08x][%08x] cpuInt[%08x] control[%08x]", interruptStatus, oLoadRegister, oLoadRegisterCheck, cpuIntrMask, controlStatus ));
+    }
+    #endif
+
+    if( controlStatus & BCHP_BSP_CONTROL_INTR2_CPU_STATUS_BSP_TO_HOST_INTR_MASK )
+    {
+        if( hHsm->bIsOpen == true )
+        {
+            BDBG_WRN(( "BSP Exception [%X]", controlStatus ));
+        }
+    }
+
+    return;
+}
+
+/* return pointer to last underscore in a string. */
+char* cropStr( char* pStr )
+{
+    char* pUnderScore = pStr;
+    unsigned withinBoundry = 120; /*stop run away*/
+
+    if(!pStr) return pStr;
+
+    while( *pStr && --withinBoundry )
+    {
+        if(*pStr == '_')
+        {
+            pUnderScore = pStr;
+        }
+        pStr++;
+    }
+
+    if( !withinBoundry ) return NULL;  /*gone out of bounds*/
+
+    return pUnderScore;
+}
+
+/* dump the send buffer */
+void BHSM_BspMsg_DumpOutbox( BHSM_BspMsg_h hMsg )
+{
+    unsigned wordOffset;
+    uint32_t value;
+
+    for( wordOffset = 0; wordOffset < BCMD_BUFFER_BYTE_SIZE/sizeof(uint32_t); wordOffset++ )
+    {
+        value = readOutbox( hMsg->pMod, wordOffset );
+        BDBG_LOG(("> %3d 0x%08X", wordOffset, value ));
+    }
+    return;
+}
+
+/* dump the receive buffer */
+void BHSM_BspMsg_DumpInbox( BHSM_BspMsg_h hMsg )
+{
+    unsigned wordOffset;
+    uint32_t value;
+
+    for( wordOffset = 0; wordOffset < BCMD_BUFFER_BYTE_SIZE/sizeof(uint32_t); wordOffset++ )
+    {
+        value = readInbox( hMsg->pMod, wordOffset );
+        BDBG_LOG(("< %3d 0x%08X", wordOffset, value ));
+    }
+    return;
 }

@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2003-2015 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * Description: IP Applib Implementation for TTS.
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 
@@ -616,8 +608,8 @@ static void B_PlaybackIp_TtsThrottle_P_SlowAdjust(
               ttsThrottle->wideTrackMode));
     }
 #else
-    BDBG_MSG(("tts throttle %p: bufDepth: %ld, clock_adj: %ld, violation_count: %d, err_count: %d",
-              ttsThrottle, ttsThrottle->status.avgBufDepth,
+    BDBG_MSG(("tts throttle %p: bufDepth: %u, clock_adj: %d, violation_count: %u, err_count: %u",
+              (void *)ttsThrottle, ttsThrottle->status.avgBufDepth,
               ttsThrottle->status.pacingClockAdjustment,
               ttsThrottle->status.bufViolationCount,
               ttsThrottle->status.pacingErrorCount));
@@ -888,7 +880,7 @@ static B_PlaybackIpError B_PlaybackIp_TtsThrottle_ManageBuffer(
     switch(ttsThrottle->bufferState) {
     case B_PlaybackIpBufferState_eInit:
         if(pumpStatus.fifoDepth >= initBufferDepth) {
-            BDBG_WRN(("tts throttle %p: Playpump buffer fullness established %d (%d), going to playing state", ttsThrottle, pumpStatus.fifoDepth, initBufferDepth));
+            BDBG_WRN(("tts throttle %p: Playpump buffer fullness established %zu (%zu), going to playing state", (void *)ttsThrottle, pumpStatus.fifoDepth, initBufferDepth));
             B_PlaybackIp_TtsThrottle_Pause(ttsThrottle, false);
             BKNI_Sleep(1); /* this prevents a pacing error at startup */
             NEXUS_Playpump_SuspendPacing(ttsThrottle->playPump, false);
@@ -900,7 +892,7 @@ static B_PlaybackIpError B_PlaybackIp_TtsThrottle_ManageBuffer(
         break;
     case B_PlaybackIpBufferState_ePreCharging:
         if(pumpStatus.fifoDepth >= initBufferDepth) {
-            BDBG_WRN(("tts throttle %p: Playpump buffer fullness restored, going to playing state", ttsThrottle));
+            BDBG_WRN(("tts throttle %p: Playpump buffer fullness restored, going to playing state", (void *)ttsThrottle));
             B_PlaybackIp_TtsThrottle_Pause(ttsThrottle, false);
             ttsThrottle->bufferState = B_PlaybackIpBufferState_ePlaying;
         }
@@ -910,12 +902,12 @@ static B_PlaybackIpError B_PlaybackIp_TtsThrottle_ManageBuffer(
         break;
     case B_PlaybackIpBufferState_ePlaying:
         if(pumpStatus.fifoDepth >= pumpStatus.fifoSize-(IP_MAX_PKT_SIZE*PKTS_PER_CHUNK)) {
-            BDBG_WRN(("tts throttle: %p, Approaching playback buffer overflow, flushing buffers!", ttsThrottle));
+            BDBG_WRN(("tts throttle: %p, Approaching playback buffer overflow, flushing buffers!", (void *)ttsThrottle));
             NEXUS_Playpump_Flush(ttsThrottle->playPump);
             ttsThrottle->bufferState = B_PlaybackIpBufferState_ePreCharging;
         }
         else if(pumpStatus.fifoDepth==0) {
-            BDBG_WRN(("tts throttle: %p, Playpump buffer underflow!", ttsThrottle));
+            BDBG_WRN(("tts throttle: %p, Playpump buffer underflow!", (void *)ttsThrottle));
             NEXUS_Playpump_SuspendPacing(ttsThrottle->playPump, true);
             NEXUS_Playpump_SuspendPacing(ttsThrottle->playPump, false);
             ttsThrottle->bufferState = B_PlaybackIpBufferState_ePreCharging;

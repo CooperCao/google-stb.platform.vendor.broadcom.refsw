@@ -1,7 +1,7 @@
-/***************************************************************************
- * (c) 2002-2015 Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -37,7 +37,6 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 
 #include "band.h"
@@ -68,7 +67,6 @@ CTsb::CTsb(
     _pAudioPid(NULL),
     _tsbDecode(false),
     _enabled(false)
-
 {
     BDBG_MSG(("CTsb constructor >>>"));
     _windowType = eWindowType_Max;
@@ -281,16 +279,18 @@ eRet CTsb::slowForward()
     }
     else
     {
-        B_DVR_TSBServiceStatus tsbServiceStatus;
+        B_DVR_TSBServiceStatus  tsbServiceStatus;
         B_DVR_OperationSettings operationSettings;
-        B_DVR_TSBService_GetStatus(_hTsbService,&tsbServiceStatus);
-        if (tsbServiceStatus.state == NEXUS_PlaybackState_ePaused) {
+        B_DVR_TSBService_GetStatus(_hTsbService, &tsbServiceStatus);
+        if (tsbServiceStatus.state == NEXUS_PlaybackState_ePaused)
+        {
             operationSettings.operation = eB_DVR_OperationForwardFrameAdvance;
             B_DVR_TSBService_SetOperation(_hTsbService, &operationSettings);
             _tsbState = "Pause";
         }
-        else {
-            operationSettings.operation = eB_DVR_OperationSlowForward;
+        else
+        {
+            operationSettings.operation      = eB_DVR_OperationSlowForward;
             operationSettings.operationSpeed = 4;
             B_DVR_TSBService_SetOperation(_hTsbService, &operationSettings);
             _tsbState = "SlowForward";
@@ -304,18 +304,21 @@ eRet CTsb::slowForward()
 eRet CTsb::slowRewind()
 {
     B_DVR_OperationSettings operationSettings;
-    B_DVR_TSBServiceStatus tsbServiceStatus;
+    B_DVR_TSBServiceStatus  tsbServiceStatus;
+
     BDBG_MSG(("CTsb::slowRewind >>>"));
 
-    B_DVR_TSBService_GetStatus(_hTsbService,&tsbServiceStatus);
+    B_DVR_TSBService_GetStatus(_hTsbService, &tsbServiceStatus);
     tsbDecode();
     memset(&operationSettings, 0, sizeof(operationSettings));
-    if (tsbServiceStatus.state == NEXUS_PlaybackState_ePaused) {
+    if (tsbServiceStatus.state == NEXUS_PlaybackState_ePaused)
+    {
         operationSettings.operation = eB_DVR_OperationReverseFrameAdvance;
         B_DVR_TSBService_SetOperation(_hTsbService, &operationSettings);
         _tsbState = "Pause";
     }
-    else {
+    else
+    {
         operationSettings.operation      = eB_DVR_OperationSlowRewind;
         operationSettings.operationSpeed = 4;
         B_DVR_TSBService_SetOperation(_hTsbService, &operationSettings);
@@ -324,7 +327,8 @@ eRet CTsb::slowRewind()
     notifyObservers(eNotify_TsbStateChanged, this);
     BDBG_MSG(("CTsb::slowRewind <<<"));
     return(eRet_Ok);
-}
+} /* slowRewind */
+
 eRet CTsb::getStatus(B_DVR_TSBServiceStatus * pStatus)
 {
     BDBG_MSG(("CTsb::getStatus >>>"));

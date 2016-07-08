@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2014 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2014 Broadcom.
 All rights reserved.
 
 Project  :  Nexus platform API for EGL driver
@@ -10,14 +10,16 @@ FILE DESCRIPTION
 This implementation can be configured for "exclusive" or "nexus surface
 compositor mode"
 
-NXPL_PLATFORM_EXCLUSIVE
+#ifdef NXPL_PLATFORM_EXCLUSIVE
+
 The "exclusive display" is the fastest of all the display options.
 It supports a SINGLE native rendering window, which corresponds to the physical
 display. Only one native window can be created in this mode, with one
 eglWindowSurface attached. The framebuffers are set one at a time as the
 physical display framebuffers. No copying is done.
 
-NXPL_PLATFORM_NSC
+#else
+
 The "Nexus surface compositor" display platform supports multiple overlapped
 relocatable and resizable display windows.  It supports multiple processes.
 Unlike exclusive mode, surface compositor mode implies that buffers are
@@ -25,6 +27,8 @@ copied prior to display.  The front buffer from each client is copied into a
 common composition surface before being displayed.  NO_NXCLIENT can be defined
 to drop to using NSC instead of the reference server NxClient, which is useful
 for customers who have developed their own servers.
+
+#endif
 
 =============================================================================*/
 
@@ -34,10 +38,6 @@ for customers who have developed their own servers.
 #include "display_helpers.h"
 #include "display_surface.h"
 #include "fence.h"
-
-#if !defined(NXPL_PLATFORM_EXCLUSIVE) && !defined(NXPL_PLATFORM_NSC)
-#error "One (and only one) of NXPL_PLATFORM_EXCLUSIVE or NXPL_PLATFORM_NSC must be defined"
-#endif
 
 #ifdef NXCLIENT_SUPPORT
 #include "nxclient.h"
@@ -54,43 +54,35 @@ for customers who have developed their own servers.
 
 #define MAX_SWAP_BUFFERS   3
 
-/* NXPL_DisplayContext */
-typedef struct
+enum
 {
-   NXPL_DisplayType     displayType;
-   BEGL_SchedInterface *schedIface;
-
-#ifdef NXPL_PLATFORM_EXCLUSIVE
-   NEXUS_DISPLAYHANDLE  display;
-   bool                 stretch;
-#endif
-} NXPL_DisplayContext;
+   NATIVE_WINDOW_INFO_MAGIC = 0xABBA601D,
+   PIXMAP_INFO_MAGIC        = 0x15EEB1A5
+};
 
 /* NXPL_NativeWindow */
 typedef struct
 {
    /* Main thread data */
-   NXPL_NativeWindowInfo   windowInfo;
-   unsigned int            numSurfaces;
+   NXPL_NativeWindowInfoEXT   windowInfo;
+   unsigned int               numSurfaces;
 
-   bool                    initialized;
-   int                     swapInterval;
+   bool                       initialized;
+   int                        swapInterval;
 
 #ifdef NXPL_PLATFORM_EXCLUSIVE
    /* create and delete can overlap, although exclusive access to
       the buffer is mandated.  This delete of one window can remove
       the callback of another */
-   int                     bound;
-#endif
-
-#ifdef NXPL_PLATFORM_NSC
-   uint32_t                clientID;
+   int                        bound;
+#else
+   uint32_t                   clientID;
    /* NSC client handle */
    NEXUS_SurfaceClientHandle  surfaceClient;
 #ifdef NXCLIENT_SUPPORT
-   NxClient_AllocResults   allocResults;
+   NxClient_AllocResults      allocResults;
 #endif
-#endif /* NXPL_PLATFORM_NSC */
+#endif /* NXPL_PLATFORM_EXCLUSIVE */
 
 } NXPL_NativeWindow;
 
@@ -113,21 +105,6 @@ static BEGL_Error DispWindowGetInfo(void *context,
       if (flags & BEGL_WindowInfoSwapChainCount)
          info->swapchain_count = nw->numSurfaces;
 
-#ifdef NXPL_PLATFORM_EXCLUSIVE
-      if (flags & BEGL_WindowInfoRefreshRate)
-      {
-         NXPL_DisplayContext *ctx = (NXPL_DisplayContext*)context;
-         NEXUS_DisplayStatus status;
-
-         if (ctx->display != NULL)
-         {
-            NEXUS_Display_GetStatus(ctx->display, &status);
-            info->refreshRateMilliHertz = status.refreshRate;
-         }
-         else
-            info->refreshRateMilliHertz = 60;
-      }
-#endif
       return BEGL_Success;
    }
 
@@ -143,17 +120,15 @@ static BEGL_Error DispSurfaceGetInfo(void *context, void *nativeSurface, BEGL_Su
    if (s != NULL && (void*)s != (void*)0xFFFFFFFF && info != NULL)
    {
       NEXUS_SurfaceStatus surfStatus;
-      NEXUS_SurfaceMemory surfMemory;
 
       NEXUS_Surface_GetStatus(s->surface, &surfStatus);
-      NEXUS_Surface_GetMemory(s->surface, &surfMemory);
 
       info->width          = surfStatus.width;
       info->height         = surfStatus.height;
-      info->pitchBytes     = surfMemory.pitch;
+      info->pitchBytes     = surfStatus.pitch;
       info->physicalOffset = s->physicalOffset;
       info->cachedAddr     = s->cachedPtr;
-      info->byteSize       = surfMemory.bufferSize;
+      info->byteSize       = surfStatus.pitch * surfStatus.height;
 
       ok = NexusToBeglFormat(&info->format, surfStatus.pixelFormat);
 
@@ -189,7 +164,9 @@ static BEGL_Error DispGetNextSurface(
    BEGL_BufferFormat format,
    BEGL_BufferFormat *actualFormat,
    void **nativeSurface,
-   int *fence)
+   bool secure,
+   int *fence
+)
 {
    NXPL_DisplayContext *ctx = (NXPL_DisplayContext*)context;
    NXPL_NativeWindow *nw = (NXPL_NativeWindow*)GetNativeWindow(nativeWindow);
@@ -208,18 +185,18 @@ static BEGL_Error DispGetNextSurface(
    /* if the new surface has different size, recreate */
    if (nw->windowInfo.width != s->windowInfo.width ||
        nw->windowInfo.height != s->windowInfo.height ||
-       format != s->format)
+       format != s->format ||
+       secure != s->secure)
    {
       /* wait on the fence, as it could be still on the display */
       WaitFence(ctx->schedIface, s->fence);
 
       DestroySurface(s);
-      CreateSurface(s, format, nw->windowInfo.width, nw->windowInfo.height,
-         "SwapChain Surface");
+      CreateSurface(s, format, nw->windowInfo.width, nw->windowInfo.height, secure, "SwapChain Surface");
    }
 
    /* if any of the presenation settings have changed, copy the windowInfo into the surface */
-   int windowTest = memcmp(&nw->windowInfo, &s->windowInfo, sizeof(NXPL_NativeWindowInfo));
+   int windowTest = memcmp(&nw->windowInfo, &s->windowInfo, sizeof(NXPL_NativeWindowInfoEXT));
    if (windowTest)
       s->windowInfo = nw->windowInfo;
 
@@ -276,10 +253,6 @@ static bool DispSetDefaultDisplay(void *context, void *display)
 
 static void *DispGetDefaultDisplay(void *context)
 {
-#ifdef NXPL_PLATFORM_NSC
-   return (void *)1;
-#endif
-
 #ifdef NXPL_PLATFORM_EXCLUSIVE
    NXPL_DisplayContext    *ctx = (NXPL_DisplayContext *)context;
    if (ctx->display == NULL)
@@ -290,6 +263,9 @@ static void *DispGetDefaultDisplay(void *context)
    }
    else
       return ctx->display;
+
+#else
+   return (void *)1;
 #endif
 }
 
@@ -319,9 +295,7 @@ static void *DispWindowPlatformStateCreate(void *context, void *native)
 #ifdef NXPL_PLATFORM_EXCLUSIVE
       res = CreateWorkerThread(nw, ctx->schedIface, nw->numSurfaces,
          &nw->bound, &nw->windowInfo, BEGL_BufferFormat_eA8B8G8R8, ctx->display, ctx->displayType);
-#endif
-
-#ifdef NXPL_PLATFORM_NSC
+#else
       res = CreateWorkerThread(nw, ctx->schedIface, nw->numSurfaces,
          &nw->windowInfo, BEGL_BufferFormat_eA8B8G8R8, nw->clientID, nw->surfaceClient,
          ctx->displayType);
@@ -336,15 +310,16 @@ static BEGL_Error DispWindowPlatformStateDestroy(void *context, void *windowStat
    return DestroyWorkerThread(windowState);
 }
 
-BEGL_DisplayInterface *CreateDisplayInterface(NEXUS_DISPLAYHANDLE display, BEGL_SchedInterface *schedIface)
+BEGL_DisplayInterface *CreateDisplayInterface(
+      NEXUS_DISPLAYHANDLE display,
+      NXPL_DisplayContext *ctx,
+      struct BEGL_SchedInterface *schedIface)
 {
    BEGL_DisplayInterface   *disp = (BEGL_DisplayInterface*)malloc(sizeof(BEGL_DisplayInterface));
 
    if (disp != NULL)
    {
       memset(disp, 0, sizeof(BEGL_DisplayInterface));
-
-      NXPL_DisplayContext    *ctx = (NXPL_DisplayContext *)malloc(sizeof(NXPL_DisplayContext));
 
       if (ctx != NULL)
       {
@@ -412,12 +387,27 @@ void NXPL_SetDisplayType(NXPL_PlatformHandle handle, NXPL_DisplayType type)
 static uint32_t s_exclusiveNativeWindowCount = 0;
 #endif
 
-void *NXPL_CreateNativeWindow(const NXPL_NativeWindowInfo *info)
+void NXPL_GetDefaultNativeWindowInfoEXT(NXPL_NativeWindowInfoEXT *info)
+{
+   if (info != NULL)
+   {
+      memset(info, 0, sizeof(NXPL_NativeWindowInfoEXT));
+      static NEXUS_BlendEquation colorBlend = { NEXUS_BlendFactor_eSourceColor, NEXUS_BlendFactor_eSourceAlpha, false, NEXUS_BlendFactor_eDestinationColor, NEXUS_BlendFactor_eInverseSourceAlpha, false, NEXUS_BlendFactor_eZero };
+      static NEXUS_BlendEquation alphaBlend = { NEXUS_BlendFactor_eSourceAlpha, NEXUS_BlendFactor_eOne, false, NEXUS_BlendFactor_eDestinationAlpha, NEXUS_BlendFactor_eOne, false, NEXUS_BlendFactor_eZero };
+      info->colorBlend = colorBlend;
+      info->alphaBlend = alphaBlend;
+      info->magic      = NATIVE_WINDOW_INFO_MAGIC;
+   }
+}
+
+void *NXPL_CreateNativeWindowEXT(const NXPL_NativeWindowInfoEXT *info)
 {
    NXPL_NativeWindow *nw = (NXPL_NativeWindow*)malloc(sizeof(NXPL_NativeWindow));
 
    if (nw != NULL && info != NULL)
    {
+      assert(info->magic == NATIVE_WINDOW_INFO_MAGIC);
+
       memset(nw, 0, sizeof(NXPL_NativeWindow));
 
 #ifdef NXPL_PLATFORM_EXCLUSIVE
@@ -430,7 +420,7 @@ void *NXPL_CreateNativeWindow(const NXPL_NativeWindowInfo *info)
 
       nw->windowInfo = *info;
 
-#ifdef NXPL_PLATFORM_NSC
+#ifndef NXPL_PLATFORM_EXCLUSIVE
 #ifdef NXCLIENT_SUPPORT
       NxClient_AllocSettings allocSettings;
       NxClient_GetDefaultAllocSettings(&allocSettings);
@@ -444,7 +434,7 @@ void *NXPL_CreateNativeWindow(const NXPL_NativeWindowInfo *info)
       nw->clientID = nw->allocResults.surfaceClient[0].id;
 #else
       nw->clientID = info->clientID;
-#endif /* NXPL_PLATFORM_NSC */
+#endif /* NXCLIENT_SUPPORT */
 
       nw->surfaceClient = NEXUS_SurfaceClient_Acquire(nw->clientID);
       if (!nw->surfaceClient)
@@ -456,14 +446,12 @@ void *NXPL_CreateNativeWindow(const NXPL_NativeWindowInfo *info)
 #ifdef NXCLIENT_SUPPORT
       /* default our SurfaceClient to blend */
       NEXUS_SurfaceComposition comp;
-      static NEXUS_BlendEquation colorBlend = { NEXUS_BlendFactor_eSourceColor, NEXUS_BlendFactor_eSourceAlpha, false, NEXUS_BlendFactor_eDestinationColor, NEXUS_BlendFactor_eInverseSourceAlpha, false, NEXUS_BlendFactor_eZero };
-      static NEXUS_BlendEquation alphaBlend = { NEXUS_BlendFactor_eSourceAlpha, NEXUS_BlendFactor_eOne, false, NEXUS_BlendFactor_eDestinationAlpha, NEXUS_BlendFactor_eOne, false, NEXUS_BlendFactor_eZero };
       NxClient_GetSurfaceClientComposition(nw->clientID, &comp);
-      comp.colorBlend = colorBlend;
-      comp.alphaBlend = alphaBlend;
+      comp.colorBlend = info->colorBlend;
+      comp.alphaBlend = info->alphaBlend;
       NxClient_SetSurfaceClientComposition(nw->clientID, &comp);
-#endif
-#endif /* NXPL_PLATFORM_NSC */
+#endif /* NXCLIENT_SUPPORT */
+#endif /* !defined(NXPL_PLATFORM_EXCLUSIVE) */
 
       char *val = getenv("V3D_DOUBLE_BUFFER");
       if (val && (val[0] == 't' || val[0] == 'T' || val[0] == '1'))
@@ -482,6 +470,23 @@ error:
    return NULL;
 }
 
+void *NXPL_CreateNativeWindow(const NXPL_NativeWindowInfo *info)
+{
+   /* deprecated API */
+   NXPL_NativeWindowInfoEXT infoEXT;
+   NXPL_GetDefaultNativeWindowInfoEXT(&infoEXT);
+
+   infoEXT.width    = info->width;
+   infoEXT.height   = info->height;
+   infoEXT.x        = info->x;
+   infoEXT.y        = info->y;
+   infoEXT.stretch  = info->stretch;
+   infoEXT.clientID = info->clientID;
+   infoEXT.zOrder   = info->zOrder;
+
+   return NXPL_CreateNativeWindowEXT(&infoEXT);
+}
+
 void NXPL_DestroyNativeWindow(void *native)
 {
    if (native != NULL)
@@ -490,22 +495,20 @@ void NXPL_DestroyNativeWindow(void *native)
 
 #ifdef NXPL_PLATFORM_EXCLUSIVE
       __sync_fetch_and_sub(&s_exclusiveNativeWindowCount, 1);
-#endif
-
-#ifdef NXPL_PLATFORM_NSC
+#else
       if (nw->surfaceClient)
          NEXUS_SurfaceClient_Release(nw->surfaceClient);
 
 #ifdef NXCLIENT_SUPPORT
       NxClient_Free(&nw->allocResults);
 #endif
-#endif /* NXPL_PLATFORM_NSC */
+#endif /* NXPL_PLATFORM_EXCLUSIVE */
 
       free(nw);
    }
 }
 
-void NXPL_UpdateNativeWindow(void *native, const NXPL_NativeWindowInfo *info)
+void NXPL_UpdateNativeWindowEXT(void *native, const NXPL_NativeWindowInfoEXT *info)
 {
    NXPL_NativeWindow *nw = (NXPL_NativeWindow*)native;
 
@@ -513,7 +516,24 @@ void NXPL_UpdateNativeWindow(void *native, const NXPL_NativeWindowInfo *info)
       nw->windowInfo = *info;
 }
 
-#ifdef NXPL_PLATFORM_NSC
+void NXPL_UpdateNativeWindow(void *native, const NXPL_NativeWindowInfo *info)
+{
+   /* deprecated API */
+   NXPL_NativeWindow *nw = (NXPL_NativeWindow*)native;
+
+   if (info != NULL && nw != NULL)
+   {
+      nw->windowInfo.width = info->width;
+      nw->windowInfo.height = info->height;
+      nw->windowInfo.x = info->x;
+      nw->windowInfo.y = info->y;
+      nw->windowInfo.stretch = info->stretch;
+      nw->windowInfo.clientID = info->clientID;
+      nw->windowInfo.zOrder = info->zOrder;
+   }
+}
+
+#ifndef NXPL_PLATFORM_EXCLUSIVE
 
 NEXUS_SurfaceClientHandle NXPL_CreateVideoWindowClient(void *native, unsigned windowId)
 {
@@ -543,16 +563,31 @@ uint32_t NXPL_GetClientID(void *native)
    return ret;
 }
 
-#endif /* NXPL_PLATFORM_NSC */
+#endif /* NXPL_PLATFORM_EXCLUSIVE */
 
-bool NXPL_CreateCompatiblePixmap(NXPL_PlatformHandle handle, void **pixmapHandle, NEXUS_SurfaceHandle *surface, BEGL_PixmapInfo *info)
+
+
+void NXPL_GetDefaultPixmapInfoEXT(BEGL_PixmapInfoEXT *info)
+{
+   if (info != NULL)
+   {
+      memset(info, 0, sizeof(BEGL_PixmapInfoEXT));
+
+      info->format = BEGL_BufferFormat_INVALID;
+      info->magic  = PIXMAP_INFO_MAGIC;
+   }
+}
+
+bool NXPL_CreateCompatiblePixmapEXT(NXPL_PlatformHandle handle, void **pixmapHandle, NEXUS_SurfaceHandle *surface, BEGL_PixmapInfoEXT *info)
 {
    bool ok = false;
    NXPL_Surface  *s = (NXPL_Surface*)calloc(1, sizeof(NXPL_Surface));
 
    if (info != NULL && s != NULL)
    {
-      ok = CreateSurface(s, info->format, info->width, info->height, "Pixmap Surface");
+      assert(info->magic == PIXMAP_INFO_MAGIC);
+
+      ok = CreateSurface(s, info->format, info->width, info->height, info->secure, "Pixmap Surface");
 
       if (ok)
       {
@@ -565,6 +600,19 @@ bool NXPL_CreateCompatiblePixmap(NXPL_PlatformHandle handle, void **pixmapHandle
    }
 
    return ok;
+}
+
+bool NXPL_CreateCompatiblePixmap(NXPL_PlatformHandle handle, void **pixmapHandle, NEXUS_SurfaceHandle *surface, BEGL_PixmapInfo *info)
+{
+   BEGL_PixmapInfoEXT   infoEXT;
+
+   NXPL_GetDefaultPixmapInfoEXT(&infoEXT);
+
+   infoEXT.width  = info->width;
+   infoEXT.height = info->height;
+   infoEXT.format = info->format;
+
+   return NXPL_CreateCompatiblePixmapEXT(handle, pixmapHandle, surface, &infoEXT);
 }
 
 void NXPL_DestroyCompatiblePixmap(NXPL_PlatformHandle handle, void *pixmapHandle)

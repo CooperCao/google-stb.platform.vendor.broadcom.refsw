@@ -1,43 +1,39 @@
 /******************************************************************************
- * (c) 2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 
 #include <string.h>
@@ -68,7 +64,7 @@ BIP_String_GetString(BIP_StringHandle hString)
 {
     BDBG_OBJECT_ASSERT(hString, BIP_String);
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: Returning %p (\"%s\")" BIP_MSG_PRE_ARG, hString, hString->pString, hString->pString ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: Returning %p (\"%s\")" BIP_MSG_PRE_ARG, (void *)hString,(void *) hString->pString, hString->pString ));
     return (hString->pString);
 }
 
@@ -81,7 +77,7 @@ BIP_String_GetLength(BIP_StringHandle hString)
 {
     BDBG_OBJECT_ASSERT(hString, BIP_String);
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: Returning %d" BIP_MSG_PRE_ARG, hString, hString->stringLen ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: Returning %zu" BIP_MSG_PRE_ARG, (void *)hString, hString->stringLen ));
     return (hString->stringLen);
 }
 
@@ -121,7 +117,7 @@ BIP_String_Clear(BIP_StringHandle hString)
 {
     BDBG_OBJECT_ASSERT(hString, BIP_String);
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: Clearing out old string (%d bytes)" BIP_MSG_PRE_ARG, hString, hString->stringLen ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: Clearing out old string (%zu bytes)" BIP_MSG_PRE_ARG, (void *)hString, hString->stringLen ));
     hString->stringLen = 0;     /* Empties string, but retains allocated memory. */
     if (hString->memLen > 0) {
         *(hString->pString) = '\0';
@@ -143,8 +139,8 @@ BIP_String_Trim(BIP_StringHandle hString, const char * pTrim, size_t trimCount)
 
     BDBG_OBJECT_ASSERT(hString, BIP_String);
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: Entry: pTrim=%p trimCount=%d"
-               BIP_MSG_PRE_ARG, hString, pTrim, trimCount));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: Entry: pTrim=%p trimCount=%zu"
+               BIP_MSG_PRE_ARG, (void *)hString, (void *)pTrim, trimCount));
     BDBG_MSG(( BIP_MSG_PRE_FMT  BIP_STRING_TO_PRINTF_FMT
                BIP_MSG_PRE_ARG, BIP_STRING_TO_PRINTF_ARG(hString)));
 
@@ -155,15 +151,15 @@ BIP_String_Trim(BIP_StringHandle hString, const char * pTrim, size_t trimCount)
     trimStart   = stringStart + (pTrim - stringStart);
 
     BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: strStart=%p trimStart=%p  strEnd=%p"
-               BIP_MSG_PRE_ARG, hString, stringStart, trimStart, stringEnd));
+               BIP_MSG_PRE_ARG, (void *)hString, (void *)stringStart, (void *)trimStart, (void *)stringEnd));
 
     /* Make sure that the start of the trim is somewhere within the string. */
     if (trimStart < stringStart || trimStart > stringEnd)
     {
         BDBG_WRN(( BIP_MSG_PRE_FMT "hString %p: Start of trim range %p is outside of BIP_String range %p:%p"
-                   BIP_MSG_PRE_ARG, hString,
-                   trimStart,
-                   stringStart, stringEnd ));
+                   BIP_MSG_PRE_ARG, (void *)hString,
+                   (void *)trimStart,
+                   (void *)stringStart, (void *)stringEnd ));
         return(BIP_ERR_INVALID_PARAMETER);
     }
 
@@ -174,19 +170,19 @@ BIP_String_Trim(BIP_StringHandle hString, const char * pTrim, size_t trimCount)
     trimEnd     = trimStart + trimCount - 1;
 
     BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: strStart=%p trimStart=%p  strEnd=%p trimEnd=%p"
-               BIP_MSG_PRE_ARG, hString, stringStart, trimStart, stringEnd, trimEnd));
+               BIP_MSG_PRE_ARG, (void *)hString, (void *)stringStart, (void *)trimStart, (void *)stringEnd, (void *)trimEnd));
 
     /* If they're trying to trim more bytes than the string has, warn them, then adjust the trimCount. */
     if (trimEnd > stringEnd) {
 
         BDBG_WRN(( BIP_MSG_PRE_FMT "hString %p: End of Trim range %p:%p is outside of BIP_String range %p:%p"
-                   BIP_MSG_PRE_ARG, hString,
-                   trimStart, trimStart+trimCount-1,
-                   hString->pString, hString->pString + hString->stringLen-1 ));
+                   BIP_MSG_PRE_ARG, (void *)hString,
+                   (void *)trimStart, (void *)(trimStart+trimCount-1),
+                   (void *)hString->pString, (void *)(hString->pString + hString->stringLen-1) ));
         trimEnd = stringEnd;
         trimCount = trimEnd - trimStart + 1;
-        BDBG_WRN(( BIP_MSG_PRE_FMT "hString %p: Adjusted trimCount to %d, trimEnd to %p"
-                   BIP_MSG_PRE_ARG, hString, trimCount, trimEnd))   ;
+        BDBG_WRN(( BIP_MSG_PRE_FMT "hString %p: Adjusted trimCount to %zu, trimEnd to %p"
+                   BIP_MSG_PRE_ARG, (void *)hString, trimCount, (void *)trimEnd))   ;
     }
 
     /* Now do the trim. */
@@ -222,25 +218,25 @@ BIP_String_Allocate(BIP_StringHandle hString, size_t newLen)
 
     newLen++;       /* Add a byte for null-termination. */
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: newLen:%d" BIP_MSG_PRE_ARG, hString, newLen ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: newLen:%zu" BIP_MSG_PRE_ARG, (void *)hString, newLen ));
     if (hString->memLen >= newLen) {
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: memLen:%d is okay. Returning." BIP_MSG_PRE_ARG, hString, hString->memLen ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: memLen:%zu is okay. Returning." BIP_MSG_PRE_ARG, (void *)hString, hString->memLen ));
         return rc;
     }
 
     newLen = (((newLen-1) / 32) + 1) * 32;
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: Adjusted newLen to %d." BIP_MSG_PRE_ARG, hString, newLen ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: Adjusted newLen to %zu." BIP_MSG_PRE_ARG, (void *)hString, newLen ));
 
     pNewCharString = B_Os_Malloc(newLen);
-    BIP_CHECK_GOTO(pNewCharString != NULL, ("B_Os_Calloc() (for %d bytes) failed", newLen), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc);
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: Allocate new string buffer:%p size:%d" BIP_MSG_PRE_ARG, hString, pNewCharString, newLen ));
+    BIP_CHECK_GOTO(pNewCharString != NULL, ("B_Os_Calloc() (for %zu bytes) failed", newLen), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc);
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: Allocate new string buffer:%p size:%zu" BIP_MSG_PRE_ARG, (void *)hString, (void *)pNewCharString, newLen ));
 
     BDBG_ASSERT(hString->stringLen < newLen);
 
     if (hString->memLen) {
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: Copying %d chars to new string buffer:%p" BIP_MSG_PRE_ARG, hString, hString->stringLen, hString->pString ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: Copying %zu chars to new string buffer:%p" BIP_MSG_PRE_ARG, (void *)hString, hString->stringLen, (void *)hString->pString ));
         strncpy( pNewCharString, hString->pString, newLen);
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: Freeing old string buf:%p length was %d" BIP_MSG_PRE_ARG, hString, hString->pString, hString->memLen ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: Freeing old string buf:%p length was %zu" BIP_MSG_PRE_ARG, (void *)hString, (void *)hString->pString, hString->memLen ));
         B_Os_Free(hString->pString);
     }
 
@@ -294,16 +290,16 @@ BIP_String_StrcatPrintfByVaList(BIP_StringHandle hString, const char *fmt, va_li
 
     BDBG_OBJECT_ASSERT(hString, BIP_String);
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: Entry: Old stringlength:%d" BIP_MSG_PRE_ARG, hString, hString->stringLen ));
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: Old string:   \"%.*s\"" BIP_MSG_PRE_ARG, hString, hString->stringLen, hString->pString ));
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: Adding string formatted by:\"%s\"" BIP_MSG_PRE_ARG, hString, fmt ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: Entry: Old stringlength:%zu" BIP_MSG_PRE_ARG, (void *)hString, hString->stringLen ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: Old string:   \"%.*s\"" BIP_MSG_PRE_ARG, (void *)hString, (int)hString->stringLen, hString->pString ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: Adding string formatted by:\"%s\"" BIP_MSG_PRE_ARG, (void *)hString, fmt ));
 
     if (fmt == NULL) {
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: Format string to add is NULL. Returning." BIP_MSG_PRE_ARG, hString ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: Format string to add is NULL. Returning." BIP_MSG_PRE_ARG, (void *)hString ));
         return rc;
     }
     if (*fmt == '\0') {
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: Format string to add is zero length. Returning." BIP_MSG_PRE_ARG, hString ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: Format string to add is zero length. Returning." BIP_MSG_PRE_ARG, (void *)hString ));
         return rc;
     }
 
@@ -326,7 +322,7 @@ BIP_String_StrcatPrintfByVaList(BIP_StringHandle hString, const char *fmt, va_li
 
         /* See if we have any excess space at the end of the current string in the BIP_String. */
         excess = BIP_String_GetExcess(hString);
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: Excess bytes in existing BIP_String:%d" BIP_MSG_PRE_ARG, hString, excess ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: Excess bytes in existing BIP_String:%d" BIP_MSG_PRE_ARG, (void *)hString, excess ));
 
         if (excess > 0) {
             /* We have some excess space in the BIP_String, so try formatting into that space. */
@@ -346,16 +342,16 @@ BIP_String_StrcatPrintfByVaList(BIP_StringHandle hString, const char *fmt, va_li
         myErrno = errno;
         BIP_CHECK_GOTO(addLen>=0, ("BKNI_Vsnprintf() failed, errno:%d, format:\"%s\" failed", myErrno, fmt), error, BIP_ERR_OS_CHECK_ERRNO, rc);
 
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: Length of formatted string:%d" BIP_MSG_PRE_ARG, hString, addLen ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: Length of formatted string:%d" BIP_MSG_PRE_ARG, (void *)hString, addLen ));
         newLen = oldLen + addLen;
 
         /* If the first format into the excess space didn't work, then we need to allocate more space to the
          * BIP_String and do the snprintf again.  This time it should fit for sure. */
         if (addLen > excess) {
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: First format didn't have enough room, had %d bytes, needed %d." BIP_MSG_PRE_ARG, hString, excess, addLen ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: First format didn't have enough room, had %d bytes, needed %d." BIP_MSG_PRE_ARG, (void *)hString, excess, addLen ));
 
             rc = BIP_String_Allocate(hString, newLen);
-            BIP_CHECK_GOTO(rc==B_ERROR_SUCCESS, ("BIP_String_Allocate() (for %d bytes) failed", newLen), error, rc, rc);
+            BIP_CHECK_GOTO(rc==B_ERROR_SUCCESS, ("BIP_String_Allocate() (for %zu bytes) failed", newLen), error, rc, rc);
 
             addLen = BKNI_Vsnprintf(hString->pString + oldLen, hString->memLen - oldLen, fmt, ap);
             myErrno = errno;
@@ -364,8 +360,8 @@ BIP_String_StrcatPrintfByVaList(BIP_StringHandle hString, const char *fmt, va_li
 
         hString->stringLen = newLen;
 
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: New stringlength:  %d" BIP_MSG_PRE_ARG, hString, hString->stringLen ));
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: New string: \"%s\"" BIP_MSG_PRE_ARG, hString, hString->pString ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: New stringlength:  %zu" BIP_MSG_PRE_ARG, (void *)hString, hString->stringLen ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: New string: \"%s\"" BIP_MSG_PRE_ARG, (void *)hString, hString->pString ));
     }
     return rc;
 
@@ -405,19 +401,19 @@ BIP_String_StrcatCharN(BIP_StringHandle hString, const char *pCharString, size_t
 
     BDBG_OBJECT_ASSERT(hString, BIP_String);
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: Old stringlength:%d" BIP_MSG_PRE_ARG, hString, hString->stringLen ));
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: Old string:   \"%s\"" BIP_MSG_PRE_ARG, hString, hString->pString ));
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: Adding string:\"%.*s\"" BIP_MSG_PRE_ARG, hString, length, pCharString ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: Old stringlength:%zu" BIP_MSG_PRE_ARG, (void *)hString, hString->stringLen ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: Old string:   \"%s\"" BIP_MSG_PRE_ARG, (void *)hString, hString->pString ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: Adding string:\"%.*s\"" BIP_MSG_PRE_ARG, (void *)hString, (int)length, pCharString ));
 
     if (pCharString == NULL) {
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: String to add is NULL. Returning." BIP_MSG_PRE_ARG, hString ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: String to add is NULL. Returning." BIP_MSG_PRE_ARG, (void *)hString ));
         return rc;
     }
 
     length = length;
 
     if (length == 0) {
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: Length to add is zero. Returning." BIP_MSG_PRE_ARG, hString ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: Length to add is zero. Returning." BIP_MSG_PRE_ARG, (void *)hString ));
         return rc;
     }
 
@@ -427,15 +423,15 @@ BIP_String_StrcatCharN(BIP_StringHandle hString, const char *pCharString, size_t
 
         if (newLen+1 > hString->memLen) {
             rc = BIP_String_Allocate(hString, newLen);
-            BIP_CHECK_GOTO(rc==B_ERROR_SUCCESS, ("BIP_String_Allocate() (for %d bytes) failed", newLen), error, rc, rc);
+            BIP_CHECK_GOTO(rc==B_ERROR_SUCCESS, ("BIP_String_Allocate() (for %zu bytes) failed", newLen), error, rc, rc);
         }
 
         strncpy(hString->pString + oldLen, pCharString, hString->memLen - oldLen);
         hString->stringLen = newLen;
         *(hString->pString + newLen) = '\0';       /* Insure null termination. */
 
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: New stringlength:  %d" BIP_MSG_PRE_ARG, hString, hString->stringLen ));
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: New string: \"%s\"" BIP_MSG_PRE_ARG, hString, hString->pString ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: New stringlength:  %zu" BIP_MSG_PRE_ARG, (void *)hString, hString->stringLen ));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: New string: \"%s\"" BIP_MSG_PRE_ARG, (void *)hString, hString->pString ));
     }
 
     error:
@@ -586,7 +582,7 @@ BIP_String_CreateFromChar( const char *pInitString )
     BIP_String  *hString = BIP_String_Create();
 
    if (pInitString != NULL) {
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: Initializing to \"%s\"" BIP_MSG_PRE_ARG, hString, pInitString));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: Initializing to \"%s\"" BIP_MSG_PRE_ARG, (void *)hString, pInitString));
         BIP_String_StrcatChar(hString, pInitString);
     }
 
@@ -604,7 +600,7 @@ BIP_String_CreateFromCharN( const char *pInitString, size_t length )
     BIP_String  *hString = BIP_String_Create();
 
    if (pInitString != NULL) {
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: Initializing to \"%.*s\"" BIP_MSG_PRE_ARG, hString, length, pInitString));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: Initializing to \"%.*s\"" BIP_MSG_PRE_ARG, (void *)hString, (int)length, pInitString));
         BIP_String_StrcatCharN(hString, pInitString, length);
     }
 
@@ -628,7 +624,7 @@ BIP_String_Create( void )
         return(NULL);
     }
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: Allocated object (%d bytes)" BIP_MSG_PRE_ARG, hString, sizeof(BIP_String)));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hString %p: Allocated object (%zu bytes)" BIP_MSG_PRE_ARG, (void *)hString, sizeof(BIP_String)));
 
     BDBG_OBJECT_SET( hString, BIP_String );
 

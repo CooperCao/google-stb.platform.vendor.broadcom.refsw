@@ -1,52 +1,40 @@
-/***************************************************************************
-*     (c)2008-2016 Broadcom Corporation
-*
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
-*  and may only be used, duplicated, modified or distributed pursuant to the terms and
-*  conditions of a separate, written license agreement executed between you and Broadcom
-*  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-*  no license (express or implied), right to use, or waiver of any kind with respect to the
-*  Software, and Broadcom expressly reserves all rights in and to the Software and all
-*  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-*  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-*  Except as expressly set forth in the Authorized License,
-*
-*  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-*  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-*  and to use this information only in connection with your use of Broadcom integrated circuit products.
-*
-*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-*  USE OR PERFORMANCE OF THE SOFTWARE.
-*
-*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-*  ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* Module Description:
-*  Helper file for Live Media library
-*
-* Revision History:
-*
-* $brcm_Log: $
-*
-****************************************************************************/
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
 #include "b_playback_ip_lib.h"
 #include "b_playback_ip_priv.h"
 #include "b_playback_ip_lm_helper.h"
@@ -69,7 +57,7 @@ B_PlaybackIp_liveMediaOpen(void)
             BDBG_ERR(("ERROR: failed to Open the Live Media Scheduler"));
             return NULL;
     }
-    BDBG_MSG(("%s%s: lm_env %p", libName, libVersionStr, lm_env));
+    BDBG_MSG(("%s%s: lm_env %p", libName, libVersionStr, (void *)lm_env));
     return lm_env;
 }
 
@@ -79,7 +67,7 @@ B_PlaybackIp_liveMediaClose(UsageEnvironment* lm_env)
 {
     if (lm_env) {
         blive_scheduler_close();
-        BDBG_MSG(("lm_env %p", lm_env));
+        BDBG_MSG(("lm_env %p", (void *)lm_env));
     }
 }
 
@@ -185,7 +173,7 @@ B_PlaybackIp_liveMediaSessionOpen(
     memset(lmContext->session, 0, sizeof(B_PlaybackIp_liveMediaSession));
     lmContext->session->playback_ip = playback_ip;
     lmContext->session->openSettings = *openSettings;
-    BDBG_MSG(("%s: created Live Media wrapper session ctx: lmContext %p", __FUNCTION__, lmContext));
+    BDBG_MSG(("%s: created Live Media wrapper session ctx: lmContext %p", __FUNCTION__, (void *)lmContext));
 
     // schedule initialization of session: create Groupsock for RTP, object for RTSP Client
     lmContext->params = NULL;
@@ -337,7 +325,7 @@ B_PlaybackIp_doSessionInit(void *context)
 
     /* Defer this to a/f SETUP time when we know the protocol Media is being streamed on (Raw UDP or RTP) */
     // setup buffer for reception stats
-    BDBG_MSG(("%s: rtp header data size %d, %d\n", __FUNCTION__, sizeof(B_PlaybackIp_RtpHeader) , B_MAX_RTP_HEADERS));
+    BDBG_MSG(("%s: rtp header data size %d, %d\n", __FUNCTION__, (int)sizeof(B_PlaybackIp_RtpHeader) , B_MAX_RTP_HEADERS));
     session->rtpHeaderData = (B_PlaybackIp_RtpStatsHeader *)malloc(sizeof(B_PlaybackIp_RtpStatsHeader) * B_MAX_RTP_HEADERS);
     if (!session->rtpHeaderData) {
         BDBG_ERR(("%s: Memory allocation failure\n", __FUNCTION__));
@@ -373,7 +361,7 @@ B_PlaybackIp_doSessionInit(void *context)
         if (openSettings->u.rtsp.userAgent)
             session->rtspClient->setUserAgentString(openSettings->u.rtsp.userAgent);
         else
-            session->rtspClient->setUserAgentString("RTSP Client(C) 2001-2011, Broadcom Corporation");
+            session->rtspClient->setUserAgentString("RTSP Client(C) 1.0");
 
         /* TODO: need to defer this GroupSock initialization work to after SessionSetup (a/f SETUP response is processed) */
         /* main reason is that we dont know in advance whether server is going to use a Raw UDP or RTP protocol for sending Media */
@@ -454,7 +442,7 @@ static void sendRequestCallback(RTSPClient* context, int resultCode, char* resul
 
 char * sendOptionsCmd ( RTSPClient* rtspClient )
 {
-    BDBG_MSG(("%s: calling sendOptionsCommand(); RTSPClient (%p) ", __FUNCTION__, rtspClient ));
+    BDBG_MSG(("%s: calling sendOptionsCommand(); RTSPClient (%p) ", __FUNCTION__, (void *)rtspClient ));
     rtspClient->sendOptionsCommand(sendRequestCallback, NULL );
 
     UsageEnvironment& env = rtspClient->envir();
@@ -463,7 +451,7 @@ char * sendOptionsCmd ( RTSPClient* rtspClient )
     env.taskScheduler().doEventLoop(&rtspClient->fWatchVariableForSyncInterface );
 
     if ( rtspClient->fResultCode == 0)  return rtspClient->fResultString; // success
-    BDBG_MSG(("%s: Ctx (%p), returning (%s) ", __FUNCTION__, rtspClient, rtspClient->fResultString ));
+    BDBG_MSG(("%s: Ctx (%p), returning (%s) ", __FUNCTION__, (void *)rtspClient, rtspClient->fResultString ));
     return NULL;
 }
 
@@ -472,7 +460,7 @@ char * sendDescribeCmd ( RTSPClient* rtspClient, const char * url )
     rtspClient->fDescribeStatusCode = 0; // BRCM: CAD 2013-10-21
 
     rtspClient->setBaseURL( url );
-    BDBG_MSG(("%s: calling sendDescribeCommand(); RTSPClient (%p); url (%s) ", __FUNCTION__, rtspClient, rtspClient->url() ));
+    BDBG_MSG(("%s: calling sendDescribeCommand(); RTSPClient (%p); url (%s) ", __FUNCTION__, (void *)rtspClient, rtspClient->url() ));
     rtspClient->sendDescribeCommand(sendRequestCallback, NULL );
 
     UsageEnvironment& env = rtspClient->envir();
@@ -482,7 +470,7 @@ char * sendDescribeCmd ( RTSPClient* rtspClient, const char * url )
 
     if ( rtspClient->fResultCode == 0) return rtspClient->fResultString; // success
     if ( rtspClient->fDescribeStatusCode == 0) rtspClient->fDescribeStatusCode = 2 /* stream unavailable*/; // BRCM: CAD 2013-10-21
-    BDBG_MSG(("%s: Ctx (%p), returning (%s) ", __FUNCTION__, rtspClient, rtspClient->fResultString ));
+    BDBG_MSG(("%s: Ctx (%p), returning (%s) ", __FUNCTION__, (void *)rtspClient, rtspClient->fResultString ));
     delete[] rtspClient->fResultString;
     return NULL;
 }
@@ -492,7 +480,7 @@ int sendSetupCmd ( RTSPClient* rtspClient, MediaSubsession& subsession,
                    Authenticator* authenticator)
 {
     BDBG_MSG(("%s: calling sendSetupCommand(session %p, Outgoing %u, UsingTCP %u, forceMulti %u, authenticator %p); ",
-               __FUNCTION__, &subsession, streamOutgoing, streamUsingTCP, forceMulticastOnUnspecified, authenticator ));
+               __FUNCTION__, (void *)&subsession, streamOutgoing, streamUsingTCP, forceMulticastOnUnspecified, (void *)authenticator ));
     rtspClient->sendSetupCommand(subsession, sendRequestCallback,  streamOutgoing, streamUsingTCP, forceMulticastOnUnspecified, authenticator);
 
     UsageEnvironment& env = rtspClient->envir();
@@ -500,7 +488,7 @@ int sendSetupCmd ( RTSPClient* rtspClient, MediaSubsession& subsession,
     rtspClient->fWatchVariableForSyncInterface=0;
     env.taskScheduler().doEventLoop(&rtspClient->fWatchVariableForSyncInterface );
 
-    BDBG_MSG(("%s: Ctx (%p), returning (%s) ", __FUNCTION__, rtspClient, rtspClient->fResultString ));
+    BDBG_MSG(("%s: Ctx (%p), returning (%s) ", __FUNCTION__, (void *)rtspClient, rtspClient->fResultString ));
     delete[] rtspClient->fResultString;
     return rtspClient->fResultCode == 0;
 }
@@ -508,7 +496,7 @@ int sendSetupCmd ( RTSPClient* rtspClient, MediaSubsession& subsession,
 int sendPlayCmd ( RTSPClient* rtspClient, MediaSession& session,
                   double start, double end, float scale, Authenticator* authenticator )
 {
-    BDBG_MSG(("%s: calling sendPlayCommand(); RTSPClient (%p) ", __FUNCTION__, rtspClient ));
+    BDBG_MSG(("%s: calling sendPlayCommand(); RTSPClient (%p) ", __FUNCTION__, (void *)rtspClient ));
     rtspClient->sendPlayCommand(session, sendRequestCallback, start, end, scale, authenticator );
 
     UsageEnvironment& env = rtspClient->envir();
@@ -517,13 +505,13 @@ int sendPlayCmd ( RTSPClient* rtspClient, MediaSession& session,
     env.taskScheduler().doEventLoop(&rtspClient->fWatchVariableForSyncInterface );
     delete[] rtspClient->fResultString;
 
-    BDBG_MSG(("%s: Ctx (%p), returning (%s) ", __FUNCTION__, rtspClient, rtspClient->fResponseBuffer ));
+    BDBG_MSG(("%s: Ctx (%p), returning (%s) ", __FUNCTION__, (void *)rtspClient, rtspClient->fResponseBuffer ));
     return rtspClient->fResultCode==0;
 }
 
 int sendPauseCmd ( RTSPClient* rtspClient, MediaSession& session )
 {
-    BDBG_MSG(("%s: calling sendPauseCommand(); RTSPClient (%p) ", __FUNCTION__, rtspClient ));
+    BDBG_MSG(("%s: calling sendPauseCommand(); RTSPClient (%p) ", __FUNCTION__, (void *)rtspClient ));
     rtspClient->sendPauseCommand(session, sendRequestCallback );
 
     UsageEnvironment& env = rtspClient->envir();
@@ -532,13 +520,13 @@ int sendPauseCmd ( RTSPClient* rtspClient, MediaSession& session )
     env.taskScheduler().doEventLoop(&rtspClient->fWatchVariableForSyncInterface );
     delete[] rtspClient->fResultString;
 
-    BDBG_MSG(("%s: Ctx (%p), returning (%s) ", __FUNCTION__, rtspClient, rtspClient->fResponseBuffer ));
+    BDBG_MSG(("%s: Ctx (%p), returning (%s) ", __FUNCTION__, (void *)rtspClient, rtspClient->fResponseBuffer ));
     return rtspClient->fResultCode==0;
 }
 
 bool sendTeardownCmd ( RTSPClient* rtspClient, MediaSession& session )
 {
-    BDBG_MSG(("%s: calling sendTeardownCommand(); RTSPClient (%p) ", __FUNCTION__, rtspClient ));
+    BDBG_MSG(("%s: calling sendTeardownCommand(); RTSPClient (%p) ", __FUNCTION__, (void *)rtspClient ));
     rtspClient->sendTeardownCommand(session, sendRequestCallback );
 
     UsageEnvironment& env = rtspClient->envir();
@@ -546,7 +534,7 @@ bool sendTeardownCmd ( RTSPClient* rtspClient, MediaSession& session )
     rtspClient->fWatchVariableForSyncInterface=0;
     env.taskScheduler().doEventLoop(&rtspClient->fWatchVariableForSyncInterface );
 
-    BDBG_MSG(("%s: Ctx (%p), returning (%s) ", __FUNCTION__, rtspClient, rtspClient->fResponseBuffer ));
+    BDBG_MSG(("%s: Ctx (%p), returning (%s) ", __FUNCTION__, (void *)rtspClient, rtspClient->fResponseBuffer ));
     return true;
 }
 
@@ -563,7 +551,7 @@ bool sendSetParameterCmd ( RTSPClient* rtspClient, MediaSession* rtspMediaSessio
     env.taskScheduler().doEventLoop(&rtspClient->fWatchVariableForSyncInterface );
 
     rc = rtspClient->fResultCode == 0;
-    BDBG_MSG(("%s: Ctx (%p), returning (%s) ", __FUNCTION__, rtspClient, rc ));
+    BDBG_MSG(("%s: Ctx (%p), returning (%d) ", __FUNCTION__, (void*)rtspClient, rc ));
     return rtspClient->fResultCode==0;
 }
 
@@ -581,7 +569,7 @@ bool sendGetParameterCmd ( RTSPClient* rtspClient, MediaSession* rtspMediaSessio
     if( rtspClient->fResultString ) parameterValue = strdup( rtspClient->fResultString );
 
     rc = rtspClient->fResultCode == 0;
-    BDBG_MSG(("%s: Ctx (%p), returning (%d) ", __FUNCTION__, rtspClient, rc ));
+    BDBG_MSG(("%s: Ctx (%p), returning (%d) ", __FUNCTION__, (void *)rtspClient, rc ));
     return rtspClient->fResultCode==0;
 }
 
@@ -676,7 +664,7 @@ static void B_PlaybackIp_doSessionSetup(void *context)
     B_PlaybackIpHandle playback_ip = session->playback_ip;
     char *tmpPtr;
 
-    BDBG_MSG(("%s: Entered B_PlaybackIp_doSessionSetup() @ 0x%x, session: %p\n", __FUNCTION__, B_PlaybackIp_doSessionSetup, session ));
+    BDBG_MSG(("%s: Entered B_PlaybackIp_doSessionSetup() session: %p\n", __FUNCTION__, (void *)session ));
 
     if(session->openSettings.socketOpenSettings.protocol == B_PlaybackIpProtocol_eRtsp) {
         // do OPTIONS
@@ -698,7 +686,7 @@ static void B_PlaybackIp_doSessionSetup(void *context)
         }
 
         BDBG_MSG(("DESCRIBE: Opened URL: %s", session->url));
-        BDBG_MSG(("DESCRIBE: Got SDP description: len (%d)", strlen(sdpDescription) ));
+        BDBG_MSG(("DESCRIBE: Got SDP description: len (%d)", (int)strlen(sdpDescription) ));
         BDBG_MSG(("DESCRIBE: %s", sdpDescription));
 
         /* determine the media transport: UDP or RTP */
@@ -739,7 +727,7 @@ static void B_PlaybackIp_doSessionSetup(void *context)
         // Create a media session object from the SDP description
         BDBG_MSG(("DESCRIBE: Creating the media session object from the SDP description..."));
         session->rtspMediaSession = MediaSession::createNew(*lmContext->lm_env, sdpDescription);
-        BDBG_MSG(("DESCRIBE: %s: session %p; rtspMediaSession %p", __FUNCTION__, session, session->rtspMediaSession ));
+        BDBG_MSG(("DESCRIBE: %s: session %p; rtspMediaSession %p", __FUNCTION__, (void *)session, (void *)session->rtspMediaSession ));
         delete[] sdpDescription;
         if (session->rtspMediaSession == NULL) {
             BDBG_ERR(("Error: Failed to create a MediaSession object from the SDP description"));
@@ -976,8 +964,8 @@ static void B_PlaybackIp_doPeriodicTask(void *context)
 
     BDBG_ASSERT(session);
 
-    BDBG_MSG(("Entered B_PlaybackIp_doPeriodicTask() @ 0x%x, session: %p, session->state: %d, sched_count: %d",
-              B_PlaybackIp_doPeriodicTask, session, session->state, session->periodicTaskSchedCount));
+    BDBG_MSG(("Entered B_PlaybackIp_doPeriodicTask() session: %p, session->state: %d, sched_count: %d",
+              (void *)session, session->state, session->periodicTaskSchedCount));
 
     session->periodicTaskSchedCount++;
     if(session->periodicTaskPendingCount > 0) session->periodicTaskPendingCount--;

@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2007 Broadcom Europe Limited.  All rights reserved.
+Broadcom Proprietary and Confidential. (c)2007 Broadcom.  All rights reserved.
 
 Project  :  C6357
 Module   :

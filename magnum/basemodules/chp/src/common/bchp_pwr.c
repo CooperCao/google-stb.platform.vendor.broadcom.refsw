@@ -1,51 +1,40 @@
-/***************************************************************************
-*     (c)2007-2010 Broadcom Corporation
-*
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
-*  and may only be used, duplicated, modified or distributed pursuant to the terms and
-*  conditions of a separate, written license agreement executed between you and Broadcom
-*  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-*  no license (express or implied), right to use, or waiver of any kind with respect to the
-*  Software, and Broadcom expressly reserves all rights in and to the Software and all
-*  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-*  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-*  Except as expressly set forth in the Authorized License,
-*
-*  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-*  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-*  and to use this information only in connection with your use of Broadcom integrated circuit products.
-*
-*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-*  USE OR PERFORMANCE OF THE SOFTWARE.
-*
-*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-*  ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* Module Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
-*
-***************************************************************************/
+/******************************************************************************
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ ******************************************************************************/
 
 #include "bstd.h"
 #include "bkni.h"
@@ -86,7 +75,11 @@ BERR_Code BCHP_PWR_Open(BCHP_PWR_Handle *pHandle, BCHP_Handle chp)
     unsigned size;
     BERR_Code rc;
 
+#if BCHP_PWR_SUPPORT
     BDBG_ASSERT(pHandle);
+#else
+	BSTD_UNUSED(pHandle);
+#endif
     BDBG_ASSERT(chp);
     BDBG_ASSERT(chp->regHandle);
 
@@ -101,7 +94,9 @@ BERR_Code BCHP_PWR_Open(BCHP_PWR_Handle *pHandle, BCHP_Handle chp)
 
     rc = BKNI_CreateMutex(&(pDev->lock));
     if (rc != BERR_SUCCESS) {
+#if BDBG_DEBUG_BUILD || B_REFSW_DEBUG_COMPACT_ERR
         BERR_TRACE(rc);
+#endif
         goto error;
     }
 
@@ -544,6 +539,25 @@ static BERR_Code BCHP_PWR_P_AcquireResource(BCHP_Handle handle, const BCHP_PWR_P
         {
             const BCHP_PWR_P_Resource **resources = BCHP_PWR_P_DependList[idx];
             if(resource->type == BCHP_PWR_P_ResourceType_eDiv) {
+                /* Initialize clock frequency */
+#ifdef BCHP_PWR_P_NUM_DIVS
+                if (ref_cnt==0) {
+                    if (from_init) {
+                        unsigned i;
+                        const BCHP_PWR_P_DivTable *divTable = NULL;
+                        for (i=0; i<BCHP_PWR_P_NUM_DIVS; i++) {
+                            if (resource->id == BCHP_PWR_P_FreqMapList[i].id) {
+                                divTable = BCHP_PWR_P_FreqMapList[i].pDivTable;
+                                if(divTable[0].postdiv) {
+                                    BDBG_MSG(("Init %s : Mult %d, Prediv %d, Postdiv %d", resource->name, divTable[0].mult, divTable[0].prediv, divTable[0].postdiv));
+                                    BCHP_PWR_P_DIV_Control(handle, resource, (unsigned *)&divTable[0].mult, (unsigned *)&divTable[0].prediv, (unsigned *)&divTable[0].postdiv, true);
+                                }
+                                break;
+                            }
+                        }
+                    }
+                }
+#endif
                 /* Leaf Divisor */
                 if(resources == NULL) {
                     break;
@@ -609,9 +623,11 @@ static BERR_Code BCHP_PWR_P_ReleaseResource(BCHP_Handle handle, const BCHP_PWR_P
             unsigned mux, cnt=0;
             BDBG_ASSERT(resources);
 
-            if(from_init) {
-                BDBG_MSG(("Initialize MUX resource %#x (%s)", resource->id, resource->name));
-                handle->pwrManager->init[idx] = true;
+            if (ref_cnt==0) {
+                if(from_init) {
+                    BDBG_MSG(("Initialize MUX resource %#x (%s)", resource->id, resource->name));
+                    handle->pwrManager->init[idx] = true;
+                }
             }
 
             BCHP_PWR_P_MUX_Control(handle, resource, &mux, false);
@@ -646,9 +662,11 @@ static BERR_Code BCHP_PWR_P_ReleaseResource(BCHP_Handle handle, const BCHP_PWR_P
             const BCHP_PWR_P_Resource **resources = BCHP_PWR_P_DependList[idx];
 
             if(resource->type == BCHP_PWR_P_ResourceType_eDiv) {
-                if (from_init) {
-                    BDBG_MSG(("Initialize DIV resource %#x (%s)", resource->id, resource->name));
-                    handle->pwrManager->init[idx] = true;
+                if (ref_cnt==0) {
+                    if (from_init) {
+                        BDBG_MSG(("Initialize DIV resource %#x (%s)", resource->id, resource->name));
+                        handle->pwrManager->init[idx] = true;
+                    }
                 }
                 /* Leaf Divisor */
                 if(resources == NULL) {
@@ -818,6 +836,9 @@ bool BCHP_PWR_P_IsResourceAcquired(BCHP_Handle handle, BCHP_PWR_ResourceId resou
 void BCHP_PWR_DebugPrint(BCHP_Handle handle)
 {
     unsigned i, j;
+#if BDBG_NO_LOG
+	BSTD_UNUSED(handle);
+#endif
 
     for(i=0; i<sizeof(cores)/sizeof(cores[0]); i++) {
         if(!cores[i].map[0].resource) {
@@ -911,6 +932,7 @@ void BCHP_PWR_Resume(BCHP_Handle handle)
     BKNI_Free(refcnt);
     BDBG_MSG(("BCHP_PWR_Resume:<"));
 
+    /* TODO : Restore Frequency and Mux Settings */
 #else
     BSTD_UNUSED(handle);
     return;
@@ -990,15 +1012,11 @@ static const BCHP_PWR_P_DivTable *BCHP_PWR_P_ClockRateControl_priv(BCHP_Handle h
     return divTable;
 }
 
-static const BCHP_PWR_P_DivTable *BCHP_PWR_P_ClockRateControl(BCHP_Handle handle, BCHP_PWR_ResourceId resourceId, unsigned *mult, unsigned *prediv, unsigned *postdiv, bool set)
+static const BCHP_PWR_P_DivTable *BCHP_PWR_P_ClockRateControl(BCHP_Handle handle, const BCHP_PWR_P_Resource *resource, unsigned *mult, unsigned *prediv, unsigned *postdiv, bool set)
 {
-    const BCHP_PWR_P_Resource *resource;
     const BCHP_PWR_P_DivTable *divTable = NULL;
 
-    (void)BCHP_PWR_P_GetInternalIndex(resourceId);
-    resource = BCHP_PWR_P_GetResourceHandle(resourceId);
     divTable = BCHP_PWR_P_ClockRateControl_priv(handle, resource, mult, prediv, postdiv, set);
-
     return divTable;
 }
 
@@ -1006,6 +1024,7 @@ static BERR_Code BCHP_PWR_P_GetClockRate(BCHP_Handle handle, BCHP_PWR_ResourceId
 {
     BERR_Code rc = BERR_NOT_SUPPORTED;
     const BCHP_PWR_P_DivTable *divTable = NULL;
+    const BCHP_PWR_P_Resource *resource;
     unsigned postdiv, prediv, mult;
 
     BDBG_ASSERT(handle);
@@ -1019,19 +1038,20 @@ static BERR_Code BCHP_PWR_P_GetClockRate(BCHP_Handle handle, BCHP_PWR_ResourceId
 
     BKNI_AcquireMutex(handle->pwrManager->lock);
 
-    divTable = BCHP_PWR_P_ClockRateControl(handle, resourceId, &mult, &prediv, &postdiv, false);
+    resource = BCHP_PWR_P_GetResourceHandle(resourceId);
+    divTable = BCHP_PWR_P_ClockRateControl(handle, resource, &mult, &prediv, &postdiv, false);
     if(divTable) {
         if (minRate) {
             *minRate = (((uint64_t)BASE_FREQ * divTable[MIN_INDEX].mult)/divTable[MIN_INDEX].prediv)/divTable[MIN_INDEX].postdiv;
-            BDBG_MSG(("Resource %u Min Clock Rate %u", resourceId, *minRate));
+            BDBG_MSG(("%s Min Clock Rate %u", resource->name, *minRate));
         }
         if (maxRate) {
             *maxRate = (((uint64_t)BASE_FREQ * divTable[MAX_INDEX].mult)/divTable[MAX_INDEX].prediv)/divTable[MAX_INDEX].postdiv;
-            BDBG_MSG(("Resource %u Max Clock Rate %u", resourceId, *maxRate));
+            BDBG_MSG(("%s Max Clock Rate %u", resource->name, *maxRate));
         }
         if (curRate) {
             *curRate = (((uint64_t)BASE_FREQ * mult)/prediv)/postdiv;
-            BDBG_MSG(("Resource %u Current Clock Rate %u", resourceId, *curRate));
+            BDBG_MSG(("%s Current Clock Rate %u", resource->name, *curRate));
         }
 
         rc = BERR_SUCCESS;
@@ -1097,6 +1117,7 @@ BERR_Code BCHP_PWR_SetClockRate(BCHP_Handle handle, BCHP_PWR_ResourceId resource
     BERR_Code rc = BERR_NOT_SUPPORTED;
 #if BCHP_PWR_SUPPORT
     const BCHP_PWR_P_DivTable *divTable = NULL;
+    const BCHP_PWR_P_Resource *resource;
     unsigned postdiv, prediv, mult;
     unsigned maxRate, minRate;
 
@@ -1113,7 +1134,8 @@ BERR_Code BCHP_PWR_SetClockRate(BCHP_Handle handle, BCHP_PWR_ResourceId resource
 
     BKNI_AcquireMutex(handle->pwrManager->lock);
 
-    divTable = BCHP_PWR_P_ClockRateControl(handle, resourceId, &mult, &prediv, &postdiv, false);
+    resource = BCHP_PWR_P_GetResourceHandle(resourceId);
+    divTable = BCHP_PWR_P_ClockRateControl(handle, resource, &mult, &prediv, &postdiv, false);
 
     if(divTable) {
         maxRate = (((uint64_t)BASE_FREQ * divTable[MAX_INDEX].mult)/divTable[MAX_INDEX].prediv)/divTable[MAX_INDEX].postdiv;
@@ -1126,9 +1148,9 @@ BERR_Code BCHP_PWR_SetClockRate(BCHP_Handle handle, BCHP_PWR_ResourceId resource
         }
 
         postdiv = (((uint64_t)BASE_FREQ * mult)/prediv)/clkRate;
-        BDBG_MSG(("clkrate %u, mult %u. prediv %u, postdiv %u", clkRate, mult, prediv, postdiv));
+        BDBG_MSG(("clkrate %u, mult %u, prediv %u, postdiv %u", clkRate, mult, prediv, postdiv));
 
-        if(BCHP_PWR_P_ClockRateControl(handle, resourceId, &mult, &prediv, &postdiv, true))
+        if(BCHP_PWR_P_ClockRateControl(handle, resource, &mult, &prediv, &postdiv, true))
             rc = BERR_SUCCESS;
     }
 

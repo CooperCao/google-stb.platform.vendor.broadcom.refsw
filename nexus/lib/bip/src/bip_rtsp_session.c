@@ -1,43 +1,39 @@
 /******************************************************************************
- * (c) 2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 #include "bip_rtsp_session_impl.h"
 #include <string.h>
@@ -124,7 +120,7 @@ BIP_RtspSessionHandle BIP_RtspSession_CreateFromRequest(
     rc = BKNI_CreateEvent( &hRtspSession->dataReadyEvent );
     BIP_CHECK_ERR_NZ_GOTO( rc, "BKNI_CreateEvent() Failed", error );
 
-    BDBG_MSG(( "%s: hRtspSession %p", __FUNCTION__, hRtspSession ));
+    BDBG_MSG(( "%s: hRtspSession %p", __FUNCTION__, (void *)hRtspSession ));
     return( hRtspSession );
 
 error:
@@ -144,7 +140,7 @@ void BIP_RtspSession_Destroy(
     )
 {
     BDBG_OBJECT_ASSERT( hRtspSession, BIP_RtspSession );
-    BDBG_MSG(( "%s: hRtspSession %p", __FUNCTION__, hRtspSession ));
+    BDBG_MSG(( "%s: hRtspSession %p", __FUNCTION__, (void *)hRtspSession ));
     rtspSessionDestroy( hRtspSession );
 }
 
@@ -169,7 +165,7 @@ static void rtspMessageReceivedCallback(
 
     BDBG_OBJECT_ASSERT( hRtspSession, BIP_RtspSession );
     BDBG_ASSERT( messageLength );
-    BDBG_MSG(( "%s: hRtspSession %p, messageLength %d", __FUNCTION__, hRtspSession, messageLength ));
+    BDBG_MSG(( "%s: hRtspSession %p, messageLength %d", __FUNCTION__, (void *)hRtspSession, messageLength ));
 
     /* Create new messageInfo entry to hold this message */
     messageInfo = (BIP_RtspSessionMessageInfo *)BKNI_Malloc( sizeof( BIP_RtspSessionMessageInfo ));
@@ -183,11 +179,11 @@ static void rtspMessageReceivedCallback(
 
     /* Copy the actual message */
     messageInfo->bufferLength = messageLength;
-    BDBG_MSG(( "%s: calling BIP_RtspLiveMediaSession_CopyMessage() -> (%p)", __FUNCTION__, messageInfo->pBuffer ));
+    BDBG_MSG(( "%s: calling BIP_RtspLiveMediaSession_CopyMessage() -> (%p)", __FUNCTION__, (void *)messageInfo->pBuffer ));
     BIP_CHECK_PTR_GOTO( hRtspSession->hRtspLmSession, "hRtspSession->hRtspLmSession NULL", error, BIP_ERR_INVALID_PARAMETER );
     BIP_RtspLiveMediaSession_CopyMessage( hRtspSession->hRtspLmSession, messageInfo->pBuffer );
     messageInfo->pBuffer[messageLength] = '\0';
-    BDBG_MSG(( "%s: messageLength %d; message (%s)(%p); len %d", __FUNCTION__, messageInfo->bufferLength, messageInfo->pBuffer, messageInfo->pBuffer,
+    BDBG_MSG(( "%s: messageLength %d; message (%s)(%p); len %zu", __FUNCTION__, messageInfo->bufferLength, messageInfo->pBuffer, (void *)messageInfo->pBuffer,
                strlen( messageInfo->pBuffer )));
     BIP_CHECK_ERR_LEZ_GOTO( strlen( messageInfo->pBuffer ), "Message buffer was empty", "", error, BIP_ERR_INVALID_PARAMETER );
 
@@ -207,7 +203,7 @@ static void rtspMessageReceivedCallback(
     return;
 
 error:
-    BDBG_MSG(( "%s: message (%p); pBuffer %p", __FUNCTION__, messageInfo, messageInfo->pBuffer ));
+    BDBG_MSG(( "%s: message (%p); pBuffer %p", __FUNCTION__, (void *)messageInfo, (void *)messageInfo->pBuffer ));
     fflush( stdout ); fflush( stderr );
     if (messageInfo && messageInfo->pBuffer)
     {
@@ -230,7 +226,7 @@ static void rtspIgmpMembershipReportCallback(
     BIP_RtspSessionHandle hRtspSession = (BIP_RtspSessionHandle)context;
 
     BDBG_OBJECT_ASSERT( hRtspSession, BIP_RtspSession );
-    BDBG_MSG(( "%s: hRtspSession %p", __FUNCTION__, hRtspSession ));
+    BDBG_MSG(( "%s: hRtspSession %p", __FUNCTION__, (void *)hRtspSession ));
 
     BKNI_AcquireMutex( hRtspSession->lock );
     hRtspSession->lastIgmpStatus = (BIP_RtspIgmpMemRepStatus)igmpStatus;
@@ -240,7 +236,7 @@ static void rtspIgmpMembershipReportCallback(
     /* TODO: for now, we are directly invoking the callback */
     if (hRtspSession->settings.igmpMembershipReportEventCallback.callback)
     {
-        BDBG_MSG(( "%s: calling callback (%p)", __FUNCTION__ ));
+        BDBG_MSG(( "%s: calling callback", __FUNCTION__ ));
         hRtspSession->settings.igmpMembershipReportEventCallback.callback( hRtspSession->settings.igmpMembershipReportEventCallback.context, hRtspSession->settings.igmpMembershipReportEventCallback.param );
     }
 } /* rtspIgmpMembershipReportCallback */
@@ -321,7 +317,7 @@ BIP_Status BIP_RtspSession_RecvRequest(
     }
     BIP_RtspRequest_SetBuffer( hRtspRequest, messageInfo->pBuffer, messageInfo->bufferLength );
 
-    BDBG_MSG(( "%s: hRtspSession %p, hRtspRequest %p", __FUNCTION__, hRtspSession, hRtspRequest ));
+    BDBG_MSG(( "%s: hRtspSession %p, hRtspRequest %p", __FUNCTION__, (void *)hRtspSession, (void *)hRtspRequest ));
 
     /* TODO: free up the message info or should we keep these objects into a free-list ? */
     BKNI_Free( messageInfo );
@@ -347,14 +343,14 @@ BIP_Status BIP_RtspSession_SendResponse(
     if (BIP_RtspResponse_StatusValid( hRtspResponse ) == false)
     {
         BIP_RtspResponse_GetStatus( hRtspResponse, &responseStatus );
-        BDBG_MSG(( "%s: Response Status (%s) is not set", __FUNCTION__, responseStatus ));
+        BDBG_MSG(( "%s: Response Status (%d) is not set", __FUNCTION__, responseStatus ));
         return( BIP_ERR_INVALID_PARAMETER );
     }
     BIP_RtspResponse_GetStatus( hRtspResponse, &responseStatus );
     BDBG_MSG(( "%s: responseStatus %x", __FUNCTION__, responseStatus ));
     BIP_RtspLiveMediaSession_SendResponse( hRtspSession->hRtspLmSession, responseStatus );
 
-    BDBG_MSG(( "%s: hRtspSession %p, hRtspResponse %p", __FUNCTION__, hRtspSession, hRtspResponse ));
+    BDBG_MSG(( "%s: hRtspSession %p, hRtspResponse %p", __FUNCTION__, (void *)hRtspSession, (void *)hRtspResponse ));
 
     return( errCode );
 } /* BIP_RtspSession_SendResponse */
@@ -374,7 +370,7 @@ BIP_Status BIP_RtspSession_ReportLockStatus(
 
     BIP_RtspLiveMediaSession_ReportLockStatus( hRtspSession->hRtspLmSession, bLockStatus);
 
-    BDBG_MSG(( "%s: hRtspSession %p, bLockStatus %p", __FUNCTION__, hRtspSession, bLockStatus ));
+    BDBG_MSG(( "%s: hRtspSession %p, bLockStatus %d", __FUNCTION__, (void *)hRtspSession, bLockStatus ));
 
     return( errCode );
 } /* BIP_RtspSession_SendResponse */
@@ -393,12 +389,12 @@ BIP_Status BIP_RtspSession_SendResponseUsingRequest(
     /* validate parameters */
     if (BIP_RtspResponse_StatusValid( hRtspResponse ) == false)
     {
-        BDBG_MSG(( "%s: Response Status (%s) is not set", __FUNCTION__, responseStatus ));
+        BDBG_MSG(( "%s: Response Status (%d) is not set", __FUNCTION__, responseStatus ));
         return( BIP_ERR_INVALID_PARAMETER );
     }
     BIP_RtspLiveMediaSession_SendResponseUsingRequest( hRtspSession->hRtspLmSession, responseStatus, BIP_RtspRequest_GetBuffer( hRtspRequest ));
 
-    BDBG_MSG(( "%s: hRtspSession %p, hRtspRequest %p, hRtspResponse %p", __FUNCTION__, hRtspSession, hRtspRequest, hRtspResponse ));
+    BDBG_MSG(( "%s: hRtspSession %p, hRtspRequest %p, hRtspResponse %p", __FUNCTION__, (void *)hRtspSession, (void *)hRtspRequest, (void *)hRtspResponse ));
 
     return( errCode );
 } /* BIP_RtspSession_SendResponseUsingRequest */

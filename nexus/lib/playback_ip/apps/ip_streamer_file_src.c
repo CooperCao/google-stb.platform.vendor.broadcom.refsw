@@ -1,14 +1,14 @@
 /******************************************************************************
- *    (c)2008-2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
  * no license (express or implied), right to use, or waiver of any kind with respect to the
  * Software, and Broadcom expressly reserves all rights in and to the Software and all
  * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELYn
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
@@ -34,19 +34,7 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *  stream out from file src
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
- ******************************************************************************/
+ *****************************************************************************/
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
@@ -118,7 +106,7 @@ closeNexusFileSrc(
     if (!ipStreamerCtx || !ipStreamerCtx->fileSrc)
         return;
 
-    BDBG_MSG(("%s: CTX %p: closing file Src %p", __FUNCTION__, ipStreamerCtx, ipStreamerCtx->fileSrc));
+    BDBG_MSG(("%s: CTX %p: closing file Src %p", __FUNCTION__, (void *)ipStreamerCtx, (void *)ipStreamerCtx->fileSrc));
 #ifdef NEXUS_HAS_VIDEO_ENCODER
     if (ipStreamerCtx->transcoderDst /*&& ipStreamerCtx->transcoderDst->refCount != 0*/) {
         BKNI_AcquireMutex(ipStreamerCtx->globalCtx->transcoderDstMutex);
@@ -144,7 +132,7 @@ closeNexusFileSrc(
     if (ipStreamerCtx->fileSrc->playbackStcChannel)
         NEXUS_StcChannel_Close(ipStreamerCtx->fileSrc->playbackStcChannel);
 #endif
-    BDBG_MSG(("CTX %p: File Src %p is closed", ipStreamerCtx, ipStreamerCtx->fileSrc));
+    BDBG_MSG(("CTX %p: File Src %p is closed", (void *)ipStreamerCtx, (void *)ipStreamerCtx->fileSrc));
     BKNI_Free(ipStreamerCtx->fileSrc);
     ipStreamerCtx->fileSrc = NULL;
 }
@@ -167,6 +155,10 @@ openNexusFileSrc(
     if (ipStreamerCfg->transcodeEnabled) {
         BKNI_AcquireMutex(ipStreamerCtx->globalCtx->transcoderDstMutex);
         /* TODO: need to look into supporting streaming same file to multiple clients */
+        /*
+         * coverity[stack_use_local_overflow]
+         * coverity[stack_use_overflow]
+         */
         if ((ipStreamerCtx->transcoderDst = openNexusTranscoderPipe(ipStreamerCfg, ipStreamerCtx)) == NULL) {
             BDBG_ERR(("%s: Failed to open the transcoder pipe", __FUNCTION__));
             BKNI_ReleaseMutex(ipStreamerCtx->globalCtx->transcoderDstMutex);
@@ -311,7 +303,7 @@ openNexusFileSrc(
         goto error;
     }
 
-    BDBG_MSG(("CTX %p: File Src %p opened", ipStreamerCtx, ipStreamerCtx->fileSrc->fileStreamingHandle));
+    BDBG_MSG(("CTX %p: File Src %p opened", (void *)ipStreamerCtx, (void *)ipStreamerCtx->fileSrc->fileStreamingHandle));
     return 0;
 
 error:
@@ -478,14 +470,14 @@ openNexusFileSrcPidChannels(
             ipStreamerCtx->pmtPidChannel = NEXUS_Playback_OpenPidChannel(ipStreamerCtx->fileSrc->playbackHandle, psi->pmtPid, &playbackPidSettings);
         }
         BDBG_MSG(("%s: playback pid channels (v %p, a %p, pat %p, pmt %p) are created...", __FUNCTION__,
-                    ipStreamerCtx->videoPidChannel,
-                    ipStreamerCtx->audioPidChannel,
-                    ipStreamerCtx->patPidChannel,
-                    ipStreamerCtx->pmtPidChannel));
+                    (void *)ipStreamerCtx->videoPidChannel,
+                    (void *)ipStreamerCtx->audioPidChannel,
+                    (void *)ipStreamerCtx->patPidChannel,
+                    (void *)ipStreamerCtx->pmtPidChannel));
     }
 #ifdef NEXUS_HAS_VIDEO_ENCODER
     else {
-        BDBG_MSG(("%s: playback pid channels (v %p, a %p) are created...", __FUNCTION__, ipStreamerCtx->transcoderDst->videoPidChannel, ipStreamerCtx->transcoderDst->audioPidChannel));
+        BDBG_MSG(("%s: playback pid channels (v %p, a %p) are created...", __FUNCTION__, (void *)ipStreamerCtx->transcoderDst->videoPidChannel, (void *)ipStreamerCtx->transcoderDst->audioPidChannel));
     }
     if (ipStreamerCfg->transcodeEnabled) {
         if (setupNexusTranscoderPidChannels(psi, ipStreamerCfg, ipStreamerCtx) < 0) {
@@ -507,7 +499,7 @@ startNexusFileSrc(
     NEXUS_PlaybackSettings playbackSettings;
     NEXUS_PlaybackStartSettings startSettings;
 #endif
-    BDBG_MSG(("CTX %p: Start Streaming from File Src %p, !!!!! name %s", ipStreamerCtx, ipStreamerCtx->fileSrc, ipStreamerCtx->cfg.fileName));
+    BDBG_MSG(("CTX %p: Start Streaming from File Src %p, !!!!! name %s", (void *)ipStreamerCtx, (void *)ipStreamerCtx->fileSrc, ipStreamerCtx->cfg.fileName));
 #if 0
     if (strstr(ipStreamerCtx->cfg.fileName, "m3u8") == NULL)
         if (preparePatPmt(ipStreamerCtx) < 0)
@@ -541,7 +533,7 @@ startNexusFileSrc(
             }
             BDBG_WRN(("Seeked Playback by %d msec\n", seekOffsetSec*1000));
             if (NEXUS_Playback_Play(ipStreamerCtx->fileSrc->playbackHandle) != NEXUS_SUCCESS) {
-                BDBG_ERR(("%s: ERROR: Nexus Playback Play failed after seeking to %d msec offset", __FUNCTION__, ipStreamerCtx->cfg.beginTimeOffset));
+                BDBG_ERR(("%s: ERROR: Nexus Playback Play failed after seeking to %f msec offset", __FUNCTION__, ipStreamerCtx->cfg.beginTimeOffset));
                 return -1;
             }
         }
@@ -564,11 +556,11 @@ stopNexusFileSrc(
 #ifdef NEXUS_HAS_PLAYBACK
     if (ipStreamerCtx->fileSrc->playbackHandle) {
         NEXUS_Playback_Stop(ipStreamerCtx->fileSrc->playbackHandle);
-        BDBG_MSG(("CTX %p: Streaming from File Src %p using playback is stopped", ipStreamerCtx, ipStreamerCtx->fileSrc));
+        BDBG_MSG(("CTX %p: Streaming from File Src %p using playback is stopped", (void *)ipStreamerCtx, (void *)ipStreamerCtx->fileSrc));
         return;
     }
 #endif
     B_PlaybackIp_FileStreamingStop(ipStreamerCtx->fileSrc->fileStreamingHandle);
     ipStreamerCtx->fileStreamingInProgress = false;
-    BDBG_MSG(("CTX %p: Streaming from File Src %p stopped", ipStreamerCtx, ipStreamerCtx->fileSrc));
+    BDBG_MSG(("CTX %p: Streaming from File Src %p stopped", (void *)ipStreamerCtx, (void *)ipStreamerCtx->fileSrc));
 }

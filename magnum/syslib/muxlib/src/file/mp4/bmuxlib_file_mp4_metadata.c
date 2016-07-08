@@ -27,7 +27,7 @@
  ***************************************************************************
  * [Revision History:]
  * $brcm_Log: $
- * 
+ *
  ***************************************************************************/
 
 #include "bstd.h" /* also includes berr, bdbg, etc */
@@ -168,11 +168,11 @@ void BMUXlib_File_MP4_P_StoreMetadataToCache(BMUXlib_File_MP4_Handle hMP4Mux, BM
 
    BDBG_ENTER(BMUXlib_File_MP4_P_StoreMetadataToCache);
 
-   BDBG_MSG(("Storing Metadata :: deltaDTS = %d, CTSDTSDiff = %d, Sample Size = %d, Sample Offset = %lld %s",
+   BDBG_MSG(("Storing Metadata :: deltaDTS = %d, CTSDTSDiff = %d, Sample Size = %d, Sample Offset = "BDBG_UINT64_FMT" %s",
                pMetadata->uiDTSDelta,
                pMetadata->uiCTSDTSDiff,
                pMetadata->uiSampleSize,
-               pMetadata->uiOffset,
+               BDBG_UINT64_ARG(pMetadata->uiOffset),
                (pMetadata->bRandomAccess)?"(RAP)":""));
 
    /* write each type of metadata to the relevant cache */
@@ -260,7 +260,7 @@ void BMUXlib_File_MP4_P_StoreMetadataToCache(BMUXlib_File_MP4_Handle hMP4Mux, BM
                   (if chunks are ever created, this needs to only output the offset of the
                    start sample in the chunk) */
                BMUXlib_File_MP4_SampleOffset *pBuffer = (BMUXlib_File_MP4_SampleOffset *)pCache->pBuffer;
-               BDBG_MSG(("Writing stco/co64 metadata @ index %d: %lld", uiWriteIndex, pMetadata->uiOffset));
+               BDBG_MSG(("Writing stco/co64 metadata @ index %d: "BDBG_UINT64_FMT, uiWriteIndex, BDBG_UINT64_ARG(pMetadata->uiOffset)));
                BMUXlib_File_MP4_P_WriteU64BE(&(pBuffer[uiWriteIndex]), pMetadata->uiOffset);
                pInterface->uiEntryCount++;
                bMetadataWritten = true;

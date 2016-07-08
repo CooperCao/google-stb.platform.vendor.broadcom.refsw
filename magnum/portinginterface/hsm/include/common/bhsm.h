@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2007-2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,7 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 
 #ifndef BHSM_H__
@@ -101,7 +100,9 @@ extern "C" {
 #include "bhsm_datatypes.h"
 
 /* supported features */
-#define BHSM_SUPPORT_INITIALIZE_BYPASS_KEYSLOTS 1   /* BHSM_InitialiseBypassKeyslots exposed on API */
+#if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,1)
+  #define BHSM_SUPPORT_INITIALIZE_BYPASS_KEYSLOTS 1   /* BHSM_InitialiseBypassKeyslots exposed on API */
+#endif
 
 #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(3,0)
 #define BHSM_SUPPORT_KEYSLOT_OWNERSHIP 1  /* not all Zeus3 minor versions support keyslot ownership. */
@@ -121,9 +122,6 @@ returns successfully.
 ****************************************************************************/
 typedef struct BHSM_P_Handle *BHSM_Handle;
 
-
-/* DEPRECATED  */
-typedef struct BHSM_P_ChannelHandle *BHSM_ChannelHandle;
 
 
 /*****************************************************************************
@@ -227,20 +225,6 @@ BERR_Code BHSM_SubmitRawCommand (
     uint32_t            *pInputParamsBuf,
     unsigned            *pOutputParamLenInWord, /* in-out */
     uint32_t            *pOutputParamsBuf );
-
-
-
-
-
-/* The following functions are  DEPRECATED */
-BERR_Code BHSM_GetTotalChannels( BHSM_Handle    hHsm, unsigned char *outp_ucTotalChannels );
-BERR_Code BHSM_GetChannelDefaultSettings( BHSM_Handle  hHsm, BHSM_HwModule channelNo, BHSM_ChannelSettings *pSettings );
-BERR_Code BHSM_Channel_Open( BHSM_Handle hHsm, BHSM_ChannelHandle *pChannelHandle, BHSM_HwModule channelNo, const BHSM_ChannelSettings     *pChannelDefSettings );
-BERR_Code BHSM_Channel_Close( BHSM_ChannelHandle channelHandle );
-BERR_Code BHSM_GetDevice( BHSM_ChannelHandle hChannel, BHSM_Handle *pHandle );
-BERR_Code BHSM_GetChannel( BHSM_Handle hHsm, BHSM_HwModule channelNo, BHSM_ChannelHandle *pChannelHandle );
-BERR_Code BHSM_SetIntrCallback( BHSM_Handle hHsm, BHSM_IntrType pIntType, BHSM_IsrCallbackFunc callback );
-BERR_Code BHSM_SetSettings( BHSM_Handle hHsm,  BHSM_NewSettings_t *newSettings );
 
 
 #ifdef __cplusplus

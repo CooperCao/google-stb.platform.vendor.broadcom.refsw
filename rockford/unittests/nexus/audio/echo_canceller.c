@@ -432,7 +432,7 @@ int main(int argc, char **argv)
 
                 NEXUS_AudioDecoder_GetStatus(localDecoder, &astatus);
                 fflush(fOut[0]);
-                fprintf(stderr, "written %u bytes.... decode:%u\t\r", bytes, astatus.pts);
+                fprintf(stderr, "written %lu bytes.... decode:%u\t\r", (unsigned long)bytes, astatus.pts);
                 BKNI_Sleep(30);
                 continue;
             }
@@ -442,9 +442,9 @@ int main(int argc, char **argv)
                     if(desc[j][i].length > 0)
                     {
                         fwrite((const uint8_t *)bufferBase + desc[j][i].offset, desc[j][i].length, 1, fOut[0]);
-                        fprintf(fOut[1], "%8x %8x   %08x%08x %8x %5u %5d %8x %8x\n", desc[j][i].flags, desc[j][i].originalPts,
+                        fprintf(fOut[1], "%8x %8x   %08x%08x %8x %5u %5d %8x %8lx\n", desc[j][i].flags, desc[j][i].originalPts,
                             (uint32_t)(desc[j][i].pts>>32), (uint32_t)(desc[j][i].pts & 0xffffffff), desc[j][i].escr,
-                            desc[j][i].ticksPerBit, desc[j][i].shr, desc[j][i].offset, desc[j][i].length);
+                                desc[j][i].ticksPerBit, desc[j][i].shr, desc[j][i].offset, (unsigned long)desc[j][i].length);
                     }
                     bytes+= desc[j][i].length;
                 }

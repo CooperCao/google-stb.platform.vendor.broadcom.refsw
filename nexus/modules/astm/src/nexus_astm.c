@@ -1085,7 +1085,7 @@ static void NEXUS_Astm_P_PrintTimebaseAstmSettings(NEXUS_AstmHandle astm)
     BDBG_LOG(("timebase: astm = %s; clock coupling = %s; pcrReceived = %p; context = %p",
         settings.enabled ? "enabled" : "disabled",
         clockCouplingStrings[settings.clockCoupling],
-        settings.pcrReceived_isr,
+        (void *)(unsigned long)settings.pcrReceived_isr,
         settings.callbackContext));
 }
 
@@ -1130,11 +1130,11 @@ static void NEXUS_Astm_P_PrintVideoDecoderAstmSettings(NEXUS_AstmHandle astm)
         settings.enableTsm ? "enabled" : "disabled",
         settings.enablePlayback ? "enabled" : "disabled"));
     BDBG_LOG(("video interface: tsmPass = %p; tsmFail = %p; tsmLog = %p; lifecycle = %p; watchdog = %p; context = %p",
-        settings.tsmPass_isr,
-        settings.tsmFail_isr,
-        settings.tsmLog_isr,
-        settings.lifecycle_isr,
-        settings.watchdog_isr,
+        (void *)(unsigned long)settings.tsmPass_isr,
+        (void *)(unsigned long)settings.tsmFail_isr,
+        (void *)(unsigned long)settings.tsmLog_isr,
+        (void *)(unsigned long)settings.lifecycle_isr,
+        (void *)(unsigned long)settings.watchdog_isr,
         settings.callbackContext));
 }
 
@@ -1156,11 +1156,11 @@ static void NEXUS_Astm_P_PrintAudioDecoderAstmSettings(NEXUS_AstmHandle astm, un
         settings.enablePlayback ? "enabled" : "disabled"));
     BDBG_LOG(("audio %u interface: tsmPass = %p; tsmFail = %p; tsmLog = %p; lifecycle = %p; watchdog = %p; context = %p",
         index,
-        settings.tsmPass_isr,
-        settings.tsmFail_isr,
-        settings.tsmLog_isr,
-        settings.lifecycle_isr,
-        settings.watchdog_isr,
+        (void *)(unsigned long)settings.tsmPass_isr,
+        (void *)(unsigned long)settings.tsmFail_isr,
+        (void *)(unsigned long)settings.tsmLog_isr,
+        (void *)(unsigned long)settings.lifecycle_isr,
+        (void *)(unsigned long)settings.watchdog_isr,
         settings.callbackContext));
 }
 
@@ -1171,7 +1171,7 @@ static void NEXUS_Astm_P_PrintDependencyAstmSettings(NEXUS_AstmHandle astm)
 
     NEXUS_OBJECT_ASSERT(NEXUS_Astm, astm);
 
-    BDBG_LOG(("ASTM dependency settings: instance %p", astm));
+    BDBG_LOG(("ASTM dependency settings: instance %p", (void *)astm));
 
     if (astm->timebase)
     {

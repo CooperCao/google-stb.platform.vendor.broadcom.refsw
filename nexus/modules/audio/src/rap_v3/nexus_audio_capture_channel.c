@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2012 Broadcom Corporation
-*  
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -9,57 +9,49 @@
 *  Software, and Broadcom expressly reserves all rights in and to the Software and all
 *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
 *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.  
-*   
+*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*
 *  Except as expressly set forth in the Authorized License,
-*   
+*
 *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
 *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
 *  and to use this information only in connection with your use of Broadcom integrated circuit products.
-*   
-*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS" 
-*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR 
-*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO 
-*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES 
-*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE, 
-*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION 
-*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF 
+*
+*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
 *  USE OR PERFORMANCE OF THE SOFTWARE.
-*  
-*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS 
-*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR 
-*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR 
-*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF 
-*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT 
-*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE 
-*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF 
+*
+*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
-* 
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
 *
 * API Description:
 *   Capture channel resource manager.
 *
-* Revision History:
-*
-* $brcm_Log: $
-* 
 ***************************************************************************/
 
 #include "nexus_audio_module.h"
 
 BDBG_MODULE(nexus_audio_capture_channel);
 
-#if NEXUS_NUM_AUDIO_CAPTURE_CHANNELS
+#if NEXUS_NUM_AUDIO_CAPTURES
 
-static BRAP_ChannelHandle g_audioCaptureChannels[NEXUS_NUM_AUDIO_CAPTURE_CHANNELS];
-static bool g_captureChannelAcquired[NEXUS_NUM_AUDIO_CAPTURE_CHANNELS];
+static BRAP_ChannelHandle g_audioCaptureChannels[NEXUS_NUM_AUDIO_CAPTURES];
+static bool g_captureChannelAcquired[NEXUS_NUM_AUDIO_CAPTURES];
 
 /***************************************************************************
 Summary:
-	Init the capture channel manager.
+    Init the capture channel manager.
 ***************************************************************************/
 NEXUS_Error NEXUS_AudioCaptureChannel_P_Init(void)
 {
@@ -67,7 +59,6 @@ NEXUS_Error NEXUS_AudioCaptureChannel_P_Init(void)
     BERR_Code errCode;
     BRAP_ChannelSettings channelSettings;
 
-    BKNI_Memset(g_captureChannelAcquired, 0, sizeof(g_captureChannelAcquired));
     BKNI_Memset(g_captureChannelAcquired, 0, sizeof(g_captureChannelAcquired));
 
     BRAP_GetDefaultChannelSettings(g_NEXUS_audioModuleData.hRap, &channelSettings);
@@ -82,10 +73,10 @@ NEXUS_Error NEXUS_AudioCaptureChannel_P_Init(void)
     #if NEXUS_AUDIO_CAPTURE_CHANNEL_POST_PROCESSING_ENABLED
     channelSettings.sChnRBufPool.uiMaxNumOutChPairs[0]+=g_NEXUS_audioModuleData.moduleSettings.maximumProcessingBranches;
     #endif
-    channelSettings.sChnRBufPool.uiMaxNumRBuf=0;	
-    channelSettings.sChnRBufPool.sBufSettings.pLeftBufferStart=NULL;	
-    channelSettings.sChnRBufPool.sBufSettings.pRightBufferStart=NULL;	
-    channelSettings.sChnRBufPool.sBufSettings.uiSize=0;	
+    channelSettings.sChnRBufPool.uiMaxNumRBuf=0;
+    channelSettings.sChnRBufPool.sBufSettings.pLeftBufferStart=NULL;
+    channelSettings.sChnRBufPool.sBufSettings.pRightBufferStart=NULL;
+    channelSettings.sChnRBufPool.sBufSettings.uiSize=0;
     channelSettings.sChnRBufPool.sBufSettings.uiWaterMark=0; 
     channelSettings.bEnaIndDly = g_NEXUS_audioModuleData.moduleSettings.independentDelay;
 
@@ -93,7 +84,7 @@ NEXUS_Error NEXUS_AudioCaptureChannel_P_Init(void)
     channelSettings.sChnRBufPool.bHbrMode = g_NEXUS_audioModuleData.moduleSettings.hbrEnabled;
 #endif
 
-    for ( i = 0; i < NEXUS_NUM_AUDIO_CAPTURE_CHANNELS; i++ )
+    for ( i = 0; i < NEXUS_NUM_AUDIO_CAPTURES; i++ )
     {
         errCode = BRAP_OpenChannel(g_NEXUS_audioModuleData.hRap, &g_audioCaptureChannels[i], &channelSettings);
         if ( errCode )
@@ -111,13 +102,13 @@ error:
 
 /***************************************************************************
 Summary:
-	Uninit the capture channel manager.
+    Uninit the capture channel manager.
 ***************************************************************************/
 NEXUS_Error NEXUS_AudioCaptureChannel_P_Uninit(void)
 {
     int i;
 
-    for ( i = 0; i < NEXUS_NUM_AUDIO_CAPTURE_CHANNELS; i++ )
+    for ( i = 0; i < NEXUS_NUM_AUDIO_CAPTURES; i++ )
     {
         if ( NULL != g_audioCaptureChannels[i] )
         {
@@ -131,7 +122,7 @@ NEXUS_Error NEXUS_AudioCaptureChannel_P_Uninit(void)
 
 /***************************************************************************
 Summary:
-	Acquire a channel from the resource manager.
+    Acquire a channel from the resource manager.
 ***************************************************************************/
 BRAP_ChannelHandle NEXUS_AudioCaptureChannel_P_Acquire_tagged(const char *file, int line)
 {
@@ -144,7 +135,7 @@ BRAP_ChannelHandle NEXUS_AudioCaptureChannel_P_Acquire_tagged(const char *file, 
     BSTD_UNUSED(line);
     #endif
 
-    for ( i = 0; i < NEXUS_NUM_AUDIO_CAPTURE_CHANNELS; i++ )
+    for ( i = 0; i < NEXUS_NUM_AUDIO_CAPTURES; i++ )
     {
         if ( false == g_captureChannelAcquired[i] )
         {
@@ -159,7 +150,7 @@ BRAP_ChannelHandle NEXUS_AudioCaptureChannel_P_Acquire_tagged(const char *file, 
 
 /***************************************************************************
 Summary:
-	Release an acquired channel back to the resource manager.
+    Release an acquired channel back to the resource manager.
 ***************************************************************************/
 void NEXUS_AudioCaptureChannel_P_Release_tagged(BRAP_ChannelHandle handle, const char *file, int line)
 {
@@ -174,7 +165,7 @@ void NEXUS_AudioCaptureChannel_P_Release_tagged(BRAP_ChannelHandle handle, const
 
     BDBG_ASSERT(NULL != handle);
 
-    for ( i = 0; i < NEXUS_NUM_AUDIO_CAPTURE_CHANNELS; i++ )
+    for ( i = 0; i < NEXUS_NUM_AUDIO_CAPTURES; i++ )
     {
         if ( g_audioCaptureChannels[i] == handle )
         {
@@ -190,7 +181,7 @@ void NEXUS_AudioCaptureChannel_P_Release_tagged(BRAP_ChannelHandle handle, const
 
 /***************************************************************************
 Summary:
-	Set volume of a capture channel
+    Set volume of a capture channel
 ***************************************************************************/
 NEXUS_Error NEXUS_AudioCaptureChannel_P_SetVolume(BRAP_ChannelHandle handle, int32_t left, int32_t right, bool mute)
 {
@@ -243,4 +234,3 @@ NEXUS_Error NEXUS_AudioCaptureChannel_P_SetVolume(BRAP_ChannelHandle handle, int
     return errCode;
 }
 #endif
-

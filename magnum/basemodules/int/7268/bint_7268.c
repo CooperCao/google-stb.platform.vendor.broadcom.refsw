@@ -1,7 +1,45 @@
 /******************************************************************************
- * (c) 2003-2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
+
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -76,8 +114,11 @@
 #include "bchp_sun_l2.h"
 #include "bchp_aon_l2.h"
 #include "bchp_aon_pm_l2.h"
+#include "bchp_upg_main_irq.h"
 #include "bchp_upg_bsc_irq.h"
+#include "bchp_upg_main_aon_irq.h"
 #include "bchp_upg_bsc_aon_irq.h"
+#include "bchp_upg_spi_aon_irq.h"
 #include "bchp_sid_l2.h"
 #include "bchp_upg_aux_aon_intr2.h"
 #include "bchp_v3d_ctl_0.h"
@@ -173,6 +214,18 @@ BDBG_MODULE(interruptinterface_7268);
 #define BINT_P_IRQ0_AON_STATUS      4
 #endif
 
+#define BINT_P_STD_RO_STATUS_STATUS      0x0
+#define BINT_P_STD_RO_STATUS_MASK_STATUS 0x4
+#define BINT_P_STD_RO_STATUS_MASK_SET    0x8
+#define BINT_P_STD_RO_STATUS_MASK_CLEAR  0xc
+
+#define BINT_P_STD_RO_STATUS_CASES \
+    case BCHP_UPG_MAIN_IRQ_CPU_STATUS: \
+    case BCHP_UPG_BSC_IRQ_CPU_STATUS: \
+    case BCHP_UPG_MAIN_AON_IRQ_CPU_STATUS: \
+    case BCHP_UPG_BSC_AON_IRQ_CPU_STATUS: \
+    case BCHP_UPG_SPI_AON_IRQ_CPU_STATUS:
+
 #define BINT_P_XPT_STATUS           0x00
 #define BINT_P_XPT_ENABLE           0x04
 
@@ -198,7 +251,8 @@ BDBG_MODULE(interruptinterface_7268);
     case BCHP_XPT_DPCR2_INTR_STATUS_REG: \
     case BCHP_XPT_DPCR3_INTR_STATUS_REG: \
     case BCHP_XPT_DPCR4_INTR_STATUS_REG: \
-    case BCHP_XPT_DPCR5_INTR_STATUS_REG:
+    case BCHP_XPT_DPCR5_INTR_STATUS_REG: \
+    case BCHP_XPT_WAKEUP_INTR_STATUS_REG:
 
 #define BINT_P_PCROFFSET_CASES \
     case BCHP_XPT_PCROFFSET_INTERRUPT0_STATUS: \
@@ -321,10 +375,8 @@ static const BINT_P_IntMap bint_7268[] =
     BINT_MAP_STD(0, DVP_HR, DVP_HR_INTR2_CPU),
     BINT_MAP_STD(0, HDMI_TX, HDMI_TX_INTR2_CPU),
     BINT_MAP_STD(0, HDMI_RX_0, HDMI_RX_INTR2_0_CPU),
-#if 0
     BINT_MAP_STD(0, HDMI_TX, HDMI_TX_SCDC_INTR2_0_CPU),
     BINT_MAP_STD(0, HDMI_TX, HDMI_TX_HAE_INTR2_0_CPU),
-#endif
     BINT_MAP_STD(3, CBUS, CBUS_INTR2_0_CPU),
     BINT_MAP_STD(3, CBUS, CBUS_INTR2_1_CPU),
     BINT_MAP_STD(1, HVD0_0, HVD_INTR2_0_CPU),
@@ -335,13 +387,11 @@ static const BINT_P_IntMap bint_7268[] =
     BINT_MAP_STD(1, MEMC0, MEMC_L2_0_2_CPU),
     BINT_MAP_STD(1, SYS_AON, AON_L2_CPU),
     BINT_MAP_STD(1, UPG_AUX_AON, UPG_AUX_AON_INTR2_CPU),
-    BINT_MAP_STD(1, SYS_PM, AON_PM_L2_CPU),
-    BINT_MAP_STD(1, UPG_BSC, UPG_BSC_IRQ_CPU),
-
-    BINT_MAP_STD(2, UPG_BSC_AON, UPG_BSC_AON_IRQ_CPU),
-    /*BINT_MAP(2, UPG_MAIN, "" , UPG_MAIN_IRQ, REGULAR, MASK, 0xFFFFF1C7),*/
-    /*BINT_MAP_STD(2, UPG_MAIN_AON, UPG_MAIN_AON_IRQ_CPU),*/
-    BINT_MAP(2, UPG_SC, "", SCIRQ0_SCIRQEN, REGULAR, ALL, 0),
+    BINT_MAP(1, UPG_BSC, "", UPG_BSC_IRQ_CPU_STATUS, REGULAR, SOME, 0x3 ),
+    BINT_MAP(2, UPG_BSC_AON, "", UPG_BSC_AON_IRQ_CPU_STATUS, REGULAR, SOME, 0x7 ),
+    BINT_MAP(2, UPG_MAIN, "", UPG_MAIN_IRQ_CPU_STATUS, REGULAR, SOME, 0x3 ),
+    BINT_MAP(2, UPG_MAIN_AON, "", UPG_MAIN_AON_IRQ_CPU_STATUS, REGULAR, SOME, 0x3f ),
+    /*BINT_MAP(2, UPG_SPI, "", UPG_SPI_AON_IRQ_CPU_STATUS, REGULAR, SOME, 0x1 ),*/
     BINT_MAP(2, UPG_TMR, "", TIMER_TIMER_IS, REGULAR, ALL, 0),
     BINT_MAP(2, V3D, "_INT", V3D_CTL_0_INT_STS, REGULAR, NONE, 0),
     BINT_MAP(2, V3D_HUB, "_INT", V3D_HUB_CTL_INT_STS, REGULAR, NONE, 0),
@@ -476,11 +526,7 @@ static void BINT_P_7268_ClearInt( BREG_Handle regHandle, uint32_t baseAddr, int 
             BREG_Write32( regHandle, baseAddr + BINT_P_TIMER_STATUS, 1ul<<shift);
             break;
         BINT_P_UPGSC_CASES
-/*
-        BINT_P_IRQ0_CASES
-        BINT_P_IRQ0_AON_CASES
-
- */
+        BINT_P_STD_RO_STATUS_CASES
             /* Has to cleared at the source */
             break;
         BINT_P_PCROFFSET_CASES
@@ -530,18 +576,13 @@ static void BINT_P_7268_SetMask( BREG_Handle regHandle, uint32_t baseAddr, int s
         intEnable &= ~(1ul<<shift);
         BREG_Write32( regHandle, baseAddr + BINT_P_TIMER_MASK, intEnable);
         break;
-#if 0
-    BINT_P_IRQ0_CASES
-        intEnable = BREG_Read32( regHandle, baseAddr + BINT_P_IRQ0_ENABLE);
-        intEnable &= ~(1ul<<shift);
-        BREG_Write32( regHandle, baseAddr + BINT_P_IRQ0_ENABLE, intEnable);
+
+    BINT_P_STD_RO_STATUS_CASES
+        intEnable = BREG_Read32( regHandle, baseAddr + BINT_P_STD_RO_STATUS_MASK_STATUS );
+        intEnable |= 1ul<<shift;
+        BREG_Write32( regHandle, baseAddr + BINT_P_STD_RO_STATUS_MASK_SET, intEnable );
         break;
-    BINT_P_IRQ0_AON_CASES
-        intEnable = BREG_Read32( regHandle, baseAddr + BINT_P_IRQ0_AON_ENABLE);
-        intEnable &= ~(1ul<<shift);
-        BREG_Write32( regHandle, baseAddr + BINT_P_IRQ0_AON_ENABLE, intEnable);
-        break;
-#endif
+
     BINT_P_UPGSC_CASES
         intEnable = BREG_Read32( regHandle, baseAddr + BINT_P_UPGSC_ENABLE );
         intEnable &= ~(1ul<<shift);
@@ -558,8 +599,8 @@ static void BINT_P_7268_SetMask( BREG_Handle regHandle, uint32_t baseAddr, int s
         /* Dont support setting the v3d L2 via this interface */
         break;
     default:
-       BDBG_ERR(("NOT SUPPORTED baseAddr 0x%08x ,regHandel %p,  shift %d",
-                         baseAddr, regHandle, shift));
+       BDBG_ERR(("NOT SUPPORTED baseAddr 0x%08x ,regHandle %p,  shift %d",
+                 baseAddr, (void*)regHandle, shift));
 
         /* Unhandled interrupt base address */
         BDBG_ASSERT( false );
@@ -593,18 +634,13 @@ static void BINT_P_7268_ClearMask( BREG_Handle regHandle, uint32_t baseAddr, int
         intEnable |= 1ul<<shift;
         BREG_Write32( regHandle, baseAddr + BINT_P_XPT_BUF_ENABLE, intEnable);
         break;
-#if 0
-    BINT_P_IRQ0_CASES
-        intEnable = BREG_Read32( regHandle, baseAddr + BINT_P_IRQ0_ENABLE);
-        intEnable |= (1ul<<shift);
-        BREG_Write32( regHandle, baseAddr + BINT_P_IRQ0_ENABLE, intEnable );
+
+    BINT_P_STD_RO_STATUS_CASES
+        intEnable = BREG_Read32( regHandle, baseAddr + BINT_P_STD_RO_STATUS_MASK_STATUS );
+        intEnable |= 1ul<<shift;
+        BREG_Write32( regHandle, baseAddr + BINT_P_STD_RO_STATUS_MASK_CLEAR, intEnable );
         break;
-    BINT_P_IRQ0_AON_CASES
-        intEnable = BREG_Read32( regHandle, baseAddr + BINT_P_IRQ0_AON_ENABLE);
-        intEnable |= (1ul<<shift);
-        BREG_Write32( regHandle, baseAddr + BINT_P_IRQ0_AON_ENABLE, intEnable );
-        break;
-#endif
+
     BINT_P_UPGSC_CASES
         intEnable = BREG_Read32( regHandle, baseAddr + BINT_P_UPGSC_ENABLE );
         intEnable |= 1ul<<shift;
@@ -646,12 +682,8 @@ static uint32_t BINT_P_7268_ReadStatus( BREG_Handle regHandle, uint32_t baseAddr
         return BREG_Read32( regHandle, baseAddr + BINT_P_XPT_BUF_STATUS );
     BINT_P_TIMER_CASES
         return BREG_Read32( regHandle, baseAddr + BINT_P_TIMER_STATUS );
-#if 0
-    BINT_P_IRQ0_CASES
-        return BREG_Read32( regHandle, baseAddr + BINT_P_IRQ0_STATUS );
-    BINT_P_IRQ0_AON_CASES
-        return BREG_Read32( regHandle, baseAddr + BINT_P_IRQ0_AON_STATUS );
-#endif
+    BINT_P_STD_RO_STATUS_CASES
+        return BREG_Read32( regHandle, baseAddr + BINT_P_STD_RO_STATUS_STATUS );
     BINT_P_UPGSC_CASES
         return BREG_Read32( regHandle, baseAddr + BINT_P_UPGSC_ENABLE );
     BINT_P_PCROFFSET_CASES

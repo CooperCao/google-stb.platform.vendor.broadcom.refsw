@@ -1,7 +1,7 @@
 #!/usr/bin/perl
-#     (c)2003-2013 Broadcom Corporation
+#  Broadcom Proprietary and Confidential. (c)2003-2016 Broadcom. All rights reserved.
 #
-#  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+#  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
 #  conditions of a separate, written license agreement executed between you and Broadcom
 #  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -46,22 +46,15 @@
 # $brcm_Log: $
 # 
 #############################################################################
-use strict;
-
 package bapi_parse_c;
-
-local *FILE;
-
-sub writeDebug
-{
-    print "@_\n";
-}
+use strict;
 
 sub get_file_text
 {
     my $filename = shift;
-    open FILE, $filename;
-    my $text = join '',<FILE>;
+    open (my $file, $filename) or die "Can't open $filename";
+    my $text = join '',<$file>;
+    close $file;
 
     # pack preprocessor line continutation
     $text =~ s/\\\s+(\w)/$1/sg;
@@ -73,7 +66,7 @@ sub get_file_text
     $text =~ s/
         \/\*            # start of a comment
         [^\/]*           # inside comment
-        (attr{[^}]+})   # keep attr{..}
+        (attr\{[^}]+})   # keep attr{..}
         .*?             # rest of stuff
         \*\/            # end of the comment
         /$1/sgx;
@@ -91,7 +84,7 @@ sub get_func_prototypes
     my $text = get_file_text $filename;
 
     # If we have any ", attr", reverse the order. Much easier to parse later.
-    $text =~ s/(,)\s*(attr{[^}]+})/ $2$1/sg;
+    $text =~ s/(,)\s*(attr\{[^}]+})/ $2$1/sg;
 
     # Parse functions
     my @funcs = $text =~ /(
@@ -179,6 +172,52 @@ sub print_struct
 }
 
 
+sub expand_structs
+{
+    my ($structs,$preload_structs,$opts) = @_;
+    my $name; my $members;
+    my %all_structs;
+    my $combine=1;
+
+    if(defined $opts) {
+        $combine = $opts->{COMBINE} if(exists $opts->{COMBINE});
+    }
+
+    while (($name, $members) = each %$preload_structs) {
+        $all_structs{$name} = $members;
+        if($combine) {
+            $structs->{$name} = $members;
+        }
+    }
+    while (($name, $members) = each %$structs) {
+        $all_structs{$name} = $members;
+    }
+    while(1) {
+        my $expanded = 0;
+        while (($name, $members) = each %$structs ) {
+            foreach my $i (0..$#$members) {
+                my $type = $members->[$i]{TYPE};
+                if(exists $all_structs{$type}) {
+                    my @fields;
+                    foreach my $field (@{$all_structs{$type}}) {
+                        my %paramhash = %$field;
+                        $paramhash{NAME} = "$members->[$i]{NAME}.$field->{NAME}";
+                        my @kind = @{$members->[$i]{KIND}};
+                        push @kind, @{$paramhash{KIND}};
+                        $paramhash{KIND} = \@kind;
+                        push @fields, \%paramhash;
+                    }
+                    splice @$members, $i,1,@fields;
+                    $expanded=1;
+                    last;
+                }
+            }
+        }
+        last unless $expanded; # expand all structures
+    }
+
+}
+
 sub parse_struct
 {
     my $filename = shift;
@@ -186,23 +225,20 @@ sub parse_struct
     my $text = get_file_text $filename;
     my %struct;
 
-    if (defined $preload_struct) {
-        %struct = %$preload_struct;
-    }
-    
     while ($text =~  /
         typedef\s+struct\s+(\w+)\s*{  # typedef
         (.+?)}                 # body
         \s*\1                   # termination
         \s*;                      # must terminate with ;
         /xgs) {
-        my @params; # this is a list of a param hash
-        my @level; # fields on the current level
-        my $name= $1;
+        my @level= ( [] );; # fields on the current level
+        my @level_kind =  ( 'struct' ); # type (struct or union) on the current level
+        my $struct_name= $1;
         my $body = $2;
+        my $kind;
         #print "structure $1\n";
-        $struct{$name} = \@params;
-        while($body =~ /(struct\s+{)|(union\s+{)|(}[^;]+;)|((\w[\w\s]*[\s\*]+)(\w+))\s*;\s*(attr{([^}]+)})?/sg) {
+        $struct{$struct_name} = $level[0];
+        while($body =~ /(struct\s*{)|(union\s*{)|(}[^;]+;)|((\w[\w\s]*[\s\*]+)(\w+[^;]*))\s*;\s*(attr\{([^}]+)})?/sg) {
             
             # interpretation of regex:
             # $1 = "struct {"  ==> the beginning of a substruct
@@ -217,48 +253,47 @@ sub parse_struct
             #print "'$1' '$2' '$3' '$4' '$5' '$6' '$7' '$8'\n";
             if(defined $5) {
                 my $type = $5;
-                my $name = $6;
+                my $names = $6;
                 my $attr = $8;
-                $type =~ s/\s+$//s;
-                # if $type is a struct, then nest it
-                if (defined $struct{$type}) {
-                    my $substruct = $struct{$type};
-                    my $field;
-                    for $field (@$substruct) {
-                        #print "  substruct field: $field->{TYPE} $name.$field->{NAME}\n";
-                        my %paramhash = %$field; # copy hash
-                        $paramhash{NAME} = "$name.$paramhash{NAME}";
-                        push @level, \%paramhash;
-                    }
+                $type =~ s/\s{2,}/ /sg;
+                $type =~ s/\s$//s;
+                $names =~ s/\s//g;
+                if(defined $attr) {
+                    $attr = parse_attr $attr;
                 }
-                else {
-                    my %paramhash;
+                foreach(  (split /[,;]/, $names) ) {
+                    my @field_kind = @level_kind;
+                    my $field = {
+                        KIND => \@field_kind,
+                        NAME => $_,
+                        TYPE => $type,
+                    };
                     if(defined $attr) {
-                        $paramhash{ATTR} = parse_attr $attr;
+                        $field->{ATTR} = $attr;
                     }
-                    $paramhash{NAME} = $name;
-                    $paramhash{TYPE} = $type;
-                    push @level, \%paramhash;
+                    push @{$level[$#level]}, $field;
                 }
             } elsif (defined $1 || defined $2) {
-                push @params, @level;
-                @level = ();
+                $kind = 'struct';
+                $kind = 'union' if (defined $2);
+                push @level_kind, $kind;
+                push @level, [];
             } elsif (defined $3) {
-                my $fields = $3;
-                while($fields =~ /(\w+)/sg) {
-                    # append structure name to each field (note, single level only. use named substructs for multilevel.)
+                my $names = $3;
+                $names =~ s/\s+//g;
+                pop @level_kind;
+                my $fields = pop @level;
+                while($names =~ /(\w+[^,;]*)/sg) {
+                    # append structure name to each field
                     my $name = $1;
-                    my $field;
-                    for $field (@level) {
-                        my %paramhash = %$field; # copy hash
-                        $paramhash{NAME} = "$name.$paramhash{NAME}";
-                        push @params, \%paramhash;
+                    for my $field (@$fields) {
+                        my %paramhash= %$field;
+                        $paramhash{NAME} = "$name.$field->{NAME}";
+                        push @{$level[$#level]},\%paramhash;
                     }
                 }
-                @level = ();
             }
         }
-        push @params, @level;
     }
 
 #    print_struct \%struct;
@@ -408,7 +443,7 @@ sub parse_func
 
     # comment out the attr hint int the actual prototype
     my $actual_prototype = $prototype;
-    $actual_prototype =~ s/(attr{.+?})/\/* $1 *\//sg;
+    $actual_prototype =~ s/(attr\{.+?})/\/* $1 *\//sg;
     $func{PROTOTYPE} = $actual_prototype;
 #    print "'$actual_prototype'\n";
 
@@ -422,12 +457,8 @@ sub parse_func
                                );
     ($func{FUNCNAME}) = $prototype =~ /(\w+)\s*\(/;
 
-    if (!($func{FUNCNAME} =~ /^NEXUS_\w+$/)) {
-        print "WARNING: $func{FUNCNAME} does not follow coding convention\n";
-    }
-
     # get the attributes and params into a raw list
-    $prototype =~ /\(\s*(attr{(.+?)})?(.*?)\)$/s;
+    $prototype =~ /\(\s*(attr\{(.+?)})?(.*?)\)$/s;
     # function attribute check
     if(defined $2) {
         $func{ATTR} = parse_attr $2;
@@ -446,7 +477,7 @@ sub parse_func
 
         # See if we have a attr hint and grab it now
         # This also removes that hint from the variable
-        if ($p =~ s/attr{(.+?)}//) {
+        if ($p =~ s/attr\{(.+?)}//) {
 #            print "$func{FUNCNAME} attr = $1\n";
             $paramhash{ATTR} = parse_attr $1;
         }

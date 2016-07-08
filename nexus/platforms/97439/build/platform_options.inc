@@ -1,7 +1,7 @@
 #############################################################################
-#    (c)2013-2014 Broadcom Corporation
+#    Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 #
-# This program is the proprietary software of Broadcom Corporation and/or its licensors,
+# This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
 # conditions of a separate, written license agreement executed between you and Broadcom
 # (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -62,6 +62,9 @@ else
 NEXUS_HDMI_INPUT_SUPPORT ?=y
 endif
 
+ifeq ($(NEXUS_USE_7439_DR4),y)
+    NEXUS_PLATFORM_DEFINES += NEXUS_USE_7439_DR4=1
+endif
 ifeq ($(NEXUS_USE_7439_SFF),y)
     ifeq ($(NEXUS_USE_3461_FRONTEND_DAUGHTER_CARD),y)
         NEXUS_FRONTEND_3461 := y
@@ -84,17 +87,19 @@ NEXUS_PLATFORM_DEFINES += NEXUS_USE_7252S_SAT=1
 else ifeq ($(NEXUS_USE_3390_VMS),y)
 #add 3390 VMS support
 NEXUS_PLATFORM_DEFINES += NEXUS_USE_3390_VMS=1
+else ifeq ($(NEXUS_USE_7449S_CWM),y)
+NEXUS_PLATFORM_DEFINES += NEXUS_USE_7449S_CWM=1
+NEXUS_FRONTEND_3158 := y
+NEXUS_FRONTEND_315x_OOB := y
 else
 NEXUS_PLATFORM_DEFINES += NEXUS_USE_7439_SV=1
 NEXUS_PLATFORM_DEFINES += NEXUS_USE_7449_SV=1
     ifeq ($(NEXUS_USE_7439_DR3),y)
         NEXUS_PLATFORM_DEFINES += NEXUS_USE_7439_DR3=1
     endif
-    ifeq ($(NEXUS_USE_7439_DR4),y)
-        NEXUS_PLATFORM_DEFINES += NEXUS_USE_7439_DR4=1
-    endif
 endif
 
+B_REFSW_STRICT_PRINTF_FORMAT ?= y
 #
 # by default, we include the following
 #

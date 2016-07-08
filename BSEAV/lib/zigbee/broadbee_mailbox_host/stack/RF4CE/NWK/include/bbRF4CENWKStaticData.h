@@ -37,7 +37,7 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************/
+ ******************************************************************************
 /*****************************************************************************
  *
  * FILENAME: $Workfile: trunk/stack/RF4CE/NWK/include/bbRF4CENWKStaticData.h $
@@ -303,6 +303,8 @@ typedef struct _RF4CE_NWK_StaticData_t
     /*!< True if MAC soft start is performed */
     Bool8_t isMACSoftStart;
     Bool8_t isNWKStartUp;
+    /*!< Previous value for the PHY phyTransmitPower. Need to be restored after the Key Seed sending. */
+    PHY_TransmitPower_t previousTransmitPower;
 #ifdef RF4CE_NO_NVM_DELAY_DISABLED
     Bool8_t inNVMRequest;
 #endif /* RF4CE_NO_NVM_DELAY_DISABLED */

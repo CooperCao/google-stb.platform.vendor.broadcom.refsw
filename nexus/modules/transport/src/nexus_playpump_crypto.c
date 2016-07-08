@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2013 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,16 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #include "nexus_transport_module.h"
@@ -283,9 +273,9 @@ b_pump_crypto_process_mpeg2ts(b_pump_crypto_t crypto)
             }
             crypto->dma.blocks[nvecs-1].scatterGatherCryptoEnd = true;
 #if (!NEXUS_HAS_XPT_DMA)
-            NEXUS_Module_Lock(g_NEXUS_Transport_P_State.settings.dma);
+            NEXUS_Module_Lock(g_NEXUS_Transport_P_State.moduleSettings.dma);
             rc = NEXUS_DmaJob_ProcessBlocks_priv(crypto->dma.job, crypto->dma.blocks, nvecs, crypto->dma.event);
-            NEXUS_Module_Unlock(g_NEXUS_Transport_P_State.settings.dma);
+            NEXUS_Module_Unlock(g_NEXUS_Transport_P_State.moduleSettings.dma);
 #else
             rc = NEXUS_DmaJob_ProcessBlocks_priv(crypto->dma.job, crypto->dma.blocks, nvecs, crypto->dma.event);
 #endif
@@ -671,7 +661,7 @@ b_pump_crypto_start(b_pump_crypto_t crypto)
     if(!crypto->dma.job) { rc = BERR_TRACE(NEXUS_NOT_SUPPORTED);goto err_dma;}
 #else
 #if (!NEXUS_HAS_XPT_DMA)
-    if(!g_NEXUS_Transport_P_State.settings.dma) { rc = BERR_TRACE(BERR_NOT_SUPPORTED);goto err_dma;}
+    if(!g_NEXUS_Transport_P_State.moduleSettings.dma) { rc = BERR_TRACE(BERR_NOT_SUPPORTED);goto err_dma;}
 #endif
     if(!crypto->pump->settings.securityDma) { rc = BERR_TRACE(BERR_NOT_SUPPORTED);goto err_dma;}
 

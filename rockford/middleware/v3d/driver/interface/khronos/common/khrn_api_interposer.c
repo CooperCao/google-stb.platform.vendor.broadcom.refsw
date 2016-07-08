@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2011 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2011 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -389,16 +389,24 @@ typedef struct {
    bool (*remote_eglWaitNative)(EGLint engine);
    bool (*remote_eglSwapBuffers)(EGLDisplay dpy, EGLSurface surface);
    bool (*remote_eglCopyBuffers)(EGLDisplay dpy, EGLSurface surface, EGLNativePixmapType target);
+#if EGL_KHR_lock_surface
    bool (*remote_eglLockSurfaceKHR)(EGLDisplay display, EGLSurface surface, const EGLint *attrib_list);
    bool (*remote_eglUnlockSurfaceKHR)(EGLDisplay display, EGLSurface surface);
+#endif
+#if EGL_KHR_image
    bool (*remote_eglCreateImageKHR)(EGLDisplay dpy, EGLContext ctx, EGLenum target, EGLClientBuffer buffer, const EGLint *attrib_list);
    bool (*remote_eglDestroyImageKHR)(EGLDisplay dpy, EGLImageKHR image);
+#endif
+#if EGL_KHR_sync
    bool (*remote_eglCreateSyncKHR)(EGLDisplay dpy, EGLenum type, const EGLint *attrib_list);
    bool (*remote_eglDestroySyncKHR)(EGLDisplay dpy, EGLSyncKHR sync);
    bool (*remote_eglClientWaitSyncKHR)(EGLDisplay dpy, EGLSyncKHR sync, EGLint flags, EGLTimeKHR timeout);
    bool (*remote_eglGetSyncAttribKHR)(EGLDisplay dpy, EGLSyncKHR sync, EGLint attribute, EGLint *value);
+#endif
+#if EGL_BRCM_image_update_control
    bool (*remote_eglImageUpdateParameterivBRCM)(EGLDisplay dpy, EGLImageKHR image, EGLenum pname, const EGLint *params);
    bool (*remote_eglImageUpdateParameteriBRCM)(EGLDisplay dpy, EGLImageKHR image, EGLenum pname, EGLint param);
+#endif
 
 } REMOTE_API_TABLE;
 
@@ -2206,16 +2214,24 @@ EGLAPI EGLBoolean EGLAPIENTRY eglSwapBuffers(EGLDisplay dpy, EGLSurface surface)
    }
 }
 EGLAPI EGLBoolean EGLAPIENTRY eglCopyBuffers(EGLDisplay dpy, EGLSurface surface, EGLNativePixmapType target) EGLBooleanFunc(eglCopyBuffers, (dpy, surface, target))
+#if EGL_KHR_lock_surface
 EGLAPI EGLBoolean EGLAPIENTRY eglLockSurfaceKHR(EGLDisplay dpy, EGLSurface surface, const EGLint *attrib_list) EGLBooleanFunc(eglLockSurfaceKHR, (dpy, surface, attrib_list))
 EGLAPI EGLBoolean EGLAPIENTRY eglUnlockSurfaceKHR(EGLDisplay dpy, EGLSurface surface) EGLBooleanFunc(eglUnlockSurfaceKHR, (dpy, surface))
+#endif
+#if EGL_KHR_image
 EGLAPI EGLImageKHR EGLAPIENTRY eglCreateImageKHR(EGLDisplay dpy, EGLContext ctx, EGLenum target, EGLClientBuffer buffer, const EGLint *attrib_list) EGLImageKHRFunc(eglCreateImageKHR, (dpy, ctx, target, buffer, attrib_list))
 EGLAPI EGLBoolean EGLAPIENTRY eglDestroyImageKHR(EGLDisplay dpy, EGLImageKHR image) EGLBooleanFunc(eglDestroyImageKHR, (dpy, image))
+#endif
+#if EGL_KHR_sync
 EGLAPI EGLSyncKHR EGLAPIENTRY eglCreateSyncKHR(EGLDisplay dpy, EGLenum type, const EGLint *attrib_list) EGLSyncKHRFunc(eglCreateSyncKHR, (dpy, type, attrib_list))
 EGLAPI EGLBoolean EGLAPIENTRY eglDestroySyncKHR(EGLDisplay dpy, EGLSyncKHR sync) EGLBooleanFunc(eglDestroySyncKHR, (dpy, sync))
 EGLAPI EGLint     EGLAPIENTRY eglClientWaitSyncKHR(EGLDisplay dpy, EGLSyncKHR sync, EGLint flags, EGLTimeKHR timeout) EGLintFunc(eglClientWaitSyncKHR, (dpy, sync, flags, timeout))
 EGLAPI EGLBoolean EGLAPIENTRY eglGetSyncAttribKHR(EGLDisplay dpy, EGLSyncKHR sync, EGLint attribute, EGLint *value) EGLBooleanFunc(eglGetSyncAttribKHR, (dpy, sync, attribute, value))
+#endif
+#if EGL_BRCM_image_update_control
 EGLAPI EGLBoolean EGLAPIENTRY eglImageUpdateParameterivBRCM(EGLDisplay dpy, EGLImageKHR image, EGLenum pname, const EGLint *params) EGLBooleanFunc(eglImageUpdateParameterivBRCM, (dpy, image, pname, params))
 EGLAPI EGLBoolean EGLAPIENTRY eglImageUpdateParameteriBRCM(EGLDisplay dpy, EGLImageKHR image, EGLenum pname, EGLint param) EGLBooleanFunc(eglImageUpdateParameteriBRCM, (dpy, image, pname, param))
+#endif
 
 EGLAPI __eglMustCastToProperFunctionPointerType EGLAPIENTRY eglGetProcAddress(const char *procname)
 {
@@ -2760,18 +2776,28 @@ void khrn_init_api_interposer(void)
       HOOK(eglWaitNative);
       HOOK(eglSwapBuffers);
       HOOK(eglCopyBuffers);
+#if EGL_KHR_lock_surface
       HOOK(eglLockSurfaceKHR);
       HOOK(eglUnlockSurfaceKHR);
+#endif
+#if EGL_KHR_image
       HOOK(eglCreateImageKHR);
       HOOK(eglDestroyImageKHR);
+#endif
+#if EGL_KHR_sync
       HOOK(eglCreateSyncKHR);
       HOOK(eglDestroySyncKHR);
       HOOK(eglClientWaitSyncKHR);
       HOOK(eglGetSyncAttribKHR);
+#endif
+#if EGL_BRCM_image_update_control
       HOOK(eglImageUpdateParameterivBRCM);
       HOOK(eglImageUpdateParameteriBRCM);
+#endif
+#if GL_EXT_multisampled_render_to_texture
       HOOK(glRenderbufferStorageMultisampleEXT);
       HOOK(glFramebufferTexture2DMultisampleEXT);
+#endif
 
 #ifndef BCG_MULTI_THREADED
       vcos_mutex_create( &mu_commlock, "LogCommLock" );

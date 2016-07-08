@@ -1,7 +1,7 @@
 #!/usr/bin/perl
-#     (c)2003-2011 Broadcom Corporation
+#  Broadcom Proprietary and Confidential. (c)2003-2016 Broadcom. All rights reserved.
 #
-#  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+#  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
 #  conditions of a separate, written license agreement executed between you and Broadcom
 #  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -49,6 +49,35 @@
 use strict;
 
 package bapi_util;
+
+my %special_types = map {$_ => 1} qw ( NEXUS_ParserBand NEXUS_Timebase NEXUS_InputBand NEXUS_AudioOutput NEXUS_VideoOutput );
+
+sub is_special_handle {
+    my $type = shift;
+    exists $special_types{$type};
+}
+
+sub is_class_handle {
+    my $type = shift;
+    my $class_handles = shift;
+    foreach (@$class_handles) {
+        return 1 if $type eq $_;
+    }
+    return 0;
+}
+
+sub is_handle {
+    my $type = shift;
+    my $class_handles = shift;
+    if(is_special_handle($type)) {
+        return 1;
+    } elsif(is_class_handle($type, $class_handles)) {
+        return 1;
+    } elsif( $type =~ /Handle$/) {
+        return 1;
+    }
+    return 0;
+}
 
 sub print_code
 {

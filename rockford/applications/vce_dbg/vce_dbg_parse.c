@@ -60,8 +60,38 @@ int app_main( int argc, char **argv )
    auiEntry = BKNI_Malloc( uiEntrySize );
 
    /* Read File */
-   hDebugLog = fopen("BVCE_DEBUG_LOG.bin","rb");
-   hDebugCsv = fopen("BVCE_DEBUG_LOG.csv","wb");
+   {
+      char *inFilename = "BVCE_DEBUG_LOG.bin";
+      char *outFilename = "BVCE_DEBUG_LOG.csv";
+      if ( argc > 1 )
+      {
+         inFilename = argv[1];
+      }
+      if ( argc > 2 )
+      {
+         outFilename = argv[2];
+      }
+
+      if ( argc > 3 )
+      {
+         BKNI_Printf("Enabling print to console\n", inFilename);
+      }
+
+      BKNI_Printf("Parsing %s --> %s\n", inFilename, outFilename);
+      hDebugLog = fopen(inFilename,"rb");
+      if (!hDebugLog)
+      {
+         BKNI_Printf("ERROR reading: %s\n", inFilename);
+         return -1;
+      }
+
+      hDebugCsv = fopen(outFilename,"wb");
+      if (!hDebugCsv)
+      {
+         BKNI_Printf("ERROR writing: %s\n", outFilename);
+         return -1;
+      }
+   }
 
    {
       unsigned i=0;
@@ -73,7 +103,7 @@ int app_main( int argc, char **argv )
    /* Parse each entry until end of file */
    while ( 0 != fread( auiEntry, 1, uiEntrySize, hDebugLog ) )
    {
-      if ( argc > 1 )
+      if ( argc > 3 )
       {
          BVCE_Debug_PrintLogMessageEntry( auiEntry );
       }

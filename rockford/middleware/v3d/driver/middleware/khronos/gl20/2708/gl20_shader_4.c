@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2010 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2010 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -434,7 +434,7 @@ bool gl20_link_result_get_shaders(
    }
 
    shader_out->flags =
-      !link_result->cache[i].data.threaded |
+      (!link_result->cache[i].data.threaded) |
       link_result->cache[i].data.has_point_size<<1 |
       1<<2;
    shader_out->num_varyings = link_result->cache[i].data.num_varyings;

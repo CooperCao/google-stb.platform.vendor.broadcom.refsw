@@ -1,52 +1,51 @@
 /******************************************************************************
-* (c) 2014 Broadcom Corporation
-*
-* This program is the proprietary software of Broadcom Corporation and/or its
-* licensors, and may only be used, duplicated, modified or distributed pursuant
-* to the terms and conditions of a separate, written license agreement executed
-* between you and Broadcom (an "Authorized License").  Except as set forth in
-* an Authorized License, Broadcom grants no license (express or implied), right
-* to use, or waiver of any kind with respect to the Software, and Broadcom
-* expressly reserves all rights in and to the Software and all intellectual
-* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1. This program, including its structure, sequence and organization,
-*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-*    reasonable efforts to protect the confidentiality thereof, and to use
-*    this information only in connection with your use of Broadcom integrated
-*    circuit products.
-*
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-******************************************************************************/
-/*****************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
+ *
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************
 *
 * FILENAME: $Workfile: trunk/stack/IEEE/MAC/include/private/bbMacFeReqProcData.h $
 *
 * DESCRIPTION:
 *   MCPS-DATA.request Processor interface.
 *
-* $Revision: 2952 $
-* $Date: 2014-07-16 17:08:40Z $
+* $Revision: 10772 $
+* $Date: 2016-03-30 02:46:05Z $
 *
 *****************************************************************************************/
 
@@ -58,29 +57,6 @@
 /************************* INCLUDES *****************************************************/
 #include "private/bbMacLeRealTimeDisp.h"    /* MAC-LE Real-Time Dispatcher interface. */
 #include "private/bbMacCfgFsm.h"            /* MAC layer FSMs integral description. */
-
-
-/************************* DEFINITIONS **************************************************/
-/**//**
- * \begin   MAC pretransmit jitter delay parameters.
- * \details
- *  Minimum allowed delay may be assigned from 0 to 2000 symbols (32 ms). Jitter
- *  peak-to-peak is denoted with the power of two and may be assigned from 0 to 11.
- * \details
- *  The formula for jitter delay is the following: Delay = Min + Rnd * (2^Exp - 1), where
- *  Rnd is the random value from 0.0 up to 1.0 (including 0.0 but not including 1.0). For
- *  example, with Exp=11 the Delay will belong to the interval from Min to Min + 2047.
- */
-/**@{*/
-#define MAC_PRETRANSMIT_JITTER_MIN  0       /*!< Minimum allowed delay, in whole symbols. */
-#define MAC_PRETRANSMIT_JITTER_EXP  11      /*!< Exponent of the jitter peak-to-peak value. */
-
-/*
- * Validate jitter delay parameters.
- */
-SYS_DbgAssertStatic(0 <= MAC_PRETRANSMIT_JITTER_MIN && MAC_PRETRANSMIT_JITTER_MIN <= 2000);
-SYS_DbgAssertStatic(0 <= MAC_PRETRANSMIT_JITTER_EXP && MAC_PRETRANSMIT_JITTER_EXP <= 11);
-/**@}*/
 
 
 /************************* PROTOTYPES ***************************************************/
@@ -144,6 +120,25 @@ MAC_PRIVATE void macFeReqProcDataAcceptReset(MacServiceField_t *const reqService
  *  MCPS-PURGE.request.
 *****************************************************************************************/
 MAC_PRIVATE void macFeReqProcDataAcceptPurge(MacServiceField_t *const reqService);
+
+
+/*************************************************************************************//**
+ * \brief   Constructs MPDU Surrogate structure for direct Data frame.
+ * \param[in]   mpduSurr    Pointer to an empty MPDU Surrogate to be filled.
+ * \details
+ *  This function is a callback that is called by the MAC-LE when it is ready to start the
+ *  MPDU construction just before the frame transmission. When called it constructs the
+ *  MPDU Surrogate structure of the frame to be transmitted according to the active
+ *  Request parameters.
+ * \details
+ *  The MAC-LE caller is responsible for allocating memory for the MPDU Surrogate being
+ *  constructed. Pointer to such a placeholder is specified with \p mpduSurr by the MAC-LE
+ *  to this function.
+ * \details
+ *  This function was moved to PRIVATE section from STATIC in order to be accessible
+ *  directly for RF4CE Controller build.
+*****************************************************************************************/
+MAC_PRIVATE void macFeReqProcDataConstructDataDirectMpdu(MacMpduSurr_t *const mpduSurr);
 
 
 #endif /* _BB_MAC_FE_REQ_PROC_DATA_H */

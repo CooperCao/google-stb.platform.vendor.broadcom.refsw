@@ -1,52 +1,51 @@
 /******************************************************************************
-* (c) 2014 Broadcom Corporation
-*
-* This program is the proprietary software of Broadcom Corporation and/or its
-* licensors, and may only be used, duplicated, modified or distributed pursuant
-* to the terms and conditions of a separate, written license agreement executed
-* between you and Broadcom (an "Authorized License").  Except as set forth in
-* an Authorized License, Broadcom grants no license (express or implied), right
-* to use, or waiver of any kind with respect to the Software, and Broadcom
-* expressly reserves all rights in and to the Software and all intellectual
-* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1. This program, including its structure, sequence and organization,
-*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-*    reasonable efforts to protect the confidentiality thereof, and to use
-*    this information only in connection with your use of Broadcom integrated
-*    circuit products.
-*
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-******************************************************************************/
-/*****************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
+ *
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************
 *
 * FILENAME: $Workfile: trunk/stack/IEEE/MAC/include/private/bbMacPibApi.h $
 *
 * DESCRIPTION:
 *   MAC-PIB API interface.
 *
-* $Revision: 3547 $
-* $Date: 2014-09-11 13:46:56Z $
+* $Revision: 10537 $
+* $Date: 2016-03-18 12:15:44Z $
 *
 *****************************************************************************************/
 
@@ -106,7 +105,7 @@ INLINE void macPibApiSetPrngCounter(MAC_WITH_GIVEN_CONTEXT(const MAC_PrngCounter
 {
     HAL_RandomMove(MAC_MEMORY_FE_PRNG_DESCR(), newValue);
 }
-#endif /* _ML507_OR_SOC_USES_PRNG_ */
+#endif /* _HAL_USE_PRNG_ */
 
 
 /*************************************************************************************//**
@@ -212,13 +211,13 @@ INLINE void macPibApiSetExtendedAddress(MAC_WITH_GIVEN_CONTEXT(const MAC_Extende
             seed = 1;               /* Avoid using zero as a seed. */
         HAL_RandomInit(MAC_MEMORY_FE_PRNG_DESCR(), seed);
     }
-#endif /* _ML507_OR_SOC_USES_PRNG_ */
+#endif /* _HAL_USE_PRNG_ */
 
 #if !defined(_MAC_ZERO_SEQNUM_ON_RESET_)
     /* Initialize macDSN and macBSN with random values. */
-    MAC_MEMORY_PIB_ESSENTIAL().macDsn = HAL_Random(MAC_MEMORY_FE_PRNG_DESCR());
+    MAC_MEMORY_PIB_ESSENTIAL().macDSN = HAL_Random(MAC_MEMORY_FE_PRNG_DESCR());
 # if !defined(_MAC_CONTEXT_RF4CE_CONTROLLER_)
-    MAC_MEMORY_PIB_BEACONING().macBsn = HAL_Random(MAC_MEMORY_FE_PRNG_DESCR());
+    MAC_MEMORY_PIB_BEACONING().macBSN = HAL_Random(MAC_MEMORY_FE_PRNG_DESCR());
 # endif
 #endif /* ! _MAC_ZERO_SEQNUM_ON_RESET_ */
 }
@@ -252,7 +251,7 @@ INLINE MAC_AckWaitDuration_t macPibApiGetAckWaitDuration(void)
      *   915 O-QPSK      54 symbols = 20 + 12 + 10 + RoundUp(6 * 2)         =  864 us
      *  2450 O-QPSK      54 symbols = 20 + 12 + 10 + RoundUp(6 * 2)         =  864 us
      */
-    macAckWaitDuration = MAC_UNIT_BACKOFF_PERIOD + PHY_TURNAROUND_TIME +
+    macAckWaitDuration = MAC_aUnitBackoffPeriod + PHY_aTurnaroundTime +
             phyShrDuration + CEIL(6 * phySymbolsPerOctetX10, 10);
 
     return macAckWaitDuration;
@@ -346,7 +345,7 @@ INLINE MAC_BattLifeExtPeriods_t macPibApiGetBattLifeExtPeriods(void)
     /* The following formula is implemented:
      *  macBattLifeExtPeriods = 3 + 2 + RoundUp(phySHRDuration / aUnitBackoffPeriod).
      */
-    macBattLifeExtPeriods = 3 + 2 + CEIL(phyShrDuration, MAC_UNIT_BACKOFF_PERIOD);
+    macBattLifeExtPeriods = 3 + 2 + CEIL(phyShrDuration, MAC_aUnitBackoffPeriod);
 
     return macBattLifeExtPeriods;
 }
@@ -375,8 +374,7 @@ INLINE MAC_BeaconPayloadLength_t macPibApiGetBeaconPayloadLength(MAC_WITHIN_GIVE
 *****************************************************************************************/
 INLINE void macPibApiSetBeaconPayloadLength(MAC_WITH_GIVEN_CONTEXT(const MAC_BeaconPayloadLength_t newValue))
 {
-    SYS_DbgAssertComplex(newValue <= MAC_MAX_BEACON_PAYLOAD_LENGTH,
-            LOG_macPibApiSetBeaconPayloadLength_InvalidNewValue);
+    SYS_DbgAssertComplex(newValue <= MAC_aMaxBeaconPayloadLength, LOG_macPibApiSetBeaconPayloadLength_InvalidNewValue);
     SYS_DbgAssertComplex(IMP(MAC_IS_ZBPRO_CONTEXT(MAC_GIVEN_CONTEXT_ID),
                              newValue <= MAC_ATTR_MAXALLOWED_VALUE_BEACON_PAYLOAD_LENGTH_ZBPRO),
             LOG_macPibApiSetBeaconPayloadLength_InvalidNewValueZBPRO);
@@ -490,14 +488,14 @@ INLINE MAC_BeaconTxTime_t macPibApiGetBeaconTxTime(void)
 
 
 /*************************************************************************************//**
- * \brief   Returns value of the MAC-PIB attribute macBsn.
+ * \brief   Returns value of the MAC-PIB attribute macBSN.
  * \param[in]   __givenContextId    Identifier of the specified MAC Context.
  * \return  Value of the requested MAC-PIB attribute.
 *****************************************************************************************/
 INLINE MAC_Bsn_t macPibApiGetBsn(MAC_WITHIN_GIVEN_CONTEXT)
 {
 #if !defined(_MAC_CONTEXT_RF4CE_CONTROLLER_)
-    return MAC_MEMORY_PIB_BEACONING().macBsn;
+    return MAC_MEMORY_PIB_BEACONING().macBSN;
 #else
     return MAC_ATTR_DEFAULT_VALUE_BSN;
 #endif
@@ -506,24 +504,24 @@ INLINE MAC_Bsn_t macPibApiGetBsn(MAC_WITHIN_GIVEN_CONTEXT)
 
 #if !defined(_MAC_CONTEXT_RF4CE_CONTROLLER_)
 /*************************************************************************************//**
- * \brief   Returns value of the MAC-PIB attribute macBsn with post-increment by one.
+ * \brief   Returns value of the MAC-PIB attribute macBSN with post-increment by one.
  * \param[in]   __givenContextId    Identifier of the specified MAC Context.
  * \return  Value of the requested MAC-PIB attribute.
 *****************************************************************************************/
 INLINE MAC_Bsn_t macPibApiGetBsnWithPostInc(MAC_WITHIN_GIVEN_CONTEXT)
 {
-    return (MAC_MEMORY_PIB_BEACONING().macBsn)++;
+    return (MAC_MEMORY_PIB_BEACONING().macBSN)++;
 }
 
 
 /*************************************************************************************//**
- * \brief   Assigns a new value to the MAC-PIB attribute macBsn.
+ * \brief   Assigns a new value to the MAC-PIB attribute macBSN.
  * \param[in]   __givenContextId    Identifier of the specified MAC Context.
  * \param[in]   newValue            New value of the specified MAC-PIB attribute.
 *****************************************************************************************/
 INLINE void macPibApiSetBsn(MAC_WITH_GIVEN_CONTEXT(const MAC_Bsn_t newValue))
 {
-    MAC_MEMORY_PIB_BEACONING().macBsn = newValue;
+    MAC_MEMORY_PIB_BEACONING().macBSN = newValue;
 }
 #endif /* ! _MAC_CONTEXT_RF4CE_CONTROLLER_ */
 
@@ -582,121 +580,133 @@ INLINE void macPibApiSetCoordShortAddressZBPRO(const MAC_CoordShortAddress_t new
 
 
 /*************************************************************************************//**
- * \brief   Returns value of the MAC-PIB attribute macDsn.
+ * \brief   Returns value of the MAC-PIB attribute macDSN.
  * \param[in]   __givenContextId    Identifier of the specified MAC Context.
  * \return  Value of the requested MAC-PIB attribute.
 *****************************************************************************************/
 INLINE MAC_Dsn_t macPibApiGetDsn(MAC_WITHIN_GIVEN_CONTEXT)
 {
-    return MAC_MEMORY_PIB_ESSENTIAL().macDsn;
+    return MAC_MEMORY_PIB_ESSENTIAL().macDSN;
 }
 
 
 /*************************************************************************************//**
- * \brief   Returns value of the MAC-PIB attribute macDsn with post-increment by one.
+ * \brief   Returns value of the MAC-PIB attribute macDSN with post-increment by one.
  * \param[in]   __givenContextId    Identifier of the specified MAC Context.
  * \return  Value of the requested MAC-PIB attribute.
 *****************************************************************************************/
 INLINE MAC_Dsn_t macPibApiGetDsnWithPostInc(MAC_WITHIN_GIVEN_CONTEXT)
 {
-    return (MAC_MEMORY_PIB_ESSENTIAL().macDsn)++;
+    return (MAC_MEMORY_PIB_ESSENTIAL().macDSN)++;
 }
 
 
 /*************************************************************************************//**
- * \brief   Assigns a new value to the MAC-PIB attribute macDsn.
+ * \brief   Assigns a new value to the MAC-PIB attribute macDSN.
  * \param[in]   __givenContextId    Identifier of the specified MAC Context.
  * \param[in]   newValue            New value of the specified MAC-PIB attribute.
 *****************************************************************************************/
 INLINE void macPibApiSetDsn(MAC_WITH_GIVEN_CONTEXT(const MAC_Dsn_t newValue))
 {
-    MAC_MEMORY_PIB_ESSENTIAL().macDsn = newValue;
+    MAC_MEMORY_PIB_ESSENTIAL().macDSN = newValue;
 }
 
 
 /*************************************************************************************//**
- * \brief   Returns value of the MAC-PIB attribute macGtsPermit.
+ * \brief   Returns value of the MAC-PIB attribute macGTSPermit.
  * \return  Value of the requested MAC-PIB attribute.
 *****************************************************************************************/
-INLINE MAC_GtsPermit_t macPibApiGetGtsPermit(void)
+INLINE MAC_GTSPermit_t macPibApiGetGTSPermit(void)
 {
     return MAC_ATTR_DEFAULT_VALUE_GTS_PERMIT;
 }
 
 
 /*************************************************************************************//**
- * \brief   Returns value of the MAC-PIB attribute macMaxCsmaBackoffs.
+ * \brief   Returns value of the MAC-PIB attribute macMaxCSMABackoffs.
  * \param[in]   __givenContextId    Identifier of the specified MAC Context.
  * \return  Value of the requested MAC-PIB attribute.
 *****************************************************************************************/
-INLINE MAC_MaxCsmaBackoffs_t macPibApiGetMaxCsmaBackoffs(MAC_WITHIN_GIVEN_CONTEXT)
+INLINE MAC_MaxCSMABackoffs_t macPibApiGetMaxCSMABackoffs(MAC_WITHIN_GIVEN_CONTEXT)
 {
-    return MAC_MEMORY_PIB_ESSENTIAL().macMaxCsmaBackoffs;
+    return MAC_MEMORY_PIB_ESSENTIAL().macMaxCSMABackoffs;
 }
 
 
 /*************************************************************************************//**
- * \brief   Assigns a new value to the ZigBee PRO MAC-PIB attribute macMaxCsmaBackoffs.
+ * \brief   Assigns a new value to the ZigBee PRO MAC-PIB attribute macMaxCSMABackoffs.
  * \param[in]   __givenContextId    Identifier of the specified MAC Context.
  * \param[in]   newValue            New value of the specified MAC-PIB attribute.
 *****************************************************************************************/
-INLINE void macPibApiSetMaxCsmaBackoffs(MAC_WITH_GIVEN_CONTEXT(const MAC_MaxCsmaBackoffs_t newValue))
+INLINE void macPibApiSetMaxCSMABackoffs(MAC_WITH_GIVEN_CONTEXT(const MAC_MaxCSMABackoffs_t newValue))
 {
     SYS_DbgAssertComplex(newValue <= MAC_ATTR_MAXALLOWED_VALUE_MAX_CSMA_BACKOFFS,
-            LOG_macPibApiSetMaxCsmaBackoffs_InvalidNewValue);
+            LOG_macPibApiSetMaxCSMABackoffs_InvalidNewValue);
 
     ATOMIC_SECTION_ENTER(SYS_ATOMIC_DEFAULT_UID)
-        MAC_MEMORY_PIB_ESSENTIAL().macMaxCsmaBackoffs = newValue;
+        MAC_MEMORY_PIB_ESSENTIAL().macMaxCSMABackoffs = newValue;
     ATOMIC_SECTION_LEAVE(SYS_ATOMIC_DEFAULT_UID)
 }
 
 
 /*************************************************************************************//**
- * \brief   Returns value of the MAC-PIB attribute macMinBe.
+ * \brief   Returns value of the MAC-PIB attribute macMinBE.
  * \param[in]   __givenContextId    Identifier of the specified MAC Context.
  * \return  Value of the requested MAC-PIB attribute.
 *****************************************************************************************/
-INLINE MAC_MinBe_t macPibApiGetMinBe(MAC_WITHIN_GIVEN_CONTEXT)
+INLINE MAC_MinBE_t macPibApiGetMinBE(MAC_WITHIN_GIVEN_CONTEXT)
 {
-    return MAC_MEMORY_PIB_ESSENTIAL().macMinBe;
+    return MAC_MEMORY_PIB_ESSENTIAL().macMinBE;
 }
 
 
 /*************************************************************************************//**
- * \brief   Assigns a new value to the ZigBee PRO MAC-PIB attribute macMinBe.
+ * \brief   Assigns a new value to the ZigBee PRO MAC-PIB attribute macMinBE.
  * \param[in]   __givenContextId    Identifier of the specified MAC Context.
  * \param[in]   newValue    New value of the specified MAC-PIB attribute.
 *****************************************************************************************/
-INLINE void macPibApiSetMinBe(MAC_WITH_GIVEN_CONTEXT(const MAC_MinBe_t newValue))
+INLINE void macPibApiSetMinBE(MAC_WITH_GIVEN_CONTEXT(const MAC_MinBE_t newValue))
 {
-    SYS_DbgAssertComplex(newValue <= MAC_MEMORY_PIB_ESSENTIAL().macMaxBe, LOG_macPibApiSetMinBe_InvalidNewValue);
+    SYS_DbgAssertComplex(newValue <= MAC_MEMORY_PIB_ESSENTIAL().macMaxBE, LOG_macPibApiSetMinBE_InvalidNewValue);
 
     ATOMIC_SECTION_ENTER(SYS_ATOMIC_DEFAULT_UID)
-        MAC_MEMORY_PIB_ESSENTIAL().macMinBe = newValue;
+        MAC_MEMORY_PIB_ESSENTIAL().macMinBE = newValue;
     ATOMIC_SECTION_LEAVE(SYS_ATOMIC_DEFAULT_UID)
 }
 
 
 /*************************************************************************************//**
- * \brief   Returns value of the MAC-PIB attribute macPanId.
+ * \brief   Returns value of the MAC-PIB attribute macPANId.
  * \param[in]   __givenContextId    Identifier of the specified MAC Context.
  * \return  Value of the requested MAC-PIB attribute.
 *****************************************************************************************/
 INLINE MAC_PanId_t macPibApiGetPanId(MAC_WITHIN_GIVEN_CONTEXT)
 {
-    return MAC_MEMORY_PIB_ESSENTIAL().macPanId;
+    return MAC_MEMORY_PIB_ESSENTIAL().macPANId;
 }
 
 
 /*************************************************************************************//**
- * \brief   Assigns a new value to the MAC-PIB attribute macPanId.
+ * \brief   Checks if the MAC-PIB attribute macPANId is assigned with valid PAN Id value.
+ * \param[in]   __givenContextId    Identifier of the specified MAC Context.
+ * \return  TRUE if macPANId is assigned with valid PAN Id - i.e., less than 0xFFFF; FALSE
+ *  otherwise.
+*****************************************************************************************/
+INLINE bool macPibApiGetPanIdAssigned(MAC_WITHIN_GIVEN_CONTEXT)
+{
+    return (MAC_MEMORY_PIB_ESSENTIAL().macPANId < MAC_UNASSIGNED_PAN_ID);
+}
+
+
+/*************************************************************************************//**
+ * \brief   Assigns a new value to the MAC-PIB attribute macPANId.
  * \param[in]   __givenContextId    Identifier of the specified MAC Context.
  * \param[in]   newValue            New value of the specified MAC-PIB attribute.
 *****************************************************************************************/
 INLINE void macPibApiSetPanId(MAC_WITH_GIVEN_CONTEXT(const MAC_PanId_t newValue))
 {
     ATOMIC_SECTION_ENTER(SYS_ATOMIC_DEFAULT_UID)
-        MAC_MEMORY_PIB_ESSENTIAL().macPanId = newValue;
+        MAC_MEMORY_PIB_ESSENTIAL().macPANId = newValue;
 #if defined(_MAC_DUAL_CONTEXT_)
         HAL_RadioFrameFilterSetPanId(MAC_GIVEN_CONTEXT_ID, newValue);
 #else
@@ -751,6 +761,19 @@ INLINE void macPibApiSetRxOnWhenIdle(MAC_WITH_GIVEN_CONTEXT(const MAC_RxOnWhenId
 INLINE MAC_ShortAddress_t macPibApiGetShortAddress(MAC_WITHIN_GIVEN_CONTEXT)
 {
     return MAC_MEMORY_PIB_ESSENTIAL().macShortAddress;
+}
+
+
+/*************************************************************************************//**
+ * \brief   Checks if the MAC-PIB attribute macShortAddress is assigned with valid short
+ *  address value.
+ * \param[in]   __givenContextId    Identifier of the specified MAC Context.
+ * \return  TRUE if macShortAddress is assigned with valid short address - i.e., less than
+ *  0xFFFE; FALSE otherwise.
+*****************************************************************************************/
+INLINE bool macPibApiGetShortAddressAssigned(MAC_WITHIN_GIVEN_CONTEXT)
+{
+    return (MAC_MEMORY_PIB_ESSENTIAL().macShortAddress < MAC_DONT_USE_SHORT_ADDRESS);
 }
 
 
@@ -810,38 +833,38 @@ INLINE void macPibApiSetTransactionPersistenceTimeZBPRO(const MAC_TransactionPer
 
 
 /*************************************************************************************//**
- * \brief   Returns value of the MAC-PIB attribute macAssociatedPanCoord.
+ * \brief   Returns value of the MAC-PIB attribute macAssociatedPANCoord.
  * \return  Value of the requested MAC-PIB attribute.
 *****************************************************************************************/
-INLINE MAC_AssociatedPanCoord_t macPibApiGetAssociatedPanCoord(void)
+INLINE MAC_AssociatedPANCoord_t macPibApiGetAssociatedPANCoord(void)
 {
     return MAC_ATTR_DEFAULT_VALUE_ASSOCIATED_PAN_COORD;
 }
 
 
 /*************************************************************************************//**
- * \brief   Returns value of the MAC-PIB attribute macMaxBe.
+ * \brief   Returns value of the MAC-PIB attribute macMaxBE.
  * \param[in]   __givenContextId    Identifier of the specified MAC Context.
  * \return  Value of the requested MAC-PIB attribute.
 *****************************************************************************************/
-INLINE MAC_MaxBe_t macPibApiGetMaxBe(MAC_WITHIN_GIVEN_CONTEXT)
+INLINE MAC_MaxBE_t macPibApiGetMaxBE(MAC_WITHIN_GIVEN_CONTEXT)
 {
-    return MAC_MEMORY_PIB_ESSENTIAL().macMaxBe;
+    return MAC_MEMORY_PIB_ESSENTIAL().macMaxBE;
 }
 
 
 /*************************************************************************************//**
- * \brief   Assigns a new value to the ZigBee PRO MAC-PIB attribute macMaxBe.
+ * \brief   Assigns a new value to the ZigBee PRO MAC-PIB attribute macMaxBE.
  * \param[in]   __givenContextId    Identifier of the specified MAC Context.
  * \param[in]   newValue    New value of the specified MAC-PIB attribute.
 *****************************************************************************************/
-INLINE void macPibApiSetMaxBe(MAC_WITH_GIVEN_CONTEXT(const MAC_MaxBe_t newValue))
+INLINE void macPibApiSetMaxBE(MAC_WITH_GIVEN_CONTEXT(const MAC_MaxBE_t newValue))
 {
-    SYS_DbgAssertComplex(newValue >= MAC_ATTR_MINALLOWED_VALUE_MAX_BE, LOG_macPibApiSetMaxBe_NewValueTooLow);
-    SYS_DbgAssertComplex(newValue <= MAC_ATTR_MAXALLOWED_VALUE_MAX_BE, LOG_macPibApiSetMaxBe_NewValueTooHigh);
+    SYS_DbgAssertComplex(newValue >= MAC_ATTR_MINALLOWED_VALUE_MAX_BE, LOG_macPibApiSetMaxBE_NewValueTooLow);
+    SYS_DbgAssertComplex(newValue <= MAC_ATTR_MAXALLOWED_VALUE_MAX_BE, LOG_macPibApiSetMaxBE_NewValueTooHigh);
 
     ATOMIC_SECTION_ENTER(SYS_ATOMIC_DEFAULT_UID)
-        MAC_MEMORY_PIB_ESSENTIAL().macMaxBe = newValue;
+        MAC_MEMORY_PIB_ESSENTIAL().macMaxBE = newValue;
     ATOMIC_SECTION_LEAVE(SYS_ATOMIC_DEFAULT_UID)
 }
 
@@ -855,11 +878,11 @@ INLINE MAC_MaxFrameTotalWaitTime_t macPibApiGetDefaultMaxFrameTotalWaitTime(MAC_
 {
     MAC_MaxFrameTotalWaitTime_t  macMaxFrameTotalWaitTime;      /* The value to be returned. */
 
-    MAC_MaxBe_t            macMaxBe;                /* Value of the MAC-PIB attribute macMaxBe. */
-    MAC_MinBe_t            macMinBe;                /* Value of the MAC-PIB attribute macMinBe. */
-    MAC_MaxCsmaBackoffs_t  macMaxCsmaBackoffs;      /* Value of the MAC-PIB attribute macMaxCsmaBackoffs. */
+    MAC_MaxBE_t            macMaxBE;                /* Value of the MAC-PIB attribute macMaxBE. */
+    MAC_MinBE_t            macMinBE;                /* Value of the MAC-PIB attribute macMinBE. */
+    MAC_MaxCSMABackoffs_t  macMaxCSMABackoffs;      /* Value of the MAC-PIB attribute macMaxCSMABackoffs. */
 
-    MAC_MaxBe_t                  m;
+    MAC_MaxBE_t                  m;
     MAC_MaxFrameTotalWaitTime_t  term1a;
     MAC_MaxFrameTotalWaitTime_t  term1b;
     MAC_MaxFrameTotalWaitTime_t  term2a;
@@ -886,20 +909,20 @@ INLINE MAC_MaxFrameTotalWaitTime_t macPibApiGetDefaultMaxFrameTotalWaitTime(MAC_
      * - The first two additives are the maximum CSMA-CA wait time excluding 8-symbol periods of CCA;
      * - The total number of backoffs in CSMA-CA equals to (macMaxCSMABackoffs + 1);
      * - The maximum durations of consecutive backoff periods are progressive in general as (2^k - 1),
-     *    where k is from macMinBE to macMaxBe;
+     *    where k is from macMinBE to macMaxBE;
      *
-     * - For the case when (macMaxBe - macMinBE) = macMaxCSMABackoffs we have the following progression:
+     * - For the case when (macMaxBE - macMinBE) = macMaxCSMABackoffs we have the following progression:
      *    (2^macMinBE - 1) -CCA- (2^(macMinBE+1) - 1) -CCA- ... -CCA- (2^macMaxBE - 1) -CCA-
      *    where the total number of backoffs is (macMaxCSMABackoffs + 1);
      *
-     * - For the case when (macMaxBe - macMinBE) < macMaxCSMABackoffs we have the following progression:
+     * - For the case when (macMaxBE - macMinBE) < macMaxCSMABackoffs we have the following progression:
      *    (2^macMinBE - 1) -CCA- (2^(macMinBE+1) - 1) -CCA- ... -CCA- (2^macMaxBE - 1) -CCA-
      *    where the total number of backoffs is ((macMaxBE - macMinBE) + 1)
      *    and then we have sequence of even backoffs:
      *    (2^macMaxBE - 1) -CCA- (2^macMaxBE - 1) -CCA- ... -CCA- (2^macMaxBE - 1) -CCA-
      *    where the total number of backoffs is (macMaxCSMABackoffs - (macMaxBE - macMinBE));
      *
-     * - For the case when (macMaxBe - macMinBE) > macMaxCSMABackoffs we have the following progression:
+     * - For the case when (macMaxBE - macMinBE) > macMaxCSMABackoffs we have the following progression:
      *    (2^macMinBE - 1) -CCA- (2^(macMinBE+1) - 1) -CCA- ... -CCA- (2^(macMinBE+macMaxCSMABackoffs) - 1) -CCA-
      *    where the total number of backoffs is (macMaxCSMABackoffs + 1);
      *
@@ -910,7 +933,7 @@ INLINE MAC_MaxFrameTotalWaitTime_t macPibApiGetDefaultMaxFrameTotalWaitTime(MAC_
      *    and then we have sequence of even backoffs:
      *    (2^macMaxBE - 1) -CCA- (2^macMaxBE - 1) -CCA- ... -CCA- (2^macMaxBE - 1) -CCA-
      *    where the total number of backoffs is (macMaxCSMABackoffs - m)
-     *    this sequence actually is empty if (macMaxBe - macMinBE) >= macMaxCSMABackoffs;
+     *    this sequence actually is empty if (macMaxBE - macMinBE) >= macMaxCSMABackoffs;
      *
      * - Duration of the first sequence excluding 8-symbol periods of CCA equals to the sum of members of geometric
      *   progression with the first term a0 = 2^(macMinBE+0), ratio r = 2, and the last term am = 2^(macMinBE+m), and
@@ -922,20 +945,20 @@ INLINE MAC_MaxFrameTotalWaitTime_t macPibApiGetDefaultMaxFrameTotalWaitTime(MAC_
      *
      * - Unfortunately this expression does not correspond to the expression (14) given in the IEEE 802.15.4-2006.
      */
-    macMaxBe = macPibApiGetMaxBe(MAC_GIVEN_CONTEXT_ID);
-    macMinBe = macPibApiGetMinBe(MAC_GIVEN_CONTEXT_ID);
-    macMaxCsmaBackoffs = macPibApiGetMaxCsmaBackoffs(MAC_GIVEN_CONTEXT_ID);
+    macMaxBE = macPibApiGetMaxBE(MAC_GIVEN_CONTEXT_ID);
+    macMinBE = macPibApiGetMinBE(MAC_GIVEN_CONTEXT_ID);
+    macMaxCSMABackoffs = macPibApiGetMaxCSMABackoffs(MAC_GIVEN_CONTEXT_ID);
 
-    m = MIN(macMaxBe - macMinBe, macMaxCsmaBackoffs);
+    m = MIN(macMaxBE - macMinBE, macMaxCSMABackoffs);
 
-    term1a = (1 << macMinBe);
+    term1a = (1 << macMinBE);
     term1b = (1 << m) - 1;
-    term2a = (1 << macMaxBe);
-    term2b = (macMaxCsmaBackoffs - m);
+    term2a = (1 << macMaxBE);
+    term2b = (macMaxCSMABackoffs - m);
 
     phyMaxFrameDuration = phyPibApiGetMaxFrameDuration();
 
-    macMaxFrameTotalWaitTime = (term1a * term1b + term2a * term2b) * MAC_UNIT_BACKOFF_PERIOD + phyMaxFrameDuration;
+    macMaxFrameTotalWaitTime = (term1a * term1b + term2a * term2b) * MAC_aUnitBackoffPeriod + phyMaxFrameDuration;
 
     return macMaxFrameTotalWaitTime;
 }
@@ -1050,29 +1073,45 @@ INLINE MAC_TimestampSupported_t macPibApiGetTimestampSupported(void)
 
 /*************************************************************************************//**
  * \brief   Returns value of the MAC-PIB attribute macSecurityEnabled.
+ * \param[in]   __givenContextId    Identifier of the specified MAC Context.
  * \return  Value of the requested MAC-PIB attribute.
 *****************************************************************************************/
-INLINE MAC_SecurityEnabled_t macPibApiGetSecurityEnabled(void)
+INLINE MAC_SecurityEnabled_t macPibApiGetSecurityEnabled(MAC_WITHIN_GIVEN_CONTEXT)
 {
-    return MAC_ATTR_DEFAULT_VALUE_SECURITY_ENABLED;
+    if (MAC_IS_ZBPRO_CONTEXT(MAC_GIVEN_CONTEXT_ID))
+        MAC_CODE_FOR_ZBPRO_CONTEXT( return MAC_MEMORY_PIB_ZBPRO().macSecurityEnabled );
+    else
+        return MAC_ATTR_DEFAULT_VALUE_SECURITY_ENABLED;
 }
 
 
+#if defined(_MAC_CONTEXT_ZBPRO_)
 /*************************************************************************************//**
- * \brief   Returns value of the MAC-PIB attribute macMinLifsPeriod.
+ * \brief   Assigns a new value to the ZigBee PRO MAC-PIB attribute macSecurityEnabled.
+ * \param[in]   newValue    New value of the specified MAC-PIB attribute.
+*****************************************************************************************/
+INLINE void macPibApiSetSecurityEnabledZBPRO(const MAC_SecurityEnabled_t newValue)
+{
+    MAC_MEMORY_PIB_ZBPRO().macSecurityEnabled = newValue;
+}
+#endif /* _MAC_CONTEXT_ZBPRO_ */
+
+
+/*************************************************************************************//**
+ * \brief   Returns value of the MAC-PIB attribute macMinLIFSPeriod.
  * \return  Value of the requested MAC-PIB attribute.
 *****************************************************************************************/
-INLINE MAC_MinLifsPeriod_t macPibApiGetMinLifsPeriod(void)
+INLINE MAC_MinLIFSPeriod_t macPibApiGetMinLIFSPeriod(void)
 {
     return MAC_ATTR_DEFAULT_VALUE_MIN_LIFS_PERIOD;
 }
 
 
 /*************************************************************************************//**
- * \brief   Returns value of the MAC-PIB attribute macMinSifsPeriod.
+ * \brief   Returns value of the MAC-PIB attribute macMinSIFSPeriod.
  * \return  Value of the requested MAC-PIB attribute.
 *****************************************************************************************/
-INLINE MAC_MinSifsPeriod_t macPibApiGetMinSifsPeriod(void)
+INLINE MAC_MinSIFSPeriod_t macPibApiGetMinSIFSPeriod(void)
 {
     return MAC_ATTR_DEFAULT_VALUE_MIN_SIFS_PERIOD;
 }
@@ -1083,9 +1122,9 @@ INLINE MAC_MinSifsPeriod_t macPibApiGetMinSifsPeriod(void)
  * \param[in]   __givenContextId    Identifier of the specified MAC Context.
  * \return  Value of the requested MAC-PIB attribute.
 *****************************************************************************************/
-INLINE PHY_CurrentChannel_t macPibApiGetCurrentChannel(MAC_WITHIN_GIVEN_CONTEXT)
+INLINE PHY_Channel_t macPibApiGetCurrentChannel(MAC_WITHIN_GIVEN_CONTEXT)
 {
-    return MAC_MEMORY_PIB_ESSENTIAL().macCurrentChannelOnPage.logicalChannel;
+    return PHY__Take_Channel(MAC_MEMORY_PIB_ESSENTIAL().macCurrentChannelOnPage);
 }
 
 
@@ -1094,12 +1133,12 @@ INLINE PHY_CurrentChannel_t macPibApiGetCurrentChannel(MAC_WITHIN_GIVEN_CONTEXT)
  * \param[in]   __givenContextId    Identifier of the specified MAC Context.
  * \param[in]   newValue            New value of the specified MAC-PIB attribute.
 *****************************************************************************************/
-INLINE void macPibApiSetCurrentChannel(MAC_WITH_GIVEN_CONTEXT(const PHY_CurrentChannel_t newValue))
+INLINE void macPibApiSetCurrentChannel(MAC_WITH_GIVEN_CONTEXT(const PHY_Channel_t newValue))
 {
     SYS_DbgAssertComplex(newValue <= PHY_ATTR_MAXALLOWED_VALUE_CURRENT_CHANNEL,
             LOG_macPibApiSetCurrentChannel_InvalidNewValue);
 
-    MAC_MEMORY_PIB_ESSENTIAL().macCurrentChannelOnPage.logicalChannel = newValue;
+    PHY__Update_Channel(MAC_MEMORY_PIB_ESSENTIAL().macCurrentChannelOnPage, newValue);
 }
 
 
@@ -1108,9 +1147,9 @@ INLINE void macPibApiSetCurrentChannel(MAC_WITH_GIVEN_CONTEXT(const PHY_CurrentC
  * \param[in]   __givenContextId    Identifier of the specified MAC Context.
  * \return  Value of the requested MAC-PIB attribute.
 *****************************************************************************************/
-INLINE PHY_CurrentPage_t macPibApiGetCurrentPage(MAC_WITHIN_GIVEN_CONTEXT)
+INLINE PHY_Page_t macPibApiGetCurrentPage(MAC_WITHIN_GIVEN_CONTEXT)
 {
-    return MAC_MEMORY_PIB_ESSENTIAL().macCurrentChannelOnPage.channelPage;
+    return PHY__Take_Page(MAC_MEMORY_PIB_ESSENTIAL().macCurrentChannelOnPage);
 }
 
 
@@ -1119,12 +1158,12 @@ INLINE PHY_CurrentPage_t macPibApiGetCurrentPage(MAC_WITHIN_GIVEN_CONTEXT)
  * \param[in]   __givenContextId    Identifier of the specified MAC Context.
  * \param[in]   newValue            New value of the specified MAC-PIB attribute.
 *****************************************************************************************/
-INLINE void macPibApiSetCurrentPage(MAC_WITH_GIVEN_CONTEXT(const PHY_CurrentPage_t newValue))
+INLINE void macPibApiSetCurrentPage(MAC_WITH_GIVEN_CONTEXT(const PHY_Page_t newValue))
 {
     SYS_DbgAssertComplex(newValue <= PHY_ATTR_MAXALLOWED_VALUE_CURRENT_PAGE,
             LOG_macPibApiSetCurrentPage_InvalidNewValue);
 
-    MAC_MEMORY_PIB_ESSENTIAL().macCurrentChannelOnPage.channelPage = newValue;
+    PHY__Update_Page(MAC_MEMORY_PIB_ESSENTIAL().macCurrentChannelOnPage, newValue);
 }
 
 
@@ -1134,14 +1173,14 @@ INLINE void macPibApiSetCurrentPage(MAC_WITH_GIVEN_CONTEXT(const PHY_CurrentPage
  * \param[in]   __givenContextId    Identifier of the specified MAC Context.
  * \param[in]   newValue            New value of the specified MAC-PIB attributes.
 *****************************************************************************************/
-INLINE void macPibApiSetCurrentChannelOnPage(MAC_WITH_GIVEN_CONTEXT(const PHY_ChannelOnPagePlain_t newValue))
+INLINE void macPibApiSetCurrentChannelOnPage(MAC_WITH_GIVEN_CONTEXT(const PHY_PageChannel_t newValue))
 {
-    SYS_DbgAssertComplex(PHY_EXTRACT_CHANNEL_ID(newValue) <= PHY_ATTR_MAXALLOWED_VALUE_CURRENT_CHANNEL,
+    SYS_DbgAssertComplex(PHY__Take_Channel(newValue) <= PHY_ATTR_MAXALLOWED_VALUE_CURRENT_CHANNEL,
             LOG_macPibApiSetCurrentChannelOnPage_InvalidChannelId);
-    SYS_DbgAssertComplex(PHY_EXTRACT_PAGE_ID(newValue) <= PHY_ATTR_MAXALLOWED_VALUE_CURRENT_PAGE,
+    SYS_DbgAssertComplex(PHY__Take_Page(newValue) <= PHY_ATTR_MAXALLOWED_VALUE_CURRENT_PAGE,
             LOG_macPibApiSetCurrentChannelOnPage_InvalidPageId);
 
-    MAC_MEMORY_PIB_ESSENTIAL().macCurrentChannelOnPage.plain = newValue;
+    MAC_MEMORY_PIB_ESSENTIAL().macCurrentChannelOnPage = newValue;
 }
 
 
@@ -1158,9 +1197,9 @@ INLINE void macPibApiReset(MAC_WITHIN_GIVEN_CONTEXT)
 
 #if !defined(_MAC_ZERO_SEQNUM_ON_RESET_)
     /* Initialize macDSN and macBSN with random values. */
-    MAC_MEMORY_PIB_ESSENTIAL().macDsn = HAL_Random(MAC_MEMORY_FE_PRNG_DESCR());
+    MAC_MEMORY_PIB_ESSENTIAL().macDSN = HAL_Random(MAC_MEMORY_FE_PRNG_DESCR());
 # if !defined(_MAC_CONTEXT_RF4CE_CONTROLLER_)
-    MAC_MEMORY_PIB_BEACONING().macBsn = HAL_Random(MAC_MEMORY_FE_PRNG_DESCR());
+    MAC_MEMORY_PIB_BEACONING().macBSN = HAL_Random(MAC_MEMORY_FE_PRNG_DESCR());
 # endif
 #endif /* ! _MAC_ZERO_SEQNUM_ON_RESET_ */
 
@@ -1178,6 +1217,7 @@ INLINE void macPibApiReset(MAC_WITHIN_GIVEN_CONTEXT)
     HAL_RadioFrameFilterSetShortAddr(macPibApiGetShortAddress());
     HAL_RadioFrameFilterSetExtAddr(macPibApiGetExtendedAddress());
 #endif
+
     /* TODO: Think how to reset macCurrentChannel and macCurrentPage attributes. */
     /* TODO: Use macPibApiGetDefaultMaxFrameTotalWaitTime to initialize macMaxFrameTotalWaitTime for different PHYs. */
 }

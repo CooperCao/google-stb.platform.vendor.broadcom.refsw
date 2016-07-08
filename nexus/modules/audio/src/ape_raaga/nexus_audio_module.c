@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2014 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,22 +35,17 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   API name: Audio Module
 *    Top-Level Audio Module APIs
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 #include "nexus_audio_module.h"
 #define RAAGA_DEBUG_LOG_CHANGES 1
 #include "bdsp_raaga.h"
+#if NEXUS_ARM_AUDIO_SUPPORT
+#include "bdsp_arm.h"
+#endif
 #ifndef NEXUS_NUM_AUDIO_MIXERS
 #define NEXUS_NUM_AUDIO_MIXERS 0
 #endif
@@ -351,6 +346,9 @@ NEXUS_ModuleHandle NEXUS_AudioModule_Init(
     NEXUS_ModuleSettings moduleSettings;
     BAPE_Settings apeSettings;
     BDSP_RaagaSettings raagaSettings;
+    #if NEXUS_ARM_AUDIO_SUPPORT
+    BDSP_ArmSettings armSettings;
+    #endif
     unsigned heapIndex, fwHeapIndex;
 
     NEXUS_Module_GetDefaultSettings(&moduleSettings);
@@ -400,8 +398,21 @@ NEXUS_ModuleHandle NEXUS_AudioModule_Init(
 
     NEXUS_AudioModule_P_PopulateRaagaOpenSettings(g_pCoreHandles->boxConfig, pSettings, &raagaSettings);
     g_NEXUS_audioModuleData.numDsps = raagaSettings.NumDsp;
+    g_NEXUS_audioModuleData.verifyFirmware = false; /*may be updated below.*/
 
-    raagaSettings.authenticationEnabled  = true;  /* region verificaiton feature is always enabled going forward */
+   #if NEXUS_HAS_SECURITY
+    /* check if firmware verification is required for Raaga0/1 */
+    LOCK_SECURITY();
+    {
+        g_NEXUS_audioModuleData.verifyFirmware = NEXUS_Security_RegionVerification_IsRequired_priv( NEXUS_SecurityRegverRegionID_eRaaga0 );
+        if( !g_NEXUS_audioModuleData.verifyFirmware && g_NEXUS_audioModuleData.numDsps > 1 ) {
+            g_NEXUS_audioModuleData.verifyFirmware = NEXUS_Security_RegionVerification_IsRequired_priv( NEXUS_SecurityRegverRegionID_eRaaga1 );
+        }
+    }
+    UNLOCK_SECURITY();
+   #endif
+
+    raagaSettings.authenticationEnabled = g_NEXUS_audioModuleData.verifyFirmware;
 
     BDBG_MSG(("Calling BDSP_Raaga_Open"));
     errCode = BDSP_Raaga_Open(&g_NEXUS_audioModuleData.dspHandle,
@@ -418,20 +429,48 @@ NEXUS_ModuleHandle NEXUS_AudioModule_Init(
         goto err_dsp;
     }
 
-    errCode = secureFirmwareAudio(g_NEXUS_audioModuleData.dspHandle);
-    if( errCode )
+    if ( g_NEXUS_audioModuleData.verifyFirmware )
     {
-        (void)BERR_TRACE(errCode);  /* failed to verify audio firmware */
-        goto err_dsp;
+        errCode = secureFirmwareAudio(g_NEXUS_audioModuleData.dspHandle);
+        if ( errCode ) { (void)BERR_TRACE(errCode); goto err_dsp; }
+
+        BDBG_MSG(("Calling BDSP_Raaga_Initialize"));
+        errCode = BDSP_Raaga_Initialize( g_NEXUS_audioModuleData.dspHandle );
+        if ( errCode ) { (void)BERR_TRACE(errCode); goto err_dsp; }
     }
 
-    BDBG_MSG(("Calling BDSP_Raaga_Initialize"));
-    errCode = BDSP_Raaga_Initialize( g_NEXUS_audioModuleData.dspHandle );
-    if ( errCode )
+    #if NEXUS_ARM_AUDIO_SUPPORT
+    if ( !NEXUS_GetEnv("disable_arm_audio") )
     {
-        (void)BERR_TRACE(errCode);
-        goto err_dsp;
+        BTEE_InstanceStatus teeStatus;
+        BDBG_ASSERT(NULL != g_pCoreHandles->tee);
+
+        /* Check Astra compability */
+        errCode = BTEE_Instance_GetStatus(g_pCoreHandles->tee, &teeStatus);
+        if ( errCode ) { (void)BERR_TRACE(errCode); goto err_dsp; }
+
+        BDBG_LOG(("Astra Version %u.%u.%u, Astra Enabled %d", teeStatus.version.major, teeStatus.version.minor, teeStatus.version.build, teeStatus.enabled));
+        if ( teeStatus.enabled /* && version matches bdsp */ )
+        {
+            BDSP_Arm_GetDefaultSettings(&armSettings);
+            /* TBDARM - customize ARM settings
+            NEXUS_AudioModule_P_PopulateArmOpenSettings(pSettings, &armSettings); */
+            armSettings.hBteeInstance = g_pCoreHandles->tee;
+            errCode = BDSP_Arm_Open(&g_NEXUS_audioModuleData.armHandle,
+                                    g_pCoreHandles->chp,
+                                    g_pCoreHandles->reg,
+                                    g_pCoreHandles->heap[fwHeapIndex].mem,
+                                    g_pCoreHandles->bint,
+                                    g_pCoreHandles->tmr,
+                                    &armSettings);
+            if ( errCode )
+            {
+                (void)BERR_TRACE(errCode);
+                goto err_dsp;
+            }
+        }
     }
+    #endif
 
     BAPE_GetDefaultSettings(&apeSettings);
     apeSettings.maxDspTasks = pSettings->maxAudioDspTasks;
@@ -457,6 +496,7 @@ NEXUS_ModuleHandle NEXUS_AudioModule_Init(
                         g_pCoreHandles->bint,
                         g_pCoreHandles->tmr,
                         g_NEXUS_audioModuleData.dspHandle,
+                        g_NEXUS_audioModuleData.armHandle,
                         &apeSettings);
     if ( errCode )
     {
@@ -559,21 +599,28 @@ void NEXUS_AudioModule_Uninit(void)
     {
         BAPE_Close(NEXUS_AUDIO_DEVICE_HANDLE);
     }
+    if ( g_NEXUS_audioModuleData.armHandle )
+    {
+        BDSP_Close(g_NEXUS_audioModuleData.armHandle);
+    }
     if ( g_NEXUS_audioModuleData.dspHandle )
     {
         BDSP_Close(g_NEXUS_audioModuleData.dspHandle);
     }
 
    #if NEXUS_HAS_SECURITY
-    LOCK_SECURITY();
-    NEXUS_Security_RegionVerifyDisable_priv( NEXUS_SecurityRegverRegionID_eRaaga0 );
-    UNLOCK_SECURITY();
-
-    if( g_NEXUS_audioModuleData.numDsps > 1 )
+    if ( g_NEXUS_audioModuleData.verifyFirmware )
     {
         LOCK_SECURITY();
-        NEXUS_Security_RegionVerifyDisable_priv( NEXUS_SecurityRegverRegionID_eRaaga1 );
+        NEXUS_Security_RegionVerifyDisable_priv( NEXUS_SecurityRegverRegionID_eRaaga0 );
         UNLOCK_SECURITY();
+
+        if( g_NEXUS_audioModuleData.numDsps > 1 )
+        {
+            LOCK_SECURITY();
+            NEXUS_Security_RegionVerifyDisable_priv( NEXUS_SecurityRegverRegionID_eRaaga1 );
+            UNLOCK_SECURITY();
+        }
     }
    #endif
 
@@ -753,57 +800,63 @@ NEXUS_Error NEXUS_AudioModule_Standby_priv(
 
 #if NEXUS_POWER_MANAGEMENT
     if(enabled) {
-	unsigned i;
-	for(i=0; i<NEXUS_NUM_AUDIO_DECODERS; i++) {
-	    NEXUS_AudioDecoderHandle handle = g_decoders[i];
-	    /* Force decoder to stop; if not already stopped */
-	    if(handle && handle->started) {
-	        BDBG_WRN(("Forcing Audio Decoder %d Stop for Standby", i));
-	        NEXUS_AudioDecoder_Stop(handle);
-	    }
-	}
+    unsigned i;
+    for(i=0; i<NEXUS_NUM_AUDIO_DECODERS; i++) {
+        NEXUS_AudioDecoderHandle handle = g_decoders[i];
+        /* Force decoder to stop; if not already stopped */
+        if(handle && handle->started) {
+            BDBG_WRN(("Forcing Audio Decoder %d Stop for Standby", i));
+            NEXUS_AudioDecoder_Stop(handle);
+        }
+    }
 
     for (i=0; i < NEXUS_NUM_AUDIO_MIXERS; i++) {
         NEXUS_AudioMixerHandle mixerHandle = NEXUS_AudioMixer_P_GetMixerByIndex(i);
         if (mixerHandle && NEXUS_AudioMixer_P_IsStarted(mixerHandle))
         {
             BDBG_WRN(("Forcing Audio Mixer %d Stop for Standby", i));
-	        NEXUS_AudioMixer_Stop(mixerHandle);
+            NEXUS_AudioMixer_Stop(mixerHandle);
         }
     }
-	rc = BAPE_Standby(g_NEXUS_audioModuleData.apeHandle, NULL);
-	if (rc) { rc = BERR_TRACE(rc); goto err; }
+    rc = BAPE_Standby(g_NEXUS_audioModuleData.apeHandle, NULL);
+    if (rc) { rc = BERR_TRACE(rc); goto err; }
 
-	rc = BDSP_Standby(g_NEXUS_audioModuleData.dspHandle, NULL);
-	if (rc) { rc = BERR_TRACE(rc); goto err; }
+    rc = BDSP_Standby(g_NEXUS_audioModuleData.dspHandle, NULL);
+    if (rc) { rc = BERR_TRACE(rc); goto err; }
 
        /* disable region verification on RAAGA. */
        #if NEXUS_HAS_SECURITY
-        LOCK_SECURITY();
-        NEXUS_Security_RegionVerifyDisable_priv( NEXUS_SecurityRegverRegionID_eRaaga0 );
-        UNLOCK_SECURITY();
-
-        if( g_NEXUS_audioModuleData.numDsps > 1 )
+        if ( g_NEXUS_audioModuleData.verifyFirmware )
         {
             LOCK_SECURITY();
-            NEXUS_Security_RegionVerifyDisable_priv( NEXUS_SecurityRegverRegionID_eRaaga1 );
+            NEXUS_Security_RegionVerifyDisable_priv( NEXUS_SecurityRegverRegionID_eRaaga0 );
             UNLOCK_SECURITY();
+
+            if( g_NEXUS_audioModuleData.numDsps > 1 )
+            {
+                LOCK_SECURITY();
+                NEXUS_Security_RegionVerifyDisable_priv( NEXUS_SecurityRegverRegionID_eRaaga1 );
+                UNLOCK_SECURITY();
+            }
         }
        #endif
 
     } else {
 
-    rc = BDSP_Resume(g_NEXUS_audioModuleData.dspHandle);
-	if (rc) { rc = BERR_TRACE(rc); goto err; }
+        rc = BDSP_Resume(g_NEXUS_audioModuleData.dspHandle);
+        if (rc) { rc = BERR_TRACE(rc); goto err; }
 
-	rc = secureFirmwareAudio(g_NEXUS_audioModuleData.dspHandle);
-	if (rc) { rc = BERR_TRACE(rc); goto err; }
+        if ( g_NEXUS_audioModuleData.verifyFirmware )
+        {
+            rc = secureFirmwareAudio(g_NEXUS_audioModuleData.dspHandle);
+            if (rc) { rc = BERR_TRACE(rc); goto err; }
 
-    rc = BDSP_Raaga_Initialize(g_NEXUS_audioModuleData.dspHandle);
-	if (rc) { rc = BERR_TRACE(rc); goto err; }
+            rc = BDSP_Raaga_Initialize(g_NEXUS_audioModuleData.dspHandle);
+            if (rc) { rc = BERR_TRACE(rc); goto err; }
+        }
 
-	rc = BAPE_Resume(g_NEXUS_audioModuleData.apeHandle);
-	if (rc) { rc = BERR_TRACE(rc); goto err; }
+        rc = BAPE_Resume(g_NEXUS_audioModuleData.apeHandle);
+        if (rc) { rc = BERR_TRACE(rc); goto err; }
     }
 
 err :
@@ -996,6 +1049,8 @@ const char * NEXUS_AudioCodecToString(
         case NEXUS_AudioCodec_eIlbc: return "ILBC";
         case NEXUS_AudioCodec_eIsac: return "ISAC";
         case NEXUS_AudioCodec_eOpus: return "Opus";
+        case NEXUS_AudioCodec_eAls: return "MPEG-4 ALS";
+        case NEXUS_AudioCodec_eAc4: return "AC4";
         case NEXUS_AudioCodec_eMax: return "Invalid";
         default: return "Invalid";
     }
@@ -1421,7 +1476,6 @@ static NEXUS_Error secureFirmwareAudio( BDSP_Handle hRagga )
         UNLOCK_SECURITY();
         if( rc ) { BERR_TRACE( rc ); /* Failed to verify raaga1 */  goto exit; }
     }
-
 exit:
   #endif
 

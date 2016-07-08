@@ -1,23 +1,43 @@
-/***************************************************************************
- *     Copyright (c) 2003-2014, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * [File Description:]
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
  *
- * Revision History:
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- *
- ***************************************************************************/
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 
 #include "bstd.h" /* also includes berr, bdbg, etc */
 #include "bkni.h"
@@ -892,7 +912,7 @@ BMUXlib_Input_ProcessNewDescriptors(
                         BDBG_MODULE_MSG( BMUXLIB_INPUT_ENABLE, ("INPUT[%02d][%02d]: Converting FRAME_START --> EMPTY_FRAME (ESCR: %08x, Count: %d)",
                            hInput->stCreateSettings.eType, hInput->stCreateSettings.uiTypeInstance,
                            hInput->stDescriptorInfo.astQueue[hInput->stDescriptorInfo.uiWriteOffset].stDescriptor.stCommon.uiESCR,
-                           hInput->stDescriptorInfo.astQueue[hInput->stDescriptorInfo.uiWriteOffset].uiSourceDescriptorCount));
+                           (int)hInput->stDescriptorInfo.astQueue[hInput->stDescriptorInfo.uiWriteOffset].uiSourceDescriptorCount));
                      }
 
                      if ( 0 != hInput->stDescriptorInfo.astQueue[hInput->stDescriptorInfo.uiWriteOffset].stDescriptor.stCommon.uiLength )
@@ -1006,7 +1026,7 @@ BMUXlib_Input_ProcessNewDescriptors(
          {
             BDBG_WRN(("INPUT[%02d][%02d]: Filtered %d stale descriptors",
                hInput->stCreateSettings.eType, hInput->stCreateSettings.uiTypeInstance,
-               uiFilterCount));
+               (int)uiFilterCount));
             rc = BMUXlib_Input_ConsumeDescriptors( hInput, uiFilterCount );
             uiFilterCount = 0;
          }
@@ -1032,7 +1052,7 @@ BMUXlib_Input_IsDescriptorAvailable(
 
    BDBG_MSG(("INPUT[%02d][%02d]: Available: %d Pending %d",
       hInput->stCreateSettings.eType, hInput->stCreateSettings.uiTypeInstance,
-      hInput->stDescriptorInfo.uiWriteOffset, hInput->stDescriptorInfo.uiPendingOffset));
+      (int)hInput->stDescriptorInfo.uiWriteOffset, (int)hInput->stDescriptorInfo.uiPendingOffset));
 
    BDBG_LEAVE( BMUXlib_Input_IsDescriptorAvailable );
 
@@ -1666,16 +1686,6 @@ BMUXlib_InputGroup_DescriptorSelectLowestDTS (
    BDBG_ASSERT( pstDescriptorA );
    BDBG_ASSERT( pstDescriptorB );
 
-   BDBG_ASSERT( BMUXLIB_INPUT_DESCRIPTOR_IS_FRAMESTART( pstDescriptorA ) );
-   BDBG_ASSERT( BMUXLIB_INPUT_DESCRIPTOR_IS_ESCR_VALID( pstDescriptorA ) );
-   BDBG_ASSERT( BMUXLIB_INPUT_DESCRIPTOR_IS_DTS_VALID( pstDescriptorA ) );
-   BDBG_ASSERT( BMUXLIB_INPUT_DESCRIPTOR_IS_PTS_VALID( pstDescriptorA ) );
-
-   BDBG_ASSERT( BMUXLIB_INPUT_DESCRIPTOR_IS_FRAMESTART( pstDescriptorB ) );
-   BDBG_ASSERT( BMUXLIB_INPUT_DESCRIPTOR_IS_ESCR_VALID( pstDescriptorB ) );
-   BDBG_ASSERT( BMUXLIB_INPUT_DESCRIPTOR_IS_DTS_VALID( pstDescriptorB ) );
-   BDBG_ASSERT( BMUXLIB_INPUT_DESCRIPTOR_IS_PTS_VALID( pstDescriptorB ) );
-
    /* NOTE: This uses a scaled DTS to restrict the range to 32-bits
       (to avoid the need for 64-bit math and 64-bit constants).
       This therefore makes the assumption that two DTS values are not separated
@@ -1705,7 +1715,8 @@ BMUXlib_InputGroup_DescriptorSelectLowestDTS (
       }
 #endif
       if ( ( ( uiDTSA < uiDTSB ) && ( ( uiDTSB - uiDTSA ) < BMUXLIB_INPUTGROUP_P_SCALED_DTS_MIDRANGE ) )
-           || ( ( uiDTSA > uiDTSB ) && ( ( uiDTSA - uiDTSB ) >= BMUXLIB_INPUTGROUP_P_SCALED_DTS_MIDRANGE ) )
+              || ( ( uiDTSA > uiDTSB ) && ( ( uiDTSA - uiDTSB ) >= BMUXLIB_INPUTGROUP_P_SCALED_DTS_MIDRANGE ) )
+              || ( false == BMUXLIB_INPUT_DESCRIPTOR_IS_DTS_VALID( pstDescriptorA ) )
          )
       {
          /* A.DTS is < B.DTS */

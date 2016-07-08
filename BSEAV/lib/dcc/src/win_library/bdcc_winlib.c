@@ -418,7 +418,7 @@ BDCC_WINLIB_ErrCode BDCC_WINLIB_CreateCaptionRow(
     }
     while((!hWinLibHandle->pTempRowSurface) || (!hWinLibHandle->pTempFlashRowSurface));
 
-    BDBG_MSG(("%s %#x", __FUNCTION__, *pWin));
+    BDBG_MSG(("%s %p", __FUNCTION__, (void*)*pWin));
 
     return BDCC_WINLIB_SUCCESS;
 }
@@ -431,7 +431,7 @@ BDCC_WINLIB_ErrCode BDCC_WINLIB_DestroyCaptionRow(
 {
     BDCC_WINLIB_hRow *phRow = &(row->hWinLibHandle->head);
 
-    BDBG_MSG(("%s %#x", __FUNCTION__, row));
+    BDBG_MSG(("%s %p", __FUNCTION__, (void*)row));
     BDBG_ASSERT(row);
 
     /* remove row from linked list */
@@ -1023,7 +1023,7 @@ BDCC_WINLIB_ErrCode BDCC_WINLIB_LoadFont(
     font = bfont_open(pFontFile);
     hWinLibHandle->fontFaces[ fontStyle ][ penSize ][ penStyle ] = font;
 
-    BDBG_MSG(("BDCC_WINLIB_LoadFont %#x %s", font, (penStyle == BDCC_PenStyle_Standard) ? "standard" : "italic"));
+    BDBG_MSG(("BDCC_WINLIB_LoadFont %p %s", (void*)font, (penStyle == BDCC_PenStyle_Standard) ? "standard" : "italic"));
 
 
     /* To calculate window sizes, we need to know the height of the tallest glyph and the width of the
@@ -1080,7 +1080,7 @@ BDCC_WINLIB_ErrCode BDCC_WINLIB_UnloadFonts(
 
         if(font)
         {
-            BDBG_MSG(("BDCC_WINLIB_UnloadFont %#x", font));
+            BDBG_MSG(("BDCC_WINLIB_UnloadFont %p", (void*)font));
             bfont_close(font);
 
             /* look for other references to this font */
@@ -1144,7 +1144,7 @@ BDCC_WINLIB_ErrCode BDCC_WINLIB_SetFont(
         BDBG_ASSERT(false);
     }
 
-    BDBG_MSG(("BDCC_WINLIB_SetFont %#x %s", pSelectedFont,
+    BDBG_MSG(("BDCC_WINLIB_SetFont %p %s", (void*)pSelectedFont,
                     ((penStyle == BDCC_PenStyle_Standard) ||
                     (penStyle == BDCC_PenStyle_Underline)) ? "standard" : "italic"));
 
@@ -1181,7 +1181,7 @@ BDCC_WINLIB_ErrCode
     BDBG_ASSERT(row);
     BDBG_ASSERT(str);
 
-    BDBG_MSG(("%s String = %s>", __FUNCTION__,str));
+    BDBG_MSG(("%s String = %s>", __FUNCTION__,(char*)str));
     BDBG_MSG(("%s Window Posx = %d, Posy=%d",__FUNCTION__, row->penPositionx, row->penPositiony));
 
     /*
@@ -1248,7 +1248,7 @@ BDCC_WINLIB_ErrCode BDCC_WINLIB_DrawHLine(
     )
 {
     unsigned i;
-    uint32_t *rowptr = (uint32_t *)((unsigned)row->surface_desc.buffer + row->surface_desc.pitch * y);
+    uint32_t *rowptr = (uint32_t *)((unsigned long)row->surface_desc.buffer + row->surface_desc.pitch * y);
     BDBG_ASSERT(row);
     BSTD_UNUSED(wide);
     for (i=0;i<length && i+x<row->surface_desc.width;i++) {
@@ -1492,7 +1492,7 @@ BDCC_WINLIB_ErrCode BDCC_WINLIB_UpdateScreen(
         if(BDCC_WINLIB_IsCaptionRowVisible( hRow ))
         {
             /* visible and not clipped out so let's composite it */
-            BDBG_MSG(("Compositing Row %#x zorder %d", hRow, hRow->zorder));
+            BDBG_MSG(("Compositing Row %p zorder %d", (void*)hRow, hRow->zorder));
 
             NEXUS_Graphics2D_GetDefaultBlitSettings(&blitSettings);
 
@@ -1944,7 +1944,7 @@ void BDCC_WINLIB_RenderEnd(
     /* For Center and Right justification, copy from the temp surface with justification */
     if ( BDCC_Justify_eLeft != row->justification )
     {
-        BDBG_MSG(( "source surface 0x%08x   dest surface 0x%08x\n", temprow, row));
+        BDBG_MSG(( "source surface %p   dest surface %p\n", (void*)temprow, (void*)row));
 
 
         /* for Right, Center and Full justifications we perform the copy when the

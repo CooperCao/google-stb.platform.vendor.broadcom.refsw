@@ -1,41 +1,40 @@
-/***************************************************************************
- *     (c)2007-2015 Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- *  Except as expressly set forth in the Authorized License,
+ * Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
- *
- **************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
 #include "nexus_base.h"
 #include "nexus_display_module.h"
 #if NEXUS_NUM_VIDEO_DECODERS
@@ -48,6 +47,7 @@ BDBG_OBJECT_ID(NEXUS_VideoInput_P_Link);
 
 #define pVideo (&g_NEXUS_DisplayModule_State)
 
+static void NEXUS_VideoInput_P_HdrInputInfoUpdated(void * context);
 static NEXUS_VideoInput_P_Link *NEXUS_VideoInput_P_CreateLink_Init( NEXUS_VideoInput source, const NEXUS_VideoInput_P_LinkData *data, const NEXUS_VideoInput_P_Iface *iface );
 static void NEXUS_VideoInput_P_DestroyLink_Uninit( NEXUS_VideoInput_P_Link *link );
 static NEXUS_Error NEXUS_VideoInput_P_Create_VdcSource( NEXUS_VideoInput source, NEXUS_VideoInput_P_Link *link, const NEXUS_VideoInput_P_LinkData *data );
@@ -248,6 +248,9 @@ NEXUS_VideoInput_P_CreateLink_Init(NEXUS_VideoInput source, const NEXUS_VideoInp
     BKNI_CreateEvent(&link->sourceChangedEvent);
     link->sourceChangedEventHandler = NEXUS_RegisterEvent(link->sourceChangedEvent, NEXUS_VideoInput_P_SourceChanged, source);
     link->resumeMode = NEXUS_VideoInputResumeMode_eAuto;
+
+    BKNI_CreateEvent(&link->hdrInputInfo.inputInfoUpdatedEvent);
+    link->hdrInputInfo.inputInfoUpdatedEventHandler = NEXUS_RegisterEvent(link->hdrInputInfo.inputInfoUpdatedEvent, NEXUS_VideoInput_P_HdrInputInfoUpdated, link);
 
 #if NEXUS_VBI_SUPPORT
     /* Only default a CC buffer. All others require app to set buffer size. */
@@ -456,6 +459,9 @@ NEXUS_VideoInput_P_DestroyLink_Uninit(NEXUS_VideoInput_P_Link *link)
         BKNI_Free(link->vbi.tt.data);
     }
 
+    NEXUS_UnregisterEvent(link->hdrInputInfo.inputInfoUpdatedEventHandler);
+    BKNI_DestroyEvent(link->hdrInputInfo.inputInfoUpdatedEvent);
+
     NEXUS_IsrCallback_Destroy(link->sourceChangedCallback);
     NEXUS_UnregisterEvent(link->sourceChangedEventHandler);
     BKNI_DestroyEvent(link->sourceChangedEvent);
@@ -634,7 +640,55 @@ done:
     return 0;
 }
 
+static void
+NEXUS_VideoInput_P_HdrInputInfoUpdated(void * context)
+{
+#if NEXUS_HAS_HDMI_OUTPUT && NEXUS_NUM_HDMI_OUTPUTS
+    NEXUS_VideoInput_P_Link *link = context;
+    NEXUS_VideoWindowHandle windows[NEXUS_NUM_VIDEO_WINDOWS];
+    unsigned count;
+    unsigned i;
+
+    NEXUS_Display_P_GetWindows_priv(link->input, windows, NEXUS_NUM_VIDEO_WINDOWS, &count);
+
+    for (i = 0; i < count; i++)
+    {
+        if (windows[i]->display->hdmi.outputNotify)
+        {
+
+            NEXUS_VideoOutput_P_SetHdrSettings(windows[i]->display->hdmi.outputNotify,
+                link->hdrInputInfo.eotf,
+                &link->hdrInputInfo.mdcv,
+                &link->hdrInputInfo.cll);
+        }
+    }
+#else
+    BSTD_UNUSED(context);
+#endif
+}
+
 #if NEXUS_NUM_VIDEO_DECODERS
+static void
+NEXUS_VideoInput_P_UpdateHdrInputInfo_isr(NEXUS_VideoInput_P_Link *link)
+{
+    NEXUS_TransferCharacteristics transferChars;
+    NEXUS_TransferCharacteristics preferredTransferChars;
+
+    transferChars = NEXUS_P_TransferCharacteristics_FromMagnum_isrsafe(link->info.mfd.eTransferCharacteristics);
+    preferredTransferChars = NEXUS_P_TransferCharacteristics_FromMagnum_isrsafe(link->info.mfd.ePreferredTransferCharacteristics);
+    link->hdrInputInfo.eotf = NEXUS_P_TransferCharacteristicsToEotf_isrsafe(transferChars, preferredTransferChars);
+    NEXUS_P_MasteringDisplayColorVolume_FromMagnum_isrsafe(&link->hdrInputInfo.mdcv,
+        link->info.mfd.stDisplayPrimaries,
+        &link->info.mfd.stWhitePoint,
+        link->info.mfd.ulMaxDispMasteringLuma,
+        link->info.mfd.ulMinDispMasteringLuma);
+    NEXUS_P_ContentLightLevel_FromMagnum_isrsafe(&link->hdrInputInfo.cll,
+        link->info.mfd.ulMaxContentLight,
+        link->info.mfd.ulAvgContentLight);
+
+    BKNI_SetEvent_isr(link->hdrInputInfo.inputInfoUpdatedEvent);
+}
+
 void
 NEXUS_VideoInput_P_DecoderDataReady_isr(void *input_, const BAVC_MFD_Picture *pPicture)
 {
@@ -660,6 +714,8 @@ NEXUS_VideoInput_P_DecoderDataReady_isr(void *input_, const BAVC_MFD_Picture *pP
         }
     }
 #endif
+
+    NEXUS_VideoInput_P_UpdateHdrInputInfo_isr(link);
 
     BVDC_Source_MpegDataReady_isr(link->sourceVdc, 0 /* unused */, (void *)pPicture);
     return;
@@ -1400,21 +1456,6 @@ NEXUS_Error NEXUS_VideoInput_GetCrcData( NEXUS_VideoInput input, NEXUS_VideoInpu
         (*numEntriesReturned)++;
     }
     return 0;
-}
-
-NEXUS_Error NEXUS_VideoInput_SetResumeMode( NEXUS_VideoInput videoInput, NEXUS_VideoInputResumeMode resumeMode )
-{
-    BSTD_UNUSED(videoInput);
-    BSTD_UNUSED(resumeMode);
-    return BERR_TRACE(NEXUS_NOT_SUPPORTED);
-}
-
-NEXUS_Error NEXUS_VideoInput_ForcePending(
-    NEXUS_VideoInput videoInput
-    )
-{
-    BSTD_UNUSED(videoInput);
-    return BERR_TRACE(NEXUS_NOT_SUPPORTED);
 }
 
 #if NEXUS_HAS_VIDEO_ENCODER && NEXUS_NUM_DSP_VIDEO_ENCODERS

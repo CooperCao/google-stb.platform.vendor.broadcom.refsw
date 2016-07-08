@@ -1,43 +1,43 @@
 /******************************************************************************
-* (c) 2014 Broadcom Corporation
-*
-* This program is the proprietary software of Broadcom Corporation and/or its
-* licensors, and may only be used, duplicated, modified or distributed pursuant
-* to the terms and conditions of a separate, written license agreement executed
-* between you and Broadcom (an "Authorized License").  Except as set forth in
-* an Authorized License, Broadcom grants no license (express or implied), right
-* to use, or waiver of any kind with respect to the Software, and Broadcom
-* expressly reserves all rights in and to the Software and all intellectual
-* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1. This program, including its structure, sequence and organization,
-*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-*    reasonable efforts to protect the confidentiality thereof, and to use
-*    this information only in connection with your use of Broadcom integrated
-*    circuit products.
-*
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-******************************************************************************/
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
+ *
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************
 /*****************************************************************************
 *
 * FILENAME: $Workfile: trunk/stack/common/Mailbox/src/bbMailAdapter.c $
@@ -50,12 +50,12 @@
 *
 ****************************************************************************************/
 /************************* INCLUDES ****************************************************/
+#include "private/bbMailPrivateAdapter.h"
 #include "private/bbMailPrivateClient.h"
 #include "private/bbMailPrivateServer.h"
-#include "private/bbMailPrivateAdapter.h"
 
 /************************* STATIC FUNCTIONS PROTOTYPES *********************************/
-static void mailAdapterReset(MailAdapterDescriptor_t *const adapter);
+static void mailAdapterReset(void);
 static void mailAdapterFifoOfflineInd(HAL_MailboxDescriptor_t *const mbFifoDescr);
 static void mailAdapterReadyToSendInd(HAL_MailboxDescriptor_t *const mbFifoDescr);
 static void mailAdapterReceivedInd(HAL_MailboxDescriptor_t *const mbFifoDescr);
@@ -63,6 +63,7 @@ static void mailAdapterReadyToSendHandler(SYS_SchedulerTaskDescriptor_t *const t
 static void mailAdapterDataReceivedHandler(SYS_SchedulerTaskDescriptor_t *const taskDescriptor);
 
 /************************* IMPLEMENTATION **********************************************/
+static MailAdapterDescriptor_t adapterMemory;
 /**//**
  * \brief Adapter handlers list descriptions.
  */
@@ -76,15 +77,15 @@ static const SYS_SchedulerTaskHandler_t mailAdapterHandlers[] =
     \brief Initialize internal data structures.
     \param[in] adapter - adapter descriptor.
  ****************************************************************************************/
-void mailAdapterInit(MailAdapterDescriptor_t *const adapter)
+void mailAdapterInit(void)
 {
-    mailAdapterReset(adapter);
+    mailAdapterReset();
 
-    adapter->mbFifoDescr.offlineCallback    = mailAdapterFifoOfflineInd;
-    adapter->mbFifoDescr.rtsCallback        = mailAdapterReadyToSendInd;
-    adapter->mbFifoDescr.rxCallback         = mailAdapterReceivedInd;
+    adapterMemory.mbFifoDescr.offlineCallback    = mailAdapterFifoOfflineInd;
+    adapterMemory.mbFifoDescr.rtsCallback        = mailAdapterReadyToSendInd;
+    adapterMemory.mbFifoDescr.rxCallback         = mailAdapterReceivedInd;
 
-    HAL_MailboxInit(&adapter->mbFifoDescr);
+    HAL_MailboxInit(&adapterMemory.mbFifoDescr);
 }
 
 /************************************************************************************//**
@@ -105,11 +106,11 @@ static void mailAdapterInitTxOptions(MailAdapterTxOptions_t *const txOptions)
     \brief Stops transactions.
     \param[in] adapter - adapter descriptor.
  ****************************************************************************************/
-void mailAdapterCancelTx(MailAdapterDescriptor_t *const adapter, uint8_t *const parcel)
+void mailAdapterCancelTx(uint8_t *const parcel)
 {
-    if (parcel == adapter->txOptions.currentParcel)
+    if (parcel == adapterMemory.txOptions.currentParcel)
     {
-        mailAdapterInitTxOptions(&adapter->txOptions);
+        mailAdapterInitTxOptions(&adapterMemory.txOptions);
         SYS_DbgLogId(MAILADAPTER_TRANSACTION_WAS_INTERRUPTED_AT_THE_MIDDLE);
     }
 }
@@ -127,23 +128,24 @@ static void mailInitRxOptions(MailAdapterRxOptions_t *const rxOptions)
     rxOptions->params = NULL;
     SYS_DbgAssertComplex(!SYS_CheckPayload(&rxOptions->dataPointer), MAILADAPTER_INITRXOPTIONS_DAPOINTER_SHALL_BE_FREE);
 }
+
 /************************************************************************************//**
     \brief Synchronization event handler.
     \param[in] mbFifoDescr - shared FIFO descriptor.
  ****************************************************************************************/
-static void mailAdapterReset(MailAdapterDescriptor_t *const adapter)
+static void mailAdapterReset()
 {
-    adapter->taskDescr.priority = SYS_SCHEDULER_MAILBOX_PRIORITY;
-    adapter->taskDescr.handlers = mailAdapterHandlers;
-    adapter->pollPriority = 0; /* client's part has more priority by default */
+    adapterMemory.taskDescr.priority = SYS_SCHEDULER_MAILBOX_PRIORITY;
+    adapterMemory.taskDescr.handlers = mailAdapterHandlers;
+    adapterMemory.pollPriority = 0; /* client's part has more priority by default */
 
-    adapter->readyToSendFlag = false;
+    adapterMemory.readyToSendFlag = false;
 
-    mailAdapterInitTxOptions(&adapter->txOptions);
-    for (uint8_t i = 0; i < ARRAY_SIZE(adapter->rxOptions); ++i)
+    mailAdapterInitTxOptions(&adapterMemory.txOptions);
+    for (uint8_t i = 0; i < ARRAY_SIZE(adapterMemory.rxOptions); ++i)
     {
-        SYS_SetEmptyPayload(&adapter->rxOptions[i].dataPointer);
-        mailInitRxOptions(&adapter->rxOptions[i]);
+        SYS_SetEmptyPayload(&adapterMemory.rxOptions[i].dataPointer);
+        mailInitRxOptions(&adapterMemory.rxOptions[i]);
     }
 }
 
@@ -155,10 +157,7 @@ static void mailAdapterReset(MailAdapterDescriptor_t *const adapter)
 ****************************************************************************************/
 INLINE MailAdapterDirection_t mailGetDirection(MailFifoMessageType_t msgType)
 {
-    return (REQUEST_MSG_TYPE == msgType.type
-            || INDICATION_MSG_TYPE == msgType.type) ?
-           FROM_CLIENT_TO_SERVER :
-           FROM_SERVER_TO_CLIENT;
+    return msgType.isConfirm ? FROM_SERVER_TO_CLIENT : FROM_CLIENT_TO_SERVER;
 }
 
 /************************************************************************************//**
@@ -180,7 +179,6 @@ static void updateCheckSum(MailCheckSumLength_t *checkSum, uint8_t *data, uint8_
 /************************************************************************************//**
     \brief Helper function. Sends a chunk of data to the FIFO while offset isn't equal threshold value or buffer
         is not in full.
-    \param[in] adapter - adapter module descriptor.
     \param[in] data - data to be written to stream.
     \param[in] dataSize - size of current data chunk.
     \param[in] startBlockOffset - starting offset of current type of data in byte stream value.
@@ -189,37 +187,36 @@ static void updateCheckSum(MailCheckSumLength_t *checkSum, uint8_t *data, uint8_
 
     \return true If chunk has been sent fully or false otherwise.
  ****************************************************************************************/
-static bool fifoSend(MailAdapterDescriptor_t *const adapter,
-                     uint8_t *const data, const uint16_t dataSize,
+static bool fifoSend(uint8_t *const data, const uint16_t dataSize,
                      const MailAdapterDataType_t dataType,
                      const uint16_t startBlockOffset, const uint16_t endBlockOffset)
 {
-    uint8_t bytesToSend = MIN(dataSize, adapter->txOptions.reservedSpace);
+    uint8_t bytesToSend = MIN(dataSize, adapterMemory.txOptions.reservedSpace);
     bool result = true;
 
     if (METADATA == dataType)
     {
-        HAL_MailboxTx(&adapter->mbFifoDescr, data, bytesToSend);
-        adapter->txOptions.reservedSpace -= bytesToSend;
+        HAL_MailboxTx(&adapterMemory.mbFifoDescr, data, bytesToSend);
+        adapterMemory.txOptions.reservedSpace -= bytesToSend;
         result = (dataSize == bytesToSend);
         SYS_DbgAssertComplex(result, MAILADAPTER_SEND_METADATA_CAN_NOT_BE_FRAGMENTAD);
     }
-    else if (endBlockOffset > adapter->txOptions.offset)
+    else if (endBlockOffset > adapterMemory.txOptions.offset)
     {
-        SYS_DbgAssertComplex(startBlockOffset <= adapter->txOptions.offset, MAILADAPTER_FIFOSEND_0);
-        const uint16_t dataOffset = adapter->txOptions.offset - startBlockOffset;
+        SYS_DbgAssertComplex(startBlockOffset <= adapterMemory.txOptions.offset, MAILADAPTER_FIFOSEND_0);
+        const uint16_t dataOffset = adapterMemory.txOptions.offset - startBlockOffset;
         bytesToSend = MIN(bytesToSend, dataSize - dataOffset);
-        HAL_MailboxTx(&adapter->mbFifoDescr, data + dataOffset, bytesToSend);
-        adapter->txOptions.reservedSpace -= bytesToSend;
-        adapter->txOptions.offset += bytesToSend;
+        HAL_MailboxTx(&adapterMemory.mbFifoDescr, data + dataOffset, bytesToSend);
+        adapterMemory.txOptions.reservedSpace -= bytesToSend;
+        adapterMemory.txOptions.offset += bytesToSend;
 
         /* Update Check Sum. */
         if (NOT_DATA_FLOW != dataType)
-            updateCheckSum(&(adapter->txOptions.txCheckSum), data + dataOffset, bytesToSend);
+            updateCheckSum(&(adapterMemory.txOptions.txCheckSum), data + dataOffset, bytesToSend);
 
-        //printf("sent bytes(%d) - %d/%d\n", bytesToSend, adapter->txOptions.offset, endBlockOffset);
-        SYS_DbgAssertComplex(endBlockOffset >= adapter->txOptions.offset, MAILADAPTER_FIFOSEND_1);
-        result = (endBlockOffset == adapter->txOptions.offset);
+        //printf("sent bytes(%d) - %d/%d\n", bytesToSend, adapterMemory.txOptions.offset, endBlockOffset);
+        SYS_DbgAssertComplex(endBlockOffset >= adapterMemory.txOptions.offset, MAILADAPTER_FIFOSEND_1);
+        result = (endBlockOffset == adapterMemory.txOptions.offset);
     }
 
     return result;
@@ -234,59 +231,60 @@ static bool fifoSend(MailAdapterDescriptor_t *const adapter,
 
     \return true if the parcel is completely sent.
 ****************************************************************************************/
-bool mailAdapterSend(MailAdapterDescriptor_t *const adapter,
-                     MailFifoHeader_t *fifoHeader, MailWrappedReqHeader_t *header, uint8_t *const params)
+bool mailAdapterSend(MailFifoHeader_t *fifoHeader, MailWrappedReqHeader_t *header, uint8_t *const params)
 {
     bool isMessageSent = true;
-    if (!adapter->readyToSendFlag)
+    if (!adapterMemory.readyToSendFlag)
         return false;
 
-    if (NO_TRANSMISSION == adapter->txOptions.txDirection)
+    if (NO_TRANSMISSION == adapterMemory.txOptions.txDirection)
     {
-        adapter->txOptions.txDirection = mailGetDirection(fifoHeader->msgType);
-        SYS_DbgAssertComplex(NULL == adapter->txOptions.currentParcel, MAILADAPTER_BROKEN_PARCEL_SEQUENCE);
-        adapter->txOptions.currentParcel = params;
+        adapterMemory.txOptions.txDirection = mailGetDirection(fifoHeader->msgType);
+        SYS_DbgAssertComplex(NULL == adapterMemory.txOptions.currentParcel, MAILADAPTER_BROKEN_PARCEL_SEQUENCE);
+        adapterMemory.txOptions.currentParcel = params;
     }
-    else if (mailGetDirection(fifoHeader->msgType) != adapter->txOptions.txDirection)
+    else if (mailGetDirection(fifoHeader->msgType) != adapterMemory.txOptions.txDirection)
         return false;
 
     /* fifo header */
     {
         const uint16_t fullMessageSize = sizeof(MailFifoPackedHeader_t) + sizeof(*header)
-                                         + header->paramLength + header->dataLength + sizeof(adapter->txOptions.txCheckSum);
-        const uint16_t remainingMessageLength = CEIL(fullMessageSize - adapter->txOptions.offset, 4) * 4;
-        adapter->txOptions.reservedSpace = MIN(HAL_MailboxTxFifoAvailableSize(&adapter->mbFifoDescr), remainingMessageLength);
+                                         + header->paramLength + header->dataLength + sizeof(adapterMemory.txOptions.txCheckSum);
+        const uint16_t remainingMessageLength = CEIL(fullMessageSize - adapterMemory.txOptions.offset, 4) * 4;
+        adapterMemory.txOptions.reservedSpace = MIN(HAL_MailboxTxFifoAvailableSize(&adapterMemory.mbFifoDescr), remainingMessageLength);
 
         /* prepare fifoheader */
-        fifoHeader->fragmentNumber = adapter->txOptions.fragmentCounter;
-        fifoHeader->isFragment = !(remainingMessageLength <= adapter->txOptions.reservedSpace);
+        fifoHeader->fragmentNumber = adapterMemory.txOptions.fragmentCounter;
+        fifoHeader->isFragment = !(remainingMessageLength <= adapterMemory.txOptions.reservedSpace);
 
         MailFifoPackedHeader_t fifoPackedHeader;
         fifoPackedHeader.subSystemId    = fifoHeader->msgType.subSystem;
         fifoPackedHeader.messageId      = fifoHeader->msgId;
-        fifoPackedHeader.messageType    = fifoHeader->msgType.type;
+        fifoPackedHeader.fromStackSide  = fifoHeader->msgType.fromStackSide;
+        fifoPackedHeader.isConfirm      = fifoHeader->msgType.isConfirm;
         fifoPackedHeader.fragment       = fifoHeader->isFragment;
         fifoPackedHeader.sequenceNumber = fifoHeader->fragmentNumber;
         fifoPackedHeader.protocolVersion = fifoHeader->msgType.version;
-        fifoPackedHeader.messageLength  = adapter->txOptions.reservedSpace / 4 - 1; // /* without fifoheader */ - 1;
-        fifoSend(adapter, (uint8_t *)&fifoPackedHeader, sizeof(fifoPackedHeader), METADATA, 0U, 0U);
+        fifoPackedHeader.messageLength  = adapterMemory.txOptions.reservedSpace / 4 - 1; // /* without fifoheader */ - 1;
+        fifoSend((uint8_t *)&fifoPackedHeader, sizeof(fifoPackedHeader), METADATA, 0U, 0U);
     }
 
     /* wrapped header */
     {
-        const bool sendingStatus = fifoSend(adapter,
-                                            (uint8_t *)header, sizeof(*header),
+        const bool sendingStatus = fifoSend((uint8_t *)header, sizeof(*header),
                                             DATA_FLOW,
                                             0U,
                                             sizeof(*header));
         SYS_DbgAssertComplex(sendingStatus, MAILADAPTER_MAILADAPTERSEND_1);
     }
 
-    if (MAIL_INVALID_PAYLOAD_OFFSET == header->dataPointerOffset)
+    uint8_t dataPointerOffset = (FROM_CLIENT_TO_SERVER == adapterMemory.txOptions.txDirection) ?
+                                Mail_ServiceGetFunctionInfo(fifoHeader->msgId)->reqDataPointerOffset :
+                                Mail_ServiceGetFunctionInfo(fifoHeader->msgId)->confDataPointerOffset;
+    if (MAIL_INVALID_OFFSET == dataPointerOffset)
     {
         if (!isMessageSent
-                || !fifoSend(adapter,
-                             params, header->paramLength,
+                || !fifoSend(params, header->paramLength,
                              DATA_FLOW,
                              sizeof(*header),
                              sizeof(*header) + header->paramLength)
@@ -297,13 +295,12 @@ bool mailAdapterSend(MailAdapterDescriptor_t *const adapter,
     {
         /* the first part of parameters */
         {
-            SYS_DbgAssertComplex(header->dataPointerOffset <= header->paramLength, MAILADAPTER_MAILADAPTERSEND_2);
+            SYS_DbgAssertComplex(dataPointerOffset <= header->paramLength, MAILADAPTER_MAILADAPTERSEND_2);
             if (!isMessageSent
-                    || !fifoSend(adapter,
-                                 params, header->dataPointerOffset,
+                    || !fifoSend(params, dataPointerOffset,
                                  DATA_FLOW,
                                  sizeof(*header),
-                                 sizeof(*header) + header->dataPointerOffset)
+                                 sizeof(*header) + dataPointerOffset)
                )
                 isMessageSent = false;
         }
@@ -311,11 +308,10 @@ bool mailAdapterSend(MailAdapterDescriptor_t *const adapter,
         /* the second part of parameters */
         {
             if (!isMessageSent
-                    || !fifoSend(adapter,
-                                 params + header->dataPointerOffset + sizeof(SYS_DataPointer_t),
-                                 header->paramLength - header->dataPointerOffset,
+                    || !fifoSend(params + dataPointerOffset + sizeof(SYS_DataPointer_t),
+                                 header->paramLength - dataPointerOffset,
                                  DATA_FLOW,
-                                 sizeof(*header) + header->dataPointerOffset,
+                                 sizeof(*header) + dataPointerOffset,
                                  sizeof(*header) + header->paramLength)
                )
                 isMessageSent = false;
@@ -325,16 +321,15 @@ bool mailAdapterSend(MailAdapterDescriptor_t *const adapter,
         {
             if (isMessageSent
                     /* Just skip buffers allocation. */
-                    && sizeof(*header) + header->paramLength + header->dataLength > adapter->txOptions.offset)
+                    && sizeof(*header) + header->paramLength + header->dataLength > adapterMemory.txOptions.offset)
             {
-                const SYS_DataLength_t startIndex = adapter->txOptions.offset - sizeof(*header) - header->paramLength;
-                const uint8_t bufferSize = MIN(adapter->txOptions.reservedSpace, header->dataLength - startIndex);
+                const SYS_DataLength_t startIndex = adapterMemory.txOptions.offset - sizeof(*header) - header->paramLength;
+                const uint8_t bufferSize = MIN(adapterMemory.txOptions.reservedSpace, header->dataLength - startIndex);
                 uint8_t *const dataBuffer = ALLOCA(bufferSize);
-                SYS_DataPointer_t *const dataPointer = (SYS_DataPointer_t *)(params + header->dataPointerOffset);
+                SYS_DataPointer_t *const dataPointer = (SYS_DataPointer_t *)(params + dataPointerOffset);
 
                 SYS_CopyFromPayload(dataBuffer, dataPointer, startIndex, bufferSize);
-                if (!fifoSend(adapter,
-                              dataBuffer, bufferSize,
+                if (!fifoSend(dataBuffer, bufferSize,
                               DATA_FLOW,
                               sizeof(*header) + header->paramLength + startIndex,
                               sizeof(*header) + header->paramLength + header->dataLength)
@@ -348,31 +343,30 @@ bool mailAdapterSend(MailAdapterDescriptor_t *const adapter,
     /* send the check sum data. */
     {
         if (!isMessageSent
-                || !fifoSend(adapter,
-                             (uint8_t *) & (adapter->txOptions.txCheckSum),
-                             sizeof(adapter->txOptions.txCheckSum),
+                || !fifoSend((uint8_t *) & (adapterMemory.txOptions.txCheckSum),
+                             sizeof(adapterMemory.txOptions.txCheckSum),
                              NOT_DATA_FLOW,
                              sizeof(*header) + header->paramLength + header->dataLength,
-                             sizeof(*header) + header->paramLength + header->dataLength + sizeof(adapter->txOptions.txCheckSum))
+                             sizeof(*header) + header->paramLength + header->dataLength + sizeof(adapterMemory.txOptions.txCheckSum))
            )
             isMessageSent = false;
     }
 
     /* adds zeros for hardware aligh */
     {
-        SYS_DbgAssertComplex(sizeof(uint32_t) > adapter->txOptions.reservedSpace, MAILADAPTER_MAILADAPTERSEND_3);
+        SYS_DbgAssertComplex(sizeof(uint32_t) > adapterMemory.txOptions.reservedSpace, MAILADAPTER_MAILADAPTERSEND_3);
         const uint32_t zeroField = 0;
-        fifoSend(adapter, (uint8_t *)&zeroField, adapter->txOptions.reservedSpace, METADATA, 0U, 0U);
+        fifoSend((uint8_t *)&zeroField, adapterMemory.txOptions.reservedSpace, METADATA, 0U, 0U);
     }
 
-    adapter->readyToSendFlag = false;
-    HAL_MailboxTxEnd(&adapter->mbFifoDescr, fifoHeader->msgType.subSystem);
+    adapterMemory.readyToSendFlag = false;
+    HAL_MailboxTxEnd(&adapterMemory.mbFifoDescr, fifoHeader->msgType.subSystem);
 
     SYS_DbgAssertComplex(isMessageSent != fifoHeader->isFragment, MAILADAPTER_MAILADAPTERSEND_4);
     if (isMessageSent)
-        mailAdapterInitTxOptions(&adapter->txOptions);
+        mailAdapterInitTxOptions(&adapterMemory.txOptions);
     else
-        ++adapter->txOptions.fragmentCounter;
+        ++adapterMemory.txOptions.fragmentCounter;
     return isMessageSent;
 }
 
@@ -382,32 +376,33 @@ bool mailAdapterSend(MailAdapterDescriptor_t *const adapter,
 ****************************************************************************************/
 static void mailAdapterReadyToSendInd(HAL_MailboxDescriptor_t *const mbFifoDescr)
 {
-    MailAdapterDescriptor_t *const adapter = GET_PARENT_BY_FIELD(MailAdapterDescriptor_t, mbFifoDescr, mbFifoDescr);
-    MailDescriptor_t *const mail = GET_PARENT_BY_FIELD(MailDescriptor_t, adapter, adapter);
+    (void)mbFifoDescr;
+    adapterMemory.readyToSendFlag = true;
+    if (NO_TRANSMISSION != adapterMemory.txOptions.txDirection
+            || mailClientIsBusy()
+            || mailServerIsBusy())
+        SYS_SchedulerPostTask(&adapterMemory.taskDescr, READY_TO_SEND_HANDLER_ID);
+}
 
-    adapter->readyToSendFlag = true;
-    if (NO_TRANSMISSION != adapter->txOptions.txDirection
-            || mailClientIsBusy(mail)
-            || mailServerIsBusy(mail))
-        SYS_SchedulerPostTask(&adapter->taskDescr, READY_TO_SEND_HANDLER_ID);
+void mailAdapterTryToSend()
+{
+    SYS_SchedulerPostTask(&adapterMemory.taskDescr, READY_TO_SEND_HANDLER_ID);
 }
 
 static void mailAdapterReadyToSendHandler(SYS_SchedulerTaskDescriptor_t *const taskDescriptor)
 {
-    MailAdapterDescriptor_t *const adapter = GET_PARENT_BY_FIELD(MailAdapterDescriptor_t, taskDescr, taskDescriptor);
-    MailDescriptor_t *const mail = GET_PARENT_BY_FIELD(MailDescriptor_t, adapter, adapter);
-
-    switch (adapter->txOptions.txDirection)
+    (void)taskDescriptor;
+    switch (adapterMemory.txOptions.txDirection)
     {
         case NO_TRANSMISSION:
         {
-#define POLL_HIGH_PRIORITY_PART(priority, mail) ((priority) ? mailServerQueuePoll(mail): mailClientQueuePoll(mail))
-#define POLL_LOW_PRIORITY_PART(priority, mail) POLL_HIGH_PRIORITY_PART(!(priority), (mail))
+#define POLL_HIGH_PRIORITY_PART(priority) ((priority) ? mailServerQueuePoll(): mailClientQueuePoll())
+#define POLL_LOW_PRIORITY_PART(priority) POLL_HIGH_PRIORITY_PART(!(priority))
 #define CHANGE_POLL_PRIORITY_TO_OPPOSITE(priority) (priority) ^= UINT8_MAX
 
-            if (!POLL_HIGH_PRIORITY_PART(adapter->pollPriority, mail))
-                POLL_LOW_PRIORITY_PART(adapter->pollPriority, mail);
-            CHANGE_POLL_PRIORITY_TO_OPPOSITE(adapter->pollPriority);
+            if (!POLL_HIGH_PRIORITY_PART(adapterMemory.pollPriority))
+                POLL_LOW_PRIORITY_PART(adapterMemory.pollPriority);
+            CHANGE_POLL_PRIORITY_TO_OPPOSITE(adapterMemory.pollPriority);
             break;
 
 #undef POLL_HIGH_PRIORITY_PART
@@ -415,11 +410,11 @@ static void mailAdapterReadyToSendHandler(SYS_SchedulerTaskDescriptor_t *const t
         }
 
         case FROM_CLIENT_TO_SERVER:
-            mailClientQueuePoll(mail);
+            mailClientQueuePoll();
             break;
 
         case FROM_SERVER_TO_CLIENT:
-            mailServerQueuePoll(mail);
+            mailServerQueuePoll();
             break;
 
         default:
@@ -430,8 +425,8 @@ static void mailAdapterReadyToSendHandler(SYS_SchedulerTaskDescriptor_t *const t
 
 static void mailAdapterFifoOfflineInd(HAL_MailboxDescriptor_t *const mbFifoDescr)
 {
-    MailAdapterDescriptor_t *const adapter = GET_PARENT_BY_FIELD(MailAdapterDescriptor_t, mbFifoDescr, mbFifoDescr);
-    adapter->readyToSendFlag = false;
+    (void)mbFifoDescr;
+    adapterMemory.readyToSendFlag = false;
 }
 
 /************************************************************************************//**
@@ -473,7 +468,7 @@ static bool fifoReceive(HAL_MailboxDescriptor_t *mbFifoDescr, MailAdapterRxOptio
 
         /* Update Check Sum. */
         if (NOT_DATA_FLOW != dataType)
-        updateCheckSum(&(rxOptions->rxCheckSumCalc), buffer + bufferOffset, bytesToReceive);
+            updateCheckSum(&(rxOptions->rxCheckSumCalc), buffer + bufferOffset, bytesToReceive);
 
         //printf("received bytes(%d) - %d/%d\n", bytesToReceive, rxOptions->offset, endBlockOffset);
         SYS_DbgAssertComplex(endBlockOffset >= rxOptions->offset, MAILADAPTER_FIFORECEIVE_1);
@@ -484,9 +479,8 @@ static bool fifoReceive(HAL_MailboxDescriptor_t *mbFifoDescr, MailAdapterRxOptio
 
 static void mailAdapterReceivedInd(HAL_MailboxDescriptor_t *const mbFifoDescr)
 {
-    MailAdapterDescriptor_t *const adapter = GET_PARENT_BY_FIELD(MailAdapterDescriptor_t, mbFifoDescr, mbFifoDescr);
-
-    SYS_SchedulerPostTask(&adapter->taskDescr, RECEIVE_HANDLER_ID);
+    (void)mbFifoDescr;
+    SYS_SchedulerPostTask(&adapterMemory.taskDescr, RECEIVE_HANDLER_ID);
 }
 
 /************************************************************************************//**
@@ -495,8 +489,8 @@ static void mailAdapterReceivedInd(HAL_MailboxDescriptor_t *const mbFifoDescr)
 ****************************************************************************************/
 static void mailAdapterDataReceivedHandler(SYS_SchedulerTaskDescriptor_t *const taskDescriptor)
 {
-    MailAdapterDescriptor_t *const adapter = GET_PARENT_BY_FIELD(MailAdapterDescriptor_t, taskDescr, taskDescriptor);
-    MailAdapterRxOptions_t *const rxOptions = &adapter->rxOptions[0];
+    (void)taskDescriptor;
+    MailAdapterRxOptions_t *const rxOptions = &adapterMemory.rxOptions[0];
     MailWrappedReqHeader_t *const header = &rxOptions->header;
     MailFifoHeader_t fifoHeader;
     bool isMessageReceived = false;
@@ -505,29 +499,30 @@ static void mailAdapterDataReceivedHandler(SYS_SchedulerTaskDescriptor_t *const 
     {
         MailFifoPackedHeader_t fifoPackedHeader;
         rxOptions->bytesToReceive = sizeof(MailFifoPackedHeader_t);
-        fifoReceive(&adapter->mbFifoDescr, rxOptions, (uint8_t *)&fifoPackedHeader, sizeof(fifoPackedHeader), METADATA, 0U, 0U);
+        fifoReceive(&adapterMemory.mbFifoDescr, rxOptions, (uint8_t *)&fifoPackedHeader, sizeof(fifoPackedHeader), METADATA, 0U, 0U);
 
-        fifoHeader.msgId            = fifoPackedHeader.messageId;
-        fifoHeader.isFragment       = fifoPackedHeader.fragment;
-        fifoHeader.fragmentNumber   = fifoPackedHeader.sequenceNumber;
-        fifoHeader.msgType.version  = fifoPackedHeader.protocolVersion;
-        fifoHeader.msgType.subSystem = fifoPackedHeader.subSystemId;
-        fifoHeader.msgType.type     = fifoPackedHeader.messageType;
+        fifoHeader.msgId                    = fifoPackedHeader.messageId;
+        fifoHeader.isFragment               = fifoPackedHeader.fragment;
+        fifoHeader.fragmentNumber           = fifoPackedHeader.sequenceNumber;
+        fifoHeader.msgType.version          = fifoPackedHeader.protocolVersion;
+        fifoHeader.msgType.subSystem        = fifoPackedHeader.subSystemId;
+        fifoHeader.msgType.fromStackSide    = fifoPackedHeader.fromStackSide;
+        fifoHeader.msgType.isConfirm        = fifoPackedHeader.isConfirm;
         //rxOptions->bytesToReceive = (fifoPackedHeader.messageLength + 1) * 4;
         rxOptions->bytesToReceive = (fifoPackedHeader.messageLength) * 4;
         SYS_DbgAssertComplex(rxOptions->bytesToReceive, MAILADAPTER_MAILRECEIVEIND_1);
     }
+    const MailAdapterDirection_t direction = mailGetDirection(fifoHeader.msgType);
 
     /* Checks the fragments consistency and starts reception of a new parcel if needed  */
     {
-        MailAdapterDirection_t direction = mailGetDirection(fifoHeader.msgType);
         if (rxOptions->nextFragmentNumber != fifoHeader.fragmentNumber
                 || (NO_TRANSMISSION != rxOptions->rxDirection
                     && rxOptions->rxDirection != direction))
         {
             SYS_DbgLogId(MAILADAPTER_MAYBE_FRAGMENT_HAS_BEEN_MISSED);
             if (FROM_CLIENT_TO_SERVER == rxOptions->rxDirection)
-                mailFreeServerBuffer(adapter, rxOptions->params);
+                mailFreeServerBuffer(rxOptions->params);
             if (SYS_CheckPayload(&rxOptions->dataPointer))
                 SYS_FreePayload(&rxOptions->dataPointer);
             mailInitRxOptions(rxOptions);
@@ -537,7 +532,7 @@ static void mailAdapterDataReceivedHandler(SYS_SchedulerTaskDescriptor_t *const 
         if (0 == fifoHeader.fragmentNumber)
         {
             /* wrapped header */
-            const bool receivingStatus = fifoReceive(&adapter->mbFifoDescr, rxOptions,
+            const bool receivingStatus = fifoReceive(&adapterMemory.mbFifoDescr, rxOptions,
                                          (uint8_t *)header, sizeof(*header),
                                          DATA_FLOW,
                                          0U,
@@ -545,8 +540,8 @@ static void mailAdapterDataReceivedHandler(SYS_SchedulerTaskDescriptor_t *const 
             SYS_DbgAssertComplex(receivingStatus, MAILADAPTER_MAILRECEIVEIND_3);
 
             rxOptions->params = (FROM_SERVER_TO_CLIENT == direction) ?
-                                mailClientGetMemory(adapter, &fifoHeader, header) :
-                                mailServerGetMemory(adapter, &fifoHeader, header);
+                                mailClientGetMemory(&fifoHeader, header) :
+                                mailServerGetMemory(&fifoHeader, header);
             rxOptions->rxDirection = (NULL != rxOptions->params) ?
                                      direction : NO_TRANSMISSION;
 
@@ -554,22 +549,26 @@ static void mailAdapterDataReceivedHandler(SYS_SchedulerTaskDescriptor_t *const 
 
         if (NO_TRANSMISSION == rxOptions->rxDirection)
         {
-            SYS_DbgLogId(NO_ALLOCATED_BUFFER_FOR_INCOMING_PARCEL);
+            if (TE_MAILBOX_ACK_FID != fifoHeader.msgId)
+                SYS_DbgLogId(NO_ALLOCATED_BUFFER_FOR_INCOMING_PARCEL);
             while (rxOptions->bytesToReceive)
             {
                 uint32_t dummy;
-                fifoReceive(&adapter->mbFifoDescr, rxOptions, (uint8_t *)&dummy, sizeof(dummy), METADATA, 0U, 0U);
+                fifoReceive(&adapterMemory.mbFifoDescr, rxOptions, (uint8_t *)&dummy, sizeof(dummy), METADATA, 0U, 0U);
             }
             mailInitRxOptions(rxOptions);
-            HAL_MailboxRxEnd(&adapter->mbFifoDescr);
+            HAL_MailboxRxEnd(&adapterMemory.mbFifoDescr);
             return;
         }
     }
 
-    if (MAIL_INVALID_PAYLOAD_OFFSET == header->dataPointerOffset)
+    const uint8_t dataPointerOffset = (FROM_SERVER_TO_CLIENT == direction) ?
+                                Mail_ServiceGetFunctionInfo(fifoHeader.msgId)->confDataPointerOffset :
+                                Mail_ServiceGetFunctionInfo(fifoHeader.msgId)->reqDataPointerOffset;
+    if (MAIL_INVALID_OFFSET == dataPointerOffset)
     {
         if (isMessageReceived
-                || !fifoReceive(&adapter->mbFifoDescr, rxOptions,
+                || !fifoReceive(&adapterMemory.mbFifoDescr, rxOptions,
                                 (uint8_t *)rxOptions->params, header->paramLength,
                                 DATA_FLOW,
                                 sizeof(*header),
@@ -579,15 +578,15 @@ static void mailAdapterDataReceivedHandler(SYS_SchedulerTaskDescriptor_t *const 
     }
     else
     {
-        SYS_DbgAssertComplex(header->dataPointerOffset <= header->paramLength, MAILADAPTER_MAILRECEIVEIND_7);
+        SYS_DbgAssertComplex(dataPointerOffset <= header->paramLength, MAILADAPTER_MAILRECEIVEIND_7);
         /* the first part of the parameters */
         {
             if (isMessageReceived
-                    || !fifoReceive(&adapter->mbFifoDescr, rxOptions,
-                                    (uint8_t *)rxOptions->params, header->dataPointerOffset,
+                    || !fifoReceive(&adapterMemory.mbFifoDescr, rxOptions,
+                                    (uint8_t *)rxOptions->params, dataPointerOffset,
                                     DATA_FLOW,
                                     sizeof(*header),
-                                    sizeof(*header) + header->dataPointerOffset)
+                                    sizeof(*header) + dataPointerOffset)
                )
                 isMessageReceived = true;
         }
@@ -595,11 +594,11 @@ static void mailAdapterDataReceivedHandler(SYS_SchedulerTaskDescriptor_t *const 
         /* the second part of the parameters */
         {
             if (isMessageReceived
-                    || !fifoReceive(&adapter->mbFifoDescr, rxOptions,
-                                    (uint8_t *)rxOptions->params + header->dataPointerOffset + sizeof(SYS_DataPointer_t),
-                                    header->paramLength - header->dataPointerOffset,
+                    || !fifoReceive(&adapterMemory.mbFifoDescr, rxOptions,
+                                    (uint8_t *)rxOptions->params + dataPointerOffset + sizeof(SYS_DataPointer_t),
+                                    header->paramLength - dataPointerOffset,
                                     DATA_FLOW,
-                                    sizeof(*header) + header->dataPointerOffset,
+                                    sizeof(*header) + dataPointerOffset,
                                     sizeof(*header) + header->paramLength)
                )
                 isMessageReceived = true;
@@ -614,7 +613,7 @@ static void mailAdapterDataReceivedHandler(SYS_SchedulerTaskDescriptor_t *const 
                 const SYS_DataLength_t startIndex = rxOptions->offset - sizeof(*header) - header->paramLength;
                 const uint8_t bufferSize = MIN(rxOptions->bytesToReceive, header->dataLength - startIndex);
                 uint8_t *const dataBuffer = ALLOCA(bufferSize);
-                if (!fifoReceive(&adapter->mbFifoDescr, rxOptions,
+                if (!fifoReceive(&adapterMemory.mbFifoDescr, rxOptions,
                                  dataBuffer, bufferSize,
                                  DATA_FLOW,
                                  sizeof(*header) + header->paramLength + startIndex,
@@ -633,7 +632,7 @@ static void mailAdapterDataReceivedHandler(SYS_SchedulerTaskDescriptor_t *const 
     /* get the check sum data. */
     {
         if (isMessageReceived
-                || !fifoReceive(&adapter->mbFifoDescr, rxOptions,
+                || !fifoReceive(&adapterMemory.mbFifoDescr, rxOptions,
                                 (uint8_t *) & (rxOptions->rxCheckSum),
                                 sizeof(rxOptions->rxCheckSum),
                                 NOT_DATA_FLOW,
@@ -647,32 +646,32 @@ static void mailAdapterDataReceivedHandler(SYS_SchedulerTaskDescriptor_t *const 
     {
         SYS_DbgAssertComplex(sizeof(uint32_t) > rxOptions->bytesToReceive, MAILADAPTER_MAILRECEIVEIND_10);
         const uint32_t zeroField = 0;
-        fifoReceive(&adapter->mbFifoDescr, rxOptions, (uint8_t *)&zeroField, rxOptions->bytesToReceive, METADATA, 0U, 0U);
+        fifoReceive(&adapterMemory.mbFifoDescr, rxOptions, (uint8_t *)&zeroField, rxOptions->bytesToReceive, METADATA, 0U, 0U);
     }
 
-    HAL_MailboxRxEnd(&adapter->mbFifoDescr);
+    HAL_MailboxRxEnd(&adapterMemory.mbFifoDescr);
     if (!fifoHeader.isFragment)
     {
         /* check the integrity of received data. */
         if (rxOptions->rxCheckSumCalc == rxOptions->rxCheckSum)
         {
             /* merge data pointer to the request */
-            if (MAIL_INVALID_PAYLOAD_OFFSET != header->dataPointerOffset)
+            if (MAIL_INVALID_OFFSET != dataPointerOffset)
             {
-                SYS_DataPointer_t *const dataPointer = (SYS_DataPointer_t *) ((uint8_t *) rxOptions->params + header->dataPointerOffset);
+                SYS_DataPointer_t *const dataPointer = (SYS_DataPointer_t *) ((uint8_t *) rxOptions->params + dataPointerOffset);
                 memcpy(dataPointer, &rxOptions->dataPointer, sizeof(rxOptions->dataPointer));
                 SYS_SetEmptyPayload(&rxOptions->dataPointer);
             }
 
             if (FROM_CLIENT_TO_SERVER == rxOptions->rxDirection)
-                mailServerDataInd(adapter, &fifoHeader, header, (uint8_t *) rxOptions->params);
+                mailServerDataInd(&fifoHeader, header, (uint8_t *) rxOptions->params);
             else
-                mailClientDataInd(adapter, &fifoHeader, header, (uint8_t *) rxOptions->params);
+                mailClientDataInd(&fifoHeader, header, (uint8_t *) rxOptions->params);
         }
         else
         {
             if (FROM_CLIENT_TO_SERVER == rxOptions->rxDirection)
-                mailFreeServerBuffer(adapter, rxOptions->params);
+                mailFreeServerBuffer(rxOptions->params);
             if (SYS_CheckPayload(&rxOptions->dataPointer))
                 SYS_FreePayload(&rxOptions->dataPointer);
         }

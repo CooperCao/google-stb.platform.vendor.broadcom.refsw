@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2014 Broadcom Corporation
+ *     Broadcom Proprietary and Confidential. (c)2014 Broadcom.  All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -193,7 +193,7 @@ bool BVC5_P_HardwareIssueBinnerJob(
    Submit a job to the renderer.  Increments power-on count.
 
  */
-void BVC5_P_HardwareIssueRenderJob(
+bool BVC5_P_HardwareIssueRenderJob(
    BVC5_Handle          hVC5,
    uint32_t             uiCoreIndex,
    BVC5_P_InternalJob  *pJob
@@ -204,7 +204,7 @@ void BVC5_P_HardwareIssueRenderJob(
    Submit a job to the TFU.  Increments power-on count.
 
  */
-void BVC5_P_HardwareIssueTFUJob(
+bool BVC5_P_HardwareIssueTFUJob(
    BVC5_Handle          hVC5,
    BVC5_P_InternalJob  *pJob
 );
@@ -333,6 +333,16 @@ void BVC5_P_HardwareResume(
    BVC5_Handle hVC5
 );
 
+/* BVC5_P_HardwareSetDefaultRegisterState
+
+   Configure VC5 registers.
+
+*/
+void BVC5_P_HardwareSetDefaultRegisterState(
+   BVC5_Handle hVC5,
+   uint32_t    uiCoreIndex
+);
+
 uint32_t BVC5_P_ReadRegister(
    BVC5_Handle  hVC5,
    uint32_t     uiCoreIndex,
@@ -342,6 +352,17 @@ uint32_t BVC5_P_ReadRegister(
 void BVC5_P_WriteRegister(
    BVC5_Handle  hVC5,
    uint32_t     uiCoreIndex,
+   uint32_t     uiReg,
+   uint32_t     uiValue
+   );
+
+uint32_t BVC5_P_ReadNonCoreRegister(
+   BVC5_Handle  hVC5,
+   uint32_t     uiReg
+   );
+
+void BVC5_P_WriteNonCoreRegister(
+   BVC5_Handle  hVC5,
    uint32_t     uiReg,
    uint32_t     uiValue
    );
@@ -398,6 +419,21 @@ void BVC5_P_HardwareResetCoreAndState(
 
 /* For workaround GFXH-1181 */
 bool BVC5_P_HardwareCacheClearBlocked(
+   BVC5_Handle hVC5,
+   uint32_t    uiCoreIndex
+   );
+
+void BVC5_P_HardwareReadEventFifos(
+   BVC5_Handle          hVC5,
+   uint32_t             uiCoreIndex
+   );
+
+uint64_t BVC5_P_GetEventTimestamp(
+   BVC5_Handle hVC5,
+   uint32_t    uiCore
+   );
+
+void BVC5_P_HardwareClearEventFifos(
    BVC5_Handle hVC5,
    uint32_t    uiCoreIndex
    );

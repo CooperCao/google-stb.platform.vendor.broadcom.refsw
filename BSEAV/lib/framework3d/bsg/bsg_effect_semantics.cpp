@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -11,7 +11,7 @@
  * Software and all intellectual property rights therein.  IF YOU HAVE NO
  * AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
  * AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
- * SOFTWARE.  
+ * SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
@@ -130,7 +130,8 @@ void EffectSemantics::Parse(const std::string &semStr)
 
 EffectSemantics::eSemantic EffectSemantics::MatchSemanticName(const std::string &name)
 {
-   auto iter = m_parseMap.find(name);
+   std::map<std::string, EffectSemantics::eSemantic>::iterator iter;
+   iter = m_parseMap.find(name);
 
    if (iter != m_parseMap.end())
       return iter->second;
@@ -145,7 +146,8 @@ void EffectSemantics::SetSemantic(const std::string &str, eSemantic sem)
 
 EffectSemantics::eSemantic EffectSemantics::GetSemantic(const std::string &str) const
 {
-   auto iter = m_semantics.find(str);
+   std::map<std::string, EffectSemantics::eSemantic>::const_iterator iter;
+   iter = m_semantics.find(str);
 
    if (iter != m_semantics.end())
       return iter->second;

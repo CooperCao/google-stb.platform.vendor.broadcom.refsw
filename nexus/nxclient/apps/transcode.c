@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2010-2014 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,16 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  *****************************************************************************/
 #if NEXUS_HAS_PLAYBACK && NEXUS_HAS_SIMPLE_DECODER && NEXUS_HAS_STREAM_MUX
@@ -108,9 +98,11 @@ typedef struct EncodeContext
         unsigned window_x, window_y, window_w, window_h;
         NEXUS_ClipRect clip;
         bool interlaced;
+        NEXUS_VideoFrameRate frameRateEnum;
         unsigned frameRate, refreshRate;
         bool rampBitrate;
         NEXUS_SimpleEncoderStopMode stopMode;
+        unsigned audioBitrate;/* bps */
     } encoderSettings;
     struct {
         unsigned videoPid;
@@ -188,7 +180,7 @@ static bool HaveCompletePacket(
 }
 
 #define ADVANCE_DESC(ptr0, ptr1) do { if ( size0 > 1 ) { ptr0++; size0--; } else { ptr0=ptr1; size0=size1; ptr1=NULL; size1=0; } } while (0)
-#define DESC_DATA_PTR(ptr0, ptr1, base) ((void *)((uint32_t)ptr0->offset + (uint32_t)base))
+#define DESC_DATA_PTR(PDESC, BASEPTR) ((void*)&((unsigned char *)(BASEPTR))[(PDESC)->offset])
 
 static void *encoder_capture(void *context)
 {
@@ -234,7 +226,7 @@ static void *encoder_capture(void *context)
                 while ( numRequired > 0 )
                 {
                     /* Write payload to file */
-                    pData = DESC_DATA_PTR(pDesc0, pDesc1, pBufferBase);
+                    pData = DESC_DATA_PTR(pDesc0, pBufferBase);
                     fwrite(pData, 1, pDesc0->length, pContext->pOutputFile);
                     numRequired--;
                     pContext->videoSize += pDesc0->length;
@@ -263,7 +255,7 @@ capture_audio_es:
                 while ( numRequired > 0 )
                 {
                     /* Write payload to file */
-                    pData = DESC_DATA_PTR(pAudioDesc0, pAudioDesc1, pAudioBase);
+                    pData = DESC_DATA_PTR(pAudioDesc0, pAudioBase);
                     fwrite(pData, 1, pAudioDesc0->length, pContext->pOutputAes);
                     pContext->audioSize += pAudioDesc0->length;
                     numRequired--;
@@ -320,6 +312,7 @@ static void print_usage(const struct nxapps_cmdline *cmdline)
         "  -audio_type    output audio codec\n"
         "  -audio_passthrough    audio codec passthrough\n"
         "  -audio_samplerate     audio output sample rate in HZ\n"
+        "  -audio_bitrate  output audio bitrate in bps"
         "  -loop          loop playback\n"
         "  -timeout SECONDS\n"
         "  -ramp_bitrate  to ramp up output bitrate from a quarter of video_bitrate\n"
@@ -395,7 +388,7 @@ static unsigned rai_Indexer_Feed(FILE *fp, const void*indexBuffer, unsigned numE
         highByte = ((off_t)*((uint32_t*)indexBuffer + 2) >> 24);
         bytesRecordedTillCurrentRai = highByte << 32;
         bytesRecordedTillCurrentRai |= (off_t)*((uint32_t*)indexBuffer + 3);
-        BDBG_MSG(("RAI[%u] byte offset: %llu", raiCnt, bytesRecordedTillCurrentRai));
+        BDBG_MSG(("RAI[%u] byte offset: "BDBG_UINT64_FMT, raiCnt, BDBG_UINT64_ARG(bytesRecordedTillCurrentRai)));
         /* log the rai info */
         fprintf(fp, "%u,%#x%08x\n", raiCnt++, (uint32_t)highByte, (uint32_t)(bytesRecordedTillCurrentRai));
     }
@@ -465,36 +458,62 @@ static int start_encode(EncodeContext *pContext)
     }
 
 #if !NEXUS_NUM_DSP_VIDEO_ENCODERS
-    /* with 1000/1001 rate tracking by default */
-    if (pContext->encoderSettings.frameRate == 29970 || pContext->encoderSettings.frameRate == 30000) {
-        encoderSettings.videoEncoder.frameRate = NEXUS_VideoFrameRate_e30;
-        encoderSettings.video.refreshRate = pContext->encoderSettings.refreshRate? pContext->encoderSettings.refreshRate : 60000;
-    } else if (pContext->encoderSettings.frameRate == 59940 || pContext->encoderSettings.frameRate == 60000) {
-        encoderSettings.videoEncoder.frameRate = NEXUS_VideoFrameRate_e60;
-        encoderSettings.video.refreshRate = pContext->encoderSettings.refreshRate? pContext->encoderSettings.refreshRate : 60000;
-    } else if (pContext->encoderSettings.frameRate == 20000) {
-        encoderSettings.videoEncoder.frameRate = NEXUS_VideoFrameRate_e20;
-        encoderSettings.video.refreshRate = pContext->encoderSettings.refreshRate? pContext->encoderSettings.refreshRate : 60000;
-    } else if (pContext->encoderSettings.frameRate == 23976 || pContext->encoderSettings.frameRate == 24000) {
-        encoderSettings.videoEncoder.frameRate = NEXUS_VideoFrameRate_e24;
-        encoderSettings.video.refreshRate = pContext->encoderSettings.refreshRate? pContext->encoderSettings.refreshRate : 60000;
-    } else if (pContext->encoderSettings.frameRate == 14985 || pContext->encoderSettings.frameRate == 15000) {
-        encoderSettings.videoEncoder.frameRate = NEXUS_VideoFrameRate_e14_985;
-        encoderSettings.video.refreshRate = pContext->encoderSettings.refreshRate? pContext->encoderSettings.refreshRate : 60000;
-    } else if (pContext->encoderSettings.frameRate == 50000) {
-        encoderSettings.videoEncoder.frameRate = NEXUS_VideoFrameRate_e50;
+    if (pContext->encoderSettings.frameRateEnum) {
+        encoderSettings.videoEncoder.frameRate = pContext->encoderSettings.frameRateEnum;
+    }
+    switch (encoderSettings.videoEncoder.frameRate) {
+    case NEXUS_VideoFrameRate_e50:
+    case NEXUS_VideoFrameRate_e25:
+    case NEXUS_VideoFrameRate_e12_5:
         encoderSettings.video.refreshRate = pContext->encoderSettings.refreshRate? pContext->encoderSettings.refreshRate : 50000;
-    } else if (pContext->encoderSettings.frameRate == 25000) {
-        encoderSettings.videoEncoder.frameRate = NEXUS_VideoFrameRate_e25;
-        encoderSettings.video.refreshRate = pContext->encoderSettings.refreshRate? pContext->encoderSettings.refreshRate : 50000;
-    } else if (pContext->encoderSettings.frameRate == 12500) {
-        encoderSettings.videoEncoder.frameRate = NEXUS_VideoFrameRate_e12_5;
-        encoderSettings.video.refreshRate = pContext->encoderSettings.refreshRate? pContext->encoderSettings.refreshRate : 50000;
+        break;
+    default:
+        encoderSettings.video.refreshRate = pContext->encoderSettings.refreshRate? pContext->encoderSettings.refreshRate : 60000;
+        break;
     }
 #endif
 
     encoderSettings.video.interlaced = pContext->encoderSettings.interlaced;
     encoderSettings.stopMode = pContext->encoderSettings.stopMode;
+
+
+    if (pContext->encoderStartSettings.audioCodec)
+    {
+        NEXUS_AudioEncoder_GetDefaultCodecSettings(pContext->encoderStartSettings.audioCodec, &encoderSettings.audioEncoder);
+        if (pContext->encoderSettings.audioBitrate)
+        {
+            switch (pContext->encoderStartSettings.audioCodec) {
+            case NEXUS_AudioCodec_eMp3:
+                encoderSettings.audioEncoder.codecSettings.mp3.bitRate = pContext->encoderSettings.audioBitrate;
+                break;
+            case NEXUS_AudioCodec_eAacAdts:
+            case NEXUS_AudioCodec_eAacLoas:
+                encoderSettings.audioEncoder.codecSettings.aac.bitRate = pContext->encoderSettings.audioBitrate;
+                break;
+            case NEXUS_AudioCodec_eAacPlusAdts:
+            case NEXUS_AudioCodec_eAacPlusLoas:
+                encoderSettings.audioEncoder.codecSettings.aacPlus.bitRate = pContext->encoderSettings.audioBitrate;
+                break;
+            default:
+                break;
+            }
+        }
+        if (pContext->encoderStartSettings.audioSampleRate) {
+            switch (pContext->encoderStartSettings.audioCodec) {
+            case NEXUS_AudioCodec_eAacAdts:
+            case NEXUS_AudioCodec_eAacLoas:
+                encoderSettings.audioEncoder.codecSettings.aac.sampleRate = pContext->encoderStartSettings.audioSampleRate;
+                break;
+            case NEXUS_AudioCodec_eAacPlusAdts:
+            case NEXUS_AudioCodec_eAacPlusLoas:
+                encoderSettings.audioEncoder.codecSettings.aacPlus.sampleRate = pContext->encoderStartSettings.audioSampleRate;
+                break;
+            default:
+                break;
+            }
+        }
+    }
+
     rc = NEXUS_SimpleEncoder_SetSettings(pContext->hEncoder, &encoderSettings);
     BDBG_ASSERT(!rc);
 
@@ -745,7 +764,8 @@ int main(int argc, const char **argv)  {
     EncodeContext context;
     unsigned timeout = 0;
     bool loop = false;
-    unsigned starttime, thistime;
+    bool reachedEof = false;
+    unsigned starttime, thistime, eofTime = 0;
     bool gui = true;
     brecord_gui_t record_gui = NULL;
     bool realtime = false;
@@ -796,6 +816,11 @@ int main(int argc, const char **argv)  {
             float rate;
             sscanf(argv[++curarg], "%f", &rate);
             context.encoderSettings.videoBitrate = rate * 1000 * 1000;
+        }
+        else if (!strcmp(argv[curarg], "-audio_bitrate") && curarg+1 < argc) {
+            float rate;
+            sscanf(argv[++curarg], "%f", &rate);
+            context.encoderSettings.audioBitrate = rate;
         }
         else if (!strcmp(argv[curarg], "-video_size") && curarg+1 < argc) {
             if (sscanf(argv[++curarg], "%u,%u", &context.encoderSettings.width, &context.encoderSettings.height) != 2) {
@@ -912,10 +937,6 @@ int main(int argc, const char **argv)  {
         curarg++;
     }
 
-    if (context.encoderSettings.stopMode == NEXUS_SimpleEncoderStopMode_eVideoEncoderOnly && !realtime) {
-        BDBG_WRN(("forcing -rt because of -stopStartVideoEncoder"));
-        realtime = true;
-    }
     if (context.input_type == input_type_graphics) {
         if (context.filename) {
             print_usage(&cmdline);
@@ -1006,6 +1027,20 @@ int main(int argc, const char **argv)  {
     connectSettings.simpleAudioDecoder.id = allocResults.simpleAudioDecoder.id;
     connectSettings.simpleEncoder[0].id = allocResults.simpleEncoder[0].id;
     connectSettings.simpleEncoder[0].nonRealTime = !realtime;
+    connectSettings.simpleEncoder[0].encoderCapabilities.maxWidth = context.encoderSettings.width;
+    connectSettings.simpleEncoder[0].encoderCapabilities.maxHeight = context.encoderSettings.height;
+
+    NEXUS_LookupFrameRate(context.encoderSettings.frameRate, &context.encoderSettings.frameRateEnum);
+    /* with 1000/1001 rate tracking by default */
+    switch (context.encoderSettings.frameRateEnum) {
+    case NEXUS_VideoFrameRate_e29_97:  context.encoderSettings.frameRateEnum = NEXUS_VideoFrameRate_e30; break;
+    case NEXUS_VideoFrameRate_e59_94:  context.encoderSettings.frameRateEnum = NEXUS_VideoFrameRate_e60; break;
+    case NEXUS_VideoFrameRate_e23_976: context.encoderSettings.frameRateEnum = NEXUS_VideoFrameRate_e24; break;
+    case NEXUS_VideoFrameRate_e14_985: context.encoderSettings.frameRateEnum = NEXUS_VideoFrameRate_e15; break;
+    default: break;
+    }
+
+    connectSettings.simpleEncoder[0].encoderCapabilities.maxFrameRate = context.encoderSettings.frameRateEnum;
     rc = NxClient_Connect(&connectSettings, &connectId);
     if (rc) {BDBG_WRN(("unable to connect transcode resources")); return -1;}
 
@@ -1150,7 +1185,7 @@ int main(int argc, const char **argv)  {
         thistime = b_get_time();
         if(!context.outputEs) {
             const void *dataBuffer, *indexBuffer;
-            unsigned dataSize=0, indexSize=0;
+            size_t dataSize=0, indexSize=0;
             NEXUS_RecpumpStatus status;
 
             NEXUS_Recpump_GetStatus(context.hRecpump, &status);
@@ -1228,7 +1263,7 @@ int main(int argc, const char **argv)  {
             /* NOTE: stop mode 1 allows audio output to continue in mute while stopping video and audio input */
             if(context.videoSize - context.lastVideoSize > MB) {
                 context.lastVideoSize = context.videoSize;
-                BDBG_WRN(("%s -> %s: %u MB video ES", context.filename, context.outputfile, context.videoSize/MB));
+                BDBG_WRN(("%s -> %s: %u MB video ES", context.filename, context.outputfile, (unsigned)context.videoSize/MB));
 
                 /* stop simple encoder/decoder/playback */
                 if(context.encoderSettings.stopMode == NEXUS_SimpleEncoderStopMode_eVideoEncoderOnly) {
@@ -1239,7 +1274,7 @@ int main(int argc, const char **argv)  {
             }
             if(context.audioSize - context.lastAudioSize > 1024*100) {
                 context.lastAudioSize = context.audioSize;
-                BDBG_WRN(("%s -> %s: %u KB audio ES", context.filename, context.outputAes, context.audioSize/1024));
+                BDBG_WRN(("%s -> %s: %u KB audio ES", context.filename, context.outputAes, (unsigned)context.audioSize/1024));
 
                 /* restart simple encoder/decoder/playback */
                 if(context.stopped && context.encoderSettings.stopMode == NEXUS_SimpleEncoderStopMode_eVideoEncoderOnly) {
@@ -1265,10 +1300,28 @@ int main(int argc, const char **argv)  {
         }
 
 check_for_end:
-        if (!loop && context.hPlayback) {
+        /* if reached EOF, flush out the last a few seconds data due to buffer delay */
+        if(!loop && reachedEof && (thistime - eofTime) > (realtime? 3000:300)) {/* NRT mode drained fast */
+            BDBG_MSG(("tistime = %u ms, eofTime = %u ms", thistime, eofTime));
+            break;
+        }
+        if (!loop && context.hPlayback && !reachedEof) {
             NEXUS_PlaybackStatus status;
             NEXUS_Playback_GetStatus(context.hPlayback, &status);
-            if (status.state == NEXUS_PlaybackState_ePaused) break;
+            if (status.state == NEXUS_PlaybackState_ePaused) {
+                eofTime = b_get_time();
+                reachedEof = true;
+                if(context.hEncoder && !realtime) {
+                    /* unlink video from stream mux output to allow final audio frames to come output of mux in NRT mode. */
+                    if(!context.outputEs) {
+                        NEXUS_SimpleEncoder_GetSettings(context.hEncoder, &encoderSettings);
+                        encoderSettings.stopMode = NEXUS_SimpleEncoderStopMode_eVideoEncoderOnly;
+                        NEXUS_SimpleEncoder_SetSettings(context.hEncoder, &encoderSettings);
+                        NEXUS_SimpleEncoder_Stop(context.hEncoder);
+                    }
+                }
+                BDBG_MSG(("EOF!"));
+            }
         }
     } while (!timeout || (thistime - starttime)/1000 < timeout || context.stopped);
 

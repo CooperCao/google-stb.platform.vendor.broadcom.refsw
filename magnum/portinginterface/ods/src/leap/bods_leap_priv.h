@@ -1,42 +1,39 @@
 /******************************************************************************
-* (c) 2014 Broadcom Corporation
+* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-* This program is the proprietary software of Broadcom Corporation and/or its
-* licensors, and may only be used, duplicated, modified or distributed pursuant
-* to the terms and conditions of a separate, written license agreement executed
-* between you and Broadcom (an "Authorized License").  Except as set forth in
-* an Authorized License, Broadcom grants no license (express or implied), right
-* to use, or waiver of any kind with respect to the Software, and Broadcom
-* expressly reserves all rights in and to the Software and all intellectual
-* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+* This program is the proprietary software of Broadcom and/or its licensors,
+* and may only be used, duplicated, modified or distributed pursuant to the terms and
+* conditions of a separate, written license agreement executed between you and Broadcom
+* (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+* no license (express or implied), right to use, or waiver of any kind with respect to the
+* Software, and Broadcom expressly reserves all rights in and to the Software and all
+* intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
 * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
 * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
 *
 * Except as expressly set forth in the Authorized License,
 *
-* 1. This program, including its structure, sequence and organization,
-*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-*    reasonable efforts to protect the confidentiality thereof, and to use
-*    this information only in connection with your use of Broadcom integrated
-*    circuit products.
+* 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+* secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+* and to use this information only in connection with your use of Broadcom integrated circuit products.
 *
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+* 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+* AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+* WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+* THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+* OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+* LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+* OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+* USE OR PERFORMANCE OF THE SOFTWARE.
 *
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+* 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+* LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+* EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+* USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+* THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+* ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+* LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+* ANY LIMITED REMEDY.
 ******************************************************************************/
 #ifndef BODS_Leap_PRIV_H__
 #define BODS_Leap_PRIV_H__
@@ -59,7 +56,7 @@ extern "C" {
     (((uint8_t)(0x03 & (OPCODE)) << 6) | ((uint8_t)((N)>>4))), \
     ((((uint8_t)(((N)& 0x0F) << 4))) | ((uint8_t)(0x0F & (CORE_TYPE)))), \
     ((uint8_t)(CORE_ID)) }
-    
+
 #define BODS_DVBT_CORE_TYPE                 0x4
 #define BODS_ISDBT_CORE_TYPE                0x5
 #define BODS_DVBT2_CORE_TYPE                0x6
@@ -76,11 +73,11 @@ extern "C" {
 #define BODS_SEL_L1PLP_PKT_1_N_PLP_COUNT    124
 #define BODS_TS_MODE_SERIAL                 1
 #define BODS_TS_MODE_PARALLEL               2
-#if (BODS_CHIP == 7563) || (BODS_CHIP == 7364)
+#if (BODS_CHIP == 7563) || (BODS_CHIP == 7364) || (BODS_CHIP == 75525)
 #define BODS_THD_CONFIG_PARAMS_BUF1         0x18
 #else
 #define BODS_THD_CONFIG_PARAMS_BUF1         0x10
-#endif 
+#endif
 #define BODS_THD_CONFIG_PARAMS_BUF2         0x40
 #define BODS_THD_CONFIG_PARAMS_BUF3         0
 #define BODS_DVBT2_CONFIG_PARAMS_BUF1       0x18
@@ -106,20 +103,20 @@ typedef enum BODS_OpCodesDS{
         BODS_eL1PreStatus = 0x1C0,
         BODS_eL1PostConfigurableStatus = 0x1D0,
         BODS_eL1PostDynamicStatus = 0x1E0,
-        BODS_eL1PlpStatus = 0x142,        
+        BODS_eL1PlpStatus = 0x142,
         BODS_eGetConstellation = 0xA3,
         BODS_eGetVersion = 0xB9,
-        BODS_eGetVersionInfo = 0xBA,        
+        BODS_eGetVersionInfo = 0xBA,
         BODS_ePowerCtrlOn = 0x19,
         BODS_ePowerCtrlOff = 0x18,
         BODS_ePowerCtrlRead = 0x98,
         BODS_eResetSelectiveAsyncStatus = 0x55,
         BODS_eRequestSelectiveAsyncStatus = 0x56,
         BODS_eGetSelectiveAsyncStatusReadyType = 0xD7,
-        BODS_eGetSelectiveAsyncStatus = 0xD6        
+        BODS_eGetSelectiveAsyncStatus = 0xD6
 }BODS_OpCodesDS;
 
-static const BODS_AcquireParams defAcquireParams = 
+static const BODS_AcquireParams defAcquireParams =
 {
     BODS_AcquisitionMode_eAuto,
     BODS_TuneAcquire_eTune,
@@ -241,7 +238,7 @@ Summary:
     This function returns the version information.
 
 Description:
-    This function is responsible for returning the core driver version 
+    This function is responsible for returning the core driver version
     information. It return the majorVersion and minorVersion of the core
     driver.
 Returns:
@@ -250,7 +247,7 @@ Returns:
 See Also:
     BODS_Leap_Open()
 
-****************************************************************************/    
+****************************************************************************/
 BERR_Code BODS_Leap_GetVersionInfo(
     BODS_Handle hDev,                    /* [in] Device handle */
     BFEC_VersionInfo *pVersionInfo /* [out] Returns version Info */
@@ -275,7 +272,7 @@ See Also:
 ****************************************************************************/
 BERR_Code BODS_Leap_GetTotalChannels(
     BODS_Handle hDev,                   /* [in] Device handle */
-    BODS_Standard standard,             /* [in] Device handle */    
+    BODS_Standard standard,             /* [in] Device handle */
     unsigned int *totalChannels         /* [out] Returns total number downstream channels supported */
     );
 
@@ -285,14 +282,14 @@ Summary:
 
 Description:
     This function returns a list of capabilities for an ODS module. Because
-    many frontends support multiple types of standards, this allows the 
+    many frontends support multiple types of standards, this allows the
     application to distinguish the capabilities of one frontend versus
     another. If a frontend has multiple capabilities, only one of the modes
     may be used at any given time.
-    
+
 Returns:
     BERR_Code
-    
+
 See Also:
 
 ***************************************************************************/
@@ -300,7 +297,7 @@ BERR_Code BODS_Leap_GetCapabilities(
     BODS_Handle hDev,                           /* [in] Device handle */
     BODS_FrontendCapabilities *pCapabilities    /* [out] Returns frontend capabilities, all the standards supported by the chip */
     );
-    
+
 /***************************************************************************
 Summary:
     This function opens ODS module channel.
@@ -428,7 +425,7 @@ BERR_Code BODS_Leap_GetSoftDecision(
     int16_t *qVal,                      /* [out] Ptr to array to store output Q soft decision */
     int16_t *nbrGotten                  /* [out] Number of values gotten/read */
     );
-    
+
 /***************************************************************************
 Summary:
     This function installs a callback function for Lock State Change event.
@@ -460,13 +457,13 @@ BERR_Code BODS_Leap_InstallCallback(
     BODS_CallbackFunc pCallbackFunc,    /* [in] Pointer to completion callback. */
     void *pParam                        /* [in] Pointer to callback user data. */
     );
-    
+
 /***************************************************************************
 Summary:
     This function returns the default settings for Qam In-Band Downstream module.
 
 Description:
-    This function is responsible for returns the default setting for 
+    This function is responsible for returns the default setting for
     BODS module. The returning default setting should be when
     opening the device.
 
@@ -481,7 +478,7 @@ BERR_Code BODS_Leap_GetDefaultAcquireParams(
     BODS_ChannelHandle hChn ,           /* [in] Device channel handle */
     BODS_AcquireParams *acquireParams   /* [out] default Acquire Parameters */
     );
-    
+
 /***************************************************************************
 Summary:
     This function sends the acquire parameters for a specific ODS module.
@@ -515,13 +512,13 @@ Returns:
 See Also:
     BODS_GetAsyncStatus(), BODS_GetSoftDecision()
 
-****************************************************************************/ 
+****************************************************************************/
 BERR_Code BODS_Leap_GetAcquireParams(
     BODS_ChannelHandle hChn ,           /* [in] Device channel handle */
     BODS_AcquireParams *acquireParams     /* [out] Acquire Parameters to use */
     );
 
-    
+
 /***************************************************************************
 Summary:
     This function tries to acquire downstream lock for the specific
@@ -568,7 +565,7 @@ See Also:
 ****************************************************************************/
 BERR_Code BODS_Leap_EnablePowerSaver(
     BODS_ChannelHandle hChn,                /* [in] Device channel handle */
-    BODS_PowerSaverSettings *pwrSettings    /* [in] Power saver settings */    
+    BODS_PowerSaverSettings *pwrSettings    /* [in] Power saver settings */
     );
 
 /***************************************************************************
@@ -618,11 +615,11 @@ Summary:
     This function resets the leap device's FEC bit error and block counters.
 
 Description:
-    
+
 Returns:
     TODO:
 
-See Also:   
+See Also:
 ****************************************************************************/
 BERR_Code BODS_Leap_ResetStatus(
     BODS_ChannelHandle hChn             /* [in] Device channel handle */
@@ -633,11 +630,11 @@ Summary:
     This function performs an i2c read from the slave attached to the leap's i2c bus.
 
 Description:
-    
+
 Returns:
     TODO:
 
-See Also:   
+See Also:
 ****************************************************************************/
 BERR_Code BODS_Leap_ReadSlave(
     BODS_ChannelHandle hChn,     /* [in] Device channel handle */
@@ -653,11 +650,11 @@ Summary:
     This function performs an i2c write to the slave attached to the leap's i2c bus.
 
 Description:
-    
+
 Returns:
     TODO:
 
-See Also:   
+See Also:
 ****************************************************************************/
 BERR_Code BODS_Leap_WriteSlave(
     BODS_ChannelHandle hChn,     /* [in] Device channel handle */
@@ -670,9 +667,9 @@ BERR_Code BODS_Leap_WriteSlave(
 
 /*******************************************************************************
 Summary:
-   This function requests the ODS selective status of the requested type. 
+   This function requests the ODS selective status of the requested type.
 Description:
-  
+
 Returns:
    BERR_Code
 ********************************************************************************/
@@ -686,7 +683,7 @@ Summary:
    This function returns the ODS selective status ready type of the statuses that
    are ready.
 Description:
-  
+
 Returns:
    BERR_Code
 ********************************************************************************/
@@ -699,7 +696,7 @@ BERR_Code BODS_Leap_GetSelectiveAsyncStatusReadyType(
 Summary:
    This function gets the ODS Selective status of the requested type.
 Description:
-  
+
 Returns:
    BERR_Code
 ********************************************************************************/
@@ -708,7 +705,7 @@ BERR_Code BODS_Leap_GetSelectiveAsyncStatus(
     BODS_SelectiveAsyncStatusType type,
     BODS_SelectiveStatus *pStatus   /* [out] */
 );
-    
+
 #ifdef __cplusplus
 }
 #endif

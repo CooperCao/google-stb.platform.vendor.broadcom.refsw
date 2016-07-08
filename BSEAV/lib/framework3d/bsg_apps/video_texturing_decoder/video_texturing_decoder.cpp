@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -73,8 +73,8 @@ static GLTexture::eVideoTextureMode  s_textureMode = GLTexture::eEGL_IMAGE_EXPLI
 static eVideoFrameFormat s_decodeFormat = eRGBX8888;
 #endif
 
-// Update mode [EXT_SYNC|EXT|ALWAYS_SYNC|ALWAYS]
-static eVideoUpdateMode s_updateMode = eEXT_SYNC;
+// Update mode [EXT_SYNC|EXT|ALWAYS_SYNC|ALWAYS|EGL_SYNC]
+static eVideoUpdateMode s_updateMode = eEGL_SYNC;
 
 const float carouselPaneX = 0.52f;
 const float idleTimeToAuto = 20.0f;
@@ -118,7 +118,6 @@ public:
    virtual bool ParseArgument(const std::string &arg)
    {
       char c[1024];
-      
       if (ApplicationOptions::ArgMatch(arg.c_str(), "+bench"))
       {
          s_bench = true;
@@ -197,6 +196,8 @@ public:
                s_updateMode = eALWAYS_SYNC;
             else if (!strcmp(c, "ALWAYS"))
                s_updateMode = eALWAYS;
+            else if (!strcmp(c, "EGL_SYNC"))
+               s_updateMode = eEGL_SYNC;
             else
                return false;
             return true;
@@ -214,6 +215,8 @@ public:
                s_decodeFormat = eRGB565;
             else if (!strcmp(c, "RGBX8888"))
                s_decodeFormat = eRGBX8888;
+            else if (!strcmp(c, "YV12"))
+               s_decodeFormat = eYV12;
             else
                return false;
             return true;
@@ -235,8 +238,8 @@ public:
              "audio_delay=N                           audio delay in ms\n"
 #ifndef EMULATED
              "texture_mode=[TEX_IMAGE_2D|EGL_IMAGE]          which texture mode to use\n"
-             "decode_format=[YUV422|YUV444|RGB565|RGBX8888]  what format to decode into\n"
-             "update_mode=[EXT_SYNC|EXT|ALWAYS_SYNC|ALWAYS]  EGLImage update mode (default EXT_SYNC)\n"
+             "decode_format=[YUV422|YUV444|YV12|RGB565|RGBX8888]  what format to decode into\n"
+             "update_mode=[EXT_SYNC|EXT|ALWAYS_SYNC|ALWAYS|EGL_SYNC]  EGLImage update mode (default EGL_SYNC)\n"
 #endif
              ;
    }
@@ -342,7 +345,9 @@ const EffectHandle &EffectCache::GetEffect(uint32_t indx) const
 void EffectCache::Load(const std::vector<MenuItem> &items)
 {
    std::vector<std::string>   defines;
+#ifndef BSG_VC5
    if (s_decodeFormat != eYUV422 && s_decodeFormat != eYUVX444)
+#endif
       defines.push_back("RGB_ALREADY");
 
    m_cache.clear();
@@ -434,13 +439,14 @@ VideoTexturingApp::VideoTexturingApp(Platform &platform) :
    m_midFont->SetFontInPercent("DroidSans-Bold.ttf", 4.0f, GetOptions().GetHeight());
    m_smallFont->SetFontInPercent("DroidSans-Bold.ttf", 2.0f, GetOptions().GetHeight());
 
-   if ((s_updateMode == eALWAYS || s_updateMode == eALWAYS_SYNC) && s_textureMode == GLTexture::eEGL_IMAGE_EXPLICIT)
+   if ((s_updateMode == eALWAYS || s_updateMode == eALWAYS_SYNC || s_updateMode == eEGL_SYNC) && s_textureMode == GLTexture::eEGL_IMAGE_EXPLICIT)
       s_textureMode = GLTexture::eEGL_IMAGE;
 
    if (s_textureMode == GLTexture::eEGL_IMAGE_EXPLICIT || s_textureMode == GLTexture::eEGL_IMAGE)
    {
-      if (s_decodeFormat != eYUV422 && s_decodeFormat != eRGBX8888 && s_decodeFormat != eYUVX444 && s_decodeFormat != eRGB565)
-         BSG_THROW("EGLImage only supports YUV422, YUVX444, RGB565 and RGBX8888.\n");
+      if (s_decodeFormat != eYUV422 && s_decodeFormat != eRGBX8888 && s_decodeFormat != eYUVX444 &&
+          s_decodeFormat != eRGB565 && s_decodeFormat != eYV12)
+         BSG_THROW("EGLImage only supports YUV422, YUVX444, YV12, RGB565 and RGBX8888.\n");
    }
    else
       s_decodeBuffers = 1;    // No need for multiple buffers in TEX_IMAGE_2D mode
@@ -451,8 +457,9 @@ VideoTexturingApp::VideoTexturingApp(Platform &platform) :
 
       switch (s_decodeFormat)
       {
-      case eYUV422   : fprintf(s_benchFp, "YUV422,"); break;
+      case eYUV422   : fprintf(s_benchFp, "eYUV422,"); break;
       case eYUVX444  : fprintf(s_benchFp, "eYUVX444,"); break;
+      case eYV12     : fprintf(s_benchFp, "eYV12,"); break;
       case eRGB565   : fprintf(s_benchFp, "eRGB565,"); break;
       case eRGBX8888 : fprintf(s_benchFp, "eRGBX8888,"); break;
       default        :
@@ -505,8 +512,13 @@ VideoTexturingApp::VideoTexturingApp(Platform &platform) :
    m_carouselCamNode->SetCamera(m_carouselCamera);
 
    // Load the menu config
+#ifndef BSG_VC5
    if (!LoadMenu(s_decodeFormat == eYUV422 ? "menu_config.txt" : "menu_config_rgb.txt"))
       throw("Failed to load menu");
+#else
+   if (!LoadMenu("menu_config_rgb.txt"))
+      throw("Failed to load menu");
+#endif
 
    m_effectCache.Load(m_menuItems);
    m_videoEffect    = m_effectCache.GetEffect(3);
@@ -769,7 +781,6 @@ VideoTexturingApp::VideoTexturingApp(Platform &platform) :
    {
       // Making the help menu if we are not trying keep the old style
       m_helpMenu = new HelpMenu(this, eHELP_BUTTON_RED, "Help", "DroidSans.ttf", Vec4(1.0f, 1.0f, 1.0f, 1.0f), 0.025f, 0.93f, 0.03f, true);
-   
       m_helpMenu->SetMenuItemHeaderColour(Vec4(1.0f, 0.5f, 0.0f, 1.0f));
       m_helpMenu->SetMenuItemTextColour(Vec4(1.0f, 1.0f, 1.0f, 1.0f));
 
@@ -781,7 +792,7 @@ VideoTexturingApp::VideoTexturingApp(Platform &platform) :
 
       m_helpMenu->SetMenuPosition(eMENU_POSITION_BOT_RIGHT, Vec2(0.0f));
 
-      unsigned int animationType = eMENU_ANIM_FADE | eMENU_ANIM_SCALE | eMENU_ANIM_MOVE_FROM_BOT_RIGHT; 
+      unsigned int animationType = eMENU_ANIM_FADE | eMENU_ANIM_SCALE | eMENU_ANIM_MOVE_FROM_BOT_RIGHT;
       m_helpMenu->SetAnimationType(animationType);
 
       m_helpMenu->FinaliseMenuLayout();
@@ -958,7 +969,7 @@ bool VideoTexturingApp::UpdateFrame(int32_t *idleMs)
       {
          if (!s_bench && (now - m_lastKeyPressTime).Seconds() > autoChangeTime)
          {
-            m_carousel->Prev(now, Time(0.3f)); 
+            m_carousel->Prev(now, Time(0.3f));
             ChangeFilter(m_carousel->CurrentIndex());
             m_lastKeyPressTime = now;
          }
@@ -968,7 +979,7 @@ bool VideoTexturingApp::UpdateFrame(int32_t *idleMs)
          if (!s_bench && (now - m_lastKeyPressTime).Seconds() > idleTimeToAuto)
          {
             m_idling = true;
-            m_carousel->Prev(now, Time(0.3f)); 
+            m_carousel->Prev(now, Time(0.3f));
             ChangeFilter(m_carousel->CurrentIndex());
             m_lastKeyPressTime = now;
          }
@@ -1008,8 +1019,11 @@ void VideoTexturingApp::RenderFrame()
    // Draw the main scene
    RenderSceneGraph(m_root, m_floatingCamera);
 
+   if (s_updateMode == eEGL_SYNC)
+      m_videoDecoder->CreateFenceForSyncUpdate(eglGetDisplay(EGL_DEFAULT_DISPLAY));
+
    // Don't draw the carousel, we just want the text really
-   //   glViewport((GLint)(GetOptions().GetWidth() * carouselPaneX), 0, 
+   //   glViewport((GLint)(GetOptions().GetWidth() * carouselPaneX), 0,
    //              (GLsizei)(GetOptions().GetWidth() * (1.0f - carouselPaneX)), GetOptions().GetHeight());
    //   RenderSceneGraph(m_carouselRoot);
 
@@ -1095,22 +1109,22 @@ void VideoTexturingApp::KeyEventHandler(KeyEvents &queue)
       {
          switch (ev.Code())
          {
-         case KeyEvent::eKEY_EXIT : 
-         case KeyEvent::eKEY_ESC : 
-         case KeyEvent::eKEY_POWER : 
-            Stop(255); 
+         case KeyEvent::eKEY_EXIT :
+         case KeyEvent::eKEY_ESC :
+         case KeyEvent::eKEY_POWER :
+            Stop(255);
             break;
-         case KeyEvent::eKEY_UP : 
+         case KeyEvent::eKEY_UP :
             if (!m_fullScreen)
             {
                m_carousel->Prev(FrameTimestamp(), Time(0.3f));
                ChangeFilter(m_carousel->CurrentIndex());
             }
             break;
-         case KeyEvent::eKEY_DOWN : 
+         case KeyEvent::eKEY_DOWN :
             if (!m_fullScreen)
             {
-               m_carousel->Next(FrameTimestamp(), Time(0.3f)); 
+               m_carousel->Next(FrameTimestamp(), Time(0.3f));
                ChangeFilter(m_carousel->CurrentIndex());
             }
             break;
@@ -1148,7 +1162,7 @@ void VideoTexturingApp::MouseEventHandler(MouseEvents &queue)
          }
          else if (vec.Y() < 0)
          {
-            m_carousel->Next(FrameTimestamp(), Time(0.3f)); 
+            m_carousel->Next(FrameTimestamp(), Time(0.3f));
             ChangeFilter(m_carousel->CurrentIndex());
          }
       }

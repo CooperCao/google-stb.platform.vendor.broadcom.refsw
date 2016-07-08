@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2004-2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,17 +35,9 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   API name: Platform Frontend
 *    Platform Frontend Setup
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 #include "nexus_platform_module.h"
@@ -174,7 +166,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
                 default: BDBG_ERR(("unsupported channel!\n"));
 #endif
                 }
-            userParams.pParam2 = NULL;
+            userParams.pParam2 = 0;
             NEXUS_Frontend_SetUserParameters(pConfig->frontend[i], &userParams);
         }
         else
@@ -217,7 +209,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
                 case 1: userParams.param1 = NEXUS_InputBand_e1; break;
                 default: BDBG_ERR(("unsupported channel!\n"));
             }
-            userParams.pParam2 = NULL;
+            userParams.pParam2 = 0;
             NEXUS_Frontend_SetUserParameters(pConfig->frontend[i], &userParams);
         }
         else
@@ -272,7 +264,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
                 case 1: userParams.param1 = NEXUS_InputBand_e1; break;
                 default: BDBG_ERR(("unsupported channel!\n"));
                 }
-            userParams.pParam2 = NULL;
+            userParams.pParam2 = 0;
             NEXUS_Frontend_SetUserParameters(pConfig->frontend[i], &userParams);
         }
         else
@@ -321,7 +313,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
 #endif
                 default: BDBG_ERR(("unsupported channel!\n"));
                 }
-            userParams.pParam2 = NULL;
+            userParams.pParam2 = 0;
             NEXUS_Frontend_SetUserParameters(pConfig->frontend[i], &userParams);
         }
         else

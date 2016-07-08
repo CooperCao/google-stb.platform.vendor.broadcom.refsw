@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2011 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2011 Broadcom.
 All rights reserved.
 
 Project  :  PPP
@@ -176,6 +176,9 @@ enum ePacketType
    eQUERY_OBJ_DATA,
    eVERTEX_ARRAY_OBJ_DATA,
    ePROGRAM_PIPELINE_DATA,
+   eINFO_DATA,
+   eFRAMEBUFFER_INFO,
+   eRENDERBUFFER_INFO,
    eLAST_PACKET_TYPE /* Insert new ones before this */
 };
 

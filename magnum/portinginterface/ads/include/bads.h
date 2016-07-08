@@ -1,23 +1,40 @@
-/***************************************************************************
- *     Copyright (c) 2005-2012, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ *  Except as expressly set forth in the Authorized License,
  *
- * Module Description:
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * Revision History:
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- * 
- ***************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ ******************************************************************************/
 
 /*= Module Overview *********************************************************
 <verbatim>
@@ -227,17 +244,17 @@ BHAB_Handle hab;
 static void Hab_create()
 {
     BHAB_Settings stHabSettings;
-   
+
     BHAB_3117_GetDefaultSettings(&stHabSettings);
 
-    Populate the HAB settings structure. 
+    Populate the HAB settings structure.
 
     BHAB_Open( &hab, i2c/spi handle, &stHabSettings);
 
     //Download code binary for the Acquisition Processon
     BHAB_InitAp(&hab, AP_binary);
-    
-    Get interrupt_event handle and register interrupt_event callback 
+
+    Get interrupt_event handle and register interrupt_event callback
 
     BHAB_GetInterruptEventHandle(&hab, interrupt_event handle);
 
@@ -246,7 +263,7 @@ static void Hab_create()
 
 ******************* Notify the app of lock status change ************************
 static BADS_CallbackFunc cbLockChangeFunc(
-    BADS_ChannelHandle hIbChn,          
+    BADS_ChannelHandle hIbChn,
     void *pParam
     )
 {
@@ -258,7 +275,7 @@ static BADS_CallbackFunc cbLockChangeFunc(
 }
 
 **************************************************************************
-static BTNR_Handle hTnr; 
+static BTNR_Handle hTnr;
 static BADS_Handle hAds;
 static BADS_ChannelHandle ibChn[2];
 static BCHP_Handle hChip3117;
@@ -273,11 +290,11 @@ main( void )
     bool isLock;
     BTNR_3117Ib_Settings tnrIb3117_cfg;
     uint8_t frequency = 765; //in MHZ (for example).
-        
+
     //Open Tuner . . .
     BTNR_3117Ib_GetDefaultSettings(&tnrIb3117_cfg);
     BTNR_3117Ib_Open(&hTnr,&tnrIb3117_cfg, hab);
-    
+
     BADS_3117_GetDefaultSettings( &settings );
     settings.hGeneric = hab;
     BADS_Open( hAds, hChip3117, hReg3117, &settings );
@@ -492,11 +509,11 @@ See Also:
 typedef enum BADS_Callback
 {
     BADS_Callback_eLockChange,          /* Callback to notify application of lock change */
-    BADS_Callback_eUpdateGain,          /* Callback to notify application to update gain */ 
-    BADS_Callback_eNoSignal,            /* Callback to notify application there is no signal */ 
-    BADS_Callback_eAsyncStatusReady,    /* Callback to notify application there is no signal */    
-    BADS_Callback_eTuner,               /* Callback to tuner regarding a new setting */ 
-    BADS_Callback_eSpectrumDataReady,   /* Callback to notify application that spectrum analyzer data is ready */ 
+    BADS_Callback_eUpdateGain,          /* Callback to notify application to update gain */
+    BADS_Callback_eNoSignal,            /* Callback to notify application there is no signal */
+    BADS_Callback_eAsyncStatusReady,    /* Callback to notify application there is no signal */
+    BADS_Callback_eTuner,               /* Callback to tuner regarding a new setting */
+    BADS_Callback_eSpectrumDataReady,   /* Callback to notify application that spectrum analyzer data is ready */
     BADS_Callback_eLast                 /* More may be required */
 } BADS_Callback;
 
@@ -530,12 +547,12 @@ See Also:
 
 ****************************************************************************/
 typedef enum BADS_AcquisitionStatus
-{           
-    BADS_AcquisitionStatus_eNoSignal,      
-    BADS_AcquisitionStatus_eUnlocked,      
+{
+    BADS_AcquisitionStatus_eNoSignal,
+    BADS_AcquisitionStatus_eUnlocked,
     BADS_AcquisitionStatus_eLockedFast,
     BADS_AcquisitionStatus_eLockedSlow,
-    BADS_AcquisitionStatus_eLast      
+    BADS_AcquisitionStatus_eLast
 } BADS_AcquisitionStatus;
 
 /***************************************************************************
@@ -549,12 +566,12 @@ See Also:
 
 ****************************************************************************/
 typedef enum BADS_BPS
-{      
-    BADS_BPS_eQam16,      
-    BADS_BPS_eQam32,      
-    BADS_BPS_eQam64,     
-    BADS_BPS_eQam128,      
-    BADS_BPS_eQam256,     
+{
+    BADS_BPS_eQam16,
+    BADS_BPS_eQam32,
+    BADS_BPS_eQam64,
+    BADS_BPS_eQam128,
+    BADS_BPS_eQam256,
     BADS_BPS_eQam512,
     BADS_BPS_eQam1024,
     BADS_BPS_eLast
@@ -571,19 +588,19 @@ See Also:
 
 ****************************************************************************/
 typedef enum BADS_Interleaver
-{      
-    BADS_Interleaver_eI128_J1,      
-    BADS_Interleaver_eI128_J2,     
-    BADS_Interleaver_eI128_J3,    
-    BADS_Interleaver_eI128_J4,      
-    BADS_Interleaver_eI64_J2,      
-    BADS_Interleaver_eI32_J4,    
-    BADS_Interleaver_eI16_J8,     
-    BADS_Interleaver_eI8_J16,     
-    BADS_Interleaver_eI4_J32,      
-    BADS_Interleaver_eI2_J64,      
-    BADS_Interleaver_eI1_J128,      
-    BADS_Interleaver_eI12_J17,  
+{
+    BADS_Interleaver_eI128_J1,
+    BADS_Interleaver_eI128_J2,
+    BADS_Interleaver_eI128_J3,
+    BADS_Interleaver_eI128_J4,
+    BADS_Interleaver_eI64_J2,
+    BADS_Interleaver_eI32_J4,
+    BADS_Interleaver_eI16_J8,
+    BADS_Interleaver_eI8_J16,
+    BADS_Interleaver_eI4_J32,
+    BADS_Interleaver_eI2_J64,
+    BADS_Interleaver_eI1_J128,
+    BADS_Interleaver_eI12_J17,
     BADS_Interleaver_eUnsupported,
     BADS_Interleaver_eLast
 } BADS_Interleaver;
@@ -599,11 +616,11 @@ See Also:
 
 ****************************************************************************/
 typedef enum BADS_LockStatus
-{           
+{
     BADS_LockStatus_eUnlocked,
-    BADS_LockStatus_eLocked, 
-    BADS_LockStatus_eNoSignal,      
-    BADS_LockStatus_eLast    
+    BADS_LockStatus_eLocked,
+    BADS_LockStatus_eNoSignal,
+    BADS_LockStatus_eLast
 } BADS_LockStatus;
 
 /***************************************************************************
@@ -647,12 +664,13 @@ typedef struct BADS_InbandParam
     BADS_DpmMode        enableDpm;
     bool                autoAcquire;
     bool                enableNullPackets; /* Enables/disables improved locking mechanism for Annex_A signals containing >98% null packets.*/
-    unsigned            frequencyOffset; /*   Automatic frequency Offset (pull-in) range of the qam demodulator 
+    unsigned            frequencyOffset; /*   Automatic frequency Offset (pull-in) range of the qam demodulator
                                                         For example "frequencyOffset = 180000" can pull in carriers offset +/-180KHz   from the tuned frequency */
     BADS_AcquireType	acquisitionType;
-    bool                tuneAcquire; /* This bit directs the Downstream Demodulator to initiate an acquire immediately after its associated WFE or Tuner is tuned.  
-                                        If the bit is set, then the Demodulator will initiate an acquire immediately after the tuner has completed a tune  regardless of autoacquire. 	
+    bool                tuneAcquire; /* This bit directs the Downstream Demodulator to initiate an acquire immediately after its associated WFE or Tuner is tuned.
+                                        If the bit is set, then the Demodulator will initiate an acquire immediately after the tuner has completed a tune  regardless of autoacquire.
                                         Note: Unless otherwise indicated, this flag only applies to the Acquisition Processors Internal WFE or Internal Tuner. */
+	unsigned			frequency; /*  RF Frequency in units of Hz */
 } BADS_InbandParam;
 
 /***************************************************************************
@@ -697,7 +715,7 @@ typedef struct BADS_ScanStatus
     bool autoAcquire;                   /* If 1, autoAcquire is enabled */
     BADS_Interleaver interleaver;	    /* FEC interleaver */
     uint32_t symbolRate;                /* symbol rate in Baud */
-    int32_t carrierFreqOffset;          /* carrier frequency offset in 1/1000 Hz */	
+    int32_t carrierFreqOffset;          /* carrier frequency offset in 1/1000 Hz */
 } BADS_ScanStatus;
 
 /***************************************************************************
@@ -737,7 +755,7 @@ typedef struct BADS_Status
     int32_t dsChannelPower;             /* in 1/10th of a dBmV unit; OCAP DPM support for video channels */
     uint32_t mainTap;                   /* Channel main tap coefficient */
     int32_t feGain;                     /* in 1/100th of a dB */
-    int32_t digitalAgcGain;             /* in 1/100th of a dB */    
+    int32_t digitalAgcGain;             /* in 1/100th of a dB */
     uint32_t equalizerGain;             /* Channel equalizer gain value in in 1/100th of a dB */
     /* OCAP required postRsBER for all DS channels. postRsBER and elapsedTimeSec will be reset on every channel change*/
     /* fpostRsBER normally between xxxe-6 to xxxe-12 float value, to send this small float number over rMagnum to host, we convert it to uint32 using the formula*/
@@ -768,7 +786,7 @@ See Also:
 typedef struct BADS_SpectrumData
 {
     uint32_t *data; /* ptr to the data */
-    uint16_t datalength; /* data length in number of words */    
+    uint16_t datalength; /* data length in number of words */
     bool moreData; /* this bit indicates whether there is more data available or not */
 } BADS_SpectrumData;
 
@@ -828,7 +846,7 @@ typedef struct BADS_ApiFunctTable
     BERR_Code (*Close)(BADS_Handle);
     BERR_Code (*Init)(BADS_Handle);
     BERR_Code (*GetVersion)(BADS_Handle, BADS_Version *);
-    BERR_Code (*GetVersionInfo)(BADS_Handle, BFEC_VersionInfo *);    
+    BERR_Code (*GetVersionInfo)(BADS_Handle, BFEC_VersionInfo *);
     BERR_Code (*GetBondingCapability)(BADS_Handle, unsigned int *);
     BERR_Code (*GetTotalChannels)(BADS_Handle, unsigned int *);
     BERR_Code (*OpenChannel)(BADS_Handle, BADS_ChannelHandle *, unsigned int, const struct BADS_ChannelSettings *);
@@ -841,9 +859,9 @@ typedef struct BADS_ApiFunctTable
     BERR_Code (*InstallCallback)(BADS_ChannelHandle, BADS_Callback, BADS_CallbackFunc, void *);
     BERR_Code (*GetDefaultAcquireParams)(BADS_InbandParam *);
     BERR_Code (*SetAcquireParams)(BADS_ChannelHandle, const BADS_InbandParam *);
-    BERR_Code (*GetAcquireParams)(BADS_ChannelHandle, BADS_InbandParam *);   
+    BERR_Code (*GetAcquireParams)(BADS_ChannelHandle, BADS_InbandParam *);
     BERR_Code (*Acquire)(BADS_ChannelHandle, BADS_InbandParam *);
-    BERR_Code (*EnablePowerSaver)(BADS_ChannelHandle);	
+    BERR_Code (*EnablePowerSaver)(BADS_ChannelHandle);
     BERR_Code (*DisablePowerSaver)(BADS_ChannelHandle);
     BERR_Code (*ProcessNotification)(BADS_ChannelHandle, unsigned int event);
     BERR_Code (*SetDaisyChain)(BADS_Handle, bool enableDaisyChain);
@@ -854,7 +872,7 @@ typedef struct BADS_ApiFunctTable
     BERR_Code (*Untune)(BADS_Handle);
     BERR_Code (*RequestAsyncStatus)(BADS_ChannelHandle);
     BERR_Code (*GetAsyncStatus)(BADS_ChannelHandle, BADS_Status *);
-    BERR_Code (*GetScanStatus)(BADS_ChannelHandle, BADS_ScanStatus *);	
+    BERR_Code (*GetScanStatus)(BADS_ChannelHandle, BADS_ScanStatus *);
     BERR_Code (*ReadSlave)(BADS_ChannelHandle, uint8_t chipAddr, uint32_t subAddr, uint8_t subAddrLen, uint32_t *data, uint8_t dataLen);
     BERR_Code (*WriteSlave)(BADS_ChannelHandle, uint8_t chipAddr, uint32_t subAddr, uint8_t subAddrLen, uint32_t *data, uint8_t dataLen);
     BERR_Code (*SetScanParam)(BADS_ChannelHandle,  struct BADS_ChannelScanSettings *);
@@ -868,7 +886,7 @@ Summary:
 
 Description:
     Required daisy chain settings structure for controlling the daisy chain of 31xx devices.
-    When turned off the RF out is turned off for the particulat 31xx device and hence all the 
+    When turned off the RF out is turned off for the particulat 31xx device and hence all the
     31xx devices connected to the current device wont recieve the RF signal.
 
 See Also:
@@ -882,10 +900,10 @@ typedef struct BADS_DaisyChainSettings
 
 /***************************************************************************
 Summary:
-    Enumeration for 
+    Enumeration for
 
 Description:
-    This enumeration defines 
+    This enumeration defines
 
 See Also:
 
@@ -960,7 +978,7 @@ typedef struct BADS_ChannelScanSettings
     bool		TO;			/* Enable/Disable auto baud rate detection  */
     bool		B1024;		/* Enable/Disable Auto Search for 1024Q while receiver is in Annex B mode */
     bool		B256;		/* Enable/Disable Auto Search for 256Q while receiver is in Annex B mode */
-    bool		B64;   
+    bool		B64;
     bool		A1024;		 /* Enable/Disable Auto Search for 1024Q while receiver is in Annex A mode  */
     bool		A512;
     bool		A256;
@@ -969,7 +987,7 @@ typedef struct BADS_ChannelScanSettings
     bool		A32;
     bool		A16;		/* Enable/Disable Auto Search for 16Q while receiver is in Annex A mode */
     uint32_t    carrierSearch;		/* 256*Hz */
-    uint32_t    upperBaudSearch;  /*upper baud search range in Hz */ 
+    uint32_t    upperBaudSearch;  /*upper baud search range in Hz */
     uint32_t    lowerBaudSearch; /*Lower baud search range in Hz */
 } BADS_ChannelScanSettings;
 
@@ -1066,7 +1084,7 @@ Summary:
     This function returns the version information.
 
 Description:
-    This function is responsible for returning the core driver version 
+    This function is responsible for returning the core driver version
     information. It return the majorVersion and minorVersion of the core
     driver.
 Returns:
@@ -1079,8 +1097,8 @@ See Also:
 BERR_Code BADS_GetVersionInfo(
     BADS_Handle hDev,                        /* [in] Device handle */
     BFEC_VersionInfo *pVersionInfo /* [out] Returns version Info */
-    );    
-    
+    );
+
 /***************************************************************************
 Summary:
     This function returns the number of bonded channels stored and reserved
@@ -1218,7 +1236,7 @@ Summary:
 
 Description:
     This function is responsible for synchronously getting the complete status for
-    a Qam In-Band Downstream module channel. 
+    a Qam In-Band Downstream module channel.
 
 Returns:
     TODO:
@@ -1238,10 +1256,10 @@ Summary:
 
 Description:
     This function is responsible for requesting the status to be calculated asynchronously for
-    a Qam In-Band Downstream module channel. The Qam frontend is responsible to inform 
+    a Qam In-Band Downstream module channel. The Qam frontend is responsible to inform
     the backend when the status is ready either through an interrupt or by any other predetermined
     method.
-    
+
 Returns:
     TODO:
 
@@ -1259,7 +1277,7 @@ Summary:
 Description:
     This function is responsible for asynchronously getting the complete status for
     a Qam In-Band Downstream module channel. BADS_RequestAsyncStatus() is called before to
-    notify the frontend to calculate the status and notify the backend asynchronously that 
+    notify the frontend to calculate the status and notify the backend asynchronously that
     the status is ready then BADS_GetAsyncStatus() needs to be called to retrieve the status.
 
 Returns:
@@ -1276,21 +1294,21 @@ BERR_Code BADS_GetAsyncStatus(
 
 /***************************************************************************
 Summary:
-    This function gets the scan status synchronously of a Qam In-Band 
+    This function gets the scan status synchronously of a Qam In-Band
     Downstream module channel.
 
 Description:
-    This function is responsible for synchronously getting the scan status 
+    This function is responsible for synchronously getting the scan status
     for a Qam In-Band Downstream module channel. Please note that this API
     should only be called after calling tune and acquire. Scan Status is an
     acquisition status, it gives the status at the last acquisition and not
-    the current status. So, it is only valid if a tune and acquire was 
-    issued prior to calling this API. 
+    the current status. So, it is only valid if a tune and acquire was
+    issued prior to calling this API.
 
 Returns:
     TODO:
 
-See Also: 
+See Also:
 
 ****************************************************************************/
 BERR_Code BADS_GetScanStatus(
@@ -1347,11 +1365,11 @@ BERR_Code BADS_GetSoftDecision(
 
 /***************************************************************************
 Summary:
-    This function returns the default acquire parameters for a specific 
+    This function returns the default acquire parameters for a specific
     ADS module.
 
 Description:
-    This function returns the default acquire parameters for a specific 
+    This function returns the default acquire parameters for a specific
     ADS module.
 
 Returns:
@@ -1359,12 +1377,12 @@ Returns:
 
 See Also:
 
-****************************************************************************/ 
+****************************************************************************/
 BERR_Code BADS_GetDefaultAcquireParams(
     BADS_ChannelHandle hChn ,           /* [in] Device channel handle */
     BADS_InbandParam *ibParams          /* [out] default Inband Parameters */
     );
-    
+
 /***************************************************************************
 Summary:
     This function sends the acquire parameters for a specific ADS module.
@@ -1397,12 +1415,12 @@ Returns:
 
 See Also:
 
-****************************************************************************/ 
+****************************************************************************/
 BERR_Code BADS_GetAcquireParams(
     BADS_ChannelHandle hChn ,           /* [in] Device channel handle */
     BADS_InbandParam *ibParams          /* [out] Inband Parameters to use */
     );
-    
+
 /***************************************************************************
 Summary:
     This function tries to acquire downstream lock for the specific
@@ -1459,7 +1477,7 @@ Summary:
 Description:
     This function is responsible for disabling the downstream receiver
     power-saver mode.  When the BADS is in the power-saver mode, the
-    Qam In-Band Downstream receiver is shutdown. 
+    Qam In-Band Downstream receiver is shutdown.
 
 
 Returns:
@@ -1518,11 +1536,11 @@ Summary:
 
 Description:
     This function opens configures (enables/disables) the 31xx device's RF out for daisy chaining.
-    
+
 Returns:
     TODO:
 
-See Also:   
+See Also:
 ****************************************************************************/
 BERR_Code BADS_SetDaisyChain(
     BADS_Handle hDev,       /* [in] Device channel handle */
@@ -1535,11 +1553,11 @@ Summary:
 
 Description:
     This function opens tells if the 31xx device's RF out daisy chaining is enabled/disabled.
-    
+
 Returns:
     TODO:
 
-See Also:   
+See Also:
 ****************************************************************************/
 BERR_Code BADS_GetDaisyChain(
     BADS_Handle hDev,           /* [in] Device channel handle */
@@ -1551,11 +1569,11 @@ Summary:
     This function resets the 31xx device's FEC bit error and block counters.
 
 Description:
-    
+
 Returns:
     TODO:
 
-See Also:   
+See Also:
 ****************************************************************************/
 BERR_Code BADS_ResetStatus(
     BADS_ChannelHandle hChn     /* [in] Device channel handle */
@@ -1565,7 +1583,7 @@ BERR_Code BADS_ResetStatus(
 Summary:
    This function returns the BADS interrupt event handle.
 Description:
-  
+
 Returns:
    BERR_Code
 ******************************************************************************/
@@ -1578,7 +1596,7 @@ BERR_Code BADS_GetInterruptEventHandle(
 Summary:
    This function returns the BADS interrupt event handle.
 Description:
-  
+
 Returns:
    BERR_Code
 ******************************************************************************/
@@ -1590,7 +1608,7 @@ BERR_Code BADS_ProcessInterruptEvent(
 Summary:
    This function stops the BADS timer.
 Description:
-  
+
 Returns:
    BERR_Code
 ******************************************************************************/
@@ -1602,7 +1620,7 @@ BERR_Code BADS_Untune(
 Summary:
    This function allows the reading from a slave device attached to the demod chip.
 Description:
-  
+
 Returns:
    BERR_Code
 ******************************************************************************/
@@ -1619,7 +1637,7 @@ BERR_Code BADS_ReadSlave(
 Summary:
    This function allows the writing to a slave device attached to the demod chip.
 Description:
-  
+
 Returns:
    BERR_Code
 ******************************************************************************/
@@ -1636,12 +1654,12 @@ BERR_Code BADS_WriteSlave(
 Summary:
    This function will pass the scan parameter to ADS.
 Description:
-  
+
 Returns:
    BERR_Code
 ******************************************************************************/
 BERR_Code BADS_SetScanParam(
-    BADS_ChannelHandle hChn,     /* [in] Device channel handle */ 
+    BADS_ChannelHandle hChn,     /* [in] Device channel handle */
     BADS_ChannelScanSettings *pChnScanSettings /* [in] Set Channel setting */
 );
 
@@ -1649,12 +1667,12 @@ BERR_Code BADS_SetScanParam(
 Summary:
    This function will get the scan parameter from ADS.
 Description:
-  
+
 Returns:
    BERR_Code
 ******************************************************************************/
 BERR_Code BADS_GetScanParam (
-    BADS_ChannelHandle hChn,     /* [in] Device channel handle */ 
+    BADS_ChannelHandle hChn,     /* [in] Device channel handle */
     BADS_ChannelScanSettings *pChnScanSettings /* [out] Returns channel default setting */
 );
 
@@ -1662,12 +1680,12 @@ BERR_Code BADS_GetScanParam (
 Summary:
    This function sends request for spectrum analyzer data to the LEAP.
 Description:
-  
+
 Returns:
    BERR_Code
 ******************************************************************************/
 BERR_Code BADS_RequestSpectrumAnalyzerData(
-    BADS_ChannelHandle hChn,     /* [in] Device channel handle */ 
+    BADS_ChannelHandle hChn,     /* [in] Device channel handle */
     BADS_SpectrumSettings *pSettings /* [in] spectrum settings */
     );
 
@@ -1675,15 +1693,15 @@ BERR_Code BADS_RequestSpectrumAnalyzerData(
 Summary:
    This function gets spectrum analyzer data from the LEAP.
 Description:
-  
+
 Returns:
    BERR_Code
-******************************************************************************/    
+******************************************************************************/
 BERR_Code BADS_GetSpectrumAnalyzerData(
-    BADS_ChannelHandle hChn,     /* [in] Device channel handle */ 
+    BADS_ChannelHandle hChn,     /* [in] Device channel handle */
     BADS_SpectrumData  *pSpectrumData /* [out] spectrum Data*/
     );
-    
+
 #ifdef __cplusplus
 }
 #endif

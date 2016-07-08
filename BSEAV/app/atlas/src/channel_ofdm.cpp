@@ -1,7 +1,7 @@
-/***************************************************************************
- * (c) 2002-2015 Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -37,7 +37,6 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 
 #if NEXUS_HAS_FRONTEND
@@ -220,19 +219,19 @@ eRet CChannelOfdm::getChannelInfo(
         )
 {
     BERR_Code     err            = BERR_SUCCESS;
-    CParserBand * pBand          = NULL;/*getParserBand();*/
+    CParserBand * pBand          = NULL; /*getParserBand();*/
     int           patTimeout     = 0;
     int           patTimeoutOrig = 0;
     int           pmtTimeout     = 0;
     int           pmtTimeoutOrig = 0;
 
-	BSTD_UNUSED(patTimeoutOrig); /* to avoid compile warnings */
-	BSTD_UNUSED(pmtTimeoutOrig); /* to avoid compile warnings */
-	BSTD_UNUSED(pChanInfo); /* to avoid compile warnings */
-	BSTD_UNUSED(bScanning); /* to avoid compile warnings */
-	pBand          = getParserBand();
-	patTimeout     = GET_INT(_pCfg, TUNE_OFDM_PAT_TIMEOUT)/10; /* in tsPsi_setTimeout2() this is 500msecs */
-	pmtTimeout     = GET_INT(_pCfg, TUNE_OFDM_PMT_TIMEOUT)/10; /* in tsPsi_setTimeout2() this is 500msecs */
+    BSTD_UNUSED(patTimeoutOrig); /* to avoid compile warnings */
+    BSTD_UNUSED(pmtTimeoutOrig); /* to avoid compile warnings */
+    BSTD_UNUSED(pChanInfo);      /* to avoid compile warnings */
+    BSTD_UNUSED(bScanning);      /* to avoid compile warnings */
+    pBand      = getParserBand();
+    patTimeout = GET_INT(_pCfg, TUNE_OFDM_PAT_TIMEOUT)/10; /* in tsPsi_setTimeout2() this is 500msecs */
+    pmtTimeout = GET_INT(_pCfg, TUNE_OFDM_PMT_TIMEOUT)/10; /* in tsPsi_setTimeout2() this is 500msecs */
 
 #ifndef MPOD_SUPPORT
     if (true == bScanning)

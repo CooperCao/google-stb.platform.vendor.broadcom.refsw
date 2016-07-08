@@ -1,44 +1,40 @@
-/******************************************************************************
- * (c) 2014 Broadcom Corporation
- *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
- *
- * Except as expressly set forth in the Authorized License,
- *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
- *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
- *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
- *****************************************************************************/
+/***************************************************************************
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*
+*  This program is the proprietary software of Broadcom and/or its licensors,
+*  and may only be used, duplicated, modified or distributed pursuant to the terms and
+*  conditions of a separate, written license agreement executed between you and Broadcom
+*  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+*  no license (express or implied), right to use, or waiver of any kind with respect to the
+*  Software, and Broadcom expressly reserves all rights in and to the Software and all
+*  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+*  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*
+*  Except as expressly set forth in the Authorized License,
+*
+*  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+*  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+*  and to use this information only in connection with your use of Broadcom integrated circuit products.
+*
+*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+*  USE OR PERFORMANCE OF THE SOFTWARE.
+*
+*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+*  ANY LIMITED REMEDY.
+***************************************************************************/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -838,6 +834,101 @@ int Memconfig_GetBoxModeDefaultSettings(
             pSettings->graphics[0].used            = true;
             pSettings->graphics[0].heapIdx         = NEXUS_MEMC2_GRAPHICS_HEAP;
             pSettings->graphics[0].usage           = "M2MC, 3D, Primary Display FB";
+
+            pSettings->graphics3d.used             = true;
+            pSettings->graphics3d.heapIdx          = NEXUS_MEMC2_GRAPHICS_HEAP; /* should match the 3D Primary graphics heap index */
+            pSettings->graphics3d.usage            = "V3D";
+
+            rc = 0;
+            break;
+        }
+        case 16:
+        {
+            pSettings->boxModeId = boxMode;
+            /*brief description on the box mode, this stirng is shown in the UI*/
+            pSettings->boxModeDescription          = "Display:UHD/SD, Video:UHD Main/HD PIP,Transcode:Dual 1080i60->1080p30(Max)";
+
+            /* video decoder to window mapping */
+            pSettings->videoDecoder[0].property    = Memconfig_VideoDecoderProperty_eMain;
+            /*video picture buffer heap information, obtained from RTS document*/
+            pSettings->videoDecoder[0].pictureBufferHeapIdx          = NEXUS_MEMC2_PICTURE_BUFFER_HEAP;
+            /* this string shows up in the usage column*/
+            pSettings->videoDecoder[0].usage                         = "Video Decoder 0";
+            /* not very common */
+            pSettings->videoDecoder[0].secondaryPictureBufferHeapIdx = NEXUS_MEMC1_PICTURE_BUFFER_HEAP;
+            pSettings->videoDecoder[0].secondaryUsage                = "Video Decoder 0 Chroma";
+
+            /* video decoder to window mapping */
+            pSettings->videoDecoder[1].property    = Memconfig_VideoDecoderProperty_ePip;
+            /*video picture buffer heap information, obtained from RTS document*/
+            pSettings->videoDecoder[1].pictureBufferHeapIdx          = NEXUS_MEMC0_PICTURE_BUFFER_HEAP;
+            pSettings->videoDecoder[1].usage                         = "Video Decoder 1";
+
+            /* video decoder used for transcode  */
+            pSettings->videoDecoder[2].property    = Memconfig_VideoDecoderProperty_eTranscode;
+            pSettings->videoDecoder[2].pictureBufferHeapIdx          = NEXUS_MEMC0_PICTURE_BUFFER_HEAP;
+            pSettings->videoDecoder[2].usage                         = "Video Decoder 2";
+
+            pSettings->videoDecoder[3].property    = Memconfig_VideoDecoderProperty_eTranscode;
+            pSettings->videoDecoder[3].pictureBufferHeapIdx          = NEXUS_MEMC1_PICTURE_BUFFER_HEAP;
+            pSettings->videoDecoder[3].usage                         = "Video Decoder 3";
+
+            /* property of this display, primary display  */
+            pSettings->display[0].property         = Memconfig_DisplayProperty_ePrimary;
+            /*source of picture buffer heap */
+            pSettings->display[0].mainPictureBufferHeapIdx = NEXUS_MEMC0_PICTURE_BUFFER_HEAP;
+            /* this string is displayed in the usage column */
+            pSettings->display[0].usageMain        = "Primary Display Main Window";
+
+            /* property of this display, sd display  */
+            pSettings->display[1].property         = Memconfig_DisplayProperty_eSecondary;
+            /* picture buffer heap , this is row number in the table */
+            pSettings->display[1].mainPictureBufferHeapIdx = NEXUS_MEMC2_PICTURE_BUFFER_HEAP;
+            /* this string is displayed in the usage column */
+            pSettings->display[1].usageMain        = "Secondary Display Main Window";
+
+            /* this display is used for transcode */
+            pSettings->display[2].property         = Memconfig_DisplayProperty_eTranscode;
+            /* row number in the table */
+            pSettings->display[2].mainPictureBufferHeapIdx = NEXUS_MEMC1_PICTURE_BUFFER_HEAP;
+            /* usage column string */
+            pSettings->display[2].usageMain        = "Encoder 0 Display";
+
+            pSettings->display[3].property         = Memconfig_DisplayProperty_eTranscode;
+            pSettings->display[3].mainPictureBufferHeapIdx = NEXUS_MEMC1_PICTURE_BUFFER_HEAP;
+            pSettings->display[3].usageMain        = "Encoder 1 Display";
+
+            /* this is application specific memory */
+            pSettings->graphics[0].property        = Memconfig_DisplayProperty_ePrimary;
+            /* show this in the graphics page */
+            pSettings->graphics[0].used            = true;
+            pSettings->graphics[0].heapIdx         = NEXUS_MEMC2_GRAPHICS_HEAP;
+            pSettings->graphics[0].usage           = "M2MC, 3D, Primary Display FB: ";
+
+            pSettings->graphics[1].property        = Memconfig_DisplayProperty_eSecondary;
+            pSettings->graphics[1].used            = true;
+            pSettings->graphics[1].heapIdx         = NEXUS_MEMC2_GRAPHICS_HEAP;
+            pSettings->graphics[1].usage           = "M2MC, Secondary Display FB: ";
+
+            pSettings->graphics[2].property        = Memconfig_DisplayProperty_eTranscode;
+            /* do not show in the graphics page , adding here as an example */
+            pSettings->graphics[3].used            = false;
+            pSettings->graphics[2].heapIdx         = NEXUS_MEMC1_GRAPHICS_HEAP;
+            pSettings->graphics[2].usage           = "Miracast FB, M2MC";
+
+            pSettings->graphics[3].property        = Memconfig_DisplayProperty_eTranscode;
+            /* do not show in the graphics page , adding here as an example */
+            pSettings->graphics[3].used            = false;
+            pSettings->graphics[3].heapIdx         = NEXUS_MEMC1_GRAPHICS_HEAP;
+            pSettings->graphics[3].usage           = "Miracast FB, M2MC";
+
+            /* information for the encoder page*/
+            /* index of video decoder for this transcode */
+            pSettings->transcoders[0].videoDecoder = 2;
+            pSettings->transcoders[0].audioDecoder = 2;
+
+            pSettings->transcoders[1].videoDecoder = 3;
+            pSettings->transcoders[1].audioDecoder = 3;
 
             pSettings->graphics3d.used             = true;
             pSettings->graphics3d.heapIdx          = NEXUS_MEMC2_GRAPHICS_HEAP; /* should match the 3D Primary graphics heap index */

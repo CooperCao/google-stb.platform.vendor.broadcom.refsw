@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2013 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2013 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -341,6 +341,7 @@ void DFlowAnalyzeVisitor_Visit(DFlowAnalyzeVisitor *self, DFlowNode *node)
 ///////////////////////////////////////////////////////////////////////////////
 static void DependentRead_Destroy(void *me)
 {
+   UNUSED(me);
 }
 
 static void DependentRead_Accept(void *me, DFlowNode *node)
@@ -390,6 +391,9 @@ static void MergeCallback(NodeVectorMap_T *map, uint32_t key, NodeVector *bag, v
    DFlowCombiner *self = (DFlowCombiner *)me;
 
    uint32_t    bagSize = NodeVector_size(bag);
+
+   UNUSED(map);
+   UNUSED(key);
 
    if (bagSize > 1)
    {
@@ -447,6 +451,10 @@ void DFlowCombiner_Constr(DFlowCombiner *self, DFlowOptimizeCandidateVisitor *ca
 
 static void DeleteCallback(NodeVectorMap_T *map, uint32_t key, NodeVector *bag, void *me)
 {
+   UNUSED(map);
+   UNUSED(key);
+   UNUSED(me);
+
    if (bag != NULL)
       NodeVector_delete(bag);
 }
@@ -726,6 +734,7 @@ void DFlowSimplifier_Visit(DFlowSimplifier *self)
 
 static void Bushiness_Delete(void *me)
 {
+   UNUSED(me);
 }
 
 static int32_t CostOfFlavour(DataflowFlavour flavour)

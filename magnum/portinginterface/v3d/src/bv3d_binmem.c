@@ -452,8 +452,9 @@ void BV3D_P_BinMemDebugDump(BV3D_BinMemManagerHandle hBinMemManager)
       {
          BV3D_BinMemHandle hMem = BV3D_P_BinMemIndexToHandle(hBinMemManager, i);
 
-         BKNI_Printf("Block %d : %p owned by %x : %x%s\n", i, hMem, hBinMemManager->pInfo[i].uiClient, hBinMemManager->pInfo[i].psJob,
-                      hBinMemManager->pInfo[i].uiClient == 0 ? " (OVERSPILL)" : "");
+         BKNI_Printf("Block %d : %p owned by %x : %p%s\n", i, hMem,
+            hBinMemManager->pInfo[i].uiClient, (void *)hBinMemManager->pInfo[i].psJob,
+            hBinMemManager->pInfo[i].uiClient == 0 ? " (OVERSPILL)" : "");
       }
    }
 }

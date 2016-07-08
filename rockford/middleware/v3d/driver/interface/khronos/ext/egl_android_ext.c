@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2011 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2011 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -15,6 +15,8 @@ Client-side implementation of:
 
 #define EGL_EGLEXT_PROTOTYPES /* we want the prototypes so the compiler will check that the signatures match */
 
+#include "interface/khronos/common/khrn_int_common.h"
+
 #include "interface/khronos/include/EGL/egl.h"
 #include "interface/khronos/include/EGL/eglext.h"
 
@@ -25,6 +27,13 @@ EGLAPI EGLBoolean EGLAPIENTRY eglSetSwapRectangleANDROID (EGLDisplay dpy, EGLSur
    // We do not support this extension, return EGL_FALSE to make Android
    // happy however (ie cleanly know that we do not support it).
    //
+   UNUSED(dpy);
+   UNUSED(draw);
+   UNUSED(left);
+   UNUSED(top);
+   UNUSED(width);
+   UNUSED(height);
+
    return EGL_FALSE;
 }
 
@@ -34,6 +43,9 @@ EGLAPI EGLBoolean EGLAPIENTRY eglSetSwapRectangleANDROID (EGLDisplay dpy, EGLSur
 
 EGLAPI EGLClientBuffer EGLAPIENTRY eglGetRenderBufferANDROID (EGLDisplay dpy, EGLSurface sur)
 {
+   UNUSED(dpy);
+   UNUSED(sur);
+
    return 0;
 }
 

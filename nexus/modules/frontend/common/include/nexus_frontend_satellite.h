@@ -215,6 +215,7 @@ typedef struct NEXUS_FrontendSatelliteSettings
     bool signalDetectMode;
     bool bypassTune;
     bool bypassAcquire;
+    bool shortFrames;       /* Enable short frames for FEC. Only applies to DVB-S2/S2X modes, and on frontends which support it. */
 
     bool bypassFrequencyEstimation; /* Disable frequency estimation and search when tuning; requires exact parameters,
                                        intended as a complement to NEXUS_Frontend_SatellitePeakscan with enablePsd set. */

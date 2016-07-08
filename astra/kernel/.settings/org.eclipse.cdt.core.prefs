@@ -1,0 +1,9 @@
+eclipse.preferences.version=1
+environment/project/cdt.managedbuild.toolchain.gnu.cross.base.364361035/TZ_TOOLCHAIN/delimiter=;
+environment/project/cdt.managedbuild.toolchain.gnu.cross.base.364361035/TZ_TOOLCHAIN/operation=replace
+environment/project/cdt.managedbuild.toolchain.gnu.cross.base.364361035/TZ_TOOLCHAIN/value=/home/gambhire/tzos-user-toolchain/gcc-arm-tzos-musl-4_8-2015q1
+environment/project/cdt.managedbuild.toolchain.gnu.cross.base.364361035/TZ_USER_TOOLCHAIN/delimiter=\:
+environment/project/cdt.managedbuild.toolchain.gnu.cross.base.364361035/TZ_USER_TOOLCHAIN/operation=append
+environment/project/cdt.managedbuild.toolchain.gnu.cross.base.364361035/TZ_USER_TOOLCHAIN/value=/home/gambhire/tzos-user-toolchain/gcc-arm-tzos-musl-4_8-2015q1
+environment/project/cdt.managedbuild.toolchain.gnu.cross.base.364361035/append=true
+environment/project/cdt.managedbuild.toolchain.gnu.cross.base.364361035/appendContributed=true

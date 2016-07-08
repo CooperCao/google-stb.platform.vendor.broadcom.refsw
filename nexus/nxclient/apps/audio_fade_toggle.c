@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2014 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  *****************************************************************************/
 
@@ -119,7 +111,7 @@ static void *playback_thread(void *pParam)
         }
         else {
             NEXUS_PlaypumpScatterGatherDescriptor desc;
-            unsigned numConsumed = 0;
+            size_t numConsumed = 0;
             desc.addr = buf[cur_buf];
             desc.length = n;
             if (playpumpSettings.dataNotCpuAccessible) {
@@ -294,7 +286,7 @@ int main(int argc, char **argv)
             BDBG_ERR(("Set new fade value\n"));
             NEXUS_SimpleAudioDecoder_GetSettings(audioDecoder, &audioSettings);
             level = audioSettings.processorSettings[NEXUS_SimpleAudioDecoderSelector_ePrimary].fade.settings.level = (audioSettings.processorSettings[NEXUS_SimpleAudioDecoderSelector_ePrimary].fade.settings.level == 100) ? 20 : 100;
-            BDBG_ERR(("Set fade for %d seconds, to level %lu%%\n", audioSettings.processorSettings[NEXUS_SimpleAudioDecoderSelector_ePrimary].fade.settings.duration, level));
+            BDBG_ERR(("Set fade for %d seconds, to level %u%%\n", audioSettings.processorSettings[NEXUS_SimpleAudioDecoderSelector_ePrimary].fade.settings.duration, level));
             NEXUS_SimpleAudioDecoder_SetSettings(audioDecoder, &audioSettings);
 
             /* wait for fade to activate */

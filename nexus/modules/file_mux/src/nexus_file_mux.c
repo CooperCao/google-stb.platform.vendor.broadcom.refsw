@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2010-2014 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2010-2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,16 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #include "nexus_file_mux_module.h"
@@ -134,12 +124,12 @@ static void NEXUS_P_FileMux_Dequeue(NEXUS_P_FileMux_File *muxFile)
     if(BFIFO_READ_LEFT(&muxFile->fifo)==0) { (void)BERR_TRACE(NEXUS_INVALID_PARAMETER);return;}
     desc = *BFIFO_READ(&muxFile->fifo);
     if(muxFile->ioCanceled) {
-        BDBG_MSG(("%#x:%#x canceled io", (unsigned)muxFile->mux, (unsigned)muxFile));
+        BDBG_MSG(("%p:%p canceled io", (void*)muxFile->mux, (void*)muxFile));
         return;
     }
     BDBG_ASSERT(!muxFile->ioInProgress);
     muxFile->ioInProgress = true;
-    BDBG_MODULE_MSG(nexus_file_mux_io, ("%p:%p processing request %p:%s %u:%u -> %p[%u]", (void *)muxFile->mux, (void *)muxFile, (void *)desc, desc->bWriteOperation?"write":"read", (unsigned)desc->uiOffset, (unsigned)desc->iov[0].uiLength, (void *)desc->iov[0].pBufferAddress, desc->uiVectorCount));
+    BDBG_MODULE_MSG(nexus_file_mux_io, ("%p:%p processing request %p:%s %u:%u -> %p[%u]", (void *)muxFile->mux, (void *)muxFile, (void *)desc, desc->bWriteOperation?"write":"read", (unsigned)desc->uiOffset, (unsigned)desc->iov[0].uiLength, desc->iov[0].pBufferAddress, desc->uiVectorCount));
     if(desc->bWriteOperation) {
         NEXUS_ASSERT_FIELD(NEXUS_FileMuxIoWriteAtom, base, BMUXlib_StorageBuffer, pBufferAddress);
         NEXUS_ASSERT_FIELD(NEXUS_FileMuxIoWriteAtom, len, BMUXlib_StorageBuffer, uiLength);
@@ -176,18 +166,18 @@ static void NEXUS_P_FileMux_IoComplete(void *cntx, ssize_t size)
     }
     muxFile->ioInProgress = false;
     if(muxFile->ioCanceled) {
-        BDBG_MSG(("I/O:%#x canceled", (unsigned)muxFile));
+        BDBG_MSG(("I/O:%p canceled", (void*)muxFile));
         return;
     }
     desc = *BFIFO_READ(&muxFile->fifo);
-    BDBG_MODULE_MSG(nexus_file_mux_io, ("%#x:%#x completed request %#x:%s %u:%u (%u)-> %#x:%d", (unsigned)muxFile->mux, (unsigned)muxFile, (unsigned)desc, desc->bWriteOperation?"write":"read", (unsigned)desc->uiOffset, (unsigned)desc->iov[0].uiLength, (unsigned)desc->uiVectorCount, (unsigned)desc->iov[0].pBufferAddress, size));
+    BDBG_MODULE_MSG(nexus_file_mux_io, ("%p:%p completed request %p:%s %u:%u (%u)-> %px:%d", (void*)muxFile->mux, (void*)muxFile, (void *)desc, desc->bWriteOperation?"write":"read", (unsigned)desc->uiOffset, (unsigned)desc->iov[0].uiLength, (unsigned)desc->uiVectorCount, (void *)desc->iov[0].pBufferAddress, (int)size));
     if(BFIFO_READ_LEFT(&muxFile->fifo)==0) { (void)BERR_TRACE(NEXUS_UNKNOWN); return;}
     muxFile->lastResult = size;
     for(expectedSize=0,i=0;i<desc->uiVectorCount;i++) {
         expectedSize += desc->iov[i].uiLength;
     }
     if(size<0 || expectedSize != (size_t)size) {
-        BDBG_WRN(("I/O %#x result %d expected %u", (unsigned)muxFile, size, expectedSize));
+        BDBG_WRN(("I/O %p result %d expected %u", (void*)muxFile, (int)size, (unsigned)expectedSize));
         (void)BERR_TRACE(NEXUS_OS_ERROR);return;
     }
     muxFile->completed++;
@@ -209,7 +199,7 @@ static BERR_Code NEXUS_P_FileMux_AddStorageDescriptors(void *pStorageInterfaceCo
     BDBG_ASSERT(pDescriptors);
     BDBG_ASSERT(puiQueuedCount);
     idle = BFIFO_READ_LEFT(&muxFile->fifo)==0;
-    BDBG_MODULE_MSG(nexus_file_mux_io, ("%#x:%#x > add descriptors %u:%u %s", (unsigned)muxFile->mux, (unsigned)muxFile, uiNumDescriptors, BFIFO_WRITE_PEEK(&muxFile->fifo), idle?"idle":""));
+    BDBG_MODULE_MSG(nexus_file_mux_io, ("%p:%p > add descriptors %u:%u %s", (void*)muxFile->mux, (void*)muxFile, (unsigned)uiNumDescriptors, BFIFO_WRITE_PEEK(&muxFile->fifo), idle?"idle":""));
     for(i=0;i<uiNumDescriptors;i++) {
         const BMUXlib_StorageDescriptor **desc = BFIFO_WRITE(&muxFile->fifo);
         if(BFIFO_WRITE_LEFT(&muxFile->fifo)==0) {
@@ -218,13 +208,13 @@ static BERR_Code NEXUS_P_FileMux_AddStorageDescriptors(void *pStorageInterfaceCo
         *desc = pDescriptors;
         BFIFO_WRITE_COMMIT(&muxFile->fifo, 1);
         for(j=0;j<pDescriptors->uiVectorCount;j++) {
-            BDBG_MODULE_MSG(nexus_file_mux_io, ("%#x:%#x queuing request %u:%u %#x:%s:%u (%u:%u) %u -> %#x", (unsigned)muxFile->mux, (unsigned)muxFile, uiNumDescriptors, i, (unsigned)pDescriptors, pDescriptors->bWriteOperation?"write":"read", (unsigned)pDescriptors->uiOffset, pDescriptors->uiVectorCount, j, (unsigned)pDescriptors->iov[j].uiLength, (unsigned)pDescriptors->iov[j].pBufferAddress));
+            BDBG_MODULE_MSG(nexus_file_mux_io, ("%p:%p queuing request %u:%u %p:%s:%u (%u:%u) %u -> %p", (void*)muxFile->mux, (void*)muxFile, (unsigned)uiNumDescriptors, i, (void *)pDescriptors, pDescriptors->bWriteOperation?"write":"read", (unsigned)pDescriptors->uiOffset, pDescriptors->uiVectorCount, j, (unsigned)pDescriptors->iov[j].uiLength, pDescriptors->iov[j].pBufferAddress));
             /*BDBG_ASSERT(pDescriptors->iov[j].pBufferAddress!=0);*//* this seems to be valid for null descriptors! */
         }
         pDescriptors = BMUXLIB_STORAGE_GET_NEXT_DESC(pDescriptors);
     }
     *puiQueuedCount = i;
-    BDBG_MODULE_MSG(nexus_file_mux_io, ("%#x:%#x < add descriptors %u:%u -> %u", (unsigned)muxFile->mux, (unsigned)muxFile, uiNumDescriptors, BFIFO_WRITE_PEEK(&muxFile->fifo), i));
+    BDBG_MODULE_MSG(nexus_file_mux_io, ("%p:%p < add descriptors %u:%u -> %u", (void*)muxFile->mux, (void*)muxFile, (unsigned)uiNumDescriptors, BFIFO_WRITE_PEEK(&muxFile->fifo), i));
     if(idle && i>0) {
         NEXUS_P_FileMux_Dequeue(muxFile);
     }
@@ -236,7 +226,7 @@ static BERR_Code NEXUS_P_FileMux_GetCompletedStorageDescriptors(void *pStorageIn
     NEXUS_P_FileMux_File *muxFile = pStorageInterfaceContext;
     BDBG_OBJECT_ASSERT(muxFile, NEXUS_P_FileMux_File);
     BDBG_ASSERT(puiCompletedCount);
-    BDBG_MODULE_MSG(nexus_file_mux_io, ("%#x:%#x completed %u", (unsigned)muxFile->mux, (unsigned)muxFile, muxFile->completed));
+    BDBG_MODULE_MSG(nexus_file_mux_io, ("%p:%p completed %u", (void*)muxFile->mux, (void*)muxFile, muxFile->completed));
     if(muxFile->ioError) {return BERR_TRACE(BERR_OS_ERROR);}
     *puiCompletedCount = muxFile->completed;
     muxFile->completed = 0;
@@ -275,7 +265,7 @@ static BERR_Code NEXUS_P_FileMux_CreateStorage(void *pStorageContext, BMUXlib_St
 
     tempFile = BKNI_Malloc(sizeof(*tempFile));
     if(!tempFile) {rc=BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);goto err_alloc;}
-    BKNI_Snprintf(fname, sizeof(fname),"%s/mux%#x.tmp", tempStorage->mux->startSettings.tempDir, (unsigned)tempFile);
+    BKNI_Snprintf(fname, sizeof(fname),"%s/mux%p.tmp", tempStorage->mux->startSettings.tempDir, (void*)tempFile);
     BDBG_MSG(("using temporary file %s", fname));
     file = NEXUS_MuxFile_OpenPosix(fname);
     if(!file) {rc=BERR_TRACE(NEXUS_OS_ERROR);goto err_open;}
@@ -348,7 +338,7 @@ static void NEXUS_P_TempStorage_Clean(NEXUS_P_FileMux_TempStorage *tempStorage)
     /* coverity[use_after_free] */
     while(NULL!=(tempFile=BLST_D_FIRST(&tempStorage->files))) {
         if(!tempFile->destroyed) {
-            BDBG_WRN(("destroying leaked file %#x", (unsigned)tempFile));
+            BDBG_WRN(("destroying leaked file %p", (void*)tempFile));
         }
         NEXUS_P_TempFile_Destroy(tempStorage, tempFile);
     }
@@ -715,7 +705,7 @@ NEXUS_FileMux_P_GetVideoBufferDescriptors( void *context, const BAVC_VideoBuffer
     else {
         rc = BERR_TRACE(NEXUS_NOT_SUPPORTED);
     }
-    BDBG_MODULE_MSG(nexus_file_mux_video, ("GetVideoBufferDescriptors:%p numDescriptors:%u:%u", (void *)videoEncoder, *numDescriptors0, *numDescriptors1));
+    BDBG_MODULE_MSG(nexus_file_mux_video, ("GetVideoBufferDescriptors:%p numDescriptors:%u:%u", (void *)videoEncoder, (unsigned)*numDescriptors0, (unsigned)*numDescriptors1));
     return BERR_TRACE(rc);
 }
 
@@ -741,7 +731,7 @@ NEXUS_FileMux_P_ConsumeVideoBufferDescriptors( void *context, size_t numDescript
     else {
         rc = BERR_TRACE(BERR_NOT_SUPPORTED);
     }
-    BDBG_MODULE_MSG(nexus_file_mux_video, ("ConsumeVideoBufferDescriptors:%p numDescriptors:%u", (void *)videoEncoder, numDescriptors));
+    BDBG_MODULE_MSG(nexus_file_mux_video, ("ConsumeVideoBufferDescriptors:%p numDescriptors:%u", (void *)videoEncoder, (unsigned)numDescriptors));
     return BERR_TRACE(rc);
 }
 
@@ -875,7 +865,7 @@ NEXUS_FileMux_P_GetAudioBufferDescriptors(
     else {
         rc = BERR_TRACE(NEXUS_NOT_SUPPORTED);
     }
-    BDBG_MODULE_MSG(nexus_file_mux_audio, ("GetAudioBufferDescriptors:%p numDescriptors:%u:%u", (void *)audioMuxOutput, *puiNumDescriptors0, *puiNumDescriptors1));
+    BDBG_MODULE_MSG(nexus_file_mux_audio, ("GetAudioBufferDescriptors:%p numDescriptors:%u:%u", (void *)audioMuxOutput, (unsigned)*puiNumDescriptors0, (unsigned)*puiNumDescriptors1));
     return BERR_TRACE(rc);
 }
 
@@ -996,7 +986,7 @@ NEXUS_FileMux_P_DoMux(NEXUS_FileMuxHandle mux)
         rc=BERR_TRACE(NEXUS_UNKNOWN); goto error;
     }
     mux->duration = muxStatus.uiCompletedDuration;
-    BDBG_MODULE_MSG(nexus_file_mux_timer, ("MuxTimer:%#x nextExecutionTime:%u state:%u %s duration=%u(ms)", (unsigned)mux, muxStatus.uiNextExecutionTime, (unsigned)muxStatus.eState,muxStatus.bBlockedOutput?"BlockedOutput":"", muxStatus.uiCompletedDuration));
+    BDBG_MODULE_MSG(nexus_file_mux_timer, ("MuxTimer:%p nextExecutionTime:%u state:%u %s duration=%u(ms)", (void*)mux, muxStatus.uiNextExecutionTime, (unsigned)muxStatus.eState,muxStatus.bBlockedOutput?"BlockedOutput":"", muxStatus.uiCompletedDuration));
     if(muxStatus.eState!=BMUXlib_State_eFinished) {
         if(muxStatus.bBlockedOutput) {
             unsigned queued = BFIFO_READ_PEEK(&mux->outputFile.fifo);
@@ -1022,7 +1012,7 @@ NEXUS_FileMux_P_DoMux(NEXUS_FileMuxHandle mux)
             if(mux->muxTimer==NULL) {rc=BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);goto error; }
         }
     } else {
-        BDBG_MODULE_MSG(nexus_file_mux_timer, ("MuxTimer:%#x finished", (unsigned)mux));
+        BDBG_MODULE_MSG(nexus_file_mux_timer, ("MuxTimer:%p finished", (void*)mux));
         NEXUS_TaskCallback_Fire(mux->finishedCallback);
     }
     return;

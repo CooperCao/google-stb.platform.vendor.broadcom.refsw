@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -48,7 +48,7 @@
 namespace bsg
 {
 
-   MediaProber *MediaProber::m_instance = nullptr;
+   MediaProber *MediaProber::m_instance = NULL;
 
    MediaData::MediaData() :
          m_width(0), m_height(0), m_duration(0), m_videoPid(0), m_pcrPid(0), m_audioPid(0),
@@ -131,12 +131,12 @@ namespace bsg
 
    void MediaProber::GetStreamData(const std::string &filename, std::vector<MediaData> &dataList, bool justFirstStream)
    {
-      bmedia_probe_t probe = nullptr;
+      bmedia_probe_t probe = NULL;
       bmedia_probe_config probe_config;
-      const bmedia_probe_stream *stream = nullptr;
-      const bmedia_probe_track *track = nullptr;
-      bfile_io_read_t fd = nullptr;
-      bpcm_file_t pcm_file = nullptr;
+      const bmedia_probe_stream *stream = NULL;
+      const bmedia_probe_track *track = NULL;
+      bfile_io_read_t fd = NULL;
+      bpcm_file_t pcm_file = NULL;
       bool foundAudio = false, foundVideo = false;
       bool detectAvcExtension = true;
       FILE *fin;
@@ -181,7 +181,7 @@ namespace bsg
       if (pcm_file)
          bpcm_file_destroy(pcm_file);
 
-      // Now stream is either nullptr, or stream descriptor with linked list of audio/video tracks
+      // Now stream is either NULL, or stream descriptor with linked list of audio/video tracks
       bfile_stdio_read_detach(fd);
 
       fclose(fin);

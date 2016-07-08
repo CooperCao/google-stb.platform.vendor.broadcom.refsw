@@ -1,43 +1,39 @@
 /******************************************************************************
- * (c) 2014 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 
 #include <errno.h>
@@ -160,7 +156,7 @@ BIP_RtspListenerHandle BIP_RtspListener_Create(
     rc = BKNI_CreateMutex( &hRtspListener->lock );
     BIP_CHECK_ERR_NZ_GOTO( rc, "BKNI_CreateMutex() Failed", error );
 
-    BDBG_MSG(( "%s: hRtspListener %p", __FUNCTION__, hRtspListener ));
+    BDBG_MSG(( "%s: hRtspListener %p", __FUNCTION__, (void *)hRtspListener ));
     return( hRtspListener );
 
 error:
@@ -198,7 +194,6 @@ static void hRtspListenerMessageReceivedCallback(
 
     /* indicate to callback thread to invoke the messageReceived callback */
     /* TODO: for now, we are directly invoking the callback */
-    BDBG_MSG(( "%s: checking callback (%p)", __FUNCTION__, hRtspListener->settings.messageReceivedCallback.callback ));
     if (hRtspListener->settings.messageReceivedCallback.callback)
     {
         BDBG_MSG(( "%s: calling callback()", __FUNCTION__ ));
@@ -238,7 +233,7 @@ static void BIP_Listener_CreateSocket(
     BLST_Q_INSERT_TAIL( &hRtspListener->rtspSocketListHead, hRtspSocket, rtspSocketListNext );
     BKNI_ReleaseMutex( hRtspListener->lock );
 
-    BDBG_MSG(( "%s: new connection on socketFd %d from peer %s, hRtspSocket %p", __FUNCTION__, socketFd, inet_ntoa( peerIpAddress.sin_addr ), hRtspSocket ));
+    BDBG_MSG(( "%s: new connection on socketFd %d from peer %s, hRtspSocket %p", __FUNCTION__, socketFd, inet_ntoa( peerIpAddress.sin_addr ), (void *)hRtspSocket ));
     return;
 
 error:
@@ -266,7 +261,7 @@ static void hRtspListenerGetRtpStatisticsCallback(
 {
     BIP_RtspListenerHandle hRtspListener = (BIP_RtspListenerHandle)ctx;
 
-    BDBG_MSG(( "%s: streamId (%d); hRtspListener (%p)", __FUNCTION__, streamId, hRtspListener ));
+    BDBG_MSG(( "%s: streamId (%d); hRtspListener (%p)", __FUNCTION__, streamId, (void *)hRtspListener ));
     BIP_CHECK_PTR_GOTO( hRtspListener, "hRtspListener is null", error, BIP_ERR_INVALID_PARAMETER );
 
 error:
@@ -312,7 +307,7 @@ void BIP_RtspListener_Stop(
     BIP_RtspListenerHandle hRtspListener
     )
 {
-    BDBG_MSG(( "%s: hRtspListener %p", __FUNCTION__, hRtspListener ));
+    BDBG_MSG(( "%s: hRtspListener %p", __FUNCTION__, (void *)hRtspListener ));
     BIP_RtspLiveMediaListener_Stop( hRtspListener->hRtspLmListener );
 }
 
@@ -323,7 +318,7 @@ BIP_Status BIP_RtspListener_Start(
     BIP_Status errCode = BIP_SUCCESS;
 
     BDBG_OBJECT_ASSERT( hRtspListener, BIP_RtspListener );
-    BDBG_MSG(( "%s: hRtspListener %p", __FUNCTION__, hRtspListener ));
+    BDBG_MSG(( "%s: hRtspListener %p", __FUNCTION__, (void *)hRtspListener ));
 
     errCode = BIP_RtspLiveMediaListener_Start( hRtspListener->hRtspLmListener );
     BIP_CHECK_ERR_NZ_GOTO( errCode, "SetSettings Failed", error );
@@ -357,18 +352,18 @@ BIP_Status BIP_RtspListener_RecvRequest(
         if (rc == BIP_ERR_NOT_AVAILABLE)
         {
             /* No more messages available for this hRtspSocket, so break out */
-            BDBG_MSG(( "No message available for hRtspSocket %p, try the next one", hRtspSocket ));
+            BDBG_MSG(( "No message available for hRtspSocket %p, try the next one", (void *)hRtspSocket ));
             hRtspSocket = BLST_Q_NEXT( hRtspSocket, rtspSocketListNext );
             continue;
         }
         else if (rc != BIP_SUCCESS)
         {
             /* Error while receiving the next RtspRequest, destroy this rtspSocket */
-            BDBG_MSG(( "error while receiving the next Request on rtspSocket %p, destroying socket", hRtspSocket )); /* happens when socket closes */
+            BDBG_MSG(( "error while receiving the next Request on rtspSocket %p, destroying socket", (void *)hRtspSocket )); /* happens when socket closes */
 
             /* Remove socket from our list and then destroy it */
             hRtspSocketNext = BLST_Q_NEXT( hRtspSocket, rtspSocketListNext );
-            BDBG_MSG(( "destroyed RtspSocket %p, next %p", hRtspSocket, hRtspSocketNext ));
+            BDBG_MSG(( "destroyed RtspSocket %p, next %p", (void *)hRtspSocket, (void *)hRtspSocketNext ));
             BLST_Q_REMOVE( &hRtspListener->rtspSocketListHead, hRtspSocket, rtspSocketListNext );
             BIP_RtspSocket_Destroy( hRtspSocket );
 
@@ -383,7 +378,7 @@ BIP_Status BIP_RtspListener_RecvRequest(
         }
         else
         {
-            BDBG_MSG(( "%s: hRtspSocket %p, hRtspRequest %p", __FUNCTION__, hRtspSocket, hRtspRequest ));
+            BDBG_MSG(( "%s: hRtspSocket %p, hRtspRequest %p", __FUNCTION__, (void *)hRtspSocket, (void *)hRtspRequest ));
             /* TODO: Reset idle timeout for this socket */
 
             /* TODO: Also, reset the timeout function that prunes the sockets w/ errors as we go thru each socket once here and prune them if there is error on it */
@@ -409,7 +404,7 @@ BIP_RtspSessionHandle BIP_RtspListener_CreateSession(
     BIP_RtspSocketHandle  hRtspSocket;
     BIP_Status             rc;
 
-    BDBG_MSG(( "%s: creating session on rtspSession %p, hRtspRequest %p", __FUNCTION__, hRtspListener, hRtspRequest ));
+    BDBG_MSG(( "%s: creating session on rtspSession %p, hRtspRequest %p", __FUNCTION__, (void *)hRtspListener, (void *)hRtspRequest ));
     hRtspSocket = BIP_RtspRequest_GetSocket( hRtspRequest );
 
     hRtspSession = BIP_RtspSocket_CreateSession( hRtspSocket, hRtspRequest );

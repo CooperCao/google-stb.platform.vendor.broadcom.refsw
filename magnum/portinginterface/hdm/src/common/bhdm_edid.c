@@ -1,28 +1,47 @@
-/***************************************************************************
- *     Copyright (c) 2002-2014, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ *  Except as expressly set forth in the Authorized License,
  *
- * Module Description:
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * Revision History:
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- *
- ***************************************************************************/
-#include "breg_endian.h"
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+
+ ******************************************************************************/
 
 #include "bhdm.h"
 #include "bhdm_priv.h"
 #include "bavc.h"
+#include "breg_endian.h"
+
 
 #if BHDM_CONFIG_HDMI_3D_SUPPORT
 #include "bhdm_edid_3d.h"
@@ -599,7 +618,9 @@ BERR_Code BHDM_EDID_GetNthBlock(
 	{
 #if BHDM_CONFIG_HAS_HDCP22
 		/* make sure polling Auto I2C channels are disabled; prior to the read */
-		BHDM_AUTO_I2C_SetChannels_isrsafe(hHDMI, 0) ;
+		BKNI_EnterCriticalSection() ;
+		BHDM_AUTO_I2C_SetChannels_isr(hHDMI, 0) ;
+		BKNI_LeaveCriticalSection() ;
 #endif
 
 		/* Read the EDID block; sometimes the EDID block is not ready/available */
@@ -641,7 +662,9 @@ BERR_Code BHDM_EDID_GetNthBlock(
 	}
 #if BHDM_CONFIG_HAS_HDCP22
 		/* re-enable any polling Auto I2C channels that had to be disabled prior to the read */
-		BHDM_AUTO_I2C_SetChannels_isrsafe(hHDMI, 1) ;
+		BKNI_EnterCriticalSection() ;
+		BHDM_AUTO_I2C_SetChannels_isr(hHDMI, 1) ;
+		BKNI_LeaveCriticalSection() ;
 #endif
 
 	/* copy the EDID block to the EDID handle */
@@ -1782,7 +1805,7 @@ BERR_Code BHDM_EDID_GetMonitorRange(
 		hHDMI->AttachedEDID.MonitorRange.MaxVertical = 60 ;
 
 		hHDMI->AttachedEDID.MonitorRange.MinHorizontal  = 26 ;
-		hHDMI->AttachedEDID.MonitorRange.MinHorizontal  = 68 ;
+		hHDMI->AttachedEDID.MonitorRange.MaxHorizontal  = 68 ;
 
 		hHDMI->AttachedEDID.MonitorRange.MaxPixelClock = 80 ;
 
@@ -1790,7 +1813,6 @@ BERR_Code BHDM_EDID_GetMonitorRange(
 		BDBG_WRN(("Forcing 60Hz monitor type monitor")) ;
 		BDBG_WRN(("   Vertical Refresh: %d", hHDMI->AttachedEDID.MonitorRange.MinVertical)) ;
 		BDBG_WRN(("   Horizontal Refresh %d - %d ",
-			pMonitorRange->MinHorizontal,
 			hHDMI->AttachedEDID.MonitorRange.MinHorizontal,
 			hHDMI->AttachedEDID.MonitorRange.MaxHorizontal)) ;
 
@@ -1863,7 +1885,7 @@ BERR_Code BHDM_EDID_IsRxDeviceHdmi(
 #if BDBG_DEBUG_BUILD
 	if (hHDMI->edidStatus == BHDM_EDID_STATE_eInitialize)
 	{
-		BDBG_MSG(("HDMI Rx Supported Features (%#x):", RxVSDB)) ;
+		BDBG_MSG(("HDMI Rx Supported Features (%p):", (void *)RxVSDB)) ;
 		BDBG_MSG(("\tUnderscan:    %s", g_status[RxVSDB->Underscan ? 1 : 0])) ;
 		BDBG_MSG(("\tAudio Caps:   %s", g_status[RxVSDB->Audio ? 1 : 0])) ;
 		BDBG_MSG(("\tYCbCr: 4:2:2 %s   4:4:4 %s",
@@ -2244,13 +2266,15 @@ BERR_Code BHDM_EDID_VideoFmtSupported(
 		goto error;
 	}
 
-	if (hHDMI->AttachedEDID.BcmVideoFormatsChecked == 0)
+	if ((hHDMI->AttachedEDID.BcmVideoFormatsChecked == 0)
+	&&  (hHDMI->AttachedEDID.BcmSupported420VideoFormatsChecked == 0))
 	{
 		rc = BERR_TRACE(BHDM_EDID_VIDEO_FORMATS_UNAVAILABLE) ;
 		goto error ;
 	}
 
-	if (hHDMI->AttachedEDID.BcmSupportedVideoFormats[eVideoFmt])
+	if ((hHDMI->AttachedEDID.BcmSupportedVideoFormats[eVideoFmt])
+	||  (hHDMI->AttachedEDID.BcmSupported420VideoFormats[eVideoFmt]))
 	{
 		*Supported = 1 ;
 		goto done;
@@ -2733,6 +2757,8 @@ static BERR_Code BHDM_EDID_P_ParseVideoCapablityDB(
 	uint8_t VideoCapabilityByte ;
 
 	BSTD_UNUSED(DataBlockLength) ;
+
+	hHDMI->AttachedEDID.VideoCapabilityDB.valid = true ;
 
 	VideoCapabilityByte =
 		hHDMI->AttachedEDID.Block[DataBlockIndex + 2] ;
@@ -3636,7 +3662,7 @@ done:
 	||  hHDMI->AttachedEDID.RxVSDB.DeepColor_Y444
 	||  hHDMI->AttachedEDID.RxVSDB.DVI_Dual))
 	{
-		BDBG_MSG(("")) ;
+		BDBG_MSG((" ")) ;
 		BDBG_MSG(("HDMI 1.3 Features")) ;
 		BDBG_MSG(("   Deep Color Support")) ;
 		BDBG_MSG(("      16bit: %s;   12bit: %s;   10bit: %s;  Y444: %s",
@@ -3676,7 +3702,7 @@ done:
 #if BHDM_CONFIG_HDMI_3D_SUPPORT
 	if (hHDMI->AttachedEDID.RxVSDB.HDMI_Video_Present)
 	{
-		BDBG_MSG(("")) ;
+		BDBG_MSG((" ")) ;
 		BDBG_MSG(("HDMI 1.4 Features")) ;
 		BDBG_MSG(("   Content Types Supported")) ;
 		BDBG_MSG(("      Graphics (Text): %s  Cinema: %s  Photo: %s  Game: %s",
@@ -4095,7 +4121,7 @@ static BERR_Code BHDM_EDID_P_ParseV3TimingExtension (const BHDM_Handle hHDMI)
 				/* adds to supported BCM video formats */
 				BHDM_EDID_P_ParseVideoDB(hHDMI, DataBlockIndex, DataBlockLength) ;
 				BDBG_MSG(("*************************************************")) ;
-				BDBG_MSG(("")) ;
+				BDBG_MSG((" ")) ;
 			}
 			DataBlockIndex += DataBlockLength + 1;
 		} /* while DataBlockIndex < DataOffset */
@@ -4221,7 +4247,7 @@ static BERR_Code BHDM_EDID_P_ParseV3TimingExtension (const BHDM_Handle hHDMI)
 
 			DataBlockIndex += DataBlockLength + 1;
 			BDBG_MSG(("*************************************************")) ;
-			BDBG_MSG(("")) ;
+			BDBG_MSG((" ")) ;
 
 		} /* while DataBlockIndex < DataOffset */
 	}
@@ -4466,6 +4492,7 @@ BERR_Code BHDM_EDID_Initialize(
 		hHDMI->AttachedEDID.RxHasHdmiSupport = true ;
 
 		hHDMI->edidStatus = BHDM_EDID_STATE_eOK;
+		rc = BERR_SUCCESS ;
 
 		goto done ;
 	}
@@ -4483,8 +4510,8 @@ BERR_Code BHDM_EDID_Initialize(
 		}
 	}
 	/* clear all current EDID information */
-  	BKNI_Memset((void *) &hHDMI->AttachedEDID, 0, sizeof(BHDM_EDID_DATA)) ;
-	hHDMI->AttachedEDID.RxHdmiForumVsdb.Max_TMDS_Clock_Rate = BHDM_CONFIG_HDMI_1_4_MAX_RATE ;
+	BKNI_Memset((void *) &hHDMI->AttachedEDID, 0, sizeof(BHDM_EDID_DATA)) ;
+	hHDMI->AttachedEDID.RxHdmiForumVsdb.Max_TMDS_Clock_Rate = BHDM_HDMI_1_4_MAX_RATE ;
 
 	BDBG_MSG(("Initializing/Reading EDID Information   (%s %d)",
 		BHDM_P_GetVersion(), BCHP_CHIP)) ;
@@ -4734,6 +4761,7 @@ BERR_Code BHDM_EDID_Initialize(
 		/* Its not mandatory to have extension blocks. so there is no error. Display a message and continue */
 		BDBG_WRN(("No EDID Extensions Found... Monitor supports DVI (Video) only")) ;
 		hHDMI->edidStatus = BHDM_EDID_STATE_eOK;
+		rc = BERR_SUCCESS ;
 		goto done ;
 	}
 
@@ -4846,8 +4874,9 @@ BERR_Code BHDM_EDID_GetPreferredColorimetry(
 
 	*eColorimetry = BAVC_MatrixCoefficients_eDvi_Full_Range_RGB;
 	if (hHDMI->edidStatus == BHDM_EDID_STATE_eInvalid) {
+
+		/* Whether or not the EDID is valid; HDMI requires all devices to support full range RGB */
 		/* Default to Full range RGB */
-		rc = BERR_TRACE(BHDM_EDID_NOT_FOUND) ;
 		goto done ;
 	}
 
@@ -4891,9 +4920,6 @@ BERR_Code BHDM_EDID_GetPreferredColorimetry(
 			/* do nothing */ ;
 		}
 	}
-
-	/* disable the automatic use of BT2020; app must explictly enable BT2020 */
-#if 0
 	else if (hHDMI->AttachedEDID.ColorimetryDB.bExtended[BHDM_EDID_ColorimetryDbExtendedSupport_eBT2020cYCC])
 	{
 		*eColorimetry = BAVC_MatrixCoefficients_eItu_R_BT_2020_CL ;
@@ -4902,7 +4928,6 @@ BERR_Code BHDM_EDID_GetPreferredColorimetry(
 	{
 		*eColorimetry = BAVC_MatrixCoefficients_eItu_R_BT_2020_NCL ;
 	}
-#endif
 	else /* BT 2020 not supported */
 	{
 		*eColorimetry = BAVC_MatrixCoefficients_eItu_R_BT_709 ;
@@ -5042,6 +5067,32 @@ BERR_Code BHDM_EDID_GetSupportedColorimetry(
 done:
 	*eColorimetry =
 		BAVC_GetDefaultMatrixCoefficients_isrsafe(eVideoFmt, false);
+	return rc  ;
+}
+
+
+/******************************************************************************
+BERR_Code BHDM_EDID_GetVideoCapabilityDB
+Summary: Retrieve Rx Video Capabilities stored in the EDID's Video Capability Data Block
+*******************************************************************************/
+BERR_Code BHDM_EDID_GetVideoCapabilityDB(
+	const BHDM_Handle hHDMI,
+	BHDM_EDID_VideoCapabilityDataBlock *pVideoCapabilityDataBlock)
+{
+	BERR_Code rc = BERR_SUCCESS ;
+	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
+
+	BKNI_Memset(pVideoCapabilityDataBlock, 0, sizeof(BHDM_EDID_VideoCapabilityDataBlock)) ;
+	if (hHDMI->edidStatus == BHDM_EDID_STATE_eInvalid)
+	{
+		rc = BERR_TRACE(BHDM_EDID_NOT_FOUND) ;
+		goto done ;
+	}
+
+	BKNI_Memcpy(pVideoCapabilityDataBlock, &hHDMI->AttachedEDID.VideoCapabilityDB,
+		sizeof(BHDM_EDID_VideoCapabilityDataBlock)) ;
+
+done:
 	return rc  ;
 }
 

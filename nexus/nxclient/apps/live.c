@@ -101,6 +101,7 @@ static void print_usage(const struct nxapps_cmdline *cmdline)
     );
     printf(
     "  -max WIDTH,HEIGHT        max video decoder resolution\n"
+    "  -colorDepth {8|10}\n"
     "  -scrtext SCRIPT          run --help-script to learn script commands\n"
     "  -script SCRIPTFILE       run --help-script to learn script commands\n"
     "  -smooth                  set smoothResolutionChange to disable scale factor rounding\n"
@@ -108,8 +109,10 @@ static void print_usage(const struct nxapps_cmdline *cmdline)
     );
     print_list_option("channelChange",g_channelChangeMode);
     printf(
-    "  -video PID               use 0 for no video.\n"
-    "  -audio PID               use 0 for no audio.\n"
+    "  -video PID               override PSI scan. use 0 for no video. default video_type is MPEG.\n"
+    "  -video_type CODEC        override PSI scan.\n"
+    "  -audio PID               override PSI scan. use 0 for no audio. default audio_type is AC3.\n"
+    "  -audio_type CODEC        override PSI scan.\n"
     );
     print_list_option("format",g_videoFormatStrs);
     print_list_option("ar",g_contentModeStrs);
@@ -142,6 +145,8 @@ struct decoder {
     live_decode_channel_t channel;
     live_decode_start_settings start_settings;
     unsigned video_pid, audio_pid; /* scan override */
+    NEXUS_VideoCodec video_type;
+    NEXUS_AudioCodec audio_type;
 
     unsigned chNum; /* global number */
     struct frontend *frontend;
@@ -263,7 +268,7 @@ static void stop_decode(struct decoder *d)
 {
     if (!d->channel) return;
 
-    BDBG_MSG(("stop_decode(%p) %p frontend=%p(%d) map=%p program=%d", d, d->channel, d->frontend?d->frontend->frontend:NULL, d->frontend?d->frontend->refcnt:0, d->map, d->program));
+    BDBG_MSG(("stop_decode(%p) %p frontend=%p(%d) map=%p program=%d", (void*)d, (void*)d->channel, d->frontend?(void*)d->frontend->frontend:NULL, d->frontend?d->frontend->refcnt:0, (void*)d->map, d->program));
     live_decode_stop_channel(d->channel);
     if (d->frontend) {
         BDBG_ASSERT(d->frontend->map);
@@ -292,7 +297,7 @@ static int set_channel(struct decoder *d, unsigned chNum)
     }
     d->map = map;
     d->program = chNum;
-    BDBG_MSG(("set_channel(%p,%d) %p %d", d, chNum, d->map, d->program));
+    BDBG_MSG(("set_channel(%p,%d) %p %d", (void*)d, chNum, (void*)d->map, d->program));
     return 0;
 }
 
@@ -340,6 +345,7 @@ static int start_priming(struct decoder *d)
     d->start_settings.parserBand = d->parserBand;
     if (d->video_pid != 0x1fff) {
         d->start_settings.video.pid = d->video_pid;
+        d->start_settings.video.codec = d->video_type;
     }
     else {
         d->start_settings.video.pid = map->scan_results.program_info[d->program].video_pids[0].pid;
@@ -347,6 +353,7 @@ static int start_priming(struct decoder *d)
     }
     if (d->audio_pid != 0x1fff) {
         d->start_settings.audio.pid = d->audio_pid;
+        d->start_settings.audio.codec = d->audio_type;
     }
     else {
         d->start_settings.audio.pid = map->scan_results.program_info[d->program].audio_pids[0].pid;
@@ -356,7 +363,7 @@ static int start_priming(struct decoder *d)
     rc = live_decode_start_channel(d->channel, &d->start_settings);
     if (rc) return BERR_TRACE(rc);
 
-    BDBG_MSG(("start_priming(%p) %p frontend=%p(%d) parserBand=%p, map=%p program=%d", d, d->channel, d->frontend->frontend, d->frontend->refcnt, d->parserBand, d->map, d->program));
+    BDBG_MSG(("start_priming(%p) %p frontend=%p(%d) parserBand=%p, map=%p program=%d", (void*)d, (void*)d->channel, (void*)d->frontend->frontend, d->frontend->refcnt, (void*)d->parserBand, (void*)d->map, d->program));
 
     return 0;
 }
@@ -386,7 +393,7 @@ static void change_channels(int dir)
         /* start decoding the first */
         d = BLST_Q_FIRST(&g_decoders);
         if (d->channel && d->map) {
-            BDBG_MSG(("activate(%p)", d));
+            BDBG_MSG(("activate(%p)", (void*)d));
             live_decode_activate(d->channel);
         }
     }
@@ -407,7 +414,7 @@ static void change_channels(int dir)
 
         /* start decoding the first */
         if (!set_channel(d, first_d->chNum == 0 ? g_total_channels-1: first_d->chNum-1)) {
-            BDBG_MSG(("activate(%p)", d));
+            BDBG_MSG(("activate(%p)", (void*)d));
             start_priming(d);
             live_decode_activate(d->channel);
         }
@@ -429,7 +436,7 @@ static void init_decoders(unsigned ch)
 
     d = BLST_Q_FIRST(&g_decoders);
     if (d->channel && d->map) {
-        BDBG_MSG(("activate(%p)", d));
+        BDBG_MSG(("activate(%p)", (void*)d));
         live_decode_activate(d->channel);
     }
 }
@@ -442,7 +449,7 @@ static void print_status(void)
         NEXUS_SimpleVideoDecoder_GetStatus(live_decode_get_video_decoder(d->channel), &status);
         BDBG_WRN(("%s %p: %d/%d %d%%, pts %#x, diff %d",
             d == BLST_Q_FIRST(&g_decoders) ? "decode":"primer",
-            d, status.fifoDepth, status.fifoSize, status.fifoSize ? status.fifoDepth * 100 / status.fifoSize : 0,
+            (void*)d, status.fifoDepth, status.fifoSize, status.fifoSize ? status.fifoDepth * 100 / status.fifoSize : 0,
             status.pts, status.ptsStcDifference));
     }
 }
@@ -494,6 +501,8 @@ int main(int argc, const char **argv)
     live_decode_create_settings create_settings;
     live_decode_start_settings start_settings;
     unsigned video_pid = 0x1fff, audio_pid = 0x1fff;
+    NEXUS_VideoCodec video_type = NEXUS_VideoCodec_eMpeg2;
+    NEXUS_AudioCodec audio_type = NEXUS_AudioCodec_eAc3;
     struct decoder *d;
     struct frontend *frontend;
     bool prompt = false;
@@ -585,6 +594,9 @@ int main(int argc, const char **argv)
                 return -1;
             }
         }
+        else if (!strcmp(argv[curarg], "-colorDepth") && curarg+1 < argc) {
+            start_settings.video.colorDepth = atoi(argv[++curarg]);
+        }
         else if (!strcmp(argv[curarg], "-script") && argc>curarg+1) {
             input_settings.script_file = argv[++curarg];
         }
@@ -607,8 +619,14 @@ int main(int argc, const char **argv)
         else if (!strcmp(argv[curarg], "-video") && argc>curarg+1) {
             video_pid = strtoul(argv[++curarg], NULL, 0);
         }
+        else if (!strcmp(argv[curarg], "-video_type") && argc>curarg+1) {
+            video_type = lookup(g_videoCodecStrs, argv[++curarg]);
+        }
         else if (!strcmp(argv[curarg], "-audio") && argc>curarg+1) {
             audio_pid = strtoul(argv[++curarg], NULL, 0);
+        }
+        else if (!strcmp(argv[curarg], "-audio_type") && argc>curarg+1) {
+            audio_type = lookup(g_audioCodecStrs, argv[++curarg]);
         }
         else if (!strcmp(argv[curarg], "-sync") && argc>curarg+1) {
             create_settings.sync = lookup(g_syncModeStrs, argv[++curarg]);
@@ -814,11 +832,13 @@ int main(int argc, const char **argv)
         }
         dt->start_settings = start_settings;
         dt->video_pid = video_pid;
+        dt->video_type = video_type;
         dt->audio_pid = audio_pid;
+        dt->audio_type = audio_type;
         dt->channel = live_decode_create_channel(decode);
         BDBG_ASSERT(dt->channel);
         BLST_Q_INSERT_TAIL(&g_decoders, dt, link);
-        BDBG_MSG(("decoder %d = %p", i, dt));
+        BDBG_MSG(("decoder %d = %p", i, (void*)dt));
 
         videoDecoder = live_decode_get_video_decoder(dt->channel);
         if (videoDecoder) {
@@ -988,7 +1008,7 @@ static void *gui_thread(void *context)
     while (!g_constellation.done) {
 #define MAX_SOFTDEC 32
         NEXUS_FrontendSoftDecision softdec[MAX_SOFTDEC];
-        unsigned num;
+        size_t num;
         int rc;
 
         if (!count) {

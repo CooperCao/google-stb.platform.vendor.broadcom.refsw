@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2004-2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,14 +35,6 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* Revision History:
-*
-* $brcm_Log: $
-* 
 ***************************************************************************/
 #ifndef NEXUS_PLATFORM_COMMON_H__
 #define NEXUS_PLATFORM_COMMON_H__
@@ -66,10 +58,11 @@ typedef struct NEXUS_ClientAuthenticationSettings
     } preferences; */
 } NEXUS_ClientAuthenticationSettings;
 
+typedef void *NEXUS_PlatformAnyObject;
 
 typedef struct NEXUS_PlatformObjectInstance {
     bool readOnly; /* set true for handles not owned by this client */
-    void *object;
+    NEXUS_PlatformAnyObject object;
 } NEXUS_PlatformObjectInstance;
 
 #define NEXUS_INTERFACE_NAME_MAX   32

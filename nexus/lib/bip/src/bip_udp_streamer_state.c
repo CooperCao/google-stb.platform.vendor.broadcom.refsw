@@ -1,43 +1,39 @@
 /******************************************************************************
- * (c) 2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 
 #include "b_os_lib.h"
@@ -86,7 +82,7 @@ static void stopPBipStreamer(
     {
         B_PlaybackIp_LiveStreamingStop(hUdpStreamer->playbackIpState.hLiveStreamer);
         BIP_MSG_SUM(( BIP_MSG_PRE_FMT "hUdpStreamer %p: state %s: PBIP based live streamer is stopped"
-                    BIP_MSG_PRE_ARG, hUdpStreamer, BIP_UDP_STREAMER_STATE(hUdpStreamer->state) ));
+                    BIP_MSG_PRE_ARG, (void *)hUdpStreamer, BIP_UDP_STREAMER_STATE(hUdpStreamer->state) ));
     }
 } /* stopPBipStreamer */
 
@@ -99,7 +95,7 @@ static void destroyPBipStreamer(
         B_PlaybackIp_LiveStreamingClose(hUdpStreamer->playbackIpState.hLiveStreamer);
         hUdpStreamer->playbackIpState.hLiveStreamer = NULL;
         BIP_MSG_SUM(( BIP_MSG_PRE_FMT "hUdpStreamer %p: state %s: PBIP based live streamer is Destroyed!"
-                    BIP_MSG_PRE_ARG, hUdpStreamer, BIP_UDP_STREAMER_STATE(hUdpStreamer->state) ));
+                    BIP_MSG_PRE_ARG, (void *)hUdpStreamer, BIP_UDP_STREAMER_STATE(hUdpStreamer->state) ));
     }
 } /* destroyPBipStreamer */
 
@@ -123,7 +119,7 @@ static void playbackIpStreamerCallbackViaArbTimer(
     BDBG_OBJECT_ASSERT( hUdpStreamer, BIP_UdpStreamer );
     BSTD_UNUSED(param);
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hUdpStreamer: %p" BIP_MSG_PRE_ARG, hUdpStreamer ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hUdpStreamer: %p" BIP_MSG_PRE_ARG, (void *)hUdpStreamer ));
     processUdpStreamerState( (BIP_UdpStreamerHandle) hUdpStreamer, 0, BIP_Arb_ThreadOrigin_eTimer);
 } /* playbackIpStreamerCallbackViaArbTimer */
 
@@ -138,7 +134,7 @@ static void playbackIpStreamerCallback(
     BDBG_ASSERT(hUdpStreamer);
     BDBG_OBJECT_ASSERT( hUdpStreamer, BIP_UdpStreamer);
     BDBG_MSG(( BIP_MSG_PRE_FMT "hUdpStreamer:state %p: %s, got eventId %d from PBIP: Defer the callback"
-                BIP_MSG_PRE_ARG, hUdpStreamer, BIP_UDP_STREAMER_STATE(hUdpStreamer->state), eventId ));
+                BIP_MSG_PRE_ARG, (void *)hUdpStreamer, BIP_UDP_STREAMER_STATE(hUdpStreamer->state), eventId ));
     if (hUdpStreamer)
     {
         B_Mutex_Lock( hUdpStreamer->hStateMutex );
@@ -194,7 +190,7 @@ static BIP_Status startPBipLiveStreamer(
     B_Error rc;
 
     BDBG_MSG(( BIP_MSG_PRE_FMT "ENTRY ---> hUdpStreamer %p: state %s"
-                BIP_MSG_PRE_ARG, hUdpStreamer, BIP_UDP_STREAMER_STATE(hUdpStreamer->state) ));
+                BIP_MSG_PRE_ARG, (void *)hUdpStreamer, BIP_UDP_STREAMER_STATE(hUdpStreamer->state) ));
 
     /* Setup a PBIP LiveStreaming Session */
     {
@@ -263,7 +259,7 @@ static BIP_Status startPBipLiveStreamer(
         rc = B_PlaybackIp_LiveStreamingStart( hUdpStreamer->playbackIpState.hLiveStreamer );
         BIP_CHECK_GOTO(( !rc ), ( "B_PlaybackIp_LiveStreamingStart Failed!" ), error, BIP_ERR_INTERNAL, bipStatus );
         bipStatus = BIP_SUCCESS;
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hUdpStreamer %p: Streaming from inputType %d Started!" BIP_MSG_PRE_ARG, hUdpStreamer, hUdpStreamer->hStreamer->inputType));
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hUdpStreamer %p: Streaming from inputType %d Started!" BIP_MSG_PRE_ARG, (void *)hUdpStreamer, hUdpStreamer->hStreamer->inputType));
     }
 
 error:
@@ -272,7 +268,7 @@ error:
         stopAndDestroyPBipStreamer( hUdpStreamer );
     }
     BDBG_MSG(( BIP_MSG_PRE_FMT "EXIT <--- hUdpStreamer %p: state %s, bipStatus 0x%x"
-                BIP_MSG_PRE_ARG, hUdpStreamer, BIP_UDP_STREAMER_STATE(hUdpStreamer->state), bipStatus));
+                BIP_MSG_PRE_ARG, (void *)hUdpStreamer, BIP_UDP_STREAMER_STATE(hUdpStreamer->state), bipStatus));
 
     return bipStatus;
 } /* startPBipLiveStreamer */
@@ -295,7 +291,7 @@ void processUdpStreamerState(
 
     B_Mutex_Lock( hUdpStreamer->hStateMutex );
     BDBG_MSG(( BIP_MSG_PRE_FMT "ENTRY ---> hUdpStreamer %p: state %s"
-                BIP_MSG_PRE_ARG, hUdpStreamer, BIP_UDP_STREAMER_STATE(hUdpStreamer->state) ));
+                BIP_MSG_PRE_ARG, (void *)hUdpStreamer, BIP_UDP_STREAMER_STATE(hUdpStreamer->state) ));
 
     if (BIP_Arb_IsNew(hArb = hUdpStreamer->getSettingsApi.hArb))
     {
@@ -308,7 +304,7 @@ void processUdpStreamerState(
         /* We are done this API Arb, so set its completion status. */
         hUdpStreamer->completionStatus = BIP_SUCCESS;
         BDBG_MSG(( BIP_MSG_PRE_FMT "hUdpStreamer %p: GetSettings Arb request is complete: state %s!"
-                    BIP_MSG_PRE_ARG, hUdpStreamer, BIP_UDP_STREAMER_STATE(hUdpStreamer->state) ));
+                    BIP_MSG_PRE_ARG, (void *)hUdpStreamer, BIP_UDP_STREAMER_STATE(hUdpStreamer->state) ));
         BIP_Arb_CompleteRequest( hArb, hUdpStreamer->completionStatus);
     }
     else if (BIP_Arb_IsNew(hArb = hUdpStreamer->getStatusApi.hArb))
@@ -323,7 +319,7 @@ void processUdpStreamerState(
 
         hUdpStreamer->completionStatus = BIP_SUCCESS;
         BDBG_MSG(( BIP_MSG_PRE_FMT "hUdpStreamer %p: GetStatus Arb request is complete: state %s!"
-                    BIP_MSG_PRE_ARG, hUdpStreamer, BIP_UDP_STREAMER_STATE(hUdpStreamer->state) ));
+                    BIP_MSG_PRE_ARG, (void *)hUdpStreamer, BIP_UDP_STREAMER_STATE(hUdpStreamer->state) ));
         BIP_Arb_CompleteRequest( hArb, hUdpStreamer->completionStatus);
     }
     else if (BIP_Arb_IsNew(hArb = hUdpStreamer->setSettingsApi.hArb))
@@ -332,7 +328,7 @@ void processUdpStreamerState(
         hUdpStreamer->settings = *hUdpStreamer->setSettingsApi.pSettings;
 
         BDBG_MSG(( BIP_MSG_PRE_FMT "hUdpStreamer %p: SetSettings Arb request is complete : state %s!"
-                    BIP_MSG_PRE_ARG, hUdpStreamer, BIP_UDP_STREAMER_STATE(hUdpStreamer->state) ));
+                    BIP_MSG_PRE_ARG, (void *)hUdpStreamer, BIP_UDP_STREAMER_STATE(hUdpStreamer->state) ));
         hUdpStreamer->completionStatus = BIP_SUCCESS;
         BIP_Arb_CompleteRequest( hArb, hUdpStreamer->completionStatus);
     }
@@ -343,7 +339,7 @@ void processUdpStreamerState(
         if (hUdpStreamer->state != BIP_UdpStreamerState_eIdle)
         {
             BDBG_ERR(( BIP_MSG_PRE_FMT "hUdpStreamer %p: Calling BIP_Arb_RejectRequest(): BIP_UdpStreamer_SetFileInputSettings not allowed in this state: %s, Streamer must be in the Idle state"
-                        BIP_MSG_PRE_ARG, hUdpStreamer, BIP_UDP_STREAMER_STATE(hUdpStreamer->state)));
+                        BIP_MSG_PRE_ARG, (void *)hUdpStreamer, BIP_UDP_STREAMER_STATE(hUdpStreamer->state)));
 
             hUdpStreamer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, hUdpStreamer->completionStatus);
@@ -368,7 +364,7 @@ void processUdpStreamerState(
         if (hUdpStreamer->state != BIP_UdpStreamerState_eIdle)
         {
             BDBG_ERR(( BIP_MSG_PRE_FMT "hUdpStreamer %p: Calling BIP_Arb_RejectRequest(): BIP_UdpStreamer_SetTunerInputSettings not allowed in this state: %s, Streamer must be in the Idle state"
-                        BIP_MSG_PRE_ARG, hUdpStreamer, BIP_UDP_STREAMER_STATE(hUdpStreamer->state)));
+                        BIP_MSG_PRE_ARG, (void *)hUdpStreamer, BIP_UDP_STREAMER_STATE(hUdpStreamer->state)));
             hUdpStreamer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, hUdpStreamer->completionStatus);
         }
@@ -391,7 +387,7 @@ void processUdpStreamerState(
         if (hUdpStreamer->state != BIP_UdpStreamerState_eIdle)
         {
             BDBG_ERR(( BIP_MSG_PRE_FMT "hUdpStreamer %p: Calling BIP_Arb_RejectRequest(): BIP_UdpStreamer_SetRecpumpInputSettings not allowed in this state: %s, Streamer must be in the Idle state"
-                        BIP_MSG_PRE_ARG, hUdpStreamer, BIP_UDP_STREAMER_STATE(hUdpStreamer->state)));
+                        BIP_MSG_PRE_ARG, (void *)hUdpStreamer, BIP_UDP_STREAMER_STATE(hUdpStreamer->state)));
             hUdpStreamer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, hUdpStreamer->completionStatus);
         }
@@ -418,7 +414,7 @@ void processUdpStreamerState(
         if (hUdpStreamer->state != BIP_UdpStreamerState_eIdle)
         {
             BDBG_ERR(( BIP_MSG_PRE_FMT "hUdpStreamer %p: BIP_UdpStreamer_SetOutputSettings not allowed in this state: %s"
-                        BIP_MSG_PRE_ARG, hUdpStreamer, BIP_UDP_STREAMER_STATE(hUdpStreamer->state)));
+                        BIP_MSG_PRE_ARG, (void *)hUdpStreamer, BIP_UDP_STREAMER_STATE(hUdpStreamer->state)));
             hUdpStreamer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, hUdpStreamer->completionStatus);
         }
@@ -443,7 +439,7 @@ void processUdpStreamerState(
                     hUdpStreamer->output.state = BIP_UdpStreamerOutputState_eSet;
                     hUdpStreamer->completionStatus = BIP_SUCCESS;
                     BDBG_MSG(( BIP_MSG_PRE_FMT "hUdpStreamer %p: ip:port:iface %s:%s:%s, timestamp=%s, protocol=%s"
-                                BIP_MSG_PRE_ARG, hUdpStreamer,
+                                BIP_MSG_PRE_ARG, (void *)hUdpStreamer,
                                 BIP_String_GetString(hUdpStreamer->output.hIpAddress),
                                 BIP_String_GetString(hUdpStreamer->output.hPort),
                                 BIP_String_GetString(hUdpStreamer->output.hInterfaceName),
@@ -465,7 +461,7 @@ void processUdpStreamerState(
         if (hUdpStreamer->state != BIP_UdpStreamerState_eIdle)
         {
             BDBG_ERR(( BIP_MSG_PRE_FMT "hUdpStreamer %p: BIP_UdpStreamer_AddTrack() is only allowed in Idle state, current state: %s"
-                        BIP_MSG_PRE_ARG, hUdpStreamer, BIP_UDP_STREAMER_STATE(hUdpStreamer->state)));
+                        BIP_MSG_PRE_ARG, (void *)hUdpStreamer, BIP_UDP_STREAMER_STATE(hUdpStreamer->state)));
             hUdpStreamer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, hUdpStreamer->completionStatus);
         }
@@ -483,7 +479,7 @@ void processUdpStreamerState(
         if (hUdpStreamer->state != BIP_UdpStreamerState_eIdle)
         {
             BDBG_ERR(( BIP_MSG_PRE_FMT "hUdpStreamer %p: BIP_UdpStreamer_AddTranscodeProfile() is only allowed in Idle state, current state: %s"
-                        BIP_MSG_PRE_ARG, hUdpStreamer, BIP_UDP_STREAMER_STATE(hUdpStreamer->state)));
+                        BIP_MSG_PRE_ARG, (void *)hUdpStreamer, BIP_UDP_STREAMER_STATE(hUdpStreamer->state)));
             hUdpStreamer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, hUdpStreamer->completionStatus);
         }
@@ -504,7 +500,7 @@ void processUdpStreamerState(
         if (hUdpStreamer->state != BIP_UdpStreamerState_eIdle)
         {
             BDBG_ERR(( BIP_MSG_PRE_FMT "hUdpStreamer %p: BIP_UdpStreamer_SetTranscodeProfile() is only allowed in Idle state, current state: %s"
-                        BIP_MSG_PRE_ARG, hUdpStreamer, BIP_UDP_STREAMER_STATE(hUdpStreamer->state)));
+                        BIP_MSG_PRE_ARG, (void *)hUdpStreamer, BIP_UDP_STREAMER_STATE(hUdpStreamer->state)));
             hUdpStreamer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, hUdpStreamer->completionStatus);
         }
@@ -526,7 +522,7 @@ void processUdpStreamerState(
         if (hUdpStreamer->state != BIP_UdpStreamerState_eIdle)
         {
             BDBG_ERR(( BIP_MSG_PRE_FMT "hUdpStreamer %p: BIP_UdpStreamer_Start() is only allowed in Idle state, current state: %s"
-                        BIP_MSG_PRE_ARG, hUdpStreamer, BIP_UDP_STREAMER_STATE(hUdpStreamer->state)));
+                        BIP_MSG_PRE_ARG, (void *)hUdpStreamer, BIP_UDP_STREAMER_STATE(hUdpStreamer->state)));
             hUdpStreamer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, hUdpStreamer->completionStatus);
         }
@@ -537,7 +533,7 @@ void processUdpStreamerState(
                  hUdpStreamer->output.state == BIP_UdpStreamerOutputState_eNotSet
                 )
         {
-            BDBG_ERR(( BIP_MSG_PRE_FMT "hUdpStreamer %p: BIP_UdpStreamer_Start() is not allowed when Input or Output are not set!." BIP_MSG_PRE_ARG, hUdpStreamer ));
+            BDBG_ERR(( BIP_MSG_PRE_FMT "hUdpStreamer %p: BIP_UdpStreamer_Start() is not allowed when Input or Output are not set!." BIP_MSG_PRE_ARG, (void *)hUdpStreamer ));
             hUdpStreamer->completionStatus = BIP_ERR_INVALID_API_SEQUENCE;
             BIP_Arb_RejectRequest(hArb, hUdpStreamer->completionStatus);
         }
@@ -584,7 +580,7 @@ void processUdpStreamerState(
 
         hUdpStreamer->state = BIP_UdpStreamerState_eIdle;
         BDBG_MSG(( BIP_MSG_PRE_FMT "hUdpStreamer %p: BIP_UdpStreamer_Stop successful: %s"
-                    BIP_MSG_PRE_ARG, hUdpStreamer, BIP_UDP_STREAMER_STATE(hUdpStreamer->state)));
+                    BIP_MSG_PRE_ARG, (void *)hUdpStreamer, BIP_UDP_STREAMER_STATE(hUdpStreamer->state)));
         BIP_Arb_CompleteRequest( hArb, hUdpStreamer->completionStatus );
     }
     else if (BIP_Arb_IsNew(hArb = hUdpStreamer->destroyApi.hArb))
@@ -593,7 +589,7 @@ void processUdpStreamerState(
         hUdpStreamer->completionStatus = BIP_INF_IN_PROGRESS;
 
         BDBG_MSG(( BIP_MSG_PRE_FMT "hUdpStreamer %p: Accepted _Destroy Arb: state %s!"
-                    BIP_MSG_PRE_ARG, hUdpStreamer, BIP_UDP_STREAMER_STATE(hUdpStreamer->state) ));
+                    BIP_MSG_PRE_ARG, (void *)hUdpStreamer, BIP_UDP_STREAMER_STATE(hUdpStreamer->state) ));
 
         /* NOTE: the same comment as above in the stopApi case applies here!!!. */
         stopPBipStreamer( hUdpStreamer );
@@ -613,7 +609,7 @@ void processUdpStreamerState(
         }
         hUdpStreamer->state = BIP_UdpStreamerState_eWaitingForStopApi;
         BDBG_MSG(( BIP_MSG_PRE_FMT "hUdpStreamer %p, state %s: Done from StreamingDone state and moving to WaitingForStop state!"
-                        BIP_MSG_PRE_ARG, hUdpStreamer, BIP_UDP_STREAMER_STATE(hUdpStreamer->state)));
+                        BIP_MSG_PRE_ARG, (void *)hUdpStreamer, BIP_UDP_STREAMER_STATE(hUdpStreamer->state)));
     }
 
     /*
@@ -622,7 +618,7 @@ void processUdpStreamerState(
     B_Mutex_Unlock( hUdpStreamer->hStateMutex );
 
     BDBG_MSG(( BIP_MSG_PRE_FMT "Finished Processing UDP State for hUdpStreamer %p: state %s, before issuing the callbacks with completionStatus 0x%x"
-            BIP_MSG_PRE_ARG, hUdpStreamer, BIP_UDP_STREAMER_STATE(hUdpStreamer->state), completionStatus ));
+            BIP_MSG_PRE_ARG, (void *)hUdpStreamer, BIP_UDP_STREAMER_STATE(hUdpStreamer->state), completionStatus ));
 
     /* Tell ARB to do any deferred work. */
     brc = BIP_Arb_DoDeferred( hUdpStreamer->startApi.hArb, threadOrigin );
@@ -630,6 +626,6 @@ void processUdpStreamerState(
 
 
     BDBG_MSG(( BIP_MSG_PRE_FMT "EXIT <--- hUdpStreamer %p: state %s"
-                BIP_MSG_PRE_ARG, hUdpStreamer, BIP_UDP_STREAMER_STATE(hUdpStreamer->state)));
+                BIP_MSG_PRE_ARG, (void *)hUdpStreamer, BIP_UDP_STREAMER_STATE(hUdpStreamer->state)));
     return;
 } /* processUdpStreamerState */

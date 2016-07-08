@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2010 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2010 Broadcom.
 All rights reserved.
 
 Project  :  EGL driver
@@ -53,7 +53,7 @@ typedef struct
 
    /* Allocate aligned device memory, and return the cached address, or NULL on failure.
     * Alignment is in units of bytes - not 2^alignment bytes */
-   void *(*Alloc)(void *context, size_t numBytes, uint32_t alignment);
+   void *(*Alloc)(void *context, size_t numBytes, uint32_t alignment, bool secure);
 
    /* Free a previously allocated block of device memory. Pass a cached address.*/
    void (*Free)(void *context, void *pCached);
@@ -74,7 +74,10 @@ typedef struct
    void(*MemCopy2d)(void *context, BEGL_MemCopy2d *params);
 
    /* Lock device memory. Once it is locked it needs to be CPU readable/writable and not move until unlocked */
-   void *(*MemLock)(void *context, void *handle, uintptr_t *offset);
+   void *(*MemLock)(void *context, void *handle);
+
+   /* Lock device memory offset. */
+   uintptr_t (*MemLockOffset)(void *context, void *handle);
 
    /* Unlock device memory. Once it is unlocked it *MAY* not be CPU accessible and can be moved */
    void (*MemUnlock)(void *context, void *handle);

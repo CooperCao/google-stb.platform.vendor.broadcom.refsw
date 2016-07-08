@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2014 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,18 +35,10 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   API name: Frontend 7584
 *    APIs to open, close, and setup initial settings for a BCM7584
 *    Frontend Device.
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 #include "nexus_frontend_module.h"
@@ -524,6 +516,7 @@ static NEXUS_Error NEXUS_Frontend_P_Init_7584_Hab(NEXUS_7584 *pDevice, const NEX
                 BKNI_Memcpy(fw + (chunk*chunk_size), pImage, num_to_read);
             }
             imgInterface.close(pImg);
+            fw_image = fw;
         }
 #else
         BSTD_UNUSED(fw);
@@ -2806,7 +2799,8 @@ static NEXUS_Error NEXUS_Frontend_P_7584_TuneOob(void *handle, const NEXUS_Front
     pDevice = (NEXUS_7584 *)pChannel->pDevice;
 
     if(pDevice->deviceSettings.outOfBand.outputMode == NEXUS_FrontendOutOfBandOutputMode_eMax){
-        BDBG_ERR(("Out of band output mode set to %d is not supported. Use NEXUS_FrontendDevice_Set7584Settings() to set the right settings."));
+        BDBG_ERR(("Out of band output mode set to %d is not supported. Use NEXUS_FrontendDevice_Set7584Settings() to set the right settings.",
+         pDevice->deviceSettings.outOfBand.outputMode));
         rc = BERR_TRACE(BERR_INVALID_PARAMETER); goto done;
     }
 
@@ -2989,8 +2983,8 @@ static NEXUS_Error NEXUS_Frontend_P_7584_GetOobAsyncStatus(void *handle, NEXUS_F
     prevStatus->time = currentTime;
     pStatus->settings = pDevice->last_aob;
 
-    BDBG_MSG((" OOB ASYNC STATUS : fec_lock = %d,  qam_lock = %d, snr_estimate = %d, fec_corr_cnt = %d",
-            st.isFecLock, st.isQamLock, st.agcIntLevel, st.agcExtLevel, st.snrEstimate,
+    BDBG_MSG((" OOB ASYNC STATUS : fec_lock = %d,  qam_lock = %d, snr_estimate = %d, fec_corr_cnt = %d \
+                fec_uncorrected_cnt = %d, ber_err_cnt = %d " , st.isFecLock, st.isQamLock, st.snrEstimate,
             st.correctedCount, st.uncorrectedCount, st.berErrorCount));
 
     return BERR_SUCCESS;

@@ -151,12 +151,20 @@ typedef struct wave_header
 
 BDBG_MODULE(audio_playback);
 
+struct hotplug_context {
+    NEXUS_HdmiOutputHandle hdmi;
+    NEXUS_DisplayHandle display;
+};
+
 /* HDMI Hotplug Callback */
 static void hotplug_callback(void *pParam, int iParam)
 {
+    struct hotplug_context *context = pParam;
+    NEXUS_HdmiOutputHandle hdmi = context->hdmi;
+    NEXUS_DisplayHandle display = context->display;
     NEXUS_HdmiOutputStatus status;
-    NEXUS_HdmiOutputHandle hdmi = pParam;
-    NEXUS_DisplayHandle display = (NEXUS_DisplayHandle)iParam;
+
+    BSTD_UNUSED(iParam);
 
     NEXUS_HdmiOutput_GetStatus(hdmi, &status);
     fprintf(stderr, "HDMI hotplug event: %s\n", status.connected?"connected":"not connected");
@@ -177,11 +185,8 @@ static void hotplug_callback(void *pParam, int iParam)
 
 static void data_callback(void *pParam1, int param2)
 {
-    /*
-    printf("Data callback - channel 0x%08x\n", (unsigned)pParam1);
-    */
-    pParam1=pParam1;    /*unused*/
-    BKNI_SetEvent((BKNI_EventHandle)param2);
+    BSTD_UNUSED(param2);
+    BKNI_SetEvent(*(BKNI_EventHandle*)pParam1);
 }
 
 int main(int argc, char **argv)
@@ -194,6 +199,8 @@ int main(int argc, char **argv)
 
     NEXUS_AudioPlaybackHandle playbackHandle[NEXUS_NUM_AUDIO_PLAYBACKS];
     NEXUS_AudioPlaybackStartSettings playbackSettings;
+
+    struct hotplug_context hotplug_context;
 
     unsigned numPlaybacksInUse = 0;
     unsigned index, count;
@@ -246,15 +253,18 @@ int main(int argc, char **argv)
         NEXUS_HdmiOutputSettings hdmiSettings;
 
         NEXUS_HdmiOutput_GetSettings(config.outputs.hdmi[0], &hdmiSettings);
+
+        hotplug_context.hdmi = config.outputs.hdmi[0];
+        hotplug_context.display = display;
+
         hdmiSettings.hotplugCallback.callback = hotplug_callback;
-        hdmiSettings.hotplugCallback.context = config.outputs.hdmi[0];
-        hdmiSettings.hotplugCallback.param = (int)display;
+        hdmiSettings.hotplugCallback.context = &hotplug_context;
         errCode = NEXUS_HdmiOutput_SetSettings(config.outputs.hdmi[0], &hdmiSettings);
         BDBG_ASSERT(!errCode);
     }
 
     /* Force a hotplug to switch to preferred format */
-    hotplug_callback(config.outputs.hdmi[0], (int)display);
+    hotplug_callback(&hotplug_context, 0);
 
     BKNI_CreateEvent(&event);
 
@@ -395,8 +405,7 @@ int main(int argc, char **argv)
     }
     playbackSettings.signedData = true;
     playbackSettings.dataCallback.callback = data_callback;
-    playbackSettings.dataCallback.context = playbackHandle;
-    playbackSettings.dataCallback.param = (int)event;
+    playbackSettings.dataCallback.context = &event;
 
     /* If we have a wav file, get the sample rate from it */
     if ( pFile )
@@ -591,7 +600,7 @@ int main(int argc, char **argv)
             BDBG_ASSERT(!errCode);
             
             if ((bytesPlayed/1024) % 100 == 0) {
-                BDBG_WRN(("%d of %d KB played", bytesPlayed/1024, bytesToPlay/1024));
+                BDBG_WRN(("%ld of %ld KB played", (unsigned long)bytesPlayed/1024, (unsigned long)bytesToPlay/1024));
             }
         }
         else 
@@ -671,6 +680,8 @@ int main(int argc, char **argv)
         BDBG_ASSERT(index < NEXUS_NUM_AUDIO_PLAYBACKS);
         NEXUS_AudioPlayback_Close(playbackHandle[index]);
     }
+
+    BKNI_DestroyEvent(event);
 
     NEXUS_VideoWindow_Close(window);
     NEXUS_Display_Close(display);

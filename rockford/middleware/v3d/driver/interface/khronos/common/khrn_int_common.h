@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2008 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2008 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -66,11 +66,7 @@ typedef unsigned long long uint64_t;
 #define UNREACHABLE() vcos_demand(0);
 #endif
 
-#ifdef _MSC_VER
-   #define UNUSED(X) X
-#else
-   #define UNUSED(X)
-#endif
+#define UNUSED(X) X
 
 #ifdef NDEBUG
    #define UNUSED_NDEBUG(X) UNUSED(X)
@@ -110,6 +106,7 @@ typedef struct {
    bool HW2989;   /* only set stencil mode prior to last thrsw */
    bool SBWAIT;   /* core has to issue a SBWAIT instruction to access the scoreboard */
    bool GFXH724;  /* Make top bits of INTCTL read masked interrupt status */
+   bool LNLOOP;   /* A line loop of two points doesn't draw anything */
 } KHRN_WORKAROUNDS_T;
 
 extern KHRN_WORKAROUNDS_T khrn_workarounds;

@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2009 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2009 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -584,8 +584,9 @@ bool glxx_hw_clear(bool color, bool depth, bool stencil, GLXX_SERVER_STATE_T *st
          rs->color_buffer_valid = true;
          rs->color_load = false;
          rs->preserve_load = false;
-         col_format = fb.col_format & ~(IMAGE_FORMAT_PRE | IMAGE_FORMAT_LIN | IMAGE_FORMAT_OVG);
-         if (tu_image_format_rb_swap(khrn_image_to_tf_format(col_format)))
+         col_format = khrn_image_no_colorspace_format(fb.col_format);
+         col_format = khrn_image_to_tf_format(col_format);
+         if (tu_image_format_rb_swap(col_format))
          {
             rs->color_value = color_floats_to_rgba(
                state->clear_color[2],
@@ -795,7 +796,7 @@ static bool create_master_cl(void)
       goto fail;
 
    col = (KHRN_IMAGE_T *)mem_lock(render_state->installed_fb.mh_color_image, NULL);
-   col_format = render_state->installed_fb.col_format & ~(IMAGE_FORMAT_PRE | IMAGE_FORMAT_LIN | IMAGE_FORMAT_OVG);
+   col_format = khrn_image_no_colorspace_format(render_state->installed_fb.col_format);
 
    // Clear colour and depth
    add_byte(&instr, KHRN_HW_INSTR_STATE_CLEARCOL);   //(14)
@@ -1045,6 +1046,8 @@ bool glxx_hw_render_state_flush(GLXX_HW_RENDER_STATE_T *rs)
       /* Now transfer everything */
       color = (KHRN_IMAGE_T *)mem_lock(rs->installed_fb.mh_color_image, NULL);
 
+      bool secure = color->secure;
+
       khrn_interlock_transfer(&color->interlock, khrn_interlock_user(rs->name), KHRN_INTERLOCK_FIFO_HW_RENDER);
       mem_unlock(rs->installed_fb.mh_color_image);
 
@@ -1070,7 +1073,7 @@ bool glxx_hw_render_state_flush(GLXX_HW_RENDER_STATE_T *rs)
       }
 
       /* Submit a job */
-      khrn_issue_bin_render_job(rs);
+      khrn_issue_bin_render_job(rs, secure);
 
       MEM_ASSIGN(rs->installed_fb.mh_color_image, MEM_INVALID_HANDLE);
       MEM_ASSIGN(rs->installed_fb.mh_depth, MEM_INVALID_HANDLE);
@@ -1296,6 +1299,7 @@ static bool populate_master_cl(GLXX_HW_FRAMEBUFFER_T *fb)
             uint16_t flags;
             uint32_t offset;
             KHRN_IMAGE_T *image;
+            KHRN_IMAGE_FORMAT_T col_format;
 
             if (load_standard)
                image = color_image;
@@ -1314,7 +1318,10 @@ static bool populate_master_cl(GLXX_HW_FRAMEBUFFER_T *fb)
             else if ((khrn_workarounds.FB_TOP_DOWN) && (fb->flags & IMAGE_FLAG_DISPLAY) && khrn_image_is_rso(fb->col_format))
                flags |= (3 << 4);
 
-            switch (khrn_image_to_rso_format(fb->col_format) & ~(IMAGE_FORMAT_PRE | IMAGE_FORMAT_LIN | IMAGE_FORMAT_OVG))
+            col_format = khrn_image_no_colorspace_format(fb->col_format);
+            col_format = khrn_image_to_rso_format(col_format);
+
+            switch (col_format)
             {
             case ABGR_8888_RSO:
             case XBGR_8888_RSO:
@@ -1692,8 +1699,9 @@ static bool draw_rect(
    if (color && state->shader.common.blend.color_mask != 0xFFFFFFFF)
    {
       KHRN_IMAGE_FORMAT_T col_format;
-      col_format = fb->col_format & ~(IMAGE_FORMAT_PRE | IMAGE_FORMAT_LIN | IMAGE_FORMAT_OVG);
-      if (tu_image_format_rb_swap(khrn_image_to_tf_format(col_format)))
+      col_format = khrn_image_no_colorspace_format(fb->col_format);
+      col_format = khrn_image_to_tf_format(col_format);
+      if (tu_image_format_rb_swap(col_format))
       {
          uint32_t color_mask = state->shader.common.blend.color_mask;
          color_mask = (color_mask & 0xff00ff00) | ((color_mask & 0xff0000) >> 16) | ((color_mask & 0xff) << 16);
@@ -1722,8 +1730,9 @@ static bool draw_rect(
    if (color)
    {
       KHRN_IMAGE_FORMAT_T col_format;
-      col_format = fb->col_format & ~(IMAGE_FORMAT_PRE | IMAGE_FORMAT_LIN | IMAGE_FORMAT_OVG);
-      if (tu_image_format_rb_swap(khrn_image_to_tf_format(col_format)))
+      col_format = khrn_image_no_colorspace_format(fb->col_format);
+      col_format = khrn_image_to_tf_format(col_format);
+      if (tu_image_format_rb_swap(col_format))
       {
          ((uint32_t *)locked_addr)[uniformIndx++] = color_floats_to_rgba(
             state->clear_color[2],

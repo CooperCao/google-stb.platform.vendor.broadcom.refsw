@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2013 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 
@@ -88,6 +80,8 @@ typedef struct NEXUS_SageChannelSettings
 {
     NEXUS_CallbackDesc successCallback;
     NEXUS_CallbackDesc errorCallback;
+    NEXUS_CallbackDesc callbackRequestRecvCallback;
+    NEXUS_CallbackDesc taTerminateCallback;
     NEXUS_HeapHandle heap;
 } NEXUS_SageChannelSettings;
 void NEXUS_SageChannel_GetDefaultSettings(
@@ -106,6 +100,7 @@ typedef struct NEXUS_SageChannelStatus
     NEXUS_Error lastError;
     uint32_t lastErrorSage;
     bool busy;
+    bool pendingCallbackRequest;
 } NEXUS_SageChannelStatus;
 NEXUS_Error NEXUS_SageChannel_GetStatus(
     NEXUS_SageChannelHandle channel,
@@ -122,10 +117,15 @@ NEXUS_Error NEXUS_SageChannel_SendCommand(
     NEXUS_SageChannelHandle channel,
     const NEXUS_SageCommand *pCommand
     );
+
 typedef struct NEXUS_SageStatus {
     struct {
         bool secured;
     } urr;
+    struct {
+        uint32_t THLShortSig;
+        uint8_t version[4];
+    } framework;
 } NEXUS_SageStatus;
 /***************************************************************************
 Summary:
@@ -147,7 +147,6 @@ Summary:
 Description:
 This function is called by applications to retrieve RSA2048 encrypted key
 used to encrypt SAGE logs.
-
 ***************************************************************************/
 NEXUS_Error NEXUS_Sage_GetEncKey(
     uint8_t *pKeyBuff,  /* [out] attr{nelem=keySize;nelem_out=pOutKeySize} pointer to CRC entries. */
@@ -168,6 +167,15 @@ NEXUS_Error NEXUS_Sage_GetLogBuffer(
     uint32_t *pWrapBufSize, /* [out] size of buffer in bytes */
     uint32_t *pActualBufSize, /* [out] size of buffer in bytes */
     uint32_t *pActualWrapBufSize /* [out] size of buffer in bytes */
+    );
+
+typedef struct NEXUS_SageResponse {
+    uint32_t sequenceId;
+    uint32_t returnCode;
+} NEXUS_SageResponse;
+NEXUS_Error NEXUS_SageChannel_SendResponse(
+    NEXUS_SageChannelHandle channel,
+    const NEXUS_SageResponse *pResponse
     );
 
 #ifdef __cplusplus

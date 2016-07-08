@@ -46,6 +46,8 @@
 #include "satfe_fsk.h"
 #include "bfsk.h"
 #include "bfsk_4538.h"
+#include "bfsk_protocol.h"
+
 
 #ifdef SATFE_USE_BFSK
 #ifdef BFSK_PROTOCOL_ECHO

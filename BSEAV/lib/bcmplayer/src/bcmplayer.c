@@ -1,24 +1,42 @@
 /***************************************************************************
- *     Copyright (c) 2002-2014, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description: Transport Stream Index Player
  *
- * Revision History:
- *
- * Created: 02/09/2001 by Marcus Kellerman
- *
- * $brcm_Log: $
- * 
  ***************************************************************************/
 #ifndef USE_LEGACY_KERNAL_INTERFACE
 /* Magnum debug interface */
@@ -253,8 +271,6 @@ static int BNAV_Player_p_SanityCheck(BNAV_Player_Handle handle);
 #define getLo64(X) (unsigned long)((X)&0xFFFFFFFF)
 #define getHi64(X) (unsigned long)((X)>>32)
 #define create64(HI,LO) ((((uint64_t)(HI))<<32)|(unsigned long)(LO))
-#define BNAV_Player_get_frameOffset64(PENTRY) \
-    create64(BNAV_get_frameOffsetHi(PENTRY),BNAV_get_frameOffsetLo(PENTRY))
 
 /*! Function Definitions */
 
@@ -496,7 +512,7 @@ BNAV_Entry *BNAV_Player_ReadEntry(BNAV_Player_Handle handle, long index)
     /* Test again, if we're still not in range then we're past the end of the file -- done! */
     if (index < handle->firstIndex || index > handle->lastIndex) {
         BDBG_MSG(("BNAV_Player_ReadEntry failed, index %d, firstIndex %d, lastIndex %d",
-            index, handle->firstIndex, handle->lastIndex));
+            (int)index, (int)handle->firstIndex, (int)handle->lastIndex));
         return NULL;
     }
 
@@ -580,6 +596,7 @@ int BNAV_Player_GetPosition(BNAV_Player_Handle handle, BNAV_Player_Position *pos
 
 int BNAV_Player_GetPositionInformation(BNAV_Player_Handle handle, long index, BNAV_Player_Position *position) {
     BNAV_Entry *pEntry = BNAV_Player_ReadEntry(handle, index);
+    uint64_t offset;
     if (!pEntry)
         return -1;
 
@@ -589,8 +606,9 @@ int BNAV_Player_GetPositionInformation(BNAV_Player_Handle handle, long index, BN
 
     position->index = index;
     position->pts = BNAV_get_framePts(pEntry);
-    position->offsetHi = BNAV_get_frameOffsetHi(pEntry);
-    position->offsetLo = BNAV_get_frameOffsetLo(pEntry);
+    offset = BNAV_get_frameOffset(pEntry);
+    position->offsetHi = getHi64(offset);
+    position->offsetLo = getLo64(offset);
 
     if (handle->navVersion == BNAV_Version_AVC_Extended) {
         /* SPS preceeds PPS, so we set the greater number */
@@ -616,9 +634,9 @@ int BNAV_Player_GetNextPlayEntry(BNAV_Player_Handle handle, BNAV_Player_PlayEntr
 
     if (handle->currentIndex < handle->firstIndex ) {
         /* Index file has been trimmed ! */
-        BDBG_MSG(("currentIndex %lx, first %lx , last %lx , current offset %llx, firstFifoEntry %d, lastFifoEntry %d",
-            handle->currentIndex, handle->firstIndex, handle->lastIndex, handle->currentOffset, handle->firstFifoEntry,
-            handle->lastFifoEntry));
+        BDBG_MSG(("currentIndex %lx, first %lx , last %lx , current offset " BDBG_UINT64_FMT ", firstFifoEntry %d, lastFifoEntry %d",
+            handle->currentIndex, handle->firstIndex, handle->lastIndex, BDBG_UINT64_ARG(handle->currentOffset), (unsigned)handle->firstFifoEntry,
+            (unsigned)handle->lastFifoEntry));
 
         if( handle->playMode == eBpPlayNormal) {
             /* Tell caller, index has gone away from under us so they can take action */
@@ -790,7 +808,7 @@ retry:
     }
 
     if (BNAV_get_frameSize(pEntry) == 0) {
-        BDBG_ERR(("invalid frame size 0 at index %d", handle->currentIndex));
+        BDBG_ERR(("invalid frame size 0 at index %d", (int)handle->currentIndex));
 #ifdef LOOSE_INDEX_CHECKING
         goto retry;
 #else
@@ -798,7 +816,7 @@ retry:
 #endif
     }
 
-    nextOffset = BNAV_Player_get_frameOffset64(pEntry) + BNAV_get_frameSize(pEntry);
+    nextOffset = BNAV_get_frameOffset(pEntry) + BNAV_get_frameSize(pEntry);
     if (handle->packetSize) {
         nextOffset -= nextOffset % handle->packetSize;
     }
@@ -826,7 +844,7 @@ static int BNAV_Player_AddNormalPlay(BNAV_Player_Handle handle)
     nextOffset = handle->currentOffset;
     while ((pEntry = BNAV_Player_ReadEntry(handle, handle->currentIndex))) {
         if (BNAV_get_frameSize(pEntry) == 0) {
-            BDBG_ERR(("invalid frame size 0 at index %d", handle->currentIndex));
+            BDBG_ERR(("invalid frame size 0 at index %d", (int)handle->currentIndex));
 #ifdef LOOSE_INDEX_CHECKING
             handle->currentIndex++;
             continue;
@@ -835,7 +853,7 @@ static int BNAV_Player_AddNormalPlay(BNAV_Player_Handle handle)
 #endif
         }
         
-        nextOffset = BNAV_Player_get_frameOffset64(pEntry) + BNAV_get_frameSize(pEntry);
+        nextOffset = BNAV_get_frameOffset(pEntry) + BNAV_get_frameSize(pEntry);
         if (handle->packetSize) {
             nextOffset -= nextOffset % handle->packetSize;
         }
@@ -903,7 +921,7 @@ static int BNAV_Player_P_FindGOP(BNAV_Player_Handle handle, int num_gops)
             }
             curIndex += handle->playDir;
         }
-        BDBG_MSG(("got %p at %d", pStartEntry, curIndex));
+        BDBG_MSG(("got %p at %d", (void *)pStartEntry, (int)curIndex));
         if (!pStartEntry) return -1; /* hit end */
 
         handle->gopTrick.currentStart = curIndex;
@@ -921,7 +939,7 @@ static int BNAV_Player_P_FindGOP(BNAV_Player_Handle handle, int num_gops)
                     break;
             }
         }
-        BDBG_MSG(("got %p at %d", pStartEntry, curIndex-1));
+        BDBG_MSG(("got %p at %d", (void *)pStartEntry, (int)(curIndex-1)));
         if (pStartEntry) {
             handle->gopTrick.currentEnd = --curIndex;
         }
@@ -1335,7 +1353,7 @@ static int BNAV_Player_AddFrame(BNAV_Player_Handle handle, long entry)
     uint64_t seqHdrOffset64;
     int result = 0;
 
-    BDBG_MSG(("AddFrame index=%d", entry));
+    BDBG_MSG(("AddFrame index=%d", (int)entry));
 
     CHECKREAD(pStartEntry = BNAV_Player_ReadEntry(handle, entry));
 
@@ -1362,7 +1380,7 @@ static int BNAV_Player_AddFrame(BNAV_Player_Handle handle, long entry)
     if (handle->settings.useBtpsForHostTrickModes) {
         if (handle->navVersion != BNAV_Version_VC1_PES) {
             /* send sequence header if different. for AVC this means just checking the PPS, which is sufficient. */
-            seqHdrOffset64 = BNAV_Player_get_frameOffset64(pStartEntry) - BNAV_get_seqHdrStartOffset(pStartEntry);
+            seqHdrOffset64 = BNAV_get_frameOffset(pStartEntry) - BNAV_get_seqHdrStartOffset(pStartEntry);
             if (seqHdrOffset64 != handle->lastSeqHdrOffset64)
             {
                 if (BNAV_Player_AddSequenceHeader(handle, pStartEntry, TT_MODE_PROCESS, 0, 0))
@@ -1383,7 +1401,7 @@ static int BNAV_Player_AddFrame(BNAV_Player_Handle handle, long entry)
     curFifoEntry->insertpackettype = eBpInsertNone;
 
     /* back up to TS packet */
-    curFifoEntry->startByte = BNAV_Player_get_frameOffset64(pStartEntry);
+    curFifoEntry->startByte = BNAV_get_frameOffset(pStartEntry);
     if (handle->packetSize) {
         curFifoEntry->startByte -= curFifoEntry->startByte % handle->packetSize;
     }
@@ -1392,7 +1410,7 @@ static int BNAV_Player_AddFrame(BNAV_Player_Handle handle, long entry)
         BNAV_AVC_Entry *avcEntry = (BNAV_AVC_Entry *)pStartEntry;
 
         /* Calc the SPS offset */
-        seqHdrOffset64 = BNAV_Player_get_frameOffset64(pStartEntry) - BNAV_get_SPS_Offset(avcEntry);
+        seqHdrOffset64 = BNAV_get_frameOffset(pStartEntry) - BNAV_get_SPS_Offset(avcEntry);
         /* For AVC host trick modes w/o BTP's, we have to assume the SPS and PPS are adjacent and in
         SPS,PPS order. If this isn't true, we'll require BTP's. */
         if (!handle->settings.useBtpsForHostTrickModes && handle->packetSize) {
@@ -1401,7 +1419,7 @@ static int BNAV_Player_AddFrame(BNAV_Player_Handle handle, long entry)
     }
     else {
         /* Calc the seqhdr offset */
-        seqHdrOffset64 = BNAV_Player_get_frameOffset64(pStartEntry) - BNAV_get_seqHdrStartOffset(pStartEntry);
+        seqHdrOffset64 = BNAV_get_frameOffset(pStartEntry) - BNAV_get_seqHdrStartOffset(pStartEntry);
         if (!handle->settings.useBtpsForHostTrickModes && handle->packetSize) {
             seqHdrOffset64 -= seqHdrOffset64 % handle->packetSize;
         }
@@ -1421,7 +1439,7 @@ static int BNAV_Player_AddFrame(BNAV_Player_Handle handle, long entry)
     }
 
     /* set the end feed byte based on actual picture end */
-    curFifoEntry->endByte = BNAV_Player_get_frameOffset64(pStartEntry) +
+    curFifoEntry->endByte = BNAV_get_frameOffset(pStartEntry) +
         BNAV_get_frameSize(pStartEntry);
 
     if (handle->packetSize) {
@@ -1935,7 +1953,7 @@ Add a single frame (picture) to the fifo. Use whatever BTP's are necessary to ge
 static int BNAV_Player_AddFrameData(BNAV_Player_Handle handle, BNAV_Entry *pStartEntry)
 {
     return BNAV_Player_AddData(handle,
-        BNAV_Player_get_frameOffset64(pStartEntry),
+        BNAV_get_frameOffset(pStartEntry),
         BNAV_get_frameSize(pStartEntry),
         BNAV_get_framePts(pStartEntry),
         TT_MODE_PROCESS, 0, 0, handle->pid);
@@ -1973,9 +1991,9 @@ int BNAV_Player_AddSequenceHeader(BNAV_Player_Handle handle, BNAV_Entry *pStartE
         unsigned long sps_size, pps_size, pts;
         BNAV_AVC_Entry *avcEntry = (BNAV_AVC_Entry *)pStartEntry;
 
-        sps_offset = BNAV_Player_get_frameOffset64(pStartEntry) - BNAV_get_SPS_Offset(avcEntry);
+        sps_offset = BNAV_get_frameOffset(pStartEntry) - BNAV_get_SPS_Offset(avcEntry);
         sps_size = BNAV_get_SPS_Size(avcEntry);
-        pps_offset = BNAV_Player_get_frameOffset64(pStartEntry) - BNAV_get_seqHdrStartOffset(pStartEntry);
+        pps_offset = BNAV_get_frameOffset(pStartEntry) - BNAV_get_seqHdrStartOffset(pStartEntry);
         pps_size = BNAV_get_seqHdrSize(pStartEntry);
 
         /* at the beginning of a stream, we might have some SPS or PPS indexes with no data. We can't
@@ -1994,7 +2012,7 @@ int BNAV_Player_AddSequenceHeader(BNAV_Player_Handle handle, BNAV_Entry *pStartE
         }
     }
     else {
-        uint64_t offset = BNAV_Player_get_frameOffset64(pStartEntry) - BNAV_get_seqHdrStartOffset(pStartEntry);
+        uint64_t offset = BNAV_get_frameOffset(pStartEntry) - BNAV_get_seqHdrStartOffset(pStartEntry);
         unsigned long size = BNAV_get_seqHdrSize(pStartEntry);
 
         if (!size) return -1;
@@ -2453,7 +2471,7 @@ long BNAV_Player_FindIndexFromPts(BNAV_Player_Handle handle, unsigned long targe
         consider accepting the failure and setting your current index, not based on PTS, but based
         on your current player location (BNAV_Player_GetPosition) plus an offset based on playback/video depth.
         it will not be frame accurate, but will likely be better than reworking this algorithm. */
-        BDBG_ERR(("pts search: couldn't find %#x", targetPts));
+        BDBG_ERR(("pts search: couldn't find %#x", (unsigned)targetPts));
         print_pts_cache(handle);
 #if 0
         BKNI_Fail();
@@ -2614,7 +2632,7 @@ static int BNAV_Player_P_ReadOffset(void *handle_, long index, uint64_t *offset)
     BNAV_Entry  *pEntry;
 
     CHECKREAD(pEntry= BNAV_Player_ReadEntry(handle, index))
-    *offset = BNAV_Player_get_frameOffset64(pEntry);
+    *offset = BNAV_get_frameOffset(pEntry);
     return 0;
 }
 
@@ -2850,7 +2868,7 @@ static int BNAV_Player_DetectNavTableVersion(BNAV_Player_Handle handle, int isPe
     }
     pEntry = BNAV_Player_ReadEntry(handle, checkIndex);
     if (!pEntry) {
-        BDBG_ERR(("BNAV_Player_DetectNavTableVersion: no entry %d", checkIndex));
+        BDBG_ERR(("BNAV_Player_DetectNavTableVersion: no entry %d", (int)checkIndex));
         return -1;
     }
     handle->navVersion = BNAV_get_version(pEntry);
@@ -2973,7 +2991,7 @@ long BNAV_Player_FindIFrameFromIndex(BNAV_Player_Handle handle, long index, eBpD
         previousIndex = BNAV_Player_P_FindPictureIndex(handle, index-1, eSCTypeIFrame, dir);
         if (index-previousIndex == 1) {
             /* When searching backwards in field encoded streams, return the 1st field in the field pair, not the 2nd */
-            BDBG_MSG(("1st field index=%d, 2nd field index=%d", previousIndex, index));
+            BDBG_MSG(("1st field index=%d, 2nd field index=%d", (int)previousIndex, (int)index));
             index = previousIndex;
         }
     }
@@ -3016,7 +3034,7 @@ int BNAV_Player_SetCurrentIndex(BNAV_Player_Handle handle, long index)
     } else if (handle->playMode == eBpPlayNormal) {
         /* Back up to the TS-packet aligned sequence header. From this point,
         bcmplayer sends all data. */
-        uint64_t temp = BNAV_Player_get_frameOffset64(pEntry);
+        uint64_t temp = BNAV_get_frameOffset(pEntry);
         temp = temp - BNAV_get_seqHdrStartOffset(pEntry);
         if (handle->packetSize) {
             handle->currentOffset = temp - temp % handle->packetSize;
@@ -3160,7 +3178,7 @@ static int BNAV_Player_p_SanityCheck(BNAV_Player_Handle handle)
             return 0; /* it's ok to have nothing */
 
         /* offsets should always increase */
-        next = BNAV_Player_get_frameOffset64(pEntry);
+        next = BNAV_get_frameOffset(pEntry);
         if (next < last)
             return -1;
         last = next;

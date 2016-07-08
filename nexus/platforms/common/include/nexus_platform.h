@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,19 +34,6 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* API Description:
-*   API name: Platform
-*    Specific APIs to initialize the a board.
-*
-* Revision History:
-*
-* $brcm_Log: $
-* 
 ***************************************************************************/
 #ifndef NEXUS_PLATFORM_H__
 #define NEXUS_PLATFORM_H__
@@ -59,9 +46,10 @@
 #include "nexus_platform_init.h"
 #include "nexus_platform_standby.h"
 #include "nexus_platform_server.h"
-#if NEXUS_HAS_DISPLAY
+#ifdef NEXUS_HAS_DISPLAY
 #include "nexus_display.h"
 #endif
+#include "nexus_platform_compat.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -84,7 +72,7 @@ void NEXUS_Platform_GetSettings(
     );
 
 /* generic max is useful for binary compatibility between varying platforms */
-#define NEXUS_MAX_CONFIG_HANDLES 7
+#define NEXUS_MAX_CONFIG_HANDLES 8
 #ifndef NEXUS_MAX_FRONTENDS
 #define NEXUS_MAX_FRONTENDS 32
 #endif
@@ -98,50 +86,23 @@ The broadcom reference platforms will open board-specific handles
 and place the handles in this structure for use by the application.
 ***************************************************************************/
 typedef struct NEXUS_PlatformConfiguration {
-#if NEXUS_HAS_I2C
     NEXUS_I2cHandle i2c[NEXUS_MAX_CONFIG_HANDLES];
-#endif
-#if NEXUS_HAS_FRONTEND
     NEXUS_FrontendHandle frontend[NEXUS_MAX_FRONTENDS];
-#endif
 
     struct {
-#if NEXUS_HAS_DISPLAY
         NEXUS_ComponentOutputHandle component[NEXUS_MAX_CONFIG_HANDLES];
         NEXUS_CompositeOutputHandle composite[NEXUS_MAX_CONFIG_HANDLES];
         NEXUS_SvideoOutputHandle svideo[NEXUS_MAX_CONFIG_HANDLES];
         NEXUS_Ccir656OutputHandle ccir656[NEXUS_MAX_CONFIG_HANDLES];
-#endif
-#if NEXUS_HAS_RFM && NEXUS_NUM_RFM_OUTPUTS
-        NEXUS_RfmHandle rfm[NEXUS_NUM_RFM_OUTPUTS];
-#endif
-#if NEXUS_HAS_AUDIO
-#if NEXUS_NUM_AUDIO_DACS
-        NEXUS_AudioDacHandle audioDacs[NEXUS_NUM_AUDIO_DACS];
-#endif
-#if NEXUS_NUM_AUDIO_DUMMY_OUTPUTS
-        NEXUS_AudioDummyOutputHandle audioDummy[NEXUS_NUM_AUDIO_DUMMY_OUTPUTS];
-#endif
-#if NEXUS_NUM_SPDIF_OUTPUTS
-        NEXUS_SpdifOutputHandle spdif[NEXUS_NUM_SPDIF_OUTPUTS];
-#endif
-#if NEXUS_NUM_I2S_OUTPUTS
-        NEXUS_I2sOutputHandle i2s[NEXUS_NUM_I2S_OUTPUTS];
-#endif
-#if NEXUS_NUM_I2S_MULTI_OUTPUTS
-        NEXUS_I2sMultiOutputHandle i2sMulti[NEXUS_NUM_I2S_MULTI_OUTPUTS];
-#endif
-#endif
-#if NEXUS_HAS_HDMI_OUTPUT && NEXUS_NUM_HDMI_OUTPUTS
-        NEXUS_HdmiOutputHandle hdmi[NEXUS_NUM_HDMI_OUTPUTS];
-#endif
-#if NEXUS_HAS_HDMI_DVO && NEXUS_NUM_HDMI_DVO
-        NEXUS_HdmiDvoHandle hdmiDvo[NEXUS_NUM_HDMI_DVO];
-#endif
-#if NEXUS_HAS_CEC && NEXUS_NUM_CEC
-        NEXUS_CecHandle cec[NEXUS_NUM_CEC];
-#endif
-        int dummy; /* always have dummy to avoid warnings if there are no inputs */
+        NEXUS_RfmHandle rfm[NEXUS_MAX_CONFIG_HANDLES];
+        NEXUS_AudioDacHandle audioDacs[NEXUS_MAX_CONFIG_HANDLES];
+        NEXUS_AudioDummyOutputHandle audioDummy[NEXUS_MAX_CONFIG_HANDLES];
+        NEXUS_SpdifOutputHandle spdif[NEXUS_MAX_CONFIG_HANDLES];
+        NEXUS_I2sOutputHandle i2s[NEXUS_MAX_CONFIG_HANDLES];
+        NEXUS_I2sMultiOutputHandle i2sMulti[NEXUS_MAX_CONFIG_HANDLES];
+        NEXUS_HdmiOutputHandle hdmi[NEXUS_MAX_CONFIG_HANDLES];
+        NEXUS_HdmiDvoHandle hdmiDvo[NEXUS_MAX_CONFIG_HANDLES];
+        NEXUS_CecHandle cec[NEXUS_MAX_CONFIG_HANDLES];
     } outputs;
 
     struct {
@@ -149,19 +110,12 @@ typedef struct NEXUS_PlatformConfiguration {
         NEXUS_VideoFormat maxOutputFormatSd; /* maximum supported standard definition video output format */
     } video;
 
-#if NEXUS_HAS_DISPLAY
     bool supportedDisplay[NEXUS_MAX_DISPLAYS]; /* report which displays can be opened */
-#endif
     unsigned numWindowsPerDisplay; /* 1 = main only, 2 = PIP-capable */
-
-#if NEXUS_HAS_VIDEO_DECODER
     bool supportedDecoder[NEXUS_MAX_VIDEO_DECODERS]; /* This refers to regular decoders, not mosaic decoders. */
-#endif
 
     NEXUS_HeapHandle heap[NEXUS_MAX_HEAPS];
-#if NEXUS_HAS_SPI
     NEXUS_SpiHandle spi[NEXUS_MAX_CONFIG_HANDLES];
-#endif
 } NEXUS_PlatformConfiguration;
 
 /***************************************************************************
@@ -286,9 +240,7 @@ typedef struct NEXUS_PlatformStatus
         unsigned major, minor;
     } boardId;
     unsigned boxMode;
-#if NEXUS_HAS_DISPLAY
     NEXUS_DisplayModuleStatus displayModuleStatus;
-#endif
     NEXUS_PlatformEstimatedMemory estimatedMemory;
     struct {
         unsigned size;
@@ -344,12 +296,16 @@ It will have eApplication mapping, be usable by VC4 (3D graphics) and M2MC (2D g
 For platforms with secondary graphics heaps, use NEXUS_SECONDARY_OFFSCREEN_SURFACE. Secondary graphics heaps
 will have eApplication mapping and are generally only usable by M2MC, not VC4.
 If there is no secondary graphics heap, platform code can return either NULL or the primary graphics heap.
+
+For platforms with secure graphics, NEXUS_OFFSCREEN_SECURE_GRAPHICS_SURFACE will return the largest region for off-screen
+secure graphics.
 ***************************************************************************/
 NEXUS_HeapHandle NEXUS_Platform_GetFramebufferHeap(
     unsigned displayIndex
     );
 #define NEXUS_OFFSCREEN_SURFACE (0x100)
 #define NEXUS_SECONDARY_OFFSCREEN_SURFACE (0x101)
+#define NEXUS_OFFSCREEN_SECURE_GRAPHICS_SURFACE (0x102)
 
 /**
 Summary:
@@ -362,7 +318,7 @@ typedef struct NEXUS_PlatformCreateHeapSettings
     NEXUS_MemoryType memoryType; /* requested memory mapping */
     unsigned alignment; /* required alignment (in bytes) of allocations in this region */
     bool locked; /* if true, nexus is not allowed to allocate from this heap */
-    void *userAddress; /* if set, use this instead of doing an internal mmap for NEXUS_MemoryType_eApplication. */
+    void *userAddress; /* if set, use this instead of doing an internal mmap for NEXUS_MemoryType_eApplication. attr{kind=null_ptr} */
 } NEXUS_PlatformCreateHeapSettings;
 
 /**
@@ -453,7 +409,7 @@ The handle must be owned by the caller in order to change the sharing setting.
 This does not make sharing of settings safe. If two or more clients change settings, erratic behavior may result.
 **/
 NEXUS_Error NEXUS_Platform_SetSharedHandle(
-    void *object, /* any Nexus handle */
+    NEXUS_PlatformAnyObject object, /* any Nexus handle */
     bool shared
     );
 

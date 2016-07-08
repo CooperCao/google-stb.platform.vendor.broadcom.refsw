@@ -1,29 +1,49 @@
-/***************************************************************************
- *     Copyright (c) 2002-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * Module Description:
- * User mode driver with 128 bit interrupt support.
- * Revision History:
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
  *
- * $brcm_Log: $
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- ***************************************************************************/
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 #ifndef BCMDRIVER_H
 #define BCMDRIVER_H
 #include <linux/ioctl.h>
 
 /* update this number for any non-trivial changes in the file */
-#define BCMDRIVER_VERSION  4
+#define BCMDRIVER_VERSION  8
 
 #define BCM_INTC_MAX_SIZE   5    /* maximum interrupt controller size
                                     in words supported by this interface */
@@ -32,8 +52,8 @@ typedef struct s_bcm_linux_dd_interrupt
 {
     int     timeout;
     unsigned char waitforallints;
-    unsigned long interruptmask[BCM_INTC_MAX_SIZE];
-    unsigned long interruptstatus[BCM_INTC_MAX_SIZE];
+    uint32_t interruptmask[BCM_INTC_MAX_SIZE];
+    uint32_t interruptstatus[BCM_INTC_MAX_SIZE];
 
 } tbcm_linux_dd_interrupt;
 
@@ -75,11 +95,9 @@ typedef struct s_bcm_linux_rw_core_register
 
 typedef struct s_bcm_linux_mem_addr_range
 {
-    uintptr_t address;     /* Virtual memory address */
-    uint32_t length;       /* Length of range (in bytes) */
-
+    unsigned long address; /* Virtual memory address */
+    unsigned length;       /* Length of range (in bytes) */
 } t_bcm_linux_mem_addr_range;
-
 
 #define BRCM_IOCTL_WAIT_FOR_INTERRUPTS      _IOWR(101, 2, tbcm_linux_dd_interrupt ) /* use the tbcm_linux_dd_interrupt structure with this IOCTL */
 #define BRCM_IOCTL_DEBUG_LEVEL              _IO(101,1)
@@ -121,7 +139,7 @@ typedef struct t_bcm_linux_write_cp0_25
 typedef struct s_bcm_linux_pm_mem_exclude
 {
     uint64_t addr;
-    size_t len;
+    uint64_t len;
 } t_bcm_linux_pm_mem_exclude;
 #define BRCM_IOCTL_PM_MEM_EXCLUDE           _IOW(101, 30, t_bcm_linux_pm_mem_exclude)
 
@@ -141,8 +159,8 @@ CMA allocation
 **/
 struct bcmdriver_cma_getmem {
     unsigned cmaIndex;
-    uint64_t size;
     unsigned alignment;
+    uint64_t size;
 
     /* OUT */
     uint64_t addr;
@@ -192,7 +210,7 @@ struct bcmdriver_version {
 
 struct bcmdriver_dynamic_region {
     uint64_t base;
-    size_t length;
+    uint64_t length;
 };
 #define BRCM_IOCTL_DYNAMIC_REGION_ADD       _IOW(101, 37, struct bcmdriver_dynamic_region )
 #define BRCM_IOCTL_DYNAMIC_REGION_REMOVE    _IOW(101, 38, struct bcmdriver_dynamic_region )
@@ -248,6 +266,78 @@ struct bcmdriver_get_vmalloc {
 
 #define BRCM_IOCTL_GET_VMALLOC _IOWR(101, 40, struct bcmdriver_get_vmalloc )
 
+#include "b_virtual_irq_types.h"
+
+typedef enum bcmdriver_irq_command {
+    bcmdriver_irq_command_status,
+    bcmdriver_irq_command_clear,
+    bcmdriver_irq_command_mask,
+    bcmdriver_irq_command_max
+} bcmdriver_irq_command;
+
+typedef struct bcmdriver_irq_control {
+    bcmdriver_irq_command command;
+    union {
+        struct b_virtual_irq_status status;
+        struct {
+            b_virtual_irq_line line;
+        } clear;
+        struct {
+            b_virtual_irq_line line;
+            int disable; /* bool */
+        } mask;
+    } data;
+} bcmdriver_irq_control;
+#define BRCM_IOCTL_IRQ_CONTROL _IOW(101, 41, struct bcmdriver_irq_control)
+
+#define BRCM_IOCTL_IRQ_MAKE_GROUP _IOW(101, 42, struct b_virtual_irq_group)
+
+#include "b_shared_gpio_types.h"
+
+typedef enum bcmdriver_shared_gpio_command {
+    bcmdriver_shared_gpio_command_init_banks,
+    bcmdriver_shared_gpio_command_open_pin,
+    bcmdriver_shared_gpio_command_close_pin,
+    bcmdriver_shared_gpio_command_get_int_status,
+    bcmdriver_shared_gpio_command_clear_int,
+    bcmdriver_shared_gpio_command_set_int_mask,
+    bcmdriver_shared_gpio_command_set_standby,
+    bcmdriver_shared_gpio_command_max
+} bcmdriver_shared_gpio_command;
+
+typedef struct bcmdriver_shared_gpio_control {
+    bcmdriver_shared_gpio_command command;
+    union {
+        b_shared_gpio_init_banks_settings init_banks;
+        b_shared_gpio_int_status get_int_status;
+        struct {
+            b_shared_gpio_pin_desc pin;
+            b_shared_gpio_irq_type irq_type;
+        } open_pin;
+        struct {
+            b_shared_gpio_pin_desc pin;
+        } close_pin;
+        struct {
+            b_shared_gpio_pin_desc pin;
+        } clear_int;
+        struct {
+            b_shared_gpio_pin_desc pin;
+            int disable; /* bool */
+        } set_int_mask;
+        struct {
+            b_shared_gpio_pin_desc pin;
+            int enable; /* bool */
+        } set_standby;
+    } data;
+} bcmdriver_shared_gpio_control;
+#define BRCM_IOCTL_SHARED_GPIO_CONTROL _IOW(101, 43, struct bcmdriver_shared_gpio_control)
+
+typedef struct bcmdriver_os_config {
+    bool virtual_irq_supported;
+    bool shared_gpio_supported;
+    bool os_64bit;
+} bcmdriver_os_config;
+#define BRCM_IOCTL_GET_OS_CONFIG _IOW(101, 44, struct bcmdriver_os_config)
 
 #endif /* BCMDRIVER_H */
 

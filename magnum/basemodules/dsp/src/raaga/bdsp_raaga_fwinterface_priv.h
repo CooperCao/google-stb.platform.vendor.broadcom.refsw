@@ -1,7 +1,7 @@
 /******************************************************************************
- * (c) 2006-2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -37,7 +37,6 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 
 
@@ -50,6 +49,7 @@
 #include "bdsp_raaga_cmdresp_priv.h"
 #include "bdsp_raaga_fw_settings.h"
 #include "bdsp_raaga_fw_status.h"
+#include "bdsp_common_priv_include.h"
 
 
 #define BDSP_RAAGA_P_FIFO_BASE_OFFSET    0
@@ -77,10 +77,10 @@ typedef struct BDSP_Raaga_P_MsgQueue
 {
     BMEM_Handle hHeap;
     BREG_Handle hRegister;
-    raaga_dramaddr  ui32BaseAddr;    /* phys address */
-    raaga_dramaddr  ui32EndAddr;     /* phys address */
-    raaga_dramaddr  ui32ReadAddr;     /* phys address */
-    raaga_dramaddr  ui32WriteAddr;    /* phys address */
+    dramaddr_t  ui32BaseAddr;    /* phys address */
+    dramaddr_t  ui32EndAddr;     /* phys address */
+    dramaddr_t  ui32ReadAddr;     /* phys address */
+    dramaddr_t  ui32WriteAddr;    /* phys address */
     int32_t  i32FifoId;     /* Fifo Id for this message queue */
     uint32_t ui32DspOffset; /* DSP Register Offset */
     void *pBaseAddr;        /* Virtual address of the buffer provided*/
@@ -88,16 +88,6 @@ typedef struct BDSP_Raaga_P_MsgQueue
 } BDSP_Raaga_P_MsgQueue;
 
 typedef struct BDSP_Raaga_P_MsgQueue *BDSP_Raaga_P_MsgQueueHandle;
-
-/***************************************************************************
-Summary:
-    This enum hold the type of message passed
-***************************************************************************/
-typedef enum  BDSP_Raaga_P_MsgType
-{
-    BDSP_Raaga_P_MsgType_eSyn,
-    BDSP_Raaga_P_MsgType_eAsyn
-}BDSP_Raaga_P_MsgType;
 
 /***************************************************************************
 Summary:
@@ -196,7 +186,7 @@ Returns:
 BERR_Code BDSP_Raaga_P_GetMsg(
     BDSP_Raaga_P_MsgQueueHandle  hMsgQueue,
     void *pMsgBuf,
-    BDSP_Raaga_P_MsgType eMgsType
+    BDSP_P_MsgType eMgsType
     );
 
 /***************************************************************************
@@ -213,7 +203,7 @@ Returns:
 BERR_Code BDSP_Raaga_P_GetMsg_isr(
     BDSP_Raaga_P_MsgQueueHandle  hMsgQueue,
     void *pMsgBuf,
-    BDSP_Raaga_P_MsgType eMgsType
+    BDSP_P_MsgType eMgsType
     );
 
 BERR_Code BDSP_Raaga_P_SetAlgorithmSettings(

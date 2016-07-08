@@ -1,7 +1,7 @@
-/***************************************************************************
- *     (c)2003-2013 Broadcom Corporation
+/******************************************************************************
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,18 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * [File Description:]
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
- ***************************************************************************/
+ ******************************************************************************/
 #include "bhab_7563_priv.h"
 #include "bchp_leap_l2.h"
 
@@ -107,7 +96,7 @@ BERR_Code BHAB_7563_Open(
             for(i=0; i<BHAB_DevId_eMax; i++){
                 h7563Dev->InterruptCallbackInfo[i].func = NULL;
                 h7563Dev->InterruptCallbackInfo[i].pParm1 = NULL;
-                h7563Dev->InterruptCallbackInfo[i].parm2 = (int)NULL;
+                h7563Dev->InterruptCallbackInfo[i].parm2 = 0;
             }
 
             BKNI_Memset( &h7563Dev->nmiSettings, 0x00, sizeof(BHAB_NmiSettings));
@@ -760,7 +749,7 @@ BERR_Code BHAB_7563_UnInstallInterruptCallback(
     BKNI_EnterCriticalSection();
     callback->func = NULL;
     callback->pParm1 = NULL;
-    callback->parm2 = (int)NULL;
+    callback->parm2 = 0;
     BKNI_LeaveCriticalSection();
 
     return retCode;

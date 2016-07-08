@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2013 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2013 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -127,6 +127,7 @@ void QPUResources_Constr(QPUResources *self, bool isFrag, bool allowThread);
 // INLINE methods
 static INLINE void QPUResources_Destr(QPUResources *self)
 {
+   UNUSED(self);
 }
 
 static INLINE QPUResource *QPUResources_GetResource(QPUResources *self, Register_Enum reg)

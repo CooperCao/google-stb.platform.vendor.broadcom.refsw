@@ -1,23 +1,43 @@
-/***************************************************************************
- *     Copyright (c) 2005-2014, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * [File Description:]
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
  *
- * Revision History:
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- *
- ***************************************************************************/
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 #include "bstd.h"
 #include "bsrf.h"
 #include "bsrf_priv.h"
@@ -178,6 +198,28 @@ BERR_Code BSRF_ReadRfAgc(BSRF_ChannelHandle h, uint32_t *pVal)
 
 
 /******************************************************************************
+ BSRF_WriteRfGain
+******************************************************************************/
+BERR_Code BSRF_WriteRfGain(BSRF_ChannelHandle h, uint8_t gain)
+{
+   BDBG_ASSERT(h);
+   BDBG_ENTER(BSRF_WriteRfGain);
+   return (h->pDevice->settings.api.WriteRfGain(h, gain));
+}
+
+
+/******************************************************************************
+ BSRF_ReadRfGain
+******************************************************************************/
+BERR_Code BSRF_ReadRfGain(BSRF_ChannelHandle h, uint8_t *pGain)
+{
+   BDBG_ASSERT(h);
+   BDBG_ENTER(BSRF_ReadRfGain);
+   return (h->pDevice->settings.api.ReadRfGain(h, pGain));
+}
+
+
+/******************************************************************************
  BSRF_GetInputPower
 ******************************************************************************/
 BERR_Code BSRF_GetInputPower(BSRF_ChannelHandle h, uint32_t *pPower)
@@ -211,9 +253,20 @@ BERR_Code BSRF_GetRfAgcSettings(BSRF_ChannelHandle h, BSRF_RfAgcSettings *pSetti
 
 
 /******************************************************************************
+ BSRF_EnableFastDecayMode
+******************************************************************************/
+BERR_Code BSRF_EnableFastDecayMode(BSRF_ChannelHandle h, bool bEnable)
+{
+   BDBG_ASSERT(h);
+   BDBG_ENTER(BSRF_EnableFastDecayMode);
+   return (h->pDevice->settings.api.EnableFastDecayMode(h, bEnable));
+}
+
+
+/******************************************************************************
  BSRF_SetFastDecayGainThreshold
 ******************************************************************************/
-BERR_Code BSRF_SetFastDecayGainThreshold(BSRF_ChannelHandle h, uint32_t threshold)
+BERR_Code BSRF_SetFastDecayGainThreshold(BSRF_ChannelHandle h, int8_t threshold)
 {
    BDBG_ASSERT(h);
    BDBG_ENTER(BSRF_SetFastDecayGainThreshold);
@@ -224,7 +277,7 @@ BERR_Code BSRF_SetFastDecayGainThreshold(BSRF_ChannelHandle h, uint32_t threshol
 /******************************************************************************
  BSRF_GetFastDecayGainThreshold
 ******************************************************************************/
-BERR_Code BSRF_GetFastDecayGainThreshold(BSRF_ChannelHandle h, uint32_t *pThreshold)
+BERR_Code BSRF_GetFastDecayGainThreshold(BSRF_ChannelHandle h, int8_t *pThreshold)
 {
    BDBG_ASSERT(h);
    BDBG_ENTER(BSRF_GetFastDecayGainThreshold);
@@ -290,7 +343,7 @@ BERR_Code BSRF_GetAntennaStatus(BSRF_ChannelHandle h, BSRF_AntennaStatus *pStatu
 /******************************************************************************
  BSRF_Tune
 ******************************************************************************/
-BERR_Code BSRF_Tune(BSRF_ChannelHandle h, int32_t freq_hz)
+BERR_Code BSRF_Tune(BSRF_ChannelHandle h, uint32_t freq_hz)
 {
    BDBG_ASSERT(h);
    BDBG_ENTER(BSRF_Tune);
@@ -334,11 +387,11 @@ BERR_Code BSRF_GetClipCount(BSRF_ChannelHandle h, uint32_t *pClipCount)
 /******************************************************************************
  BSRF_ConfigTestMode
 ******************************************************************************/
-BERR_Code BSRF_ConfigTestMode(BSRF_ChannelHandle h)
+BERR_Code BSRF_ConfigTestMode(BSRF_ChannelHandle h, BSRF_TestportSelect tp, bool bEnable)
 {
    BDBG_ASSERT(h);
    BDBG_ENTER(BSRF_ConfigTestMode);
-   return (h->pDevice->settings.api.ConfigTestMode(h));
+   return (h->pDevice->settings.api.ConfigTestMode(h, tp, bEnable));
 }
 
 
@@ -394,6 +447,39 @@ BERR_Code BSRF_EnableTestDacTone(BSRF_Handle h, bool bToneOn, uint16_t toneAmpl)
    BDBG_ASSERT(h);
    BDBG_ENTER(BSRF_EnableTestDacTone);
    return (h->settings.api.EnableTestDacTone(h, bToneOn, toneAmpl));
+}
+
+
+/******************************************************************************
+ BSRF_RunDataCapture
+******************************************************************************/
+BERR_Code BSRF_RunDataCapture(BSRF_Handle h)
+{
+   BDBG_ASSERT(h);
+   BDBG_ENTER(BSRF_RunDataCapture);
+   return (h->settings.api.RunDataCapture(h));
+}
+
+
+/******************************************************************************
+ BSRF_DeleteAgcLutCodes
+******************************************************************************/
+BERR_Code BSRF_DeleteAgcLutCodes(BSRF_Handle h, uint32_t *pIdx, uint32_t n)
+{
+   BDBG_ASSERT(h);
+   BDBG_ENTER(BSRF_DeleteAgcLutCodes);
+   return (h->settings.api.DeleteAgcLutCodes(h, pIdx, n));
+}
+
+
+/******************************************************************************
+ BSRF_ConfigOutputClockPhase
+******************************************************************************/
+BERR_Code BSRF_ConfigOutputClockPhase(BSRF_Handle h, uint8_t phase, bool bDisableOutput)
+{
+   BDBG_ASSERT(h);
+   BDBG_ENTER(BSRF_ConfigOutputClockPhase);
+   return (h->settings.api.ConfigOutputClockPhase(h, phase, bDisableOutput));
 }
 
 #endif

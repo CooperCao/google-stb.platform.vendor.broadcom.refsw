@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2009 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2009 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -31,7 +31,7 @@ extern uint32_t glsl_allocator_get_varying_count(void);
 extern bool glsl_allocator_failed(void);
 extern void glsl_allocator_mark_failed_nodes_on_stack(void);
 extern Dataflow *glsl_allocator_get_next_scheduler_node(void);
-extern void glsl_allocator_finish_scheduler_node(Dataflow *suggestion);
+extern void glsl_allocator_finish_scheduler_node(void);
 extern bool glsl_dataflow_is_unpack(const Dataflow *dataflow);
 
 #ifdef BACKEND_VERIFY_SHADERS

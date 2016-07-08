@@ -1,25 +1,41 @@
-/***************************************************************************
- *     Copyright (c) 2007-2008, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ *  Except as expressly set forth in the Authorized License,
  *
- * Module Description:
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * Subtitle sync library
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
- *******************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+
+******************************************************************************/
 #include "bstd.h"
 #include "bkni.h"
 #include "blst_squeue.h"
@@ -93,7 +109,7 @@ err_alloc:
 void 
 btsm_queue_destroy(btsm_queue_t queue)
 {
-    BDBG_MSG_TRACE(("btsm_queue_destroy:%#lx", (unsigned)queue));
+    BDBG_MSG_TRACE(("btsm_queue_destroy:%p", (void*)queue));
     BDBG_OBJECT_ASSERT(queue, btsm_queue);
     BDBG_OBJECT_DESTROY(queue, btsm_queue);
     BKNI_Free(queue);
@@ -103,7 +119,7 @@ btsm_queue_destroy(btsm_queue_t queue)
 void 
 btsm_queue_get_settings(btsm_queue_t queue, btsm_queue_settings *settings)
 {
-    BDBG_MSG_TRACE(("btsm_queue_get_settings:%#lx", (unsigned)queue));
+    BDBG_MSG_TRACE(("btsm_queue_get_settings:%p", (void*)queue));
     BDBG_OBJECT_ASSERT(queue, btsm_queue);
     BDBG_ASSERT(settings);
     *settings = queue->settings;
@@ -115,7 +131,7 @@ btsm_queue_start(btsm_queue_t queue, const btsm_queue_settings *settings)
 {
     b_tsm_queue_entry *entry;
 
-    BDBG_MSG_TRACE(("btsm_queue_start:%#lx", (unsigned)queue));
+    BDBG_MSG_TRACE(("btsm_queue_start:%p", (void*)queue));
     BDBG_OBJECT_ASSERT(queue, btsm_queue);
     if(settings) {
         queue->settings = *settings;
@@ -136,7 +152,7 @@ btsm_queue_start(btsm_queue_t queue, const btsm_queue_settings *settings)
 void 
 btsm_queue_stop(btsm_queue_t queue)
 {
-    BDBG_MSG_TRACE(("btsm_queue_stop:%#lx", (unsigned)queue));
+    BDBG_MSG_TRACE(("btsm_queue_stop:%p", (void*)queue));
     BDBG_OBJECT_ASSERT(queue, btsm_queue);
     queue->started = false;
     return;
@@ -146,7 +162,7 @@ void btsm_queue_flush(btsm_queue_t queue)
 {
     b_tsm_queue_entry *entry;
 
-    BDBG_MSG_TRACE(("btsm_queue_flush:%#lx", (unsigned)queue));
+    BDBG_MSG_TRACE(("btsm_queue_flush:%p", (void*)queue));
     BDBG_OBJECT_ASSERT(queue, btsm_queue);
     while(NULL!=(entry=BLST_SQ_FIRST(&queue->queued))) {
         queue->status.dropped++;
@@ -161,7 +177,7 @@ void btsm_queue_flush(btsm_queue_t queue)
 void 
 btsm_queue_get_status(btsm_queue_t queue, btsm_queue_status *status)
 {
-    BDBG_MSG_TRACE(("btsm_queue_get_status:%#lx", (unsigned)queue));
+    BDBG_MSG_TRACE(("btsm_queue_get_status:%p", (void*)queue));
     BDBG_OBJECT_ASSERT(queue, btsm_queue);
     BDBG_ASSERT(status);
 
@@ -173,7 +189,7 @@ int
 btsm_queue_push(btsm_queue_t queue, const btsm_queue_entry *entry)
 {
     b_tsm_queue_entry *queue_entry;
-    BDBG_MSG_TRACE(("btsm_queue_push:%#lx %u", (unsigned)queue, entry->timestamp));
+    BDBG_MSG_TRACE(("btsm_queue_push:%p %u", (void*)queue, entry->timestamp));
     BDBG_OBJECT_ASSERT(queue, btsm_queue);
     BDBG_ASSERT(entry);
 
@@ -192,7 +208,7 @@ int
 btsm_queue_pop(btsm_queue_t queue, btsm_queue_entry *entry)
 {
     b_tsm_queue_entry *queue_entry;
-    BDBG_MSG_TRACE(("btsm_queue_pop:%#lx", (unsigned)queue));
+    BDBG_MSG_TRACE(("btsm_queue_pop:%p", (void*)queue));
     BDBG_OBJECT_ASSERT(queue, btsm_queue);
     BDBG_ASSERT(entry);
     queue_entry = BLST_SQ_FIRST(&queue->queued);
@@ -215,7 +231,7 @@ btsm_queue_get(btsm_queue_t queue, uint32_t timestamp, btsm_queue_entry *entry)
     int32_t diff;
 	uint32_t half_frame = queue->settings.entry_duration;
 
-    BDBG_MSG_TRACE(("btsm_queue_get:%#lx", (unsigned)queue));
+    BDBG_MSG_TRACE(("btsm_queue_get:%p", (void*)queue));
     BDBG_OBJECT_ASSERT(queue, btsm_queue);
     BDBG_ASSERT(entry);
     queue_entry = BLST_SQ_FIRST(&queue->queued);
@@ -227,7 +243,7 @@ btsm_queue_get(btsm_queue_t queue, uint32_t timestamp, btsm_queue_entry *entry)
 	BDBG_ASSERT(queue->status.queued>0);
     if(queue_entry->entry.timestamp_valid) {
         diff = queue_entry->entry.timestamp - timestamp;
-        BDBG_MSG(("btsm_queue_get: %#lx TSM %u:%u -> %d", (unsigned long)queue, (unsigned)timestamp, (unsigned)queue_entry->entry.timestamp, (int)diff));
+        BDBG_MSG(("btsm_queue_get: %p TSM %u:%u -> %d", (void*)queue, (unsigned)timestamp, (unsigned)queue_entry->entry.timestamp, (int)diff));
         if(diff<=(int)half_frame && diff>=-(int)half_frame) {
 			/* in range */
 			queue->prev_timestamp_valid = true;

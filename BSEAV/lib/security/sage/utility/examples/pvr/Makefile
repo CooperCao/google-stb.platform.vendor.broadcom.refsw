@@ -108,7 +108,7 @@ CFLAGS += -std=c99
 
 .PHONY: all clean uninstall install re
 
-all: ${APP}
+all: srai utility ${APP}
 
 # Implicit rule for building local apps
 ${APP}: ${OBJS}

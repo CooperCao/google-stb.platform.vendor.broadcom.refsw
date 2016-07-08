@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c) 2011 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,10 +35,6 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * Module Description:
 *       The frontend_7552 module defines the common functions in signal
 *   demodulation process, including opening or closing a frontend_7552 device,
@@ -46,10 +42,6 @@
 *   channel, setting the inband transport output interface settings, detecting
 *   certain type of signal, install signal lock callback, install signal
 *   unlock callback, and etc.
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 **************************************************************************/
 #include "nexus_frontend_module.h"
@@ -218,7 +210,7 @@ static void NEXUS_Frontend_P_7552_ThdIsrEvent(void *pParam)
 {
     NEXUS_7552 *pDevice = pParam;
     BDBG_OBJECT_ASSERT(pDevice, NEXUS_7552);
-    
+
     BTHD_ProcessInterruptEvent(pDevice->thdHandle);
 }
 static void NEXUS_Frontend_P_7552_ThdLockChange_isr(void *pParam)
@@ -268,7 +260,7 @@ static void NEXUS_Frontend_P_7552_ThdTuner_isr(void *pParam)
         /* TODO: call the tuner with pCallback->Freq_Offset */
         rc = BTNR_3x7x_Set_RF_Offset( pDevice->tnrHandle, pCallback->Freq_Offset, pCallback->Symbol_Rate);
         if(rc){BERR_TRACE(rc); goto done;}
-              
+
     } else {
         /* magic numbers from hardware team */
 
@@ -278,8 +270,8 @@ static void NEXUS_Frontend_P_7552_ThdTuner_isr(void *pParam)
         pCallback->Total_Mix_After_ADC = RfCallbackStatus.Total_Mix_After_ADC;
         pCallback->PreADC_Gain_x256db  = RfCallbackStatus.PreADC_Gain_x256db;
         pCallback->PostADC_Gain_x256db = RfCallbackStatus.PostADC_Gain_x256db;
-        pCallback->External_Gain_x256db = RfCallbackStatus.External_Gain_x256db;   
-                        
+        pCallback->External_Gain_x256db = RfCallbackStatus.External_Gain_x256db;
+
     }
 done:
     return;
@@ -321,7 +313,7 @@ static void NEXUS_Frontend_P_7552_AdsTuner_isr(void *pParam)
     if (BADS_CallbackMode_eSetMode == pCallback->Mode) {
         /* TODO: call the tuner with pCallback->Freq_Offset */
         rc = BTNR_3x7x_Set_RF_Offset( pDevice->tnrHandle, pCallback->Freq_Offset, pCallback->Symbol_Rate);
-        if(rc){BERR_TRACE(rc); goto done;}      
+        if(rc){BERR_TRACE(rc); goto done;}
     } else {
         /* magic numbers from hardware team */
 
@@ -331,7 +323,7 @@ static void NEXUS_Frontend_P_7552_AdsTuner_isr(void *pParam)
         pCallback->Total_Mix_After_ADC = RfCallbackStatus.Total_Mix_After_ADC;
         pCallback->PreADC_Gain_x256db  = RfCallbackStatus.PreADC_Gain_x256db;
         pCallback->PostADC_Gain_x256db = RfCallbackStatus.PostADC_Gain_x256db;
-        pCallback->External_Gain_x256db = RfCallbackStatus.External_Gain_x256db; 
+        pCallback->External_Gain_x256db = RfCallbackStatus.External_Gain_x256db;
         pCallback->Freq_Offset = RfCallbackStatus.RF_Offset;
         pCallback->Symbol_Rate = RfCallbackStatus.Symbol_Rate;
     }
@@ -371,7 +363,7 @@ static void NEXUS_Frontend_P_oobIsrEvent(void *pParam)
 
 #if NEXUS_AMPLIFIER_SUPPORT
 NEXUS_Error NEXUS_FrontendDevice_P_7552_GetAmplifierStatus(void *handle, NEXUS_AmplifierStatus *pStatus)
-{     
+{
     NEXUS_Error  rc = NEXUS_SUCCESS;
     NEXUS_7552 *pDevice;
     BDBG_ASSERT(NULL != handle);
@@ -391,7 +383,7 @@ NEXUS_Error NEXUS_FrontendDevice_P_7552_GetAmplifierStatus(void *handle, NEXUS_A
     else {
         BDBG_ERR(("Amplifier not linked to the parent device."));
     }
-    
+
 done:
     return rc;
 }
@@ -412,7 +404,7 @@ NEXUS_Error NEXUS_FrontendDevice_P_7552_SetAmplifierStatus(void *handle, const N
 #endif
 
 NEXUS_Error NEXUS_FrontendDevice_P_7552_GetInternalGain(void *handle, const NEXUS_GainParameters *params, NEXUS_InternalGainSettings *pSettings)
-{   
+{
     NEXUS_Error  rc = NEXUS_SUCCESS;
     NEXUS_7552 *pDevice;
     BTNR_3x7x_InternalGainInputParams inputParams;
@@ -431,7 +423,7 @@ NEXUS_Error NEXUS_FrontendDevice_P_7552_GetInternalGain(void *handle, const NEXU
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
 
     if(params->accumulateTillRootDevice){
-        if(pDevice->pGenericDeviceHandle->parent){            
+        if(pDevice->pGenericDeviceHandle->parent){
             gainParams.rfInput = pDevice->pGenericDeviceHandle->linkSettings.rfInput;
             gainParams.accumulateTillRootDevice = params->accumulateTillRootDevice;
             gainParams.frequency = params->frequency;
@@ -473,7 +465,7 @@ done:
 
 }
 NEXUS_Error NEXUS_FrontendDevice_P_7552_SetExternalGain(void *handle, const NEXUS_ExternalGainSettings *pSettings)
-{   
+{
     NEXUS_Error  rc = NEXUS_SUCCESS;
     NEXUS_7552 *pDevice;
     BTNR_3x7x_ExternalGainSettings externalGain;
@@ -486,13 +478,13 @@ NEXUS_Error NEXUS_FrontendDevice_P_7552_SetExternalGain(void *handle, const NEXU
 
     rc = BTNR_3x7x_SetExternalGain(pDevice->tnrHandle, &externalGain);
     if(rc){rc = BERR_TRACE(rc); goto done;}
-    
-done:   
+
+done:
     return rc;
 }
 
 static NEXUS_Error NEXUS_FrontendDevice_P_7552_GetStatus(void *handle, NEXUS_FrontendDeviceStatus *pStatus)
-{  
+{
     NEXUS_Error  rc = NEXUS_SUCCESS;
     NEXUS_7552 *pDevice;
     NEXUS_AvsStatus avsData;
@@ -514,7 +506,7 @@ static NEXUS_Error NEXUS_FrontendDevice_P_7552_GetStatus(void *handle, NEXUS_Fro
         pStatus->avs.enabled = false;
 
 done:
-    return rc;  
+    return rc;
 }
 
 /***************************************************************************
@@ -549,11 +541,11 @@ NEXUS_FrontendDeviceHandle NEXUS_FrontendDevice_Open7552(unsigned index, const N
     BDBG_ASSERT(NULL != pSettings);
 
     rc = NEXUS_Frontend_Probe7552(pSettings, &results);
-    if(rc){rc = BERR_TRACE(rc); goto err_open_device;} 
+    if(rc){rc = BERR_TRACE(rc); goto err_open_device;}
 
     if ( NULL == pDevice)
     {
-        pFrontendDevice = BKNI_Malloc(sizeof(*pFrontendDevice));        
+        pFrontendDevice = BKNI_Malloc(sizeof(*pFrontendDevice));
         if (NULL == pFrontendDevice) {rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto err_open_device;}
 
         /* Memsetting the whole structure should cover initializing the child list. */
@@ -564,24 +556,24 @@ NEXUS_FrontendDeviceHandle NEXUS_FrontendDevice_Open7552(unsigned index, const N
 
         BKNI_Memset(pDevice, 0, sizeof(*pDevice));
         BDBG_OBJECT_SET(pDevice, NEXUS_7552);
-        
+
         tnrSettings.i2cAddr = 0;
         tnrSettings.hTmr = g_pCoreHandles->tmr;
         tnrSettings.hHeap = g_pCoreHandles->heap[0].mem;
-        
+
         rc = BTNR_3x7x_Open(&pDevice->tnrHandle, &tnrSettings, g_pCoreHandles->reg);
         if(rc){rc = BERR_TRACE(rc); goto err_open_device;}
-        
+
         rc = BTNR_3x7x_GetInterruptEventHandle(pDevice->tnrHandle, &pDevice->tnrIsrEvent);
         if(rc){rc = BERR_TRACE(rc); goto err_open_device;}
-        
+
         pDevice->tnrIsrEventCallback = NEXUS_RegisterEvent(pDevice->tnrIsrEvent, NEXUS_Frontend_P_TnrIsrBBSEvent, pDevice);
         if (NULL == pDevice->tnrIsrEventCallback){rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto err_open_device; }
-        
+
         pDevice->frontendcount = 0;
         pDevice->pGenericDeviceHandle = pFrontendDevice;
         pDevice->previousStandbyMode = NEXUS_StandbyMode_eOn;
-        p_7552device = pDevice; 
+        p_7552device = pDevice;
     }
     else
     {
@@ -595,7 +587,7 @@ NEXUS_FrontendDeviceHandle NEXUS_FrontendDevice_Open7552(unsigned index, const N
         /* get default settings and update */
         rc = BADS_7552_GetDefaultSettings(&adsSettings, NULL);
         if(rc){rc = BERR_TRACE(rc); goto err_open_device;}
-        
+
         adsSettings.hTmr = g_pCoreHandles->tmr;
         adsSettings.hHeap = g_pCoreHandles->heap[0].mem;
 
@@ -623,7 +615,7 @@ NEXUS_FrontendDeviceHandle NEXUS_FrontendDevice_Open7552(unsigned index, const N
 
     if((results.chip.id == 0x7531) || (results.chip.id == 0x7532) ||
        (results.chip.id == 0x7541) || (results.chip.id == 0x7542) ||
-       (results.chip.id == 0x7551) || (results.chip.id == 0x7552) ||        
+       (results.chip.id == 0x7551) || (results.chip.id == 0x7552) ||
        (results.chip.id == 0x7591) || (results.chip.id == 0x7592))
     {
         BTHD_3x7x_GetDefaultSettings(&thdSettings);
@@ -701,7 +693,7 @@ NEXUS_FrontendDeviceHandle NEXUS_FrontendDevice_Open7552(unsigned index, const N
     pFrontendDevice->setExternalGain = NEXUS_FrontendDevice_P_7552_SetExternalGain;
     pFrontendDevice->getStatus = NEXUS_FrontendDevice_P_7552_GetStatus;
     pFrontendDevice->standby = NEXUS_FrontendDevice_P_7552_Standby;
-#if NEXUS_AMPLIFIER_SUPPORT 
+#if NEXUS_AMPLIFIER_SUPPORT
     pFrontendDevice->getAmplifierStatus = NEXUS_Frontend_P_7552_GetAmplifierStatus;
     pFrontendDevice->setAmplifierStatus = NEXUS_Frontend_P_7552_SetAmplifierStatus;
 #endif
@@ -738,7 +730,7 @@ err_open_device:
         BTNR_Close(pDevice->tnrHandle);
         pDevice->tnrHandle = NULL;
     }
-    if(pDevice){        
+    if(pDevice){
         BDBG_OBJECT_DESTROY(pDevice, NEXUS_7552);
         BKNI_Free(pDevice);
         pDevice = NULL;
@@ -824,7 +816,7 @@ NEXUS_FrontendHandle NEXUS_Frontend_Open7552( const NEXUS_7552FrontendSettings *
         pDevice->adsLockAppCallback = callbackLockChange;
         pDevice->frontendcount++;
     }
-    else if(pSettings->type == NEXUS_7552ChannelType_eOfdm){         
+    else if(pSettings->type == NEXUS_7552ChannelType_eOfdm){
 
         pDevice->frontendcount++;
 
@@ -839,7 +831,7 @@ NEXUS_FrontendHandle NEXUS_Frontend_Open7552( const NEXUS_7552FrontendSettings *
 
         pDevice->thdAsyncStatusAppCallback = NEXUS_TaskCallback_Create(frontendHandle, NULL);
         if(rc){rc = BERR_TRACE(rc); goto error;}
-        
+
         /* Establish device capabilities */
         frontendHandle->capabilities.ofdm = true;
 
@@ -857,14 +849,14 @@ NEXUS_FrontendHandle NEXUS_Frontend_Open7552( const NEXUS_7552FrontendSettings *
         frontendHandle->getDvbtAsyncStatus = NEXUS_Frontend_P_7552_GetDvbtAsyncStatus;
         frontendHandle->requestIsdbtAsyncStatus = NEXUS_Frontend_P_7552_RequestIsdbtAsyncStatus;
         frontendHandle->getIsdbtAsyncStatusReady = NEXUS_Frontend_P_7552_GetIsdbtAsyncStatusReady;
-        frontendHandle->getIsdbtAsyncStatus = NEXUS_Frontend_P_7552_GetIsdbtAsyncStatus;        
+        frontendHandle->getIsdbtAsyncStatus = NEXUS_Frontend_P_7552_GetIsdbtAsyncStatus;
     }
 #ifndef NEXUS_FRONTEND_7552_A0
     else if(pSettings->type == NEXUS_7552ChannelType_eOutOfBand){
-        
+
         pDevice->frontendcount++;
-        
-        frontendHandle->capabilities.outOfBand = true;  
+
+        frontendHandle->capabilities.outOfBand = true;
         frontendHandle->tuneOutOfBand = NEXUS_Frontend_P_7552_TuneOob;
 
         callbackLockChange = NEXUS_IsrCallback_Create(frontendHandle, NULL);
@@ -873,9 +865,9 @@ NEXUS_FrontendHandle NEXUS_Frontend_Open7552( const NEXUS_7552FrontendSettings *
         rc = BAOB_InstallCallback(pDevice->oobHandle, BAOB_Callback_eLockChange, (BAOB_CallbackFunc)NEXUS_Frontend_P_7552_OobLockChange_isr, (void*)callbackLockChange);
         if(rc){rc = BERR_TRACE(rc); goto error;}
 
-        pDevice->oobLockAppCallback = callbackLockChange;   
+        pDevice->oobLockAppCallback = callbackLockChange;
     }
-#endif  
+#endif
     frontendHandle->close = NEXUS_Frontend_P_7552_Close;
     frontendHandle->untune = NEXUS_Frontend_P_7552_Untune;
     frontendHandle->getFastStatus = NEXUS_Frontend_P_7552_GetFastStatus;
@@ -892,7 +884,7 @@ NEXUS_FrontendHandle NEXUS_Frontend_Open7552( const NEXUS_7552FrontendSettings *
     return frontendHandle;
 
 error:
-    if(pDevice->adsAsyncStatusAppCallback)NEXUS_TaskCallback_Destroy(pDevice->adsAsyncStatusAppCallback);    
+    if(pDevice->adsAsyncStatusAppCallback)NEXUS_TaskCallback_Destroy(pDevice->adsAsyncStatusAppCallback);
     if(pDevice->thdAsyncStatusAppCallback)NEXUS_TaskCallback_Destroy(pDevice->thdAsyncStatusAppCallback);
     if(pDevice->thdLockAppCallback)NEXUS_IsrCallback_Destroy(pDevice->thdLockAppCallback);
     if(callbackLockChange)NEXUS_IsrCallback_Destroy(callbackLockChange);
@@ -946,7 +938,7 @@ static void NEXUS_Frontend_P_7552_Close( NEXUS_FrontendHandle handle )
         if(pDevice->thdAsyncStatusAppCallback)NEXUS_TaskCallback_Destroy(pDevice->thdAsyncStatusAppCallback);
 
         if(handle) NEXUS_Frontend_P_Destroy(handle);
-        pDevice->frontendcount--;       
+        pDevice->frontendcount--;
     }
 #ifndef NEXUS_FRONTEND_7552_A0
     else if(capabilities.outOfBand){
@@ -955,7 +947,7 @@ static void NEXUS_Frontend_P_7552_Close( NEXUS_FrontendHandle handle )
         pDevice->oobLockAppCallback = NULL;
 
         if(handle) NEXUS_Frontend_P_Destroy(handle);
-        pDevice->frontendcount--;       
+        pDevice->frontendcount--;
     }
 #endif
 }
@@ -982,7 +974,7 @@ static void NEXUS_FrontendDevice_P_7552_Close(void *handle)
     pDevice->thdIsrEventCallback = NULL;
     if(pDevice->bbsEventCallback)NEXUS_UnregisterEvent(pDevice->bbsEventCallback);
     pDevice->bbsEventCallback = NULL;
-    
+
     if(pDevice->thdHandle)BTHD_Close(pDevice->thdHandle);
     pDevice->thdHandle = NULL;
 #ifndef NEXUS_FRONTEND_7552_A0
@@ -1012,7 +1004,7 @@ static void NEXUS_FrontendDevice_P_7552_Close(void *handle)
 
 
 static NEXUS_Error NEXUS_Frontend_P_7552_Standby(void *handle, bool enabled, const NEXUS_StandbySettings *pSettings)
-{    
+{
     NEXUS_Error rc = NEXUS_SUCCESS;
     NEXUS_7552 *pDevice;
     BTNR_PowerSaverSettings pwrSettings;
@@ -1046,7 +1038,7 @@ static NEXUS_Error NEXUS_Frontend_P_7552_Standby(void *handle, bool enabled, con
                 pDevice->isThdPoweredOn = false;
             }
         }
-        
+
 
         if(pDevice->isTunerPowered){
             pwrSettings.enable = true;
@@ -1060,7 +1052,7 @@ static NEXUS_Error NEXUS_Frontend_P_7552_Standby(void *handle, bool enabled, con
             pwrSettings.enable = false;
             rc = BTNR_SetPowerSaver(pDevice->tnrHandle, &pwrSettings);
             if(rc){rc = BERR_TRACE(rc); goto done;}
-        
+
             pDevice->isTunerPowered = true;
             rc = BTNR_3x7x_SetRfInputMode(pDevice->tnrHandle, BTNR_3x7x_RfInputMode_eInternalLna);
             if(rc){rc = BERR_TRACE(rc); goto done;}
@@ -1110,7 +1102,7 @@ static void NEXUS_Frontend_P_7552_Untune( void *handle )
     BDBG_ASSERT(handle != NULL);
     pDevice = (NEXUS_7552 *)handle;
     BDBG_OBJECT_ASSERT(pDevice, NEXUS_7552);
-    
+
     if(pDevice->currentMode == QAM_7552){
         if(pDevice->adsIsrEventCallback)NEXUS_UnregisterEvent(pDevice->adsIsrEventCallback);
         pDevice->adsIsrEventCallback = NULL;
@@ -1138,21 +1130,21 @@ done:
 static NEXUS_Error NEXUS_Frontend_P_7552_WriteRegister(void *handle, unsigned address, uint32_t value)
 {
     BSTD_UNUSED(handle);
-    
+
     if((address >= 0xc00000)&&(address<0xd0ffff))
         BREG_Write32(g_pCoreHandles->reg, address, value);
     else {
         BDBG_WRN(("Invalid frontend address."));
         BERR_TRACE(NEXUS_INVALID_PARAMETER);
     }
-        
+
 
     return NEXUS_SUCCESS;
 }
 static NEXUS_Error NEXUS_Frontend_P_7552_ReadRegister(void *handle, unsigned address, uint32_t *value   )
 {
     BSTD_UNUSED(handle);
-    
+
     *value = BREG_Read32(g_pCoreHandles->reg, address);
 
     return NEXUS_SUCCESS;
@@ -1180,7 +1172,7 @@ static NEXUS_Error NEXUS_Frontend_P_7552_TuneQam( void *handle, const NEXUS_Fron
     {
         if(!pDevice->isTunerPowered){
             /* TODO: we should be able to call BTNR_SetSettings after BTNR_SetPowerSaver. verify */
-            pwrSettings.enable = false;     
+            pwrSettings.enable = false;
             rc = BTNR_SetPowerSaver(pDevice->tnrHandle, &pwrSettings);
             if(rc){rc = BERR_TRACE(rc); goto done;}
             pDevice->isTunerPowered = true;
@@ -1198,8 +1190,8 @@ static NEXUS_Error NEXUS_Frontend_P_7552_TuneQam( void *handle, const NEXUS_Fron
         rc = BTNR_3x7x_SetTnrApplication(pDevice->tnrHandle, pDevice->terrestrial);
         if(rc){rc = BERR_TRACE(rc); goto done;}
 
-            
-        pDevice->acquireInProgress = true;      
+
+        pDevice->acquireInProgress = true;
         rc = BTNR_SetTunerRfFreq(pDevice->tnrHandle, pSettings->frequency, BTNR_TunerMode_eDigital);
         if(rc){rc = BERR_TRACE(rc); goto done;}
     }
@@ -1281,12 +1273,12 @@ static NEXUS_Error NEXUS_Frontend_P_7552_TuneQam( void *handle, const NEXUS_Fron
         break;
     }
 
-    /* Scan Parameters */ 
+    /* Scan Parameters */
     if((pSettings->acquisitionMode == NEXUS_FrontendQamAcquisitionMode_eScan) || (pSettings->acquisitionMode == NEXUS_FrontendQamAcquisitionMode_eAuto)){
         BKNI_Memset(&scanParam, 0, sizeof(scanParam));
         scanParam.QM = true;
-        scanParam.TO = true; 
-        if( pSettings->spectrumMode == NEXUS_FrontendQamSpectrumMode_eAuto) scanParam.AI = true;        
+        scanParam.TO = true;
+        if( pSettings->spectrumMode == NEXUS_FrontendQamSpectrumMode_eAuto) scanParam.AI = true;
         if(pSettings->scan.mode[NEXUS_FrontendQamAnnex_eA][NEXUS_FrontendQamMode_e16]) scanParam.A16 = true;
         if(pSettings->scan.mode[NEXUS_FrontendQamAnnex_eA][NEXUS_FrontendQamMode_e32]) scanParam.A32= true;
         if(pSettings->scan.mode[NEXUS_FrontendQamAnnex_eA][NEXUS_FrontendQamMode_e64]) scanParam.A64 = true;
@@ -1298,12 +1290,12 @@ static NEXUS_Error NEXUS_Frontend_P_7552_TuneQam( void *handle, const NEXUS_Fron
         if(pSettings->scan.mode[NEXUS_FrontendQamAnnex_eB][NEXUS_FrontendQamMode_e256]) scanParam.B256 = true;
         if(pSettings->scan.mode[NEXUS_FrontendQamAnnex_eB][NEXUS_FrontendQamMode_e1024]) scanParam.B1024 = true;
         if(pSettings->scan.frequencyOffset){
-            scanParam.CO = true; 
-            scanParam.carrierSearch = pSettings->scan.frequencyOffset/256; 
-        }        
+            scanParam.CO = true;
+            scanParam.carrierSearch = pSettings->scan.frequencyOffset/256;
+        }
         scanParam.upperBaudSearch = pSettings->scan.upperBaudSearch;
         scanParam.lowerBaudSearch = pSettings->scan.lowerBaudSearch;
-        
+
         rc = BADS_SetScanParam(pDevice->channelHandle, &scanParam );
         if(rc){rc = BERR_TRACE(rc); goto done;}
     }
@@ -1314,7 +1306,7 @@ static NEXUS_Error NEXUS_Frontend_P_7552_TuneQam( void *handle, const NEXUS_Fron
     params.invertSpectrum = pSettings->spectralInversion;
     params.spectrum = pSettings->spectrumMode;
     params.autoAcquire = pSettings->autoAcquire;
-    params.frequencyOffset = pSettings->frequencyOffset;    
+    params.frequencyOffset = pSettings->frequencyOffset;
     /* if non-zero, try using what we are asked to use */
     if (0 != pSettings->symbolRate) {
         params.symbolRate = pSettings->symbolRate;
@@ -1322,7 +1314,7 @@ static NEXUS_Error NEXUS_Frontend_P_7552_TuneQam( void *handle, const NEXUS_Fron
         params.symbolRate = symbolRate;
     }
 
-	params.enableNullPackets = pSettings->enableNullPackets;
+    params.enableNullPackets = pSettings->enableNullPackets;
 
 
     BDBG_MSG(("Calling BADS_Acquire() with autoAcquire %d, frequencyOffset %d, enableDpm %d, spectrum %d",
@@ -1358,7 +1350,7 @@ static NEXUS_FrontendLockStatus  NEXUS_Frontend_P_GetLockStatus(unsigned lockSta
         BDBG_WRN(("Unrecognized lock status (%d) ", lockStatus));
         BERR_TRACE(BERR_NOT_SUPPORTED);
         return NEXUS_FrontendLockStatus_eUnknown;
-    }   
+    }
 }
 
 static NEXUS_Error NEXUS_Frontend_P_7552_GetFastStatus(void *handle, NEXUS_FrontendFastStatus *pStatus)
@@ -1370,10 +1362,10 @@ static NEXUS_Error NEXUS_Frontend_P_7552_GetFastStatus(void *handle, NEXUS_Front
     pDevice = (NEXUS_7552 *)handle;
     BDBG_OBJECT_ASSERT(pDevice, NEXUS_7552);
     BDBG_ASSERT(NULL != pStatus);
-     
+
     if(pDevice->currentMode == QAM_7552){
         rc = BADS_GetLockStatus(pDevice->channelHandle,  &lock);
-        if(rc){rc = BERR_TRACE(rc); goto done;} 
+        if(rc){rc = BERR_TRACE(rc); goto done;}
     }
     else if(pDevice->currentMode == OFDM_7552){
         rc = BTHD_GetThdLockStatus(pDevice->thdHandle,  &lock);
@@ -1385,7 +1377,7 @@ static NEXUS_Error NEXUS_Frontend_P_7552_GetFastStatus(void *handle, NEXUS_Front
     }
     pStatus->lockStatus = NEXUS_Frontend_P_GetLockStatus(lock);
     pStatus->acquireInProgress = pDevice->acquireInProgress;
-    
+
 done:
     return rc;
 }
@@ -1396,7 +1388,7 @@ static NEXUS_FrontendQamAnnex  NEXUS_Frontend_P_ADSToAnnex(BADS_ModulationType m
         return NEXUS_FrontendQamAnnex_eA;
     else if(modulationType < BADS_ModulationType_eAnnexCQam16)
         return NEXUS_FrontendQamAnnex_eB;
-    else {      
+    else {
         return NEXUS_FrontendQamAnnex_eB;
         BDBG_ERR(("Unsupported Annex."));
     }
@@ -1453,7 +1445,7 @@ static NEXUS_Error NEXUS_Frontend_P_7552_GetQamScanStatus(void *handle, NEXUS_Fr
     NEXUS_Error rc = NEXUS_SUCCESS;
     NEXUS_7552 *pDevice = (NEXUS_7552 *)handle;
     struct BADS_ScanStatus st;
-    
+
     BDBG_OBJECT_ASSERT(pDevice, NEXUS_7552);
     BDBG_ASSERT(NULL != pScanStatus);
 
@@ -1462,7 +1454,7 @@ static NEXUS_Error NEXUS_Frontend_P_7552_GetQamScanStatus(void *handle, NEXUS_Fr
 
     rc = BADS_GetScanStatus(pDevice->channelHandle,  &st);
     if(rc){rc = BERR_TRACE(rc); goto done;}
-    
+
     pScanStatus->symbolRate = st.symbolRate;
     pScanStatus->frequencyOffset = st.carrierFreqOffset;
     pScanStatus->interleaver = st.interleaver;
@@ -1470,7 +1462,7 @@ static NEXUS_Error NEXUS_Frontend_P_7552_GetQamScanStatus(void *handle, NEXUS_Fr
     pScanStatus->acquisitionStatus = st.acquisitionStatus;
     pScanStatus->annex = NEXUS_Frontend_P_ADSToAnnex(st.modType);
     pScanStatus->mode = NEXUS_Frontend_P_ADSToMode(st.modType);
-    
+
     return BERR_SUCCESS;
 done:
     return rc;
@@ -1488,11 +1480,11 @@ static NEXUS_Error NEXUS_Frontend_P_7552_GetQamStatus( void *handle, NEXUS_Front
 
     BKNI_Memset(pStatus, 0, sizeof*(pStatus));
 
-    pDevice->isInternalAsyncStatusCall = true;    
+    pDevice->isInternalAsyncStatusCall = true;
     pDevice->isInternalAsyncStatusReady = false;
 
     rc = NEXUS_Frontend_P_7552_RequestQamAsyncStatus(pDevice);
-    if(rc){rc = BERR_TRACE(rc); goto done;} 
+    if(rc){rc = BERR_TRACE(rc); goto done;}
 
     for(j=0; j < 10; j++) {
 
@@ -1500,11 +1492,11 @@ static NEXUS_Error NEXUS_Frontend_P_7552_GetQamStatus( void *handle, NEXUS_Front
         if(pDevice->isInternalAsyncStatusReady) {
             rc = NEXUS_Frontend_P_7552_GetQamAsyncStatus(pDevice, pStatus);
             if(rc){rc = BERR_TRACE(rc); goto done;}
-            
+
             pDevice->isInternalAsyncStatusReady = false;
             break;
         }
-    }    
+    }
     pDevice->isInternalAsyncStatusCall = false;
 done:
     return rc;
@@ -1529,7 +1521,7 @@ static NEXUS_Error NEXUS_Frontend_P_7552_ReadSoftDecisions(void *handle, NEXUS_F
     /* only make one call to ADS. if app needs more, they can loop. */
     if(pDevice->currentMode == QAM_7552){
         rc = BADS_GetSoftDecision(pDevice->channelHandle, (int16_t)TOTAL_SOFTDECISIONS,  d_i, d_q, &return_length);
-        if(rc){rc = BERR_TRACE(rc); goto done;} 
+        if(rc){rc = BERR_TRACE(rc); goto done;}
     }
     else if(pDevice->currentMode == OFDM_7552){
         rc = BTHD_GetSoftDecisionBuf(pDevice->thdHandle, d_i, d_q);
@@ -1539,25 +1531,25 @@ static NEXUS_Error NEXUS_Frontend_P_7552_ReadSoftDecisions(void *handle, NEXUS_F
         BDBG_ERR((" Unsupported channel."));
         rc = BERR_TRACE(BERR_NOT_SUPPORTED); goto done;
     }
-    
+
     for (i=0; (int)i<return_length && i<length; i++)
     {
         pDecisions[i].i = d_i[i];
         pDecisions[i].q = d_q[i];
     }
     *pNumRead = i;
-done:   
+done:
     return rc;
 }
 
 static void NEXUS_Frontend_P_7552_ResetStatus( void *handle )
-{    
+{
     NEXUS_Error rc = NEXUS_SUCCESS;
     NEXUS_7552 *pDevice;
     BDBG_ASSERT(handle != NULL);
     pDevice = (NEXUS_7552 *)handle;
     BDBG_OBJECT_ASSERT(pDevice, NEXUS_7552);
-     
+
     if(pDevice->currentMode == QAM_7552){
      rc = BADS_ResetStatus(pDevice->channelHandle);
      if (rc){BERR_TRACE(rc);}
@@ -1566,11 +1558,11 @@ static void NEXUS_Frontend_P_7552_ResetStatus( void *handle )
      rc = BTHD_ResetInbandStatus(pDevice->thdHandle);
      if(rc){rc = BERR_TRACE(rc); goto done;}
     }
-    else{       
+    else{
         BDBG_ERR((" Unsupported channel."));
         rc = BERR_TRACE(BERR_NOT_SUPPORTED); goto done;
     }
-    
+
 done:
     return;
 }
@@ -1590,12 +1582,12 @@ static BERR_Code NEXUS_Frontend_P_7552_TuneOfdm( void *handle, const NEXUS_Front
     pDevice->currentMode = OFDM_7552;
 
     rc = BTHD_GetDefaultInbandParams(pDevice->thdHandle, &params);
-    if(rc){rc = BERR_TRACE(rc); goto done;}    
+    if(rc){rc = BERR_TRACE(rc); goto done;}
 
     if (pDevice->tnrHandle)
-    {      
+    {
         if(!pDevice->isTunerPowered){
-            pwrSettings.enable = false;     
+            pwrSettings.enable = false;
             rc = BTNR_SetPowerSaver(pDevice->tnrHandle, &pwrSettings);
             if(rc){rc = BERR_TRACE(rc); goto done;}
             pDevice->isTunerPowered = true;
@@ -1633,7 +1625,7 @@ static BERR_Code NEXUS_Frontend_P_7552_TuneOfdm( void *handle, const NEXUS_Front
     }
     else {
         BDBG_ERR(("Invalid Tuner handle."));
-        rc = BERR_TRACE(BERR_INVALID_PARAMETER); goto done; 
+        rc = BERR_TRACE(BERR_INVALID_PARAMETER); goto done;
     }
 
     if(!pDevice->isThdPoweredOn){
@@ -1648,7 +1640,7 @@ static BERR_Code NEXUS_Frontend_P_7552_TuneOfdm( void *handle, const NEXUS_Front
         if(rc){rc = BERR_TRACE(rc); goto done;}
         pDevice->isThdPoweredOn = true;
     }
-    
+
     params.decodeMode = (NEXUS_FrontendOfdmPriority_eHigh == pSettings->priority) ? BTHD_Decode_Hp : BTHD_Decode_Lp;
     params.cciMode = (NEXUS_FrontendOfdmCciMode_eNone == pSettings->cciMode) ? BTHD_CCI_None : BTHD_CCI_Auto;
     params.ifFreq = pSettings->ifFrequency;
@@ -1744,9 +1736,9 @@ static BERR_Code NEXUS_Frontend_P_7552_TuneOfdm( void *handle, const NEXUS_Front
         default:
             BDBG_WRN(("Unrecognized transmission mode, defaulting to auto."));
             params.eModeGuardAcquire = BTHD_ModeGuard_eAuto;
-        }       
+        }
     }
-    else {      
+    else {
          switch (pSettings->mode) {
         case NEXUS_FrontendOfdmMode_eDvbt:
             params.eModeGuardAcquire = BTHD_ModeGuard_eAutoDvbt;
@@ -1834,7 +1826,7 @@ static NEXUS_Error NEXUS_Frontend_P_7552_RequestQamAsyncStatus( void *handle )
     if(pDevice->pGenericDeviceHandle->parent){
 
         params.rfInput = pDevice->pGenericDeviceHandle->linkSettings.rfInput;
-        params.accumulateTillRootDevice = true;    
+        params.accumulateTillRootDevice = true;
         params.frequency = pDevice->lastSettings.qam.frequency;
 
         BKNI_Memset(&settings, 0, sizeof(settings));
@@ -1846,7 +1838,7 @@ static NEXUS_Error NEXUS_Frontend_P_7552_RequestQamAsyncStatus( void *handle )
 
         if(settings.isExternalFixedGainBypassed){
             externalGainSettings.totalGain -= pDevice->pGenericDeviceHandle->bypassableFixedGain;
-        }        
+        }
     }
     else{
         externalGainSettings.bypassableGain = pDevice->pGenericDeviceHandle->bypassableFixedGain;
@@ -1859,7 +1851,7 @@ static NEXUS_Error NEXUS_Frontend_P_7552_RequestQamAsyncStatus( void *handle )
 
     if(!pDevice->isInternalAsyncStatusCall)
         NEXUS_TaskCallback_Fire(pDevice->adsAsyncStatusAppCallback);
-    else {      
+    else {
         pDevice->isInternalAsyncStatusReady = true;
     }
 done:
@@ -1915,10 +1907,10 @@ static NEXUS_Error NEXUS_Frontend_P_7552_GetQamAsyncStatus( void *handle, NEXUS_
     if(pStatus->fecUncorrected  > prevStatus->fecUncorrected)
         unCorrectedBlock = pStatus->fecUncorrected - prevStatus->fecUncorrected;
     if(pStatus->fecClean > prevStatus->fecClean)
-        cleanBlock = pStatus->fecClean - prevStatus->fecClean;   
+        cleanBlock = pStatus->fecClean - prevStatus->fecClean;
     if(pStatus->fecCorrected > prevStatus->fecCorrected)
         correctedBlock = pStatus->fecCorrected - prevStatus->fecCorrected;
-    
+
     totalBlock = (uint64_t)(unCorrectedBlock + cleanBlock + correctedBlock);
 
     if(totalBlock > unCorrectedBlock){
@@ -1934,10 +1926,10 @@ static NEXUS_Error NEXUS_Frontend_P_7552_GetQamAsyncStatus( void *handle, NEXUS_
         uncorrectedBits = pStatus->viterbiUncorrectedBits - prevStatus->viterbiUncorrectedBits;
 
     if(pStatus->settings.annex == NEXUS_FrontendQamAnnex_eA){
-        pStatus->viterbiTotalBits = (uint32_t)(((uint64_t)pStatus->fecCorrected + (uint64_t)pStatus->fecUncorrected + (uint64_t)pStatus->fecClean) * 204 * 8);  
+        pStatus->viterbiTotalBits = (uint32_t)(((uint64_t)pStatus->fecCorrected + (uint64_t)pStatus->fecUncorrected + (uint64_t)pStatus->fecClean) * 204 * 8);
     }
     else if(pStatus->settings.annex == NEXUS_FrontendQamAnnex_eB){
-        pStatus->viterbiTotalBits = (uint32_t)(((uint64_t)pStatus->fecCorrected + (uint64_t)pStatus->fecUncorrected + (uint64_t)pStatus->fecClean) * 127 * 7);  
+        pStatus->viterbiTotalBits = (uint32_t)(((uint64_t)pStatus->fecCorrected + (uint64_t)pStatus->fecUncorrected + (uint64_t)pStatus->fecClean) * 127 * 7);
     }
 
     if(pStatus->viterbiTotalBits > prevStatus->viterbiTotalBits)
@@ -1973,7 +1965,7 @@ static NEXUS_Error NEXUS_Frontend_P_7552_RequestOfdmAsyncStatus( void *handle )
     if(pDevice->pGenericDeviceHandle->parent){
 
         params.rfInput = pDevice->pGenericDeviceHandle->linkSettings.rfInput;
-        params.accumulateTillRootDevice = true;    
+        params.accumulateTillRootDevice = true;
         params.frequency = pDevice->lastSettings.ofdm.frequency;
 
         BKNI_Memset(&settings, 0, sizeof(settings));
@@ -1985,7 +1977,7 @@ static NEXUS_Error NEXUS_Frontend_P_7552_RequestOfdmAsyncStatus( void *handle )
 
         if(settings.isExternalFixedGainBypassed){
             externalGainSettings.totalGain -= pDevice->pGenericDeviceHandle->bypassableFixedGain;
-        }        
+        }
     }
     else{
         externalGainSettings.bypassableGain = pDevice->pGenericDeviceHandle->bypassableFixedGain;
@@ -1997,7 +1989,7 @@ static NEXUS_Error NEXUS_Frontend_P_7552_RequestOfdmAsyncStatus( void *handle )
     if(rc){rc = BERR_TRACE(rc); goto done;}
     if(!pDevice->isInternalAsyncStatusCall)
         NEXUS_TaskCallback_Fire(pDevice->thdAsyncStatusAppCallback);
-    else {      
+    else {
         pDevice->isInternalAsyncStatusReady = true;
     }
 done:
@@ -2015,7 +2007,7 @@ static NEXUS_Error NEXUS_Frontend_P_7552_RequestIsdbtAsyncStatus(void *handle, N
 
     pDevice->isAsyncStatusReady = false;
     rc = NEXUS_Frontend_P_7552_RequestOfdmAsyncStatus(pDevice);
-    if(rc){rc = BERR_TRACE(rc); goto done;} 
+    if(rc){rc = BERR_TRACE(rc); goto done;}
 
 done:
     return rc;
@@ -2032,7 +2024,7 @@ static NEXUS_Error NEXUS_Frontend_P_7552_RequestDvbtAsyncStatus(void *handle, NE
 
     pDevice->isAsyncStatusReady = false;
     rc = NEXUS_Frontend_P_7552_RequestOfdmAsyncStatus(pDevice);
-    if(rc){rc = BERR_TRACE(rc); goto done;} 
+    if(rc){rc = BERR_TRACE(rc); goto done;}
 
 done:
     return rc;
@@ -2045,7 +2037,7 @@ static NEXUS_Error NEXUS_Frontend_P_7552_GetIsdbtAsyncStatusReady(void *handle, 
     BDBG_ASSERT(handle != NULL);
     pDevice = (NEXUS_7552 *)handle;
     BDBG_OBJECT_ASSERT(pDevice, NEXUS_7552);
-    
+
     if(pDevice->isAsyncStatusReady){
         pAsyncStatusReady->type[NEXUS_FrontendIsdbtStatusType_eBasic] = true;
     }
@@ -2063,7 +2055,7 @@ static NEXUS_Error NEXUS_Frontend_P_7552_GetDvbtAsyncStatusReady(void *handle, N
     BDBG_ASSERT(handle != NULL);
     pDevice = (NEXUS_7552 *)handle;
     BDBG_OBJECT_ASSERT(pDevice, NEXUS_7552);
-    
+
     if(pDevice->isAsyncStatusReady){
         pAsyncStatusReady->type[NEXUS_FrontendDvbtStatusType_eBasic] = true;
     }
@@ -2075,7 +2067,7 @@ static NEXUS_Error NEXUS_Frontend_P_7552_GetDvbtAsyncStatusReady(void *handle, N
 }
 
 static NEXUS_Error NEXUS_Frontend_P_7552_GetOfdmAsyncStatus( void *handle, NEXUS_FrontendOfdmStatus *pStatus )
-{  
+{
     NEXUS_Error rc = NEXUS_SUCCESS;
     NEXUS_7552 *pDevice;
     BTHD_THDStatus status;
@@ -2108,7 +2100,7 @@ static NEXUS_Error NEXUS_Frontend_P_7552_GetOfdmAsyncStatus( void *handle, NEXUS
     pStatus->cellId = status.nCellId;
     pStatus->carrierOffset = status.lCarrierOffset;
     pStatus->timingOffset = status.lTimingOffset;
-    pStatus->snr = (status.nSnr*100)/256;   
+    pStatus->snr = (status.nSnr*100)/256;
     pStatus->fecCorrectedBlocks = status.ulRsCorrectedBlocks;
     pStatus->fecUncorrectedBlocks = status.ulRsUncorrectedBlocks;
     pStatus->fecCleanBlocks = status.ulRsCleanBlocks;
@@ -2117,7 +2109,7 @@ static NEXUS_Error NEXUS_Frontend_P_7552_GetOfdmAsyncStatus( void *handle, NEXUS
     pStatus->preViterbiErrorRate = status.ulPreViterbiBer;
     pStatus->ifAgcLevel = status.ulIFAgc;
     pStatus->rfAgcLevel = status.ulRFAgc;
-    
+
 #if TODO_THD_TUNER_CONNECTION
     if (pDevice->tuner) {
         NEXUS_7552TunerStatus tunerStatus;
@@ -2185,13 +2177,13 @@ static NEXUS_Error NEXUS_Frontend_P_7552_GetIsdbtAsyncStatus(void *handle, NEXUS
 
     BKNI_Memset(pStatus, 0, sizeof(*pStatus));
 
-    pStatus->status.basic.settings = pDevice->lastSettings.ofdm; 
+    pStatus->status.basic.settings = pDevice->lastSettings.ofdm;
 
     if(type == NEXUS_FrontendIsdbtStatusType_eBasic){
         rc = BTHD_GetThdStatus(pDevice->thdHandle, &status);
         if(rc){rc = BERR_TRACE(rc); goto done;}
 
-        pStatus->status.basic.fecLock = status.bFecLock;     
+        pStatus->status.basic.fecLock = status.bFecLock;
         pStatus->status.basic.tmcc.transmissionMode = NEXUS_Frontend_P_THDToTransmissionMode(status.eTransmissionMode);
         pStatus->status.basic.tmcc.guardInterval = NEXUS_Frontend_P_THDToGuardInterval(status.eGuardInterval);
         pStatus->status.basic.tmcc.ews = status.bIsdbtEWS;
@@ -2211,8 +2203,8 @@ static NEXUS_Error NEXUS_Frontend_P_7552_GetIsdbtAsyncStatus(void *handle, NEXUS
         pStatus->status.basic.layerA.fecBlockCounts.corrected = status.ulIsdbtARsCorrectedBlocks;
         pStatus->status.basic.layerA.fecBlockCounts.uncorrected= status.ulIsdbtARsUncorrectedBlocks;
         pStatus->status.basic.layerA.fecBlockCounts.clean = status.ulIsdbtARsCleanBlocks;
-	    pStatus->status.basic.layerA.signalLevelPercent = status.signalLevelAPercent;
-	    pStatus->status.basic.layerA.signalQualityPercent = status.signalQualityAPercent;
+        pStatus->status.basic.layerA.signalLevelPercent = status.signalLevelAPercent;
+        pStatus->status.basic.layerA.signalQualityPercent = status.signalQualityAPercent;
 
         pStatus->status.basic.layerB.modulation = NEXUS_Frontend_P_THDToModulation(status.eIsdbtBModulation);
         pStatus->status.basic.layerB.codeRate = NEXUS_Frontend_P_THDToCodeRate(status.eIsdbtBCodeRate);
@@ -2221,8 +2213,8 @@ static NEXUS_Error NEXUS_Frontend_P_7552_GetIsdbtAsyncStatus(void *handle, NEXUS
         pStatus->status.basic.layerB.fecBlockCounts.corrected = status.ulIsdbtBRsCorrectedBlocks;
         pStatus->status.basic.layerB.fecBlockCounts.uncorrected = status.ulIsdbtBRsUncorrectedBlocks;
         pStatus->status.basic.layerB.fecBlockCounts.clean = status.ulIsdbtBRsCleanBlocks;
-	    pStatus->status.basic.layerB.signalLevelPercent = status.signalLevelBPercent;
-	    pStatus->status.basic.layerB.signalQualityPercent = status.signalQualityBPercent;
+        pStatus->status.basic.layerB.signalLevelPercent = status.signalLevelBPercent;
+        pStatus->status.basic.layerB.signalQualityPercent = status.signalQualityBPercent;
 
         pStatus->status.basic.layerC.modulation = NEXUS_Frontend_P_THDToModulation(status.eIsdbtCModulation);
         pStatus->status.basic.layerC.codeRate = NEXUS_Frontend_P_THDToCodeRate(status.eIsdbtCCodeRate);
@@ -2231,8 +2223,8 @@ static NEXUS_Error NEXUS_Frontend_P_7552_GetIsdbtAsyncStatus(void *handle, NEXUS
         pStatus->status.basic.layerC.fecBlockCounts.corrected = status.ulIsdbtCRsCorrectedBlocks;
         pStatus->status.basic.layerC.fecBlockCounts.uncorrected = status.ulIsdbtCRsUncorrectedBlocks;
         pStatus->status.basic.layerC.fecBlockCounts.clean = status.ulIsdbtCRsCleanBlocks;
-	    pStatus->status.basic.layerC.signalLevelPercent = status.signalLevelCPercent;
-	    pStatus->status.basic.layerC.signalQualityPercent = status.signalQualityCPercent;
+        pStatus->status.basic.layerC.signalLevelPercent = status.signalLevelCPercent;
+        pStatus->status.basic.layerC.signalQualityPercent = status.signalQualityCPercent;
     }
 
     pDevice->isAsyncStatusReady = false;
@@ -2252,9 +2244,9 @@ static NEXUS_Error NEXUS_Frontend_P_7552_GetDvbtAsyncStatus(void *handle, NEXUS_
 
     BKNI_Memset(pStatus, 0, sizeof(*pStatus));
     BKNI_Memset(&status, 0, sizeof(status));
-    pStatus->status.basic.settings = pDevice->lastSettings.ofdm; 
+    pStatus->status.basic.settings = pDevice->lastSettings.ofdm;
 
-    if(type == NEXUS_FrontendDvbtStatusType_eBasic){        
+    if(type == NEXUS_FrontendDvbtStatusType_eBasic){
         rc = BTHD_GetThdStatus(pDevice->thdHandle,  &status);
         if(rc){rc = BERR_TRACE(rc); goto done;}
 
@@ -2269,17 +2261,17 @@ static NEXUS_Error NEXUS_Frontend_P_7552_GetDvbtAsyncStatus(void *handle, NEXUS_
         pStatus->status.basic.signalQualityPercent = status.signalQualityPercent;
         pStatus->status.basic.reacquireCount = status.ulReacqCount;
         pStatus->status.basic.viterbiErrorRate.rate = status.ulViterbiBer;
-        
+
         pStatus->status.basic.tps.modulation = NEXUS_Frontend_P_THDToModulation(status.eModulation);
         pStatus->status.basic.tps.transmissionMode = NEXUS_Frontend_P_THDToTransmissionMode(status.eTransmissionMode);
         pStatus->status.basic.tps.guardInterval = NEXUS_Frontend_P_THDToGuardInterval(status.eGuardInterval);
-        pStatus->status.basic.tps.codeRate = NEXUS_Frontend_P_THDToCodeRate(status.eCodeRate);     
+        pStatus->status.basic.tps.codeRate = NEXUS_Frontend_P_THDToCodeRate(status.eCodeRate);
         pStatus->status.basic.tps.hierarchy = NEXUS_Frontend_P_THDToHierarchy(status.eHierarchy);
         pStatus->status.basic.tps.cellId = status.nCellId;
         pStatus->status.basic.tps.inDepthSymbolInterleave = status.inDepthSymbolInterleave;
         pStatus->status.basic.tps.timeSlicing = status.timeSlicing;
         pStatus->status.basic.tps.mpeFec = status.mpeFec;
-        
+
         pStatus->status.basic.fecBlockCounts.corrected = status.ulRsCorrectedBlocks;
         pStatus->status.basic.fecBlockCounts.uncorrected = status.ulRsUncorrectedBlocks;
         pStatus->status.basic.fecBlockCounts.clean = status.ulRsCleanBlocks;
@@ -2303,11 +2295,11 @@ static NEXUS_Error NEXUS_Frontend_P_7552_GetOfdmStatus( void *handle, NEXUS_Fron
 
     BKNI_Memset(pStatus, 0, sizeof*(pStatus));
 
-    pDevice->isInternalAsyncStatusCall = true;    
+    pDevice->isInternalAsyncStatusCall = true;
     pDevice->isInternalAsyncStatusReady = false;
 
     rc = NEXUS_Frontend_P_7552_RequestOfdmAsyncStatus(pDevice);
-    if(rc){rc = BERR_TRACE(rc); goto done;} 
+    if(rc){rc = BERR_TRACE(rc); goto done;}
 
     for(j=0; j < 10; j++) {
 
@@ -2315,11 +2307,11 @@ static NEXUS_Error NEXUS_Frontend_P_7552_GetOfdmStatus( void *handle, NEXUS_Fron
         if(pDevice->isInternalAsyncStatusReady) {
             rc = NEXUS_Frontend_P_7552_GetOfdmAsyncStatus(pDevice, pStatus);
             if(rc){rc = BERR_TRACE(rc); goto done;}
-            
+
             pDevice->isInternalAsyncStatusReady = false;
             break;
         }
-    }    
+    }
     pDevice->isInternalAsyncStatusCall = false;
 done:
     return rc;
@@ -2369,7 +2361,7 @@ static BTHD_CodeRate NEXUS_Frontend_P_CodeRateToTHD(  NEXUS_FrontendOfdmCodeRate
 {
     switch (nexusCodeRate) {
     default:
-        BDBG_WRN(("Unsupported code rate value %d, defaulting to 1_2"));
+        BDBG_WRN(("Unsupported code rate value %d, defaulting to 1_2", nexusCodeRate));
         /* Fall through */
     case NEXUS_FrontendOfdmCodeRate_e1_2:
         return BTHD_CodeRate_e1_2;
@@ -2501,7 +2493,7 @@ static NEXUS_FrontendOfdmHierarchy NEXUS_Frontend_P_THDToHierarchy(BTHD_Hierarch
         return NEXUS_FrontendOfdmHierarchy_e2;
     case BTHD_Hierarchy_4:
         return NEXUS_FrontendOfdmHierarchy_e4;
-    }   
+    }
 }
 
 static NEXUS_Error NEXUS_Frontend_P_7552_TuneOob( void *handle, const NEXUS_FrontendOutOfBandSettings *pSettings )
@@ -2518,13 +2510,13 @@ static NEXUS_Error NEXUS_Frontend_P_7552_TuneOob( void *handle, const NEXUS_Fron
     if (pDevice->oobTnrHandle)
     {
         /* TODO: we should be able to call BTNR_SetSettings after BTNR_SetPowerSaver. verify */
-        pwrSettings.enable = false;     
+        pwrSettings.enable = false;
         rc = BTNR_SetPowerSaver(pDevice->oobTnrHandle, &pwrSettings);
         if(rc){rc = BERR_TRACE(rc); goto done;}
 
         rc = BAOB_DisablePowerSaver(pDevice->oobHandle);
         if(rc){rc = BERR_TRACE(rc); goto done;}
-        
+
         rc = BTNR_SetTunerRfFreq(pDevice->oobTnrHandle, pSettings->frequency, BTNR_TunerMode_eDigital);
         if(rc){rc = BERR_TRACE(rc); goto done;}
     }
@@ -2552,10 +2544,10 @@ void NEXUS_FrontendDevice_GetDefault7552Settings(NEXUS_FrontendDevice7552Setting
 void NEXUS_FrontendDevice_Get7552Settings(NEXUS_FrontendDeviceHandle handle, NEXUS_FrontendDevice7552Settings *pSettings)
 {
     NEXUS_7552 *pDevice = NULL;
-    BDBG_ASSERT(handle != NULL);    
+    BDBG_ASSERT(handle != NULL);
 
-    pDevice = handle->pDevice;    
-    if (!pDevice) { BERR_TRACE(NEXUS_INVALID_PARAMETER); goto done; }    
+    pDevice = handle->pDevice;
+    if (!pDevice) { BERR_TRACE(NEXUS_INVALID_PARAMETER); goto done; }
     BDBG_OBJECT_ASSERT(pDevice, NEXUS_7552);
 
     pSettings->rfInput = pDevice->rfInput;
@@ -2564,27 +2556,27 @@ done:
     return;
 }
 
-NEXUS_Error NEXUS_FrontendDevice_Set7552Settings(NEXUS_FrontendDeviceHandle handle, const NEXUS_FrontendDevice7552Settings *pSettings)                
+NEXUS_Error NEXUS_FrontendDevice_Set7552Settings(NEXUS_FrontendDeviceHandle handle, const NEXUS_FrontendDevice7552Settings *pSettings)
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
     NEXUS_7552 *pDevice = NULL;
-    BDBG_ASSERT(handle != NULL);    
+    BDBG_ASSERT(handle != NULL);
 
-    pDevice = handle->pDevice;    
-    if (!pDevice) { rc = BERR_TRACE(NEXUS_INVALID_PARAMETER); goto done; }    
+    pDevice = handle->pDevice;
+    if (!pDevice) { rc = BERR_TRACE(NEXUS_INVALID_PARAMETER); goto done; }
     BDBG_OBJECT_ASSERT(pDevice, NEXUS_7552);
 
-    if((pSettings->enableRfLoopThrough != pDevice->enableRfLoopThrough)) {        
+    if((pSettings->enableRfLoopThrough != pDevice->enableRfLoopThrough)) {
         rc = BTNR_3x7x_Set_RF_LoopThrough(pDevice->tnrHandle, pSettings->enableRfLoopThrough);
-        if(rc){rc = BERR_TRACE(rc); goto done;}         
-        pDevice->enableRfLoopThrough = pSettings->enableRfLoopThrough;        
+        if(rc){rc = BERR_TRACE(rc); goto done;}
+        pDevice->enableRfLoopThrough = pSettings->enableRfLoopThrough;
     }
-    if((pSettings->rfInput != pDevice->rfInput)) {        
+    if((pSettings->rfInput != pDevice->rfInput)) {
         rc = BTNR_3x7x_SetRfInputMode(pDevice->tnrHandle, pSettings->rfInput);
-        if(rc){rc = BERR_TRACE(rc); goto done;}         
-        pDevice->rfInput = pSettings->rfInput;        
+        if(rc){rc = BERR_TRACE(rc); goto done;}
+        pDevice->rfInput = pSettings->rfInput;
     }
- 
+
 done:
     return rc;
 }
@@ -2616,6 +2608,3 @@ NEXUS_Error NEXUS_Frontend_Probe7552(const NEXUS_FrontendDevice7552OpenSettings 
 
     return rc;
 }
-
-
-

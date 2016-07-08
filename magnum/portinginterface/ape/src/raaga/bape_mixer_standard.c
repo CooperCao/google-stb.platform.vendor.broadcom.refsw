@@ -1,22 +1,42 @@
 /***************************************************************************
- *     Copyright (c) 2006-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description: Mixer Interface for "Standard" Mixers
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ***************************************************************************/
 
 #include "bstd.h"
@@ -103,7 +123,6 @@ BERR_Code BAPE_StandardMixer_P_Create(
 
     BKNI_Memset(handle, 0, sizeof(BAPE_Mixer));
     BDBG_OBJECT_SET(handle, BAPE_Mixer);
-    handle->explicitFormat = BAPE_MixerFormat_eMax;
     handle->explicitFormat = pSettings->format != BAPE_MixerFormat_eAuto ? pSettings->format : BAPE_MixerFormat_eMax;
     handle->settings = *pSettings;
     handle->interface = &standardMixerInterface;
@@ -112,7 +131,21 @@ BERR_Code BAPE_StandardMixer_P_Create(
     handle->fs = BAPE_FS_INVALID;
     BAPE_P_InitPathNode(&handle->pathNode, BAPE_PathNodeType_eMixer, handle->settings.type, 1, deviceHandle, handle);
     handle->pathNode.subtype = BAPE_MixerType_eStandard;
-    handle->pathNode.pName = "Standard Mixer";
+        switch ( handle->explicitFormat )
+        {
+        case BAPE_MixerFormat_ePcmStereo:
+            handle->pathNode.pName = "Explicit 2ch Mixer";
+            break;
+        case BAPE_MixerFormat_ePcm5_1:
+            handle->pathNode.pName = "Explicit 6ch Mixer";
+            break;
+        case BAPE_MixerFormat_ePcm7_1:
+            handle->pathNode.pName = "Explicit 8ch Mixer";
+            break;
+        default:
+            handle->pathNode.pName = "Standard Mixer";
+            break;
+        }
     handle->pathNode.connectors[0].useBufferPool = true;
 
     BAPE_Connector_P_GetFormat(&handle->pathNode.connectors[0], &format);
@@ -217,6 +250,13 @@ static BERR_Code BAPE_StandardMixer_P_Start(BAPE_MixerHandle handle)
         return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
 
+    /* Need to Allocate our own resources and push our output FCIs downstream before configuring downstream components */
+    errCode = BAPE_StandardMixer_P_AllocateResources(handle);
+    if ( errCode )
+    {
+        goto err_alloc;
+    }
+
     /* Prepare subnodes */
     errCode = BAPE_PathNode_P_AcquirePathResources(&handle->pathNode);
     if ( errCode )
@@ -266,6 +306,8 @@ err_start_path:
 err_config_path:
     BAPE_PathNode_P_ReleasePathResources(&handle->pathNode);
 err_acquire_resources:
+err_alloc:
+    BAPE_StandardMixer_P_FreeResources(handle);
     return errCode;
 }
 
@@ -291,6 +333,7 @@ static void BAPE_StandardMixer_P_Stop(BAPE_MixerHandle handle)
     if ( handle->running == 0 )
     {
         BAPE_PathNode_P_ReleasePathResources(&handle->pathNode);
+        BAPE_StandardMixer_P_FreeResources(handle);
     }
     handle->startedExplicitly = false;
 }
@@ -363,10 +406,10 @@ static BERR_Code BAPE_StandardMixer_P_AddInput(
                 handle->inputs[i] = NULL;
                 return BERR_TRACE(errCode);
             }
-			if( pSettings->capture )
-			{
-				handle->inputCaptures[i] = pSettings->capture;
-			}
+            if( pSettings->capture )
+            {
+                handle->inputCaptures[i] = pSettings->capture;
+            }
 
             /* TODO: validate capture is not hooked to another mixer/input and store the link in the capture handle */
             return BERR_SUCCESS;
@@ -1009,7 +1052,7 @@ static BERR_Code BAPE_StandardMixer_P_StartPathFromInput(
     BAPE_MixerHandle handle;
     BAPE_Connector input;
     BAPE_OutputPort output;
-    unsigned mixerIndex, inputIndex;
+    unsigned mixerIndex, inputIndex, numOutputConnections;
     BERR_Code errCode;
     BAPE_PathConnection *pOutputConnection;
     bool highPriority;
@@ -1067,17 +1110,37 @@ static BERR_Code BAPE_StandardMixer_P_StartPathFromInput(
 
             /* Apply output volume after enabling outputs (many mute in the output itself) */
             BAPE_StandardMixer_P_ApplyOutputVolume(handle, output);
+        }
 
-            /* Setup mixer priority */
-            BAPE_MixerGroup_P_GetSettings(output->sourceMixerGroup, &mixerGroupSettings);
+        /* set mixer priority */
+        for ( mixerIndex = 0; mixerIndex < handle->numMixerGroups; mixerIndex++ )
+        {
+            BAPE_MixerGroup_P_GetSettings(handle->mixerGroups[mixerIndex], &mixerGroupSettings);
             mixerGroupSettings.highPriority = highPriority;
-            errCode = BAPE_MixerGroup_P_SetSettings(output->sourceMixerGroup, &mixerGroupSettings);
+            errCode = BAPE_MixerGroup_P_SetSettings(handle->mixerGroups[mixerIndex], &mixerGroupSettings);
             if ( errCode )
             {
                 errCode = BERR_TRACE(errCode);
                 goto err_output;
             }
+        }
 
+        /* count output connections */
+        numOutputConnections=0;
+        for ( pOutputConnection = BLST_SQ_FIRST(&handle->pathNode.connectors[0].connectionList);
+              pOutputConnection != NULL;
+              pOutputConnection = BLST_SQ_NEXT(pOutputConnection, downstreamNode) )
+        {
+            numOutputConnections++;
+        }
+
+        /* Start Mixer Outputs */
+        mixerIndex=0;
+        /* outputs to mixers are 1:1 */
+        for ( output = BLST_S_FIRST(&handle->outputList);
+              output != NULL;
+              output = BLST_S_NEXT(output, node) )
+        {
             /* Start mixer output(s) */
             BDBG_ASSERT(NULL != output->sourceMixerGroup);
             errCode = BAPE_MixerGroup_P_StartOutput(output->sourceMixerGroup, output->sourceMixerOutputIndex);
@@ -1090,25 +1153,27 @@ static BERR_Code BAPE_StandardMixer_P_StartPathFromInput(
             BDBG_ASSERT(errCode == BERR_SUCCESS);
             mixerIndex++;
         }
-        for ( pOutputConnection = BLST_SQ_FIRST(&handle->pathNode.connectors[0].connectionList);
-              pOutputConnection != NULL;
-              pOutputConnection = BLST_SQ_NEXT(pOutputConnection, downstreamNode) )
+
+        /* output connection mixers are cascaded */
+        for ( ; mixerIndex < handle->numMixerGroups; mixerIndex++ )
         {
-            BAPE_MixerGroup_P_GetSettings(handle->mixerGroups[mixerIndex], &mixerGroupSettings);
-            mixerGroupSettings.highPriority = highPriority;
-            errCode = BAPE_MixerGroup_P_SetSettings(handle->mixerGroups[mixerIndex], &mixerGroupSettings);
-            if ( errCode )
-            {
-                errCode = BERR_TRACE(errCode);
-                goto err_output;
-            }
             errCode = BAPE_MixerGroup_P_StartOutput(handle->mixerGroups[mixerIndex], 0);
             if ( errCode )
             {
                 errCode = BERR_TRACE(errCode);
                 goto err_output;
             }
-            mixerIndex++;
+            numOutputConnections--;
+            if ( numOutputConnections > 0 )
+            {
+                errCode = BAPE_MixerGroup_P_StartOutput(handle->mixerGroups[mixerIndex], 1);
+                if ( errCode )
+                {
+                    errCode = BERR_TRACE(errCode);
+                    goto err_output;
+                }
+                numOutputConnections--;
+            }
         }
     }
 
@@ -1222,12 +1287,23 @@ err_output:
             output->disable(output);
             mixerIndex++;
         }
+        numOutputConnections=0;
         for ( pOutputConnection = BLST_SQ_FIRST(&handle->pathNode.connectors[0].connectionList);
               pOutputConnection != NULL;
               pOutputConnection = BLST_SQ_NEXT(pOutputConnection, downstreamNode) )
         {
+            numOutputConnections++;
+        }
+
+        for ( ; mixerIndex < handle->numMixerGroups; mixerIndex++ )
+        {
             BAPE_MixerGroup_P_StopOutput(handle->mixerGroups[mixerIndex], 0);
-            mixerIndex++;
+            numOutputConnections--;
+            if ( numOutputConnections > 0 )
+            {
+                BAPE_MixerGroup_P_StopOutput(handle->mixerGroups[mixerIndex], 1);
+            }
+            numOutputConnections--;
         }
     }                
     return errCode;
@@ -1237,12 +1313,12 @@ void BAPE_StandardMixer_P_SfifoStarted(BAPE_MixerHandle handle, BAPE_PathConnect
 {
 #if BAPE_DSP_SUPPORT
     unsigned inputIndex;
-	BERR_Code errCode;
-	
+    BERR_Code errCode;
+
     inputIndex = BAPE_Mixer_P_FindInputIndex_isrsafe(handle, pConnection->pSource);
     if ( inputIndex >= BAPE_CHIP_MAX_MIXER_INPUTS )
     {
-    	BDBG_ASSERT(inputIndex < BAPE_CHIP_MAX_MIXER_INPUTS);
+        BDBG_ASSERT(inputIndex < BAPE_CHIP_MAX_MIXER_INPUTS);
         BERR_TRACE(BERR_INVALID_PARAMETER);
         return;
     }
@@ -1272,7 +1348,7 @@ static void BAPE_StandardMixer_P_StopPathFromInput(
     BAPE_MixerHandle handle;
     BAPE_Connector input;
     BAPE_OutputPort output;
-    unsigned mixerIndex, inputIndex;
+    unsigned mixerIndex, inputIndex, numOutputConnections;
     BAPE_PathConnection *pOutputConnection;
 
     BDBG_OBJECT_ASSERT(pNode, BAPE_PathNode);
@@ -1368,12 +1444,22 @@ static void BAPE_StandardMixer_P_StopPathFromInput(
             output->disable(output);    
             mixerIndex++;
         }
+        numOutputConnections=0;
         for ( pOutputConnection = BLST_SQ_FIRST(&handle->pathNode.connectors[0].connectionList);
               pOutputConnection != NULL;
               pOutputConnection = BLST_SQ_NEXT(pOutputConnection, downstreamNode) )
         {
+            numOutputConnections++;
+        }
+        for ( ; mixerIndex < handle->numMixerGroups; mixerIndex++ )
+        {
             BAPE_MixerGroup_P_StopOutput(handle->mixerGroups[mixerIndex], 0);
-            mixerIndex++;
+            numOutputConnections--;
+            if ( numOutputConnections > 0 )
+            {
+                BAPE_MixerGroup_P_StopOutput(handle->mixerGroups[mixerIndex], 1);
+            }
+            numOutputConnections--;
         }
     }    
 }
@@ -1447,8 +1533,8 @@ static void BAPE_StandardMixer_P_InputSampleRateChange_isr(
     if ( handle->inputCaptures[i] && NULL != handle->inputCaptures[i]->interrupts.sampleRate.pCallback_isr )
     {
         handle->inputCaptures[i]->interrupts.sampleRate.pCallback_isr(handle->inputCaptures[i]->interrupts.sampleRate.pParam1,
-        															handle->inputCaptures[i]->interrupts.sampleRate.param2, 
-        															newSampleRate);
+                                                                    handle->inputCaptures[i]->interrupts.sampleRate.param2,
+                                                                    newSampleRate);
     }
 
     /* If we are setting the same rate, ignore it */
@@ -1892,10 +1978,10 @@ static BAPE_MclkSource BAPE_StandardMixer_P_GetMclkSource(BAPE_MixerHandle mixer
 /*************************************************************************/
 static BERR_Code BAPE_StandardMixer_P_AllocateResources(BAPE_MixerHandle mixer)
 {
-    unsigned i;
+    unsigned i,j;
     BAPE_OutputPort output;
     BAPE_MclkSource mclkSource;
-    unsigned numOutputs=0;
+    unsigned numOutputs=0, numOutputConnections=0;
     bool fsRequired = false;
     BERR_Code errCode;
     BAPE_PathConnection *pConnection;
@@ -1942,6 +2028,13 @@ static BERR_Code BAPE_StandardMixer_P_AllocateResources(BAPE_MixerHandle mixer)
         numOutputs++;
     }
 
+    for ( pConnection = BLST_SQ_FIRST(&mixer->pathNode.connectors[0].connectionList);
+          pConnection != NULL;
+          pConnection = BLST_SQ_NEXT(pConnection, downstreamNode) )
+    {
+        numOutputConnections++;
+    }
+
     /* Update output format and propagate it */
     errCode = BAPE_Connector_P_SetFormat(&mixer->pathNode.connectors[0], &newFormat);
     if ( errCode )
@@ -1949,8 +2042,8 @@ static BERR_Code BAPE_StandardMixer_P_AllocateResources(BAPE_MixerHandle mixer)
         return BERR_TRACE(errCode);
     }
 
-    BDBG_MSG(("Mixer %p (%d): Allocating mixers for %u outputs using data format %s.", 
-              (void *)mixer, mixer->index, numOutputs, BAPE_FMT_P_GetTypeName_isrsafe(&newFormat)));
+    BDBG_MSG(("Mixer %p (%d) [%s]: Allocating mixers for %u outputs, %u outputConnections, using data format %s.",
+              (void *)mixer, mixer->index, mixer->pathNode.pName, numOutputs, numOutputConnections, BAPE_FMT_P_GetTypeName_isrsafe(&newFormat)));
 
     /* This allocates the required number of mixers */
     errCode = BAPE_StandardMixer_P_AllocateMixerGroups(mixer);
@@ -1961,7 +2054,7 @@ static BERR_Code BAPE_StandardMixer_P_AllocateResources(BAPE_MixerHandle mixer)
         goto err_mixers;
     }
     
-    /* Now, we have the resources we need.  Setup the linkage correctly. */   
+    /* Now, we have the resources we need.  Setup the linkage correctly. 1:1 mixers:outputs*/
     i=0;
     for ( output = BLST_S_FIRST(&mixer->outputList);
           output != NULL;
@@ -1971,18 +2064,61 @@ static BERR_Code BAPE_StandardMixer_P_AllocateResources(BAPE_MixerHandle mixer)
         output->sourceMixerGroup = mixer->mixerGroups[i];
         output->sourceMixerOutputIndex = 0;
         BAPE_MixerGroup_P_GetOutputFciIds(mixer->mixerGroups[i], 0, &output->sourceMixerFci);
-
+        #if BDBG_DEBUG_BUILD
+        {
+            unsigned z;
+            if ( i == 0 )
+            {
+                BDBG_MODULE_MSG(bape_fci, ("Push mixer %p(%s) to outputs",(void *)mixer, mixer->pathNode.pName));
+            }
+            for ( z=0; z<BAPE_FMT_P_GetNumChannelPairs_isrsafe(&newFormat); z++ )
+            {
+                BDBG_MODULE_MSG(bape_fci, ("  pushed mixer output fci[%u] = %x to output %s", z, output->sourceMixerFci.ids[z], output->pName));
+            }
+        }
+        #endif
         i++;
     }
     
-    /* Setup Downstream connections as well */
+    /* Setup Downstream connections as well, cascading mixers */
+    j=0;
     for ( pConnection = BLST_SQ_FIRST(&mixer->pathNode.connectors[0].connectionList);
           pConnection != NULL;
           pConnection = BLST_SQ_NEXT(pConnection, downstreamNode) )
     {
-        BAPE_MixerGroup_P_GetOutputFciIds(mixer->mixerGroups[i], 0, &pConnection->inputFciGroup);
-        i++;
+        unsigned outputIdx;
+
+        if ( (mixer->numOutputConnections - j) == 1 && j > 0 )
+        {
+            outputIdx = 1;
+        }
+        else
+        {
+            outputIdx = 0;
+        }
+        BDBG_ASSERT(mixer->numOutputConnections <= 2);
+        /* TODO - connect mixer[n] -> mixer[n+1], for more than two consumers...
+        if ( j > 0 && outputIdx == 0 )
+        {
+        }
+        */
+        BAPE_MixerGroup_P_GetOutputFciIds(mixer->mixerGroups[i + (j - outputIdx)], outputIdx, &pConnection->inputFciGroup);
+        #if BDBG_DEBUG_BUILD
+        {
+            unsigned z;
+            if ( j == 0 )
+            {
+                BDBG_MODULE_MSG(bape_fci, ("Push mixer %p(%s) to other connections",(void *)mixer, mixer->pathNode.pName));
+            }
+            for ( z=0; z<BAPE_FMT_P_GetNumChannelPairs_isrsafe(&newFormat); z++ )
+            {
+                BDBG_MODULE_MSG(bape_fci, ("  pushed mixer output fci[%u] = %x to %s", z, pConnection->inputFciGroup.ids[z], pConnection->pSink ? pConnection->pSink->pName : "NO SINK?"));
+            }
+        }
+        #endif
+        j++;
     }
+    i += j;
     
     /* Refresh output scaling */    
     for ( output = BLST_S_FIRST(&mixer->outputList);
@@ -2503,17 +2639,21 @@ static BERR_Code BAPE_StandardMixer_P_AllocateMixerGroups(BAPE_MixerHandle handl
 
     BAPE_MixerGroup_P_GetDefaultCreateSettings(&createSettings);
     createSettings.numChannelPairs = BAPE_FMT_P_GetNumChannelPairs_isrsafe(BAPE_Mixer_P_GetOutputFormat(handle));
-    numOutputs = handle->numOutputs + handle->numOutputConnections;
-    /* TODO: Can compact this into fewer mixers or possibly use cascading again. */
+    /* Allocate 1:1 mixers:outputs and cascade the output connections for other consumers */
+    numOutputs = handle->numOutputs;
+    numOutputs += (handle->numOutputConnections > 1) ? (handle->numOutputConnections-1) : handle->numOutputConnections;
+    BDBG_MSG(("Mixer has %d outputs, %d outputConnections, numChPairs %d, explicitFormat %d", numOutputs, handle->numOutputConnections, createSettings.numChannelPairs, handle->explicitFormat));
     for ( i = 0; i < numOutputs; i++ )
     {
         errCode = BAPE_MixerGroup_P_Create(handle->deviceHandle, &createSettings, &handle->mixerGroups[i]);
+        BDBG_MSG(("  Created Mixer group %p, numChPairs %d, explicitFormat %d", (void*)handle->mixerGroups[i], createSettings.numChannelPairs, handle->explicitFormat));
         if ( errCode )
         {
             goto err_create_group;
         }
         handle->numMixerGroups++;
     }
+    BDBG_MSG(("  Created %d output mixer groups for parent mixer %p", handle->numMixerGroups, (void*)handle));
 
     return BERR_SUCCESS;
 
@@ -2552,4 +2692,3 @@ static const BAPE_MixerInterface  standardMixerInterface  = {
     BAPE_StandardMixer_P_ApplyOutputVolume,      /*       (*applyOutputVolume) */
     BAPE_StandardMixer_P_SetSettings             /*       (*setSettings) */
 };
-

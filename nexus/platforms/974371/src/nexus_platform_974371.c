@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2010-2014 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,86 +34,26 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* Revision History:
-*
-* $brcm_Log: $
-*
 ***************************************************************************/
 #include "nexus_platform_priv.h"
 #include "nexus_platform_features.h"
 
 BDBG_MODULE(nexus_platform_974371);
 
-static void nexus_p_modifyMemoryRtsSettings(NEXUS_MemoryRtsSettings *pRtsSettings )
-{
-#if NEXUS_HAS_VIDEO_DECODER
-    switch (pRtsSettings->boxMode)
-    {
-        default:
-        case 1: /* Main + PiP @ 1080p30 or i60 with 10 bit HEVC, No SD or Xcode */
-            pRtsSettings->videoDecoder[0].mfdIndex = 0;   /* main  */
-            pRtsSettings->videoDecoder[0].avdIndex = 0;   /* HVD 0 */
-            pRtsSettings->videoDecoder[1].mfdIndex = 1;   /* pip   */
-            pRtsSettings->videoDecoder[1].avdIndex = 0;   /* HVD 0 */
-
-            pRtsSettings->avd[0].memcIndex = 0;           /* main video, Luma  */
-            pRtsSettings->avd[0].secondaryMemcIndex = 0;  /* main video, Chroma */
-            pRtsSettings->avd[0].splitBufferHevc = false;
-            break;
-    }
-#endif /* NEXUS_HAS_VIDEO_DECODER */
-
-#if NEXUS_HAS_VIDEO_ENCODER /* since no VICE no need */
-    switch (pRtsSettings->boxMode)
-    {
-        default:
-        case 1: /* TBD  */
-            break;
-    }
-#endif /* NEXUS_HAS_VIDEO_ENCODER */
-}
-
 static void nexus_p_modifyDefaultMemoryConfigurationSettings( NEXUS_MemoryConfigurationSettings *pSettings )
 {
-    unsigned boxMode = g_pPreInitState->boxMode;
-    unsigned i;
 #if NEXUS_HAS_VIDEO_DECODER
-    for (i=0;i<NEXUS_NUM_VIDEO_DECODERS;i++)
-    {
-        pSettings->videoDecoder[i].supportedCodecs[NEXUS_VideoCodec_eH265] = true;
-    }
+    NEXUS_P_SupportVideoDecoderCodec(pSettings, NEXUS_VideoCodec_eH265);
     pSettings->videoDecoder[0].supportedCodecs[NEXUS_VideoCodec_eH264_Mvc] = true;
 #else
-    BSTD_UNUSED(i);
+    BSTD_UNUSED(pSettings);
 #endif
-
-#if NEXUS_HAS_VIDEO_DECODER
-    switch (boxMode)
-    {
-        default:
-        case 1:
-            pSettings->videoDecoder[0].colorDepth = 8; /* TBD: how to diff between AVD and HEVC decoders */
-            pSettings->videoDecoder[0].maxFormat = NEXUS_VideoFormat_e1080p;
-            break;
-    }
-
-    pSettings->stillDecoder[0].used = true;
-    pSettings->stillDecoder[0].maxFormat = NEXUS_VideoFormat_e1080p;
-    /* this is needed since Atlas tries to use the first iframe of 4K stream as thumb-nail */
-    pSettings->stillDecoder[0].supportedCodecs[NEXUS_VideoCodec_eH265] = true;
-#endif /* NEXUS_NUM_STILL_DECODES */
 }
 
 
 void NEXUS_Platform_P_SetSpecificOps(struct NEXUS_PlatformSpecificOps *pOps)
 {
     pOps->modifyDefaultMemoryConfigurationSettings = nexus_p_modifyDefaultMemoryConfigurationSettings;
-    pOps->modifyDefaultMemoryRtsSettings = nexus_p_modifyMemoryRtsSettings;
 }
 
 void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings, unsigned boxMode)

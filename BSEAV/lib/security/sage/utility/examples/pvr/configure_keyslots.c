@@ -101,7 +101,13 @@ int prepare_keyslots(int playback, NEXUS_KeySlotHandle *pM2mKeySlotHandle, NEXUS
         wrappedKeySettings.keyLength = 16;
         wrappedKeySettings.ivLength = 16;
         BKNI_Memset(wrappedKeySettings.iv, 0, sizeof(wrappedKeySettings.iv));
-
+        wrappedKeySettings.engine = BSAGElib_Crypto_Engine_eM2m;
+        if (playback) {
+            wrappedKeySettings.operation   = BSAGElib_Crypto_Operation_eDecrypt;
+        }
+        else {
+            wrappedKeySettings.operation   = BSAGElib_Crypto_Operation_eEncrypt;
+        }
         wrappedKeySettings.keyType = BSAGElib_Crypto_KeyType_eClear;
         rc = KeyLoader_LoadWrappedKey(hKeyLoader, *pM2mKeySlotHandle, &wrappedKeySettings);
         if (rc != BERR_SUCCESS)
@@ -112,6 +118,7 @@ int prepare_keyslots(int playback, NEXUS_KeySlotHandle *pM2mKeySlotHandle, NEXUS
     }
 
     /* Allocate and configure CPS KeySlot */
+    if (pCpKeySlotHandle)
     {
         KeyLoader_KeySlotConfigSettings keySlotConfigSettings;
         KeyLoader_WrappedKeySettings wrappedKeySettings;
@@ -153,7 +160,13 @@ int prepare_keyslots(int playback, NEXUS_KeySlotHandle *pM2mKeySlotHandle, NEXUS
         wrappedKeySettings.keyLength = 16;
         wrappedKeySettings.ivLength = 16;
         BKNI_Memset(wrappedKeySettings.iv, 0, sizeof(wrappedKeySettings.iv));
-
+        wrappedKeySettings.engine = BSAGElib_Crypto_Engine_eCaCp;
+        if (playback) {
+            wrappedKeySettings.operation   = BSAGElib_Crypto_Operation_eDecrypt;
+        }
+        else {
+            wrappedKeySettings.operation   = BSAGElib_Crypto_Operation_eEncrypt;
+        }
         wrappedKeySettings.keyType = BSAGElib_Crypto_KeyType_eEven;
         rc = KeyLoader_LoadWrappedKey(hKeyLoader, *pCpKeySlotHandle, &wrappedKeySettings);
         if (rc != BERR_SUCCESS)
@@ -217,6 +230,8 @@ int prepare_keyslots(int playback, NEXUS_KeySlotHandle *pM2mKeySlotHandle, NEXUS
         wrappedKeySettings.keyLength = 16;
         wrappedKeySettings.ivLength = 16;
         BKNI_Memset(wrappedKeySettings.iv, 0, sizeof(wrappedKeySettings.iv));
+        wrappedKeySettings.engine = BSAGElib_Crypto_Engine_eCa;
+        wrappedKeySettings.operation   = BSAGElib_Crypto_Operation_eDecrypt;
 
         wrappedKeySettings.keyType = BSAGElib_Crypto_KeyType_eEven;
         rc = KeyLoader_LoadWrappedKey(hKeyLoader, *pVideoCaKeySlotHandle, &wrappedKeySettings);

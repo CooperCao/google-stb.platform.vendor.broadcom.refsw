@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -11,7 +11,7 @@
  * Software and all intellectual property rights therein.  IF YOU HAVE NO
  * AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
  * AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
- * SOFTWARE.  
+ * SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
@@ -112,9 +112,9 @@ public:
 
    //! Return the time value as seconds (since the program was started for absolute time values)
    //! You should only use this for times you know will have smallish values, like deltas.
-   float FloatSeconds() const 
-   { 
-      int64_t wholeSecs = m_ms / 1000; 
+   float FloatSeconds() const
+   {
+      int64_t wholeSecs = m_ms / 1000;
       return (float)wholeSecs + (float)(m_ms - wholeSecs * 1000) * 0.001f;
    }
 
@@ -147,17 +147,17 @@ public:
    //! Return the calendar second
    uint8_t CalendarSecond() const;
 
-   //! Return the calendar time as a formatted string. See help for strftime() for formatting options. 
+   //! Return the calendar time as a formatted string. See help for strftime() for formatting options.
    std::string CalendarTimeString(const std::string &format = std::string("%d %B %Y - %X")) const;
 
    //! Multiply the time by a scalar
-   Time operator*(float scale) const 
+   Time operator*(float scale) const
    {
       return Time((int64_t)(m_ms * (double)scale));
    }
 
    //! Multiply the time by a scalar
-   Time operator*(double scale) const 
+   Time operator*(double scale) const
    {
       return Time((int64_t)(m_ms * scale));
    }

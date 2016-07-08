@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2011 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2011 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -45,7 +45,7 @@ typedef EGLBoolean (EGLAPIENTRYP PFNEGLSETSWAPRECTANGLEANDROIDPROC) (EGLDisplay 
 
 /* EGL_ANDROID_framebuffer_target */
 #ifndef EGL_ANDROID_framebuffer_target
-#define EGL_ANDROID_framebuffer_target
+#define EGL_ANDROID_framebuffer_target   1
 #define EGL_FRAMEBUFFER_TARGET_ANDROID                0x3147
 #endif
 

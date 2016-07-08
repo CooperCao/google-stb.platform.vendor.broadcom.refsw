@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2011-2013 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -16,7 +16,7 @@
  * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
  * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
  * and to use this information only in connection with your use of Broadcom integrated circuit products.
- 
+
  * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
  * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
  * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
@@ -34,17 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  *****************************************************************************/
 #include "bstd.h"
 #include "bipc_impl.h"
@@ -244,20 +233,20 @@ int bipc_server_client_process(bipc_t ipc, bipc_server_client_t client)
         goto done;
     } else if (rc==-(int)BERR_END_OF_FILE) {
         goto error;
-    } else if(rc!=sizeof(*in)) { 
-        BDBG_WRN(("process:%#lx invalid b_ipc_pkt_in read %d != %d", (unsigned long)ipc, rc, sizeof(*in)));
+    } else if(rc!=sizeof(*in)) {
+        BDBG_WRN(("process:%#lx invalid b_ipc_pkt_in read %d != %d", (unsigned long)ipc, rc, (unsigned)sizeof(*in)));
         goto error;
     }
 
     if(in->pkt_size >= ipc->t.server.ipc_buf_size || in->pkt_size<sizeof(*in)) { BDBG_WRN(("invalid pkt_size %d", in->pkt_size)); goto error; }
     payload = in->pkt_size - sizeof(*in);
     rc = b_safe_read(client->create_settings.recv_fd, ipc->t.server.buf+sizeof(*in), payload);
-    if(rc!=(int)payload) { BDBG_WRN(("process:%#lx invalid variable read %d != %d", (unsigned long)ipc, rc, payload)); goto error; }
+    if(rc!=(int)payload) { BDBG_WRN(("process:%#lx invalid variable read %d != %u", (unsigned long)ipc, rc, (unsigned)payload)); goto error; }
     if(in->instance==BIPC_INSTANCE_ID_NEW) {
         unsigned i;
         bipc_interface_descriptor *id = (void *)(ipc->t.server.buf+sizeof(*in));
 
-        if(payload<sizeof(bipc_interface_descriptor)) { BDBG_WRN(("process:%#lx invalid payload %d (%u)", (unsigned long)ipc, rc, payload)); goto error;}
+        if(payload<sizeof(bipc_interface_descriptor)) { BDBG_WRN(("process:%#lx invalid payload %d (%u)", (unsigned long)ipc, rc, (unsigned)payload)); goto error;}
         for(i=0;i<ipc->t.server.create_settings.interface_count;i++) {
             descriptor = ipc->t.server.create_settings.interfaces[i];
             if(BKNI_Memcmp(descriptor->interface.name, id->name, sizeof(id->name))==0) {
@@ -315,7 +304,7 @@ int bipc_server_client_process(bipc_t ipc, bipc_server_client_t client)
     }
     out.pkt_size = send_size + sizeof(out);
     rc =  b_safe_write(client->create_settings.send_fd, &out, sizeof(out));
-    if(rc!=sizeof(out)) { BDBG_WRN(("process:%#lx invalid b_ipc_pkt_out write %d != %d", (unsigned long)ipc, rc, sizeof(out))); goto error; }
+    if(rc!=sizeof(out)) { BDBG_WRN(("process:%#lx invalid b_ipc_pkt_out write %d != %d", (unsigned long)ipc, rc, (unsigned)sizeof(out))); goto error; }
     if(in->method == descriptor->constructor_entry) {
         client->generation++;
         instance->generation = client->generation;
@@ -327,7 +316,7 @@ int bipc_server_client_process(bipc_t ipc, bipc_server_client_t client)
     }
     if(send_size) {
         rc = b_safe_write(client->create_settings.send_fd, ipc->t.server.buf + sizeof(*in) + send_offset , send_size);
-        if(rc!=(int)send_size) { BDBG_WRN(("process:%#lx invalid variable write %d != %d", (unsigned long)ipc, rc, send_size)); goto error; }
+        if(rc!=(int)send_size) { BDBG_WRN(("process:%#lx invalid variable write %d != %d", (unsigned long)ipc, rc, (unsigned)send_size)); goto error; }
     }
 done:
     BKNI_ReleaseMutex(ipc->t.server.lock);

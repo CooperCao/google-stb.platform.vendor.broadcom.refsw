@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2011 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,8 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ******************************************************************************/
 
 #ifndef BHSI_H__
@@ -88,23 +80,30 @@ typedef BHSI_FlushCallbackFunc BHSI_InvalidateCallbackFunc;
  * SAGE / Host communication uses two channels:
  *     Forward channel uses two buffers
  *         Host->SAGE: Request buffer
- *         Host<-SAGE: ACK buffer
- *     Reverse channel uses one buffer
+ *         Host<-SAGE: Request ACK buffer
+ *     Reverse channel uses two buffers
  *         Host<-SAGE: Response buffer
-*/
+ *         Host<-SAGE: Response ACK buffer
+ */
 typedef struct BHSI_Setting
 {
     unsigned long timeOutMsec;      /* Timeout for Send Operations */ 
 
-    /* Forward Communication Channel buffers */
-    uint8_t       *requestBuf;      /* Start Address of input request buffer */
-    uint32_t      requestBufLen;    /* Length of request buffer */
-    uint8_t       *ackBuf;          /* Start Address of output ACK buffer */
-    uint32_t      ackBufLen;        /* Sizeof ACK buffer */
+    /* Forward (request) Channel; ACK is optional
+         Host --> request      --> SAGE
+         Host <-- request Ack  <-- SAGE */
+    uint8_t       *requestBuf;   /* buffer virtual address */
+    uint32_t      requestBufLen; /* length of the buffer */
+    uint8_t       *requestAckBuf;
+    uint32_t      requestAckBufLen;
 
-    /* Reverse Communication Channel buffer */
-    uint8_t       *responseBuf;      /* Start Address of input data buffer */
-    uint32_t      responseBufLen;    /* Sizeof data buffer */
+    /* Reverse (response) Channel; ACK is optional
+         Host <-- response     <-- SAGE
+         Host --> response Ack --> SAGE */
+    uint8_t       *responseBuf;
+    uint32_t      responseBufLen;
+    uint8_t       *responseAckBuf;
+    uint32_t      responseAckBufLen;
 
     /* receive callback is used when a message is received on the response buffer */
     BHSI_IsrCallbackFunc responseCallback_isr;/* Receive callback. Fired under interrupt. */
@@ -292,6 +291,12 @@ BERR_Code BHSI_Receive_isrsafe(
     uint8_t *rcvBuf,
     uint32_t maxRcvBufLen,
     uint32_t *rcvBufLen
+);
+
+BERR_Code BHSI_Ack_isrsafe(
+    BHSI_Handle hHsi,
+    const uint8_t *ackBuf,
+    uint32_t ackBufLen
 );
 
 /* must be called to reset HSI instance after a watchdog event */

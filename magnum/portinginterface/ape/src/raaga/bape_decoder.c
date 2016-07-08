@@ -1,23 +1,51 @@
 /***************************************************************************
- *     Copyright (c) 2006-2014, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description: Audio Decoder Interface
  *
- * Revision History:
- *
- * $brcm_Log: $
- *
- ***************************************************************************/
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ *****************************************************************************/
 
 #include "bstd.h"
 #include "bkni.h"
@@ -86,6 +114,15 @@ void BAPE_Decoder_GetDefaultOpenSettings(
     BDBG_ASSERT(NULL != pSettings);
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
     pSettings->rateControlSupport = true;
+    if ( BAPE_P_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eMS12 &&
+         BAPE_P_GetDolbyMS12Config() == BAPE_DolbyMs12Config_eA )
+    {
+        pSettings->multichannelFormat = BAPE_MultichannelFormat_e7_1;
+    }
+    else
+    {
+        pSettings->multichannelFormat = BAPE_MultichannelFormat_e5_1;
+    }
 }
 
 BERR_Code BAPE_Decoder_Open(
@@ -147,6 +184,7 @@ BERR_Code BAPE_Decoder_Open(
     handle->dspIndex = pSettings->dspIndex;
     BKNI_Snprintf(handle->name, sizeof(handle->name), "Decoder %u", index);
     BAPE_P_InitPathNode(&handle->node, BAPE_PathNodeType_eDecoder, 0, BAPE_ConnectorFormat_eMax, deviceHandle, handle);
+    BLST_S_INIT(&handle->muxOutputList);
     handle->node.dspIndex = handle->dspIndex;
     handle->node.pName = handle->name;
     handle->node.connectors[BAPE_ConnectorFormat_eStereo].pName = "stereo";
@@ -206,9 +244,16 @@ BERR_Code BAPE_Decoder_Open(
     handle->node.stopPathToOutput = BAPE_DSP_P_StopPathToOutput;
     handle->node.inputPortFormatChange_isr = BAPE_Decoder_P_InputFormatChange_isr;
     handle->state = BAPE_DecoderState_eStopped;
-    handle->settings.multichannelFormat = BAPE_MultichannelFormat_e5_1;
     handle->settings.dualMonoMode = BAPE_DualMonoMode_eStereo;
-    handle->settings.outputMode = BAPE_ChannelMode_e3_2;
+    handle->settings.multichannelFormat = pSettings->multichannelFormat;
+    if ( handle->settings.multichannelFormat == BAPE_MultichannelFormat_e7_1 )
+    {
+        handle->settings.outputMode = BAPE_ChannelMode_e3_4;
+    }
+    else
+    {
+        handle->settings.outputMode = BAPE_ChannelMode_e3_2;
+    }
     handle->settings.outputLfe = true;
     handle->settings.decodeRate = BAPE_NORMAL_DECODE_RATE;
     handle->settings.loudnessEquivalenceEnabled = true;
@@ -385,7 +430,13 @@ BERR_Code BAPE_Decoder_Open(
         BDSP_Stage_GetDefaultCreateSettings(deviceHandle->dspContext, BDSP_AlgorithmType_eAudioProcessing, &stageCreateSettings);
         BKNI_Memset(&stageCreateSettings.algorithmSupported, 0, sizeof(stageCreateSettings.algorithmSupported));
         stageCreateSettings.algorithmSupported[BDSP_Algorithm_eDsola] = true;
-        errCode = BDSP_Stage_Create(deviceHandle->dspContext, &stageCreateSettings, &handle->hDsolaStage);
+        errCode = BDSP_Stage_Create(deviceHandle->dspContext, &stageCreateSettings, &handle->hDsolaStageStereo);
+        if ( errCode )
+        {
+            errCode = BERR_TRACE(errCode);
+            goto err_stage;
+        }
+        errCode = BDSP_Stage_Create(deviceHandle->dspContext, &stageCreateSettings, &handle->hDsolaStageMultichannel);
         if ( errCode )
         {
             errCode = BERR_TRACE(errCode);
@@ -490,9 +541,13 @@ void BAPE_Decoder_Close(
     {
         BDSP_Stage_Destroy(handle->hKaraokeStage);
     }
-    if ( handle->hDsolaStage )
+    if ( handle->hDsolaStageStereo )
     {
-        BDSP_Stage_Destroy(handle->hDsolaStage);
+        BDSP_Stage_Destroy(handle->hDsolaStageStereo);
+    }
+    if ( handle->hDsolaStageMultichannel )
+    {
+        BDSP_Stage_Destroy(handle->hDsolaStageMultichannel);
     }
     if ( handle->hPassthroughStage )
     {
@@ -538,9 +593,9 @@ static BERR_Code BAPE_Decoder_P_ApplyDsolaSettings(
     BDSP_Raaga_Audio_DsolaConfigParams userConfig;
     BERR_Code errCode;
 
-    if ( handle->hDsolaStage )
+    if ( handle->hDsolaStageStereo )
     {
-        errCode = BDSP_Stage_GetSettings(handle->hDsolaStage, &userConfig, sizeof(userConfig));
+        errCode = BDSP_Stage_GetSettings(handle->hDsolaStageStereo, &userConfig, sizeof(userConfig));
         if ( errCode )
         {
             return BERR_TRACE(errCode);
@@ -548,7 +603,24 @@ static BERR_Code BAPE_Decoder_P_ApplyDsolaSettings(
 
         userConfig.ui32InputPcmFrameSize = (512 * handle->settings.decodeRate)/BAPE_NORMAL_DECODE_RATE;
 
-        errCode = BDSP_Stage_SetSettings(handle->hDsolaStage, &userConfig, sizeof(userConfig));
+        errCode = BDSP_Stage_SetSettings(handle->hDsolaStageStereo, &userConfig, sizeof(userConfig));
+        if ( errCode )
+        {
+            return BERR_TRACE(errCode);
+        }
+    }
+
+    if ( handle->hDsolaStageMultichannel )
+    {
+        errCode = BDSP_Stage_GetSettings(handle->hDsolaStageMultichannel, &userConfig, sizeof(userConfig));
+        if ( errCode )
+        {
+            return BERR_TRACE(errCode);
+        }
+
+        userConfig.ui32InputPcmFrameSize = (512 * handle->settings.decodeRate)/BAPE_NORMAL_DECODE_RATE;
+
+        errCode = BDSP_Stage_SetSettings(handle->hDsolaStageMultichannel, &userConfig, sizeof(userConfig));
         if ( errCode )
         {
             return BERR_TRACE(errCode);
@@ -706,7 +778,7 @@ static BERR_Code BAPE_Decoder_P_ValidateDecodeSettings(
 {
     BDSP_AlgorithmInfo algoInfo;
     BERR_Code errCode;
-    BAPE_PathNode *pNodes[2];
+    BAPE_PathNode *pNodes[BAPE_MAX_NODES];
     unsigned numFound;
     bool decodeSupported = true;
 
@@ -834,8 +906,7 @@ static BERR_Code BAPE_Decoder_P_ValidateDecodeSettings(
             BDBG_WRN(("This platform does not support DSOLA for audio decoder rate control.  Disabling rate control."));
             pOutputSettings->decodeRateControl = false;
         }
-        if ( handle->outputStatus.numOutputs[BAPE_DataType_ePcm5_1] > 0 ||
-             handle->outputStatus.numOutputs[BAPE_DataType_ePcm7_1] > 0 ||
+        if ( handle->outputStatus.numOutputs[BAPE_DataType_ePcm7_1] > 0 ||
              handle->outputStatus.numOutputs[BAPE_DataType_ePcmMono] > 0 ||
              handle->outputStatus.numOutputs[BAPE_DataType_ePcmRf] > 0 ||
              handle->outputStatus.numOutputs[BAPE_DataType_eIec61937] > 0 ||
@@ -895,19 +966,20 @@ static BERR_Code BAPE_Decoder_P_ValidateDecodeSettings(
     }
 
     /* Find any MuxOutput consumers - required for overflow handling */
-    BAPE_PathNode_P_FindConsumersByType(&handle->node, BAPE_PathNodeType_eMuxOutput, 2, &numFound, pNodes);
-    if ( numFound > 1 )
+    BAPE_PathNode_P_FindConsumersByType(&handle->node, BAPE_PathNodeType_eMuxOutput, BAPE_MAX_NODES, &numFound, pNodes);
+    if ( numFound > BAPE_MAX_NODES )
     {
-        BDBG_ERR(("Only a single encoder may be connected to a decoder's output"));
+        BDBG_ERR(("increase BAPE_MAX_NODES"));
         return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
-    else if ( numFound == 1 )
+    else if ( numFound > 0 )
     {
-        handle->hMuxOutput = pNodes[0]->pHandle;
-    }
-    else
-    {
-        handle->hMuxOutput = NULL;
+        unsigned i;
+        BDBG_MSG(("\nFound %d mux outputs downstream\n", numFound));
+        for ( i=0; i<numFound; i++ )
+        {
+            BLST_S_INSERT_HEAD(&handle->muxOutputList, (BAPE_MuxOutput*)pNodes[i]->pHandle, decoderListNode);
+        }
     }
 
     return BERR_SUCCESS;
@@ -1423,15 +1495,15 @@ static BERR_Code BAPE_Decoder_P_Start(
             hStage = handle->hKaraokeStage;
         }
         /* Add DSOLA if required */
-        if ( pSettings->decodeRateControl && handle->hDsolaStage )
+        if ( pSettings->decodeRateControl && handle->hDsolaStageStereo )
         {
-            errCode = BDSP_Stage_AddOutputStage(hStage, BDSP_DataType_ePcmStereo, handle->hDsolaStage, &output, &input);
+            errCode = BDSP_Stage_AddOutputStage(hStage, BDSP_DataType_ePcmStereo, handle->hDsolaStageStereo, &output, &input);
             if ( errCode )
             {
                 errCode = BERR_TRACE(errCode);
                 goto err_stages;
             }
-            hStage = handle->hDsolaStage;
+            hStage = handle->hDsolaStageStereo;
         }
     }
     handle->node.connectors[BAPE_ConnectorFormat_eStereo].hStage = hStage;
@@ -1457,6 +1529,17 @@ static BERR_Code BAPE_Decoder_P_Start(
                     goto err_stages;
                 }
                 hStage = handle->hSrcStageMultichannel;
+            }
+            /* Add DSOLA if required */
+            if ( pSettings->decodeRateControl && handle->hDsolaStageMultichannel )
+            {
+                errCode = BDSP_Stage_AddOutputStage(hStage, dataType, handle->hDsolaStageMultichannel, &output, &input);
+                if ( errCode )
+                {
+                    errCode = BERR_TRACE(errCode);
+                    goto err_stages;
+                }
+                hStage = handle->hDsolaStageMultichannel;
             }
         }
         handle->node.connectors[BAPE_ConnectorFormat_eMultichannel].hStage = hStage;
@@ -2061,10 +2144,14 @@ static void BAPE_Decoder_P_Stop(
             BAPE_FciSplitterOutputGroup_P_Destroy(handle->fciSpOutput);
             handle->fciSpOutput = NULL;
         }
-
     }
 
     BAPE_Decoder_P_UnlinkStages(handle);
+
+    while ( BLST_S_FIRST(&handle->muxOutputList) )
+    {
+        BLST_S_REMOVE_HEAD(&handle->muxOutputList, decoderListNode);
+    }
 }
 
 void BAPE_Decoder_Stop(
@@ -2582,9 +2669,9 @@ BERR_Code BAPE_Decoder_SetTsmSettings_isr(
         BDSP_AudioTaskTsmSettings tsmSettings;
         BDSP_AudioStage_GetTsmSettings_isr(handle->hPrimaryStage, &tsmSettings);
         BAPE_DSP_P_SET_VARIABLE(tsmSettings, ui32STCAddr, BDSP_RAAGA_REGSET_ADDR_FOR_DSP( BAPE_CHIP_GET_STC_ADDRESS(handle->startSettings.stcIndex))) ;
-        BAPE_DSP_P_SET_VARIABLE(tsmSettings, eTsmEnable, pSettings->tsmEnabled?BDSP_Raaga_eTsmBool_True:BDSP_Raaga_eTsmBool_False);
-        BAPE_DSP_P_SET_VARIABLE(tsmSettings, eAstmEnable, pSettings->astmEnabled?BDSP_Raaga_eTsmBool_True:BDSP_Raaga_eTsmBool_False);
-        BAPE_DSP_P_SET_VARIABLE(tsmSettings, ePlayBackOn, pSettings->playback?BDSP_Raaga_eTsmBool_True:BDSP_Raaga_eTsmBool_False);
+        BAPE_DSP_P_SET_VARIABLE(tsmSettings, eTsmEnable, pSettings->tsmEnabled?BDSP_eTsmBool_True:BDSP_eTsmBool_False);
+        BAPE_DSP_P_SET_VARIABLE(tsmSettings, eAstmEnable, pSettings->astmEnabled?BDSP_eTsmBool_True:BDSP_eTsmBool_False);
+        BAPE_DSP_P_SET_VARIABLE(tsmSettings, ePlayBackOn, pSettings->playback?BDSP_eTsmBool_True:BDSP_eTsmBool_False);
         BAPE_DSP_P_SET_VARIABLE(tsmSettings, ui32AVOffset, pSettings->ptsOffset);
         BAPE_DSP_P_SET_VARIABLE(tsmSettings, i32TSMDiscardThreshold, pSettings->thresholds.discard*45);
         BAPE_DSP_P_SET_VARIABLE(tsmSettings, i32TSMGrossThreshold, pSettings->thresholds.grossAdjustment*45);
@@ -2768,13 +2855,8 @@ void BAPE_Decoder_GetStatus(
     BDBG_ASSERT(NULL != pStatus);
 
     BKNI_Memset(pStatus, 0, sizeof(BAPE_DecoderStatus));
-    if ( handle->state == BAPE_DecoderState_eStopped )
-    {
-        pStatus->codec = BAVC_AudioCompressionStd_eMax;
-        pStatus->sampleRate = 0;
-        pStatus->running = false;
-    }
-    else
+    pStatus->codec = BAVC_AudioCompressionStd_eMax;
+    if ( handle->state != BAPE_DecoderState_eStopped )
     {
         pStatus->codec = handle->startSettings.codec;
         BAPE_Decoder_GetTsmStatus(handle, &pStatus->tsmStatus);
@@ -2791,6 +2873,35 @@ void BAPE_Decoder_GetStatus(
     }
 }
 
+void BAPE_Decoder_GetPresentationInfo(
+    BAPE_DecoderHandle handle,
+    unsigned presentationIndex,
+    BAPE_DecoderPresentationInfo *pInfo     /* [out] */
+    )
+{
+    BDBG_OBJECT_ASSERT(handle, BAPE_Decoder);
+    BDBG_ASSERT(NULL != pInfo);
+
+    BKNI_Memset(pInfo, 0, sizeof(BAPE_DecoderPresentationInfo));
+    pInfo->codec = BAVC_AudioCompressionStd_eMax;
+
+    if ( handle->state != BAPE_DecoderState_eStopped )
+    {
+        switch ( handle->startSettings.codec )
+        {
+        case BAVC_AudioCompressionStd_eAc4:
+            BAPE_Decoder_P_GetAc4PresentationInfo(handle, presentationIndex, pInfo);
+            break;
+        default:
+            BDBG_WRN(("%s: Presentation info not supported for BAVC codec %lu", __FUNCTION__, (unsigned long)handle->startSettings.codec));
+            return;
+            break;
+        }
+        pInfo->codec = handle->startSettings.codec;
+    }
+}
+
+
 void BAPE_Decoder_GetCodecSettings(
     BAPE_DecoderHandle handle,
     BAVC_AudioCompressionStd codec,
@@ -2806,6 +2917,9 @@ void BAPE_Decoder_GetCodecSettings(
         break;
     case BAVC_AudioCompressionStd_eAc3Plus:
         *pSettings = handle->ac3PlusSettings;
+        break;
+    case BAVC_AudioCompressionStd_eAc4:
+        *pSettings = handle->ac4Settings;
         break;
     case BAVC_AudioCompressionStd_eAacAdts:
     case BAVC_AudioCompressionStd_eAacLoas:
@@ -2867,6 +2981,9 @@ BERR_Code BAPE_Decoder_SetCodecSettings(
         break;
     case BAVC_AudioCompressionStd_eAc3Plus:
         handle->ac3PlusSettings = *pSettings;
+        break;
+    case BAVC_AudioCompressionStd_eAc4:
+        handle->ac4Settings = *pSettings;
         break;
     case BAVC_AudioCompressionStd_eAacAdts:
     case BAVC_AudioCompressionStd_eAacLoas:
@@ -3096,7 +3213,7 @@ BERR_Code BAPE_Decoder_SetStcValid_isr(
         BDSP_AudioTaskTsmSettings tsmSettings;
         BERR_Code errCode;
         BDSP_AudioStage_GetTsmSettings_isr(handle->hPrimaryStage, &tsmSettings);
-        BAPE_DSP_P_SET_VARIABLE(tsmSettings, eSTCValid, BDSP_Raaga_eTsmBool_True);
+        BAPE_DSP_P_SET_VARIABLE(tsmSettings, eSTCValid, BDSP_eTsmBool_True);
         errCode = BDSP_AudioStage_SetTsmSettings_isr(handle->hPrimaryStage, &tsmSettings);
         if ( errCode )
         {
@@ -3111,9 +3228,9 @@ static void BAPE_Decoder_P_SetupDefaults(BAPE_DecoderHandle handle)
     BDSP_AudioTaskTsmSettings tsmSettings;
 
     BDSP_AudioTask_GetDefaultTsmSettings(&tsmSettings, sizeof(tsmSettings));
-    handle->tsmSettings.tsmEnabled = tsmSettings.eTsmEnable == BDSP_Raaga_eTsmBool_True?true:false;
-    handle->tsmSettings.astmEnabled = tsmSettings.eAstmEnable == BDSP_Raaga_eTsmBool_True?true:false;
-    handle->tsmSettings.playback = tsmSettings.ePlayBackOn == BDSP_Raaga_eTsmBool_True?true:false;
+    handle->tsmSettings.tsmEnabled = tsmSettings.eTsmEnable == BDSP_eTsmBool_True?true:false;
+    handle->tsmSettings.astmEnabled = tsmSettings.eAstmEnable == BDSP_eTsmBool_True?true:false;
+    handle->tsmSettings.playback = tsmSettings.ePlayBackOn == BDSP_eTsmBool_True?true:false;
     handle->tsmSettings.ptsOffset = tsmSettings.ui32AVOffset/45;
     handle->tsmSettings.thresholds.discard = tsmSettings.i32TSMDiscardThreshold/45;
     handle->tsmSettings.thresholds.grossAdjustment = tsmSettings.i32TSMGrossThreshold/45;
@@ -3395,10 +3512,15 @@ static void BAPE_Decoder_P_UnlinkStages(BAPE_DecoderHandle handle)
         BDSP_Stage_RemoveAllInputs(handle->hSrcStageMultichannel);
         BDSP_Stage_RemoveAllOutputs(handle->hSrcStageMultichannel);
     }
-    if ( handle->hDsolaStage )
+    if ( handle->hDsolaStageStereo )
     {
-        BDSP_Stage_RemoveAllInputs(handle->hDsolaStage);
-        BDSP_Stage_RemoveAllOutputs(handle->hDsolaStage);
+        BDSP_Stage_RemoveAllInputs(handle->hDsolaStageStereo);
+        BDSP_Stage_RemoveAllOutputs(handle->hDsolaStageStereo);
+    }
+    if ( handle->hDsolaStageMultichannel )
+    {
+        BDSP_Stage_RemoveAllInputs(handle->hDsolaStageMultichannel);
+        BDSP_Stage_RemoveAllOutputs(handle->hDsolaStageMultichannel);
     }
     if ( handle->hKaraokeStage )
     {
@@ -3438,31 +3560,31 @@ static BERR_Code BAPE_Decoder_P_ApplyFramesyncSettings(BAPE_DecoderHandle handle
         {
         case BAPE_InputPortType_eI2s:
             BDBG_ASSERT(0 == handle->startSettings.inputPort->index || 1 == handle->startSettings.inputPort->index);
-            datasyncSettings.eAudioIpSourceType = (handle->startSettings.inputPort->index == 0) ? BDSP_Raaga_Audio_AudioInputSource_eExtI2s0 : BDSP_Raaga_Audio_AudioInputSource_eCapPortRfI2s;
+            datasyncSettings.eAudioIpSourceType = (handle->startSettings.inputPort->index == 0) ? BDSP_Audio_AudioInputSource_eExtI2s0 : BDSP_Audio_AudioInputSource_eCapPortRfI2s;
             datasyncSettings.uAudioIpSourceDetail.ui32SamplingFrequency = handle->startSettings.inputPort->format.sampleRate;
             break;
 #if defined BCHP_SPDIF_RCVR_CTRL_STATUS
         case BAPE_InputPortType_eSpdif:
-            datasyncSettings.eAudioIpSourceType = BDSP_Raaga_Audio_AudioInputSource_eCapPortSpdif;
-			datasyncSettings.uAudioIpSourceDetail.ui32MaiCtrlStatusRegAddr = BDSP_RAAGA_REGSET_ADDR_FOR_DSP((BCHP_PHYSICAL_OFFSET + BCHP_SPDIF_RCVR_CTRL_STATUS));
+            datasyncSettings.eAudioIpSourceType = BDSP_Audio_AudioInputSource_eCapPortSpdif;
+            datasyncSettings.uAudioIpSourceDetail.ui32MaiCtrlStatusRegAddr = BDSP_RAAGA_REGSET_ADDR_FOR_DSP((BCHP_PHYSICAL_OFFSET + BCHP_SPDIF_RCVR_CTRL_STATUS));
             break;
 #endif
 #if defined BCHP_AUD_FMM_IOP_IN_SPDIF_0_STATUS
         case BAPE_InputPortType_eSpdif:
-            datasyncSettings.eAudioIpSourceType = BDSP_Raaga_Audio_AudioInputSource_eCapPortSpdif;
-			datasyncSettings.uAudioIpSourceDetail.ui32MaiCtrlStatusRegAddr = BDSP_RAAGA_REGSET_ADDR_FOR_DSP((BCHP_PHYSICAL_OFFSET + BCHP_AUD_FMM_IOP_IN_SPDIF_0_STATUS));
+            datasyncSettings.eAudioIpSourceType = BDSP_Audio_AudioInputSource_eCapPortSpdif;
+            datasyncSettings.uAudioIpSourceDetail.ui32MaiCtrlStatusRegAddr = BDSP_RAAGA_REGSET_ADDR_FOR_DSP((BCHP_PHYSICAL_OFFSET + BCHP_AUD_FMM_IOP_IN_SPDIF_0_STATUS));
             break;
 #endif
 #if defined BCHP_HDMI_RCVR_CTRL_MAI_FORMAT
         case BAPE_InputPortType_eMai:
-            datasyncSettings.eAudioIpSourceType = BDSP_Raaga_Audio_AudioInputSource_eCapPortHdmi;
-			datasyncSettings.uAudioIpSourceDetail.ui32MaiCtrlStatusRegAddr = BDSP_RAAGA_REGSET_ADDR_FOR_DSP((BCHP_PHYSICAL_OFFSET + BCHP_HDMI_RCVR_CTRL_MAI_FORMAT));
+            datasyncSettings.eAudioIpSourceType = BDSP_Audio_AudioInputSource_eCapPortHdmi;
+            datasyncSettings.uAudioIpSourceDetail.ui32MaiCtrlStatusRegAddr = BDSP_RAAGA_REGSET_ADDR_FOR_DSP((BCHP_PHYSICAL_OFFSET + BCHP_HDMI_RCVR_CTRL_MAI_FORMAT));
             break;
 #endif
 #if defined BCHP_AUD_FMM_IOP_IN_HDMI_0_MAI_FORMAT
         case BAPE_InputPortType_eMai:
-            datasyncSettings.eAudioIpSourceType = BDSP_Raaga_Audio_AudioInputSource_eCapPortHdmi;
-			datasyncSettings.uAudioIpSourceDetail.ui32MaiCtrlStatusRegAddr = BDSP_RAAGA_REGSET_ADDR_FOR_DSP((BCHP_PHYSICAL_OFFSET + BCHP_AUD_FMM_IOP_IN_HDMI_0_MAI_FORMAT));
+            datasyncSettings.eAudioIpSourceType = BDSP_Audio_AudioInputSource_eCapPortHdmi;
+            datasyncSettings.uAudioIpSourceDetail.ui32MaiCtrlStatusRegAddr = BDSP_RAAGA_REGSET_ADDR_FOR_DSP((BCHP_PHYSICAL_OFFSET + BCHP_AUD_FMM_IOP_IN_HDMI_0_MAI_FORMAT));
             break;
 #endif
         default:
@@ -3476,22 +3598,22 @@ static BERR_Code BAPE_Decoder_P_ApplyFramesyncSettings(BAPE_DecoderHandle handle
     {
     case BAVC_AudioCompressionStd_eWmaStd:
     case BAVC_AudioCompressionStd_eWmaPro:
-        datasyncSettings.uAlgoSpecConfigStruct.sWmaConfig.eWMAIpType = BDSP_Raaga_Audio_WMAIpType_eASF;
+        datasyncSettings.uAlgoSpecConfigStruct.sWmaConfig.eWMAIpType = BDSP_Audio_WMAIpType_eASF;
         break;
     case BAVC_AudioCompressionStd_eWmaStdTs:
-        datasyncSettings.uAlgoSpecConfigStruct.sWmaConfig.eWMAIpType = BDSP_Raaga_Audio_WMAIpType_eTS;
+        datasyncSettings.uAlgoSpecConfigStruct.sWmaConfig.eWMAIpType = BDSP_Audio_WMAIpType_eTS;
         break;
     case BAVC_AudioCompressionStd_eLpcmDvd:
-        datasyncSettings.uAlgoSpecConfigStruct.sLpcmConfig.eLpcmType = BDSP_Raaga_Audio_LpcmAlgoType_eDvd;
+        datasyncSettings.uAlgoSpecConfigStruct.sLpcmConfig.eLpcmType = BDSP_Audio_LpcmAlgoType_eDvd;
         break;
     case BAVC_AudioCompressionStd_eLpcm1394:
-        datasyncSettings.uAlgoSpecConfigStruct.sLpcmConfig.eLpcmType = BDSP_Raaga_Audio_LpcmAlgoType_eIeee1394;
+        datasyncSettings.uAlgoSpecConfigStruct.sLpcmConfig.eLpcmType = BDSP_Audio_LpcmAlgoType_eIeee1394;
         break;
     case BAVC_AudioCompressionStd_eLpcmBd:
         #if 0   /* TODO: Not currently defined in bdsp */
-        datasyncSettings.uAlgoSpecConfigStruct.sLpcmConfig.eLpcmType = BDSP_Raaga_Audio_LpcmAlgoType_eBd;
+        datasyncSettings.uAlgoSpecConfigStruct.sLpcmConfig.eLpcmType = BDSP_Audio_LpcmAlgoType_eBd;
         #else
-        datasyncSettings.uAlgoSpecConfigStruct.sLpcmConfig.eLpcmType = BDSP_Raaga_Audio_LpcmAlgoType_eMax-1;
+        datasyncSettings.uAlgoSpecConfigStruct.sLpcmConfig.eLpcmType = BDSP_Audio_LpcmAlgoType_eMax-1;
         #endif
         break;
     case BAVC_AudioCompressionStd_eDts:
@@ -3500,7 +3622,7 @@ static BERR_Code BAPE_Decoder_P_ApplyFramesyncSettings(BAPE_DecoderHandle handle
         /* Set endian of compressed input data */
         datasyncSettings.uAlgoSpecConfigStruct.sDtsConfig.eDtsEndianType =
             (handle->dtsSettings.codecSettings.dts.littleEndian)?
-            BDSP_Raaga_Audio_DtsEndianType_eLITTLE_ENDIAN:BDSP_Raaga_Audio_DtsEndianType_eBIG_ENDIAN;
+            BDSP_Audio_DtsEndianType_eLITTLE_ENDIAN:BDSP_Audio_DtsEndianType_eBIG_ENDIAN;
         break;
     default:
         /* Value doesn't matter */
@@ -3547,6 +3669,7 @@ static void BAPE_Decoder_P_DialnormChange_isr(void *pParam1, int param2)
 
 static void BAPE_Decoder_P_EncoderOverflow_isr(void *pParam1, int param2)
 {
+    BAPE_MuxOutputHandle pMuxOutput = NULL;
     BAPE_DecoderHandle hDecoder = pParam1;
 
     BDBG_OBJECT_ASSERT(hDecoder, BAPE_Decoder);
@@ -3554,50 +3677,49 @@ static void BAPE_Decoder_P_EncoderOverflow_isr(void *pParam1, int param2)
 
     BDBG_MSG(("Encoder output overflow interrupt on decoder %u", hDecoder->index));
 
-    if ( hDecoder->hMuxOutput )
+    for ( pMuxOutput = BLST_S_FIRST(&hDecoder->muxOutputList);
+        pMuxOutput != NULL;
+        pMuxOutput = BLST_S_NEXT(pMuxOutput, decoderListNode) )
     {
-        BAPE_MuxOutput_P_Overflow_isr(hDecoder->hMuxOutput);
+        BAPE_MuxOutput_P_Overflow_isr(pMuxOutput);
     }
 }
 
 static BERR_Code BAPE_Decoder_P_DeriveMultistreamLinkage(BAPE_DecoderHandle handle)
 {
-    BAPE_PathNode *pNode;
+    BAPE_PathNode *pNodes[BAPE_CHIP_MAX_MIXERS];
     BAPE_DolbyDigitalReencodeHandle ddre=NULL;
     BAPE_MixerHandle fwMixer=NULL;
     unsigned numFound;
     bool master=true;
+    BERR_Code errCode;
 
     BDBG_OBJECT_ASSERT(handle, BAPE_Decoder);
 
     /* Find DDRE and FW Mixer.  Need to determine usage modes based on these. */
-    BAPE_PathNode_P_FindConsumersBySubtype(&handle->node, BAPE_PathNodeType_ePostProcessor, BAPE_PostProcessorType_eDdre, 1, &numFound, &pNode);
+    BAPE_PathNode_P_FindConsumersBySubtype(&handle->node, BAPE_PathNodeType_ePostProcessor, BAPE_PostProcessorType_eDdre, 2, &numFound, pNodes);
     switch ( numFound )
     {
     case 0:
         break;
     case 1:
-        ddre = pNode->pHandle;
+        ddre = pNodes[0]->pHandle;
         break;
     default:
         BDBG_ERR(("Multiple DDRE consumers found downstream from decoder %u.  This is not supported.", handle->index));
         return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
-    BAPE_PathNode_P_FindConsumersBySubtype(&handle->node, BAPE_PathNodeType_eMixer, BAPE_MixerType_eDsp, 1, &numFound, &pNode);
-    switch ( numFound )
+
+    errCode = BAPE_PathNode_P_GetDecodersDownstreamDspMixer(&handle->node, &fwMixer);
+    if ( errCode != BERR_SUCCESS )
     {
-    case 0:
-        break;
-    case 1:
-        fwMixer = pNode->pHandle;
-        break;
-    default:
-        BDBG_ERR(("Multiple DSP mixer consumers found downstream from decoder %u.  This is not supported.", handle->index));
-        return BERR_TRACE(BERR_NOT_SUPPORTED);
+        return BERR_TRACE(errCode);
     }
+
     if ( fwMixer )
     {
         BAPE_PathConnector *pMaster = fwMixer->master;
+        BAPE_PathNode *pNode;
         if ( NULL == pMaster )
         {
             BDBG_ERR(("A DSP mixer was found downstream from decoder %u but it does not have a master input designated.  This is not supported.", handle->index));

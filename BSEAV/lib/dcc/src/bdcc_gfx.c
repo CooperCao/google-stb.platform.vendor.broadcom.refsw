@@ -629,7 +629,7 @@ void BCCGFX_P_WndCreate(
             pWI->RowInfo[row].win = BCCGFX_P_SurfaceReserve(hCCGfxHandle) ;
 			pWI->RowInfo[row].LargestPenSize = BDCC_PenSize_Small;
 			pWI->RowInfo[row].EmptyRow = true;
-            BDBG_MSG(( "ccgfxWndCreate, just alloced surface 0x%08x\n", pWI->RowInfo[row].win)) ;
+            BDBG_MSG(( "ccgfxWndCreate, just alloced surface %p\n", (void*)pWI->RowInfo[row].win)) ;
             hCCGfxHandle->WinLibInterface.SetCaptionRowZorder(pWI->RowInfo[row].win, 14) ; /* set later by Priority */
         }
 
@@ -769,7 +769,7 @@ void BCCGFX_P_WndResize(
 			for ( irow = (InsertAfterIRow+1) ; irow < (InsertAfterIRow+1+AddlRows) ; irow++ )
 			{
 				pWI->RowInfo[irow].win = BCCGFX_P_SurfaceReserve(hCCGfxHandle) ;
-				BDBG_MSG(( "ccgfxWndCreate, just alloced surface 0x%08x, irow is %d\n", pWI->RowInfo[irow].win,irow)) ;
+				BDBG_MSG(( "ccgfxWndCreate, just alloced surface %p, irow is %d\n", (void*)pWI->RowInfo[irow].win,irow)) ;
 				hCCGfxHandle->WinLibInterface.SetCaptionRowZorder(pWI->RowInfo[irow].win, pWI->ZOrder) ;
 				FillIRow(hCCGfxHandle, pWI, irow) ;
 				if ( pWI->ShowState )
@@ -942,7 +942,7 @@ void BCCGFX_P_WndShow(
 			if ( ShowState )
 			{
 				/* SHOW */
-				BDBG_MSG(( "ccgfxWndShow, showing wnd %d row %d 0x%08x\n", WndId, row, pSurface)) ;
+				BDBG_MSG(( "ccgfxWndShow, showing wnd %d row %d %p\n", WndId, row, (void*)pSurface)) ;
 #if FLASH_BY_2SURFACES
 				if ( pWI->RowInfo[row].pFlashSurface )
 				{
@@ -1031,7 +1031,7 @@ void BCCGFX_P_WndClear(
 	int row ;
 	BCCGFX_P_SurfaceRowPool *pSurfPool = &hCCGfxHandle->SurfacePool ;
 
-	BDBG_MSG(("ccgfxWndClear wnd=%d pSurfPool = 0x%08x, hCCGfxHandle = 0x%08x\n", WndId, pSurfPool, hCCGfxHandle)) ;
+	BDBG_MSG(("ccgfxWndClear wnd=%d pSurfPool = %p, hCCGfxHandle = %p\n", WndId, (void*)pSurfPool, (void*)hCCGfxHandle)) ;
 	BDBG_MSG(("ccgfxWndClear pWI->fCreated is %d\n", pWI->fCreated)) ;
 
 	if ( ! pWI->fCreated )
@@ -1627,7 +1627,7 @@ void BCCGFX_P_RenderChar(
 
 	irow = (hCCGfxHandle->Render_Row + pWI->IndxOfTopRow + ((pWI->ScrollPhase)?1:0)) % pWI->ActualRowCount ;
 
-	BDBG_MSG(( "ccgfxRenderChar:  calling DoRenderChar pCurWin 0x%08x\n", hCCGfxHandle->pCurWin)) ;
+	BDBG_MSG(( "ccgfxRenderChar:  calling DoRenderChar pCurWin %p\n", (void*)hCCGfxHandle->pCurWin)) ;
 
 #if FLASH_BY_2SURFACES
 	Extent = hCCGfxHandle->WinLibInterface.RenderChar( hCCGfxHandle->pCurWin, hCCGfxHandle->pCurFlashWin, ch );
@@ -1698,7 +1698,7 @@ void BCCGFX_P_RenderEnd(
 	BDBG_MSG(( "ccgfxRenderEnd:  window id %d row %d extent %d\n", hCCGfxHandle->Render_WndId, hCCGfxHandle->Render_Row,hCCGfxHandle->RenderedExtent)) ;
 
 	irow = (hCCGfxHandle->Render_Row + pWI->IndxOfTopRow + ((pWI->ScrollPhase)?1:0)) % pWI->ActualRowCount ;
-	BDBG_MSG(( "RenderEnd using DestSurface 0x%08x, irow %d, IndxOfTopRow %d\n", hCCGfxHandle->pCurWin,irow,pWI->IndxOfTopRow)) ;
+	BDBG_MSG(( "RenderEnd using DestSurface %p, irow %d, IndxOfTopRow %d\n", (void*)hCCGfxHandle->pCurWin,irow,pWI->IndxOfTopRow)) ;
 
 
 #if FLASH_BY_2SURFACES
@@ -2775,7 +2775,7 @@ static void FillSurface(
 
     if ( pSurface )
     {
-        BDBG_MSG(("FillSurface, filling pSurface 0x%08x with color 0x%08x\n", pSurface,FillColor)) ;
+        BDBG_MSG(("FillSurface, filling pSurface %p with color 0x%08x\n", (void*)pSurface,FillColor)) ;
 
         hCCGfxHandle->WinLibInterface.ClearCaptionRow(pSurface, Opacity, FillColor) ;
     }
@@ -2986,7 +2986,7 @@ static void BCCGFX_P_SurfaceRelease(
             {
                 if(pSurfInfo->fUsed)
                 {
-                BDBG_MSG(( "BCCGFX_P_SurfaceRelease 0x%08x\n", pSurface)) ;
+                BDBG_MSG(( "BCCGFX_P_SurfaceRelease %p\n", (void*)pSurface)) ;
                 pSurfInfo->fUsed = 0 ;
                 pSurfPool->FreeCount++ ;
                 }

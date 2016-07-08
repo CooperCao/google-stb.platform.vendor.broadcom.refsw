@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2008 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2008 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -92,14 +92,14 @@ static void put_channel_masked_rgba(KHRN_IMAGE_WRAP_T *wrap, uint32_t x, uint32_
       uint32_t wrap_rgba;
       rgba = khrn_image_rgba_convert_l_pre_lin((KHRN_IMAGE_FORMAT_T)(wrap->format & ~IMAGE_FORMAT_PRE), format, rgba);
       wrap_rgba = khrn_image_pixel_to_rgba(wrap->format, khrn_image_wrap_get_pixel(wrap, x, y), IMAGE_CONV_VG);
-      if (wrap->format & IMAGE_FORMAT_PRE) {
+      if (khrn_image_is_premultiplied(wrap->format)) {
          wrap_rgba = khrn_color_rgba_unpre(wrap_rgba);
       }
       if (!(channel_mask & 0x1)) { rgba = (rgba & ~0x000000ff) | (wrap_rgba & 0x000000ff); }
       if (!(channel_mask & 0x2)) { rgba = (rgba & ~0x0000ff00) | (wrap_rgba & 0x0000ff00); }
       if (!(channel_mask & 0x4)) { rgba = (rgba & ~0x00ff0000) | (wrap_rgba & 0x00ff0000); }
       if (!(channel_mask & 0x8)) { rgba = (rgba & ~0xff000000) | (wrap_rgba & 0xff000000); }
-      if (wrap->format & IMAGE_FORMAT_PRE) {
+      if (khrn_image_is_premultiplied(wrap->format)) {
          rgba = khrn_color_rgba_pre(rgba);
       }
    }
@@ -131,7 +131,7 @@ static void color_matrix(
             (matrix[1] * color[0]) + (matrix[5] * color[1]) + (matrix[9] * color[2]) + (matrix[13] * color[3]) + matrix[17],
             (matrix[2] * color[0]) + (matrix[6] * color[1]) + (matrix[10] * color[2]) + (matrix[14] * color[3]) + matrix[18],
             (matrix[3] * color[0]) + (matrix[7] * color[1]) + (matrix[11] * color[2]) + (matrix[15] * color[3]) + matrix[19]);
-         if (format & IMAGE_FORMAT_PRE) {
+         if (khrn_image_is_premultiplied(format)) {
             rgba = khrn_color_rgba_clamp_to_a(rgba);
          }
          put_channel_masked_rgba(dst, dst_x + i, dst_y + j, rgba, channel_mask, format);
@@ -166,7 +166,7 @@ static void lookup(
             ((uint32_t)green_lut[(rgba >> 8) & 0xff] << 8) |
             ((uint32_t)blue_lut[(rgba >> 16) & 0xff] << 16) |
             ((uint32_t)alpha_lut[(rgba >> 24) & 0xff] << 24);
-         if (output_format & IMAGE_FORMAT_PRE) {
+         if (khrn_image_is_premultiplied(output_format)) {
             rgba = khrn_color_rgba_clamp_to_a(rgba);
          }
          put_channel_masked_rgba(dst, dst_x + i, dst_y + j, rgba, channel_mask, output_format);
@@ -195,7 +195,7 @@ static void lookup_single(
       for (i = 0; i != width; ++i) {
          uint32_t rgba = get_rgba(src, src_x + i, src_y + j, format);
          rgba = khrn_color_rgba_flip(lut[(rgba >> (source_channel * 8)) & 0xff]); /* internally use abgr */
-         if (output_format & IMAGE_FORMAT_PRE) {
+         if (khrn_image_is_premultiplied(output_format)) {
             rgba = khrn_color_rgba_clamp_to_a(rgba);
          }
          put_channel_masked_rgba(dst, dst_x + i, dst_y + j, rgba, channel_mask, output_format);
@@ -288,7 +288,7 @@ static bool sconv(
          rgba = color_floats_to_rgba(
             (sum[0] * scale) + bias, (sum[1] * scale) + bias,
             (sum[2] * scale) + bias, (sum[3] * scale) + bias);
-         if (format & IMAGE_FORMAT_PRE) {
+         if (khrn_image_is_premultiplied(format)) {
             rgba = khrn_color_rgba_clamp_to_a(rgba);
          }
          put_channel_masked_rgba(dst, dst_x + i, dst_y + j, rgba, channel_mask, format);
@@ -338,7 +338,7 @@ static void conv(
          rgba = color_floats_to_rgba(
             (sum[0] * scale) + bias, (sum[1] * scale) + bias,
             (sum[2] * scale) + bias, (sum[3] * scale) + bias);
-         if (format & IMAGE_FORMAT_PRE) {
+         if (khrn_image_is_premultiplied(format)) {
             rgba = khrn_color_rgba_clamp_to_a(rgba);
          }
          put_channel_masked_rgba(dst, dst_x + i, dst_y + j, rgba, channel_mask, format);
@@ -489,6 +489,7 @@ static void do_it(
    KHRN_IMAGE_T *dst = (KHRN_IMAGE_T *)mem_lock(msg->dst, NULL);
    KHRN_IMAGE_T *src = (KHRN_IMAGE_T *)mem_lock(msg->src, NULL);
    KHRN_IMAGE_WRAP_T dst_wrap, src_wrap;
+   UNUSED(size);
 
    vcos_assert(size <= sizeof(MSG_T));
 
@@ -599,6 +600,7 @@ static void cleanup(
    void *message, uint32_t size)
 {
    MSG_T *msg = (MSG_T *)message;
+   UNUSED(size);
    vcos_assert(size <= sizeof(MSG_T));
 
    mem_release(msg->src);

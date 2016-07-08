@@ -472,17 +472,17 @@ bwin_close(bwin_t window)
         int    numWins  = 0;
 
         BDBG_WRN(("bwin_close() error in win:%p at x:%d y:%d w:%d h:%d",
-                  window, window->settings.x, window->settings.y,
+                  (void*)window, window->settings.x, window->settings.y,
                   window->settings.rect.width, window->settings.rect.height));
         for (pWin = BLST_Q_FIRST(&window->win_list); NULL != pWin; pWin = pNextWin)
         {
             BDBG_WRN(("unlinked child win:%p at x:%d y:%d, w:%d, h:%d",
-                      pWin, pWin->settings.x, pWin->settings.y,
+                      (void*)pWin, pWin->settings.x, pWin->settings.y,
                       pWin->settings.rect.width, pWin->settings.rect.height));
             pNextWin = BLST_Q_NEXT(pWin, link);
             numWins++;
         }
-        BDBG_WRN(("Total num of unlinked child windows:%d for win:%p", numWins, window));
+        BDBG_WRN(("Total num of unlinked child windows:%d for win:%p", numWins, (void*)window));
         assert(0 == numWins);
     }
 

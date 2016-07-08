@@ -1,7 +1,7 @@
 /***************************************************************************
 *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom and/or its
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -299,14 +299,9 @@ NEXUS_Error NEXUS_Timebase_SetHdDviFrameRate(
     NEXUS_VideoFrameRate frameRate
     );
 
-/* 
-deprecated
-*/
-NEXUS_Error NEXUS_Timebase_SetVdecFrameRate(
-    NEXUS_Timebase timebase,
-    NEXUS_VideoFrameRate frameRate
-    );
-    
+/* deprecated */
+#define NEXUS_Timebase_SetVdecFrameRate(timebase,framerate) NEXUS_NOT_SUPPORTED
+
 /**
 Summary:
 Get index of hardware DPCR block (equivalenet to NEXUS_TimebaseStatus.timebase)

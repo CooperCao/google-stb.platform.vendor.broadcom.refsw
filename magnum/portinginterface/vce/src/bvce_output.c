@@ -1,23 +1,40 @@
-/***************************************************************************
- *     Copyright (c) 2003-2014, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
- *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * [File Description:]
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
- ***************************************************************************/
+/******************************************************************************
+* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*
+* This program is the proprietary software of Broadcom and/or its licensors,
+* and may only be used, duplicated, modified or distributed pursuant to the terms and
+* conditions of a separate, written license agreement executed between you and Broadcom
+* (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+* no license (express or implied), right to use, or waiver of any kind with respect to the
+* Software, and Broadcom expressly reserves all rights in and to the Software and all
+* intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*
+* Except as expressly set forth in the Authorized License,
+*
+* 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+* secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+* and to use this information only in connection with your use of Broadcom integrated circuit products.
+*
+* 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+* AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+* WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+* THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+* OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+* LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+* OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+* USE OR PERFORMANCE OF THE SOFTWARE.
+*
+* 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+* LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+* EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+* USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+* THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+* ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+* LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+* ANY LIMITED REMEDY.
+******************************************************************************/
 
 /* base modules */
 #include "bstd.h"           /* standard types */
@@ -625,168 +642,547 @@ BVCE_Output_SetBuffers(
    return BERR_TRACE( BERR_SUCCESS );
 }
 
+unsigned
+BVCE_OUTPUT_P_ITB_Shadow_GetNumFrames(
+   BVCE_Output_Handle hVceOutput
+   )
+{
+   unsigned uiNumFrames = 0;
+
+   if ( hVceOutput->state.stITBBuffer.uiIndexWriteOffset >= hVceOutput->state.stITBBuffer.uiIndexShadowReadOffset )
+   {
+      uiNumFrames = hVceOutput->state.stITBBuffer.uiIndexWriteOffset - hVceOutput->state.stITBBuffer.uiIndexShadowReadOffset;
+   }
+   else
+   {
+      uiNumFrames = hVceOutput->stOpenSettings.uiDescriptorQueueDepth - hVceOutput->state.stITBBuffer.uiIndexShadowReadOffset;
+      uiNumFrames += hVceOutput->state.stITBBuffer.uiIndexWriteOffset;
+   }
+
+   return uiNumFrames;
+}
+
+BVCE_P_Output_ITB_IndexEntry*
+BVCE_OUTPUT_P_ITB_Shadow_GetFrameIndexEntry(
+   BVCE_Output_Handle hVceOutput,
+   unsigned uiIndex
+   )
+{
+   unsigned uiOffset = (hVceOutput->state.stITBBuffer.uiIndexShadowReadOffset + uiIndex) % hVceOutput->stOpenSettings.uiDescriptorQueueDepth;
+
+   return &hVceOutput->stDescriptors.astIndex[uiOffset];
+}
+
+void
+BVCE_OUTPUT_P_ITB_Shadow_CalculateDepth(
+   BVCE_Output_Handle hVceOutput
+   )
+{
+   if ( hVceOutput->state.stITBBuffer.uiValidOffset >= hVceOutput->state.stITBBuffer.uiShadowReadOffset )
+   {
+      hVceOutput->state.stITBBuffer.uiShadowDepth = hVceOutput->state.stITBBuffer.uiValidOffset - hVceOutput->state.stITBBuffer.uiShadowReadOffset;
+   }
+   else
+   {
+      hVceOutput->state.stITBBuffer.uiShadowDepth = hVceOutput->state.stITBBuffer.uiEndOffset - hVceOutput->state.stITBBuffer.uiShadowReadOffset;
+      hVceOutput->state.stITBBuffer.uiShadowDepth += hVceOutput->state.stITBBuffer.uiValidOffset - hVceOutput->state.stITBBuffer.uiBaseOffset;
+   }
+}
+
+void
+BVCE_OUTPUT_P_ITB_Shadow_ConsumeEntry(
+   BVCE_Output_Handle hVceOutput
+   )
+{
+   BDBG_ASSERT( hVceOutput->state.stITBBuffer.uiIndexShadowReadOffset != hVceOutput->state.stITBBuffer.uiIndexWriteOffset );
+
+   hVceOutput->state.stITBBuffer.uiShadowReadOffset += hVceOutput->stDescriptors.astIndex[hVceOutput->state.stITBBuffer.uiIndexShadowReadOffset].uiSizeInITB;
+   if ( hVceOutput->state.stITBBuffer.uiShadowReadOffset >= hVceOutput->state.stITBBuffer.uiEndOffset )
+   {
+      hVceOutput->state.stITBBuffer.uiShadowReadOffset -= ( hVceOutput->state.stITBBuffer.uiEndOffset - hVceOutput->state.stITBBuffer.uiBaseOffset );
+   }
+
+   hVceOutput->state.stITBBuffer.uiIndexShadowReadOffset++;
+   hVceOutput->state.stITBBuffer.uiIndexShadowReadOffset %= hVceOutput->stOpenSettings.uiDescriptorQueueDepth;
+}
+
+void
+BVCE_OUTPUT_P_ITB_ConsumeEntry(
+   BVCE_Output_Handle hVceOutput
+   )
+{
+   if ( true == hVceOutput->state.bCabacInitializedShadow )
+   {
+      BDBG_ASSERT( hVceOutput->state.stITBBuffer.uiIndexReadOffset != hVceOutput->state.stITBBuffer.uiIndexWriteOffset );
+
+      hVceOutput->state.stITBBuffer.uiReadOffset += hVceOutput->stDescriptors.astIndex[hVceOutput->state.stITBBuffer.uiIndexReadOffset].uiSizeInITB;
+      /* 7425A0: Hack to prevent HW/SW confusion of full vs empty */
+      if ( false == hVceOutput->state.stITBBuffer.bReadHackDone )
+      {
+         hVceOutput->state.stITBBuffer.uiReadOffset--;
+         hVceOutput->state.stITBBuffer.bReadHackDone = true;
+      }
+      if ( hVceOutput->state.stITBBuffer.uiReadOffset >= hVceOutput->state.stITBBuffer.uiEndOffset )
+      {
+         hVceOutput->state.stITBBuffer.uiReadOffset -= ( hVceOutput->state.stITBBuffer.uiEndOffset - hVceOutput->state.stITBBuffer.uiBaseOffset );
+      }
+
+      hVceOutput->state.stITBBuffer.uiIndexReadOffset++;
+      hVceOutput->state.stITBBuffer.uiIndexReadOffset %= hVceOutput->stOpenSettings.uiDescriptorQueueDepth;
+   }
+}
+
+bool
+BVCE_Output_P_IsFrameAvailable(
+   BVCE_Output_Handle hVceOutput
+   )
+{
+   BVCE_OUTPUT_P_ITB_Shadow_CalculateDepth( hVceOutput );
+
+   if ( 0 == BVCE_OUTPUT_P_ITB_Shadow_GetNumFrames( hVceOutput ) )
+   {
+      /* We ran out of ITB entries */
+      return false;
+   }
+
+   return true;
+}
+
+bool
+BVCE_Output_P_IsFrameDataAvailable(
+   BVCE_Output_Handle hVceOutput
+   )
+{
+   if ( ( false == hVceOutput->state.bEOSITBEntrySeen )
+        || ( ( true == hVceOutput->state.bEOSITBEntrySeen )
+              && ( true == hVceOutput->state.bEOSDescriptorSent )
+           )
+      )
+   {
+      /* Check for Available CDB Data */
+      if ( hVceOutput->state.stCDBBuffer.uiShadowValidOffset == hVceOutput->state.stCDBBuffer.uiShadowReadOffset )
+      {
+         /* We ran out of CDB data */
+         return false;
+      }
+   }
+   return true;
+}
+
+bool
+BVCE_Output_P_IsDescriptorAvailable(
+   BVCE_Output_Handle hVceOutput,
+   BVCE_P_Output_ITB_IndexEntry *pITBIndexEntry
+   )
+{
+   /* Check for Available Descriptors */
+   uint32_t uiTempWriteOffset = hVceOutput->state.uiDescriptorWriteOffset + 1;
+   uiTempWriteOffset %= hVceOutput->stOpenSettings.uiDescriptorQueueDepth;
+
+   if (uiTempWriteOffset == hVceOutput->state.uiDescriptorReadOffset )
+   {
+      /* We ran out of descriptors */
+      return false;
+   }
+
+   /* Check to make sure we have another descriptor available for the metadata */
+   if ( true == hVceOutput->state.bFrameStart )
+   {
+      if ( ( false == hVceOutput->state.bMetadataSent )
+           || ( ( pITBIndexEntry->uiMetadata & BVCE_P_NEW_METADATA_MASK ) != ( hVceOutput->state.uiPreviousMetadata & BVCE_P_NEW_METADATA_MASK ) ) ) /* SW7425-5477: Send metadata again if any metadata desc param has changed */
+      {
+         uiTempWriteOffset++;
+         uiTempWriteOffset %= hVceOutput->stOpenSettings.uiDescriptorQueueDepth;
+
+         if (uiTempWriteOffset == hVceOutput->state.uiDescriptorReadOffset )
+         {
+            /* We ran out of descriptors */
+            return false;
+         }
+
+         /* SW7425-3360: Check to make sure we have enough metadata descriptors */
+         uiTempWriteOffset = hVceOutput->state.uiMetadataDescriptorWriteOffset + 1;
+         uiTempWriteOffset %= BVCE_P_MAX_METADATADESCRIPTORS;
+
+         if (uiTempWriteOffset == hVceOutput->state.uiMetadataDescriptorReadOffset )
+         {
+            /* We ran out of metadata descriptors */
+            return false;
+         }
+      }
+   }
+
+   return true;
+}
+
+unsigned
+BVCE_Output_P_CalculateEndOfPictureOffset(
+   BVCE_Output_Handle hVceOutput,
+   bool *pbEndOfPicture
+   )
+{
+   if ( NULL != pbEndOfPicture )
+   {
+      *pbEndOfPicture = false;
+   }
+
+   /* Figure out how much CDB data we have for the current picture */
+   if ( BVCE_OUTPUT_P_ITB_Shadow_GetNumFrames( hVceOutput ) > 1 )
+   {
+      /* We have a next picture, so we know exactly how long the current picture is */
+      uint32_t uiDepthToNext;
+      uint32_t uiDepthToValid;
+      BVCE_P_Output_ITB_IndexEntry *pITBIndexEntryNext = BVCE_OUTPUT_P_ITB_Shadow_GetFrameIndexEntry( hVceOutput, 1 );
+
+      /* It is possible that the CDB Valid doesn't, yet, contain any of the next picture and
+       * may still be in the middle of the current picture, so we need use the depth that is the
+       * lesser of depth(cdb_read,cdb_next) depth(cdb_read,cdb_valid)
+       */
+      if ( pITBIndexEntryNext->uiCDBAddress >= hVceOutput->state.stCDBBuffer.uiShadowReadOffset )
+      {
+         uiDepthToNext = pITBIndexEntryNext->uiCDBAddress - hVceOutput->state.stCDBBuffer.uiShadowReadOffset;
+      }
+      else
+      {
+         uiDepthToNext = hVceOutput->state.stCDBBuffer.uiEndOffset - hVceOutput->state.stCDBBuffer.uiShadowReadOffset;
+         uiDepthToNext += pITBIndexEntryNext->uiCDBAddress - hVceOutput->state.stCDBBuffer.uiBaseOffset;
+      }
+
+      if ( hVceOutput->state.stCDBBuffer.uiShadowValidOffset >= hVceOutput->state.stCDBBuffer.uiShadowReadOffset )
+      {
+         uiDepthToValid = hVceOutput->state.stCDBBuffer.uiShadowValidOffset - hVceOutput->state.stCDBBuffer.uiShadowReadOffset;
+      }
+      else
+      {
+         uiDepthToValid = hVceOutput->state.stCDBBuffer.uiEndOffset - hVceOutput->state.stCDBBuffer.uiShadowReadOffset;
+         uiDepthToValid += hVceOutput->state.stCDBBuffer.uiShadowValidOffset - hVceOutput->state.stCDBBuffer.uiBaseOffset;
+      }
+
+      if ( uiDepthToValid < uiDepthToNext )
+      {
+         return hVceOutput->state.stCDBBuffer.uiShadowValidOffset;
+      }
+      else
+      {
+         if ( NULL != pbEndOfPicture )
+         {
+            *pbEndOfPicture = true;
+         }
+         return pITBIndexEntryNext->uiCDBAddress;
+      }
+   }
+   else
+   {
+      /* We don't have a next picture, so since the ITB entry for the next picture
+       * is always written before the CDB data for the next picture, we know the
+       * current CDB data is all for the current picture */
+      return hVceOutput->state.stCDBBuffer.uiShadowValidOffset;
+   }
+}
+
 void
 BVCE_Output_P_DataUnitDetectReset(
          BVCE_Output_Handle hVceOutput
          )
 {
+   hVceOutput->state.stDataUnitDetect.eState = BVCE_Output_P_DataUnitDetectState_eLookForNALU;
    hVceOutput->state.stCDBBuffer.uiShadowValidOffset = hVceOutput->state.stCDBBuffer.uiValidOffset;
-   hVceOutput->state.stDataUnitDetect.uiCDBBufferReadAheadValidOffset = hVceOutput->state.stCDBBuffer.uiShadowValidOffset;
-   hVceOutput->state.stDataUnitDetect.uiCDBBufferShadowValidOffsetDataUnitDetectionDelay = 0;
-   hVceOutput->state.stDataUnitDetect.eState = BVCE_Output_P_DataUnitDetectState_eInitial;
 }
 
-/* NOTE: for AVC, This code only works as long as the encoder produces 4-byte start codes (i.e. with a leading zero).
-   if the encoder ever produces standard start-codes, this code will need to be modified to deal with the leading zero
-   For AVC, the start code will occupy the entire data unit detection shift register
-   For mp4v, the start code will occupy only the lowest 3 bytes of the shift register
-   (MPEG 4 start code is 00 00 01 XX where XX is the DU identifier) */
-#define BVCE_P_NALU_START_CODE_SIZE    4
-#define BVCE_P_MP4V_START_CODE_SIZE    3
+#define BVCE_DATAUNITDETECT_TYPE_MAX_BYTES 1
+
+typedef struct BVCE_DataUnitDetect_Settings
+{
+   uint8_t *pBuffer; /* Pointer to the CDB buffer */
+   size_t uiSize; /* Size of the CDB buffer */
+   unsigned uiStartOffset; /* Start Offset - Offset to the first byte where the Data Unit Detect code should start parsing */
+   unsigned uiStopOffset; /* End Offset - Offset to the last byte where the Data Unit Detect code should stop parsing */
+} BVCE_DataUnitDetect_Settings;
+
+typedef struct BVCE_DataUnitDetect_Result
+{
+   bool bNaluFound; /* True if the uiReadOffset points to the start of a NALU */
+   uint8_t uiDataUnitType[BVCE_DATAUNITDETECT_TYPE_MAX_BYTES]; /* Contains the values following start code */
+   unsigned uiBytesProcessed; /* How many bytes (from uiStartOffset) have been parsed */
+} BVCE_DataUnitDetect_Results;
+
+/* If pBuffer[uiStartOffset] IS the start of a complete NALU:
+ *    - stResult.bNaluFound = true;
+ *    - stResult.uiDataUnitType[] = NALU_Type
+ *    - stResult.uiBytesProcessed = size of start code + nalu type byte(s)
+ * If pBuffer[uiStartOffset] IS NOT the start of a complete NALU:
+ *    - stResult.bNaluFound = false
+ *    - stResult.uiBytesProcessed = number of bytes that don't contain a NALU
+ *
+ * Some scenarios:
+ *     - stSettings.pBuffer = don't care
+ *     - stSettings.uiSize = 20
+ *
+ *  [ 00 01 02 03 04 05 06 07 08 09 10 11 12 13 14 15 16 17 18 19 ]
+ *  [ XX XX XX XX XX 00 00 00 01 NN YY YY YY YY                   ]
+ *     - stSettings.uiStartOffset = 0
+ *     - stSettings.uiStopOffset = 14
+ *
+ *     - stResult.bNaluFound = false
+ *     - stResult.uiBytesProcessed = 5
+ *
+ *  [ 00 01 02 03 04 05 06 07 08 09 10 11 12 13 14 15 16 17 18 19 ]
+ *  [                00 00 00 01 NN YY YY YY YY                   ]
+ *     - stSettings.uiStartOffset = 5
+ *     - stSettings.uiStopOffset = 14
+ *
+ *     - stResult.bNaluFound = true
+ *     - stResult.uiDataUnitType[0] = NN;
+ *     - stResult.uiBytesProcessed = 5;
+ *
+ *  [ 00 01 02 03 04 05 06 07 08 09 10 11 12 13 14 15 16 17 18 19 ]
+ *  [ 00                            YY YY YY YY ZZ ZZ ZZ ZZ 00 00 ]
+ *     - stSettings.uiStartOffset = 10
+ *     - stSettings.uiStopOffset = 1
+ *
+ *     - stResult.bNaluFound = false
+ *     - stResult.uiBytesProcessed = 8
+ *
+ *  [ 00 01 02 03 04 05 06 07 08 09 10 11 12 13 14 15 16 17 18 19 ]
+ *  [ 00                                                    00 00 ]
+ *     - stSettings.uiStartOffset = 18
+ *     - stSettings.uiStopOffset = 1
+ *
+ *     - stResult.bNaluFound = false;
+ *     - stResult.uiBytesProcessed = 0
+ *
+ *  [ 00 01 02 03 04 05 06 07 08 09 10 11 12 13 14 15 16 17 18 19 ]
+ *  [ 00 01 MM XX XX XX 00 00 00 01                         00 00 ]
+ *     - stSettings.uiStartOffset = 18
+ *     - stSettings.uiStopOffset = 10
+ *
+ *     - stResult.bNaluFound = true
+ *     - stResult.uiDataUnitType[] = MM
+ *     - stResult.uiBytesProcessed = 5
+ */
+
+typedef enum BVCE_Output_S_DataUnitDetect_State
+{
+   BVCE_Output_S_DataUnitDetect_State_eLookFor1st0,
+   BVCE_Output_S_DataUnitDetect_State_eLookFor2nd0,
+   BVCE_Output_S_DataUnitDetect_State_eLookFor3rd0,
+   BVCE_Output_S_DataUnitDetect_State_eLookFor1,
+   BVCE_Output_S_DataUnitDetect_State_eReadNaluType
+} BVCE_Output_S_DataUnitDetect_State;
+
+
+static void
+BVCE_Output_S_DataUnitDetect(
+   const BVCE_DataUnitDetect_Settings *pstSettings,
+   BVCE_DataUnitDetect_Results *pstResults
+   )
+{
+   BDBG_ASSERT( pstSettings );
+   BDBG_ASSERT( pstResults );
+   BKNI_Memset( pstResults, 0, sizeof( BVCE_DataUnitDetect_Results) );
+   {
+      unsigned uiCurrentOffset = pstSettings->uiStartOffset;
+      BVCE_Output_S_DataUnitDetect_State eState = BVCE_Output_S_DataUnitDetect_State_eLookFor1st0;
+
+      while ( uiCurrentOffset != pstSettings->uiStopOffset )
+      {
+         switch ( eState )
+         {
+            case BVCE_Output_S_DataUnitDetect_State_eLookFor1st0:
+               if ( 0 == pstSettings->pBuffer[uiCurrentOffset] )
+               {
+                  eState = BVCE_Output_S_DataUnitDetect_State_eLookFor2nd0;
+               }
+               else
+               {
+                  pstResults->uiBytesProcessed++;
+               }
+               break;
+
+            case BVCE_Output_S_DataUnitDetect_State_eLookFor2nd0:
+               if ( 0 == pstSettings->pBuffer[uiCurrentOffset] )
+               {
+                  eState = BVCE_Output_S_DataUnitDetect_State_eLookFor3rd0;
+               }
+               else
+               {
+                  eState = BVCE_Output_S_DataUnitDetect_State_eLookFor1st0;
+                  pstResults->uiBytesProcessed+=2;
+               }
+
+               break;
+
+            case BVCE_Output_S_DataUnitDetect_State_eLookFor3rd0:
+               if ( 0 == pstSettings->pBuffer[uiCurrentOffset] )
+               {
+                  eState = BVCE_Output_S_DataUnitDetect_State_eLookFor1;
+               }
+               else
+               {
+                  eState = BVCE_Output_S_DataUnitDetect_State_eLookFor1st0;
+                  pstResults->uiBytesProcessed+=3;
+               }
+               break;
+
+            case BVCE_Output_S_DataUnitDetect_State_eLookFor1:
+               if ( 1 == pstSettings->pBuffer[uiCurrentOffset] )
+               {
+                  if ( 0 == pstResults->uiBytesProcessed )
+                  {
+                     /* NALU Found */
+                     eState = BVCE_Output_S_DataUnitDetect_State_eReadNaluType;
+                  }
+                  else
+                  {
+                     /* Return previous bytes processed first */
+                     return;
+                  }
+               }
+               else if ( 0 == pstSettings->pBuffer[uiCurrentOffset] )
+               {
+                  eState = BVCE_Output_S_DataUnitDetect_State_eLookFor1;
+                  pstResults->uiBytesProcessed+=1;
+               }
+               else
+               {
+                  eState = BVCE_Output_S_DataUnitDetect_State_eLookFor1st0;
+                  pstResults->uiBytesProcessed+=4;
+               }
+               break;
+
+            case BVCE_Output_S_DataUnitDetect_State_eReadNaluType:
+               pstResults->bNaluFound = true;
+               pstResults->uiBytesProcessed = 5;
+               pstResults->uiDataUnitType[0] = pstSettings->pBuffer[uiCurrentOffset];
+               return;
+         }
+
+         uiCurrentOffset++;
+         uiCurrentOffset %= pstSettings->uiSize;
+      }
+   }
+}
+
+static void
+BVCE_Output_S_DataUnitDetect_Helper(
+   BVCE_Output_Handle hVceOutput,
+   BVCE_DataUnitDetect_Settings *pstSettings,
+   BVCE_DataUnitDetect_Results *pstResults
+   )
+{
+   pstSettings->uiStartOffset = hVceOutput->state.stCDBBuffer.uiShadowValidOffset - hVceOutput->state.stCDBBuffer.uiBaseOffset;
+   pstSettings->uiStopOffset = hVceOutput->state.stCDBBuffer.uiValidOffset - hVceOutput->state.stCDBBuffer.uiBaseOffset;
+
+   BVCE_Output_S_DataUnitDetect(
+      pstSettings,
+      pstResults
+      );
+
+   hVceOutput->state.stCDBBuffer.uiShadowValidOffset += pstResults->uiBytesProcessed;
+   if ( hVceOutput->state.stCDBBuffer.uiShadowValidOffset >= hVceOutput->state.stCDBBuffer.uiEndOffset )
+   {
+      hVceOutput->state.stCDBBuffer.uiShadowValidOffset -= ( hVceOutput->state.stCDBBuffer.uiEndOffset - hVceOutput->state.stCDBBuffer.uiBaseOffset );
+   }
+}
+
+static bool
+BVCE_Output_S_DataUnitDetect_SkipToNextFrameStart(
+   BVCE_Output_Handle hVceOutput
+   )
+{
+   bool bEndOfFrame;
+
+   hVceOutput->state.stCDBBuffer.uiShadowValidOffset = hVceOutput->state.stCDBBuffer.uiValidOffset;
+   hVceOutput->state.stCDBBuffer.uiShadowValidOffset = BVCE_Output_P_CalculateEndOfPictureOffset( hVceOutput, &bEndOfFrame );
+
+   return bEndOfFrame;
+}
 
 void
 BVCE_Output_P_DataUnitDetect(
    BVCE_Output_Handle hVceOutput
-   )
+)
 {
    if ( ( true == hVceOutput->stOpenSettings.bEnableDataUnitDetection )
-        && ( true == hVceOutput->state.stChannelCache.bValid )
-      )
+      && ( true == hVceOutput->state.stChannelCache.bValid )
+   )
    {
       /* We only want to process new start codes if the all the previous data referenced by the
        * shadow valid offset has been queued. I.e. all the data associated with the previous data unit
        * has been muxed */
       if ( hVceOutput->state.stCDBBuffer.uiShadowValidOffset == hVceOutput->state.stCDBBuffer.uiShadowReadOffset )
       {
-         void *pCDBBuffer = BVCE_P_Buffer_LockAddress( hVceOutput->hOutputBuffers->stCDB.hBuffer );
-         if ( NULL == pCDBBuffer )
+         if ( false == hVceOutput->state.stDataUnitDetect.bFound )
          {
-            BDBG_ERR(("Error locking CDB memory block"));
-            return;
-         }
+            BVCE_DataUnitDetect_Settings stSettings;
+            BVCE_DataUnitDetect_Results stResult;
 
-         switch ( hVceOutput->state.stChannelCache.stStartEncodeSettings.stProtocolInfo.eProtocol )
-         {
-            case BAVC_VideoCompressionStd_eH264:
-            /* SW7425-518: add DU detection for MPEG 4 part 2 */
-            case BAVC_VideoCompressionStd_eMPEG4Part2:
+            BKNI_Memset( &stSettings, 0, sizeof( BVCE_DataUnitDetect_Settings ) );
+            BKNI_Memset( &stResult, 0, sizeof( BVCE_DataUnitDetect_Results ) );
+
+            stSettings.pBuffer = BVCE_P_Buffer_LockAddress( hVceOutput->hOutputBuffers->stCDB.hBuffer );
+            stSettings.uiSize = BVCE_P_Buffer_GetSize( hVceOutput->hOutputBuffers->stCDB.hBuffer );
+            if ( NULL == stSettings.pBuffer )
             {
-               if ( false == hVceOutput->state.stDataUnitDetect.bFound )
-               {
-                  unsigned uiBytesInCurrentSegment = 0;
-                  uint32_t uiCDBBufferReadAheadValidOffset = hVceOutput->state.stDataUnitDetect.uiCDBBufferReadAheadValidOffset;
-                  uint32_t uiCDBBufferShadowValidOffset = hVceOutput->state.stCDBBuffer.uiShadowValidOffset;
-                  uint8_t uiCDBBufferShadowValidOffsetDataUnitDetectionDelay = hVceOutput->state.stDataUnitDetect.uiCDBBufferShadowValidOffsetDataUnitDetectionDelay;
-                  uint8_t *pCDBBufferCached = (uint8_t*) pCDBBuffer - hVceOutput->state.stCDBBuffer.uiBaseOffset;
-                  uint8_t uiStartCodeSize =
-                        (BAVC_VideoCompressionStd_eMPEG4Part2 == hVceOutput->state.stChannelCache.stStartEncodeSettings.stProtocolInfo.eProtocol)
-                           ?BVCE_P_MP4V_START_CODE_SIZE
-                           :BVCE_P_NALU_START_CODE_SIZE;
-
-                  while ( uiCDBBufferReadAheadValidOffset != hVceOutput->state.stCDBBuffer.uiValidOffset )
-                  {
-                     uint8_t uiCurrentByte = pCDBBufferCached[uiCDBBufferReadAheadValidOffset];
-                     bool bWait = false;
-
-                     switch ( hVceOutput->state.stDataUnitDetect.eState )
-                     {
-                        case BVCE_Output_P_DataUnitDetectState_eInitial:
-                           /* We are searching for the start code so looking for a zero */
-                           uiCDBBufferShadowValidOffsetDataUnitDetectionDelay = 0;
-                           if ( 0 == uiCurrentByte )
-                           {
-                              /* We found a zero, so go to the partial start code state and increment the delayed bytes */
-                              uiCDBBufferShadowValidOffsetDataUnitDetectionDelay++;
-                              hVceOutput->state.stDataUnitDetect.eState = BVCE_Output_P_DataUnitDetectState_ePartial;
-                           }
-                           else
-                           {
-                              /* We have a non-zero, so increment the valid offset so this byte can be included as part of the current NALU */
-                              uiCDBBufferShadowValidOffset++;
-                           }
-                           break;
-
-                        case BVCE_Output_P_DataUnitDetectState_ePartial:
-                           if ( ( (uiStartCodeSize - 1) == uiCDBBufferShadowValidOffsetDataUnitDetectionDelay )
-                                && ( 1 == uiCurrentByte ) )
-                           {
-                              /* We have a start code 0x00000001 (H264) or 0x000001 (MPEG4Part2) */
-                              uiCDBBufferShadowValidOffsetDataUnitDetectionDelay++;
-                              hVceOutput->state.stDataUnitDetect.eState = BVCE_Output_P_DataUnitDetectState_eFound;
-                           }
-                           else if ( 0 == uiCurrentByte )
-                           {
-                              /* We have a zero byte, so still a partial start code */
-
-                              if ( (uiStartCodeSize - 1) == uiCDBBufferShadowValidOffsetDataUnitDetectionDelay )
-                              {
-                                 /* We have 0x00000000 (H264) or 0x000000 (MPEG4Part2) so increase the valid offset
-                                  * since the 1st delayed byte is part of the current NALU
-                                  */
-                                 uiCDBBufferShadowValidOffset++;
-                              }
-                              else
-                              {
-                                 /* We still have a partial start code 0xXX000000 or 0xXXXX0000 */
-                                 uiCDBBufferShadowValidOffsetDataUnitDetectionDelay++;
-                              }
-                           }
-                           else
-                           {
-                              /* We have a non-zero and a non-one bytes, so none of the delayed bytes is a start code */
-                              uiCDBBufferShadowValidOffset++;
-                              uiCDBBufferShadowValidOffset += uiCDBBufferShadowValidOffsetDataUnitDetectionDelay;
-                              hVceOutput->state.stDataUnitDetect.eState = BVCE_Output_P_DataUnitDetectState_eInitial;
-                           }
-                           break;
-                        case BVCE_Output_P_DataUnitDetectState_eFound:
-                           if ( uiCDBBufferShadowValidOffsetDataUnitDetectionDelay >= uiBytesInCurrentSegment )
-                           {
-                              hVceOutput->state.stDataUnitDetect.bFound = true;
-                              hVceOutput->state.stDataUnitDetect.uiType = uiCurrentByte;
-                              uiCDBBufferShadowValidOffset++;
-                              uiCDBBufferShadowValidOffset += uiCDBBufferShadowValidOffsetDataUnitDetectionDelay;
-                              hVceOutput->state.stDataUnitDetect.eState = BVCE_Output_P_DataUnitDetectState_eInitial;
-                           }
-                           else
-                           {
-                              bWait = true;
-                           }
-                           break;
-                     }
-
-                     if ( true == bWait )
-                     {
-                        /* We found another start code, so delay processing of it until the current start code is processed */
-                        break;
-                     }
-
-                     uiCDBBufferReadAheadValidOffset++;
-                     if ( uiCDBBufferReadAheadValidOffset >= hVceOutput->state.stCDBBuffer.uiEndOffset )
-                     {
-                        uiCDBBufferReadAheadValidOffset -= ( hVceOutput->state.stCDBBuffer.uiEndOffset - hVceOutput->state.stCDBBuffer.uiBaseOffset );
-                     }
-                     uiBytesInCurrentSegment++;
-                  }
-                  if ( uiCDBBufferShadowValidOffset >= hVceOutput->state.stCDBBuffer.uiEndOffset )
-                  {
-                     uiCDBBufferShadowValidOffset -= ( hVceOutput->state.stCDBBuffer.uiEndOffset - hVceOutput->state.stCDBBuffer.uiBaseOffset );
-                  }
-
-                  hVceOutput->state.stDataUnitDetect.uiCDBBufferReadAheadValidOffset = uiCDBBufferReadAheadValidOffset;
-                  hVceOutput->state.stCDBBuffer.uiShadowValidOffset = uiCDBBufferShadowValidOffset;
-                  hVceOutput->state.stDataUnitDetect.uiCDBBufferShadowValidOffsetDataUnitDetectionDelay = uiCDBBufferShadowValidOffsetDataUnitDetectionDelay;
-               }
+               BDBG_ERR(("Error locking CDB memory block"));
+               return;
             }
-            break;  /* end: Data-unit processing */
 
-            default:
-               /* Data Unit Detection Not Supported - Falling Through */
-               BVCE_Output_P_DataUnitDetectReset( hVceOutput );
+            switch ( hVceOutput->state.stChannelCache.stStartEncodeSettings.stProtocolInfo.eProtocol )
+            {
+               case BAVC_VideoCompressionStd_eH264:
+               {
+                  switch ( hVceOutput->state.stDataUnitDetect.eState )
+                  {
+                     case BVCE_Output_P_DataUnitDetectState_eLookForNALU:
+                        /* Search for a NALU */
+                        BVCE_Output_S_DataUnitDetect_Helper( hVceOutput, &stSettings, &stResult );
+
+                        if ( true == stResult.bNaluFound )
+                        {
+                           hVceOutput->state.stDataUnitDetect.bFound = true;
+                           hVceOutput->state.stDataUnitDetect.uiType = stResult.uiDataUnitType[0];
+
+                           switch ( hVceOutput->state.stDataUnitDetect.uiType & 0x1F )
+                           {
+                              case 1: /* Coded slice of a non-IDR picture (AVC/H.264)*/
+                              case 5: /* Coded slice of an IDR picture (AVC/H.264) */
+                                 if ( false == BVCE_Output_S_DataUnitDetect_SkipToNextFrameStart( hVceOutput ) )
+                                 {
+                                    hVceOutput->state.stDataUnitDetect.eState = BVCE_Output_P_DataUnitDetectState_eSkipToNextFrameStart;
+                                 }
+                                 break;
+                              default:
+                                 /* Read as much of the NALU payload as possible */
+                                 BVCE_Output_S_DataUnitDetect_Helper( hVceOutput, &stSettings, &stResult );
+                                 BDBG_ASSERT( false == stResult.bNaluFound );
+                                 break;
+                           }
+                        }
+
+                        break;
+
+                     case BVCE_Output_P_DataUnitDetectState_eSkipToNextFrameStart:
+                     default:
+                        {
+                           if ( true == BVCE_Output_S_DataUnitDetect_SkipToNextFrameStart( hVceOutput ) )
+                           {
+                              hVceOutput->state.stDataUnitDetect.eState = BVCE_Output_P_DataUnitDetectState_eLookForNALU;
+                           }
+                        }
+                        break;
+                  }
+               }
                break;
-         }
 
-         BVCE_P_Buffer_UnlockAddress( hVceOutput->hOutputBuffers->stCDB.hBuffer );
+               default:
+                  /* Data Unit Detection Not Supported - Falling Through */
+                  BVCE_Output_P_DataUnitDetectReset( hVceOutput );
+                  break;
+            }
+
+            BVCE_P_Buffer_UnlockAddress( hVceOutput->hOutputBuffers->stCDB.hBuffer );
+         }
       }
    }
    else
@@ -1617,7 +2013,6 @@ BVCE_OUTPUT_P_ITB_UpdateIndex(
                   {
                      hVceOutput->state.stCDBBuffer.uiReadOffset = hVceOutput->stDescriptors.astIndex[hVceOutput->state.stITBBuffer.uiIndexWriteOffset].uiCDBAddress;
                      hVceOutput->state.stCDBBuffer.uiShadowReadOffset = hVceOutput->state.stCDBBuffer.uiReadOffset;
-                     hVceOutput->state.stDataUnitDetect.uiCDBBufferReadAheadValidOffset = hVceOutput->state.stCDBBuffer.uiReadOffset;
                      hVceOutput->state.stCDBBuffer.uiShadowValidOffset = hVceOutput->state.stCDBBuffer.uiReadOffset;
 
                      BREG_Write32(
@@ -1838,179 +2233,6 @@ BVCE_OUTPUT_P_ITB_UpdateIndex(
    }
 }
 
-unsigned
-BVCE_OUTPUT_P_ITB_Shadow_GetNumFrames(
-   BVCE_Output_Handle hVceOutput
-   )
-{
-   unsigned uiNumFrames = 0;
-
-   if ( hVceOutput->state.stITBBuffer.uiIndexWriteOffset >= hVceOutput->state.stITBBuffer.uiIndexShadowReadOffset )
-   {
-      uiNumFrames = hVceOutput->state.stITBBuffer.uiIndexWriteOffset - hVceOutput->state.stITBBuffer.uiIndexShadowReadOffset;
-   }
-   else
-   {
-      uiNumFrames = hVceOutput->stOpenSettings.uiDescriptorQueueDepth - hVceOutput->state.stITBBuffer.uiIndexShadowReadOffset;
-      uiNumFrames += hVceOutput->state.stITBBuffer.uiIndexWriteOffset;
-   }
-
-   return uiNumFrames;
-}
-
-BVCE_P_Output_ITB_IndexEntry*
-BVCE_OUTPUT_P_ITB_Shadow_GetFrameIndexEntry(
-   BVCE_Output_Handle hVceOutput,
-   unsigned uiIndex
-   )
-{
-   unsigned uiOffset = (hVceOutput->state.stITBBuffer.uiIndexShadowReadOffset + uiIndex) % hVceOutput->stOpenSettings.uiDescriptorQueueDepth;
-
-   return &hVceOutput->stDescriptors.astIndex[uiOffset];
-}
-
-void
-BVCE_OUTPUT_P_ITB_Shadow_CalculateDepth(
-   BVCE_Output_Handle hVceOutput
-   )
-{
-   if ( hVceOutput->state.stITBBuffer.uiValidOffset >= hVceOutput->state.stITBBuffer.uiShadowReadOffset )
-   {
-      hVceOutput->state.stITBBuffer.uiShadowDepth = hVceOutput->state.stITBBuffer.uiValidOffset - hVceOutput->state.stITBBuffer.uiShadowReadOffset;
-   }
-   else
-   {
-      hVceOutput->state.stITBBuffer.uiShadowDepth = hVceOutput->state.stITBBuffer.uiEndOffset - hVceOutput->state.stITBBuffer.uiShadowReadOffset;
-      hVceOutput->state.stITBBuffer.uiShadowDepth += hVceOutput->state.stITBBuffer.uiValidOffset - hVceOutput->state.stITBBuffer.uiBaseOffset;
-   }
-}
-
-void
-BVCE_OUTPUT_P_ITB_Shadow_ConsumeEntry(
-   BVCE_Output_Handle hVceOutput
-   )
-{
-   BDBG_ASSERT( hVceOutput->state.stITBBuffer.uiIndexShadowReadOffset != hVceOutput->state.stITBBuffer.uiIndexWriteOffset );
-
-   hVceOutput->state.stITBBuffer.uiShadowReadOffset += hVceOutput->stDescriptors.astIndex[hVceOutput->state.stITBBuffer.uiIndexShadowReadOffset].uiSizeInITB;
-   if ( hVceOutput->state.stITBBuffer.uiShadowReadOffset >= hVceOutput->state.stITBBuffer.uiEndOffset )
-   {
-      hVceOutput->state.stITBBuffer.uiShadowReadOffset -= ( hVceOutput->state.stITBBuffer.uiEndOffset - hVceOutput->state.stITBBuffer.uiBaseOffset );
-   }
-
-   hVceOutput->state.stITBBuffer.uiIndexShadowReadOffset++;
-   hVceOutput->state.stITBBuffer.uiIndexShadowReadOffset %= hVceOutput->stOpenSettings.uiDescriptorQueueDepth;
-}
-
-void
-BVCE_OUTPUT_P_ITB_ConsumeEntry(
-   BVCE_Output_Handle hVceOutput
-   )
-{
-   if ( true == hVceOutput->state.bCabacInitializedShadow )
-   {
-      BDBG_ASSERT( hVceOutput->state.stITBBuffer.uiIndexReadOffset != hVceOutput->state.stITBBuffer.uiIndexWriteOffset );
-
-      hVceOutput->state.stITBBuffer.uiReadOffset += hVceOutput->stDescriptors.astIndex[hVceOutput->state.stITBBuffer.uiIndexReadOffset].uiSizeInITB;
-      /* 7425A0: Hack to prevent HW/SW confusion of full vs empty */
-      if ( false == hVceOutput->state.stITBBuffer.bReadHackDone )
-      {
-         hVceOutput->state.stITBBuffer.uiReadOffset--;
-         hVceOutput->state.stITBBuffer.bReadHackDone = true;
-      }
-      if ( hVceOutput->state.stITBBuffer.uiReadOffset >= hVceOutput->state.stITBBuffer.uiEndOffset )
-      {
-         hVceOutput->state.stITBBuffer.uiReadOffset -= ( hVceOutput->state.stITBBuffer.uiEndOffset - hVceOutput->state.stITBBuffer.uiBaseOffset );
-      }
-
-      hVceOutput->state.stITBBuffer.uiIndexReadOffset++;
-      hVceOutput->state.stITBBuffer.uiIndexReadOffset %= hVceOutput->stOpenSettings.uiDescriptorQueueDepth;
-   }
-}
-
-bool
-BVCE_Output_P_IsFrameAvailable(
-   BVCE_Output_Handle hVceOutput
-   )
-{
-   BVCE_OUTPUT_P_ITB_Shadow_CalculateDepth( hVceOutput );
-
-   if ( 0 == BVCE_OUTPUT_P_ITB_Shadow_GetNumFrames( hVceOutput ) )
-   {
-      /* We ran out of ITB entries */
-      return false;
-   }
-
-   return true;
-}
-
-bool
-BVCE_Output_P_IsFrameDataAvailable(
-   BVCE_Output_Handle hVceOutput
-   )
-{
-   if ( ( false == hVceOutput->state.bEOSITBEntrySeen )
-        || ( ( true == hVceOutput->state.bEOSITBEntrySeen )
-              && ( true == hVceOutput->state.bEOSDescriptorSent )
-           )
-      )
-   {
-      /* Check for Available CDB Data */
-      if ( hVceOutput->state.stCDBBuffer.uiShadowValidOffset == hVceOutput->state.stCDBBuffer.uiShadowReadOffset )
-      {
-         /* We ran out of CDB data */
-         return false;
-      }
-   }
-   return true;
-}
-
-bool
-BVCE_Output_P_IsDescriptorAvailable(
-   BVCE_Output_Handle hVceOutput,
-   BVCE_P_Output_ITB_IndexEntry *pITBIndexEntry
-   )
-{
-   /* Check for Available Descriptors */
-   uint32_t uiTempWriteOffset = hVceOutput->state.uiDescriptorWriteOffset + 1;
-   uiTempWriteOffset %= hVceOutput->stOpenSettings.uiDescriptorQueueDepth;
-
-   if (uiTempWriteOffset == hVceOutput->state.uiDescriptorReadOffset )
-   {
-      /* We ran out of descriptors */
-      return false;
-   }
-
-   /* Check to make sure we have another descriptor available for the metadata */
-   if ( true == hVceOutput->state.bFrameStart )
-   {
-      if ( ( false == hVceOutput->state.bMetadataSent )
-           || ( ( pITBIndexEntry->uiMetadata & BVCE_P_NEW_METADATA_MASK ) != ( hVceOutput->state.uiPreviousMetadata & BVCE_P_NEW_METADATA_MASK ) ) ) /* SW7425-5477: Send metadata again if any metadata desc param has changed */
-      {
-         uiTempWriteOffset++;
-         uiTempWriteOffset %= hVceOutput->stOpenSettings.uiDescriptorQueueDepth;
-
-         if (uiTempWriteOffset == hVceOutput->state.uiDescriptorReadOffset )
-         {
-            /* We ran out of descriptors */
-            return false;
-         }
-
-         /* SW7425-3360: Check to make sure we have enough metadata descriptors */
-         uiTempWriteOffset = hVceOutput->state.uiMetadataDescriptorWriteOffset + 1;
-         uiTempWriteOffset %= BVCE_P_MAX_METADATADESCRIPTORS;
-
-         if (uiTempWriteOffset == hVceOutput->state.uiMetadataDescriptorReadOffset )
-         {
-            /* We ran out of metadata descriptors */
-            return false;
-         }
-      }
-   }
-
-   return true;
-}
-
 void
 BVCE_Output_P_DumpDescriptorLegacy(
    BVCE_Output_Handle hVceOutput,
@@ -2179,17 +2401,13 @@ BVCE_Output_P_DumpDescriptorLegacy(
    }
 }
 
-unsigned
-BVCE_Output_P_CalculateEndOfPictureOffset(
+bool
+BVCE_Output_P_IsStartOfNewFrame(
    BVCE_Output_Handle hVceOutput
    )
 {
-   /* Figure out how much CDB data we have for the current picture */
    if ( BVCE_OUTPUT_P_ITB_Shadow_GetNumFrames( hVceOutput ) > 1 )
    {
-      /* We have a next picture, so we know exactly how long the current picture is */
-      uint32_t uiDepthToNext;
-      uint32_t uiDepthToValid;
       BVCE_P_Output_ITB_IndexEntry *pITBIndexEntryNext = BVCE_OUTPUT_P_ITB_Shadow_GetFrameIndexEntry( hVceOutput, 1 );
 
       if ( ( 0 != ( pITBIndexEntryNext->stFrameDescriptor.stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_EOS ) ) )
@@ -2209,49 +2427,11 @@ BVCE_Output_P_CalculateEndOfPictureOffset(
           */
          BVCE_OUTPUT_P_ITB_Shadow_ConsumeEntry( hVceOutput );
          hVceOutput->state.bFrameStart = true;
-         return 0;
-      }
-
-      /* It is possible that the CDB Valid doesn't, yet, contain any of the next picture and
-       * may still be in the middle of the current picture, so we need use the depth that is the
-       * lesser of depth(cdb_read,cdb_next) depth(cdb_read,cdb_valid)
-       */
-      if ( pITBIndexEntryNext->uiCDBAddress > hVceOutput->state.stCDBBuffer.uiShadowReadOffset )
-      {
-         uiDepthToNext = pITBIndexEntryNext->uiCDBAddress - hVceOutput->state.stCDBBuffer.uiShadowReadOffset;
-      }
-      else
-      {
-         uiDepthToNext = hVceOutput->state.stCDBBuffer.uiEndOffset - hVceOutput->state.stCDBBuffer.uiShadowReadOffset;
-         uiDepthToNext += pITBIndexEntryNext->uiCDBAddress - hVceOutput->state.stCDBBuffer.uiBaseOffset;
-      }
-
-      if ( hVceOutput->state.stCDBBuffer.uiShadowValidOffset > hVceOutput->state.stCDBBuffer.uiShadowReadOffset )
-      {
-         uiDepthToValid = hVceOutput->state.stCDBBuffer.uiShadowValidOffset - hVceOutput->state.stCDBBuffer.uiShadowReadOffset;
-      }
-      else
-      {
-         uiDepthToValid = hVceOutput->state.stCDBBuffer.uiEndOffset - hVceOutput->state.stCDBBuffer.uiShadowReadOffset;
-         uiDepthToValid += hVceOutput->state.stCDBBuffer.uiShadowValidOffset - hVceOutput->state.stCDBBuffer.uiBaseOffset;
-      }
-
-      if ( uiDepthToValid < uiDepthToNext )
-      {
-         return hVceOutput->state.stCDBBuffer.uiShadowValidOffset;
-      }
-      else
-      {
-         return pITBIndexEntryNext->uiCDBAddress;
+         return true;
       }
    }
-   else
-   {
-      /* We don't have a next picture, so since the ITB entry for the next picture
-       * is always written before the CDB data for the next picture, we know the
-       * current CDB data is all for the current picture */
-      return hVceOutput->state.stCDBBuffer.uiShadowValidOffset;
-   }
+
+   return false;
 }
 
 #if BVCE_P_TEST_MODE
@@ -2968,8 +3148,9 @@ BVCE_Output_P_GetBufferDescriptors(
 
             BVCE_Output_P_DumpDescriptorLegacy( hVceOutput, pITBIndexEntry );
 
-            uiCDBEndOfPictureOffset = BVCE_Output_P_CalculateEndOfPictureOffset( hVceOutput );
-            if ( 0 == uiCDBEndOfPictureOffset ) continue;
+            if ( true == BVCE_Output_P_IsStartOfNewFrame( hVceOutput ) ) continue;
+
+            uiCDBEndOfPictureOffset = BVCE_Output_P_CalculateEndOfPictureOffset( hVceOutput, NULL );
 
             BVCE_Output_P_SendMetadataDescriptor( hVceOutput, pITBIndexEntry );
 

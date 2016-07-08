@@ -1,7 +1,7 @@
 #############################################################################
-# (c) 2003-2015 Broadcom Corporation
+# Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 #
-# This program is the proprietary software of Broadcom Corporation and/or its
+# This program is the proprietary software of Broadcom and/or its
 # licensors, and may only be used, duplicated, modified or distributed pursuant
 # to the terms and conditions of a separate, written license agreement executed
 # between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -37,7 +37,6 @@
 #    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
 #    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
 #    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-#
 #############################################################################
 
 PHONY += all nexus apps clean clean_apps install install_only print_files      bwin
@@ -136,6 +135,9 @@ ifneq ($(PLAYBACK_IP_SUPPORT),y)
     endif
 endif
 
+ifeq ($(NEXUS_POWER_MANAGEMENT),y)
+    SUBLIBS += pmlib
+endif
 
 ifeq ($(SSL_SUPPORT),y)
     export SSL_SUPPORT
@@ -260,6 +262,20 @@ ifeq ($(PLAYBACK_IP_SUPPORT),y)
 		$(Q_)$(MAKE) -C $(NEXUS_TOP)/lib/playback_ip/apps clean
 		$(B_TRACE_RECIPE_END)
 endif # PLAYBACK_IP_SUPPORT
+
+ifeq ($(NEXUS_POWER_MANAGEMENT),y)
+    .PHONY: pmlib
+    pmlib:
+		$(B_TRACE_RECIPE_BEGIN)
+		$(Q_)$(MAKE) -C $(NEXUS_TOP)/../BSEAV/lib/pmlib
+		$(B_TRACE_RECIPE_END)
+
+    .PHONY: clean_pmlib
+    clean_pmlib:
+		$(B_TRACE_RECIPE_BEGIN)
+		$(Q_)$(MAKE) -C $(NEXUS_TOP)/../BSEAV/lib/pmlib clean
+		$(B_TRACE_RECIPE_END)
+endif
 
 clean_apps: $(OTHER_APP_CLEANS)
 	$(B_TRACE_RECIPE_BEGIN)

@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2012-2013 Broadcom Corporation
+ *     Broadcom Proprietary and Confidential. (c)2012-13 Broadcom.  All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -49,6 +49,9 @@
 #include "nexus_graphicsv3d_module.h"
 #include "nexus_graphicsv3d_init.h"
 #include "priv/nexus_core.h"
+#if NEXUS_HAS_SAGE
+#include "priv/nexus_sage_priv.h"
+#endif
 
 #include "nexus_client_resources.h"
 
@@ -61,7 +64,6 @@ BDBG_MODULE(graphicsv3d);
 struct NEXUS_Graphicsv3d {
    NEXUS_OBJECT(NEXUS_Graphicsv3d);
    NEXUS_TaskCallbackHandle      jobHandler;
-   NEXUS_HeapHandle              heapHandle;
    NEXUS_Graphicsv3dTimelineData timelineForLastNotify;
    uint32_t                      clientId;
 };
@@ -114,6 +116,27 @@ static void graphics3d_worker_stop(void)
    BKNI_DestroyEvent(g_NEXUS_Graphicsv3d_P_ModuleState.sync);
 }
 
+static void graphics3d_secure_toggle(bool secure)
+{
+#if NEXUS_HAS_SAGE
+   /* if nothing more to advance, check for mode switch */
+   BAVC_CoreList coreList;
+   int rc = BERR_SUCCESS;
+
+   BKNI_Memset(&coreList, 0, sizeof(coreList));
+   coreList.aeCores[BAVC_CoreId_eV3D_0] = true;
+   coreList.aeCores[BAVC_CoreId_eV3D_1] = true;
+   if (secure)
+      rc = NEXUS_Sage_AddSecureCores(&coreList);
+   else
+      NEXUS_Sage_RemoveSecureCores(&coreList);
+
+   if (rc) BERR_TRACE(rc);
+#else
+   BSTD_UNUSED(secure);
+#endif
+}
+
 NEXUS_ModuleHandle
 NEXUS_Graphicsv3dModule_Init(
    const NEXUS_Graphicsv3dModuleSettings *pSettings)
@@ -149,17 +172,23 @@ NEXUS_Graphicsv3dModule_Init(
 #endif
 
    g_NEXUS_Graphicsv3d_P_ModuleState.heapHandle = pSettings->hHeap;
+   g_NEXUS_Graphicsv3d_P_ModuleState.heapHandleSecure = pSettings->hHeapSecure;
 
    {
-      const char  *pcBinMemMegs     = NEXUS_GetEnv("V3D_BIN_MEM_MEGS");
-      uint32_t    uiBinMemMegs      = pcBinMemMegs != NULL ? NEXUS_atoi(pcBinMemMegs) : 0;
-      const char  *pcBinMemChunkPow = NEXUS_GetEnv("V3D_BIN_MEM_CHUNK_POW");
-      uint32_t    uiBinMemChunkPow  = pcBinMemChunkPow != NULL ? NEXUS_atoi(pcBinMemChunkPow) : 0;
-      const char  *pcDisableAQA     = NEXUS_GetEnv("V3D_DISABLE_AQA");  /* AQA = Adaptive QPU assignment */
-      const char  *pcClockFreq      = NEXUS_GetEnv("V3D_CLOCK_FREQ");
-      uint32_t    uiClockFreq       = pcClockFreq != NULL ? NEXUS_atoi(pcClockFreq) : 0; /* 0 = default for device, do not change */
-      bool        bDisableAQA       = false;
+      const char  *pcBinMemMegs        = NEXUS_GetEnv("V3D_BIN_MEM_MEGS");
+      const char  *pcBinMemMegsSecure  = NEXUS_GetEnv("V3D_BIN_MEM_MEGS_SECURE");
+      uint32_t    uiBinMemMegs         = pcBinMemMegs != NULL ? NEXUS_atoi(pcBinMemMegs) : 0;
+      uint32_t    uiBinMemMegsSecure   = pcBinMemMegsSecure != NULL ? NEXUS_atoi(pcBinMemMegsSecure) : 0;
+      const char  *pcBinMemChunkPow    = NEXUS_GetEnv("V3D_BIN_MEM_CHUNK_POW");
+      uint32_t    uiBinMemChunkPow     = pcBinMemChunkPow != NULL ? NEXUS_atoi(pcBinMemChunkPow) : 0;
+      const char  *pcDisableAQA        = NEXUS_GetEnv("V3D_DISABLE_AQA");  /* AQA = Adaptive QPU assignment */
+      const char  *pcClockFreq         = NEXUS_GetEnv("V3D_CLOCK_FREQ");
+      uint32_t    uiClockFreq          = pcClockFreq != NULL ? NEXUS_atoi(pcClockFreq) : 0; /* 0 = default for device, do not change */
+      bool        bDisableAQA          = false;
       NEXUS_MemoryStatus heapStatus;
+      NEXUS_MemoryStatus heapStatusSecure;
+      BMMA_Heap_Handle hSecureHeapHandle = NULL;
+      NEXUS_Addr hSecureOffset = 0;
 
       if (uiBinMemMegs <= 1)
       {
@@ -175,7 +204,13 @@ NEXUS_Graphicsv3dModule_Init(
 #endif
       }
 
-      BDBG_MSG(("Bin memory allocation %dMbytes; in chunks of %dKbytes", uiBinMemMegs, (1 << uiBinMemChunkPow) * 256));
+      /* Secure is only really intended for video as graphics, so go for minimum amount.
+         This can be increased via the V3D_BIN_MEM_MEGS_SECURE environment variable */
+      if (uiBinMemMegsSecure <= 1)
+         uiBinMemMegsSecure = 2;
+
+      BDBG_MSG(("Bin memory allocation        %dMbytes; in chunks of %dKbytes", uiBinMemMegs, (1 << uiBinMemChunkPow) * 256));
+      BDBG_MSG(("Bin memory allocation secure %dMbytes; in chunks of %dKbytes", uiBinMemMegsSecure, (1 << uiBinMemChunkPow) * 256));
 
       if (pcDisableAQA != NULL)
       {
@@ -187,14 +222,26 @@ NEXUS_Graphicsv3dModule_Init(
       }
 
       NEXUS_Heap_GetStatus(g_NEXUS_Graphicsv3d_P_ModuleState.heapHandle, &heapStatus);
+
+      if (g_NEXUS_Graphicsv3d_P_ModuleState.heapHandleSecure)
+      {
+         NEXUS_Heap_GetStatus(g_NEXUS_Graphicsv3d_P_ModuleState.heapHandleSecure, &heapStatusSecure);
+         hSecureOffset = heapStatusSecure.offset;
+         hSecureHeapHandle = NEXUS_Heap_GetMmaHandle(g_NEXUS_Graphicsv3d_P_ModuleState.heapHandleSecure);
+      }
+
       err = BV3D_Open(&g_NEXUS_Graphicsv3d_P_ModuleState.v3d,
                       g_pCoreHandles->chp,
                       g_pCoreHandles->reg,
                       NEXUS_Heap_GetMmaHandle(g_NEXUS_Graphicsv3d_P_ModuleState.heapHandle),
                       heapStatus.offset,
+                      hSecureHeapHandle,
+                      hSecureOffset,
                       g_pCoreHandles->bint,
                       uiBinMemMegs,
                       uiBinMemChunkPow,
+                      uiBinMemMegsSecure,
+                      graphics3d_secure_toggle,
                       bDisableAQA,
                       uiClockFreq);
    }
@@ -385,6 +432,7 @@ NEXUS_Graphicsv3d_SendJob(
    }
 
    bv3dJob.uiBinMemory      = job->uiBinMemory;
+   bv3dJob.bBinMemorySecure = job->bBinMemorySecure;
    bv3dJob.uiUserVPM        = job->uiUserVPM;
    bv3dJob.bCollectTimeline = job->bCollectTimeline;
    bv3dJob.uiClientId       = gfx->clientId;
@@ -498,7 +546,7 @@ NEXUS_Graphicsv3d_GetBinMemory(
    BDBG_ASSERT(settings != NULL);
    BDBG_ASSERT(memory   != NULL);
 
-   /* No settings at the moment */
+   bv3dSettings.bSecure = settings->bSecure;
 
    err = BV3D_GetBinMemory(g_NEXUS_Graphicsv3d_P_ModuleState.v3d, &bv3dSettings, gfx->clientId, &bv3dMemory);
 

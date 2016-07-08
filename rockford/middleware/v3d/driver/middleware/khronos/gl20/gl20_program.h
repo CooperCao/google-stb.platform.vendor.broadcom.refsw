@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2008 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2008 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -113,7 +113,7 @@ extern bool gl20_program_bind_attrib(GL20_PROGRAM_T *program, uint32_t index, co
 extern void gl20_program_acquire(GL20_PROGRAM_T *program);
 extern void gl20_program_release(GL20_PROGRAM_T *program);
 
-extern void gl20_program_link(GLXX_SERVER_STATE_T *state, GL20_PROGRAM_T *program);
+extern void gl20_program_link(GL20_PROGRAM_T *program);
 
 extern int gl20_is_program(GL20_PROGRAM_T *program);
 

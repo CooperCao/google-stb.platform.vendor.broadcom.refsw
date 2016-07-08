@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2008 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2008 Broadcom.
 All rights reserved.
 
 Project  :  khronos
@@ -39,8 +39,6 @@ typedef enum
 
 bool khrn_hw_common_init(void);
 void khrn_hw_common_term(void);
-
-bool khrn_hw_supports_early_z(void);
 
 extern void lockCallback(void);
 extern void unlockCallback(void);
@@ -87,10 +85,12 @@ extern void khrn_specify_event(VCOS_EVENT_T *ev);
 extern int32_t khrn_do_suspend_resume(uint32_t up);
 
 extern void khrn_issue_finish_job(void);
-extern void khrn_issue_bin_render_job(struct GLXX_HW_RENDER_STATE *rs);
+extern void khrn_issue_bin_render_job(struct GLXX_HW_RENDER_STATE *rs, bool secure);
 extern void khrn_issue_vg_job(struct VG_BE_RENDER_STATE *rs, bool loadFrameUsed, bool storeFrameUsed, bool maskUsed);
-extern void khrn_issue_tfconvert_job(struct KHRN_FMEM *fmem, MEM_HANDLE_T heglimage, uint8_t *ctrlListPtr, uint32_t numBytes);
-extern void khrn_issue_copy_buffer_job(struct KHRN_FMEM *fmem, MEM_HANDLE_T dst, MEM_HANDLE_T src, uint32_t numCLBytes);
+extern void khrn_issue_tfconvert_job(struct KHRN_FMEM *fmem, MEM_HANDLE_T heglimage,
+   uint8_t *ctrlListPtr, uint32_t numBytes, bool secure);
+extern void khrn_issue_copy_buffer_job(struct KHRN_FMEM *fmem,
+   MEM_HANDLE_T dst, MEM_HANDLE_T src, uint32_t numCLBytes, bool secure);
 extern void khrn_issue_swapbuffers_job(MEM_HANDLE_T image);
 
 extern uint64_t khrn_get_last_issued_seq(void);

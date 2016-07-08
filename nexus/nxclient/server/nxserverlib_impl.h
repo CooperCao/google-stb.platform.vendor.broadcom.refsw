@@ -34,10 +34,7 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * Module Description:
- *
- *****************************************************************************/
+ ******************************************************************************/
 #ifndef NXSERVERLIB_IMPL_H__
 #define NXSERVERLIB_IMPL_H__
 
@@ -46,6 +43,10 @@
 #include "nexus_platform.h"
 #include "nexus_platform_server.h"
 #include "nexus_display.h"
+#if NEXUS_HAS_VIDEO_DECODER
+#else
+typedef void *NEXUS_VideoDecoderCapabilities;
+#endif
 #if NEXUS_HAS_AUDIO
 #include "nexus_audio_decoder.h"
 #include "nexus_audio_output.h"
@@ -55,18 +56,36 @@
 #include "nexus_spdif_output.h"
 #include "nexus_audio_capture.h"
 #include "nexus_audio_crc.h"
+#else
+typedef void *NEXUS_AudioCaptureHandle;
+typedef void *NEXUS_AudioMixerHandle;
 #endif
 #if NEXUS_HAS_HDMI_OUTPUT
 #include "nexus_hdmi_output.h"
+#include "nexus_hdmi_output_extra.h"
 #include "nexus_hdmi_output_hdcp.h"
+#else
+typedef void *NEXUS_HdmiOutputHdcpVersion;
 #endif
 #if NEXUS_HAS_SIMPLE_DECODER
 #include "nexus_simple_video_decoder_server.h"
 #include "nexus_simple_audio_decoder_server.h"
 #include "nexus_simple_encoder_server.h"
+#else
+typedef void *NEXUS_SimpleAudioDecoderServerSettings;
+typedef void *NEXUS_SimpleVideoDecoderServerSettings;
+typedef void *NEXUS_SimpleAudioDecoderHandle;
+typedef void *NEXUS_SimpleAudioPlaybackHandle;
+typedef void *NEXUS_SimpleVideoDecoderHandle;
+typedef void *NEXUS_SimpleEncoderHandle;
+typedef void *NEXUS_SimpleVideoDecoderServerHandle;
+typedef void *NEXUS_SimpleAudioDecoderServerHandle;
+typedef void *NEXUS_SimpleEncoderServerHandle;
 #endif
 #if NEXUS_HAS_TRANSPORT
 #include "nexus_stc_channel.h"
+#else
+typedef void *NEXUS_PidChannelHandle;
 #endif
 #include "nexus_surface_compositor.h"
 #include "nexus_surface_cursor.h"
@@ -102,6 +121,9 @@ typedef unsigned NEXUS_InputRouterCode;
 #endif
 #ifndef NEXUS_HAS_HDMI_OUTPUT
 #undef NEXUS_NUM_HDMI_OUTPUTS
+#endif
+#ifndef NEXUS_HAS_AUDIO
+#undef NEXUS_NUM_SPDIF_OUTPUTS
 #endif
 
 enum b_resource {
@@ -194,6 +216,7 @@ BDBG_OBJECT_ID_DECLARE(b_connect);
 struct b_connect {
     BDBG_OBJECT(b_connect)
     BLST_D_ENTRY(b_connect) link;
+    unsigned id;
     struct b_req *req[b_resource_max]; /* support separate reqs per b_resource type */
     nxclient_t client;
     NxClient_ConnectSettings settings;
@@ -257,6 +280,14 @@ struct b_session {
             bool deinterlaced;
         } capabilities;
     } window[NEXUS_NUM_VIDEO_WINDOWS];
+    struct {
+        NEXUS_SimpleVideoDecoderServerHandle server;
+    } video;
+    struct {
+        NEXUS_SimpleEncoderServerHandle server;
+        /* streaming */
+        struct encoder_resource *encoder;
+    } encoder;
 
     struct {
         NEXUS_DisplayHandle display; /* created as init_session */
@@ -277,12 +308,27 @@ struct b_session {
             struct b_hdmi_drm_selector selector;
             bool inputValid;
             NEXUS_HdmiDynamicRangeMasteringInfoFrame input;
+            NEXUS_HdmiOutputEdidRxHdrdb hdrdb;
+            NEXUS_VideoEotf lastInputEotf;
         } drm;
     } hdmi;
 #endif
     struct {
         NxClient_HdcpLevel level;
-        enum {nxserver_hdcp_not_pending, nxserver_hdcp_pending, nxserver_hdcp_pending_with_failure} pending;
+        NxClient_HdcpVersion prevSelect;
+        NxClient_HdcpVersion currSelect;
+        enum nxserver_hdcp_state {
+            nxserver_hdcp_not_pending,                   /* no hdcp authentication in progress */
+            nxserver_hdcp_begin,                         /* start hdcp auth disable */
+            nxserver_hdcp_pending_status_disable,        /* wait for hdcp auth disable success */
+            nxserver_hdcp_pending_status_start,          /* wait for hdcp auth start success, to read authentication status */
+            nxserver_hdcp_pending_disable,               /* wait for hdcp auth disable success */
+            nxserver_hdcp_pending_start_retry,           /* wait for hdcp auth disable success, retrying */
+            nxserver_hdcp_pending_start,                 /* wait for hdcp auth disable success */
+            nxserver_hdcp_success,                       /* hdcp authentication completed */
+            nxserver_hdcp_max
+        } version_state;
+        NEXUS_HdmiOutputHdcpVersion downstream_version;
         bool mute;
     } hdcp;
     struct {
@@ -293,12 +339,12 @@ struct b_session {
     } hdcpKeys;
     nxclient_t hdmiOutput_crc_client;
 
-    /* streaming */
-    struct encoder_resource *encoder;
-
     struct b_audio_resource *main_audio;
     NxClient_AudioProcessingSettings audioProcessingSettings;
     NxClient_AudioSettings audioSettings;
+    struct {
+        NEXUS_SimpleAudioDecoderServerHandle server;
+    } audio;
 
     struct {
         NxClient_DisplaySettings displaySettings;
@@ -333,7 +379,6 @@ struct b_stc {
 
 enum b_special_mode {
     b_special_mode_none,
-    b_special_mode_linked_decoder,
     b_special_mode_linked_decoder2,
     b_special_mode_max
 };
@@ -362,7 +407,6 @@ struct b_server {
     } videoDecoder;
     struct {
         NEXUS_DisplayCapabilities cap;
-        bool driveVideoAsGraphics;
     } display;
 #if NEXUS_NUM_VIDEO_ENCODERS
     struct {
@@ -437,7 +481,6 @@ int get_transcode_encoder_index(nxserver_t server, unsigned display);
 int acquire_video_encoders(struct b_connect *connect);
 void release_video_encoders(struct b_connect *connect);
 bool nxserver_p_connect_is_nonrealtime_encode(struct b_connect *connect);
-NEXUS_DisplayHandle nxserver_p_open_encoder_display(unsigned index, bool cache);
 
 /************
 nxserverlib_video.c API
@@ -455,6 +498,7 @@ int nxserverlib_p_swap_video_windows(struct b_connect *connect1, struct b_connec
 #if NEXUS_HAS_VIDEO_DECODER
 NEXUS_VideoDecoderHandle nxserver_p_get_video_decoder(struct b_connect *connect);
 #endif
+void nxserverlib_p_clear_video_cache(void);
 
 /************
 nxserverlib_audio.c API
@@ -464,12 +508,14 @@ void bserver_acquire_audio_mixers(struct b_audio_resource *r, bool start);
 #if NEXUS_HAS_HDMI_OUTPUT
 int bserver_hdmi_edid_audio_config(struct b_session *session, const NEXUS_HdmiOutputStatus *pStatus);
 #endif
-enum b_audio_decoder_type
+typedef enum b_audio_decoder_type
 {
     b_audio_decoder_type_regular,
+    b_audio_decoder_type_persistent,
+    b_audio_decoder_type_standalone,
     b_audio_decoder_type_background,
     b_audio_decoder_type_background_nrt
-};
+} b_audio_decoder_type;
 struct b_audio_resource *audio_decoder_create(struct b_session *session, enum b_audio_decoder_type type);
 void audio_decoder_destroy(struct b_audio_resource *r);
 int acquire_audio_decoders(struct b_connect *connect, bool force_grab);
@@ -485,7 +531,7 @@ void audio_get_encode_resources(struct b_audio_resource *r, NEXUS_AudioMixerHand
 int audio_get_stc_index(struct b_connect *connect);
 
 #if NEXUS_HAS_AUDIO
-NEXUS_AudioCaptureHandle nxserverlib_open_audio_capture(struct b_session *session, unsigned *id);
+NEXUS_AudioCaptureHandle nxserverlib_open_audio_capture(struct b_session *session, unsigned *id, NxClient_AudioCaptureType captureType);
 void nxserverlib_close_audio_capture(struct b_session *session,unsigned id);
 NEXUS_AudioCrcHandle nxserverlib_open_audio_crc(struct b_session *session, unsigned *id, NxClient_AudioCrcType crcType);
 void nxserverlib_close_audio_crc(struct b_session *session,unsigned id);
@@ -520,7 +566,7 @@ unsigned get_audioplayback_connect_id(const NxClient_ConnectSettings *pSettings,
 unsigned get_encoder_connect_id(const NxClient_ConnectSettings *pSettings, unsigned i);
 
 #if NEXUS_HAS_HDMI_OUTPUT
-void nxserverlib_p_apply_hdmi_drm(const struct b_session * session, const NxClient_DisplaySettings * pSettings);
+void nxserverlib_p_apply_hdmi_drm(const struct b_session * session, const NxClient_DisplaySettings * pSettings, bool rxChanged);
 #endif
 
 /* get the index into req->handles.XXXX[] that matches the id */

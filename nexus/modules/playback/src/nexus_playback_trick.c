@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2013 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,16 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #include "nexus_playback_module.h"
@@ -346,7 +336,7 @@ b_play_trick_set_pid(NEXUS_PlaybackHandle p, const NEXUS_Playback_P_PidChannel *
         vdecState.dqtEnabled = settings->state == b_trick_state_display_queue_trick_mode;
         slowMotion = (-NEXUS_NORMAL_PLAY_SPEED < (int)settings->decode_rate && settings->decode_rate < NEXUS_NORMAL_PLAY_SPEED);
         /* show only top field if decoder expected to repeat frames or do TSM trickmodes */
-        vdecState.topFieldOnly = slowMotion || settings->state == b_trick_state_host_paced || settings->simulated_tsm; 
+        vdecState.topFieldOnly = slowMotion || settings->state == b_trick_state_host_paced || settings->simulated_tsm || vdecState.stcTrickEnabled;
         vdecState.reverseFields = !settings->forward;
         if (settings->simulated_tsm) {
             vdecState.tsmEnabled = NEXUS_TsmMode_eSimulated;
@@ -757,7 +747,7 @@ NEXUS_Error NEXUS_P_Playback_VideoDecoder_SetPlaybackSettings(const NEXUS_Playba
 
 NEXUS_Error NEXUS_P_Playback_AudioDecoder_GetStatus(const NEXUS_Playback_P_PidChannel *pid, NEXUS_AudioDecoderStatus *pStatus, NEXUS_AudioDecoderStatus *pSecondaryStatus)
 {
-    NEXUS_Error rc;
+    NEXUS_Error rc=NEXUS_SUCCESS;
 
 #if NEXUS_HAS_AUDIO
     /* primary and simple are mutually exclusive for status */
@@ -803,11 +793,12 @@ NEXUS_Error NEXUS_P_Playback_AudioDecoder_GetStatus(const NEXUS_Playback_P_PidCh
     }
 
     /* if there are no decoders for this pid, status will be memset(0), which translates to status.started = false. */
-    return 0;
+    return rc;
 }
 
 void NEXUS_P_Playback_AudioDecoder_Flush(const NEXUS_Playback_P_PidChannel *pid)
 {
+    BSTD_UNUSED(pid);
 #if NEXUS_HAS_AUDIO
     if(pid->cfg.pidTypeSettings.audio.primary) {
         (void)NEXUS_AudioDecoder_Flush(pid->cfg.pidTypeSettings.audio.primary);
@@ -832,6 +823,9 @@ void NEXUS_P_Playback_AudioDecoder_Flush(const NEXUS_Playback_P_PidChannel *pid)
 NEXUS_Error NEXUS_Playback_P_AudioDecoder_Advance(const NEXUS_Playback_P_PidChannel *pid, uint32_t video_pts)
 {
     NEXUS_Error rc;
+    BSTD_UNUSED(video_pts);
+    BSTD_UNUSED(pid);
+
 #if NEXUS_HAS_AUDIO
     if(pid->cfg.pidTypeSettings.audio.primary) {
         if (pid->playback->state.audioTrick.primary) {
@@ -859,6 +853,7 @@ NEXUS_Error NEXUS_Playback_P_AudioDecoder_Advance(const NEXUS_Playback_P_PidChan
 
 void NEXUS_P_Playback_AudioDecoder_GetTrickState(const NEXUS_Playback_P_PidChannel *pid, NEXUS_AudioDecoderTrickState *pState, NEXUS_AudioDecoderTrickState *pSecondaryState)
 {
+    BSTD_UNUSED(pid);
 #if NEXUS_HAS_AUDIO
     /* primary and simple are mutually exclusive for getting state */
     if (pid->cfg.pidTypeSettings.audio.primary) {
@@ -892,7 +887,8 @@ void NEXUS_P_Playback_AudioDecoder_GetTrickState(const NEXUS_Playback_P_PidChann
 
 NEXUS_Error NEXUS_P_Playback_AudioDecoder_SetTrickState(const NEXUS_Playback_P_PidChannel *pid, const NEXUS_AudioDecoderTrickState *pState)
 {
-    NEXUS_Error rc;
+    NEXUS_Error rc=NEXUS_SUCCESS;
+    BSTD_UNUSED(pState);
     /* set any available */
     pid->playback->state.audioTrick.primary = 
     pid->playback->state.audioTrick.secondary = false;
@@ -922,7 +918,7 @@ NEXUS_Error NEXUS_P_Playback_AudioDecoder_SetTrickState(const NEXUS_Playback_P_P
         if (rc) return BERR_TRACE(rc);
     }
 #endif
-    return 0;
+    return rc;
 }
 
 /**

@@ -1,21 +1,42 @@
 /***************************************************************************
- *     Copyright (c) 2003-2012, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description:
  *
- *
- * Revision History:
- * $brcm_Log: $
  *
  ***************************************************************************/
 
@@ -37,230 +58,230 @@ BDBG_MODULE(BGIO);
  * relative to bit 0, based on pin ID.
  */
 BERR_Code BGIO_P_CalcPinRegAndBit(
-	BGIO_PinId            ePinId,
-	uint32_t              ulRegLow,        /* corresponding reg_low */
-	uint32_t *            pulRegOffset,
-	uint32_t *            pulBitOffset )
+    BGIO_PinId            ePinId,
+    uint32_t              ulRegLow,        /* corresponding reg_low */
+    uint32_t *            pulRegOffset,
+    uint32_t *            pulBitOffset )
 {
-	const BGIO_P_PinSet  *pGioPinSet = BGIO_P_GetPinMapping();
+    const BGIO_P_PinSet  *pGioPinSet = BGIO_P_GetPinMapping();
 
-	/* assert para from our private code */
-	BDBG_ASSERT( NULL != pGioPinSet );
-	BDBG_ASSERT( BGIO_PinId_eInvalid > ePinId );
-	BDBG_ASSERT( (BGIO_P_REG_BASE <= ulRegLow) &&
-				 (ulRegLow <= BGIO_P_REG_LOW_TOP ) );
-	BDBG_ASSERT( NULL != pulRegOffset );
-	BDBG_ASSERT( NULL != pulBitOffset );
+    /* assert para from our private code */
+    BDBG_ASSERT( NULL != pGioPinSet );
+    BDBG_ASSERT( BGIO_PinId_eInvalid > ePinId );
+    BDBG_ASSERT( (BGIO_P_REG_BASE <= ulRegLow) &&
+                 (ulRegLow <= BGIO_P_REG_LOW_TOP ) );
+    BDBG_ASSERT( NULL != pulRegOffset );
+    BDBG_ASSERT( NULL != pulBitOffset );
 
-	/* calc register and bit offset */
-	if(pGioPinSet->eSetLoStart != BGIO_PinId_eInvalid &&
-	   pGioPinSet->eSetLoEnd   != BGIO_PinId_eInvalid &&
-	   ePinId <= pGioPinSet->eSetLoEnd && ePinId < BGIO_PinId_eSgpio00)
-	{
-		/* _LO */
-		*pulRegOffset = (BCHP_GIO_ODEN_LO - BCHP_GIO_REG_START) + (ulRegLow - BCHP_GIO_REG_START);
-		*pulBitOffset = ePinId - pGioPinSet->eSetLoStart;
-		if(pGioPinSet->ulSetSgio == 0)
-			*pulBitOffset += pGioPinSet->ulSetSgioShift;
-	}
-	else if(pGioPinSet->eSetHiStart != BGIO_PinId_eInvalid &&
-	        pGioPinSet->eSetHiEnd   != BGIO_PinId_eInvalid &&
-	        ePinId <= pGioPinSet->eSetHiEnd && ePinId < BGIO_PinId_eSgpio00)
-	{
-		/* _HI */
-		*pulRegOffset = (BCHP_GIO_ODEN_HI - BCHP_GIO_REG_START) + (ulRegLow - BCHP_GIO_REG_START);
-		*pulBitOffset = ePinId - pGioPinSet->eSetHiStart;
-		if(pGioPinSet->ulSetSgio == 1)
-			*pulBitOffset += pGioPinSet->ulSetSgioShift;
-	}
-	else if(pGioPinSet->eSetExtStart != BGIO_PinId_eInvalid &&
-	        pGioPinSet->eSetExtEnd   != BGIO_PinId_eInvalid &&
-	        ePinId <= pGioPinSet->eSetExtEnd && ePinId < BGIO_PinId_eSgpio00)
-	{
-		/* _EXT */
+    /* calc register and bit offset */
+    if(pGioPinSet->eSetLoStart != BGIO_PinId_eInvalid &&
+       pGioPinSet->eSetLoEnd   != BGIO_PinId_eInvalid &&
+       ePinId <= pGioPinSet->eSetLoEnd && ePinId < BGIO_PinId_eSgpio00)
+    {
+        /* _LO */
+        *pulRegOffset = (BCHP_GIO_ODEN_LO - BCHP_GIO_REG_START) + (ulRegLow - BCHP_GIO_REG_START);
+        *pulBitOffset = ePinId - pGioPinSet->eSetLoStart;
+        if(pGioPinSet->ulSetSgio == 0)
+            *pulBitOffset += pGioPinSet->ulSetSgioShift;
+    }
+    else if(pGioPinSet->eSetHiStart != BGIO_PinId_eInvalid &&
+            pGioPinSet->eSetHiEnd   != BGIO_PinId_eInvalid &&
+            ePinId <= pGioPinSet->eSetHiEnd && ePinId < BGIO_PinId_eSgpio00)
+    {
+        /* _HI */
+        *pulRegOffset = (BCHP_GIO_ODEN_HI - BCHP_GIO_REG_START) + (ulRegLow - BCHP_GIO_REG_START);
+        *pulBitOffset = ePinId - pGioPinSet->eSetHiStart;
+        if(pGioPinSet->ulSetSgio == 1)
+            *pulBitOffset += pGioPinSet->ulSetSgioShift;
+    }
+    else if(pGioPinSet->eSetExtStart != BGIO_PinId_eInvalid &&
+            pGioPinSet->eSetExtEnd   != BGIO_PinId_eInvalid &&
+            ePinId <= pGioPinSet->eSetExtEnd && ePinId < BGIO_PinId_eSgpio00)
+    {
+        /* _EXT */
 #ifdef BCHP_GIO_ODEN_EXT
-		*pulRegOffset = (BCHP_GIO_ODEN_EXT - BCHP_GIO_REG_START) + (ulRegLow - BCHP_GIO_REG_START);
+        *pulRegOffset = (BCHP_GIO_ODEN_EXT - BCHP_GIO_REG_START) + (ulRegLow - BCHP_GIO_REG_START);
 #else
-		BDBG_ASSERT(0);
+        BDBG_ASSERT(0);
 #endif
-		*pulBitOffset = (ePinId - pGioPinSet->eSetExtStart);
-		if(pGioPinSet->ulSetSgio == 2)
-			*pulBitOffset += pGioPinSet->ulSetSgioShift;
-	}
-	else if(pGioPinSet->eSetExtHiStart != BGIO_PinId_eInvalid &&
-	        pGioPinSet->eSetExtHiEnd   != BGIO_PinId_eInvalid &&
-	        ePinId <= pGioPinSet->eSetExtHiEnd && ePinId < BGIO_PinId_eSgpio00)
-	{
-		/* _EXT_HI */
+        *pulBitOffset = (ePinId - pGioPinSet->eSetExtStart);
+        if(pGioPinSet->ulSetSgio == 2)
+            *pulBitOffset += pGioPinSet->ulSetSgioShift;
+    }
+    else if(pGioPinSet->eSetExtHiStart != BGIO_PinId_eInvalid &&
+            pGioPinSet->eSetExtHiEnd   != BGIO_PinId_eInvalid &&
+            ePinId <= pGioPinSet->eSetExtHiEnd && ePinId < BGIO_PinId_eSgpio00)
+    {
+        /* _EXT_HI */
 #ifdef BCHP_GIO_ODEN_EXT_HI
-		*pulRegOffset = (BCHP_GIO_ODEN_EXT_HI - BCHP_GIO_REG_START) + (ulRegLow - BCHP_GIO_REG_START);
+        *pulRegOffset = (BCHP_GIO_ODEN_EXT_HI - BCHP_GIO_REG_START) + (ulRegLow - BCHP_GIO_REG_START);
 #else
-		BDBG_ASSERT(0);
+        BDBG_ASSERT(0);
 #endif
-		*pulBitOffset = ePinId - pGioPinSet->eSetExtHiStart;
-		if(pGioPinSet->ulSetSgio == 3)
-			*pulBitOffset += pGioPinSet->ulSetSgioShift;
-	}
-	else if(pGioPinSet->eSetExt2Start != BGIO_PinId_eInvalid &&
-	        pGioPinSet->eSetExt2End   != BGIO_PinId_eInvalid &&
-	        ePinId <= pGioPinSet->eSetExt2End && ePinId < BGIO_PinId_eSgpio00)
-	{
-		/* _EXT2 */
+        *pulBitOffset = ePinId - pGioPinSet->eSetExtHiStart;
+        if(pGioPinSet->ulSetSgio == 3)
+            *pulBitOffset += pGioPinSet->ulSetSgioShift;
+    }
+    else if(pGioPinSet->eSetExt2Start != BGIO_PinId_eInvalid &&
+            pGioPinSet->eSetExt2End   != BGIO_PinId_eInvalid &&
+            ePinId <= pGioPinSet->eSetExt2End && ePinId < BGIO_PinId_eSgpio00)
+    {
+        /* _EXT2 */
 #ifdef BCHP_GIO_ODEN_EXT2
-		*pulRegOffset = (BCHP_GIO_ODEN_EXT2 - BCHP_GIO_REG_START) + (ulRegLow - BCHP_GIO_REG_START);
+        *pulRegOffset = (BCHP_GIO_ODEN_EXT2 - BCHP_GIO_REG_START) + (ulRegLow - BCHP_GIO_REG_START);
 #else
-		BDBG_ASSERT(0);
+        BDBG_ASSERT(0);
 #endif
-		*pulBitOffset = ePinId - pGioPinSet->eSetExt2Start;
-		if(pGioPinSet->ulSetSgio == 4)
-			*pulBitOffset += pGioPinSet->ulSetSgioShift;
-	}
-	else if(pGioPinSet->eSetExt3Start != BGIO_PinId_eInvalid &&
-	        pGioPinSet->eSetExt3End   != BGIO_PinId_eInvalid &&
-	        ePinId <= pGioPinSet->eSetExt3End && ePinId < BGIO_PinId_eSgpio00)
-	{
-		/* _EXT3 */
+        *pulBitOffset = ePinId - pGioPinSet->eSetExt2Start;
+        if(pGioPinSet->ulSetSgio == 4)
+            *pulBitOffset += pGioPinSet->ulSetSgioShift;
+    }
+    else if(pGioPinSet->eSetExt3Start != BGIO_PinId_eInvalid &&
+            pGioPinSet->eSetExt3End   != BGIO_PinId_eInvalid &&
+            ePinId <= pGioPinSet->eSetExt3End && ePinId < BGIO_PinId_eSgpio00)
+    {
+        /* _EXT3 */
 #ifdef BCHP_GIO_ODEN_EXT3
-		*pulRegOffset = (BCHP_GIO_ODEN_EXT3 - BCHP_GIO_REG_START) + (ulRegLow - BCHP_GIO_REG_START);
+        *pulRegOffset = (BCHP_GIO_ODEN_EXT3 - BCHP_GIO_REG_START) + (ulRegLow - BCHP_GIO_REG_START);
 #else
-		BDBG_ASSERT(0);
+        BDBG_ASSERT(0);
 #endif
-		*pulBitOffset = ePinId - pGioPinSet->eSetExt3Start;
-		if(pGioPinSet->ulSetSgio == 5)
-			*pulBitOffset += pGioPinSet->ulSetSgioShift;
-	}
-	else if (ePinId < BGIO_PinId_eSgpio00)
-	{
-		BDBG_ERR(("ePinId = %d doesn't match with pintable", ePinId));
-		return BERR_INVALID_PARAMETER;
-	}
-	else if(ePinId < BGIO_PinId_eAgpio00)
-	{
-		/* special gpio pins */
-		*pulRegOffset = (BGIO_P_NUM_LOW_REGS * 4 * pGioPinSet->ulSetSgio + ulRegLow) - BGIO_P_REG_BASE;
-		*pulBitOffset = ePinId - BGIO_PinId_eSgpio00;
-	}
-	else if(ePinId < BGIO_PinId_eAsgpio00)
-	{
-		/* Aon GPIO */
-		*pulRegOffset = ulRegLow - BGIO_P_REG_BASE;
-		*pulBitOffset = ePinId - BGIO_PinId_eAgpio00;
-	}
-	else
-	{
-		/* Aon SGPIO */
-		*pulRegOffset = (BGIO_P_NUM_LOW_REGS * 4 * 1 + ulRegLow) - BGIO_P_REG_BASE;
-		*pulBitOffset = ePinId - BGIO_PinId_eAsgpio00;
-	}
+        *pulBitOffset = ePinId - pGioPinSet->eSetExt3Start;
+        if(pGioPinSet->ulSetSgio == 5)
+            *pulBitOffset += pGioPinSet->ulSetSgioShift;
+    }
+    else if (ePinId < BGIO_PinId_eSgpio00)
+    {
+        BDBG_ERR(("ePinId = %d doesn't match with pintable", ePinId));
+        return BERR_INVALID_PARAMETER;
+    }
+    else if(ePinId < BGIO_PinId_eAgpio00)
+    {
+        /* special gpio pins */
+        *pulRegOffset = (BGIO_P_NUM_LOW_REGS * 4 * pGioPinSet->ulSetSgio + ulRegLow) - BGIO_P_REG_BASE;
+        *pulBitOffset = ePinId - BGIO_PinId_eSgpio00;
+    }
+    else if(ePinId < BGIO_PinId_eAsgpio00)
+    {
+        /* Aon GPIO */
+        *pulRegOffset = ulRegLow - BGIO_P_REG_BASE;
+        *pulBitOffset = ePinId - BGIO_PinId_eAgpio00;
+    }
+    else
+    {
+        /* Aon SGPIO */
+        *pulRegOffset = (BGIO_P_NUM_LOW_REGS * 4 * 1 + ulRegLow) - BGIO_P_REG_BASE;
+        *pulBitOffset = ePinId - BGIO_PinId_eAsgpio00;
+    }
 
-	return BERR_SUCCESS;
+    return BERR_SUCCESS;
 }
 
 /*--------------------------------------------------------------------------
  * To be called to write the GPIO pin's bit into one register
  */
 BERR_Code BGIO_P_WritePinRegBit(
-	BGIO_Handle           hGpio,
-	BGIO_PinId            ePinId,
-	BGIO_PinType          ePinType,
-	uint32_t              ulRegLow,
-	BGIO_PinValue         ePinValue,
-	bool                  bInIsr )
+    BGIO_Handle           hGpio,
+    BGIO_PinId            ePinId,
+    BGIO_PinType          ePinType,
+    uint32_t              ulRegLow,
+    BGIO_PinValue         ePinValue,
+    bool                  bInIsr )
 {
-	BERR_Code eResult = BERR_SUCCESS;
-	uint32_t  ulRegOffset, ulBitOffset;
-	uint32_t  ulRegValue;
-	uint32_t  ulRegIndex = 0;
-	uint32_t  ulOpenDrainSet = 0;
-	uint32_t  ulRegBase = (ePinId < BGIO_PinId_eAgpio00) ? BGIO_P_REG_BASE : BGIO_P_AON_BASE;
+    BERR_Code eResult = BERR_SUCCESS;
+    uint32_t  ulRegOffset, ulBitOffset;
+    uint32_t  ulRegValue;
+    uint32_t  ulRegIndex = 0;
+    uint32_t  ulOpenDrainSet = 0;
+    uint32_t  ulRegBase = (ePinId < BGIO_PinId_eAgpio00) ? BGIO_P_REG_BASE : BGIO_P_AON_BASE;
 
-	/* check input para */
-	BDBG_OBJECT_ASSERT(hGpio, BGIO);
-	BDBG_ASSERT( BGIO_PinId_eInvalid > ePinId );
-	BDBG_ASSERT( (BGIO_P_REG_BASE <= ulRegLow) &&
-				 (ulRegLow <= BGIO_P_REG_LOW_TOP ) );
-	BDBG_ASSERT( BGIO_PinValue_eInvalid > ePinValue );
+    /* check input para */
+    BDBG_OBJECT_ASSERT(hGpio, BGIO);
+    BDBG_ASSERT( BGIO_PinId_eInvalid > ePinId );
+    BDBG_ASSERT( (BGIO_P_REG_BASE <= ulRegLow) &&
+                 (ulRegLow <= BGIO_P_REG_LOW_TOP ) );
+    BDBG_ASSERT( BGIO_PinValue_eInvalid > ePinValue );
 
-	/* read the HW register and modify it for this setting */
-	eResult = BGIO_P_CalcPinRegAndBit( ePinId, ulRegLow,
-									   &ulRegOffset, &ulBitOffset );
-	BDBG_ASSERT( BERR_SUCCESS == eResult );
-	if(!bInIsr)
-	{
-		BKNI_EnterCriticalSection();
-	}
-	ulRegValue = BREG_Read32( hGpio->hRegister, ulRegBase + ulRegOffset );
+    /* read the HW register and modify it for this setting */
+    eResult = BGIO_P_CalcPinRegAndBit( ePinId, ulRegLow,
+                                       &ulRegOffset, &ulBitOffset );
+    BDBG_ASSERT( BERR_SUCCESS == eResult );
+    if(!bInIsr)
+    {
+        BKNI_EnterCriticalSection();
+    }
+    ulRegValue = BREG_Read32( hGpio->hRegister, ulRegBase + ulRegOffset );
 
-	/* for the data of other pins of open drain type, we can not write 0 only if HW
-	 * reading returns 0, since it might be due to that some other device is pulling
-	 * down the bus */
-	if (BCHP_GIO_DATA_LO == ulRegLow)
-	{
-		ulRegIndex = ulRegOffset / 4;
-		ulOpenDrainSet = hGpio->aulOpenDrainSet[ulRegIndex];
-		ulRegValue = ulRegValue | ulOpenDrainSet;
-	}
+    /* for the data of other pins of open drain type, we can not write 0 only if HW
+     * reading returns 0, since it might be due to that some other device is pulling
+     * down the bus */
+    if (BCHP_GIO_DATA_LO == ulRegLow)
+    {
+        ulRegIndex = ulRegOffset / 4;
+        ulOpenDrainSet = hGpio->aulOpenDrainSet[ulRegIndex];
+        ulRegValue = ulRegValue | ulOpenDrainSet;
+    }
 
-	/* set new value to the bit */
-	ulRegValue = ulRegValue & (~ BGIO_P_BIT_MASK(ulBitOffset));
-	ulRegValue = (ePinValue << ulBitOffset) | ulRegValue;
+    /* set new value to the bit */
+    ulRegValue = ulRegValue & (~ BGIO_P_BIT_MASK(ulBitOffset));
+    ulRegValue = (ePinValue << ulBitOffset) | ulRegValue;
 
-	/* write to HW */
-	BREG_Write32( hGpio->hRegister, ulRegBase + ulRegOffset, ulRegValue );
-	if(!bInIsr)
-	{
-		BKNI_LeaveCriticalSection();
-	}
+    /* write to HW */
+    BREG_Write32( hGpio->hRegister, ulRegBase + ulRegOffset, ulRegValue );
+    if(!bInIsr)
+    {
+        BKNI_LeaveCriticalSection();
+    }
 
-	BDBG_MSG(("Write: RegAddr=0x%08x, RegValue=0x%08x", ulRegBase + ulRegOffset, ulRegValue));
+    BDBG_MSG(("Write: RegAddr=0x%08x, RegValue=0x%08x", ulRegBase + ulRegOffset, ulRegValue));
 
-	/* record open drain pin data set for future modification to this register by some other pin */
-	if ((BCHP_GIO_DATA_LO == ulRegLow) && (BGIO_PinType_eOpenDrain == ePinType))
-	{
-		hGpio->aulOpenDrainSet[ulRegIndex] =
-			(ulOpenDrainSet & (~ BGIO_P_BIT_MASK(ulBitOffset))) | (ePinValue << ulBitOffset);
-	}
+    /* record open drain pin data set for future modification to this register by some other pin */
+    if ((BCHP_GIO_DATA_LO == ulRegLow) && (BGIO_PinType_eOpenDrain == ePinType))
+    {
+        hGpio->aulOpenDrainSet[ulRegIndex] =
+            (ulOpenDrainSet & (~ BGIO_P_BIT_MASK(ulBitOffset))) | (ePinValue << ulBitOffset);
+    }
 
-	return BERR_TRACE(eResult);
+    return BERR_TRACE(eResult);
 }
 
 /*--------------------------------------------------------------------------
  * To be called to write the GPIO pin's bit into one register
  */
 BERR_Code BGIO_P_ReadPinRegBit(
-	BGIO_Handle           hGpio,
-	BGIO_PinId            ePinId,
-	uint32_t              ulRegLow,
-	BGIO_PinValue *       pePinValue )
+    BGIO_Handle           hGpio,
+    BGIO_PinId            ePinId,
+    uint32_t              ulRegLow,
+    BGIO_PinValue *       pePinValue )
 {
-	BERR_Code eResult = BERR_SUCCESS;
-	uint32_t  ulRegOffset, ulBitOffset;
-	uint32_t  ulRegValue;
-	BGIO_PinValue  ePinValue;
-	uint32_t  ulRegBase = (ePinId < BGIO_PinId_eAgpio00) ? BGIO_P_REG_BASE : BGIO_P_AON_BASE;
+    BERR_Code eResult = BERR_SUCCESS;
+    uint32_t  ulRegOffset, ulBitOffset;
+    uint32_t  ulRegValue;
+    BGIO_PinValue  ePinValue;
+    uint32_t  ulRegBase = (ePinId < BGIO_PinId_eAgpio00) ? BGIO_P_REG_BASE : BGIO_P_AON_BASE;
 
-	/* check input para */
-	BDBG_OBJECT_ASSERT(hGpio, BGIO);
-	BDBG_ASSERT( BGIO_PinId_eInvalid > ePinId );
-	BDBG_ASSERT( (BGIO_P_REG_BASE <= ulRegLow) &&
-				 (ulRegLow <= BGIO_P_REG_LOW_TOP ) );
-	BDBG_ASSERT( NULL != pePinValue );
+    /* check input para */
+    BDBG_OBJECT_ASSERT(hGpio, BGIO);
+    BDBG_ASSERT( BGIO_PinId_eInvalid > ePinId );
+    BDBG_ASSERT( (BGIO_P_REG_BASE <= ulRegLow) &&
+                 (ulRegLow <= BGIO_P_REG_LOW_TOP ) );
+    BDBG_ASSERT( NULL != pePinValue );
 
-	/* read the HW reg
-	 * note: should not modify pGpio's records for this register based on the
-	 * reading from HW, since it might be diff from user's last setting, such
-	 * in as open dran case, and pGpio's records for this register will be
-	 * used in BGIO_P_WritePinRegBit */
-	eResult = BGIO_P_CalcPinRegAndBit( ePinId, ulRegLow,
-									   &ulRegOffset, &ulBitOffset );
-	BDBG_ASSERT( BERR_SUCCESS == eResult );
-	ulRegValue = BREG_Read32( hGpio->hRegister, ulRegBase + ulRegOffset );
-	ePinValue = (ulRegValue & BGIO_P_BIT_MASK(ulBitOffset)) >> ulBitOffset;
+    /* read the HW reg
+     * note: should not modify pGpio's records for this register based on the
+     * reading from HW, since it might be diff from user's last setting, such
+     * in as open dran case, and pGpio's records for this register will be
+     * used in BGIO_P_WritePinRegBit */
+    eResult = BGIO_P_CalcPinRegAndBit( ePinId, ulRegLow,
+                                       &ulRegOffset, &ulBitOffset );
+    BDBG_ASSERT( BERR_SUCCESS == eResult );
+    ulRegValue = BREG_Read32( hGpio->hRegister, ulRegBase + ulRegOffset );
+    ePinValue = (ulRegValue & BGIO_P_BIT_MASK(ulBitOffset)) >> ulBitOffset;
 
-	BDBG_MSG(("Read: RegAddr=0x%08x, RegValue=0x%08x", ulRegBase + ulRegOffset, ulRegValue));
+    BDBG_MSG(("Read: RegAddr=0x%08x, RegValue=0x%08x", ulRegBase + ulRegOffset, ulRegValue));
 
-	*pePinValue = ePinValue;
-	return BERR_TRACE(eResult);
+    *pePinValue = ePinValue;
+    return BERR_TRACE(eResult);
 }
 
 /***************************************************************************
@@ -268,16 +289,16 @@ BERR_Code BGIO_P_ReadPinRegBit(
  * context
  */
 BERR_Code BGIO_P_AddPinToList(
-	BGIO_Handle           hGpio,
-	BGIO_Pin_Handle       hPin )
+    BGIO_Handle           hGpio,
+    BGIO_Pin_Handle       hPin )
 {
 
-	BDBG_OBJECT_ASSERT(hGpio, BGIO);
-	BDBG_OBJECT_ASSERT(hPin, BGIO_PIN);
+    BDBG_OBJECT_ASSERT(hGpio, BGIO);
+    BDBG_OBJECT_ASSERT(hPin, BGIO_PIN);
 
-	/* add to the head */
-	BLST_D_INSERT_HEAD(&hGpio->PinHead , hPin, Link);
-	return BERR_SUCCESS;
+    /* add to the head */
+    BLST_D_INSERT_HEAD(&hGpio->PinHead , hPin, Link);
+    return BERR_SUCCESS;
 }
 
 /***************************************************************************
@@ -285,15 +306,15 @@ BERR_Code BGIO_P_AddPinToList(
  * context
  */
 BERR_Code BGIO_P_RemovePinFromList(
-	BGIO_Handle           hGpio,
-	BGIO_Pin_Handle       hPin )
+    BGIO_Handle           hGpio,
+    BGIO_Pin_Handle       hPin )
 {
-	BDBG_OBJECT_ASSERT(hGpio, BGIO);
-	BDBG_OBJECT_ASSERT(hPin, BGIO_PIN);
-	BDBG_ASSERT( BGIO_P_GetPinHandle(hGpio, hPin->ePinId) );
+    BDBG_OBJECT_ASSERT(hGpio, BGIO);
+    BDBG_OBJECT_ASSERT(hPin, BGIO_PIN);
+    BDBG_ASSERT( BGIO_P_GetPinHandle(hGpio, hPin->ePinId) );
 
-	BLST_D_REMOVE(&hGpio->PinHead, hPin, Link);
-	return BERR_SUCCESS;
+    BLST_D_REMOVE(&hGpio->PinHead, hPin, Link);
+    return BERR_SUCCESS;
 }
 
 /*--------------------------------------------------------------------------
@@ -301,39 +322,38 @@ BERR_Code BGIO_P_RemovePinFromList(
  * BGIO's main context. NULL returned if it does not exist.
  */
 BGIO_Pin_Handle BGIO_P_GetPinHandle(
-	BGIO_Handle           hGpio,
-	BGIO_PinId            ePinId )
+    BGIO_Handle           hGpio,
+    BGIO_PinId            ePinId )
 {
-	BGIO_P_Pin_Context *  pPin;
+    BGIO_P_Pin_Context *  pPin;
 
-	BDBG_OBJECT_ASSERT(hGpio, BGIO);
-	BDBG_ASSERT( BGIO_PinId_eInvalid > ePinId );
+    BDBG_OBJECT_ASSERT(hGpio, BGIO);
+    BDBG_ASSERT( BGIO_PinId_eInvalid > ePinId );
 
-	/* check whether the pin is already being in use */
-	pPin = BLST_D_FIRST(&hGpio->PinHead);
-	while ( NULL != pPin )
-	{
-		if ( pPin->ePinId == ePinId )
-		{
-			return pPin;
-		}
-		pPin = BLST_D_NEXT(pPin, Link);
-	}
+    /* check whether the pin is already being in use */
+    pPin = BLST_D_FIRST(&hGpio->PinHead);
+    while ( NULL != pPin )
+    {
+        if ( pPin->ePinId == ePinId )
+        {
+            return pPin;
+        }
+        pPin = BLST_D_NEXT(pPin, Link);
+    }
 
-	/* not found */
-	return NULL;
+    /* not found */
+    return NULL;
 }
 
 /***************************************************************************
  * To be called to get the register handle
  */
 BREG_Handle BGIO_P_GetRegisterHandle(
-	BGIO_Handle           hGpio )
+    BGIO_Handle           hGpio )
 {
 
-	BDBG_OBJECT_ASSERT(hGpio, BGIO);
-	return hGpio->hRegister;
+    BDBG_OBJECT_ASSERT(hGpio, BGIO);
+    return hGpio->hRegister;
 }
 
 /* End of File */
-

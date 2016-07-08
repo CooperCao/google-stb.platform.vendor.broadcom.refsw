@@ -42,7 +42,7 @@
 #include "nexus_simple_video_decoder.h"
 #include "nexus_simple_audio_decoder.h"
 #include "nexus_recpump.h"
-#if NEXUS_HAS_STREAM_MUX
+#ifdef NEXUS_HAS_STREAM_MUX
 #include "nexus_video_encoder.h"
 #include "nexus_video_encoder_output.h"
 #else
@@ -57,7 +57,7 @@ typedef struct NEXUS_VideoEncoderStartSettings
 typedef unsigned NEXUS_VideoEncoderDescriptor;
 typedef unsigned NEXUS_VideoEncoderStatus;
 #endif
-#if NEXUS_HAS_AUDIO
+#ifdef NEXUS_HAS_AUDIO
 #include "nexus_audio_encoder.h"
 #include "nexus_audio_mux_output.h"
 #else
@@ -129,6 +129,9 @@ typedef struct NEXUS_SimpleEncoderStartSettings
         NEXUS_SimpleVideoDecoderHandle video;
         NEXUS_SimpleAudioDecoderHandle audio;
     } input;
+    struct {
+        NEXUS_DisplayHandle display; /* client-opened display */
+    } transcode;
 
     NEXUS_RecpumpHandle recpump; /* Recpump where encoded stream and index will be captured.
                                     Call NEXUS_Recpump_SetSettings before NEXUS_SimpleEncoder_Start; do not call after Start.
@@ -172,7 +175,7 @@ Modify the behavior of the next NEXUS_SimpleEncoder_Stop call.
 typedef enum NEXUS_SimpleEncoderStopMode
 {
     NEXUS_SimpleEncoderStopMode_eAll, /* NEXUS_SimpleEncoder_Stop will stop entire audio/video/mux pipeline. */
-    NEXUS_SimpleEncoderStopMode_eVideoEncoderOnly, /* Do not stop audio. Stops video encoder and mux. Only supported for RT mode.
+    NEXUS_SimpleEncoderStopMode_eVideoEncoderOnly, /* Do not stop audio. Stops video encoder.
         After this, user can do an eAll stop or can call Start again with the same NEXUS_SimpleEncoderStartSettings. */
     NEXUS_SimpleEncoderStopMode_eMax
 } NEXUS_SimpleEncoderStopMode;

@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -11,7 +11,7 @@
  * Software and all intellectual property rights therein.  IF YOU HAVE NO
  * AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
  * AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
- * SOFTWARE.  
+ * SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
@@ -105,27 +105,27 @@ class Mat4;
 
 ////////////////////////////////////////////////////////////////////////////
 
-//! @addtogroup scenegraph 
+//! @addtogroup scenegraph
 //! @{
 
 //! A Material is an instantiation of a Effect with its uniforms appropriately set
 //! for the material. For example, a 'plastic' effect might be instantiated as a 'blue shiny plastic' material.
-//! 
+//!
 //! A Effect can be shared by multiple Material objects.
-//! 
+//!
 //! Some types of uniform (integer and float scalars and vectors) can be accessed as animatable values, so
 //! that they can be treated as standard animatable components.
-//! 
+//!
 //! This is how you might create a material and set some uniforms and textures:
 //! \code
 //! using namespace bsg;
-//! 
+//!
 //! MaterialHandle mat(New);
 //! EffectHandle   effect(New);
-//! 
+//!
 //! std::ifstream  is((GetOptions().GetResourcePath() + "my_effect.bfx").c_str());
 //! effect->Load(is);
-//! 
+//!
 //! mat->SetEffect(effect);
 //! mat->SetTexture("u_tex", irrad);
 //! mat->SetTexture("u_refl_tex", refl);
@@ -165,7 +165,7 @@ public:
    //! SetUniformValue has overrides for all relevant types of uniform
    //! SetUniform is a templated version (used to implement the non-array overloads).
 
-   //@{ 
+   //@{
 private:
    // This is effectively a look-up table of controlled type and its corresponding Uniform type.
    // Note that matrices are not currently animatable, so they do not have animatable types.
@@ -191,7 +191,8 @@ public:
    {
       typedef AnimatableUniform<T> Type;
 
-      auto iter = m_uniforms.find(name);
+      std::map<std::string, GLUniformBase *>::const_iterator iter;
+      iter = m_uniforms.find(name);
       if (iter == m_uniforms.end())
          iter = m_uniforms.insert(std::pair<std::string, GLUniformBase *>(name, new Type(name))).first;
 
@@ -214,7 +215,7 @@ public:
    void SetUniformValue(const std::string &name, const Vec2 *vecArray, uint32_t count);
    void SetUniformValue(const std::string &name, const Vec3 *vecArray, uint32_t count);
    void SetUniformValue(const std::string &name, const Vec4 *vecArray, uint32_t count);
-   
+
    void SetUniformValue(const std::string &name, const std::vector<float> &scalarArray);
    void SetUniformValue(const std::string &name, const std::vector<Vec2> &vecArray);
    void SetUniformValue(const std::string &name, const std::vector<Vec3> &vecArray);
@@ -231,7 +232,7 @@ public:
    //! GetUniformNt provides convenience names for animatable uniforms size N type t e.g. GetUniform1f.
    //! Getting a uniform returns a reference to the uniform.  Use Get() and Set() on this reference to
    //! modify the value.
-  
+
    //@{
    // Generic GetUniform
    template <class T>
@@ -239,13 +240,14 @@ public:
    {
       typedef AnimatableUniform<T> Type;
 
-      auto iter = m_uniforms.find(name);
+      std::map<std::string, GLUniformBase *>::iterator iter;
+      iter = m_uniforms.find(name);
       if (iter == m_uniforms.end())
          iter = m_uniforms.insert(std::pair<std::string, GLUniformBase *>(name, new Type(name))).first;
 
       Type  *res = dynamic_cast<Type *>(iter->second);
 
-      if (res == nullptr)
+      if (res == NULL)
          BSG_THROW("Type mismatch getting uniform");
 
       return *res;
@@ -298,7 +300,7 @@ public:
 
    MaterialHandle Find(const std::string &name) const
    {
-      auto entry = m_map.find(name);
+      std::map<std::string, MaterialHandle>::const_iterator entry = m_map.find(name);
 
       if (entry == m_map.end())
          BSG_THROW("Cannot find material '" << name << "'");

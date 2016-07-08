@@ -59,6 +59,8 @@ typedef enum zigbeeRpcCode {
     /* 6.1 */
     RPC_C2S_RF4CE_ResetReq,
 
+    RPC_C2S_RF4CE_SetSupportedDevicesReq,
+
     RPC_C2S_RF4CE_StartReq,
 
     RPC_C2S_RF4CE_DataReq,

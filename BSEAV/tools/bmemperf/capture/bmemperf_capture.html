@@ -43,13 +43,14 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 1.0 Strict//EN"
 <html><head><title>Bmemperf Capture</title><script  type="text/javascript" src="bmemperf_capture.js" ></script></head>
 <body lang=EN-US onload="MyLoad();" >
-<table border=0 >
-    <tr><td><img src="brcm-logo-white.jpg" width="100" id="brcmlogo" onclick="MyClick(event);" /></td>
-        <td valign=middle style="font-size:28pt;" ><b id=h1bmemperf onclick="MyClick(event);" >Bmemperf Capture</b></td>
-        <td valign=middle style="width:20px;" >&nbsp;</td> <!-- spacer -->
-        <th align=left valign=top ><table cols=6 border=0 >
+<table border=0 width=80% style="border-collapse:collapse;" >
+    <tr><td width=220 ><img src="brcm-logo-white.jpg" width="200" id="brcmlogo" onclick="MyClick(event);" /></td>
+        <th width=350 align=left valign=middle style="font-size:28pt;" ><b id=h1bmemperf onclick="MyClick(event);" >Bmemperf&nbsp;Capture</b></th>
+        <th valign=middle style="width:20px;" >&nbsp;</th> <!-- spacer -->
+        <th align=left valign=middle >
+          <table cols=6 border=0 >
             <tr>
-                <td >Platform: <span id=platform >xxxxx</span>&nbsp;<span id=platver>YY</span>&nbsp;&nbsp;
+                <td >Platform: <span id=platform >xxxxx</span>&nbsp;<span id=platver>YY</span>&nbsp;&nbsp;</td>
                 <td valign=middle style="width:50px;" >&nbsp;</td> <!-- spacer -->
                 <td id=stbtime valign=middle ></td>
                 <td valign="middle" style="width:20px;" >&nbsp;</td> <!-- spacer -->
@@ -57,7 +58,8 @@
                 <td id="cgicount" valign="middle" ></td>
             </tr>
             <tr><td colspan=6 id="tdboxmode" ></td></tr>
-        </table></th>
+          </table>
+        </th>
     </tr>
 </table>
 <hr />

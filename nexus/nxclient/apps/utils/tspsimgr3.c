@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2013 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  *****************************************************************************/
 #if NEXUS_HAS_TRANSPORT
@@ -84,12 +76,12 @@ static void message_callback(void *context, int index)
     tspsimgr_t handle = context;
     NEXUS_Error rc;
     const void *buffer;
-    unsigned size;
+    size_t size;
     NEXUS_MessageSettings openSettings;
     NEXUS_MessageStartSettings startSettings;
 
     if (!handle->msg[index]) {
-        BDBG_ERR(("tspsimgr %p: NULL message %d", handle, index));
+        BDBG_ERR(("tspsimgr %p: NULL message %d", (void*)handle, index));
         return;
     }
     
@@ -177,7 +169,7 @@ static void message_callback(void *context, int index)
     }
     else {
         /* PMT */
-        BDBG_MSG(("PMT: %d size:%d (%02x %02x %02x)", index, size,
+        BDBG_MSG(("PMT: %d size:%d (%02x %02x %02x)", index, (unsigned)size,
             ((unsigned char *)buffer)[0],((unsigned char *)buffer)[1],((unsigned char *)buffer)[2]));
         if (TS_PMT_validate(buffer, size)) {
             tspsimgr_scan_results *p_chanInfo = &handle->results;
@@ -392,9 +384,6 @@ static void tsPsi_parsePMT2( const void *pmt, unsigned pmtSize, tspsimgr_program
             break;
         case TS_PSI_ST_ATSC_EAC3:     /* ATSC Enhanced AC-3 */
             ADD_AUDIO_PID(p_programInfo, pmt_stream.elementary_PID, NEXUS_AudioCodec_eAc3Plus, pmt, pmtSize, i);
-            break;
-        case TS_PSI_ST_ATSC_DTS:      /* ATSC DTS audio */
-            ADD_AUDIO_PID(p_programInfo, pmt_stream.elementary_PID, NEXUS_AudioCodec_eDts, pmt, pmtSize, i);
             break;
         case TS_PSI_ST_ATSC_DTS_HD:   /* ASTC DTS-UHD audio */
             ADD_AUDIO_PID(p_programInfo, pmt_stream.elementary_PID, NEXUS_AudioCodec_eDtsHd, pmt, pmtSize, i);

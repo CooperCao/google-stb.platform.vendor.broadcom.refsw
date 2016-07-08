@@ -1,7 +1,7 @@
 /******************************************************************************
- *   (c)2011-2012 Broadcom Corporation
+ *   Broadcom Proprietary and Confidential. (c)2011-2012 Broadcom.  All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed
  * pursuant to the terms and conditions of a separate, written license
  * agreement executed between you and Broadcom (an "Authorized License").
@@ -139,7 +139,7 @@ public:
    //! The singleton instance accessor
    static Platform *Instance()
    {
-      if (m_instance == nullptr)
+      if (m_instance == NULL)
          BSG_THROW("Platform hasn't been created.  No instance available");
 
       return m_instance;
@@ -195,10 +195,6 @@ public:
 
    //! Returns if set to stereoscopic mode
    bool IsStereo() const { return m_stereo; }
-
-   //! Returns if set for quad mode
-   bool  IsQuad()      const { return m_quad;      }
-   IVec2 GetQuadSize() const { return m_quadSize;  }
 
    //! Get and set the swap interval
    uint32_t GetSwapInterval() const { return m_swapInterval; }
@@ -338,7 +334,6 @@ private:
 
    void RenderFrameSequenceMono();
    void RenderFrameSequenceStereo();
-   void RenderFrameSequenceQuad();
 
    void PostFrame();
    void PreFrame();
@@ -397,9 +392,6 @@ private:
 
    eStereoEye           m_stereoEye;
    bool                 m_stereo;
-
-   bool                 m_quad;
-   IVec2                m_quadSize;
 
    uint32_t             m_swapInterval;
    bool                 m_showHUD;

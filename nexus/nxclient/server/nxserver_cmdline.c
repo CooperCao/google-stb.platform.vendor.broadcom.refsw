@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2014 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,7 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 #include "nxserverlib.h"
 #include "namevalue.h"
@@ -76,6 +75,7 @@ static void print_usage(void)
     "  -ir {silver|black|a|b|rcmm|none} \tIR remote mode (default is silver)\n"
 #endif
     "  -evdev off     \tdisable evdev input\n"
+    "  -keypad on     \tenable keypad input\n"
     "  -transcode off \tdon't enable transcode\n"
     "  -fbsize W,H    \tframebuffer allocated for this size (default is 1280,720)\n"
     "  -allowCompositionBypass \tallow SurfaceCompositor bypass if single push client\n"
@@ -89,13 +89,15 @@ static void print_usage(void)
     );
     printf(
     "  -standby_timeout X \tnumber of seconds to wait for clients to acknowledge standby\n"
-    "  -heap NAME,SIZE    \tNAME is {main|gfx|gfx2|client|video_secure}. Use M or K suffix for units.\n"
+    "  -heap NAME,SIZE    \tNAME is {main|gfx|gfx2|client|video_secure|export}. Use M or K suffix for units.\n"
     "  -audio_description \tenable audio description\n"
+    "  -persistent_sad \tenable support for persistent simple audio decoders\n"
     "  -loudness [atsc|ebu]\tenable ATSC A/85 or EBU-R128 loudness equivalence.\n"
     );
     print_list_option("colorSpace",g_colorSpaceStrs);
     printf(
     "  -colorDepth {0|8|10} \t0 is auto\n"
+    "  -dropFrame {enable|disable|track} \tHD display is drop frame, non-drop frame or tracks source (default)\n"
     "  -avc51         \tenable AVC Level 5.1 decoding\n"
     "  -frontend off  \tdon't init frontend\n"
     );
@@ -107,11 +109,6 @@ static void print_usage(void)
     "  -karaoke       \tenable Karaoke post-processing support\n"
     "  -audio_output_delay X \tmaximum independent audio output delay (in msec)\n"
     );
-#if NEXUS_NUM_AUDIO_CAPTURES
-    printf(
-        "  -audio_capture [stereo|stereo24|multichannel] \tchannel configuration of audio capture [default is stereo]\n"
-    );
-#endif
     printf(
     "  -svp           \tUse NEXUS_VIDEO_SECURE_HEAP heap for video/audio CDB\n"
     "  -svp_urr       \tsvp option + set all picture buffers to secure only\n");
@@ -120,7 +117,14 @@ static void print_usage(void)
     "  -hdcp2x_keys BINFILE \tspecify location of Hdcp2.x bin file\n"
     "  -hdcp1x_keys BINFILE \tspecify location of Hdcp1.x bin file\n"
     "  -hdcp {m|o}    \talways run [m]andatory or [o]ptional HDCP for system test\n"
-    "  -hdmi_drm      \tenable dynamic range and mastering info transmission from source to display\n"
+    "  -hdcp_version {auto|follow|hdcp1x} - if hdcp is optional or mandatory, then\n"
+    "          \tauto   - (default) Always authenticate using the highest version supported by HDMI receiver\n"
+    "          \tfollow - If HDMI receiver is a Repeater, the HDCP_version depends on the Repeater downstream topology\n"
+    "          \t         If Repeater downstream topology contains one or more HDCP 1.x device, then authenticate with Repeater using the HDCP 1.x.\n"
+    "          \t         If Repeater downstream topology contains only HDCP 2.2 devices, then authenticate with Repeater using HDCP 2.2\n"
+    "          \t         If HDMI Receiver is not a Repeater, then default to 'auto' selection\n"
+    "          \thdcp1x - Always authenticate using HDCP 1.x mode (regardless of HDMI Receiver capabilities)\n"
+    "          \thdcp22 - Always authenticate using HDCP 2.2 mode (regardless of HDMI Receiver capabilities)\n"
     "  -spd VENDOR,DESCRIPTION \tSPD vendorName and description to transmit in HDMI SpdInfoFrame.\n"
     );
 #endif
@@ -151,6 +155,7 @@ static void print_usage(void)
     );
     printf(
     "  -enablePassthroughAudioPlayback\n"
+    "  -dropPrivilege USERID,GROUPID\n"
     );
 }
 
@@ -222,7 +227,7 @@ static int nxserverlib_apply_memconfig_str(NEXUS_PlatformSettings *pPlatformSett
 {
     unsigned i;
     for (i=0;i<memconfig_str_total;i++) {
-        unsigned index, numMosaics, maxWidth, maxHeight;
+        unsigned index, numMosaics, maxWidth, maxHeight, lowerSize, upperSize;
         char svpstr[32];
         if (0) {
         }
@@ -398,7 +403,7 @@ int nxserver_heap_by_type(const NEXUS_PlatformSettings *pPlatformSettings, unsig
 {
     unsigned i;
     for (i=0;i<NEXUS_MAX_HEAPS;i++) {
-        if (pPlatformSettings->heap[i].size && pPlatformSettings->heap[i].heapType & heapType) return i;
+        if (pPlatformSettings->heap[i].heapType & heapType) return i;
     }
 
     /* for platforms that don't set heapType, try older methods */
@@ -422,7 +427,16 @@ int nxserver_heap_by_type(const NEXUS_PlatformSettings *pPlatformSettings, unsig
     return -1;
 }
 
-static int nxserverlib_apply_heap_str(NEXUS_PlatformSettings *pPlatformSettings, const char * const *heap_str, unsigned heap_str_total)
+static int find_unused_heap(const NEXUS_PlatformSettings *pPlatformSettings)
+{
+    unsigned i;
+    for (i=0;i<NEXUS_MAX_HEAPS;i++) {
+        if (!pPlatformSettings->heap[i].size && !pPlatformSettings->heap[i].heapType) return i;
+    }
+    return -1;
+}
+
+static int nxserverlib_apply_heap_str(NEXUS_PlatformSettings *pPlatformSettings, const char * const *heap_str, unsigned heap_str_total, struct nxserver_settings *settings)
 {
     unsigned i;
     for (i=0;i<heap_str_total;i++) {
@@ -459,23 +473,63 @@ static int nxserverlib_apply_heap_str(NEXUS_PlatformSettings *pPlatformSettings,
                 pPlatformSettings->heap[index].size = size;
             }
         }
+        else if (!strcmp(name,"export")) {
+            int index = nxserver_heap_by_type(pPlatformSettings, NEXUS_HEAP_TYPE_EXPORT_REGION);
+            if (index != -1) {
+                BDBG_LOG(("setting export heap[%d] to %dMB", index, size/MB));
+                pPlatformSettings->heap[index].size = size;
+            }
+        }
         else if (!strcmp(name,"client")) {
 #if BCHP_CHIP == 7125
             return BERR_TRACE(NEXUS_NOT_SUPPORTED);
 #else
             /* create a dedicated heap for the client */
+            int unused_heap;
             int mainIndex = nxserver_heap_by_type(pPlatformSettings, NEXUS_HEAP_TYPE_GRAPHICS);
-            pPlatformSettings->heap[NEXUS_MAX_HEAPS-1].size = size;
-            pPlatformSettings->heap[NEXUS_MAX_HEAPS-1].memcIndex = pPlatformSettings->heap[mainIndex].memcIndex;
-            pPlatformSettings->heap[NEXUS_MAX_HEAPS-1].subIndex = pPlatformSettings->heap[mainIndex].subIndex;
-            pPlatformSettings->heap[NEXUS_MAX_HEAPS-1].guardBanding = false; /* corruptions shouldn't cause server failures */
-            pPlatformSettings->heap[NEXUS_MAX_HEAPS-1].alignment = pPlatformSettings->heap[mainIndex].alignment;
-            pPlatformSettings->heap[NEXUS_MAX_HEAPS-1].memoryType = NEXUS_MemoryType_eFull; /* requires for packet blit and playpump */
+            if (mainIndex == -1) {
+                return BERR_TRACE(NEXUS_NOT_AVAILABLE);
+            }
+            unused_heap = find_unused_heap(pPlatformSettings);
+            if (unused_heap == -1) {
+                return BERR_TRACE(NEXUS_NOT_AVAILABLE);
+            }
+            settings->heaps.clientFullHeap = unused_heap;
+            pPlatformSettings->heap[settings->heaps.clientFullHeap].size = size;
+            pPlatformSettings->heap[settings->heaps.clientFullHeap].memcIndex = pPlatformSettings->heap[mainIndex].memcIndex;
+            pPlatformSettings->heap[settings->heaps.clientFullHeap].subIndex = pPlatformSettings->heap[mainIndex].subIndex;
+            pPlatformSettings->heap[settings->heaps.clientFullHeap].guardBanding = false; /* corruptions shouldn't cause server failures */
+            pPlatformSettings->heap[settings->heaps.clientFullHeap].alignment = pPlatformSettings->heap[mainIndex].alignment;
+            pPlatformSettings->heap[settings->heaps.clientFullHeap].memoryType = NEXUS_MemoryType_eFull; /* requires for packet blit and playpump */
 #if NEXUS_HAS_SAGE
             /* sage must be told which heap the client's will be using */
-            pPlatformSettings->sageModuleSettings.clientHeapIndex = NEXUS_MAX_HEAPS-1;
+            pPlatformSettings->sageModuleSettings.clientHeapIndex = settings->heaps.clientFullHeap;
 #endif
 #endif
+        }
+        else if (!strcmp(name,"securegfx")) {
+            int index = -1;
+            unsigned memcIndex;
+            /* For now, assume we use the highest defined secure graphics heap */
+#if defined NEXUS_MEMC2_SECURE_GRAPHICS_HEAP
+            index = NEXUS_MEMC2_SECURE_GRAPHICS_HEAP;
+            memcIndex = 2;
+#elif defined NEXUS_MEMC1_SECURE_GRAPHICS_HEAP
+            index = NEXUS_MEMC1_SECURE_GRAPHICS_HEAP;
+            memcIndex = 1;
+#elif defined NEXUS_MEMC0_SECURE_GRAPHICS_HEAP
+            index = NEXUS_MEMC0_SECURE_GRAPHICS_HEAP;
+            memcIndex = 0;
+#endif
+            if (index != -1) {
+                BDBG_LOG(("creating securegfx heap[%d] on MEMC%u for %dMB", index, memcIndex, size/MB));
+                pPlatformSettings->heap[index].size = size;
+                pPlatformSettings->heap[index].memcIndex = memcIndex;
+                pPlatformSettings->heap[index].heapType = NEXUS_HEAP_TYPE_SECURE_GRAPHICS;
+                pPlatformSettings->heap[index].memoryType = NEXUS_MEMORY_TYPE_ONDEMAND_MAPPED|NEXUS_MEMORY_TYPE_MANAGED|NEXUS_MEMORY_TYPE_SECURE;
+                /* TODO: allow securegfx to GFD1. for now, apply "-sd off" */
+                parse_session_settings(&settings->session[0], "hd");
+            }
         }
         else {
             return -1;
@@ -493,9 +547,6 @@ int nxserver_parse_cmdline(int argc, char **argv, struct nxserver_settings *sett
     cmdline_settings->frontend = true;
     cmdline_settings->loudnessMode = NEXUS_AudioLoudnessEquivalenceMode_eNone;
     settings->session[0].dolbyMs = nxserverlib_dolby_ms_type_none;
-#if NEXUS_NUM_AUDIO_CAPTURES
-    settings->session[0].audioCapture = NEXUS_AudioCaptureFormat_e16BitStereo;
-#endif
 
     while (curarg < argc) {
         if (!strcmp(argv[curarg], "--help") || !strcmp(argv[curarg], "-h")) {
@@ -608,6 +659,12 @@ int nxserver_parse_cmdline(int argc, char **argv, struct nxserver_settings *sett
                 settings->session[0].evdevInput = false;
             }
         }
+        else if (!strcmp(argv[curarg], "-keypad") && curarg+1 < argc) {
+            ++curarg;
+            if (!strcmp("on", argv[curarg])) {
+                settings->session[0].keypad = true;
+            }
+        }
         else if (!strcmp(argv[curarg], "-fbsize") && curarg+1 < argc) {
             sscanf(argv[++curarg], "%u,%u", &settings->fbsize.width, &settings->fbsize.height);
         }
@@ -718,6 +775,19 @@ int nxserver_parse_cmdline(int argc, char **argv, struct nxserver_settings *sett
             settings->display.format = lookup(g_videoFormatStrs, argv[++curarg]);
             settings->display_init.hd.initialFormat = true;
         }
+        else if (!strcmp(argv[curarg], "-dropFrame") && curarg+1 < argc) {
+            ++curarg;
+            if (!strcmp(argv[curarg],"enable")) {
+                settings->display_init.hd.dropFrame = NEXUS_TristateEnable_eEnable;
+            }
+            else if (!strcmp(argv[curarg],"disable")) {
+                settings->display_init.hd.dropFrame = NEXUS_TristateEnable_eDisable;
+            }
+            else {
+                /* eNotSet is "track" */
+                settings->display_init.hd.dropFrame = NEXUS_TristateEnable_eNotSet;
+            }
+        }
         else if (!strcmp(argv[curarg], "-colorSpace") && argc>curarg+1) {
             settings->display.hdmiPreferences.colorSpace = lookup(g_colorSpaceStrs, argv[++curarg]);
         }
@@ -752,26 +822,11 @@ int nxserver_parse_cmdline(int argc, char **argv, struct nxserver_settings *sett
                 return -1;
             }
         }
-#if NEXUS_NUM_AUDIO_CAPTURES
-        else if (!strcmp(argv[curarg], "-audio_capture") && curarg+1 < argc) {
-            ++curarg;
-            if (!strcmp("stereo", argv[curarg])) {
-                settings->session[0].audioCapture = NEXUS_AudioCaptureFormat_e16BitStereo;
-            }
-            else if (!strcmp("stereo24", argv[curarg])) {
-                settings->session[0].audioCapture = NEXUS_AudioCaptureFormat_e24BitStereo;
-            }
-            else if (!strcmp("multichannel", argv[curarg])) {
-                settings->session[0].audioCapture = NEXUS_AudioCaptureFormat_e24Bit5_1;
-            }
-            else {
-                print_usage();
-                return -1;
-            }
-        }
-#endif
         else if (!strcmp(argv[curarg], "-karaoke")) {
             settings->session[0].karaoke = true;
+        }
+        else if (!strcmp(argv[curarg], "-persistent_sad")) {
+            settings->session[0].persistentDecoderSupport = true;
         }
         else if (!strcmp(argv[curarg], "-maxDataRate") && argc>curarg+1) {
             /* Exceeding bandwidth on playback XC buffer may cause other playbacks to starve and underflow.
@@ -812,8 +867,16 @@ int nxserver_parse_cmdline(int argc, char **argv, struct nxserver_settings *sett
             default: print_usage(); return -1;
             }
         }
-        else if (!strcmp(argv[curarg], "-hdmi_drm")) {
-            settings->hdmi.drm = true;
+        else if (!strcmp(argv[curarg], "-hdcp_version") && argc>curarg+1) {
+            curarg++;
+            if      (!strcmp(argv[curarg],"auto"  ))  settings->hdcp.versionSelect = NxClient_HdcpVersion_eAuto;
+            else if (!strcmp(argv[curarg],"follow"))  settings->hdcp.versionSelect = NxClient_HdcpVersion_eFollow;
+            else if (!strcmp(argv[curarg],"hdcp1x"))  settings->hdcp.versionSelect = NxClient_HdcpVersion_eHdcp1x;
+            else if (!strcmp(argv[curarg],"hdcp22"))  settings->hdcp.versionSelect = NxClient_HdcpVersion_eHdcp22;
+            else {
+                print_usage();
+                return -1;
+            }
         }
         else if (!strcmp(argv[curarg], "-spd") && curarg+1<argc) {
             const char *comma = strchr(argv[++curarg], ',');
@@ -850,6 +913,12 @@ int nxserver_parse_cmdline(int argc, char **argv, struct nxserver_settings *sett
                 settings->session[0].audioPlaybacks--;
             }
         }
+        else if (!strcmp(argv[curarg], "-dropPrivilege") && argc>curarg+1) {
+            if (sscanf(argv[++curarg], "%u,%u", &cmdline_settings->permissions.userId, &cmdline_settings->permissions.groupId) != 2) {
+                print_usage();
+                return -1;
+            }
+        }
         else {
             fprintf(stderr,"invalid argument %s\n", argv[curarg]);
             print_usage();
@@ -860,14 +929,14 @@ int nxserver_parse_cmdline(int argc, char **argv, struct nxserver_settings *sett
     return 0;
 }
 
-int nxserver_modify_platform_settings(const struct nxserver_settings *settings, const struct nxserver_cmdline_settings *cmdline_settings,
+int nxserver_modify_platform_settings(struct nxserver_settings *settings, const struct nxserver_cmdline_settings *cmdline_settings,
     NEXUS_PlatformSettings *pPlatformSettings, NEXUS_MemoryConfigurationSettings *pMemConfigSettings)
 {
     unsigned i;
     int rc;
 
     /* modify default init settings with cmdline params */
-    rc = nxserverlib_apply_heap_str(pPlatformSettings, cmdline_settings->heap.str, cmdline_settings->heap.total);
+    rc = nxserverlib_apply_heap_str(pPlatformSettings, cmdline_settings->heap.str, cmdline_settings->heap.total, settings);
     if (rc) {
         print_usage();
         return -1;
@@ -959,15 +1028,21 @@ int nxserver_modify_platform_settings(const struct nxserver_settings *settings, 
 
     if (settings->growHeapBlockSize) {
         /* always create a small on-demand heap in the same place as the graphics heap, but that can grow */
+        int unused_heap;
         int index = nxserver_heap_by_type(pPlatformSettings, NEXUS_HEAP_TYPE_GRAPHICS);
-        if (index == -1) {
+        if (index == -1 || !pPlatformSettings->heap[index].size) {
             BDBG_ERR(("-growHeapBlockSize requires platform implement NEXUS_PLATFORM_P_GET_FRAMEBUFFER_HEAP_INDEX"));
             return BERR_TRACE(NEXUS_NOT_SUPPORTED);
         }
-        pPlatformSettings->heap[NEXUS_MAX_HEAPS-2].memcIndex = pPlatformSettings->heap[index].memcIndex;
-        pPlatformSettings->heap[NEXUS_MAX_HEAPS-2].subIndex = pPlatformSettings->heap[index].subIndex;
-        pPlatformSettings->heap[NEXUS_MAX_HEAPS-2].size = 4096; /* very small, but not zero */
-        pPlatformSettings->heap[NEXUS_MAX_HEAPS-2].memoryType = NEXUS_MEMORY_TYPE_MANAGED|NEXUS_MEMORY_TYPE_ONDEMAND_MAPPED|NEXUS_MEMORY_TYPE_DYNAMIC;
+        unused_heap = find_unused_heap(pPlatformSettings);
+        if (unused_heap == -1) {
+            return BERR_TRACE(NEXUS_NOT_AVAILABLE);
+        }
+        settings->heaps.dynamicHeap = (unsigned)unused_heap;
+        pPlatformSettings->heap[settings->heaps.dynamicHeap].memcIndex = pPlatformSettings->heap[index].memcIndex;
+        pPlatformSettings->heap[settings->heaps.dynamicHeap].subIndex = pPlatformSettings->heap[index].subIndex;
+        pPlatformSettings->heap[settings->heaps.dynamicHeap].size = 4096; /* very small, but not zero */
+        pPlatformSettings->heap[settings->heaps.dynamicHeap].memoryType = NEXUS_MEMORY_TYPE_MANAGED|NEXUS_MEMORY_TYPE_ONDEMAND_MAPPED|NEXUS_MEMORY_TYPE_DYNAMIC;
     }
     if (cmdline_settings->video.dacBandGapAdjust) {
         for (i=0;i<NEXUS_MAX_VIDEO_DACS;i++) {
@@ -977,6 +1052,8 @@ int nxserver_modify_platform_settings(const struct nxserver_settings *settings, 
     if (cmdline_settings->video.dacDetection) {
         pPlatformSettings->displayModuleSettings.dacDetection = NEXUS_VideoDacDetection_eOn;
     }
+    pPlatformSettings->permissions.userId = cmdline_settings->permissions.userId;
+    pPlatformSettings->permissions.groupId = cmdline_settings->permissions.groupId;
 
     return 0;
 }
@@ -989,33 +1066,39 @@ void nxserver_set_client_heaps(struct nxserver_settings *settings, const NEXUS_P
     NEXUS_Platform_GetConfiguration(&platformConfig);
 
     index = nxserver_heap_by_type(pPlatformSettings, NEXUS_HEAP_TYPE_GRAPHICS);
-    if (index != -1) {
+    if (index != -1 && pPlatformSettings->heap[index].size) {
         settings->client.heap[NXCLIENT_DEFAULT_HEAP] = platformConfig.heap[index];
     }
-#if BCHP_CHIP != 7125
-    settings->client.heap[NXCLIENT_FULL_HEAP] = platformConfig.heap[NEXUS_MAX_HEAPS-1];
-#endif
-    if (!settings->client.heap[NXCLIENT_FULL_HEAP]) {
-        settings->client.heap[NXCLIENT_FULL_HEAP] = platformConfig.heap[0];
-    }
+    /* if settings->heaps.clientFullHeap is unset, NXCLIENT_FULL_HEAP ends up being MAIN, which is right */
+    settings->client.heap[NXCLIENT_FULL_HEAP] = platformConfig.heap[settings->heaps.clientFullHeap];
     if (settings->client.heap[NXCLIENT_FULL_HEAP] == settings->client.heap[NXCLIENT_DEFAULT_HEAP]) {
         settings->client.heap[NXCLIENT_FULL_HEAP] = NULL;
     }
 
     index = nxserver_heap_by_type(pPlatformSettings, NEXUS_HEAP_TYPE_COMPRESSED_RESTRICTED_REGION);
-    if (index != -1) {
+    if (index != -1 && pPlatformSettings->heap[index].size) {
         settings->client.heap[NXCLIENT_VIDEO_SECURE_HEAP] = platformConfig.heap[index];
+    }
+
+    index = nxserver_heap_by_type(pPlatformSettings, NEXUS_HEAP_TYPE_EXPORT_REGION);
+    if (index != -1 && pPlatformSettings->heap[index].size) {
+        settings->client.heap[NXCLIENT_EXPORT_HEAP] = platformConfig.heap[index];
     }
 
     /* Untrusted clients will not be able to use the secondary heap (because of simple bounds check), so just don't provide it. */
     if (!settings->certificate.length) {
         index = nxserver_heap_by_type(pPlatformSettings, NEXUS_HEAP_TYPE_SECONDARY_GRAPHICS);
-        if (index != -1) {
+        if (index != -1 && pPlatformSettings->heap[index].size) {
             settings->client.heap[NXCLIENT_SECONDARY_GRAPHICS_HEAP] = platformConfig.heap[index];
             if (settings->client.heap[NXCLIENT_SECONDARY_GRAPHICS_HEAP] == settings->client.heap[NXCLIENT_DEFAULT_HEAP]) {
                 settings->client.heap[NXCLIENT_SECONDARY_GRAPHICS_HEAP] = NULL;
             }
         }
     }
-    settings->client.heap[NXCLIENT_DYNAMIC_HEAP] = platformConfig.heap[NEXUS_MAX_HEAPS-2];
+    if (settings->heaps.dynamicHeap) {
+        settings->client.heap[NXCLIENT_DYNAMIC_HEAP] = platformConfig.heap[settings->heaps.dynamicHeap];
+    }
+
+    /* clients only need a single secure graphics heap. prefer highest MEMC where there's usually more room. */
+    settings->client.heap[NXCLIENT_SECURE_GRAPHICS_HEAP] = NEXUS_Platform_GetFramebufferHeap(NEXUS_OFFSCREEN_SECURE_GRAPHICS_SURFACE);
 }

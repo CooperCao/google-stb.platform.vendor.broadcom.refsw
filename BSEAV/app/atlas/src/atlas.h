@@ -1,43 +1,39 @@
-/***************************************************************************
- * (c) 2002-2016 Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 
 #ifndef ATLAS_H__
@@ -172,6 +168,14 @@ typedef enum eRet
             free(var);       \
             (var) = NULL;    \
         }                    \
+    } while (0)
+
+/* print helpful trace only if ATLAS_MEMORY_LEAK_DETECT is exported */
+#define ATLAS_MEMLEAK_TRACE(str)                                        \
+    do {                                                                \
+        if (getenv("ATLAS_MEMORY_LEAK_DETECT")) {                       \
+            BDBG_WRN(("--> %s:%s %s", __FILE__, __FUNCTION__, (str)));  \
+        }                                                               \
     } while (0)
 
 /* print atlas error and return given error code */
@@ -309,7 +313,7 @@ typedef enum eRet
     } while (0)
 
 /* if b_os error, print warning, set given err_var with atlas error code */
-#define CHECK_BOS_WARN(err_str, err_var, berr_code)                                              \
+#define CHECK_BOS_WARN(err_str, err_var, berr_code)                                                          \
     do {                                                                                                     \
         if (B_ERROR_SUCCESS != (berr_code)) {                                                                \
             BDBG_WRN(("B_OS_LIB WARN: %s - code:%d at %s: %d", (err_str), (berr_code), __FILE__, __LINE__)); \
@@ -383,7 +387,7 @@ typedef enum eRet
     } while (0)
 
 /* if atlas error, print warning and goto given label */
-#define CHECK_WARN(err_str, err_code)                                                        \
+#define CHECK_WARN(err_str, err_code)                                                                    \
     do {                                                                                                 \
         if (eRet_Ok != (err_code)) {                                                                     \
             BDBG_WRN(("ATLAS WARN: %s - code:%d at %s: %d", (err_str), (err_code), __FILE__, __LINE__)); \
@@ -428,13 +432,13 @@ typedef enum eRet
     } while (0)
 
 /* if ptr equals NULL, print warn, set given err_code to err_var and goto given label */
-#define CHECK_PTR_WARN_GOTO(err_str, ptr, err_var, err_code, label)                                \
-    do {                                                                                           \
-        if (NULL == (ptr)) {                                                                       \
-            BDBG_WRN(("ATLAS WARN: %s - NULL pointer at %s: %d", (err_str), __FILE__, __LINE__));  \
-            (err_var) = (err_code);                                                                \
-            goto label;                                                                            \
-        }                                                                                          \
+#define CHECK_PTR_WARN_GOTO(err_str, ptr, err_var, err_code, label)                               \
+    do {                                                                                          \
+        if (NULL == (ptr)) {                                                                      \
+            BDBG_WRN(("ATLAS WARN: %s - NULL pointer at %s: %d", (err_str), __FILE__, __LINE__)); \
+            (err_var) = (err_code);                                                               \
+            goto label;                                                                           \
+        }                                                                                         \
     } while (0)
 
 /* if ptr equals NULL, print message, set given err_code to err_var and goto given label */

@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2012 Broadcom Corporation
+ *     Broadcom Proprietary and Confidential. (c)2012 Broadcom.  All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -86,13 +86,25 @@ BERR_Code BV3D_P_IQSetWaiting(
 );
 
 /***************************************************************************/
+bool BV3D_P_IQGetSecure(
+   BV3D_IQHandle hIQ
+);
+
+/***************************************************************************/
+BERR_Code BV3D_P_IQSetSecure(
+   BV3D_IQHandle hIQ,
+   bool bSecure
+);
+
+/***************************************************************************/
 uint32_t BV3D_P_IQGetSize(
    BV3D_IQHandle hIQ
 );
 
 /***************************************************************************/
 bool BV3D_P_JobQFindBinOrWaitBinAndMoveToTop(
-   BV3D_IQHandle hIQ
+   BV3D_IQHandle hIQ,
+   bool secure
 );
 
 #endif /* BV3D_INSTRUCTION_QUEUE__H */
