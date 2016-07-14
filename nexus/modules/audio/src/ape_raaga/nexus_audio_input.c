@@ -528,7 +528,7 @@ NEXUS_Error NEXUS_AudioInput_P_AddInput(NEXUS_AudioInput destination, NEXUS_Audi
         {
             if ( NULL == mixerSettings.master )
             {
-                addInputSettings.sampleRateMaster = (source->objectType == NEXUS_AudioInputType_ePlayback)?false:true;
+                addInputSettings.sampleRateMaster = (source->objectType == NEXUS_AudioInputType_ePlayback && source->format != NEXUS_AudioInputFormat_eCompressed)?false:true;
             }
             else
             {
