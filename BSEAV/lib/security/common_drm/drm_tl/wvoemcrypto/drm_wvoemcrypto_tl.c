@@ -60,11 +60,10 @@
 #define MAX_USAGE_TABLE_SIZE         (6544)
 #define OVERWRITE_USAGE_TABLE_ON_ROOTFS  (1)
 
-#define MAX_NUMBER_SESSIONS  (12)
-
 #define INVALID_KEYSLOT_ID   (-1)
 
-static Drm_WVOemCryptoHostSessionCtx_t gHostSessionCtx[MAX_NUMBER_SESSIONS];
+static uint32_t gNumSessions;
+static Drm_WVOemCryptoHostSessionCtx_t *gHostSessionCtx;
 
 /* #define DEBUG 1 */
 void dump(const unsigned char* data, unsigned length, const char* prompt)
@@ -117,7 +116,7 @@ static uint8_t *gPadding = NULL;
 #define BTP_SIZE 188
 
 /* Scatter/gather definitions */
-static DmaBlockInfo_t *gWvDmaBlockInfoList[MAX_NUMBER_SESSIONS];
+static DmaBlockInfo_t **gWvDmaBlockInfoList;
 #define MAX_SG_DMA_BLOCKS DRM_COMMON_TL_MAX_DMA_BLOCKS
 #define WV_OEMCRYPTO_FIRST_SUBSAMPLE 1
 #define WV_OEMCRYPTO_LAST_SUBSAMPLE 2
@@ -234,6 +233,18 @@ DrmRC DRM_WVOemCrypto_UnInit(int *wvRc)
     }
 
     DRM_Common_TL_Finalize();
+
+    if(gHostSessionCtx != NULL)
+    {
+        free(gHostSessionCtx);
+        gHostSessionCtx = NULL;
+    }
+
+    if(gWvDmaBlockInfoList != NULL)
+    {
+        free(gHostSessionCtx);
+        gWvDmaBlockInfoList = NULL;
+    }
 
     BDBG_LEAVE(DRM_WVOemCrypto_UnInit);
     return Drm_Success;
@@ -454,6 +465,37 @@ DrmRC DRM_WVOemCrypto_OpenSession(uint32_t* session,int *wvRc)
 
     BDBG_MSG(("%s: opened session with id = %d",__FUNCTION__,container->basicOut[1] ));
 
+    if(gNumSessions == 0)
+    {
+        rc = DRM_WVOemCrypto_GetMaxNumberOfSessions(&gNumSessions, wvRc);
+        if(rc != Drm_Success)
+        {
+            BDBG_ERR(("%s - Error obtaining maximum number of sessions (0x%08x)", __FUNCTION__, container->basicOut[0]));
+            goto ErrorExit;
+        }
+    }
+
+    if(gHostSessionCtx == NULL)
+    {
+        gHostSessionCtx = calloc(gNumSessions, sizeof(Drm_WVOemCryptoHostSessionCtx_t));
+        if(gHostSessionCtx == NULL)
+        {
+            BDBG_ERR(("%s - Error allocating memory for session context", __FUNCTION__ ));
+            rc = Drm_Err;
+            goto ErrorExit;
+        }
+    }
+
+    if(gWvDmaBlockInfoList == NULL)
+    {
+        gWvDmaBlockInfoList = calloc(gNumSessions, sizeof(DmaBlockInfo_t *));
+        if(gWvDmaBlockInfoList == NULL)
+        {
+            BDBG_ERR(("%s - Error allocationg memory for DMA block list", __FUNCTION__ ));
+            rc = Drm_Err;
+            goto ErrorExit;
+        }
+    }
 
 ErrorExit:
     if(container != NULL)
