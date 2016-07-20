@@ -630,6 +630,7 @@ NEXUS_Error NEXUS_Rave_ConfigureVideo_priv(NEXUS_RaveHandle rave,
 #if NEXUS_RAVE_INPUT_CAPTURE_ENABLED
     NEXUS_Rave_P_CreateTransportClientCapture(rave, pSettings);
 #endif
+    rave->numOutputBytes = 0;
 
     if(hwPidChannel==NULL) {
         if(pSettings->pidChannel==NULL) {
@@ -924,6 +925,7 @@ NEXUS_Error NEXUS_Rave_ConfigureAudio_priv(
 #if NEXUS_RAVE_INPUT_CAPTURE_ENABLED
     NEXUS_Rave_P_CreateTransportClientCapture(rave, pSettings);
 #endif
+    rave->numOutputBytes = 0;
 
     if(hwPidChannel==NULL) {
         if(pSettings->pidChannel==NULL) {
@@ -1187,6 +1189,7 @@ NEXUS_Error NEXUS_Rave_ConfigureAll_priv(NEXUS_RaveHandle rave, const NEXUS_Rave
 #if NEXUS_RAVE_INPUT_CAPTURE_ENABLED
     NEXUS_Rave_P_CreateTransportClientCapture(rave, pSettings);
 #endif
+    rave->numOutputBytes = 0;
 
     if(hwPidChannel==NULL) {
         if(pSettings->pidChannel==NULL) {
