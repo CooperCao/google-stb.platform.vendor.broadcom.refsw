@@ -1918,7 +1918,6 @@ BERR_Code BKIR_OpenChannel(
 #endif
 #endif
 #endif
-
             /* initialize the CMD register to the default value. */
             BREG_Write32(hDev->hRegister, hChnDev->coreOffset + BCHP_KBD1_CMD, 0x07);
 
@@ -2557,6 +2556,23 @@ BERR_Code BKIR_IsPreambleB(
     *preambleFlag = hChn->cir_pb;
 
     return( retCode );
+}
+
+void BKIR_GetLastKey(
+    BKIR_ChannelHandle hChn,  /* [in] Device channel handle */
+    uint32_t *code,           /* [out] lower 32-bits of returned code */
+    uint32_t *codeHigh        /* [out] upper 32-bits of returned code */
+    )
+{
+    BKIR_Handle hDev;
+
+    BDBG_ASSERT( hChn );
+    BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
+
+    hDev = hChn->hKir;
+
+    *code     = BREG_Read32(hDev->hRegister, hChn->coreOffset + BCHP_KBD1_DATA0);
+    *codeHigh = BREG_Read32(hDev->hRegister, hChn->coreOffset + BCHP_KBD1_DATA1);
 }
 
 void BKIR_SetCustomDeviceType (

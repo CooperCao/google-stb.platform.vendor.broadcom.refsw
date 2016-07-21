@@ -708,6 +708,27 @@ BERR_Code BKIR_IsPreambleB(
 
 /***************************************************************************
 Summary:
+    This function returns the last key pressed.
+
+Description:
+    This function is used to retreive the key that was pressed to wakeup
+    after an S3 or S5 suspend.  This must be used immediatly after channel
+    open.
+
+Returns:
+    TODO:
+
+See Also:
+
+****************************************************************************/
+void BKIR_GetLastKey(
+    BKIR_ChannelHandle      hChn,           /* [in] Device channel handle */
+    uint32_t *code,           /* [out] lower 32-bits of returned code */
+    uint32_t *codeHigh        /* [out] upper 32-bits of returned code */
+    );
+
+/***************************************************************************
+Summary:
     This function enables a KIR device.
 
 Description:

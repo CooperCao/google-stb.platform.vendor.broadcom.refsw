@@ -125,6 +125,7 @@ NEXUS_ModuleHandle NEXUS_IrInputModule_Init(const NEXUS_IrInputModuleSettings *p
     if (!g_NEXUS_irInputModule) {
         return NULL;
     }
+
     NEXUS_LockModule();
     BKNI_Memset(&g_NEXUS_irInput, 0, sizeof(g_NEXUS_irInput));
     g_NEXUS_irInput.settings = *pSettings;
@@ -558,6 +559,17 @@ NEXUS_Error NEXUS_IrInput_GetPreambleStatus(NEXUS_IrInputHandle irInput, NEXUS_I
 
 error:
     return NEXUS_UNKNOWN;
+}
+
+NEXUS_Error NEXUS_IrInput_ReadEvent(NEXUS_IrInputHandle irInput, NEXUS_IrInputEvent *pEvent)
+{
+    uint32_t code, codeHigh;
+    BDBG_OBJECT_ASSERT(irInput, NEXUS_IrInput);
+    BKIR_GetLastKey(irInput->irChannel->kirChannel, &code, &codeHigh);
+    BKNI_Memset(pEvent, 0, sizeof(*pEvent));
+    pEvent->code = code;
+    pEvent->codeHigh = codeHigh;
+    return NEXUS_SUCCESS;
 }
 
 void NEXUS_IrInput_GetDefaultDataFilter( NEXUS_IrInputDataFilter *pPattern )

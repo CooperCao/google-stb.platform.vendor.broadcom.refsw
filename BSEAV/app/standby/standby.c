@@ -533,6 +533,12 @@ int deepStandbyMode(void)
             nexusStandbyStatus.wakeupStatus.keypad,
             nexusStandbyStatus.wakeupStatus.timeout);
 
+    if(nexusStandbyStatus.wakeupStatus.ir) {
+        unsigned code, codeHigh;
+        ir_last_key(&code, &codeHigh);
+        printf("Wake-up key was: %x %x\n", code, codeHigh);
+    }
+
     if(g_cmd_options._auto) {
         wait_for_all_devices();
     } else {
