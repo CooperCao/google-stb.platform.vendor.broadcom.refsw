@@ -22,6 +22,36 @@ probably a few Android-specific EGL_IMAGE_T subclasses.
 
 #include "egl_surface_common_abstract.h"
 
+typedef struct native_egl_image
+{
+   EGL_IMAGE_T base;          /* must be the 1st element to allow type casting */
+   EGLClientBuffer buffer;    /* some platforms may require acquire/release */
+} NATIVE_EGL_IMAGE_T;
+
+static KHRN_IMAGE_T *get_native_egl_image(EGL_IMAGE_T *p)
+{
+   NATIVE_EGL_IMAGE_T *egl_image = (NATIVE_EGL_IMAGE_T *)p;
+   KHRN_IMAGE_T *image = image_from_surface_abstract(egl_image->buffer, false);
+   if (!image)
+      return NULL;
+
+   /* check for resize/format change.  If the base offset has moved, then replace the image and
+      interlocks are invalid */
+   if (khrn_image_get_offset(egl_image->base.image, 0) != khrn_image_get_offset(image, 0))
+      KHRN_MEM_ASSIGN(egl_image->base.image, image);
+
+   KHRN_MEM_ASSIGN(image, NULL);
+
+   return egl_image->base.image;
+}
+
+static void destroy_native_egl_image(EGL_IMAGE_T *p)
+{
+   NATIVE_EGL_IMAGE_T *egl_image = (NATIVE_EGL_IMAGE_T *)p;
+   KHRN_MEM_ASSIGN(egl_image->base.image, NULL);
+   free(egl_image);
+}
+
 /*
  * Create a new EGL Image type specific to your platform.
  *
@@ -35,12 +65,12 @@ EGL_IMAGE_T *egl_image_native_buffer_abstract_new(EGL_CONTEXT_T *context,
       EGL_AttribType attrib_type)
 {
    BEGL_DisplayInterface *platform = &g_bcgPlatformData.displayInterface;
-   EGL_IMAGE_T *egl_image = NULL;
+   NATIVE_EGL_IMAGE_T *egl_image = NULL;
    EGLenum error = EGL_BAD_ALLOC;
    vcos_unused(context);
 
-   UNUSED(attrib_list);
-   UNUSED(attrib_type);
+   vcos_unused(attrib_list);
+   vcos_unused(attrib_type);
 
    if (!platform->SurfaceVerifyImageTarget
          || platform->SurfaceVerifyImageTarget(platform->context, buffer, target) != BEGL_Success)
@@ -49,16 +79,20 @@ EGL_IMAGE_T *egl_image_native_buffer_abstract_new(EGL_CONTEXT_T *context,
       goto end;
    }
 
+   egl_image = calloc(1, sizeof(*egl_image));
+   if (!egl_image)
+      goto end;
+
    KHRN_IMAGE_T *image = image_from_surface_abstract(buffer, false);
    if (!image)
       goto end;
+   egl_image->buffer = buffer;
 
-   egl_image = egl_image_create(image);
+   egl_image_init(&egl_image->base, image, destroy_native_egl_image, get_native_egl_image);
    KHRN_MEM_ASSIGN(image, NULL);
-   if (!egl_image)
-      goto end;
+
    error = EGL_SUCCESS;
 end:
    egl_thread_set_error(error);
-   return egl_image;
+   return (EGL_IMAGE_T*)egl_image;
 }

@@ -181,6 +181,14 @@ static void get_texture_metrics_abstract(BEGL_BufferFormat format,
    offset[2] = offset[1] + (pitch[1] * (height / 2));
 }
 
+static void image_term_abstract(void *nativeSurface)
+{
+   BEGL_DisplayInterface   *platform = &g_bcgPlatformData.displayInterface;
+
+   if (platform->SurfaceChangeRefCount)
+      platform->SurfaceChangeRefCount(platform->context, nativeSurface, BEGL_Decrement);
+}
+
 KHRN_IMAGE_T *image_from_surface_abstract(void *nativeSurface, bool flipY)
 {
    KHRN_IMAGE_T            *image = NULL;
@@ -223,7 +231,12 @@ KHRN_IMAGE_T *image_from_surface_abstract(void *nativeSurface, bool flipY)
    assert(surfaceInfo.physicalOffset != 0);
    assert(surfaceInfo.cachedAddr != NULL);
 
-   gmem_handle = gmem_from_external_memory(surfaceInfo.physicalOffset, surfaceInfo.cachedAddr, surfaceInfo.byteSize, "display_surface");
+   if (platform->SurfaceChangeRefCount)
+      platform->SurfaceChangeRefCount(platform->context, nativeSurface, BEGL_Increment);
+
+   gmem_handle = gmem_from_external_memory(image_term_abstract, nativeSurface,
+                                           surfaceInfo.physicalOffset, surfaceInfo.cachedAddr,
+                                           surfaceInfo.byteSize, "display_surface");
    if (gmem_handle == GMEM_HANDLE_INVALID)
       goto error;
 
