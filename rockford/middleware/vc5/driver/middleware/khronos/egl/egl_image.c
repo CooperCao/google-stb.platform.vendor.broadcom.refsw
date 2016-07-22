@@ -22,6 +22,17 @@ FILE DESCRIPTION
 #include "middleware/khronos/egl/egl_platform.h"
 #include "middleware/khronos/egl/egl_attrib_list.h"
 
+static void destroy(EGL_IMAGE_T* egl_image)
+{
+   KHRN_MEM_ASSIGN(egl_image->image, NULL);
+   free(egl_image);
+}
+
+static KHRN_IMAGE_T *get(EGL_IMAGE_T *egl_image)
+{
+   return egl_image->image;
+}
+
 EGL_IMAGE_T* egl_image_create(KHRN_IMAGE_T *image)
 {
    assert(image != NULL);
@@ -29,9 +40,22 @@ EGL_IMAGE_T* egl_image_create(KHRN_IMAGE_T *image)
    if (!egl_image)
       return NULL;
 
+   egl_image_init(egl_image, image, destroy, get);
+   return egl_image;
+}
+
+void egl_image_init(EGL_IMAGE_T* egl_image, KHRN_IMAGE_T *image,
+   egl_image_destroy destroy, egl_image_get get)
+{
+   assert(egl_image != NULL);
+   assert(image != NULL);
+   assert(destroy != NULL);
+   assert(get != NULL);
+
    egl_image->ref_count = 1;
    KHRN_MEM_ASSIGN(egl_image->image, image);
-   return egl_image;
+   egl_image->destroy = destroy;
+   egl_image->get = get;
 }
 
 void egl_image_refinc(EGL_IMAGE_T *egl_image)
@@ -51,14 +75,13 @@ void egl_image_refdec(EGL_IMAGE_T *egl_image)
    if (before_dec == 1)
    {
       assert(egl_get_image_handle(egl_image) == EGL_NO_IMAGE_KHR);
-      KHRN_MEM_ASSIGN(egl_image->image, NULL);
-      free(egl_image);
+      egl_image->destroy(egl_image);
    }
 }
 
 KHRN_IMAGE_T *egl_image_get_image(EGL_IMAGE_T *egl_image)
 {
-   return egl_image->image;
+   return egl_image->get(egl_image);
 }
 
 static EGLImageKHR egl_create_image_impl(EGLDisplay dpy,
@@ -66,7 +89,7 @@ static EGLImageKHR egl_create_image_impl(EGLDisplay dpy,
        const void *attrib_list, EGL_AttribType attrib_type)
 {
    if (!egl_initialized(dpy, true))
-      return EGL_NO_IMAGE_KHR;;
+      return EGL_NO_IMAGE_KHR;
 
    EGL_CONTEXT_T *context = NULL;
    if (ctx != EGL_NO_CONTEXT)

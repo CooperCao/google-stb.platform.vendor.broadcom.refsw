@@ -233,7 +233,9 @@ gmem_handle_t gmem_alloc(size_t size, size_t align, gmem_usage_flags_t usage_fla
 }
 
 /* Wrap a device offset and cached ptr in a gmem_handle */
-gmem_handle_t gmem_from_external_memory(uint64_t physOffset, void *cachedPtr, size_t length, const char *desc)
+gmem_handle_t gmem_from_external_memory(GMEM_TERM_T term, void *nativeSurface,
+                                        uint64_t physOffset, void *cachedPtr,
+                                        size_t length, const char *desc)
 {
    gmem_alloc_item   *item = NULL;
 
@@ -249,11 +251,13 @@ gmem_handle_t gmem_from_external_memory(uint64_t physOffset, void *cachedPtr, si
 
    item->memory_handle = 0;
 
-   item->magic       = GMEM_HANDLE_MAGIC;
-   item->size        = length;
-   item->align       = 1;
-   item->usage_flags = GMEM_USAGE_ALL; /* Conservatively assume we need CPU and V3D access. */
-   item->desc        = desc;
+   item->magic          = GMEM_HANDLE_MAGIC;
+   item->size           = length;
+   item->align          = 1;
+   item->usage_flags    = GMEM_USAGE_ALL; /* Conservatively assume we need CPU and V3D access. */
+   item->desc           = desc;
+   item->nativeSurface  = nativeSurface;
+    item->term          = term;
 
    item->driver_map_count     = 0;           /* This is pre-mapped, but not by the driver */
    item->cur_map_ptr          = cachedPtr;
@@ -326,6 +330,9 @@ static void lazy_free_item(gmem_alloc_item *item)
 
    /* Just in case this memory gets reused as an item */
    item->magic = 0xFFEEFFEE;
+
+   if (item->term)
+      item->term(item->nativeSurface);
 
    free(item);
 }
