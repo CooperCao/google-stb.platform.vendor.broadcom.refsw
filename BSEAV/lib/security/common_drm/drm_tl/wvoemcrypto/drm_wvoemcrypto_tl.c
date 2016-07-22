@@ -242,7 +242,7 @@ DrmRC DRM_WVOemCrypto_UnInit(int *wvRc)
 
     if(gWvDmaBlockInfoList != NULL)
     {
-        free(gHostSessionCtx);
+        free(gWvDmaBlockInfoList);
         gWvDmaBlockInfoList = NULL;
     }
 
