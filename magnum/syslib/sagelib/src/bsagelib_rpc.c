@@ -422,7 +422,10 @@ BSAGElib_P_Rpc_RemoveRemote(
                   __FUNCTION__, hSAGElib, remote->hSAGElibClient, remote,
                   remote->platformId, remote->moduleId, remote->message->instanceId));
 
-        if (remote->platformId != 0) {
+        if (remote->moduleId != 0) {
+            BSAGElib_Rai_Module_Uninit(remote, NULL);
+        }
+        else if (remote->platformId != 0) {
             BSAGElib_Rai_Platform_Close(remote, NULL);
         }
     }
@@ -560,9 +563,11 @@ BSAGElib_Rpc_SendCommand(
     }
 
     switch (command->systemCommandId) {
+    case BSAGElib_SystemCommandId_eModuleInit:
     case BSAGElib_SystemCommandId_ePlatformOpen:
         remote->open = true;
         break;
+    case BSAGElib_SystemCommandId_eModuleUninit:
     case BSAGElib_SystemCommandId_ePlatformClose:
         remote->open = false;
         break;
