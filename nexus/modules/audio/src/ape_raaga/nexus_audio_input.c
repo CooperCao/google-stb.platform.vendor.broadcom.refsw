@@ -528,7 +528,7 @@ NEXUS_Error NEXUS_AudioInput_P_AddInput(NEXUS_AudioInput destination, NEXUS_Audi
         {
             if ( NULL == mixerSettings.master )
             {
-                addInputSettings.sampleRateMaster = (source->objectType == NEXUS_AudioInputType_ePlayback)?false:true;
+                addInputSettings.sampleRateMaster = (source->objectType == NEXUS_AudioInputType_ePlayback && source->format != NEXUS_AudioInputFormat_eCompressed)?false:true;
             }
             else
             {
@@ -1749,7 +1749,7 @@ static NEXUS_Error NEXUS_AudioInput_P_CheckOutputMixer(
                 /* Check for the mixer's master option */
                 if ( NULL == mixerSettings.master )
                 {
-                    addInputSettings.sampleRateMaster = (pUpstreamNode->pUpstreamObject->objectType == NEXUS_AudioInputType_ePlayback)?false:true;
+                    addInputSettings.sampleRateMaster = (pUpstreamNode->pUpstreamObject->objectType == NEXUS_AudioInputType_ePlayback && pUpstreamNode->pUpstreamObject->format != NEXUS_AudioInputFormat_eCompressed)?false:true;
                 }
                 else
                 {
@@ -1773,7 +1773,7 @@ static NEXUS_Error NEXUS_AudioInput_P_CheckOutputMixer(
         else
         {
             /* Non-mixers add themselves as inputs */
-            addInputSettings.sampleRateMaster = (input->objectType == NEXUS_AudioInputType_ePlayback)?false:true;
+            addInputSettings.sampleRateMaster = (input->objectType == NEXUS_AudioInputType_ePlayback && input->format != NEXUS_AudioInputFormat_eCompressed)?false:true;
             errCode = BAPE_Mixer_AddInput(pMixerNode->inputMixer, (BAPE_Connector)input->port, &addInputSettings);
             if ( errCode )
             {

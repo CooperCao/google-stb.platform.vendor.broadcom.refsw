@@ -670,10 +670,15 @@ static NEXUS_Error NEXUS_SimpleAudioDecoder_P_AddOutputs( NEXUS_SimpleAudioDecod
     spdifInput = NULL;
     hdmiInput = NULL;
     if (handle->startSettings.passthroughBuffer.enabled) {
-        /* Send to SPDIF always, send to HDMI if it supports compressed AC3 or AC3+ */
-        spdifInput = NEXUS_AudioPlayback_GetConnector(handle->serverSettings.passthroughPlayback);
+        NEXUS_AudioInput passthroughInput;
+
+        passthroughInput = NEXUS_AudioPlayback_GetConnector(handle->serverSettings.passthroughPlayback);
+
+        /* Send to SPDIF if sampling rate is supported */
+        spdifInput = (handle->startSettings.passthroughBuffer.sampleRate <= 48000) ? passthroughInput : NULL;
+        /* Send to HDMI if it supports compressed AC3 or AC3+ */
         hdmiInput = nexus_p_is_compressed_output(handle, handle->serverSettings.hdmi.input[NEXUS_AudioCodec_eAc3]) ||
-                    nexus_p_is_compressed_output(handle, handle->serverSettings.hdmi.input[NEXUS_AudioCodec_eAc3Plus]) ? spdifInput : NULL;
+                    nexus_p_is_compressed_output(handle, handle->serverSettings.hdmi.input[NEXUS_AudioCodec_eAc3Plus]) ? passthroughInput : NULL;
     } else {
         if (secondaryCodec != NEXUS_AudioCodec_eUnknown) {
             spdifInput = handle->serverSettings.spdif.input[secondaryCodec];
